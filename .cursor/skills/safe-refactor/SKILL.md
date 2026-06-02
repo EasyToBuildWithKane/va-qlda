@@ -2,44 +2,44 @@
 name: safe-refactor
 description: >-
   Plans or executes safe refactors in VA-QLDA per REFACTOR_PLAN and TECHNICAL_DEBT
-  without mixing feature work. Use when reorganizing folders, extracting use cases,
-  or addressing TD-001–TD-009.
+  without mixing feature work. Phase 1-5 complete; use for follow-up TD items.
 ---
 
 # Safe Refactor — VA-QLDA
 
-## Rules (from docs/REFACTOR_PLAN.md)
+## Status (2026-06-03)
+
+**Refactor Phase 1–5: ✅ COMPLETE**
+
+- Phase 1: constants, enums, feature tests
+- Phase 2: `modules/project/`, `shared/ui/`, removed `Components/Project/`
+- Phase 3: Project/Task Use Cases, Options services, Pinia
+- Phase 4: shared UI library (form/, EmptyState, …)
+- Phase 5: lazy routes, Vite chunks, Options cache
+
+## Rules (always)
 
 1. **No feature + refactor** in the same PR.
 2. **Backward compatible** each step.
-3. **Small commits** — easy rollback.
-4. Do **not** start Phase 2+ folder moves unless user explicitly approves.
+3. **Small commits** — Conventional Commits, Husky hooks pass.
+4. Update `docs/` + `_dev/` when operational knowledge changes.
 
-## Before coding
+## Open follow-ups (from TECHNICAL_DEBT)
 
-1. Read `docs/TECHNICAL_DEBT.md` for ID (TD-001…).
-2. Read matching section in `docs/REFACTOR_PLAN.md`.
-3. List files to move/import updates; grep all references.
+| ID | Task |
+|----|------|
+| TD-002 | Extract heavy queries from ProjectController/TaskController |
+| TD-010 | DailyReport `project_id` legacy cleanup |
+| TD-007 | Frontend `services/http.js` (optional) |
+| — | Migrate `Components/DailyReport/` → `modules/daily-report/components/` |
+| — | N+1 / index audit (REFACTOR_PLAN Phase 5.4) |
 
-## Allowed quick wins (low risk)
+## Frontend move checklist (if moving more files)
 
-- Constants → `config/business.php` / `resources/js/constants/`
-- Enum `options()` / `label()` completeness
-- Feature tests in `tests/Feature/` for critical paths
-
-## Deferred without approval
-
-- Move `Components/Project/*` → `modules/project/`
-- Pinia stores
-- REST `api.php` layer
-- Extract Use Cases for Project/Task
-
-## Frontend move checklist (when approved)
-
-- [ ] Move file
-- [ ] Update all `@/` imports
-- [ ] `npm run build` passes
-- [ ] Smoke test affected pages
+- [ ] Move file to `modules/` or `shared/`
+- [ ] Grep + update all `@/` imports
+- [ ] `npm run lint` + `npm run build`
+- [ ] Playwright E2E / smoke test affected pages
 
 ## Output format for plans
 
@@ -50,3 +50,5 @@ description: >-
 ## Steps (ordered)
 ## Risk / rollback
 ```
+
+See `docs/REFACTOR_PLAN.md`, `docs/TECHNICAL_DEBT.md`.

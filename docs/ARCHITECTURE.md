@@ -4,32 +4,34 @@
 
 ## 1. Kiến Trúc Hiện Tại
 
-Dự án áp dụng **Hybrid Architecture**: kết hợp Clean Architecture ở tầng Daily Report domain, injectable Services layer cho Notification, và MVC truyền thống ở các module còn lại.
+Dự án áp dụng **Hybrid Architecture**: Clean Architecture cho DailyReport, Application Use Cases cho Project/Task (Phase 3), injectable Services cho Notification, và MVC cho các module còn lại (Blocker, Bug, Feedback).
 
 ```
 app/
-├── Application/          ← Application Layer (chỉ DailyReport)
+├── Application/
+│   ├── DailyReport/          ← Use Cases (full Clean Architecture)
+│   ├── Project/              ← Create, Update, Duplicate, Archive, LogWork
+│   └── Task/                 ← Create, UpdateStatus, BulkCreate
+│
+├── Domain/                   ← Domain Layer (chỉ DailyReport)
 │   └── DailyReport/
-│       ├── CreateDailyReportUseCase.php
-│       ├── UpdateDailyReportUseCase.php
-│       ├── SubmitDailyReportUseCase.php
-│       ├── ScoreReportUseCase.php
-│       └── RejectReportUseCase.php
 │
-├── Domain/               ← Domain Layer (chỉ DailyReport)
-│   └── DailyReport/
-│       ├── Models/
-│       ├── Services/
-│       └── Exceptions/
+├── Services/
+│   └── NotificationService.php
 │
-├── Services/             ← [MỚI] Injectable Services layer
-│   └── NotificationService.php   ← Notification delivery, preferences, bulk insert
-│
-└── Http/                 ← HTTP Layer (MVC cho tất cả)
-    ├── Controllers/      ← Request handling
-    ├── Requests/         ← Validation
-    ├── Resources/        ← Response formatting
-    └── Middleware/
+└── Http/                     ← Controllers, Requests, Resources
+```
+
+**Frontend (sau refactor Phase 2–5):**
+
+```
+resources/js/
+├── Pages/              ← Inertia (lazy-loaded)
+├── modules/project/    ← Feature components + config
+├── shared/ui/          ← UI primitives
+├── shared/composables/ ← useToast, usePermission, useFilter
+├── composables/        ← Feature logic (Sprint, Project, Risk, …)
+└── stores/             ← Pinia auth + ui
 ```
 
 ### Sơ Đồ Layer
@@ -69,26 +71,27 @@ app/
 
 | Vấn Đề | Mô Tả | Mức Độ |
 |---|---|---|
-| Clean Architecture chỉ áp dụng cho DailyReport | Các module khác (Project, Task, Blocker) vẫn dùng thin MVC, không có Use Case layer | Medium |
-| Domain models tách biệt với App\Models | `App\Domain\DailyReport\Models\DailyReport` vs `App\Models\Project` — hai pattern tồn tại song song | Medium |
-| Controllers quá dày | ProjectController, TaskController làm quá nhiều logic (query, business logic, response formatting) | High |
+| ~~Clean Architecture chỉ DailyReport~~ | **Đã cải thiện:** Project/Task có Application Use Cases; Blocker/Bug vẫn MVC | 🟡 Medium |
+| Domain models tách biệt với App\Models | `App\Domain\DailyReport\Models\` vs `App\Models\Project` — hai pattern song song | Medium |
+| Controllers quá dày | `ProjectController@show`, `TaskController` vẫn có query phức tạp | High |
 
 ### 2.2 Coupling
 
 | Vấn Đề | Mô Tả | Mức Độ |
 |---|---|---|
-| Options.php là God Object | Class static đơn lẻ chứa toàn bộ shared options cho toàn ứng dụng, coupled trực tiếp với Models | Medium |
-| Navigation.php hardcoded | Sidebar menu hardcoded trong PHP class, không có cơ chế config | Low |
-| Controllers trực tiếp query Models | Không có Repository layer, business logic rải rác trong Controllers và Models | Medium |
+| ~~Options.php God Object~~ | **Đã refactor:** `Support/Options/*` + delegate, bind AppServiceProvider | 🟢 Resolved |
+| Navigation.php hardcoded | Sidebar menu hardcoded trong PHP class | Low |
+| Controllers trực tiếp query Models | Một số actions vẫn query trực tiếp (show/index) | Medium |
 
 ### 2.3 Frontend Architecture
 
 | Vấn Đề | Mô Tả | Mức Độ |
 |---|---|---|
-| ~~Composables thiếu~~ ✅ **ĐÃ CẢI THIỆN** | Đã có 20+ composables (useSprintData, useProjectDashboard, useRiskImport...) — nhưng chưa có usePermission | Medium |
-| Components chưa phân tầng rõ | Project/ chứa cả UI primitives (Badge, Avatar) lẫn complex features (GanttChart, TaskBoard) | Medium |
-| Không có global state | Không có Pinia stores — state được pass qua props hoặc lấy từ Inertia page props | Medium |
-| API service layer cho notifications là JSON | NotificationController trả JSON (không phải Inertia) — pattern mới, chưa nhất quán với phần còn lại | Medium |
+| ~~Composables thiếu~~ | **Đã cải thiện:** 25+ composables + `shared/composables/` | 🟢 Resolved |
+| ~~Components chưa phân tầng~~ | **Đã migrate:** `modules/project/`, `shared/ui/` | 🟢 Resolved |
+| ~~Không có global state~~ | **Đã thêm:** Pinia `stores/auth.js`, `stores/ui.js` | 🟡 Partial |
+| Không có API service layer | HTTP calls inline Inertia/axios — chưa có `services/http.js` | Medium |
+| Notification JSON API | `NotificationController` trả JSON — intentional exception | Medium |
 
 ### 2.4 Dependency Issues
 

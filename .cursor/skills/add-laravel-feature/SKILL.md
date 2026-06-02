@@ -1,9 +1,9 @@
 ---
 name: add-laravel-feature
 description: >-
-  Adds or extends a Laravel feature in VA-QLDA following MVC or DailyReport
-  Clean Architecture patterns. Use when creating controllers, form requests,
-  policies, migrations, enums, routes, or notification hooks.
+  Adds or extends a Laravel feature in VA-QLDA following MVC or Application
+  Use Case patterns. Use when creating controllers, form requests, policies,
+  migrations, enums, routes, or notification hooks.
 ---
 
 # Add Laravel Feature — VA-QLDA
@@ -12,36 +12,38 @@ description: >-
 
 | If module is… | Pattern |
 |---------------|---------|
-| DailyReport | Use Case in `app/Application/DailyReport/` |
-| Project, Task, Blocker, Bug, … | Controller + FormRequest + `App\Models` |
+| DailyReport | Use Case + Domain (`app/Application/DailyReport/`, `app/Domain/`) |
+| Project | Use Case (`app/Application/Project/`) for create/update/duplicate/archive |
+| Task | Use Case (`app/Application/Task/`) for create/status/bulk |
+| Blocker, Bug, Feedback, Department | Controller + FormRequest + `App\Models` |
 
 ## 2. Backend checklist
 
 - [ ] Migration: `va_prd_*`, short index names, enums aligned
-- [ ] Model: `$fillable`, `$casts`, relationships, enum casts
-- [ ] `Store*Request` / `Update*Request`: `authorize()` via policy
-- [ ] Policy method + map in `AuthServiceProvider` if needed
-- [ ] Controller: thin; `back()->with('success', '...')` Vietnamese
-- [ ] `*Resource` for Inertia props if list/detail heavy
-- [ ] Route in `routes/web.php` (static routes before `{param}`)
-- [ ] Activity logger if entity has audit trail (Task, Blocker, …)
-- [ ] `NotificationDispatcher` / `NotificationService` if user-facing event
+- [ ] Model: `$fillable`, `$casts`, relationships
+- [ ] FormRequest: `authorize()` via policy; messages tiếng Việt
+- [ ] Policy + `AuthServiceProvider` map if needed
+- [ ] Controller: thin; mutations → Use Case khi module đã có
+- [ ] `*Resource` for Inertia props; `can` permissions
+- [ ] Route in `routes/web.php` (static before `{param}`)
+- [ ] Activity logger (Task, Blocker, …)
+- [ ] `NotificationDispatcher` if user-facing event
+- [ ] Feature test in `tests/Feature/` for critical paths
 
-## 3. Bulk / import
+## 3. Options / constants
 
-Follow `.cursor/rules/import-export-reconcile.mdc` — never loop `router.post` per row from browser.
+- Shared dropdown data → `Support/Options/*` (not raw queries in controller)
+- Business constants → `config/business.php`
 
-## 4. Verify
+## 4. Bulk / import
+
+Follow `.cursor/rules/import-export-reconcile.mdc`.
+
+## 5. Verify
 
 ```bash
 php artisan route:list --name=your.feature
-php artisan migrate --pretend
+composer test -- --filter=YourTest
 ```
 
-## Anti-patterns
-
-- Business logic only in Blade or Resource
-- New God static helpers in `Options.php` without need
-- Skipping policy on mutating routes
-
-See `docs/API_STRUCTURE.md` for route naming examples.
+See `docs/API_STRUCTURE.md`, `docs/FOLDER_STRUCTURE.md`.

@@ -1,392 +1,142 @@
 # FOLDER STRUCTURE — VA QLDA
 
+> **Cập nhật 2026-06-03** — sau refactor Phase 1–5.
+
 ---
 
-## 1. Cấu Trúc Thư Mục Hiện Tại
+## 1. Cấu Trúc Hiện Tại (sau refactor)
 
 ```
 va-qlda/
+├── _dev/                          ← Project memory (CLI, CI, workflows) + _dev/vi/
 ├── app/
-│   ├── Application/                    ← Use Cases (chỉ DailyReport)
-│   │   └── DailyReport/
-│   │       ├── CreateDailyReportUseCase.php
-│   │       ├── UpdateDailyReportUseCase.php
-│   │       ├── SubmitDailyReportUseCase.php
-│   │       ├── ScoreReportUseCase.php
-│   │       └── RejectReportUseCase.php
-│   │
-│   ├── Domain/                         ← Domain Layer (chỉ DailyReport)
-│   │   └── DailyReport/
-│   │       ├── Models/
-│   │       │   ├── DailyReport.php
-│   │       │   └── DailyReportScore.php
-│   │       ├── Services/
-│   │       │   └── ScoringService.php
-│   │       └── Exceptions/
-│   │           └── DailyReportException.php
-│   │
-│   ├── Http/
-│   │   ├── Controllers/
-│   │   │   ├── Auth/LoginController.php
-│   │   │   ├── Blocker/BlockerController.php
-│   │   │   ├── Bug/BugController.php
-│   │   │   ├── Comment/CommentController.php
-│   │   │   ├── DailyReport/
-│   │   │   │   ├── DailyReportController.php
-│   │   │   │   └── DailyReportReviewController.php
-│   │   │   ├── Department/DepartmentController.php
-│   │   │   ├── Feedback/FeedbackController.php
-│   │   │   ├── Project/
-│   │   │   │   ├── EpicController.php
-│   │   │   │   ├── ProjectAttachmentController.php
-│   │   │   │   ├── ProjectController.php
-│   │   │   │   ├── ProjectMemberController.php
-│   │   │   │   ├── SprintController.php
-│   │   │   │   ├── TaskAttachmentController.php
-│   │   │   │   ├── TaskController.php
-│   │   │   │   ├── TaskWatcherController.php
-│   │   │   │   └── WorklogController.php
-│   │   │   └── DashboardController.php
-│   │   ├── Middleware/                  ← Standard Laravel middlewares
-│   │   │   ├── HandleInertiaRequests.php
-│   │   │   ├── Authenticate.php
-│   │   │   └── ...
-│   │   ├── Requests/
-│   │   │   ├── Auth/LoginRequest.php
-│   │   │   ├── Blocker/
-│   │   │   ├── Bug/
-│   │   │   ├── Comment/
-│   │   │   ├── DailyReport/
-│   │   │   ├── Department/
-│   │   │   ├── Feedback/
-│   │   │   └── Project/
-│   │   └── Resources/
-│   │       ├── Concerns/PresentsEntities.php
-│   │       ├── BlockerResource.php
-│   │       ├── BugResource.php
-│   │       ├── CommentResource.php
-│   │       ├── DailyReportResource.php
-│   │       ├── DailyReportScoreResource.php
-│   │       ├── DepartmentResource.php
-│   │       ├── EpicResource.php
-│   │       ├── FeedbackResource.php
-│   │       ├── MemberResource.php
-│   │       ├── ProjectListResource.php
-│   │       ├── ProjectResource.php
-│   │       ├── SprintResource.php
-│   │       ├── TaskResource.php
-│   │       ├── WorklogResource.php
-│   │       └── ...
-│   │
-│   ├── Models/                         ← Eloquent models (App domain)
-│   │   ├── Blocker.php
-│   │   ├── BlockerActivity.php
-│   │   ├── BlockerAttachment.php
-│   │   ├── Bug.php
-│   │   ├── Comment.php
-│   │   ├── Department.php
-│   │   ├── Employee.php
-│   │   ├── Epic.php
-│   │   ├── Feedback.php
-│   │   ├── Project.php
-│   │   ├── ProjectAttachment.php
-│   │   ├── ProjectAttachmentActivity.php
-│   │   ├── Sprint.php
-│   │   ├── SystemAccount.php
-│   │   ├── Task.php
-│   │   ├── TaskActivity.php
-│   │   ├── TaskAttachment.php
-│   │   └── Worklog.php
-│   │
+│   ├── Application/
+│   │   ├── DailyReport/           ← Use Cases (Clean Architecture)
+│   │   ├── Project/               ← Create, Update, Duplicate, Archive, LogWork
+│   │   └── Task/                  ← Create, UpdateStatus, BulkCreate
+│   ├── Domain/DailyReport/        ← Domain models + ScoringService
+│   ├── Http/Controllers|Requests|Resources/
+│   ├── Models/
 │   ├── Policies/
-│   │   ├── BlockerPolicy.php
-│   │   ├── BugPolicy.php
-│   │   ├── DailyReportPolicy.php
-│   │   ├── DepartmentPolicy.php
-│   │   ├── FeedbackPolicy.php
-│   │   └── ProjectPolicy.php
-│   │
 │   ├── Providers/
-│   │   ├── AppServiceProvider.php
-│   │   ├── AuthServiceProvider.php
-│   │   ├── BroadcastServiceProvider.php
-│   │   ├── EventServiceProvider.php
-│   │   └── RouteServiceProvider.php
-│   │
+│   ├── Services/                  ← NotificationService
 │   └── Support/
-│       ├── Concerns/HasUuid.php
 │       ├── Enums/
-│       │   ├── BlockerSeverity.php
-│       │   ├── BlockerStatus.php
-│       │   ├── BugSeverity.php
-│       │   ├── BugStatus.php
-│       │   ├── FeedbackCategory.php
-│       │   ├── FeedbackStatus.php
-│       │   ├── Grade.php
-│       │   ├── ProjectAttachmentCategory.php
-│       │   ├── ProjectScope.php
-│       │   ├── ProjectStatus.php
-│       │   ├── ProjectType.php
-│       │   ├── RateType.php
-│       │   ├── Region.php
-│       │   ├── ReportStatus.php
-│       │   ├── ScoreTrend.php
-│       │   ├── SprintStatus.php
-│       │   ├── SystemRole.php
-│       │   ├── TaskPhase.php
-│       │   ├── TaskPriority.php
-│       │   └── TaskStatus.php
-│       ├── BlockerActivityLogger.php
-│       ├── Navigation.php
-│       ├── Options.php
-│       ├── ProjectAttachmentActivityLogger.php
-│       ├── ProjectCatalog.php
-│       ├── TaskActivityLogger.php
-│       └── TaskTimeliness.php
-│
-├── bootstrap/
-│   └── app.php
-│
+│       ├── Options/               ← EmployeeOptions, ProjectOptions, DepartmentOptions
+│       ├── Options.php            ← Facade delegate → Options/*
+│       └── *ActivityLogger.php
 ├── config/
-│   ├── app.php
-│   ├── auth.php
-│   ├── database.php
+│   ├── business.php               ← Business constants (MONTHLY_HOURS, defaults)
 │   └── ...
-│
-├── database/
-│   ├── factories/
-│   ├── migrations/
-│   └── seeders/
-│
-├── docs/                               ← [MỚI] Tài liệu kỹ thuật
-│
-├── public/
-│
-├── resources/
-│   ├── css/
-│   │   └── app.css
-│   ├── js/
-│   │   ├── app.js
-│   │   ├── bootstrap.js
-│   │   ├── Components/               ← Mixed: UI primitives + feature components
-│   │   │   ├── AppIcon.vue
-│   │   │   ├── DailyReport/          ← OK: feature-grouped
-│   │   │   ├── Project/              ← OK: feature-grouped (nhưng quá rộng)
-│   │   │   └── UI/                   ← OK: UI primitives
-│   │   ├── composables/
-│   │   │   └── useToast.js           ← Thiếu nhiều composables cần thiết
-│   │   ├── Layouts/
-│   │   │   └── AppLayout.vue
-│   │   └── Pages/                    ← OK: Inertia pages
-│   │       ├── Auth/
-│   │       ├── Blocker/
-│   │       ├── Bug/
-│   │       ├── DailyReport/
-│   │       ├── Dashboard/
-│   │       ├── Department/
-│   │       ├── Feedback/
-│   │       └── Project/
-│   └── views/
-│       └── app.blade.php
-│
-├── routes/
-│   ├── api.php                        ← Rỗng (chưa có REST API)
-│   ├── channels.php
-│   ├── console.php
-│   └── web.php
-│
-├── storage/
+├── docs/                          ← Technical documentation
+├── resources/js/
+│   ├── Pages/                     ← Inertia pages
+│   ├── Layouts/
+│   ├── Components/Ui/, DailyReport/, Notifications/
+│   ├── modules/project/, daily-report/
+│   ├── shared/ui/, shared/composables/
+│   ├── composables/               ← Feature composables
+│   ├── stores/                    ← Pinia auth + ui
+│   └── constants/
+├── scripts/                       ← prepare-commit-msg, auto-commit
 ├── tests/
-├── .env.example
-├── artisan
-├── composer.json
-├── package.json
-├── tailwind.config.js
-└── vite.config.js
+│   ├── Feature/                   ← Login, Project, Task, Blocker, Bug, Department, Feedback
+│   └── e2e/                       ← Playwright
+├── .husky/                        ← Git hooks
+├── .github/workflows/ci.yml
+└── .cursor/, .claude/             ← AI rules, skills, commands
 ```
 
 ---
 
-## 2. Vấn Đề Của Cấu Trúc Hiện Tại
+## 2. Refactor Phase 1–5 — Đã Hoàn Thành
 
-| Vấn Đề | Vị Trí | Lý Do |
+| Phase | Nội dung | Trạng thái |
 |---|---|---|
-| Clean Architecture chỉ ở DailyReport | `app/Application/`, `app/Domain/` | Không nhất quán với các module còn lại |
-| `Components/Project/` quá lớn | `resources/js/Components/Project/` | Chứa 40+ files: UI primitives, feature components, config files |
-| UI primitives nằm trong feature folder | `Components/Project/Badge.vue`, `Avatar.vue` | Badge, Avatar là shared UI, không phải Project-specific |
-| Config files nằm trong Components | `Components/Project/projectColumns.js` | Không phải component — là data/config |
-| Chỉ có 1 composable | `composables/useToast.js` | Thiếu: useForm, usePermission, useFilter, useApi |
-| Không có stores/ | `resources/js/` | Cần Pinia stores cho global state |
-| Không có services/ | `resources/js/` | API calls nằm inline trong components |
-| Không có types/ | `resources/js/` | Không có TypeScript types/interfaces |
-| Không có constants/ | `resources/js/` | Hardcoded values rải rác |
+| **1** | `config/business.php`, `constants/`, enums, feature tests | ✅ |
+| **2** | `modules/project/`, `shared/ui/`, xóa `Components/Project/` | ✅ |
+| **3** | Use Cases Project/Task, Options services, Pinia stores | ✅ |
+| **4** | Shared UI library (form/, EmptyState, SkeletonLoader) | ✅ |
+| **5** | Lazy Inertia pages, Vite manual chunks, Options cache | ✅ (một phần DB optimization còn lại) |
+
+Chi tiết: [`REFACTOR_PLAN.md`](REFACTOR_PLAN.md).
 
 ---
 
-## 3. Cấu Trúc Thư Mục Đề Xuất
+## 3. Vấn Đề Đã Giải Quyết (trước refactor)
 
-### 3.1 Backend (app/)
-
-```
-app/
-├── Application/                  ← Use Cases (mở rộng cho tất cả features)
-│   ├── DailyReport/              ← Hiện tại
-│   ├── Project/                  ← Thêm mới
-│   │   ├── CreateProjectUseCase.php
-│   │   ├── UpdateProjectUseCase.php
-│   │   └── DuplicateProjectUseCase.php
-│   ├── Task/                     ← Thêm mới
-│   └── Sprint/                   ← Thêm mới
-│
-├── Domain/                       ← Domain Layer (mở rộng)
-│   ├── DailyReport/              ← Hiện tại
-│   ├── Project/                  ← Thêm mới
-│   │   ├── Models/
-│   │   ├── Services/
-│   │   │   ├── CostCalculationService.php
-│   │   │   └── ProgressCalculationService.php
-│   │   └── Exceptions/
-│   └── IssueTracking/            ← Thêm mới (Blocker, Bug, Feedback)
-│
-├── Http/                         ← Giữ nguyên cấu trúc
-│
-├── Models/                       ← Giữ nguyên, thêm interfaces
-│
-├── Policies/                     ← Giữ nguyên
-│
-├── Providers/                    ← Giữ nguyên
-│
-└── Support/
-    ├── Concerns/
-    │   ├── HasUuid.php
-    │   └── HasActivityLog.php    ← Thêm: chuẩn hóa activity logging
-    ├── Enums/                    ← Giữ nguyên
-    ├── Navigation.php
-    ├── Options.php               ← Refactor thành service providers
-    └── Helpers/                  ← Thêm: functional helpers
-        ├── MoneyHelper.php
-        └── DateHelper.php
-```
-
-### 3.2 Frontend (resources/js/)
-
-```
-resources/js/
-├── app.js                        ← Entry point
-├── bootstrap.js                  ← Axios setup
-│
-├── layouts/                      ← App layouts (lowercase)
-│   └── AppLayout.vue
-│
-├── pages/                        ← Inertia pages (thin, use modules)
-│   ├── auth/
-│   │   └── Login.vue
-│   ├── dashboard/
-│   │   └── Index.vue
-│   ├── daily-report/
-│   │   ├── Today.vue
-│   │   ├── History.vue
-│   │   ├── Show.vue
-│   │   └── Review.vue
-│   ├── project/
-│   │   ├── Index.vue
-│   │   ├── Create.vue
-│   │   ├── Edit.vue
-│   │   └── Show.vue
-│   ├── blocker/
-│   │   └── Index.vue
-│   ├── bug/
-│   │   ├── Index.vue
-│   │   └── Show.vue
-│   ├── feedback/
-│   │   ├── Index.vue
-│   │   └── Show.vue
-│   └── department/
-│       └── Index.vue
-│
-├── modules/                      ← Feature modules (MỚI)
-│   ├── project/
-│   │   ├── components/           ← Project-specific components
-│   │   │   ├── ProjectCard.vue
-│   │   │   ├── ProjectDataGrid.vue
-│   │   │   ├── ProjectForm.vue
-│   │   │   ├── sprint/
-│   │   │   ├── task/
-│   │   │   ├── task-detail/
-│   │   │   ├── dashboard/
-│   │   │   ├── timeline/
-│   │   │   └── documents/
-│   │   ├── composables/          ← Project composables
-│   │   │   ├── useProject.js
-│   │   │   ├── useTask.js
-│   │   │   └── useSprint.js
-│   │   ├── services/             ← Project API calls
-│   │   │   └── projectService.js
-│   │   └── config/               ← Project config (was projectColumns.js)
-│   │       └── columns.js
-│   │
-│   ├── daily-report/
-│   │   ├── components/
-│   │   ├── composables/
-│   │   └── config/
-│   │       └── reportConfig.js
-│   │
-│   ├── issue-tracking/           ← Blocker, Bug, Feedback
-│   │   ├── components/
-│   │   └── composables/
-│   │
-│   └── people/                   ← Employee, Department
-│       ├── components/
-│       └── composables/
-│
-├── shared/                       ← Shared across modules (MỚI)
-│   ├── ui/                       ← UI primitives
-│   │   ├── Modal.vue
-│   │   ├── Drawer.vue
-│   │   ├── AppDialog.vue
-│   │   ├── ToastContainer.vue
-│   │   ├── PageHeader.vue
-│   │   ├── Badge.vue             ← (moved from Project/)
-│   │   ├── Avatar.vue            ← (moved from Project/)
-│   │   ├── ProgressBar.vue       ← (moved from Project/)
-│   │   └── AppIcon.vue
-│   ├── composables/              ← Shared composables (MỚI)
-│   │   ├── useToast.js           ← (moved from composables/)
-│   │   ├── useDialog.js
-│   │   ├── useForm.js
-│   │   ├── useFilter.js
-│   │   └── usePermission.js
-│   └── utils/                    ← Utilities (MỚI)
-│       ├── format.js
-│       └── date.js
-│
-├── stores/                       ← Pinia stores (MỚI)
-│   ├── auth.js
-│   └── ui.js                     ← toast, dialog state
-│
-├── services/                     ← API services (MỚI)
-│   └── http.js                   ← Axios wrapper
-│
-├── types/                        ← TypeScript/JSDoc types (MỚI)
-│   ├── project.d.ts
-│   ├── task.d.ts
-│   └── user.d.ts
-│
-└── constants/                    ← App constants (MỚI)
-    └── index.js
-```
-
----
-
-## 4. Lý Do Thay Đổi
-
-| Thay Đổi | Lý Do |
+| Vấn đề cũ | Giải pháp |
 |---|---|
-| Tạo `modules/` | Gom components + composables + services theo feature, dễ tìm và bảo trì |
-| Tạo `shared/ui/` | Tách UI primitives ra khỏi feature folders, dễ reuse |
-| Tạo `shared/composables/` | Centralize shared logic, tránh duplicate |
-| Tạo `stores/` | Global state management với Pinia |
-| Tạo `services/` | API layer riêng, dễ test và thay thế |
-| Tạo `types/` | Type safety, code documentation |
-| Lowercase folder names | Convention chuẩn cho Vue/Nuxt projects |
-| Mở rộng Application/ và Domain/ cho tất cả features | Nhất quán kiến trúc |
+| `Components/Project/` quá lớn (40+ files) | → `modules/project/components/` |
+| UI primitives trong Project/ | → `shared/ui/` |
+| Config trong Components/ | → `modules/*/config/` |
+| Chỉ 1 composable | → 25+ composables + `shared/composables/` |
+| Không có stores/ | → Pinia `stores/auth.js`, `stores/ui.js` |
+| Hardcoded constants | → `config/business.php` + `constants/index.js` |
+| Options.php God Object | → `Support/Options/*` + delegate |
+
+---
+
+## 4. Còn Lại / Chưa Làm
+
+| Item | Ghi chú |
+|---|---|
+| Lowercase `pages/` folder | Bỏ qua — rủi ro Windows case-insensitive |
+| `modules/daily-report/components/` | DailyReport vẫn ở `Components/DailyReport/` |
+| Domain layer cho Project/Task | Chỉ Application Use Cases, chưa có `app/Domain/Project/` |
+| `services/http.js` frontend | API calls vẫn inline Inertia/axios |
+| TypeScript / JSDoc types | Chưa có |
+
+---
+
+## 5. Backend Application Layer
+
+```
+app/Application/
+├── DailyReport/     ← Full Clean Architecture
+├── Project/
+│   ├── CreateProjectUseCase.php
+│   ├── UpdateProjectUseCase.php
+│   ├── DuplicateProjectUseCase.php
+│   ├── ArchiveProjectUseCase.php
+│   └── LogWorkUseCase.php
+└── Task/
+    ├── CreateTaskUseCase.php
+    ├── UpdateTaskStatusUseCase.php
+    └── BulkCreateTasksUseCase.php
+```
+
+**Pattern mới:** Project/Task mutations → Use Case. DailyReport → Use Case + Domain.  
+Blocker/Bug/Feedback → vẫn MVC trực tiếp.
+
+---
+
+## 6. Frontend Import Conventions
+
+```javascript
+// Shared UI
+import Badge from '@/shared/ui/Badge.vue';
+import { useToast } from '@/shared/composables/useToast';
+
+// Project feature
+import ProjectCard from '@/modules/project/components/ProjectCard.vue';
+import { COLUMNS } from '@/modules/project/config/columns';
+
+// App primitives
+import Modal from '@/Components/Ui/Modal.vue';
+import AppLayout from '@/Layouts/AppLayout.vue';
+
+// Feature logic
+import { useSprintWorkspace } from '@/composables/useSprintWorkspace';
+```
+
+---
+
+## 7. Tài Liệu Liên Quan
+
+| File | Nội dung |
+|---|---|
+| [`FRONTEND_STRUCTURE.md`](FRONTEND_STRUCTURE.md) | Component catalog, composables, patterns |
+| [`ARCHITECTURE.md`](ARCHITECTURE.md) | Layer responsibilities |
+| [`TECHNICAL_DEBT.md`](TECHNICAL_DEBT.md) | TD items còn lại |
+| [`_dev/README.md`](../_dev/README.md) | CLI, CI, workflows (operational) |

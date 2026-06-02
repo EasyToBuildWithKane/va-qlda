@@ -26,6 +26,13 @@
 - 📋 Global Search (QW-03)
 - 📋 Worklog Reports (MI-07)
 
+**Refactor Phase 1–5 — HOÀN THÀNH ✅ (2026-06-03)**
+- ✅ Code cleanup, constants, enums, feature tests
+- ✅ `modules/project/`, `shared/ui/`, xóa `Components/Project/`
+- ✅ Project/Task Use Cases, Options services, Pinia stores
+- ✅ Shared UI library, lazy routes, Vite code splitting
+- 📋 Còn lại: N+1 optimization, visual regression, DailyReport module migrate
+
 ---
 
 ## Quick Wins (1-3 ngày mỗi item)
@@ -201,13 +208,15 @@ Stage 2 (Tháng 3-4): 🔄 HIỆN TẠI
     📋 QW-03 (Global Search)
     📋 MI-07 (Worklog Reports)
     📋 MI-08 (Member Profile)
-    Refactor Phase 1-2 (Code cleanup + TD-005 composables còn thiếu)
+    ~~Refactor Phase 1-2~~ ✅ Hoàn thành (2026-06-03)
+    ~~Refactor Phase 3-5~~ ✅ Hoàn thành (2026-06-03)
 
 Stage 3 (Tháng 5-6):
     + QW-05 (Print/PDF Daily Report)
     + MI-05 (Email Notifications — cần setup Queue trước)
     + MI-06 (Advanced Filters)
-    Refactor Phase 3-4 (Architecture + TD-001/002 Controllers)
+    ~~Refactor Phase 3-4~~ ✅ Done
+    TD-002 Controllers query extraction (follow-up)
 
 Stage 4 (6 tháng+):
     + LT-01 (REST API)

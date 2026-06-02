@@ -1,46 +1,26 @@
 # Safe Refactor — VA-QLDA
 
-Lập kế hoạch hoặc thực thi refactor an toàn theo REFACTOR_PLAN và TECHNICAL_DEBT, không mix feature work.
+## Status
 
-## Rules (từ docs/REFACTOR_PLAN.md)
+**Phase 1–5: ✅ Complete (2026-06-03)**
 
-1. **Không feature + refactor** trong cùng PR.
-2. **Backward compatible** từng bước.
-3. **Small commits** — dễ rollback.
-4. Không bắt đầu Phase 2+ folder moves trừ khi user duyệt tường minh.
+## Rules
 
-## Trước khi code
+1. Không mix feature + refactor trong cùng PR
+2. Commit nhỏ, Husky pass
+3. Cập nhật `docs/` + `_dev/` khi đổi quy trình
 
-1. Đọc `docs/TECHNICAL_DEBT.md` để lấy ID (TD-001…).
-2. Đọc phần tương ứng trong `docs/REFACTOR_PLAN.md`.
-3. Liệt kê files cần move/import updates; grep tất cả references.
+## Follow-up mở
 
-## Quick wins được phép (rủi ro thấp)
+- TD-002: tách query khỏi ProjectController/TaskController
+- TD-010: DailyReport project_id legacy
+- Migrate `Components/DailyReport/` → `modules/daily-report/`
+- N+1 / database indexes
 
-- Constants → `config/business.php` / `resources/js/constants/`
-- Enum `options()` / `label()` completeness
-- Feature tests trong `tests/Feature/` cho critical paths
+## Checklist move file
 
-## Bị defer nếu không có approval
+- [ ] Update imports
+- [ ] `npm run lint` + `npm run build`
+- [ ] E2E nếu UI đổi
 
-- Move `Components/Project/*` → `modules/project/`
-- Pinia stores
-- REST `api.php` layer
-- Extract Use Cases cho Project/Task
-
-## Frontend move checklist (khi được duyệt)
-
-- [ ] Move file
-- [ ] Update tất cả `@/` imports
-- [ ] `npm run build` passes
-- [ ] Smoke test affected pages
-
-## Output format cho plans
-
-```markdown
-## Goal
-## Scope (files)
-## Out of scope
-## Steps (ordered)
-## Risk / rollback
-```
+See `docs/TECHNICAL_DEBT.md`, `docs/REFACTOR_PLAN.md`

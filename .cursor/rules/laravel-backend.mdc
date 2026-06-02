@@ -12,14 +12,29 @@ alwaysApply: false
 public function store(StoreTaskRequest $request, Project $project): RedirectResponse
 {
     $this->authorize('contribute', $project);
-    // validate qua FormRequest; business qua Model/Support/UseCase
+    // Project/Task mutations → Application Use Case
     return back()->with('success', 'Đã thêm công việc.');
 }
 ```
 
 - **FormRequest:** `authorize()` + rules; messages tiếng Việt trong `messages()`.
-- **Resource:** format API/Inertia props; quyền `can` khi cần (`ProjectResource`).
-- **Bulk import:** `DB::transaction`, max 200 rows, `Import*Request` mirror client — xem rule `import-export-reconcile`.
+- **Resource:** format Inertia props; quyền `can` khi cần (`ProjectResource`).
+- **Bulk import:** `DB::transaction`, max 200 rows, `Import*Request` mirror client.
+
+## Application Layer
+
+| Module | Pattern | Path |
+|--------|---------|------|
+| DailyReport | Use Case + Domain | `app/Application/DailyReport/`, `app/Domain/DailyReport/` |
+| Project | Use Case | `app/Application/Project/` — Create, Update, Duplicate, Archive, LogWork |
+| Task | Use Case | `app/Application/Task/` — Create, UpdateStatus, BulkCreate |
+| Blocker, Bug, Feedback | MVC trực tiếp | Controller → Model |
+
+## Options / shared data
+
+- `app/Support/Options.php` — facade delegate.
+- `app/Support/Options/EmployeeOptions.php`, `ProjectOptions.php`, `DepartmentOptions.php` — inject qua AppServiceProvider, có cache.
+- Business constants: `config/business.php`.
 
 ## Enums
 

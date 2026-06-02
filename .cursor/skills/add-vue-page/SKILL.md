@@ -8,6 +8,8 @@ description: >-
 
 # Add Vue Page / UI — VA-QLDA
 
+> Frontend structure post-refactor — see `docs/FRONTEND_STRUCTURE.md`.
+
 ## 1. Page scaffold
 
 - File: `resources/js/Pages/{Domain}/{Action}.vue`
@@ -18,17 +20,20 @@ description: >-
 
 | Type | Path |
 |------|------|
-| Reusable UI | `Components/Ui/` |
-| Domain feature | `Components/{Project\|DailyReport\|...}/` |
-| Cross-feature primitive | Prefer `Ui/` over copying from `Project/` |
+| App UI primitives | `Components/Ui/` — Modal, Drawer, PageHeader |
+| Shared reusable UI | `shared/ui/` — Badge, Avatar, form/* |
+| Project feature | `modules/project/components/` (+ subfolders Sprint/, Dashboard/, …) |
+| DailyReport feature | `Components/DailyReport/` (chưa migrate modules/) |
+| Cross-feature logic | `shared/composables/` hoặc `composables/use*.js` |
 
-Do **not** move files to `modules/` unless refactor phase approved (`docs/REFACTOR_PLAN.md`).
+**Không** tạo file trong `Components/Project/` — path đã xóa.
 
 ## 3. Logic extraction
 
-- Excel, filters, API lists → `composables/use{Feature}.js`
-- Toast: `useToast`; confirm: `useDialog` + `AppDialog`
-- Permissions: `usePage().props.auth`, `can` on entity props
+- Excel, filters, lists → `composables/use{Feature}.js`
+- Toast: `@/shared/composables/useToast`
+- Confirm: `useDialog` + `AppDialog`
+- Permissions: `usePage().props.auth`, entity `can` props; optional `shared/composables/usePermission`
 
 ## 4. Forms
 
@@ -38,16 +43,21 @@ const form = useForm({ ... });
 form.post(route('projects.store'), { preserveScroll: true });
 ```
 
-Show `form.errors.field`; disable submit when `form.processing`.
-
 ## 5. Data modal (import/export)
 
-One toolbar button **Dữ liệu** → `*DataModal.vue` with tabs `import|export|reconcile`. Copy `RiskImportModal` / `SprintDataModal` pattern.
+Một nút **Dữ liệu** → `*DataModal.vue` tabs `import|export|reconcile`.  
+Copy: `modules/project/components/Dashboard/RiskImportModal.vue`, `Sprint/SprintDataModal.vue`.
 
 ## 6. Navigation
 
-Live routes: update `App\Support\Navigation.php` (`status`, `href`, `roles`).
+Update `App\Support\Navigation.php` khi thêm menu item.
+
+## 7. Quality
+
+- `npm run lint` — zero warnings
+- Playwright E2E nếu đổi UI critical path
+- Cập nhật `_dev/` nếu thêm script/hook mới
 
 ## Reference
 
-`docs/FRONTEND_STRUCTURE.md` — component catalog and patterns.
+`docs/FRONTEND_STRUCTURE.md`, `_dev/conventions.md`

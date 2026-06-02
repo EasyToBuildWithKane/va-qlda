@@ -107,3 +107,13 @@ npm install          # runs "prepare" → husky
 npm run test:e2e:install
 composer install
 ```
+
+## Documentation
+
+| Path | Content |
+|------|---------|
+| [`docs/`](docs/) | Architecture, API, database, frontend structure, refactor plan |
+| [`_dev/`](_dev/) | Operational memory: CLI, CI, Husky, workflows |
+| [`_dev/vi/`](_dev/vi/) | Giải thích tiếng Việt |
+| [`.cursor/README.md`](.cursor/README.md) | Cursor rules & skills |
+| [`CLAUDE.md`](CLAUDE.md) | Claude Code instructions |

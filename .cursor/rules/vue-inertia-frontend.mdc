@@ -1,22 +1,32 @@
 ---
-description: Vue 3 + Inertia — Pages, Components, composables, UI patterns VA-QLDA
+description: Vue 3 + Inertia — Pages, modules, shared/ui, composables, Pinia VA-QLDA
 globs: resources/js/**/*
 alwaysApply: false
 ---
 
 # Vue / Inertia Frontend — VA-QLDA
 
-## Cấu trúc (hiện tại — chưa migrate modules/)
+> **Cập nhật 2026-06-03** — sau refactor Phase 2–5.
+
+## Cấu trúc
 
 | Path | Vai trò |
 |------|---------|
 | `Pages/{Domain}/` | Inertia pages — mỏng, bọc `AppLayout` |
-| `Components/Ui/` | Primitives: Modal, Drawer, PageHeader, Toast |
-| `Components/Project/`, `DailyReport/` | Feature UI |
-| `composables/use*.js` | Logic ra khỏi `.vue` — **không** import `xlsx` trong Vue (import/export) |
+| `Components/Ui/` | App primitives: Modal, Drawer, PageHeader, AppDialog |
+| `Components/DailyReport/`, `Notifications/` | Feature chưa migrate `modules/` |
+| `modules/project/components/` | Project feature UI (Sprint, Task, Dashboard, …) |
+| `modules/project/config/` | columns.js, table column configs |
+| `shared/ui/` | Reusable UI: Badge, Avatar, ProgressBar, form/* |
+| `shared/composables/` | useToast, usePermission, useFilter |
+| `composables/use*.js` | Feature logic — **không** import `xlsx` trong `.vue` |
+| `stores/` | Pinia: auth.js, ui.js |
+| `constants/index.js` | Frontend constants |
 | `Layouts/AppLayout.vue` | Shell, nav, flash → `useToast` |
 
-**Import alias:** `@/Components/...`, `@/composables/...`, `@/Layouts/...`
+**Import alias:** `@/modules/...`, `@/shared/...`, `@/Components/...`, `@/composables/...`
+
+> `Components/Project/` **đã xóa** — dùng `modules/project/components/`.
 
 ## Page pattern
 
@@ -25,35 +35,31 @@ alwaysApply: false
 import { Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
+import ProjectCard from '@/modules/project/components/ProjectCard.vue';
 defineProps({ items: Array });
 </script>
-<template>
-  <Head title="..." />
-  <AppLayout>
-    <template #header><PageHeader title="..." icon="projects" /></template>
-    <!-- content -->
-  </AppLayout>
-</template>
 ```
 
 ## Forms & data
 
 - Inertia: `useForm`, `router.post/put`, `preserveScroll: true`.
-- Axios JSON: notifications, polling — `route('notifications.index')`.
+- Toast: `import { useToast } from '@/shared/composables/useToast'`.
+- Axios JSON: notifications — `route('notifications.index')`.
 - Permissions: `usePage().props.auth.user.role`, entity `can` từ props.
 
 ## UI
 
-- Icons: `<AppIcon name="task" />` — map Lucide trong `AppIcon.vue`.
+- Icons: `<AppIcon name="task" />`.
 - Dialog/toast: `useDialog`, `useToast` — không `alert()` native.
-- Modal data: `dirty` + `useConfirmClose`; đóng reset state.
-- `dark:` classes sẵn có; toggle `class="dark"` trên `<html>` chưa global.
+- Modal data: `dirty` + `useConfirmClose`.
+- ESLint: `--max-warnings=0` (pre-commit Husky).
 
 ## Cấm
 
 - Business rules Excel trong `.vue` (dùng composable).
 - Ba modal riêng cho Nhập/Xuất/Đối soát — một `*DataModal` 3 tab.
+- Import từ `@/Components/Project/` (path cũ).
 
 ## Tham chiếu
 
-`docs/FRONTEND_STRUCTURE.md`, `.cursor/rules/import-export-reconcile.mdc`
+`docs/FRONTEND_STRUCTURE.md`, `_dev/workflows.md`, `.cursor/rules/import-export-reconcile.mdc`

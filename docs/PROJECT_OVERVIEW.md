@@ -114,24 +114,24 @@ Tạo Project
 │                      CLIENT (Browser)                        │
 │           Vue 3 + Inertia.js + Tailwind CSS                  │
 │                                                              │
-│  Pages/ → Components/ → Composables → Layouts/              │
+│  Pages/ → modules/ + shared/ → composables → stores/ (Pinia) │
 └──────────────────────────┬──────────────────────────────────┘
                            │ Inertia Protocol (HTTP + JSON)
 ┌──────────────────────────▼──────────────────────────────────┐
 │                  LARAVEL APPLICATION                          │
 │                                                              │
-│  routes/web.php → Controllers → Services/UseCases            │
+│  routes/web.php → Controllers → UseCases (DailyReport, Project, Task) │
 │                                                              │
 │  ┌────────────────────────────────────────────────────────┐  │
 │  │ HTTP Layer        │ Application Layer │ Domain Layer   │  │
 │  │ Controllers       │ Use Cases         │ Domain Models  │  │
-│  │ Form Requests     │ (DailyReport)     │ Services       │  │
-│  │ Resources         │                   │ Exceptions     │  │
+│  │ Form Requests     │ (DailyReport,     │ (DailyReport)  │  │
+│  │ Resources         │  Project, Task)   │                │  │
 │  └───────────────────┴───────────────────┴───────────────┘  │
 │                                                              │
 │  app/Services/ (NotificationService)                         │
-│  Models (Eloquent ORM) → Policies → Support Utilities        │
-│  Support/NotificationDispatcher → NotificationService        │
+│  Support/Options/* (Employee, Project, Department)           │
+│  config/business.php — business constants                    │
 │                                                              │
 └──────────────────────────┬──────────────────────────────────┘
                            │ Eloquent ORM
@@ -172,13 +172,22 @@ Tạo Project
 | Spreadsheet Export | XLSX | - |
 | Audit Log | Spatie Activity Log | - |
 | Code Formatter | Laravel Pint | - |
-| Static Analysis | Larastan | - |
+| Static Analysis | Larastan / PHPStan | - |
+| E2E Testing | Playwright | 1.49 |
+| Git Hooks | Husky + commitlint | 9.x |
+| CI | GitHub Actions | `.github/workflows/ci.yml` |
+| Project Memory | `_dev/` + `_dev/vi/` | operational docs |
 
 ---
 
 ## 7. Trạng Thái Hiện Tại
 
-**Giai đoạn: Stage 1 — Core Features Complete**
+**Giai đoạn: Stage 2 — Feature expansion + refactor foundation complete**
+
+| Hạng mục | Trạng thái |
+|---|---|
+| Refactor Phase 1–5 (modules/, Use Cases, Pinia, tests) | ✅ Hoàn thành (2026-06-03) |
+| Dev tooling (_dev/, Husky, Playwright CI) | ✅ Hoàn thành |
 
 | Module | Trạng Thái |
 |---|---|

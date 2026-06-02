@@ -270,7 +270,7 @@ Cache trong Options services:
 - [x] Phase 5 complete (một phần)
 
 ### Còn Lại
-- [ ] Xóa thư mục `Components/Project/` cũ (đã move sang `modules/project/components/`)
+- [x] Xóa thư mục `Components/Project/` cũ (đã move sang `modules/project/components/`)
 - [ ] Visual regression test tất cả trang
 - [ ] N+1 query optimization trong TaskResource
 - [ ] Database index audit

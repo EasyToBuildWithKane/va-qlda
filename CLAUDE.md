@@ -2,7 +2,9 @@
 
 **VAschools Quản lý Dự Án** — Laravel 10 + Inertia + Vue 3 + Tailwind.
 
-> Tài liệu chi tiết: `docs/PROJECT_OVERVIEW.md`, `docs/ARCHITECTURE.md`, `docs/API_STRUCTURE.md`, `docs/DATABASE_STRUCTURE.md`, `docs/FRONTEND_STRUCTURE.md`.
+> Tài liệu chi tiết: `docs/` (kiến trúc) · `_dev/` (CLI, CI, workflows, tiếng Việt: `_dev/vi/`).
+
+> Refactor Phase 1–5 ✅ (2026-06-03): `modules/project/`, `shared/ui/`, Pinia, Project/Task Use Cases.
 
 ---
 
@@ -17,7 +19,8 @@
 | Module | Pattern |
 |--------|---------|
 | DailyReport | Clean: `Application/`, `Domain/` |
-| Project, Task, Blocker, … | MVC: Controller → Model / Support |
+| Project, Task | Application Use Cases + MVC read paths |
+| Blocker, Bug, Feedback, … | MVC: Controller → Model / Support |
 
 Không refactor sang Use Case khi user chỉ sửa bug nhỏ. Module mới: ưu tiên FormRequest + Policy + Resource giống module cùng loại.
 
@@ -91,11 +94,16 @@ Map explicit trong `AuthServiceProvider` nếu model ngoài `App\Models`.
 |------|---------|
 | `Pages/{Domain}/` | Inertia pages — mỏng, bọc `AppLayout` |
 | `Components/Ui/` | Primitives: Modal, Drawer, PageHeader, Toast |
-| `Components/Project/`, `DailyReport/` | Feature UI |
-| `composables/use*.js` | Logic ra khỏi `.vue` — không import `xlsx` trong Vue |
+| `modules/project/components/` | Project feature UI |
+| `shared/ui/` | Reusable UI: Badge, Avatar, form/* |
+| `shared/composables/` | useToast, usePermission, useFilter |
+| `composables/use*.js` | Feature logic — **không** import `xlsx` trong Vue |
+| `stores/` | Pinia: auth.js, ui.js |
 | `Layouts/AppLayout.vue` | Shell, nav, flash → `useToast` |
 
-**Import alias:** `@/Components/...`, `@/composables/...`, `@/Layouts/...`
+**Import alias:** `@/modules/...`, `@/shared/...`, `@/Components/...`, `@/composables/...`
+
+> `Components/Project/` đã xóa — dùng `modules/project/components/`.
 
 ### Page pattern
 
@@ -210,7 +218,7 @@ Max **200 rows** client + server.
 
 | Command | Dùng khi |
 |---------|---------|
-| `/docs` | Tra cứu tài liệu `docs/` |
+| `/docs` | Tra cứu `docs/` + `_dev/` |
 | `/add-laravel-feature` | Thêm API/backend feature |
 | `/add-vue-page` | Thêm page / component Inertia |
 | `/daily-report-domain` | Module báo cáo ngày (Clean Architecture) |

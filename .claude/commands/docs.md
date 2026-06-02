@@ -1,39 +1,36 @@
 # VA-QLDA Documentation Navigator
 
-Tra cứu tài liệu kỹ thuật trong `docs/` để hiểu kiến trúc, API routes, database schema, frontend structure, refactor plan, và technical debt.
+Tra cứu `docs/` (kiến trúc) và `_dev/` (vận hành: CLI, CI, Husky, workflows).
 
-## Khi nào dùng
-
-- Hỏi hệ thống hoạt động thế nào, code nằm đâu, cần xây gì tiếp.
-- Lập kế hoạch refactor, module mới, hoặc feature cắt ngang nhiều lớp.
-- Cần route names, table names, hoặc trách nhiệm từng lớp.
-
-## Doc map (đọc có chọn lọc)
+## Doc map
 
 | File | Dùng cho |
 |------|---------|
-| `docs/PROJECT_OVERVIEW.md` | Modules, flows, roles, stack |
-| `docs/ARCHITECTURE.md` | Layers, coupling, target architecture |
-| `docs/FRONTEND_STRUCTURE.md` | Pages, components, composables, UI patterns |
-| `docs/API_STRUCTURE.md` | Tất cả web routes, Inertia vs JSON |
-| `docs/DATABASE_STRUCTURE.md` | Tables, columns, ERD |
-| `docs/REFACTOR_PLAN.md` | Phased refactor — không thực thi nếu không được duyệt |
-| `docs/TECHNICAL_DEBT.md` | Known issues (TD-001…) |
-| `docs/NEXT_STEPS.md` | Roadmap, quick wins |
+| `docs/PROJECT_OVERVIEW.md` | Modules, flows, roles |
+| `docs/FOLDER_STRUCTURE.md` | Cấu trúc folder sau refactor |
+| `docs/FRONTEND_STRUCTURE.md` | modules/, shared/, composables, Pinia |
+| `docs/ARCHITECTURE.md` | Layers, coupling |
+| `docs/REFACTOR_PLAN.md` | Phase 1–5 ✅ |
+| `docs/TECHNICAL_DEBT.md` | TD còn lại |
+| `docs/NEXT_STEPS.md` | Roadmap |
+
+## Operational memory (`_dev/`)
+
+| Câu hỏi | File |
+|---------|------|
+| Lệnh CLI | `_dev/commands.md` / `_dev/vi/lenh-cli.md` |
+| Quy trình | `_dev/workflows.md` / `_dev/vi/quy-trinh.md` |
+| CI / Husky | `_dev/ci-cd.md` |
+
+## Facts (2026-06-03)
+
+- Refactor Phase 1–5: **done**
+- Frontend: `modules/project/`, `shared/ui/`, Pinia
+- Backend: Project/Task Use Cases + Options services
+- `Components/Project/` **removed**
 
 ## Workflow
 
-1. Xác định module (Project, DailyReport, Blocker, …).
-2. Mở doc section liên quan + grep codebase (`routes/web.php`, `Pages/`, `Controllers/`).
-3. Match **pattern hiện có** (DailyReport = Use Case; Project = MVC).
-4. Nếu thay đổi liên quan import/export → đọc thêm phần Nhập/Xuất/Đối soát trong `CLAUDE.md`.
-
-## Project facts (nhanh)
-
-- Auth: `SystemAccount`, roles `admin|lead|member|viewer`.
-- Primary transport: Inertia, không phải REST `api.php`.
-- Notifications: `app_notifications` + drawer.
-
-## Output
-
-Tóm tắt findings với links đến doc paths và file paths cụ thể trong repo.
+1. Xác định module → đọc doc + grep code
+2. DailyReport = Use Case + Domain; Project/Task mutations = Use Case; Blocker = MVC
+3. Import/export → rule Nhập/Xuất/Đối soát trong CLAUDE.md
