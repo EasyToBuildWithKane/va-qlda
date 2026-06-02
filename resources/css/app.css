@@ -1,0 +1,67 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Plus+Jakarta+Sans:wght@600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    html {
+        @apply antialiased;
+    }
+
+    body {
+        @apply bg-slate-50 text-slate-800 font-sans;
+    }
+}
+
+@layer components {
+    .card {
+        @apply bg-white rounded-card shadow-elevation-1 border border-slate-100;
+    }
+
+    .btn {
+        @apply inline-flex items-center justify-center gap-2 rounded-btn px-4 py-2 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-accent/40 disabled:opacity-50 disabled:cursor-not-allowed;
+    }
+
+    .btn-primary {
+        @apply btn bg-brand text-white hover:bg-brand-700;
+    }
+
+    .btn-ghost {
+        @apply btn text-slate-600 hover:bg-slate-100;
+    }
+
+    .input {
+        @apply w-full rounded-input border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-brand focus:ring-1 focus:ring-brand/30 focus:outline-none;
+    }
+
+    .label {
+        @apply block text-sm font-medium text-slate-700 mb-1;
+    }
+
+    /* Rendered rich-text (editor HTML) — restore list/heading styling that
+       Tailwind's preflight removes. */
+    .rich-content {
+        @apply leading-relaxed;
+    }
+    .rich-content ul {
+        @apply list-disc pl-5 my-2 space-y-1;
+    }
+    .rich-content ol {
+        @apply list-decimal pl-5 my-2 space-y-1;
+    }
+    .rich-content p {
+        @apply my-2;
+    }
+    .rich-content a {
+        @apply text-brand underline;
+    }
+    .rich-content strong {
+        @apply font-semibold text-slate-800;
+    }
+    .rich-content h1,
+    .rich-content h2,
+    .rich-content h3 {
+        @apply font-semibold text-slate-800 mt-3 mb-1;
+    }
+}

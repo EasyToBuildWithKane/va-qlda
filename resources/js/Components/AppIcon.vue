@@ -1,0 +1,115 @@
+<script setup>
+import { computed } from 'vue';
+import {
+    LayoutDashboard, CalendarDays, FolderKanban, CalendarCheck, TrendingUp,
+    BookOpen, Settings, LineChart, Users, FolderOpen, SquarePen, History,
+    CircleCheckBig, TriangleAlert, CalendarRange, Folders, Star, Plus,
+    ClipboardList, MessageSquare, ListChecks, ChartBar, UserRound, Trophy,
+    Code, GitBranch, Palette, CircleUser, Bell, SlidersHorizontal,
+    ChevronRight, PanelLeftClose, PanelLeftOpen, LogOut, FileText, Circle,
+    Bug, ListTodo, Rocket, Wallet, Banknote, Timer, KanbanSquare, Trash2,
+    X, Search, Filter, Clock, Link2, GanttChartSquare, Pencil, Flag,
+    PiggyBank, ArrowLeft, Building2, Info, Building, Globe, MapPin,
+    Columns3, Download, RotateCw, Eye, Copy, Archive, ChevronDown,
+    Save, Check, ArrowUpDown, CalendarClock, Users2, CircleDollarSign,
+} from 'lucide-vue-next';
+
+const props = defineProps({
+    name: { type: String, required: true },
+    size: { type: [Number, String], default: 18 },
+    strokeWidth: { type: [Number, String], default: 1.75 },
+});
+
+// Stable string keys → Lucide components (so data layers stay icon-agnostic).
+const map = {
+    // section headings
+    dashboard: LayoutDashboard,
+    daily: CalendarDays,
+    projects: FolderKanban,
+    meeting: CalendarCheck,
+    performance: TrendingUp,
+    knowledge: BookOpen,
+    settings: Settings,
+    // items
+    overview: LineChart,
+    'team-dashboard': Users,
+    portfolio: FolderOpen,
+    'report-today': SquarePen,
+    'report-history': History,
+    'review-reports': CircleCheckBig,
+    blockers: TriangleAlert,
+    weekly: CalendarRange,
+    'all-projects': Folders,
+    'my-projects': Star,
+    'new-project': Plus,
+    'meeting-notes': ClipboardList,
+    feedback: MessageSquare,
+    'action-items': ListChecks,
+    'team-eval': ChartBar,
+    'member-profiles': UserRound,
+    leaderboard: Trophy,
+    'coding-standards': Code,
+    git: GitBranch,
+    'design-system': Palette,
+    account: CircleUser,
+    notifications: Bell,
+    'system-config': SlidersHorizontal,
+    // project management
+    bug: Bug,
+    task: ListTodo,
+    sprint: Rocket,
+    cost: Wallet,
+    budget: Banknote,
+    salary: PiggyBank,
+    department: Building2,
+    worklog: Timer,
+    board: KanbanSquare,
+    timeline: GanttChartSquare,
+    members: Users,
+    dependency: Link2,
+    flag: Flag,
+    calendar: CalendarDays,
+    clock: Clock,
+    done: CircleCheckBig,
+    overview2: LineChart,
+    // ui
+    chevron: ChevronRight,
+    'collapse-left': PanelLeftClose,
+    'expand-left': PanelLeftOpen,
+    logout: LogOut,
+    template: FileText,
+    edit: Pencil,
+    add: Plus,
+    delete: Trash2,
+    close: X,
+    search: Search,
+    filter: Filter,
+    back: ArrowLeft,
+    comment: MessageSquare,
+    // scope + datagrid + quick actions
+    info: Info,
+    building: Building,
+    globe: Globe,
+    'map-pin': MapPin,
+    columns: Columns3,
+    download: Download,
+    refresh: RotateCw,
+    eye: Eye,
+    copy: Copy,
+    archive: Archive,
+    'chevron-down': ChevronDown,
+    save: Save,
+    check: Check,
+    sort: ArrowUpDown,
+    star: Star,
+    'calendar-clock': CalendarClock,
+    people: Users2,
+    money: CircleDollarSign,
+};
+
+const component = computed(() => map[props.name] || Circle);
+</script>
+
+<template>
+    <component :is="component" :size="Number(size)" :stroke-width="Number(strokeWidth)" />
+</template>

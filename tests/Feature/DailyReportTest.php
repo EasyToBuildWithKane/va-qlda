@@ -1,0 +1,171 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Domain\DailyReport\Models\DailyReport;
+use App\Models\SystemAccount;
+use App\Support\Enums\ReportStatus;
+use App\Support\Enums\SystemRole;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
+use Tests\TestCase;
+
+class DailyReportTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private function member(): SystemAccount
+    {
+        return SystemAccount::factory()->role(SystemRole::Member)->create();
+    }
+
+    private function lead(): SystemAccount
+    {
+        return SystemAccount::factory()->role(SystemRole::Lead)->create();
+    }
+
+    public function test_member_creates_a_draft(): void
+    {
+        $account = $this->member();
+
+        $this->actingAs($account, 'system')
+            ->post('/daily-reports', [
+                'title' => 'My day',
+                'date' => now()->toDateString(),
+                'goals_today' => 'Ship the feature',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('daily_reports', [
+            'employee_id' => $account->employee_id,
+            'title' => 'My day',
+            'status' => ReportStatus::Draft->value,
+        ]);
+    }
+
+    public function test_only_one_report_per_employee_per_day(): void
+    {
+        $account = $this->member();
+        DailyReport::factory()->create([
+            'employee_id' => $account->employee_id,
+            'date' => now()->toDateString(),
+        ]);
+
+        $this->actingAs($account, 'system')
+            ->from('/daily-reports/today')
+            ->post('/daily-reports', ['title' => 'dup', 'date' => now()->toDateString()])
+            ->assertRedirect('/daily-reports/today')
+            ->assertSessionHasErrors('date');
+
+        $this->assertSame(1, DailyReport::where('employee_id', $account->employee_id)->count());
+    }
+
+    public function test_submit_on_a_working_day_marks_submitted(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2024-01-08 09:00:00')); // Monday, before cutoff
+        $account = $this->member();
+        $report = DailyReport::factory()->create(['employee_id' => $account->employee_id]);
+
+        $this->actingAs($account, 'system')
+            ->post("/daily-reports/{$report->id}/submit")
+            ->assertRedirect();
+
+        $report->refresh();
+        $this->assertSame(ReportStatus::Submitted, $report->status);
+        $this->assertFalse($report->is_late);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_submission_after_cutoff_is_flagged_late(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2024-01-08 19:00:00')); // Monday, after 18:00
+        $account = $this->member();
+        $report = DailyReport::factory()->create(['employee_id' => $account->employee_id]);
+
+        $this->actingAs($account, 'system')->post("/daily-reports/{$report->id}/submit");
+
+        $this->assertTrue($report->refresh()->is_late);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_cannot_submit_on_weekend(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2024-01-07 10:00:00')); // Sunday
+        $account = $this->member();
+        $report = DailyReport::factory()->create(['employee_id' => $account->employee_id]);
+
+        $this->actingAs($account, 'system')
+            ->post("/daily-reports/{$report->id}/submit")
+            ->assertSessionHas('error');
+
+        $this->assertSame(ReportStatus::Draft, $report->refresh()->status);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_lead_scores_a_submitted_report_and_locks_it(): void
+    {
+        $lead = $this->lead();
+        $report = DailyReport::factory()->submitted()->create();
+
+        $this->actingAs($lead, 'system')
+            ->post("/daily-reports/{$report->id}/score", [
+                'task_completion' => 8,
+                'skill_score' => 8,
+                'attitude_score' => 8,
+                'kaizen_score' => 8,
+                'expertise_score' => 8,
+            ])
+            ->assertRedirect();
+
+        $report->refresh();
+        $this->assertSame(ReportStatus::Reviewed, $report->status);
+        $this->assertDatabaseHas('daily_report_scores', [
+            'report_id' => $report->id,
+            'grade' => 'A',
+            'reviewer_id' => $lead->employee_id,
+        ]);
+    }
+
+    public function test_member_cannot_score(): void
+    {
+        $member = $this->member();
+        $report = DailyReport::factory()->submitted()->create();
+
+        $this->actingAs($member, 'system')
+            ->post("/daily-reports/{$report->id}/score", [
+                'task_completion' => 8,
+                'skill_score' => 8,
+                'attitude_score' => 8,
+                'kaizen_score' => 8,
+                'expertise_score' => 8,
+            ])
+            ->assertForbidden();
+    }
+
+    public function test_reviewed_report_cannot_be_edited(): void
+    {
+        $member = $this->member();
+        $report = DailyReport::factory()->reviewed()->create(['employee_id' => $member->employee_id]);
+
+        $this->actingAs($member, 'system')
+            ->put("/daily-reports/{$report->id}", ['title' => 'changed'])
+            ->assertForbidden();
+    }
+
+    public function test_lead_can_reject_back_to_draft(): void
+    {
+        $lead = $this->lead();
+        $report = DailyReport::factory()->submitted()->create();
+
+        $this->actingAs($lead, 'system')
+            ->post("/daily-reports/{$report->id}/reject", ['notes' => 'Please add the impact section.'])
+            ->assertRedirect();
+
+        $report->refresh();
+        $this->assertSame(ReportStatus::Draft, $report->status);
+        $this->assertSame('Please add the impact section.', $report->review_notes);
+    }
+}

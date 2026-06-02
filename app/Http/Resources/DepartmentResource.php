@@ -1,0 +1,38 @@
+<?php
+
+namespace App\Http\Resources;
+
+use App\Http\Resources\Concerns\PresentsEntities;
+use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\JsonResource;
+
+/**
+ * @mixin \App\Models\Department
+ */
+class DepartmentResource extends JsonResource
+{
+    use PresentsEntities;
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toArray(Request $request): array
+    {
+        $user = $request->user();
+
+        return [
+            'id' => $this->id,
+            'code' => $this->code,
+            'name' => $this->name,
+            'color' => $this->color,
+            'sort_order' => $this->sort_order,
+            'is_active' => $this->is_active,
+            'manager' => $this->whenLoaded('manager', fn () => $this->person($this->manager)),
+            'project_count' => $this->whenCounted('projects'),
+            'can' => $user ? [
+                'update' => $user->can('update', $this->resource),
+                'delete' => $user->can('delete', $this->resource),
+            ] : null,
+        ];
+    }
+}
