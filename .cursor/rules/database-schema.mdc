@@ -1,0 +1,34 @@
+---
+description: MySQL migrations & Eloquent — prefix va_prd_, quan hệ, index
+globs: database/**/*.php,app/Models/**/*.php
+alwaysApply: false
+---
+
+# Database — VA-QLDA
+
+## Quy ước
+
+- Prefix: `va_prd_` (config connection).
+- FK: `constrained()` + `nullOnDelete` / `cascadeOnDelete` rõ ràng.
+- **Index name ngắn** khi composite dài: `'app_notif_recipient_read_idx'`.
+- Soft deletes: `employees`, `tasks`, `bugs` — kiểm tra model trước khi `forceDelete`.
+
+## Quan hệ chính
+
+```
+Department → Employee → SystemAccount
+Project → Sprint, Epic, Task, Worklog, Blocker, Attachment
+Task → subtasks (parent_id), dependencies, watchers, assignees
+Comment → morph (task, bug, blocker, feedback)
+DailyReport → Domain model (UUID), scores
+```
+
+## Migration checklist
+
+1. `up`/`down` đối xứng.
+2. Enum values khớp `app/Support/Enums/*`.
+3. Không breaking rename cột không có migration + cập nhật Resource/FormRequest.
+
+## Tham chiếu
+
+`docs/DATABASE_STRUCTURE.md` — schema từng bảng.

@@ -37,6 +37,10 @@
         }
     },
     "scripts": {
+        "test": "@php artisan test",
+        "analyse": "vendor/bin/phpstan analyse --no-progress --memory-limit=512M",
+        "format": "vendor/bin/pint",
+        "format:test": "vendor/bin/pint --test",
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"

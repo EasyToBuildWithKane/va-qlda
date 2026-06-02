@@ -4,7 +4,7 @@
 
 ## 1. Kiến Trúc Hiện Tại
 
-Dự án áp dụng **Hybrid Architecture**: kết hợp Clean Architecture ở tầng Daily Report domain và MVC truyền thống ở các module còn lại.
+Dự án áp dụng **Hybrid Architecture**: kết hợp Clean Architecture ở tầng Daily Report domain, injectable Services layer cho Notification, và MVC truyền thống ở các module còn lại.
 
 ```
 app/
@@ -22,6 +22,9 @@ app/
 │       ├── Services/
 │       └── Exceptions/
 │
+├── Services/             ← [MỚI] Injectable Services layer
+│   └── NotificationService.php   ← Notification delivery, preferences, bulk insert
+│
 └── Http/                 ← HTTP Layer (MVC cho tất cả)
     ├── Controllers/      ← Request handling
     ├── Requests/         ← Validation
@@ -38,9 +41,12 @@ app/
 └────────────────────────┬─────────────────────────────┘
                          │ direct call (Project, Task...)
                          │ use case injection (DailyReport)
+                         │ service injection (Notification)
 ┌────────────────────────▼─────────────────────────────┐
-│              Application Layer                        │
-│         Use Cases (chỉ DailyReport)                  │
+│         Application Layer + Services Layer            │
+│   Use Cases (DailyReport)                            │
+│   app/Services/ — NotificationService (injectable)   │
+│   Support/NotificationDispatcher (static bridge)     │
 └────────────────────────┬─────────────────────────────┘
                          │
 ┌────────────────────────▼─────────────────────────────┐
@@ -51,7 +57,7 @@ app/
                          │ Eloquent ORM
 ┌────────────────────────▼─────────────────────────────┐
 │                Infrastructure                         │
-│         MySQL, File Storage, Activity Log             │
+│   MySQL, File Storage, Activity Log, Artisan Commands │
 └──────────────────────────────────────────────────────┘
 ```
 
@@ -79,10 +85,10 @@ app/
 
 | Vấn Đề | Mô Tả | Mức Độ |
 |---|---|---|
-| Composables thiếu | Chỉ có `useToast.js`, không có composables cho form state, API calls, permissions | High |
-| Components chua phân tầng rõ | Project/ chứa cả UI primitives (Badge, Avatar) lẫn complex features (GanttChart, TaskBoard) | Medium |
+| ~~Composables thiếu~~ ✅ **ĐÃ CẢI THIỆN** | Đã có 20+ composables (useSprintData, useProjectDashboard, useRiskImport...) — nhưng chưa có usePermission | Medium |
+| Components chưa phân tầng rõ | Project/ chứa cả UI primitives (Badge, Avatar) lẫn complex features (GanttChart, TaskBoard) | Medium |
 | Không có global state | Không có Pinia stores — state được pass qua props hoặc lấy từ Inertia page props | Medium |
-| Services layer thiếu | Không có API service layer riêng biệt, HTTP calls nằm inline trong components | Medium |
+| API service layer cho notifications là JSON | NotificationController trả JSON (không phải Inertia) — pattern mới, chưa nhất quán với phần còn lại | Medium |
 
 ### 2.4 Dependency Issues
 

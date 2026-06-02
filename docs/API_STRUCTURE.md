@@ -4,14 +4,16 @@
 
 ## 1. Kiến Trúc API Hiện Tại
 
-**Loại:** Inertia.js Server-Side Routes (không phải REST API truyền thống)
+**Loại:** Chủ yếu Inertia.js Server-Side Routes + một phần JSON API (Notifications)
 
-Tất cả routes đi qua `routes/web.php` và trả về Inertia responses. `routes/api.php` hiện tại **rỗng** — không có REST API tách biệt.
+Đa số routes đi qua `routes/web.php` và trả về Inertia responses. **Ngoại lệ:** Notification endpoints trả về `JsonResponse` để hỗ trợ polling và lazy loading.
 
 ```
-routes/web.php      ← Toàn bộ routes
+routes/web.php      ← Toàn bộ routes (Inertia + JSON cho notifications)
 routes/api.php      ← Rỗng (chưa sử dụng)
 ```
+
+> **Lưu ý pattern:** `NotificationController` là controller đầu tiên dùng `JsonResponse` thay vì Inertia. Frontend dùng `fetch`/axios trực tiếp để poll notifications.
 
 ---
 
@@ -32,7 +34,25 @@ routes/api.php      ← Rỗng (chưa sử dụng)
 | GET | `/` | redirect | auth | Redirect → /dashboard |
 | GET | `/dashboard` | DashboardController@index | auth | Trang tổng quan |
 
-### 2.3 Daily Reports
+### 2.3 Notifications ✨ MỚI — JSON API
+
+> Các endpoints này trả **JsonResponse** (không phải Inertia). Frontend dùng axios/fetch.
+
+| Method | URI | Controller | Response | Mô Tả |
+|---|---|---|---|---|
+| GET | `/notifications` | NotificationController@index | JSON | Danh sách (cursor pagination, filters: tab/category/priority/search/from/to) |
+| GET | `/notifications/unread-count` | NotificationController@unreadCount | JSON | Số thông báo chưa đọc |
+| GET | `/notifications/preferences` | NotificationController@preferences | JSON | Lấy cài đặt + danh sách types |
+| PUT | `/notifications/preferences` | NotificationController@updatePreferences | JSON | Cập nhật cài đặt |
+| GET | `/notifications/actors` | NotificationController@actors | JSON | Danh sách actors (để filter) |
+| GET | `/notifications/manage` | NotificationManagementController | Inertia | Trang quản lý notifications |
+| POST | `/notifications/read-all` | NotificationController@markAllRead | JSON | Đánh dấu tất cả đã đọc |
+| POST | `/notifications/bulk` | NotificationController@bulk | JSON | Thao tác hàng loạt (read/acknowledge) |
+| POST | `/notifications/{notification}/read` | NotificationController@markRead | JSON | Đánh dấu 1 thông báo đã đọc |
+| POST | `/notifications/{notification}/acknowledge` | NotificationController@acknowledge | JSON | Acknowledge (critical alerts) |
+| POST | `/notifications/{notification}/assign` | NotificationController@assign | JSON | Assign thông báo cho người khác |
+
+### 2.4 Daily Reports
 
 | Method | URI | Controller | Middleware | Mô Tả |
 |---|---|---|---|---|
@@ -88,24 +108,23 @@ routes/api.php      ← Rỗng (chưa sử dụng)
 | Method | URI | Controller | Middleware | Mô Tả |
 |---|---|---|---|---|
 | POST | `/projects/{project}/epics` | EpicController@store | auth | Tạo epic |
-| PUT | `/projects/{project}/epics/{epic}` | EpicController@update | auth | Sửa epic |
-| DELETE | `/projects/{project}/epics/{epic}` | EpicController@destroy | auth | Xóa epic |
 
 ### 2.8 Worklogs
 
+> Worklog được nested dưới task, không phải project trực tiếp.
+
 | Method | URI | Controller | Middleware | Mô Tả |
 |---|---|---|---|---|
-| POST | `/projects/{project}/worklogs` | WorklogController@store | auth | Ghi giờ làm |
-| PUT | `/projects/{project}/worklogs/{worklog}` | WorklogController@update | auth | Sửa worklog |
-| DELETE | `/projects/{project}/worklogs/{worklog}` | WorklogController@destroy | auth | Xóa worklog |
+| POST | `/projects/{project}/tasks/{task}/worklogs` | WorklogController@store | auth | Ghi giờ làm |
+| DELETE | `/projects/{project}/tasks/{task}/worklogs/{worklog}` | WorklogController@destroy | auth | Xóa worklog |
 
 ### 2.9 Project Members
 
 | Method | URI | Controller | Middleware | Mô Tả |
 |---|---|---|---|---|
 | POST | `/projects/{project}/members` | ProjectMemberController@store | auth | Thêm thành viên |
-| PUT | `/projects/{project}/members/{member}` | ProjectMemberController@update | auth | Sửa thành viên |
-| DELETE | `/projects/{project}/members/{member}` | ProjectMemberController@destroy | auth | Xóa thành viên |
+| PUT | `/projects/{project}/members/{employee}` | ProjectMemberController@update | auth | Sửa thành viên |
+| DELETE | `/projects/{project}/members/{employee}` | ProjectMemberController@destroy | auth | Xóa thành viên |
 
 ### 2.10 Project Attachments
 
@@ -178,6 +197,16 @@ Auth Group
 Dashboard Group
 └── /dashboard
 
+Notification Group [JSON API] ✨ MỚI
+├── /notifications               (index — cursor paging, multi-filter)
+├── /notifications/unread-count  (badge count)
+├── /notifications/preferences   (get/update user prefs)
+├── /notifications/actors        (filter helpers)
+├── /notifications/manage        (Inertia management page)
+├── /notifications/read-all      (bulk mark read)
+├── /notifications/bulk          (bulk read/acknowledge)
+└── /notifications/{id}/*        (read, acknowledge, assign)
+
 Daily Report Group
 ├── /daily-reports          (index, store)
 ├── /daily-reports/today    (today form)
@@ -186,16 +215,16 @@ Daily Report Group
 
 Project Group
 ├── /projects               (index, create, store)
-├── /projects/{id}          (show, edit, update, delete, duplicate)
+├── /projects/{id}          (show, edit, update, delete, duplicate, type, department)
 ├── /projects/{id}/sprints  (CRUD)
 ├── /projects/{id}/tasks    (CRUD + bulk + subtasks + watchers + attachments)
-├── /projects/{id}/epics    (CRUD)
-├── /projects/{id}/worklogs (CRUD)
-├── /projects/{id}/members  (CRUD)
-└── /projects/{id}/attachments (CRUD)
+├── /projects/{id}/epics    (store only)
+├── /projects/{id}/tasks/{id}/worklogs (store, destroy)
+├── /projects/{id}/members  (store; update/destroy via {employee})
+└── /projects/{id}/attachments (store, update, destroy — project documents)
 
 Issue Tracking Group
-├── /blockers               (index, store, import, bulk, CRUD, attachments)
+├── /blockers               (index, store, import, bulk, CRUD + attachments)
 ├── /bugs                   (CRUD)
 └── /feedback               (CRUD)
 
@@ -214,6 +243,8 @@ Organization Group
 |---|---|---|---|---|
 | Auth | ✅ | ✅ | ✅ | ✅ |
 | Dashboard | ✅ | ✅ | ✅ | ✅ |
+| Notifications (own) | ✅ | ✅ | ✅ | ✅ |
+| Notifications (assign) | ✅ | ✅ | - | - |
 | Daily Reports (own) | ✅ | ✅ | ✅ | - |
 | Daily Reports (review) | ✅ | ✅ | - | - |
 | Projects (view) | ✅ | ✅ | ✅ | ✅ |

@@ -64,3 +64,31 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+## Git hooks (Husky v9)
+
+This project uses [Husky](https://typicode.github.io/husky/) for Git hooks:
+
+| Hook | Action |
+|------|--------|
+| `pre-commit` | ESLint (`lint-staged`) on staged `resources/js/**` files |
+| `commit-msg` | [Conventional Commits](https://www.conventionalcommits.org/) via Commitlint |
+| `pre-push` | Playwright E2E tests (skipped when `CI=true`) |
+| `post-merge` | Runs `npm install` when `package.json` changed after merge |
+
+**Skip all hooks** (emergency only):
+
+```bash
+HUSKY=0 git commit -m "chore: wip"
+HUSKY=0 git push
+```
+
+Or per command: `git commit --no-verify` / `git push --no-verify`.
+
+**Setup after clone:**
+
+```bash
+npm install          # runs "prepare" → husky
+npm run test:e2e:install
+composer install
+```

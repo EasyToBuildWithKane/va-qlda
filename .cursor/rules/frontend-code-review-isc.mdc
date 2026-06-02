@@ -1,0 +1,34 @@
+---
+description: ISC Frontend Web Standards + security/performance — Vue 3 + Inertia (VA-QLDA)
+globs: resources/js/**/*.{vue,js},resources/css/**/*
+alwaysApply: false
+---
+
+# Frontend Review — ISC (VA-QLDA / Vue 3 + Inertia)
+
+Khi review staged diff FE, dùng skill **`frontend-code-review`**.
+
+## Mapping VA-QLDA (không phải React/Next mặc định)
+
+| ISC / OWASP | Vue / Inertia |
+|-------------|----------------|
+| Component | `PascalCase.vue` — `Components/`, `Pages/` |
+| Logic tái sử dụng | `composables/use*.js` (tiền tố `use`) |
+| Form + API mutate | `useForm` + `router.post/put`, `preserveScroll` |
+| Server state | Inertia props — không Redux; axios cho JSON phụ |
+| XSS `v-html` | Tránh; TipTap output — sanitize nếu render HTML thô |
+| Auth token | Session Laravel — **không** lưu JWT `localStorage` |
+| CSRF | Cookie session + `@csrf` / Inertia POST |
+| Routes | `route()` (Ziggy), không hardcode path |
+| Excel / nặng | Chỉ trong composable — không `import xlsx` trong `.vue` |
+| Copy UI | Tiếng Việt (project); i18n = gợi ý 🔵 |
+
+## Checklist tóm tắt
+
+- Không `console.log` / `debugger` sót; không secret trong `VITE_*` nhạy cảm
+- Không logic nghiệp vụ nặng trong `.vue` — composable
+- `defineProps` typed; loading/error/empty states
+- `onUnmounted` / `AbortController` cho polling/axios dài
+- `v-html` / `dangerouslySetInnerHTML` = 🔴 nếu không sanitize
+
+Chi tiết: `.cursor/skills/frontend-code-review/reference.md`

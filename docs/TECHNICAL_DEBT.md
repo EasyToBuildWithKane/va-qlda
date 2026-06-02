@@ -4,10 +4,12 @@
 
 ## Tổng Quan
 
+> **Cập nhật 2026-06-03** — sau 3 commits (Departments, Module Projects, Noti Bell): TD-005 giảm mức độ, TD-009 đã xử lý, QW-01 hoàn thành.
+
 | Mức Độ | Số Lượng |
 |---|---|
-| 🔴 High | 5 |
-| 🟡 Medium | 8 |
+| 🔴 High | 4 (giảm 1) |
+| 🟡 Medium | 9 (tăng 1 — pattern mới Notification JSON API) |
 | 🟢 Low | 6 |
 
 ---
@@ -46,12 +48,12 @@
 - **Hệ quả:** Global state như auth user, notifications, UI state không có single source of truth.
 - **Đề xuất:** Thêm Pinia. Tạo `stores/auth.js` (user/role), `stores/ui.js` (toast/dialog).
 
-### TD-005 — Thiếu Composables Cốt Lõi
-- **Mức độ:** 🔴 High
-- **Ảnh hưởng:** Logic duplicate trong nhiều components
-- **Mô tả:** Chỉ có 1 composable (`useToast.js`). Không có: `useForm`, `usePermission`, `useFilter`, `useDialog`, `useApi`.
-- **Hệ quả:** Form handling, permission checks, filter state management được viết lại trong mỗi component.
-- **Đề xuất:** Tạo shared composables layer. Xem [FRONTEND_STRUCTURE.md Section 6].
+### TD-005 — Thiếu Composables Cốt Lõi ✅ **GIẢM MỨC ĐỘ**
+- **Mức độ:** ~~🔴 High~~ → 🟡 Medium
+- **Ảnh hưởng:** Logic duplicate trong một số components
+- **Cập nhật 2026-06-03:** Đã thêm 20+ composables quan trọng: `useSprintData`, `useProjectDashboard`, `useProjectTimeline`, `useRiskImport`, `useRiskExport`, `useTaskWorkspace`, `useNotifications`, `useDocumentPreview`, `useVirtualScroll`, `useConfirmClose`...
+- **Còn thiếu:** `usePermission` (role-based checks), `useForm` (wrapper chuẩn hoá), `useFilter` (URL-bound filters).
+- **Đề xuất:** Tạo thêm 3 composables còn thiếu. Xem [FRONTEND_STRUCTURE.md Section 6].
 
 ### TD-006 — UI Primitives Nằm Sai Vị Trí
 - **Mức độ:** 🟡 Medium
@@ -77,14 +79,11 @@
 
 ## Nhóm 3: Code Quality
 
-### TD-009 — Hardcoded Values
-- **Mức độ:** 🟡 Medium
-- **Ảnh hưởng:** Thay đổi value phải tìm nhiều nơi
-- **Mô tả:**
-  - `MONTHLY_HOURS = 176` hardcoded trong `Project.php` model
-  - Default department name `"Công nghệ"` hardcoded trong `Options::defaultOwnerDepartmentId()`
-  - Màu sắc và class CSS strings scattered trong components
-- **Đề xuất:** Tập trung vào constants file (backend: `config/`, frontend: `constants/`).
+### TD-009 — Hardcoded Values ✅ **GIẢI QUYẾT MỘT PHẦN**
+- **Mức độ:** 🟡 Medium → 🟢 Low
+- **Cập nhật 2026-06-03:** `"Công nghệ"` default department đã được chuyển vào `config/project.php` với env var `PROJECT_DEFAULT_DEPARTMENT_CODE` (default: `'PB-PT'`).
+- **Còn lại:** `MONTHLY_HOURS = 176` vẫn hardcoded trong `Project.php`. CSS color strings rải rác.
+- **Đề xuất:** Move `MONTHLY_HOURS` vào `config/project.php`.
 
 ### TD-010 — project_id Legacy trong DailyReport
 - **Mức độ:** 🟡 Medium
@@ -116,11 +115,17 @@
 - **Mô tả:** Không có queue setup. Notifications (planned), email alerts sẽ block request nếu chạy sync.
 - **Đề xuất:** Setup Laravel Queue + Redis khi thêm tính năng notifications.
 
-### TD-014 — Không Có Event/Listener Pattern
+### TD-014 — Không Có Event/Listener Pattern ✅ **GIẢI QUYẾT MỘT PHẦN**
 - **Mức độ:** 🟢 Low
-- **Ảnh hưởng:** Coupling khi thêm side effects
-- **Mô tả:** Không dùng Laravel Events. Khi task done → không có event để trigger notification, update metrics, etc.
-- **Đề xuất:** Thêm Events/Listeners khi implement notifications module.
+- **Cập nhật 2026-06-03:** `NotificationDispatcher` (static bridge) + `NotificationService` đã phần nào thay thế vai trò Events cho notification triggers. Tuy nhiên dispatcher vẫn dùng static calls, không phải proper Events.
+- **Còn lại:** Nếu cần thêm side effects khác (metrics, email, webhooks) vẫn cần Events.
+
+### TD-017 — Notification dùng JSON API (không nhất quán với Inertia) [MỚI]
+- **Mức độ:** 🟡 Medium
+- **Ảnh hưởng:** Hai pattern response tồn tại song song, frontend phải xử lý khác nhau
+- **Mô tả:** `NotificationController` trả `JsonResponse` (cursor-based pagination) trong khi toàn bộ hệ thống dùng Inertia. Frontend dùng `useNotifications.js` với `fetch`/axios thay vì Inertia form/visit.
+- **Lý do:** Notification cần real-time polling / lazy loading — không phù hợp với full page Inertia.
+- **Đề xuất:** Document rõ đây là intentional exception. Khi có WebSocket thì thay bằng push.
 
 ### TD-015 — Thiếu TypeScript
 - **Mức độ:** 🟢 Low
@@ -136,23 +141,24 @@
 
 ---
 
-## Ma Trận Ưu Tiên
+## Ma Trận Ưu Tiên (cập nhật 2026-06-03)
 
 | ID | Vấn Đề | Mức Độ | Effort | Ưu Tiên |
 |---|---|---|---|---|
 | TD-001 | Kiến trúc không nhất quán | 🔴 High | High | Phase 3 |
 | TD-002 | Controllers quá dày | 🔴 High | High | Phase 3 |
 | TD-004 | Thiếu Pinia stores | 🔴 High | Medium | Phase 3 |
-| TD-005 | Thiếu composables | 🔴 High | Medium | Phase 3 |
+| TD-005 | Thiếu composables (còn 3 cần thêm) | 🟡 Medium | Low | Phase 3 |
 | TD-011 | Thiếu tests | 🟡 Medium | High | Phase 1 |
 | TD-003 | Options God Object | 🟡 Medium | Medium | Phase 3 |
 | TD-006 | UI primitives vị trí sai | 🟡 Medium | Low | Phase 2 |
 | TD-007 | Thiếu API service layer | 🟡 Medium | Medium | Phase 3 |
 | TD-008 | Components/Project quá lớn | 🟡 Medium | Medium | Phase 2 |
-| TD-009 | Hardcoded values | 🟡 Medium | Low | Phase 1 |
+| TD-009 | Hardcoded values (còn MONTHLY_HOURS) | 🟢 Low | Low | Phase 1 |
 | TD-010 | project_id legacy field | 🟡 Medium | Medium | Phase 1 |
+| TD-017 | Notification JSON API (khác Inertia pattern) | 🟡 Medium | Low | Document |
 | TD-012 | Không có REST API | 🟢 Low | High | Future |
 | TD-013 | Không có Queue | 🟢 Low | Medium | Future |
-| TD-014 | Không có Events | 🟢 Low | Medium | Future |
+| TD-014 | Không có Events (partial) | 🟢 Low | Medium | Future |
 | TD-015 | Thiếu TypeScript | 🟢 Low | High | Future |
 | TD-016 | Navigation hardcoded | 🟢 Low | Low | Phase 4 |

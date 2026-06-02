@@ -1,0 +1,50 @@
+---
+description: Laravel — Controller, Request, Policy, Enum, Service, routes VA-QLDA
+globs: app/**/*.php,routes/**/*.php,database/**/*.php
+alwaysApply: false
+---
+
+# Laravel Backend — VA-QLDA
+
+## Controller (mỏng)
+
+```php
+public function store(StoreTaskRequest $request, Project $project): RedirectResponse
+{
+    $this->authorize('contribute', $project);
+    // validate qua FormRequest; business qua Model/Support/UseCase
+    return back()->with('success', 'Đã thêm công việc.');
+}
+```
+
+- **FormRequest:** `authorize()` + rules; messages tiếng Việt trong `messages()`.
+- **Resource:** format API/Inertia props; quyền `can` khi cần (`ProjectResource`).
+- **Bulk import:** `DB::transaction`, max 200 rows, `Import*Request` mirror client — xem rule `import-export-reconcile`.
+
+## Enums
+
+`app/Support/Enums/` — backed string enum + `values()`, `label()`, `options()` khi dùng ở UI.
+
+## Activity & notifications
+
+- Task/Blocker: `TaskActivityLogger`, `BlockerActivityLogger` sau mutation.
+- Inbox: `NotificationService` / `NotificationDispatcher` — không duplicate logic activity.
+
+## DailyReport (Clean Architecture)
+
+- Controller → **Use Case** (`app/Application/DailyReport/`), không query phức tạp trong controller.
+- Model domain: `App\Domain\DailyReport\Models\` (không nhầm `App\Models\Project`).
+
+## Routes
+
+- Nhóm prefix + dot name: `projects.tasks.store`.
+- Static segments **trước** `/{id}`: `/daily-reports/review` trước `/{report}`.
+- Route model binding tùy chỉnh trong `RouteServiceProvider` nếu tên param ≠ model (vd. `notification` → `AppNotification`).
+
+## Policies
+
+Map explicit trong `AuthServiceProvider` nếu model ngoài `App\Models`.
+
+## Tham chiếu
+
+`docs/API_STRUCTURE.md`, `docs/DATABASE_STRUCTURE.md`, `docs/FOLDER_STRUCTURE.md`

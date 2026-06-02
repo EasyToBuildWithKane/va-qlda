@@ -24,9 +24,10 @@ VA QLDA là nền tảng quản lý công việc và đánh giá hiệu suất n
 ```
 VA QLDA
 ├── [AUTH]          Xác thực người dùng (custom guard "system")
+├── [NOTIFICATION]  Hệ thống thông báo in-app (bell icon, drawer, preferences)
 ├── [PROJECT]       Quản lý dự án, sprint, task, epics
 │   ├── Sprint      Lập kế hoạch theo vòng lặp Agile
-│   ├── Task        Công việc chi tiết (có subtask, dependency)
+│   ├── Task        Công việc chi tiết (có subtask, dependency, attachment)
 │   ├── Worklog     Ghi giờ làm & chi phí nhân công
 │   ├── Gantt       Timeline trực quan
 │   ├── Documents   Tài liệu dự án đính kèm
@@ -61,8 +62,10 @@ Tạo Project
             ├── Link Dependencies (Gantt)
             │
             ├── [Member] Làm việc → Log Hours (Worklog)
-            ├── [Member] Upload Attachments
+            ├── [Member] Upload Attachments (Task + Blocker + Project Documents)
             ├── [Member] Comment / Thảo luận
+            │
+            ├── [System] Notification → Assignee, Watchers, Admins
             │
             └── [Lead/PM] Review → Done
                         │
@@ -117,7 +120,7 @@ Tạo Project
 ┌──────────────────────────▼──────────────────────────────────┐
 │                  LARAVEL APPLICATION                          │
 │                                                              │
-│  routes/web.php → Controllers → UseCase/Services             │
+│  routes/web.php → Controllers → Services/UseCases            │
 │                                                              │
 │  ┌────────────────────────────────────────────────────────┐  │
 │  │ HTTP Layer        │ Application Layer │ Domain Layer   │  │
@@ -126,13 +129,15 @@ Tạo Project
 │  │ Resources         │                   │ Exceptions     │  │
 │  └───────────────────┴───────────────────┴───────────────┘  │
 │                                                              │
+│  app/Services/ (NotificationService)                         │
 │  Models (Eloquent ORM) → Policies → Support Utilities        │
+│  Support/NotificationDispatcher → NotificationService        │
 │                                                              │
 └──────────────────────────┬──────────────────────────────────┘
                            │ Eloquent ORM
 ┌──────────────────────────▼──────────────────────────────────┐
 │                   MySQL Database                              │
-│           (Prefix: va_prd_, ~25 tables)                      │
+│           (Prefix: va_prd_, ~27 tables)                      │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -173,23 +178,29 @@ Tạo Project
 
 ## 7. Trạng Thái Hiện Tại
 
-**Giai đoạn: MVP Foundation (Stage 0)**
+**Giai đoạn: Stage 1 — Core Features Complete**
 
 | Module | Trạng Thái |
 |---|---|
 | Authentication | ✅ Hoàn thành |
 | Project Management | ✅ Hoàn thành |
-| Sprint & Task | ✅ Hoàn thành |
+| Sprint & Task (+ subtasks, bulk, attachments) | ✅ Hoàn thành |
 | Worklog / Time Tracking | ✅ Hoàn thành |
+| Project Documents (upload, preview, activity log) | ✅ Hoàn thành |
+| Task Attachments | ✅ Hoàn thành |
+| Blocker Attachments & Activity Log | ✅ Hoàn thành |
+| Sprint Workspace (list, calendar, drag-drop) | ✅ Hoàn thành |
+| Gantt Chart + Timeline + Burndown | ✅ Hoàn thành |
+| Project Dashboard (overview, workload, activity feed) | ✅ Hoàn thành |
+| Risk Import/Export (Excel) | ✅ Hoàn thành |
 | Daily Report | ✅ Hoàn thành |
 | Blocker Tracking | ✅ Hoàn thành |
 | Bug Tracking | ✅ Hoàn thành |
 | Feedback | ✅ Hoàn thành |
 | Department Management | ✅ Hoàn thành |
 | Comments & Reactions | ✅ Hoàn thành |
-| Gantt Chart | ✅ Hoàn thành |
+| **Notification System (in-app bell + drawer)** | ✅ Hoàn thành |
 | Team Dashboard | 🔄 Đang phát triển |
 | Weekly Performance Review | 📋 Kế hoạch |
-| Notifications System | 📋 Kế hoạch |
 | Knowledge Base | 📋 Kế hoạch |
 | Account Settings | 📋 Kế hoạch |

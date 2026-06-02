@@ -103,6 +103,11 @@ AppLayout.vue (Main Shell)
 |---|---|
 | `Pages/Department/Index.vue` | Quản lý phòng ban |
 
+### 4.7 Notifications
+| File | Mô Tả |
+|---|---|
+| `Pages/Notifications/Management.vue` | Trang quản lý thông báo (admin/lead) — Inertia page |
+
 ---
 
 ## 5. Component Catalog
@@ -213,7 +218,15 @@ AppLayout.vue (Main Shell)
 | `TemplateGallery.vue` | Report template picker |
 | `InfoTooltip.vue` | Help tooltips |
 
-### 5.10 App-level Components
+### 5.10 Notification Components (Components/Notifications/) ✨ MỚI
+| Component | Mô Tả |
+|---|---|
+| `NotificationBell.vue` | Bell icon + unread badge (trong AppLayout header) |
+| `NotificationCenterDrawer.vue` | Slide-in drawer hiển thị danh sách thông báo, filters, cursor pagination |
+| `NotificationItem.vue` | Một thông báo: icon, title, body, time, read state |
+| `NotificationSettingsPanel.vue` | Panel cài đặt: enabled types, channels (in-app/email/push) |
+
+### 5.11 App-level Components
 | Component | Mô Tả |
 |---|---|
 | `AppIcon.vue` | Lucide icon wrapper |
@@ -222,19 +235,69 @@ AppLayout.vue (Main Shell)
 
 ## 6. Composables
 
-### Hiện Tại
+### 6.1 Hiện Tại — Sprint Module
 | File | Mô Tả |
 |---|---|
-| `composables/useToast.js` | Toast state management (show/hide notifications) |
+| `useSprintData.js` | State management cho toàn bộ sprint workspace (tasks, filters, views) |
+| `useSprintFilters.js` | Filter logic cho sprint task list |
+| `useSprintWorkspace.js` | Sprint view toggling, active sprint state |
+| `useSprintTaskTable.js` | Tabular view logic, column config |
+| `useSprintTaskStatusPatch.js` | Optimistic status update via PATCH |
+| `useSprintReconcile.js` | Import/export reconciliation logic |
+| `useSprintExport.js` | Sprint export to Excel |
 
-### Đề Xuất Thêm
+### 6.2 Hiện Tại — Task Module
+| File | Mô Tả |
+|---|---|
+| `useTaskWorkspace.js` | Task board state, drag-drop, panel open/close |
+| `useTaskBulkCreate.js` | Bulk task creation từ CSV/text |
+| `useTaskHierarchy.js` | Subtask tree management |
+| `useTaskPhaseGroups.js` | Nhóm tasks theo phase |
+| `useTaskTimeliness.js` | Tính toán late/overdue state |
+
+### 6.3 Hiện Tại — Project Module
+| File | Mô Tả |
+|---|---|
+| `useProjectDashboard.js` | Dashboard data aggregation, view toggle |
+| `useProjectTimeline.js` | Gantt/timeline data preparation, zoom, scroll |
+| `useProjectExport.js` | Export single project data to Excel |
+| `useProjectListExport.js` | Export project list to Excel |
+| `useProjectCreateDraft.js` | Draft state khi tạo project mới |
+
+### 6.4 Hiện Tại — Risk/Blocker Module
+| File | Mô Tả |
+|---|---|
+| `useRiskTable.js` | Risk/blocker table state, column config |
+| `useRiskImport.js` | Import blockers từ Excel (parse, validate, submit) |
+| `useRiskExport.js` | Export blockers to Excel |
+
+### 6.5 Hiện Tại — Document Module
+| File | Mô Tả |
+|---|---|
+| `useDocumentPreview.js` | File preview logic (PDF, image, office docs) |
+
+### 6.6 Hiện Tại — Notification Module ✨ MỚI
+| File | Mô Tả |
+|---|---|
+| `useNotifications.js` | Fetch, poll, mark-read, preferences, cursor pagination |
+| `notificationMeta.js` | Metadata mapping: type → icon, color, label |
+
+### 6.7 Hiện Tại — Shared/Utility
+| File | Mô Tả |
+|---|---|
+| `useToast.js` | Toast state management |
+| `useDialog.js` | Imperative confirm/alert dialog API (app-wide AppDialog singleton) |
+| `useFormat.js` | Format helpers: số tiền, ngày tháng, text truncate |
+| `useConfirmClose.js` | Confirm trước khi đóng form có unsaved changes |
+| `useNormalizeList.js` | Normalize list responses (array hoặc paginated object) |
+| `useVirtualScroll.js` | Virtual scrolling cho danh sách lớn |
+
+### 6.8 Đề Xuất Thêm (Còn Thiếu)
 | File | Mô Tả | Ưu Tiên |
 |---|---|---|
-| `useDialog.js` | Centralize confirm/alert dialog state | High |
-| `useForm.js` | Form state + submit + errors wrapper | High |
-| `usePermission.js` | Check user role/permissions | High |
-| `useFilter.js` | URL-bound filter state management | Medium |
-| `useInfiniteScroll.js` | Infinite scroll / pagination | Medium |
+| `usePermission.js` | Check user role/permissions (isAdmin, isLead...) | High |
+| `useForm.js` | Form state + submit + errors wrapper chuẩn hoá | High |
+| `useFilter.js` | URL-bound filter state management cho list pages | Medium |
 | `useDebounce.js` | Debounce utility | Low |
 | `useClipboard.js` | Copy to clipboard | Low |
 
@@ -246,6 +309,9 @@ AppLayout.vue (Main Shell)
 |---|---|---|
 | `projectColumns.js` | `Components/Project/` | `modules/project/config/columns.js` |
 | `reportConfig.js` | `Components/DailyReport/` | `modules/daily-report/config/reportConfig.js` |
+| `notificationMeta.js` | `composables/` | `modules/notifications/config/meta.js` |
+| `riskTableColumns.js` | `Components/Project/Dashboard/` | `modules/project/config/riskColumns.js` |
+| `sprintTableColumns.js` | `Components/Project/Sprint/` | `modules/project/config/sprintColumns.js` |
 
 ---
 

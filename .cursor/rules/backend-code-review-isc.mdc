@@ -1,0 +1,33 @@
+---
+description: ISC Backend Standards + security/performance — áp dụng khi review PHP/Laravel trong VA-QLDA
+globs: app/**/*.php,routes/**/*.php,database/**/*.php,tests/**/*.php
+alwaysApply: false
+---
+
+# Backend Review — ISC (VA-QLDA / Laravel)
+
+Khi review staged diff, dùng skill **`backend-code-review`** (workflow + format output).
+
+## Mapping Laravel (khác Node/C# trong checklist gốc)
+
+| ISC / OWASP | Laravel |
+|-------------|---------|
+| Validate entry | `FormRequest`, `authorize()` |
+| IDOR | `Policy`, `abort_unless($model->user_id === …)` |
+| SQL injection | Eloquent / `where()` bindings — không nối chuỗi SQL |
+| Mass assignment | `$fillable`, chỉ `$request->validated()` |
+| Transaction | `DB::transaction()` |
+| N+1 | `with()`, `load()`, `withCount()` |
+| Enum / magic string | `app/Support/Enums/*` |
+| Secret | `.env`, không hardcode |
+| API envelope ISC 3.x | Inertia: flash + redirect; JSON API (nếu có): bọc `success/data/error/meta` |
+
+## Checklist tóm tắt
+
+**Đặt tên (PHP):** class `PascalCase`, method `camelCase`, const `UPPER_SNAKE`, enum cases nhất quán.
+
+**Cấm:** log PII/password/token, secret trong code, `$request->all()` → `create()` không lọc, query trong loop, thiếu policy trên mutate.
+
+**Bắt buộc:** FormRequest, policy scope, transaction cho multi-write, message lỗi client an toàn (không stack trace).
+
+Chi tiết + ví dụ sai/đúng: `.cursor/skills/backend-code-review/reference.md`

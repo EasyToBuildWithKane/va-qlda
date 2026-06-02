@@ -8,7 +8,7 @@
 |---|---|
 | Database Engine | MySQL |
 | Table Prefix | `va_prd_` |
-| Total Tables | ~25 tables |
+| Total Tables | ~29 tables (27 core + app_notifications + notification_preferences) |
 | ORM | Laravel Eloquent |
 | Soft Deletes | employees, tasks, bugs |
 | UUID Support | daily_reports (+ có thể mở rộng) |
@@ -517,6 +517,56 @@ Bảng audit trail tự động theo dõi thay đổi model.
 
 ---
 
+### 3.26 va_prd_app_notifications ✨ MỚI
+
+| Column | Type | Nullable | Description |
+|---|---|---|---|
+| id | bigint UNSIGNED | NO | PK |
+| recipient_account_id | bigint UNSIGNED | YES | FK → system_accounts (người nhận) |
+| type | varchar(100) | NO | Enum: NotificationType (task_assigned, task_overdue...) |
+| category | varchar(50) | NO | Enum: NotificationCategory (task/sprint/project/document/comment/system/admin) |
+| priority | varchar(20) | NO | Enum: NotificationPriority (critical/high/medium/low) |
+| title | varchar(500) | NO | Tiêu đề thông báo |
+| body | text | YES | Nội dung chi tiết |
+| actor_account_id | bigint UNSIGNED | YES | FK → system_accounts (người thực hiện) |
+| actor_name | varchar(255) | YES | Tên actor (snapshot) |
+| project_id | bigint UNSIGNED | YES | FK → projects (context) |
+| sprint_id | bigint UNSIGNED | YES | FK → sprints (context) |
+| task_id | bigint UNSIGNED | YES | FK → tasks (context) |
+| entity_type | varchar(100) | YES | Loại entity liên quan (task/blocker...) |
+| entity_id | bigint UNSIGNED | YES | ID entity |
+| action_url | varchar(500) | YES | Deep link URL |
+| meta | json | YES | Metadata thêm (task_title, project_name...) |
+| read_at | datetime | YES | Thời điểm đọc (null = chưa đọc) |
+| acknowledged_at | datetime | YES | Thời điểm acknowledge |
+| assigned_to_account_id | bigint UNSIGNED | YES | FK → system_accounts (assign for action) |
+| is_admin_feed | tinyint(1) | NO | Default: 0 — admin-only notifications |
+| created_at | timestamp | YES | |
+| updated_at | timestamp | YES | |
+
+**Indexes:** recipient_account_id, read_at (for unread count query)
+
+**Delivery Model:** Bulk insert via `AppNotification::insert($rows)` — không dùng Queue, sync delivery.
+
+---
+
+### 3.27 va_prd_notification_preferences ✨ MỚI
+
+| Column | Type | Nullable | Description |
+|---|---|---|---|
+| id | bigint UNSIGNED | NO | PK |
+| system_account_id | bigint UNSIGNED | NO | Unique FK → system_accounts |
+| disabled_types | json | YES | Mảng NotificationType values bị tắt |
+| channel_in_app | tinyint(1) | NO | Default: 1 |
+| channel_email | tinyint(1) | NO | Default: 0 |
+| channel_push | tinyint(1) | NO | Default: 0 |
+| created_at | timestamp | YES | |
+| updated_at | timestamp | YES | |
+
+**Indexes:** system_account_id (unique)
+
+---
+
 ## 4. Domain Boundaries
 
 ```
@@ -540,6 +590,10 @@ Communication Domain:
 
 Reporting Domain:
     daily_reports, daily_report_scores
+
+Notification Domain:              ← MỚI
+    app_notifications,
+    notification_preferences
 
 Audit Domain:
     activity_log

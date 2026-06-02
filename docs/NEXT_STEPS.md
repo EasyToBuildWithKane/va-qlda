@@ -2,16 +2,29 @@
 
 ---
 
-## Trạng Thái Hiện Tại (Stage 0 — MVP Complete)
+## Trạng Thái Hiện Tại (Stage 2 — Đang Bắt Đầu)
 
-Hệ thống đã có đầy đủ nền tảng:
+> Cập nhật 2026-06-03. Stage 1 hoàn thành. Chuyển sang Stage 2.
+
+**Stage 1 — HOÀN THÀNH ✅**
 - ✅ Authentication & Authorization (4 roles)
-- ✅ Project Management (Sprint, Task, Gantt, Worklog)
+- ✅ Project Management (Sprint, Task, Gantt, Worklog, Attachments, Documents)
+- ✅ Sprint Workspace (list/calendar view, drag-drop, bulk import)
+- ✅ Project Dashboard (overview, workload, activity feed, risk panel)
+- ✅ Timeline + Burndown Chart
+- ✅ Task Detail (rich editor, attachments, subtasks, collaboration)
 - ✅ Daily Report (Create → Submit → Review → Score)
-- ✅ Issue Tracking (Blocker, Bug, Feedback)
+- ✅ Issue Tracking (Blocker + attachments + import/export, Bug, Feedback)
 - ✅ Comments & Reactions (Polymorphic)
-- ✅ Department Management
-- ✅ File Attachments
+- ✅ Department Management (full overhaul)
+- ✅ **Notification System** (bell + drawer + preferences + admin feed)
+- ✅ Export to Excel (risk/blocker, sprint, project list)
+
+**Stage 2 — Đang Tiến Hành 🔄**
+- 🔄 Team Dashboard (MI-01) — in progress
+- 📋 My Work Page (MI-02)
+- 📋 Global Search (QW-03)
+- 📋 Worklog Reports (MI-07)
 
 ---
 
@@ -19,17 +32,19 @@ Hệ thống đã có đầy đủ nền tảng:
 
 > Các tính năng nhỏ, ảnh hưởng cao, ít rủi ro.
 
-### QW-01 — Notifications System (In-App)
-- **Mục tiêu:** Người dùng nhận thông báo khi có task giao cho mình, khi blocker được giải quyết, khi daily report bị reject
-- **Approach:** Database notifications + bell icon + badge counter
-- **Dependencies:** Laravel Notifications (built-in)
-- **Ước tính:** 2-3 ngày
+### ~~QW-01 — Notifications System~~ ✅ HOÀN THÀNH (2026-06-03)
+- In-app bell icon + drawer với cursor pagination
+- NotificationService + NotificationDispatcher
+- 40+ notification types (Task, Sprint, Project, Document, Comment, System, Admin)
+- User preferences per notification type
+- Admin feed (admin-only notifications)
+- ScanNotificationAlerts artisan command
 
-### QW-02 — Export to Excel
-- **Mục tiêu:** Export danh sách tasks, blockers, worklog ra Excel
-- **Approach:** Laravel Excel package hoặc dùng XLSX đã có ở frontend
-- **Dependencies:** XLSX (đã cài)
-- **Ước tính:** 1-2 ngày
+### QW-02 — Export to Excel ✅ HOÀN THÀNH (2026-06-03)
+- Risk/Blocker export: `useRiskExport.js`
+- Sprint export: `useSprintExport.js`
+- Project list export: `useProjectListExport.js`
+- Single project export: `useProjectExport.js`
 
 ### QW-03 — Search Toàn Cục
 - **Mục tiêu:** Tìm kiếm nhanh tasks, projects, bugs theo keyword
@@ -175,31 +190,33 @@ Hệ thống đã có đầy đủ nền tảng:
 ## Recommended Sequence
 
 ```
-Stage 1 (Tháng 1-2):
-    Refactor Phase 1-2 (Code cleanup + Folder structure)
-    + QW-01 (Notifications)
-    + QW-02 (Export Excel)
-    + MI-01 (Team Dashboard)
-    + MI-02 (My Work Page)
+Stage 1 (Tháng 1-2): ✅ HOÀN THÀNH
+    ✅ QW-01 (Notifications System)
+    ✅ QW-02 (Export Excel)
+    ✅ Department Management Overhaul
 
-Stage 2 (Tháng 3-4):
-    Refactor Phase 3-4 (Architecture + UI)
-    + QW-03 (Global Search)
-    + MI-05 (Email Notifications)
-    + MI-07 (Worklog Reports)
-    + MI-08 (Member Profile)
+Stage 2 (Tháng 3-4): 🔄 HIỆN TẠI
+    🔄 MI-01 (Team Dashboard) — in progress
+    📋 MI-02 (My Work Page)
+    📋 QW-03 (Global Search)
+    📋 MI-07 (Worklog Reports)
+    📋 MI-08 (Member Profile)
+    Refactor Phase 1-2 (Code cleanup + TD-005 composables còn thiếu)
 
 Stage 3 (Tháng 5-6):
-    Refactor Phase 5 (Performance)
+    + QW-05 (Print/PDF Daily Report)
+    + MI-05 (Email Notifications — cần setup Queue trước)
+    + MI-06 (Advanced Filters)
+    Refactor Phase 3-4 (Architecture + TD-001/002 Controllers)
+
+Stage 4 (6 tháng+):
     + LT-01 (REST API)
     + LT-02 (Knowledge Base)
     + LT-03 (Performance Review)
-
-Stage 4+ (6 tháng+):
-    LT-04 (Advanced Analytics)
-    LT-05 (Real-Time)
-    LT-06 (SSO)
-    LT-07 (Admin Config)
+    + LT-04 (Advanced Analytics)
+    + LT-05 (Real-Time — cần WebSocket)
+    + LT-06 (SSO)
+    + LT-07 (Admin Config)
 ```
 
 ---

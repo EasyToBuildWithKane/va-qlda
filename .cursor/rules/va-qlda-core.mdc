@@ -1,0 +1,41 @@
+---
+description: VA-QLDA — ngữ cảnh dự án, stack, auth, quy ước chung (đọc docs/ khi cần chi tiết)
+alwaysApply: true
+---
+
+# VA-QLDA — Core
+
+**VAschools Quản lý Dự Án** — Laravel 10 + Inertia + Vue 3 + Tailwind. Tài liệu: `docs/PROJECT_OVERVIEW.md`, `docs/ARCHITECTURE.md`.
+
+## Stack & transport
+
+- **Không REST API chính** — `routes/web.php` + Inertia; `routes/api.php` rỗng. JSON chỉ cho endpoint phụ (vd. notifications).
+- **Auth:** guard `system`, model `SystemAccount`, roles: `admin` | `lead` | `member` | `viewer`.
+- **DB:** MySQL, prefix bảng `va_prd_` — index name ngắn nếu composite dài.
+
+## Kiến trúc (hiện tại)
+
+| Module | Pattern |
+|--------|---------|
+| DailyReport | Clean: `Application/`, `Domain/` |
+| Project, Task, Blocker, … | MVC: Controller → Model / Support |
+
+**Không** refactor sang Use Case khi user chỉ sửa bug nhỏ. Module mới: ưu tiên FormRequest + Policy + Resource giống module cùng loại.
+
+## Phân quyền
+
+- Backend: `$this->authorize('manage', $project)` / Policy trong `AuthServiceProvider`.
+- Frontend: `usePage().props.auth.user`, `project.can?.manage` từ Resource.
+- Nav: `App\Support\Navigation` — filter theo `roles`.
+
+## Copy & UX
+
+- UI / flash / validation messages: **tiếng Việt**.
+- Brand: `#9A0036`, tokens Tailwind `brand`, `card`, `btn-primary`, `font-display`.
+- Layout: `AppLayout` + `#header` → `PageHeader`; route helper `route()` (Ziggy).
+
+## Cấm
+
+- Commit `.env`, session files, secrets.
+- Break DailyReport domain boundaries khi không được yêu cầu refactor.
+- Thêm feature + refactor folder lớn trong cùng một thay đổi (xem `docs/REFACTOR_PLAN.md`).

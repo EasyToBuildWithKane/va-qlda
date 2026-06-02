@@ -1,0 +1,99 @@
+# VA-QLDA — GitLab CI (mirror of .github/workflows/ci.yml)
+
+stages:
+  - test
+  - build
+  - e2e
+  - quality
+
+variables:
+  APP_ENV: testing
+  APP_DEBUG: "true"
+  APP_URL: http://127.0.0.1:8000
+  DB_CONNECTION: sqlite
+  DB_DATABASE: $CI_PROJECT_DIR/database/testing.sqlite
+  COMPOSER_CACHE_DIR: .composer-cache
+  NPM_CONFIG_CACHE: .npm-cache
+
+default:
+  interruptible: true
+
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - vendor/
+    - node_modules/
+    - .composer-cache/
+    - .npm-cache/
+    - .playwright-browsers/
+
+.php-base: &php-base
+  image: php:8.2-cli
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq git unzip libzip-dev libsqlite3-dev > /dev/null
+    - docker-php-ext-install zip pdo_sqlite > /dev/null
+    - curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+    - composer install --no-interaction --prefer-dist --optimize-autoloader
+
+.node-base: &node-base
+  image: node:20-bookworm
+  before_script:
+    - npm ci
+
+backend-tests:
+  <<: *php-base
+  stage: test
+  script:
+    - cp .env.example .env
+    - php artisan key:generate
+    - php artisan test
+
+frontend-build:
+  <<: *node-base
+  stage: build
+  script:
+    - npm run build
+  artifacts:
+    paths:
+      - public/build/
+    expire_in: 1 day
+
+playwright:
+  stage: e2e
+  image: mcr.microsoft.com/playwright:v1.49.1-noble
+  needs: [backend-tests, frontend-build]
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq git unzip libzip-dev libsqlite3-dev > /dev/null
+    - docker-php-ext-install zip pdo_sqlite > /dev/null
+    - curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+    - composer install --no-interaction --prefer-dist --optimize-autoloader
+    - npm ci
+    - npm run build
+    - cp .env.example .env
+    - php artisan key:generate
+    - touch database/testing.sqlite
+    - php artisan migrate:fresh --force --seed
+  script:
+    - npm run test:e2e
+  variables:
+    PLAYWRIGHT_BASE_URL: http://127.0.0.1:8000
+  artifacts:
+    when: on_failure
+    paths:
+      - playwright-report/
+      - test-results/
+    expire_in: 7 days
+
+code-style:
+  <<: *php-base
+  stage: quality
+  script:
+    - vendor/bin/pint --test
+  allow_failure: true
+
+static-analysis:
+  <<: *php-base
+  stage: quality
+  script:
+    - vendor/bin/phpstan analyse --no-progress --memory-limit=512M
+  allow_failure: true
