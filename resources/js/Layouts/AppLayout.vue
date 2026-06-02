@@ -3,11 +3,19 @@ import { computed, reactive, ref, watch } from 'vue';
 import { Link, usePage, router } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
 import AppDialog from '@/Components/Ui/AppDialog.vue';
+import ToastContainer from '@/Components/Ui/ToastContainer.vue';
+import { useToast } from '@/composables/useToast';
 
 const page = usePage();
 const user = computed(() => page.props.auth?.user);
 const nav = computed(() => page.props.nav ?? []);
 const flash = computed(() => page.props.flash ?? {});
+
+const toast = useToast();
+watch(flash, (f) => {
+    if (f.success) toast.success(f.success);
+    if (f.error)   toast.error(f.error);
+}, { immediate: true, deep: true });
 
 // Highlight only the most specific matching item. A plain startsWith() would
 // keep "/daily-reports" (Lịch sử) active while on "/daily-reports/today", so we
@@ -231,9 +239,6 @@ const logout = () => router.post('/logout');
                 </div>
             </header>
 
-            <div v-if="flash.success" class="bg-success/10 text-success px-6 py-2 text-sm">{{ flash.success }}</div>
-            <div v-if="flash.error" class="bg-danger/10 text-danger px-6 py-2 text-sm">{{ flash.error }}</div>
-
             <main class="flex-1 p-6 overflow-y-auto">
                 <slot />
             </main>
@@ -241,5 +246,8 @@ const logout = () => router.post('/logout');
 
         <!-- App-wide dialog (replaces native alert/confirm/prompt) -->
         <AppDialog />
+
+        <!-- Global toast notifications -->
+        <ToastContainer />
     </div>
 </template>

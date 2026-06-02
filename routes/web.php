@@ -111,6 +111,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/', [DepartmentController::class, 'index'])->name('index');
         Route::post('/', [DepartmentController::class, 'store'])->name('store');
         Route::put('/{department}', [DepartmentController::class, 'update'])->name('update');
+        Route::patch('/{department}/toggle', [DepartmentController::class, 'toggleStatus'])->name('toggle');
         Route::delete('/{department}', [DepartmentController::class, 'destroy'])->name('destroy');
     });
 

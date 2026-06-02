@@ -47,6 +47,17 @@ class DepartmentController extends Controller
         return back()->with('success', 'Đã cập nhật phòng ban.');
     }
 
+    public function toggleStatus(Department $department): RedirectResponse
+    {
+        $this->authorize('update', $department);
+
+        $department->update(['is_active' => !$department->is_active]);
+
+        $msg = $department->is_active ? 'Đã kích hoạt phòng ban.' : 'Đã ngừng hoạt động phòng ban.';
+
+        return back()->with('success', $msg);
+    }
+
     public function destroy(Department $department): RedirectResponse
     {
         $this->authorize('delete', $department);
