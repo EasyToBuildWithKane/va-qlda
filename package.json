@@ -11,7 +11,9 @@
         "test:e2e:install": "playwright install --with-deps chromium",
         "prepare": "node node_modules/husky/bin.js",
         "lint-staged": "node node_modules/lint-staged/bin/lint-staged.js",
-        "commitlint": "node node_modules/@commitlint/cli/lib/cli.js"
+        "commitlint": "node node_modules/@commitlint/cli/lib/cli.js",
+        "commit:msg": "node scripts/generate-commit-msg.mjs",
+        "commit": "node scripts/auto-commit.mjs"
     },
     "lint-staged": {
         "resources/js/**/*.{js,ts,jsx,tsx,vue}": [
