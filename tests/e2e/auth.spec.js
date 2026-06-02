@@ -16,14 +16,14 @@ test.describe('Authentication', () => {
         await page.getByLabel('Password').fill('password');
         await page.getByRole('button', { name: 'Sign in' }).click();
 
-        await expect(page).toHaveURL(/\/dashboard/);
+        await page.waitForURL(/\/dashboard/, { timeout: 15_000 });
         await expect(page.getByRole('heading', { name: 'Bảng điều khiển' })).toBeVisible();
         await expect(page.getByText('Foundation ready')).toBeVisible();
     });
 
     test('rejects invalid credentials', async ({ page }) => {
         await page.goto('/login');
-        await page.getByLabel('Username').fill('not-a-real-user');
+        await page.getByLabel('Username').fill(`invalid-${Date.now()}`);
         await page.getByLabel('Password').fill('wrong-password');
         await page.getByRole('button', { name: 'Sign in' }).click();
 

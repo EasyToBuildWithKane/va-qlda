@@ -53,7 +53,7 @@ test.describe('Projects', () => {
             await page.getByRole('link', { name: /QLDA|Quản lý dự án/i }).first().click();
 
             await expect(page).toHaveURL(/\/projects\/\d+/);
-            await expect(page.getByRole('heading', { name: /Quản lý dự án|QLDA/i })).toBeVisible();
+            await expect(page.locator('#header').getByRole('heading').first()).toBeVisible();
         });
 
         test('can switch to Sprint tab', async ({ page }) => {

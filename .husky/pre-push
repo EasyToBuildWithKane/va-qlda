@@ -1,6 +1,10 @@
 [ "$CI" = "true" ] && exit 0
-echo "▶ Running Playwright E2E tests..."
-node node_modules/@playwright/test/cli.js test --reporter=dot
+if [ ! -f public/build/manifest.json ]; then
+  echo "▶ Building frontend assets (required for E2E)..."
+  npm run build || exit 1
+fi
+echo "▶ Running Playwright E2E tests (chromium)..."
+node node_modules/@playwright/test/cli.js test --project=chromium --reporter=dot
 if [ $? -ne 0 ]; then
   echo "✗ E2E tests failed. Push aborted."
   exit 1

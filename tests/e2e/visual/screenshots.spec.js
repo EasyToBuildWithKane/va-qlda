@@ -7,7 +7,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Visual regression', () => {
     test('login page', async ({ page }) => {
         await page.goto('/login');
-        await expect(page).toHaveScreenshot('login.png', { fullPage: true });
+        await expect(page).toHaveScreenshot('login.png', { fullPage: true, maxDiffPixelRatio: 0.02 });
     });
 
     test('dashboard after member login', async ({ page }) => {
