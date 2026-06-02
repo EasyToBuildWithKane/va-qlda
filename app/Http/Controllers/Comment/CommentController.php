@@ -10,6 +10,7 @@ use App\Models\Comment;
 use App\Models\Feedback;
 use App\Models\Task;
 use App\Support\BlockerActivityLogger;
+use App\Support\NotificationDispatcher;
 use App\Support\TaskActivityLogger;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
@@ -47,6 +48,8 @@ class CommentController extends Controller
             BlockerActivityLogger::commentAdded($model, $request->user());
         } elseif ($model instanceof Task) {
             TaskActivityLogger::commentAdded($model, $request->user());
+            $isMention = str_contains($data['body'], '@');
+            NotificationDispatcher::taskComment($model->fresh(['project', 'watchers']), $request->user(), $isMention);
         }
 
         return back()->with('success', 'Đã gửi bình luận.');

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\NotificationService;
 use App\Support\Navigation;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -49,6 +50,9 @@ class HandleInertiaRequests extends Middleware
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
             ],
+            'notifications' => fn () => $account ? [
+                'unread_count' => app(NotificationService::class)->unreadCount($account),
+            ] : ['unread_count' => 0],
         ]);
     }
 }

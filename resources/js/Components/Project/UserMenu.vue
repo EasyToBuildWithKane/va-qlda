@@ -8,6 +8,8 @@ const props = defineProps({
     roleLabel: { type: String, default: '' },
 });
 
+const emit = defineEmits(['open-notifications']);
+
 const menuOpen = ref(false);
 const menuRef = ref(null);
 
@@ -120,14 +122,18 @@ onBeforeUnmount(() => {
                         <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-400">Sắp ra mắt</span>
                     </div>
 
-                    <!-- Notifications (coming soon) -->
-                    <div class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] text-slate-400 cursor-not-allowed select-none">
-                        <div class="h-7 w-7 shrink-0 rounded-lg bg-slate-100 flex items-center justify-center">
-                            <AppIcon name="notifications" :size="14" class="text-slate-400" />
+                    <!-- Notifications -->
+                    <button
+                        type="button"
+                        role="menuitem"
+                        class="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/20"
+                        @click="emit('open-notifications'); closeMenu()"
+                    >
+                        <div class="h-7 w-7 shrink-0 rounded-lg bg-brand/10 flex items-center justify-center">
+                            <AppIcon name="notifications" :size="14" class="text-brand" />
                         </div>
-                        <span class="flex-1">Thông báo</span>
-                        <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-400">Sắp ra mắt</span>
-                    </div>
+                        <span class="flex-1 text-left">Thông báo</span>
+                    </button>
 
                     <!-- Settings (coming soon) -->
                     <div class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] text-slate-400 cursor-not-allowed select-none">

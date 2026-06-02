@@ -1,11 +1,17 @@
 <script setup>
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, provide, reactive, ref, watch } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
 import UserMenu from '@/Components/Project/UserMenu.vue';
+import NotificationBell from '@/Components/Notifications/NotificationBell.vue';
+import NotificationCenterDrawer from '@/Components/Notifications/NotificationCenterDrawer.vue';
 import AppDialog from '@/Components/Ui/AppDialog.vue';
 import ToastContainer from '@/Components/Ui/ToastContainer.vue';
 import { useToast } from '@/composables/useToast';
+import { useNotifications } from '@/composables/useNotifications';
+
+const notificationCenter = useNotifications();
+provide('notifications', notificationCenter);
 
 const { flush } = defineProps({ flush: Boolean });
 const page = usePage();
@@ -317,7 +323,12 @@ const userInitials = computed(() => {
                                 <span>{{ currentDate }}</span>
                             </div>
                             <div class="h-5 w-px bg-slate-200 hidden sm:block"></div>
-                            <UserMenu :user="user" :role-label="roleLabel" />
+                            <NotificationBell />
+                            <UserMenu
+                                :user="user"
+                                :role-label="roleLabel"
+                                @open-notifications="notificationCenter.openDrawer()"
+                            />
                         </div>
                     </div>
                 </header>
@@ -333,5 +344,8 @@ const userInitials = computed(() => {
 
         <!-- Global toast notifications -->
         <ToastContainer />
+
+        <!-- Notification center (right drawer) -->
+        <NotificationCenterDrawer />
     </div>
 </template>

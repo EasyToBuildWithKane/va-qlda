@@ -95,7 +95,7 @@ class Navigation
             ]],
             ['heading' => 'Hệ thống', 'icon' => 'settings', 'items' => [
                 ['label' => 'Tài khoản', 'icon' => 'account', 'href' => '#', 'status' => 'planned'],
-                ['label' => 'Thông báo', 'icon' => 'notifications', 'href' => '#', 'status' => 'planned'],
+                ['label' => 'Quản lý thông báo', 'icon' => 'notifications', 'href' => '/notifications/manage', 'status' => 'live', 'roles' => ['admin']],
                 ['label' => 'Cấu hình hệ thống', 'icon' => 'system-config', 'href' => '#', 'status' => 'planned', 'roles' => ['admin']],
             ]],
         ];

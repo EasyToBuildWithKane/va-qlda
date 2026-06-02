@@ -11,6 +11,7 @@ use App\Models\Project;
 use App\Models\Task;
 use App\Support\Enums\TaskPriority;
 use App\Support\Enums\TaskStatus;
+use App\Support\NotificationDispatcher;
 use App\Support\TaskActivityLogger;
 use App\Support\TaskTimeliness;
 use Illuminate\Http\RedirectResponse;
@@ -42,6 +43,7 @@ class TaskController extends Controller
 
         TaskTimeliness::syncWorkStartedAt($task->fresh());
         TaskActivityLogger::created($task->fresh(), $request->user());
+        NotificationDispatcher::taskCreated($task->fresh(['project']), $request->user());
 
         return back()->with('success', 'Đã thêm công việc.');
     }
@@ -79,6 +81,7 @@ class TaskController extends Controller
 
                 TaskTimeliness::syncWorkStartedAt($task->fresh());
                 TaskActivityLogger::created($task->fresh(), $account);
+                NotificationDispatcher::taskCreated($task->fresh(['project']), $account);
                 $created++;
             }
         });
@@ -152,10 +155,12 @@ class TaskController extends Controller
                 $fresh->status->value,
                 $request->user(),
             );
+            NotificationDispatcher::taskStatusChanged($fresh, $previousStatus, $fresh->status->value, $request->user());
         }
         $changes = collect($fresh->getChanges())->except(['status', 'updated_at'])->all();
         if ($changes !== []) {
             TaskActivityLogger::updated($fresh, $request->user(), $changes);
+            NotificationDispatcher::taskUpdated($fresh, $request->user(), $changes);
         }
 
         if ($dependencies !== null) {
@@ -212,8 +217,11 @@ class TaskController extends Controller
                 $fresh->status->value,
                 $request->user(),
             );
+            NotificationDispatcher::taskStatusChanged($fresh, $previousStatus, $fresh->status->value, $request->user());
         } elseif ($fresh->getChanges() !== []) {
-            TaskActivityLogger::updated($fresh, $request->user(), $fresh->getChanges());
+            $chg = collect($fresh->getChanges())->except(['updated_at'])->all();
+            TaskActivityLogger::updated($fresh, $request->user(), $chg);
+            NotificationDispatcher::taskUpdated($fresh, $request->user(), $chg);
         }
 
         $flash = match ($newStatus) {

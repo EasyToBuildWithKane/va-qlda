@@ -9,6 +9,8 @@ use App\Http\Controllers\DailyReport\DailyReportController;
 use App\Http\Controllers\Department\DepartmentController;
 use App\Http\Controllers\DailyReport\DailyReportReviewController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\NotificationManagementController;
 use App\Http\Controllers\Feedback\FeedbackController;
 use App\Http\Controllers\Project\EpicController;
 use App\Http\Controllers\Project\ProjectAttachmentController;
@@ -37,6 +39,21 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/', fn () => redirect()->route('dashboard'));
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+
+    // Notifications
+    Route::prefix('notifications')->name('notifications.')->group(function () {
+        Route::get('/', [NotificationController::class, 'index'])->name('index');
+        Route::get('/unread-count', [NotificationController::class, 'unreadCount'])->name('unread-count');
+        Route::get('/preferences', [NotificationController::class, 'preferences'])->name('preferences');
+        Route::put('/preferences', [NotificationController::class, 'updatePreferences'])->name('preferences.update');
+        Route::get('/actors', [NotificationController::class, 'actors'])->name('actors');
+        Route::get('/manage', NotificationManagementController::class)->name('manage');
+        Route::post('/read-all', [NotificationController::class, 'markAllRead'])->name('read-all');
+        Route::post('/bulk', [NotificationController::class, 'bulk'])->name('bulk');
+        Route::post('/{notification}/read', [NotificationController::class, 'markRead'])->name('read');
+        Route::post('/{notification}/acknowledge', [NotificationController::class, 'acknowledge'])->name('acknowledge');
+        Route::post('/{notification}/assign', [NotificationController::class, 'assign'])->name('assign');
+    });
 
     // Daily Report — static segments before /{report} to avoid capture.
     Route::prefix('daily-reports')->name('daily-reports.')->group(function () {

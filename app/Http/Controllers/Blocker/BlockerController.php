@@ -8,8 +8,10 @@ use App\Http\Requests\Blocker\StoreBlockerRequest;
 use App\Http\Requests\Blocker\UpdateBlockerRequest;
 use App\Http\Resources\BlockerResource;
 use App\Models\Blocker;
+use App\Services\NotificationService;
 use App\Support\BlockerActivityLogger;
 use App\Support\Enums\BlockerSeverity;
+use App\Support\Enums\NotificationType;
 use App\Support\Enums\BlockerStatus;
 use App\Support\Options;
 use Illuminate\Http\RedirectResponse;
@@ -130,6 +132,14 @@ class BlockerController extends Controller
                 $created++;
             }
         });
+
+        app(NotificationService::class)->recordSystemEvent(
+            $account,
+            NotificationType::SystemImport,
+            "Nhập {$created} vướng mắc từ Excel",
+            null,
+            null,
+        );
 
         return back()->with('success', "Đã nhập {$created} vướng mắc từ file.");
     }

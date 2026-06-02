@@ -1,0 +1,195 @@
+# PROJECT OVERVIEW — VA QLDA
+
+> **VA QLDA** (VAschools Quản Lý Dự Án) — Hệ thống quản lý dự án nội bộ dành cho tổ chức giáo dục VAschools.
+
+---
+
+## 1. Mục Tiêu Dự Án
+
+VA QLDA là nền tảng quản lý công việc và đánh giá hiệu suất nhân sự nội bộ, được xây dựng dành riêng cho VAschools. Hệ thống giải quyết các bài toán thực tế của tổ chức:
+
+| Bài toán | Giải pháp |
+|---|---|
+| Theo dõi tiến độ dự án phân tán | Quản lý dự án tập trung với Sprint, Task, Gantt |
+| Không có kênh báo cáo ngày chuẩn hóa | Module Daily Report với chấm điểm và xếp loại |
+| Khó quản lý rủi ro / vướng mắc | Module Blocker với tracking mức độ nghiêm trọng |
+| Thiếu luồng phản hồi từ nhân viên | Module Feedback & Bug Report |
+| Không đo được chi phí nhân công thực tế | Worklog gắn rate theo từng dự án |
+| Quản lý nhân sự theo phòng ban | Module Department + Employee linking |
+
+---
+
+## 2. Các Module Chính
+
+```
+VA QLDA
+├── [AUTH]          Xác thực người dùng (custom guard "system")
+├── [PROJECT]       Quản lý dự án, sprint, task, epics
+│   ├── Sprint      Lập kế hoạch theo vòng lặp Agile
+│   ├── Task        Công việc chi tiết (có subtask, dependency)
+│   ├── Worklog     Ghi giờ làm & chi phí nhân công
+│   ├── Gantt       Timeline trực quan
+│   ├── Documents   Tài liệu dự án đính kèm
+│   └── Members     Quản lý thành viên & role trong dự án
+├── [DAILY REPORT]  Báo cáo ngày (tạo → nộp → chấm điểm → xếp loại)
+├── [BLOCKER]       Quản lý vướng mắc / rủi ro (RSK-001)
+├── [BUG]           Báo cáo & theo dõi lỗi (BUG-0001)
+├── [FEEDBACK]      Góp ý & đề xuất từ nhân viên (FB-0001)
+├── [COMMENT]       Thảo luận đa hình (Task, Bug, Blocker, Feedback)
+├── [DEPARTMENT]    Quản lý phòng ban
+└── [DASHBOARD]     Tổng quan hệ thống (đang phát triển)
+```
+
+---
+
+## 3. Luồng Hoạt Động Tổng Thể
+
+### 3.1 Luồng Quản Lý Dự Án
+
+```
+Tạo Project
+    │
+    ├── Thêm Members (role + rate)
+    ├── Tạo Epics (phân nhóm tính năng)
+    ├── Tạo Sprints (kế hoạch vòng lặp)
+    │
+    └── Tạo Tasks
+            │
+            ├── Gán Assignee, Reviewer
+            ├── Set Priority, Status, Phase
+            ├── Đặt Due Date, Estimate Hours
+            ├── Link Dependencies (Gantt)
+            │
+            ├── [Member] Làm việc → Log Hours (Worklog)
+            ├── [Member] Upload Attachments
+            ├── [Member] Comment / Thảo luận
+            │
+            └── [Lead/PM] Review → Done
+                        │
+                        └── Tính cost = hours × rate_snapshot
+```
+
+### 3.2 Luồng Daily Report
+
+```
+[Member] Viết báo cáo ngày (Today)
+    │
+    ├── Điền: Goals, Progress, Results, Plan Tomorrow
+    ├── Chọn Projects liên quan
+    ├── Trạng thái: DRAFT
+    │
+    └── Submit → SUBMITTED
+                │
+                └── [Lead/Admin] Review Queue
+                            │
+                            ├── Score (5 tiêu chí) → REVIEWED + Grade A-F
+                            └── Reject (ghi chú) → DRAFT (viết lại)
+```
+
+### 3.3 Luồng Blocker / Risk
+
+```
+[Member] Phát sinh vướng mắc → Tạo Blocker (RSK-001)
+    │
+    ├── Gán severity (critical/high/medium/low)
+    ├── Gán Owner (người chịu trách nhiệm)
+    ├── Link to Task (tùy chọn)
+    │
+    └── Owner xử lý → Cập nhật status
+                │
+                ├── in_progress → Working
+                ├── resolved → Có resolution notes
+                └── closed → Done
+```
+
+---
+
+## 4. Kiến Trúc Hệ Thống
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      CLIENT (Browser)                        │
+│           Vue 3 + Inertia.js + Tailwind CSS                  │
+│                                                              │
+│  Pages/ → Components/ → Composables → Layouts/              │
+└──────────────────────────┬──────────────────────────────────┘
+                           │ Inertia Protocol (HTTP + JSON)
+┌──────────────────────────▼──────────────────────────────────┐
+│                  LARAVEL APPLICATION                          │
+│                                                              │
+│  routes/web.php → Controllers → UseCase/Services             │
+│                                                              │
+│  ┌────────────────────────────────────────────────────────┐  │
+│  │ HTTP Layer        │ Application Layer │ Domain Layer   │  │
+│  │ Controllers       │ Use Cases         │ Domain Models  │  │
+│  │ Form Requests     │ (DailyReport)     │ Services       │  │
+│  │ Resources         │                   │ Exceptions     │  │
+│  └───────────────────┴───────────────────┴───────────────┘  │
+│                                                              │
+│  Models (Eloquent ORM) → Policies → Support Utilities        │
+│                                                              │
+└──────────────────────────┬──────────────────────────────────┘
+                           │ Eloquent ORM
+┌──────────────────────────▼──────────────────────────────────┐
+│                   MySQL Database                              │
+│           (Prefix: va_prd_, ~25 tables)                      │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 5. Phân Quyền Người Dùng
+
+| Role | Mô Tả | Quyền Chính |
+|---|---|---|
+| `admin` | Quản trị viên hệ thống | Toàn quyền, cấu hình hệ thống |
+| `lead` | Trưởng nhóm / Team Lead | Tạo dự án, review báo cáo, quản lý thành viên |
+| `member` | Thành viên nhóm | Làm việc trong dự án, viết báo cáo ngày |
+| `viewer` | Giám đốc / Quan sát | Chỉ xem, không chỉnh sửa |
+
+---
+
+## 6. Tech Stack
+
+| Layer | Công Nghệ | Phiên Bản |
+|---|---|---|
+| Backend Framework | Laravel | 10.10 |
+| PHP | PHP | 8.1+ |
+| Frontend Framework | Vue.js | 3.5.35 |
+| SPA Bridge | Inertia.js | Latest |
+| CSS Framework | Tailwind CSS | 3.4.19 |
+| Build Tool | Vite | 5.0 |
+| Database | MySQL | Latest |
+| Auth | Laravel Sanctum + Custom Guard | - |
+| Rich Text Editor | TipTap | 3.24.0 |
+| Gantt Chart | Frappe Gantt | 1.2.2 |
+| Charts | Chart.js + Vue ChartJS | - |
+| Spreadsheet Export | XLSX | - |
+| Audit Log | Spatie Activity Log | - |
+| Code Formatter | Laravel Pint | - |
+| Static Analysis | Larastan | - |
+
+---
+
+## 7. Trạng Thái Hiện Tại
+
+**Giai đoạn: MVP Foundation (Stage 0)**
+
+| Module | Trạng Thái |
+|---|---|
+| Authentication | ✅ Hoàn thành |
+| Project Management | ✅ Hoàn thành |
+| Sprint & Task | ✅ Hoàn thành |
+| Worklog / Time Tracking | ✅ Hoàn thành |
+| Daily Report | ✅ Hoàn thành |
+| Blocker Tracking | ✅ Hoàn thành |
+| Bug Tracking | ✅ Hoàn thành |
+| Feedback | ✅ Hoàn thành |
+| Department Management | ✅ Hoàn thành |
+| Comments & Reactions | ✅ Hoàn thành |
+| Gantt Chart | ✅ Hoàn thành |
+| Team Dashboard | 🔄 Đang phát triển |
+| Weekly Performance Review | 📋 Kế hoạch |
+| Notifications System | 📋 Kế hoạch |
+| Knowledge Base | 📋 Kế hoạch |
+| Account Settings | 📋 Kế hoạch |

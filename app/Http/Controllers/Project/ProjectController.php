@@ -200,6 +200,10 @@ class ProjectController extends Controller
     public function update(UpdateProjectRequest $request, Project $project): RedirectResponse
     {
         $project->update($request->validated());
+        $changes = collect($project->getChanges())->except(['updated_at'])->all();
+        if ($changes !== []) {
+            \App\Support\NotificationDispatcher::projectUpdated($project->fresh(), $request->user(), $changes);
+        }
 
         // "Lưu & tiếp tục" stays on the edit screen; otherwise go to the detail page.
         $route = $request->input('after') === 'continue' ? 'projects.edit' : 'projects.show';
