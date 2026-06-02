@@ -53,7 +53,7 @@ class LogWorkUseCase
         $rate = (float) $pivot->rate;
 
         return $pivot->rate_type === RateType::Monthly->value
-            ? round($rate / Project::MONTHLY_HOURS, 2)
+            ? round($rate / Project::monthlyHours(), 2)
             : $rate;
     }
 }

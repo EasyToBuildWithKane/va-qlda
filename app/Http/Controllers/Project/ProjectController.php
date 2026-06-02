@@ -2,6 +2,10 @@
 
 namespace App\Http\Controllers\Project;
 
+use App\Application\Project\ArchiveProjectUseCase;
+use App\Application\Project\CreateProjectUseCase;
+use App\Application\Project\DuplicateProjectUseCase;
+use App\Application\Project\UpdateProjectUseCase;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Project\StoreProjectRequest;
 use App\Http\Requests\Project\UpdateProjectRequest;
@@ -25,6 +29,13 @@ use Inertia\Response;
 
 class ProjectController extends Controller
 {
+    public function __construct(
+        private readonly CreateProjectUseCase $createProject,
+        private readonly UpdateProjectUseCase $updateProject,
+        private readonly DuplicateProjectUseCase $duplicateProject,
+        private readonly ArchiveProjectUseCase $archiveProject,
+    ) {}
+
     public function index(Request $request): Response
     {
         $this->authorize('viewAny', Project::class);
@@ -89,7 +100,7 @@ class ProjectController extends Controller
         ]);
     }
 
-    public function create(Request $request): Response
+    public function create(): Response
     {
         $this->authorize('create', Project::class);
 
@@ -100,26 +111,15 @@ class ProjectController extends Controller
             'scopeOptions' => ProjectScope::options(),
             'regionOptions' => Options::regions(),
             'departmentOptions' => Options::departments(),
-            'suggestedCode' => $this->suggestCode(),
+            'suggestedCode' => $this->createProject->suggestCode(),
             'defaultDepartmentId' => Options::defaultOwnerDepartmentId(),
         ]);
     }
 
     public function store(StoreProjectRequest $request): RedirectResponse
     {
-        $data = $request->validated();
+        $project = $this->createProject->execute($request->validated());
 
-        if (empty($data['department_id'])) {
-            $data['department_id'] = Options::defaultOwnerDepartmentId();
-        }
-
-        if (empty($data['code'])) {
-            $data['code'] = $this->suggestCode();
-        }
-
-        $project = Project::create($data);
-
-        // "Lưu & tiếp tục" keeps the user on the edit screen of the new project.
         $route = $request->input('after') === 'continue' ? 'projects.edit' : 'projects.show';
 
         return redirect()
@@ -199,13 +199,8 @@ class ProjectController extends Controller
 
     public function update(UpdateProjectRequest $request, Project $project): RedirectResponse
     {
-        $project->update($request->validated());
-        $changes = collect($project->getChanges())->except(['updated_at'])->all();
-        if ($changes !== []) {
-            \App\Support\NotificationDispatcher::projectUpdated($project->fresh(), $request->user(), $changes);
-        }
+        $this->updateProject->execute($project, $request->validated(), $request->user());
 
-        // "Lưu & tiếp tục" stays on the edit screen; otherwise go to the detail page.
         $route = $request->input('after') === 'continue' ? 'projects.edit' : 'projects.show';
 
         return redirect()
@@ -213,9 +208,6 @@ class ProjectController extends Controller
             ->with('success', 'Đã cập nhật dự án.');
     }
 
-    /**
-     * Lightweight type change used by the portfolio Kanban (drag between columns).
-     */
     public function updateType(Request $request, Project $project): RedirectResponse
     {
         $this->authorize('update', $project);
@@ -229,9 +221,6 @@ class ProjectController extends Controller
         return back();
     }
 
-    /**
-     * Lightweight department change used by the portfolio Kanban (grouped by department).
-     */
     public function updateDepartment(Request $request, Project $project): RedirectResponse
     {
         $this->authorize('update', $project);
@@ -245,22 +234,24 @@ class ProjectController extends Controller
         return back();
     }
 
-    /**
-     * Nhân bản dự án (quick action trên DataGrid) → mở trang sửa bản sao.
-     */
     public function duplicate(Project $project): RedirectResponse
     {
         $this->authorize('create', Project::class);
 
-        $copy = $project->replicate(['code']);
-        $copy->code = $this->suggestCode();
-        $copy->name = $project->name.' (bản sao)';
-        $copy->status = ProjectStatus::Planning->value;
-        $copy->save();
+        $copy = $this->duplicateProject->execute($project);
 
         return redirect()
             ->route('projects.edit', $copy)
             ->with('success', 'Đã nhân bản dự án.');
+    }
+
+    public function archive(Project $project): RedirectResponse
+    {
+        $this->authorize('update', $project);
+
+        $this->archiveProject->execute($project);
+
+        return back()->with('success', 'Đã lưu trữ dự án.');
     }
 
     public function destroy(Project $project): RedirectResponse
@@ -272,12 +263,5 @@ class ProjectController extends Controller
         return redirect()
             ->route('projects.index')
             ->with('success', 'Đã xoá dự án.');
-    }
-
-    private function suggestCode(): string
-    {
-        $last = Project::orderByDesc('id')->value('id') ?? 0;
-
-        return 'PRJ-'.str_pad((string) ($last + 1), 3, '0', STR_PAD_LEFT);
     }
 }

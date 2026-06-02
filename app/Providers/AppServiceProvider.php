@@ -2,16 +2,18 @@
 
 namespace App\Providers;
 
+use App\Support\Options\DepartmentOptions;
+use App\Support\Options\EmployeeOptions;
+use App\Support\Options\ProjectOptions;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
-        //
+        $this->app->singleton(EmployeeOptions::class);
+        $this->app->singleton(ProjectOptions::class);
+        $this->app->singleton(DepartmentOptions::class);
     }
 
     /**
