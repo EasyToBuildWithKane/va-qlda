@@ -151,7 +151,7 @@ class TaskTest extends TestCase
             ->delete("/projects/{$project->id}/tasks/{$task->id}")
             ->assertRedirect();
 
-        $this->assertDatabaseMissing('tasks', ['id' => $task->id]);
+        $this->assertSoftDeleted('tasks', ['id' => $task->id]);
     }
 
     public function test_viewer_cannot_delete_task(): void

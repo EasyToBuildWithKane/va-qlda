@@ -88,7 +88,7 @@ class FeedbackTest extends TestCase
             ->post('/feedback', $this->feedbackPayload())
             ->assertRedirect();
 
-        $this->assertDatabaseHas('feedback', ['title' => 'Test Feedback']);
+        $this->assertDatabaseHas('feedbacks', ['title' => 'Test Feedback']);
     }
 
     public function test_admin_can_create_feedback(): void
@@ -97,7 +97,7 @@ class FeedbackTest extends TestCase
             ->post('/feedback', $this->feedbackPayload(['title' => 'Admin Feedback']))
             ->assertRedirect();
 
-        $this->assertDatabaseHas('feedback', ['title' => 'Admin Feedback']);
+        $this->assertDatabaseHas('feedbacks', ['title' => 'Admin Feedback']);
     }
 
     public function test_viewer_cannot_create_feedback(): void
@@ -132,7 +132,7 @@ class FeedbackTest extends TestCase
             ->post('/feedback', $this->feedbackPayload());
 
         $response->assertRedirect();
-        $this->assertStringContainsString('/feedback/', $response->headers->get('Location'));
+        $this->assertMatchesRegularExpression('|/feedback/\d+|', $response->headers->get('Location'));
     }
 
     public function test_feedback_linked_to_project(): void
@@ -143,7 +143,7 @@ class FeedbackTest extends TestCase
             ->post('/feedback', $this->feedbackPayload(['project_id' => $project->id, 'title' => 'Project Feedback']))
             ->assertRedirect();
 
-        $this->assertDatabaseHas('feedback', [
+        $this->assertDatabaseHas('feedbacks', [
             'title' => 'Project Feedback',
             'project_id' => $project->id,
         ]);
@@ -176,7 +176,7 @@ class FeedbackTest extends TestCase
             ])
             ->assertRedirect();
 
-        $this->assertDatabaseHas('feedback', ['id' => $feedback->id, 'title' => 'Updated Feedback']);
+        $this->assertDatabaseHas('feedbacks', ['id' => $feedback->id, 'title' => 'Updated Feedback']);
     }
 
     public function test_unrelated_member_cannot_update_feedback(): void
@@ -214,7 +214,7 @@ class FeedbackTest extends TestCase
             ->delete("/feedback/{$feedback->id}")
             ->assertRedirect(route('feedback.index'));
 
-        $this->assertDatabaseMissing('feedback', ['id' => $feedback->id]);
+        $this->assertDatabaseMissing('feedbacks', ['id' => $feedback->id]);
     }
 
     public function test_member_cannot_delete_feedback(): void
