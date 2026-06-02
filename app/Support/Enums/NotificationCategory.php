@@ -24,4 +24,33 @@ enum NotificationCategory: string
             self::Admin => 'Quản trị',
         };
     }
+
+    public function color(): string
+    {
+        return match ($this) {
+            self::Task => 'sky',
+            self::Sprint => 'violet',
+            self::Project => 'indigo',
+            self::Document => 'amber',
+            self::Comment => 'teal',
+            self::System => 'slate',
+            self::Admin => 'rose',
+        };
+    }
+
+    /** @return array<int, string> */
+    public static function values(): array
+    {
+        return array_map(fn (self $c) => $c->value, self::cases());
+    }
+
+    /** @return array<int, array{value:string, label:string, color:string}> */
+    public static function options(): array
+    {
+        return array_map(fn (self $c) => [
+            'value' => $c->value,
+            'label' => $c->label(),
+            'color' => $c->color(),
+        ], self::cases());
+    }
 }

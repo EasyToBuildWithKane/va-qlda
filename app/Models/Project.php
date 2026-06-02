@@ -6,6 +6,7 @@ use App\Support\Enums\ProjectScope;
 use App\Support\Enums\ProjectStatus;
 use App\Support\Enums\ProjectType;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -34,8 +35,18 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
  */
 class Project extends Model
 {
-    /** Assumed billable hours per month, used to convert monthly → hourly rate. */
+    use HasFactory;
+
+    /**
+     * Assumed billable hours per month, used to convert monthly → hourly rate.
+     * Reads from config/business.php; constant kept for backward-compat call sites.
+     */
     public const MONTHLY_HOURS = 176;
+
+    public static function monthlyHours(): int
+    {
+        return (int) config('business.project.monthly_hours', self::MONTHLY_HOURS);
+    }
 
     protected $fillable = [
         'code',

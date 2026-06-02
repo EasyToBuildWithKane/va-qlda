@@ -13,6 +13,8 @@ return new class extends Migration
             $table->uuid('uuid')->unique();                 // public/API id (D1)
 
             $table->foreignId('employee_id')->constrained('employees')->cascadeOnDelete();
+            // LEGACY: project_id is superseded by the `projects` JSON column (multi-project support).
+            // Kept for historical row compatibility — do NOT use in new queries.
             $table->unsignedBigInteger('project_id')->nullable();
             $table->json('projects')->nullable();
 

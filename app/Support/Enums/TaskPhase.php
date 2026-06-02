@@ -33,12 +33,27 @@ enum TaskPhase: string
         return array_map(fn (self $c) => $c->value, self::cases());
     }
 
-    /** @return array<int, array{value:string, label:string}> */
+    public function color(): string
+    {
+        return match ($this) {
+            self::Discovery => 'violet',
+            self::Analysis => 'indigo',
+            self::Design => 'fuchsia',
+            self::Development => 'sky',
+            self::Testing => 'amber',
+            self::Uat => 'orange',
+            self::Deployment => 'emerald',
+            self::Maintenance => 'slate',
+        };
+    }
+
+    /** @return array<int, array{value:string, label:string, color:string}> */
     public static function options(): array
     {
         return array_map(fn (self $c) => [
             'value' => $c->value,
             'label' => $c->label(),
+            'color' => $c->color(),
         ], self::cases());
     }
 }

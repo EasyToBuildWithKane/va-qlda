@@ -23,11 +23,29 @@ enum SystemRole: string
         };
     }
 
-    /**
-     * @return array<int, string>
-     */
+    public function color(): string
+    {
+        return match ($this) {
+            self::Admin => 'rose',
+            self::Lead => 'violet',
+            self::Member => 'sky',
+            self::Viewer => 'slate',
+        };
+    }
+
+    /** @return array<int, string> */
     public static function values(): array
     {
         return array_map(fn (self $r) => $r->value, self::cases());
+    }
+
+    /** @return array<int, array{value:string, label:string, color:string}> */
+    public static function options(): array
+    {
+        return array_map(fn (self $c) => [
+            'value' => $c->value,
+            'label' => $c->label(),
+            'color' => $c->color(),
+        ], self::cases());
     }
 }
