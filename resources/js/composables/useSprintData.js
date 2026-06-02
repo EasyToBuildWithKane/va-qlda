@@ -679,6 +679,13 @@ export function sprintRowToPayload(row) {
     };
 }
 
+/** Bulk import payload for POST /projects/{id}/tasks/import */
+export function sprintRowsToImportPayload(rows) {
+    return {
+        rows: rows.map((row) => sprintRowToPayload(row)),
+    };
+}
+
 function styledTableSheet(title, subtitle, headers, dataRows) {
     const ws = {};
     const COLS = headers.length - 1;

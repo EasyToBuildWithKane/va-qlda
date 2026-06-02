@@ -26,6 +26,13 @@ export default defineConfig({
     projects: [
         {
             name: 'chromium',
+            testIgnore: '**/visual/**',
+            use: { ...devices['Desktop Chrome'] },
+        },
+        {
+            name: 'visual',
+            testDir: './tests/e2e/visual',
+            snapshotPathTemplate: '{testDir}/snapshots/{testFilePath}/{arg}{ext}',
             use: { ...devices['Desktop Chrome'] },
         },
     ],

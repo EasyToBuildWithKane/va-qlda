@@ -2,6 +2,7 @@
 
 namespace App\Domain\DailyReport\Models;
 
+use App\Domain\DailyReport\Support\ReportProjectSync;
 use App\Models\Employee;
 use App\Support\Concerns\HasUuid;
 use App\Support\Enums\ReportStatus;
@@ -21,7 +22,8 @@ use Spatie\Activitylog\Traits\LogsActivity;
  * @property int $id
  * @property string $uuid
  * @property int $employee_id
- * @property int|null $project_id
+ * @property int|null $project_id Legacy denormalized — see docs/DAILY_REPORT_PROJECTS.md
+ * @property array<int, array{id: int, name?: string, code?: string}>|null $projects Source of truth for linked projects
  * @property \Illuminate\Support\Carbon $date
  * @property string $title
  * @property ReportStatus $status
@@ -129,5 +131,26 @@ class DailyReport extends Model
     public function isLocked(): bool
     {
         return $this->status === ReportStatus::Reviewed;
+    }
+
+    /** First project id (legacy column / list filter). */
+    public function primaryProjectId(): ?int
+    {
+        return ReportProjectSync::legacyProjectId($this->projects);
+    }
+
+    /**
+     * @return int[]
+     */
+    public function linkedProjectIds(): array
+    {
+        if (! is_array($this->projects)) {
+            return [];
+        }
+
+        return array_values(array_filter(array_map(
+            fn ($p) => isset($p['id']) ? (int) $p['id'] : null,
+            $this->projects,
+        )));
     }
 }

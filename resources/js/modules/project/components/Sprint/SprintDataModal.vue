@@ -11,7 +11,7 @@ import {
     validateSprintImportRows,
     createSprintPreviewRows,
     revalidateSprintPreviewRow,
-    sprintRowToPayload,
+    sprintRowsToImportPayload,
     exportSprintWorkbook,
 } from '@/composables/useSprintData';
 
@@ -132,32 +132,30 @@ const onRowBlur = (row) => {
     revalidateSprintPreviewRow(row, importCtx.value);
 };
 
-const submitImport = async () => {
+const submitImport = () => {
     if (!canSubmit.value) return;
     importing.value = true;
     fileError.value = '';
-    let ok = 0;
-    let err = 0;
-    for (const row of validRows.value) {
-        try {
-            await new Promise((resolve, reject) => {
-                router.post(`/projects/${props.projectId}/tasks`, sprintRowToPayload(row), {
-                    preserveScroll: true,
-                    onSuccess: () => { ok++; resolve(); },
-                    onError: () => { err++; reject(); },
-                });
-            });
-        } catch {
-            err++;
-        }
-    }
-    importing.value = false;
-    if (ok) {
-        emit('imported', { ok, err });
-        close();
-    } else {
-        fileError.value = `Không nhập được dòng nào (${err} lỗi).`;
-    }
+
+    router.post(
+        `/projects/${props.projectId}/tasks/import`,
+        sprintRowsToImportPayload(validRows.value),
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                const count = validRows.value.length;
+                emit('imported', { ok: count, err: 0 });
+                toast.success(`Đã nhập ${count} công việc.`);
+                close();
+            },
+            onError: () => {
+                fileError.value = 'Không nhập được dữ liệu. Kiểm tra lại các dòng hợp lệ.';
+            },
+            onFinish: () => {
+                importing.value = false;
+            },
+        },
+    );
 };
 
 const exportTasks = computed(() => {

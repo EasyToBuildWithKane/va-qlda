@@ -44,4 +44,27 @@ test.describe('Projects', () => {
 
         await ctx.close();
     });
+
+    test.describe('project workspace', () => {
+        test.use({ role: 'admin' });
+
+        test('admin can open seeded QLDA project show page', async ({ page }) => {
+            await page.goto('/projects');
+            await page.getByRole('link', { name: /QLDA|Quản lý dự án/i }).first().click();
+
+            await expect(page).toHaveURL(/\/projects\/\d+/);
+            await expect(page.getByRole('heading', { name: /Quản lý dự án|QLDA/i })).toBeVisible();
+        });
+
+        test('can switch to Sprint tab', async ({ page }) => {
+            await page.goto('/projects');
+            await page.getByRole('link', { name: /QLDA|Quản lý dự án/i }).first().click();
+
+            const sprintTab = page.getByRole('button', { name: /^Sprint$/i });
+            if (await sprintTab.count() > 0) {
+                await sprintTab.click();
+                await expect(page.getByText(/Sprint|Danh sách|Lịch/i).first()).toBeVisible();
+            }
+        });
+    });
 });

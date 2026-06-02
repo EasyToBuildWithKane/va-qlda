@@ -1,6 +1,6 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
-import axios from 'axios';
+import { httpGet, httpPost } from '@/shared/services/http';
 
 const POLL_MS = 30_000;
 
@@ -32,7 +32,7 @@ export function useNotifications() {
 
     async function fetchUnread() {
         try {
-            const { data } = await axios.get(route('notifications.unread-count'));
+            const data = await httpGet(route('notifications.unread-count'));
             unreadCount.value = data.count ?? 0;
         } catch {
             /* silent */
@@ -50,7 +50,7 @@ export function useNotifications() {
                 cursor: append ? nextCursor.value : undefined,
             };
 
-            const { data } = await axios.get(route('notifications.index'), { params });
+            const data = await httpGet(route('notifications.index'), { params });
             const rows = data.data ?? [];
 
             if (append) items.value = [...items.value, ...rows];
@@ -78,7 +78,7 @@ export function useNotifications() {
     async function markRead(notification) {
         if (notification.is_read) return;
         try {
-            const { data } = await axios.post(route('notifications.read', notification.id));
+            const data = await httpPost(route('notifications.read', notification.id));
             const idx = items.value.findIndex((n) => n.id === notification.id);
             if (idx >= 0) items.value[idx] = data.notification;
             unreadCount.value = data.unread_count ?? unreadCount.value;
@@ -89,7 +89,7 @@ export function useNotifications() {
 
     async function markAllRead() {
         try {
-            await axios.post(route('notifications.read-all'));
+            await httpPost(route('notifications.read-all'));
             items.value = items.value.map((n) => ({ ...n, is_read: true, read_at: new Date().toISOString() }));
             unreadCount.value = 0;
         } catch {
@@ -99,7 +99,7 @@ export function useNotifications() {
 
     async function acknowledge(notification) {
         try {
-            const { data } = await axios.post(route('notifications.acknowledge', notification.id));
+            const data = await httpPost(route('notifications.acknowledge', notification.id));
             const idx = items.value.findIndex((n) => n.id === notification.id);
             if (idx >= 0) items.value[idx] = data.notification;
             await markRead(notification);
@@ -111,7 +111,7 @@ export function useNotifications() {
     async function bulkRead() {
         if (!selectedIds.value.length) return;
         try {
-            const { data } = await axios.post(route('notifications.bulk'), {
+            const data = await httpPost(route('notifications.bulk'), {
                 ids: selectedIds.value,
                 action: 'read',
             });

@@ -15,6 +15,18 @@ routes/api.php      ← Rỗng (chưa sử dụng)
 
 > **Lưu ý pattern:** `NotificationController` là controller đầu tiên dùng `JsonResponse` thay vì Inertia. Frontend dùng `fetch`/axios trực tiếp để poll notifications.
 
+### 1.1 Ngoại lệ JSON có chủ đích (TD-017)
+
+| Lý do | Chi tiết |
+|-------|----------|
+| **Polling / lazy load** | Inbox cần cursor pagination và unread count mà không reload trang |
+| **Endpoint** | `GET /notifications`, `GET /notifications/unread-count`, `POST /notifications/{id}/read`, … |
+| **Frontend** | `useNotifications.js` — axios/fetch, không Inertia |
+| **Auth** | Cùng session `system` guard + CSRF cookie như web routes |
+| **Tương lai** | Thay WebSocket khi triển khai **LT-05** (Real-Time Collaboration) |
+
+**Không** mở rộng pattern JSON cho CRUD chính — giữ Inertia cho pages và mutations full-page.
+
 ---
 
 ## 2. Danh Sách Tất Cả Routes
@@ -94,7 +106,8 @@ routes/api.php      ← Rỗng (chưa sử dụng)
 | Method | URI | Controller | Middleware | Mô Tả |
 |---|---|---|---|---|
 | POST | `/projects/{project}/tasks` | TaskController@store | auth | Tạo task |
-| POST | `/projects/{project}/tasks/bulk` | TaskController@bulkStore | auth | Tạo nhiều tasks |
+| POST | `/projects/{project}/tasks/bulk` | TaskController@bulkStore | auth | Tạo nhiều tasks (defaults + titles) |
+| POST | `/projects/{project}/tasks/import` | TaskController@import | auth | Nhập Excel Sprint (bulk, max 200 dòng) |
 | POST | `/projects/{project}/tasks/{task}/subtasks` | TaskController@storeSubtask | auth | Tạo subtask |
 | PUT | `/projects/{project}/tasks/{task}` | TaskController@update | auth | Sửa task |
 | PATCH | `/projects/{project}/tasks/{task}` | TaskController@updateStatus | auth | Cập nhật status |
@@ -271,7 +284,7 @@ Organization Group
 | Status toggle via PATCH | `PATCH /departments/{department}/toggle` |
 | Sub-resource field update | `PATCH /projects/{project}/type` |
 | Bulk actions | `POST /blockers/bulk`, `POST /projects/{project}/tasks/bulk` |
-| Import | `POST /blockers/import` |
+| Import | `POST /blockers/import`, `POST /projects/{project}/tasks/import` |
 
 ---
 

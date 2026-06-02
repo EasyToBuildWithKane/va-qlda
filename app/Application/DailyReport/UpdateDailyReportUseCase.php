@@ -3,6 +3,7 @@
 namespace App\Application\DailyReport;
 
 use App\Domain\DailyReport\Models\DailyReport;
+use App\Domain\DailyReport\Support\ReportProjectSync;
 
 class UpdateDailyReportUseCase
 {
@@ -14,13 +15,7 @@ class UpdateDailyReportUseCase
      */
     public function execute(DailyReport $report, array $data): DailyReport
     {
-        // Keep the legacy single project_id in sync with the multi-select when
-        // the projects field is part of this (possibly partial) update.
-        if (array_key_exists('projects', $data)) {
-            $data['project_id'] = $data['projects'][0]['id'] ?? null;
-        }
-
-        $report->update($data);
+        $report->update(ReportProjectSync::applyToPayload($data));
 
         return $report->refresh();
     }

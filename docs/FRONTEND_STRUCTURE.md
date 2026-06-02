@@ -152,6 +152,12 @@ Pages import feature components từ `@/modules/project/components/...` và prim
 | `usePermission.js` | Role/permission helpers |
 | `useFilter.js` | URL-bound filter state |
 
+### 7.1b JSON API — `shared/services/`
+
+| File | Mô tả |
+|---|---|
+| `http.js` | Axios wrapper (`httpGet`, `httpPost`) — notifications, future JSON endpoints |
+
 ### 7.2 Feature — `composables/`
 
 | Nhóm | Files |

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\DailyReport\Models\DailyReport;
+use App\Models\Project;
 use App\Models\SystemAccount;
 use App\Support\Enums\ReportStatus;
 use App\Support\Enums\SystemRole;
@@ -22,6 +23,29 @@ class DailyReportTest extends TestCase
     private function lead(): SystemAccount
     {
         return SystemAccount::factory()->role(SystemRole::Lead)->create();
+    }
+
+    public function test_projects_json_syncs_legacy_project_id(): void
+    {
+        $member = $this->member();
+        $primary = Project::factory()->create(['name' => 'Primary', 'code' => 'PRJ-A']);
+        $secondary = Project::factory()->create(['name' => 'Secondary', 'code' => 'PRJ-B']);
+
+        $this->actingAs($member, 'system')
+            ->post(route('daily-reports.store'), [
+                'date' => now()->toDateString(),
+                'title' => 'Sync test',
+                'projects' => [
+                    ['id' => $primary->id, 'name' => $primary->name, 'code' => $primary->code],
+                    ['id' => $secondary->id, 'name' => $secondary->name, 'code' => $secondary->code],
+                ],
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('daily_reports', [
+            'employee_id' => $member->employee_id,
+            'project_id' => $primary->id,
+        ]);
     }
 
     public function test_member_creates_a_draft(): void

@@ -89,6 +89,7 @@ Route::middleware('auth')->group(function () {
         // Tasks
         Route::post('/{project}/tasks', [TaskController::class, 'store'])->name('tasks.store');
         Route::post('/{project}/tasks/bulk', [TaskController::class, 'bulkStore'])->name('tasks.bulk');
+        Route::post('/{project}/tasks/import', [TaskController::class, 'import'])->name('tasks.import');
         Route::post('/{project}/tasks/{task}/subtasks', [TaskController::class, 'storeSubtask'])->name('tasks.subtasks.store');
         Route::put('/{project}/tasks/{task}', [TaskController::class, 'update'])->name('tasks.update');
         Route::patch('/{project}/tasks/{task}', [TaskController::class, 'updateStatus'])->name('tasks.status');

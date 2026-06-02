@@ -3,6 +3,7 @@
 namespace App\Application\DailyReport;
 
 use App\Domain\DailyReport\Models\DailyReport;
+use App\Domain\DailyReport\Support\ReportProjectSync;
 use App\Support\Enums\ReportStatus;
 
 class CreateDailyReportUseCase
@@ -15,13 +16,12 @@ class CreateDailyReportUseCase
      */
     public function execute(int $employeeId, array $data): DailyReport
     {
+        $payload = ReportProjectSync::applyToPayload($data);
+
         return DailyReport::create([
-            ...$data,
+            ...$payload,
             'employee_id' => $employeeId,
-            'date' => $data['date'] ?? now()->toDateString(),
-            // Keep the legacy single project_id in sync with the multi-select so
-            // the Report History project filter keeps working.
-            'project_id' => $data['projects'][0]['id'] ?? null,
+            'date' => $payload['date'] ?? now()->toDateString(),
             'status' => ReportStatus::Draft,
         ]);
     }

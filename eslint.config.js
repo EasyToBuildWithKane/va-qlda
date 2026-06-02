@@ -15,6 +15,7 @@ export default [
             sourceType: 'module',
             globals: {
                 ...globals.browser,
+                route: 'readonly', // Ziggy (registered in app.js)
             },
         },
         rules: {

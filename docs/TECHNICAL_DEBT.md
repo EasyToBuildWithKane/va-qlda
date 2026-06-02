@@ -1,98 +1,99 @@
 # TECHNICAL DEBT — VA QLDA
 
----
-
-## Tổng Quan
-
-> **Cập nhật 2026-06-03** — sau refactor Phase 1–5 và feature tests.
-
-| Mức Độ | Số Lượng (ước tính) |
-|---|---|
-| 🔴 High | 1 |
-| 🟡 Medium | 6 |
-| 🟢 Low / Resolved | 10+ |
+> Sổ đăng ký nợ kỹ thuật sau refactor Phase 1–5.
+>
+> **Cập nhật:** 2026-06-03 (triển khai toàn diện) · [`REFACTOR_PLAN.md`](REFACTOR_PLAN.md) · [`NEXT_STEPS.md`](NEXT_STEPS.md)
 
 ---
 
-## Đã Giải Quyết (Refactor 2026-06)
+## Tóm tắt
 
-| ID | Vấn đề | Giải pháp |
-|---|---|---|
-| TD-003 | Options God Object | `Support/Options/*` + delegate + cache |
-| TD-004 | Thiếu Pinia | `stores/auth.js`, `stores/ui.js` |
-| TD-005 | Thiếu composables | 25+ composables + `shared/composables/` |
-| TD-006 | UI primitives sai vị trí | `shared/ui/` |
-| TD-008 | Components/Project quá lớn | `modules/project/components/` |
-| TD-009 | Hardcoded values | `config/business.php` + `constants/index.js` |
-| TD-011 | Thiếu tests | Feature tests: Login, Project, Task, Blocker, Bug, Department, Feedback |
-| TD-001 | *(partial)* | Project/Task Use Cases — Blocker/Bug vẫn MVC |
+| Mức độ | Mở | Đã xử lý |
+|--------|-----|----------|
+| 🔴 High | 0 | 1 |
+| 🟡 Medium | 1 *(partial)* | 8 |
+| 🟢 Low | 4 | 10+ |
+
+**Refactor Phase 1–5:** ✅ Hoàn thành.
 
 ---
 
-## Nhóm 1: Kiến Trúc (còn lại)
+## Chỉ mục ID
 
-### TD-001 — Kiến Trúc Không Nhất Quán (partial)
-- **Mức độ:** 🟡 Medium *(giảm từ 🔴 High)*
-- **Còn lại:** Blocker, Bug, Feedback chưa có Application layer; DailyReport vẫn là pattern duy nhất có Domain models riêng.
-- **Đề xuất:** Mở rộng Use Cases cho IssueTracking khi cần; không bắt buộc Domain layer cho mọi module.
-
-### TD-002 — Controllers Quá Dày
-- **Mức độ:** 🔴 High
-- **Mô tả:** `ProjectController@show`, `TaskController@index` vẫn chứa query phức tạp.
-- **Đề xuất:** Query Objects hoặc dedicated ViewModels/Resources loaders.
-
----
-
-## Nhóm 2: Frontend (còn lại)
-
-### TD-007 — Không Có API Service Layer
-- **Mức độ:** 🟡 Medium
-- **Mô tả:** Axios/Inertia inline trong components.
-- **Đề xuất:** `services/http.js` wrapper khi cần centralize error handling.
-
-### TD-017 — Notification JSON API
-- **Mức độ:** 🟡 Medium
-- **Mô tả:** Intentional exception — polling/lazy load không phù hợp Inertia full page.
-- **Đề xuất:** Document; thay WebSocket khi có LT-05.
+| ID | Tiêu đề | Trạng thái |
+|----|---------|------------|
+| TD-001 | Kiến trúc không nhất quán | 🟡 Partial *(chấp nhận)* |
+| TD-002 | Controllers / loaders | ✅ Resolved |
+| TD-003–009, TD-017–018, TD-021 | *(xem bảng dưới)* | ✅ Resolved |
+| TD-007 | API service layer (FE) | ✅ Resolved |
+| TD-010 | `project_id` legacy DailyReport | ✅ Documented |
+| TD-011 | Test coverage | 🟡 Partial |
+| TD-012 | Không REST API | 🟢 By design |
+| TD-013–016 | Infrastructure | 🟢 Roadmap |
+| TD-019 | N+1 / indexes | ✅ Resolved |
+| TD-020 | Visual regression | ✅ Baseline |
 
 ---
 
-## Nhóm 3: Code Quality
+## ✅ Đã giải quyết (2026-06-03)
 
-### TD-010 — project_id Legacy trong DailyReport
-- **Mức độ:** 🟡 Medium
-- **Mô tả:** `daily_reports.project_id` legacy vs `projects` JSON field.
-- **Đề xuất:** Deprecate hoặc document rõ source of truth.
-
-### TD-011 — Tests (partial resolved)
-- **Mức độ:** 🟡 Medium *(giảm)*
-- **Đã có:** Login, Project, Task, Blocker, Bug, Department, Feedback feature tests.
-- **Còn thiếu:** DailyReport submit/score flow, Sprint bulk import API, E2E coverage mở rộng.
-
----
-
-## Nhóm 4: Infrastructure
-
-| ID | Vấn đề | Mức độ | Ghi chú |
-|---|---|---|---|
-| TD-012 | Không REST API | 🟢 Low | `api.php` rỗng — by design |
-| TD-013 | Không Queue | 🟢 Low | Cần khi email notifications |
-| TD-014 | Events (partial) | 🟢 Low | NotificationDispatcher thay thế một phần |
-| TD-015 | Thiếu TypeScript | 🟢 Low | JS thuần |
-| TD-016 | Navigation hardcoded | 🟢 Low | `Navigation.php` |
+| ID | Giải pháp |
+|----|-----------|
+| TD-002 | `ProjectShowDataLoader`, `ProjectIndexQuery`, `ProjectSummaryQuery`; `CreateTaskUseCase`, `UpdateTaskUseCase`, `PatchTaskUseCase`, `ImportTasksUseCase` |
+| TD-007 | `shared/services/http.js` — `useNotifications` dùng `httpGet`/`httpPost` |
+| TD-010 | `ReportProjectSync` + `docs/DAILY_REPORT_PROJECTS.md` + test sync |
+| TD-018 | Bulk `tasks/import` + `SprintDataModal` một POST |
+| TD-019 | Migration `projects_active_sort_name_idx`, `daily_reports_employee_status_idx`; summary 1 query |
+| TD-020 | Playwright project `visual` + `npm run test:e2e:visual` |
+| TD-011 *(partial)* | `NotificationTest`, E2E `notifications.spec.js`, mở rộng `projects.spec.js` |
+| TD-017, TD-021 | Documented / re-export |
 
 ---
 
-## Ma Trận Ưu Tiên (cập nhật 2026-06-03)
+## 🟡 Còn lại (có chủ đích)
 
-| ID | Vấn đề | Mức độ | Ưu tiên |
-|---|---|---|---|
-| TD-002 | Controllers quá dày | 🔴 High | Query objects / loaders |
-| TD-001 | Kiến trúc partial | 🟡 Medium | IssueTracking Use Cases (khi cần) |
-| TD-010 | project_id legacy | 🟡 Medium | DailyReport cleanup |
-| TD-007 | API service layer FE | 🟡 Medium | Khi thêm nhiều axios endpoints |
-| TD-017 | Notification JSON | 🟡 Medium | Document only |
-| TD-011 | Tests mở rộng | 🟡 Medium | DailyReport + E2E |
-| TD-012–016 | Infrastructure | 🟢 Low | Roadmap LT-* |
+### TD-001 — Kiến trúc partial
 
-**Refactor Phase 1–5:** ✅ Hoàn thành — xem [`REFACTOR_PLAN.md`](REFACTOR_PLAN.md).
+Blocker/Bug/Feedback giữ MVC; DailyReport + Project/Task có Use Cases. **Không bắt buộc** Domain cho mọi module.
+
+### TD-011 — Tests *(partial)*
+
+**Đã có:** 115+ PHPUnit · E2E: auth, blockers, bugs, departments, daily-report, projects, notifications · visual baseline.
+
+**Có thể bổ sung:** Worklog feature test · E2E task detail · import Excel E2E.
+
+### TD-012–016 — Infrastructure (roadmap)
+
+REST API (LT-01), Queue, Events/WebSocket (LT-05), TypeScript, Nav config UI (LT-07) — **by design / roadmap**, không phải bug.
+
+---
+
+## Ma trận ưu tiên
+
+| Ưu tiên | Hành động | Trạng thái |
+|---------|-----------|------------|
+| — | Sprint bulk import | ✅ |
+| — | Project/Task loaders & Use Cases | ✅ |
+| — | DailyReport project sync doc | ✅ |
+| — | DB indexes + summary query | ✅ |
+| — | `http.js` + notifications tests | ✅ |
+| — | Visual regression baseline | ✅ |
+| Tùy chọn | E2E task detail / worklog | Open |
+| Roadmap | LT-01 … LT-07 | Deferred |
+
+---
+
+## Lệnh kiểm tra
+
+```bash
+composer test
+npm run test:e2e              # chromium (CI)
+npm run test:e2e:visual       # snapshot regression
+npm run test:e2e:visual -- --update-snapshots   # cập nhật baseline
+```
+
+---
+
+## Cập nhật tài liệu
+
+Khi đóng TD: cập nhật bảng trên + `_dev/testing.md` + `ARCHITECTURE.md` nếu cần.

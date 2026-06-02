@@ -164,6 +164,77 @@ class TaskTest extends TestCase
             ->assertForbidden();
     }
 
+    // ─── Bulk & Import ────────────────────────────────────────────────────────
+
+    public function test_admin_can_bulk_create_tasks(): void
+    {
+        $project = Project::factory()->create();
+
+        $this->actingAs($this->admin(), 'system')
+            ->post("/projects/{$project->id}/tasks/bulk", [
+                'defaults' => [
+                    'status' => TaskStatus::Todo->value,
+                    'priority' => TaskPriority::Medium->value,
+                ],
+                'rows' => [
+                    ['title' => 'Bulk Task 1'],
+                    ['title' => 'Bulk Task 2'],
+                ],
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('tasks', ['project_id' => $project->id, 'title' => 'Bulk Task 1']);
+        $this->assertDatabaseHas('tasks', ['project_id' => $project->id, 'title' => 'Bulk Task 2']);
+    }
+
+    public function test_admin_can_import_tasks_from_excel_payload(): void
+    {
+        $project = Project::factory()->create();
+
+        $this->actingAs($this->admin(), 'system')
+            ->post("/projects/{$project->id}/tasks/import", [
+                'rows' => [
+                    [
+                        'title' => 'Imported Task A',
+                        'status' => TaskStatus::Todo->value,
+                        'priority' => TaskPriority::High->value,
+                        'progress' => 0,
+                    ],
+                    [
+                        'title' => 'Imported Task B',
+                        'status' => TaskStatus::InProgress->value,
+                        'priority' => TaskPriority::Medium->value,
+                        'progress' => 25,
+                    ],
+                ],
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('tasks', [
+            'project_id' => $project->id,
+            'title' => 'Imported Task A',
+            'priority' => TaskPriority::High->value,
+        ]);
+        $this->assertDatabaseHas('tasks', [
+            'project_id' => $project->id,
+            'title' => 'Imported Task B',
+            'progress' => 25,
+        ]);
+    }
+
+    public function test_viewer_cannot_import_tasks(): void
+    {
+        $project = Project::factory()->create();
+
+        $this->actingAs($this->viewer(), 'system')
+            ->post("/projects/{$project->id}/tasks/import", [
+                'rows' => [['title' => 'Blocked Import']],
+            ])
+            ->assertForbidden();
+    }
+
     // ─── Guest ────────────────────────────────────────────────────────────────
 
     public function test_guest_cannot_create_task(): void

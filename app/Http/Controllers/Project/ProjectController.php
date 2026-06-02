@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Project;
 use App\Application\Project\ArchiveProjectUseCase;
 use App\Application\Project\CreateProjectUseCase;
 use App\Application\Project\DuplicateProjectUseCase;
+use App\Application\Project\ProjectIndexQuery;
+use App\Application\Project\ProjectShowDataLoader;
 use App\Application\Project\UpdateProjectUseCase;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Project\StoreProjectRequest;
@@ -20,7 +22,6 @@ use App\Support\Enums\ProjectScope;
 use App\Support\Enums\ProjectStatus;
 use App\Support\Enums\ProjectType;
 use App\Support\Options;
-use Illuminate\Support\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -34,69 +35,27 @@ class ProjectController extends Controller
         private readonly UpdateProjectUseCase $updateProject,
         private readonly DuplicateProjectUseCase $duplicateProject,
         private readonly ArchiveProjectUseCase $archiveProject,
+        private readonly ProjectIndexQuery $projectIndexQuery,
+        private readonly ProjectShowDataLoader $projectShowDataLoader,
     ) {}
 
     public function index(Request $request): Response
     {
         $this->authorize('viewAny', Project::class);
 
-        $account = $request->user();
-
-        $query = Project::query()
-            ->with(['manager', 'department'])
-            ->withCount(['members', 'tasks'])
-            ->withCount(['blockers as open_blocker_count' => fn ($q) => $q->open()])
-            ->orderByDesc('is_active')
-            ->orderBy('sort_order')
-            ->orderBy('name');
-
-        if ($status = $request->query('status')) {
-            $query->where('status', $status);
-        }
-        if ($type = $request->query('type')) {
-            $query->where('type', $type);
-        }
-        if ($scope = $request->query('scope')) {
-            $query->where('scope', $scope);
-        }
-        if ($departmentId = $request->query('department_id')) {
-            $query->where('department_id', $departmentId);
-        }
-
-        if ($request->boolean('mine') && $account->employee_id) {
-            $eid = $account->employee_id;
-            $query->where(fn ($q) => $q
-                ->where('manager_id', $eid)
-                ->orWhereHas('members', fn ($m) => $m->where('employee_id', $eid)));
-        }
-
-        if ($search = $request->query('q')) {
-            $query->where(fn ($q) => $q
-                ->where('name', 'like', "%{$search}%")
-                ->orWhere('code', 'like', "%{$search}%"));
-        }
-
-        $projects = $query->get();
+        $result = $this->projectIndexQuery->execute($request, $request->user());
 
         return Inertia::render('Project/Index', [
-            'projects' => ProjectListResource::collection($projects),
-            'filters' => (object) $request->only(['status', 'type', 'scope', 'department_id', 'mine', 'q']),
+            'projects' => ProjectListResource::collection($result['projects']),
+            'filters' => $result['filters'],
             'statusOptions' => ProjectStatus::options(),
             'typeOptions' => ProjectType::options(),
             'scopeOptions' => ProjectScope::options(),
             'regionOptions' => Options::regions(),
             'departmentOptions' => Options::departments(),
             'employees' => Options::employees(),
-            'summary' => [
-                'total' => Project::count(),
-                'active' => Project::where('status', ProjectStatus::Active->value)->count(),
-                'completed' => Project::where('status', ProjectStatus::Completed->value)->count(),
-                'overdue' => Project::whereNotNull('due_date')
-                    ->whereDate('due_date', '<', Carbon::today())
-                    ->whereNotIn('status', [ProjectStatus::Completed->value, ProjectStatus::Cancelled->value])
-                    ->count(),
-            ],
-            'can' => ['create' => $account->can('create', Project::class)],
+            'summary' => $result['summary'],
+            'can' => $result['can'],
         ]);
     }
 
@@ -131,42 +90,7 @@ class ProjectController extends Controller
     {
         $this->authorize('view', $project);
 
-        $project->load([
-            'manager',
-            'department',
-            'members',
-            'sprints' => fn ($q) => $q->withCount('tasks'),
-            'epics',
-            'tasks' => fn ($q) => $q->with([
-                'assignee',
-                'assignees',
-                'reporter',
-                'reviewer',
-                'epic',
-                'parent:id,title',
-                'sprint:id,project_id,name',
-                'dependencies:id,title,status',
-                'dependents:id,title,status,progress',
-                'subtasks' => fn ($s) => $s->with('assignee'),
-                'watchers',
-                'attachments' => fn ($a) => $a->with('uploadedBy'),
-                'activities' => fn ($a) => $a->with('employee')->limit(100),
-                'worklogs' => fn ($w) => $w->with('employee')->latest('date'),
-                'comments' => fn ($c) => $c->whereNull('parent_id')->with(['author', 'replies.author'])->latest(),
-            ])->orderBy('order_column'),
-            'blockers' => fn ($q) => $q->with([
-                'raisedBy',
-                'owner',
-                'comments' => fn ($c) => $c->with('author')->latest(),
-                'attachments' => fn ($a) => $a->with('uploadedBy')->latest(),
-                'activities' => fn ($a) => $a->with('employee')->latest(),
-            ])->latest(),
-            'attachments' => fn ($q) => $q->with([
-                'uploadedBy',
-                'updatedBy',
-                'activities' => fn ($a) => $a->with('employee')->latest(),
-            ])->latest(),
-        ]);
+        $project = $this->projectShowDataLoader->load($project);
 
         return Inertia::render('Project/Show', [
             'project' => (new ProjectResource($project))->resolve(),
