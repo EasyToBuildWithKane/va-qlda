@@ -12,9 +12,8 @@ class ProjectSeeder extends Seeder
     {
         foreach (ProjectCatalog::options() as $p) {
             Project::updateOrCreate(
-                ['id' => $p['id']],
+                ['code' => $p['code']],
                 [
-                    'code' => $p['code'],
                     'name' => $p['name'],
                     'color' => $p['color'],
                     'is_active' => true,

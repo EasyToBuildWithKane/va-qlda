@@ -4,9 +4,6 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-/**
- * Phòng ban — đơn vị tổ chức sở hữu các dự án.
- */
 return new class extends Migration
 {
     public function up(): void
@@ -22,6 +19,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index('is_active');
+            $table->index('manager_id');
         });
     }
 

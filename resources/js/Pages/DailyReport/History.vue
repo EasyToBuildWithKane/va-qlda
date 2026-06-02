@@ -4,6 +4,7 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import StatusBadge from '@/Components/DailyReport/StatusBadge.vue';
 import GradePill from '@/Components/DailyReport/GradePill.vue';
+import PageHeader from '@/Components/Ui/PageHeader.vue';
 
 const props = defineProps({
     reports: { type: Object, required: true }, // { data, meta, links }
@@ -37,7 +38,13 @@ const pageLabel = (label) =>
 
     <AppLayout>
         <template #header>
-            <h1 class="font-display font-semibold text-slate-800">Report History</h1>
+            <PageHeader
+                title="Lịch sử báo cáo"
+                subtitle="Xem lại tất cả báo cáo đã nộp"
+                icon="report-history"
+                icon-color="sky"
+                :badge="reports.meta?.total"
+            />
         </template>
 
         <!-- Filters -->

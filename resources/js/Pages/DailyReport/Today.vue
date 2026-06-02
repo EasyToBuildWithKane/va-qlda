@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { Head, Link, useForm, router, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AppIcon from '@/Components/AppIcon.vue';
+import PageHeader from '@/Components/Ui/PageHeader.vue';
 import RichTextField from '@/Components/DailyReport/RichTextField.vue';
 import ProjectSelect from '@/Components/DailyReport/ProjectSelect.vue';
 import TemplateGallery from '@/Components/DailyReport/TemplateGallery.vue';
@@ -217,10 +218,12 @@ const savedTimeLabel = computed(() =>
 
     <AppLayout>
         <template #header>
-            <div class="leading-tight">
-                <h1 class="font-display font-semibold text-slate-800">Báo cáo công việc hằng ngày</h1>
-                <p class="text-xs capitalize text-slate-400">{{ formattedToday }}</p>
-            </div>
+            <PageHeader
+                title="Báo cáo hôm nay"
+                :subtitle="formattedToday"
+                icon="report-today"
+                icon-color="brand"
+            />
         </template>
 
         <!-- Already submitted today -->

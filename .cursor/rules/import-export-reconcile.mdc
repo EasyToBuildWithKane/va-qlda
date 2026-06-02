@@ -1,0 +1,161 @@
+---
+description: Production standard — Nhập / Xuất / Đối soát (Excel, composable, API, UX). Bắt buộc khi thêm hoặc sửa luồng dữ liệu hàng loạt.
+globs: resources/js/composables/use*{Import,Export,Data,Risk,Sprint,Reconcile}*.js,resources/js/**/*{Import,Export,Data}*.{vue,js},app/Http/Requests/**/*Import*.php,app/Http/Controllers/**/*Controller.php
+alwaysApply: true
+---
+
+# Nhập · Xuất · Đối soát — Production Standard (VA-QLDA)
+
+Mọi module nhập/xuất/đối soát phải **copy pattern đã chứng minh**, không tự phát minh UI hoặc Excel thô.
+
+## Tham chiếu vàng (đọc trước khi code)
+
+| Domain | Composable | Modal | Backend import |
+|--------|------------|-------|----------------|
+| Rủi ro / Vướng mắc | `useRiskImport.js`, `useRiskExport.js` | `RiskImportModal.vue` | `BlockerController@import` + `ImportBlockerRequest` |
+| Sprint / Task | `useSprintData.js` (`useSprintExport.js` re-export) | `SprintDataModal.vue` | *Chưa bulk — phải thêm API trước khi coi production* |
+| Đối soát | `useSprintReconcile.js` | tab trong `SprintDataModal` | Client-side only |
+
+```
+Toolbar [Dữ liệu] → *DataModal (3 tab)
+  ├─ Nhập: guide → template ↓ → parse → validate → preview → POST bulk
+  ├─ Xuất: scope → exportWorkbook (styled xlsx)
+  └─ Đối soát: issues[] → Sửa / xuất sheet Doi soat
+```
+
+---
+
+## 1. Kiến trúc tách lớp (bắt buộc)
+
+| Lớp | Trách nhiệm | Cấm |
+|-----|-------------|-----|
+| `use*Data.js` / `use*Import.js` | Excel I/O, parse, validate, template, export styled | Import `xlsx` trong `.vue` |
+| `*DataModal.vue` | Tab UI, state, gọi composable, Inertia/router | Business rules trùng composable |
+| `use*Reconcile.js` | Pure checks → `{ issues, summary }` | Gọi API |
+| `Import*Request.php` | Validate rows server-side (mirror client) | Tin client 100% |
+| Controller | `DB::transaction`, policy, activity log | N+1 POST từng dòng từ browser |
+
+**Export public API tối thiểu (composable):**
+`download*Template`, `parse*File`, `validate*Rows`, `createPreviewRows`, `revalidate*Row`, `*RowToPayload`, `export*Workbook` (+ `exportPreviewRows` nếu cần sửa offline).
+
+---
+
+## 2. UI — một điểm vào
+
+- Một nút toolbar (vd. **Dữ liệu**), một `Modal` (`@/Components/Ui/Modal.vue`).
+- **3 tab cố định:** `import` | `export` | `reconcile` (prop `initialTab` khi mở từ badge lỗi).
+- `dirty` + `useConfirmClose` khi có preview; reset state khi `close`.
+- `canManage` / `canContribute`: ẩn nhập, disable submit; export thường mở cho mọi viewer.
+- Badge đỏ trên nút khi `summary.errors > 0`.
+- Loading: `parsing`, `importing`; disable nút khi đang chạy.
+- Toast tiếng Việt sau thành công/thất bại; Inertia `preserveScroll: true`.
+
+---
+
+## 3. File mẫu Excel (production)
+
+Thư viện: **`xlsx-js-style`** (không `xlsx` trần cho template/export chính).
+
+**Brand palette (đồng bộ):** `BRAND=9A0036`, `BRAND_SOFT=FDF2F6`, `SLATE_50`, `SLATE_200`, styles `S.title|subtitle|header|required|sample|guide|note|cell|cellAlt`.
+
+**Sheets bắt buộc:**
+1. **Huong dan** — production = đủ 9 mục (cấu trúc file, quy trình 10 bước, bảng mô tả cột, enum status/priority/phase, sprint/nhân sự tham chiếu, lỗi thường gặp).
+2. **Nhap lieu** — marker ẩn (`VA_<MODULE>_IMPORT_V1` dòng riêng), header cố định (dòng 5), 2 sample italic (6–7), nhập từ dòng 8, ≥50 ô trống.
+3. **Tham chiếu** (nếu có FK): vd. `Danh sach Sprint` — chỉ đọc, không upload sheet này.
+
+**Parse:**
+- `readSheetMatrix` + `findHeaderIndex` (marker hoặc header có cột bắt buộc).
+- `columnIndexMap` theo normalize tiếng Việt (bỏ dấu).
+- `STATUS_*_ALIASES` / resolve employee / sprint by name.
+- `parseExcelDate`: số Excel, ISO, DD/MM/YYYY.
+- Bỏ dòng mẫu cố định + dòng trống.
+- Trả `{ rows, errors: string[] }`; không throw im lặng.
+
+**Giới hạn:** max **200 rows** client + server (`rows.max` validation).
+
+---
+
+## 4. Luồng nhập modal (2 bước)
+
+1. **Guide:** quy trình, nút **Tải file mẫu (.xlsx)**, **Chọn file** (`.xlsx|.xls|.csv`), hiển thị `parseErrors`.
+2. **Preview:** tab Hợp lệ / Lỗi; sửa inline → `revalidate*Row`; xuất dòng lỗi ra Excel (optional, như risk).
+3. **Submit:** chỉ `validRows` → `router.post` bulk endpoint **một lần**.
+
+**Không production:** loop `router.post` từng record từ browser (Sprint hiện tại — phải migrate sang bulk API).
+
+---
+
+## 5. Backend import (production bắt buộc)
+
+```php
+// Import*Request: authorize policy, rows array max:200, rows.* rules mirror DB/enums
+// Controller: DB::transaction, create + ActivityLogger, flash success với count
+```
+
+- Validate lại **toàn bộ** enum, FK (`exists:employees,id`), `max:` string lengths.
+- Message tiếng Việt trong `messages()`.
+- Ghi activity/audit từng bản ghi tạo (pattern `BlockerActivityLogger`).
+- Không commit một phần khi lỗi giữa chừng.
+
+---
+
+## 6. Xuất (production)
+
+- `export*Workbook`: sheet **Tong quan** (KPI + ngày xuất), sheet dữ liệu styled, optional **Doi soat**.
+- `setCell` + `mergeRow` + `setColWidths`; header brand; zebra rows.
+- Phạm vi rõ: `all` | `filtered` | `selection` — UI radio + hiển thị số bản ghi.
+- Filename: `VA_<Loai>_<MaDuAn>_<YYYY-MM-DD>.xlsx` (`safeCode` — loại ký tự cấm).
+- CSV chỉ khi có yêu cầu rõ; Excel là mặc định.
+
+---
+
+## 7. Đối soát (production)
+
+Composable pure function trên data đã load:
+
+```js
+issues: [{ level: 'error'|'warning'|'info', code, message, taskId?, sprintId? }]
+summary: { total, errors, warnings, info }
+```
+
+- Rule có `code` ổn định (vd. `no_assignee`, `sprint_overlap`) để filter/test.
+- Tab UI: empty state xanh khi sạch; nút **Sửa** emit `fix` → parent mở panel/modal entity.
+- Xuất báo cáo đối soát (sheet hoặc full workbook).
+
+---
+
+## 8. Bảo mật & quyền
+
+- Template/export không chứa secret; dữ liệu theo quyền project user đã có trên page.
+- Import: `authorize` create/update trên entity; scope `project_id`.
+- Chỉ chấp nhận extension whitelist; giới hạn kích thước file (khuyến nghị ≤5MB — validate nếu upload multipart sau này).
+
+---
+
+## 9. Anti-patterns (cấm)
+
+- Ba nút / ba modal riêng cho Nhập, Xuất, Đối soát.
+- Import không file mẫu hoặc mẫu không có sheet hướng dẫn chi tiết.
+- `sheet_to_json` không kiểm marker/header (dễ lệch cột khi merge cells).
+- Export `XLSX.utils.aoa_to_sheet` không style cho báo cáo user-facing.
+- Client-only validation, không server validate.
+- Hardcode enum string lặp lại thay vì `Options` / `Enum::values()`.
+
+---
+
+## 10. Definition of Done (checklist PR)
+
+- [ ] Một `*DataModal` + composable; không logic Excel trong Vue
+- [ ] Template tải được; sheet Huong dan đủ nội dung production
+- [ ] Parse + validate + preview hợp lệ/lỗi
+- [ ] Bulk import API + FormRequest + transaction (hoặc ticket follow-up ghi rõ nếu chưa kịp)
+- [ ] Export styled + chọn phạm vi
+- [ ] Reconcile composable + tab + export báo cáo
+- [ ] `canManage` respected; toast + error messages VI
+- [ ] Copy pattern từ Risk nếu module mới
+
+---
+
+## 11. Module mới
+
+Tạo `use<Entity>Data.js` + `<Entity>DataModal.vue` HOẶC mở rộng modal hiện có — **không** mix pattern cũ (modal import đơn giản không template). Cập nhật bảng «Tham chiếu vàng» trong rule này khi ship module mới.

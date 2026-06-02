@@ -1,13 +1,27 @@
 <script setup>
+import { provide } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
+import { useConfirmClose } from '@/composables/useConfirmClose';
 
-defineProps({
+const props = defineProps({
     show: { type: Boolean, default: false },
     title: { type: String, default: '' },
     maxWidth: { type: String, default: 'max-w-lg' },
+    dirty: { type: Boolean, default: false },
+    closeConfirmTitle: { type: String, default: 'Huỷ thao tác?' },
+    closeConfirmMessage: { type: String, default: 'Thay đổi chưa được lưu sẽ bị mất. Bạn có chắc muốn thoát?' },
 });
 
 const emit = defineEmits(['close']);
+
+const requestClose = useConfirmClose(() => emit('close'));
+
+const tryClose = () => requestClose(props.dirty, {
+    title: props.closeConfirmTitle,
+    message: props.closeConfirmMessage,
+});
+
+provide('modalClose', tryClose);
 </script>
 
 <template>
@@ -21,8 +35,8 @@ const emit = defineEmits(['close']);
             <div
                 v-if="show"
                 class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/50 p-4 py-10"
-                @click.self="emit('close')"
-                @keydown.esc="emit('close')"
+                @click.self="tryClose"
+                @keydown.esc="tryClose"
             >
                 <div class="card w-full p-6 shadow-elevation-3" :class="maxWidth">
                     <div class="mb-4 flex items-center justify-between gap-4">
@@ -30,7 +44,7 @@ const emit = defineEmits(['close']);
                         <button
                             type="button"
                             class="grid h-8 w-8 place-items-center rounded-btn text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-                            @click="emit('close')"
+                            @click="tryClose"
                         >
                             <AppIcon name="close" :size="18" />
                         </button>

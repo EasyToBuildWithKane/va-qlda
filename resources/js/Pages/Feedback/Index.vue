@@ -3,6 +3,7 @@ import { reactive, ref, watch } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AppIcon from '@/Components/AppIcon.vue';
+import PageHeader from '@/Components/Ui/PageHeader.vue';
 import Badge from '@/Components/Project/Badge.vue';
 import Avatar from '@/Components/Project/Avatar.vue';
 import FeedbackFormModal from '@/Components/Project/FeedbackFormModal.vue';
@@ -44,7 +45,13 @@ watch(filterForm, () => {
     <Head title="Phản hồi" />
     <AppLayout>
         <template #header>
-            <h1 class="font-display font-semibold text-slate-800">Theo dõi phản hồi</h1>
+            <PageHeader
+                title="Theo dõi phản hồi"
+                subtitle="Quản lý ý kiến và phản hồi người dùng"
+                icon="feedback"
+                icon-color="amber"
+                :badge="summary.open ?? null"
+            />
         </template>
 
         <div class="mb-5 grid grid-cols-3 gap-4">

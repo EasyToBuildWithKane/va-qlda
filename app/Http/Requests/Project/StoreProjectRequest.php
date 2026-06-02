@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Project;
 
 use App\Models\Project;
+use App\Support\Options;
 use App\Support\Enums\ProjectScope;
 use App\Support\Enums\ProjectStatus;
 use App\Support\Enums\ProjectType;
@@ -15,6 +16,15 @@ class StoreProjectRequest extends FormRequest
     public function authorize(): bool
     {
         return $this->user()->can('create', Project::class);
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if (! $this->filled('department_id')) {
+            $this->merge([
+                'department_id' => Options::defaultOwnerDepartmentId(),
+            ]);
+        }
     }
 
     /**

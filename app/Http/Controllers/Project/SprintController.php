@@ -12,7 +12,11 @@ class SprintController extends Controller
 {
     public function store(StoreSprintRequest $request, Project $project): RedirectResponse
     {
-        $project->sprints()->create($request->validated());
+        $data = $request->validated();
+        unset($data['sort_order']);
+
+        $project->sprints()->create($data);
+        $this->syncSprintSortOrders($project);
 
         return back()->with('success', 'Đã thêm sprint.');
     }
@@ -21,7 +25,11 @@ class SprintController extends Controller
     {
         abort_unless($sprint->project_id === $project->id, 404);
 
-        $sprint->update($request->validated());
+        $data = $request->validated();
+        unset($data['sort_order']);
+
+        $sprint->update($data);
+        $this->syncSprintSortOrders($project);
 
         return back()->with('success', 'Đã cập nhật sprint.');
     }
@@ -32,7 +40,26 @@ class SprintController extends Controller
         abort_unless($sprint->project_id === $project->id, 404);
 
         $sprint->delete();
+        $this->syncSprintSortOrders($project);
 
         return back()->with('success', 'Đã xoá sprint.');
+    }
+
+    /**
+     * Gán sort_order 1..n theo ngày bắt đầu (sớm → muộn), không cần người dùng nhập số.
+     */
+    private function syncSprintSortOrders(Project $project): void
+    {
+        $sprints = $project->sprints()
+            ->orderBy('start_date')
+            ->orderBy('id')
+            ->get();
+
+        foreach ($sprints as $index => $sprint) {
+            $order = $index + 1;
+            if ((int) $sprint->sort_order !== $order) {
+                $sprint->updateQuietly(['sort_order' => $order]);
+            }
+        }
     }
 }

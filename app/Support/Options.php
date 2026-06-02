@@ -11,10 +11,12 @@ use App\Support\Enums\BugSeverity;
 use App\Support\Enums\BugStatus;
 use App\Support\Enums\FeedbackCategory;
 use App\Support\Enums\FeedbackStatus;
+use App\Support\Enums\ProjectAttachmentCategory;
 use App\Support\Enums\ProjectStatus;
 use App\Support\Enums\RateType;
 use App\Support\Enums\Region;
 use App\Support\Enums\SprintStatus;
+use App\Support\Enums\TaskPhase;
 use App\Support\Enums\TaskPriority;
 use App\Support\Enums\TaskStatus;
 
@@ -66,6 +68,24 @@ class Options
             ]);
     }
 
+    /** Phòng ban phụ trách mặc định khi tạo dự án (Phòng Công nghệ). */
+    public static function defaultOwnerDepartmentId(): ?int
+    {
+        $code = config('project.default_owner_department_code');
+
+        if ($code) {
+            $byCode = Department::query()->where('code', $code)->value('id');
+            if ($byCode) {
+                return $byCode;
+            }
+        }
+
+        return Department::query()
+            ->where('name', 'like', '%Công nghệ%')
+            ->orderBy('sort_order')
+            ->value('id');
+    }
+
     /** @return array<int, array{value:string, label:string}> */
     public static function regions(): array
     {
@@ -84,6 +104,7 @@ class Options
             'sprintStatus' => SprintStatus::options(),
             'taskStatus' => TaskStatus::options(),
             'taskPriority' => TaskPriority::options(),
+            'taskPhase' => TaskPhase::options(),
             'rateType' => RateType::options(),
             'blockerSeverity' => BlockerSeverity::options(),
             'blockerStatus' => BlockerStatus::options(),
@@ -91,6 +112,7 @@ class Options
             'bugStatus' => BugStatus::options(),
             'feedbackCategory' => FeedbackCategory::options(),
             'feedbackStatus' => FeedbackStatus::options(),
+            'projectAttachmentCategory' => ProjectAttachmentCategory::options(),
         ];
     }
 }

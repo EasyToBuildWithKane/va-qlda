@@ -1,0 +1,96 @@
+<?php
+
+namespace App\Support;
+
+use App\Models\Blocker;
+use App\Models\BlockerActivity;
+use App\Models\SystemAccount;
+
+class BlockerActivityLogger
+{
+    public static function log(Blocker $blocker, string $event, string $description, ?array $meta = null, ?int $employeeId = null): void
+    {
+        BlockerActivity::create([
+            'blocker_id' => $blocker->id,
+            'employee_id' => $employeeId,
+            'event' => $event,
+            'description' => $description,
+            'meta' => $meta,
+        ]);
+    }
+
+    public static function created(Blocker $blocker, ?SystemAccount $account): void
+    {
+        self::log(
+            $blocker,
+            'created',
+            'Ghi nhận rủi ro / vướng mắc mới',
+            ['title' => $blocker->title],
+            $account?->employee_id,
+        );
+    }
+
+    public static function updated(Blocker $blocker, ?SystemAccount $account, array $changes): void
+    {
+        if ($changes === []) {
+            return;
+        }
+
+        $labels = [
+            'title' => 'tiêu đề',
+            'description' => 'mô tả',
+            'root_cause' => 'nguyên nhân',
+            'resolution' => 'hướng xử lý',
+            'severity' => 'mức độ',
+            'status' => 'trạng thái',
+            'owner_id' => 'người phụ trách',
+            'due_date' => 'hạn xử lý',
+        ];
+
+        foreach ($changes as $field => $value) {
+            if (! isset($labels[$field])) {
+                continue;
+            }
+            self::log(
+                $blocker,
+                'updated',
+                'Cập nhật '.$labels[$field],
+                ['field' => $field, 'value' => $value],
+                $account?->employee_id,
+            );
+        }
+    }
+
+    public static function statusChanged(Blocker $blocker, string $from, string $to, ?SystemAccount $account): void
+    {
+        self::log(
+            $blocker,
+            'status_changed',
+            "Chuyển trạng thái: {$from} → {$to}",
+            ['from' => $from, 'to' => $to],
+            $account?->employee_id,
+        );
+    }
+
+    public static function commentAdded(Blocker $blocker, ?SystemAccount $account): void
+    {
+        self::log(
+            $blocker,
+            'comment',
+            'Thêm bình luận trao đổi',
+            null,
+            $account?->employee_id,
+        );
+    }
+
+    public static function attachmentAdded(Blocker $blocker, string $fileName, ?SystemAccount $account): void
+    {
+        self::log(
+            $blocker,
+            'attachment',
+            "Đính kèm file: {$fileName}",
+            ['file' => $fileName],
+            $account?->employee_id,
+        );
+    }
+}

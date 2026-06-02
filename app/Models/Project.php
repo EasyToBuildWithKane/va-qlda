@@ -96,12 +96,17 @@ class Project extends Model
 
     public function sprints(): HasMany
     {
-        return $this->hasMany(Sprint::class)->orderBy('sort_order');
+        return $this->hasMany(Sprint::class)->orderBy('start_date')->orderBy('sort_order');
     }
 
     public function tasks(): HasMany
     {
         return $this->hasMany(Task::class);
+    }
+
+    public function epics(): HasMany
+    {
+        return $this->hasMany(Epic::class)->orderBy('name');
     }
 
     public function worklogs(): HasManyThrough
@@ -112,6 +117,11 @@ class Project extends Model
     public function blockers(): HasMany
     {
         return $this->hasMany(Blocker::class);
+    }
+
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(ProjectAttachment::class)->latest();
     }
 
     public function bugs(): HasMany

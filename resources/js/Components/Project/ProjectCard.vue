@@ -1,12 +1,13 @@
 <script setup>
+import { computed } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
 import Badge from '@/Components/Project/Badge.vue';
 import Avatar from '@/Components/Project/Avatar.vue';
 import ProgressBar from '@/Components/Project/ProgressBar.vue';
-import { currency } from '@/composables/useFormat';
+import { date } from '@/composables/useFormat';
 
-defineProps({
+const props = defineProps({
     project: { type: Object, required: true },
     draggable: { type: Boolean, default: false },
     showType: { type: Boolean, default: false },
@@ -19,6 +20,13 @@ const stripe = {
     brand: 'bg-brand', sky: 'bg-sky-500', emerald: 'bg-emerald-500', violet: 'bg-violet-500',
     amber: 'bg-amber-500', rose: 'bg-rose-500', cyan: 'bg-cyan-500', slate: 'bg-slate-400',
 };
+
+const members = computed(() => {
+    const list = props.project?.members;
+    if (Array.isArray(list)) return list;
+    if (list && typeof list === 'object') return Object.values(list).filter(Boolean);
+    return [];
+});
 </script>
 
 <template>
@@ -47,28 +55,47 @@ const stripe = {
                 <ProgressBar :value="project.progress" />
             </div>
 
-            <div class="flex items-center justify-between text-xs text-slate-500">
-                <span class="flex items-center gap-3">
-                    <span class="flex items-center gap-1"><AppIcon name="members" :size="14" /> {{ project.member_count ?? 0 }}</span>
-                    <span class="flex items-center gap-1"><AppIcon name="task" :size="14" /> {{ project.task_count ?? 0 }}</span>
-                    <span v-if="project.open_blocker_count" class="flex items-center gap-1 text-rose-500"><AppIcon name="blockers" :size="14" /> {{ project.open_blocker_count }}</span>
+            <!-- Manager + due date row -->
+            <div class="mb-3 flex items-center justify-between text-xs text-slate-500">
+                <span v-if="project.manager" class="flex items-center gap-1.5">
+                    <Avatar :name="project.manager.name" :src="project.manager.avatar_path" :size="20" />
+                    <span class="truncate max-w-[8rem]">{{ project.manager.name }}</span>
                 </span>
-                <Avatar v-if="project.manager" :name="project.manager.name" :src="project.manager.avatar_path" :size="24" />
+                <span v-else class="text-slate-300">Chưa có chủ dự án</span>
+                <span v-if="project.due_date" class="flex items-center gap-1">
+                    <AppIcon name="calendar" :size="12" />
+                    {{ date(project.due_date) }}
+                </span>
             </div>
 
-            <div class="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
-                <span class="text-xs text-slate-500">
-                    <span class="font-medium text-slate-700">{{ currency(project.labor_cost) }}</span>
-                    <span v-if="project.budget"> / {{ currency(project.budget) }}</span>
-                </span>
-                <span class="flex gap-1">
-                    <Link v-if="project.can?.update" :href="`/projects/${project.id}/edit`" class="grid h-7 w-7 place-items-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-700" title="Sửa">
-                        <AppIcon name="edit" :size="15" />
-                    </Link>
-                    <button v-if="project.can?.delete" class="grid h-7 w-7 place-items-center rounded text-slate-400 hover:bg-rose-50 hover:text-rose-600" title="Xoá" @click="emit('remove', project)">
-                        <AppIcon name="delete" :size="15" />
-                    </button>
-                </span>
+            <!-- Member avatars -->
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <template v-for="(m, i) in members.slice(0, 5)" :key="m.id">
+                        <span :style="{ zIndex: 5 - i, marginLeft: i === 0 ? '0' : '-6px' }" class="relative inline-block rounded-full ring-2 ring-white">
+                            <Avatar :name="m.name" :src="m.avatar_path" :size="24" />
+                        </span>
+                    </template>
+                    <span v-if="members.length > 5" class="relative ml-[-6px] inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-200 text-[10px] font-semibold text-slate-600 ring-2 ring-white">
+                        +{{ members.length - 5 }}
+                    </span>
+                    <span v-if="!members.length" class="flex items-center gap-1 text-xs text-slate-400">
+                        <AppIcon name="members" :size="13" /> 0 thành viên
+                    </span>
+                </div>
+                <div class="flex items-center gap-3 text-xs text-slate-500">
+                    <span class="flex items-center gap-1"><AppIcon name="task" :size="13" /> {{ project.task_count ?? 0 }}</span>
+                    <span v-if="project.open_blocker_count" class="flex items-center gap-1 text-rose-500"><AppIcon name="blockers" :size="13" /> {{ project.open_blocker_count }}</span>
+                </div>
+            </div>
+
+            <div class="mt-3 flex justify-end gap-1 border-t border-slate-100 pt-3">
+                <Link v-if="project.can?.update" :href="`/projects/${project.id}/edit`" class="grid h-7 w-7 place-items-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-700" title="Sửa">
+                    <AppIcon name="edit" :size="15" />
+                </Link>
+                <button v-if="project.can?.delete" class="grid h-7 w-7 place-items-center rounded text-slate-400 hover:bg-rose-50 hover:text-rose-600" title="Xoá" @click="emit('remove', project)">
+                    <AppIcon name="delete" :size="15" />
+                </button>
             </div>
         </div>
     </div>

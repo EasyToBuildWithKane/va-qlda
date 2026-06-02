@@ -1,6 +1,7 @@
 <script setup>
 import { Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import PageHeader from '@/Components/Ui/PageHeader.vue';
 
 defineProps({
     stats: { type: Array, default: () => [] },
@@ -12,7 +13,12 @@ defineProps({
 
     <AppLayout>
         <template #header>
-            <h1 class="font-display font-semibold text-slate-800">Executive Overview</h1>
+            <PageHeader
+                title="Bảng điều khiển"
+                subtitle="Tổng quan hiệu suất & tiến độ hệ thống"
+                icon="overview"
+                icon-color="brand"
+            />
         </template>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

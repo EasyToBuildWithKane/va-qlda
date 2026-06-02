@@ -1,8 +1,8 @@
 <script setup>
-import { Head, Link } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
-import AppIcon from '@/Components/AppIcon.vue';
 import ProjectForm from '@/Components/Project/ProjectForm.vue';
+import PageHeader from '@/Components/Ui/PageHeader.vue';
 
 defineProps({
     employees: { type: Array, default: () => [] },
@@ -12,6 +12,7 @@ defineProps({
     regionOptions: { type: Array, default: () => [] },
     departmentOptions: { type: Array, default: () => [] },
     suggestedCode: { type: String, default: '' },
+    defaultDepartmentId: { type: Number, default: null },
 });
 </script>
 
@@ -19,14 +20,24 @@ defineProps({
     <Head title="Tạo dự án" />
     <AppLayout>
         <template #header>
-            <div class="flex items-center gap-2">
-                <Link href="/projects" class="grid h-8 w-8 place-items-center rounded-btn text-slate-400 hover:bg-slate-100">
-                    <AppIcon name="back" :size="18" />
-                </Link>
-                <h1 class="font-display font-semibold text-slate-800">Tạo dự án mới</h1>
-            </div>
+            <PageHeader
+                title="Tạo dự án mới"
+                subtitle="Điền thông tin để khởi tạo dự án"
+                icon="new-project"
+                icon-color="emerald"
+                back-href="/projects"
+            />
         </template>
 
-        <ProjectForm :employees="employees" :status-options="statusOptions" :type-options="typeOptions" :scope-options="scopeOptions" :region-options="regionOptions" :department-options="departmentOptions" :suggested-code="suggestedCode" />
+        <ProjectForm
+            :employees="employees"
+            :status-options="statusOptions"
+            :type-options="typeOptions"
+            :scope-options="scopeOptions"
+            :region-options="regionOptions"
+            :department-options="departmentOptions"
+            :suggested-code="suggestedCode"
+            :default-department-id="defaultDepartmentId"
+        />
     </AppLayout>
 </template>

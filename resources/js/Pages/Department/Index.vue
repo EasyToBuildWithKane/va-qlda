@@ -3,6 +3,7 @@ import { ref, computed, reactive, onMounted, onUnmounted } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AppIcon from '@/Components/AppIcon.vue';
+import PageHeader from '@/Components/Ui/PageHeader.vue';
 import Avatar from '@/Components/Project/Avatar.vue';
 import DepartmentFormModal from '@/Components/Project/DepartmentFormModal.vue';
 import { useDialog } from '@/composables/useDialog';
@@ -71,7 +72,16 @@ const filtered = computed(() => {
 
 const activeFilterCount = computed(() => (statusFilter.value !== 'all' ? 1 : 0));
 const hasAnyFilter      = computed(() => activeFilterCount.value > 0 || searchQuery.value.trim() !== '');
-const clearAll          = () => { statusFilter.value = 'all'; searchQuery.value = ''; };
+const clearAll = async () => {
+    if (!hasAnyFilter.value) return;
+    if (!await dialog.confirm({
+        title: 'Xoá bộ lọc',
+        message: 'Xoá tất cả bộ lọc đang áp dụng?',
+        confirmText: 'Xoá lọc',
+    })) return;
+    statusFilter.value = 'all';
+    searchQuery.value = '';
+};
 
 // ── Dropdown state ──────────────────────────────────────────────────────────
 const showFilterDd = ref(false);
@@ -118,10 +128,13 @@ const toggleStatus = async (d) => {
     <Head title="Phòng ban" />
     <AppLayout>
         <template #header>
-            <div class="flex items-center gap-2">
-                <AppIcon name="department" :size="20" class="text-slate-500" />
-                <h1 class="font-display font-semibold text-slate-800">Phòng ban</h1>
-            </div>
+            <PageHeader
+                title="Quản lý phòng ban"
+                subtitle="Cơ cấu tổ chức và phân công nhân sự"
+                icon="department"
+                icon-color="sky"
+                :badge="departments.data?.length"
+            />
         </template>
 
         <div class="card overflow-visible">

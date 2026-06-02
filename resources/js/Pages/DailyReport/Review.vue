@@ -2,6 +2,7 @@
 import { Head, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import ScoringPanel from '@/Components/DailyReport/ScoringPanel.vue';
+import PageHeader from '@/Components/Ui/PageHeader.vue';
 
 defineProps({
     reports: { type: Object, required: true }, // { data, meta }
@@ -23,7 +24,13 @@ const preview = [
 
     <AppLayout>
         <template #header>
-            <h1 class="font-display font-semibold text-slate-800">Duyệt báo cáo</h1>
+            <PageHeader
+                title="Duyệt báo cáo"
+                subtitle="Xem xét và đánh giá báo cáo của thành viên"
+                icon="review-reports"
+                icon-color="violet"
+                :badge="reports.data?.length"
+            />
         </template>
 
         <div v-if="reports.data.length === 0" class="card p-10 text-center text-slate-400">

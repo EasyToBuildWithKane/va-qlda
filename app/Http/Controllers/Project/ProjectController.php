@@ -6,13 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Project\StoreProjectRequest;
 use App\Http\Requests\Project\UpdateProjectRequest;
 use App\Http\Resources\BlockerResource;
+use App\Http\Resources\ProjectAttachmentResource;
 use App\Http\Resources\ProjectListResource;
 use App\Http\Resources\ProjectResource;
 use App\Http\Resources\SprintResource;
 use App\Http\Resources\TaskResource;
-use App\Http\Resources\WorklogResource;
 use App\Models\Project;
-use App\Models\Worklog;
 use App\Support\Enums\ProjectScope;
 use App\Support\Enums\ProjectStatus;
 use App\Support\Enums\ProjectType;
@@ -85,8 +84,6 @@ class ProjectController extends Controller
                     ->whereDate('due_date', '<', Carbon::today())
                     ->whereNotIn('status', [ProjectStatus::Completed->value, ProjectStatus::Cancelled->value])
                     ->count(),
-                'budget' => (float) Project::sum('budget'),
-                'spentBudget' => (float) Project::sum('actual_budget'),
             ],
             'can' => ['create' => $account->can('create', Project::class)],
         ]);
@@ -104,12 +101,23 @@ class ProjectController extends Controller
             'regionOptions' => Options::regions(),
             'departmentOptions' => Options::departments(),
             'suggestedCode' => $this->suggestCode(),
+            'defaultDepartmentId' => Options::defaultOwnerDepartmentId(),
         ]);
     }
 
     public function store(StoreProjectRequest $request): RedirectResponse
     {
-        $project = Project::create($request->validated());
+        $data = $request->validated();
+
+        if (empty($data['department_id'])) {
+            $data['department_id'] = Options::defaultOwnerDepartmentId();
+        }
+
+        if (empty($data['code'])) {
+            $data['code'] = $this->suggestCode();
+        }
+
+        $project = Project::create($data);
 
         // "Lưu & tiếp tục" keeps the user on the edit screen of the new project.
         $route = $request->input('after') === 'continue' ? 'projects.edit' : 'projects.show';
@@ -128,25 +136,45 @@ class ProjectController extends Controller
             'department',
             'members',
             'sprints' => fn ($q) => $q->withCount('tasks'),
-            'tasks' => fn ($q) => $q->with(['assignee', 'dependencies:id', 'worklogs:id,task_id,hours,cost'])
-                ->orderBy('order_column'),
-            'blockers' => fn ($q) => $q->with(['raisedBy', 'owner'])->latest(),
+            'epics',
+            'tasks' => fn ($q) => $q->with([
+                'assignee',
+                'assignees',
+                'reporter',
+                'reviewer',
+                'epic',
+                'parent:id,title',
+                'sprint:id,project_id,name',
+                'dependencies:id,title,status',
+                'dependents:id,title,status,progress',
+                'subtasks' => fn ($s) => $s->with('assignee'),
+                'watchers',
+                'attachments' => fn ($a) => $a->with('uploadedBy'),
+                'activities' => fn ($a) => $a->with('employee')->limit(100),
+                'worklogs' => fn ($w) => $w->with('employee')->latest('date'),
+                'comments' => fn ($c) => $c->whereNull('parent_id')->with(['author', 'replies.author'])->latest(),
+            ])->orderBy('order_column'),
+            'blockers' => fn ($q) => $q->with([
+                'raisedBy',
+                'owner',
+                'comments' => fn ($c) => $c->with('author')->latest(),
+                'attachments' => fn ($a) => $a->with('uploadedBy')->latest(),
+                'activities' => fn ($a) => $a->with('employee')->latest(),
+            ])->latest(),
+            'attachments' => fn ($q) => $q->with([
+                'uploadedBy',
+                'updatedBy',
+                'activities' => fn ($a) => $a->with('employee')->latest(),
+            ])->latest(),
         ]);
-
-        $worklogs = Worklog::query()
-            ->whereHas('task', fn ($q) => $q->where('project_id', $project->id))
-            ->with(['task:id,title', 'employee'])
-            ->latest('date')
-            ->limit(100)
-            ->get();
 
         return Inertia::render('Project/Show', [
             'project' => (new ProjectResource($project))->resolve(),
+            'attachments' => ProjectAttachmentResource::collection($project->attachments)->resolve(),
             'sprints' => SprintResource::collection($project->sprints)->resolve(),
+            'epics' => \App\Http\Resources\EpicResource::collection($project->epics)->resolve(),
             'tasks' => TaskResource::collection($project->tasks)->resolve(),
             'blockers' => BlockerResource::collection($project->blockers)->resolve(),
-            'worklogs' => WorklogResource::collection($worklogs)->resolve(),
-            'cost' => $this->costSummary($project),
             'options' => [
                 'employees' => Options::employees(),
                 'enums' => Options::enums(),
@@ -240,37 +268,6 @@ class ProjectController extends Controller
         return redirect()
             ->route('projects.index')
             ->with('success', 'Đã xoá dự án.');
-    }
-
-    /**
-     * Budget vs. actual labour cost, plus a per-member breakdown for the chart.
-     *
-     * @return array<string, mixed>
-     */
-    private function costSummary(Project $project): array
-    {
-        $logs = Worklog::query()
-            ->whereHas('task', fn ($q) => $q->where('project_id', $project->id))
-            ->with('employee:id,full_name')
-            ->get(['id', 'employee_id', 'hours', 'cost']);
-
-        $byMember = $logs->groupBy('employee_id')->map(fn ($group) => [
-            'name' => $group->first()->employee?->full_name ?? '—',
-            'hours' => (float) $group->sum('hours'),
-            'cost' => (float) $group->sum('cost'),
-        ])->values();
-
-        $labor = (float) $logs->sum('cost');
-        $budget = $project->budget !== null ? (float) $project->budget : null;
-
-        return [
-            'budget' => $budget,
-            'labor_cost' => $labor,
-            'remaining' => $budget !== null ? $budget - $labor : null,
-            'utilization' => $budget ? (int) round($labor / $budget * 100) : null,
-            'total_hours' => (float) $logs->sum('hours'),
-            'by_member' => $byMember,
-        ];
     }
 
     private function suggestCode(): string

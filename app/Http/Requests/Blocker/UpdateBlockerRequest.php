@@ -22,6 +22,8 @@ class UpdateBlockerRequest extends FormRequest
         return [
             'title' => ['sometimes', 'required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:10000'],
+            'root_cause' => ['nullable', 'string', 'max:10000'],
+            'due_date' => ['nullable', 'date'],
             'severity' => ['sometimes', 'required', Rule::in(BlockerSeverity::values())],
             'status' => ['sometimes', 'required', Rule::in(BlockerStatus::values())],
             'owner_id' => ['nullable', 'integer', 'exists:employees,id'],

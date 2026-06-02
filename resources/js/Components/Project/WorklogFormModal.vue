@@ -1,5 +1,5 @@
 <script setup>
-import { watch } from 'vue';
+import { inject, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import Modal from '@/Components/Ui/Modal.vue';
 
@@ -12,6 +12,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close', 'saved']);
+const modalClose = inject('modalClose', () => emit('close'));
 
 const today = new Date().toISOString().slice(0, 10);
 const form = useForm({ employee_id: null, date: today, hours: 1, note: '' });
@@ -34,7 +35,7 @@ const submit = () => {
 </script>
 
 <template>
-    <Modal :show="show" :title="'Ghi nhận giờ làm' + (task ? ' — ' + task.title : '')" @close="emit('close')">
+    <Modal :show="show" :dirty="form.isDirty" :title="'Ghi nhận giờ làm' + (task ? ' — ' + task.title : '')" @close="emit('close')">
         <form class="space-y-4" @submit.prevent="submit">
             <div>
                 <label class="label">Người thực hiện</label>
@@ -60,7 +61,7 @@ const submit = () => {
                 <input v-model="form.note" type="text" class="input" />
             </div>
             <div class="flex justify-end gap-2 pt-2">
-                <button type="button" class="btn-ghost" @click="emit('close')">Huỷ</button>
+                <button type="button" class="btn-ghost" @click="modalClose()">Huỷ</button>
                 <button type="submit" class="btn-primary" :disabled="form.processing">Ghi nhận</button>
             </div>
         </form>

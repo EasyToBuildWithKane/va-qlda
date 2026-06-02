@@ -3,15 +3,15 @@ import { computed } from 'vue';
 import {
     LayoutDashboard, CalendarDays, FolderKanban, CalendarCheck, TrendingUp,
     BookOpen, Settings, LineChart, Users, FolderOpen, SquarePen, History,
-    CircleCheckBig, TriangleAlert, CalendarRange, Folders, Star, Plus,
+    CircleCheckBig, TriangleAlert, CalendarRange, Folders, Star, Plus, Minus,
     ClipboardList, MessageSquare, ListChecks, ChartBar, UserRound, Trophy,
     Code, GitBranch, Palette, CircleUser, Bell, SlidersHorizontal,
-    ChevronRight, PanelLeftClose, PanelLeftOpen, LogOut, FileText, Circle,
+    ChevronRight, ChevronLeft, PanelLeftClose, PanelLeftOpen, LogOut, FileText, Circle,
     Bug, ListTodo, Rocket, Wallet, Banknote, Timer, KanbanSquare, Trash2,
     X, Search, Filter, Clock, Link2, GanttChartSquare, Pencil, Flag,
     PiggyBank, ArrowLeft, Building2, Info, Building, Globe, MapPin,
-    Columns3, Download, RotateCw, Eye, Copy, Archive, ChevronDown,
-    Save, Check, ArrowUpDown, CalendarClock, Users2, CircleDollarSign,
+    Columns3, Download, Upload, FileDown, RotateCw, Eye, Copy, Archive, ChevronDown,
+    Save, Check, ArrowUpDown, CalendarClock, Users2, CircleDollarSign, Image,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -65,6 +65,8 @@ const map = {
     worklog: Timer,
     board: KanbanSquare,
     timeline: GanttChartSquare,
+    documents: FileText,
+    image: Image,
     members: Users,
     dependency: Link2,
     flag: Flag,
@@ -73,6 +75,10 @@ const map = {
     done: CircleCheckBig,
     overview2: LineChart,
     // ui
+    minus: Minus,
+    plus: Plus,
+    'chevron-left': ChevronLeft,
+    'chevron-right': ChevronRight,
     chevron: ChevronRight,
     'collapse-left': PanelLeftClose,
     'expand-left': PanelLeftOpen,
@@ -93,6 +99,8 @@ const map = {
     'map-pin': MapPin,
     columns: Columns3,
     download: Download,
+    upload: Upload,
+    export: FileDown,
     refresh: RotateCw,
     eye: Eye,
     copy: Copy,

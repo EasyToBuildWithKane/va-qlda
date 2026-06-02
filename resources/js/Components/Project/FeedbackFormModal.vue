@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, inject, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import Modal from '@/Components/Ui/Modal.vue';
 
@@ -14,6 +14,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close', 'saved']);
+const modalClose = inject('modalClose', () => emit('close'));
 
 const reporterType = ref('external');
 const form = useForm({
@@ -53,7 +54,7 @@ const submit = () => {
 </script>
 
 <template>
-    <Modal :show="show" :title="feedback ? `Chỉnh sửa ${feedback.code}` : 'Phản hồi mới'" max-width="max-w-2xl" @close="emit('close')">
+    <Modal :show="show" :dirty="form.isDirty" :title="feedback ? `Chỉnh sửa ${feedback.code}` : 'Phản hồi mới'" max-width="max-w-2xl" @close="emit('close')">
         <form class="space-y-4" @submit.prevent="submit">
             <div class="grid grid-cols-2 gap-4">
                 <div>
@@ -131,7 +132,7 @@ const submit = () => {
             </fieldset>
 
             <div class="flex justify-end gap-2 pt-2">
-                <button type="button" class="btn-ghost" @click="emit('close')">Huỷ</button>
+                <button type="button" class="btn-ghost" @click="modalClose()">Huỷ</button>
                 <button type="submit" class="btn-primary" :disabled="form.processing">{{ feedback ? 'Lưu' : 'Gửi phản hồi' }}</button>
             </div>
         </form>

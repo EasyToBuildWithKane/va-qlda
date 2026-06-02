@@ -13,8 +13,8 @@ return new class extends Migration
             $table->uuid('uuid')->unique();                 // public/API id (D1)
 
             $table->foreignId('employee_id')->constrained('employees')->cascadeOnDelete();
-            // FK constraint to projects added when the Project section lands.
             $table->unsignedBigInteger('project_id')->nullable();
+            $table->json('projects')->nullable();
 
             $table->date('date');
             $table->string('title');

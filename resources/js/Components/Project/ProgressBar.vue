@@ -7,7 +7,11 @@ const props = defineProps({
     height: { type: String, default: 'h-2' },
 });
 
-const pct = computed(() => Math.max(0, Math.min(100, Math.round(props.value || 0))));
+const pct = computed(() => {
+    const n = Number(props.value);
+    const safe = Number.isFinite(n) ? n : 0;
+    return Math.max(0, Math.min(100, Math.round(safe)));
+});
 
 // Colour shifts with completion for an at-a-glance read.
 const fill = computed(() => {

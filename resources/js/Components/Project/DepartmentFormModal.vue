@@ -1,5 +1,5 @@
 <script setup>
-import { computed, watch } from 'vue';
+import { computed, inject, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import Modal from '@/Components/Ui/Modal.vue';
 import FieldTooltip from '@/Components/Project/FieldTooltip.vue';
@@ -13,6 +13,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close', 'saved']);
+const modalClose = inject('modalClose', () => emit('close'));
 
 const colors = [
     { key: 'brand',   cls: 'bg-brand',       label: 'Xanh thương hiệu' },
@@ -63,7 +64,7 @@ const submit = () => {
 </script>
 
 <template>
-    <Modal :show="show" :title="isEdit ? 'Chỉnh sửa phòng ban' : 'Thêm phòng ban mới'" max-width="max-w-xl" @close="emit('close')">
+    <Modal :show="show" :dirty="form.isDirty" :title="isEdit ? 'Chỉnh sửa phòng ban' : 'Thêm phòng ban mới'" max-width="max-w-xl" @close="emit('close')">
         <form class="space-y-5" @submit.prevent="submit">
 
             <!-- Code (auto-generated, read-only) -->
@@ -173,7 +174,7 @@ const submit = () => {
 
             <!-- Actions -->
             <div class="flex justify-end gap-2 pt-1 border-t border-slate-100">
-                <button type="button" class="btn-ghost" @click="emit('close')">Huỷ</button>
+                <button type="button" class="btn-ghost" @click="modalClose()">Huỷ</button>
                 <button type="submit" class="btn-primary" :disabled="form.processing">
                     <AppIcon v-if="form.processing" name="refresh" :size="15" class="animate-spin" />
                     {{ isEdit ? 'Lưu thay đổi' : 'Thêm phòng ban' }}

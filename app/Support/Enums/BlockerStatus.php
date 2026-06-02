@@ -6,14 +6,29 @@ enum BlockerStatus: string
 {
     case Open = 'open';
     case InProgress = 'in_progress';
+    case Blocked = 'blocked';
     case Resolved = 'resolved';
+    case Closed = 'closed';
 
     public function label(): string
     {
         return match ($this) {
+            self::Open => 'Open',
+            self::InProgress => 'In Progress',
+            self::Blocked => 'Blocked',
+            self::Resolved => 'Resolved',
+            self::Closed => 'Closed',
+        };
+    }
+
+    public function labelVi(): string
+    {
+        return match ($this) {
             self::Open => 'Đang mở',
             self::InProgress => 'Đang xử lý',
-            self::Resolved => 'Đã xử lý',
+            self::Blocked => 'Bị chặn',
+            self::Resolved => 'Đã giải quyết',
+            self::Closed => 'Đã đóng',
         };
     }
 
@@ -21,9 +36,16 @@ enum BlockerStatus: string
     {
         return match ($this) {
             self::Open => 'rose',
-            self::InProgress => 'amber',
+            self::InProgress => 'sky',
+            self::Blocked => 'violet',
             self::Resolved => 'emerald',
+            self::Closed => 'slate',
         };
+    }
+
+    public function isTerminal(): bool
+    {
+        return in_array($this, [self::Resolved, self::Closed], true);
     }
 
     /** @return array<int, string> */
@@ -37,7 +59,8 @@ enum BlockerStatus: string
     {
         return array_map(fn (self $c) => [
             'value' => $c->value,
-            'label' => $c->label(),
+            'label' => $c->labelVi(),
+            'label_en' => $c->label(),
             'color' => $c->color(),
         ], self::cases());
     }

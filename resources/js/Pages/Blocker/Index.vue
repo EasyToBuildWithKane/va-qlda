@@ -3,6 +3,7 @@ import { reactive, ref, watch } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AppIcon from '@/Components/AppIcon.vue';
+import PageHeader from '@/Components/Ui/PageHeader.vue';
 import Badge from '@/Components/Project/Badge.vue';
 import BlockerFormModal from '@/Components/Project/BlockerFormModal.vue';
 import { date } from '@/composables/useFormat';
@@ -49,7 +50,13 @@ const remove = async (b) => {
     <Head title="Vướng mắc" />
     <AppLayout>
         <template #header>
-            <h1 class="font-display font-semibold text-slate-800">Vướng mắc cần xử lý</h1>
+            <PageHeader
+                title="Vướng mắc cần xử lý"
+                subtitle="Theo dõi và giải quyết các vướng mắc trong dự án"
+                icon="blockers"
+                icon-color="amber"
+                :badge="summary.open ?? null"
+            />
         </template>
 
         <div class="mb-5 grid grid-cols-3 gap-4">

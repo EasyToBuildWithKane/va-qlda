@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Blocker\BlockerAttachmentController;
 use App\Http\Controllers\Blocker\BlockerController;
 use App\Http\Controllers\Bug\BugController;
 use App\Http\Controllers\Comment\CommentController;
@@ -9,10 +10,14 @@ use App\Http\Controllers\Department\DepartmentController;
 use App\Http\Controllers\DailyReport\DailyReportReviewController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Feedback\FeedbackController;
+use App\Http\Controllers\Project\EpicController;
+use App\Http\Controllers\Project\ProjectAttachmentController;
 use App\Http\Controllers\Project\ProjectController;
 use App\Http\Controllers\Project\ProjectMemberController;
 use App\Http\Controllers\Project\SprintController;
+use App\Http\Controllers\Project\TaskAttachmentController;
 use App\Http\Controllers\Project\TaskController;
+use App\Http\Controllers\Project\TaskWatcherController;
 use App\Http\Controllers\Project\WorklogController;
 use Illuminate\Support\Facades\Route;
 
@@ -66,13 +71,26 @@ Route::middleware('auth')->group(function () {
 
         // Tasks
         Route::post('/{project}/tasks', [TaskController::class, 'store'])->name('tasks.store');
+        Route::post('/{project}/tasks/bulk', [TaskController::class, 'bulkStore'])->name('tasks.bulk');
+        Route::post('/{project}/tasks/{task}/subtasks', [TaskController::class, 'storeSubtask'])->name('tasks.subtasks.store');
         Route::put('/{project}/tasks/{task}', [TaskController::class, 'update'])->name('tasks.update');
         Route::patch('/{project}/tasks/{task}', [TaskController::class, 'updateStatus'])->name('tasks.status');
         Route::delete('/{project}/tasks/{task}', [TaskController::class, 'destroy'])->name('tasks.destroy');
+        Route::post('/{project}/tasks/{task}/watchers/toggle', [TaskWatcherController::class, 'toggle'])->name('tasks.watchers.toggle');
+        Route::post('/{project}/tasks/{task}/attachments', [TaskAttachmentController::class, 'store'])->name('tasks.attachments.store');
+        Route::delete('/{project}/tasks/{task}/attachments/{attachment}', [TaskAttachmentController::class, 'destroy'])->name('tasks.attachments.destroy');
+
+        // Epics
+        Route::post('/{project}/epics', [EpicController::class, 'store'])->name('epics.store');
 
         // Worklogs (time + cost)
         Route::post('/{project}/tasks/{task}/worklogs', [WorklogController::class, 'store'])->name('worklogs.store');
         Route::delete('/{project}/tasks/{task}/worklogs/{worklog}', [WorklogController::class, 'destroy'])->name('worklogs.destroy');
+
+        // Project documents / attachments
+        Route::post('/{project}/attachments', [ProjectAttachmentController::class, 'store'])->name('attachments.store');
+        Route::put('/{project}/attachments/{attachment}', [ProjectAttachmentController::class, 'update'])->name('attachments.update');
+        Route::delete('/{project}/attachments/{attachment}', [ProjectAttachmentController::class, 'destroy'])->name('attachments.destroy');
 
         // Members + rates
         Route::post('/{project}/members', [ProjectMemberController::class, 'store'])->name('members.store');
@@ -84,8 +102,12 @@ Route::middleware('auth')->group(function () {
     Route::prefix('blockers')->name('blockers.')->group(function () {
         Route::get('/', [BlockerController::class, 'index'])->name('index');
         Route::post('/', [BlockerController::class, 'store'])->name('store');
+        Route::post('/import', [BlockerController::class, 'import'])->name('import');
+        Route::post('/bulk', [BlockerController::class, 'bulk'])->name('bulk');
         Route::put('/{blocker}', [BlockerController::class, 'update'])->name('update');
         Route::delete('/{blocker}', [BlockerController::class, 'destroy'])->name('destroy');
+        Route::post('/{blocker}/attachments', [BlockerAttachmentController::class, 'store'])->name('attachments.store');
+        Route::delete('/{blocker}/attachments/{attachment}', [BlockerAttachmentController::class, 'destroy'])->name('attachments.destroy');
     });
 
     // Bug tracker
@@ -117,4 +139,7 @@ Route::middleware('auth')->group(function () {
 
     // Polymorphic comments (bug/feedback/blocker/task threads)
     Route::post('/comments', [CommentController::class, 'store'])->name('comments.store');
+    Route::put('/comments/{comment}', [CommentController::class, 'update'])->name('comments.update');
+    Route::delete('/comments/{comment}', [CommentController::class, 'destroy'])->name('comments.destroy');
+    Route::post('/comments/{comment}/react', [CommentController::class, 'react'])->name('comments.react');
 });

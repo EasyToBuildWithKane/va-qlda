@@ -3,6 +3,7 @@ import { reactive, ref, watch } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AppIcon from '@/Components/AppIcon.vue';
+import PageHeader from '@/Components/Ui/PageHeader.vue';
 import Badge from '@/Components/Project/Badge.vue';
 import Avatar from '@/Components/Project/Avatar.vue';
 import BugFormModal from '@/Components/Project/BugFormModal.vue';
@@ -44,7 +45,13 @@ watch(filterForm, () => {
     <Head title="Quản lý lỗi" />
     <AppLayout>
         <template #header>
-            <h1 class="font-display font-semibold text-slate-800">Quản lý lỗi (Bug)</h1>
+            <PageHeader
+                title="Quản lý lỗi (Bug)"
+                subtitle="Theo dõi và xử lý các vấn đề kỹ thuật"
+                icon="bug"
+                icon-color="rose"
+                :badge="summary.open ?? null"
+            />
         </template>
 
         <div class="mb-5 grid grid-cols-3 gap-4">

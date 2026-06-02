@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue';
+import { useConfirmDelete } from '@/composables/useConfirmClose';
 
 const props = defineProps({
     // [{ id, name, tasks: [{ id, title }] }]
@@ -9,6 +10,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['update:modelValue']);
+const confirmDelete = useConfirmDelete();
 
 // Soft tag colours (literal strings so Tailwind keeps them).
 const soft = {
@@ -42,7 +44,17 @@ const addProject = () => {
     if (opt) update([...props.modelValue, { id: opt.id, name: opt.name, tasks: [] }]);
     picker.value = '';
 };
-const removeProject = (id) => update(props.modelValue.filter((p) => p.id !== id));
+const removeProject = (id) => {
+    const proj = props.modelValue.find((p) => p.id === id);
+    const taskCount = proj?.tasks?.length ?? 0;
+    confirmDelete(
+        taskCount
+            ? `Bỏ dự án "${proj?.name}" và ${taskCount} công việc đã chọn?`
+            : `Bỏ dự án "${proj?.name}" khỏi báo cáo?`,
+        () => update(props.modelValue.filter((p) => p.id !== id)),
+        { title: 'Bỏ dự án', confirmText: 'Bỏ' },
+    );
+};
 
 // ---- Tasks per project ----------------------------------------------------
 const taskPicker = ref({}); // { [projectId]: '' } — resets each select
@@ -66,11 +78,18 @@ const addTask = (proj, event) => {
     ));
 };
 
-const removeTask = (proj, taskId) => update(
-    props.modelValue.map((p) =>
-        p.id === proj.id ? { ...p, tasks: (p.tasks || []).filter((t) => t.id !== taskId) } : p,
-    ),
-);
+const removeTask = (proj, taskId) => {
+    const task = (proj.tasks || []).find((t) => t.id === taskId);
+    confirmDelete(
+        `Bỏ công việc "${task?.title ?? ''}" khỏi báo cáo?`,
+        () => update(
+            props.modelValue.map((p) =>
+                p.id === proj.id ? { ...p, tasks: (p.tasks || []).filter((t) => t.id !== taskId) } : p,
+            ),
+        ),
+        { title: 'Bỏ công việc', confirmText: 'Bỏ' },
+    );
+};
 
 const statusOf = (proj, taskId) =>
     optionOf(proj.id)?.tasks?.find((t) => t.id === taskId)?.status ?? null;

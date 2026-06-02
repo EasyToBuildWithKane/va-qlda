@@ -50,6 +50,7 @@ class ProjectResource extends JsonResource
             'sprints' => SprintResource::collection($this->whenLoaded('sprints')),
             'tasks' => TaskResource::collection($this->whenLoaded('tasks')),
             'blockers' => BlockerResource::collection($this->whenLoaded('blockers')),
+            'attachments' => ProjectAttachmentResource::collection($this->whenLoaded('attachments')),
             'can' => $user ? [
                 'update' => $user->can('update', $this->resource),
                 'delete' => $user->can('delete', $this->resource),

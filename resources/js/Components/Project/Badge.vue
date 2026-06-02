@@ -6,14 +6,14 @@ defineProps({
 
 // Full literal class strings so Tailwind's content scanner keeps them.
 const styles = {
-    slate: 'bg-slate-100 text-slate-600',
-    sky: 'bg-sky-100 text-sky-700',
-    amber: 'bg-amber-100 text-amber-700',
-    emerald: 'bg-emerald-100 text-emerald-700',
-    rose: 'bg-rose-100 text-rose-700',
-    violet: 'bg-violet-100 text-violet-700',
-    cyan: 'bg-cyan-100 text-cyan-700',
-    brand: 'bg-brand-100 text-brand-700',
+    slate: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
+    sky: 'bg-sky-100 text-sky-700 dark:bg-sky-950/50 dark:text-sky-300',
+    amber: 'bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300',
+    emerald: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300',
+    rose: 'bg-rose-100 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300',
+    violet: 'bg-violet-100 text-violet-700 dark:bg-violet-950/50 dark:text-violet-300',
+    cyan: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-950/50 dark:text-cyan-300',
+    brand: 'bg-brand-100 text-brand-700 dark:bg-brand/20 dark:text-brand-100',
 };
 </script>
 

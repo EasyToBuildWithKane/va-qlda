@@ -8,6 +8,7 @@ use App\Http\Requests\Project\StoreWorklogRequest;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\Worklog;
+use App\Support\TaskActivityLogger;
 use Illuminate\Http\RedirectResponse;
 
 class WorklogController extends Controller
@@ -16,7 +17,16 @@ class WorklogController extends Controller
     {
         abort_unless($task->project_id === $project->id, 404);
 
-        $useCase->execute($task, $request->validated());
+        $data = $request->validated();
+        $useCase->execute($task, $data);
+
+        TaskActivityLogger::log(
+            $task,
+            'worklog',
+            'Ghi nhận '.$data['hours'].'h làm việc',
+            ['date' => $data['date'] ?? null, 'hours' => $data['hours']],
+            $request->user()->employee_id,
+        );
 
         return back()->with('success', 'Đã ghi nhận giờ làm.');
     }
