@@ -1,5 +1,5 @@
 import XLSX from 'xlsx-js-style';
-import { COLUMNS, cellValue } from '@/Components/Project/projectColumns';
+import { COLUMNS, cellValue } from '@/modules/project/config/columns';
 import { currency, date, datetime } from '@/composables/useFormat';
 
 const BRAND = '9A0036';

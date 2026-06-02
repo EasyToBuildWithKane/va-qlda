@@ -1,5 +1,5 @@
 import { computed, ref } from 'vue';
-import { FILTER_FIELD_DEFS } from '@/Components/Project/Sprint/sprintTableColumns';
+import { FILTER_FIELD_DEFS } from '@/modules/project/components/Sprint/sprintTableColumns';
 import { normalizeList } from '@/composables/useNormalizeList';
 
 const stripDiacritics = (x) =>
@@ -17,7 +17,7 @@ function fieldType(key) {
     return FILTER_FIELD_DEFS.find((f) => f.key === key)?.type || 'text';
 }
 
-function getFieldValue(task, field, sprintsById) {
+function getFieldValue(task, field, _sprintsById) {
     switch (field) {
         case 'status': return task.status?.value ?? '';
         case 'priority': return task.priority?.value ?? '';

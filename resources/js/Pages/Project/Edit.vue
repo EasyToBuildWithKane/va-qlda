@@ -1,10 +1,10 @@
 <script setup>
 import { Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
-import ProjectForm from '@/Components/Project/ProjectForm.vue';
+import ProjectForm from '@/modules/project/components/ProjectForm.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 
-const props = defineProps({
+defineProps({
     project: { type: Object, required: true },
     employees: { type: Array, default: () => [] },
     statusOptions: { type: Array, default: () => [] },
@@ -16,18 +16,26 @@ const props = defineProps({
 </script>
 
 <template>
-    <Head :title="'Sửa ' + project.name" />
-    <AppLayout>
-        <template #header>
-            <PageHeader
-                title="Chỉnh sửa dự án"
-                :subtitle="project.name"
-                icon="edit"
-                icon-color="amber"
-                :back-href="`/projects/${project.id}`"
-            />
-        </template>
+  <Head :title="'Sửa ' + project.name" />
+  <AppLayout>
+    <template #header>
+      <PageHeader
+        title="Chỉnh sửa dự án"
+        :subtitle="project.name"
+        icon="edit"
+        icon-color="amber"
+        :back-href="`/projects/${project.id}`"
+      />
+    </template>
 
-        <ProjectForm :project="project" :employees="employees" :status-options="statusOptions" :type-options="typeOptions" :scope-options="scopeOptions" :region-options="regionOptions" :department-options="departmentOptions" />
-    </AppLayout>
+    <ProjectForm
+      :project="project"
+      :employees="employees"
+      :status-options="statusOptions"
+      :type-options="typeOptions"
+      :scope-options="scopeOptions"
+      :region-options="regionOptions"
+      :department-options="departmentOptions"
+    />
+  </AppLayout>
 </template>

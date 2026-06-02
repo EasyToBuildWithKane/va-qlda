@@ -8,7 +8,7 @@ import RichTextField from '@/Components/DailyReport/RichTextField.vue';
 import ProjectSelect from '@/Components/DailyReport/ProjectSelect.vue';
 import TemplateGallery from '@/Components/DailyReport/TemplateGallery.vue';
 import InfoTooltip from '@/Components/DailyReport/InfoTooltip.vue';
-import { pillars, fields, builtinTemplates } from '@/Components/DailyReport/reportConfig';
+import { pillars, fields, builtinTemplates } from '@/modules/daily-report/config/reportConfig';
 import { useDialog } from '@/composables/useDialog';
 
 const dialog = useDialog();
@@ -214,166 +214,250 @@ const savedTimeLabel = computed(() =>
 </script>
 
 <template>
-    <Head title="Báo cáo hôm nay" />
+  <Head title="Báo cáo hôm nay" />
 
-    <AppLayout>
-        <template #header>
-            <PageHeader
-                title="Báo cáo hôm nay"
-                :subtitle="formattedToday"
-                icon="report-today"
-                icon-color="brand"
+  <AppLayout>
+    <template #header>
+      <PageHeader
+        title="Báo cáo hôm nay"
+        :subtitle="formattedToday"
+        icon="report-today"
+        icon-color="brand"
+      />
+    </template>
+
+    <!-- Already submitted today -->
+    <div
+      v-if="isEditing && !editable"
+      class="card mx-auto max-w-xl p-8 text-center"
+    >
+      <h2 class="font-display text-lg font-semibold text-slate-800">
+        Bạn đã nộp báo cáo hôm nay
+      </h2>
+      <p class="mt-1 text-sm text-slate-500">
+        Cảm ơn bạn! Báo cáo đang chờ quản lý xem xét và đánh giá.
+      </p>
+      <Link
+        :href="`/daily-reports/${report.id}`"
+        class="btn-primary mt-5"
+      >
+        Xem báo cáo
+      </Link>
+    </div>
+
+    <div
+      v-else
+      class="w-full space-y-5"
+    >
+      <!-- Action bar (progress + save/submit) -->
+      <div class="card sticky top-0 z-10 flex flex-wrap items-center justify-between gap-3 p-4">
+        <div class="min-w-[14rem] flex-1">
+          <div class="mb-1 flex items-center justify-between text-xs">
+            <span class="font-medium text-slate-600">Tiến độ hoàn thành</span>
+            <span class="font-semibold text-brand">{{ progressPct }}%</span>
+          </div>
+          <div class="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+            <div
+              class="h-full rounded-full bg-brand transition-all duration-300"
+              :style="{ width: progressPct + '%' }"
             />
-        </template>
+          </div>
+          <p
+            class="mt-1 text-xs"
+            :class="readyToSubmit ? 'text-emerald-600' : 'text-amber-600'"
+          >
+            <span v-if="readyToSubmit">Đã đủ điều kiện nộp duyệt.</span>
+            <span v-else>Còn thiếu: {{ missingLabel }}</span>
+          </p>
+        </div>
+        <div class="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            class="btn-ghost gap-1.5"
+            @click="openGallery('builtin')"
+          >
+            <AppIcon
+              name="template"
+              :size="16"
+            /> Thư viện mẫu
+          </button>
+          <button
+            type="button"
+            class="btn-ghost"
+            :disabled="form.processing"
+            @click="save"
+          >
+            {{ form.processing ? 'Đang lưu…' : 'Lưu nháp' }}
+          </button>
+          <button
+            v-if="isEditing"
+            type="button"
+            class="btn-primary"
+            :disabled="form.processing || !readyToSubmit"
+            :title="readyToSubmit ? '' : 'Hãy điền đủ các mục bắt buộc trước khi nộp'"
+            @click="submit"
+          >
+            Nộp duyệt
+          </button>
+        </div>
+      </div>
 
-        <!-- Already submitted today -->
-        <div v-if="isEditing && !editable" class="card mx-auto max-w-xl p-8 text-center">
-            <h2 class="font-display text-lg font-semibold text-slate-800">Bạn đã nộp báo cáo hôm nay</h2>
-            <p class="mt-1 text-sm text-slate-500">Cảm ơn bạn! Báo cáo đang chờ quản lý xem xét và đánh giá.</p>
-            <Link :href="`/daily-reports/${report.id}`" class="btn-primary mt-5">Xem báo cáo</Link>
+      <!-- Rejected feedback -->
+      <div
+        v-if="report?.review_notes"
+        class="card border-l-4 border-warning p-4"
+      >
+        <p class="text-sm font-semibold text-slate-700">
+          Báo cáo được trả lại
+        </p>
+        <p class="mt-1 text-sm text-slate-600">
+          {{ report.review_notes }}
+        </p>
+      </div>
+
+      <!-- All sections as tabs -->
+      <div class="card overflow-hidden">
+        <!-- Tab bar -->
+        <div class="flex flex-wrap border-b border-slate-200">
+          <button
+            v-for="(t, i) in tabs"
+            :key="t.key"
+            type="button"
+            class="flex-1 border-b-2 px-3 py-3 text-sm font-medium transition"
+            :class="activeTab === i
+              ? 'border-brand text-brand'
+              : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'"
+            @click="activeTab = i"
+          >
+            <span class="flex items-center justify-center gap-2">
+              {{ t.title }}
+              <span
+                class="rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
+                :class="t.filled === t.total
+                  ? 'bg-emerald-100 text-emerald-700'
+                  : 'bg-slate-100 text-slate-500'"
+              >{{ t.filled }}/{{ t.total }}</span>
+            </span>
+          </button>
         </div>
 
-        <div v-else class="w-full space-y-5">
-            <!-- Action bar (progress + save/submit) -->
-            <div class="card sticky top-0 z-10 flex flex-wrap items-center justify-between gap-3 p-4">
-                <div class="min-w-[14rem] flex-1">
-                    <div class="mb-1 flex items-center justify-between text-xs">
-                        <span class="font-medium text-slate-600">Tiến độ hoàn thành</span>
-                        <span class="font-semibold text-brand">{{ progressPct }}%</span>
-                    </div>
-                    <div class="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-                        <div class="h-full rounded-full bg-brand transition-all duration-300" :style="{ width: progressPct + '%' }"></div>
-                    </div>
-                    <p class="mt-1 text-xs" :class="readyToSubmit ? 'text-emerald-600' : 'text-amber-600'">
-                        <span v-if="readyToSubmit">Đã đủ điều kiện nộp duyệt.</span>
-                        <span v-else>Còn thiếu: {{ missingLabel }}</span>
-                    </p>
-                </div>
-                <div class="flex shrink-0 items-center gap-2">
-                    <button type="button" class="btn-ghost gap-1.5" @click="openGallery('builtin')">
-                        <AppIcon name="template" :size="16" /> Thư viện mẫu
-                    </button>
-                    <button type="button" class="btn-ghost" :disabled="form.processing" @click="save">
-                        {{ form.processing ? 'Đang lưu…' : 'Lưu nháp' }}
-                    </button>
-                    <button
-                        v-if="isEditing"
-                        type="button"
-                        class="btn-primary"
-                        :disabled="form.processing || !readyToSubmit"
-                        :title="readyToSubmit ? '' : 'Hãy điền đủ các mục bắt buộc trước khi nộp'"
-                        @click="submit"
-                    >
-                        Nộp duyệt
-                    </button>
-                </div>
+        <!-- Active tab -->
+        <div class="p-6">
+          <div class="mb-5 flex items-start justify-between gap-3 rounded-card bg-slate-50 p-3">
+            <div class="flex items-start gap-2">
+              <span class="font-mono text-xs text-slate-400">{{ activeTabMeta.jp }} · {{ activeTabMeta.romaji }}</span>
+              <p class="text-xs text-slate-500">
+                {{ activeTabMeta.desc }}
+              </p>
+            </div>
+            <span
+              class="inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+              :class="statusVi.cls"
+            >
+              {{ statusVi.label }}
+            </span>
+          </div>
+
+          <!-- Tab: general info -->
+          <div
+            v-if="activeTabMeta.key === 'info'"
+            class="grid gap-5 lg:grid-cols-2"
+          >
+            <div>
+              <label class="label flex items-center gap-1.5">
+                Tiêu đề báo cáo <span class="text-danger">*</span>
+                <InfoTooltip text="Một dòng tóm tắt nội dung chính trong ngày. VD: “Hoàn thiện màn hình đăng nhập & sửa lỗi API”." />
+              </label>
+              <input
+                v-model="form.title"
+                type="text"
+                class="input"
+                placeholder="VD: Tổng kết công việc ngày — Module báo cáo"
+              >
+              <p
+                v-if="form.errors.title"
+                class="mt-1 text-sm text-danger"
+              >
+                {{ form.errors.title }}
+              </p>
             </div>
 
-            <!-- Rejected feedback -->
-            <div v-if="report?.review_notes" class="card border-l-4 border-warning p-4">
-                <p class="text-sm font-semibold text-slate-700">Báo cáo được trả lại</p>
-                <p class="mt-1 text-sm text-slate-600">{{ report.review_notes }}</p>
+            <div>
+              <label class="label flex items-center gap-1.5">
+                Dự án &amp; công việc trong ngày
+                <InfoTooltip text="Chọn (các) dự án bạn đã làm việc hôm nay. Sau khi chọn dự án, bạn có thể thêm các task của dự án đó kèm theo." />
+              </label>
+              <ProjectSelect
+                v-model="form.projects"
+                :options="projectOptions"
+              />
             </div>
+          </div>
 
-            <!-- All sections as tabs -->
-            <div class="card overflow-hidden">
-                <!-- Tab bar -->
-                <div class="flex flex-wrap border-b border-slate-200">
-                    <button
-                        v-for="(t, i) in tabs"
-                        :key="t.key"
-                        type="button"
-                        class="flex-1 border-b-2 px-3 py-3 text-sm font-medium transition"
-                        :class="activeTab === i
-                            ? 'border-brand text-brand'
-                            : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'"
-                        @click="activeTab = i"
-                    >
-                        <span class="flex items-center justify-center gap-2">
-                            {{ t.title }}
-                            <span
-                                class="rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
-                                :class="t.filled === t.total
-                                    ? 'bg-emerald-100 text-emerald-700'
-                                    : 'bg-slate-100 text-slate-500'"
-                            >{{ t.filled }}/{{ t.total }}</span>
-                        </span>
-                    </button>
-                </div>
+          <!-- Tab: a Horenso pillar -->
+          <div
+            v-else
+            class="grid gap-5"
+            :class="pillarFields(activeTabMeta.key).length > 2 ? 'xl:grid-cols-2' : ''"
+          >
+            <RichTextField
+              v-for="f in pillarFields(activeTabMeta.key)"
+              :key="f.key"
+              v-model="form[f.key]"
+              :label="f.label"
+              :hint="f.hint"
+              :tooltip="f.tooltip"
+              :required="f.required"
+              :placeholder="f.placeholder"
+              :error="form.errors[f.key]"
+            />
+          </div>
 
-                <!-- Active tab -->
-                <div class="p-6">
-                    <div class="mb-5 flex items-start justify-between gap-3 rounded-card bg-slate-50 p-3">
-                        <div class="flex items-start gap-2">
-                            <span class="font-mono text-xs text-slate-400">{{ activeTabMeta.jp }} · {{ activeTabMeta.romaji }}</span>
-                            <p class="text-xs text-slate-500">{{ activeTabMeta.desc }}</p>
-                        </div>
-                        <span class="inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-medium" :class="statusVi.cls">
-                            {{ statusVi.label }}
-                        </span>
-                    </div>
-
-                    <!-- Tab: general info -->
-                    <div v-if="activeTabMeta.key === 'info'" class="grid gap-5 lg:grid-cols-2">
-                        <div>
-                            <label class="label flex items-center gap-1.5">
-                                Tiêu đề báo cáo <span class="text-danger">*</span>
-                                <InfoTooltip text="Một dòng tóm tắt nội dung chính trong ngày. VD: “Hoàn thiện màn hình đăng nhập & sửa lỗi API”." />
-                            </label>
-                            <input v-model="form.title" type="text" class="input" placeholder="VD: Tổng kết công việc ngày — Module báo cáo" />
-                            <p v-if="form.errors.title" class="mt-1 text-sm text-danger">{{ form.errors.title }}</p>
-                        </div>
-
-                        <div>
-                            <label class="label flex items-center gap-1.5">
-                                Dự án &amp; công việc trong ngày
-                                <InfoTooltip text="Chọn (các) dự án bạn đã làm việc hôm nay. Sau khi chọn dự án, bạn có thể thêm các task của dự án đó kèm theo." />
-                            </label>
-                            <ProjectSelect v-model="form.projects" :options="projectOptions" />
-                        </div>
-                    </div>
-
-                    <!-- Tab: a Horenso pillar -->
-                    <div v-else class="grid gap-5" :class="pillarFields(activeTabMeta.key).length > 2 ? 'xl:grid-cols-2' : ''">
-                        <RichTextField
-                            v-for="f in pillarFields(activeTabMeta.key)"
-                            :key="f.key"
-                            v-model="form[f.key]"
-                            :label="f.label"
-                            :hint="f.hint"
-                            :tooltip="f.tooltip"
-                            :required="f.required"
-                            :placeholder="f.placeholder"
-                            :error="form.errors[f.key]"
-                        />
-                    </div>
-
-                    <!-- Tab nav -->
-                    <div class="mt-6 flex items-center justify-between border-t border-slate-100 pt-4">
-                        <button type="button" class="btn-ghost" :disabled="activeTab === 0" @click="activeTab--">← Trước</button>
-                        <span class="text-xs text-slate-400">Bước {{ activeTab + 1 }}/{{ tabs.length }}</span>
-                        <button type="button" class="btn-ghost" :disabled="activeTab === tabs.length - 1" @click="activeTab++">Tiếp →</button>
-                    </div>
-                </div>
-            </div>
-
-            <p v-if="form.errors.submit" class="text-sm text-danger">{{ form.errors.submit }}</p>
-            <p class="text-center text-xs text-slate-400">
-                <span v-if="isEditing">
-                    Bản nháp tự động lưu mỗi 30 giây.
-                    <span v-if="savedTimeLabel"> · Đã lưu lúc {{ savedTimeLabel }}</span>
-                </span>
-                <span v-else>Lưu nháp để bật tự động lưu và cho phép nộp duyệt.</span>
-            </p>
+          <!-- Tab nav -->
+          <div class="mt-6 flex items-center justify-between border-t border-slate-100 pt-4">
+            <button
+              type="button"
+              class="btn-ghost"
+              :disabled="activeTab === 0"
+              @click="activeTab--"
+            >
+              ← Trước
+            </button>
+            <span class="text-xs text-slate-400">Bước {{ activeTab + 1 }}/{{ tabs.length }}</span>
+            <button
+              type="button"
+              class="btn-ghost"
+              :disabled="activeTab === tabs.length - 1"
+              @click="activeTab++"
+            >
+              Tiếp →
+            </button>
+          </div>
         </div>
+      </div>
 
-        <TemplateGallery
-            v-model:open="galleryOpen"
-            :builtins="builtinTemplates"
-            :content="contentForSave"
-            :storage-key="storageKey"
-            :initial-tab="galleryTab"
-            @apply="applyTemplate"
-        />
-    </AppLayout>
+      <p
+        v-if="form.errors.submit"
+        class="text-sm text-danger"
+      >
+        {{ form.errors.submit }}
+      </p>
+      <p class="text-center text-xs text-slate-400">
+        <span v-if="isEditing">
+          Bản nháp tự động lưu mỗi 30 giây.
+          <span v-if="savedTimeLabel"> · Đã lưu lúc {{ savedTimeLabel }}</span>
+        </span>
+        <span v-else>Lưu nháp để bật tự động lưu và cho phép nộp duyệt.</span>
+      </p>
+    </div>
+
+    <TemplateGallery
+      v-model:open="galleryOpen"
+      :builtins="builtinTemplates"
+      :content="contentForSave"
+      :storage-key="storageKey"
+      :initial-tab="galleryTab"
+      @apply="applyTemplate"
+    />
+  </AppLayout>
 </template>

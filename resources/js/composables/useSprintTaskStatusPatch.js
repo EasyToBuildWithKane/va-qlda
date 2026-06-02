@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/vue3';
-import { useToast } from '@/composables/useToast';
+import { useToast } from '@/shared/composables/useToast';
 
 const STATUS_EFFECT_HINT = {
     todo: 'Task về backlog — SLA giờ tạm dừng.',
