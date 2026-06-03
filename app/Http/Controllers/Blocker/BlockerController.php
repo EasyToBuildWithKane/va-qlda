@@ -53,7 +53,7 @@ class BlockerController extends Controller
         $status = $request->query('status');
         if ($status === 'all') {
             // no status scope
-        } elseif ($status === 'open') {
+        } elseif ($status === 'active') {
             $query->open();
         } elseif ($status) {
             $query->where('status', $status);

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, reactive, onMounted, onUnmounted } from 'vue';
+import { ref, computed, reactive, watch, onMounted, onUnmounted } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AppIcon from '@/Components/AppIcon.vue';
@@ -8,19 +8,29 @@ import Avatar from '@/shared/ui/Avatar.vue';
 import DepartmentFormModal from '@/modules/project/components/DepartmentFormModal.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
+import ColumnVisibilityDropdown from '@/shared/ui/ColumnVisibilityDropdown.vue';
+import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
+import { useVisibleColumns } from '@/shared/composables/useVisibleColumns';
 import { useDialog } from '@/composables/useDialog';
+import { date, datetime } from '@/composables/useFormat';
+
+const PER_PAGE_OPTIONS = [5, 10, 15, 20];
 
 const props = defineProps({
     departments: { type: Object, required: true },
-    employees:   { type: Array,  default: () => [] },
-    can:         { type: Object, default: () => ({}) },
+    filters: { type: Object, default: () => ({}) },
+    summary: { type: Object, default: () => ({ total: 0, active: 0, inactive: 0 }) },
+    colorOptions: { type: Array, default: () => [] },
+    existingDepartments: { type: Array, default: () => [] },
+    employees: { type: Array, default: () => [] },
+    can: { type: Object, default: () => ({}) },
 });
 
-const dialog  = useDialog();
-const modal   = ref(false);
+const dialog = useDialog();
+const modal = ref(false);
 const editing = ref(null);
-const open    = (d = null) => { editing.value = d; modal.value = true; };
+const open = (d = null) => { editing.value = d; modal.value = true; };
 
 const swatch = {
     brand: 'bg-brand', sky: 'bg-sky-500', emerald: 'bg-emerald-500',
@@ -28,53 +38,82 @@ const swatch = {
     cyan: 'bg-cyan-500', slate: 'bg-slate-400',
 };
 
-// ── Cột hiển thị ────────────────────────────────────────────────────────────
-const COLS = [
-    { key: 'manager',  label: 'Trưởng phòng' },
-    { key: 'projects', label: 'Số dự án'     },
-    { key: 'status',   label: 'Trạng thái'   },
-];
-const colVisible = reactive({ manager: true, projects: true, status: true });
-const visibleColCount = computed(() => COLS.filter(c => colVisible[c.key]).length);
-// 2 fixed cols (phòng ban + thao tác) + visible toggleable
-const totalCols = computed(() => 2 + visibleColCount.value);
+const COLOR_LABELS = Object.fromEntries(
+    props.colorOptions.map((o) => [o.value, o.label]),
+);
 
-// ── Tìm kiếm & Bộ lọc ───────────────────────────────────────────────────────
-const searchQuery  = ref('');
-const statusFilter = ref('all'); // 'all' | 'active' | 'inactive'
-
-const STATUS_OPTS = [
-    { key: 'all',      label: 'Tất cả'    },
-    { key: 'active',   label: 'Hoạt động' },
-    { key: 'inactive', label: 'Ngừng'     },
+const TABLE_COLUMNS = [
+    { key: 'code', label: 'Mã', default: false },
+    { key: 'color', label: 'Màu', default: false },
+    { key: 'manager', label: 'Trưởng phòng', default: true },
+    { key: 'projects', label: 'Số dự án', default: true },
+    { key: 'sort_order', label: 'Thứ tự', default: false },
+    { key: 'status', label: 'Trạng thái', default: true },
+    { key: 'created_at', label: 'Ngày tạo', default: false },
+    { key: 'updated_at', label: 'Cập nhật', default: false },
 ];
 
-const activeCount   = computed(() => props.departments.data.filter(d =>  d.is_active).length);
-const inactiveCount = computed(() => props.departments.data.filter(d => !d.is_active).length);
+const {
+    visibleCols,
+    showColDd,
+    visibleColumnCount,
+    persistVisibleColumns,
+    openColPanel,
+    isColVisible,
+} = useVisibleColumns(TABLE_COLUMNS, 'va-qlda.departments.columns');
 
-const statusCount = (key) => ({
-    all:      props.departments.data.length,
-    active:   activeCount.value,
-    inactive: inactiveCount.value,
-}[key] ?? 0);
+const totalCols = computed(() => 2 + visibleColumnCount.value);
 
-const filtered = computed(() => {
-    let list = props.departments.data;
-    const q = searchQuery.value.trim().toLowerCase();
-    if (q) {
-        list = list.filter(d =>
-            d.name.toLowerCase().includes(q) ||
-            (d.code ?? '').toLowerCase().includes(q) ||
-            (d.manager?.name ?? '').toLowerCase().includes(q),
-        );
-    }
-    if (statusFilter.value === 'active')   list = list.filter(d =>  d.is_active);
-    if (statusFilter.value === 'inactive') list = list.filter(d => !d.is_active);
-    return list;
+const filterForm = reactive({
+    q: props.filters.q ?? '',
+    status: props.filters.status ?? '',
+    manager_id: props.filters.manager_id ?? '',
+    color: props.filters.color ?? '',
+    has_projects: props.filters.has_projects ?? '',
 });
 
-const activeFilterCount = computed(() => (statusFilter.value !== 'all' ? 1 : 0));
-const hasAnyFilter      = computed(() => activeFilterCount.value > 0 || searchQuery.value.trim() !== '');
+const perPage = ref(Number(props.filters.per_page) || props.departments.meta?.per_page || 10);
+
+function routeParams(resetPage = false) {
+    const params = Object.fromEntries(
+        Object.entries({ ...filterForm, per_page: perPage.value }).filter(([, v]) => v !== '' && v != null),
+    );
+    if (resetPage) params.page = 1;
+    return params;
+}
+
+const applyFilters = (resetPage = true) => {
+    router.get('/departments', routeParams(resetPage), {
+        preserveState: true,
+        replace: true,
+        preserveScroll: true,
+    });
+};
+
+function onPerPageChange(n) {
+    perPage.value = n;
+    applyFilters(true);
+}
+
+let kwTimer = null;
+watch(() => filterForm.q, () => {
+    clearTimeout(kwTimer);
+    kwTimer = setTimeout(() => applyFilters(true), 350);
+});
+
+watch(
+    () => [filterForm.status, filterForm.manager_id, filterForm.color, filterForm.has_projects],
+    () => applyFilters(true),
+);
+
+const activeFilterCount = computed(() =>
+    Object.entries(filterForm).filter(([k, v]) => k !== 'q' && v !== '' && v != null).length,
+);
+
+const hasAnyFilter = computed(() =>
+    activeFilterCount.value > 0 || filterForm.q.trim() !== '',
+);
+
 const clearAll = async () => {
     if (!hasAnyFilter.value) return;
     if (!await dialog.confirm({
@@ -82,11 +121,16 @@ const clearAll = async () => {
         message: 'Xoá tất cả bộ lọc đang áp dụng?',
         confirmText: 'Xoá lọc',
     })) return;
-    statusFilter.value = 'all';
-    searchQuery.value = '';
+    Object.keys(filterForm).forEach((k) => { filterForm[k] = ''; });
+    applyFilters(true);
 };
 
-const DEPT_FILTER_CONTROLS = [{ key: 'status', label: 'Trạng thái' }];
+const DEPT_FILTER_CONTROLS = [
+    { key: 'status', label: 'Trạng thái' },
+    { key: 'manager', label: 'Trưởng phòng' },
+    { key: 'color', label: 'Màu' },
+    { key: 'has_projects', label: 'Dự án gán', default: false },
+];
 
 const {
     visibleFilters,
@@ -98,22 +142,41 @@ const {
     FILTER_CONTROLS,
 } = useVisibleFilterControls(DEPT_FILTER_CONTROLS, 'va-qlda.departments.visible-filters');
 
-// ── Dropdown state ──────────────────────────────────────────────────────────
-const showColDd    = ref(false);
-const filterDdRef  = ref(null);
-const colDdRef     = ref(null);
+const filterDdRef = ref(null);
+const colDdRef = ref(null);
 
 const onDocClick = (e) => {
     if (filterDdRef.value && !filterDdRef.value.contains(e.target)) showFilterPanelDd.value = false;
-    if (colDdRef.value    && !colDdRef.value.contains(e.target))    showColDd.value    = false;
+    if (colDdRef.value && !colDdRef.value.contains(e.target)) showColDd.value = false;
 };
-onMounted(()   => document.addEventListener('mousedown', onDocClick));
+onMounted(() => document.addEventListener('mousedown', onDocClick));
 onUnmounted(() => document.removeEventListener('mousedown', onDocClick));
 
 const openFilter = () => { openFilterPanel(() => { showColDd.value = false; }); };
-const openCol    = () => { showColDd.value = !showColDd.value; showFilterPanelDd.value = false; };
+const openCol = () => { openColPanel(() => { showFilterPanelDd.value = false; }); };
 
-// ── Thao tác ─────────────────────────────────────────────────────────────────
+function clearFilterChip(key) {
+    if (key === 'manager') filterForm.manager_id = '';
+    else filterForm[key] = '';
+}
+
+const filterChipLabel = (key) => {
+    if (key === 'status') {
+        if (filterForm.status === 'active') return 'Hoạt động';
+        if (filterForm.status === 'inactive') return 'Ngừng';
+    }
+    if (key === 'manager') {
+        const e = props.employees.find((x) => String(x.id) === String(filterForm.manager_id));
+        return e ? `Trưởng phòng: ${e.name}` : null;
+    }
+    if (key === 'color') return COLOR_LABELS[filterForm.color] ?? filterForm.color;
+    if (key === 'has_projects') {
+        if (filterForm.has_projects === 'yes') return 'Có dự án';
+        if (filterForm.has_projects === 'no') return 'Chưa có dự án';
+    }
+    return null;
+};
+
 const remove = async (d) => {
     const msg = d.project_count
         ? `Xoá "${d.name}"? ${d.project_count} dự án sẽ bị bỏ gán phòng ban (không xoá dự án).`
@@ -126,12 +189,12 @@ const remove = async (d) => {
 const toggleStatus = async (d) => {
     const toActive = !d.is_active;
     const confirmed = await dialog.confirm({
-        title:       toActive ? 'Kích hoạt phòng ban' : 'Ngừng hoạt động',
-        message:     toActive
+        title: toActive ? 'Kích hoạt phòng ban' : 'Ngừng hoạt động',
+        message: toActive
             ? `Kích hoạt "${d.name}"? Phòng ban sẽ xuất hiện khi tạo dự án mới.`
             : `Ngừng hoạt động "${d.name}"? Phòng ban sẽ bị ẩn khi tạo dự án mới.`,
         confirmText: toActive ? 'Kích hoạt' : 'Ngừng',
-        tone:        toActive ? 'default'   : 'danger',
+        tone: toActive ? 'default' : 'danger',
     });
     if (!confirmed) return;
     router.patch(`/departments/${d.id}/toggle`, {}, { preserveScroll: true });
@@ -147,19 +210,18 @@ const toggleStatus = async (d) => {
         subtitle="Cơ cấu tổ chức và phân công nhân sự"
         icon="department"
         icon-color="sky"
-        :badge="departments.data?.length"
+        :badge="summary.total"
       />
     </template>
 
     <div class="card overflow-visible">
-      <!-- ══ 1. Tiêu đề & nút Thêm ══════════════════════════════════════ -->
       <div class="flex items-center justify-between border-b border-slate-100 px-5 py-4">
         <div class="flex items-center gap-2">
           <h2 class="font-semibold text-slate-700">
             Danh sách phòng ban
           </h2>
           <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-brand/10 px-1.5 text-[11px] font-bold text-brand">
-            {{ departments.data.length }}
+            {{ departments.meta?.total ?? summary.total }}
           </span>
         </div>
         <button
@@ -175,16 +237,14 @@ const toggleStatus = async (d) => {
         </button>
       </div>
 
-      <!-- ══ 2. Thanh tìm kiếm + Bộ lọc + Chọn cột ════════════════════ -->
       <div class="flex flex-col gap-2.5 border-b border-slate-100 bg-slate-50/40 px-5 py-3.5 sm:flex-row sm:items-center">
         <DatagridToolbarSearch
-          v-model="searchQuery"
+          v-model="filterForm.q"
           input-id="departments-search"
           placeholder="Tên, mã, trưởng phòng…"
         />
 
         <div class="flex shrink-0 items-center gap-2">
-          <!-- ── Bộ lọc dropdown ── -->
           <div
             ref="filterDdRef"
             class="relative"
@@ -212,7 +272,6 @@ const toggleStatus = async (d) => {
             />
           </div>
 
-          <!-- ── Cột hiển thị dropdown ── -->
           <div
             ref="colDdRef"
             class="relative"
@@ -232,99 +291,92 @@ const toggleStatus = async (d) => {
               />
               <span>Cột</span>
             </button>
-
-            <!-- Dropdown panel -->
-            <Transition
-              enter-active-class="transition duration-150 ease-out"
-              enter-from-class="opacity-0 scale-95 -translate-y-1"
-              leave-active-class="transition duration-100 ease-in"
-              leave-to-class="opacity-0 scale-95 -translate-y-1"
-            >
-              <div
-                v-if="showColDd"
-                class="absolute right-0 top-full z-30 mt-1.5 w-52 origin-top-right rounded-xl border border-slate-200 bg-white shadow-elevation-2"
-              >
-                <div class="border-b border-slate-100 px-4 py-2.5">
-                  <span class="text-xs font-bold uppercase tracking-wide text-slate-500">Cột hiển thị</span>
-                </div>
-                <!-- Fixed cols (always on) -->
-                <div class="px-4 py-2">
-                  <div
-                    v-for="fixedLabel in ['Phòng ban', 'Thao tác']"
-                    :key="fixedLabel"
-                    class="flex items-center justify-between rounded-lg px-2 py-1.5 opacity-50"
-                  >
-                    <span class="text-sm text-slate-600">{{ fixedLabel }}</span>
-                    <AppIcon
-                      name="check"
-                      :size="14"
-                      class="text-emerald-500"
-                    />
-                  </div>
-                </div>
-                <div class="border-t border-slate-100 px-4 py-2">
-                  <label
-                    v-for="col in COLS"
-                    :key="col.key"
-                    class="flex cursor-pointer items-center justify-between rounded-lg px-2 py-1.5 transition hover:bg-slate-50"
-                  >
-                    <span
-                      class="text-sm"
-                      :class="colVisible[col.key] ? 'text-slate-800 font-medium' : 'text-slate-500'"
-                    >
-                      {{ col.label }}
-                    </span>
-                    <!-- Toggle pill -->
-                    <span
-                      class="relative inline-flex h-4 w-7 rounded-full transition-colors duration-200"
-                      :class="colVisible[col.key] ? 'bg-brand' : 'bg-slate-200'"
-                    >
-                      <span
-                        class="absolute top-0.5 h-3 w-3 rounded-full bg-white shadow transition-transform duration-200"
-                        :class="colVisible[col.key] ? 'translate-x-3.5' : 'translate-x-0.5'"
-                      />
-                    </span>
-                    <input
-                      v-model="colVisible[col.key]"
-                      type="checkbox"
-                      class="sr-only"
-                    >
-                  </label>
-                </div>
-              </div>
-            </Transition>
+            <ColumnVisibilityDropdown
+              v-model="visibleCols"
+              :show="showColDd"
+              :columns="TABLE_COLUMNS"
+              :fixed-labels="['Phòng ban', 'Thao tác']"
+              @persist="persistVisibleColumns"
+            />
           </div>
         </div>
       </div>
 
       <div
-        v-if="hasFilterRow && visibleFilters.status"
+        v-if="hasFilterRow"
         class="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-slate-50/30 px-5 py-2.5"
       >
         <select
-          v-model="statusFilter"
+          v-if="visibleFilters.status"
+          v-model="filterForm.status"
           class="input h-9 w-44 text-sm"
           aria-label="Trạng thái phòng ban"
         >
-          <option
-            v-for="opt in STATUS_OPTS"
-            :key="opt.key"
-            :value="opt.key"
-          >
-            {{ opt.label }} ({{ statusCount(opt.key) }})
+          <option value="">
+            Trạng thái (tất cả)
+          </option>
+          <option value="active">
+            Hoạt động
+          </option>
+          <option value="inactive">
+            Ngừng
           </option>
         </select>
-        <button
-          v-if="activeFilterCount > 0"
-          type="button"
-          class="text-xs font-medium text-brand hover:underline"
-          @click="statusFilter = 'all'"
+
+        <select
+          v-if="visibleFilters.manager"
+          v-model="filterForm.manager_id"
+          class="input h-9 min-w-[11rem] max-w-xs text-sm"
+          aria-label="Trưởng phòng"
         >
-          Đặt lại trạng thái
-        </button>
+          <option value="">
+            Trưởng phòng (tất cả)
+          </option>
+          <option
+            v-for="e in employees"
+            :key="e.id"
+            :value="e.id"
+          >
+            {{ e.name }}
+          </option>
+        </select>
+
+        <select
+          v-if="visibleFilters.color"
+          v-model="filterForm.color"
+          class="input h-9 w-48 text-sm"
+          aria-label="Màu phòng ban"
+        >
+          <option value="">
+            Màu (tất cả)
+          </option>
+          <option
+            v-for="c in colorOptions"
+            :key="c.value"
+            :value="c.value"
+          >
+            {{ c.label }}
+          </option>
+        </select>
+
+        <select
+          v-if="visibleFilters.has_projects"
+          v-model="filterForm.has_projects"
+          class="input h-9 w-48 text-sm"
+          aria-label="Dự án gán"
+        >
+          <option value="">
+            Dự án gán (tất cả)
+          </option>
+          <option value="yes">
+            Có dự án
+          </option>
+          <option value="no">
+            Chưa có dự án
+          </option>
+        </select>
       </div>
 
-      <!-- ══ 3. Active filter chips ════════════════════════════════════ -->
       <Transition
         enter-active-class="transition duration-150 ease-out"
         enter-from-class="opacity-0 -translate-y-1"
@@ -333,24 +385,23 @@ const toggleStatus = async (d) => {
       >
         <div
           v-if="hasAnyFilter"
-          class="flex items-center gap-2 flex-wrap border-b border-slate-100 bg-slate-50/30 px-5 py-2"
+          class="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-slate-50/30 px-5 py-2"
         >
-          <span class="text-xs text-slate-400 font-medium">Đang lọc:</span>
+          <span class="text-xs font-medium text-slate-400">Đang lọc:</span>
 
-          <!-- Search chip -->
           <span
-            v-if="searchQuery.trim()"
+            v-if="filterForm.q.trim()"
             class="inline-flex items-center gap-1.5 rounded-full border border-brand/20 bg-brand/5 px-2.5 py-0.5 text-xs font-medium text-brand"
           >
             <AppIcon
               name="search"
               :size="11"
             />
-            "{{ searchQuery.trim() }}"
+            "{{ filterForm.q.trim() }}"
             <button
               type="button"
               class="ml-0.5 hover:text-brand/60"
-              @click="searchQuery = ''"
+              @click="filterForm.q = ''"
             >
               <AppIcon
                 name="close"
@@ -359,27 +410,31 @@ const toggleStatus = async (d) => {
             </button>
           </span>
 
-          <!-- Status chip -->
-          <span
-            v-if="statusFilter !== 'all'"
-            class="inline-flex items-center gap-1.5 rounded-full border border-brand/20 bg-brand/5 px-2.5 py-0.5 text-xs font-medium text-brand"
+          <template
+            v-for="key in ['status', 'manager', 'color', 'has_projects']"
+            :key="key"
           >
-            {{ STATUS_OPTS.find(o => o.key === statusFilter)?.label }}
-            <button
-              type="button"
-              class="ml-0.5 hover:text-brand/60"
-              @click="statusFilter = 'all'"
+            <span
+              v-if="filterChipLabel(key)"
+              class="inline-flex items-center gap-1.5 rounded-full border border-brand/20 bg-brand/5 px-2.5 py-0.5 text-xs font-medium text-brand"
             >
-              <AppIcon
-                name="close"
-                :size="11"
-              />
-            </button>
-          </span>
+              {{ filterChipLabel(key) }}
+              <button
+                type="button"
+                class="ml-0.5 hover:text-brand/60"
+                @click="clearFilterChip(key)"
+              >
+                <AppIcon
+                  name="close"
+                  :size="11"
+                />
+              </button>
+            </span>
+          </template>
 
           <button
             type="button"
-            class="ml-auto text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1 transition"
+            class="ml-auto flex items-center gap-1 text-xs text-slate-400 transition hover:text-slate-600"
             @click="clearAll"
           >
             <AppIcon
@@ -390,7 +445,6 @@ const toggleStatus = async (d) => {
         </div>
       </Transition>
 
-      <!-- ══ 4. Table ══════════════════════════════════════════════════ -->
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead class="border-b border-slate-100 bg-slate-50 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
@@ -399,33 +453,62 @@ const toggleStatus = async (d) => {
                 Phòng ban
               </th>
               <th
-                v-if="colVisible.manager"
+                v-if="isColVisible('code')"
+                class="px-5 py-3"
+              >
+                Mã
+              </th>
+              <th
+                v-if="isColVisible('color')"
+                class="px-5 py-3"
+              >
+                Màu
+              </th>
+              <th
+                v-if="isColVisible('manager')"
                 class="px-5 py-3"
               >
                 Trưởng phòng
               </th>
               <th
-                v-if="colVisible.projects"
+                v-if="isColVisible('projects')"
                 class="px-5 py-3 text-center"
               >
                 Dự án
               </th>
               <th
-                v-if="colVisible.status"
+                v-if="isColVisible('sort_order')"
+                class="px-5 py-3 text-center"
+              >
+                Thứ tự
+              </th>
+              <th
+                v-if="isColVisible('status')"
                 class="px-5 py-3 text-center"
               >
                 Trạng thái
               </th>
-              <th class="px-5 py-3 w-24" />
+              <th
+                v-if="isColVisible('created_at')"
+                class="px-5 py-3"
+              >
+                Ngày tạo
+              </th>
+              <th
+                v-if="isColVisible('updated_at')"
+                class="px-5 py-3"
+              >
+                Cập nhật
+              </th>
+              <th class="w-24 px-5 py-3" />
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
             <tr
-              v-for="d in filtered"
+              v-for="d in departments.data"
               :key="d.id"
               class="group transition-colors hover:bg-slate-50/70"
             >
-              <!-- Phòng ban -->
               <td class="px-5 py-3.5">
                 <div class="flex items-center gap-3">
                   <span
@@ -439,19 +522,41 @@ const toggleStatus = async (d) => {
                     />
                   </span>
                   <div class="min-w-0">
-                    <p class="font-medium text-slate-800 truncate leading-snug">
+                    <p class="truncate font-medium leading-snug text-slate-800">
                       {{ d.name }}
                     </p>
-                    <p class="font-mono text-[11px] tracking-wider text-slate-400">
+                    <p
+                      v-if="!isColVisible('code')"
+                      class="font-mono text-[11px] tracking-wider text-slate-400"
+                    >
                       {{ d.code }}
                     </p>
                   </div>
                 </div>
               </td>
 
-              <!-- Trưởng phòng -->
               <td
-                v-if="colVisible.manager"
+                v-if="isColVisible('code')"
+                class="px-5 py-3.5 font-mono text-xs text-slate-600"
+              >
+                {{ d.code }}
+              </td>
+
+              <td
+                v-if="isColVisible('color')"
+                class="px-5 py-3.5"
+              >
+                <span class="inline-flex items-center gap-2 text-xs text-slate-600">
+                  <span
+                    class="h-4 w-4 rounded"
+                    :class="swatch[d.color] ?? swatch.slate"
+                  />
+                  {{ COLOR_LABELS[d.color] ?? d.color }}
+                </span>
+              </td>
+
+              <td
+                v-if="isColVisible('manager')"
                 class="px-5 py-3.5"
               >
                 <div
@@ -463,7 +568,7 @@ const toggleStatus = async (d) => {
                     :src="d.manager.avatar_path"
                     :size="26"
                   />
-                  <span class="text-sm text-slate-700 truncate">{{ d.manager.name }}</span>
+                  <span class="truncate text-sm text-slate-700">{{ d.manager.name }}</span>
                 </div>
                 <span
                   v-else
@@ -471,9 +576,8 @@ const toggleStatus = async (d) => {
                 >Chưa phân công</span>
               </td>
 
-              <!-- Số dự án -->
               <td
-                v-if="colVisible.projects"
+                v-if="isColVisible('projects')"
                 class="px-5 py-3.5 text-center"
               >
                 <span
@@ -484,9 +588,15 @@ const toggleStatus = async (d) => {
                 </span>
               </td>
 
-              <!-- Trạng thái -->
               <td
-                v-if="colVisible.status"
+                v-if="isColVisible('sort_order')"
+                class="px-5 py-3.5 text-center tabular-nums text-slate-600"
+              >
+                {{ d.sort_order ?? 0 }}
+              </td>
+
+              <td
+                v-if="isColVisible('status')"
                 class="px-5 py-3.5 text-center"
               >
                 <button
@@ -518,7 +628,20 @@ const toggleStatus = async (d) => {
                 </span>
               </td>
 
-              <!-- Thao tác -->
+              <td
+                v-if="isColVisible('created_at')"
+                class="px-5 py-3.5 tabular-nums text-xs text-slate-500"
+              >
+                {{ d.created_at ? date(d.created_at) : '—' }}
+              </td>
+
+              <td
+                v-if="isColVisible('updated_at')"
+                class="px-5 py-3.5 tabular-nums text-xs text-slate-500"
+              >
+                {{ d.updated_at ? datetime(d.updated_at) : '—' }}
+              </td>
+
               <td class="px-5 py-3.5">
                 <div class="flex items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                   <button
@@ -547,8 +670,7 @@ const toggleStatus = async (d) => {
               </td>
             </tr>
 
-            <!-- Empty state -->
-            <tr v-if="filtered.length === 0">
+            <tr v-if="!departments.data?.length">
               <td
                 :colspan="totalCols"
                 class="px-5 py-16 text-center"
@@ -572,7 +694,7 @@ const toggleStatus = async (d) => {
                   </button>
                   <button
                     v-else-if="can.create"
-                    class="btn-primary mt-2 text-xs gap-1"
+                    class="btn-primary mt-2 gap-1 text-xs"
                     @click="open()"
                   >
                     <AppIcon
@@ -587,22 +709,31 @@ const toggleStatus = async (d) => {
         </table>
       </div>
 
-      <!-- ══ 5. Footer ════════════════════════════════════════════════ -->
+      <DatagridPaginationFooter
+        v-if="departments.meta"
+        variant="bar"
+        :meta="departments.meta"
+        :per-page="perPage"
+        :per-page-options="PER_PAGE_OPTIONS"
+        @update:per-page="onPerPageChange"
+      />
+
       <div
-        v-if="filtered.length > 0"
-        class="flex items-center justify-between border-t border-slate-100 bg-slate-50/50 px-5 py-2.5"
+        v-if="departments.data?.length"
+        class="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-slate-100 bg-slate-50/40 px-5 py-2 text-xs text-slate-500"
       >
-        <p class="text-xs text-slate-400">
-          Hiển thị
-          <span class="font-semibold text-slate-600">{{ filtered.length }}</span> /
-          <span class="font-semibold text-slate-600">{{ departments.data.length }}</span> phòng ban
-          <template v-if="activeCount > 0">
-            ·&nbsp;<span class="font-medium text-emerald-600">{{ activeCount }} hoạt động</span>
-          </template>
-          <template v-if="inactiveCount > 0">
-            ·&nbsp;<span class="font-medium text-slate-500">{{ inactiveCount }} ngừng</span>
-          </template>
-        </p>
+        <span>
+          Tổng hệ thống:
+          <span class="font-semibold text-slate-700">{{ summary.total }}</span> phòng ban
+        </span>
+        <span
+          v-if="summary.active > 0"
+          class="font-medium text-emerald-600"
+        >{{ summary.active }} hoạt động</span>
+        <span
+          v-if="summary.inactive > 0"
+          class="font-medium text-slate-500"
+        >{{ summary.inactive }} ngừng</span>
       </div>
     </div>
 
@@ -610,7 +741,7 @@ const toggleStatus = async (d) => {
       :show="modal"
       :department="editing"
       :employees="employees"
-      :existing-departments="departments.data"
+      :existing-departments="existingDepartments"
       @close="modal = false"
     />
   </AppLayout>

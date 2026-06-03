@@ -29,6 +29,8 @@ class DepartmentResource extends JsonResource
             'is_active' => $this->is_active,
             'manager' => $this->whenLoaded('manager', fn () => $this->person($this->manager)),
             'project_count' => $this->whenCounted('projects'),
+            'created_at' => $this->created_at?->toIso8601String(),
+            'updated_at' => $this->updated_at?->toIso8601String(),
             'can' => $user ? [
                 'update' => $user->can('update', $this->resource),
                 'delete' => $user->can('delete', $this->resource),

@@ -46,6 +46,13 @@ const STATUS_TEXT = {
 
 const TERMINAL_STATUSES = new Set(['resolved', 'closed']);
 
+/** Phạm vi danh sách (khác giá trị enum BlockerStatus). */
+const STATUS_SCOPE_OPTIONS = [
+    { value: '', label: 'Mặc định — trừ đã đóng' },
+    { value: 'active', label: 'Chưa kết thúc' },
+    { value: 'all', label: 'Tất cả trạng thái' },
+];
+
 const props = defineProps({
     blockers: { type: Object, required: true },
     filters: { type: Object, default: () => ({}) },
@@ -542,25 +549,27 @@ function toggleAllGroups() {
         <select
           v-if="visibleFilters.status"
           v-model="filterForm.status"
-          class="input h-9 w-44 text-sm"
-          aria-label="Trạng thái"
+          class="input h-9 min-w-[13rem] max-w-xs text-sm"
+          aria-label="Lọc trạng thái"
         >
-          <option value="">
-            Mặc định (mở + đã giải quyết)
-          </option>
-          <option value="open">
-            Chỉ chưa xử lý xong
-          </option>
-          <option value="all">
-            Tất cả (kể cả đã đóng)
-          </option>
-          <option
-            v-for="o in options.status"
-            :key="o.value"
-            :value="o.value"
-          >
-            {{ o.label }}
-          </option>
+          <optgroup label="Phạm vi danh sách">
+            <option
+              v-for="o in STATUS_SCOPE_OPTIONS"
+              :key="`scope-${o.value}`"
+              :value="o.value"
+            >
+              {{ o.label }}
+            </option>
+          </optgroup>
+          <optgroup label="Theo trạng thái cụ thể">
+            <option
+              v-for="o in options.status"
+              :key="o.value"
+              :value="o.value"
+            >
+              {{ o.label }}
+            </option>
+          </optgroup>
         </select>
         <select
           v-if="visibleFilters.severity"

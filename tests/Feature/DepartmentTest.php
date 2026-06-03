@@ -75,6 +75,37 @@ class DepartmentTest extends TestCase
         $this->get('/departments')->assertRedirect('/login');
     }
 
+    public function test_departments_index_paginates_and_filters(): void
+    {
+        for ($i = 1; $i <= 6; $i++) {
+            $this->createDept([
+                'code' => sprintf('PAG-%02d', $i),
+                'name' => sprintf('Dept %02d', $i),
+                'is_active' => true,
+            ]);
+        }
+
+        $this->actingAs($this->admin(), 'system')
+            ->get('/departments?per_page=5&page=2')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('departments.meta.total', 6)
+                ->where('departments.meta.per_page', 5)
+                ->where('departments.meta.current_page', 2)
+                ->has('departments.data', 1)
+            );
+
+        $this->createDept(['code' => 'FLT-99', 'name' => 'Inactive Only', 'is_active' => false]);
+
+        $this->actingAs($this->admin(), 'system')
+            ->get('/departments?status=inactive&per_page=20')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('departments.data', 1)
+                ->where('departments.data.0.code', 'FLT-99')
+            );
+    }
+
     // ─── Store ────────────────────────────────────────────────────────────────
 
     public function test_admin_can_create_department(): void
