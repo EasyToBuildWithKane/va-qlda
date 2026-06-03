@@ -5,7 +5,7 @@
     <style>
         @page {
             size: A4;
-            margin: 42mm 20mm 28mm 25mm;
+            margin: 42mm 18mm 26mm 23mm;
         }
 
         * { box-sizing: border-box; }
@@ -13,17 +13,27 @@
         body {
             font-family: 'DejaVu Serif', 'Times New Roman', serif;
             font-size: 12pt;
-            line-height: 1.5;
+            line-height: 1.4;
             color: #000;
             margin: 0;
             padding: 0;
+        }
+
+        .doc-content {
+            width: 100%;
+            max-width: 164mm;
+            margin: 0 auto;
+        }
+
+        .doc-content p {
+            margin: 1pt 0;
         }
 
         /* Full-page background image repeated on every page */
         .page-bg {
             position: fixed;
             top: -42mm;
-            left: -25mm;
+            left: -23mm;
             width: 210mm;
             height: 297mm;
             z-index: -1;
@@ -33,15 +43,17 @@
             height: 100%;
         }
 
-        /* ─── Header section ─── */
+        /* ─── Header section (khung có viền) ─── */
         .doc-header {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 6pt;
+            margin-bottom: 4pt;
+            border: 1pt solid #000;
         }
         .doc-header td {
-            padding: 2pt 4pt;
+            padding: 5pt 6pt;
             vertical-align: top;
+            border: 1pt solid #000;
         }
         .doc-header .cell-left {
             width: 42%;
@@ -80,7 +92,7 @@
         /* ─── Title ─── */
         .doc-title {
             text-align: center;
-            margin: 10pt 0 4pt 0;
+            margin: 6pt 0 3pt 0;
         }
         .doc-title h1 {
             font-size: 16pt;
@@ -96,16 +108,16 @@
 
         /* ─── Body ─── */
         .kinh-gui {
-            margin: 10pt 0 0 30pt;
+            margin: 5pt 0 2pt 28pt;
         }
         .kinh-gui .label { font-style: italic; font-weight: bold; }
 
         .section {
-            margin: 6pt 0 4pt 0;
+            margin: 3pt 0 2pt 0;
         }
         .section-num {
             font-weight: bold;
-            margin-bottom: 2pt;
+            margin: 0 0 1pt 0;
         }
         .indent {
             margin-left: 18pt;
@@ -122,7 +134,7 @@
         table.budget {
             width: 100%;
             border-collapse: collapse;
-            margin: 6pt 0;
+            margin: 3pt 0 4pt 0;
             font-size: 11pt;
         }
         table.budget th,
@@ -139,35 +151,31 @@
         table.budget td.center { text-align: center; }
         table.budget td.right { text-align: right; }
 
-        /* ─── Checkbox ─── */
-        .checkbox-row {
+        /* ─── Checkbox (một ô vuông — không dùng ảnh + dấu trùng) ─── */
+        .checkbox-option {
             display: inline-block;
-            margin-right: 20pt;
+            margin-right: 18pt;
             vertical-align: middle;
+            white-space: nowrap;
         }
-        .checkbox-row img {
-            width: 14pt;
-            height: 14pt;
-            vertical-align: middle;
-            margin-right: 3pt;
-        }
-        .check-mark {
+        .check-box {
             display: inline-block;
-            width: 14pt;
-            height: 14pt;
+            width: 13pt;
+            height: 13pt;
             border: 1pt solid #000;
             text-align: center;
-            line-height: 14pt;
+            line-height: 12pt;
             vertical-align: middle;
-            font-size: 11pt;
-            margin-right: 3pt;
+            font-size: 10pt;
+            font-weight: bold;
+            margin-right: 4pt;
         }
 
         /* ─── Signature table ─── */
         table.sig {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 16pt;
+            margin-top: 10pt;
         }
         table.sig td {
             border: 1pt dotted #666;
@@ -183,11 +191,16 @@
         .pre { white-space: pre-wrap; }
 
         ul.objectives {
-            margin: 4pt 0 4pt 20pt;
+            margin: 2pt 0 2pt 20pt;
             padding: 0;
         }
         ul.objectives li {
-            margin-bottom: 2pt;
+            margin-bottom: 1pt;
+        }
+
+        .closing {
+            margin-top: 6pt;
+            font-style: italic;
         }
     </style>
 </head>
@@ -197,6 +210,8 @@
     <div class="page-bg">
         <img src="{{ 'file://'.public_path('docx/background.png') }}" alt="">
     </div>
+
+    <div class="doc-content">
 
     {{-- ─── Header table ─── --}}
     <table class="doc-header">
@@ -305,14 +320,12 @@
 
         <p class="indent">
             <span class="bold">4.4 Tình trạng:</span>&nbsp;
-            <span class="checkbox-row">
-                <img src="{{ 'file://'.public_path('docx/checkbox.png') }}" alt="">
-                @if($vars['check_new'] === '☑') <strong>✓</strong>&nbsp; @endif
+            <span class="checkbox-option">
+                <span class="check-box">{{ $vars['check_new'] === '☑' ? '✓' : '' }}</span>
                 Mua mới
             </span>
-            <span class="checkbox-row">
-                <img src="{{ 'file://'.public_path('docx/checkbox.png') }}" alt="">
-                @if($vars['check_renewal'] === '☑') <strong>✓</strong>&nbsp; @endif
+            <span class="checkbox-option">
+                <span class="check-box">{{ $vars['check_renewal'] === '☑' ? '✓' : '' }}</span>
                 Gia hạn
             </span>
         </p>
@@ -332,7 +345,7 @@
     </div>
 
     {{-- ─── Closing ─── --}}
-    <p style="margin-top: 10pt; font-style: italic;">
+    <p class="closing">
         Kính trình Ban Lãnh Đạo xem xét và phê duyệt.
     </p>
 
@@ -363,6 +376,8 @@
             </td>
         </tr>
     </table>
+
+    </div>{{-- .doc-content --}}
 
 </body>
 </html>
