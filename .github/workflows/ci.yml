@@ -15,8 +15,6 @@ env:
   APP_ENV: testing
   APP_DEBUG: true
   APP_URL: http://127.0.0.1:8000
-  DB_CONNECTION: sqlite
-  DB_DATABASE: ${{ github.workspace }}/database/testing.sqlite
 
 jobs:
   backend-tests:
