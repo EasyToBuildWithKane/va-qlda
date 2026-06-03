@@ -38,7 +38,9 @@ class CommentController extends Controller
 
         $model = $this->resolve($extra['commentable_type'], (int) $extra['commentable_id']);
 
-        $model->comments()->create([
+        Comment::create([
+            'commentable_type' => $model->getMorphClass(),
+            'commentable_id' => $model->getKey(),
             'parent_id' => $extra['parent_id'] ?? null,
             'employee_id' => $request->user()->employee_id,
             'body' => $data['body'],
@@ -81,7 +83,7 @@ class CommentController extends Controller
     public function react(Request $request, Comment $comment): RedirectResponse
     {
         $user = $request->user();
-        abort_unless($user?->employee_id, 403);
+        abort_unless((bool) $user?->employee_id, 403);
 
         $data = $request->validate([
             'emoji' => ['required', 'string', 'max:8'],
@@ -112,7 +114,7 @@ class CommentController extends Controller
     private function authorizeComment(Request $request, Comment $comment): void
     {
         $user = $request->user();
-        abort_unless($user, 403);
+        abort_unless($user !== null, 403);
 
         if ($comment->employee_id && $comment->employee_id === $user->employee_id) {
             return;
