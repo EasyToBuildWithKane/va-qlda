@@ -2,7 +2,9 @@
 
 ---
 
-## PHPUnit (backend)
+## PHPUnit
+
+`tests/TestCase.php` seeds a minimal `public/build/manifest.json` when missing so Inertia `@vite` does not 500 in the CI PHPUnit job (no `npm run build` in that job).
 
 ```bash
 composer test
