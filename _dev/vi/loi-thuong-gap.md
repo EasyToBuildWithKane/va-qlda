@@ -144,7 +144,7 @@ Trên CI runner: pre-push bỏ qua khi `CI=true`.
 ## CI pipeline fail
 
 1. GitHub → Actions → CI → run lỗi
-2. Mở job fail (PHPUnit, build, Playwright, Pint, PHPStan)
+2. Mở job fail (`backend-tests` = Pint+PHPUnit, `frontend-build` = ESLint+build, `playwright`, `static-analysis`)
 3. **Re-run failed jobs**
 4. Playwright: tải artifact `playwright-report`
 
@@ -152,11 +152,12 @@ Trên CI runner: pre-push bỏ qua khi `CI=true`.
 
 | Job | Thường do |
 |-----|-----------|
-| PHPUnit | Migration thiếu, assertion fail, env |
-| Frontend build | Lỗi Vite, import sai |
-| Playwright | UI đổi → selector hỏng, seed data lệch |
-| Pint | Format PHP lệch → `composer format` local |
-| PHPStan | Vi phạm type / static analysis |
+| backend-tests | Pint → `vendor/bin/pint`; PHPUnit 500 → `tests/TestCase` Vite stub |
+| frontend-build | ESLint → `npm run lint:fix`; lỗi Vite build |
+| Playwright | Selector/UI; server :8000 — `playwright.config.js` |
+| PHPStan | Cảnh báo, không chặn merge |
+
+**Trước push:** skill `ship-ready`
 
 **Bỏ qua CI khi push:**
 

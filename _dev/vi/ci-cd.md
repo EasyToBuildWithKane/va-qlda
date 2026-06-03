@@ -33,79 +33,41 @@ Push mới cùng nhánh → **hủy** run CI đang chạy (`cancel-in-progress: 
 | `APP_ENV` | `testing` |
 | `APP_DEBUG` | `true` |
 | `APP_URL` | `http://127.0.0.1:8000` |
-| `DB_CONNECTION` | `sqlite` |
-| `DB_DATABASE` | `${{ github.workspace }}/database/testing.sqlite` |
 
-**Không cần secret** — dùng SQLite file + `.env.example`.
+SQLite E2E chỉ trên job Playwright. PHPUnit dùng stub Vite trong `tests/TestCase` (không cần `npm build` trong job PHP).
 
----
-
-## Các job
-
-### 1. PHPUnit (`backend-tests`)
-
-- **OS:** ubuntu-latest · **PHP 8.2**
-- **Chặn merge:** Có ✓
-
-**Các bước:** checkout → cài Composer → copy `.env.example` → `key:generate` → `php artisan test`
+**Trước push:** skill `ship-ready` · rule `ci-quality-gates.mdc` · [`../ci-cd.md`](../ci-cd.md) bản đầy đủ.
 
 ---
 
-### 2. Frontend build (`frontend-build`)
+## Các job (chặn merge)
 
-- **OS:** ubuntu-latest · **Node 20**
-- **Chặn merge:** Có ✓
+### 1. PHPUnit + Pint (`backend-tests`) ✓
 
-**Các bước:** checkout → `npm ci` → `npm run build`
+`vendor/bin/pint --test` → `php artisan test`
 
----
+### 2. ESLint + build (`frontend-build`) ✓
 
-### 3. Playwright E2E (`playwright`)
+`npm run lint` → `npm run build`
 
-- **Chờ:** `backend-tests` + `frontend-build` pass
-- **Chặn merge:** Có ✓
+### 3. Playwright E2E (`playwright`) ✓
 
-**Các bước:**
+Sau hai job trên; `CI=true`, một worker, không reuse server :8000 trừ khi `PLAYWRIGHT_REUSE_SERVER=1`.
 
-1. Cài Composer + npm
-2. `npm run build`
-3. Chuẩn bị Laravel: `.env`, key, tạo `database/testing.sqlite`, `migrate:fresh --force --seed`
-4. `npx playwright install --with-deps chromium`
-5. `npm run test:e2e`
+### 4. PHPStan (`static-analysis`) — chỉ cảnh báo
 
-**Env riêng:** `PLAYWRIGHT_BASE_URL=http://127.0.0.1:8000`
-
-**Khi fail:** upload artifact `playwright-report` + `test-results/` (giữ 7 ngày)
-
-Playwright tự start `php artisan serve` qua `webServer`; CI đặt `reuseExistingServer: false`.
-
----
-
-### 4. Laravel Pint (`code-style`)
-
-- **Chặn merge:** Không (`continue-on-error: true`) — chỉ cảnh báo
-
-Chạy `vendor/bin/pint --test` (kiểm tra style, không sửa file).
-
----
-
-### 5. PHPStan (`static-analysis`)
-
-- **Chặn merge:** Không (`continue-on-error: true`) — chỉ cảnh báo
-
-Chạy `vendor/bin/phpstan analyse --no-progress --memory-limit=512M`.
+`continue-on-error: true`
 
 ---
 
 ## Sơ đồ phụ thuộc job
 
 ```
-backend-tests ──┐
-                ├──► playwright
-frontend-build ─┘
+backend-tests (Pint + PHPUnit) ──┐
+                                 ├──► playwright
+frontend-build (ESLint + build) ─┘
 
-code-style       (song song, độc lập)
-static-analysis  (song song, độc lập)
+static-analysis (song song, không chặn)
 ```
 
 ---
@@ -150,5 +112,6 @@ Hoặc chạy thủ công qua `workflow_dispatch`.
 | Playwright workers | auto | 1 |
 | Reporter | list + html | github + html |
 | pre-push E2E | Chạy (trừ `CI=true`) | Bỏ qua (CI có job riêng) |
-| ESLint | pre-commit | Không có job CI |
-| Database | `.env` của bạn | SQLite `database/testing.sqlite` |
+| Pint | Chạy tay trước push | Chặn trong `backend-tests` |
+| ESLint | pre-commit + `npm run lint` | Chặn trong `frontend-build` |
+| Database | `.env` của bạn | SQLite chỉ job E2E |

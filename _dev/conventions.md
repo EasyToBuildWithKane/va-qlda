@@ -94,8 +94,9 @@ Brand color: `#9A0036` (Tailwind `brand` token).
 | **Validation** | FormRequest classes with Vietnamese `messages()` |
 | **Enums** | `app/Support/Enums/` — backed string enums with `values()`, `label()` |
 | **DB tables** | Prefix `va_prd_` |
-| **Code style** | Laravel Pint (`composer format`) |
-| **Static analysis** | PHPStan via Larastan (`composer analyse`) |
+| **Code style** | Laravel Pint — **CI blocking:** `vendor/bin/pint --test` (fix: `vendor/bin/pint`) |
+| **Static analysis** | PHPStan via Larastan (`composer analyse`) — CI advisory only |
+| **Pre-push** | Same as CI gates: see `_dev/workflows.md`, skill `ship-ready` |
 
 ---
 

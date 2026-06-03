@@ -29,6 +29,7 @@ description: >-
 - [ ] Activity logger (Task, Blocker, …)
 - [ ] `NotificationDispatcher` if user-facing event
 - [ ] Feature test in `tests/Feature/` for critical paths
+- [ ] Upload/public file: `Storage::disk('public')`; URL qua `PublicMediaUrl` hoặc route có policy (xem `ProjectAttachmentController::file`)
 
 ## 3. Options / constants
 
@@ -42,8 +43,9 @@ Follow `.cursor/rules/import-export-reconcile.mdc`.
 ## 5. Verify
 
 ```bash
+vendor/bin/pint --test
 php artisan route:list --name=your.feature
-composer test -- --filter=YourTest
+php artisan test --filter=YourTest
 ```
 
 See `docs/API_STRUCTURE.md`, `docs/FOLDER_STRUCTURE.md`.

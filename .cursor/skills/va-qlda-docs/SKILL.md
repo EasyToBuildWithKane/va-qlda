@@ -37,6 +37,7 @@ description: >-
 | Dev / PR / hotfix workflow | `_dev/workflows.md` |
 | Commit format, ESLint | `_dev/conventions.md` |
 | GitHub Actions | `_dev/ci-cd.md` |
+| Pre-push / CI failures | `.cursor/skills/ship-ready/SKILL.md`, `.cursor/rules/ci-quality-gates.mdc` |
 | Giải thích tiếng Việt | `_dev/vi/` |
 
 ## Workflow

@@ -15,13 +15,17 @@ Step-by-step guides for day-to-day development, PRs, deploy, and hotfixes.
    - Terminal 2: `php artisan serve` (Laravel on port 8000)
 5. Open `http://127.0.0.1:8000`
 
-Optional quality checks before committing:
+Quality checks before committing (mirror CI — see `ci-cd.md`):
 
 ```bash
-npm run lint
-composer test
-npm run test:e2e        # also runs automatically on git push
+vendor/bin/pint --test   # blocking on CI
+php artisan test
+npm run lint               # blocking on CI
+npm run build
+npm run test:e2e           # Husky pre-push
 ```
+
+Skill: `.cursor/skills/ship-ready/SKILL.md`.
 
 ---
 
@@ -46,13 +50,11 @@ npm run test:e2e        # also runs automatically on git push
 - **Title** must follow [Conventional Commits](https://www.conventionalcommits.org/) — same rules as commitlint
 - **Target branch:** `main`, `master`, or `develop`
 - **Required CI checks** (`.github/workflows/ci.yml`):
-  - PHPUnit (`php artisan test`)
-  - Frontend build (`npm run build`)
-  - Playwright E2E (runs after PHPUnit + build pass)
-- **Advisory checks** (`continue-on-error: true` — visible but do not block merge):
-  - Laravel Pint (PHP code style)
-  - PHPStan (static analysis)
-- **ESLint** is enforced locally via Husky pre-commit, not as a separate CI job
+  - **PHPUnit + Pint** (`vendor/bin/pint --test`, then `php artisan test`)
+  - **Frontend** (`npm run lint`, then `npm run build`)
+  - **Playwright E2E** (after both pass; `CI=true`, single worker)
+- **Advisory:** PHPStan (`continue-on-error: true`)
+- **Local:** Husky pre-commit (ESLint staged), pre-push (E2E)
 - **Merge strategy:** squash merge preferred for clean history
 - **Review:** address feedback, push fixes — pre-push hook re-runs E2E
 

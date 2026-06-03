@@ -3,6 +3,8 @@
 Single workflow file: `.github/workflows/ci.yml`  
 GitLab mirror: `.gitlab-ci.yml` (same stages, different runner syntax).
 
+Agent/user **before push:** `.cursor/skills/ship-ready/SKILL.md` · rule `.cursor/rules/ci-quality-gates.mdc`
+
 ---
 
 ## Workflow: CI
@@ -27,8 +29,6 @@ group: ci-${{ github.workflow }}-${{ github.ref }}
 cancel-in-progress: true
 ```
 
-New pushes to the same branch cancel in-progress runs.
-
 ### Global environment variables
 
 | Variable | Value |
@@ -36,170 +36,97 @@ New pushes to the same branch cancel in-progress runs.
 | `APP_ENV` | `testing` |
 | `APP_DEBUG` | `true` |
 | `APP_URL` | `http://127.0.0.1:8000` |
-| `DB_CONNECTION` | `sqlite` |
-| `DB_DATABASE` | `${{ github.workspace }}/database/testing.sqlite` |
 
-No secrets are required for CI — uses SQLite file database and `.env.example`.
+SQLite for E2E is set **only** on the Playwright job (`DB_CONNECTION`, `DB_DATABASE`). PHPUnit uses in-memory/sqlite from `.env.example` + `tests/TestCase` Vite stub (no `npm build` required in PHPUnit job).
 
 ---
 
-## Jobs
+## Jobs (blocking vs advisory)
 
-### 1. PHPUnit (`backend-tests`)
+### 1. PHPUnit + Pint (`backend-tests`) — **blocking**
 
-| Property | Value |
-|----------|-------|
-| **Runs on** | `ubuntu-latest` |
-| **PHP** | 8.2 (dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite) |
-| **Blocking** | Yes |
+| Step | Command |
+|------|---------|
+| Prepare | `cp .env.example .env`, `php artisan key:generate` |
+| Style | `vendor/bin/pint --test` |
+| Tests | `php artisan test` |
 
-**Steps:**
-
-1. Checkout code
-2. Setup PHP 8.2 with Composer cache
-3. `composer install --no-interaction --prefer-dist --optimize-autoloader`
-4. `cp .env.example .env` + `php artisan key:generate`
-5. `php artisan test`
+`tests/TestCase.php` creates a minimal `public/build/manifest.json` when missing so Inertia `@vite` does not return 500 without a frontend build on this job.
 
 ---
 
-### 2. Frontend build (`frontend-build`)
+### 2. Frontend build + ESLint (`frontend-build`) — **blocking**
 
-| Property | Value |
-|----------|-------|
-| **Runs on** | `ubuntu-latest` |
-| **Node** | 20 (npm cache enabled) |
-| **Blocking** | Yes |
-
-**Steps:**
-
-1. Checkout code
-2. `npm ci`
-3. `npm run build` (Vite production build)
+| Step | Command |
+|------|---------|
+| Install | `npm ci` |
+| Lint | `npm run lint` |
+| Build | `npm run build` |
 
 ---
 
-### 3. Playwright E2E (`playwright`)
+### 3. Playwright E2E (`playwright`) — **blocking**
 
-| Property | Value |
-|----------|-------|
-| **Runs on** | `ubuntu-latest` |
-| **Needs** | `backend-tests`, `frontend-build` (runs only after both pass) |
-| **Blocking** | Yes |
+**Needs:** `backend-tests`, `frontend-build`
 
-**Steps:**
+| Step | Notes |
+|------|--------|
+| Build | `npm run build` |
+| DB | `database/testing.sqlite`, `migrate:fresh --seed` |
+| Run | `npm run test:e2e` with `CI=true` |
 
-1. Checkout + setup PHP 8.2 + Node 20
-2. `composer install` + `npm ci`
-3. `npm run build`
-4. Prepare Laravel:
-   - `cp .env.example .env`
-   - `php artisan key:generate`
-   - Create `database/testing.sqlite`
-   - `php artisan migrate:fresh --force --seed`
-5. `npx playwright install --with-deps chromium`
-6. `npm run test:e2e`
+**Env:** `PLAYWRIGHT_BASE_URL`, `DB_CONNECTION=sqlite`, `DB_DATABASE` = workspace sqlite file.
 
-**Job-specific env:**
+**Artifacts on failure:** `playwright-report/`, `test-results/` (7 days)
 
-| Variable | Value |
-|----------|-------|
-| `PLAYWRIGHT_BASE_URL` | `http://127.0.0.1:8000` |
-| `DB_CONNECTION` | `sqlite` |
-| `DB_DATABASE` | `${{ github.workspace }}/database/testing.sqlite` |
-
-**Artifacts on failure:**
-
-- Name: `playwright-report`
-- Paths: `playwright-report/`, `test-results/`
-- Retention: 7 days
-
-Playwright config auto-starts `php artisan serve` via `webServer` — CI sets `reuseExistingServer: false`.
+**Config:** `playwright.config.js` — `workers: 1`, `reuseExistingServer` only if `PLAYWRIGHT_REUSE_SERVER=1`.
 
 ---
 
-### 4. Laravel Pint (`code-style`)
+### 4. PHPStan (`static-analysis`) — **advisory**
 
-| Property | Value |
-|----------|-------|
-| **Runs on** | `ubuntu-latest` |
-| **Blocking** | **No** (`continue-on-error: true`) |
-
-**Steps:**
-
-1. Checkout + PHP 8.2
-2. `composer install`
-3. `vendor/bin/pint --test` (dry-run style check)
-
----
-
-### 5. PHPStan (`static-analysis`)
-
-| Property | Value |
-|----------|-------|
-| **Runs on** | `ubuntu-latest` |
-| **Blocking** | **No** (`continue-on-error: true`) |
-
-**Steps:**
-
-1. Checkout + PHP 8.2
-2. `composer install`
-3. `vendor/bin/phpstan analyse --no-progress --memory-limit=512M`
+`continue-on-error: true` — visible on PR, does not block merge.
 
 ---
 
 ## Job dependency graph
 
 ```
-backend-tests ──┐
-                ├──► playwright
-frontend-build ─┘
+backend-tests (Pint + PHPUnit) ──┐
+                                 ├──► playwright (E2E)
+frontend-build (ESLint + build) ─┘
 
-code-style      (parallel, independent)
-static-analysis (parallel, independent)
+static-analysis (parallel, advisory)
 ```
+
+**Removed:** separate `code-style` job (Pint merged into `backend-tests`).
 
 ---
 
 ## Deployment
 
-**No deploy job or workflow exists.** CI validates code only.
-
-Deployment targets (staging/production) are handled outside this repository's GitHub Actions config.
+**No deploy job** in this repo. CI validates only.
 
 ---
 
-## How to re-run a failed workflow
+## Local vs CI
 
-1. Go to **GitHub → Actions → CI**
-2. Click the failed run
-3. Click **Re-run failed jobs** (or **Re-run all jobs**)
-4. For Playwright failures: download the `playwright-report` artifact from the failed run
-
----
-
-## How to skip CI
-
-Add one of these to your commit message (GitHub Actions convention):
-
-```
-chore: update docs [skip ci]
-fix: typo [ci skip]
-```
-
-Or use `workflow_dispatch` to run CI manually when needed.
-
-**Note:** Skipping CI does not bypass local Husky hooks — pre-commit ESLint and pre-push Playwright still run unless you use `git commit --no-verify` / `git push --no-verify`.
+| Check | Local | CI |
+|-------|-------|-----|
+| Pint | Run before push PHP changes | Blocking in `backend-tests` |
+| ESLint | pre-commit (staged) + `npm run lint` | Blocking in `frontend-build` |
+| PHPUnit | `php artisan test` | `backend-tests` |
+| E2E | Husky pre-push | `playwright` with `CI=true` |
 
 ---
 
-## Local vs CI differences
+## Skip CI
 
-| Aspect | Local (dev) | CI |
-|--------|-------------|-----|
-| Playwright retries | 0 | 2 |
-| Playwright workers | auto | 1 |
-| Playwright reporter | list + html | github + html |
-| pre-push E2E | Runs (unless `CI=true`) | Skipped (CI runs its own job) |
-| ESLint | pre-commit hook | Not in CI pipeline |
-| Database | Your `.env` | SQLite `database/testing.sqlite` |
+Commit message: `[skip ci]` or `[ci skip]` (GitHub convention). Does not skip Husky unless `--no-verify`.
+
+---
+
+## Related docs
+
+- `_dev/testing.md` — PHPUnit, Playwright, visual project
+- `_dev/troubleshooting.md` — Vite 500, storage 404, Playwright browsers

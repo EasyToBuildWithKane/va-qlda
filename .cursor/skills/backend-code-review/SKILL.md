@@ -74,6 +74,8 @@ Liệt kê điều đúng chuẩn.
 - [ ] Không code comment-out thừa
 - [ ] Không credential trong source
 - [ ] Scope đúng branch/task
+- [ ] PHP: `vendor/bin/pint --test` (CI blocking)
+- [ ] Upload/media: `PublicMediaUrl` hoặc route file có `authorize`; không URL tới file orphan
 
 ## 5. Hành vi
 

@@ -34,6 +34,12 @@ alwaysApply: true
 - Brand: `#9A0036`, tokens Tailwind `brand`, `card`, `btn-primary`, `font-display`.
 - Layout: `AppLayout` + `#header` → `PageHeader`; route helper `route()` (Ziggy).
 
+## CI & chất lượng (trước push)
+
+- **Blocking CI:** `vendor/bin/pint --test`, `php artisan test`, `npm run lint`, `npm run build`, Playwright E2E.
+- **Chi tiết:** `.cursor/rules/ci-quality-gates.mdc`, skill `ship-ready`, `_dev/ci-cd.md`.
+- **File public:** `PublicMediaUrl` + route tải attachment; không expose URL khi file không tồn tại trên disk.
+
 ## Cấm
 
 - Commit `.env`, session files, secrets.
