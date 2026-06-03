@@ -160,9 +160,12 @@ Route::middleware('auth')->group(function () {
     Route::prefix('api/ai-accounts')->name('api.ai-accounts.')->group(function () {
         Route::get('/summary', [AiAccountController::class, 'summary'])->name('summary');
         Route::post('/trigger-reminder', [AiAccountController::class, 'triggerReminder'])->name('trigger-reminder');
+        Route::get('/proposals', [AiPurchaseProposalController::class, 'index'])->name('proposals.index');
         Route::post('/proposals', [AiPurchaseProposalController::class, 'store'])->name('proposals.store');
         Route::post('/proposals/{proposal}/approve', [AiPurchaseProposalController::class, 'approve'])->name('proposals.approve');
         Route::post('/proposals/{proposal}/reject', [AiPurchaseProposalController::class, 'reject'])->name('proposals.reject');
+        Route::post('/proposals/{proposal}/purchased', [AiPurchaseProposalController::class, 'markPurchased'])->name('proposals.purchased');
+        Route::post('/proposals/{proposal}/active', [AiPurchaseProposalController::class, 'markActive'])->name('proposals.active');
         Route::patch('/proposals/{proposal}/notes', [AiPurchaseProposalController::class, 'updateNotes'])->name('proposals.notes');
         Route::get('/proposals/{proposal}/export/docx', [AiPurchaseProposalController::class, 'exportDocx'])->name('proposals.export.docx');
         Route::get('/proposals/{proposal}/export/pdf', [AiPurchaseProposalController::class, 'exportPdf'])->name('proposals.export.pdf');

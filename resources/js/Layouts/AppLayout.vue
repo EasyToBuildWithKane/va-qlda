@@ -54,15 +54,29 @@ const RAIL_KEY = 'va-qlda.sidebar.rail';
 const rail = ref(localStorage.getItem(RAIL_KEY) === '1');
 watch(rail, (v) => localStorage.setItem(RAIL_KEY, v ? '1' : '0'));
 
-// --- Per-group collapse ---
+// --- Per-group collapse (stable key, not display heading) ---
 const COLLAPSE_KEY = 'va-qlda.sidebar.collapsed';
-const collapsed = reactive(new Set(JSON.parse(localStorage.getItem(COLLAPSE_KEY) || '[]')));
+const groupKey = (group) => group.key ?? group.heading;
+
+const collapsed = reactive(new Set());
+const syncCollapsedFromStorage = () => {
+    const raw = localStorage.getItem(COLLAPSE_KEY);
+    collapsed.clear();
+    if (raw) {
+        JSON.parse(raw).forEach((k) => collapsed.add(k));
+        return;
+    }
+    nav.value.filter((g) => g.defaultCollapsed).forEach((g) => collapsed.add(groupKey(g)));
+};
+watch(nav, syncCollapsedFromStorage, { immediate: true });
 watch(collapsed, () => localStorage.setItem(COLLAPSE_KEY, JSON.stringify([...collapsed])), { deep: true });
 
-const isOpen = (group) => !collapsed.has(group.heading);
+const isOpen = (group) => !collapsed.has(groupKey(group));
 const toggleGroup = (group) => {
-    collapsed.has(group.heading) ? collapsed.delete(group.heading) : collapsed.add(group.heading);
+    const key = groupKey(group);
+    collapsed.has(key) ? collapsed.delete(key) : collapsed.add(key);
 };
+const isUpcomingGroup = (group) => group.variant === 'upcoming';
 
 // --- Module status (đang phát triển / bảo trì …) ---
 // Source of truth is App\Support\Navigation; here we only map it to styling.
@@ -70,12 +84,16 @@ const STATUS = {
     live: { label: 'Đang hoạt động', dot: 'bg-emerald-400', pill: 'bg-emerald-400/15 text-emerald-200' },
     dev: { label: 'Đang phát triển', dot: 'bg-accent', pill: 'bg-accent/15 text-accent-soft' },
     maintenance: { label: 'Đang bảo trì', dot: 'bg-sky-400', pill: 'bg-sky-400/15 text-sky-200' },
-    planned: { label: 'Sắp ra mắt', dot: 'bg-white/30', pill: 'bg-white/10 text-brand-100/60' },
+    planned: {
+        label: 'Sắp ra mắt',
+        dot: 'bg-amber-300',
+        pill: 'border border-amber-300/35 bg-amber-400/20 text-amber-50 shadow-sm shadow-amber-900/20',
+    },
 };
 const statusOf = (item) => STATUS[item.status] ?? STATUS.live;
-// "live" is the silent default — only the exceptions get a visible badge.
-const showBadge = (item) => item.status && item.status !== 'live';
 const isPlanned = (item) => item.status === 'planned' || item.href === '#';
+// Badge on live groups only; upcoming section uses group header + clock hint.
+const showBadge = (item, group) => item.status && item.status !== 'live' && !isUpcomingGroup(group);
 
 // Legend at the foot of the sidebar — only show states actually in use.
 const legend = computed(() => {
@@ -171,24 +189,25 @@ const userDisplayName = computed(() => user.value?.display_name || user.value?.n
       >
         <template
           v-for="(group, gi) in nav"
-          :key="group.heading"
+          :key="groupKey(group)"
         >
           <div
             v-if="gi > 0"
-            class="w-8 my-2 border-t border-white/[0.1]"
+            class="w-8 my-1.5 border-t"
+            :class="isUpcomingGroup(group) ? 'border-amber-300/30' : 'border-white/[0.1]'"
           />
           <component
             :is="isPlanned(item) ? 'div' : Link"
             v-for="item in group.items"
             :key="item.label"
             :href="isPlanned(item) ? undefined : item.href"
-            :title="`${item.label}${showBadge(item) ? ' · ' + statusOf(item).label : ''}`"
+            :title="`${item.label}${isPlanned(item) ? ' · Sắp ra mắt' : ''}`"
             class="relative grid h-10 w-10 place-items-center rounded-lg transition-colors"
             :class="[
               isActive(item.href)
                 ? 'bg-white/[0.12] text-white'
                 : 'text-brand-100/60 hover:bg-white/[0.07] hover:text-white',
-              isPlanned(item) && 'opacity-40 cursor-not-allowed hover:bg-transparent hover:text-brand-100/60',
+              isPlanned(item) && 'opacity-70 cursor-not-allowed hover:bg-amber-400/10 hover:text-amber-100/80',
             ]"
           >
             <AppIcon
@@ -196,10 +215,15 @@ const userDisplayName = computed(() => user.value?.display_name || user.value?.n
               :size="19"
             />
             <span
-              v-if="showBadge(item)"
-              class="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full ring-[1.5px] ring-brand"
-              :class="statusOf(item).dot"
-            />
+              v-if="isPlanned(item)"
+              class="absolute -right-0.5 -top-0.5 grid h-3.5 w-3.5 place-items-center rounded-full bg-amber-400/90 ring-[1.5px] ring-brand"
+            >
+              <AppIcon
+                name="clock"
+                :size="8"
+                class="text-brand"
+              />
+            </span>
           </component>
         </template>
       </nav>
@@ -211,28 +235,33 @@ const userDisplayName = computed(() => user.value?.display_name || user.value?.n
       >
         <div
           v-for="(group, gi) in nav"
-          :key="group.heading"
-          :class="gi > 0 ? 'mt-2 pt-2 border-t border-white/[0.07]' : ''"
+          :key="groupKey(group)"
+          :class="[
+            gi > 0 ? 'mt-1.5 pt-1.5 border-t border-white/[0.07]' : '',
+            isUpcomingGroup(group) && 'mt-3 pt-3 border-t border-amber-300/25',
+          ]"
         >
-          <!--
-                        ── Level 1: Section heading ──
-                        ALL CAPS · 10.5 px · font-black · wide tracking · muted (45% opacity)
-                        Clearly a LABEL/DIVIDER, not a clickable link
-                    -->
           <button
             type="button"
-            class="group/head w-full flex items-center gap-2.5 px-2 py-2 rounded-lg
-                               text-[10.5px] font-black uppercase tracking-[0.18em]
-                               text-brand-100/45 hover:text-brand-100/70 hover:bg-white/[0.04]
-                               transition-all duration-150 select-none"
+            class="group/head w-full flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all duration-150 select-none"
+            :class="isUpcomingGroup(group)
+              ? 'text-[10px] font-bold uppercase tracking-[0.14em] text-amber-100/90 bg-amber-400/12 border border-amber-300/25 hover:bg-amber-400/18 hover:text-amber-50'
+              : 'text-[10px] font-bold uppercase tracking-[0.14em] text-brand-100/50 hover:text-brand-100/75 hover:bg-white/[0.04]'"
             @click="toggleGroup(group)"
           >
             <AppIcon
               :name="group.icon"
               :size="13"
-              class="shrink-0 opacity-55 group-hover/head:opacity-80 transition-opacity"
+              class="shrink-0 transition-opacity"
+              :class="isUpcomingGroup(group) ? 'text-amber-200/90' : 'opacity-55 group-hover/head:opacity-80'"
             />
             <span class="flex-1 text-left">{{ group.heading }}</span>
+            <span
+              v-if="isUpcomingGroup(group)"
+              class="shrink-0 rounded-full border border-amber-300/40 bg-amber-400/25 px-1.5 py-0.5 text-[9px] font-bold tabular-nums text-amber-50 leading-none"
+            >
+              {{ group.items.length }}
+            </span>
             <AppIcon
               name="chevron"
               :size="11"
@@ -248,7 +277,8 @@ const userDisplayName = computed(() => user.value?.display_name || user.value?.n
                     -->
           <ul
             v-show="isOpen(group)"
-            class="mt-1 mb-0.5 space-y-0.5"
+            class="mt-0.5 mb-0.5 space-y-px"
+            :class="isUpcomingGroup(group) && 'rounded-lg border border-amber-300/15 bg-amber-950/20 p-1'"
           >
             <li
               v-for="item in group.items"
@@ -257,28 +287,28 @@ const userDisplayName = computed(() => user.value?.display_name || user.value?.n
               <component
                 :is="isPlanned(item) ? 'div' : Link"
                 :href="isPlanned(item) ? undefined : item.href"
-                :title="showBadge(item) ? statusOf(item).label : undefined"
-                class="group/item flex items-center gap-3 rounded-xl px-3.5 py-[0.6875rem] text-[15px] leading-snug transition-all duration-150"
+                :title="isPlanned(item) ? 'Sắp ra mắt — chưa khả dụng' : undefined"
+                class="group/item flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[14px] leading-snug transition-all duration-150"
                 :class="[
                   isActive(item.href)
                     ? 'bg-white/[0.12] text-white font-semibold shadow-sm'
-                    : 'text-brand-100/75 hover:bg-white/[0.06] hover:text-white',
-                  isPlanned(item) && 'cursor-not-allowed text-brand-100/35 hover:bg-transparent hover:text-brand-100/35',
+                    : isUpcomingGroup(group)
+                      ? 'text-amber-100/65 hover:bg-amber-400/10 hover:text-amber-50'
+                      : 'text-brand-100/80 hover:bg-white/[0.06] hover:text-white',
+                  isPlanned(item) && 'cursor-not-allowed',
                 ]"
               >
-                <!-- Icon: brighter when active, dims otherwise -->
                 <AppIcon
                   :name="item.icon"
-                  :size="18"
+                  :size="17"
                   class="shrink-0 transition-opacity"
-                  :class="isActive(item.href) ? 'opacity-100' : 'opacity-60 group-hover/item:opacity-85'"
+                  :class="isActive(item.href) ? 'opacity-100' : 'opacity-55 group-hover/item:opacity-85'"
                 />
 
                 <span class="truncate flex-1">{{ item.label }}</span>
 
-                <!-- Status badge (non-live modules) -->
                 <span
-                  v-if="showBadge(item)"
+                  v-if="showBadge(item, group)"
                   class="ml-auto shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold leading-none"
                   :class="statusOf(item).pill"
                 >
@@ -289,10 +319,16 @@ const userDisplayName = computed(() => user.value?.display_name || user.value?.n
                   {{ statusOf(item).label }}
                 </span>
 
-                <!-- Active dot (live, no badge) -->
+                <AppIcon
+                  v-else-if="isPlanned(item)"
+                  name="clock"
+                  :size="14"
+                  class="ml-auto shrink-0 text-amber-300/70"
+                />
+
                 <span
                   v-else-if="isActive(item.href)"
-                  class="ml-auto h-[7px] w-[7px] rounded-full bg-accent shrink-0"
+                  class="ml-auto h-[6px] w-[6px] rounded-full bg-accent shrink-0"
                 />
               </component>
             </li>

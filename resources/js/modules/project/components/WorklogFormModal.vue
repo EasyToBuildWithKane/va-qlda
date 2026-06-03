@@ -2,6 +2,7 @@
 import { inject, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import Modal from '@/Components/Ui/Modal.vue';
+import PersonSelect from '@/modules/project/components/PersonSelect.vue';
 
 const props = defineProps({
     show: { type: Boolean, default: false },
@@ -47,21 +48,11 @@ const submit = () => {
     >
       <div>
         <label class="label">Người thực hiện</label>
-        <select
+        <PersonSelect
           v-model="form.employee_id"
-          class="input"
-        >
-          <option :value="null">
-            — Chọn —
-          </option>
-          <option
-            v-for="e in employees"
-            :key="e.id"
-            :value="e.id"
-          >
-            {{ e.name }}
-          </option>
-        </select>
+          :options="employees"
+          placeholder="Tìm & chọn người thực hiện…"
+        />
         <p
           v-if="form.errors.employee_id"
           class="mt-1 text-xs text-danger"

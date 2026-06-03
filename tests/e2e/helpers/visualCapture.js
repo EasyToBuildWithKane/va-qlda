@@ -8,13 +8,15 @@ export async function captureFeatureScreen(page, snapshotName, options = {}) {
     const { path, heading } = options;
 
     if (path) {
-        await page.goto(path);
+        await page.goto(path, { waitUntil: 'domcontentloaded' });
     }
 
+    // Inertia + Vue hydrate after DOM; networkidle alone can race a blank #app.
+    await page.locator('#app').waitFor({ state: 'attached', timeout: 20_000 });
     await page.waitForLoadState('networkidle');
 
     if (heading) {
-        await expect(page.getByRole('heading', { name: heading })).toBeVisible({ timeout: 15_000 });
+        await expect(page.getByRole('heading', { name: heading, level: 1 })).toBeVisible({ timeout: 20_000 });
     }
 
     const file = snapshotName.endsWith('.png') ? snapshotName : `${snapshotName}.png`;

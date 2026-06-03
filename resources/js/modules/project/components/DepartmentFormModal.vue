@@ -4,6 +4,7 @@ import { useForm } from '@inertiajs/vue3';
 import Modal from '@/Components/Ui/Modal.vue';
 import FieldTooltip from '@/shared/ui/FieldTooltip.vue';
 import AppIcon from '@/Components/AppIcon.vue';
+import PersonSelect from '@/modules/project/components/PersonSelect.vue';
 
 const props = defineProps({
     show:                { type: Boolean, default: false },
@@ -128,21 +129,11 @@ const submit = () => {
           Trưởng phòng
           <FieldTooltip text="Người phụ trách chính của phòng ban. Có thể để trống và cập nhật sau." />
         </label>
-        <select
+        <PersonSelect
           v-model="form.manager_id"
-          class="input"
-        >
-          <option :value="null">
-            — Chưa phân công —
-          </option>
-          <option
-            v-for="e in employees"
-            :key="e.id"
-            :value="e.id"
-          >
-            {{ e.name }}
-          </option>
-        </select>
+          :options="employees"
+          placeholder="Tìm & chọn trưởng phòng…"
+        />
         <p
           v-if="form.errors.manager_id"
           class="mt-1 text-xs text-danger"

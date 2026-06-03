@@ -58,6 +58,7 @@ const map = {
     bug: Bug,
     task: ListTodo,
     sprint: Rocket,
+    rocket: Rocket,
     cost: Wallet,
     budget: Banknote,
     salary: PiggyBank,

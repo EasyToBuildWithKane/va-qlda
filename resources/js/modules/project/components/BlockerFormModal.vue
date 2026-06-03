@@ -4,6 +4,9 @@ import { useForm } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
 import Modal from '@/Components/Ui/Modal.vue';
 import FieldTooltip from '@/shared/ui/FieldTooltip.vue';
+import PersonSelect from '@/modules/project/components/PersonSelect.vue';
+import SearchSelect from '@/shared/ui/SearchSelect.vue';
+import { valueLabelOptions } from '@/shared/utils/selectOptions';
 
 const props = defineProps({
     show: { type: Boolean, default: false },
@@ -80,6 +83,9 @@ const showProjectBanner = computed(() => props.lockProject || !!projectDisplay.v
 
 const modalTitle = computed(() => (props.blocker ? 'Cập nhật vướng mắc' : 'Ghi nhận vướng mắc'));
 
+const severitySelectOptions = computed(() => valueLabelOptions(props.severityOptions));
+const statusSelectOptions = computed(() => valueLabelOptions(props.statusOptions));
+
 const submit = () => {
     const opts = { preserveScroll: true, onSuccess: () => { emit('saved'); emit('close'); } };
     if (props.blocker) form.put(`/blockers/${props.blocker.id}`, opts);
@@ -134,21 +140,12 @@ const submit = () => {
           Dự án
           <FieldTooltip text="Chọn dự án mà vướng mắc này thuộc về." />
         </label>
-        <select
+        <SearchSelect
           v-model="form.project_id"
-          class="input"
-        >
-          <option :value="null">
-            — Chọn dự án —
-          </option>
-          <option
-            v-for="p in projects"
-            :key="p.id"
-            :value="p.id"
-          >
-            {{ p.name }}
-          </option>
-        </select>
+          :options="projects"
+          placeholder="Tìm & chọn dự án…"
+          search-placeholder="Tìm dự án…"
+        />
         <p
           v-if="form.errors.project_id"
           class="mt-1 text-xs text-danger"
@@ -222,36 +219,24 @@ const submit = () => {
                 Mức độ
                 <FieldTooltip text="Mức độ nghiêm trọng / ưu tiên xử lý của vướng mắc." />
               </label>
-              <select
+              <SearchSelect
                 v-model="form.severity"
-                class="input"
-              >
-                <option
-                  v-for="o in severityOptions"
-                  :key="o.value"
-                  :value="o.value"
-                >
-                  {{ o.label }}
-                </option>
-              </select>
+                :options="severitySelectOptions"
+                placeholder="Chọn mức độ…"
+                :clearable="false"
+              />
             </div>
             <div>
               <label class="label flex items-center gap-1.5">
                 Trạng thái
                 <FieldTooltip text="Trạng thái xử lý hiện tại của vướng mắc." />
               </label>
-              <select
+              <SearchSelect
                 v-model="form.status"
-                class="input"
-              >
-                <option
-                  v-for="o in statusOptions"
-                  :key="o.value"
-                  :value="o.value"
-                >
-                  {{ o.label }}
-                </option>
-              </select>
+                :options="statusSelectOptions"
+                placeholder="Chọn trạng thái…"
+                :clearable="false"
+              />
             </div>
           </div>
 
@@ -272,21 +257,11 @@ const submit = () => {
                 Người phụ trách
                 <FieldTooltip text="Người chịu trách nhiệm theo dõi và xử lý vướng mắc." />
               </label>
-              <select
+              <PersonSelect
                 v-model="form.owner_id"
-                class="input"
-              >
-                <option :value="null">
-                  — Chưa giao —
-                </option>
-                <option
-                  v-for="e in employees"
-                  :key="e.id"
-                  :value="e.id"
-                >
-                  {{ e.name }}
-                </option>
-              </select>
+                :options="employees"
+                placeholder="Tìm & chọn người phụ trách…"
+              />
             </div>
           </div>
 

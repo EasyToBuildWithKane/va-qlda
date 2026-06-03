@@ -2,6 +2,9 @@
 import { computed, inject, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import Modal from '@/Components/Ui/Modal.vue';
+import PersonSelect from '@/modules/project/components/PersonSelect.vue';
+import SearchSelect from '@/shared/ui/SearchSelect.vue';
+import { valueLabelOptions } from '@/shared/utils/selectOptions';
 
 const props = defineProps({
     show: { type: Boolean, default: false },
@@ -46,6 +49,9 @@ const selectableEmployees = computed(() => {
     return props.employees.filter((e) => !selectedMemberIds.value.has(e.id));
 });
 
+const roleSelectOptions = computed(() => valueLabelOptions(roleOptions));
+const rateTypeSelectOptions = computed(() => valueLabelOptions(rateTypeOptions));
+
 watch(() => props.show, (open) => {
     if (!open) return;
     form.clearErrors();
@@ -82,22 +88,12 @@ const submit = () => {
     >
       <div>
         <label class="label">Nhân sự <span class="text-rose-500">*</span></label>
-        <select
+        <PersonSelect
           v-model="form.employee_id"
-          class="input"
+          :options="selectableEmployees"
+          placeholder="Tìm & chọn nhân sự…"
           :disabled="!!member"
-        >
-          <option :value="null">
-            — Chọn nhân sự —
-          </option>
-          <option
-            v-for="e in selectableEmployees"
-            :key="e.id"
-            :value="e.id"
-          >
-            {{ e.name }}
-          </option>
-        </select>
+        />
         <p
           v-if="form.errors.employee_id"
           class="mt-1 text-xs text-danger"
@@ -115,18 +111,12 @@ const submit = () => {
       <div class="grid grid-cols-2 gap-4">
         <div>
           <label class="label">Vai trò <span class="text-rose-500">*</span></label>
-          <select
+          <SearchSelect
             v-model="form.role"
-            class="input"
-          >
-            <option
-              v-for="r in roleOptions"
-              :key="r.value"
-              :value="r.value"
-            >
-              {{ r.label }}
-            </option>
-          </select>
+            :options="roleSelectOptions"
+            placeholder="Chọn vai trò…"
+            :clearable="false"
+          />
           <p
             v-if="form.errors.role"
             class="mt-1 text-xs text-danger"
@@ -136,18 +126,12 @@ const submit = () => {
         </div>
         <div>
           <label class="label">Kiểu lương <span class="text-rose-500">*</span></label>
-          <select
+          <SearchSelect
             v-model="form.rate_type"
-            class="input"
-          >
-            <option
-              v-for="r in rateTypeOptions"
-              :key="r.value"
-              :value="r.value"
-            >
-              {{ r.label }}
-            </option>
-          </select>
+            :options="rateTypeSelectOptions"
+            placeholder="Chọn kiểu lương…"
+            :clearable="false"
+          />
           <p
             v-if="form.errors.rate_type"
             class="mt-1 text-xs text-danger"

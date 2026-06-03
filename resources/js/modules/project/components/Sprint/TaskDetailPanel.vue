@@ -20,6 +20,7 @@ import {
     useTaskPanelLayout,
 } from '@/composables/useTaskWorkspace';
 import { normalizeList, normalizeEntities, normalizeKeyed } from '@/composables/useNormalizeList';
+import { matchesSearchKey } from '@/shared/utils/normalizeSearchKey';
 
 const props = defineProps({
     task: { type: Object, default: null },
@@ -47,6 +48,7 @@ const toast = useToast();
 const tab = ref('overview');
 const showStatusMenu = ref(false);
 const showAssignMenu = ref(false);
+const assignMenuSearch = ref('');
 const collaborationRef = ref(null);
 
 const { patchTaskStatus } = useSprintTaskStatusPatch(props.projectId, props.statusOptions);
@@ -106,6 +108,7 @@ const onStatusPick = (status) => {
 
 const onAssignPick = (employeeId) => {
     showAssignMenu.value = false;
+    assignMenuSearch.value = '';
     if (!activeTask.value?.id) return;
     router.patch(`/projects/${props.projectId}/tasks/${activeTask.value.id}`, {
         assignee_id: employeeId || null,
@@ -187,6 +190,11 @@ const projectDocList = computed(() =>
 );
 
 const employeeList = computed(() => normalizeEntities(props.employees));
+const filteredAssignees = computed(() => {
+    const q = assignMenuSearch.value.trim();
+    if (!q) return employeeList.value;
+    return employeeList.value.filter((e) => matchesSearchKey(e.name, q));
+});
 const statusOptionList = computed(() =>
     normalizeList(props.statusOptions).filter((o) => o?.value != null),
 );
@@ -367,24 +375,41 @@ const worklogList = computed(() => normalizeEntities(activeTask.value?.worklogs)
                 </button>
                 <div
                   v-if="showAssignMenu"
-                  class="absolute left-0 top-full z-20 mt-1 max-h-48 min-w-[11rem] overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-900"
+                  class="absolute left-0 top-full z-20 mt-1 min-w-[14rem] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900"
                 >
-                  <button
-                    type="button"
-                    class="w-full px-3 py-1.5 text-left text-xs text-slate-500 hover:bg-slate-50"
-                    @click="onAssignPick(null)"
-                  >
-                    — Chưa gán —
-                  </button>
-                  <button
-                    v-for="e in employeeList"
-                    :key="e.id"
-                    type="button"
-                    class="w-full px-3 py-1.5 text-left text-xs hover:bg-slate-50 dark:hover:bg-slate-800"
-                    @click="onAssignPick(e.id)"
-                  >
-                    {{ e.name }}
-                  </button>
+                  <div class="border-b border-slate-100 p-1.5 dark:border-slate-700">
+                    <input
+                      v-model="assignMenuSearch"
+                      type="text"
+                      class="input w-full py-1 text-xs"
+                      placeholder="Tìm theo tên…"
+                      autofocus
+                    >
+                  </div>
+                  <div class="max-h-44 overflow-y-auto py-1">
+                    <button
+                      type="button"
+                      class="w-full px-3 py-1.5 text-left text-xs text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800"
+                      @click="onAssignPick(null)"
+                    >
+                      — Chưa gán —
+                    </button>
+                    <button
+                      v-for="e in filteredAssignees"
+                      :key="e.id"
+                      type="button"
+                      class="w-full px-3 py-1.5 text-left text-xs hover:bg-slate-50 dark:hover:bg-slate-800"
+                      @click="onAssignPick(e.id)"
+                    >
+                      {{ e.name }}
+                    </button>
+                    <p
+                      v-if="!filteredAssignees.length"
+                      class="px-3 py-2 text-center text-xs text-slate-400"
+                    >
+                      Không tìm thấy.
+                    </p>
+                  </div>
                 </div>
               </div>
 

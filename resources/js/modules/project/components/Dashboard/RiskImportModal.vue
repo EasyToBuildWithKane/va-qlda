@@ -3,6 +3,8 @@ import { ref, computed, inject } from 'vue';
 import { router } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
 import Modal from '@/Components/Ui/Modal.vue';
+import SearchSelect from '@/shared/ui/SearchSelect.vue';
+import { valueLabelOptions } from '@/shared/utils/selectOptions';
 import { useConfirmDelete } from '@/composables/useConfirmClose';
 import {
     downloadRiskImportTemplate,
@@ -47,6 +49,16 @@ const validRows = computed(() => previewRows.value.filter((r) => r.valid));
 const invalidRows = computed(() => previewRows.value.filter((r) => !r.valid));
 const displayedRows = computed(() => (previewTab.value === 'valid' ? validRows.value : invalidRows.value));
 const canSubmit = computed(() => validRows.value.length > 0 && !importing.value);
+
+const severitySelectOptions = computed(() => [
+    { id: '', name: '—' },
+    ...valueLabelOptions(props.severityOptions),
+]);
+const statusSelectOptions = computed(() => valueLabelOptions(props.statusOptions));
+const ownerSelectOptions = computed(() => [
+    { id: '', name: '—' },
+    ...props.employees,
+]);
 
 const reset = () => {
     step.value = 'guide';
@@ -444,55 +456,31 @@ const submitImport = () => {
                 >
               </td>
               <td class="px-1 py-1.5">
-                <select
+                <SearchSelect
                   v-model="row.edit.severity"
-                  class="input w-full py-1 text-xs"
-                  @change="onRowChange(row)"
-                >
-                  <option value="">
-                    —
-                  </option>
-                  <option
-                    v-for="o in severityOptions"
-                    :key="o.value"
-                    :value="o.value"
-                  >
-                    {{ o.label }}
-                  </option>
-                </select>
+                  :options="severitySelectOptions"
+                  placeholder="Mức độ…"
+                  :clearable="false"
+                  @update:model-value="onRowChange(row)"
+                />
               </td>
               <td class="px-1 py-1.5">
-                <select
+                <SearchSelect
                   v-model="row.edit.status"
-                  class="input w-full py-1 text-xs"
-                  @change="onRowChange(row)"
-                >
-                  <option
-                    v-for="o in statusOptions"
-                    :key="o.value"
-                    :value="o.value"
-                  >
-                    {{ o.label }}
-                  </option>
-                </select>
+                  :options="statusSelectOptions"
+                  placeholder="Trạng thái…"
+                  :clearable="false"
+                  @update:model-value="onRowChange(row)"
+                />
               </td>
               <td class="px-1 py-1.5">
-                <select
+                <SearchSelect
                   v-model="row.edit.owner_id"
-                  class="input w-full py-1 text-xs"
-                  @change="onRowChange(row)"
-                >
-                  <option value="">
-                    —
-                  </option>
-                  <option
-                    v-for="e in employees"
-                    :key="e.id"
-                    :value="e.id"
-                  >
-                    {{ e.name }}
-                  </option>
-                </select>
+                  :options="ownerSelectOptions"
+                  placeholder="Người phụ trách…"
+                  show-avatar
+                  @update:model-value="onRowChange(row)"
+                />
               </td>
               <td class="px-1 py-1.5">
                 <input

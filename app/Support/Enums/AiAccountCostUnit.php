@@ -5,6 +5,7 @@ namespace App\Support\Enums;
 enum AiAccountCostUnit: string
 {
     case Monthly = 'monthly';
+    case Quarterly = 'quarterly';
     case Yearly = 'yearly';
     case OneTime = 'one_time';
 
@@ -12,6 +13,7 @@ enum AiAccountCostUnit: string
     {
         return match ($this) {
             self::Monthly => 'tháng',
+            self::Quarterly => 'quý',
             self::Yearly => 'năm',
             self::OneTime => 'một lần',
         };
@@ -30,6 +32,7 @@ enum AiAccountCostUnit: string
             'value' => $c->value,
             'label' => match ($c) {
                 self::Monthly => 'Hàng tháng',
+                self::Quarterly => 'Hàng quý',
                 self::Yearly => 'Hàng năm',
                 self::OneTime => 'Một lần',
             },

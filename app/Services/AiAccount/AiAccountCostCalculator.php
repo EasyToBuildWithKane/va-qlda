@@ -12,6 +12,7 @@ class AiAccountCostCalculator
     {
         return match ($unit) {
             AiAccountCostUnit::Monthly => $costAmount,
+            AiAccountCostUnit::Quarterly => (int) round($costAmount / 3),
             AiAccountCostUnit::Yearly => (int) round($costAmount / 12),
             AiAccountCostUnit::OneTime => 0,
         };

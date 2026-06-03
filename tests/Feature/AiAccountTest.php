@@ -55,6 +55,18 @@ class AiAccountTest extends TestCase
         $this->get(route('ai-accounts.index'))->assertRedirect(route('login'));
     }
 
+    public function test_cost_report_page_renders_for_authenticated_user(): void
+    {
+        $this->actingAsUser();
+
+        $this->get(route('ai-accounts.cost-report'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('AiAccount/CostReport')
+                ->has('options.proposal_type')
+            );
+    }
+
     public function test_can_create_and_list_grouped(): void
     {
         $this->actingAsUser();

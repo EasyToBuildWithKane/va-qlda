@@ -7,6 +7,8 @@ import FieldTooltip from '@/shared/ui/FieldTooltip.vue';
 import RadioCard from '@/shared/ui/RadioCard.vue';
 import MultiChips from '@/shared/ui/MultiChips.vue';
 import PersonSelect from '@/modules/project/components/PersonSelect.vue';
+import SearchSelect from '@/shared/ui/SearchSelect.vue';
+import { valueLabelOptions } from '@/shared/utils/selectOptions';
 import { useDialog } from '@/composables/useDialog';
 import { useToast } from '@/shared/composables/useToast';
 import {
@@ -54,6 +56,8 @@ const form = useForm({
 });
 
 const departmentChips = computed(() => props.departmentOptions.map((d) => ({ value: d.id, label: d.name })));
+const typeSelectOptions = computed(() => valueLabelOptions(props.typeOptions));
+const statusSelectOptions = computed(() => valueLabelOptions(props.statusOptions));
 
 watch(() => form.scope, (s) => {
     if (s !== 'regional') form.scope_regions = [];
@@ -605,18 +609,12 @@ const submit = (after = 'close') => {
                   Loại dự án <span class="text-danger">*</span>
                   <FieldTooltip text="Vòng đời dự án: nghiên cứu, triển khai hoặc vận hành." />
                 </label>
-                <select
+                <SearchSelect
                   v-model="form.type"
-                  class="input"
-                >
-                  <option
-                    v-for="o in typeOptions"
-                    :key="o.value"
-                    :value="o.value"
-                  >
-                    {{ o.label }}
-                  </option>
-                </select>
+                  :options="typeSelectOptions"
+                  placeholder="Chọn loại dự án…"
+                  :clearable="false"
+                />
                 <p
                   v-if="form.errors.type"
                   class="mt-1 text-xs text-danger"
@@ -732,23 +730,15 @@ const submit = (after = 'close') => {
                 Phòng ban phụ trách
                 <FieldTooltip text="Phòng ban chịu trách nhiệm chính (khác với phạm vi áp dụng)." />
               </label>
-              <select
-                v-model="form.department_id"
-                class="input sm:max-w-sm"
-                :class="errFor('department_id') ? 'border-danger focus:border-danger focus:ring-danger/30' : ''"
-                @change="touch('department_id')"
-              >
-                <option :value="null">
-                  — Tự gán theo cấu hình —
-                </option>
-                <option
-                  v-for="d in departmentOptions"
-                  :key="d.id"
-                  :value="d.id"
-                >
-                  {{ d.name }}
-                </option>
-              </select>
+              <div class="sm:max-w-sm">
+                <SearchSelect
+                  v-model="form.department_id"
+                  :options="departmentOptions"
+                  placeholder="Tìm & chọn phòng ban…"
+                  search-placeholder="Tìm phòng ban…"
+                  @update:model-value="touch('department_id')"
+                />
+              </div>
               <p
                 v-if="isCreate && !form.department_id"
                 class="mt-1 text-xs text-slate-500"
@@ -840,18 +830,12 @@ const submit = (after = 'close') => {
               </div>
               <div>
                 <label class="label">Trạng thái dự án</label>
-                <select
+                <SearchSelect
                   v-model="form.status"
-                  class="input"
-                >
-                  <option
-                    v-for="o in statusOptions"
-                    :key="o.value"
-                    :value="o.value"
-                  >
-                    {{ o.label }}
-                  </option>
-                </select>
+                  :options="statusSelectOptions"
+                  placeholder="Chọn trạng thái…"
+                  :clearable="false"
+                />
               </div>
             </div>
             <label class="flex items-center gap-2 text-sm text-slate-600">

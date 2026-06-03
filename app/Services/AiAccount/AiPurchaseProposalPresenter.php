@@ -28,15 +28,17 @@ class AiPurchaseProposalPresenter
 
     /**
      * @param  Collection<int, AiPurchaseProposal>  $proposals
-     * @return array{pending: int, approved: int, rejected: int}
+     * @return array<string, int>
      */
     public function counts(Collection $proposals): array
     {
-        return [
-            'pending' => $proposals->where('status', AiPurchaseProposalStatus::Pending)->count(),
-            'approved' => $proposals->where('status', AiPurchaseProposalStatus::Approved)->count(),
-            'rejected' => $proposals->where('status', AiPurchaseProposalStatus::Rejected)->count(),
-        ];
+        $counts = [];
+        foreach (AiPurchaseProposalStatus::cases() as $status) {
+            $counts[$status->value] = $proposals->where('status', $status)->count();
+        }
+        $counts['total'] = $proposals->count();
+
+        return $counts;
     }
 
     /**
@@ -58,16 +60,26 @@ class AiPurchaseProposalPresenter
 
         return [
             'id' => $proposal->id,
+            'proposal_code' => $proposal->proposal_code,
+            'proposal_type' => $proposal->proposal_type?->value,
+            'proposal_type_label' => $proposal->proposal_type?->labelVi(),
             'subject_about' => $proposal->subject_about,
             'send_to' => $proposal->send_to,
             'tool_name' => $proposal->tool_name,
+            'vendor_name' => $proposal->vendor_name,
+            'vendor_website' => $proposal->vendor_website,
             'proposer_name' => $proposal->proposer_name,
             'proposer_position' => $proposal->proposer_position,
             'proposer_department' => $proposal->proposer_department,
             'proposal_content' => $proposal->proposal_content,
+            'description' => $proposal->description,
+            'reason_for_proposal' => $proposal->reason_for_proposal,
+            'expected_benefit' => $proposal->expected_benefit,
             'objectives' => $proposal->objectives,
             'quantity' => $proposal->quantity,
             'staff_count' => $proposal->staff_count,
+            'users_list' => $proposal->users_list ?? [],
+            'department_using' => $proposal->department_using,
             'recipient_name' => $proposal->recipient_name,
             'recipient_position' => $proposal->recipient_position,
             'recipient_email' => $proposal->recipient_email,
@@ -76,6 +88,9 @@ class AiPurchaseProposalPresenter
             'purchase_type_label' => $proposal->purchase_type?->labelVi() ?? 'Mua mới',
             'registration_email' => $proposal->registration_email,
             'planned_use_date' => $proposal->planned_use_date?->format('Y-m-d'),
+            'start_date' => $proposal->start_date?->format('Y-m-d'),
+            'end_date' => $proposal->end_date?->format('Y-m-d'),
+            'attachment_paths' => $proposal->attachment_paths ?? [],
             'export_pdf_url' => route('api.ai-accounts.proposals.export.pdf', ['proposal' => $proposal->id]),
             'export_docx_url' => route('api.ai-accounts.proposals.export.docx', ['proposal' => $proposal->id]),
             'group_function' => $proposal->group_function->value,
@@ -83,7 +98,9 @@ class AiPurchaseProposalPresenter
             'group_label' => $this->groupLabel($proposal->group_function),
             'license_type' => $proposal->license_type,
             'cost_amount' => $proposal->cost_amount,
+            'actual_cost' => $proposal->actual_cost,
             'cost_unit' => $proposal->cost_unit->value,
+            'cost_unit_label' => $proposal->cost_unit->labelVi(),
             'cost_monthly' => $monthly,
             'seats' => $proposal->seats,
             'justification' => $proposal->justification,

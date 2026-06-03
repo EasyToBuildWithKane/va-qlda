@@ -1,8 +1,10 @@
 <script setup>
 import { ref, computed, watch, onUnmounted, inject } from 'vue';
 import { useForm } from '@inertiajs/vue3';
-import Avatar from '@/shared/ui/Avatar.vue';
 import AppIcon from '@/Components/AppIcon.vue';
+import PersonMultiSelect from '@/modules/project/components/PersonMultiSelect.vue';
+import SearchSelect from '@/shared/ui/SearchSelect.vue';
+import { valueLabelOptions } from '@/shared/utils/selectOptions';
 import { useToast } from '@/shared/composables/useToast';
 import {
     BULK_MAX_ROWS,
@@ -95,12 +97,6 @@ const lineCountInText = computed(() => {
     const parsed = parseBulkText(bulkText.value);
     return parsed.length;
 });
-
-const toggleAssignee = (id) => {
-    const idx = defaults.value.assignee_ids.indexOf(id);
-    if (idx === -1) defaults.value.assignee_ids = [...defaults.value.assignee_ids, id];
-    else defaults.value.assignee_ids = defaults.value.assignee_ids.filter((x) => x !== id);
-};
 
 const syncRowsFromText = () => {
     bulkRows.value = parseBulkText(bulkText.value);
@@ -201,6 +197,10 @@ const selectedSprintName = computed(() => {
     if (!defaults.value.sprint_id) return null;
     return props.sprints.find((s) => s.id === defaults.value.sprint_id)?.name;
 });
+
+const statusSelectOptions = computed(() => valueLabelOptions(props.statusOptions));
+const prioritySelectOptions = computed(() => valueLabelOptions(props.priorityOptions));
+const phaseSelectOptions = computed(() => valueLabelOptions(props.phaseOptions));
 </script>
 
 <template>
@@ -249,92 +249,48 @@ const selectedSprintName = computed(() => {
       <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div>
           <label class="label text-[11px]">Sprint</label>
-          <select
+          <SearchSelect
             v-model="defaults.sprint_id"
-            class="input py-1.5 text-sm"
-          >
-            <option :value="null">
-              — Không gán —
-            </option>
-            <option
-              v-for="s in sprints"
-              :key="s.id"
-              :value="s.id"
-            >
-              {{ s.name }}
-            </option>
-          </select>
+            :options="sprints"
+            placeholder="Tìm sprint…"
+            search-placeholder="Tìm sprint…"
+          />
         </div>
         <div>
           <label class="label text-[11px]">Trạng thái</label>
-          <select
+          <SearchSelect
             v-model="defaults.status"
-            class="input py-1.5 text-sm"
-          >
-            <option
-              v-for="o in statusOptions"
-              :key="o.value"
-              :value="o.value"
-            >
-              {{ o.label }}
-            </option>
-          </select>
+            :options="statusSelectOptions"
+            placeholder="Trạng thái…"
+            :clearable="false"
+          />
         </div>
         <div>
           <label class="label text-[11px]">Ưu tiên</label>
-          <select
+          <SearchSelect
             v-model="defaults.priority"
-            class="input py-1.5 text-sm"
-          >
-            <option
-              v-for="o in priorityOptions"
-              :key="o.value"
-              :value="o.value"
-            >
-              {{ o.label }}
-            </option>
-          </select>
+            :options="prioritySelectOptions"
+            placeholder="Ưu tiên…"
+            :clearable="false"
+          />
         </div>
         <div>
           <label class="label text-[11px]">Giai đoạn</label>
-          <select
+          <SearchSelect
             v-model="defaults.phase"
-            class="input py-1.5 text-sm"
-          >
-            <option
-              v-for="p in phaseOptions"
-              :key="p.value"
-              :value="p.value"
-            >
-              {{ p.label }}
-            </option>
-          </select>
+            :options="phaseSelectOptions"
+            placeholder="Giai đoạn…"
+            :clearable="false"
+          />
         </div>
       </div>
       <div class="mt-3">
         <label class="label text-[11px]">Người thực hiện (áp dụng tất cả)</label>
-        <div class="flex flex-wrap gap-1.5">
-          <label
-            v-for="e in employees"
-            :key="e.id"
-            class="flex cursor-pointer items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition
-                               has-[:checked]:border-brand has-[:checked]:bg-brand-50 has-[:checked]:text-brand-700
-                               border-slate-200 text-slate-600 hover:border-slate-300 dark:border-slate-600"
-          >
-            <input
-              type="checkbox"
-              class="sr-only"
-              :checked="defaults.assignee_ids.includes(e.id)"
-              @change="toggleAssignee(e.id)"
-            >
-            <Avatar
-              :name="e.name"
-              :src="e.avatar_path"
-              :size="18"
-            />
-            <span>{{ e.name }}</span>
-          </label>
-        </div>
+        <PersonMultiSelect
+          v-model="defaults.assignee_ids"
+          :options="employees"
+          placeholder="Tìm & thêm người thực hiện…"
+        />
       </div>
       <p
         v-if="selectedSprintName"

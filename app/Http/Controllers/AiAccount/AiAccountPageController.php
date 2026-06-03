@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\AiAccount;
 use App\Support\Enums\AiAccountCostUnit;
 use App\Support\Enums\AiAccountGroupFunction;
+use App\Support\Enums\AiPurchaseProposalStatus;
+use App\Support\Enums\ProposalType;
 use App\Support\Enums\SystemRole;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -50,6 +52,8 @@ class AiAccountPageController extends Controller
                 'group_function' => AiAccountGroupFunction::options(),
                 'cost_unit' => AiAccountCostUnit::options(),
                 'license_types' => config('ai_accounts.license_types', []),
+                'proposal_type' => ProposalType::options(),
+                'proposal_status' => AiPurchaseProposalStatus::options(),
                 'purchase_type' => [
                     ['value' => 'new', 'label' => 'Mua mới'],
                     ['value' => 'renewal', 'label' => 'Gia hạn'],

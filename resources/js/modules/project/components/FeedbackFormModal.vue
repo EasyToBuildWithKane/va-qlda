@@ -1,7 +1,10 @@
 <script setup>
-import { ref, inject, watch } from 'vue';
+import { ref, computed, inject, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import Modal from '@/Components/Ui/Modal.vue';
+import PersonSelect from '@/modules/project/components/PersonSelect.vue';
+import SearchSelect from '@/shared/ui/SearchSelect.vue';
+import { valueLabelOptions } from '@/shared/utils/selectOptions';
 
 const props = defineProps({
     show: { type: Boolean, default: false },
@@ -46,6 +49,13 @@ watch(reporterType, (t) => {
     else { form.reporter_employee_id = null; }
 });
 
+const categorySelectOptions = computed(() => valueLabelOptions(props.categoryOptions));
+const statusSelectOptions = computed(() => valueLabelOptions(props.statusOptions));
+const prioritySelectOptions = computed(() => valueLabelOptions(props.priorityOptions));
+const ratingSelectOptions = computed(() =>
+    [1, 2, 3, 4, 5].map((n) => ({ id: n, name: `${n} ★` })),
+);
+
 const submit = () => {
     const opts = { preserveScroll: true, onSuccess: () => { emit('saved'); emit('close'); } };
     if (props.feedback) form.put(`/feedback/${props.feedback.id}`, opts);
@@ -68,39 +78,20 @@ const submit = () => {
       <div class="grid grid-cols-2 gap-4">
         <div>
           <label class="label">Dự án (tuỳ chọn)</label>
-          <select
+          <SearchSelect
             v-model="form.project_id"
-            class="input"
-          >
-            <option :value="null">
-              — Không gắn —
-            </option>
-            <option
-              v-for="p in projects"
-              :key="p.id"
-              :value="p.id"
-            >
-              {{ p.name }}
-            </option>
-          </select>
+            :options="projects"
+            placeholder="Tìm & chọn dự án…"
+            search-placeholder="Tìm dự án…"
+          />
         </div>
         <div>
           <label class="label">Người xử lý</label>
-          <select
+          <PersonSelect
             v-model="form.assignee_id"
-            class="input"
-          >
-            <option :value="null">
-              — Chưa giao —
-            </option>
-            <option
-              v-for="e in employees"
-              :key="e.id"
-              :value="e.id"
-            >
-              {{ e.name }}
-            </option>
-          </select>
+            :options="employees"
+            placeholder="Tìm & chọn người xử lý…"
+          />
         </div>
       </div>
 
@@ -137,68 +128,42 @@ const submit = () => {
       <div class="grid grid-cols-3 gap-4">
         <div>
           <label class="label">Phân loại</label>
-          <select
+          <SearchSelect
             v-model="form.category"
-            class="input"
-          >
-            <option
-              v-for="o in categoryOptions"
-              :key="o.value"
-              :value="o.value"
-            >
-              {{ o.label }}
-            </option>
-          </select>
+            :options="categorySelectOptions"
+            placeholder="Chọn phân loại…"
+            :clearable="false"
+          />
         </div>
         <div>
           <label class="label">Ưu tiên</label>
-          <select
+          <SearchSelect
             v-model="form.priority"
-            class="input"
-          >
-            <option
-              v-for="o in priorityOptions"
-              :key="o.value"
-              :value="o.value"
-            >
-              {{ o.label }}
-            </option>
-          </select>
+            :options="prioritySelectOptions"
+            placeholder="Chọn ưu tiên…"
+            :clearable="false"
+          />
         </div>
         <div>
           <label class="label">Trạng thái</label>
-          <select
+          <SearchSelect
             v-model="form.status"
-            class="input"
-          >
-            <option
-              v-for="o in statusOptions"
-              :key="o.value"
-              :value="o.value"
-            >
-              {{ o.label }}
-            </option>
-          </select>
+            :options="statusSelectOptions"
+            placeholder="Chọn trạng thái…"
+            :clearable="false"
+          />
         </div>
       </div>
 
       <div>
         <label class="label">Đánh giá (1–5)</label>
-        <select
-          v-model.number="form.rating"
-          class="input w-32"
-        >
-          <option :value="null">
-            —
-          </option>
-          <option
-            v-for="n in 5"
-            :key="n"
-            :value="n"
-          >
-            {{ n }} ★
-          </option>
-        </select>
+        <div class="max-w-xs">
+          <SearchSelect
+            v-model="form.rating"
+            :options="ratingSelectOptions"
+            placeholder="Chọn điểm…"
+          />
+        </div>
       </div>
 
       <fieldset
@@ -220,22 +185,12 @@ const submit = () => {
             value="external"
           > Người dùng</label>
         </div>
-        <select
+        <PersonSelect
           v-if="reporterType === 'internal'"
           v-model="form.reporter_employee_id"
-          class="input"
-        >
-          <option :value="null">
-            — Chọn nhân sự —
-          </option>
-          <option
-            v-for="e in employees"
-            :key="e.id"
-            :value="e.id"
-          >
-            {{ e.name }}
-          </option>
-        </select>
+          :options="employees"
+          placeholder="Tìm & chọn người gửi…"
+        />
         <div
           v-else
           class="grid grid-cols-2 gap-3"

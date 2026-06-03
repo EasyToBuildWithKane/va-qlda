@@ -1,9 +1,12 @@
 <script setup>
 import { ref, watch, computed, inject, onUnmounted } from 'vue';
+import SearchSelect from '@/shared/ui/SearchSelect.vue';
+import { valueLabelOptions } from '@/shared/utils/selectOptions';
 import { useForm } from '@inertiajs/vue3';
 import Modal from '@/Components/Ui/Modal.vue';
-import Avatar from '@/shared/ui/Avatar.vue';
 import AppIcon from '@/Components/AppIcon.vue';
+import PersonSelect from '@/modules/project/components/PersonSelect.vue';
+import PersonMultiSelect from '@/modules/project/components/PersonMultiSelect.vue';
 import TaskFormBulkPanel from '@/modules/project/components/TaskFormBulkPanel.vue';
 
 const props = defineProps({
@@ -114,12 +117,6 @@ watch(() => props.show, (open) => {
     }
 });
 
-const toggleAssignee = (id) => {
-    const idx = form.assignee_ids.indexOf(id);
-    if (idx === -1) form.assignee_ids = [...form.assignee_ids, id];
-    else form.assignee_ids = form.assignee_ids.filter((x) => x !== id);
-};
-
 const submit = () => {
     form.transform(({ progress_percent, ...data }) => ({
         ...data,
@@ -144,6 +141,10 @@ const onBulkSaved = () => {
 
 const dependencyOptions = computed(() => props.tasks.filter((t) => !props.task || t.id !== props.task.id));
 
+const statusSelectOptions = computed(() => valueLabelOptions(props.statusOptions));
+const prioritySelectOptions = computed(() => valueLabelOptions(props.priorityOptions));
+const phaseSelectOptions = computed(() => valueLabelOptions(props.phaseOptions));
+
 const syncProgressFromStatus = () => {
     if (form.status === 'done') form.progress_percent = 100;
     else if (form.status === 'todo' || form.status === 'blocked') form.progress_percent = 0;
@@ -157,7 +158,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
     :show="show"
     :dirty="modalDirty"
     :title="modalTitle"
-    max-width="max-w-6xl"
+    max-width="max-w-[min(96rem,calc(100vw-2rem))]"
     @close="emit('close')"
   >
     <!-- Mode tabs (create only) -->
@@ -215,184 +216,90 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
     <!-- Single create / edit -->
     <form
       v-else
-      class="space-y-3"
+      class="space-y-5"
       @submit.prevent="submit"
     >
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div class="space-y-3">
-          <div>
-            <label class="label">Tiêu đề <span class="text-rose-500">*</span></label>
-            <input
-              v-model="form.title"
-              type="text"
-              class="input"
-              placeholder="Mô tả ngắn gọn công việc cần làm…"
-            >
-            <p
-              v-if="form.errors.title"
-              class="mt-1 text-xs text-danger"
-            >
-              {{ form.errors.title }}
-            </p>
-          </div>
-
-          <div>
-            <label class="label">Mô tả chi tiết</label>
-            <textarea
-              v-model="form.description"
-              rows="3"
-              class="input resize-none"
-              placeholder="Yêu cầu, tiêu chí hoàn thành, tài liệu tham khảo…"
-            />
-          </div>
-
-          <div class="rounded-card border border-slate-200 p-3 dark:border-slate-700">
-            <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Nhân sự
-            </p>
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div class="sm:col-span-2">
-                <label class="label">
-                  Người thực hiện
-                  <span
-                    class="ml-1 cursor-help text-slate-400"
-                    title="Có thể chọn nhiều người cùng thực hiện công việc này."
-                  >ⓘ</span>
-                </label>
-                <div class="flex flex-wrap gap-2">
-                  <label
-                    v-for="e in employees"
-                    :key="e.id"
-                    class="flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1 text-sm transition
-                                               has-[:checked]:border-brand has-[:checked]:bg-brand-50 has-[:checked]:text-brand-700
-                                               border-slate-200 text-slate-600 hover:border-slate-300"
-                  >
-                    <input
-                      type="checkbox"
-                      class="sr-only"
-                      :checked="form.assignee_ids.includes(e.id)"
-                      @change="toggleAssignee(e.id)"
-                    >
-                    <Avatar
-                      :name="e.name"
-                      :src="e.avatar_path"
-                      :size="20"
-                    />
-                    <span>{{ e.name }}</span>
-                  </label>
-                </div>
-              </div>
-
-              <div>
-                <label class="label">Người giao việc</label>
-                <select
-                  v-model="form.reporter_id"
-                  class="input"
-                >
-                  <option :value="null">
-                    — Chưa chọn —
-                  </option>
-                  <option
-                    v-for="e in employees"
-                    :key="e.id"
-                    :value="e.id"
-                  >
-                    {{ e.name }}
-                  </option>
-                </select>
-              </div>
-
-              <div>
-                <label class="label">Người duyệt / Kiểm tra</label>
-                <select
-                  v-model="form.reviewer_id"
-                  class="input"
-                >
-                  <option :value="null">
-                    — Chưa chọn —
-                  </option>
-                  <option
-                    v-for="e in employees"
-                    :key="e.id"
-                    :value="e.id"
-                  >
-                    {{ e.name }}
-                  </option>
-                </select>
-              </div>
-            </div>
-          </div>
+      <!-- Nội dung -->
+      <section class="space-y-4">
+        <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+          Nội dung công việc
+        </p>
+        <div>
+          <label class="label">Tiêu đề <span class="text-rose-500">*</span></label>
+          <input
+            v-model="form.title"
+            type="text"
+            class="input text-base"
+            placeholder="Mô tả ngắn gọn công việc cần làm…"
+          >
+          <p
+            v-if="form.errors.title"
+            class="mt-1 text-xs text-danger"
+          >
+            {{ form.errors.title }}
+          </p>
         </div>
+        <div>
+          <label class="label">Mô tả chi tiết</label>
+          <textarea
+            v-model="form.description"
+            rows="4"
+            class="input min-h-[6rem] resize-y"
+            placeholder="Yêu cầu, tiêu chí hoàn thành, tài liệu tham khảo…"
+          />
+        </div>
+      </section>
 
-        <div class="space-y-3">
-          <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div class="grid grid-cols-1 gap-5 xl:grid-cols-2">
+        <!-- Phân loại & thời gian -->
+        <section class="space-y-4 rounded-xl border border-slate-200 bg-slate-50/60 p-4 dark:border-slate-700 dark:bg-slate-900/40">
+          <p class="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            <AppIcon
+              name="settings"
+              :size="14"
+            />
+            Phân loại & thời gian
+          </p>
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label class="label">Trạng thái <span class="text-rose-500">*</span></label>
-              <select
+              <SearchSelect
                 v-model="form.status"
-                class="input"
-                @change="syncProgressFromStatus"
-              >
-                <option
-                  v-for="o in statusOptions"
-                  :key="o.value"
-                  :value="o.value"
-                >
-                  {{ o.label }}
-                </option>
-              </select>
+                :options="statusSelectOptions"
+                placeholder="Chọn trạng thái…"
+                :clearable="false"
+                @update:model-value="syncProgressFromStatus"
+              />
             </div>
             <div>
               <label class="label">Ưu tiên <span class="text-rose-500">*</span></label>
-              <select
+              <SearchSelect
                 v-model="form.priority"
-                class="input"
-              >
-                <option
-                  v-for="o in priorityOptions"
-                  :key="o.value"
-                  :value="o.value"
-                >
-                  {{ o.label }}
-                </option>
-              </select>
+                :options="prioritySelectOptions"
+                placeholder="Chọn ưu tiên…"
+                :clearable="false"
+              />
             </div>
             <div>
               <label class="label">Sprint</label>
-              <select
+              <SearchSelect
                 v-model="form.sprint_id"
-                class="input"
-              >
-                <option :value="null">
-                  — Không gán —
-                </option>
-                <option
-                  v-for="s in sprints"
-                  :key="s.id"
-                  :value="s.id"
-                >
-                  {{ s.name }}
-                </option>
-              </select>
+                :options="sprints"
+                placeholder="Tìm & chọn sprint…"
+                search-placeholder="Tìm sprint…"
+              />
             </div>
             <div>
               <label class="label">Giai đoạn (Phase)</label>
-              <select
+              <SearchSelect
                 v-model="form.phase"
-                class="input"
-              >
-                <option
-                  v-for="p in phaseOptions"
-                  :key="p.value"
-                  :value="p.value"
-                >
-                  {{ p.label }}
-                </option>
-              </select>
+                :options="phaseSelectOptions"
+                placeholder="Chọn giai đoạn…"
+                :clearable="false"
+              />
             </div>
           </div>
-
-          <div class="grid grid-cols-2 gap-3">
+          <div class="grid grid-cols-1 gap-4 border-t border-slate-200/80 pt-4 sm:grid-cols-2 dark:border-slate-700">
             <div>
               <label class="label">Ngày bắt đầu</label>
               <input
@@ -434,33 +341,79 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
                 min="0"
                 max="100"
                 step="5"
-                class="w-full accent-brand"
+                class="mt-3 w-full accent-brand"
               >
             </div>
           </div>
+        </section>
 
-          <div v-if="dependencyOptions.length">
-            <label class="label">Phụ thuộc vào</label>
-            <div class="max-h-32 space-y-1 overflow-y-auto rounded-input border border-slate-200 bg-white p-2 dark:border-slate-700 dark:bg-slate-900">
-              <label
-                v-for="t in dependencyOptions"
-                :key="t.id"
-                class="flex items-center gap-2 text-sm text-slate-600"
-              >
-                <input
-                  v-model="form.dependencies"
-                  type="checkbox"
-                  :value="t.id"
-                  class="rounded accent-brand"
-                >
-                {{ t.title }}
-              </label>
+        <!-- Nhân sự -->
+        <section class="space-y-4 rounded-xl border border-slate-200 bg-slate-50/60 p-4 dark:border-slate-700 dark:bg-slate-900/40">
+          <p class="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            <AppIcon
+              name="people"
+              :size="14"
+            />
+            Nhân sự
+          </p>
+          <div>
+            <label class="label">
+              Người thực hiện
+              <span
+                class="ml-1 cursor-help text-slate-400"
+                title="Có thể chọn nhiều người cùng thực hiện công việc này."
+              >ⓘ</span>
+            </label>
+            <PersonMultiSelect
+              v-model="form.assignee_ids"
+              :options="employees"
+              placeholder="Tìm & thêm người thực hiện…"
+            />
+          </div>
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label class="label">Người giao việc</label>
+              <PersonSelect
+                v-model="form.reporter_id"
+                :options="employees"
+                placeholder="Tìm & chọn người giao việc…"
+              />
+            </div>
+            <div>
+              <label class="label">Người duyệt / Kiểm tra</label>
+              <PersonSelect
+                v-model="form.reviewer_id"
+                :options="employees"
+                placeholder="Tìm & chọn người duyệt…"
+              />
             </div>
           </div>
-        </div>
+        </section>
       </div>
 
-      <div class="flex justify-end gap-2 border-t border-slate-100 pt-3 dark:border-slate-800">
+      <section
+        v-if="dependencyOptions.length"
+        class="rounded-xl border border-slate-200 p-4 dark:border-slate-700"
+      >
+        <label class="label">Phụ thuộc vào</label>
+        <div class="mt-2 grid max-h-40 gap-2 overflow-y-auto sm:grid-cols-2 lg:grid-cols-3">
+          <label
+            v-for="t in dependencyOptions"
+            :key="t.id"
+            class="flex cursor-pointer items-start gap-2 rounded-lg border border-slate-100 bg-white px-3 py-2 text-sm text-slate-600 transition hover:border-brand/30 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-brand/40"
+          >
+            <input
+              v-model="form.dependencies"
+              type="checkbox"
+              :value="t.id"
+              class="mt-0.5 rounded accent-brand"
+            >
+            <span class="min-w-0 leading-snug">{{ t.title }}</span>
+          </label>
+        </div>
+      </section>
+
+      <div class="flex justify-end gap-2 border-t border-slate-100 pt-4 dark:border-slate-800">
         <button
           type="button"
           class="btn-ghost"
