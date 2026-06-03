@@ -106,6 +106,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/{project}/tasks/{task}/worklogs/{worklog}', [WorklogController::class, 'destroy'])->name('worklogs.destroy');
 
         // Project documents / attachments
+        Route::get('/{project}/attachments/{attachment}/file', [ProjectAttachmentController::class, 'file'])->name('attachments.file');
         Route::post('/{project}/attachments', [ProjectAttachmentController::class, 'store'])->name('attachments.store');
         Route::put('/{project}/attachments/{attachment}', [ProjectAttachmentController::class, 'update'])->name('attachments.update');
         Route::delete('/{project}/attachments/{attachment}', [ProjectAttachmentController::class, 'destroy'])->name('attachments.destroy');

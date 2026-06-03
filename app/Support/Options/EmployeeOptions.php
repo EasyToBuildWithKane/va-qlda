@@ -3,6 +3,7 @@
 namespace App\Support\Options;
 
 use App\Models\Employee;
+use App\Support\PublicMediaUrl;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 
@@ -17,7 +18,7 @@ class EmployeeOptions
             ->map(fn (Employee $e) => [
                 'id' => $e->id,
                 'name' => $e->full_name,
-                'avatar_path' => $e->avatar_path,
+                'avatar_path' => PublicMediaUrl::fromPublicDisk($e->avatar_path),
             ])
         );
     }

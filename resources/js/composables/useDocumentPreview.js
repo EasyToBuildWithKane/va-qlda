@@ -144,6 +144,10 @@ export function useDocumentPreview(selectedFileRef) {
         if (abort) abort.abort();
         reset();
         if (!file) return;
+        if (!file.url) {
+            error.value = 'File không còn trên máy chủ. Vui lòng tải lên lại hoặc xóa bản ghi.';
+            return;
+        }
         kind.value = detectPreviewKind(file);
         if (['docx', 'xlsx', 'doc-legacy'].includes(kind.value)) {
             loadOffice(file);

@@ -32,6 +32,7 @@ class ProjectAttachmentResource extends JsonResource
             'is_spreadsheet' => $this->isSpreadsheet(),
             'preview_kind' => $this->previewKind(),
             'can_preview' => $this->canPreviewInline(),
+            'file_available' => $this->fileExists(),
             'url' => $this->url(),
             'uploaded_by' => $this->whenLoaded('uploadedBy', fn () => $this->person($this->uploadedBy)),
             'updated_by' => $this->whenLoaded('updatedBy', fn () => $this->person($this->updatedBy)),

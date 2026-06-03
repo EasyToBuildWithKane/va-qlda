@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Concerns;
 
 use App\Models\Employee;
+use App\Support\PublicMediaUrl;
 use BackedEnum;
 
 /**
@@ -40,7 +41,7 @@ trait PresentsEntities
         return [
             'id' => $employee->id,
             'name' => $employee->full_name,
-            'avatar_path' => $employee->avatar_path,
+            'avatar_path' => PublicMediaUrl::fromPublicDisk($employee->avatar_path),
         ];
     }
 }

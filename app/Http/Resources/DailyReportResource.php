@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Support\PublicMediaUrl;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -42,7 +43,7 @@ class DailyReportResource extends JsonResource
             'employee' => $this->whenLoaded('employee', fn () => [
                 'id' => $this->employee->id,
                 'name' => $this->employee->full_name,
-                'avatar_path' => $this->employee->avatar_path,
+                'avatar_path' => PublicMediaUrl::fromPublicDisk($this->employee->avatar_path),
             ]),
             'score' => $this->when(
                 $this->relationLoaded('score'),

@@ -76,6 +76,27 @@ npx playwright install --with-deps chromium   # includes OS libraries (CI/Linux)
 
 ---
 
+## Project documents or avatars return 404
+
+**Symptoms:** Console `Failed to load resource` for `/storage/projects/...` or bare `.jpg` names; preview shows `Không tải được file (404)`.
+
+**Causes:**
+
+1. **`storage:link` missing** — run `php artisan storage:link` so `public/storage` points to `storage/app/public`.
+2. **DB rows without files** — attachment paths in DB but files were never copied (new machine, restore DB only). Re-upload in **Tài liệu** or delete orphan rows.
+3. **Legacy avatar filename** — API now resolves full URLs only when the file exists on the public disk.
+
+**Verify a file exists:**
+
+```bash
+# Example path from DB: projects/2/customer/abc.pdf
+ls storage/app/public/projects/2/customer/
+```
+
+**App behavior:** Missing files return `url: null` and a Vietnamese message instead of spamming failed fetches; downloads use authenticated route `projects.attachments.file`.
+
+---
+
 ## Playwright tests fail locally
 
 **Checklist:**

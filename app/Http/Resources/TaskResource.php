@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Http\Resources\Concerns\PresentsEntities;
+use App\Support\PublicMediaUrl;
 use App\Support\TaskTimeliness;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -79,7 +80,11 @@ class TaskResource extends JsonResource
                 'note' => $w->note,
                 'cost' => $w->cost !== null ? (float) $w->cost : null,
                 'employee' => $w->relationLoaded('employee') && $w->employee
-                    ? ['id' => $w->employee->id, 'name' => $w->employee->name, 'avatar_path' => $w->employee->avatar_path]
+                    ? [
+                        'id' => $w->employee->id,
+                        'name' => $w->employee->name,
+                        'avatar_path' => PublicMediaUrl::fromPublicDisk($w->employee->avatar_path),
+                    ]
                     : null,
             ])->values()),
             'comments' => $this->whenLoaded('comments', function () {

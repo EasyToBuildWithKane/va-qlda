@@ -10,11 +10,31 @@ use App\Support\Enums\ProjectAttachmentCategory;
 use App\Support\ProjectAttachmentActivityLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class ProjectAttachmentController extends Controller
 {
+    public function file(Request $request, Project $project, ProjectAttachment $attachment): StreamedResponse
+    {
+        $this->authorize('view', $project);
+
+        if ($attachment->project_id !== $project->id) {
+            abort(404);
+        }
+
+        if (! Storage::disk('public')->exists($attachment->path)) {
+            abort(404);
+        }
+
+        return Storage::disk('public')->response(
+            $attachment->path,
+            $attachment->original_name,
+            ['Content-Type' => $attachment->mime_type ?? 'application/octet-stream'],
+        );
+    }
+
     public function store(Request $request, Project $project): RedirectResponse
     {
         $this->authorize('contribute', $project);

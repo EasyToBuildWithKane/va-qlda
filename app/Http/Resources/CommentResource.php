@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Support\PublicMediaUrl;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -23,7 +24,7 @@ class CommentResource extends JsonResource
             'author' => [
                 'id' => $this->employee_id,
                 'name' => $this->authorName(),
-                'avatar_path' => $this->author?->avatar_path,
+                'avatar_path' => PublicMediaUrl::fromPublicDisk($this->author?->avatar_path),
             ],
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),

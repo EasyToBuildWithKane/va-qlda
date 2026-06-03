@@ -62,9 +62,21 @@ class ProjectAttachment extends Model
         return $this->hasMany(ProjectAttachmentActivity::class)->latest();
     }
 
-    public function url(): string
+    public function fileExists(): bool
     {
-        return Storage::disk('public')->url($this->path);
+        return Storage::disk('public')->exists($this->path);
+    }
+
+    public function url(): ?string
+    {
+        if (! $this->fileExists()) {
+            return null;
+        }
+
+        return route('projects.attachments.file', [
+            'project' => $this->project_id,
+            'attachment' => $this->id,
+        ]);
     }
 
     public function isPdf(): bool

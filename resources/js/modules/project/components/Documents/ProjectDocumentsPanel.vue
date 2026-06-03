@@ -61,13 +61,16 @@ const selected = computed(() => {
 
 const notesForm = useForm({ notes: '' });
 
+const firstAvailableFile = (files) => files.find((f) => f.url) ?? null;
+
 watch(categoryFiles, (files) => {
     if (!files.length) {
         selectedId.value = null;
         return;
     }
-    if (!files.some((f) => f.id === selectedId.value)) {
-        selectedId.value = files[0].id;
+    const current = files.find((f) => f.id === selectedId.value);
+    if (!current?.url) {
+        selectedId.value = firstAvailableFile(files)?.id ?? null;
     }
 }, { immediate: true });
 

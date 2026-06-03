@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Services\NotificationService;
 use App\Support\Navigation;
+use App\Support\PublicMediaUrl;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -41,7 +42,7 @@ class HandleInertiaRequests extends Middleware
                     'employee' => $account->employee ? [
                         'id' => $account->employee->id,
                         'full_name' => $account->employee->full_name,
-                        'avatar_path' => $account->employee->avatar_path,
+                        'avatar_path' => PublicMediaUrl::fromPublicDisk($account->employee->avatar_path),
                     ] : null,
                 ] : null,
             ],

@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Support\Enums\RateType;
+use App\Support\PublicMediaUrl;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -26,7 +27,7 @@ class MemberResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->full_name,
-            'avatar_path' => $this->avatar_path,
+            'avatar_path' => PublicMediaUrl::fromPublicDisk($this->avatar_path),
             'role_title' => $this->role_title,
             'project_role' => $pivot?->role,
             'rate_type' => $rateType?->value,
