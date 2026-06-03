@@ -93,6 +93,21 @@ class BlockerTest extends TestCase
         ]);
     }
 
+    public function test_member_can_create_blocker_without_project(): void
+    {
+        $this->actingAs($this->member(), 'system')
+            ->post('/blockers', [
+                'title' => 'Thắc mắc chung thử',
+                'severity' => BlockerSeverity::Medium->value,
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('blockers', [
+            'project_id' => null,
+            'title' => 'Thắc mắc chung thử',
+        ]);
+    }
+
     public function test_admin_can_create_blocker(): void
     {
         $project = Project::factory()->create();

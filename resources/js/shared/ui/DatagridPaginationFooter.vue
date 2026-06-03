@@ -8,21 +8,28 @@ const props = defineProps({
     perPage: { type: Number, required: true },
     perPageOptions: { type: Array, default: () => [5, 10, 15, 20] },
     colspan: { type: Number, default: 1 },
+    /** `table-row` = inside `<tfoot><tr>`; `bar` = standalone footer below table */
+    variant: { type: String, default: 'table-row' },
 });
 
 const emit = defineEmits(['update:perPage']);
 
 const rangeLabel = computed(() => {
     const m = props.meta;
-    if (!m?.total) return '0 bản ghi';
+    if (!m?.total) return 'Không có bản ghi';
     const from = m.from ?? 0;
     const to = m.to ?? 0;
-    return `${from}–${to} / ${m.total}`;
+    return `${from}–${to} trong ${m.total}`;
 });
+
+const isBar = computed(() => props.variant === 'bar');
 </script>
 
 <template>
-  <tr class="bg-slate-50/80">
+  <tr
+    v-if="!isBar"
+    class="bg-slate-50/80"
+  >
     <td
       :colspan="colspan"
       class="px-4 py-3"
@@ -81,4 +88,64 @@ const rangeLabel = computed(() => {
       </div>
     </td>
   </tr>
+
+  <div
+    v-else
+    class="flex flex-col gap-3 border-t border-slate-100 bg-gradient-to-b from-slate-50/80 to-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
+  >
+    <p class="text-sm text-slate-500">
+      <span class="font-medium text-slate-700">{{ rangeLabel }}</span>
+      <span class="text-slate-400"> bản ghi</span>
+    </p>
+
+    <div class="flex flex-wrap items-center justify-end gap-3">
+      <label class="inline-flex items-center gap-2 rounded-btn border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600 shadow-sm">
+        <span class="text-xs font-medium text-slate-500">Hiển thị</span>
+        <select
+          :value="perPage"
+          class="h-7 min-w-[3.25rem] cursor-pointer border-0 bg-transparent py-0 pl-0 pr-6 text-sm font-semibold text-slate-800 focus:ring-0"
+          aria-label="Số dòng mỗi trang"
+          @change="emit('update:perPage', Number($event.target.value))"
+        >
+          <option
+            v-for="n in perPageOptions"
+            :key="n"
+            :value="n"
+          >
+            {{ n }}
+          </option>
+        </select>
+        <span class="text-xs text-slate-500">/ trang</span>
+      </label>
+
+      <nav
+        v-if="meta?.links?.length > 3"
+        class="inline-flex items-center gap-0.5 rounded-btn border border-slate-200 bg-white p-0.5 shadow-sm"
+        aria-label="Phân trang"
+      >
+        <template
+          v-for="(link, i) in meta.links"
+          :key="i"
+        >
+          <Link
+            v-if="link.url"
+            :href="link.url"
+            preserve-scroll
+            class="inline-flex h-8 min-w-[2rem] items-center justify-center rounded-md px-2.5 text-sm font-medium transition"
+            :class="link.active
+              ? 'bg-brand text-white shadow-sm'
+              : 'text-slate-600 hover:bg-slate-100'"
+            :aria-current="link.active ? 'page' : undefined"
+          >
+            <span v-html="link.label" />
+          </Link>
+          <span
+            v-else
+            class="inline-flex h-8 min-w-[2rem] items-center justify-center px-2.5 text-sm text-slate-300"
+            v-html="link.label"
+          />
+        </template>
+      </nav>
+    </div>
+  </div>
 </template>

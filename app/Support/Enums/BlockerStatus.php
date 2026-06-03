@@ -12,13 +12,7 @@ enum BlockerStatus: string
 
     public function label(): string
     {
-        return match ($this) {
-            self::Open => 'Open',
-            self::InProgress => 'In Progress',
-            self::Blocked => 'Blocked',
-            self::Resolved => 'Resolved',
-            self::Closed => 'Closed',
-        };
+        return $this->labelVi();
     }
 
     public function labelVi(): string

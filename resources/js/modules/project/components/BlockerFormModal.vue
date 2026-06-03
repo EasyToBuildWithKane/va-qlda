@@ -133,19 +133,24 @@ const submit = () => {
       </div>
 
       <div
-        v-else-if="!blocker"
+        v-else
         class="max-w-md"
       >
         <label class="label flex items-center gap-1.5">
           Dự án
-          <FieldTooltip text="Chọn dự án mà vướng mắc này thuộc về." />
+          <span class="font-normal text-slate-400">(tuỳ chọn)</span>
+          <FieldTooltip text="Chọn dự án nếu vướng mắc thuộc một dự án cụ thể. Để trống sẽ xếp vào nhóm «Thắc mắc chung» trên danh sách." />
         </label>
         <SearchSelect
           v-model="form.project_id"
           :options="projects"
           placeholder="Tìm & chọn dự án…"
           search-placeholder="Tìm dự án…"
+          clearable
         />
+        <p class="mt-1 text-xs text-slate-500">
+          Không chọn dự án → <span class="font-medium text-slate-600">Thắc mắc chung</span>
+        </p>
         <p
           v-if="form.errors.project_id"
           class="mt-1 text-xs text-danger"

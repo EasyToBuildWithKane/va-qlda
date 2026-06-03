@@ -53,10 +53,12 @@ class BlockerController extends Controller
         $status = $request->query('status');
         if ($status === 'all') {
             // no status scope
+        } elseif ($status === 'open') {
+            $query->open();
         } elseif ($status) {
             $query->where('status', $status);
         } else {
-            $query->open();
+            $query->listDefault();
         }
 
         if ($severity = $request->query('severity')) {

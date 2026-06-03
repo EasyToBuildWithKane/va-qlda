@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('blockers', function (Blueprint $table) {
             $table->id();
             $table->string('code', 32)->nullable();
-            $table->foreignId('project_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('project_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('task_id')->nullable()->constrained('tasks')->nullOnDelete();
             $table->string('title');
             $table->text('description')->nullable();

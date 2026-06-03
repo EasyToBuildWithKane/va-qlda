@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 /**
  * @property int $id
- * @property int $project_id
+ * @property int|null $project_id
  * @property int|null $task_id
  * @property string $title
  * @property string|null $description
@@ -57,9 +57,14 @@ class Blocker extends Model
     protected static function booted(): void
     {
         static::creating(function (Blocker $blocker) {
-            if (! $blocker->code && $blocker->project_id) {
-                $seq = static::query()->where('project_id', $blocker->project_id)->count() + 1;
-                $blocker->code = 'RSK-'.str_pad((string) $seq, 3, '0', STR_PAD_LEFT);
+            if (! $blocker->code) {
+                if ($blocker->project_id) {
+                    $seq = static::query()->where('project_id', $blocker->project_id)->count() + 1;
+                    $blocker->code = 'RSK-'.str_pad((string) $seq, 3, '0', STR_PAD_LEFT);
+                } else {
+                    $seq = static::query()->whereNull('project_id')->count() + 1;
+                    $blocker->code = 'GEN-'.str_pad((string) $seq, 3, '0', STR_PAD_LEFT);
+                }
             }
             $blocker->raised_at ??= now();
         });
@@ -71,6 +76,17 @@ class Blocker extends Model
             BlockerStatus::Resolved->value,
             BlockerStatus::Closed->value,
         ]);
+    }
+
+    /**
+     * Danh sách mặc định trên /blockers: gồm đang xử lý và đã giải quyết, ẩn đã đóng.
+     *
+     * @param  Builder<Blocker>  $query
+     * @return Builder<Blocker>
+     */
+    public function scopeListDefault(Builder $query): Builder
+    {
+        return $query->where('status', '!=', BlockerStatus::Closed->value);
     }
 
     /**

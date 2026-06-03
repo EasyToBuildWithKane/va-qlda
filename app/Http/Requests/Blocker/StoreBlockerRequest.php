@@ -21,7 +21,7 @@ class StoreBlockerRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'project_id' => ['required', 'integer', 'exists:projects,id'],
+            'project_id' => ['nullable', 'integer', 'exists:projects,id'],
             'task_id' => ['nullable', 'integer', Rule::exists('tasks', 'id')->where('project_id', $this->input('project_id'))],
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:10000'],
