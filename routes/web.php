@@ -164,6 +164,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/proposals/{proposal}/approve', [AiPurchaseProposalController::class, 'approve'])->name('proposals.approve');
         Route::post('/proposals/{proposal}/reject', [AiPurchaseProposalController::class, 'reject'])->name('proposals.reject');
         Route::patch('/proposals/{proposal}/notes', [AiPurchaseProposalController::class, 'updateNotes'])->name('proposals.notes');
+        Route::get('/proposals/{proposal}/export/docx', [AiPurchaseProposalController::class, 'exportDocx'])->name('proposals.export.docx');
+        Route::get('/proposals/{proposal}/export/pdf', [AiPurchaseProposalController::class, 'exportPdf'])->name('proposals.export.pdf');
         Route::get('/', [AiAccountController::class, 'index'])->name('index');
         Route::post('/', [AiAccountController::class, 'store'])->name('store');
         Route::get('/{aiAccount}', [AiAccountController::class, 'show'])->name('show');

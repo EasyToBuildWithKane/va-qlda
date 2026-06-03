@@ -28,6 +28,28 @@ class AiAccountTest extends TestCase
         return $account;
     }
 
+    /** @return array<string, mixed> */
+    private function proposalPayload(array $overrides = []): array
+    {
+        return array_merge([
+            'subject_about' => 'Đăng ký sử dụng Cursor Pro',
+            'send_to' => 'Phòng Công nghệ & Phòng Kế Toán',
+            'tool_name' => 'Cursor Pro',
+            'group_function' => AiAccountGroupFunction::Dev->value,
+            'license_type' => 'Pro',
+            'cost_amount' => 1_000_000,
+            'cost_unit' => AiAccountCostUnit::Monthly->value,
+            'quantity' => 1,
+            'proposer_name' => 'Nguyễn Văn A',
+            'proposer_position' => 'Developer',
+            'proposer_department' => 'Phòng Công nghệ',
+            'proposal_content' => 'Team cần IDE AI cho dự án QLDA trong 6 tháng tới với đủ tính năng pair programming.',
+            'objectives' => "Tăng tốc phát triển.\nGiảm thời gian review code.",
+            'staff_count' => 5,
+            'purchase_type' => 'new',
+        ], $overrides);
+    }
+
     public function test_index_page_requires_auth(): void
     {
         $this->get(route('ai-accounts.index'))->assertRedirect(route('login'));
@@ -152,14 +174,9 @@ class AiAccountTest extends TestCase
         $member = SystemAccount::factory()->create();
         $this->actingAs($member, 'system');
 
-        $this->postJson(route('api.ai-accounts.proposals.store'), [
-            'tool_name' => 'Cursor Pro',
-            'group_function' => AiAccountGroupFunction::Dev->value,
-            'license_type' => 'Pro',
-            'cost_amount' => 1_000_000,
-            'cost_unit' => AiAccountCostUnit::Monthly->value,
-            'justification' => 'Team cần IDE AI cho dự án QLDA trong 6 tháng tới.',
-        ])->assertCreated();
+        $this->postJson(route('api.ai-accounts.proposals.store'), $this->proposalPayload())
+            ->assertCreated()
+            ->assertJsonPath('data.proposal.subject_about', 'Đăng ký sử dụng Cursor Pro');
 
         $proposal = AiPurchaseProposal::first();
         $this->assertSame(AiPurchaseProposalStatus::Pending, $proposal->status);
@@ -172,14 +189,14 @@ class AiAccountTest extends TestCase
         $this->assertSame(AiPurchaseProposalStatus::Approved, $proposal->fresh()->status);
 
         $this->actingAs($member, 'system');
-        $this->postJson(route('api.ai-accounts.proposals.store'), [
+        $this->postJson(route('api.ai-accounts.proposals.store'), $this->proposalPayload([
             'tool_name' => 'Rejected Tool',
+            'subject_about' => 'Đăng ký Rejected Tool',
             'group_function' => AiAccountGroupFunction::Ba->value,
             'license_type' => 'Team',
             'cost_amount' => 500_000,
-            'cost_unit' => AiAccountCostUnit::Monthly->value,
-            'justification' => 'Đề xuất thứ hai để kiểm tra từ chối có lý do.',
-        ])->assertCreated();
+            'proposal_content' => 'Đề xuất thứ hai để kiểm tra từ chối có lý do đủ dài.',
+        ]))->assertCreated();
 
         $pending = AiPurchaseProposal::query()->where('tool_name', 'Rejected Tool')->first();
         $this->actingAs($admin, 'system');
@@ -195,5 +212,24 @@ class AiAccountTest extends TestCase
         $summary = $this->getJson(route('api.ai-accounts.summary'))->assertOk()->json('data');
         $this->assertArrayHasKey('proposals', $summary);
         $this->assertSame(1, $summary['proposal_counts']['approved']);
+    }
+
+    public function test_purchase_proposal_export_pdf_and_docx(): void
+    {
+        $this->actingAsUser();
+
+        $this->postJson(route('api.ai-accounts.proposals.store'), $this->proposalPayload())
+            ->assertCreated();
+
+        $proposal = AiPurchaseProposal::first();
+        $this->assertNotNull($proposal);
+
+        $this->get(route('api.ai-accounts.proposals.export.pdf', ['proposal' => $proposal->id]))
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
+
+        $this->get(route('api.ai-accounts.proposals.export.docx', ['proposal' => $proposal->id]))
+            ->assertOk()
+            ->assertDownload();
     }
 }

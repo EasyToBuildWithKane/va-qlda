@@ -35,6 +35,11 @@ class AiAccountPageController extends Controller
     {
         $this->authorize('viewAny', AiAccount::class);
 
+        $user = $request->user();
+        $user->loadMissing('employee');
+        $employee = $user->employee;
+        $dept = is_array($employee?->meta) ? ($employee->meta['department_name'] ?? null) : null;
+
         return Inertia::render('AiAccount/CostReport', [
             'can' => [
                 'create' => $request->user()->can('create', AiAccount::class),
@@ -45,6 +50,19 @@ class AiAccountPageController extends Controller
                 'group_function' => AiAccountGroupFunction::options(),
                 'cost_unit' => AiAccountCostUnit::options(),
                 'license_types' => config('ai_accounts.license_types', []),
+                'purchase_type' => [
+                    ['value' => 'new', 'label' => 'Mua mới'],
+                    ['value' => 'renewal', 'label' => 'Gia hạn'],
+                ],
+            ],
+            'proposal_defaults' => [
+                'send_to' => config('ai_accounts.proposal.send_to_default'),
+                'objectives' => config('ai_accounts.proposal.objectives_sample'),
+                'proposer_name' => $employee?->full_name ?? $user->username,
+                'proposer_position' => $employee?->role_title,
+                'proposer_department' => $dept,
+                'recipient_email' => $employee?->email,
+                'recipient_phone' => $employee?->phone,
             ],
         ]);
     }

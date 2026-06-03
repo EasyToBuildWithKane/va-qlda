@@ -180,6 +180,16 @@ function saveNotes(row) {
                       {{ row.created_by_name }}
                     </td>
                     <td class="px-4 py-2.5 text-right whitespace-nowrap">
+                      <a
+                        v-if="row.export_pdf_url"
+                        :href="row.export_pdf_url"
+                        class="btn-ghost mr-1 px-2 py-1 text-xs text-brand"
+                        target="_blank"
+                        rel="noopener"
+                        title="Tải phiếu PDF"
+                      >
+                        PDF
+                      </a>
                       <template v-if="row.status === 'pending' && can.review_proposals">
                         <button
                           type="button"
@@ -217,11 +227,48 @@ function saveNotes(row) {
                       <div class="grid gap-4 lg:grid-cols-2">
                         <div class="rounded-lg border border-slate-200 bg-white p-3">
                           <p class="mb-1 text-[11px] font-semibold uppercase text-slate-400">
-                            Lý do đề xuất
+                            Nội dung đề xuất
                           </p>
                           <p class="text-sm leading-relaxed text-slate-700 whitespace-pre-wrap">
-                            {{ row.justification }}
+                            {{ row.proposal_content || row.justification }}
                           </p>
+                          <p
+                            v-if="row.subject_about"
+                            class="mt-2 text-xs text-slate-500"
+                          >
+                            Trích yếu: {{ row.subject_about }}
+                          </p>
+                        </div>
+                        <div
+                          v-if="row.objectives"
+                          class="rounded-lg border border-slate-200 bg-white p-3"
+                        >
+                          <p class="mb-1 text-[11px] font-semibold uppercase text-slate-400">
+                            Mục tiêu
+                          </p>
+                          <p class="text-sm text-slate-700 whitespace-pre-wrap">
+                            {{ row.objectives }}
+                          </p>
+                        </div>
+                        <div class="flex flex-wrap gap-2 lg:col-span-2">
+                          <a
+                            v-if="row.export_pdf_url"
+                            :href="row.export_pdf_url"
+                            class="btn-secondary text-xs"
+                            target="_blank"
+                            rel="noopener"
+                          >
+                            Xuất PDF (phiếu PDX)
+                          </a>
+                          <a
+                            v-if="row.export_docx_url"
+                            :href="row.export_docx_url"
+                            class="btn-secondary text-xs"
+                            target="_blank"
+                            rel="noopener"
+                          >
+                            Xuất DOCX
+                          </a>
                         </div>
                         <div
                           v-if="row.status === 'rejected' && row.rejection_reason"

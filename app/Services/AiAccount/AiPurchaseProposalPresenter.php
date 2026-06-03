@@ -54,9 +54,30 @@ class AiPurchaseProposalPresenter
         $reviewerName = $proposal->reviewer?->employee?->full_name
             ?? $proposal->reviewer?->username;
 
+        $purchaseType = $proposal->purchase_type?->value ?? 'new';
+
         return [
             'id' => $proposal->id,
+            'subject_about' => $proposal->subject_about,
+            'send_to' => $proposal->send_to,
             'tool_name' => $proposal->tool_name,
+            'proposer_name' => $proposal->proposer_name,
+            'proposer_position' => $proposal->proposer_position,
+            'proposer_department' => $proposal->proposer_department,
+            'proposal_content' => $proposal->proposal_content,
+            'objectives' => $proposal->objectives,
+            'quantity' => $proposal->quantity,
+            'staff_count' => $proposal->staff_count,
+            'recipient_name' => $proposal->recipient_name,
+            'recipient_position' => $proposal->recipient_position,
+            'recipient_email' => $proposal->recipient_email,
+            'recipient_phone' => $proposal->recipient_phone,
+            'purchase_type' => $purchaseType,
+            'purchase_type_label' => $proposal->purchase_type?->labelVi() ?? 'Mua mới',
+            'registration_email' => $proposal->registration_email,
+            'planned_use_date' => $proposal->planned_use_date?->format('Y-m-d'),
+            'export_pdf_url' => route('api.ai-accounts.proposals.export.pdf', ['proposal' => $proposal->id]),
+            'export_docx_url' => route('api.ai-accounts.proposals.export.docx', ['proposal' => $proposal->id]),
             'group_function' => $proposal->group_function->value,
             'group_dot_color' => $proposal->group_function->dotColor(),
             'group_label' => $this->groupLabel($proposal->group_function),

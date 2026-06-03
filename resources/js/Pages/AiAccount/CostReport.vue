@@ -15,6 +15,7 @@ import AiPurchaseProposalApproveModal from '@/modules/aiAccount/components/AiPur
 const props = defineProps({
     can: { type: Object, default: () => ({}) },
     options: { type: Object, required: true },
+    proposalDefaults: { type: Object, default: () => ({}) },
 });
 
 const {
@@ -95,8 +96,11 @@ const kpiCards = computed(() => {
 onMounted(() => load());
 
 async function onProposalSubmit(payload) {
-    await createProposal(payload);
+    const created = await createProposal(payload);
     proposalFormOpen.value = false;
+    if (created?.export_pdf_url) {
+        window.open(created.export_pdf_url, '_blank', 'noopener');
+    }
 }
 
 function openReject(row) {
@@ -444,6 +448,7 @@ async function onSaveNotes({ id, review_notes }) {
     <AiPurchaseProposalFormModal
       :show="proposalFormOpen"
       :options="props.options"
+      :proposal-defaults="props.proposalDefaults"
       @close="proposalFormOpen = false"
       @submit="onProposalSubmit"
     />
