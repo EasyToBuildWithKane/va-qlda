@@ -12,6 +12,9 @@ import { COLUMNS, DEFAULT_VISIBLE } from '@/modules/project/config/columns';
 import { useDialog } from '@/composables/useDialog';
 import { useToast } from '@/shared/composables/useToast';
 import { exportProjectList } from '@/composables/useProjectListExport';
+import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
+
+const PER_PAGE_OPTIONS = [5, 10, 15, 20];
 
 const props = defineProps({
     projects: { type: Object, required: true },
@@ -28,6 +31,7 @@ const props = defineProps({
 
 const dialog = useDialog();
 const toast = useToast();
+const perPage = ref(Number(props.filters.per_page) || props.projects.meta?.per_page || 10);
 
 // ---- Persisted UI state ---------------------------------------------------
 const VIEW_KEY = 'va-qlda.projects.view';
@@ -70,19 +74,44 @@ const serverFilters = reactive({
     q: props.filters.q ?? '',
 });
 
+function projectRouteParams(resetPage = false) {
+    return {
+        status: serverFilters.status || undefined,
+        type: serverFilters.type || undefined,
+        scope: serverFilters.scope || undefined,
+        department_id: serverFilters.department_id || undefined,
+        mine: serverFilters.mine || undefined,
+        q: serverFilters.q || undefined,
+        per_page: perPage.value,
+        page: resetPage ? 1 : undefined,
+    };
+}
+
+function reloadProjects(resetPage = false) {
+    router.get('/projects', projectRouteParams(resetPage), {
+        preserveState: true,
+        replace: true,
+        preserveScroll: true,
+    });
+}
+
+function onPerPageChange(n) {
+    perPage.value = n;
+    reloadProjects(true);
+}
+
 let timer = null;
 watch(serverFilters, () => {
     clearTimeout(timer);
-    timer = setTimeout(() => {
-        router.get('/projects', {
-            status: serverFilters.status || undefined,
-            type: serverFilters.type || undefined,
-            scope: serverFilters.scope || undefined,
-            department_id: serverFilters.department_id || undefined,
-            mine: serverFilters.mine || undefined,
-            q: serverFilters.q || undefined,
-        }, { preserveState: true, replace: true });
-    }, 300);
+    timer = setTimeout(() => reloadProjects(true), 300);
+});
+
+const pageRangeLabel = computed(() => {
+    const m = props.projects.meta;
+    if (!m?.total) return '0 dự án';
+    const from = m.from ?? 0;
+    const to = m.to ?? 0;
+    return `${from}–${to} / ${m.total}`;
 });
 
 // ---- Client-side post-filters -------------------------------------------
@@ -406,7 +435,7 @@ const cards = computed(() => [
               value="all"
               class="text-brand"
             >
-            <span>Tất cả ({{ projects.data.length }})</span>
+            <span>Trang hiện tại ({{ projects.data.length }})</span>
           </label>
           <div class="my-1 border-t border-slate-100" />
           <button
@@ -504,7 +533,16 @@ const cards = computed(() => [
         > Nhóm theo phòng ban
       </label>
       <span class="text-slate-300">|</span>
-      <span class="text-slate-500">{{ displayedProjects.length }} dự án</span>
+      <span class="text-slate-500">
+        <template v-if="projects.meta?.total">
+          {{ pageRangeLabel }} dự án
+          <span
+            v-if="displayedProjects.length !== projects.data.length"
+            class="text-slate-400"
+          > · hiển thị {{ displayedProjects.length }} sau lọc client</span>
+        </template>
+        <template v-else>{{ displayedProjects.length }} dự án</template>
+      </span>
       <div
         v-if="savedFilters.length"
         class="ml-auto flex flex-wrap items-center gap-1.5"
@@ -660,6 +698,19 @@ const cards = computed(() => [
           </div>
         </div>
       </div>
+    </div>
+
+    <div
+      v-if="projects.meta?.total"
+      class="card mt-4 overflow-hidden"
+    >
+      <DatagridPaginationFooter
+        variant="bar"
+        :meta="projects.meta"
+        :per-page="perPage"
+        :per-page-options="PER_PAGE_OPTIONS"
+        @update:per-page="onPerPageChange"
+      />
     </div>
 
     <!-- ===== FILTER DRAWER ===== -->

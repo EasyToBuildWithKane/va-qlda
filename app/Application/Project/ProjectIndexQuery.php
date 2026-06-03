@@ -4,7 +4,7 @@ namespace App\Application\Project;
 
 use App\Models\Project;
 use App\Models\SystemAccount;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 
 class ProjectIndexQuery
@@ -15,7 +15,7 @@ class ProjectIndexQuery
 
     /**
      * @return array{
-     *     projects: Collection<int, Project>,
+     *     projects: LengthAwarePaginator<int, Project>,
      *     filters: object,
      *     summary: array{total: int, active: int, completed: int, overdue: int},
      *     can: array{create: bool}
@@ -57,9 +57,16 @@ class ProjectIndexQuery
                 ->orWhere('code', 'like', "%{$search}%"));
         }
 
+        $perPage = (int) $request->query('per_page', 10);
+        if (! in_array($perPage, [5, 10, 15, 20], true)) {
+            $perPage = 10;
+        }
+
         return [
-            'projects' => $query->get(),
-            'filters' => (object) $request->only(['status', 'type', 'scope', 'department_id', 'mine', 'q']),
+            'projects' => $query->paginate($perPage)->withQueryString(),
+            'filters' => (object) $request->only([
+                'status', 'type', 'scope', 'department_id', 'mine', 'q', 'per_page',
+            ]),
             'summary' => $this->summaryQuery->execute(),
             'can' => ['create' => $account->can('create', Project::class)],
         ];
