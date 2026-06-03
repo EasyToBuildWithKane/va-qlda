@@ -10,9 +10,9 @@ use App\Support\Enums\ProjectAttachmentCategory;
 use App\Support\ProjectAttachmentActivityLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ProjectAttachmentController extends Controller
 {
