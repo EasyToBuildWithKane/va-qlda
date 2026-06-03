@@ -20,7 +20,9 @@ class UpdateBugRequest extends FormRequest
      */
     public function rules(): array
     {
-        $projectId = $this->input('project_id', $this->route('bug')->project_id);
+        /** @var \App\Models\Bug $bug */
+        $bug = $this->route('bug');
+        $projectId = $this->input('project_id', $bug->project_id);
 
         return [
             'project_id' => ['sometimes', 'required', 'integer', 'exists:projects,id'],
