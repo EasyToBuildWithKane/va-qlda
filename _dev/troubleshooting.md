@@ -97,11 +97,23 @@ ls storage/app/public/projects/2/customer/
 
 ---
 
+## Sync Changes / git push fails (Husky pre-push)
+
+**Symptoms:** VS Code/Cursor **Sync Changes** spins then fails; terminal `git push` ends with `pre-push script failed`.
+
+**Common cause:** Port **8000** already used by your dev server (`php artisan serve`). Pre-push E2E now uses **8001** automatically — pull latest `.husky/pre-push` and `playwright.config.js`.
+
+**Quick push after env template commit only (no code):** still runs E2E unless you use `git push --no-verify` (skip only when you accept skipping tests).
+
+**If E2E fails for other reasons:** `npm run test:e2e:install`, then `npm run test:e2e`.
+
+---
+
 ## Playwright tests fail locally
 
 **Checklist:**
 
-1. Is port 8000 free? Playwright starts `php artisan serve` unless one is already running
+1. Default E2E port is **8000** (`npm run test:e2e`). Pre-push uses **8001** so dev server on 8000 can stay running.
 2. Database migrated and seeded?
    ```bash
    php artisan migrate:fresh --seed

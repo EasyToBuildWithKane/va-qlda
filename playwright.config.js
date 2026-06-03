@@ -4,7 +4,8 @@ import { defineConfig, devices } from '@playwright/test';
 import { e2eDatabaseEnv } from './tests/e2e/helpers/database.js';
 
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
-const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:8000';
+const e2ePort = process.env.PLAYWRIGHT_E2E_PORT ?? '8000';
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://127.0.0.1:${e2ePort}`;
 const isCI = !!process.env.CI;
 
 export default defineConfig({
@@ -38,7 +39,7 @@ export default defineConfig({
         },
     ],
     webServer: {
-        command: 'php artisan serve --host=127.0.0.1 --port=8000',
+        command: `php artisan serve --host=127.0.0.1 --port=${e2ePort}`,
         cwd: rootDir,
         url: baseURL,
         // Always spawn with e2eDatabaseEnv unless explicitly opted in (avoids stale MySQL serve on :8000).

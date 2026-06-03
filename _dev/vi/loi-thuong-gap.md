@@ -62,6 +62,16 @@ npm run commit
 
 ---
 
+## Sync Changes / git push bị chặn
+
+**Triệu chứng:** Bấm **Sync Changes** trên Cursor/VS Code không xong; `pre-push script failed`.
+
+**Hay gặp:** Đang chạy `php artisan serve` cổng **8000** — E2E pre-push cần cổng khác. Bản mới dùng **8001** trong hook (cập nhật `.husky/pre-push`).
+
+**Tạm thời:** Tắt server dev rồi sync lại, hoặc `git push --no-verify` (bỏ qua E2E — cân nhắc rủi ro).
+
+---
+
 ## Playwright: không tìm thấy browser
 
 **Triệu chứng:** `Executable doesn't exist at .../chromium-...`
