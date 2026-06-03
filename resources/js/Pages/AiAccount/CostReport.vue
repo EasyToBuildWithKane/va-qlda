@@ -10,6 +10,7 @@ import VndAmount from '@/modules/aiAccount/components/VndAmount.vue';
 import AiPurchaseProposalFormModal from '@/modules/aiAccount/components/AiPurchaseProposalFormModal.vue';
 import AiPurchaseProposalRejectModal from '@/modules/aiAccount/components/AiPurchaseProposalRejectModal.vue';
 import AiPurchaseProposalApproveModal from '@/modules/aiAccount/components/AiPurchaseProposalApproveModal.vue';
+import { useDialog } from '@/composables/useDialog';
 
 const props = defineProps({
     can: { type: Object, default: () => ({}) },
@@ -27,7 +28,10 @@ const {
     createProposal,
     approveProposal,
     rejectProposal,
+    deleteProposal,
 } = useAiCostReport();
+
+const dialog = useDialog();
 
 const { groupColVisible, showGroupColDd, groupColDdRef, toggleGroupColumn, COST_REPORT_GROUP_COLUMNS } = useCostReportUi(proposals);
 
@@ -50,9 +54,32 @@ const visibleCols = ref({
     reviewed_at: false,
     end_date: false,
 });
-const showFilterDd = ref(false);
+const FILTER_CONTROLS = [
+    { key: 'status', label: 'Trạng thái' },
+    { key: 'type', label: 'Loại đề xuất' },
+];
+
+const VISIBLE_FILTERS_KEY = 'va-qlda.cost-report.visible-filters';
+
+function loadVisibleFilters() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(VISIBLE_FILTERS_KEY));
+        if (saved && typeof saved === 'object') {
+            return {
+                status: saved.status !== false,
+                type: saved.type !== false,
+            };
+        }
+    } catch {
+        /* ignore */
+    }
+    return { status: true, type: true };
+}
+
+const visibleFilters = ref(loadVisibleFilters());
+const showFilterPanelDd = ref(false);
 const showColDd = ref(false);
-const filterDdRef = ref(null);
+const filterPanelDdRef = ref(null);
 const colDdRef = ref(null);
 
 const proposalFormOpen = ref(false);
@@ -101,23 +128,30 @@ function clearFilters() {
     activeKpi.value = null;
 }
 
-function setStatusFilter(value) {
-    statusFilter.value = value;
-    activeKpi.value = value === 'all' ? null : value;
+const enabledFilterControlCount = computed(() =>
+    FILTER_CONTROLS.filter((f) => visibleFilters.value[f.key]).length,
+);
+
+function persistVisibleFilters() {
+    localStorage.setItem(VISIBLE_FILTERS_KEY, JSON.stringify(visibleFilters.value));
 }
 
-function openFilter() {
-    showFilterDd.value = !showFilterDd.value;
-    if (showFilterDd.value) showColDd.value = false;
+function onStatusFilterChange() {
+    activeKpi.value = statusFilter.value === 'all' ? null : statusFilter.value;
+}
+
+function openFilterPanel() {
+    showFilterPanelDd.value = !showFilterPanelDd.value;
+    if (showFilterPanelDd.value) showColDd.value = false;
 }
 
 function openCol() {
     showColDd.value = !showColDd.value;
-    if (showColDd.value) showFilterDd.value = false;
+    if (showColDd.value) showFilterPanelDd.value = false;
 }
 
 function onToolbarClickOutside(e) {
-    if (filterDdRef.value && !filterDdRef.value.contains(e.target)) showFilterDd.value = false;
+    if (filterPanelDdRef.value && !filterPanelDdRef.value.contains(e.target)) showFilterPanelDd.value = false;
     if (colDdRef.value && !colDdRef.value.contains(e.target)) showColDd.value = false;
     if (groupColDdRef.value && !groupColDdRef.value.contains(e.target)) showGroupColDd.value = false;
 }
@@ -213,6 +247,18 @@ async function onApproveSubmit({ review_notes }) {
     await approveProposal(approving.value.id, review_notes);
     approveOpen.value = false;
     approving.value = null;
+}
+
+async function onDeleteProposal(row) {
+    const label = row.proposal_code || row.tool_name || 'phiếu này';
+    const confirmed = await dialog.confirm({
+        title: 'Xoá phiếu đề xuất',
+        message: `Bạn có chắc muốn xoá "${label}"? Thao tác không thể hoàn tác.`,
+        tone: 'danger',
+        confirmText: 'Xoá',
+    });
+    if (!confirmed) return;
+    await deleteProposal(row.id);
 }
 
 function exportCsv() {
@@ -322,32 +368,66 @@ function exportCsv() {
               </button>
             </div>
 
+            <select
+              v-if="visibleFilters.status"
+              v-model="statusFilter"
+              class="input h-9 w-[min(100%,11rem)] shrink-0 text-sm sm:w-40"
+              aria-label="Lọc theo trạng thái"
+              @change="onStatusFilterChange"
+            >
+              <option value="all">
+                Trạng thái: Tất cả ({{ proposalCounts.total ?? 0 }})
+              </option>
+              <option
+                v-for="opt in options.proposal_status"
+                :key="opt.value"
+                :value="opt.value"
+              >
+                {{ opt.label }} ({{ proposalCounts[opt.value] ?? 0 }})
+              </option>
+            </select>
+
+            <select
+              v-if="visibleFilters.type"
+              v-model="typeFilter"
+              class="input h-9 w-[min(100%,11rem)] shrink-0 text-sm sm:w-44"
+              aria-label="Lọc theo loại đề xuất"
+            >
+              <option value="all">
+                Loại: Tất cả
+              </option>
+              <option
+                v-for="t in options.proposal_type"
+                :key="t.value"
+                :value="t.value"
+              >
+                {{ t.label }}
+              </option>
+            </select>
+
             <div
-              ref="filterDdRef"
+              ref="filterPanelDdRef"
               class="relative shrink-0"
             >
               <button
                 type="button"
                 class="flex h-9 items-center gap-1.5 rounded-btn border px-3 text-sm font-medium transition select-none"
-                :class="showFilterDd || activeFilterCount > 0
+                :class="showFilterPanelDd
                   ? 'border-brand/40 bg-brand/5 text-brand'
                   : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800'"
-                @click="openFilter"
+                @click="openFilterPanel"
               >
                 <AppIcon
                   name="filter"
                   :size="14"
                 />
-                Bộ lọc
-                <span
-                  v-if="activeFilterCount > 0"
-                  class="text-xs font-normal opacity-80"
-                >({{ activeFilterCount }})</span>
+                Hiển thị bộ lọc
+                <span class="text-xs font-normal tabular-nums opacity-70">{{ enabledFilterControlCount }}/{{ FILTER_CONTROLS.length }}</span>
                 <AppIcon
                   name="chevron-down"
                   :size="13"
                   class="opacity-50 transition-transform duration-150"
-                  :class="showFilterDd && 'rotate-180'"
+                  :class="showFilterPanelDd && 'rotate-180'"
                 />
               </button>
               <Transition
@@ -357,92 +437,31 @@ function exportCsv() {
                 leave-to-class="opacity-0 scale-95 -translate-y-1"
               >
                 <div
-                  v-if="showFilterDd"
-                  class="absolute left-0 top-full z-30 mt-1.5 max-h-[min(70vh,28rem)] w-72 origin-top-left overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-elevation-2 sm:left-auto sm:right-0 sm:origin-top-right"
+                  v-if="showFilterPanelDd"
+                  class="absolute left-0 top-full z-30 mt-1.5 w-56 origin-top-left rounded-xl border border-slate-200 bg-white shadow-elevation-2 sm:left-auto sm:right-0 sm:origin-top-right"
                 >
-                  <div class="flex items-center justify-between border-b border-slate-100 px-4 py-2.5">
-                    <span class="text-xs font-bold uppercase tracking-wide text-slate-500">Bộ lọc</span>
-                    <button
-                      v-if="activeFilterCount > 0"
-                      type="button"
-                      class="text-xs text-brand hover:underline"
-                      @click="clearFilters"
-                    >
-                      Xoá
-                    </button>
+                  <div class="border-b border-slate-100 px-4 py-2.5">
+                    <span class="text-xs font-bold uppercase tracking-wide text-slate-500">Hiển thị trên thanh công cụ</span>
                   </div>
-                  <div class="border-b border-slate-100 px-4 py-3">
-                    <p class="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                      Trạng thái
-                    </p>
-                    <div class="flex flex-col gap-0.5">
-                      <label
-                        class="flex cursor-pointer items-center justify-between rounded-lg px-2.5 py-1.5 transition hover:bg-slate-50"
-                        :class="statusFilter === 'all' ? 'bg-brand/5' : ''"
-                        @click="setStatusFilter('all')"
-                      >
-                        <div class="flex items-center gap-2.5">
-                          <span
-                            class="flex h-4 w-4 items-center justify-center rounded-full border-2 transition"
-                            :class="statusFilter === 'all' ? 'border-brand bg-brand' : 'border-slate-300'"
-                          >
-                            <span
-                              v-if="statusFilter === 'all'"
-                              class="h-1.5 w-1.5 rounded-full bg-white"
-                            />
-                          </span>
-                          <span
-                            class="text-sm"
-                            :class="statusFilter === 'all' ? 'font-semibold text-slate-800' : 'text-slate-600'"
-                          >Tất cả</span>
-                        </div>
-                        <span class="text-[11px] font-medium tabular-nums text-slate-400">{{ proposalCounts.total ?? 0 }}</span>
-                      </label>
-                      <label
-                        v-for="opt in options.proposal_status"
-                        :key="opt.value"
-                        class="flex cursor-pointer items-center justify-between rounded-lg px-2.5 py-1.5 transition hover:bg-slate-50"
-                        :class="statusFilter === opt.value ? 'bg-brand/5' : ''"
-                        @click="setStatusFilter(opt.value)"
-                      >
-                        <div class="flex items-center gap-2.5">
-                          <span
-                            class="flex h-4 w-4 items-center justify-center rounded-full border-2 transition"
-                            :class="statusFilter === opt.value ? 'border-brand bg-brand' : 'border-slate-300'"
-                          >
-                            <span
-                              v-if="statusFilter === opt.value"
-                              class="h-1.5 w-1.5 rounded-full bg-white"
-                            />
-                          </span>
-                          <span
-                            class="text-sm"
-                            :class="statusFilter === opt.value ? 'font-semibold text-slate-800' : 'text-slate-600'"
-                          >{{ opt.label }}</span>
-                        </div>
-                        <span class="text-[11px] font-medium tabular-nums text-slate-400">{{ proposalCounts[opt.value] ?? 0 }}</span>
-                      </label>
-                    </div>
-                  </div>
-                  <div class="px-4 py-3">
-                    <p class="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                      Loại đề xuất
-                    </p>
-                    <select
-                      v-model="typeFilter"
-                      class="input h-9 w-full text-sm"
+                  <div class="px-2 py-2">
+                    <label
+                      v-for="f in FILTER_CONTROLS"
+                      :key="f.key"
+                      class="flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-1.5 hover:bg-slate-50"
                     >
-                      <option value="all">
-                        Tất cả loại
-                      </option>
-                      <option
-                        v-for="t in options.proposal_type"
-                        :key="t.value"
-                        :value="t.value"
+                      <input
+                        v-model="visibleFilters[f.key]"
+                        type="checkbox"
+                        class="rounded border-slate-300 text-brand focus:ring-brand/30"
+                        @change="persistVisibleFilters"
                       >
-                        {{ t.label }}
-                      </option>
-                    </select>
+                      <span class="text-sm text-slate-700">{{ f.label }}</span>
+                    </label>
+                  </div>
+                  <div class="border-t border-slate-100 px-4 py-2.5">
+                    <p class="text-[11px] leading-snug text-slate-400">
+                      Ô tìm kiếm luôn hiển thị. Bật/tắt từng bộ lọc bạn muốn thấy bên cạnh.
+                    </p>
                   </div>
                 </div>
               </Transition>
@@ -540,13 +559,13 @@ function exportCsv() {
           v-if="activeFilterCount > 0 || search.trim()"
           class="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500"
         >
-          <span>Đang lọc<span v-if="filterSummary">: {{ filterSummary }}</span><span v-if="search.trim()"> · «{{ search.trim() }}»</span></span>
+          <span>Đang áp dụng<span v-if="filterSummary">: {{ filterSummary }}</span><span v-if="search.trim()"> · từ khoá «{{ search.trim() }}»</span></span>
           <button
             type="button"
             class="font-medium text-brand hover:underline"
             @click="search = ''; clearFilters()"
           >
-            Xoá lọc
+            Đặt lại
           </button>
         </p>
       </div>
@@ -834,6 +853,18 @@ function exportCsv() {
                   >
                     <AppIcon
                       name="close"
+                      :size="16"
+                    />
+                  </button>
+                  <button
+                    v-if="row.can_delete"
+                    type="button"
+                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-transparent text-slate-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+                    title="Xoá phiếu"
+                    @click="onDeleteProposal(row)"
+                  >
+                    <AppIcon
+                      name="delete"
                       :size="16"
                     />
                   </button>

@@ -3,6 +3,7 @@
 namespace App\Services\AiAccount;
 
 use App\Models\AiPurchaseProposal;
+use App\Models\SystemAccount;
 use App\Support\Enums\AiAccountGroupFunction;
 use App\Support\Enums\AiPurchaseProposalStatus;
 use Illuminate\Support\Collection;
@@ -17,12 +18,12 @@ class AiPurchaseProposalPresenter
      * @param  Collection<int, AiPurchaseProposal>  $proposals
      * @return array<int, array<string, mixed>>
      */
-    public function list(Collection $proposals): array
+    public function list(Collection $proposals, ?SystemAccount $viewer = null): array
     {
         return $proposals
             ->sortByDesc('created_at')
             ->values()
-            ->map(fn (AiPurchaseProposal $p) => $this->row($p))
+            ->map(fn (AiPurchaseProposal $p) => $this->row($p, $viewer))
             ->all();
     }
 
@@ -44,7 +45,7 @@ class AiPurchaseProposalPresenter
     /**
      * @return array<string, mixed>
      */
-    public function row(AiPurchaseProposal $proposal): array
+    public function row(AiPurchaseProposal $proposal, ?SystemAccount $viewer = null): array
     {
         $proposal->loadMissing(['creator.employee', 'reviewer.employee']);
         $monthly = $this->costCalculator->monthlyAmount($proposal->cost_amount, $proposal->cost_unit);
@@ -118,6 +119,7 @@ class AiPurchaseProposalPresenter
                 AiPurchaseProposalStatus::Approved,
                 AiPurchaseProposalStatus::Rejected,
             ], true),
+            'can_delete' => $viewer?->can('delete', $proposal) ?? false,
         ];
     }
 

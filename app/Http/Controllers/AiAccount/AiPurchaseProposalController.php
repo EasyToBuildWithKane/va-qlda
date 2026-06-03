@@ -59,7 +59,7 @@ class AiPurchaseProposalController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
-                'proposals' => $this->presenter->list($proposals),
+                'proposals' => $this->presenter->list($proposals, $request->user()),
                 'counts' => $this->presenter->counts($proposals),
             ],
         ]);
@@ -111,9 +111,22 @@ class AiPurchaseProposalController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => ['proposal' => $this->presenter->row($proposal)],
+            'data' => ['proposal' => $this->presenter->row($proposal, $request->user())],
             'message' => 'Đã gửi phiếu đề xuất. Chờ quản trị duyệt.',
         ], 201);
+    }
+
+    public function destroy(AiPurchaseProposal $proposal): JsonResponse
+    {
+        $this->authorize('delete', $proposal);
+
+        $label = $proposal->proposal_code ?? $proposal->tool_name;
+        $proposal->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => "Đã xoá phiếu {$label}.",
+        ]);
     }
 
     public function approve(ApproveAiPurchaseProposalRequest $request, AiPurchaseProposal $proposal): JsonResponse
@@ -130,7 +143,7 @@ class AiPurchaseProposalController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => ['proposal' => $this->presenter->row($proposal->fresh())],
+            'data' => ['proposal' => $this->presenter->row($proposal->fresh(), $request->user())],
             'message' => 'Đã duyệt phiếu đề xuất.',
         ]);
     }
@@ -146,12 +159,12 @@ class AiPurchaseProposalController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => ['proposal' => $this->presenter->row($proposal->fresh())],
+            'data' => ['proposal' => $this->presenter->row($proposal->fresh(), $request->user())],
             'message' => 'Đã từ chối phiếu đề xuất.',
         ]);
     }
 
-    public function markPurchased(AiPurchaseProposal $proposal): JsonResponse
+    public function markPurchased(Request $request, AiPurchaseProposal $proposal): JsonResponse
     {
         $this->authorize('manage', $proposal);
 
@@ -159,12 +172,12 @@ class AiPurchaseProposalController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => ['proposal' => $this->presenter->row($proposal->fresh())],
+            'data' => ['proposal' => $this->presenter->row($proposal->fresh(), $request->user())],
             'message' => 'Đã đánh dấu đã mua.',
         ]);
     }
 
-    public function markActive(AiPurchaseProposal $proposal): JsonResponse
+    public function markActive(Request $request, AiPurchaseProposal $proposal): JsonResponse
     {
         $this->authorize('manage', $proposal);
 
@@ -172,7 +185,7 @@ class AiPurchaseProposalController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => ['proposal' => $this->presenter->row($proposal->fresh())],
+            'data' => ['proposal' => $this->presenter->row($proposal->fresh(), $request->user())],
             'message' => 'Đã đánh dấu đang sử dụng.',
         ]);
     }
@@ -185,7 +198,7 @@ class AiPurchaseProposalController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => ['proposal' => $this->presenter->row($proposal->fresh())],
+            'data' => ['proposal' => $this->presenter->row($proposal->fresh(), $request->user())],
             'message' => 'Đã lưu ghi chú.',
         ]);
     }

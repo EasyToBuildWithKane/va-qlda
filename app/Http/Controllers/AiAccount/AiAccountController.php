@@ -64,7 +64,7 @@ class AiAccountController extends Controller
             ->get();
 
         $summary = $this->grouper->summary($accounts);
-        $summary['proposals'] = $this->proposalPresenter->list($proposals);
+        $summary['proposals'] = $this->proposalPresenter->list($proposals, $request->user());
         $summary['proposal_counts'] = $this->proposalPresenter->counts($proposals);
 
         return response()->json([

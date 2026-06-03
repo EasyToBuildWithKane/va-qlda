@@ -1,5 +1,5 @@
 import { ref } from 'vue';
-import { httpGet, httpPatch, httpPost } from '@/shared/services/http';
+import { httpDelete, httpGet, httpPatch, httpPost } from '@/shared/services/http';
 import { useToast } from '@/shared/composables/useToast';
 
 export function useAiCostReport() {
@@ -87,6 +87,12 @@ export function useAiCostReport() {
         await loadProposals();
     }
 
+    async function deleteProposal(id) {
+        const res = await httpDelete(route('api.ai-accounts.proposals.destroy', { proposal: id }));
+        toast.success(res.message ?? 'Đã xoá phiếu.');
+        await load();
+    }
+
     return {
         loading,
         byGroup,
@@ -100,5 +106,6 @@ export function useAiCostReport() {
         approveProposal,
         rejectProposal,
         updateProposalNotes,
+        deleteProposal,
     };
 }

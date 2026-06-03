@@ -226,6 +226,32 @@ class AiAccountTest extends TestCase
         $this->assertSame(1, $summary['proposal_counts']['approved']);
     }
 
+    public function test_purchase_proposal_destroy(): void
+    {
+        $member = SystemAccount::factory()->create();
+        $this->actingAs($member, 'system');
+
+        $this->postJson(route('api.ai-accounts.proposals.store'), $this->proposalPayload([
+            'tool_name' => 'To Delete',
+            'subject_about' => 'Đăng ký To Delete',
+        ]))->assertCreated();
+
+        $proposal = AiPurchaseProposal::query()->where('tool_name', 'To Delete')->first();
+        $this->assertNotNull($proposal);
+
+        $this->deleteJson(route('api.ai-accounts.proposals.destroy', ['proposal' => $proposal->id]))
+            ->assertForbidden();
+
+        $admin = SystemAccount::factory()->role(SystemRole::Admin)->create();
+        $this->actingAs($admin, 'system');
+
+        $this->deleteJson(route('api.ai-accounts.proposals.destroy', ['proposal' => $proposal->id]))
+            ->assertOk()
+            ->assertJsonPath('success', true);
+
+        $this->assertDatabaseMissing('ai_purchase_proposals', ['id' => $proposal->id]);
+    }
+
     public function test_purchase_proposal_export_pdf_and_docx(): void
     {
         $this->actingAsUser();
