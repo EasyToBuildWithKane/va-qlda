@@ -1,6 +1,6 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
@@ -15,6 +15,7 @@ import AiPurchaseProposalApproveModal from '@/modules/aiAccount/components/AiPur
 import ProposalRowActions from '@/modules/aiAccount/components/ProposalRowActions.vue';
 import AiAccountSectionNav from '@/modules/aiAccount/components/AiAccountSectionNav.vue';
 import AiAccountCrossLink from '@/modules/aiAccount/components/AiAccountCrossLink.vue';
+import AiCostByGroupPanel from '@/modules/aiAccount/components/AiCostByGroupPanel.vue';
 import Badge from '@/shared/ui/Badge.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
@@ -58,7 +59,7 @@ const {
 const dialog = useDialog();
 const toast = useToast();
 
-const { groupColVisible, showGroupColDd, groupColDdRef, toggleGroupColumn, COST_REPORT_GROUP_COLUMNS } = useCostReportUi(proposals);
+useCostReportUi(proposals);
 
 // ─── filters ───
 const search = ref('');
@@ -282,7 +283,6 @@ function onToolbarClickOutside(e) {
     if (filterPanelDdRef.value && !filterPanelDdRef.value.contains(e.target)) showFilterPanelDd.value = false;
     if (colDdRef.value && !colDdRef.value.contains(e.target)) showColDd.value = false;
     if (exportDdRef.value && !exportDdRef.value.contains(e.target)) showExportDd.value = false;
-    if (groupColDdRef.value && !groupColDdRef.value.contains(e.target)) showGroupColDd.value = false;
 }
 
 const displayProposalCounts = computed(() =>
@@ -1204,160 +1204,12 @@ function runExport(format) {
       </div>
     </div>
 
-    <!-- ── Cost by Group (collapsible) ── -->
-    <div class="card mt-5 overflow-visible">
-      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
-        <h2 class="font-semibold text-slate-700">
-          Chi phí AI theo nhóm
-        </h2>
-        <div class="flex items-center gap-2">
-          <div
-            ref="groupColDdRef"
-            class="relative"
-          >
-            <button
-              type="button"
-              class="flex h-9 items-center gap-1.5 rounded-btn border px-3 text-sm font-medium transition"
-              :class="showGroupColDd
-                ? 'border-brand/40 bg-brand/5 text-brand'
-                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'"
-              @click="showGroupColDd = !showGroupColDd"
-            >
-              <AppIcon
-                name="columns"
-                :size="14"
-              />
-              Cột hiển thị
-              <AppIcon
-                name="chevron-down"
-                :size="13"
-                class="opacity-50 transition-transform duration-150"
-                :class="showGroupColDd && 'rotate-180'"
-              />
-            </button>
-            <div
-              v-if="showGroupColDd"
-              class="absolute right-0 top-full z-30 mt-1.5 w-52 rounded-xl border border-slate-200 bg-white shadow-elevation-2"
-            >
-              <div class="border-b border-slate-100 px-4 py-2.5">
-                <span class="text-xs font-bold uppercase tracking-wide text-slate-500">Cột hiển thị</span>
-              </div>
-              <div class="px-2 py-2">
-                <label
-                  v-for="col in COST_REPORT_GROUP_COLUMNS"
-                  :key="col.key"
-                  class="flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-1.5 hover:bg-slate-50"
-                >
-                  <input
-                    type="checkbox"
-                    class="rounded border-slate-300 text-brand focus:ring-brand/30"
-                    :checked="groupColVisible[col.key]"
-                    @change="toggleGroupColumn(col.key)"
-                  >
-                  <span class="text-sm text-slate-700">{{ col.label }}</span>
-                </label>
-              </div>
-            </div>
-          </div>
-          <Link
-            :href="route('ai-accounts.index')"
-            class="btn-ghost h-9 gap-1.5 border border-slate-200 text-sm"
-          >
-            <AppIcon
-              name="back"
-              :size="16"
-            />
-            Danh sách TK
-          </Link>
-        </div>
-      </div>
-      <div class="overflow-x-auto">
-        <table class="w-full min-w-[640px] text-left text-sm">
-          <thead class="bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-            <tr>
-              <th class="px-5 py-3">
-                Nhóm
-              </th>
-              <th
-                v-if="groupColVisible.counts"
-                class="px-4 py-3 text-center"
-              >
-                Số lượng
-              </th>
-              <th
-                v-if="groupColVisible.cost_active"
-                class="px-4 py-3 text-right"
-              >
-                CP active
-              </th>
-              <th
-                v-if="groupColVisible.cost_all"
-                class="px-4 py-3 text-right"
-              >
-                CP tất cả
-              </th>
-              <th
-                v-if="groupColVisible.share"
-                class="px-4 py-3 text-right"
-              >
-                %
-              </th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-100">
-            <tr
-              v-for="row in byGroup"
-              :key="row.group"
-              class="hover:bg-slate-50/50"
-            >
-              <td class="px-5 py-3">
-                <span
-                  class="mr-2 inline-block h-2 w-2 rounded-full"
-                  :style="{ backgroundColor: row.dot_color }"
-                />
-                <span class="font-medium text-slate-800">{{ row.group }}</span>
-              </td>
-              <td
-                v-if="groupColVisible.counts"
-                class="px-4 py-3 text-center text-xs text-slate-600"
-              >
-                <span class="tabular-nums">{{ row.total_accounts }}</span> TK
-                <span class="text-emerald-600">· {{ row.active_accounts }} active</span>
-                <span
-                  v-if="row.expiring_soon"
-                  class="text-amber-600"
-                > · {{ row.expiring_soon }} sắp HH</span>
-              </td>
-              <td
-                v-if="groupColVisible.cost_active"
-                class="px-4 py-3 text-right"
-              >
-                <VndAmount
-                  :amount="row.cost_monthly_active"
-                  compact
-                />
-              </td>
-              <td
-                v-if="groupColVisible.cost_all"
-                class="px-4 py-3 text-right"
-              >
-                <VndAmount
-                  :amount="row.cost_monthly"
-                  suffix=" / tháng"
-                  compact
-                />
-              </td>
-              <td
-                v-if="groupColVisible.share"
-                class="px-4 py-3 text-right tabular-nums"
-              >
-                {{ row.cost_share_percent ?? 0 }}%
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <AiCostByGroupPanel
+      :rows="byGroup"
+      :cards="cards"
+      :options="props.options"
+      :filter-note="[filterSummary, search.trim() ? `từ khoá «${search.trim()}»` : ''].filter(Boolean).join(' · ')"
+    />
 
     <!-- ── Modals ── -->
     <AiPurchaseProposalFormModal

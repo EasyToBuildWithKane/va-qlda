@@ -10,11 +10,8 @@ export const PROPOSAL_COLUMNS = [
 
 export const PROPOSAL_COLUMNS_DEFAULT = ['license', 'cost', 'status', 'sender'];
 
-export const COST_REPORT_GROUP_COLUMNS = [
-    { key: 'counts', label: 'Số lượng (Active / cảnh báo)' },
-    { key: 'cost_active', label: 'CP active/tháng' },
-    { key: 'cost_all', label: 'CP tất cả/tháng' },
-    { key: 'share', label: 'Tỷ trọng' },
-];
-
-export const COST_REPORT_GROUP_COLUMNS_DEFAULT = ['counts', 'cost_active', 'cost_all', 'share'];
+/** @deprecated Dùng GROUP_COST_COLUMNS — giữ export tránh break import cũ */
+export {
+    GROUP_COST_COLUMNS as COST_REPORT_GROUP_COLUMNS,
+    GROUP_COST_COLUMNS_DEFAULT as COST_REPORT_GROUP_COLUMNS_DEFAULT,
+} from '@/modules/aiAccount/config/groupCostColumns';

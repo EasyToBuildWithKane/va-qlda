@@ -106,6 +106,7 @@ class AiAccountGrouper
 
             $rows[] = [
                 'group' => $key,
+                'group_label' => $this->groupLabel($groupEnum),
                 'dot_color' => $groupEnum->dotColor(),
                 'total_accounts' => $items->count(),
                 'active_accounts' => $active->count(),

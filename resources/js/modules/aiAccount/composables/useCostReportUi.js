@@ -1,13 +1,10 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import {
-    COST_REPORT_GROUP_COLUMNS,
-    COST_REPORT_GROUP_COLUMNS_DEFAULT,
     PROPOSAL_COLUMNS,
     PROPOSAL_COLUMNS_DEFAULT,
 } from '@/modules/aiAccount/config/proposalColumns';
 
 const PROPOSAL_COLS_KEY = 'va-qlda.ai-cost-report.proposal-columns';
-const GROUP_COLS_KEY = 'va-qlda.ai-cost-report.group-columns';
 
 function loadKeys(storageKey, defaults, allCols) {
     try {
@@ -28,26 +25,17 @@ export function useCostReportUi(proposalsRef) {
     const detailExpanded = ref({});
 
     const proposalColumnKeys = ref(loadKeys(PROPOSAL_COLS_KEY, PROPOSAL_COLUMNS_DEFAULT, PROPOSAL_COLUMNS));
-    const groupColumnKeys = ref(loadKeys(GROUP_COLS_KEY, COST_REPORT_GROUP_COLUMNS_DEFAULT, COST_REPORT_GROUP_COLUMNS));
 
     watch(proposalColumnKeys, (v) => {
         localStorage.setItem(PROPOSAL_COLS_KEY, JSON.stringify(v));
     }, { deep: true });
-    watch(groupColumnKeys, (v) => {
-        localStorage.setItem(GROUP_COLS_KEY, JSON.stringify(v));
-    }, { deep: true });
 
     const showProposalColDd = ref(false);
-    const showGroupColDd = ref(false);
     const proposalColDdRef = ref(null);
-    const groupColDdRef = ref(null);
 
     const onDocClick = (e) => {
         if (proposalColDdRef.value && !proposalColDdRef.value.contains(e.target)) {
             showProposalColDd.value = false;
-        }
-        if (groupColDdRef.value && !groupColDdRef.value.contains(e.target)) {
-            showGroupColDd.value = false;
         }
     };
     onMounted(() => document.addEventListener('mousedown', onDocClick));
@@ -58,23 +46,11 @@ export function useCostReportUi(proposalsRef) {
         return Object.fromEntries(PROPOSAL_COLUMNS.map((c) => [c.key, set.has(c.key)]));
     });
 
-    const groupColVisible = computed(() => {
-        const set = new Set(groupColumnKeys.value);
-        return Object.fromEntries(COST_REPORT_GROUP_COLUMNS.map((c) => [c.key, set.has(c.key)]));
-    });
-
     function toggleProposalColumn(key) {
         const set = new Set(proposalColumnKeys.value);
         if (set.has(key)) set.delete(key);
         else set.add(key);
         proposalColumnKeys.value = [...set];
-    }
-
-    function toggleGroupColumn(key) {
-        const set = new Set(groupColumnKeys.value);
-        if (set.has(key)) set.delete(key);
-        else set.add(key);
-        groupColumnKeys.value = [...set];
     }
 
     const filteredProposals = computed(() => {
@@ -136,20 +112,15 @@ export function useCostReportUi(proposalsRef) {
         groupExpanded,
         detailExpanded,
         proposalColVisible,
-        groupColVisible,
         showProposalColDd,
-        showGroupColDd,
         proposalColDdRef,
-        groupColDdRef,
         proposalGroups,
         filteredProposals,
         toggleProposalColumn,
-        toggleGroupColumn,
         toggleProposalGroup,
         toggleDetail,
         expandAllProposalGroups,
         collapseAllProposalGroups,
         PROPOSAL_COLUMNS,
-        COST_REPORT_GROUP_COLUMNS,
     };
 }
