@@ -101,7 +101,16 @@ ls storage/app/public/projects/2/customer/
 
 **Symptoms:** VS Code/Cursor **Sync Changes** spins then fails; terminal `git push` ends with `pre-push script failed`.
 
-**Common cause:** Port in use — dev server on **8000**, or stale E2E on **8001**. Pre-push picks the first free port **8001–8010** (`tests/e2e/helpers/pickE2ePort.js`) and sets `PLAYWRIGHT_REUSE_SERVER=1`.
+**Common cause:** Port in use — dev server on **8000**, or stale E2E on **8001** (`netstat` → `LISTENING` + PID, e.g. `29336`). Pre-push runs `stopStaleE2ePorts.js` then picks a free port **8001–8010**.
+
+**Windows — stop now:**
+
+```powershell
+netstat -ano | findstr ":8001"
+taskkill /F /PID 29336
+```
+
+(Replace `29336` with your PID from the `LISTENING` line.)
 
 **Quick push after env template commit only (no code):** still runs E2E unless you use `git push --no-verify` (skip only when you accept skipping tests).
 

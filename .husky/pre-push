@@ -3,6 +3,8 @@ if [ ! -f public/build/manifest.json ]; then
   echo "▶ Building frontend assets (required for E2E)..."
   npm run build || exit 1
 fi
+# Stop stale php artisan serve on 8001–8010 (common after aborted Sync / push).
+node tests/e2e/helpers/stopStaleE2ePorts.js 2>/dev/null || true
 # Avoid :8000 (dev server). Pick first free port 8001–8010 if default is taken.
 if [ -z "$PLAYWRIGHT_E2E_PORT" ]; then
   PLAYWRIGHT_E2E_PORT="$(node tests/e2e/helpers/pickE2ePort.js)" || exit 1
