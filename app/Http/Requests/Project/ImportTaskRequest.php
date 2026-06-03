@@ -20,7 +20,9 @@ class ImportTaskRequest extends FormRequest
      */
     public function rules(): array
     {
-        $projectId = $this->route('project')->id;
+        /** @var \App\Models\Project $project */
+        $project = $this->route('project');
+        $projectId = $project->id;
         $maxRows = (int) config('business.project.max_import_rows', 200);
 
         return [

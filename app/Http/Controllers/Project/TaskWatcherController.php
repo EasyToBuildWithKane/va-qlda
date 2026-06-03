@@ -17,7 +17,7 @@ class TaskWatcherController extends Controller
         abort_unless($task->project_id === $project->id, 404);
 
         $employeeId = $request->user()->employee_id;
-        abort_unless($employeeId, 403);
+        abort_unless((bool) $employeeId, 403);
 
         $watching = $task->watchers()->where('employee_id', $employeeId)->exists();
 

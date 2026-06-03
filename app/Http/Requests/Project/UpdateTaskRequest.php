@@ -21,8 +21,12 @@ class UpdateTaskRequest extends FormRequest
      */
     public function rules(): array
     {
-        $projectId = $this->route('project')->id;
-        $taskId = $this->route('task')->id;
+        /** @var \App\Models\Project $project */
+        $project = $this->route('project');
+        /** @var \App\Models\Task $task */
+        $task = $this->route('task');
+        $projectId = $project->id;
+        $taskId = $task->id;
 
         return [
             'title' => ['sometimes', 'required', 'string', 'max:255'],

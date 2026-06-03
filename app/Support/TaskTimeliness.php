@@ -17,7 +17,7 @@ class TaskTimeliness
     /** @var list<string> */
     public const ACTIVE_STATUSES = ['in_progress', 'in_review', 'blocked'];
 
-    public static function workStartedAt(Task $task): ?Carbon
+    public static function workStartedAt(Task $task): ?\Carbon\Carbon
     {
         if ($task->work_started_at) {
             return $task->work_started_at->copy();
@@ -34,7 +34,7 @@ class TaskTimeliness
         return $task->created_at?->copy();
     }
 
-    public static function estimateDeadline(Task $task): ?Carbon
+    public static function estimateDeadline(Task $task): ?\Carbon\Carbon
     {
         $hours = $task->estimate_hours !== null ? (float) $task->estimate_hours : 0;
         if ($hours <= 0) {

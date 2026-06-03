@@ -16,7 +16,7 @@ class BulkCreateTasksUseCase
 {
     /**
      * @param  array{rows: array<int, array{title: string}>, defaults?: array<string, mixed>}  $data
-     * @return int  Number of tasks created
+     * @return int Number of tasks created
      */
     public function execute(Project $project, array $data, SystemAccount $actor): int
     {

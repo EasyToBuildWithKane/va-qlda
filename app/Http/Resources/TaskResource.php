@@ -3,10 +3,6 @@
 namespace App\Http\Resources;
 
 use App\Http\Resources\Concerns\PresentsEntities;
-use App\Http\Resources\CommentResource;
-use App\Http\Resources\EpicResource;
-use App\Http\Resources\TaskActivityResource;
-use App\Http\Resources\TaskAttachmentResource;
 use App\Support\TaskTimeliness;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -66,19 +62,19 @@ class TaskResource extends JsonResource
             'dependencies' => $this->whenLoaded('dependencies', fn () => $this->dependencies->map(fn ($t) => [
                 'id' => $t->id,
                 'title' => $t->title,
-                'status' => $t->status ? ['value' => $t->status->value, 'label' => $t->status->label(), 'color' => $t->status->color()] : null,
+                'status' => ['value' => $t->status->value, 'label' => $t->status->label(), 'color' => $t->status->color()],
             ])->values()),
             'dependents' => $this->whenLoaded('dependents', fn () => $this->dependents->map(fn ($t) => [
                 'id' => $t->id,
                 'title' => $t->title,
-                'status' => $t->status ? ['value' => $t->status->value, 'label' => $t->status->label(), 'color' => $t->status->color()] : null,
+                'status' => ['value' => $t->status->value, 'label' => $t->status->label(), 'color' => $t->status->color()],
                 'progress' => (int) $t->progress,
             ])->values()),
             'logged_hours' => $this->whenLoaded('worklogs', fn () => (float) $this->worklogs->sum('hours')),
             'labor_cost' => $this->whenLoaded('worklogs', fn () => (float) $this->worklogs->sum('cost')),
             'worklogs' => $this->whenLoaded('worklogs', fn () => $this->worklogs->map(fn ($w) => [
                 'id' => $w->id,
-                'date' => $w->date?->toDateString(),
+                'date' => $w->date->toDateString(),
                 'hours' => (float) $w->hours,
                 'note' => $w->note,
                 'cost' => $w->cost !== null ? (float) $w->cost : null,
@@ -96,15 +92,15 @@ class TaskResource extends JsonResource
             }),
             'subtasks' => $this->whenLoaded('subtasks', fn () => $this->subtasks
                 ->map(fn ($t) => [
-                'id' => $t->id,
-                'title' => $t->title,
-                'status' => $t->status ? ['value' => $t->status->value, 'label' => $t->status->label(), 'color' => $t->status->color()] : null,
-                'progress' => (int) $t->progress,
-                'estimate_hours' => $t->estimate_hours !== null ? (float) $t->estimate_hours : null,
-                'assignee' => $t->relationLoaded('assignee') && $t->assignee
-                    ? $this->person($t->assignee)
-                    : null,
-            ])
+                    'id' => $t->id,
+                    'title' => $t->title,
+                    'status' => ['value' => $t->status->value, 'label' => $t->status->label(), 'color' => $t->status->color()],
+                    'progress' => (int) $t->progress,
+                    'estimate_hours' => $t->estimate_hours !== null ? (float) $t->estimate_hours : null,
+                    'assignee' => $t->relationLoaded('assignee') && $t->assignee
+                        ? $this->person($t->assignee)
+                        : null,
+                ])
                 ->filter(fn ($row) => $row !== null)
                 ->values()),
             'watchers' => $this->whenLoaded('watchers', fn () => $this->watchers
