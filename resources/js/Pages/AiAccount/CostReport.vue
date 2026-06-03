@@ -1,10 +1,12 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import { useAiCostReport } from '@/modules/aiAccount/composables/useAiCostReport';
+import { exportAiProposals } from '@/modules/aiAccount/composables/useAiProposalExport';
+import { useToast } from '@/shared/composables/useToast';
 import { useCostReportUi } from '@/modules/aiAccount/composables/useCostReportUi';
 import VndAmount from '@/modules/aiAccount/components/VndAmount.vue';
 import AiPurchaseProposalFormModal from '@/modules/aiAccount/components/AiPurchaseProposalFormModal.vue';
@@ -25,6 +27,7 @@ const {
     cards,
     byGroup,
     load,
+    loadProposals,
     createProposal,
     approveProposal,
     rejectProposal,
@@ -32,6 +35,7 @@ const {
 } = useAiCostReport();
 
 const dialog = useDialog();
+const toast = useToast();
 
 const { groupColVisible, showGroupColDd, groupColDdRef, toggleGroupColumn, COST_REPORT_GROUP_COLUMNS } = useCostReportUi(proposals);
 
@@ -79,8 +83,11 @@ function loadVisibleFilters() {
 const visibleFilters = ref(loadVisibleFilters());
 const showFilterPanelDd = ref(false);
 const showColDd = ref(false);
+const showExportDd = ref(false);
 const filterPanelDdRef = ref(null);
 const colDdRef = ref(null);
+const exportDdRef = ref(null);
+const filtersLoading = ref(false);
 
 const proposalFormOpen = ref(false);
 const rejectOpen = ref(false);
@@ -122,10 +129,12 @@ const filterSummary = computed(() => {
     return parts.join(' · ');
 });
 
-function clearFilters() {
+async function clearFilters() {
     statusFilter.value = 'all';
     typeFilter.value = 'all';
     activeKpi.value = null;
+    search.value = '';
+    await applyFilters();
 }
 
 const enabledFilterControlCount = computed(() =>
@@ -140,19 +149,62 @@ function onStatusFilterChange() {
     activeKpi.value = statusFilter.value === 'all' ? null : statusFilter.value;
 }
 
+function buildProposalFilterParams() {
+    const params = {};
+    if (statusFilter.value && statusFilter.value !== 'all') {
+        params.status = statusFilter.value;
+    }
+    if (typeFilter.value && typeFilter.value !== 'all') {
+        params.proposal_type = typeFilter.value;
+    }
+    const q = search.value.trim();
+    if (q) params.search = q;
+    return params;
+}
+
+async function applyFilters() {
+    filtersLoading.value = true;
+    try {
+        await loadProposals(buildProposalFilterParams());
+    } finally {
+        filtersLoading.value = false;
+    }
+}
+
+const hasFilterRow = computed(() =>
+    visibleFilters.value.status || visibleFilters.value.type,
+);
+
+const displayedProposals = computed(() => proposals.value ?? []);
+
 function openFilterPanel() {
     showFilterPanelDd.value = !showFilterPanelDd.value;
-    if (showFilterPanelDd.value) showColDd.value = false;
+    if (showFilterPanelDd.value) {
+        showColDd.value = false;
+        showExportDd.value = false;
+    }
 }
 
 function openCol() {
     showColDd.value = !showColDd.value;
-    if (showColDd.value) showFilterPanelDd.value = false;
+    if (showColDd.value) {
+        showFilterPanelDd.value = false;
+        showExportDd.value = false;
+    }
+}
+
+function openExportMenu() {
+    showExportDd.value = !showExportDd.value;
+    if (showExportDd.value) {
+        showFilterPanelDd.value = false;
+        showColDd.value = false;
+    }
 }
 
 function onToolbarClickOutside(e) {
     if (filterPanelDdRef.value && !filterPanelDdRef.value.contains(e.target)) showFilterPanelDd.value = false;
     if (colDdRef.value && !colDdRef.value.contains(e.target)) showColDd.value = false;
+    if (exportDdRef.value && !exportDdRef.value.contains(e.target)) showExportDd.value = false;
     if (groupColDdRef.value && !groupColDdRef.value.contains(e.target)) showGroupColDd.value = false;
 }
 
@@ -198,25 +250,15 @@ const COLS = [
     { key: 'end_date', label: 'Hạn sử dụng' },
 ];
 
-const filteredProposals = computed(() => {
-    let list = proposals.value ?? [];
-    if (statusFilter.value && statusFilter.value !== 'all') {
-        list = list.filter(p => p.status === statusFilter.value);
-    }
-    if (typeFilter.value && typeFilter.value !== 'all') {
-        list = list.filter(p => p.proposal_type === typeFilter.value);
-    }
-    if (search.value.trim()) {
-        const q = search.value.trim().toLowerCase();
-        list = list.filter(p =>
-            (p.proposal_code ?? '').toLowerCase().includes(q) ||
-            (p.tool_name ?? '').toLowerCase().includes(q) ||
-            (p.proposer_name ?? '').toLowerCase().includes(q) ||
-            (p.vendor_name ?? '').toLowerCase().includes(q) ||
-            (p.subject_about ?? '').toLowerCase().includes(q)
-        );
-    }
-    return list;
+let searchDebounceTimer;
+
+watch([statusFilter, typeFilter], () => {
+    applyFilters();
+});
+
+watch(search, () => {
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => applyFilters(), 350);
 });
 
 onMounted(() => {
@@ -261,20 +303,23 @@ async function onDeleteProposal(row) {
     await deleteProposal(row.id);
 }
 
-function exportCsv() {
-    const rows = filteredProposals.value;
-    if (!rows.length) return;
-    const headers = COLS.filter(c => visibleCols.value[c.key]).map(c => c.label);
-    const lines = rows.map(r => COLS.filter(c => visibleCols.value[c.key]).map(c => {
-        const v = r[c.key] ?? '';
-        return `"${String(v).replace(/"/g, '""')}"`;
-    }).join(','));
-    const csv = [headers.join(','), ...lines].join('\n');
-    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'phieu-de-xuat.csv'; a.click();
-    URL.revokeObjectURL(url);
+function runExport(format) {
+    showExportDd.value = false;
+    const rows = displayedProposals.value;
+    if (!rows.length) {
+        toast.warning('Không có phiếu để xuất.');
+        return;
+    }
+    const note = [filterSummary.value, search.value.trim() ? `từ khoá «${search.value.trim()}»` : '']
+        .filter(Boolean)
+        .join(' · ');
+    exportAiProposals({
+        list: rows,
+        columns: COLS,
+        visibleKeys: visibleCols.value,
+        filterNote: note,
+        format,
+    });
 }
 </script>
 
@@ -368,66 +413,23 @@ function exportCsv() {
               </button>
             </div>
 
-            <select
-              v-if="visibleFilters.status"
-              v-model="statusFilter"
-              class="input h-9 w-[min(100%,11rem)] shrink-0 text-sm sm:w-40"
-              aria-label="Lọc theo trạng thái"
-              @change="onStatusFilterChange"
-            >
-              <option value="all">
-                Trạng thái: Tất cả ({{ proposalCounts.total ?? 0 }})
-              </option>
-              <option
-                v-for="opt in options.proposal_status"
-                :key="opt.value"
-                :value="opt.value"
-              >
-                {{ opt.label }} ({{ proposalCounts[opt.value] ?? 0 }})
-              </option>
-            </select>
-
-            <select
-              v-if="visibleFilters.type"
-              v-model="typeFilter"
-              class="input h-9 w-[min(100%,11rem)] shrink-0 text-sm sm:w-44"
-              aria-label="Lọc theo loại đề xuất"
-            >
-              <option value="all">
-                Loại: Tất cả
-              </option>
-              <option
-                v-for="t in options.proposal_type"
-                :key="t.value"
-                :value="t.value"
-              >
-                {{ t.label }}
-              </option>
-            </select>
-
             <div
               ref="filterPanelDdRef"
               class="relative shrink-0"
             >
               <button
                 type="button"
-                class="flex h-9 items-center gap-1.5 rounded-btn border px-3 text-sm font-medium transition select-none"
+                class="inline-flex h-9 w-9 items-center justify-center rounded-btn border transition select-none"
                 :class="showFilterPanelDd
                   ? 'border-brand/40 bg-brand/5 text-brand'
                   : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800'"
+                :title="`Bộ lọc (${enabledFilterControlCount}/${FILTER_CONTROLS.length} đang hiển thị)`"
+                aria-label="Hiển thị bộ lọc trên thanh công cụ"
                 @click="openFilterPanel"
               >
                 <AppIcon
                   name="filter"
-                  :size="14"
-                />
-                Hiển thị bộ lọc
-                <span class="text-xs font-normal tabular-nums opacity-70">{{ enabledFilterControlCount }}/{{ FILTER_CONTROLS.length }}</span>
-                <AppIcon
-                  name="chevron-down"
-                  :size="13"
-                  class="opacity-50 transition-transform duration-150"
-                  :class="showFilterPanelDd && 'rotate-180'"
+                  :size="16"
                 />
               </button>
               <Transition
@@ -473,22 +475,17 @@ function exportCsv() {
             >
               <button
                 type="button"
-                class="flex h-9 items-center gap-1.5 rounded-btn border px-3 text-sm font-medium transition select-none"
+                class="inline-flex h-9 w-9 items-center justify-center rounded-btn border transition select-none"
                 :class="showColDd
                   ? 'border-brand/40 bg-brand/5 text-brand'
                   : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800'"
+                title="Cột hiển thị"
+                aria-label="Cột hiển thị"
                 @click="openCol"
               >
                 <AppIcon
                   name="columns"
-                  :size="14"
-                />
-                Cột hiển thị
-                <AppIcon
-                  name="chevron-down"
-                  :size="13"
-                  class="opacity-50 transition-transform duration-150"
-                  :class="showColDd && 'rotate-180'"
+                  :size="16"
                 />
               </button>
               <Transition
@@ -529,17 +526,60 @@ function exportCsv() {
           </div>
 
           <div class="flex shrink-0 flex-wrap items-center gap-2">
-            <button
-              type="button"
-              class="flex h-9 items-center gap-1.5 rounded-btn border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 hover:border-slate-300 hover:bg-slate-50"
-              @click="exportCsv"
+            <div
+              ref="exportDdRef"
+              class="relative shrink-0"
             >
-              <AppIcon
-                name="export"
-                :size="14"
-              />
-              Xuất CSV
-            </button>
+              <button
+                type="button"
+                class="inline-flex h-9 w-9 items-center justify-center rounded-btn border border-slate-200 bg-white text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-800"
+                :class="showExportDd && 'border-brand/40 bg-brand/5 text-brand'"
+                title="Xuất dữ liệu"
+                aria-label="Xuất CSV hoặc Excel"
+                @click="openExportMenu"
+              >
+                <AppIcon
+                  name="export"
+                  :size="16"
+                />
+              </button>
+              <Transition
+                enter-active-class="transition duration-150 ease-out"
+                enter-from-class="opacity-0 scale-95 -translate-y-1"
+                leave-active-class="transition duration-100 ease-in"
+                leave-to-class="opacity-0 scale-95 -translate-y-1"
+              >
+                <div
+                  v-if="showExportDd"
+                  class="absolute right-0 top-full z-30 mt-1.5 w-44 origin-top-right rounded-xl border border-slate-200 bg-white py-1 shadow-elevation-2"
+                >
+                  <button
+                    type="button"
+                    class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+                    @click="runExport('csv')"
+                  >
+                    <AppIcon
+                      name="export"
+                      :size="14"
+                      class="text-slate-400"
+                    />
+                    Xuất CSV
+                  </button>
+                  <button
+                    type="button"
+                    class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+                    @click="runExport('xlsx')"
+                  >
+                    <AppIcon
+                      name="download"
+                      :size="14"
+                      class="text-slate-400"
+                    />
+                    Xuất Excel
+                  </button>
+                </div>
+              </Transition>
+            </div>
             <button
               v-if="props.can.propose"
               type="button"
@@ -555,15 +595,79 @@ function exportCsv() {
           </div>
         </div>
 
+        <div
+          v-if="hasFilterRow"
+          class="mt-2.5 flex flex-wrap items-center gap-2 border-t border-slate-50 pt-2.5"
+        >
+          <select
+            v-if="visibleFilters.status"
+            v-model="statusFilter"
+            class="input h-9 w-[min(100%,11rem)] shrink-0 text-sm sm:w-44"
+            aria-label="Lọc theo trạng thái"
+            :disabled="filtersLoading"
+            @change="onStatusFilterChange"
+          >
+            <option value="all">
+              Trạng thái: Tất cả ({{ proposalCounts.total ?? 0 }})
+            </option>
+            <option
+              v-for="opt in options.proposal_status"
+              :key="opt.value"
+              :value="opt.value"
+            >
+              {{ opt.label }} ({{ proposalCounts[opt.value] ?? 0 }})
+            </option>
+          </select>
+
+          <select
+            v-if="visibleFilters.type"
+            v-model="typeFilter"
+            class="input h-9 w-[min(100%,11rem)] shrink-0 text-sm sm:w-48"
+            aria-label="Lọc theo loại đề xuất"
+            :disabled="filtersLoading"
+          >
+            <option value="all">
+              Loại: Tất cả
+            </option>
+            <option
+              v-for="t in options.proposal_type"
+              :key="t.value"
+              :value="t.value"
+            >
+              {{ t.label }}
+            </option>
+          </select>
+
+          <span
+            v-if="filtersLoading"
+            class="text-xs text-slate-400"
+          >Đang lọc…</span>
+
+          <template v-if="activeFilterCount > 0 || search.trim()">
+            <span class="hidden h-5 w-px bg-slate-200 sm:inline" />
+            <span class="text-xs text-slate-500">
+              <span v-if="filterSummary">{{ filterSummary }}</span>
+              <span v-if="search.trim()"><span v-if="filterSummary"> · </span>«{{ search.trim() }}»</span>
+            </span>
+            <button
+              type="button"
+              class="text-xs font-medium text-brand hover:underline"
+              @click="clearFilters"
+            >
+              Đặt lại
+            </button>
+          </template>
+        </div>
+
         <p
-          v-if="activeFilterCount > 0 || search.trim()"
+          v-else-if="activeFilterCount > 0 || search.trim()"
           class="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500"
         >
-          <span>Đang áp dụng<span v-if="filterSummary">: {{ filterSummary }}</span><span v-if="search.trim()"> · từ khoá «{{ search.trim() }}»</span></span>
+          <span>Đang áp dụng<span v-if="filterSummary">: {{ filterSummary }}</span><span v-if="search.trim()"> · «{{ search.trim() }}»</span></span>
           <button
             type="button"
             class="font-medium text-brand hover:underline"
-            @click="search = ''; clearFilters()"
+            @click="clearFilters"
           >
             Đặt lại
           </button>
@@ -669,7 +773,7 @@ function exportCsv() {
           </thead>
           <tbody class="divide-y divide-slate-100">
             <tr
-              v-if="filteredProposals.length === 0"
+              v-if="displayedProposals.length === 0"
               class="text-center"
             >
               <td
@@ -680,7 +784,7 @@ function exportCsv() {
               </td>
             </tr>
             <tr
-              v-for="row in filteredProposals"
+              v-for="row in displayedProposals"
               :key="row.id"
               class="hover:bg-slate-50/60"
             >
@@ -876,7 +980,7 @@ function exportCsv() {
       </div>
 
       <div class="border-t border-slate-100 px-5 py-2.5 text-xs text-slate-400">
-        {{ filteredProposals.length }} / {{ proposals.length }} phiếu
+        {{ proposals.length }} / {{ proposalCounts.total ?? proposals.length }} phiếu
       </div>
     </div>
 

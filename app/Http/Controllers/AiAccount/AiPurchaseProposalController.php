@@ -55,12 +55,13 @@ class AiPurchaseProposalController extends Controller
         }
 
         $proposals = $query->get();
+        $allForCounts = AiPurchaseProposal::query()->orderByDesc('created_at')->get();
 
         return response()->json([
             'success' => true,
             'data' => [
                 'proposals' => $this->presenter->list($proposals, $request->user()),
-                'counts' => $this->presenter->counts($proposals),
+                'counts' => $this->presenter->counts($allForCounts),
             ],
         ]);
     }

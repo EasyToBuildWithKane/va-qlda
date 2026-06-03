@@ -14,12 +14,16 @@ export function useAiCostReport() {
         approved: 0, rejected: 0, purchased: 0, active: 0, expired: 0,
     });
 
-    async function load() {
+    let cachedProposalParams = {};
+
+    async function load(proposalParams) {
+        const params = proposalParams ?? cachedProposalParams;
+        cachedProposalParams = params;
         loading.value = true;
         try {
             const [summaryRes, proposalRes] = await Promise.all([
                 httpGet(route('api.ai-accounts.summary')),
-                httpGet(route('api.ai-accounts.proposals.index')),
+                httpGet(route('api.ai-accounts.proposals.index'), { params }),
             ]);
 
             const summary = summaryRes.data ?? summaryRes;
@@ -42,6 +46,7 @@ export function useAiCostReport() {
     }
 
     async function loadProposals(params = {}) {
+        cachedProposalParams = params;
         try {
             const res = await httpGet(route('api.ai-accounts.proposals.index'), { params });
             const data = res.data ?? {};
