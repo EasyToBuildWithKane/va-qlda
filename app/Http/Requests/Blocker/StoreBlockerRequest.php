@@ -30,6 +30,7 @@ class StoreBlockerRequest extends FormRequest
             'severity' => ['required', Rule::in(BlockerSeverity::values())],
             'status' => ['nullable', Rule::in(BlockerStatus::values())],
             'owner_id' => ['nullable', 'integer', 'exists:employees,id'],
+            'resolution' => ['nullable', 'string', 'max:10000'],
         ];
     }
 }

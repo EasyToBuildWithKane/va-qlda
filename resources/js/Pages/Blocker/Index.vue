@@ -121,7 +121,20 @@ const {
     TABLE_COLUMNS,
 } = useVisibleColumns(BLOCKER_TABLE_COLUMNS, 'va-qlda.blockers.columns');
 
-const open = (b = null) => { editing.value = b; modal.value = true; };
+const focusResolution = ref(false);
+
+const open = (b = null, resolveMode = false) => {
+    editing.value = b;
+    focusResolution.value = resolveMode;
+    modal.value = true;
+};
+
+const openResolve = (b) => open(b, true);
+
+function closeModal() {
+    modal.value = false;
+    focusResolution.value = false;
+}
 
 const filterForm = reactive({
     q: props.filters.q ?? '',
@@ -956,6 +969,18 @@ function toggleAllGroups() {
                   <td class="px-2 py-2 align-middle">
                     <div class="flex items-center justify-center gap-0.5">
                       <button
+                        v-if="b.can?.update && !isTerminal(b)"
+                        type="button"
+                        class="grid h-8 w-8 place-items-center rounded-lg text-brand hover:bg-brand/10"
+                        title="Hướng xử lý"
+                        @click.stop="openResolve(b)"
+                      >
+                        <AppIcon
+                          name="meeting-notes"
+                          :size="15"
+                        />
+                      </button>
+                      <button
                         v-if="b.can?.update"
                         type="button"
                         class="grid h-8 w-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100"
@@ -1007,11 +1032,13 @@ function toggleAllGroups() {
     <BlockerFormModal
       :show="modal"
       :blocker="editing"
+      :focus-resolution="focusResolution"
       :projects="options.projects"
       :employees="options.employees"
       :severity-options="options.severity"
       :status-options="options.status"
-      @close="modal = false"
+      @close="closeModal"
+      @saved="closeModal"
     />
   </AppLayout>
 </template>

@@ -24,11 +24,12 @@ class BlockerResource extends JsonResource
             'id' => $this->id,
             'code' => $this->code ?? ('RSK-'.str_pad((string) $this->id, 3, '0', STR_PAD_LEFT)),
             'project_id' => $this->project_id,
-            'project' => $this->whenLoaded('project', fn () => [
+            'project' => $this->whenLoaded('project', fn () => $this->project ? [
                 'id' => $this->project->id,
                 'name' => $this->project->name,
+                'code' => $this->project->code,
                 'color' => $this->project->color,
-            ]),
+            ] : null),
             'task_id' => $this->task_id,
             'task' => $this->whenLoaded('task', fn () => $this->task ? [
                 'id' => $this->task->id,
