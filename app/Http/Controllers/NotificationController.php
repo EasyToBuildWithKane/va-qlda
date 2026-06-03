@@ -8,7 +8,6 @@ use App\Models\SystemAccount;
 use App\Services\NotificationService;
 use App\Support\Enums\NotificationCategory;
 use App\Support\Enums\NotificationPriority;
-use App\Support\Enums\SystemRole;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -89,7 +88,7 @@ class NotificationController extends Controller
             'data' => AppNotificationResource::collection($items),
             'meta' => [
                 'has_more' => $hasMore,
-                'next_cursor' => $hasMore ? $items->last()->id : null,
+                'next_cursor' => $hasMore ? $items->last()?->getKey() : null,
             ],
         ]);
     }

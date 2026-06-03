@@ -36,14 +36,14 @@ class NotificationManagementController extends Controller
             ->groupBy('date')
             ->orderBy('date')
             ->get()
-            ->map(fn ($r) => ['date' => $r->date, 'count' => (int) $r->count]);
+            ->map(fn ($r) => ['date' => $r->getAttribute('date'), 'count' => (int) $r->getAttribute('count')]);
 
         $byCategory = AppNotification::query()
             ->where('is_admin_feed', true)
             ->select('category', DB::raw('COUNT(*) as count'))
             ->groupBy('category')
             ->get()
-            ->mapWithKeys(fn ($r) => [$r->category => (int) $r->count]);
+            ->mapWithKeys(fn ($r) => [$r->category->value => (int) $r->getAttribute('count')]);
 
         $recentErrors = AppNotification::query()
             ->where('is_admin_feed', true)

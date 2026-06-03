@@ -51,7 +51,7 @@ class DepartmentController extends Controller
     {
         $this->authorize('update', $department);
 
-        $department->update(['is_active' => !$department->is_active]);
+        $department->update(['is_active' => ! $department->is_active]);
 
         $msg = $department->is_active ? 'Đã kích hoạt phòng ban.' : 'Đã ngừng hoạt động phòng ban.';
 
