@@ -8,7 +8,10 @@ import GradePill from '@/Components/DailyReport/GradePill.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
+import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
+
+const PER_PAGE_OPTIONS = [5, 10, 15, 20];
 
 const props = defineProps({
     reports: { type: Object, required: true }, // { data, meta, links }
@@ -31,17 +34,33 @@ const filterForm = reactive({
     to: props.filters.to ?? '',
 });
 
-const applyFilters = () => {
+const perPage = ref(Number(props.filters.per_page) || props.reports.meta?.per_page || 10);
+
+function routeParams(resetPage = false) {
     const params = Object.fromEntries(
-        Object.entries(filterForm).filter(([, v]) => v !== '' && v != null),
+        Object.entries({ ...filterForm, per_page: perPage.value }).filter(([, v]) => v !== '' && v != null),
     );
-    router.get('/daily-reports', params, { preserveState: true, replace: true, preserveScroll: true });
+    if (resetPage) params.page = 1;
+    return params;
+}
+
+const applyFilters = (resetPage = true) => {
+    router.get('/daily-reports', routeParams(resetPage), {
+        preserveState: true,
+        replace: true,
+        preserveScroll: true,
+    });
 };
 
 const clearFilters = () => {
     Object.keys(filterForm).forEach((k) => (filterForm[k] = ''));
-    applyFilters();
+    applyFilters(true);
 };
+
+function onPerPageChange(n) {
+    perPage.value = n;
+    applyFilters(true);
+}
 
 const activeCount = computed(() =>
     Object.values(filterForm).filter((v) => v !== '' && v != null).length,
@@ -51,8 +70,20 @@ const activeCount = computed(() =>
 let kwTimer = null;
 watch(() => filterForm.q, () => {
     clearTimeout(kwTimer);
-    kwTimer = setTimeout(applyFilters, 350);
+    kwTimer = setTimeout(() => applyFilters(true), 350);
 });
+
+watch(
+    () => [
+        filterForm.status,
+        filterForm.project_id,
+        filterForm.employee_id,
+        filterForm.grade,
+        filterForm.from,
+        filterForm.to,
+    ],
+    () => applyFilters(true),
+);
 
 const HISTORY_FILTER_CONTROLS = [
     { key: 'status', label: 'Trạng thái' },
@@ -122,8 +153,6 @@ const onDocClick = (e) => {
     if (colsMenu.value && colsRef.value && !colsRef.value.contains(e.target)) colsMenu.value = false;
 };
 
-const pageLabel = (label) =>
-    String(label).replace('&laquo;', '«').replace('&raquo;', '»').replace(/<[^>]*>/g, '').trim();
 </script>
 
 <template>
@@ -225,142 +254,110 @@ const pageLabel = (label) =>
       <Transition name="fade-slide">
         <div
           v-if="hasFilterRow"
-          class="border-t border-slate-100 px-5 py-3"
+          class="flex flex-wrap items-center gap-2 border-t border-slate-100 px-5 py-3"
         >
-          <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <div v-if="visibleFilters.status">
-              <label
-                class="label"
-                title="Lọc theo trạng thái duyệt của báo cáo"
-              >Trạng thái</label>
-              <select
-                v-model="filterForm.status"
-                class="input"
-                @change="applyFilters"
-              >
-                <option value="">
-                  Tất cả trạng thái
-                </option>
-                <option
-                  v-for="s in statuses"
-                  :key="s.value"
-                  :value="s.value"
-                >
-                  {{ s.label }}
-                </option>
-              </select>
-            </div>
-
-            <div v-if="visibleFilters.project">
-              <label
-                class="label"
-                title="Lọc báo cáo theo dự án"
-              >Dự án</label>
-              <select
-                v-model="filterForm.project_id"
-                class="input"
-                @change="applyFilters"
-              >
-                <option value="">
-                  Tất cả dự án
-                </option>
-                <option
-                  v-for="p in projects"
-                  :key="p.id"
-                  :value="p.id"
-                >
-                  {{ p.name }}
-                </option>
-              </select>
-            </div>
-
-            <div v-if="visibleFilters.employee && canFilterEmployee">
-              <label
-                class="label"
-                title="Lọc theo người gửi báo cáo"
-              >Người báo cáo</label>
-              <select
-                v-model="filterForm.employee_id"
-                class="input"
-                @change="applyFilters"
-              >
-                <option value="">
-                  Tất cả nhân viên
-                </option>
-                <option
-                  v-for="e in employees"
-                  :key="e.id"
-                  :value="e.id"
-                >
-                  {{ e.name }}
-                </option>
-              </select>
-            </div>
-
-            <div v-if="visibleFilters.grade">
-              <label
-                class="label"
-                title="Lọc theo xếp loại điểm đánh giá"
-              >Xếp loại</label>
-              <select
-                v-model="filterForm.grade"
-                class="input"
-                @change="applyFilters"
-              >
-                <option value="">
-                  Mọi xếp loại
-                </option>
-                <option
-                  v-for="g in grades"
-                  :key="g.value"
-                  :value="g.value"
-                >
-                  {{ g.label }}
-                </option>
-              </select>
-            </div>
-
-            <div v-if="visibleFilters.from">
-              <label
-                class="label"
-                title="Chỉ lấy báo cáo từ ngày này trở đi"
-              >Từ ngày</label>
-              <input
-                v-model="filterForm.from"
-                type="date"
-                class="input"
-                @change="applyFilters"
-              >
-            </div>
-
-            <div v-if="visibleFilters.to">
-              <label
-                class="label"
-                title="Chỉ lấy báo cáo đến hết ngày này"
-              >Đến ngày</label>
-              <input
-                v-model="filterForm.to"
-                type="date"
-                class="input"
-                @change="applyFilters"
-              >
-            </div>
-          </div>
-
-          <div class="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
-            <p class="text-xs text-slate-400">
-              <span v-if="activeCount">Đang áp dụng {{ activeCount }} bộ lọc</span>
-              <span v-else>Chưa áp dụng bộ lọc nào</span>
-            </p>
-            <button
-              type="button"
-              class="btn-ghost text-sm"
-              :disabled="!activeCount"
-              @click="clearFilters"
+          <select
+            v-if="visibleFilters.status"
+            v-model="filterForm.status"
+            class="input h-9 w-44 text-sm"
+            aria-label="Trạng thái"
+            title="Lọc theo trạng thái duyệt"
+          >
+            <option value="">
+              Trạng thái: Tất cả
+            </option>
+            <option
+              v-for="s in statuses"
+              :key="s.value"
+              :value="s.value"
             >
-              Xoá bộ lọc
-            </button>
-          </div>
+              {{ s.label }}
+            </option>
+          </select>
+
+          <select
+            v-if="visibleFilters.project"
+            v-model="filterForm.project_id"
+            class="input h-9 min-w-[11rem] text-sm sm:w-52"
+            aria-label="Dự án"
+            title="Lọc báo cáo theo dự án"
+          >
+            <option value="">
+              Dự án: Tất cả
+            </option>
+            <option
+              v-for="p in projects"
+              :key="p.id"
+              :value="p.id"
+            >
+              {{ p.name }}
+            </option>
+          </select>
+
+          <select
+            v-if="visibleFilters.employee && canFilterEmployee"
+            v-model="filterForm.employee_id"
+            class="input h-9 min-w-[10rem] text-sm sm:w-48"
+            aria-label="Người báo cáo"
+            title="Lọc theo người gửi báo cáo"
+          >
+            <option value="">
+              Người báo cáo: Tất cả
+            </option>
+            <option
+              v-for="e in employees"
+              :key="e.id"
+              :value="e.id"
+            >
+              {{ e.name }}
+            </option>
+          </select>
+
+          <select
+            v-if="visibleFilters.grade"
+            v-model="filterForm.grade"
+            class="input h-9 w-40 text-sm"
+            aria-label="Xếp loại"
+            title="Lọc theo xếp loại điểm"
+          >
+            <option value="">
+              Xếp loại: Tất cả
+            </option>
+            <option
+              v-for="g in grades"
+              :key="g.value"
+              :value="g.value"
+            >
+              {{ g.label }}
+            </option>
+          </select>
+
+          <input
+            v-if="visibleFilters.from"
+            v-model="filterForm.from"
+            type="date"
+            class="input h-9 w-40 text-sm"
+            aria-label="Từ ngày"
+            title="Chỉ lấy báo cáo từ ngày này"
+          >
+
+          <input
+            v-if="visibleFilters.to"
+            v-model="filterForm.to"
+            type="date"
+            class="input h-9 w-40 text-sm"
+            aria-label="Đến ngày"
+            title="Chỉ lấy báo cáo đến ngày này"
+          >
+
+          <button
+            v-if="activeCount"
+            type="button"
+            class="text-xs font-medium text-brand hover:underline"
+            @click="clearFilters"
+          >
+            Đặt lại
+          </button>
         </div>
       </Transition>
     </div>
@@ -499,32 +496,15 @@ const pageLabel = (label) =>
           </tbody>
         </table>
       </div>
-    </div>
 
-    <!-- Pagination -->
-    <div
-      v-if="reports.meta && reports.meta.last_page > 1"
-      class="mt-4 flex flex-wrap gap-1"
-    >
-      <template
-        v-for="(link, i) in reports.meta.links"
-        :key="i"
-      >
-        <Link
-          v-if="link.url"
-          :href="link.url"
-          class="rounded-btn px-3 py-1.5 text-sm"
-          :class="link.active ? 'bg-brand text-white' : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'"
-        >
-          {{ pageLabel(link.label) }}
-        </Link>
-        <span
-          v-else
-          class="rounded-btn px-3 py-1.5 text-sm text-slate-300"
-        >
-          {{ pageLabel(link.label) }}
-        </span>
-      </template>
+      <DatagridPaginationFooter
+        v-if="reports.meta?.total"
+        variant="bar"
+        :meta="reports.meta"
+        :per-page="perPage"
+        :per-page-options="PER_PAGE_OPTIONS"
+        @update:per-page="onPerPageChange"
+      />
     </div>
   </AppLayout>
 </template>

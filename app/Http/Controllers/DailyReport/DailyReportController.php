@@ -64,11 +64,18 @@ class DailyReportController extends Controller
             $query->whereDate('date', '<=', $to);
         }
 
-        $reports = $query->paginate(15)->withQueryString();
+        $perPage = (int) $request->query('per_page', 10);
+        if (! in_array($perPage, [5, 10, 15, 20], true)) {
+            $perPage = 10;
+        }
+
+        $reports = $query->paginate($perPage)->withQueryString();
 
         return Inertia::render('DailyReport/History', [
             'reports' => DailyReportResource::collection($reports),
-            'filters' => (object) $request->only(['status', 'project_id', 'employee_id', 'grade', 'q', 'from', 'to']),
+            'filters' => (object) $request->only([
+                'status', 'project_id', 'employee_id', 'grade', 'q', 'from', 'to', 'per_page',
+            ]),
             'statuses' => collect(ReportStatus::cases())
                 ->map(fn (ReportStatus $s) => ['value' => $s->value, 'label' => $s->label()]),
             'grades' => collect(Grade::cases())
