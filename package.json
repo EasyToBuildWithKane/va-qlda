@@ -2,8 +2,8 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "dev": "vite",
-        "build": "vite build",
+        "dev": "node node_modules/vite/bin/vite.js",
+        "build": "node node_modules/vite/bin/vite.js build",
         "lint": "eslint resources/js --max-warnings=0",
         "lint:fix": "eslint resources/js --fix --max-warnings=0",
         "test:e2e": "playwright test --project=chromium",

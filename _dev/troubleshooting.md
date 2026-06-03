@@ -206,6 +206,19 @@ git commit -m "chore: docs update [skip ci]"
 
 ---
 
+## `npm run build` — The system cannot find the path specified (Windows)
+
+**Symptoms:** `npm run build` stops immediately with that message (often in **cmd.exe**), no Vite banner.
+
+**Fix:**
+
+1. `npm ci` (or delete `node_modules` then `npm install`).
+2. Use project scripts (they call Node explicitly): `npm run build` → `node node_modules/vite/bin/vite.js build`.
+3. Same terminal: `node -v` must work (Node 20 LTS).
+4. Avoid running from a copied/moved folder without reinstalling `node_modules`.
+
+---
+
 ## npm install fails after git pull
 
 **Symptoms:** Module not found, peer dependency errors after merge.
@@ -268,3 +281,5 @@ php artisan migrate:fresh --seed
 ```
 
 CI creates this automatically at `${GITHUB_WORKSPACE}/database/testing.sqlite`.
+
+**Playwright `POST /login` 419:** Dùng `tests/e2e/helpers/loginPost.js`. `playwright.config.js` ép `SESSION_DRIVER=file`, `SESSION_SECURE_COOKIE=false`. Local `.env` `SESSION_DRIVER=redis` cần Redis hoặc đổi `file`.

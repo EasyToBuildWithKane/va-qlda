@@ -13,7 +13,23 @@ class LoginTest extends TestCase
 
     public function test_login_page_renders(): void
     {
-        $this->get('/login')->assertOk();
+        $this->get('/login')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Auth/Login')
+                ->has('googleAuthUrl')
+                ->has('googleEnabled')
+            );
+    }
+
+    public function test_password_login_disabled_when_config_off(): void
+    {
+        config(['va.password_login_enabled' => false]);
+
+        $this->post('/login', [
+            'username' => 'member',
+            'password' => 'password',
+        ])->assertNotFound();
     }
 
     public function test_member_can_login_with_valid_credentials(): void

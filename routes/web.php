@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Blocker\BlockerAttachmentController;
 use App\Http\Controllers\Blocker\BlockerController;
@@ -31,7 +32,12 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'create'])->name('login');
-    Route::post('/login', [LoginController::class, 'store']);
+    Route::get('/auth/google', [GoogleAuthController::class, 'redirect'])->name('auth.google');
+    Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->name('auth.google.callback');
+
+    if (config('va.password_login_enabled')) {
+        Route::post('/login', [LoginController::class, 'store']);
+    }
 });
 
 Route::middleware('auth')->group(function () {

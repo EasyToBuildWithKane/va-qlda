@@ -16,9 +16,17 @@ class LoginController extends Controller
     /**
      * Show the login screen.
      */
-    public function create(): Response
+    public function create(Request $request): Response
     {
-        return Inertia::render('Auth/Login');
+        $redirect = $request->query('redirect');
+
+        return Inertia::render('Auth/Login', [
+            'googleEnabled' => filled(config('services.google.client_id'))
+                && filled(config('services.google.client_secret')),
+            'googleAuthUrl' => route('auth.google', array_filter([
+                'redirect' => is_string($redirect) ? $redirect : null,
+            ])),
+        ]);
     }
 
     /**
@@ -26,6 +34,10 @@ class LoginController extends Controller
      */
     public function store(LoginRequest $request): RedirectResponse
     {
+        if (! config('va.password_login_enabled')) {
+            abort(404);
+        }
+
         $request->authenticate();
 
         $request->session()->regenerate();

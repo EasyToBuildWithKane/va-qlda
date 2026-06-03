@@ -1,11 +1,26 @@
 ---
-description: Trang đăng nhập Google OAuth — đọc skill login-page trước khi sửa
-globs: resources/js/src/views/auth/**/*.vue,resources/js/src/util/loginRedirect.js,app/Http/Controllers/Auth/**/*.php
+description: Trang đăng nhập Google OAuth — đọc skill login trước khi sửa
+globs: resources/js/Pages/Auth/Login.vue,app/Http/Controllers/Auth/**/*.php,routes/web.php,config/va.php,config/services.php,public/images/**
 alwaysApply: false
 ---
 
-# Login page
+# Login page (VA-QLDA)
 
-Luồng đăng nhập web (UI, OAuth, redirect, guard): đọc **toàn bộ** [`.cursor/skills/login-page/login-page.mdc`](../skills/login-page/login-page.mdc).
+Luồng đăng nhập web: **chỉ Google** trên UI (`Login.vue`). Không thêm form username/password trên trang login.
 
-Skill: `@login-page` hoặc `.cursor/skills/login-page/SKILL.md` (checklist nhanh).
+| Thành phần | Vai trò |
+|------------|---------|
+| `Login.vue` | Mockup VAS: nền `#9a0036`, watermark, logo header, thẻ trắng, nút Google |
+| `LoginController` | Props `googleEnabled`, `googleAuthUrl` |
+| `GoogleAuthController` | `auth.google` / `auth.google.callback` — Socialite, map email → `Employee` → `SystemAccount` |
+| `LoginRedirectSanitizer` | Chặn open redirect (`/login`, `/auth/google`, URL ngoài) |
+| `config/va.php` | `password_login_enabled`, `google_allowed_domains` |
+| `GOOGLE_*` | `config/services.php` — `googleEnabled` khi có cả client id + secret |
+
+## UI & assets (`public/images/`)
+
+- **Header:** `/images/logo-2.png` (favicon trong `app.blade.php` cùng file).
+- **Nút Google:** `/images/google.png` — luôn hiển thị; `googleEnabled` chỉ bật/tắt link (`href` + `@click.prevent` khi chưa cấu hình).
+- **Watermark:** `/images/background/background-logo.png` — file gốc tối trên đen; trên nền brand dùng Tailwind `brightness-0 invert` + opacity ~`0.46`–`0.55` (không dùng `mix-blend` trần vì gần như vô hình).
+
+Skill: `.cursor/skills/login/SKILL.md` · E2E: `tests/e2e/helpers/auth.js` (POST `/login`).

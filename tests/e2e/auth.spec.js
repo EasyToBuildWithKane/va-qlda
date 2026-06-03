@@ -1,34 +1,37 @@
 import { test, expect } from '@playwright/test';
+import { postLogin } from './helpers/loginPost.js';
 
 test.describe('Authentication', () => {
-    test('login page renders', async ({ page }) => {
+    test('login page shows Google sign-in', async ({ page }) => {
         await page.goto('/login');
 
-        await expect(page.getByRole('heading', { name: 'Team & Project Governance' })).toBeVisible();
-        await expect(page.getByLabel('Username')).toBeVisible();
-        await expect(page.getByLabel('Password')).toBeVisible();
-        await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
+        await expect(page.getByRole('heading', { name: 'Đăng nhập', level: 1 })).toBeVisible();
+        const googleLink = page.getByRole('link', { name: 'Đăng nhập bằng Google' });
+        await expect(googleLink).toBeVisible();
+        await expect(page.locator('img[src="/images/google.png"]')).toBeVisible();
+        const href = await googleLink.getAttribute('href');
+        expect(href === '#' || /\/auth\/google/.test(href ?? '')).toBeTruthy();
     });
 
     test('member can sign in and reach dashboard', async ({ page }) => {
-        await page.goto('/login');
-        await page.getByLabel('Username').fill('member');
-        await page.getByLabel('Password').fill('password');
-        await page.getByRole('button', { name: 'Sign in' }).click();
+        const response = await postLogin(page, {
+            username: 'member',
+            password: 'password',
+        });
+        expect(response.ok() || response.status() === 302).toBeTruthy();
 
-        await page.waitForURL(/\/dashboard/, { timeout: 15_000 });
+        await page.goto('/dashboard');
         await expect(page.getByRole('heading', { name: 'Bảng điều khiển' })).toBeVisible();
         await expect(page.getByText('Foundation ready')).toBeVisible();
     });
 
-    test('rejects invalid credentials', async ({ page }) => {
-        await page.goto('/login');
-        await page.getByLabel('Username').fill(`invalid-${Date.now()}`);
-        await page.getByLabel('Password').fill('wrong-password');
-        await page.getByRole('button', { name: 'Sign in' }).click();
-
-        await expect(page).toHaveURL(/\/login/);
-        await expect(page.getByText('These credentials do not match our records.')).toBeVisible();
+    test('password login rejects invalid credentials', async ({ page }) => {
+        const response = await postLogin(page, {
+            username: `invalid-${Date.now()}`,
+            password: 'wrong-password',
+        });
+        expect(response.status()).toBe(302);
+        expect(response.headers().location ?? '').toMatch(/\/login/);
     });
 
     test('guest is redirected to login from dashboard', async ({ page }) => {
