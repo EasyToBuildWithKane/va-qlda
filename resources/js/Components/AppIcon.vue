@@ -67,6 +67,7 @@ const map = {
     board: KanbanSquare,
     timeline: GanttChartSquare,
     documents: FileText,
+    pdf: FileText,
     image: Image,
     members: Users,
     dependency: Link2,

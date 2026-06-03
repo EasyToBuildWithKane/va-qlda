@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AppIcon from '@/Components/AppIcon.vue';
@@ -50,8 +50,10 @@ const visibleCols = ref({
     reviewed_at: false,
     end_date: false,
 });
-const showColSelector = ref(false);
-const colSelectorRef = ref(null);
+const showFilterDd = ref(false);
+const showColDd = ref(false);
+const filterDdRef = ref(null);
+const colDdRef = ref(null);
 
 const proposalFormOpen = ref(false);
 const rejectOpen = ref(false);
@@ -62,16 +64,63 @@ const approving = ref(null);
 // KPI filter: clicking a card sets statusFilter
 const activeKpi = ref(null);
 
-const STATUS_COLORS = {
-    draft: 'bg-slate-100 text-slate-600',
-    submitted: 'bg-blue-100 text-blue-700',
-    pending: 'bg-amber-100 text-amber-700',
-    approved: 'bg-emerald-100 text-emerald-700',
-    rejected: 'bg-rose-100 text-rose-700',
-    purchased: 'bg-violet-100 text-violet-700',
-    active: 'bg-teal-100 text-teal-700',
-    expired: 'bg-slate-100 text-slate-500',
+const STATUS_TEXT = {
+    draft: 'text-slate-600',
+    submitted: 'text-blue-700',
+    pending: 'text-amber-700',
+    approved: 'text-emerald-700',
+    rejected: 'text-rose-700',
+    purchased: 'text-violet-700',
+    active: 'text-teal-700',
+    expired: 'text-slate-500',
 };
+
+const activeFilterCount = computed(() => {
+    let n = 0;
+    if (statusFilter.value !== 'all') n += 1;
+    if (typeFilter.value !== 'all') n += 1;
+    return n;
+});
+
+const filterSummary = computed(() => {
+    const parts = [];
+    if (statusFilter.value !== 'all') {
+        const opt = props.options.proposal_status?.find((o) => o.value === statusFilter.value);
+        parts.push(opt?.label ?? statusFilter.value);
+    }
+    if (typeFilter.value !== 'all') {
+        const opt = props.options.proposal_type?.find((o) => o.value === typeFilter.value);
+        parts.push(opt?.label ?? typeFilter.value);
+    }
+    return parts.join(' · ');
+});
+
+function clearFilters() {
+    statusFilter.value = 'all';
+    typeFilter.value = 'all';
+    activeKpi.value = null;
+}
+
+function setStatusFilter(value) {
+    statusFilter.value = value;
+    activeKpi.value = value === 'all' ? null : value;
+}
+
+function openFilter() {
+    showFilterDd.value = !showFilterDd.value;
+    if (showFilterDd.value) showColDd.value = false;
+}
+
+function openCol() {
+    showColDd.value = !showColDd.value;
+    if (showColDd.value) showFilterDd.value = false;
+}
+
+function onToolbarClickOutside(e) {
+    if (filterDdRef.value && !filterDdRef.value.contains(e.target)) showFilterDd.value = false;
+    if (colDdRef.value && !colDdRef.value.contains(e.target)) showColDd.value = false;
+    if (groupColDdRef.value && !groupColDdRef.value.contains(e.target)) showGroupColDd.value = false;
+}
 
 const kpiCards = computed(() => {
     const pc = proposalCounts.value;
@@ -80,7 +129,7 @@ const kpiCards = computed(() => {
         { key: 'total', label: 'Tổng phiếu', value: pc.total ?? 0, icon: 'task', tone: 'text-slate-600', bg: 'bg-slate-100' },
         { key: 'pending', label: 'Chờ duyệt', value: pc.pending ?? 0, icon: 'flag', tone: 'text-amber-600', bg: 'bg-amber-50', highlight: (pc.pending ?? 0) > 0 },
         { key: 'approved', label: 'Đã duyệt', value: pc.approved ?? 0, icon: 'done', tone: 'text-emerald-600', bg: 'bg-emerald-50' },
-        { key: 'rejected', label: 'Từ chối', value: pc.rejected ?? 0, icon: 'block', tone: 'text-rose-600', bg: 'bg-rose-50' },
+        { key: 'rejected', label: 'Từ chối', value: pc.rejected ?? 0, icon: 'close', tone: 'text-rose-600', bg: 'bg-rose-50' },
         { key: 'purchased', label: 'Đã mua', value: pc.purchased ?? 0, icon: 'money', tone: 'text-violet-600', bg: 'bg-violet-50' },
         { key: 'active', label: 'Đang dùng', value: pc.active ?? 0, icon: 'account', tone: 'text-teal-600', bg: 'bg-teal-50' },
         { key: 'monthly_cost', label: 'Chi phí/tháng', isMoney: true, amount: c?.monthly_cost_active ?? 0, icon: 'performance', tone: 'text-brand', bg: 'bg-brand-50' },
@@ -136,7 +185,11 @@ const filteredProposals = computed(() => {
     return list;
 });
 
-onMounted(() => load());
+onMounted(() => {
+    load();
+    document.addEventListener('mousedown', onToolbarClickOutside);
+});
+onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOutside));
 
 async function onProposalSubmit(payload) {
     const created = await createProposal(payload);
@@ -240,125 +293,262 @@ function exportCsv() {
     <!-- ── Proposals Table ── -->
     <div class="card overflow-visible">
       <!-- Toolbar -->
-      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-3.5">
-        <div class="flex flex-wrap items-center gap-2">
-          <!-- Search -->
-          <div class="relative">
-            <AppIcon
-              name="search"
-              :size="15"
-              class="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"
-            />
-            <input
-              v-model="search"
-              type="text"
-              placeholder="Tìm mã phiếu, sản phẩm, người đề xuất…"
-              class="h-9 rounded-btn border border-slate-200 bg-white pl-8 pr-3 text-sm text-slate-700 placeholder-slate-400 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
-              style="min-width:260px"
+      <div class="border-b border-slate-100 px-5 py-3">
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+            <div class="relative min-w-0 flex-1 basis-full sm:basis-auto sm:min-w-[280px] lg:min-w-[360px] lg:max-w-xl">
+              <AppIcon
+                name="search"
+                :size="15"
+                class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              />
+              <input
+                v-model="search"
+                type="text"
+                placeholder="Tìm mã phiếu, sản phẩm, người đề xuất, nhà cung cấp…"
+                class="input h-9 w-full pl-9 pr-8 text-sm placeholder:text-slate-400"
+              >
+              <button
+                v-if="search"
+                type="button"
+                class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                title="Xoá từ khoá"
+                @click="search = ''"
+              >
+                <AppIcon
+                  name="close"
+                  :size="14"
+                />
+              </button>
+            </div>
+
+            <div
+              ref="filterDdRef"
+              class="relative shrink-0"
             >
+              <button
+                type="button"
+                class="flex h-9 items-center gap-1.5 rounded-btn border px-3 text-sm font-medium transition select-none"
+                :class="showFilterDd || activeFilterCount > 0
+                  ? 'border-brand/40 bg-brand/5 text-brand'
+                  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800'"
+                @click="openFilter"
+              >
+                <AppIcon
+                  name="filter"
+                  :size="14"
+                />
+                Bộ lọc
+                <span
+                  v-if="activeFilterCount > 0"
+                  class="text-xs font-normal opacity-80"
+                >({{ activeFilterCount }})</span>
+                <AppIcon
+                  name="chevron-down"
+                  :size="13"
+                  class="opacity-50 transition-transform duration-150"
+                  :class="showFilterDd && 'rotate-180'"
+                />
+              </button>
+              <Transition
+                enter-active-class="transition duration-150 ease-out"
+                enter-from-class="opacity-0 scale-95 -translate-y-1"
+                leave-active-class="transition duration-100 ease-in"
+                leave-to-class="opacity-0 scale-95 -translate-y-1"
+              >
+                <div
+                  v-if="showFilterDd"
+                  class="absolute left-0 top-full z-30 mt-1.5 max-h-[min(70vh,28rem)] w-72 origin-top-left overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-elevation-2 sm:left-auto sm:right-0 sm:origin-top-right"
+                >
+                  <div class="flex items-center justify-between border-b border-slate-100 px-4 py-2.5">
+                    <span class="text-xs font-bold uppercase tracking-wide text-slate-500">Bộ lọc</span>
+                    <button
+                      v-if="activeFilterCount > 0"
+                      type="button"
+                      class="text-xs text-brand hover:underline"
+                      @click="clearFilters"
+                    >
+                      Xoá
+                    </button>
+                  </div>
+                  <div class="border-b border-slate-100 px-4 py-3">
+                    <p class="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                      Trạng thái
+                    </p>
+                    <div class="flex flex-col gap-0.5">
+                      <label
+                        class="flex cursor-pointer items-center justify-between rounded-lg px-2.5 py-1.5 transition hover:bg-slate-50"
+                        :class="statusFilter === 'all' ? 'bg-brand/5' : ''"
+                        @click="setStatusFilter('all')"
+                      >
+                        <div class="flex items-center gap-2.5">
+                          <span
+                            class="flex h-4 w-4 items-center justify-center rounded-full border-2 transition"
+                            :class="statusFilter === 'all' ? 'border-brand bg-brand' : 'border-slate-300'"
+                          >
+                            <span
+                              v-if="statusFilter === 'all'"
+                              class="h-1.5 w-1.5 rounded-full bg-white"
+                            />
+                          </span>
+                          <span
+                            class="text-sm"
+                            :class="statusFilter === 'all' ? 'font-semibold text-slate-800' : 'text-slate-600'"
+                          >Tất cả</span>
+                        </div>
+                        <span class="text-[11px] font-medium tabular-nums text-slate-400">{{ proposalCounts.total ?? 0 }}</span>
+                      </label>
+                      <label
+                        v-for="opt in options.proposal_status"
+                        :key="opt.value"
+                        class="flex cursor-pointer items-center justify-between rounded-lg px-2.5 py-1.5 transition hover:bg-slate-50"
+                        :class="statusFilter === opt.value ? 'bg-brand/5' : ''"
+                        @click="setStatusFilter(opt.value)"
+                      >
+                        <div class="flex items-center gap-2.5">
+                          <span
+                            class="flex h-4 w-4 items-center justify-center rounded-full border-2 transition"
+                            :class="statusFilter === opt.value ? 'border-brand bg-brand' : 'border-slate-300'"
+                          >
+                            <span
+                              v-if="statusFilter === opt.value"
+                              class="h-1.5 w-1.5 rounded-full bg-white"
+                            />
+                          </span>
+                          <span
+                            class="text-sm"
+                            :class="statusFilter === opt.value ? 'font-semibold text-slate-800' : 'text-slate-600'"
+                          >{{ opt.label }}</span>
+                        </div>
+                        <span class="text-[11px] font-medium tabular-nums text-slate-400">{{ proposalCounts[opt.value] ?? 0 }}</span>
+                      </label>
+                    </div>
+                  </div>
+                  <div class="px-4 py-3">
+                    <p class="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                      Loại đề xuất
+                    </p>
+                    <select
+                      v-model="typeFilter"
+                      class="input h-9 w-full text-sm"
+                    >
+                      <option value="all">
+                        Tất cả loại
+                      </option>
+                      <option
+                        v-for="t in options.proposal_type"
+                        :key="t.value"
+                        :value="t.value"
+                      >
+                        {{ t.label }}
+                      </option>
+                    </select>
+                  </div>
+                </div>
+              </Transition>
+            </div>
+
+            <div
+              ref="colDdRef"
+              class="relative shrink-0"
+            >
+              <button
+                type="button"
+                class="flex h-9 items-center gap-1.5 rounded-btn border px-3 text-sm font-medium transition select-none"
+                :class="showColDd
+                  ? 'border-brand/40 bg-brand/5 text-brand'
+                  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800'"
+                @click="openCol"
+              >
+                <AppIcon
+                  name="columns"
+                  :size="14"
+                />
+                Cột hiển thị
+                <AppIcon
+                  name="chevron-down"
+                  :size="13"
+                  class="opacity-50 transition-transform duration-150"
+                  :class="showColDd && 'rotate-180'"
+                />
+              </button>
+              <Transition
+                enter-active-class="transition duration-150 ease-out"
+                enter-from-class="opacity-0 scale-95 -translate-y-1"
+                leave-active-class="transition duration-100 ease-in"
+                leave-to-class="opacity-0 scale-95 -translate-y-1"
+              >
+                <div
+                  v-if="showColDd"
+                  class="absolute left-0 top-full z-30 mt-1.5 w-56 origin-top-left rounded-xl border border-slate-200 bg-white shadow-elevation-2 sm:left-auto sm:right-0 sm:origin-top-right"
+                >
+                  <div class="border-b border-slate-100 px-4 py-2.5">
+                    <span class="text-xs font-bold uppercase tracking-wide text-slate-500">Cột hiển thị</span>
+                  </div>
+                  <div class="max-h-64 overflow-y-auto px-2 py-2">
+                    <label
+                      v-for="col in COLS"
+                      :key="col.key"
+                      class="flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-1.5 hover:bg-slate-50"
+                    >
+                      <input
+                        v-model="visibleCols[col.key]"
+                        type="checkbox"
+                        class="rounded border-slate-300 text-brand focus:ring-brand/30"
+                      >
+                      <span class="text-sm text-slate-700">{{ col.label }}</span>
+                    </label>
+                  </div>
+                  <div class="border-t border-slate-100 px-4 py-2">
+                    <p class="text-[11px] text-slate-400">
+                      Cột «Thao tác» luôn hiển thị
+                    </p>
+                  </div>
+                </div>
+              </Transition>
+            </div>
           </div>
-          <!-- Type filter -->
-          <select
-            v-model="typeFilter"
-            class="h-9 rounded-btn border border-slate-200 bg-white px-3 text-sm text-slate-600 focus:border-brand focus:outline-none"
-          >
-            <option value="all">
-              Tất cả loại
-            </option>
-            <option
-              v-for="t in options.proposal_type"
-              :key="t.value"
-              :value="t.value"
-            >
-              {{ t.label }}
-            </option>
-          </select>
-          <!-- Status tabs -->
-          <div class="flex flex-wrap gap-1">
+
+          <div class="flex shrink-0 flex-wrap items-center gap-2">
             <button
               type="button"
-              class="rounded-full px-3 py-1 text-xs font-medium transition"
-              :class="statusFilter === 'all' ? 'bg-brand text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
-              @click="statusFilter = 'all'; activeKpi = null"
+              class="flex h-9 items-center gap-1.5 rounded-btn border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 hover:border-slate-300 hover:bg-slate-50"
+              @click="exportCsv"
             >
-              Tất cả
+              <AppIcon
+                name="export"
+                :size="14"
+              />
+              Xuất CSV
             </button>
             <button
-              v-for="opt in options.proposal_status"
-              :key="opt.value"
+              v-if="props.can.propose"
               type="button"
-              class="rounded-full px-3 py-1 text-xs font-medium transition"
-              :class="statusFilter === opt.value ? 'bg-brand text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
-              @click="statusFilter = opt.value; activeKpi = opt.value"
+              class="btn-primary h-9 gap-1.5 px-4 text-sm"
+              @click="proposalFormOpen = true"
             >
-              {{ opt.label }}
-              <span class="ml-1 opacity-75">({{ proposalCounts[opt.value] ?? 0 }})</span>
+              <AppIcon
+                name="add"
+                :size="15"
+              />
+              Thêm phiếu
             </button>
           </div>
         </div>
 
-        <div class="flex items-center gap-2">
-          <!-- Column selector -->
-          <div
-            ref="colSelectorRef"
-            class="relative"
-          >
-            <button
-              type="button"
-              class="flex h-9 items-center gap-1.5 rounded-btn border border-slate-200 bg-white px-3 text-sm text-slate-600"
-              @click="showColSelector = !showColSelector"
-            >
-              <AppIcon
-                name="columns"
-                :size="14"
-              />
-              Cột
-            </button>
-            <div
-              v-if="showColSelector"
-              class="absolute right-0 top-full z-30 mt-1.5 w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-elevation-2"
-            >
-              <button
-                v-for="col in COLS"
-                :key="col.key"
-                type="button"
-                class="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-sm hover:bg-slate-50"
-                @click="visibleCols[col.key] = !visibleCols[col.key]"
-              >
-                {{ col.label }}
-                <span
-                  class="h-3 w-3 rounded-full"
-                  :class="visibleCols[col.key] ? 'bg-brand' : 'bg-slate-200'"
-                />
-              </button>
-            </div>
-          </div>
-          <!-- Export CSV -->
+        <p
+          v-if="activeFilterCount > 0 || search.trim()"
+          class="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500"
+        >
+          <span>Đang lọc<span v-if="filterSummary">: {{ filterSummary }}</span><span v-if="search.trim()"> · «{{ search.trim() }}»</span></span>
           <button
             type="button"
-            class="flex h-9 items-center gap-1.5 rounded-btn border border-slate-200 bg-white px-3 text-sm text-slate-600 hover:bg-slate-50"
-            @click="exportCsv"
+            class="font-medium text-brand hover:underline"
+            @click="search = ''; clearFilters()"
           >
-            <AppIcon
-              name="export"
-              :size="14"
-            />
-            Xuất
+            Xoá lọc
           </button>
-          <!-- Add -->
-          <button
-            v-if="props.can.propose"
-            type="button"
-            class="btn-primary h-9 gap-1.5 text-sm"
-            @click="proposalFormOpen = true"
-          >
-            <AppIcon
-              name="add"
-              :size="15"
-            />
-            Thêm Phiếu Đề Xuất
-          </button>
-        </div>
+        </p>
       </div>
 
       <!-- Table -->
@@ -511,16 +701,7 @@ function exportCsv() {
                 v-if="visibleCols.proposal_type"
                 class="px-4 py-3"
               >
-                <span
-                  v-if="row.proposal_type_label"
-                  class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600"
-                >
-                  {{ row.proposal_type_label }}
-                </span>
-                <span
-                  v-else
-                  class="text-xs text-slate-400"
-                >—</span>
+                <span class="text-sm text-slate-700">{{ row.proposal_type_label ?? '—' }}</span>
               </td>
               <td
                 v-if="visibleCols.tool_name"
@@ -579,8 +760,8 @@ function exportCsv() {
                 class="px-4 py-3"
               >
                 <span
-                  class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold"
-                  :class="STATUS_COLORS[row.status] ?? 'bg-slate-100 text-slate-600'"
+                  class="text-sm font-medium"
+                  :class="STATUS_TEXT[row.status] ?? 'text-slate-600'"
                 >
                   {{ row.status_label }}
                 </span>
@@ -604,53 +785,56 @@ function exportCsv() {
                 {{ row.end_date ?? '—' }}
               </td>
 
-              <!-- Actions -->
               <td class="px-4 py-3">
-                <div class="flex items-center justify-center gap-1">
+                <div class="flex items-center justify-center gap-0.5">
                   <a
+                    v-if="row.export_pdf_url"
                     :href="row.export_pdf_url"
                     target="_blank"
-                    class="inline-flex h-7 w-7 items-center justify-center rounded-lg text-slate-500 hover:bg-rose-50 hover:text-rose-600"
-                    title="Xuất PDF"
+                    rel="noopener"
+                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-transparent text-slate-500 transition hover:border-slate-200 hover:bg-slate-50 hover:text-brand"
+                    title="Tải PDF"
                   >
                     <AppIcon
                       name="pdf"
-                      :size="15"
+                      :size="16"
                     />
                   </a>
                   <a
+                    v-if="row.export_docx_url"
                     :href="row.export_docx_url"
                     target="_blank"
-                    class="inline-flex h-7 w-7 items-center justify-center rounded-lg text-slate-500 hover:bg-blue-50 hover:text-blue-600"
-                    title="Xuất DOCX"
+                    rel="noopener"
+                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-transparent text-slate-500 transition hover:border-slate-200 hover:bg-slate-50 hover:text-slate-700"
+                    title="Tải DOCX"
                   >
                     <AppIcon
                       name="download"
-                      :size="15"
+                      :size="16"
                     />
                   </a>
                   <button
                     v-if="row.can_review && props.can.review_proposals"
                     type="button"
-                    class="inline-flex h-7 w-7 items-center justify-center rounded-lg text-slate-500 hover:bg-emerald-50 hover:text-emerald-600"
-                    title="Duyệt"
+                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-transparent text-slate-500 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
+                    title="Duyệt phiếu"
                     @click="openApprove(row)"
                   >
                     <AppIcon
-                      name="done"
-                      :size="15"
+                      name="check"
+                      :size="16"
                     />
                   </button>
                   <button
                     v-if="row.can_review && props.can.review_proposals"
                     type="button"
-                    class="inline-flex h-7 w-7 items-center justify-center rounded-lg text-slate-500 hover:bg-rose-50 hover:text-rose-600"
-                    title="Từ chối"
+                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-transparent text-slate-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+                    title="Từ chối phiếu"
                     @click="openReject(row)"
                   >
                     <AppIcon
-                      name="block"
-                      :size="15"
+                      name="close"
+                      :size="16"
                     />
                   </button>
                 </div>
@@ -678,32 +862,46 @@ function exportCsv() {
           >
             <button
               type="button"
-              class="flex h-9 items-center gap-1.5 rounded-btn border border-slate-200 bg-white px-3 text-sm text-slate-600"
+              class="flex h-9 items-center gap-1.5 rounded-btn border px-3 text-sm font-medium transition"
+              :class="showGroupColDd
+                ? 'border-brand/40 bg-brand/5 text-brand'
+                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'"
               @click="showGroupColDd = !showGroupColDd"
             >
               <AppIcon
                 name="columns"
                 :size="14"
               />
-              Cột
+              Cột hiển thị
+              <AppIcon
+                name="chevron-down"
+                :size="13"
+                class="opacity-50 transition-transform duration-150"
+                :class="showGroupColDd && 'rotate-180'"
+              />
             </button>
             <div
               v-if="showGroupColDd"
-              class="absolute right-0 top-full z-30 mt-1.5 w-52 rounded-xl border border-slate-200 bg-white p-2 shadow-elevation-2"
+              class="absolute right-0 top-full z-30 mt-1.5 w-52 rounded-xl border border-slate-200 bg-white shadow-elevation-2"
             >
-              <button
-                v-for="col in COST_REPORT_GROUP_COLUMNS"
-                :key="col.key"
-                type="button"
-                class="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-sm hover:bg-slate-50"
-                @click="toggleGroupColumn(col.key)"
-              >
-                {{ col.label }}
-                <span
-                  class="h-3 w-3 rounded-full"
-                  :class="groupColVisible[col.key] ? 'bg-brand' : 'bg-slate-200'"
-                />
-              </button>
+              <div class="border-b border-slate-100 px-4 py-2.5">
+                <span class="text-xs font-bold uppercase tracking-wide text-slate-500">Cột hiển thị</span>
+              </div>
+              <div class="px-2 py-2">
+                <label
+                  v-for="col in COST_REPORT_GROUP_COLUMNS"
+                  :key="col.key"
+                  class="flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-1.5 hover:bg-slate-50"
+                >
+                  <input
+                    type="checkbox"
+                    class="rounded border-slate-300 text-brand focus:ring-brand/30"
+                    :checked="groupColVisible[col.key]"
+                    @change="toggleGroupColumn(col.key)"
+                  >
+                  <span class="text-sm text-slate-700">{{ col.label }}</span>
+                </label>
+              </div>
             </div>
           </div>
           <Link
