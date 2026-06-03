@@ -100,6 +100,33 @@ class Blocker extends Model
             ->whereDate('due_date', '<', now()->toDateString());
     }
 
+    /**
+     * Ưu tiên: nghiêm trọng → cao → trung bình → thấp, sau đó mới nhất.
+     *
+     * @param  Builder<Blocker>  $query
+     * @return Builder<Blocker>
+     */
+    public function scopeOrderByPriority(Builder $query): Builder
+    {
+        $critical = BlockerSeverity::Critical->value;
+        $high = BlockerSeverity::High->value;
+        $medium = BlockerSeverity::Medium->value;
+        $low = BlockerSeverity::Low->value;
+
+        return $query
+            ->orderByRaw(
+                'CASE severity
+                    WHEN ? THEN 1
+                    WHEN ? THEN 2
+                    WHEN ? THEN 3
+                    WHEN ? THEN 4
+                    ELSE 5
+                END',
+                [$critical, $high, $medium, $low],
+            )
+            ->orderByDesc('raised_at');
+    }
+
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);

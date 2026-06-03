@@ -48,7 +48,7 @@ class BlockerController extends Controller
         $query = Blocker::query()
             ->with(['project', 'task', 'raisedBy', 'owner'])
             ->withCount('comments')
-            ->latest('raised_at');
+            ->orderByPriority();
 
         $status = $request->query('status');
         if ($status === 'all') {

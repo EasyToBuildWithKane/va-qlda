@@ -19,6 +19,16 @@ const PER_PAGE_OPTIONS = [5, 10, 15, 20];
 const GROUP_GENERAL = '__general__';
 const GENERAL_GROUP_LABEL = 'Thắc mắc chung';
 
+const SEVERITY_RANK = { critical: 0, high: 1, medium: 2, low: 3 };
+
+/** Nền + viền trái theo mức độ (chỉ khi chưa đóng) */
+const SEVERITY_ROW_BG = {
+    critical: 'bg-rose-100/90 border-l-[3px] border-l-rose-600',
+    high: 'bg-rose-50/95 border-l-[3px] border-l-rose-500',
+    medium: 'bg-amber-50/70 border-l-[3px] border-l-amber-400',
+    low: 'border-l-[3px] border-l-transparent',
+};
+
 const SEVERITY_TEXT = {
     slate: 'text-slate-600',
     sky: 'text-sky-700',
@@ -136,7 +146,8 @@ const appliedFilterCount = computed(() =>
     ].filter((v) => v !== '' && v != null).length,
 );
 
-const tableColspan = computed(() => TABLE_COLUMNS.filter((c) => isColVisible(c.key)).length + 1);
+/** +1 cột nhóm (chevron), +1 thao tác */
+const tableColspan = computed(() => TABLE_COLUMNS.filter((c) => isColVisible(c.key)).length + 2);
 
 /** % width per column key (re-normalized in colWidthStyle for visible cols only) */
 const COL_WIDTH_PCT = {
@@ -163,6 +174,22 @@ const colWidthStyle = computed(() => {
     );
 });
 
+function sortBlockersByPriority(items) {
+    return [...items].sort((a, b) => {
+        const ra = SEVERITY_RANK[a.severity?.value] ?? 9;
+        const rb = SEVERITY_RANK[b.severity?.value] ?? 9;
+        if (ra !== rb) return ra - rb;
+        const aOver = a.is_overdue && !isTerminal(a);
+        const bOver = b.is_overdue && !isTerminal(b);
+        if (aOver !== bOver) return aOver ? -1 : 1;
+        return 0;
+    });
+}
+
+function groupPriorityRank(items) {
+    return Math.min(...items.map((b) => SEVERITY_RANK[b.severity?.value] ?? 9));
+}
+
 const groupedBlockers = computed(() => {
     const map = new Map();
     for (const b of props.blockers.data ?? []) {
@@ -177,9 +204,15 @@ const groupedBlockers = computed(() => {
         }
         map.get(key).items.push(b);
     }
+    for (const g of map.values()) {
+        g.items = sortBlockersByPriority(g.items);
+    }
     return [...map.values()].sort((a, b) => {
         if (a.key === GROUP_GENERAL) return 1;
         if (b.key === GROUP_GENERAL) return -1;
+        const pa = groupPriorityRank(a.items);
+        const pb = groupPriorityRank(b.items);
+        if (pa !== pb) return pa - pb;
         return a.label.localeCompare(b.label, 'vi');
     });
 });
@@ -250,8 +283,36 @@ function onToolbarClickOutside(e) {
 onMounted(() => document.addEventListener('mousedown', onToolbarClickOutside));
 onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOutside));
 
-function severityClass(color) {
+function severityClass(color, value) {
+    if (value === 'critical' || value === 'high') {
+        return 'tabular-nums text-xs font-semibold text-rose-700';
+    }
     return `tabular-nums text-xs ${SEVERITY_TEXT[color] ?? 'text-slate-600'}`;
+}
+
+function blockerRowClass(b) {
+    const classes = ['border-b', 'border-slate-100', 'transition-colors'];
+    if (b.status?.value === 'closed') {
+        classes.push('opacity-75', 'hover:bg-slate-50/60');
+        return classes;
+    }
+    if (b.status?.value === 'resolved') {
+        classes.push('bg-emerald-50/35', 'hover:bg-emerald-50/50');
+        return classes;
+    }
+    const sev = b.severity?.value;
+    if (SEVERITY_ROW_BG[sev]) {
+        classes.push(SEVERITY_ROW_BG[sev]);
+    }
+    if (b.is_overdue && (sev === 'low' || sev === 'medium')) {
+        classes.push('bg-rose-50/40');
+    }
+    classes.push(
+        sev === 'critical' || sev === 'high'
+            ? 'hover:bg-rose-100/80'
+            : 'hover:bg-slate-50/80',
+    );
+    return classes;
 }
 
 function statusClass(color) {
@@ -314,6 +375,16 @@ function expandAllGroups() {
 function collapseAllGroups() {
     collapsedGroups.value = new Set(groupedBlockers.value.map((g) => g.key));
     persistCollapsedGroups();
+}
+
+const allGroupsExpanded = computed(() =>
+    groupedBlockers.value.length > 0
+    && groupedBlockers.value.every((g) => isGroupExpanded(g.key)),
+);
+
+function toggleAllGroups() {
+    if (allGroupsExpanded.value) collapseAllGroups();
+    else expandAllGroups();
 }
 
 </script>
@@ -420,33 +491,21 @@ function collapseAllGroups() {
                 @persist="persistVisibleColumns"
               />
             </div>
-            <template v-if="groupedBlockers.length">
-              <button
-                type="button"
-                class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 hover:border-slate-300"
-                title="Mở tất cả nhóm dự án"
-                @click="expandAllGroups"
-              >
-                <AppIcon
-                  name="chevron-down"
-                  :size="15"
-                />
-                <span class="hidden sm:inline">Mở nhóm</span>
-              </button>
-              <button
-                type="button"
-                class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 hover:border-slate-300"
-                title="Thu gọn tất cả nhóm dự án"
-                @click="collapseAllGroups"
-              >
-                <AppIcon
-                  name="chevron-down"
-                  :size="15"
-                  class="-rotate-90"
-                />
-                <span class="hidden sm:inline">Thu nhóm</span>
-              </button>
-            </template>
+            <button
+              v-if="groupedBlockers.length"
+              type="button"
+              class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 hover:border-slate-300"
+              :title="allGroupsExpanded ? 'Thu gọn tất cả nhóm dự án' : 'Mở tất cả nhóm dự án'"
+              @click="toggleAllGroups"
+            >
+              <AppIcon
+                name="chevron-down"
+                :size="15"
+                class="transition-transform"
+                :class="allGroupsExpanded ? '' : '-rotate-90'"
+              />
+              <span class="hidden sm:inline">{{ allGroupsExpanded ? 'Thu nhóm' : 'Mở nhóm' }}</span>
+            </button>
           </div>
           <button
             v-if="can.create"
@@ -600,6 +659,7 @@ function collapseAllGroups() {
       >
         <table class="blocker-table w-full max-w-full table-fixed border-collapse text-sm">
           <colgroup>
+            <col class="w-8">
             <col
               v-for="c in TABLE_COLUMNS.filter((col) => isColVisible(col.key))"
               :key="c.key"
@@ -609,6 +669,7 @@ function collapseAllGroups() {
           </colgroup>
           <thead class="border-b border-slate-200 bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             <tr>
+              <th class="w-8 px-1 py-2.5 align-middle" />
               <th
                 v-if="isColVisible('code')"
                 class="px-3 py-2.5 text-left align-middle"
@@ -701,17 +762,19 @@ function collapseAllGroups() {
                 class="cursor-pointer border-y border-slate-200/90 bg-slate-50 transition hover:bg-slate-100/70"
                 @click="toggleGroup(group.key)"
               >
+                <td class="px-1 py-2 text-center align-middle">
+                  <AppIcon
+                    name="chevron-down"
+                    :size="16"
+                    class="inline-block text-slate-400 transition-transform"
+                    :class="isGroupExpanded(group.key) ? '' : '-rotate-90'"
+                  />
+                </td>
                 <td
-                  :colspan="tableColspan"
+                  :colspan="tableColspan - 1"
                   class="px-3 py-2 align-middle"
                 >
                   <div class="flex items-center gap-2">
-                    <AppIcon
-                      name="chevron-down"
-                      :size="16"
-                      class="shrink-0 text-slate-400 transition-transform"
-                      :class="isGroupExpanded(group.key) ? '' : '-rotate-90'"
-                    />
                     <span
                       class="h-2.5 w-2.5 shrink-0 rounded-full ring-2 ring-white"
                       :class="group.key === GROUP_GENERAL ? 'bg-slate-400' : ''"
@@ -728,13 +791,9 @@ function collapseAllGroups() {
                 <tr
                   v-for="b in group.items"
                   :key="b.id"
-                  class="border-b border-slate-100 transition-colors hover:bg-slate-50/80"
-                  :class="{
-                    'bg-rose-50/25': b.is_overdue && !isTerminal(b),
-                    'bg-emerald-50/35': b.status?.value === 'resolved',
-                    'opacity-75': b.status?.value === 'closed',
-                  }"
+                  :class="blockerRowClass(b)"
                 >
+                  <td class="px-1 align-middle" />
                   <td
                     v-if="isColVisible('code')"
                     class="px-3 py-2 align-middle font-mono text-xs font-semibold text-brand"
@@ -765,7 +824,7 @@ function collapseAllGroups() {
                     v-if="isColVisible('severity')"
                     class="px-3 py-2 align-middle"
                   >
-                    <span :class="severityClass(b.severity.color)">{{ b.severity.label }}</span>
+                    <span :class="severityClass(b.severity.color, b.severity.value)">{{ b.severity.label }}</span>
                   </td>
                   <td
                     v-if="isColVisible('status')"
