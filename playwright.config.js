@@ -13,7 +13,8 @@ export default defineConfig({
     fullyParallel: true,
     forbidOnly: isCI,
     retries: isCI ? 2 : 0,
-    workers: isCI ? 1 : undefined,
+    // Single worker: shared SQLite E2E DB is not safe under parallel workers.
+    workers: 1,
     reporter: isCI
         ? [['github'], ['html', { open: 'never' }]]
         : [['list'], ['html', { open: 'on-failure' }]],
@@ -40,7 +41,8 @@ export default defineConfig({
         command: 'php artisan serve --host=127.0.0.1 --port=8000',
         cwd: rootDir,
         url: baseURL,
-        reuseExistingServer: !isCI,
+        // Always spawn with e2eDatabaseEnv unless explicitly opted in (avoids stale MySQL serve on :8000).
+        reuseExistingServer: process.env.PLAYWRIGHT_REUSE_SERVER === '1',
         timeout: 120_000,
         env: {
             ...process.env,
