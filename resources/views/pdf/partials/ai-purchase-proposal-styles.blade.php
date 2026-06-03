@@ -1,6 +1,6 @@
 @page {
     size: A4;
-    margin: 38mm 14mm 20mm 18mm;
+    margin: 38mm 11mm 20mm 14mm;
 }
 
 * { box-sizing: border-box; }
@@ -8,7 +8,7 @@
 body {
     font-family: 'DejaVu Serif', 'Times New Roman', serif;
     font-size: 11pt;
-    line-height: 1.65;
+    line-height: 1.75;
     color: #000;
     margin: 0;
     padding: 0;
@@ -16,66 +16,81 @@ body {
 
 .doc-content {
     width: 100%;
-    max-width: 178mm;
+    max-width: 185mm;
     margin: 0 auto;
 }
 
 .doc-content p {
-    margin: 1.5pt 0;
-    line-height: 1.65;
+    margin: 2pt 0;
+    line-height: 1.75;
 }
 
 .page-bg {
     position: fixed;
     top: -38mm;
-    left: -18mm;
+    left: -14mm;
     width: 210mm;
     height: 297mm;
     z-index: -1;
+    overflow: hidden;
 }
 .page-bg img {
-    width: 100%;
-    height: 100%;
+    display: block;
+    width: 110%;
+    height: 110%;
+    margin: -3% 0 0 -5%;
+    opacity: 1;
 }
 
 .doc-header {
     width: 100%;
     border-collapse: collapse;
-    margin-bottom: 2pt;
+    margin-bottom: 3pt;
     border: 1pt solid #000;
+    table-layout: fixed;
 }
 .doc-header td {
-    padding: 2pt 4pt;
-    vertical-align: top;
+    padding: 5pt 8pt 6pt;
+    vertical-align: middle;
     border: 1pt solid #000;
+    line-height: 1.75;
 }
 .doc-header .cell-left {
-    width: 42%;
+    width: 40%;
     font-size: 11pt;
     font-weight: bold;
     text-align: center;
     text-transform: uppercase;
+    letter-spacing: 0.2pt;
 }
 .doc-header .cell-left .unit {
     font-weight: normal;
     font-size: 10pt;
+    line-height: 1.6;
 }
 .doc-header .cell-right {
-    width: 58%;
+    width: 60%;
     text-align: center;
+    padding-left: 10pt;
+    padding-right: 10pt;
 }
 .doc-header .cell-right .republic {
     font-weight: bold;
     font-size: 11.5pt;
     text-transform: uppercase;
+    line-height: 1.5;
+    margin-bottom: 2pt;
 }
 .doc-header .cell-right .motto {
     font-size: 10.5pt;
+    line-height: 1.6;
+    margin-bottom: 2pt;
 }
 .doc-header .cell-right .doc-date {
     font-size: 10pt;
     font-style: italic;
-    margin-top: 1pt;
+    margin-top: 2pt;
+    line-height: 1.5;
 }
 .doc-header .cell-right .motto-line {
     display: inline-block;
@@ -86,18 +101,21 @@ body {
 
 .doc-title {
     text-align: center;
-    margin: 3pt 0 1pt 0;
+    margin: 8pt 0 6pt 0;
 }
 .doc-title h1 {
     font-size: 14pt;
     font-weight: bold;
     text-transform: uppercase;
-    margin: 0;
+    margin: 0 0 3pt 0;
     letter-spacing: 0.5pt;
+    line-height: 1.4;
 }
 .doc-title .subtitle {
     font-size: 10pt;
     font-style: italic;
+    margin: 0;
+    line-height: 1.5;
 }
 
 .kinh-gui {
@@ -130,9 +148,9 @@ table.field-lines {
     margin: 0 0 2pt 32pt;
 }
 table.field-lines td {
-    padding: 1.5pt 0;
+    padding: 2pt 0;
     vertical-align: top;
-    line-height: 1.65;
+    line-height: 1.75;
 }
 table.field-lines td.field-label {
     font-weight: bold;
@@ -245,8 +263,20 @@ ul.objectives li {
     margin-bottom: 0.5pt;
 }
 
+.section-5 .planned-date {
+    color: #cc0000;
+    font-weight: bold;
+}
+
+.doc-page-footer {
+    page-break-inside: avoid;
+    break-inside: avoid;
+}
+
 .closing {
-    margin-top: 3pt;
+    margin-top: 4pt;
+    margin-bottom: 2pt;
     font-style: italic;
     font-size: 10.5pt;
+    line-height: 1.75;
 }

@@ -5,7 +5,7 @@
         .proposal-preview-root {
             font-family: 'DejaVu Serif', 'Times New Roman', Georgia, serif;
             font-size: 11pt;
-            line-height: 1.65;
+            line-height: 1.75;
             color: #000;
         }
         .proposal-preview-shell {
@@ -21,23 +21,27 @@
             max-width: 210mm;
             margin: 0 auto;
             background: #fff;
-            padding: 14mm 12mm 16mm;
+            padding: 12mm 10mm 14mm;
             box-shadow: 0 4px 24px rgba(15, 23, 42, 0.12);
+            overflow: hidden;
         }
         .proposal-preview-bg {
             position: absolute;
-            inset: 0;
-            width: 100%;
-            height: 100%;
+            left: 50%;
+            top: 50%;
+            width: 108%;
+            height: 108%;
+            max-width: none;
+            transform: translate(-50%, -50%);
             object-fit: cover;
-            opacity: 0.12;
+            opacity: 0.22;
             z-index: 0;
             pointer-events: none;
         }
         .proposal-preview-root .doc-content {
             position: relative;
             z-index: 1;
-            max-width: 178mm;
+            max-width: 185mm;
         }
         .proposal-preview-root .page-bg {
             display: none;

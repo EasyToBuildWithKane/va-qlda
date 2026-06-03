@@ -157,10 +157,11 @@
     @endif
 </div>
 
-<div class="section">
+<div class="doc-page-footer">
+<div class="section section-5">
     <p class="section-num">
         5. Thời gian đưa vào sử dụng (dự kiến):
-        <span style="color: #cc0000; font-weight: bold;">{{ $vars['planned_use_date'] }}</span>
+        <span class="planned-date">{{ $vars['planned_use_date'] }}</span>
     </p>
 </div>
 
@@ -198,3 +199,4 @@
         </td>
     </tr>
 </table>
+</div>
