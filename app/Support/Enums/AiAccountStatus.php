@@ -34,4 +34,13 @@ enum AiAccountStatus: string
     {
         return array_map(fn (self $c) => $c->value, self::cases());
     }
+
+    /** @return array<int, array{value: string, label: string}> */
+    public static function options(): array
+    {
+        return array_map(fn (self $c) => [
+            'value' => $c->value,
+            'label' => $c->labelVi(),
+        ], self::cases());
+    }
 }

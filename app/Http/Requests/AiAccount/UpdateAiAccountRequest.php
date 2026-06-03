@@ -2,8 +2,10 @@
 
 namespace App\Http\Requests\AiAccount;
 
+use App\Support\Enums\AiAccountStatus;
 use App\Support\Enums\SystemRole;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateAiAccountRequest extends FormRequest
 {
@@ -19,6 +21,9 @@ class UpdateAiAccountRequest extends FormRequest
             'password' => ['nullable', 'string', 'max:255'],
             'notify_before_days' => ['nullable', 'integer', 'min:1', 'max:365'],
             'notes' => ['nullable', 'string', 'max:5000'],
+            'status' => ['sometimes', Rule::in(AiAccountStatus::values())],
+            'expiry_date' => ['sometimes', 'date'],
+            'sync_expiry_on_expire' => ['nullable', 'boolean'],
         ];
     }
 
@@ -27,6 +32,12 @@ class UpdateAiAccountRequest extends FormRequest
         $validator->after(function ($validator) {
             if ($this->filled('password') && $this->user()->role !== SystemRole::Admin) {
                 $validator->errors()->add('password', 'Chỉ quản trị viên được cập nhật mật khẩu.');
+            }
+            if ($this->filled('status') && ! $this->user()->can('updateStatus', $this->route('aiAccount'))) {
+                $validator->errors()->add('status', 'Bạn không có quyền đổi trạng thái tài khoản này.');
+            }
+            if ($this->filled('expiry_date') && ! $this->user()->can('updateStatus', $this->route('aiAccount'))) {
+                $validator->errors()->add('expiry_date', 'Bạn không có quyền đổi ngày hết hạn.');
             }
         });
     }

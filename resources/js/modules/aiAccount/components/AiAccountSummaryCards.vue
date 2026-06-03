@@ -2,71 +2,114 @@
 import { computed } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import VndAmount from '@/modules/aiAccount/components/VndAmount.vue';
-import { formatVndDisplay } from '@/modules/aiAccount/utils/formatVnd';
 
 const props = defineProps({
     cards: { type: Object, default: null },
+    activeStatus: { type: String, default: 'all' },
 });
+
+const emit = defineEmits(['filter-status']);
 
 const items = computed(() => {
     const c = props.cards;
     if (!c) return [];
-    const costDisplay = formatVndDisplay(c.monthly_cost_active);
     return [
-        { label: 'Tổng tài khoản', value: c.total_accounts, icon: 'account', tone: 'text-brand', bg: 'bg-brand-50' },
-        { label: 'Đang hoạt động', value: c.active_accounts, icon: 'done', tone: 'text-emerald-600', bg: 'bg-emerald-50' },
-        { label: 'Sắp hết hạn', value: c.expiring_soon, icon: 'flag', tone: 'text-amber-600', bg: 'bg-amber-50' },
         {
+            key: 'all',
+            label: 'Tổng tài khoản',
+            value: c.total_accounts,
+            icon: 'account',
+            tone: 'text-brand',
+            ring: 'ring-brand/20',
+            bg: 'bg-brand-50',
+            clickable: true,
+        },
+        {
+            key: 'active',
+            label: 'Đang hoạt động',
+            value: c.active_accounts,
+            icon: 'done',
+            tone: 'text-emerald-600',
+            ring: 'ring-emerald-200',
+            bg: 'bg-emerald-50',
+            clickable: true,
+        },
+        {
+            key: 'expiring_soon',
+            label: 'Sắp hết hạn',
+            value: c.expiring_soon,
+            icon: 'flag',
+            tone: 'text-amber-700',
+            ring: 'ring-amber-300',
+            bg: 'bg-amber-50',
+            highlight: (c.expiring_soon ?? 0) > 0,
+            clickable: true,
+        },
+        {
+            key: 'cost',
             label: 'Chi phí / tháng',
-            value: costDisplay.primary,
-            sub: costDisplay.secondary,
             icon: 'cost',
             tone: 'text-violet-600',
+            ring: 'ring-violet-200',
             bg: 'bg-violet-50',
             isMoney: true,
+            clickable: false,
         },
     ];
 });
+
+function onCardClick(item) {
+    if (!item.clickable) return;
+    if (item.key === 'cost') return;
+    emit('filter-status', item.key);
+}
 </script>
 
 <template>
   <div
     v-if="cards"
-    class="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4"
+    class="mb-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3"
   >
-    <div
+    <button
       v-for="item in items"
-      :key="item.label"
-      class="card flex items-center gap-3 p-3.5 sm:p-4"
+      :key="item.key"
+      type="button"
+      class="card flex items-center gap-3 p-3 text-left transition sm:p-3.5"
+      :class="[
+        item.clickable ? 'cursor-pointer hover:shadow-md' : 'cursor-default',
+        item.highlight ? 'ring-2 ring-amber-400/60' : '',
+        activeStatus === item.key && item.clickable ? `ring-2 ${item.ring}` : '',
+      ]"
+      :disabled="!item.clickable"
+      @click="onCardClick(item)"
     >
       <span
-        class="grid h-10 w-10 shrink-0 place-items-center rounded-btn"
+        class="grid h-9 w-9 shrink-0 place-items-center rounded-lg sm:h-10 sm:w-10"
         :class="item.bg"
       >
         <AppIcon
           :name="item.icon"
-          :size="20"
+          :size="18"
           :class="item.tone"
         />
       </span>
       <div class="min-w-0 flex-1">
-        <p class="text-xs text-slate-500">
+        <p class="text-[11px] font-medium text-slate-500 sm:text-xs">
           {{ item.label }}
         </p>
-        <template v-if="item.isMoney">
-          <VndAmount
-            :amount="cards.monthly_cost_active"
-            suffix=" / tháng"
-          />
-        </template>
+        <VndAmount
+          v-if="item.isMoney"
+          :amount="cards.monthly_cost_active"
+          suffix=" / tháng"
+        />
         <p
           v-else
-          class="font-display text-xl font-bold leading-tight tabular-nums"
+          class="font-display text-lg font-bold leading-tight tabular-nums sm:text-xl"
           :class="item.tone"
         >
           {{ item.value }}
         </p>
       </div>
-    </div>
+    </button>
   </div>
 </template>

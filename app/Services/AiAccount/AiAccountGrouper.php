@@ -6,7 +6,6 @@ use App\Models\AiAccount;
 use App\Models\SystemAccount;
 use App\Support\Enums\AiAccountGroupFunction;
 use App\Support\Enums\AiAccountStatus;
-use App\Support\Enums\SystemRole;
 use Illuminate\Support\Collection;
 
 class AiAccountGrouper
@@ -55,6 +54,7 @@ class AiAccountGrouper
 
             $groups[] = [
                 'group' => $key,
+                'group_label' => $this->groupLabel($groupEnum),
                 'dot_color' => $groupEnum->dotColor(),
                 'total' => $items->count(),
                 'total_cost_monthly' => $monthlyTotal,
@@ -151,12 +151,24 @@ class AiAccountGrouper
     {
         $monthly = $this->costCalculator->monthlyAmount($account->cost_amount, $account->cost_unit);
         $daysLeft = $this->statusSync->daysUntilExpiry($account);
+        $daysLeftSigned = $this->statusSync->daysUntilExpirySigned($account);
         $account->loadMissing('purchaseProposal');
-        $canViewPassword = $viewer && $viewer->role === SystemRole::Admin;
+        $canViewPassword = $viewer !== null && $viewer->can('viewPassword', AiAccount::class);
+        $urgency = match ($account->status) {
+            AiAccountStatus::Expired => 'expired',
+            AiAccountStatus::ExpiringSoon => 'expiring_soon',
+            default => null,
+        };
+
+        $proposal = $account->purchaseProposal;
 
         return [
             'id' => $account->id,
-            'proposal_code' => $account->purchaseProposal?->proposal_code,
+            'purchase_proposal_id' => $proposal?->id,
+            'proposal_code' => $proposal?->proposal_code,
+            'proposal_url' => $proposal
+                ? route('ai-accounts.cost-report', ['proposal' => $proposal->id])
+                : null,
             'tool_name' => $account->tool_name,
             'license_type' => $account->license_type,
             'license_key' => $account->license_key,
@@ -173,6 +185,9 @@ class AiAccountGrouper
             'status_label' => $account->status->labelVi(),
             'status_color' => $account->status->badgeColor(),
             'days_until_expiry' => $daysLeft,
+            'days_until_expiry_signed' => $daysLeftSigned,
+            'urgency' => $urgency,
+            'last_reminded_at' => $account->last_reminded_at?->format('d/m/Y H:i'),
             'notify_before_days' => $account->notify_before_days,
             'notes' => $account->notes,
             'has_password' => $canViewPassword && filled($account->login_password),
@@ -181,6 +196,8 @@ class AiAccountGrouper
                 AiAccountStatus::ExpiringSoon,
                 AiAccountStatus::Expired,
             ], true),
+            'can_update_status' => $viewer?->can('updateStatus', $account) ?? false,
+            'status_locked' => $account->status_locked_at !== null,
         ];
     }
 

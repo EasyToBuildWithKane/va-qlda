@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AiAccount\AiAccountController;
 use App\Http\Controllers\AiAccount\AiAccountPageController;
+use App\Http\Controllers\AiAccount\AiAccountPasswordViewerController;
 use App\Http\Controllers\AiAccount\AiPurchaseProposalController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Auth\LoginController;
@@ -162,6 +163,9 @@ Route::middleware('auth')->group(function () {
     Route::prefix('api/ai-accounts')->name('api.ai-accounts.')->group(function () {
         Route::get('/summary', [AiAccountController::class, 'summary'])->name('summary');
         Route::post('/trigger-reminder', [AiAccountController::class, 'triggerReminder'])->name('trigger-reminder');
+        Route::get('/password-viewers', [AiAccountPasswordViewerController::class, 'index'])->name('password-viewers.index');
+        Route::post('/password-viewers', [AiAccountPasswordViewerController::class, 'store'])->name('password-viewers.store');
+        Route::delete('/password-viewers/{passwordViewer}', [AiAccountPasswordViewerController::class, 'destroy'])->name('password-viewers.destroy');
         Route::get('/proposals', [AiPurchaseProposalController::class, 'index'])->name('proposals.index');
         Route::get('/proposals-awaiting-account', [AiPurchaseProposalController::class, 'awaitingAccount'])->name('proposals.awaiting-account');
         Route::post('/proposals', [AiPurchaseProposalController::class, 'store'])->name('proposals.store');
@@ -179,6 +183,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/', [AiAccountController::class, 'store'])->name('store');
         Route::get('/{aiAccount}', [AiAccountController::class, 'show'])->name('show');
         Route::put('/{aiAccount}', [AiAccountController::class, 'update'])->name('update');
+        Route::patch('/{aiAccount}/status', [AiAccountController::class, 'updateStatus'])->name('update-status');
         Route::delete('/{aiAccount}', [AiAccountController::class, 'destroy'])->name('destroy');
         Route::post('/{aiAccount}/renew', [AiAccountController::class, 'renew'])->name('renew');
     });

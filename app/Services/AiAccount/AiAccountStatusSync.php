@@ -31,14 +31,24 @@ class AiAccountStatusSync
 
     public function daysUntilExpiry(AiAccount $account, ?Carbon $today = null): int
     {
+        return max(0, $this->daysUntilExpirySigned($account, $today));
+    }
+
+    /** Âm = đã quá hạn. */
+    public function daysUntilExpirySigned(AiAccount $account, ?Carbon $today = null): int
+    {
         $today = ($today ?? now())->startOfDay();
         $expiry = $account->expiry_date->copy()->startOfDay();
 
-        return max(0, (int) $today->diffInDays($expiry, false));
+        return (int) $today->diffInDays($expiry, false);
     }
 
     public function syncAndSave(AiAccount $account, ?Carbon $today = null): void
     {
+        if ($account->status_locked_at !== null) {
+            return;
+        }
+
         $next = $this->resolve($account, $today);
         if ($account->status !== $next) {
             $account->status = $next;

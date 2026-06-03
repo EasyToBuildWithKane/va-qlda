@@ -10,9 +10,17 @@ const props = defineProps({
     colspan: { type: Number, default: 1 },
     /** `table-row` = inside `<tfoot><tr>`; `bar` = standalone footer below table */
     variant: { type: String, default: 'table-row' },
+    /** Client-side pagination: nav buttons emit page-change instead of Inertia Link */
+    client: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(['update:perPage']);
+const emit = defineEmits(['update:perPage', 'page-change']);
+
+function onPageLink(link) {
+    if (link.page != null) {
+        emit('page-change', link.page);
+    }
+}
 
 const rangeLabel = computed(() => {
     const m = props.meta;
@@ -66,8 +74,20 @@ const isBar = computed(() => props.variant === 'bar');
               v-for="(link, i) in meta.links"
               :key="i"
             >
+              <button
+                v-if="client && link.page != null"
+                type="button"
+                class="inline-flex min-w-[2rem] items-center justify-center rounded-btn px-2 py-1 text-xs font-medium transition"
+                :class="link.active
+                  ? 'bg-brand text-white'
+                  : 'text-slate-600 hover:bg-slate-100'"
+                :aria-current="link.active ? 'page' : undefined"
+                @click="onPageLink(link)"
+              >
+                <span v-html="link.label" />
+              </button>
               <Link
-                v-if="link.url"
+                v-else-if="!client && link.url"
                 :href="link.url"
                 preserve-scroll
                 class="inline-flex min-w-[2rem] items-center justify-center rounded-btn px-2 py-1 text-xs font-medium transition"
@@ -127,8 +147,20 @@ const isBar = computed(() => props.variant === 'bar');
           v-for="(link, i) in meta.links"
           :key="i"
         >
+          <button
+            v-if="client && link.page != null"
+            type="button"
+            class="inline-flex h-8 min-w-[2rem] items-center justify-center rounded-md px-2.5 text-sm font-medium transition"
+            :class="link.active
+              ? 'bg-brand text-white shadow-sm'
+              : 'text-slate-600 hover:bg-slate-100'"
+            :aria-current="link.active ? 'page' : undefined"
+            @click="onPageLink(link)"
+          >
+            <span v-html="link.label" />
+          </button>
           <Link
-            v-if="link.url"
+            v-else-if="!client && link.url"
             :href="link.url"
             preserve-scroll
             class="inline-flex h-8 min-w-[2rem] items-center justify-center rounded-md px-2.5 text-sm font-medium transition"

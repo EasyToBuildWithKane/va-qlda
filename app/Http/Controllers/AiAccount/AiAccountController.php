@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\AiAccount\RenewAiAccountRequest;
 use App\Http\Requests\AiAccount\StoreAiAccountRequest;
 use App\Http\Requests\AiAccount\UpdateAiAccountRequest;
+use App\Http\Requests\AiAccount\UpdateAiAccountStatusRequest;
 use App\Models\AiAccount;
 use App\Models\AiPurchaseProposal;
 use App\Services\AiAccount\AiAccountCostSummaryBuilder;
@@ -16,6 +17,7 @@ use App\Services\AiAccount\AiAccountStatusSync;
 use App\Services\AiAccount\AiPurchaseProposalPresenter;
 use App\Support\Enums\AiAccountCostUnit;
 use App\Support\Enums\AiAccountGroupFunction;
+use App\Support\Enums\AiAccountStatus;
 use App\Support\Enums\SystemRole;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -52,6 +54,7 @@ class AiAccountController extends Controller
                     'group_function' => AiAccountGroupFunction::options(),
                     'cost_unit' => AiAccountCostUnit::options(),
                     'license_types' => config('ai_accounts.license_types', []),
+                    'status' => AiAccountStatus::options(),
                 ],
             ],
         ]);
@@ -77,14 +80,14 @@ class AiAccountController extends Controller
         ]);
     }
 
-    public function show(AiAccount $aiAccount): JsonResponse
+    public function show(Request $request, AiAccount $aiAccount): JsonResponse
     {
         $this->authorize('view', $aiAccount);
         $this->statusSync->syncAndSave($aiAccount);
 
         return response()->json([
             'success' => true,
-            'data' => ['account' => $this->grouper->grouped(collect([$aiAccount->fresh()]), null, $request->user())['groups'][0]['accounts'][0] ?? null],
+            'data' => ['account' => $this->accountRow($aiAccount->fresh(), $request->user())],
         ]);
     }
 
@@ -120,13 +123,53 @@ class AiAccountController extends Controller
             $data['login_password'] = $validated['password'];
         }
 
+        if ($request->user()->can('updateStatus', $aiAccount)) {
+            if (! empty($validated['status'] ?? null)) {
+                $this->applyManualStatus(
+                    $aiAccount,
+                    AiAccountStatus::from($validated['status']),
+                    $validated['expiry_date'] ?? null,
+                    (bool) ($validated['sync_expiry_on_expire'] ?? true),
+                );
+                $aiAccount->refresh();
+            } elseif (! empty($validated['expiry_date'] ?? null)) {
+                $aiAccount->update([
+                    'expiry_date' => Carbon::parse($validated['expiry_date'])->startOfDay(),
+                ]);
+                if ($aiAccount->status_locked_at === null) {
+                    $this->statusSync->syncAndSave($aiAccount);
+                }
+                $aiAccount->refresh();
+            }
+        }
+
         $aiAccount->update($data);
-        $this->statusSync->syncAndSave($aiAccount);
+        if ($aiAccount->status_locked_at === null) {
+            $this->statusSync->syncAndSave($aiAccount);
+        }
 
         return response()->json([
             'success' => true,
             'data' => ['account' => $this->accountRow($aiAccount->fresh(), $request->user())],
             'message' => 'Đã lưu thành công.',
+        ]);
+    }
+
+    public function updateStatus(UpdateAiAccountStatusRequest $request, AiAccount $aiAccount): JsonResponse
+    {
+        $validated = $request->validated();
+
+        $this->applyManualStatus(
+            $aiAccount,
+            AiAccountStatus::from($validated['status']),
+            $validated['expiry_date'] ?? null,
+            (bool) ($validated['sync_expiry_on_expire'] ?? true),
+        );
+
+        return response()->json([
+            'success' => true,
+            'data' => ['account' => $this->accountRow($aiAccount->fresh(), $request->user())],
+            'message' => 'Đã cập nhật trạng thái tài khoản.',
         ]);
     }
 
@@ -191,6 +234,26 @@ class AiAccountController extends Controller
     /**
      * @return array<string, mixed>|null
      */
+    private function applyManualStatus(
+        AiAccount $account,
+        AiAccountStatus $status,
+        ?string $expiryDate = null,
+        bool $syncExpiryOnExpire = true,
+    ): void {
+        $data = [
+            'status' => $status,
+            'status_locked_at' => now(),
+        ];
+
+        if ($expiryDate !== null && $expiryDate !== '') {
+            $data['expiry_date'] = Carbon::parse($expiryDate)->startOfDay();
+        } elseif ($syncExpiryOnExpire && $status === AiAccountStatus::Expired) {
+            $data['expiry_date'] = now()->startOfDay();
+        }
+
+        $account->update($data);
+    }
+
     private function accountRow(?AiAccount $account, ?\App\Models\SystemAccount $viewer = null): ?array
     {
         if (! $account) {

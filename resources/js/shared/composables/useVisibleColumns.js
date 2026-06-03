@@ -11,6 +11,12 @@ export function useVisibleColumns(columns, storageKey) {
     function load() {
         try {
             const saved = JSON.parse(localStorage.getItem(storageKey));
+            if (Array.isArray(saved)) {
+                const set = new Set(saved);
+                return Object.fromEntries(
+                    columns.map((c) => [c.key, set.has(c.key)]),
+                );
+            }
             if (saved && typeof saved === 'object') {
                 return Object.fromEntries(
                     columns.map((c) => [c.key, saved[c.key] !== false]),

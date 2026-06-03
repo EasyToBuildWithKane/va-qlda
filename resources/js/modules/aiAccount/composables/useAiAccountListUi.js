@@ -1,28 +1,21 @@
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
+import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
+import { useVisibleColumns } from '@/shared/composables/useVisibleColumns';
+import { useClientPagination } from '@/shared/composables/useClientPagination';
 import {
-    AI_ACCOUNT_COLUMNS,
-    AI_ACCOUNT_COLUMNS_DEFAULT,
+    AI_ACCOUNT_FILTER_CONTROLS,
     AI_ACCOUNT_STATUS_FILTER_OPTS,
+    AI_ACCOUNT_TABLE_COLUMNS,
 } from '@/modules/aiAccount/config/columns';
 
+const FILTER_VALUES_KEY = 'va-qlda.ai-accounts.filters';
+const VISIBLE_FILTERS_KEY = 'va-qlda.ai-accounts.filter-controls';
 const COLS_KEY = 'va-qlda.ai-accounts.columns';
-const FILTER_KEY = 'va-qlda.ai-accounts.filters';
-
-function loadVisibleColumns() {
-    try {
-        const saved = JSON.parse(localStorage.getItem(COLS_KEY));
-        if (Array.isArray(saved) && saved.length) {
-            return saved.filter((k) => AI_ACCOUNT_COLUMNS.some((c) => c.key === k));
-        }
-    } catch {
-        /* ignore */
-    }
-    return [...AI_ACCOUNT_COLUMNS_DEFAULT];
-}
+const PER_PAGE_KEY = 'va-qlda.ai-accounts.per-page';
 
 function loadSavedFilters() {
     try {
-        const saved = JSON.parse(localStorage.getItem(FILTER_KEY));
+        const saved = JSON.parse(localStorage.getItem(FILTER_VALUES_KEY));
         if (saved && typeof saved === 'object') {
             return saved;
         }
@@ -33,7 +26,7 @@ function loadSavedFilters() {
 }
 
 /**
- * Bộ lọc client-side + chọn cột (pattern Department / Projects).
+ * Bộ lọc client-side + hiển thị cột/bộ lọc (pattern Department / CostReport).
  */
 export function useAiAccountListUi(groupsRef, optionsRef) {
     const saved = loadSavedFilters();
@@ -44,38 +37,51 @@ export function useAiAccountListUi(groupsRef, optionsRef) {
         attentionOnly: saved?.attentionOnly ?? false,
     });
 
-    const visibleColumnKeys = ref(loadVisibleColumns());
-    watch(visibleColumnKeys, (v) => {
-        localStorage.setItem(COLS_KEY, JSON.stringify(v));
-    }, { deep: true });
-
     watch(filters, () => {
-        localStorage.setItem(FILTER_KEY, JSON.stringify({
+        localStorage.setItem(FILTER_VALUES_KEY, JSON.stringify({
             status: filters.status,
             groups: [...filters.groups],
             attentionOnly: filters.attentionOnly,
         }));
     }, { deep: true });
 
-    const showFilterDd = ref(false);
-    const showColDd = ref(false);
+    const {
+        visibleFilters,
+        showFilterPanelDd,
+        enabledFilterControlCount,
+        hasFilterRow,
+        persistVisibleFilters,
+        openFilterPanel,
+        FILTER_CONTROLS,
+    } = useVisibleFilterControls(AI_ACCOUNT_FILTER_CONTROLS, VISIBLE_FILTERS_KEY);
+
+    const {
+        visibleCols,
+        showColDd,
+        persistVisibleColumns,
+        openColPanel,
+        isColVisible,
+    } = useVisibleColumns(AI_ACCOUNT_TABLE_COLUMNS, COLS_KEY);
+
     const filterDdRef = ref(null);
     const colDdRef = ref(null);
 
     const onDocClick = (e) => {
-        if (filterDdRef.value && !filterDdRef.value.contains(e.target)) showFilterDd.value = false;
-        if (colDdRef.value && !colDdRef.value.contains(e.target)) showColDd.value = false;
+        if (filterDdRef.value && !filterDdRef.value.contains(e.target)) {
+            showFilterPanelDd.value = false;
+        }
+        if (colDdRef.value && !colDdRef.value.contains(e.target)) {
+            showColDd.value = false;
+        }
     };
     onMounted(() => document.addEventListener('mousedown', onDocClick));
     onUnmounted(() => document.removeEventListener('mousedown', onDocClick));
 
     const openFilter = () => {
-        showFilterDd.value = !showFilterDd.value;
-        showColDd.value = false;
+        openFilterPanel(() => { showColDd.value = false; });
     };
     const openCol = () => {
-        showColDd.value = !showColDd.value;
-        showFilterDd.value = false;
+        openColPanel(() => { showFilterPanelDd.value = false; });
     };
 
     const activeFilterCount = computed(() => {
@@ -86,21 +92,9 @@ export function useAiAccountListUi(groupsRef, optionsRef) {
         return n;
     });
 
-    const colVisible = computed(() => {
-        const set = new Set(visibleColumnKeys.value);
-        return Object.fromEntries(AI_ACCOUNT_COLUMNS.map((c) => [c.key, set.has(c.key)]));
-    });
-
-    function toggleColumn(key) {
-        const set = new Set(visibleColumnKeys.value);
-        if (set.has(key)) {
-            if (set.size <= 1) return;
-            set.delete(key);
-        } else {
-            set.add(key);
-        }
-        visibleColumnKeys.value = AI_ACCOUNT_COLUMNS.filter((c) => set.has(c.key)).map((c) => c.key);
-    }
+    const colVisible = computed(() =>
+        Object.fromEntries(AI_ACCOUNT_TABLE_COLUMNS.map((c) => [c.key, isColVisible(c.key)])),
+    );
 
     function accountMatchesFilters(row) {
         if (filters.status !== 'all' && row.status !== filters.status) return false;
@@ -129,6 +123,45 @@ export function useAiAccountListUi(groupsRef, optionsRef) {
                 };
             })
             .filter(Boolean);
+    });
+
+    const flatRows = computed(() =>
+        displayGroups.value.flatMap((g) =>
+            (g.accounts ?? []).map((account) => ({ account, group: g })),
+        ),
+    );
+
+    const {
+        perPage,
+        paginatedItems: paginatedFlatRows,
+        meta: paginationMeta,
+        setPerPage,
+        goToPage,
+        PER_PAGE_OPTIONS,
+    } = useClientPagination(flatRows, PER_PAGE_KEY, 10);
+
+    const paginatedDisplayGroups = computed(() => {
+        const map = new Map();
+        for (const { account, group } of paginatedFlatRows.value) {
+            const key = group.group;
+            if (!map.has(key)) {
+                map.set(key, { ...group, accounts: [] });
+            }
+            map.get(key).accounts.push(account);
+        }
+        return [...map.values()].map((g) => {
+            const monthly = g.accounts.reduce((sum, a) => sum + (a.cost_monthly ?? 0), 0);
+            const warningCount = g.accounts.filter((a) =>
+                ['expiring_soon', 'expired'].includes(a.status),
+            ).length;
+            return {
+                ...g,
+                total: g.accounts.length,
+                total_cost_monthly: monthly,
+                has_warning: warningCount > 0,
+                warning_count: warningCount,
+            };
+        });
     });
 
     const filteredAccountCount = computed(() =>
@@ -164,17 +197,28 @@ export function useAiAccountListUi(groupsRef, optionsRef) {
         filters,
         activeFilterCount,
         displayGroups,
+        paginatedDisplayGroups,
         filteredAccountCount,
+        perPage,
+        paginationMeta,
+        setPerPage,
+        goToPage,
+        PER_PAGE_OPTIONS,
         statusCounts,
         groupFilterOptions,
         clearFilters,
         toggleGroupFilter,
-        AI_ACCOUNT_COLUMNS,
         AI_ACCOUNT_STATUS_FILTER_OPTS,
+        AI_ACCOUNT_TABLE_COLUMNS,
         colVisible,
-        visibleColumnKeys,
-        toggleColumn,
-        showFilterDd,
+        visibleCols,
+        persistVisibleColumns,
+        visibleFilters,
+        hasFilterRow,
+        enabledFilterControlCount,
+        persistVisibleFilters,
+        FILTER_CONTROLS,
+        showFilterPanelDd,
         showColDd,
         filterDdRef,
         colDdRef,

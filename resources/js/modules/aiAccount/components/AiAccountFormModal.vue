@@ -2,16 +2,21 @@
 import { computed, reactive, ref, watch } from 'vue';
 import Modal from '@/Components/Ui/Modal.vue';
 import FieldTooltip from '@/shared/ui/FieldTooltip.vue';
+import PasswordInput from '@/shared/ui/form/PasswordInput.vue';
 import VndAmount from '@/modules/aiAccount/components/VndAmount.vue';
 import ApprovedProposalPick from '@/modules/aiAccount/components/ApprovedProposalPick.vue';
 import { httpGet } from '@/shared/services/http';
 import { costUnitSuffix } from '@/modules/aiAccount/utils/formatVnd';
+import { formatDaysLeftLabel, resolveDaysLeft } from '@/modules/aiAccount/utils/daysUntilExpiry';
+import { statusSelectClass } from '@/modules/aiAccount/utils/accountStatusStyle';
 
 const props = defineProps({
     show: Boolean,
     account: { type: Object, default: null },
     can: { type: Object, default: () => ({}) },
     formHints: { type: Object, default: () => ({}) },
+    reminderSchedule: { type: Array, default: () => ['08:00', '14:00'] },
+    statusOptions: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits(['close', 'submit']);
@@ -27,10 +32,17 @@ const form = reactive({
     password: '',
     notify_before_days: 14,
     notes: '',
+    status: 'active',
+    expiry_date: '',
 });
 
 const isEdit = computed(() => !!props.account?.id);
 const canViewPassword = computed(() => !!props.can?.view_password);
+const canUpdateStatus = computed(() => !!props.account?.can_update_status);
+
+const modalTitle = computed(() =>
+    (isEdit.value ? 'Sửa tài khoản AI' : 'Thêm tài khoản từ phiếu đã duyệt'),
+);
 
 const billingHint = computed(() => {
     if (selectedProposal.value?.billing_hint) {
@@ -41,20 +53,59 @@ const billingHint = computed(() => {
     return props.formHints?.billing_monthly ?? '';
 });
 
+const notifyHintText = computed(() =>
+    formHintsNotify.value || selectedProposal.value?.notify_hint || '',
+);
+
+const formHintsNotify = computed(() => props.formHints?.notify ?? '');
+
+const reminderScheduleLabel = computed(() =>
+    (props.reminderSchedule ?? []).join(' và '),
+);
+
 const summary = computed(() => {
     if (isEdit.value && props.account) {
         return {
             tool_name: props.account.tool_name,
             proposal_code: props.account.proposal_code,
-            group_label: props.account.group_function,
+            group_label: props.account.group_label ?? props.account.group_function,
             license_type: props.account.license_type,
             cost_amount: props.account.cost_amount,
             cost_unit: props.account.cost_unit,
+            cost_monthly: props.account.cost_monthly,
             purchase_date: props.account.purchase_date,
             expiry_date: props.account.expiry_date,
+            days_until_expiry: props.account.days_until_expiry,
+            days_until_expiry_signed: props.account.days_until_expiry_signed,
+            status: props.account.status,
         };
     }
     return selectedProposal.value;
+});
+
+const daysLeftSummary = computed(() => {
+    const s = summary.value;
+    if (!s) return null;
+    return formatDaysLeftLabel(resolveDaysLeft(s), s.status);
+});
+
+const summaryItems = computed(() => {
+    const s = summary.value;
+    if (!s) return [];
+    return [
+        { key: 'code', label: 'Mã phiếu', value: s.proposal_code, mono: true },
+        { key: 'tool', label: 'Sản phẩm', value: s.tool_name },
+        { key: 'group', label: 'Nhóm chức năng', value: s.group_label ?? s.group_function },
+        { key: 'license', label: 'Loại license', value: s.license_type },
+        { key: 'start', label: 'Ngày bắt đầu', value: s.purchase_date ?? s.start_date ?? '—' },
+        {
+            key: 'end',
+            label: 'Ngày hết hạn',
+            value: s.expiry_date ?? s.end_date ?? '—',
+            sub: daysLeftSummary.value?.text,
+            subUrgent: daysLeftSummary.value?.urgent,
+        },
+    ].filter((i) => (i.value && i.value !== '—') || i.key === 'end');
 });
 
 watch(
@@ -71,6 +122,8 @@ watch(
                 password: a.password ?? '',
                 notify_before_days: a.notify_before_days ?? 14,
                 notes: a.notes ?? '',
+                status: a.status ?? 'active',
+                expiry_date: a.expiry_date ?? '',
             });
         } else {
             Object.assign(form, {
@@ -79,6 +132,8 @@ watch(
                 password: '',
                 notify_before_days: 14,
                 notes: '',
+                status: 'active',
+                expiry_date: '',
             });
             await loadAwaitingProposals();
         }
@@ -123,6 +178,11 @@ function buildPayload() {
         if (canViewPassword.value) {
             payload.password = form.password;
         }
+        if (canUpdateStatus.value) {
+            payload.status = form.status;
+            payload.expiry_date = form.expiry_date || null;
+            payload.sync_expiry_on_expire = form.status === 'expired';
+        }
         return payload;
     }
     const payload = {
@@ -146,195 +206,308 @@ function handleSubmit() {
 <template>
   <Modal
     :show="show"
-    :title="isEdit ? 'Sửa tài khoản AI' : 'Thêm tài khoản từ phiếu đã duyệt'"
-    max-width="max-w-lg"
+    :title="modalTitle"
+    max-width="max-w-4xl"
     :dirty="dirty"
     @close="emit('close')"
   >
     <form
-      class="space-y-5"
+      class="space-y-6"
       @submit.prevent="handleSubmit"
     >
-      <template v-if="!isEdit">
+      <!-- §1 Chọn phiếu -->
+      <section
+        v-if="!isEdit"
+        class="space-y-4"
+      >
+        <header class="border-b border-slate-100 pb-2">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-brand">
+            1 · Chọn phiếu đã duyệt
+          </h3>
+          <p class="mt-0.5 text-xs text-slate-500">
+            Gõ mã phiếu hoặc tên sản phẩm — các trường còn lại tự điền từ phiếu.
+          </p>
+        </header>
         <ApprovedProposalPick
           v-model="form.proposal_id"
           :proposals="awaitingProposals"
           :disabled="loadingProposals"
           @pick="onProposalPick"
         />
-      </template>
+      </section>
 
-      <div
+      <!-- §2 Thông tin phiếu (readonly) -->
+      <section
         v-if="summary"
-        class="rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3 text-sm"
+        class="space-y-4"
       >
-        <p class="text-xs font-medium uppercase tracking-wide text-slate-500">
-          Thông tin từ phiếu (tự điền)
-        </p>
-        <dl class="mt-2 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
-          <div v-if="summary.proposal_code">
-            <dt class="text-xs text-slate-500">
-              Mã phiếu
-            </dt>
-            <dd class="font-medium text-slate-800">
-              {{ summary.proposal_code }}
-            </dd>
-          </div>
-          <div>
-            <dt class="text-xs text-slate-500">
-              Sản phẩm
-            </dt>
-            <dd class="font-medium text-slate-800">
-              {{ summary.tool_name }}
-            </dd>
-          </div>
-          <div v-if="summary.group_label || summary.group_function">
-            <dt class="text-xs text-slate-500">
-              Nhóm
-            </dt>
-            <dd>{{ summary.group_label ?? summary.group_function }}</dd>
-          </div>
-          <div v-if="summary.license_type">
-            <dt class="text-xs text-slate-500">
-              License
-            </dt>
-            <dd>{{ summary.license_type }}</dd>
+        <header class="border-b border-slate-100 pb-2">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-600">
+            {{ isEdit ? '1' : '2' }} · Thông tin từ phiếu
+          </h3>
+          <p class="mt-0.5 text-xs text-slate-500">
+            Đọc-only — chỉnh sửa tại phiếu đề xuất hoặc gia hạn sau khi lưu.
+          </p>
+        </header>
+
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          <div
+            v-for="item in summaryItems"
+            :key="item.key"
+            class="min-h-[4.25rem] rounded-lg border border-slate-200/80 bg-slate-50/90 px-3 py-2.5"
+          >
+            <p class="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+              {{ item.label }}
+            </p>
+            <p
+              class="mt-1 text-sm font-semibold text-slate-800"
+              :class="item.mono ? 'font-mono text-xs' : ''"
+            >
+              {{ item.value }}
+            </p>
+            <p
+              v-if="item.sub"
+              class="mt-1 text-xs font-bold tabular-nums"
+              :class="item.subUrgent ? 'text-amber-800' : 'text-slate-500'"
+            >
+              {{ item.sub }}
+            </p>
           </div>
           <div
             v-if="summary.cost_amount"
-            class="sm:col-span-2"
+            class="min-h-[4.25rem] rounded-lg border border-brand/15 bg-brand-soft/40 px-3 py-2.5 sm:col-span-2 lg:col-span-2"
           >
-            <dt class="text-xs text-slate-500">
+            <p class="text-[11px] font-medium uppercase tracking-wide text-slate-500">
               Chi phí
-            </dt>
-            <dd>
+            </p>
+            <p class="mt-1 text-sm font-semibold text-slate-800">
               <VndAmount
                 :amount="summary.cost_amount"
                 inline
               />
-              <span class="text-slate-500">{{ costUnitSuffix(summary.cost_unit) }}</span>
+              <span class="font-normal text-slate-500">{{ costUnitSuffix(summary.cost_unit) }}</span>
               <span
                 v-if="summary.cost_monthly"
-                class="text-slate-500"
-              > (~<VndAmount
-                :amount="summary.cost_monthly"
-                inline
-              />/tháng)</span>
-            </dd>
+                class="block text-xs font-normal text-slate-500"
+              >
+                ~<VndAmount
+                  :amount="summary.cost_monthly"
+                  inline
+                /> / tháng
+              </span>
+            </p>
           </div>
-          <div v-if="summary.purchase_date || summary.start_date">
-            <dt class="text-xs text-slate-500">
-              Bắt đầu
-            </dt>
-            <dd>{{ summary.purchase_date ?? summary.start_date ?? '—' }}</dd>
-          </div>
-          <div v-if="summary.expiry_date || summary.end_date">
-            <dt class="text-xs text-slate-500">
-              Hết hạn
-            </dt>
-            <dd>{{ summary.expiry_date ?? summary.end_date ?? '—' }}</dd>
-          </div>
-        </dl>
+        </div>
+
         <p
           v-if="billingHint"
-          class="mt-2 text-xs text-slate-600"
+          class="flex items-start gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-xs text-slate-600"
         >
+          <span class="mt-0.5 shrink-0 font-semibold text-brand">Chu kỳ:</span>
           {{ billingHint }}
         </p>
-      </div>
+      </section>
 
-      <div class="min-w-0">
-        <label class="label flex items-center gap-1">
-          Email / tài khoản đăng ký <span class="text-danger">*</span>
-          <FieldTooltip
-            wide
-            text="Email dùng đăng nhập với nhà cung cấp (lấy từ phiếu, có thể chỉnh nếu đã đăng ký thực tế)."
+      <!-- §3 Đăng nhập & nhắc nhở -->
+      <section class="space-y-4">
+        <header class="border-b border-slate-100 pb-2">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-600">
+            {{ isEdit ? '2' : '3' }} · Đăng nhập & nhắc nhở
+          </h3>
+          <p class="mt-0.5 text-xs text-slate-500">
+            Email và mật khẩu portal nhà cung cấp; nhắc hết hạn qua email tự động.
+          </p>
+        </header>
+
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-x-6 md:gap-y-4">
+          <template v-if="isEdit && canUpdateStatus">
+            <div class="md:col-span-2 rounded-lg border border-amber-200/80 bg-amber-50/60 px-3 py-2.5 text-xs leading-relaxed text-amber-950">
+              Gói mua theo tháng nhưng hết sớm hơn hạn trên phiếu: chọn trạng thái
+              <strong>Hết hạn</strong> và cập nhật <strong>ngày hết hạn thực tế</strong> để báo cáo và nhắc email đúng.
+            </div>
+            <div class="flex min-h-[5.5rem] flex-col justify-start gap-1.5">
+              <label
+                for="ai-account-status"
+                class="label mb-0 flex min-h-[1.25rem] items-center gap-1"
+              >
+                Trạng thái vận hành
+                <FieldTooltip
+                  wide
+                  text="Người tạo phiếu hoặc quản trị viên có thể đánh dấu khi license ngừng hoạt động trước ngày kế hoạch."
+                />
+              </label>
+              <select
+                id="ai-account-status"
+                v-model="form.status"
+                class="input h-10 w-full text-sm font-medium"
+                :class="statusSelectClass(form.status)"
+                @change="onInput"
+              >
+                <option
+                  v-for="opt in statusOptions"
+                  :key="opt.value"
+                  :value="opt.value"
+                >
+                  {{ opt.label }}
+                </option>
+              </select>
+            </div>
+            <div class="flex min-h-[5.5rem] flex-col justify-start gap-1.5">
+              <label
+                for="ai-account-expiry"
+                class="label mb-0 flex min-h-[1.25rem] items-center gap-1"
+              >
+                Ngày hết hạn thực tế
+                <FieldTooltip
+                  wide
+                  text="Ngày license thực sự hết — dùng khi gói 1 tháng nhưng chỉ dùng được nửa tháng."
+                />
+              </label>
+              <input
+                id="ai-account-expiry"
+                v-model="form.expiry_date"
+                type="date"
+                class="input h-10 w-full"
+                @input="onInput"
+              >
+              <p
+                v-if="daysLeftSummary"
+                class="text-xs font-semibold tabular-nums text-amber-800"
+              >
+                {{ daysLeftSummary.text }}
+              </p>
+            </div>
+          </template>
+
+          <div class="flex min-h-[5.5rem] flex-col justify-start gap-1.5">
+            <label
+              for="ai-account-email"
+              class="label mb-0 flex min-h-[1.25rem] items-center gap-1"
+            >
+              Email / tài khoản đăng ký
+              <span class="text-danger">*</span>
+              <FieldTooltip
+                wide
+                text="Email dùng đăng nhập với nhà cung cấp (lấy từ phiếu, có thể chỉnh nếu đã đăng ký thực tế)."
+              />
+            </label>
+            <input
+              id="ai-account-email"
+              v-model="form.email_registered"
+              type="email"
+              required
+              class="input h-10 w-full"
+              placeholder="ten.ban@hcm.vaschools.edu.vn"
+              autocomplete="email"
+              @input="onInput"
+            >
+          </div>
+
+          <div
+            v-if="canViewPassword"
+            class="flex min-h-[5.5rem] flex-col justify-start gap-1.5"
+          >
+            <label
+              for="ai-account-password"
+              class="label mb-0 flex min-h-[1.25rem] items-center gap-1"
+            >
+              Mật khẩu đăng nhập
+              <FieldTooltip
+                wide
+                text="Chỉ quản trị viên xem và chỉnh. Lưu mã hoá — không hiển thị cho thành viên khác."
+              />
+            </label>
+            <PasswordInput
+              id="ai-account-password"
+              v-model="form.password"
+              :placeholder="isEdit && account?.has_password ? 'Để trống nếu không đổi mật khẩu' : 'Mật khẩu portal (ChatGPT, Cursor, …)'"
+              @input="onInput"
+            />
+          </div>
+
+          <div
+            v-else
+            class="hidden min-h-[5.5rem] md:block"
+            aria-hidden="true"
           />
-        </label>
-        <input
-          v-model="form.email_registered"
-          type="email"
-          required
-          class="input w-full"
-          placeholder="ten.ban@hcm.vaschools.edu.vn"
-          autocomplete="email"
-          @input="onInput"
-        >
-      </div>
 
-      <div
-        v-if="canViewPassword"
-        class="min-w-0"
-      >
-        <label class="label flex items-center gap-1">
-          Mật khẩu đăng nhập
-          <FieldTooltip
-            wide
-            text="Chỉ quản trị viên xem và chỉnh. Lưu mã hoá trong hệ thống — không hiển thị cho thành viên khác."
-          />
-        </label>
-        <input
-          v-model="form.password"
-          type="password"
-          class="input w-full font-mono text-sm"
-          :placeholder="isEdit && account?.has_password ? 'Để trống nếu không đổi' : 'Nhập mật khẩu portal nhà cung cấp'"
-          autocomplete="new-password"
-          @input="onInput"
-        >
-      </div>
+          <div class="flex min-h-[5.5rem] flex-col justify-start gap-1.5">
+            <label
+              for="ai-account-notify"
+              class="label mb-0 flex min-h-[1.25rem] items-center gap-1"
+            >
+              Nhắc trước hết hạn (ngày)
+              <FieldTooltip
+                wide
+                :text="formHintsNotify || 'Gửi email và thông báo trước ngày license hết hạn.'"
+              />
+            </label>
+            <input
+              id="ai-account-notify"
+              v-model="form.notify_before_days"
+              type="number"
+              min="1"
+              max="365"
+              class="input h-10 w-full"
+              placeholder="14"
+              @input="onInput"
+            >
+            <p
+              v-if="notifyHintText"
+              class="text-xs leading-snug text-slate-500"
+            >
+              {{ notifyHintText }}
+            </p>
+          </div>
 
-      <div class="min-w-0">
-        <label class="label flex items-center gap-1">
-          Nhắc trước hết hạn (ngày)
-          <FieldTooltip
-            wide
-            :text="formHints.notify || 'Gửi email nhắc trước ngày hết hạn license.'"
-          />
-        </label>
-        <input
-          v-model="form.notify_before_days"
-          type="number"
-          min="1"
-          max="365"
-          class="input w-full sm:max-w-xs"
-          @input="onInput"
-        >
-        <p class="mt-1 text-xs text-slate-500">
-          {{ formHints.notify || selectedProposal?.notify_hint }}
-        </p>
-      </div>
+          <div
+            class="flex min-h-[5.5rem] flex-col justify-center gap-1.5 rounded-lg border border-dashed border-slate-200 bg-slate-50/60 px-3 py-2.5"
+          >
+            <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              Email nhắc tự động
+            </p>
+            <p class="text-xs leading-relaxed text-slate-600">
+              Hệ thống gửi lúc <strong>{{ reminderScheduleLabel || '08:00 và 14:00' }}</strong> mỗi ngày cho tài khoản sắp hết hạn / đã hết hạn.
+            </p>
+          </div>
 
-      <div class="min-w-0">
-        <label class="label flex items-center gap-1">
-          Ghi chú
-          <FieldTooltip
-            wide
-            text="Thông tin nội bộ: người quản lý, hóa đơn, link portal, chu kỳ thanh toán hàng tháng…"
-          />
-        </label>
-        <textarea
-          v-model="form.notes"
-          rows="3"
-          class="input w-full"
-          placeholder="VD: Thanh toán thẻ công ty; nhắc gia hạn đầu mỗi tháng"
-          @input="onInput"
-        />
-      </div>
+          <div class="flex flex-col gap-1.5 md:col-span-2">
+            <label
+              for="ai-account-notes"
+              class="label mb-0 flex min-h-[1.25rem] items-center gap-1"
+            >
+              Ghi chú nội bộ
+              <FieldTooltip
+                wide
+                text="Người quản lý license, mã hóa đơn, link portal, lịch thanh toán hàng tháng…"
+              />
+            </label>
+            <textarea
+              id="ai-account-notes"
+              v-model="form.notes"
+              rows="4"
+              class="input min-h-[6.5rem] w-full resize-y"
+              placeholder="VD: Thanh toán thẻ công ty · Liên hệ IT khi gia hạn · Nhắc team đầu mỗi tháng"
+              @input="onInput"
+            />
+          </div>
+        </div>
+      </section>
 
-      <div class="flex justify-end gap-2 border-t border-slate-100 pt-4">
+      <div class="flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 pt-5">
         <button
           type="button"
-          class="btn-secondary"
+          class="btn-secondary min-w-[5.5rem]"
           @click="emit('close')"
         >
           Huỷ
         </button>
         <button
           type="submit"
-          class="btn-primary"
+          class="btn-primary min-w-[5.5rem]"
           :disabled="!isEdit && !form.proposal_id"
         >
-          Lưu
+          Lưu tài khoản
         </button>
       </div>
     </form>

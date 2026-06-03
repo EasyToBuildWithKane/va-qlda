@@ -23,6 +23,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property AiAccountCostUnit $cost_unit
  * @property int|null $seats
  * @property AiAccountStatus $status
+ * @property \Illuminate\Support\Carbon|null $status_locked_at
  * @property int $notify_before_days
  * @property \Illuminate\Support\Carbon|null $last_reminded_at
  * @property string|null $notes
@@ -45,6 +46,7 @@ class AiAccount extends Model
         'cost_unit',
         'seats',
         'status',
+        'status_locked_at',
         'notify_before_days',
         'last_reminded_at',
         'notes',
@@ -60,6 +62,7 @@ class AiAccount extends Model
         'seats' => 'integer',
         'notify_before_days' => 'integer',
         'last_reminded_at' => 'datetime',
+        'status_locked_at' => 'datetime',
         'login_password' => 'encrypted',
     ];
 

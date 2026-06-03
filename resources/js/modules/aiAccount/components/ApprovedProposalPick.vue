@@ -128,9 +128,10 @@ onBeforeUnmount(() => {
   <div class="relative min-w-0">
     <label
       for="approved-proposal-pick"
-      class="label flex items-center gap-1"
+      class="label mb-0 flex min-h-[1.25rem] items-center gap-1"
     >
-      Phiếu đề xuất đã duyệt <span class="text-danger">*</span>
+      Mã phiếu — tên sản phẩm
+      <span class="text-danger">*</span>
     </label>
     <div class="relative">
       <input
@@ -138,8 +139,8 @@ onBeforeUnmount(() => {
         ref="inputRef"
         v-model="query"
         type="text"
-        class="input w-full pr-9"
-        placeholder="Gõ mã phiếu hoặc tên sản phẩm…"
+        class="input h-10 w-full pr-10"
+        placeholder="VD: PDX-20260603-001 hoặc UX Pilot AI"
         autocomplete="off"
         :disabled="disabled"
         required

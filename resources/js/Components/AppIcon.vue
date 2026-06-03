@@ -11,7 +11,7 @@ import {
     X, Search, Filter, Clock, Link2, GanttChartSquare, Pencil, Flag,
     PiggyBank, ArrowLeft, Building2, Info, Building, Globe, MapPin,
     Columns3, Download, Upload, FileDown, RotateCw, Eye, Copy, Archive, ChevronDown,
-    Save, Check, ArrowUpDown, CalendarClock, Users2, CircleDollarSign, Image, Ellipsis,
+    Save, Check, ArrowUpDown, CalendarClock, Users2, CircleDollarSign, Image, Ellipsis, EyeOff,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -106,6 +106,7 @@ const map = {
     export: FileDown,
     refresh: RotateCw,
     eye: Eye,
+    'eye-off': EyeOff,
     copy: Copy,
     archive: Archive,
     'chevron-down': ChevronDown,

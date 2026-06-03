@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AppIcon from '@/Components/AppIcon.vue';
@@ -106,6 +106,7 @@ const filtersLoading = ref(false);
 
 const proposalFormOpen = ref(false);
 const editingProposal = ref(null);
+const highlightProposalId = ref(null);
 const rejectOpen = ref(false);
 const approveOpen = ref(false);
 const rejecting = ref(null);
@@ -348,6 +349,33 @@ watch(
 watch(search, () => {
     clearTimeout(searchDebounceTimer);
     searchDebounceTimer = setTimeout(() => applyFilters(), 350);
+});
+
+async function focusProposalFromQuery() {
+    const id = new URLSearchParams(window.location.search).get('proposal');
+    if (!id || loading.value) return;
+
+    const row = proposals.value.find((p) => p.id === id);
+    if (!row) {
+        toast.warning('Không thấy phiếu trong danh sách hiện tại. Hãy đặt lại bộ lọc hoặc tìm theo mã phiếu.');
+        return;
+    }
+
+    highlightProposalId.value = id;
+    await nextTick();
+    document.getElementById(`proposal-row-${id}`)?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+    });
+    openEditProposal(row);
+}
+
+let proposalFocusDone = false;
+watch(loading, (isLoading) => {
+    if (!isLoading && !proposalFocusDone && new URLSearchParams(window.location.search).get('proposal')) {
+        proposalFocusDone = true;
+        focusProposalFromQuery();
+    }
 });
 
 onMounted(() => {
@@ -1022,8 +1050,10 @@ function runExport(format) {
             </tr>
             <tr
               v-for="row in displayedProposals"
+              :id="`proposal-row-${row.id}`"
               :key="row.id"
-              class="hover:bg-slate-50/60"
+              class="hover:bg-slate-50/60 transition-colors"
+              :class="highlightProposalId === row.id && 'bg-brand/5 ring-2 ring-inset ring-brand/25'"
             >
               <td
                 v-if="visibleCols.proposal_code"

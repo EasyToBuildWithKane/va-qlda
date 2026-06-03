@@ -8,6 +8,7 @@ use App\Models\AiPurchaseProposal;
 use App\Models\Employee;
 use App\Support\Enums\AiAccountCostUnit;
 use App\Support\Enums\AiAccountGroupFunction;
+use App\Support\Enums\AiAccountStatus;
 use App\Support\Enums\AiPurchaseProposalStatus;
 use App\Support\Enums\ProposalType;
 use App\Support\Enums\SystemRole;
@@ -27,6 +28,7 @@ class AiAccountPageController extends Controller
             'can' => [
                 'create' => $request->user()->can('create', AiAccount::class),
                 'view_password' => $request->user()->can('viewPassword', AiAccount::class),
+                'manage_password_viewers' => $request->user()->can('managePasswordViewers', AiAccount::class),
                 'trigger_reminder' => $request->user()->can('triggerReminder', AiAccount::class),
             ],
             'form_hints' => [
@@ -34,10 +36,12 @@ class AiAccountPageController extends Controller
                 'billing_monthly' => config('ai_accounts.defaults.billing_hint_monthly'),
                 'billing_yearly' => config('ai_accounts.defaults.billing_hint_yearly'),
             ],
+            'reminder_schedule' => config('ai_accounts.reminder.schedule_times', ['08:00', '14:00']),
             'options' => [
                 'group_function' => AiAccountGroupFunction::options(),
                 'cost_unit' => AiAccountCostUnit::options(),
                 'license_types' => config('ai_accounts.license_types', []),
+                'status' => AiAccountStatus::options(),
             ],
             'exchange_rate' => (int) config('ai_accounts.exchange_rate', 25_500),
         ]);

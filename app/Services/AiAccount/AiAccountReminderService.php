@@ -28,16 +28,22 @@ class AiAccountReminderService
      */
     public function sendDueReminders(): int
     {
-        $today = now()->startOfDay();
-
         $all = AiAccount::query()->get();
         $this->statusSync->syncCollection($all);
 
+        $minHours = max(1, (int) config('ai_accounts.reminder.min_hours_between', 5));
+        $notBefore = now()->subHours($minHours);
+
+        $statuses = [AiAccountStatus::ExpiringSoon->value];
+        if (config('ai_accounts.reminder.include_expired', true)) {
+            $statuses[] = AiAccountStatus::Expired->value;
+        }
+
         $accounts = AiAccount::query()
-            ->where('status', AiAccountStatus::ExpiringSoon->value)
-            ->where(function ($q) use ($today) {
+            ->whereIn('status', $statuses)
+            ->where(function ($q) use ($notBefore) {
                 $q->whereNull('last_reminded_at')
-                    ->orWhereDate('last_reminded_at', '<', $today);
+                    ->orWhere('last_reminded_at', '<', $notBefore);
             })
             ->get();
 
@@ -82,10 +88,14 @@ class AiAccountReminderService
             'Email TK: '.$account->email_registered,
         ]);
 
+        $title = $account->status === AiAccountStatus::Expired
+            ? '🔴 Tài khoản AI đã hết hạn'
+            : '⚠️ Tài khoản AI sắp hết hạn';
+
         $this->notifications->notify(
             $recipients,
             NotificationType::SystemAiAccountExpiry,
-            '⚠️ Tài khoản AI sắp hết hạn',
+            $title,
             $body,
             [
                 'priority' => NotificationPriority::High->value,

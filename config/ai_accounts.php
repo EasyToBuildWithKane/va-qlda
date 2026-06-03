@@ -34,9 +34,14 @@ return [
      */
     'reminder' => [
         'send_email' => env('AI_ACCOUNT_REMINDER_EMAIL', true),
+        /** Tối thiểu giờ giữa hai lần gửi (cho phép 8:00 và 14:00 cùng ngày). */
+        'min_hours_between' => max(1, (int) env('AI_ACCOUNT_REMINDER_MIN_HOURS', 5)),
+        'include_expired' => env('AI_ACCOUNT_REMINDER_INCLUDE_EXPIRED', true),
         'extra_recipients' => array_values(array_filter(array_map(
             trim(...),
             explode(',', (string) env('AI_ACCOUNT_REMINDER_EXTRA_EMAILS', '')),
         ))),
+        /** Hiển thị trên UI — khớp lịch trong app/Console/Kernel.php */
+        'schedule_times' => ['08:00', '14:00'],
     ],
 ];
