@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\SystemAccount;
 use App\Providers\RouteServiceProvider;
+use App\Services\Cms\SystemAccountProvisioner;
 use App\Support\Auth\LoginRedirectSanitizer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -69,12 +70,22 @@ class GoogleAuthController extends Controller
 
         $account = SystemAccount::query()
             ->where('employee_id', $employee->id)
-            ->where('is_active', true)
             ->first();
 
         if ($account === null) {
+            if ($employee->cms_user_id === null) {
+                return redirect()->route('login')
+                    ->with('error', 'Chưa có tài khoản đăng nhập cho nhân sự này. Liên hệ quản trị.');
+            }
+
+            $account = app(SystemAccountProvisioner::class)->ensureForEmployee($employee);
+        } elseif ($employee->cms_user_id !== null) {
+            $account = app(SystemAccountProvisioner::class)->ensureForEmployee($employee);
+        }
+
+        if (! $account->is_active) {
             return redirect()->route('login')
-                ->with('error', 'Chưa có tài khoản đăng nhập cho nhân sự này. Liên hệ quản trị.');
+                ->with('error', 'Tài khoản đăng nhập đã bị vô hiệu hóa. Liên hệ quản trị.');
         }
 
         Auth::guard('system')->login($account, true);

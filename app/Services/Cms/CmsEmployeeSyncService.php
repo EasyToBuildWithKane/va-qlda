@@ -19,11 +19,11 @@ final class CmsEmployeeSyncService
     }
 
     /**
-     * @return array{created:int, updated:int, skipped:int, errors:int}
+     * @return array{created:int, updated:int, skipped:int, errors:int, accounts:int}
      */
-    public function syncAll(bool $dryRun = false): array
+    public function syncAll(bool $dryRun = false, bool $provisionAccounts = true): array
     {
-        $stats = ['created' => 0, 'updated' => 0, 'skipped' => 0, 'errors' => 0];
+        $stats = ['created' => 0, 'updated' => 0, 'skipped' => 0, 'errors' => 0, 'accounts' => 0];
 
         CmsUser::query()
             ->withTrashed()
@@ -40,11 +40,58 @@ final class CmsEmployeeSyncService
                 }
             });
 
+        if ($provisionAccounts) {
+            $stats['accounts'] = $this->provisionMissingLoginAccounts($dryRun);
+        }
+
         if (! $dryRun) {
             Cache::forget('options.employees');
         }
 
         return $stats;
+    }
+
+    /**
+     * Tạo system_accounts cho nhân sự CMS còn thiếu (Google login).
+     */
+    public function provisionMissingLoginAccounts(bool $dryRun = false): int
+    {
+        $provisioner = app(SystemAccountProvisioner::class);
+        $created = 0;
+
+        Employee::query()
+            ->whereNotNull('cms_user_id')
+            ->where('is_active', true)
+            ->whereDoesntHave('account')
+            ->orderBy('id')
+            ->chunkById(100, function ($employees) use ($dryRun, $provisioner, &$created) {
+                foreach ($employees as $employee) {
+                    if ($dryRun) {
+                        $created++;
+
+                        continue;
+                    }
+
+                    $provisioner->ensureForEmployee($employee);
+                    $created++;
+                }
+            });
+
+        Employee::query()
+            ->whereNotNull('cms_user_id')
+            ->whereHas('account')
+            ->orderBy('id')
+            ->chunkById(100, function ($employees) use ($dryRun, $provisioner) {
+                if ($dryRun) {
+                    return;
+                }
+
+                foreach ($employees as $employee) {
+                    $provisioner->ensureForEmployee($employee);
+                }
+            });
+
+        return $created;
     }
 
     /**
