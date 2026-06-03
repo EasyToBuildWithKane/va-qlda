@@ -1,6 +1,6 @@
 <script setup>
 /* eslint-disable vue/no-v-html -- Laravel pagination link labels contain HTML entities */
-import { reactive, ref, watch } from 'vue';
+import { reactive, ref, computed, watch } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AppIcon from '@/Components/AppIcon.vue';
@@ -8,6 +8,7 @@ import PageHeader from '@/Components/Ui/PageHeader.vue';
 import Badge from '@/shared/ui/Badge.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
 import FeedbackFormModal from '@/modules/project/components/FeedbackFormModal.vue';
+import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 
 const props = defineProps({
     feedback: { type: Object, required: true }, // { data, meta, links }
@@ -18,6 +19,7 @@ const props = defineProps({
 });
 
 const modal = ref(false);
+const showFilterRow = ref(true);
 
 const filterForm = reactive({
     status: props.filters.status ?? '',
@@ -27,19 +29,41 @@ const filterForm = reactive({
     q: props.filters.q ?? '',
 });
 
-let timer = null;
-watch(filterForm, () => {
-    clearTimeout(timer);
-    timer = setTimeout(() => {
-        router.get('/feedback', {
-            status: filterForm.status || undefined,
-            category: filterForm.category || undefined,
-            project_id: filterForm.project_id || undefined,
-            mine: filterForm.mine || undefined,
-            q: filterForm.q || undefined,
-        }, { preserveState: true, replace: true });
-    }, 300);
+const activeFilterCount = computed(() =>
+    [filterForm.status, filterForm.category, filterForm.project_id, filterForm.mine]
+        .filter((v) => v !== '' && v != null).length,
+);
+
+function feedbackRouteParams() {
+    return {
+        status: filterForm.status || undefined,
+        category: filterForm.category || undefined,
+        project_id: filterForm.project_id || undefined,
+        mine: filterForm.mine || undefined,
+        q: filterForm.q || undefined,
+    };
+}
+
+let qTimer = null;
+watch(() => filterForm.q, () => {
+    clearTimeout(qTimer);
+    qTimer = setTimeout(() => {
+        router.get('/feedback', feedbackRouteParams(), { preserveState: true, replace: true });
+    }, 350);
 });
+
+watch(
+    () => [filterForm.status, filterForm.category, filterForm.project_id, filterForm.mine],
+    () => router.get('/feedback', feedbackRouteParams(), { preserveState: true, replace: true }),
+);
+
+function clearFilters() {
+    filterForm.q = '';
+    filterForm.status = '';
+    filterForm.category = '';
+    filterForm.project_id = '';
+    filterForm.mine = '';
+}
 </script>
 
 <template>
@@ -79,84 +103,114 @@ watch(filterForm, () => {
       </div>
     </div>
 
-    <div class="mb-4 flex flex-wrap items-center gap-3">
-      <div class="relative">
-        <AppIcon
-          name="search"
-          :size="16"
-          class="pointer-events-none absolute left-2.5 top-2.5 text-slate-400"
-        />
-        <input
-          v-model="filterForm.q"
-          type="text"
-          placeholder="Tìm phản hồi…"
-          class="input w-52 pl-8"
-        >
+    <div class="card mb-4 overflow-visible">
+      <div class="border-b border-slate-100 px-5 py-3">
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+            <DatagridToolbarSearch
+              v-model="filterForm.q"
+              input-id="feedback-search"
+              placeholder="Tiêu đề, nội dung phản hồi…"
+            />
+            <button
+              type="button"
+              class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition"
+              :class="showFilterRow ? 'border-brand/40 bg-brand/5 text-brand' : 'border-slate-200 bg-white text-slate-600'"
+              @click="showFilterRow = !showFilterRow"
+            >
+              <AppIcon
+                name="filter"
+                :size="15"
+              />
+              <span>Lọc</span>
+              <span
+                v-if="activeFilterCount"
+                class="flex h-4 w-4 items-center justify-center rounded-full bg-brand text-[10px] font-bold text-white"
+              >{{ activeFilterCount }}</span>
+            </button>
+          </div>
+          <button
+            v-if="can.create"
+            type="button"
+            class="btn-primary h-9 shrink-0 gap-1.5 px-4 text-sm"
+            @click="modal = true"
+          >
+            <AppIcon
+              name="add"
+              :size="15"
+            />
+            Phản hồi
+          </button>
+        </div>
       </div>
-      <select
-        v-model="filterForm.status"
-        class="input w-40"
+      <div
+        v-show="showFilterRow"
+        class="flex flex-wrap items-center gap-2 border-t border-slate-100 px-5 py-3"
       >
-        <option value="">
-          Trạng thái
-        </option>
-        <option
-          v-for="o in options.status"
-          :key="o.value"
-          :value="o.value"
+        <select
+          v-model="filterForm.status"
+          class="input h-9 w-40 text-sm"
         >
-          {{ o.label }}
-        </option>
-      </select>
-      <select
-        v-model="filterForm.category"
-        class="input w-44"
-      >
-        <option value="">
-          Phân loại
-        </option>
-        <option
-          v-for="o in options.category"
-          :key="o.value"
-          :value="o.value"
+          <option value="">
+            Trạng thái: Tất cả
+          </option>
+          <option
+            v-for="o in options.status"
+            :key="o.value"
+            :value="o.value"
+          >
+            {{ o.label }}
+          </option>
+        </select>
+        <select
+          v-model="filterForm.category"
+          class="input h-9 w-44 text-sm"
         >
-          {{ o.label }}
-        </option>
-      </select>
-      <select
-        v-model="filterForm.project_id"
-        class="input w-48"
-      >
-        <option value="">
-          Mọi dự án
-        </option>
-        <option
-          v-for="p in options.projects"
-          :key="p.id"
-          :value="p.id"
+          <option value="">
+            Phân loại: Tất cả
+          </option>
+          <option
+            v-for="o in options.category"
+            :key="o.value"
+            :value="o.value"
+          >
+            {{ o.label }}
+          </option>
+        </select>
+        <select
+          v-model="filterForm.project_id"
+          class="input h-9 min-w-[11rem] text-sm sm:w-48"
         >
-          {{ p.name }}
-        </option>
-      </select>
-      <label class="flex items-center gap-2 text-sm text-slate-600">
-        <input
-          v-model="filterForm.mine"
-          true-value="1"
-          false-value=""
-          type="checkbox"
-          class="rounded"
-        > Tôi xử lý
-      </label>
-      <button
-        v-if="can.create"
-        class="btn-primary ml-auto"
-        @click="modal = true"
-      >
-        <AppIcon
-          name="add"
-          :size="16"
-        /> Phản hồi
-      </button>
+          <option value="">
+            Dự án: Tất cả
+          </option>
+          <option
+            v-for="p in options.projects"
+            :key="p.id"
+            :value="p.id"
+          >
+            {{ p.name }}
+          </option>
+        </select>
+        <label class="inline-flex h-9 items-center gap-2 rounded-btn border border-slate-200 bg-white px-3 text-sm text-slate-600">
+          <input
+            v-model="filterForm.mine"
+            true-value="1"
+            false-value=""
+            type="checkbox"
+            class="rounded"
+          >
+          Tôi xử lý
+        </label>
+        <button
+          v-if="activeFilterCount || filterForm.q"
+          type="button"
+          class="text-xs font-medium text-brand hover:underline"
+          @click="clearFilters"
+        >
+          Đặt lại
+        </button>
+      </div>
     </div>
 
     <div class="card overflow-hidden">

@@ -1,0 +1,67 @@
+---
+description: Toolbar bảng dữ liệu — tìm kiếm dài, label ngắn icon+nút, lọc dòng 2, xuất CSV/Excel (bắt buộc)
+globs: resources/js/Pages/**/*.vue,resources/js/modules/**/components/**/*.vue
+alwaysApply: true
+---
+
+# Datagrid toolbar — Production (bắt buộc)
+
+Mọi trang **bảng + toolbar** (Index, CostReport, Department, Sprint, …) phải tuân pattern này. Tham chiếu vàng: `resources/js/Pages/AiAccount/CostReport.vue`.
+
+**Đã áp dụng (2026-06):** `DailyReport/History`, `DailyReport/Review`, `Department/Index`, `Blocker/Index`, `Bug/Index`, `Feedback/Index`, `AiAccount/Index`, `AiAccount/CostReport`, `Notifications/Management` (lọc lỗi). Component: `shared/ui/DatagridToolbarSearch.vue`.
+
+Skill chi tiết: `.cursor/skills/datagrid-toolbar/SKILL.md`
+
+## 1. Hàng toolbar chính
+
+| Vùng | Quy tắc |
+|------|---------|
+| **Tìm kiếm** | Label ngắn cố định `Tìm kiếm` (`<label for="…">`, `text-xs font-medium text-slate-500`). Input `flex-1`, **không** `max-w-xl` — tối thiểu `lg:min-w-[28rem]` `xl:min-w-[32rem]`. Icon search trong ô, nút xoá từ khoá khi có giá trị. |
+| **Lọc / Cột / Xuất** | Nút `h-9` + **icon + label ngắn** (`Lọc`, `Cột`, `Xuất`) — `inline-flex items-center gap-1 rounded-btn border px-2.5 text-xs font-medium`. **Cấm** chỉ icon vuông không chữ trên desktop. |
+| **Primary** | Nút tạo mới (vd. `Thêm phiếu`) giữ text đầy đủ, `btn-primary`. |
+
+```html
+<div class="flex min-w-0 flex-1 items-center gap-2">
+  <label for="entity-search" class="shrink-0 text-xs font-medium text-slate-500">Tìm kiếm</label>
+  <div class="relative min-w-0 flex-1 lg:min-w-[28rem] xl:min-w-[32rem]">
+    <!-- input + search icon + clear -->
+  </div>
+</div>
+<button class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium …">
+  <AppIcon name="filter" :size="15" /><span>Lọc</span>
+</button>
+```
+
+## 2. Bộ lọc giá trị — dòng thứ hai
+
+- Panel «Lọc» chỉ **bật/tắt** control nào hiện trên toolbar (checkbox), không nhét giá trị lọc vào dropdown đó.
+- `<select>` / filter giá trị (trạng thái, loại, …) đặt **dòng dưới** toolbar (`border-t`, `mt-2.5`, `pt-2.5`) khi control được bật.
+- Đổi filter → **gửi server** (`loadProposals` / Inertia query) với debounce tìm kiếm ~350ms; KPI/count tổng giữ global nếu API hỗ trợ.
+
+## 3. Xuất
+
+- Một nút **Xuất** (icon + chữ) → dropdown **CSV** | **Excel**.
+- Logic trong composable (`use*Export.js`), `xlsx-js-style`, brand `#9A0036` — không export thô trong `.vue`.
+- Xuất theo cột đang bật + dữ liệu đã lọc; ghi chú bộ lọc trên file.
+
+## 4. Dropdown & UX
+
+- Một `ref` + `mousedown` outside cho mỗi dropdown; mở một panel thì đóng panel khác.
+- `title` / `aria-label` đầy đủ; toast tiếng Việt.
+- `preserveScroll` khi Inertia; `localStorage` chỉ cho tuỳ chọn UI (cột, filter hiển thị).
+
+## 5. Anti-patterns (cấm)
+
+- Toolbar chỉ icon không label (`w-9` vuông) cho Lọc/Cột/Xuất.
+- Tìm kiếm `max-w-md` / `max-w-xl` khiến ô ngắn trên màn rộng.
+- Lọc giá trị chung hàng chật với search trên desktop.
+- Client-only filter khi đã có API filter mà không gọi lại.
+- Ba nút riêng «Nhập» «Xuất» «Đối soát» — xem `import-export-reconcile.mdc`.
+
+## 6. Checklist PR (datagrid)
+
+- [ ] Label `Tìm kiếm` + input dài (`flex-1`, min-width lg/xl)
+- [ ] Nút Lọc / Cột / Xuất: icon + label ngắn
+- [ ] Filter giá trị ở dòng 2 khi bật
+- [ ] API/debounce cho search + filter
+- [ ] Xuất CSV + Excel qua composable styled

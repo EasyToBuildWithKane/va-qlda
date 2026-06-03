@@ -64,10 +64,15 @@ class BlockerController extends Controller
         if ($request->boolean('mine') && $account->employee_id) {
             $query->where('owner_id', $account->employee_id);
         }
+        if ($search = $request->query('q')) {
+            $query->where(fn ($q) => $q
+                ->where('title', 'like', "%{$search}%")
+                ->orWhere('description', 'like', "%{$search}%"));
+        }
 
         return Inertia::render('Blocker/Index', [
             'blockers' => BlockerResource::collection($query->get()),
-            'filters' => (object) $request->only(['status', 'severity', 'project_id', 'mine']),
+            'filters' => (object) $request->only(['status', 'severity', 'project_id', 'mine', 'q']),
             'summary' => [
                 'open' => Blocker::open()->count(),
                 'critical' => Blocker::open()->where('severity', BlockerSeverity::Critical->value)->count(),

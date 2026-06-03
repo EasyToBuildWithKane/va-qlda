@@ -6,6 +6,7 @@ import PageHeader from '@/Components/Ui/PageHeader.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import { useDialog } from '@/composables/useDialog';
 import { useAiAccounts } from '@/modules/aiAccount/composables/useAiAccounts';
+import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import { useAiAccountListUi } from '@/modules/aiAccount/composables/useAiAccountListUi';
 import AiAccountBanner from '@/modules/aiAccount/components/AiAccountBanner.vue';
 import AiAccountSummaryCards from '@/modules/aiAccount/components/AiAccountSummaryCards.vue';
@@ -213,30 +214,11 @@ function collapseAllGroups() {
       </div>
 
       <div class="flex flex-col gap-2.5 border-b border-slate-100 bg-slate-50/40 px-5 py-3.5 sm:flex-row sm:items-center">
-        <div class="relative min-w-0 flex-1">
-          <AppIcon
-            name="search"
-            :size="15"
-            class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-          />
-          <input
-            v-model="search"
-            type="text"
-            class="input h-9 w-full pl-9 pr-8 text-sm placeholder:text-slate-400"
-            placeholder="Tìm theo tên công cụ, email, license, ghi chú…"
-          >
-          <button
-            v-if="search"
-            type="button"
-            class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-            @click="search = ''"
-          >
-            <AppIcon
-              name="close"
-              :size="14"
-            />
-          </button>
-        </div>
+        <DatagridToolbarSearch
+          v-model="search"
+          input-id="ai-accounts-search"
+          placeholder="Tên công cụ, email, license, ghi chú…"
+        />
 
         <div class="flex shrink-0 flex-wrap items-center gap-2">
           <div
@@ -245,28 +227,22 @@ function collapseAllGroups() {
           >
             <button
               type="button"
-              class="flex h-9 items-center gap-1.5 rounded-btn border px-3 text-sm font-medium transition select-none"
+              class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
               :class="showFilterDd || activeFilterCount > 0
                 ? 'border-brand/40 bg-brand/5 text-brand'
                 : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800'"
+              title="Bộ lọc tài khoản"
               @click="openFilter"
             >
               <AppIcon
                 name="filter"
-                :size="14"
+                :size="15"
               />
-              Bộ lọc
+              <span>Lọc</span>
               <span
                 v-if="activeFilterCount > 0"
                 class="flex h-4 w-4 items-center justify-center rounded-full bg-brand text-[10px] font-bold text-white"
               >{{ activeFilterCount }}</span>
-              <AppIcon
-                name="chevron-down"
-                :size="13"
-                class="opacity-50"
-                :class="showFilterDd && 'rotate-180'"
-                style="transition: transform .15s"
-              />
             </button>
 
             <Transition
@@ -392,24 +368,18 @@ function collapseAllGroups() {
           >
             <button
               type="button"
-              class="flex h-9 items-center gap-1.5 rounded-btn border px-3 text-sm font-medium transition select-none"
+              class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
               :class="showColDd
                 ? 'border-brand/40 bg-brand/5 text-brand'
                 : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800'"
+              title="Cột hiển thị"
               @click="openCol"
             >
               <AppIcon
                 name="columns"
-                :size="14"
+                :size="15"
               />
-              Cột hiển thị
-              <AppIcon
-                name="chevron-down"
-                :size="13"
-                class="opacity-50"
-                :class="showColDd && 'rotate-180'"
-                style="transition: transform .15s"
-              />
+              <span>Cột</span>
             </button>
 
             <Transition

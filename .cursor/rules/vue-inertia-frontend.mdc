@@ -53,6 +53,7 @@ defineProps({ items: Array });
 - Dialog/toast: `useDialog`, `useToast` — không `alert()` native.
 - Modal data: `dirty` + `useConfirmClose`.
 - ESLint: `--max-warnings=0` (pre-commit Husky).
+- **Datagrid toolbar (bắt buộc):** `.cursor/rules/datagrid-toolbar.mdc` + skill `datagrid-toolbar` — label `Tìm kiếm`, input dài, nút icon+chữ ngắn (`Lọc`/`Cột`/`Xuất`), filter giá trị dòng 2. Mẫu: `Pages/AiAccount/CostReport.vue`.
 
 ## Cấm
 

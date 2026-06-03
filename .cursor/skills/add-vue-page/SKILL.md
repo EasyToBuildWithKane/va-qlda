@@ -43,16 +43,25 @@ const form = useForm({ ... });
 form.post(route('projects.store'), { preserveScroll: true });
 ```
 
-## 5. Data modal (import/export)
+## 5. Datagrid toolbar (bắt buộc nếu có bảng)
+
+Đọc skill **`datagrid-toolbar`** và rule `.cursor/rules/datagrid-toolbar.mdc`.
+
+- Label **Tìm kiếm** + input `flex-1` dài (`lg:min-w-[28rem]`).
+- Nút **Lọc** / **Cột** / **Xuất**: icon + label ngắn (không chỉ icon).
+- Giá trị lọc (`<select>`) trên **dòng 2**; gửi API khi có endpoint.
+- Xuất: composable CSV + Excel (`xlsx-js-style`). Mẫu: `Pages/AiAccount/CostReport.vue`.
+
+## 6. Data modal (import/export)
 
 Một nút **Dữ liệu** → `*DataModal.vue` tabs `import|export|reconcile`.  
 Copy: `modules/project/components/Dashboard/RiskImportModal.vue`, `Sprint/SprintDataModal.vue`.
 
-## 6. Navigation
+## 7. Navigation
 
 Update `App\Support\Navigation.php` khi thêm menu item.
 
-## 7. Quality
+## 8. Quality
 
 - `npm run lint` — zero warnings
 - Playwright E2E nếu đổi UI critical path

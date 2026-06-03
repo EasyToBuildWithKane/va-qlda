@@ -6,6 +6,7 @@ import AppIcon from '@/Components/AppIcon.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
 import DepartmentFormModal from '@/modules/project/components/DepartmentFormModal.vue';
+import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import { useDialog } from '@/composables/useDialog';
 
 const props = defineProps({
@@ -163,33 +164,12 @@ const toggleStatus = async (d) => {
 
       <!-- ══ 2. Thanh tìm kiếm + Bộ lọc + Chọn cột ════════════════════ -->
       <div class="flex flex-col gap-2.5 border-b border-slate-100 bg-slate-50/40 px-5 py-3.5 sm:flex-row sm:items-center">
-        <!-- Search (co giãn) -->
-        <div class="relative flex-1">
-          <AppIcon
-            name="search"
-            :size="15"
-            class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-          />
-          <input
-            v-model="searchQuery"
-            type="text"
-            class="input h-9 w-full pl-9 pr-8 text-sm placeholder:text-slate-400"
-            placeholder="Tìm theo tên, mã, trưởng phòng…"
-          >
-          <button
-            v-if="searchQuery"
-            type="button"
-            class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-            @click="searchQuery = ''"
-          >
-            <AppIcon
-              name="close"
-              :size="14"
-            />
-          </button>
-        </div>
+        <DatagridToolbarSearch
+          v-model="searchQuery"
+          input-id="departments-search"
+          placeholder="Tên, mã, trưởng phòng…"
+        />
 
-        <!-- Right controls -->
         <div class="flex shrink-0 items-center gap-2">
           <!-- ── Bộ lọc dropdown ── -->
           <div
@@ -198,98 +178,23 @@ const toggleStatus = async (d) => {
           >
             <button
               type="button"
-              class="flex h-9 items-center gap-1.5 rounded-btn border px-3 text-sm font-medium transition select-none"
+              class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
               :class="showFilterDd || activeFilterCount > 0
                 ? 'border-brand/40 bg-brand/5 text-brand'
                 : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800'"
+              title="Hiển thị bộ lọc"
               @click="openFilter"
             >
               <AppIcon
                 name="filter"
-                :size="14"
+                :size="15"
               />
-              Bộ lọc
-              <!-- badge khi có filter đang chọn -->
+              <span>Lọc</span>
               <span
                 v-if="activeFilterCount > 0"
                 class="flex h-4 w-4 items-center justify-center rounded-full bg-brand text-[10px] font-bold text-white"
               >{{ activeFilterCount }}</span>
-              <AppIcon
-                name="chevron-down"
-                :size="13"
-                class="opacity-50"
-                :class="showFilterDd && 'rotate-180'"
-                style="transition: transform .15s"
-              />
             </button>
-
-            <!-- Dropdown panel -->
-            <Transition
-              enter-active-class="transition duration-150 ease-out"
-              enter-from-class="opacity-0 scale-95 -translate-y-1"
-              leave-active-class="transition duration-100 ease-in"
-              leave-to-class="opacity-0 scale-95 -translate-y-1"
-            >
-              <div
-                v-if="showFilterDd"
-                class="absolute right-0 top-full z-30 mt-1.5 w-64 origin-top-right rounded-xl border border-slate-200 bg-white shadow-elevation-2"
-              >
-                <!-- Header -->
-                <div class="flex items-center justify-between border-b border-slate-100 px-4 py-2.5">
-                  <span class="text-xs font-bold uppercase tracking-wide text-slate-500">Bộ lọc</span>
-                  <button
-                    v-if="activeFilterCount > 0"
-                    type="button"
-                    class="text-xs text-brand hover:underline"
-                    @click="statusFilter = 'all'"
-                  >
-                    Xoá
-                  </button>
-                </div>
-
-                <!-- Trạng thái -->
-                <div class="px-4 py-3">
-                  <p class="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                    Trạng thái
-                  </p>
-                  <div class="flex flex-col gap-1">
-                    <label
-                      v-for="opt in STATUS_OPTS"
-                      :key="opt.key"
-                      class="flex cursor-pointer items-center justify-between rounded-lg px-2.5 py-1.5 transition hover:bg-slate-50"
-                      :class="statusFilter === opt.key ? 'bg-brand/5' : ''"
-                    >
-                      <div class="flex items-center gap-2.5">
-                        <span
-                          class="flex h-4 w-4 items-center justify-center rounded-full border-2 transition"
-                          :class="statusFilter === opt.key
-                            ? 'border-brand bg-brand'
-                            : 'border-slate-300'"
-                        >
-                          <span
-                            v-if="statusFilter === opt.key"
-                            class="h-1.5 w-1.5 rounded-full bg-white"
-                          />
-                        </span>
-                        <span
-                          class="text-sm"
-                          :class="statusFilter === opt.key ? 'font-semibold text-slate-800' : 'text-slate-600'"
-                        >
-                          {{ opt.label }}
-                        </span>
-                      </div>
-                      <span class="text-[11px] font-medium text-slate-400">{{ statusCount(opt.key) }}</span>
-                      <input
-                        v-model="statusFilter"
-                        type="radio"
-                        :value="opt.key"
-                        class="sr-only"
-                      >
-                    </label>
-                  </div>
-                </div>
-              </div>
-            </Transition>
           </div>
 
           <!-- ── Cột hiển thị dropdown ── -->
@@ -299,24 +204,18 @@ const toggleStatus = async (d) => {
           >
             <button
               type="button"
-              class="flex h-9 items-center gap-1.5 rounded-btn border px-3 text-sm font-medium transition select-none"
+              class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
               :class="showColDd
                 ? 'border-brand/40 bg-brand/5 text-brand'
                 : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800'"
+              title="Cột hiển thị"
               @click="openCol"
             >
               <AppIcon
                 name="columns"
-                :size="14"
+                :size="15"
               />
-              Cột hiển thị
-              <AppIcon
-                name="chevron-down"
-                :size="13"
-                class="opacity-50"
-                :class="showColDd && 'rotate-180'"
-                style="transition: transform .15s"
-              />
+              <span>Cột</span>
             </button>
 
             <!-- Dropdown panel -->
@@ -381,6 +280,33 @@ const toggleStatus = async (d) => {
             </Transition>
           </div>
         </div>
+      </div>
+
+      <div
+        v-show="showFilterDd"
+        class="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-slate-50/30 px-5 py-2.5"
+      >
+        <select
+          v-model="statusFilter"
+          class="input h-9 w-44 text-sm"
+          aria-label="Trạng thái phòng ban"
+        >
+          <option
+            v-for="opt in STATUS_OPTS"
+            :key="opt.key"
+            :value="opt.key"
+          >
+            {{ opt.label }} ({{ statusCount(opt.key) }})
+          </option>
+        </select>
+        <button
+          v-if="activeFilterCount > 0"
+          type="button"
+          class="text-xs font-medium text-brand hover:underline"
+          @click="statusFilter = 'all'"
+        >
+          Đặt lại trạng thái
+        </button>
       </div>
 
       <!-- ══ 3. Active filter chips ════════════════════════════════════ -->

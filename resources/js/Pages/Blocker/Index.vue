@@ -6,11 +6,12 @@ import AppIcon from '@/Components/AppIcon.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import Badge from '@/shared/ui/Badge.vue';
 import BlockerFormModal from '@/modules/project/components/BlockerFormModal.vue';
+import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import { date } from '@/composables/useFormat';
 import { useDialog } from '@/composables/useDialog';
 
 const props = defineProps({
-    blockers: { type: Object, required: true }, // { data: [...] }
+    blockers: { type: Object, required: true },
     filters: { type: Object, default: () => ({}) },
     summary: { type: Object, default: () => ({}) },
     options: { type: Object, default: () => ({}) },
@@ -20,10 +21,12 @@ const props = defineProps({
 const dialog = useDialog();
 const modal = ref(false);
 const editing = ref(null);
+const showFilterRow = ref(true);
 
 const open = (b = null) => { editing.value = b; modal.value = true; };
 
 const filterForm = reactive({
+    q: props.filters.q ?? '',
     status: props.filters.status ?? '',
     severity: props.filters.severity ?? '',
     project_id: props.filters.project_id ?? '',
@@ -31,19 +34,36 @@ const filterForm = reactive({
 });
 
 const activeCount = computed(() =>
-    Object.values(filterForm).filter((v) => v !== '' && v != null).length,
+    Object.entries(filterForm).filter(([k, v]) => k !== 'q' && v !== '' && v != null).length,
 );
 
-watch(filterForm, () => {
-    router.get('/blockers', {
+function routeParams() {
+    return {
+        q: filterForm.q || undefined,
         status: filterForm.status || undefined,
         severity: filterForm.severity || undefined,
         project_id: filterForm.project_id || undefined,
         mine: filterForm.mine || undefined,
-    }, { preserveState: true, replace: true });
+    };
+}
+
+let qTimer = null;
+watch(() => filterForm.q, () => {
+    clearTimeout(qTimer);
+    qTimer = setTimeout(() => {
+        router.get('/blockers', routeParams(), { preserveState: true, replace: true });
+    }, 350);
 });
 
+watch(
+    () => [filterForm.status, filterForm.severity, filterForm.project_id, filterForm.mine],
+    () => {
+        router.get('/blockers', routeParams(), { preserveState: true, replace: true });
+    },
+);
+
 const clearFilters = () => {
+    filterForm.q = '';
     filterForm.status = '';
     filterForm.severity = '';
     filterForm.project_id = '';
@@ -70,108 +90,123 @@ const remove = async (b) => {
       />
     </template>
 
-    <!-- Toolbar: filters + primary action -->
-    <div class="card mb-4 p-3">
-      <div class="flex flex-wrap items-center gap-2">
-        <div>
-          <label class="mb-1 block text-[11px] font-medium text-slate-400">Trạng thái</label>
-          <select
-            v-model="filterForm.status"
-            class="input w-40"
-            title="Lọc theo trạng thái xử lý"
-          >
-            <option value="">
-              Mọi trạng thái
-            </option>
-            <option
-              v-for="o in options.status"
-              :key="o.value"
-              :value="o.value"
+    <div class="card mb-4 overflow-visible">
+      <div class="border-b border-slate-100 px-5 py-3">
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+            <DatagridToolbarSearch
+              v-model="filterForm.q"
+              input-id="blockers-search"
+              placeholder="Tiêu đề, mô tả vướng mắc…"
+            />
+            <button
+              type="button"
+              class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition"
+              :class="showFilterRow
+                ? 'border-brand/40 bg-brand/5 text-brand'
+                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'"
+              title="Hiển thị bộ lọc"
+              @click="showFilterRow = !showFilterRow"
             >
-              {{ o.label }}
-            </option>
-          </select>
-        </div>
-        <div>
-          <label class="mb-1 block text-[11px] font-medium text-slate-400">Mức độ</label>
-          <select
-            v-model="filterForm.severity"
-            class="input w-40"
-            title="Lọc theo mức độ nghiêm trọng"
+              <AppIcon
+                name="filter"
+                :size="15"
+              />
+              <span>Lọc</span>
+              <span
+                v-if="activeCount"
+                class="flex h-4 w-4 items-center justify-center rounded-full bg-brand text-[10px] font-bold text-white"
+              >{{ activeCount }}</span>
+            </button>
+          </div>
+          <button
+            v-if="can.create"
+            type="button"
+            class="btn-primary h-9 shrink-0 gap-1.5 px-4 text-sm"
+            @click="open()"
           >
-            <option value="">
-              Mọi mức độ
-            </option>
-            <option
-              v-for="o in options.severity"
-              :key="o.value"
-              :value="o.value"
-            >
-              {{ o.label }}
-            </option>
-          </select>
+            <AppIcon
+              name="add"
+              :size="15"
+            />
+            Ghi nhận vướng mắc
+          </button>
         </div>
-        <div>
-          <label class="mb-1 block text-[11px] font-medium text-slate-400">Dự án</label>
-          <select
-            v-model="filterForm.project_id"
-            class="input w-52"
-            title="Lọc theo dự án"
-          >
-            <option value="">
-              Mọi dự án
-            </option>
-            <option
-              v-for="p in options.projects"
-              :key="p.id"
-              :value="p.id"
-            >
-              {{ p.name }}
-            </option>
-          </select>
-        </div>
-        <div>
-          <label class="mb-1 block text-[11px] font-medium text-slate-400">Phạm vi</label>
-          <label
-            class="flex h-10 items-center gap-2 rounded-input border border-slate-300 px-3 text-sm text-slate-600"
-            title="Chỉ hiện vướng mắc do bạn phụ trách"
-          >
-            <input
-              v-model="filterForm.mine"
-              true-value="1"
-              false-value=""
-              type="checkbox"
-              class="rounded"
-            >
-            Tôi xử lý
-          </label>
-        </div>
+      </div>
 
+      <div
+        v-show="showFilterRow"
+        class="flex flex-wrap items-center gap-2 border-t border-slate-100 px-5 py-3"
+      >
+        <select
+          v-model="filterForm.status"
+          class="input h-9 w-40 text-sm"
+          aria-label="Trạng thái"
+        >
+          <option value="">
+            Trạng thái: Tất cả
+          </option>
+          <option
+            v-for="o in options.status"
+            :key="o.value"
+            :value="o.value"
+          >
+            {{ o.label }}
+          </option>
+        </select>
+        <select
+          v-model="filterForm.severity"
+          class="input h-9 w-40 text-sm"
+          aria-label="Mức độ"
+        >
+          <option value="">
+            Mức độ: Tất cả
+          </option>
+          <option
+            v-for="o in options.severity"
+            :key="o.value"
+            :value="o.value"
+          >
+            {{ o.label }}
+          </option>
+        </select>
+        <select
+          v-model="filterForm.project_id"
+          class="input h-9 min-w-[11rem] text-sm sm:w-52"
+          aria-label="Dự án"
+        >
+          <option value="">
+            Dự án: Tất cả
+          </option>
+          <option
+            v-for="p in options.projects"
+            :key="p.id"
+            :value="p.id"
+          >
+            {{ p.name }}
+          </option>
+        </select>
+        <label class="inline-flex h-9 items-center gap-2 rounded-btn border border-slate-200 bg-white px-3 text-sm text-slate-600">
+          <input
+            v-model="filterForm.mine"
+            true-value="1"
+            false-value=""
+            type="checkbox"
+            class="rounded border-slate-300 text-brand"
+          >
+          Tôi xử lý
+        </label>
         <button
-          v-if="activeCount"
+          v-if="activeCount || filterForm.q"
           type="button"
-          class="btn-ghost self-end text-sm text-slate-500"
-          title="Bỏ tất cả bộ lọc"
+          class="text-xs font-medium text-brand hover:underline"
           @click="clearFilters"
         >
-          Xoá lọc
-        </button>
-
-        <button
-          v-if="can.create"
-          class="btn-primary ml-auto self-end gap-1.5"
-          title="Ghi nhận một vướng mắc mới"
-          @click="open()"
-        >
-          <AppIcon
-            name="add"
-            :size="16"
-          /> Ghi nhận vướng mắc
+          Đặt lại
         </button>
       </div>
     </div>
 
-    <!-- List -->
     <div class="space-y-2.5">
       <div
         v-for="b in blockers.data"
@@ -199,7 +234,7 @@ const remove = async (b) => {
             </div>
             <p
               v-if="b.description"
-              class="mt-1.5 line-clamp-2 text-sm text-slate-500"
+              class="mt-1 line-clamp-2 text-sm text-slate-500"
             >
               {{ b.description }}
             </p>
@@ -220,19 +255,20 @@ const remove = async (b) => {
           <div class="flex shrink-0 items-center gap-1">
             <button
               v-if="b.can?.update && b.status.value !== 'resolved'"
+              type="button"
               class="btn-ghost gap-1 text-xs text-emerald-600"
-              title="Đánh dấu vướng mắc đã được xử lý"
               @click="resolve(b)"
             >
               <AppIcon
                 name="done"
                 :size="14"
-              /> Đã xử lý
+              />
+              Đã xử lý
             </button>
             <button
               v-if="b.can?.update"
+              type="button"
               class="grid h-7 w-7 place-items-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-              title="Chỉnh sửa vướng mắc"
               @click="open(b)"
             >
               <AppIcon
@@ -242,8 +278,8 @@ const remove = async (b) => {
             </button>
             <button
               v-if="b.can?.delete"
+              type="button"
               class="grid h-7 w-7 place-items-center rounded text-slate-400 hover:bg-rose-50 hover:text-rose-600"
-              title="Xoá vướng mắc"
               @click="remove(b)"
             >
               <AppIcon
@@ -254,13 +290,12 @@ const remove = async (b) => {
           </div>
         </div>
       </div>
-
-      <p
-        v-if="!blockers.data.length"
-        class="rounded-card border border-dashed border-slate-200 py-16 text-center text-sm text-slate-400"
+      <div
+        v-if="!blockers.data?.length"
+        class="card p-10 text-center text-sm text-slate-400"
       >
-        Không có vướng mắc nào.
-      </p>
+        Không có vướng mắc phù hợp bộ lọc.
+      </div>
     </div>
 
     <BlockerFormModal

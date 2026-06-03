@@ -387,30 +387,40 @@ function runExport(format) {
       <div class="border-b border-slate-100 px-5 py-3">
         <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-            <div class="relative min-w-0 flex-1 basis-full sm:basis-auto sm:min-w-[280px] lg:min-w-[360px] lg:max-w-xl">
-              <AppIcon
-                name="search"
-                :size="15"
-                class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-              />
-              <input
-                v-model="search"
-                type="text"
-                placeholder="Tìm mã phiếu, sản phẩm, người đề xuất, nhà cung cấp…"
-                class="input h-9 w-full pl-9 pr-8 text-sm placeholder:text-slate-400"
+            <div class="flex min-w-0 flex-1 basis-full items-center gap-2 lg:basis-auto lg:min-w-0">
+              <label
+                for="cost-report-search"
+                class="shrink-0 text-xs font-medium text-slate-500"
               >
-              <button
-                v-if="search"
-                type="button"
-                class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                title="Xoá từ khoá"
-                @click="search = ''"
-              >
+                Tìm kiếm
+              </label>
+              <div class="relative min-w-0 flex-1 sm:min-w-[200px] lg:min-w-[28rem] xl:min-w-[32rem]">
                 <AppIcon
-                  name="close"
-                  :size="14"
+                  name="search"
+                  :size="15"
+                  class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
                 />
-              </button>
+                <input
+                  id="cost-report-search"
+                  v-model="search"
+                  type="search"
+                  placeholder="Mã phiếu, sản phẩm, người đề xuất, nhà cung cấp…"
+                  class="input h-9 w-full pl-9 pr-8 text-sm placeholder:text-slate-400"
+                  autocomplete="off"
+                >
+                <button
+                  v-if="search"
+                  type="button"
+                  class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  title="Xoá từ khoá"
+                  @click="search = ''"
+                >
+                  <AppIcon
+                    name="close"
+                    :size="14"
+                  />
+                </button>
+              </div>
             </div>
 
             <div
@@ -419,7 +429,7 @@ function runExport(format) {
             >
               <button
                 type="button"
-                class="inline-flex h-9 w-9 items-center justify-center rounded-btn border transition select-none"
+                class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
                 :class="showFilterPanelDd
                   ? 'border-brand/40 bg-brand/5 text-brand'
                   : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800'"
@@ -429,8 +439,9 @@ function runExport(format) {
               >
                 <AppIcon
                   name="filter"
-                  :size="16"
+                  :size="15"
                 />
+                <span>Lọc</span>
               </button>
               <Transition
                 enter-active-class="transition duration-150 ease-out"
@@ -475,7 +486,7 @@ function runExport(format) {
             >
               <button
                 type="button"
-                class="inline-flex h-9 w-9 items-center justify-center rounded-btn border transition select-none"
+                class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
                 :class="showColDd
                   ? 'border-brand/40 bg-brand/5 text-brand'
                   : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800'"
@@ -485,8 +496,9 @@ function runExport(format) {
               >
                 <AppIcon
                   name="columns"
-                  :size="16"
+                  :size="15"
                 />
+                <span>Cột</span>
               </button>
               <Transition
                 enter-active-class="transition duration-150 ease-out"
@@ -532,16 +544,17 @@ function runExport(format) {
             >
               <button
                 type="button"
-                class="inline-flex h-9 w-9 items-center justify-center rounded-btn border border-slate-200 bg-white text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-800"
+                class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-800"
                 :class="showExportDd && 'border-brand/40 bg-brand/5 text-brand'"
-                title="Xuất dữ liệu"
-                aria-label="Xuất CSV hoặc Excel"
+                title="Xuất CSV hoặc Excel"
+                aria-label="Xuất dữ liệu"
                 @click="openExportMenu"
               >
                 <AppIcon
                   name="export"
-                  :size="16"
+                  :size="15"
                 />
+                <span>Xuất</span>
               </button>
               <Transition
                 enter-active-class="transition duration-150 ease-out"

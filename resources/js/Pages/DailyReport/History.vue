@@ -6,6 +6,7 @@ import AppIcon from '@/Components/AppIcon.vue';
 import StatusBadge from '@/Components/DailyReport/StatusBadge.vue';
 import GradePill from '@/Components/DailyReport/GradePill.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
+import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 
 const props = defineProps({
     reports: { type: Object, required: true }, // { data, meta, links }
@@ -120,231 +121,225 @@ const pageLabel = (label) =>
       />
     </template>
 
-    <!-- Toolbar: search + toggles -->
-    <div class="mb-3 flex flex-wrap items-center gap-2">
-      <div class="relative min-w-[14rem] flex-1">
-        <AppIcon
-          name="search"
-          :size="16"
-          class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-        />
-        <input
-          v-model="filterForm.q"
-          type="search"
-          class="input pl-9"
-          placeholder="Tìm theo tiêu đề báo cáo…"
-          title="Gõ từ khoá để tìm trong tiêu đề báo cáo"
-        >
-      </div>
-
-      <button
-        type="button"
-        class="btn-ghost gap-1.5"
-        :class="showFilters ? 'bg-slate-100 text-slate-700' : ''"
-        title="Ẩn / hiện bảng bộ lọc"
-        @click="showFilters = !showFilters"
-      >
-        <AppIcon
-          name="filter"
-          :size="16"
-        />
-        Bộ lọc
-        <span
-          v-if="activeCount"
-          class="grid h-5 min-w-5 place-items-center rounded-full bg-brand px-1 text-[11px] font-semibold text-white"
-        >
-          {{ activeCount }}
-        </span>
-      </button>
-
-      <!-- Column visibility -->
-      <div
-        ref="colsRef"
-        class="relative"
-      >
-        <button
-          type="button"
-          class="btn-ghost gap-1.5"
-          title="Chọn cột hiển thị"
-          @click="colsMenu = !colsMenu"
-        >
-          <AppIcon
-            name="columns"
-            :size="16"
+    <!-- Toolbar -->
+    <div class="card mb-4 overflow-visible">
+      <div class="border-b border-slate-100 px-5 py-3">
+        <div class="flex flex-wrap items-center gap-2">
+          <DatagridToolbarSearch
+            v-model="filterForm.q"
+            input-id="daily-reports-search"
+            placeholder="Tiêu đề, người báo cáo, dự án…"
           />
-          Cột
-          <AppIcon
-            name="chevron-down"
-            :size="14"
-          />
-        </button>
-        <div
-          v-if="colsMenu"
-          class="absolute right-0 z-20 mt-1 w-56 rounded-card border border-slate-200 bg-white p-1.5 shadow-elevation-2"
-        >
-          <p class="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            Hiển thị cột
-          </p>
-          <label
-            v-for="c in columns"
-            :key="c.key"
-            class="flex cursor-pointer items-center gap-2 rounded-btn px-2 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
-            :class="{ 'opacity-40 pointer-events-none': c.manager && !canFilterEmployee }"
-          >
-            <input
-              v-model="c.visible"
-              type="checkbox"
-              class="rounded"
-              @change="persistColumns"
-            >
-            {{ c.label }}
-          </label>
-        </div>
-      </div>
-    </div>
 
-    <!-- Filter panel -->
-    <Transition name="fade-slide">
-      <div
-        v-show="showFilters"
-        class="card mb-4 p-4"
-      >
-        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <div>
-            <label
-              class="label"
-              title="Lọc theo trạng thái duyệt của báo cáo"
-            >Trạng thái</label>
-            <select
-              v-model="filterForm.status"
-              class="input"
-              @change="applyFilters"
-            >
-              <option value="">
-                Tất cả trạng thái
-              </option>
-              <option
-                v-for="s in statuses"
-                :key="s.value"
-                :value="s.value"
-              >
-                {{ s.label }}
-              </option>
-            </select>
-          </div>
-
-          <div>
-            <label
-              class="label"
-              title="Lọc báo cáo theo dự án"
-            >Dự án</label>
-            <select
-              v-model="filterForm.project_id"
-              class="input"
-              @change="applyFilters"
-            >
-              <option value="">
-                Tất cả dự án
-              </option>
-              <option
-                v-for="p in projects"
-                :key="p.id"
-                :value="p.id"
-              >
-                {{ p.name }}
-              </option>
-            </select>
-          </div>
-
-          <div v-if="canFilterEmployee">
-            <label
-              class="label"
-              title="Lọc theo người gửi báo cáo"
-            >Người báo cáo</label>
-            <select
-              v-model="filterForm.employee_id"
-              class="input"
-              @change="applyFilters"
-            >
-              <option value="">
-                Tất cả nhân viên
-              </option>
-              <option
-                v-for="e in employees"
-                :key="e.id"
-                :value="e.id"
-              >
-                {{ e.name }}
-              </option>
-            </select>
-          </div>
-
-          <div>
-            <label
-              class="label"
-              title="Lọc theo xếp loại điểm đánh giá"
-            >Xếp loại</label>
-            <select
-              v-model="filterForm.grade"
-              class="input"
-              @change="applyFilters"
-            >
-              <option value="">
-                Mọi xếp loại
-              </option>
-              <option
-                v-for="g in grades"
-                :key="g.value"
-                :value="g.value"
-              >
-                {{ g.label }}
-              </option>
-            </select>
-          </div>
-
-          <div>
-            <label
-              class="label"
-              title="Chỉ lấy báo cáo từ ngày này trở đi"
-            >Từ ngày</label>
-            <input
-              v-model="filterForm.from"
-              type="date"
-              class="input"
-              @change="applyFilters"
-            >
-          </div>
-
-          <div>
-            <label
-              class="label"
-              title="Chỉ lấy báo cáo đến hết ngày này"
-            >Đến ngày</label>
-            <input
-              v-model="filterForm.to"
-              type="date"
-              class="input"
-              @change="applyFilters"
-            >
-          </div>
-        </div>
-
-        <div class="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
-          <p class="text-xs text-slate-400">
-            <span v-if="activeCount">Đang áp dụng {{ activeCount }} bộ lọc</span>
-            <span v-else>Chưa áp dụng bộ lọc nào</span>
-          </p>
           <button
             type="button"
-            class="btn-ghost text-sm"
-            :disabled="!activeCount"
-            @click="clearFilters"
+            class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
+            :class="showFilters
+              ? 'border-brand/40 bg-brand/5 text-brand'
+              : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'"
+            title="Hiển thị bộ lọc"
+            @click="showFilters = !showFilters"
           >
-            Xoá bộ lọc
+            <AppIcon
+              name="filter"
+              :size="15"
+            />
+            <span>Lọc</span>
+            <span
+              v-if="activeCount"
+              class="grid h-4 min-w-4 place-items-center rounded-full bg-brand px-1 text-[10px] font-semibold text-white"
+            >
+              {{ activeCount }}
+            </span>
           </button>
+
+          <div
+            ref="colsRef"
+            class="relative shrink-0"
+          >
+            <button
+              type="button"
+              class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
+              :class="colsMenu
+                ? 'border-brand/40 bg-brand/5 text-brand'
+                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'"
+              title="Cột hiển thị"
+              @click="colsMenu = !colsMenu"
+            >
+              <AppIcon
+                name="columns"
+                :size="15"
+              />
+              <span>Cột</span>
+            </button>
+            <div
+              v-if="colsMenu"
+              class="absolute right-0 z-20 mt-1 w-56 rounded-card border border-slate-200 bg-white p-1.5 shadow-elevation-2"
+            >
+              <p class="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Hiển thị cột
+              </p>
+              <label
+                v-for="c in columns"
+                :key="c.key"
+                class="flex cursor-pointer items-center gap-2 rounded-btn px-2 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
+                :class="{ 'opacity-40 pointer-events-none': c.manager && !canFilterEmployee }"
+              >
+                <input
+                  v-model="c.visible"
+                  type="checkbox"
+                  class="rounded"
+                  @change="persistColumns"
+                >
+                {{ c.label }}
+              </label>
+            </div>
+          </div>
         </div>
       </div>
-    </Transition>
+
+      <Transition name="fade-slide">
+        <div
+          v-show="showFilters"
+          class="border-t border-slate-100 px-5 py-3"
+        >
+          <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <label
+                class="label"
+                title="Lọc theo trạng thái duyệt của báo cáo"
+              >Trạng thái</label>
+              <select
+                v-model="filterForm.status"
+                class="input"
+                @change="applyFilters"
+              >
+                <option value="">
+                  Tất cả trạng thái
+                </option>
+                <option
+                  v-for="s in statuses"
+                  :key="s.value"
+                  :value="s.value"
+                >
+                  {{ s.label }}
+                </option>
+              </select>
+            </div>
+
+            <div>
+              <label
+                class="label"
+                title="Lọc báo cáo theo dự án"
+              >Dự án</label>
+              <select
+                v-model="filterForm.project_id"
+                class="input"
+                @change="applyFilters"
+              >
+                <option value="">
+                  Tất cả dự án
+                </option>
+                <option
+                  v-for="p in projects"
+                  :key="p.id"
+                  :value="p.id"
+                >
+                  {{ p.name }}
+                </option>
+              </select>
+            </div>
+
+            <div v-if="canFilterEmployee">
+              <label
+                class="label"
+                title="Lọc theo người gửi báo cáo"
+              >Người báo cáo</label>
+              <select
+                v-model="filterForm.employee_id"
+                class="input"
+                @change="applyFilters"
+              >
+                <option value="">
+                  Tất cả nhân viên
+                </option>
+                <option
+                  v-for="e in employees"
+                  :key="e.id"
+                  :value="e.id"
+                >
+                  {{ e.name }}
+                </option>
+              </select>
+            </div>
+
+            <div>
+              <label
+                class="label"
+                title="Lọc theo xếp loại điểm đánh giá"
+              >Xếp loại</label>
+              <select
+                v-model="filterForm.grade"
+                class="input"
+                @change="applyFilters"
+              >
+                <option value="">
+                  Mọi xếp loại
+                </option>
+                <option
+                  v-for="g in grades"
+                  :key="g.value"
+                  :value="g.value"
+                >
+                  {{ g.label }}
+                </option>
+              </select>
+            </div>
+
+            <div>
+              <label
+                class="label"
+                title="Chỉ lấy báo cáo từ ngày này trở đi"
+              >Từ ngày</label>
+              <input
+                v-model="filterForm.from"
+                type="date"
+                class="input"
+                @change="applyFilters"
+              >
+            </div>
+
+            <div>
+              <label
+                class="label"
+                title="Chỉ lấy báo cáo đến hết ngày này"
+              >Đến ngày</label>
+              <input
+                v-model="filterForm.to"
+                type="date"
+                class="input"
+                @change="applyFilters"
+              >
+            </div>
+          </div>
+
+          <div class="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
+            <p class="text-xs text-slate-400">
+              <span v-if="activeCount">Đang áp dụng {{ activeCount }} bộ lọc</span>
+              <span v-else>Chưa áp dụng bộ lọc nào</span>
+            </p>
+            <button
+              type="button"
+              class="btn-ghost text-sm"
+              :disabled="!activeCount"
+              @click="clearFilters"
+            >
+              Xoá bộ lọc
+            </button>
+          </div>
+        </div>
+      </Transition>
+    </div>
 
     <!-- Table -->
     <div class="card overflow-hidden">
