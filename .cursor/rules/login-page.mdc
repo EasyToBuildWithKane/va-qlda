@@ -1,0 +1,11 @@
+---
+description: Trang đăng nhập Google OAuth — đọc skill login-page trước khi sửa
+globs: resources/js/src/views/auth/**/*.vue,resources/js/src/util/loginRedirect.js,app/Http/Controllers/Auth/**/*.php
+alwaysApply: false
+---
+
+# Login page
+
+Luồng đăng nhập web (UI, OAuth, redirect, guard): đọc **toàn bộ** [`.cursor/skills/login-page/login-page.mdc`](../skills/login-page/login-page.mdc).
+
+Skill: `@login-page` hoặc `.cursor/skills/login-page/SKILL.md` (checklist nhanh).
