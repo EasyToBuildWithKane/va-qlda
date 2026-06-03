@@ -15,7 +15,7 @@ Trước **commit/push** hoặc khi user báo CI đỏ — chạy cùng thứ t�
 | PHPUnit | `php artisan test` | Feature Inertia: `tests/TestCase` stub Vite manifest nếu chưa `npm run build` |
 | ESLint | `npm run lint` | CI job frontend; local: pre-commit lint-staged |
 | Vite build | `npm run build` | Job `frontend-build` |
-| E2E | `npm run test:e2e` | Husky pre-push; CI `CI=true`, `workers: 1`, không reuse server :8000 |
+| E2E | `npm run test:e2e` | **CI** bắt buộc; local: tự chạy hoặc `npm run push:e2e` (không mặc định mỗi Sync) |
 
 ## PHP / file công khai
 
@@ -25,8 +25,8 @@ Trước **commit/push** hoặc khi user báo CI đỏ — chạy cùng thứ t�
 
 ## Playwright (tránh flake local)
 
-- Không dựa `reuseExistingServer` mặc định — để Playwright spawn server với SQLite E2E (`tests/e2e/helpers/database.js`).
-- Chỉ reuse khi `PLAYWRIGHT_REUSE_SERVER=1`.
+- Pre-push Husky: **mặc định bỏ qua** E2E; `RUN_E2E_ON_PUSH=1` hoặc `npm run push:e2e`.
+- `stopStaleE2ePorts` / cổng `8001–8020` khi chạy E2E local.
 - Một worker (`playwright.config.js`) vì SQLite shared.
 
 ## Agent trước khi push

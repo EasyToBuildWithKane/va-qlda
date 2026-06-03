@@ -74,7 +74,7 @@ This project uses [Husky](https://typicode.github.io/husky/) for Git hooks:
 | `pre-commit` | ESLint (`lint-staged`) on staged `resources/js/**` files |
 | `prepare-commit-msg` | Auto-generate Conventional Commit message from staged files |
 | `commit-msg` | [Conventional Commits](https://www.conventionalcommits.org/) via Commitlint |
-| `pre-push` | Playwright E2E tests (skipped when `CI=true`) |
+| `pre-push` | Mặc định bỏ qua E2E (Sync nhanh). `npm run push:e2e` hoặc `RUN_E2E_ON_PUSH=1` |
 | `post-merge` | Runs `npm install` when `package.json` changed after merge |
 
 **Auto commit message** (from staged file paths):

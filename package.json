@@ -14,7 +14,9 @@
         "lint-staged": "node node_modules/lint-staged/bin/lint-staged.js",
         "commitlint": "node node_modules/@commitlint/cli/lib/cli.js",
         "commit:msg": "node scripts/generate-commit-msg.mjs",
-        "commit": "node scripts/auto-commit.mjs"
+        "commit": "node scripts/auto-commit.mjs",
+        "push:e2e": "node scripts/push-with-e2e.mjs",
+        "e2e:stop-stale": "node tests/e2e/helpers/stopStaleE2ePorts.js"
     },
     "lint-staged": {
         "resources/js/**/*.{js,ts,jsx,tsx,vue}": [

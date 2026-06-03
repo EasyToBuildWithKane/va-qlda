@@ -61,6 +61,8 @@ Helper scripts:
 | Command | Description |
 |---------|-------------|
 | `npm run commitlint` | Validate a message manually |
+| `npm run push:e2e` | `git push` with `RUN_E2E_ON_PUSH=1` (full pre-push Playwright) |
+| `npm run e2e:stop-stale` | Kill `php artisan serve` on ports 8001–8020 |
 | `npm run commit:msg` | Generate suggested commit message from staged changes |
 | `npm run commit` | Auto-commit workflow (`scripts/auto-commit.mjs`) |
 

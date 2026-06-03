@@ -6,7 +6,7 @@ import { execSync } from 'node:child_process';
 import os from 'node:os';
 
 const from = Number(process.env.PLAYWRIGHT_E2E_PORT_FROM ?? 8001);
-const to = Number(process.env.PLAYWRIGHT_E2E_PORT_TO ?? 8010);
+const to = Number(process.env.PLAYWRIGHT_E2E_PORT_TO ?? 8020);
 
 function portInRange(port) {
     return port >= from && port <= to;

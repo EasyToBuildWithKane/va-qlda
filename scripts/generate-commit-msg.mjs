@@ -25,6 +25,7 @@ function getStagedChanges() {
 function isDocs(path) {
     return (
         path.startsWith('docs/') ||
+        path.startsWith('_dev/') ||
         path.startsWith('.cursor/') ||
         path.startsWith('.claude/') ||
         path === 'README.md' ||

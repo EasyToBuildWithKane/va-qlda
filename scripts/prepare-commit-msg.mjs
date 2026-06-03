@@ -1,6 +1,4 @@
-import fs from 'node:fs';
-import { generateCommitMessage } from './generate-commit-msg.mjs';
-import { isValidConventional, shouldReplaceWithGenerated } from './commit-message-utils.mjs';
+import { applyGeneratedCommitMessage } from './apply-generated-commit-msg.mjs';
 
 const [commitMsgFile, source = ''] = process.argv.slice(2);
 
@@ -12,23 +10,11 @@ if (['merge', 'squash', 'commit'].includes(source)) {
     process.exit(0);
 }
 
-const current = fs.readFileSync(commitMsgFile, 'utf8');
-const userLine = current
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .find((line) => line && !line.startsWith('#'));
+const result = applyGeneratedCommitMessage(commitMsgFile, {
+    requireStaged: false,
+    logLabel: 'Message commit (prepare)',
+});
 
-if (userLine && isValidConventional(userLine)) {
-    process.exit(0);
+if (result === 'fail') {
+    process.exit(1);
 }
-
-if (userLine && !shouldReplaceWithGenerated(userLine)) {
-    process.exit(0);
-}
-
-const generated = generateCommitMessage();
-if (!generated) {
-    process.exit(0);
-}
-
-fs.writeFileSync(commitMsgFile, `${generated}\n`, 'utf8');

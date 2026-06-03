@@ -37,6 +37,10 @@ echo "feat: test message" | npm run commitlint
 
 **Enforcement:** Husky `commit-msg` hook runs commitlint on every commit.
 
+**IDE (Cursor) message «Updates» / trống:** `prepare-commit-msg` + `fix-commit-msg` tự sinh từ staged diff. Cần `git add` trước. Shortcut: `npm run commit` hoặc `npm run commit:msg`.
+
+**Push / Sync:** Pre-push **không** chạy E2E mặc định. `npm run push:e2e` khi muốn E2E trước push; CI vẫn chạy Playwright.
+
 ---
 
 ## Branch naming

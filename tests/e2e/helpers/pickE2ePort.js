@@ -4,7 +4,7 @@
 import net from 'node:net';
 
 const from = Number(process.env.PLAYWRIGHT_E2E_PORT_FROM ?? 8001);
-const to = Number(process.env.PLAYWRIGHT_E2E_PORT_TO ?? 8010);
+const to = Number(process.env.PLAYWRIGHT_E2E_PORT_TO ?? 8020);
 
 function portFree(port) {
     return new Promise((resolve) => {

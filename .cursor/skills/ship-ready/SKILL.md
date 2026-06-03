@@ -35,13 +35,14 @@ npm run lint
 npm run build
 ```
 
-**Trước push (khuyến nghị):**
+**Trước PR / merge (khuyến nghị):**
 
 ```bash
+npm run test:e2e:install   # một lần
 npm run test:e2e
 ```
 
-Hoặc `git push` và để Husky pre-push chạy (cần Playwright chromium: `npm run test:e2e:install`).
+**Push:** `git push` / Sync **không** chạy E2E mặc định. Cần E2E trước push: `npm run push:e2e`.
 
 ## 3. Lỗi CI thường gặp → xử lý
 

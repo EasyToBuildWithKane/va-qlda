@@ -116,7 +116,7 @@ static-analysis (parallel, advisory)
 | Pint | Run before push PHP changes | Blocking in `backend-tests` |
 | ESLint | pre-commit (staged) + `npm run lint` | Blocking in `frontend-build` |
 | PHPUnit | `php artisan test` | `backend-tests` |
-| E2E | Husky pre-push | `playwright` with `CI=true` |
+| E2E | Local tùy chọn (`npm run push:e2e`) | Job `playwright` `CI=true` (blocking) |
 
 ---
 

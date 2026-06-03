@@ -22,7 +22,7 @@ vendor/bin/pint --test   # blocking on CI
 php artisan test
 npm run lint               # blocking on CI
 npm run build
-npm run test:e2e           # Husky pre-push
+npm run test:e2e           # trước PR / khi cần; không chạy mặc định khi push
 ```
 
 Skill: `.cursor/skills/ship-ready/SKILL.md`.
@@ -35,12 +35,11 @@ Skill: `.cursor/skills/ship-ready/SKILL.md`.
 2. Implement backend (Controller, FormRequest, Policy) and/or frontend (Page, Component, composable)
 3. If UI changes: add/update Playwright spec in `tests/e2e/`
 4. `git add -p` — stage selectively
-5. `git commit -m "feat(scope): description"`
-   - **pre-commit** → ESLint on staged Vue/JS via lint-staged
-   - **commit-msg** → commitlint validates format
-   - *(optional)* **prepare-commit-msg** may auto-suggest a message from staged diff
-6. `git push origin feat/short-description`
-   - **pre-push** → full Playwright E2E suite (skipped when `CI=true`)
+5. `npm run commit` hoặc `git commit` (message IDE «Updates» → hook tự sửa nếu đã `git add`)
+   - **pre-commit** → ESLint staged Vue/JS
+   - **prepare-commit-msg** / **fix-commit-msg** → gợi ý Conventional Commits
+   - **commit-msg** → commitlint
+6. `git push` / Sync — **pre-push mặc định bỏ qua E2E** (nhanh). Tùy chọn: `npm run push:e2e`
 7. Open PR on GitHub → CI runs automatically (see `ci-cd.md`)
 
 ---
@@ -54,9 +53,9 @@ Skill: `.cursor/skills/ship-ready/SKILL.md`.
   - **Frontend** (`npm run lint`, then `npm run build`)
   - **Playwright E2E** (after both pass; `CI=true`, single worker)
 - **Advisory:** PHPStan (`continue-on-error: true`)
-- **Local:** Husky pre-commit (ESLint staged), pre-push (E2E)
+- **Local:** pre-commit ESLint; E2E khi `npm run test:e2e` hoặc `npm run push:e2e`
 - **Merge strategy:** squash merge preferred for clean history
-- **Review:** address feedback, push fixes — pre-push hook re-runs E2E
+- **Review:** push fix → CI chạy E2E (không bắt buộc E2E local mỗi lần Sync)
 
 ---
 
