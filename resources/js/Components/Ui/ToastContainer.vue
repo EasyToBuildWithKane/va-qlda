@@ -3,20 +3,21 @@ import { computed } from 'vue';
 import { toastList, dismissToast } from '@/shared/composables/useToast';
 import AppIcon from '@/Components/AppIcon.vue';
 
-/** bottom-end (app) | top-center (login / guest) */
+/** bottom-end (app) | top-end (login — góc trên phải) */
 const props = defineProps({
     placement: {
         type: String,
         default: 'bottom-end',
-        validator: (v) => ['bottom-end', 'top-center'].includes(v),
+        validator: (v) => ['bottom-end', 'top-end', 'top-center'].includes(v),
     },
 });
 
-const positionClass = computed(() =>
-    props.placement === 'top-center'
-        ? 'fixed top-4 left-1/2 z-[100] flex w-full max-w-md -translate-x-1/2 flex-col gap-2 px-4 pointer-events-none sm:top-6'
-        : 'fixed bottom-5 right-5 z-[70] flex flex-col-reverse gap-2 items-end pointer-events-none',
-);
+const positionClass = computed(() => {
+    if (props.placement === 'top-end' || props.placement === 'top-center') {
+        return 'fixed top-4 right-4 z-[100] flex flex-col gap-2 items-end pointer-events-none sm:top-5 sm:right-5';
+    }
+    return 'fixed bottom-5 right-5 z-[70] flex flex-col-reverse gap-2 items-end pointer-events-none';
+});
 
 const cfg = {
     success: { wrap: 'bg-emerald-50 border-emerald-200 text-emerald-800', icon: 'check', ic: 'text-emerald-500' },
@@ -39,7 +40,7 @@ const cfg = {
         <div
           v-for="t in toastList"
           :key="t.id"
-          class="pointer-events-auto flex w-full items-start gap-3 rounded-xl border px-4 py-3.5 shadow-lg ring-1 ring-black/5 min-w-0"
+          class="pointer-events-auto flex items-start gap-3 rounded-xl border px-4 py-3.5 shadow-lg ring-1 ring-black/5 min-w-[280px] max-w-sm w-full"
           :class="cfg[t.type]?.wrap"
         >
           <span

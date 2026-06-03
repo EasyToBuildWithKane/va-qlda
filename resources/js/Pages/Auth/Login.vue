@@ -32,7 +32,7 @@ watch(
 <template>
   <Head title="Đăng nhập" />
 
-  <ToastContainer placement="top-center" />
+  <ToastContainer placement="top-end" />
 
   <div
     class="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 py-10"
