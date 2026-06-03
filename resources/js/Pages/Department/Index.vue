@@ -7,6 +7,8 @@ import PageHeader from '@/Components/Ui/PageHeader.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
 import DepartmentFormModal from '@/modules/project/components/DepartmentFormModal.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
+import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
+import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
 import { useDialog } from '@/composables/useDialog';
 
 const props = defineProps({
@@ -84,21 +86,32 @@ const clearAll = async () => {
     searchQuery.value = '';
 };
 
+const DEPT_FILTER_CONTROLS = [{ key: 'status', label: 'Trạng thái' }];
+
+const {
+    visibleFilters,
+    showFilterPanelDd,
+    enabledFilterControlCount,
+    hasFilterRow,
+    persistVisibleFilters,
+    openFilterPanel,
+    FILTER_CONTROLS,
+} = useVisibleFilterControls(DEPT_FILTER_CONTROLS, 'va-qlda.departments.visible-filters');
+
 // ── Dropdown state ──────────────────────────────────────────────────────────
-const showFilterDd = ref(false);
 const showColDd    = ref(false);
 const filterDdRef  = ref(null);
 const colDdRef     = ref(null);
 
 const onDocClick = (e) => {
-    if (filterDdRef.value && !filterDdRef.value.contains(e.target)) showFilterDd.value = false;
+    if (filterDdRef.value && !filterDdRef.value.contains(e.target)) showFilterPanelDd.value = false;
     if (colDdRef.value    && !colDdRef.value.contains(e.target))    showColDd.value    = false;
 };
 onMounted(()   => document.addEventListener('mousedown', onDocClick));
 onUnmounted(() => document.removeEventListener('mousedown', onDocClick));
 
-const openFilter = () => { showFilterDd.value = !showFilterDd.value; showColDd.value = false; };
-const openCol    = () => { showColDd.value    = !showColDd.value;    showFilterDd.value = false; };
+const openFilter = () => { openFilterPanel(() => { showColDd.value = false; }); };
+const openCol    = () => { showColDd.value = !showColDd.value; showFilterPanelDd.value = false; };
 
 // ── Thao tác ─────────────────────────────────────────────────────────────────
 const remove = async (d) => {
@@ -179,10 +192,10 @@ const toggleStatus = async (d) => {
             <button
               type="button"
               class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
-              :class="showFilterDd || activeFilterCount > 0
+              :class="showFilterPanelDd
                 ? 'border-brand/40 bg-brand/5 text-brand'
                 : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800'"
-              title="Hiển thị bộ lọc"
+              :title="`Hiển thị bộ lọc (${enabledFilterControlCount}/${FILTER_CONTROLS.length})`"
               @click="openFilter"
             >
               <AppIcon
@@ -190,11 +203,13 @@ const toggleStatus = async (d) => {
                 :size="15"
               />
               <span>Lọc</span>
-              <span
-                v-if="activeFilterCount > 0"
-                class="flex h-4 w-4 items-center justify-center rounded-full bg-brand text-[10px] font-bold text-white"
-              >{{ activeFilterCount }}</span>
             </button>
+            <FilterVisibilityDropdown
+              v-model="visibleFilters"
+              :show="showFilterPanelDd"
+              :controls="FILTER_CONTROLS"
+              @persist="persistVisibleFilters"
+            />
           </div>
 
           <!-- ── Cột hiển thị dropdown ── -->
@@ -283,7 +298,7 @@ const toggleStatus = async (d) => {
       </div>
 
       <div
-        v-show="showFilterDd"
+        v-if="hasFilterRow && visibleFilters.status"
         class="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-slate-50/30 px-5 py-2.5"
       >
         <select

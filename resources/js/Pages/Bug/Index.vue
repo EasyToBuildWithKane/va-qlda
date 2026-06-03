@@ -1,6 +1,6 @@
 <script setup>
 /* eslint-disable vue/no-v-html -- Laravel pagination link labels contain HTML entities */
-import { reactive, ref, computed, watch } from 'vue';
+import { reactive, ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AppIcon from '@/Components/AppIcon.vue';
@@ -9,6 +9,8 @@ import Badge from '@/shared/ui/Badge.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
 import BugFormModal from '@/modules/project/components/BugFormModal.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
+import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
+import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
 
 const props = defineProps({
     bugs: { type: Object, required: true }, // { data, meta, links }
@@ -19,7 +21,32 @@ const props = defineProps({
 });
 
 const modal = ref(false);
-const showFilterRow = ref(true);
+const filterPanelDdRef = ref(null);
+
+const BUG_FILTER_CONTROLS = [
+    { key: 'status', label: 'Trạng thái' },
+    { key: 'severity', label: 'Mức độ' },
+    { key: 'project', label: 'Dự án' },
+    { key: 'mine', label: 'Tôi sửa' },
+];
+
+const {
+    visibleFilters,
+    showFilterPanelDd,
+    enabledFilterControlCount,
+    hasFilterRow,
+    persistVisibleFilters,
+    openFilterPanel,
+    FILTER_CONTROLS,
+} = useVisibleFilterControls(BUG_FILTER_CONTROLS, 'va-qlda.bugs.visible-filters');
+
+function onToolbarClickOutside(e) {
+    if (filterPanelDdRef.value && !filterPanelDdRef.value.contains(e.target)) {
+        showFilterPanelDd.value = false;
+    }
+}
+onMounted(() => document.addEventListener('mousedown', onToolbarClickOutside));
+onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOutside));
 
 const filterForm = reactive({
     status: props.filters.status ?? '',
@@ -29,7 +56,7 @@ const filterForm = reactive({
     q: props.filters.q ?? '',
 });
 
-const activeFilterCount = computed(() =>
+const appliedFilterCount = computed(() =>
     [filterForm.status, filterForm.severity, filterForm.project_id, filterForm.mine]
         .filter((v) => v !== '' && v != null).length,
 );
@@ -112,22 +139,30 @@ function clearFilters() {
               input-id="bugs-search"
               placeholder="Mã bug, tiêu đề…"
             />
-            <button
-              type="button"
-              class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition"
-              :class="showFilterRow ? 'border-brand/40 bg-brand/5 text-brand' : 'border-slate-200 bg-white text-slate-600'"
-              @click="showFilterRow = !showFilterRow"
+            <div
+              ref="filterPanelDdRef"
+              class="relative shrink-0"
             >
-              <AppIcon
-                name="filter"
-                :size="15"
+              <button
+                type="button"
+                class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition"
+                :class="showFilterPanelDd ? 'border-brand/40 bg-brand/5 text-brand' : 'border-slate-200 bg-white text-slate-600'"
+                :title="`Hiển thị bộ lọc (${enabledFilterControlCount}/${FILTER_CONTROLS.length})`"
+                @click="openFilterPanel()"
+              >
+                <AppIcon
+                  name="filter"
+                  :size="15"
+                />
+                <span>Lọc</span>
+              </button>
+              <FilterVisibilityDropdown
+                v-model="visibleFilters"
+                :show="showFilterPanelDd"
+                :controls="FILTER_CONTROLS"
+                @persist="persistVisibleFilters"
               />
-              <span>Lọc</span>
-              <span
-                v-if="activeFilterCount"
-                class="flex h-4 w-4 items-center justify-center rounded-full bg-brand text-[10px] font-bold text-white"
-              >{{ activeFilterCount }}</span>
-            </button>
+            </div>
           </div>
           <button
             v-if="can.create"
@@ -144,10 +179,11 @@ function clearFilters() {
         </div>
       </div>
       <div
-        v-show="showFilterRow"
+        v-if="hasFilterRow"
         class="flex flex-wrap items-center gap-2 border-t border-slate-100 px-5 py-3"
       >
         <select
+          v-if="visibleFilters.status"
           v-model="filterForm.status"
           class="input h-9 w-36 text-sm"
         >
@@ -163,6 +199,7 @@ function clearFilters() {
           </option>
         </select>
         <select
+          v-if="visibleFilters.severity"
           v-model="filterForm.severity"
           class="input h-9 w-36 text-sm"
         >
@@ -178,6 +215,7 @@ function clearFilters() {
           </option>
         </select>
         <select
+          v-if="visibleFilters.project"
           v-model="filterForm.project_id"
           class="input h-9 min-w-[11rem] text-sm sm:w-48"
         >
@@ -192,7 +230,10 @@ function clearFilters() {
             {{ p.name }}
           </option>
         </select>
-        <label class="inline-flex h-9 items-center gap-2 rounded-btn border border-slate-200 bg-white px-3 text-sm text-slate-600">
+        <label
+          v-if="visibleFilters.mine"
+          class="inline-flex h-9 items-center gap-2 rounded-btn border border-slate-200 bg-white px-3 text-sm text-slate-600"
+        >
           <input
             v-model="filterForm.mine"
             true-value="1"
@@ -203,7 +244,7 @@ function clearFilters() {
           Tôi sửa
         </label>
         <button
-          v-if="activeFilterCount || filterForm.q"
+          v-if="appliedFilterCount || filterForm.q"
           type="button"
           class="text-xs font-medium text-brand hover:underline"
           @click="clearFilters"

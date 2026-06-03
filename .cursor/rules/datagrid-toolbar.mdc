@@ -8,7 +8,7 @@ alwaysApply: true
 
 Mọi trang **bảng + toolbar** (Index, CostReport, Department, Sprint, …) phải tuân pattern này. Tham chiếu vàng: `resources/js/Pages/AiAccount/CostReport.vue`.
 
-**Đã áp dụng (2026-06):** `DailyReport/History`, `DailyReport/Review`, `Department/Index`, `Blocker/Index`, `Bug/Index`, `Feedback/Index`, `AiAccount/Index`, `AiAccount/CostReport`, `Notifications/Management` (lọc lỗi). Component: `shared/ui/DatagridToolbarSearch.vue`.
+**Đã áp dụng (2026-06):** các trang trên + `useVisibleFilterControls.js`, `FilterVisibilityDropdown.vue`, `DatagridToolbarSearch.vue`. **Lọc = hiển thị control** trên Blockers, Bugs, Feedback, Departments, DailyReport/History, CostReport.
 
 Skill chi tiết: `.cursor/skills/datagrid-toolbar/SKILL.md`
 
@@ -17,7 +17,7 @@ Skill chi tiết: `.cursor/skills/datagrid-toolbar/SKILL.md`
 | Vùng | Quy tắc |
 |------|---------|
 | **Tìm kiếm** | Label ngắn cố định `Tìm kiếm` (`<label for="…">`, `text-xs font-medium text-slate-500`). Input `flex-1`, **không** `max-w-xl` — tối thiểu `lg:min-w-[28rem]` `xl:min-w-[32rem]`. Icon search trong ô, nút xoá từ khoá khi có giá trị. |
-| **Lọc / Cột / Xuất** | Nút `h-9` + **icon + label ngắn** (`Lọc`, `Cột`, `Xuất`) — `inline-flex items-center gap-1 rounded-btn border px-2.5 text-xs font-medium`. **Cấm** chỉ icon vuông không chữ trên desktop. |
+| **Lọc / Cột / Xuất** | Nút `h-9` + **icon + label ngắn** (`Lọc`, `Cột`, `Xuất`). **Lọc** = dropdown checkbox «bộ lọc nào hiển thị trên dòng 2» (`useVisibleFilterControls` + `FilterVisibilityDropdown`) — **không** đặt giá trị lọc trong panel Lọc. |
 | **Primary** | Nút tạo mới (vd. `Thêm phiếu`) giữ text đầy đủ, `btn-primary`. |
 
 ```html

@@ -7,6 +7,8 @@ import StatusBadge from '@/Components/DailyReport/StatusBadge.vue';
 import GradePill from '@/Components/DailyReport/GradePill.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
+import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
+import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
 
 const props = defineProps({
     reports: { type: Object, required: true }, // { data, meta, links }
@@ -52,9 +54,26 @@ watch(() => filterForm.q, () => {
     kwTimer = setTimeout(applyFilters, 350);
 });
 
-// ---- Show / hide the filter panel -----------------------------------------
-const PANEL_KEY = 'va-qlda.reports.filters-open';
-const showFilters = ref(true);
+const HISTORY_FILTER_CONTROLS = [
+    { key: 'status', label: 'Trạng thái' },
+    { key: 'project', label: 'Dự án' },
+    { key: 'employee', label: 'Người báo cáo' },
+    { key: 'grade', label: 'Xếp loại' },
+    { key: 'from', label: 'Từ ngày', default: false },
+    { key: 'to', label: 'Đến ngày', default: false },
+];
+
+const {
+    visibleFilters,
+    showFilterPanelDd,
+    enabledFilterControlCount,
+    hasFilterRow,
+    persistVisibleFilters,
+    openFilterPanel,
+    FILTER_CONTROLS,
+} = useVisibleFilterControls(HISTORY_FILTER_CONTROLS, 'va-qlda.reports.visible-filters');
+
+const filterPanelDdRef = ref(null);
 
 // ---- Show / hide columns --------------------------------------------------
 const COLS_KEY = 'va-qlda.reports.columns';
@@ -79,8 +98,9 @@ const persistColumns = () => {
 
 onMounted(() => {
     try {
-        const open = localStorage.getItem(PANEL_KEY);
-        if (open !== null) showFilters.value = open === '1';
+        if (!props.canFilterEmployee) {
+            visibleFilters.value.employee = false;
+        }
 
         const saved = JSON.parse(localStorage.getItem(COLS_KEY) || 'null');
         if (saved) {
@@ -95,11 +115,10 @@ onMounted(() => {
 });
 onBeforeUnmount(() => document.removeEventListener('click', onDocClick));
 
-watch(showFilters, (v) => localStorage.setItem(PANEL_KEY, v ? '1' : '0'));
-
-// Close the columns dropdown when clicking outside it.
+// Close dropdowns when clicking outside.
 const colsRef = ref(null);
 const onDocClick = (e) => {
+    if (filterPanelDdRef.value && !filterPanelDdRef.value.contains(e.target)) showFilterPanelDd.value = false;
     if (colsMenu.value && colsRef.value && !colsRef.value.contains(e.target)) colsMenu.value = false;
 };
 
@@ -131,27 +150,32 @@ const pageLabel = (label) =>
             placeholder="Tiêu đề, người báo cáo, dự án…"
           />
 
-          <button
-            type="button"
-            class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
-            :class="showFilters
-              ? 'border-brand/40 bg-brand/5 text-brand'
-              : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'"
-            title="Hiển thị bộ lọc"
-            @click="showFilters = !showFilters"
+          <div
+            ref="filterPanelDdRef"
+            class="relative shrink-0"
           >
-            <AppIcon
-              name="filter"
-              :size="15"
-            />
-            <span>Lọc</span>
-            <span
-              v-if="activeCount"
-              class="grid h-4 min-w-4 place-items-center rounded-full bg-brand px-1 text-[10px] font-semibold text-white"
+            <button
+              type="button"
+              class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
+              :class="showFilterPanelDd
+                ? 'border-brand/40 bg-brand/5 text-brand'
+                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'"
+              :title="`Hiển thị bộ lọc (${enabledFilterControlCount}/${FILTER_CONTROLS.length})`"
+              @click="openFilterPanel(() => { colsMenu.value = false; })"
             >
-              {{ activeCount }}
-            </span>
-          </button>
+              <AppIcon
+                name="filter"
+                :size="15"
+              />
+              <span>Lọc</span>
+            </button>
+            <FilterVisibilityDropdown
+              v-model="visibleFilters"
+              :show="showFilterPanelDd"
+              :controls="FILTER_CONTROLS.filter((f) => f.key !== 'employee' || canFilterEmployee)"
+              @persist="persistVisibleFilters"
+            />
+          </div>
 
           <div
             ref="colsRef"
@@ -200,11 +224,11 @@ const pageLabel = (label) =>
 
       <Transition name="fade-slide">
         <div
-          v-show="showFilters"
+          v-if="hasFilterRow"
           class="border-t border-slate-100 px-5 py-3"
         >
           <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <div>
+            <div v-if="visibleFilters.status">
               <label
                 class="label"
                 title="Lọc theo trạng thái duyệt của báo cáo"
@@ -227,7 +251,7 @@ const pageLabel = (label) =>
               </select>
             </div>
 
-            <div>
+            <div v-if="visibleFilters.project">
               <label
                 class="label"
                 title="Lọc báo cáo theo dự án"
@@ -250,7 +274,7 @@ const pageLabel = (label) =>
               </select>
             </div>
 
-            <div v-if="canFilterEmployee">
+            <div v-if="visibleFilters.employee && canFilterEmployee">
               <label
                 class="label"
                 title="Lọc theo người gửi báo cáo"
@@ -273,7 +297,7 @@ const pageLabel = (label) =>
               </select>
             </div>
 
-            <div>
+            <div v-if="visibleFilters.grade">
               <label
                 class="label"
                 title="Lọc theo xếp loại điểm đánh giá"
@@ -296,7 +320,7 @@ const pageLabel = (label) =>
               </select>
             </div>
 
-            <div>
+            <div v-if="visibleFilters.from">
               <label
                 class="label"
                 title="Chỉ lấy báo cáo từ ngày này trở đi"
@@ -309,7 +333,7 @@ const pageLabel = (label) =>
               >
             </div>
 
-            <div>
+            <div v-if="visibleFilters.to">
               <label
                 class="label"
                 title="Chỉ lấy báo cáo đến hết ngày này"

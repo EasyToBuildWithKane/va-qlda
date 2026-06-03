@@ -67,10 +67,11 @@ Reference implementation: `resources/js/Pages/AiAccount/CostReport.vue`
 </button>
 ```
 
-## 2. Filter panel vs filter values
+## 2. Filter panel vs filter values (bắt buộc)
 
-- **Lọc dropdown**: checkboxes «hiển thị control X trên toolbar/dòng 2» — persist `localStorage` optional.
-- **Values** (`status`, `type`, …): `<select>` on **row 2**, not inside the Lọc panel.
+- **Lọc** ≠ chọn giá trị lọc. **Lọc** = checkbox bật/tắt control nào hiện ở **dòng 2**.
+- Dùng `useVisibleFilterControls(controls, storageKey)` + `FilterVisibilityDropdown.vue`.
+- **Giá trị** (`status`, `type`, …): `<select>` / input trên **dòng 2**, `v-if="visibleFilters.status"`.
 - On change: build params → `loadProposals(params)` / Inertia `router.get` with query.
 
 ```js
