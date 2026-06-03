@@ -1,7 +1,8 @@
 <script setup>
 import AppIcon from '@/Components/AppIcon.vue';
 import Badge from '@/shared/ui/Badge.vue';
-import { formatVnd, formatCostCell } from '@/modules/aiAccount/utils/formatVnd';
+import VndAmount from '@/modules/aiAccount/components/VndAmount.vue';
+import { costUnitSuffix } from '@/modules/aiAccount/utils/formatVnd';
 
 defineProps({
     groups: { type: Array, default: () => [] },
@@ -65,21 +66,28 @@ function warningInline(g) {
       >
         <button
           type="button"
-          class="flex w-full items-center gap-3 px-5 py-3.5 text-left transition-colors hover:bg-slate-50/80"
+          class="flex w-full flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3.5 text-left transition-colors hover:bg-slate-50/80"
           @click="emit('toggle', g.group)"
         >
-          <span
-            class="h-2.5 w-2.5 shrink-0 rounded-full"
-            :style="{ backgroundColor: g.dot_color }"
-          />
-          <span class="font-semibold text-slate-800">{{ g.group }}</span>
-          <span
-            v-if="warningInline(g)"
-            class="text-sm text-amber-700"
-          >{{ warningInline(g) }}</span>
-          <span class="text-sm text-slate-500">· {{ g.total }} tài khoản</span>
-          <span class="text-sm font-medium text-slate-700">· {{ formatVnd(g.total_cost_monthly) }}/tháng</span>
-          <span class="ml-auto text-slate-400">
+          <span class="flex min-w-0 flex-1 items-center gap-2.5">
+            <span
+              class="h-2.5 w-2.5 shrink-0 rounded-full"
+              :style="{ backgroundColor: g.dot_color }"
+            />
+            <span class="font-semibold text-slate-800">{{ g.group }}</span>
+            <span
+              v-if="warningInline(g)"
+              class="rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800"
+            >{{ warningInline(g) }}</span>
+          </span>
+          <span class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-600">
+            <span class="tabular-nums">{{ g.total }} tài khoản</span>
+            <VndAmount
+              :amount="g.total_cost_monthly"
+              suffix=" / tháng"
+            />
+          </span>
+          <span class="ml-auto shrink-0 text-slate-400">
             <AppIcon
               name="chevron-down"
               :size="18"
@@ -148,9 +156,12 @@ function warningInline(g) {
                   </td>
                   <td
                     v-if="colVisible.email"
-                    class="px-5 py-3 text-slate-600"
+                    class="max-w-[14rem] px-5 py-3 text-slate-600"
                   >
-                    {{ row.email_registered }}
+                    <span
+                      class="block truncate"
+                      :title="row.email_registered"
+                    >{{ row.email_registered }}</span>
                   </td>
                   <td
                     v-if="colVisible.expiry"
@@ -160,9 +171,22 @@ function warningInline(g) {
                   </td>
                   <td
                     v-if="colVisible.cost"
-                    class="px-5 py-3 text-slate-600"
+                    class="px-5 py-3 align-top"
                   >
-                    {{ formatCostCell(row.cost_amount, row.cost_unit, row.cost_monthly) }}
+                    <VndAmount :amount="row.cost_amount" />
+                    <p class="mt-0.5 text-xs text-slate-500">
+                      {{ costUnitSuffix(row.cost_unit) }}
+                    </p>
+                    <p
+                      v-if="row.cost_unit === 'yearly' && row.cost_monthly > 0"
+                      class="mt-0.5 text-xs text-slate-400"
+                    >
+                      ~<VndAmount
+                        :amount="row.cost_monthly"
+                        suffix=" / tháng"
+                        inline
+                      />
+                    </p>
                   </td>
                   <td
                     v-if="colVisible.status"

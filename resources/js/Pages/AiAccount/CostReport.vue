@@ -5,7 +5,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import { useAiAccounts } from '@/modules/aiAccount/composables/useAiAccounts';
-import { formatVnd } from '@/modules/aiAccount/utils/formatVnd';
+import VndAmount from '@/modules/aiAccount/components/VndAmount.vue';
 
 const { fetchSummary } = useAiAccounts();
 const loading = ref(true);
@@ -22,19 +22,19 @@ const kpiCards = computed(() => {
         { label: 'Đang hoạt động', value: t?.active_accounts ?? c?.active_accounts ?? 0, icon: 'done', tone: 'text-emerald-600', bg: 'bg-emerald-50' },
         {
             label: 'Chi phí / tháng (tất cả)',
-            value: formatVnd(t?.cost_monthly ?? c?.monthly_cost_all ?? 0),
+            amount: t?.cost_monthly ?? c?.monthly_cost_all ?? 0,
             icon: 'cost',
             tone: 'text-slate-700',
             bg: 'bg-slate-100',
-            isText: true,
+            isMoney: true,
         },
         {
             label: 'Chi phí active / tháng',
-            value: formatVnd(c?.monthly_cost_active ?? 0),
+            amount: c?.monthly_cost_active ?? 0,
             icon: 'money',
             tone: 'text-violet-600',
             bg: 'bg-violet-50',
-            isText: true,
+            isMoney: true,
         },
     ];
 });
@@ -89,9 +89,15 @@ onMounted(async () => {
           <p class="truncate text-xs text-slate-500">
             {{ item.label }}
           </p>
+          <VndAmount
+            v-if="item.isMoney"
+            :amount="item.amount"
+            suffix=" / tháng"
+          />
           <p
-            class="font-display font-bold leading-tight"
-            :class="[item.tone, item.isText ? 'text-base sm:text-lg' : 'text-xl']"
+            v-else
+            class="font-display text-xl font-bold leading-tight tabular-nums"
+            :class="item.tone"
           >
             {{ item.value }}
           </p>
@@ -162,8 +168,12 @@ onMounted(async () => {
               <td class="px-5 py-3 text-slate-600">
                 {{ row.active_accounts }}
               </td>
-              <td class="px-5 py-3 text-right font-medium text-slate-800">
-                {{ formatVnd(row.cost_monthly) }}
+              <td class="px-5 py-3 text-right">
+                <VndAmount
+                  :amount="row.cost_monthly"
+                  suffix=" / tháng"
+                  class="inline-block text-right"
+                />
               </td>
             </tr>
             <tr
@@ -179,8 +189,13 @@ onMounted(async () => {
               <td class="px-5 py-3">
                 {{ totals.active_accounts }}
               </td>
-              <td class="px-5 py-3 text-right text-brand">
-                {{ formatVnd(totals.cost_monthly) }}
+              <td class="px-5 py-3 text-right">
+                <div class="inline-block text-right text-brand">
+                  <VndAmount
+                    :amount="totals.cost_monthly"
+                    suffix=" / tháng"
+                  />
+                </div>
               </td>
             </tr>
           </tbody>

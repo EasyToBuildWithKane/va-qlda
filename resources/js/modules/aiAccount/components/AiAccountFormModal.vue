@@ -2,6 +2,8 @@
 import { computed, reactive, ref, watch } from 'vue';
 import Modal from '@/Components/Ui/Modal.vue';
 import FieldTooltip from '@/shared/ui/FieldTooltip.vue';
+import VndAmount from '@/modules/aiAccount/components/VndAmount.vue';
+import { costUnitSuffix } from '@/modules/aiAccount/utils/formatVnd';
 
 const props = defineProps({
     show: Boolean,
@@ -32,6 +34,11 @@ const isEdit = computed(() => !!props.account?.id);
 const showSeats = computed(() => {
     const t = (form.license_type || '').toLowerCase();
     return t.includes('team') || t.includes('business');
+});
+
+const costPreviewAmount = computed(() => {
+    const n = parseInt(String(form.cost_amount).replace(/\D/g, ''), 10);
+    return Number.isFinite(n) && n > 0 ? n : 0;
 });
 
 watch(
@@ -272,9 +279,19 @@ function handleSubmit() {
           min="1"
           required
           class="input w-full"
-          placeholder="VD: 500000"
+          placeholder="VD: 1000000"
           @input="onInput"
         >
+        <p
+          v-if="costPreviewAmount"
+          class="mt-1.5 rounded-lg bg-slate-50 px-2.5 py-1.5 text-xs"
+        >
+          <VndAmount
+            :amount="costPreviewAmount"
+            inline
+          />
+          <span class="text-slate-500">{{ costUnitSuffix(form.cost_unit) }}</span>
+        </p>
       </div>
 
       <div class="min-w-0">
