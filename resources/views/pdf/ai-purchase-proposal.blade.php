@@ -13,7 +13,7 @@
         body {
             font-family: 'DejaVu Serif', 'Times New Roman', serif;
             font-size: 11pt;
-            line-height: 1.35;
+            line-height: 1.70;
             color: #000;
             margin: 0;
             padding: 0;
@@ -81,10 +81,11 @@
             font-style: italic;
             margin-top: 1pt;
         }
-        .doc-header .cell-right .underline {
+        .doc-header .cell-right .motto-line {
             display: inline-block;
             border-bottom: 1px solid #000;
             padding-bottom: 0.5pt;
+            text-decoration: none;
         }
 
         .doc-title {
@@ -173,14 +174,15 @@
         }
         table.sig td {
             border: 1pt dotted #666;
-            padding: 5pt 6pt;
+            padding: 6pt 8pt 8pt;
             vertical-align: top;
             text-align: center;
             font-size: 10pt;
             width: 33.33%;
+            min-height: 72pt;
         }
         table.sig .sig-title { font-weight: bold; }
-        table.sig .sig-name { margin-top: 42pt; font-weight: bold; }
+        table.sig .sig-name { margin-top: 52pt; font-weight: bold; }
 
         .pre { white-space: pre-wrap; }
 
@@ -220,7 +222,7 @@
             <td class="cell-right">
                 <div class="republic">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
                 <div class="motto">
-                    <span class="underline">Độc lập – Tự do – Hạnh phúc</span>
+                    <span class="motto-line">Độc lập – Tự do – Hạnh phúc</span>
                 </div>
                 <div class="doc-date">{{ $vars['doc_date'] }}</div>
             </td>
