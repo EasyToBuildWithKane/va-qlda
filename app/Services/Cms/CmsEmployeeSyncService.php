@@ -4,6 +4,7 @@ namespace App\Services\Cms;
 
 use App\Models\Cms\CmsUser;
 use App\Models\Employee;
+use App\Models\SystemAccount;
 use App\Support\Cms\CmsEmployeeMapper;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -21,21 +22,34 @@ final class CmsEmployeeSyncService
     /**
      * @return array{created:int, updated:int, skipped:int, errors:int, accounts:int}
      */
-    public function syncAll(bool $dryRun = false, bool $provisionAccounts = true): array
+    public function syncAll(bool $dryRun = false, bool $provisionAccounts = true, ?callable $onSyncProgress = null): array
     {
         $stats = ['created' => 0, 'updated' => 0, 'skipped' => 0, 'errors' => 0, 'accounts' => 0];
+
+        $total = $this->countCmsUsers();
+        $processed = 0;
+
+        if ($onSyncProgress !== null) {
+            $onSyncProgress(0, $total);
+        }
 
         CmsUser::query()
             ->withTrashed()
             ->with('info')
             ->orderBy('id')
-            ->chunkById(100, function ($users) use ($dryRun, &$stats) {
+            ->chunkById(50, function ($users) use ($dryRun, &$stats, &$processed, $total, $onSyncProgress) {
                 foreach ($users as $cmsUser) {
+                    $processed++;
+
                     try {
                         $result = $this->upsertFromCmsUser($cmsUser, $dryRun);
                         $stats[$result]++;
                     } catch (\Throwable) {
                         $stats['errors']++;
+                    }
+
+                    if ($onSyncProgress !== null) {
+                        $onSyncProgress($processed, $total);
                     }
                 }
             });
@@ -52,46 +66,89 @@ final class CmsEmployeeSyncService
     }
 
     /**
-     * Tạo system_accounts cho nhân sự CMS còn thiếu (Google login).
+     * @param  callable(int $processed, int $total): void|null  $onProgress
      */
-    public function provisionMissingLoginAccounts(bool $dryRun = false): int
+    public function provisionMissingLoginAccounts(bool $dryRun = false, ?callable $onProgress = null): int
     {
         $provisioner = app(SystemAccountProvisioner::class);
         $created = 0;
 
-        Employee::query()
+        $query = Employee::query()
             ->whereNotNull('cms_user_id')
             ->where('is_active', true)
-            ->whereDoesntHave('account')
-            ->orderBy('id')
-            ->chunkById(100, function ($employees) use ($dryRun, $provisioner, &$created) {
-                foreach ($employees as $employee) {
-                    if ($dryRun) {
-                        $created++;
+            ->whereDoesntHave('account');
 
-                        continue;
-                    }
+        $total = (clone $query)->count();
 
+        if ($onProgress !== null) {
+            $onProgress(0, $total);
+        }
+
+        $processed = 0;
+
+        $query->orderBy('id')->chunkById(50, function ($employees) use (
+            $dryRun,
+            $provisioner,
+            &$created,
+            &$processed,
+            $total,
+            $onProgress,
+        ) {
+            foreach ($employees as $employee) {
+                $processed++;
+
+                if ($dryRun) {
+                    $created++;
+                } else {
                     $provisioner->ensureForEmployee($employee);
                     $created++;
                 }
-            });
 
-        Employee::query()
-            ->whereNotNull('cms_user_id')
-            ->whereHas('account')
-            ->orderBy('id')
-            ->chunkById(100, function ($employees) use ($dryRun, $provisioner) {
-                if ($dryRun) {
-                    return;
+                if ($onProgress !== null) {
+                    $onProgress($processed, $total);
                 }
-
-                foreach ($employees as $employee) {
-                    $provisioner->ensureForEmployee($employee);
-                }
-            });
+            }
+        });
 
         return $created;
+    }
+
+    private function syncLoginActiveFromEmployee(?Employee $employee): void
+    {
+        if ($employee === null) {
+            return;
+        }
+
+        SystemAccount::query()
+            ->where('employee_id', $employee->id)
+            ->update(['is_active' => $employee->is_active]);
+    }
+
+    /**
+     * @return array{cms_users:int, employees_linked:int, employees_active:int, missing_login:int, with_login:int}
+     */
+    public function qldaLinkStats(): array
+    {
+        $linked = Employee::query()->whereNotNull('cms_user_id')->count();
+        $active = Employee::query()->whereNotNull('cms_user_id')->where('is_active', true)->count();
+        $missing = Employee::query()
+            ->whereNotNull('cms_user_id')
+            ->where('is_active', true)
+            ->whereDoesntHave('account')
+            ->count();
+
+        return [
+            'cms_users' => 0,
+            'employees_linked' => $linked,
+            'employees_active' => $active,
+            'missing_login' => $missing,
+            'with_login' => max(0, $active - $missing),
+        ];
+    }
+
+    public function countCmsUsers(): int
+    {
+        return CmsUser::query()->withTrashed()->count();
     }
 
     /**
@@ -126,6 +183,11 @@ final class CmsEmployeeSyncService
                 Employee::query()->create($attributes);
             });
 
+            $created = Employee::query()->where('cms_user_id', $cmsUser->id)->first();
+            if ($created !== null) {
+                $this->syncLoginActiveFromEmployee($created);
+            }
+
             return 'created';
         }
 
@@ -146,6 +208,8 @@ final class CmsEmployeeSyncService
             $employee->fill($payload);
             $employee->save();
         });
+
+        $this->syncLoginActiveFromEmployee($employee->fresh());
 
         return 'updated';
     }

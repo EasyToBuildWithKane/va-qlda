@@ -18,6 +18,7 @@ class SyncCmsEmployees extends Command
     {
         if (! $sync->isCmsConfigured()) {
             $this->error('Chưa cấu hình CMS_DB_* trong .env (database + username).');
+            $this->line('Sau khi sửa .env trên production: php artisan config:clear');
 
             return self::FAILURE;
         }
@@ -37,9 +38,19 @@ class SyncCmsEmployees extends Command
             $this->warn('Chế độ dry-run — không ghi dữ liệu QLDA.');
         }
 
-        $this->info('Đang đồng bộ từ CMS…');
+        $total = $sync->countCmsUsers();
+        $this->info("Đang đồng bộ {$total} user từ CMS (chunk 50 — có thể mất vài phút)…");
 
-        $stats = $sync->syncAll($dryRun, $provision);
+        $bar = $this->output->createProgressBar(max(1, $total));
+        $bar->start();
+
+        $stats = $sync->syncAll($dryRun, $provision, function (int $done, int $total) use ($bar) {
+            $bar->setMaxSteps(max(1, $total));
+            $bar->setProgress($done);
+        });
+
+        $bar->finish();
+        $this->newLine(2);
 
         $this->table(
             ['Tạo mới', 'Cập nhật', 'Bỏ qua (không đổi)', 'Tài khoản login', 'Lỗi'],
