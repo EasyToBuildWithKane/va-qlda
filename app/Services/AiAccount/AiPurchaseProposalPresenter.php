@@ -3,6 +3,7 @@
 namespace App\Services\AiAccount;
 
 use App\Models\AiPurchaseProposal;
+use App\Support\Enums\AiAccountGroupFunction;
 use App\Support\Enums\AiPurchaseProposalStatus;
 use Illuminate\Support\Collection;
 
@@ -57,6 +58,8 @@ class AiPurchaseProposalPresenter
             'id' => $proposal->id,
             'tool_name' => $proposal->tool_name,
             'group_function' => $proposal->group_function->value,
+            'group_dot_color' => $proposal->group_function->dotColor(),
+            'group_label' => $this->groupLabel($proposal->group_function),
             'license_type' => $proposal->license_type,
             'cost_amount' => $proposal->cost_amount,
             'cost_unit' => $proposal->cost_unit->value,
@@ -67,11 +70,27 @@ class AiPurchaseProposalPresenter
             'status_label' => $proposal->status->labelVi(),
             'status_color' => $proposal->status->badgeColor(),
             'rejection_reason' => $proposal->rejection_reason,
+            'review_notes' => $proposal->review_notes,
             'created_by_name' => $creatorName,
             'reviewed_by_name' => $reviewerName,
             'reviewed_at' => $proposal->reviewed_at?->format('Y-m-d H:i'),
             'created_at' => $proposal->created_at?->format('Y-m-d H:i'),
             'can_review' => $proposal->status === AiPurchaseProposalStatus::Pending,
+            'can_edit_notes' => in_array($proposal->status, [
+                AiPurchaseProposalStatus::Approved,
+                AiPurchaseProposalStatus::Rejected,
+            ], true),
         ];
+    }
+
+    private function groupLabel(AiAccountGroupFunction $group): string
+    {
+        foreach (AiAccountGroupFunction::options() as $opt) {
+            if ($opt['value'] === $group->value) {
+                return $opt['label'];
+            }
+        }
+
+        return $group->value;
     }
 }

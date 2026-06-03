@@ -52,6 +52,16 @@ export async function httpPut(url, body, config = {}) {
 
 /**
  * @param {string} url
+ * @param {object} [body]
+ * @param {import('axios').AxiosRequestConfig} [config]
+ */
+export async function httpPatch(url, body, config = {}) {
+    const { data } = await client.patch(url, body, config);
+    return data;
+}
+
+/**
+ * @param {string} url
  * @param {import('axios').AxiosRequestConfig} [config]
  */
 export async function httpDelete(url, config = {}) {

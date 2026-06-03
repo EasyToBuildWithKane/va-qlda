@@ -4,20 +4,19 @@ import { Head, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
-import Badge from '@/shared/ui/Badge.vue';
-import { useDialog } from '@/composables/useDialog';
 import { useAiCostReport } from '@/modules/aiAccount/composables/useAiCostReport';
+import { useCostReportUi } from '@/modules/aiAccount/composables/useCostReportUi';
 import VndAmount from '@/modules/aiAccount/components/VndAmount.vue';
+import AiCostReportProposalList from '@/modules/aiAccount/components/AiCostReportProposalList.vue';
 import AiPurchaseProposalFormModal from '@/modules/aiAccount/components/AiPurchaseProposalFormModal.vue';
 import AiPurchaseProposalRejectModal from '@/modules/aiAccount/components/AiPurchaseProposalRejectModal.vue';
-import { costUnitSuffix } from '@/modules/aiAccount/utils/formatVnd';
+import AiPurchaseProposalApproveModal from '@/modules/aiAccount/components/AiPurchaseProposalApproveModal.vue';
 
-defineProps({
+const props = defineProps({
     can: { type: Object, default: () => ({}) },
     options: { type: Object, required: true },
 });
 
-const dialog = useDialog();
 const {
     loading,
     byGroup,
@@ -29,11 +28,42 @@ const {
     createProposal,
     approveProposal,
     rejectProposal,
+    updateProposalNotes,
 } = useAiCostReport();
+
+const {
+    proposalStatusTab,
+    proposalExpanded,
+    detailExpanded,
+    proposalColVisible,
+    groupColVisible,
+    showProposalColDd,
+    showGroupColDd,
+    proposalColDdRef,
+    groupColDdRef,
+    proposalGroups,
+    toggleProposalColumn,
+    toggleGroupColumn,
+    toggleProposalGroup,
+    toggleDetail,
+    expandAllProposalGroups,
+    collapseAllProposalGroups,
+    PROPOSAL_COLUMNS,
+    COST_REPORT_GROUP_COLUMNS,
+} = useCostReportUi(proposals);
 
 const proposalFormOpen = ref(false);
 const rejectOpen = ref(false);
+const approveOpen = ref(false);
 const rejecting = ref(null);
+const approving = ref(null);
+
+const statusTabs = [
+    { key: 'all', label: 'Tất cả' },
+    { key: 'pending', label: 'Chờ duyệt' },
+    { key: 'approved', label: 'Đã duyệt' },
+    { key: 'rejected', label: 'Từ chối' },
+];
 
 const kpiCards = computed(() => {
     const c = cards.value;
@@ -74,6 +104,11 @@ function openReject(row) {
     rejectOpen.value = true;
 }
 
+function openApprove(row) {
+    approving.value = row;
+    approveOpen.value = true;
+}
+
 async function onRejectSubmit({ rejection_reason }) {
     if (!rejecting.value?.id) return;
     await rejectProposal(rejecting.value.id, rejection_reason);
@@ -81,14 +116,15 @@ async function onRejectSubmit({ rejection_reason }) {
     rejecting.value = null;
 }
 
-async function onApprove(row) {
-    const ok = await dialog.confirm({
-        title: 'Duyệt đề xuất',
-        message: `Duyệt mua ${row.tool_name}? Sau khi duyệt, tạo tài khoản trên danh sách chính.`,
-        confirmText: 'Duyệt',
-    });
-    if (!ok) return;
-    await approveProposal(row.id);
+async function onApproveSubmit({ review_notes }) {
+    if (!approving.value?.id) return;
+    await approveProposal(approving.value.id, review_notes);
+    approveOpen.value = false;
+    approving.value = null;
+}
+
+async function onSaveNotes({ id, review_notes }) {
+    await updateProposalNotes(id, review_notes);
 }
 </script>
 
@@ -98,7 +134,7 @@ async function onApprove(row) {
     <template #header>
       <PageHeader
         title="Báo cáo chi phí AI"
-        subtitle="Chi tiết chi phí theo nhóm · đề xuất mua và duyệt"
+        subtitle="Chi phí theo nhóm · đề xuất mua (gom nhóm)"
         icon="performance"
         icon-color="violet"
         :badge="totals?.total_accounts ?? null"
@@ -146,22 +182,58 @@ async function onApprove(row) {
       </div>
     </div>
 
-    <!-- Chi phí theo nhóm (chi tiết) -->
-    <div class="card mb-5 overflow-hidden">
+    <!-- Chi phí theo nhóm -->
+    <div class="card mb-5 overflow-visible">
       <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
         <h2 class="font-semibold text-slate-700">
-          Chi phí theo nhóm (chi tiết)
+          Chi phí theo nhóm
         </h2>
-        <Link
-          :href="route('ai-accounts.index')"
-          class="btn-ghost gap-1.5 border border-slate-200 text-sm"
-        >
-          <AppIcon
-            name="back"
-            :size="16"
-          />
-          Danh sách tài khoản
-        </Link>
+        <div class="flex flex-wrap items-center gap-2">
+          <div
+            ref="groupColDdRef"
+            class="relative"
+          >
+            <button
+              type="button"
+              class="flex h-9 items-center gap-1.5 rounded-btn border border-slate-200 bg-white px-3 text-sm text-slate-600"
+              @click="showGroupColDd = !showGroupColDd; showProposalColDd = false"
+            >
+              <AppIcon
+                name="columns"
+                :size="14"
+              />
+              Cột
+            </button>
+            <div
+              v-if="showGroupColDd"
+              class="absolute right-0 top-full z-30 mt-1.5 w-52 rounded-xl border border-slate-200 bg-white p-2 shadow-elevation-2"
+            >
+              <button
+                v-for="col in COST_REPORT_GROUP_COLUMNS"
+                :key="col.key"
+                type="button"
+                class="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-sm hover:bg-slate-50"
+                @click="toggleGroupColumn(col.key)"
+              >
+                {{ col.label }}
+                <span
+                  class="h-3 w-3 rounded-full"
+                  :class="groupColVisible[col.key] ? 'bg-brand' : 'bg-slate-200'"
+                />
+              </button>
+            </div>
+          </div>
+          <Link
+            :href="route('ai-accounts.index')"
+            class="btn-ghost h-9 gap-1.5 border border-slate-200 text-sm"
+          >
+            <AppIcon
+              name="back"
+              :size="16"
+            />
+            Danh sách TK
+          </Link>
+        </div>
       </div>
       <div
         v-if="loading"
@@ -173,35 +245,35 @@ async function onApprove(row) {
         v-else
         class="overflow-x-auto"
       >
-        <table class="w-full min-w-[960px] text-left text-sm">
+        <table class="w-full min-w-[640px] text-left text-sm">
           <thead class="bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             <tr>
-              <th class="px-4 py-3">
+              <th class="px-5 py-3">
                 Nhóm
               </th>
-              <th class="px-4 py-3 text-center">
-                Tổng TK
+              <th
+                v-if="groupColVisible.counts"
+                class="px-4 py-3 text-center"
+              >
+                Số lượng
               </th>
-              <th class="px-4 py-3 text-center">
-                Active
+              <th
+                v-if="groupColVisible.cost_active"
+                class="px-4 py-3 text-right"
+              >
+                CP active
               </th>
-              <th class="px-4 py-3 text-center">
-                Sắp HH
+              <th
+                v-if="groupColVisible.cost_all"
+                class="px-4 py-3 text-right"
+              >
+                CP tất cả
               </th>
-              <th class="px-4 py-3 text-center">
-                Hết hạn
-              </th>
-              <th class="px-4 py-3 text-center">
-                Đã huỷ
-              </th>
-              <th class="px-4 py-3 text-right">
-                CP active/tháng
-              </th>
-              <th class="px-4 py-3 text-right">
-                CP tất cả/tháng
-              </th>
-              <th class="px-4 py-3 text-right">
-                Tỷ trọng
+              <th
+                v-if="groupColVisible.share"
+                class="px-4 py-3 text-right"
+              >
+                %
               </th>
             </tr>
           </thead>
@@ -211,75 +283,48 @@ async function onApprove(row) {
               :key="row.group"
               class="hover:bg-slate-50/50"
             >
-              <td class="px-4 py-3">
+              <td class="px-5 py-3">
                 <span
-                  class="mr-2 inline-block h-2 w-2 rounded-full align-middle"
+                  class="mr-2 inline-block h-2 w-2 rounded-full"
                   :style="{ backgroundColor: row.dot_color }"
                 />
                 <span class="font-medium text-slate-800">{{ row.group }}</span>
               </td>
-              <td class="px-4 py-3 text-center tabular-nums text-slate-600">
-                {{ row.total_accounts }}
+              <td
+                v-if="groupColVisible.counts"
+                class="px-4 py-3 text-center text-xs text-slate-600"
+              >
+                <span class="tabular-nums">{{ row.total_accounts }}</span> TK
+                <span class="text-emerald-600">· {{ row.active_accounts }} active</span>
+                <span
+                  v-if="row.expiring_soon"
+                  class="text-amber-600"
+                > · {{ row.expiring_soon }} sắp HH</span>
               </td>
-              <td class="px-4 py-3 text-center tabular-nums text-emerald-700">
-                {{ row.active_accounts }}
-              </td>
-              <td class="px-4 py-3 text-center tabular-nums text-amber-700">
-                {{ row.expiring_soon }}
-              </td>
-              <td class="px-4 py-3 text-center tabular-nums text-rose-700">
-                {{ row.expired }}
-              </td>
-              <td class="px-4 py-3 text-center tabular-nums text-slate-500">
-                {{ row.cancelled }}
-              </td>
-              <td class="px-4 py-3 text-right">
+              <td
+                v-if="groupColVisible.cost_active"
+                class="px-4 py-3 text-right"
+              >
                 <VndAmount
                   :amount="row.cost_monthly_active"
                   compact
                 />
               </td>
-              <td class="px-4 py-3 text-right">
+              <td
+                v-if="groupColVisible.cost_all"
+                class="px-4 py-3 text-right"
+              >
                 <VndAmount
                   :amount="row.cost_monthly"
                   suffix=" / tháng"
                   compact
                 />
               </td>
-              <td class="px-4 py-3 text-right tabular-nums text-slate-600">
-                {{ row.cost_share_percent ?? 0 }}%
-              </td>
-            </tr>
-            <tr
-              v-if="totals"
-              class="bg-brand-50/40 font-semibold"
-            >
-              <td class="px-4 py-3 text-slate-800">
-                TỔNG
-              </td>
-              <td class="px-4 py-3 text-center">
-                {{ totals.total_accounts }}
-              </td>
-              <td class="px-4 py-3 text-center">
-                {{ totals.active_accounts }}
-              </td>
               <td
-                colspan="3"
-                class="px-4 py-3"
-              />
-              <td
-                colspan="2"
-                class="px-4 py-3 text-right"
+                v-if="groupColVisible.share"
+                class="px-4 py-3 text-right tabular-nums"
               >
-                <div class="inline-block text-right text-brand">
-                  <VndAmount
-                    :amount="totals.cost_monthly"
-                    suffix=" / tháng"
-                  />
-                </div>
-              </td>
-              <td class="px-4 py-3 text-right">
-                100%
+                {{ row.cost_share_percent ?? 0 }}%
               </td>
             </tr>
           </tbody>
@@ -287,182 +332,132 @@ async function onApprove(row) {
       </div>
     </div>
 
-    <!-- Đề xuất mua AI -->
-    <div class="card overflow-hidden">
-      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
+    <!-- Đề xuất mua -->
+    <div class="card overflow-visible">
+      <div class="flex flex-col gap-3 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 class="font-semibold text-slate-700">
             Đề xuất mua AI
           </h2>
           <p class="mt-0.5 text-xs text-slate-500">
-            Chờ duyệt {{ proposalCounts.pending }} · Đã duyệt {{ proposalCounts.approved }} · Từ chối {{ proposalCounts.rejected }}
+            Gom theo nhóm chức năng · mở dòng để xem chi tiết
           </p>
         </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            class="btn-ghost border border-slate-200 px-2.5 py-1.5 text-xs"
+            @click="expandAllProposalGroups"
+          >
+            Mở nhóm
+          </button>
+          <button
+            type="button"
+            class="btn-ghost border border-slate-200 px-2.5 py-1.5 text-xs"
+            @click="collapseAllProposalGroups"
+          >
+            Đóng nhóm
+          </button>
+          <div
+            ref="proposalColDdRef"
+            class="relative"
+          >
+            <button
+              type="button"
+              class="flex h-9 items-center gap-1.5 rounded-btn border border-slate-200 bg-white px-3 text-sm text-slate-600"
+              @click="showProposalColDd = !showProposalColDd; showGroupColDd = false"
+            >
+              <AppIcon
+                name="columns"
+                :size="14"
+              />
+              Cột hiển thị
+            </button>
+            <div
+              v-if="showProposalColDd"
+              class="absolute right-0 top-full z-30 mt-1.5 w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-elevation-2"
+            >
+              <button
+                v-for="col in PROPOSAL_COLUMNS"
+                :key="col.key"
+                type="button"
+                class="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-sm hover:bg-slate-50"
+                @click="toggleProposalColumn(col.key)"
+              >
+                {{ col.label }}
+                <span
+                  class="h-3 w-3 rounded-full"
+                  :class="proposalColVisible[col.key] ? 'bg-brand' : 'bg-slate-200'"
+                />
+              </button>
+            </div>
+          </div>
+          <button
+            v-if="props.can.propose"
+            type="button"
+            class="btn-primary h-9 gap-1.5 text-sm"
+            @click="proposalFormOpen = true"
+          >
+            <AppIcon
+              name="add"
+              :size="15"
+            />
+            Đề xuất
+          </button>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap gap-1 border-b border-slate-100 px-5 py-2">
         <button
-          v-if="can.propose"
+          v-for="tab in statusTabs"
+          :key="tab.key"
           type="button"
-          class="btn-primary gap-1.5 text-sm"
-          @click="proposalFormOpen = true"
+          class="rounded-full px-3 py-1 text-xs font-medium transition"
+          :class="proposalStatusTab === tab.key
+            ? 'bg-brand text-white'
+            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+          @click="proposalStatusTab = tab.key"
         >
-          <AppIcon
-            name="add"
-            :size="15"
-          />
-          Đề xuất mua
+          {{ tab.label }}
+          <span
+            v-if="tab.key !== 'all'"
+            class="ml-1 opacity-80"
+          >({{ proposalCounts[tab.key] ?? 0 }})</span>
         </button>
       </div>
 
-      <div
-        v-if="loading"
-        class="px-5 py-10 text-center text-sm text-slate-500"
-      >
-        Đang tải…
-      </div>
-      <div
-        v-else-if="proposals.length === 0"
-        class="px-5 py-12 text-center text-sm text-slate-500"
-      >
-        Chưa có đề xuất nào.
-        <template v-if="can.propose">
-          Bấm «Đề xuất mua» để gửi yêu cầu.
-        </template>
-      </div>
-      <div
-        v-else
-        class="overflow-x-auto"
-      >
-        <table class="w-full min-w-[1100px] text-left text-sm">
-          <thead class="bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-            <tr>
-              <th class="px-4 py-3">
-                Công cụ
-              </th>
-              <th class="px-4 py-3">
-                Nhóm
-              </th>
-              <th class="px-4 py-3">
-                License
-              </th>
-              <th class="px-4 py-3 text-right">
-                Chi phí dự kiến
-              </th>
-              <th class="px-4 py-3 min-w-[12rem]">
-                Lý do đề xuất
-              </th>
-              <th class="px-4 py-3">
-                Trạng thái duyệt
-              </th>
-              <th class="px-4 py-3 min-w-[10rem]">
-                Lý do từ chối
-              </th>
-              <th class="px-4 py-3">
-                Người gửi
-              </th>
-              <th class="px-4 py-3 text-right">
-                Thao tác
-              </th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-100">
-            <tr
-              v-for="row in proposals"
-              :key="row.id"
-              class="align-top hover:bg-slate-50/50"
-            >
-              <td class="px-4 py-3 font-medium text-slate-800">
-                {{ row.tool_name }}
-              </td>
-              <td class="px-4 py-3 text-slate-600">
-                {{ row.group_function }}
-              </td>
-              <td class="px-4 py-3 text-slate-600">
-                {{ row.license_type }}
-              </td>
-              <td class="px-4 py-3 text-right">
-                <VndAmount :amount="row.cost_amount" />
-                <p class="mt-0.5 text-xs text-slate-500">
-                  {{ costUnitSuffix(row.cost_unit) }}
-                  <span v-if="row.cost_monthly"> · ~{{ row.cost_monthly.toLocaleString('vi-VN') }}/tháng</span>
-                </p>
-              </td>
-              <td class="px-4 py-3">
-                <p
-                  class="line-clamp-3 text-slate-600"
-                  :title="row.justification"
-                >
-                  {{ row.justification }}
-                </p>
-              </td>
-              <td class="px-4 py-3">
-                <Badge
-                  :label="row.status_label"
-                  :color="row.status_color"
-                />
-                <p
-                  v-if="row.status === 'approved' && row.reviewed_by_name"
-                  class="mt-1 text-xs text-slate-500"
-                >
-                  {{ row.reviewed_by_name }} · {{ row.reviewed_at }}
-                </p>
-              </td>
-              <td class="px-4 py-3">
-                <div
-                  v-if="row.status === 'rejected' && row.rejection_reason"
-                  class="rounded-lg border border-rose-200 bg-rose-50/80 px-2.5 py-2 text-xs text-rose-900"
-                >
-                  {{ row.rejection_reason }}
-                </div>
-                <span
-                  v-else
-                  class="text-slate-400"
-                >—</span>
-              </td>
-              <td class="px-4 py-3 text-slate-600">
-                <p>{{ row.created_by_name }}</p>
-                <p class="text-xs text-slate-400">
-                  {{ row.created_at }}
-                </p>
-              </td>
-              <td class="px-4 py-3 text-right whitespace-nowrap">
-                <template v-if="row.status === 'pending' && can.review_proposals">
-                  <button
-                    type="button"
-                    class="btn-ghost mr-1 px-2 py-1 text-xs text-emerald-700"
-                    @click="onApprove(row)"
-                  >
-                    Duyệt
-                  </button>
-                  <button
-                    type="button"
-                    class="btn-ghost px-2 py-1 text-xs text-rose-600"
-                    @click="openReject(row)"
-                  >
-                    Từ chối
-                  </button>
-                </template>
-                <span
-                  v-else
-                  class="text-xs text-slate-400"
-                >—</span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <AiCostReportProposalList
+        :loading="loading"
+        :groups="proposalGroups"
+        :expanded="proposalExpanded"
+        :detail-expanded="detailExpanded"
+        :col-visible="proposalColVisible"
+        :can="props.can"
+        @toggle-group="toggleProposalGroup"
+        @toggle-detail="toggleDetail"
+        @approve="openApprove"
+        @reject="openReject"
+        @save-notes="onSaveNotes"
+      />
     </div>
 
     <AiPurchaseProposalFormModal
       :show="proposalFormOpen"
-      :options="options"
+      :options="props.options"
       @close="proposalFormOpen = false"
       @submit="onProposalSubmit"
     />
-
     <AiPurchaseProposalRejectModal
       :show="rejectOpen"
       :proposal="rejecting"
       @close="rejectOpen = false"
       @submit="onRejectSubmit"
+    />
+    <AiPurchaseProposalApproveModal
+      :show="approveOpen"
+      :proposal="approving"
+      @close="approveOpen = false"
+      @submit="onApproveSubmit"
     />
   </AppLayout>
 </template>

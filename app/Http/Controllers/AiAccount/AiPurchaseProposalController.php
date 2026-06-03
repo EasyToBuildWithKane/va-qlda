@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\AiAccount;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\AiAccount\ApproveAiPurchaseProposalRequest;
 use App\Http\Requests\AiAccount\RejectAiPurchaseProposalRequest;
 use App\Http\Requests\AiAccount\StoreAiPurchaseProposalRequest;
+use App\Http\Requests\AiAccount\UpdateAiPurchaseProposalNotesRequest;
 use App\Models\AiPurchaseProposal;
 use App\Services\AiAccount\AiPurchaseProposalPresenter;
 use App\Support\Enums\AiAccountCostUnit;
@@ -41,14 +43,15 @@ class AiPurchaseProposalController extends Controller
         ], 201);
     }
 
-    public function approve(AiPurchaseProposal $proposal): JsonResponse
+    public function approve(ApproveAiPurchaseProposalRequest $request, AiPurchaseProposal $proposal): JsonResponse
     {
-        $this->authorize('review', $proposal);
+        $notes = $request->validated('review_notes');
 
         $proposal->update([
             'status' => AiPurchaseProposalStatus::Approved,
             'rejection_reason' => null,
-            'reviewed_by' => request()->user()->id,
+            'review_notes' => $notes ? trim((string) $notes) : $proposal->review_notes,
+            'reviewed_by' => $request->user()->id,
             'reviewed_at' => now(),
         ]);
 
@@ -72,6 +75,19 @@ class AiPurchaseProposalController extends Controller
             'success' => true,
             'data' => ['proposal' => $this->presenter->row($proposal->fresh())],
             'message' => 'Đã từ chối đề xuất.',
+        ]);
+    }
+
+    public function updateNotes(UpdateAiPurchaseProposalNotesRequest $request, AiPurchaseProposal $proposal): JsonResponse
+    {
+        $proposal->update([
+            'review_notes' => $request->validated('review_notes'),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => ['proposal' => $this->presenter->row($proposal->fresh())],
+            'message' => 'Đã lưu ghi chú.',
         ]);
     }
 }

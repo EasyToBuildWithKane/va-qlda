@@ -23,6 +23,7 @@ class AiPurchaseProposal extends Model
         'justification',
         'status',
         'rejection_reason',
+        'review_notes',
         'created_by',
         'reviewed_by',
         'reviewed_at',
