@@ -14,6 +14,7 @@ return [
     /** Giấy đề nghị thanh toán (KT.BM.03) — xuất PDF từ phiếu đề xuất. */
     'payment_request' => [
         'form_code' => 'KT.BM.03',
+        'school_name' => 'Hệ Thống Trường Việt Mỹ',
         'company_unit' => 'Công ty CP Văn hóa Giáo dục Việt Mỹ',
         'department' => 'Phòng Công Nghệ',
         'send_to' => 'Ban Tổng Giám Đốc',

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Dashboard;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\Task;
+use App\Models\Worklog;
 use App\Support\Enums\TaskStatus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -26,15 +27,15 @@ class TeamDashboardController extends Controller
             ->get();
 
         // ---- Worklog hours per member (last 30 days) --------------------
-        $worklogRows = DB::table('va_prd_worklogs')
-            ->join('va_prd_tasks', 'va_prd_worklogs.task_id', '=', 'va_prd_tasks.id')
-            ->whereDate('va_prd_worklogs.logged_at', '>=', now()->subDays(29))
-            ->whereNotNull('va_prd_tasks.assignee_id')
-            ->select(
-                'va_prd_tasks.assignee_id',
-                DB::raw('SUM(va_prd_worklogs.hours) as total_hours')
-            )
-            ->groupBy('va_prd_tasks.assignee_id')
+        $tablePrefix = DB::connection()->getTablePrefix();
+
+        $worklogRows = Worklog::query()
+            ->join('tasks', 'worklogs.task_id', '=', 'tasks.id')
+            ->whereDate('worklogs.date', '>=', now()->subDays(29))
+            ->whereNotNull('tasks.assignee_id')
+            ->select('tasks.assignee_id')
+            ->selectRaw("SUM({$tablePrefix}worklogs.hours) as total_hours")
+            ->groupBy('tasks.assignee_id')
             ->get()
             ->keyBy('assignee_id');
 
@@ -80,37 +81,37 @@ class TeamDashboardController extends Controller
             });
 
         // ---- Weekly task completion (last 6 weeks) -----------------------
-        $weeklyTrend = Task::where('status', TaskStatus::Done)
-            ->whereDate('updated_at', '>=', now()->subWeeks(5)->startOfWeek())
-            ->select(
-                DB::raw('YEARWEEK(updated_at, 1) as yw'),
-                DB::raw('MIN(DATE(updated_at)) as week_start'),
-                DB::raw('count(*) as total')
-            )
-            ->groupBy('yw')
-            ->orderBy('yw')
-            ->get()
-            ->map(fn ($r) => [
-                'label' => 'T'.date('W', strtotime($r->week_start)),
-                'total' => $r->total,
+        $weeklyTrend = collect();
+        $weekStart = now()->subWeeks(5)->startOfWeek();
+
+        for ($i = 0; $i < 6; $i++) {
+            $start = $weekStart->copy()->addWeeks($i);
+            $end = $start->copy()->endOfWeek();
+
+            $weeklyTrend->push([
+                'label' => 'T'.$start->isoWeek(),
+                'total' => Task::where('status', TaskStatus::Done)
+                    ->whereBetween('updated_at', [$start, $end])
+                    ->count(),
             ]);
+        }
 
         // ---- Task status distribution per project for top 8 projects -----
-        $projectTaskStats = DB::table('va_prd_tasks')
-            ->join('va_prd_projects', 'va_prd_tasks.project_id', '=', 'va_prd_projects.id')
+        $projectTaskStats = Task::query()
+            ->join('projects', 'tasks.project_id', '=', 'projects.id')
             ->select(
-                'va_prd_projects.id',
-                'va_prd_projects.name',
-                'va_prd_tasks.status',
+                'projects.id',
+                'projects.name',
+                'tasks.status',
                 DB::raw('count(*) as total')
             )
-            ->whereIn('va_prd_projects.id', function ($q) {
+            ->whereIn('projects.id', function ($q) {
                 $q->select('id')
-                    ->from('va_prd_projects')
+                    ->from('projects')
                     ->where('is_active', true)
                     ->limit(8);
             })
-            ->groupBy('va_prd_projects.id', 'va_prd_projects.name', 'va_prd_tasks.status')
+            ->groupBy('projects.id', 'projects.name', 'tasks.status')
             ->get()
             ->groupBy('id')
             ->map(function ($rows) {

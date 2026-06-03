@@ -1,11 +1,13 @@
 <p class="pr-form-code">{{ $vars['form_code'] }}</p>
 
-<table class="doc-header">
+<div class="pr-a4-header">
+    <img src="{{ 'file://'.public_path('docx/header.png') }}" class="pr-header-banner" alt="">
+</div>
+<p class="pr-dept-line">{{ $vars['department_header'] }}</p>
+
+<table class="pr-header-meta">
     <tr>
-        <td class="cell-left pr-cell-img">
-            <img src="{{ 'file://'.public_path('docx/header.png') }}" class="pr-header-img" alt="">
-            <div class="pr-dept-label">{{ $vars['department_header'] }}</div>
-        </td>
+        <td class="pr-meta-spacer"></td>
         <td class="cell-right">
             <div class="republic">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
             <div class="motto">

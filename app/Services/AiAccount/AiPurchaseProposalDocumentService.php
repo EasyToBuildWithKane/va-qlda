@@ -280,6 +280,7 @@ class AiPurchaseProposalDocumentService
         return [
             'form_code' => (string) ($cfg['form_code'] ?? 'KT.BM.03'),
             'company_unit' => (string) ($cfg['company_unit'] ?? 'Công ty CP Văn hóa Giáo dục Việt Mỹ'),
+            'school_name' => (string) ($cfg['school_name'] ?? 'Hệ Thống Trường Việt Mỹ'),
             'department_header' => (string) ($cfg['department'] ?? 'Phòng Công Nghệ'),
             'doc_day' => (string) $docDate->day,
             'doc_month' => (string) $docDate->month,
