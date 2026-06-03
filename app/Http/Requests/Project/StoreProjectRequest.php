@@ -3,11 +3,11 @@
 namespace App\Http\Requests\Project;
 
 use App\Models\Project;
-use App\Support\Options;
 use App\Support\Enums\ProjectScope;
 use App\Support\Enums\ProjectStatus;
 use App\Support\Enums\ProjectType;
 use App\Support\Enums\Region;
+use App\Support\Options;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 

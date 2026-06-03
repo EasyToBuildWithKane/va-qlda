@@ -4,9 +4,9 @@ namespace Tests\Feature;
 
 use App\Models\Project;
 use App\Models\SystemAccount;
+use App\Support\Enums\ProjectScope;
 use App\Support\Enums\ProjectStatus;
 use App\Support\Enums\ProjectType;
-use App\Support\Enums\ProjectScope;
 use App\Support\Enums\SystemRole;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;

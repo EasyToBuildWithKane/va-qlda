@@ -18,7 +18,9 @@ class MemberResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        $pivot = $this->pivot;
+        /** @var \App\Models\Employee $employee */
+        $employee = $this->resource;
+        $pivot = $employee->getRelationValue('pivot');
         $rateType = $pivot?->rate_type ? RateType::from($pivot->rate_type) : null;
 
         return [

@@ -18,7 +18,9 @@ class StoreMemberRequest extends FormRequest
      */
     public function rules(): array
     {
-        $projectId = $this->route('project')->id;
+        /** @var \App\Models\Project $project */
+        $project = $this->route('project');
+        $projectId = $project->id;
 
         return [
             'employee_id' => [

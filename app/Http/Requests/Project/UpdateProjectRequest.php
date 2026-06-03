@@ -21,7 +21,9 @@ class UpdateProjectRequest extends FormRequest
      */
     public function rules(): array
     {
-        $id = $this->route('project')->id;
+        /** @var \App\Models\Project $project */
+        $project = $this->route('project');
+        $id = $project->id;
 
         return [
             'code' => ['required', 'string', 'max:30', Rule::unique('projects', 'code')->ignore($id)],

@@ -40,11 +40,12 @@ class LogWorkUseCase
      */
     private function effectiveHourlyRate(int $projectId, int $employeeId): ?float
     {
-        $pivot = Project::find($projectId)
+        $member = Project::find($projectId)
             ?->members()
             ->where('employee_id', $employeeId)
-            ->first()
-            ?->pivot;
+            ->first();
+
+        $pivot = $member?->getRelationValue('pivot');
 
         if ($pivot === null || $pivot->rate === null) {
             return null;

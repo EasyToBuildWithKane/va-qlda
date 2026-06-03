@@ -3,8 +3,6 @@
 namespace App\Http\Controllers\Project;
 
 use App\Http\Controllers\Controller;
-use App\Http\Resources\EpicResource;
-use App\Models\Epic;
 use App\Models\Project;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;

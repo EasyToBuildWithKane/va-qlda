@@ -12,6 +12,7 @@ class ProjectIndexQuery
     public function __construct(
         private readonly ProjectSummaryQuery $summaryQuery,
     ) {}
+
     /**
      * @return array{
      *     projects: Collection<int, Project>,
