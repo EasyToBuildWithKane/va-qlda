@@ -50,4 +50,13 @@ export async function httpPut(url, body, config = {}) {
     return data;
 }
 
+/**
+ * @param {string} url
+ * @param {import('axios').AxiosRequestConfig} [config]
+ */
+export async function httpDelete(url, config = {}) {
+    const { data } = await client.delete(url, config);
+    return data;
+}
+
 export { client as httpClient };

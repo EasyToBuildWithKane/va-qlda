@@ -18,22 +18,28 @@ class CreateProjectUseCase
             $data['department_id'] = $this->departmentOptions->defaultOwnerId();
         }
 
-        if (empty($data['code'])) {
-            $data['code'] = $this->generateCode();
-        }
+        // Luôn cấp mã mới lúc lưu — tránh mã gợi ý trên form bị lỗi thời (tab mở lâu / trùng).
+        $data['code'] = $this->allocateUniqueCode();
 
         return Project::create($data);
     }
 
     public function suggestCode(): string
     {
-        return $this->generateCode();
+        return $this->allocateUniqueCode();
     }
 
-    private function generateCode(): string
+    private function allocateUniqueCode(): string
     {
-        $last = Project::orderByDesc('id')->value('id') ?? 0;
+        $lastId = (int) (Project::orderByDesc('id')->value('id') ?? 0);
 
-        return 'PRJ-'.str_pad((string) ($last + 1), 3, '0', STR_PAD_LEFT);
+        for ($offset = 1; $offset <= 500; $offset++) {
+            $code = 'PRJ-'.str_pad((string) ($lastId + $offset), 3, '0', STR_PAD_LEFT);
+            if (! Project::query()->where('code', $code)->exists()) {
+                return $code;
+            }
+        }
+
+        return 'PRJ-'.str_pad((string) (time() % 1000000), 6, '0', STR_PAD_LEFT);
     }
 }

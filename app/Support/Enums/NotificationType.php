@@ -51,6 +51,7 @@ enum NotificationType: string
     case SystemRestore = 'system_restore';
     case SystemSync = 'system_sync';
     case SystemError = 'system_error';
+    case SystemAiAccountExpiry = 'system_ai_account_expiry';
 
     // Admin feed
     case AdminUserAction = 'admin_user_action';
@@ -84,7 +85,8 @@ enum NotificationType: string
             self::CommentSprintThread => NotificationCategory::Comment,
 
             self::SystemImport, self::SystemExport, self::SystemBackup,
-            self::SystemRestore, self::SystemSync, self::SystemError => NotificationCategory::System,
+            self::SystemRestore, self::SystemSync, self::SystemError,
+            self::SystemAiAccountExpiry => NotificationCategory::System,
 
             default => NotificationCategory::Admin,
         };
@@ -98,6 +100,7 @@ enum NotificationType: string
             self::AdminQueueFailed, self::AdminImportFailed => NotificationPriority::Critical,
 
             self::TaskDueSoon, self::TaskBlocked, self::TaskAssigned,
+            self::SystemAiAccountExpiry,
             self::SprintOverCapacity, self::AdminDataAnomaly,
             self::AdminUploadFailed, self::AdminPermissionError => NotificationPriority::High,
 
@@ -146,6 +149,7 @@ enum NotificationType: string
             self::SystemRestore => 'Restore',
             self::SystemSync => 'Đồng bộ dữ liệu',
             self::SystemError => 'Lỗi hệ thống',
+            self::SystemAiAccountExpiry => 'Tài khoản AI sắp hết hạn',
             self::AdminUserAction => 'Hoạt động người dùng',
             self::AdminApiError => 'API Error',
             self::AdminValidationError => 'Validation Error',

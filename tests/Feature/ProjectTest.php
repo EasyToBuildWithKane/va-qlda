@@ -60,7 +60,25 @@ class ProjectTest extends TestCase
             ])
             ->assertRedirect();
 
-        $this->assertDatabaseHas('projects', ['code' => 'PRJ-TEST', 'name' => 'Test Project']);
+        $this->assertDatabaseHas('projects', ['name' => 'Test Project']);
+        $this->assertDatabaseMissing('projects', ['code' => 'PRJ-TEST']);
+    }
+
+    public function test_create_ignores_stale_suggested_code_and_allocates_unique(): void
+    {
+        Project::factory()->create(['code' => 'PRJ-001']);
+
+        $this->actingAs($this->admin(), 'system')
+            ->post('/projects', [
+                'name' => 'Second Project',
+                'code' => 'PRJ-001',
+                'status' => ProjectStatus::Planning->value,
+                'type' => ProjectType::Rnd->value,
+                'scope' => ProjectScope::Headquarters->value,
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('projects', ['name' => 'Second Project', 'code' => 'PRJ-002']);
     }
 
     public function test_member_cannot_create_project(): void

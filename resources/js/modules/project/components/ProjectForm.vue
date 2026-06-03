@@ -76,6 +76,46 @@ const liveErrors = computed(() => {
 
 const errFor = (f) => form.errors[f] || ((submitted.value || touched.has(f)) ? liveErrors.value[f] : null);
 
+const fieldTabByKey = {
+    name: 0,
+    code: 0,
+    type: 0,
+    description: 0,
+    scope: 1,
+    scope_regions: 1,
+    scope_departments: 1,
+    department_id: 1,
+    start_date: 2,
+    due_date: 2,
+    manager_id: 3,
+    status: 3,
+};
+
+const formErrorList = computed(() => Object.entries(form.errors).filter(([, v]) => v));
+
+const hasVisibleErrors = computed(
+    () => formErrorList.value.length > 0
+        || (submitted.value && Object.keys(liveErrors.value).length > 0),
+);
+
+function focusTabForField(fieldKey) {
+    if (fieldKey && fieldTabByKey[fieldKey] !== undefined) {
+        activeTab.value = fieldTabByKey[fieldKey];
+    }
+}
+
+function focusFirstError(errorMap) {
+    const firstKey = Object.keys(errorMap)[0];
+    if (firstKey) {
+        focusTabForField(firstKey);
+    }
+}
+
+function showValidationToast(errorMap) {
+    const first = Object.values(errorMap)[0];
+    toast.error(typeof first === 'string' ? first : 'Vui lòng kiểm tra lại biểu mẫu.');
+}
+
 const dayCount = computed(() => {
     if (!form.start_date || !form.due_date) return null;
     const s = new Date(form.start_date);
@@ -216,18 +256,37 @@ const deleteDraft = async (draft) => {
 
 const submit = (after = 'close') => {
     submitted.value = true;
-    form.transform((data) => ({ ...data, after }));
-    if (props.project) {
-        form.put(`/projects/${props.project.id}`);
+
+    const clientErrs = { ...liveErrors.value };
+    if (Object.keys(clientErrs).length > 0) {
+        focusFirstError(clientErrs);
+        showValidationToast(clientErrs);
         return;
     }
-    form.post('/projects', {
+
+    const postOptions = {
+        preserveScroll: true,
         onSuccess: () => {
-            if (draftStore.activeDraftId.value) {
+            if (isCreate.value && draftStore.activeDraftId.value) {
                 draftStore.remove(draftStore.activeDraftId.value);
             }
         },
-    });
+        onError: (errors) => {
+            focusFirstError(errors);
+            showValidationToast(errors);
+        },
+        onFinish: () => {
+            form.transform((data) => data);
+        },
+    };
+
+    if (props.project) {
+        form.put(`/projects/${props.project.id}`, postOptions);
+        return;
+    }
+
+    form.transform((data) => ({ ...data, after }));
+    form.post('/projects', postOptions);
 };
 </script>
 
@@ -390,6 +449,32 @@ const submit = (after = 'close') => {
       class="lg:col-span-3"
       @submit.prevent="submit('close')"
     >
+      <div
+        v-if="hasVisibleErrors"
+        class="mb-4 rounded-card border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900"
+        role="alert"
+      >
+        <p class="font-semibold">
+          Không thể lưu dự án
+        </p>
+        <ul class="mt-2 list-inside list-disc space-y-0.5 text-rose-800">
+          <li
+            v-for="(msg, key) in form.errors"
+            :key="key"
+          >
+            {{ msg }}
+          </li>
+          <template v-if="!formErrorList.length">
+            <li
+              v-for="(msg, key) in liveErrors"
+              :key="'live-' + key"
+            >
+              {{ msg }}
+            </li>
+          </template>
+        </ul>
+      </div>
+
       <div
         v-if="isCreate && draftStore.drafts.length"
         class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-card border border-brand-200 bg-brand-50/50 px-4 py-3"

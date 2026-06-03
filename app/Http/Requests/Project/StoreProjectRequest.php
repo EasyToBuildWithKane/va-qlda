@@ -33,7 +33,8 @@ class StoreProjectRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'code' => ['required', 'string', 'max:30', Rule::unique('projects', 'code')],
+            // Mã thực tế do CreateProjectUseCase cấp phát khi lưu (form chỉ hiển thị gợi ý).
+            'code' => ['nullable', 'string', 'max:30'],
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:5000'],
             'color' => ['nullable', 'string', 'max:30'],
@@ -61,8 +62,6 @@ class StoreProjectRequest extends FormRequest
     {
         return [
             'name.required' => 'Tên dự án không được để trống.',
-            'code.required' => 'Mã dự án không được để trống.',
-            'code.unique' => 'Mã dự án đã tồn tại.',
             'type.required' => 'Vui lòng chọn loại dự án.',
             'scope.required' => 'Phải chọn phạm vi áp dụng.',
             'budget.min' => 'Ngân sách phải lớn hơn hoặc bằng 0.',

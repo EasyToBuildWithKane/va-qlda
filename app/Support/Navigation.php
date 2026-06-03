@@ -94,7 +94,8 @@ class Navigation
                 ['label' => 'Cơ sở tri thức', 'icon' => 'knowledge', 'href' => '#', 'status' => 'planned'],
             ]],
             ['heading' => 'Hệ thống', 'icon' => 'settings', 'items' => [
-                ['label' => 'Tài khoản', 'icon' => 'account', 'href' => '#', 'status' => 'planned'],
+                ['label' => 'Quản lý tài khoản AI', 'icon' => 'account', 'href' => '/ai-accounts', 'status' => 'live'],
+                ['label' => 'Báo cáo chi phí AI', 'icon' => 'performance', 'href' => '/ai-accounts/cost-report', 'status' => 'live'],
                 ['label' => 'Quản lý thông báo', 'icon' => 'notifications', 'href' => '/notifications/manage', 'status' => 'live', 'roles' => ['admin']],
                 ['label' => 'Cấu hình hệ thống', 'icon' => 'system-config', 'href' => '#', 'status' => 'planned', 'roles' => ['admin']],
             ]],

@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\AiAccount\AiAccountController;
+use App\Http\Controllers\AiAccount\AiAccountPageController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Blocker\BlockerAttachmentController;
@@ -151,6 +153,23 @@ Route::middleware('auth')->group(function () {
         Route::get('/{feedback}', [FeedbackController::class, 'show'])->name('show');
         Route::put('/{feedback}', [FeedbackController::class, 'update'])->name('update');
         Route::delete('/{feedback}', [FeedbackController::class, 'destroy'])->name('destroy');
+    });
+
+    // AI accounts (JSON API + Inertia pages)
+    Route::prefix('api/ai-accounts')->name('api.ai-accounts.')->group(function () {
+        Route::get('/summary', [AiAccountController::class, 'summary'])->name('summary');
+        Route::post('/trigger-reminder', [AiAccountController::class, 'triggerReminder'])->name('trigger-reminder');
+        Route::get('/', [AiAccountController::class, 'index'])->name('index');
+        Route::post('/', [AiAccountController::class, 'store'])->name('store');
+        Route::get('/{aiAccount}', [AiAccountController::class, 'show'])->name('show');
+        Route::put('/{aiAccount}', [AiAccountController::class, 'update'])->name('update');
+        Route::delete('/{aiAccount}', [AiAccountController::class, 'destroy'])->name('destroy');
+        Route::post('/{aiAccount}/renew', [AiAccountController::class, 'renew'])->name('renew');
+    });
+
+    Route::prefix('ai-accounts')->name('ai-accounts.')->group(function () {
+        Route::get('/', [AiAccountPageController::class, 'index'])->name('index');
+        Route::get('/cost-report', [AiAccountPageController::class, 'costReport'])->name('cost-report');
     });
 
     // Departments (phòng ban) — owns projects.
