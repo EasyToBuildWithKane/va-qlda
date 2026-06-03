@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string|null $email
  * @property string|null $avatar_path
  * @property bool $is_active
+ * @property-read string $name Alias of full_name for uniform UI/resource output
  */
 class Employee extends Model
 {
@@ -63,5 +64,14 @@ class Employee extends Model
     public function assignedTasks(): HasMany
     {
         return $this->hasMany(Task::class, 'assignee_id');
+    }
+
+    /**
+     * Uniform display name. The table stores `full_name`; expose it as `name`
+     * so resources and the UI can rely on a single attribute everywhere.
+     */
+    public function getNameAttribute(): string
+    {
+        return $this->full_name;
     }
 }
