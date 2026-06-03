@@ -8,7 +8,9 @@ Xử lý sự cố dev local, Git hooks, và CI.
 
 ## Deploy server — EBADENGINE / git pull đã mới nhất
 
-**EBADENGINE:** Pull bản mới (lint-staged 16). Server: `CI=true HUSKY=0 npm ci --omit=dev` + `npm run build` — `_dev/troubleshooting.md` (Server deploy).
+**Tự build sau pull:** `git config core.hooksPath .husky` + `export VA_AUTO_BUILD_ON_PULL=1` — xem `_dev/troubleshooting.md` (Server deploy).
+
+**EBADENGINE:** Pull bản mới (lint-staged 16). Server: `npm ci --omit=dev` khi cần.
 
 **Already up to date:** Máy dev cần `git push` trước; server `git fetch`.
 

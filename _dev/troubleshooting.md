@@ -10,10 +10,22 @@ Common issues and fixes for local dev, Git hooks, and CI.
 
 **`Already up to date`:** Remote chưa có commit mới — máy dev cần `git push` trước; trên server `git fetch && git log HEAD..origin/main`.
 
-**Cài dependency trên server (không cần Husky / Playwright):**
+**Tự `npm run build` sau `git pull` (một lần cấu hình server):**
 
 ```bash
-export CI=true HUSKY=0 NODE_ENV=production
+cd /path/to/public_html   # thư mục repo
+git config core.hooksPath .husky
+chmod +x .husky/post-merge scripts/post-merge-deploy.sh
+echo 'export VA_AUTO_BUILD_ON_PULL=1' >> ~/.bashrc   # hoặc export trước mỗi pull
+source ~/.bashrc
+```
+
+Sau đó mỗi `git pull` (có thay đổi `resources/`, `package.json`, vite/tailwind…): hook chạy `npm install --omit=dev` (nếu cần) và **`npm run build`**.
+
+**Deploy thủ công đầy đủ (lần đầu / không dùng hook):**
+
+```bash
+export CI=true HUSKY=0 NODE_ENV=production VA_AUTO_BUILD_ON_PULL=1
 git pull
 composer install --no-dev --optimize-autoloader
 npm ci --omit=dev
