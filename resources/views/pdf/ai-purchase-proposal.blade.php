@@ -5,7 +5,7 @@
     <style>
         @page {
             size: A4;
-            margin: 40mm 15mm 22mm 20mm;
+            margin: 38mm 14mm 20mm 18mm;
         }
 
         * { box-sizing: border-box; }
@@ -13,7 +13,7 @@
         body {
             font-family: 'DejaVu Serif', 'Times New Roman', serif;
             font-size: 11pt;
-            line-height: 1.70;
+            line-height: 1.5;
             color: #000;
             margin: 0;
             padding: 0;
@@ -31,8 +31,8 @@
 
         .page-bg {
             position: fixed;
-            top: -40mm;
-            left: -20mm;
+            top: -38mm;
+            left: -18mm;
             width: 210mm;
             height: 297mm;
             z-index: -1;
@@ -45,11 +45,11 @@
         .doc-header {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 3pt;
+            margin-bottom: 2pt;
             border: 1pt solid #000;
         }
         .doc-header td {
-            padding: 3pt 5pt;
+            padding: 2pt 4pt;
             vertical-align: top;
             border: 1pt solid #000;
         }
@@ -90,7 +90,7 @@
 
         .doc-title {
             text-align: center;
-            margin: 4pt 0 2pt 0;
+            margin: 3pt 0 1pt 0;
         }
         .doc-title h1 {
             font-size: 14pt;
@@ -105,12 +105,12 @@
         }
 
         .kinh-gui {
-            margin: 3pt 0 1pt 24pt;
+            margin: 2pt 0 0 22pt;
         }
         .kinh-gui .label { font-style: italic; font-weight: bold; }
 
         .section {
-            margin: 2pt 0 1pt 0;
+            margin: 1pt 0 0 0;
         }
         .section-num {
             font-weight: bold;
@@ -130,13 +130,13 @@
         table.budget {
             width: 100%;
             border-collapse: collapse;
-            margin: 2pt 0 3pt 0;
+            margin: 1pt 0 2pt 0;
             font-size: 10pt;
         }
         table.budget th,
         table.budget td {
             border: 1pt solid #000;
-            padding: 3pt 4pt;
+            padding: 2pt 3pt;
             vertical-align: middle;
         }
         table.budget th {
@@ -146,35 +146,57 @@
         }
         table.budget td.center { text-align: center; }
 
-        .checkbox-option {
-            display: inline-block;
-            margin-right: 14pt;
+        /* 4.4 — table layout (DomPDF ổn định hơn inline-block) */
+        .status-block {
+            margin-left: 16pt;
+            margin-top: 1pt;
+            margin-bottom: 1pt;
+        }
+        table.status-checks {
+            border-collapse: collapse;
+            margin-top: 1pt;
+        }
+        table.status-checks td.status-opt {
+            padding: 0 20pt 0 0;
             vertical-align: middle;
+        }
+        table.status-inner {
+            border-collapse: collapse;
+        }
+        table.status-inner td.status-box {
+            width: 14pt;
+            padding: 0 5pt 0 0;
+            vertical-align: middle;
+        }
+        table.status-inner td.status-text {
+            vertical-align: middle;
+            font-size: 11pt;
             white-space: nowrap;
         }
         .checkbox-img {
-            width: 12pt;
-            height: 12pt;
-            vertical-align: middle;
-            margin-right: 3pt;
+            width: 11pt;
+            height: 11pt;
+            display: block;
+            margin: 0;
+            padding: 0;
         }
         .checkbox-empty {
-            display: inline-block;
-            width: 12pt;
-            height: 12pt;
+            display: block;
+            width: 11pt;
+            height: 11pt;
             border: 1pt solid #000;
-            vertical-align: middle;
-            margin-right: 3pt;
+            margin: 0;
+            padding: 0;
         }
 
         table.sig {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 8pt;
+            margin-top: 6pt;
         }
         table.sig td {
             border: 1pt dotted #666;
-            padding: 6pt 8pt 8pt;
+            padding: 5pt 6pt 6pt;
             vertical-align: top;
             text-align: center;
             font-size: 10pt;
@@ -195,7 +217,7 @@
         }
 
         .closing {
-            margin-top: 4pt;
+            margin-top: 3pt;
             font-style: italic;
             font-size: 10.5pt;
         }
@@ -311,25 +333,41 @@
             <p><span class="bold">Số điện thoại:</span> {{ $vars['recipient_phone'] }}</p>
         </div>
 
-        <p class="indent">
-            <span class="bold">4.4 Tình trạng:</span>&nbsp;
-            <span class="checkbox-option">
-                @if($vars['check_new'] === '☑')
-                    <img src="{{ $checkboxImg }}" class="checkbox-img" alt="">
-                @else
-                    <span class="checkbox-empty"></span>
-                @endif
-                Mua mới
-            </span>
-            <span class="checkbox-option">
-                @if($vars['check_renewal'] === '☑')
-                    <img src="{{ $checkboxImg }}" class="checkbox-img" alt="">
-                @else
-                    <span class="checkbox-empty"></span>
-                @endif
-                Gia hạn
-            </span>
-        </p>
+        <div class="status-block">
+            <p class="bold" style="margin:0 0 1pt 0;">4.4 Tình trạng:</p>
+            <table class="status-checks">
+                <tr>
+                    <td class="status-opt">
+                        <table class="status-inner">
+                            <tr>
+                                <td class="status-box">
+                                    @if($vars['check_new'] === '☑')
+                                        <img src="{{ $checkboxImg }}" class="checkbox-img" alt="">
+                                    @else
+                                        <span class="checkbox-empty"></span>
+                                    @endif
+                                </td>
+                                <td class="status-text">Mua mới</td>
+                            </tr>
+                        </table>
+                    </td>
+                    <td class="status-opt">
+                        <table class="status-inner">
+                            <tr>
+                                <td class="status-box">
+                                    @if($vars['check_renewal'] === '☑')
+                                        <img src="{{ $checkboxImg }}" class="checkbox-img" alt="">
+                                    @else
+                                        <span class="checkbox-empty"></span>
+                                    @endif
+                                </td>
+                                <td class="status-text">Gia hạn</td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+        </div>
 
         <p class="indent">
             <span class="bold">4.5 Thông tin bổ sung:</span><br>
