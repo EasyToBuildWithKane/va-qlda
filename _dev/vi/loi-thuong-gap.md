@@ -35,6 +35,8 @@ chmod +x .husky/*
 
 ## commitlint báo lỗi
 
+**IDE ghi "Updates" / subject trống:** Hook tự sinh message Conventional từ file staged (`fix-commit-msg.mjs`). Cần `git add` trước. Hoặc `npm run commit`.
+
 **Triệu chứng:** `git commit` bị từ chối.
 
 **Format bắt buộc:** `type(scope): mo ta`

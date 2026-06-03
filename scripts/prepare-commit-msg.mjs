@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import { generateCommitMessage } from './generate-commit-msg.mjs';
+import { isValidConventional, shouldReplaceWithGenerated } from './commit-message-utils.mjs';
 
 const [commitMsgFile, source = ''] = process.argv.slice(2);
 
@@ -17,7 +18,11 @@ const userLine = current
     .map((line) => line.trim())
     .find((line) => line && !line.startsWith('#'));
 
-if (userLine && (source === 'message' || source === 'template')) {
+if (userLine && isValidConventional(userLine)) {
+    process.exit(0);
+}
+
+if (userLine && !shouldReplaceWithGenerated(userLine)) {
     process.exit(0);
 }
 

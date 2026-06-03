@@ -35,6 +35,8 @@ chmod +x .husky/*
 
 **Symptoms:** `git commit` rejected with commitlint errors.
 
+**Cursor / VS Code gõ "Updates" hoặc để trống:** Hook `fix-commit-msg.mjs` + `prepare-commit-msg.mjs` tự thay bằng message từ `git diff --cached` (cần có file staged). Hoặc chạy `npm run commit` / `npm run commit:msg`.
+
 **Required format:** `type(scope): description`
 
 ```bash
