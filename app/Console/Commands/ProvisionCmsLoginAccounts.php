@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Services\Auth\BootstrapAdminRoleService;
 use App\Services\Cms\CmsEmployeeSyncService;
 use Illuminate\Console\Command;
 
@@ -46,6 +47,13 @@ class ProvisionCmsLoginAccounts extends Command
         $this->info($dryRun
             ? "Sẽ tạo {$count} tài khoản đăng nhập."
             : "Đã tạo {$count} tài khoản (role mặc định: member). Gán admin trong DB nếu cần.");
+
+        if (! $dryRun) {
+            $roles = app(BootstrapAdminRoleService::class)->applyBootstrapRoles(true);
+            if ($roles['updated'] + $roles['created'] > 0) {
+                $this->info("Bootstrap admin: {$roles['updated']} cập nhật role, {$roles['created']} tạo mới.");
+            }
+        }
 
         return self::SUCCESS;
     }

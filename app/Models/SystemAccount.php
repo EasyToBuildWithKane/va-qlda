@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Auth\Permissions;
 use App\Support\Enums\SystemRole;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -61,5 +62,10 @@ class SystemAccount extends Authenticatable
     public function hasRole(SystemRole ...$roles): bool
     {
         return in_array($this->role, $roles, true);
+    }
+
+    public function allows(string $permission): bool
+    {
+        return Permissions::roleAllows($this->role, $permission);
     }
 }

@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\AppNotification;
 use App\Support\Enums\NotificationPriority;
-use App\Support\Enums\SystemRole;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -14,7 +13,7 @@ class NotificationManagementController extends Controller
 {
     public function __invoke(Request $request): Response
     {
-        abort_unless($request->user()->hasRole(SystemRole::Admin), 403);
+        abort_unless($request->user()->allows('notifications.manage'), 403);
 
         $base = AppNotification::query()->where('is_admin_feed', true);
 

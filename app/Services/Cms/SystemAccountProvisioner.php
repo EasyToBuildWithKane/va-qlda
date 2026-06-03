@@ -4,6 +4,7 @@ namespace App\Services\Cms;
 
 use App\Models\Employee;
 use App\Models\SystemAccount;
+use App\Services\Auth\BootstrapAdminRoleService;
 use App\Support\Enums\SystemRole;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -17,6 +18,8 @@ final class SystemAccountProvisioner
         Employee $employee,
         SystemRole $role = SystemRole::Member,
     ): SystemAccount {
+        $role = $this->resolveRole($employee, $role);
+
         $existing = SystemAccount::query()
             ->where('employee_id', $employee->id)
             ->first();
@@ -42,6 +45,7 @@ final class SystemAccountProvisioner
         Employee $employee,
         SystemRole $role,
     ): SystemAccount {
+        $resolvedRole = $this->resolveRole($employee, $role);
         $dirty = false;
 
         if ($account->display_name !== $employee->full_name) {
@@ -51,6 +55,11 @@ final class SystemAccountProvisioner
 
         if ($account->is_active !== $employee->is_active) {
             $account->is_active = $employee->is_active;
+            $dirty = true;
+        }
+
+        if ($account->role !== $resolvedRole) {
+            $account->role = $resolvedRole;
             $dirty = true;
         }
 
@@ -89,5 +98,11 @@ final class SystemAccountProvisioner
             ->where('username', $username)
             ->where('employee_id', '!=', $employeeId)
             ->exists();
+    }
+
+    private function resolveRole(Employee $employee, SystemRole $default): SystemRole
+    {
+        return app(BootstrapAdminRoleService::class)
+            ->resolveRoleForEmail($employee->email) ?? $default;
     }
 }

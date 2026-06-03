@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Services\Auth\BootstrapAdminRoleService;
 use App\Services\Cms\CmsEmployeeSyncService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -65,6 +66,13 @@ class SyncCmsEmployees extends Command
 
         if ($stats['errors'] > 0) {
             return self::FAILURE;
+        }
+
+        if (! $dryRun && $provision) {
+            $roles = app(BootstrapAdminRoleService::class)->applyBootstrapRoles(true);
+            if ($roles['updated'] > 0) {
+                $this->info("Bootstrap admin roles: {$roles['updated']} cập nhật.");
+            }
         }
 
         $this->info('Hoàn tất.');
