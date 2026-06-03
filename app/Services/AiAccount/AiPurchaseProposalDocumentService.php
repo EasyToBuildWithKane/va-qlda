@@ -26,7 +26,7 @@ class AiPurchaseProposalDocumentService
         $monthly = app(AiAccountCostCalculator::class)
             ->monthlyAmount($proposal->cost_amount, $proposal->cost_unit);
 
-        $docDate = Carbon::now()->locale('vi');
+        $docDate = Carbon::now()->timezone(config('app.timezone'));
         $planned = $proposal->planned_use_date
             ? Carbon::parse($proposal->planned_use_date)->format('d/m/Y')
             : '';
@@ -39,10 +39,9 @@ class AiPurchaseProposalDocumentService
         $content = $proposal->proposal_content ?? $proposal->justification ?? '';
 
         return [
-            'doc_date' => $docDate->translatedFormat('l, ngày j \t\h\á\n\g n \n\ă\m Y'),
+            'doc_date' => $this->formatDocDateVi($docDate),
             'subject_about' => $proposal->subject_about ?? ('Đăng ký sử dụng '.$proposal->tool_name),
-            'send_to_part1' => 'Ban Giám đốc',
-            'send_to_part2' => $proposal->send_to ?? 'Phòng Công nghệ & Phòng Kế Toán',
+            ...$this->splitSendTo($proposal->send_to),
             'proposer_name' => $proposal->proposer_name ?? '—',
             'proposer_position' => $proposal->proposer_position ?? '—',
             'proposer_department' => $proposal->proposer_department ?? '—',
@@ -95,6 +94,48 @@ class AiPurchaseProposalDocumentService
         $filename = 'Phieu_de_xuat_'.$this->safeFilename($proposal->tool_name).'.pdf';
 
         return $pdf->download($filename);
+    }
+
+    /**
+     * @return array{send_to_part1: string, send_to_part2: string}
+     */
+    private function splitSendTo(?string $sendTo): array
+    {
+        $default = config('ai_accounts.proposal.send_to_default', "Ban Giám đốc\nPhòng Công nghệ & Phòng Kế Toán");
+        $raw = trim($sendTo ?? '') !== '' ? $sendTo : $default;
+        $lines = array_values(array_filter(array_map(
+            trim(...),
+            preg_split('/\r\n|\r|\n/', (string) $raw) ?: [],
+        )));
+
+        return [
+            'send_to_part1' => $lines[0] ?? 'Ban Giám đốc',
+            'send_to_part2' => count($lines) > 1
+                ? implode("\n", array_slice($lines, 1))
+                : 'Phòng Công nghệ & Phòng Kế Toán',
+        ];
+    }
+
+    /** Ngày tháng tiếng Việt chuẩn PDX — tránh translatedFormat lỗi font DomPDF. */
+    private function formatDocDateVi(Carbon $date): string
+    {
+        $weekdays = [
+            0 => 'Chủ Nhật',
+            1 => 'Thứ Hai',
+            2 => 'Thứ Ba',
+            3 => 'Thứ Tư',
+            4 => 'Thứ Năm',
+            5 => 'Thứ Sáu',
+            6 => 'Thứ Bảy',
+        ];
+
+        return sprintf(
+            '%s, ngày %d tháng %d năm %d',
+            $weekdays[$date->dayOfWeek] ?? 'Thứ Hai',
+            $date->day,
+            $date->month,
+            $date->year,
+        );
     }
 
     private function escapeWordValue(string $value): string

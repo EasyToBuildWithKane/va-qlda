@@ -2,7 +2,7 @@
 export const PROPOSAL_FORM_HINTS = {
     proposal_type: 'Phân loại phiếu: AI Account, SaaS, License, … — ảnh hưởng mẫu in và báo cáo.',
     subject_about: 'Dòng «Về việc» trên phiếu PDX. Thường bắt đầu bằng «Đăng ký sử dụng …».',
-    send_to: 'Đơn vị nhận phiếu (dưới dòng Kính gửi Ban Giám đốc). Có thể nhiều phòng, cách nhau bằng dấu phẩy hoặc xuống dòng.',
+    send_to: 'Mỗi dòng một đơn vị nhận phiếu. Dòng 1 thường là Ban Giám đốc; dòng 2 trở đi là các phòng (VD: Phòng Công nghệ & Phòng Kế Toán). Nhấn Enter để xuống dòng.',
     proposer_pick: 'Gõ họ tên, email hoặc mã nhân viên vào ô tìm — chọn dòng trong danh sách để tự điền các trường bên dưới. Có thể gõ từng phần (VD: «Toàn» hoặc «bui toan»).',
     proposer_name: 'Họ tên người ký phiếu đề xuất (mục 1 — Đại diện).',
     proposer_position: 'Chức vụ trên phiếu (VD: Chuyên viên, Trưởng nhóm).',

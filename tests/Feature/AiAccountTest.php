@@ -33,7 +33,7 @@ class AiAccountTest extends TestCase
     {
         return array_merge([
             'subject_about' => 'Đăng ký sử dụng Cursor Pro',
-            'send_to' => 'Phòng Công nghệ & Phòng Kế Toán',
+            'send_to' => "Ban Giám đốc\nPhòng Công nghệ & Phòng Kế Toán",
             'tool_name' => 'Cursor Pro',
             'group_function' => AiAccountGroupFunction::Dev->value,
             'license_type' => 'Pro',

@@ -5,15 +5,15 @@
     <style>
         @page {
             size: A4;
-            margin: 42mm 18mm 26mm 23mm;
+            margin: 40mm 15mm 22mm 20mm;
         }
 
         * { box-sizing: border-box; }
 
         body {
             font-family: 'DejaVu Serif', 'Times New Roman', serif;
-            font-size: 12pt;
-            line-height: 1.4;
+            font-size: 11pt;
+            line-height: 1.35;
             color: #000;
             margin: 0;
             padding: 0;
@@ -21,19 +21,18 @@
 
         .doc-content {
             width: 100%;
-            max-width: 164mm;
+            max-width: 170mm;
             margin: 0 auto;
         }
 
         .doc-content p {
-            margin: 1pt 0;
+            margin: 0.5pt 0;
         }
 
-        /* Full-page background image repeated on every page */
         .page-bg {
             position: fixed;
-            top: -42mm;
-            left: -23mm;
+            top: -40mm;
+            left: -20mm;
             width: 210mm;
             height: 297mm;
             z-index: -1;
@@ -43,28 +42,27 @@
             height: 100%;
         }
 
-        /* ─── Header section (khung có viền) ─── */
         .doc-header {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 4pt;
+            margin-bottom: 3pt;
             border: 1pt solid #000;
         }
         .doc-header td {
-            padding: 5pt 6pt;
+            padding: 3pt 5pt;
             vertical-align: top;
             border: 1pt solid #000;
         }
         .doc-header .cell-left {
             width: 42%;
-            font-size: 12pt;
+            font-size: 11pt;
             font-weight: bold;
             text-align: center;
             text-transform: uppercase;
         }
         .doc-header .cell-left .unit {
             font-weight: normal;
-            font-size: 11pt;
+            font-size: 10pt;
         }
         .doc-header .cell-right {
             width: 58%;
@@ -72,75 +70,72 @@
         }
         .doc-header .cell-right .republic {
             font-weight: bold;
-            font-size: 13pt;
+            font-size: 11.5pt;
             text-transform: uppercase;
         }
         .doc-header .cell-right .motto {
-            font-size: 12pt;
+            font-size: 10.5pt;
         }
         .doc-header .cell-right .doc-date {
-            font-size: 11pt;
+            font-size: 10pt;
             font-style: italic;
-            margin-top: 2pt;
+            margin-top: 1pt;
         }
         .doc-header .cell-right .underline {
             display: inline-block;
             border-bottom: 1px solid #000;
-            padding-bottom: 1pt;
+            padding-bottom: 0.5pt;
         }
 
-        /* ─── Title ─── */
         .doc-title {
             text-align: center;
-            margin: 6pt 0 3pt 0;
+            margin: 4pt 0 2pt 0;
         }
         .doc-title h1 {
-            font-size: 16pt;
+            font-size: 14pt;
             font-weight: bold;
             text-transform: uppercase;
             margin: 0;
-            letter-spacing: 1pt;
+            letter-spacing: 0.5pt;
         }
         .doc-title .subtitle {
-            font-size: 11pt;
+            font-size: 10pt;
             font-style: italic;
         }
 
-        /* ─── Body ─── */
         .kinh-gui {
-            margin: 5pt 0 2pt 28pt;
+            margin: 3pt 0 1pt 24pt;
         }
         .kinh-gui .label { font-style: italic; font-weight: bold; }
 
         .section {
-            margin: 3pt 0 2pt 0;
+            margin: 2pt 0 1pt 0;
         }
         .section-num {
             font-weight: bold;
-            margin: 0 0 1pt 0;
+            margin: 0;
         }
         .indent {
-            margin-left: 18pt;
+            margin-left: 16pt;
         }
         .indent2 {
-            margin-left: 36pt;
+            margin-left: 32pt;
         }
         .bold { font-weight: bold; }
         .italic { font-style: italic; }
         .underline { text-decoration: underline; }
         .center { text-align: center; }
 
-        /* ─── Budget table ─── */
         table.budget {
             width: 100%;
             border-collapse: collapse;
-            margin: 3pt 0 4pt 0;
-            font-size: 11pt;
+            margin: 2pt 0 3pt 0;
+            font-size: 10pt;
         }
         table.budget th,
         table.budget td {
             border: 1pt solid #000;
-            padding: 5pt 6pt;
+            padding: 3pt 4pt;
             vertical-align: middle;
         }
         table.budget th {
@@ -149,71 +144,73 @@
             background-color: #f5f5f5;
         }
         table.budget td.center { text-align: center; }
-        table.budget td.right { text-align: right; }
 
-        /* ─── Checkbox (một ô vuông — không dùng ảnh + dấu trùng) ─── */
         .checkbox-option {
             display: inline-block;
-            margin-right: 18pt;
+            margin-right: 14pt;
             vertical-align: middle;
             white-space: nowrap;
         }
-        .check-box {
-            display: inline-block;
-            width: 13pt;
-            height: 13pt;
-            border: 1pt solid #000;
-            text-align: center;
-            line-height: 12pt;
+        .checkbox-img {
+            width: 12pt;
+            height: 12pt;
             vertical-align: middle;
-            font-size: 10pt;
-            font-weight: bold;
-            margin-right: 4pt;
+            margin-right: 3pt;
+        }
+        .checkbox-empty {
+            display: inline-block;
+            width: 12pt;
+            height: 12pt;
+            border: 1pt solid #000;
+            vertical-align: middle;
+            margin-right: 3pt;
         }
 
-        /* ─── Signature table ─── */
         table.sig {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10pt;
+            margin-top: 8pt;
         }
         table.sig td {
             border: 1pt dotted #666;
-            padding: 8pt 10pt;
+            padding: 5pt 6pt;
             vertical-align: top;
             text-align: center;
-            font-size: 11pt;
+            font-size: 10pt;
             width: 33.33%;
         }
         table.sig .sig-title { font-weight: bold; }
-        table.sig .sig-name { margin-top: 50pt; font-weight: bold; }
+        table.sig .sig-name { margin-top: 42pt; font-weight: bold; }
 
         .pre { white-space: pre-wrap; }
 
         ul.objectives {
-            margin: 2pt 0 2pt 20pt;
+            margin: 1pt 0 1pt 18pt;
             padding: 0;
         }
         ul.objectives li {
-            margin-bottom: 1pt;
+            margin-bottom: 0.5pt;
         }
 
         .closing {
-            margin-top: 6pt;
+            margin-top: 4pt;
             font-style: italic;
+            font-size: 10.5pt;
         }
     </style>
 </head>
 <body>
 
-    {{-- Full-page background (appears on every page) --}}
     <div class="page-bg">
         <img src="{{ 'file://'.public_path('docx/background.png') }}" alt="">
     </div>
 
+    @php
+        $checkboxImg = 'file://'.public_path('docx/checkbox.png');
+    @endphp
+
     <div class="doc-content">
 
-    {{-- ─── Header table ─── --}}
     <table class="doc-header">
         <tr>
             <td class="cell-left">
@@ -230,20 +227,17 @@
         </tr>
     </table>
 
-    {{-- ─── Title ─── --}}
     <div class="doc-title">
         <h1>PHIẾU ĐỀ XUẤT</h1>
         <p class="subtitle">(Về việc: {{ $vars['subject_about'] }})</p>
     </div>
 
-    {{-- ─── Kính gửi ─── --}}
     <div class="kinh-gui">
         <span class="label">Kính gửi:</span>
         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ $vars['send_to_part1'] }}<br>
         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ $vars['send_to_part2'] }}
     </div>
 
-    {{-- ─── 1. Đại diện ─── --}}
     <div class="section">
         <p class="section-num">1. Đại diện:</p>
         <div class="indent">
@@ -253,7 +247,6 @@
         </div>
     </div>
 
-    {{-- ─── 2. Nội dung đề xuất ─── --}}
     <div class="section">
         <p class="section-num">2. Nội dung đề xuất:</p>
         <div class="indent">
@@ -261,7 +254,6 @@
         </div>
     </div>
 
-    {{-- ─── 3. Mục tiêu ─── --}}
     @if(!empty($vars['objectives']))
     <div class="section">
         <p class="section-num">3. Mục tiêu:</p>
@@ -282,7 +274,6 @@
     </div>
     @endif
 
-    {{-- ─── 4. Thông tin chi tiết ─── --}}
     <div class="section">
         <p class="section-num">4. Thông tin chi tiết:</p>
 
@@ -321,11 +312,19 @@
         <p class="indent">
             <span class="bold">4.4 Tình trạng:</span>&nbsp;
             <span class="checkbox-option">
-                <span class="check-box">{{ $vars['check_new'] === '☑' ? '✓' : '' }}</span>
+                @if($vars['check_new'] === '☑')
+                    <img src="{{ $checkboxImg }}" class="checkbox-img" alt="">
+                @else
+                    <span class="checkbox-empty"></span>
+                @endif
                 Mua mới
             </span>
             <span class="checkbox-option">
-                <span class="check-box">{{ $vars['check_renewal'] === '☑' ? '✓' : '' }}</span>
+                @if($vars['check_renewal'] === '☑')
+                    <img src="{{ $checkboxImg }}" class="checkbox-img" alt="">
+                @else
+                    <span class="checkbox-empty"></span>
+                @endif
                 Gia hạn
             </span>
         </p>
@@ -336,7 +335,6 @@
         </p>
     </div>
 
-    {{-- ─── 5. Thời gian ─── --}}
     <div class="section">
         <p class="section-num">
             5. Thời gian đưa vào sử dụng (dự kiến):
@@ -344,12 +342,10 @@
         </p>
     </div>
 
-    {{-- ─── Closing ─── --}}
     <p class="closing">
         Kính trình Ban Lãnh Đạo xem xét và phê duyệt.
     </p>
 
-    {{-- ─── Signature table ─── --}}
     <table class="sig">
         <tr>
             <td>
@@ -377,7 +373,7 @@
         </tr>
     </table>
 
-    </div>{{-- .doc-content --}}
+    </div>
 
 </body>
 </html>

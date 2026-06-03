@@ -42,6 +42,18 @@ const employeeNameSuggestions = computed(() =>
     (props.formLookups.employees ?? []).map((e) => e.name).filter(Boolean),
 );
 
+const SEND_TO_DEFAULT = 'Ban Giám đốc\nPhòng Công nghệ & Phòng Kế Toán';
+
+const sendToPreviewLines = computed(() => {
+    const raw = form.send_to?.trim() || SEND_TO_DEFAULT;
+    const lines = raw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    return {
+        line1: lines[0] ?? 'Ban Giám đốc',
+        line2: lines.length > 1 ? lines.slice(1).join(' · ') : 'Phòng Công nghệ & Phòng Kế Toán',
+        extraLines: lines.slice(1),
+    };
+});
+
 const SECTIONS = [
     { key: 'general', label: 'Thông tin chung', icon: 'info' },
     { key: 'content', label: 'Nội dung đề xuất', icon: 'edit' },
@@ -116,7 +128,7 @@ function defaultForm() {
     return {
         proposal_type: 'ai_account',
         subject_about: '',
-        send_to: d.send_to ?? 'Ban Giám đốc',
+        send_to: d.send_to ?? SEND_TO_DEFAULT,
         proposer_name: d.proposer_name ?? '',
         proposer_position: d.proposer_position ?? '',
         proposer_department: d.proposer_department ?? '',
@@ -353,23 +365,15 @@ function goSection(key) {
                   <ProposalFormLabel
                     label="Kính gửi"
                     :tooltip="H.send_to"
+                    hint="Mỗi dòng một đơn vị (dòng 1: Ban Giám đốc)"
                   />
-                  <input
+                  <textarea
                     v-model="form.send_to"
-                    type="text"
-                    list="proposal-send-to"
-                    class="input w-full"
-                    placeholder="VD: Phòng Công nghệ & Phòng Kế Toán"
-                    autocomplete="off"
+                    rows="3"
+                    class="input w-full font-mono text-sm leading-relaxed"
+                    placeholder="Ban Giám đốc&#10;Phòng Công nghệ & Phòng Kế Toán"
                     @input="onInput"
-                  >
-                  <datalist id="proposal-send-to">
-                    <option
-                      v-for="s in formLookups.send_to"
-                      :key="s"
-                      :value="s"
-                    />
-                  </datalist>
+                  />
                 </div>
 
                 <div class="sm:col-span-2">
@@ -988,8 +992,13 @@ function goSection(key) {
                 <!-- Kính gửi -->
                 <div style="margin-left:32px;margin-bottom:6px;">
                   <span style="font-style:italic;font-weight:bold;">Kính gửi:</span>
-                  &nbsp;&nbsp;&nbsp;Ban Giám đốc<br>
-                  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ form.send_to || 'Phòng Công nghệ &amp; Phòng Kế Toán' }}
+                  &nbsp;&nbsp;&nbsp;{{ sendToPreviewLines.line1 }}<br>
+                  <template
+                    v-for="(line, idx) in sendToPreviewLines.extraLines"
+                    :key="idx"
+                  >
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ line }}<br>
+                  </template>
                 </div>
 
                 <!-- 1. Đại diện -->
