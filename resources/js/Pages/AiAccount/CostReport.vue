@@ -14,7 +14,21 @@ import AiPurchaseProposalRejectModal from '@/modules/aiAccount/components/AiPurc
 import AiPurchaseProposalApproveModal from '@/modules/aiAccount/components/AiPurchaseProposalApproveModal.vue';
 import ProposalRowActions from '@/modules/aiAccount/components/ProposalRowActions.vue';
 import Badge from '@/shared/ui/Badge.vue';
+import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
+import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
 import { useDialog } from '@/composables/useDialog';
+
+const FILTER_CONTROLS_DEF = [
+    { key: 'status', label: 'Trạng thái', default: true },
+    { key: 'type', label: 'Loại đề xuất', default: true },
+    { key: 'department', label: 'Phòng ban', default: true },
+    { key: 'group_function', label: 'Nhóm chức năng', default: true },
+    { key: 'purchase_type', label: 'Hình thức mua', default: false },
+    { key: 'cost_unit', label: 'Đơn vị chi phí', default: false },
+    { key: 'vendor', label: 'Nhà cung cấp', default: false },
+    { key: 'tool', label: 'Sản phẩm / công cụ', default: false },
+    { key: 'date_range', label: 'Khoảng ngày đề xuất', default: true },
+];
 
 const props = defineProps({
     can: { type: Object, default: () => ({}) },
@@ -47,6 +61,14 @@ const { groupColVisible, showGroupColDd, groupColDdRef, toggleGroupColumn, COST_
 const search = ref('');
 const statusFilter = ref('all');
 const typeFilter = ref('all');
+const departmentFilter = ref('all');
+const groupFunctionFilter = ref('all');
+const purchaseTypeFilter = ref('all');
+const costUnitFilter = ref('all');
+const vendorFilter = ref('all');
+const toolFilter = ref('all');
+const createdFromFilter = ref('');
+const createdToFilter = ref('');
 const visibleCols = ref({
     proposal_code: true,
     created_at: true,
@@ -62,30 +84,17 @@ const visibleCols = ref({
     reviewed_at: false,
     end_date: false,
 });
-const FILTER_CONTROLS = [
-    { key: 'status', label: 'Trạng thái' },
-    { key: 'type', label: 'Loại đề xuất' },
-];
-
 const VISIBLE_FILTERS_KEY = 'va-qlda.cost-report.visible-filters';
 
-function loadVisibleFilters() {
-    try {
-        const saved = JSON.parse(localStorage.getItem(VISIBLE_FILTERS_KEY));
-        if (saved && typeof saved === 'object') {
-            return {
-                status: saved.status !== false,
-                type: saved.type !== false,
-            };
-        }
-    } catch {
-        /* ignore */
-    }
-    return { status: true, type: true };
-}
-
-const visibleFilters = ref(loadVisibleFilters());
-const showFilterPanelDd = ref(false);
+const {
+    visibleFilters,
+    showFilterPanelDd,
+    enabledFilterControlCount,
+    hasFilterRow,
+    persistVisibleFilters,
+    openFilterPanel: toggleFilterPanel,
+    FILTER_CONTROLS,
+} = useVisibleFilterControls(FILTER_CONTROLS_DEF, VISIBLE_FILTERS_KEY);
 const showColDd = ref(false);
 const showExportDd = ref(false);
 const filterPanelDdRef = ref(null);
@@ -103,22 +112,59 @@ const approving = ref(null);
 // KPI filter: clicking a card sets statusFilter
 const activeKpi = ref(null);
 
+const departmentOptions = computed(() =>
+    (props.formLookups.departments ?? []).map((d) => d.name).filter(Boolean),
+);
+
 const activeFilterCount = computed(() => {
     let n = 0;
     if (statusFilter.value !== 'all') n += 1;
     if (typeFilter.value !== 'all') n += 1;
+    if (departmentFilter.value !== 'all') n += 1;
+    if (groupFunctionFilter.value !== 'all') n += 1;
+    if (purchaseTypeFilter.value !== 'all') n += 1;
+    if (costUnitFilter.value !== 'all') n += 1;
+    if (vendorFilter.value !== 'all') n += 1;
+    if (toolFilter.value !== 'all') n += 1;
+    if (createdFromFilter.value) n += 1;
+    if (createdToFilter.value) n += 1;
     return n;
 });
+
+function labelFromOptions(options, value) {
+    return options?.find((o) => o.value === value)?.label ?? value;
+}
 
 const filterSummary = computed(() => {
     const parts = [];
     if (statusFilter.value !== 'all') {
-        const opt = props.options.proposal_status?.find((o) => o.value === statusFilter.value);
-        parts.push(opt?.label ?? statusFilter.value);
+        parts.push(labelFromOptions(props.options.proposal_status, statusFilter.value));
     }
     if (typeFilter.value !== 'all') {
-        const opt = props.options.proposal_type?.find((o) => o.value === typeFilter.value);
-        parts.push(opt?.label ?? typeFilter.value);
+        parts.push(labelFromOptions(props.options.proposal_type, typeFilter.value));
+    }
+    if (departmentFilter.value !== 'all') {
+        parts.push(departmentFilter.value);
+    }
+    if (groupFunctionFilter.value !== 'all') {
+        parts.push(labelFromOptions(props.options.group_function, groupFunctionFilter.value));
+    }
+    if (purchaseTypeFilter.value !== 'all') {
+        parts.push(labelFromOptions(props.options.purchase_type, purchaseTypeFilter.value));
+    }
+    if (costUnitFilter.value !== 'all') {
+        parts.push(labelFromOptions(props.options.cost_unit, costUnitFilter.value));
+    }
+    if (vendorFilter.value !== 'all') {
+        parts.push(vendorFilter.value);
+    }
+    if (toolFilter.value !== 'all') {
+        parts.push(toolFilter.value);
+    }
+    if (createdFromFilter.value || createdToFilter.value) {
+        const from = createdFromFilter.value || '…';
+        const to = createdToFilter.value || '…';
+        parts.push(`${from} → ${to}`);
     }
     return parts.join(' · ');
 });
@@ -126,17 +172,17 @@ const filterSummary = computed(() => {
 async function clearFilters() {
     statusFilter.value = 'all';
     typeFilter.value = 'all';
+    departmentFilter.value = 'all';
+    groupFunctionFilter.value = 'all';
+    purchaseTypeFilter.value = 'all';
+    costUnitFilter.value = 'all';
+    vendorFilter.value = 'all';
+    toolFilter.value = 'all';
+    createdFromFilter.value = '';
+    createdToFilter.value = '';
     activeKpi.value = null;
     search.value = '';
     await applyFilters();
-}
-
-const enabledFilterControlCount = computed(() =>
-    FILTER_CONTROLS.filter((f) => visibleFilters.value[f.key]).length,
-);
-
-function persistVisibleFilters() {
-    localStorage.setItem(VISIBLE_FILTERS_KEY, JSON.stringify(visibleFilters.value));
 }
 
 function onStatusFilterChange() {
@@ -150,6 +196,30 @@ function buildProposalFilterParams() {
     }
     if (typeFilter.value && typeFilter.value !== 'all') {
         params.proposal_type = typeFilter.value;
+    }
+    if (departmentFilter.value && departmentFilter.value !== 'all') {
+        params.department = departmentFilter.value;
+    }
+    if (groupFunctionFilter.value && groupFunctionFilter.value !== 'all') {
+        params.group_function = groupFunctionFilter.value;
+    }
+    if (purchaseTypeFilter.value && purchaseTypeFilter.value !== 'all') {
+        params.purchase_type = purchaseTypeFilter.value;
+    }
+    if (costUnitFilter.value && costUnitFilter.value !== 'all') {
+        params.cost_unit = costUnitFilter.value;
+    }
+    if (vendorFilter.value && vendorFilter.value !== 'all') {
+        params.vendor = vendorFilter.value;
+    }
+    if (toolFilter.value && toolFilter.value !== 'all') {
+        params.tool_name = toolFilter.value;
+    }
+    if (createdFromFilter.value) {
+        params.created_from = createdFromFilter.value;
+    }
+    if (createdToFilter.value) {
+        params.created_to = createdToFilter.value;
     }
     const q = search.value.trim();
     if (q) params.search = q;
@@ -165,18 +235,13 @@ async function applyFilters() {
     }
 }
 
-const hasFilterRow = computed(() =>
-    visibleFilters.value.status || visibleFilters.value.type,
-);
-
 const displayedProposals = computed(() => proposals.value ?? []);
 
 function openFilterPanel() {
-    showFilterPanelDd.value = !showFilterPanelDd.value;
-    if (showFilterPanelDd.value) {
+    toggleFilterPanel(() => {
         showColDd.value = false;
         showExportDd.value = false;
-    }
+    });
 }
 
 function openCol() {
@@ -246,9 +311,23 @@ const COLS = [
 
 let searchDebounceTimer;
 
-watch([statusFilter, typeFilter], () => {
-    applyFilters();
-});
+watch(
+    [
+        statusFilter,
+        typeFilter,
+        departmentFilter,
+        groupFunctionFilter,
+        purchaseTypeFilter,
+        costUnitFilter,
+        vendorFilter,
+        toolFilter,
+        createdFromFilter,
+        createdToFilter,
+    ],
+    () => {
+        applyFilters();
+    },
+);
 
 watch(search, () => {
     clearTimeout(searchDebounceTimer);
@@ -458,41 +537,12 @@ function runExport(format) {
                 />
                 <span>Lọc</span>
               </button>
-              <Transition
-                enter-active-class="transition duration-150 ease-out"
-                enter-from-class="opacity-0 scale-95 -translate-y-1"
-                leave-active-class="transition duration-100 ease-in"
-                leave-to-class="opacity-0 scale-95 -translate-y-1"
-              >
-                <div
-                  v-if="showFilterPanelDd"
-                  class="absolute left-0 top-full z-30 mt-1.5 w-56 origin-top-left rounded-xl border border-slate-200 bg-white shadow-elevation-2 sm:left-auto sm:right-0 sm:origin-top-right"
-                >
-                  <div class="border-b border-slate-100 px-4 py-2.5">
-                    <span class="text-xs font-bold uppercase tracking-wide text-slate-500">Hiển thị trên thanh công cụ</span>
-                  </div>
-                  <div class="px-2 py-2">
-                    <label
-                      v-for="f in FILTER_CONTROLS"
-                      :key="f.key"
-                      class="flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-1.5 hover:bg-slate-50"
-                    >
-                      <input
-                        v-model="visibleFilters[f.key]"
-                        type="checkbox"
-                        class="rounded border-slate-300 text-brand focus:ring-brand/30"
-                        @change="persistVisibleFilters"
-                      >
-                      <span class="text-sm text-slate-700">{{ f.label }}</span>
-                    </label>
-                  </div>
-                  <div class="border-t border-slate-100 px-4 py-2.5">
-                    <p class="text-[11px] leading-snug text-slate-400">
-                      Ô tìm kiếm luôn hiển thị. Bật/tắt từng bộ lọc bạn muốn thấy bên cạnh.
-                    </p>
-                  </div>
-                </div>
-              </Transition>
+              <FilterVisibilityDropdown
+                v-model="visibleFilters"
+                :show="showFilterPanelDd"
+                :controls="FILTER_CONTROLS"
+                @persist="persistVisibleFilters"
+              />
             </div>
 
             <div
@@ -666,6 +716,138 @@ function runExport(format) {
             </option>
           </select>
 
+          <select
+            v-if="visibleFilters.department"
+            v-model="departmentFilter"
+            class="input h-9 w-[min(100%,11rem)] shrink-0 text-sm sm:w-52"
+            aria-label="Lọc theo phòng ban"
+            :disabled="filtersLoading"
+          >
+            <option value="all">
+              Phòng ban: Tất cả
+            </option>
+            <option
+              v-for="name in departmentOptions"
+              :key="name"
+              :value="name"
+            >
+              {{ name }}
+            </option>
+          </select>
+
+          <select
+            v-if="visibleFilters.group_function"
+            v-model="groupFunctionFilter"
+            class="input h-9 w-[min(100%,11rem)] shrink-0 text-sm sm:w-44"
+            aria-label="Lọc theo nhóm chức năng"
+            :disabled="filtersLoading"
+          >
+            <option value="all">
+              Nhóm: Tất cả
+            </option>
+            <option
+              v-for="g in options.group_function"
+              :key="g.value"
+              :value="g.value"
+            >
+              {{ g.label }}
+            </option>
+          </select>
+
+          <select
+            v-if="visibleFilters.purchase_type"
+            v-model="purchaseTypeFilter"
+            class="input h-9 w-[min(100%,11rem)] shrink-0 text-sm sm:w-40"
+            aria-label="Lọc hình thức mua"
+            :disabled="filtersLoading"
+          >
+            <option value="all">
+              Mua: Tất cả
+            </option>
+            <option
+              v-for="p in options.purchase_type"
+              :key="p.value"
+              :value="p.value"
+            >
+              {{ p.label }}
+            </option>
+          </select>
+
+          <select
+            v-if="visibleFilters.cost_unit"
+            v-model="costUnitFilter"
+            class="input h-9 w-[min(100%,11rem)] shrink-0 text-sm sm:w-44"
+            aria-label="Lọc đơn vị chi phí"
+            :disabled="filtersLoading"
+          >
+            <option value="all">
+              Đơn vị: Tất cả
+            </option>
+            <option
+              v-for="u in options.cost_unit"
+              :key="u.value"
+              :value="u.value"
+            >
+              {{ u.label }}
+            </option>
+          </select>
+
+          <select
+            v-if="visibleFilters.vendor"
+            v-model="vendorFilter"
+            class="input h-9 max-w-xs shrink-0 text-sm sm:min-w-[10rem]"
+            aria-label="Lọc nhà cung cấp"
+            :disabled="filtersLoading"
+          >
+            <option value="all">
+              NCC: Tất cả
+            </option>
+            <option
+              v-for="v in formLookups.vendors"
+              :key="v"
+              :value="v"
+            >
+              {{ v }}
+            </option>
+          </select>
+
+          <select
+            v-if="visibleFilters.tool"
+            v-model="toolFilter"
+            class="input h-9 max-w-xs shrink-0 text-sm sm:min-w-[10rem]"
+            aria-label="Lọc sản phẩm"
+            :disabled="filtersLoading"
+          >
+            <option value="all">
+              SP: Tất cả
+            </option>
+            <option
+              v-for="t in formLookups.tools"
+              :key="t"
+              :value="t"
+            >
+              {{ t }}
+            </option>
+          </select>
+
+          <template v-if="visibleFilters.date_range">
+            <input
+              v-model="createdFromFilter"
+              type="date"
+              class="input h-9 w-[min(100%,10.5rem)] shrink-0 text-sm"
+              aria-label="Từ ngày đề xuất"
+              :disabled="filtersLoading"
+            >
+            <span class="text-xs text-slate-400">→</span>
+            <input
+              v-model="createdToFilter"
+              type="date"
+              class="input h-9 w-[min(100%,10.5rem)] shrink-0 text-sm"
+              aria-label="Đến ngày đề xuất"
+              :disabled="filtersLoading"
+            >
+          </template>
+
           <span
             v-if="filtersLoading"
             class="text-xs text-slate-400"
@@ -711,7 +893,7 @@ function runExport(format) {
       </div>
       <div
         v-else
-        class="overflow-x-auto"
+        class="proposal-table-wrap overflow-x-auto"
       >
         <table class="w-full min-w-[900px] text-left text-sm">
           <thead class="bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-500">

@@ -34,13 +34,15 @@ class AiPurchaseProposalController extends Controller
         $query = AiPurchaseProposal::with(['creator.employee', 'reviewer.employee'])
             ->orderByDesc('created_at');
 
-        if ($search = $request->query('search')) {
+        if ($search = trim((string) $request->query('search', ''))) {
             $query->where(function ($q) use ($search) {
                 $q->where('proposal_code', 'like', "%{$search}%")
                     ->orWhere('tool_name', 'like', "%{$search}%")
                     ->orWhere('proposer_name', 'like', "%{$search}%")
+                    ->orWhere('proposer_department', 'like', "%{$search}%")
                     ->orWhere('vendor_name', 'like', "%{$search}%")
-                    ->orWhere('subject_about', 'like', "%{$search}%");
+                    ->orWhere('subject_about', 'like', "%{$search}%")
+                    ->orWhere('proposal_content', 'like', "%{$search}%");
             });
         }
 
@@ -52,8 +54,45 @@ class AiPurchaseProposalController extends Controller
             $query->where('proposal_type', $type);
         }
 
-        if ($dept = $request->query('department')) {
+        if ($dept = trim((string) $request->query('department', ''))) {
             $query->where('proposer_department', 'like', "%{$dept}%");
+        }
+
+        if ($group = $request->query('group_function')) {
+            $enum = AiAccountGroupFunction::tryFrom((string) $group);
+            if ($enum !== null) {
+                $query->where('group_function', $enum);
+            }
+        }
+
+        if ($purchaseType = $request->query('purchase_type')) {
+            $enum = AiPurchaseType::tryFrom((string) $purchaseType);
+            if ($enum !== null) {
+                $query->where('purchase_type', $enum);
+            }
+        }
+
+        if ($costUnit = $request->query('cost_unit')) {
+            $enum = AiAccountCostUnit::tryFrom((string) $costUnit);
+            if ($enum !== null) {
+                $query->where('cost_unit', $enum);
+            }
+        }
+
+        if ($vendor = trim((string) $request->query('vendor', ''))) {
+            $query->where('vendor_name', $vendor);
+        }
+
+        if ($tool = trim((string) $request->query('tool_name', ''))) {
+            $query->where('tool_name', $tool);
+        }
+
+        if ($from = $request->query('created_from')) {
+            $query->whereDate('created_at', '>=', $from);
+        }
+
+        if ($to = $request->query('created_to')) {
+            $query->whereDate('created_at', '<=', $to);
         }
 
         $proposals = $query->get();

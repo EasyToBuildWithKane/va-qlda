@@ -274,6 +274,33 @@ class AiAccountTest extends TestCase
         $this->assertStringContainsString('proposal-preview-root', $html);
     }
 
+    public function test_purchase_proposal_index_filters_by_group_and_dates(): void
+    {
+        $this->actingAsUser();
+
+        $this->postJson(route('api.ai-accounts.proposals.store'), $this->proposalPayload([
+            'tool_name' => 'Filter Tool A',
+            'subject_about' => 'Đăng ký Filter Tool A',
+            'group_function' => AiAccountGroupFunction::Dev->value,
+        ]))->assertCreated();
+
+        $this->postJson(route('api.ai-accounts.proposals.store'), $this->proposalPayload([
+            'tool_name' => 'Filter Tool B',
+            'subject_about' => 'Đăng ký Filter Tool B',
+            'group_function' => AiAccountGroupFunction::Ba->value,
+            'license_type' => 'Team',
+            'cost_amount' => 800_000,
+        ]))->assertCreated();
+
+        $filtered = $this->getJson(route('api.ai-accounts.proposals.index', [
+            'group_function' => AiAccountGroupFunction::Ba->value,
+            'tool_name' => 'Filter Tool B',
+        ]))->assertOk()->json('data.proposals');
+
+        $this->assertCount(1, $filtered);
+        $this->assertSame('Filter Tool B', $filtered[0]['tool_name']);
+    }
+
     public function test_purchase_proposal_update_when_pending(): void
     {
         $member = SystemAccount::factory()->create();
