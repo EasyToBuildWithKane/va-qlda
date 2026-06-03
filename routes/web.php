@@ -162,6 +162,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/trigger-reminder', [AiAccountController::class, 'triggerReminder'])->name('trigger-reminder');
         Route::get('/proposals', [AiPurchaseProposalController::class, 'index'])->name('proposals.index');
         Route::post('/proposals', [AiPurchaseProposalController::class, 'store'])->name('proposals.store');
+        Route::put('/proposals/{proposal}', [AiPurchaseProposalController::class, 'update'])->name('proposals.update');
         Route::post('/proposals/preview', [AiPurchaseProposalController::class, 'preview'])->name('proposals.preview');
         Route::delete('/proposals/{proposal}', [AiPurchaseProposalController::class, 'destroy'])->name('proposals.destroy');
         Route::post('/proposals/{proposal}/approve', [AiPurchaseProposalController::class, 'approve'])->name('proposals.approve');

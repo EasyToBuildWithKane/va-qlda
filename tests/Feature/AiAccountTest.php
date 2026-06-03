@@ -274,6 +274,30 @@ class AiAccountTest extends TestCase
         $this->assertStringContainsString('proposal-preview-root', $html);
     }
 
+    public function test_purchase_proposal_update_when_pending(): void
+    {
+        $member = SystemAccount::factory()->create();
+        $this->actingAs($member, 'system');
+
+        $this->postJson(route('api.ai-accounts.proposals.store'), $this->proposalPayload([
+            'tool_name' => 'Edit Me Tool',
+            'subject_about' => 'Đăng ký Edit Me Tool',
+        ]))->assertCreated();
+
+        $proposal = AiPurchaseProposal::query()->where('tool_name', 'Edit Me Tool')->first();
+        $this->assertNotNull($proposal);
+
+        $this->putJson(route('api.ai-accounts.proposals.update', ['proposal' => $proposal->id]), $this->proposalPayload([
+            'tool_name' => 'Edited Tool',
+            'subject_about' => 'Đăng ký Edited Tool',
+            'cost_amount' => 2_000_000,
+        ]))
+            ->assertOk()
+            ->assertJsonPath('data.proposal.tool_name', 'Edited Tool');
+
+        $this->assertSame('Edited Tool', $proposal->fresh()->tool_name);
+    }
+
     public function test_purchase_proposal_export_pdf_and_docx(): void
     {
         $this->actingAsUser();

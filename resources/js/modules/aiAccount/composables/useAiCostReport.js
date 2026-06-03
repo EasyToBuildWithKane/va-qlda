@@ -1,5 +1,5 @@
 import { ref } from 'vue';
-import { httpDelete, httpGet, httpPatch, httpPost } from '@/shared/services/http';
+import { httpDelete, httpGet, httpPatch, httpPost, httpPut } from '@/shared/services/http';
 import { useToast } from '@/shared/composables/useToast';
 
 export function useAiCostReport() {
@@ -68,6 +68,13 @@ export function useAiCostReport() {
         return res.data?.proposal;
     }
 
+    async function updateProposal(id, payload) {
+        const res = await httpPut(route('api.ai-accounts.proposals.update', { proposal: id }), payload);
+        toast.success(res.message ?? 'Đã cập nhật phiếu đề xuất.');
+        await load();
+        return res.data?.proposal;
+    }
+
     async function approveProposal(id, review_notes = null) {
         const res = await httpPost(route('api.ai-accounts.proposals.approve', { proposal: id }), {
             review_notes: review_notes || null,
@@ -108,6 +115,7 @@ export function useAiCostReport() {
         load,
         loadProposals,
         createProposal,
+        updateProposal,
         approveProposal,
         rejectProposal,
         updateProposalNotes,

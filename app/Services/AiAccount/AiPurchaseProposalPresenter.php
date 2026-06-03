@@ -6,6 +6,7 @@ use App\Models\AiPurchaseProposal;
 use App\Models\SystemAccount;
 use App\Support\Enums\AiAccountGroupFunction;
 use App\Support\Enums\AiPurchaseProposalStatus;
+use App\Support\Enums\SystemRole;
 use Illuminate\Support\Collection;
 
 class AiPurchaseProposalPresenter
@@ -115,12 +116,26 @@ class AiPurchaseProposalPresenter
             'reviewed_at' => $proposal->reviewed_at?->format('Y-m-d H:i'),
             'created_at' => $proposal->created_at?->format('Y-m-d H:i'),
             'can_review' => $proposal->status === AiPurchaseProposalStatus::Pending,
+            'can_edit' => $this->canEdit($proposal, $viewer),
             'can_edit_notes' => in_array($proposal->status, [
                 AiPurchaseProposalStatus::Approved,
                 AiPurchaseProposalStatus::Rejected,
             ], true),
             'can_delete' => $viewer?->can('delete', $proposal) ?? false,
         ];
+    }
+
+    private function canEdit(AiPurchaseProposal $proposal, ?SystemAccount $viewer): bool
+    {
+        if ($viewer === null || $proposal->status !== AiPurchaseProposalStatus::Pending) {
+            return false;
+        }
+
+        if ($viewer->role === SystemRole::Admin) {
+            return true;
+        }
+
+        return $proposal->created_by === $viewer->id;
     }
 
     private function groupLabel(AiAccountGroupFunction $group): string

@@ -19,6 +19,19 @@ class AiPurchaseProposalPolicy
         return true;
     }
 
+    public function update(SystemAccount $account, AiPurchaseProposal $proposal): bool
+    {
+        if ($proposal->status !== AiPurchaseProposalStatus::Pending) {
+            return false;
+        }
+
+        if ($account->role === SystemRole::Admin) {
+            return true;
+        }
+
+        return $proposal->created_by === $account->id;
+    }
+
     public function review(SystemAccount $account, AiPurchaseProposal $proposal): bool
     {
         return $account->role === SystemRole::Admin

@@ -8,6 +8,7 @@ use App\Http\Requests\AiAccount\PreviewAiPurchaseProposalRequest;
 use App\Http\Requests\AiAccount\RejectAiPurchaseProposalRequest;
 use App\Http\Requests\AiAccount\StoreAiPurchaseProposalRequest;
 use App\Http\Requests\AiAccount\UpdateAiPurchaseProposalNotesRequest;
+use App\Http\Requests\AiAccount\UpdateAiPurchaseProposalRequest;
 use App\Models\AiPurchaseProposal;
 use App\Services\AiAccount\AiPurchaseProposalDocumentService;
 use App\Services\AiAccount\AiPurchaseProposalPresenter;
@@ -72,6 +73,36 @@ class AiPurchaseProposalController extends Controller
         $validated = $request->validated();
 
         $proposal = AiPurchaseProposal::create([
+            ...$this->proposalAttributesFromValidated($validated),
+            'status' => AiPurchaseProposalStatus::Pending,
+            'created_by' => $request->user()->id,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => ['proposal' => $this->presenter->row($proposal, $request->user())],
+            'message' => 'Đã gửi phiếu đề xuất. Chờ quản trị duyệt.',
+        ], 201);
+    }
+
+    public function update(UpdateAiPurchaseProposalRequest $request, AiPurchaseProposal $proposal): JsonResponse
+    {
+        $proposal->update($this->proposalAttributesFromValidated($request->validated()));
+
+        return response()->json([
+            'success' => true,
+            'data' => ['proposal' => $this->presenter->row($proposal->fresh(), $request->user())],
+            'message' => 'Đã cập nhật phiếu đề xuất.',
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     * @return array<string, mixed>
+     */
+    private function proposalAttributesFromValidated(array $validated): array
+    {
+        return [
             'proposal_type' => isset($validated['proposal_type'])
                 ? ProposalType::from($validated['proposal_type'])
                 : ProposalType::AiAccount,
@@ -107,15 +138,7 @@ class AiPurchaseProposalController extends Controller
             'planned_use_date' => $validated['planned_use_date'] ?? null,
             'start_date' => $validated['start_date'] ?? null,
             'end_date' => $validated['end_date'] ?? null,
-            'status' => AiPurchaseProposalStatus::Pending,
-            'created_by' => $request->user()->id,
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'data' => ['proposal' => $this->presenter->row($proposal, $request->user())],
-            'message' => 'Đã gửi phiếu đề xuất. Chờ quản trị duyệt.',
-        ], 201);
+        ];
     }
 
     public function preview(PreviewAiPurchaseProposalRequest $request): JsonResponse

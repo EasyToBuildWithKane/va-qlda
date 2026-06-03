@@ -11,7 +11,7 @@ import {
     X, Search, Filter, Clock, Link2, GanttChartSquare, Pencil, Flag,
     PiggyBank, ArrowLeft, Building2, Info, Building, Globe, MapPin,
     Columns3, Download, Upload, FileDown, RotateCw, Eye, Copy, Archive, ChevronDown,
-    Save, Check, ArrowUpDown, CalendarClock, Users2, CircleDollarSign, Image,
+    Save, Check, ArrowUpDown, CalendarClock, Users2, CircleDollarSign, Image, Ellipsis,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -116,6 +116,8 @@ const map = {
     'calendar-clock': CalendarClock,
     people: Users2,
     money: CircleDollarSign,
+    menu: Ellipsis,
+    'more-horizontal': Ellipsis,
 };
 
 const component = computed(() => map[props.name] || Circle);

@@ -13,6 +13,7 @@ import FieldTooltip from '@/shared/ui/FieldTooltip.vue';
 
 const props = defineProps({
     show: Boolean,
+    editProposal: { type: Object, default: null },
     options: { type: Object, required: true },
     proposalDefaults: { type: Object, default: () => ({}) },
     formLookups: {
@@ -144,14 +145,62 @@ function defaultForm() {
     };
 }
 
+const isEditing = computed(() => Boolean(props.editProposal?.id));
+
+const modalTitle = computed(() =>
+    (isEditing.value ? 'Chỉnh sửa Phiếu Đề Xuất' : 'Thêm Phiếu Đề Xuất'));
+
+function populateFromProposal(row) {
+    const list = row.users_list ?? [];
+    Object.assign(form, {
+        proposal_type: row.proposal_type ?? 'ai_account',
+        subject_about: row.subject_about ?? '',
+        send_to: row.send_to ?? SEND_TO_DEFAULT,
+        proposer_name: row.proposer_name ?? '',
+        proposer_position: row.proposer_position ?? '',
+        proposer_department: row.proposer_department ?? '',
+        tool_name: row.tool_name ?? '',
+        vendor_name: row.vendor_name ?? '',
+        vendor_website: row.vendor_website ?? '',
+        group_function: row.group_function ?? 'DEV',
+        license_type: row.license_type ?? 'Pro',
+        cost_amount: row.cost_amount != null ? String(row.cost_amount) : '',
+        cost_unit: row.cost_unit ?? 'monthly',
+        quantity: row.quantity != null ? String(row.quantity) : '1',
+        seats: row.seats != null ? String(row.seats) : '',
+        proposal_content: row.proposal_content ?? row.justification ?? '',
+        description: row.description ?? '',
+        reason_for_proposal: row.reason_for_proposal ?? '',
+        expected_benefit: row.expected_benefit ?? '',
+        objectives: row.objectives ?? '',
+        staff_count: row.staff_count != null ? String(row.staff_count) : '1',
+        users_list_raw: Array.isArray(list) ? list.join('\n') : '',
+        department_using: row.department_using ?? '',
+        recipient_name: row.recipient_name ?? '',
+        recipient_position: row.recipient_position ?? '',
+        recipient_email: row.recipient_email ?? '',
+        recipient_phone: row.recipient_phone ?? '',
+        purchase_type: row.purchase_type ?? 'new',
+        registration_email: row.registration_email ?? '',
+        planned_use_date: row.planned_use_date ?? '',
+        start_date: row.start_date ?? '',
+        end_date: row.end_date ?? '',
+    });
+    copyRecipientFromProposer.value = false;
+}
+
 watch(() => props.show, (open) => {
     if (!open) return;
     dirty.value = false;
     activeSection.value = 'general';
     resetPreview();
-    copyRecipientFromProposer.value = true;
     selectedProposerId.value = props.proposalDefaults?.proposer_employee_id ?? null;
-    Object.assign(form, defaultForm());
+    if (props.editProposal?.id) {
+        populateFromProposal(props.editProposal);
+    } else {
+        copyRecipientFromProposer.value = true;
+        Object.assign(form, defaultForm());
+    }
 });
 
 watch(() => form.tool_name, (name) => {
@@ -261,7 +310,10 @@ function handleSubmit() {
         activeSection.value = 'budget';
         return;
     }
-    emit('submit', buildSubmitPayload());
+    emit('submit', {
+        id: props.editProposal?.id ?? null,
+        ...buildSubmitPayload(),
+    });
 }
 
 function goSection(key) {
@@ -272,7 +324,7 @@ function goSection(key) {
 <template>
   <Modal
     :show="show"
-    title="Thêm Phiếu Đề Xuất"
+    :title="modalTitle"
     max-width="max-w-6xl"
     :dirty="dirty"
     @close="emit('close')"
@@ -1015,7 +1067,7 @@ function goSection(key) {
                   :size="14"
                   class="mr-1"
                 />
-                Gửi phiếu đề xuất
+                {{ isEditing ? 'Lưu thay đổi' : 'Gửi phiếu đề xuất' }}
               </button>
             </div>
           </div>

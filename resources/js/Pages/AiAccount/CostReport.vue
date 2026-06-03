@@ -12,6 +12,8 @@ import VndAmount from '@/modules/aiAccount/components/VndAmount.vue';
 import AiPurchaseProposalFormModal from '@/modules/aiAccount/components/AiPurchaseProposalFormModal.vue';
 import AiPurchaseProposalRejectModal from '@/modules/aiAccount/components/AiPurchaseProposalRejectModal.vue';
 import AiPurchaseProposalApproveModal from '@/modules/aiAccount/components/AiPurchaseProposalApproveModal.vue';
+import ProposalRowActions from '@/modules/aiAccount/components/ProposalRowActions.vue';
+import Badge from '@/shared/ui/Badge.vue';
 import { useDialog } from '@/composables/useDialog';
 
 const props = defineProps({
@@ -30,6 +32,7 @@ const {
     load,
     loadProposals,
     createProposal,
+    updateProposal,
     approveProposal,
     rejectProposal,
     deleteProposal,
@@ -91,6 +94,7 @@ const exportDdRef = ref(null);
 const filtersLoading = ref(false);
 
 const proposalFormOpen = ref(false);
+const editingProposal = ref(null);
 const rejectOpen = ref(false);
 const approveOpen = ref(false);
 const rejecting = ref(null);
@@ -98,17 +102,6 @@ const approving = ref(null);
 
 // KPI filter: clicking a card sets statusFilter
 const activeKpi = ref(null);
-
-const STATUS_TEXT = {
-    draft: 'text-slate-600',
-    submitted: 'text-blue-700',
-    pending: 'text-amber-700',
-    approved: 'text-emerald-700',
-    rejected: 'text-rose-700',
-    purchased: 'text-violet-700',
-    active: 'text-teal-700',
-    expired: 'text-slate-500',
-};
 
 const activeFilterCount = computed(() => {
     let n = 0;
@@ -268,9 +261,30 @@ onMounted(() => {
 });
 onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOutside));
 
-async function onProposalSubmit(payload) {
-    const created = await createProposal(payload);
+function openCreateProposal() {
+    editingProposal.value = null;
+    proposalFormOpen.value = true;
+}
+
+function openEditProposal(row) {
+    editingProposal.value = row;
+    proposalFormOpen.value = true;
+}
+
+function closeProposalForm() {
     proposalFormOpen.value = false;
+    editingProposal.value = null;
+}
+
+async function onProposalSubmit(payload) {
+    const { id, ...body } = payload;
+    if (id) {
+        await updateProposal(id, body);
+        closeProposalForm();
+        return;
+    }
+    const created = await createProposal(body);
+    closeProposalForm();
     if (created?.export_pdf_url) {
         window.open(created.export_pdf_url, '_blank', 'noopener');
     }
@@ -598,7 +612,7 @@ function runExport(format) {
               v-if="props.can.propose"
               type="button"
               class="btn-primary h-9 gap-1.5 px-4 text-sm"
-              @click="proposalFormOpen = true"
+              @click="openCreateProposal"
             >
               <AppIcon
                 name="add"
@@ -896,12 +910,10 @@ function runExport(format) {
                 v-if="visibleCols.status"
                 class="px-4 py-3"
               >
-                <span
-                  class="text-sm font-medium"
-                  :class="STATUS_TEXT[row.status] ?? 'text-slate-600'"
-                >
-                  {{ row.status_label }}
-                </span>
+                <Badge
+                  :label="row.status_label"
+                  :color="row.status_color"
+                />
               </td>
               <td
                 v-if="visibleCols.reviewed_by_name"
@@ -922,71 +934,15 @@ function runExport(format) {
                 {{ row.end_date ?? '—' }}
               </td>
 
-              <td class="px-4 py-3">
-                <div class="flex items-center justify-center gap-0.5">
-                  <a
-                    v-if="row.export_pdf_url"
-                    :href="row.export_pdf_url"
-                    target="_blank"
-                    rel="noopener"
-                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-transparent text-slate-500 transition hover:border-slate-200 hover:bg-slate-50 hover:text-brand"
-                    title="Tải PDF"
-                  >
-                    <AppIcon
-                      name="pdf"
-                      :size="16"
-                    />
-                  </a>
-                  <a
-                    v-if="row.export_docx_url"
-                    :href="row.export_docx_url"
-                    target="_blank"
-                    rel="noopener"
-                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-transparent text-slate-500 transition hover:border-slate-200 hover:bg-slate-50 hover:text-slate-700"
-                    title="Tải DOCX"
-                  >
-                    <AppIcon
-                      name="download"
-                      :size="16"
-                    />
-                  </a>
-                  <button
-                    v-if="row.can_review && props.can.review_proposals"
-                    type="button"
-                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-transparent text-slate-500 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
-                    title="Duyệt phiếu"
-                    @click="openApprove(row)"
-                  >
-                    <AppIcon
-                      name="check"
-                      :size="16"
-                    />
-                  </button>
-                  <button
-                    v-if="row.can_review && props.can.review_proposals"
-                    type="button"
-                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-transparent text-slate-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
-                    title="Từ chối phiếu"
-                    @click="openReject(row)"
-                  >
-                    <AppIcon
-                      name="close"
-                      :size="16"
-                    />
-                  </button>
-                  <button
-                    v-if="row.can_delete"
-                    type="button"
-                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-transparent text-slate-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
-                    title="Xoá phiếu"
-                    @click="onDeleteProposal(row)"
-                  >
-                    <AppIcon
-                      name="delete"
-                      :size="16"
-                    />
-                  </button>
-                </div>
+              <td class="px-3 py-3">
+                <ProposalRowActions
+                  :row="row"
+                  :can-review="props.can.review_proposals"
+                  @edit="openEditProposal"
+                  @approve="openApprove"
+                  @reject="openReject"
+                  @delete="onDeleteProposal"
+                />
               </td>
             </tr>
           </tbody>
@@ -1156,10 +1112,11 @@ function runExport(format) {
     <!-- ── Modals ── -->
     <AiPurchaseProposalFormModal
       :show="proposalFormOpen"
+      :edit-proposal="editingProposal"
       :options="props.options"
       :proposal-defaults="props.proposalDefaults"
       :form-lookups="props.formLookups"
-      @close="proposalFormOpen = false"
+      @close="closeProposalForm"
       @submit="onProposalSubmit"
     />
     <AiPurchaseProposalRejectModal
