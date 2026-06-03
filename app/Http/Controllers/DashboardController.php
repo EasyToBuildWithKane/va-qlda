@@ -29,7 +29,7 @@ class DashboardController extends Controller
             ->whereNotNull('due_date')
             ->whereDate('due_date', '<', now())
             ->count();
-        $openBugs        = Bug::where('status', '!=', 'closed')->where('status', '!=', 'resolved')->count();
+        $openBugs        = Bug::whereNotIn('status', ['closed', 'resolved', 'wontfix'])->count();
 
         // ---- Project status distribution --------------------------------
         $projectsByStatus = Project::select('status', DB::raw('count(*) as total'))

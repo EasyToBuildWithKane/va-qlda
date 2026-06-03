@@ -12,6 +12,7 @@ use App\Http\Controllers\Comment\CommentController;
 use App\Http\Controllers\DailyReport\DailyReportController;
 use App\Http\Controllers\DailyReport\DailyReportReviewController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\TeamDashboardController;
 use App\Http\Controllers\Department\DepartmentController;
 use App\Http\Controllers\Feedback\FeedbackController;
 use App\Http\Controllers\NotificationController;
@@ -48,6 +49,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/', fn () => redirect()->route('dashboard'));
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+    Route::get('/dashboard/team', TeamDashboardController::class)->name('dashboard.team');
 
     // Notifications
     Route::prefix('notifications')->name('notifications.')->group(function () {
