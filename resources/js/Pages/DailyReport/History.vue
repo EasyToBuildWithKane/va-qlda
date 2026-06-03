@@ -1,7 +1,8 @@
 <script setup>
-import { reactive } from 'vue';
+import { reactive, ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import AppIcon from '@/Components/AppIcon.vue';
 import StatusBadge from '@/Components/DailyReport/StatusBadge.vue';
 import GradePill from '@/Components/DailyReport/GradePill.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
@@ -10,23 +11,95 @@ const props = defineProps({
     reports: { type: Object, required: true }, // { data, meta, links }
     filters: { type: Object, default: () => ({}) },
     statuses: { type: Array, default: () => [] },
+    grades: { type: Array, default: () => [] },
+    projects: { type: Array, default: () => [] },
+    employees: { type: Array, default: () => [] },
+    canFilterEmployee: { type: Boolean, default: false },
 });
 
+// ---- Filters --------------------------------------------------------------
 const filterForm = reactive({
+    q: props.filters.q ?? '',
     status: props.filters.status ?? '',
+    project_id: props.filters.project_id ?? '',
+    employee_id: props.filters.employee_id ?? '',
+    grade: props.filters.grade ?? '',
     from: props.filters.from ?? '',
     to: props.filters.to ?? '',
 });
 
 const applyFilters = () => {
-    router.get('/daily-reports', { ...filterForm }, { preserveState: true, replace: true });
+    const params = Object.fromEntries(
+        Object.entries(filterForm).filter(([, v]) => v !== '' && v != null),
+    );
+    router.get('/daily-reports', params, { preserveState: true, replace: true, preserveScroll: true });
 };
 
 const clearFilters = () => {
-    filterForm.status = '';
-    filterForm.from = '';
-    filterForm.to = '';
+    Object.keys(filterForm).forEach((k) => (filterForm[k] = ''));
     applyFilters();
+};
+
+const activeCount = computed(() =>
+    Object.values(filterForm).filter((v) => v !== '' && v != null).length,
+);
+
+// Debounce the keyword box; apply the rest immediately on change.
+let kwTimer = null;
+watch(() => filterForm.q, () => {
+    clearTimeout(kwTimer);
+    kwTimer = setTimeout(applyFilters, 350);
+});
+
+// ---- Show / hide the filter panel -----------------------------------------
+const PANEL_KEY = 'va-qlda.reports.filters-open';
+const showFilters = ref(true);
+
+// ---- Show / hide columns --------------------------------------------------
+const COLS_KEY = 'va-qlda.reports.columns';
+const columns = reactive([
+    { key: 'date', label: 'Ngày', visible: true, fixed: false },
+    { key: 'employee', label: 'Người báo cáo', visible: props.canFilterEmployee, manager: true },
+    { key: 'title', label: 'Tiêu đề', visible: true },
+    { key: 'projects', label: 'Dự án', visible: false },
+    { key: 'status', label: 'Trạng thái', visible: true },
+    { key: 'grade', label: 'Xếp loại', visible: true },
+]);
+const visible = (key) => columns.find((c) => c.key === key)?.visible ?? false;
+const visibleCount = computed(() => columns.filter((c) => c.visible).length + 1); // +actions
+const colsMenu = ref(false);
+
+const persistColumns = () => {
+    localStorage.setItem(
+        COLS_KEY,
+        JSON.stringify(Object.fromEntries(columns.map((c) => [c.key, c.visible]))),
+    );
+};
+
+onMounted(() => {
+    try {
+        const open = localStorage.getItem(PANEL_KEY);
+        if (open !== null) showFilters.value = open === '1';
+
+        const saved = JSON.parse(localStorage.getItem(COLS_KEY) || 'null');
+        if (saved) {
+            columns.forEach((c) => {
+                if (c.key in saved && !(c.manager && !props.canFilterEmployee)) {
+                    c.visible = !!saved[c.key];
+                }
+            });
+        }
+    } catch { /* ignore corrupt prefs */ }
+    document.addEventListener('click', onDocClick);
+});
+onBeforeUnmount(() => document.removeEventListener('click', onDocClick));
+
+watch(showFilters, (v) => localStorage.setItem(PANEL_KEY, v ? '1' : '0'));
+
+// Close the columns dropdown when clicking outside it.
+const colsRef = ref(null);
+const onDocClick = (e) => {
+    if (colsMenu.value && colsRef.value && !colsRef.value.contains(e.target)) colsMenu.value = false;
 };
 
 const pageLabel = (label) =>
@@ -34,91 +107,417 @@ const pageLabel = (label) =>
 </script>
 
 <template>
-    <Head title="Report History" />
+  <Head title="Lịch sử báo cáo" />
 
-    <AppLayout>
-        <template #header>
-            <PageHeader
-                title="Lịch sử báo cáo"
-                subtitle="Xem lại tất cả báo cáo đã nộp"
-                icon="report-history"
-                icon-color="sky"
-                :badge="reports.meta?.total"
-            />
-        </template>
+  <AppLayout>
+    <template #header>
+      <PageHeader
+        title="Lịch sử báo cáo"
+        subtitle="Xem lại tất cả báo cáo đã nộp"
+        icon="report-history"
+        icon-color="sky"
+        :badge="reports.meta?.total"
+      />
+    </template>
 
-        <!-- Filters -->
-        <div class="card p-4 mb-4 flex flex-wrap items-end gap-3">
-            <div>
-                <label class="label">Status</label>
-                <select v-model="filterForm.status" class="input" @change="applyFilters">
-                    <option value="">All</option>
-                    <option v-for="s in statuses" :key="s.value" :value="s.value">{{ s.label }}</option>
-                </select>
-            </div>
-            <div>
-                <label class="label">From</label>
-                <input v-model="filterForm.from" type="date" class="input" @change="applyFilters" />
-            </div>
-            <div>
-                <label class="label">To</label>
-                <input v-model="filterForm.to" type="date" class="input" @change="applyFilters" />
-            </div>
-            <button class="btn-ghost" @click="clearFilters">Clear</button>
+    <!-- Toolbar: search + toggles -->
+    <div class="mb-3 flex flex-wrap items-center gap-2">
+      <div class="relative min-w-[14rem] flex-1">
+        <AppIcon
+          name="search"
+          :size="16"
+          class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+        />
+        <input
+          v-model="filterForm.q"
+          type="search"
+          class="input pl-9"
+          placeholder="Tìm theo tiêu đề báo cáo…"
+          title="Gõ từ khoá để tìm trong tiêu đề báo cáo"
+        >
+      </div>
+
+      <button
+        type="button"
+        class="btn-ghost gap-1.5"
+        :class="showFilters ? 'bg-slate-100 text-slate-700' : ''"
+        title="Ẩn / hiện bảng bộ lọc"
+        @click="showFilters = !showFilters"
+      >
+        <AppIcon
+          name="filter"
+          :size="16"
+        />
+        Bộ lọc
+        <span
+          v-if="activeCount"
+          class="grid h-5 min-w-5 place-items-center rounded-full bg-brand px-1 text-[11px] font-semibold text-white"
+        >
+          {{ activeCount }}
+        </span>
+      </button>
+
+      <!-- Column visibility -->
+      <div
+        ref="colsRef"
+        class="relative"
+      >
+        <button
+          type="button"
+          class="btn-ghost gap-1.5"
+          title="Chọn cột hiển thị"
+          @click="colsMenu = !colsMenu"
+        >
+          <AppIcon
+            name="columns"
+            :size="16"
+          />
+          Cột
+          <AppIcon
+            name="chevron-down"
+            :size="14"
+          />
+        </button>
+        <div
+          v-if="colsMenu"
+          class="absolute right-0 z-20 mt-1 w-56 rounded-card border border-slate-200 bg-white p-1.5 shadow-elevation-2"
+        >
+          <p class="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            Hiển thị cột
+          </p>
+          <label
+            v-for="c in columns"
+            :key="c.key"
+            class="flex cursor-pointer items-center gap-2 rounded-btn px-2 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
+            :class="{ 'opacity-40 pointer-events-none': c.manager && !canFilterEmployee }"
+          >
+            <input
+              v-model="c.visible"
+              type="checkbox"
+              class="rounded"
+              @change="persistColumns"
+            >
+            {{ c.label }}
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filter panel -->
+    <Transition name="fade-slide">
+      <div
+        v-show="showFilters"
+        class="card mb-4 p-4"
+      >
+        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div>
+            <label
+              class="label"
+              title="Lọc theo trạng thái duyệt của báo cáo"
+            >Trạng thái</label>
+            <select
+              v-model="filterForm.status"
+              class="input"
+              @change="applyFilters"
+            >
+              <option value="">
+                Tất cả trạng thái
+              </option>
+              <option
+                v-for="s in statuses"
+                :key="s.value"
+                :value="s.value"
+              >
+                {{ s.label }}
+              </option>
+            </select>
+          </div>
+
+          <div>
+            <label
+              class="label"
+              title="Lọc báo cáo theo dự án"
+            >Dự án</label>
+            <select
+              v-model="filterForm.project_id"
+              class="input"
+              @change="applyFilters"
+            >
+              <option value="">
+                Tất cả dự án
+              </option>
+              <option
+                v-for="p in projects"
+                :key="p.id"
+                :value="p.id"
+              >
+                {{ p.name }}
+              </option>
+            </select>
+          </div>
+
+          <div v-if="canFilterEmployee">
+            <label
+              class="label"
+              title="Lọc theo người gửi báo cáo"
+            >Người báo cáo</label>
+            <select
+              v-model="filterForm.employee_id"
+              class="input"
+              @change="applyFilters"
+            >
+              <option value="">
+                Tất cả nhân viên
+              </option>
+              <option
+                v-for="e in employees"
+                :key="e.id"
+                :value="e.id"
+              >
+                {{ e.name }}
+              </option>
+            </select>
+          </div>
+
+          <div>
+            <label
+              class="label"
+              title="Lọc theo xếp loại điểm đánh giá"
+            >Xếp loại</label>
+            <select
+              v-model="filterForm.grade"
+              class="input"
+              @change="applyFilters"
+            >
+              <option value="">
+                Mọi xếp loại
+              </option>
+              <option
+                v-for="g in grades"
+                :key="g.value"
+                :value="g.value"
+              >
+                {{ g.label }}
+              </option>
+            </select>
+          </div>
+
+          <div>
+            <label
+              class="label"
+              title="Chỉ lấy báo cáo từ ngày này trở đi"
+            >Từ ngày</label>
+            <input
+              v-model="filterForm.from"
+              type="date"
+              class="input"
+              @change="applyFilters"
+            >
+          </div>
+
+          <div>
+            <label
+              class="label"
+              title="Chỉ lấy báo cáo đến hết ngày này"
+            >Đến ngày</label>
+            <input
+              v-model="filterForm.to"
+              type="date"
+              class="input"
+              @change="applyFilters"
+            >
+          </div>
         </div>
 
-        <!-- Table -->
-        <div class="card overflow-hidden">
-            <table class="w-full text-sm">
-                <thead class="bg-slate-50 text-slate-500 text-left">
-                    <tr>
-                        <th class="px-4 py-3 font-medium">Date</th>
-                        <th class="px-4 py-3 font-medium">Employee</th>
-                        <th class="px-4 py-3 font-medium">Title</th>
-                        <th class="px-4 py-3 font-medium">Status</th>
-                        <th class="px-4 py-3 font-medium">Grade</th>
-                        <th class="px-4 py-3"></th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100">
-                    <tr v-for="r in reports.data" :key="r.id" class="hover:bg-slate-50">
-                        <td class="px-4 py-3 whitespace-nowrap">
-                            {{ r.date }}
-                            <span v-if="r.is_late" class="ml-1 text-xs text-danger">late</span>
-                        </td>
-                        <td class="px-4 py-3">{{ r.employee?.name ?? '—' }}</td>
-                        <td class="px-4 py-3 text-slate-700">{{ r.title }}</td>
-                        <td class="px-4 py-3"><StatusBadge :label="r.status_label" :color="r.status_color" /></td>
-                        <td class="px-4 py-3">
-                            <GradePill v-if="r.score" :grade="r.score.grade" :color="r.score.grade_color" />
-                            <span v-else class="text-slate-300">—</span>
-                        </td>
-                        <td class="px-4 py-3 text-right">
-                            <Link :href="`/daily-reports/${r.id}`" class="text-brand hover:underline">View</Link>
-                        </td>
-                    </tr>
-                    <tr v-if="reports.data.length === 0">
-                        <td colspan="6" class="px-4 py-10 text-center text-slate-400">No reports found.</td>
-                    </tr>
-                </tbody>
-            </table>
+        <div class="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
+          <p class="text-xs text-slate-400">
+            <span v-if="activeCount">Đang áp dụng {{ activeCount }} bộ lọc</span>
+            <span v-else>Chưa áp dụng bộ lọc nào</span>
+          </p>
+          <button
+            type="button"
+            class="btn-ghost text-sm"
+            :disabled="!activeCount"
+            @click="clearFilters"
+          >
+            Xoá bộ lọc
+          </button>
         </div>
+      </div>
+    </Transition>
 
-        <!-- Pagination -->
-        <div v-if="reports.meta && reports.meta.last_page > 1" class="flex flex-wrap gap-1 mt-4">
-            <template v-for="(link, i) in reports.meta.links" :key="i">
+    <!-- Table -->
+    <div class="card overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="border-b border-slate-200 bg-slate-50 text-left text-slate-500">
+            <tr>
+              <th
+                v-if="visible('date')"
+                class="px-4 py-3 font-medium"
+              >
+                Ngày
+              </th>
+              <th
+                v-if="visible('employee')"
+                class="px-4 py-3 font-medium"
+              >
+                Người báo cáo
+              </th>
+              <th
+                v-if="visible('title')"
+                class="px-4 py-3 font-medium"
+              >
+                Tiêu đề
+              </th>
+              <th
+                v-if="visible('projects')"
+                class="px-4 py-3 font-medium"
+              >
+                Dự án
+              </th>
+              <th
+                v-if="visible('status')"
+                class="px-4 py-3 font-medium"
+              >
+                Trạng thái
+              </th>
+              <th
+                v-if="visible('grade')"
+                class="px-4 py-3 font-medium"
+              >
+                Xếp loại
+              </th>
+              <th class="px-4 py-3 text-right font-medium">
+                Thao tác
+              </th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr
+              v-for="r in reports.data"
+              :key="r.id"
+              class="hover:bg-slate-50"
+            >
+              <td
+                v-if="visible('date')"
+                class="whitespace-nowrap px-4 py-3 text-slate-600"
+              >
+                {{ r.date }}
+                <span
+                  v-if="r.is_late"
+                  class="ml-1 rounded bg-rose-50 px-1.5 py-0.5 text-[11px] font-medium text-danger"
+                >trễ</span>
+              </td>
+              <td
+                v-if="visible('employee')"
+                class="px-4 py-3 text-slate-600"
+              >
+                {{ r.employee?.name ?? '—' }}
+              </td>
+              <td
+                v-if="visible('title')"
+                class="px-4 py-3 font-medium text-slate-700"
+              >
+                {{ r.title }}
+              </td>
+              <td
+                v-if="visible('projects')"
+                class="px-4 py-3"
+              >
+                <div class="flex flex-wrap gap-1">
+                  <span
+                    v-for="p in (r.projects || [])"
+                    :key="p.id"
+                    class="inline-flex items-center rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand"
+                  >{{ p.name }}</span>
+                  <span
+                    v-if="!(r.projects || []).length"
+                    class="text-slate-300"
+                  >—</span>
+                </div>
+              </td>
+              <td
+                v-if="visible('status')"
+                class="px-4 py-3"
+              >
+                <StatusBadge
+                  :label="r.status_label"
+                  :color="r.status_color"
+                />
+              </td>
+              <td
+                v-if="visible('grade')"
+                class="px-4 py-3"
+              >
+                <GradePill
+                  v-if="r.score"
+                  :grade="r.score.grade"
+                  :color="r.score.grade_color"
+                />
+                <span
+                  v-else
+                  class="text-slate-300"
+                >—</span>
+              </td>
+              <td class="px-4 py-3 text-right">
                 <Link
-                    v-if="link.url"
-                    :href="link.url"
-                    class="px-3 py-1.5 rounded-btn text-sm"
-                    :class="link.active ? 'bg-brand text-white' : 'bg-white border border-slate-200 text-slate-600'"
+                  :href="`/daily-reports/${r.id}`"
+                  class="font-medium text-brand hover:underline"
                 >
-                    {{ pageLabel(link.label) }}
+                  Xem
                 </Link>
-                <span v-else class="px-3 py-1.5 rounded-btn text-sm text-slate-300">
-                    {{ pageLabel(link.label) }}
-                </span>
-            </template>
-        </div>
-    </AppLayout>
+              </td>
+            </tr>
+            <tr v-if="reports.data.length === 0">
+              <td
+                :colspan="visibleCount"
+                class="px-4 py-14 text-center text-slate-400"
+              >
+                Không tìm thấy báo cáo nào khớp bộ lọc.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Pagination -->
+    <div
+      v-if="reports.meta && reports.meta.last_page > 1"
+      class="mt-4 flex flex-wrap gap-1"
+    >
+      <template
+        v-for="(link, i) in reports.meta.links"
+        :key="i"
+      >
+        <Link
+          v-if="link.url"
+          :href="link.url"
+          class="rounded-btn px-3 py-1.5 text-sm"
+          :class="link.active ? 'bg-brand text-white' : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'"
+        >
+          {{ pageLabel(link.label) }}
+        </Link>
+        <span
+          v-else
+          class="rounded-btn px-3 py-1.5 text-sm text-slate-300"
+        >
+          {{ pageLabel(link.label) }}
+        </span>
+      </template>
+    </div>
+  </AppLayout>
 </template>
+
+<style scoped>
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.fade-slide-enter-from,
+.fade-slide-leave-to {
+    opacity: 0;
+    transform: translateY(-6px);
+}
+</style>

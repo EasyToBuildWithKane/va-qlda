@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 import { useForm } from '@inertiajs/vue3';
+import FieldTooltip from '@/shared/ui/FieldTooltip.vue';
 
 const props = defineProps({
     report: { type: Object, required: true },
@@ -16,11 +17,11 @@ const weights = {
 };
 
 const dimensions = [
-    ['task_completion', 'Task completion'],
-    ['skill_score', 'Skill'],
-    ['attitude_score', 'Attitude'],
-    ['kaizen_score', 'Kaizen'],
-    ['expertise_score', 'Expertise'],
+    ['task_completion', 'Hoàn thành công việc', 'Mức độ hoàn thành mục tiêu và khối lượng công việc đặt ra trong ngày.'],
+    ['skill_score', 'Kỹ năng', 'Kỹ năng chuyên môn và cách xử lý công việc thể hiện trong báo cáo.'],
+    ['attitude_score', 'Thái độ', 'Tinh thần trách nhiệm, chủ động, hợp tác và đúng hạn.'],
+    ['kaizen_score', 'Cải tiến (Kaizen)', 'Tinh thần cầu tiến: đề xuất cải tiến quy trình, cách làm tốt hơn.'],
+    ['expertise_score', 'Chuyên môn', 'Chiều sâu chuyên môn và chất lượng giải pháp đưa ra.'],
 ];
 
 const form = useForm({
@@ -47,6 +48,8 @@ const grade = computed(() => {
     return 'D';
 });
 
+const pct = (key) => Math.round(weights[key] * 100);
+
 const submitScore = () =>
     form.post(`/daily-reports/${props.report.id}/score`, { preserveScroll: true });
 
@@ -55,58 +58,106 @@ const submitReject = () =>
 </script>
 
 <template>
-    <div class="space-y-4">
-        <div class="grid grid-cols-1 gap-3">
-            <div v-for="[key, label] in dimensions" :key="key">
-                <div class="flex items-center justify-between mb-1">
-                    <label class="text-sm text-slate-600">{{ label }}</label>
-                    <span class="text-sm font-medium text-slate-800">{{ Number(form[key]).toFixed(1) }}</span>
-                </div>
-                <input
-                    v-model.number="form[key]"
-                    type="range"
-                    min="0"
-                    max="10"
-                    step="0.5"
-                    class="w-full accent-brand"
-                />
-                <p v-if="form.errors[key]" class="text-xs text-danger">{{ form.errors[key] }}</p>
-            </div>
-        </div>
-
-        <div class="flex items-center justify-between rounded-card bg-slate-50 px-4 py-3">
-            <span class="text-sm text-slate-500">Computed total</span>
-            <div class="flex items-center gap-3">
-                <span class="text-2xl font-display font-bold text-brand">{{ total.toFixed(2) }}</span>
-                <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-brand text-sm font-bold text-white">
-                    {{ grade }}
-                </span>
-            </div>
-        </div>
-
-        <div>
-            <label class="label">Reviewer notes (optional)</label>
-            <textarea v-model="form.notes" rows="2" class="input"></textarea>
-        </div>
-
-        <button class="btn-primary w-full" :disabled="form.processing" @click="submitScore">
-            Score &amp; mark reviewed
-        </button>
-
-        <details class="text-sm">
-            <summary class="cursor-pointer text-slate-500 hover:text-slate-700">Return to author instead</summary>
-            <div class="mt-2 space-y-2">
-                <textarea
-                    v-model="rejectForm.notes"
-                    rows="2"
-                    class="input"
-                    placeholder="What needs to be added?"
-                ></textarea>
-                <p v-if="rejectForm.errors.notes" class="text-xs text-danger">{{ rejectForm.errors.notes }}</p>
-                <button class="btn-ghost w-full text-danger" :disabled="rejectForm.processing" @click="submitReject">
-                    Reject &amp; request changes
-                </button>
-            </div>
-        </details>
+  <div class="space-y-4">
+    <div class="flex items-center justify-between">
+      <h3 class="font-display text-sm font-semibold text-slate-800">
+        Chấm điểm đánh giá
+      </h3>
+      <FieldTooltip text="Kéo từng thanh từ 0–10. Điểm tổng được tính theo trọng số và quy đổi ra xếp loại S/A/B/C/D." />
     </div>
+
+    <div class="grid grid-cols-1 gap-3">
+      <div
+        v-for="[key, label, hint] in dimensions"
+        :key="key"
+      >
+        <div class="mb-1 flex items-center justify-between">
+          <label class="flex items-center gap-1.5 text-sm text-slate-600">
+            {{ label }}
+            <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">{{ pct(key) }}%</span>
+            <FieldTooltip :text="hint" />
+          </label>
+          <span class="text-sm font-semibold text-slate-800">{{ Number(form[key]).toFixed(1) }}</span>
+        </div>
+        <input
+          v-model.number="form[key]"
+          type="range"
+          min="0"
+          max="10"
+          step="0.5"
+          class="w-full accent-brand"
+          :title="`${label}: ${Number(form[key]).toFixed(1)} / 10`"
+        >
+        <p
+          v-if="form.errors[key]"
+          class="text-xs text-danger"
+        >
+          {{ form.errors[key] }}
+        </p>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-between rounded-card bg-slate-50 px-4 py-3">
+      <span class="text-sm text-slate-500">Điểm tổng (tự tính)</span>
+      <div class="flex items-center gap-3">
+        <span class="font-display text-2xl font-bold text-brand">{{ total.toFixed(2) }}</span>
+        <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-brand text-sm font-bold text-white">
+          {{ grade }}
+        </span>
+      </div>
+    </div>
+
+    <div>
+      <label class="label flex items-center gap-1.5">
+        Nhận xét của người duyệt
+        <span class="text-xs font-normal text-slate-400">(không bắt buộc)</span>
+        <FieldTooltip text="Ghi nhận điểm tốt và góp ý để thành viên cải thiện. Nhận xét sẽ hiển thị cho người báo cáo." />
+      </label>
+      <textarea
+        v-model="form.notes"
+        rows="2"
+        class="input resize-y"
+        placeholder="VD: Báo cáo rõ ràng, cần bổ sung số liệu cho phần kết quả…"
+      />
+    </div>
+
+    <button
+      class="btn-primary w-full"
+      :disabled="form.processing"
+      @click="submitScore"
+    >
+      Chấm điểm & duyệt báo cáo
+    </button>
+
+    <details class="text-sm">
+      <summary class="cursor-pointer text-slate-500 hover:text-slate-700">
+        Trả lại cho người báo cáo
+      </summary>
+      <div class="mt-2 space-y-2">
+        <label class="label flex items-center gap-1.5">
+          Lý do trả lại <span class="text-danger">*</span>
+          <FieldTooltip text="Nêu rõ nội dung cần bổ sung / chỉnh sửa để người báo cáo biết cách hoàn thiện." />
+        </label>
+        <textarea
+          v-model="rejectForm.notes"
+          rows="2"
+          class="input resize-y"
+          placeholder="VD: Thiếu phần kế hoạch ngày mai, vui lòng bổ sung…"
+        />
+        <p
+          v-if="rejectForm.errors.notes"
+          class="text-xs text-danger"
+        >
+          {{ rejectForm.errors.notes }}
+        </p>
+        <button
+          class="btn-ghost w-full text-danger"
+          :disabled="rejectForm.processing"
+          @click="submitReject"
+        >
+          Trả lại & yêu cầu chỉnh sửa
+        </button>
+      </div>
+    </details>
+  </div>
 </template>

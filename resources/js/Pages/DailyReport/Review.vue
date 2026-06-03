@@ -1,6 +1,8 @@
 <script setup>
+/* eslint-disable vue/no-v-html -- rendered markdown report fields */
 import { Head, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import AppIcon from '@/Components/AppIcon.vue';
 import ScoringPanel from '@/Components/DailyReport/ScoringPanel.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 
@@ -20,45 +22,89 @@ const preview = [
 </script>
 
 <template>
-    <Head title="Duyệt báo cáo" />
+  <Head title="Duyệt báo cáo" />
 
-    <AppLayout>
-        <template #header>
-            <PageHeader
-                title="Duyệt báo cáo"
-                subtitle="Xem xét và đánh giá báo cáo của thành viên"
-                icon="review-reports"
-                icon-color="violet"
-                :badge="reports.data?.length"
-            />
-        </template>
+  <AppLayout>
+    <template #header>
+      <PageHeader
+        title="Duyệt báo cáo"
+        subtitle="Xem xét và đánh giá báo cáo của thành viên"
+        icon="review-reports"
+        icon-color="violet"
+        :badge="reports.data?.length"
+      />
+    </template>
 
-        <div v-if="reports.data.length === 0" class="card p-10 text-center text-slate-400">
-            Không có báo cáo nào chờ duyệt.
-        </div>
+    <div
+      v-if="reports.data.length === 0"
+      class="card flex flex-col items-center gap-2 p-14 text-center text-slate-400"
+    >
+      <AppIcon
+        name="review-reports"
+        :size="36"
+        class="text-slate-300"
+      />
+      <p class="text-sm">
+        Không có báo cáo nào đang chờ duyệt.
+      </p>
+    </div>
 
-        <div class="space-y-6">
-            <div v-for="r in reports.data" :key="r.id" class="card p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Report content -->
-                <div class="lg:col-span-2 space-y-4">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="font-medium text-slate-800">{{ r.employee?.name }}</p>
-                            <p class="text-xs text-slate-400">{{ r.date }} · {{ r.title }}</p>
-                        </div>
-                        <Link :href="`/daily-reports/${r.id}`" class="text-sm text-brand hover:underline">Mở</Link>
-                    </div>
-                    <div v-for="[label, key] in preview" :key="key">
-                        <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1">{{ label }}</h3>
-                        <div class="text-sm text-slate-600 rich-content" v-html="render(r[key])"></div>
-                    </div>
-                </div>
-
-                <!-- Scoring -->
-                <div class="border-l border-slate-100 lg:pl-6">
-                    <ScoringPanel :report="r" />
-                </div>
+    <div
+      v-else
+      class="space-y-6"
+    >
+      <article
+        v-for="r in reports.data"
+        :key="r.id"
+        class="card grid grid-cols-1 gap-6 p-6 lg:grid-cols-3"
+      >
+        <!-- Report content -->
+        <div class="space-y-4 lg:col-span-2">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div class="flex items-center gap-2.5">
+              <span class="grid h-9 w-9 place-items-center rounded-full bg-brand-100 text-sm font-semibold text-brand">
+                {{ (r.employee?.name || '?').charAt(0) }}
+              </span>
+              <div class="leading-tight">
+                <p class="font-medium text-slate-800">
+                  {{ r.employee?.name }}
+                </p>
+                <p class="text-xs text-slate-400">
+                  {{ r.date }} · {{ r.title }}
+                </p>
+              </div>
             </div>
+            <Link
+              :href="`/daily-reports/${r.id}`"
+              class="btn-ghost gap-1.5 text-sm"
+              title="Mở báo cáo đầy đủ"
+            >
+              <AppIcon
+                name="eye"
+                :size="15"
+              /> Mở
+            </Link>
+          </div>
+
+          <div
+            v-for="[label, key] in preview"
+            :key="key"
+          >
+            <h3 class="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
+              {{ label }}
+            </h3>
+            <div
+              class="rich-content text-sm text-slate-600"
+              v-html="render(r[key])"
+            />
+          </div>
         </div>
-    </AppLayout>
+
+        <!-- Scoring -->
+        <div class="border-t border-slate-100 pt-4 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
+          <ScoringPanel :report="r" />
+        </div>
+      </article>
+    </div>
+  </AppLayout>
 </template>

@@ -12,8 +12,10 @@ use App\Http\Requests\DailyReport\StoreDailyReportRequest;
 use App\Http\Requests\DailyReport\UpdateDailyReportRequest;
 use App\Http\Resources\DailyReportResource;
 use App\Models\Project;
+use App\Support\Enums\Grade;
 use App\Support\Enums\ReportStatus;
 use App\Support\Enums\SystemRole;
+use App\Support\Options;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -30,13 +32,17 @@ class DailyReportController extends Controller
         $this->authorize('viewAny', DailyReport::class);
 
         $account = $request->user();
+        $isMember = $account->role === SystemRole::Member;
 
         $query = DailyReport::query()
             ->with(['employee', 'score'])
             ->latest('date');
 
-        if ($account->role === SystemRole::Member) {
+        // Members only ever see their own reports; managers can filter by person.
+        if ($isMember) {
             $query->where('employee_id', $account->employee_id);
+        } elseif ($employeeId = $request->query('employee_id')) {
+            $query->where('employee_id', $employeeId);
         }
 
         if ($status = $request->query('status')) {
@@ -44,6 +50,12 @@ class DailyReportController extends Controller
         }
         if ($projectId = $request->query('project_id')) {
             $query->where('project_id', $projectId);
+        }
+        if ($grade = $request->query('grade')) {
+            $query->whereHas('score', fn ($q) => $q->where('grade', $grade));
+        }
+        if ($keyword = trim((string) $request->query('q'))) {
+            $query->where('title', 'like', '%'.$keyword.'%');
         }
         if ($from = $request->query('from')) {
             $query->whereDate('date', '>=', $from);
@@ -56,9 +68,14 @@ class DailyReportController extends Controller
 
         return Inertia::render('DailyReport/History', [
             'reports' => DailyReportResource::collection($reports),
-            'filters' => (object) $request->only(['status', 'project_id', 'from', 'to']),
+            'filters' => (object) $request->only(['status', 'project_id', 'employee_id', 'grade', 'q', 'from', 'to']),
             'statuses' => collect(ReportStatus::cases())
                 ->map(fn (ReportStatus $s) => ['value' => $s->value, 'label' => $s->label()]),
+            'grades' => collect(Grade::cases())
+                ->map(fn (Grade $g) => ['value' => $g->value, 'label' => $g->label()]),
+            'projects' => Options::projects(),
+            'employees' => $isMember ? [] : Options::employees(),
+            'canFilterEmployee' => ! $isMember,
         ]);
     }
 

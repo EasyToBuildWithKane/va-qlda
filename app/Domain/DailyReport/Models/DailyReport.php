@@ -148,9 +148,9 @@ class DailyReport extends Model
             return [];
         }
 
-        return array_values(array_filter(array_map(
-            fn ($p) => isset($p['id']) ? (int) $p['id'] : null,
+        return array_values(array_map(
+            fn ($p) => (int) $p['id'],
             $this->projects,
-        )));
+        ));
     }
 }
