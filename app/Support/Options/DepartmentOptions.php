@@ -11,17 +11,16 @@ class DepartmentOptions
     /** @return Collection<int, array{id:int, name:string, code:string, color:string}> */
     public function all(): Collection
     {
-        return Cache::remember('options.departments', 300, fn () =>
-            Department::active()
-                ->orderBy('sort_order')
-                ->orderBy('name')
-                ->get(['id', 'name', 'code', 'color'])
-                ->map(fn (Department $d) => [
-                    'id' => $d->id,
-                    'name' => $d->name,
-                    'code' => $d->code,
-                    'color' => $d->color,
-                ])
+        return Cache::remember('options.departments', 300, fn () => Department::active()
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'name', 'code', 'color'])
+            ->map(fn (Department $d) => [
+                'id' => $d->id,
+                'name' => $d->name,
+                'code' => $d->code,
+                'color' => $d->color,
+            ])
         );
     }
 
