@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
+use App\Models\Project;
 use App\Models\Task;
 use App\Models\Worklog;
 use App\Support\Enums\TaskStatus;
@@ -97,6 +98,12 @@ class TeamDashboardController extends Controller
         }
 
         // ---- Task status distribution per project for top 8 projects -----
+        $topProjectIds = Project::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->limit(8)
+            ->pluck('id');
+
         $projectTaskStats = Task::query()
             ->join('projects', 'tasks.project_id', '=', 'projects.id')
             ->select(
@@ -105,12 +112,7 @@ class TeamDashboardController extends Controller
                 'tasks.status',
                 DB::raw('count(*) as total')
             )
-            ->whereIn('projects.id', function ($q) {
-                $q->select('id')
-                    ->from('projects')
-                    ->where('is_active', true)
-                    ->limit(8);
-            })
+            ->whereIn('projects.id', $topProjectIds)
             ->groupBy('projects.id', 'projects.name', 'tasks.status')
             ->get()
             ->groupBy('id')
@@ -118,7 +120,8 @@ class TeamDashboardController extends Controller
                 $first = $rows->first();
                 $byStatus = [];
                 foreach ($rows as $r) {
-                    $byStatus[$r->status] = $r->total;
+                    $status = $r->status instanceof TaskStatus ? $r->status->value : (string) $r->status;
+                    $byStatus[$status] = $r->total;
                 }
 
                 return [
