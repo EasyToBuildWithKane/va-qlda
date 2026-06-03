@@ -1,0 +1,39 @@
+---
+description: CI parity and pre-push quality — Pint, ESLint, PHPUnit, storage/media, Playwright
+alwaysApply: true
+---
+
+# CI & quality gates — VA-QLDA
+
+Trước **commit/push** hoặc khi user báo CI đỏ — chạy cùng thứ tự CI (xem `_dev/ci-cd.md`).
+
+## Bắt buộc (blocking trên GitHub/GitLab)
+
+| Check | Lệnh | Ghi chú |
+|-------|------|--------|
+| PHP style | `vendor/bin/pint --test` | Sửa: `vendor/bin/pint` — **không** để job Pint đỏ |
+| PHPUnit | `php artisan test` | Feature Inertia: `tests/TestCase` stub Vite manifest nếu chưa `npm run build` |
+| ESLint | `npm run lint` | CI job frontend; local: pre-commit lint-staged |
+| Vite build | `npm run build` | Job `frontend-build` |
+| E2E | `npm run test:e2e` | Husky pre-push; CI `CI=true`, `workers: 1`, không reuse server :8000 |
+
+## PHP / file công khai
+
+- **Avatar & media URL:** `App\Support\PublicMediaUrl::fromPublicDisk()` trong Resource/Options — không trả path thô cho `<img src>`.
+- **Project attachment:** lưu `public` disk; URL qua route `projects.attachments.file` + `fileExists()` — `url` null khi file mất; không `Storage::url()` cho bản ghi orphan.
+- **Upload mới:** `store("projects/{id}/{category}", 'public')`; dev: `php artisan storage:link`.
+
+## Playwright (tránh flake local)
+
+- Không dựa `reuseExistingServer` mặc định — để Playwright spawn server với SQLite E2E (`tests/e2e/helpers/database.js`).
+- Chỉ reuse khi `PLAYWRIGHT_REUSE_SERVER=1`.
+- Một worker (`playwright.config.js`) vì SQLite shared.
+
+## Agent trước khi push
+
+1. `vendor/bin/pint --test` nếu đổi PHP.
+2. `npm run lint` nếu đổi `resources/js`.
+3. `php artisan test` khi đổi backend/tests.
+4. Không commit `test-results/`, `playwright-report/`, `.env`.
+
+Skill: `.cursor/skills/ship-ready/SKILL.md`.

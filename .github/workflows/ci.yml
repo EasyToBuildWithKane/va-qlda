@@ -18,7 +18,7 @@ env:
 
 jobs:
   backend-tests:
-    name: PHPUnit
+    name: PHPUnit + Pint
     runs-on: ubuntu-latest
 
     steps:
@@ -49,11 +49,14 @@ jobs:
           cp .env.example .env
           php artisan key:generate
 
+      - name: Laravel Pint (blocking)
+        run: vendor/bin/pint --test
+
       - name: Run PHPUnit
         run: php artisan test
 
   frontend-build:
-    name: Frontend build
+    name: Frontend build + ESLint
     runs-on: ubuntu-latest
 
     steps:
@@ -66,6 +69,9 @@ jobs:
 
       - name: Install npm dependencies
         run: npm ci
+
+      - name: ESLint (blocking)
+        run: npm run lint
 
       - name: Build assets
         run: npm run build
@@ -116,6 +122,7 @@ jobs:
       - name: Run Playwright tests
         run: npm run test:e2e
         env:
+          CI: true
           PLAYWRIGHT_BASE_URL: http://127.0.0.1:8000
           DB_CONNECTION: sqlite
           DB_DATABASE: ${{ github.workspace }}/database/testing.sqlite
@@ -129,26 +136,6 @@ jobs:
             playwright-report/
             test-results/
           retention-days: 7
-
-  code-style:
-    name: Laravel Pint
-    runs-on: ubuntu-latest
-    continue-on-error: true
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: "8.2"
-          coverage: none
-
-      - name: Install Composer dependencies
-        run: composer install --no-interaction --prefer-dist --optimize-autoloader
-
-      - name: Check code style
-        run: vendor/bin/pint --test
 
   static-analysis:
     name: PHPStan

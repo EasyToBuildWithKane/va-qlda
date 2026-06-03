@@ -46,12 +46,14 @@ backend-tests:
   script:
     - cp .env.example .env
     - php artisan key:generate
+    - vendor/bin/pint --test
     - php artisan test
 
 frontend-build:
   <<: *node-base
   stage: build
   script:
+    - npm run lint
     - npm run build
   artifacts:
     paths:
@@ -76,6 +78,7 @@ playwright:
   script:
     - npm run test:e2e
   variables:
+    CI: "true"
     PLAYWRIGHT_BASE_URL: http://127.0.0.1:8000
   artifacts:
     when: on_failure
@@ -83,13 +86,6 @@ playwright:
       - playwright-report/
       - test-results/
     expire_in: 7 days
-
-code-style:
-  <<: *php-base
-  stage: quality
-  script:
-    - vendor/bin/pint --test
-  allow_failure: true
 
 static-analysis:
   <<: *php-base
