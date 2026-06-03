@@ -6,6 +6,7 @@ defineProps({
     /** 'to-proposals' | 'to-accounts' */
     direction: { type: String, required: true },
     pendingCount: { type: Number, default: 0 },
+    awaitingAccountCount: { type: Number, default: 0 },
     accountCount: { type: Number, default: 0 },
 });
 </script>
@@ -20,12 +21,18 @@ defineProps({
           Phiếu đề xuất mua AI (PDX)
         </p>
         <p class="mt-0.5 text-xs text-slate-500">
-          Gửi phiếu → Ban duyệt → sau khi duyệt, ghi nhận tài khoản tại tab «Tài khoản AI».
+          Gửi phiếu → Ban duyệt → vào «Tài khoản AI» → Thêm tài khoản, chọn mã phiếu.
           <span
             v-if="pendingCount > 0"
             class="font-medium text-amber-700"
           >
-            {{ pendingCount }} phiếu đang chờ duyệt.
+            {{ pendingCount }} phiếu chờ duyệt.
+          </span>
+          <span
+            v-if="awaitingAccountCount > 0"
+            class="font-medium text-brand"
+          >
+            {{ awaitingAccountCount }} phiếu đã duyệt, chờ lập tài khoản.
           </span>
         </p>
       </template>

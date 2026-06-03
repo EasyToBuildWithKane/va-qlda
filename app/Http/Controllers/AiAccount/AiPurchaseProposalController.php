@@ -27,6 +27,32 @@ class AiPurchaseProposalController extends Controller
         private readonly AiPurchaseProposalDocumentService $documentService,
     ) {}
 
+    public function awaitingAccount(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', AiPurchaseProposal::class);
+
+        $proposals = AiPurchaseProposal::query()
+            ->whereNull('ai_account_id')
+            ->whereIn('status', [
+                AiPurchaseProposalStatus::Approved,
+                AiPurchaseProposalStatus::Purchased,
+                AiPurchaseProposalStatus::Active,
+            ])
+            ->orderByDesc('reviewed_at')
+            ->orderByDesc('created_at')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'proposals' => $proposals
+                    ->map(fn (AiPurchaseProposal $p) => $this->presenter->awaitingAccountOption($p))
+                    ->values()
+                    ->all(),
+            ],
+        ]);
+    }
+
     public function index(Request $request): JsonResponse
     {
         $this->authorize('viewAny', AiPurchaseProposal::class);
@@ -218,7 +244,7 @@ class AiPurchaseProposalController extends Controller
         return response()->json([
             'success' => true,
             'data' => ['proposal' => $this->presenter->row($proposal->fresh(), $request->user())],
-            'message' => 'Đã duyệt phiếu đề xuất.',
+            'message' => 'Đã duyệt phiếu. Vào Tài khoản AI → Thêm tài khoản để chọn mã phiếu và hoàn tất đăng ký.',
         ]);
     }
 

@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Notification;
 
+use App\Http\Controllers\Controller;
 use App\Models\AppNotification;
 use App\Support\Enums\NotificationPriority;
 use Illuminate\Http\Request;

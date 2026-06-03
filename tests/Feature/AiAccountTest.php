@@ -47,6 +47,7 @@ class AiAccountTest extends TestCase
             'objectives' => "Tăng tốc phát triển.\nGiảm thời gian review code.",
             'staff_count' => 5,
             'purchase_type' => 'new',
+            'registration_email' => 'proposer@vaschools.edu.vn',
         ], $overrides);
     }
 
@@ -72,21 +73,25 @@ class AiAccountTest extends TestCase
 
     public function test_can_create_and_list_grouped(): void
     {
-        $this->actingAsUser();
+        $user = $this->actingAsUser();
 
-        $payload = [
+        $this->postJson(route('api.ai-accounts.proposals.store'), $this->proposalPayload([
             'tool_name' => 'GitHub Copilot',
-            'license_type' => 'Business',
-            'group_function' => AiAccountGroupFunction::Dev->value,
-            'email_registered' => 'dev@example.com',
-            'purchase_date' => now()->subMonths(2)->format('Y-m-d'),
-            'expiry_date' => now()->addMonths(10)->format('Y-m-d'),
-            'cost_amount' => 500_000,
-            'cost_unit' => AiAccountCostUnit::Monthly->value,
-            'notify_before_days' => 14,
-        ];
+            'subject_about' => 'Đăng ký GitHub Copilot',
+            'registration_email' => 'dev@example.com',
+        ]))->assertCreated();
 
-        $this->postJson(route('api.ai-accounts.store'), $payload)
+        $proposal = AiPurchaseProposal::query()->where('tool_name', 'GitHub Copilot')->first();
+        $admin = SystemAccount::factory()->role(SystemRole::Admin)->create();
+        $this->actingAs($admin, 'system');
+        $this->postJson(route('api.ai-accounts.proposals.approve', ['proposal' => $proposal->id]))->assertOk();
+
+        $this->actingAs($user, 'system');
+        $this->postJson(route('api.ai-accounts.store'), [
+            'proposal_id' => $proposal->id,
+            'email_registered' => 'dev@example.com',
+            'notify_before_days' => 14,
+        ])
             ->assertCreated()
             ->assertJsonPath('success', true);
 
@@ -201,7 +206,34 @@ class AiAccountTest extends TestCase
 
         $this->postJson(route('api.ai-accounts.proposals.approve', ['proposal' => $proposal->id]))
             ->assertOk();
-        $this->assertSame(AiPurchaseProposalStatus::Approved, $proposal->fresh()->status);
+        $proposal->refresh();
+        $this->assertSame(AiPurchaseProposalStatus::Approved, $proposal->status);
+        $this->assertNull($proposal->ai_account_id);
+
+        $awaiting = $this->getJson(route('api.ai-accounts.proposals.awaiting-account'))
+            ->assertOk()
+            ->json('data.proposals');
+        $this->assertNotEmpty(collect($awaiting)->firstWhere('id', $proposal->id));
+
+        $summary = $this->getJson(route('api.ai-accounts.summary'))->assertOk()->json('data');
+        $devRow = collect($summary['by_group'])->firstWhere('group', 'DEV');
+        $this->assertNotNull($devRow);
+        $this->assertGreaterThanOrEqual(1_000_000, $devRow['cost_monthly'] ?? 0);
+
+        $this->postJson(route('api.ai-accounts.store'), [
+            'proposal_id' => $proposal->id,
+            'email_registered' => 'cursor@vaschools.edu.vn',
+            'password' => 'secret-pass',
+            'notify_before_days' => 14,
+        ])->assertCreated();
+
+        $proposal->refresh();
+        $this->assertNotNull($proposal->ai_account_id);
+        $this->assertDatabaseHas('ai_accounts', [
+            'id' => $proposal->ai_account_id,
+            'tool_name' => 'Cursor Pro',
+            'email_registered' => 'cursor@vaschools.edu.vn',
+        ]);
 
         $this->actingAs($member, 'system');
         $this->postJson(route('api.ai-accounts.proposals.store'), $this->proposalPayload([

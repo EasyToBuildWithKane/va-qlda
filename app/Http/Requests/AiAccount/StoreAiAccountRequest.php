@@ -3,8 +3,9 @@
 namespace App\Http\Requests\AiAccount;
 
 use App\Models\AiAccount;
-use App\Support\Enums\AiAccountCostUnit;
-use App\Support\Enums\AiAccountGroupFunction;
+use App\Models\AiPurchaseProposal;
+use App\Support\Enums\AiPurchaseProposalStatus;
+use App\Support\Enums\SystemRole;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -18,29 +19,46 @@ class StoreAiAccountRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'tool_name' => ['required', 'string', 'max:255'],
-            'license_type' => ['required', 'string', 'max:64'],
-            'license_key' => ['nullable', 'string', 'max:512'],
-            'group_function' => ['required', Rule::in(AiAccountGroupFunction::values())],
+            'proposal_id' => [
+                'required',
+                'uuid',
+                Rule::exists('ai_purchase_proposals', 'id')->where(function ($q) {
+                    $q->whereNull('ai_account_id')
+                        ->whereIn('status', [
+                            AiPurchaseProposalStatus::Approved->value,
+                            AiPurchaseProposalStatus::Purchased->value,
+                            AiPurchaseProposalStatus::Active->value,
+                        ]);
+                }),
+            ],
             'email_registered' => ['required', 'email', 'max:255'],
-            'purchase_date' => ['required', 'date'],
-            'expiry_date' => ['required', 'date', 'after:purchase_date'],
-            'cost_amount' => ['required', 'integer', 'min:1'],
-            'cost_unit' => ['required', Rule::in(AiAccountCostUnit::values())],
-            'seats' => ['nullable', 'integer', 'min:1', 'max:9999'],
+            'password' => ['nullable', 'string', 'max:255'],
             'notify_before_days' => ['nullable', 'integer', 'min:1', 'max:365'],
             'notes' => ['nullable', 'string', 'max:5000'],
-            'status' => ['nullable', Rule::in(['cancelled'])],
         ];
+    }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            if ($this->filled('password') && $this->user()->role !== SystemRole::Admin) {
+                $validator->errors()->add('password', 'Chỉ quản trị viên được lưu mật khẩu đăng nhập.');
+            }
+        });
     }
 
     public function messages(): array
     {
         return [
-            'tool_name.required' => 'Vui lòng nhập tên công cụ AI.',
+            'proposal_id.required' => 'Vui lòng chọn phiếu đề xuất đã duyệt.',
+            'proposal_id.exists' => 'Phiếu không hợp lệ hoặc đã được lập tài khoản.',
+            'email_registered.required' => 'Vui lòng nhập email đăng ký.',
             'email_registered.email' => 'Email đăng ký không hợp lệ.',
-            'expiry_date.after' => 'Ngày hết hạn phải sau ngày mua.',
-            'cost_amount.min' => 'Chi phí phải lớn hơn 0.',
         ];
+    }
+
+    public function proposal(): AiPurchaseProposal
+    {
+        return AiPurchaseProposal::query()->findOrFail($this->validated('proposal_id'));
     }
 }

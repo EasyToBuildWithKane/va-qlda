@@ -42,4 +42,9 @@ class AiAccountPolicy
     {
         return $account->role === SystemRole::Admin;
     }
+
+    public function viewPassword(SystemAccount $account): bool
+    {
+        return $account->role === SystemRole::Admin;
+    }
 }

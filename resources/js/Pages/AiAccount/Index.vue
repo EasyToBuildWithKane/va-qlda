@@ -19,6 +19,7 @@ import AiAccountCrossLink from '@/modules/aiAccount/components/AiAccountCrossLin
 const props = defineProps({
     can: { type: Object, default: () => ({}) },
     options: { type: Object, required: true },
+    formHints: { type: Object, default: () => ({}) },
 });
 
 const dialog = useDialog();
@@ -67,6 +68,7 @@ const renewing = ref(null);
 
 const totalCount = computed(() => summaryCards.value?.total_accounts ?? 0);
 const proposalPendingCount = ref(0);
+const proposalAwaitingAccountCount = ref(0);
 const listBadge = computed(() => {
     if (activeFilterCount.value > 0 || search.value.trim()) {
         return filteredAccountCount.value;
@@ -85,6 +87,8 @@ onMounted(async () => {
     try {
         const summary = await fetchSummary();
         proposalPendingCount.value = summary.proposal_counts?.pending ?? 0;
+        const awaiting = (summary.proposals ?? []).filter((p) => p.awaiting_account);
+        proposalAwaitingAccountCount.value = awaiting.length;
     } catch {
         /* optional — cross-link badge */
     }
@@ -179,6 +183,7 @@ function collapseAllGroups() {
     <AiAccountCrossLink
       direction="to-proposals"
       :pending-count="proposalPendingCount"
+      :awaiting-account-count="proposalAwaitingAccountCount"
     />
 
     <AiAccountSummaryCards :cards="summaryCards" />
@@ -507,7 +512,8 @@ function collapseAllGroups() {
     <AiAccountFormModal
       :show="formOpen"
       :account="editing"
-      :options="options"
+      :can="can"
+      :form-hints="formHints"
       @close="formOpen = false"
       @submit="onFormSubmit"
     />

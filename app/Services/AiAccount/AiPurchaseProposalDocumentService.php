@@ -142,23 +142,71 @@ class AiPurchaseProposalDocumentService
 
     public function fillDocx(AiPurchaseProposal $proposal, string $outputPath): void
     {
-        $processor = new TemplateProcessor($this->templatePath());
-        foreach ($this->templateVariables($proposal) as $key => $value) {
-            $processor->setValue($key, $this->escapeWordValue($value));
+        $templatePath = $this->templatePath();
+        if (! is_readable($templatePath)) {
+            throw new \RuntimeException('Không tìm thấy file mẫu Word: '.$templatePath);
         }
+
+        $processor = new TemplateProcessor($templatePath);
+        $variables = $this->docxTemplateVariables($proposal);
+        $known = array_flip($processor->getVariables());
+
+        foreach ($variables as $key => $value) {
+            if (! isset($known[$key])) {
+                continue;
+            }
+            $processor->setValue($key, $this->wordValue($value));
+        }
+
         $processor->saveAs($outputPath);
     }
 
     public function downloadDocx(AiPurchaseProposal $proposal): BinaryFileResponse
     {
-        $tmp = storage_path('app/temp/ai-proposal-'.$proposal->id.'.docx');
-        if (! is_dir(dirname($tmp))) {
-            mkdir(dirname($tmp), 0755, true);
+        $dir = storage_path('app/temp');
+        if (! is_dir($dir)) {
+            mkdir($dir, 0755, true);
         }
-        $this->fillDocx($proposal, $tmp);
+
+        $tmp = $dir.DIRECTORY_SEPARATOR.'ai-proposal-'.$proposal->id.'.docx';
+
+        try {
+            $this->fillDocx($proposal, $tmp);
+        } catch (\Throwable $e) {
+            report($e);
+            abort(500, 'Không tạo được file Word. Vui lòng tải bản PDF hoặc liên hệ quản trị.');
+        }
+
+        if (! is_readable($tmp) || filesize($tmp) < 100) {
+            abort(500, 'File Word không hợp lệ. Vui lòng tải bản PDF.');
+        }
+
         $filename = 'Phieu_de_xuat_'.$this->safeFilename($proposal->tool_name).'.docx';
 
         return response()->download($tmp, $filename)->deleteFileAfterSend(true);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function docxTemplateVariables(AiPurchaseProposal $proposal): array
+    {
+        $vars = $this->templateVariables($proposal);
+        $vars['check_new'] = $vars['check_new'] === '☑' ? 'X' : ' ';
+        $vars['check_renewal'] = $vars['check_renewal'] === '☑' ? 'X' : ' ';
+
+        return $vars;
+    }
+
+    private function wordValue(string $value): string
+    {
+        $value = str_replace(["\r\n", "\r"], "\n", $value);
+
+        return str_replace(
+            ['&', '<', '>'],
+            ['&amp;', '&lt;', '&gt;'],
+            $value,
+        );
     }
 
     public function downloadPdf(AiPurchaseProposal $proposal): \Illuminate\Http\Response
@@ -214,11 +262,6 @@ class AiPurchaseProposalDocumentService
             $date->month,
             $date->year,
         );
-    }
-
-    private function escapeWordValue(string $value): string
-    {
-        return htmlspecialchars($value, ENT_XML1 | ENT_QUOTES, 'UTF-8');
     }
 
     private function safeFilename(string $name): string

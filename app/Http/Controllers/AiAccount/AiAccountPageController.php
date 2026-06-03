@@ -26,7 +26,13 @@ class AiAccountPageController extends Controller
         return Inertia::render('AiAccount/Index', [
             'can' => [
                 'create' => $request->user()->can('create', AiAccount::class),
+                'view_password' => $request->user()->can('viewPassword', AiAccount::class),
                 'trigger_reminder' => $request->user()->can('triggerReminder', AiAccount::class),
+            ],
+            'form_hints' => [
+                'notify' => config('ai_accounts.defaults.notify_hint'),
+                'billing_monthly' => config('ai_accounts.defaults.billing_hint_monthly'),
+                'billing_yearly' => config('ai_accounts.defaults.billing_hint_yearly'),
             ],
             'options' => [
                 'group_function' => AiAccountGroupFunction::options(),

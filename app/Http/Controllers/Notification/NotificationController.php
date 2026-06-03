@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Notification;
 
+use App\Http\Controllers\Controller;
 use App\Http\Resources\AppNotificationResource;
 use App\Models\AppNotification;
 use App\Models\SystemAccount;

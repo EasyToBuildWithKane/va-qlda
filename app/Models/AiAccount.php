@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string|null $license_key
  * @property AiAccountGroupFunction $group_function
  * @property string $email_registered
+ * @property string|null $login_password
  * @property \Illuminate\Support\Carbon $purchase_date
  * @property \Illuminate\Support\Carbon $expiry_date
  * @property int $cost_amount
@@ -37,6 +38,7 @@ class AiAccount extends Model
         'license_key',
         'group_function',
         'email_registered',
+        'login_password',
         'purchase_date',
         'expiry_date',
         'cost_amount',
@@ -58,5 +60,11 @@ class AiAccount extends Model
         'seats' => 'integer',
         'notify_before_days' => 'integer',
         'last_reminded_at' => 'datetime',
+        'login_password' => 'encrypted',
     ];
+
+    public function purchaseProposal(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(AiPurchaseProposal::class, 'ai_account_id');
+    }
 }

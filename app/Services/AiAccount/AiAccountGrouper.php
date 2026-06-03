@@ -3,8 +3,10 @@
 namespace App\Services\AiAccount;
 
 use App\Models\AiAccount;
+use App\Models\SystemAccount;
 use App\Support\Enums\AiAccountGroupFunction;
 use App\Support\Enums\AiAccountStatus;
+use App\Support\Enums\SystemRole;
 use Illuminate\Support\Collection;
 
 class AiAccountGrouper
@@ -18,7 +20,7 @@ class AiAccountGrouper
      * @param  Collection<int, AiAccount>  $accounts
      * @return array{groups: array<int, array<string, mixed>>, banner: array<string, mixed>|null}
      */
-    public function grouped(Collection $accounts, ?string $search = null): array
+    public function grouped(Collection $accounts, ?string $search = null, ?SystemAccount $viewer = null): array
     {
         if ($search !== null && trim($search) !== '') {
             $q = mb_strtolower(trim($search));
@@ -62,7 +64,7 @@ class AiAccountGrouper
                 'accounts' => $items
                     ->sortBy('tool_name')
                     ->values()
-                    ->map(fn (AiAccount $a) => $this->accountPayload($a))
+                    ->map(fn (AiAccount $a) => $this->accountPayload($a, $viewer))
                     ->all(),
             ];
         }
@@ -145,17 +147,21 @@ class AiAccountGrouper
     /**
      * @return array<string, mixed>
      */
-    private function accountPayload(AiAccount $account): array
+    private function accountPayload(AiAccount $account, ?SystemAccount $viewer = null): array
     {
         $monthly = $this->costCalculator->monthlyAmount($account->cost_amount, $account->cost_unit);
         $daysLeft = $this->statusSync->daysUntilExpiry($account);
+        $account->loadMissing('purchaseProposal');
+        $canViewPassword = $viewer && $viewer->role === SystemRole::Admin;
 
         return [
             'id' => $account->id,
+            'proposal_code' => $account->purchaseProposal?->proposal_code,
             'tool_name' => $account->tool_name,
             'license_type' => $account->license_type,
             'license_key' => $account->license_key,
             'group_function' => $account->group_function->value,
+            'group_label' => $this->groupLabel($account->group_function),
             'email_registered' => $account->email_registered,
             'purchase_date' => $account->purchase_date->format('Y-m-d'),
             'expiry_date' => $account->expiry_date->format('Y-m-d'),
@@ -169,6 +175,8 @@ class AiAccountGrouper
             'days_until_expiry' => $daysLeft,
             'notify_before_days' => $account->notify_before_days,
             'notes' => $account->notes,
+            'has_password' => $canViewPassword && filled($account->login_password),
+            'password' => $canViewPassword ? $account->login_password : null,
             'can_renew' => in_array($account->status, [
                 AiAccountStatus::ExpiringSoon,
                 AiAccountStatus::Expired,
@@ -180,6 +188,17 @@ class AiAccountGrouper
      * @param  Collection<int, AiAccount>  $accounts
      * @return array<string, mixed>|null
      */
+    private function groupLabel(AiAccountGroupFunction $group): string
+    {
+        foreach (AiAccountGroupFunction::options() as $opt) {
+            if ($opt['value'] === $group->value) {
+                return $opt['label'];
+            }
+        }
+
+        return $group->value;
+    }
+
     private function buildBanner(Collection $accounts): ?array
     {
         $warn = $accounts->filter(fn (AiAccount $a) => in_array($a->status, [

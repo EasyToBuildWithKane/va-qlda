@@ -122,6 +122,48 @@ class AiPurchaseProposalPresenter
                 AiPurchaseProposalStatus::Rejected,
             ], true),
             'can_delete' => $viewer?->can('delete', $proposal) ?? false,
+            'ai_account_id' => $proposal->ai_account_id,
+            'awaiting_account' => $proposal->ai_account_id === null && in_array($proposal->status, [
+                AiPurchaseProposalStatus::Approved,
+                AiPurchaseProposalStatus::Purchased,
+                AiPurchaseProposalStatus::Active,
+            ], true),
+        ];
+    }
+
+    /**
+     * Phiếu đã duyệt, chờ lập tài khoản trên trang Tài khoản AI.
+     *
+     * @return array<string, mixed>
+     */
+    public function awaitingAccountOption(AiPurchaseProposal $proposal): array
+    {
+        $email = trim((string) ($proposal->registration_email ?: $proposal->recipient_email ?: ''));
+        $unit = $proposal->cost_unit;
+        $billingHint = $unit->value === 'yearly'
+            ? (string) config('ai_accounts.defaults.billing_hint_yearly')
+            : (string) config('ai_accounts.defaults.billing_hint_monthly');
+
+        return [
+            'id' => $proposal->id,
+            'proposal_code' => $proposal->proposal_code,
+            'tool_name' => $proposal->tool_name,
+            'label' => trim(($proposal->proposal_code ?? '').' — '.$proposal->tool_name, ' —'),
+            'group_function' => $proposal->group_function->value,
+            'group_label' => $this->groupLabel($proposal->group_function),
+            'license_type' => $proposal->license_type,
+            'cost_amount' => $proposal->cost_amount,
+            'cost_unit' => $proposal->cost_unit->value,
+            'cost_unit_label' => $unit->labelVi(),
+            'cost_monthly' => $this->costCalculator->monthlyAmount($proposal->cost_amount, $unit),
+            'registration_email' => $email !== '' ? $email : null,
+            'planned_use_date' => $proposal->planned_use_date?->format('Y-m-d'),
+            'start_date' => $proposal->start_date?->format('Y-m-d'),
+            'end_date' => $proposal->end_date?->format('Y-m-d'),
+            'notify_before_days_suggested' => (int) config('ai_accounts.defaults.notify_before_days', 14),
+            'notify_hint' => (string) config('ai_accounts.defaults.notify_hint'),
+            'billing_hint' => $billingHint,
+            'notes_suggested' => "Tài khoản từ phiếu {$proposal->proposal_code}. Chu kỳ: {$unit->labelVi()}.",
         ];
     }
 

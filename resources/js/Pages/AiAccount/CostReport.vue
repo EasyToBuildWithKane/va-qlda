@@ -239,6 +239,20 @@ async function applyFilters() {
 
 const displayedProposals = computed(() => proposals.value ?? []);
 
+const awaitingAccountCount = computed(() =>
+    (proposals.value ?? []).filter((p) => p.awaiting_account).length,
+);
+
+function rowStatusLabel(row) {
+    if (row.awaiting_account) return 'Chờ lập TK';
+    return row.status_label;
+}
+
+function rowStatusColor(row) {
+    if (row.awaiting_account) return 'brand';
+    return row.status_color;
+}
+
 function openFilterPanel() {
     toggleFilterPanel(() => {
         showColDd.value = false;
@@ -440,6 +454,7 @@ function runExport(format) {
     <AiAccountCrossLink
       direction="to-accounts"
       :account-count="cards?.total_accounts ?? 0"
+      :awaiting-account-count="awaitingAccountCount"
     />
 
     <!-- ── KPI Cards ── -->
@@ -1105,8 +1120,8 @@ function runExport(format) {
                 class="px-4 py-3"
               >
                 <Badge
-                  :label="row.status_label"
-                  :color="row.status_color"
+                  :label="rowStatusLabel(row)"
+                  :color="rowStatusColor(row)"
                 />
               </td>
               <td

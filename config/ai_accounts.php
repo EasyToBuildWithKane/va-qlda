@@ -11,6 +11,13 @@ return [
         'objectives_sample' => "Tăng tốc quá trình phân tích và mô hình hóa nghiệp vụ.\nHỗ trợ xây dựng Wireframe và Prototype trực quan.\nGiảm thời gian thiết kế giao diện ban đầu.\nNâng cao chất lượng tài liệu đặc tả nghiệp vụ và yêu cầu hệ thống.",
     ],
 
+    'defaults' => [
+        'notify_before_days' => 14,
+        'notify_hint' => 'Gửi email và thông báo trước ngày hết hạn license (mặc định 14 ngày).',
+        'billing_hint_monthly' => 'Thanh toán theo tháng — nhắc gia hạn mỗi chu kỳ.',
+        'billing_hint_yearly' => 'Thanh toán theo năm — nhắc trước khi hết hạn gói năm.',
+    ],
+
     'license_types' => [
         'Free',
         'Pro',

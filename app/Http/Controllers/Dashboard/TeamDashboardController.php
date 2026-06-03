@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Dashboard;
 
+use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\Task;
 use App\Support\Enums\TaskStatus;
@@ -16,10 +17,10 @@ class TeamDashboardController extends Controller
     {
         // ---- Task counts per member (by status) -------------------------
         $taskRows = Task::select(
-                'assignee_id',
-                'status',
-                DB::raw('count(*) as total')
-            )
+            'assignee_id',
+            'status',
+            DB::raw('count(*) as total')
+        )
             ->whereNotNull('assignee_id')
             ->groupBy('assignee_id', 'status')
             ->get();
@@ -59,22 +60,22 @@ class TeamDashboardController extends Controller
                     $byStatus[$s->value] = (int) ($myTasks->firstWhere('status', $s)?->total ?? 0);
                 }
 
-                $total    = array_sum($byStatus);
-                $done     = $byStatus[TaskStatus::Done->value];
-                $rate     = $total > 0 ? round($done / $total * 100) : 0;
+                $total = array_sum($byStatus);
+                $done = $byStatus[TaskStatus::Done->value];
+                $rate = $total > 0 ? round($done / $total * 100) : 0;
 
                 return [
-                    'id'         => $emp->id,
-                    'name'       => $emp->full_name,
-                    'email'      => $emp->email,
+                    'id' => $emp->id,
+                    'name' => $emp->full_name,
+                    'email' => $emp->email,
                     'role_title' => $emp->role_title,
-                    'avatar'     => $emp->avatar_path,
-                    'tasks'      => $byStatus,
-                    'total'      => $total,
-                    'done'       => $done,
-                    'rate'       => $rate,
-                    'hours'      => round((float) ($worklogRows->get($emp->id)?->total_hours ?? 0), 1),
-                    'overdue'    => (int) ($overdueRows->get($emp->id)?->total ?? 0),
+                    'avatar' => $emp->avatar_path,
+                    'tasks' => $byStatus,
+                    'total' => $total,
+                    'done' => $done,
+                    'rate' => $rate,
+                    'hours' => round((float) ($worklogRows->get($emp->id)?->total_hours ?? 0), 1),
+                    'overdue' => (int) ($overdueRows->get($emp->id)?->total ?? 0),
                 ];
             });
 
@@ -90,7 +91,7 @@ class TeamDashboardController extends Controller
             ->orderBy('yw')
             ->get()
             ->map(fn ($r) => [
-                'label' => 'T' . date('W', strtotime($r->week_start)),
+                'label' => 'T'.date('W', strtotime($r->week_start)),
                 'total' => $r->total,
             ]);
 
@@ -120,17 +121,17 @@ class TeamDashboardController extends Controller
                 }
 
                 return [
-                    'id'       => $first->id,
-                    'name'     => $first->name,
+                    'id' => $first->id,
+                    'name' => $first->name,
                     'byStatus' => $byStatus,
-                    'total'    => array_sum($byStatus),
+                    'total' => array_sum($byStatus),
                 ];
             })
             ->values();
 
         return Inertia::render('Dashboard/Team', [
-            'members'          => $members,
-            'weeklyTrend'      => $weeklyTrend,
+            'members' => $members,
+            'weeklyTrend' => $weeklyTrend,
             'projectTaskStats' => $projectTaskStats,
         ]);
     }

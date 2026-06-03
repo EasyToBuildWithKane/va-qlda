@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Dashboard;
 
+use App\Http\Controllers\Controller;
 use App\Models\Blocker;
 use App\Models\Bug;
 use App\Models\Employee;
@@ -19,17 +20,17 @@ class DashboardController extends Controller
     public function __invoke(Request $request): Response
     {
         // ---- KPI cards -------------------------------------------------
-        $totalProjects   = Project::count();
-        $activeProjects  = Project::where('status', ProjectStatus::Active)->count();
-        $totalMembers    = Employee::where('is_active', true)->count();
-        $totalTasks      = Task::count();
-        $doneTasks       = Task::where('status', TaskStatus::Done)->count();
-        $openBlockers    = Blocker::open()->count();
-        $overdueTasks    = Task::where('status', '!=', TaskStatus::Done)
+        $totalProjects = Project::count();
+        $activeProjects = Project::where('status', ProjectStatus::Active)->count();
+        $totalMembers = Employee::where('is_active', true)->count();
+        $totalTasks = Task::count();
+        $doneTasks = Task::where('status', TaskStatus::Done)->count();
+        $openBlockers = Blocker::open()->count();
+        $overdueTasks = Task::where('status', '!=', TaskStatus::Done)
             ->whereNotNull('due_date')
             ->whereDate('due_date', '<', now())
             ->count();
-        $openBugs        = Bug::whereNotIn('status', ['closed', 'resolved', 'wontfix'])->count();
+        $openBugs = Bug::whereNotIn('status', ['closed', 'resolved', 'wontfix'])->count();
 
         // ---- Project status distribution --------------------------------
         $projectsByStatus = Project::select('status', DB::raw('count(*) as total'))
@@ -37,9 +38,9 @@ class DashboardController extends Controller
             ->get()
             ->map(fn ($r) => [
                 'status' => $r->status->value,
-                'label'  => $r->status->label(),
-                'color'  => $r->status->color(),
-                'total'  => $r->total,
+                'label' => $r->status->label(),
+                'color' => $r->status->color(),
+                'total' => $r->total,
             ]);
 
         // ---- Task status distribution ------------------------------------
@@ -48,9 +49,9 @@ class DashboardController extends Controller
             ->get()
             ->map(fn ($r) => [
                 'status' => $r->status->value,
-                'label'  => $r->status->label(),
-                'color'  => $r->status->color(),
-                'total'  => $r->total,
+                'label' => $r->status->label(),
+                'color' => $r->status->color(),
+                'total' => $r->total,
             ]);
 
         // ---- Blocker severity distribution (open only) -------------------
@@ -60,9 +61,9 @@ class DashboardController extends Controller
             ->get()
             ->map(fn ($r) => [
                 'severity' => $r->severity->value,
-                'label'    => $r->severity->label(),
-                'color'    => $r->severity->color(),
-                'total'    => $r->total,
+                'label' => $r->severity->label(),
+                'color' => $r->severity->color(),
+                'total' => $r->total,
             ]);
 
         // ---- Task completion trend (last 30 days) ------------------------
@@ -78,7 +79,7 @@ class DashboardController extends Controller
         for ($i = 29; $i >= 0; $i--) {
             $date = now()->subDays($i)->toDateString();
             $trendDays->push([
-                'date'  => $date,
+                'date' => $date,
                 'label' => now()->subDays($i)->format('d/m'),
                 'total' => $completionTrend->get($date)?->total ?? 0,
             ]);
@@ -92,13 +93,13 @@ class DashboardController extends Controller
             ->take(10)
             ->get()
             ->map(fn ($p) => [
-                'id'       => $p->id,
-                'name'     => $p->name,
-                'code'     => $p->code,
-                'color'    => $p->color,
-                'status'   => $p->status->value,
+                'id' => $p->id,
+                'name' => $p->name,
+                'code' => $p->code,
+                'color' => $p->color,
+                'status' => $p->status->value,
                 'progress' => $p->progress(),
-                'tasks'    => $p->tasks_count,
+                'tasks' => $p->tasks_count,
             ])
             ->sortByDesc('progress')
             ->values();
@@ -109,28 +110,28 @@ class DashboardController extends Controller
             ->get()
             ->map(fn ($r) => [
                 'priority' => $r->priority->value,
-                'label'    => $r->priority->label(),
-                'color'    => $r->priority->color(),
-                'total'    => $r->total,
+                'label' => $r->priority->label(),
+                'color' => $r->priority->color(),
+                'total' => $r->total,
             ]);
 
         return Inertia::render('Dashboard/Index', [
             'kpi' => [
-                'totalProjects'  => $totalProjects,
+                'totalProjects' => $totalProjects,
                 'activeProjects' => $activeProjects,
-                'totalMembers'   => $totalMembers,
-                'totalTasks'     => $totalTasks,
-                'doneTasks'      => $doneTasks,
-                'openBlockers'   => $openBlockers,
-                'overdueTasks'   => $overdueTasks,
-                'openBugs'       => $openBugs,
+                'totalMembers' => $totalMembers,
+                'totalTasks' => $totalTasks,
+                'doneTasks' => $doneTasks,
+                'openBlockers' => $openBlockers,
+                'overdueTasks' => $overdueTasks,
+                'openBugs' => $openBugs,
             ],
-            'projectsByStatus'  => $projectsByStatus,
-            'tasksByStatus'     => $tasksByStatus,
+            'projectsByStatus' => $projectsByStatus,
+            'tasksByStatus' => $tasksByStatus,
             'blockersBySeverity' => $blockersBySeverity,
-            'completionTrend'   => $trendDays,
-            'topProjects'       => $topProjects,
-            'tasksByPriority'   => $tasksByPriority,
+            'completionTrend' => $trendDays,
+            'topProjects' => $topProjects,
+            'tasksByPriority' => $tasksByPriority,
         ]);
     }
 }

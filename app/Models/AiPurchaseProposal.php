@@ -58,6 +58,7 @@ class AiPurchaseProposal extends Model
         'created_by',
         'reviewed_by',
         'reviewed_at',
+        'ai_account_id',
     ];
 
     protected $casts = [
@@ -118,5 +119,10 @@ class AiPurchaseProposal extends Model
     public function reviewer(): BelongsTo
     {
         return $this->belongsTo(SystemAccount::class, 'reviewed_by');
+    }
+
+    public function aiAccount(): BelongsTo
+    {
+        return $this->belongsTo(AiAccount::class);
     }
 }
