@@ -5,9 +5,10 @@ export const AI_ACCOUNT_COLUMNS = [
     { key: 'expiry', label: 'Hết hạn' },
     { key: 'cost', label: 'Chi phí' },
     { key: 'status', label: 'Trạng thái' },
+    { key: 'payment', label: 'Thanh toán GH' },
 ];
 
-export const AI_ACCOUNT_COLUMNS_DEFAULT = ['license', 'email', 'expiry', 'cost', 'status'];
+export const AI_ACCOUNT_COLUMNS_DEFAULT = ['license', 'email', 'expiry', 'cost', 'status', 'payment'];
 
 export const AI_ACCOUNT_STATUS_FILTER_OPTS = [
     { key: 'all', label: 'Tất cả' },

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\AiAccount;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AiAccount\RenewAiAccountRequest;
 use App\Http\Requests\AiAccount\StoreAiAccountRequest;
+use App\Http\Requests\AiAccount\UpdateAiAccountRenewalPaymentRequest;
 use App\Http\Requests\AiAccount\UpdateAiAccountRequest;
 use App\Http\Requests\AiAccount\UpdateAiAccountStatusRequest;
 use App\Models\AiAccount;
@@ -17,6 +18,7 @@ use App\Services\AiAccount\AiAccountStatusSync;
 use App\Services\AiAccount\AiPurchaseProposalPresenter;
 use App\Support\Enums\AiAccountCostUnit;
 use App\Support\Enums\AiAccountGroupFunction;
+use App\Support\Enums\AiAccountRenewalPaymentStatus;
 use App\Support\Enums\AiAccountStatus;
 use App\Support\Enums\SystemRole;
 use Carbon\Carbon;
@@ -197,6 +199,9 @@ class AiAccountController extends Controller
             'purchase_date' => $start,
             'expiry_date' => $newExpiry,
             'cost_amount' => (int) $validated['new_cost'],
+            'renewal_payment_status' => AiAccountRenewalPaymentStatus::Unpaid,
+            'renewal_paid_at' => null,
+            'last_payment_reminded_at' => null,
         ]);
 
         $this->statusSync->syncAndSave($aiAccount);
@@ -208,17 +213,46 @@ class AiAccountController extends Controller
         ]);
     }
 
+    public function updateRenewalPayment(
+        UpdateAiAccountRenewalPaymentRequest $request,
+        AiAccount $aiAccount,
+    ): JsonResponse {
+        $status = AiAccountRenewalPaymentStatus::from($request->validated('renewal_payment_status'));
+
+        $aiAccount->update([
+            'renewal_payment_status' => $status,
+            'renewal_paid_at' => $status === AiAccountRenewalPaymentStatus::Paid ? now() : null,
+            'last_payment_reminded_at' => $status === AiAccountRenewalPaymentStatus::Paid
+                ? null
+                : $aiAccount->last_payment_reminded_at,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => ['account' => $this->accountRow($aiAccount->fresh(), $request->user())],
+            'message' => $status === AiAccountRenewalPaymentStatus::Paid
+                ? 'Đã ghi nhận thanh toán gia hạn.'
+                : 'Đã đánh dấu chưa thanh toán — sẽ nhận email nhắc nếu quá hạn.',
+        ]);
+    }
+
     public function triggerReminder(Request $request): JsonResponse
     {
         $this->authorize('triggerReminder', AiAccount::class);
 
-        $count = $this->reminderService->sendDueReminders();
+        $expiryCount = $this->reminderService->sendDueReminders();
+        $paymentCount = $this->reminderService->sendUnpaidRenewalReminders();
+        $count = $expiryCount + $paymentCount;
 
         return response()->json([
             'success' => true,
-            'data' => ['sent' => $count],
+            'data' => [
+                'sent' => $count,
+                'expiry_sent' => $expiryCount,
+                'payment_sent' => $paymentCount,
+            ],
             'message' => $count > 0
-                ? "Đã gửi {$count} nhắc nhở."
+                ? "Đã gửi {$count} nhắc nhở (hết hạn: {$expiryCount}, chưa thanh toán: {$paymentCount})."
                 : 'Không có tài khoản nào cần nhắc hôm nay.',
         ]);
     }

@@ -11,6 +11,7 @@ use App\Support\Enums\SystemRole;
 use App\Support\PublicMediaUrl;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class AiAccountPasswordViewerController extends Controller
 {
@@ -18,8 +19,15 @@ class AiAccountPasswordViewerController extends Controller
     {
         $this->authorize('managePasswordViewers', AiAccount::class);
 
+        $validated = $request->validate([
+            'ai_account_id' => ['required', 'uuid', Rule::exists('ai_accounts', 'id')],
+        ]);
+
+        $aiAccount = AiAccount::query()->findOrFail($validated['ai_account_id']);
+
         $viewers = AiAccountPasswordViewer::query()
-            ->with(['account.employee', 'grantedBy.employee'])
+            ->where('ai_account_id', $aiAccount->id)
+            ->with(['systemAccount.employee', 'grantedBy.employee', 'aiAccount'])
             ->orderByDesc('created_at')
             ->get()
             ->map(fn (AiAccountPasswordViewer $row) => $this->viewerRow($row))
@@ -42,6 +50,11 @@ class AiAccountPasswordViewerController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
+                'ai_account' => [
+                    'id' => $aiAccount->id,
+                    'tool_name' => $aiAccount->tool_name,
+                    'email_registered' => $aiAccount->email_registered,
+                ],
                 'viewers' => $viewers,
                 'candidates' => $candidates,
             ],
@@ -50,17 +63,21 @@ class AiAccountPasswordViewerController extends Controller
 
     public function store(StoreAiAccountPasswordViewerRequest $request): JsonResponse
     {
+        $validated = $request->validated();
+        $aiAccount = AiAccount::query()->findOrFail($validated['ai_account_id']);
+
         $viewer = AiAccountPasswordViewer::create([
-            'system_account_id' => $request->validated('system_account_id'),
+            'ai_account_id' => $aiAccount->id,
+            'system_account_id' => $validated['system_account_id'],
             'granted_by' => $request->user()->id,
         ]);
 
-        $viewer->load(['account.employee', 'grantedBy.employee']);
+        $viewer->load(['systemAccount.employee', 'grantedBy.employee', 'aiAccount']);
 
         return response()->json([
             'success' => true,
             'data' => ['viewer' => $this->viewerRow($viewer)],
-            'message' => 'Đã cấp quyền xem mật khẩu tài khoản AI.',
+            'message' => "Đã cấp quyền xem mật khẩu «{$aiAccount->tool_name}».",
         ], 201);
     }
 
@@ -68,15 +85,18 @@ class AiAccountPasswordViewerController extends Controller
     {
         $this->authorize('managePasswordViewers', AiAccount::class);
 
-        $name = $passwordViewer->account?->employee?->full_name
-            ?? $passwordViewer->account?->display_name
+        $passwordViewer->loadMissing(['systemAccount.employee', 'aiAccount']);
+
+        $name = $passwordViewer->systemAccount?->employee?->full_name
+            ?? $passwordViewer->systemAccount?->display_name
             ?? 'Thành viên';
+        $tool = $passwordViewer->aiAccount?->tool_name ?? 'công cụ';
 
         $passwordViewer->delete();
 
         return response()->json([
             'success' => true,
-            'message' => "Đã thu hồi quyền xem mật khẩu của {$name}.",
+            'message' => "Đã thu hồi quyền xem mật khẩu «{$tool}» của {$name}.",
         ]);
     }
 
@@ -85,11 +105,13 @@ class AiAccountPasswordViewerController extends Controller
      */
     private function viewerRow(AiAccountPasswordViewer $row): array
     {
-        $account = $row->account;
+        $account = $row->systemAccount;
         $employee = $account?->employee;
 
         return [
             'id' => $row->id,
+            'ai_account_id' => $row->ai_account_id,
+            'tool_name' => $row->aiAccount?->tool_name,
             'system_account_id' => $row->system_account_id,
             'name' => $employee?->full_name ?? $account?->display_name ?? '—',
             'email' => $employee?->email ?? $account?->username,

@@ -17,12 +17,16 @@ class StoreAiAccountPasswordViewerRequest extends FormRequest
 
     public function rules(): array
     {
+        $aiAccountId = $this->input('ai_account_id');
+
         return [
+            'ai_account_id' => ['required', 'uuid', Rule::exists('ai_accounts', 'id')],
             'system_account_id' => [
                 'required',
                 'integer',
                 Rule::exists('system_accounts', 'id')->where(fn ($q) => $q->where('is_active', true)),
-                Rule::unique('ai_account_password_viewers', 'system_account_id'),
+                Rule::unique('ai_account_password_viewers', 'system_account_id')
+                    ->where(fn ($q) => $q->where('ai_account_id', $aiAccountId)),
             ],
         ];
     }
@@ -30,8 +34,9 @@ class StoreAiAccountPasswordViewerRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'ai_account_id.required' => 'Vui lòng chọn tài khoản / công cụ AI.',
             'system_account_id.required' => 'Vui lòng chọn thành viên.',
-            'system_account_id.unique' => 'Thành viên này đã có quyền xem mật khẩu.',
+            'system_account_id.unique' => 'Thành viên này đã có quyền xem mật khẩu của công cụ này.',
         ];
     }
 

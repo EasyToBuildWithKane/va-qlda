@@ -9,12 +9,14 @@ class SendAiAccountReminders extends Command
 {
     protected $signature = 'ai-accounts:send-reminders';
 
-    protected $description = 'Gửi nhắc nhở tài khoản AI sắp hết hạn (inbox)';
+    protected $description = 'Gửi nhắc hết hạn + chưa thanh toán gia hạn tài khoản AI';
 
     public function handle(AiAccountReminderService $service): int
     {
-        $count = $service->sendDueReminders();
-        $this->info("Đã gửi {$count} nhắc nhở.");
+        $expiry = $service->sendDueReminders();
+        $payment = $service->sendUnpaidRenewalReminders();
+        $count = $expiry + $payment;
+        $this->info("Đã gửi {$count} nhắc (hết hạn: {$expiry}, chưa TT: {$payment}).");
 
         return self::SUCCESS;
     }

@@ -5,6 +5,7 @@ namespace App\Services\AiAccount;
 use App\Models\AiAccount;
 use App\Models\SystemAccount;
 use App\Support\Enums\AiAccountGroupFunction;
+use App\Support\Enums\AiAccountRenewalPaymentStatus;
 use App\Support\Enums\AiAccountStatus;
 use Illuminate\Support\Collection;
 
@@ -153,7 +154,7 @@ class AiAccountGrouper
         $daysLeft = $this->statusSync->daysUntilExpiry($account);
         $daysLeftSigned = $this->statusSync->daysUntilExpirySigned($account);
         $account->loadMissing('purchaseProposal');
-        $canViewPassword = $viewer !== null && $viewer->can('viewPassword', AiAccount::class);
+        $canViewPassword = $viewer !== null && $viewer->can('viewPassword', $account);
         $urgency = match ($account->status) {
             AiAccountStatus::Expired => 'expired',
             AiAccountStatus::ExpiringSoon => 'expiring_soon',
@@ -161,6 +162,14 @@ class AiAccountGrouper
         };
 
         $proposal = $account->purchaseProposal;
+        $paymentStatus = $account->renewal_payment_status instanceof AiAccountRenewalPaymentStatus
+            ? $account->renewal_payment_status
+            : AiAccountRenewalPaymentStatus::tryFrom((string) $account->renewal_payment_status)
+                ?? AiAccountRenewalPaymentStatus::Unpaid;
+        $showRenewalPayment = in_array($account->status, [
+            AiAccountStatus::ExpiringSoon,
+            AiAccountStatus::Expired,
+        ], true);
 
         return [
             'id' => $account->id,
@@ -190,6 +199,7 @@ class AiAccountGrouper
             'last_reminded_at' => $account->last_reminded_at?->format('d/m/Y H:i'),
             'notify_before_days' => $account->notify_before_days,
             'notes' => $account->notes,
+            'can_view_password' => $canViewPassword,
             'has_password' => $canViewPassword && filled($account->login_password),
             'password' => $canViewPassword ? $account->login_password : null,
             'can_renew' => in_array($account->status, [
@@ -198,6 +208,13 @@ class AiAccountGrouper
             ], true),
             'can_update_status' => $viewer?->can('updateStatus', $account) ?? false,
             'status_locked' => $account->status_locked_at !== null,
+            'renewal_payment_status' => $paymentStatus->value,
+            'renewal_payment_status_label' => $paymentStatus->labelVi(),
+            'renewal_payment_status_color' => $paymentStatus->badgeColor(),
+            'renewal_paid_at' => $account->renewal_paid_at?->format('d/m/Y H:i'),
+            'show_renewal_payment' => $showRenewalPayment,
+            'can_update_renewal_payment' => $showRenewalPayment
+                && ($viewer?->can('updateRenewalPayment', $account) ?? false),
         ];
     }
 

@@ -76,6 +76,15 @@ export function useAiAccounts() {
         return res.data?.account;
     }
 
+    async function updateRenewalPayment(id, renewalPaymentStatus) {
+        const res = await httpPatch(route('api.ai-accounts.update-renewal-payment', { aiAccount: id }), {
+            renewal_payment_status: renewalPaymentStatus,
+        });
+        toast.success(res.message ?? 'Đã cập nhật thanh toán.');
+        await fetchList();
+        return res.data?.account;
+    }
+
     async function deleteAccount(id, toolName) {
         const res = await httpDelete(route('api.ai-accounts.destroy', { aiAccount: id }));
         toast.success(res.message ?? `Đã xoá ${toolName}.`);
@@ -126,6 +135,7 @@ export function useAiAccounts() {
         createAccount,
         updateAccount,
         updateAccountStatus,
+        updateRenewalPayment,
         deleteAccount,
         renewAccount,
         triggerReminder,

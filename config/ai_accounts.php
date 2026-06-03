@@ -37,6 +37,8 @@ return [
         /** Tối thiểu giờ giữa hai lần gửi (cho phép 8:00 và 14:00 cùng ngày). */
         'min_hours_between' => max(1, (int) env('AI_ACCOUNT_REMINDER_MIN_HOURS', 5)),
         'include_expired' => env('AI_ACCOUNT_REMINDER_INCLUDE_EXPIRED', true),
+        /** Hết hạn + chưa thanh toán gia hạn → email/inbox nhắc riêng. */
+        'include_unpaid_renewal' => env('AI_ACCOUNT_REMINDER_UNPAID_RENEWAL', true),
         'extra_recipients' => array_values(array_filter(array_map(
             trim(...),
             explode(',', (string) env('AI_ACCOUNT_REMINDER_EXTRA_EMAILS', '')),

@@ -52,6 +52,7 @@ enum NotificationType: string
     case SystemSync = 'system_sync';
     case SystemError = 'system_error';
     case SystemAiAccountExpiry = 'system_ai_account_expiry';
+    case SystemAiAccountRenewalUnpaid = 'system_ai_account_renewal_unpaid';
 
     // Admin feed
     case AdminUserAction = 'admin_user_action';
@@ -86,7 +87,7 @@ enum NotificationType: string
 
             self::SystemImport, self::SystemExport, self::SystemBackup,
             self::SystemRestore, self::SystemSync, self::SystemError,
-            self::SystemAiAccountExpiry => NotificationCategory::System,
+            self::SystemAiAccountExpiry, self::SystemAiAccountRenewalUnpaid => NotificationCategory::System,
 
             default => NotificationCategory::Admin,
         };
@@ -100,7 +101,7 @@ enum NotificationType: string
             self::AdminQueueFailed, self::AdminImportFailed => NotificationPriority::Critical,
 
             self::TaskDueSoon, self::TaskBlocked, self::TaskAssigned,
-            self::SystemAiAccountExpiry,
+            self::SystemAiAccountExpiry, self::SystemAiAccountRenewalUnpaid,
             self::SprintOverCapacity, self::AdminDataAnomaly,
             self::AdminUploadFailed, self::AdminPermissionError => NotificationPriority::High,
 
@@ -150,6 +151,7 @@ enum NotificationType: string
             self::SystemSync => 'Đồng bộ dữ liệu',
             self::SystemError => 'Lỗi hệ thống',
             self::SystemAiAccountExpiry => 'Tài khoản AI sắp hết hạn',
+            self::SystemAiAccountRenewalUnpaid => 'Chưa thanh toán gia hạn AI',
             self::AdminUserAction => 'Hoạt động người dùng',
             self::AdminApiError => 'API Error',
             self::AdminValidationError => 'Validation Error',

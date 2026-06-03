@@ -3,9 +3,11 @@
 namespace App\Services\AiAccount;
 
 use App\Mail\AiAccountExpiryReminderMail;
+use App\Mail\AiAccountRenewalUnpaidReminderMail;
 use App\Models\AiAccount;
 use App\Models\SystemAccount;
 use App\Services\NotificationService;
+use App\Support\Enums\AiAccountRenewalPaymentStatus;
 use App\Support\Enums\AiAccountStatus;
 use App\Support\Enums\NotificationPriority;
 use App\Support\Enums\NotificationType;
@@ -67,6 +69,109 @@ class AiAccountReminderService
         }
 
         return $sent;
+    }
+
+    /**
+     * Nhắc gia hạn đã quá hạn nhưng chưa ghi nhận thanh toán (vẫn phát sinh chi phí).
+     *
+     * @return int Số tài khoản đã gửi nhắc
+     */
+    public function sendUnpaidRenewalReminders(): int
+    {
+        if (! config('ai_accounts.reminder.include_unpaid_renewal', true)) {
+            return 0;
+        }
+
+        $all = AiAccount::query()->get();
+        $this->statusSync->syncCollection($all);
+
+        $minHours = max(1, (int) config('ai_accounts.reminder.min_hours_between', 5));
+        $notBefore = now()->subHours($minHours);
+
+        $accounts = AiAccount::query()
+            ->where('status', AiAccountStatus::Expired->value)
+            ->where('renewal_payment_status', AiAccountRenewalPaymentStatus::Unpaid->value)
+            ->where(function ($q) use ($notBefore) {
+                $q->whereNull('last_payment_reminded_at')
+                    ->orWhere('last_payment_reminded_at', '<', $notBefore);
+            })
+            ->get();
+
+        $recipients = SystemAccount::query()
+            ->where('is_active', true)
+            ->whereIn('role', [SystemRole::Admin->value, SystemRole::Lead->value])
+            ->with('employee')
+            ->get();
+
+        $emails = $this->resolveRecipientEmails($recipients);
+
+        if ($recipients->isEmpty() && $emails === []) {
+            return 0;
+        }
+
+        $sent = 0;
+        foreach ($accounts as $account) {
+            $this->notifyUnpaidRenewal($recipients, $account, $emails);
+            $account->update(['last_payment_reminded_at' => now()]);
+            $sent++;
+        }
+
+        return $sent;
+    }
+
+    /**
+     * @param  Collection<int, SystemAccount>  $recipients
+     * @param  array<int, string>  $emails
+     */
+    private function notifyUnpaidRenewal(Collection $recipients, AiAccount $account, array $emails): void
+    {
+        $monthly = $this->costCalculator->monthlyForAccount($account);
+        $costLine = $this->costCalculator->formatVnd($monthly).' / tháng';
+        $daysOver = abs($this->statusSync->daysUntilExpirySigned($account));
+
+        $body = implode("\n", [
+            'Công cụ: '.$account->tool_name,
+            'Nhóm: '.$account->group_function->value,
+            'Đã hết hạn: '.$account->expiry_date->format('d/m/Y').' (quá '.$daysOver.' ngày)',
+            'Trạng thái TT: Chưa thanh toán gia hạn',
+            'Chi phí ước tính: '.$costLine,
+            'Email TK: '.$account->email_registered,
+            'Vui lòng thanh toán và đánh dấu «Đã thanh toán» trên VA QLDA.',
+        ]);
+
+        $this->notifications->notify(
+            $recipients,
+            NotificationType::SystemAiAccountRenewalUnpaid,
+            '🔴 Chưa thanh toán gia hạn tài khoản AI',
+            $body,
+            [
+                'priority' => NotificationPriority::High->value,
+                'action_url' => '/ai-accounts',
+                'entity_type' => 'ai_account',
+                'entity_id' => $account->id,
+            ],
+        );
+
+        $this->sendUnpaidEmail($account, $costLine, $daysOver, $emails);
+    }
+
+    /**
+     * @param  array<int, string>  $emails
+     */
+    private function sendUnpaidEmail(AiAccount $account, string $costLine, int $daysOver, array $emails): void
+    {
+        if (! config('ai_accounts.reminder.send_email', true) || $emails === []) {
+            return;
+        }
+
+        try {
+            Mail::to($emails)->send(new AiAccountRenewalUnpaidReminderMail($account, $costLine, $daysOver));
+        } catch (\Throwable $e) {
+            Log::warning('ai_account_payment_reminder_email_failed', [
+                'account_id' => $account->id,
+                'message' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**

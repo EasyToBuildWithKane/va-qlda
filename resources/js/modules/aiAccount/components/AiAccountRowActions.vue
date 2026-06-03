@@ -5,9 +5,10 @@ import AppIcon from '@/Components/AppIcon.vue';
 
 const props = defineProps({
     row: { type: Object, required: true },
+    canManagePasswordViewers: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(['edit', 'renew', 'delete']);
+const emit = defineEmits(['edit', 'renew', 'delete', 'password-viewers']);
 
 const open = ref(false);
 const triggerRef = ref(null);
@@ -99,6 +100,11 @@ function onDelete() {
     emit('delete', props.row);
 }
 
+function onPasswordViewers() {
+    close();
+    emit('password-viewers', props.row);
+}
+
 const hasMenuItems = computed(() => true);
 </script>
 
@@ -153,8 +159,21 @@ const hasMenuItems = computed(() => true);
             class="ml-auto font-mono text-[10px] text-slate-400"
           >{{ row.proposal_code }}</span>
         </Link>
+        <button
+          v-if="canManagePasswordViewers"
+          type="button"
+          class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-50"
+          role="menuitem"
+          @click="onPasswordViewers"
+        >
+          <AppIcon
+            name="eye"
+            :size="15"
+          />
+          Quyền xem MK (công cụ này)
+        </button>
         <div
-          v-if="row.proposal_url"
+          v-if="row.proposal_url || canManagePasswordViewers"
           class="my-1 border-t border-slate-100"
         />
         <button

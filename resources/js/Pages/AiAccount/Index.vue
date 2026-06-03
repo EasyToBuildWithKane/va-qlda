@@ -39,6 +39,7 @@ const {
     createAccount,
     updateAccount,
     updateAccountStatus,
+    updateRenewalPayment,
     deleteAccount,
     renewAccount,
     triggerReminder,
@@ -83,12 +84,27 @@ const {
 const formOpen = ref(false);
 const renewOpen = ref(false);
 const passwordViewersOpen = ref(false);
+const passwordViewerAccountId = ref(null);
 const editing = ref(null);
 const renewing = ref(null);
 
 const totalCount = computed(() => summaryCards.value?.total_accounts ?? 0);
 const proposalPendingCount = ref(0);
 const proposalAwaitingAccountCount = ref(0);
+const allAccountsForPicker = computed(() =>
+    (groups.value ?? []).flatMap((g) => g.accounts ?? []),
+);
+
+function openPasswordViewers(row = null) {
+    passwordViewerAccountId.value = row?.id ?? null;
+    passwordViewersOpen.value = true;
+}
+
+function closePasswordViewers() {
+    passwordViewersOpen.value = false;
+    passwordViewerAccountId.value = null;
+}
+
 const listBadge = computed(() => {
     if (activeFilterCount.value > 0 || search.value.trim()) {
         return filteredAccountCount.value;
@@ -132,6 +148,10 @@ async function onFormSubmit(payload) {
     }
     formOpen.value = false;
     editing.value = null;
+}
+
+async function onRenewalPaymentChange(row, status) {
+    await updateRenewalPayment(row.id, status);
 }
 
 async function onStatusChange(row, status) {
@@ -369,8 +389,8 @@ function showAttentionOnly() {
               v-if="can.manage_password_viewers"
               type="button"
               class="btn-ghost hidden h-9 gap-1.5 border border-slate-200 text-sm md:inline-flex"
-              title="Cấp quyền xem mật khẩu tài khoản AI"
-              @click="passwordViewersOpen = true"
+              title="Cấp quyền xem mật khẩu theo từng công cụ AI"
+              @click="openPasswordViewers()"
             >
               <AppIcon
                 name="eye"
@@ -467,12 +487,15 @@ function showAttentionOnly() {
         :expanded="expanded"
         :loading="loading"
         :col-visible="colVisible"
+        :can-manage-password-viewers="can.manage_password_viewers"
         :status-options="options.status ?? []"
         @toggle="toggleGroup"
         @edit="openEdit"
         @delete="onDelete"
         @renew="openRenew"
         @status-change="onStatusChange"
+        @renewal-payment="onRenewalPaymentChange"
+        @password-viewers="openPasswordViewers"
       />
 
       <DatagridPaginationFooter
@@ -507,7 +530,9 @@ function showAttentionOnly() {
 
     <AiAccountPasswordViewersModal
       :show="passwordViewersOpen"
-      @close="passwordViewersOpen = false"
+      :accounts="allAccountsForPicker"
+      :initial-account-id="passwordViewerAccountId"
+      @close="closePasswordViewers"
     />
   </AppLayout>
 </template>

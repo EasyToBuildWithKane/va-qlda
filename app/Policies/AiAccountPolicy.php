@@ -40,12 +40,17 @@ class AiAccountPolicy
 
     public function triggerReminder(SystemAccount $account): bool
     {
-        return $account->role === SystemRole::Admin;
+        return in_array($account->role, [SystemRole::Admin, SystemRole::Lead], true);
     }
 
-    public function viewPassword(SystemAccount $account): bool
+    public function updateRenewalPayment(SystemAccount $account, AiAccount $aiAccount): bool
     {
-        return \App\Models\AiAccountPasswordViewer::canAccountViewPassword($account);
+        return in_array($account->role, [SystemRole::Admin, SystemRole::Lead], true);
+    }
+
+    public function viewPassword(SystemAccount $account, AiAccount $aiAccount): bool
+    {
+        return \App\Models\AiAccountPasswordViewer::canViewPassword($account, $aiAccount);
     }
 
     public function managePasswordViewers(SystemAccount $account): bool

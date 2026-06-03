@@ -184,6 +184,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/{aiAccount}', [AiAccountController::class, 'show'])->name('show');
         Route::put('/{aiAccount}', [AiAccountController::class, 'update'])->name('update');
         Route::patch('/{aiAccount}/status', [AiAccountController::class, 'updateStatus'])->name('update-status');
+        Route::patch('/{aiAccount}/renewal-payment', [AiAccountController::class, 'updateRenewalPayment'])->name('update-renewal-payment');
         Route::delete('/{aiAccount}', [AiAccountController::class, 'destroy'])->name('destroy');
         Route::post('/{aiAccount}/renew', [AiAccountController::class, 'renew'])->name('renew');
     });

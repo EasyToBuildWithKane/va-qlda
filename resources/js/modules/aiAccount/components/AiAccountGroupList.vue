@@ -21,14 +21,28 @@ defineProps({
             status: true,
         }),
     },
+    canManagePasswordViewers: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(['toggle', 'edit', 'delete', 'renew', 'status-change']);
+const emit = defineEmits([
+    'toggle',
+    'edit',
+    'delete',
+    'renew',
+    'status-change',
+    'password-viewers',
+    'renewal-payment',
+]);
 
 function onStatusChange(row, event) {
     const next = event.target.value;
     if (next === row.status) return;
     emit('status-change', row, next);
+}
+
+function onRenewalPayment(row, status) {
+    if (status === row.renewal_payment_status) return;
+    emit('renewal-payment', row, status);
 }
 
 function rowClasses(row) {
@@ -149,6 +163,12 @@ function expiryDisplay(row) {
                   >
                     Trạng thái
                   </th>
+                  <th
+                    v-if="colVisible.payment"
+                    class="hidden px-4 py-2.5 lg:table-cell lg:px-5"
+                  >
+                    Thanh toán GH
+                  </th>
                   <th class="px-4 py-2.5 text-right sm:px-5">
                     Thao tác
                   </th>
@@ -259,12 +279,73 @@ function expiryDisplay(row) {
                       Đã chỉnh thủ công
                     </p>
                   </td>
+                  <td
+                    v-if="colVisible.payment"
+                    class="hidden px-4 py-3 lg:table-cell lg:px-5"
+                  >
+                    <template v-if="row.show_renewal_payment">
+                      <div
+                        v-if="row.can_update_renewal_payment"
+                        class="inline-flex flex-col gap-1"
+                      >
+                        <div class="inline-flex rounded-lg border border-slate-200 p-0.5">
+                          <button
+                            type="button"
+                            class="rounded-md px-2 py-1 text-[11px] font-semibold transition"
+                            :class="row.renewal_payment_status === 'paid'
+                              ? 'bg-emerald-600 text-white shadow-sm'
+                              : 'text-slate-500 hover:bg-slate-50'"
+                            title="Đã thanh toán gia hạn"
+                            @click="onRenewalPayment(row, 'paid')"
+                          >
+                            Đã TT
+                          </button>
+                          <button
+                            type="button"
+                            class="rounded-md px-2 py-1 text-[11px] font-semibold transition"
+                            :class="row.renewal_payment_status === 'unpaid'
+                              ? 'bg-amber-500 text-white shadow-sm'
+                              : 'text-slate-500 hover:bg-slate-50'"
+                            title="Chưa thanh toán — sẽ nhận email nhắc"
+                            @click="onRenewalPayment(row, 'unpaid')"
+                          >
+                            Chưa TT
+                          </button>
+                        </div>
+                        <p
+                          v-if="row.renewal_payment_status === 'unpaid' && row.status === 'expired'"
+                          class="text-[10px] font-medium text-amber-800"
+                        >
+                          Nhắc email nếu quên TT
+                        </p>
+                        <p
+                          v-else-if="row.renewal_paid_at"
+                          class="text-[10px] text-slate-500"
+                        >
+                          TT {{ row.renewal_paid_at }}
+                        </p>
+                      </div>
+                      <span
+                        v-else
+                        class="text-xs font-medium"
+                        :class="row.renewal_payment_status === 'paid' ? 'text-emerald-700' : 'text-amber-800'"
+                      >
+                        {{ row.renewal_payment_status_label }}
+                      </span>
+                    </template>
+                    <span
+                      v-else
+                      class="text-xs text-slate-400"
+                    >—</span>
+                  </td>
                   <td class="px-4 py-3 text-right sm:px-5">
                     <AiAccountRowActions
                       :row="row"
+                      :can-manage-password-viewers="canManagePasswordViewers"
                       @edit="emit('edit', $event)"
                       @renew="emit('renew', $event)"
                       @delete="emit('delete', $event)"
+                      @password-viewers="emit('password-viewers', $event)"
                     />
                   </td>
                 </tr>

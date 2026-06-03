@@ -27,7 +27,7 @@ class AiAccountPageController extends Controller
         return Inertia::render('AiAccount/Index', [
             'can' => [
                 'create' => $request->user()->can('create', AiAccount::class),
-                'view_password' => $request->user()->can('viewPassword', AiAccount::class),
+                'view_password' => $request->user()->role === SystemRole::Admin,
                 'manage_password_viewers' => $request->user()->can('managePasswordViewers', AiAccount::class),
                 'trigger_reminder' => $request->user()->can('triggerReminder', AiAccount::class),
             ],

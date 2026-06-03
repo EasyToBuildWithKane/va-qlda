@@ -37,7 +37,10 @@ const form = reactive({
 });
 
 const isEdit = computed(() => !!props.account?.id);
-const canViewPassword = computed(() => !!props.can?.view_password);
+const canViewPassword = computed(() => {
+    if (props.account?.can_view_password) return true;
+    return !isEdit.value && !!props.can?.view_password;
+});
 const canUpdateStatus = computed(() => !!props.account?.can_update_status);
 
 const modalTitle = computed(() =>

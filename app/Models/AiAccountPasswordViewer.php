@@ -2,17 +2,24 @@
 
 namespace App\Models;
 
+use App\Support\Enums\SystemRole;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AiAccountPasswordViewer extends Model
 {
     protected $fillable = [
+        'ai_account_id',
         'system_account_id',
         'granted_by',
     ];
 
-    public function account(): BelongsTo
+    public function aiAccount(): BelongsTo
+    {
+        return $this->belongsTo(AiAccount::class);
+    }
+
+    public function systemAccount(): BelongsTo
     {
         return $this->belongsTo(SystemAccount::class, 'system_account_id');
     }
@@ -22,12 +29,15 @@ class AiAccountPasswordViewer extends Model
         return $this->belongsTo(SystemAccount::class, 'granted_by');
     }
 
-    public static function canAccountViewPassword(SystemAccount $account): bool
+    public static function canViewPassword(SystemAccount $viewer, AiAccount $aiAccount): bool
     {
-        if ($account->role === \App\Support\Enums\SystemRole::Admin) {
+        if ($viewer->role === SystemRole::Admin) {
             return true;
         }
 
-        return static::query()->where('system_account_id', $account->id)->exists();
+        return static::query()
+            ->where('ai_account_id', $aiAccount->id)
+            ->where('system_account_id', $viewer->id)
+            ->exists();
     }
 }

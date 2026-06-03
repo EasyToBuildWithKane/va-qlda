@@ -1,74 +1,149 @@
 <script setup>
-import { watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import Modal from '@/Components/Ui/Modal.vue';
 import PasswordViewerAccountPick from '@/modules/aiAccount/components/PasswordViewerAccountPick.vue';
 import { useAiPasswordViewers } from '@/modules/aiAccount/composables/useAiPasswordViewers';
 
 const props = defineProps({
     show: Boolean,
+    /** Danh sách tài khoản AI để chọn công cụ */
+    accounts: { type: Array, default: () => [] },
+    /** Mở modal với tài khoản đã chọn (từ menu Thao tác) */
+    initialAccountId: { type: String, default: null },
 });
 
 const emit = defineEmits(['close']);
+
+const selectedId = ref(null);
 
 const {
     loading,
     saving,
     viewers,
     candidates,
+    selectedAccount,
     load,
     addViewer,
     removeViewer,
 } = useAiPasswordViewers();
 
+const accountOptions = computed(() =>
+    (props.accounts ?? []).map((a) => ({
+        id: a.id,
+        label: [a.tool_name, a.email_registered].filter(Boolean).join(' · '),
+    })),
+);
+
+const selectedLabel = computed(() => {
+    const opt = accountOptions.value.find((o) => o.id === selectedId.value);
+    return opt?.label ?? '';
+});
+
 watch(
     () => props.show,
     (open) => {
-        if (open) load();
+        if (!open) {
+            selectedId.value = null;
+            return;
+        }
+        selectedId.value = props.initialAccountId
+            ?? accountOptions.value[0]?.id
+            ?? null;
+        if (selectedId.value) {
+            load(selectedId.value);
+        }
     },
 );
 
+watch(selectedId, (id) => {
+    if (props.show && id) {
+        load(id);
+    }
+});
+
 async function onPick(candidate) {
-    if (!candidate?.id || saving.value) return;
+    if (!candidate?.id || !selectedId.value || saving.value) return;
     try {
-        await addViewer(candidate.id);
+        await addViewer(selectedId.value, candidate.id);
     } catch {
         /* toast handled */
     }
 }
 
 async function onRemove(row) {
-    if (saving.value) return;
-    await removeViewer(row.id, row.name);
+    if (saving.value || !selectedId.value) return;
+    await removeViewer(row.id, row.name, selectedId.value);
 }
 </script>
 
 <template>
   <Modal
     :show="show"
-    title="Thành viên được xem mật khẩu"
+    title="Quyền xem mật khẩu theo công cụ"
     max-width="max-w-2xl"
     @close="emit('close')"
   >
     <p class="mb-4 text-sm text-slate-600">
-      Chỉ <strong>quản trị viên</strong> và các thành viên trong danh sách dưới đây mới thấy mật khẩu đăng nhập
-      khi mở form Sửa tài khoản AI.
+      Chọn <strong>công cụ / tài khoản AI</strong>, sau đó thêm thành viên chỉ được xem mật khẩu
+      <em>của công cụ đó</em> khi mở form Sửa. Quản trị viên vẫn xem được mọi mật khẩu.
     </p>
 
-    <PasswordViewerAccountPick
-      :candidates="candidates"
-      :disabled="loading || saving || !candidates.length"
-      @pick="onPick"
-    />
+    <label
+      for="pwd-viewer-ai-account"
+      class="mb-1 block text-xs font-medium text-slate-500"
+    >
+      Công cụ / tài khoản AI
+    </label>
+    <select
+      id="pwd-viewer-ai-account"
+      v-model="selectedId"
+      class="input h-10 w-full text-sm"
+      :disabled="!accountOptions.length"
+    >
+      <option
+        v-if="!accountOptions.length"
+        :value="null"
+      >
+        Chưa có tài khoản AI
+      </option>
+      <option
+        v-for="opt in accountOptions"
+        :key="opt.id"
+        :value="opt.id"
+      >
+        {{ opt.label }}
+      </option>
+    </select>
     <p
-      v-if="!loading && !candidates.length"
+      v-if="selectedAccount"
       class="mt-1 text-xs text-slate-500"
     >
-      Đã thêm tất cả tài khoản đăng nhập khả dụng.
+      Đang cấp quyền cho: <span class="font-medium text-slate-700">{{ selectedLabel }}</span>
     </p>
 
-    <div class="mt-5 border-t border-slate-100 pt-4">
+    <div
+      v-if="selectedId"
+      class="mt-4"
+    >
+      <PasswordViewerAccountPick
+        :candidates="candidates"
+        :disabled="loading || saving || !candidates.length"
+        @pick="onPick"
+      />
+      <p
+        v-if="!loading && !candidates.length"
+        class="mt-1 text-xs text-slate-500"
+      >
+        Đã thêm tất cả thành viên khả dụng cho công cụ này.
+      </p>
+    </div>
+
+    <div
+      v-if="selectedId"
+      class="mt-5 border-t border-slate-100 pt-4"
+    >
       <h3 class="text-xs font-bold uppercase tracking-wide text-slate-500">
-        Đang được phép ({{ viewers.length }})
+        Được xem MK của công cụ này ({{ viewers.length }})
       </h3>
 
       <div
@@ -121,7 +196,7 @@ async function onRemove(row) {
         v-else
         class="mt-3 rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500"
       >
-        Chưa có thành viên nào ngoài quản trị viên.
+        Chưa có thành viên nào (ngoài quản trị viên) cho công cụ này.
       </p>
     </div>
 
