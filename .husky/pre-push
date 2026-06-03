@@ -1,15 +1,16 @@
 [ "$CI" = "true" ] && exit 0
-if [ "$SKIP_E2E_PUSH" = "1" ]; then
-  echo "▶ SKIP_E2E_PUSH=1 — bỏ qua Playwright pre-push (GitHub Actions vẫn chạy E2E)."
+
+# Mặc định: không chạy E2E khi push/Sync (nhanh). CI trên GitHub vẫn chạy Playwright.
+if [ "$RUN_E2E_ON_PUSH" != "1" ]; then
+  echo "▶ Pre-push E2E bỏ qua (mặc định). Để chạy local: RUN_E2E_ON_PUSH=1 git push"
   exit 0
 fi
+
 if [ ! -f public/build/manifest.json ]; then
   echo "▶ Building frontend assets (required for E2E)..."
   npm run build || exit 1
 fi
-# Stop stale php artisan serve on 8001–8010 (common after aborted Sync / push).
 node tests/e2e/helpers/stopStaleE2ePorts.js 2>/dev/null || true
-# Avoid :8000 (dev server). Pick first free port 8001–8010 if default is taken.
 if [ -z "$PLAYWRIGHT_E2E_PORT" ]; then
   PLAYWRIGHT_E2E_PORT="$(node tests/e2e/helpers/pickE2ePort.js)" || exit 1
   export PLAYWRIGHT_E2E_PORT

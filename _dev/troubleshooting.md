@@ -99,32 +99,27 @@ ls storage/app/public/projects/2/customer/
 
 ---
 
-## Sync Changes / git push fails (Husky pre-push)
+## Sync Changes chậm / lỗi (Husky pre-push)
 
-**Symptoms:** VS Code/Cursor **Sync Changes** spins then fails; terminal `git push` ends with `pre-push script failed`.
+**Sync lâu (2–3 phút):** Trước đây mỗi push chạy full Playwright. **Hiện tại mặc định không chạy E2E khi push** — Sync nhanh. CI GitHub vẫn test.
 
-**Common cause:** Port in use — dev server on **8000**, or stale E2E on **8001** (`netstat` → `LISTENING` + PID, e.g. `29336`). Pre-push runs `stopStaleE2ePorts.js` then picks a free port **8001–8010**.
-
-**Windows — stop now:**
+**Chạy E2E trước khi push (tùy chọn):**
 
 ```powershell
-netstat -ano | findstr ":8001"
-taskkill /F /PID 29336
+$env:RUN_E2E_ON_PUSH="1"; git push
 ```
 
-(Replace `29336` with your PID from the `LISTENING` line.)
-
-**Bỏ qua E2E khi push (local, đơn giản):**
+**Push vẫn fail (cổng / E2E cũ):** Chỉ khi `RUN_E2E_ON_PUSH=1`. Dọn stale server:
 
 ```powershell
-$env:SKIP_E2E_PUSH="1"; git push
+node tests/e2e/helpers/stopStaleE2ePorts.js
+netstat -ano | findstr "LISTENING" | findstr ":800"
+taskkill /F /PID <pid>
 ```
 
-Hoặc một lần: `git push --no-verify` (bỏ luôn mọi hook push).
+**Bỏ qua mọi hook push (khẩn cấp):** `git push --no-verify`
 
-CI trên GitHub **vẫn** chạy Playwright — chỉ bỏ qua bước ~2 phút trên máy bạn.
-
-**If E2E fails for other reasons:** `npm run test:e2e:install`, then `npm run test:e2e`.
+**Test local không push:** `npm run test:e2e`
 
 ---
 
@@ -193,12 +188,12 @@ npm run test:e2e
 **Skip once (emergency only):**
 
 ```bash
-SKIP_E2E_PUSH=1 git push
+RUN_E2E_ON_PUSH=1 git push
 # hoặc
 git push --no-verify
 ```
 
-**In CI environments:** pre-push is skipped when `CI=true`.
+**Mặc định:** pre-push **không** chạy E2E. **CI:** hook bỏ qua khi `CI=true` (runner có job E2E).
 
 ---
 

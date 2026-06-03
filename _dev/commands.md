@@ -53,7 +53,7 @@ Hooks live in `.husky/`. Installed via `npm run prepare` → `node node_modules/
 | **pre-commit** | `git commit` (before commit is created) | Runs `lint-staged` — ESLint auto-fix on staged JS/Vue files |
 | **commit-msg** | `git commit` (after message written) | Runs `@commitlint/cli --edit` — validates Conventional Commits format |
 | **prepare-commit-msg** | `git commit` (before editor opens) | Runs `scripts/prepare-commit-msg.mjs` — auto-suggests commit message from staged diff (skipped for merge/squash/commit or if user already typed a message) |
-| **pre-push** | `git push` | Playwright E2E (~2 min). Skip local: `SKIP_E2E_PUSH=1 git push` or `--no-verify`. **Skipped when `CI=true`** (CI has its own E2E job) |
+| **pre-push** | `git push` | **Mặc định:** bỏ qua E2E (Sync nhanh). Bật local: `RUN_E2E_ON_PUSH=1 git push`. CI có job Playwright riêng |
 | **post-merge** | `git merge` / `git pull` (after merge) | If `package.json` changed in the merge, runs `npm install` |
 
 Helper scripts:

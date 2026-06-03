@@ -66,11 +66,13 @@ npm run commit
 
 ## Sync Changes / git push bị chặn
 
-**Triệu chứng:** Bấm **Sync Changes** trên Cursor/VS Code không xong; `pre-push script failed`.
+**Triệu chứng:** Sync **rất lâu** hoặc **fail** khi push.
 
-**Hay gặp:** `LISTENING` trên **8001** (PHP E2E cũ, PID trong `netstat`). Hook chạy `stopStaleE2ePorts.js` rồi `pickE2ePort.js`. Tắt tay: `taskkill /F /PID <pid>`.
+**Mặc định mới:** Push/Sync **không** chạy E2E local (nhanh). GitHub Actions vẫn chạy test.
 
-**Không chạy E2E khi push (nhanh):** `$env:SKIP_E2E_PUSH="1"; git push` — CI GitHub vẫn test. Hoặc `git push --no-verify`.
+**Muốn E2E trước push:** `$env:RUN_E2E_ON_PUSH="1"; git push`
+
+**Lỗi cổng 8001:** `node tests/e2e/helpers/stopStaleE2ePorts.js` hoặc `taskkill /F /PID <pid>`.
 
 ---
 
