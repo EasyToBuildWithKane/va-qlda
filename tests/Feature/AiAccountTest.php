@@ -64,6 +64,9 @@ class AiAccountTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('AiAccount/CostReport')
                 ->has('options.proposal_type')
+                ->has('form_lookups.employees')
+                ->has('form_lookups.tools')
+                ->has('form_lookups.account_templates')
             );
     }
 

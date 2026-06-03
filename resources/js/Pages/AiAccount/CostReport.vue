@@ -18,6 +18,7 @@ const props = defineProps({
     can: { type: Object, default: () => ({}) },
     options: { type: Object, required: true },
     proposalDefaults: { type: Object, default: () => ({}) },
+    formLookups: { type: Object, default: () => ({}) },
 });
 
 const {
@@ -1157,6 +1158,7 @@ function runExport(format) {
       :show="proposalFormOpen"
       :options="props.options"
       :proposal-defaults="props.proposalDefaults"
+      :form-lookups="props.formLookups"
       @close="proposalFormOpen = false"
       @submit="onProposalSubmit"
     />

@@ -3,12 +3,27 @@ import { computed, reactive, ref, watch } from 'vue';
 import Modal from '@/Components/Ui/Modal.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import VndAmount from '@/modules/aiAccount/components/VndAmount.vue';
+import ProposalFormLabel from '@/modules/aiAccount/components/ProposalFormLabel.vue';
+import { PROPOSAL_FORM_HINTS as H } from '@/modules/aiAccount/config/proposalFormHints';
+import SearchSelect from '@/shared/ui/SearchSelect.vue';
+import MoneyInput from '@/shared/ui/MoneyInput.vue';
 import FieldTooltip from '@/shared/ui/FieldTooltip.vue';
 
 const props = defineProps({
     show: Boolean,
     options: { type: Object, required: true },
     proposalDefaults: { type: Object, default: () => ({}) },
+    formLookups: {
+        type: Object,
+        default: () => ({
+            employees: [],
+            departments: [],
+            tools: [],
+            vendors: [],
+            send_to: [],
+            account_templates: [],
+        }),
+    },
 });
 
 const emit = defineEmits(['close', 'submit']);
@@ -17,6 +32,15 @@ const dirty = ref(false);
 const activeSection = ref('general');
 const copyRecipientFromProposer = ref(true);
 const showPreview = ref(false);
+const selectedProposerId = ref(null);
+
+const departmentNames = computed(() =>
+    (props.formLookups.departments ?? []).map((d) => d.name).filter(Boolean),
+);
+
+const employeeNameSuggestions = computed(() =>
+    (props.formLookups.employees ?? []).map((e) => e.name).filter(Boolean),
+);
 
 const SECTIONS = [
     { key: 'general', label: 'Thông tin chung', icon: 'info' },
@@ -131,6 +155,7 @@ watch(() => props.show, (open) => {
     activeSection.value = 'general';
     showPreview.value = false;
     copyRecipientFromProposer.value = true;
+    selectedProposerId.value = props.proposalDefaults?.proposer_employee_id ?? null;
     Object.assign(form, defaultForm());
 });
 
@@ -139,6 +164,42 @@ watch(() => form.tool_name, (name) => {
         form.subject_about = `Đăng ký sử dụng ${name.trim()}`;
     }
 });
+
+watch(selectedProposerId, (id) => {
+    if (!id) return;
+    const emp = props.formLookups.employees?.find((e) => e.id === id);
+    if (!emp) return;
+    form.proposer_name = emp.name ?? '';
+    form.proposer_position = emp.role_title ?? '';
+    if (emp.department) form.proposer_department = emp.department;
+    if (copyRecipientFromProposer.value) {
+        syncRecipient();
+        if (emp.email) form.recipient_email = emp.email;
+        if (emp.phone) form.recipient_phone = emp.phone;
+    }
+    onInput();
+});
+
+function applyToolTemplate() {
+    const name = form.tool_name?.trim();
+    if (!name) return;
+    const tpl = props.formLookups.account_templates?.find(
+        (t) => t.tool_name?.toLowerCase() === name.toLowerCase(),
+    );
+    if (!tpl) return;
+    form.license_type = tpl.license_type ?? form.license_type;
+    form.group_function = tpl.group_function ?? form.group_function;
+    if (!form.cost_amount && tpl.cost_amount) form.cost_amount = String(tpl.cost_amount);
+    if (tpl.cost_unit) form.cost_unit = tpl.cost_unit;
+    if (!form.registration_email && tpl.registration_email) {
+        form.registration_email = tpl.registration_email;
+    }
+    onInput();
+}
+
+function onToolNameBlur() {
+    applyToolTemplate();
+}
 
 watch(copyRecipientFromProposer, (on) => {
     if (!on) return;
@@ -159,6 +220,10 @@ function syncRecipient() {
 function onInput() { dirty.value = true; }
 
 function handleSubmit() {
+    if (!costPreviewAmount.value) {
+        activeSection.value = 'budget';
+        return;
+    }
     emit('submit', {
         proposal_type: form.proposal_type || undefined,
         subject_about: form.subject_about.trim(),
@@ -168,7 +233,7 @@ function handleSubmit() {
         vendor_website: form.vendor_website.trim() || undefined,
         group_function: form.group_function,
         license_type: form.license_type.trim(),
-        cost_amount: parseInt(form.cost_amount, 10),
+        cost_amount: parseInt(String(form.cost_amount).replace(/\D/g, ''), 10),
         cost_unit: form.cost_unit,
         quantity: form.quantity ? parseInt(form.quantity, 10) : 1,
         seats: form.seats ? parseInt(form.seats, 10) : null,
@@ -211,7 +276,7 @@ function goSection(key) {
   >
     <div class="flex min-h-[600px] gap-0 -mx-6 -mb-6">
       <!-- ── Sidebar nav ── -->
-      <nav class="w-44 shrink-0 border-r border-slate-100 bg-slate-50 px-2 py-3">
+      <nav class="w-48 shrink-0 border-r border-slate-100 bg-slate-50 px-2 py-3">
         <button
           v-for="s in SECTIONS"
           :key="s.key"
@@ -240,19 +305,25 @@ function goSection(key) {
           <div class="flex-1 overflow-y-auto px-6 py-5">
             <!-- ── SECTION: Thông tin chung ── -->
             <div v-show="activeSection === 'general'">
-              <p class="mb-4 text-xs font-semibold uppercase tracking-wider text-slate-400">
+              <p class="mb-1 text-xs font-semibold uppercase tracking-wider text-slate-400">
                 Thông tin chung
               </p>
-              <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <!-- Loại đề xuất -->
+              <p class="mb-4 text-sm text-slate-500">
+                Thông tin hiển thị trên đầu phiếu PDX (trích yếu, kính gửi, người đề xuất).
+              </p>
+              <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
                 <div class="sm:col-span-2">
-                  <label class="label">Loại đề xuất <span class="text-danger">*</span></label>
+                  <ProposalFormLabel
+                    label="Loại đề xuất"
+                    required
+                    :tooltip="H.proposal_type"
+                  />
                   <div class="flex flex-wrap gap-2">
                     <button
                       v-for="t in options.proposal_type"
                       :key="t.value"
                       type="button"
-                      class="rounded-full border px-3 py-1 text-xs font-medium transition"
+                      class="rounded-full border px-3 py-1.5 text-xs font-medium transition"
                       :class="form.proposal_type === t.value
                         ? 'border-brand bg-brand text-white'
                         : 'border-slate-200 bg-white text-slate-600 hover:border-brand/40'"
@@ -262,155 +333,260 @@ function goSection(key) {
                     </button>
                   </div>
                 </div>
-                <!-- Trích yếu -->
+
                 <div class="sm:col-span-2">
-                  <label class="label flex items-center gap-1">
-                    Về việc (trích yếu) <span class="text-danger">*</span>
-                    <FieldTooltip text="Dòng «Về việc» trên phiếu PDX." />
-                  </label>
+                  <ProposalFormLabel
+                    label="Về việc (trích yếu)"
+                    required
+                    :tooltip="H.subject_about"
+                  />
                   <input
                     v-model="form.subject_about"
                     type="text"
                     required
                     class="input w-full"
-                    placeholder="Đăng ký sử dụng Cursor Pro"
+                    placeholder="VD: Đăng ký sử dụng Cursor Pro cho team phát triển"
+                    autocomplete="off"
                     @input="onInput"
                   >
                 </div>
-                <!-- Kính gửi -->
+
                 <div class="sm:col-span-2">
-                  <label class="label">Kính gửi</label>
+                  <ProposalFormLabel
+                    label="Kính gửi"
+                    :tooltip="H.send_to"
+                  />
                   <input
                     v-model="form.send_to"
                     type="text"
+                    list="proposal-send-to"
                     class="input w-full"
-                    placeholder="Phòng Công nghệ & Phòng Kế Toán"
+                    placeholder="VD: Phòng Công nghệ & Phòng Kế Toán"
+                    autocomplete="off"
                     @input="onInput"
                   >
+                  <datalist id="proposal-send-to">
+                    <option
+                      v-for="s in formLookups.send_to"
+                      :key="s"
+                      :value="s"
+                    />
+                  </datalist>
                 </div>
-                <!-- Họ tên -->
+
+                <div class="sm:col-span-2">
+                  <ProposalFormLabel
+                    label="Chọn người đề xuất (từ danh sách nhân sự)"
+                    :tooltip="H.proposer_pick"
+                  />
+                  <SearchSelect
+                    v-model="selectedProposerId"
+                    :options="formLookups.employees"
+                    show-avatar
+                    placeholder="Tìm & chọn nhân sự…"
+                    search-placeholder="Tìm theo họ tên…"
+                    @update:model-value="onInput"
+                  />
+                </div>
+
                 <div>
-                  <label class="label">Họ &amp; tên người đề xuất <span class="text-danger">*</span></label>
+                  <ProposalFormLabel
+                    label="Họ & tên người đề xuất"
+                    required
+                    :tooltip="H.proposer_name"
+                  />
                   <input
                     v-model="form.proposer_name"
                     type="text"
                     required
                     class="input w-full"
+                    placeholder="VD: Nguyễn Văn An"
+                    autocomplete="name"
                     @input="onInput"
                   >
                 </div>
-                <!-- Chức vụ -->
                 <div>
-                  <label class="label">Chức vụ</label>
+                  <ProposalFormLabel
+                    label="Chức vụ"
+                    :tooltip="H.proposer_position"
+                  />
                   <input
                     v-model="form.proposer_position"
                     type="text"
                     class="input w-full"
+                    placeholder="VD: Chuyên viên CNTT"
+                    autocomplete="organization-title"
                     @input="onInput"
                   >
                 </div>
-                <!-- Phòng ban -->
                 <div class="sm:col-span-2">
-                  <label class="label">Đơn vị / Phòng ban</label>
+                  <ProposalFormLabel
+                    label="Đơn vị / Phòng ban"
+                    :tooltip="H.proposer_department"
+                  />
                   <input
                     v-model="form.proposer_department"
                     type="text"
+                    list="proposal-departments"
                     class="input w-full"
+                    placeholder="VD: Phòng Công nghệ"
+                    autocomplete="organization"
                     @input="onInput"
                   >
+                  <datalist id="proposal-departments">
+                    <option
+                      v-for="name in departmentNames"
+                      :key="name"
+                      :value="name"
+                    />
+                  </datalist>
                 </div>
               </div>
             </div>
 
             <!-- ── SECTION: Nội dung đề xuất ── -->
             <div v-show="activeSection === 'content'">
-              <p class="mb-4 text-xs font-semibold uppercase tracking-wider text-slate-400">
+              <p class="mb-1 text-xs font-semibold uppercase tracking-wider text-slate-400">
                 Nội dung đề xuất
               </p>
-              <div class="space-y-4">
-                <div>
-                  <label class="label">Tên đề xuất / Sản phẩm <span class="text-danger">*</span></label>
+              <p class="mb-4 text-sm text-slate-500">
+                Mô tả sản phẩm, lý do và mục tiêu (mục 2–3 trên phiếu in).
+              </p>
+              <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                <div class="sm:col-span-2">
+                  <ProposalFormLabel
+                    label="Tên đề xuất / Sản phẩm"
+                    required
+                    :tooltip="H.tool_name"
+                  />
                   <input
                     v-model="form.tool_name"
                     type="text"
                     required
+                    list="proposal-tools"
                     class="input w-full"
-                    placeholder="VD: Cursor AI Pro, Adobe CC, Figma Org…"
+                    placeholder="VD: Cursor AI Pro, Claude Team, Figma Organization"
+                    autocomplete="off"
+                    @input="onInput"
+                    @blur="onToolNameBlur"
+                  >
+                  <datalist id="proposal-tools">
+                    <option
+                      v-for="t in formLookups.tools"
+                      :key="t"
+                      :value="t"
+                    />
+                  </datalist>
+                  <p
+                    v-if="formLookups.account_templates?.some(t => t.tool_name?.toLowerCase() === form.tool_name?.trim().toLowerCase())"
+                    class="mt-1 text-xs text-brand"
+                  >
+                    Đã có trong danh mục AI — tab Chi phí sẽ gợi ý gói &amp; giá khi rời ô nhập.
+                  </p>
+                </div>
+                <div>
+                  <ProposalFormLabel
+                    label="Nhà cung cấp"
+                    :tooltip="H.vendor_name"
+                  />
+                  <input
+                    v-model="form.vendor_name"
+                    type="text"
+                    list="proposal-vendors"
+                    class="input w-full"
+                    placeholder="VD: Anthropic, OpenAI, Microsoft"
+                    autocomplete="off"
+                    @input="onInput"
+                  >
+                  <datalist id="proposal-vendors">
+                    <option
+                      v-for="v in formLookups.vendors"
+                      :key="v"
+                      :value="v"
+                    />
+                  </datalist>
+                </div>
+                <div>
+                  <ProposalFormLabel
+                    label="Website"
+                    :tooltip="H.vendor_website"
+                  />
+                  <input
+                    v-model="form.vendor_website"
+                    type="url"
+                    class="input w-full"
+                    placeholder="https://cursor.com/pricing"
+                    autocomplete="url"
                     @input="onInput"
                   >
                 </div>
-                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div>
-                    <label class="label">Nhà cung cấp</label>
-                    <input
-                      v-model="form.vendor_name"
-                      type="text"
-                      class="input w-full"
-                      @input="onInput"
-                    >
-                  </div>
-                  <div>
-                    <label class="label">Website</label>
-                    <input
-                      v-model="form.vendor_website"
-                      type="url"
-                      class="input w-full"
-                      placeholder="https://..."
-                      @input="onInput"
-                    >
-                  </div>
-                </div>
-                <div>
-                  <label class="label">Nội dung đề xuất <span class="text-danger">*</span>
-                    <span class="ml-1 text-xs font-normal text-slate-400">(tối thiểu 20 ký tự)</span>
-                  </label>
+                <div class="sm:col-span-2">
+                  <ProposalFormLabel
+                    label="Nội dung đề xuất"
+                    required
+                    :tooltip="H.proposal_content"
+                    hint="Tối thiểu 20 ký tự"
+                  />
                   <textarea
                     v-model="form.proposal_content"
                     rows="4"
                     required
                     minlength="20"
                     class="input w-full"
-                    placeholder="Mô tả tóm tắt đề xuất…"
+                    placeholder="Tóm tắt: team nào dùng, trong bao lâu, tính năng chính cần có…"
                     @input="onInput"
                   />
                 </div>
-                <div>
-                  <label class="label">Mô tả chi tiết</label>
+                <div class="sm:col-span-2">
+                  <ProposalFormLabel
+                    label="Mô tả chi tiết"
+                    :tooltip="H.description"
+                  />
                   <textarea
                     v-model="form.description"
                     rows="3"
                     class="input w-full"
-                    placeholder="Mô tả chi tiết thêm về sản phẩm / dịch vụ…"
+                    placeholder="Phiên bản, tích hợp IDE, chính sách dữ liệu…"
                     @input="onInput"
                   />
                 </div>
                 <div>
-                  <label class="label">Lý do đề xuất</label>
+                  <ProposalFormLabel
+                    label="Lý do đề xuất"
+                    :tooltip="H.reason_for_proposal"
+                  />
                   <textarea
                     v-model="form.reason_for_proposal"
-                    rows="3"
+                    rows="4"
                     class="input w-full"
-                    placeholder="Tại sao cần sản phẩm/dịch vụ này?"
+                    placeholder="Vì sao cần ngay / gia hạn? Rủi ro nếu không có?"
                     @input="onInput"
                   />
                 </div>
                 <div>
-                  <label class="label">Mục tiêu <span class="text-xs font-normal text-slate-400">(mỗi dòng một ý)</span></label>
+                  <ProposalFormLabel
+                    label="Hiệu quả mong đợi"
+                    :tooltip="H.expected_benefit"
+                  />
+                  <textarea
+                    v-model="form.expected_benefit"
+                    rows="4"
+                    class="input w-full"
+                    placeholder="VD: Giảm ~30% thời gian code review, tăng chất lượng tài liệu BA…"
+                    @input="onInput"
+                  />
+                </div>
+                <div class="sm:col-span-2">
+                  <ProposalFormLabel
+                    label="Mục tiêu"
+                    :tooltip="H.objectives"
+                    hint="Mỗi dòng một ý"
+                  />
                   <textarea
                     v-model="form.objectives"
                     rows="4"
                     class="input w-full font-mono text-sm"
-                    placeholder="Tăng tốc quá trình phân tích&#10;Hỗ trợ xây dựng Wireframe…"
-                    @input="onInput"
-                  />
-                </div>
-                <div>
-                  <label class="label">Hiệu quả mong đợi</label>
-                  <textarea
-                    v-model="form.expected_benefit"
-                    rows="3"
-                    class="input w-full"
-                    placeholder="Kỳ vọng tiết kiệm bao nhiêu % thời gian, nâng cao chất lượng như thế nào…"
+                    placeholder="Tăng tốc quá trình phân tích&#10;Hỗ trợ xây dựng Wireframe&#10;Giảm thời gian thiết kế giao diện"
                     @input="onInput"
                   />
                 </div>
@@ -419,12 +595,19 @@ function goSection(key) {
 
             <!-- ── SECTION: Chi phí & Ngân sách ── -->
             <div v-show="activeSection === 'budget'">
-              <p class="mb-4 text-xs font-semibold uppercase tracking-wider text-slate-400">
+              <p class="mb-1 text-xs font-semibold uppercase tracking-wider text-slate-400">
                 Chi phí &amp; Ngân sách
               </p>
-              <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <p class="mb-4 text-sm text-slate-500">
+                Số liệu cho bảng ngân sách mục 4.1 và thời gian đưa vào sử dụng (mục 5).
+              </p>
+              <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
                 <div>
-                  <label class="label">Nhóm chức năng <span class="text-danger">*</span></label>
+                  <ProposalFormLabel
+                    label="Nhóm chức năng"
+                    required
+                    :tooltip="H.group_function"
+                  />
                   <select
                     v-model="form.group_function"
                     required
@@ -441,13 +624,19 @@ function goSection(key) {
                   </select>
                 </div>
                 <div>
-                  <label class="label">Loại license / Gói <span class="text-danger">*</span></label>
+                  <ProposalFormLabel
+                    label="Loại license / Gói"
+                    required
+                    :tooltip="H.license_type"
+                  />
                   <input
                     v-model="form.license_type"
                     type="text"
                     required
                     list="proposal-license-types"
                     class="input w-full"
+                    placeholder="VD: Pro, Team, Business"
+                    autocomplete="off"
                     @input="onInput"
                   >
                   <datalist id="proposal-license-types">
@@ -459,23 +648,27 @@ function goSection(key) {
                   </datalist>
                 </div>
                 <div>
-                  <label class="label">Chi phí (VNĐ) <span class="text-danger">*</span></label>
-                  <input
-                    v-model="form.cost_amount"
-                    type="number"
-                    min="1"
+                  <ProposalFormLabel
+                    label="Chi phí (VNĐ)"
                     required
-                    class="input w-full"
-                    @input="onInput"
-                  >
+                    :tooltip="H.cost_amount"
+                  />
+                  <MoneyInput
+                    v-model="form.cost_amount"
+                    placeholder="VD: 1.000.000"
+                    @update:model-value="onInput"
+                  />
                   <p
                     v-if="costPreviewAmount"
-                    class="mt-1 text-xs text-slate-500"
+                    class="mt-1.5 rounded-lg bg-slate-50 px-2.5 py-1.5 text-xs text-slate-600"
                   >
                     <VndAmount
                       :amount="costPreviewAmount"
                       inline
-                    /> / {{ form.cost_unit === 'yearly' ? 'năm' : form.cost_unit === 'quarterly' ? 'quý' : form.cost_unit === 'one_time' ? 'một lần' : 'tháng' }}
+                    />
+                    <span class="text-slate-500">
+                      / {{ form.cost_unit === 'yearly' ? 'năm' : form.cost_unit === 'quarterly' ? 'quý' : form.cost_unit === 'one_time' ? 'một lần' : 'tháng' }}
+                    </span>
                     <span
                       v-if="monthlyCost && form.cost_unit !== 'monthly' && form.cost_unit !== 'one_time'"
                       class="ml-2 text-slate-400"
@@ -483,12 +676,16 @@ function goSection(key) {
                       ≈ <VndAmount
                         :amount="monthlyCost"
                         inline
-                      /> / tháng
+                      /> / tháng (trên phiếu)
                     </span>
                   </p>
                 </div>
                 <div>
-                  <label class="label">Chu kỳ thanh toán <span class="text-danger">*</span></label>
+                  <ProposalFormLabel
+                    label="Chu kỳ thanh toán"
+                    required
+                    :tooltip="H.cost_unit"
+                  />
                   <select
                     v-model="form.cost_unit"
                     required
@@ -505,17 +702,25 @@ function goSection(key) {
                   </select>
                 </div>
                 <div>
-                  <label class="label">Số lượng (bảng ngân sách)</label>
+                  <ProposalFormLabel
+                    label="Số lượng (bảng ngân sách)"
+                    :tooltip="H.quantity"
+                  />
                   <input
                     v-model="form.quantity"
                     type="number"
                     min="1"
                     class="input w-full"
+                    placeholder="1"
                     @input="onInput"
                   >
                 </div>
                 <div>
-                  <label class="label">Tình trạng <span class="text-danger">*</span></label>
+                  <ProposalFormLabel
+                    label="Tình trạng"
+                    required
+                    :tooltip="H.purchase_type"
+                  />
                   <select
                     v-model="form.purchase_type"
                     required
@@ -532,7 +737,10 @@ function goSection(key) {
                   </select>
                 </div>
                 <div>
-                  <label class="label">Ngày đưa vào sử dụng (dự kiến)</label>
+                  <ProposalFormLabel
+                    label="Ngày đưa vào sử dụng (dự kiến)"
+                    :tooltip="H.planned_use_date"
+                  />
                   <input
                     v-model="form.planned_use_date"
                     type="date"
@@ -541,11 +749,16 @@ function goSection(key) {
                   >
                 </div>
                 <div>
-                  <label class="label">Email đăng ký tài khoản</label>
+                  <ProposalFormLabel
+                    label="Email đăng ký tài khoản"
+                    :tooltip="H.registration_email"
+                  />
                   <input
                     v-model="form.registration_email"
                     type="email"
                     class="input w-full"
+                    placeholder="ten.ban@hcm.vaschools.edu.vn"
+                    autocomplete="email"
                     @input="onInput"
                   >
                 </div>
@@ -554,51 +767,90 @@ function goSection(key) {
 
             <!-- ── SECTION: Thông tin tài khoản ── -->
             <div v-show="activeSection === 'account'">
-              <p class="mb-4 text-xs font-semibold uppercase tracking-wider text-slate-400">
+              <p class="mb-1 text-xs font-semibold uppercase tracking-wider text-slate-400">
                 Thông tin tài khoản &amp; Người dùng
               </p>
-              <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <p class="mb-4 text-sm text-slate-500">
+                Phạm vi sử dụng và người tiếp nhận license (mục 4.2–4.3 trên phiếu).
+              </p>
+              <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
                 <div>
-                  <label class="label">Số lượng tài khoản / Seats</label>
+                  <ProposalFormLabel
+                    label="Số lượng tài khoản / Seats"
+                    :tooltip="H.seats"
+                  />
                   <input
                     v-model="form.seats"
                     type="number"
                     min="1"
                     class="input w-full"
+                    placeholder="VD: 5"
                     @input="onInput"
                   >
                 </div>
                 <div>
-                  <label class="label">Số nhân sự sử dụng</label>
+                  <ProposalFormLabel
+                    label="Số nhân sự sử dụng"
+                    :tooltip="H.staff_count"
+                  />
                   <input
                     v-model="form.staff_count"
                     type="number"
                     min="1"
                     class="input w-full"
-                    @input="onInput"
-                  >
-                </div>
-                <div>
-                  <label class="label">Bộ phận sử dụng</label>
-                  <input
-                    v-model="form.department_using"
-                    type="text"
-                    class="input w-full"
+                    placeholder="VD: 5"
                     @input="onInput"
                   >
                 </div>
                 <div class="sm:col-span-2">
-                  <label class="label">Danh sách người sử dụng <span class="text-xs font-normal text-slate-400">(mỗi dòng một tên)</span></label>
+                  <ProposalFormLabel
+                    label="Bộ phận sử dụng"
+                    :tooltip="H.department_using"
+                  />
+                  <input
+                    v-model="form.department_using"
+                    type="text"
+                    list="proposal-departments-using"
+                    class="input w-full"
+                    placeholder="VD: Phòng Công nghệ — Team phát triển"
+                    autocomplete="off"
+                    @input="onInput"
+                  >
+                  <datalist id="proposal-departments-using">
+                    <option
+                      v-for="name in departmentNames"
+                      :key="`use-${name}`"
+                      :value="name"
+                    />
+                  </datalist>
+                </div>
+                <div class="sm:col-span-2">
+                  <ProposalFormLabel
+                    label="Danh sách người sử dụng"
+                    :tooltip="H.users_list"
+                    hint="Mỗi dòng một tên"
+                  />
                   <textarea
                     v-model="form.users_list_raw"
                     rows="4"
+                    list="proposal-user-names"
                     class="input w-full font-mono text-sm"
-                    placeholder="Nguyễn Văn A&#10;Trần Thị B&#10;…"
+                    placeholder="Nguyễn Văn A&#10;Trần Thị B&#10;Lê Văn C"
                     @input="onInput"
                   />
+                  <datalist id="proposal-user-names">
+                    <option
+                      v-for="name in employeeNameSuggestions"
+                      :key="`user-${name}`"
+                      :value="name"
+                    />
+                  </datalist>
                 </div>
                 <div>
-                  <label class="label">Ngày bắt đầu</label>
+                  <ProposalFormLabel
+                    label="Ngày bắt đầu"
+                    :tooltip="H.start_date"
+                  />
                   <input
                     v-model="form.start_date"
                     type="date"
@@ -607,7 +859,10 @@ function goSection(key) {
                   >
                 </div>
                 <div>
-                  <label class="label">Ngày kết thúc</label>
+                  <ProposalFormLabel
+                    label="Ngày kết thúc"
+                    :tooltip="H.end_date"
+                  />
                   <input
                     v-model="form.end_date"
                     type="date"
@@ -615,56 +870,78 @@ function goSection(key) {
                     @input="onInput"
                   >
                 </div>
-                <div class="sm:col-span-2">
-                  <p class="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
+
+                <div class="sm:col-span-2 rounded-xl border border-slate-100 bg-slate-50/80 p-4">
+                  <p class="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500">
                     Nhân sự tiếp nhận
                   </p>
-                  <label class="mb-3 flex items-center gap-2 text-sm text-slate-600">
+                  <label class="mb-4 flex items-center gap-2 text-sm text-slate-600">
                     <input
                       v-model="copyRecipientFromProposer"
                       type="checkbox"
                       class="rounded border-slate-300"
                     >
-                    Trùng thông tin người đề xuất
+                    <span>Trùng thông tin người đề xuất</span>
+                    <FieldTooltip :text="H.copy_recipient" />
                   </label>
-                </div>
-                <div>
-                  <label class="label">Họ &amp; tên tiếp nhận</label>
-                  <input
-                    v-model="form.recipient_name"
-                    type="text"
-                    class="input w-full"
-                    :disabled="copyRecipientFromProposer"
-                    @input="onInput"
-                  >
-                </div>
-                <div>
-                  <label class="label">Chức vụ</label>
-                  <input
-                    v-model="form.recipient_position"
-                    type="text"
-                    class="input w-full"
-                    :disabled="copyRecipientFromProposer"
-                    @input="onInput"
-                  >
-                </div>
-                <div>
-                  <label class="label">Email</label>
-                  <input
-                    v-model="form.recipient_email"
-                    type="email"
-                    class="input w-full"
-                    @input="onInput"
-                  >
-                </div>
-                <div>
-                  <label class="label">Điện thoại</label>
-                  <input
-                    v-model="form.recipient_phone"
-                    type="text"
-                    class="input w-full"
-                    @input="onInput"
-                  >
+                  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                      <ProposalFormLabel
+                        label="Họ & tên tiếp nhận"
+                        :tooltip="H.recipient_name"
+                      />
+                      <input
+                        v-model="form.recipient_name"
+                        type="text"
+                        class="input w-full"
+                        placeholder="Người phối hợp nhận license"
+                        :disabled="copyRecipientFromProposer"
+                        @input="onInput"
+                      >
+                    </div>
+                    <div>
+                      <ProposalFormLabel
+                        label="Chức vụ"
+                        :tooltip="H.proposer_position"
+                      />
+                      <input
+                        v-model="form.recipient_position"
+                        type="text"
+                        class="input w-full"
+                        placeholder="VD: Chuyên viên"
+                        :disabled="copyRecipientFromProposer"
+                        @input="onInput"
+                      >
+                    </div>
+                    <div>
+                      <ProposalFormLabel
+                        label="Email"
+                        :tooltip="H.recipient_email"
+                      />
+                      <input
+                        v-model="form.recipient_email"
+                        type="email"
+                        class="input w-full"
+                        placeholder="email@hcm.vaschools.edu.vn"
+                        autocomplete="email"
+                        @input="onInput"
+                      >
+                    </div>
+                    <div>
+                      <ProposalFormLabel
+                        label="Điện thoại"
+                        :tooltip="H.recipient_phone"
+                      />
+                      <input
+                        v-model="form.recipient_phone"
+                        type="tel"
+                        class="input w-full"
+                        placeholder="VD: 0901234567"
+                        autocomplete="tel"
+                        @input="onInput"
+                      >
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
