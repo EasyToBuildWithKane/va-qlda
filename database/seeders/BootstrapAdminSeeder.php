@@ -28,8 +28,15 @@ class BootstrapAdminSeeder extends Seeder
             ]],
         );
 
-        if ($stats['missing_employee'] > 0) {
-            $this->command?->warn('Một số email chưa có trong va_prd_employees — chạy cms:sync-employees trước.');
+        if ($stats['missing_emails'] !== []) {
+            $this->command?->warn('Email config chưa khớp nhân sự QLDA:');
+            foreach ($stats['missing_emails'] as $missing) {
+                $this->command?->line("  - {$missing}");
+            }
+            foreach ($stats['hints'] as $hint) {
+                $this->command?->line("  {$hint}");
+            }
+            $this->command?->warn('Chạy: php artisan cms:post-sync (nếu sync CMS đã 100% nhưng bị Ctrl+C).');
         }
     }
 }

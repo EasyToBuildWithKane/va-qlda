@@ -56,4 +56,14 @@ return [
         'hoangbh@vaschools.edu.vn' => 'admin',
     ],
 
+    /*
+    | Email trong CMS/Google khác domain so với bootstrap_accounts.
+    */
+    'bootstrap_email_aliases' => [
+        'truchtm@vaschools.edu.vn' => ['truchtm@hcm.vaschools.edu.vn'],
+        'toanbq@vaschools.edu.vn' => ['toanbq@hcm.vaschools.edu.vn'],
+        'hungnv@vaschools.edu.vn' => ['hungnv@hcm.vaschools.edu.vn'],
+        'hoangbh@vaschools.edu.vn' => ['hoangbh@hcm.vaschools.edu.vn'],
+    ],
+
 ];

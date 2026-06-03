@@ -29,7 +29,13 @@ class BootstrapAdminRoles extends Command
         );
 
         if ($stats['missing_employee'] > 0) {
-            $this->warn('Email chưa có nhân sự — sync CMS trước: php artisan cms:sync-employees');
+            foreach ($stats['missing_emails'] as $email) {
+                $this->warn("  Thiếu: {$email}");
+            }
+            foreach ($stats['hints'] as $hint) {
+                $this->line("  {$hint}");
+            }
+            $this->warn('Sync CMS: php artisan cms:sync-employees — hoặc cms:post-sync nếu đã sync 100%.');
 
             return self::FAILURE;
         }

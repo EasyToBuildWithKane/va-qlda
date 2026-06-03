@@ -51,15 +51,29 @@ class BootstrapAdminRolesTest extends TestCase
         $this->assertSame(SystemRole::Admin, $employee->fresh()->account->role);
     }
 
-    public function test_provisioner_uses_bootstrap_role_on_create(): void
+    public function test_bootstrap_resolves_employee_via_email_alias(): void
     {
-        $employee = Employee::factory()->create([
-            'email' => 'admin.user@vaschools.edu.vn',
-            'cms_user_id' => 99,
+        config([
+            'va_permissions.bootstrap_accounts' => [
+                'truchtm@vaschools.edu.vn' => 'admin',
+            ],
+            'va_permissions.bootstrap_email_aliases' => [
+                'truchtm@vaschools.edu.vn' => ['truchtm@hcm.vaschools.edu.vn'],
+            ],
         ]);
 
-        $account = app(\App\Services\Cms\SystemAccountProvisioner::class)->ensureForEmployee($employee);
+        $employee = Employee::factory()->create([
+            'email' => 'truchtm@hcm.vaschools.edu.vn',
+            'cms_user_id' => 1,
+        ]);
 
-        $this->assertSame(SystemRole::Admin, $account->role);
+        SystemAccount::factory()->forEmployee($employee)->create([
+            'role' => SystemRole::Member,
+        ]);
+
+        $stats = app(BootstrapAdminRoleService::class)->applyBootstrapRoles(false);
+
+        $this->assertSame(1, $stats['updated']);
+        $this->assertSame(SystemRole::Admin, $employee->fresh()->account->role);
     }
 }
