@@ -23,6 +23,7 @@ const initials = computed(() => {
 
 const displayName = computed(() => props.user?.display_name || props.user?.name || 'Người dùng');
 const email = computed(() => props.user?.email || '');
+const avatarSrc = computed(() => props.user?.employee?.avatar_path || null);
 
 const closeMenu = () => { menuOpen.value = false; };
 const toggleMenu = () => { menuOpen.value = !menuOpen.value; };
@@ -58,7 +59,16 @@ onBeforeUnmount(() => {
       @click="toggleMenu"
     >
       <!-- Avatar -->
-      <div class="h-8 w-8 shrink-0 rounded-full bg-brand flex items-center justify-center font-bold text-white text-[13px] tracking-tight select-none">
+      <img
+        v-if="avatarSrc"
+        :src="avatarSrc"
+        :alt="displayName"
+        class="h-8 w-8 shrink-0 rounded-full object-cover ring-1 ring-slate-200/80"
+      >
+      <div
+        v-else
+        class="h-8 w-8 shrink-0 rounded-full bg-brand flex items-center justify-center font-bold text-white text-[13px] tracking-tight select-none"
+      >
         {{ initials }}
       </div>
       <!-- Name + role (hidden on small screens) -->
@@ -97,7 +107,16 @@ onBeforeUnmount(() => {
         <div class="bg-gradient-to-br from-brand via-brand to-brand/80 px-4 pt-4 pb-3.5">
           <div class="flex items-center gap-3">
             <!-- Large avatar -->
-            <div class="h-11 w-11 shrink-0 rounded-full bg-white/20 ring-2 ring-white/30 flex items-center justify-center font-bold text-white text-[15px] select-none">
+            <img
+              v-if="avatarSrc"
+              :src="avatarSrc"
+              :alt="displayName"
+              class="h-11 w-11 shrink-0 rounded-full object-cover ring-2 ring-white/30"
+            >
+            <div
+              v-else
+              class="h-11 w-11 shrink-0 rounded-full bg-white/20 ring-2 ring-white/30 flex items-center justify-center font-bold text-white text-[15px] select-none"
+            >
               {{ initials }}
             </div>
             <div class="min-w-0 flex-1">

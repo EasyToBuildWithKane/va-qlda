@@ -100,6 +100,8 @@ const userInitials = computed(() => {
     if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 });
+const userAvatarSrc = computed(() => user.value?.employee?.avatar_path || null);
+const userDisplayName = computed(() => user.value?.display_name || user.value?.name || 'Người dùng');
 
 </script>
 
@@ -328,7 +330,16 @@ const userInitials = computed(() => {
       >
         <!-- Logged-in user summary -->
         <div class="flex items-center gap-2.5">
-          <div class="h-7 w-7 shrink-0 rounded-full bg-white/10 ring-1 ring-white/15 flex items-center justify-center text-[11px] font-bold text-white leading-none select-none">
+          <img
+            v-if="userAvatarSrc"
+            :src="userAvatarSrc"
+            :alt="userDisplayName"
+            class="h-7 w-7 shrink-0 rounded-full object-cover ring-1 ring-white/15"
+          >
+          <div
+            v-else
+            class="h-7 w-7 shrink-0 rounded-full bg-white/10 ring-1 ring-white/15 flex items-center justify-center text-[11px] font-bold text-white leading-none select-none"
+          >
             {{ userInitials }}
           </div>
           <div class="min-w-0 flex-1">

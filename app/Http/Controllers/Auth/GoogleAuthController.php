@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\SystemAccount;
 use App\Providers\RouteServiceProvider;
+use App\Services\Cms\CmsEmployeeSyncService;
 use App\Services\Cms\SystemAccountProvisioner;
 use App\Support\Auth\LoginRedirectSanitizer;
 use Illuminate\Http\RedirectResponse;
@@ -66,6 +67,14 @@ class GoogleAuthController extends Controller
         if ($employee === null) {
             return redirect()->route('login')
                 ->with('error', 'Email chưa được liên kết với nhân sự trong hệ thống.');
+        }
+
+        $employee = app(CmsEmployeeSyncService::class)->refreshEmployeeIfLinked($employee);
+
+        $googleAvatar = trim((string) $googleUser->getAvatar());
+        if ($googleAvatar !== '' && blank($employee->avatar_path)) {
+            $employee->forceFill(['avatar_path' => $googleAvatar])->save();
+            $employee->refresh();
         }
 
         $account = SystemAccount::query()

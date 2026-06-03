@@ -152,6 +152,29 @@ final class CmsEmployeeSyncService
     }
 
     /**
+     * Refresh QLDA employee row from CMS when linked (e.g. after Google login).
+     */
+    public function refreshEmployeeIfLinked(Employee $employee): Employee
+    {
+        if ($employee->cms_user_id === null || ! $this->isCmsConfigured()) {
+            return $employee;
+        }
+
+        $cmsUser = CmsUser::query()
+            ->withTrashed()
+            ->with('info')
+            ->find($employee->cms_user_id);
+
+        if ($cmsUser === null) {
+            return $employee;
+        }
+
+        $this->upsertFromCmsUser($cmsUser);
+
+        return $employee->fresh() ?? $employee;
+    }
+
+    /**
      * @return 'created'|'updated'|'skipped'
      */
     public function upsertFromCmsUser(CmsUser $cmsUser, bool $dryRun = false): string
