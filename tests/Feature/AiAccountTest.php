@@ -4,10 +4,13 @@ namespace Tests\Feature;
 
 use App\Mail\AiAccountExpiryReminderMail;
 use App\Models\AiAccount;
+use App\Models\AiPurchaseProposal;
 use App\Models\SystemAccount;
 use App\Support\Enums\AiAccountCostUnit;
 use App\Support\Enums\AiAccountGroupFunction;
 use App\Support\Enums\AiAccountStatus;
+use App\Support\Enums\AiPurchaseProposalStatus;
+use App\Support\Enums\SystemRole;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
@@ -142,5 +145,55 @@ class AiAccountTest extends TestCase
             ->assertOk();
 
         $this->assertSoftDeleted('ai_accounts', ['id' => $model->id]);
+    }
+
+    public function test_purchase_proposal_approve_and_reject(): void
+    {
+        $member = SystemAccount::factory()->create();
+        $this->actingAs($member, 'system');
+
+        $this->postJson(route('api.ai-accounts.proposals.store'), [
+            'tool_name' => 'Cursor Pro',
+            'group_function' => AiAccountGroupFunction::Dev->value,
+            'license_type' => 'Pro',
+            'cost_amount' => 1_000_000,
+            'cost_unit' => AiAccountCostUnit::Monthly->value,
+            'justification' => 'Team cần IDE AI cho dự án QLDA trong 6 tháng tới.',
+        ])->assertCreated();
+
+        $proposal = AiPurchaseProposal::first();
+        $this->assertSame(AiPurchaseProposalStatus::Pending, $proposal->status);
+
+        $admin = SystemAccount::factory()->role(SystemRole::Admin)->create();
+        $this->actingAs($admin, 'system');
+
+        $this->postJson(route('api.ai-accounts.proposals.approve', ['proposal' => $proposal->id]))
+            ->assertOk();
+        $this->assertSame(AiPurchaseProposalStatus::Approved, $proposal->fresh()->status);
+
+        $this->actingAs($member, 'system');
+        $this->postJson(route('api.ai-accounts.proposals.store'), [
+            'tool_name' => 'Rejected Tool',
+            'group_function' => AiAccountGroupFunction::Ba->value,
+            'license_type' => 'Team',
+            'cost_amount' => 500_000,
+            'cost_unit' => AiAccountCostUnit::Monthly->value,
+            'justification' => 'Đề xuất thứ hai để kiểm tra từ chối có lý do.',
+        ])->assertCreated();
+
+        $pending = AiPurchaseProposal::query()->where('tool_name', 'Rejected Tool')->first();
+        $this->actingAs($admin, 'system');
+
+        $this->postJson(route('api.ai-accounts.proposals.reject', ['proposal' => $pending->id]), [
+            'rejection_reason' => 'Chưa có ngân sách cho nhóm BA trong quý này.',
+        ])->assertOk();
+
+        $pending->refresh();
+        $this->assertSame(AiPurchaseProposalStatus::Rejected, $pending->status);
+        $this->assertNotEmpty($pending->rejection_reason);
+
+        $summary = $this->getJson(route('api.ai-accounts.summary'))->assertOk()->json('data');
+        $this->assertArrayHasKey('proposals', $summary);
+        $this->assertSame(1, $summary['proposal_counts']['approved']);
     }
 }

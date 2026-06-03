@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AiAccount;
 use App\Support\Enums\AiAccountCostUnit;
 use App\Support\Enums\AiAccountGroupFunction;
+use App\Support\Enums\SystemRole;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -37,6 +38,13 @@ class AiAccountPageController extends Controller
         return Inertia::render('AiAccount/CostReport', [
             'can' => [
                 'create' => $request->user()->can('create', AiAccount::class),
+                'propose' => $request->user()->can('create', \App\Models\AiPurchaseProposal::class),
+                'review_proposals' => $request->user()->role === SystemRole::Admin,
+            ],
+            'options' => [
+                'group_function' => AiAccountGroupFunction::options(),
+                'cost_unit' => AiAccountCostUnit::options(),
+                'license_types' => config('ai_accounts.license_types', []),
             ],
         ]);
     }

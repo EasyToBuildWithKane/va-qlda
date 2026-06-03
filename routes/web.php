@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AiAccount\AiAccountController;
 use App\Http\Controllers\AiAccount\AiAccountPageController;
+use App\Http\Controllers\AiAccount\AiPurchaseProposalController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Blocker\BlockerAttachmentController;
@@ -159,6 +160,9 @@ Route::middleware('auth')->group(function () {
     Route::prefix('api/ai-accounts')->name('api.ai-accounts.')->group(function () {
         Route::get('/summary', [AiAccountController::class, 'summary'])->name('summary');
         Route::post('/trigger-reminder', [AiAccountController::class, 'triggerReminder'])->name('trigger-reminder');
+        Route::post('/proposals', [AiPurchaseProposalController::class, 'store'])->name('proposals.store');
+        Route::post('/proposals/{proposal}/approve', [AiPurchaseProposalController::class, 'approve'])->name('proposals.approve');
+        Route::post('/proposals/{proposal}/reject', [AiPurchaseProposalController::class, 'reject'])->name('proposals.reject');
         Route::get('/', [AiAccountController::class, 'index'])->name('index');
         Route::post('/', [AiAccountController::class, 'store'])->name('store');
         Route::get('/{aiAccount}', [AiAccountController::class, 'show'])->name('show');

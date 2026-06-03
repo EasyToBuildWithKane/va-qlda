@@ -7,9 +7,11 @@ use App\Http\Requests\AiAccount\RenewAiAccountRequest;
 use App\Http\Requests\AiAccount\StoreAiAccountRequest;
 use App\Http\Requests\AiAccount\UpdateAiAccountRequest;
 use App\Models\AiAccount;
+use App\Models\AiPurchaseProposal;
 use App\Services\AiAccount\AiAccountGrouper;
 use App\Services\AiAccount\AiAccountReminderService;
 use App\Services\AiAccount\AiAccountStatusSync;
+use App\Services\AiAccount\AiPurchaseProposalPresenter;
 use App\Support\Enums\AiAccountCostUnit;
 use App\Support\Enums\AiAccountGroupFunction;
 use App\Support\Enums\AiAccountStatus;
@@ -23,6 +25,7 @@ class AiAccountController extends Controller
         private readonly AiAccountGrouper $grouper,
         private readonly AiAccountStatusSync $statusSync,
         private readonly AiAccountReminderService $reminderService,
+        private readonly AiPurchaseProposalPresenter $proposalPresenter,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -55,10 +58,18 @@ class AiAccountController extends Controller
         $this->authorize('viewAny', AiAccount::class);
 
         $accounts = $this->loadAndSyncAccounts();
+        $proposals = AiPurchaseProposal::query()
+            ->with(['creator.employee', 'reviewer.employee'])
+            ->orderByDesc('created_at')
+            ->get();
+
+        $summary = $this->grouper->summary($accounts);
+        $summary['proposals'] = $this->proposalPresenter->list($proposals);
+        $summary['proposal_counts'] = $this->proposalPresenter->counts($proposals);
 
         return response()->json([
             'success' => true,
-            'data' => $this->grouper->summary($accounts),
+            'data' => $summary,
         ]);
     }
 

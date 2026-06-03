@@ -79,7 +79,7 @@ class AiAccountGrouper
      */
     public function summary(Collection $accounts): array
     {
-        $activeMonthly = 0;
+        $totalActiveMonthly = 0;
         $rows = [];
 
         foreach (AiAccountGroupFunction::ordered() as $groupEnum) {
@@ -90,16 +90,34 @@ class AiAccountGrouper
 
             $active = $items->where('status', AiAccountStatus::Active);
             $monthly = $items->sum(fn (AiAccount $a) => $this->costCalculator->monthlyForAccount($a));
+            $groupActiveMonthly = $active->sum(fn (AiAccount $a) => $this->costCalculator->monthlyForAccount($a));
 
             $rows[] = [
                 'group' => $groupEnum->value,
                 'dot_color' => $groupEnum->dotColor(),
                 'total_accounts' => $items->count(),
                 'active_accounts' => $active->count(),
+                'expiring_soon' => $items->where('status', AiAccountStatus::ExpiringSoon)->count(),
+                'expired' => $items->where('status', AiAccountStatus::Expired)->count(),
+                'cancelled' => $items->where('status', AiAccountStatus::Cancelled)->count(),
                 'cost_monthly' => $monthly,
+                'cost_monthly_active' => $groupActiveMonthly,
             ];
 
-            $activeMonthly += $active->sum(fn (AiAccount $a) => $this->costCalculator->monthlyForAccount($a));
+            $totalActiveMonthly += $groupActiveMonthly;
+        }
+
+        $totalMonthly = array_sum(array_column($rows, 'cost_monthly'));
+        if ($totalMonthly > 0) {
+            foreach ($rows as &$row) {
+                $row['cost_share_percent'] = (int) round(($row['cost_monthly'] / $totalMonthly) * 100);
+            }
+            unset($row);
+        } else {
+            foreach ($rows as &$row) {
+                $row['cost_share_percent'] = 0;
+            }
+            unset($row);
         }
 
         $totalAccounts = $accounts->count();
@@ -112,7 +130,7 @@ class AiAccountGrouper
                 'active_accounts' => $totalActive,
                 'expiring_soon' => $accounts->where('status', AiAccountStatus::ExpiringSoon)->count(),
                 'expired' => $accounts->where('status', AiAccountStatus::Expired)->count(),
-                'monthly_cost_active' => $activeMonthly,
+                'monthly_cost_active' => $totalActiveMonthly,
                 'monthly_cost_all' => $allMonthly,
             ],
             'by_group' => $rows,
