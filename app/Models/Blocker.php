@@ -73,6 +73,10 @@ class Blocker extends Model
         ]);
     }
 
+    /**
+     * @param  Builder<Blocker>  $query
+     * @return Builder<Blocker>
+     */
     public function scopeOverdue(Builder $query): Builder
     {
         return $query->open()

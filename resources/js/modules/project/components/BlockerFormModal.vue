@@ -3,6 +3,7 @@ import { computed, inject, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
 import Modal from '@/Components/Ui/Modal.vue';
+import FieldTooltip from '@/shared/ui/FieldTooltip.vue';
 
 const props = defineProps({
     show: { type: Boolean, default: false },
@@ -129,7 +130,10 @@ const submit = () => {
         v-else-if="!blocker"
         class="max-w-md"
       >
-        <label class="label">Dự án</label>
+        <label class="label flex items-center gap-1.5">
+          Dự án
+          <FieldTooltip text="Chọn dự án mà vướng mắc này thuộc về." />
+        </label>
         <select
           v-model="form.project_id"
           class="input"
@@ -161,12 +165,15 @@ const submit = () => {
           </p>
 
           <div>
-            <label class="label">Tiêu đề <span class="text-danger">*</span></label>
+            <label class="label flex items-center gap-1.5">
+              Tiêu đề <span class="text-danger">*</span>
+              <FieldTooltip text="Một câu tóm tắt vướng mắc, ngắn gọn và dễ nhận biết trong danh sách." />
+            </label>
             <input
               v-model="form.title"
               type="text"
               class="input"
-              placeholder="Tóm tắt ngắn gọn vướng mắc…"
+              placeholder="VD: API đăng nhập trả về lỗi 500 khi tải cao…"
             >
             <p
               v-if="form.errors.title"
@@ -177,17 +184,23 @@ const submit = () => {
           </div>
 
           <div>
-            <label class="label">Mô tả chi tiết</label>
+            <label class="label flex items-center gap-1.5">
+              Mô tả chi tiết
+              <FieldTooltip text="Bối cảnh xảy ra, tác động đến công việc và phạm vi ảnh hưởng." />
+            </label>
             <textarea
               v-model="form.description"
               rows="4"
               class="input resize-y"
-              placeholder="Bối cảnh, tác động, phạm vi ảnh hưởng…"
+              placeholder="Mô tả bối cảnh, tác động, phạm vi ảnh hưởng…"
             />
           </div>
 
           <div>
-            <label class="label">Nguyên nhân</label>
+            <label class="label flex items-center gap-1.5">
+              Nguyên nhân
+              <FieldTooltip text="Nguyên nhân gốc rễ nếu đã xác định (gợi ý: dùng kỹ thuật 5 Whys)." />
+            </label>
             <textarea
               v-model="form.root_cause"
               rows="3"
@@ -205,7 +218,10 @@ const submit = () => {
 
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="label">Mức độ</label>
+              <label class="label flex items-center gap-1.5">
+                Mức độ
+                <FieldTooltip text="Mức độ nghiêm trọng / ưu tiên xử lý của vướng mắc." />
+              </label>
               <select
                 v-model="form.severity"
                 class="input"
@@ -220,7 +236,10 @@ const submit = () => {
               </select>
             </div>
             <div>
-              <label class="label">Trạng thái</label>
+              <label class="label flex items-center gap-1.5">
+                Trạng thái
+                <FieldTooltip text="Trạng thái xử lý hiện tại của vướng mắc." />
+              </label>
               <select
                 v-model="form.status"
                 class="input"
@@ -238,7 +257,10 @@ const submit = () => {
 
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="label">Hạn xử lý</label>
+              <label class="label flex items-center gap-1.5">
+                Hạn xử lý
+                <FieldTooltip text="Thời hạn mong muốn xử lý xong vướng mắc." />
+              </label>
               <input
                 v-model="form.due_date"
                 type="date"
@@ -246,7 +268,10 @@ const submit = () => {
               >
             </div>
             <div>
-              <label class="label">Người phụ trách</label>
+              <label class="label flex items-center gap-1.5">
+                Người phụ trách
+                <FieldTooltip text="Người chịu trách nhiệm theo dõi và xử lý vướng mắc." />
+              </label>
               <select
                 v-model="form.owner_id"
                 class="input"
@@ -266,7 +291,10 @@ const submit = () => {
           </div>
 
           <div>
-            <label class="label">Hướng xử lý</label>
+            <label class="label flex items-center gap-1.5">
+              Hướng xử lý
+              <FieldTooltip text="Kế hoạch xử lý, các bước tiếp theo và người liên quan cần phối hợp." />
+            </label>
             <textarea
               v-model="form.resolution"
               rows="4"

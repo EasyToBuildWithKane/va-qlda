@@ -11,8 +11,8 @@ use App\Models\Blocker;
 use App\Services\NotificationService;
 use App\Support\BlockerActivityLogger;
 use App\Support\Enums\BlockerSeverity;
-use App\Support\Enums\NotificationType;
 use App\Support\Enums\BlockerStatus;
+use App\Support\Enums\NotificationType;
 use App\Support\Options;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -215,9 +215,9 @@ class BlockerController extends Controller
 
         foreach ($blockers as $blocker) {
             match ($data['action']) {
-                'status' => $this->authorize('update', $blocker),
-                'assignee' => $this->authorize('update', $blocker),
+                'status', 'assignee' => $this->authorize('update', $blocker),
                 'delete' => $this->authorize('delete', $blocker),
+                default => abort(400),
             };
         }
 
