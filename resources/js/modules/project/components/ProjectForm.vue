@@ -107,8 +107,25 @@ function focusTabForField(fieldKey) {
 function focusFirstError(errorMap) {
     const firstKey = Object.keys(errorMap)[0];
     if (firstKey) {
-        focusTabForField(firstKey);
+        focusTabForField(firstKey.split('.')[0]);
     }
+}
+
+const validDepartmentIds = computed(() => new Set(props.departmentOptions.map((d) => Number(d.id))));
+
+function sanitizeDepartmentPayload(data) {
+    const out = { ...data };
+    const deptId = out.department_id != null && out.department_id !== '' ? Number(out.department_id) : null;
+    if (deptId != null && !validDepartmentIds.value.has(deptId)) {
+        const fallback = props.defaultDepartmentId != null ? Number(props.defaultDepartmentId) : null;
+        out.department_id = fallback != null && validDepartmentIds.value.has(fallback) ? fallback : null;
+    }
+    if (Array.isArray(out.scope_departments)) {
+        out.scope_departments = out.scope_departments
+            .map((id) => Number(id))
+            .filter((id) => validDepartmentIds.value.has(id));
+    }
+    return out;
 }
 
 function showValidationToast(errorMap) {
@@ -281,11 +298,12 @@ const submit = (after = 'close') => {
     };
 
     if (props.project) {
+        form.transform((data) => sanitizeDepartmentPayload(data));
         form.put(`/projects/${props.project.id}`, postOptions);
         return;
     }
 
-    form.transform((data) => ({ ...data, after }));
+    form.transform((data) => sanitizeDepartmentPayload({ ...data, after }));
     form.post('/projects', postOptions);
 };
 </script>
@@ -709,10 +727,7 @@ const submit = (after = 'close') => {
               </p>
             </div>
 
-            <div
-              v-if="!isCreate"
-              class="border-t border-slate-100 pt-4"
-            >
+            <div class="border-t border-slate-100 pt-4">
               <label class="label flex items-center gap-1.5">
                 Phòng ban phụ trách
                 <FieldTooltip text="Phòng ban chịu trách nhiệm chính (khác với phạm vi áp dụng)." />
@@ -720,9 +735,11 @@ const submit = (after = 'close') => {
               <select
                 v-model="form.department_id"
                 class="input sm:max-w-sm"
+                :class="errFor('department_id') ? 'border-danger focus:border-danger focus:ring-danger/30' : ''"
+                @change="touch('department_id')"
               >
                 <option :value="null">
-                  — Chưa gán —
+                  — Tự gán theo cấu hình —
                 </option>
                 <option
                   v-for="d in departmentOptions"
@@ -733,10 +750,20 @@ const submit = (after = 'close') => {
                 </option>
               </select>
               <p
-                v-if="form.errors.department_id"
-                class="mt-1 text-xs text-danger"
+                v-if="isCreate && !form.department_id"
+                class="mt-1 text-xs text-slate-500"
               >
-                {{ form.errors.department_id }}
+                Nếu không chọn, hệ thống gán phòng mặc định (mã PB-PT hoặc phòng đang hoạt động đầu tiên).
+              </p>
+              <p
+                v-if="errFor('department_id')"
+                class="mt-1 flex items-center gap-1 text-xs text-danger"
+              >
+                <AppIcon
+                  name="close"
+                  :size="12"
+                />
+                {{ errFor('department_id') }}
               </p>
             </div>
           </div>

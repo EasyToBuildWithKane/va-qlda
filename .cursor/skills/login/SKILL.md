@@ -32,4 +32,4 @@ php artisan test --filter=LoginTest
 npm run test:e2e -- tests/e2e/auth.spec.js
 ```
 
-Visual regression (tùy chọn): `tests/e2e/visual/screenshots.spec.js` — cập nhật snapshot khi đổi layout login.
+Visual regression (tùy chọn): `tests/e2e/visual/feature-screens.spec.js` — cập nhật snapshot khi đổi layout login.

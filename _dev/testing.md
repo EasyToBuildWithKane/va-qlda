@@ -48,7 +48,7 @@ npm run test:e2e:install
 | `departments.spec.js` | List, CRUD cơ bản |
 | `daily-report.spec.js` | Luồng báo cáo ngày |
 | `notifications.spec.js` | Bell UI, JSON unread-count |
-| `visual/screenshots.spec.js` | Login, dashboard, projects index |
+| `visual/feature-screens.spec.js` | Snapshot từng màn hình (login, member, admin tour + project show) |
 
 Auth helper: `tests/e2e/helpers/auth.js` — fixture `page` đã login (`role`: member | admin | lead | viewer).
 
@@ -68,7 +68,7 @@ npx playwright test --project=visual --update-snapshots
 
 Job `playwright` chạy sau PHPUnit + `npm run build` → `npm run test:e2e` (chỉ chromium).
 
-Visual regression: chạy local hoặc thêm job riêng khi snapshot đã commit.
+Visual regression: `npm run test:e2e:visual` — so với baseline trong `tests/e2e/visual/snapshots/`. Đổi UI cố ý: `--update-snapshots`. Helper: `tests/e2e/helpers/visualCapture.js`.
 
 ---
 

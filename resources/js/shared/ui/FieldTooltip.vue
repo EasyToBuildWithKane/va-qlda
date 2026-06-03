@@ -3,6 +3,8 @@ import AppIcon from '@/Components/AppIcon.vue';
 
 defineProps({
     text: { type: String, required: true },
+    /** Tooltip rộng hơn cho mô tả dài (form phức tạp). */
+    wide: { type: Boolean, default: false },
 });
 </script>
 
@@ -20,7 +22,8 @@ defineProps({
       />
     </button>
     <span
-      class="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 hidden w-52 -translate-x-1/2 rounded-lg bg-slate-800 px-3 py-2 text-xs font-normal leading-relaxed text-white shadow-elevation-2 group-hover:block group-focus-within:block"
+      class="pointer-events-none absolute bottom-full left-1/2 z-30 mb-1.5 hidden -translate-x-1/2 rounded-lg bg-slate-800 px-3 py-2 text-left text-xs font-normal leading-relaxed text-white shadow-elevation-2 group-hover:block group-focus-within:block"
+      :class="wide ? 'w-[min(22rem,calc(100vw-2rem))] max-w-none whitespace-normal' : 'w-52 max-w-[13rem]'"
       role="tooltip"
     >
       {{ text }}

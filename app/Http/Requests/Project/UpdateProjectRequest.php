@@ -61,6 +61,22 @@ class UpdateProjectRequest extends FormRequest
             'budget.min' => 'Ngân sách phải lớn hơn hoặc bằng 0.',
             'actual_budget.min' => 'Ngân sách thực tế phải lớn hơn hoặc bằng 0.',
             'due_date.after_or_equal' => 'Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu.',
+            'department_id.exists' => 'Phòng ban phụ trách không hợp lệ hoặc đã ngừng hoạt động. Vui lòng chọn lại.',
+            'scope_departments.*.exists' => 'Có phòng ban trong phạm vi không còn tồn tại hoặc đã ngừng hoạt động — hãy chọn lại.',
+            'manager_id.exists' => 'Chủ dự án (nhân sự) không tồn tại hoặc đã bị xóa.',
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function attributes(): array
+    {
+        return [
+            'name' => 'tên dự án',
+            'department_id' => 'phòng ban phụ trách',
+            'scope_departments.*' => 'phòng ban áp dụng',
+            'manager_id' => 'chủ dự án',
         ];
     }
 }

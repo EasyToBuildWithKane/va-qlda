@@ -88,8 +88,8 @@ REST API (LT-01), Queue, Events/WebSocket (LT-05), TypeScript, Nav config UI (LT
 ```bash
 composer test
 npm run test:e2e              # chromium (CI)
-npm run test:e2e:visual       # snapshot regression
-npm run test:e2e:visual -- --update-snapshots   # cập nhật baseline
+npm run test:e2e:visual       # snapshot từng màn hình (feature-screens.spec.js)
+npm run test:e2e:visual -- --update-snapshots   # cập nhật baseline sau đổi UI
 ```
 
 ---

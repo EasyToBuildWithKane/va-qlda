@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Department;
 use App\Models\Project;
 use App\Models\SystemAccount;
 use App\Support\Enums\ProjectScope;
@@ -79,6 +80,33 @@ class ProjectTest extends TestCase
             ->assertRedirect();
 
         $this->assertDatabaseHas('projects', ['name' => 'Second Project', 'code' => 'PRJ-002']);
+    }
+
+    public function test_store_clears_stale_department_id_and_succeeds(): void
+    {
+        $dept = Department::create([
+            'code' => 'PB-TEST',
+            'name' => 'Phòng kiểm thử',
+            'color' => 'brand',
+            'sort_order' => 1,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($this->admin(), 'system')
+            ->post('/projects', [
+                'name' => 'Project With Stale Dept',
+                'status' => ProjectStatus::Planning->value,
+                'type' => ProjectType::Rnd->value,
+                'scope' => ProjectScope::Headquarters->value,
+                'department_id' => 999_999,
+            ])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('projects', [
+            'name' => 'Project With Stale Dept',
+            'department_id' => $dept->id,
+        ]);
     }
 
     public function test_member_cannot_create_project(): void
