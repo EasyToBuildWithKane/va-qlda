@@ -13,6 +13,8 @@ import AiAccountSummaryCards from '@/modules/aiAccount/components/AiAccountSumma
 import AiAccountGroupList from '@/modules/aiAccount/components/AiAccountGroupList.vue';
 import AiAccountFormModal from '@/modules/aiAccount/components/AiAccountFormModal.vue';
 import AiAccountRenewModal from '@/modules/aiAccount/components/AiAccountRenewModal.vue';
+import AiAccountSectionNav from '@/modules/aiAccount/components/AiAccountSectionNav.vue';
+import AiAccountCrossLink from '@/modules/aiAccount/components/AiAccountCrossLink.vue';
 
 const props = defineProps({
     can: { type: Object, default: () => ({}) },
@@ -28,6 +30,7 @@ const {
     search,
     expanded,
     fetchList,
+    fetchSummary,
     createAccount,
     updateAccount,
     deleteAccount,
@@ -63,6 +66,7 @@ const editing = ref(null);
 const renewing = ref(null);
 
 const totalCount = computed(() => summaryCards.value?.total_accounts ?? 0);
+const proposalPendingCount = ref(0);
 const listBadge = computed(() => {
     if (activeFilterCount.value > 0 || search.value.trim()) {
         return filteredAccountCount.value;
@@ -76,7 +80,15 @@ watch(search, () => {
     searchTimer = setTimeout(() => fetchList(), 300);
 });
 
-onMounted(() => fetchList());
+onMounted(async () => {
+    await fetchList();
+    try {
+        const summary = await fetchSummary();
+        proposalPendingCount.value = summary.proposal_counts?.pending ?? 0;
+    } catch {
+        /* optional — cross-link badge */
+    }
+});
 
 function openCreate() {
     editing.value = null;
@@ -146,17 +158,28 @@ function collapseAllGroups() {
 </script>
 
 <template>
-  <Head title="Quản lý tài khoản AI" />
+  <Head title="Quản lý AI · Tài khoản" />
   <AppLayout>
     <template #header>
       <PageHeader
-        title="Quản lý tài khoản AI"
-        subtitle="Theo dõi license, chi phí và hạn sử dụng theo nhóm chức năng"
+        title="Quản lý AI"
+        subtitle="Tài khoản đang dùng · liên kết với phiếu đề xuất mua sắm"
         icon="account"
         icon-color="brand"
         :badge="totalCount || null"
-      />
+      >
+        <AiAccountSectionNav
+          active="accounts"
+          :accounts-badge="totalCount || null"
+          :proposals-badge="proposalPendingCount > 0 ? proposalPendingCount : null"
+        />
+      </PageHeader>
     </template>
+
+    <AiAccountCrossLink
+      direction="to-proposals"
+      :pending-count="proposalPendingCount"
+    />
 
     <AiAccountSummaryCards :cards="summaryCards" />
 

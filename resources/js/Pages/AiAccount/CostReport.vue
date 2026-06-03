@@ -13,6 +13,8 @@ import AiPurchaseProposalFormModal from '@/modules/aiAccount/components/AiPurcha
 import AiPurchaseProposalRejectModal from '@/modules/aiAccount/components/AiPurchaseProposalRejectModal.vue';
 import AiPurchaseProposalApproveModal from '@/modules/aiAccount/components/AiPurchaseProposalApproveModal.vue';
 import ProposalRowActions from '@/modules/aiAccount/components/ProposalRowActions.vue';
+import AiAccountSectionNav from '@/modules/aiAccount/components/AiAccountSectionNav.vue';
+import AiAccountCrossLink from '@/modules/aiAccount/components/AiAccountCrossLink.vue';
 import Badge from '@/shared/ui/Badge.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
@@ -418,17 +420,27 @@ function runExport(format) {
 </script>
 
 <template>
-  <Head title="Quản lý Phiếu Đề Xuất" />
+  <Head title="Quản lý AI · Phiếu đề xuất" />
   <AppLayout>
     <template #header>
       <PageHeader
-        title="Quản lý Phiếu Đề Xuất"
-        subtitle="Đề xuất mua sắm · AI Tools · SaaS · License · Phần mềm · Dịch vụ"
+        title="Quản lý AI"
+        subtitle="Phiếu đề xuất mua sắm · duyệt · theo dõi chi phí dự kiến"
         icon="performance"
         icon-color="brand"
-        :back-href="route('ai-accounts.index')"
-      />
+        :badge="proposalCounts.total ?? null"
+      >
+        <AiAccountSectionNav
+          active="proposals"
+          :proposals-badge="proposalCounts.pending > 0 ? proposalCounts.pending : null"
+        />
+      </PageHeader>
     </template>
+
+    <AiAccountCrossLink
+      direction="to-accounts"
+      :account-count="cards?.total_accounts ?? 0"
+    />
 
     <!-- ── KPI Cards ── -->
     <div class="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-8 sm:gap-3">

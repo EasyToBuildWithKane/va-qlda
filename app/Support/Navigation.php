@@ -71,6 +71,7 @@ class Navigation
                 'icon' => 'dashboard',
                 'items' => [
                     ['label' => 'Bảng điều khiển', 'icon' => 'overview', 'href' => '/dashboard', 'status' => 'live', 'roles' => ['admin', 'lead', 'viewer']],
+                    ['label' => 'Bảng điều khiển nhóm', 'icon' => 'team-dashboard', 'href' => '/dashboard/team', 'status' => 'live', 'roles' => ['admin', 'lead']],
                 ],
             ],
             [
@@ -101,7 +102,7 @@ class Navigation
                 'icon' => 'settings',
                 'items' => [
                     ['label' => 'Tài khoản AI', 'icon' => 'account', 'href' => '/ai-accounts', 'status' => 'live'],
-                    ['label' => 'Chi phí AI', 'icon' => 'cost', 'href' => '/ai-accounts/cost-report', 'status' => 'live'],
+                    ['label' => 'Phiếu đề xuất AI', 'icon' => 'cost', 'href' => '/ai-accounts/cost-report', 'status' => 'live'],
                     ['label' => 'Thông báo', 'icon' => 'notifications', 'href' => '/notifications/manage', 'status' => 'live', 'roles' => ['admin']],
                 ],
             ],
@@ -112,7 +113,6 @@ class Navigation
                 'variant' => 'upcoming',
                 'defaultCollapsed' => true,
                 'items' => [
-                    ['label' => 'Bảng điều khiển nhóm', 'icon' => 'team-dashboard', 'href' => '#', 'status' => 'planned'],
                     ['label' => 'Đánh giá tuần', 'icon' => 'weekly', 'href' => '#', 'status' => 'planned', 'roles' => ['admin', 'lead']],
                     ['label' => 'Hạng mục hành động', 'icon' => 'action-items', 'href' => '#', 'status' => 'planned'],
                     ['label' => 'Đánh giá nhóm', 'icon' => 'team-eval', 'href' => '#', 'status' => 'planned', 'roles' => ['admin', 'lead']],
