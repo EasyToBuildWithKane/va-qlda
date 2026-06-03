@@ -1,4 +1,5 @@
 <script setup>
+/* eslint-disable vue/no-v-html -- server-rendered proposal preview HTML from authenticated API */
 import { computed, reactive, ref, watch } from 'vue';
 import Modal from '@/Components/Ui/Modal.vue';
 import AppIcon from '@/Components/AppIcon.vue';
@@ -6,6 +7,7 @@ import VndAmount from '@/modules/aiAccount/components/VndAmount.vue';
 import ProposalFormLabel from '@/modules/aiAccount/components/ProposalFormLabel.vue';
 import { PROPOSAL_FORM_HINTS as H } from '@/modules/aiAccount/config/proposalFormHints';
 import ProposerEmployeePick from '@/modules/aiAccount/components/ProposerEmployeePick.vue';
+import { useProposalPdfPreview } from '@/modules/aiAccount/composables/useProposalPdfPreview';
 import MoneyInput from '@/shared/ui/MoneyInput.vue';
 import FieldTooltip from '@/shared/ui/FieldTooltip.vue';
 
@@ -31,7 +33,6 @@ const emit = defineEmits(['close', 'submit']);
 const dirty = ref(false);
 const activeSection = ref('general');
 const copyRecipientFromProposer = ref(true);
-const showPreview = ref(false);
 const selectedProposerId = ref(null);
 
 const departmentNames = computed(() =>
@@ -43,16 +44,6 @@ const employeeNameSuggestions = computed(() =>
 );
 
 const SEND_TO_DEFAULT = 'Ban Giám đốc\nPhòng Công nghệ & Phòng Kế Toán';
-
-const sendToPreviewLines = computed(() => {
-    const raw = form.send_to?.trim() || SEND_TO_DEFAULT;
-    const lines = raw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-    return {
-        line1: lines[0] ?? 'Ban Giám đốc',
-        line2: lines.length > 1 ? lines.slice(1).join(' · ') : 'Phòng Công nghệ & Phòng Kế Toán',
-        extraLines: lines.slice(1),
-    };
-});
 
 const SECTIONS = [
     { key: 'general', label: 'Thông tin chung', icon: 'info' },
@@ -111,14 +102,6 @@ const monthlyCost = computed(() => {
     return n;
 });
 
-const today = computed(() => new Date().toLocaleDateString('vi-VN', {
-    weekday: 'long', day: 'numeric', month: 'numeric', year: 'numeric',
-}));
-
-const objectiveLines = computed(() =>
-    form.objectives.split('\n').map(l => l.trim()).filter(Boolean)
-);
-
 const usersListArray = computed(() =>
     form.users_list_raw.split('\n').map(l => l.trim()).filter(Boolean)
 );
@@ -165,7 +148,7 @@ watch(() => props.show, (open) => {
     if (!open) return;
     dirty.value = false;
     activeSection.value = 'general';
-    showPreview.value = false;
+    resetPreview();
     copyRecipientFromProposer.value = true;
     selectedProposerId.value = props.proposalDefaults?.proposer_employee_id ?? null;
     Object.assign(form, defaultForm());
@@ -229,12 +212,8 @@ function syncRecipient() {
 
 function onInput() { dirty.value = true; }
 
-function handleSubmit() {
-    if (!costPreviewAmount.value) {
-        activeSection.value = 'budget';
-        return;
-    }
-    emit('submit', {
+function buildSubmitPayload() {
+    return {
         proposal_type: form.proposal_type || undefined,
         subject_about: form.subject_about.trim(),
         send_to: form.send_to.trim() || undefined,
@@ -243,7 +222,7 @@ function handleSubmit() {
         vendor_website: form.vendor_website.trim() || undefined,
         group_function: form.group_function,
         license_type: form.license_type.trim(),
-        cost_amount: parseInt(String(form.cost_amount).replace(/\D/g, ''), 10),
+        cost_amount: parseInt(String(form.cost_amount).replace(/\D/g, ''), 10) || 0,
         cost_unit: form.cost_unit,
         quantity: form.quantity ? parseInt(form.quantity, 10) : 1,
         seats: form.seats ? parseInt(form.seats, 10) : null,
@@ -267,12 +246,26 @@ function handleSubmit() {
         planned_use_date: form.planned_use_date || undefined,
         start_date: form.start_date || undefined,
         end_date: form.end_date || undefined,
-    });
+    };
+}
+
+const {
+    html: previewHtml,
+    loading: previewLoading,
+    error: previewError,
+    reset: resetPreview,
+} = useProposalPdfPreview(form, activeSection, buildSubmitPayload);
+
+function handleSubmit() {
+    if (!costPreviewAmount.value) {
+        activeSection.value = 'budget';
+        return;
+    }
+    emit('submit', buildSubmitPayload());
 }
 
 function goSection(key) {
     activeSection.value = key;
-    if (key === 'preview') showPreview.value = true;
 }
 </script>
 
@@ -947,207 +940,40 @@ function goSection(key) {
               </div>
             </div>
 
-            <!-- ── SECTION: Preview ── -->
+            <!-- ── SECTION: Preview (cùng Blade với PDF) ── -->
             <div v-show="activeSection === 'preview'">
-              <p class="mb-4 text-xs font-semibold uppercase tracking-wider text-slate-400">
-                Xem trước Phiếu Đề Xuất
+              <div class="mb-3 flex items-center justify-between gap-2">
+                <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  Xem trước Phiếu Đề Xuất
+                </p>
+                <span
+                  v-if="previewLoading"
+                  class="text-xs text-slate-500"
+                >Đang tải…</span>
+              </div>
+
+              <p
+                v-if="previewError"
+                class="mb-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700"
+              >
+                {{ previewError }}
               </p>
 
-              <!-- PDX Preview -->
               <div
-                class="rounded-xl border border-slate-200 bg-white p-6 text-[13px] leading-relaxed"
-                style="font-family:'Times New Roman',serif; color:#111;"
+                v-if="previewHtml"
+                class="proposal-pdf-preview"
+                v-html="previewHtml"
+              />
+              <p
+                v-else-if="!previewLoading"
+                class="text-sm text-slate-500"
               >
-                <!-- Header -->
-                <table style="width:100%;border-collapse:collapse;margin-bottom:8px;">
-                  <tr>
-                    <td style="width:42%;text-align:center;font-weight:bold;font-size:13px;vertical-align:top;padding:2px;">
-                      HỆ THỐNG TRƯỜNG VIỆT MỸ<br>
-                      <span style="font-weight:normal;font-size:11px;">—<br>PHÒNG CÔNG NGHỆ</span>
-                    </td>
-                    <td style="width:58%;text-align:center;vertical-align:top;padding:2px;">
-                      <div style="font-weight:bold;font-size:13px;">
-                        CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM
-                      </div>
-                      <div style="text-decoration:underline;">
-                        Độc lập – Tự do – Hạnh phúc
-                      </div>
-                      <div style="font-style:italic;font-size:11px;">
-                        {{ today }}
-                      </div>
-                    </td>
-                  </tr>
-                </table>
+                Điền thông tin các tab trước — bản xem trước sẽ hiển thị khi bạn mở tab này.
+              </p>
 
-                <!-- Title -->
-                <div style="text-align:center;margin:12px 0 6px;">
-                  <div style="font-weight:bold;font-size:15px;letter-spacing:1px;">
-                    PHIẾU ĐỀ XUẤT
-                  </div>
-                  <div style="font-style:italic;font-size:12px;">
-                    (Về việc: {{ form.subject_about || '…' }})
-                  </div>
-                </div>
-
-                <!-- Kính gửi -->
-                <div style="margin-left:32px;margin-bottom:6px;">
-                  <span style="font-style:italic;font-weight:bold;">Kính gửi:</span>
-                  &nbsp;&nbsp;&nbsp;{{ sendToPreviewLines.line1 }}<br>
-                  <template
-                    v-for="(line, idx) in sendToPreviewLines.extraLines"
-                    :key="idx"
-                  >
-                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ line }}<br>
-                  </template>
-                </div>
-
-                <!-- 1. Đại diện -->
-                <div style="margin-bottom:4px;">
-                  <p style="font-weight:bold;margin:6px 0 2px;">
-                    1. Đại diện:
-                  </p>
-                  <div style="margin-left:18px;">
-                    <div><strong>Họ &amp; Tên:</strong> {{ form.proposer_name || '—' }}</div>
-                    <div><strong>Chức vụ:</strong> {{ form.proposer_position || '—' }}</div>
-                    <div><strong>Đơn vị / Phòng ban:</strong> {{ form.proposer_department || '—' }}</div>
-                  </div>
-                </div>
-
-                <!-- 2. Nội dung -->
-                <div style="margin-bottom:4px;">
-                  <p style="font-weight:bold;margin:6px 0 2px;">
-                    2. Nội dung đề xuất:
-                  </p>
-                  <div style="margin-left:18px;white-space:pre-wrap;">
-                    {{ form.proposal_content || '…' }}
-                  </div>
-                </div>
-
-                <!-- 3. Mục tiêu -->
-                <div
-                  v-if="objectiveLines.length"
-                  style="margin-bottom:4px;"
-                >
-                  <p style="font-weight:bold;margin:6px 0 2px;">
-                    3. Mục tiêu:
-                  </p>
-                  <ul style="margin-left:32px;padding:0;">
-                    <li
-                      v-for="(line, idx) in objectiveLines"
-                      :key="idx"
-                    >
-                      {{ line }}
-                    </li>
-                  </ul>
-                </div>
-
-                <!-- 4. Thông tin chi tiết -->
-                <div style="margin-bottom:4px;">
-                  <p style="font-weight:bold;margin:6px 0 2px;">
-                    4. Thông tin chi tiết:
-                  </p>
-                  <p style="margin-left:18px;font-weight:bold;">
-                    4.1 Ngân sách dự kiến:
-                  </p>
-                  <table style="width:100%;border-collapse:collapse;margin:4px 0;font-size:12px;">
-                    <thead>
-                      <tr style="background:#f5f5f5;">
-                        <th style="border:1px solid #333;padding:4px 6px;text-align:center;">
-                          STT
-                        </th>
-                        <th style="border:1px solid #333;padding:4px 6px;">
-                          Sản phẩm / Công cụ
-                        </th>
-                        <th style="border:1px solid #333;padding:4px 6px;text-align:center;">
-                          SL
-                        </th>
-                        <th style="border:1px solid #333;padding:4px 6px;text-align:center;">
-                          Thành tiền (VNĐ/Tháng)
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td style="border:1px solid #333;padding:4px 6px;text-align:center;">
-                          1
-                        </td>
-                        <td style="border:1px solid #333;padding:4px 6px;">
-                          {{ form.tool_name || '—' }} - {{ form.license_type || '—' }}
-                        </td>
-                        <td style="border:1px solid #333;padding:4px 6px;text-align:center;">
-                          {{ form.quantity || '01' }}
-                        </td>
-                        <td style="border:1px solid #333;padding:4px 6px;text-align:center;">
-                          <VndAmount
-                            v-if="monthlyCost"
-                            :amount="monthlyCost"
-                            inline
-                          />
-                          <span v-else>~</span>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                  <p style="margin-left:18px;">
-                    <strong>4.2 Số lượng nhân sự sử dụng:</strong> {{ form.staff_count || '01' }} nhân sự
-                  </p>
-                  <p style="margin-left:18px;font-weight:bold;">
-                    4.3 Nhân sự tiếp nhận:
-                  </p>
-                  <div style="margin-left:36px;">
-                    <div><strong>Họ &amp; Tên:</strong> {{ form.recipient_name || '—' }}</div>
-                    <div><strong>Chức vụ:</strong> {{ form.recipient_position || '—' }}</div>
-                    <div><strong>Email:</strong> {{ form.recipient_email || '—' }}</div>
-                    <div><strong>SĐT:</strong> {{ form.recipient_phone || '—' }}</div>
-                  </div>
-                  <p style="margin-left:18px;">
-                    <strong>4.4 Tình trạng:</strong>
-                    ☑ {{ form.purchase_type === 'new' ? 'Mua mới' : '' }}
-                    <span v-if="form.purchase_type !== 'new'"> ☑ Gia hạn</span>
-                  </p>
-                  <p
-                    v-if="form.registration_email"
-                    style="margin-left:18px;"
-                  >
-                    <strong>4.5 Thông tin bổ sung:</strong> Email đăng ký: {{ form.registration_email }}
-                  </p>
-                </div>
-
-                <!-- 5. Thời gian -->
-                <div>
-                  <p style="font-weight:bold;margin:6px 0 2px;">
-                    5. Thời gian đưa vào sử dụng (dự kiến):
-                    <span style="color:#cc0000;">{{ form.planned_use_date || '…' }}</span>
-                  </p>
-                </div>
-
-                <p style="margin-top:10px;font-style:italic;">
-                  Kính trình Ban Lãnh Đạo xem xét và phê duyệt.
-                </p>
-
-                <!-- Signature row -->
-                <table style="width:100%;border-collapse:collapse;margin-top:16px;font-size:12px;">
-                  <tr>
-                    <td style="border:1px dotted #666;padding:6px 8px;text-align:center;width:33%;">
-                      <strong>Người đề xuất</strong>
-                      <div style="height:50px;" />
-                      <strong>{{ form.proposer_name || '—' }}</strong>
-                    </td>
-                    <td style="border:1px dotted #666;padding:6px;width:33%;" />
-                    <td style="border:1px dotted #666;padding:6px 8px;text-align:center;width:34%;">
-                      <strong>Phòng Công nghệ</strong><br><strong>Trưởng phòng</strong>
-                      <div style="height:50px;" />
-                      <strong>Bùi Quang Toàn</strong>
-                    </td>
-                  </tr>
-                </table>
-              </div>
-
-              <div class="mt-3 flex gap-2 text-sm">
-                <p class="text-slate-400">
-                  Bản xem trước cập nhật theo thời gian thực. PDF chính xác sẽ được tạo sau khi gửi phiếu.
-                </p>
-              </div>
+              <p class="mt-3 text-xs text-slate-400">
+                Bản xem trước dùng cùng mẫu in với file PDF sau khi gửi phiếu (có thể lệch vài pixel do trình duyệt).
+              </p>
             </div>
           </div>
 

@@ -1,0 +1,252 @@
+@page {
+    size: A4;
+    margin: 38mm 14mm 20mm 18mm;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    font-family: 'DejaVu Serif', 'Times New Roman', serif;
+    font-size: 11pt;
+    line-height: 1.65;
+    color: #000;
+    margin: 0;
+    padding: 0;
+}
+
+.doc-content {
+    width: 100%;
+    max-width: 178mm;
+    margin: 0 auto;
+}
+
+.doc-content p {
+    margin: 1.5pt 0;
+    line-height: 1.65;
+}
+
+.page-bg {
+    position: fixed;
+    top: -38mm;
+    left: -18mm;
+    width: 210mm;
+    height: 297mm;
+    z-index: -1;
+}
+.page-bg img {
+    width: 100%;
+    height: 100%;
+}
+
+.doc-header {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 2pt;
+    border: 1pt solid #000;
+}
+.doc-header td {
+    padding: 2pt 4pt;
+    vertical-align: top;
+    border: 1pt solid #000;
+}
+.doc-header .cell-left {
+    width: 42%;
+    font-size: 11pt;
+    font-weight: bold;
+    text-align: center;
+    text-transform: uppercase;
+}
+.doc-header .cell-left .unit {
+    font-weight: normal;
+    font-size: 10pt;
+}
+.doc-header .cell-right {
+    width: 58%;
+    text-align: center;
+}
+.doc-header .cell-right .republic {
+    font-weight: bold;
+    font-size: 11.5pt;
+    text-transform: uppercase;
+}
+.doc-header .cell-right .motto {
+    font-size: 10.5pt;
+}
+.doc-header .cell-right .doc-date {
+    font-size: 10pt;
+    font-style: italic;
+    margin-top: 1pt;
+}
+.doc-header .cell-right .motto-line {
+    display: inline-block;
+    border-bottom: 1px solid #000;
+    padding-bottom: 0.5pt;
+    text-decoration: none;
+}
+
+.doc-title {
+    text-align: center;
+    margin: 3pt 0 1pt 0;
+}
+.doc-title h1 {
+    font-size: 14pt;
+    font-weight: bold;
+    text-transform: uppercase;
+    margin: 0;
+    letter-spacing: 0.5pt;
+}
+.doc-title .subtitle {
+    font-size: 10pt;
+    font-style: italic;
+}
+
+.kinh-gui {
+    margin: 2pt 0 0 22pt;
+}
+.kinh-gui .label { font-style: italic; font-weight: bold; }
+.kinh-gui .send-to-line {
+    margin: 0;
+    padding: 0 0 0 0;
+}
+
+.section {
+    margin: 1pt 0 0 0;
+}
+.section-num {
+    font-weight: bold;
+    margin: 0;
+}
+.indent {
+    margin-left: 16pt;
+}
+.indent2 {
+    margin-left: 32pt;
+}
+
+/* 4.3 — nhãn cố định, giá trị thẳng cột */
+table.field-lines {
+    width: auto;
+    border-collapse: collapse;
+    margin: 0 0 2pt 32pt;
+}
+table.field-lines td {
+    padding: 1.5pt 0;
+    vertical-align: top;
+    line-height: 1.65;
+}
+table.field-lines td.field-label {
+    font-weight: bold;
+    width: 78pt;
+    padding-right: 8pt;
+    white-space: nowrap;
+}
+table.field-lines td.field-value {
+    padding-left: 0;
+}
+.bold { font-weight: bold; }
+.italic { font-style: italic; }
+.underline { text-decoration: underline; }
+.center { text-align: center; }
+
+table.budget {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1pt 0 2pt 0;
+    font-size: 10pt;
+}
+table.budget th,
+table.budget td {
+    border: 1pt solid #000;
+    padding: 2pt 3pt;
+    vertical-align: middle;
+}
+table.budget th {
+    font-weight: bold;
+    text-align: center;
+    background-color: #f5f5f5;
+}
+table.budget td.center { text-align: center; }
+
+/* 4.4 — cùng thụt indent2 với 4.3, không lệch thêm */
+table.status-checks {
+    border-collapse: collapse;
+    margin: 0 0 2pt 32pt;
+}
+table.status-checks td.status-opt {
+    padding: 0 24pt 0 0;
+    vertical-align: middle;
+}
+table.status-inner {
+    border-collapse: collapse;
+}
+table.status-inner td.status-box {
+    width: 14pt;
+    padding: 0 4pt 0 0;
+    vertical-align: middle;
+}
+table.status-inner td.status-text {
+    vertical-align: middle;
+    font-size: 11pt;
+    white-space: nowrap;
+}
+.checkbox-img {
+    width: 11pt;
+    height: 11pt;
+    display: block;
+    margin: 0;
+    padding: 0;
+}
+.checkbox-empty {
+    display: block;
+    width: 11pt;
+    height: 11pt;
+    border: 1pt solid #000;
+    margin: 0;
+    padding: 0;
+}
+
+table.sig {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 6pt;
+}
+table.sig td {
+    border: 1pt dotted #666;
+    padding: 6pt 8pt 8pt;
+    vertical-align: top;
+    text-align: center;
+    font-size: 10pt;
+    width: 33.33%;
+    height: 96pt;
+}
+table.sig .sig-title {
+    font-weight: bold;
+    line-height: 1.4;
+    margin: 0 0 1pt 0;
+}
+table.sig .sig-space {
+    display: block;
+    height: 58pt;
+    min-height: 58pt;
+}
+table.sig .sig-name {
+    margin-top: 0;
+    font-weight: bold;
+    line-height: 1.4;
+}
+
+.pre { white-space: pre-wrap; }
+
+ul.objectives {
+    margin: 1pt 0 1pt 18pt;
+    padding: 0;
+}
+ul.objectives li {
+    margin-bottom: 0.5pt;
+}
+
+.closing {
+    margin-top: 3pt;
+    font-style: italic;
+    font-size: 10.5pt;
+}

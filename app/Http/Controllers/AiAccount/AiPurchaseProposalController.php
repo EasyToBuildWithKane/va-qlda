@@ -4,6 +4,7 @@ namespace App\Http\Controllers\AiAccount;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AiAccount\ApproveAiPurchaseProposalRequest;
+use App\Http\Requests\AiAccount\PreviewAiPurchaseProposalRequest;
 use App\Http\Requests\AiAccount\RejectAiPurchaseProposalRequest;
 use App\Http\Requests\AiAccount\StoreAiPurchaseProposalRequest;
 use App\Http\Requests\AiAccount\UpdateAiPurchaseProposalNotesRequest;
@@ -115,6 +116,16 @@ class AiPurchaseProposalController extends Controller
             'data' => ['proposal' => $this->presenter->row($proposal, $request->user())],
             'message' => 'Đã gửi phiếu đề xuất. Chờ quản trị duyệt.',
         ], 201);
+    }
+
+    public function preview(PreviewAiPurchaseProposalRequest $request): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'html' => $this->documentService->renderPreviewHtml($request->validated()),
+            ],
+        ]);
     }
 
     public function destroy(AiPurchaseProposal $proposal): JsonResponse

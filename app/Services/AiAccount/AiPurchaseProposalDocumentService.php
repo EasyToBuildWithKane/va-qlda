@@ -3,6 +3,8 @@
 namespace App\Services\AiAccount;
 
 use App\Models\AiPurchaseProposal;
+use App\Support\Enums\AiAccountCostUnit;
+use App\Support\Enums\AiAccountGroupFunction;
 use App\Support\Enums\AiPurchaseType;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Carbon;
@@ -23,43 +25,119 @@ class AiPurchaseProposalDocumentService
     {
         $proposal->loadMissing(['creator.employee']);
 
-        $monthly = app(AiAccountCostCalculator::class)
-            ->monthlyAmount($proposal->cost_amount, $proposal->cost_unit);
+        return $this->templateVariablesFromInput($this->proposalToInput($proposal));
+    }
 
-        $docDate = Carbon::now()->timezone(config('app.timezone'));
-        $planned = $proposal->planned_use_date
-            ? Carbon::parse($proposal->planned_use_date)->format('d/m/Y')
-            : '';
+    /**
+     * @param  array<string, mixed>  $input
+     * @return array<string, string>
+     */
+    public function templateVariablesFromInput(array $input): array
+    {
+        $costAmount = max(0, (int) ($input['cost_amount'] ?? 0));
+        $costUnit = AiAccountCostUnit::tryFrom((string) ($input['cost_unit'] ?? 'monthly'))
+            ?? AiAccountCostUnit::Monthly;
+        $monthly = $costAmount > 0
+            ? app(AiAccountCostCalculator::class)->monthlyAmount($costAmount, $costUnit)
+            : 0;
 
-        $purchaseType = $proposal->purchase_type instanceof AiPurchaseType
-            ? $proposal->purchase_type
-            : AiPurchaseType::tryFrom((string) $proposal->purchase_type) ?? AiPurchaseType::New;
+        $toolName = trim((string) ($input['tool_name'] ?? ''));
+        $licenseType = trim((string) ($input['license_type'] ?? ''));
+        $subjectAbout = trim((string) ($input['subject_about'] ?? ''));
+        if ($subjectAbout === '' && $toolName !== '') {
+            $subjectAbout = 'Đăng ký sử dụng '.$toolName;
+        }
 
-        $objectives = $proposal->objectives ?? '';
-        $content = $proposal->proposal_content ?? $proposal->justification ?? '';
+        $purchaseType = AiPurchaseType::tryFrom((string) ($input['purchase_type'] ?? 'new'))
+            ?? AiPurchaseType::New;
+
+        $content = trim((string) ($input['proposal_content'] ?? $input['justification'] ?? ''));
+        $planned = ! empty($input['planned_use_date'])
+            ? Carbon::parse($input['planned_use_date'])->format('d/m/Y')
+            : '…';
+
+        $proposerName = trim((string) ($input['proposer_name'] ?? ''));
 
         return [
-            'doc_date' => $this->formatDocDateVi($docDate),
-            'subject_about' => $proposal->subject_about ?? ('Đăng ký sử dụng '.$proposal->tool_name),
-            ...$this->splitSendTo($proposal->send_to),
-            'proposer_name' => $proposal->proposer_name ?? '—',
-            'proposer_position' => $proposal->proposer_position ?? '—',
-            'proposer_department' => $proposal->proposer_department ?? '—',
-            'proposal_content' => $content,
-            'objectives' => $objectives,
-            'tool_product_line' => $proposal->tool_name.' - '.$proposal->license_type,
-            'quantity' => (string) ($proposal->quantity ?? 1),
-            'cost_monthly_formatted' => number_format($monthly, 0, ',', '.'),
-            'staff_count_line' => ($proposal->staff_count ?? 1).' nhân sự',
-            'recipient_name' => $proposal->recipient_name ?? $proposal->proposer_name ?? '—',
-            'recipient_position' => $proposal->recipient_position ?? $proposal->proposer_position ?? '—',
-            'recipient_email' => $proposal->recipient_email ?? '—',
-            'recipient_phone' => $proposal->recipient_phone ?? '—',
-            'registration_email' => $proposal->registration_email ?? '—',
+            'doc_date' => $this->formatDocDateVi(Carbon::now()->timezone(config('app.timezone'))),
+            'subject_about' => $subjectAbout !== '' ? $subjectAbout : '…',
+            ...$this->splitSendTo($input['send_to'] ?? null),
+            'proposer_name' => $proposerName !== '' ? $proposerName : '—',
+            'proposer_position' => $this->fieldOrDash($input['proposer_position'] ?? null),
+            'proposer_department' => $this->fieldOrDash($input['proposer_department'] ?? null),
+            'proposal_content' => $content !== '' ? $content : '…',
+            'objectives' => trim((string) ($input['objectives'] ?? '')),
+            'tool_product_line' => trim($toolName.($licenseType !== '' ? ' - '.$licenseType : '')) ?: '—',
+            'quantity' => (string) ($input['quantity'] ?? 1),
+            'cost_monthly_formatted' => $monthly > 0 ? number_format($monthly, 0, ',', '.') : '…',
+            'staff_count_line' => ((int) ($input['staff_count'] ?? 1)).' nhân sự',
+            'recipient_name' => $this->fieldOrDash($input['recipient_name'] ?? $proposerName ?: null),
+            'recipient_position' => $this->fieldOrDash($input['recipient_position'] ?? $input['proposer_position'] ?? null),
+            'recipient_email' => $this->fieldOrDash($input['recipient_email'] ?? null),
+            'recipient_phone' => $this->fieldOrDash($input['recipient_phone'] ?? null),
+            'registration_email' => $this->fieldOrDash($input['registration_email'] ?? null),
             'planned_use_date' => $planned,
             'check_new' => $purchaseType === AiPurchaseType::New ? '☑' : '☐',
             'check_renewal' => $purchaseType === AiPurchaseType::Renewal ? '☑' : '☐',
         ];
+    }
+
+    /**
+     * HTML xem trước trong modal — cùng partial với PDF.
+     *
+     * @param  array<string, mixed>  $input
+     */
+    public function renderPreviewHtml(array $input): string
+    {
+        return view('pdf.ai-purchase-proposal-preview', [
+            'vars' => $this->templateVariablesFromInput($input),
+            'checkboxImg' => asset('docx/checkbox.png'),
+            'backgroundImg' => asset('docx/background.png'),
+        ])->render();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function proposalToInput(AiPurchaseProposal $proposal): array
+    {
+        return [
+            'subject_about' => $proposal->subject_about,
+            'send_to' => $proposal->send_to,
+            'tool_name' => $proposal->tool_name,
+            'license_type' => $proposal->license_type,
+            'group_function' => $proposal->group_function instanceof AiAccountGroupFunction
+                ? $proposal->group_function->value
+                : $proposal->group_function,
+            'cost_amount' => $proposal->cost_amount,
+            'cost_unit' => $proposal->cost_unit instanceof AiAccountCostUnit
+                ? $proposal->cost_unit->value
+                : $proposal->cost_unit,
+            'quantity' => $proposal->quantity,
+            'proposer_name' => $proposal->proposer_name,
+            'proposer_position' => $proposal->proposer_position,
+            'proposer_department' => $proposal->proposer_department,
+            'proposal_content' => $proposal->proposal_content,
+            'justification' => $proposal->justification,
+            'objectives' => $proposal->objectives,
+            'staff_count' => $proposal->staff_count,
+            'recipient_name' => $proposal->recipient_name,
+            'recipient_position' => $proposal->recipient_position,
+            'recipient_email' => $proposal->recipient_email,
+            'recipient_phone' => $proposal->recipient_phone,
+            'purchase_type' => $proposal->purchase_type instanceof AiPurchaseType
+                ? $proposal->purchase_type->value
+                : $proposal->purchase_type,
+            'registration_email' => $proposal->registration_email,
+            'planned_use_date' => $proposal->planned_use_date?->format('Y-m-d'),
+        ];
+    }
+
+    private function fieldOrDash(?string $value): string
+    {
+        $v = trim((string) $value);
+
+        return $v !== '' ? $v : '—';
     }
 
     public function fillDocx(AiPurchaseProposal $proposal, string $outputPath): void
