@@ -16,6 +16,7 @@ import ProposalRowActions from '@/modules/aiAccount/components/ProposalRowAction
 import AiAccountSectionNav from '@/modules/aiAccount/components/AiAccountSectionNav.vue';
 import AiAccountCrossLink from '@/modules/aiAccount/components/AiAccountCrossLink.vue';
 import AiCostByGroupPanel from '@/modules/aiAccount/components/AiCostByGroupPanel.vue';
+import AiCostReportKpiStrip from '@/modules/aiAccount/components/AiCostReportKpiStrip.vue';
 import Badge from '@/shared/ui/Badge.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
@@ -291,29 +292,20 @@ const displayProposalCounts = computed(() =>
         : proposalCounts.value,
 );
 
-const kpiCards = computed(() => {
-    const pc = displayProposalCounts.value;
-    const c = cards.value;
-    return [
-        { key: 'total', label: 'Tổng phiếu', value: pc.total ?? 0, icon: 'task', tone: 'text-slate-600', bg: 'bg-slate-100' },
-        { key: 'pending', label: 'Chờ duyệt', value: pc.pending ?? 0, icon: 'flag', tone: 'text-amber-600', bg: 'bg-amber-50', highlight: (pc.pending ?? 0) > 0 },
-        { key: 'approved', label: 'Đã duyệt', value: pc.approved ?? 0, icon: 'done', tone: 'text-emerald-600', bg: 'bg-emerald-50' },
-        { key: 'rejected', label: 'Từ chối', value: pc.rejected ?? 0, icon: 'close', tone: 'text-rose-600', bg: 'bg-rose-50' },
-        { key: 'purchased', label: 'Đã mua', value: pc.purchased ?? 0, icon: 'money', tone: 'text-violet-600', bg: 'bg-violet-50' },
-        { key: 'active', label: 'Đang dùng', value: pc.active ?? 0, icon: 'account', tone: 'text-teal-600', bg: 'bg-teal-50' },
-        { key: 'monthly_cost', label: 'Chi phí/tháng', isMoney: true, amount: c?.monthly_cost_active ?? 0, icon: 'performance', tone: 'text-brand', bg: 'bg-brand-50' },
-        { key: 'yearly_cost', label: 'Ước tính/năm', isMoney: true, amount: (c?.monthly_cost_active ?? 0) * 12, icon: 'calendar', tone: 'text-indigo-600', bg: 'bg-indigo-50' },
-    ];
-});
+const kpiFiltered = computed(() => activeFilterCount.value > 0 || !!search.value.trim());
 
-function onKpiClick(card) {
-    if (card.isMoney) return;
-    if (activeKpi.value === card.key) {
+function onKpiFilterStatus(key) {
+    if (key === 'total') {
+        activeKpi.value = null;
+        statusFilter.value = 'all';
+        return;
+    }
+    if (activeKpi.value === key) {
         activeKpi.value = null;
         statusFilter.value = 'all';
     } else {
-        activeKpi.value = card.key;
-        statusFilter.value = card.key === 'total' ? 'all' : card.key;
+        activeKpi.value = key;
+        statusFilter.value = key;
     }
 }
 
@@ -492,50 +484,13 @@ function runExport(format) {
       :awaiting-account-count="awaitingAccountCount"
     />
 
-    <!-- ── KPI Cards ── -->
-    <div class="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-8 sm:gap-3">
-      <button
-        v-for="card in kpiCards"
-        :key="card.key"
-        type="button"
-        class="card flex items-center gap-3 p-3 text-left transition hover:shadow-md"
-        :class="[
-          card.highlight ? 'ring-1 ring-amber-300' : '',
-          !card.isMoney && activeKpi === card.key ? 'ring-2 ring-brand' : '',
-          card.isMoney ? 'cursor-default' : 'cursor-pointer hover:bg-brand-50/30',
-        ]"
-        @click="onKpiClick(card)"
-      >
-        <span
-          class="grid h-9 w-9 shrink-0 place-items-center rounded-btn"
-          :class="card.bg"
-        >
-          <AppIcon
-            :name="card.icon"
-            :size="18"
-            :class="card.tone"
-          />
-        </span>
-        <div class="min-w-0 flex-1">
-          <p class="text-[11px] leading-tight text-slate-500">
-            {{ card.label }}
-          </p>
-          <VndAmount
-            v-if="card.isMoney"
-            :amount="card.amount"
-            class="font-display text-base font-bold"
-            :class="card.tone"
-          />
-          <p
-            v-else
-            class="font-display text-lg font-bold tabular-nums leading-tight"
-            :class="card.tone"
-          >
-            {{ card.value }}
-          </p>
-        </div>
-      </button>
-    </div>
+    <AiCostReportKpiStrip
+      :counts="displayProposalCounts"
+      :cards="cards"
+      :active-kpi="activeKpi"
+      :filtered="kpiFiltered"
+      @filter-status="onKpiFilterStatus"
+    />
 
     <!-- ── Proposals Table ── -->
     <div class="card overflow-visible">
