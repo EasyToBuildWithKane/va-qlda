@@ -6,6 +6,14 @@ Xử lý sự cố dev local, Git hooks, và CI.
 
 ---
 
+## Deploy server — EBADENGINE / git pull đã mới nhất
+
+**EBADENGINE:** Pull bản mới (lint-staged 16). Server: `CI=true HUSKY=0 npm ci --omit=dev` + `npm run build` — `_dev/troubleshooting.md` (Server deploy).
+
+**Already up to date:** Máy dev cần `git push` trước; server `git fetch`.
+
+---
+
 ## Husky hook không chạy
 
 **Triệu chứng:** Commit không qua ESLint; push không chạy E2E.

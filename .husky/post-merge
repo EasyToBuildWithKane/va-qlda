@@ -1,5 +1,9 @@
 CHANGED=$(git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD 2>/dev/null || true)
 if echo "$CHANGED" | grep -q "package.json"; then
   echo "▶ package.json changed — running npm install..."
-  npm install || echo "⚠ npm install failed. Chạy thủ công: npm install"
+  if [ "$CI" = "true" ] || [ "$HUSKY" = "0" ] || [ "$NODE_ENV" = "production" ]; then
+    npm install --omit=dev || echo "⚠ npm install --omit=dev failed"
+  else
+    npm install || echo "⚠ npm install failed. Chạy thủ công: npm install"
+  fi
 fi

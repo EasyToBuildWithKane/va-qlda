@@ -4,6 +4,30 @@ Common issues and fixes for local dev, Git hooks, and CI.
 
 ---
 
+## Server deploy (`public_html`) — `npm warn EBADENGINE` / `git pull` up to date
+
+**EBADENGINE `lint-staged`:** Bản cũ yêu cầu Node ≥22.22.1. Repo đã pin `lint-staged@16` — `git pull` lại rồi cài đúng cách production (bên dưới).
+
+**`Already up to date`:** Remote chưa có commit mới — máy dev cần `git push` trước; trên server `git fetch && git log HEAD..origin/main`.
+
+**Cài dependency trên server (không cần Husky / Playwright):**
+
+```bash
+export CI=true HUSKY=0 NODE_ENV=production
+git pull
+composer install --no-dev --optimize-autoloader
+npm ci --omit=dev
+npm run build
+php artisan migrate --force
+php artisan config:cache
+php artisan route:cache
+php artisan storage:link
+```
+
+`npm audit` trên server: thường **không** chạy `npm audit fix --force` trên production — xử lý trên môi trường dev/CI.
+
+---
+
 ## Husky hooks not running
 
 **Symptoms:** Commits succeed without ESLint; push succeeds without E2E.
