@@ -18,7 +18,7 @@ export const nextBulkRowId = () => `bulk-${Date.now()}-${++_seq}`;
  */
 export function normalizeBulkLine(line) {
     return String(line ?? '')
-        .replace(/^\s*[\d]+[\.\)\-]\s*/, '')
+        .replace(/^\s*[\d]+[.)-]\s*/, '')
         .replace(/^\s*[-*•]\s*/, '')
         .replace(/\t/g, ' ')
         .trim();

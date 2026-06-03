@@ -63,6 +63,21 @@ return [
             ]) : [],
         ],
 
+        'cms_mysql' => [
+            'driver' => 'mysql',
+            'host' => env('CMS_DB_HOST', '127.0.0.1'),
+            'port' => env('CMS_DB_PORT', '3306'),
+            'database' => env('CMS_DB_DATABASE', ''),
+            'username' => env('CMS_DB_USERNAME', ''),
+            'password' => env('CMS_DB_PASSWORD', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+        ],
+
         'pgsql' => [
             'driver' => 'pgsql',
             'url' => env('DATABASE_URL'),

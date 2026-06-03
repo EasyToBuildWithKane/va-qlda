@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * @property int $id
+ * @property int|null $cms_user_id
  * @property string $code
  * @property string $full_name
  * @property string|null $email
@@ -24,6 +25,7 @@ class Employee extends Model
     use SoftDeletes;
 
     protected $fillable = [
+        'cms_user_id',
         'code',
         'full_name',
         'email',

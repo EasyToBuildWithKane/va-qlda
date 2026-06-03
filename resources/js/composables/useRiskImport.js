@@ -118,6 +118,14 @@ function safeCode(code) {
     return String(code ?? 'DA').replace(/[:\\/?*[\]]/g, '_');
 }
 
+function fileStamp() {
+    const t = new Date();
+    const dd = String(t.getDate()).padStart(2, '0');
+    const mm = String(t.getMonth() + 1).padStart(2, '0');
+    const yyyy = t.getFullYear();
+    return { dd, mm, yyyy, iso: t.toISOString().slice(0, 10) };
+}
+
 function normalizeKey(val) {
     return String(val ?? '')
         .trim()

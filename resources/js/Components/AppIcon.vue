@@ -94,6 +94,7 @@ const map = {
     comment: MessageSquare,
     // scope + datagrid + quick actions
     info: Info,
+    alert: TriangleAlert,
     building: Building,
     globe: Globe,
     'map-pin': MapPin,
@@ -119,5 +120,9 @@ const component = computed(() => map[props.name] || Circle);
 </script>
 
 <template>
-    <component :is="component" :size="Number(size)" :stroke-width="Number(strokeWidth)" />
+  <component
+    :is="component"
+    :size="Number(size)"
+    :stroke-width="Number(strokeWidth)"
+  />
 </template>

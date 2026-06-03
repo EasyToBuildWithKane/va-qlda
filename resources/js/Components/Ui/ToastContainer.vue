@@ -21,7 +21,7 @@ const positionClass = computed(() => {
 
 const cfg = {
     success: { wrap: 'bg-emerald-50 border-emerald-200 text-emerald-800', icon: 'check', ic: 'text-emerald-500' },
-    error:   { wrap: 'bg-rose-50 border-rose-200 text-rose-800',       icon: 'close', ic: 'text-rose-500'    },
+    error:   { wrap: 'bg-rose-50 border-rose-200 text-rose-800',       icon: 'alert', ic: 'text-rose-500'   },
     info:    { wrap: 'bg-sky-50 border-sky-200 text-sky-800',           icon: 'info',  ic: 'text-sky-500'     },
     warning: { wrap: 'bg-amber-50 border-amber-200 text-amber-800',     icon: 'flag',  ic: 'text-amber-500'   },
 };
