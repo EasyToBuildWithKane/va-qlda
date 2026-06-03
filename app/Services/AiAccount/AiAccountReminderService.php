@@ -21,6 +21,7 @@ class AiAccountReminderService
     public function __construct(
         private readonly NotificationService $notifications,
         private readonly AiAccountCostCalculator $costCalculator,
+        private readonly AiAccountCountableProposalCost $countableProposalCost,
         private readonly AiAccountStatusSync $statusSync,
         private readonly ReminderRecipientEmailResolver $emailResolver,
     ) {}
@@ -89,13 +90,15 @@ class AiAccountReminderService
         $notBefore = now()->subHours($minHours);
 
         $accounts = AiAccount::query()
+            ->with('purchaseProposal')
             ->where('status', AiAccountStatus::Expired->value)
             ->where('renewal_payment_status', AiAccountRenewalPaymentStatus::Unpaid->value)
             ->where(function ($q) use ($notBefore) {
                 $q->whereNull('last_payment_reminded_at')
                     ->orWhere('last_payment_reminded_at', '<', $notBefore);
             })
-            ->get();
+            ->get()
+            ->filter(fn (AiAccount $a) => $this->countableProposalCost->accountHasCountableProposal($a));
 
         $recipients = SystemAccount::query()
             ->where('is_active', true)
@@ -125,8 +128,10 @@ class AiAccountReminderService
      */
     private function notifyUnpaidRenewal(Collection $recipients, AiAccount $account, array $emails): void
     {
-        $monthly = $this->costCalculator->monthlyForAccount($account);
-        $costLine = $this->costCalculator->formatVnd($monthly).' / tháng';
+        $monthly = $this->countableProposalCost->monthlyForAccountInBudget($account);
+        $costLine = $monthly > 0
+            ? $this->costCalculator->formatVnd($monthly).' / tháng'
+            : 'Theo phiếu đề xuất đã duyệt';
         $daysOver = abs($this->statusSync->daysUntilExpirySigned($account));
 
         $body = implode("\n", [

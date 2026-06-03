@@ -108,6 +108,13 @@ function expiryDisplay(row) {
             >
               {{ g.warning_count }} cần chú ý
             </span>
+            <span
+              v-if="g.proposal_monthly_pending_sync"
+              class="inline-flex items-center rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-medium text-violet-800"
+              title="Phiếu đã duyệt, chưa lập tài khoản — đã gồm trong chi phí nhóm"
+            >
+              + phiếu chưa lập TK
+            </span>
           </span>
           <span class="flex flex-wrap items-center gap-x-3 text-xs text-slate-600 sm:text-sm">
             <span class="tabular-nums font-medium">{{ g.total }} TK</span>
@@ -115,6 +122,7 @@ function expiryDisplay(row) {
               :amount="g.total_cost_monthly"
               suffix="/tháng"
               class="text-slate-600"
+              title="Theo phiếu đề xuất đã duyệt"
             />
           </span>
           <AppIcon

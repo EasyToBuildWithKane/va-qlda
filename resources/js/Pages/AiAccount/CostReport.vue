@@ -43,6 +43,7 @@ const {
     loading,
     proposals,
     proposalCounts,
+    proposalCountsFiltered,
     cards,
     byGroup,
     load,
@@ -284,8 +285,14 @@ function onToolbarClickOutside(e) {
     if (groupColDdRef.value && !groupColDdRef.value.contains(e.target)) showGroupColDd.value = false;
 }
 
+const displayProposalCounts = computed(() =>
+    (activeFilterCount.value > 0 || search.value.trim())
+        ? proposalCountsFiltered.value
+        : proposalCounts.value,
+);
+
 const kpiCards = computed(() => {
-    const pc = proposalCounts.value;
+    const pc = displayProposalCounts.value;
     const c = cards.value;
     return [
         { key: 'total', label: 'Tổng phiếu', value: pc.total ?? 0, icon: 'task', tone: 'text-slate-600', bg: 'bg-slate-100' },
@@ -741,14 +748,14 @@ function runExport(format) {
             @change="onStatusFilterChange"
           >
             <option value="all">
-              Trạng thái: Tất cả ({{ proposalCounts.total ?? 0 }})
+              Trạng thái: Tất cả ({{ displayProposalCounts.total ?? 0 }})
             </option>
             <option
               v-for="opt in options.proposal_status"
               :key="opt.value"
               :value="opt.value"
             >
-              {{ opt.label }} ({{ proposalCounts[opt.value] ?? 0 }})
+              {{ opt.label }} ({{ displayProposalCounts[opt.value] ?? 0 }})
             </option>
           </select>
 
@@ -1189,7 +1196,11 @@ function runExport(format) {
       </div>
 
       <div class="border-t border-slate-100 px-5 py-2.5 text-xs text-slate-400">
-        {{ proposals.length }} / {{ proposalCounts.total ?? proposals.length }} phiếu
+        {{ proposals.length }} / {{ displayProposalCounts.total ?? proposals.length }} phiếu
+        <span
+          v-if="activeFilterCount > 0 || search.trim()"
+          class="text-slate-400"
+        > · KPI trên: theo bộ lọc</span>
       </div>
     </div>
 

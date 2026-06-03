@@ -261,13 +261,13 @@ function saveNotes(row) {
                             Xuất PDF (phiếu PDX)
                           </a>
                           <a
-                            v-if="row.export_docx_url"
-                            :href="row.export_docx_url"
+                            v-if="row.export_payment_request_pdf_url"
+                            :href="row.export_payment_request_pdf_url"
                             class="btn-secondary text-xs"
                             target="_blank"
                             rel="noopener"
                           >
-                            Xuất DOCX
+                            Đề nghị thanh toán (PDF)
                           </a>
                         </div>
                         <div

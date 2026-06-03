@@ -50,6 +50,8 @@ class AiAccountController extends Controller
             'data' => [
                 ...$payload,
                 'summary_cards' => $summary['cards'],
+                'proposal_counts' => $this->proposalPresenter->aggregateCounts(),
+                'awaiting_account_count' => $this->proposalPresenter->awaitingAccountCount(),
             ],
             'meta' => [
                 'options' => [
@@ -259,10 +261,10 @@ class AiAccountController extends Controller
 
     private function loadAndSyncAccounts()
     {
-        $accounts = AiAccount::query()->orderBy('tool_name')->get();
+        $accounts = AiAccount::query()->with('purchaseProposal')->orderBy('tool_name')->get();
         $this->statusSync->syncCollection($accounts);
 
-        return AiAccount::query()->orderBy('tool_name')->get();
+        return $accounts->map(fn (AiAccount $a) => $a->fresh(['purchaseProposal']));
     }
 
     /**
@@ -294,8 +296,8 @@ class AiAccountController extends Controller
             return null;
         }
 
-        $grouped = $this->grouper->grouped(collect([$account]), null, $viewer);
+        $account->loadMissing('purchaseProposal');
 
-        return $grouped['groups'][0]['accounts'][0] ?? null;
+        return $this->grouper->accountPayload($account, $viewer);
     }
 }

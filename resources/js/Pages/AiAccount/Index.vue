@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, ref, toRef, watch } from 'vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import AppIcon from '@/Components/AppIcon.vue';
@@ -18,6 +18,7 @@ import AiAccountRenewModal from '@/modules/aiAccount/components/AiAccountRenewMo
 import AiAccountPasswordViewersModal from '@/modules/aiAccount/components/AiAccountPasswordViewersModal.vue';
 import AiAccountSectionNav from '@/modules/aiAccount/components/AiAccountSectionNav.vue';
 import AiAccountCrossLink from '@/modules/aiAccount/components/AiAccountCrossLink.vue';
+import AiAccountBanner from '@/modules/aiAccount/components/AiAccountBanner.vue';
 import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
 
 const props = defineProps({
@@ -31,11 +32,13 @@ const dialog = useDialog();
 const {
     loading,
     groups,
+    banner,
     summaryCards,
+    proposalCounts,
+    awaitingAccountCount,
     search,
     expanded,
     fetchList,
-    fetchSummary,
     createAccount,
     updateAccount,
     updateAccountStatus,
@@ -52,6 +55,7 @@ const {
 const {
     filters,
     activeFilterCount,
+    filterSummaryLabel,
     paginatedDisplayGroups,
     filteredAccountCount,
     perPage,
@@ -60,10 +64,13 @@ const {
     goToPage,
     PER_PAGE_OPTIONS,
     statusCounts,
+    paymentCounts,
+    filteredSummaryOverlay,
     groupFilterOptions,
     clearFilters,
     toggleGroupFilter,
     AI_ACCOUNT_STATUS_FILTER_OPTS,
+    AI_ACCOUNT_RENEWAL_PAYMENT_FILTER_OPTS,
     AI_ACCOUNT_TABLE_COLUMNS,
     colVisible,
     visibleCols,
@@ -89,8 +96,7 @@ const editing = ref(null);
 const renewing = ref(null);
 
 const totalCount = computed(() => summaryCards.value?.total_accounts ?? 0);
-const proposalPendingCount = ref(0);
-const proposalAwaitingAccountCount = ref(0);
+const proposalPendingCount = computed(() => proposalCounts.value?.pending ?? 0);
 const allAccountsForPicker = computed(() =>
     (groups.value ?? []).flatMap((g) => g.accounts ?? []),
 );
@@ -118,16 +124,8 @@ watch(search, () => {
     searchTimer = setTimeout(() => fetchList(), 300);
 });
 
-onMounted(async () => {
-    await fetchList();
-    try {
-        const summary = await fetchSummary();
-        proposalPendingCount.value = summary.proposal_counts?.pending ?? 0;
-        const awaiting = (summary.proposals ?? []).filter((p) => p.awaiting_account);
-        proposalAwaitingAccountCount.value = awaiting.length;
-    } catch {
-        /* optional — cross-link badge */
-    }
+onMounted(() => {
+    fetchList();
 });
 
 function openCreate() {
@@ -212,9 +210,13 @@ function onKpiFilterStatus(key) {
         filters.attentionOnly = false;
         return;
     }
-    if (key === 'cost') return;
     filters.status = key;
     filters.attentionOnly = false;
+    expandAllGroups();
+}
+
+function onKpiFilterPayment(key) {
+    filters.renewalPayment = filters.renewalPayment === key ? 'all' : key;
     expandAllGroups();
 }
 
@@ -222,6 +224,10 @@ function showAttentionOnly() {
     filters.status = 'all';
     filters.attentionOnly = true;
     expandAllGroups();
+}
+
+function onKpiOpenCostReport() {
+    router.visit(route('ai-accounts.cost-report'));
 }
 </script>
 
@@ -247,13 +253,19 @@ function showAttentionOnly() {
     <AiAccountCrossLink
       direction="to-proposals"
       :pending-count="proposalPendingCount"
-      :awaiting-account-count="proposalAwaitingAccountCount"
+      :awaiting-account-count="awaitingAccountCount > 0 ? awaitingAccountCount : null"
     />
+
+    <AiAccountBanner :banner="banner" />
 
     <AiAccountSummaryCards
       :cards="summaryCards"
       :active-status="filters.status"
+      :active-payment="filters.renewalPayment"
+      :filtered-overlay="filteredSummaryOverlay"
       @filter-status="onKpiFilterStatus"
+      @filter-payment="onKpiFilterPayment"
+      @open-cost-report="onKpiOpenCostReport"
     />
 
     <div class="card overflow-visible shadow-sm">
@@ -273,9 +285,14 @@ function showAttentionOnly() {
             v-if="activeFilterCount > 0 || search.trim()"
             class="text-xs text-slate-500"
           >
-            Đang lọc
+            <template v-if="filterSummaryLabel">
+              {{ filterSummaryLabel }}
+            </template>
+            <template v-else-if="search.trim()">
+              Tìm kiếm
+            </template>
             <template v-if="search.trim()">
-              · tìm kiếm
+              <span v-if="filterSummaryLabel"> · </span>«{{ search.trim() }}»
             </template>
           </p>
         </div>
@@ -429,6 +446,21 @@ function showAttentionOnly() {
               :value="opt.key"
             >
               {{ opt.label }} ({{ statusCounts[opt.key] ?? 0 }})
+            </option>
+          </select>
+
+          <select
+            v-if="visibleFilters.renewal_payment"
+            v-model="filters.renewalPayment"
+            class="input h-9 w-[min(100%,14rem)] shrink-0 text-sm sm:w-60"
+            aria-label="Lọc theo thanh toán gia hạn"
+          >
+            <option
+              v-for="opt in AI_ACCOUNT_RENEWAL_PAYMENT_FILTER_OPTS"
+              :key="opt.key"
+              :value="opt.key"
+            >
+              {{ opt.label }} ({{ paymentCounts[opt.key] ?? 0 }})
             </option>
           </select>
 

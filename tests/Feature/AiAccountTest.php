@@ -103,7 +103,9 @@ class AiAccountTest extends TestCase
         $response = $this->getJson(route('api.ai-accounts.index'));
         $response->assertOk()
             ->assertJsonPath('success', true)
-            ->assertJsonStructure(['data' => ['groups', 'banner', 'summary_cards']]);
+            ->assertJsonStructure([
+                'data' => ['groups', 'banner', 'summary_cards', 'proposal_counts', 'awaiting_account_count'],
+            ]);
 
         $groups = $response->json('data.groups');
         $this->assertNotEmpty($groups);
@@ -324,13 +326,15 @@ class AiAccountTest extends TestCase
             'cost_amount' => 800_000,
         ]))->assertCreated();
 
-        $filtered = $this->getJson(route('api.ai-accounts.proposals.index', [
+        $res = $this->getJson(route('api.ai-accounts.proposals.index', [
             'group_function' => AiAccountGroupFunction::Ba->value,
             'tool_name' => 'Filter Tool B',
-        ]))->assertOk()->json('data.proposals');
+        ]))->assertOk()->json('data');
 
-        $this->assertCount(1, $filtered);
-        $this->assertSame('Filter Tool B', $filtered[0]['tool_name']);
+        $this->assertCount(1, $res['proposals']);
+        $this->assertSame('Filter Tool B', $res['proposals'][0]['tool_name']);
+        $this->assertSame(2, $res['counts']['total']);
+        $this->assertSame(1, $res['filtered_counts']['total']);
     }
 
     public function test_purchase_proposal_update_when_pending(): void
@@ -357,11 +361,15 @@ class AiAccountTest extends TestCase
         $this->assertSame('Edited Tool', $proposal->fresh()->tool_name);
     }
 
-    public function test_purchase_proposal_export_pdf_and_docx(): void
+    public function test_purchase_proposal_export_pdf_and_payment_request(): void
     {
         $this->actingAsUser();
 
-        $this->postJson(route('api.ai-accounts.proposals.store'), $this->proposalPayload())
+        $this->postJson(route('api.ai-accounts.proposals.store'), $this->proposalPayload([
+            'purchase_type' => 'renewal',
+            'cost_amount' => 550_000,
+            'planned_use_date' => '2026-08-06',
+        ]))
             ->assertCreated();
 
         $proposal = AiPurchaseProposal::first();
@@ -371,8 +379,58 @@ class AiAccountTest extends TestCase
             ->assertOk()
             ->assertHeader('content-type', 'application/pdf');
 
-        $this->get(route('api.ai-accounts.proposals.export.docx', ['proposal' => $proposal->id]))
+        $this->get(route('api.ai-accounts.proposals.export.payment-request.pdf', ['proposal' => $proposal->id]))
             ->assertOk()
-            ->assertDownload();
+            ->assertHeader('content-type', 'application/pdf');
+    }
+
+    public function test_summary_cost_counts_only_approved_proposals(): void
+    {
+        $this->actingAsUser();
+
+        AiAccount::create([
+            'tool_name' => 'No Proposal Tool',
+            'license_type' => 'Pro',
+            'group_function' => AiAccountGroupFunction::Dev,
+            'email_registered' => 'orphan@example.com',
+            'purchase_date' => now()->subMonth(),
+            'expiry_date' => now()->addMonth(),
+            'cost_amount' => 9_000_000,
+            'cost_unit' => AiAccountCostUnit::Monthly,
+            'status' => AiAccountStatus::Active,
+            'notify_before_days' => 14,
+        ]);
+
+        $this->postJson(route('api.ai-accounts.proposals.store'), $this->proposalPayload([
+            'tool_name' => 'Pending Tool',
+            'cost_amount' => 2_000_000,
+        ]))->assertCreated();
+
+        $pending = AiPurchaseProposal::query()->where('tool_name', 'Pending Tool')->first();
+        $pending->update(['status' => AiPurchaseProposalStatus::Pending]);
+
+        $this->postJson(route('api.ai-accounts.proposals.store'), $this->proposalPayload([
+            'tool_name' => 'Approved Only',
+            'cost_amount' => 600_000,
+        ]))->assertCreated();
+
+        $approved = AiPurchaseProposal::query()->where('tool_name', 'Approved Only')->first();
+        $admin = SystemAccount::factory()->role(SystemRole::Admin)->create();
+        $this->actingAs($admin, 'system');
+        $this->postJson(route('api.ai-accounts.proposals.approve', ['proposal' => $approved->id]))->assertOk();
+
+        $cards = $this->getJson(route('api.ai-accounts.index'))
+            ->assertOk()
+            ->json('data.summary_cards');
+
+        $this->assertSame(600_000, $cards['monthly_cost_running']);
+        $this->assertSame(600_000, $cards['monthly_cost_all']);
+
+        $accountRow = collect($this->getJson(route('api.ai-accounts.index'))->json('data.groups'))
+            ->flatMap(fn ($g) => $g['accounts'])
+            ->firstWhere('tool_name', 'No Proposal Tool');
+        $this->assertFalse($accountRow['cost_in_budget']);
+        $this->assertSame(0, $accountRow['budget_cost_monthly']);
+        $this->assertFalse($accountRow['show_renewal_payment']);
     }
 }

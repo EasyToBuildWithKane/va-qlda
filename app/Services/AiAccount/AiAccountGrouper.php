@@ -13,6 +13,7 @@ class AiAccountGrouper
 {
     public function __construct(
         private readonly AiAccountCostCalculator $costCalculator,
+        private readonly AiAccountCountableProposalCost $countableProposalCost,
         private readonly AiAccountStatusSync $statusSync,
     ) {}
 
@@ -37,6 +38,8 @@ class AiAccountGrouper
         }
 
         $byGroup = $accounts->groupBy(fn (AiAccount $a) => $a->group_function->value);
+        $monthlyByGroup = $this->countableProposalCost->monthlyByGroup();
+        $pendingByGroup = $this->countableProposalCost->pendingAccountMonthlyByGroup();
 
         $groups = [];
         foreach (AiAccountGroupFunction::ordered() as $groupEnum) {
@@ -51,7 +54,8 @@ class AiAccountGrouper
                 AiAccountStatus::Expired,
             ], true))->count();
 
-            $monthlyTotal = $items->sum(fn (AiAccount $a) => $this->costCalculator->monthlyForAccount($a));
+            $monthlyTotal = $monthlyByGroup[$key] ?? 0;
+            $pendingMonthly = $pendingByGroup[$key] ?? 0;
 
             $groups[] = [
                 'group' => $key,
@@ -59,6 +63,7 @@ class AiAccountGrouper
                 'dot_color' => $groupEnum->dotColor(),
                 'total' => $items->count(),
                 'total_cost_monthly' => $monthlyTotal,
+                'proposal_monthly_pending_sync' => $pendingMonthly > 0 ? $pendingMonthly : null,
                 'has_warning' => $warningCount > 0,
                 'warning_count' => $warningCount,
                 'default_expanded' => $warningCount > 0,
@@ -82,38 +87,40 @@ class AiAccountGrouper
      */
     public function summary(Collection $accounts): array
     {
-        $totalActiveMonthly = 0;
-        $rows = [];
+        $monthlyByGroup = $this->countableProposalCost->monthlyByGroup();
+        $pendingByGroup = $this->countableProposalCost->pendingAccountMonthlyByGroup();
+        $totalMonthly = $this->countableProposalCost->totalMonthly();
 
+        $rows = [];
         foreach (AiAccountGroupFunction::ordered() as $groupEnum) {
+            $key = $groupEnum->value;
             $items = $accounts->where('group_function', $groupEnum);
-            if ($items->isEmpty()) {
+            $cost = $monthlyByGroup[$key] ?? 0;
+            $pending = $pendingByGroup[$key] ?? 0;
+
+            if ($items->isEmpty() && $cost === 0) {
                 continue;
             }
 
             $active = $items->where('status', AiAccountStatus::Active);
-            $monthly = $items->sum(fn (AiAccount $a) => $this->costCalculator->monthlyForAccount($a));
-            $groupActiveMonthly = $active->sum(fn (AiAccount $a) => $this->costCalculator->monthlyForAccount($a));
 
             $rows[] = [
-                'group' => $groupEnum->value,
+                'group' => $key,
                 'dot_color' => $groupEnum->dotColor(),
                 'total_accounts' => $items->count(),
                 'active_accounts' => $active->count(),
                 'expiring_soon' => $items->where('status', AiAccountStatus::ExpiringSoon)->count(),
                 'expired' => $items->where('status', AiAccountStatus::Expired)->count(),
                 'cancelled' => $items->where('status', AiAccountStatus::Cancelled)->count(),
-                'cost_monthly' => $monthly,
-                'cost_monthly_active' => $groupActiveMonthly,
+                'cost_monthly' => $cost,
+                'cost_monthly_active' => $cost,
+                'proposal_monthly_pending_sync' => $pending > 0 ? $pending : null,
             ];
-
-            $totalActiveMonthly += $groupActiveMonthly;
         }
 
-        $totalMonthly = array_sum(array_column($rows, 'cost_monthly'));
         if ($totalMonthly > 0) {
             foreach ($rows as &$row) {
-                $row['cost_share_percent'] = (int) round(($row['cost_monthly'] / $totalMonthly) * 100);
+                $row['cost_share_percent'] = (int) round((($row['cost_monthly'] ?? 0) / $totalMonthly) * 100);
             }
             unset($row);
         } else {
@@ -125,7 +132,25 @@ class AiAccountGrouper
 
         $totalAccounts = $accounts->count();
         $totalActive = $accounts->where('status', AiAccountStatus::Active)->count();
-        $allMonthly = $accounts->sum(fn (AiAccount $a) => $this->costCalculator->monthlyForAccount($a));
+
+        $renewalDue = $accounts
+            ->whereIn('status', [
+                AiAccountStatus::ExpiringSoon,
+                AiAccountStatus::Expired,
+            ])
+            ->filter(fn (AiAccount $a) => $this->countableProposalCost->accountHasCountableProposal($a));
+        $renewalUnpaid = $renewalDue->filter(
+            fn (AiAccount $a) => ($a->renewal_payment_status instanceof AiAccountRenewalPaymentStatus
+                ? $a->renewal_payment_status
+                : AiAccountRenewalPaymentStatus::tryFrom((string) $a->renewal_payment_status))
+                === AiAccountRenewalPaymentStatus::Unpaid,
+        );
+        $renewalPaid = $renewalDue->filter(
+            fn (AiAccount $a) => ($a->renewal_payment_status instanceof AiAccountRenewalPaymentStatus
+                ? $a->renewal_payment_status
+                : AiAccountRenewalPaymentStatus::tryFrom((string) $a->renewal_payment_status))
+                === AiAccountRenewalPaymentStatus::Paid,
+        );
 
         return [
             'cards' => [
@@ -133,14 +158,21 @@ class AiAccountGrouper
                 'active_accounts' => $totalActive,
                 'expiring_soon' => $accounts->where('status', AiAccountStatus::ExpiringSoon)->count(),
                 'expired' => $accounts->where('status', AiAccountStatus::Expired)->count(),
-                'monthly_cost_active' => $totalActiveMonthly,
-                'monthly_cost_all' => $allMonthly,
+                'monthly_cost_active' => $totalMonthly,
+                'monthly_cost_all' => $totalMonthly,
+                'monthly_cost_running' => $totalMonthly,
+                'renewal_due_count' => $renewalDue->count(),
+                'renewal_unpaid_count' => $renewalUnpaid->count(),
+                'renewal_paid_count' => $renewalPaid->count(),
+                'monthly_cost_unpaid_renewal' => $renewalUnpaid->sum(
+                    fn (AiAccount $a) => $this->countableProposalCost->monthlyForAccountInBudget($a),
+                ),
             ],
             'by_group' => $rows,
             'totals' => [
                 'total_accounts' => $totalAccounts,
                 'active_accounts' => $totalActive,
-                'cost_monthly' => $allMonthly,
+                'cost_monthly' => $totalMonthly,
             ],
         ];
     }
@@ -148,7 +180,7 @@ class AiAccountGrouper
     /**
      * @return array<string, mixed>
      */
-    private function accountPayload(AiAccount $account, ?SystemAccount $viewer = null): array
+    public function accountPayload(AiAccount $account, ?SystemAccount $viewer = null): array
     {
         $monthly = $this->costCalculator->monthlyAmount($account->cost_amount, $account->cost_unit);
         $daysLeft = $this->statusSync->daysUntilExpiry($account);
@@ -166,10 +198,14 @@ class AiAccountGrouper
             ? $account->renewal_payment_status
             : AiAccountRenewalPaymentStatus::tryFrom((string) $account->renewal_payment_status)
                 ?? AiAccountRenewalPaymentStatus::Unpaid;
-        $showRenewalPayment = in_array($account->status, [
+        $hasCountableProposal = $this->countableProposalCost->accountHasCountableProposal($account);
+        $showRenewalPayment = $hasCountableProposal && in_array($account->status, [
             AiAccountStatus::ExpiringSoon,
             AiAccountStatus::Expired,
         ], true);
+        $budgetMonthly = $hasCountableProposal
+            ? $this->countableProposalCost->monthlyForAccountInBudget($account)
+            : 0;
 
         return [
             'id' => $account->id,
@@ -189,6 +225,7 @@ class AiAccountGrouper
             'cost_amount' => $account->cost_amount,
             'cost_unit' => $account->cost_unit->value,
             'cost_monthly' => $monthly,
+            'budget_cost_monthly' => $budgetMonthly,
             'seats' => $account->seats,
             'status' => $account->status->value,
             'status_label' => $account->status->labelVi(),
@@ -215,6 +252,7 @@ class AiAccountGrouper
             'show_renewal_payment' => $showRenewalPayment,
             'can_update_renewal_payment' => $showRenewalPayment
                 && ($viewer?->can('updateRenewalPayment', $account) ?? false),
+            'cost_in_budget' => $hasCountableProposal,
         ];
     }
 

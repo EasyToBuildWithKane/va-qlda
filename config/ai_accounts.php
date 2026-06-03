@@ -11,6 +11,15 @@ return [
         'objectives_sample' => "Tăng tốc quá trình phân tích và mô hình hóa nghiệp vụ.\nHỗ trợ xây dựng Wireframe và Prototype trực quan.\nGiảm thời gian thiết kế giao diện ban đầu.\nNâng cao chất lượng tài liệu đặc tả nghiệp vụ và yêu cầu hệ thống.",
     ],
 
+    /** Giấy đề nghị thanh toán (KT.BM.03) — xuất PDF từ phiếu đề xuất. */
+    'payment_request' => [
+        'form_code' => 'KT.BM.03',
+        'company_unit' => 'Công ty CP Văn hóa Giáo dục Việt Mỹ',
+        'department' => 'Phòng Công Nghệ',
+        'send_to' => 'Ban Tổng Giám Đốc',
+        'payment_method' => 'Thanh toán bằng thẻ kế toán',
+    ],
+
     'defaults' => [
         'notify_before_days' => 14,
         'notify_hint' => 'Gửi email và thông báo trước ngày hết hạn license (mặc định 14 ngày).',

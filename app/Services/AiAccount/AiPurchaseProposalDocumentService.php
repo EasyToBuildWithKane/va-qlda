@@ -6,6 +6,7 @@ use App\Models\AiPurchaseProposal;
 use App\Support\Enums\AiAccountCostUnit;
 use App\Support\Enums\AiAccountGroupFunction;
 use App\Support\Enums\AiPurchaseType;
+use App\Support\VndAmountInWords;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Carbon;
 use PhpOffice\PhpWord\TemplateProcessor;
@@ -218,6 +219,93 @@ class AiPurchaseProposalDocumentService
         ])->setPaper('a4');
 
         $filename = 'Phieu_de_xuat_'.$this->safeFilename($proposal->tool_name).'.pdf';
+
+        return $pdf->download($filename);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function paymentRequestVariables(AiPurchaseProposal $proposal): array
+    {
+        $proposal->loadMissing(['creator.employee']);
+        $cfg = config('ai_accounts.payment_request', []);
+        $tz = config('app.timezone');
+        $docDate = Carbon::now()->timezone($tz);
+
+        $toolName = trim($proposal->tool_name);
+        $department = trim((string) ($proposal->proposer_department ?? ''));
+        if ($department === '') {
+            $department = (string) ($cfg['department'] ?? 'Phòng Công Nghệ');
+        }
+
+        $purchaseType = $proposal->purchase_type instanceof AiPurchaseType
+            ? $proposal->purchase_type
+            : AiPurchaseType::tryFrom((string) $proposal->purchase_type)
+                ?? AiPurchaseType::New;
+
+        $periodMonth = $proposal->planned_use_date
+            ?? $proposal->start_date
+            ?? $proposal->end_date
+            ?? $proposal->created_at;
+        $periodLabel = $periodMonth instanceof Carbon
+            ? $periodMonth->format('m/Y')
+            : ($periodMonth ? Carbon::parse($periodMonth)->format('m/Y') : $docDate->format('m/Y'));
+
+        $paymentContent = match ($purchaseType) {
+            AiPurchaseType::Renewal => sprintf(
+                'Thanh toán chi phí gia hạn sử dụng công cụ AI %s cho %s tháng %s.',
+                $toolName !== '' ? $toolName : '…',
+                $department,
+                $periodLabel,
+            ),
+            AiPurchaseType::New => sprintf(
+                'Thanh toán chi phí mua mới sử dụng công cụ AI %s cho %s tháng %s.',
+                $toolName !== '' ? $toolName : '…',
+                $department,
+                $periodLabel,
+            ),
+        };
+
+        $amount = max(0, (int) $proposal->cost_amount);
+        $paymentDate = $proposal->planned_use_date
+            ?? $proposal->end_date
+            ?? $proposal->start_date;
+        $paymentDateFormatted = $paymentDate
+            ? ($paymentDate instanceof Carbon ? $paymentDate : Carbon::parse($paymentDate))->format('d/m/Y')
+            : '…';
+
+        $proposerName = trim((string) $proposal->proposer_name);
+
+        return [
+            'form_code' => (string) ($cfg['form_code'] ?? 'KT.BM.03'),
+            'company_unit' => (string) ($cfg['company_unit'] ?? 'Công ty CP Văn hóa Giáo dục Việt Mỹ'),
+            'department_header' => (string) ($cfg['department'] ?? 'Phòng Công Nghệ'),
+            'doc_day' => (string) $docDate->day,
+            'doc_month' => (string) $docDate->month,
+            'doc_year' => (string) $docDate->year,
+            'send_to' => (string) ($cfg['send_to'] ?? 'Ban Tổng Giám Đốc'),
+            'doc_number' => trim((string) ($proposal->proposal_code ?? '')) !== ''
+                ? $proposal->proposal_code
+                : '…………',
+            'proposer_name' => $proposerName !== '' ? $proposerName : '—',
+            'proposer_department' => $department,
+            'payment_content' => $paymentContent,
+            'amount_formatted' => $amount > 0 ? number_format($amount, 0, ',', '.').' VNĐ' : '…',
+            'amount_in_words' => $amount > 0 ? VndAmountInWords::format($amount).'.' : '…',
+            'payment_date' => $paymentDateFormatted,
+            'payment_method' => (string) ($cfg['payment_method'] ?? 'Thanh toán bằng thẻ kế toán'),
+        ];
+    }
+
+    public function downloadPaymentRequestPdf(AiPurchaseProposal $proposal): \Illuminate\Http\Response
+    {
+        $vars = $this->paymentRequestVariables($proposal);
+        $pdf = Pdf::loadView('pdf.ai-payment-request', [
+            'vars' => $vars,
+        ])->setPaper('a4');
+
+        $filename = 'Phieu_de_nghi_thanh_toan_'.$this->safeFilename($proposal->tool_name).'.pdf';
 
         return $pdf->download($filename);
     }

@@ -19,8 +19,16 @@ export const AI_ACCOUNT_STATUS_FILTER_OPTS = [
 ];
 
 /** Checkbox «Lọc» — chọn control hiển thị trên dòng 2 (không phải giá trị lọc). */
+export const AI_ACCOUNT_RENEWAL_PAYMENT_FILTER_OPTS = [
+    { key: 'all', label: 'Tất cả cần TT' },
+    { key: 'unpaid', label: 'Chưa thanh toán GH' },
+    { key: 'paid', label: 'Đã thanh toán GH' },
+    { key: 'due', label: 'Cần ghi nhận TT (sắp/hết hạn)' },
+];
+
 export const AI_ACCOUNT_FILTER_CONTROLS = [
     { key: 'status', label: 'Trạng thái', default: true },
+    { key: 'renewal_payment', label: 'Thanh toán gia hạn', default: true },
     { key: 'group', label: 'Nhóm chức năng', default: true },
     { key: 'attention', label: 'Cần chú ý (sắp/hết hạn)', default: false },
 ];

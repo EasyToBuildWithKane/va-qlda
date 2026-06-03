@@ -43,6 +43,34 @@ class AiPurchaseProposalPresenter
         return $counts;
     }
 
+    /** @return array<string, int> */
+    public function aggregateCounts(): array
+    {
+        $raw = AiPurchaseProposal::query()
+            ->selectRaw('status, COUNT(*) as aggregate')
+            ->groupBy('status')
+            ->pluck('aggregate', 'status');
+
+        $counts = [];
+        foreach (AiPurchaseProposalStatus::cases() as $status) {
+            $counts[$status->value] = (int) ($raw[$status->value] ?? 0);
+        }
+        $counts['total'] = array_sum($counts);
+
+        return $counts;
+    }
+
+    public function awaitingAccountCount(): int
+    {
+        return AiPurchaseProposal::query()
+            ->whereNull('ai_account_id')
+            ->whereIn('status', array_map(
+                fn (AiPurchaseProposalStatus $s) => $s->value,
+                AiAccountCountableProposalCost::countableStatuses(),
+            ))
+            ->count();
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -94,7 +122,7 @@ class AiPurchaseProposalPresenter
             'end_date' => $proposal->end_date?->format('Y-m-d'),
             'attachment_paths' => $proposal->attachment_paths ?? [],
             'export_pdf_url' => route('api.ai-accounts.proposals.export.pdf', ['proposal' => $proposal->id]),
-            'export_docx_url' => route('api.ai-accounts.proposals.export.docx', ['proposal' => $proposal->id]),
+            'export_payment_request_pdf_url' => route('api.ai-accounts.proposals.export.payment-request.pdf', ['proposal' => $proposal->id]),
             'group_function' => $proposal->group_function->value,
             'group_dot_color' => $proposal->group_function->dotColor(),
             'group_label' => $this->groupLabel($proposal->group_function),

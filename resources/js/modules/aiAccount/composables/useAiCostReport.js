@@ -9,15 +9,20 @@ export function useAiCostReport() {
     const totals = ref(null);
     const cards = ref(null);
     const proposals = ref([]);
-    const proposalCounts = ref({
-        total: 0, draft: 0, submitted: 0, pending: 0,
-        approved: 0, rejected: 0, purchased: 0, active: 0, expired: 0,
-    });
+    const proposalCounts = ref(emptyCounts());
+    const proposalCountsFiltered = ref(emptyCounts());
 
     let cachedProposalParams = {};
 
+    function emptyCounts() {
+        return {
+            total: 0, draft: 0, submitted: 0, pending: 0,
+            approved: 0, rejected: 0, purchased: 0, active: 0, expired: 0,
+        };
+    }
+
     async function load(proposalParams) {
-        const params = proposalParams ?? cachedProposalParams;
+        const params = proposalParams !== undefined ? proposalParams : cachedProposalParams;
         cachedProposalParams = params;
         loading.value = true;
         try {
@@ -33,10 +38,10 @@ export function useAiCostReport() {
 
             const propData = proposalRes.data ?? {};
             proposals.value = propData.proposals ?? [];
-            proposalCounts.value = {
-                total: 0, draft: 0, submitted: 0, pending: 0,
-                approved: 0, rejected: 0, purchased: 0, active: 0, expired: 0,
-                ...(propData.counts ?? {}),
+            proposalCounts.value = { ...emptyCounts(), ...(propData.counts ?? {}) };
+            proposalCountsFiltered.value = {
+                ...emptyCounts(),
+                ...(propData.filtered_counts ?? propData.counts ?? {}),
             };
         } catch (e) {
             toast.error(e.response?.data?.message ?? 'Không tải được dữ liệu.');
@@ -45,33 +50,38 @@ export function useAiCostReport() {
         }
     }
 
-    async function loadProposals(params = {}) {
-        cachedProposalParams = params;
+    async function loadProposals(params) {
+        const resolved = params !== undefined ? params : cachedProposalParams;
+        cachedProposalParams = resolved;
         try {
-            const res = await httpGet(route('api.ai-accounts.proposals.index'), { params });
+            const res = await httpGet(route('api.ai-accounts.proposals.index'), { params: resolved });
             const data = res.data ?? {};
             proposals.value = data.proposals ?? [];
-            proposalCounts.value = {
-                total: 0, draft: 0, submitted: 0, pending: 0,
-                approved: 0, rejected: 0, purchased: 0, active: 0, expired: 0,
-                ...(data.counts ?? {}),
+            proposalCounts.value = { ...emptyCounts(), ...(data.counts ?? {}) };
+            proposalCountsFiltered.value = {
+                ...emptyCounts(),
+                ...(data.filtered_counts ?? data.counts ?? {}),
             };
         } catch (e) {
             toast.error(e.response?.data?.message ?? 'Không tải được phiếu đề xuất.');
         }
     }
 
+    async function reload() {
+        await load(cachedProposalParams);
+    }
+
     async function createProposal(payload) {
         const res = await httpPost(route('api.ai-accounts.proposals.store'), payload);
         toast.success(res.message ?? 'Đã gửi phiếu đề xuất.');
-        await load();
+        await reload();
         return res.data?.proposal;
     }
 
     async function updateProposal(id, payload) {
         const res = await httpPut(route('api.ai-accounts.proposals.update', { proposal: id }), payload);
         toast.success(res.message ?? 'Đã cập nhật phiếu đề xuất.');
-        await load();
+        await reload();
         return res.data?.proposal;
     }
 
@@ -80,7 +90,7 @@ export function useAiCostReport() {
             review_notes: review_notes || null,
         });
         toast.success(res.message ?? 'Đã duyệt.');
-        await load();
+        await reload();
     }
 
     async function rejectProposal(id, rejection_reason) {
@@ -88,7 +98,7 @@ export function useAiCostReport() {
             rejection_reason,
         });
         toast.success(res.message ?? 'Đã từ chối.');
-        await load();
+        await reload();
     }
 
     async function updateProposalNotes(id, review_notes) {
@@ -96,13 +106,13 @@ export function useAiCostReport() {
             review_notes,
         });
         toast.success(res.message ?? 'Đã lưu ghi chú.');
-        await loadProposals();
+        await reload();
     }
 
     async function deleteProposal(id) {
         const res = await httpDelete(route('api.ai-accounts.proposals.destroy', { proposal: id }));
         toast.success(res.message ?? 'Đã xoá phiếu.');
-        await load();
+        await reload();
     }
 
     return {
@@ -112,8 +122,10 @@ export function useAiCostReport() {
         cards,
         proposals,
         proposalCounts,
+        proposalCountsFiltered,
         load,
         loadProposals,
+        reload,
         createProposal,
         updateProposal,
         approveProposal,

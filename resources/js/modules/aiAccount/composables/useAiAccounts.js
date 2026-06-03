@@ -8,6 +8,8 @@ export function useAiAccounts() {
     const groups = ref([]);
     const banner = ref(null);
     const summaryCards = ref(null);
+    const proposalCounts = ref(null);
+    const awaitingAccountCount = ref(0);
     const search = ref('');
     const expanded = ref({});
     const allGroupsExpanded = ref(true);
@@ -30,6 +32,8 @@ export function useAiAccounts() {
             groups.value = data.groups ?? [];
             banner.value = data.banner ?? null;
             summaryCards.value = data.summary_cards ?? null;
+            proposalCounts.value = data.proposal_counts ?? null;
+            awaitingAccountCount.value = data.awaiting_account_count ?? 0;
             for (const g of groups.value) {
                 if (expanded.value[g.group] === undefined) {
                     expanded.value[g.group] = allGroupsExpanded.value
@@ -127,6 +131,8 @@ export function useAiAccounts() {
         groups,
         banner,
         summaryCards,
+        proposalCounts,
+        awaitingAccountCount,
         search,
         expanded,
         hasGroups,

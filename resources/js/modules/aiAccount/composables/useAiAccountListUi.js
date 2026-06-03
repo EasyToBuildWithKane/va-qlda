@@ -4,9 +4,40 @@ import { useVisibleColumns } from '@/shared/composables/useVisibleColumns';
 import { useClientPagination } from '@/shared/composables/useClientPagination';
 import {
     AI_ACCOUNT_FILTER_CONTROLS,
+    AI_ACCOUNT_RENEWAL_PAYMENT_FILTER_OPTS,
     AI_ACCOUNT_STATUS_FILTER_OPTS,
     AI_ACCOUNT_TABLE_COLUMNS,
 } from '@/modules/aiAccount/config/columns';
+import { budgetMonthly } from '@/modules/aiAccount/utils/budgetMonthly';
+
+function groupHeaderCost(group, accounts, useFilteredSum) {
+    if (useFilteredSum) {
+        return accounts.reduce((sum, a) => sum + budgetMonthly(a), 0);
+    }
+    return group.total_cost_monthly ?? accounts.reduce((sum, a) => sum + budgetMonthly(a), 0);
+}
+
+function computeSummaryFromAccounts(accounts) {
+    const rows = accounts ?? [];
+    const monthly = (a) => budgetMonthly(a);
+    const isDue = (a) => a.show_renewal_payment;
+    const isUnpaid = (a) => a.renewal_payment_status === 'unpaid';
+    const isPaid = (a) => a.renewal_payment_status === 'paid';
+
+    const dueRows = rows.filter(isDue);
+    const unpaidRows = dueRows.filter(isUnpaid);
+
+    return {
+        total_accounts: rows.length,
+        active_accounts: rows.filter((a) => a.status === 'active').length,
+        expiring_soon: rows.filter((a) => a.status === 'expiring_soon').length,
+        expired: rows.filter((a) => a.status === 'expired').length,
+        monthly_cost_running: rows.reduce((s, a) => s + monthly(a), 0),
+        renewal_unpaid_count: unpaidRows.length,
+        renewal_paid_count: dueRows.filter(isPaid).length,
+        monthly_cost_unpaid_renewal: unpaidRows.reduce((s, a) => s + monthly(a), 0),
+    };
+}
 
 const FILTER_VALUES_KEY = 'va-qlda.ai-accounts.filters';
 const VISIBLE_FILTERS_KEY = 'va-qlda.ai-accounts.filter-controls';
@@ -33,6 +64,7 @@ export function useAiAccountListUi(groupsRef, optionsRef) {
 
     const filters = reactive({
         status: saved?.status ?? 'all',
+        renewalPayment: saved?.renewalPayment ?? 'all',
         groups: saved?.groups ?? [],
         attentionOnly: saved?.attentionOnly ?? false,
     });
@@ -40,6 +72,7 @@ export function useAiAccountListUi(groupsRef, optionsRef) {
     watch(filters, () => {
         localStorage.setItem(FILTER_VALUES_KEY, JSON.stringify({
             status: filters.status,
+            renewalPayment: filters.renewalPayment,
             groups: [...filters.groups],
             attentionOnly: filters.attentionOnly,
         }));
@@ -87,6 +120,7 @@ export function useAiAccountListUi(groupsRef, optionsRef) {
     const activeFilterCount = computed(() => {
         let n = 0;
         if (filters.status !== 'all') n++;
+        if (filters.renewalPayment !== 'all') n++;
         if (filters.groups.length > 0) n++;
         if (filters.attentionOnly) n++;
         return n;
@@ -98,6 +132,13 @@ export function useAiAccountListUi(groupsRef, optionsRef) {
 
     function accountMatchesFilters(row) {
         if (filters.status !== 'all' && row.status !== filters.status) return false;
+        if (filters.renewalPayment === 'unpaid') {
+            if (!row.show_renewal_payment || row.renewal_payment_status !== 'unpaid') return false;
+        } else if (filters.renewalPayment === 'paid') {
+            if (!row.show_renewal_payment || row.renewal_payment_status !== 'paid') return false;
+        } else if (filters.renewalPayment === 'due') {
+            if (!row.show_renewal_payment) return false;
+        }
         if (filters.groups.length > 0 && !filters.groups.includes(row.group_function)) return false;
         if (filters.attentionOnly && !['expiring_soon', 'expired'].includes(row.status)) return false;
         return true;
@@ -105,11 +146,11 @@ export function useAiAccountListUi(groupsRef, optionsRef) {
 
     const displayGroups = computed(() => {
         const source = groupsRef.value ?? [];
+        const useFilteredSum = activeFilterCount.value > 0;
         return source
             .map((g) => {
                 const accounts = (g.accounts ?? []).filter(accountMatchesFilters);
                 if (accounts.length === 0) return null;
-                const monthly = accounts.reduce((sum, a) => sum + (a.cost_monthly ?? 0), 0);
                 const warningCount = accounts.filter((a) =>
                     ['expiring_soon', 'expired'].includes(a.status),
                 ).length;
@@ -117,7 +158,7 @@ export function useAiAccountListUi(groupsRef, optionsRef) {
                     ...g,
                     accounts,
                     total: accounts.length,
-                    total_cost_monthly: monthly,
+                    total_cost_monthly: groupHeaderCost(g, accounts, useFilteredSum),
                     has_warning: warningCount > 0,
                     warning_count: warningCount,
                 };
@@ -149,15 +190,15 @@ export function useAiAccountListUi(groupsRef, optionsRef) {
             }
             map.get(key).accounts.push(account);
         }
+        const useFilteredSum = activeFilterCount.value > 0;
         return [...map.values()].map((g) => {
-            const monthly = g.accounts.reduce((sum, a) => sum + (a.cost_monthly ?? 0), 0);
             const warningCount = g.accounts.filter((a) =>
                 ['expiring_soon', 'expired'].includes(a.status),
             ).length;
             return {
                 ...g,
                 total: g.accounts.length,
-                total_cost_monthly: monthly,
+                total_cost_monthly: groupHeaderCost(g, g.accounts, useFilteredSum),
                 has_warning: warningCount > 0,
                 warning_count: warningCount,
             };
@@ -168,20 +209,60 @@ export function useAiAccountListUi(groupsRef, optionsRef) {
         displayGroups.value.reduce((n, g) => n + (g.accounts?.length ?? 0), 0),
     );
 
+    const allAccounts = computed(() =>
+        (groupsRef.value ?? []).flatMap((g) => g.accounts ?? []),
+    );
+
     const statusCounts = computed(() => {
-        const all = (groupsRef.value ?? []).flatMap((g) => g.accounts ?? []);
-        const counts = { all: all.length };
+        const counts = { all: allAccounts.value.length };
         for (const opt of AI_ACCOUNT_STATUS_FILTER_OPTS) {
             if (opt.key === 'all') continue;
-            counts[opt.key] = all.filter((a) => a.status === opt.key).length;
+            counts[opt.key] = allAccounts.value.filter((a) => a.status === opt.key).length;
         }
         return counts;
+    });
+
+    const paymentCounts = computed(() => {
+        const due = allAccounts.value.filter((a) => a.show_renewal_payment);
+        return {
+            all: due.length,
+            unpaid: due.filter((a) => a.renewal_payment_status === 'unpaid').length,
+            paid: due.filter((a) => a.renewal_payment_status === 'paid').length,
+            due: due.length,
+        };
+    });
+
+    const filterSummaryLabel = computed(() => {
+        const parts = [];
+        if (filters.status !== 'all') {
+            const opt = AI_ACCOUNT_STATUS_FILTER_OPTS.find((o) => o.key === filters.status);
+            if (opt) parts.push(opt.label);
+        }
+        if (filters.renewalPayment !== 'all') {
+            const opt = AI_ACCOUNT_RENEWAL_PAYMENT_FILTER_OPTS.find((o) => o.key === filters.renewalPayment);
+            if (opt) parts.push(opt.label);
+        }
+        if (filters.groups.length > 0) parts.push(`${filters.groups.length} nhóm`);
+        if (filters.attentionOnly) parts.push('Cần chú ý');
+        return parts.join(' · ');
+    });
+
+    const filteredSummaryOverlay = computed(() => {
+        const isFiltered = activeFilterCount.value > 0;
+        if (!isFiltered) return null;
+        const flat = displayGroups.value.flatMap((g) => g.accounts ?? []);
+        return {
+            isFiltered: true,
+            filtered_count: flat.length,
+            ...computeSummaryFromAccounts(flat),
+        };
     });
 
     const groupFilterOptions = computed(() => optionsRef?.value?.group_function ?? []);
 
     function clearFilters() {
         filters.status = 'all';
+        filters.renewalPayment = 'all';
         filters.groups = [];
         filters.attentionOnly = false;
     }
@@ -196,6 +277,7 @@ export function useAiAccountListUi(groupsRef, optionsRef) {
     return {
         filters,
         activeFilterCount,
+        filterSummaryLabel,
         displayGroups,
         paginatedDisplayGroups,
         filteredAccountCount,
@@ -209,7 +291,10 @@ export function useAiAccountListUi(groupsRef, optionsRef) {
         clearFilters,
         toggleGroupFilter,
         AI_ACCOUNT_STATUS_FILTER_OPTS,
+        AI_ACCOUNT_RENEWAL_PAYMENT_FILTER_OPTS,
         AI_ACCOUNT_TABLE_COLUMNS,
+        paymentCounts,
+        filteredSummaryOverlay,
         colVisible,
         visibleCols,
         persistVisibleColumns,

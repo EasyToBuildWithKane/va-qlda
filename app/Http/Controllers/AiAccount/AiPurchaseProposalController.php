@@ -122,13 +122,13 @@ class AiPurchaseProposalController extends Controller
         }
 
         $proposals = $query->get();
-        $allForCounts = AiPurchaseProposal::query()->orderByDesc('created_at')->get();
 
         return response()->json([
             'success' => true,
             'data' => [
                 'proposals' => $this->presenter->list($proposals, $request->user()),
-                'counts' => $this->presenter->counts($allForCounts),
+                'counts' => $this->presenter->aggregateCounts(),
+                'filtered_counts' => $this->presenter->counts($proposals),
             ],
         ]);
     }
@@ -244,7 +244,7 @@ class AiPurchaseProposalController extends Controller
         return response()->json([
             'success' => true,
             'data' => ['proposal' => $this->presenter->row($proposal->fresh(), $request->user())],
-            'message' => 'Đã duyệt phiếu. Vào Tài khoản AI → Thêm tài khoản để chọn mã phiếu và hoàn tất đăng ký.',
+            'message' => 'Đã duyệt phiếu — chi phí đã được tính vào báo cáo. Vào Tài khoản AI → Thêm tài khoản để chọn mã phiếu và hoàn tất đăng ký.',
         ]);
     }
 
@@ -315,5 +315,12 @@ class AiPurchaseProposalController extends Controller
         $this->authorize('viewAny', AiPurchaseProposal::class);
 
         return $this->documentService->downloadPdf($proposal);
+    }
+
+    public function exportPaymentRequestPdf(AiPurchaseProposal $proposal)
+    {
+        $this->authorize('viewAny', AiPurchaseProposal::class);
+
+        return $this->documentService->downloadPaymentRequestPdf($proposal);
     }
 }

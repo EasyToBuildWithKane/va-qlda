@@ -15,7 +15,7 @@ const formatItems = (items) =>
     class="mx-5 mb-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
     role="status"
   >
-    <span class="font-medium">🔔</span>
+    <span class="font-medium">Cần chú ý:</span>
     <template v-if="banner.expiring_soon_count > 0 && banner.expired_count > 0">
       {{ banner.expiring_soon_count }} tài khoản sắp hết hạn,
       {{ banner.expired_count }} đã hết hạn:

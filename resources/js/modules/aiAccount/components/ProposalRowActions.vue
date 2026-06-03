@@ -104,7 +104,9 @@ function onDelete() {
     emit('delete', props.row);
 }
 
-const hasExport = computed(() => Boolean(props.row.export_pdf_url || props.row.export_docx_url));
+const hasExport = computed(() =>
+    Boolean(props.row.export_pdf_url || props.row.export_payment_request_pdf_url),
+);
 
 const hasMenuItems = computed(() =>
     hasExport.value
@@ -150,7 +152,7 @@ const hasMenuItems = computed(() =>
         class="rounded-xl border border-slate-200 bg-white py-1 shadow-elevation-2"
         role="menu"
       >
-        <template v-if="row.export_pdf_url || row.export_docx_url">
+        <template v-if="row.export_pdf_url || row.export_payment_request_pdf_url">
           <p class="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400">
             Xuất phiếu
           </p>
@@ -168,11 +170,11 @@ const hasMenuItems = computed(() =>
               :size="15"
               class="text-brand"
             />
-            Tải PDF
+            Phiếu đề xuất (PDF)
           </a>
           <a
-            v-if="row.export_docx_url"
-            :href="row.export_docx_url"
+            v-if="row.export_payment_request_pdf_url"
+            :href="row.export_payment_request_pdf_url"
             target="_blank"
             rel="noopener"
             class="flex items-center gap-2 px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-50"
@@ -180,10 +182,11 @@ const hasMenuItems = computed(() =>
             @click="close"
           >
             <AppIcon
-              name="download"
+              name="pdf"
               :size="15"
+              class="text-brand"
             />
-            Tải Word (.docx)
+            Đề nghị thanh toán (PDF)
           </a>
         </template>
 
@@ -203,7 +206,7 @@ const hasMenuItems = computed(() =>
 
         <template v-if="row.can_review && canReview">
           <div
-            v-if="row.export_pdf_url || row.export_docx_url || row.can_edit"
+            v-if="row.export_pdf_url || row.export_payment_request_pdf_url || row.can_edit"
             class="my-1 border-t border-slate-100"
           />
           <button
