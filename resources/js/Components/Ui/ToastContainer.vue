@@ -1,6 +1,22 @@
 <script setup>
+import { computed } from 'vue';
 import { toastList, dismissToast } from '@/shared/composables/useToast';
 import AppIcon from '@/Components/AppIcon.vue';
+
+/** bottom-end (app) | top-center (login / guest) */
+const props = defineProps({
+    placement: {
+        type: String,
+        default: 'bottom-end',
+        validator: (v) => ['bottom-end', 'top-center'].includes(v),
+    },
+});
+
+const positionClass = computed(() =>
+    props.placement === 'top-center'
+        ? 'fixed top-4 left-1/2 z-[100] flex w-full max-w-md -translate-x-1/2 flex-col gap-2 px-4 pointer-events-none sm:top-6'
+        : 'fixed bottom-5 right-5 z-[70] flex flex-col-reverse gap-2 items-end pointer-events-none',
+);
 
 const cfg = {
     success: { wrap: 'bg-emerald-50 border-emerald-200 text-emerald-800', icon: 'check', ic: 'text-emerald-500' },
@@ -12,7 +28,7 @@ const cfg = {
 
 <template>
   <Teleport to="body">
-    <div class="fixed bottom-5 right-5 z-[70] flex flex-col-reverse gap-2 items-end pointer-events-none">
+    <div :class="positionClass">
       <TransitionGroup
         enter-active-class="transition duration-300 ease-out"
         enter-from-class="opacity-0 translate-y-3 scale-95"
@@ -23,7 +39,7 @@ const cfg = {
         <div
           v-for="t in toastList"
           :key="t.id"
-          class="pointer-events-auto flex items-start gap-3 rounded-xl border px-4 py-3 shadow-lg min-w-[300px] max-w-sm"
+          class="pointer-events-auto flex w-full items-start gap-3 rounded-xl border px-4 py-3.5 shadow-lg ring-1 ring-black/5 min-w-0"
           :class="cfg[t.type]?.wrap"
         >
           <span

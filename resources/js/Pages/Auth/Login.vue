@@ -1,6 +1,8 @@
 <script setup>
 import { Head, usePage } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
+import ToastContainer from '@/Components/Ui/ToastContainer.vue';
+import { useToast } from '@/shared/composables/useToast';
 
 const props = defineProps({
     googleEnabled: { type: Boolean, default: false },
@@ -14,11 +16,23 @@ function onGoogleClick(event) {
 }
 
 const page = usePage();
-const flashError = computed(() => page.props.flash?.error ?? null);
+const flash = computed(() => page.props.flash ?? {});
+const toast = useToast();
+
+watch(
+    flash,
+    (f) => {
+        if (f?.error) toast.error(f.error);
+        if (f?.success) toast.success(f.success);
+    },
+    { immediate: true, deep: true },
+);
 </script>
 
 <template>
   <Head title="Đăng nhập" />
+
+  <ToastContainer placement="top-center" />
 
   <div
     class="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 py-10"
@@ -56,14 +70,6 @@ const flashError = computed(() => page.props.flash?.error ?? null);
 
         <p class="mx-auto mt-4 max-w-xs text-center text-sm leading-relaxed text-slate-500">
           Đăng nhập thông qua tài khoản mail do nhà trường cung cấp
-        </p>
-
-        <p
-          v-if="flashError"
-          class="mt-5 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-center text-sm text-danger"
-          role="alert"
-        >
-          {{ flashError }}
         </p>
 
         <div class="mt-8 flex flex-col items-center gap-3">
