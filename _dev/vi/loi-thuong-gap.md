@@ -66,7 +66,7 @@ npm run commit
 
 **Triệu chứng:** Bấm **Sync Changes** trên Cursor/VS Code không xong; `pre-push script failed`.
 
-**Hay gặp:** Đang chạy `php artisan serve` cổng **8000** — E2E pre-push cần cổng khác. Bản mới dùng **8001** trong hook (cập nhật `.husky/pre-push`).
+**Hay gặp:** Cổng **8000/8001** bận (dev server hoặc E2E cũ). Hook chọn cổng trống **8001–8010** (`pickE2ePort.js`).
 
 **Tạm thời:** Tắt server dev rồi sync lại, hoặc `git push --no-verify` (bỏ qua E2E — cân nhắc rủi ro).
 

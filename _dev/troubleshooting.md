@@ -101,7 +101,7 @@ ls storage/app/public/projects/2/customer/
 
 **Symptoms:** VS Code/Cursor **Sync Changes** spins then fails; terminal `git push` ends with `pre-push script failed`.
 
-**Common cause:** Port **8000** already used by your dev server (`php artisan serve`). Pre-push E2E now uses **8001** automatically — pull latest `.husky/pre-push` and `playwright.config.js`.
+**Common cause:** Port in use — dev server on **8000**, or stale E2E on **8001**. Pre-push picks the first free port **8001–8010** (`tests/e2e/helpers/pickE2ePort.js`) and sets `PLAYWRIGHT_REUSE_SERVER=1`.
 
 **Quick push after env template commit only (no code):** still runs E2E unless you use `git push --no-verify` (skip only when you accept skipping tests).
 

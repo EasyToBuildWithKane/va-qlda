@@ -3,8 +3,11 @@ if [ ! -f public/build/manifest.json ]; then
   echo "▶ Building frontend assets (required for E2E)..."
   npm run build || exit 1
 fi
-# Port 8001 avoids clashing with dev `php artisan serve` on :8000 (Sync / push would fail).
-export PLAYWRIGHT_E2E_PORT="${PLAYWRIGHT_E2E_PORT:-8001}"
+# Avoid :8000 (dev server). Pick first free port 8001–8010 if default is taken.
+if [ -z "$PLAYWRIGHT_E2E_PORT" ]; then
+  PLAYWRIGHT_E2E_PORT="$(node tests/e2e/helpers/pickE2ePort.js)" || exit 1
+  export PLAYWRIGHT_E2E_PORT
+fi
 export PLAYWRIGHT_BASE_URL="http://127.0.0.1:${PLAYWRIGHT_E2E_PORT}"
 echo "▶ Running Playwright E2E tests (chromium) on ${PLAYWRIGHT_BASE_URL}..."
 node node_modules/@playwright/test/cli.js test --project=chromium --reporter=dot
