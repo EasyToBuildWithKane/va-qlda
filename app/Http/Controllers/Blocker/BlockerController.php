@@ -50,29 +50,52 @@ class BlockerController extends Controller
             ->withCount('comments')
             ->latest('raised_at');
 
-        if ($status = $request->query('status')) {
+        $status = $request->query('status');
+        if ($status === 'all') {
+            // no status scope
+        } elseif ($status) {
             $query->where('status', $status);
         } else {
-            $query->open(); // default: only unresolved
+            $query->open();
         }
+
         if ($severity = $request->query('severity')) {
             $query->where('severity', $severity);
         }
         if ($projectId = $request->query('project_id')) {
             $query->where('project_id', $projectId);
         }
+        if ($ownerId = $request->query('owner_id')) {
+            $query->where('owner_id', $ownerId);
+        }
+        if ($raisedById = $request->query('raised_by_id')) {
+            $query->where('raised_by_id', $raisedById);
+        }
         if ($request->boolean('mine') && $account->employee_id) {
             $query->where('owner_id', $account->employee_id);
+        }
+        if ($request->boolean('overdue')) {
+            $query->overdue();
         }
         if ($search = $request->query('q')) {
             $query->where(fn ($q) => $q
                 ->where('title', 'like', "%{$search}%")
-                ->orWhere('description', 'like', "%{$search}%"));
+                ->orWhere('description', 'like', "%{$search}%")
+                ->orWhere('code', 'like', "%{$search}%")
+                ->orWhere('root_cause', 'like', "%{$search}%"));
+        }
+
+        $perPage = (int) $request->query('per_page', 10);
+        if (! in_array($perPage, [5, 10, 15, 20], true)) {
+            $perPage = 10;
         }
 
         return Inertia::render('Blocker/Index', [
-            'blockers' => BlockerResource::collection($query->get()),
-            'filters' => (object) $request->only(['status', 'severity', 'project_id', 'mine', 'q']),
+            'blockers' => BlockerResource::collection($query->paginate($perPage)->withQueryString()),
+            'filters' => (object) $request->only([
+                'status', 'severity', 'project_id', 'owner_id', 'raised_by_id',
+                'mine', 'overdue', 'q', 'per_page',
+            ]),
             'summary' => [
                 'open' => Blocker::open()->count(),
                 'critical' => Blocker::open()->where('severity', BlockerSeverity::Critical->value)->count(),
