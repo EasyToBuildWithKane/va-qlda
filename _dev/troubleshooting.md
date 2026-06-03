@@ -112,7 +112,15 @@ taskkill /F /PID 29336
 
 (Replace `29336` with your PID from the `LISTENING` line.)
 
-**Quick push after env template commit only (no code):** still runs E2E unless you use `git push --no-verify` (skip only when you accept skipping tests).
+**Bỏ qua E2E khi push (local, đơn giản):**
+
+```powershell
+$env:SKIP_E2E_PUSH="1"; git push
+```
+
+Hoặc một lần: `git push --no-verify` (bỏ luôn mọi hook push).
+
+CI trên GitHub **vẫn** chạy Playwright — chỉ bỏ qua bước ~2 phút trên máy bạn.
 
 **If E2E fails for other reasons:** `npm run test:e2e:install`, then `npm run test:e2e`.
 
@@ -183,6 +191,8 @@ npm run test:e2e
 **Skip once (emergency only):**
 
 ```bash
+SKIP_E2E_PUSH=1 git push
+# hoặc
 git push --no-verify
 ```
 

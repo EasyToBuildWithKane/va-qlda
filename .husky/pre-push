@@ -1,4 +1,8 @@
 [ "$CI" = "true" ] && exit 0
+if [ "$SKIP_E2E_PUSH" = "1" ]; then
+  echo "▶ SKIP_E2E_PUSH=1 — bỏ qua Playwright pre-push (GitHub Actions vẫn chạy E2E)."
+  exit 0
+fi
 if [ ! -f public/build/manifest.json ]; then
   echo "▶ Building frontend assets (required for E2E)..."
   npm run build || exit 1

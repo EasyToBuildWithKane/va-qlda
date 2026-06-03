@@ -68,7 +68,7 @@ npm run commit
 
 **Hay gặp:** `LISTENING` trên **8001** (PHP E2E cũ, PID trong `netstat`). Hook chạy `stopStaleE2ePorts.js` rồi `pickE2ePort.js`. Tắt tay: `taskkill /F /PID <pid>`.
 
-**Tạm thời:** Tắt server dev rồi sync lại, hoặc `git push --no-verify` (bỏ qua E2E — cân nhắc rủi ro).
+**Không chạy E2E khi push (nhanh):** `$env:SKIP_E2E_PUSH="1"; git push` — CI GitHub vẫn test. Hoặc `git push --no-verify`.
 
 ---
 
