@@ -5,7 +5,7 @@ import AppIcon from '@/Components/AppIcon.vue';
 import VndAmount from '@/modules/aiAccount/components/VndAmount.vue';
 import ProposalFormLabel from '@/modules/aiAccount/components/ProposalFormLabel.vue';
 import { PROPOSAL_FORM_HINTS as H } from '@/modules/aiAccount/config/proposalFormHints';
-import SearchSelect from '@/shared/ui/SearchSelect.vue';
+import ProposerEmployeePick from '@/modules/aiAccount/components/ProposerEmployeePick.vue';
 import MoneyInput from '@/shared/ui/MoneyInput.vue';
 import FieldTooltip from '@/shared/ui/FieldTooltip.vue';
 
@@ -165,9 +165,7 @@ watch(() => form.tool_name, (name) => {
     }
 });
 
-watch(selectedProposerId, (id) => {
-    if (!id) return;
-    const emp = props.formLookups.employees?.find((e) => e.id === id);
+function onProposerPicked(emp) {
     if (!emp) return;
     form.proposer_name = emp.name ?? '';
     form.proposer_position = emp.role_title ?? '';
@@ -178,7 +176,7 @@ watch(selectedProposerId, (id) => {
         if (emp.phone) form.recipient_phone = emp.phone;
     }
     onInput();
-});
+}
 
 function applyToolTemplate() {
     const name = form.tool_name?.trim();
@@ -376,16 +374,15 @@ function goSection(key) {
 
                 <div class="sm:col-span-2">
                   <ProposalFormLabel
-                    label="Chọn người đề xuất (từ danh sách nhân sự)"
+                    label="Tìm người đề xuất (danh sách nhân sự)"
                     :tooltip="H.proposer_pick"
+                    hint="Gõ trực tiếp vào ô — tên, email hoặc mã NV"
                   />
-                  <SearchSelect
+                  <ProposerEmployeePick
                     v-model="selectedProposerId"
-                    :options="formLookups.employees"
-                    show-avatar
-                    placeholder="Tìm & chọn nhân sự…"
-                    search-placeholder="Tìm theo họ tên…"
-                    @update:model-value="onInput"
+                    :employees="formLookups.employees"
+                    :initial-label="form.proposer_name"
+                    @pick="onProposerPicked"
                   />
                 </div>
 

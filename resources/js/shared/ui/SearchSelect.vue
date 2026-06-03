@@ -2,7 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
-import { matchesSearchKey } from '@/shared/utils/normalizeSearchKey';
+import { matchesSearchQuery } from '@/shared/utils/normalizeSearchKey';
 
 const props = defineProps({
     options: { type: Array, default: () => [] },
@@ -14,7 +14,11 @@ const props = defineProps({
     showAvatar: { type: Boolean, default: false },
     valueKey: { type: String, default: 'id' },
     labelKey: { type: String, default: 'name' },
+    /** Các field option dùng khi lọc (mặc định: labelKey). */
+    searchKeys: { type: Array, default: null },
     clearable: { type: Boolean, default: true },
+    /** z-index panel (modal dùng 120+). */
+    panelZIndex: { type: Number, default: 70 },
 });
 
 const emit = defineEmits(['update:modelValue']);
@@ -30,13 +34,19 @@ const optionValue = (o) => o?.[props.valueKey];
 const optionLabel = (o) => o?.[props.labelKey] ?? '';
 
 const selected = computed(() =>
-    props.options.find((o) => optionValue(o) === props.modelValue) || null,
+    props.options.find((o) => String(optionValue(o)) === String(props.modelValue)) || null,
 );
+
+const keysForSearch = computed(() => props.searchKeys?.length ? props.searchKeys : [props.labelKey]);
+
+function optionSearchFields(o) {
+    return keysForSearch.value.map((k) => o?.[k]);
+}
 
 const filtered = computed(() => {
     const q = search.value.trim();
     if (!q) return props.options;
-    return props.options.filter((o) => matchesSearchKey(optionLabel(o), q));
+    return props.options.filter((o) => matchesSearchQuery(optionSearchFields(o), q));
 });
 
 const choose = (o) => {
@@ -66,7 +76,7 @@ const positionPanel = async () => {
         position: 'fixed',
         left: `${rect.left}px`,
         width: `${rect.width}px`,
-        zIndex: 70,
+        zIndex: props.panelZIndex,
         ...(openUp.value
             ? { bottom: `${window.innerHeight - rect.top + gap}px` }
             : { top: `${rect.bottom + gap}px` }),
@@ -187,9 +197,19 @@ onBeforeUnmount(() => {
               :src="o.avatar_path"
               :size="24"
             />
-            <span class="flex-1 truncate text-slate-700 dark:text-slate-200">{{ optionLabel(o) }}</span>
+            <div class="min-w-0 flex-1">
+              <div class="truncate text-slate-700 dark:text-slate-200">
+                {{ optionLabel(o) }}
+              </div>
+              <div
+                v-if="o.subtitle"
+                class="truncate text-xs text-slate-400"
+              >
+                {{ o.subtitle }}
+              </div>
+            </div>
             <AppIcon
-              v-if="optionValue(o) === modelValue"
+              v-if="String(optionValue(o)) === String(modelValue)"
               name="check"
               :size="15"
               class="text-brand"
