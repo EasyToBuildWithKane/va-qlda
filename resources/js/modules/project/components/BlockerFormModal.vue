@@ -59,6 +59,7 @@ watch(() => props.show, async (open) => {
         form.project_id = props.defaultProjectId;
         form.severity = 'medium';
         form.status = 'open';
+        form.resolution = '';
     }
     if (props.focusResolution && props.blocker) {
         await nextTick();
@@ -91,10 +92,10 @@ const projectDisplay = computed(() => {
 
 const isEdit = computed(() => !!props.blocker);
 
-/** Chỉ cho chọn dự án khi tạo mới (chưa khóa theo trang dự án). */
-const showProjectSelector = computed(() => !isEdit.value && !props.lockProject && !projectDisplay.value);
+/** Tạo mới: luôn chọn/đổi dự án (trừ khi mở từ trang dự án). Sửa: chỉ xem, không đổi. */
+const showProjectSelector = computed(() => !isEdit.value && !props.lockProject);
 
-const showProjectBanner = computed(() => isEdit.value || props.lockProject || !!projectDisplay.value);
+const showProjectBanner = computed(() => isEdit.value || props.lockProject);
 
 const projectBannerLabel = computed(() => {
     if (projectDisplay.value) {
@@ -322,18 +323,6 @@ const submit = () => {
               rows="3"
               class="input resize-y"
               placeholder="Nguyên nhân gốc rễ (nếu đã xác định)…"
-            />
-          </div>
-          <div>
-            <label class="label flex items-center gap-1.5">
-              Hướng xử lý
-              <FieldTooltip text="Kế hoạch xử lý ban đầu (có thể bổ sung sau)." />
-            </label>
-            <textarea
-              v-model="form.resolution"
-              rows="3"
-              class="input resize-y"
-              placeholder="Kế hoạch xử lý, bước tiếp theo…"
             />
           </div>
         </div>
