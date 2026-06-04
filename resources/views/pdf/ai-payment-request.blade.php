@@ -13,7 +13,7 @@
         <img src="{{ 'file://'.public_path('docx/background.png') }}" alt="">
     </div>
 
-    <div class="doc-content payment-request">
+    <div class="doc-content">
         @include('pdf.partials.ai-payment-request-body')
     </div>
 

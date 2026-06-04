@@ -282,6 +282,7 @@ class AiPurchaseProposalDocumentService
             'company_unit' => (string) ($cfg['company_unit'] ?? 'Công ty CP Văn hóa Giáo dục Việt Mỹ'),
             'school_name' => (string) ($cfg['school_name'] ?? 'Hệ Thống Trường Việt Mỹ'),
             'department_header' => (string) ($cfg['department'] ?? 'Phòng Công Nghệ'),
+            'doc_date' => $this->formatDocDateVi($docDate),
             'doc_day' => (string) $docDate->day,
             'doc_month' => (string) $docDate->month,
             'doc_year' => (string) $docDate->year,

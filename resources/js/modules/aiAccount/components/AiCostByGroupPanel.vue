@@ -16,6 +16,7 @@ const props = defineProps({
     cards: { type: Object, default: null },
     options: { type: Object, default: () => ({}) },
     filterNote: { type: String, default: '' },
+    showAccountLink: { type: Boolean, default: true },
 });
 
 const toast = useToast();
@@ -90,7 +91,7 @@ onUnmounted(() => document.removeEventListener('mousedown', onDocClick));
 </script>
 
 <template>
-  <div class="card mt-5 overflow-visible">
+  <div class="card overflow-visible">
     <div class="border-b border-slate-100 bg-slate-50/40 px-5 py-4">
       <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div class="min-w-0 space-y-1">
@@ -196,6 +197,7 @@ onUnmounted(() => document.removeEventListener('mousedown', onDocClick));
           </div>
 
           <Link
+            v-if="showAccountLink"
             :href="route('ai-accounts.index')"
             class="btn-ghost h-9 gap-1.5 border border-slate-200 text-sm"
           >

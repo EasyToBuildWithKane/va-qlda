@@ -7,7 +7,8 @@ import VndAmount from '@/modules/aiAccount/components/VndAmount.vue';
 import ProposerEmployeePick from '@/modules/aiAccount/components/ProposerEmployeePick.vue';
 import { useProposalPdfPreview } from '@/modules/aiAccount/composables/useProposalPdfPreview';
 import MoneyInput from '@/shared/ui/MoneyInput.vue';
-import FieldTooltip from '@/shared/ui/FieldTooltip.vue';
+import ProposalFormLabel from '@/modules/aiAccount/components/ProposalFormLabel.vue';
+import { PROPOSAL_FORM_HINTS as H, PROPOSAL_FORM_PLACEHOLDERS as P } from '@/modules/aiAccount/config/proposalFormHints';
 
 const props = defineProps({
     show: Boolean,
@@ -326,7 +327,7 @@ function handleSubmit() {
     </p>
 
     <form
-      class="flex min-h-[520px] flex-col"
+      class="flex min-h-[min(78vh,760px)] flex-col"
       @submit.prevent="handleSubmit"
     >
       <div
@@ -353,14 +354,17 @@ function handleSubmit() {
         </button>
       </div>
 
-      <div class="min-h-0 flex-1 overflow-y-auto px-0.5">
+      <div class="min-h-[min(52vh,520px)] flex-1 overflow-y-auto px-0.5">
         <!-- Tab: Người đề xuất -->
         <div
           v-show="activeTab === 'proposer'"
           class="grid grid-cols-1 gap-5 lg:grid-cols-2"
         >
           <div class="lg:col-span-2">
-            <label class="label">Tìm nhân sự (gợi ý tên, mã, email)</label>
+            <ProposalFormLabel
+              label="Tìm nhân sự"
+              :tooltip="H.proposer_pick"
+            />
             <ProposerEmployeePick
               v-model="selectedProposerId"
               :employees="formLookups.employees"
@@ -369,24 +373,32 @@ function handleSubmit() {
             />
           </div>
           <div>
-            <label class="label">Họ &amp; tên <span class="text-danger">*</span></label>
+            <ProposalFormLabel
+              label="Họ & tên"
+              required
+              :tooltip="H.proposer_name"
+            />
             <input
               v-model="form.proposer_name"
               type="text"
               required
               class="input w-full"
+              :placeholder="P.proposer_name"
               autocomplete="name"
               @input="onInput"
             >
           </div>
           <div>
-            <label class="label">Chức vụ</label>
+            <ProposalFormLabel
+              label="Chức vụ"
+              :tooltip="H.proposer_position"
+            />
             <input
               v-model="form.proposer_position"
               type="text"
               list="proposal-role-titles"
               class="input w-full"
-              placeholder="Gõ hoặc chọn gợi ý"
+              :placeholder="P.proposer_position"
               autocomplete="organization-title"
               @input="onInput"
             >
@@ -399,12 +411,16 @@ function handleSubmit() {
             </datalist>
           </div>
           <div>
-            <label class="label">Phòng ban</label>
+            <ProposalFormLabel
+              label="Phòng ban"
+              :tooltip="H.proposer_department"
+            />
             <input
               v-model="form.proposer_department"
               type="text"
               list="proposal-departments"
               class="input w-full"
+              :placeholder="P.proposer_department"
               autocomplete="organization"
               @input="onInput"
             >
@@ -417,15 +433,16 @@ function handleSubmit() {
             </datalist>
           </div>
           <div>
-            <label class="label flex items-center gap-1">
-              Email (tiếp nhận trên phiếu)
-              <FieldTooltip text="Gợi ý từ email nhân sự và tài khoản AI đã có." />
-            </label>
+            <ProposalFormLabel
+              label="Email (tiếp nhận trên phiếu)"
+              :tooltip="H.recipient_email"
+            />
             <input
               v-model="form.proposer_email"
               type="email"
               list="proposal-emails"
               class="input w-full"
+              :placeholder="P.proposer_email"
               autocomplete="email"
               @input="onInput"
             >
@@ -438,12 +455,16 @@ function handleSubmit() {
             </datalist>
           </div>
           <div>
-            <label class="label">Điện thoại</label>
+            <ProposalFormLabel
+              label="Điện thoại"
+              :tooltip="H.recipient_phone"
+            />
             <input
               v-model="form.proposer_phone"
               type="tel"
               list="proposal-phones"
               class="input w-full"
+              :placeholder="P.proposer_phone"
               autocomplete="tel"
               @input="onInput"
             >
@@ -463,14 +484,18 @@ function handleSubmit() {
           class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3"
         >
           <div class="sm:col-span-2 lg:col-span-3">
-            <label class="label">Công cụ / sản phẩm <span class="text-danger">*</span></label>
+            <ProposalFormLabel
+              label="Công cụ / sản phẩm"
+              required
+              :tooltip="H.tool_name"
+            />
             <input
               v-model="form.tool_name"
               type="text"
               required
               list="proposal-tools"
               class="input w-full"
-              placeholder="Chọn hoặc gõ tên công cụ"
+              :placeholder="P.tool_name"
               @input="onInput"
               @blur="applyToolTemplate"
             >
@@ -483,7 +508,11 @@ function handleSubmit() {
             </datalist>
           </div>
           <div>
-            <label class="label">Nhóm chức năng <span class="text-danger">*</span></label>
+            <ProposalFormLabel
+              label="Nhóm chức năng"
+              required
+              :tooltip="H.group_function"
+            />
             <select
               v-model="form.group_function"
               required
@@ -500,13 +529,18 @@ function handleSubmit() {
             </select>
           </div>
           <div>
-            <label class="label">Gói / license <span class="text-danger">*</span></label>
+            <ProposalFormLabel
+              label="Gói / license"
+              required
+              :tooltip="H.license_type"
+            />
             <input
               v-model="form.license_type"
               type="text"
               required
               list="proposal-license-types"
               class="input w-full"
+              :placeholder="P.license_type"
               @input="onInput"
             >
             <datalist id="proposal-license-types">
@@ -518,9 +552,14 @@ function handleSubmit() {
             </datalist>
           </div>
           <div>
-            <label class="label">Chi phí (VNĐ) <span class="text-danger">*</span></label>
+            <ProposalFormLabel
+              label="Chi phí (VNĐ)"
+              required
+              :tooltip="H.cost_amount"
+            />
             <MoneyInput
               v-model="form.cost_amount"
+              :placeholder="P.cost_amount"
               @update:model-value="onInput"
             />
             <p
@@ -543,7 +582,10 @@ function handleSubmit() {
             </p>
           </div>
           <div>
-            <label class="label">Chu kỳ</label>
+            <ProposalFormLabel
+              label="Chu kỳ thanh toán"
+              :tooltip="H.cost_unit"
+            />
             <select
               v-model="form.cost_unit"
               class="input w-full"
@@ -559,17 +601,24 @@ function handleSubmit() {
             </select>
           </div>
           <div>
-            <label class="label">Số nhân sự</label>
+            <ProposalFormLabel
+              label="Số nhân sự"
+              :tooltip="H.staff_count"
+            />
             <input
               v-model="form.staff_count"
               type="number"
               min="1"
               class="input w-full"
+              :placeholder="P.staff_count"
               @input="onInput"
             >
           </div>
           <div>
-            <label class="label">Mua mới / Gia hạn</label>
+            <ProposalFormLabel
+              label="Mua mới / Gia hạn"
+              :tooltip="H.purchase_type"
+            />
             <select
               v-model="form.purchase_type"
               class="input w-full"
@@ -585,7 +634,10 @@ function handleSubmit() {
             </select>
           </div>
           <div>
-            <label class="label">Ngày đưa vào sử dụng</label>
+            <ProposalFormLabel
+              label="Ngày đưa vào sử dụng"
+              :tooltip="H.planned_use_date"
+            />
             <input
               v-model="form.planned_use_date"
               type="date"
@@ -594,13 +646,16 @@ function handleSubmit() {
             >
           </div>
           <div class="sm:col-span-2">
-            <label class="label">Email đăng ký tài khoản</label>
+            <ProposalFormLabel
+              label="Email đăng ký tài khoản"
+              :tooltip="H.registration_email"
+            />
             <input
               v-model="form.registration_email"
               type="email"
               list="proposal-reg-emails"
               class="input w-full"
-              placeholder="Gợi ý từ nhân sự / tài khoản AI"
+              :placeholder="P.registration_email"
               @input="onInput"
             >
             <datalist id="proposal-reg-emails">
@@ -617,19 +672,30 @@ function handleSubmit() {
         <div v-show="activeTab === 'content'">
           <div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
             <div class="lg:col-span-2">
-              <label class="label">Nội dung đề xuất <span class="text-danger">*</span></label>
+              <ProposalFormLabel
+                label="Nội dung đề xuất"
+                required
+                :tooltip="H.proposal_content"
+                hint="Tối thiểu 20 ký tự"
+              />
               <textarea
                 v-model="form.proposal_content"
-                rows="5"
+                rows="6"
                 required
                 minlength="20"
                 class="input w-full"
+                :placeholder="P.proposal_content"
                 @input="onInput"
               />
             </div>
             <div class="lg:col-span-2">
-              <div class="mb-1 flex items-center justify-between">
-                <label class="label mb-0">Mục tiêu (tùy chọn)</label>
+              <div class="mb-1 flex flex-wrap items-center justify-between gap-2">
+                <div class="min-w-0 flex-1">
+                  <ProposalFormLabel
+                    label="Mục tiêu (tùy chọn)"
+                    :tooltip="H.objectives"
+                  />
+                </div>
                 <button
                   type="button"
                   class="text-xs font-medium text-brand hover:underline"
@@ -640,9 +706,9 @@ function handleSubmit() {
               </div>
               <textarea
                 v-model="form.objectives"
-                rows="4"
+                rows="5"
                 class="input w-full text-sm"
-                placeholder="Mỗi dòng một ý"
+                :placeholder="P.objectives"
                 @input="onInput"
               />
             </div>
@@ -659,17 +725,23 @@ function handleSubmit() {
             <span class="font-medium text-slate-700">{{ derivedSubject || '—' }}</span>
           </p>
           <div>
-            <label class="label">Trích yếu (ghi đè)</label>
+            <ProposalFormLabel
+              label="Trích yếu (ghi đè)"
+              :tooltip="H.subject_about"
+            />
             <input
               v-model="form.subject_about"
               type="text"
               class="input w-full"
-              placeholder="Để trống = theo tên công cụ"
+              :placeholder="P.subject_about"
               @input="onInput"
             >
           </div>
           <div>
-            <label class="label">Kính gửi</label>
+            <ProposalFormLabel
+              label="Kính gửi"
+              :tooltip="H.send_to"
+            />
             <div
               v-if="sendToPresets.length"
               class="mb-2 flex flex-wrap gap-1.5"
@@ -686,8 +758,9 @@ function handleSubmit() {
             </div>
             <textarea
               v-model="form.send_to"
-              rows="3"
+              rows="4"
               class="input w-full font-mono text-sm leading-relaxed"
+              :placeholder="P.send_to"
               @input="onInput"
             />
           </div>
@@ -709,7 +782,7 @@ function handleSubmit() {
           </p>
           <div
             v-else-if="previewHtml"
-            class="proposal-pdf-preview max-h-[min(60vh,520px)] overflow-auto rounded-lg border border-slate-200 bg-white p-3"
+            class="proposal-pdf-preview max-h-[min(68vh,640px)] min-h-[min(40vh,360px)] overflow-auto rounded-lg border border-slate-200 bg-white p-3"
             v-html="previewHtml"
           />
           <p

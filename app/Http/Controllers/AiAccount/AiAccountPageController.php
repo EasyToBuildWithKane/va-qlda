@@ -47,6 +47,17 @@ class AiAccountPageController extends Controller
         ]);
     }
 
+    public function costByGroup(Request $request): Response
+    {
+        $this->authorize('viewAny', AiAccount::class);
+
+        return Inertia::render('AiAccount/CostByGroup', [
+            'options' => [
+                'group_function' => AiAccountGroupFunction::options(),
+            ],
+        ]);
+    }
+
     public function costReport(Request $request): Response
     {
         $this->authorize('viewAny', AiAccount::class);

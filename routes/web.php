@@ -193,6 +193,7 @@ Route::middleware('auth')->group(function () {
     Route::prefix('ai-accounts')->name('ai-accounts.')->group(function () {
         Route::get('/', [AiAccountPageController::class, 'index'])->name('index');
         Route::get('/cost-report', [AiAccountPageController::class, 'costReport'])->name('cost-report');
+        Route::get('/cost-by-group', [AiAccountPageController::class, 'costByGroup'])->name('cost-by-group');
     });
 
     // Departments (phòng ban) — owns projects.

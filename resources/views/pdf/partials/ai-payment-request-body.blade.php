@@ -1,19 +1,22 @@
-<p class="pr-form-code">{{ $vars['form_code'] }}</p>
+@php
+    $schoolHeader = mb_strtoupper((string) ($vars['school_name'] ?? 'Hệ Thống Trường Việt Mỹ'), 'UTF-8');
+    $deptHeader = mb_strtoupper((string) ($vars['department_header'] ?? 'Phòng Công Nghệ'), 'UTF-8');
+@endphp
 
-<div class="pr-a4-header">
-    <img src="{{ 'file://'.public_path('docx/header.png') }}" class="pr-header-banner" alt="">
-</div>
-<p class="pr-dept-line">{{ $vars['department_header'] }}</p>
+<p class="form-code">{{ $vars['form_code'] }}</p>
 
-<table class="pr-header-meta">
+<table class="doc-header">
     <tr>
-        <td class="pr-meta-spacer"></td>
+        <td class="cell-left">
+            {{ $schoolHeader }}<br>
+            <span class="unit">—<br>{{ $deptHeader }}</span>
+        </td>
         <td class="cell-right">
             <div class="republic">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
             <div class="motto">
                 <span class="motto-line">Độc lập – Tự do – Hạnh phúc</span>
             </div>
-            <div class="doc-date">TP. HCM, ngày {{ $vars['doc_day'] }} tháng {{ $vars['doc_month'] }} năm {{ $vars['doc_year'] }}</div>
+            <div class="doc-date">{{ $vars['doc_date'] }}</div>
         </td>
     </tr>
 </table>
@@ -38,7 +41,7 @@
 
 <div class="section">
     <p class="section-num">2. Nội dung thanh toán:</p>
-    <table class="pr-detail-fields">
+    <table class="field-lines">
         <tr>
             <td class="field-label">Nội dung thanh toán:</td>
             <td class="field-value pre">{{ $vars['payment_content'] }}</td>

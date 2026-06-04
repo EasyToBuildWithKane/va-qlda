@@ -3,7 +3,7 @@ import { Link } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
 
 defineProps({
-    /** 'accounts' | 'proposals' */
+    /** 'accounts' | 'proposals' | 'cost-by-group' */
     active: { type: String, required: true },
     accountsBadge: { type: [String, Number], default: null },
     proposalsBadge: { type: [String, Number], default: null },
@@ -21,8 +21,15 @@ const TABS = [
         key: 'proposals',
         label: 'Phiếu đề xuất',
         hint: 'Đề xuất · duyệt · chi phí',
-        icon: 'performance',
+        icon: 'budget',
         routeName: 'ai-accounts.cost-report',
+    },
+    {
+        key: 'cost-by-group',
+        label: 'Chi phí theo nhóm',
+        hint: 'Tổng hợp theo nhóm chức năng',
+        icon: 'cost',
+        routeName: 'ai-accounts.cost-by-group',
     },
 ];
 </script>

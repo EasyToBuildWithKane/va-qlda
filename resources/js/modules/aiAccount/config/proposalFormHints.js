@@ -34,3 +34,20 @@ export const PROPOSAL_FORM_HINTS = {
     recipient_email: 'Email liên hệ khi IT / Kế toán bàn giao tài khoản.',
     recipient_phone: 'Số điện thoại liên hệ tiếp nhận.',
 };
+
+export const PROPOSAL_FORM_PLACEHOLDERS = {
+    proposer_name: 'VD: Nguyễn Văn An',
+    proposer_position: 'VD: Chuyên viên CNTT, Trưởng nhóm DEV',
+    proposer_department: 'VD: Phòng Công nghệ',
+    proposer_email: 'ten.ban@hcm.vaschools.edu.vn',
+    proposer_phone: 'VD: 0901234567',
+    tool_name: 'VD: Cursor Pro, Claude Team, Figma Organization',
+    license_type: 'VD: Pro, Team, Business',
+    cost_amount: 'VD: 1.000.000',
+    staff_count: 'VD: 5',
+    registration_email: 'email dùng đăng ký với nhà cung cấp',
+    proposal_content: 'Team nào dùng, trong bao lâu, tính năng cần có, lý do chính… (tối thiểu 20 ký tự)',
+    objectives: 'Mỗi dòng một mục tiêu — bỏ trống nếu không cần mục 3 trên phiếu',
+    subject_about: 'Để trống = «Đăng ký sử dụng» + tên công cụ',
+    send_to: 'Ban Giám đốc\nPhòng Công nghệ & Phòng Kế Toán',
+};

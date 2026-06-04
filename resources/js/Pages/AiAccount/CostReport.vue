@@ -15,7 +15,6 @@ import AiPurchaseProposalApproveModal from '@/modules/aiAccount/components/AiPur
 import ProposalRowActions from '@/modules/aiAccount/components/ProposalRowActions.vue';
 import AiAccountSectionNav from '@/modules/aiAccount/components/AiAccountSectionNav.vue';
 import AiAccountCrossLink from '@/modules/aiAccount/components/AiAccountCrossLink.vue';
-import AiCostByGroupPanel from '@/modules/aiAccount/components/AiCostByGroupPanel.vue';
 import AiCostReportKpiStrip from '@/modules/aiAccount/components/AiCostReportKpiStrip.vue';
 import Badge from '@/shared/ui/Badge.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
@@ -47,7 +46,6 @@ const {
     proposalCounts,
     proposalCountsFiltered,
     cards,
-    byGroup,
     load,
     loadProposals,
     createProposal,
@@ -1158,13 +1156,6 @@ function runExport(format) {
         > · KPI trên: theo bộ lọc</span>
       </div>
     </div>
-
-    <AiCostByGroupPanel
-      :rows="byGroup"
-      :cards="cards"
-      :options="props.options"
-      :filter-note="[filterSummary, search.trim() ? `từ khoá «${search.trim()}»` : ''].filter(Boolean).join(' · ')"
-    />
 
     <!-- ── Modals ── -->
     <AiPurchaseProposalFormModal

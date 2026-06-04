@@ -26,6 +26,7 @@ const ADMIN_SCREENS = [
     { id: 'feedback', path: '/feedback', heading: /phản hồi/i },
     { id: 'ai-accounts', path: '/ai-accounts', heading: /tài khoản ai/i },
     { id: 'ai-accounts-cost-report', path: '/ai-accounts/cost-report', heading: /quản lý phiếu đề xuất/i },
+    { id: 'ai-accounts-cost-by-group', path: '/ai-accounts/cost-by-group', heading: /chi phí ai theo nhóm/i },
     { id: 'notifications-manage', path: '/notifications/manage', heading: /quản lý thông báo/i },
 ];
 
