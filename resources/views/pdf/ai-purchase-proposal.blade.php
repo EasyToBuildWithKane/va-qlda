@@ -8,16 +8,13 @@
 </head>
 <body>
 
-    <div class="page-bg">
-        <img src="{{ 'file://'.public_path('docx/background.png') }}" alt="">
-    </div>
+    @include('pdf.partials.page-background')
 
     @php
         $checkboxImg = 'file://'.public_path('docx/checkbox.png');
     @endphp
 
-    <div class="doc-content">
-        @include('pdf.partials.doc-letterhead')
+    <div class="doc-content doc-content-on-bg">
         @include('pdf.partials.ai-purchase-proposal-body')
     </div>
 

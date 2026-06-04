@@ -5,21 +5,9 @@
     )));
 @endphp
 
-<table class="doc-header">
-    <tr>
-        <td class="cell-left">
-            HỆ THỐNG TRƯỜNG VIỆT MỸ<br>
-            <span class="unit">—<br>PHÒNG CÔNG NGHỆ</span>
-        </td>
-        <td class="cell-right">
-            <div class="republic">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
-            <div class="motto">
-                <span class="motto-line">Độc lập – Tự do – Hạnh phúc</span>
-            </div>
-            <div class="doc-date">{{ $vars['doc_date'] }}</div>
-        </td>
-    </tr>
-</table>
+@include('pdf.partials.doc-header-national', ['docDate' => $vars['doc_date']])
+
+<p class="doc-dept-caption">— PHÒNG CÔNG NGHỆ</p>
 
 <div class="doc-title">
     <h1>PHIẾU ĐỀ XUẤT</h1>

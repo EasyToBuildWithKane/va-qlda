@@ -9,12 +9,9 @@
 </head>
 <body>
 
-    <div class="page-bg">
-        <img src="{{ 'file://'.public_path('docx/background.png') }}" alt="">
-    </div>
+    @include('pdf.partials.page-background')
 
-    <div class="doc-content">
-        @include('pdf.partials.doc-letterhead')
+    <div class="doc-content doc-content-on-bg">
         @include('pdf.partials.ai-payment-request-body')
     </div>
 

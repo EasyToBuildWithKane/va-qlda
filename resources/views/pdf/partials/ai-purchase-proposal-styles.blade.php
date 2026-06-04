@@ -1,6 +1,7 @@
+/* Vùng an toàn khớp public/docx/background.png (logo + tagline trên, thanh đỏ dưới) */
 @page {
     size: A4;
-    margin: 38mm 11mm 20mm 14mm;
+    margin: 35mm 12mm 15mm 14mm;
 }
 
 * { box-sizing: border-box; }
@@ -16,8 +17,15 @@ body {
 
 .doc-content {
     width: 100%;
-    max-width: 185mm;
+    max-width: 182mm;
     margin: 0 auto;
+    padding: 0 2mm 2mm 1mm;
+}
+
+/* Nội dung in trong vùng trắng (dưới letterhead nền, trên thanh đỏ) */
+.doc-content-on-bg {
+    padding-top: 1mm;
+    padding-bottom: 3mm;
 }
 
 .doc-content p {
@@ -25,11 +33,11 @@ body {
     line-height: 1.75;
 }
 
-/* Letterhead — inset để logo/chữ trong header.png không chạm mép vùng in */
+/* Letterhead — header.png (không dùng nền CSS); inset tránh mép in cắt logo/chữ */
 .doc-letterhead {
     width: 100%;
-    margin: 0 0 5pt 0;
-    padding: 0 7mm 0 5mm;
+    margin: 0 0 4pt 0;
+    padding: 2mm 9mm 1mm 7mm;
     box-sizing: border-box;
     line-height: 0;
 }
@@ -39,24 +47,88 @@ body {
     width: 100%;
     max-width: 100%;
     height: auto;
-    margin: 0;
+    margin: 0 auto;
+}
+
+.doc-dept-caption {
+    margin: 0 0 5pt 0;
+    padding: 0 9mm;
+    font-size: 10.5pt;
+    font-weight: bold;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.15pt;
+    color: #7a0030;
+    line-height: 1.4;
+}
+
+/* Quốc hiệu + ngày — dưới banner, không viền (tránh trùng chữ trên header.png) */
+table.doc-header-national {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0 0 4pt 0;
+    table-layout: fixed;
+}
+
+table.doc-header-national td {
+    padding: 0;
+    vertical-align: top;
+    border: none;
+}
+
+table.doc-header-national .header-national-spacer {
+    width: 40%;
+}
+
+table.doc-header-national .cell-right {
+    width: 60%;
+    text-align: center;
+    padding: 2pt 8pt 4pt;
+}
+
+table.doc-header-national .republic {
+    font-weight: bold;
+    font-size: 11.5pt;
+    text-transform: uppercase;
+    line-height: 1.5;
+    margin-bottom: 2pt;
+}
+
+table.doc-header-national .motto {
+    font-size: 10.5pt;
+    line-height: 1.6;
+    margin-bottom: 2pt;
+}
+
+table.doc-header-national .doc-date {
+    font-size: 10pt;
+    font-style: italic;
+    margin-top: 2pt;
+    line-height: 1.5;
+}
+
+table.doc-header-national .motto-line {
+    display: inline-block;
+    border-bottom: 1px solid #000;
+    padding-bottom: 0.5pt;
 }
 
 .page-bg {
     position: fixed;
-    top: -38mm;
+    top: -35mm;
     left: -14mm;
     width: 210mm;
     height: 297mm;
     z-index: -1;
     overflow: hidden;
+    line-height: 0;
 }
 .page-bg img {
     display: block;
-    width: 110%;
-    height: 110%;
-    margin: -3% 0 0 -5%;
-    opacity: 1;
+    width: 210mm;
+    height: 297mm;
+    margin: 0;
+    padding: 0;
 }
 
 .doc-header {

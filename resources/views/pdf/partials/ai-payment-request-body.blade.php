@@ -66,38 +66,38 @@
 </div>
 
 <div class="doc-page-footer">
-<p class="closing">
-    Kính trình Ban Lãnh Đạo xem xét và phê duyệt.
-</p>
+    <p class="closing">
+        Kính trình Ban Lãnh Đạo xem xét và phê duyệt.
+    </p>
 
-<table class="sig">
-    <tr>
-        <td>
-            <div class="sig-title">Người đề nghị</div>
-            <div class="sig-title">thanh toán</div>
-            <div class="sig-space"></div>
-            <div class="sig-name">{{ $vars['proposer_name'] }}</div>
-        </td>
-        <td></td>
-        <td>
-            <div class="sig-title">Trưởng đơn vị</div>
-            <div class="sig-space"></div>
-            <div class="sig-name"></div>
-        </td>
-    </tr>
-    <tr>
-        <td>
-            <div class="sig-title">Phòng Kế toán</div>
-            <div class="sig-title">Kế Toán trưởng</div>
-            <div class="sig-space"></div>
-            <div class="sig-name">Trần Thị Tình</div>
-        </td>
-        <td colspan="2">
-            <div class="sig-title">Phó Tổng Giám đốc</div>
-            <div class="sig-title">Thường trực</div>
-            <div class="sig-space"></div>
-            <div class="sig-name">Nguyễn Ngọc Hiển</div>
-        </td>
-    </tr>
-</table>
+    <table class="sig">
+        <tr>
+            <td>
+                <div class="sig-title">Người đề nghị</div>
+                <div class="sig-title">thanh toán</div>
+                <div class="sig-space"></div>
+                <div class="sig-name">{{ $vars['proposer_name'] }}</div>
+            </td>
+            <td></td>
+            <td>
+                <div class="sig-title">Trưởng đơn vị</div>
+                <div class="sig-space"></div>
+                <div class="sig-name"></div>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <div class="sig-title">Phòng Kế toán</div>
+                <div class="sig-title">Kế Toán trưởng</div>
+                <div class="sig-space"></div>
+                <div class="sig-name">Trần Thị Tình</div>
+            </td>
+            <td colspan="2">
+                <div class="sig-title">Phó Tổng Giám đốc</div>
+                <div class="sig-title">Thường trực</div>
+                <div class="sig-space"></div>
+                <div class="sig-name">Nguyễn Ngọc Hiển</div>
+            </td>
+        </tr>
+    </table>
 </div>
