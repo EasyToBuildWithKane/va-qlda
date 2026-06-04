@@ -152,6 +152,11 @@ table.doc-header-national .motto-line {
     text-transform: uppercase;
     letter-spacing: 0.2pt;
 }
+.doc-header .cell-left .doc-header-school {
+    display: inline-block;
+    white-space: nowrap;
+    letter-spacing: 0.1pt;
+}
 .doc-header .cell-left .unit {
     font-weight: normal;
     font-size: 10pt;

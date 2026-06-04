@@ -8,7 +8,7 @@
 <table class="doc-header">
     <tr>
         <td class="cell-left">
-            {{ $schoolHeader }}<br>
+            <span class="doc-header-school">{{ $schoolHeader }}</span><br>
             <span class="unit">—<br>{{ $deptHeader }}</span>
         </td>
         <td class="cell-right">
@@ -41,7 +41,7 @@
 
 <div class="section">
     <p class="section-num">2. Nội dung thanh toán:</p>
-    <table class="field-lines">
+    <table class="payment-detail-fields">
         <tr>
             <td class="field-label">Nội dung thanh toán:</td>
             <td class="field-value pre">{{ $vars['payment_content'] }}</td>
