@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <style>
         @include('pdf.partials.ai-purchase-proposal-styles')
+        @include('pdf.partials.ai-payment-request-styles')
     </style>
 </head>
 <body>

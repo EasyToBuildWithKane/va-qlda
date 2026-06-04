@@ -1,25 +1,9 @@
-@php
-    $schoolHeader = mb_strtoupper((string) ($vars['school_name'] ?? 'Hệ Thống Trường Việt Mỹ'), 'UTF-8');
-    $deptHeader = mb_strtoupper((string) ($vars['department_header'] ?? 'Phòng Công Nghệ'), 'UTF-8');
-@endphp
-
-<p class="form-code">{{ $vars['form_code'] }}</p>
-
-<table class="doc-header">
-    <tr>
-        <td class="cell-left">
-            <span class="doc-header-school">{{ $schoolHeader }}</span><br>
-            <span class="unit">—<br>{{ $deptHeader }}</span>
-        </td>
-        <td class="cell-right">
-            <div class="republic">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
-            <div class="motto">
-                <span class="motto-line">Độc lập – Tự do – Hạnh phúc</span>
-            </div>
-            <div class="doc-date">{{ $vars['doc_date'] }}</div>
-        </td>
-    </tr>
-</table>
+@include('pdf.partials.doc-header-bordered', [
+    'formCode' => $vars['form_code'] ?? '',
+    'schoolName' => $vars['school_name'] ?? null,
+    'departmentHeader' => $vars['department_header'] ?? null,
+    'docDate' => $vars['doc_date'] ?? null,
+])
 
 <div class="doc-title">
     <h1>GIẤY ĐỀ NGHỊ THANH TOÁN</h1>
@@ -41,7 +25,7 @@
 
 <div class="section">
     <p class="section-num">2. Nội dung thanh toán:</p>
-    <table class="payment-detail-fields">
+    <table class="doc-detail-fields">
         <tr>
             <td class="field-label">Nội dung thanh toán:</td>
             <td class="field-value pre">{{ $vars['payment_content'] }}</td>

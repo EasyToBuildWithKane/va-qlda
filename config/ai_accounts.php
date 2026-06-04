@@ -9,6 +9,9 @@ return [
     'proposal' => [
         'send_to_default' => "Ban Giám đốc\nPhòng Công nghệ & Phòng Kế Toán",
         'objectives_sample' => "Tăng tốc quá trình phân tích và mô hình hóa nghiệp vụ.\nHỗ trợ xây dựng Wireframe và Prototype trực quan.\nGiảm thời gian thiết kế giao diện ban đầu.\nNâng cao chất lượng tài liệu đặc tả nghiệp vụ và yêu cầu hệ thống.",
+        'form_code' => '',
+        'school_name' => 'Hệ Thống Trường Việt Mỹ',
+        'department' => 'Phòng Công Nghệ',
     ],
 
     /** Giấy đề nghị thanh toán (KT.BM.03) — xuất PDF từ phiếu đề xuất. */

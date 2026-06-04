@@ -5,9 +5,12 @@
     )));
 @endphp
 
-@include('pdf.partials.doc-header-national', ['docDate' => $vars['doc_date']])
-
-<p class="doc-dept-caption">— PHÒNG CÔNG NGHỆ</p>
+@include('pdf.partials.doc-header-bordered', [
+    'formCode' => $vars['form_code'] ?? '',
+    'schoolName' => $vars['school_name'] ?? null,
+    'departmentHeader' => $vars['department_header'] ?? null,
+    'docDate' => $vars['doc_date'] ?? null,
+])
 
 <div class="doc-title">
     <h1>PHIẾU ĐỀ XUẤT</h1>
@@ -33,9 +36,12 @@
 
 <div class="section">
     <p class="section-num">2. Nội dung đề xuất:</p>
-    <div class="indent">
-        <p class="pre">{{ $vars['proposal_content'] }}</p>
-    </div>
+    <table class="doc-detail-fields">
+        <tr>
+            <td class="field-label">Nội dung đề xuất:</td>
+            <td class="field-value pre">{{ $vars['proposal_content'] }}</td>
+        </tr>
+    </table>
 </div>
 
 @if(!empty($vars['objectives']))

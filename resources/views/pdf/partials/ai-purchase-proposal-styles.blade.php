@@ -52,19 +52,46 @@ body {
     margin: 0 auto;
 }
 
-.doc-dept-caption {
-    margin: 0 0 5pt 0;
-    padding: 0 9mm;
-    font-size: 10.5pt;
-    font-weight: bold;
-    text-align: center;
-    text-transform: uppercase;
-    letter-spacing: 0.15pt;
-    color: #7a0030;
-    line-height: 1.4;
+.form-code {
+    text-align: right;
+    font-size: 9.5pt;
+    font-style: italic;
+    margin: 0 0 3pt 0;
+    color: #444;
 }
 
-/* Quốc hiệu + ngày — căn giữa trang, dưới dải letterhead trên nền */
+/* Mục nội dung có viền (phiếu đề xuất + giấy thanh toán) */
+table.doc-detail-fields,
+table.payment-detail-fields {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 4pt 0 3pt 0;
+    font-size: 11pt;
+    border: 1pt solid #000;
+}
+
+table.doc-detail-fields td,
+table.payment-detail-fields td {
+    padding: 6pt 8pt;
+    vertical-align: top;
+    line-height: 1.65;
+    border: 1pt solid #000;
+}
+
+table.doc-detail-fields td.field-label,
+table.payment-detail-fields td.field-label {
+    width: 32%;
+    font-weight: bold;
+    white-space: nowrap;
+    background-color: #f5f5f5;
+}
+
+table.doc-detail-fields td.field-value,
+table.payment-detail-fields td.field-value {
+    width: 68%;
+}
+
+/* @deprecated — giữ doc-national-block nếu view cũ còn include */
 .doc-national-block {
     width: 100%;
     margin: 0 0 6pt 0;

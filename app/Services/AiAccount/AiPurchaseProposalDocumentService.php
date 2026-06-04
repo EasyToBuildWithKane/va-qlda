@@ -58,8 +58,17 @@ class AiPurchaseProposalDocumentService
             : '…';
 
         $proposerName = trim((string) ($input['proposer_name'] ?? ''));
+        $propCfg = config('ai_accounts.proposal', []);
+        $payCfg = config('ai_accounts.payment_request', []);
+        $department = trim((string) ($input['proposer_department'] ?? ''));
+        if ($department === '') {
+            $department = (string) ($propCfg['department'] ?? $payCfg['department'] ?? 'Phòng Công Nghệ');
+        }
 
         return [
+            'form_code' => (string) ($propCfg['form_code'] ?? ''),
+            'school_name' => (string) ($propCfg['school_name'] ?? $payCfg['school_name'] ?? 'Hệ Thống Trường Việt Mỹ'),
+            'department_header' => $department,
             'doc_date' => $this->formatDocDateVi(Carbon::now()->timezone(config('app.timezone'))),
             'subject_about' => $subjectAbout !== '' ? $subjectAbout : '…',
             ...$this->splitSendTo($input['send_to'] ?? null),
