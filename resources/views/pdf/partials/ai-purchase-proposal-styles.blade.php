@@ -1,7 +1,7 @@
 /* Vùng an toàn khớp public/docx/background.png (logo + tagline trên, thanh đỏ dưới) */
 @page {
     size: A4;
-    margin: 35mm 12mm 15mm 14mm;
+    margin: 42mm 12mm 15mm 14mm;
 }
 
 * { box-sizing: border-box; }
@@ -16,6 +16,8 @@ body {
 }
 
 .doc-content {
+    position: relative;
+    z-index: 1;
     width: 100%;
     max-width: 182mm;
     margin: 0 auto;
@@ -24,7 +26,7 @@ body {
 
 /* Nội dung in trong vùng trắng (dưới letterhead nền, trên thanh đỏ) */
 .doc-content-on-bg {
-    padding-top: 1mm;
+    padding-top: 2mm;
     padding-bottom: 3mm;
 }
 
@@ -62,52 +64,36 @@ body {
     line-height: 1.4;
 }
 
-/* Quốc hiệu + ngày — dưới banner, không viền (tránh trùng chữ trên header.png) */
-table.doc-header-national {
+/* Quốc hiệu + ngày — căn giữa trang, dưới dải letterhead trên nền */
+.doc-national-block {
     width: 100%;
-    border-collapse: collapse;
-    margin: 0 0 4pt 0;
-    table-layout: fixed;
-}
-
-table.doc-header-national td {
-    padding: 0;
-    vertical-align: top;
-    border: none;
-}
-
-table.doc-header-national .header-national-spacer {
-    width: 40%;
-}
-
-table.doc-header-national .cell-right {
-    width: 60%;
+    margin: 0 0 6pt 0;
+    padding: 0 4pt;
     text-align: center;
-    padding: 2pt 8pt 4pt;
 }
 
-table.doc-header-national .republic {
+.doc-national-block .republic {
     font-weight: bold;
     font-size: 11.5pt;
     text-transform: uppercase;
-    line-height: 1.5;
-    margin-bottom: 2pt;
+    line-height: 1.45;
+    margin: 0 0 2pt 0;
 }
 
-table.doc-header-national .motto {
+.doc-national-block .motto {
     font-size: 10.5pt;
-    line-height: 1.6;
-    margin-bottom: 2pt;
+    line-height: 1.55;
+    margin: 0 0 2pt 0;
 }
 
-table.doc-header-national .doc-date {
+.doc-national-block .doc-date {
     font-size: 10pt;
     font-style: italic;
-    margin-top: 2pt;
-    line-height: 1.5;
+    margin: 2pt 0 0 0;
+    line-height: 1.45;
 }
 
-table.doc-header-national .motto-line {
+.doc-national-block .motto-line {
     display: inline-block;
     border-bottom: 1px solid #000;
     padding-bottom: 0.5pt;
@@ -115,11 +101,11 @@ table.doc-header-national .motto-line {
 
 .page-bg {
     position: fixed;
-    top: -35mm;
+    top: -42mm;
     left: -14mm;
     width: 210mm;
     height: 297mm;
-    z-index: -1;
+    z-index: 0;
     overflow: hidden;
     line-height: 0;
 }

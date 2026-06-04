@@ -21,27 +21,27 @@
             max-width: 210mm;
             margin: 0 auto;
             background: #fff;
-            padding: 12mm 10mm 14mm;
+            padding: 42mm 12mm 15mm 14mm;
             box-shadow: 0 4px 24px rgba(15, 23, 42, 0.12);
             overflow: hidden;
         }
         .proposal-preview-bg {
             position: absolute;
-            left: 50%;
-            top: 50%;
-            width: 108%;
-            height: 108%;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
             max-width: none;
-            transform: translate(-50%, -50%);
             object-fit: cover;
-            opacity: 0.22;
+            opacity: 1;
             z-index: 0;
             pointer-events: none;
         }
         .proposal-preview-root .doc-content {
             position: relative;
             z-index: 1;
-            max-width: 185mm;
+            max-width: 182mm;
+            margin: 0 auto;
         }
         .proposal-preview-root .page-bg {
             display: none;
