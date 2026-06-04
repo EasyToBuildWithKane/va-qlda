@@ -58,12 +58,12 @@ class Navigation
             }, $items);
 
             $groups[] = [
-                'key'              => $group['key'],
-                'heading'          => $group['heading'],
-                'icon'             => $group['icon'],
-                'variant'          => $group['variant'] ?? null,
+                'key' => $group['key'],
+                'heading' => $group['heading'],
+                'icon' => $group['icon'],
+                'variant' => $group['variant'] ?? null,
                 'defaultCollapsed' => $group['defaultCollapsed'] ?? false,
-                'items'            => $items,
+                'items' => $items,
             ];
         }
 
@@ -81,23 +81,23 @@ class Navigation
             // 1. TỔNG QUAN — personal & team dashboards
             // ──────────────────────────────────────────────────────────────
             [
-                'key'     => 'overview',
+                'key' => 'overview',
                 'heading' => 'Tổng quan',
-                'icon'    => 'dashboard',
-                'items'   => [
+                'icon' => 'dashboard',
+                'items' => [
                     [
-                        'label'  => 'Bảng điều khiển',
-                        'icon'   => 'overview',
-                        'href'   => '/dashboard',
+                        'label' => 'Bảng điều khiển',
+                        'icon' => 'overview',
+                        'href' => '/dashboard',
                         'status' => 'live',
-                        'roles'  => ['admin', 'lead', 'viewer'],
+                        'roles' => ['admin', 'lead', 'viewer'],
                     ],
                     [
-                        'label'  => 'Bảng điều khiển nhóm',
-                        'icon'   => 'team-dashboard',
-                        'href'   => '/dashboard/team',
+                        'label' => 'Bảng điều khiển nhóm',
+                        'icon' => 'team-dashboard',
+                        'href' => '/dashboard/team',
                         'status' => 'live',
-                        'roles'  => ['admin', 'lead'],
+                        'roles' => ['admin', 'lead'],
                     ],
                 ],
             ],
@@ -107,36 +107,36 @@ class Navigation
             //    Weekly evaluation follows the same approval chain.
             // ──────────────────────────────────────────────────────────────
             [
-                'key'     => 'daily',
+                'key' => 'daily',
                 'heading' => 'Báo cáo ngày',
-                'icon'    => 'daily',
-                'items'   => [
+                'icon' => 'daily',
+                'items' => [
                     [
-                        'label'  => 'Báo cáo hôm nay',
-                        'icon'   => 'report-today',
-                        'href'   => '/daily-reports/today',
+                        'label' => 'Báo cáo hôm nay',
+                        'icon' => 'report-today',
+                        'href' => '/daily-reports/today',
                         'status' => 'live',
-                        'roles'  => ['admin', 'lead', 'member'],
+                        'roles' => ['admin', 'lead', 'member'],
                     ],
                     [
-                        'label'  => 'Lịch sử báo cáo',
-                        'icon'   => 'report-history',
-                        'href'   => '/daily-reports',
+                        'label' => 'Lịch sử báo cáo',
+                        'icon' => 'report-history',
+                        'href' => '/daily-reports',
                         'status' => 'live',
                     ],
                     [
-                        'label'  => 'Chờ phê duyệt',
-                        'icon'   => 'review-reports',
-                        'href'   => '/daily-reports/review',
+                        'label' => 'Chờ phê duyệt',
+                        'icon' => 'review-reports',
+                        'href' => '/daily-reports/review',
                         'status' => 'live',
-                        'roles'  => ['admin', 'lead'],
+                        'roles' => ['admin', 'lead'],
                     ],
                     [
-                        'label'  => 'Đánh giá tuần',
-                        'icon'   => 'weekly',
-                        'href'   => '#',
+                        'label' => 'Đánh giá tuần',
+                        'icon' => 'weekly',
+                        'href' => '#',
                         'status' => 'planned',
-                        'roles'  => ['admin', 'lead'],
+                        'roles' => ['admin', 'lead'],
                     ],
                 ],
             ],
@@ -147,28 +147,28 @@ class Navigation
             //    so they are not top-level nav items here.
             // ──────────────────────────────────────────────────────────────
             [
-                'key'     => 'projects',
+                'key' => 'projects',
                 'heading' => 'Quản lý dự án',
-                'icon'    => 'projects',
-                'items'   => [
+                'icon' => 'projects',
+                'items' => [
                     [
-                        'label'  => 'Tất cả dự án',
-                        'icon'   => 'all-projects',
-                        'href'   => '/projects',
+                        'label' => 'Tất cả dự án',
+                        'icon' => 'all-projects',
+                        'href' => '/projects',
                         'status' => 'live',
                     ],
                     [
-                        'label'  => 'Vướng mắc',
-                        'icon'   => 'blockers',
-                        'href'   => '/blockers',
+                        'label' => 'Vướng mắc',
+                        'icon' => 'blockers',
+                        'href' => '/blockers',
                         'status' => 'live',
                     ],
                     [
-                        'label'  => 'Danh mục tổng hợp',
-                        'icon'   => 'portfolio',
-                        'href'   => '#',
+                        'label' => 'Danh mục tổng hợp',
+                        'icon' => 'portfolio',
+                        'href' => '#',
                         'status' => 'planned',
-                        'roles'  => ['admin', 'lead'],
+                        'roles' => ['admin', 'lead'],
                     ],
                 ],
             ],
@@ -178,26 +178,26 @@ class Navigation
             //    These all track defects and improvement signals from work.
             // ──────────────────────────────────────────────────────────────
             [
-                'key'     => 'quality',
+                'key' => 'quality',
                 'heading' => 'Chất lượng',
-                'icon'    => 'bug',
-                'items'   => [
+                'icon' => 'bug',
+                'items' => [
                     [
-                        'label'  => 'Quản lý lỗi',
-                        'icon'   => 'bug',
-                        'href'   => '/bugs',
+                        'label' => 'Quản lý lỗi',
+                        'icon' => 'bug',
+                        'href' => '/bugs',
                         'status' => 'live',
                     ],
                     [
-                        'label'  => 'Theo dõi phản hồi',
-                        'icon'   => 'feedback',
-                        'href'   => '/feedback',
+                        'label' => 'Theo dõi phản hồi',
+                        'icon' => 'feedback',
+                        'href' => '/feedback',
                         'status' => 'live',
                     ],
                     [
-                        'label'  => 'Hạng mục hành động',
-                        'icon'   => 'action-items',
-                        'href'   => '#',
+                        'label' => 'Hạng mục hành động',
+                        'icon' => 'action-items',
+                        'href' => '#',
                         'status' => 'planned',
                     ],
                 ],
@@ -208,34 +208,34 @@ class Navigation
             //    Departments (live) + member directory, team eval, leaderboard.
             // ──────────────────────────────────────────────────────────────
             [
-                'key'     => 'people',
+                'key' => 'people',
                 'heading' => 'Nhân sự & Hiệu suất',
-                'icon'    => 'members',
-                'items'   => [
+                'icon' => 'members',
+                'items' => [
                     [
-                        'label'  => 'Phòng ban',
-                        'icon'   => 'department',
-                        'href'   => '/departments',
+                        'label' => 'Phòng ban',
+                        'icon' => 'department',
+                        'href' => '/departments',
                         'status' => 'live',
-                        'roles'  => ['admin', 'lead'],
+                        'roles' => ['admin', 'lead'],
                     ],
                     [
-                        'label'  => 'Hồ sơ thành viên',
-                        'icon'   => 'member-profiles',
-                        'href'   => '#',
+                        'label' => 'Hồ sơ thành viên',
+                        'icon' => 'member-profiles',
+                        'href' => '#',
                         'status' => 'planned',
                     ],
                     [
-                        'label'  => 'Đánh giá nhóm',
-                        'icon'   => 'team-eval',
-                        'href'   => '#',
+                        'label' => 'Đánh giá nhóm',
+                        'icon' => 'team-eval',
+                        'href' => '#',
                         'status' => 'planned',
-                        'roles'  => ['admin', 'lead'],
+                        'roles' => ['admin', 'lead'],
                     ],
                     [
-                        'label'  => 'Bảng xếp hạng',
-                        'icon'   => 'leaderboard',
-                        'href'   => '#',
+                        'label' => 'Bảng xếp hạng',
+                        'icon' => 'leaderboard',
+                        'href' => '#',
                         'status' => 'planned',
                     ],
                 ],
@@ -246,33 +246,33 @@ class Navigation
             //    All planned; collapsed by default to keep the sidebar clean.
             // ──────────────────────────────────────────────────────────────
             [
-                'key'              => 'knowledge',
-                'heading'          => 'Tri thức & Cơ sở',
-                'icon'             => 'knowledge',
+                'key' => 'knowledge',
+                'heading' => 'Tri thức & Cơ sở',
+                'icon' => 'knowledge',
                 'defaultCollapsed' => true,
-                'items'            => [
+                'items' => [
                     [
-                        'label'  => 'Cơ sở tri thức',
-                        'icon'   => 'knowledge',
-                        'href'   => '#',
+                        'label' => 'Cơ sở tri thức',
+                        'icon' => 'knowledge',
+                        'href' => '#',
                         'status' => 'planned',
                     ],
                     [
-                        'label'  => 'Cuộc họp & Biên bản',
-                        'icon'   => 'meeting',
-                        'href'   => '#',
+                        'label' => 'Cuộc họp & Biên bản',
+                        'icon' => 'meeting',
+                        'href' => '#',
                         'status' => 'planned',
                     ],
                     [
-                        'label'  => 'Chuẩn lập trình',
-                        'icon'   => 'coding-standards',
-                        'href'   => '#',
+                        'label' => 'Chuẩn lập trình',
+                        'icon' => 'coding-standards',
+                        'href' => '#',
                         'status' => 'planned',
                     ],
                     [
-                        'label'  => 'Git & Phiên bản',
-                        'icon'   => 'git',
-                        'href'   => '#',
+                        'label' => 'Git & Phiên bản',
+                        'icon' => 'git',
+                        'href' => '#',
                         'status' => 'planned',
                     ],
                 ],
@@ -283,20 +283,20 @@ class Navigation
             //    All active accounts can request or view AI tools.
             // ──────────────────────────────────────────────────────────────
             [
-                'key'     => 'ai',
+                'key' => 'ai',
                 'heading' => 'AI & Chi phí',
-                'icon'    => 'cost',
-                'items'   => [
+                'icon' => 'cost',
+                'items' => [
                     [
-                        'label'  => 'Tài khoản AI',
-                        'icon'   => 'account',
-                        'href'   => '/ai-accounts',
+                        'label' => 'Tài khoản AI',
+                        'icon' => 'account',
+                        'href' => '/ai-accounts',
                         'status' => 'live',
                     ],
                     [
-                        'label'  => 'Phiếu đề xuất AI',
-                        'icon'   => 'budget',
-                        'href'   => '/ai-accounts/cost-report',
+                        'label' => 'Phiếu đề xuất AI',
+                        'icon' => 'budget',
+                        'href' => '/ai-accounts/cost-report',
                         'status' => 'live',
                     ],
                 ],
@@ -307,23 +307,23 @@ class Navigation
             //    Admin-only. Invisible to lead / member / viewer.
             // ──────────────────────────────────────────────────────────────
             [
-                'key'     => 'admin',
+                'key' => 'admin',
                 'heading' => 'Quản trị',
-                'icon'    => 'settings',
-                'items'   => [
+                'icon' => 'settings',
+                'items' => [
                     [
-                        'label'  => 'Trung tâm vận hành',
-                        'icon'   => 'notifications',
-                        'href'   => '/notifications/manage',
+                        'label' => 'Trung tâm vận hành',
+                        'icon' => 'notifications',
+                        'href' => '/notifications/manage',
                         'status' => 'live',
-                        'roles'  => ['admin'],
+                        'roles' => ['admin'],
                     ],
                     [
-                        'label'  => 'Cấu hình hệ thống',
-                        'icon'   => 'system-config',
-                        'href'   => '#',
+                        'label' => 'Cấu hình hệ thống',
+                        'icon' => 'system-config',
+                        'href' => '#',
                         'status' => 'planned',
-                        'roles'  => ['admin'],
+                        'roles' => ['admin'],
                     ],
                 ],
             ],
