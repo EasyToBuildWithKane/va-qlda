@@ -25,6 +25,23 @@ body {
     line-height: 1.75;
 }
 
+/* Letterhead — inset để logo/chữ trong header.png không chạm mép vùng in */
+.doc-letterhead {
+    width: 100%;
+    margin: 0 0 5pt 0;
+    padding: 0 7mm 0 5mm;
+    box-sizing: border-box;
+    line-height: 0;
+}
+
+.doc-letterhead-img {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    margin: 0;
+}
+
 .page-bg {
     position: fixed;
     top: -38mm;

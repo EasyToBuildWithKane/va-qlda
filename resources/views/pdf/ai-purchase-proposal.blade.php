@@ -17,6 +17,7 @@
     @endphp
 
     <div class="doc-content">
+        @include('pdf.partials.doc-letterhead')
         @include('pdf.partials.ai-purchase-proposal-body')
     </div>
 

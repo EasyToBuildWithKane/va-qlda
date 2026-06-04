@@ -14,6 +14,7 @@
     </div>
 
     <div class="doc-content">
+        @include('pdf.partials.doc-letterhead')
         @include('pdf.partials.ai-payment-request-body')
     </div>
 
