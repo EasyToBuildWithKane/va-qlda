@@ -20,6 +20,8 @@ const props = defineProps({
             employees: [],
             departments: [],
             tools: [],
+            vendors: [],
+            send_to: [],
             account_templates: [],
         }),
     },
@@ -29,9 +31,16 @@ const emit = defineEmits(['close', 'submit']);
 
 const SEND_TO_DEFAULT = 'Ban Giám đốc\nPhòng Công nghệ & Phòng Kế Toán';
 
+const TABS = [
+    { key: 'proposer', label: 'Người đề xuất', icon: 'account' },
+    { key: 'tool', label: 'Công cụ & chi phí', icon: 'money' },
+    { key: 'content', label: 'Nội dung phiếu', icon: 'edit' },
+    { key: 'more', label: 'Tùy chỉnh', icon: 'settings' },
+    { key: 'preview', label: 'Xem trước', icon: 'pdf' },
+];
+
 const dirty = ref(false);
-const showPreview = ref(false);
-const showAdvanced = ref(false);
+const activeTab = ref('proposer');
 const selectedProposerId = ref(null);
 
 const form = reactive({
@@ -59,6 +68,52 @@ const departmentNames = computed(() =>
     (props.formLookups.departments ?? []).map((d) => d.name).filter(Boolean),
 );
 
+const roleTitleSuggestions = computed(() => {
+    const set = new Set();
+    for (const e of props.formLookups.employees ?? []) {
+        if (e.role_title?.trim()) set.add(e.role_title.trim());
+    }
+    return [...set].sort((a, b) => a.localeCompare(b, 'vi'));
+});
+
+const emailSuggestions = computed(() => {
+    const set = new Set();
+    for (const e of props.formLookups.employees ?? []) {
+        if (e.email?.trim()) set.add(e.email.trim());
+    }
+    for (const t of props.formLookups.account_templates ?? []) {
+        if (t.registration_email?.trim()) set.add(t.registration_email.trim());
+    }
+    return [...set].sort();
+});
+
+const phoneSuggestions = computed(() => {
+    const set = new Set();
+    for (const e of props.formLookups.employees ?? []) {
+        if (e.phone?.trim()) set.add(e.phone.trim());
+    }
+    return [...set];
+});
+
+const sendToPresets = computed(() => {
+    const list = props.formLookups.send_to ?? [];
+    const seen = new Set();
+    const out = [];
+    for (const raw of [SEND_TO_DEFAULT, ...list]) {
+        const v = String(raw ?? '').trim();
+        if (!v || seen.has(v)) continue;
+        seen.add(v);
+        out.push(v);
+    }
+    return out;
+});
+
+const licenseSuggestions = computed(() => {
+    const fromConfig = props.options.license_types ?? [];
+    const fromTpl = (props.formLookups.account_templates ?? []).map((t) => t.license_type).filter(Boolean);
+    return [...new Set([...fromConfig, ...fromTpl])];
+});
+
 const costPreviewAmount = computed(() => {
     const n = parseInt(String(form.cost_amount).replace(/\D/g, ''), 10);
     return Number.isFinite(n) && n > 0 ? n : 0;
@@ -84,6 +139,8 @@ const isEditing = computed(() => Boolean(props.editProposal?.id));
 
 const modalTitle = computed(() =>
     (isEditing.value ? 'Chỉnh sửa phiếu đề xuất' : 'Phiếu đề xuất mua AI'));
+
+const tabIndex = computed(() => TABS.findIndex((t) => t.key === activeTab.value));
 
 function defaultForm() {
     const d = props.proposalDefaults ?? {};
@@ -133,14 +190,15 @@ function populateFromProposal(row) {
         subject_about: subject !== autoSubject ? subject : '',
         send_to: row.send_to ?? SEND_TO_DEFAULT,
     });
-    showAdvanced.value = Boolean(form.subject_about) || form.send_to !== SEND_TO_DEFAULT;
+    if (form.subject_about || form.send_to !== SEND_TO_DEFAULT) {
+        activeTab.value = 'more';
+    }
 }
 
 watch(() => props.show, (open) => {
     if (!open) return;
     dirty.value = false;
-    showPreview.value = false;
-    showAdvanced.value = false;
+    activeTab.value = 'proposer';
     resetPreview();
     selectedProposerId.value = props.proposalDefaults?.proposer_employee_id ?? null;
     if (props.editProposal?.id) {
@@ -174,6 +232,11 @@ function applyToolTemplate() {
     if (!form.registration_email && tpl.registration_email) {
         form.registration_email = tpl.registration_email;
     }
+    onInput();
+}
+
+function applySendToPreset(text) {
+    form.send_to = text;
     onInput();
 }
 
@@ -220,7 +283,7 @@ function buildSubmitPayload() {
     };
 }
 
-const previewSection = computed(() => (showPreview.value ? 'preview' : 'form'));
+const previewSection = computed(() => (activeTab.value === 'preview' ? 'preview' : 'form'));
 
 const {
     html: previewHtml,
@@ -229,8 +292,20 @@ const {
     reset: resetPreview,
 } = useProposalPdfPreview(form, previewSection, buildSubmitPayload);
 
+function goTab(key) {
+    activeTab.value = key;
+}
+
+function goAdjacent(delta) {
+    const next = Math.min(TABS.length - 1, Math.max(0, tabIndex.value + delta));
+    activeTab.value = TABS[next].key;
+}
+
 function handleSubmit() {
-    if (!costPreviewAmount.value) return;
+    if (!costPreviewAmount.value) {
+        activeTab.value = 'tool';
+        return;
+    }
     emit('submit', {
         id: props.editProposal?.id ?? null,
         ...buildSubmitPayload(),
@@ -242,26 +317,57 @@ function handleSubmit() {
   <Modal
     :show="show"
     :title="modalTitle"
-    max-width="max-w-3xl"
+    max-width="max-w-6xl"
     :dirty="dirty"
     @close="emit('close')"
   >
-    <p class="mb-4 text-sm text-slate-600">
-      Chỉ nhập thông tin cần in trên phiếu PDX. Trích yếu, kính gửi và người tiếp nhận được điền tự động từ các ô bên dưới.
+    <p class="mb-3 text-sm text-slate-600">
+      Gõ để gợi ý từ danh mục nhân sự, công cụ AI và phiếu trước. Trích yếu &amp; người tiếp nhận tự điền khi gửi.
     </p>
 
-    <form @submit.prevent="handleSubmit">
-      <fieldset class="mb-6 space-y-4 rounded-xl border border-slate-100 bg-slate-50/50 p-4">
-        <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Người đề xuất
-        </legend>
-        <ProposerEmployeePick
-          v-model="selectedProposerId"
-          :employees="formLookups.employees"
-          :initial-label="form.proposer_name"
-          @pick="onProposerPicked"
-        />
-        <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+    <form
+      class="flex min-h-[520px] flex-col"
+      @submit.prevent="handleSubmit"
+    >
+      <div
+        class="mb-4 flex flex-wrap gap-1 border-b border-slate-200 pb-2"
+        role="tablist"
+      >
+        <button
+          v-for="tab in TABS"
+          :key="tab.key"
+          type="button"
+          role="tab"
+          class="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition"
+          :class="activeTab === tab.key
+            ? 'bg-brand text-white shadow-sm'
+            : 'text-slate-600 hover:bg-slate-100'"
+          :aria-selected="activeTab === tab.key"
+          @click="goTab(tab.key)"
+        >
+          <AppIcon
+            :name="tab.icon"
+            :size="14"
+          />
+          {{ tab.label }}
+        </button>
+      </div>
+
+      <div class="min-h-0 flex-1 overflow-y-auto px-0.5">
+        <!-- Tab: Người đề xuất -->
+        <div
+          v-show="activeTab === 'proposer'"
+          class="grid grid-cols-1 gap-5 lg:grid-cols-2"
+        >
+          <div class="lg:col-span-2">
+            <label class="label">Tìm nhân sự (gợi ý tên, mã, email)</label>
+            <ProposerEmployeePick
+              v-model="selectedProposerId"
+              :employees="formLookups.employees"
+              :initial-label="form.proposer_name"
+              @pick="onProposerPicked"
+            />
+          </div>
           <div>
             <label class="label">Họ &amp; tên <span class="text-danger">*</span></label>
             <input
@@ -269,6 +375,7 @@ function handleSubmit() {
               type="text"
               required
               class="input w-full"
+              autocomplete="name"
               @input="onInput"
             >
           </div>
@@ -277,9 +384,19 @@ function handleSubmit() {
             <input
               v-model="form.proposer_position"
               type="text"
+              list="proposal-role-titles"
               class="input w-full"
+              placeholder="Gõ hoặc chọn gợi ý"
+              autocomplete="organization-title"
               @input="onInput"
             >
+            <datalist id="proposal-role-titles">
+              <option
+                v-for="r in roleTitleSuggestions"
+                :key="r"
+                :value="r"
+              />
+            </datalist>
           </div>
           <div>
             <label class="label">Phòng ban</label>
@@ -288,6 +405,7 @@ function handleSubmit() {
               type="text"
               list="proposal-departments"
               class="input w-full"
+              autocomplete="organization"
               @input="onInput"
             >
             <datalist id="proposal-departments">
@@ -298,15 +416,53 @@ function handleSubmit() {
               />
             </datalist>
           </div>
+          <div>
+            <label class="label flex items-center gap-1">
+              Email (tiếp nhận trên phiếu)
+              <FieldTooltip text="Gợi ý từ email nhân sự và tài khoản AI đã có." />
+            </label>
+            <input
+              v-model="form.proposer_email"
+              type="email"
+              list="proposal-emails"
+              class="input w-full"
+              autocomplete="email"
+              @input="onInput"
+            >
+            <datalist id="proposal-emails">
+              <option
+                v-for="em in emailSuggestions"
+                :key="em"
+                :value="em"
+              />
+            </datalist>
+          </div>
+          <div>
+            <label class="label">Điện thoại</label>
+            <input
+              v-model="form.proposer_phone"
+              type="tel"
+              list="proposal-phones"
+              class="input w-full"
+              autocomplete="tel"
+              @input="onInput"
+            >
+            <datalist id="proposal-phones">
+              <option
+                v-for="ph in phoneSuggestions"
+                :key="ph"
+                :value="ph"
+              />
+            </datalist>
+          </div>
         </div>
-      </fieldset>
 
-      <fieldset class="mb-6 space-y-4 rounded-xl border border-slate-100 p-4">
-        <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Công cụ &amp; chi phí (mục 4 trên phiếu)
-        </legend>
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div class="sm:col-span-2">
+        <!-- Tab: Công cụ & chi phí -->
+        <div
+          v-show="activeTab === 'tool'"
+          class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3"
+        >
+          <div class="sm:col-span-2 lg:col-span-3">
             <label class="label">Công cụ / sản phẩm <span class="text-danger">*</span></label>
             <input
               v-model="form.tool_name"
@@ -314,7 +470,7 @@ function handleSubmit() {
               required
               list="proposal-tools"
               class="input w-full"
-              placeholder="VD: Cursor Pro, Claude Team"
+              placeholder="Chọn hoặc gõ tên công cụ"
               @input="onInput"
               @blur="applyToolTemplate"
             >
@@ -355,7 +511,7 @@ function handleSubmit() {
             >
             <datalist id="proposal-license-types">
               <option
-                v-for="t in options.license_types"
+                v-for="t in licenseSuggestions"
                 :key="t"
                 :value="t"
               />
@@ -382,15 +538,14 @@ function handleSubmit() {
                 · ~<VndAmount
                   :amount="monthlyCost"
                   inline
-                />/tháng trên phiếu
+                />/tháng
               </span>
             </p>
           </div>
           <div>
-            <label class="label">Chu kỳ <span class="text-danger">*</span></label>
+            <label class="label">Chu kỳ</label>
             <select
               v-model="form.cost_unit"
-              required
               class="input w-full"
               @change="onInput"
             >
@@ -404,10 +559,7 @@ function handleSubmit() {
             </select>
           </div>
           <div>
-            <label class="label flex items-center gap-1">
-              Số nhân sự
-              <FieldTooltip text="Dùng cho số lượng trên bảng ngân sách và mục 4.2 trên phiếu." />
-            </label>
+            <label class="label">Số nhân sự</label>
             <input
               v-model="form.staff_count"
               type="number"
@@ -441,100 +593,108 @@ function handleSubmit() {
               @input="onInput"
             >
           </div>
-          <div>
+          <div class="sm:col-span-2">
             <label class="label">Email đăng ký tài khoản</label>
             <input
               v-model="form.registration_email"
               type="email"
+              list="proposal-reg-emails"
               class="input w-full"
-              placeholder="Tùy chọn — in ở mục 4.5 nếu có"
+              placeholder="Gợi ý từ nhân sự / tài khoản AI"
               @input="onInput"
             >
+            <datalist id="proposal-reg-emails">
+              <option
+                v-for="em in emailSuggestions"
+                :key="`reg-${em}`"
+                :value="em"
+              />
+            </datalist>
           </div>
         </div>
-      </fieldset>
 
-      <fieldset class="mb-4 space-y-3 rounded-xl border border-slate-100 p-4">
-        <legend class="px-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Nội dung in trên phiếu (mục 2–3)
-        </legend>
-        <div>
-          <label class="label">Nội dung đề xuất <span class="text-danger">*</span></label>
-          <textarea
-            v-model="form.proposal_content"
-            rows="4"
-            required
-            minlength="20"
-            class="input w-full"
-            placeholder="Team nào dùng, trong bao lâu, lý do chính…"
-            @input="onInput"
-          />
-        </div>
-        <div>
-          <div class="mb-1 flex items-center justify-between gap-2">
-            <label class="label mb-0">Mục tiêu (tùy chọn)</label>
-            <button
-              type="button"
-              class="text-xs font-medium text-brand hover:underline"
-              @click="fillSampleObjectives"
-            >
-              Dùng mẫu
-            </button>
+        <!-- Tab: Nội dung -->
+        <div v-show="activeTab === 'content'">
+          <div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
+            <div class="lg:col-span-2">
+              <label class="label">Nội dung đề xuất <span class="text-danger">*</span></label>
+              <textarea
+                v-model="form.proposal_content"
+                rows="5"
+                required
+                minlength="20"
+                class="input w-full"
+                @input="onInput"
+              />
+            </div>
+            <div class="lg:col-span-2">
+              <div class="mb-1 flex items-center justify-between">
+                <label class="label mb-0">Mục tiêu (tùy chọn)</label>
+                <button
+                  type="button"
+                  class="text-xs font-medium text-brand hover:underline"
+                  @click="fillSampleObjectives"
+                >
+                  Dùng mẫu
+                </button>
+              </div>
+              <textarea
+                v-model="form.objectives"
+                rows="4"
+                class="input w-full text-sm"
+                placeholder="Mỗi dòng một ý"
+                @input="onInput"
+              />
+            </div>
           </div>
-          <textarea
-            v-model="form.objectives"
-            rows="3"
-            class="input w-full text-sm"
-            placeholder="Mỗi dòng một ý — bỏ trống nếu không cần mục 3"
-            @input="onInput"
-          />
         </div>
-      </fieldset>
 
-      <details
-        class="mb-4 rounded-lg border border-slate-100 bg-white"
-        :open="showAdvanced"
-        @toggle="showAdvanced = $event.target.open"
-      >
-        <summary class="cursor-pointer px-4 py-2.5 text-sm font-medium text-slate-700">
-          Tùy chỉnh trích yếu &amp; kính gửi
-        </summary>
-        <div class="space-y-3 border-t border-slate-100 px-4 py-3">
+        <!-- Tab: Tùy chỉnh -->
+        <div
+          v-show="activeTab === 'more'"
+          class="max-w-3xl space-y-4"
+        >
           <p class="text-xs text-slate-500">
-            Mặc định trích yếu:
+            Trích yếu mặc định:
             <span class="font-medium text-slate-700">{{ derivedSubject || '—' }}</span>
           </p>
           <div>
-            <label class="label">Trích yếu khác (ghi đè)</label>
+            <label class="label">Trích yếu (ghi đè)</label>
             <input
               v-model="form.subject_about"
               type="text"
               class="input w-full"
-              placeholder="Để trống = dùng mặc định theo tên công cụ"
+              placeholder="Để trống = theo tên công cụ"
               @input="onInput"
             >
           </div>
           <div>
             <label class="label">Kính gửi</label>
+            <div
+              v-if="sendToPresets.length"
+              class="mb-2 flex flex-wrap gap-1.5"
+            >
+              <button
+                v-for="(preset, idx) in sendToPresets"
+                :key="idx"
+                type="button"
+                class="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs text-slate-600 hover:border-brand/40 hover:text-brand"
+                @click="applySendToPreset(preset)"
+              >
+                {{ preset.split('\n')[0] }}{{ preset.includes('\n') ? '…' : '' }}
+              </button>
+            </div>
             <textarea
               v-model="form.send_to"
-              rows="2"
-              class="input w-full text-sm"
+              rows="3"
+              class="input w-full font-mono text-sm leading-relaxed"
               @input="onInput"
             />
           </div>
         </div>
-      </details>
 
-      <details
-        class="mb-6 rounded-lg border border-slate-200"
-        :open="showPreview"
-        @toggle="showPreview = $event.target.open"
-      >
-        <summary class="cursor-pointer px-4 py-2.5 text-sm font-medium text-slate-700">
-          Xem trước phiếu (PDF)
-        </summary>
-        <div class="border-t border-slate-100 px-4 py-3">
+        <!-- Tab: Xem trước -->
+        <div v-show="activeTab === 'preview'">
           <p
             v-if="previewError"
             class="mb-2 text-sm text-rose-600"
@@ -543,43 +703,63 @@ function handleSubmit() {
           </p>
           <p
             v-if="previewLoading"
-            class="text-xs text-slate-500"
+            class="text-sm text-slate-500"
           >
-            Đang tải…
+            Đang tải bản xem trước…
           </p>
           <div
             v-else-if="previewHtml"
-            class="proposal-pdf-preview max-h-[50vh] overflow-auto rounded border border-slate-100 bg-white p-2"
+            class="proposal-pdf-preview max-h-[min(60vh,520px)] overflow-auto rounded-lg border border-slate-200 bg-white p-3"
             v-html="previewHtml"
           />
           <p
             v-else
-            class="text-xs text-slate-500"
+            class="text-sm text-slate-500"
           >
-            Mở mục này để xem bản in trước khi gửi.
+            Điền các tab trước rồi quay lại đây để xem phiếu in.
           </p>
         </div>
-      </details>
+      </div>
 
-      <div class="flex justify-end gap-2 border-t border-slate-100 pt-4">
-        <button
-          type="button"
-          class="btn-secondary"
-          @click="emit('close')"
-        >
-          Huỷ
-        </button>
-        <button
-          type="submit"
-          class="btn-primary"
-        >
-          <AppIcon
-            name="send"
-            :size="14"
-            class="mr-1 inline"
-          />
-          {{ isEditing ? 'Lưu thay đổi' : 'Gửi phiếu' }}
-        </button>
+      <div class="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-4">
+        <div class="flex gap-2">
+          <button
+            type="button"
+            class="btn-ghost text-sm"
+            :disabled="tabIndex <= 0"
+            @click="goAdjacent(-1)"
+          >
+            Quay lại
+          </button>
+          <button
+            v-if="activeTab !== 'preview'"
+            type="button"
+            class="btn-secondary text-sm"
+            @click="goAdjacent(1)"
+          >
+            Tiếp theo
+          </button>
+        </div>
+        <div class="flex gap-2">
+          <button
+            type="button"
+            class="btn-secondary"
+            @click="emit('close')"
+          >
+            Huỷ
+          </button>
+          <button
+            type="submit"
+            class="btn-primary"
+          >
+            <AppIcon
+              name="send"
+              :size="14"
+              class="mr-1 inline"
+            />
+            {{ isEditing ? 'Lưu' : 'Gửi phiếu' }}
+          </button>
+        </div>
       </div>
     </form>
   </Modal>
