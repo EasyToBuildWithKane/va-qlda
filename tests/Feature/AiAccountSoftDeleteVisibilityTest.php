@@ -77,6 +77,21 @@ class AiAccountSoftDeleteVisibilityTest extends TestCase
         $this->deleteJson(route('api.ai-accounts.destroy', ['aiAccount' => $accountId]))->assertOk();
         $this->assertSoftDeleted('ai_accounts', ['id' => $accountId]);
 
+        $proposal->refresh();
+        $this->assertNotNull(
+            $proposal->ai_account_id,
+            'Soft delete must not null ai_account_id — budget must exclude via active account check.',
+        );
+        $this->assertFalse(
+            AiPurchaseProposal::query()->whereKey($proposal->id)->whereHas('aiAccount')->exists(),
+            'whereHas(aiAccount) must not match soft-deleted accounts.',
+        );
+        $this->assertCount(
+            0,
+            app(AiAccountCountableProposalCost::class)->countableProposals(),
+            'Approved proposal linked to soft-deleted account must not count in budget.',
+        );
+
         $index = $this->getJson(route('api.ai-accounts.index'))->assertOk()->json('data');
         $allAccounts = collect($index['groups'] ?? [])->flatMap(fn ($g) => $g['accounts'] ?? []);
         $this->assertEmpty($allAccounts->firstWhere('id', $accountId));
