@@ -85,6 +85,38 @@ class AiAccountTest extends TestCase
             );
     }
 
+    public function test_employee_search_for_proposal_picker(): void
+    {
+        $this->actingAsUser();
+
+        $employee = \App\Models\Employee::factory()->create([
+            'full_name' => 'Bùi Quang Toàn',
+            'email' => 'toan.bui@hcm.vaschools.edu.vn',
+            'code' => 'NV-TOAN',
+        ]);
+
+        $byQuery = $this->getJson(route('api.ai-accounts.employees.search', ['q' => 'Quang Toàn']))
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->json('data.employees');
+
+        $this->assertNotEmpty($byQuery);
+        $this->assertSame('Bùi Quang Toàn', $byQuery[0]['name']);
+
+        $byId = $this->getJson(route('api.ai-accounts.employees.search', ['id' => $employee->id]))
+            ->assertOk()
+            ->json('data.employees');
+
+        $this->assertCount(1, $byId);
+        $this->assertSame($employee->id, $byId[0]['id']);
+
+        $folded = $this->getJson(route('api.ai-accounts.employees.search', ['q' => 'bui quang toan']))
+            ->assertOk()
+            ->json('data.employees');
+
+        $this->assertNotEmpty($folded);
+    }
+
     public function test_can_create_and_list_grouped(): void
     {
         $user = $this->actingAsUser();

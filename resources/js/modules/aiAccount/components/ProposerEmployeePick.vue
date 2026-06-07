@@ -2,6 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
+import { httpGet } from '@/shared/services/http';
 import { matchesSearchQuery, normalizeSearchKey } from '@/shared/utils/normalizeSearchKey';
 
 const props = defineProps({
@@ -18,28 +19,37 @@ const panelRef = ref(null);
 const open = ref(false);
 const query = ref('');
 const panelStyle = ref({});
+const remoteEmployees = ref([]);
+const searching = ref(false);
+const searchError = ref(false);
 
-const employeeOptions = computed(() =>
-    (props.employees ?? []).map((e) => ({
+let debounceTimer;
+let fetchGen = 0;
+
+function mapRow(e) {
+    return {
         ...e,
         subtitle: [e.role_title, e.department, e.email, e.code].filter(Boolean).join(' · '),
-    })),
-);
+    };
+}
+
+const employeeOptions = computed(() => {
+    const q = query.value.trim();
+    const remote = remoteEmployees.value ?? [];
+    if (q && remote.length) {
+        return remote.map(mapRow);
+    }
+    if (remote.length) {
+        return remote.map(mapRow);
+    }
+    return (props.employees ?? []).map(mapRow);
+});
 
 const selected = computed(() =>
     employeeOptions.value.find((e) => String(e.id) === String(props.modelValue)) ?? null,
 );
 
-function filterEmployees(list, q) {
-    const trimmed = q.trim();
-    if (!trimmed) return list.slice(0, 50);
-    return list.filter((e) => matchesSearchQuery(
-        [e.name, e.email, e.code, e.role_title, e.department],
-        trimmed,
-    ));
-}
-
-const filtered = computed(() => filterEmployees(employeeOptions.value, query.value));
+const filtered = computed(() => employeeOptions.value);
 
 function syncQueryFromSelection() {
     if (selected.value) {
@@ -51,7 +61,67 @@ function syncQueryFromSelection() {
     }
 }
 
-watch(() => [props.modelValue, props.initialLabel, props.employees], syncQueryFromSelection, { immediate: true });
+watch(() => [props.modelValue, props.initialLabel], syncQueryFromSelection, { immediate: true });
+
+async function fetchEmployees({ q = '', id = null } = {}) {
+    const gen = ++fetchGen;
+    searching.value = true;
+    searchError.value = false;
+    try {
+        const params = {};
+        if (id != null) {
+            params.id = id;
+        } else {
+            params.q = q;
+        }
+        const res = await httpGet(route('api.ai-accounts.employees.search'), { params });
+        if (gen !== fetchGen) {
+            return;
+        }
+        remoteEmployees.value = res.data?.employees ?? [];
+        if (id != null && remoteEmployees.value[0]) {
+            emit('pick', remoteEmployees.value[0]);
+        } else if (q && remoteEmployees.value.length) {
+            await nextTick();
+            tryResolveQuery();
+        }
+    } catch {
+        if (gen === fetchGen) {
+            searchError.value = true;
+            remoteEmployees.value = [];
+        }
+    } finally {
+        if (gen === fetchGen) {
+            searching.value = false;
+        }
+    }
+}
+
+function scheduleSearch() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+        fetchEmployees({ q: query.value.trim() });
+    }, 280);
+}
+
+watch(
+    () => props.modelValue,
+    (id) => {
+        if (id != null && id !== '') {
+            fetchEmployees({ id });
+        }
+    },
+    { immediate: true },
+);
+
+watch(query, (q) => {
+    open.value = true;
+    if (!q.trim()) {
+        scheduleSearch();
+        return;
+    }
+    scheduleSearch();
+});
 
 function pick(emp) {
     emit('update:modelValue', emp.id);
@@ -71,25 +141,40 @@ function onInput() {
     const q = query.value.trim();
     if (!q) {
         emit('update:modelValue', null);
+        scheduleSearch();
         return;
     }
+    scheduleSearch();
+}
+
+function tryResolveQuery() {
+    const q = query.value.trim();
+    if (!q) return;
     const exact = findExactByName(q);
     if (exact) {
         pick(exact);
         return;
     }
-    const matches = filterEmployees(employeeOptions.value, q);
-    if (matches.length === 1) {
-        pick(matches[0]);
-        return;
+    const local = employeeOptions.value.filter((e) =>
+        matchesSearchQuery([e.name, e.email, e.code, e.role_title, e.department], q),
+    );
+    if (local.length === 1) {
+        pick(local[0]);
     }
-    emit('update:modelValue', null);
 }
 
 function onEnter() {
     if (filtered.value.length > 0) {
         pick(filtered.value[0]);
+    } else {
+        tryResolveQuery();
     }
+}
+
+function onBlur() {
+    window.setTimeout(() => {
+        tryResolveQuery();
+    }, 200);
 }
 
 async function positionPanel() {
@@ -101,7 +186,7 @@ async function positionPanel() {
         position: 'fixed',
         left: `${rect.left}px`,
         top: `${rect.bottom + 4}px`,
-        width: `${rect.width}px`,
+        width: `${Math.max(rect.width, 280)}px`,
         zIndex: 250,
     };
 }
@@ -110,12 +195,16 @@ const onOutside = (e) => {
     const t = e.target;
     if (inputRef.value?.contains(t) || panelRef.value?.contains(t)) return;
     open.value = false;
+    tryResolveQuery();
     syncQueryFromSelection();
 };
 
 watch(open, async (isOpen) => {
     if (isOpen) {
         await positionPanel();
+        if (!remoteEmployees.value.length && !searching.value) {
+            fetchEmployees({ q: query.value.trim() });
+        }
         window.addEventListener('scroll', positionPanel, true);
         window.addEventListener('resize', positionPanel);
         document.addEventListener('mousedown', onOutside);
@@ -127,6 +216,7 @@ watch(open, async (isOpen) => {
 });
 
 onBeforeUnmount(() => {
+    clearTimeout(debounceTimer);
     window.removeEventListener('scroll', positionPanel, true);
     window.removeEventListener('resize', positionPanel);
     document.removeEventListener('mousedown', onOutside);
@@ -151,6 +241,7 @@ onBeforeUnmount(() => {
         autocomplete="off"
         @focus="open = true; positionPanel()"
         @input="onInput"
+        @blur="onBlur"
         @keydown.down.prevent="open = true"
         @keydown.enter.prevent="onEnter"
       >
@@ -159,7 +250,7 @@ onBeforeUnmount(() => {
         type="button"
         class="absolute right-2 top-1/2 grid h-6 w-6 -translate-y-1/2 place-items-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-600"
         aria-label="Xóa"
-        @click="query = ''; emit('update:modelValue', null); open = true"
+        @click="query = ''; emit('update:modelValue', null); scheduleSearch(); open = true"
       >
         <AppIcon
           name="close"
@@ -169,10 +260,22 @@ onBeforeUnmount(() => {
     </div>
 
     <p
-      v-if="query.trim() && open && filtered.length === 0 && employeeOptions.length"
+      v-if="searching"
+      class="mt-1 text-xs text-slate-400"
+    >
+      Đang tìm…
+    </p>
+    <p
+      v-else-if="searchError"
+      class="mt-1 text-xs text-rose-600"
+    >
+      Không tải được danh sách nhân sự. Thử lại hoặc nhập tay các ô bên dưới.
+    </p>
+    <p
+      v-else-if="query.trim() && open && filtered.length === 0"
       class="mt-1 text-xs text-slate-500"
     >
-      Không khớp ai — thử gõ ít từ hơn (VD: «Toàn» hoặc email), hoặc nhập tay họ tên bên dưới.
+      Không khớp ai — thử «Toàn», email hoặc mã NV, hoặc nhập tay họ tên bên dưới.
     </p>
 
     <Teleport to="body">

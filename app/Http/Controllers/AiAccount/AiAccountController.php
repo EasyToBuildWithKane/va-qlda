@@ -17,6 +17,7 @@ use App\Services\AiAccount\AiAccountReminderService;
 use App\Services\AiAccount\AiAccountStatusSync;
 use App\Services\AiAccount\AiPurchaseProposalPresenter;
 use App\Services\AiAccount\AiWorkflowMetricsBuilder;
+use App\Support\EmployeePickerMapper;
 use App\Support\Enums\AiAccountCostUnit;
 use App\Support\Enums\AiAccountGroupFunction;
 use App\Support\Enums\AiAccountRenewalPaymentStatus;
@@ -63,6 +64,29 @@ class AiAccountController extends Controller
                     'license_types' => config('ai_accounts.license_types', []),
                     'status' => AiAccountStatus::options(),
                 ],
+            ],
+        ]);
+    }
+
+    public function searchEmployees(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', AiAccount::class);
+
+        $id = $request->query('id');
+        $idInt = is_numeric($id) ? (int) $id : null;
+        $q = $request->query('q');
+        $query = is_string($q) ? $q : '';
+
+        $employees = EmployeePickerMapper::search(
+            $query,
+            40,
+            $idInt,
+        );
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'employees' => $employees,
             ],
         ]);
     }

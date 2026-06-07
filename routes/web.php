@@ -162,6 +162,7 @@ Route::middleware('auth')->group(function () {
     // AI accounts (JSON API + Inertia pages)
     Route::prefix('api/ai-accounts')->name('api.ai-accounts.')->group(function () {
         Route::get('/summary', [AiAccountController::class, 'summary'])->name('summary');
+        Route::get('/employees/search', [AiAccountController::class, 'searchEmployees'])->name('employees.search');
         Route::post('/trigger-reminder', [AiAccountController::class, 'triggerReminder'])->name('trigger-reminder');
         Route::get('/password-viewers', [AiAccountPasswordViewerController::class, 'index'])->name('password-viewers.index');
         Route::post('/password-viewers', [AiAccountPasswordViewerController::class, 'store'])->name('password-viewers.store');

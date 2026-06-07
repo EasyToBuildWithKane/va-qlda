@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AiAccount;
 use App\Models\AiPurchaseProposal;
 use App\Models\Employee;
+use App\Support\EmployeePickerMapper;
 use App\Support\Enums\AiAccountCostUnit;
 use App\Support\Enums\AiAccountGroupFunction;
 use App\Support\Enums\AiAccountStatus;
@@ -13,7 +14,6 @@ use App\Support\Enums\AiPurchaseProposalStatus;
 use App\Support\Enums\ProposalType;
 use App\Support\Enums\SystemRole;
 use App\Support\Options;
-use App\Support\PublicMediaUrl;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -138,21 +138,7 @@ class AiAccountPageController extends Controller
             ->values()
             ->all();
 
-        $employees = Employee::query()
-            ->orderBy('full_name')
-            ->get(['id', 'code', 'full_name', 'role_title', 'email', 'phone', 'meta', 'avatar_path'])
-            ->map(fn (Employee $e) => [
-                'id' => $e->id,
-                'code' => $e->code,
-                'name' => $e->full_name,
-                'role_title' => $e->role_title,
-                'email' => $e->email,
-                'phone' => $e->phone,
-                'department' => is_array($e->meta) ? ($e->meta['department_name'] ?? null) : null,
-                'avatar_path' => PublicMediaUrl::fromPublicDisk($e->avatar_path),
-            ])
-            ->values()
-            ->all();
+        $employees = EmployeePickerMapper::search(null, 50);
 
         $accountTemplates = AiAccount::query()
             ->orderBy('tool_name')

@@ -407,7 +407,7 @@ function handleSubmit() {
             />
             <ProposerEmployeePick
               v-model="selectedProposerId"
-              :employees="formLookups.employees"
+              :employees="props.formLookups?.employees ?? []"
               :initial-label="form.proposer_name"
               @pick="onProposerPicked"
             />
