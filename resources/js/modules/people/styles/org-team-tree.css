@@ -31,7 +31,6 @@
     z-index: 1;
 }
 
-/* Thân cây xuống nhánh con */
 .org-tree__branch:has(> .org-tree__children) > .org-tree__stack::after {
     content: '';
     display: block;
@@ -42,14 +41,19 @@
     border-radius: 1px;
 }
 
+/* --- Roster: trưởng nhóm trên, nhánh thành viên dưới --- */
+
 .org-tree__people {
     display: flex;
     flex-direction: column;
     align-items: center;
     margin-top: 0.25rem;
+    width: 100%;
+    max-width: 42rem;
 }
 
-.org-tree__people:has(.org-tree__people-list)::before {
+.org-tree__people:has(.org-tree__leader)::before,
+.org-tree__people:has(.org-tree__member-branches)::before {
     content: '';
     display: block;
     width: 2px;
@@ -58,35 +62,61 @@
     border-radius: 1px;
 }
 
-.org-tree__people-list {
+.org-tree__leader {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.org-tree__leader + .org-tree__member-branches::before {
+    content: '';
+    display: block;
+    width: 2px;
+    height: 0.875rem;
+    margin: 0.35rem auto 0;
+    background: rgb(203 213 225);
+    border-radius: 1px;
+}
+
+.org-tree__member-branches {
+    width: 100%;
+    padding: 0.5rem 0.25rem 0;
+}
+
+.org-tree__branch-columns {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 0.75rem 1rem;
-    padding: 0.75rem 0.5rem 0;
+    gap: 1rem 1.25rem;
+    list-style: none;
+    margin: 0;
+    padding: 0.75rem 0.25rem 0;
     position: relative;
 }
 
-.org-tree__people-list::before {
+.org-tree__member-branches:not(.org-tree__member-branches--solo) .org-tree__branch-columns::before {
     content: '';
     position: absolute;
     top: 0;
-    left: 12%;
-    right: 12%;
+    left: 10%;
+    right: 10%;
     height: 2px;
     background: rgb(203 213 225);
     border-radius: 1px;
 }
 
-.org-tree__people-item {
+.org-tree__branch-column {
     display: flex;
     flex-direction: column;
     align-items: center;
+    min-width: 7.5rem;
+    max-width: 11rem;
     position: relative;
     padding-top: 0.75rem;
+    list-style: none;
 }
 
-.org-tree__people-item::before {
+.org-tree__member-branches:not(.org-tree__member-branches--solo) .org-tree__branch-column::before {
     content: '';
     position: absolute;
     top: 0;
@@ -98,16 +128,41 @@
     border-radius: 1px;
 }
 
-.org-tree__people-list:has(.org-tree__people-item:only-child)::before {
-    display: none;
+.org-tree__member-branches--solo .org-tree__branch-columns {
+    padding-top: 0.25rem;
 }
 
-.org-tree__people-list:has(.org-tree__people-item:only-child) .org-tree__people-item {
+.org-tree__member-branches--solo .org-tree__branch-column {
     padding-top: 0;
 }
 
-.org-tree__people-list:has(.org-tree__people-item:only-child) .org-tree__people-item::before {
-    display: none;
+.org-tree__branch-label {
+    margin: 0 0 0.5rem;
+    padding: 0.15rem 0.5rem;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: rgb(100 116 139);
+    background: rgb(248 250 252);
+    border: 1px solid rgb(226 232 240);
+    border-radius: 9999px;
+}
+
+.org-tree__branch-members {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+}
+
+.org-tree__branch-member {
+    list-style: none;
+    width: 100%;
 }
 
 .org-tree__empty-hint {
@@ -116,7 +171,8 @@
     color: rgb(148 163 184);
 }
 
-/* Nhánh con (cấp team) */
+/* Nhánh con (nhóm team cấp dưới — tùy chọn, không bắt buộc thay nhánh thành viên) */
+
 .org-tree__children {
     display: flex;
     flex-wrap: wrap;

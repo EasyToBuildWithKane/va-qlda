@@ -83,7 +83,6 @@ function levelTone(level) {
 
 <style scoped>
 .org-team-node {
-    position: relative;
     min-width: 11.5rem;
     max-width: 16rem;
     overflow: hidden;
@@ -95,30 +94,8 @@ function levelTone(level) {
         0 4px 12px rgb(15 23 42 / 0.04);
 }
 
-.org-team-node::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    width: 4px;
-    background: rgb(148 163 184);
-}
-
-.org-team-node--l1::before {
-    background: #9a0036;
-}
-
-.org-team-node--l2::before {
-    background: rgb(100 116 139);
-}
-
-.org-team-node--l3::before {
-    background: rgb(203 213 225);
-}
-
 .org-team-node__head {
-    padding: 0.75rem 0.875rem 0.75rem 1rem;
+    padding: 0.75rem 0.875rem;
 }
 
 .org-team-node__level {
@@ -152,7 +129,7 @@ function levelTone(level) {
     display: flex;
     flex-wrap: wrap;
     gap: 0.25rem;
-    padding: 0.5rem 0.75rem 0.625rem 1rem;
+    padding: 0.5rem 0.75rem 0.625rem;
     border-top: 1px solid rgb(241 245 249);
 }
 

@@ -86,13 +86,13 @@ async function onDelete(node) {
       </p>
       <ul class="mt-2 list-inside list-disc space-y-1 text-xs">
         <li>
-          <strong>Cấp 1:</strong> Leader khối (vd. Nguyễn Anh Khoa — Leader Phần Mềm)
+          <strong>Cấp 1:</strong> Ban/khối — gán trưởng nhóm và thành viên; phân nhánh bằng «nhánh» trên từng người (không bắt buộc tạo nhóm cấp 2)
         </li>
         <li>
-          <strong>Cấp 2:</strong> Đội chức năng (vd. Đội ngũ Dev — 3 dev)
+          <strong>Nhánh:</strong> GVS, phần mềm phòng ban, trợ lý dự án… hiển thị thành cột dưới trưởng nhóm trên sơ đồ
         </li>
         <li>
-          <strong>Cấp 3:</strong> Tổ nhỏ / nhánh — gán nhánh GVS, phần mềm phòng ban hoặc trợ lý dự án cho từng người
+          <strong>Nhóm con (tùy chọn):</strong> Chỉ khi cần thêm đội/tổ cấp 2–3 — bấm «Nhóm con» trên thẻ nhóm
         </li>
       </ul>
     </div>

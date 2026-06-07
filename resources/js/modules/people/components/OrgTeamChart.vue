@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 import OrgTeamTeamNode from '@/modules/people/components/OrgTeamTeamNode.vue';
 import OrgTeamPeopleBranch from '@/modules/people/components/OrgTeamPeopleBranch.vue';
-import { useOrgTeamPeople, toIterableList } from '@/modules/people/composables/useOrgTeamPeople.js';
+import { useOrgTeamRoster, toIterableList } from '@/modules/people/composables/useOrgTeamPeople.js';
 import '@/modules/people/styles/org-team-tree.css';
 
 const props = defineProps({
@@ -12,7 +12,7 @@ const props = defineProps({
 
 const emit = defineEmits(['edit', 'add-child', 'delete']);
 
-const people = useOrgTeamPeople(() => ({
+const roster = useOrgTeamRoster(() => ({
     leader: props.node.leader,
     members: props.node.members,
 }));
@@ -27,7 +27,7 @@ const hasChildren = computed(() => childTeams.value.length > 0);
       <OrgTeamTeamNode
         :node="node"
         :can-manage="canManage"
-        :member-count="people.length"
+        :member-count="roster.totalCount"
         @edit="emit('edit', $event)"
         @add-child="emit('add-child', $event)"
         @delete="emit('delete', $event)"
@@ -39,7 +39,7 @@ const hasChildren = computed(() => childTeams.value.length > 0);
       />
 
       <p
-        v-if="!people.length"
+        v-if="!roster.totalCount"
         class="org-tree__empty-hint"
       >
         Chưa gán trưởng hoặc thành viên
