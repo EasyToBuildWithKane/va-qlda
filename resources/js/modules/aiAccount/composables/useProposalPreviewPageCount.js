@@ -4,13 +4,6 @@ import {
     highlightProposalPreviewPage,
 } from '@/modules/aiAccount/composables/useProposalPreviewPaginatedLayout';
 
-export {
-    PROPOSAL_PREVIEW_PAGE_HEIGHT_MM,
-    PROPOSAL_PREVIEW_PAGE_WIDTH_MM,
-    proposalPreviewSliceHeightMm,
-    mmToPx,
-} from '@/modules/aiAccount/composables/useProposalPreviewPaginatedLayout';
-
 /**
  * @param {import('vue').Ref<string>} htmlRef
  * @param {import('vue').Ref<HTMLElement|null>} measureHostRef
