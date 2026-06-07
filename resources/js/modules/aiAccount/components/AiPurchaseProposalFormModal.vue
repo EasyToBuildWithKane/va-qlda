@@ -36,13 +36,13 @@ const TABS = [
     { key: 'proposer', label: 'Người đề xuất', icon: 'account' },
     { key: 'tool', label: 'Công cụ & chi phí', icon: 'money' },
     { key: 'content', label: 'Nội dung phiếu', icon: 'edit' },
-    { key: 'more', label: 'Tùy chỉnh', icon: 'settings' },
     { key: 'preview', label: 'Xem trước', icon: 'pdf' },
 ];
 
 const dirty = ref(false);
 const activeTab = ref('proposer');
 const selectedProposerId = ref(null);
+const previewZoom = ref(1);
 
 const form = reactive({
     proposer_name: '',
@@ -61,8 +61,6 @@ const form = reactive({
     registration_email: '',
     proposal_content: '',
     objectives: '',
-    subject_about: '',
-    send_to: '',
 });
 
 const departmentNames = computed(() =>
@@ -96,19 +94,6 @@ const phoneSuggestions = computed(() => {
     return [...set];
 });
 
-const sendToPresets = computed(() => {
-    const list = props.formLookups.send_to ?? [];
-    const seen = new Set();
-    const out = [];
-    for (const raw of [SEND_TO_DEFAULT, ...list]) {
-        const v = String(raw ?? '').trim();
-        if (!v || seen.has(v)) continue;
-        seen.add(v);
-        out.push(v);
-    }
-    return out;
-});
-
 const licenseSuggestions = computed(() => {
     const fromConfig = props.options.license_types ?? [];
     const fromTpl = (props.formLookups.account_templates ?? []).map((t) => t.license_type).filter(Boolean);
@@ -130,8 +115,6 @@ const monthlyCost = computed(() => {
 });
 
 const derivedSubject = computed(() => {
-    const custom = form.subject_about.trim();
-    if (custom) return custom;
     const tool = form.tool_name.trim();
     return tool ? `Đăng ký sử dụng ${tool}` : '';
 });
@@ -162,15 +145,11 @@ function defaultForm() {
         registration_email: '',
         proposal_content: '',
         objectives: d.objectives ?? '',
-        subject_about: '',
-        send_to: d.send_to ?? SEND_TO_DEFAULT,
     };
 }
 
 function populateFromProposal(row) {
     const tool = row.tool_name ?? '';
-    const autoSubject = tool ? `Đăng ký sử dụng ${tool}` : '';
-    const subject = row.subject_about ?? '';
     Object.assign(form, {
         proposer_name: row.proposer_name ?? '',
         proposer_position: row.proposer_position ?? '',
@@ -188,11 +167,42 @@ function populateFromProposal(row) {
         registration_email: row.registration_email ?? '',
         proposal_content: row.proposal_content ?? row.justification ?? '',
         objectives: row.objectives ?? '',
-        subject_about: subject !== autoSubject ? subject : '',
-        send_to: row.send_to ?? SEND_TO_DEFAULT,
     });
-    if (form.subject_about || form.send_to !== SEND_TO_DEFAULT) {
-        activeTab.value = 'more';
+    syncProposerPickFromForm();
+}
+
+function findEmployeeById(id) {
+    if (id == null || id === '') return null;
+    return (props.formLookups.employees ?? []).find((e) => String(e.id) === String(id)) ?? null;
+}
+
+function findEmployeeByName(name) {
+    const q = String(name ?? '').trim().toLowerCase();
+    if (!q) return null;
+    return (props.formLookups.employees ?? []).find(
+        (e) => e.name?.trim().toLowerCase() === q,
+    ) ?? null;
+}
+
+function applyProposerEmployee(emp) {
+    if (!emp) return;
+    selectedProposerId.value = emp.id;
+    form.proposer_name = emp.name ?? '';
+    form.proposer_position = emp.role_title ?? '';
+    form.proposer_department = emp.department ?? '';
+    form.proposer_email = emp.email ?? '';
+    form.proposer_phone = emp.phone ?? '';
+}
+
+function syncProposerPickFromForm() {
+    const byId = findEmployeeById(selectedProposerId.value);
+    if (byId) {
+        applyProposerEmployee(byId);
+        return;
+    }
+    const byName = findEmployeeByName(form.proposer_name);
+    if (byName) {
+        applyProposerEmployee(byName);
     }
 }
 
@@ -200,22 +210,20 @@ watch(() => props.show, (open) => {
     if (!open) return;
     dirty.value = false;
     activeTab.value = 'proposer';
+    previewZoom.value = 1;
     resetPreview();
     selectedProposerId.value = props.proposalDefaults?.proposer_employee_id ?? null;
     if (props.editProposal?.id) {
         populateFromProposal(props.editProposal);
     } else {
         Object.assign(form, defaultForm());
+        syncProposerPickFromForm();
     }
 });
 
 function onProposerPicked(emp) {
     if (!emp) return;
-    form.proposer_name = emp.name ?? '';
-    form.proposer_position = emp.role_title ?? '';
-    if (emp.department) form.proposer_department = emp.department;
-    if (emp.email) form.proposer_email = emp.email;
-    if (emp.phone) form.proposer_phone = emp.phone;
+    applyProposerEmployee(emp);
     onInput();
 }
 
@@ -233,11 +241,6 @@ function applyToolTemplate() {
     if (!form.registration_email && tpl.registration_email) {
         form.registration_email = tpl.registration_email;
     }
-    onInput();
-}
-
-function applySendToPreset(text) {
-    form.send_to = text;
     onInput();
 }
 
@@ -259,7 +262,7 @@ function buildSubmitPayload() {
     return {
         proposal_type: 'ai_account',
         subject_about: derivedSubject.value,
-        send_to: form.send_to.trim() || SEND_TO_DEFAULT,
+        send_to: SEND_TO_DEFAULT,
         tool_name: tool,
         group_function: form.group_function,
         license_type: form.license_type.trim(),
@@ -300,6 +303,14 @@ function goTab(key) {
 function goAdjacent(delta) {
     const next = Math.min(TABS.length - 1, Math.max(0, tabIndex.value + delta));
     activeTab.value = TABS[next].key;
+}
+
+function previewZoomIn() {
+    previewZoom.value = Math.min(1.5, Math.round((previewZoom.value + 0.1) * 10) / 10);
+}
+
+function previewZoomOut() {
+    previewZoom.value = Math.max(0.5, Math.round((previewZoom.value - 0.1) * 10) / 10);
 }
 
 function handleSubmit() {
@@ -715,62 +726,19 @@ function handleSubmit() {
           </div>
         </div>
 
-        <!-- Tab: Tùy chỉnh -->
-        <div
-          v-show="activeTab === 'more'"
-          class="max-w-3xl space-y-4"
-        >
-          <p class="text-xs text-slate-500">
-            Trích yếu mặc định:
-            <span class="font-medium text-slate-700">{{ derivedSubject || '—' }}</span>
-          </p>
-          <div>
-            <ProposalFormLabel
-              label="Trích yếu (ghi đè)"
-              :tooltip="H.subject_about"
-            />
-            <input
-              v-model="form.subject_about"
-              type="text"
-              class="input w-full"
-              :placeholder="P.subject_about"
-              @input="onInput"
-            >
-          </div>
-          <div>
-            <ProposalFormLabel
-              label="Kính gửi"
-              :tooltip="H.send_to"
-            />
-            <div
-              v-if="sendToPresets.length"
-              class="mb-2 flex flex-wrap gap-1.5"
-            >
-              <button
-                v-for="(preset, idx) in sendToPresets"
-                :key="idx"
-                type="button"
-                class="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs text-slate-600 hover:border-brand/40 hover:text-brand"
-                @click="applySendToPreset(preset)"
-              >
-                {{ preset.split('\n')[0] }}{{ preset.includes('\n') ? '…' : '' }}
-              </button>
-            </div>
-            <textarea
-              v-model="form.send_to"
-              rows="4"
-              class="input w-full font-mono text-sm leading-relaxed"
-              :placeholder="P.send_to"
-              @input="onInput"
-            />
-          </div>
-        </div>
-
         <!-- Tab: Xem trước -->
-        <div v-show="activeTab === 'preview'">
+        <div
+          v-show="activeTab === 'preview'"
+          class="flex min-h-0 flex-1 flex-col gap-2"
+        >
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <p class="text-xs text-slate-500">
+              Bản xem trước khớp bố cục PDF in (A4, nền letterhead).
+            </p>
+          </div>
           <p
             v-if="previewError"
-            class="mb-2 text-sm text-rose-600"
+            class="text-sm text-rose-600"
           >
             {{ previewError }}
           </p>
@@ -782,9 +750,18 @@ function handleSubmit() {
           </p>
           <div
             v-else-if="previewHtml"
-            class="proposal-pdf-preview max-h-[min(68vh,640px)] min-h-[min(40vh,360px)] overflow-auto rounded-lg border border-slate-200 bg-white p-3"
-            v-html="previewHtml"
-          />
+            class="min-h-[min(52vh,480px)] flex-1 overflow-auto rounded-lg border border-slate-200 bg-slate-100/80 p-4"
+          >
+            <div
+              class="mx-auto origin-top transition-transform duration-150"
+              :style="{ transform: `scale(${previewZoom})`, width: '210mm' }"
+            >
+              <div
+                class="proposal-pdf-preview"
+                v-html="previewHtml"
+              />
+            </div>
+          </div>
           <p
             v-else
             class="text-sm text-slate-500"
@@ -795,7 +772,7 @@ function handleSubmit() {
       </div>
 
       <div class="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-4">
-        <div class="flex gap-2">
+        <div class="flex flex-wrap items-center gap-2">
           <button
             type="button"
             class="btn-ghost text-sm"
@@ -812,6 +789,34 @@ function handleSubmit() {
           >
             Tiếp theo
           </button>
+          <div
+            v-if="activeTab === 'preview' && previewHtml && !previewLoading"
+            class="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 p-0.5"
+          >
+            <button
+              type="button"
+              class="grid h-8 w-8 place-items-center rounded-md text-slate-600 hover:bg-white disabled:opacity-40"
+              title="Thu nhỏ"
+              aria-label="Thu nhỏ xem trước"
+              :disabled="previewZoom <= 0.5"
+              @click="previewZoomOut"
+            >
+              <span class="text-lg font-medium leading-none">−</span>
+            </button>
+            <span class="min-w-[2.75rem] text-center text-xs font-medium tabular-nums text-slate-600">
+              {{ Math.round(previewZoom * 100) }}%
+            </span>
+            <button
+              type="button"
+              class="grid h-8 w-8 place-items-center rounded-md text-slate-600 hover:bg-white disabled:opacity-40"
+              title="Phóng to"
+              aria-label="Phóng to xem trước"
+              :disabled="previewZoom >= 1.5"
+              @click="previewZoomIn"
+            >
+              <span class="text-lg font-medium leading-none">+</span>
+            </button>
+          </div>
         </div>
         <div class="flex gap-2">
           <button

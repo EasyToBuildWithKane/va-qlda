@@ -138,15 +138,7 @@ class AiAccountPageController extends Controller
             ->values()
             ->all();
 
-        $currentEmployeeId = $currentEmployee?->id;
-
         $employees = Employee::query()
-            ->where(function ($q) use ($currentEmployeeId) {
-                $q->where('is_active', true);
-                if ($currentEmployeeId) {
-                    $q->orWhere('id', $currentEmployeeId);
-                }
-            })
             ->orderBy('full_name')
             ->get(['id', 'code', 'full_name', 'role_title', 'email', 'phone', 'meta', 'avatar_path'])
             ->map(fn (Employee $e) => [

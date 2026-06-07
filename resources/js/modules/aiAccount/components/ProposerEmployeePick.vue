@@ -72,11 +72,17 @@ function onInput() {
         (e) => e.name?.trim().toLowerCase() === q.toLowerCase(),
     );
     if (exact) {
-        emit('update:modelValue', exact.id);
-        emit('pick', exact);
-    } else {
-        emit('update:modelValue', null);
+        pick(exact);
+        return;
     }
+    const matches = employeeOptions.value.filter((e) =>
+        matchesSearchQuery([e.name, e.email, e.code, e.role_title, e.department], q),
+    );
+    if (matches.length === 1) {
+        pick(matches[0]);
+        return;
+    }
+    emit('update:modelValue', null);
 }
 
 async function positionPanel() {
@@ -155,13 +161,7 @@ onBeforeUnmount(() => {
     </div>
 
     <p
-      v-if="!employeeOptions.length"
-      class="mt-1 text-xs text-amber-700"
-    >
-      Chưa có nhân sự active trong hệ thống — nhập tay các ô bên dưới.
-    </p>
-    <p
-      v-else-if="query.trim() && open && filtered.length === 0"
+      v-if="query.trim() && open && filtered.length === 0 && employeeOptions.length"
       class="mt-1 text-xs text-slate-500"
     >
       Không khớp ai — thử gõ ít từ hơn (VD: «Toàn» hoặc email), hoặc nhập tay họ tên bên dưới.
