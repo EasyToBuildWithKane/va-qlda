@@ -1,5 +1,6 @@
 <script setup>
-import { computed, provide, reactive, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, provide, reactive, ref, watch } from 'vue';
+import { useOverflowScrollHints } from '@/composables/useOverflowScrollHints';
 import { Link, usePage } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
 import UserMenu from '@/modules/project/components/UserMenu.vue';
@@ -121,6 +122,23 @@ const userInitials = computed(() => {
 const userAvatarSrc = computed(() => user.value?.employee?.avatar_path || null);
 const userDisplayName = computed(() => user.value?.display_name || user.value?.name || 'Người dùng');
 
+const { scrollEl: sidebarNavRef, edges: sidebarScrollEdges, onScroll: onSidebarNavScroll } =
+    useOverflowScrollHints([rail, nav, collapsed]);
+
+function scrollActiveNavItemIntoView() {
+    nextTick(() => {
+        const root = sidebarNavRef.value;
+        if (!root) return;
+        const active = root.querySelector('.sidebar-nav-item--active');
+        active?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        onSidebarNavScroll();
+    });
+}
+
+watch(activeHref, scrollActiveNavItemIntoView);
+watch(rail, () => nextTick(scrollActiveNavItemIntoView));
+onMounted(scrollActiveNavItemIntoView);
+
 </script>
 
 <template>
@@ -182,159 +200,179 @@ const userDisplayName = computed(() => user.value?.display_name || user.value?.n
         />
       </button>
 
-      <!-- ═══ Rail nav: flat icon strip ═══ -->
-      <nav
-        v-if="rail"
-        class="min-h-0 flex-1 overflow-y-auto py-3 flex flex-col items-center gap-0.5"
-      >
-        <template
-          v-for="(group, gi) in nav"
-          :key="groupKey(group)"
+      <!-- Vùng nav cuộn + gợi ý fade khi còn mục phía trên/dưới -->
+      <div class="relative flex min-h-0 flex-1 flex-col">
+        <div
+          v-show="sidebarScrollEdges.top"
+          class="pointer-events-none absolute inset-x-0 top-0 z-10 h-7 bg-gradient-to-b from-brand via-brand/90 to-transparent"
+          aria-hidden="true"
+        />
+        <div
+          v-show="sidebarScrollEdges.bottom"
+          class="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-7 bg-gradient-to-t from-brand via-brand/90 to-transparent"
+          aria-hidden="true"
+        />
+
+        <!-- ═══ Rail nav: flat icon strip ═══ -->
+        <nav
+          v-if="rail"
+          ref="sidebarNavRef"
+          class="sidebar-nav-scroll min-h-0 flex-1 overflow-y-auto py-3 flex flex-col items-center gap-0.5"
+          aria-label="Điều hướng chính"
+          @scroll="onSidebarNavScroll"
         >
-          <div
-            v-if="gi > 0"
-            class="w-8 my-1.5 border-t"
-            :class="isUpcomingGroup(group) ? 'border-amber-300/30' : 'border-white/[0.1]'"
-          />
-          <component
-            :is="isPlanned(item) ? 'div' : Link"
-            v-for="item in group.items"
-            :key="item.label"
-            :href="isPlanned(item) ? undefined : item.href"
-            :title="`${item.label}${isPlanned(item) ? ' · Sắp ra mắt' : ''}`"
-            class="relative grid h-10 w-10 place-items-center rounded-lg transition-colors"
-            :class="[
-              isActive(item.href)
-                ? 'bg-white/[0.12] text-white'
-                : 'text-brand-100/60 hover:bg-white/[0.07] hover:text-white',
-              isPlanned(item) && 'opacity-70 cursor-not-allowed hover:bg-amber-400/10 hover:text-amber-100/80',
-            ]"
+          <template
+            v-for="(group, gi) in nav"
+            :key="groupKey(group)"
           >
-            <AppIcon
-              :name="item.icon"
-              :size="19"
+            <div
+              v-if="gi > 0"
+              class="w-8 my-1.5 border-t"
+              :class="isUpcomingGroup(group) ? 'border-amber-300/30' : 'border-white/[0.1]'"
             />
-            <span
-              v-if="isPlanned(item)"
-              class="absolute -right-0.5 -top-0.5 grid h-3.5 w-3.5 place-items-center rounded-full bg-amber-400/90 ring-[1.5px] ring-brand"
+            <component
+              :is="isPlanned(item) ? 'div' : Link"
+              v-for="item in group.items"
+              :key="item.label"
+              :href="isPlanned(item) ? undefined : item.href"
+              :title="`${item.label}${isPlanned(item) ? ' · Sắp ra mắt' : ''}`"
+              class="relative grid h-10 w-10 place-items-center rounded-lg transition-colors"
+              :class="[
+                isActive(item.href)
+                  ? 'sidebar-nav-item--active bg-white/[0.12] text-white'
+                  : 'text-brand-100/60 hover:bg-white/[0.07] hover:text-white',
+                isPlanned(item) && 'opacity-70 cursor-not-allowed hover:bg-amber-400/10 hover:text-amber-100/80',
+              ]"
             >
               <AppIcon
-                name="clock"
-                :size="8"
-                class="text-brand"
+                :name="item.icon"
+                :size="19"
               />
-            </span>
-          </component>
-        </template>
-      </nav>
+              <span
+                v-if="isPlanned(item)"
+                class="absolute -right-0.5 -top-0.5 grid h-3.5 w-3.5 place-items-center rounded-full bg-amber-400/90 ring-[1.5px] ring-brand"
+              >
+                <AppIcon
+                  name="clock"
+                  :size="8"
+                  class="text-brand"
+                />
+              </span>
+            </component>
+          </template>
+        </nav>
 
-      <!-- ═══ Expanded nav ═══ -->
-      <nav
-        v-else
-        class="min-h-0 flex-1 overflow-y-auto px-3 py-4"
-      >
-        <div
-          v-for="(group, gi) in nav"
-          :key="groupKey(group)"
-          :class="[
-            gi > 0 ? 'mt-1.5 pt-1.5 border-t border-white/[0.07]' : '',
-            isUpcomingGroup(group) && 'mt-3 pt-3 border-t border-amber-300/25',
-          ]"
+        <!-- ═══ Expanded nav ═══ -->
+        <nav
+          v-else
+          ref="sidebarNavRef"
+          class="sidebar-nav-scroll min-h-0 flex-1 overflow-y-auto px-3 py-4 pr-2"
+          aria-label="Điều hướng chính"
+          @scroll="onSidebarNavScroll"
         >
-          <button
-            type="button"
-            class="group/head w-full flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all duration-150 select-none"
-            :class="isUpcomingGroup(group)
-              ? 'text-[10px] font-bold uppercase tracking-[0.14em] text-amber-100/90 bg-amber-400/12 border border-amber-300/25 hover:bg-amber-400/18 hover:text-amber-50'
-              : 'text-[10px] font-bold uppercase tracking-[0.14em] text-brand-100/50 hover:text-brand-100/75 hover:bg-white/[0.04]'"
-            @click="toggleGroup(group)"
+          <div
+            v-for="(group, gi) in nav"
+            :key="groupKey(group)"
+            :class="[
+              gi > 0 ? 'mt-1.5 pt-1.5 border-t border-white/[0.07]' : '',
+              isUpcomingGroup(group) && 'mt-3 pt-3 border-t border-amber-300/25',
+            ]"
           >
-            <AppIcon
-              :name="group.icon"
-              :size="13"
-              class="shrink-0 transition-opacity"
-              :class="isUpcomingGroup(group) ? 'text-amber-200/90' : 'opacity-55 group-hover/head:opacity-80'"
-            />
-            <span class="flex-1 text-left">{{ group.heading }}</span>
-            <span
-              v-if="isUpcomingGroup(group)"
-              class="shrink-0 rounded-full border border-amber-300/40 bg-amber-400/25 px-1.5 py-0.5 text-[9px] font-bold tabular-nums text-amber-50 leading-none"
+            <button
+              type="button"
+              class="group/head w-full flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all duration-150 select-none"
+              :class="isUpcomingGroup(group)
+                ? 'text-[10px] font-bold uppercase tracking-[0.14em] text-amber-100/90 bg-amber-400/12 border border-amber-300/25 hover:bg-amber-400/18 hover:text-amber-50'
+                : 'text-[10px] font-bold uppercase tracking-[0.14em] text-brand-100/50 hover:text-brand-100/75 hover:bg-white/[0.04]'"
+              @click="toggleGroup(group)"
             >
-              {{ group.items.length }}
-            </span>
-            <AppIcon
-              name="chevron"
-              :size="11"
-              class="shrink-0 opacity-40 transition-transform duration-200"
-              :class="isOpen(group) ? 'rotate-90' : 'rotate-0'"
-            />
-          </button>
+              <AppIcon
+                :name="group.icon"
+                :size="13"
+                class="shrink-0 transition-opacity"
+                :class="isUpcomingGroup(group) ? 'text-amber-200/90' : 'opacity-55 group-hover/head:opacity-80'"
+              />
+              <span class="flex-1 text-left">{{ group.heading }}</span>
+              <span
+                v-if="isUpcomingGroup(group)"
+                class="shrink-0 rounded-full border border-amber-300/40 bg-amber-400/25 px-1.5 py-0.5 text-[9px] font-bold tabular-nums text-amber-50 leading-none"
+              >
+                {{ group.items.length }}
+              </span>
+              <AppIcon
+                name="chevron"
+                :size="11"
+                class="shrink-0 opacity-40 transition-transform duration-200"
+                :class="isOpen(group) ? 'rotate-90' : 'rotate-0'"
+              />
+            </button>
 
-          <!--
+            <!--
                         ── Level 2: Navigation items list ──
                         15 px · normal case · icon + label
                         Active: brighter background + white text
                     -->
-          <ul
-            v-show="isOpen(group)"
-            class="mt-0.5 mb-0.5 space-y-px"
-            :class="isUpcomingGroup(group) && 'rounded-lg border border-amber-300/15 bg-amber-950/20 p-1'"
-          >
-            <li
-              v-for="item in group.items"
-              :key="item.label"
+            <ul
+              v-show="isOpen(group)"
+              class="mt-0.5 mb-0.5 space-y-px"
+              :class="isUpcomingGroup(group) && 'rounded-lg border border-amber-300/15 bg-amber-950/20 p-1'"
             >
-              <component
-                :is="isPlanned(item) ? 'div' : Link"
-                :href="isPlanned(item) ? undefined : item.href"
-                :title="isPlanned(item) ? 'Sắp ra mắt — chưa khả dụng' : undefined"
-                class="group/item flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[14px] leading-snug transition-all duration-150"
-                :class="[
-                  isActive(item.href)
-                    ? 'bg-white/[0.12] text-white font-semibold shadow-sm'
-                    : isUpcomingGroup(group)
-                      ? 'text-amber-100/65 hover:bg-amber-400/10 hover:text-amber-50'
-                      : 'text-brand-100/80 hover:bg-white/[0.06] hover:text-white',
-                  isPlanned(item) && 'cursor-not-allowed',
-                ]"
+              <li
+                v-for="item in group.items"
+                :key="item.label"
               >
-                <AppIcon
-                  :name="item.icon"
-                  :size="17"
-                  class="shrink-0 transition-opacity"
-                  :class="isActive(item.href) ? 'opacity-100' : 'opacity-55 group-hover/item:opacity-85'"
-                />
-
-                <span class="truncate flex-1">{{ item.label }}</span>
-
-                <span
-                  v-if="showBadge(item, group)"
-                  class="ml-auto shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold leading-none"
-                  :class="statusOf(item).pill"
+                <component
+                  :is="isPlanned(item) ? 'div' : Link"
+                  :href="isPlanned(item) ? undefined : item.href"
+                  :title="isPlanned(item) ? 'Sắp ra mắt — chưa khả dụng' : undefined"
+                  class="group/item flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[14px] leading-snug transition-all duration-150"
+                  :class="[
+                    isActive(item.href)
+                      ? 'sidebar-nav-item--active bg-white/[0.12] text-white font-semibold shadow-sm'
+                      : isUpcomingGroup(group)
+                        ? 'text-amber-100/65 hover:bg-amber-400/10 hover:text-amber-50'
+                        : 'text-brand-100/80 hover:bg-white/[0.06] hover:text-white',
+                    isPlanned(item) && 'cursor-not-allowed',
+                  ]"
                 >
-                  <span
-                    class="h-1.5 w-1.5 rounded-full"
-                    :class="statusOf(item).dot"
+                  <AppIcon
+                    :name="item.icon"
+                    :size="17"
+                    class="shrink-0 transition-opacity"
+                    :class="isActive(item.href) ? 'opacity-100' : 'opacity-55 group-hover/item:opacity-85'"
                   />
-                  {{ statusOf(item).label }}
-                </span>
 
-                <AppIcon
-                  v-else-if="isPlanned(item)"
-                  name="clock"
-                  :size="14"
-                  class="ml-auto shrink-0 text-amber-300/70"
-                />
+                  <span class="truncate flex-1">{{ item.label }}</span>
 
-                <span
-                  v-else-if="isActive(item.href)"
-                  class="ml-auto h-[6px] w-[6px] rounded-full bg-accent shrink-0"
-                />
-              </component>
-            </li>
-          </ul>
-        </div>
-      </nav>
+                  <span
+                    v-if="showBadge(item, group)"
+                    class="ml-auto shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold leading-none"
+                    :class="statusOf(item).pill"
+                  >
+                    <span
+                      class="h-1.5 w-1.5 rounded-full"
+                      :class="statusOf(item).dot"
+                    />
+                    {{ statusOf(item).label }}
+                  </span>
+
+                  <AppIcon
+                    v-else-if="isPlanned(item)"
+                    name="clock"
+                    :size="14"
+                    class="ml-auto shrink-0 text-amber-300/70"
+                  />
+
+                  <span
+                    v-else-if="isActive(item.href)"
+                    class="ml-auto h-[6px] w-[6px] rounded-full bg-accent shrink-0"
+                  />
+                </component>
+              </li>
+            </ul>
+          </div>
+        </nav>
+      </div>
 
       <!-- Status legend -->
       <div
