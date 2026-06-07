@@ -19,6 +19,7 @@ const styles = {
     green: 'bg-green-100 text-green-700 dark:bg-green-950/50 dark:text-green-300',
     cyan: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-950/50 dark:text-cyan-300',
     brand: 'bg-brand-100 text-brand-700 dark:bg-brand/20 dark:text-brand-100',
+    blue: 'bg-sky-100 text-sky-800 dark:bg-sky-950/50 dark:text-sky-300',
 };
 </script>
 

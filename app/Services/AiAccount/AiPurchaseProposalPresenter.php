@@ -276,7 +276,10 @@ class AiPurchaseProposalPresenter
                     'detail' => $paymentRequest['payment_request_code'] ?? '',
                 ];
             }
-            if (! empty($paymentRequest['reviewed_at']) && $paymentRequest['status'] === AiPaymentRequestStatus::Approved->value) {
+            if (! empty($paymentRequest['reviewed_at']) && in_array($paymentRequest['status'], [
+                AiPaymentRequestStatus::Approved->value,
+                AiPaymentRequestStatus::Paid->value,
+            ], true)) {
                 $events[] = [
                     'id' => 'dntt-approved',
                     'phase' => 'dntt',
@@ -307,7 +310,7 @@ class AiPurchaseProposalPresenter
             }
         }
 
-        usort($events, fn ($a, $b) => strcmp((string) $b['at'], (string) $a['at']));
+        usort($events, fn ($a, $b) => strcmp((string) $a['at'], (string) $b['at']));
 
         return $events;
     }
