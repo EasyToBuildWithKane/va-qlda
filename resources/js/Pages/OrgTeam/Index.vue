@@ -6,6 +6,7 @@ import PageHeader from '@/Components/Ui/PageHeader.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import OrgTeamChart from '@/modules/people/components/OrgTeamChart.vue';
 import OrgTeamFormModal from '@/modules/people/components/OrgTeamFormModal.vue';
+import OrgTeamPersonDetailDrawer from '@/modules/people/components/OrgTeamPersonDetailDrawer.vue';
 import { useDialog } from '@/composables/useDialog';
 
 defineProps({
@@ -19,6 +20,9 @@ const dialog = useDialog();
 const modalOpen = ref(false);
 const editing = ref(null);
 const presetParentId = ref(null);
+const pageMode = ref('view');
+const selectedPerson = ref(null);
+const personDrawerOpen = ref(false);
 
 function openCreate(parentId = null) {
     editing.value = null;
@@ -46,6 +50,15 @@ async function onDelete(node) {
     if (!ok) return;
     router.delete(`/org-teams/${node.id}`, { preserveScroll: true });
 }
+
+function onSelectPerson(person) {
+    selectedPerson.value = person;
+    personDrawerOpen.value = true;
+}
+
+function closePersonDrawer() {
+    personDrawerOpen.value = false;
+}
 </script>
 
 <template>
@@ -59,21 +72,52 @@ async function onDelete(node) {
         icon="org-teams"
         icon-color="brand"
       >
-        <template
-          v-if="can.create"
-          #actions
-        >
-          <button
-            type="button"
-            class="btn-primary flex items-center gap-1.5 text-sm"
-            @click="openCreate(null)"
-          >
-            <AppIcon
-              name="plus"
-              :size="15"
-            />
-            Thêm nhóm
-          </button>
+        <template #actions>
+          <div class="flex flex-wrap items-center gap-2">
+            <div
+              v-if="trees.length && can.create"
+              class="flex rounded-btn bg-slate-100 p-0.5"
+              role="tablist"
+              aria-label="Chế độ trang"
+            >
+              <button
+                type="button"
+                role="tab"
+                class="rounded px-3 py-1.5 text-xs font-medium transition-colors"
+                :class="pageMode === 'view'
+                  ? 'bg-white text-slate-800 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700'"
+                :aria-selected="pageMode === 'view'"
+                @click="pageMode = 'view'"
+              >
+                Xem sơ đồ
+              </button>
+              <button
+                type="button"
+                role="tab"
+                class="rounded px-3 py-1.5 text-xs font-medium transition-colors"
+                :class="pageMode === 'edit'
+                  ? 'bg-white text-slate-800 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700'"
+                :aria-selected="pageMode === 'edit'"
+                @click="pageMode = 'edit'"
+              >
+                Chỉnh sửa
+              </button>
+            </div>
+            <button
+              v-if="can.create && pageMode === 'edit'"
+              type="button"
+              class="btn-primary flex items-center gap-1.5 text-sm"
+              @click="openCreate(null)"
+            >
+              <AppIcon
+                name="plus"
+                :size="15"
+              />
+              Thêm nhóm
+            </button>
+          </div>
         </template>
       </PageHeader>
     </template>
@@ -94,7 +138,7 @@ async function onDelete(node) {
         v-if="can.create"
         type="button"
         class="btn-primary text-sm"
-        @click="openCreate(null)"
+        @click="pageMode = 'edit'; openCreate(null)"
       >
         Thêm nhóm
       </button>
@@ -104,6 +148,19 @@ async function onDelete(node) {
       v-else
       class="space-y-8"
     >
+      <p
+        v-if="pageMode === 'view'"
+        class="text-xs text-slate-500"
+      >
+        Bấm vào thẻ thành viên để xem chi tiết.
+      </p>
+      <p
+        v-else-if="can.create"
+        class="text-xs text-slate-500"
+      >
+        Chế độ chỉnh sửa — dùng menu trên thẻ nhóm để sửa hoặc xoá.
+      </p>
+
       <section
         v-for="root in trees"
         :key="root.id"
@@ -121,10 +178,12 @@ async function onDelete(node) {
           <ul class="org-tree org-tree--root flex min-w-min justify-center">
             <OrgTeamChart
               :node="root"
+              :edit-mode="pageMode === 'edit'"
               :can-manage="!!can.create"
               @edit="openEdit"
               @add-child="onAddChild"
               @delete="onDelete"
+              @select-person="onSelectPerson"
             />
           </ul>
         </div>
@@ -139,6 +198,12 @@ async function onDelete(node) {
       :preset-parent-id="presetParentId"
       @close="modalOpen = false"
       @saved="modalOpen = false"
+    />
+
+    <OrgTeamPersonDetailDrawer
+      :show="personDrawerOpen"
+      :person="selectedPerson"
+      @close="closePersonDrawer"
     />
   </AppLayout>
 </template>

@@ -1,8 +1,10 @@
 <script setup>
+import { onBeforeUnmount, ref, watch } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
 
 defineProps({
     node: { type: Object, required: true },
+    editMode: { type: Boolean, default: false },
     canManage: { type: Boolean, default: false },
 });
 
@@ -17,10 +19,41 @@ const levelClass = {
 function levelTone(level) {
     return levelClass[level] || 'org-team-node--l3';
 }
+
+const menuOpen = ref(false);
+const rootRef = ref(null);
+
+function closeMenu() {
+    menuOpen.value = false;
+}
+
+function toggleMenu() {
+    menuOpen.value = !menuOpen.value;
+}
+
+function onPointerDownOutside(e) {
+    if (rootRef.value?.contains(e.target)) {
+        return;
+    }
+    closeMenu();
+}
+
+watch(menuOpen, (open) => {
+    if (open) {
+        document.addEventListener('mousedown', onPointerDownOutside);
+    } else {
+        document.removeEventListener('mousedown', onPointerDownOutside);
+    }
+});
+
+onBeforeUnmount(() => {
+    document.removeEventListener('mousedown', onPointerDownOutside);
+});
 </script>
 
 <template>
   <article
+    ref="rootRef"
     class="org-team-node"
     :class="levelTone(node.level)"
   >
@@ -37,44 +70,66 @@ function levelTone(level) {
     </div>
 
     <div
-      v-if="canManage && node.can?.update"
-      class="org-team-node__actions"
+      v-if="editMode && canManage && node.can?.update"
+      class="org-team-node__manage"
     >
       <button
         type="button"
-        class="org-team-node__btn"
-        @click="emit('edit', node)"
+        class="org-team-node__manage-trigger"
+        :aria-expanded="menuOpen"
+        aria-haspopup="menu"
+        aria-label="Thao tác nhóm"
+        @click="toggleMenu"
       >
         <AppIcon
-          name="edit"
-          :size="12"
+          name="more-horizontal"
+          :size="16"
         />
-        Sửa
       </button>
-      <button
-        v-if="node.level < 2"
-        type="button"
-        class="org-team-node__btn"
-        @click="emit('add-child', node)"
+      <div
+        v-if="menuOpen"
+        class="org-team-node__menu"
+        role="menu"
       >
-        <AppIcon
-          name="plus"
-          :size="12"
-        />
-        Nhóm bên dưới
-      </button>
-      <button
-        v-if="node.can?.delete"
-        type="button"
-        class="org-team-node__btn org-team-node__btn--danger"
-        @click="emit('delete', node)"
-      >
-        <AppIcon
-          name="delete"
-          :size="12"
-        />
-        Xoá
-      </button>
+        <button
+          type="button"
+          role="menuitem"
+          class="org-team-node__menu-item"
+          @click="closeMenu(); emit('edit', node)"
+        >
+          <AppIcon
+            name="edit"
+            :size="14"
+          />
+          Sửa nhóm
+        </button>
+        <button
+          v-if="node.level < 2"
+          type="button"
+          role="menuitem"
+          class="org-team-node__menu-item"
+          @click="closeMenu(); emit('add-child', node)"
+        >
+          <AppIcon
+            name="plus"
+            :size="14"
+          />
+          Thêm nhóm con
+        </button>
+        <button
+          v-if="node.can?.delete"
+          type="button"
+          role="menuitem"
+          class="org-team-node__menu-item org-team-node__menu-item--danger"
+          @click="closeMenu(); emit('delete', node)"
+        >
+          <AppIcon
+            name="delete"
+            :size="14"
+          />
+          Xoá nhóm
+        </button>
+      </div>
     </div>
   </article>
 </template>
@@ -85,7 +140,7 @@ function levelTone(level) {
     z-index: 2;
     min-width: 12rem;
     max-width: 17rem;
-    overflow: hidden;
+    overflow: visible;
     background: #fff;
     border: 1px solid rgb(226 232 240);
     border-radius: 0.875rem;
@@ -168,34 +223,64 @@ function levelTone(level) {
     color: rgb(30 41 59);
 }
 
-.org-team-node__actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.25rem;
-    padding: 0.5rem 0.75rem 0.625rem;
+.org-team-node__manage {
+    position: relative;
     border-top: 1px solid rgb(241 245 249);
 }
 
-.org-team-node__btn {
-    display: inline-flex;
+.org-team-node__manage-trigger {
+    display: flex;
+    width: 100%;
     align-items: center;
-    gap: 0.25rem;
-    padding: 0.25rem 0.5rem;
-    font-size: 10px;
+    justify-content: center;
+    gap: 0.375rem;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.6875rem;
     font-weight: 500;
-    color: rgb(71 85 105);
-    background: #fff;
-    border: 1px solid rgb(226 232 240);
-    border-radius: 0.375rem;
-}
-
-.org-team-node__btn:hover {
+    color: rgb(100 116 139);
     background: rgb(248 250 252);
 }
 
-.org-team-node__btn--danger:hover {
+.org-team-node__manage-trigger:hover {
+    color: rgb(51 65 85);
+    background: rgb(241 245 249);
+}
+
+.org-team-node__menu {
+    position: absolute;
+    left: 0.5rem;
+    right: 0.5rem;
+    top: calc(100% + 0.25rem);
+    z-index: 20;
+    overflow: hidden;
+    border: 1px solid rgb(226 232 240);
+    border-radius: 0.5rem;
+    background: #fff;
+    box-shadow: 0 8px 24px rgb(15 23 42 / 0.12);
+}
+
+.org-team-node__menu-item {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: rgb(51 65 85);
+    text-align: left;
+    background: #fff;
+}
+
+.org-team-node__menu-item:hover {
+    background: rgb(248 250 252);
+}
+
+.org-team-node__menu-item--danger {
     color: rgb(190 18 60);
+}
+
+.org-team-node__menu-item--danger:hover {
     background: rgb(255 241 242);
-    border-color: rgb(254 205 211);
 }
 </style>

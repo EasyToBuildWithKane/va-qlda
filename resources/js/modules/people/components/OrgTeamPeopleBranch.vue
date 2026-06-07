@@ -4,10 +4,13 @@ import OrgTeamPersonNode from '@/modules/people/components/OrgTeamPersonNode.vue
 import { useOrgTeamRoster } from '@/modules/people/composables/useOrgTeamPeople.js';
 
 const props = defineProps({
+    teamName: { type: String, required: true },
     leader: { type: Object, default: null },
     members: { type: Array, default: () => [] },
     sections: { type: Array, default: () => [] },
 });
+
+const emit = defineEmits(['select-person']);
 
 const roster = useOrgTeamRoster(() => ({
     leader: props.leader,
@@ -22,12 +25,25 @@ const memberCards = computed(() => {
             cards.push({
                 ...person,
                 displayRole: group.title || person.role,
+                sectionLabel: group.title,
             });
         }
     }
 
     return cards;
 });
+
+function withTeamContext(person) {
+    return {
+        ...person,
+        teamName: props.teamName,
+        avatar: person.avatar,
+    };
+}
+
+function onSelect(person) {
+    emit('select-person', withTeamContext(person));
+}
 </script>
 
 <template>
@@ -42,8 +58,9 @@ const memberCards = computed(() => {
       <OrgTeamPersonNode
         :name="roster.leader.name"
         :avatar="roster.leader.avatar"
-        :role="roster.leader.role"
+        :role="roster.leader.roleTitle || roster.leader.role"
         :is-leader="true"
+        @select="onSelect(roster.leader)"
       />
     </div>
 
@@ -63,8 +80,10 @@ const memberCards = computed(() => {
           <OrgTeamPersonNode
             :name="person.name"
             :avatar="person.avatar"
-            :role="person.displayRole"
+            :role="person.displayRole || person.roleTitle"
+            :section-label="person.sectionLabel"
             :is-leader="false"
+            @select="onSelect(person)"
           />
         </li>
       </ul>

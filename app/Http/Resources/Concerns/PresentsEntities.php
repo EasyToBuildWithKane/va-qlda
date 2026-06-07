@@ -30,7 +30,7 @@ trait PresentsEntities
     }
 
     /**
-     * @return array{id:int, name:string, avatar_path:string|null}|null
+     * @return array{id:int, name:string, avatar_path:string|null, code?:string, email?:string|null, role_title?:string|null}|null
      */
     protected function person(?Employee $employee): ?array
     {
@@ -42,6 +42,9 @@ trait PresentsEntities
             'id' => $employee->id,
             'name' => $employee->full_name,
             'avatar_path' => PublicMediaUrl::fromPublicDisk($employee->avatar_path),
+            'code' => $employee->code,
+            'email' => $employee->email,
+            'role_title' => $employee->role_title,
         ];
     }
 }

@@ -24,7 +24,7 @@ export function toIterableList(value) {
 }
 
 /**
- * @typedef {{ key: string, name: string, avatar: string|null, role: string|null, isLeader: boolean }} OrgTeamPerson
+ * @typedef {{ key: string, employeeId: number, name: string, avatar: string|null, role: string|null, roleTitle: string|null, email: string|null, code: string|null, sectionTitle: string|null, branchLabel: string|null, isLeader: boolean }} OrgTeamPerson
  * @typedef {{ key: string, title: string|null, people: OrgTeamPerson[] }} OrgTeamSectionGroup
  */
 
@@ -43,16 +43,31 @@ export function useOrgTeamRoster(nodeOrProps) {
             .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
         const leaderId = leaderRaw?.id;
 
+        /** @param {object} emp @param {Partial<OrgTeamPerson>} extra */
+        function fromEmployee(emp, extra) {
+            return {
+                employeeId: emp.id,
+                name: emp.name,
+                avatar: emp.avatar_path ?? null,
+                roleTitle: emp.role_title ?? null,
+                email: emp.email ?? null,
+                code: emp.code ?? null,
+                role: null,
+                sectionTitle: null,
+                branchLabel: null,
+                isLeader: false,
+                ...extra,
+            };
+        }
+
         /** @type {OrgTeamPerson|null} */
         let leader = null;
         if (leaderRaw) {
-            leader = {
+            leader = fromEmployee(leaderRaw, {
                 key: `leader-${leaderRaw.id}`,
-                name: leaderRaw.name,
-                avatar: leaderRaw.avatar_path,
                 role: 'Trưởng nhóm',
                 isLeader: true,
-            };
+            });
         }
 
         /** @type {Map<number|null, OrgTeamPerson[]>} */
@@ -68,13 +83,14 @@ export function useOrgTeamRoster(nodeOrProps) {
             }
 
             const sectionId = m.section?.id ?? m.section_id ?? null;
-            const person = {
+            const sectionTitle = m.section?.title ?? null;
+            const branchLabel = m.branch?.label || null;
+            const person = fromEmployee(emp, {
                 key: `member-${m.id}`,
-                name: emp.name,
-                avatar: emp.avatar_path,
-                role: m.branch?.label || null,
-                isLeader: false,
-            };
+                role: branchLabel,
+                branchLabel,
+                sectionTitle,
+            });
 
             if (!bySection.has(sectionId)) {
                 bySection.set(sectionId, []);

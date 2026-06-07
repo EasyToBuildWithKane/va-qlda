@@ -7,10 +7,11 @@ import '@/modules/people/styles/org-team-tree.css';
 
 const props = defineProps({
     node: { type: Object, required: true },
+    editMode: { type: Boolean, default: false },
     canManage: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(['edit', 'add-child', 'delete']);
+const emit = defineEmits(['edit', 'add-child', 'delete', 'select-person']);
 
 const childTeams = computed(() => toIterableList(props.node.children));
 const hasChildren = computed(() => childTeams.value.length > 0);
@@ -21,6 +22,7 @@ const hasChildren = computed(() => childTeams.value.length > 0);
     <div class="org-tree__stack">
       <OrgTeamTeamNode
         :node="node"
+        :edit-mode="editMode"
         :can-manage="canManage"
         @edit="emit('edit', $event)"
         @add-child="emit('add-child', $event)"
@@ -28,9 +30,11 @@ const hasChildren = computed(() => childTeams.value.length > 0);
       />
 
       <OrgTeamPeopleBranch
+        :team-name="node.name"
         :leader="node.leader"
         :members="node.members"
         :sections="node.sections"
+        @select-person="emit('select-person', $event)"
       />
     </div>
 
@@ -42,10 +46,12 @@ const hasChildren = computed(() => childTeams.value.length > 0);
         v-for="child in childTeams"
         :key="child.id"
         :node="child"
+        :edit-mode="editMode"
         :can-manage="canManage"
         @edit="emit('edit', $event)"
         @add-child="emit('add-child', $event)"
         @delete="emit('delete', $event)"
+        @select-person="emit('select-person', $event)"
       />
     </ul>
   </li>
