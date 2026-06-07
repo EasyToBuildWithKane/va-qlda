@@ -54,6 +54,11 @@ class OrgTeam extends Model
         return $this->hasMany(OrgTeamMember::class)->orderBy('sort_order');
     }
 
+    public function sections(): HasMany
+    {
+        return $this->hasMany(OrgTeamSection::class)->orderBy('sort_order');
+    }
+
     /**
      * @return list<int>
      */

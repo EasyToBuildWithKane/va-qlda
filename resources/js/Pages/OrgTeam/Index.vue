@@ -12,8 +12,6 @@ defineProps({
     trees: { type: Array, default: () => [] },
     parentOptions: { type: Array, default: () => [] },
     employees: { type: Array, default: () => [] },
-    branchOptions: { type: Array, default: () => [] },
-    levelHints: { type: Object, default: () => ({}) },
     can: { type: Object, default: () => ({}) },
 });
 
@@ -41,7 +39,7 @@ function onAddChild(node) {
 async function onDelete(node) {
     const ok = await dialog.confirm({
         title: 'Xoá nhóm',
-        message: `Xoá «${node.name}» và toàn bộ nhóm con? Hành động không hoàn tác.`,
+        message: `Xoá «${node.name}» và các nhóm bên trong? Không thể hoàn tác.`,
         confirmLabel: 'Xoá',
         variant: 'danger',
     });
@@ -57,7 +55,7 @@ async function onDelete(node) {
     <template #header>
       <PageHeader
         title="Quản lý team"
-        subtitle="Sơ đồ tổ chức 3 cấp: ban/khối → đội nhóm → nhánh (GVS, phần mềm PB, trợ lý dự án)"
+        subtitle="Sơ đồ team và thành viên"
         icon="org-teams"
         icon-color="brand"
       >
@@ -74,28 +72,11 @@ async function onDelete(node) {
               name="plus"
               :size="15"
             />
-            Thêm nhóm gốc
+            Thêm nhóm
           </button>
         </template>
       </PageHeader>
     </template>
-
-    <div class="mb-4 rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
-      <p class="font-medium text-slate-800">
-        Gợi ý cấu trúc
-      </p>
-      <ul class="mt-2 list-inside list-disc space-y-1 text-xs">
-        <li>
-          <strong>Cấp 1:</strong> Ban/khối — gán trưởng nhóm và thành viên; phân nhánh bằng «nhánh» trên từng người (không bắt buộc tạo nhóm cấp 2)
-        </li>
-        <li>
-          <strong>Nhánh:</strong> GVS, phần mềm phòng ban, trợ lý dự án… hiển thị thành cột dưới trưởng nhóm trên sơ đồ
-        </li>
-        <li>
-          <strong>Nhóm con (tùy chọn):</strong> Chỉ khi cần thêm đội/tổ cấp 2–3 — bấm «Nhóm con» trên thẻ nhóm
-        </li>
-      </ul>
-    </div>
 
     <div
       v-if="!trees.length"
@@ -107,7 +88,7 @@ async function onDelete(node) {
         class="text-slate-300"
       />
       <p class="text-sm text-slate-600">
-        Chưa có sơ đồ team. Tạo nhóm cấp 1 để bắt đầu.
+        Chưa có team nào.
       </p>
       <button
         v-if="can.create"
@@ -115,7 +96,7 @@ async function onDelete(node) {
         class="btn-primary text-sm"
         @click="openCreate(null)"
       >
-        Tạo nhóm đầu tiên
+        Thêm nhóm
       </button>
     </div>
 
@@ -124,7 +105,7 @@ async function onDelete(node) {
       class="space-y-8"
     >
       <section
-        v-for="(root, idx) in trees"
+        v-for="root in trees"
         :key="root.id"
         class="overflow-hidden rounded-lg border border-slate-200 bg-white"
       >
@@ -133,9 +114,7 @@ async function onDelete(node) {
           class="border-b border-slate-100 px-4 py-2"
         >
           <p class="text-xs text-slate-500">
-            Sơ đồ {{ idx + 1 }}
-            <span class="text-slate-300">·</span>
-            <span class="font-medium text-slate-700">{{ root.name }}</span>
+            {{ root.name }}
           </p>
         </div>
         <div class="overflow-x-auto px-3 py-6 sm:px-6">
@@ -157,8 +136,6 @@ async function onDelete(node) {
       :team="editing"
       :parent-options="parentOptions"
       :employees="employees"
-      :branch-options="branchOptions"
-      :level-hints="levelHints"
       :preset-parent-id="presetParentId"
       @close="modalOpen = false"
       @saved="modalOpen = false"

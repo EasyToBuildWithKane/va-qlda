@@ -21,6 +21,11 @@ class OrgTeamMemberResource extends JsonResource
         return [
             'id' => $this->id,
             'employee' => $this->whenLoaded('employee', fn () => $this->person($this->employee)),
+            'section_id' => $this->section_id,
+            'section' => $this->whenLoaded('section', fn () => $this->section ? [
+                'id' => $this->section->id,
+                'title' => $this->section->title,
+            ] : null),
             'branch' => $this->enum($this->branch),
             'sort_order' => $this->sort_order,
         ];

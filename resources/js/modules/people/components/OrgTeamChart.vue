@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 import OrgTeamTeamNode from '@/modules/people/components/OrgTeamTeamNode.vue';
 import OrgTeamPeopleBranch from '@/modules/people/components/OrgTeamPeopleBranch.vue';
-import { useOrgTeamRoster, toIterableList } from '@/modules/people/composables/useOrgTeamPeople.js';
+import { toIterableList } from '@/modules/people/composables/useOrgTeamPeople.js';
 import '@/modules/people/styles/org-team-tree.css';
 
 const props = defineProps({
@@ -11,11 +11,6 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['edit', 'add-child', 'delete']);
-
-const roster = useOrgTeamRoster(() => ({
-    leader: props.node.leader,
-    members: props.node.members,
-}));
 
 const childTeams = computed(() => toIterableList(props.node.children));
 const hasChildren = computed(() => childTeams.value.length > 0);
@@ -27,7 +22,6 @@ const hasChildren = computed(() => childTeams.value.length > 0);
       <OrgTeamTeamNode
         :node="node"
         :can-manage="canManage"
-        :member-count="roster.totalCount"
         @edit="emit('edit', $event)"
         @add-child="emit('add-child', $event)"
         @delete="emit('delete', $event)"
@@ -36,14 +30,8 @@ const hasChildren = computed(() => childTeams.value.length > 0);
       <OrgTeamPeopleBranch
         :leader="node.leader"
         :members="node.members"
+        :sections="node.sections"
       />
-
-      <p
-        v-if="!roster.totalCount"
-        class="org-tree__empty-hint"
-      >
-        Chưa gán trưởng hoặc thành viên
-      </p>
     </div>
 
     <ul

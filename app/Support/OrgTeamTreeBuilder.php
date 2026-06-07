@@ -14,7 +14,7 @@ class OrgTeamTreeBuilder
     public static function forest(): array
     {
         $teams = OrgTeam::query()
-            ->with(['leader', 'members.employee'])
+            ->with(['leader', 'sections', 'members.employee', 'members.section'])
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();

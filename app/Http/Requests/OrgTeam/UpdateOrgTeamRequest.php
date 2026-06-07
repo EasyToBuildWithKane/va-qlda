@@ -10,6 +10,8 @@ use Illuminate\Validation\Validator;
 
 class UpdateOrgTeamRequest extends FormRequest
 {
+    use ValidatesOrgTeamSections;
+
     public function authorize(): bool
     {
         /** @var OrgTeam $team */
@@ -23,7 +25,7 @@ class UpdateOrgTeamRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        return array_merge([
             'name' => ['sometimes', 'required', 'string', 'max:255'],
             'parent_id' => ['nullable', 'integer', 'exists:org_teams,id'],
             'leader_id' => ['nullable', 'integer', 'exists:employees,id'],
@@ -33,7 +35,7 @@ class UpdateOrgTeamRequest extends FormRequest
             'members.*.employee_id' => ['required', 'integer', 'distinct', 'exists:employees,id'],
             'members.*.branch' => ['nullable', 'string', Rule::in(OrgTeamMemberBranch::values())],
             'members.*.sort_order' => ['nullable', 'integer', 'min:0', 'max:9999'],
-        ];
+        ], $this->sectionRules());
     }
 
     public function withValidator(Validator $validator): void
@@ -77,16 +79,7 @@ class UpdateOrgTeamRequest extends FormRequest
                 $v->errors()->add('parent_id', 'Cấu trúc tối đa 3 cấp.');
             }
 
-            if ($this->has('members') && $level === OrgTeam::MAX_LEVEL) {
-                foreach ($this->input('members', []) as $index => $row) {
-                    if (empty($row['branch'])) {
-                        $v->errors()->add(
-                            "members.{$index}.branch",
-                            'Ở cấp 3, mỗi thành viên cần chọn nhánh.',
-                        );
-                    }
-                }
-            }
+            $this->validateSectionIndexes($v);
         });
     }
 
@@ -98,6 +91,7 @@ class UpdateOrgTeamRequest extends FormRequest
         return [
             'name.required' => 'Vui lòng nhập tên nhóm.',
             'members.*.employee_id.distinct' => 'Mỗi thành viên chỉ được thêm một lần trong nhóm.',
+            'sections.*.title.required' => 'Vui lòng nhập tiêu đề nhánh.',
         ];
     }
 }

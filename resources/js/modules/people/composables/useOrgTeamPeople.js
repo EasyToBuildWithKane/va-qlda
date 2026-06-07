@@ -25,11 +25,11 @@ export function toIterableList(value) {
 
 /**
  * @typedef {{ key: string, name: string, avatar: string|null, role: string|null, isLeader: boolean }} OrgTeamPerson
- * @typedef {{ label: string, people: OrgTeamPerson[] }} OrgTeamMemberBranch
+ * @typedef {{ key: string, title: string|null, people: OrgTeamPerson[] }} OrgTeamSectionGroup
  */
 
 /**
- * @param {import('vue').MaybeRefOrGetter<{ leader?: object, members?: unknown }>} nodeOrProps
+ * @param {import('vue').MaybeRefOrGetter<{ leader?: object, members?: unknown, sections?: unknown }>} nodeOrProps
  */
 export function useOrgTeamRoster(nodeOrProps) {
     return computed(() => {
@@ -38,6 +38,9 @@ export function useOrgTeamRoster(nodeOrProps) {
             : nodeOrProps;
         const leaderRaw = source?.leader ?? null;
         const members = toIterableList(source?.members);
+        const sections = toIterableList(source?.sections)
+            .slice()
+            .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
         const leaderId = leaderRaw?.id;
 
         /** @type {OrgTeamPerson|null} */
@@ -52,8 +55,8 @@ export function useOrgTeamRoster(nodeOrProps) {
             };
         }
 
-        /** @type {Map<string, OrgTeamPerson[]>} */
-        const branchMap = new Map();
+        /** @type {Map<number|null, OrgTeamPerson[]>} */
+        const bySection = new Map();
 
         for (const m of members) {
             const emp = m.employee;
@@ -64,40 +67,70 @@ export function useOrgTeamRoster(nodeOrProps) {
                 continue;
             }
 
-            const branchLabel = m.branch?.label || 'Thành viên';
+            const sectionId = m.section?.id ?? m.section_id ?? null;
             const person = {
                 key: `member-${m.id}`,
                 name: emp.name,
                 avatar: emp.avatar_path,
-                role: branchLabel,
+                role: m.branch?.label || null,
                 isLeader: false,
             };
 
-            if (!branchMap.has(branchLabel)) {
-                branchMap.set(branchLabel, []);
+            if (!bySection.has(sectionId)) {
+                bySection.set(sectionId, []);
             }
-            branchMap.get(branchLabel).push(person);
+            bySection.get(sectionId).push(person);
         }
 
-        /** @type {OrgTeamMemberBranch[]} */
-        const branches = Array.from(branchMap.entries()).map(([label, people]) => ({
-            label,
-            people,
-        }));
+        /** @type {OrgTeamSectionGroup[]} */
+        const sectionGroups = [];
 
-        const memberCount = branches.reduce((sum, b) => sum + b.people.length, 0);
+        for (const section of sections) {
+            const people = bySection.get(section.id) ?? [];
+            if (people.length === 0) {
+                continue;
+            }
+            sectionGroups.push({
+                key: `section-${section.id}`,
+                title: section.title,
+                people,
+            });
+            bySection.delete(section.id);
+        }
+
+        const unassigned = bySection.get(null) ?? [];
+        if (unassigned.length > 0) {
+            sectionGroups.push({
+                key: 'section-unassigned',
+                title: null,
+                people: unassigned,
+            });
+        }
+
+        for (const [sectionId, people] of bySection.entries()) {
+            if (sectionId === null || !people.length) {
+                continue;
+            }
+            sectionGroups.push({
+                key: `section-orphan-${sectionId}`,
+                title: people[0]?.role || 'Thành viên',
+                people,
+            });
+        }
+
+        const memberCount = sectionGroups.reduce((sum, g) => sum + g.people.length, 0);
         const totalCount = (leader ? 1 : 0) + memberCount;
 
         return {
             leader,
-            branches,
+            sectionGroups,
             memberCount,
             totalCount,
         };
     });
 }
 
-/** @deprecated Dùng useOrgTeamRoster — giữ để tương thích nếu cần danh sách phẳng */
+/** @deprecated Dùng useOrgTeamRoster */
 export function useOrgTeamPeople(nodeOrProps) {
     const roster = useOrgTeamRoster(nodeOrProps);
 
@@ -106,8 +139,8 @@ export function useOrgTeamPeople(nodeOrProps) {
         if (roster.value.leader) {
             list.push(roster.value.leader);
         }
-        for (const branch of roster.value.branches) {
-            list.push(...branch.people);
+        for (const group of roster.value.sectionGroups) {
+            list.push(...group.people);
         }
 
         return list;

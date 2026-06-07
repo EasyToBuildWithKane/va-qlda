@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Models\Employee;
 use App\Models\OrgTeam;
 use App\Models\SystemAccount;
-use App\Support\Enums\OrgTeamMemberBranch;
 use App\Support\Enums\SystemRole;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -65,14 +64,22 @@ class OrgTeamTest extends TestCase
         $this->assertCount(3, $l2->members);
 
         $ba = Employee::factory()->create();
+        $dev = Employee::factory()->create();
         $this->actingAs($admin, 'system')
             ->post(route('org-teams.store'), [
                 'name' => 'Tổ BA',
                 'parent_id' => $l2->id,
+                'sections' => [
+                    ['title' => 'Nhánh GVS'],
+                ],
                 'members' => [
                     [
                         'employee_id' => $ba->id,
-                        'branch' => OrgTeamMemberBranch::Gvs->value,
+                        'section_index' => 0,
+                    ],
+                    [
+                        'employee_id' => $dev->id,
+                        'section_index' => 0,
                     ],
                 ],
             ])
@@ -80,7 +87,9 @@ class OrgTeamTest extends TestCase
 
         $l3 = OrgTeam::query()->where('name', 'Tổ BA')->first();
         $this->assertSame(3, $l3->level);
-        $this->assertSame(OrgTeamMemberBranch::Gvs, $l3->members->first()->branch);
+        $this->assertCount(1, $l3->sections);
+        $this->assertSame('Nhánh GVS', $l3->sections->first()->title);
+        $this->assertCount(2, $l3->members);
     }
 
     public function test_cannot_add_fourth_level(): void

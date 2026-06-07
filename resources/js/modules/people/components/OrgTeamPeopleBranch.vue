@@ -5,17 +5,19 @@ import { useOrgTeamRoster } from '@/modules/people/composables/useOrgTeamPeople.
 const props = defineProps({
     leader: { type: Object, default: null },
     members: { type: Array, default: () => [] },
+    sections: { type: Array, default: () => [] },
 });
 
 const roster = useOrgTeamRoster(() => ({
     leader: props.leader,
     members: props.members,
+    sections: props.sections,
 }));
 </script>
 
 <template>
   <div
-    v-if="roster.leader || roster.branches.length"
+    v-if="roster.leader || roster.sectionGroups.length"
     class="org-tree__people"
   >
     <div
@@ -31,35 +33,38 @@ const roster = useOrgTeamRoster(() => ({
     </div>
 
     <div
-      v-if="roster.branches.length"
-      class="org-tree__member-branches"
-      :class="{ 'org-tree__member-branches--solo': roster.branches.length === 1 }"
+      v-if="roster.sectionGroups.length"
+      class="org-tree__members-section"
     >
-      <ul class="org-tree__branch-columns">
-        <li
-          v-for="branch in roster.branches"
-          :key="branch.label"
-          class="org-tree__branch-column"
+      <div
+        v-for="group in roster.sectionGroups"
+        :key="group.key"
+        class="org-tree__section-block"
+      >
+        <p
+          v-if="group.title"
+          class="org-tree__section-title"
         >
-          <p class="org-tree__branch-label">
-            {{ branch.label }}
-          </p>
-          <ul class="org-tree__branch-members">
-            <li
-              v-for="person in branch.people"
-              :key="person.key"
-              class="org-tree__branch-member"
-            >
-              <OrgTeamPersonNode
-                :name="person.name"
-                :avatar="person.avatar"
-                :role="null"
-                :is-leader="false"
-              />
-            </li>
-          </ul>
-        </li>
-      </ul>
+          {{ group.title }}
+        </p>
+        <ul
+          class="org-tree__members-row"
+          :class="{ 'org-tree__members-row--multi': group.people.length > 1 }"
+        >
+          <li
+            v-for="person in group.people"
+            :key="person.key"
+            class="org-tree__members-item"
+          >
+            <OrgTeamPersonNode
+              :name="person.name"
+              :avatar="person.avatar"
+              :role="person.role"
+              :is-leader="false"
+            />
+          </li>
+        </ul>
+      </div>
     </div>
   </div>
 </template>

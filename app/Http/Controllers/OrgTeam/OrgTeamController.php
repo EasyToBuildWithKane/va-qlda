@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\OrgTeam\StoreOrgTeamRequest;
 use App\Http\Requests\OrgTeam\UpdateOrgTeamRequest;
 use App\Models\OrgTeam;
-use App\Support\Enums\OrgTeamMemberBranch;
 use App\Support\Options;
 use App\Support\OrgTeamTreeBuilder;
 use Illuminate\Http\RedirectResponse;
@@ -37,12 +36,6 @@ class OrgTeamController extends Controller
                 'label' => str_repeat('— ', max(0, $t->level - 1)).$t->name,
             ])->values(),
             'employees' => Options::employees(),
-            'branchOptions' => OrgTeamMemberBranch::options(),
-            'levelHints' => [
-                1 => 'Cấp 1: Ban / khối (vd. Leader Phần Mềm)',
-                2 => 'Cấp 2: Đội nhóm (vd. Đội ngũ Dev)',
-                3 => 'Cấp 3: Nhánh / tổ (phân nhánh GVS, phần mềm PB, trợ lý dự án)',
-            ],
             'can' => [
                 'create' => $request->user()->can('create', OrgTeam::class),
             ],
@@ -61,7 +54,11 @@ class OrgTeamController extends Controller
                 'is_active' => $request->validated('is_active') ?? true,
             ]);
 
-            $this->syncMembers($team, $request->validated('members') ?? []);
+            $this->syncSectionsAndMembers(
+                $team,
+                $request->validated('sections') ?? [],
+                $request->validated('members') ?? [],
+            );
         });
 
         return back()->with('success', 'Đã tạo nhóm.');
@@ -90,8 +87,12 @@ class OrgTeamController extends Controller
                 $this->recalcDescendantLevels($orgTeam);
             }
 
-            if ($request->has('members')) {
-                $this->syncMembers($orgTeam, $request->validated('members') ?? []);
+            if ($request->has('members') || $request->has('sections')) {
+                $this->syncSectionsAndMembers(
+                    $orgTeam,
+                    $request->validated('sections') ?? [],
+                    $request->validated('members') ?? [],
+                );
             }
         });
 
@@ -120,15 +121,38 @@ class OrgTeamController extends Controller
     }
 
     /**
-     * @param  list<array{employee_id: int, branch?: string|null, sort_order?: int}>  $rows
+     * @param  list<array{title: string, sort_order?: int}>  $sections
+     * @param  list<array{employee_id: int, branch?: string|null, section_index?: int|null, sort_order?: int}>  $rows
      */
-    private function syncMembers(OrgTeam $team, array $rows): void
+    private function syncSectionsAndMembers(OrgTeam $team, array $sections, array $rows): void
     {
         $team->members()->delete();
+        $team->sections()->delete();
+
+        /** @var list<int> $sectionIds */
+        $sectionIds = [];
+        foreach (array_values($sections) as $index => $sectionRow) {
+            $title = trim((string) ($sectionRow['title'] ?? ''));
+            if ($title === '') {
+                continue;
+            }
+            $section = $team->sections()->create([
+                'title' => $title,
+                'sort_order' => $sectionRow['sort_order'] ?? $index,
+            ]);
+            $sectionIds[$index] = $section->id;
+        }
 
         foreach (array_values($rows) as $index => $row) {
+            $sectionId = null;
+            if (isset($row['section_index']) && $row['section_index'] !== '' && $row['section_index'] !== null) {
+                $sectionIndex = (int) $row['section_index'];
+                $sectionId = $sectionIds[$sectionIndex] ?? null;
+            }
+
             $team->members()->create([
                 'employee_id' => (int) $row['employee_id'],
+                'section_id' => $sectionId,
                 'branch' => ! empty($row['branch']) ? $row['branch'] : null,
                 'sort_order' => $row['sort_order'] ?? $index,
             ]);

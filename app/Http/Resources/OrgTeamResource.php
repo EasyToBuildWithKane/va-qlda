@@ -29,6 +29,7 @@ class OrgTeamResource extends JsonResource
             'sort_order' => $this->sort_order,
             'is_active' => $this->is_active,
             'leader' => $this->whenLoaded('leader', fn () => $this->person($this->leader)),
+            'sections' => OrgTeamSectionResource::collection($this->whenLoaded('sections')),
             'members' => OrgTeamMemberResource::collection($this->whenLoaded('members')),
             'can' => $user ? [
                 'update' => $user->can('update', $this->resource),

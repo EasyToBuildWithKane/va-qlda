@@ -10,8 +10,6 @@ const props = defineProps({
     team: { type: Object, default: null },
     parentOptions: { type: Array, default: () => [] },
     employees: { type: Array, default: () => [] },
-    branchOptions: { type: Array, default: () => [] },
-    levelHints: { type: Object, default: () => ({}) },
     presetParentId: { type: [Number, String, null], default: null },
 });
 
@@ -24,20 +22,11 @@ const form = useForm({
     leader_id: null,
     sort_order: 0,
     is_active: true,
+    sections: [],
     members: [],
 });
 
 const isEdit = computed(() => !!props.team);
-
-const effectiveLevel = computed(() => {
-    if (isEdit.value && !form.isDirty) {
-        return props.team?.level ?? 1;
-    }
-    const pid = form.parent_id;
-    if (!pid) return 1;
-    const parent = props.parentOptions.find((p) => p.id === Number(pid));
-    return parent ? parent.level + 1 : 1;
-});
 
 const parentChoices = computed(() => {
     let list = props.parentOptions.filter((p) => p.level < 3);
@@ -46,6 +35,13 @@ const parentChoices = computed(() => {
     }
     return list;
 });
+
+const sectionChoices = computed(() =>
+    form.sections.map((s, index) => ({
+        value: index,
+        label: s.title?.trim() || `Nhánh ${index + 1}`,
+    })),
+);
 
 watch(() => props.show, (open) => {
     if (!open) return;
@@ -56,21 +52,54 @@ watch(() => props.show, (open) => {
         form.leader_id = props.team.leader?.id ?? null;
         form.sort_order = props.team.sort_order ?? 0;
         form.is_active = props.team.is_active ?? true;
+        form.sections = (props.team.sections ?? []).map((s, i) => ({
+            title: s.title,
+            sort_order: s.sort_order ?? i,
+        }));
         form.members = (props.team.members ?? []).map((m, i) => ({
             employee_id: m.employee?.id ?? null,
-            branch: m.branch?.value ?? '',
+            section_index: resolveSectionIndex(m.section?.id, props.team.sections ?? []),
             sort_order: m.sort_order ?? i,
         }));
     } else {
         form.reset();
         form.parent_id = props.presetParentId != null ? Number(props.presetParentId) : null;
         form.is_active = true;
+        form.sections = [];
         form.members = [];
     }
 });
 
+function resolveSectionIndex(sectionId, sections) {
+    if (sectionId == null) {
+        return null;
+    }
+    const idx = sections.findIndex((s) => s.id === sectionId);
+
+    return idx >= 0 ? idx : null;
+}
+
+function addSection() {
+    form.sections.push({ title: '', sort_order: form.sections.length });
+}
+
+function removeSection(index) {
+    form.members.forEach((row) => {
+        if (row.section_index === index) {
+            row.section_index = null;
+        } else if (row.section_index != null && row.section_index > index) {
+            row.section_index -= 1;
+        }
+    });
+    form.sections.splice(index, 1);
+}
+
 function addMember() {
-    form.members.push({ employee_id: null, branch: '', sort_order: form.members.length });
+    form.members.push({
+        employee_id: null,
+        section_index: null,
+        sort_order: form.members.length,
+    });
 }
 
 function removeMember(index) {
@@ -78,16 +107,36 @@ function removeMember(index) {
 }
 
 const submit = () => {
+    const sections = form.sections
+        .map((s, i) => ({
+            title: (s.title || '').trim(),
+            sort_order: s.sort_order ?? i,
+        }))
+        .filter((s) => s.title !== '');
+
     const payload = {
         ...form.data(),
         parent_id: form.parent_id || null,
+        sections,
         members: form.members
             .filter((m) => m.employee_id)
-            .map((m, i) => ({
-                employee_id: m.employee_id,
-                branch: effectiveLevel.value === 3 ? (m.branch || null) : null,
-                sort_order: m.sort_order ?? i,
-            })),
+            .map((m, i) => {
+                let sectionIndex = m.section_index;
+                if (sectionIndex != null && sectionIndex !== '') {
+                    sectionIndex = Number(sectionIndex);
+                    if (sectionIndex >= sections.length) {
+                        sectionIndex = null;
+                    }
+                } else {
+                    sectionIndex = null;
+                }
+
+                return {
+                    employee_id: m.employee_id,
+                    section_index: sectionIndex,
+                    sort_order: m.sort_order ?? i,
+                };
+            }),
     };
 
     const opts = {
@@ -110,7 +159,7 @@ const submit = () => {
   <Modal
     :show="show"
     :dirty="form.isDirty"
-    :title="isEdit ? 'Chỉnh sửa nhóm' : 'Thêm nhóm mới'"
+    :title="isEdit ? 'Sửa nhóm' : 'Thêm nhóm'"
     max-width="max-w-2xl"
     @close="emit('close')"
   >
@@ -118,17 +167,13 @@ const submit = () => {
       class="space-y-5"
       @submit.prevent="submit"
     >
-      <p class="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">
-        {{ levelHints[effectiveLevel] || `Cấp ${effectiveLevel}` }}
-      </p>
-
       <div>
         <label class="label">Tên nhóm</label>
         <input
           v-model="form.name"
           type="text"
           class="input w-full"
-          placeholder="vd. Leader Phần Mềm, Đội ngũ Dev, Nhánh GVS…"
+          placeholder="Ví dụ: Phần mềm, Hỗ trợ dự án…"
           required
         >
         <p
@@ -141,14 +186,14 @@ const submit = () => {
 
       <div class="grid gap-4 sm:grid-cols-2">
         <div>
-          <label class="label">Nhóm cha (tuỳ chọn)</label>
+          <label class="label">Nằm trong nhóm</label>
           <select
             v-model="form.parent_id"
             class="input w-full"
             :disabled="isEdit && team?.children?.length > 0"
           >
             <option :value="null">
-              — Cấp 1 (gốc) —
+              Không — nhóm độc lập
             </option>
             <option
               v-for="p in parentChoices"
@@ -176,6 +221,49 @@ const submit = () => {
       </div>
 
       <div>
+        <div class="mb-2 flex items-center justify-between gap-2">
+          <label class="label mb-0">Nhánh</label>
+          <button
+            type="button"
+            class="shrink-0 text-xs font-medium text-brand hover:underline"
+            @click="addSection"
+          >
+            + Thêm nhánh
+          </button>
+        </div>
+        <div
+          v-for="(section, sIdx) in form.sections"
+          :key="sIdx"
+          class="mb-2 flex items-center gap-2 rounded-lg border border-slate-100 bg-slate-50/80 p-2"
+        >
+          <input
+            v-model="section.title"
+            type="text"
+            class="input min-w-0 flex-1 text-sm"
+            placeholder="Tên nhánh hiển thị trên sơ đồ"
+            maxlength="120"
+          >
+          <button
+            type="button"
+            class="rounded-lg p-2 text-slate-400 hover:bg-white hover:text-rose-600"
+            title="Xoá nhánh"
+            @click="removeSection(sIdx)"
+          >
+            <AppIcon
+              name="delete"
+              :size="16"
+            />
+          </button>
+        </div>
+        <p
+          v-if="form.errors.sections"
+          class="text-xs text-rose-600"
+        >
+          {{ form.errors.sections }}
+        </p>
+      </div>
+
+      <div>
         <div class="mb-2 flex items-center justify-between">
           <label class="label mb-0">Thành viên</label>
           <button
@@ -188,9 +276,9 @@ const submit = () => {
         </div>
         <div
           v-if="!form.members.length"
-          class="rounded-lg border border-dashed border-slate-200 px-3 py-4 text-center text-xs text-slate-500"
+          class="mb-2 rounded-lg border border-dashed border-slate-200 px-3 py-3 text-center text-xs text-slate-500"
         >
-          Chưa có thành viên. Thêm dev, BA, trợ lý…
+          Chưa có thành viên.
         </div>
         <div
           v-for="(row, idx) in form.members"
@@ -201,26 +289,23 @@ const submit = () => {
             <PersonSelect
               v-model="row.employee_id"
               :options="employees"
-              placeholder="Nhân sự"
+              placeholder="Chọn người"
             />
           </div>
-          <div
-            v-if="effectiveLevel === 3"
-            class="w-48"
-          >
+          <div class="w-44">
             <select
-              v-model="row.branch"
+              v-model="row.section_index"
               class="input w-full text-sm"
             >
-              <option value="">
-                Chọn nhánh
+              <option :value="null">
+                Không chọn nhánh
               </option>
               <option
-                v-for="b in branchOptions"
-                :key="b.value"
-                :value="b.value"
+                v-for="opt in sectionChoices"
+                :key="opt.value"
+                :value="opt.value"
               >
-                {{ b.label }}
+                {{ opt.label }}
               </option>
             </select>
           </div>
@@ -257,7 +342,7 @@ const submit = () => {
           class="btn-primary"
           :disabled="form.processing"
         >
-          {{ isEdit ? 'Lưu' : 'Tạo nhóm' }}
+          {{ isEdit ? 'Lưu' : 'Thêm' }}
         </button>
       </div>
     </form>

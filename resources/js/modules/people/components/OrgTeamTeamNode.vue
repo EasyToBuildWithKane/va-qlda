@@ -4,7 +4,6 @@ import AppIcon from '@/Components/AppIcon.vue';
 defineProps({
     node: { type: Object, required: true },
     canManage: { type: Boolean, default: false },
-    memberCount: { type: Number, default: 0 },
 });
 
 const emit = defineEmits(['edit', 'add-child', 'delete']);
@@ -26,16 +25,9 @@ function levelTone(level) {
     :class="levelTone(node.level)"
   >
     <div class="org-team-node__head">
-      <span class="org-team-node__level">{{ node.level_label }}</span>
       <h3 class="org-team-node__title">
         {{ node.name }}
       </h3>
-      <p
-        v-if="memberCount > 0"
-        class="org-team-node__meta"
-      >
-        {{ memberCount }} thành viên trên sơ đồ
-      </p>
     </div>
 
     <div
@@ -63,7 +55,7 @@ function levelTone(level) {
           name="plus"
           :size="12"
         />
-        Nhóm con
+        Nhóm bên dưới
       </button>
       <button
         v-if="node.can?.delete"
@@ -98,31 +90,11 @@ function levelTone(level) {
     padding: 0.75rem 0.875rem;
 }
 
-.org-team-node__level {
-    display: inline-block;
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: rgb(100 116 139);
-}
-
-.org-team-node--l1 .org-team-node__level {
-    color: #9a0036;
-}
-
 .org-team-node__title {
-    margin-top: 0.25rem;
     font-size: 0.9375rem;
     font-weight: 600;
     line-height: 1.35;
     color: rgb(15 23 42);
-}
-
-.org-team-node__meta {
-    margin-top: 0.35rem;
-    font-size: 10px;
-    color: rgb(100 116 139);
 }
 
 .org-team-node__actions {
