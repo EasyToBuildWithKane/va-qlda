@@ -17,6 +17,7 @@ import DashboardViewToggle from '@/modules/project/components/Dashboard/Dashboar
 import GanttMini from '@/modules/project/components/Dashboard/GanttMini.vue';
 import RiskIssuePanel from '@/modules/project/components/Dashboard/RiskIssuePanel.vue';
 import RiskIssueDataTable from '@/modules/project/components/Dashboard/RiskIssueDataTable.vue';
+import ProjectFeedbackPanel from '@/modules/project/components/Dashboard/ProjectFeedbackPanel.vue';
 import ActivityFeed from '@/modules/project/components/Dashboard/ActivityFeed.vue';
 import ProjectOverviewCard from '@/modules/project/components/Dashboard/ProjectOverviewCard.vue';
 import ProjectDocumentsPanel from '@/modules/project/components/Documents/ProjectDocumentsPanel.vue';
@@ -31,6 +32,9 @@ const props = defineProps({
     sprints: { type: Array, default: () => [] },
     tasks: { type: Array, default: () => [] },
     blockers: { type: Array, default: () => [] },
+    feedbacks: { type: Array, default: () => [] },
+    feedbackSummary: { type: Object, default: () => ({}) },
+    can: { type: Object, default: () => ({}) },
     epics: { type: Array, default: () => [] },
     attachments: { type: Array, default: () => [] },
     options: { type: Object, default: () => ({ employees: [], enums: {} }) },
@@ -62,6 +66,7 @@ const tabs = [
     { key: 'board', label: 'Kanban', icon: 'board' },
     { key: 'sprints', label: 'Sprint', icon: 'sprint' },
     { key: 'blockers', label: 'Vướng mắc', icon: 'blockers' },
+    { key: 'feedback', label: 'Phản hồi', icon: 'feedback' },
 ];
 const tabList = normalizeKeyed(tabs);
 const tab = ref('overview');
@@ -124,6 +129,8 @@ const onBoardMove = ({ id, status }) => router.patch(`/projects/${pid}/tasks/${i
 // ---- Overview computed ----
 const completedTasks = computed(() => props.tasks.filter((t) => t.status.value === 'done').length);
 const openBlockerCount = computed(() => props.blockers.filter((b) => !['resolved', 'closed'].includes(b.status?.value)).length);
+const openFeedbackCount = computed(() => props.feedbackSummary?.open ?? 0);
+const canFeedbackCreate = computed(() => props.can?.feedbackCreate ?? false);
 
 // ---- Dashboard (overview tab) ----
 const riskPanelRef = ref(null);
@@ -152,7 +159,14 @@ const {
 });
 const { exportReport } = useProjectExport();
 
-onMounted(() => seedActivityIfEmpty());
+onMounted(() => {
+    seedActivityIfEmpty();
+    const params = new URLSearchParams(window.location.search);
+    const t = params.get('tab');
+    if (t && tabList.some((x) => x.key === t)) {
+        tab.value = t;
+    }
+});
 
 const scrollToRiskPanel = () => riskPanelRef.value?.scrollHere();
 
@@ -250,6 +264,10 @@ const onSprintSaved = () => {
             v-if="t.key === 'blockers' && openBlockerCount"
             class="ml-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-100 px-1 text-[10px] font-bold text-rose-600"
           >{{ openBlockerCount }}</span>
+          <span
+            v-if="t.key === 'feedback' && openFeedbackCount"
+            class="ml-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-100 px-1 text-[10px] font-bold text-amber-700"
+          >{{ openFeedbackCount }}</span>
         </button>
       </nav>
 
@@ -510,6 +528,27 @@ const onSprintSaved = () => {
               :can-manage="canManage"
               :can-contribute="canContribute"
               @saved="onRiskSaved"
+            />
+          </div>
+        </div>
+
+        <!-- ===== FEEDBACK ===== -->
+        <div
+          v-show="tab === 'feedback'"
+          class="h-full overflow-y-auto dark:bg-slate-950"
+        >
+          <div class="mx-auto min-w-0 max-w-[1600px] p-5">
+            <ProjectFeedbackPanel
+              :project-id="project.id"
+              :project-code="project.code"
+              :project-name="project.name"
+              :feedbacks="feedbacks"
+              :summary="feedbackSummary"
+              :employees="options.employees"
+              :category-options="enums.feedbackCategory || []"
+              :status-options="enums.feedbackStatus || []"
+              :priority-options="enums.taskPriority || []"
+              :can-create="canFeedbackCreate"
             />
           </div>
         </div>

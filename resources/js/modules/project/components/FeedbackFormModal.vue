@@ -14,6 +14,10 @@ const props = defineProps({
     categoryOptions: { type: Array, default: () => [] },
     statusOptions: { type: Array, default: () => [] },
     priorityOptions: { type: Array, default: () => [] },
+    defaultProjectId: { type: Number, default: null },
+    lockProject: { type: Boolean, default: false },
+    /** Gửi kèm khi tạo — quay lại tab dự án */
+    returnTo: { type: String, default: null },
 });
 
 const emit = defineEmits(['close', 'saved']);
@@ -41,6 +45,7 @@ watch(() => props.show, (open) => {
     } else {
         form.reset();
         reporterType.value = 'external';
+        form.project_id = props.defaultProjectId;
     }
 });
 
@@ -58,8 +63,15 @@ const ratingSelectOptions = computed(() =>
 
 const submit = () => {
     const opts = { preserveScroll: true, onSuccess: () => { emit('saved'); emit('close'); } };
-    if (props.feedback) form.put(`/feedback/${props.feedback.id}`, opts);
-    else form.post('/feedback', opts);
+    if (props.feedback) {
+        form.put(`/feedback/${props.feedback.id}`, opts);
+    } else {
+        const payload = { ...form.data() };
+        if (props.returnTo === 'project') {
+            payload.return_to = 'project';
+        }
+        form.transform(() => payload).post('/feedback', opts);
+    }
 };
 </script>
 
@@ -75,7 +87,10 @@ const submit = () => {
       class="space-y-4"
       @submit.prevent="submit"
     >
-      <div class="grid grid-cols-2 gap-4">
+      <div
+        v-if="!lockProject"
+        class="grid grid-cols-2 gap-4"
+      >
         <div>
           <label class="label">Dự án (tuỳ chọn)</label>
           <SearchSelect
@@ -93,6 +108,26 @@ const submit = () => {
             placeholder="Tìm & chọn người xử lý…"
           />
         </div>
+      </div>
+      <div
+        v-else
+        class="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2.5 text-sm text-slate-600"
+      >
+        Dự án:
+        <span class="font-medium text-slate-800">
+          {{ projects.find((p) => p.id === defaultProjectId)?.name ?? '—' }}
+        </span>
+      </div>
+      <div
+        v-if="lockProject"
+        class="max-w-md"
+      >
+        <label class="label">Người xử lý</label>
+        <PersonSelect
+          v-model="form.assignee_id"
+          :options="employees"
+          placeholder="Tìm & chọn người xử lý…"
+        />
       </div>
 
       <div>

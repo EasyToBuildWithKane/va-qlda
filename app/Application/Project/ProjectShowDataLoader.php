@@ -38,6 +38,9 @@ class ProjectShowDataLoader
                 'attachments' => fn ($a) => $a->with('uploadedBy')->latest(),
                 'activities' => fn ($a) => $a->with('employee')->latest(),
             ])->latest(),
+            'feedbacks' => fn ($q) => $q->with(['assignee', 'reporter'])
+                ->withCount('comments')
+                ->latest(),
             'attachments' => fn ($q) => $q->with([
                 'uploadedBy',
                 'updatedBy',

@@ -74,10 +74,16 @@ class FeedbackController extends Controller
 
     public function store(StoreFeedbackRequest $request): RedirectResponse
     {
-        $data = $request->validated();
+        $data = $request->safe()->except(['return_to']);
         $data['status'] ??= FeedbackStatus::New->value;
 
         $feedback = Feedback::create($data);
+
+        if ($request->input('return_to') === 'project' && $feedback->project_id) {
+            return redirect()
+                ->route('projects.show', ['project' => $feedback->project_id, 'tab' => 'feedback'])
+                ->with('success', 'Đã ghi nhận phản hồi.');
+        }
 
         return redirect()
             ->route('feedback.show', $feedback)

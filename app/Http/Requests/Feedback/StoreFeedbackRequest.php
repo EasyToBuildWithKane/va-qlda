@@ -33,6 +33,7 @@ class StoreFeedbackRequest extends FormRequest
             'reporter_name' => ['nullable', 'required_without:reporter_employee_id', 'string', 'max:120'],
             'reporter_email' => ['nullable', 'email', 'max:160'],
             'assignee_id' => ['nullable', 'integer', 'exists:employees,id'],
+            'return_to' => ['nullable', 'string', 'in:project'],
         ];
     }
 

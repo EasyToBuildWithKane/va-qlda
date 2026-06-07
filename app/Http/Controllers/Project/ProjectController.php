@@ -12,12 +12,15 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Project\StoreProjectRequest;
 use App\Http\Requests\Project\UpdateProjectRequest;
 use App\Http\Resources\BlockerResource;
+use App\Http\Resources\FeedbackResource;
 use App\Http\Resources\ProjectAttachmentResource;
 use App\Http\Resources\ProjectListResource;
 use App\Http\Resources\ProjectResource;
 use App\Http\Resources\SprintResource;
 use App\Http\Resources\TaskResource;
+use App\Models\Feedback;
 use App\Models\Project;
+use App\Support\Enums\FeedbackStatus;
 use App\Support\Enums\ProjectScope;
 use App\Support\Enums\ProjectStatus;
 use App\Support\Enums\ProjectType;
@@ -92,6 +95,8 @@ class ProjectController extends Controller
 
         $project = $this->projectShowDataLoader->load($project);
 
+        $feedbackQuery = Feedback::query()->where('project_id', $project->id);
+
         return Inertia::render('Project/Show', [
             'project' => (new ProjectResource($project))->resolve(),
             'attachments' => ProjectAttachmentResource::collection($project->attachments)->resolve(),
@@ -99,6 +104,15 @@ class ProjectController extends Controller
             'epics' => \App\Http\Resources\EpicResource::collection($project->epics)->resolve(),
             'tasks' => TaskResource::collection($project->tasks)->resolve(),
             'blockers' => BlockerResource::collection($project->blockers)->resolve(),
+            'feedbacks' => FeedbackResource::collection($project->feedbacks)->resolve(),
+            'feedbackSummary' => [
+                'open' => (clone $feedbackQuery)->open()->count(),
+                'resolved' => (clone $feedbackQuery)->where('status', FeedbackStatus::Resolved->value)->count(),
+                'avg_rating' => round((float) (clone $feedbackQuery)->whereNotNull('rating')->avg('rating'), 1) ?: null,
+            ],
+            'can' => [
+                'feedbackCreate' => $request->user()->can('create', Feedback::class),
+            ],
             'options' => [
                 'employees' => Options::employees(),
                 'enums' => Options::enums(),
