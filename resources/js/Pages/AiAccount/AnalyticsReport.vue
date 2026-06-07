@@ -518,240 +518,204 @@ function rowStableId(row) {
 
         <div
           v-if="hasFilterRow"
-          class="mt-2.5 grid grid-cols-1 gap-2 border-t border-slate-100 pt-2.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+          class="mt-2.5 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-2.5"
         >
           <div
             v-if="visibleFilters.date_created"
-            class="min-w-0 rounded-lg border border-slate-200/80 bg-white px-2.5 py-1.5"
+            class="flex max-w-full shrink-0 flex-wrap items-center gap-1.5"
           >
-            <span class="text-[10px] font-medium text-slate-500">Ngày tạo PĐX</span>
-            <div class="mt-1 flex items-center gap-1">
-              <input
-                v-model="createdFrom"
-                type="date"
-                class="input h-8 min-w-0 flex-1 text-xs"
-                aria-label="Từ ngày tạo PĐX"
-              >
-              <span class="shrink-0 text-xs text-slate-300">→</span>
-              <input
-                v-model="createdTo"
-                type="date"
-                class="input h-8 min-w-0 flex-1 text-xs"
-                aria-label="Đến ngày tạo PĐX"
-              >
-            </div>
+            <span class="shrink-0 text-xs font-medium text-slate-500">Ngày tạo PĐX:</span>
+            <input
+              v-model="createdFrom"
+              type="date"
+              class="input h-9 w-[9.5rem] shrink-0 text-xs"
+              aria-label="Từ ngày tạo PĐX"
+            >
+            <span class="shrink-0 text-xs text-slate-300">→</span>
+            <input
+              v-model="createdTo"
+              type="date"
+              class="input h-9 w-[9.5rem] shrink-0 text-xs"
+              aria-label="Đến ngày tạo PĐX"
+            >
           </div>
           <div
             v-if="visibleFilters.purchase_date"
-            class="min-w-0 rounded-lg border border-slate-200/80 bg-white px-2.5 py-1.5"
+            class="flex max-w-full shrink-0 flex-wrap items-center gap-1.5"
           >
-            <span class="text-[10px] font-medium text-slate-500">Ngày mua</span>
-            <div class="mt-1 flex items-center gap-1">
-              <input
-                v-model="purchaseFrom"
-                type="date"
-                class="input h-8 min-w-0 flex-1 text-xs"
-                aria-label="Từ ngày mua"
-              >
-              <span class="shrink-0 text-xs text-slate-300">→</span>
-              <input
-                v-model="purchaseTo"
-                type="date"
-                class="input h-8 min-w-0 flex-1 text-xs"
-                aria-label="Đến ngày mua"
-              >
-            </div>
+            <span class="shrink-0 text-xs font-medium text-slate-500">Ngày mua:</span>
+            <input
+              v-model="purchaseFrom"
+              type="date"
+              class="input h-9 w-[9.5rem] shrink-0 text-xs"
+              aria-label="Từ ngày mua"
+            >
+            <span class="shrink-0 text-xs text-slate-300">→</span>
+            <input
+              v-model="purchaseTo"
+              type="date"
+              class="input h-9 w-[9.5rem] shrink-0 text-xs"
+              aria-label="Đến ngày mua"
+            >
           </div>
           <div
             v-if="visibleFilters.expiry"
-            class="min-w-0 rounded-lg border border-slate-200/80 bg-white px-2.5 py-1.5"
+            class="flex max-w-full shrink-0 flex-wrap items-center gap-1.5"
           >
-            <span class="text-[10px] font-medium text-slate-500">Ngày hết hạn</span>
-            <div class="mt-1 flex items-center gap-1">
-              <input
-                v-model="expiryFrom"
-                type="date"
-                class="input h-8 min-w-0 flex-1 text-xs"
-                aria-label="Từ ngày hết hạn"
-              >
-              <span class="shrink-0 text-xs text-slate-300">→</span>
-              <input
-                v-model="expiryTo"
-                type="date"
-                class="input h-8 min-w-0 flex-1 text-xs"
-                aria-label="Đến ngày hết hạn"
-              >
-            </div>
+            <span class="shrink-0 text-xs font-medium text-slate-500">Ngày hết hạn:</span>
+            <input
+              v-model="expiryFrom"
+              type="date"
+              class="input h-9 w-[9.5rem] shrink-0 text-xs"
+              aria-label="Từ ngày hết hạn"
+            >
+            <span class="shrink-0 text-xs text-slate-300">→</span>
+            <input
+              v-model="expiryTo"
+              type="date"
+              class="input h-9 w-[9.5rem] shrink-0 text-xs"
+              aria-label="Đến ngày hết hạn"
+            >
           </div>
-          <div
+          <select
             v-if="visibleFilters.department"
-            class="min-w-0 rounded-lg border border-slate-200/80 bg-white px-2.5 py-1.5"
+            v-model="department"
+            class="input h-9 w-[min(100%,11rem)] shrink-0 text-xs sm:w-52"
+            aria-label="Lọc theo phòng ban"
           >
-            <label class="text-[10px] font-medium text-slate-500">Phòng ban</label>
-            <select
-              v-model="department"
-              class="input mt-1 h-8 w-full text-xs"
+            <option value="all">
+              Phòng ban: Tất cả
+            </option>
+            <option
+              v-for="d in filterOptions.departments"
+              :key="d"
+              :value="d"
             >
-              <option value="all">
-                Tất cả
-              </option>
-              <option
-                v-for="d in filterOptions.departments"
-                :key="d"
-                :value="d"
-              >
-                {{ d }}
-              </option>
-            </select>
-          </div>
-          <div
+              {{ d }}
+            </option>
+          </select>
+          <select
             v-if="visibleFilters.group_function"
-            class="min-w-0 rounded-lg border border-slate-200/80 bg-white px-2.5 py-1.5"
+            v-model="groupFunction"
+            class="input h-9 w-[min(100%,11rem)] shrink-0 text-xs sm:w-48"
+            aria-label="Lọc theo nhóm chức năng"
           >
-            <label class="text-[10px] font-medium text-slate-500">Nhóm chức năng</label>
-            <select
-              v-model="groupFunction"
-              class="input mt-1 h-8 w-full text-xs"
+            <option value="all">
+              Nhóm chức năng: Tất cả
+            </option>
+            <option
+              v-for="o in options.group_function"
+              :key="o.value"
+              :value="o.value"
             >
-              <option value="all">
-                Tất cả
-              </option>
-              <option
-                v-for="o in options.group_function"
-                :key="o.value"
-                :value="o.value"
-              >
-                {{ o.label }}
-              </option>
-            </select>
-          </div>
-          <div
+              {{ o.label }}
+            </option>
+          </select>
+          <select
             v-if="visibleFilters.tool"
-            class="min-w-0 rounded-lg border border-slate-200/80 bg-white px-2.5 py-1.5"
+            v-model="tool"
+            class="input h-9 w-[min(100%,11rem)] shrink-0 text-xs sm:w-44"
+            aria-label="Lọc theo loại AI"
           >
-            <label class="text-[10px] font-medium text-slate-500">Loại AI</label>
-            <select
-              v-model="tool"
-              class="input mt-1 h-8 w-full text-xs"
+            <option value="all">
+              Loại AI: Tất cả
+            </option>
+            <option
+              v-for="t in filterOptions.tools"
+              :key="t"
+              :value="t"
             >
-              <option value="all">
-                Tất cả
-              </option>
-              <option
-                v-for="t in filterOptions.tools"
-                :key="t"
-                :value="t"
-              >
-                {{ t }}
-              </option>
-            </select>
-          </div>
-          <div
+              {{ t }}
+            </option>
+          </select>
+          <select
             v-if="visibleFilters.vendor"
-            class="min-w-0 rounded-lg border border-slate-200/80 bg-white px-2.5 py-1.5"
+            v-model="vendor"
+            class="input h-9 w-[min(100%,11rem)] shrink-0 text-xs sm:w-48"
+            aria-label="Lọc theo nhà cung cấp"
           >
-            <label class="text-[10px] font-medium text-slate-500">Nhà cung cấp</label>
-            <select
-              v-model="vendor"
-              class="input mt-1 h-8 w-full text-xs"
+            <option value="all">
+              Nhà cung cấp: Tất cả
+            </option>
+            <option
+              v-for="v in filterOptions.vendors"
+              :key="v"
+              :value="v"
             >
-              <option value="all">
-                Tất cả
-              </option>
-              <option
-                v-for="v in filterOptions.vendors"
-                :key="v"
-                :value="v"
-              >
-                {{ v }}
-              </option>
-            </select>
-          </div>
-          <div
+              {{ v }}
+            </option>
+          </select>
+          <select
             v-if="visibleFilters.status"
-            class="min-w-0 rounded-lg border border-slate-200/80 bg-white px-2.5 py-1.5"
+            v-model="status"
+            class="input h-9 w-[min(100%,11rem)] shrink-0 text-xs sm:w-48"
+            aria-label="Lọc theo trạng thái tài khoản"
           >
-            <label class="text-[10px] font-medium text-slate-500">Trạng thái TK</label>
-            <select
-              v-model="status"
-              class="input mt-1 h-8 w-full text-xs"
+            <option value="all">
+              Trạng thái TK: Tất cả
+            </option>
+            <option
+              v-for="o in options.status"
+              :key="o.value"
+              :value="o.value"
             >
-              <option value="all">
-                Tất cả
-              </option>
-              <option
-                v-for="o in options.status"
-                :key="o.value"
-                :value="o.value"
-              >
-                {{ o.label }}
-              </option>
-            </select>
-          </div>
-          <div
+              {{ o.label }}
+            </option>
+          </select>
+          <select
             v-if="visibleFilters.lifecycle"
-            class="min-w-0 rounded-lg border border-slate-200/80 bg-white px-2.5 py-1.5"
+            v-model="lifecycleStatus"
+            class="input h-9 w-[min(100%,11rem)] shrink-0 text-xs sm:w-44"
+            aria-label="Lọc theo vòng đời"
           >
-            <label class="text-[10px] font-medium text-slate-500">Vòng đời</label>
-            <select
-              v-model="lifecycleStatus"
-              class="input mt-1 h-8 w-full text-xs"
+            <option value="all">
+              Vòng đời: Tất cả
+            </option>
+            <option
+              v-for="o in options.lifecycle_status"
+              :key="o.value"
+              :value="o.value"
             >
-              <option value="all">
-                Tất cả
-              </option>
-              <option
-                v-for="o in options.lifecycle_status"
-                :key="o.value"
-                :value="o.value"
-              >
-                {{ o.label }}
-              </option>
-            </select>
-          </div>
-          <div
+              {{ o.label }}
+            </option>
+          </select>
+          <select
             v-if="visibleFilters.proposer"
-            class="min-w-0 rounded-lg border border-slate-200/80 bg-white px-2.5 py-1.5"
+            v-model="proposer"
+            class="input h-9 w-[min(100%,11rem)] shrink-0 text-xs sm:max-w-[14rem] sm:w-56"
+            aria-label="Lọc theo người đề xuất"
           >
-            <label class="text-[10px] font-medium text-slate-500">Người đề xuất</label>
-            <select
-              v-model="proposer"
-              class="input mt-1 h-8 w-full text-xs"
+            <option value="all">
+              Người đề xuất: Tất cả
+            </option>
+            <option
+              v-for="p in filterOptions.proposers"
+              :key="p"
+              :value="p"
             >
-              <option value="all">
-                Tất cả
-              </option>
-              <option
-                v-for="p in filterOptions.proposers"
-                :key="p"
-                :value="p"
-              >
-                {{ p }}
-              </option>
-            </select>
-          </div>
+              {{ p }}
+            </option>
+          </select>
           <div
             v-if="visibleFilters.cost_range"
-            class="min-w-0 rounded-lg border border-slate-200/80 bg-white px-2.5 py-1.5"
+            class="flex max-w-full shrink-0 flex-wrap items-center gap-1.5"
           >
-            <span class="text-[10px] font-medium text-slate-500">Chi phí / tháng (VNĐ)</span>
-            <div class="mt-1 flex items-center gap-1">
-              <input
-                v-model="costMin"
-                type="number"
-                placeholder="Từ"
-                class="input h-8 min-w-0 flex-1 text-xs"
-                aria-label="Chi phí tối thiểu"
-              >
-              <span class="shrink-0 text-xs text-slate-300">→</span>
-              <input
-                v-model="costMax"
-                type="number"
-                placeholder="Đến"
-                class="input h-8 min-w-0 flex-1 text-xs"
-                aria-label="Chi phí tối đa"
-              >
-            </div>
+            <span class="shrink-0 text-xs font-medium text-slate-500">Chi phí/tháng:</span>
+            <input
+              v-model="costMin"
+              type="number"
+              placeholder="Từ (VNĐ)"
+              class="input h-9 w-28 shrink-0 text-xs"
+              aria-label="Chi phí tối thiểu"
+            >
+            <span class="shrink-0 text-xs text-slate-300">→</span>
+            <input
+              v-model="costMax"
+              type="number"
+              placeholder="Đến (VNĐ)"
+              class="input h-9 w-28 shrink-0 text-xs"
+              aria-label="Chi phí tối đa"
+            >
           </div>
         </div>
       </div>
