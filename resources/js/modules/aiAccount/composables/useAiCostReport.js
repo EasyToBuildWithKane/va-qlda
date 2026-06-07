@@ -83,6 +83,9 @@ export function useAiCostReport() {
                 ...emptyCounts(),
                 ...(data.filtered_counts ?? data.counts ?? {}),
             };
+            if (data.workflow_metrics) {
+                workflowMetrics.value = data.workflow_metrics;
+            }
         } catch (e) {
             toast.error(e.response?.data?.message ?? 'Không tải được phiếu đề xuất.');
         }

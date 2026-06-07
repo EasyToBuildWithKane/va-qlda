@@ -5,17 +5,20 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import { useAiCostReport } from '@/modules/aiAccount/composables/useAiCostReport';
-import { exportAiProposals } from '@/modules/aiAccount/composables/useAiProposalExport';
+import {
+    exportAiPaymentReport,
+    exportAiPaymentRequests,
+    exportAiProposals,
+} from '@/modules/aiAccount/composables/useAiProposalExport';
 import { useToast } from '@/shared/composables/useToast';
-import { useCostReportUi } from '@/modules/aiAccount/composables/useCostReportUi';
-import VndAmount from '@/modules/aiAccount/components/VndAmount.vue';
+import ProposalWorkflowKpiStrip from '@/modules/aiAccount/components/ProposalWorkflowKpiStrip.vue';
+import ProposalWorkflowList from '@/modules/aiAccount/components/ProposalWorkflowList.vue';
+import ProposalWorkflowTimelineDrawer from '@/modules/aiAccount/components/ProposalWorkflowTimelineDrawer.vue';
 import AiPurchaseProposalFormModal from '@/modules/aiAccount/components/AiPurchaseProposalFormModal.vue';
 import AiPurchaseProposalRejectModal from '@/modules/aiAccount/components/AiPurchaseProposalRejectModal.vue';
 import AiPurchaseProposalApproveModal from '@/modules/aiAccount/components/AiPurchaseProposalApproveModal.vue';
 import AiPaymentRequestModals from '@/modules/aiAccount/components/AiPaymentRequestModals.vue';
-import ProposalRowActions from '@/modules/aiAccount/components/ProposalRowActions.vue';
 import AiAccountSectionNav from '@/modules/aiAccount/components/AiAccountSectionNav.vue';
-import Badge from '@/shared/ui/Badge.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
 import { useDialog } from '@/composables/useDialog';
@@ -55,12 +58,15 @@ const {
     approvePaymentRequest,
     rejectPaymentRequest,
     markPaymentRequestPaid,
+    workflowMetrics,
 } = useAiCostReport();
 
 const dialog = useDialog();
 const toast = useToast();
 
-useCostReportUi(proposals);
+const expandedProposals = ref({});
+const timelineRow = ref(null);
+const timelineOpen = ref(false);
 
 // ─── filters ───
 const search = ref('');
@@ -75,19 +81,12 @@ const toolFilter = ref('all');
 const createdFromFilter = ref('');
 const createdToFilter = ref('');
 const visibleCols = ref({
-    proposal_code: true,
-    created_at: true,
     proposer_name: true,
     proposer_department: true,
     proposal_type: true,
     tool_name: true,
-    vendor_name: false,
     cost_amount: true,
-    actual_cost: false,
-    status: true,
-    reviewed_by_name: false,
-    reviewed_at: false,
-    end_date: false,
+    overall_status: true,
 });
 const VISIBLE_FILTERS_KEY = 'va-qlda.cost-report.visible-filters';
 
@@ -238,14 +237,13 @@ async function applyFilters() {
 
 const displayedProposals = computed(() => proposals.value ?? []);
 
-function rowStatusLabel(row) {
-    if (row.awaiting_account) return 'Chờ lập TK';
-    return row.status_label;
+function toggleProposalExpand(id) {
+    expandedProposals.value[id] = !expandedProposals.value[id];
 }
 
-function rowStatusColor(row) {
-    if (row.awaiting_account) return 'brand';
-    return row.status_color;
+function openTimeline(row) {
+    timelineRow.value = row;
+    timelineOpen.value = true;
 }
 
 function openFilterPanel() {
@@ -290,13 +288,9 @@ const COLS = [
     { key: 'proposer_department', label: 'Phòng ban' },
     { key: 'proposal_type', label: 'Loại đề xuất' },
     { key: 'tool_name', label: 'Nội dung / Sản phẩm' },
-    { key: 'vendor_name', label: 'Nhà cung cấp' },
-    { key: 'cost_amount', label: 'Chi phí dự kiến' },
-    { key: 'actual_cost', label: 'Chi phí thực tế' },
-    { key: 'status', label: 'Trạng thái' },
-    { key: 'reviewed_by_name', label: 'Người duyệt' },
-    { key: 'reviewed_at', label: 'Ngày duyệt' },
-    { key: 'end_date', label: 'Hạn sử dụng' },
+    { key: 'cost_amount', label: 'Ngân sách đề xuất' },
+    { key: 'status', label: 'Trạng thái PĐX' },
+    { key: 'overall_status', label: 'Trạng thái quy trình' },
 ];
 
 let searchDebounceTimer;
@@ -335,6 +329,7 @@ async function focusProposalFromQuery() {
     }
 
     highlightProposalId.value = id;
+    expandedProposals.value[id] = true;
     await nextTick();
     document.getElementById(`proposal-row-${id}`)?.scrollIntoView({
         behavior: 'smooth',
@@ -441,23 +436,49 @@ async function onDeleteProposal(row) {
     await deleteProposal(row.id);
 }
 
-function runExport(format) {
+function runExport(scope, format) {
     showExportDd.value = false;
     const rows = displayedProposals.value;
-    if (!rows.length) {
-        toast.warning('Không có phiếu để xuất.');
-        return;
-    }
     const note = [filterSummary.value, search.value.trim() ? `từ khoá «${search.value.trim()}»` : '']
         .filter(Boolean)
         .join(' · ');
-    exportAiProposals({
-        list: rows,
-        columns: COLS,
-        visibleKeys: visibleCols.value,
-        filterNote: note,
-        format,
-    });
+
+    if (scope === 'proposals') {
+        if (!rows.length) {
+            toast.warning('Không có phiếu để xuất.');
+            return;
+        }
+        const exportVisible = {
+            proposal_code: true,
+            created_at: true,
+            proposer_name: visibleCols.value.proposer_name,
+            proposer_department: visibleCols.value.proposer_department,
+            proposal_type: visibleCols.value.proposal_type,
+            tool_name: visibleCols.value.tool_name,
+            cost_amount: visibleCols.value.cost_amount,
+            status: true,
+            overall_status: visibleCols.value.overall_status,
+        };
+        exportAiProposals({
+            list: rows,
+            columns: COLS,
+            visibleKeys: exportVisible,
+            filterNote: note,
+            format,
+        });
+        return;
+    }
+
+    if (scope === 'payment_requests') {
+        const ok = exportAiPaymentRequests({ list: rows, filterNote: note, format });
+        if (!ok) toast.warning('Không có ĐNTT trong danh sách hiện tại.');
+        return;
+    }
+
+    if (scope === 'payment_report') {
+        const ok = exportAiPaymentReport({ list: rows, filterNote: note, format });
+        if (!ok) toast.warning('Không có bản ghi đã thanh toán để xuất.');
+    }
 }
 </script>
 
@@ -467,7 +488,7 @@ function runExport(format) {
     <template #header>
       <PageHeader
         title="PĐX & ĐNTT"
-        subtitle="Phiếu đề xuất mua sắm · đề nghị thanh toán · duyệt"
+        subtitle="Quy trình PĐX → ĐNTT → thanh toán (tách khỏi quản lý tài khoản AI)"
         icon="performance"
         icon-color="brand"
         :badge="proposalCounts.total ?? null"
@@ -479,7 +500,12 @@ function runExport(format) {
       </PageHeader>
     </template>
 
-    <!-- ── Proposals Table ── -->
+    <ProposalWorkflowKpiStrip
+      :metrics="workflowMetrics"
+      :loading="loading"
+    />
+
+    <!-- ── Danh sách hồ sơ (master → detail) ── -->
     <div class="card overflow-visible">
       <!-- Toolbar -->
       <div class="border-b border-slate-100 px-5 py-3">
@@ -633,31 +659,41 @@ function runExport(format) {
               >
                 <div
                   v-if="showExportDd"
-                  class="absolute right-0 top-full z-30 mt-1.5 w-44 origin-top-right rounded-xl border border-slate-200 bg-white py-1 shadow-elevation-2"
+                  class="absolute right-0 top-full z-30 mt-1.5 w-56 origin-top-right rounded-xl border border-slate-200 bg-white py-1 shadow-elevation-2"
                 >
+                  <p class="px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-slate-400">
+                    Danh sách PĐX
+                  </p>
                   <button
                     type="button"
                     class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
-                    @click="runExport('csv')"
+                    @click="runExport('proposals', 'xlsx')"
                   >
-                    <AppIcon
-                      name="export"
-                      :size="14"
-                      class="text-slate-400"
-                    />
-                    Xuất CSV
+                    Excel — phiếu đề xuất
                   </button>
                   <button
                     type="button"
                     class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
-                    @click="runExport('xlsx')"
+                    @click="runExport('proposals', 'csv')"
                   >
-                    <AppIcon
-                      name="download"
-                      :size="14"
-                      class="text-slate-400"
-                    />
-                    Xuất Excel
+                    CSV — phiếu đề xuất
+                  </button>
+                  <p class="mt-1 border-t border-slate-100 px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-slate-400">
+                    ĐNTT & thanh toán
+                  </p>
+                  <button
+                    type="button"
+                    class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+                    @click="runExport('payment_requests', 'xlsx')"
+                  >
+                    Excel — danh sách ĐNTT
+                  </button>
+                  <button
+                    type="button"
+                    class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+                    @click="runExport('payment_report', 'xlsx')"
+                  >
+                    Excel — báo cáo thanh toán
                   </button>
                 </div>
               </Transition>
@@ -887,292 +923,41 @@ function runExport(format) {
         </p>
       </div>
 
-      <!-- Table -->
       <div
         v-if="loading"
         class="px-5 py-12 text-center text-sm text-slate-500"
       >
-        Đang tải…
+        Đang tải danh sách hồ sơ…
       </div>
-      <div
+      <ProposalWorkflowList
         v-else
-        class="proposal-table-wrap overflow-x-auto"
-      >
-        <table class="w-full min-w-[900px] text-left text-sm">
-          <thead class="bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-            <tr>
-              <th
-                v-if="visibleCols.proposal_code"
-                class="px-4 py-3"
-              >
-                Mã phiếu
-              </th>
-              <th
-                v-if="visibleCols.created_at"
-                class="px-4 py-3"
-              >
-                Ngày đề xuất
-              </th>
-              <th
-                v-if="visibleCols.proposer_name"
-                class="px-4 py-3"
-              >
-                Người đề xuất
-              </th>
-              <th
-                v-if="visibleCols.proposer_department"
-                class="px-4 py-3"
-              >
-                Phòng ban
-              </th>
-              <th
-                v-if="visibleCols.proposal_type"
-                class="px-4 py-3"
-              >
-                Loại
-              </th>
-              <th
-                v-if="visibleCols.tool_name"
-                class="px-4 py-3"
-              >
-                Sản phẩm / Nội dung
-              </th>
-              <th
-                v-if="visibleCols.vendor_name"
-                class="px-4 py-3"
-              >
-                Nhà cung cấp
-              </th>
-              <th
-                v-if="visibleCols.cost_amount"
-                class="px-4 py-3 text-right"
-              >
-                Chi phí DK
-              </th>
-              <th
-                v-if="visibleCols.actual_cost"
-                class="px-4 py-3 text-right"
-              >
-                Thực tế
-              </th>
-              <th
-                v-if="visibleCols.status"
-                class="px-4 py-3"
-              >
-                Trạng thái PĐX
-              </th>
-              <th class="px-4 py-3">
-                ĐNTT
-              </th>
-              <th
-                v-if="visibleCols.reviewed_by_name"
-                class="px-4 py-3"
-              >
-                Người duyệt
-              </th>
-              <th
-                v-if="visibleCols.reviewed_at"
-                class="px-4 py-3"
-              >
-                Ngày duyệt
-              </th>
-              <th
-                v-if="visibleCols.end_date"
-                class="px-4 py-3"
-              >
-                Hạn dùng
-              </th>
-              <th class="px-4 py-3 text-center">
-                Thao tác
-              </th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-100">
-            <tr
-              v-if="displayedProposals.length === 0"
-              class="text-center"
-            >
-              <td
-                :colspan="COLS.filter(c => visibleCols[c.key]).length + 1"
-                class="py-12 text-sm text-slate-400"
-              >
-                Không có phiếu đề xuất nào.
-              </td>
-            </tr>
-            <tr
-              v-for="row in displayedProposals"
-              :id="`proposal-row-${row.id}`"
-              :key="row.id"
-              class="hover:bg-slate-50/60 transition-colors"
-              :class="highlightProposalId === row.id && 'bg-brand/5 ring-2 ring-inset ring-brand/25'"
-            >
-              <td
-                v-if="visibleCols.proposal_code"
-                class="px-4 py-3"
-              >
-                <span class="font-mono text-xs font-semibold text-brand">{{ row.proposal_code ?? '—' }}</span>
-              </td>
-              <td
-                v-if="visibleCols.created_at"
-                class="px-4 py-3 text-xs text-slate-500"
-              >
-                {{ row.created_at ? row.created_at.slice(0, 10) : '—' }}
-              </td>
-              <td
-                v-if="visibleCols.proposer_name"
-                class="px-4 py-3"
-              >
-                <div class="font-medium text-slate-800">
-                  {{ row.proposer_name }}
-                </div>
-                <div
-                  v-if="row.proposer_position"
-                  class="text-xs text-slate-400"
-                >
-                  {{ row.proposer_position }}
-                </div>
-              </td>
-              <td
-                v-if="visibleCols.proposer_department"
-                class="px-4 py-3 text-xs text-slate-600"
-              >
-                {{ row.proposer_department ?? '—' }}
-              </td>
-              <td
-                v-if="visibleCols.proposal_type"
-                class="px-4 py-3"
-              >
-                <span class="text-sm text-slate-700">{{ row.proposal_type_label ?? '—' }}</span>
-              </td>
-              <td
-                v-if="visibleCols.tool_name"
-                class="max-w-[200px] px-4 py-3"
-              >
-                <div
-                  class="truncate font-medium text-slate-800"
-                  :title="row.tool_name"
-                >
-                  {{ row.tool_name }}
-                </div>
-                <div
-                  v-if="row.subject_about"
-                  class="truncate text-xs text-slate-400"
-                  :title="row.subject_about"
-                >
-                  {{ row.subject_about }}
-                </div>
-              </td>
-              <td
-                v-if="visibleCols.vendor_name"
-                class="px-4 py-3 text-sm text-slate-600"
-              >
-                {{ row.vendor_name ?? '—' }}
-              </td>
-              <td
-                v-if="visibleCols.cost_amount"
-                class="px-4 py-3 text-right"
-              >
-                <VndAmount
-                  :amount="row.cost_amount"
-                  compact
-                  class="text-sm"
-                />
-                <div class="text-[11px] text-slate-400">
-                  / {{ row.cost_unit_label }}
-                </div>
-              </td>
-              <td
-                v-if="visibleCols.actual_cost"
-                class="px-4 py-3 text-right"
-              >
-                <VndAmount
-                  v-if="row.actual_cost"
-                  :amount="row.actual_cost"
-                  compact
-                  class="text-sm"
-                />
-                <span
-                  v-else
-                  class="text-xs text-slate-400"
-                >—</span>
-              </td>
-              <td
-                v-if="visibleCols.status"
-                class="px-4 py-3"
-              >
-                <Badge
-                  :label="rowStatusLabel(row)"
-                  :color="rowStatusColor(row)"
-                />
-              </td>
-              <td class="px-4 py-3">
-                <template v-if="row.payment_request">
-                  <span
-                    class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold"
-                    :class="{
-                      'bg-amber-100 text-amber-800': row.payment_request.status === 'pending',
-                      'bg-emerald-100 text-emerald-800': row.payment_request.status === 'approved',
-                      'bg-rose-100 text-rose-800': row.payment_request.status === 'rejected',
-                      'bg-blue-100 text-blue-800': row.payment_request.status === 'paid',
-                    }"
-                    :title="row.payment_request.payment_request_code"
-                  >
-                    {{ row.payment_request.status_label }}
-                  </span>
-                  <p
-                    v-if="row.payment_request.reviewed_at"
-                    class="mt-0.5 text-[11px] text-slate-500"
-                  >
-                    {{ row.payment_request.reviewed_at.slice(0, 10) }}
-                  </p>
-                </template>
-                <span
-                  v-else
-                  class="text-xs text-slate-400"
-                >—</span>
-              </td>
-              <td
-                v-if="visibleCols.reviewed_by_name"
-                class="px-4 py-3 text-xs text-slate-600"
-              >
-                {{ row.reviewed_by_name ?? '—' }}
-              </td>
-              <td
-                v-if="visibleCols.reviewed_at"
-                class="px-4 py-3 text-xs text-slate-500"
-              >
-                {{ row.reviewed_at ? row.reviewed_at.slice(0, 10) : '—' }}
-              </td>
-              <td
-                v-if="visibleCols.end_date"
-                class="px-4 py-3 text-xs text-slate-500"
-              >
-                {{ row.end_date ?? '—' }}
-              </td>
-
-              <td class="px-3 py-3">
-                <ProposalRowActions
-                  :row="row"
-                  :can-review="props.can.review_proposals"
-                  @edit="openEditProposal"
-                  @approve="openApprove"
-                  @reject="openReject"
-                  @delete="onDeleteProposal"
-                  @create-payment-request="onCreatePaymentRequest"
-                  @approve-payment-request="(pr) => openPrModal('approve', pr)"
-                  @reject-payment-request="(pr) => openPrModal('reject', pr)"
-                  @mark-paid-payment-request="(pr) => openPrModal('paid', pr)"
-                />
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+        :rows="displayedProposals"
+        :expanded="expandedProposals"
+        :visible-cols="visibleCols"
+        :highlight-id="highlightProposalId"
+        :can-review="props.can.review_proposals"
+        @toggle="toggleProposalExpand"
+        @timeline="openTimeline"
+        @edit="openEditProposal"
+        @approve="openApprove"
+        @reject="openReject"
+        @delete="onDeleteProposal"
+        @create-payment-request="onCreatePaymentRequest"
+        @approve-payment-request="(pr) => openPrModal('approve', pr)"
+        @reject-payment-request="(pr) => openPrModal('reject', pr)"
+        @mark-paid-payment-request="(pr) => openPrModal('paid', pr)"
+      />
 
       <div class="border-t border-slate-100 px-5 py-2.5 text-xs text-slate-400">
         {{ proposals.length }} / {{ displayProposalCounts.total ?? proposals.length }} phiếu
       </div>
     </div>
+
+    <ProposalWorkflowTimelineDrawer
+      :show="timelineOpen"
+      :row="timelineRow"
+      @close="timelineOpen = false"
+    />
 
     <!-- ── Modals ── -->
     <AiPurchaseProposalFormModal

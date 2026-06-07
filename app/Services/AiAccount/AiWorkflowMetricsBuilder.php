@@ -20,11 +20,25 @@ class AiWorkflowMetricsBuilder
     public function build(): array
     {
         return [
-            // — PĐX —
+            // — PĐX (số lượng) —
+            'proposals_total' => AiPurchaseProposal::query()->count(),
+            'proposals_pending' => AiPurchaseProposal::query()
+                ->whereIn('status', ['pending', 'submitted', 'draft'])
+                ->count(),
+            'proposals_approved' => AiPurchaseProposal::query()
+                ->whereIn('status', ['approved', 'purchased', 'active'])
+                ->count(),
+
+            // — ĐNTT (số lượng) —
+            'payment_requests_pending' => $this->paymentRequestCount([AiPaymentRequestStatus::Pending->value]),
+            'payment_requests_approved' => $this->paymentRequestCount([AiPaymentRequestStatus::Approved->value]),
+            'payment_requests_paid' => $this->paymentRequestCount([AiPaymentRequestStatus::Paid->value]),
+
+            // — PĐX (ngân sách) —
             'budget_proposed_total' => $this->proposalSum(['pending', 'submitted', 'approved', 'purchased', 'active']),
             'budget_proposal_approved_total' => $this->proposalSum(['approved', 'purchased', 'active']),
 
-            // — ĐNTT —
+            // — ĐNTT (giá trị) —
             'budget_payment_request_total' => $this->paymentRequestSum(AiPaymentRequestStatus::values()),
             'budget_payment_approved_total' => $this->paymentRequestSum([
                 AiPaymentRequestStatus::Approved->value,
@@ -63,6 +77,14 @@ class AiWorkflowMetricsBuilder
         return (int) AiPaymentRequest::query()
             ->whereIn('status', $statuses)
             ->sum('amount');
+    }
+
+    /** @param list<string> $statuses */
+    private function paymentRequestCount(array $statuses): int
+    {
+        return AiPaymentRequest::query()
+            ->whereIn('status', $statuses)
+            ->count();
     }
 
     private function actualPurchaseTotal(): int

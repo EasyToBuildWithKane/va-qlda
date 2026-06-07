@@ -93,6 +93,8 @@ function exportCellValue(row, key) {
             return row.actual_cost != null ? currency(row.actual_cost) : '—';
         case 'status':
             return row.status_label ?? '—';
+        case 'overall_status':
+            return row.overall_status?.label ?? '—';
         case 'reviewed_by_name':
             return row.reviewed_by_name ?? '—';
         case 'reviewed_at':
@@ -168,6 +170,132 @@ function buildProposalCsv(list, cols, filterNote = '') {
 /**
  * @param {{ list: object[], columns: {key:string,label:string}[], visibleKeys: Record<string,boolean>, filterNote?: string, format?: 'xlsx'|'csv' }} opts
  */
+const PAYMENT_COLS = [
+    { key: 'payment_request_code', label: 'Mã ĐNTT' },
+    { key: 'proposal_code', label: 'Mã PĐX' },
+    { key: 'tool_name', label: 'Nội dung' },
+    { key: 'amount', label: 'Số tiền' },
+    { key: 'status_label', label: 'Trạng thái' },
+    { key: 'created_at', label: 'Ngày tạo' },
+    { key: 'created_by_name', label: 'Người tạo' },
+    { key: 'reviewed_by_name', label: 'Người duyệt' },
+    { key: 'reviewed_at', label: 'Ngày duyệt' },
+    { key: 'paid_at', label: 'Ngày thanh toán' },
+];
+
+function paymentRowsFromProposals(list) {
+    return (list ?? [])
+        .filter((p) => p.payment_request)
+        .map((p) => ({
+            ...p.payment_request,
+            proposal_code: p.proposal_code,
+            tool_name: p.tool_name,
+        }));
+}
+
+function paymentCellValue(row, key) {
+    switch (key) {
+        case 'amount':
+            return row.amount != null ? currency(row.amount) : '—';
+        case 'created_at':
+        case 'reviewed_at':
+        case 'paid_at':
+            return row[key] ? String(row[key]).slice(0, 16) : '—';
+        default:
+            return row[key] ?? '—';
+    }
+}
+
+function buildPaymentXlsx(rows, filterNote = '') {
+    const cols = PAYMENT_COLS;
+    const lastCol = cols.length - 1;
+    const ws = {};
+    const exportedAt = datetime(new Date().toISOString());
+    setCell(ws, 0, 0, 'ĐỀ NGHỊ THANH TOÁN — VAschools', S.title);
+    mergeRow(ws, 0, 0, lastCol);
+    const sub = filterNote
+        ? `Xuất lúc ${exportedAt} · ${rows.length} ĐNTT · ${filterNote}`
+        : `Xuất lúc ${exportedAt} · ${rows.length} ĐNTT`;
+    setCell(ws, 1, 0, sub, S.subtitle);
+    mergeRow(ws, 1, 0, lastCol);
+    const headerRow = 3;
+    cols.forEach((c, i) => setCell(ws, headerRow, i, c.label, S.header));
+    rows.forEach((row, idx) => {
+        const r = headerRow + 1 + idx;
+        const rowStyle = idx % 2 === 0 ? S.cell : S.cellAlt;
+        cols.forEach((c, ci) => {
+            const val = paymentCellValue(row, c.key);
+            const style = c.key === 'amount' ? S.money : rowStyle;
+            setCell(ws, r, ci, val, style);
+        });
+    });
+    ws['!ref'] = XLSX.utils.encode_range({
+        s: { r: 0, c: 0 },
+        e: { r: headerRow + rows.length, c: lastCol },
+    });
+    setColWidths(ws, cols.map((c) => (c.key === 'tool_name' ? 28 : 14)));
+    return ws;
+}
+
+/**
+ * @param {{ list: object[], filterNote?: string, format?: 'xlsx'|'csv' }} opts
+ */
+export function exportAiPaymentRequests({ list, filterNote = '', format = 'xlsx' }) {
+    const rows = paymentRowsFromProposals(list);
+    if (!rows.length) return false;
+
+    const { iso } = fileStamp();
+    const filenameBase = `VA_DeNghiThanhToan_${iso}`;
+
+    if (format === 'csv') {
+        const cols = PAYMENT_COLS;
+        const exportedAt = datetime(new Date().toISOString());
+        const meta = [
+            ['ĐỀ NGHỊ THANH TOÁN'],
+            ['Ngày xuất', exportedAt],
+            ['Số ĐNTT', rows.length],
+        ];
+        if (filterNote) meta.push(['Bộ lọc', filterNote]);
+        meta.push([], cols.map((c) => c.label), ...rows.map((row) => cols.map((c) => paymentCellValue(row, c.key))));
+        const content = '\uFEFF' + meta.map((r) => r.map(escapeCsvCell).join(',')).join('\n');
+        const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `${filenameBase}.csv`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        return `${filenameBase}.csv`;
+    }
+
+    const ws = buildPaymentXlsx(rows, filterNote);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'De nghi TT');
+    const filename = `${filenameBase}.xlsx`;
+    XLSX.writeFile(wb, filename);
+    return filename;
+}
+
+/**
+ * Báo cáo thanh toán: chỉ ĐNTT đã thanh toán.
+ */
+export function exportAiPaymentReport({ list, filterNote = '', format = 'xlsx' }) {
+    const paid = paymentRowsFromProposals(list).filter((r) => r.status === 'paid');
+    if (!paid.length) return false;
+
+    const { iso } = fileStamp();
+    const filenameBase = `VA_BaoCaoThanhToan_${iso}`;
+
+    if (format === 'csv') {
+        return exportAiPaymentRequests({ list: list.filter((p) => p.payment_request?.status === 'paid'), filterNote, format: 'csv' });
+    }
+
+    const ws = buildPaymentXlsx(paid, filterNote);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Bao cao TT');
+    XLSX.writeFile(wb, `${filenameBase}.xlsx`);
+    return `${filenameBase}.xlsx`;
+}
+
 export function exportAiProposals({ list, columns, visibleKeys, filterNote = '', format = 'xlsx' }) {
     if (!list?.length) return false;
 

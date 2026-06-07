@@ -93,6 +93,8 @@ class AiPurchaseProposalPresenter
             ?? $proposal->reviewer?->username;
 
         $purchaseType = $proposal->purchase_type?->value ?? 'new';
+        $paymentRequest = $this->paymentRequestPayload($proposal->paymentRequest, $viewer);
+        $overall = $this->overallWorkflowStatus($proposal, $paymentRequest);
 
         return [
             'id' => $proposal->id,
@@ -157,9 +159,184 @@ class AiPurchaseProposalPresenter
             ], true),
             'can_delete' => $viewer?->can('delete', $proposal) ?? false,
             'ai_account_id' => $proposal->ai_account_id,
-            'payment_request' => $this->paymentRequestPayload($proposal->paymentRequest, $viewer),
+            'payment_request' => $paymentRequest,
+            'payment_requests' => $paymentRequest !== null ? [$paymentRequest] : [],
+            'payment_request_status_key' => $this->paymentRequestStatusKey($paymentRequest),
+            'overall_status' => $overall,
+            'workflow_timeline' => $this->workflowTimeline($proposal, $paymentRequest),
+            'approval_history_tooltip' => $this->approvalHistoryTooltip($proposal, $paymentRequest),
             'awaiting_account' => $this->isAwaitingAccount($proposal),
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $paymentRequest
+     * @return array{key: string, label: string, color: string}
+     */
+    private function overallWorkflowStatus(AiPurchaseProposal $proposal, ?array $paymentRequest): array
+    {
+        if ($proposal->status === AiPurchaseProposalStatus::Rejected) {
+            return ['key' => 'pdx_rejected', 'label' => 'PĐX từ chối', 'color' => 'rose'];
+        }
+
+        if (in_array($proposal->status, [
+            AiPurchaseProposalStatus::Pending,
+            AiPurchaseProposalStatus::Submitted,
+            AiPurchaseProposalStatus::Draft,
+        ], true)) {
+            return ['key' => 'pdx_pending', 'label' => 'PĐX chờ duyệt', 'color' => 'amber'];
+        }
+
+        if ($paymentRequest === null) {
+            return ['key' => 'dntt_not_created', 'label' => 'Chưa tạo ĐNTT', 'color' => 'slate'];
+        }
+
+        return match ($paymentRequest['status']) {
+            AiPaymentRequestStatus::Pending->value => [
+                'key' => 'dntt_pending',
+                'label' => 'ĐNTT chờ duyệt',
+                'color' => 'amber',
+            ],
+            AiPaymentRequestStatus::Rejected->value => [
+                'key' => 'dntt_rejected',
+                'label' => 'ĐNTT từ chối',
+                'color' => 'rose',
+            ],
+            AiPaymentRequestStatus::Approved->value => [
+                'key' => 'dntt_approved',
+                'label' => 'ĐNTT đã duyệt',
+                'color' => 'emerald',
+            ],
+            AiPaymentRequestStatus::Paid->value => $this->isAwaitingAccount($proposal)
+                ? ['key' => 'paid_awaiting_account', 'label' => 'Đã thanh toán · chờ lập TK', 'color' => 'brand']
+                : ['key' => 'paid', 'label' => 'Đã thanh toán', 'color' => 'blue'],
+            default => ['key' => 'unknown', 'label' => '—', 'color' => 'slate'],
+        };
+    }
+
+    /** @param  array<string, mixed>|null  $paymentRequest */
+    private function paymentRequestStatusKey(?array $paymentRequest): string
+    {
+        if ($paymentRequest === null) {
+            return 'not_created';
+        }
+
+        return $paymentRequest['status'];
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $paymentRequest
+     * @return list<array<string, mixed>>
+     */
+    private function workflowTimeline(AiPurchaseProposal $proposal, ?array $paymentRequest): array
+    {
+        $events = [];
+
+        if ($proposal->created_at) {
+            $events[] = [
+                'id' => 'pdx-created',
+                'phase' => 'pdx',
+                'at' => $proposal->created_at->format('Y-m-d H:i'),
+                'title' => 'Tạo phiếu đề xuất',
+                'detail' => $proposal->proposer_name ?: ($proposal->creator?->employee?->full_name ?? ''),
+            ];
+        }
+
+        if ($proposal->reviewed_at && in_array($proposal->status, [
+            AiPurchaseProposalStatus::Approved,
+            AiPurchaseProposalStatus::Purchased,
+            AiPurchaseProposalStatus::Active,
+        ], true)) {
+            $events[] = [
+                'id' => 'pdx-approved',
+                'phase' => 'pdx',
+                'at' => $proposal->reviewed_at->format('Y-m-d H:i'),
+                'title' => 'PĐX đã duyệt',
+                'detail' => $proposal->reviewer?->employee?->full_name ?? $proposal->reviewer?->username ?? '',
+            ];
+        }
+
+        if ($proposal->status === AiPurchaseProposalStatus::Rejected && $proposal->reviewed_at) {
+            $events[] = [
+                'id' => 'pdx-rejected',
+                'phase' => 'pdx',
+                'at' => $proposal->reviewed_at->format('Y-m-d H:i'),
+                'title' => 'PĐX từ chối',
+                'detail' => $proposal->rejection_reason ?? '',
+            ];
+        }
+
+        if ($paymentRequest !== null) {
+            if (! empty($paymentRequest['created_at'])) {
+                $events[] = [
+                    'id' => 'dntt-created',
+                    'phase' => 'dntt',
+                    'at' => $paymentRequest['created_at'],
+                    'title' => 'Tạo đề nghị thanh toán',
+                    'detail' => $paymentRequest['payment_request_code'] ?? '',
+                ];
+            }
+            if (! empty($paymentRequest['reviewed_at']) && $paymentRequest['status'] === AiPaymentRequestStatus::Approved->value) {
+                $events[] = [
+                    'id' => 'dntt-approved',
+                    'phase' => 'dntt',
+                    'at' => $paymentRequest['reviewed_at'],
+                    'title' => 'ĐNTT đã duyệt',
+                    'detail' => $paymentRequest['reviewed_by_name'] ?? '',
+                ];
+            }
+            if (! empty($paymentRequest['reviewed_at']) && $paymentRequest['status'] === AiPaymentRequestStatus::Rejected->value) {
+                $events[] = [
+                    'id' => 'dntt-rejected',
+                    'phase' => 'dntt',
+                    'at' => $paymentRequest['reviewed_at'],
+                    'title' => 'ĐNTT từ chối',
+                    'detail' => $paymentRequest['rejection_reason'] ?? '',
+                ];
+            }
+            if (! empty($paymentRequest['paid_at'])) {
+                $events[] = [
+                    'id' => 'dntt-paid',
+                    'phase' => 'payment',
+                    'at' => $paymentRequest['paid_at'],
+                    'title' => 'Đã thanh toán',
+                    'detail' => $paymentRequest['amount'] !== null
+                        ? number_format((int) $paymentRequest['amount'], 0, ',', '.').' VNĐ'
+                        : '',
+                ];
+            }
+        }
+
+        usort($events, fn ($a, $b) => strcmp((string) $b['at'], (string) $a['at']));
+
+        return $events;
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $paymentRequest
+     */
+    private function approvalHistoryTooltip(AiPurchaseProposal $proposal, ?array $paymentRequest): string
+    {
+        $lines = [];
+        $lines[] = 'PĐX: '.$proposal->status->labelVi();
+        if ($proposal->reviewed_at) {
+            $who = $proposal->reviewer?->employee?->full_name ?? $proposal->reviewer?->username ?? '—';
+            $lines[] = 'Duyệt PĐX: '.$who.' · '.$proposal->reviewed_at->format('d/m/Y H:i');
+        }
+        if ($paymentRequest === null) {
+            $lines[] = 'ĐNTT: Chưa tạo';
+        } else {
+            $lines[] = 'ĐNTT: '.$paymentRequest['status_label'];
+            if (! empty($paymentRequest['reviewed_at'])) {
+                $lines[] = 'Duyệt ĐNTT: '.($paymentRequest['reviewed_by_name'] ?? '—')
+                    .' · '.substr((string) $paymentRequest['reviewed_at'], 0, 16);
+            }
+            if (! empty($paymentRequest['paid_at'])) {
+                $lines[] = 'Thanh toán: '.substr((string) $paymentRequest['paid_at'], 0, 16);
+            }
+        }
+
+        return implode("\n", $lines);
     }
 
     private function isAwaitingAccount(AiPurchaseProposal $proposal): bool
@@ -208,6 +385,7 @@ class AiPurchaseProposalPresenter
             'created_at' => $pr->created_at?->format('Y-m-d H:i'),
             'can_review' => $viewer?->can('review', $pr) ?? false,
             'can_mark_paid' => $viewer?->can('markPaid', $pr) ?? false,
+            'payment_document_paths' => $pr->payment_document_paths ?? [],
         ];
     }
 
