@@ -124,24 +124,20 @@ function normalizeProductRows(byProduct) {
 }
 
 function downloadWorkbook(wb, filename) {
-    try {
-        XLSX.writeFile(wb, filename);
-        return filename;
-    } catch {
-        const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-        const blob = new Blob(
-            [buf],
-            { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
-        );
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(a.href);
-        return filename;
-    }
+    const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob(
+        [buf],
+        { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+    );
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 0);
+    return filename;
 }
 
 function buildSummarySheet({ dashboard, filterNote, exporterName }) {

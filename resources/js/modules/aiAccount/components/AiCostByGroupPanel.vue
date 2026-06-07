@@ -5,6 +5,7 @@ import AppIcon from '@/Components/AppIcon.vue';
 import VndAmount from '@/modules/aiAccount/components/VndAmount.vue';
 import ColumnVisibilityDropdown from '@/shared/ui/ColumnVisibilityDropdown.vue';
 import { useVisibleColumns } from '@/shared/composables/useVisibleColumns';
+import { isAnchoredDropdownTarget } from '@/shared/composables/useAnchoredDropdownStyle';
 import { GROUP_COST_COLUMNS } from '@/modules/aiAccount/config/groupCostColumns';
 import { exportAiGroupCost } from '@/modules/aiAccount/composables/useAiGroupCostExport';
 import { useToast } from '@/shared/composables/useToast';
@@ -82,6 +83,9 @@ function runExport(format) {
 }
 
 function onDocClick(e) {
+    if (isAnchoredDropdownTarget(e.target)) {
+        return;
+    }
     if (colDdRef.value && !colDdRef.value.contains(e.target)) showColDd.value = false;
     if (exportDdRef.value && !exportDdRef.value.contains(e.target)) showExportDd.value = false;
 }
@@ -185,6 +189,7 @@ onUnmounted(() => document.removeEventListener('mousedown', onDocClick));
             </button>
             <ColumnVisibilityDropdown
               v-model="visibleCols"
+              :anchor="colDdRef"
               :show="showColDd"
               :columns="GROUP_COST_COLUMNS"
               :fixed-labels="['Nhóm chức năng']"

@@ -11,6 +11,7 @@ import BugFormModal from '@/modules/project/components/BugFormModal.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
+import { isAnchoredDropdownTarget } from '@/shared/composables/useAnchoredDropdownStyle';
 
 const props = defineProps({
     bugs: { type: Object, required: true }, // { data, meta, links }
@@ -41,6 +42,9 @@ const {
 } = useVisibleFilterControls(BUG_FILTER_CONTROLS, 'va-qlda.bugs.visible-filters');
 
 function onToolbarClickOutside(e) {
+    if (isAnchoredDropdownTarget(e.target)) {
+        return;
+    }
     if (filterPanelDdRef.value && !filterPanelDdRef.value.contains(e.target)) {
         showFilterPanelDd.value = false;
     }
@@ -158,6 +162,7 @@ function clearFilters() {
               </button>
               <FilterVisibilityDropdown
                 v-model="visibleFilters"
+                :anchor="filterPanelDdRef"
                 :show="showFilterPanelDd"
                 :controls="FILTER_CONTROLS"
                 @persist="persistVisibleFilters"

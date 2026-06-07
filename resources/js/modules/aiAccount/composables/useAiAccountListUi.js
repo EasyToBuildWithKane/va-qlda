@@ -1,5 +1,6 @@
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
+import { isAnchoredDropdownTarget } from '@/shared/composables/useAnchoredDropdownStyle';
 import { useVisibleColumns } from '@/shared/composables/useVisibleColumns';
 import { useClientPagination } from '@/shared/composables/useClientPagination';
 import {
@@ -78,6 +79,9 @@ export function useAiAccountListUi(groupsRef, optionsRef) {
     const colDdRef = ref(null);
 
     const onDocClick = (e) => {
+        if (isAnchoredDropdownTarget(e.target)) {
+            return;
+        }
         if (filterDdRef.value && !filterDdRef.value.contains(e.target)) {
             showFilterPanelDd.value = false;
         }
