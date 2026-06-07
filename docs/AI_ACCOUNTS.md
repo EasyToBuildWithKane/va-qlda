@@ -81,8 +81,20 @@ Sau deploy, user **tải lại** trang Index hoặc Chi phí theo nhóm (một r
 | Chi phí từ PĐX | `app/Services/AiAccount/AiAccountCountableProposalCost.php` |
 | Scope registry / purge | `app/Models/AiAccount.php` |
 | KPI workflow | `app/Services/AiAccount/AiWorkflowMetricsBuilder.php` |
+| Dashboard & báo cáo BI | `app/Services/AiAccount/AiExecutiveAnalyticsBuilder.php`, `AiAnalyticsController`, pages `Dashboard.vue`, `AnalyticsReport.vue` |
 | Test xóa + ngân sách | `tests/Feature/AiAccountSoftDeleteVisibilityTest.php` |
 | Test orphan | `tests/Feature/AiAccountOrphanPurgeTest.php` |
+
+---
+
+## Dashboard & báo cáo phân tích (2026-06)
+
+| Trang | Route | API |
+|-------|--------|-----|
+| Dashboard quản trị | `ai-accounts.dashboard` → `/ai-accounts/dashboard` | `GET api/ai-accounts/analytics/dashboard` |
+| Báo cáo chi tiết | `ai-accounts.analytics` → `/ai-accounts/analytics` | `GET api/ai-accounts/analytics/report` |
+
+Chi phí ngân sách / KPI thẻ: PĐX countable + ĐNTT đã thanh toán (giống mục «Luồng nghiệp vụ»). Phòng ban trên biểu đồ: `department_using` / `proposer_department` trên PĐX. «Tỷ lệ sử dụng»: lifecycle `in_use` + trạng thái active. Cảnh báo «không dùng X ngày»: proxy từ `last_reminded_at` / `allocated_at`.
 
 ---
 

@@ -288,6 +288,18 @@ class Navigation
                 'icon' => 'cost',
                 'items' => [
                     [
+                        'label' => 'Dashboard AI',
+                        'icon' => 'overview',
+                        'href' => '/ai-accounts/dashboard',
+                        'status' => 'live',
+                    ],
+                    [
+                        'label' => 'Báo cáo phân tích',
+                        'icon' => 'performance',
+                        'href' => '/ai-accounts/analytics',
+                        'status' => 'live',
+                    ],
+                    [
                         'label' => 'Tài khoản AI',
                         'icon' => 'account',
                         'href' => '/ai-accounts',

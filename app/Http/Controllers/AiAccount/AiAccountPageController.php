@@ -9,6 +9,7 @@ use App\Models\Employee;
 use App\Support\EmployeePickerMapper;
 use App\Support\Enums\AiAccountCostUnit;
 use App\Support\Enums\AiAccountGroupFunction;
+use App\Support\Enums\AiAccountLifecycleStatus;
 use App\Support\Enums\AiAccountStatus;
 use App\Support\Enums\AiPurchaseProposalStatus;
 use App\Support\Enums\ProposalType;
@@ -54,6 +55,32 @@ class AiAccountPageController extends Controller
         return Inertia::render('AiAccount/CostByGroup', [
             'options' => [
                 'group_function' => AiAccountGroupFunction::options(),
+            ],
+        ]);
+    }
+
+    public function dashboard(Request $request): Response
+    {
+        $this->authorize('viewAny', AiAccount::class);
+
+        return Inertia::render('AiAccount/Dashboard', [
+            'exchange_rate' => (int) config('ai_accounts.exchange_rate', 25_500),
+        ]);
+    }
+
+    public function analytics(Request $request): Response
+    {
+        $this->authorize('viewAny', AiAccount::class);
+
+        return Inertia::render('AiAccount/AnalyticsReport', [
+            'options' => [
+                'group_function' => AiAccountGroupFunction::options(),
+                'status' => AiAccountStatus::options(),
+                'lifecycle_status' => AiAccountLifecycleStatus::options(),
+                'proposal_status' => AiPurchaseProposalStatus::options(),
+            ],
+            'exporter' => [
+                'name' => $request->user()->employee?->full_name ?? $request->user()->username,
             ],
         ]);
     }

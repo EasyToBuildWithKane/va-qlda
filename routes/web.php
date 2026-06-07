@@ -3,6 +3,7 @@
 use App\Http\Controllers\AiAccount\AiAccountController;
 use App\Http\Controllers\AiAccount\AiAccountPageController;
 use App\Http\Controllers\AiAccount\AiAccountPasswordViewerController;
+use App\Http\Controllers\AiAccount\AiAnalyticsController;
 use App\Http\Controllers\AiAccount\AiPaymentRequestController;
 use App\Http\Controllers\AiAccount\AiPurchaseProposalController;
 use App\Http\Controllers\Auth\GoogleAuthController;
@@ -161,6 +162,9 @@ Route::middleware('auth')->group(function () {
 
     // AI accounts (JSON API + Inertia pages)
     Route::prefix('api/ai-accounts')->name('api.ai-accounts.')->group(function () {
+        Route::get('/analytics/dashboard', [AiAnalyticsController::class, 'dashboard'])->name('analytics.dashboard');
+        Route::get('/analytics/report', [AiAnalyticsController::class, 'report'])->name('analytics.report');
+        Route::get('/analytics/filter-options', [AiAnalyticsController::class, 'filterOptions'])->name('analytics.filter-options');
         Route::get('/summary', [AiAccountController::class, 'summary'])->name('summary');
         Route::get('/employees/search', [AiAccountController::class, 'searchEmployees'])->name('employees.search');
         Route::post('/trigger-reminder', [AiAccountController::class, 'triggerReminder'])->name('trigger-reminder');
@@ -196,6 +200,8 @@ Route::middleware('auth')->group(function () {
 
     Route::prefix('ai-accounts')->name('ai-accounts.')->group(function () {
         Route::get('/', [AiAccountPageController::class, 'index'])->name('index');
+        Route::get('/dashboard', [AiAccountPageController::class, 'dashboard'])->name('dashboard');
+        Route::get('/analytics', [AiAccountPageController::class, 'analytics'])->name('analytics');
         Route::get('/cost-report', [AiAccountPageController::class, 'costReport'])->name('cost-report');
         Route::get('/cost-by-group', [AiAccountPageController::class, 'costByGroup'])->name('cost-by-group');
     });

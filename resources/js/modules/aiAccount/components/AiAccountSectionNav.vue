@@ -3,13 +3,25 @@ import { Link } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
 
 defineProps({
-    /** 'accounts' | 'proposals' | 'cost-by-group' */
+    /** 'accounts' | 'proposals' | 'cost-by-group' | 'dashboard' | 'analytics' */
     active: { type: String, required: true },
     accountsBadge: { type: [String, Number], default: null },
     proposalsBadge: { type: [String, Number], default: null },
 });
 
 const TABS = [
+    {
+        key: 'dashboard',
+        label: 'Dashboard',
+        icon: 'overview',
+        routeName: 'ai-accounts.dashboard',
+    },
+    {
+        key: 'analytics',
+        label: 'Báo cáo phân tích',
+        icon: 'performance',
+        routeName: 'ai-accounts.analytics',
+    },
     {
         key: 'accounts',
         label: 'Tài khoản AI',
