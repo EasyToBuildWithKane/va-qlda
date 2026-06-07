@@ -1,6 +1,11 @@
 /* Cây org chart — flex + đường nối phân cấp */
 
 .org-tree {
+    --org-tree-line: rgb(148 163 184);
+    --org-tree-line-strong: rgb(100 116 139);
+    --org-tree-line-width: 2px;
+    --org-tree-spine: rgb(154 0 54 / 0.35);
+
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -28,16 +33,20 @@
     flex-direction: column;
     align-items: center;
     position: relative;
-    z-index: 1;
+    z-index: 2;
 }
 
 .org-tree__branch:has(> .org-tree__children) > .org-tree__stack::after {
     content: '';
     display: block;
-    width: 2px;
-    height: 1.25rem;
-    margin-top: 0.25rem;
-    background: rgb(203 213 225);
+    width: var(--org-tree-line-width);
+    height: 1.375rem;
+    margin-top: 0.125rem;
+    background: linear-gradient(
+        to bottom,
+        var(--org-tree-spine),
+        var(--org-tree-line)
+    );
     border-radius: 1px;
 }
 
@@ -56,9 +65,9 @@
 .org-tree__people:has(.org-tree__members-section)::before {
     content: '';
     display: block;
-    width: 2px;
+    width: var(--org-tree-line-width);
     height: 0.875rem;
-    background: rgb(203 213 225);
+    background: var(--org-tree-line);
     border-radius: 1px;
 }
 
@@ -71,10 +80,10 @@
 .org-tree__leader + .org-tree__members-section::before {
     content: '';
     display: block;
-    width: 2px;
+    width: var(--org-tree-line-width);
     height: 0.875rem;
     margin: 0.35rem auto 0;
-    background: rgb(203 213 225);
+    background: var(--org-tree-line);
     border-radius: 1px;
 }
 
@@ -109,8 +118,8 @@
     top: 0;
     left: 0.75rem;
     right: 0.75rem;
-    height: 2px;
-    background: rgb(203 213 225);
+    height: var(--org-tree-line-width);
+    background: var(--org-tree-line);
     border-radius: 1px;
 }
 
@@ -129,10 +138,10 @@
     position: absolute;
     top: 0;
     left: 50%;
-    width: 2px;
+    width: var(--org-tree-line-width);
     height: 0.75rem;
-    margin-left: -1px;
-    background: rgb(203 213 225);
+    margin-left: calc(var(--org-tree-line-width) / -2);
+    background: var(--org-tree-line);
     border-radius: 1px;
 }
 
@@ -150,19 +159,25 @@
 
 .org-tree__children {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     justify-content: center;
     align-items: flex-start;
-    gap: 0 0.5rem;
+    gap: 0;
     list-style: none;
     margin: 0;
-    padding: 0 0.5rem 0.5rem;
+    padding: 0 0.25rem 0.5rem;
     position: relative;
+    z-index: 1;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
 }
 
 .org-tree__children > .org-tree__branch {
-    padding: 1.25rem 0.75rem 0;
+    padding: 1.375rem 1rem 0;
     position: relative;
+    flex: 0 0 auto;
 }
 
 .org-tree__children > .org-tree__branch::before {
@@ -170,11 +185,12 @@
     position: absolute;
     top: 0;
     left: 50%;
-    width: 2px;
-    height: 1.25rem;
-    margin-left: -1px;
-    background: rgb(203 213 225);
+    width: var(--org-tree-line-width);
+    height: 1.375rem;
+    margin-left: calc(var(--org-tree-line-width) / -2);
+    background: var(--org-tree-line);
     border-radius: 1px;
+    z-index: 0;
 }
 
 .org-tree__children > .org-tree__branch::after {
@@ -183,9 +199,10 @@
     top: 0;
     left: 0;
     right: 0;
-    height: 2px;
-    background: rgb(203 213 225);
+    height: var(--org-tree-line-width);
+    background: var(--org-tree-line-strong);
     border-radius: 1px;
+    z-index: 0;
 }
 
 .org-tree__children > .org-tree__branch:first-child::after {
@@ -198,4 +215,8 @@
 
 .org-tree__children > .org-tree__branch:only-child::after {
     display: none;
+}
+
+.org-tree__children > .org-tree__branch:only-child::before {
+    height: 1.375rem;
 }

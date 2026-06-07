@@ -25,6 +25,12 @@ function levelTone(level) {
     :class="levelTone(node.level)"
   >
     <div class="org-team-node__head">
+      <p
+        v-if="node.level <= 2"
+        class="org-team-node__level"
+      >
+        {{ node.level === 1 ? 'Ban / Khối' : 'Nhóm' }}
+      </p>
       <h3 class="org-team-node__title">
         {{ node.name }}
       </h3>
@@ -75,26 +81,91 @@ function levelTone(level) {
 
 <style scoped>
 .org-team-node {
-    min-width: 11.5rem;
-    max-width: 16rem;
+    position: relative;
+    z-index: 2;
+    min-width: 12rem;
+    max-width: 17rem;
     overflow: hidden;
     background: #fff;
     border: 1px solid rgb(226 232 240);
     border-radius: 0.875rem;
     box-shadow:
-        0 1px 2px rgb(15 23 42 / 0.05),
-        0 4px 12px rgb(15 23 42 / 0.04);
+        0 1px 2px rgb(15 23 42 / 0.06),
+        0 4px 14px rgb(15 23 42 / 0.05);
 }
 
 .org-team-node__head {
-    padding: 0.75rem 0.875rem;
+    padding: 0.625rem 0.875rem 0.75rem;
+    text-align: center;
+}
+
+.org-team-node__level {
+    margin: 0 0 0.25rem;
+    font-size: 0.625rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    line-height: 1.2;
 }
 
 .org-team-node__title {
+    margin: 0;
+    font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
     font-size: 0.9375rem;
-    font-weight: 600;
+    font-weight: 700;
     line-height: 1.35;
     color: rgb(15 23 42);
+    overflow-wrap: anywhere;
+}
+
+.org-team-node--l1 {
+    border-color: rgb(154 0 54 / 0.28);
+    box-shadow:
+        0 1px 2px rgb(154 0 54 / 0.08),
+        0 6px 18px rgb(15 23 42 / 0.06);
+}
+
+.org-team-node--l1 .org-team-node__head {
+    padding-top: 0.75rem;
+    padding-bottom: 0.875rem;
+    background: linear-gradient(165deg, #9a0036 0%, #810030 100%);
+}
+
+.org-team-node--l1 .org-team-node__level {
+    color: rgb(255 255 255 / 0.72);
+}
+
+.org-team-node--l1 .org-team-node__title {
+    font-size: 1rem;
+    color: #fff;
+}
+
+.org-team-node--l2 .org-team-node__head {
+    background: #fdf2f6;
+    border-bottom: 1px solid rgb(154 0 54 / 0.1);
+}
+
+.org-team-node--l2 .org-team-node__level {
+    color: rgb(154 0 54 / 0.75);
+}
+
+.org-team-node--l2 .org-team-node__title {
+    color: #660026;
+}
+
+.org-team-node--l3 .org-team-node__head {
+    background: rgb(248 250 252);
+    border-bottom: 1px solid rgb(226 232 240);
+}
+
+.org-team-node--l3 .org-team-node__level {
+    color: rgb(100 116 139);
+}
+
+.org-team-node--l3 .org-team-node__title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: rgb(30 41 59);
 }
 
 .org-team-node__actions {
