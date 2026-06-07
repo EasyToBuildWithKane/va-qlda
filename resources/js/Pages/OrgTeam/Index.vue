@@ -126,19 +126,19 @@ async function onDelete(node) {
       <section
         v-for="(root, idx) in trees"
         :key="root.id"
-        class="overflow-hidden rounded-2xl border border-slate-200/90 bg-gradient-to-b from-slate-50/80 to-white shadow-sm"
+        class="overflow-hidden rounded-lg border border-slate-200 bg-white"
       >
         <div
           v-if="trees.length > 1"
-          class="border-b border-slate-200/80 bg-white/80 px-5 py-2.5"
+          class="border-b border-slate-100 px-4 py-2"
         >
-          <p class="text-xs font-medium text-slate-500">
+          <p class="text-xs text-slate-500">
             Sơ đồ {{ idx + 1 }}
-            <span class="text-slate-400">·</span>
-            <span class="font-semibold text-slate-700">{{ root.name }}</span>
+            <span class="text-slate-300">·</span>
+            <span class="font-medium text-slate-700">{{ root.name }}</span>
           </p>
         </div>
-        <div class="overflow-x-auto px-4 py-8 sm:px-8">
+        <div class="overflow-x-auto px-3 py-4 sm:px-5">
           <div class="flex min-w-min justify-center">
             <OrgTeamChart
               :node="root"
