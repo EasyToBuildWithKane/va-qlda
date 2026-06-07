@@ -10,7 +10,10 @@ import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
+import { useConfirmDelete } from '@/composables/useConfirmClose';
+
 const PER_PAGE_OPTIONS = [5, 10, 15, 20];
+const confirmDelete = useConfirmDelete();
 
 const props = defineProps({
     reports: { type: Object, required: true }, // { data, meta, links }
@@ -150,6 +153,13 @@ const colsRef = ref(null);
 const onDocClick = (e) => {
     if (filterPanelDdRef.value && !filterPanelDdRef.value.contains(e.target)) showFilterPanelDd.value = false;
     if (colsMenu.value && colsRef.value && !colsRef.value.contains(e.target)) colsMenu.value = false;
+};
+
+const removeReport = (r) => {
+    confirmDelete(
+        `Xoá báo cáo nháp "${r.title}" (${r.date})? Thao tác không thể hoàn tác.`,
+        () => router.delete(`/daily-reports/${r.id}`, { preserveScroll: true }),
+    );
 };
 
 </script>
@@ -476,12 +486,22 @@ const onDocClick = (e) => {
                 >—</span>
               </td>
               <td class="px-4 py-3 text-right">
-                <Link
-                  :href="`/daily-reports/${r.id}`"
-                  class="font-medium text-brand hover:underline"
-                >
-                  Xem
-                </Link>
+                <div class="inline-flex items-center justify-end gap-3">
+                  <Link
+                    :href="`/daily-reports/${r.id}`"
+                    class="font-medium text-brand hover:underline"
+                  >
+                    Xem
+                  </Link>
+                  <button
+                    v-if="r.can?.delete"
+                    type="button"
+                    class="font-medium text-danger hover:underline"
+                    @click="removeReport(r)"
+                  >
+                    Xoá
+                  </button>
+                </div>
               </td>
             </tr>
             <tr v-if="reports.data.length === 0">

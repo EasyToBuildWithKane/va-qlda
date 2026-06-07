@@ -50,6 +50,12 @@ class DailyReportPolicy
         return $this->score($account, $report);
     }
 
+    public function delete(SystemAccount $account, DailyReport $report): bool
+    {
+        return $report->isEditable()
+            && ($this->owns($account, $report) || $account->role === SystemRole::Admin);
+    }
+
     private function owns(SystemAccount $account, DailyReport $report): bool
     {
         return $account->employee_id !== null

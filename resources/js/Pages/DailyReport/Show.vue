@@ -6,6 +6,9 @@ import AppIcon from '@/Components/AppIcon.vue';
 import StatusBadge from '@/Components/DailyReport/StatusBadge.vue';
 import GradePill from '@/Components/DailyReport/GradePill.vue';
 import { fields } from '@/modules/daily-report/config/reportConfig';
+import { useConfirmDelete } from '@/composables/useConfirmClose';
+
+const confirmDelete = useConfirmDelete();
 
 const props = defineProps({
     report: { type: Object, required: true },
@@ -27,6 +30,13 @@ const scoreDimensions = [
 ];
 
 const submit = () => router.post(`/daily-reports/${props.report.id}/submit`);
+
+const remove = () => {
+    confirmDelete(
+        `Xoá báo cáo nháp "${props.report.title}"? Thao tác không thể hoàn tác.`,
+        () => router.delete(`/daily-reports/${props.report.id}`),
+    );
+};
 </script>
 
 <template>
@@ -166,6 +176,17 @@ const submit = () => router.post(`/daily-reports/${props.report.id}/submit`);
             @click="submit"
           >
             Nộp duyệt
+          </button>
+          <button
+            v-if="report.can?.delete"
+            type="button"
+            class="btn-ghost gap-1.5 text-danger hover:bg-rose-50"
+            @click="remove"
+          >
+            <AppIcon
+              name="trash"
+              :size="15"
+            /> Xoá nháp
           </button>
         </div>
       </div>

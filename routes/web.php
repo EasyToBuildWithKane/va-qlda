@@ -76,6 +76,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/', [DailyReportController::class, 'store'])->name('store');
         Route::get('/{report}', [DailyReportController::class, 'show'])->name('show');
         Route::put('/{report}', [DailyReportController::class, 'update'])->name('update');
+        Route::delete('/{report}', [DailyReportController::class, 'destroy'])->name('destroy');
         Route::post('/{report}/submit', [DailyReportController::class, 'submit'])->name('submit');
         Route::post('/{report}/score', [DailyReportReviewController::class, 'score'])->name('score');
         Route::post('/{report}/reject', [DailyReportReviewController::class, 'reject'])->name('reject');

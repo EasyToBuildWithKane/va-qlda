@@ -54,6 +54,7 @@ class DailyReportResource extends JsonResource
                 'update' => $user->can('update', $this->resource),
                 'submit' => $user->can('submit', $this->resource),
                 'score' => $user->can('score', $this->resource),
+                'delete' => $user->can('delete', $this->resource),
             ] : null,
         ];
     }

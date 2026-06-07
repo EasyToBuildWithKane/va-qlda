@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\DailyReport;
 
 use App\Application\DailyReport\CreateDailyReportUseCase;
+use App\Application\DailyReport\DeleteDailyReportUseCase;
 use App\Application\DailyReport\SubmitDailyReportUseCase;
 use App\Application\DailyReport\UpdateDailyReportUseCase;
 use App\Domain\DailyReport\Exceptions\DailyReportException;
@@ -144,6 +145,21 @@ class DailyReportController extends Controller
         $useCase->execute($report, $request->validated());
 
         return back()->with('success', 'Saved.');
+    }
+
+    public function destroy(DailyReport $report, DeleteDailyReportUseCase $useCase): RedirectResponse
+    {
+        $this->authorize('delete', $report);
+
+        try {
+            $useCase->execute($report);
+        } catch (DailyReportException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return redirect()
+            ->route('daily-reports.index')
+            ->with('success', 'Đã xoá báo cáo.');
     }
 
     public function submit(DailyReport $report, SubmitDailyReportUseCase $useCase): RedirectResponse

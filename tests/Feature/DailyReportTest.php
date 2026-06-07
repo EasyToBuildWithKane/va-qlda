@@ -192,4 +192,28 @@ class DailyReportTest extends TestCase
         $this->assertSame(ReportStatus::Draft, $report->status);
         $this->assertSame('Please add the impact section.', $report->review_notes);
     }
+
+    public function test_member_can_delete_own_draft(): void
+    {
+        $member = $this->member();
+        $report = DailyReport::factory()->create(['employee_id' => $member->employee_id]);
+
+        $this->actingAs($member, 'system')
+            ->delete(route('daily-reports.destroy', $report))
+            ->assertRedirect(route('daily-reports.index'));
+
+        $this->assertDatabaseMissing('daily_reports', ['id' => $report->id]);
+    }
+
+    public function test_member_cannot_delete_submitted_report(): void
+    {
+        $member = $this->member();
+        $report = DailyReport::factory()->submitted()->create(['employee_id' => $member->employee_id]);
+
+        $this->actingAs($member, 'system')
+            ->delete(route('daily-reports.destroy', $report))
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('daily_reports', ['id' => $report->id]);
+    }
 }

@@ -20,4 +20,9 @@ class DailyReportException extends DomainException
     {
         return new self('Only a submitted report can be reviewed.');
     }
+
+    public static function notDeletable(): self
+    {
+        return new self('Chỉ có thể xoá báo cáo ở trạng thái nháp.');
+    }
 }
