@@ -100,6 +100,15 @@ class AiAccountTest extends TestCase
         $this->actingAs($admin, 'system');
         $this->postJson(route('api.ai-accounts.proposals.approve', ['proposal' => $proposal->id]))->assertOk();
 
+        AiPaymentRequest::create([
+            'ai_purchase_proposal_id' => $proposal->id,
+            'amount' => $proposal->cost_amount,
+            'status' => AiPaymentRequestStatus::Approved,
+            'created_by' => $admin->id,
+            'reviewed_by' => $admin->id,
+            'reviewed_at' => now(),
+        ]);
+
         $this->actingAs($user, 'system');
         $this->postJson(route('api.ai-accounts.store'), [
             'proposal_id' => $proposal->id,
@@ -225,6 +234,15 @@ class AiAccountTest extends TestCase
         $proposal->refresh();
         $this->assertSame(AiPurchaseProposalStatus::Approved, $proposal->status);
         $this->assertNull($proposal->ai_account_id);
+
+        AiPaymentRequest::create([
+            'ai_purchase_proposal_id' => $proposal->id,
+            'amount' => $proposal->cost_amount,
+            'status' => AiPaymentRequestStatus::Approved,
+            'created_by' => $admin->id,
+            'reviewed_by' => $admin->id,
+            'reviewed_at' => now(),
+        ]);
 
         $awaiting = $this->getJson(route('api.ai-accounts.proposals.awaiting-account'))
             ->assertOk()

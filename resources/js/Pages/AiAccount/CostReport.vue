@@ -13,7 +13,6 @@ import AiPurchaseProposalFormModal from '@/modules/aiAccount/components/AiPurcha
 import AiPurchaseProposalRejectModal from '@/modules/aiAccount/components/AiPurchaseProposalRejectModal.vue';
 import AiPurchaseProposalApproveModal from '@/modules/aiAccount/components/AiPurchaseProposalApproveModal.vue';
 import AiPaymentRequestModals from '@/modules/aiAccount/components/AiPaymentRequestModals.vue';
-import AiCostReportWorkflowMetrics from '@/modules/aiAccount/components/AiCostReportWorkflowMetrics.vue';
 import ProposalRowActions from '@/modules/aiAccount/components/ProposalRowActions.vue';
 import AiAccountSectionNav from '@/modules/aiAccount/components/AiAccountSectionNav.vue';
 import AiAccountCrossLink from '@/modules/aiAccount/components/AiAccountCrossLink.vue';
@@ -46,7 +45,6 @@ const {
     proposals,
     proposalCounts,
     proposalCountsFiltered,
-    workflowMetrics,
     cards,
     load,
     loadProposals,
@@ -491,11 +489,6 @@ function runExport(format) {
       direction="to-accounts"
       :account-count="cards?.total_accounts ?? 0"
       :awaiting-account-count="awaitingAccountCount"
-    />
-
-    <AiCostReportWorkflowMetrics
-      :metrics="workflowMetrics ?? {}"
-      :loading="loading"
     />
 
     <!-- ── Proposals Table ── -->

@@ -1,5 +1,6 @@
 <script setup>
-import Avatar from '@/shared/ui/Avatar.vue';
+import AppIcon from '@/Components/AppIcon.vue';
+import OrgTeamRoster from '@/modules/people/components/OrgTeamRoster.vue';
 
 defineProps({
     node: { type: Object, required: true },
@@ -8,110 +9,148 @@ defineProps({
 
 const emit = defineEmits(['edit', 'add-child', 'delete']);
 
-const levelRing = {
-    1: 'ring-brand/30 border-brand/20',
-    2: 'ring-sky-200 border-sky-100',
-    3: 'ring-violet-200 border-violet-100',
+const levelShell = {
+    1: {
+        ring: 'ring-brand/25',
+        border: 'border-brand/20',
+        header: 'bg-brand text-white',
+        dot: 'bg-brand',
+    },
+    2: {
+        ring: 'ring-sky-200/80',
+        border: 'border-sky-100',
+        header: 'bg-sky-600 text-white',
+        dot: 'bg-sky-500',
+    },
+    3: {
+        ring: 'ring-violet-200/80',
+        border: 'border-violet-100',
+        header: 'bg-violet-600 text-white',
+        dot: 'bg-violet-500',
+    },
 };
 
-function memberLine(m) {
-    if (!m.branch?.label) return m.employee?.name;
-    return `${m.employee?.name} · ${m.branch.label}`;
+function shell(level) {
+    return levelShell[level] || {
+        ring: 'ring-slate-200',
+        border: 'border-slate-200',
+        header: 'bg-slate-600 text-white',
+        dot: 'bg-slate-400',
+    };
 }
 </script>
 
 <template>
-  <div class="flex min-w-0 flex-col items-center">
-    <div
-      class="card relative w-full max-w-xs border p-4 ring-2"
-      :class="levelRing[node.level] || 'ring-slate-200'"
+  <div class="flex min-w-[17rem] max-w-md flex-col items-center">
+    <article
+      class="w-full overflow-hidden rounded-2xl border bg-white shadow-md ring-2 transition-shadow hover:shadow-lg"
+      :class="[shell(node.level).ring, shell(node.level).border]"
     >
-      <div class="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-        {{ node.level_label }}
-      </div>
-      <h3 class="font-display text-base font-semibold text-slate-900">
-        {{ node.name }}
-      </h3>
-      <div
-        v-if="node.leader"
-        class="mt-3 flex items-center gap-2"
+      <header
+        class="px-4 py-3"
+        :class="shell(node.level).header"
       >
-        <Avatar
-          :src="node.leader.avatar_path"
-          :name="node.leader.name"
-          :size="28"
+        <p class="text-[10px] font-bold uppercase tracking-wider text-white/80">
+          {{ node.level_label }}
+        </p>
+        <h3 class="font-display mt-0.5 text-lg font-semibold leading-snug text-white">
+          {{ node.name }}
+        </h3>
+      </header>
+
+      <div class="p-4">
+        <OrgTeamRoster
+          :leader="node.leader"
+          :members="node.members"
+          :level="node.level"
         />
-        <div class="min-w-0">
-          <p class="truncate text-sm font-medium text-slate-800">
-            {{ node.leader.name }}
-          </p>
-          <p class="text-[11px] text-slate-500">
-            Trưởng nhóm
-          </p>
+
+        <div
+          v-if="canManage && node.can?.update"
+          class="mt-4 flex flex-wrap gap-1.5 border-t border-slate-100 pt-3"
+        >
+          <button
+            type="button"
+            class="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+            @click="emit('edit', node)"
+          >
+            <AppIcon
+              name="edit"
+              :size="13"
+            />
+            Sửa
+          </button>
+          <button
+            v-if="node.level < 3"
+            type="button"
+            class="inline-flex items-center gap-1 rounded-lg border border-brand/20 bg-brand/5 px-2.5 py-1.5 text-[11px] font-medium text-brand hover:bg-brand/10"
+            @click="emit('add-child', node)"
+          >
+            <AppIcon
+              name="plus"
+              :size="13"
+            />
+            Nhóm con
+          </button>
+          <button
+            v-if="node.can?.delete"
+            type="button"
+            class="inline-flex items-center gap-1 rounded-lg border border-rose-100 bg-rose-50 px-2.5 py-1.5 text-[11px] font-medium text-rose-700 hover:bg-rose-100"
+            @click="emit('delete', node)"
+          >
+            <AppIcon
+              name="delete"
+              :size="13"
+            />
+            Xoá
+          </button>
         </div>
       </div>
-      <ul
-        v-if="node.members?.length"
-        class="mt-3 space-y-1 border-t border-slate-100 pt-2 text-xs text-slate-600"
-      >
-        <li
-          v-for="m in node.members"
-          :key="m.id"
-          class="flex items-center gap-1.5"
-        >
-          <Avatar
-            :src="m.employee?.avatar_path"
-            :name="m.employee?.name"
-            :size="22"
-          />
-          <span class="truncate">{{ memberLine(m) }}</span>
-        </li>
-      </ul>
-      <div
-        v-if="canManage && node.can?.update"
-        class="mt-3 flex flex-wrap gap-1 border-t border-slate-100 pt-2"
-      >
-        <button
-          type="button"
-          class="rounded-md px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-100"
-          @click="emit('edit', node)"
-        >
-          Sửa
-        </button>
-        <button
-          v-if="node.level < 3"
-          type="button"
-          class="rounded-md px-2 py-1 text-[11px] font-medium text-brand hover:bg-brand/5"
-          @click="emit('add-child', node)"
-        >
-          + Nhóm con
-        </button>
-        <button
-          v-if="node.can?.delete"
-          type="button"
-          class="rounded-md px-2 py-1 text-[11px] font-medium text-rose-600 hover:bg-rose-50"
-          @click="emit('delete', node)"
-        >
-          Xoá
-        </button>
-      </div>
-    </div>
+    </article>
 
+    <!-- Nhóm con -->
     <div
       v-if="node.children?.length"
-      class="mt-4 flex w-full flex-col items-center"
+      class="relative mt-2 flex w-full flex-col items-center"
     >
-      <div class="h-6 w-px bg-slate-200" />
       <div
-        class="flex w-full flex-wrap items-start justify-center gap-6"
-        :class="node.children.length > 1 ? 'pt-2' : ''"
+        class="flex h-10 w-px flex-col items-center"
+        aria-hidden="true"
       >
+        <div
+          class="h-full w-px bg-gradient-to-b from-slate-300 to-slate-200"
+        />
+      </div>
+
+      <p
+        v-if="node.children.length > 1"
+        class="mb-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400"
+      >
+        {{ node.children.length }} nhóm con
+      </p>
+
+      <div
+        class="relative flex w-full flex-wrap items-start justify-center gap-x-8 gap-y-10 px-2 pb-2"
+      >
+        <div
+          v-if="node.children.length > 1"
+          class="pointer-events-none absolute top-0 left-[12%] right-[12%] h-px bg-slate-200"
+          aria-hidden="true"
+        />
         <div
           v-for="child in node.children"
           :key="child.id"
-          class="flex flex-col items-center"
+          class="relative flex flex-col items-center"
         >
-          <div class="h-4 w-px bg-slate-200" />
+          <div
+            class="mb-0 h-6 w-px bg-slate-200"
+            aria-hidden="true"
+          />
+          <span
+            class="mb-2 h-2 w-2 rounded-full ring-4 ring-white"
+            :class="shell(child.level).dot"
+            aria-hidden="true"
+          />
           <OrgTeamChart
             :node="child"
             :can-manage="canManage"
