@@ -124,7 +124,7 @@ const userDisplayName = computed(() => user.value?.display_name || user.value?.n
 </script>
 
 <template>
-  <div class="min-h-screen flex bg-slate-50">
+  <div class="flex h-screen min-h-0 overflow-hidden bg-slate-50">
     <!-- ══════════════════════════════════════════
              SIDEBAR
              Level 0 — Brand header
@@ -132,7 +132,7 @@ const userDisplayName = computed(() => user.value?.display_name || user.value?.n
              Level 2 — Navigation items        (normal case, 15 px, icon + label)
              ══════════════════════════════════════════ -->
     <aside
-      class="shrink-0 bg-brand text-brand-100 flex flex-col transition-all duration-200"
+      class="flex h-full min-h-0 shrink-0 flex-col bg-brand text-brand-100 transition-all duration-200"
       :class="rail ? 'w-16' : 'w-72'"
     >
       <!-- ── Level 0: Brand + toggle ── -->
@@ -185,7 +185,7 @@ const userDisplayName = computed(() => user.value?.display_name || user.value?.n
       <!-- ═══ Rail nav: flat icon strip ═══ -->
       <nav
         v-if="rail"
-        class="flex-1 overflow-y-auto py-3 flex flex-col items-center gap-0.5"
+        class="min-h-0 flex-1 overflow-y-auto py-3 flex flex-col items-center gap-0.5"
       >
         <template
           v-for="(group, gi) in nav"
@@ -231,7 +231,7 @@ const userDisplayName = computed(() => user.value?.display_name || user.value?.n
       <!-- ═══ Expanded nav ═══ -->
       <nav
         v-else
-        class="flex-1 overflow-y-auto px-3 py-4"
+        class="min-h-0 flex-1 overflow-y-auto px-3 py-4"
       >
         <div
           v-for="(group, gi) in nav"
@@ -402,7 +402,7 @@ const userDisplayName = computed(() => user.value?.display_name || user.value?.n
     </aside>
 
     <!-- Main column -->
-    <div class="flex-1 flex flex-col min-w-0">
+    <div class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
       <!--
                 Topbar — h-14 (56 px)
                 Left  : #header slot  — standardised via PageHeader component
@@ -456,7 +456,7 @@ const userDisplayName = computed(() => user.value?.display_name || user.value?.n
         </header>
       </slot>
 
-      <main :class="flush ? 'flex-1 overflow-hidden flex flex-col min-h-0 p-4' : 'flex-1 p-6 overflow-y-auto'">
+      <main :class="flush ? 'flex min-h-0 flex-1 flex-col overflow-hidden p-4' : 'min-h-0 flex-1 overflow-y-auto p-6'">
         <slot />
       </main>
     </div>
