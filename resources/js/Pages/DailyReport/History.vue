@@ -10,8 +10,6 @@ import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
-import { isAnchoredDropdownTarget } from '@/shared/composables/useAnchoredDropdownStyle';
-
 const PER_PAGE_OPTIONS = [5, 10, 15, 20];
 
 const props = defineProps({
@@ -150,9 +148,6 @@ onBeforeUnmount(() => document.removeEventListener('click', onDocClick));
 // Close dropdowns when clicking outside.
 const colsRef = ref(null);
 const onDocClick = (e) => {
-    if (isAnchoredDropdownTarget(e.target)) {
-        return;
-    }
     if (filterPanelDdRef.value && !filterPanelDdRef.value.contains(e.target)) showFilterPanelDd.value = false;
     if (colsMenu.value && colsRef.value && !colsRef.value.contains(e.target)) colsMenu.value = false;
 };
@@ -204,7 +199,6 @@ const onDocClick = (e) => {
             </button>
             <FilterVisibilityDropdown
               v-model="visibleFilters"
-              :anchor="filterPanelDdRef"
               :show="showFilterPanelDd"
               :controls="FILTER_CONTROLS.filter((f) => f.key !== 'employee' || canFilterEmployee)"
               @persist="persistVisibleFilters"

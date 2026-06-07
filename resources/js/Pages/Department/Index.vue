@@ -11,7 +11,6 @@ import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import ColumnVisibilityDropdown from '@/shared/ui/ColumnVisibilityDropdown.vue';
 import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
-import { isAnchoredDropdownTarget } from '@/shared/composables/useAnchoredDropdownStyle';
 import { useVisibleColumns } from '@/shared/composables/useVisibleColumns';
 import { useDialog } from '@/composables/useDialog';
 import { date, datetime } from '@/composables/useFormat';
@@ -147,9 +146,6 @@ const filterDdRef = ref(null);
 const colDdRef = ref(null);
 
 const onDocClick = (e) => {
-    if (isAnchoredDropdownTarget(e.target)) {
-        return;
-    }
     if (filterDdRef.value && !filterDdRef.value.contains(e.target)) showFilterPanelDd.value = false;
     if (colDdRef.value && !colDdRef.value.contains(e.target)) showColDd.value = false;
 };
@@ -270,7 +266,6 @@ const toggleStatus = async (d) => {
             </button>
             <FilterVisibilityDropdown
               v-model="visibleFilters"
-              :anchor="filterDdRef"
               :show="showFilterPanelDd"
               :controls="FILTER_CONTROLS"
               @persist="persistVisibleFilters"
@@ -298,7 +293,6 @@ const toggleStatus = async (d) => {
             </button>
             <ColumnVisibilityDropdown
               v-model="visibleCols"
-              :anchor="colDdRef"
               :show="showColDd"
               :columns="TABLE_COLUMNS"
               :fixed-labels="['Phòng ban', 'Thao tác']"

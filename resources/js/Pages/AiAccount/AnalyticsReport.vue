@@ -7,7 +7,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
-import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
+import AnalyticsFilterVisibilityDropdown from '@/modules/aiAccount/components/AnalyticsFilterVisibilityDropdown.vue';
 import { useAiAnalyticsReport } from '@/modules/aiAccount/composables/useAiAnalyticsReport';
 import { exportAiAnalyticsWorkbook } from '@/modules/aiAccount/composables/useAiAnalyticsExport';
 import { useAiExecutiveDashboard } from '@/modules/aiAccount/composables/useAiExecutiveDashboard';
@@ -322,7 +322,7 @@ function cellValue(row, col) {
                 class="text-brand"
               >({{ enabledFilterControlCount }})</span>
             </button>
-            <FilterVisibilityDropdown
+            <AnalyticsFilterVisibilityDropdown
               v-model="visibleFilters"
               :anchor="filterPanelDdRef"
               :show="showFilterPanelDd"

@@ -309,7 +309,6 @@ function showAttentionOnly() {
               </button>
               <FilterVisibilityDropdown
                 v-model="visibleFilters"
-                :anchor="filterDdRef"
                 :show="showFilterPanelDd"
                 :controls="FILTER_CONTROLS"
                 @persist="persistVisibleFilters"
@@ -338,7 +337,6 @@ function showAttentionOnly() {
               </button>
               <ColumnVisibilityDropdown
                 v-model="visibleCols"
-                :anchor="colDdRef"
                 :show="showColDd"
                 :columns="AI_ACCOUNT_TABLE_COLUMNS"
                 :fixed-labels="['Công cụ', 'Thao tác']"

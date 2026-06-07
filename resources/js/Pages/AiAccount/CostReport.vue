@@ -20,7 +20,6 @@ import AiPurchaseProposalApproveModal from '@/modules/aiAccount/components/AiPur
 import AiPaymentRequestModals from '@/modules/aiAccount/components/AiPaymentRequestModals.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
-import { isAnchoredDropdownTarget } from '@/shared/composables/useAnchoredDropdownStyle';
 import { useDialog } from '@/composables/useDialog';
 
 const FILTER_CONTROLS_DEF = [
@@ -270,9 +269,6 @@ function openExportMenu() {
 }
 
 function onToolbarClickOutside(e) {
-    if (isAnchoredDropdownTarget(e.target)) {
-        return;
-    }
     if (filterPanelDdRef.value && !filterPanelDdRef.value.contains(e.target)) showFilterPanelDd.value = false;
     if (colDdRef.value && !colDdRef.value.contains(e.target)) showColDd.value = false;
     if (exportDdRef.value && !exportDdRef.value.contains(e.target)) showExportDd.value = false;
@@ -572,7 +568,6 @@ function runExport(scope, format) {
               </button>
               <FilterVisibilityDropdown
                 v-model="visibleFilters"
-                :anchor="filterPanelDdRef"
                 :show="showFilterPanelDd"
                 :controls="FILTER_CONTROLS"
                 @persist="persistVisibleFilters"

@@ -11,7 +11,6 @@ import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import ColumnVisibilityDropdown from '@/shared/ui/ColumnVisibilityDropdown.vue';
 import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
-import { isAnchoredDropdownTarget } from '@/shared/composables/useAnchoredDropdownStyle';
 import { useVisibleColumns } from '@/shared/composables/useVisibleColumns';
 import { date, datetime } from '@/composables/useFormat';
 import { useDialog } from '@/composables/useDialog';
@@ -293,9 +292,6 @@ function clearFilters() {
 }
 
 function onToolbarClickOutside(e) {
-    if (isAnchoredDropdownTarget(e.target)) {
-        return;
-    }
     if (filterPanelDdRef.value && !filterPanelDdRef.value.contains(e.target)) {
         showFilterPanelDd.value = false;
     }
@@ -483,7 +479,6 @@ function toggleAllGroups() {
               </button>
               <FilterVisibilityDropdown
                 v-model="visibleFilters"
-                :anchor="filterPanelDdRef"
                 :show="showFilterPanelDd"
                 :controls="FILTER_CONTROLS"
                 @persist="persistVisibleFilters"
@@ -510,7 +505,6 @@ function toggleAllGroups() {
               </button>
               <ColumnVisibilityDropdown
                 v-model="visibleCols"
-                :anchor="colDdRef"
                 :show="showColDd"
                 :columns="TABLE_COLUMNS"
                 :fixed-labels="['Trạng thái / Xử lý', 'Thao tác']"
