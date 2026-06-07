@@ -11,7 +11,6 @@ import { Doughnut, Bar, Line } from 'vue-chartjs';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import AppIcon from '@/Components/AppIcon.vue';
-import AiAccountSectionNav from '@/modules/aiAccount/components/AiAccountSectionNav.vue';
 import { useAiExecutiveDashboard } from '@/modules/aiAccount/composables/useAiExecutiveDashboard';
 import { formatVnd } from '@/modules/aiAccount/utils/formatVnd';
 
@@ -47,7 +46,6 @@ const kpiCards = computed(() => [
     { label: 'Chi phí tháng này', value: formatVnd(kpis.value.cost_current_month), icon: 'budget', tone: 'sky', isText: true },
     { label: 'Chi phí năm nay', value: formatVnd(kpis.value.cost_current_year), icon: 'performance', tone: 'violet', isText: true },
     { label: 'TB / người dùng', value: formatVnd(kpis.value.avg_cost_per_user), icon: 'people', tone: 'emerald', isText: true },
-    { label: 'TB / phòng ban', value: formatVnd(kpis.value.avg_cost_per_department), icon: 'people', tone: 'slate', isText: true },
     { label: 'Tỷ lệ sử dụng', value: `${kpis.value.usage_rate_percent ?? 0}%`, icon: 'timeline', tone: 'brand', isText: true },
     { label: 'NS đã duyệt', value: formatVnd(kpis.value.budget_approved_total), icon: 'budget', tone: 'brand', isText: true },
     { label: 'NS đã thanh toán', value: formatVnd(kpis.value.budget_paid_total), icon: 'budget', tone: 'emerald', isText: true },
@@ -103,19 +101,6 @@ const productBar = computed(() => {
                 yAxisID: 'y1',
             },
         ],
-    };
-});
-
-const deptBar = computed(() => {
-    const rows = data.value?.by_department ?? [];
-    return {
-        labels: rows.map((r) => r.department),
-        datasets: [{
-            label: 'Chi phí / tháng',
-            data: rows.map((r) => r.cost_monthly),
-            backgroundColor: rows.map((_, i) => chartColors[i % chartColors.length]),
-            borderRadius: 6,
-        }],
     };
 });
 
@@ -187,8 +172,6 @@ const GRANULARITY_OPTS = [
         subtitle="Tổng quan chi phí, ngân sách và trạng thái tài khoản — dữ liệu từ PĐX & ĐNTT"
       />
 
-      <AiAccountSectionNav active="dashboard" />
-
       <div
         v-if="error"
         class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800"
@@ -212,7 +195,7 @@ const GRANULARITY_OPTS = [
         >
           <span aria-hidden="true">🚨</span>
           <div>
-            <p class="font-semibold">
+            <p class="text-slate-800">
               {{ alert.title }}
             </p>
             <p class="mt-0.5 text-xs opacity-90">
@@ -230,37 +213,37 @@ const GRANULARITY_OPTS = [
       </div>
 
       <template v-else-if="data">
-        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div class="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           <div
             v-for="card in kpiCards"
             :key="card.label"
-            class="rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm"
+            class="rounded-xl border border-slate-200/70 bg-gradient-to-br from-white to-slate-50/80 p-4"
           >
-            <div class="flex items-start justify-between gap-2">
-              <div>
-                <p class="text-xs font-medium text-slate-500">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <p class="text-[11px] tracking-wide text-slate-500">
                   {{ card.label }}
                 </p>
-                <p class="mt-1 font-display text-xl font-bold text-slate-900">
+                <p class="mt-1.5 font-display text-lg text-slate-800 tabular-nums">
                   {{ card.isText ? card.value : card.value }}
                 </p>
               </div>
               <span
-                class="inline-flex h-9 w-9 items-center justify-center rounded-lg"
+                class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg opacity-90"
                 :class="toneClass[card.tone]"
               >
                 <AppIcon
                   :name="card.icon"
-                  :size="18"
+                  :size="16"
                 />
               </span>
             </div>
           </div>
         </div>
 
-        <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <h2 class="font-display text-base font-semibold text-slate-800">
+        <div class="rounded-xl border border-slate-200/80 bg-white p-5">
+          <div class="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
+            <h2 class="text-sm text-slate-600">
               Chi phí theo thời gian
             </h2>
             <div class="flex flex-wrap items-center gap-2">
@@ -296,48 +279,28 @@ const GRANULARITY_OPTS = [
           </div>
         </div>
 
-        <div class="grid gap-4 lg:grid-cols-2">
-          <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-            <h2 class="mb-3 font-display text-base font-semibold text-slate-800">
-              Chi phí theo sản phẩm AI
-            </h2>
-            <div class="h-64">
-              <Bar
-                v-if="productBar.labels.length"
-                :data="productBar"
-                :options="productOptions"
-              />
-              <p
-                v-else
-                class="py-12 text-center text-sm text-slate-400"
-              >
-                Chưa có dữ liệu
-              </p>
-            </div>
-          </div>
-          <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-            <h2 class="mb-3 font-display text-base font-semibold text-slate-800">
-              Chi phí theo phòng ban / đơn vị
-            </h2>
-            <div class="h-64">
-              <Bar
-                v-if="deptBar.labels.length"
-                :data="deptBar"
-                :options="chartOptions"
-              />
-              <p
-                v-else
-                class="py-12 text-center text-sm text-slate-400"
-              >
-                Chưa có dữ liệu
-              </p>
-            </div>
+        <div class="rounded-xl border border-slate-200/80 bg-white p-5">
+          <h2 class="mb-4 border-b border-slate-100 pb-3 text-sm text-slate-600">
+            Chi phí theo sản phẩm AI
+          </h2>
+          <div class="h-72">
+            <Bar
+              v-if="productBar.labels.length"
+              :data="productBar"
+              :options="productOptions"
+            />
+            <p
+              v-else
+              class="py-16 text-center text-sm text-slate-400"
+            >
+              Chưa có dữ liệu
+            </p>
           </div>
         </div>
 
         <div class="grid gap-4 md:grid-cols-2">
-          <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-            <h2 class="mb-3 font-display text-base font-semibold text-slate-800">
+          <div class="rounded-xl border border-slate-200/80 bg-white p-5">
+            <h2 class="mb-4 border-b border-slate-100 pb-3 text-sm text-slate-600">
               Phân bổ ngân sách
             </h2>
             <div class="mx-auto h-56 max-w-xs">
@@ -348,8 +311,8 @@ const GRANULARITY_OPTS = [
               />
             </div>
           </div>
-          <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-            <h2 class="mb-3 font-display text-base font-semibold text-slate-800">
+          <div class="rounded-xl border border-slate-200/80 bg-white p-5">
+            <h2 class="mb-4 border-b border-slate-100 pb-3 text-sm text-slate-600">
               Trạng thái tài khoản
             </h2>
             <div class="mx-auto h-56 max-w-xs">
@@ -363,50 +326,50 @@ const GRANULARITY_OPTS = [
         </div>
 
         <div class="grid gap-4 lg:grid-cols-3">
-          <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-            <h3 class="mb-2 text-sm font-semibold text-slate-800">
+          <div class="rounded-xl border border-slate-200/80 bg-white p-5">
+            <h3 class="mb-3 border-b border-slate-100 pb-2 text-sm text-slate-600">
               Top chi phí sản phẩm
             </h3>
-            <ol class="space-y-2 text-sm">
+            <ol class="space-y-2.5 text-sm">
               <li
                 v-for="(row, i) in (top.costly_products ?? []).slice(0, 10)"
                 :key="row.tool_name"
-                class="flex justify-between gap-2 border-b border-slate-100 pb-2"
+                class="flex justify-between gap-3 border-b border-slate-50 pb-2 last:border-0"
               >
                 <span class="text-slate-600">{{ i + 1 }}. {{ row.tool_name }}</span>
-                <span class="shrink-0 font-medium text-brand">{{ formatVnd(row.cost_monthly) }}</span>
+                <span class="shrink-0 tabular-nums text-brand">{{ formatVnd(row.cost_monthly) }}</span>
               </li>
             </ol>
           </div>
-          <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-            <h3 class="mb-2 text-sm font-semibold text-slate-800">
+          <div class="rounded-xl border border-slate-200/80 bg-white p-5">
+            <h3 class="mb-3 border-b border-slate-100 pb-2 text-sm text-slate-600">
               Top người dùng (nhiều TK)
             </h3>
-            <ol class="space-y-2 text-sm">
+            <ol class="space-y-2.5 text-sm">
               <li
                 v-for="(row, i) in (top.users_most_accounts ?? []).slice(0, 10)"
                 :key="row.user_name"
-                class="flex justify-between gap-2 border-b border-slate-100 pb-2"
+                class="flex justify-between gap-3 border-b border-slate-50 pb-2 last:border-0"
               >
                 <span class="truncate text-slate-600">{{ i + 1 }}. {{ row.user_name }}</span>
-                <span class="shrink-0 font-medium">{{ row.account_count }} TK</span>
+                <span class="shrink-0 tabular-nums text-slate-700">{{ row.account_count }} TK</span>
               </li>
             </ol>
           </div>
-          <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-            <h3 class="mb-2 text-sm font-semibold text-slate-800">
+          <div class="rounded-xl border border-slate-200/80 bg-white p-5">
+            <h3 class="mb-3 border-b border-slate-100 pb-2 text-sm text-slate-600">
               Sắp hết hạn gần nhất
             </h3>
-            <ol class="space-y-2 text-sm">
+            <ol class="space-y-2.5 text-sm">
               <li
                 v-for="row in (top.expiring_soon ?? []).slice(0, 10)"
                 :key="row.id"
-                class="border-b border-slate-100 pb-2"
+                class="border-b border-slate-50 pb-2 last:border-0"
               >
-                <p class="font-medium text-slate-800">
+                <p class="text-slate-700">
                   {{ row.tool_name }}
                 </p>
-                <p class="text-xs text-slate-500">
+                <p class="mt-0.5 text-xs text-slate-500">
                   {{ row.expiry_date }} · còn {{ row.days_until_expiry }} ngày
                 </p>
               </li>

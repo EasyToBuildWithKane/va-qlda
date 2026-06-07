@@ -15,7 +15,6 @@ import AiAccountGroupList from '@/modules/aiAccount/components/AiAccountGroupLis
 import AiAccountFormModal from '@/modules/aiAccount/components/AiAccountFormModal.vue';
 import AiAccountRenewModal from '@/modules/aiAccount/components/AiAccountRenewModal.vue';
 import AiAccountPasswordViewersModal from '@/modules/aiAccount/components/AiAccountPasswordViewersModal.vue';
-import AiAccountSectionNav from '@/modules/aiAccount/components/AiAccountSectionNav.vue';
 import AiAccountBanner from '@/modules/aiAccount/components/AiAccountBanner.vue';
 import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
 
@@ -32,7 +31,6 @@ const {
     groups,
     banner,
     summaryCards,
-    proposalCounts,
     search,
     expanded,
     fetchList,
@@ -92,7 +90,6 @@ const editing = ref(null);
 const renewing = ref(null);
 
 const totalCount = computed(() => summaryCards.value?.total_accounts ?? 0);
-const proposalPendingCount = computed(() => proposalCounts.value?.pending ?? 0);
 const allAccountsForPicker = computed(() =>
     (groups.value ?? []).flatMap((g) => g.accounts ?? []),
 );
@@ -218,13 +215,7 @@ function showAttentionOnly() {
         icon="account"
         icon-color="brand"
         :badge="totalCount || null"
-      >
-        <AiAccountSectionNav
-          active="accounts"
-          :accounts-badge="totalCount || null"
-          :proposals-badge="proposalPendingCount > 0 ? proposalPendingCount : null"
-        />
-      </PageHeader>
+      />
     </template>
 
     <AiAccountBanner :banner="banner" />

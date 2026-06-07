@@ -98,6 +98,52 @@ function fileStamp() {
     return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
 }
 
+/** @param {string[]} visibleKeys */
+function resolveExportColumns(visibleKeys) {
+    const keys = (visibleKeys ?? []).filter(Boolean);
+    if (keys.length > 0) {
+        return keys;
+    }
+    return ANALYTICS_REPORT_COLUMNS.filter((c) => c.default).map((c) => c.key);
+}
+
+/** Chuẩn hoá dữ liệu sheet sản phẩm (dashboard vs stats footer). */
+function normalizeProductRows(byProduct) {
+    if (!Array.isArray(byProduct)) {
+        return [];
+    }
+    return byProduct.map((row) => ({
+        tool_name: row.tool_name ?? row.product ?? 'Khác',
+        account_count: row.account_count ?? 0,
+        cost_monthly: row.cost_monthly ?? 0,
+        avg_cost_monthly: row.avg_cost_monthly
+            ?? (row.account_count > 0
+                ? Math.round((row.cost_monthly ?? 0) / row.account_count)
+                : row.cost_monthly ?? 0),
+    }));
+}
+
+function downloadWorkbook(wb, filename) {
+    try {
+        XLSX.writeFile(wb, filename);
+        return filename;
+    } catch {
+        const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+        const blob = new Blob(
+            [buf],
+            { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+        );
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(a.href);
+        return filename;
+    }
+}
+
 function buildSummarySheet({ dashboard, filterNote, exporterName }) {
     const ws = {};
     const lastCol = 3;
@@ -142,10 +188,11 @@ function buildSummarySheet({ dashboard, filterNote, exporterName }) {
 }
 
 function buildDetailSheet(rows, visibleKeys) {
-    const cols = ANALYTICS_REPORT_COLUMNS.filter((c) => visibleKeys.includes(c.key));
+    const keys = resolveExportColumns(visibleKeys);
+    const cols = ANALYTICS_REPORT_COLUMNS.filter((c) => keys.includes(c.key));
     const headers = cols.map((c) => c.label);
     const ws = {};
-    const lastCol = headers.length - 1;
+    const lastCol = Math.max(0, headers.length - 1);
     headers.forEach((h, i) => setCell(ws, 3, i, h, S.header));
 
     rows.forEach((row, idx) => {
@@ -164,8 +211,20 @@ function buildDetailSheet(rows, visibleKeys) {
     setCell(ws, 0, 0, 'CHI TIẾT TÀI KHOẢN AI', S.title);
     mergeRow(ws, 0, 0, lastCol);
     ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: 4 + rows.length, c: lastCol } });
-    ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 3, c: 0 }, e: { r: 3 + rows.length, c: lastCol } }) };
-    ws['!freeze'] = { xSplit: 1, ySplit: 4, topLeftCell: 'B5', activePane: 'bottomRight' };
+    if (rows.length > 0 && lastCol >= 0) {
+        ws['!autofilter'] = {
+            ref: XLSX.utils.encode_range({ s: { r: 3, c: 0 }, e: { r: 3 + rows.length, c: lastCol } }),
+        };
+    }
+    if (lastCol >= 0) {
+        ws['!views'] = [{
+            state: 'frozen',
+            xSplit: 1,
+            ySplit: 4,
+            topLeftCell: 'B5',
+            activeCell: 'A1',
+        }];
+    }
     setColWidths(ws, cols.map(() => 16));
     return ws;
 }
@@ -243,24 +302,34 @@ export function exportAiAnalyticsWorkbook(opts) {
         exporterName = '',
     } = opts;
 
+    if (!rows?.length) {
+        return false;
+    }
+
     const iso = fileStamp();
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, buildSummarySheet({ dashboard, filterNote, exporterName }), 'Dashboard Summary');
-    XLSX.utils.book_append_sheet(wb, buildDetailSheet(rows, visibleColumnKeys), 'Chi tiet TK AI');
-    XLSX.utils.book_append_sheet(wb, buildProductSheet(dashboard?.by_product ?? stats?.by_product), 'Chi phi SP AI');
+    XLSX.utils.book_append_sheet(wb, buildSummarySheet({ dashboard, filterNote, exporterName }), 'Tong quan');
+    XLSX.utils.book_append_sheet(wb, buildDetailSheet(rows, visibleColumnKeys), 'Chi tiet TK');
+    const productSource = dashboard?.by_product ?? stats?.by_product;
+    XLSX.utils.book_append_sheet(wb, buildProductSheet(normalizeProductRows(productSource)), 'Chi phi SP');
     const expiring = (dashboard?.top?.expiring_soon ?? rows
         .filter((r) => r.expiry_date)
-        .map((r) => ({
-            tool_name: r.tool_name,
-            allocated_to_name: r.user_name,
-            expiry_date: r.expiry_date,
-            days_until_expiry: Math.ceil((new Date(r.expiry_date) - new Date()) / 86400000),
-            status_label: r.status_label,
-        })))
+        .map((r) => {
+            const expiry = new Date(r.expiry_date);
+            const days = Number.isNaN(expiry.getTime())
+                ? 999
+                : Math.ceil((expiry - new Date()) / 86400000);
+            return {
+                tool_name: r.tool_name,
+                allocated_to_name: r.user_name ?? r.allocated_to_name,
+                expiry_date: r.expiry_date,
+                days_until_expiry: days,
+                status_label: r.status_label,
+            };
+        }))
         .filter((r) => r.days_until_expiry <= 60);
     XLSX.utils.book_append_sheet(wb, buildExpiringSheet(expiring), 'Sap het han');
 
     const filename = `VA_AI_Analytics_${iso}.xlsx`;
-    XLSX.writeFile(wb, filename);
-    return filename;
+    return downloadWorkbook(wb, filename);
 }

@@ -1,33 +1,18 @@
 <script setup>
-import { onMounted, ref } from 'vue';
+import { onMounted } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
-import AiAccountSectionNav from '@/modules/aiAccount/components/AiAccountSectionNav.vue';
 import AiCostByGroupPanel from '@/modules/aiAccount/components/AiCostByGroupPanel.vue';
 import { useAiCostReport } from '@/modules/aiAccount/composables/useAiCostReport';
-import { httpGet } from '@/shared/services/http';
 
 defineProps({
     options: { type: Object, required: true },
 });
 
 const { loading, byGroup, cards, loadSummary } = useAiCostReport();
-const proposalPendingCount = ref(0);
 
-async function loadPendingBadge() {
-    try {
-        const res = await httpGet(route('api.ai-accounts.proposals.index'));
-        const data = res.data ?? {};
-        proposalPendingCount.value = data.counts?.pending ?? 0;
-    } catch {
-        proposalPendingCount.value = 0;
-    }
-}
-
-onMounted(async () => {
-    await Promise.all([loadSummary(), loadPendingBadge()]);
-});
+onMounted(loadSummary);
 </script>
 
 <template>
@@ -40,12 +25,7 @@ onMounted(async () => {
         icon="cost"
         icon-color="brand"
         :badge="byGroup.length || null"
-      >
-        <AiAccountSectionNav
-          active="cost-by-group"
-          :proposals-badge="proposalPendingCount > 0 ? proposalPendingCount : null"
-        />
-      </PageHeader>
+      />
     </template>
 
     <div

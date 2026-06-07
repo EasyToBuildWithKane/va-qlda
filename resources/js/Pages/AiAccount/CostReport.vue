@@ -18,7 +18,6 @@ import AiPurchaseProposalFormModal from '@/modules/aiAccount/components/AiPurcha
 import AiPurchaseProposalRejectModal from '@/modules/aiAccount/components/AiPurchaseProposalRejectModal.vue';
 import AiPurchaseProposalApproveModal from '@/modules/aiAccount/components/AiPurchaseProposalApproveModal.vue';
 import AiPaymentRequestModals from '@/modules/aiAccount/components/AiPaymentRequestModals.vue';
-import AiAccountSectionNav from '@/modules/aiAccount/components/AiAccountSectionNav.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
 import { useDialog } from '@/composables/useDialog';
@@ -497,12 +496,7 @@ function runExport(scope, format) {
         icon="performance"
         icon-color="brand"
         :badge="proposalCounts.total ?? null"
-      >
-        <AiAccountSectionNav
-          active="proposals"
-          :proposals-badge="proposalCounts.pending > 0 ? proposalCounts.pending : null"
-        />
-      </PageHeader>
+      />
     </template>
 
     <ProposalWorkflowKpiStrip

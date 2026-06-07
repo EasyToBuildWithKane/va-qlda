@@ -8,7 +8,6 @@ import AppIcon from '@/Components/AppIcon.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
-import AiAccountSectionNav from '@/modules/aiAccount/components/AiAccountSectionNav.vue';
 import { useAiAnalyticsReport } from '@/modules/aiAccount/composables/useAiAnalyticsReport';
 import { exportAiAnalyticsWorkbook } from '@/modules/aiAccount/composables/useAiAnalyticsExport';
 import { useAiExecutiveDashboard } from '@/modules/aiAccount/composables/useAiExecutiveDashboard';
@@ -70,14 +69,8 @@ const {
     createdTo,
     costMin,
     costMax,
-    savedFilters,
-    favoriteFilters,
     loadFilterOptions,
     loadReport,
-    snapshotFilters,
-    applySnapshot,
-    toggleFavorite,
-    shareFilterUrl,
     applyFromQuery,
 } = report;
 
@@ -93,12 +86,10 @@ const {
 
 const showColDd = ref(false);
 const showExportDd = ref(false);
-const showSavedDd = ref(false);
+const exporting = ref(false);
 const filterPanelDdRef = ref(null);
 const colDdRef = ref(null);
 const exportDdRef = ref(null);
-const savedDdRef = ref(null);
-const saveFilterName = ref('');
 const groupBy = ref('');
 const freezeFirstCol = ref(true);
 const debounceTimer = ref(null);
@@ -177,6 +168,13 @@ function scheduleLoad() {
     debounceTimer.value = setTimeout(loadReport, 350);
 }
 
+function openFilterPanel() {
+    toggleFilterPanel(() => {
+        showColDd.value = false;
+        showExportDd.value = false;
+    });
+}
+
 watch([
     search, department, groupFunction, tool, vendor, status, lifecycleStatus,
     proposalStatus, proposer, purchaseFrom, purchaseTo, expiryFrom, expiryTo,
@@ -184,12 +182,11 @@ watch([
 ], scheduleLoad);
 
 function onDocMouseDown(e) {
-    [filterPanelDdRef, colDdRef, exportDdRef, savedDdRef].forEach((r) => {
+    [filterPanelDdRef, colDdRef, exportDdRef].forEach((r) => {
         if (r.value && !r.value.contains(e.target)) {
             showFilterPanelDd.value = false;
             showColDd.value = false;
             showExportDd.value = false;
-            showSavedDd.value = false;
         }
     });
 }
@@ -206,42 +203,41 @@ onBeforeUnmount(() => {
     clearTimeout(debounceTimer.value);
 });
 
-function saveCurrentFilter() {
-    const name = saveFilterName.value.trim() || `Bộ lọc ${new Date().toLocaleString('vi-VN')}`;
-    snapshotFilters(name);
-    saveFilterName.value = '';
-    toast.success('Đã lưu bộ lọc.');
-}
-
-async function copyShareLink() {
-    const url = shareFilterUrl();
-    try {
-        await navigator.clipboard.writeText(url);
-        toast.success('Đã copy link chia sẻ bộ lọc.');
-    } catch {
-        toast.error('Không copy được link.');
-    }
-}
-
 async function exportExcel() {
     showExportDd.value = false;
     if (!rows.value.length) {
         toast.error('Không có dữ liệu để xuất.');
         return;
     }
-    if (!dashboardLoader.data.value) {
-        await dashboardLoader.load();
+    if (activeColumns.value.length === 0) {
+        toast.error('Chọn ít nhất một cột để xuất.');
+        return;
     }
-    const keys = activeColumns.value.map((c) => c.key);
-    exportAiAnalyticsWorkbook({
-        rows: rows.value,
-        stats: stats.value,
-        dashboard: dashboardLoader.data.value,
-        visibleColumnKeys: keys,
-        exporterName: props.exporter?.name,
-        filterNote: search.value ? `Tìm: ${search.value}` : '',
-    });
-    toast.success('Đã xuất Excel báo cáo AI.');
+    exporting.value = true;
+    try {
+        if (!dashboardLoader.data.value) {
+            await dashboardLoader.load();
+        }
+        const keys = activeColumns.value.map((c) => c.key);
+        const filename = exportAiAnalyticsWorkbook({
+            rows: rows.value,
+            stats: stats.value,
+            dashboard: dashboardLoader.data.value,
+            visibleColumnKeys: keys,
+            exporterName: props.exporter?.name,
+            filterNote: search.value ? `Tìm: ${search.value}` : '',
+        });
+        if (!filename) {
+            toast.error('Không xuất được file Excel.');
+            return;
+        }
+        toast.success(`Đã tải ${filename}`);
+    } catch (e) {
+        console.error(e);
+        toast.error('Xuất Excel thất bại. Thử lại hoặc liên hệ quản trị.');
+    } finally {
+        exporting.value = false;
+    }
 }
 
 function cellValue(row, col) {
@@ -256,15 +252,13 @@ function cellValue(row, col) {
 <template>
   <AppLayout>
     <Head title="Báo cáo phân tích AI" />
-    <div class="mx-auto max-w-[1600px] space-y-4 px-4 py-5 sm:px-6 lg:px-8">
+    <div class="w-full min-w-0 space-y-4">
       <PageHeader
         title="Báo cáo phân tích chuyên sâu"
         subtitle="Bảng dữ liệu tài khoản AI — lọc, nhóm, xuất Excel báo cáo quản trị"
       />
 
-      <AiAccountSectionNav active="analytics" />
-
-      <div class="rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div class="w-full min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
         <div class="flex flex-wrap items-center gap-2 border-b border-slate-100 p-3">
           <div class="flex min-w-0 flex-1 items-center gap-2">
             <DatagridToolbarSearch
@@ -280,7 +274,7 @@ function cellValue(row, col) {
             <button
               type="button"
               class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
-              @click="toggleFilterPanel"
+              @click="openFilterPanel"
             >
               <AppIcon
                 name="filter"
@@ -305,7 +299,7 @@ function cellValue(row, col) {
             <button
               type="button"
               class="inline-flex h-9 items-center gap-1 rounded-btn border border-slate-200 px-2.5 text-xs font-medium text-slate-700"
-              @click="showColDd = !showColDd; showExportDd = false; showSavedDd = false"
+              @click="showColDd = !showColDd; showExportDd = false"
             >
               <AppIcon
                 name="columns"
@@ -347,71 +341,6 @@ function cellValue(row, col) {
             </div>
           </div>
           <div
-            ref="savedDdRef"
-            class="relative"
-          >
-            <button
-              type="button"
-              class="inline-flex h-9 items-center gap-1 rounded-btn border border-slate-200 px-2.5 text-xs font-medium text-slate-700"
-              @click="showSavedDd = !showSavedDd; showColDd = false; showExportDd = false"
-            >
-              <AppIcon
-                name="star"
-                :size="15"
-              /><span>Đã lưu</span>
-            </button>
-            <div
-              v-if="showSavedDd"
-              class="absolute right-0 z-30 mt-1 w-72 rounded-lg border border-slate-200 bg-white p-3 shadow-lg"
-            >
-              <div class="flex gap-2">
-                <input
-                  v-model="saveFilterName"
-                  type="text"
-                  placeholder="Tên bộ lọc"
-                  class="h-8 flex-1 rounded border border-slate-200 px-2 text-xs"
-                >
-                <button
-                  type="button"
-                  class="btn-primary h-8 px-2 text-xs"
-                  @click="saveCurrentFilter"
-                >
-                  Lưu
-                </button>
-              </div>
-              <button
-                type="button"
-                class="mt-2 text-xs text-brand hover:underline"
-                @click="copyShareLink"
-              >
-                Chia sẻ link bộ lọc hiện tại
-              </button>
-              <ul class="mt-2 max-h-48 space-y-1 overflow-auto text-xs">
-                <li
-                  v-for="item in savedFilters"
-                  :key="item.id"
-                  class="flex items-center justify-between gap-2 rounded px-2 py-1 hover:bg-slate-50"
-                >
-                  <button
-                    type="button"
-                    class="truncate text-left"
-                    @click="applySnapshot(item.values); loadReport()"
-                  >
-                    {{ item.name }}
-                  </button>
-                  <button
-                    type="button"
-                    class="shrink-0"
-                    :class="favoriteFilters.includes(item.id) ? 'text-amber-500' : 'text-slate-300'"
-                    @click="toggleFavorite(item.id)"
-                  >
-                    ★
-                  </button>
-                </li>
-              </ul>
-            </div>
-          </div>
-          <div
             ref="exportDdRef"
             class="relative"
           >
@@ -431,10 +360,11 @@ function cellValue(row, col) {
             >
               <button
                 type="button"
-                class="block w-full px-3 py-2 text-left text-xs hover:bg-slate-50"
+                class="block w-full px-3 py-2 text-left text-xs hover:bg-slate-50 disabled:opacity-50"
+                :disabled="exporting || loading"
                 @click="exportExcel"
               >
-                Excel báo cáo (.xlsx)
+                {{ exporting ? 'Đang xuất…' : 'Excel báo cáo (.xlsx)' }}
               </button>
             </div>
           </div>
@@ -626,15 +556,19 @@ function cellValue(row, col) {
           </template>
         </div>
 
-        <div class="relative max-h-[32rem] overflow-auto">
-          <table class="min-w-full border-collapse text-left text-xs">
+        <div class="relative w-full overflow-x-auto">
+          <table class="w-full min-w-full border-collapse text-left text-xs">
             <thead class="sticky top-0 z-10 bg-slate-50 shadow-sm">
               <tr>
                 <th
                   v-for="(col, ci) in activeColumns"
                   :key="col.key"
                   class="whitespace-nowrap border-b border-slate-200 px-3 py-2.5 font-semibold text-slate-600"
-                  :class="freezeFirstCol && ci === 0 ? 'sticky left-0 z-20 bg-slate-50' : ''"
+                  :class="[
+                    freezeFirstCol && ci === 0 ? 'sticky left-0 z-20 bg-slate-50' : '',
+                    col.width ? '' : 'min-w-[7rem]',
+                  ]"
+                  :style="col.width ? { minWidth: col.width } : undefined"
                 >
                   {{ col.label }}
                 </th>
@@ -671,8 +605,11 @@ function cellValue(row, col) {
                   <td
                     v-for="(col, ci) in activeColumns"
                     :key="col.key"
-                    class="max-w-xs truncate px-3 py-2 text-slate-700"
-                    :class="freezeFirstCol && ci === 0 ? 'sticky left-0 bg-white' : ''"
+                    class="whitespace-nowrap px-3 py-2 text-slate-700"
+                    :class="[
+                      freezeFirstCol && ci === 0 ? 'sticky left-0 z-10 bg-white shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]' : '',
+                      col.key === 'notes' ? 'max-w-md whitespace-normal' : '',
+                    ]"
                     :title="String(entry.row[col.key] ?? '')"
                   >
                     {{ cellValue(entry.row, col) }}
