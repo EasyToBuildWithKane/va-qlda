@@ -252,7 +252,7 @@ function handleSubmit() {
             {{ isEdit ? '1' : '2' }} · Thông tin từ phiếu
           </h3>
           <p class="mt-0.5 text-xs text-slate-500">
-            Đọc-only — chỉnh sửa tại phiếu đề xuất hoặc gia hạn sau khi lưu.
+            Đọc-only — phiếu chỉ sửa được khi còn «chờ duyệt» (tab PĐX & ĐNTT). Gia hạn tài khoản qua thao tác «Gia hạn».
           </p>
         </header>
 

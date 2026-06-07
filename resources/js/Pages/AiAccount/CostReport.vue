@@ -335,7 +335,9 @@ async function focusProposalFromQuery() {
         behavior: 'smooth',
         block: 'center',
     });
-    openEditProposal(row);
+    if (row.can_edit) {
+        openEditProposal(row);
+    }
 }
 
 let proposalFocusDone = false;
@@ -358,6 +360,9 @@ function openCreateProposal() {
 }
 
 function openEditProposal(row) {
+    if (!row?.can_edit) {
+        return;
+    }
     editingProposal.value = row;
     proposalFormOpen.value = true;
 }

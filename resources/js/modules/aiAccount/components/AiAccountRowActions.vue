@@ -153,7 +153,7 @@ const hasMenuItems = computed(() => true);
             :size="15"
             class="text-brand"
           />
-          Chi tiết phiếu đề xuất
+          Xem hồ sơ PĐX & ĐNTT
           <span
             v-if="row.proposal_code"
             class="ml-auto font-mono text-[10px] text-slate-400"
