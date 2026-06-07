@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 import OrgTeamTeamNode from '@/modules/people/components/OrgTeamTeamNode.vue';
 import OrgTeamPeopleBranch from '@/modules/people/components/OrgTeamPeopleBranch.vue';
-import { useOrgTeamPeople } from '@/modules/people/composables/useOrgTeamPeople.js';
+import { useOrgTeamPeople, toIterableList } from '@/modules/people/composables/useOrgTeamPeople.js';
 import '@/modules/people/styles/org-team-tree.css';
 
 const props = defineProps({
@@ -17,7 +17,8 @@ const people = useOrgTeamPeople(() => ({
     members: props.node.members,
 }));
 
-const hasChildren = computed(() => (props.node.children?.length ?? 0) > 0);
+const childTeams = computed(() => toIterableList(props.node.children));
+const hasChildren = computed(() => childTeams.value.length > 0);
 </script>
 
 <template>
@@ -50,7 +51,7 @@ const hasChildren = computed(() => (props.node.children?.length ?? 0) > 0);
       class="org-tree__children"
     >
       <OrgTeamChart
-        v-for="child in node.children"
+        v-for="child in childTeams"
         :key="child.id"
         :node="child"
         :can-manage="canManage"

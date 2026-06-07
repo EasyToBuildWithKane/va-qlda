@@ -1,15 +1,38 @@
-import { computed, unref } from 'vue';
+import { computed } from 'vue';
 
 /**
- * @param {import('vue').MaybeRefOrGetter<{ leader?: object, members?: object[] }>} nodeOrProps
+ * Inertia / JSON đôi khi trả collection dạng object — chuẩn hoá thành mảng để v-for / for...of.
+ * @param {unknown} value
+ * @returns {object[]}
+ */
+export function toIterableList(value) {
+    if (Array.isArray(value)) {
+        return value;
+    }
+    if (value && typeof value === 'object') {
+        const record = /** @type {Record<string, unknown>} */ (value);
+        if (Array.isArray(record.data)) {
+            return record.data;
+        }
+
+        return Object.values(record).filter(
+            (item) => item !== null && typeof item === 'object',
+        );
+    }
+
+    return [];
+}
+
+/**
+ * @param {import('vue').MaybeRefOrGetter<{ leader?: object, members?: unknown }>} nodeOrProps
  */
 export function useOrgTeamPeople(nodeOrProps) {
     return computed(() => {
         const source = typeof nodeOrProps === 'function'
             ? nodeOrProps()
-            : unref(nodeOrProps);
+            : nodeOrProps;
         const leader = source?.leader ?? null;
-        const members = source?.members ?? [];
+        const members = toIterableList(source?.members);
         const leaderId = leader?.id;
         const list = [];
 
