@@ -72,53 +72,52 @@ function closePersonDrawer() {
         icon="org-teams"
         icon-color="brand"
       >
-        <template #actions>
-          <div class="flex flex-wrap items-center gap-2">
-            <div
-              v-if="trees.length && can.create"
-              class="flex rounded-btn bg-slate-100 p-0.5"
-              role="tablist"
-              aria-label="Chế độ trang"
-            >
-              <button
-                type="button"
-                role="tab"
-                class="rounded px-3 py-1.5 text-xs font-medium transition-colors"
-                :class="pageMode === 'view'
-                  ? 'bg-white text-slate-800 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700'"
-                :aria-selected="pageMode === 'view'"
-                @click="pageMode = 'view'"
-              >
-                Xem sơ đồ
-              </button>
-              <button
-                type="button"
-                role="tab"
-                class="rounded px-3 py-1.5 text-xs font-medium transition-colors"
-                :class="pageMode === 'edit'
-                  ? 'bg-white text-slate-800 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700'"
-                :aria-selected="pageMode === 'edit'"
-                @click="pageMode = 'edit'"
-              >
-                Chỉnh sửa
-              </button>
-            </div>
+        <div class="flex shrink-0 flex-wrap items-center gap-2">
+          <div
+            v-if="trees.length"
+            class="flex rounded-btn bg-slate-100 p-0.5"
+            role="tablist"
+            aria-label="Chế độ trang"
+          >
             <button
-              v-if="can.create && pageMode === 'edit'"
               type="button"
-              class="btn-primary flex items-center gap-1.5 text-sm"
-              @click="openCreate(null)"
+              role="tab"
+              class="rounded px-3 py-1.5 text-xs font-medium transition-colors"
+              :class="pageMode === 'view'
+                ? 'bg-white text-slate-800 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700'"
+              :aria-selected="pageMode === 'view'"
+              @click="pageMode = 'view'"
             >
-              <AppIcon
-                name="plus"
-                :size="15"
-              />
-              Thêm nhóm
+              Xem sơ đồ
+            </button>
+            <button
+              v-if="can.create"
+              type="button"
+              role="tab"
+              class="rounded px-3 py-1.5 text-xs font-medium transition-colors"
+              :class="pageMode === 'edit'
+                ? 'bg-white text-slate-800 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700'"
+              :aria-selected="pageMode === 'edit'"
+              @click="pageMode = 'edit'"
+            >
+              Chỉnh sửa
             </button>
           </div>
-        </template>
+          <button
+            v-if="can.create && pageMode === 'edit'"
+            type="button"
+            class="btn-primary flex items-center gap-1.5 text-sm"
+            @click="openCreate(null)"
+          >
+            <AppIcon
+              name="plus"
+              :size="15"
+            />
+            Thêm nhóm
+          </button>
+        </div>
       </PageHeader>
     </template>
 
