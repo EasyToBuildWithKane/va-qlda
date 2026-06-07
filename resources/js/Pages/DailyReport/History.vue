@@ -11,6 +11,7 @@ import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
 import { useConfirmDelete } from '@/composables/useConfirmClose';
+import Modal from '@/Components/Ui/Modal.vue';
 
 const PER_PAGE_OPTIONS = [5, 10, 15, 20];
 const confirmDelete = useConfirmDelete();
@@ -116,6 +117,7 @@ const columns = reactive([
     { key: 'title', label: 'Tiêu đề', visible: true },
     { key: 'projects', label: 'Dự án', visible: false },
     { key: 'status', label: 'Trạng thái', visible: true },
+    { key: 'feedback', label: 'Phản hồi', visible: true },
     { key: 'grade', label: 'Xếp loại', visible: true },
 ]);
 const visible = (key) => columns.find((c) => c.key === key)?.visible ?? false;
@@ -161,6 +163,48 @@ const removeReport = (r) => {
         () => router.delete(`/daily-reports/${r.id}`, { preserveScroll: true }),
     );
 };
+
+/** @returns {{ kind: 'reject'|'review', label: string, text: string }|null} */
+function reportFeedback(r) {
+    const reject = (r.review_notes || '').trim();
+    if (reject && r.status === 'draft') {
+        return { kind: 'reject', label: 'Trả lại', text: reject };
+    }
+    const review = (r.score?.notes || '').trim();
+    if (review) {
+        return { kind: 'review', label: 'Nhận xét', text: review };
+    }
+    return null;
+}
+
+function feedbackPreview(text, max = 72) {
+    if (!text) return '';
+    return text.length > max ? `${text.slice(0, max)}…` : text;
+}
+
+const feedbackModal = ref(null);
+
+function openFeedback(r) {
+    const fb = reportFeedback(r);
+    if (!fb) return;
+    feedbackModal.value = {
+        title: fb.kind === 'reject' ? 'Lý do trả lại' : 'Nhận xét từ người duyệt',
+        label: fb.label,
+        kind: fb.kind,
+        text: fb.text,
+        meta: `${r.title} · ${r.date}`,
+        reportId: r.id,
+        canEdit: Boolean(r.can?.update),
+    };
+}
+
+function closeFeedbackModal() {
+    feedbackModal.value = null;
+}
+
+const reportRows = computed(() =>
+    (props.reports.data ?? []).map((r) => ({ r, feedback: reportFeedback(r) })),
+);
 
 </script>
 
@@ -408,6 +452,12 @@ const removeReport = (r) => {
                 Trạng thái
               </th>
               <th
+                v-if="visible('feedback')"
+                class="px-4 py-3 font-medium"
+              >
+                Phản hồi
+              </th>
+              <th
                 v-if="visible('grade')"
                 class="px-4 py-3 font-medium"
               >
@@ -420,7 +470,7 @@ const removeReport = (r) => {
           </thead>
           <tbody class="divide-y divide-slate-100">
             <tr
-              v-for="r in reports.data"
+              v-for="{ r, feedback } in reportRows"
               :key="r.id"
               class="hover:bg-slate-50"
             >
@@ -470,6 +520,35 @@ const removeReport = (r) => {
                   :label="r.status_label"
                   :color="r.status_color"
                 />
+              </td>
+              <td
+                v-if="visible('feedback')"
+                class="max-w-[14rem] px-4 py-3"
+              >
+                <template v-if="feedback">
+                  <span
+                    class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                    :class="feedback.kind === 'reject'
+                      ? 'bg-amber-100 text-amber-800'
+                      : 'bg-sky-100 text-sky-800'"
+                  >
+                    {{ feedback.label }}
+                  </span>
+                  <p class="mt-1 text-xs leading-snug text-slate-600">
+                    {{ feedbackPreview(feedback.text) }}
+                  </p>
+                  <button
+                    type="button"
+                    class="mt-1 text-xs font-medium text-brand hover:underline"
+                    @click="openFeedback(r)"
+                  >
+                    Xem đầy đủ
+                  </button>
+                </template>
+                <span
+                  v-else
+                  class="text-slate-300"
+                >—</span>
               </td>
               <td
                 v-if="visible('grade')"
@@ -525,6 +604,55 @@ const removeReport = (r) => {
         @update:per-page="onPerPageChange"
       />
     </div>
+
+    <Modal
+      :show="feedbackModal !== null"
+      :title="feedbackModal?.title ?? ''"
+      max-width="max-w-md"
+      @close="closeFeedbackModal"
+    >
+      <div
+        v-if="feedbackModal"
+        class="space-y-4"
+      >
+        <p class="text-xs text-slate-500">
+          {{ feedbackModal.meta }}
+        </p>
+        <div
+          class="rounded-card border p-4 text-sm leading-relaxed text-slate-700"
+          :class="feedbackModal.kind === 'reject'
+            ? 'border-amber-200 bg-amber-50/80'
+            : 'border-slate-200 bg-slate-50'"
+        >
+          {{ feedbackModal.text }}
+        </div>
+        <div class="flex flex-wrap justify-end gap-2">
+          <button
+            type="button"
+            class="btn-ghost"
+            @click="closeFeedbackModal"
+          >
+            Đóng
+          </button>
+          <Link
+            v-if="feedbackModal.kind === 'reject' && feedbackModal.canEdit"
+            href="/daily-reports/today"
+            class="btn-primary"
+            @click="closeFeedbackModal"
+          >
+            Sửa báo cáo
+          </Link>
+          <Link
+            v-else
+            :href="`/daily-reports/${feedbackModal.reportId}`"
+            class="btn-primary"
+            @click="closeFeedbackModal"
+          >
+            Xem báo cáo
+          </Link>
+        </div>
+      </div>
+    </Modal>
   </AppLayout>
 </template>
 
