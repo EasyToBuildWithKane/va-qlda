@@ -1,7 +1,5 @@
 # API STRUCTURE — VA QLDA
 
----
-sss
 ## 1. Kiến Trúc API Hiện Tại
 
 **Loại:** Chủ yếu Inertia.js Server-Side Routes + một phần JSON API (Notifications)

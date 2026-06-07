@@ -15,7 +15,6 @@ import AiPurchaseProposalApproveModal from '@/modules/aiAccount/components/AiPur
 import ProposalRowActions from '@/modules/aiAccount/components/ProposalRowActions.vue';
 import AiAccountSectionNav from '@/modules/aiAccount/components/AiAccountSectionNav.vue';
 import AiAccountCrossLink from '@/modules/aiAccount/components/AiAccountCrossLink.vue';
-import AiCostReportKpiStrip from '@/modules/aiAccount/components/AiCostReportKpiStrip.vue';
 import Badge from '@/shared/ui/Badge.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
@@ -113,9 +112,6 @@ const approveOpen = ref(false);
 const rejecting = ref(null);
 const approving = ref(null);
 
-// KPI filter: clicking a card sets statusFilter
-const activeKpi = ref(null);
-
 const departmentOptions = computed(() =>
     (props.formLookups.departments ?? []).map((d) => d.name).filter(Boolean),
 );
@@ -184,13 +180,8 @@ async function clearFilters() {
     toolFilter.value = 'all';
     createdFromFilter.value = '';
     createdToFilter.value = '';
-    activeKpi.value = null;
     search.value = '';
     await applyFilters();
-}
-
-function onStatusFilterChange() {
-    activeKpi.value = statusFilter.value === 'all' ? null : statusFilter.value;
 }
 
 function buildProposalFilterParams() {
@@ -289,23 +280,6 @@ const displayProposalCounts = computed(() =>
         ? proposalCountsFiltered.value
         : proposalCounts.value,
 );
-
-const kpiFiltered = computed(() => activeFilterCount.value > 0 || !!search.value.trim());
-
-function onKpiFilterStatus(key) {
-    if (key === 'total') {
-        activeKpi.value = null;
-        statusFilter.value = 'all';
-        return;
-    }
-    if (activeKpi.value === key) {
-        activeKpi.value = null;
-        statusFilter.value = 'all';
-    } else {
-        activeKpi.value = key;
-        statusFilter.value = key;
-    }
-}
 
 const COLS = [
     { key: 'proposal_code', label: 'Mã phiếu' },
@@ -480,14 +454,6 @@ function runExport(format) {
       direction="to-accounts"
       :account-count="cards?.total_accounts ?? 0"
       :awaiting-account-count="awaitingAccountCount"
-    />
-
-    <AiCostReportKpiStrip
-      :counts="displayProposalCounts"
-      :cards="cards"
-      :active-kpi="activeKpi"
-      :filtered="kpiFiltered"
-      @filter-status="onKpiFilterStatus"
     />
 
     <!-- ── Proposals Table ── -->
@@ -698,7 +664,6 @@ function runExport(format) {
             class="input h-9 w-[min(100%,11rem)] shrink-0 text-sm sm:w-44"
             aria-label="Lọc theo trạng thái"
             :disabled="filtersLoading"
-            @change="onStatusFilterChange"
           >
             <option value="all">
               Trạng thái: Tất cả ({{ displayProposalCounts.total ?? 0 }})
