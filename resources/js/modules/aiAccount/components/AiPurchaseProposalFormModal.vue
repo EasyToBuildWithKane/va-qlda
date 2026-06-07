@@ -9,6 +9,10 @@ import { useProposalPdfPreview } from '@/modules/aiAccount/composables/usePropos
 import MoneyInput from '@/shared/ui/MoneyInput.vue';
 import ProposalFormLabel from '@/modules/aiAccount/components/ProposalFormLabel.vue';
 import { PROPOSAL_FORM_HINTS as H, PROPOSAL_FORM_PLACEHOLDERS as P } from '@/modules/aiAccount/config/proposalFormHints';
+import { useToast } from '@/shared/composables/useToast';
+import { normalizeSearchKey, matchesSearchQuery } from '@/shared/utils/normalizeSearchKey';
+
+const toast = useToast();
 
 const props = defineProps({
     show: Boolean,
@@ -177,11 +181,13 @@ function findEmployeeById(id) {
 }
 
 function findEmployeeByName(name) {
-    const q = String(name ?? '').trim().toLowerCase();
+    const q = normalizeSearchKey(name);
     if (!q) return null;
-    return (props.formLookups.employees ?? []).find(
-        (e) => e.name?.trim().toLowerCase() === q,
-    ) ?? null;
+    const list = props.formLookups.employees ?? [];
+    const exact = list.find((e) => normalizeSearchKey(e.name) === q);
+    if (exact) return exact;
+    const matches = list.filter((e) => matchesSearchQuery([e.name, e.email, e.code], name));
+    return matches.length === 1 ? matches[0] : null;
 }
 
 function applyProposerEmployee(emp) {
@@ -314,8 +320,30 @@ function previewZoomOut() {
 }
 
 function handleSubmit() {
-    if (!costPreviewAmount.value) {
+    if (!form.proposer_name.trim()) {
+        toast.warning('Vui lòng nhập họ tên người đề xuất.');
+        activeTab.value = 'proposer';
+        return;
+    }
+    if (!form.tool_name.trim()) {
+        toast.warning('Vui lòng nhập công cụ / sản phẩm.');
         activeTab.value = 'tool';
+        return;
+    }
+    if (!form.license_type.trim()) {
+        toast.warning('Vui lòng nhập gói / license.');
+        activeTab.value = 'tool';
+        return;
+    }
+    if (!costPreviewAmount.value) {
+        toast.warning('Vui lòng nhập chi phí (VNĐ) lớn hơn 0.');
+        activeTab.value = 'tool';
+        return;
+    }
+    const content = form.proposal_content.trim();
+    if (content.length < 20) {
+        toast.warning('Nội dung đề xuất cần ít nhất 20 ký tự.');
+        activeTab.value = 'content';
         return;
     }
     emit('submit', {
@@ -339,6 +367,7 @@ function handleSubmit() {
 
     <form
       class="flex min-h-[min(78vh,760px)] flex-col"
+      novalidate
       @submit.prevent="handleSubmit"
     >
       <div
@@ -392,7 +421,6 @@ function handleSubmit() {
             <input
               v-model="form.proposer_name"
               type="text"
-              required
               class="input w-full"
               :placeholder="P.proposer_name"
               autocomplete="name"
@@ -503,7 +531,6 @@ function handleSubmit() {
             <input
               v-model="form.tool_name"
               type="text"
-              required
               list="proposal-tools"
               class="input w-full"
               :placeholder="P.tool_name"
@@ -526,7 +553,6 @@ function handleSubmit() {
             />
             <select
               v-model="form.group_function"
-              required
               class="input w-full"
               @change="onInput"
             >
@@ -548,7 +574,6 @@ function handleSubmit() {
             <input
               v-model="form.license_type"
               type="text"
-              required
               list="proposal-license-types"
               class="input w-full"
               :placeholder="P.license_type"
@@ -692,8 +717,6 @@ function handleSubmit() {
               <textarea
                 v-model="form.proposal_content"
                 rows="6"
-                required
-                minlength="20"
                 class="input w-full"
                 :placeholder="P.proposal_content"
                 @input="onInput"

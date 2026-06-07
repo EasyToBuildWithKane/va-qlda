@@ -2,7 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
-import { matchesSearchQuery } from '@/shared/utils/normalizeSearchKey';
+import { matchesSearchQuery, normalizeSearchKey } from '@/shared/utils/normalizeSearchKey';
 
 const props = defineProps({
     employees: { type: Array, default: () => [] },
@@ -22,7 +22,7 @@ const panelStyle = ref({});
 const employeeOptions = computed(() =>
     (props.employees ?? []).map((e) => ({
         ...e,
-        subtitle: [e.role_title, e.department, e.email].filter(Boolean).join(' · '),
+        subtitle: [e.role_title, e.department, e.email, e.code].filter(Boolean).join(' · '),
     })),
 );
 
@@ -30,17 +30,16 @@ const selected = computed(() =>
     employeeOptions.value.find((e) => String(e.id) === String(props.modelValue)) ?? null,
 );
 
-const filtered = computed(() => {
-    const q = query.value.trim();
-    const list = employeeOptions.value;
-    if (!q) return list.slice(0, 40);
-    return list
-        .filter((e) => matchesSearchQuery(
-            [e.name, e.email, e.code, e.role_title, e.department],
-            q,
-        ))
-        .slice(0, 40);
-});
+function filterEmployees(list, q) {
+    const trimmed = q.trim();
+    if (!trimmed) return list.slice(0, 50);
+    return list.filter((e) => matchesSearchQuery(
+        [e.name, e.email, e.code, e.role_title, e.department],
+        trimmed,
+    ));
+}
+
+const filtered = computed(() => filterEmployees(employeeOptions.value, query.value));
 
 function syncQueryFromSelection() {
     if (selected.value) {
@@ -61,6 +60,12 @@ function pick(emp) {
     open.value = false;
 }
 
+function findExactByName(q) {
+    const key = normalizeSearchKey(q);
+    if (!key) return null;
+    return employeeOptions.value.find((e) => normalizeSearchKey(e.name) === key) ?? null;
+}
+
 function onInput() {
     open.value = true;
     const q = query.value.trim();
@@ -68,21 +73,23 @@ function onInput() {
         emit('update:modelValue', null);
         return;
     }
-    const exact = employeeOptions.value.find(
-        (e) => e.name?.trim().toLowerCase() === q.toLowerCase(),
-    );
+    const exact = findExactByName(q);
     if (exact) {
         pick(exact);
         return;
     }
-    const matches = employeeOptions.value.filter((e) =>
-        matchesSearchQuery([e.name, e.email, e.code, e.role_title, e.department], q),
-    );
+    const matches = filterEmployees(employeeOptions.value, q);
     if (matches.length === 1) {
         pick(matches[0]);
         return;
     }
     emit('update:modelValue', null);
+}
+
+function onEnter() {
+    if (filtered.value.length > 0) {
+        pick(filtered.value[0]);
+    }
 }
 
 async function positionPanel() {
@@ -95,7 +102,7 @@ async function positionPanel() {
         left: `${rect.left}px`,
         top: `${rect.bottom + 4}px`,
         width: `${rect.width}px`,
-        zIndex: 120,
+        zIndex: 250,
     };
 }
 
@@ -145,6 +152,7 @@ onBeforeUnmount(() => {
         @focus="open = true; positionPanel()"
         @input="onInput"
         @keydown.down.prevent="open = true"
+        @keydown.enter.prevent="onEnter"
       >
       <button
         v-if="query && !disabled"
