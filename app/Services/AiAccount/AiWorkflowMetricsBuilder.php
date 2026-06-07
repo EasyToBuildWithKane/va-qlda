@@ -39,9 +39,11 @@ class AiWorkflowMetricsBuilder
                 AiAccountLifecycleStatus::InUse->value,
             ]),
             'accounts_expiring_soon_count' => AiAccount::query()
+                ->withCountablePurchaseProposal()
                 ->where('status', AiAccountStatus::ExpiringSoon->value)
                 ->count(),
             'accounts_expired_count' => AiAccount::query()
+                ->withCountablePurchaseProposal()
                 ->where('status', AiAccountStatus::Expired->value)
                 ->count(),
         ];
@@ -66,6 +68,7 @@ class AiWorkflowMetricsBuilder
     private function actualPurchaseTotal(): int
     {
         return (int) AiAccount::query()
+            ->withCountablePurchaseProposal()
             ->whereNotNull('actual_purchase_cost')
             ->sum('actual_purchase_cost');
     }
@@ -74,6 +77,7 @@ class AiWorkflowMetricsBuilder
     private function accountsInLifecycle(array $statuses): int
     {
         return AiAccount::query()
+            ->withCountablePurchaseProposal()
             ->whereIn('lifecycle_status', $statuses)
             ->count();
     }

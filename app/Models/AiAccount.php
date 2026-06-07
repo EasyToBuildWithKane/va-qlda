@@ -7,6 +7,8 @@ use App\Support\Enums\AiAccountGroupFunction;
 use App\Support\Enums\AiAccountLifecycleStatus;
 use App\Support\Enums\AiAccountRenewalPaymentStatus;
 use App\Support\Enums\AiAccountStatus;
+use App\Support\Enums\AiPurchaseProposalStatus;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -89,6 +91,80 @@ class AiAccount extends Model
         'actual_purchase_cost' => 'integer',
         'allocated_at' => 'date',
     ];
+
+    /** @return list<string> */
+    public static function countableProposalStatusValues(): array
+    {
+        return [
+            AiPurchaseProposalStatus::Approved->value,
+            AiPurchaseProposalStatus::Purchased->value,
+            AiPurchaseProposalStatus::Active->value,
+        ];
+    }
+
+    /** Chỉ tài khoản còn phiếu PĐX hợp lệ (approved / purchased / active). */
+    public function scopeWithCountablePurchaseProposal(Builder $query): Builder
+    {
+        return $query->whereHas(
+            'purchaseProposal',
+            fn (Builder $p) => $p->whereIn('status', self::countableProposalStatusValues()),
+        );
+    }
+
+    /** TK hiển thị trên danh sách: còn phiếu hợp lệ hoặc chưa từng gắn phiếu (legacy). */
+    public function scopeVisibleInRegistry(Builder $query): Builder
+    {
+        return $query->where(function (Builder $q) {
+            $q->whereDoesntHave('purchaseProposal')
+                ->orWhereHas(
+                    'purchaseProposal',
+                    fn (Builder $p) => $p->whereIn('status', self::countableProposalStatusValues()),
+                );
+        });
+    }
+
+    /** TK không còn phiếu đếm ngân sách (phiếu hết hạn, từ chối, hoặc đã gỡ liên kết). */
+    public function scopeOrphanedFromProposal(Builder $query): Builder
+    {
+        return $query->whereDoesntHave(
+            'purchaseProposal',
+            fn (Builder $p) => $p->whereIn('status', self::countableProposalStatusValues()),
+        );
+    }
+
+    /**
+     * Soft-delete TK đã từng cấp phát từ PĐX nhưng phiếu không còn hợp lệ / đã gỡ liên kết.
+     */
+    public static function purgeOrphanedFromProposal(): int
+    {
+        $count = 0;
+
+        static::query()
+            ->orphanedFromProposal()
+            ->where(function (Builder $q) {
+                $q->whereNotNull('allocated_at')
+                    ->orWhereNotNull('purchased_by');
+            })
+            ->each(function (self $account) use (&$count) {
+                $account->delete();
+                $count++;
+            });
+
+        static::query()
+            ->whereHas(
+                'purchaseProposal',
+                fn (Builder $p) => $p->whereIn('status', [
+                    AiPurchaseProposalStatus::Expired->value,
+                    AiPurchaseProposalStatus::Rejected->value,
+                ]),
+            )
+            ->each(function (self $account) use (&$count) {
+                $account->delete();
+                $count++;
+            });
+
+        return $count;
+    }
 
     public function purchaseProposal(): \Illuminate\Database\Eloquent\Relations\HasOne
     {

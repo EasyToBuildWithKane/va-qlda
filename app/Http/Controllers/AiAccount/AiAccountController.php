@@ -308,7 +308,13 @@ class AiAccountController extends Controller
 
     private function loadAndSyncAccounts()
     {
-        $accounts = AiAccount::query()->with('purchaseProposal')->orderBy('tool_name')->get();
+        AiAccount::purgeOrphanedFromProposal();
+
+        $accounts = AiAccount::query()
+            ->visibleInRegistry()
+            ->with('purchaseProposal')
+            ->orderBy('tool_name')
+            ->get();
         $this->statusSync->syncCollection($accounts);
 
         return $accounts

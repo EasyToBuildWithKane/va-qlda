@@ -224,6 +224,12 @@ class AiPurchaseProposalController extends Controller
         $this->authorize('delete', $proposal);
 
         $label = $proposal->proposal_code ?? $proposal->tool_name;
+
+        $linkedAccount = $proposal->aiAccount;
+        if ($linkedAccount !== null) {
+            $linkedAccount->delete();
+        }
+
         $proposal->delete();
 
         return response()->json([

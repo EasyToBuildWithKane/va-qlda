@@ -92,14 +92,18 @@ class AiAccountGrouper
         $pendingByGroup = $this->countableProposalCost->pendingAccountMonthlyByGroup();
         $totalMonthly = $this->countableProposalCost->totalMonthly();
 
+        $registered = $accounts->filter(
+            fn (AiAccount $a) => $this->countableProposalCost->accountHasCountableProposal($a),
+        );
+
         $rows = [];
         foreach (AiAccountGroupFunction::ordered() as $groupEnum) {
             $key = $groupEnum->value;
-            $items = $accounts->where('group_function', $groupEnum);
+            $items = $registered->where('group_function', $groupEnum);
             $cost = $monthlyByGroup[$key] ?? 0;
             $pending = $pendingByGroup[$key] ?? 0;
 
-            if ($items->isEmpty() && $cost === 0) {
+            if ($items->isEmpty() && $cost === 0 && $pending === 0) {
                 continue;
             }
 
@@ -132,10 +136,10 @@ class AiAccountGrouper
             unset($row);
         }
 
-        $totalAccounts = $accounts->count();
-        $totalActive = $accounts->where('status', AiAccountStatus::Active)->count();
+        $totalAccounts = $registered->count();
+        $totalActive = $registered->where('status', AiAccountStatus::Active)->count();
 
-        $renewalDue = $accounts
+        $renewalDue = $registered
             ->whereIn('status', [
                 AiAccountStatus::ExpiringSoon,
                 AiAccountStatus::Expired,
@@ -158,8 +162,8 @@ class AiAccountGrouper
             'cards' => [
                 'total_accounts' => $totalAccounts,
                 'active_accounts' => $totalActive,
-                'expiring_soon' => $accounts->where('status', AiAccountStatus::ExpiringSoon)->count(),
-                'expired' => $accounts->where('status', AiAccountStatus::Expired)->count(),
+                'expiring_soon' => $registered->where('status', AiAccountStatus::ExpiringSoon)->count(),
+                'expired' => $registered->where('status', AiAccountStatus::Expired)->count(),
                 'monthly_cost_active' => $totalMonthly,
                 'monthly_cost_all' => $totalMonthly,
                 'monthly_cost_running' => $totalMonthly,
