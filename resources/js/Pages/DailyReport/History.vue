@@ -11,7 +11,7 @@ import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
 import { useConfirmDelete } from '@/composables/useConfirmClose';
-import Modal from '@/Components/Ui/Modal.vue';
+import { date as formatDate } from '@/composables/useFormat';
 
 const PER_PAGE_OPTIONS = [5, 10, 15, 20];
 const confirmDelete = useConfirmDelete();
@@ -112,13 +112,12 @@ const filterPanelDdRef = ref(null);
 // ---- Show / hide columns --------------------------------------------------
 const COLS_KEY = 'va-qlda.reports.columns';
 const columns = reactive([
-    { key: 'date', label: 'Ngày', visible: true, fixed: false },
+    { key: 'date', label: 'Ngày', visible: true },
     { key: 'employee', label: 'Người báo cáo', visible: props.canFilterEmployee, manager: true },
     { key: 'title', label: 'Tiêu đề', visible: true },
-    { key: 'projects', label: 'Dự án', visible: false },
     { key: 'status', label: 'Trạng thái', visible: true },
+    { key: 'score', label: 'Điểm', visible: true },
     { key: 'feedback', label: 'Phản hồi', visible: true },
-    { key: 'grade', label: 'Xếp loại', visible: true },
 ]);
 const visible = (key) => columns.find((c) => c.key === key)?.visible ?? false;
 const visibleCount = computed(() => columns.filter((c) => c.visible).length + 1); // +actions
@@ -139,6 +138,9 @@ onMounted(() => {
 
         const saved = JSON.parse(localStorage.getItem(COLS_KEY) || 'null');
         if (saved) {
+            if (saved.grade !== undefined && saved.score === undefined) {
+                saved.score = saved.grade;
+            }
             columns.forEach((c) => {
                 if (c.key in saved && !(c.manager && !props.canFilterEmployee)) {
                     c.visible = !!saved[c.key];
@@ -164,47 +166,11 @@ const removeReport = (r) => {
     );
 };
 
-/** @returns {{ kind: 'reject'|'review', label: string, text: string }|null} */
-function reportFeedback(r) {
-    const reject = (r.review_notes || '').trim();
-    if (reject && r.status === 'draft') {
-        return { kind: 'reject', label: 'Trả lại', text: reject };
-    }
-    const review = (r.score?.notes || '').trim();
-    if (review) {
-        return { kind: 'review', label: 'Nhận xét', text: review };
-    }
-    return null;
+function hasFeedback(r) {
+    if (r.has_feedback) return true;
+    if (r.status === 'draft' && (r.review_notes || '').trim()) return true;
+    return Boolean((r.score?.notes || '').trim());
 }
-
-function feedbackPreview(text, max = 72) {
-    if (!text) return '';
-    return text.length > max ? `${text.slice(0, max)}…` : text;
-}
-
-const feedbackModal = ref(null);
-
-function openFeedback(r) {
-    const fb = reportFeedback(r);
-    if (!fb) return;
-    feedbackModal.value = {
-        title: fb.kind === 'reject' ? 'Lý do trả lại' : 'Nhận xét từ người duyệt',
-        label: fb.label,
-        kind: fb.kind,
-        text: fb.text,
-        meta: `${r.title} · ${r.date}`,
-        reportId: r.id,
-        canEdit: Boolean(r.can?.update),
-    };
-}
-
-function closeFeedbackModal() {
-    feedbackModal.value = null;
-}
-
-const reportRows = computed(() =>
-    (props.reports.data ?? []).map((r) => ({ r, feedback: reportFeedback(r) })),
-);
 
 </script>
 
@@ -419,102 +385,88 @@ const reportRows = computed(() =>
     <div class="card overflow-hidden">
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
-          <thead class="border-b border-slate-200 bg-slate-50 text-left text-slate-500">
+          <thead class="border-b border-slate-200 bg-slate-50/80 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             <tr>
               <th
                 v-if="visible('date')"
-                class="px-4 py-3 font-medium"
+                class="whitespace-nowrap px-4 py-2.5"
               >
                 Ngày
               </th>
               <th
                 v-if="visible('employee')"
-                class="px-4 py-3 font-medium"
+                class="px-4 py-2.5"
               >
                 Người báo cáo
               </th>
               <th
                 v-if="visible('title')"
-                class="px-4 py-3 font-medium"
+                class="min-w-[12rem] px-4 py-2.5"
               >
                 Tiêu đề
               </th>
               <th
-                v-if="visible('projects')"
-                class="px-4 py-3 font-medium"
-              >
-                Dự án
-              </th>
-              <th
                 v-if="visible('status')"
-                class="px-4 py-3 font-medium"
+                class="whitespace-nowrap px-4 py-2.5"
               >
                 Trạng thái
               </th>
               <th
-                v-if="visible('feedback')"
-                class="px-4 py-3 font-medium"
+                v-if="visible('score')"
+                class="whitespace-nowrap px-4 py-2.5"
               >
-                Phản hồi
+                Điểm
               </th>
               <th
-                v-if="visible('grade')"
-                class="px-4 py-3 font-medium"
+                v-if="visible('feedback')"
+                class="w-16 px-2 py-2.5 text-center"
+                title="Có phản hồi từ người duyệt"
               >
-                Xếp loại
+                PB
               </th>
-              <th class="px-4 py-3 text-right font-medium">
+              <th class="whitespace-nowrap px-4 py-2.5 text-right">
                 Thao tác
               </th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
             <tr
-              v-for="{ r, feedback } in reportRows"
+              v-for="r in reports.data"
               :key="r.id"
-              class="hover:bg-slate-50"
+              class="transition hover:bg-slate-50/80"
             >
               <td
                 v-if="visible('date')"
-                class="whitespace-nowrap px-4 py-3 text-slate-600"
+                class="whitespace-nowrap px-4 py-3 align-middle text-slate-600"
               >
-                {{ r.date }}
+                <span class="tabular-nums">{{ formatDate(r.date) }}</span>
                 <span
                   v-if="r.is_late"
-                  class="ml-1 rounded bg-rose-50 px-1.5 py-0.5 text-[11px] font-medium text-danger"
-                >trễ</span>
+                  class="ml-1.5 rounded bg-rose-50 px-1.5 py-0.5 text-[10px] font-semibold text-danger"
+                >Trễ</span>
               </td>
               <td
                 v-if="visible('employee')"
-                class="px-4 py-3 text-slate-600"
+                class="max-w-[10rem] truncate px-4 py-3 align-middle text-slate-600"
+                :title="r.employee?.name"
               >
                 {{ r.employee?.name ?? '—' }}
               </td>
               <td
                 v-if="visible('title')"
-                class="px-4 py-3 font-medium text-slate-700"
+                class="max-w-md px-4 py-3 align-middle"
               >
-                {{ r.title }}
-              </td>
-              <td
-                v-if="visible('projects')"
-                class="px-4 py-3"
-              >
-                <div class="flex flex-wrap gap-1">
-                  <span
-                    v-for="p in (r.projects || [])"
-                    :key="p.id"
-                    class="inline-flex items-center rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand"
-                  >{{ p.name }}</span>
-                  <span
-                    v-if="!(r.projects || []).length"
-                    class="text-slate-300"
-                  >—</span>
-                </div>
+                <Link
+                  :href="`/daily-reports/${r.id}`"
+                  class="line-clamp-2 font-medium text-slate-800 hover:text-brand"
+                  :title="r.title"
+                >
+                  {{ r.title }}
+                </Link>
               </td>
               <td
                 v-if="visible('status')"
-                class="px-4 py-3"
+                class="whitespace-nowrap px-4 py-3 align-middle"
               >
                 <StatusBadge
                   :label="r.status_label"
@@ -522,60 +474,59 @@ const reportRows = computed(() =>
                 />
               </td>
               <td
-                v-if="visible('feedback')"
-                class="max-w-[14rem] px-4 py-3"
+                v-if="visible('score')"
+                class="whitespace-nowrap px-4 py-3 align-middle"
               >
-                <template v-if="feedback">
-                  <span
-                    class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold"
-                    :class="feedback.kind === 'reject'
-                      ? 'bg-amber-100 text-amber-800'
-                      : 'bg-sky-100 text-sky-800'"
-                  >
-                    {{ feedback.label }}
+                <div
+                  v-if="r.score"
+                  class="inline-flex items-center gap-2"
+                >
+                  <GradePill
+                    :grade="r.score.grade"
+                    :color="r.score.grade_color"
+                  />
+                  <span class="text-xs font-semibold tabular-nums text-slate-600">
+                    {{ Number(r.score.total_score ?? 0).toFixed(1) }}
                   </span>
-                  <p class="mt-1 text-xs leading-snug text-slate-600">
-                    {{ feedbackPreview(feedback.text) }}
-                  </p>
-                  <button
-                    type="button"
-                    class="mt-1 text-xs font-medium text-brand hover:underline"
-                    @click="openFeedback(r)"
-                  >
-                    Xem đầy đủ
-                  </button>
-                </template>
+                </div>
                 <span
                   v-else
                   class="text-slate-300"
                 >—</span>
               </td>
               <td
-                v-if="visible('grade')"
-                class="px-4 py-3"
+                v-if="visible('feedback')"
+                class="px-2 py-3 text-center align-middle"
               >
-                <GradePill
-                  v-if="r.score"
-                  :grade="r.score.grade"
-                  :color="r.score.grade_color"
-                />
+                <span
+                  v-if="hasFeedback(r)"
+                  class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-amber-50 text-amber-600"
+                  title="Có phản hồi — mở chi tiết để xem"
+                >
+                  <AppIcon
+                    name="message"
+                    :size="14"
+                  />
+                </span>
                 <span
                   v-else
-                  class="text-slate-300"
-                >—</span>
+                  class="text-slate-200"
+                  aria-hidden="true"
+                >·</span>
               </td>
-              <td class="px-4 py-3 text-right">
-                <div class="inline-flex items-center justify-end gap-3">
+              <td class="whitespace-nowrap px-4 py-3 text-right align-middle">
+                <div class="inline-flex items-center justify-end gap-1">
                   <Link
                     :href="`/daily-reports/${r.id}`"
-                    class="font-medium text-brand hover:underline"
+                    class="inline-flex h-8 items-center rounded-btn px-2.5 text-xs font-medium text-brand hover:bg-brand/5"
                   >
-                    Xem
+                    Chi tiết
                   </Link>
                   <button
                     v-if="r.can?.delete"
                     type="button"
-                    class="font-medium text-danger hover:underline"
+                    class="inline-flex h-8 items-center rounded-btn px-2 text-xs font-medium text-danger hover:bg-rose-50"
+                    title="Xoá bản nháp"
                     @click="removeReport(r)"
                   >
                     Xoá
@@ -604,55 +555,6 @@ const reportRows = computed(() =>
         @update:per-page="onPerPageChange"
       />
     </div>
-
-    <Modal
-      :show="feedbackModal !== null"
-      :title="feedbackModal?.title ?? ''"
-      max-width="max-w-md"
-      @close="closeFeedbackModal"
-    >
-      <div
-        v-if="feedbackModal"
-        class="space-y-4"
-      >
-        <p class="text-xs text-slate-500">
-          {{ feedbackModal.meta }}
-        </p>
-        <div
-          class="rounded-card border p-4 text-sm leading-relaxed text-slate-700"
-          :class="feedbackModal.kind === 'reject'
-            ? 'border-amber-200 bg-amber-50/80'
-            : 'border-slate-200 bg-slate-50'"
-        >
-          {{ feedbackModal.text }}
-        </div>
-        <div class="flex flex-wrap justify-end gap-2">
-          <button
-            type="button"
-            class="btn-ghost"
-            @click="closeFeedbackModal"
-          >
-            Đóng
-          </button>
-          <Link
-            v-if="feedbackModal.kind === 'reject' && feedbackModal.canEdit"
-            href="/daily-reports/today"
-            class="btn-primary"
-            @click="closeFeedbackModal"
-          >
-            Sửa báo cáo
-          </Link>
-          <Link
-            v-else
-            :href="`/daily-reports/${feedbackModal.reportId}`"
-            class="btn-primary"
-            @click="closeFeedbackModal"
-          >
-            Xem báo cáo
-          </Link>
-        </div>
-      </div>
-    </Modal>
   </AppLayout>
 </template>
 

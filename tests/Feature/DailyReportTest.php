@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\DailyReport\Models\DailyReport;
+use App\Domain\DailyReport\Models\DailyReportScore;
 use App\Models\Project;
 use App\Models\SystemAccount;
 use App\Support\Enums\ReportStatus;
@@ -191,6 +192,26 @@ class DailyReportTest extends TestCase
         $report->refresh();
         $this->assertSame(ReportStatus::Draft, $report->status);
         $this->assertSame('Please add the impact section.', $report->review_notes);
+    }
+
+    public function test_show_includes_resolved_score_for_reviewed_report(): void
+    {
+        $member = $this->member();
+        $report = DailyReport::factory()->reviewed()->create(['employee_id' => $member->employee_id]);
+        DailyReportScore::factory()->create([
+            'report_id' => $report->id,
+            'reviewer_id' => $this->lead()->employee_id,
+            'notes' => 'Làm tốt phần tiến độ.',
+        ]);
+
+        $this->actingAs($member, 'system')
+            ->get(route('daily-reports.show', $report))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('DailyReport/Show')
+                ->where('report.score.grade', 'A')
+                ->where('report.score.notes', 'Làm tốt phần tiến độ.')
+                ->where('report.has_feedback', true));
     }
 
     public function test_member_can_delete_own_draft(): void

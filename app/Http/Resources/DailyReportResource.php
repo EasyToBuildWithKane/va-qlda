@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Support\Enums\ReportStatus;
 use App\Support\PublicMediaUrl;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -47,8 +48,12 @@ class DailyReportResource extends JsonResource
             ]),
             'score' => $this->when(
                 $this->relationLoaded('score'),
-                fn () => $this->score ? new DailyReportScoreResource($this->score) : null,
+                fn () => $this->score
+                    ? (new DailyReportScoreResource($this->score))->resolve()
+                    : null,
             ),
+
+            'has_feedback' => $this->hasReviewerFeedback(),
 
             'can' => $user ? [
                 'update' => $user->can('update', $this->resource),
@@ -57,5 +62,18 @@ class DailyReportResource extends JsonResource
                 'delete' => $user->can('delete', $this->resource),
             ] : null,
         ];
+    }
+
+    private function hasReviewerFeedback(): bool
+    {
+        if ($this->status === ReportStatus::Draft && filled($this->review_notes)) {
+            return true;
+        }
+
+        if ($this->relationLoaded('score') && filled($this->score?->notes)) {
+            return true;
+        }
+
+        return false;
     }
 }

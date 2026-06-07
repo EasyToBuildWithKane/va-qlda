@@ -23,6 +23,7 @@ class DailyReportScoreResource extends JsonResource
             'expertise_score' => (float) $this->expertise_score,
             'total_score' => (float) $this->total_score,
             'grade' => $this->grade->value,
+            'grade_label' => $this->grade->label(),
             'grade_color' => $this->grade->color(),
             'notes' => $this->notes,
             'reviewer' => $this->whenLoaded('reviewer', fn () => [
