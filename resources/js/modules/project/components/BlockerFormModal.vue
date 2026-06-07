@@ -12,7 +12,7 @@ import { date } from '@/composables/useFormat';
 const props = defineProps({
     show: { type: Boolean, default: false },
     blocker: { type: Object, default: null },
-    /** Khi mở từ «Hướng xử lý» — tab Hướng xử lý + focus ô nhập */
+    /** Mở từ «Hướng xử lý» — chỉ nhập kế hoạch, không tab Nội dung/Phân công */
     focusResolution: { type: Boolean, default: false },
     projects: { type: Array, default: () => [] },
     employees: { type: Array, default: () => [] },
@@ -42,12 +42,13 @@ const form = useForm({
 const resolutionInputRef = ref(null);
 const activeTab = ref('content');
 
+/** Chỉnh sửa — Nội dung + Phân công (không tab Hướng xử lý) */
 const EDIT_TABS = [
-    { key: 'resolution', label: 'Hướng xử lý', icon: 'meeting-notes' },
     { key: 'content', label: 'Nội dung', icon: 'blockers' },
     { key: 'assignment', label: 'Phân công', icon: 'people' },
 ];
 
+/** Chỉ khi mở «Hướng xử lý» — không tab (chỉ nhập kế hoạch xử lý) */
 const CREATE_TABS = [
     { key: 'content', label: 'Nội dung', icon: 'blockers' },
     { key: 'assignment', label: 'Phân công', icon: 'people' },
@@ -105,7 +106,21 @@ const projectDisplay = computed(() => {
 
 const isEdit = computed(() => !!props.blocker);
 
-const tabs = computed(() => (isEdit.value ? EDIT_TABS : CREATE_TABS));
+const isResolutionFlow = computed(() => isEdit.value && props.focusResolution);
+
+const tabs = computed(() => {
+    if (!isEdit.value) return CREATE_TABS;
+    if (isResolutionFlow.value) return [];
+    return EDIT_TABS;
+});
+
+const showTabBar = computed(() => tabs.value.length > 0);
+
+const showResolutionPanel = computed(() => isResolutionFlow.value);
+
+const showContentPanel = computed(() =>
+    !isResolutionFlow.value && activeTab.value === 'content',
+);
 
 const showProjectSelector = computed(() => !isEdit.value && !props.lockProject);
 
@@ -136,8 +151,8 @@ const severitySelectOptions = computed(() => valueLabelOptions(props.severityOpt
 const statusSelectOptions = computed(() => valueLabelOptions(props.statusOptions));
 
 const submitLabel = computed(() => {
+    if (isResolutionFlow.value) return 'Lưu hướng xử lý';
     if (!isEdit.value) return 'Ghi nhận vướng mắc';
-    if (props.focusResolution || activeTab.value === 'resolution') return 'Lưu hướng xử lý';
     return 'Lưu thay đổi';
 });
 
@@ -225,6 +240,7 @@ const submit = () => {
       </div>
 
       <div
+        v-if="showTabBar"
         class="mb-4 flex flex-wrap gap-1 border-b border-slate-200 pb-2"
         role="tablist"
         aria-label="Phần biểu mẫu vướng mắc"
@@ -252,7 +268,7 @@ const submit = () => {
       <div class="min-h-[14rem] space-y-4">
         <!-- Tab: Hướng xử lý (chỉ sửa) -->
         <div
-          v-show="isEdit && activeTab === 'resolution'"
+          v-show="showResolutionPanel"
           class="space-y-4"
         >
           <div class="rounded-lg border border-slate-200 bg-slate-50/90 p-3">
@@ -322,21 +338,11 @@ const submit = () => {
               placeholder="VD:&#10;1. Liên hệ team hạ tầng kiểm tra log API…&#10;2. Tạm rollback bản phát hành X…&#10;3. Họp PO 14h chốt phương án…"
             />
           </div>
-
-          <p class="text-xs text-slate-500">
-            Trạng thái và người phụ trách chỉnh ở tab <button
-              type="button"
-              class="font-medium text-brand hover:underline"
-              @click="setTab('assignment')"
-            >
-              Phân công
-            </button>.
-          </p>
         </div>
 
-        <!-- Tab: Nội dung -->
+        <!-- Tab: Nội dung (không hiện trong luồng Hướng xử lý) -->
         <div
-          v-show="activeTab === 'content'"
+          v-show="showContentPanel"
           class="space-y-4"
         >
           <div>
@@ -385,7 +391,7 @@ const submit = () => {
 
         <!-- Tab: Phân công -->
         <div
-          v-show="activeTab === 'assignment'"
+          v-show="activeTab === 'assignment' && !isResolutionFlow"
           class="space-y-4"
         >
           <div class="grid gap-4 sm:grid-cols-2">
@@ -438,22 +444,18 @@ const submit = () => {
           </div>
 
           <div
-            v-if="isEdit && textOrDash(form.resolution)"
+            v-if="isEdit && !isResolutionFlow && textOrDash(form.resolution)"
             class="rounded-lg border border-dashed border-slate-200 bg-slate-50/60 p-3"
           >
             <p class="text-[10px] font-bold uppercase tracking-wide text-slate-400">
-              Hướng xử lý (tóm tắt)
+              Hướng xử lý (chỉ xem)
             </p>
-            <p class="mt-1 line-clamp-3 whitespace-pre-wrap text-sm text-slate-600">
+            <p class="mt-1 line-clamp-4 whitespace-pre-wrap text-sm text-slate-600">
               {{ form.resolution }}
             </p>
-            <button
-              type="button"
-              class="mt-2 text-xs font-medium text-brand hover:underline"
-              @click="setTab('resolution')"
-            >
-              Mở tab Hướng xử lý
-            </button>
+            <p class="mt-2 text-xs text-slate-500">
+              Chỉnh kế hoạch xử lý qua nút <span class="font-medium text-slate-700">Hướng xử lý</span> trên danh sách.
+            </p>
           </div>
         </div>
       </div>
