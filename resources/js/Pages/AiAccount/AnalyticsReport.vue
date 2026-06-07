@@ -92,6 +92,10 @@ const colDdRef = ref(null);
 const exportDdRef = ref(null);
 const groupBy = ref('');
 const debounceTimer = ref(null);
+const collapsedGroupKeys = ref(new Set());
+const expandedRowIds = ref(new Set());
+
+const INLINE_COL_LIMIT = 6;
 
 function readVisibleCols() {
     try {
@@ -125,20 +129,75 @@ const activeColumns = computed(() => orderedColumns.value.filter((c) => visibleC
 
 const groupableColumns = computed(() => ANALYTICS_REPORT_COLUMNS.filter((c) => c.groupable));
 
+const tableColumns = computed(() => {
+    const cols = activeColumns.value;
+    if (cols.length <= INLINE_COL_LIMIT) {
+        return { inline: cols, overflow: [], showExpand: false };
+    }
+    return {
+        inline: cols.slice(0, INLINE_COL_LIMIT),
+        overflow: cols.slice(INLINE_COL_LIMIT),
+        showExpand: true,
+    };
+});
+
 const displayRows = computed(() => {
-    if (!groupBy.value) return rows.value.map((r) => ({ type: 'row', row: r }));
+    if (!groupBy.value) {
+        return rows.value.map((r) => ({ type: 'row', row: r }));
+    }
     const groups = {};
     rows.value.forEach((row) => {
         const key = row[groupBy.value] ?? '—';
-        groups[key] = groups[key] ?? { key, rows: [], sum: 0 };
-        groups[key].rows.push(row);
-        groups[key].sum += Number(row.cost_monthly) || 0;
+        const groupKey = String(key);
+        groups[groupKey] = groups[groupKey] ?? { key, groupKey, rows: [], sum: 0 };
+        groups[groupKey].rows.push(row);
+        groups[groupKey].sum += Number(row.cost_monthly) || 0;
     });
-    return Object.values(groups).flatMap((g) => [
-        { type: 'group', label: g.key, count: g.rows.length, sum: g.sum },
-        ...g.rows.map((row) => ({ type: 'row', row })),
-    ]);
+    return Object.values(groups).flatMap((g) => {
+        const header = {
+            type: 'group',
+            label: g.key,
+            groupKey: g.groupKey,
+            count: g.rows.length,
+            sum: g.sum,
+        };
+        if (collapsedGroupKeys.value.has(g.groupKey)) {
+            return [header];
+        }
+        return [
+            header,
+            ...g.rows.map((row) => ({ type: 'row', row, groupKey: g.groupKey })),
+        ];
+    });
 });
+
+function toggleGroup(groupKey) {
+    const next = new Set(collapsedGroupKeys.value);
+    if (next.has(groupKey)) {
+        next.delete(groupKey);
+    } else {
+        next.add(groupKey);
+    }
+    collapsedGroupKeys.value = next;
+}
+
+function isGroupCollapsed(groupKey) {
+    return collapsedGroupKeys.value.has(groupKey);
+}
+
+function toggleRowExpand(rowId) {
+    const next = new Set(expandedRowIds.value);
+    if (next.has(rowId)) {
+        next.delete(rowId);
+    } else {
+        next.add(rowId);
+    }
+    expandedRowIds.value = next;
+}
+
+function isRowExpanded(rowId) {
+    return expandedRowIds.value.has(rowId);
+}
 
 function persistColumns() {
     localStorage.setItem(COL_STORAGE_KEY, JSON.stringify(visibleCols.value));
@@ -203,6 +262,19 @@ watch([
     proposalStatus, proposer, purchaseFrom, purchaseTo, expiryFrom, expiryTo,
     createdFrom, createdTo, costMin, costMax,
 ], scheduleLoad);
+
+watch(groupBy, (key) => {
+    expandedRowIds.value = new Set();
+    if (!key) {
+        collapsedGroupKeys.value = new Set();
+        return;
+    }
+    const keys = new Set();
+    rows.value.forEach((row) => {
+        keys.add(String(row[key] ?? '—'));
+    });
+    collapsedGroupKeys.value = keys;
+});
 
 function onDocMouseDown(e) {
     if (filterPanelDdRef.value && !filterPanelDdRef.value.contains(e.target)) {
@@ -269,6 +341,17 @@ function cellValue(row, col) {
         return v != null ? formatVnd(v) : '—';
     }
     return v ?? '—';
+}
+
+const headColCount = computed(() => {
+    let n = tableColumns.value.inline.length;
+    if (groupBy.value) n += 1;
+    if (tableColumns.value.showExpand) n += 1;
+    return Math.max(n, 1);
+});
+
+function rowStableId(row) {
+    return row?.id ?? `${row?.proposal_code ?? ''}-${row?.user_name ?? ''}`;
 }
 </script>
 
@@ -435,232 +518,384 @@ function cellValue(row, col) {
 
         <div
           v-if="hasFilterRow"
-          class="mt-2.5 flex flex-wrap gap-2 border-t border-slate-100 pt-2.5"
+          class="mt-2.5 grid grid-cols-1 gap-2 border-t border-slate-100 pt-2.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
         >
-          <template v-if="visibleFilters.date_created">
-            <input
-              v-model="createdFrom"
-              type="date"
-              class="h-8 rounded border border-slate-200 px-2 text-xs"
-              aria-label="Từ ngày PĐX"
-            >
-            <input
-              v-model="createdTo"
-              type="date"
-              class="h-8 rounded border border-slate-200 px-2 text-xs"
-              aria-label="Đến ngày PĐX"
-            >
-          </template>
-          <template v-if="visibleFilters.purchase_date">
-            <input
-              v-model="purchaseFrom"
-              type="date"
-              class="h-8 rounded border border-slate-200 px-2 text-xs"
-            >
-            <input
-              v-model="purchaseTo"
-              type="date"
-              class="h-8 rounded border border-slate-200 px-2 text-xs"
-            >
-          </template>
-          <template v-if="visibleFilters.expiry">
-            <input
-              v-model="expiryFrom"
-              type="date"
-              class="h-8 rounded border border-slate-200 px-2 text-xs"
-            >
-            <input
-              v-model="expiryTo"
-              type="date"
-              class="h-8 rounded border border-slate-200 px-2 text-xs"
-            >
-          </template>
-          <select
+          <div
+            v-if="visibleFilters.date_created"
+            class="min-w-0 rounded-lg border border-slate-200/80 bg-white px-2.5 py-1.5"
+          >
+            <span class="text-[10px] font-medium text-slate-500">Ngày tạo PĐX</span>
+            <div class="mt-1 flex items-center gap-1">
+              <input
+                v-model="createdFrom"
+                type="date"
+                class="input h-8 min-w-0 flex-1 text-xs"
+                aria-label="Từ ngày tạo PĐX"
+              >
+              <span class="shrink-0 text-xs text-slate-300">→</span>
+              <input
+                v-model="createdTo"
+                type="date"
+                class="input h-8 min-w-0 flex-1 text-xs"
+                aria-label="Đến ngày tạo PĐX"
+              >
+            </div>
+          </div>
+          <div
+            v-if="visibleFilters.purchase_date"
+            class="min-w-0 rounded-lg border border-slate-200/80 bg-white px-2.5 py-1.5"
+          >
+            <span class="text-[10px] font-medium text-slate-500">Ngày mua</span>
+            <div class="mt-1 flex items-center gap-1">
+              <input
+                v-model="purchaseFrom"
+                type="date"
+                class="input h-8 min-w-0 flex-1 text-xs"
+                aria-label="Từ ngày mua"
+              >
+              <span class="shrink-0 text-xs text-slate-300">→</span>
+              <input
+                v-model="purchaseTo"
+                type="date"
+                class="input h-8 min-w-0 flex-1 text-xs"
+                aria-label="Đến ngày mua"
+              >
+            </div>
+          </div>
+          <div
+            v-if="visibleFilters.expiry"
+            class="min-w-0 rounded-lg border border-slate-200/80 bg-white px-2.5 py-1.5"
+          >
+            <span class="text-[10px] font-medium text-slate-500">Ngày hết hạn</span>
+            <div class="mt-1 flex items-center gap-1">
+              <input
+                v-model="expiryFrom"
+                type="date"
+                class="input h-8 min-w-0 flex-1 text-xs"
+                aria-label="Từ ngày hết hạn"
+              >
+              <span class="shrink-0 text-xs text-slate-300">→</span>
+              <input
+                v-model="expiryTo"
+                type="date"
+                class="input h-8 min-w-0 flex-1 text-xs"
+                aria-label="Đến ngày hết hạn"
+              >
+            </div>
+          </div>
+          <div
             v-if="visibleFilters.department"
-            v-model="department"
-            class="h-8 rounded border border-slate-200 px-2 text-xs"
+            class="min-w-0 rounded-lg border border-slate-200/80 bg-white px-2.5 py-1.5"
           >
-            <option value="all">
-              Tất cả phòng ban
-            </option>
-            <option
-              v-for="d in filterOptions.departments"
-              :key="d"
-              :value="d"
+            <label class="text-[10px] font-medium text-slate-500">Phòng ban</label>
+            <select
+              v-model="department"
+              class="input mt-1 h-8 w-full text-xs"
             >
-              {{ d }}
-            </option>
-          </select>
-          <select
+              <option value="all">
+                Tất cả
+              </option>
+              <option
+                v-for="d in filterOptions.departments"
+                :key="d"
+                :value="d"
+              >
+                {{ d }}
+              </option>
+            </select>
+          </div>
+          <div
             v-if="visibleFilters.group_function"
-            v-model="groupFunction"
-            class="h-8 rounded border border-slate-200 px-2 text-xs"
+            class="min-w-0 rounded-lg border border-slate-200/80 bg-white px-2.5 py-1.5"
           >
-            <option value="all">
-              Tất cả nhóm
-            </option>
-            <option
-              v-for="o in options.group_function"
-              :key="o.value"
-              :value="o.value"
+            <label class="text-[10px] font-medium text-slate-500">Nhóm chức năng</label>
+            <select
+              v-model="groupFunction"
+              class="input mt-1 h-8 w-full text-xs"
             >
-              {{ o.label }}
-            </option>
-          </select>
-          <select
+              <option value="all">
+                Tất cả
+              </option>
+              <option
+                v-for="o in options.group_function"
+                :key="o.value"
+                :value="o.value"
+              >
+                {{ o.label }}
+              </option>
+            </select>
+          </div>
+          <div
             v-if="visibleFilters.tool"
-            v-model="tool"
-            class="h-8 rounded border border-slate-200 px-2 text-xs"
+            class="min-w-0 rounded-lg border border-slate-200/80 bg-white px-2.5 py-1.5"
           >
-            <option value="all">
-              Tất cả AI
-            </option>
-            <option
-              v-for="t in filterOptions.tools"
-              :key="t"
-              :value="t"
+            <label class="text-[10px] font-medium text-slate-500">Loại AI</label>
+            <select
+              v-model="tool"
+              class="input mt-1 h-8 w-full text-xs"
             >
-              {{ t }}
-            </option>
-          </select>
-          <select
+              <option value="all">
+                Tất cả
+              </option>
+              <option
+                v-for="t in filterOptions.tools"
+                :key="t"
+                :value="t"
+              >
+                {{ t }}
+              </option>
+            </select>
+          </div>
+          <div
             v-if="visibleFilters.vendor"
-            v-model="vendor"
-            class="h-8 rounded border border-slate-200 px-2 text-xs"
+            class="min-w-0 rounded-lg border border-slate-200/80 bg-white px-2.5 py-1.5"
           >
-            <option value="all">
-              Nhà cung cấp
-            </option>
-            <option
-              v-for="v in filterOptions.vendors"
-              :key="v"
-              :value="v"
+            <label class="text-[10px] font-medium text-slate-500">Nhà cung cấp</label>
+            <select
+              v-model="vendor"
+              class="input mt-1 h-8 w-full text-xs"
             >
-              {{ v }}
-            </option>
-          </select>
-          <select
+              <option value="all">
+                Tất cả
+              </option>
+              <option
+                v-for="v in filterOptions.vendors"
+                :key="v"
+                :value="v"
+              >
+                {{ v }}
+              </option>
+            </select>
+          </div>
+          <div
             v-if="visibleFilters.status"
-            v-model="status"
-            class="h-8 rounded border border-slate-200 px-2 text-xs"
+            class="min-w-0 rounded-lg border border-slate-200/80 bg-white px-2.5 py-1.5"
           >
-            <option value="all">
-              Trạng thái TK
-            </option>
-            <option
-              v-for="o in options.status"
-              :key="o.value"
-              :value="o.value"
+            <label class="text-[10px] font-medium text-slate-500">Trạng thái TK</label>
+            <select
+              v-model="status"
+              class="input mt-1 h-8 w-full text-xs"
             >
-              {{ o.label }}
-            </option>
-          </select>
-          <select
+              <option value="all">
+                Tất cả
+              </option>
+              <option
+                v-for="o in options.status"
+                :key="o.value"
+                :value="o.value"
+              >
+                {{ o.label }}
+              </option>
+            </select>
+          </div>
+          <div
             v-if="visibleFilters.lifecycle"
-            v-model="lifecycleStatus"
-            class="h-8 rounded border border-slate-200 px-2 text-xs"
+            class="min-w-0 rounded-lg border border-slate-200/80 bg-white px-2.5 py-1.5"
           >
-            <option value="all">
-              Vòng đời
-            </option>
-            <option
-              v-for="o in options.lifecycle_status"
-              :key="o.value"
-              :value="o.value"
+            <label class="text-[10px] font-medium text-slate-500">Vòng đời</label>
+            <select
+              v-model="lifecycleStatus"
+              class="input mt-1 h-8 w-full text-xs"
             >
-              {{ o.label }}
-            </option>
-          </select>
-          <select
+              <option value="all">
+                Tất cả
+              </option>
+              <option
+                v-for="o in options.lifecycle_status"
+                :key="o.value"
+                :value="o.value"
+              >
+                {{ o.label }}
+              </option>
+            </select>
+          </div>
+          <div
             v-if="visibleFilters.proposer"
-            v-model="proposer"
-            class="h-8 max-w-[12rem] rounded border border-slate-200 px-2 text-xs"
+            class="min-w-0 rounded-lg border border-slate-200/80 bg-white px-2.5 py-1.5"
           >
-            <option value="all">
-              Người đề xuất
-            </option>
-            <option
-              v-for="p in filterOptions.proposers"
-              :key="p"
-              :value="p"
+            <label class="text-[10px] font-medium text-slate-500">Người đề xuất</label>
+            <select
+              v-model="proposer"
+              class="input mt-1 h-8 w-full text-xs"
             >
-              {{ p }}
-            </option>
-          </select>
-          <template v-if="visibleFilters.cost_range">
-            <input
-              v-model="costMin"
-              type="number"
-              placeholder="Chi phí min"
-              class="h-8 w-28 rounded border border-slate-200 px-2 text-xs"
-            >
-            <input
-              v-model="costMax"
-              type="number"
-              placeholder="Chi phí max"
-              class="h-8 w-28 rounded border border-slate-200 px-2 text-xs"
-            >
-          </template>
+              <option value="all">
+                Tất cả
+              </option>
+              <option
+                v-for="p in filterOptions.proposers"
+                :key="p"
+                :value="p"
+              >
+                {{ p }}
+              </option>
+            </select>
+          </div>
+          <div
+            v-if="visibleFilters.cost_range"
+            class="min-w-0 rounded-lg border border-slate-200/80 bg-white px-2.5 py-1.5"
+          >
+            <span class="text-[10px] font-medium text-slate-500">Chi phí / tháng (VNĐ)</span>
+            <div class="mt-1 flex items-center gap-1">
+              <input
+                v-model="costMin"
+                type="number"
+                placeholder="Từ"
+                class="input h-8 min-w-0 flex-1 text-xs"
+                aria-label="Chi phí tối thiểu"
+              >
+              <span class="shrink-0 text-xs text-slate-300">→</span>
+              <input
+                v-model="costMax"
+                type="number"
+                placeholder="Đến"
+                class="input h-8 min-w-0 flex-1 text-xs"
+                aria-label="Chi phí tối đa"
+              >
+            </div>
+          </div>
         </div>
       </div>
 
       <div class="w-full min-w-0 overflow-x-auto">
-        <table class="w-full border-collapse text-left text-xs">
+        <table class="w-full table-fixed border-collapse text-left text-xs">
           <thead class="bg-slate-50">
             <tr>
               <th
-                v-for="col in activeColumns"
+                v-if="groupBy"
+                class="w-9 border-b border-slate-200 px-1 py-2"
+                aria-label="Thu gọn nhóm"
+              />
+              <th
+                v-if="tableColumns.showExpand"
+                class="w-9 border-b border-slate-200 px-1 py-2"
+                aria-label="Chi tiết thêm"
+              />
+              <th
+                v-for="col in tableColumns.inline"
                 :key="col.key"
-                class="whitespace-nowrap border-b border-slate-200 px-3 py-2.5 text-slate-600"
-                :class="col.width ? '' : 'min-w-[7rem]'"
-                :style="col.width ? { minWidth: col.width } : undefined"
+                class="border-b border-slate-200 px-2 py-2 font-medium text-slate-600"
+                :class="col.width ? 'truncate' : 'min-w-[5.5rem]'"
+                :style="col.width ? { width: col.width } : undefined"
+                :title="col.label"
               >
-                {{ col.label }}
+                <span class="block truncate">{{ col.label }}</span>
               </th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="loading">
               <td
-                :colspan="activeColumns.length"
+                :colspan="headColCount"
                 class="px-3 py-8 text-center text-slate-400"
               >
                 Đang tải…
               </td>
             </tr>
             <template
-              v-for="(entry, idx) in displayRows"
-              :key="idx"
+              v-for="entry in displayRows"
+              :key="entry.type === 'group' ? `g-${entry.groupKey}` : `r-${rowStableId(entry.row)}`"
             >
               <tr
                 v-if="entry.type === 'group'"
-                class="bg-brand/5 font-semibold text-brand"
+                class="border-b border-brand/10 bg-brand/[0.04] text-brand"
               >
+                <td class="px-1 py-1.5 align-middle">
+                  <button
+                    type="button"
+                    class="inline-flex h-7 w-7 items-center justify-center rounded-md text-brand hover:bg-brand/10"
+                    :aria-expanded="!isGroupCollapsed(entry.groupKey)"
+                    :aria-label="isGroupCollapsed(entry.groupKey) ? 'Mở nhóm' : 'Thu gọn nhóm'"
+                    @click="toggleGroup(entry.groupKey)"
+                  >
+                    <AppIcon
+                      :name="isGroupCollapsed(entry.groupKey) ? 'chevron-right' : 'chevron-down'"
+                      :size="16"
+                    />
+                  </button>
+                </td>
                 <td
-                  :colspan="activeColumns.length"
-                  class="px-3 py-2"
+                  v-if="tableColumns.showExpand"
+                  class="px-1 py-1.5"
+                />
+                <td
+                  :colspan="tableColumns.inline.length"
+                  class="truncate px-2 py-1.5 font-medium"
                 >
-                  {{ entry.label }} · {{ entry.count }} bản ghi · {{ formatVnd(entry.sum) }}/tháng
+                  <span class="text-slate-800">{{ entry.label }}</span>
+                  <span class="ml-2 font-normal text-slate-500">
+                    {{ entry.count }} TK · {{ formatVnd(entry.sum) }}/tháng
+                  </span>
                 </td>
               </tr>
-              <tr
-                v-else
-                class="border-b border-slate-100 hover:bg-slate-50/80"
-              >
-                <td
-                  v-for="col in activeColumns"
-                  :key="col.key"
-                  class="whitespace-nowrap px-3 py-2 text-slate-700"
-                  :class="col.key === 'notes' ? 'max-w-md whitespace-normal' : ''"
-                  :title="String(entry.row[col.key] ?? '')"
+              <template v-else>
+                <tr
+                  class="border-b border-slate-100 hover:bg-slate-50/80"
+                  :class="entry.groupKey ? 'bg-white' : ''"
                 >
-                  {{ cellValue(entry.row, col) }}
-                </td>
-              </tr>
+                  <td
+                    v-if="groupBy"
+                    class="w-9 px-1 py-1 align-middle"
+                  >
+                    <span
+                      v-if="entry.groupKey"
+                      class="ml-3 inline-block h-1.5 w-1.5 rounded-full bg-slate-200"
+                      aria-hidden="true"
+                    />
+                  </td>
+                  <td
+                    v-if="tableColumns.showExpand"
+                    class="px-1 py-1 align-middle"
+                  >
+                    <button
+                      type="button"
+                      class="inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                      :aria-expanded="isRowExpanded(rowStableId(entry.row))"
+                      aria-label="Xem thêm cột"
+                      @click="toggleRowExpand(rowStableId(entry.row))"
+                    >
+                      <AppIcon
+                        :name="isRowExpanded(rowStableId(entry.row)) ? 'chevron-down' : 'chevron-right'"
+                        :size="16"
+                      />
+                    </button>
+                  </td>
+                  <td
+                    v-for="col in tableColumns.inline"
+                    :key="col.key"
+                    class="truncate px-2 py-1 text-slate-700"
+                    :title="String(entry.row[col.key] ?? '')"
+                  >
+                    {{ cellValue(entry.row, col) }}
+                  </td>
+                </tr>
+                <tr
+                  v-if="tableColumns.showExpand && isRowExpanded(rowStableId(entry.row))"
+                  class="border-b border-slate-100 bg-slate-50/90"
+                >
+                  <td :colspan="headColCount">
+                    <dl
+                      class="grid grid-cols-2 gap-x-4 gap-y-2 px-3 py-2 sm:grid-cols-3 lg:grid-cols-4"
+                    >
+                      <div
+                        v-for="col in tableColumns.overflow"
+                        :key="col.key"
+                        class="min-w-0"
+                      >
+                        <dt class="text-[10px] font-medium text-slate-500">
+                          {{ col.label }}
+                        </dt>
+                        <dd class="truncate text-xs text-slate-800">
+                          {{ cellValue(entry.row, col) }}
+                        </dd>
+                      </div>
+                    </dl>
+                  </td>
+                </tr>
+              </template>
             </template>
             <tr v-if="!loading && !rows.length">
               <td
-                :colspan="activeColumns.length"
+                :colspan="headColCount"
                 class="px-3 py-10 text-center text-slate-400"
               >
                 Không có bản ghi phù hợp bộ lọc.
@@ -668,6 +903,12 @@ function cellValue(row, col) {
             </tr>
           </tbody>
         </table>
+        <p
+          v-if="tableColumns.showExpand && activeColumns.length > INLINE_COL_LIMIT"
+          class="border-t border-slate-100 px-3 py-2 text-[10px] text-slate-400"
+        >
+          Hiển thị {{ tableColumns.inline.length }}/{{ activeColumns.length }} cột trên bảng — bấm mũi tên từng dòng để xem thêm.
+        </p>
       </div>
 
       <div
