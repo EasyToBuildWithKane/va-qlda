@@ -2,10 +2,8 @@
 /* eslint-disable vue/no-v-html -- server-rendered proposal preview HTML from authenticated API */
 import { computed, ref, watch } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
-import {
-    PROPOSAL_PREVIEW_PAGE_HEIGHT_MM,
-    useProposalPreviewPageCount,
-} from '@/modules/aiAccount/composables/useProposalPreviewPageCount';
+import { highlightProposalPreviewPage } from '@/modules/aiAccount/composables/useProposalPreviewPaginatedLayout';
+import { useProposalPreviewPageCount } from '@/modules/aiAccount/composables/useProposalPreviewPageCount';
 
 const props = defineProps({
     html: { type: String, default: '' },
@@ -16,16 +14,20 @@ const props = defineProps({
 
 const emit = defineEmits(['refresh']);
 
-const hostRef = ref(null);
-const scrollRef = ref(null);
-const htmlRef = computed(() => props.html);
-const { pageCount, remeasure } = useProposalPreviewPageCount(htmlRef, hostRef);
-
-const viewMode = ref('all');
+const measureHostRef = ref(null);
+const pagesStackRef = ref(null);
 const currentPage = ref(1);
+const htmlRef = computed(() => props.html);
+const { pageCount, remeasure } = useProposalPreviewPageCount(
+    htmlRef,
+    measureHostRef,
+    pagesStackRef,
+    currentPage,
+);
 
 watch(pageCount, (n) => {
     if (currentPage.value > n) currentPage.value = n;
+    if (currentPage.value < 1) currentPage.value = 1;
 });
 
 watch(() => props.html, () => {
@@ -33,30 +35,26 @@ watch(() => props.html, () => {
     remeasure();
 });
 
-const pageLabel = computed(() => {
-    if (pageCount.value <= 1) return '1 trang A4';
-    return `${pageCount.value} trang A4`;
+watch(currentPage, (p) => {
+    highlightProposalPreviewPage(pagesStackRef.value, p);
+    const sheet = pagesStackRef.value?.querySelector(`[data-page="${p}"]`);
+    sheet?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 });
 
-function mmToPx(mm) {
-    return (mm * 96) / 25.4;
+const pageLabel = computed(() => `${pageCount.value} trang A4`);
+
+function goPage(page) {
+    currentPage.value = Math.min(pageCount.value, Math.max(1, page));
 }
 
-function scrollToPage(page) {
-    const scroller = scrollRef.value;
-    if (!scroller) return;
-    const top = (page - 1) * mmToPx(PROPOSAL_PREVIEW_PAGE_HEIGHT_MM);
-    scroller.scrollTo({ top: top * props.zoom, behavior: 'smooth' });
-    currentPage.value = page;
+function goPageDelta(delta) {
+    goPage(currentPage.value + delta);
 }
 
-function goPage(delta) {
-    scrollToPage(Math.min(pageCount.value, Math.max(1, currentPage.value + delta)));
+function onRefresh() {
+    emit('refresh');
+    remeasure();
 }
-
-watch(viewMode, (mode) => {
-    if (mode === 'single') scrollToPage(currentPage.value);
-});
 </script>
 
 <template>
@@ -66,51 +64,73 @@ watch(viewMode, (mode) => {
     >
       <div class="min-w-0 space-y-0.5">
         <p class="text-sm font-semibold text-slate-800">
-          Xem trước phiếu in
+          Xem trước phiếu in (PDF)
         </p>
         <p class="text-xs text-slate-500">
-          Khớp PDF xuất · nền letterhead · lề A4 (42mm / 12mm / 15mm / 14mm). Đường đỏ ngăn trang.
+          Mỗi trang A4 có nền letterhead riêng — nội dung không đè lên thanh đỏ footer.
         </p>
       </div>
-      <div
+      <span
         v-if="html && !loading"
-        class="flex flex-wrap items-center gap-2"
+        class="inline-flex items-center gap-1.5 rounded-lg border border-brand/20 bg-brand/5 px-2.5 py-1 text-xs font-semibold text-brand"
       >
-        <span
-          class="inline-flex items-center gap-1.5 rounded-lg border border-brand/20 bg-brand/5 px-2.5 py-1 text-xs font-semibold text-brand"
+        <AppIcon
+          name="pdf"
+          :size="14"
+        />
+        {{ pageLabel }}
+      </span>
+    </div>
+
+    <!-- Pagination — luôn hiển thị khi có preview -->
+    <div
+      v-if="html && !loading && !error"
+      class="flex flex-wrap items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2"
+    >
+      <button
+        type="button"
+        class="inline-flex h-8 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 hover:border-slate-300 disabled:opacity-40"
+        :disabled="currentPage <= 1"
+        aria-label="Trang trước"
+        @click="goPageDelta(-1)"
+      >
+        <AppIcon
+          name="chevron-left"
+          :size="14"
+        />
+        Trước
+      </button>
+      <div class="flex flex-wrap items-center justify-center gap-1">
+        <button
+          v-for="p in pageCount"
+          :key="p"
+          type="button"
+          class="inline-flex h-8 min-w-8 items-center justify-center rounded-lg border px-2 text-xs font-semibold tabular-nums transition"
+          :class="p === currentPage
+            ? 'border-brand bg-brand text-white shadow-sm'
+            : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-brand/30 hover:bg-brand/5'"
+          :aria-current="p === currentPage ? 'page' : undefined"
+          @click="goPage(p)"
         >
-          <AppIcon
-            name="pdf"
-            :size="14"
-          />
-          {{ pageLabel }}
-        </span>
-        <div
-          v-if="pageCount > 1"
-          class="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 text-xs"
-        >
-          <button
-            type="button"
-            class="rounded-md px-2.5 py-1 font-medium transition"
-            :class="viewMode === 'all'
-              ? 'bg-slate-100 text-slate-800'
-              : 'text-slate-500 hover:text-slate-700'"
-            @click="viewMode = 'all'"
-          >
-            Cuộn tất cả
-          </button>
-          <button
-            type="button"
-            class="rounded-md px-2.5 py-1 font-medium transition"
-            :class="viewMode === 'single'
-              ? 'bg-slate-100 text-slate-800'
-              : 'text-slate-500 hover:text-slate-700'"
-            @click="viewMode = 'single'"
-          >
-            Từng trang
-          </button>
-        </div>
+          {{ p }}
+        </button>
       </div>
+      <span class="min-w-[5.5rem] text-center text-xs tabular-nums text-slate-600">
+        Trang <strong class="text-slate-800">{{ currentPage }}</strong> / {{ pageCount }}
+      </span>
+      <button
+        type="button"
+        class="inline-flex h-8 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 hover:border-slate-300 disabled:opacity-40"
+        :disabled="currentPage >= pageCount"
+        aria-label="Trang sau"
+        @click="goPageDelta(1)"
+      >
+        Sau
+        <AppIcon
+          name="chevron-right"
+          :size="14"
+        />
+      </button>
     </div>
 
     <p
@@ -149,65 +169,19 @@ watch(viewMode, (mode) => {
     </div>
 
     <template v-else>
+      <!-- Nguồn đo chiều cao (ẩn) -->
       <div
-        v-if="pageCount > 1"
-        class="flex flex-wrap items-center justify-center gap-2"
-      >
-        <template v-if="viewMode === 'single'">
-          <button
-            type="button"
-            class="inline-flex h-8 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 hover:border-slate-300 disabled:opacity-40"
-            :disabled="currentPage <= 1"
-            @click="goPage(-1)"
-          >
-            <AppIcon
-              name="chevron-left"
-              :size="14"
-            />
-            Trang trước
-          </button>
-          <span class="tabular-nums text-sm text-slate-700">
-            Trang <strong>{{ currentPage }}</strong> / {{ pageCount }}
-          </span>
-          <button
-            type="button"
-            class="inline-flex h-8 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 hover:border-slate-300 disabled:opacity-40"
-            :disabled="currentPage >= pageCount"
-            @click="goPage(1)"
-          >
-            Trang sau
-            <AppIcon
-              name="chevron-right"
-              :size="14"
-            />
-          </button>
-        </template>
-        <div
-          v-else
-          class="flex flex-wrap justify-center gap-1"
-        >
-          <button
-            v-for="p in pageCount"
-            :key="p"
-            type="button"
-            class="inline-flex h-7 min-w-7 items-center justify-center rounded-md border px-1.5 text-xs font-medium tabular-nums transition"
-            :class="p === currentPage
-              ? 'border-brand/40 bg-brand/10 text-brand'
-              : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'"
-            @click="scrollToPage(p)"
-          >
-            {{ p }}
-          </button>
-        </div>
-      </div>
+        ref="measureHostRef"
+        class="proposal-preview-measure-host"
+        aria-hidden="true"
+        v-html="html"
+      />
 
       <div
-        ref="scrollRef"
         class="proposal-preview-viewport min-h-[min(52vh,480px)] flex-1 overflow-auto rounded-xl border border-slate-200 bg-[#525659] p-4 sm:p-6"
-        :class="viewMode === 'single' ? 'proposal-preview-viewport--single max-h-[min(72vh,820px)]' : ''"
       >
         <div
-          class="mx-auto shadow-2xl transition-transform duration-150"
+          class="mx-auto transition-transform duration-150"
           :style="{
             transform: `scale(${zoom})`,
             transformOrigin: 'top center',
@@ -215,9 +189,8 @@ watch(viewMode, (mode) => {
           }"
         >
           <div
-            ref="hostRef"
-            class="proposal-pdf-preview bg-white"
-            v-html="html"
+            ref="pagesStackRef"
+            class="proposal-preview-pages-stack"
           />
         </div>
       </div>
@@ -228,7 +201,7 @@ watch(viewMode, (mode) => {
         type="button"
         class="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-brand disabled:opacity-40"
         :disabled="loading || !html"
-        @click="emit('refresh')"
+        @click="onRefresh"
       >
         <AppIcon
           name="refresh"
@@ -241,22 +214,88 @@ watch(viewMode, (mode) => {
 </template>
 
 <style>
+.proposal-preview-measure-host {
+    position: absolute;
+    left: -10000px;
+    top: 0;
+    width: 210mm;
+    visibility: hidden;
+    pointer-events: none;
+    overflow: hidden;
+}
+
 .proposal-preview-viewport {
     scrollbar-color: rgba(255, 255, 255, 0.35) transparent;
 }
 
-/* Chế độ từng trang: khung cao ~1 trang A4 (297mm × zoom xấp xỉ) */
-.proposal-preview-viewport--single {
-    scroll-snap-type: y mandatory;
+.proposal-preview-pages-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    align-items: center;
 }
 
-.proposal-preview-viewport--single .proposal-pdf-preview {
-    scroll-snap-align: start;
-}
-
-.proposal-pdf-preview .proposal-preview-strip {
+.proposal-preview-pages-stack :deep(.proposal-preview-page-sheet) {
+    position: relative;
+    width: 210mm;
+    height: 297mm;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: #fff;
     box-shadow:
-        0 0 0 1px rgba(15, 23, 42, 0.06),
-        0 8px 30px rgba(15, 23, 42, 0.2);
+        0 0 0 1px rgba(15, 23, 42, 0.08),
+        0 12px 40px rgba(15, 23, 42, 0.35);
+}
+
+.proposal-preview-pages-stack :deep(.proposal-preview-page-bg) {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: fill;
+    pointer-events: none;
+}
+
+.proposal-preview-pages-stack :deep(.proposal-preview-page-clip) {
+    position: absolute;
+    z-index: 1;
+    top: 42mm;
+    left: 14mm;
+    right: 12mm;
+    bottom: calc(15mm + 20mm);
+    overflow: hidden;
+}
+
+.proposal-preview-pages-stack :deep(.proposal-preview-page-clone) {
+    box-sizing: border-box;
+    width: 100%;
+    margin: 0;
+    background: transparent;
+}
+
+.proposal-preview-pages-stack :deep(.proposal-preview-page-sheet--current) {
+    box-shadow:
+        0 0 0 2px rgba(154, 0, 54, 0.45),
+        0 12px 40px rgba(15, 23, 42, 0.35);
+}
+
+.proposal-preview-pages-stack :deep(.proposal-preview-page-sheet:not(.proposal-preview-page-sheet--current)) {
+    opacity: 0.92;
+}
+
+.proposal-preview-pages-stack :deep(.proposal-preview-page-badge) {
+    position: absolute;
+    z-index: 2;
+    right: 10mm;
+    bottom: 6mm;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: rgba(15, 23, 42, 0.72);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    pointer-events: none;
 }
 </style>

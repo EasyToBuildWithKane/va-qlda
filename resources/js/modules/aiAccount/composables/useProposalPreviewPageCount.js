@@ -1,57 +1,39 @@
 import { ref, watch, nextTick } from 'vue';
+import {
+    layoutProposalPreviewPages,
+    highlightProposalPreviewPage,
+} from '@/modules/aiAccount/composables/useProposalPreviewPaginatedLayout';
 
-/** Khớp @page margin trong ai-purchase-proposal-styles (42mm + 15mm). */
-export const PROPOSAL_PREVIEW_PAGE_HEIGHT_MM = 297;
-export const PROPOSAL_PREVIEW_CONTENT_TOP_MM = 42;
-export const PROPOSAL_PREVIEW_CONTENT_BOTTOM_MM = 15;
-
-export function proposalPreviewContentHeightMm() {
-    return PROPOSAL_PREVIEW_PAGE_HEIGHT_MM
-        - PROPOSAL_PREVIEW_CONTENT_TOP_MM
-        - PROPOSAL_PREVIEW_CONTENT_BOTTOM_MM;
-}
-
-function mmToPx(mm) {
-    return (mm * 96) / 25.4;
-}
+export {
+    PROPOSAL_PREVIEW_PAGE_HEIGHT_MM,
+    PROPOSAL_PREVIEW_PAGE_WIDTH_MM,
+    proposalPreviewSliceHeightMm,
+    mmToPx,
+} from '@/modules/aiAccount/composables/useProposalPreviewPaginatedLayout';
 
 /**
- * Đo số trang A4 sau khi HTML preview được gắn vào DOM.
- *
  * @param {import('vue').Ref<string>} htmlRef
- * @param {import('vue').Ref<HTMLElement|null>} hostRef — phần tử chứa v-html
+ * @param {import('vue').Ref<HTMLElement|null>} measureHostRef
+ * @param {import('vue').Ref<HTMLElement|null>} pagesStackRef
  */
-export function useProposalPreviewPageCount(htmlRef, hostRef) {
+export function useProposalPreviewPageCount(htmlRef, measureHostRef, pagesStackRef, currentPageRef) {
     const pageCount = ref(1);
-    const contentHeightPx = ref(0);
 
-    async function measure() {
+    async function remeasure() {
         await nextTick();
         requestAnimationFrame(() => {
-            const host = hostRef.value;
-            if (!host || !htmlRef.value) {
-                pageCount.value = 1;
-                contentHeightPx.value = 0;
-                return;
-            }
-
-            const content = host.querySelector('.doc-content-on-bg')
-                ?? host.querySelector('.doc-content');
-            if (!content) {
-                pageCount.value = 1;
-                contentHeightPx.value = 0;
-                return;
-            }
-
-            const h = content.scrollHeight;
-            contentHeightPx.value = h;
-            const pageContentPx = mmToPx(proposalPreviewContentHeightMm());
-            pageCount.value = Math.max(1, Math.ceil(h / pageContentPx));
+            const n = layoutProposalPreviewPages(measureHostRef.value, pagesStackRef.value);
+            pageCount.value = n;
+            highlightProposalPreviewPage(
+                pagesStackRef.value,
+                currentPageRef?.value ?? 1,
+            );
         });
     }
 
-    watch(htmlRef, measure);
-    watch(hostRef, measure);
+    watch(htmlRef, remeasure);
+    watch(measureHostRef, remeasure);
+    watch(pagesStackRef, remeasure);
 
-    return { pageCount, contentHeightPx, remeasure: measure };
+    return { pageCount, remeasure };
 }
