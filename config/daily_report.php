@@ -12,6 +12,9 @@
 
 return [
 
+    // Business calendar for "báo cáo hôm nay", working-day gate, and late cutoff.
+    'timezone' => env('DAILY_REPORT_TIMEZONE', 'Asia/Ho_Chi_Minh'),
+
     // Weighted contribution of each dimension to the total score. Must sum to 1.
     'weights' => [
         'task_completion' => 0.30,

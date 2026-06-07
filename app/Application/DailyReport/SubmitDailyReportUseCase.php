@@ -4,8 +4,8 @@ namespace App\Application\DailyReport;
 
 use App\Domain\DailyReport\Exceptions\DailyReportException;
 use App\Domain\DailyReport\Models\DailyReport;
+use App\Support\DailyReportCalendar;
 use App\Support\Enums\ReportStatus;
-use Carbon\CarbonImmutable;
 
 class SubmitDailyReportUseCase
 {
@@ -21,7 +21,7 @@ class SubmitDailyReportUseCase
             throw DailyReportException::notSubmittable();
         }
 
-        $now = CarbonImmutable::now();
+        $now = DailyReportCalendar::now();
 
         if (! in_array($now->isoWeekday(), config('daily_report.working_days'), true)) {
             throw DailyReportException::notWorkingDay();

@@ -4,6 +4,7 @@ namespace App\Application\DailyReport;
 
 use App\Domain\DailyReport\Models\DailyReport;
 use App\Domain\DailyReport\Support\ReportProjectSync;
+use App\Support\DailyReportCalendar;
 use App\Support\Enums\ReportStatus;
 
 class CreateDailyReportUseCase
@@ -21,7 +22,7 @@ class CreateDailyReportUseCase
         return DailyReport::create([
             ...$payload,
             'employee_id' => $employeeId,
-            'date' => $payload['date'] ?? now()->toDateString(),
+            'date' => $payload['date'] ?? DailyReportCalendar::today(),
             'status' => ReportStatus::Draft,
         ]);
     }

@@ -14,12 +14,30 @@ export function number(value) {
     return vnd.format(Number(value));
 }
 
+/** Parse `Y-m-d` as calendar date (no UTC shift). */
+export function dateFromYmd(ymd) {
+    if (!ymd) return null;
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(ymd).trim());
+    if (!m) return null;
+    const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    return Number.isNaN(d.getTime()) ? null : d;
+}
+
 /** ISO date/datetime → "dd/mm/yyyy". null → "—". */
 export function date(value) {
     if (!value) return '—';
-    const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return '—';
+    const d = String(value).length === 10 ? dateFromYmd(value) : new Date(value);
+    if (!d || Number.isNaN(d.getTime())) return '—';
     return d.toLocaleDateString('vi-VN');
+}
+
+/** Calendar date with weekday, e.g. "Thứ Hai, 08/06/2026". */
+export function dateLongVi(value) {
+    const d = typeof value === 'string' && value.length === 10 ? dateFromYmd(value) : new Date(value);
+    if (!d || Number.isNaN(d.getTime())) return '—';
+    return d.toLocaleDateString('vi-VN', {
+        weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric',
+    });
 }
 
 /** ISO datetime → "dd/mm/yyyy HH:mm". */

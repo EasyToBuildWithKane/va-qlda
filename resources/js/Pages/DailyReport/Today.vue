@@ -10,6 +10,7 @@ import TemplateGallery from '@/Components/DailyReport/TemplateGallery.vue';
 import InfoTooltip from '@/Components/DailyReport/InfoTooltip.vue';
 import { pillars, fields, builtinTemplates } from '@/modules/daily-report/config/reportConfig';
 import { useDialog } from '@/composables/useDialog';
+import { date, dateLongVi } from '@/composables/useFormat';
 
 const dialog = useDialog();
 
@@ -23,12 +24,16 @@ const page = usePage();
 const isEditing = computed(() => props.report !== null);
 const editable = computed(() => !props.report || props.report.status === 'draft');
 
+const reportDate = computed(() => props.report?.date ?? props.today);
+
 // Auto-generated title prefix for a new report: "Báo cáo ngày DD/MM/YYYY - ".
-const titlePrefix = `Báo cáo ngày ${new Date(props.today + 'T00:00:00').toLocaleDateString('vi-VN')} - `;
+const titlePrefix = computed(
+    () => `Báo cáo ngày ${date(reportDate.value)} - `,
+);
 
 const form = useForm({
-    date: props.today,
-    title: props.report?.title ?? titlePrefix,
+    date: props.report?.date ?? props.today,
+    title: props.report?.title ?? titlePrefix.value,
     projects: props.report?.projects ?? [],
     goals_today: props.report?.goals_today ?? '',
     progress_update: props.report?.progress_update ?? '',
@@ -130,11 +135,7 @@ const tabs = computed(() => [
 ]);
 const activeTabMeta = computed(() => tabs.value[activeTab.value]);
 
-const formattedToday = computed(() =>
-    new Date(props.today + 'T00:00:00').toLocaleDateString('vi-VN', {
-        weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric',
-    }),
-);
+const formattedToday = computed(() => dateLongVi(reportDate.value));
 
 const statusVi = computed(() => {
     const map = {
@@ -221,6 +222,7 @@ const savedTimeLabel = computed(() =>
       <PageHeader
         title="Báo cáo hôm nay"
         :subtitle="formattedToday"
+        :badge="date(reportDate)"
         icon="report-today"
         icon-color="brand"
       />
@@ -234,6 +236,9 @@ const savedTimeLabel = computed(() =>
       <h2 class="font-display text-lg font-semibold text-slate-800">
         Bạn đã nộp báo cáo hôm nay
       </h2>
+      <p class="mt-1 text-sm font-medium text-slate-600">
+        {{ formattedToday }}
+      </p>
       <p class="mt-1 text-sm text-slate-500">
         Cảm ơn bạn! Báo cáo đang chờ quản lý xem xét và đánh giá.
       </p>
@@ -363,6 +368,21 @@ const savedTimeLabel = computed(() =>
             v-if="activeTabMeta.key === 'info'"
             class="grid gap-5 lg:grid-cols-2"
           >
+            <div class="lg:col-span-2">
+              <label class="label">Ngày báo cáo</label>
+              <div
+                class="flex flex-wrap items-center gap-2 rounded-card border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700"
+              >
+                <AppIcon
+                  name="calendar"
+                  :size="16"
+                  class="shrink-0 text-brand"
+                />
+                <span class="font-medium">{{ formattedToday }}</span>
+                <span class="text-xs text-slate-400">(theo giờ làm việc VN)</span>
+              </div>
+            </div>
+
             <div>
               <label class="label flex items-center gap-1.5">
                 Tiêu đề báo cáo <span class="text-danger">*</span>

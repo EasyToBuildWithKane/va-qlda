@@ -3,6 +3,7 @@
 namespace App\Http\Requests\DailyReport;
 
 use App\Domain\DailyReport\Models\DailyReport;
+use App\Support\DailyReportCalendar;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -19,7 +20,7 @@ class StoreDailyReportRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->merge([
-            'date' => $this->input('date') ?: now()->toDateString(),
+            'date' => $this->input('date') ?: DailyReportCalendar::today(),
         ]);
     }
 

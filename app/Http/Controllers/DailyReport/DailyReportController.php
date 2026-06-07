@@ -13,6 +13,7 @@ use App\Http\Requests\DailyReport\StoreDailyReportRequest;
 use App\Http\Requests\DailyReport\UpdateDailyReportRequest;
 use App\Http\Resources\DailyReportResource;
 use App\Models\Project;
+use App\Support\DailyReportCalendar;
 use App\Support\Enums\Grade;
 use App\Support\Enums\ReportStatus;
 use App\Support\Enums\SystemRole;
@@ -94,14 +95,16 @@ class DailyReportController extends Controller
     {
         $this->authorize('create', DailyReport::class);
 
+        $today = DailyReportCalendar::today();
+
         $report = DailyReport::with(['employee', 'score'])
             ->forEmployee($request->user()->employee_id)
-            ->onDate(now())
+            ->onDate($today)
             ->first();
 
         return Inertia::render('DailyReport/Today', [
             'report' => $report ? (new DailyReportResource($report))->resolve() : null,
-            'today' => now()->toDateString(),
+            'today' => $today,
             'projectOptions' => Project::active()
                 ->orderBy('sort_order')
                 ->with(['tasks' => fn ($q) => $q->orderBy('order_column')])
