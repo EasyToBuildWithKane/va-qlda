@@ -4,11 +4,13 @@ namespace Tests\Feature;
 
 use App\Mail\AiAccountExpiryReminderMail;
 use App\Models\AiAccount;
+use App\Models\AiPaymentRequest;
 use App\Models\AiPurchaseProposal;
 use App\Models\SystemAccount;
 use App\Support\Enums\AiAccountCostUnit;
 use App\Support\Enums\AiAccountGroupFunction;
 use App\Support\Enums\AiAccountStatus;
+use App\Support\Enums\AiPaymentRequestStatus;
 use App\Support\Enums\AiPurchaseProposalStatus;
 use App\Support\Enums\SystemRole;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -444,5 +446,135 @@ class AiAccountTest extends TestCase
         $this->assertFalse($accountRow['cost_in_budget']);
         $this->assertSame(0, $accountRow['budget_cost_monthly']);
         $this->assertFalse($accountRow['show_renewal_payment']);
+    }
+
+    // ─── ĐNTT workflow gate tests ─────────────────────────────────────────────
+
+    /** @test */
+    public function cannot_create_account_without_payment_request(): void
+    {
+        $admin = SystemAccount::factory()->role(SystemRole::Admin)->create();
+        $proposal = $this->approvedProposal($admin);
+
+        $this->actingAs($admin, 'system');
+        $this->postJson(route('api.ai-accounts.store'), [
+            'proposal_id' => $proposal->id,
+            'email_registered' => 'test@example.com',
+        ])->assertUnprocessable()
+            ->assertJsonPath('errors.proposal_id.0', fn ($msg) => str_contains($msg, 'đề nghị thanh toán'));
+    }
+
+    /** @test */
+    public function cannot_create_account_when_payment_request_still_pending(): void
+    {
+        $admin = SystemAccount::factory()->role(SystemRole::Admin)->create();
+        $proposal = $this->approvedProposal($admin);
+
+        AiPaymentRequest::create([
+            'ai_purchase_proposal_id' => $proposal->id,
+            'amount' => $proposal->cost_amount,
+            'status' => AiPaymentRequestStatus::Pending,
+            'created_by' => $admin->id,
+        ]);
+
+        $this->actingAs($admin, 'system');
+        $this->postJson(route('api.ai-accounts.store'), [
+            'proposal_id' => $proposal->id,
+            'email_registered' => 'test@example.com',
+        ])->assertUnprocessable()
+            ->assertJsonPath('errors.proposal_id.0', fn ($msg) => str_contains($msg, 'chưa được duyệt'));
+    }
+
+    /** @test */
+    public function can_create_account_when_payment_request_is_approved(): void
+    {
+        $admin = SystemAccount::factory()->role(SystemRole::Admin)->create();
+        $proposal = $this->approvedProposal($admin);
+
+        AiPaymentRequest::create([
+            'ai_purchase_proposal_id' => $proposal->id,
+            'amount' => $proposal->cost_amount,
+            'status' => AiPaymentRequestStatus::Approved,
+            'created_by' => $admin->id,
+            'reviewed_by' => $admin->id,
+            'reviewed_at' => now(),
+        ]);
+
+        $this->actingAs($admin, 'system');
+        $this->postJson(route('api.ai-accounts.store'), [
+            'proposal_id' => $proposal->id,
+            'email_registered' => 'user@example.com',
+        ])->assertCreated();
+
+        $this->assertDatabaseHas('ai_accounts', ['email_registered' => 'user@example.com']);
+    }
+
+    /** @test */
+    public function mark_paid_splits_kpi_from_approved(): void
+    {
+        $admin = SystemAccount::factory()->role(SystemRole::Admin)->create();
+        $proposal = $this->approvedProposal($admin, 1_000_000);
+
+        $pr = AiPaymentRequest::create([
+            'ai_purchase_proposal_id' => $proposal->id,
+            'amount' => 1_000_000,
+            'status' => AiPaymentRequestStatus::Approved,
+            'created_by' => $admin->id,
+            'reviewed_by' => $admin->id,
+            'reviewed_at' => now(),
+        ]);
+
+        $this->actingAs($admin, 'system');
+
+        $metrics = $this->getJson(route('api.ai-accounts.summary'))
+            ->assertOk()
+            ->json('data.workflow_metrics');
+
+        $this->assertSame(1_000_000, $metrics['budget_payment_approved_total']);
+        $this->assertSame(0, $metrics['budget_paid_total']);
+
+        $this->postJson(route('api.ai-accounts.payment-requests.mark-paid', ['paymentRequest' => $pr->id]))
+            ->assertOk();
+
+        $metrics2 = $this->getJson(route('api.ai-accounts.summary'))
+            ->assertOk()
+            ->json('data.workflow_metrics');
+
+        $this->assertSame(1_000_000, $metrics2['budget_paid_total']);
+    }
+
+    /** @test */
+    public function workflow_metrics_do_not_count_proposal_approved_as_paid(): void
+    {
+        $admin = SystemAccount::factory()->role(SystemRole::Admin)->create();
+        $this->approvedProposal($admin, 500_000);
+
+        $this->actingAs($admin, 'system');
+
+        $metrics = $this->getJson(route('api.ai-accounts.summary'))
+            ->assertOk()
+            ->json('data.workflow_metrics');
+
+        $this->assertSame(500_000, $metrics['budget_proposal_approved_total']);
+        $this->assertSame(0, $metrics['budget_paid_total'],
+            'Phiếu đề xuất đã duyệt không được tính vào budget_paid_total khi ĐNTT chưa ghi nhận thanh toán');
+    }
+
+    /** Helper: tạo PĐX đã duyệt */
+    private function approvedProposal(SystemAccount $admin, int $amount = 500_000): AiPurchaseProposal
+    {
+        $member = SystemAccount::factory()->role(SystemRole::Member)->create();
+        $this->actingAs($member, 'system');
+        $this->postJson(route('api.ai-accounts.proposals.store'), $this->proposalPayload([
+            'cost_amount' => $amount,
+        ]))->assertCreated();
+
+        $proposal = AiPurchaseProposal::query()->latest()->first();
+
+        $this->actingAs($admin, 'system');
+        $this->postJson(route('api.ai-accounts.proposals.approve', ['proposal' => $proposal->id]))
+            ->assertOk();
+
+        return $proposal->fresh();
     }
 }

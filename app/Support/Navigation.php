@@ -78,7 +78,7 @@ class Navigation
         return [
 
             // ──────────────────────────────────────────────────────────────
-            // 1. TỔNG QUAN — personal & team dashboards
+            // 1. TỔNG QUAN — bảng điều khiển
             // ──────────────────────────────────────────────────────────────
             [
                 'key' => 'overview',
@@ -91,13 +91,6 @@ class Navigation
                         'href' => '/dashboard',
                         'status' => 'live',
                         'roles' => ['admin', 'lead', 'viewer'],
-                    ],
-                    [
-                        'label' => 'Bảng điều khiển nhóm',
-                        'icon' => 'team-dashboard',
-                        'href' => '/dashboard/team',
-                        'status' => 'live',
-                        'roles' => ['admin', 'lead'],
                     ],
                 ],
             ],
@@ -216,6 +209,13 @@ class Navigation
                         'label' => 'Phòng ban',
                         'icon' => 'department',
                         'href' => '/departments',
+                        'status' => 'live',
+                        'roles' => ['admin', 'lead'],
+                    ],
+                    [
+                        'label' => 'Quản lý team',
+                        'icon' => 'org-teams',
+                        'href' => '/org-teams',
                         'status' => 'live',
                         'roles' => ['admin', 'lead'],
                     ],

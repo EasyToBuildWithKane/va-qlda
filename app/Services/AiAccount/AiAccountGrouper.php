@@ -5,6 +5,7 @@ namespace App\Services\AiAccount;
 use App\Models\AiAccount;
 use App\Models\SystemAccount;
 use App\Support\Enums\AiAccountGroupFunction;
+use App\Support\Enums\AiAccountLifecycleStatus;
 use App\Support\Enums\AiAccountRenewalPaymentStatus;
 use App\Support\Enums\AiAccountStatus;
 use Illuminate\Support\Collection;
@@ -254,6 +255,12 @@ class AiAccountGrouper
             'can_update_renewal_payment' => $showRenewalPayment
                 && ($viewer?->can('updateRenewalPayment', $account) ?? false),
             'cost_in_budget' => $hasCountableProposal,
+            'lifecycle_status' => ($account->lifecycle_status ?? AiAccountLifecycleStatus::InUse)->value,
+            'lifecycle_label' => ($account->lifecycle_status ?? AiAccountLifecycleStatus::InUse)->labelVi(),
+            'lifecycle_color' => ($account->lifecycle_status ?? AiAccountLifecycleStatus::InUse)->badgeColor(),
+            'actual_purchase_cost' => $account->actual_purchase_cost,
+            'allocated_at' => $account->allocated_at?->format('Y-m-d'),
+            'allocated_to_name' => $account->allocated_to_name,
         ];
     }
 

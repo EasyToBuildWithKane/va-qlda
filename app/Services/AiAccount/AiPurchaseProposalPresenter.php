@@ -2,9 +2,11 @@
 
 namespace App\Services\AiAccount;
 
+use App\Models\AiPaymentRequest;
 use App\Models\AiPurchaseProposal;
 use App\Models\SystemAccount;
 use App\Support\Enums\AiAccountGroupFunction;
+use App\Support\Enums\AiPaymentRequestStatus;
 use App\Support\Enums\AiPurchaseProposalStatus;
 use App\Support\Enums\SystemRole;
 use Illuminate\Support\Collection;
@@ -68,6 +70,10 @@ class AiPurchaseProposalPresenter
                 fn (AiPurchaseProposalStatus $s) => $s->value,
                 AiAccountCountableProposalCost::countableStatuses(),
             ))
+            ->whereHas('paymentRequest', fn ($q) => $q->whereIn('status', [
+                AiPaymentRequestStatus::Approved->value,
+                AiPaymentRequestStatus::Paid->value,
+            ]))
             ->count();
     }
 
@@ -76,7 +82,7 @@ class AiPurchaseProposalPresenter
      */
     public function row(AiPurchaseProposal $proposal, ?SystemAccount $viewer = null): array
     {
-        $proposal->loadMissing(['creator.employee', 'reviewer.employee']);
+        $proposal->loadMissing(['creator.employee', 'reviewer.employee', 'paymentRequest.creator', 'paymentRequest.reviewer']);
         $monthly = $this->costCalculator->monthlyAmount($proposal->cost_amount, $proposal->cost_unit);
 
         $creatorName = $proposal->creator?->employee?->full_name
@@ -151,11 +157,57 @@ class AiPurchaseProposalPresenter
             ], true),
             'can_delete' => $viewer?->can('delete', $proposal) ?? false,
             'ai_account_id' => $proposal->ai_account_id,
-            'awaiting_account' => $proposal->ai_account_id === null && in_array($proposal->status, [
-                AiPurchaseProposalStatus::Approved,
-                AiPurchaseProposalStatus::Purchased,
-                AiPurchaseProposalStatus::Active,
-            ], true),
+            'payment_request' => $this->paymentRequestPayload($proposal->paymentRequest, $viewer),
+            'awaiting_account' => $this->isAwaitingAccount($proposal),
+        ];
+    }
+
+    private function isAwaitingAccount(AiPurchaseProposal $proposal): bool
+    {
+        if ($proposal->ai_account_id !== null) {
+            return false;
+        }
+        $isProposalApproved = in_array($proposal->status, [
+            AiPurchaseProposalStatus::Approved,
+            AiPurchaseProposalStatus::Purchased,
+            AiPurchaseProposalStatus::Active,
+        ], true);
+        if (! $isProposalApproved) {
+            return false;
+        }
+        $pr = $proposal->paymentRequest;
+
+        return $pr !== null && in_array($pr->status, [
+            AiPaymentRequestStatus::Approved,
+            AiPaymentRequestStatus::Paid,
+        ], true);
+    }
+
+    /** @return array<string, mixed>|null */
+    private function paymentRequestPayload(?AiPaymentRequest $pr, ?SystemAccount $viewer = null): ?array
+    {
+        if ($pr === null) {
+            return null;
+        }
+
+        $creatorName = $pr->creator?->employee?->full_name ?? $pr->creator?->username ?? '—';
+        $reviewerName = $pr->reviewer?->employee?->full_name ?? $pr->reviewer?->username;
+
+        return [
+            'id' => $pr->id,
+            'payment_request_code' => $pr->payment_request_code,
+            'amount' => $pr->amount,
+            'status' => $pr->status->value,
+            'status_label' => $pr->status->labelVi(),
+            'status_color' => $pr->status->badgeColor(),
+            'created_by_name' => $creatorName,
+            'reviewed_by_name' => $reviewerName,
+            'reviewed_at' => $pr->reviewed_at?->format('Y-m-d H:i'),
+            'paid_at' => $pr->paid_at?->format('Y-m-d H:i'),
+            'rejection_reason' => $pr->rejection_reason,
+            'created_at' => $pr->created_at?->format('Y-m-d H:i'),
+            'can_review' => $viewer?->can('review', $pr) ?? false,
+            'can_mark_paid' => $viewer?->can('markPaid', $pr) ?? false,
         ];
     }
 

@@ -32,7 +32,6 @@ const map = {
     settings: Settings,
     // items
     overview: LineChart,
-    'team-dashboard': Users,
     portfolio: FolderOpen,
     'report-today': SquarePen,
     'report-history': History,
@@ -70,6 +69,7 @@ const map = {
     pdf: FileText,
     image: Image,
     members: Users,
+    'org-teams': Users2,
     dependency: Link2,
     flag: Flag,
     calendar: CalendarDays,

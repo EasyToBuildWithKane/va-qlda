@@ -16,6 +16,7 @@ use App\Services\AiAccount\AiAccountGrouper;
 use App\Services\AiAccount\AiAccountReminderService;
 use App\Services\AiAccount\AiAccountStatusSync;
 use App\Services\AiAccount\AiPurchaseProposalPresenter;
+use App\Services\AiAccount\AiWorkflowMetricsBuilder;
 use App\Support\Enums\AiAccountCostUnit;
 use App\Support\Enums\AiAccountGroupFunction;
 use App\Support\Enums\AiAccountRenewalPaymentStatus;
@@ -34,6 +35,7 @@ class AiAccountController extends Controller
         private readonly AiAccountReminderService $reminderService,
         private readonly AiPurchaseProposalPresenter $proposalPresenter,
         private readonly AiAccountFromProposalCreator $fromProposalCreator,
+        private readonly AiWorkflowMetricsBuilder $workflowMetrics,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -52,6 +54,7 @@ class AiAccountController extends Controller
                 'summary_cards' => $summary['cards'],
                 'proposal_counts' => $this->proposalPresenter->aggregateCounts(),
                 'awaiting_account_count' => $this->proposalPresenter->awaitingAccountCount(),
+                'workflow_metrics' => $this->workflowMetrics->build(),
             ],
             'meta' => [
                 'options' => [
@@ -77,6 +80,7 @@ class AiAccountController extends Controller
         $summary = $this->costSummaryBuilder->build($accounts);
         $summary['proposals'] = $this->proposalPresenter->list($proposals, $request->user());
         $summary['proposal_counts'] = $this->proposalPresenter->counts($proposals);
+        $summary['workflow_metrics'] = $this->workflowMetrics->build();
 
         return response()->json([
             'success' => true,
@@ -105,6 +109,7 @@ class AiAccountController extends Controller
             'login_password' => $validated['password'] ?? null,
             'notify_before_days' => $validated['notify_before_days'] ?? null,
             'notes' => $validated['notes'] ?? null,
+            'creator' => $request->user(),
         ]);
 
         return response()->json([
@@ -136,10 +141,15 @@ class AiAccountController extends Controller
                     (bool) ($validated['sync_expiry_on_expire'] ?? true),
                 );
                 $aiAccount->refresh();
-            } elseif (! empty($validated['expiry_date'] ?? null)) {
-                $aiAccount->update([
-                    'expiry_date' => Carbon::parse($validated['expiry_date'])->startOfDay(),
-                ]);
+            } elseif (! empty($validated['expiry_date'] ?? null) || isset($validated['purchase_date'])) {
+                $dateUpdates = [];
+                if (! empty($validated['expiry_date'] ?? null)) {
+                    $dateUpdates['expiry_date'] = Carbon::parse($validated['expiry_date'])->startOfDay();
+                }
+                if (isset($validated['purchase_date'])) {
+                    $dateUpdates['purchase_date'] = $validated['purchase_date'];
+                }
+                $aiAccount->update($dateUpdates);
                 if ($aiAccount->status_locked_at === null) {
                     $this->statusSync->syncAndSave($aiAccount);
                 }

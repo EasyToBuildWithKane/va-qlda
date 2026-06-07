@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Support\Enums\AiAccountCostUnit;
 use App\Support\Enums\AiAccountGroupFunction;
+use App\Support\Enums\AiAccountLifecycleStatus;
 use App\Support\Enums\AiAccountRenewalPaymentStatus;
 use App\Support\Enums\AiAccountStatus;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -31,6 +32,11 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property \Illuminate\Support\Carbon|null $last_reminded_at
  * @property \Illuminate\Support\Carbon|null $last_payment_reminded_at
  * @property string|null $notes
+ * @property AiAccountLifecycleStatus $lifecycle_status
+ * @property int|null $purchased_by
+ * @property int|null $actual_purchase_cost
+ * @property \Illuminate\Support\Carbon|null $allocated_at
+ * @property string|null $allocated_to_name
  */
 class AiAccount extends Model
 {
@@ -57,6 +63,11 @@ class AiAccount extends Model
         'last_reminded_at',
         'last_payment_reminded_at',
         'notes',
+        'lifecycle_status',
+        'purchased_by',
+        'actual_purchase_cost',
+        'allocated_at',
+        'allocated_to_name',
     ];
 
     protected $casts = [
@@ -74,6 +85,9 @@ class AiAccount extends Model
         'last_payment_reminded_at' => 'datetime',
         'status_locked_at' => 'datetime',
         'login_password' => 'encrypted',
+        'lifecycle_status' => AiAccountLifecycleStatus::class,
+        'actual_purchase_cost' => 'integer',
+        'allocated_at' => 'date',
     ];
 
     public function purchaseProposal(): \Illuminate\Database\Eloquent\Relations\HasOne
@@ -84,5 +98,10 @@ class AiAccount extends Model
     public function passwordViewers(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(AiAccountPasswordViewer::class);
+    }
+
+    public function purchasedByUser(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(SystemAccount::class, 'purchased_by');
     }
 }

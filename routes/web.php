@@ -3,6 +3,7 @@
 use App\Http\Controllers\AiAccount\AiAccountController;
 use App\Http\Controllers\AiAccount\AiAccountPageController;
 use App\Http\Controllers\AiAccount\AiAccountPasswordViewerController;
+use App\Http\Controllers\AiAccount\AiPaymentRequestController;
 use App\Http\Controllers\AiAccount\AiPurchaseProposalController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Auth\LoginController;
@@ -13,11 +14,11 @@ use App\Http\Controllers\Comment\CommentController;
 use App\Http\Controllers\DailyReport\DailyReportController;
 use App\Http\Controllers\DailyReport\DailyReportReviewController;
 use App\Http\Controllers\Dashboard\DashboardController;
-use App\Http\Controllers\Dashboard\TeamDashboardController;
 use App\Http\Controllers\Department\DepartmentController;
 use App\Http\Controllers\Feedback\FeedbackController;
 use App\Http\Controllers\Notification\NotificationController;
 use App\Http\Controllers\Notification\NotificationManagementController;
+use App\Http\Controllers\OrgTeam\OrgTeamController;
 use App\Http\Controllers\Project\EpicController;
 use App\Http\Controllers\Project\ProjectAttachmentController;
 use App\Http\Controllers\Project\ProjectController;
@@ -50,7 +51,6 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/', fn () => redirect()->route('dashboard'));
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
-    Route::get('/dashboard/team', TeamDashboardController::class)->name('dashboard.team');
 
     // Notifications
     Route::prefix('notifications')->name('notifications.')->group(function () {
@@ -180,6 +180,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/proposals/{proposal}/export/docx', [AiPurchaseProposalController::class, 'exportDocx'])->name('proposals.export.docx');
         Route::get('/proposals/{proposal}/export/pdf', [AiPurchaseProposalController::class, 'exportPdf'])->name('proposals.export.pdf');
         Route::get('/proposals/{proposal}/export/payment-request/pdf', [AiPurchaseProposalController::class, 'exportPaymentRequestPdf'])->name('proposals.export.payment-request.pdf');
+        Route::post('/proposals/{proposal}/payment-requests', [AiPaymentRequestController::class, 'store'])->name('proposals.payment-requests.store');
+        Route::post('/payment-requests/{paymentRequest}/approve', [AiPaymentRequestController::class, 'approve'])->name('payment-requests.approve');
+        Route::post('/payment-requests/{paymentRequest}/reject', [AiPaymentRequestController::class, 'reject'])->name('payment-requests.reject');
+        Route::post('/payment-requests/{paymentRequest}/mark-paid', [AiPaymentRequestController::class, 'markPaid'])->name('payment-requests.mark-paid');
         Route::get('/', [AiAccountController::class, 'index'])->name('index');
         Route::post('/', [AiAccountController::class, 'store'])->name('store');
         Route::get('/{aiAccount}', [AiAccountController::class, 'show'])->name('show');
@@ -194,6 +198,13 @@ Route::middleware('auth')->group(function () {
         Route::get('/', [AiAccountPageController::class, 'index'])->name('index');
         Route::get('/cost-report', [AiAccountPageController::class, 'costReport'])->name('cost-report');
         Route::get('/cost-by-group', [AiAccountPageController::class, 'costByGroup'])->name('cost-by-group');
+    });
+
+    Route::prefix('org-teams')->name('org-teams.')->group(function () {
+        Route::get('/', [OrgTeamController::class, 'index'])->name('index');
+        Route::post('/', [OrgTeamController::class, 'store'])->name('store');
+        Route::put('/{orgTeam}', [OrgTeamController::class, 'update'])->name('update');
+        Route::delete('/{orgTeam}', [OrgTeamController::class, 'destroy'])->name('destroy');
     });
 
     // Departments (phòng ban) — owns projects.

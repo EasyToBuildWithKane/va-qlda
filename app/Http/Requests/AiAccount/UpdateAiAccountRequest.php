@@ -22,6 +22,7 @@ class UpdateAiAccountRequest extends FormRequest
             'notify_before_days' => ['nullable', 'integer', 'min:1', 'max:365'],
             'notes' => ['nullable', 'string', 'max:5000'],
             'status' => ['sometimes', Rule::in(AiAccountStatus::values())],
+            'purchase_date' => ['sometimes', 'nullable', 'date'],
             'expiry_date' => ['sometimes', 'date'],
             'sync_expiry_on_expire' => ['nullable', 'boolean'],
         ];
@@ -38,6 +39,9 @@ class UpdateAiAccountRequest extends FormRequest
             }
             if ($this->filled('expiry_date') && ! $this->user()->can('updateStatus', $this->route('aiAccount'))) {
                 $validator->errors()->add('expiry_date', 'Bạn không có quyền đổi ngày hết hạn.');
+            }
+            if ($this->filled('purchase_date') && ! $this->user()->can('updateStatus', $this->route('aiAccount'))) {
+                $validator->errors()->add('purchase_date', 'Bạn không có quyền đổi ngày mua.');
             }
         });
     }

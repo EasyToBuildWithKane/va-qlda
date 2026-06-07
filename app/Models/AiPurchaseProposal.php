@@ -10,6 +10,7 @@ use App\Support\Enums\ProposalType;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class AiPurchaseProposal extends Model
 {
@@ -124,5 +125,10 @@ class AiPurchaseProposal extends Model
     public function aiAccount(): BelongsTo
     {
         return $this->belongsTo(AiAccount::class);
+    }
+
+    public function paymentRequest(): HasOne
+    {
+        return $this->hasOne(AiPaymentRequest::class, 'ai_purchase_proposal_id');
     }
 }

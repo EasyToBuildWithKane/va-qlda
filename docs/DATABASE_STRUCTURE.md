@@ -612,3 +612,60 @@ Audit Domain:
 | Soft deletes | employees, tasks, bugs có deleted_at |
 | Polymorphic comments | commentable_type + commentable_id |
 | MONTHLY_HOURS = 176 | Hằng số trong Project model cho tính toán rate tháng → giờ |
+
+---
+
+## 6. Module Quản lý Tài khoản AI — PĐX · ĐNTT · Vòng đời (thêm 2026-06)
+
+### 6.1 Bảng `va_prd_ai_payment_requests`
+
+Đề Nghị Thanh Toán — 1 bản ghi / PĐX, tách luồng duyệt tiền với PĐX.
+
+| Cột | Kiểu | Mô tả |
+|---|---|---|
+| `id` | uuid PK | — |
+| `ai_purchase_proposal_id` | uuid FK unique | References `ai_purchase_proposals.id`; cascade delete |
+| `payment_request_code` | string unique | Tự sinh: `DNTT-YYYYMMDD-###` |
+| `amount` | bigint | Số tiền ĐNTT (VNĐ); mặc định = `cost_amount` PĐX |
+| `status` | string(16) | `pending` \| `approved` \| `rejected` \| `paid` |
+| `created_by` | bigint FK | References `system_accounts.id`; null on delete |
+| `reviewed_by` | bigint FK nullable | References `system_accounts.id`; null on delete |
+| `reviewed_at` | timestamp nullable | Thời điểm duyệt hoặc từ chối |
+| `rejection_reason` | text nullable | Lý do từ chối |
+| `paid_at` | timestamp nullable | Khi ghi nhận thanh toán (`mark-paid`) |
+| `payment_document_paths` | json nullable | Đường dẫn chứng từ (v2) |
+| `created_at`, `updated_at` | timestamps | — |
+
+**Luồng:** `pending` → `approved` / `rejected`; sau `approved` → `paid` (mark-paid).
+
+**Gate tạo TK:** `AiAccountFromProposalCreator` yêu cầu ĐNTT ở trạng thái `approved` hoặc `paid` trước khi lập tài khoản AI.
+
+### 6.2 Cột lifecycle trên `va_prd_ai_accounts`
+
+Thêm 2026-06-07 để theo dõi vòng đời tài khoản sau khi mua.
+
+| Cột | Kiểu | Mô tả |
+|---|---|---|
+| `lifecycle_status` | string(24) default `in_use` | `not_purchased` \| `purchased` \| `allocated` \| `in_use` \| `expired` \| `stopped` |
+| `purchased_by` | bigint FK nullable | References `system_accounts.id`; null on delete |
+| `actual_purchase_cost` | bigint nullable | Chi phí thực tế (khác với `cost_amount` nếu có discount) |
+| `allocated_at` | date nullable | Ngày cấp phát cho người dùng |
+| `allocated_to_name` | string nullable | Tên người nhận tài khoản |
+
+Ghi chú: cột `status` (active / expiring_soon / expired / cancelled) giữ nguyên cho **cảnh báo hạn** — `lifecycle_status` dùng để theo dõi **vòng đời mua sắm**.
+
+### 6.3 `AiWorkflowMetricsBuilder` — KPI theo giai đoạn
+
+| Key | Định nghĩa |
+|---|---|
+| `budget_proposed_total` | Sum `cost_amount` PĐX không bị từ chối |
+| `budget_proposal_approved_total` | Sum `cost_amount` PĐX đã duyệt |
+| `budget_payment_request_total` | Sum `amount` tất cả ĐNTT |
+| `budget_payment_approved_total` | ĐNTT `approved` + `paid` |
+| `budget_paid_total` | ĐNTT `paid` only |
+| `actual_purchase_total` | Sum `actual_purchase_cost` tài khoản đã lập |
+| `accounts_allocated_count` | TK `lifecycle` in `allocated`, `in_use` |
+| `accounts_expiring_soon_count` | `status = expiring_soon` |
+| `accounts_expired_count` | `status = expired` |
+
+API: kèm trong `api.ai-accounts.summary` và `api.ai-accounts.proposals.index` dưới key `workflow_metrics`.

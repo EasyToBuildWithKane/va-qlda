@@ -223,20 +223,7 @@ const completionRate = computed(() => {
         subtitle="Tổng quan hiệu suất & tiến độ hệ thống"
         icon="overview"
         icon-color="brand"
-      >
-        <template #actions>
-          <a
-            :href="route('dashboard.team')"
-            class="btn-secondary flex items-center gap-1.5 text-sm"
-          >
-            <AppIcon
-              name="people"
-              :size="15"
-            />
-            Nhóm
-          </a>
-        </template>
-      </PageHeader>
+      />
     </template>
 
     <!-- KPI cards -->

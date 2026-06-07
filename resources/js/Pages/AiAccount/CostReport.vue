@@ -12,6 +12,8 @@ import VndAmount from '@/modules/aiAccount/components/VndAmount.vue';
 import AiPurchaseProposalFormModal from '@/modules/aiAccount/components/AiPurchaseProposalFormModal.vue';
 import AiPurchaseProposalRejectModal from '@/modules/aiAccount/components/AiPurchaseProposalRejectModal.vue';
 import AiPurchaseProposalApproveModal from '@/modules/aiAccount/components/AiPurchaseProposalApproveModal.vue';
+import AiPaymentRequestModals from '@/modules/aiAccount/components/AiPaymentRequestModals.vue';
+import AiCostReportWorkflowMetrics from '@/modules/aiAccount/components/AiCostReportWorkflowMetrics.vue';
 import ProposalRowActions from '@/modules/aiAccount/components/ProposalRowActions.vue';
 import AiAccountSectionNav from '@/modules/aiAccount/components/AiAccountSectionNav.vue';
 import AiAccountCrossLink from '@/modules/aiAccount/components/AiAccountCrossLink.vue';
@@ -44,6 +46,7 @@ const {
     proposals,
     proposalCounts,
     proposalCountsFiltered,
+    workflowMetrics,
     cards,
     load,
     loadProposals,
@@ -52,6 +55,10 @@ const {
     approveProposal,
     rejectProposal,
     deleteProposal,
+    createPaymentRequest,
+    approvePaymentRequest,
+    rejectPaymentRequest,
+    markPaymentRequestPaid,
 } = useAiCostReport();
 
 const dialog = useDialog();
@@ -111,6 +118,9 @@ const rejectOpen = ref(false);
 const approveOpen = ref(false);
 const rejecting = ref(null);
 const approving = ref(null);
+const prModalMode = ref(null);
+const prModalTarget = ref(null);
+const prModalLoading = ref(false);
 
 const departmentOptions = computed(() =>
     (props.formLookups.departments ?? []).map((d) => d.name).filter(Boolean),
@@ -400,6 +410,33 @@ async function onApproveSubmit({ review_notes }) {
     approving.value = null;
 }
 
+function openPrModal(mode, pr) {
+    prModalMode.value = mode;
+    prModalTarget.value = pr;
+}
+
+async function onPrModalSubmit({ mode, pr, payload }) {
+    prModalLoading.value = true;
+    try {
+        if (mode === 'approve') await approvePaymentRequest(pr.id, payload);
+        else if (mode === 'reject') await rejectPaymentRequest(pr.id, payload);
+        else if (mode === 'paid') await markPaymentRequestPaid(pr.id, payload);
+        prModalMode.value = null;
+        prModalTarget.value = null;
+    } finally {
+        prModalLoading.value = false;
+    }
+}
+
+async function onCreatePaymentRequest(row) {
+    prModalLoading.value = true;
+    try {
+        await createPaymentRequest(row.id, {});
+    } finally {
+        prModalLoading.value = false;
+    }
+}
+
 async function onDeleteProposal(row) {
     const label = row.proposal_code || row.tool_name || 'phiếu này';
     const confirmed = await dialog.confirm({
@@ -454,6 +491,11 @@ function runExport(format) {
       direction="to-accounts"
       :account-count="cards?.total_accounts ?? 0"
       :awaiting-account-count="awaitingAccountCount"
+    />
+
+    <AiCostReportWorkflowMetrics
+      :metrics="workflowMetrics ?? {}"
+      :loading="loading"
     />
 
     <!-- ── Proposals Table ── -->
@@ -936,7 +978,10 @@ function runExport(format) {
                 v-if="visibleCols.status"
                 class="px-4 py-3"
               >
-                Trạng thái
+                Trạng thái PĐX
+              </th>
+              <th class="px-4 py-3">
+                ĐNTT
               </th>
               <th
                 v-if="visibleCols.reviewed_by_name"
@@ -1079,6 +1124,32 @@ function runExport(format) {
                   :color="rowStatusColor(row)"
                 />
               </td>
+              <td class="px-4 py-3">
+                <template v-if="row.payment_request">
+                  <span
+                    class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                    :class="{
+                      'bg-amber-100 text-amber-800': row.payment_request.status === 'pending',
+                      'bg-emerald-100 text-emerald-800': row.payment_request.status === 'approved',
+                      'bg-rose-100 text-rose-800': row.payment_request.status === 'rejected',
+                      'bg-blue-100 text-blue-800': row.payment_request.status === 'paid',
+                    }"
+                    :title="row.payment_request.payment_request_code"
+                  >
+                    {{ row.payment_request.status_label }}
+                  </span>
+                  <p
+                    v-if="row.payment_request.reviewed_at"
+                    class="mt-0.5 text-[11px] text-slate-500"
+                  >
+                    {{ row.payment_request.reviewed_at.slice(0, 10) }}
+                  </p>
+                </template>
+                <span
+                  v-else
+                  class="text-xs text-slate-400"
+                >—</span>
+              </td>
               <td
                 v-if="visibleCols.reviewed_by_name"
                 class="px-4 py-3 text-xs text-slate-600"
@@ -1106,6 +1177,10 @@ function runExport(format) {
                   @approve="openApprove"
                   @reject="openReject"
                   @delete="onDeleteProposal"
+                  @create-payment-request="onCreatePaymentRequest"
+                  @approve-payment-request="(pr) => openPrModal('approve', pr)"
+                  @reject-payment-request="(pr) => openPrModal('reject', pr)"
+                  @mark-paid-payment-request="(pr) => openPrModal('paid', pr)"
                 />
               </td>
             </tr>
@@ -1143,6 +1218,13 @@ function runExport(format) {
       :proposal="approving"
       @close="approveOpen = false"
       @submit="onApproveSubmit"
+    />
+    <AiPaymentRequestModals
+      :mode="prModalMode"
+      :payment-request="prModalTarget"
+      :loading="prModalLoading"
+      @close="prModalMode = null; prModalTarget = null"
+      @submit="onPrModalSubmit"
     />
   </AppLayout>
 </template>

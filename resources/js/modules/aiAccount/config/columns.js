@@ -2,13 +2,15 @@
 export const AI_ACCOUNT_COLUMNS = [
     { key: 'license', label: 'License' },
     { key: 'email', label: 'Email đăng ký' },
-    { key: 'expiry', label: 'Hết hạn' },
+    { key: 'purchase', label: 'Ngày mua' },
+    { key: 'expiry', label: 'Ngày hết hạn' },
     { key: 'cost', label: 'Chi phí' },
+    { key: 'lifecycle', label: 'Vòng đời' },
     { key: 'status', label: 'Trạng thái' },
     { key: 'payment', label: 'Thanh toán GH' },
 ];
 
-export const AI_ACCOUNT_COLUMNS_DEFAULT = ['license', 'email', 'expiry', 'cost', 'status', 'payment'];
+export const AI_ACCOUNT_COLUMNS_DEFAULT = ['license', 'email', 'purchase', 'expiry', 'cost', 'status', 'payment'];
 
 export const AI_ACCOUNT_STATUS_FILTER_OPTS = [
     { key: 'all', label: 'Tất cả' },

@@ -12,6 +12,7 @@ use App\Http\Requests\AiAccount\UpdateAiPurchaseProposalRequest;
 use App\Models\AiPurchaseProposal;
 use App\Services\AiAccount\AiPurchaseProposalDocumentService;
 use App\Services\AiAccount\AiPurchaseProposalPresenter;
+use App\Services\AiAccount\AiWorkflowMetricsBuilder;
 use App\Support\Enums\AiAccountCostUnit;
 use App\Support\Enums\AiAccountGroupFunction;
 use App\Support\Enums\AiPurchaseProposalStatus;
@@ -25,6 +26,7 @@ class AiPurchaseProposalController extends Controller
     public function __construct(
         private readonly AiPurchaseProposalPresenter $presenter,
         private readonly AiPurchaseProposalDocumentService $documentService,
+        private readonly AiWorkflowMetricsBuilder $workflowMetrics,
     ) {}
 
     public function awaitingAccount(Request $request): JsonResponse
@@ -57,7 +59,7 @@ class AiPurchaseProposalController extends Controller
     {
         $this->authorize('viewAny', AiPurchaseProposal::class);
 
-        $query = AiPurchaseProposal::with(['creator.employee', 'reviewer.employee'])
+        $query = AiPurchaseProposal::with(['creator.employee', 'reviewer.employee', 'paymentRequest.creator', 'paymentRequest.reviewer'])
             ->orderByDesc('created_at');
 
         if ($search = trim((string) $request->query('search', ''))) {
@@ -129,6 +131,7 @@ class AiPurchaseProposalController extends Controller
                 'proposals' => $this->presenter->list($proposals, $request->user()),
                 'counts' => $this->presenter->aggregateCounts(),
                 'filtered_counts' => $this->presenter->counts($proposals),
+                'workflow_metrics' => $this->workflowMetrics->build(),
             ],
         ]);
     }
@@ -264,30 +267,22 @@ class AiPurchaseProposalController extends Controller
         ]);
     }
 
+    /** @deprecated Trạng thái purchased/active giờ quản lý qua vòng đời tài khoản AI. */
     public function markPurchased(Request $request, AiPurchaseProposal $proposal): JsonResponse
     {
-        $this->authorize('manage', $proposal);
-
-        $proposal->update(['status' => AiPurchaseProposalStatus::Purchased]);
-
         return response()->json([
-            'success' => true,
-            'data' => ['proposal' => $this->presenter->row($proposal->fresh(), $request->user())],
-            'message' => 'Đã đánh dấu đã mua.',
-        ]);
+            'success' => false,
+            'message' => 'Tính năng này đã được thay thế. Vui lòng lập tài khoản AI từ màn Tài khoản AI.',
+        ], 410);
     }
 
+    /** @deprecated Trạng thái purchased/active giờ quản lý qua vòng đời tài khoản AI. */
     public function markActive(Request $request, AiPurchaseProposal $proposal): JsonResponse
     {
-        $this->authorize('manage', $proposal);
-
-        $proposal->update(['status' => AiPurchaseProposalStatus::Active]);
-
         return response()->json([
-            'success' => true,
-            'data' => ['proposal' => $this->presenter->row($proposal->fresh(), $request->user())],
-            'message' => 'Đã đánh dấu đang sử dụng.',
-        ]);
+            'success' => false,
+            'message' => 'Tính năng này đã được thay thế. Vui lòng lập tài khoản AI từ màn Tài khoản AI.',
+        ], 410);
     }
 
     public function updateNotes(UpdateAiPurchaseProposalNotesRequest $request, AiPurchaseProposal $proposal): JsonResponse

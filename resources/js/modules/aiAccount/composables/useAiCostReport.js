@@ -11,6 +11,7 @@ export function useAiCostReport() {
     const proposals = ref([]);
     const proposalCounts = ref(emptyCounts());
     const proposalCountsFiltered = ref(emptyCounts());
+    const workflowMetrics = ref(null);
 
     let cachedProposalParams = {};
 
@@ -43,6 +44,11 @@ export function useAiCostReport() {
                 ...emptyCounts(),
                 ...(propData.filtered_counts ?? propData.counts ?? {}),
             };
+            if (propData.workflow_metrics) {
+                workflowMetrics.value = propData.workflow_metrics;
+            } else if ((summaryRes.data ?? summaryRes).workflow_metrics) {
+                workflowMetrics.value = (summaryRes.data ?? summaryRes).workflow_metrics;
+            }
         } catch (e) {
             toast.error(e.response?.data?.message ?? 'Không tải được dữ liệu.');
         } finally {
@@ -130,6 +136,59 @@ export function useAiCostReport() {
         await reload();
     }
 
+    async function createPaymentRequest(proposalId, payload = {}) {
+        const res = await httpPost(
+            route('api.ai-accounts.proposals.payment-requests.store', { proposal: proposalId }),
+            payload,
+        );
+        toast.success(res.message ?? 'Đã tạo đề nghị thanh toán.');
+        // Cập nhật proposal trong list mà không reload toàn bộ
+        const updated = res.data?.proposal;
+        if (updated) {
+            proposals.value = proposals.value.map((p) => (p.id === updated.id ? updated : p));
+        }
+        return updated;
+    }
+
+    async function approvePaymentRequest(prId, payload = {}) {
+        const res = await httpPost(
+            route('api.ai-accounts.payment-requests.approve', { paymentRequest: prId }),
+            payload,
+        );
+        toast.success(res.message ?? 'Đã duyệt ĐNTT.');
+        const updated = res.data?.proposal;
+        if (updated) {
+            proposals.value = proposals.value.map((p) => (p.id === updated.id ? updated : p));
+        }
+        return updated;
+    }
+
+    async function rejectPaymentRequest(prId, payload) {
+        const res = await httpPost(
+            route('api.ai-accounts.payment-requests.reject', { paymentRequest: prId }),
+            payload,
+        );
+        toast.success(res.message ?? 'Đã từ chối ĐNTT.');
+        const updated = res.data?.proposal;
+        if (updated) {
+            proposals.value = proposals.value.map((p) => (p.id === updated.id ? updated : p));
+        }
+        return updated;
+    }
+
+    async function markPaymentRequestPaid(prId, payload = {}) {
+        const res = await httpPost(
+            route('api.ai-accounts.payment-requests.mark-paid', { paymentRequest: prId }),
+            payload,
+        );
+        toast.success(res.message ?? 'Đã ghi nhận thanh toán.');
+        const updated = res.data?.proposal;
+        if (updated) {
+            proposals.value = proposals.value.map((p) => (p.id === updated.id ? updated : p));
+        }
+        return updated;
+    }
+
     return {
         loading,
         byGroup,
@@ -138,6 +197,7 @@ export function useAiCostReport() {
         proposals,
         proposalCounts,
         proposalCountsFiltered,
+        workflowMetrics,
         load,
         loadSummary,
         loadProposals,
@@ -148,5 +208,9 @@ export function useAiCostReport() {
         rejectProposal,
         updateProposalNotes,
         deleteProposal,
+        createPaymentRequest,
+        approvePaymentRequest,
+        rejectPaymentRequest,
+        markPaymentRequestPaid,
     };
 }

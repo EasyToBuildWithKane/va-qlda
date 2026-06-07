@@ -7,7 +7,7 @@ const props = defineProps({
     canReview: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(['edit', 'approve', 'reject', 'delete']);
+const emit = defineEmits(['edit', 'approve', 'reject', 'delete', 'create-payment-request', 'approve-payment-request', 'reject-payment-request', 'mark-paid-payment-request']);
 
 const open = ref(false);
 const triggerRef = ref(null);
@@ -104,6 +104,31 @@ function onDelete() {
     emit('delete', props.row);
 }
 
+function onCreatePaymentRequest() {
+    close();
+    emit('create-payment-request', props.row);
+}
+
+function onApprovePaymentRequest() {
+    close();
+    emit('approve-payment-request', props.row.payment_request);
+}
+
+function onRejectPaymentRequest() {
+    close();
+    emit('reject-payment-request', props.row.payment_request);
+}
+
+function onMarkPaidPaymentRequest() {
+    close();
+    emit('mark-paid-payment-request', props.row.payment_request);
+}
+
+const pr = computed(() => props.row.payment_request);
+const canCreatePr = computed(() =>
+    !pr.value && ['approved', 'purchased', 'active'].includes(props.row.status),
+);
+
 const hasExport = computed(() =>
     Boolean(props.row.export_pdf_url || props.row.export_payment_request_pdf_url),
 );
@@ -112,6 +137,9 @@ const hasMenuItems = computed(() =>
     hasExport.value
     || props.row.can_edit
     || (props.row.can_review && props.canReview)
+    || canCreatePr.value
+    || pr.value?.can_review
+    || pr.value?.can_mark_paid
     || props.row.can_delete);
 </script>
 
@@ -209,6 +237,9 @@ const hasMenuItems = computed(() =>
             v-if="row.export_pdf_url || row.export_payment_request_pdf_url || row.can_edit"
             class="my-1 border-t border-slate-100"
           />
+          <p class="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400">
+            Phiếu đề xuất
+          </p>
           <button
             type="button"
             class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-emerald-700 transition hover:bg-emerald-50"
@@ -219,7 +250,7 @@ const hasMenuItems = computed(() =>
               name="check"
               :size="15"
             />
-            Duyệt phiếu
+            Duyệt PĐX
           </button>
           <button
             type="button"
@@ -231,7 +262,67 @@ const hasMenuItems = computed(() =>
               name="close"
               :size="15"
             />
-            Từ chối
+            Từ chối PĐX
+          </button>
+        </template>
+
+        <!-- ĐNTT -->
+        <template v-if="canCreatePr || pr?.can_review || pr?.can_mark_paid">
+          <div class="my-1 border-t border-slate-100" />
+          <p class="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-400">
+            Đề nghị thanh toán
+          </p>
+          <button
+            v-if="canCreatePr"
+            type="button"
+            class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-50"
+            role="menuitem"
+            @click="onCreatePaymentRequest"
+          >
+            <AppIcon
+              name="plus"
+              :size="15"
+            />
+            Tạo ĐNTT
+          </button>
+          <button
+            v-if="pr?.can_review"
+            type="button"
+            class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-emerald-700 transition hover:bg-emerald-50"
+            role="menuitem"
+            @click="onApprovePaymentRequest"
+          >
+            <AppIcon
+              name="check"
+              :size="15"
+            />
+            Duyệt ĐNTT
+          </button>
+          <button
+            v-if="pr?.can_review"
+            type="button"
+            class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-rose-700 transition hover:bg-rose-50"
+            role="menuitem"
+            @click="onRejectPaymentRequest"
+          >
+            <AppIcon
+              name="close"
+              :size="15"
+            />
+            Từ chối ĐNTT
+          </button>
+          <button
+            v-if="pr?.can_mark_paid"
+            type="button"
+            class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-blue-700 transition hover:bg-blue-50"
+            role="menuitem"
+            @click="onMarkPaidPaymentRequest"
+          >
+            <AppIcon
+              name="check-circle"
+              :size="15"
+            />
+            Ghi nhận đã thanh toán
           </button>
         </template>
 

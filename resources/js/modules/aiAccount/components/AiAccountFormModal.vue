@@ -33,6 +33,7 @@ const form = reactive({
     notify_before_days: 14,
     notes: '',
     status: 'active',
+    purchase_date: '',
     expiry_date: '',
 });
 
@@ -126,6 +127,7 @@ watch(
                 notify_before_days: a.notify_before_days ?? 14,
                 notes: a.notes ?? '',
                 status: a.status ?? 'active',
+                purchase_date: a.purchase_date ?? '',
                 expiry_date: a.expiry_date ?? '',
             });
         } else {
@@ -183,6 +185,7 @@ function buildPayload() {
         }
         if (canUpdateStatus.value) {
             payload.status = form.status;
+            payload.purchase_date = form.purchase_date || null;
             payload.expiry_date = form.expiry_date || null;
             payload.sync_expiry_on_expire = form.status === 'expired';
         }
@@ -354,6 +357,21 @@ function handleSubmit() {
                   {{ opt.label }}
                 </option>
               </select>
+            </div>
+            <div class="flex min-h-[5.5rem] flex-col justify-start gap-1.5">
+              <label
+                for="ai-account-purchase-date"
+                class="label mb-0 flex min-h-[1.25rem] items-center gap-1"
+              >
+                Ngày mua thực tế
+              </label>
+              <input
+                id="ai-account-purchase-date"
+                v-model="form.purchase_date"
+                type="date"
+                class="input h-10 w-full"
+                @input="onInput"
+              >
             </div>
             <div class="flex min-h-[5.5rem] flex-col justify-start gap-1.5">
               <label

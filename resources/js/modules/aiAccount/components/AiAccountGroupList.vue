@@ -16,8 +16,10 @@ defineProps({
         default: () => ({
             license: true,
             email: true,
+            purchase: true,
             expiry: true,
             cost: true,
+            lifecycle: false,
             status: true,
         }),
     },
@@ -154,16 +156,28 @@ function expiryDisplay(row) {
                     Email
                   </th>
                   <th
+                    v-if="colVisible.purchase"
+                    class="hidden px-4 py-2.5 md:table-cell md:px-5"
+                  >
+                    Ngày mua
+                  </th>
+                  <th
                     v-if="colVisible.expiry"
                     class="px-4 py-2.5 sm:px-5"
                   >
-                    Hết hạn
+                    Ngày hết hạn
                   </th>
                   <th
                     v-if="colVisible.cost"
                     class="hidden px-4 py-2.5 md:table-cell md:px-5"
                   >
                     Chi phí
+                  </th>
+                  <th
+                    v-if="colVisible.lifecycle"
+                    class="hidden px-4 py-2.5 lg:table-cell lg:px-5"
+                  >
+                    Vòng đời
                   </th>
                   <th
                     v-if="colVisible.status"
@@ -229,6 +243,12 @@ function expiryDisplay(row) {
                     >{{ row.email_registered }}</span>
                   </td>
                   <td
+                    v-if="colVisible.purchase"
+                    class="hidden px-4 py-3 tabular-nums text-slate-600 md:table-cell md:px-5"
+                  >
+                    {{ row.purchase_date ?? '—' }}
+                  </td>
+                  <td
                     v-if="colVisible.expiry"
                     class="px-4 py-3 sm:px-5"
                   >
@@ -252,6 +272,24 @@ function expiryDisplay(row) {
                     <p class="text-xs text-slate-500">
                       {{ costUnitSuffix(row.cost_unit) }}
                     </p>
+                  </td>
+                  <td
+                    v-if="colVisible.lifecycle"
+                    class="hidden px-4 py-3 lg:table-cell lg:px-5"
+                  >
+                    <span
+                      v-if="row.lifecycle_label"
+                      class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium"
+                      :class="{
+                        'bg-emerald-100 text-emerald-800': row.lifecycle_status === 'in_use',
+                        'bg-blue-100 text-blue-800': row.lifecycle_status === 'allocated',
+                        'bg-violet-100 text-violet-800': row.lifecycle_status === 'purchased',
+                        'bg-rose-100 text-rose-800': row.lifecycle_status === 'expired',
+                        'bg-slate-100 text-slate-600': row.lifecycle_status === 'not_purchased' || row.lifecycle_status === 'stopped',
+                      }"
+                    >
+                      {{ row.lifecycle_label }}
+                    </span>
                   </td>
                   <td
                     v-if="colVisible.status"
