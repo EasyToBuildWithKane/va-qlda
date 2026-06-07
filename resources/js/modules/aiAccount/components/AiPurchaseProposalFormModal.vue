@@ -1,10 +1,10 @@
 <script setup>
-/* eslint-disable vue/no-v-html -- server-rendered proposal preview HTML from authenticated API */
 import { computed, reactive, ref, watch } from 'vue';
 import Modal from '@/Components/Ui/Modal.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import VndAmount from '@/modules/aiAccount/components/VndAmount.vue';
 import ProposerEmployeePick from '@/modules/aiAccount/components/ProposerEmployeePick.vue';
+import ProposalPdfPreviewPane from '@/modules/aiAccount/components/ProposalPdfPreviewPane.vue';
 import { useProposalPdfPreview } from '@/modules/aiAccount/composables/useProposalPdfPreview';
 import MoneyInput from '@/shared/ui/MoneyInput.vue';
 import ProposalFormLabel from '@/modules/aiAccount/components/ProposalFormLabel.vue';
@@ -40,7 +40,7 @@ const TABS = [
     { key: 'proposer', label: 'Người đề xuất', icon: 'account' },
     { key: 'tool', label: 'Công cụ & chi phí', icon: 'money' },
     { key: 'content', label: 'Nội dung phiếu', icon: 'edit' },
-    { key: 'preview', label: 'Xem trước', icon: 'pdf' },
+    { key: 'preview', label: 'Xem trước PDF', icon: 'pdf' },
 ];
 
 const dirty = ref(false);
@@ -300,6 +300,7 @@ const {
     loading: previewLoading,
     error: previewError,
     reset: resetPreview,
+    refresh: refreshPreview,
 } = useProposalPdfPreview(form, previewSection, buildSubmitPayload);
 
 function goTab(key) {
@@ -750,48 +751,15 @@ function handleSubmit() {
         </div>
 
         <!-- Tab: Xem trước -->
-        <div
+        <ProposalPdfPreviewPane
           v-show="activeTab === 'preview'"
-          class="flex min-h-0 flex-1 flex-col gap-2"
-        >
-          <div class="flex flex-wrap items-center justify-between gap-2">
-            <p class="text-xs text-slate-500">
-              Bản xem trước khớp bố cục PDF in (A4, nền letterhead).
-            </p>
-          </div>
-          <p
-            v-if="previewError"
-            class="text-sm text-rose-600"
-          >
-            {{ previewError }}
-          </p>
-          <p
-            v-if="previewLoading"
-            class="text-sm text-slate-500"
-          >
-            Đang tải bản xem trước…
-          </p>
-          <div
-            v-else-if="previewHtml"
-            class="min-h-[min(52vh,480px)] flex-1 overflow-auto rounded-lg border border-slate-200 bg-slate-100/80 p-4"
-          >
-            <div
-              class="mx-auto origin-top transition-transform duration-150"
-              :style="{ transform: `scale(${previewZoom})`, width: '210mm' }"
-            >
-              <div
-                class="proposal-pdf-preview"
-                v-html="previewHtml"
-              />
-            </div>
-          </div>
-          <p
-            v-else
-            class="text-sm text-slate-500"
-          >
-            Điền các tab trước rồi quay lại đây để xem phiếu in.
-          </p>
-        </div>
+          :html="previewHtml"
+          :loading="previewLoading"
+          :error="previewError"
+          :zoom="previewZoom"
+          class="min-h-0 flex-1"
+          @refresh="refreshPreview"
+        />
       </div>
 
       <div class="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-4">

@@ -335,3 +335,15 @@ php artisan migrate:fresh --seed
 CI creates this automatically at `${GITHUB_WORKSPACE}/database/testing.sqlite`.
 
 **Playwright `POST /login` 419:** Dùng `tests/e2e/helpers/loginPost.js`. `playwright.config.js` ép `SESSION_DRIVER=file`, `SESSION_SECURE_COOKIE=false`. Local `.env` `SESSION_DRIVER=redis` cần Redis hoặc đổi `file`.
+
+---
+
+## AI accounts — badge «1 TK» but 0 VNĐ/month after delete
+
+**Symptoms:** `/ai-accounts` or `/ai-accounts/cost-by-group` still shows 1 account / 1 active in BA group; monthly cost is 0.
+
+**Cause:** Orphan `AiAccount` row (proposal expired/unlinked/rejected) while account was not soft-deleted — common on legacy data or before sync fixes.
+
+**Fix (app):** Deploy code with `AiAccount::purgeOrphanedFromProposal()` on list load; user hard-refreshes once. See **`docs/AI_ACCOUNTS.md`** (orphan + destroy rules).
+
+**Verify:** `php artisan test tests/Feature/AiAccountOrphanPurgeTest.php tests/Feature/AiAccountSoftDeleteVisibilityTest.php`

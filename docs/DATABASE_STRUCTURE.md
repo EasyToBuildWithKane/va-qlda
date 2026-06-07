@@ -669,3 +669,7 @@ Ghi chú: cột `status` (active / expiring_soon / expired / cancelled) giữ ng
 | `accounts_expired_count` | `status = expired` |
 
 API: kèm trong `api.ai-accounts.summary` và `api.ai-accounts.proposals.index` dưới key `workflow_metrics`.
+
+### 6.4 Xóa TK / PĐX và TK mồ côi
+
+Soft delete TK, đồng bộ PĐX, đếm badge vs chi phí theo nhóm, `purgeOrphanedFromProposal`: **`docs/AI_ACCOUNTS.md`**.

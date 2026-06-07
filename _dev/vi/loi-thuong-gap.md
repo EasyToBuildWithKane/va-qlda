@@ -260,3 +260,13 @@ php artisan migrate:fresh --seed
 ```
 
 CI tự tạo tại `database/testing.sqlite` trong workspace.
+
+---
+
+## Quản lý AI — vẫn «1 TK», chi phí 0 sau khi xóa
+
+**Triệu chứng:** `/ai-accounts` hoặc `/ai-accounts/cost-by-group` vẫn badge 1, nhóm BA «1 hoạt động», chi phí/tháng 0 VNĐ.
+
+**Nguyên nhân:** TK mồ côi (PĐX hết hạn / gỡ liên kết) còn trong DB.
+
+**Xử lý:** Deploy bản có `purgeOrphanedFromProposal`, user F5 một lần. Chi tiết: [`docs/AI_ACCOUNTS.md`](../../docs/AI_ACCOUNTS.md). File gốc EN: [`../troubleshooting.md`](../troubleshooting.md) mục AI accounts.
