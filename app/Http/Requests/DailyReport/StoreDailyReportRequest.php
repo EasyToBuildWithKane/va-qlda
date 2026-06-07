@@ -59,7 +59,7 @@ class StoreDailyReportRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'date.unique' => 'You already have a report for this date.',
+            'date.unique' => 'Bạn đã có báo cáo cho ngày này.',
         ];
     }
 }

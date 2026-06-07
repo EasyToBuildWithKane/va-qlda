@@ -53,7 +53,7 @@ class DailyReportReviewController extends Controller
             return back()->with('error', $e->getMessage());
         }
 
-        return back()->with('success', 'Report scored.');
+        return back()->with('success', 'Đã chấm điểm báo cáo.');
     }
 
     public function reject(RejectDailyReportRequest $request, DailyReport $report, RejectReportUseCase $useCase): RedirectResponse
@@ -64,6 +64,6 @@ class DailyReportReviewController extends Controller
             return back()->with('error', $e->getMessage());
         }
 
-        return back()->with('success', 'Report returned to the author.');
+        return back()->with('success', 'Đã trả báo cáo cho người viết chỉnh sửa.');
     }
 }

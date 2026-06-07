@@ -209,7 +209,7 @@ function hasFeedback(r) {
                 ? 'border-brand/40 bg-brand/5 text-brand'
                 : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'"
               :title="`Hiển thị bộ lọc (${enabledFilterControlCount}/${FILTER_CONTROLS.length})`"
-              @click="openFilterPanel(() => { colsMenu.value = false; })"
+              @click="openFilterPanel(() => { colsMenu = false; })"
             >
               <AppIcon
                 name="filter"
@@ -419,10 +419,17 @@ function hasFeedback(r) {
               </th>
               <th
                 v-if="visible('feedback')"
-                class="w-16 px-2 py-2.5 text-center"
+                class="w-20 px-2 py-2.5 text-center"
                 title="Có phản hồi từ người duyệt"
               >
-                PB
+                <span class="inline-flex items-center justify-center gap-1 font-normal normal-case tracking-normal">
+                  <AppIcon
+                    name="feedback"
+                    :size="13"
+                    class="text-slate-400"
+                  />
+                  <span class="hidden md:inline">Phản hồi</span>
+                </span>
               </th>
               <th class="whitespace-nowrap px-4 py-2.5 text-right">
                 Thao tác
@@ -504,7 +511,7 @@ function hasFeedback(r) {
                   title="Có phản hồi — mở chi tiết để xem"
                 >
                   <AppIcon
-                    name="message"
+                    name="feedback"
                     :size="14"
                   />
                 </span>

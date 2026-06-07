@@ -6,13 +6,13 @@ import Modal from '@/Components/Ui/Modal.vue';
 import FieldTooltip from '@/shared/ui/FieldTooltip.vue';
 import PersonSelect from '@/modules/project/components/PersonSelect.vue';
 import SearchSelect from '@/shared/ui/SearchSelect.vue';
-import BlockerDetailSummary from '@/modules/project/components/BlockerDetailSummary.vue';
 import { valueLabelOptions } from '@/shared/utils/selectOptions';
+import { date } from '@/composables/useFormat';
 
 const props = defineProps({
     show: { type: Boolean, default: false },
     blocker: { type: Object, default: null },
-    /** Khi mở từ «Xử lý» — cuộn tới ô hướng xử lý */
+    /** Khi mở từ «Hướng xử lý» — tab Hướng xử lý + focus ô nhập */
     focusResolution: { type: Boolean, default: false },
     projects: { type: Array, default: () => [] },
     employees: { type: Array, default: () => [] },
@@ -40,6 +40,18 @@ const form = useForm({
 });
 
 const resolutionInputRef = ref(null);
+const activeTab = ref('content');
+
+const EDIT_TABS = [
+    { key: 'resolution', label: 'Hướng xử lý', icon: 'meeting-notes' },
+    { key: 'content', label: 'Nội dung', icon: 'blockers' },
+    { key: 'assignment', label: 'Phân công', icon: 'people' },
+];
+
+const CREATE_TABS = [
+    { key: 'content', label: 'Nội dung', icon: 'blockers' },
+    { key: 'assignment', label: 'Phân công', icon: 'people' },
+];
 
 watch(() => props.show, async (open) => {
     if (!open) return;
@@ -54,16 +66,17 @@ watch(() => props.show, async (open) => {
         form.owner_id = props.blocker.owner?.id ?? null;
         form.due_date = props.blocker.due_date ?? null;
         form.resolution = props.blocker.resolution ?? '';
+        activeTab.value = props.focusResolution ? 'resolution' : 'content';
     } else {
         form.reset();
         form.project_id = props.defaultProjectId;
         form.severity = 'medium';
         form.status = 'open';
         form.resolution = '';
+        activeTab.value = 'content';
     }
     if (props.focusResolution && props.blocker) {
         await nextTick();
-        resolutionInputRef.value?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
         resolutionInputRef.value?.focus?.();
     }
 });
@@ -92,7 +105,8 @@ const projectDisplay = computed(() => {
 
 const isEdit = computed(() => !!props.blocker);
 
-/** Tạo mới: luôn chọn/đổi dự án (trừ khi mở từ trang dự án). Sửa: chỉ xem, không đổi. */
+const tabs = computed(() => (isEdit.value ? EDIT_TABS : CREATE_TABS));
+
 const showProjectSelector = computed(() => !isEdit.value && !props.lockProject);
 
 const showProjectBanner = computed(() => isEdit.value || props.lockProject);
@@ -113,8 +127,31 @@ const modalTitle = computed(() => {
     return 'Cập nhật vướng mắc';
 });
 
+const modalSubtitle = computed(() => {
+    if (!props.blocker) return null;
+    return props.blocker.code ? `${props.blocker.code} · ${props.blocker.title}` : props.blocker.title;
+});
+
 const severitySelectOptions = computed(() => valueLabelOptions(props.severityOptions));
 const statusSelectOptions = computed(() => valueLabelOptions(props.statusOptions));
+
+const submitLabel = computed(() => {
+    if (!isEdit.value) return 'Ghi nhận vướng mắc';
+    if (props.focusResolution || activeTab.value === 'resolution') return 'Lưu hướng xử lý';
+    return 'Lưu thay đổi';
+});
+
+function setTab(key) {
+    activeTab.value = key;
+    if (key === 'resolution') {
+        nextTick(() => resolutionInputRef.value?.focus?.());
+    }
+}
+
+function textOrDash(value) {
+    const t = (value ?? '').trim();
+    return t || null;
+}
 
 const submit = () => {
     const opts = { preserveScroll: true, onSuccess: () => { emit('saved'); emit('close'); } };
@@ -128,54 +165,49 @@ const submit = () => {
     :show="show"
     :dirty="form.isDirty"
     :title="modalTitle"
-    max-width="max-w-4xl"
+    max-width="max-w-3xl"
     @close="emit('close')"
   >
+    <p
+      v-if="modalSubtitle"
+      class="-mt-1 mb-4 truncate text-sm text-slate-500"
+      :title="modalSubtitle"
+    >
+      {{ modalSubtitle }}
+    </p>
+
     <form
-      class="space-y-5"
+      class="flex flex-col"
       @submit.prevent="submit"
     >
-      <!-- Dự án (tự động khi ghi trong ngữ cảnh dự án) -->
       <div
         v-if="showProjectBanner"
-        class="flex items-start gap-3 rounded-xl border border-brand/25 bg-gradient-to-r from-brand/8 to-transparent px-4 py-3.5 dark:border-brand/30 dark:from-brand/15"
+        class="mb-4 flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2.5"
       >
-        <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white text-brand shadow-sm dark:bg-slate-800">
+        <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-white text-brand shadow-sm ring-1 ring-slate-200/80">
           <AppIcon
             name="projects"
-            :size="20"
+            :size="18"
           />
         </span>
         <div class="min-w-0 flex-1">
-          <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            {{ isEdit && !blocker?.project_id ? 'Phạm vi' : 'Vướng mắc của dự án' }}
+          <p class="text-[10px] font-bold uppercase tracking-wide text-slate-400">
+            {{ isEdit && !blocker?.project_id ? 'Phạm vi' : 'Dự án' }}
           </p>
-          <p class="mt-0.5 truncate font-display text-base font-semibold text-slate-800 dark:text-slate-100">
+          <p class="truncate text-sm font-semibold text-slate-800">
             {{ projectBannerLabel }}
-          </p>
-          <p
-            v-if="isEdit"
-            class="mt-1 text-xs text-slate-500 dark:text-slate-400"
-          >
-            Không thể đổi dự án sau khi đã ghi nhận
-          </p>
-          <p
-            v-else-if="lockProject"
-            class="mt-1 text-xs text-slate-500 dark:text-slate-400"
-          >
-            Dự án được chọn tự động theo trang hiện tại
           </p>
         </div>
       </div>
 
       <div
         v-else-if="showProjectSelector"
-        class="max-w-md"
+        class="mb-4 max-w-md"
       >
         <label class="label flex items-center gap-1.5">
           Dự án
           <span class="font-normal text-slate-400">(tuỳ chọn)</span>
-          <FieldTooltip text="Chọn dự án nếu vướng mắc thuộc một dự án cụ thể. Để trống sẽ xếp vào nhóm «Thắc mắc chung» trên danh sách." />
+          <FieldTooltip text="Để trống → nhóm «Thắc mắc chung» trên danh sách." />
         </label>
         <SearchSelect
           v-model="form.project_id"
@@ -184,9 +216,6 @@ const submit = () => {
           search-placeholder="Tìm dự án…"
           clearable
         />
-        <p class="mt-1 text-xs text-slate-500">
-          Không chọn dự án → <span class="font-medium text-slate-600">Thắc mắc chung</span>
-        </p>
         <p
           v-if="form.errors.project_id"
           class="mt-1 text-xs text-danger"
@@ -195,104 +224,131 @@ const submit = () => {
         </p>
       </div>
 
-      <BlockerDetailSummary
-        v-if="isEdit"
-        :blocker="blocker"
-        class="mb-1"
-      />
-
       <div
-        v-if="isEdit"
-        id="blocker-resolution-section"
-        class="rounded-xl border-2 border-brand/25 bg-brand/[0.03] p-4 dark:border-brand/35"
+        class="mb-4 flex flex-wrap gap-1 border-b border-slate-200 pb-2"
+        role="tablist"
+        aria-label="Phần biểu mẫu vướng mắc"
       >
-        <label class="label flex items-center gap-1.5 text-brand">
-          Hướng xử lý
-          <FieldTooltip text="Ghi rõ kế hoạch, bước tiếp theo, người phối hợp và kết quả mong đợi. Tham chiếu mô tả & nguyên nhân phía trên." />
-        </label>
-        <textarea
-          ref="resolutionInputRef"
-          v-model="form.resolution"
-          rows="6"
-          class="input mt-1 min-h-[8rem] resize-y border-brand/20 focus:border-brand/50"
-          placeholder="VD:&#10;1. Liên hệ team hạ tầng kiểm tra log API…&#10;2. Tạm rollback bản phát hành X…&#10;3. Họp với PO lúc 14h để chốt phương án…"
-        />
-        <p class="mt-2 text-xs text-slate-500">
-          Gợi ý: liệt kê bước cụ thể, người phụ trách từng bước, thời hạn và tiêu chí xong việc.
-        </p>
+        <button
+          v-for="tab in tabs"
+          :key="tab.key"
+          type="button"
+          role="tab"
+          class="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition"
+          :class="activeTab === tab.key
+            ? 'bg-brand text-white shadow-sm'
+            : 'text-slate-600 hover:bg-slate-100'"
+          :aria-selected="activeTab === tab.key"
+          @click="setTab(tab.key)"
+        >
+          <AppIcon
+            :name="tab.icon"
+            :size="14"
+          />
+          {{ tab.label }}
+        </button>
       </div>
 
-      <details
-        v-if="isEdit"
-        class="group rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900/30"
-      >
-        <summary class="cursor-pointer list-none px-4 py-3 text-sm font-medium text-slate-600 marker:content-none [&::-webkit-details-marker]:hidden">
-          <span class="inline-flex items-center gap-2">
-            <AppIcon
-              name="chevron-down"
-              :size="16"
-              class="text-slate-400 transition group-open:rotate-180"
-            />
-            Sửa tiêu đề & nội dung gốc
-          </span>
-        </summary>
-        <div class="space-y-4 border-t border-slate-100 px-4 py-4 dark:border-slate-800">
-          <div>
-            <label class="label flex items-center gap-1.5">
-              Tiêu đề <span class="text-danger">*</span>
-            </label>
-            <input
-              v-model="form.title"
-              type="text"
-              class="input"
-            >
-            <p
-              v-if="form.errors.title"
-              class="mt-1 text-xs text-danger"
-            >
-              {{ form.errors.title }}
-            </p>
-          </div>
-          <div>
-            <label class="label">Mô tả chi tiết</label>
-            <textarea
-              v-model="form.description"
-              rows="3"
-              class="input resize-y"
-            />
-          </div>
-          <div>
-            <label class="label">Nguyên nhân</label>
-            <textarea
-              v-model="form.root_cause"
-              rows="2"
-              class="input resize-y"
-            />
-          </div>
-        </div>
-      </details>
-
-      <div
-        class="space-y-4"
-        :class="isEdit ? '' : 'grid gap-6 lg:grid-cols-2'"
-      >
+      <div class="min-h-[14rem] space-y-4">
+        <!-- Tab: Hướng xử lý (chỉ sửa) -->
         <div
-          v-if="!isEdit"
+          v-show="isEdit && activeTab === 'resolution'"
           class="space-y-4"
         >
-          <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            Nội dung vướng mắc
+          <div class="rounded-lg border border-slate-200 bg-slate-50/90 p-3">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="font-mono text-xs font-semibold text-brand">{{ blocker.code }}</span>
+              <span
+                v-if="blocker.severity"
+                class="text-xs font-medium text-slate-600"
+              >{{ blocker.severity.label }}</span>
+              <span
+                v-if="blocker.status"
+                class="text-xs text-slate-400"
+              >· {{ blocker.status.label }}</span>
+              <span
+                v-if="blocker.due_date"
+                class="ml-auto text-xs tabular-nums text-slate-500"
+              >
+                Hạn {{ date(blocker.due_date) }}
+              </span>
+            </div>
+            <p class="mt-1 text-sm font-medium text-slate-800">
+              {{ blocker.title }}
+            </p>
+            <details
+              v-if="textOrDash(blocker.description) || textOrDash(blocker.root_cause)"
+              class="group mt-2"
+            >
+              <summary class="cursor-pointer list-none text-xs font-medium text-brand hover:underline marker:content-none [&::-webkit-details-marker]:hidden">
+                <span class="inline-flex items-center gap-1">
+                  <AppIcon
+                    name="chevron-down"
+                    :size="14"
+                    class="transition group-open:rotate-180"
+                  />
+                  Xem mô tả &amp; nguyên nhân (tham khảo)
+                </span>
+              </summary>
+              <div class="mt-2 space-y-2 border-t border-slate-200/80 pt-2 text-sm text-slate-600">
+                <p
+                  v-if="textOrDash(blocker.description)"
+                  class="whitespace-pre-wrap"
+                >
+                  <span class="text-[10px] font-bold uppercase text-slate-400">Mô tả · </span>
+                  {{ blocker.description }}
+                </p>
+                <p
+                  v-if="textOrDash(blocker.root_cause)"
+                  class="whitespace-pre-wrap"
+                >
+                  <span class="text-[10px] font-bold uppercase text-slate-400">Nguyên nhân · </span>
+                  {{ blocker.root_cause }}
+                </p>
+              </div>
+            </details>
+          </div>
+
+          <div>
+            <label class="label flex items-center gap-1.5">
+              Kế hoạch xử lý
+              <FieldTooltip text="Bước cụ thể, người phối hợp, thời hạn và tiêu chí hoàn thành." />
+            </label>
+            <textarea
+              ref="resolutionInputRef"
+              v-model="form.resolution"
+              rows="8"
+              class="input mt-1 min-h-[10rem] resize-y"
+              placeholder="VD:&#10;1. Liên hệ team hạ tầng kiểm tra log API…&#10;2. Tạm rollback bản phát hành X…&#10;3. Họp PO 14h chốt phương án…"
+            />
+          </div>
+
+          <p class="text-xs text-slate-500">
+            Trạng thái và người phụ trách chỉnh ở tab <button
+              type="button"
+              class="font-medium text-brand hover:underline"
+              @click="setTab('assignment')"
+            >
+              Phân công
+            </button>.
           </p>
+        </div>
+
+        <!-- Tab: Nội dung -->
+        <div
+          v-show="activeTab === 'content'"
+          class="space-y-4"
+        >
           <div>
             <label class="label flex items-center gap-1.5">
               Tiêu đề <span class="text-danger">*</span>
-              <FieldTooltip text="Một câu tóm tắt vướng mắc, ngắn gọn và dễ nhận biết trong danh sách." />
+              <FieldTooltip text="Một câu tóm tắt, dễ nhận biết trong danh sách." />
             </label>
             <input
               v-model="form.title"
               type="text"
               class="input"
-              placeholder="VD: API đăng nhập trả về lỗi 500 khi tải cao…"
+              :placeholder="isEdit ? undefined : 'VD: API đăng nhập trả về lỗi 500 khi tải cao…'"
             >
             <p
               v-if="form.errors.title"
@@ -304,38 +360,39 @@ const submit = () => {
           <div>
             <label class="label flex items-center gap-1.5">
               Mô tả chi tiết
-              <FieldTooltip text="Bối cảnh xảy ra, tác động đến công việc và phạm vi ảnh hưởng." />
+              <FieldTooltip text="Bối cảnh, tác động và phạm vi ảnh hưởng." />
             </label>
             <textarea
               v-model="form.description"
               rows="4"
               class="input resize-y"
-              placeholder="Mô tả bối cảnh, tác động, phạm vi ảnh hưởng…"
+              placeholder="Mô tả bối cảnh, tác động…"
             />
           </div>
           <div>
             <label class="label flex items-center gap-1.5">
               Nguyên nhân
-              <FieldTooltip text="Nguyên nhân gốc rễ nếu đã xác định (gợi ý: dùng kỹ thuật 5 Whys)." />
+              <FieldTooltip text="Nguyên nhân gốc nếu đã xác định." />
             </label>
             <textarea
               v-model="form.root_cause"
               rows="3"
               class="input resize-y"
-              placeholder="Nguyên nhân gốc rễ (nếu đã xác định)…"
+              placeholder="Nguyên nhân gốc (nếu có)…"
             />
           </div>
         </div>
 
-        <div :class="isEdit ? 'space-y-4' : 'space-y-4'">
-          <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            Phân loại & phân công
-          </p>
-          <div class="grid grid-cols-2 gap-4">
+        <!-- Tab: Phân công -->
+        <div
+          v-show="activeTab === 'assignment'"
+          class="space-y-4"
+        >
+          <div class="grid gap-4 sm:grid-cols-2">
             <div>
               <label class="label flex items-center gap-1.5">
                 Mức độ
-                <FieldTooltip text="Mức độ nghiêm trọng / ưu tiên xử lý của vướng mắc." />
+                <FieldTooltip text="Mức nghiêm trọng / ưu tiên xử lý." />
               </label>
               <SearchSelect
                 v-model="form.severity"
@@ -347,7 +404,7 @@ const submit = () => {
             <div>
               <label class="label flex items-center gap-1.5">
                 Trạng thái
-                <FieldTooltip text="Trạng thái xử lý hiện tại của vướng mắc." />
+                <FieldTooltip text="Trạng thái xử lý hiện tại." />
               </label>
               <SearchSelect
                 v-model="form.status"
@@ -356,12 +413,10 @@ const submit = () => {
                 :clearable="false"
               />
             </div>
-          </div>
-          <div class="grid grid-cols-2 gap-4">
             <div>
               <label class="label flex items-center gap-1.5">
                 Hạn xử lý
-                <FieldTooltip text="Thời hạn mong muốn xử lý xong vướng mắc." />
+                <FieldTooltip text="Thời hạn mong muốn xử lý xong." />
               </label>
               <input
                 v-model="form.due_date"
@@ -372,19 +427,38 @@ const submit = () => {
             <div>
               <label class="label flex items-center gap-1.5">
                 Người phụ trách
-                <FieldTooltip text="Người chịu trách nhiệm theo dõi và xử lý vướng mắc." />
+                <FieldTooltip text="Người theo dõi và xử lý vướng mắc." />
               </label>
               <PersonSelect
                 v-model="form.owner_id"
                 :options="employees"
-                placeholder="Tìm & chọn người phụ trách…"
+                placeholder="Tìm & chọn…"
               />
             </div>
+          </div>
+
+          <div
+            v-if="isEdit && textOrDash(form.resolution)"
+            class="rounded-lg border border-dashed border-slate-200 bg-slate-50/60 p-3"
+          >
+            <p class="text-[10px] font-bold uppercase tracking-wide text-slate-400">
+              Hướng xử lý (tóm tắt)
+            </p>
+            <p class="mt-1 line-clamp-3 whitespace-pre-wrap text-sm text-slate-600">
+              {{ form.resolution }}
+            </p>
+            <button
+              type="button"
+              class="mt-2 text-xs font-medium text-brand hover:underline"
+              @click="setTab('resolution')"
+            >
+              Mở tab Hướng xử lý
+            </button>
           </div>
         </div>
       </div>
 
-      <div class="flex justify-end gap-2 border-t border-slate-100 pt-4 dark:border-slate-800">
+      <div class="mt-5 flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 pt-4">
         <button
           type="button"
           class="btn-ghost"
@@ -397,7 +471,7 @@ const submit = () => {
           class="btn-primary"
           :disabled="form.processing"
         >
-          {{ isEdit ? (focusResolution ? 'Lưu hướng xử lý' : 'Lưu thay đổi') : 'Ghi nhận vướng mắc' }}
+          {{ submitLabel }}
         </button>
       </div>
     </form>

@@ -43,6 +43,7 @@ const map = {
     'new-project': Plus,
     'meeting-notes': ClipboardList,
     feedback: MessageSquare,
+    message: MessageSquare,
     'action-items': ListChecks,
     'team-eval': ChartBar,
     'member-profiles': UserRound,

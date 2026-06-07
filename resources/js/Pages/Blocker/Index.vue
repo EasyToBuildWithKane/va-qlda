@@ -108,6 +108,18 @@ function loadCollapsedGroups() {
 }
 
 const collapsedGroups = ref(loadCollapsedGroups());
+const expandedRows = ref(new Set());
+
+function isRowExpanded(id) {
+    return expandedRows.value.has(id);
+}
+
+function toggleRow(id) {
+    const next = new Set(expandedRows.value);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    expandedRows.value = next;
+}
 
 const {
     visibleFilters,
@@ -166,7 +178,7 @@ const appliedFilterCount = computed(() =>
     ].filter((v) => v !== '' && v != null).length,
 );
 
-/** +1 cột nhóm (chevron), +1 thao tác */
+/** +1 cột nhóm (chevron), +1 mở rộng chi tiết */
 const tableColspan = computed(() => TABLE_COLUMNS.filter((c) => isColVisible(c.key)).length + 2);
 
 /** % width per column key (re-normalized in colWidthStyle for visible cols only) */
@@ -507,7 +519,7 @@ function toggleAllGroups() {
                 v-model="visibleCols"
                 :show="showColDd"
                 :columns="TABLE_COLUMNS"
-                :fixed-labels="['Trạng thái / Xử lý', 'Thao tác']"
+                :fixed-labels="['Trạng thái / Xử lý', 'Chi tiết']"
                 @persist="persistVisibleColumns"
               />
             </div>
@@ -687,7 +699,7 @@ function toggleAllGroups() {
               :key="c.key"
               :style="{ width: colWidthStyle[c.key] }"
             >
-            <col class="w-[4.25rem]">
+            <col class="w-10">
           </colgroup>
           <thead class="border-b border-slate-200 bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             <tr>
@@ -770,8 +782,15 @@ function toggleAllGroups() {
               >
                 Nguyên nhân
               </th>
-              <th class="px-2 py-2.5 text-center align-middle">
-                ···
+              <th
+                class="w-10 px-1 py-2.5 text-center align-middle"
+                aria-label="Chi tiết"
+              >
+                <AppIcon
+                  name="chevron-down"
+                  :size="14"
+                  class="mx-auto text-slate-300"
+                />
               </th>
             </tr>
           </thead>
@@ -810,212 +829,342 @@ function toggleAllGroups() {
                 </td>
               </tr>
               <template v-if="isGroupExpanded(group.key)">
-                <tr
+                <template
                   v-for="b in group.items"
                   :key="b.id"
-                  :class="blockerRowClass(b)"
                 >
-                  <td class="px-1 align-middle" />
-                  <td
-                    v-if="isColVisible('code')"
-                    class="px-3 py-2 align-middle font-mono text-xs font-semibold text-brand"
-                  >
-                    {{ b.code }}
-                  </td>
-                  <td
-                    v-if="isColVisible('title')"
-                    class="px-3 py-2 align-middle"
-                  >
-                    <p
-                      class="truncate font-medium text-slate-800"
-                      :title="b.title"
+                  <tr :class="blockerRowClass(b)">
+                    <td class="px-1 align-middle" />
+                    <td
+                      v-if="isColVisible('code')"
+                      class="px-3 py-2 align-middle font-mono text-xs font-semibold text-brand"
                     >
-                      {{ b.title }}
-                    </p>
-                  </td>
-                  <td
-                    v-if="isColVisible('task')"
-                    class="px-3 py-2 align-middle"
-                  >
-                    <span
-                      class="block truncate text-xs text-slate-600"
-                      :title="b.task?.title"
-                    >{{ b.task?.title ?? '—' }}</span>
-                  </td>
-                  <td
-                    v-if="isColVisible('severity')"
-                    class="px-3 py-2 align-middle"
-                  >
-                    <span :class="severityClass(b.severity.color, b.severity.value)">{{ b.severity.label }}</span>
-                  </td>
-                  <td
-                    v-if="isColVisible('status')"
-                    class="px-3 py-2 align-middle"
-                  >
-                    <div class="flex items-center gap-1">
-                      <select
-                        v-if="b.can?.update"
-                        :value="b.status.value"
-                        class="input h-8 w-full min-w-0 py-0 text-xs"
-                        :disabled="statusUpdating.has(b.id)"
-                        :class="isTerminal(b) ? 'text-slate-500' : ''"
-                        aria-label="Trạng thái"
-                        @click.stop
-                        @change="updateStatus(b, $event.target.value)"
+                      {{ b.code }}
+                    </td>
+                    <td
+                      v-if="isColVisible('title')"
+                      class="px-3 py-2 align-middle"
+                    >
+                      <p
+                        class="truncate font-medium text-slate-800"
+                        :title="b.title"
                       >
-                        <option
-                          v-for="o in options.status"
-                          :key="o.value"
-                          :value="o.value"
+                        {{ b.title }}
+                      </p>
+                    </td>
+                    <td
+                      v-if="isColVisible('task')"
+                      class="px-3 py-2 align-middle"
+                    >
+                      <span
+                        class="block truncate text-xs text-slate-600"
+                        :title="b.task?.title"
+                      >{{ b.task?.title ?? '—' }}</span>
+                    </td>
+                    <td
+                      v-if="isColVisible('severity')"
+                      class="px-3 py-2 align-middle"
+                    >
+                      <span :class="severityClass(b.severity.color, b.severity.value)">{{ b.severity.label }}</span>
+                    </td>
+                    <td
+                      v-if="isColVisible('status')"
+                      class="px-3 py-2 align-middle"
+                    >
+                      <div class="flex items-center gap-1">
+                        <select
+                          v-if="b.can?.update"
+                          :value="b.status.value"
+                          class="input h-8 w-full min-w-0 py-0 text-xs"
+                          :disabled="statusUpdating.has(b.id)"
+                          :class="isTerminal(b) ? 'text-slate-500' : ''"
+                          aria-label="Trạng thái"
+                          @click.stop
+                          @change="updateStatus(b, $event.target.value)"
                         >
-                          {{ o.label }}
-                        </option>
-                      </select>
+                          <option
+                            v-for="o in options.status"
+                            :key="o.value"
+                            :value="o.value"
+                          >
+                            {{ o.label }}
+                          </option>
+                        </select>
+                        <span
+                          v-else
+                          :class="statusClass(b.status.color)"
+                        >{{ b.status.label }}</span>
+                        <button
+                          v-if="b.can?.update && !isTerminal(b)"
+                          type="button"
+                          class="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
+                          title="Đánh dấu đã xử lý"
+                          :disabled="statusUpdating.has(b.id)"
+                          @click.stop="markResolved(b)"
+                        >
+                          <AppIcon
+                            name="done"
+                            :size="15"
+                          />
+                        </button>
+                      </div>
+                    </td>
+                    <td
+                      v-if="isColVisible('raised_by')"
+                      class="px-3 py-2 align-middle"
+                    >
+                      <div
+                        v-if="personCell(b.raised_by)"
+                        class="flex min-w-0 items-center gap-1"
+                        :title="b.raised_by.name"
+                      >
+                        <Avatar
+                          :name="b.raised_by.name"
+                          :src="b.raised_by.avatar_path"
+                          :size="20"
+                        />
+                        <span class="truncate text-xs text-slate-600">{{ b.raised_by.name }}</span>
+                      </div>
                       <span
                         v-else
-                        :class="statusClass(b.status.color)"
-                      >{{ b.status.label }}</span>
-                      <button
-                        v-if="b.can?.update && !isTerminal(b)"
-                        type="button"
-                        class="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
-                        title="Đánh dấu đã xử lý"
-                        :disabled="statusUpdating.has(b.id)"
-                        @click.stop="markResolved(b)"
-                      >
-                        <AppIcon
-                          name="done"
-                          :size="15"
-                        />
-                      </button>
-                    </div>
-                  </td>
-                  <td
-                    v-if="isColVisible('raised_by')"
-                    class="px-3 py-2 align-middle"
-                  >
-                    <div
-                      v-if="personCell(b.raised_by)"
-                      class="flex min-w-0 items-center gap-1"
-                      :title="b.raised_by.name"
+                        class="text-xs text-slate-300"
+                      >—</span>
+                    </td>
+                    <td
+                      v-if="isColVisible('owner')"
+                      class="px-3 py-2 align-middle"
                     >
-                      <Avatar
-                        :name="b.raised_by.name"
-                        :src="b.raised_by.avatar_path"
-                        :size="20"
-                      />
-                      <span class="truncate text-xs text-slate-600">{{ b.raised_by.name }}</span>
-                    </div>
-                    <span
-                      v-else
-                      class="text-xs text-slate-300"
-                    >—</span>
-                  </td>
-                  <td
-                    v-if="isColVisible('owner')"
-                    class="px-3 py-2 align-middle"
-                  >
-                    <div
-                      v-if="personCell(b.owner)"
-                      class="flex min-w-0 items-center gap-1"
-                      :title="b.owner.name"
+                      <div
+                        v-if="personCell(b.owner)"
+                        class="flex min-w-0 items-center gap-1"
+                        :title="b.owner.name"
+                      >
+                        <Avatar
+                          :name="b.owner.name"
+                          :src="b.owner.avatar_path"
+                          :size="20"
+                        />
+                        <span class="truncate text-xs text-slate-600">{{ b.owner.name }}</span>
+                      </div>
+                      <span
+                        v-else
+                        class="text-xs text-slate-300"
+                      >—</span>
+                    </td>
+                    <td
+                      v-if="isColVisible('raised_at')"
+                      class="whitespace-nowrap px-3 py-2 align-middle text-xs tabular-nums text-slate-500"
                     >
-                      <Avatar
-                        :name="b.owner.name"
-                        :src="b.owner.avatar_path"
-                        :size="20"
-                      />
-                      <span class="truncate text-xs text-slate-600">{{ b.owner.name }}</span>
-                    </div>
-                    <span
-                      v-else
-                      class="text-xs text-slate-300"
-                    >—</span>
-                  </td>
-                  <td
-                    v-if="isColVisible('raised_at')"
-                    class="whitespace-nowrap px-3 py-2 align-middle text-xs tabular-nums text-slate-500"
-                  >
-                    {{ b.raised_at ? date(b.raised_at) : '—' }}
-                  </td>
-                  <td
-                    v-if="isColVisible('due_date')"
-                    class="whitespace-nowrap px-3 py-2 align-middle text-xs tabular-nums"
-                    :class="b.is_overdue && !isTerminal(b) ? 'font-semibold text-rose-600' : 'text-slate-500'"
-                  >
-                    {{ b.due_date ? date(b.due_date) : '—' }}
-                  </td>
-                  <td
-                    v-if="isColVisible('resolved_at')"
-                    class="whitespace-nowrap px-3 py-2 align-middle text-xs tabular-nums text-slate-500"
-                  >
-                    {{ b.resolved_at ? datetime(b.resolved_at) : '—' }}
-                  </td>
-                  <td
-                    v-if="isColVisible('comments')"
-                    class="px-3 py-2 text-center align-middle text-xs tabular-nums text-slate-500"
-                  >
-                    {{ b.comments_count ?? 0 }}
-                  </td>
-                  <td
-                    v-if="isColVisible('description')"
-                    class="px-3 py-2 align-middle text-xs text-slate-500"
-                  >
-                    <span
-                      class="line-clamp-2"
-                      :title="b.description"
-                    >{{ truncate(b.description, 56) }}</span>
-                  </td>
-                  <td
-                    v-if="isColVisible('root_cause')"
-                    class="px-3 py-2 align-middle text-xs text-slate-500"
-                  >
-                    <span
-                      class="line-clamp-2"
-                      :title="b.root_cause"
-                    >{{ truncate(b.root_cause, 56) }}</span>
-                  </td>
-                  <td class="px-2 py-2 align-middle">
-                    <div class="flex items-center justify-center gap-0.5">
+                      {{ b.raised_at ? date(b.raised_at) : '—' }}
+                    </td>
+                    <td
+                      v-if="isColVisible('due_date')"
+                      class="whitespace-nowrap px-3 py-2 align-middle text-xs tabular-nums"
+                      :class="b.is_overdue && !isTerminal(b) ? 'font-semibold text-rose-600' : 'text-slate-500'"
+                    >
+                      {{ b.due_date ? date(b.due_date) : '—' }}
+                    </td>
+                    <td
+                      v-if="isColVisible('resolved_at')"
+                      class="whitespace-nowrap px-3 py-2 align-middle text-xs tabular-nums text-slate-500"
+                    >
+                      {{ b.resolved_at ? datetime(b.resolved_at) : '—' }}
+                    </td>
+                    <td
+                      v-if="isColVisible('comments')"
+                      class="px-3 py-2 text-center align-middle text-xs tabular-nums text-slate-500"
+                    >
+                      {{ b.comments_count ?? 0 }}
+                    </td>
+                    <td
+                      v-if="isColVisible('description')"
+                      class="px-3 py-2 align-middle text-xs text-slate-500"
+                    >
+                      <span
+                        class="line-clamp-2"
+                        :title="b.description"
+                      >{{ truncate(b.description, 56) }}</span>
+                    </td>
+                    <td
+                      v-if="isColVisible('root_cause')"
+                      class="px-3 py-2 align-middle text-xs text-slate-500"
+                    >
+                      <span
+                        class="line-clamp-2"
+                        :title="b.root_cause"
+                      >{{ truncate(b.root_cause, 56) }}</span>
+                    </td>
+                    <td class="px-1 py-2 align-middle">
                       <button
-                        v-if="b.can?.update && !isTerminal(b)"
                         type="button"
-                        class="grid h-8 w-8 place-items-center rounded-lg text-brand hover:bg-brand/10"
-                        title="Hướng xử lý"
-                        @click.stop="openResolve(b)"
+                        class="mx-auto grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+                        :aria-expanded="isRowExpanded(b.id)"
+                        :title="isRowExpanded(b.id) ? 'Thu gọn chi tiết' : 'Xem chi tiết'"
+                        @click.stop="toggleRow(b.id)"
                       >
                         <AppIcon
-                          name="meeting-notes"
-                          :size="15"
+                          name="chevron-down"
+                          :size="16"
+                          class="transition-transform"
+                          :class="isRowExpanded(b.id) ? 'rotate-180' : ''"
                         />
                       </button>
-                      <button
-                        v-if="b.can?.update"
-                        type="button"
-                        class="grid h-8 w-8 place-items-center rounded-lg text-slate-500 hover:bg-slate-100"
-                        title="Sửa"
-                        @click.stop="open(b)"
+                    </td>
+                  </tr>
+                  <tr
+                    v-if="isRowExpanded(b.id)"
+                    class="border-b border-slate-100 bg-slate-50/70"
+                  >
+                    <td
+                      :colspan="tableColspan"
+                      class="px-4 py-4 align-top"
+                    >
+                      <div class="grid gap-4 lg:grid-cols-2">
+                        <section class="rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm">
+                          <h3 class="mb-3 flex items-center gap-2 text-sm font-bold text-slate-800">
+                            <AppIcon
+                              name="blockers"
+                              :size="16"
+                              class="text-amber-600"
+                            />
+                            Nội dung vướng mắc
+                          </h3>
+                          <dl class="space-y-3 text-sm">
+                            <div>
+                              <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                                Mô tả
+                              </dt>
+                              <dd class="mt-1 whitespace-pre-wrap text-slate-700">
+                                {{ b.description?.trim() || '—' }}
+                              </dd>
+                            </div>
+                            <div>
+                              <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                                Nguyên nhân
+                              </dt>
+                              <dd class="mt-1 whitespace-pre-wrap text-slate-700">
+                                {{ b.root_cause?.trim() || '—' }}
+                              </dd>
+                            </div>
+                            <div v-if="b.task?.title">
+                              <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                                Công việc liên quan
+                              </dt>
+                              <dd class="mt-1 text-slate-700">
+                                {{ b.task.title }}
+                              </dd>
+                            </div>
+                          </dl>
+                        </section>
+                        <section class="rounded-xl border border-emerald-200/70 bg-white p-4 shadow-sm">
+                          <h3 class="mb-3 flex items-center gap-2 text-sm font-bold text-slate-800">
+                            <AppIcon
+                              name="meeting-notes"
+                              :size="16"
+                              class="text-emerald-700"
+                            />
+                            Xử lý &amp; theo dõi
+                          </h3>
+                          <dl class="grid gap-2 text-sm sm:grid-cols-2">
+                            <div class="sm:col-span-2">
+                              <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                                Hướng xử lý
+                              </dt>
+                              <dd class="mt-0.5 whitespace-pre-wrap text-slate-700">
+                                {{ b.resolution?.trim() || '—' }}
+                              </dd>
+                            </div>
+                            <div>
+                              <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                                Ngày báo
+                              </dt>
+                              <dd class="tabular-nums text-slate-600">
+                                {{ b.raised_at ? date(b.raised_at) : '—' }}
+                              </dd>
+                            </div>
+                            <div>
+                              <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                                Hạn xử lý
+                              </dt>
+                              <dd
+                                class="tabular-nums"
+                                :class="b.is_overdue && !isTerminal(b) ? 'font-semibold text-rose-600' : 'text-slate-600'"
+                              >
+                                {{ b.due_date ? date(b.due_date) : '—' }}
+                              </dd>
+                            </div>
+                            <div>
+                              <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                                Xử lý xong
+                              </dt>
+                              <dd class="tabular-nums text-slate-600">
+                                {{ b.resolved_at ? datetime(b.resolved_at) : '—' }}
+                              </dd>
+                            </div>
+                            <div>
+                              <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                                Bình luận
+                              </dt>
+                              <dd class="tabular-nums text-slate-600">
+                                {{ b.comments_count ?? 0 }}
+                              </dd>
+                            </div>
+                            <div v-if="b.updated_at">
+                              <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                                Cập nhật
+                              </dt>
+                              <dd class="tabular-nums text-slate-600">
+                                {{ datetime(b.updated_at) }}
+                              </dd>
+                            </div>
+                          </dl>
+                        </section>
+                      </div>
+                      <div
+                        v-if="b.can?.update || b.can?.delete"
+                        class="mt-4 flex flex-wrap items-center gap-2 border-t border-slate-200/80 pt-3"
                       >
-                        <AppIcon
-                          name="edit"
-                          :size="15"
-                        />
-                      </button>
-                      <button
-                        v-if="b.can?.delete"
-                        type="button"
-                        class="grid h-8 w-8 place-items-center rounded-lg text-slate-500 hover:bg-rose-50 hover:text-rose-600"
-                        title="Xoá"
-                        @click.stop="remove(b)"
-                      >
-                        <AppIcon
-                          name="delete"
-                          :size="15"
-                        />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+                        <span class="text-xs font-medium text-slate-500">Thao tác:</span>
+                        <button
+                          v-if="b.can?.update && !isTerminal(b)"
+                          type="button"
+                          class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-xs font-medium text-emerald-800 hover:bg-emerald-100"
+                          @click="openResolve(b)"
+                        >
+                          <AppIcon
+                            name="meeting-notes"
+                            :size="14"
+                          />
+                          Hướng xử lý
+                        </button>
+                        <button
+                          v-if="b.can?.update"
+                          type="button"
+                          class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                          @click="open(b)"
+                        >
+                          <AppIcon
+                            name="edit"
+                            :size="14"
+                          />
+                          Sửa
+                        </button>
+                        <button
+                          v-if="b.can?.delete"
+                          type="button"
+                          class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-rose-200 bg-white px-3 text-xs font-medium text-rose-700 hover:bg-rose-50"
+                          @click="remove(b)"
+                        >
+                          <AppIcon
+                            name="delete"
+                            :size="14"
+                          />
+                          Xoá
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </template>
               </template>
             </template>
           </tbody>

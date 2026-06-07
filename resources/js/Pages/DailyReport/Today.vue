@@ -231,23 +231,74 @@ const savedTimeLabel = computed(() =>
     <!-- Already submitted today -->
     <div
       v-if="isEditing && !editable"
-      class="card mx-auto max-w-xl p-8 text-center"
+      class="card mx-auto max-w-2xl overflow-hidden border border-brand/15 shadow-elevation-2"
     >
-      <h2 class="font-display text-lg font-semibold text-slate-800">
-        Bạn đã nộp báo cáo hôm nay
-      </h2>
-      <p class="mt-1 text-sm font-medium text-slate-600">
-        {{ formattedToday }}
-      </p>
-      <p class="mt-1 text-sm text-slate-500">
-        Cảm ơn bạn! Báo cáo đang chờ quản lý xem xét và đánh giá.
-      </p>
-      <Link
-        :href="`/daily-reports/${report.id}`"
-        class="btn-primary mt-5"
-      >
-        Xem báo cáo
-      </Link>
+      <div class="bg-gradient-to-b from-brand/[0.06] via-white to-amber-50/40 px-6 py-10 text-center sm:px-10 sm:py-12">
+        <div
+          class="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 ring-8 ring-emerald-50"
+          aria-hidden="true"
+        >
+          <AppIcon
+            name="done"
+            :size="40"
+            :stroke-width="2"
+          />
+        </div>
+
+        <p class="text-xs font-bold uppercase tracking-widest text-brand/80">
+          Hoàn tất nộp báo cáo
+        </p>
+        <h2 class="mt-2 font-display text-2xl font-semibold tracking-tight text-slate-800 sm:text-3xl">
+          Bạn đã nộp báo cáo hôm nay
+        </h2>
+        <p class="mt-3 text-base font-medium text-slate-700">
+          {{ formattedToday }}
+        </p>
+
+        <div class="mt-5 flex flex-wrap items-center justify-center gap-2">
+          <span
+            class="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-semibold"
+            :class="statusVi.cls"
+          >
+            <AppIcon
+              name="clock"
+              :size="16"
+            />
+            {{ statusVi.label }}
+          </span>
+        </div>
+
+        <p
+          v-if="report?.title"
+          class="mx-auto mt-6 max-w-lg text-left text-sm font-medium text-slate-700 sm:text-center"
+        >
+          <span class="text-slate-500">Tiêu đề:</span>
+          {{ report.title }}
+        </p>
+
+        <p class="mx-auto mt-4 max-w-md text-base leading-relaxed text-slate-600">
+          Cảm ơn bạn! Báo cáo đang chờ quản lý xem xét và đánh giá. Bạn có thể mở chi tiết để xem lại nội dung đã gửi.
+        </p>
+
+        <div class="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
+          <Link
+            :href="`/daily-reports/${report.id}`"
+            class="btn-primary inline-flex min-h-11 items-center justify-center gap-2 px-8 text-base font-semibold"
+          >
+            <AppIcon
+              name="eye"
+              :size="18"
+            />
+            Xem báo cáo
+          </Link>
+          <Link
+            href="/daily-reports"
+            class="inline-flex min-h-11 items-center justify-center rounded-btn border border-slate-200 bg-white px-6 text-sm font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
+          >
+            Lịch sử báo cáo
+          </Link>
+        </div>
+      </div>
     </div>
 
     <div

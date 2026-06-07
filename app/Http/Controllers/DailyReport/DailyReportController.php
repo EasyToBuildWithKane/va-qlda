@@ -131,7 +131,7 @@ class DailyReportController extends Controller
 
         return redirect()
             ->route('daily-reports.show', $report)
-            ->with('success', 'Draft saved.');
+            ->with('success', 'Đã lưu bản nháp.');
     }
 
     public function show(DailyReport $report): Response
@@ -147,7 +147,7 @@ class DailyReportController extends Controller
     {
         $useCase->execute($report, $request->validated());
 
-        return back()->with('success', 'Saved.');
+        return back()->with('success', 'Đã lưu báo cáo.');
     }
 
     public function destroy(DailyReport $report, DeleteDailyReportUseCase $useCase): RedirectResponse
@@ -174,7 +174,7 @@ class DailyReportController extends Controller
 
         if ($missing->isNotEmpty()) {
             throw ValidationException::withMessages([
-                'submit' => 'Fill in goals, progress, results and tomorrow’s plan before submitting.',
+                'submit' => 'Hãy điền đủ mục tiêu, tiến độ, kết quả và kế hoạch ngày mai trước khi nộp.',
             ]);
         }
 
@@ -186,6 +186,6 @@ class DailyReportController extends Controller
 
         return redirect()
             ->route('daily-reports.show', $report)
-            ->with('success', 'Report submitted for review.');
+            ->with('success', 'Đã nộp báo cáo chờ duyệt.');
     }
 }

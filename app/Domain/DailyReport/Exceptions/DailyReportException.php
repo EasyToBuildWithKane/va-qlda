@@ -8,17 +8,17 @@ class DailyReportException extends DomainException
 {
     public static function notWorkingDay(): self
     {
-        return new self('Reports can only be submitted on working days (Mon–Sat).');
+        return new self('Chỉ được nộp báo cáo vào ngày làm việc (Thứ Hai – Thứ Bảy).');
     }
 
     public static function notSubmittable(): self
     {
-        return new self('Only a draft report can be submitted.');
+        return new self('Chỉ có thể nộp báo cáo đang ở trạng thái nháp.');
     }
 
     public static function notReviewable(): self
     {
-        return new self('Only a submitted report can be reviewed.');
+        return new self('Chỉ có thể duyệt báo cáo đã được nộp.');
     }
 
     public static function notDeletable(): self
