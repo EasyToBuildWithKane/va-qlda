@@ -294,7 +294,7 @@ class Navigation
                         'status' => 'live',
                     ],
                     [
-                        'label' => 'Phiếu đề xuất AI',
+                        'label' => 'PĐX & ĐNTT',
                         'icon' => 'budget',
                         'href' => '/ai-accounts/cost-report',
                         'status' => 'live',

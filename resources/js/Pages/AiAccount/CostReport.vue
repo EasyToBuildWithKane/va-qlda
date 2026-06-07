@@ -433,12 +433,12 @@ function runExport(format) {
 </script>
 
 <template>
-  <Head title="Quản lý AI · Phiếu đề xuất" />
+  <Head title="Quản lý AI · PĐX & ĐNTT" />
   <AppLayout>
     <template #header>
       <PageHeader
-        title="Quản lý AI"
-        subtitle="Phiếu đề xuất mua sắm · duyệt · theo dõi chi phí dự kiến"
+        title="PĐX & ĐNTT"
+        subtitle="Phiếu đề xuất mua sắm · đề nghị thanh toán · duyệt"
         icon="performance"
         icon-color="brand"
         :badge="proposalCounts.total ?? null"

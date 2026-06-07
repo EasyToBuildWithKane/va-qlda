@@ -18,7 +18,7 @@ defineProps({
     <div class="min-w-0">
       <template v-if="direction === 'to-proposals'">
         <p class="text-sm font-semibold text-slate-800">
-          Phiếu đề xuất mua AI (PDX)
+          PĐX & ĐNTT
         </p>
         <p class="mt-0.5 text-xs text-slate-500">
           Gửi phiếu → Ban duyệt → vào «Tài khoản AI» → Thêm tài khoản, chọn mã phiếu.
@@ -61,7 +61,7 @@ defineProps({
         name="performance"
         :size="15"
       />
-      Mở phiếu đề xuất
+      Mở PĐX & ĐNTT
       <AppIcon
         name="chevron-right"
         :size="14"

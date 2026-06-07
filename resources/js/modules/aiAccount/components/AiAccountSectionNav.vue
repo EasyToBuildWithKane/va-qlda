@@ -19,8 +19,8 @@ const TABS = [
     },
     {
         key: 'proposals',
-        label: 'Phiếu đề xuất',
-        hint: 'Đề xuất · duyệt · chi phí',
+        label: 'PĐX & ĐNTT',
+        hint: 'Đề xuất · đề nghị thanh toán',
         icon: 'budget',
         routeName: 'ai-accounts.cost-report',
     },
