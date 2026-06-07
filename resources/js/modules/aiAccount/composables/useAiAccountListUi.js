@@ -17,28 +17,6 @@ function groupHeaderCost(group, accounts, useFilteredSum) {
     return group.total_cost_monthly ?? accounts.reduce((sum, a) => sum + budgetMonthly(a), 0);
 }
 
-function computeSummaryFromAccounts(accounts) {
-    const rows = accounts ?? [];
-    const monthly = (a) => budgetMonthly(a);
-    const isDue = (a) => a.show_renewal_payment;
-    const isUnpaid = (a) => a.renewal_payment_status === 'unpaid';
-    const isPaid = (a) => a.renewal_payment_status === 'paid';
-
-    const dueRows = rows.filter(isDue);
-    const unpaidRows = dueRows.filter(isUnpaid);
-
-    return {
-        total_accounts: rows.length,
-        active_accounts: rows.filter((a) => a.status === 'active').length,
-        expiring_soon: rows.filter((a) => a.status === 'expiring_soon').length,
-        expired: rows.filter((a) => a.status === 'expired').length,
-        monthly_cost_running: rows.reduce((s, a) => s + monthly(a), 0),
-        renewal_unpaid_count: unpaidRows.length,
-        renewal_paid_count: dueRows.filter(isPaid).length,
-        monthly_cost_unpaid_renewal: unpaidRows.reduce((s, a) => s + monthly(a), 0),
-    };
-}
-
 const FILTER_VALUES_KEY = 'va-qlda.ai-accounts.filters';
 const VISIBLE_FILTERS_KEY = 'va-qlda.ai-accounts.filter-controls';
 const COLS_KEY = 'va-qlda.ai-accounts.columns';
@@ -247,17 +225,6 @@ export function useAiAccountListUi(groupsRef, optionsRef) {
         return parts.join(' · ');
     });
 
-    const filteredSummaryOverlay = computed(() => {
-        const isFiltered = activeFilterCount.value > 0;
-        if (!isFiltered) return null;
-        const flat = displayGroups.value.flatMap((g) => g.accounts ?? []);
-        return {
-            isFiltered: true,
-            filtered_count: flat.length,
-            ...computeSummaryFromAccounts(flat),
-        };
-    });
-
     const groupFilterOptions = computed(() => optionsRef?.value?.group_function ?? []);
 
     function clearFilters() {
@@ -294,7 +261,6 @@ export function useAiAccountListUi(groupsRef, optionsRef) {
         AI_ACCOUNT_RENEWAL_PAYMENT_FILTER_OPTS,
         AI_ACCOUNT_TABLE_COLUMNS,
         paymentCounts,
-        filteredSummaryOverlay,
         colVisible,
         visibleCols,
         persistVisibleColumns,

@@ -15,7 +15,6 @@ import AiPurchaseProposalApproveModal from '@/modules/aiAccount/components/AiPur
 import AiPaymentRequestModals from '@/modules/aiAccount/components/AiPaymentRequestModals.vue';
 import ProposalRowActions from '@/modules/aiAccount/components/ProposalRowActions.vue';
 import AiAccountSectionNav from '@/modules/aiAccount/components/AiAccountSectionNav.vue';
-import AiAccountCrossLink from '@/modules/aiAccount/components/AiAccountCrossLink.vue';
 import Badge from '@/shared/ui/Badge.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
@@ -45,7 +44,6 @@ const {
     proposals,
     proposalCounts,
     proposalCountsFiltered,
-    cards,
     load,
     loadProposals,
     createProposal,
@@ -239,10 +237,6 @@ async function applyFilters() {
 }
 
 const displayedProposals = computed(() => proposals.value ?? []);
-
-const awaitingAccountCount = computed(() =>
-    (proposals.value ?? []).filter((p) => p.awaiting_account).length,
-);
 
 function rowStatusLabel(row) {
     if (row.awaiting_account) return 'Chờ lập TK';
@@ -484,12 +478,6 @@ function runExport(format) {
         />
       </PageHeader>
     </template>
-
-    <AiAccountCrossLink
-      direction="to-accounts"
-      :account-count="cards?.total_accounts ?? 0"
-      :awaiting-account-count="awaitingAccountCount"
-    />
 
     <!-- ── Proposals Table ── -->
     <div class="card overflow-visible">
@@ -1183,10 +1171,6 @@ function runExport(format) {
 
       <div class="border-t border-slate-100 px-5 py-2.5 text-xs text-slate-400">
         {{ proposals.length }} / {{ displayProposalCounts.total ?? proposals.length }} phiếu
-        <span
-          v-if="activeFilterCount > 0 || search.trim()"
-          class="text-slate-400"
-        > · KPI trên: theo bộ lọc</span>
       </div>
     </div>
 

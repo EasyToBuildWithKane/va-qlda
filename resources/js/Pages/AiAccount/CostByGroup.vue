@@ -4,7 +4,6 @@ import { Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import AiAccountSectionNav from '@/modules/aiAccount/components/AiAccountSectionNav.vue';
-import AiAccountCrossLink from '@/modules/aiAccount/components/AiAccountCrossLink.vue';
 import AiCostByGroupPanel from '@/modules/aiAccount/components/AiCostByGroupPanel.vue';
 import { useAiCostReport } from '@/modules/aiAccount/composables/useAiCostReport';
 import { httpGet } from '@/shared/services/http';
@@ -48,11 +47,6 @@ onMounted(async () => {
         />
       </PageHeader>
     </template>
-
-    <AiAccountCrossLink
-      direction="to-proposals"
-      :pending-count="proposalPendingCount"
-    />
 
     <div
       v-if="loading && !byGroup.length"

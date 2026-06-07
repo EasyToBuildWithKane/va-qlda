@@ -13,21 +13,18 @@ const TABS = [
     {
         key: 'accounts',
         label: 'Tài khoản AI',
-        hint: 'License đang dùng',
         icon: 'account',
         routeName: 'ai-accounts.index',
     },
     {
         key: 'proposals',
         label: 'PĐX & ĐNTT',
-        hint: 'Đề xuất · đề nghị thanh toán',
         icon: 'budget',
         routeName: 'ai-accounts.cost-report',
     },
     {
         key: 'cost-by-group',
         label: 'Chi phí theo nhóm',
-        hint: 'Tổng hợp theo nhóm chức năng',
         icon: 'cost',
         routeName: 'ai-accounts.cost-by-group',
     },
@@ -55,27 +52,19 @@ const TABS = [
         :size="16"
         :class="active === tab.key ? 'text-brand' : 'text-slate-400'"
       />
-      <span class="flex min-w-0 flex-col items-start leading-tight">
-        <span class="flex items-center gap-1.5">
-          <span>{{ tab.label }}</span>
-          <span
-            v-if="tab.key === 'accounts' && accountsBadge != null && accountsBadge !== ''"
-            class="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-brand/10 px-1.5 text-[10px] font-bold text-brand"
-          >
-            {{ accountsBadge }}
-          </span>
-          <span
-            v-if="tab.key === 'proposals' && proposalsBadge != null && proposalsBadge !== ''"
-            class="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-brand/10 px-1.5 text-[10px] font-bold text-brand"
-          >
-            {{ proposalsBadge }}
-          </span>
+      <span class="flex min-w-0 items-center gap-1.5 leading-tight">
+        <span>{{ tab.label }}</span>
+        <span
+          v-if="tab.key === 'accounts' && accountsBadge != null && accountsBadge !== ''"
+          class="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-brand/10 px-1.5 text-[10px] font-bold text-brand"
+        >
+          {{ accountsBadge }}
         </span>
         <span
-          class="hidden text-[10px] font-normal text-slate-400 sm:block"
-          :class="active === tab.key && 'text-brand/70'"
+          v-if="tab.key === 'proposals' && proposalsBadge != null && proposalsBadge !== ''"
+          class="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-brand/10 px-1.5 text-[10px] font-bold text-brand"
         >
-          {{ tab.hint }}
+          {{ proposalsBadge }}
         </span>
       </span>
     </Link>

@@ -105,10 +105,6 @@ onUnmounted(() => document.removeEventListener('mousedown', onDocClick));
               {{ rows.length }}
             </span>
           </div>
-          <p class="text-xs leading-relaxed text-slate-500">
-            Chi phí tính từ <span class="font-medium text-slate-600">phiếu đề xuất đã duyệt</span>.
-            Cột «Phiếu chưa lập TK» là ngân sách đã duyệt nhưng chưa tạo tài khoản trên hệ thống.
-          </p>
         </div>
 
         <div class="flex shrink-0 flex-wrap items-center gap-2">

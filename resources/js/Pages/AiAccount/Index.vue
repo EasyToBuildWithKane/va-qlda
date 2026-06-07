@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, ref, toRef, watch } from 'vue';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import AppIcon from '@/Components/AppIcon.vue';
@@ -10,14 +10,12 @@ import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import ColumnVisibilityDropdown from '@/shared/ui/ColumnVisibilityDropdown.vue';
 import { useAiAccountListUi } from '@/modules/aiAccount/composables/useAiAccountListUi';
-import AiAccountSummaryCards from '@/modules/aiAccount/components/AiAccountSummaryCards.vue';
 import AiAccountAttentionStrip from '@/modules/aiAccount/components/AiAccountAttentionStrip.vue';
 import AiAccountGroupList from '@/modules/aiAccount/components/AiAccountGroupList.vue';
 import AiAccountFormModal from '@/modules/aiAccount/components/AiAccountFormModal.vue';
 import AiAccountRenewModal from '@/modules/aiAccount/components/AiAccountRenewModal.vue';
 import AiAccountPasswordViewersModal from '@/modules/aiAccount/components/AiAccountPasswordViewersModal.vue';
 import AiAccountSectionNav from '@/modules/aiAccount/components/AiAccountSectionNav.vue';
-import AiAccountCrossLink from '@/modules/aiAccount/components/AiAccountCrossLink.vue';
 import AiAccountBanner from '@/modules/aiAccount/components/AiAccountBanner.vue';
 import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
 
@@ -35,7 +33,6 @@ const {
     banner,
     summaryCards,
     proposalCounts,
-    awaitingAccountCount,
     search,
     expanded,
     fetchList,
@@ -65,7 +62,6 @@ const {
     PER_PAGE_OPTIONS,
     statusCounts,
     paymentCounts,
-    filteredSummaryOverlay,
     groupFilterOptions,
     clearFilters,
     toggleGroupFilter,
@@ -204,31 +200,12 @@ async function clearAllFilters() {
     clearFilters();
 }
 
-function onKpiFilterStatus(key) {
-    if (key === 'all') {
-        filters.status = 'all';
-        filters.attentionOnly = false;
-        return;
-    }
-    filters.status = key;
-    filters.attentionOnly = false;
-    expandAllGroups();
-}
-
-function onKpiFilterPayment(key) {
-    filters.renewalPayment = filters.renewalPayment === key ? 'all' : key;
-    expandAllGroups();
-}
-
 function showAttentionOnly() {
     filters.status = 'all';
     filters.attentionOnly = true;
     expandAllGroups();
 }
 
-function onKpiOpenCostReport() {
-    router.visit(route('ai-accounts.cost-report'));
-}
 </script>
 
 <template>
@@ -250,23 +227,7 @@ function onKpiOpenCostReport() {
       </PageHeader>
     </template>
 
-    <AiAccountCrossLink
-      direction="to-proposals"
-      :pending-count="proposalPendingCount"
-      :awaiting-account-count="awaitingAccountCount > 0 ? awaitingAccountCount : null"
-    />
-
     <AiAccountBanner :banner="banner" />
-
-    <AiAccountSummaryCards
-      :cards="summaryCards"
-      :active-status="filters.status"
-      :active-payment="filters.renewalPayment"
-      :filtered-overlay="filteredSummaryOverlay"
-      @filter-status="onKpiFilterStatus"
-      @filter-payment="onKpiFilterPayment"
-      @open-cost-report="onKpiOpenCostReport"
-    />
 
     <div class="card overflow-visible shadow-sm">
       <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
