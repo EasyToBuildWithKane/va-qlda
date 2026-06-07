@@ -42,7 +42,7 @@ class StoreOrgTeamRequest extends FormRequest
             if ($parentId) {
                 $parent = OrgTeam::query()->find($parentId);
                 if ($parent !== null && $parent->level >= OrgTeam::MAX_LEVEL) {
-                    $v->errors()->add('parent_id', 'Nhóm cha đã ở cấp tối đa (3). Không thể thêm nhóm con.');
+                    $v->errors()->add('parent_id', 'Nhóm này không thể có nhóm con thêm nữa.');
                 }
             }
 

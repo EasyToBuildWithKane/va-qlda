@@ -31,7 +31,7 @@ class OrgTeamTest extends TestCase
             ->assertInertia(fn ($page) => $page->component('OrgTeam/Index'));
     }
 
-    public function test_admin_can_create_three_level_tree(): void
+    public function test_admin_can_create_two_level_tree(): void
     {
         $admin = $this->admin();
         $leader = Employee::factory()->create(['full_name' => 'Nguyễn Anh Khoa']);
@@ -50,59 +50,36 @@ class OrgTeamTest extends TestCase
 
         $this->actingAs($admin, 'system')
             ->post(route('org-teams.store'), [
-                'name' => 'Đội ngũ Dev',
+                'name' => 'Tổ BA',
                 'parent_id' => $l1->id,
+                'sections' => [
+                    ['title' => 'Nhánh GVS'],
+                ],
                 'members' => $devs->map(fn ($e, $i) => [
                     'employee_id' => $e->id,
+                    'section_index' => 0,
                     'sort_order' => $i,
                 ])->all(),
             ])
             ->assertRedirect();
 
-        $l2 = OrgTeam::query()->where('name', 'Đội ngũ Dev')->first();
+        $l2 = OrgTeam::query()->where('name', 'Tổ BA')->first();
         $this->assertSame(2, $l2->level);
+        $this->assertCount(1, $l2->sections);
+        $this->assertSame('Nhánh GVS', $l2->sections->first()->title);
         $this->assertCount(3, $l2->members);
-
-        $ba = Employee::factory()->create();
-        $dev = Employee::factory()->create();
-        $this->actingAs($admin, 'system')
-            ->post(route('org-teams.store'), [
-                'name' => 'Tổ BA',
-                'parent_id' => $l2->id,
-                'sections' => [
-                    ['title' => 'Nhánh GVS'],
-                ],
-                'members' => [
-                    [
-                        'employee_id' => $ba->id,
-                        'section_index' => 0,
-                    ],
-                    [
-                        'employee_id' => $dev->id,
-                        'section_index' => 0,
-                    ],
-                ],
-            ])
-            ->assertRedirect();
-
-        $l3 = OrgTeam::query()->where('name', 'Tổ BA')->first();
-        $this->assertSame(3, $l3->level);
-        $this->assertCount(1, $l3->sections);
-        $this->assertSame('Nhánh GVS', $l3->sections->first()->title);
-        $this->assertCount(2, $l3->members);
     }
 
-    public function test_cannot_add_fourth_level(): void
+    public function test_cannot_add_third_level(): void
     {
         $admin = $this->admin();
         $l1 = OrgTeam::create(['name' => 'A', 'level' => 1]);
         $l2 = OrgTeam::create(['name' => 'B', 'level' => 2, 'parent_id' => $l1->id]);
-        $l3 = OrgTeam::create(['name' => 'C', 'level' => 3, 'parent_id' => $l2->id]);
 
         $this->actingAs($admin, 'system')
             ->post(route('org-teams.store'), [
-                'name' => 'D',
-                'parent_id' => $l3->id,
+                'name' => 'C',
+                'parent_id' => $l2->id,
             ])
             ->assertSessionHasErrors('parent_id');
     }

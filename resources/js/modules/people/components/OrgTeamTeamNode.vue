@@ -46,7 +46,7 @@ function levelTone(level) {
         Sửa
       </button>
       <button
-        v-if="node.level < 3"
+        v-if="node.level < 2"
         type="button"
         class="org-team-node__btn"
         @click="emit('add-child', node)"

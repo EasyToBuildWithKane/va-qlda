@@ -1,4 +1,5 @@
 <script setup>
+import { computed } from 'vue';
 import OrgTeamPersonNode from '@/modules/people/components/OrgTeamPersonNode.vue';
 import { useOrgTeamRoster } from '@/modules/people/composables/useOrgTeamPeople.js';
 
@@ -13,11 +14,25 @@ const roster = useOrgTeamRoster(() => ({
     members: props.members,
     sections: props.sections,
 }));
+
+const memberCards = computed(() => {
+    const cards = [];
+    for (const group of roster.value.sectionGroups) {
+        for (const person of group.people) {
+            cards.push({
+                ...person,
+                displayRole: group.title || person.role,
+            });
+        }
+    }
+
+    return cards;
+});
 </script>
 
 <template>
   <div
-    v-if="roster.leader || roster.sectionGroups.length"
+    v-if="roster.leader || memberCards.length"
     class="org-tree__people"
   >
     <div
@@ -33,38 +48,26 @@ const roster = useOrgTeamRoster(() => ({
     </div>
 
     <div
-      v-if="roster.sectionGroups.length"
+      v-if="memberCards.length"
       class="org-tree__members-section"
     >
-      <div
-        v-for="group in roster.sectionGroups"
-        :key="group.key"
-        class="org-tree__section-block"
+      <ul
+        class="org-tree__members-row"
+        :class="{ 'org-tree__members-row--multi': memberCards.length > 1 }"
       >
-        <p
-          v-if="group.title"
-          class="org-tree__section-title"
+        <li
+          v-for="person in memberCards"
+          :key="person.key"
+          class="org-tree__members-item"
         >
-          {{ group.title }}
-        </p>
-        <ul
-          class="org-tree__members-row"
-          :class="{ 'org-tree__members-row--multi': group.people.length > 1 }"
-        >
-          <li
-            v-for="person in group.people"
-            :key="person.key"
-            class="org-tree__members-item"
-          >
-            <OrgTeamPersonNode
-              :name="person.name"
-              :avatar="person.avatar"
-              :role="person.role"
-              :is-leader="false"
-            />
-          </li>
-        </ul>
-      </div>
+          <OrgTeamPersonNode
+            :name="person.name"
+            :avatar="person.avatar"
+            :role="person.displayRole"
+            :is-leader="false"
+          />
+        </li>
+      </ul>
     </div>
   </div>
 </template>

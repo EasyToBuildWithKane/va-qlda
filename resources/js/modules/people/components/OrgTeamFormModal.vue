@@ -29,7 +29,7 @@ const form = useForm({
 const isEdit = computed(() => !!props.team);
 
 const parentChoices = computed(() => {
-    let list = props.parentOptions.filter((p) => p.level < 3);
+    let list = props.parentOptions.filter((p) => p.level < 2);
     if (isEdit.value && props.team?.id) {
         list = list.filter((p) => p.id !== props.team.id);
     }

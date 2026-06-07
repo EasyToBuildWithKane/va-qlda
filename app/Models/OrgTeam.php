@@ -17,7 +17,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class OrgTeam extends Model
 {
-    public const MAX_LEVEL = 3;
+    public const MAX_LEVEL = 2;
 
     protected $fillable = [
         'parent_id',

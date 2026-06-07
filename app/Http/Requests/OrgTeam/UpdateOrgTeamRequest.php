@@ -61,7 +61,7 @@ class UpdateOrgTeamRequest extends FormRequest
 
                 $parent = OrgTeam::query()->find($parentId);
                 if ($parent && $parent->level >= OrgTeam::MAX_LEVEL) {
-                    $v->errors()->add('parent_id', 'Nhóm cha đã ở cấp tối đa (3).');
+                    $v->errors()->add('parent_id', 'Nhóm này không thể có nhóm con thêm nữa.');
                 }
             }
 
@@ -76,7 +76,7 @@ class UpdateOrgTeamRequest extends FormRequest
             }
 
             if ($level > OrgTeam::MAX_LEVEL) {
-                $v->errors()->add('parent_id', 'Cấu trúc tối đa 3 cấp.');
+                $v->errors()->add('parent_id', 'Chỉ có tối đa hai tầng nhóm (nhóm chính và nhóm con).');
             }
 
             $this->validateSectionIndexes($v);
