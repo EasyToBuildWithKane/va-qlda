@@ -7,7 +7,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
-import AnalyticsFilterVisibilityDropdown from '@/modules/aiAccount/components/AnalyticsFilterVisibilityDropdown.vue';
+import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import { useAiAnalyticsReport } from '@/modules/aiAccount/composables/useAiAnalyticsReport';
 import { exportAiAnalyticsWorkbook } from '@/modules/aiAccount/composables/useAiAnalyticsExport';
 import { useAiExecutiveDashboard } from '@/modules/aiAccount/composables/useAiExecutiveDashboard';
@@ -16,10 +16,6 @@ import {
     DEFAULT_VISIBLE_ANALYTICS_COLUMNS,
 } from '@/modules/aiAccount/config/analyticsReportColumns';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
-import {
-    isAnchoredDropdownTarget,
-    useAnchoredDropdownStyle,
-} from '@/shared/composables/useAnchoredDropdownStyle';
 import { useToast } from '@/shared/composables/useToast';
 import { formatVnd } from '@/modules/aiAccount/utils/formatVnd';
 
@@ -94,8 +90,6 @@ const exporting = ref(false);
 const filterPanelDdRef = ref(null);
 const colDdRef = ref(null);
 const exportDdRef = ref(null);
-const { panelStyle: colPanelStyle } = useAnchoredDropdownStyle(colDdRef, showColDd);
-const { panelStyle: exportPanelStyle } = useAnchoredDropdownStyle(exportDdRef, showExportDd, { width: 176 });
 const groupBy = ref('');
 const debounceTimer = ref(null);
 
@@ -211,16 +205,15 @@ watch([
 ], scheduleLoad);
 
 function onDocMouseDown(e) {
-    if (isAnchoredDropdownTarget(e.target)) {
-        return;
+    if (filterPanelDdRef.value && !filterPanelDdRef.value.contains(e.target)) {
+        showFilterPanelDd.value = false;
     }
-    [filterPanelDdRef, colDdRef, exportDdRef].forEach((r) => {
-        if (r.value && !r.value.contains(e.target)) {
-            showFilterPanelDd.value = false;
-            showColDd.value = false;
-            showExportDd.value = false;
-        }
-    });
+    if (colDdRef.value && !colDdRef.value.contains(e.target)) {
+        showColDd.value = false;
+    }
+    if (exportDdRef.value && !exportDdRef.value.contains(e.target)) {
+        showExportDd.value = false;
+    }
 }
 
 onMounted(async () => {
@@ -290,133 +283,141 @@ function cellValue(row, col) {
     </template>
 
     <div class="card overflow-visible shadow-sm">
-      <div class="border-b border-slate-100 px-5 py-3">
-        <div class="flex flex-wrap items-center gap-2">
-          <div class="flex min-w-0 flex-1 items-center gap-2">
-            <DatagridToolbarSearch
-              v-model="search"
-              input-id="ai-analytics-search"
-              placeholder="Mã hồ sơ, sản phẩm, người dùng…"
-            />
-          </div>
-          <div
-            ref="filterPanelDdRef"
-            class="relative shrink-0"
-          >
-            <button
-              type="button"
-              class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
-              :class="showFilterPanelDd
-                ? 'border-brand/40 bg-brand/5 text-brand'
-                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800'"
-              :title="`Bộ lọc (${enabledFilterControlCount}/${FILTER_CONTROLS.length} đang hiển thị)`"
-              aria-label="Hiển thị bộ lọc trên thanh công cụ"
-              @click="openFilterPanel"
+      <div class="relative z-20 overflow-visible border-b border-slate-100 bg-slate-50/40 px-5 py-3.5">
+        <div class="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
+          <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+            <div class="flex min-w-0 flex-1 basis-full items-center gap-2 lg:min-w-[28rem] lg:basis-auto xl:min-w-[32rem]">
+              <DatagridToolbarSearch
+                v-model="search"
+                input-id="ai-analytics-search"
+                placeholder="Mã hồ sơ, sản phẩm, người dùng…"
+              />
+            </div>
+            <div
+              ref="filterPanelDdRef"
+              class="relative shrink-0"
             >
-              <AppIcon
-                name="filter"
-                :size="15"
-              /><span>Lọc</span>
-              <span
-                v-if="enabledFilterControlCount"
-                class="text-brand"
-              >({{ enabledFilterControlCount }})</span>
-            </button>
-            <AnalyticsFilterVisibilityDropdown
-              v-model="visibleFilters"
-              :anchor="filterPanelDdRef"
-              :show="showFilterPanelDd"
-              :controls="FILTER_CONTROLS"
-              @persist="persistVisibleFilters"
-            />
-          </div>
-          <div
-            ref="colDdRef"
-            class="relative shrink-0"
-          >
-            <button
-              type="button"
-              class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
-              :class="showColDd
-                ? 'border-brand/40 bg-brand/5 text-brand'
-                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800'"
-              title="Cột hiển thị"
-              aria-label="Cột hiển thị"
-              @click="openCol"
-            >
-              <AppIcon
-                name="columns"
-                :size="15"
-              /><span>Cột</span>
-            </button>
-            <Teleport to="body">
-              <div
-                v-if="showColDd"
-                data-va-anchored-dropdown
-                :style="colPanelStyle"
-                class="max-h-[min(20rem,70vh)] overflow-y-auto rounded-xl border border-slate-200 bg-white py-2 shadow-elevation-2"
-                @mousedown.stop
+              <button
+                type="button"
+                class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
+                :class="showFilterPanelDd
+                  ? 'border-brand/40 bg-brand/5 text-brand'
+                  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800'"
+                :title="`Bộ lọc (${enabledFilterControlCount}/${FILTER_CONTROLS.length} đang hiển thị)`"
+                aria-label="Hiển thị bộ lọc trên thanh công cụ"
+                @click="openFilterPanel"
               >
-                <p class="px-3 pb-1 pt-2 text-[10px] uppercase text-slate-400">
-                  Kéo thả thứ tự
-                </p>
+                <AppIcon
+                  name="filter"
+                  :size="15"
+                /><span>Lọc</span>
+                <span
+                  v-if="enabledFilterControlCount"
+                  class="text-brand"
+                >({{ enabledFilterControlCount }})</span>
+              </button>
+              <FilterVisibilityDropdown
+                v-model="visibleFilters"
+                :show="showFilterPanelDd"
+                :controls="FILTER_CONTROLS"
+                @persist="persistVisibleFilters"
+              />
+            </div>
+            <div
+              ref="colDdRef"
+              class="relative shrink-0"
+            >
+              <button
+                type="button"
+                class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
+                :class="showColDd
+                  ? 'border-brand/40 bg-brand/5 text-brand'
+                  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800'"
+                title="Cột hiển thị"
+                aria-label="Cột hiển thị"
+                @click="openCol"
+              >
+                <AppIcon
+                  name="columns"
+                  :size="15"
+                /><span>Cột</span>
+              </button>
+              <Transition
+                enter-active-class="transition duration-150 ease-out"
+                enter-from-class="opacity-0 scale-95 -translate-y-1"
+                leave-active-class="transition duration-100 ease-in"
+                leave-to-class="opacity-0 scale-95 -translate-y-1"
+              >
                 <div
-                  v-for="col in orderedColumns"
-                  :key="col.key"
-                  draggable="true"
-                  class="flex cursor-grab items-center gap-2 px-3 py-1 text-xs hover:bg-slate-50"
-                  @dragstart="onColDragStart(col.key)"
-                  @dragover.prevent
-                  @drop="onColDrop(col.key)"
+                  v-if="showColDd"
+                  class="absolute right-0 top-full z-50 mt-1.5 max-h-80 w-56 overflow-y-auto rounded-xl border border-slate-200 bg-white py-2 shadow-elevation-2"
                 >
-                  <input
-                    type="checkbox"
-                    class="rounded border-slate-300 text-brand focus:ring-brand/30"
-                    :checked="visibleCols[col.key]"
-                    @change="toggleVisibleCol(col.key, $event.target.checked)"
+                  <div class="border-b border-slate-100 px-4 py-2">
+                    <span class="text-xs font-bold uppercase tracking-wide text-slate-500">Cột hiển thị</span>
+                  </div>
+                  <p class="px-3 pb-1 pt-2 text-[10px] uppercase text-slate-400">
+                    Kéo thả thứ tự
+                  </p>
+                  <div
+                    v-for="col in orderedColumns"
+                    :key="col.key"
+                    draggable="true"
+                    class="flex cursor-grab items-center gap-2 px-3 py-1 text-xs hover:bg-slate-50"
+                    @dragstart="onColDragStart(col.key)"
+                    @dragover.prevent
+                    @drop="onColDrop(col.key)"
                   >
-                  {{ col.label }}
+                    <input
+                      type="checkbox"
+                      class="rounded border-slate-300 text-brand focus:ring-brand/30"
+                      :checked="visibleCols[col.key]"
+                      @change="toggleVisibleCol(col.key, $event.target.checked)"
+                    >
+                    {{ col.label }}
+                  </div>
                 </div>
-              </div>
-            </Teleport>
-          </div>
-          <div
-            ref="exportDdRef"
-            class="relative shrink-0"
-          >
-            <button
-              type="button"
-              class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
-              :class="showExportDd && 'border-brand/40 bg-brand/5 text-brand'"
-              @click="openExportMenu"
+              </Transition>
+            </div>
+            <div
+              ref="exportDdRef"
+              class="relative shrink-0"
             >
-              <AppIcon
-                name="export"
-                :size="15"
-              /><span>Xuất</span>
-            </button>
-            <Teleport to="body">
-              <div
-                v-if="showExportDd"
-                data-va-anchored-dropdown
-                :style="exportPanelStyle"
-                class="rounded-xl border border-slate-200 bg-white py-1 shadow-elevation-2"
-                @mousedown.stop
+              <button
+                type="button"
+                class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
+                :class="showExportDd && 'border-brand/40 bg-brand/5 text-brand'"
+                @click="openExportMenu"
               >
-                <button
-                  type="button"
-                  class="block w-full px-3 py-2 text-left text-xs hover:bg-slate-50 disabled:opacity-50"
-                  :disabled="exporting || loading"
-                  @click.stop="exportExcel"
+                <AppIcon
+                  name="export"
+                  :size="15"
+                /><span>Xuất</span>
+              </button>
+              <Transition
+                enter-active-class="transition duration-150 ease-out"
+                enter-from-class="opacity-0 scale-95 -translate-y-1"
+                leave-active-class="transition duration-100 ease-in"
+                leave-to-class="opacity-0 scale-95 -translate-y-1"
+              >
+                <div
+                  v-if="showExportDd"
+                  class="absolute right-0 top-full z-50 mt-1.5 w-44 rounded-xl border border-slate-200 bg-white py-1 shadow-elevation-2"
                 >
-                  {{ exporting ? 'Đang xuất…' : 'Excel báo cáo (.xlsx)' }}
-                </button>
-              </div>
-            </Teleport>
+                  <button
+                    type="button"
+                    class="block w-full px-3 py-2 text-left text-xs hover:bg-slate-50 disabled:opacity-50"
+                    :disabled="exporting || loading"
+                    @click.stop="exportExcel"
+                  >
+                    {{ exporting ? 'Đang xuất…' : 'Excel báo cáo (.xlsx)' }}
+                  </button>
+                </div>
+              </Transition>
+            </div>
           </div>
           <select
             v-model="groupBy"
-            class="h-9 rounded-lg border border-slate-200 px-2 text-xs text-slate-700"
+            class="h-9 shrink-0 rounded-lg border border-slate-200 bg-white px-2 text-xs text-slate-700"
             aria-label="Nhóm dữ liệu"
           >
             <option value="">
@@ -431,176 +432,176 @@ function cellValue(row, col) {
             </option>
           </select>
         </div>
-      </div>
 
-      <div
-        v-if="hasFilterRow"
-        class="flex flex-wrap gap-2 border-b border-slate-100 px-5 py-2.5"
-      >
-        <template v-if="visibleFilters.date_created">
-          <input
-            v-model="createdFrom"
-            type="date"
+        <div
+          v-if="hasFilterRow"
+          class="mt-2.5 flex flex-wrap gap-2 border-t border-slate-100 pt-2.5"
+        >
+          <template v-if="visibleFilters.date_created">
+            <input
+              v-model="createdFrom"
+              type="date"
+              class="h-8 rounded border border-slate-200 px-2 text-xs"
+              aria-label="Từ ngày PĐX"
+            >
+            <input
+              v-model="createdTo"
+              type="date"
+              class="h-8 rounded border border-slate-200 px-2 text-xs"
+              aria-label="Đến ngày PĐX"
+            >
+          </template>
+          <template v-if="visibleFilters.purchase_date">
+            <input
+              v-model="purchaseFrom"
+              type="date"
+              class="h-8 rounded border border-slate-200 px-2 text-xs"
+            >
+            <input
+              v-model="purchaseTo"
+              type="date"
+              class="h-8 rounded border border-slate-200 px-2 text-xs"
+            >
+          </template>
+          <template v-if="visibleFilters.expiry">
+            <input
+              v-model="expiryFrom"
+              type="date"
+              class="h-8 rounded border border-slate-200 px-2 text-xs"
+            >
+            <input
+              v-model="expiryTo"
+              type="date"
+              class="h-8 rounded border border-slate-200 px-2 text-xs"
+            >
+          </template>
+          <select
+            v-if="visibleFilters.department"
+            v-model="department"
             class="h-8 rounded border border-slate-200 px-2 text-xs"
-            aria-label="Từ ngày PĐX"
           >
-          <input
-            v-model="createdTo"
-            type="date"
-            class="h-8 rounded border border-slate-200 px-2 text-xs"
-            aria-label="Đến ngày PĐX"
-          >
-        </template>
-        <template v-if="visibleFilters.purchase_date">
-          <input
-            v-model="purchaseFrom"
-            type="date"
-            class="h-8 rounded border border-slate-200 px-2 text-xs"
-          >
-          <input
-            v-model="purchaseTo"
-            type="date"
+            <option value="all">
+              Tất cả phòng ban
+            </option>
+            <option
+              v-for="d in filterOptions.departments"
+              :key="d"
+              :value="d"
+            >
+              {{ d }}
+            </option>
+          </select>
+          <select
+            v-if="visibleFilters.group_function"
+            v-model="groupFunction"
             class="h-8 rounded border border-slate-200 px-2 text-xs"
           >
-        </template>
-        <template v-if="visibleFilters.expiry">
-          <input
-            v-model="expiryFrom"
-            type="date"
+            <option value="all">
+              Tất cả nhóm
+            </option>
+            <option
+              v-for="o in options.group_function"
+              :key="o.value"
+              :value="o.value"
+            >
+              {{ o.label }}
+            </option>
+          </select>
+          <select
+            v-if="visibleFilters.tool"
+            v-model="tool"
             class="h-8 rounded border border-slate-200 px-2 text-xs"
           >
-          <input
-            v-model="expiryTo"
-            type="date"
+            <option value="all">
+              Tất cả AI
+            </option>
+            <option
+              v-for="t in filterOptions.tools"
+              :key="t"
+              :value="t"
+            >
+              {{ t }}
+            </option>
+          </select>
+          <select
+            v-if="visibleFilters.vendor"
+            v-model="vendor"
             class="h-8 rounded border border-slate-200 px-2 text-xs"
           >
-        </template>
-        <select
-          v-if="visibleFilters.department"
-          v-model="department"
-          class="h-8 rounded border border-slate-200 px-2 text-xs"
-        >
-          <option value="all">
-            Tất cả phòng ban
-          </option>
-          <option
-            v-for="d in filterOptions.departments"
-            :key="d"
-            :value="d"
+            <option value="all">
+              Nhà cung cấp
+            </option>
+            <option
+              v-for="v in filterOptions.vendors"
+              :key="v"
+              :value="v"
+            >
+              {{ v }}
+            </option>
+          </select>
+          <select
+            v-if="visibleFilters.status"
+            v-model="status"
+            class="h-8 rounded border border-slate-200 px-2 text-xs"
           >
-            {{ d }}
-          </option>
-        </select>
-        <select
-          v-if="visibleFilters.group_function"
-          v-model="groupFunction"
-          class="h-8 rounded border border-slate-200 px-2 text-xs"
-        >
-          <option value="all">
-            Tất cả nhóm
-          </option>
-          <option
-            v-for="o in options.group_function"
-            :key="o.value"
-            :value="o.value"
+            <option value="all">
+              Trạng thái TK
+            </option>
+            <option
+              v-for="o in options.status"
+              :key="o.value"
+              :value="o.value"
+            >
+              {{ o.label }}
+            </option>
+          </select>
+          <select
+            v-if="visibleFilters.lifecycle"
+            v-model="lifecycleStatus"
+            class="h-8 rounded border border-slate-200 px-2 text-xs"
           >
-            {{ o.label }}
-          </option>
-        </select>
-        <select
-          v-if="visibleFilters.tool"
-          v-model="tool"
-          class="h-8 rounded border border-slate-200 px-2 text-xs"
-        >
-          <option value="all">
-            Tất cả AI
-          </option>
-          <option
-            v-for="t in filterOptions.tools"
-            :key="t"
-            :value="t"
+            <option value="all">
+              Vòng đời
+            </option>
+            <option
+              v-for="o in options.lifecycle_status"
+              :key="o.value"
+              :value="o.value"
+            >
+              {{ o.label }}
+            </option>
+          </select>
+          <select
+            v-if="visibleFilters.proposer"
+            v-model="proposer"
+            class="h-8 max-w-[12rem] rounded border border-slate-200 px-2 text-xs"
           >
-            {{ t }}
-          </option>
-        </select>
-        <select
-          v-if="visibleFilters.vendor"
-          v-model="vendor"
-          class="h-8 rounded border border-slate-200 px-2 text-xs"
-        >
-          <option value="all">
-            Nhà cung cấp
-          </option>
-          <option
-            v-for="v in filterOptions.vendors"
-            :key="v"
-            :value="v"
-          >
-            {{ v }}
-          </option>
-        </select>
-        <select
-          v-if="visibleFilters.status"
-          v-model="status"
-          class="h-8 rounded border border-slate-200 px-2 text-xs"
-        >
-          <option value="all">
-            Trạng thái TK
-          </option>
-          <option
-            v-for="o in options.status"
-            :key="o.value"
-            :value="o.value"
-          >
-            {{ o.label }}
-          </option>
-        </select>
-        <select
-          v-if="visibleFilters.lifecycle"
-          v-model="lifecycleStatus"
-          class="h-8 rounded border border-slate-200 px-2 text-xs"
-        >
-          <option value="all">
-            Vòng đời
-          </option>
-          <option
-            v-for="o in options.lifecycle_status"
-            :key="o.value"
-            :value="o.value"
-          >
-            {{ o.label }}
-          </option>
-        </select>
-        <select
-          v-if="visibleFilters.proposer"
-          v-model="proposer"
-          class="h-8 max-w-[12rem] rounded border border-slate-200 px-2 text-xs"
-        >
-          <option value="all">
-            Người đề xuất
-          </option>
-          <option
-            v-for="p in filterOptions.proposers"
-            :key="p"
-            :value="p"
-          >
-            {{ p }}
-          </option>
-        </select>
-        <template v-if="visibleFilters.cost_range">
-          <input
-            v-model="costMin"
-            type="number"
-            placeholder="Chi phí min"
-            class="h-8 w-28 rounded border border-slate-200 px-2 text-xs"
-          >
-          <input
-            v-model="costMax"
-            type="number"
-            placeholder="Chi phí max"
-            class="h-8 w-28 rounded border border-slate-200 px-2 text-xs"
-          >
-        </template>
+            <option value="all">
+              Người đề xuất
+            </option>
+            <option
+              v-for="p in filterOptions.proposers"
+              :key="p"
+              :value="p"
+            >
+              {{ p }}
+            </option>
+          </select>
+          <template v-if="visibleFilters.cost_range">
+            <input
+              v-model="costMin"
+              type="number"
+              placeholder="Chi phí min"
+              class="h-8 w-28 rounded border border-slate-200 px-2 text-xs"
+            >
+            <input
+              v-model="costMax"
+              type="number"
+              placeholder="Chi phí max"
+              class="h-8 w-28 rounded border border-slate-200 px-2 text-xs"
+            >
+          </template>
+        </div>
       </div>
 
       <div class="w-full min-w-0 overflow-x-auto">
