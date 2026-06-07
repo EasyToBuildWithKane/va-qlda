@@ -4,8 +4,6 @@ import Modal from '@/Components/Ui/Modal.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import VndAmount from '@/modules/aiAccount/components/VndAmount.vue';
 import ProposerEmployeePick from '@/modules/aiAccount/components/ProposerEmployeePick.vue';
-import ProposalPdfPreviewPane from '@/modules/aiAccount/components/ProposalPdfPreviewPane.vue';
-import { useProposalPdfPreview } from '@/modules/aiAccount/composables/useProposalPdfPreview';
 import MoneyInput from '@/shared/ui/MoneyInput.vue';
 import ProposalFormLabel from '@/modules/aiAccount/components/ProposalFormLabel.vue';
 import { PROPOSAL_FORM_HINTS as H, PROPOSAL_FORM_PLACEHOLDERS as P } from '@/modules/aiAccount/config/proposalFormHints';
@@ -40,13 +38,11 @@ const TABS = [
     { key: 'proposer', label: 'Người đề xuất', icon: 'account' },
     { key: 'tool', label: 'Công cụ & chi phí', icon: 'money' },
     { key: 'content', label: 'Nội dung phiếu', icon: 'edit' },
-    { key: 'preview', label: 'Xem trước PDF', icon: 'pdf' },
 ];
 
 const dirty = ref(false);
 const activeTab = ref('proposer');
 const selectedProposerId = ref(null);
-const previewZoom = ref(1);
 
 const form = reactive({
     proposer_name: '',
@@ -216,8 +212,6 @@ watch(() => props.show, (open) => {
     if (!open) return;
     dirty.value = false;
     activeTab.value = 'proposer';
-    previewZoom.value = 1;
-    resetPreview();
     selectedProposerId.value = props.proposalDefaults?.proposer_employee_id ?? null;
     if (props.editProposal?.id) {
         populateFromProposal(props.editProposal);
@@ -293,16 +287,6 @@ function buildSubmitPayload() {
     };
 }
 
-const previewSection = computed(() => (activeTab.value === 'preview' ? 'preview' : 'form'));
-
-const {
-    html: previewHtml,
-    loading: previewLoading,
-    error: previewError,
-    reset: resetPreview,
-    refresh: refreshPreview,
-} = useProposalPdfPreview(form, previewSection, buildSubmitPayload);
-
 function goTab(key) {
     activeTab.value = key;
 }
@@ -310,14 +294,6 @@ function goTab(key) {
 function goAdjacent(delta) {
     const next = Math.min(TABS.length - 1, Math.max(0, tabIndex.value + delta));
     activeTab.value = TABS[next].key;
-}
-
-function previewZoomIn() {
-    previewZoom.value = Math.min(1.5, Math.round((previewZoom.value + 0.1) * 10) / 10);
-}
-
-function previewZoomOut() {
-    previewZoom.value = Math.max(0.5, Math.round((previewZoom.value - 0.1) * 10) / 10);
 }
 
 function handleSubmit() {
@@ -749,17 +725,6 @@ function handleSubmit() {
             </div>
           </div>
         </div>
-
-        <!-- Tab: Xem trước -->
-        <ProposalPdfPreviewPane
-          v-show="activeTab === 'preview'"
-          :html="previewHtml"
-          :loading="previewLoading"
-          :error="previewError"
-          :zoom="previewZoom"
-          class="min-h-0 flex-1"
-          @refresh="refreshPreview"
-        />
       </div>
 
       <div class="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-4">
@@ -773,41 +738,13 @@ function handleSubmit() {
             Quay lại
           </button>
           <button
-            v-if="activeTab !== 'preview'"
+            v-if="tabIndex < TABS.length - 1"
             type="button"
             class="btn-secondary text-sm"
             @click="goAdjacent(1)"
           >
             Tiếp theo
           </button>
-          <div
-            v-if="activeTab === 'preview' && previewHtml && !previewLoading"
-            class="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 p-0.5"
-          >
-            <button
-              type="button"
-              class="grid h-8 w-8 place-items-center rounded-md text-slate-600 hover:bg-white disabled:opacity-40"
-              title="Thu nhỏ"
-              aria-label="Thu nhỏ xem trước"
-              :disabled="previewZoom <= 0.5"
-              @click="previewZoomOut"
-            >
-              <span class="text-lg font-medium leading-none">−</span>
-            </button>
-            <span class="min-w-[2.75rem] text-center text-xs font-medium tabular-nums text-slate-600">
-              {{ Math.round(previewZoom * 100) }}%
-            </span>
-            <button
-              type="button"
-              class="grid h-8 w-8 place-items-center rounded-md text-slate-600 hover:bg-white disabled:opacity-40"
-              title="Phóng to"
-              aria-label="Phóng to xem trước"
-              :disabled="previewZoom >= 1.5"
-              @click="previewZoomIn"
-            >
-              <span class="text-lg font-medium leading-none">+</span>
-            </button>
-          </div>
         </div>
         <div class="flex gap-2">
           <button

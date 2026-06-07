@@ -171,7 +171,6 @@ Route::middleware('auth')->group(function () {
         Route::get('/proposals-awaiting-account', [AiPurchaseProposalController::class, 'awaitingAccount'])->name('proposals.awaiting-account');
         Route::post('/proposals', [AiPurchaseProposalController::class, 'store'])->name('proposals.store');
         Route::put('/proposals/{proposal}', [AiPurchaseProposalController::class, 'update'])->name('proposals.update');
-        Route::post('/proposals/preview', [AiPurchaseProposalController::class, 'preview'])->name('proposals.preview');
         Route::delete('/proposals/{proposal}', [AiPurchaseProposalController::class, 'destroy'])->name('proposals.destroy');
         Route::post('/proposals/{proposal}/approve', [AiPurchaseProposalController::class, 'approve'])->name('proposals.approve');
         Route::post('/proposals/{proposal}/reject', [AiPurchaseProposalController::class, 'reject'])->name('proposals.reject');

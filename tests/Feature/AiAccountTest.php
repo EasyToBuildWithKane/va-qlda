@@ -353,25 +353,6 @@ class AiAccountTest extends TestCase
         $this->assertDatabaseMissing('ai_purchase_proposals', ['id' => $proposal->id]);
     }
 
-    public function test_purchase_proposal_preview_returns_shared_template_html(): void
-    {
-        $this->actingAsUser();
-
-        $response = $this->postJson(
-            route('api.ai-accounts.proposals.preview'),
-            $this->proposalPayload(['planned_use_date' => now()->addMonth()->format('Y-m-d')]),
-        );
-
-        $response->assertOk()
-            ->assertJsonPath('success', true);
-
-        $html = $response->json('data.html');
-        $this->assertIsString($html);
-        $this->assertStringContainsString('PHIẾU ĐỀ XUẤT', $html);
-        $this->assertStringContainsString('Cursor Pro', $html);
-        $this->assertStringContainsString('proposal-preview-root', $html);
-    }
-
     public function test_purchase_proposal_index_filters_by_group_and_dates(): void
     {
         $this->actingAsUser();

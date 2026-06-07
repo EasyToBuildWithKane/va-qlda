@@ -4,7 +4,6 @@ namespace App\Http\Controllers\AiAccount;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AiAccount\ApproveAiPurchaseProposalRequest;
-use App\Http\Requests\AiAccount\PreviewAiPurchaseProposalRequest;
 use App\Http\Requests\AiAccount\RejectAiPurchaseProposalRequest;
 use App\Http\Requests\AiAccount\StoreAiPurchaseProposalRequest;
 use App\Http\Requests\AiAccount\UpdateAiPurchaseProposalNotesRequest;
@@ -207,16 +206,6 @@ class AiPurchaseProposalController extends Controller
             'start_date' => $validated['start_date'] ?? null,
             'end_date' => $validated['end_date'] ?? null,
         ];
-    }
-
-    public function preview(PreviewAiPurchaseProposalRequest $request): JsonResponse
-    {
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'html' => $this->documentService->renderPreviewHtml($request->validated()),
-            ],
-        ]);
     }
 
     public function destroy(AiPurchaseProposal $proposal): JsonResponse

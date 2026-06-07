@@ -93,20 +93,6 @@ class AiPurchaseProposalDocumentService
     }
 
     /**
-     * HTML xem trước trong modal — cùng partial với PDF.
-     *
-     * @param  array<string, mixed>  $input
-     */
-    public function renderPreviewHtml(array $input): string
-    {
-        return view('pdf.ai-purchase-proposal-preview', [
-            'vars' => $this->templateVariablesFromInput($input),
-            'checkboxImg' => asset('docx/checkbox.png'),
-            'backgroundImg' => asset('docx/background.png'),
-        ])->render();
-    }
-
-    /**
      * @return array<string, mixed>
      */
     private function proposalToInput(AiPurchaseProposal $proposal): array
