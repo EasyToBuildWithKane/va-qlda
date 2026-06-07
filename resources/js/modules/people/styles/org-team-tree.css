@@ -1,0 +1,170 @@
+/* Cây org chart — flex + đường nối phân cấp */
+
+.org-tree {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.org-tree--root {
+    width: 100%;
+}
+
+.org-tree__branch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    position: relative;
+}
+
+.org-tree__stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+}
+
+/* Thân cây xuống nhánh con */
+.org-tree__branch:has(> .org-tree__children) > .org-tree__stack::after {
+    content: '';
+    display: block;
+    width: 2px;
+    height: 1.25rem;
+    margin-top: 0.25rem;
+    background: rgb(203 213 225);
+    border-radius: 1px;
+}
+
+.org-tree__people {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 0.25rem;
+}
+
+.org-tree__people:has(.org-tree__people-list)::before {
+    content: '';
+    display: block;
+    width: 2px;
+    height: 0.875rem;
+    background: rgb(203 213 225);
+    border-radius: 1px;
+}
+
+.org-tree__people-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.75rem 1rem;
+    padding: 0.75rem 0.5rem 0;
+    position: relative;
+}
+
+.org-tree__people-list::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 12%;
+    right: 12%;
+    height: 2px;
+    background: rgb(203 213 225);
+    border-radius: 1px;
+}
+
+.org-tree__people-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    padding-top: 0.75rem;
+}
+
+.org-tree__people-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 2px;
+    height: 0.75rem;
+    margin-left: -1px;
+    background: rgb(203 213 225);
+    border-radius: 1px;
+}
+
+.org-tree__people-list:has(.org-tree__people-item:only-child)::before {
+    display: none;
+}
+
+.org-tree__people-list:has(.org-tree__people-item:only-child) .org-tree__people-item {
+    padding-top: 0;
+}
+
+.org-tree__people-list:has(.org-tree__people-item:only-child) .org-tree__people-item::before {
+    display: none;
+}
+
+.org-tree__empty-hint {
+    margin-top: 0.5rem;
+    font-size: 10px;
+    color: rgb(148 163 184);
+}
+
+/* Nhánh con (cấp team) */
+.org-tree__children {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 0 0.5rem;
+    list-style: none;
+    margin: 0;
+    padding: 0 0.5rem 0.5rem;
+    position: relative;
+}
+
+.org-tree__children > .org-tree__branch {
+    padding: 1.25rem 0.75rem 0;
+    position: relative;
+}
+
+.org-tree__children > .org-tree__branch::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 2px;
+    height: 1.25rem;
+    margin-left: -1px;
+    background: rgb(203 213 225);
+    border-radius: 1px;
+}
+
+.org-tree__children > .org-tree__branch::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: rgb(203 213 225);
+    border-radius: 1px;
+}
+
+.org-tree__children > .org-tree__branch:first-child::after {
+    left: 50%;
+}
+
+.org-tree__children > .org-tree__branch:last-child::after {
+    right: 50%;
+}
+
+.org-tree__children > .org-tree__branch:only-child::after {
+    display: none;
+}

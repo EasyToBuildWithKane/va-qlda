@@ -138,8 +138,8 @@ async function onDelete(node) {
             <span class="font-medium text-slate-700">{{ root.name }}</span>
           </p>
         </div>
-        <div class="overflow-x-auto px-3 py-4 sm:px-5">
-          <div class="flex min-w-min justify-center">
+        <div class="overflow-x-auto px-3 py-6 sm:px-6">
+          <ul class="org-tree org-tree--root flex min-w-min justify-center">
             <OrgTeamChart
               :node="root"
               :can-manage="!!can.create"
@@ -147,7 +147,7 @@ async function onDelete(node) {
               @add-child="onAddChild"
               @delete="onDelete"
             />
-          </div>
+          </ul>
         </div>
       </section>
     </div>
