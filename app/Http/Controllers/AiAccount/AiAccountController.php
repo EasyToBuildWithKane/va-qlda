@@ -22,6 +22,7 @@ use App\Support\Enums\AiAccountCostUnit;
 use App\Support\Enums\AiAccountGroupFunction;
 use App\Support\Enums\AiAccountRenewalPaymentStatus;
 use App\Support\Enums\AiAccountStatus;
+use App\Support\Enums\AiPurchaseProposalStatus;
 use App\Support\Enums\SystemRole;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -215,7 +216,19 @@ class AiAccountController extends Controller
     {
         $this->authorize('delete', $aiAccount);
         $name = $aiAccount->tool_name;
+
+        $linkedProposal = AiPurchaseProposal::query()
+            ->where('ai_account_id', $aiAccount->id)
+            ->first();
+
         $aiAccount->delete();
+
+        if ($linkedProposal !== null) {
+            $linkedProposal->update([
+                'ai_account_id' => null,
+                'status' => AiPurchaseProposalStatus::Expired,
+            ]);
+        }
 
         return response()->json([
             'success' => true,
@@ -298,7 +311,10 @@ class AiAccountController extends Controller
         $accounts = AiAccount::query()->with('purchaseProposal')->orderBy('tool_name')->get();
         $this->statusSync->syncCollection($accounts);
 
-        return $accounts->map(fn (AiAccount $a) => $a->fresh(['purchaseProposal']));
+        return $accounts
+            ->map(fn (AiAccount $a) => $a->fresh(['purchaseProposal']))
+            ->filter()
+            ->values();
     }
 
     /**

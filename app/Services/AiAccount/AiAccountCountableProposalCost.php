@@ -12,9 +12,6 @@ use Illuminate\Support\Collection;
  */
 class AiAccountCountableProposalCost
 {
-    /** @var Collection<int, AiPurchaseProposal>|null */
-    private ?Collection $cached = null;
-
     public function __construct(
         private readonly AiAccountCostCalculator $costCalculator,
     ) {}
@@ -32,11 +29,7 @@ class AiAccountCountableProposalCost
     /** @return Collection<int, AiPurchaseProposal> */
     public function countableProposals(): Collection
     {
-        if ($this->cached !== null) {
-            return $this->cached;
-        }
-
-        $this->cached = AiPurchaseProposal::query()
+        return AiPurchaseProposal::query()
             ->whereIn('status', array_map(
                 fn (AiPurchaseProposalStatus $s) => $s->value,
                 self::countableStatuses(),
@@ -46,8 +39,6 @@ class AiAccountCountableProposalCost
                     ->orWhereHas('aiAccount');
             })
             ->get();
-
-        return $this->cached;
     }
 
     public function monthlyForProposal(AiPurchaseProposal $proposal): int

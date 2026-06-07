@@ -2,14 +2,12 @@
 
 namespace Tests\Feature;
 
-use App\Models\AiAccount;
 use App\Models\AiPaymentRequest;
 use App\Models\AiPurchaseProposal;
 use App\Models\SystemAccount;
 use App\Services\AiAccount\AiAccountCountableProposalCost;
 use App\Support\Enums\AiAccountCostUnit;
 use App\Support\Enums\AiAccountGroupFunction;
-use App\Support\Enums\AiAccountStatus;
 use App\Support\Enums\AiPaymentRequestStatus;
 use App\Support\Enums\AiPurchaseProposalStatus;
 use App\Support\Enums\SystemRole;
@@ -78,10 +76,8 @@ class AiAccountSoftDeleteVisibilityTest extends TestCase
         $this->assertSoftDeleted('ai_accounts', ['id' => $accountId]);
 
         $proposal->refresh();
-        $this->assertNotNull(
-            $proposal->ai_account_id,
-            'Soft delete must not null ai_account_id — budget must exclude via active account check.',
-        );
+        $this->assertNull($proposal->ai_account_id);
+        $this->assertSame(AiPurchaseProposalStatus::Expired, $proposal->status);
         $this->assertFalse(
             AiPurchaseProposal::query()->whereKey($proposal->id)->whereHas('aiAccount')->exists(),
             'whereHas(aiAccount) must not match soft-deleted accounts.',
@@ -91,6 +87,7 @@ class AiAccountSoftDeleteVisibilityTest extends TestCase
             app(AiAccountCountableProposalCost::class)->countableProposals(),
             'Approved proposal linked to soft-deleted account must not count in budget.',
         );
+        $this->assertSame(0, app(AiAccountCountableProposalCost::class)->totalMonthly());
 
         $index = $this->getJson(route('api.ai-accounts.index'))->assertOk()->json('data');
         $allAccounts = collect($index['groups'] ?? [])->flatMap(fn ($g) => $g['accounts'] ?? []);
