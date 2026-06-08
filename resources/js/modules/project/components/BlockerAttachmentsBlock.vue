@@ -7,12 +7,17 @@ import { useToast } from '@/shared/composables/useToast';
 import { useConfirmDelete } from '@/composables/useConfirmClose';
 
 const props = defineProps({
-    blockerId: { type: Number, required: true },
+    /** null khi đang tạo mới — file giữ trong pendingFiles đến khi có id */
+    blockerId: { type: Number, default: null },
     attachments: { type: Array, default: () => [] },
     canUpload: { type: Boolean, default: false },
+    /** File chờ upload (tạo mới) — phần tử { key, file, name, isImage, preview? } */
+    pendingFiles: { type: Array, default: () => [] },
     /** Giao diện gọn trong modal */
     compact: { type: Boolean, default: false },
 });
+
+const emit = defineEmits(['update:pendingFiles']);
 
 const toast = useToast();
 const confirmDelete = useConfirmDelete();
@@ -31,6 +36,7 @@ const available = computed(() =>
 
 const imageFiles = computed(() => available.value.filter((f) => f.is_image));
 const otherFiles = computed(() => available.value.filter((f) => !f.is_image));
+const isCreateStage = computed(() => props.canUpload && props.blockerId == null);
 const missingFiles = computed(() =>
     props.attachments.filter((f) => f.file_available === false || !f.url),
 );
@@ -62,9 +68,35 @@ const clearPending = () => {
 
 onBeforeUnmount(clearPending);
 
+const appendStaged = (files) => {
+    const next = [...props.pendingFiles];
+    for (const file of files) {
+        const isImage = (file.type || '').startsWith('image/');
+        next.push({
+            key: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+            file,
+            name: file.name,
+            isImage,
+            preview: isImage ? URL.createObjectURL(file) : null,
+        });
+    }
+    emit('update:pendingFiles', next);
+};
+
+const removeStaged = (key) => {
+    const item = props.pendingFiles.find((p) => p.key === key);
+    if (item?.preview) URL.revokeObjectURL(item.preview);
+    emit('update:pendingFiles', props.pendingFiles.filter((p) => p.key !== key));
+};
+
 const uploadFiles = (fileList) => {
     const files = [...(fileList || [])];
     if (!files.length || !props.canUpload) return;
+
+    if (isCreateStage.value) {
+        appendStaged(files);
+        return;
+    }
 
     const entries = files.map((file) => ({
         key: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
@@ -105,6 +137,7 @@ const pickAny = () => fileInput.value?.click();
 const pickImages = () => imageInput.value?.click();
 
 const removeAttachment = (file) => {
+    if (!props.blockerId) return;
     confirmDelete(
         `Xoá file "${file.original_name}"?`,
         () => router.delete(`/blockers/${props.blockerId}/attachments/${file.id}`, { preserveScroll: true }),
@@ -219,6 +252,50 @@ watch(imageFiles, (list) => {
         accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip,.txt"
         @change="onFilesSelected"
       >
+    </div>
+
+    <div
+      v-if="isCreateStage && pendingFiles.length"
+      class="space-y-1.5"
+    >
+      <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+        Sẽ tải lên khi ghi nhận ({{ pendingFiles.length }})
+      </p>
+      <div class="flex flex-wrap gap-2">
+        <div
+          v-for="item in pendingFiles"
+          :key="item.key"
+          class="group relative h-20 w-20 overflow-hidden rounded-lg border border-slate-200 bg-slate-100 dark:border-slate-600"
+        >
+          <img
+            v-if="item.preview"
+            :src="item.preview"
+            :alt="item.name"
+            class="h-full w-full object-cover"
+          >
+          <div
+            v-else
+            class="flex h-full flex-col items-center justify-center gap-1 px-1 text-[9px] text-slate-500"
+          >
+            <AppIcon
+              name="template"
+              :size="16"
+            />
+            <span class="line-clamp-2 text-center">{{ item.name }}</span>
+          </div>
+          <button
+            type="button"
+            class="absolute right-0.5 top-0.5 grid h-6 w-6 place-items-center rounded-full bg-black/50 text-white opacity-0 transition group-hover:opacity-100"
+            title="Bỏ file"
+            @click="removeStaged(item.key)"
+          >
+            <AppIcon
+              name="close"
+              :size="12"
+            />
+          </button>
+        </div>
+      </div>
     </div>
 
     <div
@@ -376,10 +453,16 @@ watch(imageFiles, (list) => {
       Chưa có file đính kèm.
     </p>
     <p
-      v-else-if="!attachments.length && !pending.length && canUpload"
+      v-else-if="!attachments.length && !pending.length && !pendingFiles.length && canUpload"
       class="text-center text-xs text-slate-400"
     >
       Chưa có ảnh hay file — dùng khu vực phía trên để tải lên.
+    </p>
+    <p
+      v-if="isCreateStage && canUpload"
+      class="text-center text-[11px] text-slate-500"
+    >
+      File chọn trước sẽ được tải lên ngay sau khi bấm «Ghi nhận vướng mắc».
     </p>
 
     <Teleport to="body">

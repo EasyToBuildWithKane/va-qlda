@@ -86,9 +86,11 @@ class BlockerTest extends TestCase
     {
         $project = Project::factory()->create();
 
-        $this->actingAs($this->member(), 'system')
+        $response = $this->actingAs($this->member(), 'system')
             ->post('/blockers', $this->blockerPayload($project->id))
             ->assertRedirect();
+
+        $response->assertSessionHas('created_blocker_id');
 
         $this->assertDatabaseHas('blockers', [
             'project_id' => $project->id,

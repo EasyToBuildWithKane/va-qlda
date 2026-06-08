@@ -135,7 +135,10 @@ class BlockerController extends Controller
 
         BlockerActivityLogger::created($blocker, $request->user());
 
-        return back()->with('success', 'Đã ghi nhận vướng mắc.');
+        return back()->with([
+            'success' => 'Đã ghi nhận vướng mắc.',
+            'created_blocker_id' => $blocker->id,
+        ]);
     }
 
     public function import(ImportBlockerRequest $request): RedirectResponse

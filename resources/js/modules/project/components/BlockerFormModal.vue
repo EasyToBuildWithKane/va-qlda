@@ -1,6 +1,6 @@
 <script setup>
 import { computed, inject, watch, ref, nextTick } from 'vue';
-import { useForm } from '@inertiajs/vue3';
+import { router, useForm } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
 import Modal from '@/Components/Ui/Modal.vue';
 import FieldTooltip from '@/shared/ui/FieldTooltip.vue';
@@ -9,6 +9,7 @@ import SearchSelect from '@/shared/ui/SearchSelect.vue';
 import BlockerAttachmentsBlock from '@/modules/project/components/BlockerAttachmentsBlock.vue';
 import { valueLabelOptions } from '@/shared/utils/selectOptions';
 import { date } from '@/composables/useFormat';
+import { useToast } from '@/shared/composables/useToast';
 
 const props = defineProps({
     show: { type: Boolean, default: false },
@@ -28,6 +29,8 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'saved']);
 const modalClose = inject('modalClose', () => emit('close'));
+const toast = useToast();
+const pendingCreateFiles = ref([]);
 
 const form = useForm({
     project_id: null,
@@ -44,8 +47,18 @@ const form = useForm({
 
 const resolutionInputRef = ref(null);
 
+const clearPendingCreateFiles = () => {
+    pendingCreateFiles.value.forEach((p) => {
+        if (p.preview) URL.revokeObjectURL(p.preview);
+    });
+    pendingCreateFiles.value = [];
+};
+
 watch(() => props.show, async (open) => {
-    if (!open) return;
+    if (!open) {
+        clearPendingCreateFiles();
+        return;
+    }
     form.clearErrors();
     if (props.blocker) {
         form.project_id = props.blocker.project_id;
@@ -108,11 +121,15 @@ const attachmentList = computed(() => {
 
 const isResolutionFlow = computed(() => isEdit.value && props.focusResolution);
 
-const showAttachments = computed(() => isEdit.value && props.blocker?.id && !isResolutionFlow.value);
-
 const showResolutionPanel = computed(() => isResolutionFlow.value);
 
 const showMainForm = computed(() => !isResolutionFlow.value);
+
+const showAttachmentsBlock = computed(() =>
+    showMainForm.value && props.canUploadAttachments,
+);
+
+const attachmentBlockerId = computed(() => (props.blocker?.id ? props.blocker.id : null));
 
 const showProjectSelector = computed(() => !isEdit.value && !props.lockProject);
 
@@ -167,21 +184,55 @@ const cleanedEvidenceLinks = () =>
         .map((l) => ({ label: (l.label ?? '').trim(), url: (l.url ?? '').trim() }))
         .filter((l) => l.url);
 
+const finishSave = () => {
+    emit('saved');
+    emit('close');
+};
+
+const uploadAfterCreate = (blockerId) => {
+    const files = pendingCreateFiles.value.map((p) => p.file);
+    router.post(`/blockers/${blockerId}/attachments`, { files }, {
+        forceFormData: true,
+        preserveScroll: true,
+        onSuccess: () => toast.success('Đã ghi nhận và tải file minh chứng'),
+        onError: () => toast.error('Đã ghi nhận vướng mắc nhưng không tải được file đính kèm'),
+        onFinish: () => {
+            clearPendingCreateFiles();
+            finishSave();
+        },
+    });
+};
+
+const modalDirty = computed(() => form.isDirty || pendingCreateFiles.value.length > 0);
+
 const submit = () => {
-    const opts = { preserveScroll: true, onSuccess: () => { emit('saved'); emit('close'); } };
     const payload = { ...form.data(), evidence_links: cleanedEvidenceLinks() };
     if (props.blocker) {
-        form.transform(() => payload).put(`/blockers/${props.blocker.id}`, opts);
-    } else {
-        form.transform(() => payload).post('/blockers', opts);
+        form.transform(() => payload).put(`/blockers/${props.blocker.id}`, {
+            preserveScroll: true,
+            onSuccess: finishSave,
+        });
+        return;
     }
+    form.transform(() => payload).post('/blockers', {
+        preserveScroll: true,
+        onSuccess: (page) => {
+            const id = page.props.flash?.created_blocker_id;
+            if (id && pendingCreateFiles.value.length) {
+                uploadAfterCreate(id);
+            } else {
+                clearPendingCreateFiles();
+                finishSave();
+            }
+        },
+    });
 };
 </script>
 
 <template>
   <Modal
     :show="show"
-    :dirty="form.isDirty"
+    :dirty="modalDirty"
     :title="modalTitle"
     max-width="max-w-5xl"
     @close="emit('close')"
@@ -488,18 +539,14 @@ const submit = () => {
                 <FieldTooltip text="Kéo thả hoặc chọn ảnh; nhấn thumbnail để phóng to. Upload lưu ngay, không cần bấm Lưu." />
               </label>
               <BlockerAttachmentsBlock
-                v-if="showAttachments"
-                :blocker-id="blocker.id"
+                v-if="showAttachmentsBlock"
+                :blocker-id="attachmentBlockerId"
                 :attachments="attachmentList"
                 :can-upload="canUploadAttachments"
+                :pending-files="pendingCreateFiles"
                 compact
+                @update:pending-files="pendingCreateFiles = $event"
               />
-              <p
-                v-else
-                class="rounded-lg border border-dashed border-slate-200 px-3 py-4 text-center text-xs text-slate-500 dark:border-slate-600"
-              >
-                Ghi nhận vướng mắc trước, sau đó mở lại bản ghi để tải ảnh và file đính kèm.
-              </p>
             </div>
           </div>
         </div>

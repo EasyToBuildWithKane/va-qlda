@@ -20,6 +20,16 @@ import {
     RISK_SEVERITY_TEXT,
     RISK_STATUS_TEXT,
 } from '@/composables/useRiskTable';
+import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
+import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
+import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
+
+const RISK_FILTER_CONTROLS_DEF = [
+    { key: 'status', label: 'Trạng thái', default: true },
+    { key: 'severity', label: 'Mức độ', default: true },
+    { key: 'owner', label: 'Người phụ trách', default: true },
+];
+const VISIBLE_FILTERS_KEY = 'va-qlda.project-risks.visible-filters';
 
 const TERMINAL_STATUS = new Set(['resolved', 'closed']);
 
@@ -45,11 +55,22 @@ const dialog = useDialog();
 const toast = useToast();
 const panelRef = ref(null);
 const highlight = ref(false);
-const bulkWorking = ref(false);
-const bulkStatus = ref('in_progress');
-const bulkOwnerId = ref(null);
-
 const table = useRiskTable(toRef(() => props.blockers));
+const search = table.search;
+const filterStatus = table.filterStatus;
+const filterSeverity = table.filterSeverity;
+const filterOwner = table.filterOwner;
+
+const {
+    visibleFilters,
+    showFilterPanelDd,
+    enabledFilterControlCount,
+    hasFilterRow,
+    persistVisibleFilters,
+    openFilterPanel,
+    FILTER_CONTROLS,
+} = useVisibleFilterControls(RISK_FILTER_CONTROLS_DEF, VISIBLE_FILTERS_KEY);
+const filterPanelDdRef = ref(null);
 
 const modalOpen = ref(false);
 const importModalOpen = ref(false);
@@ -82,6 +103,9 @@ const positionColumnsMenu = () => {
 const toggleColumnsMenu = async () => {
     showColumns.value = !showColumns.value;
     if (showColumns.value) {
+        showFilterPanelDd.value = false;
+        showExportMenu.value = false;
+        closeActionMenu();
         await nextTick();
         positionColumnsMenu();
     }
@@ -160,6 +184,8 @@ const toggleExportMenu = async () => {
     showExportMenu.value = !showExportMenu.value;
     if (showExportMenu.value) {
         showColumns.value = false;
+        showFilterPanelDd.value = false;
+        closeActionMenu();
         await nextTick();
         positionExportMenu();
     }
@@ -167,13 +193,26 @@ const toggleExportMenu = async () => {
 
 const runExport = (format) => {
     showExportMenu.value = false;
-    table.exportRisk(props.blockers, {
+    table.exportRisk(table.filtered.value, {
         projectCode: props.projectCode,
         projectName: props.projectName,
         format,
     });
     toast.success(format === 'csv' ? 'Đã xuất file CSV' : 'Đã xuất file Excel');
 };
+
+const openRiskFilterPanel = () => {
+    openFilterPanel(() => {
+        showColumns.value = false;
+        showExportMenu.value = false;
+        closeActionMenu();
+    });
+};
+
+watch(
+    () => [search.value, filterStatus.value, filterSeverity.value, filterOwner.value],
+    () => { table.page.value = 1; },
+);
 
 const visibleColumns = ref(loadRiskTableColumns());
 watch(visibleColumns, (v) => localStorage.setItem(RISK_TABLE_COLS_KEY, JSON.stringify(v)), { deep: true });
@@ -193,9 +232,15 @@ const toggleColumn = (key) => {
 
 const fixedColCount = computed(() => {
     let n = 1; // title (mã gộp trong tiêu đề)
-    if (props.canManage) n += 1;
     n += 1; // actions
     return n + visibleColumns.value.length;
+});
+
+const listSummary = computed(() => {
+    const total = props.blockers.length;
+    const shown = table.filtered.value.length;
+    if (shown === total) return `${total} mục`;
+    return `${shown} / ${total} mục (đã lọc)`;
 });
 
 const actionMenuRow = computed(() =>
@@ -238,10 +283,12 @@ const onDocClick = (e) => {
     const inColumnsMenu = columnsMenuRef.value?.contains(e.target);
     const inExportBtn = exportBtnRef.value?.contains(e.target);
     const inExportMenu = exportMenuRef.value?.contains(e.target);
+    const inFilterPanel = filterPanelDdRef.value?.contains(e.target);
     const inActionMenu = actionMenuRef.value?.contains(e.target);
     const inAnyActionBtn = Object.values(actionBtnRefs.value).some((el) => el?.contains(e.target));
     if (!inColumnsBtn && !inColumnsMenu) showColumns.value = false;
     if (!inExportBtn && !inExportMenu) showExportMenu.value = false;
+    if (!inFilterPanel) showFilterPanelDd.value = false;
     if (!inActionMenu && !inAnyActionBtn) closeActionMenu();
 };
 
@@ -256,39 +303,12 @@ onUnmounted(() => {
     window.removeEventListener('scroll', onColumnsReposition, true);
 });
 
-const allPageSelected = computed(() => {
-    const ids = table.paginated.value.map((r) => r.id);
-    return ids.length > 0 && ids.every((id) => table.selected.value.has(id));
-});
-
 const openCreate = () => { editing.value = null; modalOpen.value = true; };
 const openEdit = (row) => { editing.value = row; modalOpen.value = true; };
 
 const removeOne = async (row) => {
     if (!await dialog.confirm({ title: 'Xoá rủi ro', message: `Xoá "${row.title}"?`, tone: 'danger', confirmText: 'Xoá' })) return;
     router.delete(`/blockers/${row.id}`, { preserveScroll: true });
-};
-
-const runBulk = async (action) => {
-    const ids = [...table.selected.value];
-    if (!ids.length) return;
-    if (action === 'delete') {
-        if (!await dialog.confirm({ title: 'Xoá hàng loạt', message: `Xoá ${ids.length} mục?`, tone: 'danger', confirmText: 'Xoá' })) return;
-    }
-    bulkWorking.value = true;
-    router.post('/blockers/bulk', {
-        ids,
-        action,
-        status: action === 'status' ? bulkStatus.value : undefined,
-        owner_id: action === 'assignee' ? bulkOwnerId.value : undefined,
-    }, {
-        preserveScroll: true,
-        onSuccess: () => {
-            table.clearSelection();
-            toast.success('Đã cập nhật hàng loạt');
-        },
-        onFinish: () => { bulkWorking.value = false; },
-    });
 };
 
 const onSaved = () => {
@@ -326,211 +346,258 @@ defineExpose({ scrollHere });
     class="min-w-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-elevation-1 transition ring-2 dark:border-slate-700/80 dark:bg-slate-900 dark:shadow-none"
     :class="highlight ? 'ring-brand/30' : 'ring-transparent'"
   >
-    <!-- Header -->
-    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 dark:border-slate-800">
-      <div>
-        <h2 class="font-display text-base font-bold text-slate-900 dark:text-slate-50">
-          Rủi ro & Vướng mắc
-        </h2>
-        <p class="text-xs text-slate-500 dark:text-slate-400">
-          {{ blockers.length }} mục
-        </p>
-      </div>
-      <div class="flex flex-wrap items-center gap-2">
-        <div class="relative">
-          <button
-            ref="columnsBtnRef"
-            type="button"
-            class="btn-ghost border border-slate-200 text-xs dark:border-slate-600"
-            @click.stop="toggleColumnsMenu"
-          >
-            <AppIcon
-              name="columns"
-              :size="14"
-            /> Cột
-          </button>
-          <Teleport to="body">
-            <div
-              v-if="showColumns"
-              ref="columnsMenuRef"
-              class="fixed z-[200] w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-elevation-2 dark:border-slate-600 dark:bg-slate-900"
-              :style="columnsMenuStyle"
-              @click.stop
-            >
-              <p class="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                Cột hiển thị
-              </p>
-              <p class="px-2 pb-1 text-[10px] text-slate-400">
-                Cột «Vướng mắc» luôn hiển thị
-              </p>
-              <label
-                v-for="c in RISK_TABLE_COLUMNS"
-                :key="c.key"
-                class="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
-              >
-                <input
-                  type="checkbox"
-                  class="rounded"
-                  :checked="colVisible(c.key)"
-                  :disabled="colVisible(c.key) && visibleColumns.length <= 1"
-                  @change="toggleColumn(c.key)"
-                >
-                {{ c.label }}
-              </label>
-            </div>
-          </Teleport>
+    <!-- Header + toolbar -->
+    <div class="border-b border-slate-100 px-4 py-3 dark:border-slate-800">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="font-display text-base font-bold text-slate-900 dark:text-slate-50">
+            Rủi ro & Vướng mắc
+          </h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400">
+            {{ listSummary }}
+          </p>
         </div>
-        <button
-          v-if="canManage"
-          type="button"
-          class="btn-ghost inline-flex items-center gap-1 border border-slate-200 text-xs dark:border-slate-600"
-          @click="importModalOpen = true"
-        >
-          <AppIcon
-            name="upload"
-            :size="14"
-          /> Nhập
-        </button>
-        <div class="relative">
-          <button
-            ref="exportBtnRef"
-            type="button"
-            class="btn-ghost inline-flex items-center gap-1 border border-slate-200 text-xs dark:border-slate-600"
-            :disabled="!blockers.length"
-            @click.stop="toggleExportMenu"
-          >
-            <AppIcon
-              name="export"
-              :size="14"
-            /> Xuất
-            <AppIcon
-              name="chevron-down"
-              :size="12"
-              class="opacity-60"
-            />
-          </button>
-          <Teleport to="body">
-            <div
-              v-if="showExportMenu"
-              ref="exportMenuRef"
-              class="fixed z-[200] w-[12.5rem] overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-elevation-2 dark:border-slate-600 dark:bg-slate-900"
-              :style="exportMenuStyle"
-              @click.stop
-            >
-              <p class="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                Định dạng
-              </p>
-              <button
-                type="button"
-                class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
-                @click="runExport('xlsx')"
-              >
-                <AppIcon
-                  name="export"
-                  :size="15"
-                  class="text-emerald-600"
-                />
-                <span>
-                  <span class="font-medium">Excel</span>
-                  <span class="block text-[10px] text-slate-400">.xlsx · có định dạng</span>
-                </span>
-              </button>
-              <button
-                type="button"
-                class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
-                @click="runExport('csv')"
-              >
-                <AppIcon
-                  name="download"
-                  :size="15"
-                  class="text-sky-600"
-                />
-                <span>
-                  <span class="font-medium">CSV</span>
-                  <span class="block text-[10px] text-slate-400">.csv · mở bằng Excel</span>
-                </span>
-              </button>
-            </div>
-          </Teleport>
-        </div>
-        <button
-          v-if="canManage"
-          type="button"
-          class="btn-primary text-xs"
-          @click="openCreate"
-        >
-          <AppIcon
-            name="add"
-            :size="14"
-          /> Thêm rủi ro
-        </button>
       </div>
-    </div>
 
-    <!-- Bulk bar -->
-    <div
-      v-if="table.selected.value.size && canManage"
-      class="flex flex-wrap items-center gap-2 border-b border-brand/20 bg-brand/5 px-3 py-2 dark:bg-brand/10"
-    >
-      <span class="text-xs font-semibold text-brand">{{ table.selected.value.size }} đã chọn</span>
-      <select
-        v-model="bulkStatus"
-        class="input py-1 text-xs dark:border-slate-600 dark:bg-slate-800"
+      <div class="mt-3 flex flex-wrap items-center justify-between gap-2">
+        <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+          <DatagridToolbarSearch
+            v-model="search"
+            input-id="risk-issue-search"
+            placeholder="Mã, tiêu đề, người phụ trách, mô tả…"
+          />
+          <div
+            ref="filterPanelDdRef"
+            class="relative shrink-0"
+          >
+            <button
+              type="button"
+              class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none dark:border-slate-600 dark:bg-slate-900"
+              :class="showFilterPanelDd
+                ? 'border-brand/40 bg-brand/5 text-brand'
+                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800 dark:text-slate-300'"
+              :title="`Bộ lọc (${enabledFilterControlCount}/${FILTER_CONTROLS.length} đang hiển thị)`"
+              aria-label="Hiển thị bộ lọc trên thanh công cụ"
+              @click.stop="openRiskFilterPanel"
+            >
+              <AppIcon
+                name="filter"
+                :size="15"
+              />
+              <span>Lọc</span>
+            </button>
+            <FilterVisibilityDropdown
+              v-model="visibleFilters"
+              :show="showFilterPanelDd"
+              :controls="FILTER_CONTROLS"
+              @persist="persistVisibleFilters"
+            />
+          </div>
+          <div class="relative shrink-0">
+            <button
+              ref="columnsBtnRef"
+              type="button"
+              class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-800 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300"
+              :class="showColumns && 'border-brand/40 bg-brand/5 text-brand'"
+              title="Cột hiển thị"
+              aria-label="Cột hiển thị"
+              @click.stop="toggleColumnsMenu"
+            >
+              <AppIcon
+                name="columns"
+                :size="15"
+              />
+              <span>Cột</span>
+            </button>
+            <Teleport to="body">
+              <div
+                v-if="showColumns"
+                ref="columnsMenuRef"
+                class="fixed z-[200] w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-elevation-2 dark:border-slate-600 dark:bg-slate-900"
+                :style="columnsMenuStyle"
+                @click.stop
+              >
+                <p class="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                  Cột hiển thị
+                </p>
+                <p class="px-2 pb-1 text-[10px] text-slate-400">
+                  Cột «Vướng mắc» luôn hiển thị
+                </p>
+                <label
+                  v-for="c in RISK_TABLE_COLUMNS"
+                  :key="c.key"
+                  class="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
+                >
+                  <input
+                    type="checkbox"
+                    class="rounded"
+                    :checked="colVisible(c.key)"
+                    :disabled="colVisible(c.key) && visibleColumns.length <= 1"
+                    @change="toggleColumn(c.key)"
+                  >
+                  {{ c.label }}
+                </label>
+              </div>
+            </Teleport>
+          </div>
+        </div>
+
+        <div class="flex shrink-0 flex-wrap items-center gap-2">
+          <button
+            v-if="canManage"
+            type="button"
+            class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-800 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300"
+            @click="importModalOpen = true"
+          >
+            <AppIcon
+              name="upload"
+              :size="15"
+            />
+            <span>Nhập</span>
+          </button>
+          <div class="relative shrink-0">
+            <button
+              ref="exportBtnRef"
+              type="button"
+              class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-800 disabled:opacity-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300"
+              :class="showExportMenu && 'border-brand/40 bg-brand/5 text-brand'"
+              :disabled="!table.filtered.value.length"
+              title="Xuất CSV hoặc Excel"
+              aria-label="Xuất dữ liệu"
+              @click.stop="toggleExportMenu"
+            >
+              <AppIcon
+                name="export"
+                :size="15"
+              />
+              <span>Xuất</span>
+            </button>
+            <Teleport to="body">
+              <div
+                v-if="showExportMenu"
+                ref="exportMenuRef"
+                class="fixed z-[200] w-[12.5rem] overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-elevation-2 dark:border-slate-600 dark:bg-slate-900"
+                :style="exportMenuStyle"
+                @click.stop
+              >
+                <p class="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                  Định dạng
+                </p>
+                <button
+                  type="button"
+                  class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                  @click="runExport('xlsx')"
+                >
+                  <AppIcon
+                    name="export"
+                    :size="15"
+                    class="text-emerald-600"
+                  />
+                  <span>
+                    <span class="font-medium">Excel</span>
+                    <span class="block text-[10px] text-slate-400">.xlsx · có định dạng</span>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                  @click="runExport('csv')"
+                >
+                  <AppIcon
+                    name="download"
+                    :size="15"
+                    class="text-sky-600"
+                  />
+                  <span>
+                    <span class="font-medium">CSV</span>
+                    <span class="block text-[10px] text-slate-400">.csv · mở bằng Excel</span>
+                  </span>
+                </button>
+              </div>
+            </Teleport>
+          </div>
+          <button
+            v-if="canManage"
+            type="button"
+            class="btn-primary h-9 gap-1.5 px-4 text-sm"
+            @click="openCreate"
+          >
+            <AppIcon
+              name="add"
+              :size="15"
+            />
+            Thêm rủi ro
+          </button>
+        </div>
+      </div>
+
+      <div
+        v-if="hasFilterRow"
+        class="mt-2.5 flex flex-wrap items-center gap-2 border-t border-slate-50 pt-2.5 dark:border-slate-800"
       >
-        <option
-          v-for="o in statusOptions"
-          :key="o.value"
-          :value="o.value"
+        <select
+          v-if="visibleFilters.status"
+          v-model="filterStatus"
+          class="input h-9 w-[min(100%,11rem)] shrink-0 text-sm dark:border-slate-600 dark:bg-slate-800 sm:w-44"
+          aria-label="Lọc theo trạng thái"
         >
-          {{ o.label }}
-        </option>
-      </select>
-      <button
-        type="button"
-        class="btn-ghost text-xs"
-        :disabled="bulkWorking"
-        @click="runBulk('status')"
-      >
-        Đổi trạng thái
-      </button>
-      <select
-        v-model="bulkOwnerId"
-        class="input py-1 text-xs dark:border-slate-600 dark:bg-slate-800"
-      >
-        <option :value="null">
-          — Gỡ giao —
-        </option>
-        <option
-          v-for="e in employees"
-          :key="e.id"
-          :value="e.id"
+          <option value="all">
+            Trạng thái: Tất cả
+          </option>
+          <option
+            v-for="o in statusOptions"
+            :key="o.value"
+            :value="o.value"
+          >
+            {{ o.label }}
+          </option>
+        </select>
+        <select
+          v-if="visibleFilters.severity"
+          v-model="filterSeverity"
+          class="input h-9 w-[min(100%,11rem)] shrink-0 text-sm dark:border-slate-600 dark:bg-slate-800 sm:w-44"
+          aria-label="Lọc theo mức độ"
         >
-          {{ e.name }}
-        </option>
-      </select>
-      <button
-        type="button"
-        class="btn-ghost text-xs"
-        :disabled="bulkWorking"
-        @click="runBulk('assignee')"
-      >
-        Gán người
-      </button>
-      <button
-        type="button"
-        class="btn-ghost text-xs text-rose-600"
-        :disabled="bulkWorking"
-        @click="runBulk('delete')"
-      >
-        Xoá
-      </button>
-      <button
-        type="button"
-        class="btn-ghost ml-auto text-xs"
-        @click="table.clearSelection"
-      >
-        Bỏ chọn
-      </button>
+          <option value="all">
+            Mức độ: Tất cả
+          </option>
+          <option
+            v-for="o in severityOptions"
+            :key="o.value"
+            :value="o.value"
+          >
+            {{ o.label }}
+          </option>
+        </select>
+        <select
+          v-if="visibleFilters.owner"
+          v-model="filterOwner"
+          class="input h-9 w-[min(100%,12rem)] shrink-0 text-sm dark:border-slate-600 dark:bg-slate-800 sm:w-52"
+          aria-label="Lọc theo người phụ trách"
+        >
+          <option value="all">
+            Người phụ trách: Tất cả
+          </option>
+          <option value="none">
+            Chưa giao
+          </option>
+          <option
+            v-for="o in table.ownerOptions.value"
+            :key="o.id"
+            :value="String(o.id)"
+          >
+            {{ o.name }}
+          </option>
+        </select>
+        <button
+          v-if="search || filterStatus !== 'all' || filterSeverity !== 'all' || filterOwner !== 'all'"
+          type="button"
+          class="btn-ghost h-9 text-xs text-slate-500"
+          @click="table.resetFilters()"
+        >
+          Xoá bộ lọc
+        </button>
+      </div>
     </div>
 
     <!-- Table -->
@@ -538,17 +605,6 @@ defineExpose({ scrollHere });
       <table class="w-full min-w-[640px] border-separate border-spacing-0 text-sm">
         <thead>
           <tr class="text-left text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-            <th
-              v-if="canManage"
-              class="sticky top-0 z-10 w-8 border-b border-slate-200 bg-slate-50 px-1.5 py-1.5 dark:border-slate-700 dark:bg-slate-800/95"
-            >
-              <input
-                type="checkbox"
-                :checked="allPageSelected"
-                class="rounded"
-                @change="table.toggleSelectAll"
-              >
-            </th>
             <th
               class="sticky top-0 z-10 min-w-[11rem] cursor-pointer border-b border-slate-200 bg-slate-50 px-2 py-1.5 dark:border-slate-700 dark:bg-slate-800/95"
               @click="table.toggleSort('title')"
@@ -653,10 +709,10 @@ defineExpose({ scrollHere });
                   />
                 </span>
                 <p class="font-semibold text-slate-700 dark:text-slate-200">
-                  Không có rủi ro / vướng mắc
+                  {{ blockers.length ? 'Không có kết quả phù hợp' : 'Không có rủi ro / vướng mắc' }}
                 </p>
                 <p class="mt-1 text-sm text-slate-500">
-                  Thêm mục mới để theo dõi rủi ro dự án.
+                  {{ blockers.length ? 'Thử đổi từ khoá hoặc bộ lọc.' : 'Thêm mục mới để theo dõi rủi ro dự án.' }}
                 </p>
                 <button
                   v-if="canManage"
@@ -682,17 +738,6 @@ defineExpose({ scrollHere });
               class="group transition hover:bg-slate-50/80 dark:hover:bg-slate-800/50"
               :class="row.is_overdue ? 'bg-rose-50/20 dark:bg-rose-950/10' : ''"
             >
-              <td
-                v-if="canManage"
-                class="border-b border-slate-100 px-1.5 py-1 dark:border-slate-800"
-              >
-                <input
-                  type="checkbox"
-                  :checked="table.selected.value.has(row.id)"
-                  class="rounded"
-                  @change="table.toggleSelect(row.id)"
-                >
-              </td>
               <td class="border-b border-slate-100 px-2 py-1 dark:border-slate-800">
                 <p class="line-clamp-2 text-[13px] font-medium leading-snug text-slate-800 dark:text-slate-100">
                   {{ row.title }}
