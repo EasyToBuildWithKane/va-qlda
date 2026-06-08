@@ -32,11 +32,12 @@ class NotificationController extends Controller
             'search' => ['nullable', 'string', 'max:200'],
             'from' => ['nullable', 'date'],
             'to' => ['nullable', 'date'],
+            'page' => ['nullable', 'integer', 'min:1'],
             'cursor' => ['nullable', 'integer', 'min:1'],
-            'per_page' => ['nullable', 'integer', 'min:10', 'max:50'],
+            'per_page' => ['nullable', 'integer', Rule::in([5, 10, 15, 20])],
         ]);
 
-        $perPage = (int) ($validated['per_page'] ?? 25);
+        $perPage = (int) ($validated['per_page'] ?? 10);
         $query = $this->notifications->queryForAccount($account)->with('project');
 
         $tab = $validated['tab'] ?? 'all';
@@ -77,19 +78,35 @@ class NotificationController extends Controller
         }
         if (! empty($validated['cursor'])) {
             $query->where('id', '<', $validated['cursor']);
+            $items = $query->limit($perPage + 1)->get();
+            $hasMore = $items->count() > $perPage;
+            if ($hasMore) {
+                $items = $items->take($perPage);
+            }
+
+            return response()->json([
+                'data' => AppNotificationResource::collection($items),
+                'meta' => [
+                    'has_more' => $hasMore,
+                    'next_cursor' => $hasMore ? $items->last()?->getKey() : null,
+                ],
+            ]);
         }
 
-        $items = $query->limit($perPage + 1)->get();
-        $hasMore = $items->count() > $perPage;
-        if ($hasMore) {
-            $items = $items->take($perPage);
-        }
+        $page = (int) ($validated['page'] ?? 1);
+        $paginator = $query->paginate($perPage, ['*'], 'page', $page);
 
         return response()->json([
-            'data' => AppNotificationResource::collection($items),
+            'data' => AppNotificationResource::collection($paginator->items()),
             'meta' => [
-                'has_more' => $hasMore,
-                'next_cursor' => $hasMore ? $items->last()?->getKey() : null,
+                'total' => $paginator->total(),
+                'from' => $paginator->firstItem() ?? 0,
+                'to' => $paginator->lastItem() ?? 0,
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'has_more' => $paginator->hasMorePages(),
+                'next_cursor' => null,
             ],
         ]);
     }

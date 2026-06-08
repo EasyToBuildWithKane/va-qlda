@@ -70,9 +70,8 @@ const modalTitle = computed(() => {
 });
 
 const modalMaxWidth = computed(() => {
-    if (createMode.value === 'bulk' && !props.task) return 'max-w-3xl';
-    if (props.task) return 'max-w-3xl';
-    return 'max-w-2xl';
+    if (createMode.value === 'bulk' && !props.task) return 'max-w-5xl';
+    return 'max-w-4xl';
 });
 
 const handleKeydown = (e) => {
@@ -241,166 +240,169 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
           {{ form.errors.title }}
         </p>
       </div>
-      <div>
-        <label class="label">Mô tả</label>
-        <textarea
-          v-model="form.description"
-          :rows="task ? 3 : 2"
-          class="input resize-y"
-          placeholder="Yêu cầu, tiêu chí hoàn thành…"
-        />
-      </div>
-
-      <div class="grid gap-3 sm:grid-cols-2">
-        <div>
-          <label class="label">Trạng thái <span class="text-rose-500">*</span></label>
-          <SearchSelect
-            v-model="form.status"
-            :options="statusSelectOptions"
-            placeholder="Trạng thái…"
-            :clearable="false"
-            @update:model-value="syncProgressFromStatus"
-          />
-        </div>
-        <div>
-          <label class="label">Ưu tiên <span class="text-rose-500">*</span></label>
-          <SearchSelect
-            v-model="form.priority"
-            :options="prioritySelectOptions"
-            placeholder="Ưu tiên…"
-            :clearable="false"
-          />
-        </div>
-        <div>
-          <label class="label">Sprint</label>
-          <SearchSelect
-            v-model="form.sprint_id"
-            :options="sprints"
-            placeholder="Chọn sprint…"
-            search-placeholder="Tìm sprint…"
-          />
-        </div>
-        <div>
-          <label class="label">Giai đoạn</label>
-          <SearchSelect
-            v-model="form.phase"
-            :options="phaseSelectOptions"
-            placeholder="Phase…"
-            :clearable="false"
-          />
-        </div>
-      </div>
-
-      <div
-        class="grid gap-3"
-        :class="task ? 'sm:grid-cols-2' : 'sm:grid-cols-3'"
-      >
-        <div>
-          <label class="label">Ngày bắt đầu</label>
-          <input
-            v-model="form.start_date"
-            type="date"
-            class="input"
-          >
-        </div>
-        <div>
-          <label class="label">Ngày kết thúc</label>
-          <input
-            v-model="form.due_date"
-            type="date"
-            class="input"
-          >
-          <p
-            v-if="form.errors.due_date"
-            class="mt-1 text-xs text-danger"
-          >
-            {{ form.errors.due_date }}
-          </p>
-        </div>
-        <div>
-          <label class="label">Ước lượng (giờ)</label>
-          <input
-            v-model="form.estimate_hours"
-            type="number"
-            step="0.5"
-            min="0"
-            class="input"
-            placeholder="8"
-          >
-        </div>
-        <div
-          v-if="task"
-          class="sm:col-span-2"
-        >
-          <label class="label">Tiến độ: <strong class="text-brand">{{ form.progress_percent }}%</strong></label>
-          <input
-            v-model.number="form.progress_percent"
-            type="range"
-            min="0"
-            max="100"
-            step="5"
-            class="mt-1.5 w-full accent-brand"
-          >
-        </div>
-      </div>
-
-      <div class="space-y-3 border-t border-slate-100 pt-3 dark:border-slate-800">
-        <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-          Nhân sự
-        </p>
-        <div>
-          <label class="label">
-            Người thực hiện
-            <span
-              class="ml-1 cursor-help text-slate-400"
-              title="Có thể chọn nhiều người cùng thực hiện."
-            >ⓘ</span>
-          </label>
-          <PersonMultiSelect
-            v-model="form.assignee_ids"
-            :options="employees"
-            placeholder="Thêm người thực hiện…"
-          />
-        </div>
-        <div class="grid gap-3 sm:grid-cols-2">
+      <div class="grid gap-6 lg:grid-cols-2 lg:gap-x-8">
+        <div class="space-y-3">
           <div>
-            <label class="label">Người giao việc</label>
-            <PersonSelect
-              v-model="form.reporter_id"
-              :options="employees"
-              placeholder="Người giao…"
+            <label class="label">Mô tả</label>
+            <textarea
+              v-model="form.description"
+              :rows="task ? 4 : 5"
+              class="input min-h-[7.5rem] resize-y lg:min-h-[10rem]"
+              placeholder="Yêu cầu, tiêu chí hoàn thành…"
             />
           </div>
-          <div>
-            <label class="label">Người duyệt</label>
-            <PersonSelect
-              v-model="form.reviewer_id"
-              :options="employees"
-              placeholder="Người duyệt…"
-            />
+
+          <div class="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label class="label">Trạng thái <span class="text-rose-500">*</span></label>
+              <SearchSelect
+                v-model="form.status"
+                :options="statusSelectOptions"
+                placeholder="Trạng thái…"
+                :clearable="false"
+                @update:model-value="syncProgressFromStatus"
+              />
+            </div>
+            <div>
+              <label class="label">Ưu tiên <span class="text-rose-500">*</span></label>
+              <SearchSelect
+                v-model="form.priority"
+                :options="prioritySelectOptions"
+                placeholder="Ưu tiên…"
+                :clearable="false"
+              />
+            </div>
+            <div>
+              <label class="label">Sprint</label>
+              <SearchSelect
+                v-model="form.sprint_id"
+                :options="sprints"
+                placeholder="Chọn sprint…"
+                search-placeholder="Tìm sprint…"
+              />
+            </div>
+            <div>
+              <label class="label">Giai đoạn</label>
+              <SearchSelect
+                v-model="form.phase"
+                :options="phaseSelectOptions"
+                placeholder="Phase…"
+                :clearable="false"
+              />
+            </div>
           </div>
         </div>
-      </div>
 
-      <div
-        v-if="dependencyOptions.length"
-        class="border-t border-slate-100 pt-3 dark:border-slate-800"
-      >
-        <label class="label">Phụ thuộc vào</label>
-        <div class="mt-1.5 grid max-h-28 gap-1.5 overflow-y-auto sm:grid-cols-2">
-          <label
-            v-for="t in dependencyOptions"
-            :key="t.id"
-            class="flex cursor-pointer items-start gap-2 rounded-md border border-slate-100 px-2 py-1.5 text-xs text-slate-600 transition hover:border-brand/30 dark:border-slate-700 dark:hover:border-brand/40"
-          >
-            <input
-              v-model="form.dependencies"
-              type="checkbox"
-              :value="t.id"
-              class="mt-0.5 rounded accent-brand"
+        <div class="space-y-3 lg:border-l lg:border-slate-100 lg:pl-8 dark:lg:border-slate-800">
+          <div class="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label class="label">Ngày bắt đầu</label>
+              <input
+                v-model="form.start_date"
+                type="date"
+                class="input"
+              >
+            </div>
+            <div>
+              <label class="label">Ngày kết thúc</label>
+              <input
+                v-model="form.due_date"
+                type="date"
+                class="input"
+              >
+              <p
+                v-if="form.errors.due_date"
+                class="mt-1 text-xs text-danger"
+              >
+                {{ form.errors.due_date }}
+              </p>
+            </div>
+            <div class="sm:col-span-2">
+              <label class="label">Ước lượng (giờ)</label>
+              <input
+                v-model="form.estimate_hours"
+                type="number"
+                step="0.5"
+                min="0"
+                class="input max-w-xs"
+                placeholder="8"
+              >
+            </div>
+            <div
+              v-if="task"
+              class="sm:col-span-2"
             >
-            <span class="min-w-0 leading-snug">{{ t.title }}</span>
-          </label>
+              <label class="label">Tiến độ: <strong class="text-brand">{{ form.progress_percent }}%</strong></label>
+              <input
+                v-model.number="form.progress_percent"
+                type="range"
+                min="0"
+                max="100"
+                step="5"
+                class="mt-1.5 w-full accent-brand"
+              >
+            </div>
+          </div>
+
+          <div class="space-y-3 border-t border-slate-100 pt-3 dark:border-slate-800">
+            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              Nhân sự
+            </p>
+            <div>
+              <label class="label">
+                Người thực hiện
+                <span
+                  class="ml-1 cursor-help text-slate-400"
+                  title="Có thể chọn nhiều người cùng thực hiện."
+                >ⓘ</span>
+              </label>
+              <PersonMultiSelect
+                v-model="form.assignee_ids"
+                :options="employees"
+                placeholder="Thêm người thực hiện…"
+              />
+            </div>
+            <div class="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label class="label">Người giao việc</label>
+                <PersonSelect
+                  v-model="form.reporter_id"
+                  :options="employees"
+                  placeholder="Người giao…"
+                />
+              </div>
+              <div>
+                <label class="label">Người duyệt</label>
+                <PersonSelect
+                  v-model="form.reviewer_id"
+                  :options="employees"
+                  placeholder="Người duyệt…"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div
+            v-if="dependencyOptions.length"
+            class="border-t border-slate-100 pt-3 dark:border-slate-800"
+          >
+            <label class="label">Phụ thuộc vào</label>
+            <div class="mt-1.5 grid max-h-36 gap-1.5 overflow-y-auto">
+              <label
+                v-for="t in dependencyOptions"
+                :key="t.id"
+                class="flex cursor-pointer items-start gap-2 rounded-md border border-slate-100 px-2 py-1.5 text-xs text-slate-600 transition hover:border-brand/30 dark:border-slate-700 dark:hover:border-brand/40"
+              >
+                <input
+                  v-model="form.dependencies"
+                  type="checkbox"
+                  :value="t.id"
+                  class="mt-0.5 rounded accent-brand"
+                >
+                <span class="min-w-0 leading-snug">{{ t.title }}</span>
+              </label>
+            </div>
+          </div>
         </div>
       </div>
 

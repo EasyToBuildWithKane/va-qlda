@@ -1,8 +1,20 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
 import { httpGet, httpPost } from '@/shared/services/http';
+import { DEFAULT_PER_PAGE_OPTIONS } from '@/shared/composables/useClientPagination';
 
 const POLL_MS = 30_000;
+const PER_PAGE_STORAGE_KEY = 'va-notifications-per-page';
+
+function loadStoredPerPage() {
+    try {
+        const n = Number(localStorage.getItem(PER_PAGE_STORAGE_KEY));
+        if (DEFAULT_PER_PAGE_OPTIONS.includes(n)) return n;
+    } catch {
+        /* ignore */
+    }
+    return 10;
+}
 
 /**
  * Global notification state: unread badge, drawer list, filters, polling.
@@ -15,6 +27,9 @@ export function useNotifications() {
     const loadingMore = ref(false);
     const hasMore = ref(false);
     const nextCursor = ref(null);
+    const listMeta = ref(null);
+    const perPage = ref(loadStoredPerPage());
+    const currentPage = ref(1);
     const drawerOpen = ref(false);
     const settingsOpen = ref(false);
     const selectedIds = ref([]);
@@ -44,11 +59,17 @@ export function useNotifications() {
         else loading.value = true;
 
         try {
-            const params = {
-                tab: filters.value.tab,
-                per_page: 25,
-                cursor: append ? nextCursor.value : undefined,
-            };
+            const params = append
+                ? {
+                      tab: filters.value.tab,
+                      per_page: perPage.value,
+                      cursor: nextCursor.value,
+                  }
+                : {
+                      tab: filters.value.tab,
+                      per_page: perPage.value,
+                      page: currentPage.value,
+                  };
 
             const data = await httpGet(route('notifications.index'), { params });
             const rows = data.data ?? [];
@@ -58,6 +79,9 @@ export function useNotifications() {
 
             hasMore.value = !!data.meta?.has_more;
             nextCursor.value = data.meta?.next_cursor ?? null;
+            if (!append) {
+                listMeta.value = data.meta ?? null;
+            }
         } finally {
             loading.value = false;
             loadingMore.value = false;
@@ -66,6 +90,7 @@ export function useNotifications() {
 
     function openDrawer(tab = 'all') {
         filters.value.tab = tab;
+        currentPage.value = 1;
         drawerOpen.value = true;
         fetchList();
     }
@@ -133,6 +158,28 @@ export function useNotifications() {
 
     function applyFilters() {
         nextCursor.value = null;
+        currentPage.value = 1;
+        fetchList();
+    }
+
+    function setPerPage(n) {
+        const size = Number(n);
+        if (!DEFAULT_PER_PAGE_OPTIONS.includes(size)) return;
+        perPage.value = size;
+        currentPage.value = 1;
+        try {
+            localStorage.setItem(PER_PAGE_STORAGE_KEY, String(size));
+        } catch {
+            /* ignore */
+        }
+        fetchList();
+    }
+
+    function goToPage(p) {
+        const target = Number(p);
+        const last = listMeta.value?.last_page ?? 1;
+        if (target < 1 || target > last || target === currentPage.value) return;
+        currentPage.value = target;
         fetchList();
     }
 
@@ -140,6 +187,12 @@ export function useNotifications() {
         if (!hasMore.value || loadingMore.value) return;
         fetchList({ append: true });
     }
+
+    const paginationRangeLabel = computed(() => {
+        const m = listMeta.value;
+        if (!m?.total) return 'Không có bản ghi';
+        return `${m.from}–${m.to} trong ${m.total}`;
+    });
 
     const badgeLabel = computed(() => {
         if (unreadCount.value <= 0) return '';
@@ -171,6 +224,10 @@ export function useNotifications() {
         loading,
         loadingMore,
         hasMore,
+        listMeta,
+        perPage,
+        currentPage,
+        paginationRangeLabel,
         drawerOpen,
         settingsOpen,
         filters,
@@ -186,6 +243,9 @@ export function useNotifications() {
         bulkRead,
         navigate,
         applyFilters,
+        setPerPage,
+        goToPage,
         loadMore,
+        PER_PAGE_OPTIONS: DEFAULT_PER_PAGE_OPTIONS,
     };
 }
