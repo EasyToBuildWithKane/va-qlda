@@ -1203,6 +1203,7 @@ function toggleAllGroups() {
       :employees="options.employees"
       :severity-options="options.severity"
       :status-options="options.status"
+      :can-upload-attachments="can.create || editing?.can?.update"
       @close="closeModal"
       @saved="closeModal"
     />

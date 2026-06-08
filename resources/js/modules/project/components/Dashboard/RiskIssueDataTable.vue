@@ -917,6 +917,7 @@ defineExpose({ scrollHere });
       :lock-project="true"
       :project-name="projectName"
       :project-code="projectCode"
+      :can-upload-attachments="canManage || canContribute || (editing && canEditRow(editing))"
       @close="modalOpen = false"
       @saved="onSaved"
     />

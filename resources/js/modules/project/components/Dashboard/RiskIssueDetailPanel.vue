@@ -1,11 +1,11 @@
 <script setup>
-import { ref, computed, watch } from 'vue';
-import { router, useForm } from '@inertiajs/vue3';
+import { computed, watch } from 'vue';
+import { useForm } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
+import BlockerAttachmentsBlock from '@/modules/project/components/BlockerAttachmentsBlock.vue';
 import CommentThread from '@/shared/ui/CommentThread.vue';
 import { datetime } from '@/composables/useFormat';
 import { useToast } from '@/shared/composables/useToast';
-import { useConfirmDelete } from '@/composables/useConfirmClose';
 
 const props = defineProps({
     row: { type: Object, required: true },
@@ -15,9 +15,6 @@ const props = defineProps({
 });
 
 const toast = useToast();
-const confirmDelete = useConfirmDelete();
-const fileInput = ref(null);
-const uploading = ref(false);
 
 const normalizeList = (val) => {
     if (Array.isArray(val)) return val;
@@ -87,40 +84,6 @@ const addEvidenceLink = () => {
 
 const removeEvidenceLink = (index) => {
     form.evidence_links.splice(index, 1);
-};
-
-const pickFiles = () => fileInput.value?.click();
-
-const onFilesSelected = (event) => {
-    const files = [...(event.target.files || [])];
-    if (!files.length) return;
-    uploading.value = true;
-    router.post(`/blockers/${props.row.id}/attachments`, { files }, {
-        forceFormData: true,
-        preserveScroll: true,
-        onSuccess: () => toast.success('Đã tải file lên'),
-        onFinish: () => {
-            uploading.value = false;
-            event.target.value = '';
-        },
-    });
-};
-
-const removeAttachment = (file) => {
-    confirmDelete(
-        `Xoá file "${file.original_name}"?`,
-        () => router.delete(`/blockers/${props.row.id}/attachments/${file.id}`, { preserveScroll: true }),
-        { title: 'Xoá file đính kèm' },
-    );
-};
-
-const formatSize = (bytes) => {
-    if (!bytes) return '0 B';
-    const units = ['B', 'KB', 'MB'];
-    let n = bytes;
-    let i = 0;
-    while (n >= 1024 && i < units.length - 1) { n /= 1024; i++; }
-    return `${n.toFixed(i ? 1 : 0)} ${units[i]}`;
 };
 
 const linkLabel = (item) => item.label || item.url;
@@ -315,114 +278,16 @@ const displayEvidenceLinks = computed(() => normalizeEvidenceLinks(props.row.evi
       </div>
 
       <div>
-        <div class="flex items-center justify-between gap-2">
-          <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            Ảnh & file đính kèm
-          </p>
-          <button
-            v-if="canUpload"
-            type="button"
-            class="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-brand hover:bg-brand/10"
-            :disabled="uploading"
-            @click="pickFiles"
-          >
-            <AppIcon
-              name="add"
-              :size="14"
-            />
-            {{ uploading ? 'Đang tải…' : 'Tải lên' }}
-          </button>
-          <input
-            ref="fileInput"
-            type="file"
-            class="hidden"
-            multiple
-            accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip,.txt"
-            @change="onFilesSelected"
-          >
-        </div>
-
-        <div
-          v-if="attachments.length"
-          class="mt-2 grid gap-2 sm:grid-cols-2"
-        >
-          <div
-            v-for="file in attachments"
-            :key="file.id"
-            class="group relative overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-600 dark:bg-slate-900"
-          >
-            <template v-if="file.file_available !== false && file.url">
-              <a
-                v-if="file.is_image"
-                :href="file.url"
-                target="_blank"
-                rel="noopener"
-                class="block"
-              >
-                <img
-                  :src="file.url"
-                  :alt="file.original_name"
-                  class="aspect-video w-full object-cover"
-                >
-              </a>
-              <a
-                v-else
-                :href="file.url"
-                target="_blank"
-                rel="noopener"
-                class="flex items-center gap-2 p-3 text-sm text-slate-700 hover:text-brand dark:text-slate-200"
-              >
-                <AppIcon
-                  name="template"
-                  :size="18"
-                  class="shrink-0 text-slate-400"
-                />
-                <span class="min-w-0 truncate font-medium">{{ file.original_name }}</span>
-              </a>
-            </template>
-            <div
-              v-else
-              class="flex items-center gap-2 p-3 text-sm text-slate-400"
-            >
-              <AppIcon
-                name="template"
-                :size="18"
-              />
-              <span class="truncate">{{ file.original_name }} (file không còn trên máy chủ)</span>
-            </div>
-            <div class="flex items-center justify-between gap-2 border-t border-slate-100 px-2.5 py-1.5 text-[10px] text-slate-400 dark:border-slate-700">
-              <span>{{ formatSize(file.size) }}</span>
-              <div class="flex items-center gap-2">
-                <a
-                  v-if="file.url"
-                  :href="file.url"
-                  class="inline-flex items-center gap-0.5 text-brand hover:underline"
-                  :title="`Tải ${file.original_name}`"
-                >
-                  <AppIcon
-                    name="download"
-                    :size="12"
-                  />
-                  Tải về
-                </a>
-                <button
-                  v-if="canUpload"
-                  type="button"
-                  class="text-rose-500 opacity-0 transition group-hover:opacity-100"
-                  @click="removeAttachment(file)"
-                >
-                  Xoá
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-        <p
-          v-else
-          class="mt-2 rounded-xl border border-dashed border-slate-200 p-3 text-xs text-slate-400 dark:border-slate-600"
-        >
-          Chưa có file đính kèm. Hỗ trợ hình ảnh, PDF, Office, ZIP (tối đa 10MB/file).
+        <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+          Ảnh & file đính kèm
         </p>
+        <div class="mt-2">
+          <BlockerAttachmentsBlock
+            :blocker-id="row.id"
+            :attachments="attachments"
+            :can-upload="canUpload"
+          />
+        </div>
       </div>
     </div>
 

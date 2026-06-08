@@ -6,6 +6,7 @@ import Modal from '@/Components/Ui/Modal.vue';
 import FieldTooltip from '@/shared/ui/FieldTooltip.vue';
 import PersonSelect from '@/modules/project/components/PersonSelect.vue';
 import SearchSelect from '@/shared/ui/SearchSelect.vue';
+import BlockerAttachmentsBlock from '@/modules/project/components/BlockerAttachmentsBlock.vue';
 import { valueLabelOptions } from '@/shared/utils/selectOptions';
 import { date } from '@/composables/useFormat';
 
@@ -22,6 +23,7 @@ const props = defineProps({
     lockProject: { type: Boolean, default: false },
     projectName: { type: String, default: '' },
     projectCode: { type: String, default: '' },
+    canUploadAttachments: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['close', 'saved']);
@@ -112,7 +114,16 @@ const projectDisplay = computed(() => {
 
 const isEdit = computed(() => !!props.blocker);
 
+const attachmentList = computed(() => {
+    const raw = props.blocker?.attachments;
+    if (Array.isArray(raw)) return raw;
+    if (raw?.data && Array.isArray(raw.data)) return raw.data;
+    return [];
+});
+
 const isResolutionFlow = computed(() => isEdit.value && props.focusResolution);
+
+const showAttachments = computed(() => isEdit.value && props.blocker?.id && !isResolutionFlow.value);
 
 const tabs = computed(() => {
     if (!isEdit.value) return CREATE_TABS;
@@ -462,6 +473,18 @@ const submit = () => {
             >
               {{ form.errors['evidence_links.0.url'] }}
             </p>
+          </div>
+          <div v-if="showAttachments">
+            <label class="label flex items-center gap-1.5">
+              Ảnh & file đính kèm
+              <FieldTooltip text="Tải ảnh minh chứng; nhấn ảnh để xem phóng to. Lưu sau khi tải lên — không cần bấm Lưu thay đổi." />
+            </label>
+            <BlockerAttachmentsBlock
+              :blocker-id="blocker.id"
+              :attachments="attachmentList"
+              :can-upload="canUploadAttachments"
+              compact
+            />
           </div>
         </div>
 

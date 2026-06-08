@@ -49,7 +49,13 @@ class BlockerController extends Controller
         $account = $request->user();
 
         $query = Blocker::query()
-            ->with(['project', 'task', 'raisedBy', 'owner'])
+            ->with([
+                'project',
+                'task',
+                'raisedBy',
+                'owner',
+                'attachments' => fn ($a) => $a->with('uploadedBy')->latest(),
+            ])
             ->withCount('comments')
             ->orderByPriority();
 

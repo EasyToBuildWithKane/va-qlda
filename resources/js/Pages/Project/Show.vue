@@ -611,6 +611,7 @@ const onSprintSaved = () => {
       :lock-project="true"
       :project-name="project.name"
       :project-code="project.code"
+      :can-upload-attachments="canManage || canContribute || editingBlocker?.can?.update"
       @close="blockerModal = false"
     />
   </AppLayout>
