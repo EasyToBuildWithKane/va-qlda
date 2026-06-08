@@ -87,7 +87,7 @@ class AiPurchaseProposalDocumentService
             'recipient_email' => $this->fieldOrDash($input['recipient_email'] ?? null),
             'recipient_phone' => $this->fieldOrDash($input['recipient_phone'] ?? null),
             'registration_email' => $this->fieldOrDash($input['registration_email'] ?? null),
-            'registration_emails_line' => $this->registrationEmailsLine($input),
+            ...$this->registrationEmailDocumentVars($input),
             'planned_use_date' => $planned,
             'check_new' => $purchaseType === AiPurchaseType::New ? '☑' : '☐',
             'check_renewal' => $purchaseType === AiPurchaseType::Renewal ? '☑' : '☐',
@@ -134,8 +134,9 @@ class AiPurchaseProposalDocumentService
 
     /**
      * @param  array<string, mixed>  $input
+     * @return array{registration_emails_line: string, registration_email_slots: list<string>}
      */
-    private function registrationEmailsLine(array $input): string
+    private function registrationEmailDocumentVars(array $input): array
     {
         $staff = max(1, (int) ($input['staff_count'] ?? 1));
         $emails = AiPurchaseProposalRegistrationEmails::normalize(
@@ -145,8 +146,12 @@ class AiPurchaseProposalDocumentService
             $staff,
             $input['registration_email'] ?? null,
         );
+        $slots = AiPurchaseProposalRegistrationEmails::slotsForDocument($emails);
 
-        return AiPurchaseProposalRegistrationEmails::formatForDocument($emails);
+        return [
+            'registration_emails_line' => $slots !== [] ? implode(', ', $slots) : '—',
+            'registration_email_slots' => $slots,
+        ];
     }
 
     private function fieldOrDash(?string $value): string
@@ -313,9 +318,11 @@ class AiPurchaseProposalDocumentService
             'payment_date' => $paymentDateFormatted,
             'payment_method' => (string) ($cfg['payment_method'] ?? 'Thanh toán bằng thẻ kế toán'),
             'staff_count_line' => $proposal->staffSlots().' nhân sự',
-            'registration_emails_line' => AiPurchaseProposalRegistrationEmails::formatForDocument(
-                $proposal->registrationEmailsList(),
-            ),
+            ...$this->registrationEmailDocumentVars([
+                'staff_count' => $proposal->staffSlots(),
+                'registration_emails' => $proposal->registrationEmailsList(),
+                'registration_email' => $proposal->registration_email,
+            ]),
         ];
     }
 

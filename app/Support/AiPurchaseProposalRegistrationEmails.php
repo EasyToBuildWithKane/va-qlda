@@ -42,12 +42,30 @@ final class AiPurchaseProposalRegistrationEmails
     }
 
     /**
+     * Mỗi slot theo số nhân sự — ô trống in «…» (giống trường thiếu trên phiếu).
+     *
+     * @param  list<string>  $emails
+     * @return list<string>
+     */
+    public static function slotsForDocument(array $emails, string $emptyPlaceholder = '…'): array
+    {
+        if ($emails === []) {
+            return [];
+        }
+
+        return array_map(
+            static fn (string $email): string => trim($email) !== '' ? trim($email) : $emptyPlaceholder,
+            $emails,
+        );
+    }
+
+    /**
      * @param  list<string>  $emails
      */
     public static function formatForDocument(array $emails): string
     {
-        $filled = array_values(array_filter(array_map('trim', $emails)));
+        $slots = self::slotsForDocument($emails);
 
-        return $filled !== [] ? implode(', ', $filled) : '—';
+        return $slots !== [] ? implode(', ', $slots) : '—';
     }
 }

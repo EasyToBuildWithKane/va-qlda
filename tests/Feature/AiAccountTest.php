@@ -7,6 +7,7 @@ use App\Models\AiAccount;
 use App\Models\AiPaymentRequest;
 use App\Models\AiPurchaseProposal;
 use App\Models\SystemAccount;
+use App\Support\AiPurchaseProposalRegistrationEmails;
 use App\Support\Enums\AiAccountCostUnit;
 use App\Support\Enums\AiAccountGroupFunction;
 use App\Support\Enums\AiAccountStatus;
@@ -538,6 +539,16 @@ class AiAccountTest extends TestCase
         ])->assertCreated();
 
         $this->assertDatabaseHas('ai_accounts', ['email_registered' => 'user@example.com']);
+    }
+
+    /** @test */
+    public function registration_email_pdf_slots_show_ellipsis_for_empty_staff_slots(): void
+    {
+        $normalized = AiPurchaseProposalRegistrationEmails::normalize(['dev@vaschools.edu.vn', ''], 2, null);
+        $slots = AiPurchaseProposalRegistrationEmails::slotsForDocument($normalized);
+
+        $this->assertSame(['dev@vaschools.edu.vn', '…'], $slots);
+        $this->assertSame('dev@vaschools.edu.vn, …', AiPurchaseProposalRegistrationEmails::formatForDocument($normalized));
     }
 
     /** @test */

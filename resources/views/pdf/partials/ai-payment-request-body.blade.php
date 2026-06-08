@@ -50,10 +50,18 @@
             <td class="field-label">Số nhân sự sử dụng:</td>
             <td class="field-value">{{ $vars['staff_count_line'] ?? '—' }}</td>
         </tr>
-        @if(!empty($vars['registration_emails_line']) && $vars['registration_emails_line'] !== '—')
+        @if(!empty($vars['registration_email_slots']))
         <tr>
             <td class="field-label">Email đăng ký TK:</td>
-            <td class="field-value">{{ $vars['registration_emails_line'] }}</td>
+            <td class="field-value">
+                @foreach($vars['registration_email_slots'] as $idx => $slot)
+                    @if(count($vars['registration_email_slots']) > 1)
+                        Nhân sự {{ $idx + 1 }}: {{ $slot }}@if(!$loop->last)<br>@endif
+                    @else
+                        {{ $slot }}
+                    @endif
+                @endforeach
+            </td>
         </tr>
         @endif
     </table>
