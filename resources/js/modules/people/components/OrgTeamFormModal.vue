@@ -4,6 +4,7 @@ import { useForm } from '@inertiajs/vue3';
 import Modal from '@/Components/Ui/Modal.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import PersonSelect from '@/modules/project/components/PersonSelect.vue';
+import { toIterableList } from '@/modules/people/composables/useOrgTeamPeople.js';
 
 const props = defineProps({
     show: { type: Boolean, default: false },
@@ -43,38 +44,47 @@ const sectionChoices = computed(() =>
     })),
 );
 
-watch(() => props.show, (open) => {
-    if (!open) return;
-    form.clearErrors();
-    if (props.team) {
-        form.name = props.team.name;
-        form.parent_id = props.team.parent_id;
-        form.leader_id = props.team.leader?.id ?? null;
-        form.sort_order = props.team.sort_order ?? 0;
-        form.is_active = props.team.is_active ?? true;
-        form.sections = (props.team.sections ?? []).map((s, i) => ({
-            title: s.title,
-            sort_order: s.sort_order ?? i,
-        }));
-        form.members = (props.team.members ?? []).map((m, i) => ({
-            employee_id: m.employee?.id ?? null,
-            section_index: resolveSectionIndex(m.section?.id, props.team.sections ?? []),
-            sort_order: m.sort_order ?? i,
-        }));
-    } else {
-        form.reset();
-        form.parent_id = props.presetParentId != null ? Number(props.presetParentId) : null;
-        form.is_active = true;
-        form.sections = [];
-        form.members = [];
-    }
-});
+function hydrateFromTeam(team) {
+    const sections = toIterableList(team.sections);
+    form.name = team.name;
+    form.parent_id = team.parent_id;
+    form.leader_id = team.leader?.id ?? null;
+    form.sort_order = team.sort_order ?? 0;
+    form.is_active = team.is_active ?? true;
+    form.sections = sections.map((s, i) => ({
+        title: s.title,
+        sort_order: s.sort_order ?? i,
+    }));
+    form.members = toIterableList(team.members).map((m, i) => ({
+        employee_id: m.employee?.id ?? m.employee_id ?? null,
+        section_index: resolveSectionIndex(m.section?.id ?? m.section_id ?? null, sections),
+        sort_order: m.sort_order ?? i,
+    }));
+}
+
+watch(
+    () => [props.show, props.team?.id ?? null],
+    ([open]) => {
+        if (!open) return;
+        form.clearErrors();
+        if (props.team) {
+            hydrateFromTeam(props.team);
+        } else {
+            form.reset();
+            form.parent_id = props.presetParentId != null ? Number(props.presetParentId) : null;
+            form.is_active = true;
+            form.sections = [];
+            form.members = [];
+        }
+    },
+);
 
 function resolveSectionIndex(sectionId, sections) {
     if (sectionId == null) {
         return null;
     }
-    const idx = sections.findIndex((s) => s.id === sectionId);
+    const list = toIterableList(sections);
+    const idx = list.findIndex((s) => s.id === sectionId);
 
     return idx >= 0 ? idx : null;
 }

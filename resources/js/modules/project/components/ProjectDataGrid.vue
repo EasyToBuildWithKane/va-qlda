@@ -6,6 +6,7 @@ import Badge from '@/shared/ui/Badge.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
 import { COLUMNS, cellValue } from '@/modules/project/config/columns';
 import { currency, date } from '@/composables/useFormat';
+import ProjectListRowActions from '@/modules/project/components/ProjectListRowActions.vue';
 
 const props = defineProps({
     projects: { type: Array, default: () => [] },
@@ -80,7 +81,7 @@ const progressTone = (v) => {
             :key="c.key"
             :class="c.colClass"
           >
-          <col class="w-[5.5rem]">
+          <col class="w-[7.5rem]">
         </colgroup>
         <thead>
           <tr class="bg-slate-50 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
@@ -131,7 +132,9 @@ const progressTone = (v) => {
                 />
               </button>
             </th>
-            <th class="border-b border-slate-200 px-3 py-2.5" />
+            <th class="border-b border-slate-200 px-3 py-2.5 text-right">
+              <span class="whitespace-nowrap">Thao tác</span>
+            </th>
           </tr>
         </thead>
 
@@ -306,52 +309,12 @@ const progressTone = (v) => {
                   </template>
                 </td>
 
-                <td class="border-b border-slate-100 px-2 py-2.5">
-                  <div class="flex justify-end gap-0.5 opacity-0 transition group-hover:opacity-100">
-                    <Link
-                      :href="`/projects/${p.id}`"
-                      class="grid h-7 w-7 place-items-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-                      title="Xem"
-                    >
-                      <AppIcon
-                        name="eye"
-                        :size="15"
-                      />
-                    </Link>
-                    <Link
-                      v-if="p.can?.update"
-                      :href="`/projects/${p.id}/edit`"
-                      class="grid h-7 w-7 place-items-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-                      title="Sửa"
-                    >
-                      <AppIcon
-                        name="edit"
-                        :size="15"
-                      />
-                    </Link>
-                    <button
-                      v-if="p.can?.update"
-                      class="grid h-7 w-7 place-items-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-                      title="Nhân bản"
-                      @click="emit('duplicate', p)"
-                    >
-                      <AppIcon
-                        name="copy"
-                        :size="15"
-                      />
-                    </button>
-                    <button
-                      v-if="p.can?.delete"
-                      class="grid h-7 w-7 place-items-center rounded text-slate-400 hover:bg-rose-50 hover:text-rose-600"
-                      title="Xoá"
-                      @click="emit('remove', p)"
-                    >
-                      <AppIcon
-                        name="delete"
-                        :size="15"
-                      />
-                    </button>
-                  </div>
+                <td class="border-b border-slate-100 px-2 py-2.5 text-right">
+                  <ProjectListRowActions
+                    :project="p"
+                    @duplicate="emit('duplicate', $event)"
+                    @remove="emit('remove', $event)"
+                  />
                 </td>
               </tr>
             </template>

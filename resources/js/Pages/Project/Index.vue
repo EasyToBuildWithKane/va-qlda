@@ -201,8 +201,6 @@ const onDocClick = (e) => {
 onMounted(() => document.addEventListener('mousedown', onDocClick));
 onUnmounted(() => document.removeEventListener('mousedown', onDocClick));
 
-const refresh = () => router.reload({ preserveScroll: true });
-
 // ---- Row actions ----------------------------------------------------------
 const remove = async (project) => {
     if (await dialog.confirm({ title: 'Xoá dự án', message: `Xoá "${project.name}"? Hành động này không thể hoàn tác.`, tone: 'danger', confirmText: 'Xoá' })) {
@@ -470,17 +468,6 @@ const cards = computed(() => [
           </button>
         </div>
       </div>
-      <button
-        type="button"
-        class="btn-ghost border border-slate-200"
-        title="Làm mới"
-        @click="refresh"
-      >
-        <AppIcon
-          name="refresh"
-          :size="16"
-        />
-      </button>
 
       <!-- View toggle -->
       <div class="inline-flex rounded-btn border border-slate-200 bg-white p-0.5">
