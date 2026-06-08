@@ -1,6 +1,30 @@
 import { computed, ref } from 'vue';
 import { exportRiskBlockers } from '@/composables/useRiskExport';
 
+/** Chấm mức độ (datagrid tinh gọn — không dùng badge). */
+export const RISK_SEVERITY_DOT = {
+    critical: 'bg-rose-500',
+    high: 'bg-orange-500',
+    medium: 'bg-amber-500',
+    low: 'bg-slate-400',
+};
+
+export const RISK_SEVERITY_TEXT = {
+    critical: 'font-medium text-rose-700 dark:text-rose-400',
+    high: 'text-orange-700 dark:text-orange-400',
+    medium: 'text-amber-800 dark:text-amber-400',
+    low: 'text-slate-600 dark:text-slate-400',
+};
+
+export const RISK_STATUS_TEXT = {
+    open: 'text-rose-600 dark:text-rose-400',
+    in_progress: 'text-sky-700 dark:text-sky-400',
+    blocked: 'text-violet-700 dark:text-violet-400',
+    resolved: 'text-emerald-700 dark:text-emerald-400',
+    closed: 'text-slate-500 dark:text-slate-400',
+};
+
+/** @deprecated Xuất Excel — giữ màu nền cho file */
 export const RISK_SEVERITY_STYLE = {
     critical: 'bg-rose-100 text-rose-800 ring-rose-200/80 dark:bg-rose-950/50 dark:text-rose-300 dark:ring-rose-800/60',
     high: 'bg-orange-100 text-orange-800 ring-orange-200/80 dark:bg-orange-950/50 dark:text-orange-300 dark:ring-orange-800/60',

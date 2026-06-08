@@ -43,19 +43,6 @@ const form = useForm({
 });
 
 const resolutionInputRef = ref(null);
-const activeTab = ref('content');
-
-/** Chỉnh sửa — Nội dung + Phân công (không tab Hướng xử lý) */
-const EDIT_TABS = [
-    { key: 'content', label: 'Nội dung', icon: 'blockers' },
-    { key: 'assignment', label: 'Phân công', icon: 'people' },
-];
-
-/** Chỉ khi mở «Hướng xử lý» — không tab (chỉ nhập kế hoạch xử lý) */
-const CREATE_TABS = [
-    { key: 'content', label: 'Nội dung', icon: 'blockers' },
-    { key: 'assignment', label: 'Phân công', icon: 'people' },
-];
 
 watch(() => props.show, async (open) => {
     if (!open) return;
@@ -74,7 +61,6 @@ watch(() => props.show, async (open) => {
             label: l?.label ?? '',
             url: l?.url ?? '',
         }));
-        activeTab.value = props.focusResolution ? 'resolution' : 'content';
     } else {
         form.reset();
         form.project_id = props.defaultProjectId;
@@ -82,7 +68,6 @@ watch(() => props.show, async (open) => {
         form.status = 'open';
         form.resolution = '';
         form.evidence_links = [];
-        activeTab.value = 'content';
     }
     if (props.focusResolution && props.blocker) {
         await nextTick();
@@ -125,19 +110,9 @@ const isResolutionFlow = computed(() => isEdit.value && props.focusResolution);
 
 const showAttachments = computed(() => isEdit.value && props.blocker?.id && !isResolutionFlow.value);
 
-const tabs = computed(() => {
-    if (!isEdit.value) return CREATE_TABS;
-    if (isResolutionFlow.value) return [];
-    return EDIT_TABS;
-});
-
-const showTabBar = computed(() => tabs.value.length > 0);
-
 const showResolutionPanel = computed(() => isResolutionFlow.value);
 
-const showContentPanel = computed(() =>
-    !isResolutionFlow.value && activeTab.value === 'content',
-);
+const showMainForm = computed(() => !isResolutionFlow.value);
 
 const showProjectSelector = computed(() => !isEdit.value && !props.lockProject);
 
@@ -172,13 +147,6 @@ const submitLabel = computed(() => {
     if (!isEdit.value) return 'Ghi nhận vướng mắc';
     return 'Lưu thay đổi';
 });
-
-function setTab(key) {
-    activeTab.value = key;
-    if (key === 'resolution') {
-        nextTick(() => resolutionInputRef.value?.focus?.());
-    }
-}
 
 function textOrDash(value) {
     const t = (value ?? '').trim();
@@ -215,7 +183,7 @@ const submit = () => {
     :show="show"
     :dirty="form.isDirty"
     :title="modalTitle"
-    max-width="max-w-3xl"
+    max-width="max-w-5xl"
     @close="emit('close')"
   >
     <p
@@ -274,33 +242,7 @@ const submit = () => {
         </p>
       </div>
 
-      <div
-        v-if="showTabBar"
-        class="mb-4 flex flex-wrap gap-1 border-b border-slate-200 pb-2"
-        role="tablist"
-        aria-label="Phần biểu mẫu vướng mắc"
-      >
-        <button
-          v-for="tab in tabs"
-          :key="tab.key"
-          type="button"
-          role="tab"
-          class="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition"
-          :class="activeTab === tab.key
-            ? 'bg-brand text-white shadow-sm'
-            : 'text-slate-600 hover:bg-slate-100'"
-          :aria-selected="activeTab === tab.key"
-          @click="setTab(tab.key)"
-        >
-          <AppIcon
-            :name="tab.icon"
-            :size="14"
-          />
-          {{ tab.label }}
-        </button>
-      </div>
-
-      <div class="min-h-[14rem] space-y-4">
+      <div class="min-h-[12rem]">
         <!-- Tab: Hướng xử lý (chỉ sửa) — v-if: tránh đọc blocker.* khi tạo mới (v-show vẫn evaluate) -->
         <div
           v-if="blocker && showResolutionPanel"
@@ -378,183 +320,187 @@ const submit = () => {
           </div>
         </div>
 
-        <!-- Tab: Nội dung (không hiện trong luồng Hướng xử lý) -->
         <div
-          v-show="showContentPanel"
-          class="space-y-4"
+          v-if="showMainForm"
+          class="grid gap-5 lg:grid-cols-2 lg:gap-6"
         >
-          <div>
-            <label class="label flex items-center gap-1.5">
-              Tiêu đề <span class="text-danger">*</span>
-              <FieldTooltip text="Một câu tóm tắt, dễ nhận biết trong danh sách." />
-            </label>
-            <input
-              v-model="form.title"
-              type="text"
-              class="input"
-              :placeholder="isEdit ? undefined : 'VD: API đăng nhập trả về lỗi 500 khi tải cao…'"
-            >
-            <p
-              v-if="form.errors.title"
-              class="mt-1 text-xs text-danger"
-            >
-              {{ form.errors.title }}
-            </p>
-          </div>
-          <div>
-            <label class="label flex items-center gap-1.5">
-              Mô tả chi tiết
-              <FieldTooltip text="Bối cảnh, tác động và phạm vi ảnh hưởng." />
-            </label>
-            <textarea
-              v-model="form.description"
-              rows="4"
-              class="input resize-y"
-              placeholder="Mô tả bối cảnh, tác động…"
-            />
-          </div>
-          <div>
-            <label class="label flex items-center gap-1.5">
-              Nguyên nhân
-              <FieldTooltip text="Nguyên nhân gốc nếu đã xác định." />
-            </label>
-            <textarea
-              v-model="form.root_cause"
-              rows="3"
-              class="input resize-y"
-              placeholder="Nguyên nhân gốc (nếu có)…"
-            />
-          </div>
-          <div>
-            <div class="mb-1 flex items-center justify-between gap-2">
-              <label class="label flex items-center gap-1.5">
-                Link dẫn chứng
-                <FieldTooltip text="URL tham chiếu: Jira, Figma, log, ticket hỗ trợ…" />
-              </label>
-              <button
-                type="button"
-                class="text-xs font-medium text-brand hover:underline"
-                :disabled="form.evidence_links.length >= 20"
-                @click="addEvidenceLink"
-              >
-                + Thêm link
-              </button>
-            </div>
-            <div class="space-y-2">
-              <div
-                v-for="(link, index) in form.evidence_links"
-                :key="index"
-                class="flex flex-col gap-2 sm:flex-row sm:items-center"
-              >
-                <input
-                  v-model="link.label"
-                  type="text"
-                  class="input text-sm sm:w-32"
-                  placeholder="Nhãn"
-                >
-                <input
-                  v-model="link.url"
-                  type="url"
-                  class="input min-w-0 flex-1 text-sm"
-                  placeholder="https://…"
-                >
-                <button
-                  type="button"
-                  class="text-xs text-rose-500 hover:underline"
-                  @click="removeEvidenceLink(index)"
-                >
-                  Xoá
-                </button>
-              </div>
-            </div>
-            <p
-              v-if="form.errors['evidence_links.0.url']"
-              class="mt-1 text-xs text-danger"
-            >
-              {{ form.errors['evidence_links.0.url'] }}
-            </p>
-          </div>
-          <div v-if="showAttachments">
-            <label class="label flex items-center gap-1.5">
-              Ảnh & file đính kèm
-              <FieldTooltip text="Tải ảnh minh chứng; nhấn ảnh để xem phóng to. Lưu sau khi tải lên — không cần bấm Lưu thay đổi." />
-            </label>
-            <BlockerAttachmentsBlock
-              :blocker-id="blocker.id"
-              :attachments="attachmentList"
-              :can-upload="canUploadAttachments"
-              compact
-            />
-          </div>
-        </div>
-
-        <!-- Tab: Phân công -->
-        <div
-          v-show="activeTab === 'assignment' && !isResolutionFlow"
-          class="space-y-4"
-        >
-          <div class="grid gap-4 sm:grid-cols-2">
+          <div class="min-w-0 space-y-3">
             <div>
               <label class="label flex items-center gap-1.5">
-                Mức độ
-                <FieldTooltip text="Mức nghiêm trọng / ưu tiên xử lý." />
-              </label>
-              <SearchSelect
-                v-model="form.severity"
-                :options="severitySelectOptions"
-                placeholder="Chọn mức độ…"
-                :clearable="false"
-              />
-            </div>
-            <div>
-              <label class="label flex items-center gap-1.5">
-                Trạng thái
-                <FieldTooltip text="Trạng thái xử lý hiện tại." />
-              </label>
-              <SearchSelect
-                v-model="form.status"
-                :options="statusSelectOptions"
-                placeholder="Chọn trạng thái…"
-                :clearable="false"
-              />
-            </div>
-            <div>
-              <label class="label flex items-center gap-1.5">
-                Hạn xử lý
-                <FieldTooltip text="Thời hạn mong muốn xử lý xong." />
+                Tiêu đề <span class="text-danger">*</span>
+                <FieldTooltip text="Một câu tóm tắt, dễ nhận biết trong danh sách." />
               </label>
               <input
-                v-model="form.due_date"
-                type="date"
+                v-model="form.title"
+                type="text"
                 class="input"
+                :placeholder="isEdit ? undefined : 'VD: API đăng nhập trả về lỗi 500 khi tải cao…'"
               >
+              <p
+                v-if="form.errors.title"
+                class="mt-1 text-xs text-danger"
+              >
+                {{ form.errors.title }}
+              </p>
+            </div>
+            <div class="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label class="label flex items-center gap-1.5">
+                  Mức độ
+                  <FieldTooltip text="Mức nghiêm trọng / ưu tiên xử lý." />
+                </label>
+                <SearchSelect
+                  v-model="form.severity"
+                  :options="severitySelectOptions"
+                  placeholder="Chọn…"
+                  :clearable="false"
+                />
+              </div>
+              <div>
+                <label class="label flex items-center gap-1.5">
+                  Trạng thái
+                  <FieldTooltip text="Trạng thái xử lý hiện tại." />
+                </label>
+                <SearchSelect
+                  v-model="form.status"
+                  :options="statusSelectOptions"
+                  placeholder="Chọn…"
+                  :clearable="false"
+                />
+              </div>
+              <div>
+                <label class="label flex items-center gap-1.5">
+                  Hạn xử lý
+                </label>
+                <input
+                  v-model="form.due_date"
+                  type="date"
+                  class="input"
+                >
+              </div>
+              <div>
+                <label class="label flex items-center gap-1.5">
+                  Người phụ trách
+                </label>
+                <PersonSelect
+                  v-model="form.owner_id"
+                  :options="employees"
+                  placeholder="Tìm & chọn…"
+                />
+              </div>
             </div>
             <div>
               <label class="label flex items-center gap-1.5">
-                Người phụ trách
-                <FieldTooltip text="Người theo dõi và xử lý vướng mắc." />
+                Mô tả chi tiết
               </label>
-              <PersonSelect
-                v-model="form.owner_id"
-                :options="employees"
-                placeholder="Tìm & chọn…"
+              <textarea
+                v-model="form.description"
+                rows="3"
+                class="input resize-y text-sm"
+                placeholder="Bối cảnh, tác động…"
+              />
+            </div>
+            <div>
+              <label class="label flex items-center gap-1.5">
+                Nguyên nhân
+              </label>
+              <textarea
+                v-model="form.root_cause"
+                rows="2"
+                class="input resize-y text-sm"
+                placeholder="Nguyên nhân gốc (nếu có)…"
+              />
+            </div>
+            <div v-if="!isResolutionFlow">
+              <label class="label flex items-center gap-1.5">
+                Hướng xử lý
+                <FieldTooltip text="Kế hoạch xử lý; có thể chỉnh riêng qua «Hướng xử lý» trên bảng." />
+              </label>
+              <textarea
+                v-model="form.resolution"
+                rows="2"
+                class="input resize-y text-sm"
+                placeholder="Biện pháp, bước tiếp theo…"
               />
             </div>
           </div>
 
-          <div
-            v-if="isEdit && !isResolutionFlow && textOrDash(form.resolution)"
-            class="rounded-lg border border-dashed border-slate-200 bg-slate-50/60 p-3"
-          >
-            <p class="text-[10px] font-bold uppercase tracking-wide text-slate-400">
-              Hướng xử lý (chỉ xem)
-            </p>
-            <p class="mt-1 line-clamp-4 whitespace-pre-wrap text-sm text-slate-600">
-              {{ form.resolution }}
-            </p>
-            <p class="mt-2 text-xs text-slate-500">
-              Chỉnh kế hoạch xử lý qua nút <span class="font-medium text-slate-700">Hướng xử lý</span> trên danh sách.
-            </p>
+          <div class="min-w-0 space-y-3 lg:border-l lg:border-slate-200 lg:pl-6 dark:lg:border-slate-700">
+            <div>
+              <div class="mb-1 flex items-center justify-between gap-2">
+                <label class="label flex items-center gap-1.5">
+                  Link dẫn chứng
+                  <FieldTooltip text="Jira, Figma, log, ticket…" />
+                </label>
+                <button
+                  type="button"
+                  class="text-xs font-medium text-brand hover:underline"
+                  :disabled="form.evidence_links.length >= 20"
+                  @click="addEvidenceLink"
+                >
+                  + Thêm link
+                </button>
+              </div>
+              <div class="max-h-36 space-y-2 overflow-y-auto pr-0.5">
+                <div
+                  v-for="(link, index) in form.evidence_links"
+                  :key="index"
+                  class="flex flex-col gap-1.5 sm:flex-row sm:items-center"
+                >
+                  <input
+                    v-model="link.label"
+                    type="text"
+                    class="input text-sm sm:w-28"
+                    placeholder="Nhãn"
+                  >
+                  <input
+                    v-model="link.url"
+                    type="url"
+                    class="input min-w-0 flex-1 text-sm"
+                    placeholder="https://…"
+                  >
+                  <button
+                    type="button"
+                    class="text-xs text-rose-500 hover:underline sm:shrink-0"
+                    @click="removeEvidenceLink(index)"
+                  >
+                    Xoá
+                  </button>
+                </div>
+              </div>
+              <p
+                v-if="!form.evidence_links.length"
+                class="mt-1 text-xs text-slate-400"
+              >
+                Chưa có link dẫn chứng.
+              </p>
+              <p
+                v-if="form.errors['evidence_links.0.url']"
+                class="mt-1 text-xs text-danger"
+              >
+                {{ form.errors['evidence_links.0.url'] }}
+              </p>
+            </div>
+
+            <div>
+              <label class="label flex items-center gap-1.5">
+                Ảnh & file minh chứng
+                <FieldTooltip text="Kéo thả hoặc chọn ảnh; nhấn thumbnail để phóng to. Upload lưu ngay, không cần bấm Lưu." />
+              </label>
+              <BlockerAttachmentsBlock
+                v-if="showAttachments"
+                :blocker-id="blocker.id"
+                :attachments="attachmentList"
+                :can-upload="canUploadAttachments"
+                compact
+              />
+              <p
+                v-else
+                class="rounded-lg border border-dashed border-slate-200 px-3 py-4 text-center text-xs text-slate-500 dark:border-slate-600"
+              >
+                Ghi nhận vướng mắc trước, sau đó mở lại bản ghi để tải ảnh và file đính kèm.
+              </p>
+            </div>
           </div>
         </div>
       </div>

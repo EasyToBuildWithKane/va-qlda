@@ -16,7 +16,6 @@ export const RISK_TABLE_DEFAULT_VISIBLE = [
     'severity',
     'status',
     'owner',
-    'raised_by',
     'due_date',
 ];
 

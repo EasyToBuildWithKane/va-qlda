@@ -14,7 +14,12 @@ import {
 import { date } from '@/composables/useFormat';
 import { useDialog } from '@/composables/useDialog';
 import { useToast } from '@/shared/composables/useToast';
-import { useRiskTable, RISK_SEVERITY_STYLE, RISK_STATUS_STYLE } from '@/composables/useRiskTable';
+import {
+    useRiskTable,
+    RISK_SEVERITY_DOT,
+    RISK_SEVERITY_TEXT,
+    RISK_STATUS_TEXT,
+} from '@/composables/useRiskTable';
 
 const TERMINAL_STATUS = new Set(['resolved', 'closed']);
 
@@ -130,8 +135,8 @@ const toggleColumn = (key) => {
 };
 
 const fixedColCount = computed(() => {
-    let n = 3; // expand + code + title
-    if (props.canManage) n += 1; // checkbox
+    let n = 2; // expand + title (mã gộp trong tiêu đề)
+    if (props.canManage) n += 1;
     n += 1; // actions
     return n + visibleColumns.value.length;
 });
@@ -292,7 +297,7 @@ defineExpose({ scrollHere });
                 Cột hiển thị
               </p>
               <p class="px-2 pb-1 text-[10px] text-slate-400">
-                Mã & tiêu đề luôn hiển thị
+                Cột «Vướng mắc» luôn hiển thị
               </p>
               <label
                 v-for="c in RISK_TABLE_COLUMNS"
@@ -466,12 +471,12 @@ defineExpose({ scrollHere });
 
     <!-- Table -->
     <div class="overflow-x-auto">
-      <table class="w-full min-w-[720px] border-separate border-spacing-0 text-sm">
+      <table class="w-full min-w-[640px] border-separate border-spacing-0 text-sm">
         <thead>
           <tr class="text-left text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
             <th
               v-if="canManage"
-              class="sticky top-0 z-10 w-10 border-b border-slate-200 bg-slate-50 px-2 py-2 dark:border-slate-700 dark:bg-slate-800/95"
+              class="sticky top-0 z-10 w-8 border-b border-slate-200 bg-slate-50 px-1.5 py-1.5 dark:border-slate-700 dark:bg-slate-800/95"
             >
               <input
                 type="checkbox"
@@ -480,22 +485,12 @@ defineExpose({ scrollHere });
                 @change="table.toggleSelectAll"
               >
             </th>
-            <th class="sticky top-0 z-10 w-9 border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/95" />
+            <th class="sticky top-0 z-10 w-8 border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/95" />
             <th
-              class="sticky top-0 z-10 cursor-pointer border-b border-slate-200 bg-slate-50 px-2 py-2 dark:border-slate-700 dark:bg-slate-800/95"
-              @click="table.toggleSort('code')"
-            >
-              Mã <AppIcon
-                name="sort"
-                :size="11"
-                class="inline opacity-40"
-              />
-            </th>
-            <th
-              class="sticky top-0 z-10 min-w-[12rem] cursor-pointer border-b border-slate-200 bg-slate-50 px-2 py-2 dark:border-slate-700 dark:bg-slate-800/95"
+              class="sticky top-0 z-10 min-w-[11rem] cursor-pointer border-b border-slate-200 bg-slate-50 px-2 py-1.5 dark:border-slate-700 dark:bg-slate-800/95"
               @click="table.toggleSort('title')"
             >
-              Tiêu đề <AppIcon
+              Vướng mắc <AppIcon
                 name="sort"
                 :size="11"
                 class="inline opacity-40"
@@ -503,14 +498,14 @@ defineExpose({ scrollHere });
             </th>
             <th
               v-if="colVisible('severity')"
-              class="sticky top-0 z-10 cursor-pointer border-b border-slate-200 bg-slate-50 px-2 py-2 dark:border-slate-700 dark:bg-slate-800/95"
+              class="sticky top-0 z-10 w-[5.5rem] cursor-pointer border-b border-slate-200 bg-slate-50 px-2 py-1.5 dark:border-slate-700 dark:bg-slate-800/95"
               @click="table.toggleSort('severity')"
             >
               Mức độ
             </th>
             <th
               v-if="colVisible('status')"
-              class="sticky top-0 z-10 cursor-pointer border-b border-slate-200 bg-slate-50 px-2 py-2 dark:border-slate-700 dark:bg-slate-800/95"
+              class="sticky top-0 z-10 w-[6.5rem] cursor-pointer border-b border-slate-200 bg-slate-50 px-2 py-1.5 dark:border-slate-700 dark:bg-slate-800/95"
               @click="table.toggleSort('status')"
             >
               Trạng thái
@@ -562,8 +557,8 @@ defineExpose({ scrollHere });
             >
               Cập nhật
             </th>
-            <th class="sticky top-0 z-10 min-w-[7rem] border-b border-slate-200 bg-slate-50 px-2 py-2 dark:border-slate-700 dark:bg-slate-800/95">
-              Thao tác
+            <th class="sticky top-0 z-10 w-[4.5rem] border-b border-slate-200 bg-slate-50 px-1 py-1.5 dark:border-slate-700 dark:bg-slate-800/95">
+              <span class="sr-only">Thao tác</span>
             </th>
           </tr>
         </thead>
@@ -622,11 +617,11 @@ defineExpose({ scrollHere });
           >
             <tr
               class="group transition hover:bg-slate-50/80 dark:hover:bg-slate-800/50"
-              :class="row.is_overdue ? 'bg-rose-50/30 dark:bg-rose-950/10' : ''"
+              :class="row.is_overdue ? 'bg-rose-50/20 dark:bg-rose-950/10' : ''"
             >
               <td
                 v-if="canManage"
-                class="border-b border-slate-100 px-2 py-2 dark:border-slate-800"
+                class="border-b border-slate-100 px-1.5 py-1 dark:border-slate-800"
               >
                 <input
                   type="checkbox"
@@ -635,46 +630,49 @@ defineExpose({ scrollHere });
                   @change="table.toggleSelect(row.id)"
                 >
               </td>
-              <td class="border-b border-slate-100 px-1 py-2 dark:border-slate-800">
+              <td class="border-b border-slate-100 px-0.5 py-1 dark:border-slate-800">
                 <button
                   type="button"
-                  class="grid h-7 w-7 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700"
+                  class="grid h-6 w-6 place-items-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700"
                   @click="table.toggleExpand(row.id)"
                 >
                   <AppIcon
                     :name="table.expanded.value.has(row.id) ? 'chevron-down' : 'chevron-right'"
-                    :size="14"
+                    :size="13"
                   />
                 </button>
               </td>
-              <td class="border-b border-slate-100 px-2 py-2 font-mono text-xs font-semibold text-slate-600 dark:border-slate-800 dark:text-slate-300">
-                {{ row.code }}
-              </td>
-              <td class="border-b border-slate-100 px-2 py-2 dark:border-slate-800">
-                <p class="font-medium text-slate-800 dark:text-slate-100">
+              <td class="border-b border-slate-100 px-2 py-1 dark:border-slate-800">
+                <p class="line-clamp-2 text-[13px] font-medium leading-snug text-slate-800 dark:text-slate-100">
                   {{ row.title }}
+                </p>
+                <p class="mt-0.5 font-mono text-[10px] text-slate-400">
+                  {{ row.code }}
                 </p>
               </td>
               <td
                 v-if="colVisible('severity')"
-                class="border-b border-slate-100 px-2 py-2 dark:border-slate-800"
+                class="border-b border-slate-100 px-2 py-1 dark:border-slate-800"
               >
                 <span
-                  class="inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ring-1 ring-inset"
-                  :class="RISK_SEVERITY_STYLE[row.severity?.value] || RISK_SEVERITY_STYLE.medium"
+                  class="inline-flex items-center gap-1.5 text-[11px] leading-tight"
+                  :class="RISK_SEVERITY_TEXT[row.severity?.value] || RISK_SEVERITY_TEXT.medium"
                 >
+                  <span
+                    class="h-1.5 w-1.5 shrink-0 rounded-full"
+                    :class="RISK_SEVERITY_DOT[row.severity?.value] || RISK_SEVERITY_DOT.medium"
+                  />
                   {{ row.severity?.label }}
                 </span>
               </td>
               <td
                 v-if="colVisible('status')"
-                class="border-b border-slate-100 px-2 py-2 dark:border-slate-800"
+                class="border-b border-slate-100 px-2 py-1 dark:border-slate-800"
               >
                 <select
                   v-if="canEditRow(row)"
                   :value="row.status?.value"
-                  class="h-7 max-w-[9.5rem] cursor-pointer rounded-lg border border-slate-200 bg-white py-0 pl-2 pr-7 text-[10px] font-semibold shadow-sm focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20 disabled:opacity-50 dark:border-slate-600 dark:bg-slate-800"
-                  :class="RISK_STATUS_STYLE[row.status?.value] || RISK_STATUS_STYLE.open"
+                  class="h-6 w-full max-w-[6.25rem] cursor-pointer rounded border border-slate-200 bg-white py-0 pl-1.5 pr-5 text-[11px] text-slate-700 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand/25 disabled:opacity-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
                   :disabled="statusUpdating.has(row.id)"
                   @change="changeStatus(row, $event.target.value)"
                 >
@@ -688,52 +686,54 @@ defineExpose({ scrollHere });
                 </select>
                 <span
                   v-else
-                  class="inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ring-inset"
-                  :class="RISK_STATUS_STYLE[row.status?.value] || RISK_STATUS_STYLE.open"
+                  class="text-[11px]"
+                  :class="RISK_STATUS_TEXT[row.status?.value] || RISK_STATUS_TEXT.open"
                 >
                   {{ row.status?.label }}
                 </span>
               </td>
               <td
                 v-if="colVisible('owner')"
-                class="border-b border-slate-100 px-2 py-2 dark:border-slate-800"
+                class="border-b border-slate-100 px-2 py-1 dark:border-slate-800"
               >
                 <div
                   v-if="row.owner"
-                  class="flex min-w-[8.5rem] items-center gap-1.5"
+                  class="flex max-w-[7.5rem] items-center gap-1"
+                  :title="row.owner.name"
                 >
                   <Avatar
                     :name="row.owner.name"
                     :src="row.owner.avatar_path"
-                    :size="22"
+                    :size="18"
                     class="shrink-0"
                   />
-                  <span class="text-xs leading-snug text-slate-700 dark:text-slate-200">{{ row.owner.name }}</span>
+                  <span class="truncate text-[11px] text-slate-600 dark:text-slate-300">{{ row.owner.name }}</span>
                 </div>
                 <span
                   v-else
-                  class="text-xs text-slate-400"
+                  class="text-[11px] text-slate-400"
                 >—</span>
               </td>
               <td
                 v-if="colVisible('raised_by')"
-                class="border-b border-slate-100 px-2 py-2 dark:border-slate-800"
+                class="border-b border-slate-100 px-2 py-1 dark:border-slate-800"
               >
                 <div
                   v-if="row.raised_by"
-                  class="flex min-w-[8.5rem] items-center gap-1.5"
+                  class="flex max-w-[7.5rem] items-center gap-1"
+                  :title="row.raised_by.name"
                 >
                   <Avatar
                     :name="row.raised_by.name"
                     :src="row.raised_by.avatar_path"
-                    :size="22"
+                    :size="18"
                     class="shrink-0"
                   />
-                  <span class="text-xs leading-snug text-slate-700 dark:text-slate-200">{{ row.raised_by.name }}</span>
+                  <span class="truncate text-[11px] text-slate-600 dark:text-slate-300">{{ row.raised_by.name }}</span>
                 </div>
                 <span
                   v-else
-                  class="text-xs text-slate-400"
+                  class="text-[11px] text-slate-400"
                 >—</span>
               </td>
               <td
@@ -767,44 +767,43 @@ defineExpose({ scrollHere });
               >
                 {{ date(row.updated_at) }}
               </td>
-              <td class="border-b border-slate-100 px-2 py-2 dark:border-slate-800">
-                <span class="inline-flex gap-0.5 opacity-70 group-hover:opacity-100">
+              <td class="border-b border-slate-100 px-1 py-1 dark:border-slate-800">
+                <span class="inline-flex gap-0 opacity-80 group-hover:opacity-100">
                   <button
                     v-if="canResolve(row)"
                     type="button"
-                    class="inline-flex h-7 items-center gap-1 rounded-lg px-2 text-[10px] font-semibold text-emerald-700 hover:bg-emerald-50 disabled:opacity-50 dark:text-emerald-400 dark:hover:bg-emerald-950/40"
+                    class="grid h-6 w-6 place-items-center rounded text-emerald-600 hover:bg-emerald-50 disabled:opacity-50 dark:text-emerald-400 dark:hover:bg-emerald-950/40"
                     :disabled="statusUpdating.has(row.id)"
-                    title="Đặt trạng thái: Đã giải quyết (tương đương chọn trong cột Trạng thái)"
+                    title="Giải quyết"
                     @click="markResolved(row)"
                   >
                     <AppIcon
                       name="check"
                       :size="13"
                     />
-                    <span class="hidden sm:inline">Giải quyết</span>
                   </button>
                   <button
                     v-if="canEditRow(row)"
                     type="button"
-                    class="grid h-7 w-7 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700"
+                    class="grid h-6 w-6 place-items-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700"
                     title="Chỉnh sửa"
                     @click="openEdit(row)"
                   >
                     <AppIcon
                       name="edit"
-                      :size="14"
+                      :size="13"
                     />
                   </button>
                   <button
                     v-if="row.can?.delete"
                     type="button"
-                    class="grid h-7 w-7 place-items-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/30"
+                    class="grid h-6 w-6 place-items-center rounded text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/30"
                     title="Xoá"
                     @click="removeOne(row)"
                   >
                     <AppIcon
                       name="delete"
-                      :size="14"
+                      :size="13"
                     />
                   </button>
                 </span>
