@@ -146,7 +146,11 @@
     <p class="indent bold">4.5 Thông tin bổ sung:</p>
     @foreach($vars['registration_email_slots'] as $idx => $slot)
     <p class="indent2">
-        Email đăng ký tài khoản@if(count($vars['registration_email_slots']) > 1) (nhân sự {{ $idx + 1 }})@endif:
+        Email đăng ký tài khoản
+        @if((count($vars['registration_email_slots']) > 1))
+            (nhân sự {{ $idx + 1 }})
+        @endif
+        :
         {{ $slot }}
     </p>
     @endforeach

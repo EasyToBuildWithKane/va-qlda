@@ -207,6 +207,10 @@ const modalDirty = computed(() => form.isDirty || pendingCreateFiles.value.lengt
 
 const submit = () => {
     const payload = { ...form.data(), evidence_links: cleanedEvidenceLinks() };
+    if (!props.blocker) {
+        delete payload.root_cause;
+        delete payload.resolution;
+    }
     if (props.blocker) {
         form.transform(() => payload).put(`/blockers/${props.blocker.id}`, {
             preserveScroll: true,
@@ -451,29 +455,37 @@ const submit = () => {
                 placeholder="Bối cảnh, tác động…"
               />
             </div>
-            <div>
-              <label class="label flex items-center gap-1.5">
-                Nguyên nhân
-              </label>
-              <textarea
-                v-model="form.root_cause"
-                rows="2"
-                class="input resize-y text-sm"
-                placeholder="Nguyên nhân gốc (nếu có)…"
-              />
-            </div>
-            <div v-if="!isResolutionFlow">
-              <label class="label flex items-center gap-1.5">
-                Hướng xử lý
-                <FieldTooltip text="Kế hoạch xử lý; có thể chỉnh riêng qua «Hướng xử lý» trên bảng." />
-              </label>
-              <textarea
-                v-model="form.resolution"
-                rows="2"
-                class="input resize-y text-sm"
-                placeholder="Biện pháp, bước tiếp theo…"
-              />
-            </div>
+            <template v-if="isEdit">
+              <div>
+                <label class="label flex items-center gap-1.5">
+                  Nguyên nhân
+                </label>
+                <textarea
+                  v-model="form.root_cause"
+                  rows="2"
+                  class="input resize-y text-sm"
+                  placeholder="Nguyên nhân gốc (nếu có)…"
+                />
+              </div>
+              <div v-if="!isResolutionFlow">
+                <label class="label flex items-center gap-1.5">
+                  Hướng xử lý
+                  <FieldTooltip text="Kế hoạch xử lý; có thể chỉnh riêng qua «Hướng xử lý» trên bảng." />
+                </label>
+                <textarea
+                  v-model="form.resolution"
+                  rows="2"
+                  class="input resize-y text-sm"
+                  placeholder="Biện pháp, bước tiếp theo…"
+                />
+              </div>
+            </template>
+            <p
+              v-else
+              class="text-xs text-slate-500"
+            >
+              Nguyên nhân và hướng xử lý có thể bổ sung sau khi chỉnh sửa phiếu.
+            </p>
           </div>
 
           <div class="min-w-0 space-y-3 lg:border-l lg:border-slate-200 lg:pl-6 dark:lg:border-slate-700">
