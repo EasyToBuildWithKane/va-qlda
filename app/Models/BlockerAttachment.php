@@ -43,8 +43,20 @@ class BlockerAttachment extends Model
         return $this->belongsTo(Employee::class, 'uploaded_by_id');
     }
 
-    public function url(): string
+    public function fileExists(): bool
     {
-        return Storage::disk('public')->url($this->path);
+        return Storage::disk('public')->exists($this->path);
+    }
+
+    public function url(): ?string
+    {
+        if (! $this->fileExists()) {
+            return null;
+        }
+
+        return route('blockers.attachments.file', [
+            'blocker' => $this->blocker_id,
+            'attachment' => $this->id,
+        ]);
     }
 }

@@ -35,6 +35,9 @@ class BlockerController extends Controller
         if ($value instanceof \DateTimeInterface) {
             return $value->format('Y-m-d H:i:s');
         }
+        if (is_array($value)) {
+            return json_encode($value, JSON_UNESCAPED_UNICODE) ?: '';
+        }
 
         return (string) $value;
     }
@@ -178,7 +181,7 @@ class BlockerController extends Controller
     {
         $data = $request->validated();
 
-        $trackFields = ['title', 'description', 'root_cause', 'resolution', 'severity', 'status', 'owner_id', 'due_date'];
+        $trackFields = ['title', 'description', 'root_cause', 'resolution', 'evidence_links', 'severity', 'status', 'owner_id', 'due_date'];
         $before = $blocker->only($trackFields);
         $oldStatus = $blocker->status->value;
 

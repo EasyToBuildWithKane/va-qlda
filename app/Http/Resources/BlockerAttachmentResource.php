@@ -21,6 +21,7 @@ class BlockerAttachmentResource extends JsonResource
             'mime_type' => $this->mime_type,
             'size' => $this->size,
             'is_image' => $this->is_image,
+            'file_available' => $this->fileExists(),
             'url' => $this->url(),
             'uploaded_by' => $this->whenLoaded('uploadedBy', fn () => [
                 'id' => $this->uploadedBy?->id,

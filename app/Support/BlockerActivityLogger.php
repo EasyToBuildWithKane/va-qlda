@@ -45,6 +45,7 @@ class BlockerActivityLogger
             'status' => 'trạng thái',
             'owner_id' => 'người phụ trách',
             'due_date' => 'hạn xử lý',
+            'evidence_links' => 'link dẫn chứng',
         ];
 
         foreach ($changes as $field => $value) {

@@ -10,6 +10,7 @@ import { useConfirmDelete } from '@/composables/useConfirmClose';
 const props = defineProps({
     row: { type: Object, required: true },
     canEdit: { type: Boolean, default: false },
+    canUpload: { type: Boolean, default: false },
     canComment: { type: Boolean, default: false },
 });
 
@@ -24,6 +25,14 @@ const normalizeList = (val) => {
     return [];
 };
 
+const normalizeEvidenceLinks = (val) => {
+    const list = normalizeList(val);
+    return list.map((item) => ({
+        label: (item?.label ?? '').trim(),
+        url: (item?.url ?? '').trim(),
+    })).filter((item) => item.url);
+};
+
 const comments = computed(() => normalizeList(props.row.comments));
 const attachments = computed(() => normalizeList(props.row.attachments));
 const activities = computed(() => normalizeList(props.row.activities));
@@ -32,28 +41,52 @@ const form = useForm({
     description: '',
     root_cause: '',
     resolution: '',
+    evidence_links: [],
 });
 
 const syncForm = () => {
     form.description = props.row.description || '';
     form.root_cause = props.row.root_cause || '';
     form.resolution = props.row.resolution || '';
+    form.evidence_links = normalizeEvidenceLinks(props.row.evidence_links).map((l) => ({ ...l }));
 };
 
 watch(() => props.row.id, syncForm, { immediate: true });
 
+const evidenceLinksDirty = computed(() => {
+    const current = normalizeEvidenceLinks(form.evidence_links);
+    const original = normalizeEvidenceLinks(props.row.evidence_links);
+    return JSON.stringify(current) !== JSON.stringify(original);
+});
+
 const dirty = computed(() =>
     form.description !== (props.row.description || '')
     || form.root_cause !== (props.row.root_cause || '')
-    || form.resolution !== (props.row.resolution || ''),
+    || form.resolution !== (props.row.resolution || '')
+    || evidenceLinksDirty.value,
 );
 
 const saveDetails = () => {
     if (!dirty.value) return;
-    form.put(`/blockers/${props.row.id}`, {
+    const payload = {
+        description: form.description,
+        root_cause: form.root_cause,
+        resolution: form.resolution,
+        evidence_links: normalizeEvidenceLinks(form.evidence_links),
+    };
+    form.transform(() => payload).put(`/blockers/${props.row.id}`, {
         preserveScroll: true,
         onSuccess: () => toast.success('Đã lưu chi tiết'),
     });
+};
+
+const addEvidenceLink = () => {
+    if (form.evidence_links.length >= 20) return;
+    form.evidence_links.push({ label: '', url: '' });
+};
+
+const removeEvidenceLink = (index) => {
+    form.evidence_links.splice(index, 1);
 };
 
 const pickFiles = () => fileInput.value?.click();
@@ -90,6 +123,8 @@ const formatSize = (bytes) => {
     return `${n.toFixed(i ? 1 : 0)} ${units[i]}`;
 };
 
+const linkLabel = (item) => item.label || item.url;
+
 const activityIcon = (event) => {
     const map = {
         created: 'add',
@@ -114,6 +149,8 @@ const timeline = computed(() => {
     }
     return items.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 });
+
+const displayEvidenceLinks = computed(() => normalizeEvidenceLinks(props.row.evidence_links));
 </script>
 
 <template>
@@ -176,6 +213,93 @@ const timeline = computed(() => {
         </p>
       </div>
 
+      <div>
+        <div class="flex items-center justify-between gap-2">
+          <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            Link dẫn chứng
+          </p>
+          <button
+            v-if="canEdit"
+            type="button"
+            class="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-brand hover:bg-brand/10"
+            :disabled="form.evidence_links.length >= 20"
+            @click="addEvidenceLink"
+          >
+            <AppIcon
+              name="add"
+              :size="14"
+            />
+            Thêm link
+          </button>
+        </div>
+
+        <div
+          v-if="canEdit"
+          class="mt-2 space-y-2"
+        >
+          <div
+            v-for="(link, index) in form.evidence_links"
+            :key="index"
+            class="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-2.5 sm:flex-row sm:items-start dark:border-slate-600 dark:bg-slate-900"
+          >
+            <input
+              v-model="link.label"
+              type="text"
+              class="input text-sm sm:w-36"
+              placeholder="Nhãn (tuỳ chọn)"
+            >
+            <input
+              v-model="link.url"
+              type="url"
+              class="input min-w-0 flex-1 text-sm"
+              placeholder="https://…"
+            >
+            <button
+              type="button"
+              class="shrink-0 self-end text-xs text-rose-500 hover:underline sm:self-center"
+              @click="removeEvidenceLink(index)"
+            >
+              Xoá
+            </button>
+          </div>
+          <p
+            v-if="!form.evidence_links.length"
+            class="rounded-xl border border-dashed border-slate-200 p-3 text-xs text-slate-400 dark:border-slate-600"
+          >
+            Chưa có link dẫn chứng (Jira, Figma, log, ticket…).
+          </p>
+        </div>
+        <ul
+          v-else-if="displayEvidenceLinks.length"
+          class="mt-2 space-y-1.5"
+        >
+          <li
+            v-for="(link, index) in displayEvidenceLinks"
+            :key="index"
+          >
+            <a
+              :href="link.url"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex max-w-full items-center gap-1.5 text-sm font-medium text-brand hover:underline"
+            >
+              <AppIcon
+                name="dependency"
+                :size="14"
+                class="shrink-0"
+              />
+              <span class="truncate">{{ linkLabel(link) }}</span>
+            </a>
+          </li>
+        </ul>
+        <p
+          v-else
+          class="mt-2 text-xs text-slate-400"
+        >
+          Chưa có link dẫn chứng.
+        </p>
+      </div>
+
       <div
         v-if="canEdit && dirty"
         class="flex justify-end"
@@ -196,7 +320,7 @@ const timeline = computed(() => {
             Ảnh & file đính kèm
           </p>
           <button
-            v-if="canEdit"
+            v-if="canUpload"
             type="button"
             class="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-brand hover:bg-brand/10"
             :disabled="uploading"
@@ -227,43 +351,69 @@ const timeline = computed(() => {
             :key="file.id"
             class="group relative overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-600 dark:bg-slate-900"
           >
-            <a
-              v-if="file.is_image"
-              :href="file.url"
-              target="_blank"
-              rel="noopener"
-              class="block"
-            >
-              <img
-                :src="file.url"
-                :alt="file.original_name"
-                class="aspect-video w-full object-cover"
+            <template v-if="file.file_available !== false && file.url">
+              <a
+                v-if="file.is_image"
+                :href="file.url"
+                target="_blank"
+                rel="noopener"
+                class="block"
               >
-            </a>
-            <a
+                <img
+                  :src="file.url"
+                  :alt="file.original_name"
+                  class="aspect-video w-full object-cover"
+                >
+              </a>
+              <a
+                v-else
+                :href="file.url"
+                target="_blank"
+                rel="noopener"
+                class="flex items-center gap-2 p-3 text-sm text-slate-700 hover:text-brand dark:text-slate-200"
+              >
+                <AppIcon
+                  name="template"
+                  :size="18"
+                  class="shrink-0 text-slate-400"
+                />
+                <span class="min-w-0 truncate font-medium">{{ file.original_name }}</span>
+              </a>
+            </template>
+            <div
               v-else
-              :href="file.url"
-              target="_blank"
-              rel="noopener"
-              class="flex items-center gap-2 p-3 text-sm text-slate-700 hover:text-brand dark:text-slate-200"
+              class="flex items-center gap-2 p-3 text-sm text-slate-400"
             >
               <AppIcon
                 name="template"
                 :size="18"
-                class="shrink-0 text-slate-400"
               />
-              <span class="min-w-0 truncate font-medium">{{ file.original_name }}</span>
-            </a>
+              <span class="truncate">{{ file.original_name }} (file không còn trên máy chủ)</span>
+            </div>
             <div class="flex items-center justify-between gap-2 border-t border-slate-100 px-2.5 py-1.5 text-[10px] text-slate-400 dark:border-slate-700">
               <span>{{ formatSize(file.size) }}</span>
-              <button
-                v-if="canEdit"
-                type="button"
-                class="text-rose-500 opacity-0 transition group-hover:opacity-100"
-                @click="removeAttachment(file)"
-              >
-                Xoá
-              </button>
+              <div class="flex items-center gap-2">
+                <a
+                  v-if="file.url"
+                  :href="file.url"
+                  class="inline-flex items-center gap-0.5 text-brand hover:underline"
+                  :title="`Tải ${file.original_name}`"
+                >
+                  <AppIcon
+                    name="download"
+                    :size="12"
+                  />
+                  Tải về
+                </a>
+                <button
+                  v-if="canUpload"
+                  type="button"
+                  class="text-rose-500 opacity-0 transition group-hover:opacity-100"
+                  @click="removeAttachment(file)"
+                >
+                  Xoá
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -271,7 +421,7 @@ const timeline = computed(() => {
           v-else
           class="mt-2 rounded-xl border border-dashed border-slate-200 p-3 text-xs text-slate-400 dark:border-slate-600"
         >
-          Chưa có file đính kèm.
+          Chưa có file đính kèm. Hỗ trợ hình ảnh, PDF, Office, ZIP (tối đa 10MB/file).
         </p>
       </div>
     </div>

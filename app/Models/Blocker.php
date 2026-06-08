@@ -26,6 +26,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
  * @property string|null $root_cause
  * @property \Illuminate\Support\Carbon|null $due_date
  * @property string|null $resolution
+ * @property array<int, array{label?: string, url: string}>|null $evidence_links
  */
 class Blocker extends Model
 {
@@ -44,6 +45,7 @@ class Blocker extends Model
         'due_date',
         'resolved_at',
         'resolution',
+        'evidence_links',
     ];
 
     protected $casts = [
@@ -52,6 +54,7 @@ class Blocker extends Model
         'raised_at' => 'datetime',
         'due_date' => 'date',
         'resolved_at' => 'datetime',
+        'evidence_links' => 'array',
     ];
 
     protected static function booted(): void

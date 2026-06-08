@@ -139,6 +139,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/bulk', [BlockerController::class, 'bulk'])->name('bulk');
         Route::put('/{blocker}', [BlockerController::class, 'update'])->name('update');
         Route::delete('/{blocker}', [BlockerController::class, 'destroy'])->name('destroy');
+        Route::get('/{blocker}/attachments/{attachment}/file', [BlockerAttachmentController::class, 'file'])->name('attachments.file');
         Route::post('/{blocker}/attachments', [BlockerAttachmentController::class, 'store'])->name('attachments.store');
         Route::delete('/{blocker}/attachments/{attachment}', [BlockerAttachmentController::class, 'destroy'])->name('attachments.destroy');
     });

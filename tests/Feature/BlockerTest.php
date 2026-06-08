@@ -3,12 +3,15 @@
 namespace Tests\Feature;
 
 use App\Models\Blocker;
+use App\Models\BlockerAttachment;
 use App\Models\Project;
 use App\Models\SystemAccount;
 use App\Support\Enums\BlockerSeverity;
 use App\Support\Enums\BlockerStatus;
 use App\Support\Enums\SystemRole;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class BlockerTest extends TestCase
@@ -292,5 +295,52 @@ class BlockerTest extends TestCase
                 'rows' => [['title' => 'Row', 'severity' => BlockerSeverity::Low->value]],
             ])
             ->assertForbidden();
+    }
+
+    public function test_member_can_download_blocker_attachment(): void
+    {
+        Storage::fake('public');
+
+        $project = Project::factory()->create();
+        $member = $this->member();
+        $blocker = $this->createBlocker($project, $member);
+
+        $path = UploadedFile::fake()->image('proof.png')->store('blockers/'.$blocker->id, 'public');
+        $attachment = BlockerAttachment::create([
+            'blocker_id' => $blocker->id,
+            'uploaded_by_id' => $member->employee_id,
+            'original_name' => 'proof.png',
+            'path' => $path,
+            'mime_type' => 'image/png',
+            'size' => 1024,
+            'is_image' => true,
+        ]);
+
+        $this->actingAs($member, 'system')
+            ->get("/blockers/{$blocker->id}/attachments/{$attachment->id}/file")
+            ->assertOk();
+    }
+
+    public function test_admin_can_save_evidence_links_on_blocker(): void
+    {
+        $project = Project::factory()->create();
+        $blocker = $this->createBlocker($project);
+
+        $links = [
+            ['label' => 'Jira', 'url' => 'https://example.com/jira/1'],
+            ['url' => 'https://example.com/log'],
+        ];
+
+        $this->actingAs($this->admin(), 'system')
+            ->put("/blockers/{$blocker->id}", [
+                'title' => $blocker->title,
+                'severity' => BlockerSeverity::High->value,
+                'status' => BlockerStatus::Open->value,
+                'evidence_links' => $links,
+            ])
+            ->assertRedirect();
+
+        $blocker->refresh();
+        $this->assertSame($links, $blocker->evidence_links);
     }
 }

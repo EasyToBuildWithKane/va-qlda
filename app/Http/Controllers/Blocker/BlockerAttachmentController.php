@@ -9,9 +9,29 @@ use App\Support\BlockerActivityLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class BlockerAttachmentController extends Controller
 {
+    public function file(Request $request, Blocker $blocker, BlockerAttachment $attachment): StreamedResponse
+    {
+        $this->authorize('view', $blocker);
+
+        if ($attachment->blocker_id !== $blocker->id) {
+            abort(404);
+        }
+
+        if (! Storage::disk('public')->exists($attachment->path)) {
+            abort(404);
+        }
+
+        return Storage::disk('public')->response(
+            $attachment->path,
+            $attachment->original_name,
+            ['Content-Type' => $attachment->mime_type ?? 'application/octet-stream'],
+        );
+    }
+
     public function store(Request $request, Blocker $blocker): RedirectResponse
     {
         $this->authorize('update', $blocker);

@@ -37,6 +37,7 @@ const form = useForm({
     owner_id: null,
     due_date: null,
     resolution: '',
+    evidence_links: [],
 });
 
 const resolutionInputRef = ref(null);
@@ -67,6 +68,10 @@ watch(() => props.show, async (open) => {
         form.owner_id = props.blocker.owner?.id ?? null;
         form.due_date = props.blocker.due_date ?? null;
         form.resolution = props.blocker.resolution ?? '';
+        form.evidence_links = (props.blocker.evidence_links ?? []).map((l) => ({
+            label: l?.label ?? '',
+            url: l?.url ?? '',
+        }));
         activeTab.value = props.focusResolution ? 'resolution' : 'content';
     } else {
         form.reset();
@@ -74,6 +79,7 @@ watch(() => props.show, async (open) => {
         form.severity = 'medium';
         form.status = 'open';
         form.resolution = '';
+        form.evidence_links = [];
         activeTab.value = 'content';
     }
     if (props.focusResolution && props.blocker) {
@@ -168,10 +174,28 @@ function textOrDash(value) {
     return t || null;
 }
 
+const addEvidenceLink = () => {
+    if (form.evidence_links.length >= 20) return;
+    form.evidence_links.push({ label: '', url: '' });
+};
+
+const removeEvidenceLink = (index) => {
+    form.evidence_links.splice(index, 1);
+};
+
+const cleanedEvidenceLinks = () =>
+    form.evidence_links
+        .map((l) => ({ label: (l.label ?? '').trim(), url: (l.url ?? '').trim() }))
+        .filter((l) => l.url);
+
 const submit = () => {
     const opts = { preserveScroll: true, onSuccess: () => { emit('saved'); emit('close'); } };
-    if (props.blocker) form.put(`/blockers/${props.blocker.id}`, opts);
-    else form.post('/blockers', opts);
+    const payload = { ...form.data(), evidence_links: cleanedEvidenceLinks() };
+    if (props.blocker) {
+        form.transform(() => payload).put(`/blockers/${props.blocker.id}`, opts);
+    } else {
+        form.transform(() => payload).post('/blockers', opts);
+    }
 };
 </script>
 
@@ -389,6 +413,55 @@ const submit = () => {
               class="input resize-y"
               placeholder="Nguyên nhân gốc (nếu có)…"
             />
+          </div>
+          <div>
+            <div class="mb-1 flex items-center justify-between gap-2">
+              <label class="label flex items-center gap-1.5">
+                Link dẫn chứng
+                <FieldTooltip text="URL tham chiếu: Jira, Figma, log, ticket hỗ trợ…" />
+              </label>
+              <button
+                type="button"
+                class="text-xs font-medium text-brand hover:underline"
+                :disabled="form.evidence_links.length >= 20"
+                @click="addEvidenceLink"
+              >
+                + Thêm link
+              </button>
+            </div>
+            <div class="space-y-2">
+              <div
+                v-for="(link, index) in form.evidence_links"
+                :key="index"
+                class="flex flex-col gap-2 sm:flex-row sm:items-center"
+              >
+                <input
+                  v-model="link.label"
+                  type="text"
+                  class="input text-sm sm:w-32"
+                  placeholder="Nhãn"
+                >
+                <input
+                  v-model="link.url"
+                  type="url"
+                  class="input min-w-0 flex-1 text-sm"
+                  placeholder="https://…"
+                >
+                <button
+                  type="button"
+                  class="text-xs text-rose-500 hover:underline"
+                  @click="removeEvidenceLink(index)"
+                >
+                  Xoá
+                </button>
+              </div>
+            </div>
+            <p
+              v-if="form.errors['evidence_links.0.url']"
+              class="mt-1 text-xs text-danger"
+            >
+              {{ form.errors['evidence_links.0.url'] }}
+            </p>
           </div>
         </div>
 

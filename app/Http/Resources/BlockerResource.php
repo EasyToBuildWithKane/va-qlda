@@ -46,6 +46,7 @@ class BlockerResource extends JsonResource
             'due_date' => $this->due_date?->toDateString(),
             'resolved_at' => $this->resolved_at?->toIso8601String(),
             'resolution' => $this->resolution,
+            'evidence_links' => $this->evidence_links ?? [],
             'updated_at' => $this->updated_at?->toIso8601String(),
             'is_overdue' => $this->due_date
                 && $this->due_date->isPast()

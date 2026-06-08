@@ -821,6 +821,7 @@ defineExpose({ scrollHere });
                 <RiskIssueDetailPanel
                   :row="row"
                   :can-edit="canEditRow(row)"
+                  :can-upload="props.canManage || props.canContribute || canEditRow(row)"
                   :can-comment="canCommentRow()"
                 />
               </td>

@@ -28,6 +28,20 @@ class UpdateBlockerRequest extends FormRequest
             'status' => ['sometimes', 'required', Rule::in(BlockerStatus::values())],
             'owner_id' => ['nullable', 'integer', 'exists:employees,id'],
             'resolution' => ['nullable', 'string', 'max:10000'],
+            'evidence_links' => ['nullable', 'array', 'max:20'],
+            'evidence_links.*.label' => ['nullable', 'string', 'max:120'],
+            'evidence_links.*.url' => ['required', 'string', 'url', 'max:2048'],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'evidence_links.*.url.url' => 'Link dẫn chứng phải là URL hợp lệ (https://…).',
+            'evidence_links.*.url.required' => 'Mỗi dòng dẫn chứng cần có địa chỉ link.',
         ];
     }
 }
