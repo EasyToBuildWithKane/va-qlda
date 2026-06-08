@@ -643,8 +643,8 @@ const submit = (after = 'close') => {
                 </label>
                 <textarea
                   v-model="form.description"
-                  rows="3"
-                  class="input resize-none"
+                  rows="8"
+                  class="input min-h-[10rem] resize-y"
                   placeholder="Mô tả mục tiêu, phạm vi, kết quả kỳ vọng…"
                 />
               </div>

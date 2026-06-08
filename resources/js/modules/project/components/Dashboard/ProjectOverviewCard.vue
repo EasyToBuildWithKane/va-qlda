@@ -86,12 +86,12 @@ const infoTiles = computed(() => [
     <!-- Header -->
     <header class="flex items-start justify-between gap-3 border-b border-slate-100/80 px-4 py-3 dark:border-slate-800">
       <div class="min-w-0 flex-1">
-        <h2 class="truncate font-display text-lg font-bold tracking-tight text-slate-900 dark:text-slate-50">
+        <h2 class="truncate font-display text-lg font-medium tracking-tight text-slate-900 dark:text-slate-50">
           {{ project.name }}
         </h2>
         <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
           <span
-            class="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 font-mono text-[11px] font-semibold tracking-tight text-slate-600 ring-1 ring-slate-200/60 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700"
+            class="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 font-mono text-[11px] font-normal tracking-tight text-slate-600 ring-1 ring-slate-200/60 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700"
           >
             {{ project.code }}
           </span>
@@ -104,7 +104,7 @@ const infoTiles = computed(() => [
       </div>
       <span
         v-if="deadlineBadge"
-        class="inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset"
+        class="inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset"
         :class="deadlineBadge.class"
       >
         <AppIcon
@@ -119,7 +119,7 @@ const infoTiles = computed(() => [
       <!-- Description -->
       <p
         v-if="description"
-        class="line-clamp-2 text-sm leading-snug text-slate-500 dark:text-slate-400"
+        class="whitespace-pre-wrap text-sm font-normal leading-relaxed text-slate-600 dark:text-slate-400"
       >
         {{ description }}
       </p>
@@ -146,11 +146,11 @@ const infoTiles = computed(() => [
             />
           </span>
           <div class="min-w-0 flex-1">
-            <p class="truncate text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+            <p class="truncate text-[10px] font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">
               {{ tile.label }}
             </p>
             <p
-              class="truncate text-sm font-semibold text-slate-800 dark:text-slate-100"
+              class="truncate text-sm font-normal text-slate-700 dark:text-slate-200"
               :class="tile.overdue ? 'text-rose-600 dark:text-rose-400' : ''"
             >
               {{ tile.value }}
@@ -182,15 +182,15 @@ const infoTiles = computed(() => [
           </span>
         </div>
         <div class="min-w-0 flex-1">
-          <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+          <p class="text-[10px] font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">
             Chủ dự án
           </p>
-          <p class="truncate font-semibold text-slate-900 dark:text-slate-50">
+          <p class="truncate font-normal text-slate-800 dark:text-slate-100">
             {{ project.manager.name }}
           </p>
         </div>
         <span
-          class="hidden shrink-0 rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-brand sm:inline-flex dark:bg-brand/20 dark:text-brand-100"
+          class="hidden shrink-0 rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-brand sm:inline-flex dark:bg-brand/20 dark:text-brand-100"
         >
           PM
         </span>

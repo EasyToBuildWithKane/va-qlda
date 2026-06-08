@@ -14,7 +14,6 @@ import SprintFormModal from '@/modules/project/components/SprintFormModal.vue';
 import BlockerFormModal from '@/modules/project/components/BlockerFormModal.vue';
 import DeadlineBanner from '@/modules/project/components/Dashboard/DeadlineBanner.vue';
 import DashboardViewToggle from '@/modules/project/components/Dashboard/DashboardViewToggle.vue';
-import GanttMini from '@/modules/project/components/Dashboard/GanttMini.vue';
 import RiskIssuePanel from '@/modules/project/components/Dashboard/RiskIssuePanel.vue';
 import RiskIssueDataTable from '@/modules/project/components/Dashboard/RiskIssueDataTable.vue';
 import ProjectFeedbackPanel from '@/modules/project/components/Dashboard/ProjectFeedbackPanel.vue';
@@ -149,7 +148,6 @@ const {
     showRiskPanel,
     showActivity,
     showProjectDetail,
-    showGantt,
 } = useProjectDashboard(pid, {
     project: toRef(() => props.project),
     tasks: toRef(() => props.tasks),
@@ -434,12 +432,6 @@ const onSprintSaved = () => {
                 />
               </div>
             </div>
-
-            <GanttMini
-              v-if="showGantt"
-              :project="project"
-              :tasks="tasks"
-            />
 
             <RiskIssuePanel
               v-if="showRiskPanel"
