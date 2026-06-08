@@ -106,16 +106,18 @@
         $statusNewChecked = ($vars['check_new'] ?? '') === '☑';
         $statusRenewalChecked = ($vars['check_renewal'] ?? '') === '☑';
     @endphp
-    <p class="status-line">
-        <span class="status-choice">
-            <span class="status-box-mark">{!! $statusNewChecked ? 'X' : '&nbsp;' !!}</span>
-            Mua mới
-        </span>
-        <span class="status-choice">
-            <span class="status-box-mark">{!! $statusRenewalChecked ? 'X' : '&nbsp;' !!}</span>
-            Gia hạn
-        </span>
-    </p>
+    <table class="status-options">
+        <tr>
+            <td class="status-cell">
+                <span class="status-box-mark">{!! $statusNewChecked ? 'X' : '&nbsp;' !!}</span>
+                <span class="status-label">Mua mới</span>
+            </td>
+            <td class="status-cell">
+                <span class="status-box-mark">{!! $statusRenewalChecked ? 'X' : '&nbsp;' !!}</span>
+                <span class="status-label">Gia hạn</span>
+            </td>
+        </tr>
+    </table>
 
     @if(!empty($vars['registration_email_slots']))
     <p class="indent bold">4.5 Thông tin bổ sung:</p>

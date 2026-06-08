@@ -308,28 +308,32 @@ table.budget th {
 }
 table.budget td.center { text-align: center; }
 
-/* 4.4 — ô vuông + chữ X (DomPDF ổn định hơn ảnh / bảng lồng) */
-p.status-line {
-    margin: 0 0 2pt 32pt;
-    padding: 0;
-    line-height: 1.75;
+/* 4.4 — tình trạng: một hàng, ô vuông + X (tương thích DomPDF) */
+table.status-options {
+    width: auto;
+    border-collapse: collapse;
+    margin: 0 0 4pt 32pt;
 }
-.status-choice {
-    display: inline-block;
-    margin-right: 32pt;
+table.status-options td.status-cell {
+    padding: 1pt 36pt 1pt 0;
+    vertical-align: middle;
+    line-height: 1.75;
     white-space: nowrap;
-    vertical-align: baseline;
 }
 .status-box-mark {
     display: inline-block;
-    width: 12pt;
-    height: 12pt;
-    margin-right: 5pt;
+    width: 11pt;
+    height: 11pt;
+    margin-right: 6pt;
     border: 1pt solid #000;
     text-align: center;
-    line-height: 11pt;
-    font-size: 9pt;
+    line-height: 10pt;
+    font-size: 8.5pt;
     font-weight: bold;
+    vertical-align: middle;
+}
+.status-label {
+    font-size: 11pt;
     vertical-align: middle;
 }
 
