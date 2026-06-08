@@ -11,7 +11,7 @@ import {
     X, Search, Filter, Clock, Link2, GanttChartSquare, Pencil, Flag,
     PiggyBank, ArrowLeft, Building2, Info, Building, Globe, MapPin,
     Columns3, Download, Upload, FileDown, RotateCw, Eye, Copy, Archive, ChevronDown,
-    Save, Check, ArrowUpDown, CalendarClock, Users2, CircleDollarSign, Image, Ellipsis, EyeOff,
+    Save, Check, ArrowUpDown, CalendarClock, Users2, CircleDollarSign, Image, Ellipsis, EyeOff, Send,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -61,6 +61,7 @@ const map = {
     rocket: Rocket,
     cost: Wallet,
     budget: Banknote,
+    banknote: Banknote,
     salary: PiggyBank,
     department: Building2,
     worklog: Timer,
@@ -76,6 +77,7 @@ const map = {
     calendar: CalendarDays,
     clock: Clock,
     done: CircleCheckBig,
+    'check-circle': CircleCheckBig,
     overview2: LineChart,
     // ui
     minus: Minus,
@@ -112,6 +114,7 @@ const map = {
     archive: Archive,
     'chevron-down': ChevronDown,
     save: Save,
+    send: Send,
     check: Check,
     sort: ArrowUpDown,
     star: Star,
