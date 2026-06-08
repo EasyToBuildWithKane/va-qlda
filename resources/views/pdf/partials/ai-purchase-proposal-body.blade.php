@@ -17,13 +17,18 @@
     <p class="subtitle">(Về việc: {{ $vars['subject_about'] }})</p>
 </div>
 
-<div class="kinh-gui">
-    <span class="label">Kính gửi:</span>
-    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ $vars['send_to_part1'] }}<br>
+<table class="kinh-gui-table">
+    <tr>
+        <td class="kinh-gui-label">Kính gửi:</td>
+        <td class="kinh-gui-body">{{ $vars['send_to_part1'] }}</td>
+    </tr>
     @foreach($sendToExtra as $line)
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{ $line }}<br>
+        <tr>
+            <td class="kinh-gui-label"></td>
+            <td class="kinh-gui-body">{{ $line }}</td>
+        </tr>
     @endforeach
-</div>
+</table>
 
 <div class="section">
     <p class="section-num">1. Đại diện:</p>
@@ -89,58 +94,28 @@
     <p class="indent"><span class="bold">4.2 Số lượng nhân sự sử dụng:</span> {{ $vars['staff_count_line'] }}</p>
 
     <p class="indent bold">4.3 Nhân sự tiếp nhận:</p>
-    <table class="field-lines">
-        <tr>
-            <td class="field-label">Họ &amp; Tên:</td>
-            <td class="field-value">{{ $vars['recipient_name'] }}</td>
-        </tr>
-        <tr>
-            <td class="field-label">Chức vụ:</td>
-            <td class="field-value">{{ $vars['recipient_position'] }}</td>
-        </tr>
-        <tr>
-            <td class="field-label">Email:</td>
-            <td class="field-value">{{ $vars['recipient_email'] }}</td>
-        </tr>
-        <tr>
-            <td class="field-label">Số điện thoại:</td>
-            <td class="field-value">{{ $vars['recipient_phone'] }}</td>
-        </tr>
-    </table>
+    <ul class="recipient-list">
+        <li><span class="bold">Họ &amp; Tên:</span> {{ $vars['recipient_name'] }}</li>
+        <li><span class="bold">Chức vụ:</span> {{ $vars['recipient_position'] }}</li>
+        <li><span class="bold">Email:</span> {{ $vars['recipient_email'] }}</li>
+        <li><span class="bold">Số điện thoại:</span> {{ $vars['recipient_phone'] }}</li>
+    </ul>
 
     <p class="indent bold">4.4 Tình trạng:</p>
-    <table class="status-checks">
-        <tr>
-            <td class="status-opt">
-                <table class="status-inner">
-                    <tr>
-                        <td class="status-box">
-                            @if($vars['check_new'] === '☑')
-                                <img src="{{ $checkboxImg }}" class="checkbox-img" alt="">
-                            @else
-                                <span class="checkbox-empty"></span>
-                            @endif
-                        </td>
-                        <td class="status-text">Mua mới</td>
-                    </tr>
-                </table>
-            </td>
-            <td class="status-opt">
-                <table class="status-inner">
-                    <tr>
-                        <td class="status-box">
-                            @if($vars['check_renewal'] === '☑')
-                                <img src="{{ $checkboxImg }}" class="checkbox-img" alt="">
-                            @else
-                                <span class="checkbox-empty"></span>
-                            @endif
-                        </td>
-                        <td class="status-text">Gia hạn</td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
-    </table>
+    @php
+        $statusNewChecked = ($vars['check_new'] ?? '') === '☑';
+        $statusRenewalChecked = ($vars['check_renewal'] ?? '') === '☑';
+    @endphp
+    <p class="status-line">
+        <span class="status-choice">
+            <span class="status-box-mark">{!! $statusNewChecked ? 'X' : '&nbsp;' !!}</span>
+            Mua mới
+        </span>
+        <span class="status-choice">
+            <span class="status-box-mark">{!! $statusRenewalChecked ? 'X' : '&nbsp;' !!}</span>
+            Gia hạn
+        </span>
+    </p>
 
     @if(!empty($vars['registration_email_slots']))
     <p class="indent bold">4.5 Thông tin bổ sung:</p>

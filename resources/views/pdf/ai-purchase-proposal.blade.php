@@ -11,10 +11,6 @@
 
     @include('pdf.partials.page-background')
 
-    @php
-        $checkboxImg = 'file://'.public_path('docx/checkbox.png');
-    @endphp
-
     <div class="doc-content doc-content-on-bg">
         @include('pdf.partials.ai-purchase-proposal-body')
     </div>

@@ -175,6 +175,11 @@ table.payment-detail-fields td.field-value {
     font-size: 10pt;
     line-height: 1.6;
 }
+.doc-header .cell-left .doc-header-dept {
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.1pt;
+}
 .doc-header .cell-right {
     width: 60%;
     text-align: center;
@@ -234,6 +239,26 @@ table.payment-detail-fields td.field-value {
     padding: 0 0 0 0;
 }
 
+table.kinh-gui-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 2pt 0 0 0;
+}
+table.kinh-gui-table td {
+    padding: 0;
+    vertical-align: top;
+    line-height: 1.75;
+}
+table.kinh-gui-table td.kinh-gui-label {
+    width: 54pt;
+    font-style: italic;
+    font-weight: bold;
+    white-space: nowrap;
+}
+table.kinh-gui-table td.kinh-gui-body {
+    padding-left: 4pt;
+}
+
 .section {
     margin: 1pt 0 0 0;
 }
@@ -248,25 +273,16 @@ table.payment-detail-fields td.field-value {
     margin-left: 32pt;
 }
 
-/* 4.3 — nhãn cố định, giá trị thẳng cột */
-table.field-lines {
-    width: auto;
-    border-collapse: collapse;
+/* 4.3 — gạch đầu dòng, thẳng với indent mục 4 */
+ul.recipient-list {
     margin: 0 0 2pt 32pt;
+    padding: 0 0 0 14pt;
+    list-style-type: disc;
 }
-table.field-lines td {
-    padding: 2pt 0;
-    vertical-align: top;
+ul.recipient-list li {
+    margin: 0;
+    padding: 0;
     line-height: 1.75;
-}
-table.field-lines td.field-label {
-    font-weight: bold;
-    width: 78pt;
-    padding-right: 8pt;
-    white-space: nowrap;
-}
-table.field-lines td.field-value {
-    padding-left: 0;
 }
 .bold { font-weight: bold; }
 .italic { font-style: italic; }
@@ -292,42 +308,29 @@ table.budget th {
 }
 table.budget td.center { text-align: center; }
 
-/* 4.4 — cùng thụt indent2 với 4.3, không lệch thêm */
-table.status-checks {
-    border-collapse: collapse;
+/* 4.4 — ô vuông + chữ X (DomPDF ổn định hơn ảnh / bảng lồng) */
+p.status-line {
     margin: 0 0 2pt 32pt;
+    padding: 0;
+    line-height: 1.75;
 }
-table.status-checks td.status-opt {
-    padding: 0 24pt 0 0;
-    vertical-align: middle;
-}
-table.status-inner {
-    border-collapse: collapse;
-}
-table.status-inner td.status-box {
-    width: 14pt;
-    padding: 0 4pt 0 0;
-    vertical-align: middle;
-}
-table.status-inner td.status-text {
-    vertical-align: middle;
-    font-size: 11pt;
+.status-choice {
+    display: inline-block;
+    margin-right: 32pt;
     white-space: nowrap;
+    vertical-align: baseline;
 }
-.checkbox-img {
-    width: 11pt;
-    height: 11pt;
-    display: block;
-    margin: 0;
-    padding: 0;
-}
-.checkbox-empty {
-    display: block;
-    width: 11pt;
-    height: 11pt;
+.status-box-mark {
+    display: inline-block;
+    width: 12pt;
+    height: 12pt;
+    margin-right: 5pt;
     border: 1pt solid #000;
-    margin: 0;
-    padding: 0;
+    text-align: center;
+    line-height: 11pt;
+    font-size: 9pt;
+    font-weight: bold;
+    vertical-align: middle;
 }
 
 table.sig {

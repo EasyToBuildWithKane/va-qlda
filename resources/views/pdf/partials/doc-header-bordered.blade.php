@@ -13,7 +13,7 @@
     <tr>
         <td class="cell-left">
             <span class="doc-header-school">{{ $schoolHeader }}</span><br>
-            <span class="unit">—<br>{{ $deptHeader }}</span>
+            <span class="unit">—<br><span class="doc-header-dept">{{ $deptHeader }}</span></span>
         </td>
         <td class="cell-right">
             <div class="republic">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</div>
