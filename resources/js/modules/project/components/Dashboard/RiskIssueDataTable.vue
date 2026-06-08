@@ -63,6 +63,10 @@ const exportBtnRef = ref(null);
 const exportMenuRef = ref(null);
 const showExportMenu = ref(false);
 const exportMenuStyle = ref({ top: '0px', left: '0px' });
+const actionMenuRowId = ref(null);
+const actionBtnRefs = ref({});
+const actionMenuRef = ref(null);
+const actionMenuStyle = ref({ top: '0px', left: '0px' });
 
 const positionColumnsMenu = () => {
     const btn = columnsBtnRef.value;
@@ -86,6 +90,59 @@ const toggleColumnsMenu = async () => {
 const onColumnsReposition = () => {
     if (showColumns.value) positionColumnsMenu();
     if (showExportMenu.value) positionExportMenu();
+    if (actionMenuRowId.value) positionActionMenu(actionMenuRowId.value);
+};
+
+const setActionBtnRef = (rowId, el) => {
+    if (el) actionBtnRefs.value[rowId] = el;
+    else delete actionBtnRefs.value[rowId];
+};
+
+const positionActionMenu = (rowId) => {
+    const btn = actionBtnRefs.value[rowId];
+    if (!btn) return;
+    const r = btn.getBoundingClientRect();
+    const menuW = 200;
+    actionMenuStyle.value = {
+        top: `${r.bottom + 4}px`,
+        left: `${Math.min(Math.max(8, r.right - menuW), window.innerWidth - menuW - 8)}px`,
+    };
+};
+
+const closeActionMenu = () => {
+    actionMenuRowId.value = null;
+};
+
+const toggleActionMenu = async (row) => {
+    if (actionMenuRowId.value === row.id) {
+        closeActionMenu();
+        return;
+    }
+    actionMenuRowId.value = row.id;
+    showColumns.value = false;
+    showExportMenu.value = false;
+    await nextTick();
+    positionActionMenu(row.id);
+};
+
+const menuToggleDetail = (row) => {
+    table.toggleExpand(row.id);
+    closeActionMenu();
+};
+
+const menuEdit = (row) => {
+    closeActionMenu();
+    openEdit(row);
+};
+
+const menuResolve = async (row) => {
+    closeActionMenu();
+    await markResolved(row);
+};
+
+const menuDelete = async (row) => {
+    closeActionMenu();
+    await removeOne(row);
 };
 
 const positionExportMenu = () => {
@@ -135,11 +192,15 @@ const toggleColumn = (key) => {
 };
 
 const fixedColCount = computed(() => {
-    let n = 2; // expand + title (mã gộp trong tiêu đề)
+    let n = 1; // title (mã gộp trong tiêu đề)
     if (props.canManage) n += 1;
     n += 1; // actions
     return n + visibleColumns.value.length;
 });
+
+const actionMenuRow = computed(() =>
+    (props.blockers ?? []).find((r) => r.id === actionMenuRowId.value) ?? null,
+);
 
 const isTerminal = (row) => TERMINAL_STATUS.has(row.status?.value);
 
@@ -177,8 +238,11 @@ const onDocClick = (e) => {
     const inColumnsMenu = columnsMenuRef.value?.contains(e.target);
     const inExportBtn = exportBtnRef.value?.contains(e.target);
     const inExportMenu = exportMenuRef.value?.contains(e.target);
+    const inActionMenu = actionMenuRef.value?.contains(e.target);
+    const inAnyActionBtn = Object.values(actionBtnRefs.value).some((el) => el?.contains(e.target));
     if (!inColumnsBtn && !inColumnsMenu) showColumns.value = false;
     if (!inExportBtn && !inExportMenu) showExportMenu.value = false;
+    if (!inActionMenu && !inAnyActionBtn) closeActionMenu();
 };
 
 onMounted(() => {
@@ -485,7 +549,6 @@ defineExpose({ scrollHere });
                 @change="table.toggleSelectAll"
               >
             </th>
-            <th class="sticky top-0 z-10 w-8 border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/95" />
             <th
               class="sticky top-0 z-10 min-w-[11rem] cursor-pointer border-b border-slate-200 bg-slate-50 px-2 py-1.5 dark:border-slate-700 dark:bg-slate-800/95"
               @click="table.toggleSort('title')"
@@ -557,7 +620,7 @@ defineExpose({ scrollHere });
             >
               Cập nhật
             </th>
-            <th class="sticky top-0 z-10 w-[4.5rem] border-b border-slate-200 bg-slate-50 px-1 py-1.5 dark:border-slate-700 dark:bg-slate-800/95">
+            <th class="sticky top-0 z-10 w-10 border-b border-slate-200 bg-slate-50 px-1 py-1.5 text-right dark:border-slate-700 dark:bg-slate-800/95">
               <span class="sr-only">Thao tác</span>
             </th>
           </tr>
@@ -630,18 +693,6 @@ defineExpose({ scrollHere });
                   @change="table.toggleSelect(row.id)"
                 >
               </td>
-              <td class="border-b border-slate-100 px-0.5 py-1 dark:border-slate-800">
-                <button
-                  type="button"
-                  class="grid h-6 w-6 place-items-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700"
-                  @click="table.toggleExpand(row.id)"
-                >
-                  <AppIcon
-                    :name="table.expanded.value.has(row.id) ? 'chevron-down' : 'chevron-right'"
-                    :size="13"
-                  />
-                </button>
-              </td>
               <td class="border-b border-slate-100 px-2 py-1 dark:border-slate-800">
                 <p class="line-clamp-2 text-[13px] font-medium leading-snug text-slate-800 dark:text-slate-100">
                   {{ row.title }}
@@ -669,23 +720,7 @@ defineExpose({ scrollHere });
                 v-if="colVisible('status')"
                 class="border-b border-slate-100 px-2 py-1 dark:border-slate-800"
               >
-                <select
-                  v-if="canEditRow(row)"
-                  :value="row.status?.value"
-                  class="h-6 w-full max-w-[6.25rem] cursor-pointer rounded border border-slate-200 bg-white py-0 pl-1.5 pr-5 text-[11px] text-slate-700 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand/25 disabled:opacity-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
-                  :disabled="statusUpdating.has(row.id)"
-                  @change="changeStatus(row, $event.target.value)"
-                >
-                  <option
-                    v-for="o in statusOptions"
-                    :key="o.value"
-                    :value="o.value"
-                  >
-                    {{ o.label }}
-                  </option>
-                </select>
                 <span
-                  v-else
                   class="text-[11px]"
                   :class="RISK_STATUS_TEXT[row.status?.value] || RISK_STATUS_TEXT.open"
                 >
@@ -767,46 +802,20 @@ defineExpose({ scrollHere });
               >
                 {{ date(row.updated_at) }}
               </td>
-              <td class="border-b border-slate-100 px-1 py-1 dark:border-slate-800">
-                <span class="inline-flex gap-0 opacity-80 group-hover:opacity-100">
-                  <button
-                    v-if="canResolve(row)"
-                    type="button"
-                    class="grid h-6 w-6 place-items-center rounded text-emerald-600 hover:bg-emerald-50 disabled:opacity-50 dark:text-emerald-400 dark:hover:bg-emerald-950/40"
-                    :disabled="statusUpdating.has(row.id)"
-                    title="Giải quyết"
-                    @click="markResolved(row)"
-                  >
-                    <AppIcon
-                      name="check"
-                      :size="13"
-                    />
-                  </button>
-                  <button
-                    v-if="canEditRow(row)"
-                    type="button"
-                    class="grid h-6 w-6 place-items-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700"
-                    title="Chỉnh sửa"
-                    @click="openEdit(row)"
-                  >
-                    <AppIcon
-                      name="edit"
-                      :size="13"
-                    />
-                  </button>
-                  <button
-                    v-if="row.can?.delete"
-                    type="button"
-                    class="grid h-6 w-6 place-items-center rounded text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/30"
-                    title="Xoá"
-                    @click="removeOne(row)"
-                  >
-                    <AppIcon
-                      name="delete"
-                      :size="13"
-                    />
-                  </button>
-                </span>
+              <td class="border-b border-slate-100 px-1 py-1 text-right dark:border-slate-800">
+                <button
+                  :ref="(el) => setActionBtnRef(row.id, el)"
+                  type="button"
+                  class="grid h-7 w-7 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700"
+                  :class="actionMenuRowId === row.id || table.expanded.value.has(row.id) ? 'bg-slate-100 text-slate-700 dark:bg-slate-700' : ''"
+                  title="Thao tác"
+                  @click.stop="toggleActionMenu(row)"
+                >
+                  <AppIcon
+                    name="more-horizontal"
+                    :size="16"
+                  />
+                </button>
               </td>
             </tr>
             <tr
@@ -819,8 +828,6 @@ defineExpose({ scrollHere });
               >
                 <RiskIssueDetailPanel
                   :row="row"
-                  :can-edit="canEditRow(row)"
-                  :can-upload="props.canManage || props.canContribute || canEditRow(row)"
                   :can-comment="canCommentRow()"
                 />
               </td>
@@ -893,6 +900,67 @@ defineExpose({ scrollHere });
         </nav>
       </div>
     </footer>
+
+    <Teleport to="body">
+      <div
+        v-if="actionMenuRow"
+        ref="actionMenuRef"
+        class="fixed z-[200] w-[12.5rem] overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-elevation-2 dark:border-slate-600 dark:bg-slate-900"
+        :style="actionMenuStyle"
+        @click.stop
+      >
+        <button
+          type="button"
+          class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+          @click="menuToggleDetail(actionMenuRow)"
+        >
+          <AppIcon
+            :name="table.expanded.value.has(actionMenuRow.id) ? 'chevron-down' : 'chevron-right'"
+            :size="15"
+            class="text-slate-400"
+          />
+          {{ table.expanded.value.has(actionMenuRow.id) ? 'Thu gọn chi tiết' : 'Xem chi tiết' }}
+        </button>
+        <button
+          v-if="canEditRow(actionMenuRow)"
+          type="button"
+          class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+          @click="menuEdit(actionMenuRow)"
+        >
+          <AppIcon
+            name="edit"
+            :size="15"
+            class="text-slate-400"
+          />
+          Chỉnh sửa &amp; tải file
+        </button>
+        <button
+          v-if="canResolve(actionMenuRow)"
+          type="button"
+          class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-emerald-700 hover:bg-emerald-50 disabled:opacity-50 dark:text-emerald-400 dark:hover:bg-emerald-950/40"
+          :disabled="statusUpdating.has(actionMenuRow.id)"
+          @click="menuResolve(actionMenuRow)"
+        >
+          <AppIcon
+            name="check"
+            :size="15"
+          />
+          Giải quyết
+        </button>
+        <button
+          v-if="actionMenuRow.can?.delete"
+          type="button"
+          class="flex w-full items-center gap-2 border-t border-slate-100 px-3 py-2 text-left text-sm text-rose-600 hover:bg-rose-50 dark:border-slate-800 dark:hover:bg-rose-950/30"
+          @click="menuDelete(actionMenuRow)"
+        >
+          <AppIcon
+            name="delete"
+            :size="15"
+          />
+          Xoá
+        </button>
+      </div>
+    </Teleport>
 
     <RiskImportModal
       :show="importModalOpen"
