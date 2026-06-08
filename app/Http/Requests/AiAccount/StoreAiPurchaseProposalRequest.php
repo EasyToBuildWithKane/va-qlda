@@ -51,6 +51,8 @@ class StoreAiPurchaseProposalRequest extends FormRequest
             'recipient_phone' => ['nullable', 'string', 'max:32'],
             'purchase_type' => ['required', Rule::in(AiPurchaseType::values())],
             'registration_email' => ['nullable', 'email', 'max:255'],
+            'registration_emails' => ['nullable', 'array', 'max:200'],
+            'registration_emails.*' => ['nullable', 'email', 'max:255'],
             'planned_use_date' => ['nullable', 'date'],
             'start_date' => ['nullable', 'date'],
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],

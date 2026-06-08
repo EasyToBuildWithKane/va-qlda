@@ -162,7 +162,12 @@ function onProposalPick(p) {
     if (!p) return;
     dirty.value = true;
     form.proposal_id = p.id;
-    if (p.registration_email) {
+    const slot = typeof p.account_slot_index === 'number' ? p.account_slot_index : 0;
+    const emails = Array.isArray(p.registration_emails) ? p.registration_emails : [];
+    const fromSlot = (emails[slot] ?? '').trim();
+    if (fromSlot) {
+        form.email_registered = fromSlot;
+    } else if (p.registration_email) {
         form.email_registered = p.registration_email;
     }
     form.notify_before_days = p.notify_before_days_suggested ?? 14;
@@ -240,6 +245,14 @@ function handleSubmit() {
           :disabled="loadingProposals"
           @pick="onProposalPick"
         />
+        <p
+          v-if="selectedProposal?.account_slot_label && (selectedProposal?.staff_count ?? 1) > 1"
+          class="rounded-lg border border-brand/15 bg-brand-soft/40 px-3 py-2 text-xs text-slate-700"
+        >
+          Lập tài khoản
+          <span class="font-semibold text-brand">{{ selectedProposal.account_slot_label }}</span>
+          — cùng phiếu có thể thêm nhiều TK theo số nhân sự.
+        </p>
       </section>
 
       <!-- §2 Thông tin phiếu (readonly) -->

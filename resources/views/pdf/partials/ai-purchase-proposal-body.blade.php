@@ -145,9 +145,9 @@
         </tr>
     </table>
 
-    @if(!empty($vars['registration_email']) && $vars['registration_email'] !== '—')
+    @if(!empty($vars['registration_emails_line']) && $vars['registration_emails_line'] !== '—')
     <p class="indent bold">4.5 Thông tin bổ sung:</p>
-    <p class="indent2">Email đăng ký tài khoản: {{ $vars['registration_email'] }}</p>
+    <p class="indent2">Email đăng ký tài khoản: {{ $vars['registration_emails_line'] }}</p>
     @endif
 </div>
 

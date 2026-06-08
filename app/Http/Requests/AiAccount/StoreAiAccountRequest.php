@@ -23,12 +23,11 @@ class StoreAiAccountRequest extends FormRequest
                 'required',
                 'uuid',
                 Rule::exists('ai_purchase_proposals', 'id')->where(function ($q) {
-                    $q->whereNull('ai_account_id')
-                        ->whereIn('status', [
-                            AiPurchaseProposalStatus::Approved->value,
-                            AiPurchaseProposalStatus::Purchased->value,
-                            AiPurchaseProposalStatus::Active->value,
-                        ]);
+                    $q->whereIn('status', [
+                        AiPurchaseProposalStatus::Approved->value,
+                        AiPurchaseProposalStatus::Purchased->value,
+                        AiPurchaseProposalStatus::Active->value,
+                    ]);
                 }),
             ],
             'email_registered' => ['required', 'email', 'max:255'],
@@ -43,6 +42,24 @@ class StoreAiAccountRequest extends FormRequest
         $validator->after(function ($validator) {
             if ($this->filled('password') && $this->user()->role !== SystemRole::Admin) {
                 $validator->errors()->add('password', 'Chỉ quản trị viên được lưu mật khẩu đăng nhập.');
+            }
+
+            if ($validator->errors()->isNotEmpty()) {
+                return;
+            }
+
+            $proposalId = $this->input('proposal_id');
+            if (! is_string($proposalId) || $proposalId === '') {
+                return;
+            }
+
+            $proposal = AiPurchaseProposal::query()->find($proposalId);
+            if ($proposal === null) {
+                return;
+            }
+
+            if (! $proposal->hasRemainingAccountSlots()) {
+                $validator->errors()->add('proposal_id', 'Phiếu không hợp lệ hoặc đã được lập tài khoản.');
             }
         });
     }

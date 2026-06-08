@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\AiPurchaseProposalRegistrationEmails;
 use App\Support\Enums\AiAccountCostUnit;
 use App\Support\Enums\AiAccountGroupFunction;
 use App\Support\Enums\AiPurchaseProposalStatus;
@@ -10,6 +11,7 @@ use App\Support\Enums\ProposalType;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class AiPurchaseProposal extends Model
@@ -49,6 +51,7 @@ class AiPurchaseProposal extends Model
         'recipient_phone',
         'purchase_type',
         'registration_email',
+        'registration_emails',
         'planned_use_date',
         'start_date',
         'end_date',
@@ -78,6 +81,7 @@ class AiPurchaseProposal extends Model
         'end_date' => 'date',
         'reviewed_at' => 'datetime',
         'users_list' => 'array',
+        'registration_emails' => 'array',
         'attachment_paths' => 'array',
     ];
 
@@ -125,6 +129,56 @@ class AiPurchaseProposal extends Model
     public function aiAccount(): BelongsTo
     {
         return $this->belongsTo(AiAccount::class);
+    }
+
+    public function linkedAccounts(): HasMany
+    {
+        return $this->hasMany(AiAccount::class, 'ai_purchase_proposal_id');
+    }
+
+    public function staffSlots(): int
+    {
+        $staff = (int) ($this->staff_count ?? 0);
+        if ($staff > 0) {
+            return $staff;
+        }
+
+        $qty = (int) ($this->quantity ?? 0);
+
+        return max(1, $qty > 0 ? $qty : 1);
+    }
+
+    public function provisionedAccountsCount(): int
+    {
+        if ($this->relationLoaded('linkedAccounts')) {
+            return $this->linkedAccounts->count();
+        }
+
+        $viaFk = (int) $this->linkedAccounts()->count();
+        if ($viaFk > 0) {
+            return $viaFk;
+        }
+
+        return $this->ai_account_id ? 1 : 0;
+    }
+
+    public function hasRemainingAccountSlots(): bool
+    {
+        return $this->provisionedAccountsCount() < $this->staffSlots();
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function registrationEmailsList(): array
+    {
+        $stored = is_array($this->registration_emails) ? $this->registration_emails : null;
+
+        return AiPurchaseProposalRegistrationEmails::normalize(
+            $stored,
+            $this->staffSlots(),
+            $this->registration_email,
+        );
     }
 
     public function paymentRequest(): HasOne

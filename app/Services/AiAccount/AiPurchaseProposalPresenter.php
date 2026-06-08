@@ -65,7 +65,7 @@ class AiPurchaseProposalPresenter
     public function awaitingAccountCount(): int
     {
         return AiPurchaseProposal::query()
-            ->whereNull('ai_account_id')
+            ->withCount('linkedAccounts')
             ->whereIn('status', array_map(
                 fn (AiPurchaseProposalStatus $s) => $s->value,
                 AiAccountCountableProposalCost::countableStatuses(),
@@ -74,6 +74,8 @@ class AiPurchaseProposalPresenter
                 AiPaymentRequestStatus::Approved->value,
                 AiPaymentRequestStatus::Paid->value,
             ]))
+            ->get()
+            ->filter(fn (AiPurchaseProposal $p) => $p->hasRemainingAccountSlots())
             ->count();
     }
 
@@ -125,6 +127,7 @@ class AiPurchaseProposalPresenter
             'purchase_type' => $purchaseType,
             'purchase_type_label' => $proposal->purchase_type?->labelVi() ?? 'Mua mới',
             'registration_email' => $proposal->registration_email,
+            'registration_emails' => $proposal->registrationEmailsList(),
             'planned_use_date' => $proposal->planned_use_date?->format('Y-m-d'),
             'start_date' => $proposal->start_date?->format('Y-m-d'),
             'end_date' => $proposal->end_date?->format('Y-m-d'),
@@ -399,7 +402,13 @@ class AiPurchaseProposalPresenter
      */
     public function awaitingAccountOption(AiPurchaseProposal $proposal): array
     {
-        $email = trim((string) ($proposal->registration_email ?: $proposal->recipient_email ?: ''));
+        $proposal->loadCount('linkedAccounts');
+        $emails = $proposal->registrationEmailsList();
+        $slotIndex = $proposal->provisionedAccountsCount();
+        $suggested = trim((string) ($emails[$slotIndex] ?? ''));
+        if ($suggested === '' || ! filter_var($suggested, FILTER_VALIDATE_EMAIL)) {
+            $suggested = trim((string) ($proposal->registration_email ?: $proposal->recipient_email ?: ''));
+        }
         $unit = $proposal->cost_unit;
         $billingHint = $unit->value === 'yearly'
             ? (string) config('ai_accounts.defaults.billing_hint_yearly')
@@ -409,7 +418,13 @@ class AiPurchaseProposalPresenter
             'id' => $proposal->id,
             'proposal_code' => $proposal->proposal_code,
             'tool_name' => $proposal->tool_name,
-            'label' => trim(($proposal->proposal_code ?? '').' — '.$proposal->tool_name, ' —'),
+            'label' => trim(
+                ($proposal->proposal_code ?? '').' — '.$proposal->tool_name
+                .($proposal->staffSlots() > 1
+                    ? ' (TK '.($slotIndex + 1).'/'.$proposal->staffSlots().')'
+                    : ''),
+                ' —',
+            ),
             'group_function' => $proposal->group_function->value,
             'group_label' => $this->groupLabel($proposal->group_function),
             'license_type' => $proposal->license_type,
@@ -417,7 +432,12 @@ class AiPurchaseProposalPresenter
             'cost_unit' => $proposal->cost_unit->value,
             'cost_unit_label' => $unit->labelVi(),
             'cost_monthly' => $this->costCalculator->monthlyAmount($proposal->cost_amount, $unit),
-            'registration_email' => $email !== '' ? $email : null,
+            'registration_email' => $suggested !== '' ? $suggested : null,
+            'registration_emails' => $emails,
+            'staff_count' => $proposal->staffSlots(),
+            'accounts_created' => $proposal->provisionedAccountsCount(),
+            'account_slot_index' => $slotIndex,
+            'account_slot_label' => ($slotIndex + 1).'/'.$proposal->staffSlots(),
             'planned_use_date' => $proposal->planned_use_date?->format('Y-m-d'),
             'start_date' => $proposal->start_date?->format('Y-m-d'),
             'end_date' => $proposal->end_date?->format('Y-m-d'),

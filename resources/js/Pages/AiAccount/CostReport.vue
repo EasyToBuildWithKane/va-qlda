@@ -18,6 +18,7 @@ import AiPurchaseProposalFormModal from '@/modules/aiAccount/components/AiPurcha
 import AiPurchaseProposalRejectModal from '@/modules/aiAccount/components/AiPurchaseProposalRejectModal.vue';
 import AiPurchaseProposalApproveModal from '@/modules/aiAccount/components/AiPurchaseProposalApproveModal.vue';
 import AiPaymentRequestModals from '@/modules/aiAccount/components/AiPaymentRequestModals.vue';
+import AiPaymentRequestCreateModal from '@/modules/aiAccount/components/AiPaymentRequestCreateModal.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
 import { useDialog } from '@/composables/useDialog';
@@ -115,6 +116,8 @@ const approving = ref(null);
 const prModalMode = ref(null);
 const prModalTarget = ref(null);
 const prModalLoading = ref(false);
+const prCreateOpen = ref(false);
+const prCreateProposal = ref(null);
 
 const departmentOptions = computed(() =>
     (props.formLookups.departments ?? []).map((d) => d.name).filter(Boolean),
@@ -419,10 +422,18 @@ async function onPrModalSubmit({ mode, pr, payload }) {
     }
 }
 
-async function onCreatePaymentRequest(row) {
+function onCreatePaymentRequest(row) {
+    prCreateProposal.value = row;
+    prCreateOpen.value = true;
+}
+
+async function onPrCreateSubmit(payload) {
+    if (!prCreateProposal.value?.id) return;
     prModalLoading.value = true;
     try {
-        await createPaymentRequest(row.id, {});
+        await createPaymentRequest(prCreateProposal.value.id, payload);
+        prCreateOpen.value = false;
+        prCreateProposal.value = null;
     } finally {
         prModalLoading.value = false;
     }
@@ -986,6 +997,13 @@ function runExport(scope, format) {
       :loading="prModalLoading"
       @close="prModalMode = null; prModalTarget = null"
       @submit="onPrModalSubmit"
+    />
+    <AiPaymentRequestCreateModal
+      :show="prCreateOpen"
+      :proposal="prCreateProposal"
+      :loading="prModalLoading"
+      @close="prCreateOpen = false; prCreateProposal = null"
+      @submit="onPrCreateSubmit"
     />
   </AppLayout>
 </template>

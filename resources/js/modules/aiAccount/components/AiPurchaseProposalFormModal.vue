@@ -9,6 +9,10 @@ import ProposalFormLabel from '@/modules/aiAccount/components/ProposalFormLabel.
 import { PROPOSAL_FORM_HINTS as H, PROPOSAL_FORM_PLACEHOLDERS as P } from '@/modules/aiAccount/config/proposalFormHints';
 import { useToast } from '@/shared/composables/useToast';
 import { normalizeSearchKey, matchesSearchQuery } from '@/shared/utils/normalizeSearchKey';
+import {
+    registrationEmailsFromRow,
+    syncRegistrationEmailSlots,
+} from '@/modules/aiAccount/utils/registrationEmailSlots';
 
 const toast = useToast();
 
@@ -58,10 +62,11 @@ const form = reactive({
     purchase_type: 'new',
     staff_count: '1',
     planned_use_date: '',
-    registration_email: '',
     proposal_content: '',
     objectives: '',
 });
+
+const registrationEmails = ref(['']);
 
 const departmentNames = computed(() =>
     (props.formLookups.departments ?? []).map((d) => d.name).filter(Boolean),
@@ -142,11 +147,17 @@ function defaultForm() {
         purchase_type: 'new',
         staff_count: '1',
         planned_use_date: '',
-        registration_email: '',
         proposal_content: '',
         objectives: d.objectives ?? '',
     };
 }
+
+watch(
+    () => form.staff_count,
+    (v) => {
+        registrationEmails.value = syncRegistrationEmailSlots(registrationEmails.value, v);
+    },
+);
 
 function populateFromProposal(row) {
     const tool = row.tool_name ?? '';
@@ -164,10 +175,10 @@ function populateFromProposal(row) {
         purchase_type: row.purchase_type ?? 'new',
         staff_count: String(row.staff_count ?? row.seats ?? row.quantity ?? 1),
         planned_use_date: row.planned_use_date ?? '',
-        registration_email: row.registration_email ?? '',
         proposal_content: row.proposal_content ?? row.justification ?? '',
         objectives: row.objectives ?? '',
     });
+    registrationEmails.value = registrationEmailsFromRow(row, form.staff_count);
     syncProposerPickFromForm();
 }
 
@@ -217,6 +228,7 @@ watch(() => props.show, (open) => {
         populateFromProposal(props.editProposal);
     } else {
         Object.assign(form, defaultForm());
+        registrationEmails.value = syncRegistrationEmailSlots([], form.staff_count);
         syncProposerPickFromForm();
     }
 });
@@ -238,8 +250,11 @@ function applyToolTemplate() {
     form.group_function = tpl.group_function ?? form.group_function;
     if (!form.cost_amount && tpl.cost_amount) form.cost_amount = String(tpl.cost_amount);
     if (tpl.cost_unit) form.cost_unit = tpl.cost_unit;
-    if (!form.registration_email && tpl.registration_email) {
-        form.registration_email = tpl.registration_email;
+    if (!registrationEmails.value[0]?.trim() && tpl.registration_email) {
+        registrationEmails.value = syncRegistrationEmailSlots(
+            [tpl.registration_email, ...registrationEmails.value.slice(1)],
+            form.staff_count,
+        );
     }
     onInput();
 }
@@ -282,7 +297,8 @@ function buildSubmitPayload() {
         recipient_position: form.proposer_position.trim() || undefined,
         recipient_email: form.proposer_email.trim() || undefined,
         recipient_phone: form.proposer_phone.trim() || undefined,
-        registration_email: form.registration_email.trim() || undefined,
+        registration_emails: registrationEmails.value.map((e) => (e ?? '').trim()),
+        registration_email: registrationEmails.value.map((e) => (e ?? '').trim()).find(Boolean) || undefined,
         planned_use_date: form.planned_use_date || undefined,
     };
 }
@@ -658,27 +674,33 @@ function handleSubmit() {
               @input="onInput"
             >
           </div>
-          <div class="sm:col-span-2">
-            <ProposalFormLabel
-              label="Email đăng ký tài khoản"
-              :tooltip="H.registration_email"
-            />
-            <input
-              v-model="form.registration_email"
-              type="email"
-              list="proposal-reg-emails"
-              class="input w-full"
-              :placeholder="P.registration_email"
-              @input="onInput"
-            >
-            <datalist id="proposal-reg-emails">
-              <option
-                v-for="em in emailSuggestions"
-                :key="`reg-${em}`"
-                :value="em"
+          <template
+            v-for="(_, idx) in registrationEmails"
+            :key="`reg-email-${idx}`"
+          >
+            <div class="sm:col-span-2">
+              <ProposalFormLabel
+                :label="registrationEmails.length > 1 ? `Email đăng ký tài khoản ${idx + 1}` : 'Email đăng ký tài khoản'"
+                :tooltip="H.registration_email"
+                :hint="registrationEmails.length > 1 ? 'Tùy chọn' : undefined"
               />
-            </datalist>
-          </div>
+              <input
+                v-model="registrationEmails[idx]"
+                type="email"
+                list="proposal-reg-emails"
+                class="input w-full"
+                :placeholder="registrationEmails.length > 1 ? `Nhân sự ${idx + 1} — ${P.registration_email}` : P.registration_email"
+                @input="onInput"
+              >
+            </div>
+          </template>
+          <datalist id="proposal-reg-emails">
+            <option
+              v-for="em in emailSuggestions"
+              :key="`reg-${em}`"
+              :value="em"
+            />
+          </datalist>
         </div>
 
         <!-- Tab: Nội dung -->

@@ -541,6 +541,51 @@ class AiAccountTest extends TestCase
     }
 
     /** @test */
+    public function can_create_multiple_accounts_matching_staff_count(): void
+    {
+        $member = SystemAccount::factory()->create();
+        $this->actingAs($member, 'system');
+        $this->postJson(route('api.ai-accounts.proposals.store'), $this->proposalPayload([
+            'staff_count' => 2,
+            'quantity' => 2,
+            'registration_emails' => ['dev1@vaschools.edu.vn', 'dev2@vaschools.edu.vn'],
+        ]))->assertCreated();
+
+        $proposal = AiPurchaseProposal::query()->first();
+        $this->assertSame(['dev1@vaschools.edu.vn', 'dev2@vaschools.edu.vn'], $proposal->registrationEmailsList());
+
+        $admin = SystemAccount::factory()->role(SystemRole::Admin)->create();
+        $this->actingAs($admin, 'system');
+        $this->postJson(route('api.ai-accounts.proposals.approve', ['proposal' => $proposal->id]))->assertOk();
+
+        AiPaymentRequest::create([
+            'ai_purchase_proposal_id' => $proposal->id,
+            'amount' => $proposal->cost_amount,
+            'status' => AiPaymentRequestStatus::Approved,
+            'created_by' => $admin->id,
+            'reviewed_by' => $admin->id,
+            'reviewed_at' => now(),
+        ]);
+
+        $this->postJson(route('api.ai-accounts.store'), [
+            'proposal_id' => $proposal->id,
+            'email_registered' => 'dev1@vaschools.edu.vn',
+        ])->assertCreated();
+
+        $this->postJson(route('api.ai-accounts.store'), [
+            'proposal_id' => $proposal->id,
+            'email_registered' => 'dev2@vaschools.edu.vn',
+        ])->assertCreated();
+
+        $this->assertSame(2, AiAccount::query()->where('ai_purchase_proposal_id', $proposal->id)->count());
+
+        $this->postJson(route('api.ai-accounts.store'), [
+            'proposal_id' => $proposal->id,
+            'email_registered' => 'extra@vaschools.edu.vn',
+        ])->assertUnprocessable();
+    }
+
+    /** @test */
     public function mark_paid_splits_kpi_from_approved(): void
     {
         $admin = SystemAccount::factory()->role(SystemRole::Admin)->create();

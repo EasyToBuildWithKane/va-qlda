@@ -46,6 +46,16 @@
             <td class="field-label">Hình thức thanh toán:</td>
             <td class="field-value">{{ $vars['payment_method'] }}</td>
         </tr>
+        <tr>
+            <td class="field-label">Số nhân sự sử dụng:</td>
+            <td class="field-value">{{ $vars['staff_count_line'] ?? '—' }}</td>
+        </tr>
+        @if(!empty($vars['registration_emails_line']) && $vars['registration_emails_line'] !== '—')
+        <tr>
+            <td class="field-label">Email đăng ký TK:</td>
+            <td class="field-value">{{ $vars['registration_emails_line'] }}</td>
+        </tr>
+        @endif
     </table>
 </div>
 

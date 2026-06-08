@@ -3,6 +3,7 @@
 namespace App\Services\AiAccount;
 
 use App\Models\AiPurchaseProposal;
+use App\Support\AiPurchaseProposalRegistrationEmails;
 use App\Support\Enums\AiAccountCostUnit;
 use App\Support\Enums\AiAccountGroupFunction;
 use App\Support\Enums\AiPurchaseType;
@@ -86,6 +87,7 @@ class AiPurchaseProposalDocumentService
             'recipient_email' => $this->fieldOrDash($input['recipient_email'] ?? null),
             'recipient_phone' => $this->fieldOrDash($input['recipient_phone'] ?? null),
             'registration_email' => $this->fieldOrDash($input['registration_email'] ?? null),
+            'registration_emails_line' => $this->registrationEmailsLine($input),
             'planned_use_date' => $planned,
             'check_new' => $purchaseType === AiPurchaseType::New ? '☑' : '☐',
             'check_renewal' => $purchaseType === AiPurchaseType::Renewal ? '☑' : '☐',
@@ -125,8 +127,26 @@ class AiPurchaseProposalDocumentService
                 ? $proposal->purchase_type->value
                 : $proposal->purchase_type,
             'registration_email' => $proposal->registration_email,
+            'registration_emails' => $proposal->registrationEmailsList(),
             'planned_use_date' => $proposal->planned_use_date?->format('Y-m-d'),
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $input
+     */
+    private function registrationEmailsLine(array $input): string
+    {
+        $staff = max(1, (int) ($input['staff_count'] ?? 1));
+        $emails = AiPurchaseProposalRegistrationEmails::normalize(
+            isset($input['registration_emails']) && is_array($input['registration_emails'])
+                ? $input['registration_emails']
+                : null,
+            $staff,
+            $input['registration_email'] ?? null,
+        );
+
+        return AiPurchaseProposalRegistrationEmails::formatForDocument($emails);
     }
 
     private function fieldOrDash(?string $value): string
@@ -292,6 +312,10 @@ class AiPurchaseProposalDocumentService
             'amount_in_words' => $amount > 0 ? VndAmountInWords::format($amount).'.' : '…',
             'payment_date' => $paymentDateFormatted,
             'payment_method' => (string) ($cfg['payment_method'] ?? 'Thanh toán bằng thẻ kế toán'),
+            'staff_count_line' => $proposal->staffSlots().' nhân sự',
+            'registration_emails_line' => AiPurchaseProposalRegistrationEmails::formatForDocument(
+                $proposal->registrationEmailsList(),
+            ),
         ];
     }
 

@@ -30,6 +30,7 @@ class AiAccountFromProposalCreator
         $creator = $input['creator'] ?? null;
 
         $account = AiAccount::create([
+            'ai_purchase_proposal_id' => $proposal->id,
             'tool_name' => $proposal->tool_name,
             'license_type' => $proposal->license_type,
             'group_function' => $proposal->group_function,
@@ -52,10 +53,13 @@ class AiAccountFromProposalCreator
 
         $this->statusSync->syncAndSave($account);
 
-        $proposal->update([
-            'ai_account_id' => $account->id,
+        $proposalUpdates = [
             'actual_cost' => $proposal->actual_cost ?? $proposal->cost_amount,
-        ]);
+        ];
+        if ($proposal->ai_account_id === null) {
+            $proposalUpdates['ai_account_id'] = $account->id;
+        }
+        $proposal->update($proposalUpdates);
 
         return $account->fresh();
     }
@@ -72,9 +76,9 @@ class AiAccountFromProposalCreator
             ]);
         }
 
-        if ($proposal->ai_account_id) {
+        if (! $proposal->hasRemainingAccountSlots()) {
             throw ValidationException::withMessages([
-                'proposal_id' => 'Phiếu này đã có tài khoản AI gắn kèm.',
+                'proposal_id' => 'Phiếu này đã lập đủ số tài khoản theo nhân sự sử dụng.',
             ]);
         }
 

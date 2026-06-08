@@ -12,8 +12,10 @@ use App\Models\AiPurchaseProposal;
 use App\Services\AiAccount\AiPurchaseProposalDocumentService;
 use App\Services\AiAccount\AiPurchaseProposalPresenter;
 use App\Services\AiAccount\AiWorkflowMetricsBuilder;
+use App\Support\AiPurchaseProposalRegistrationEmails;
 use App\Support\Enums\AiAccountCostUnit;
 use App\Support\Enums\AiAccountGroupFunction;
+use App\Support\Enums\AiPaymentRequestStatus;
 use App\Support\Enums\AiPurchaseProposalStatus;
 use App\Support\Enums\AiPurchaseType;
 use App\Support\Enums\ProposalType;
@@ -33,15 +35,21 @@ class AiPurchaseProposalController extends Controller
         $this->authorize('viewAny', AiPurchaseProposal::class);
 
         $proposals = AiPurchaseProposal::query()
-            ->whereNull('ai_account_id')
+            ->withCount('linkedAccounts')
+            ->with('paymentRequest')
             ->whereIn('status', [
                 AiPurchaseProposalStatus::Approved,
                 AiPurchaseProposalStatus::Purchased,
                 AiPurchaseProposalStatus::Active,
             ])
+            ->whereHas('paymentRequest', fn ($q) => $q->whereIn('status', [
+                AiPaymentRequestStatus::Approved->value,
+                AiPaymentRequestStatus::Paid->value,
+            ]))
             ->orderByDesc('reviewed_at')
             ->orderByDesc('created_at')
-            ->get();
+            ->get()
+            ->filter(fn (AiPurchaseProposal $p) => $p->hasRemainingAccountSlots());
 
         return response()->json([
             'success' => true,
@@ -169,6 +177,13 @@ class AiPurchaseProposalController extends Controller
      */
     private function proposalAttributesFromValidated(array $validated): array
     {
+        $staff = (int) ($validated['staff_count'] ?? 1);
+        $registrationEmails = AiPurchaseProposalRegistrationEmails::normalize(
+            $validated['registration_emails'] ?? null,
+            $staff,
+            $validated['registration_email'] ?? null,
+        );
+
         return [
             'proposal_type' => isset($validated['proposal_type'])
                 ? ProposalType::from($validated['proposal_type'])
@@ -201,7 +216,8 @@ class AiPurchaseProposalController extends Controller
             'recipient_email' => $validated['recipient_email'] ?? null,
             'recipient_phone' => $validated['recipient_phone'] ?? null,
             'purchase_type' => AiPurchaseType::from($validated['purchase_type']),
-            'registration_email' => $validated['registration_email'] ?? null,
+            'registration_emails' => $registrationEmails,
+            'registration_email' => AiPurchaseProposalRegistrationEmails::firstFilled($registrationEmails),
             'planned_use_date' => $validated['planned_use_date'] ?? null,
             'start_date' => $validated['start_date'] ?? null,
             'end_date' => $validated['end_date'] ?? null,
@@ -214,9 +230,8 @@ class AiPurchaseProposalController extends Controller
 
         $label = $proposal->proposal_code ?? $proposal->tool_name;
 
-        $linkedAccount = $proposal->aiAccount;
-        if ($linkedAccount !== null) {
-            $linkedAccount->delete();
+        foreach ($proposal->linkedAccounts()->get() as $account) {
+            $account->delete();
         }
 
         $proposal->delete();

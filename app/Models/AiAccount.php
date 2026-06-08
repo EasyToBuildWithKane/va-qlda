@@ -46,6 +46,7 @@ class AiAccount extends Model
     use SoftDeletes;
 
     protected $fillable = [
+        'ai_purchase_proposal_id',
         'tool_name',
         'license_type',
         'license_key',
@@ -166,9 +167,9 @@ class AiAccount extends Model
         return $count;
     }
 
-    public function purchaseProposal(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function purchaseProposal(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
-        return $this->hasOne(AiPurchaseProposal::class, 'ai_account_id');
+        return $this->belongsTo(AiPurchaseProposal::class, 'ai_purchase_proposal_id');
     }
 
     public function passwordViewers(): \Illuminate\Database\Eloquent\Relations\HasMany

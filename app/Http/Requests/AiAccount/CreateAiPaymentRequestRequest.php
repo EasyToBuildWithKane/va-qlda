@@ -19,6 +19,8 @@ class CreateAiPaymentRequestRequest extends FormRequest
     {
         return [
             'amount' => ['nullable', 'integer', 'min:1'],
+            'registration_emails' => ['nullable', 'array', 'max:200'],
+            'registration_emails.*' => ['nullable', 'email', 'max:255'],
         ];
     }
 

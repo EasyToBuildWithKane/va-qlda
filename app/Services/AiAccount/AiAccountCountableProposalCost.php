@@ -93,7 +93,7 @@ class AiAccountCountableProposalCost
     public function pendingAccountMonthlyByGroup(): array
     {
         $byGroup = [];
-        foreach ($this->countableProposals()->whereNull('ai_account_id') as $proposal) {
+        foreach ($this->countableProposals()->filter(fn (AiPurchaseProposal $p) => $p->hasRemainingAccountSlots()) as $proposal) {
             $key = $proposal->group_function->value;
             $byGroup[$key] = ($byGroup[$key] ?? 0) + $this->monthlyForProposal($proposal);
         }

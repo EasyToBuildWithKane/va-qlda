@@ -10,6 +10,7 @@ use App\Http\Requests\AiAccount\RejectAiPaymentRequestRequest;
 use App\Models\AiPaymentRequest;
 use App\Models\AiPurchaseProposal;
 use App\Services\AiAccount\AiPurchaseProposalPresenter;
+use App\Support\AiPurchaseProposalRegistrationEmails;
 use App\Support\Enums\AiPaymentRequestStatus;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -29,9 +30,22 @@ class AiPaymentRequestController extends Controller
             ], 422);
         }
 
-        $amount = $request->validated('amount') ?? $proposal->cost_amount;
+        $validated = $request->validated();
+        $amount = $validated['amount'] ?? $proposal->cost_amount;
 
-        $pr = DB::transaction(function () use ($proposal, $amount, $request) {
+        $pr = DB::transaction(function () use ($proposal, $amount, $request, $validated) {
+            if (array_key_exists('registration_emails', $validated)) {
+                $emails = AiPurchaseProposalRegistrationEmails::normalize(
+                    $validated['registration_emails'],
+                    $proposal->staffSlots(),
+                    $proposal->registration_email,
+                );
+                $proposal->update([
+                    'registration_emails' => $emails,
+                    'registration_email' => AiPurchaseProposalRegistrationEmails::firstFilled($emails),
+                ]);
+            }
+
             return AiPaymentRequest::create([
                 'ai_purchase_proposal_id' => $proposal->id,
                 'amount' => $amount,
