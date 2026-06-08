@@ -89,13 +89,13 @@ const activeProjectId = computed(() =>
 const projectDisplay = computed(() => {
     const embedded = props.blocker?.project;
     if (embedded?.name) {
-        return embedded.code ? `${embedded.name} (${embedded.code})` : embedded.name;
+        return embedded?.code ? `${embedded.name} (${embedded.code})` : embedded.name;
     }
     const id = activeProjectId.value;
     if (id) {
-        const p = props.projects.find((x) => x.id === id);
+        const p = props.projects.find((x) => x?.id === id);
         if (p?.name) {
-            return p.code ? `${p.name} (${p.code})` : p.name;
+            return p?.code ? `${p.name} (${p.code})` : p.name;
         }
     }
     if (props.projectName) {
@@ -266,14 +266,17 @@ const submit = () => {
       </div>
 
       <div class="min-h-[14rem] space-y-4">
-        <!-- Tab: Hướng xử lý (chỉ sửa) -->
+        <!-- Tab: Hướng xử lý (chỉ sửa) — v-if: tránh đọc blocker.* khi tạo mới (v-show vẫn evaluate) -->
         <div
-          v-show="showResolutionPanel"
+          v-if="blocker && showResolutionPanel"
           class="space-y-4"
         >
           <div class="rounded-lg border border-slate-200 bg-slate-50/90 p-3">
             <div class="flex flex-wrap items-center gap-2">
-              <span class="font-mono text-xs font-semibold text-brand">{{ blocker.code }}</span>
+              <span
+                v-if="blocker.code"
+                class="font-mono text-xs font-semibold text-brand"
+              >{{ blocker.code }}</span>
               <span
                 v-if="blocker.severity"
                 class="text-xs font-medium text-slate-600"
