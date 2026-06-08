@@ -36,12 +36,9 @@
 
 <div class="section">
     <p class="section-num">2. Nội dung đề xuất:</p>
-    <table class="doc-detail-fields">
-        <tr>
-            <td class="field-label">Nội dung đề xuất:</td>
-            <td class="field-value pre">{{ $vars['proposal_content'] }}</td>
-        </tr>
-    </table>
+    <div class="indent">
+        <p class="pre">{{ $vars['proposal_content'] }}</p>
+    </div>
 </div>
 
 @if(!empty($vars['objectives']))
