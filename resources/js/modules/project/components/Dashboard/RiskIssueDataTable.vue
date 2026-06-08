@@ -742,6 +742,13 @@ defineExpose({ scrollHere });
                 <p class="line-clamp-2 text-[13px] font-medium leading-snug text-slate-800 dark:text-slate-100">
                   {{ row.title }}
                 </p>
+                <p
+                  v-if="row.description?.trim()"
+                  class="mt-1 line-clamp-3 whitespace-pre-wrap text-[11px] leading-snug text-slate-600 dark:text-slate-400"
+                  :title="row.description"
+                >
+                  {{ row.description.trim() }}
+                </p>
                 <p class="mt-0.5 font-mono text-[10px] text-slate-400">
                   {{ row.code }}
                 </p>

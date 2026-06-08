@@ -67,7 +67,7 @@ const BLOCKER_FILTER_CONTROLS = [
 
 const BLOCKER_TABLE_COLUMNS = [
     { key: 'code', label: 'Mã' },
-    { key: 'title', label: 'Tiêu đề' },
+    { key: 'title', label: 'Vướng mắc' },
     { key: 'task', label: 'Công việc', default: false },
     { key: 'severity', label: 'Mức độ' },
     { key: 'status', label: 'Trạng thái' },
@@ -170,7 +170,7 @@ const tableColspan = computed(() => TABLE_COLUMNS.filter((c) => isColVisible(c.k
 /** % width per column key (re-normalized in colWidthStyle for visible cols only) */
 const COL_WIDTH_PCT = {
     code: 5.5,
-    title: 20,
+    title: 24,
     task: 9,
     severity: 6.5,
     status: 10,
@@ -698,7 +698,7 @@ function toggleAllGroups() {
                 v-if="isColVisible('title')"
                 class="px-2 py-2 text-left align-middle"
               >
-                Tiêu đề
+                Vướng mắc
               </th>
               <th
                 v-if="isColVisible('task')"
@@ -832,10 +832,17 @@ function toggleAllGroups() {
                     >
                       <div class="min-w-0">
                         <p
-                          class="truncate text-sm font-medium leading-snug text-slate-800"
+                          class="line-clamp-2 text-sm font-medium leading-snug text-slate-800"
                           :title="b.title"
                         >
                           {{ b.title }}
+                        </p>
+                        <p
+                          v-if="b.description?.trim() && !isColVisible('description')"
+                          class="mt-1 line-clamp-3 whitespace-pre-wrap text-xs leading-snug text-slate-600"
+                          :title="b.description"
+                        >
+                          {{ b.description.trim() }}
                         </p>
                         <p
                           v-if="!isColVisible('code')"
