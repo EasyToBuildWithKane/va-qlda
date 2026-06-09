@@ -520,9 +520,9 @@ const activityTone = (event) => ({
       <div class="flex min-h-0 flex-col overflow-hidden bg-slate-100/80 dark:bg-slate-950 lg:min-h-0">
         <template v-if="selected">
           <!-- Preview -->
-          <div class="min-h-0 flex-1 overflow-hidden p-3 pb-0">
+          <div class="min-h-0 flex-[2_1_0] overflow-hidden p-3 pb-0 lg:min-h-[min(62vh,820px)]">
             <div
-              class="card flex h-full min-h-[200px] flex-col overflow-hidden dark:border-slate-700 dark:bg-slate-900"
+              class="card flex h-full min-h-[min(58vh,780px)] flex-col overflow-hidden dark:border-slate-700 dark:bg-slate-900"
             >
               <div class="flex shrink-0 items-center justify-between gap-2 border-b border-slate-100 px-4 py-2.5 dark:border-slate-700">
                 <h3 class="min-w-0 truncate font-medium text-slate-800 dark:text-slate-100">
@@ -575,7 +575,7 @@ const activityTone = (event) => ({
 
           <!-- Meta + notes + audit -->
           <div
-            class="doc-meta-panel min-h-0 shrink-0 overflow-y-auto border-t border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900 lg:max-h-[42%]"
+            class="doc-meta-panel min-h-0 shrink-0 overflow-y-auto border-t border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900 lg:max-h-[min(32vh,320px)]"
           >
             <div class="grid gap-3 p-3 sm:p-4 lg:grid-cols-2 lg:gap-4">
               <!-- Cột trái: thông tin + ghi chú -->

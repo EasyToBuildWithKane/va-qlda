@@ -84,14 +84,14 @@ const showFallback = computed(() =>
     <iframe
       v-else-if="kind === 'pdf' || file.is_pdf"
       :src="file.url"
-      class="h-full min-h-[min(76vh,900px)] w-full flex-1 rounded-lg border border-slate-200 bg-white dark:border-slate-600"
+      class="h-full min-h-[min(88vh,1200px)] w-full flex-1 rounded-lg border border-slate-200 bg-white dark:border-slate-600"
       title="Xem trước PDF"
     />
 
     <iframe
       v-else-if="kind === 'google_doc' || kind === 'google_sheet'"
       :src="file.embed_url"
-      class="h-full min-h-[min(76vh,900px)] w-full flex-1 rounded-lg border border-slate-200 bg-white dark:border-slate-600"
+      class="h-full min-h-[min(88vh,1200px)] w-full flex-1 rounded-lg border border-slate-200 bg-white dark:border-slate-600"
       :title="kind === 'google_sheet' ? 'Xem trước Google Sheets' : 'Xem trước Google Docs'"
       allow="clipboard-read; clipboard-write"
     />
