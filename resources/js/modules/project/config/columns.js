@@ -2,20 +2,20 @@
 // `name` is always shown (sticky first column) and is not part of the toggle set.
 
 export const COLUMNS = [
-    { key: 'code', label: 'Mã dự án', align: 'left', sortable: true, colClass: 'w-[6rem]' },
-    { key: 'type', label: 'Loại dự án', align: 'left', sortable: true, colClass: 'w-[7.5rem]' },
-    { key: 'scope', label: 'Phạm vi', align: 'left', sortable: true, colClass: 'w-[7rem]' },
-    { key: 'department', label: 'Phòng ban', align: 'left', sortable: true, colClass: 'w-[8.5rem]' },
-    { key: 'manager', label: 'Chủ dự án', align: 'left', sortable: true, colClass: 'w-[9.5rem]' },
-    { key: 'status', label: 'Trạng thái', align: 'left', sortable: true, colClass: 'w-[7rem]' },
-    { key: 'progress', label: 'Tiến độ %', align: 'center', sortable: true, colClass: 'w-[4.5rem]' },
-    { key: 'start_date', label: 'Ngày bắt đầu', align: 'left', sortable: true, colClass: 'w-[6rem]' },
-    { key: 'due_date', label: 'Ngày kết thúc', align: 'left', sortable: true, colClass: 'w-[6rem]' },
-    { key: 'created_at', label: 'Ngày tạo', align: 'left', sortable: true, colClass: 'w-[6rem]' },
-    { key: 'updated_at', label: 'Cập nhật', align: 'left', sortable: true, colClass: 'w-[6rem]' },
-    { key: 'task_count', label: 'Công việc', align: 'center', sortable: true, colClass: 'w-[4rem]' },
-    { key: 'member_count', label: 'Thành viên', align: 'center', sortable: true, colClass: 'w-[4rem]' },
-    { key: 'open_blocker_count', label: 'Khúc mắc', align: 'center', sortable: true, colClass: 'w-[4rem]' },
+    { key: 'code', label: 'Mã dự án', align: 'left', sortable: true, colClass: 'min-w-[6rem]' },
+    { key: 'type', label: 'Loại dự án', align: 'left', sortable: true, colClass: 'min-w-[7.5rem]' },
+    { key: 'scope', label: 'Phạm vi', align: 'left', sortable: true, colClass: 'min-w-[7rem]' },
+    { key: 'department', label: 'Phòng ban', align: 'left', sortable: true, colClass: 'min-w-[8.5rem]' },
+    { key: 'manager', label: 'Chủ dự án', align: 'left', sortable: true, colClass: 'min-w-[9.5rem]' },
+    { key: 'status', label: 'Trạng thái', align: 'left', sortable: true, colClass: 'min-w-[7rem]' },
+    { key: 'progress', label: 'Tiến độ %', align: 'center', sortable: true, colClass: 'min-w-[4.5rem]' },
+    { key: 'start_date', label: 'Ngày bắt đầu', align: 'left', sortable: true, colClass: 'min-w-[6.5rem]' },
+    { key: 'due_date', label: 'Ngày kết thúc', align: 'left', sortable: true, colClass: 'min-w-[6.5rem]' },
+    { key: 'created_at', label: 'Ngày tạo', align: 'left', sortable: true, colClass: 'min-w-[6rem]' },
+    { key: 'updated_at', label: 'Cập nhật', align: 'left', sortable: true, colClass: 'min-w-[6rem]' },
+    { key: 'task_count', label: 'Công việc', align: 'center', sortable: true, colClass: 'min-w-[4.5rem]' },
+    { key: 'member_count', label: 'Thành viên', align: 'center', sortable: true, colClass: 'min-w-[5rem]' },
+    { key: 'open_blocker_count', label: 'Khúc mắc', align: 'center', sortable: true, colClass: 'min-w-[4.5rem]' },
 ];
 
 export const DEFAULT_VISIBLE = [

@@ -73,15 +73,15 @@ const progressTone = (v) => {
 <template>
   <div class="card overflow-hidden">
     <div class="project-grid-scroll overflow-x-auto">
-      <table class="project-grid w-full min-w-[66rem] table-fixed border-separate border-spacing-0 text-sm">
+      <table class="project-grid w-max min-w-full table-auto border-separate border-spacing-0 text-sm">
         <colgroup>
-          <col class="w-[13rem]">
+          <col class="min-w-[13rem]">
           <col
             v-for="c in cols"
             :key="c.key"
             :class="c.colClass"
           >
-          <col class="w-[7.5rem]">
+          <col class="min-w-[7.5rem]">
         </colgroup>
         <thead>
           <tr class="bg-slate-50 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
@@ -175,20 +175,19 @@ const progressTone = (v) => {
                 :key="p.id"
                 class="group hover:bg-slate-50/80"
               >
-                <td class="border-b border-slate-100 px-3 py-2.5">
-                  <div class="flex min-w-0 items-center gap-2">
+                <td class="whitespace-nowrap border-b border-slate-100 px-3 py-2.5">
+                  <div class="flex items-center gap-2">
                     <span
                       class="h-7 w-1 shrink-0 rounded-full"
                       :class="stripe[p.color] || stripe.slate"
                     />
-                    <div class="min-w-0 flex-1">
-                      <p class="truncate font-mono text-[11px] leading-tight text-slate-400">
+                    <div>
+                      <p class="font-mono text-[11px] leading-tight text-slate-400">
                         {{ p.code }}
                       </p>
                       <Link
                         :href="`/projects/${p.id}`"
-                        class="block truncate font-medium leading-snug text-slate-700 hover:text-brand"
-                        :title="p.name"
+                        class="block font-medium leading-snug text-slate-700 hover:text-brand"
                       >
                         {{ p.name }}
                       </Link>
@@ -199,11 +198,11 @@ const progressTone = (v) => {
                 <td
                   v-for="c in cols"
                   :key="c.key"
-                  class="border-b border-slate-100 px-3 py-2.5"
+                  class="whitespace-nowrap border-b border-slate-100 px-3 py-2.5"
                   :class="c.align === 'right' ? 'text-right' : c.align === 'center' ? 'text-center' : 'text-left'"
                 >
                   <template v-if="c.key === 'code'">
-                    <span class="block truncate font-mono text-[11px] text-slate-500">{{ p.code }}</span>
+                    <span class="block font-mono text-[11px] text-slate-500">{{ p.code }}</span>
                   </template>
                   <template v-else-if="c.key === 'type'">
                     <Badge
@@ -252,8 +251,7 @@ const progressTone = (v) => {
                   <template v-else-if="c.key === 'manager'">
                     <span
                       v-if="p.manager"
-                      class="inline-flex min-w-0 max-w-full items-center gap-1.5"
-                      :title="p.manager.name"
+                      class="inline-flex items-center gap-1.5"
                     >
                       <Avatar
                         :name="p.manager.name"
@@ -261,7 +259,7 @@ const progressTone = (v) => {
                         :size="22"
                         class="shrink-0"
                       />
-                      <span class="truncate text-sm text-slate-600">{{ p.manager.name }}</span>
+                      <span class="text-sm text-slate-600">{{ p.manager.name }}</span>
                     </span>
                     <span
                       v-else
@@ -275,13 +273,13 @@ const progressTone = (v) => {
                     >{{ p.progress ?? 0 }}%</span>
                   </template>
                   <template v-else-if="c.key === 'budget'">
-                    <span class="block truncate text-xs text-slate-600">{{ currency(p.budget) }}</span>
+                    <span class="block text-xs text-slate-600">{{ currency(p.budget) }}</span>
                   </template>
                   <template v-else-if="c.key === 'actual_budget'">
-                    <span class="block truncate text-xs text-slate-600">{{ currency(p.actual_budget) }}</span>
+                    <span class="block text-xs text-slate-600">{{ currency(p.actual_budget) }}</span>
                   </template>
                   <template v-else-if="c.key === 'labor_cost'">
-                    <span class="block truncate text-xs font-medium text-slate-700">{{ currency(p.labor_cost) }}</span>
+                    <span class="block text-xs font-medium text-slate-700">{{ currency(p.labor_cost) }}</span>
                   </template>
                   <template v-else-if="c.key === 'start_date'">
                     <span class="text-sm tabular-nums text-slate-500">{{ date(p.start_date) }}</span>
@@ -309,7 +307,7 @@ const progressTone = (v) => {
                   </template>
                 </td>
 
-                <td class="border-b border-slate-100 px-2 py-2.5 text-right">
+                <td class="whitespace-nowrap border-b border-slate-100 px-2 py-2.5 text-right">
                   <ProjectListRowActions
                     :project="p"
                     @duplicate="emit('duplicate', $event)"
@@ -337,16 +335,5 @@ const progressTone = (v) => {
 <style scoped>
 .project-grid-scroll {
     -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-}
-
-.project-grid-scroll::-webkit-scrollbar {
-    display: none;
-}
-
-.project-grid th,
-.project-grid td {
-    overflow: hidden;
 }
 </style>
