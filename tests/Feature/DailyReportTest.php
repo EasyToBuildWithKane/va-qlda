@@ -312,6 +312,21 @@ class DailyReportTest extends TestCase
         $this->assertDatabaseMissing('daily_reports', ['id' => $report->id]);
     }
 
+    public function test_history_index_includes_summary_for_member(): void
+    {
+        $member = $this->member();
+        DailyReport::factory()->reviewed()->create(['employee_id' => $member->employee_id]);
+
+        $this->actingAs($member, 'system')
+            ->get(route('daily-reports.index'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('DailyReport/History')
+                ->has('summary')
+                ->where('summary.reviewed', 1)
+                ->where('canReview', false));
+    }
+
     public function test_member_cannot_delete_submitted_report(): void
     {
         $member = $this->member();

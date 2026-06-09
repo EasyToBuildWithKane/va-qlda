@@ -13,11 +13,13 @@ use App\Http\Requests\DailyReport\StoreDailyReportRequest;
 use App\Http\Requests\DailyReport\UpdateDailyReportRequest;
 use App\Http\Resources\DailyReportResource;
 use App\Models\Project;
+use App\Models\SystemAccount;
 use App\Support\DailyReportCalendar;
 use App\Support\Enums\Grade;
 use App\Support\Enums\ReportStatus;
 use App\Support\Enums\SystemRole;
 use App\Support\Options;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -36,11 +38,49 @@ class DailyReportController extends Controller
         $account = $request->user();
         $isMember = $account->role === SystemRole::Member;
 
+        $query = $this->historyReportsQuery($request, $account);
+
+        $perPage = (int) $request->query('per_page', 10);
+        if (! in_array($perPage, [5, 10, 15, 20], true)) {
+            $perPage = 10;
+        }
+
+        $summaryQuery = clone $query;
+        $summary = [
+            'total' => (clone $summaryQuery)->count(),
+            'draft' => (clone $summaryQuery)->where('status', ReportStatus::Draft)->count(),
+            'submitted' => (clone $summaryQuery)->where('status', ReportStatus::Submitted)->count(),
+            'reviewed' => (clone $summaryQuery)->where('status', ReportStatus::Reviewed)->count(),
+            'late' => (clone $summaryQuery)->where('is_late', true)->count(),
+        ];
+
+        $reports = $query->paginate($perPage)->withQueryString();
+
+        return Inertia::render('DailyReport/History', [
+            'reports' => DailyReportResource::collection($reports),
+            'summary' => $summary,
+            'filters' => (object) $request->only([
+                'status', 'project_id', 'employee_id', 'grade', 'q', 'from', 'to', 'per_page', 'late',
+            ]),
+            'statuses' => collect(ReportStatus::cases())
+                ->map(fn (ReportStatus $s) => ['value' => $s->value, 'label' => $s->label()]),
+            'grades' => collect(Grade::cases())
+                ->map(fn (Grade $g) => ['value' => $g->value, 'label' => $g->label()]),
+            'projects' => Options::projects(),
+            'employees' => $isMember ? [] : Options::employees(),
+            'canFilterEmployee' => ! $isMember,
+            'canReview' => in_array($account->role, [SystemRole::Admin, SystemRole::Lead], true),
+        ]);
+    }
+
+    private function historyReportsQuery(Request $request, SystemAccount $account): Builder
+    {
+        $isMember = $account->role === SystemRole::Member;
+
         $query = DailyReport::query()
             ->with(['employee', 'score'])
             ->latest('date');
 
-        // Members only ever see their own reports; managers can filter by person.
         if ($isMember) {
             $query->where('employee_id', $account->employee_id);
         } elseif ($employeeId = $request->query('employee_id')) {
@@ -56,8 +96,15 @@ class DailyReportController extends Controller
         if ($grade = $request->query('grade')) {
             $query->whereHas('score', fn ($q) => $q->where('grade', $grade));
         }
+        if ($request->boolean('late')) {
+            $query->where('is_late', true);
+        }
         if ($keyword = trim((string) $request->query('q'))) {
-            $query->where('title', 'like', '%'.$keyword.'%');
+            $like = '%'.$keyword.'%';
+            $query->where(function (Builder $q) use ($like) {
+                $q->where('title', 'like', $like)
+                    ->orWhereHas('employee', fn (Builder $e) => $e->where('full_name', 'like', $like));
+            });
         }
         if ($from = $request->query('from')) {
             $query->whereDate('date', '>=', $from);
@@ -66,26 +113,7 @@ class DailyReportController extends Controller
             $query->whereDate('date', '<=', $to);
         }
 
-        $perPage = (int) $request->query('per_page', 10);
-        if (! in_array($perPage, [5, 10, 15, 20], true)) {
-            $perPage = 10;
-        }
-
-        $reports = $query->paginate($perPage)->withQueryString();
-
-        return Inertia::render('DailyReport/History', [
-            'reports' => DailyReportResource::collection($reports),
-            'filters' => (object) $request->only([
-                'status', 'project_id', 'employee_id', 'grade', 'q', 'from', 'to', 'per_page',
-            ]),
-            'statuses' => collect(ReportStatus::cases())
-                ->map(fn (ReportStatus $s) => ['value' => $s->value, 'label' => $s->label()]),
-            'grades' => collect(Grade::cases())
-                ->map(fn (Grade $g) => ['value' => $g->value, 'label' => $g->label()]),
-            'projects' => Options::projects(),
-            'employees' => $isMember ? [] : Options::employees(),
-            'canFilterEmployee' => ! $isMember,
-        ]);
+        return $query;
     }
 
     /**

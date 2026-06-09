@@ -114,6 +114,8 @@ const map = {
     copy: Copy,
     archive: Archive,
     'chevron-down': ChevronDown,
+    grid: Columns3,
+    list: ListChecks,
     save: Save,
     send: Send,
     check: Check,
