@@ -10,6 +10,7 @@ use App\Support\Enums\ReportStatus;
 use App\Support\Enums\SystemRole;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class DailyReportTest extends TestCase
@@ -132,6 +133,9 @@ class DailyReportTest extends TestCase
 
     public function test_lead_scores_a_submitted_report_and_locks_it(): void
     {
+        Http::fake();
+        config(['telegram.enabled' => false]);
+
         $lead = $this->lead();
         $report = DailyReport::factory()->submitted()->create();
 
@@ -152,6 +156,50 @@ class DailyReportTest extends TestCase
             'grade' => 'A',
             'reviewer_id' => $lead->employee_id,
         ]);
+
+        Http::assertNothingSent();
+    }
+
+    public function test_scoring_notifies_telegram_when_configured(): void
+    {
+        config([
+            'telegram.enabled' => true,
+            'telegram.bot_token' => 'test-bot-token',
+            'telegram.chat_id' => '-100999',
+            'telegram.daily_report_review' => true,
+        ]);
+
+        Http::fake([
+            'api.telegram.org/*' => Http::response(['ok' => true], 200),
+        ]);
+
+        $lead = $this->lead();
+        $report = DailyReport::factory()->submitted()->create([
+            'title' => 'Báo cáo test Telegram',
+            'goals_today' => '<p>Hoàn thành API login</p>',
+            'progress_update' => '<ul><li>Done 80%</li></ul>',
+            'plan_tomorrow' => '<p>Viết test E2E</p>',
+        ]);
+
+        $this->actingAs($lead, 'system')
+            ->post("/daily-reports/{$report->id}/score", [
+                'task_completion' => 7,
+                'skill_score' => 7,
+                'attitude_score' => 7,
+                'kaizen_score' => 7,
+                'expertise_score' => 7,
+                'notes' => 'Ổn định tiến độ.',
+            ])
+            ->assertRedirect();
+
+        Http::assertSent(function ($request) {
+            return str_contains($request->url(), 'api.telegram.org/bottest-bot-token/sendMessage')
+                && str_contains($request['text'], 'HORENSO')
+                && str_contains($request['text'], '報告')
+                && str_contains($request['text'], 'Mục tiêu hôm nay')
+                && str_contains($request['text'], 'Hoàn thành API login')
+                && str_contains($request['text'], 'Báo cáo test Telegram');
+        });
     }
 
     public function test_member_cannot_score(): void
@@ -182,6 +230,9 @@ class DailyReportTest extends TestCase
 
     public function test_lead_can_reject_back_to_draft(): void
     {
+        Http::fake();
+        config(['telegram.enabled' => false]);
+
         $lead = $this->lead();
         $report = DailyReport::factory()->submitted()->create();
 
@@ -192,6 +243,41 @@ class DailyReportTest extends TestCase
         $report->refresh();
         $this->assertSame(ReportStatus::Draft, $report->status);
         $this->assertSame('Please add the impact section.', $report->review_notes);
+
+        Http::assertNothingSent();
+    }
+
+    public function test_reject_notifies_telegram_when_configured(): void
+    {
+        config([
+            'telegram.enabled' => true,
+            'telegram.bot_token' => 'test-bot-token',
+            'telegram.chat_id' => '-100999',
+            'telegram.daily_report_review' => true,
+        ]);
+
+        Http::fake([
+            'api.telegram.org/*' => Http::response(['ok' => true], 200),
+        ]);
+
+        $lead = $this->lead();
+        $report = DailyReport::factory()->submitted()->create([
+            'title' => 'Báo cáo bị trả',
+            'plan_tomorrow' => '<p>Bổ sung phần impact</p>',
+        ]);
+
+        $this->actingAs($lead, 'system')
+            ->post("/daily-reports/{$report->id}/reject", [
+                'notes' => 'Thiếu mục ảnh hưởng dự án.',
+            ])
+            ->assertRedirect();
+
+        Http::assertSent(function ($request) {
+            return str_contains($request->url(), 'api.telegram.org/bottest-bot-token/sendMessage')
+                && str_contains($request['text'], 'Trả lại chỉnh sửa')
+                && str_contains($request['text'], 'Thiếu mục ảnh hưởng dự án')
+                && str_contains($request['text'], 'Báo cáo bị trả');
+        });
     }
 
     public function test_show_includes_resolved_score_for_reviewed_report(): void

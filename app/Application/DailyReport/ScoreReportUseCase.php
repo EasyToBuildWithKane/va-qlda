@@ -11,7 +11,10 @@ use Illuminate\Support\Arr;
 
 class ScoreReportUseCase
 {
-    public function __construct(private readonly ScoringService $scoring) {}
+    public function __construct(
+        private readonly ScoringService $scoring,
+        private readonly DailyReportReviewTelegramNotifier $reviewTelegram,
+    ) {}
 
     /**
      * Score a submitted report: compute total/grade, persist the score and
@@ -58,6 +61,8 @@ class ScoreReportUseCase
             ->event('reviewed')
             ->withProperties(['grade' => $computed['grade']->value, 'total' => $computed['total']])
             ->log('Daily report reviewed');
+
+        $this->reviewTelegram->notifyReviewed($report, $score);
 
         return $score;
     }

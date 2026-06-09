@@ -59,7 +59,11 @@ class DailyReportReviewController extends Controller
     public function reject(RejectDailyReportRequest $request, DailyReport $report, RejectReportUseCase $useCase): RedirectResponse
     {
         try {
-            $useCase->execute($report, $request->validated()['notes']);
+            $useCase->execute(
+                $report,
+                $request->user()->employee_id,
+                $request->validated()['notes'],
+            );
         } catch (DailyReportException $e) {
             return back()->with('error', $e->getMessage());
         }
