@@ -14,6 +14,7 @@ import { useSprintTaskTable } from '@/composables/useSprintTaskTable';
 import { useSprintReconcile } from '@/composables/useSprintReconcile';
 import { useDialog } from '@/composables/useDialog';
 import { useToast } from '@/shared/composables/useToast';
+import EmptyState from '@/shared/ui/EmptyState.vue';
 
 const props = defineProps({
     project: { type: Object, required: true },
@@ -59,6 +60,12 @@ const filteredTasksBySprint = computed(() => {
 });
 
 const filteredBacklogTasks = computed(() => filterRootTasks(table.filtered.value).filter((t) => !t.sprint_id));
+
+const listWorkspaceEmpty = computed(() => !props.sprints.length && !filteredBacklogTasks.value.length);
+const listSearchEmpty = computed(() => listWorkspaceEmpty.value && globalSearch.value.trim().length > 0);
+
+const calendarEmpty = computed(() => !table.filtered.value.length);
+const calendarSearchEmpty = computed(() => calendarEmpty.value && globalSearch.value.trim().length > 0);
 
 const viewMode = ref('list');
 const dataModalOpen = ref(false);
@@ -244,8 +251,21 @@ onMounted(() => {
 
     <!-- Main content -->
     <div class="min-h-0 flex-1 overflow-y-auto p-4">
+      <EmptyState
+        v-if="viewMode === 'list' && listWorkspaceEmpty"
+        :icon="listSearchEmpty ? 'search' : 'sprint'"
+        :title="listSearchEmpty ? 'Không tìm thấy kết quả' : 'Chưa có sprint'"
+        :description="listSearchEmpty
+          ? 'Thử đổi từ khóa tìm kiếm hoặc xóa ô tìm kiếm.'
+          : (canManage
+            ? 'Tạo sprint đầu tiên để nhóm công việc theo chu kỳ và theo dõi tiến độ.'
+            : 'Sprint và công việc sẽ hiển thị tại đây khi được tạo.')"
+        :action="canManage && !listSearchEmpty ? 'Tạo sprint' : null"
+        @action="openSprint()"
+      />
+
       <SprintListView
-        v-if="viewMode === 'list'"
+        v-else-if="viewMode === 'list'"
         :sprints="sprints"
         :all-tasks="tasks"
         :tasks-by-sprint="filteredTasksBySprint"
@@ -263,6 +283,19 @@ onMounted(() => {
         @duplicate-sprint="duplicateSprint"
         @close-sprint="closeSprint"
         @delete-sprint="removeSprint"
+      />
+
+      <EmptyState
+        v-else-if="calendarEmpty"
+        :icon="calendarSearchEmpty ? 'search' : 'calendar'"
+        :title="calendarSearchEmpty ? 'Không tìm thấy task' : 'Chưa có task trên lịch'"
+        :description="calendarSearchEmpty
+          ? 'Không có task phù hợp từ khóa tìm kiếm.'
+          : (canContribute
+            ? 'Thêm task có hạn (due date) trong tháng hiện tại để xem trên lịch.'
+            : 'Task có hạn trong tháng sẽ hiển thị trên lịch.')"
+        :action="canContribute && !calendarSearchEmpty ? 'Thêm task' : null"
+        @action="openTaskModal()"
       />
 
       <SprintCalendarView
