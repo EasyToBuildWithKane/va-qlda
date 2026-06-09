@@ -212,6 +212,23 @@ const submit = () => {
         delete payload.resolution;
     }
     if (props.blocker) {
+        if (isResolutionFlow.value) {
+            const trimmed = {
+                root_cause: (form.root_cause ?? '').trim(),
+                resolution: (form.resolution ?? '').trim(),
+            };
+            if (!trimmed.root_cause) {
+                form.setError('root_cause', 'Vui lòng ghi nhận nguyên nhân trước khi lưu hướng xử lý.');
+                return;
+            }
+            form.transform(() => trimmed).put(`/blockers/${props.blocker.id}`, {
+                preserveScroll: true,
+                onSuccess: finishSave,
+            });
+            return;
+        }
+        delete payload.root_cause;
+        delete payload.resolution;
         form.transform(() => payload).put(`/blockers/${props.blocker.id}`, {
             preserveScroll: true,
             onSuccess: finishSave,
@@ -327,37 +344,33 @@ const submit = () => {
             <p class="mt-1 text-sm font-medium text-slate-800">
               {{ blocker.title }}
             </p>
-            <details
-              v-if="textOrDash(blocker.description) || textOrDash(blocker.root_cause)"
-              class="group mt-2"
+            <p
+              v-if="textOrDash(blocker.description)"
+              class="mt-2 border-t border-slate-200/80 pt-2 text-sm text-slate-600 whitespace-pre-wrap"
             >
-              <summary class="cursor-pointer list-none text-xs font-medium text-brand hover:underline marker:content-none [&::-webkit-details-marker]:hidden">
-                <span class="inline-flex items-center gap-1">
-                  <AppIcon
-                    name="chevron-down"
-                    :size="14"
-                    class="transition group-open:rotate-180"
-                  />
-                  Xem mô tả &amp; nguyên nhân (tham khảo)
-                </span>
-              </summary>
-              <div class="mt-2 space-y-2 border-t border-slate-200/80 pt-2 text-sm text-slate-600">
-                <p
-                  v-if="textOrDash(blocker.description)"
-                  class="whitespace-pre-wrap"
-                >
-                  <span class="text-[10px] font-bold uppercase text-slate-400">Mô tả · </span>
-                  {{ blocker.description }}
-                </p>
-                <p
-                  v-if="textOrDash(blocker.root_cause)"
-                  class="whitespace-pre-wrap"
-                >
-                  <span class="text-[10px] font-bold uppercase text-slate-400">Nguyên nhân · </span>
-                  {{ blocker.root_cause }}
-                </p>
-              </div>
-            </details>
+              <span class="text-[10px] font-bold uppercase text-slate-400">Mô tả · </span>
+              {{ blocker.description }}
+            </p>
+          </div>
+
+          <div>
+            <label class="label flex items-center gap-1.5">
+              Nguyên nhân
+              <span class="text-danger">*</span>
+              <FieldTooltip text="Phân tích gốc rễ do người xử lý — giúp tránh lặp lại vướng mắc tương tự." />
+            </label>
+            <textarea
+              v-model="form.root_cause"
+              rows="4"
+              class="input mt-1 resize-y text-sm"
+              placeholder="VD: Do cấu hình timeout API thanh toán quá thấp sau bản nâng cấp hạ tầng ngày 05/06…"
+            />
+            <p
+              v-if="form.errors.root_cause"
+              class="mt-1 text-xs text-danger"
+            >
+              {{ form.errors.root_cause }}
+            </p>
           </div>
 
           <div>
@@ -455,36 +468,11 @@ const submit = () => {
                 placeholder="Bối cảnh, tác động…"
               />
             </div>
-            <template v-if="isEdit">
-              <div>
-                <label class="label flex items-center gap-1.5">
-                  Nguyên nhân
-                </label>
-                <textarea
-                  v-model="form.root_cause"
-                  rows="2"
-                  class="input resize-y text-sm"
-                  placeholder="Nguyên nhân gốc (nếu có)…"
-                />
-              </div>
-              <div v-if="!isResolutionFlow">
-                <label class="label flex items-center gap-1.5">
-                  Hướng xử lý
-                  <FieldTooltip text="Kế hoạch xử lý; có thể chỉnh riêng qua «Hướng xử lý» trên bảng." />
-                </label>
-                <textarea
-                  v-model="form.resolution"
-                  rows="2"
-                  class="input resize-y text-sm"
-                  placeholder="Biện pháp, bước tiếp theo…"
-                />
-              </div>
-            </template>
             <p
-              v-else
+              v-if="!isEdit"
               class="text-xs text-slate-500"
             >
-              Nguyên nhân và hướng xử lý có thể bổ sung sau khi chỉnh sửa phiếu.
+              Nguyên nhân và hướng xử lý do người xử lý cập nhật qua «Hướng xử lý» trên danh sách.
             </p>
           </div>
 

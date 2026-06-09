@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { reactive, ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AppIcon from '@/Components/AppIcon.vue';
@@ -7,8 +7,8 @@ import PageHeader from '@/Components/Ui/PageHeader.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
 import Badge from '@/shared/ui/Badge.vue';
 import BlockerFormModal from '@/modules/project/components/BlockerFormModal.vue';
-import BlockerAttachmentsBlock from '@/modules/project/components/BlockerAttachmentsBlock.vue';
-import CommentThread from '@/shared/ui/CommentThread.vue';
+import BlockerDetailModal from '@/modules/project/components/BlockerDetailModal.vue';
+import BlockerCommentModal from '@/modules/project/components/BlockerCommentModal.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import ColumnVisibilityDropdown from '@/shared/ui/ColumnVisibilityDropdown.vue';
@@ -96,14 +96,12 @@ function loadCollapsedGroups() {
 }
 
 const collapsedGroups = ref(loadCollapsedGroups());
-const expandedRows = ref(new Set());
-/** @type {import('vue').Ref<Record<number, 'detail'|'comments'>>} */
-const rowExpandFocus = ref({});
 const openActionMenuId = ref(null);
-
-function isRowExpanded(id) {
-    return expandedRows.value.has(id);
-}
+const detailModalBlocker = ref(null);
+const detailModalTab = ref('detail');
+const showDetailModal = ref(false);
+const commentModalBlocker = ref(null);
+const showCommentModal = ref(false);
 
 function closeActionMenu() {
     openActionMenuId.value = null;
@@ -113,66 +111,37 @@ function toggleActionMenu(id) {
     openActionMenuId.value = openActionMenuId.value === id ? null : id;
 }
 
-function expandRow(id, focus = 'detail') {
-    const next = new Set(expandedRows.value);
-    next.add(id);
-    expandedRows.value = next;
-    rowExpandFocus.value = { ...rowExpandFocus.value, [id]: focus };
-}
-
-function toggleRow(id) {
-    const next = new Set(expandedRows.value);
-    if (next.has(id)) {
-        next.delete(id);
-        const f = { ...rowExpandFocus.value };
-        delete f[id];
-        rowExpandFocus.value = f;
-    } else {
-        next.add(id);
-        rowExpandFocus.value = { ...rowExpandFocus.value, [id]: 'detail' };
-    }
-    expandedRows.value = next;
+function openDetailModal(b, tab = 'detail') {
+    detailModalBlocker.value = b;
+    detailModalTab.value = tab;
+    showDetailModal.value = true;
     closeActionMenu();
 }
 
-async function openRowComments(b) {
-    expandRow(b.id, 'comments');
+function closeDetailModal() {
+    showDetailModal.value = false;
+    detailModalBlocker.value = null;
+}
+
+function openCommentModal(b) {
+    commentModalBlocker.value = b;
+    showCommentModal.value = true;
     closeActionMenu();
-    await nextTick();
-    document.getElementById(`blocker-comments-${b.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function closeCommentModal() {
+    showCommentModal.value = false;
+    commentModalBlocker.value = null;
+}
+
+function onDetailEditResolution(b) {
+    closeDetailModal();
+    openResolve(b);
 }
 
 function runAction(fn) {
     closeActionMenu();
     fn();
-}
-
-function blockerComments(b) {
-    const raw = b?.comments;
-    if (Array.isArray(raw)) return raw;
-    if (raw?.data && Array.isArray(raw.data)) return raw.data;
-    return [];
-}
-
-function normalizeEvidenceLinks(links) {
-    const list = Array.isArray(links) ? links : [];
-    return list
-        .map((item) => ({
-            label: (item?.label ?? '').trim(),
-            url: (item?.url ?? '').trim(),
-        }))
-        .filter((item) => item.url);
-}
-
-function evidenceLinkLabel(item) {
-    return item.label || item.url;
-}
-
-function blockerAttachments(b) {
-    const raw = b?.attachments;
-    if (Array.isArray(raw)) return raw;
-    if (raw?.data && Array.isArray(raw.data)) return raw.data;
-    return [];
 }
 
 const {
@@ -348,7 +317,6 @@ onMounted(() => document.addEventListener('mousedown', onToolbarClickOutside));
 onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOutside));
 
 function blockerRowClass(b) {
-    const expanded = isRowExpanded(b.id);
     const classes = [
         'blocker-data-row',
         'border-b',
@@ -356,9 +324,6 @@ function blockerRowClass(b) {
         'bg-white',
         'transition-colors',
     ];
-    if (expanded) {
-        classes.push('bg-slate-50/80', 'shadow-[inset_0_-1px_0_0_rgb(226_232_240)]');
-    }
     if (b.status?.value === 'closed') {
         classes.push('opacity-70', 'bg-slate-50/40');
         return classes;
@@ -812,8 +777,11 @@ function toggleAllGroups() {
               >
                 <span class="sr-only">Chi tiết</span>
               </th>
-              <th class="w-[5.75rem] px-1 py-2 text-center align-middle text-xs font-medium text-slate-500">
-                Thao tác
+              <th
+                class="w-11 px-1 py-2 text-center align-middle"
+                aria-label="Thao tác"
+              >
+                <span class="sr-only">Thao tác</span>
               </th>
             </tr>
           </thead>
@@ -1020,7 +988,7 @@ function toggleAllGroups() {
                         type="button"
                         class="tabular-nums text-slate-600 underline-offset-2 hover:text-brand hover:underline"
                         :title="(b.comments_count ?? 0) > 0 ? 'Xem bình luận' : 'Thêm bình luận'"
-                        @click.stop="openRowComments(b)"
+                        @click.stop="openCommentModal(b)"
                       >
                         {{ b.comments_count ?? 0 }}
                       </button>
@@ -1040,17 +1008,13 @@ function toggleAllGroups() {
                     <td class="px-1 py-2 align-top">
                       <button
                         type="button"
-                        class="mx-auto grid h-8 w-8 place-items-center rounded-lg border border-transparent text-slate-400 transition hover:border-slate-200 hover:bg-white hover:text-slate-700"
-                        :class="isRowExpanded(b.id) ? 'border-slate-200 bg-white text-brand shadow-sm' : ''"
-                        :aria-expanded="isRowExpanded(b.id)"
-                        :title="isRowExpanded(b.id) ? 'Thu gọn chi tiết' : 'Xem chi tiết'"
-                        @click.stop="toggleRow(b.id)"
+                        class="mx-auto grid h-8 w-8 place-items-center rounded-lg border border-transparent text-slate-400 transition hover:border-slate-200 hover:bg-white hover:text-brand"
+                        title="Xem chi tiết"
+                        @click.stop="openDetailModal(b, 'detail')"
                       >
                         <AppIcon
-                          name="chevron-down"
-                          :size="15"
-                          class="transition-transform"
-                          :class="isRowExpanded(b.id) ? 'rotate-180' : ''"
+                          name="eye"
+                          :size="16"
                         />
                       </button>
                     </td>
@@ -1061,19 +1025,17 @@ function toggleAllGroups() {
                       <div class="relative flex justify-center">
                         <button
                           type="button"
-                          class="inline-flex h-8 max-w-full items-center gap-0.5 rounded-lg border border-slate-200 bg-white px-1.5 text-[11px] font-medium text-slate-600 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
+                          class="grid h-8 w-8 place-items-center rounded-lg border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700"
                           :class="openActionMenuId === b.id ? 'border-brand/30 text-brand' : ''"
                           :aria-expanded="openActionMenuId === b.id"
                           aria-haspopup="menu"
+                          :title="`Thao tác ${b.code}`"
                           :aria-label="`Thao tác ${b.code}`"
                           @click.stop="toggleActionMenu(b.id)"
                         >
-                          <span class="hidden min-[420px]:inline">Thao tác</span>
                           <AppIcon
-                            name="chevron-down"
-                            :size="13"
-                            class="shrink-0 transition"
-                            :class="openActionMenuId === b.id ? 'rotate-180' : ''"
+                            name="more-horizontal"
+                            :size="16"
                           />
                         </button>
                         <transition
@@ -1094,21 +1056,20 @@ function toggleAllGroups() {
                               type="button"
                               role="menuitem"
                               class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-50"
-                              @click.stop="toggleRow(b.id)"
+                              @click.stop="openDetailModal(b, 'detail')"
                             >
                               <AppIcon
-                                name="chevron-down"
+                                name="eye"
                                 :size="14"
                                 class="shrink-0"
-                                :class="isRowExpanded(b.id) ? 'rotate-180' : ''"
                               />
-                              {{ isRowExpanded(b.id) ? 'Thu gọn chi tiết' : 'Xem chi tiết' }}
+                              Xem chi tiết
                             </button>
                             <button
                               type="button"
                               role="menuitem"
                               class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-50"
-                              @click.stop="openRowComments(b)"
+                              @click.stop="openCommentModal(b)"
                             >
                               <AppIcon
                                 name="comment"
@@ -1165,140 +1126,6 @@ function toggleAllGroups() {
                       </div>
                     </td>
                   </tr>
-                  <tr
-                    v-if="isRowExpanded(b.id)"
-                    class="blocker-detail-row border-b border-slate-100"
-                  >
-                    <td
-                      :colspan="tableColspan"
-                      class="bg-slate-50/90 px-3 py-3 align-top sm:px-5 sm:py-4"
-                    >
-                      <details
-                        class="group rounded-xl border border-slate-200/90 bg-white shadow-sm"
-                        open
-                      >
-                        <summary class="cursor-pointer list-none px-4 py-3 text-sm font-medium text-slate-700 marker:content-none [&::-webkit-details-marker]:hidden">
-                          <span class="inline-flex items-center gap-2">
-                            <AppIcon
-                              name="chevron-down"
-                              :size="14"
-                              class="text-slate-400 transition group-open:rotate-180"
-                            />
-                            Nội dung chi tiết
-                          </span>
-                        </summary>
-                        <section class="border-t border-slate-100 p-4 pt-3">
-                          <div class="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-slate-100 pb-3 text-xs text-slate-500">
-                            <span class="font-mono font-semibold text-brand">{{ b.code }}</span>
-                            <span v-if="b.raised_at">Báo {{ date(b.raised_at) }}</span>
-                            <span
-                              :class="b.is_overdue && !isTerminal(b) ? 'font-semibold text-rose-600' : ''"
-                            >
-                              Hạn {{ b.due_date ? date(b.due_date) : '—' }}
-                            </span>
-                            <span v-if="b.resolved_at">Xong {{ datetime(b.resolved_at) }}</span>
-                            <span>{{ b.comments_count ?? 0 }} bình luận</span>
-                            <span v-if="b.updated_at">Cập nhật {{ datetime(b.updated_at) }}</span>
-                          </div>
-                          <dl class="grid gap-4 text-sm sm:grid-cols-2">
-                            <div class="sm:col-span-2">
-                              <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                                Mô tả
-                              </dt>
-                              <dd class="mt-1 break-words whitespace-pre-wrap text-slate-700">
-                                {{ b.description?.trim() || '—' }}
-                              </dd>
-                            </div>
-                            <div class="sm:col-span-2">
-                              <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                                Nguyên nhân
-                              </dt>
-                              <dd class="mt-1 break-words whitespace-pre-wrap text-slate-700">
-                                {{ b.root_cause?.trim() || '—' }}
-                              </dd>
-                            </div>
-                            <div class="sm:col-span-2">
-                              <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                                Hướng xử lý
-                              </dt>
-                              <dd class="mt-1 break-words whitespace-pre-wrap text-slate-700">
-                                {{ b.resolution?.trim() || '—' }}
-                              </dd>
-                            </div>
-                            <div
-                              v-if="b.task?.title"
-                              class="sm:col-span-2"
-                            >
-                              <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                                Công việc liên quan
-                              </dt>
-                              <dd class="mt-1 break-words text-slate-700">
-                                {{ b.task.title }}
-                              </dd>
-                            </div>
-                            <div
-                              v-if="normalizeEvidenceLinks(b.evidence_links).length"
-                              class="sm:col-span-2"
-                            >
-                              <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                                Link dẫn chứng
-                              </dt>
-                              <dd class="mt-1">
-                                <ul class="space-y-1.5">
-                                  <li
-                                    v-for="(link, linkIdx) in normalizeEvidenceLinks(b.evidence_links)"
-                                    :key="linkIdx"
-                                  >
-                                    <a
-                                      :href="link.url"
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      class="inline-flex max-w-full items-start gap-1.5 text-sm font-medium text-brand hover:underline"
-                                      @click.stop
-                                    >
-                                      <AppIcon
-                                        name="dependency"
-                                        :size="14"
-                                        class="mt-0.5 shrink-0"
-                                      />
-                                      <span class="min-w-0 break-all">{{ evidenceLinkLabel(link) }}</span>
-                                    </a>
-                                  </li>
-                                </ul>
-                              </dd>
-                            </div>
-                            <div
-                              v-if="blockerAttachments(b).length"
-                              class="sm:col-span-2"
-                            >
-                              <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                                Ảnh &amp; file đính kèm
-                              </dt>
-                              <dd class="mt-2">
-                                <BlockerAttachmentsBlock
-                                  :blocker-id="b.id"
-                                  :attachments="blockerAttachments(b)"
-                                  :can-upload="false"
-                                  compact
-                                />
-                              </dd>
-                            </div>
-                          </dl>
-                        </section>
-                      </details>
-                      <section
-                        :id="`blocker-comments-${b.id}`"
-                        class="mt-3 rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm"
-                      >
-                        <CommentThread
-                          :comments="blockerComments(b)"
-                          commentable-type="blocker"
-                          :commentable-id="b.id"
-                          :can-comment="can.comment"
-                        />
-                      </section>
-                    </td>
-                  </tr>
                 </template>
               </template>
             </template>
@@ -1334,6 +1161,23 @@ function toggleAllGroups() {
       @close="closeModal"
       @saved="closeModal"
     />
+
+    <BlockerDetailModal
+      :show="showDetailModal"
+      :blocker="detailModalBlocker"
+      :initial-tab="detailModalTab"
+      :can-comment="can.comment"
+      :can-update="detailModalBlocker?.can?.update && !isTerminal(detailModalBlocker)"
+      @close="closeDetailModal"
+      @edit-resolution="onDetailEditResolution"
+    />
+
+    <BlockerCommentModal
+      :show="showCommentModal"
+      :blocker="commentModalBlocker"
+      :can-comment="can.comment"
+      @close="closeCommentModal"
+    />
   </AppLayout>
 </template>
 
@@ -1365,9 +1209,5 @@ function toggleAllGroups() {
 .blocker-col-person {
     min-width: 7rem;
     max-width: 12rem;
-}
-.blocker-detail-row td {
-    overflow: visible;
-    max-width: none;
 }
 </style>

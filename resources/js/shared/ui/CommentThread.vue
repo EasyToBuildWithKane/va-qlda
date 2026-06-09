@@ -10,6 +10,7 @@ const props = defineProps({
     commentableType: { type: String, required: true },
     commentableId: { type: [Number, String], required: true },
     canComment: { type: Boolean, default: true },
+    placeholder: { type: String, default: 'Viết phản hồi cho người xử lý…' },
 });
 
 const list = computed(() => {
@@ -53,7 +54,7 @@ const submit = () => {
         v-model="form.body"
         rows="2"
         class="input flex-1 resize-none text-sm"
-        placeholder="Viết phản hồi cho người xử lý…"
+        :placeholder="placeholder"
       />
       <button
         type="submit"
