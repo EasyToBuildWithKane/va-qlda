@@ -5,6 +5,7 @@ namespace App\Http\Requests\Project;
 use App\Support\Enums\TaskPhase;
 use App\Support\Enums\TaskPriority;
 use App\Support\Enums\TaskStatus;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -40,6 +41,23 @@ class ImportTaskRequest extends FormRequest
             'rows.*.estimate_hours' => ['nullable', 'numeric', 'min:0'],
             'rows.*.progress' => ['nullable', 'integer', 'min:0', 'max:100'],
         ];
+    }
+
+    /**
+     * Per-row date consistency — `after_or_equal:start_date` can't reference a
+     * sibling inside the `rows.*` array, so we check each row by hand.
+     */
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            foreach ((array) $this->input('rows', []) as $i => $row) {
+                $start = $row['start_date'] ?? null;
+                $due = $row['due_date'] ?? null;
+                if ($start && $due && strtotime((string) $due) < strtotime((string) $start)) {
+                    $validator->errors()->add("rows.{$i}.due_date", 'Hạn phải bằng hoặc sau ngày bắt đầu.');
+                }
+            }
+        });
     }
 
     /**

@@ -364,7 +364,7 @@ onMounted(() => {
       :sprint-by-id="sprintById"
       :can-manage="canManage"
       @close="dataModalOpen = false"
-      @imported="() => { dataModalOpen = false; toast.success('Đã nhập task từ file'); }"
+      @imported="dataModalOpen = false"
       @fix="onReconcileFix"
     />
   </div>

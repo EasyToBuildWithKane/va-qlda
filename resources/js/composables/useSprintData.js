@@ -598,6 +598,8 @@ export function validateSprintImportRows(rawRows, ctx) {
 
         const start_date = parseExcelDate(raw.start_date_raw);
         const due_date = parseExcelDate(raw.due_date_raw);
+        // ISO yyyy-mm-dd strings compare lexicographically — mirror server check.
+        if (start_date && due_date && due_date < start_date) errors.push('Hạn phải bằng hoặc sau ngày bắt đầu');
         let progress = parseInt(raw.progress_raw, 10);
         if (Number.isNaN(progress)) progress = 0;
         progress = Math.min(100, Math.max(0, progress));

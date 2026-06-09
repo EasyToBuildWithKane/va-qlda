@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Employee;
 use App\Models\Project;
 use App\Models\SystemAccount;
 use App\Support\Enums\SystemRole;
@@ -221,6 +222,47 @@ class TaskTest extends TestCase
             'project_id' => $project->id,
             'title' => 'Imported Task B',
             'progress' => 25,
+        ]);
+    }
+
+    public function test_imported_assignee_is_mirrored_into_assignees_pivot(): void
+    {
+        $project = Project::factory()->create();
+        $employee = Employee::factory()->create();
+
+        $this->actingAs($this->admin(), 'system')
+            ->post("/projects/{$project->id}/tasks/import", [
+                'rows' => [
+                    ['title' => 'Imported with assignee', 'assignee_id' => $employee->id],
+                ],
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $task = $project->tasks()->where('title', 'Imported with assignee')->firstOrFail();
+
+        $this->assertSame($employee->id, $task->assignee_id);
+        $this->assertDatabaseHas('task_assignees', [
+            'task_id' => $task->id,
+            'employee_id' => $employee->id,
+        ]);
+    }
+
+    public function test_import_rejects_due_date_before_start_date(): void
+    {
+        $project = Project::factory()->create();
+
+        $this->actingAs($this->admin(), 'system')
+            ->post("/projects/{$project->id}/tasks/import", [
+                'rows' => [
+                    ['title' => 'Bad dates', 'start_date' => '2026-06-10', 'due_date' => '2026-06-01'],
+                ],
+            ])
+            ->assertSessionHasErrors(['rows.0.due_date']);
+
+        $this->assertDatabaseMissing('tasks', [
+            'project_id' => $project->id,
+            'title' => 'Bad dates',
         ]);
     }
 

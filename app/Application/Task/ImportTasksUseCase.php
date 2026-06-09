@@ -4,7 +4,6 @@ namespace App\Application\Task;
 
 use App\Models\Project;
 use App\Models\SystemAccount;
-use App\Support\Enums\TaskPhase;
 use App\Support\Enums\TaskPriority;
 use App\Support\Enums\TaskStatus;
 use App\Support\NotificationDispatcher;
@@ -30,7 +29,7 @@ class ImportTasksUseCase
                     'sprint_id' => $row['sprint_id'] ?? null,
                     'status' => $row['status'] ?? TaskStatus::Todo->value,
                     'priority' => $row['priority'] ?? TaskPriority::Medium->value,
-                    'phase' => $row['phase'] ?? TaskPhase::Development->value,
+                    'phase' => $row['phase'] ?? null,
                     'assignee_id' => $row['assignee_id'] ?? null,
                     'reviewer_id' => $row['reviewer_id'] ?? null,
                     'reporter_id' => $actor->employee_id,
@@ -40,6 +39,12 @@ class ImportTasksUseCase
                     'progress' => $row['progress'] ?? 0,
                     'order_column' => $orderBase + $i + 1,
                 ]);
+
+                // Mirror the singular assignee into the canonical many-to-many pivot
+                // so imported tasks behave like ones created via Create/Bulk/Update use cases.
+                if (! empty($row['assignee_id'])) {
+                    $task->assignees()->sync([$row['assignee_id']]);
+                }
 
                 $fresh = $task->fresh();
                 TaskTimeliness::syncWorkStartedAt($fresh);
