@@ -55,12 +55,12 @@ const groups = computed(() => {
     return out.filter((g) => g.projects.length > 0);
 });
 
-const expanded = ref(new Set());
-const isOpen = (g) => g.key === 'all' || expanded.value.has(g.key);
+const collapsedGroups = ref(new Set());
+const isOpen = (g) => g.key === 'all' || !collapsedGroups.value.has(g.key);
 const toggleGroup = (g) => {
-    const s = new Set(expanded.value);
+    const s = new Set(collapsedGroups.value);
     s.has(g.key) ? s.delete(g.key) : s.add(g.key);
-    expanded.value = s;
+    collapsedGroups.value = s;
 };
 
 const progressTone = (v) => {
