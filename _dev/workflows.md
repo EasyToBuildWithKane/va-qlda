@@ -81,7 +81,17 @@ Until a deploy workflow is added:
 
 1. Merge PR to `main` after CI passes
 2. Deploy via your hosting pipeline (ServBay, Forge, manual `git pull` on server, etc.)
-3. On server: `composer install --no-dev`, `npm ci && npm run build`, `php artisan migrate --force`, `php artisan config:cache`
+3. On server:
+   ```bash
+   composer install --no-dev --optimize-autoloader
+   npm ci && npm run build
+   php artisan migrate --force
+   php artisan optimize:clear   # IMPORTANT: drop stale config/route/view caches first
+   php artisan config:cache
+   php artisan route:cache      # without this, newly added routes 404 on a server with a cached route table
+   php artisan view:cache
+   ```
+   > **Route 404 after deploy?** A stale `bootstrap/cache/routes-*.php` keeps serving the old route table, so any route added since the last cache returns 404 (e.g. `POST /projects/{project}/tasks/import`). Fix immediately with `php artisan route:clear` (or `optimize:clear`), then re-run `route:cache`. Never run only `config:cache` — it does not refresh routes.
 
 ---
 

@@ -270,3 +270,19 @@ CI tự tạo tại `database/testing.sqlite` trong workspace.
 **Nguyên nhân:** TK mồ côi (PĐX hết hạn / gỡ liên kết) còn trong DB.
 
 **Xử lý:** Deploy bản có `purgeOrphanedFromProposal`, user F5 một lần. Chi tiết: [`docs/AI_ACCOUNTS.md`](../../docs/AI_ACCOUNTS.md). File gốc EN: [`../troubleshooting.md`](../troubleshooting.md) mục AI accounts.
+
+---
+
+## Route 404 sau khi deploy (vd nhập task `POST /projects/{id}/tasks/import`)
+
+**Hiện tượng:** Một hành động bị 404 trên production, trong khi hành động cũ cùng prefix (vd `POST /projects/{id}/sprints`) vẫn chạy. Code, định nghĩa route (`routes/web.php`), controller, FormRequest đều có và đúng ở commit đã deploy.
+
+**Nguyên nhân:** File `bootstrap/cache/routes-*.php` trên server còn cũ. Lần `php artisan route:cache` / `optimize` trước đã cache bảng route; route thêm sau đó (ở đây là `tasks.import`, thêm ở `33e3212`) không có trong cache nên router không khớp → 404. Bước deploy chỉ chạy `config:cache` — lệnh này **không** làm mới route.
+
+**Sửa ngay:**
+```bash
+php artisan route:clear     # hoặc: php artisan optimize:clear
+php artisan route:cache     # cache lại cho hiệu năng
+```
+
+**Sửa triệt để:** Deploy phải xoá cache trước khi cache lại — xem `_dev/vi/quy-trinh.md` › Deploy. Chạy `php artisan optimize:clear` rồi `config:cache` + `route:cache` + `view:cache`. Đừng chỉ chạy mỗi `config:cache`.

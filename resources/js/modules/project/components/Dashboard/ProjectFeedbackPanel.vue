@@ -101,7 +101,7 @@ function onSaved() {
 </script>
 
 <template>
-  <div class="space-y-4">
+  <div class="w-full min-w-0 space-y-4">
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div>
         <h2 class="font-display text-lg font-semibold text-slate-800">
@@ -130,7 +130,7 @@ function onSaved() {
       </Link>
     </div>
 
-    <div class="grid grid-cols-3 gap-3">
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
       <div class="card p-4">
         <p class="text-xs text-slate-500">
           Đang xử lý

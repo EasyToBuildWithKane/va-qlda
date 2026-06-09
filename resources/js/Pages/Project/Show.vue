@@ -241,13 +241,16 @@ const onSprintSaved = () => {
     </template>
 
     <!-- Full-height flex column -->
-    <div class="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-50">
+    <div class="flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden bg-slate-50">
       <!-- ── Compact tab strip ── -->
-      <nav class="flex shrink-0 items-center border-b border-slate-200 bg-white px-1">
+      <nav
+        class="flex shrink-0 items-center gap-0.5 overflow-x-auto overscroll-x-contain border-b border-slate-200 bg-white px-2 sm:px-3"
+        aria-label="Tab dự án"
+      >
         <button
           v-for="t in tabList"
           :key="t.key"
-          class="flex items-center gap-1.5 border-b-2 px-3 py-2.5 text-sm font-medium transition"
+          class="flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-2.5 py-2.5 text-sm font-medium transition sm:px-3"
           :class="tab === t.key
             ? 'border-brand text-brand'
             : 'border-transparent text-slate-500 hover:text-slate-700'"
@@ -274,20 +277,22 @@ const onSprintSaved = () => {
       </nav>
 
       <!-- ── Tab content: fills all remaining height ── -->
-      <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div class="flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden">
         <!-- ===== DOCUMENTS ===== -->
         <div
           v-show="tab === 'documents'"
-          class="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900"
+          class="flex h-full min-h-0 flex-col overflow-hidden p-3 sm:p-4"
         >
-          <ProjectDocumentsPanel
-            :project-id="project.id"
-            :attachments="attachments"
-            :categories="documentCategories"
-            :can-upload="canContribute"
-            :can-edit="canContribute"
-            :can-delete="canManage"
-          />
+          <div class="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <ProjectDocumentsPanel
+              :project-id="project.id"
+              :attachments="attachments"
+              :categories="documentCategories"
+              :can-upload="canContribute"
+              :can-edit="canContribute"
+              :can-delete="canManage"
+            />
+          </div>
         </div>
 
         <!-- ===== TIMELINE / GANTT ===== -->
@@ -313,9 +318,9 @@ const onSprintSaved = () => {
         <!-- ===== OVERVIEW (Dashboard) ===== -->
         <div
           v-show="tab === 'overview'"
-          class="h-full overflow-x-hidden overflow-y-auto dark:bg-slate-950"
+          class="h-full w-full min-w-0 overflow-x-hidden overflow-y-auto dark:bg-slate-950"
         >
-          <div class="mx-auto min-w-0 max-w-[1400px] space-y-5 p-5">
+          <div class="w-full min-w-0 space-y-4 p-4 sm:space-y-5 sm:p-5 lg:p-6">
             <div class="flex flex-wrap items-center justify-between gap-3">
               <DashboardViewToggle v-model="viewMode" />
               <button
@@ -510,9 +515,9 @@ const onSprintSaved = () => {
         <!-- ===== BLOCKERS ===== -->
         <div
           v-show="tab === 'blockers'"
-          class="h-full overflow-y-auto dark:bg-slate-950"
+          class="h-full w-full min-w-0 overflow-x-hidden overflow-y-auto dark:bg-slate-950"
         >
-          <div class="mx-auto min-w-0 max-w-[1600px] p-5">
+          <div class="w-full min-w-0 p-4 sm:p-5 lg:p-6">
             <RiskIssueDataTable
               :project-id="project.id"
               :project-code="project.code"
@@ -531,9 +536,9 @@ const onSprintSaved = () => {
         <!-- ===== FEEDBACK ===== -->
         <div
           v-show="tab === 'feedback'"
-          class="h-full overflow-y-auto dark:bg-slate-950"
+          class="h-full w-full min-w-0 overflow-x-hidden overflow-y-auto dark:bg-slate-950"
         >
-          <div class="mx-auto min-w-0 max-w-[1600px] p-5">
+          <div class="w-full min-w-0 p-4 sm:p-5 lg:p-6">
             <ProjectFeedbackPanel
               :project-id="project.id"
               :project-code="project.code"

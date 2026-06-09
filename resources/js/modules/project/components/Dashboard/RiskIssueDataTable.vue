@@ -343,7 +343,7 @@ defineExpose({ scrollHere });
 <template>
   <div
     ref="panelRef"
-    class="min-w-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-elevation-1 transition ring-2 dark:border-slate-700/80 dark:bg-slate-900 dark:shadow-none"
+    class="w-full min-w-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-elevation-1 transition ring-2 dark:border-slate-700/80 dark:bg-slate-900 dark:shadow-none"
     :class="highlight ? 'ring-brand/30' : 'ring-transparent'"
   >
     <!-- Header + toolbar -->

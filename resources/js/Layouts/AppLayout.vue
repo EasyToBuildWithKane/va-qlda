@@ -525,7 +525,7 @@ onMounted(scrollActiveNavItemIntoView);
         </header>
       </slot>
 
-      <main :class="flush ? 'flex min-h-0 flex-1 flex-col overflow-hidden p-4' : 'min-h-0 flex-1 overflow-y-auto p-6'">
+      <main :class="flush ? 'flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden p-0' : 'min-h-0 flex-1 overflow-y-auto p-6'">
         <slot />
       </main>
     </div>

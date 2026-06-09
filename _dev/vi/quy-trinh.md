@@ -74,11 +74,15 @@ CI chỉ **kiểm tra chất lượng code**; deploy **thủ công hoặc qua h�
 2. Trên server: `git pull`
 3. Chạy:
    ```bash
-   composer install --no-dev
+   composer install --no-dev --optimize-autoloader
    npm ci && npm run build
    php artisan migrate --force
+   php artisan optimize:clear   # QUAN TRỌNG: xoá cache config/route/view cũ trước
    php artisan config:cache
+   php artisan route:cache      # thiếu bước này → route mới thêm sẽ bị 404 trên server đã cache route
+   php artisan view:cache
    ```
+   > **Bị 404 sau deploy?** File `bootstrap/cache/routes-*.php` cũ vẫn phục vụ bảng route cũ, nên mọi route thêm sau lần cache gần nhất đều trả 404 (vd `POST /projects/{project}/tasks/import` — phần nhập task). Sửa ngay: `php artisan route:clear` (hoặc `optimize:clear`), rồi chạy lại `route:cache`. Đừng chỉ chạy mỗi `config:cache` — lệnh này không làm mới route.
 
 ---
 

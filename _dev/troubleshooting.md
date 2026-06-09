@@ -347,3 +347,19 @@ CI creates this automatically at `${GITHUB_WORKSPACE}/database/testing.sqlite`.
 **Fix (app):** Deploy code with `AiAccount::purgeOrphanedFromProposal()` on list load; user hard-refreshes once. See **`docs/AI_ACCOUNTS.md`** (orphan + destroy rules).
 
 **Verify:** `php artisan test tests/Feature/AiAccountOrphanPurgeTest.php tests/Feature/AiAccountSoftDeleteVisibilityTest.php`
+
+---
+
+## Route 404 after deploy (e.g. task import `POST /projects/{id}/tasks/import`)
+
+**Symptoms:** A specific action 404s in production while older actions on the same prefix (e.g. `POST /projects/{id}/sprints`) still work. Code, route definition (`routes/web.php`), controller and FormRequest are all present and correct on the deployed commit.
+
+**Cause:** Stale `bootstrap/cache/routes-*.php` on the server. A previous `php artisan route:cache` / `optimize` cached the route table; any route added since (here `tasks.import`, added in `33e3212`) is missing from the cache, so the router never matches it → 404. The deploy step only ran `php artisan config:cache`, which does **not** refresh routes.
+
+**Fix (immediate):**
+```bash
+php artisan route:clear     # or: php artisan optimize:clear
+php artisan route:cache     # re-cache for performance
+```
+
+**Fix (permanent):** Deploy must clear caches before re-caching — see `_dev/workflows.md` › Deploy. Run `php artisan optimize:clear` then `config:cache` + `route:cache` + `view:cache`. Never run `config:cache` alone.
