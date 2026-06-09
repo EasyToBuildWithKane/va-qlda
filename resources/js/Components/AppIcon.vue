@@ -73,6 +73,7 @@ const map = {
     members: Users,
     'org-teams': Users2,
     dependency: Link2,
+    link: Link2,
     flag: Flag,
     calendar: CalendarDays,
     clock: Clock,

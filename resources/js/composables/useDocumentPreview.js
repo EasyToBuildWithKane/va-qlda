@@ -10,6 +10,8 @@ const MAX_OFFICE_BYTES = 15 * 1024 * 1024; // 15 MB
  */
 export function detectPreviewKind(file) {
     if (!file) return 'none';
+    if (file.preview_kind === 'google_doc' || file.is_google_doc) return 'google_doc';
+    if (file.preview_kind === 'google_sheet' || file.is_google_sheet) return 'google_sheet';
     const name = (file.original_name || '').toLowerCase();
     const mime = (file.mime_type || '').toLowerCase();
 

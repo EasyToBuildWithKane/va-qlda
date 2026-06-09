@@ -18,6 +18,8 @@ class UpdateProjectAttachmentRequest extends FormRequest
     {
         return [
             'notes' => ['nullable', 'string', 'max:2000'],
+            'title' => ['nullable', 'string', 'max:255'],
+            'external_url' => ['nullable', 'string', 'url', 'max:2048'],
             'file' => [
                 'nullable',
                 'file',

@@ -3,6 +3,8 @@ import { inject, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import Modal from '@/Components/Ui/Modal.vue';
 import PersonSelect from '@/modules/project/components/PersonSelect.vue';
+import { useModalFormDraft } from '@/composables/useModalFormDraft';
+import { buildDraftSaveMeta, restoreModalDraft } from '@/composables/useModalDraftHelpers';
 
 const props = defineProps({
     show: { type: Boolean, default: false },
@@ -18,19 +20,47 @@ const modalClose = inject('modalClose', () => emit('close'));
 const today = new Date().toISOString().slice(0, 10);
 const form = useForm({ employee_id: null, date: today, hours: 1, note: '' });
 
-watch(() => props.show, (open) => {
+const formDraft = useModalFormDraft('worklog', {
+    getScope: () => `${props.projectId}.${props.task?.id ?? 'none'}`,
+    fields: ['employee_id', 'date', 'hours', 'note'],
+});
+
+const applyFormDraft = (data) => {
+    form.employee_id = data.employee_id ?? props.defaultEmployeeId;
+    form.date = data.date ?? today;
+    form.hours = data.hours ?? 1;
+    form.note = data.note ?? '';
+};
+
+const saveDraftOnClose = () => {
+    formDraft.saveOnClose(form.data(), buildDraftSaveMeta(props.task));
+};
+
+watch(() => props.show, async (open) => {
     if (!open) return;
     form.clearErrors();
     form.reset();
     form.date = today;
     form.employee_id = props.defaultEmployeeId;
+    const epoch = formDraft.bumpOpenEpoch();
+    await restoreModalDraft(formDraft, {
+        isActive: () => props.show,
+        openEpoch: epoch,
+        entity: props.task,
+        applyDraft: applyFormDraft,
+        form,
+    });
 });
 
 const submit = () => {
     if (!props.task) return;
     form.post(`/projects/${props.projectId}/tasks/${props.task.id}/worklogs`, {
         preserveScroll: true,
-        onSuccess: () => { emit('saved'); emit('close'); },
+        onSuccess: () => {
+            formDraft.clear();
+            emit('saved');
+            emit('close');
+        },
     });
 };
 </script>
@@ -40,6 +70,7 @@ const submit = () => {
     :show="show"
     :dirty="form.isDirty"
     :title="'Ghi nhận giờ làm' + (task ? ' — ' + task.title : '')"
+    :on-save-draft="saveDraftOnClose"
     @close="emit('close')"
   >
     <form

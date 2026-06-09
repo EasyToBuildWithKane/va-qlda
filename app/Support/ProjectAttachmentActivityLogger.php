@@ -24,6 +24,35 @@ class ProjectAttachmentActivityLogger
         ]);
     }
 
+    public static function linkAdded(ProjectAttachment $attachment, ?SystemAccount $account): void
+    {
+        self::log(
+            $attachment,
+            'link_added',
+            'Thêm link Google: '.$attachment->original_name,
+            [
+                'file' => $attachment->original_name,
+                'url' => $attachment->external_url,
+                'category' => $attachment->category->value,
+            ],
+            $account?->employee_id,
+        );
+    }
+
+    public static function linkUpdated(ProjectAttachment $attachment, ?SystemAccount $account): void
+    {
+        self::log(
+            $attachment,
+            'link_updated',
+            'Cập nhật link Google: '.$attachment->original_name,
+            [
+                'file' => $attachment->original_name,
+                'url' => $attachment->external_url,
+            ],
+            $account?->employee_id,
+        );
+    }
+
     public static function uploaded(ProjectAttachment $attachment, ?SystemAccount $account): void
     {
         self::log(

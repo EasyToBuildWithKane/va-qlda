@@ -5,6 +5,8 @@ import Modal from '@/Components/Ui/Modal.vue';
 import PersonSelect from '@/modules/project/components/PersonSelect.vue';
 import SearchSelect from '@/shared/ui/SearchSelect.vue';
 import { valueLabelOptions } from '@/shared/utils/selectOptions';
+import { useModalFormDraft } from '@/composables/useModalFormDraft';
+import { buildDraftSaveMeta, restoreModalDraft } from '@/composables/useModalDraftHelpers';
 
 const props = defineProps({
     show: { type: Boolean, default: false },
@@ -43,6 +45,29 @@ const form = useForm({
     is_active: true,
 });
 
+const memberDraftScope = computed(() => (
+    props.member ? `edit.${props.member.id}` : `create.${props.projectId}`
+));
+
+const formDraft = useModalFormDraft('project-member', {
+    getScope: () => memberDraftScope.value,
+    fields: ['employee_id', 'role', 'rate_type', 'rate', 'allocation', 'joined_at', 'is_active'],
+});
+
+const applyFormDraft = (data) => {
+    form.employee_id = data.employee_id ?? null;
+    form.role = data.role ?? 'developer';
+    form.rate_type = data.rate_type ?? 'hourly';
+    form.rate = data.rate ?? null;
+    form.allocation = data.allocation ?? 100;
+    form.joined_at = data.joined_at ?? null;
+    form.is_active = data.is_active ?? true;
+};
+
+const saveDraftOnClose = () => {
+    formDraft.saveOnClose(form.data(), buildDraftSaveMeta(props.member));
+};
+
 const selectedMemberIds = computed(() => new Set((props.members || []).map((m) => m.id)));
 const selectableEmployees = computed(() => {
     if (props.member) return props.employees;
@@ -52,9 +77,10 @@ const selectableEmployees = computed(() => {
 const roleSelectOptions = computed(() => valueLabelOptions(roleOptions));
 const rateTypeSelectOptions = computed(() => valueLabelOptions(rateTypeOptions));
 
-watch(() => props.show, (open) => {
+watch(() => props.show, async (open) => {
     if (!open) return;
     form.clearErrors();
+    const epoch = formDraft.bumpOpenEpoch();
     if (props.member) {
         form.employee_id = props.member.id;
         form.role = props.member.project_role ?? 'developer';
@@ -63,13 +89,34 @@ watch(() => props.show, (open) => {
         form.allocation = props.member.allocation ?? 100;
         form.joined_at = props.member.joined_at;
         form.is_active = props.member.is_active;
+        await restoreModalDraft(formDraft, {
+            isActive: () => props.show,
+            openEpoch: epoch,
+            entity: props.member,
+            applyDraft: applyFormDraft,
+            form,
+        });
     } else {
         form.reset();
+        await restoreModalDraft(formDraft, {
+            isActive: () => props.show,
+            openEpoch: epoch,
+            entity: null,
+            applyDraft: applyFormDraft,
+            form,
+        });
     }
 });
 
 const submit = () => {
-    const opts = { preserveScroll: true, onSuccess: () => { emit('saved'); emit('close'); } };
+    const opts = {
+        preserveScroll: true,
+        onSuccess: () => {
+            formDraft.clear();
+            emit('saved');
+            emit('close');
+        },
+    };
     if (props.member) form.put(`/projects/${props.projectId}/members/${props.member.id}`, opts);
     else form.post(`/projects/${props.projectId}/members`, opts);
 };
@@ -80,6 +127,7 @@ const submit = () => {
     :show="show"
     :dirty="form.isDirty"
     :title="member ? 'Cập nhật thành viên' : 'Thêm thành viên'"
+    :on-save-draft="saveDraftOnClose"
     @close="emit('close')"
   >
     <form

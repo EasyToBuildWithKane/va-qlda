@@ -10,14 +10,20 @@ export function useConfirmClose(onClose) {
 
     return async (dirty = false, opts = {}) => {
         if (dirty) {
+            const savesDraft = typeof opts.onSaveDraft === 'function';
             const ok = await dialog.confirm({
                 title: opts.title ?? 'Huỷ thao tác?',
-                message: opts.message ?? 'Thay đổi chưa được lưu sẽ bị mất. Bạn có chắc muốn thoát?',
+                message: opts.message ?? (savesDraft
+                    ? 'Nội dung chưa lưu sẽ được giữ thành bản nháp trên trình duyệt. Bạn có chắc muốn thoát?'
+                    : 'Thay đổi chưa được lưu sẽ bị mất. Bạn có chắc muốn thoát?'),
                 confirmText: opts.confirmText ?? 'Thoát',
                 cancelText: opts.cancelText ?? 'Tiếp tục nhập',
                 tone: opts.tone ?? 'default',
             });
             if (!ok) return;
+            if (savesDraft) {
+                opts.onSaveDraft();
+            }
         }
         onClose();
     };

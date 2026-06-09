@@ -3,15 +3,15 @@
 namespace App\Http\Controllers\Project;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Project\StoreProjectAttachmentRequest;
 use App\Http\Requests\Project\UpdateProjectAttachmentRequest;
 use App\Models\Project;
 use App\Models\ProjectAttachment;
-use App\Support\Enums\ProjectAttachmentCategory;
+use App\Support\GoogleWorkspaceUrl;
 use App\Support\ProjectAttachmentActivityLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ProjectAttachmentController extends Controller
@@ -21,6 +21,10 @@ class ProjectAttachmentController extends Controller
         $this->authorize('view', $project);
 
         if ($attachment->project_id !== $project->id) {
+            abort(404);
+        }
+
+        if ($attachment->isExternalLink()) {
             abort(404);
         }
 
@@ -35,25 +39,42 @@ class ProjectAttachmentController extends Controller
         );
     }
 
-    public function store(Request $request, Project $project): RedirectResponse
+    public function store(StoreProjectAttachmentRequest $request, Project $project): RedirectResponse
     {
-        $this->authorize('contribute', $project);
-
-        $data = $request->validate([
-            'category' => ['required', Rule::in(ProjectAttachmentCategory::values())],
-            'files' => ['required', 'array', 'min:1', 'max:15'],
-            'files.*' => [
-                'file',
-                'max:20480',
-                'mimes:jpg,jpeg,png,gif,webp,svg,pdf,doc,docx,xls,xlsx,ppt,pptx,zip,rar,txt,csv,json',
-            ],
-        ]);
-
         $account = $request->user();
-        $category = ProjectAttachmentCategory::from($data['category']);
+        $data = $request->validated();
+        $category = $data['category'];
 
-        foreach ($data['files'] as $file) {
-            $path = $file->store("projects/{$project->id}/{$category->value}", 'public');
+        $externalUrl = trim((string) ($data['external_url'] ?? ''));
+        if ($externalUrl !== '') {
+            $parsed = GoogleWorkspaceUrl::parse($externalUrl);
+            if ($parsed === null) {
+                return back()->withErrors(['external_url' => 'Link Google không hợp lệ.']);
+            }
+
+            $title = trim((string) ($data['title'] ?? ''));
+            $originalName = $title !== '' ? $title : $parsed['default_title'];
+
+            $attachment = $project->attachments()->create([
+                'category' => $category,
+                'uploaded_by_id' => $account->employee_id,
+                'original_name' => $originalName,
+                'path' => '',
+                'external_url' => $parsed['view_url'],
+                'mime_type' => $parsed['type'] === 'document'
+                    ? 'application/vnd.google-apps.document'
+                    : 'application/vnd.google-apps.spreadsheet',
+                'size' => 0,
+                'is_image' => false,
+            ]);
+
+            ProjectAttachmentActivityLogger::linkAdded($attachment, $account);
+
+            return back()->with('success', 'Đã thêm link Google.');
+        }
+
+        foreach ($request->file('files', []) as $file) {
+            $path = $file->store("projects/{$project->id}/{$category}", 'public');
             $mime = $file->getMimeType() ?? '';
             $isImage = str_starts_with($mime, 'image/');
 
@@ -90,12 +111,41 @@ class ProjectAttachmentController extends Controller
             ProjectAttachmentActivityLogger::notesUpdated($attachment->fresh(), $account);
         }
 
+        if (array_key_exists('external_url', $data) && $attachment->isExternalLink()) {
+            $parsed = GoogleWorkspaceUrl::parse((string) $data['external_url']);
+            if ($parsed === null) {
+                return back()->withErrors(['external_url' => 'Link Google không hợp lệ.']);
+            }
+
+            $updates = [
+                'external_url' => $parsed['view_url'],
+                'mime_type' => $parsed['type'] === 'document'
+                    ? 'application/vnd.google-apps.document'
+                    : 'application/vnd.google-apps.spreadsheet',
+                'updated_by_id' => $account->employee_id,
+            ];
+
+            $title = trim((string) ($data['title'] ?? ''));
+            if ($title !== '') {
+                $updates['original_name'] = $title;
+            }
+
+            $attachment->update($updates);
+            ProjectAttachmentActivityLogger::linkUpdated($attachment->fresh(), $account);
+        }
+
         if ($request->hasFile('file')) {
+            if ($attachment->isExternalLink()) {
+                return back()->withErrors(['file' => 'Không thể thay thế file cho bản ghi link Google.']);
+            }
+
             $this->authorize('manage', $project);
 
             $file = $request->file('file');
             $oldName = $attachment->original_name;
-            Storage::disk('public')->delete($attachment->path);
+            if ($attachment->path !== '') {
+                Storage::disk('public')->delete($attachment->path);
+            }
 
             $path = $file->store("projects/{$project->id}/{$attachment->category->value}", 'public');
             $mime = $file->getMimeType() ?? '';
@@ -124,7 +174,11 @@ class ProjectAttachmentController extends Controller
         }
 
         ProjectAttachmentActivityLogger::deleted($attachment, $request->user());
-        Storage::disk('public')->delete($attachment->path);
+
+        if (! $attachment->isExternalLink() && $attachment->path !== '') {
+            Storage::disk('public')->delete($attachment->path);
+        }
+
         $attachment->delete();
 
         return back()->with('success', 'Đã xoá tài liệu.');

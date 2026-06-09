@@ -1,5 +1,5 @@
 <script setup>
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, reactive, ref, watch, inject } from 'vue';
 import Modal from '@/Components/Ui/Modal.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import VndAmount from '@/modules/aiAccount/components/VndAmount.vue';
@@ -13,6 +13,12 @@ import {
     registrationEmailsFromRow,
     syncRegistrationEmailSlots,
 } from '@/modules/aiAccount/utils/registrationEmailSlots';
+import { useModalFormDraft } from '@/composables/useModalFormDraft';
+import {
+    buildDraftSaveMeta,
+    draftHasMeaningfulContent,
+    entityRevisionFrom,
+} from '@/composables/useModalDraftHelpers';
 
 const toast = useToast();
 
@@ -35,6 +41,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close', 'submit']);
+const modalClose = inject('modalClose', () => emit('close'));
 
 const SEND_TO_DEFAULT = 'Ban Giám đốc\nPhòng Công nghệ & Phòng Kế Toán';
 
@@ -67,6 +74,40 @@ const form = reactive({
 });
 
 const registrationEmails = ref(['']);
+
+const proposalDraftScope = computed(() => (
+    props.editProposal?.id ? `edit.${props.editProposal.id}` : 'create'
+));
+
+const formDraft = useModalFormDraft('ai-purchase-proposal', {
+    getScope: () => proposalDraftScope.value,
+    pick: () => ({
+        form: { ...form },
+        registrationEmails: [...registrationEmails.value],
+        activeTab: activeTab.value,
+        selectedProposerId: selectedProposerId.value,
+    }),
+    hasContent: (data) => {
+        if (!data?.form) return false;
+        return draftHasMeaningfulContent(data.form, {
+            signalKeys: ['tool_name', 'proposer_name', 'proposal_content', 'objectives'],
+        }) || (data.registrationEmails ?? []).some((e) => (e ?? '').trim());
+    },
+});
+
+const applyProposalDraft = (data) => {
+    if (data?.form) Object.assign(form, data.form);
+    if (data?.registrationEmails) {
+        registrationEmails.value = [...data.registrationEmails];
+    }
+    if (data?.activeTab) activeTab.value = data.activeTab;
+    if (data?.selectedProposerId != null) selectedProposerId.value = data.selectedProposerId;
+    dirty.value = true;
+};
+
+const saveDraftOnClose = () => {
+    formDraft.saveOnClose({}, buildDraftSaveMeta(props.editProposal));
+};
 
 const departmentNames = computed(() =>
     (props.formLookups.departments ?? []).map((d) => d.name).filter(Boolean),
@@ -219,17 +260,28 @@ function syncProposerPickFromForm() {
     }
 }
 
-watch(() => props.show, (open) => {
+watch(() => props.show, async (open) => {
     if (!open) return;
     dirty.value = false;
     activeTab.value = 'proposer';
     selectedProposerId.value = props.proposalDefaults?.proposer_employee_id ?? null;
+    const epoch = formDraft.bumpOpenEpoch();
     if (props.editProposal?.id) {
         populateFromProposal(props.editProposal);
+        await formDraft.tryRestore(applyProposalDraft, {
+            isActive: () => props.show,
+            openEpoch: epoch,
+            entityRevision: entityRevisionFrom(props.editProposal),
+        });
     } else {
         Object.assign(form, defaultForm());
         registrationEmails.value = syncRegistrationEmailSlots([], form.staff_count);
         syncProposerPickFromForm();
+        await formDraft.tryRestore(applyProposalDraft, {
+            isActive: () => props.show,
+            openEpoch: epoch,
+            entityRevision: null,
+        });
     }
 });
 
@@ -343,6 +395,7 @@ function handleSubmit() {
         id: props.editProposal?.id ?? null,
         ...buildSubmitPayload(),
     });
+    formDraft.clear();
 }
 </script>
 
@@ -352,6 +405,7 @@ function handleSubmit() {
     :title="modalTitle"
     max-width="max-w-6xl"
     :dirty="dirty"
+    :on-save-draft="saveDraftOnClose"
     @close="emit('close')"
   >
     <p class="mb-3 text-sm text-slate-600">
@@ -772,7 +826,7 @@ function handleSubmit() {
           <button
             type="button"
             class="btn-secondary"
-            @click="emit('close')"
+            @click="modalClose()"
           >
             Huỷ
           </button>

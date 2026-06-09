@@ -5,6 +5,8 @@ import Modal from '@/Components/Ui/Modal.vue';
 import FieldTooltip from '@/shared/ui/FieldTooltip.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import PersonSelect from '@/modules/project/components/PersonSelect.vue';
+import { useModalFormDraft } from '@/composables/useModalFormDraft';
+import { buildDraftSaveMeta, restoreModalDraft } from '@/composables/useModalDraftHelpers';
 
 const props = defineProps({
     show:                { type: Boolean, default: false },
@@ -36,27 +38,70 @@ const genCode = () => {
 
 const form = useForm({ code: '', name: '', color: 'brand', manager_id: null, is_active: true });
 
-watch(() => props.show, (open) => {
+const deptDraftScope = computed(() => (
+    props.department ? `edit.${props.department.id}` : 'create'
+));
+
+const formDraft = useModalFormDraft('department', {
+    getScope: () => deptDraftScope.value,
+    fields: ['code', 'name', 'color', 'manager_id', 'is_active'],
+});
+
+const applyFormDraft = (data) => {
+    form.code = data.code ?? genCode();
+    form.name = data.name ?? '';
+    form.color = data.color ?? 'brand';
+    form.manager_id = data.manager_id ?? null;
+    form.is_active = data.is_active ?? true;
+};
+
+const saveDraftOnClose = () => {
+    formDraft.saveOnClose(form.data(), buildDraftSaveMeta(props.department));
+};
+
+watch(() => props.show, async (open) => {
     if (!open) return;
     form.clearErrors();
+    const epoch = formDraft.bumpOpenEpoch();
     if (props.department) {
         form.code       = props.department.code;
         form.name       = props.department.name;
         form.color      = props.department.color ?? 'brand';
         form.manager_id = props.department.manager?.id ?? null;
         form.is_active  = props.department.is_active;
+        await restoreModalDraft(formDraft, {
+            isActive: () => props.show,
+            openEpoch: epoch,
+            entity: props.department,
+            applyDraft: applyFormDraft,
+            form,
+        });
     } else {
         form.reset();
         form.code  = genCode();
         form.color = 'brand';
         form.is_active = true;
+        await restoreModalDraft(formDraft, {
+            isActive: () => props.show,
+            openEpoch: epoch,
+            entity: null,
+            applyDraft: applyFormDraft,
+            form,
+        });
     }
 });
 
 const isEdit = computed(() => !!props.department);
 
 const submit = () => {
-    const opts = { preserveScroll: true, onSuccess: () => { emit('saved'); emit('close'); } };
+    const opts = {
+        preserveScroll: true,
+        onSuccess: () => {
+            formDraft.clear();
+            emit('saved');
+            emit('close');
+        },
+    };
     if (isEdit.value) form.put(`/departments/${props.department.id}`, opts);
     else              form.post('/departments', opts);
 };
@@ -68,6 +113,7 @@ const submit = () => {
     :dirty="form.isDirty"
     :title="isEdit ? 'Chỉnh sửa phòng ban' : 'Thêm phòng ban mới'"
     max-width="max-w-xl"
+    :on-save-draft="saveDraftOnClose"
     @close="emit('close')"
   >
     <form

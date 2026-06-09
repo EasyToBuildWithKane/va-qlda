@@ -1,5 +1,5 @@
 <script setup>
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, reactive, ref, watch, inject } from 'vue';
 import Modal from '@/Components/Ui/Modal.vue';
 import FieldTooltip from '@/shared/ui/FieldTooltip.vue';
 import PasswordInput from '@/shared/ui/form/PasswordInput.vue';
@@ -9,6 +9,8 @@ import { httpGet } from '@/shared/services/http';
 import { costUnitSuffix } from '@/modules/aiAccount/utils/formatVnd';
 import { formatDaysLeftLabel, resolveDaysLeft } from '@/modules/aiAccount/utils/daysUntilExpiry';
 import { statusSelectClass } from '@/modules/aiAccount/utils/accountStatusStyle';
+import { useModalFormDraft } from '@/composables/useModalFormDraft';
+import { buildDraftSaveMeta, entityRevisionFrom } from '@/composables/useModalDraftHelpers';
 
 const props = defineProps({
     show: Boolean,
@@ -20,6 +22,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close', 'submit']);
+const modalClose = inject('modalClose', () => emit('close'));
 
 const dirty = ref(false);
 const loadingProposals = ref(false);
@@ -36,6 +39,42 @@ const form = reactive({
     purchase_date: '',
     expiry_date: '',
 });
+
+const accountDraftScope = computed(() => (
+    props.account?.id ? `edit.${props.account.id}` : 'create'
+));
+
+const formDraft = useModalFormDraft('ai-account', {
+    getScope: () => accountDraftScope.value,
+    pick: () => ({
+        proposal_id: form.proposal_id,
+        email_registered: form.email_registered,
+        notify_before_days: form.notify_before_days,
+        notes: form.notes,
+        status: form.status,
+        purchase_date: form.purchase_date,
+        expiry_date: form.expiry_date,
+    }),
+});
+
+const applyAccountDraft = (data) => {
+    form.proposal_id = data.proposal_id ?? null;
+    form.email_registered = data.email_registered ?? '';
+    form.notify_before_days = data.notify_before_days ?? 14;
+    form.notes = data.notes ?? '';
+    form.status = data.status ?? 'active';
+    form.purchase_date = data.purchase_date ?? '';
+    form.expiry_date = data.expiry_date ?? '';
+    if (form.proposal_id) {
+        const p = awaitingProposals.value.find((x) => x.id === form.proposal_id);
+        if (p) selectedProposal.value = p;
+    }
+    dirty.value = true;
+};
+
+const saveDraftOnClose = () => {
+    formDraft.saveOnClose({}, buildDraftSaveMeta(props.account));
+};
 
 const isEdit = computed(() => !!props.account?.id);
 const canViewPassword = computed(() => {
@@ -119,6 +158,7 @@ watch(
         dirty.value = false;
         selectedProposal.value = null;
         const a = props.account;
+        const epoch = formDraft.bumpOpenEpoch();
         if (a) {
             Object.assign(form, {
                 proposal_id: null,
@@ -129,6 +169,11 @@ watch(
                 status: a.status ?? 'active',
                 purchase_date: a.purchase_date ?? '',
                 expiry_date: a.expiry_date ?? '',
+            });
+            await formDraft.tryRestore(applyAccountDraft, {
+                isActive: () => props.show,
+                openEpoch: epoch,
+                entityRevision: entityRevisionFrom(a),
             });
         } else {
             Object.assign(form, {
@@ -141,6 +186,11 @@ watch(
                 expiry_date: '',
             });
             await loadAwaitingProposals();
+            await formDraft.tryRestore(applyAccountDraft, {
+                isActive: () => props.show,
+                openEpoch: epoch,
+                entityRevision: null,
+            });
         }
     },
 );
@@ -210,6 +260,7 @@ function buildPayload() {
 
 function handleSubmit() {
     if (!isEdit.value && !form.proposal_id) return;
+    formDraft.clear();
     emit('submit', buildPayload());
 }
 </script>
@@ -220,6 +271,7 @@ function handleSubmit() {
     :title="modalTitle"
     max-width="max-w-4xl"
     :dirty="dirty"
+    :on-save-draft="saveDraftOnClose"
     @close="emit('close')"
   >
     <form
@@ -532,7 +584,7 @@ function handleSubmit() {
         <button
           type="button"
           class="btn-secondary min-w-[5.5rem]"
-          @click="emit('close')"
+          @click="modalClose()"
         >
           Huỷ
         </button>

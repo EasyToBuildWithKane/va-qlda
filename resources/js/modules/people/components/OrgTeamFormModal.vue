@@ -5,6 +5,8 @@ import Modal from '@/Components/Ui/Modal.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import PersonSelect from '@/modules/project/components/PersonSelect.vue';
 import { toIterableList } from '@/modules/people/composables/useOrgTeamPeople.js';
+import { useModalFormDraft } from '@/composables/useModalFormDraft';
+import { buildDraftSaveMeta, restoreModalDraft } from '@/composables/useModalDraftHelpers';
 
 const props = defineProps({
     show: { type: Boolean, default: false },
@@ -15,7 +17,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close', 'saved']);
-inject('modalClose', () => emit('close'));
+const modalClose = inject('modalClose', () => emit('close'));
 
 const form = useForm({
     name: '',
@@ -26,6 +28,37 @@ const form = useForm({
     sections: [],
     members: [],
 });
+
+const orgTeamDraftScope = computed(() => (
+    props.team ? `edit.${props.team.id}` : 'create'
+));
+
+const formDraft = useModalFormDraft('org-team', {
+    getScope: () => orgTeamDraftScope.value,
+    pick: (data) => ({
+        name: data.name,
+        parent_id: data.parent_id,
+        leader_id: data.leader_id,
+        sort_order: data.sort_order,
+        is_active: data.is_active,
+        sections: (data.sections ?? []).map((s) => ({ ...s })),
+        members: (data.members ?? []).map((m) => ({ ...m })),
+    }),
+});
+
+const applyFormDraft = (data) => {
+    form.name = data.name ?? '';
+    form.parent_id = data.parent_id ?? props.presetParentId ?? null;
+    form.leader_id = data.leader_id ?? null;
+    form.sort_order = data.sort_order ?? 0;
+    form.is_active = data.is_active ?? true;
+    form.sections = (data.sections ?? []).map((s) => ({ ...s }));
+    form.members = (data.members ?? []).map((m) => ({ ...m }));
+};
+
+const saveDraftOnClose = () => {
+    formDraft.saveOnClose(form.data(), buildDraftSaveMeta(props.team));
+};
 
 const isEdit = computed(() => !!props.team);
 
@@ -64,17 +97,32 @@ function hydrateFromTeam(team) {
 
 watch(
     () => [props.show, props.team?.id ?? null],
-    ([open]) => {
+    async ([open]) => {
         if (!open) return;
         form.clearErrors();
+        const epoch = formDraft.bumpOpenEpoch();
         if (props.team) {
             hydrateFromTeam(props.team);
+            await restoreModalDraft(formDraft, {
+                isActive: () => props.show,
+                openEpoch: epoch,
+                entity: props.team,
+                applyDraft: applyFormDraft,
+                form,
+            });
         } else {
             form.reset();
             form.parent_id = props.presetParentId != null ? Number(props.presetParentId) : null;
             form.is_active = true;
             form.sections = [];
             form.members = [];
+            await restoreModalDraft(formDraft, {
+                isActive: () => props.show,
+                openEpoch: epoch,
+                entity: null,
+                applyDraft: applyFormDraft,
+                form,
+            });
         }
     },
 );
@@ -152,6 +200,7 @@ const submit = () => {
     const opts = {
         preserveScroll: true,
         onSuccess: () => {
+            formDraft.clear();
             emit('saved');
             emit('close');
         },
@@ -171,6 +220,7 @@ const submit = () => {
     :dirty="form.isDirty"
     :title="isEdit ? 'Sửa nhóm' : 'Thêm nhóm'"
     max-width="max-w-2xl"
+    :on-save-draft="saveDraftOnClose"
     @close="emit('close')"
   >
     <form
@@ -343,7 +393,7 @@ const submit = () => {
         <button
           type="button"
           class="btn-secondary"
-          @click="emit('close')"
+          @click="modalClose()"
         >
           Huỷ
         </button>

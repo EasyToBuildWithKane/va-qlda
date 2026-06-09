@@ -14,6 +14,8 @@ import {
     sprintRowsToImportPayload,
     exportSprintWorkbook,
 } from '@/composables/useSprintData';
+import { useModalFormDraft } from '@/composables/useModalFormDraft';
+import { draftHasMeaningfulContent } from '@/composables/useModalDraftHelpers';
 
 const props = defineProps({
     show: { type: Boolean, default: false },
@@ -36,10 +38,6 @@ const emit = defineEmits(['close', 'imported', 'fix']);
 const toast = useToast();
 
 const tab = ref(props.initialTab);
-
-watch(() => props.show, (open) => {
-    if (open) tab.value = props.initialTab;
-});
 const importStep = ref('guide');
 const previewTab = ref('valid');
 const parsing = ref(false);
@@ -87,6 +85,44 @@ const close = () => {
 };
 
 const dirty = computed(() => previewRows.value.length > 0);
+
+const importDraft = useModalFormDraft('sprint-data-import', {
+    getScope: () => props.projectId,
+    pick: () => ({
+        tab: tab.value,
+        importStep: importStep.value,
+        previewTab: previewTab.value,
+        previewRows: previewRows.value.slice(0, 200),
+        parseErrors: parseErrors.value,
+        exportScope: exportScope.value,
+    }),
+    hasContent: (data) => (data.previewRows?.length ?? 0) > 0
+        || draftHasMeaningfulContent({ parseErrors: data.parseErrors }),
+});
+
+const applyImportDraft = (data) => {
+    if (data.tab) tab.value = data.tab;
+    if (data.importStep) importStep.value = data.importStep;
+    if (data.previewTab) previewTab.value = data.previewTab;
+    if (data.exportScope) exportScope.value = data.exportScope;
+    if (Array.isArray(data.parseErrors)) parseErrors.value = data.parseErrors;
+    if (Array.isArray(data.previewRows)) previewRows.value = data.previewRows;
+};
+
+const saveDraftOnClose = () => {
+    importDraft.saveOnClose({});
+};
+
+watch(() => props.show, async (open) => {
+    if (!open) return;
+    tab.value = props.initialTab;
+    resetImport();
+    const epoch = importDraft.bumpOpenEpoch();
+    await importDraft.tryRestore(applyImportDraft, {
+        isActive: () => props.show,
+        openEpoch: epoch,
+    });
+});
 
 const onDownloadTemplate = () => {
     downloadSprintImportTemplate({
@@ -144,6 +180,7 @@ const submitImport = () => {
             preserveScroll: true,
             onSuccess: () => {
                 const count = validRows.value.length;
+                importDraft.clear();
                 emit('imported', { ok: count, err: 0 });
                 toast.success(`Đã nhập ${count} công việc.`);
                 close();
@@ -195,6 +232,7 @@ const exportReconcileOnly = () => {
     :dirty="dirty"
     title="Dữ liệu Sprint & Task"
     max-width="max-w-5xl"
+    :on-save-draft="saveDraftOnClose"
     @close="close"
   >
     <!-- Tabs -->

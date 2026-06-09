@@ -68,7 +68,30 @@ const reset = () => {
     applyInitialDefaults();
 };
 
-defineExpose({ reset });
+defineExpose({
+    reset,
+    getDraftSnapshot: () => ({
+        bulkText: bulkText.value,
+        bulkRows: bulkRows.value.map((r) => ({ ...r })),
+        view: view.value,
+        defaults: {
+            ...defaults.value,
+            assignee_ids: [...(defaults.value.assignee_ids ?? [])],
+        },
+    }),
+    applyDraftSnapshot: (snap) => {
+        if (!snap) return;
+        bulkText.value = snap.bulkText ?? '';
+        bulkRows.value = (snap.bulkRows ?? []).map((r) => ({ ...r }));
+        view.value = snap.view ?? 'compose';
+        if (snap.defaults) {
+            defaults.value = {
+                ...snap.defaults,
+                assignee_ids: [...(snap.defaults.assignee_ids ?? [])],
+            };
+        }
+    },
+});
 
 watch(
     () => props.initialDefaults,

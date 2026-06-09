@@ -1,6 +1,8 @@
 <script setup>
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, reactive, ref, watch, inject } from 'vue';
 import Modal from '@/Components/Ui/Modal.vue';
+import { useModalFormDraft } from '@/composables/useModalFormDraft';
+import { buildDraftSaveMeta, entityRevisionFrom } from '@/composables/useModalDraftHelpers';
 
 const props = defineProps({
     show: Boolean,
@@ -8,6 +10,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close', 'submit']);
+const modalClose = inject('modalClose', () => emit('close'));
 
 const dirty = ref(false);
 const form = reactive({
@@ -15,6 +18,15 @@ const form = reactive({
     new_cost: '',
     start_date: '',
 });
+
+const formDraft = useModalFormDraft('ai-account-renew', {
+    getScope: () => props.account?.id ?? 'none',
+    fields: ['period_months', 'new_cost', 'start_date'],
+});
+
+const saveDraftOnClose = () => {
+    formDraft.saveOnClose({ ...form }, buildDraftSaveMeta(props.account));
+};
 
 const periodOptions = [
     { value: 1, label: '1 tháng' },
@@ -27,7 +39,7 @@ const title = computed(() => (props.account ? `Gia hạn: ${props.account.tool_n
 
 watch(
     () => props.show,
-    (open) => {
+    async (open) => {
         if (!open || !props.account) return;
         dirty.value = false;
         const a = props.account;
@@ -36,6 +48,21 @@ watch(
         form.period_months = 12;
         form.new_cost = String(a.cost_amount);
         form.start_date = start;
+        const epoch = formDraft.bumpOpenEpoch();
+        await formDraft.tryRestore((data) => {
+            form.period_months = data.period_months ?? 12;
+            form.new_cost = data.new_cost ?? String(a.cost_amount);
+            form.start_date = data.start_date ?? start;
+            dirty.value = (
+                form.period_months !== 12
+                || form.new_cost !== String(a.cost_amount)
+                || form.start_date !== start
+            );
+        }, {
+            isActive: () => props.show,
+            openEpoch: epoch,
+            entityRevision: entityRevisionFrom(a),
+        });
     },
 );
 
@@ -44,6 +71,7 @@ function onInput() {
 }
 
 function handleSubmit() {
+    formDraft.clear();
     emit('submit', {
         period_months: form.period_months,
         new_cost: parseInt(form.new_cost, 10),
@@ -58,6 +86,7 @@ function handleSubmit() {
     :title="title"
     max-width="max-w-md"
     :dirty="dirty"
+    :on-save-draft="saveDraftOnClose"
     @close="emit('close')"
   >
     <form
@@ -106,7 +135,7 @@ function handleSubmit() {
         <button
           type="button"
           class="btn-secondary"
-          @click="emit('close')"
+          @click="modalClose()"
         >
           Huỷ
         </button>

@@ -6,7 +6,10 @@ import Avatar from '@/shared/ui/Avatar.vue';
 import { datetime } from '@/composables/useFormat';
 import { useConfirmDelete } from '@/composables/useConfirmClose';
 import { useToast } from '@/shared/composables/useToast';
+import Modal from '@/Components/Ui/Modal.vue';
 import DocumentPreviewPane from '@/modules/project/components/Documents/DocumentPreviewPane.vue';
+import { useModalFormDraft } from '@/composables/useModalFormDraft';
+import { buildDraftSaveMeta } from '@/composables/useModalDraftHelpers';
 
 const props = defineProps({
     projectId: { type: [Number, String], required: true },
@@ -26,6 +29,28 @@ const dragging = ref(false);
 const fileInputs = ref({});
 const replaceInput = ref(null);
 const editingNotes = ref(false);
+const showLinkModal = ref(false);
+const editingLink = ref(false);
+const linkModalRef = ref(null);
+
+const linkForm = useForm({
+    category: '',
+    title: '',
+    external_url: '',
+});
+
+const linkDraft = useModalFormDraft('project-attachment-link', {
+    getScope: () => `${props.projectId}.${activeCategory.value}`,
+    fields: ['category', 'title', 'external_url'],
+});
+
+const saveLinkDraftOnClose = () => {
+    linkDraft.saveOnClose({
+        category: linkForm.category,
+        title: linkForm.title,
+        external_url: linkForm.external_url,
+    }, buildDraftSaveMeta(null));
+};
 
 const colorBadge = {
     sky: 'bg-sky-100 text-sky-700',
@@ -78,7 +103,11 @@ watch(categoryFiles, (files) => {
 watch(selected, (file) => {
     notesForm.notes = file?.notes ?? '';
     editingNotes.value = false;
+    editingLink.value = false;
     notesForm.clearErrors();
+    linkForm.title = file?.original_name ?? '';
+    linkForm.external_url = file?.url ?? '';
+    linkForm.clearErrors();
 }, { immediate: true });
 
 watch(activeCategory, () => {
@@ -88,7 +117,14 @@ watch(activeCategory, () => {
 
 const totalCount = computed(() => props.attachments.length);
 
-const formatSize = (bytes) => {
+const listBadge = (file) => {
+    if (file.is_google_doc || file.preview_kind === 'google_doc') return 'DOC';
+    if (file.is_google_sheet || file.preview_kind === 'google_sheet') return 'SHT';
+    return fileExt(file.original_name);
+};
+
+const formatSize = (bytes, file = null) => {
+    if (file?.is_external_link) return 'Link Google';
     if (!bytes) return '0 B';
     const units = ['B', 'KB', 'MB', 'GB'];
     let n = bytes;
@@ -140,6 +176,65 @@ const selectedIsPdf = computed(() =>
         || (selected.value?.original_name || '').toLowerCase().endsWith('.pdf')),
 );
 
+const selectedIsTallPreview = computed(() =>
+    selectedIsPdf.value
+    || selected.value?.is_google_doc
+    || selected.value?.is_google_sheet
+    || selected.value?.preview_kind === 'google_doc'
+    || selected.value?.preview_kind === 'google_sheet',
+);
+
+const openAddLinkModal = async () => {
+    linkForm.reset();
+    linkForm.category = activeCategory.value;
+    linkForm.clearErrors();
+    showLinkModal.value = true;
+    const epoch = linkDraft.bumpOpenEpoch();
+    await linkDraft.tryRestore((data) => {
+        linkForm.category = data.category ?? activeCategory.value;
+        linkForm.title = data.title ?? '';
+        linkForm.external_url = data.external_url ?? '';
+    }, {
+        isActive: () => showLinkModal.value,
+        openEpoch: epoch,
+    });
+};
+
+const closeLinkModal = () => {
+    showLinkModal.value = false;
+    linkForm.reset();
+    linkForm.clearErrors();
+};
+
+const requestCloseLinkModal = () => {
+    linkModalRef.value?.tryClose?.();
+};
+
+const submitLink = () => {
+    if (!props.canUpload) return;
+    linkForm.post(`/projects/${props.projectId}/attachments`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            linkDraft.clear();
+            toast.success('Đã thêm link Google');
+            closeLinkModal();
+        },
+        onError: () => toast.error('Không thể thêm link. Kiểm tra URL Google Docs hoặc Sheets.'),
+    });
+};
+
+const saveLink = () => {
+    if (!selected.value?.is_external_link || !props.canEdit) return;
+    linkForm.put(`/projects/${props.projectId}/attachments/${selected.value.id}`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            editingLink.value = false;
+            toast.success('Đã cập nhật link');
+        },
+        onError: () => toast.error('Link không hợp lệ hoặc không thể lưu.'),
+    });
+};
+
 const selectFile = (file) => { selectedId.value = file.id; };
 
 const removeFile = (file) => {
@@ -189,6 +284,8 @@ const activities = computed(() => {
 
 const activityIcon = (event) => ({
     uploaded: 'upload',
+    link_added: 'link',
+    link_updated: 'edit',
     note_updated: 'edit',
     replaced: 'refresh',
     deleted: 'delete',
@@ -221,6 +318,8 @@ const formatFileType = (file) => {
     };
     if (ext && map[ext]) return map[ext];
     if (file?.is_image) return 'Hình ảnh';
+    if (file?.is_google_doc) return 'Google Docs';
+    if (file?.is_google_sheet) return 'Google Sheets';
     if (file?.is_pdf) return 'PDF';
     if (file?.mime_type) {
         const short = file.mime_type.split('/').pop();
@@ -231,6 +330,8 @@ const formatFileType = (file) => {
 
 const activityTone = (event) => ({
     uploaded: 'bg-sky-100 text-sky-600 dark:bg-sky-950 dark:text-sky-400',
+    link_added: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400',
+    link_updated: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400',
     note_updated: 'bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400',
     replaced: 'bg-violet-100 text-violet-600 dark:bg-violet-950 dark:text-violet-400',
     deleted: 'bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400',
@@ -292,20 +393,35 @@ const activityTone = (event) => ({
         <p class="text-xs text-slate-500 dark:text-slate-400">
           {{ activeCat?.description }}
         </p>
-        <button
+        <div
           v-if="canUpload"
-          type="button"
-          class="btn-ghost inline-flex items-center gap-1.5 border border-slate-200 text-xs dark:border-slate-600"
-          :disabled="uploadingCategory === activeCategory"
-          @click="pickFiles(activeCategory)"
+          class="flex flex-wrap items-center gap-2"
         >
-          <AppIcon
-            :name="uploadingCategory === activeCategory ? 'refresh' : 'upload'"
-            :size="14"
-            :class="uploadingCategory === activeCategory ? 'animate-spin' : ''"
-          />
-          {{ uploadingCategory === activeCategory ? 'Đang tải…' : 'Chọn file' }}
-        </button>
+          <button
+            type="button"
+            class="btn-ghost inline-flex items-center gap-1.5 border border-slate-200 text-xs dark:border-slate-600"
+            @click="openAddLinkModal"
+          >
+            <AppIcon
+              name="link"
+              :size="14"
+            />
+            Thêm link Google
+          </button>
+          <button
+            type="button"
+            class="btn-ghost inline-flex items-center gap-1.5 border border-slate-200 text-xs dark:border-slate-600"
+            :disabled="uploadingCategory === activeCategory"
+            @click="pickFiles(activeCategory)"
+          >
+            <AppIcon
+              :name="uploadingCategory === activeCategory ? 'refresh' : 'upload'"
+              :size="14"
+              :class="uploadingCategory === activeCategory ? 'animate-spin' : ''"
+            />
+            {{ uploadingCategory === activeCategory ? 'Đang tải…' : 'Chọn file' }}
+          </button>
+        </div>
         <input
           :ref="(el) => setFileInput(activeCategory, el)"
           type="file"
@@ -329,7 +445,7 @@ const activityTone = (event) => ({
           Kéo thả file vào đây để tải lên danh mục «{{ activeCat?.label }}»
         </p>
         <p class="mt-0.5 text-[11px] text-slate-400">
-          PDF, Office, ảnh, ZIP… · tối đa 20MB/file · tối đa 15 file/lần
+          PDF, Office, ảnh, ZIP… hoặc link Google Docs/Sheets · tối đa 20MB/file
         </p>
       </div>
     </div>
@@ -381,7 +497,11 @@ const activityTone = (event) => ({
             >
               <span
                 class="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-[10px] font-bold uppercase"
-                :class="file.is_image ? 'bg-rose-50 text-rose-600' : 'bg-slate-100 text-slate-500'"
+                :class="file.is_image
+                  ? 'bg-rose-50 text-rose-600'
+                  : (file.is_google_doc || file.is_google_sheet)
+                    ? 'bg-emerald-50 text-emerald-700'
+                    : 'bg-slate-100 text-slate-500'"
               >
                 <img
                   v-if="file.is_image"
@@ -389,12 +509,12 @@ const activityTone = (event) => ({
                   :alt="file.original_name"
                   class="h-9 w-9 rounded-lg object-cover"
                 >
-                <span v-else>{{ fileExt(file.original_name) }}</span>
+                <span v-else>{{ listBadge(file) }}</span>
               </span>
               <span class="min-w-0 flex-1">
                 <span class="line-clamp-2 text-sm font-medium text-slate-800 dark:text-slate-100">{{ file.original_name }}</span>
                 <span class="mt-0.5 block text-[10px] text-slate-400">
-                  {{ formatSize(file.size) }}
+                  {{ formatSize(file.size, file) }}
                   <span v-if="file.uploaded_by?.name"> · {{ file.uploaded_by.name.split(' ').pop() }}</span>
                 </span>
               </span>
@@ -410,7 +530,7 @@ const activityTone = (event) => ({
           <div class="min-h-0 flex-1 overflow-hidden p-4">
             <div
               class="card flex h-full flex-col overflow-hidden dark:border-slate-700 dark:bg-slate-900"
-              :class="selectedIsPdf ? 'min-h-[min(78vh,920px)]' : 'min-h-[240px]'"
+              :class="selectedIsTallPreview ? 'min-h-[min(78vh,920px)]' : 'min-h-[240px]'"
             >
               <div class="flex shrink-0 items-center justify-between gap-2 border-b border-slate-100 px-4 py-2.5 dark:border-slate-700">
                 <h3 class="min-w-0 truncate font-medium text-slate-800 dark:text-slate-100">
@@ -430,6 +550,7 @@ const activityTone = (event) => ({
                     />
                   </a>
                   <a
+                    v-if="!selected.is_external_link"
                     :href="selected.url"
                     download
                     class="btn-ghost grid h-8 w-8 place-items-center p-0"
@@ -463,7 +584,7 @@ const activityTone = (event) => ({
           <!-- Meta + notes + audit -->
           <div
             class="doc-meta-panel shrink-0 overflow-y-auto border-t border-slate-200 bg-slate-50/60 dark:border-slate-700 dark:bg-slate-900/80"
-            :class="selectedIsPdf ? 'max-h-[min(260px,30vh)]' : 'max-h-[48%]'"
+            :class="selectedIsTallPreview ? 'max-h-[min(260px,30vh)]' : 'max-h-[48%]'"
           >
             <div class="grid gap-3 p-3 sm:p-4 lg:grid-cols-2 lg:gap-4">
               <!-- Cột trái: thông tin + ghi chú -->
@@ -471,7 +592,7 @@ const activityTone = (event) => ({
                 <section class="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
                   <header class="border-b border-slate-100 bg-slate-50/90 px-3.5 py-2 dark:border-slate-800 dark:bg-slate-800/50">
                     <h4 class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                      Thông tin file
+                      {{ selected.is_external_link ? 'Thông tin link' : 'Thông tin file' }}
                     </h4>
                   </header>
                   <ul class="divide-y divide-slate-100 text-sm dark:divide-slate-800">
@@ -503,7 +624,7 @@ const activityTone = (event) => ({
                     <li class="flex items-center justify-between gap-4 px-3.5 py-2.5">
                       <span class="text-xs font-medium text-slate-500">Dung lượng</span>
                       <span class="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold tabular-nums text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-                        {{ formatSize(selected.size) }}
+                        {{ formatSize(selected.size, selected) }}
                       </span>
                     </li>
                     <li class="flex items-center justify-between gap-4 px-3.5 py-2.5">
@@ -567,7 +688,58 @@ const activityTone = (event) => ({
                     </div>
                   </div>
                   <footer
-                    v-if="canDelete"
+                    v-if="selected.is_external_link && canEdit"
+                    class="border-t border-slate-100 bg-slate-50/50 px-3.5 py-2 dark:border-slate-800 dark:bg-slate-800/30"
+                  >
+                    <button
+                      v-if="!editingLink"
+                      type="button"
+                      class="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-600 transition hover:border-brand/40 hover:bg-brand/5 hover:text-brand dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-brand/50"
+                      @click="editingLink = true"
+                    >
+                      <AppIcon
+                        name="link"
+                        :size="14"
+                      />
+                      Sửa link Google
+                    </button>
+                    <div
+                      v-else
+                      class="space-y-2"
+                    >
+                      <input
+                        v-model="linkForm.title"
+                        type="text"
+                        class="input w-full text-sm"
+                        placeholder="Tên hiển thị"
+                      >
+                      <input
+                        v-model="linkForm.external_url"
+                        type="url"
+                        class="input w-full text-sm"
+                        placeholder="https://docs.google.com/document/d/…"
+                      >
+                      <div class="flex justify-end gap-2">
+                        <button
+                          type="button"
+                          class="btn-ghost text-xs"
+                          @click="editingLink = false; linkForm.title = selected.original_name; linkForm.external_url = selected.url"
+                        >
+                          Huỷ
+                        </button>
+                        <button
+                          type="button"
+                          class="btn-primary text-xs"
+                          :disabled="linkForm.processing"
+                          @click="saveLink"
+                        >
+                          Lưu link
+                        </button>
+                      </div>
+                    </div>
+                  </footer>
+                  <footer
+                    v-else-if="canDelete && !selected.is_external_link"
                     class="border-t border-slate-100 bg-slate-50/50 px-3.5 py-2 dark:border-slate-800 dark:bg-slate-800/30"
                   >
                     <button
@@ -681,6 +853,79 @@ const activityTone = (event) => ({
         </div>
       </div>
     </div>
+
+    <Modal
+      ref="linkModalRef"
+      :show="showLinkModal"
+      title="Thêm link Google Docs / Sheets"
+      max-width="max-w-md"
+      :dirty="Boolean(linkForm.title || linkForm.external_url)"
+      :on-save-draft="saveLinkDraftOnClose"
+      @close="closeLinkModal"
+    >
+      <p class="mb-4 text-sm text-slate-500">
+        Dán link chia sẻ từ Google (quyền «Bất kỳ ai có link» hoặc tài khoản VA có quyền xem) vào danh mục
+        <span class="font-medium text-slate-700">«{{ activeCat?.label }}»</span>.
+      </p>
+      <div class="space-y-3">
+        <div>
+          <label
+            for="doc-link-title"
+            class="text-xs font-medium text-slate-500"
+          >Tên hiển thị (tuỳ chọn)</label>
+          <input
+            id="doc-link-title"
+            v-model="linkForm.title"
+            type="text"
+            class="input mt-1 w-full text-sm"
+            placeholder="VD: Đặc tả v1.2"
+          >
+        </div>
+        <div>
+          <label
+            for="doc-link-url"
+            class="text-xs font-medium text-slate-500"
+          >Link Google</label>
+          <input
+            id="doc-link-url"
+            v-model="linkForm.external_url"
+            type="url"
+            class="input mt-1 w-full text-sm"
+            placeholder="https://docs.google.com/document/d/…"
+            required
+          >
+          <p
+            v-if="linkForm.errors.external_url"
+            class="mt-1 text-xs text-rose-600"
+          >
+            {{ linkForm.errors.external_url }}
+          </p>
+          <p
+            v-else-if="linkForm.errors.files"
+            class="mt-1 text-xs text-rose-600"
+          >
+            {{ linkForm.errors.files }}
+          </p>
+        </div>
+      </div>
+      <div class="mt-5 flex justify-end gap-2">
+        <button
+          type="button"
+          class="btn-ghost text-sm"
+          @click="requestCloseLinkModal"
+        >
+          Huỷ
+        </button>
+        <button
+          type="button"
+          class="btn-primary text-sm"
+          :disabled="linkForm.processing || !linkForm.external_url.trim()"
+          @click="submitLink"
+        >
+          {{ linkForm.processing ? 'Đang lưu…' : 'Thêm link' }}
+        </button>
+      </div>
+    </Modal>
   </div>
 </template>
 

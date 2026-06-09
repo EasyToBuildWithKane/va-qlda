@@ -1,7 +1,9 @@
 <script setup>
-import { reactive, ref, watch } from 'vue';
+import { reactive, ref, watch, inject } from 'vue';
 import Modal from '@/Components/Ui/Modal.vue';
 import FieldTooltip from '@/shared/ui/FieldTooltip.vue';
+import { useModalFormDraft } from '@/composables/useModalFormDraft';
+import { buildDraftSaveMeta, entityRevisionFrom } from '@/composables/useModalDraftHelpers';
 
 const props = defineProps({
     show: Boolean,
@@ -9,14 +11,33 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close', 'submit']);
+const modalClose = inject('modalClose', () => emit('close'));
 
 const dirty = ref(false);
 const form = reactive({ review_notes: '' });
 
-watch(() => props.show, (open) => {
+const formDraft = useModalFormDraft('ai-proposal-approve', {
+    getScope: () => props.proposal?.id ?? 'none',
+    fields: ['review_notes'],
+});
+
+const saveDraftOnClose = () => {
+    formDraft.saveOnClose({ review_notes: form.review_notes }, buildDraftSaveMeta(props.proposal));
+};
+
+watch(() => props.show, async (open) => {
     if (!open) return;
     dirty.value = false;
     form.review_notes = '';
+    const epoch = formDraft.bumpOpenEpoch();
+    await formDraft.tryRestore((data) => {
+        form.review_notes = data.review_notes ?? '';
+        if (form.review_notes.trim()) dirty.value = true;
+    }, {
+        isActive: () => props.show,
+        openEpoch: epoch,
+        entityRevision: entityRevisionFrom(props.proposal),
+    });
 });
 
 function onInput() {
@@ -24,6 +45,7 @@ function onInput() {
 }
 
 function handleSubmit() {
+    formDraft.clear();
     emit('submit', { review_notes: form.review_notes.trim() || null });
 }
 </script>
@@ -34,6 +56,7 @@ function handleSubmit() {
     title="Duyệt đề xuất mua"
     max-width="max-w-lg"
     :dirty="dirty"
+    :on-save-draft="saveDraftOnClose"
     @close="emit('close')"
   >
     <form
@@ -69,7 +92,7 @@ function handleSubmit() {
         <button
           type="button"
           class="btn-secondary"
-          @click="emit('close')"
+          @click="modalClose()"
         >
           Huỷ
         </button>

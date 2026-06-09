@@ -88,6 +88,14 @@ const showFallback = computed(() =>
       title="Xem trước PDF"
     />
 
+    <iframe
+      v-else-if="kind === 'google_doc' || kind === 'google_sheet'"
+      :src="file.embed_url"
+      class="min-h-[min(72vh,880px)] w-full flex-1 rounded-lg border border-slate-200 bg-white dark:border-slate-600"
+      :title="kind === 'google_sheet' ? 'Xem trước Google Sheets' : 'Xem trước Google Docs'"
+      allow="clipboard-read; clipboard-write"
+    />
+
     <div
       v-else-if="kind === 'docx'"
       class="h-full min-h-[320px] overflow-auto rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-600 dark:bg-white"
@@ -138,7 +146,7 @@ const showFallback = computed(() =>
         Không hỗ trợ xem trước loại file này.
       </p>
       <p class="mt-1 text-xs text-slate-400">
-        Hỗ trợ: ảnh, PDF, DOCX, XLSX/XLS
+        Hỗ trợ: ảnh, PDF, DOCX, XLSX/XLS, Google Docs/Sheets
       </p>
       <a
         :href="file.url"

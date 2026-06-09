@@ -5,6 +5,8 @@ import Modal from '@/Components/Ui/Modal.vue';
 import PersonSelect from '@/modules/project/components/PersonSelect.vue';
 import SearchSelect from '@/shared/ui/SearchSelect.vue';
 import { valueLabelOptions } from '@/shared/utils/selectOptions';
+import { useModalFormDraft } from '@/composables/useModalFormDraft';
+import { buildDraftSaveMeta, restoreModalDraft } from '@/composables/useModalDraftHelpers';
 
 const props = defineProps({
     show: { type: Boolean, default: false },
@@ -30,9 +32,41 @@ const form = useForm({
     reporter_employee_id: null, reporter_name: '', reporter_email: '', assignee_id: null,
 });
 
-watch(() => props.show, (open) => {
+const feedbackDraftScope = computed(() => (
+    props.feedback ? `edit.${props.feedback.id}` : `create.${props.defaultProjectId ?? 'global'}`
+));
+
+const formDraft = useModalFormDraft('feedback', {
+    getScope: () => feedbackDraftScope.value,
+    fields: [
+        'project_id', 'category', 'title', 'description', 'rating', 'priority', 'status',
+        'reporter_employee_id', 'reporter_name', 'reporter_email', 'assignee_id',
+    ],
+});
+
+const applyFormDraft = (data, meta) => {
+    form.project_id = data.project_id ?? props.defaultProjectId;
+    form.category = data.category ?? 'improvement';
+    form.title = data.title ?? '';
+    form.description = data.description ?? '';
+    form.rating = data.rating ?? null;
+    form.priority = data.priority ?? 'medium';
+    form.status = data.status ?? 'new';
+    form.reporter_employee_id = data.reporter_employee_id ?? null;
+    form.reporter_name = data.reporter_name ?? '';
+    form.reporter_email = data.reporter_email ?? '';
+    form.assignee_id = data.assignee_id ?? null;
+    if (meta?.reporterType) reporterType.value = meta.reporterType;
+};
+
+const saveDraftOnClose = () => {
+    formDraft.saveOnClose(form.data(), buildDraftSaveMeta(props.feedback, { reporterType: reporterType.value }));
+};
+
+watch(() => props.show, async (open) => {
     if (!open) return;
     form.clearErrors();
+    const epoch = formDraft.bumpOpenEpoch();
     if (props.feedback) {
         form.project_id = props.feedback.project_id;
         form.category = props.feedback.category.value;
@@ -42,10 +76,24 @@ watch(() => props.show, (open) => {
         form.priority = props.feedback.priority.value;
         form.status = props.feedback.status.value;
         form.assignee_id = props.feedback.assignee?.id ?? null;
+        await restoreModalDraft(formDraft, {
+            isActive: () => props.show,
+            openEpoch: epoch,
+            entity: props.feedback,
+            applyDraft: applyFormDraft,
+            form,
+        });
     } else {
         form.reset();
         reporterType.value = 'external';
         form.project_id = props.defaultProjectId;
+        await restoreModalDraft(formDraft, {
+            isActive: () => props.show,
+            openEpoch: epoch,
+            entity: null,
+            applyDraft: applyFormDraft,
+            form,
+        });
     }
 });
 
@@ -62,7 +110,14 @@ const ratingSelectOptions = computed(() =>
 );
 
 const submit = () => {
-    const opts = { preserveScroll: true, onSuccess: () => { emit('saved'); emit('close'); } };
+    const opts = {
+        preserveScroll: true,
+        onSuccess: () => {
+            formDraft.clear();
+            emit('saved');
+            emit('close');
+        },
+    };
     if (props.feedback) {
         form.put(`/feedback/${props.feedback.id}`, opts);
     } else {
@@ -81,6 +136,7 @@ const submit = () => {
     :dirty="form.isDirty"
     :title="feedback ? `Chỉnh sửa ${feedback.code}` : 'Phản hồi mới'"
     max-width="max-w-2xl"
+    :on-save-draft="saveDraftOnClose"
     @close="emit('close')"
   >
     <form

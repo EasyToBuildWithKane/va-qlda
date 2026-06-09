@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, inject } from 'vue';
+import { ref, computed, inject, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
 import Modal from '@/Components/Ui/Modal.vue';
@@ -16,6 +16,8 @@ import {
     exportPreviewRows,
     IMPORT_HEADERS,
 } from '@/composables/useRiskImport';
+import { useModalFormDraft } from '@/composables/useModalFormDraft';
+import { draftHasMeaningfulContent } from '@/composables/useModalDraftHelpers';
 
 const props = defineProps({
     show: { type: Boolean, default: false },
@@ -78,6 +80,39 @@ const close = () => {
 
 const modalClose = inject('modalClose', () => close());
 const importDirty = computed(() => previewRows.value.length > 0 || step.value === 'preview');
+
+const importDraft = useModalFormDraft('risk-import', {
+    getScope: () => props.projectId,
+    pick: () => ({
+        step: step.value,
+        previewTab: previewTab.value,
+        previewRows: previewRows.value.slice(0, 200),
+        parseErrors: parseErrors.value,
+    }),
+    hasContent: (data) => (data.previewRows?.length ?? 0) > 0
+        || draftHasMeaningfulContent({ parseErrors: data.parseErrors }),
+});
+
+const applyImportDraft = (data) => {
+    if (data.step) step.value = data.step;
+    if (data.previewTab) previewTab.value = data.previewTab;
+    if (Array.isArray(data.parseErrors)) parseErrors.value = data.parseErrors;
+    if (Array.isArray(data.previewRows)) previewRows.value = data.previewRows;
+};
+
+const saveDraftOnClose = () => {
+    importDraft.saveOnClose({});
+};
+
+watch(() => props.show, async (open) => {
+    if (!open) return;
+    reset();
+    const epoch = importDraft.bumpOpenEpoch();
+    await importDraft.tryRestore(applyImportDraft, {
+        isActive: () => props.show,
+        openEpoch: epoch,
+    });
+});
 
 const onDownloadTemplate = () => {
     downloadRiskImportTemplate({
@@ -184,6 +219,7 @@ const submitImport = () => {
     }, {
         preserveScroll: true,
         onSuccess: () => {
+            importDraft.clear();
             emit('imported', { count: validRows.value.length });
             close();
         },
@@ -201,6 +237,7 @@ const submitImport = () => {
     :dirty="importDirty"
     title="Nhập rủi ro & vướng mắc từ file"
     max-width="max-w-5xl"
+    :on-save-draft="saveDraftOnClose"
     @close="close"
   >
     <div class="mb-5 flex items-center gap-2 text-xs">

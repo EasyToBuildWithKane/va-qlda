@@ -3,6 +3,8 @@ import { computed, inject, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
 import Modal from '@/Components/Ui/Modal.vue';
+import { useModalFormDraft } from '@/composables/useModalFormDraft';
+import { buildDraftSaveMeta, restoreModalDraft } from '@/composables/useModalDraftHelpers';
 
 const props = defineProps({
     show: { type: Boolean, default: false },
@@ -21,6 +23,27 @@ const form = useForm({
     start_date: null,
     end_date: null,
 });
+
+const sprintDraftScope = computed(() => (
+    props.sprint ? `edit.${props.sprint.id}` : `create.${props.projectId}`
+));
+
+const formDraft = useModalFormDraft('sprint', {
+    getScope: () => sprintDraftScope.value,
+    fields: ['name', 'goal', 'status', 'start_date', 'end_date'],
+});
+
+const applyFormDraft = (data) => {
+    form.name = data.name ?? '';
+    form.goal = data.goal ?? '';
+    form.status = data.status ?? 'planned';
+    form.start_date = data.start_date ?? null;
+    form.end_date = data.end_date ?? null;
+};
+
+const saveDraftOnClose = () => {
+    formDraft.saveOnClose(form.data(), buildDraftSaveMeta(props.sprint));
+};
 
 const modalTitle = computed(() => (props.sprint ? 'Chỉnh sửa sprint' : 'Thêm sprint mới'));
 
@@ -41,23 +64,45 @@ const statusPillActive = {
 
 const statusPillIdle = 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800';
 
-watch(() => props.show, (open) => {
+watch(() => props.show, async (open) => {
     if (!open) return;
     form.clearErrors();
+    const epoch = formDraft.bumpOpenEpoch();
     if (props.sprint) {
         form.name = props.sprint.name;
         form.goal = props.sprint.goal ?? '';
         form.status = props.sprint.status.value;
         form.start_date = props.sprint.start_date;
         form.end_date = props.sprint.end_date;
+        await restoreModalDraft(formDraft, {
+            isActive: () => props.show,
+            openEpoch: epoch,
+            entity: props.sprint,
+            applyDraft: applyFormDraft,
+            form,
+        });
     } else {
         form.reset();
         form.status = 'planned';
+        await restoreModalDraft(formDraft, {
+            isActive: () => props.show,
+            openEpoch: epoch,
+            entity: null,
+            applyDraft: applyFormDraft,
+            form,
+        });
     }
 });
 
 const submit = () => {
-    const opts = { preserveScroll: true, onSuccess: () => { emit('saved'); emit('close'); } };
+    const opts = {
+        preserveScroll: true,
+        onSuccess: () => {
+            formDraft.clear();
+            emit('saved');
+            emit('close');
+        },
+    };
     if (props.sprint) form.put(`/projects/${props.projectId}/sprints/${props.sprint.id}`, opts);
     else form.post(`/projects/${props.projectId}/sprints`, opts);
 };
@@ -69,6 +114,7 @@ const submit = () => {
     :dirty="form.isDirty"
     :title="modalTitle"
     max-width="max-w-2xl"
+    :on-save-draft="saveDraftOnClose"
     @close="emit('close')"
   >
     <form

@@ -1,11 +1,13 @@
 <script setup>
-import { computed, watch, nextTick, ref } from 'vue';
+import { computed, inject, watch, nextTick, ref } from 'vue';
 import { router, useForm, usePage } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
 import Modal from '@/Components/Ui/Modal.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
 import { datetime } from '@/composables/useFormat';
 import { useDialog } from '@/composables/useDialog';
+import { useModalFormDraft } from '@/composables/useModalFormDraft';
+import { buildDraftSaveMeta, restoreModalDraft } from '@/composables/useModalDraftHelpers';
 
 const props = defineProps({
     show: { type: Boolean, default: false },
@@ -14,6 +16,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close']);
+const modalClose = inject('modalClose', () => emit('close'));
 
 const page = usePage();
 const dialog = useDialog();
@@ -33,6 +36,15 @@ const form = useForm({
     body: '',
 });
 
+const formDraft = useModalFormDraft('blocker-comment', {
+    getScope: () => props.blocker?.id ?? 'none',
+    fields: ['body'],
+});
+
+const saveDraftOnClose = () => {
+    formDraft.saveOnClose({ body: form.body }, buildDraftSaveMeta(props.blocker));
+};
+
 watch(
     () => [props.show, props.blocker?.id],
     async ([open, id]) => {
@@ -40,6 +52,16 @@ watch(
         form.commentable_id = id;
         form.clearErrors();
         form.reset('body');
+        const epoch = formDraft.bumpOpenEpoch();
+        await restoreModalDraft(formDraft, {
+            isActive: () => props.show,
+            openEpoch: epoch,
+            entity: props.blocker,
+            applyDraft: (data) => {
+                form.body = data.body ?? '';
+            },
+            form,
+        });
         await nextTick();
         bodyRef.value?.focus?.();
     },
@@ -66,6 +88,7 @@ const submit = () => {
     form.post('/comments', {
         preserveScroll: true,
         onSuccess: () => {
+            formDraft.clear();
             form.reset('body');
             emit('close');
         },
@@ -106,7 +129,7 @@ async function removeComment(c) {
     :title="modalTitle"
     max-width="max-w-lg"
     close-confirm-title="Đóng bình luận?"
-    close-confirm-message="Nội dung bạn đang nhập sẽ bị mất. Bạn có chắc muốn đóng?"
+    :on-save-draft="saveDraftOnClose"
     @close="emit('close')"
   >
     <template v-if="blocker">
@@ -199,7 +222,7 @@ async function removeComment(c) {
           <button
             type="button"
             class="btn-ghost"
-            @click="emit('close')"
+            @click="modalClose()"
           >
             Huỷ
           </button>

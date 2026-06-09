@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, computed, inject, onUnmounted } from 'vue';
+import { ref, watch, computed, inject, onUnmounted, nextTick } from 'vue';
 import SearchSelect from '@/shared/ui/SearchSelect.vue';
 import { valueLabelOptions } from '@/shared/utils/selectOptions';
 import { useForm } from '@inertiajs/vue3';
@@ -8,6 +8,11 @@ import AppIcon from '@/Components/AppIcon.vue';
 import PersonSelect from '@/modules/project/components/PersonSelect.vue';
 import PersonMultiSelect from '@/modules/project/components/PersonMultiSelect.vue';
 import TaskFormBulkPanel from '@/modules/project/components/TaskFormBulkPanel.vue';
+import { useModalFormDraft, shallowPickDraft, draftHasMeaningfulContent } from '@/composables/useModalFormDraft';
+import {
+    buildDraftSaveMeta,
+    restoreModalDraft,
+} from '@/composables/useModalDraftHelpers';
 
 const props = defineProps({
     show: { type: Boolean, default: false },
@@ -52,6 +57,68 @@ const form = useForm({
     story_points: null,
 });
 
+const taskDraftScope = computed(() => (
+    props.task ? `edit.${props.task.id}` : `create.${props.projectId}`
+));
+
+const TASK_DRAFT_FIELDS = [
+    'title', 'description', 'sprint_id', 'status', 'priority',
+    'assignee_id', 'assignee_ids', 'reporter_id', 'reviewer_id',
+    'start_date', 'due_date', 'estimate_hours', 'progress_percent',
+    'phase', 'is_milestone', 'dependencies', 'epic_id', 'story_points',
+];
+
+const formDraft = useModalFormDraft('task', {
+    getScope: () => taskDraftScope.value,
+    pick: () => {
+        const base = shallowPickDraft(form.data(), TASK_DRAFT_FIELDS);
+        return {
+            ...base,
+            createMode: createMode.value,
+            bulk: createMode.value === 'bulk'
+                ? bulkPanelRef.value?.getDraftSnapshot?.() ?? null
+                : null,
+        };
+    },
+    hasContent: (data) => draftHasMeaningfulContent(data, { signalKeys: ['title', 'description'] })
+        || (data.bulk && (
+            (data.bulk.bulkText ?? '').trim().length > 0
+            || (data.bulk.bulkRows ?? []).length > 0
+        )),
+});
+
+const applyFormDraft = async (data, meta) => {
+    form.title = data.title ?? '';
+    form.description = data.description ?? '';
+    form.sprint_id = data.sprint_id ?? null;
+    form.status = data.status ?? props.defaultStatus;
+    form.priority = data.priority ?? 'medium';
+    form.assignee_id = data.assignee_id ?? null;
+    form.assignee_ids = [...(data.assignee_ids ?? [])];
+    form.reporter_id = data.reporter_id ?? null;
+    form.reviewer_id = data.reviewer_id ?? null;
+    form.start_date = data.start_date ?? null;
+    form.due_date = data.due_date ?? null;
+    form.estimate_hours = data.estimate_hours ?? null;
+    form.progress_percent = data.progress_percent ?? 0;
+    form.phase = data.phase ?? 'development';
+    form.is_milestone = !!data.is_milestone;
+    form.dependencies = [...(data.dependencies ?? [])];
+    form.epic_id = data.epic_id ?? null;
+    form.story_points = data.story_points ?? null;
+    const mode = meta?.createMode ?? data.createMode;
+    if (mode) createMode.value = mode;
+    await nextTick();
+    const bulkSnap = meta?.bulk ?? data.bulk;
+    if (bulkSnap && createMode.value === 'bulk') {
+        bulkPanelRef.value?.applyDraftSnapshot?.(bulkSnap);
+    }
+};
+
+const saveDraftOnClose = () => {
+    formDraft.saveOnClose({}, buildDraftSaveMeta(props.task, { createMode: createMode.value }));
+};
+
 const existingTitles = computed(() => props.tasks.map((t) => t.title).filter(Boolean));
 
 const bulkInitialDefaults = computed(() => ({
@@ -87,12 +154,13 @@ const handleKeydown = (e) => {
     }
 };
 
-watch(() => props.show, (open) => {
+watch(() => props.show, async (open) => {
     if (open) {
         document.addEventListener('keydown', handleKeydown);
         createMode.value = 'single';
         bulkDirty.value = false;
         form.clearErrors();
+        const epoch = formDraft.bumpOpenEpoch();
         if (props.task) {
             form.title = props.task.title;
             form.description = props.task.description ?? '';
@@ -112,9 +180,23 @@ watch(() => props.show, (open) => {
             form.dependencies = (props.task.dependencies ?? []).map((d) => (typeof d === 'object' && d !== null ? d.id : d));
             form.epic_id = props.task.epic_id ?? props.task.epic?.id ?? null;
             form.story_points = props.task.story_points ?? null;
+            await restoreModalDraft(formDraft, {
+                isActive: () => props.show,
+                openEpoch: epoch,
+                entity: props.task,
+                applyDraft: applyFormDraft,
+                form,
+            });
         } else {
             form.reset();
             form.status = props.defaultStatus;
+            await restoreModalDraft(formDraft, {
+                isActive: () => props.show,
+                openEpoch: epoch,
+                entity: null,
+                applyDraft: applyFormDraft,
+                form,
+            });
         }
     } else {
         document.removeEventListener('keydown', handleKeydown);
@@ -130,7 +212,11 @@ const submit = () => {
 
     const opts = {
         preserveScroll: true,
-        onSuccess: () => { emit('saved'); emit('close'); },
+        onSuccess: () => {
+            formDraft.clear();
+            emit('saved');
+            emit('close');
+        },
     };
     if (props.task) {
         form.put(`/projects/${props.projectId}/tasks/${props.task.id}`, opts);
@@ -140,6 +226,7 @@ const submit = () => {
 };
 
 const onBulkSaved = () => {
+    formDraft.clear();
     emit('saved');
     emit('close');
 };
@@ -164,6 +251,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
     :dirty="modalDirty"
     :title="modalTitle"
     :max-width="modalMaxWidth"
+    :on-save-draft="saveDraftOnClose"
     @close="emit('close')"
   >
     <!-- Mode tabs (create only) -->

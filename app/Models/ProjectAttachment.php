@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Support\Enums\ProjectAttachmentCategory;
+use App\Support\GoogleWorkspaceUrl;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -17,6 +18,7 @@ use Illuminate\Support\Facades\Storage;
  * @property string $original_name
  * @property string|null $notes
  * @property string $path
+ * @property string|null $external_url
  * @property string|null $mime_type
  * @property int $size
  * @property bool $is_image
@@ -31,6 +33,7 @@ class ProjectAttachment extends Model
         'original_name',
         'notes',
         'path',
+        'external_url',
         'mime_type',
         'size',
         'is_image',
@@ -62,13 +65,30 @@ class ProjectAttachment extends Model
         return $this->hasMany(ProjectAttachmentActivity::class)->latest();
     }
 
+    public function isExternalLink(): bool
+    {
+        return filled($this->external_url);
+    }
+
     public function fileExists(): bool
     {
+        if ($this->isExternalLink()) {
+            return true;
+        }
+
+        if ($this->path === '') {
+            return false;
+        }
+
         return Storage::disk('public')->exists($this->path);
     }
 
     public function url(): ?string
     {
+        if ($this->isExternalLink()) {
+            return $this->external_url;
+        }
+
         if (! $this->fileExists()) {
             return null;
         }
@@ -77,6 +97,35 @@ class ProjectAttachment extends Model
             'project' => $this->project_id,
             'attachment' => $this->id,
         ]);
+    }
+
+    public function embedUrl(): ?string
+    {
+        if (! $this->isExternalLink()) {
+            return null;
+        }
+
+        $parsed = GoogleWorkspaceUrl::parse($this->external_url);
+
+        return $parsed['embed_url'] ?? null;
+    }
+
+    public function isGoogleDocument(): bool
+    {
+        if (! $this->isExternalLink()) {
+            return false;
+        }
+
+        return (GoogleWorkspaceUrl::parse($this->external_url)['type'] ?? null) === 'document';
+    }
+
+    public function isGoogleSpreadsheet(): bool
+    {
+        if (! $this->isExternalLink()) {
+            return false;
+        }
+
+        return (GoogleWorkspaceUrl::parse($this->external_url)['type'] ?? null) === 'spreadsheet';
     }
 
     public function isPdf(): bool
@@ -105,9 +154,15 @@ class ProjectAttachment extends Model
             ], true);
     }
 
-    /** @return 'image'|'pdf'|'docx'|'xlsx'|'doc-legacy'|'none' */
+    /** @return 'image'|'pdf'|'docx'|'xlsx'|'doc-legacy'|'google_doc'|'google_sheet'|'none' */
     public function previewKind(): string
     {
+        if ($this->isGoogleDocument()) {
+            return 'google_doc';
+        }
+        if ($this->isGoogleSpreadsheet()) {
+            return 'google_sheet';
+        }
         if ($this->is_image) {
             return 'image';
         }
@@ -129,6 +184,6 @@ class ProjectAttachment extends Model
 
     public function canPreviewInline(): bool
     {
-        return in_array($this->previewKind(), ['image', 'pdf', 'docx', 'xlsx'], true);
+        return in_array($this->previewKind(), ['image', 'pdf', 'docx', 'xlsx', 'google_doc', 'google_sheet'], true);
     }
 }

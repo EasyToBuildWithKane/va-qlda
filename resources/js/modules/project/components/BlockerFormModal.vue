@@ -10,6 +10,8 @@ import BlockerAttachmentsBlock from '@/modules/project/components/BlockerAttachm
 import { valueLabelOptions } from '@/shared/utils/selectOptions';
 import { date } from '@/composables/useFormat';
 import { useToast } from '@/shared/composables/useToast';
+import { useModalFormDraft } from '@/composables/useModalFormDraft';
+import { buildDraftSaveMeta, restoreModalDraft } from '@/composables/useModalDraftHelpers';
 
 const props = defineProps({
     show: { type: Boolean, default: false },
@@ -25,6 +27,8 @@ const props = defineProps({
     projectName: { type: String, default: '' },
     projectCode: { type: String, default: '' },
     canUploadAttachments: { type: Boolean, default: false },
+    /** Chỉ áp dụng khi tạo mới (không có blocker) */
+    initialDescription: { type: String, default: '' },
 });
 
 const emit = defineEmits(['close', 'saved']);
@@ -45,6 +49,45 @@ const form = useForm({
     evidence_links: [],
 });
 
+const draftScope = computed(() => {
+    if (props.blocker) {
+        const suffix = props.focusResolution ? '.resolution' : '';
+        return `edit.${props.blocker.id}${suffix}`;
+    }
+    return `create.${props.defaultProjectId ?? 'global'}`;
+});
+
+const formDraft = useModalFormDraft('blocker', {
+    getScope: () => draftScope.value,
+    pick: (data) => ({
+        ...data,
+        evidence_links: (data.evidence_links ?? []).map((l) => ({
+            label: l?.label ?? '',
+            url: l?.url ?? '',
+        })),
+    }),
+});
+
+const applyFormDraft = (data) => {
+    form.project_id = data.project_id ?? props.defaultProjectId;
+    form.title = data.title ?? '';
+    form.description = data.description ?? '';
+    form.root_cause = data.root_cause ?? '';
+    form.severity = data.severity ?? 'medium';
+    form.status = data.status ?? 'open';
+    form.owner_id = data.owner_id ?? null;
+    form.due_date = data.due_date ?? null;
+    form.resolution = data.resolution ?? '';
+    form.evidence_links = (data.evidence_links ?? []).map((l) => ({
+        label: l?.label ?? '',
+        url: l?.url ?? '',
+    }));
+};
+
+const saveDraftOnClose = () => {
+    formDraft.saveOnClose(form.data(), buildDraftSaveMeta(props.blocker));
+};
+
 const resolutionInputRef = ref(null);
 
 const clearPendingCreateFiles = () => {
@@ -60,6 +103,8 @@ watch(() => props.show, async (open) => {
         return;
     }
     form.clearErrors();
+    const epoch = formDraft.bumpOpenEpoch();
+    const preset = (props.initialDescription ?? '').trim();
     if (props.blocker) {
         form.project_id = props.blocker.project_id;
         form.title = props.blocker.title;
@@ -74,6 +119,13 @@ watch(() => props.show, async (open) => {
             label: l?.label ?? '',
             url: l?.url ?? '',
         }));
+        await restoreModalDraft(formDraft, {
+            isActive: () => props.show,
+            openEpoch: epoch,
+            entity: props.blocker,
+            applyDraft: applyFormDraft,
+            form,
+        });
     } else {
         form.reset();
         form.project_id = props.defaultProjectId;
@@ -81,6 +133,16 @@ watch(() => props.show, async (open) => {
         form.status = 'open';
         form.resolution = '';
         form.evidence_links = [];
+        const restored = await restoreModalDraft(formDraft, {
+            isActive: () => props.show,
+            openEpoch: epoch,
+            entity: null,
+            applyDraft: applyFormDraft,
+            form,
+        });
+        if (!restored && preset) {
+            form.description = preset;
+        }
     }
     if (props.focusResolution && props.blocker) {
         await nextTick();
@@ -185,6 +247,7 @@ const cleanedEvidenceLinks = () =>
         .filter((l) => l.url);
 
 const finishSave = () => {
+    formDraft.clear();
     emit('saved');
     emit('close');
 };
@@ -256,6 +319,7 @@ const submit = () => {
     :dirty="modalDirty"
     :title="modalTitle"
     max-width="max-w-5xl"
+    :on-save-draft="saveDraftOnClose"
     @close="emit('close')"
   >
     <p

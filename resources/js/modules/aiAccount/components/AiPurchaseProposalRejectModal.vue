@@ -1,7 +1,9 @@
 <script setup>
-import { reactive, ref, watch } from 'vue';
+import { reactive, ref, watch, inject } from 'vue';
 import Modal from '@/Components/Ui/Modal.vue';
 import FieldTooltip from '@/shared/ui/FieldTooltip.vue';
+import { useModalFormDraft } from '@/composables/useModalFormDraft';
+import { buildDraftSaveMeta, entityRevisionFrom } from '@/composables/useModalDraftHelpers';
 
 const props = defineProps({
     show: Boolean,
@@ -9,14 +11,33 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close', 'submit']);
+const modalClose = inject('modalClose', () => emit('close'));
 
 const dirty = ref(false);
 const form = reactive({ rejection_reason: '' });
 
-watch(() => props.show, (open) => {
+const formDraft = useModalFormDraft('ai-proposal-reject', {
+    getScope: () => props.proposal?.id ?? 'none',
+    fields: ['rejection_reason'],
+});
+
+const saveDraftOnClose = () => {
+    formDraft.saveOnClose({ rejection_reason: form.rejection_reason }, buildDraftSaveMeta(props.proposal));
+};
+
+watch(() => props.show, async (open) => {
     if (!open) return;
     dirty.value = false;
     form.rejection_reason = '';
+    const epoch = formDraft.bumpOpenEpoch();
+    await formDraft.tryRestore((data) => {
+        form.rejection_reason = data.rejection_reason ?? '';
+        if (form.rejection_reason.trim()) dirty.value = true;
+    }, {
+        isActive: () => props.show,
+        openEpoch: epoch,
+        entityRevision: entityRevisionFrom(props.proposal),
+    });
 });
 
 function onInput() {
@@ -24,6 +45,7 @@ function onInput() {
 }
 
 function handleSubmit() {
+    formDraft.clear();
     emit('submit', { rejection_reason: form.rejection_reason.trim() });
 }
 </script>
@@ -34,6 +56,7 @@ function handleSubmit() {
     title="Từ chối đề xuất"
     max-width="max-w-lg"
     :dirty="dirty"
+    :on-save-draft="saveDraftOnClose"
     @close="emit('close')"
   >
     <form
@@ -72,7 +95,7 @@ function handleSubmit() {
         <button
           type="button"
           class="btn-secondary"
-          @click="emit('close')"
+          @click="modalClose()"
         >
           Huỷ
         </button>

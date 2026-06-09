@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue';
+import { computed, inject, ref, watch } from 'vue';
 import Modal from '@/Components/Ui/Modal.vue';
 import ProposalFormLabel from '@/modules/aiAccount/components/ProposalFormLabel.vue';
 import { PROPOSAL_FORM_HINTS as H } from '@/modules/aiAccount/config/proposalFormHints';
@@ -8,6 +8,8 @@ import {
     staffSlotsFromCount,
     syncRegistrationEmailSlots,
 } from '@/modules/aiAccount/utils/registrationEmailSlots';
+import { useModalFormDraft } from '@/composables/useModalFormDraft';
+import { buildDraftSaveMeta } from '@/composables/useModalDraftHelpers';
 
 const props = defineProps({
     show: Boolean,
@@ -16,27 +18,55 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close', 'submit']);
+const modalClose = inject('modalClose', () => emit('close'));
 
 const registrationEmails = ref([]);
+const dirty = ref(false);
 
 const staffCount = computed(() =>
     staffSlotsFromCount(props.proposal?.staff_count ?? props.proposal?.quantity ?? 1),
 );
 
+const formDraft = useModalFormDraft('ai-payment-request', {
+    getScope: () => props.proposal?.id ?? 'none',
+    pick: () => ({ emails: [...registrationEmails.value] }),
+    hasContent: (data) => (data.emails ?? []).some((e) => (e ?? '').trim().length > 0),
+});
+
+const saveDraftOnClose = () => {
+    formDraft.saveOnClose({}, buildDraftSaveMeta(props.proposal));
+};
+
 watch(
-    () => [props.show, props.proposal],
-    ([open]) => {
+    () => [props.show, props.proposal?.id],
+    async ([open]) => {
         if (!open || !props.proposal) return;
+        dirty.value = false;
         registrationEmails.value = registrationEmailsFromRow(props.proposal, staffCount.value);
+        const epoch = formDraft.bumpOpenEpoch();
+        const restored = await formDraft.tryRestore((data) => {
+            if (Array.isArray(data.emails)) {
+                registrationEmails.value = syncRegistrationEmailSlots(data.emails, staffCount.value);
+            }
+        }, {
+            isActive: () => props.show,
+            openEpoch: epoch,
+            entityRevision: props.proposal?.updated_at ?? null,
+        });
+        if (restored) dirty.value = true;
     },
-    { immediate: true },
 );
 
 watch(staffCount, (n) => {
     registrationEmails.value = syncRegistrationEmailSlots(registrationEmails.value, n);
 });
 
+watch(registrationEmails, () => {
+    if (props.show) dirty.value = true;
+}, { deep: true });
+
 function handleSubmit() {
+    formDraft.clear();
     emit('submit', {
         registration_emails: registrationEmails.value.map((e) => (e ?? '').trim()),
     });
@@ -48,6 +78,8 @@ function handleSubmit() {
     :show="show"
     title="Tạo đề nghị thanh toán"
     max-width="max-w-lg"
+    :dirty="dirty"
+    :on-save-draft="saveDraftOnClose"
     @close="emit('close')"
   >
     <div
@@ -93,7 +125,7 @@ function handleSubmit() {
           type="button"
           class="btn btn-ghost h-9"
           :disabled="loading"
-          @click="emit('close')"
+          @click="modalClose()"
         >
           Huỷ
         </button>
