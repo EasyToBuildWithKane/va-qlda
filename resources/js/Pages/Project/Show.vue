@@ -274,11 +274,11 @@ const onSprintSaved = () => {
       </nav>
 
       <!-- ── Tab content: fills all remaining height ── -->
-      <div class="min-h-0 flex-1 overflow-hidden">
+      <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
         <!-- ===== DOCUMENTS ===== -->
         <div
           v-show="tab === 'documents'"
-          class="-mx-4 -mb-4 flex min-h-0 flex-1 flex-col overflow-hidden dark:bg-slate-950"
+          class="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900"
         >
           <ProjectDocumentsPanel
             :project-id="project.id"

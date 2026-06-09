@@ -73,11 +73,27 @@ const syncCollapsedFromStorage = () => {
 watch(nav, syncCollapsedFromStorage, { immediate: true });
 watch(collapsed, () => localStorage.setItem(COLLAPSE_KEY, JSON.stringify([...collapsed])), { deep: true });
 
-const isOpen = (group) => !collapsed.has(groupKey(group));
+const groupContainsActive = (group) => group.items.some((item) => isActive(item.href));
+
+const isOpen = (group) => {
+    if (groupContainsActive(group)) return true;
+    return !collapsed.has(groupKey(group));
+};
+
 const toggleGroup = (group) => {
     const key = groupKey(group);
-    collapsed.has(key) ? collapsed.delete(key) : collapsed.add(key);
+    if (collapsed.has(key)) {
+        collapsed.delete(key);
+        return;
+    }
+    if (!groupContainsActive(group)) collapsed.add(key);
 };
+
+watch(activeHref, () => {
+    for (const group of nav.value) {
+        if (groupContainsActive(group)) collapsed.delete(groupKey(group));
+    }
+});
 const isUpcomingGroup = (group) => group.variant === 'upcoming';
 
 // --- Module status (đang phát triển / bảo trì …) ---
@@ -281,10 +297,11 @@ onMounted(scrollActiveNavItemIntoView);
           >
             <button
               type="button"
-              class="group/head w-full flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all duration-150 select-none"
+              class="group/head flex w-full min-h-8 items-center gap-2 rounded-lg px-2 py-1.5 transition-all duration-150 select-none"
               :class="isUpcomingGroup(group)
                 ? 'text-[10px] font-bold uppercase tracking-[0.14em] text-amber-100/90 bg-amber-400/12 border border-amber-300/25 hover:bg-amber-400/18 hover:text-amber-50'
                 : 'text-[10px] font-bold uppercase tracking-[0.14em] text-brand-100/50 hover:text-brand-100/75 hover:bg-white/[0.04]'"
+              :aria-expanded="isOpen(group)"
               @click="toggleGroup(group)"
             >
               <AppIcon
@@ -293,19 +310,25 @@ onMounted(scrollActiveNavItemIntoView);
                 class="shrink-0 transition-opacity"
                 :class="isUpcomingGroup(group) ? 'text-amber-200/90' : 'opacity-55 group-hover/head:opacity-80'"
               />
-              <span class="flex-1 text-left">{{ group.heading }}</span>
+              <span class="min-w-0 flex-1 truncate text-left">{{ group.heading }}</span>
               <span
                 v-if="isUpcomingGroup(group)"
                 class="shrink-0 rounded-full border border-amber-300/40 bg-amber-400/25 px-1.5 py-0.5 text-[9px] font-bold tabular-nums text-amber-50 leading-none"
               >
                 {{ group.items.length }}
               </span>
-              <AppIcon
-                name="chevron"
-                :size="11"
-                class="shrink-0 opacity-40 transition-transform duration-200"
-                :class="isOpen(group) ? 'rotate-90' : 'rotate-0'"
-              />
+              <span
+                class="grid h-5 w-5 shrink-0 place-items-center rounded-md text-brand-100/40 transition-colors group-hover/head:text-brand-100/65"
+                :class="isUpcomingGroup(group) && 'text-amber-100/50 group-hover/head:text-amber-50/80'"
+                aria-hidden="true"
+              >
+                <AppIcon
+                  name="chevron-down"
+                  :size="12"
+                  class="transition-transform duration-200 ease-out"
+                  :class="isOpen(group) ? 'rotate-0' : '-rotate-90'"
+                />
+              </span>
             </button>
 
             <!--
@@ -313,64 +336,70 @@ onMounted(scrollActiveNavItemIntoView);
                         15 px · normal case · icon + label
                         Active: brighter background + white text
                     -->
-            <ul
-              v-show="isOpen(group)"
-              class="mt-0.5 mb-0.5 space-y-px"
-              :class="isUpcomingGroup(group) && 'rounded-lg border border-amber-300/15 bg-amber-950/20 p-1'"
+            <div
+              class="grid transition-[grid-template-rows] duration-200 ease-out"
+              :class="isOpen(group) ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'"
             >
-              <li
-                v-for="item in group.items"
-                :key="item.label"
-              >
-                <component
-                  :is="isPlanned(item) ? 'div' : Link"
-                  :href="isPlanned(item) ? undefined : item.href"
-                  :title="isPlanned(item) ? 'Sắp ra mắt — chưa khả dụng' : undefined"
-                  class="group/item flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[14px] leading-snug transition-all duration-150"
-                  :class="[
-                    isActive(item.href)
-                      ? 'sidebar-nav-item--active bg-white/[0.12] text-white font-semibold shadow-sm'
-                      : isUpcomingGroup(group)
-                        ? 'text-amber-100/65 hover:bg-amber-400/10 hover:text-amber-50'
-                        : 'text-brand-100/80 hover:bg-white/[0.06] hover:text-white',
-                    isPlanned(item) && 'cursor-not-allowed',
-                  ]"
+              <div class="min-h-0 overflow-hidden">
+                <ul
+                  class="mt-0.5 mb-0.5 space-y-px"
+                  :class="isUpcomingGroup(group) && 'rounded-lg border border-amber-300/15 bg-amber-950/20 p-1'"
                 >
-                  <AppIcon
-                    :name="item.icon"
-                    :size="17"
-                    class="shrink-0 transition-opacity"
-                    :class="isActive(item.href) ? 'opacity-100' : 'opacity-55 group-hover/item:opacity-85'"
-                  />
-
-                  <span class="truncate flex-1">{{ item.label }}</span>
-
-                  <span
-                    v-if="showBadge(item, group)"
-                    class="ml-auto shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold leading-none"
-                    :class="statusOf(item).pill"
+                  <li
+                    v-for="item in group.items"
+                    :key="item.label"
                   >
-                    <span
-                      class="h-1.5 w-1.5 rounded-full"
-                      :class="statusOf(item).dot"
-                    />
-                    {{ statusOf(item).label }}
-                  </span>
+                    <component
+                      :is="isPlanned(item) ? 'div' : Link"
+                      :href="isPlanned(item) ? undefined : item.href"
+                      :title="isPlanned(item) ? 'Sắp ra mắt — chưa khả dụng' : undefined"
+                      class="group/item flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[14px] leading-snug transition-all duration-150"
+                      :class="[
+                        isActive(item.href)
+                          ? 'sidebar-nav-item--active bg-white/[0.12] text-white font-semibold shadow-sm'
+                          : isUpcomingGroup(group)
+                            ? 'text-amber-100/65 hover:bg-amber-400/10 hover:text-amber-50'
+                            : 'text-brand-100/80 hover:bg-white/[0.06] hover:text-white',
+                        isPlanned(item) && 'cursor-not-allowed',
+                      ]"
+                    >
+                      <AppIcon
+                        :name="item.icon"
+                        :size="17"
+                        class="shrink-0 transition-opacity"
+                        :class="isActive(item.href) ? 'opacity-100' : 'opacity-55 group-hover/item:opacity-85'"
+                      />
 
-                  <AppIcon
-                    v-else-if="isPlanned(item)"
-                    name="clock"
-                    :size="14"
-                    class="ml-auto shrink-0 text-amber-300/70"
-                  />
+                      <span class="truncate flex-1">{{ item.label }}</span>
 
-                  <span
-                    v-else-if="isActive(item.href)"
-                    class="ml-auto h-[6px] w-[6px] rounded-full bg-accent shrink-0"
-                  />
-                </component>
-              </li>
-            </ul>
+                      <span
+                        v-if="showBadge(item, group)"
+                        class="ml-auto shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold leading-none"
+                        :class="statusOf(item).pill"
+                      >
+                        <span
+                          class="h-1.5 w-1.5 rounded-full"
+                          :class="statusOf(item).dot"
+                        />
+                        {{ statusOf(item).label }}
+                      </span>
+
+                      <AppIcon
+                        v-else-if="isPlanned(item)"
+                        name="clock"
+                        :size="14"
+                        class="ml-auto shrink-0 text-amber-300/70"
+                      />
+
+                      <span
+                        v-else-if="isActive(item.href)"
+                        class="ml-auto h-[6px] w-[6px] rounded-full bg-accent shrink-0"
+                      />
+                    </component>
+                  </li>
+                </ul>
+              </div>
+            </div>
           </div>
         </nav>
       </div>

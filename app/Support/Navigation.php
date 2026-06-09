@@ -313,7 +313,7 @@ class Navigation
                     ],
                     [
                         'label' => 'Chi phí theo nhóm',
-                        'icon' => 'performance',
+                        'icon' => 'money',
                         'href' => '/ai-accounts/cost-by-group',
                         'status' => 'live',
                     ],

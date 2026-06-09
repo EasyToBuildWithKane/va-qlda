@@ -149,7 +149,6 @@ const uploadFiles = (category, fileList, inputEl = null) => {
     router.post(`/projects/${props.projectId}/attachments`, { category, files }, {
         forceFormData: true,
         preserveScroll: true,
-        onSuccess: () => toast.success('Đã tải tài liệu lên'),
         onError: () => toast.error('Không thể tải lên. Kiểm tra định dạng và dung lượng file.'),
         onFinish: () => {
             uploadingCategory.value = null;
@@ -170,21 +169,6 @@ const onDrop = (category, event) => {
     dragging.value = false;
     uploadFiles(category, event.dataTransfer?.files);
 };
-
-const selectedIsPdf = computed(() =>
-    Boolean(selected.value?.is_pdf
-        || (selected.value?.original_name || '').toLowerCase().endsWith('.pdf')),
-);
-
-const TALL_PREVIEW_KINDS = new Set(['pdf', 'docx', 'xlsx', 'google_doc', 'google_sheet']);
-
-const selectedIsTallPreview = computed(() => {
-    const file = selected.value;
-    if (!file?.url) return false;
-    if (selectedIsPdf.value || file.is_google_doc || file.is_google_sheet) return true;
-    const kind = file.preview_kind;
-    return kind ? TALL_PREVIEW_KINDS.has(kind) : false;
-});
 
 const openAddLinkModal = async () => {
     linkForm.reset();
@@ -218,7 +202,6 @@ const submitLink = () => {
         preserveScroll: true,
         onSuccess: () => {
             linkDraft.clear();
-            toast.success('Đã thêm link Google');
             closeLinkModal();
         },
         onError: () => toast.error('Không thể thêm link. Kiểm tra URL Google Docs hoặc Sheets.'),
@@ -231,7 +214,6 @@ const saveLink = () => {
         preserveScroll: true,
         onSuccess: () => {
             editingLink.value = false;
-            toast.success('Đã cập nhật link');
         },
         onError: () => toast.error('Link không hợp lệ hoặc không thể lưu.'),
     });
@@ -244,7 +226,6 @@ const removeFile = (file) => {
         `Xoá "${file.original_name}"?`,
         () => router.delete(`/projects/${props.projectId}/attachments/${file.id}`, {
             preserveScroll: true,
-            onSuccess: () => toast.success('Đã xoá tài liệu'),
         }),
         { title: 'Xoá tài liệu' },
     );
@@ -256,7 +237,6 @@ const saveNotes = () => {
         preserveScroll: true,
         onSuccess: () => {
             editingNotes.value = false;
-            toast.success('Đã lưu ghi chú');
         },
     });
 };
@@ -272,7 +252,6 @@ const onReplaceSelected = (event) => {
     router.post(`/projects/${props.projectId}/attachments/${selected.value.id}`, form, {
         preserveScroll: true,
         forceFormData: true,
-        onSuccess: () => toast.success('Đã thay thế file'),
         onFinish: () => { event.target.value = ''; },
     });
 };
@@ -341,9 +320,9 @@ const activityTone = (event) => ({
 </script>
 
 <template>
-  <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
+  <div class="flex h-full min-h-0 flex-col overflow-hidden">
     <!-- Header -->
-    <div class="shrink-0 border-b border-slate-200 bg-white px-5 py-4 dark:border-slate-700 dark:bg-slate-900">
+    <div class="shrink-0 border-b border-slate-200 bg-slate-50/80 px-4 py-3 dark:border-slate-700 dark:bg-slate-900/80">
       <div class="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 class="font-display text-lg font-semibold text-slate-800 dark:text-slate-100">
@@ -388,11 +367,12 @@ const activityTone = (event) => ({
 
     <!-- Category toolbar + kéo thả -->
     <div
-      class="shrink-0 border-b border-slate-100 bg-slate-50/80 px-5 py-2.5 dark:border-slate-700 dark:bg-slate-900/50"
-      :class="canUpload ? 'space-y-2' : ''"
+      class="shrink-0 border-b border-slate-100 bg-white px-4 py-2.5 dark:border-slate-700 dark:bg-slate-900"
+      :class="canUpload && !categoryFiles.length ? 'space-y-2' : ''"
     >
-      <div class="flex flex-wrap items-center justify-between gap-2">
-        <p class="text-xs text-slate-500 dark:text-slate-400">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <p class="min-w-0 flex-1 text-xs leading-relaxed text-slate-600 dark:text-slate-400">
+          <span class="font-medium text-slate-700 dark:text-slate-300">{{ activeCat?.label }}:</span>
           {{ activeCat?.description }}
         </p>
         <div
@@ -434,108 +414,115 @@ const activityTone = (event) => ({
         >
       </div>
       <div
-        v-if="canUpload"
-        class="rounded-xl border-2 border-dashed px-4 py-3 text-center transition"
+        v-if="canUpload && !categoryFiles.length"
+        class="rounded-lg border-2 border-dashed px-4 py-2.5 text-center transition"
         :class="dragging
           ? 'border-brand bg-brand/5'
-          : 'border-slate-200/90 bg-white/60 dark:border-slate-600 dark:bg-slate-900/40'"
+          : 'border-slate-200 bg-slate-50/80 dark:border-slate-600 dark:bg-slate-800/40'"
         @dragover.prevent="dragging = true"
         @dragleave="dragging = false"
         @drop.prevent="onDrop(activeCategory, $event)"
       >
         <p class="text-xs font-medium text-slate-600 dark:text-slate-300">
-          Kéo thả file vào đây để tải lên danh mục «{{ activeCat?.label }}»
-        </p>
-        <p class="mt-0.5 text-[11px] text-slate-400">
-          PDF, Office, ảnh, ZIP… hoặc link Google Docs/Sheets · tối đa 20MB/file
+          Kéo thả file vào đây · PDF, Office, ảnh, ZIP… · tối đa 20MB/file
         </p>
       </div>
+      <p
+        v-else-if="canUpload && categoryFiles.length"
+        class="text-[11px] text-slate-400"
+      >
+        Kéo thả file vào danh sách bên trái hoặc dùng «Chọn file» để thêm tài liệu.
+      </p>
     </div>
 
     <!-- Main split: list | preview + audit -->
-    <div class="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[280px_1fr]">
+    <div class="grid min-h-0 flex-1 grid-cols-1 grid-rows-[auto_minmax(0,1fr)] lg:grid-cols-[minmax(240px,280px)_minmax(0,1fr)] lg:grid-rows-1">
       <!-- File list -->
-      <div class="min-h-0 overflow-y-auto border-b border-slate-200 bg-white lg:border-b-0 lg:border-r dark:border-slate-700 dark:bg-slate-900">
+      <div class="flex min-h-0 max-h-[42vh] flex-col overflow-hidden border-b border-slate-200 bg-slate-50/50 lg:max-h-none lg:border-b-0 lg:border-r dark:border-slate-700 dark:bg-slate-900/50">
+        <div class="shrink-0 border-b border-slate-200/80 bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
+          Danh sách ({{ categoryFiles.length }})
+        </div>
         <div
-          v-if="!categoryFiles.length"
-          class="flex flex-col items-center justify-center px-4 py-16 text-center"
-          :class="canUpload && dragging ? 'bg-brand/5' : ''"
+          class="min-h-0 flex-1 overflow-y-auto bg-white dark:bg-slate-900"
+          :class="canUpload && dragging && categoryFiles.length ? 'ring-2 ring-inset ring-brand/30' : ''"
           @dragover.prevent="onDragOver"
           @dragleave="dragging = false"
           @drop.prevent="onDrop(activeCategory, $event)"
         >
-          <AppIcon
-            :name="activeCat?.icon || 'documents'"
-            :size="32"
-            class="text-slate-300"
-          />
-          <p class="mt-2 text-sm text-slate-400">
-            {{ canUpload ? 'Chưa có tài liệu — kéo thả hoặc chọn file.' : 'Chưa có tài liệu.' }}
-          </p>
-          <button
-            v-if="canUpload"
-            type="button"
-            class="mt-2 text-sm font-medium text-brand hover:underline"
-            @click="pickFiles(activeCategory)"
+          <div
+            v-if="!categoryFiles.length"
+            class="flex flex-col items-center justify-center px-4 py-16 text-center"
+            :class="canUpload && dragging ? 'bg-brand/5' : ''"
           >
-            Tải file đầu tiên
-          </button>
-        </div>
-        <ul
-          v-else
-          class="divide-y divide-slate-100 dark:divide-slate-800"
-        >
-          <li
-            v-for="file in categoryFiles"
-            :key="file.id"
-          >
+            <AppIcon
+              :name="activeCat?.icon || 'documents'"
+              :size="32"
+              class="text-slate-300"
+            />
+            <p class="mt-2 text-sm text-slate-400">
+              {{ canUpload ? 'Chưa có tài liệu — kéo thả hoặc chọn file.' : 'Chưa có tài liệu.' }}
+            </p>
             <button
+              v-if="canUpload"
               type="button"
-              class="flex w-full items-start gap-2.5 px-3 py-2.5 text-left transition"
-              :class="selectedId === file.id
-                ? 'bg-brand/8 ring-1 ring-inset ring-brand/20'
-                : 'hover:bg-slate-50 dark:hover:bg-slate-800'"
-              @click="selectFile(file)"
+              class="mt-2 text-sm font-medium text-brand hover:underline"
+              @click="pickFiles(activeCategory)"
             >
-              <span
-                class="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-[10px] font-bold uppercase"
-                :class="file.is_image
-                  ? 'bg-rose-50 text-rose-600'
-                  : (file.is_google_doc || file.is_google_sheet)
-                    ? 'bg-emerald-50 text-emerald-700'
-                    : 'bg-slate-100 text-slate-500'"
-              >
-                <img
-                  v-if="file.is_image"
-                  :src="file.url"
-                  :alt="file.original_name"
-                  class="h-9 w-9 rounded-lg object-cover"
-                >
-                <span v-else>{{ listBadge(file) }}</span>
-              </span>
-              <span class="min-w-0 flex-1">
-                <span class="line-clamp-2 text-sm font-medium text-slate-800 dark:text-slate-100">{{ file.original_name }}</span>
-                <span class="mt-0.5 block text-[10px] text-slate-400">
-                  {{ formatSize(file.size, file) }}
-                  <span v-if="file.uploaded_by?.name"> · {{ file.uploaded_by.name.split(' ').pop() }}</span>
-                </span>
-              </span>
+              Tải file đầu tiên
             </button>
-          </li>
-        </ul>
+          </div>
+          <ul
+            v-else
+            class="divide-y divide-slate-100 dark:divide-slate-800"
+          >
+            <li
+              v-for="file in categoryFiles"
+              :key="file.id"
+            >
+              <button
+                type="button"
+                class="flex w-full items-start gap-2.5 px-3 py-2.5 text-left transition"
+                :class="selectedId === file.id
+                  ? 'bg-brand/8 ring-1 ring-inset ring-brand/20'
+                  : 'hover:bg-slate-50 dark:hover:bg-slate-800'"
+                @click="selectFile(file)"
+              >
+                <span
+                  class="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-[10px] font-bold uppercase"
+                  :class="file.is_image
+                    ? 'bg-rose-50 text-rose-600'
+                    : (file.is_google_doc || file.is_google_sheet)
+                      ? 'bg-emerald-50 text-emerald-700'
+                      : 'bg-slate-100 text-slate-500'"
+                >
+                  <img
+                    v-if="file.is_image"
+                    :src="file.url"
+                    :alt="file.original_name"
+                    class="h-9 w-9 rounded-lg object-cover"
+                  >
+                  <span v-else>{{ listBadge(file) }}</span>
+                </span>
+                <span class="min-w-0 flex-1">
+                  <span class="line-clamp-2 text-sm font-medium text-slate-800 dark:text-slate-100">{{ file.original_name }}</span>
+                  <span class="mt-0.5 block text-[10px] text-slate-400">
+                    {{ formatSize(file.size, file) }}
+                    <span v-if="file.uploaded_by?.name"> · {{ file.uploaded_by.name.split(' ').pop() }}</span>
+                  </span>
+                </span>
+              </button>
+            </li>
+          </ul>
+        </div>
       </div>
 
       <!-- Preview + audit -->
-      <div class="flex min-h-0 flex-col overflow-hidden bg-slate-50 dark:bg-slate-950">
+      <div class="flex min-h-0 flex-col overflow-hidden bg-slate-100/80 dark:bg-slate-950 lg:min-h-0">
         <template v-if="selected">
           <!-- Preview -->
-          <div
-            class="min-h-0 overflow-hidden p-3"
-            :class="selectedIsTallPreview ? 'flex-[3_1_0]' : 'flex-1'"
-          >
+          <div class="min-h-0 flex-1 overflow-hidden p-3 pb-0">
             <div
-              class="card flex h-full min-h-0 flex-col overflow-hidden dark:border-slate-700 dark:bg-slate-900"
-              :class="selectedIsTallPreview ? 'min-h-[min(72vh,860px)]' : 'min-h-[280px]'"
+              class="card flex h-full min-h-[200px] flex-col overflow-hidden dark:border-slate-700 dark:bg-slate-900"
             >
               <div class="flex shrink-0 items-center justify-between gap-2 border-b border-slate-100 px-4 py-2.5 dark:border-slate-700">
                 <h3 class="min-w-0 truncate font-medium text-slate-800 dark:text-slate-100">
@@ -588,8 +575,7 @@ const activityTone = (event) => ({
 
           <!-- Meta + notes + audit -->
           <div
-            class="doc-meta-panel shrink-0 overflow-y-auto border-t border-slate-200 bg-slate-50/60 dark:border-slate-700 dark:bg-slate-900/80"
-            :class="selectedIsTallPreview ? 'max-h-[min(220px,24vh)]' : 'max-h-[min(320px,36vh)]'"
+            class="doc-meta-panel min-h-0 shrink-0 overflow-y-auto border-t border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900 lg:max-h-[42%]"
           >
             <div class="grid gap-3 p-3 sm:p-4 lg:grid-cols-2 lg:gap-4">
               <!-- Cột trái: thông tin + ghi chú -->
@@ -955,6 +941,12 @@ const activityTone = (event) => ({
 }
 
 .doc-audit-list {
-    max-height: min(220px, 40vh);
+    max-height: min(280px, 32vh);
+}
+
+@media (min-width: 1024px) {
+    .doc-audit-list {
+        max-height: none;
+    }
 }
 </style>
