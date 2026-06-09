@@ -1,10 +1,11 @@
 <script setup>
 import { computed, watch, nextTick, ref } from 'vue';
-import { useForm } from '@inertiajs/vue3';
+import { router, useForm, usePage } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
 import Modal from '@/Components/Ui/Modal.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
 import { datetime } from '@/composables/useFormat';
+import { useDialog } from '@/composables/useDialog';
 
 const props = defineProps({
     show: { type: Boolean, default: false },
@@ -14,7 +15,17 @@ const props = defineProps({
 
 const emit = defineEmits(['close']);
 
+const page = usePage();
+const dialog = useDialog();
 const bodyRef = ref(null);
+const deletingId = ref(null);
+
+const myEmployeeId = computed(() => {
+    const u = page.props.auth?.user;
+    return u?.employee_id ?? u?.employee?.id ?? null;
+});
+
+const canModerate = computed(() => !!props.blocker?.can?.update);
 
 const form = useForm({
     commentable_type: 'blocker',
@@ -60,6 +71,32 @@ const submit = () => {
         },
     });
 };
+
+function canDeleteComment(c) {
+    if (!c?.id) return false;
+    if (canModerate.value) return true;
+    const authorId = c.author?.id;
+    return authorId != null && myEmployeeId.value != null && authorId === myEmployeeId.value;
+}
+
+async function removeComment(c) {
+    if (!canDeleteComment(c) || deletingId.value) return;
+    const ok = await dialog.confirm({
+        title: 'Xoá trao đổi',
+        message: 'Bình luận này sẽ bị xoá vĩnh viễn. Tiếp tục?',
+        tone: 'danger',
+        confirmText: 'Xoá',
+    });
+    if (!ok) return;
+
+    deletingId.value = c.id;
+    router.delete(`/comments/${c.id}`, {
+        preserveScroll: true,
+        onFinish: () => {
+            deletingId.value = null;
+        },
+    });
+}
 </script>
 
 <template>
@@ -87,7 +124,7 @@ const submit = () => {
         <div
           v-for="c in comments.slice(-4)"
           :key="c.id"
-          class="flex gap-2.5"
+          class="group flex gap-2.5"
         >
           <Avatar
             :name="c.author?.name"
@@ -96,10 +133,25 @@ const submit = () => {
             class="shrink-0"
           />
           <div class="min-w-0 flex-1">
-            <p class="text-xs font-medium text-slate-700">
-              {{ c.author?.name || '—' }}
-              <span class="font-normal text-slate-400"> · {{ datetime(c.created_at) }}</span>
-            </p>
+            <div class="flex items-start justify-between gap-1">
+              <p class="min-w-0 text-xs font-medium text-slate-700">
+                {{ c.author?.name || '—' }}
+                <span class="font-normal text-slate-400"> · {{ datetime(c.created_at) }}</span>
+              </p>
+              <button
+                v-if="canDeleteComment(c)"
+                type="button"
+                class="shrink-0 rounded p-0.5 text-slate-400 opacity-0 transition hover:text-rose-600 group-hover:opacity-100 focus:opacity-100 disabled:opacity-40"
+                :disabled="deletingId === c.id"
+                title="Xoá"
+                @click="removeComment(c)"
+              >
+                <AppIcon
+                  name="delete"
+                  :size="13"
+                />
+              </button>
+            </div>
             <p class="mt-0.5 line-clamp-3 whitespace-pre-wrap text-xs text-slate-600">
               {{ c.body }}
             </p>

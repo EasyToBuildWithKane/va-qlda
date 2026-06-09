@@ -22,6 +22,7 @@ const confirmDelete = useConfirmDelete();
 const activeCategory = ref(props.categories[0]?.value ?? 'customer');
 const selectedId = ref(null);
 const uploadingCategory = ref(null);
+const dragging = ref(false);
 const fileInputs = ref({});
 const replaceInput = ref(null);
 const editingNotes = ref(false);
@@ -105,9 +106,9 @@ const acceptFor = (category) => {
 const setFileInput = (category, el) => { if (el) fileInputs.value[category] = el; };
 const pickFiles = (category) => fileInputs.value[category]?.click();
 
-const onFilesSelected = (category, event) => {
-    const files = [...(event.target.files || [])];
-    if (!files.length) return;
+const uploadFiles = (category, fileList, inputEl = null) => {
+    const files = [...(fileList || [])];
+    if (!files.length || !props.canUpload) return;
     uploadingCategory.value = category;
     router.post(`/projects/${props.projectId}/attachments`, { category, files }, {
         forceFormData: true,
@@ -116,10 +117,28 @@ const onFilesSelected = (category, event) => {
         onError: () => toast.error('Không thể tải lên. Kiểm tra định dạng và dung lượng file.'),
         onFinish: () => {
             uploadingCategory.value = null;
-            event.target.value = '';
+            if (inputEl) inputEl.value = '';
         },
     });
 };
+
+const onFilesSelected = (category, event) => {
+    uploadFiles(category, event.target.files, event.target);
+};
+
+const onDragOver = () => {
+    if (props.canUpload) dragging.value = true;
+};
+
+const onDrop = (category, event) => {
+    dragging.value = false;
+    uploadFiles(category, event.dataTransfer?.files);
+};
+
+const selectedIsPdf = computed(() =>
+    Boolean(selected.value?.is_pdf
+        || (selected.value?.original_name || '').toLowerCase().endsWith('.pdf')),
+);
 
 const selectFile = (file) => { selectedId.value = file.id; };
 
@@ -264,33 +283,55 @@ const activityTone = (event) => ({
       </nav>
     </div>
 
-    <!-- Category toolbar -->
-    <div class="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/80 px-5 py-2.5 dark:border-slate-700 dark:bg-slate-900/50">
-      <p class="text-xs text-slate-500 dark:text-slate-400">
-        {{ activeCat?.description }}
-      </p>
-      <button
+    <!-- Category toolbar + kéo thả -->
+    <div
+      class="shrink-0 border-b border-slate-100 bg-slate-50/80 px-5 py-2.5 dark:border-slate-700 dark:bg-slate-900/50"
+      :class="canUpload ? 'space-y-2' : ''"
+    >
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <p class="text-xs text-slate-500 dark:text-slate-400">
+          {{ activeCat?.description }}
+        </p>
+        <button
+          v-if="canUpload"
+          type="button"
+          class="btn-ghost inline-flex items-center gap-1.5 border border-slate-200 text-xs dark:border-slate-600"
+          :disabled="uploadingCategory === activeCategory"
+          @click="pickFiles(activeCategory)"
+        >
+          <AppIcon
+            :name="uploadingCategory === activeCategory ? 'refresh' : 'upload'"
+            :size="14"
+            :class="uploadingCategory === activeCategory ? 'animate-spin' : ''"
+          />
+          {{ uploadingCategory === activeCategory ? 'Đang tải…' : 'Chọn file' }}
+        </button>
+        <input
+          :ref="(el) => setFileInput(activeCategory, el)"
+          type="file"
+          class="hidden"
+          multiple
+          :accept="acceptFor(activeCategory)"
+          @change="onFilesSelected(activeCategory, $event)"
+        >
+      </div>
+      <div
         v-if="canUpload"
-        type="button"
-        class="btn-ghost inline-flex items-center gap-1.5 border border-slate-200 text-xs dark:border-slate-600"
-        :disabled="uploadingCategory === activeCategory"
-        @click="pickFiles(activeCategory)"
+        class="rounded-xl border-2 border-dashed px-4 py-3 text-center transition"
+        :class="dragging
+          ? 'border-brand bg-brand/5'
+          : 'border-slate-200/90 bg-white/60 dark:border-slate-600 dark:bg-slate-900/40'"
+        @dragover.prevent="dragging = true"
+        @dragleave="dragging = false"
+        @drop.prevent="onDrop(activeCategory, $event)"
       >
-        <AppIcon
-          :name="uploadingCategory === activeCategory ? 'refresh' : 'upload'"
-          :size="14"
-          :class="uploadingCategory === activeCategory ? 'animate-spin' : ''"
-        />
-        {{ uploadingCategory === activeCategory ? 'Đang tải…' : 'Tải lên' }}
-      </button>
-      <input
-        :ref="(el) => setFileInput(activeCategory, el)"
-        type="file"
-        class="hidden"
-        multiple
-        :accept="acceptFor(activeCategory)"
-        @change="onFilesSelected(activeCategory, $event)"
-      >
+        <p class="text-xs font-medium text-slate-600 dark:text-slate-300">
+          Kéo thả file vào đây để tải lên danh mục «{{ activeCat?.label }}»
+        </p>
+        <p class="mt-0.5 text-[11px] text-slate-400">
+          PDF, Office, ảnh, ZIP… · tối đa 20MB/file · tối đa 15 file/lần
+        </p>
+      </div>
     </div>
 
     <!-- Main split: list | preview + audit -->
@@ -300,6 +341,10 @@ const activityTone = (event) => ({
         <div
           v-if="!categoryFiles.length"
           class="flex flex-col items-center justify-center px-4 py-16 text-center"
+          :class="canUpload && dragging ? 'bg-brand/5' : ''"
+          @dragover.prevent="onDragOver"
+          @dragleave="dragging = false"
+          @drop.prevent="onDrop(activeCategory, $event)"
         >
           <AppIcon
             :name="activeCat?.icon || 'documents'"
@@ -307,7 +352,7 @@ const activityTone = (event) => ({
             class="text-slate-300"
           />
           <p class="mt-2 text-sm text-slate-400">
-            Chưa có tài liệu.
+            {{ canUpload ? 'Chưa có tài liệu — kéo thả hoặc chọn file.' : 'Chưa có tài liệu.' }}
           </p>
           <button
             v-if="canUpload"
@@ -363,7 +408,10 @@ const activityTone = (event) => ({
         <template v-if="selected">
           <!-- Preview -->
           <div class="min-h-0 flex-1 overflow-hidden p-4">
-            <div class="card flex h-full min-h-[240px] flex-col overflow-hidden dark:border-slate-700 dark:bg-slate-900">
+            <div
+              class="card flex h-full flex-col overflow-hidden dark:border-slate-700 dark:bg-slate-900"
+              :class="selectedIsPdf ? 'min-h-[min(78vh,920px)]' : 'min-h-[240px]'"
+            >
               <div class="flex shrink-0 items-center justify-between gap-2 border-b border-slate-100 px-4 py-2.5 dark:border-slate-700">
                 <h3 class="min-w-0 truncate font-medium text-slate-800 dark:text-slate-100">
                   {{ selected.original_name }}
@@ -413,7 +461,10 @@ const activityTone = (event) => ({
           </div>
 
           <!-- Meta + notes + audit -->
-          <div class="doc-meta-panel shrink-0 max-h-[48%] overflow-y-auto border-t border-slate-200 bg-slate-50/60 dark:border-slate-700 dark:bg-slate-900/80">
+          <div
+            class="doc-meta-panel shrink-0 overflow-y-auto border-t border-slate-200 bg-slate-50/60 dark:border-slate-700 dark:bg-slate-900/80"
+            :class="selectedIsPdf ? 'max-h-[min(260px,30vh)]' : 'max-h-[48%]'"
+          >
             <div class="grid gap-3 p-3 sm:p-4 lg:grid-cols-2 lg:gap-4">
               <!-- Cột trái: thông tin + ghi chú -->
               <div class="flex flex-col gap-3">

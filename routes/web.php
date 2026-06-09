@@ -29,6 +29,7 @@ use App\Http\Controllers\Project\TaskAttachmentController;
 use App\Http\Controllers\Project\TaskController;
 use App\Http\Controllers\Project\TaskWatcherController;
 use App\Http\Controllers\Project\WorklogController;
+use App\Http\Controllers\Realtime\RealtimeController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -225,6 +226,7 @@ Route::middleware('auth')->group(function () {
     });
 
     // Polymorphic comments (bug/feedback/blocker/task threads)
+    Route::get('/realtime/thread-token', [RealtimeController::class, 'threadToken'])->name('realtime.thread-token');
     Route::post('/comments', [CommentController::class, 'store'])->name('comments.store');
     Route::put('/comments/{comment}', [CommentController::class, 'update'])->name('comments.update');
     Route::delete('/comments/{comment}', [CommentController::class, 'destroy'])->name('comments.destroy');

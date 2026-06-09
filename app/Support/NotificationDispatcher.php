@@ -214,25 +214,41 @@ class NotificationDispatcher
         ]);
     }
 
+    public static function blockerCreated(Blocker $blocker, ?SystemAccount $actor): void
+    {
+        $svc = self::service();
+        $members = self::blockerNotifyAccounts($blocker, $actor);
+        if ($members->isEmpty()) {
+            return;
+        }
+
+        $ref = self::blockerRef($blocker);
+        $title = $actor
+            ? "{$actor->display_name} ghi nhận {$ref}"
+            : "Vướng mắc mới {$ref}";
+
+        $svc->notify($members, NotificationType::ProjectStatusChanged, $title, $blocker->title, [
+            'actor' => $actor,
+            'project_id' => $blocker->project_id,
+            'entity_type' => 'blocker',
+            'entity_id' => $blocker->id,
+            'action_url' => '/blockers',
+        ]);
+    }
+
     public static function blockerUpdated(Blocker $blocker, ?SystemAccount $actor, array $changes): void
     {
-        if ($changes === [] || ! $blocker->project_id) {
+        if ($changes === []) {
             return;
         }
 
         $svc = self::service();
-        $blocker->loadMissing('project');
-        $employeeIds = collect([$blocker->owner_id, $blocker->raised_by_id])
-            ->merge($blocker->project?->members()->pluck('employees.id') ?? [])
-            ->filter()
-            ->unique()
-            ->values()
-            ->all();
+        $members = self::blockerNotifyAccounts($blocker, $actor);
+        if ($members->isEmpty()) {
+            return;
+        }
 
-        $members = $svc->accountsForEmployees($employeeIds)
-            ->reject(fn (SystemAccount $a) => $actor && $a->id === $actor->id);
-
-        $ref = $blocker->code ?? ('RSK-'.$blocker->id);
+        $ref = self::blockerRef($blocker);
         $title = $actor
             ? "{$actor->display_name} cập nhật {$ref}"
             : "Cập nhật {$ref}";
@@ -246,6 +262,50 @@ class NotificationDispatcher
             'entity_id' => $blocker->id,
             'action_url' => '/blockers',
         ]);
+    }
+
+    public static function blockerComment(Blocker $blocker, ?SystemAccount $actor, bool $isMention = false): void
+    {
+        $svc = self::service();
+        $members = self::blockerNotifyAccounts($blocker, $actor);
+        if ($members->isEmpty()) {
+            return;
+        }
+
+        $ref = self::blockerRef($blocker);
+        $type = $isMention ? NotificationType::CommentMention : NotificationType::CommentBlockerThread;
+        $title = $actor
+            ? "{$actor->display_name} — trao đổi {$ref}"
+            : "Trao đổi mới {$ref}";
+
+        $svc->notify($members, $type, $title, $blocker->title, [
+            'actor' => $actor,
+            'project_id' => $blocker->project_id,
+            'entity_type' => 'blocker',
+            'entity_id' => $blocker->id,
+            'action_url' => '/blockers',
+        ]);
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, SystemAccount>
+     */
+    private static function blockerNotifyAccounts(Blocker $blocker, ?SystemAccount $actor): \Illuminate\Support\Collection
+    {
+        $blocker->loadMissing('project');
+        $employeeIds = collect([$blocker->owner_id, $blocker->raised_by_id]);
+        if ($blocker->project_id) {
+            $employeeIds = $employeeIds->merge($blocker->project?->members()->pluck('employees.id') ?? []);
+        }
+
+        return self::service()->accountsForEmployees(
+            $employeeIds->filter()->unique()->values()->all(),
+        )->reject(fn (SystemAccount $a) => $actor && $a->id === $actor->id);
+    }
+
+    private static function blockerRef(Blocker $blocker): string
+    {
+        return $blocker->code ?? ('RSK-'.$blocker->id);
     }
 
     public static function bugChanged(Bug $bug, string $verb, ?SystemAccount $actor, ?array $changes = null): void

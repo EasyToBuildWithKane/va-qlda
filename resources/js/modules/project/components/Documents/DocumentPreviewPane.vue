@@ -37,7 +37,10 @@ const showFallback = computed(() =>
     </p>
   </div>
 
-  <template v-else>
+  <div
+    v-else
+    class="flex h-full min-h-0 flex-col"
+  >
     <div
       v-if="loading"
       class="flex h-full min-h-[200px] flex-col items-center justify-center gap-2 text-slate-500"
@@ -81,7 +84,7 @@ const showFallback = computed(() =>
     <iframe
       v-else-if="kind === 'pdf' || file.is_pdf"
       :src="file.url"
-      class="h-full min-h-[320px] w-full rounded-lg border border-slate-200 bg-white dark:border-slate-600"
+      class="min-h-[min(72vh,880px)] w-full flex-1 rounded-lg border border-slate-200 bg-white dark:border-slate-600"
       title="Xem trước PDF"
     />
 
@@ -143,7 +146,7 @@ const showFallback = computed(() =>
         class="mt-2 text-sm font-medium text-brand hover:underline"
       >Tải xuống để xem</a>
     </div>
-  </template>
+  </div>
 </template>
 
 <style>

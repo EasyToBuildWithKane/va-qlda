@@ -182,6 +182,7 @@ const timeline = computed(() => {
           commentable-type="blocker"
           :commentable-id="row.id"
           :can-comment="canComment"
+          :can-moderate="!!row.can?.update"
         />
       </div>
     </div>

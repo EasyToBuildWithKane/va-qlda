@@ -43,6 +43,7 @@ enum NotificationType: string
     case CommentReply = 'comment_reply';
     case CommentTaskThread = 'comment_task_thread';
     case CommentSprintThread = 'comment_sprint_thread';
+    case CommentBlockerThread = 'comment_blocker_thread';
 
     // System
     case SystemImport = 'system_import';
@@ -83,7 +84,7 @@ enum NotificationType: string
             self::DocumentDeleted => NotificationCategory::Document,
 
             self::CommentMention, self::CommentReply, self::CommentTaskThread,
-            self::CommentSprintThread => NotificationCategory::Comment,
+            self::CommentSprintThread, self::CommentBlockerThread => NotificationCategory::Comment,
 
             self::SystemImport, self::SystemExport, self::SystemBackup,
             self::SystemRestore, self::SystemSync, self::SystemError,
@@ -144,6 +145,7 @@ enum NotificationType: string
             self::CommentReply => 'Phản hồi mới',
             self::CommentTaskThread => 'Trao đổi Task',
             self::CommentSprintThread => 'Trao đổi Sprint',
+            self::CommentBlockerThread => 'Trao đổi vướng mắc',
             self::SystemImport => 'Nhập dữ liệu',
             self::SystemExport => 'Xuất dữ liệu',
             self::SystemBackup => 'Backup',

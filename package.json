@@ -19,7 +19,8 @@
         "commit:msg": "node scripts/generate-commit-msg.mjs",
         "commit": "node scripts/auto-commit.mjs",
         "push:e2e": "node scripts/push-with-e2e.mjs",
-        "e2e:stop-stale": "node tests/e2e/helpers/stopStaleE2ePorts.js"
+        "realtime": "node realtime/server.mjs",
+        "realtime:dev": "node --watch realtime/server.mjs"
     },
     "lint-staged": {
         "resources/js/**/*.{js,ts,jsx,tsx,vue}": [
@@ -40,7 +41,9 @@
         "husky": "^9.1.7",
         "laravel-vite-plugin": "^1.0.0",
         "lint-staged": "^16.1.6",
+        "ioredis": "^5.6.1",
         "postcss": "^8.5.15",
+        "socket.io": "^4.8.1",
         "tailwindcss": "^3.4.19",
         "vite": "^5.0.0"
     },
@@ -60,6 +63,7 @@
         "pinia": "^3.0.4",
         "vue": "^3.5.35",
         "vue-chartjs": "^5.3.3",
+        "socket.io-client": "^4.8.1",
         "xlsx": "^0.18.5",
         "xlsx-js-style": "^1.2.0",
         "ziggy-js": "^2.6.2"

@@ -13,6 +13,7 @@ use App\Support\BlockerActivityLogger;
 use App\Support\BugActivityLogger;
 use App\Support\FeedbackActivityLogger;
 use App\Support\NotificationDispatcher;
+use App\Support\Realtime\CommentRealtimePublisher;
 use App\Support\TaskActivityLogger;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
@@ -40,7 +41,7 @@ class CommentController extends Controller
 
         $model = $this->resolve($extra['commentable_type'], (int) $extra['commentable_id']);
 
-        Comment::create([
+        $comment = Comment::create([
             'commentable_type' => $model->getMorphClass(),
             'commentable_id' => $model->getKey(),
             'parent_id' => $extra['parent_id'] ?? null,
@@ -50,8 +51,16 @@ class CommentController extends Controller
 
         $user = $request->user();
 
+        CommentRealtimePublisher::created(
+            $extra['commentable_type'],
+            (int) $extra['commentable_id'],
+            $comment,
+        );
+
         if ($model instanceof Blocker) {
             BlockerActivityLogger::commentAdded($model, $user);
+            $isMention = str_contains($data['body'], '@');
+            NotificationDispatcher::blockerComment($model->fresh(['project', 'owner', 'raisedBy']), $user, $isMention);
         } elseif ($model instanceof Task) {
             TaskActivityLogger::commentAdded($model, $user);
             $isMention = str_contains($data['body'], '@');
@@ -84,10 +93,18 @@ class CommentController extends Controller
         $this->authorizeComment($request, $comment);
 
         $comment->loadMissing('commentable');
+        $typeKey = $this->commentableTypeKey($comment);
+        $commentableId = (int) $comment->commentable_id;
+        $commentId = (int) $comment->id;
+
         $this->logCommentEvent($comment, 'deleted', $request->user());
 
         $comment->replies()->delete();
         $comment->delete();
+
+        if ($typeKey !== null) {
+            CommentRealtimePublisher::deleted($typeKey, $commentableId, $commentId);
+        }
 
         return back()->with('success', 'Đã xoá bình luận.');
     }
@@ -156,6 +173,17 @@ class CommentController extends Controller
         $class = self::TYPES[$type];
 
         return $class::findOrFail($id);
+    }
+
+    private function commentableTypeKey(Comment $comment): ?string
+    {
+        foreach (self::TYPES as $key => $class) {
+            if ($comment->commentable_type === (new $class)->getMorphClass()) {
+                return $key;
+            }
+        }
+
+        return null;
     }
 
     private function logCommentEvent(Comment $comment, string $action, $user): void

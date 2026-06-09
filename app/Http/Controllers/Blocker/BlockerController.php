@@ -141,6 +141,7 @@ class BlockerController extends Controller
         ]);
 
         BlockerActivityLogger::created($blocker, $request->user());
+        NotificationDispatcher::blockerCreated($blocker, $request->user());
 
         return back()->with([
             'success' => 'Đã ghi nhận vướng mắc.',
@@ -237,7 +238,12 @@ class BlockerController extends Controller
             }
         }
         BlockerActivityLogger::updated($blocker, $account, $changes);
-        NotificationDispatcher::blockerUpdated($blocker, $account, $changes);
+
+        $notifyChanges = $changes;
+        if ($statusChanged) {
+            $notifyChanges['status'] = $data['status'];
+        }
+        NotificationDispatcher::blockerUpdated($blocker, $account, $notifyChanges);
 
         return back()->with('success', 'Đã cập nhật vướng mắc.');
     }

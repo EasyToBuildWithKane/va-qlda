@@ -45,7 +45,12 @@ class HandleInertiaRequests extends Middleware
                         'full_name' => $account->employee->full_name,
                         'avatar_path' => PublicMediaUrl::fromPublicDisk($account->employee->avatar_path),
                     ] : null,
+                    'employee_id' => $account->employee_id,
                 ] : null,
+            ],
+            'realtime' => [
+                'enabled' => (bool) config('realtime.enabled'),
+                'url' => config('realtime.client_url'),
             ],
             'nav' => $account ? Navigation::for($account) : [],
             'flash' => [
