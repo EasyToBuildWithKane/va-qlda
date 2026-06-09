@@ -39,7 +39,7 @@ const iconBtn =
   <Drawer
     :show="notifications.drawerOpen.value"
     flush
-    width="max-w-md"
+    width="max-w-lg"
     @close="notifications.closeDrawer()"
   >
     <div

@@ -7,6 +7,7 @@ import PageHeader from '@/Components/Ui/PageHeader.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
 import Badge from '@/shared/ui/Badge.vue';
 import BlockerFormModal from '@/modules/project/components/BlockerFormModal.vue';
+import BlockerAttachmentsBlock from '@/modules/project/components/BlockerAttachmentsBlock.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import ColumnVisibilityDropdown from '@/shared/ui/ColumnVisibilityDropdown.vue';
@@ -107,6 +108,27 @@ function toggleRow(id) {
     expandedRows.value = next;
 }
 
+function normalizeEvidenceLinks(links) {
+    const list = Array.isArray(links) ? links : [];
+    return list
+        .map((item) => ({
+            label: (item?.label ?? '').trim(),
+            url: (item?.url ?? '').trim(),
+        }))
+        .filter((item) => item.url);
+}
+
+function evidenceLinkLabel(item) {
+    return item.label || item.url;
+}
+
+function blockerAttachments(b) {
+    const raw = b?.attachments;
+    if (Array.isArray(raw)) return raw;
+    if (raw?.data && Array.isArray(raw.data)) return raw.data;
+    return [];
+}
+
 const {
     visibleFilters,
     showFilterPanelDd,
@@ -166,31 +188,6 @@ const appliedFilterCount = computed(() =>
 
 /** +1 cột nhóm (chevron), +1 mở rộng chi tiết */
 const tableColspan = computed(() => TABLE_COLUMNS.filter((c) => isColVisible(c.key)).length + 2);
-
-/** % width per column key (re-normalized in colWidthStyle for visible cols only) */
-const COL_WIDTH_PCT = {
-    code: 5.5,
-    title: 24,
-    task: 9,
-    severity: 6.5,
-    status: 10,
-    raised_by: 11,
-    owner: 11,
-    raised_at: 6.5,
-    due_date: 6.5,
-    resolved_at: 7.5,
-    comments: 4,
-    description: 12,
-    root_cause: 12,
-};
-
-const colWidthStyle = computed(() => {
-    const keys = TABLE_COLUMNS.filter((c) => isColVisible(c.key)).map((c) => c.key);
-    const total = keys.reduce((s, k) => s + (COL_WIDTH_PCT[k] ?? 10), 0);
-    return Object.fromEntries(
-        keys.map((k) => [k, `${((COL_WIDTH_PCT[k] ?? 10) / total) * 100}%`]),
-    );
-});
 
 function sortBlockersByPriority(items) {
     return [...items].sort((a, b) => {
@@ -353,11 +350,6 @@ const remove = async (b) => {
     if (await dialog.confirm({ title: 'Xoá vướng mắc', message: `Xoá "${b.title}"?`, tone: 'danger', confirmText: 'Xoá' }))
         router.delete(`/blockers/${b.id}`, { preserveScroll: true });
 };
-
-function truncate(text, max = 72) {
-    if (!text) return '—';
-    return text.length > max ? `${text.slice(0, max)}…` : text;
-}
 
 function personCell(person) {
     if (!person?.name) return null;
@@ -672,13 +664,12 @@ function toggleAllGroups() {
         v-if="groupedBlockers.length"
         class="blocker-table-wrap overflow-x-auto"
       >
-        <table class="blocker-table w-full min-w-[68rem] border-collapse text-sm">
+        <table class="blocker-table w-full min-w-[42rem] border-collapse text-sm">
           <colgroup>
             <col class="w-9">
             <col
               v-for="c in TABLE_COLUMNS.filter((col) => isColVisible(col.key))"
               :key="c.key"
-              :style="{ width: colWidthStyle[c.key] }"
             >
             <col class="w-11">
           </colgroup>
@@ -801,7 +792,7 @@ function toggleAllGroups() {
                       :class="group.key === GROUP_GENERAL ? 'bg-slate-400' : ''"
                       :style="group.color ? { backgroundColor: group.color } : undefined"
                     />
-                    <span class="min-w-0 flex-1 truncate text-sm font-semibold text-slate-800">{{ group.label }}</span>
+                    <span class="min-w-0 flex-1 break-words text-sm font-semibold text-slate-800">{{ group.label }}</span>
                     <span class="shrink-0 rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold tabular-nums text-slate-600 ring-1 ring-slate-200/90">
                       {{ group.items.length }}
                     </span>
@@ -822,31 +813,21 @@ function toggleAllGroups() {
                     </td>
                     <td
                       v-if="isColVisible('code')"
-                      class="px-2 py-2.5 align-middle"
+                      class="blocker-cell-wrap px-2 py-2.5 align-top"
                     >
                       <span class="font-mono text-xs font-semibold text-brand">{{ b.code }}</span>
                     </td>
                     <td
                       v-if="isColVisible('title')"
-                      class="px-2 py-2.5 align-middle"
+                      class="blocker-cell-wrap blocker-col-title px-2 py-2.5 align-top"
                     >
                       <div class="min-w-0">
-                        <p
-                          class="line-clamp-2 text-sm font-medium leading-snug text-slate-800"
-                          :title="b.title"
-                        >
+                        <p class="break-words text-sm font-medium leading-snug text-slate-800">
                           {{ b.title }}
                         </p>
                         <p
-                          v-if="b.description?.trim() && !isColVisible('description')"
-                          class="mt-1 line-clamp-3 whitespace-pre-wrap text-xs leading-snug text-slate-600"
-                          :title="b.description"
-                        >
-                          {{ b.description.trim() }}
-                        </p>
-                        <p
                           v-if="!isColVisible('code')"
-                          class="mt-0.5 truncate font-mono text-[11px] text-brand/90"
+                          class="mt-0.5 break-all font-mono text-[11px] text-brand/90"
                         >
                           {{ b.code }}
                         </p>
@@ -860,16 +841,13 @@ function toggleAllGroups() {
                     </td>
                     <td
                       v-if="isColVisible('task')"
-                      class="px-2 py-2.5 align-middle text-xs text-slate-600"
+                      class="blocker-cell-wrap px-2 py-2.5 align-top text-xs text-slate-600"
                     >
-                      <span
-                        class="block truncate"
-                        :title="b.task?.title"
-                      >{{ b.task?.title ?? '—' }}</span>
+                      <span class="block break-words whitespace-pre-wrap">{{ b.task?.title ?? '—' }}</span>
                     </td>
                     <td
                       v-if="isColVisible('severity')"
-                      class="px-2 py-2.5 align-middle"
+                      class="px-2 py-2.5 align-top"
                     >
                       <Badge
                         :label="b.severity.label"
@@ -878,7 +856,7 @@ function toggleAllGroups() {
                     </td>
                     <td
                       v-if="isColVisible('status')"
-                      class="blocker-col-status px-2 py-2.5 align-middle"
+                      class="blocker-col-status px-2 py-2.5 align-top"
                     >
                       <div
                         v-if="b.can?.update"
@@ -923,12 +901,11 @@ function toggleAllGroups() {
                     </td>
                     <td
                       v-if="isColVisible('raised_by')"
-                      class="blocker-col-person px-2 py-2.5 align-middle"
+                      class="blocker-col-person blocker-cell-wrap px-2 py-2.5 align-top"
                     >
                       <div
                         v-if="personCell(b.raised_by)"
-                        class="blocker-person flex min-w-0 items-center gap-1.5"
-                        :title="b.raised_by.name"
+                        class="blocker-person flex min-w-0 items-start gap-1.5"
                       >
                         <Avatar
                           :name="b.raised_by.name"
@@ -936,7 +913,7 @@ function toggleAllGroups() {
                           :size="22"
                           class="shrink-0"
                         />
-                        <span class="min-w-0 truncate text-xs text-slate-700">{{ b.raised_by.name }}</span>
+                        <span class="min-w-0 break-words text-xs text-slate-700">{{ b.raised_by.name }}</span>
                       </div>
                       <span
                         v-else
@@ -945,12 +922,11 @@ function toggleAllGroups() {
                     </td>
                     <td
                       v-if="isColVisible('owner')"
-                      class="blocker-col-person px-2 py-2.5 align-middle"
+                      class="blocker-col-person blocker-cell-wrap px-2 py-2.5 align-top"
                     >
                       <div
                         v-if="personCell(b.owner)"
-                        class="blocker-person flex min-w-0 items-center gap-1.5"
-                        :title="b.owner.name"
+                        class="blocker-person flex min-w-0 items-start gap-1.5"
                       >
                         <Avatar
                           :name="b.owner.name"
@@ -958,7 +934,7 @@ function toggleAllGroups() {
                           :size="22"
                           class="shrink-0"
                         />
-                        <span class="min-w-0 truncate text-xs text-slate-700">{{ b.owner.name }}</span>
+                        <span class="min-w-0 break-words text-xs text-slate-700">{{ b.owner.name }}</span>
                       </div>
                       <span
                         v-else
@@ -967,48 +943,42 @@ function toggleAllGroups() {
                     </td>
                     <td
                       v-if="isColVisible('raised_at')"
-                      class="whitespace-nowrap px-2 py-2.5 align-middle text-xs tabular-nums text-slate-500"
+                      class="whitespace-nowrap px-2 py-2.5 align-top text-xs tabular-nums text-slate-500"
                     >
                       {{ b.raised_at ? date(b.raised_at) : '—' }}
                     </td>
                     <td
                       v-if="isColVisible('due_date')"
-                      class="whitespace-nowrap px-2 py-2.5 align-middle text-xs tabular-nums"
+                      class="whitespace-nowrap px-2 py-2.5 align-top text-xs tabular-nums"
                       :class="b.is_overdue && !isTerminal(b) ? 'font-semibold text-rose-600' : 'text-slate-500'"
                     >
                       {{ b.due_date ? date(b.due_date) : '—' }}
                     </td>
                     <td
                       v-if="isColVisible('resolved_at')"
-                      class="whitespace-nowrap px-2 py-2.5 align-middle text-xs tabular-nums text-slate-500"
+                      class="whitespace-nowrap px-2 py-2.5 align-top text-xs tabular-nums text-slate-500"
                     >
                       {{ b.resolved_at ? datetime(b.resolved_at) : '—' }}
                     </td>
                     <td
                       v-if="isColVisible('comments')"
-                      class="px-2 py-2.5 text-center align-middle text-xs tabular-nums text-slate-500"
+                      class="px-2 py-2.5 text-center align-top text-xs tabular-nums text-slate-500"
                     >
                       {{ b.comments_count ?? 0 }}
                     </td>
                     <td
                       v-if="isColVisible('description')"
-                      class="px-2 py-2.5 align-middle text-xs text-slate-500"
+                      class="blocker-cell-wrap px-2 py-2.5 align-top text-xs text-slate-600"
                     >
-                      <span
-                        class="line-clamp-2"
-                        :title="b.description"
-                      >{{ truncate(b.description, 48) }}</span>
+                      <span class="block break-words whitespace-pre-wrap">{{ b.description?.trim() || '—' }}</span>
                     </td>
                     <td
                       v-if="isColVisible('root_cause')"
-                      class="px-2 py-2.5 align-middle text-xs text-slate-500"
+                      class="blocker-cell-wrap px-2 py-2.5 align-top text-xs text-slate-600"
                     >
-                      <span
-                        class="line-clamp-2"
-                        :title="b.root_cause"
-                      >{{ truncate(b.root_cause, 48) }}</span>
+                      <span class="block break-words whitespace-pre-wrap">{{ b.root_cause?.trim() || '—' }}</span>
                     </td>
-                    <td class="px-1 py-2 align-middle">
+                    <td class="px-1 py-2 align-top">
                       <button
                         type="button"
                         class="mx-auto grid h-8 w-8 place-items-center rounded-lg border border-transparent text-slate-400 transition hover:border-slate-200 hover:bg-white hover:text-slate-700"
@@ -1034,107 +1004,104 @@ function toggleAllGroups() {
                       :colspan="tableColspan"
                       class="bg-slate-50/90 px-3 py-3 align-top sm:px-5 sm:py-4"
                     >
-                      <div class="grid gap-4 lg:grid-cols-2">
-                        <section class="rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm">
-                          <h3 class="mb-3 flex items-center gap-2 text-sm font-bold text-slate-800">
-                            <AppIcon
-                              name="blockers"
-                              :size="16"
-                              class="text-amber-600"
-                            />
-                            Nội dung vướng mắc
-                          </h3>
-                          <dl class="space-y-3 text-sm">
-                            <div>
-                              <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                                Mô tả
-                              </dt>
-                              <dd class="mt-1 whitespace-pre-wrap text-slate-700">
-                                {{ b.description?.trim() || '—' }}
-                              </dd>
-                            </div>
-                            <div>
-                              <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                                Nguyên nhân
-                              </dt>
-                              <dd class="mt-1 whitespace-pre-wrap text-slate-700">
-                                {{ b.root_cause?.trim() || '—' }}
-                              </dd>
-                            </div>
-                            <div v-if="b.task?.title">
-                              <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                                Công việc liên quan
-                              </dt>
-                              <dd class="mt-1 text-slate-700">
-                                {{ b.task.title }}
-                              </dd>
-                            </div>
-                          </dl>
-                        </section>
-                        <section class="rounded-xl border border-emerald-200/70 bg-white p-4 shadow-sm">
-                          <h3 class="mb-3 flex items-center gap-2 text-sm font-bold text-slate-800">
-                            <AppIcon
-                              name="meeting-notes"
-                              :size="16"
-                              class="text-emerald-700"
-                            />
-                            Xử lý &amp; theo dõi
-                          </h3>
-                          <dl class="grid gap-2 text-sm sm:grid-cols-2">
-                            <div class="sm:col-span-2">
-                              <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                                Hướng xử lý
-                              </dt>
-                              <dd class="mt-0.5 whitespace-pre-wrap text-slate-700">
-                                {{ b.resolution?.trim() || '—' }}
-                              </dd>
-                            </div>
-                            <div>
-                              <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                                Ngày báo
-                              </dt>
-                              <dd class="tabular-nums text-slate-600">
-                                {{ b.raised_at ? date(b.raised_at) : '—' }}
-                              </dd>
-                            </div>
-                            <div>
-                              <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                                Hạn xử lý
-                              </dt>
-                              <dd
-                                class="tabular-nums"
-                                :class="b.is_overdue && !isTerminal(b) ? 'font-semibold text-rose-600' : 'text-slate-600'"
-                              >
-                                {{ b.due_date ? date(b.due_date) : '—' }}
-                              </dd>
-                            </div>
-                            <div>
-                              <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                                Xử lý xong
-                              </dt>
-                              <dd class="tabular-nums text-slate-600">
-                                {{ b.resolved_at ? datetime(b.resolved_at) : '—' }}
-                              </dd>
-                            </div>
-                            <div>
-                              <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                                Bình luận
-                              </dt>
-                              <dd class="tabular-nums text-slate-600">
-                                {{ b.comments_count ?? 0 }}
-                              </dd>
-                            </div>
-                            <div v-if="b.updated_at">
-                              <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                                Cập nhật
-                              </dt>
-                              <dd class="tabular-nums text-slate-600">
-                                {{ datetime(b.updated_at) }}
-                              </dd>
-                            </div>
-                          </dl>
-                        </section>
-                      </div>
+                      <section class="rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm">
+                        <div class="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-slate-100 pb-3 text-xs text-slate-500">
+                          <span class="font-mono font-semibold text-brand">{{ b.code }}</span>
+                          <span v-if="b.raised_at">Báo {{ date(b.raised_at) }}</span>
+                          <span
+                            :class="b.is_overdue && !isTerminal(b) ? 'font-semibold text-rose-600' : ''"
+                          >
+                            Hạn {{ b.due_date ? date(b.due_date) : '—' }}
+                          </span>
+                          <span v-if="b.resolved_at">Xong {{ datetime(b.resolved_at) }}</span>
+                          <span>{{ b.comments_count ?? 0 }} bình luận</span>
+                          <span v-if="b.updated_at">Cập nhật {{ datetime(b.updated_at) }}</span>
+                        </div>
+                        <dl class="grid gap-4 text-sm sm:grid-cols-2">
+                          <div class="sm:col-span-2">
+                            <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                              Mô tả
+                            </dt>
+                            <dd class="mt-1 break-words whitespace-pre-wrap text-slate-700">
+                              {{ b.description?.trim() || '—' }}
+                            </dd>
+                          </div>
+                          <div class="sm:col-span-2">
+                            <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                              Nguyên nhân
+                            </dt>
+                            <dd class="mt-1 break-words whitespace-pre-wrap text-slate-700">
+                              {{ b.root_cause?.trim() || '—' }}
+                            </dd>
+                          </div>
+                          <div class="sm:col-span-2">
+                            <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                              Hướng xử lý
+                            </dt>
+                            <dd class="mt-1 break-words whitespace-pre-wrap text-slate-700">
+                              {{ b.resolution?.trim() || '—' }}
+                            </dd>
+                          </div>
+                          <div
+                            v-if="b.task?.title"
+                            class="sm:col-span-2"
+                          >
+                            <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                              Công việc liên quan
+                            </dt>
+                            <dd class="mt-1 break-words text-slate-700">
+                              {{ b.task.title }}
+                            </dd>
+                          </div>
+                          <div
+                            v-if="normalizeEvidenceLinks(b.evidence_links).length"
+                            class="sm:col-span-2"
+                          >
+                            <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                              Link dẫn chứng
+                            </dt>
+                            <dd class="mt-1">
+                              <ul class="space-y-1.5">
+                                <li
+                                  v-for="(link, linkIdx) in normalizeEvidenceLinks(b.evidence_links)"
+                                  :key="linkIdx"
+                                >
+                                  <a
+                                    :href="link.url"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="inline-flex max-w-full items-start gap-1.5 text-sm font-medium text-brand hover:underline"
+                                    @click.stop
+                                  >
+                                    <AppIcon
+                                      name="dependency"
+                                      :size="14"
+                                      class="mt-0.5 shrink-0"
+                                    />
+                                    <span class="min-w-0 break-all">{{ evidenceLinkLabel(link) }}</span>
+                                  </a>
+                                </li>
+                              </ul>
+                            </dd>
+                          </div>
+                          <div
+                            v-if="blockerAttachments(b).length"
+                            class="sm:col-span-2"
+                          >
+                            <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                              Ảnh &amp; file đính kèm
+                            </dt>
+                            <dd class="mt-2">
+                              <BlockerAttachmentsBlock
+                                :blocker-id="b.id"
+                                :attachments="blockerAttachments(b)"
+                                :can-upload="false"
+                                compact
+                              />
+                            </dd>
+                          </div>
+                        </dl>
+                      </section>
                       <div
                         v-if="b.can?.update || b.can?.delete"
                         class="mt-4 flex flex-wrap items-center gap-2 border-t border-slate-200/80 pt-3"
@@ -1222,30 +1189,32 @@ function toggleAllGroups() {
     -webkit-overflow-scrolling: touch;
 }
 .blocker-table {
-    table-layout: fixed;
+    table-layout: auto;
 }
 .blocker-table th,
 .blocker-table td {
-    overflow: hidden;
-    vertical-align: middle;
+    overflow: visible;
+    vertical-align: top;
+}
+.blocker-cell-wrap {
+    min-width: 6rem;
+    max-width: 28rem;
+    word-break: break-word;
+}
+.blocker-col-title {
+    min-width: 10rem;
+    max-width: 22rem;
 }
 .blocker-col-status {
     min-width: 7.5rem;
+    max-width: 11rem;
 }
 .blocker-col-person {
-    min-width: 8.25rem;
-}
-@media (min-width: 1280px) {
-    .blocker-col-person {
-        min-width: 9.5rem;
-    }
-    .blocker-person span {
-        overflow: visible;
-        white-space: normal;
-        word-break: break-word;
-    }
+    min-width: 7rem;
+    max-width: 12rem;
 }
 .blocker-detail-row td {
     overflow: visible;
+    max-width: none;
 }
 </style>

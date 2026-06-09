@@ -58,11 +58,12 @@ class NotificationDispatcher
         $ref = $svc->taskRef($task);
 
         if (isset($changes['due_date'])) {
+            $detail = 'Hạn mới: '.($task->due_date?->format('d/m/Y') ?? '—');
             $svc->notifyTaskStakeholders(
                 $task,
                 NotificationType::TaskDeadlineChanged,
                 "{$ref} — thay đổi hạn",
-                'Hạn mới: '.($task->due_date?->format('d/m/Y') ?? '—'),
+                self::taskNotificationBody($task, $detail),
                 $actor,
             );
 
@@ -82,11 +83,14 @@ class NotificationDispatcher
             }
         }
 
+        $summary = NotificationChangeSummary::task($changes);
+        $body = self::taskNotificationBody($task, $summary);
+
         $svc->notifyTaskStakeholders(
             $task,
             NotificationType::TaskUpdated,
             $actor ? "{$actor->display_name} cập nhật {$ref}" : "Cập nhật {$ref}",
-            $task->title,
+            $body,
             $actor,
         );
     }
@@ -100,11 +104,13 @@ class NotificationDispatcher
             ? "{$actor->display_name} đổi trạng thái {$ref}"
             : "Thay đổi trạng thái {$ref}";
 
+        $body = self::taskNotificationBody($task, "Trạng thái: {$from} → {$to}");
+
         $svc->notifyTaskStakeholders(
             $task,
             $type,
             $title,
-            "{$from} → {$to}",
+            $body,
             $actor,
         );
     }
@@ -135,8 +141,8 @@ class NotificationDispatcher
         $members = $svc->accountsForEmployees($employeeIds);
 
         $type = match (true) {
-            isset($changes['project_manager_id']) => NotificationType::ProjectPmChanged,
-            isset($changes['end_date']) => NotificationType::ProjectDeadlineChanged,
+            isset($changes['manager_id']) => NotificationType::ProjectPmChanged,
+            isset($changes['due_date']) => NotificationType::ProjectDeadlineChanged,
             isset($changes['status']) => NotificationType::ProjectStatusChanged,
             default => NotificationType::ProjectStatusChanged,
         };
@@ -145,19 +151,31 @@ class NotificationDispatcher
             ? "{$actor->display_name} cập nhật dự án {$project->name}"
             : "Dự án {$project->name} được cập nhật";
 
-        $svc->notify($members, $type, $title, null, [
+        $body = NotificationChangeSummary::project($changes);
+
+        $svc->notify($members, $type, $title, $body, [
             'actor' => $actor,
             'project_id' => $project->id,
             'action_url' => "/projects/{$project->id}",
         ]);
 
         if ($actor) {
-            $svc->notifyAdmins(NotificationType::AdminUserAction, $title, null, [
+            $svc->notifyAdmins(NotificationType::AdminUserAction, $title, $body, [
                 'actor' => $actor,
                 'project_id' => $project->id,
                 'action_url' => "/projects/{$project->id}",
             ]);
         }
+    }
+
+    private static function taskNotificationBody(Task $task, ?string $detail = null): string
+    {
+        $lines = array_filter([
+            trim((string) $task->title),
+            $detail !== null && $detail !== '' ? trim($detail) : null,
+        ]);
+
+        return $lines !== [] ? implode("\n", $lines) : '—';
     }
 
     /** @return array<string, mixed> */

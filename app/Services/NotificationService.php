@@ -161,11 +161,10 @@ class NotificationService
         $this->notify($recipients, $type, $title, $body, $context);
 
         if ($actor) {
-            $actorLabel = $actor->display_name;
             $taskRef = 'TASK-'.$task->id;
             $this->notifyAdmins(
                 NotificationType::AdminUserAction,
-                "{$actorLabel} — {$title}",
+                $title,
                 $body ?? "{$taskRef}: {$task->title}",
                 array_merge($context, [
                     'actor' => $actor,
