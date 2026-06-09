@@ -5,6 +5,7 @@ import { Link, usePage } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
 import UserMenu from '@/modules/project/components/UserMenu.vue';
 import NotificationBell from '@/Components/Notifications/NotificationBell.vue';
+import QuickBlockerReportBell from '@/Components/Blocker/QuickBlockerReportBell.vue';
 import NotificationCenterDrawer from '@/Components/Notifications/NotificationCenterDrawer.vue';
 import AppDialog from '@/Components/Ui/AppDialog.vue';
 import ToastContainer from '@/Components/Ui/ToastContainer.vue';
@@ -483,6 +484,7 @@ onMounted(scrollActiveNavItemIntoView);
                 <span>{{ currentDate }}</span>
               </div>
               <div class="h-5 w-px bg-slate-200 hidden sm:block" />
+              <QuickBlockerReportBell />
               <NotificationBell />
               <UserMenu
                 :user="user"

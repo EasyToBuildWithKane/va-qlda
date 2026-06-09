@@ -137,11 +137,11 @@ class DailyReportTest extends TestCase
 
         $this->actingAs($lead, 'system')
             ->post("/daily-reports/{$report->id}/score", [
-                'task_completion' => 8,
-                'skill_score' => 8,
-                'attitude_score' => 8,
-                'kaizen_score' => 8,
-                'expertise_score' => 8,
+                'task_completion' => 7,
+                'skill_score' => 7,
+                'attitude_score' => 7,
+                'kaizen_score' => 7,
+                'expertise_score' => 7,
             ])
             ->assertRedirect();
 
@@ -161,11 +161,11 @@ class DailyReportTest extends TestCase
 
         $this->actingAs($member, 'system')
             ->post("/daily-reports/{$report->id}/score", [
-                'task_completion' => 8,
-                'skill_score' => 8,
-                'attitude_score' => 8,
-                'kaizen_score' => 8,
-                'expertise_score' => 8,
+                'task_completion' => 7,
+                'skill_score' => 7,
+                'attitude_score' => 7,
+                'kaizen_score' => 7,
+                'expertise_score' => 7,
             ])
             ->assertForbidden();
     }

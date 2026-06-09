@@ -48,18 +48,6 @@ export const fields = [
         placeholder: 'Mô tả công việc đã làm và tiến độ…',
     },
     {
-        key: 'results_impact', pillar: 'baocao', label: 'Kết quả & tác động', required: true,
-        hint: 'Kết quả cụ thể là gì và mang lại giá trị / ảnh hưởng ra sao?',
-        tooltip: 'Gắn kết quả với con số hoặc tác động thực tế. VD: “Giảm 30% thời gian tải trang”.',
-        placeholder: 'Kết quả cụ thể và giá trị mang lại…',
-    },
-    {
-        key: 'highlights', pillar: 'baocao', label: 'Điểm nổi bật', required: false,
-        hint: 'Thành tựu, điều học được hoặc khoảnh khắc đáng ghi nhận trong ngày (không bắt buộc).',
-        tooltip: 'Ghi nhận điểm tích cực giúp duy trì động lực và chia sẻ kinh nghiệm cho nhóm.',
-        placeholder: 'Thành tựu hoặc điều học được (không bắt buộc)…',
-    },
-    {
         key: 'blockers', pillar: 'lienlac', label: 'Khó khăn & vướng mắc', required: false,
         hint: 'Bạn đang gặp trở ngại gì? Ai/điều gì đang khiến công việc bị chậm? (không bắt buộc)',
         tooltip: 'Nêu rõ vướng mắc + mức độ ảnh hưởng + bạn cần gì để gỡ. Báo sớm để được hỗ trợ kịp thời.',
@@ -89,8 +77,6 @@ export const builtinTemplates = [
         content: {
             goals_today: '<ul><li>Mục tiêu 1: </li><li>Mục tiêu 2: </li><li>Mục tiêu 3: </li></ul>',
             progress_update: '<ul><li>Đã hoàn thành: </li><li>Đang thực hiện (… %): </li><li>Chưa bắt đầu: </li></ul>',
-            results_impact: '<ul><li><strong>Kết quả:</strong> </li><li><strong>Tác động:</strong> </li><li><strong>Số liệu:</strong> </li></ul>',
-            highlights: '<ul><li>Điểm nổi bật: </li><li>Bài học rút ra: </li></ul>',
             blockers: '<ul><li>Vướng mắc: </li><li>Ảnh hưởng: </li><li>Cần hỗ trợ: </li></ul>',
             improvement_suggestions: '<ul><li>Đề xuất: </li><li>Lý do: </li><li>Lợi ích kỳ vọng: </li></ul>',
             plan_tomorrow: '<ol><li>(Ưu tiên cao) </li><li>(Ưu tiên trung bình) </li><li>(Nếu còn thời gian) </li></ol>',
@@ -104,8 +90,6 @@ export const builtinTemplates = [
         content: {
             goals_today: '<ul><li></li></ul>',
             progress_update: '<ul><li></li></ul>',
-            results_impact: '<p></p>',
-            highlights: '',
             blockers: '',
             improvement_suggestions: '',
             plan_tomorrow: '<ol><li></li></ol>',
@@ -119,8 +103,6 @@ export const builtinTemplates = [
         content: {
             goals_today: '<ul><li>Tính năng / Ticket: </li><li>Mục tiêu kỹ thuật: </li></ul>',
             progress_update: '<ul><li>Code: </li><li>Pull Request: #</li><li>Unit test (độ phủ … %): </li><li>Review: </li></ul>',
-            results_impact: '<ul><li><strong>Tính năng hoàn thành:</strong> </li><li><strong>Hiệu năng / Chất lượng:</strong> </li><li><strong>Nợ kỹ thuật xử lý:</strong> </li></ul>',
-            highlights: '<ul><li>Kỹ thuật / thư viện mới áp dụng: </li></ul>',
             blockers: '<ul><li>Lỗi / Bug đang chặn: </li><li>Phụ thuộc (API/đội khác): </li><li>Cần hỗ trợ: </li></ul>',
             improvement_suggestions: '<ul><li>Cải tiến code / quy trình: </li><li>Refactor đề xuất: </li></ul>',
             plan_tomorrow: '<ol><li>(Ưu tiên cao) </li><li></li></ol>',
@@ -134,8 +116,6 @@ export const builtinTemplates = [
         content: {
             goals_today: '<ul><li>Sự cố cần xử lý: </li><li>Mục tiêu khắc phục: </li></ul>',
             progress_update: '<ul><li>Thời điểm phát hiện: </li><li>Nguyên nhân (đã xác định / đang điều tra): </li><li>Biện pháp đã thực hiện: </li></ul>',
-            results_impact: '<ul><li><strong>Trạng thái hiện tại:</strong> </li><li><strong>Phạm vi ảnh hưởng:</strong> </li><li><strong>Mức độ nghiêm trọng:</strong> </li></ul>',
-            highlights: '',
             blockers: '<ul><li>Vấn đề còn tồn đọng: </li><li>Rủi ro nếu chưa xử lý: </li><li>Cần hỗ trợ gấp từ: </li></ul>',
             improvement_suggestions: '<ul><li>Phòng ngừa tái diễn: </li><li>Cập nhật quy trình / checklist: </li></ul>',
             plan_tomorrow: '<ol><li>Theo dõi &amp; xác nhận khắc phục triệt để</li><li>Viết báo cáo sự cố (post-mortem)</li><li></li></ol>',

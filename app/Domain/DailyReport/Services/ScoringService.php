@@ -21,13 +21,19 @@ class ScoringService
      */
     public function compute(array $scores): array
     {
-        $total = 0.0;
+        $weights = config('daily_report.weights');
+        $weightSum = array_sum($weights) ?: 1.0;
 
-        foreach (config('daily_report.weights') as $key => $weight) {
-            $total += (float) ($scores[$key] ?? 0) * (float) $weight;
+        $base = 0.0;
+        foreach ($weights as $key => $weight) {
+            $base += (float) ($scores[$key] ?? 0) * ((float) $weight / $weightSum);
         }
 
-        $total = round($total, 2);
+        $kaizen = (float) ($scores['kaizen_score'] ?? 0);
+        $bonusMax = (float) config('daily_report.kaizen_bonus_max', 2.0);
+        $bonus = ($kaizen / 10) * $bonusMax;
+
+        $total = round($base + $bonus, 2);
 
         return [
             'total' => $total,

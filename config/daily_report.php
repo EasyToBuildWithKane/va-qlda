@@ -15,14 +15,16 @@ return [
     // Business calendar for "báo cáo hôm nay", working-day gate, and late cutoff.
     'timezone' => env('DAILY_REPORT_TIMEZONE', 'Asia/Ho_Chi_Minh'),
 
-    // Weighted contribution of each dimension to the total score. Must sum to 1.
+    // Weighted base score (4 tiêu chí). Tỷ lệ được chuẩn hóa khi tính tổng.
     'weights' => [
         'task_completion' => 0.30,
         'skill_score' => 0.20,
         'attitude_score' => 0.15,
-        'kaizen_score' => 0.15,
         'expertise_score' => 0.20,
     ],
+
+    // Kaizen: quy đổi điểm slider 0–10 thành điểm cộng thêm (tối đa).
+    'kaizen_bonus_max' => 2.0,
 
     // Grade thresholds (descending). A total >= threshold earns the grade.
     'grades' => [

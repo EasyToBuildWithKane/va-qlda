@@ -27,10 +27,8 @@ class DailyReportResource extends JsonResource
             'title' => $this->title,
             'goals_today' => $this->goals_today,
             'progress_update' => $this->progress_update,
-            'results_impact' => $this->results_impact,
             'blockers' => $this->blockers,
             'improvement_suggestions' => $this->improvement_suggestions,
-            'highlights' => $this->highlights,
             'plan_tomorrow' => $this->plan_tomorrow,
 
             'status' => $this->status->value,

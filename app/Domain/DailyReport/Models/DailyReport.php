@@ -45,10 +45,8 @@ class DailyReport extends Model
         'title',
         'goals_today',
         'progress_update',
-        'results_impact',
         'blockers',
         'improvement_suggestions',
-        'highlights',
         'plan_tomorrow',
         'status',
         'is_late',
@@ -96,7 +94,6 @@ class DailyReport extends Model
                 'projects',
                 'goals_today',
                 'progress_update',
-                'results_impact',
                 'blockers',
             ])
             ->useLogName('daily_report')

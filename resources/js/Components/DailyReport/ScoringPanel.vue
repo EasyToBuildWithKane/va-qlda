@@ -8,36 +8,50 @@ const props = defineProps({
 });
 
 // Mirrors config/daily_report.php for live preview only (server is authoritative).
-const weights = {
+const baseWeights = {
     task_completion: 0.30,
     skill_score: 0.20,
     attitude_score: 0.15,
-    kaizen_score: 0.15,
     expertise_score: 0.20,
 };
+const baseWeightSum = Object.values(baseWeights).reduce((s, w) => s + w, 0);
+const KAIZEN_BONUS_MAX = 2;
 
-const dimensions = [
+const baseDimensions = [
     ['task_completion', 'Hoàn thành công việc', 'Mức độ hoàn thành mục tiêu và khối lượng công việc đặt ra trong ngày.'],
     ['skill_score', 'Kỹ năng', 'Kỹ năng chuyên môn và cách xử lý công việc thể hiện trong báo cáo.'],
     ['attitude_score', 'Thái độ', 'Tinh thần trách nhiệm, chủ động, hợp tác và đúng hạn.'],
-    ['kaizen_score', 'Cải tiến (Kaizen)', 'Tinh thần cầu tiến: đề xuất cải tiến quy trình, cách làm tốt hơn.'],
     ['expertise_score', 'Chuyên môn', 'Chiều sâu chuyên môn và chất lượng giải pháp đưa ra.'],
 ];
 
+const kaizenDimension = [
+    'kaizen_score',
+    'Cải tiến (Kaizen)',
+    'Tinh thần cầu tiến: đề xuất cải tiến quy trình, cách làm tốt hơn. Điểm slider quy đổi thành điểm cộng thêm (tối đa +2).',
+];
+
 const form = useForm({
-    task_completion: 8,
-    skill_score: 8,
-    attitude_score: 8,
-    kaizen_score: 8,
-    expertise_score: 8,
+    task_completion: 10,
+    skill_score: 10,
+    attitude_score: 10,
+    kaizen_score: 10,
+    expertise_score: 10,
     notes: '',
 });
 
 const rejectForm = useForm({ notes: '' });
 
-const total = computed(() =>
-    Object.entries(weights).reduce((sum, [key, w]) => sum + Number(form[key] || 0) * w, 0),
+const kaizenBonus = computed(
+    () => (Number(form.kaizen_score || 0) / 10) * KAIZEN_BONUS_MAX,
 );
+
+const total = computed(() => {
+    const base = Object.entries(baseWeights).reduce(
+        (sum, [key, w]) => sum + Number(form[key] || 0) * (w / baseWeightSum),
+        0,
+    );
+    return base + kaizenBonus.value;
+});
 
 const grade = computed(() => {
     const t = total.value;
@@ -48,7 +62,7 @@ const grade = computed(() => {
     return 'D';
 });
 
-const pct = (key) => Math.round(weights[key] * 100);
+const pct = (key) => Math.round((baseWeights[key] / baseWeightSum) * 100);
 
 const submitScore = () =>
     form.post(`/daily-reports/${props.report.id}/score`, { preserveScroll: true });
@@ -63,12 +77,12 @@ const submitReject = () =>
       <h3 class="font-display text-sm font-semibold text-slate-800">
         Chấm điểm đánh giá
       </h3>
-      <FieldTooltip text="Kéo từng thanh từ 0–10. Điểm tổng được tính theo trọng số và quy đổi ra xếp loại S/A/B/C/D." />
+      <FieldTooltip text="Bốn tiêu chí chính (0–10) tính điểm có trọng số. Kaizen quy đổi thành điểm cộng thêm tối đa +2. Tổng quy đổi xếp loại S/A/B/C/D." />
     </div>
 
     <div class="grid grid-cols-1 gap-3">
       <div
-        v-for="[key, label, hint] in dimensions"
+        v-for="[key, label, hint] in baseDimensions"
         :key="key"
       >
         <div class="mb-1 flex items-center justify-between">
@@ -93,6 +107,35 @@ const submitReject = () =>
           class="text-xs text-danger"
         >
           {{ form.errors[key] }}
+        </p>
+      </div>
+
+      <div>
+        <div class="mb-1 flex items-center justify-between">
+          <label class="flex items-center gap-1.5 text-sm text-slate-600">
+            {{ kaizenDimension[1] }}
+            <span class="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">+{{ KAIZEN_BONUS_MAX }} điểm</span>
+            <FieldTooltip :text="kaizenDimension[2]" />
+          </label>
+          <span class="text-sm font-semibold text-slate-800">
+            {{ Number(form.kaizen_score).toFixed(1) }}
+            <span class="text-xs font-medium text-emerald-600">(+{{ kaizenBonus.toFixed(2) }})</span>
+          </span>
+        </div>
+        <input
+          v-model.number="form.kaizen_score"
+          type="range"
+          min="0"
+          max="10"
+          step="0.5"
+          class="w-full accent-brand"
+          :title="`${kaizenDimension[1]}: ${Number(form.kaizen_score).toFixed(1)} / 10 → +${kaizenBonus.toFixed(2)} điểm`"
+        >
+        <p
+          v-if="form.errors.kaizen_score"
+          class="text-xs text-danger"
+        >
+          {{ form.errors.kaizen_score }}
         </p>
       </div>
     </div>

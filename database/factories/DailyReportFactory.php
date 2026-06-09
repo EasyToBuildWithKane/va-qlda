@@ -23,7 +23,6 @@ class DailyReportFactory extends Factory
             'title' => fake()->sentence(4),
             'goals_today' => fake()->paragraph(),
             'progress_update' => fake()->paragraph(),
-            'results_impact' => fake()->paragraph(),
             'plan_tomorrow' => fake()->paragraph(),
             'status' => ReportStatus::Draft,
             'is_late' => false,

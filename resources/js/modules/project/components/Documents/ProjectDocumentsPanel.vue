@@ -176,13 +176,15 @@ const selectedIsPdf = computed(() =>
         || (selected.value?.original_name || '').toLowerCase().endsWith('.pdf')),
 );
 
-const selectedIsTallPreview = computed(() =>
-    selectedIsPdf.value
-    || selected.value?.is_google_doc
-    || selected.value?.is_google_sheet
-    || selected.value?.preview_kind === 'google_doc'
-    || selected.value?.preview_kind === 'google_sheet',
-);
+const TALL_PREVIEW_KINDS = new Set(['pdf', 'docx', 'xlsx', 'google_doc', 'google_sheet']);
+
+const selectedIsTallPreview = computed(() => {
+    const file = selected.value;
+    if (!file?.url) return false;
+    if (selectedIsPdf.value || file.is_google_doc || file.is_google_sheet) return true;
+    const kind = file.preview_kind;
+    return kind ? TALL_PREVIEW_KINDS.has(kind) : false;
+});
 
 const openAddLinkModal = async () => {
     linkForm.reset();
@@ -339,7 +341,7 @@ const activityTone = (event) => ({
 </script>
 
 <template>
-  <div class="flex h-full flex-col overflow-hidden">
+  <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
     <!-- Header -->
     <div class="shrink-0 border-b border-slate-200 bg-white px-5 py-4 dark:border-slate-700 dark:bg-slate-900">
       <div class="flex flex-wrap items-start justify-between gap-3">
@@ -527,10 +529,13 @@ const activityTone = (event) => ({
       <div class="flex min-h-0 flex-col overflow-hidden bg-slate-50 dark:bg-slate-950">
         <template v-if="selected">
           <!-- Preview -->
-          <div class="min-h-0 flex-1 overflow-hidden p-4">
+          <div
+            class="min-h-0 overflow-hidden p-3"
+            :class="selectedIsTallPreview ? 'flex-[3_1_0]' : 'flex-1'"
+          >
             <div
-              class="card flex h-full flex-col overflow-hidden dark:border-slate-700 dark:bg-slate-900"
-              :class="selectedIsTallPreview ? 'min-h-[min(78vh,920px)]' : 'min-h-[240px]'"
+              class="card flex h-full min-h-0 flex-col overflow-hidden dark:border-slate-700 dark:bg-slate-900"
+              :class="selectedIsTallPreview ? 'min-h-[min(72vh,860px)]' : 'min-h-[280px]'"
             >
               <div class="flex shrink-0 items-center justify-between gap-2 border-b border-slate-100 px-4 py-2.5 dark:border-slate-700">
                 <h3 class="min-w-0 truncate font-medium text-slate-800 dark:text-slate-100">
@@ -584,7 +589,7 @@ const activityTone = (event) => ({
           <!-- Meta + notes + audit -->
           <div
             class="doc-meta-panel shrink-0 overflow-y-auto border-t border-slate-200 bg-slate-50/60 dark:border-slate-700 dark:bg-slate-900/80"
-            :class="selectedIsTallPreview ? 'max-h-[min(260px,30vh)]' : 'max-h-[48%]'"
+            :class="selectedIsTallPreview ? 'max-h-[min(220px,24vh)]' : 'max-h-[min(320px,36vh)]'"
           >
             <div class="grid gap-3 p-3 sm:p-4 lg:grid-cols-2 lg:gap-4">
               <!-- Cột trái: thông tin + ghi chú -->

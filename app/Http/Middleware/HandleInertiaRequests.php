@@ -2,10 +2,15 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Blocker;
 use App\Services\NotificationService;
+use App\Support\Enums\BlockerSeverity;
+use App\Support\Enums\BlockerStatus;
 use App\Support\Navigation;
+use App\Support\Options;
 use App\Support\PublicMediaUrl;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -61,6 +66,15 @@ class HandleInertiaRequests extends Middleware
             'notifications' => fn () => $account ? [
                 'unread_count' => app(NotificationService::class)->unreadCount($account),
             ] : ['unread_count' => 0],
+            'quickBlocker' => fn () => $account ? [
+                'canReport' => Gate::forUser($account)->allows('create', Blocker::class),
+                'projects' => Options::projects()->values()->all(),
+                'employees' => Options::employees()->values()->all(),
+                'enums' => [
+                    'blockerSeverity' => BlockerSeverity::options(),
+                    'blockerStatus' => BlockerStatus::options(),
+                ],
+            ] : null,
         ]);
     }
 }

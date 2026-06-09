@@ -37,8 +37,6 @@ const form = useForm({
     projects: props.report?.projects ?? [],
     goals_today: props.report?.goals_today ?? '',
     progress_update: props.report?.progress_update ?? '',
-    results_impact: props.report?.results_impact ?? '',
-    highlights: props.report?.highlights ?? '',
     blockers: props.report?.blockers ?? '',
     improvement_suggestions: props.report?.improvement_suggestions ?? '',
     plan_tomorrow: props.report?.plan_tomorrow ?? '',

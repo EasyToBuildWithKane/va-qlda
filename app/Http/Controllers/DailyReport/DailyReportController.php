@@ -169,12 +169,12 @@ class DailyReportController extends Controller
     {
         $this->authorize('submit', $report);
 
-        $required = ['goals_today', 'progress_update', 'results_impact', 'plan_tomorrow'];
+        $required = ['goals_today', 'progress_update', 'plan_tomorrow'];
         $missing = collect($required)->filter(fn (string $field) => blank($report->{$field}));
 
         if ($missing->isNotEmpty()) {
             throw ValidationException::withMessages([
-                'submit' => 'Hãy điền đủ mục tiêu, tiến độ, kết quả và kế hoạch ngày mai trước khi nộp.',
+                'submit' => 'Hãy điền đủ mục tiêu, tiến độ và kế hoạch ngày mai trước khi nộp.',
             ]);
         }
 

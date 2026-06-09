@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, toRef } from 'vue';
+import { ref, computed, onMounted, watch, toRef } from 'vue';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AppIcon from '@/Components/AppIcon.vue';
@@ -11,7 +11,6 @@ import TaskBoard from '@/modules/project/components/TaskBoard.vue';
 import TaskDetailPanel from '@/modules/project/components/Sprint/TaskDetailPanel.vue';
 import TaskFormModal from '@/modules/project/components/TaskFormModal.vue';
 import SprintFormModal from '@/modules/project/components/SprintFormModal.vue';
-import BlockerFormModal from '@/modules/project/components/BlockerFormModal.vue';
 import DeadlineBanner from '@/modules/project/components/Dashboard/DeadlineBanner.vue';
 import DashboardViewToggle from '@/modules/project/components/Dashboard/DashboardViewToggle.vue';
 import RiskIssuePanel from '@/modules/project/components/Dashboard/RiskIssuePanel.vue';
@@ -83,39 +82,6 @@ const detailTask = ref(null);
 const taskDefaultStatus = ref('todo');
 const sprintModal = ref(false);
 const editingSprint = ref(null);
-const blockerModal = ref(false);
-const editingBlocker = ref(null);
-const blockerInitialDescription = ref('');
-const quickBlockerPulse = ref(false);
-
-const tabLabelByKey = Object.fromEntries(tabs.map((t) => [t.key, t.label]));
-
-const canReportBlocker = computed(() => canManage.value || canContribute.value);
-
-const buildPageContextUrl = () => {
-    const u = new URL(window.location.href);
-    u.searchParams.set('tab', tab.value);
-    return u.toString();
-};
-
-const openQuickBlockerReport = () => {
-    if (!canReportBlocker.value) return;
-    const url = buildPageContextUrl();
-    const tabLabel = tabLabelByKey[tab.value] ?? tab.value;
-    blockerInitialDescription.value = `Liên kết trang đang xem:\n${url}\n\nVị trí: tab «${tabLabel}»\n\n`;
-    editingBlocker.value = null;
-    quickBlockerPulse.value = true;
-    blockerModal.value = true;
-    window.setTimeout(() => {
-        quickBlockerPulse.value = false;
-    }, 520);
-};
-
-const closeBlockerModal = () => {
-    blockerModal.value = false;
-    blockerInitialDescription.value = '';
-};
-
 const pid = props.project.id;
 
 const openTaskDetail = (t) => {
@@ -198,6 +164,12 @@ onMounted(() => {
     }
 });
 
+watch(tab, (t) => {
+    const u = new URL(window.location.href);
+    u.searchParams.set('tab', t);
+    window.history.replaceState(window.history.state, '', u);
+});
+
 const scrollToRiskPanel = () => riskPanelRef.value?.scrollHere();
 
 const onExport = async () => {
@@ -239,12 +211,6 @@ const onRiskSaved = ({ type, title, count }) => {
     }
 };
 
-const onBlockerModalSaved = () => {
-    if (!editingBlocker.value) {
-        onRiskSaved({ type: 'created', title: 'Vướng mắc mới' });
-    }
-};
-
 const onTaskSaved = () => {
     if (!editingTask.value) {
         pushActivity('task_created', `${currentUserName.value} tạo task mới`);
@@ -271,31 +237,11 @@ const onSprintSaved = () => {
         icon="all-projects"
         :icon-color="projectIconColor"
         back-href="/projects"
-      >
-        <button
-          v-if="canReportBlocker"
-          type="button"
-          class="quick-blocker-report-btn relative grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-rose-200 bg-rose-50 text-rose-600 shadow-sm transition hover:border-rose-300 hover:bg-rose-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-400"
-          :class="{ 'quick-blocker-report-btn--pop': quickBlockerPulse }"
-          title="Báo vướng mắc nhanh"
-          aria-label="Báo vướng mắc nhanh — ghi nhận tại trang đang xem"
-          @click="openQuickBlockerReport"
-        >
-          <span
-            class="pointer-events-none absolute inset-0 rounded-lg bg-rose-400/30 quick-blocker-report-ring"
-            aria-hidden="true"
-          />
-          <AppIcon
-            name="alert"
-            :size="18"
-            class="relative z-[1] quick-blocker-report-icon"
-          />
-        </button>
-      </PageHeader>
+      />
     </template>
 
     <!-- Full-height flex column -->
-    <div class="flex h-full flex-col overflow-hidden bg-slate-50">
+    <div class="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-50">
       <!-- ── Compact tab strip ── -->
       <nav class="flex shrink-0 items-center border-b border-slate-200 bg-white px-1">
         <button
@@ -332,7 +278,7 @@ const onSprintSaved = () => {
         <!-- ===== DOCUMENTS ===== -->
         <div
           v-show="tab === 'documents'"
-          class="h-full overflow-hidden dark:bg-slate-950"
+          class="-mx-4 -mb-4 flex min-h-0 flex-1 flex-col overflow-hidden dark:bg-slate-950"
         >
           <ProjectDocumentsPanel
             :project-id="project.id"
@@ -650,79 +596,5 @@ const onSprintSaved = () => {
       @close="sprintModal = false"
       @saved="onSprintSaved"
     />
-    <BlockerFormModal
-      :show="blockerModal"
-      :blocker="editingBlocker"
-      :initial-description="blockerInitialDescription"
-      :projects="[{ id: project.id, name: project.name, code: project.code }]"
-      :employees="options.employees"
-      :severity-options="enums.blockerSeverity || []"
-      :status-options="enums.blockerStatus || []"
-      :default-project-id="project.id"
-      :lock-project="true"
-      :project-name="project.name"
-      :project-code="project.code"
-      :can-upload-attachments="canManage || canContribute || editingBlocker?.can?.update"
-      @close="closeBlockerModal"
-      @saved="onBlockerModalSaved"
-    />
   </AppLayout>
 </template>
-
-<style scoped>
-.quick-blocker-report-ring {
-    animation: quick-blocker-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
-}
-
-.quick-blocker-report-icon {
-    animation: quick-blocker-wiggle 2.8s ease-in-out infinite;
-}
-
-.quick-blocker-report-btn--pop {
-    animation: quick-blocker-pop 0.45s ease-out;
-}
-
-@keyframes quick-blocker-ping {
-    0% {
-        transform: scale(1);
-        opacity: 0.55;
-    }
-    70% {
-        transform: scale(1.35);
-        opacity: 0;
-    }
-    100% {
-        transform: scale(1.35);
-        opacity: 0;
-    }
-}
-
-@keyframes quick-blocker-wiggle {
-    0%,
-    88%,
-    100% {
-        transform: rotate(0deg);
-    }
-    90% {
-        transform: rotate(-10deg);
-    }
-    94% {
-        transform: rotate(10deg);
-    }
-    98% {
-        transform: rotate(-4deg);
-    }
-}
-
-@keyframes quick-blocker-pop {
-    0% {
-        transform: scale(1);
-    }
-    35% {
-        transform: scale(1.12);
-    }
-    100% {
-        transform: scale(1);
-    }
-}
-</style>

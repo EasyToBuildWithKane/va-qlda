@@ -29,10 +29,8 @@ class UpdateDailyReportRequest extends FormRequest
             'title' => ['sometimes', 'required', 'string', 'max:255'],
             'goals_today' => ['sometimes', 'nullable', 'string', 'max:20000'],
             'progress_update' => ['sometimes', 'nullable', 'string', 'max:20000'],
-            'results_impact' => ['sometimes', 'nullable', 'string', 'max:20000'],
             'blockers' => ['sometimes', 'nullable', 'string', 'max:20000'],
             'improvement_suggestions' => ['sometimes', 'nullable', 'string', 'max:20000'],
-            'highlights' => ['sometimes', 'nullable', 'string', 'max:20000'],
             'plan_tomorrow' => ['sometimes', 'nullable', 'string', 'max:20000'],
         ];
     }

@@ -30,7 +30,6 @@ const render = (html) => html || '<span class="text-slate-300">—</span>';
 const preview = [
     ['Mục tiêu hôm nay', 'goals_today'],
     ['Tiến độ thực hiện', 'progress_update'],
-    ['Kết quả & tác động', 'results_impact'],
     ['Khó khăn & vướng mắc', 'blockers'],
 ];
 </script>

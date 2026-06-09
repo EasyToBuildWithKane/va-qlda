@@ -48,10 +48,8 @@ class StoreDailyReportRequest extends FormRequest
             'title' => ['required', 'string', 'max:255'],
             'goals_today' => ['nullable', 'string', 'max:20000'],
             'progress_update' => ['nullable', 'string', 'max:20000'],
-            'results_impact' => ['nullable', 'string', 'max:20000'],
             'blockers' => ['nullable', 'string', 'max:20000'],
             'improvement_suggestions' => ['nullable', 'string', 'max:20000'],
-            'highlights' => ['nullable', 'string', 'max:20000'],
             'plan_tomorrow' => ['nullable', 'string', 'max:20000'],
         ];
     }
