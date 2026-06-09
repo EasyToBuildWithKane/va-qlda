@@ -75,7 +75,9 @@ class BlockerAttachmentController extends Controller
             abort(404);
         }
 
+        $name = $attachment->original_name;
         Storage::disk('public')->delete($attachment->path);
+        BlockerActivityLogger::attachmentRemoved($blocker, $name, request()->user());
         $attachment->delete();
 
         return back()->with('success', 'Đã xoá file đính kèm.');

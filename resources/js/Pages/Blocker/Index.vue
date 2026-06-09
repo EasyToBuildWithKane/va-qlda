@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
+import { reactive, ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AppIcon from '@/Components/AppIcon.vue';
@@ -8,6 +8,7 @@ import Avatar from '@/shared/ui/Avatar.vue';
 import Badge from '@/shared/ui/Badge.vue';
 import BlockerFormModal from '@/modules/project/components/BlockerFormModal.vue';
 import BlockerAttachmentsBlock from '@/modules/project/components/BlockerAttachmentsBlock.vue';
+import CommentThread from '@/shared/ui/CommentThread.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import ColumnVisibilityDropdown from '@/shared/ui/ColumnVisibilityDropdown.vue';
@@ -96,16 +97,61 @@ function loadCollapsedGroups() {
 
 const collapsedGroups = ref(loadCollapsedGroups());
 const expandedRows = ref(new Set());
+/** @type {import('vue').Ref<Record<number, 'detail'|'comments'>>} */
+const rowExpandFocus = ref({});
+const openActionMenuId = ref(null);
 
 function isRowExpanded(id) {
     return expandedRows.value.has(id);
 }
 
+function closeActionMenu() {
+    openActionMenuId.value = null;
+}
+
+function toggleActionMenu(id) {
+    openActionMenuId.value = openActionMenuId.value === id ? null : id;
+}
+
+function expandRow(id, focus = 'detail') {
+    const next = new Set(expandedRows.value);
+    next.add(id);
+    expandedRows.value = next;
+    rowExpandFocus.value = { ...rowExpandFocus.value, [id]: focus };
+}
+
 function toggleRow(id) {
     const next = new Set(expandedRows.value);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
+    if (next.has(id)) {
+        next.delete(id);
+        const f = { ...rowExpandFocus.value };
+        delete f[id];
+        rowExpandFocus.value = f;
+    } else {
+        next.add(id);
+        rowExpandFocus.value = { ...rowExpandFocus.value, [id]: 'detail' };
+    }
     expandedRows.value = next;
+    closeActionMenu();
+}
+
+async function openRowComments(b) {
+    expandRow(b.id, 'comments');
+    closeActionMenu();
+    await nextTick();
+    document.getElementById(`blocker-comments-${b.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function runAction(fn) {
+    closeActionMenu();
+    fn();
+}
+
+function blockerComments(b) {
+    const raw = b?.comments;
+    if (Array.isArray(raw)) return raw;
+    if (raw?.data && Array.isArray(raw.data)) return raw.data;
+    return [];
 }
 
 function normalizeEvidenceLinks(links) {
@@ -186,8 +232,8 @@ const appliedFilterCount = computed(() =>
     ].filter((v) => v !== '' && v != null).length,
 );
 
-/** +1 cột nhóm (chevron), +1 mở rộng chi tiết */
-const tableColspan = computed(() => TABLE_COLUMNS.filter((c) => isColVisible(c.key)).length + 2);
+/** +1 cột nhóm, +1 chi tiết, +1 thao tác */
+const tableColspan = computed(() => TABLE_COLUMNS.filter((c) => isColVisible(c.key)).length + 3);
 
 function sortBlockersByPriority(items) {
     return [...items].sort((a, b) => {
@@ -292,6 +338,9 @@ function onToolbarClickOutside(e) {
     }
     if (colDdRef.value && !colDdRef.value.contains(e.target)) {
         showColDd.value = false;
+    }
+    if (openActionMenuId.value != null && !e.target.closest('[data-blocker-action-menu]')) {
+        closeActionMenu();
     }
 }
 
@@ -763,6 +812,9 @@ function toggleAllGroups() {
               >
                 <span class="sr-only">Chi tiết</span>
               </th>
+              <th class="w-[5.75rem] px-1 py-2 text-center align-middle text-xs font-medium text-slate-500">
+                Thao tác
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -962,9 +1014,16 @@ function toggleAllGroups() {
                     </td>
                     <td
                       v-if="isColVisible('comments')"
-                      class="px-2 py-2.5 text-center align-top text-xs tabular-nums text-slate-500"
+                      class="px-2 py-2.5 text-center align-top text-xs tabular-nums"
                     >
-                      {{ b.comments_count ?? 0 }}
+                      <button
+                        type="button"
+                        class="tabular-nums text-slate-600 underline-offset-2 hover:text-brand hover:underline"
+                        :title="(b.comments_count ?? 0) > 0 ? 'Xem bình luận' : 'Thêm bình luận'"
+                        @click.stop="openRowComments(b)"
+                      >
+                        {{ b.comments_count ?? 0 }}
+                      </button>
                     </td>
                     <td
                       v-if="isColVisible('description')"
@@ -995,6 +1054,116 @@ function toggleAllGroups() {
                         />
                       </button>
                     </td>
+                    <td
+                      class="relative px-1 py-2 align-top"
+                      data-blocker-action-menu
+                    >
+                      <div class="relative flex justify-center">
+                        <button
+                          type="button"
+                          class="inline-flex h-8 max-w-full items-center gap-0.5 rounded-lg border border-slate-200 bg-white px-1.5 text-[11px] font-medium text-slate-600 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
+                          :class="openActionMenuId === b.id ? 'border-brand/30 text-brand' : ''"
+                          :aria-expanded="openActionMenuId === b.id"
+                          aria-haspopup="menu"
+                          :aria-label="`Thao tác ${b.code}`"
+                          @click.stop="toggleActionMenu(b.id)"
+                        >
+                          <span class="hidden min-[420px]:inline">Thao tác</span>
+                          <AppIcon
+                            name="chevron-down"
+                            :size="13"
+                            class="shrink-0 transition"
+                            :class="openActionMenuId === b.id ? 'rotate-180' : ''"
+                          />
+                        </button>
+                        <transition
+                          enter-active-class="transition duration-150 ease-out"
+                          enter-from-class="translate-y-1 opacity-0"
+                          enter-to-class="translate-y-0 opacity-100"
+                          leave-active-class="transition duration-100 ease-in"
+                          leave-from-class="translate-y-0 opacity-100"
+                          leave-to-class="translate-y-1 opacity-0"
+                        >
+                          <div
+                            v-if="openActionMenuId === b.id"
+                            class="absolute right-0 top-full z-30 mt-1 w-48 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
+                            role="menu"
+                            :aria-label="`Menu thao tác ${b.code}`"
+                          >
+                            <button
+                              type="button"
+                              role="menuitem"
+                              class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-50"
+                              @click.stop="toggleRow(b.id)"
+                            >
+                              <AppIcon
+                                name="chevron-down"
+                                :size="14"
+                                class="shrink-0"
+                                :class="isRowExpanded(b.id) ? 'rotate-180' : ''"
+                              />
+                              {{ isRowExpanded(b.id) ? 'Thu gọn chi tiết' : 'Xem chi tiết' }}
+                            </button>
+                            <button
+                              type="button"
+                              role="menuitem"
+                              class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-50"
+                              @click.stop="openRowComments(b)"
+                            >
+                              <AppIcon
+                                name="comment"
+                                :size="14"
+                                class="shrink-0"
+                              />
+                              Bình luận
+                              <span class="ml-auto tabular-nums text-xs text-slate-400">{{ b.comments_count ?? 0 }}</span>
+                            </button>
+                            <button
+                              v-if="b.can?.update && !isTerminal(b)"
+                              type="button"
+                              role="menuitem"
+                              class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-emerald-800 transition hover:bg-emerald-50"
+                              @click.stop="runAction(() => openResolve(b))"
+                            >
+                              <AppIcon
+                                name="meeting-notes"
+                                :size="14"
+                                class="shrink-0"
+                              />
+                              Hướng xử lý
+                            </button>
+                            <button
+                              v-if="b.can?.update"
+                              type="button"
+                              role="menuitem"
+                              class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-50"
+                              @click.stop="runAction(() => open(b))"
+                            >
+                              <AppIcon
+                                name="edit"
+                                :size="14"
+                                class="shrink-0"
+                              />
+                              Sửa
+                            </button>
+                            <button
+                              v-if="b.can?.delete"
+                              type="button"
+                              role="menuitem"
+                              class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-rose-700 transition hover:bg-rose-50"
+                              @click.stop="runAction(() => remove(b))"
+                            >
+                              <AppIcon
+                                name="delete"
+                                :size="14"
+                                class="shrink-0"
+                              />
+                              Xoá
+                            </button>
+                          </div>
+                        </transition>
+                      </div>
+                    </td>
                   </tr>
                   <tr
                     v-if="isRowExpanded(b.id)"
@@ -1004,146 +1173,130 @@ function toggleAllGroups() {
                       :colspan="tableColspan"
                       class="bg-slate-50/90 px-3 py-3 align-top sm:px-5 sm:py-4"
                     >
-                      <section class="rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm">
-                        <div class="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-slate-100 pb-3 text-xs text-slate-500">
-                          <span class="font-mono font-semibold text-brand">{{ b.code }}</span>
-                          <span v-if="b.raised_at">Báo {{ date(b.raised_at) }}</span>
-                          <span
-                            :class="b.is_overdue && !isTerminal(b) ? 'font-semibold text-rose-600' : ''"
-                          >
-                            Hạn {{ b.due_date ? date(b.due_date) : '—' }}
-                          </span>
-                          <span v-if="b.resolved_at">Xong {{ datetime(b.resolved_at) }}</span>
-                          <span>{{ b.comments_count ?? 0 }} bình luận</span>
-                          <span v-if="b.updated_at">Cập nhật {{ datetime(b.updated_at) }}</span>
-                        </div>
-                        <dl class="grid gap-4 text-sm sm:grid-cols-2">
-                          <div class="sm:col-span-2">
-                            <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                              Mô tả
-                            </dt>
-                            <dd class="mt-1 break-words whitespace-pre-wrap text-slate-700">
-                              {{ b.description?.trim() || '—' }}
-                            </dd>
-                          </div>
-                          <div class="sm:col-span-2">
-                            <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                              Nguyên nhân
-                            </dt>
-                            <dd class="mt-1 break-words whitespace-pre-wrap text-slate-700">
-                              {{ b.root_cause?.trim() || '—' }}
-                            </dd>
-                          </div>
-                          <div class="sm:col-span-2">
-                            <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                              Hướng xử lý
-                            </dt>
-                            <dd class="mt-1 break-words whitespace-pre-wrap text-slate-700">
-                              {{ b.resolution?.trim() || '—' }}
-                            </dd>
-                          </div>
-                          <div
-                            v-if="b.task?.title"
-                            class="sm:col-span-2"
-                          >
-                            <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                              Công việc liên quan
-                            </dt>
-                            <dd class="mt-1 break-words text-slate-700">
-                              {{ b.task.title }}
-                            </dd>
-                          </div>
-                          <div
-                            v-if="normalizeEvidenceLinks(b.evidence_links).length"
-                            class="sm:col-span-2"
-                          >
-                            <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                              Link dẫn chứng
-                            </dt>
-                            <dd class="mt-1">
-                              <ul class="space-y-1.5">
-                                <li
-                                  v-for="(link, linkIdx) in normalizeEvidenceLinks(b.evidence_links)"
-                                  :key="linkIdx"
-                                >
-                                  <a
-                                    :href="link.url"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    class="inline-flex max-w-full items-start gap-1.5 text-sm font-medium text-brand hover:underline"
-                                    @click.stop
-                                  >
-                                    <AppIcon
-                                      name="dependency"
-                                      :size="14"
-                                      class="mt-0.5 shrink-0"
-                                    />
-                                    <span class="min-w-0 break-all">{{ evidenceLinkLabel(link) }}</span>
-                                  </a>
-                                </li>
-                              </ul>
-                            </dd>
-                          </div>
-                          <div
-                            v-if="blockerAttachments(b).length"
-                            class="sm:col-span-2"
-                          >
-                            <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                              Ảnh &amp; file đính kèm
-                            </dt>
-                            <dd class="mt-2">
-                              <BlockerAttachmentsBlock
-                                :blocker-id="b.id"
-                                :attachments="blockerAttachments(b)"
-                                :can-upload="false"
-                                compact
-                              />
-                            </dd>
-                          </div>
-                        </dl>
-                      </section>
-                      <div
-                        v-if="b.can?.update || b.can?.delete"
-                        class="mt-4 flex flex-wrap items-center gap-2 border-t border-slate-200/80 pt-3"
+                      <details
+                        class="group rounded-xl border border-slate-200/90 bg-white shadow-sm"
+                        open
                       >
-                        <span class="text-xs font-medium text-slate-500">Thao tác:</span>
-                        <button
-                          v-if="b.can?.update && !isTerminal(b)"
-                          type="button"
-                          class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-xs font-medium text-emerald-800 hover:bg-emerald-100"
-                          @click="openResolve(b)"
-                        >
-                          <AppIcon
-                            name="meeting-notes"
-                            :size="14"
-                          />
-                          Hướng xử lý
-                        </button>
-                        <button
-                          v-if="b.can?.update"
-                          type="button"
-                          class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50"
-                          @click="open(b)"
-                        >
-                          <AppIcon
-                            name="edit"
-                            :size="14"
-                          />
-                          Sửa
-                        </button>
-                        <button
-                          v-if="b.can?.delete"
-                          type="button"
-                          class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-rose-200 bg-white px-3 text-xs font-medium text-rose-700 hover:bg-rose-50"
-                          @click="remove(b)"
-                        >
-                          <AppIcon
-                            name="delete"
-                            :size="14"
-                          />
-                          Xoá
-                        </button>
-                      </div>
+                        <summary class="cursor-pointer list-none px-4 py-3 text-sm font-medium text-slate-700 marker:content-none [&::-webkit-details-marker]:hidden">
+                          <span class="inline-flex items-center gap-2">
+                            <AppIcon
+                              name="chevron-down"
+                              :size="14"
+                              class="text-slate-400 transition group-open:rotate-180"
+                            />
+                            Nội dung chi tiết
+                          </span>
+                        </summary>
+                        <section class="border-t border-slate-100 p-4 pt-3">
+                          <div class="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-slate-100 pb-3 text-xs text-slate-500">
+                            <span class="font-mono font-semibold text-brand">{{ b.code }}</span>
+                            <span v-if="b.raised_at">Báo {{ date(b.raised_at) }}</span>
+                            <span
+                              :class="b.is_overdue && !isTerminal(b) ? 'font-semibold text-rose-600' : ''"
+                            >
+                              Hạn {{ b.due_date ? date(b.due_date) : '—' }}
+                            </span>
+                            <span v-if="b.resolved_at">Xong {{ datetime(b.resolved_at) }}</span>
+                            <span>{{ b.comments_count ?? 0 }} bình luận</span>
+                            <span v-if="b.updated_at">Cập nhật {{ datetime(b.updated_at) }}</span>
+                          </div>
+                          <dl class="grid gap-4 text-sm sm:grid-cols-2">
+                            <div class="sm:col-span-2">
+                              <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                                Mô tả
+                              </dt>
+                              <dd class="mt-1 break-words whitespace-pre-wrap text-slate-700">
+                                {{ b.description?.trim() || '—' }}
+                              </dd>
+                            </div>
+                            <div class="sm:col-span-2">
+                              <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                                Nguyên nhân
+                              </dt>
+                              <dd class="mt-1 break-words whitespace-pre-wrap text-slate-700">
+                                {{ b.root_cause?.trim() || '—' }}
+                              </dd>
+                            </div>
+                            <div class="sm:col-span-2">
+                              <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                                Hướng xử lý
+                              </dt>
+                              <dd class="mt-1 break-words whitespace-pre-wrap text-slate-700">
+                                {{ b.resolution?.trim() || '—' }}
+                              </dd>
+                            </div>
+                            <div
+                              v-if="b.task?.title"
+                              class="sm:col-span-2"
+                            >
+                              <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                                Công việc liên quan
+                              </dt>
+                              <dd class="mt-1 break-words text-slate-700">
+                                {{ b.task.title }}
+                              </dd>
+                            </div>
+                            <div
+                              v-if="normalizeEvidenceLinks(b.evidence_links).length"
+                              class="sm:col-span-2"
+                            >
+                              <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                                Link dẫn chứng
+                              </dt>
+                              <dd class="mt-1">
+                                <ul class="space-y-1.5">
+                                  <li
+                                    v-for="(link, linkIdx) in normalizeEvidenceLinks(b.evidence_links)"
+                                    :key="linkIdx"
+                                  >
+                                    <a
+                                      :href="link.url"
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      class="inline-flex max-w-full items-start gap-1.5 text-sm font-medium text-brand hover:underline"
+                                      @click.stop
+                                    >
+                                      <AppIcon
+                                        name="dependency"
+                                        :size="14"
+                                        class="mt-0.5 shrink-0"
+                                      />
+                                      <span class="min-w-0 break-all">{{ evidenceLinkLabel(link) }}</span>
+                                    </a>
+                                  </li>
+                                </ul>
+                              </dd>
+                            </div>
+                            <div
+                              v-if="blockerAttachments(b).length"
+                              class="sm:col-span-2"
+                            >
+                              <dt class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                                Ảnh &amp; file đính kèm
+                              </dt>
+                              <dd class="mt-2">
+                                <BlockerAttachmentsBlock
+                                  :blocker-id="b.id"
+                                  :attachments="blockerAttachments(b)"
+                                  :can-upload="false"
+                                  compact
+                                />
+                              </dd>
+                            </div>
+                          </dl>
+                        </section>
+                      </details>
+                      <section
+                        :id="`blocker-comments-${b.id}`"
+                        class="mt-3 rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm"
+                      >
+                        <CommentThread
+                          :comments="blockerComments(b)"
+                          commentable-type="blocker"
+                          :commentable-id="b.id"
+                          :can-comment="can.comment"
+                        />
+                      </section>
                     </td>
                   </tr>
                 </template>

@@ -117,4 +117,39 @@ class TaskActivityLogger
             $account?->employee_id,
         );
     }
+
+    public static function deleted(Task $task, ?SystemAccount $account): void
+    {
+        self::log($task, 'deleted', 'Xoá công việc', ['title' => $task->title], $account?->employee_id);
+    }
+
+    public static function attachmentRemoved(Task $task, string $fileName, ?SystemAccount $account): void
+    {
+        self::log($task, 'attachment_removed', "Xoá đính kèm: {$fileName}", ['file' => $fileName], $account?->employee_id);
+    }
+
+    public static function worklogRemoved(Task $task, float $hours, ?SystemAccount $account): void
+    {
+        self::log($task, 'worklog_removed', "Xoá bản ghi {$hours}h", ['hours' => $hours], $account?->employee_id);
+    }
+
+    public static function assigneesSynced(Task $task, ?SystemAccount $account): void
+    {
+        self::log($task, 'assignees', 'Cập nhật danh sách người thực hiện', null, $account?->employee_id);
+    }
+
+    public static function dependenciesSynced(Task $task, ?SystemAccount $account): void
+    {
+        self::log($task, 'dependencies', 'Cập nhật phụ thuộc công việc', null, $account?->employee_id);
+    }
+
+    public static function commentUpdated(Task $task, ?SystemAccount $account): void
+    {
+        self::log($task, 'comment_updated', 'Sửa bình luận', null, $account?->employee_id);
+    }
+
+    public static function commentDeleted(Task $task, ?SystemAccount $account): void
+    {
+        self::log($task, 'comment_deleted', 'Xoá bình luận', null, $account?->employee_id);
+    }
 }

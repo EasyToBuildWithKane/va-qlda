@@ -19,6 +19,7 @@ use App\Services\NotificationService;
 use App\Support\Enums\NotificationType;
 use App\Support\Enums\TaskPriority;
 use App\Support\Enums\TaskStatus;
+use App\Support\ProjectActivityLogger;
 use App\Support\TaskActivityLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -133,6 +134,8 @@ class TaskController extends Controller
         $this->authorize('manage', $project);
         abort_unless($task->project_id === $project->id, 404);
 
+        $user = request()->user();
+        ProjectActivityLogger::taskRemoved($project, $task, $user);
         $task->delete();
 
         return back()->with('success', 'Đã xoá công việc.');

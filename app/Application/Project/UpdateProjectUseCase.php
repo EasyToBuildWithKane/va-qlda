@@ -5,6 +5,7 @@ namespace App\Application\Project;
 use App\Models\Project;
 use App\Models\SystemAccount;
 use App\Support\NotificationDispatcher;
+use App\Support\ProjectActivityLogger;
 
 class UpdateProjectUseCase
 {
@@ -17,7 +18,9 @@ class UpdateProjectUseCase
 
         $changes = collect($project->getChanges())->except(['updated_at'])->all();
         if ($changes !== []) {
-            NotificationDispatcher::projectUpdated($project->fresh(), $actor, $changes);
+            $fresh = $project->fresh();
+            ProjectActivityLogger::updated($fresh, $actor, $changes);
+            NotificationDispatcher::projectUpdated($fresh, $actor, $changes);
         }
 
         return $project;

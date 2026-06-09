@@ -2,7 +2,11 @@
 
 namespace App\Support;
 
+use App\Models\Blocker;
+use App\Models\Bug;
+use App\Models\Feedback;
 use App\Models\Project;
+use App\Models\Sprint;
 use App\Models\SystemAccount;
 use App\Models\Task;
 use App\Services\NotificationService;
@@ -130,6 +134,22 @@ class NotificationDispatcher
         );
     }
 
+    public static function projectCreated(Project $project, ?SystemAccount $actor): void
+    {
+        $svc = self::service();
+        $title = $actor
+            ? "{$actor->display_name} tạo dự án {$project->name}"
+            : "Dự án mới: {$project->name}";
+
+        if ($actor) {
+            $svc->notifyAdmins(NotificationType::ProjectCreated, $title, $project->code, [
+                'actor' => $actor,
+                'project_id' => $project->id,
+                'action_url' => "/projects/{$project->id}",
+            ]);
+        }
+    }
+
     public static function projectUpdated(Project $project, ?SystemAccount $actor, array $changes): void
     {
         if ($changes === []) {
@@ -166,6 +186,106 @@ class NotificationDispatcher
                 'action_url' => "/projects/{$project->id}",
             ]);
         }
+    }
+
+    public static function sprintChanged(
+        Project $project,
+        Sprint $sprint,
+        string $verb,
+        ?SystemAccount $actor,
+    ): void {
+        $svc = self::service();
+        $members = $svc->accountsForEmployees($project->members()->pluck('employees.id')->all());
+        $title = $actor
+            ? "{$actor->display_name} {$verb} sprint {$sprint->name}"
+            : "Sprint {$sprint->name} — {$verb}";
+
+        $type = match ($verb) {
+            'tạo' => NotificationType::SprintCreated,
+            'cập nhật' => NotificationType::SprintStarted,
+            default => NotificationType::SprintEnded,
+        };
+
+        $svc->notify($members, $type, $title, $project->name, [
+            'actor' => $actor,
+            'project_id' => $project->id,
+            'sprint_id' => $sprint->id,
+            'action_url' => "/projects/{$project->id}?tab=sprint",
+        ]);
+    }
+
+    public static function blockerUpdated(Blocker $blocker, ?SystemAccount $actor, array $changes): void
+    {
+        if ($changes === [] || ! $blocker->project_id) {
+            return;
+        }
+
+        $svc = self::service();
+        $blocker->loadMissing('project');
+        $employeeIds = collect([$blocker->owner_id, $blocker->raised_by_id])
+            ->merge($blocker->project?->members()->pluck('employees.id') ?? [])
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $members = $svc->accountsForEmployees($employeeIds)
+            ->reject(fn (SystemAccount $a) => $actor && $a->id === $actor->id);
+
+        $ref = $blocker->code ?? ('RSK-'.$blocker->id);
+        $title = $actor
+            ? "{$actor->display_name} cập nhật {$ref}"
+            : "Cập nhật {$ref}";
+
+        $body = trim(($blocker->title ? $blocker->title."\n" : '').(NotificationChangeSummary::blocker($changes) ?? ''));
+
+        $svc->notify($members, NotificationType::ProjectStatusChanged, $title, $body !== '' ? $body : null, [
+            'actor' => $actor,
+            'project_id' => $blocker->project_id,
+            'entity_type' => 'blocker',
+            'entity_id' => $blocker->id,
+            'action_url' => '/blockers',
+        ]);
+    }
+
+    public static function bugChanged(Bug $bug, string $verb, ?SystemAccount $actor, ?array $changes = null): void
+    {
+        $svc = self::service();
+        $ref = $bug->code ?? ('BUG-'.$bug->id);
+        $title = $actor
+            ? "{$actor->display_name} {$verb} {$ref}"
+            : "{$verb} {$ref}";
+
+        $body = $changes ? NotificationChangeSummary::bug($changes) : $bug->title;
+
+        $recipients = $svc->accountsForEmployees(array_filter([$bug->assignee_id, $bug->reporter_employee_id]));
+
+        $svc->notify($recipients, NotificationType::TaskUpdated, $title, $body, [
+            'actor' => $actor,
+            'project_id' => $bug->project_id,
+            'action_url' => "/bugs/{$bug->id}",
+        ]);
+    }
+
+    public static function feedbackChanged(Feedback $feedback, string $verb, ?SystemAccount $actor, ?array $changes = null): void
+    {
+        $svc = self::service();
+        $ref = $feedback->code ?? ('FB-'.$feedback->id);
+        $title = $actor
+            ? "{$actor->display_name} {$verb} {$ref}"
+            : "{$verb} {$ref}";
+
+        $body = $changes ? NotificationChangeSummary::feedback($changes) : $feedback->title;
+
+        $recipients = $svc->accountsForEmployees(array_filter([$feedback->assignee_id, $feedback->reporter_employee_id]));
+
+        $svc->notify($recipients, NotificationType::CommentReply, $title, $body, [
+            'actor' => $actor,
+            'project_id' => $feedback->project_id,
+            'action_url' => $feedback->project_id
+                ? "/projects/{$feedback->project_id}?tab=feedback"
+                : "/feedback/{$feedback->id}",
+        ]);
     }
 
     private static function taskNotificationBody(Task $task, ?string $detail = null): string

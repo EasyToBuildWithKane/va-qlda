@@ -13,7 +13,10 @@ use App\Support\BlockerActivityLogger;
 use App\Support\Enums\BlockerSeverity;
 use App\Support\Enums\BlockerStatus;
 use App\Support\Enums\NotificationType;
+use App\Support\Enums\SystemRole;
+use App\Support\NotificationDispatcher;
 use App\Support\Options;
+use App\Support\ProjectActivityLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -55,6 +58,7 @@ class BlockerController extends Controller
                 'raisedBy',
                 'owner',
                 'attachments' => fn ($a) => $a->with('uploadedBy')->latest(),
+                'comments' => fn ($c) => $c->whereNull('parent_id')->with(['author', 'replies.author'])->latest(),
             ])
             ->withCount('comments')
             ->orderByPriority();
@@ -118,7 +122,10 @@ class BlockerController extends Controller
                 'severity' => BlockerSeverity::options(),
                 'status' => BlockerStatus::options(),
             ],
-            'can' => ['create' => $account->can('create', Blocker::class)],
+            'can' => [
+                'create' => $account->can('create', Blocker::class),
+                'comment' => $account->role !== SystemRole::Viewer,
+            ],
         ]);
     }
 
@@ -230,6 +237,7 @@ class BlockerController extends Controller
             }
         }
         BlockerActivityLogger::updated($blocker, $account, $changes);
+        NotificationDispatcher::blockerUpdated($blocker, $account, $changes);
 
         return back()->with('success', 'Đã cập nhật vướng mắc.');
     }
@@ -238,6 +246,13 @@ class BlockerController extends Controller
     {
         $this->authorize('delete', $blocker);
 
+        $user = request()->user();
+        if ($blocker->project_id) {
+            $blocker->loadMissing('project');
+            if ($blocker->project) {
+                ProjectActivityLogger::blockerRemoved($blocker->project, $blocker, $user);
+            }
+        }
         $blocker->delete();
 
         return back()->with('success', 'Đã xoá vướng mắc.');
@@ -263,7 +278,15 @@ class BlockerController extends Controller
             };
         }
 
+        $account = $request->user();
+
         if ($data['action'] === 'delete') {
+            foreach ($blockers as $blocker) {
+                $blocker->loadMissing('project');
+                if ($blocker->project) {
+                    ProjectActivityLogger::blockerRemoved($blocker->project, $blocker, $account);
+                }
+            }
             Blocker::query()->whereIn('id', $data['ids'])->delete();
 
             return back()->with('success', 'Đã xoá '.count($data['ids']).' vướng mắc.');
@@ -285,6 +308,11 @@ class BlockerController extends Controller
         }
 
         Blocker::query()->whereIn('id', $data['ids'])->update($payload);
+
+        $bulkLabel = $data['action'] === 'status' ? 'Cập nhật hàng loạt trạng thái' : 'Cập nhật hàng loạt người xử lý';
+        foreach ($blockers as $blocker) {
+            BlockerActivityLogger::bulkUpdated($blocker->fresh(), $bulkLabel, $account);
+        }
 
         return back()->with('success', 'Đã cập nhật '.count($data['ids']).' vướng mắc.');
     }

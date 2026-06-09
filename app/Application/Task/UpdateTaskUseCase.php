@@ -66,10 +66,20 @@ class UpdateTaskUseCase
         }
 
         if ($dependencies !== null) {
+            $beforeDeps = $task->dependencies()->pluck('id')->sort()->values()->all();
             $task->dependencies()->sync($dependencies);
+            $afterDeps = collect($dependencies)->map(fn ($id) => (int) $id)->sort()->values()->all();
+            if ($beforeDeps !== $afterDeps) {
+                TaskActivityLogger::dependenciesSynced($fresh, $actor);
+            }
         }
         if ($assigneeIds !== null) {
+            $beforeAssignees = $task->assignees()->pluck('id')->sort()->values()->all();
             $task->assignees()->sync($assigneeIds);
+            $afterAssignees = collect($assigneeIds)->map(fn ($id) => (int) $id)->sort()->values()->all();
+            if ($beforeAssignees !== $afterAssignees) {
+                TaskActivityLogger::assigneesSynced($fresh, $actor);
+            }
         }
 
         return $fresh;

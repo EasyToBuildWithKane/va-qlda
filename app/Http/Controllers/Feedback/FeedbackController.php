@@ -10,6 +10,8 @@ use App\Models\Feedback;
 use App\Support\Enums\FeedbackCategory;
 use App\Support\Enums\FeedbackStatus;
 use App\Support\Enums\TaskPriority;
+use App\Support\FeedbackActivityLogger;
+use App\Support\NotificationDispatcher;
 use App\Support\Options;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -78,6 +80,8 @@ class FeedbackController extends Controller
         $data['status'] ??= FeedbackStatus::New->value;
 
         $feedback = Feedback::create($data);
+        FeedbackActivityLogger::created($feedback, $request->user());
+        NotificationDispatcher::feedbackChanged($feedback, 'tạo', $request->user());
 
         if ($request->input('return_to') === 'project' && $feedback->project_id) {
             return redirect()
@@ -94,12 +98,26 @@ class FeedbackController extends Controller
     {
         $data = $request->validated();
 
+        $oldStatus = $feedback->status->value;
+
         if (array_key_exists('status', $data)) {
             $closed = FeedbackStatus::from($data['status'])->isClosed();
             $data['resolved_at'] = $closed ? ($feedback->resolved_at ?? now()) : null;
         }
 
         $feedback->update($data);
+        $account = $request->user();
+
+        if (isset($data['status']) && $data['status'] !== $oldStatus) {
+            FeedbackActivityLogger::statusChanged($feedback, $oldStatus, $data['status'], $account);
+        }
+
+        $changes = collect($feedback->getChanges())->except(['status', 'resolved_at', 'updated_at'])->all();
+        if ($changes !== []) {
+            FeedbackActivityLogger::updated($feedback, $account, $changes);
+        }
+
+        NotificationDispatcher::feedbackChanged($feedback->fresh(), 'cập nhật', $account, $changes);
 
         return back()->with('success', 'Đã cập nhật phản hồi.');
     }
@@ -108,6 +126,7 @@ class FeedbackController extends Controller
     {
         $this->authorize('delete', $feedback);
 
+        FeedbackActivityLogger::deleted($feedback, request()->user());
         $feedback->delete();
 
         return redirect()

@@ -29,9 +29,20 @@ export const GANTT_BAR = {
 export const ACTIVITY_DOT = {
     task_status_changed: 'bg-sky-400',
     task_created: 'bg-emerald-400',
+    task_updated: 'bg-sky-300',
+    task_deleted: 'bg-slate-400',
     member_added: 'bg-violet-400',
+    member: 'bg-violet-400',
     sprint_started: 'bg-amber-400',
     issue_opened: 'bg-rose-400',
+    issue_updated: 'bg-rose-300',
+    issue_closed: 'bg-slate-400',
+    issue_imported: 'bg-amber-500',
+    project_created: 'bg-brand',
+    project_updated: 'bg-indigo-400',
+    document: 'bg-teal-400',
+    comment: 'bg-slate-500',
+    worklog: 'bg-cyan-400',
 };
 
 export function getTaskAssigneeIds(task) {
@@ -95,6 +106,10 @@ export function useProjectDashboard(projectId, sources) {
     };
 
     const loadActivity = () => {
+        const fromServer = sources.activityFeed?.value ?? sources.activityFeed;
+        if (Array.isArray(fromServer) && fromServer.length) {
+            return fromServer.filter((ev) => ev && ev.id != null);
+        }
         try {
             const raw = JSON.parse(localStorage.getItem(ACTIVITY_KEY(projectId)) || '[]');
             return Array.isArray(raw) ? raw.filter((ev) => ev && ev.id != null) : [];
@@ -103,6 +118,17 @@ export function useProjectDashboard(projectId, sources) {
         }
     };
     const activityLog = ref(loadActivity());
+
+    watch(
+        () => sources.activityFeed?.value ?? sources.activityFeed,
+        (feed) => {
+            if (Array.isArray(feed) && feed.length) {
+                activityLog.value = feed.filter((ev) => ev && ev.id != null);
+            }
+        },
+        { deep: true },
+    );
+
     const persistActivity = () => {
         localStorage.setItem(ACTIVITY_KEY(projectId), JSON.stringify(activityLog.value.slice(0, 50)));
     };
@@ -177,8 +203,10 @@ export function useProjectDashboard(projectId, sources) {
     });
 
     const seedActivityIfEmpty = () => {
+        const fromServer = sources.activityFeed?.value ?? sources.activityFeed;
+        if (Array.isArray(fromServer) && fromServer.length) return;
         if (activityLog.value.length) return;
-        const { project, tasks, blockers, sprints, members } = sources;
+        const { tasks, blockers, sprints } = sources;
         const events = [];
         (blockers?.value ?? []).slice(0, 3).forEach((b) => {
             events.push({

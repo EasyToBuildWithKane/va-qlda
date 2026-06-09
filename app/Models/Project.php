@@ -145,6 +145,11 @@ class Project extends Model
         return $this->hasMany(Feedback::class);
     }
 
+    public function activities(): HasMany
+    {
+        return $this->hasMany(ProjectActivity::class)->latest();
+    }
+
     // ---- Computed -------------------------------------------------------
 
     /**

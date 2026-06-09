@@ -36,6 +36,8 @@ class WorklogController extends Controller
         $this->authorize('manage', $project);
         abort_unless($task->project_id === $project->id && $worklog->task_id === $task->id, 404);
 
+        $hours = (float) $worklog->hours;
+        TaskActivityLogger::worklogRemoved($task, $hours, request()->user());
         $worklog->delete();
 
         return back()->with('success', 'Đã xoá bản ghi giờ làm.');

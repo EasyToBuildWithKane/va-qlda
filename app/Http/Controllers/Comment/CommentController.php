@@ -10,6 +10,8 @@ use App\Models\Comment;
 use App\Models\Feedback;
 use App\Models\Task;
 use App\Support\BlockerActivityLogger;
+use App\Support\BugActivityLogger;
+use App\Support\FeedbackActivityLogger;
 use App\Support\NotificationDispatcher;
 use App\Support\TaskActivityLogger;
 use Illuminate\Database\Eloquent\Model;
@@ -46,12 +48,18 @@ class CommentController extends Controller
             'body' => $data['body'],
         ]);
 
+        $user = $request->user();
+
         if ($model instanceof Blocker) {
-            BlockerActivityLogger::commentAdded($model, $request->user());
+            BlockerActivityLogger::commentAdded($model, $user);
         } elseif ($model instanceof Task) {
-            TaskActivityLogger::commentAdded($model, $request->user());
+            TaskActivityLogger::commentAdded($model, $user);
             $isMention = str_contains($data['body'], '@');
-            NotificationDispatcher::taskComment($model->fresh(['project', 'watchers']), $request->user(), $isMention);
+            NotificationDispatcher::taskComment($model->fresh(['project', 'watchers']), $user, $isMention);
+        } elseif ($model instanceof Bug) {
+            BugActivityLogger::commentAdded($model, $user);
+        } elseif ($model instanceof Feedback) {
+            FeedbackActivityLogger::commentAdded($model, $user);
         }
 
         return back()->with('success', 'Đã gửi bình luận.');
@@ -66,6 +74,7 @@ class CommentController extends Controller
         ]);
 
         $comment->update(['body' => $data['body']]);
+        $this->logCommentEvent($comment, 'updated', $request->user());
 
         return back()->with('success', 'Đã cập nhật bình luận.');
     }
@@ -73,6 +82,9 @@ class CommentController extends Controller
     public function destroy(Request $request, Comment $comment): RedirectResponse
     {
         $this->authorizeComment($request, $comment);
+
+        $comment->loadMissing('commentable');
+        $this->logCommentEvent($comment, 'deleted', $request->user());
 
         $comment->replies()->delete();
         $comment->delete();
@@ -144,5 +156,31 @@ class CommentController extends Controller
         $class = self::TYPES[$type];
 
         return $class::findOrFail($id);
+    }
+
+    private function logCommentEvent(Comment $comment, string $action, $user): void
+    {
+        $target = $comment->commentable;
+        if (! $target) {
+            return;
+        }
+
+        if ($target instanceof Task) {
+            $action === 'updated'
+                ? TaskActivityLogger::commentUpdated($target, $user)
+                : TaskActivityLogger::commentDeleted($target, $user);
+        } elseif ($target instanceof Blocker) {
+            $action === 'updated'
+                ? BlockerActivityLogger::commentUpdated($target, $user)
+                : BlockerActivityLogger::commentDeleted($target, $user);
+        } elseif ($target instanceof Bug) {
+            $action === 'updated'
+                ? BugActivityLogger::commentUpdated($target, $user)
+                : BugActivityLogger::commentDeleted($target, $user);
+        } elseif ($target instanceof Feedback) {
+            $action === 'updated'
+                ? FeedbackActivityLogger::commentUpdated($target, $user)
+                : FeedbackActivityLogger::commentDeleted($target, $user);
+        }
     }
 }

@@ -7,6 +7,7 @@ use App\Http\Requests\Project\StoreMemberRequest;
 use App\Http\Requests\Project\UpdateMemberRequest;
 use App\Models\Employee;
 use App\Models\Project;
+use App\Support\ProjectActivityLogger;
 use Illuminate\Http\RedirectResponse;
 
 class ProjectMemberController extends Controller
@@ -24,6 +25,9 @@ class ProjectMemberController extends Controller
             'is_active' => $data['is_active'] ?? true,
         ]);
 
+        $member = Employee::query()->findOrFail($data['employee_id']);
+        ProjectActivityLogger::memberAdded($project, $member, $request->user());
+
         return back()->with('success', 'Đã thêm thành viên.');
     }
 
@@ -40,6 +44,8 @@ class ProjectMemberController extends Controller
             'is_active' => $data['is_active'] ?? true,
         ]);
 
+        ProjectActivityLogger::memberUpdated($project, $employee, $request->user());
+
         return back()->with('success', 'Đã cập nhật thành viên.');
     }
 
@@ -47,6 +53,7 @@ class ProjectMemberController extends Controller
     {
         $this->authorize('manage', $project);
 
+        ProjectActivityLogger::memberRemoved($project, $employee, request()->user());
         $project->members()->detach($employee->id);
 
         return back()->with('success', 'Đã gỡ thành viên khỏi dự án.');

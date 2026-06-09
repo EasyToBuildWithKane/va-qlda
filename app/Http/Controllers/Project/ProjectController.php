@@ -24,7 +24,10 @@ use App\Support\Enums\FeedbackStatus;
 use App\Support\Enums\ProjectScope;
 use App\Support\Enums\ProjectStatus;
 use App\Support\Enums\ProjectType;
+use App\Support\NotificationDispatcher;
 use App\Support\Options;
+use App\Support\ProjectActivityFeedBuilder;
+use App\Support\ProjectActivityLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -40,6 +43,7 @@ class ProjectController extends Controller
         private readonly ArchiveProjectUseCase $archiveProject,
         private readonly ProjectIndexQuery $projectIndexQuery,
         private readonly ProjectShowDataLoader $projectShowDataLoader,
+        private readonly ProjectActivityFeedBuilder $activityFeedBuilder,
     ) {}
 
     public function index(Request $request): Response
@@ -81,6 +85,8 @@ class ProjectController extends Controller
     public function store(StoreProjectRequest $request): RedirectResponse
     {
         $project = $this->createProject->execute($request->validated());
+        ProjectActivityLogger::created($project, $request->user());
+        NotificationDispatcher::projectCreated($project, $request->user());
 
         $route = $request->input('after') === 'continue' ? 'projects.edit' : 'projects.show';
 
@@ -117,6 +123,7 @@ class ProjectController extends Controller
                 'employees' => Options::employees(),
                 'enums' => Options::enums(),
             ],
+            'activityFeed' => $this->activityFeedBuilder->forProject($project),
         ]);
     }
 
@@ -177,25 +184,28 @@ class ProjectController extends Controller
         $this->authorize('create', Project::class);
 
         $copy = $this->duplicateProject->execute($project);
+        ProjectActivityLogger::duplicated($copy, $project, request()->user());
 
         return redirect()
             ->route('projects.edit', $copy)
             ->with('success', 'Đã nhân bản dự án.');
     }
 
-    public function archive(Project $project): RedirectResponse
+    public function archive(Request $request, Project $project): RedirectResponse
     {
         $this->authorize('update', $project);
 
         $this->archiveProject->execute($project);
+        ProjectActivityLogger::archived($project->fresh(), $request->user());
 
         return back()->with('success', 'Đã lưu trữ dự án.');
     }
 
-    public function destroy(Project $project): RedirectResponse
+    public function destroy(Request $request, Project $project): RedirectResponse
     {
         $this->authorize('delete', $project);
 
+        ProjectActivityLogger::deleted($project, $request->user());
         $project->delete();
 
         return redirect()

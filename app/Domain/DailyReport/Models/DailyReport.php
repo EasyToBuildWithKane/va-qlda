@@ -86,7 +86,19 @@ class DailyReport extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['status', 'title', 'is_late'])
+            ->logOnly([
+                'status',
+                'title',
+                'is_late',
+                'submitted_at',
+                'reviewed_at',
+                'review_notes',
+                'projects',
+                'goals_today',
+                'progress_update',
+                'results_impact',
+                'blockers',
+            ])
             ->useLogName('daily_report')
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();

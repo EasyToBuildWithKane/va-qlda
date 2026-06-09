@@ -94,4 +94,35 @@ class BlockerActivityLogger
             $account?->employee_id,
         );
     }
+
+    public static function attachmentRemoved(Blocker $blocker, string $fileName, ?SystemAccount $account): void
+    {
+        self::log(
+            $blocker,
+            'attachment_removed',
+            "Xoá đính kèm: {$fileName}",
+            ['file' => $fileName],
+            $account?->employee_id,
+        );
+    }
+
+    public static function deleted(Blocker $blocker, ?SystemAccount $account): void
+    {
+        self::log($blocker, 'deleted', 'Xoá vướng mắc', ['title' => $blocker->title], $account?->employee_id);
+    }
+
+    public static function bulkUpdated(Blocker $blocker, string $description, ?SystemAccount $account): void
+    {
+        self::log($blocker, 'bulk_updated', $description, null, $account?->employee_id);
+    }
+
+    public static function commentUpdated(Blocker $blocker, ?SystemAccount $account): void
+    {
+        self::log($blocker, 'comment_updated', 'Sửa bình luận', null, $account?->employee_id);
+    }
+
+    public static function commentDeleted(Blocker $blocker, ?SystemAccount $account): void
+    {
+        self::log($blocker, 'comment_deleted', 'Xoá bình luận', null, $account?->employee_id);
+    }
 }

@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Project\StoreSprintRequest;
 use App\Models\Project;
 use App\Models\Sprint;
+use App\Support\NotificationDispatcher;
+use App\Support\ProjectActivityLogger;
 use Illuminate\Http\RedirectResponse;
 
 class SprintController extends Controller
@@ -15,8 +17,10 @@ class SprintController extends Controller
         $data = $request->validated();
         unset($data['sort_order']);
 
-        $project->sprints()->create($data);
+        $sprint = $project->sprints()->create($data);
         $this->syncSprintSortOrders($project);
+        ProjectActivityLogger::sprintCreated($project, $sprint, $request->user());
+        NotificationDispatcher::sprintChanged($project, $sprint, 'tạo', $request->user());
 
         return back()->with('success', 'Đã thêm sprint.');
     }
@@ -30,6 +34,8 @@ class SprintController extends Controller
 
         $sprint->update($data);
         $this->syncSprintSortOrders($project);
+        ProjectActivityLogger::sprintUpdated($project, $sprint->fresh(), $request->user());
+        NotificationDispatcher::sprintChanged($project, $sprint, 'cập nhật', $request->user());
 
         return back()->with('success', 'Đã cập nhật sprint.');
     }
@@ -39,6 +45,10 @@ class SprintController extends Controller
         $this->authorize('manage', $project);
         abort_unless($sprint->project_id === $project->id, 404);
 
+        $name = $sprint->name;
+        $sprintId = $sprint->id;
+        ProjectActivityLogger::sprintDeleted($project, $name, $sprintId, request()->user());
+        NotificationDispatcher::sprintChanged($project, $sprint, 'xoá', request()->user());
         $sprint->delete();
         $this->syncSprintSortOrders($project);
 

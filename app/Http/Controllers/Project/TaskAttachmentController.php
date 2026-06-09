@@ -54,7 +54,9 @@ class TaskAttachmentController extends Controller
         $this->authorize('contribute', $project);
         abort_unless($task->project_id === $project->id && $attachment->task_id === $task->id, 404);
 
+        $name = $attachment->original_name;
         Storage::disk('public')->delete($attachment->path);
+        TaskActivityLogger::attachmentRemoved($task, $name, request()->user());
         $attachment->delete();
 
         return back()->with('success', 'Đã xoá file đính kèm.');

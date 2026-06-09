@@ -28,6 +28,40 @@ class NotificationChangeSummary
     ];
 
     /** @var array<string, string> */
+    private const BLOCKER_LABELS = [
+        'title' => 'tiêu đề',
+        'description' => 'mô tả',
+        'root_cause' => 'nguyên nhân',
+        'resolution' => 'hướng xử lý',
+        'severity' => 'mức độ',
+        'status' => 'trạng thái',
+        'owner_id' => 'người phụ trách',
+        'due_date' => 'hạn xử lý',
+        'evidence_links' => 'link dẫn chứng',
+    ];
+
+    /** @var array<string, string> */
+    private const BUG_LABELS = [
+        'title' => 'tiêu đề',
+        'description' => 'mô tả',
+        'severity' => 'mức độ',
+        'priority' => 'ưu tiên',
+        'status' => 'trạng thái',
+        'assignee_id' => 'người xử lý',
+    ];
+
+    /** @var array<string, string> */
+    private const FEEDBACK_LABELS = [
+        'title' => 'tiêu đề',
+        'description' => 'mô tả',
+        'category' => 'loại',
+        'rating' => 'đánh giá',
+        'priority' => 'ưu tiên',
+        'status' => 'trạng thái',
+        'assignee_id' => 'người xử lý',
+    ];
+
+    /** @var array<string, string> */
     private const PROJECT_LABELS = [
         'code' => 'mã dự án',
         'name' => 'tên',
@@ -60,6 +94,30 @@ class NotificationChangeSummary
     public static function project(array $changes): ?string
     {
         return self::summarize($changes, self::PROJECT_LABELS);
+    }
+
+    /**
+     * @param  array<string, mixed>  $changes
+     */
+    public static function blocker(array $changes): ?string
+    {
+        return self::summarize($changes, self::BLOCKER_LABELS);
+    }
+
+    /**
+     * @param  array<string, mixed>  $changes
+     */
+    public static function bug(array $changes): ?string
+    {
+        return self::summarize($changes, self::BUG_LABELS);
+    }
+
+    /**
+     * @param  array<string, mixed>  $changes
+     */
+    public static function feedback(array $changes): ?string
+    {
+        return self::summarize($changes, self::FEEDBACK_LABELS);
     }
 
     /**

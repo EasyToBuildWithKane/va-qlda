@@ -8,6 +8,7 @@ use App\Support\Enums\TaskPriority;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 /**
@@ -91,6 +92,11 @@ class Feedback extends Model
     public function comments(): MorphMany
     {
         return $this->morphMany(Comment::class, 'commentable')->latest();
+    }
+
+    public function activities(): HasMany
+    {
+        return $this->hasMany(FeedbackActivity::class)->latest();
     }
 
     public function reporterName(): string

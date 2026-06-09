@@ -8,6 +8,7 @@ use App\Support\Enums\TaskPriority;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -101,6 +102,11 @@ class Bug extends Model
     public function comments(): MorphMany
     {
         return $this->morphMany(Comment::class, 'commentable')->latest();
+    }
+
+    public function activities(): HasMany
+    {
+        return $this->hasMany(BugActivity::class)->latest();
     }
 
     public function reporterName(): string

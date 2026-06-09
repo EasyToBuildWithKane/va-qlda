@@ -37,6 +37,7 @@ const props = defineProps({
     epics: { type: Array, default: () => [] },
     attachments: { type: Array, default: () => [] },
     options: { type: Object, default: () => ({ employees: [], enums: {} }) },
+    activityFeed: { type: Array, default: () => [] },
 });
 
 const toast = useToast();
@@ -154,6 +155,7 @@ const {
     blockers: toRef(() => props.blockers),
     sprints: toRef(() => props.sprints),
     members: projectMembers,
+    activityFeed: toRef(() => props.activityFeed),
 });
 const { exportReport } = useProjectExport();
 

@@ -8,6 +8,7 @@ use App\Support\Enums\AiAccountGroupFunction;
 use App\Support\Enums\AiAccountLifecycleStatus;
 use App\Support\Enums\AiAccountRenewalPaymentStatus;
 use App\Support\Enums\AiAccountStatus;
+use App\Support\SecurityAuditLogger;
 use Illuminate\Support\Collection;
 
 class AiAccountGrouper
@@ -212,6 +213,10 @@ class AiAccountGrouper
         $budgetMonthly = $hasCountableProposal
             ? $this->countableProposalCost->monthlyForAccountInBudget($account)
             : 0;
+
+        if ($viewer && $canViewPassword && filled($account->login_password)) {
+            SecurityAuditLogger::aiAccountPasswordViewed($viewer, $account->id, $account->tool_name);
+        }
 
         return [
             'id' => $account->id,

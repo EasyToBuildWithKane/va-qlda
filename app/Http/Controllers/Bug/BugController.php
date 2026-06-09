@@ -7,9 +7,11 @@ use App\Http\Requests\Bug\StoreBugRequest;
 use App\Http\Requests\Bug\UpdateBugRequest;
 use App\Http\Resources\BugResource;
 use App\Models\Bug;
+use App\Support\BugActivityLogger;
 use App\Support\Enums\BugSeverity;
 use App\Support\Enums\BugStatus;
 use App\Support\Enums\TaskPriority;
+use App\Support\NotificationDispatcher;
 use App\Support\Options;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -81,6 +83,8 @@ class BugController extends Controller
         $data['status'] ??= BugStatus::Open->value;
 
         $bug = Bug::create($data);
+        BugActivityLogger::created($bug, $request->user());
+        NotificationDispatcher::bugChanged($bug, 'tạo', $request->user());
 
         return redirect()
             ->route('bugs.show', $bug)
@@ -91,12 +95,26 @@ class BugController extends Controller
     {
         $data = $request->validated();
 
+        $oldStatus = $bug->status->value;
+
         if (array_key_exists('status', $data)) {
             $closed = BugStatus::from($data['status'])->isClosed();
             $data['resolved_at'] = $closed ? ($bug->resolved_at ?? now()) : null;
         }
 
         $bug->update($data);
+        $account = $request->user();
+
+        if (isset($data['status']) && $data['status'] !== $oldStatus) {
+            BugActivityLogger::statusChanged($bug, $oldStatus, $data['status'], $account);
+        }
+
+        $changes = collect($bug->getChanges())->except(['status', 'resolved_at', 'updated_at'])->all();
+        if ($changes !== []) {
+            BugActivityLogger::updated($bug, $account, $changes);
+        }
+
+        NotificationDispatcher::bugChanged($bug->fresh(), 'cập nhật', $account, $changes);
 
         return back()->with('success', 'Đã cập nhật bug.');
     }
@@ -105,6 +123,7 @@ class BugController extends Controller
     {
         $this->authorize('delete', $bug);
 
+        BugActivityLogger::deleted($bug, request()->user());
         $bug->delete();
 
         return redirect()
