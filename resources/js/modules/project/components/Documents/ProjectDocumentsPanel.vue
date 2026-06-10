@@ -447,7 +447,7 @@ const activityTone = (event) => ({
       :class="workspaceGridClass"
     >
       <div class="flex min-h-0 flex-col overflow-hidden border-b border-slate-200 bg-slate-50/50 lg:border-b-0 lg:border-r dark:border-slate-700 dark:bg-slate-900/50">
-        <div class="shrink-0 border-b border-slate-200/80 bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
+        <div class="shrink-0 border-b border-slate-200/80 bg-white px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
           Danh sách ({{ categoryFiles.length }})
         </div>
         <div
@@ -467,13 +467,13 @@ const activityTone = (event) => ({
               :size="32"
               class="text-slate-300"
             />
-            <p class="mt-2 text-sm text-slate-400">
+            <p class="mt-2 text-xs text-slate-400">
               {{ canUpload ? 'Chưa có tài liệu — kéo thả hoặc chọn file.' : 'Chưa có tài liệu.' }}
             </p>
             <button
               v-if="canUpload"
               type="button"
-              class="mt-2 text-sm font-medium text-brand hover:underline"
+              class="mt-2 text-xs font-medium text-brand hover:underline"
               @click="pickFiles(activeCategory)"
             >
               Tải file đầu tiên
@@ -489,14 +489,14 @@ const activityTone = (event) => ({
             >
               <button
                 type="button"
-                class="flex w-full items-start gap-2.5 px-3 py-2.5 text-left transition"
+                class="flex w-full items-start gap-2 px-2.5 py-2 text-left transition"
                 :class="selectedId === file.id
                   ? 'bg-brand/8 ring-1 ring-inset ring-brand/20'
                   : 'hover:bg-slate-50 dark:hover:bg-slate-800'"
                 @click="selectFile(file)"
               >
                 <span
-                  class="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-[10px] font-bold uppercase"
+                  class="grid h-8 w-8 shrink-0 place-items-center rounded-md text-[9px] font-bold uppercase"
                   :class="file.is_image
                     ? 'bg-rose-50 text-rose-600'
                     : (file.is_google_doc || file.is_google_sheet)
@@ -507,13 +507,13 @@ const activityTone = (event) => ({
                     v-if="file.is_image"
                     :src="file.url"
                     :alt="file.original_name"
-                    class="h-9 w-9 rounded-lg object-cover"
+                    class="h-8 w-8 rounded-md object-cover"
                   >
                   <span v-else>{{ listBadge(file) }}</span>
                 </span>
                 <span class="min-w-0 flex-1">
-                  <span class="line-clamp-2 text-sm font-medium text-slate-800 dark:text-slate-100">{{ file.original_name }}</span>
-                  <span class="mt-0.5 block text-[10px] text-slate-400">
+                  <span class="line-clamp-2 text-xs font-medium leading-snug text-slate-800 dark:text-slate-100">{{ file.original_name }}</span>
+                  <span class="mt-0.5 block text-[9px] leading-tight text-slate-400">
                     {{ formatSize(file.size, file) }}
                     <span v-if="file.uploaded_by?.name"> · {{ file.uploaded_by.name.split(' ').pop() }}</span>
                   </span>

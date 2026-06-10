@@ -279,17 +279,19 @@ const onSprintSaved = () => {
         <!-- ===== DOCUMENTS ===== -->
         <div
           v-show="tab === 'documents'"
-          class="flex h-full min-h-0 flex-col overflow-hidden"
+          class="documents-tab-viewport flex h-full min-h-0 flex-col overflow-hidden"
         >
-          <ProjectDocumentsPanel
-            class="h-full min-h-0"
-            :project-id="project.id"
-            :attachments="attachments"
-            :categories="documentCategories"
-            :can-upload="canContribute"
-            :can-edit="canContribute"
-            :can-delete="canManage"
-          />
+          <div class="documents-tab-scaled min-h-0 flex-1">
+            <ProjectDocumentsPanel
+              class="h-full min-h-0"
+              :project-id="project.id"
+              :attachments="attachments"
+              :categories="documentCategories"
+              :can-upload="canContribute"
+              :can-edit="canContribute"
+              :can-delete="canManage"
+            />
+          </div>
         </div>
 
         <!-- ===== TIMELINE / GANTT ===== -->
@@ -596,3 +598,21 @@ const onSprintSaved = () => {
     />
   </AppLayout>
 </template>
+
+<style scoped>
+/* Tab Tài liệu ~80% — nhiều nội dung hơn trong viewport, preview Google/PDF gọn hơn */
+.documents-tab-viewport {
+    background: rgb(248 250 252);
+}
+
+:global(.dark) .documents-tab-viewport {
+    background: rgb(2 6 23);
+}
+
+.documents-tab-scaled {
+    transform: scale(0.8);
+    transform-origin: top left;
+    width: 125%;
+    height: 125%;
+}
+</style>

@@ -33,6 +33,24 @@ const pdfPreviewUrl = computed(() => {
     const base = raw.split('#')[0];
     return `${base}#view=Fit&navpanes=0`;
 });
+
+const isGoogleEmbed = computed(() =>
+    kind.value === 'google_doc' || kind.value === 'google_sheet',
+);
+
+const googleEmbedUrl = computed(() => {
+    const raw = props.file?.embed_url || props.file?.url;
+    if (!raw) return '';
+    try {
+        const u = new URL(raw);
+        if (!u.searchParams.has('rm')) {
+            u.searchParams.set('rm', 'minimal');
+        }
+        return u.toString();
+    } catch {
+        return raw.includes('rm=') ? raw : `${raw}${raw.includes('?') ? '&' : '?'}rm=minimal`;
+    }
+});
 </script>
 
 <template>
@@ -100,13 +118,18 @@ const pdfPreviewUrl = computed(() => {
       />
     </div>
 
-    <iframe
-      v-else-if="kind === 'google_doc' || kind === 'google_sheet'"
-      :src="file.embed_url"
-      class="h-full min-h-0 w-full flex-1 rounded-lg border border-slate-200 bg-white dark:border-slate-600"
-      :title="kind === 'google_sheet' ? 'Xem trước Google Sheets' : 'Xem trước Google Docs'"
-      allow="clipboard-read; clipboard-write"
-    />
+    <div
+      v-else-if="isGoogleEmbed"
+      class="doc-preview-google"
+    >
+      <iframe
+        :src="googleEmbedUrl"
+        class="doc-preview-google__iframe"
+        :title="kind === 'google_sheet' ? 'Xem trước Google Sheets' : 'Xem trước Google Docs'"
+        allow="clipboard-read; clipboard-write"
+        referrerpolicy="no-referrer-when-downgrade"
+      />
+    </div>
 
     <div
       v-else-if="kind === 'docx'"
@@ -197,5 +220,35 @@ const pdfPreviewUrl = computed(() => {
 
 :global(.dark) .doc-preview-pdf__iframe {
     border-color: rgb(71 85 105);
+}
+
+/* Google Docs/Sheets — full khung, viền gọn, ẩn bớt chrome nhờ rm=minimal */
+.doc-preview-google {
+    position: relative;
+    flex: 1 1 auto;
+    height: 100%;
+    min-height: 0;
+    width: 100%;
+    overflow: hidden;
+    border-radius: 0.375rem;
+    border: 1px solid rgb(226 232 240);
+    background: #fff;
+    box-shadow: inset 0 0 0 1px rgb(248 250 252);
+}
+
+.doc-preview-google__iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: calc(100% + 2px);
+    border: 0;
+    background: #fff;
+}
+
+:global(.dark) .doc-preview-google {
+    border-color: rgb(71 85 105);
+    background: rgb(15 23 42);
+    box-shadow: none;
 }
 </style>

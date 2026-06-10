@@ -36,7 +36,7 @@ class GoogleWorkspaceUrl
                 'type' => 'document',
                 'id' => $id,
                 'view_url' => "https://docs.google.com/document/d/{$id}/edit",
-                'embed_url' => "https://docs.google.com/document/d/{$id}/preview",
+                'embed_url' => "https://docs.google.com/document/d/{$id}/preview?rm=minimal",
                 'default_title' => 'Google Docs',
             ];
         }
