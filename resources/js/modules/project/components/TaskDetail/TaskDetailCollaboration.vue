@@ -1,10 +1,11 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
 import Avatar from '@/shared/ui/Avatar.vue';
 import { datetime } from '@/composables/useFormat';
 import { useToast } from '@/shared/composables/useToast';
 import { normalizeEntities } from '@/composables/useNormalizeList';
+import { useCommentRealtime } from '@/composables/useCommentRealtime';
 
 const props = defineProps({
     comments: { type: Array, default: () => [] },
@@ -24,14 +25,59 @@ const composerRef = ref(null);
 const EMOJIS = ['👍', '❤️', '🎉', '🔥', '👀', '✅', '😂', '🙏'];
 
 const myEmployeeId = computed(() => page.props.auth?.user?.employee?.id ?? null);
-const commentList = computed(() => normalizeEntities(props.comments));
+
+const threadComments = ref(normalizeEntities(props.comments));
+
+watch(
+    () => props.comments,
+    (raw) => {
+        threadComments.value = normalizeEntities(raw);
+    },
+    { deep: true },
+);
+
+const commentList = computed(() => threadComments.value);
 
 function replyList(c) {
     return normalizeEntities(c?.replies);
 }
 
+function mergeComment(comment) {
+    if (!comment?.id) return;
+
+    if (comment.parent_id) {
+        threadComments.value = threadComments.value.map((root) => {
+            if (root.id !== comment.parent_id) return root;
+            const replies = replyList(root);
+            if (replies.some((r) => r.id === comment.id)) return root;
+            return { ...root, replies: [...replies, comment] };
+        });
+        return;
+    }
+
+    if (threadComments.value.some((c) => c.id === comment.id)) return;
+    threadComments.value = [comment, ...threadComments.value];
+}
+
+function removeCommentLocal(commentId) {
+    threadComments.value = threadComments.value
+        .filter((c) => c.id !== commentId)
+        .map((c) => ({
+            ...c,
+            replies: replyList(c).filter((r) => r.id !== commentId),
+        }));
+}
+
+const commentableType = computed(() => 'task');
+const commentableId = computed(() => props.commentableId);
+
+useCommentRealtime(commentableType, commentableId, {
+    onCreated: mergeComment,
+    onDeleted: removeCommentLocal,
+});
+
 const submit = () => {
-    if (!body.value.trim()) return;
+    if (!props.canComment || !body.value.trim()) return;
     router.post('/comments', {
         commentable_type: 'task',
         commentable_id: props.commentableId,
@@ -85,6 +131,7 @@ defineExpose({ focusComposer });
 <template>
   <div class="space-y-4">
     <form
+      v-if="canComment"
       class="rounded-xl border border-slate-200 bg-slate-50/80 p-3 dark:border-slate-700 dark:bg-slate-800/50"
       @submit.prevent="submit"
     >
@@ -106,7 +153,7 @@ defineExpose({ focusComposer });
         v-model="body"
         rows="3"
         class="input w-full resize-none border-0 bg-white text-sm shadow-sm dark:bg-slate-900"
-        placeholder="Trao đổi… Markdown · @mention (sắp có)"
+        placeholder="Trao đổi với team về công việc này…"
       />
       <div class="mt-2 flex flex-wrap items-center justify-between gap-2">
         <div class="relative">
@@ -133,7 +180,6 @@ defineExpose({ focusComposer });
           </div>
         </div>
         <button
-          v-if="canComment"
           type="submit"
           class="btn-primary text-xs"
           :disabled="!body.trim()"
@@ -142,6 +188,12 @@ defineExpose({ focusComposer });
         </button>
       </div>
     </form>
+    <p
+      v-else
+      class="rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2.5 text-xs text-slate-500 dark:border-slate-700 dark:bg-slate-800/40"
+    >
+      Bạn có thể xem trao đổi. Chỉ thành viên được phép đóng góp mới gửi bình luận.
+    </p>
 
     <div
       v-for="c in commentList"
@@ -188,7 +240,7 @@ defineExpose({ focusComposer });
                 type="button"
                 class="rounded-full px-2 py-0.5 text-xs"
                 :class="iReacted(c, emoji) ? 'bg-brand/15 text-brand ring-1 ring-brand/30' : 'bg-slate-100 text-slate-600 dark:bg-slate-800'"
-                @click="toggleReaction(c, emoji)"
+                @click="canComment && toggleReaction(c, emoji)"
               >
                 {{ emoji }} {{ ids.length }}
               </button>
@@ -208,7 +260,8 @@ defineExpose({ focusComposer });
                 :key="em"
                 type="button"
                 class="hover:scale-110"
-                @click="toggleReaction(c, em)"
+                :disabled="!canComment"
+                @click="canComment && toggleReaction(c, em)"
               >
                 {{ em }}
               </button>
@@ -241,7 +294,6 @@ defineExpose({ focusComposer });
         </div>
       </article>
 
-      <!-- Replies thread -->
       <div
         v-for="r in replyList(c)"
         :key="r.id"

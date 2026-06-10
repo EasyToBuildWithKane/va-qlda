@@ -40,6 +40,7 @@ class CommentController extends Controller
         ]);
 
         $model = $this->resolve($extra['commentable_type'], (int) $extra['commentable_id']);
+        $this->authorizeCommentable($request, $model);
 
         $comment = Comment::create([
             'commentable_type' => $model->getMorphClass(),
@@ -173,6 +174,25 @@ class CommentController extends Controller
         $class = self::TYPES[$type];
 
         return $class::findOrFail($id);
+    }
+
+    private function authorizeCommentable(Request $request, Model $model): void
+    {
+        $user = $request->user();
+        abort_unless($user !== null, 403);
+
+        if ($model instanceof Task) {
+            $model->loadMissing('project');
+            abort_unless($user->can('contribute', $model->project), 403);
+
+            return;
+        }
+
+        if ($model instanceof Blocker) {
+            abort_unless($user->can('update', $model), 403);
+
+            return;
+        }
     }
 
     private function commentableTypeKey(Comment $comment): ?string

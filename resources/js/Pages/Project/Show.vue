@@ -79,19 +79,47 @@ const attachmentCount = computed(() => props.attachments.length);
 const taskModal = ref(false);
 const editingTask = ref(null);
 const detailTask = ref(null);
+const taskPanelTab = ref('overview');
 const taskDefaultStatus = ref('todo');
 const sprintModal = ref(false);
 const editingSprint = ref(null);
 const pid = props.project.id;
 
-const openTaskDetail = (t) => {
+const openTaskDetail = (t, { panelTab } = {}) => {
     if (!t) return;
     const id = typeof t === 'object' ? t?.id : t;
     if (id == null) return;
+    taskPanelTab.value = panelTab || 'overview';
     const fresh = props.tasks.find((x) => x?.id === id);
     detailTask.value = fresh ?? (typeof t === 'object' && t?.id != null ? t : null);
+    syncTaskInUrl();
+};
+const closeTaskDetail = () => {
+    detailTask.value = null;
+    taskPanelTab.value = 'overview';
+    syncTaskInUrl();
 };
 const openTaskModal = (t = null, status = 'todo') => { editingTask.value = t; taskDefaultStatus.value = status; taskModal.value = true; };
+const syncTaskInUrl = () => {
+    const u = new URL(window.location.href);
+    if (detailTask.value?.id) {
+        u.searchParams.set('task', String(detailTask.value.id));
+        if (taskPanelTab.value === 'collaboration') {
+            u.searchParams.set('discussion', '1');
+        } else {
+            u.searchParams.delete('discussion');
+        }
+    } else {
+        u.searchParams.delete('task');
+        u.searchParams.delete('discussion');
+    }
+    window.history.replaceState(window.history.state, '', u);
+};
+
+const onTaskPanelTabChange = (key) => {
+    taskPanelTab.value = key;
+    syncTaskInUrl();
+};
 const openTaskEditFromDetail = (t) => {
     detailTask.value = null;
     openTaskModal(t);
@@ -159,6 +187,15 @@ onMounted(() => {
     const t = params.get('tab');
     if (t && tabList.some((x) => x.key === t)) {
         tab.value = t;
+    }
+    const taskId = params.get('task');
+    if (taskId) {
+        const id = Number(taskId);
+        const found = props.tasks.find((x) => x?.id === id);
+        if (found) {
+            taskPanelTab.value = params.get('discussion') === '1' ? 'collaboration' : 'overview';
+            detailTask.value = found;
+        }
     }
 });
 
@@ -554,6 +591,7 @@ const onSprintSaved = () => {
     <TaskDetailPanel
       v-if="detailTask"
       :task="detailTask"
+      :initial-panel-tab="taskPanelTab"
       :project-id="project.id"
       :project="project"
       :sprints="sprints"
@@ -567,10 +605,11 @@ const onSprintSaved = () => {
       :epics="epics"
       :can-edit="canContribute"
       :can-comment="canContribute"
-      @close="detailTask = null"
+      @close="closeTaskDetail"
       @edit="openTaskEditFromDetail"
       @open-task="openTaskDetail"
       @updated="onTaskDetailUpdated"
+      @panel-tab-change="onTaskPanelTabChange"
     />
 
     <!-- ===== Modals ===== -->

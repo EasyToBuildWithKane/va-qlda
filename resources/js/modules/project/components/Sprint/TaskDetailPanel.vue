@@ -39,15 +39,16 @@ const props = defineProps({
     epics: { type: Array, default: () => [] },
     canEdit: { type: Boolean, default: false },
     canComment: { type: Boolean, default: false },
+    initialPanelTab: { type: String, default: 'overview' },
 });
 
 const page = usePage();
 const currentEmployeeId = computed(() => page.props.auth?.user?.employee?.id ?? null);
 
-const emit = defineEmits(['close', 'edit', 'open-task', 'updated']);
+const emit = defineEmits(['close', 'edit', 'open-task', 'updated', 'panel-tab-change']);
 
 const toast = useToast();
-const tab = ref('overview');
+const tab = ref(props.initialPanelTab || 'overview');
 const showStatusMenu = ref(false);
 const showAssignMenu = ref(false);
 const assignMenuSearch = ref('');
@@ -170,10 +171,16 @@ const toneClass = (tone) => ({
     slate: 'bg-slate-100 text-slate-600 ring-slate-200 dark:bg-slate-800 dark:text-slate-300',
 }[tone] || 'bg-slate-100 text-slate-600');
 
-watch(() => activeTask.value?.id, () => {
-    tab.value = 'overview';
+watch(() => activeTask.value?.id, (id, prev) => {
+    if (id != null && id !== prev) {
+        tab.value = props.initialPanelTab || 'overview';
+    }
     showStatusMenu.value = false;
     showAssignMenu.value = false;
+});
+
+watch(tab, (key) => {
+    emit('panel-tab-change', key);
 });
 
 const PANEL_TABS = [
