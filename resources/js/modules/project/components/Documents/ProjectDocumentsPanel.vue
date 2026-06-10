@@ -320,7 +320,7 @@ const activityTone = (event) => ({
 </script>
 
 <template>
-  <div class="flex h-full min-h-0 flex-col overflow-hidden">
+  <div class="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
     <!-- Header -->
     <div class="shrink-0 border-b border-slate-200 bg-slate-50/80 px-4 py-3 dark:border-slate-700 dark:bg-slate-900/80">
       <div class="flex flex-wrap items-start justify-between gap-3">
@@ -438,7 +438,7 @@ const activityTone = (event) => ({
     <!-- Main split: list | preview + audit -->
     <div class="grid min-h-0 flex-1 grid-cols-1 grid-rows-[auto_minmax(0,1fr)] lg:grid-cols-[minmax(240px,280px)_minmax(0,1fr)] lg:grid-rows-1">
       <!-- File list -->
-      <div class="flex min-h-0 max-h-[42vh] flex-col overflow-hidden border-b border-slate-200 bg-slate-50/50 lg:max-h-none lg:border-b-0 lg:border-r dark:border-slate-700 dark:bg-slate-900/50">
+      <div class="flex min-h-0 max-h-[34vh] flex-col overflow-hidden border-b border-slate-200 bg-slate-50/50 lg:max-h-none lg:border-b-0 lg:border-r dark:border-slate-700 dark:bg-slate-900/50">
         <div class="shrink-0 border-b border-slate-200/80 bg-white px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
           Danh sách ({{ categoryFiles.length }})
         </div>
@@ -519,9 +519,9 @@ const activityTone = (event) => ({
       <!-- Preview + audit -->
       <div class="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-100/80 dark:bg-slate-950">
         <template v-if="selected">
-          <div class="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)_minmax(0,min(40vh,360px))] overflow-hidden">
+          <div class="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)_auto] overflow-hidden">
             <!-- Preview -->
-            <div class="min-h-0 overflow-hidden p-3 pb-0">
+            <div class="flex min-h-0 flex-col overflow-hidden p-3 pb-0">
               <div
                 class="card flex h-full min-h-0 flex-col overflow-hidden dark:border-slate-700 dark:bg-slate-900"
               >
@@ -569,14 +569,16 @@ const activityTone = (event) => ({
                   </div>
                 </div>
                 <div class="min-h-0 flex-1 overflow-hidden bg-slate-100/50 p-3 dark:bg-slate-950">
-                  <DocumentPreviewPane :file="selected" />
+                  <div class="h-full min-h-[min(52vh,560px)] lg:min-h-0">
+                    <DocumentPreviewPane :file="selected" />
+                  </div>
                 </div>
               </div>
             </div>
 
             <!-- Meta + notes + audit -->
             <div
-              class="doc-meta-panel min-h-0 overflow-y-auto border-t border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900"
+              class="doc-meta-panel max-h-[min(28vh,240px)] shrink-0 overflow-y-auto border-t border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 lg:max-h-[min(24vh,260px)]"
             >
               <div class="grid gap-3 p-3 sm:p-4 lg:grid-cols-2 lg:gap-4">
                 <!-- Cột trái: thông tin + ghi chú -->

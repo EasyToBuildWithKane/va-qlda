@@ -279,7 +279,7 @@ const onSprintSaved = () => {
         <!-- ===== DOCUMENTS ===== -->
         <div
           v-show="tab === 'documents'"
-          class="flex h-full min-h-0 flex-col overflow-hidden p-3 sm:p-4"
+          class="flex h-full min-h-0 flex-col overflow-hidden p-2 sm:p-3"
         >
           <div class="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
             <ProjectDocumentsPanel
