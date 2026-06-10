@@ -25,6 +25,14 @@ const showFallback = computed(() =>
     props.file && !loading.value && !error.value
     && kind.value === 'none',
 );
+
+/** Fit = thu trọn một trang trong khung iframe, không cuộn nội bộ */
+const pdfPreviewUrl = computed(() => {
+    const raw = props.file?.url;
+    if (!raw) return '';
+    const base = raw.split('#')[0];
+    return `${base}#view=Fit&navpanes=0`;
+});
 </script>
 
 <template>
@@ -81,12 +89,16 @@ const showFallback = computed(() =>
       class="mx-auto max-h-full max-w-full rounded-lg object-contain shadow-sm"
     >
 
-    <iframe
+    <div
       v-else-if="kind === 'pdf' || file.is_pdf"
-      :src="file.url"
-      class="h-full min-h-0 w-full flex-1 rounded-lg border border-slate-200 bg-white dark:border-slate-600"
-      title="Xem trước PDF"
-    />
+      class="doc-preview-pdf"
+    >
+      <iframe
+        :src="pdfPreviewUrl"
+        class="doc-preview-pdf__iframe"
+        title="Xem trước PDF"
+      />
+    </div>
 
     <iframe
       v-else-if="kind === 'google_doc' || kind === 'google_sheet'"
@@ -157,12 +169,33 @@ const showFallback = computed(() =>
   </div>
 </template>
 
-<style>
+<style scoped>
 /* docx-preview wrapper defaults */
-.docx-wrapper .docx-preview-content {
+.docx-wrapper :deep(.docx-preview-content) {
     max-width: 100%;
 }
-.docx-wrapper section.docx {
+.docx-wrapper :deep(section.docx) {
     margin-bottom: 0.5rem;
+}
+
+.doc-preview-pdf {
+    height: 100%;
+    min-height: 0;
+    width: 100%;
+    overflow: hidden;
+}
+
+.doc-preview-pdf__iframe {
+    display: block;
+    height: 100%;
+    min-height: 0;
+    width: 100%;
+    border-radius: 0.5rem;
+    border: 1px solid rgb(226 232 240);
+    background: #fff;
+}
+
+:global(.dark) .doc-preview-pdf__iframe {
+    border-color: rgb(71 85 105);
 }
 </style>

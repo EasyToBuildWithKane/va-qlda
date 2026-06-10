@@ -279,18 +279,17 @@ const onSprintSaved = () => {
         <!-- ===== DOCUMENTS ===== -->
         <div
           v-show="tab === 'documents'"
-          class="flex h-full min-h-0 flex-col overflow-hidden p-2 sm:p-3"
+          class="flex h-full min-h-0 flex-col overflow-hidden"
         >
-          <div class="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
-            <ProjectDocumentsPanel
-              :project-id="project.id"
-              :attachments="attachments"
-              :categories="documentCategories"
-              :can-upload="canContribute"
-              :can-edit="canContribute"
-              :can-delete="canManage"
-            />
-          </div>
+          <ProjectDocumentsPanel
+            class="h-full min-h-0"
+            :project-id="project.id"
+            :attachments="attachments"
+            :categories="documentCategories"
+            :can-upload="canContribute"
+            :can-edit="canContribute"
+            :can-delete="canManage"
+          />
         </div>
 
         <!-- ===== TIMELINE / GANTT ===== -->
