@@ -8,7 +8,7 @@ import { io } from 'socket.io-client';
  *
  * @param {import('vue').Ref<string>|import('vue').ComputedRef<string>} commentableType
  * @param {import('vue').Ref<number|string>|import('vue').ComputedRef<number|string>} commentableId
- * @param {{ onCreated?: (comment: object) => void, onDeleted?: (commentId: number) => void }} handlers
+ * @param {{ onCreated?: (comment: object) => void, onUpdated?: (comment: object) => void, onDeleted?: (commentId: number) => void }} handlers
  */
 export function useCommentRealtime(commentableType, commentableId, handlers = {}) {
     const page = usePage();
@@ -57,6 +57,9 @@ export function useCommentRealtime(commentableType, commentableId, handlers = {}
                     }
                     if (payload.event === 'comment.created' && payload.data?.comment) {
                         handlers.onCreated?.(payload.data.comment);
+                    }
+                    if (payload.event === 'comment.updated' && payload.data?.comment) {
+                        handlers.onUpdated?.(payload.data.comment);
                     }
                     if (payload.event === 'comment.deleted' && payload.data?.comment_id) {
                         handlers.onDeleted?.(Number(payload.data.comment_id));

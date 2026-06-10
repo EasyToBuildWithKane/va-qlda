@@ -47,11 +47,21 @@ function removeCommentLocal(commentId) {
     threadComments.value = threadComments.value.filter((c) => c.id !== commentId);
 }
 
+function mergeUpdated(comment) {
+    if (!comment?.id) return;
+    const idx = threadComments.value.findIndex((c) => c.id === comment.id);
+    if (idx === -1) return;
+    const next = [...threadComments.value];
+    next[idx] = { ...next[idx], ...comment };
+    threadComments.value = next;
+}
+
 const typeRef = computed(() => props.commentableType);
 const idRef = computed(() => props.commentableId);
 
 useCommentRealtime(typeRef, idRef, {
     onCreated: mergeComment,
+    onUpdated: mergeUpdated,
     onDeleted: removeCommentLocal,
 });
 

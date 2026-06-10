@@ -85,6 +85,7 @@ class CommentController extends Controller
 
         $comment->update(['body' => $data['body']]);
         $this->logCommentEvent($comment, 'updated', $request->user());
+        $this->publishCommentUpdated($comment);
 
         return back()->with('success', 'Đã cập nhật bình luận.');
     }
@@ -137,6 +138,7 @@ class CommentController extends Controller
         }
 
         $comment->update(['reactions' => $reactions === [] ? null : $reactions]);
+        $this->publishCommentUpdated($comment->fresh());
 
         return back();
     }
@@ -204,6 +206,17 @@ class CommentController extends Controller
         }
 
         return null;
+    }
+
+    private function publishCommentUpdated(Comment $comment): void
+    {
+        $comment->loadMissing('commentable');
+        $typeKey = $this->commentableTypeKey($comment);
+        if ($typeKey === null) {
+            return;
+        }
+
+        CommentRealtimePublisher::updated($typeKey, (int) $comment->commentable_id, $comment);
     }
 
     private function logCommentEvent(Comment $comment, string $action, $user): void

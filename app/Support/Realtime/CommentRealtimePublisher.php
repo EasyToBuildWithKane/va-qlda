@@ -24,6 +24,14 @@ class CommentRealtimePublisher
         ]);
     }
 
+    public static function updated(string $commentableType, int $commentableId, Comment $comment): void
+    {
+        $comment->loadMissing('author');
+        self::publish('comment.updated', $commentableType, $commentableId, [
+            'comment' => (new CommentResource($comment))->resolve(),
+        ]);
+    }
+
     /**
      * @param  array<string, mixed>  $data
      */

@@ -68,11 +68,73 @@ function removeCommentLocal(commentId) {
         }));
 }
 
+function patchComment(existing, incoming) {
+    return {
+        ...existing,
+        ...incoming,
+        replies: existing.replies ?? incoming.replies,
+    };
+}
+
+function mergeUpdated(comment) {
+    if (!comment?.id) return;
+
+    if (comment.parent_id) {
+        threadComments.value = threadComments.value.map((root) => {
+            if (root.id !== comment.parent_id) return root;
+            const replies = replyList(root).map((r) => (r.id === comment.id ? patchComment(r, comment) : r));
+            return { ...root, replies };
+        });
+        return;
+    }
+
+    const idx = threadComments.value.findIndex((c) => c.id === comment.id);
+    if (idx === -1) return;
+    const next = [...threadComments.value];
+    next[idx] = patchComment(next[idx], comment);
+    threadComments.value = next;
+}
+
+function applyReactionLocal(commentId, emoji) {
+    const employeeId = myEmployeeId.value;
+    if (!employeeId) return;
+
+    const toggleOnComment = (c) => {
+        if (c.id !== commentId) return c;
+        const reactions = { ...(c.reactions || {}) };
+        const ids = [...(reactions[emoji] || [])];
+        const i = ids.indexOf(employeeId);
+        if (i >= 0) {
+            ids.splice(i, 1);
+        } else {
+            ids.push(employeeId);
+        }
+        if (ids.length === 0) {
+            delete reactions[emoji];
+        } else {
+            reactions[emoji] = ids;
+        }
+        const nextReactions = Object.keys(reactions).length ? reactions : null;
+        return { ...c, reactions: nextReactions };
+    };
+
+    threadComments.value = threadComments.value.map((root) => {
+        if (root.id === commentId) return toggleOnComment(root);
+        const replies = replyList(root);
+        if (!replies.some((r) => r.id === commentId)) return root;
+        return {
+            ...root,
+            replies: replies.map((r) => (r.id === commentId ? toggleOnComment(r) : r)),
+        };
+    });
+}
+
 const commentableType = computed(() => 'task');
 const commentableId = computed(() => props.commentableId);
 
 useCommentRealtime(commentableType, commentableId, {
     onCreated: mergeComment,
+    onUpdated: mergeUpdated,
     onDeleted: removeCommentLocal,
 });
 
@@ -118,7 +180,14 @@ const remove = (c) => {
 };
 
 const toggleReaction = (c, emoji) => {
-    router.post(`/comments/${c.id}/react`, { emoji }, { preserveScroll: true, only: ['tasks'] });
+    applyReactionLocal(c.id, emoji);
+    router.post(`/comments/${c.id}/react`, { emoji }, {
+        preserveScroll: true,
+        only: ['tasks'],
+        onError: () => {
+            threadComments.value = normalizeEntities(props.comments);
+        },
+    });
 };
 
 const iReacted = (c, emoji) => myEmployeeId.value && (c.reactions?.[emoji] || []).includes(myEmployeeId.value);
