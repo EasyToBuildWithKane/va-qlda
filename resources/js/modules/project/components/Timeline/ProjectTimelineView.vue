@@ -38,7 +38,7 @@ const hoveredMilestone = ref(null);
 const pendingDateSaveId = ref(null);
 
 const flatRowsRef = computed(() => props.flatRows);
-const { totalHeight, visibleItems } = useVirtualScroll(rightScroll, flatRowsRef);
+const { totalHeight, visibleItems } = useVirtualScroll(rightScroll, flatRowsRef, leftScroll);
 
 const statusClass = (task) => props.statusBarClass[task.status?.value] || 'bg-slate-400';
 
@@ -331,7 +331,7 @@ watch(
               <!-- Task row -->
               <div
                 v-else-if="item.row.type === 'task'"
-                class="grid h-full cursor-pointer items-start gap-2 py-1 text-xs hover:bg-white"
+                class="grid min-h-full cursor-pointer items-start gap-2 py-1 text-xs hover:bg-white"
                 :class="[
                   LIST_GRID_COLS,
                   item.row.groupKey?.includes(':phase-') ? 'bg-white pr-2.5' : 'px-2.5',
@@ -366,7 +366,7 @@ watch(
                   />
                 </div>
                 <div
-                  class="flex min-w-0 items-center gap-1.5 self-center"
+                  class="flex min-w-0 items-center gap-1.5 self-start pt-0.5"
                   :title="assigneeTitle(item.row.task) || undefined"
                 >
                   <Avatar
@@ -379,7 +379,7 @@ watch(
                   <span class="min-w-0 truncate text-slate-700">{{ assigneeLabel(item.row.task) }}</span>
                 </div>
                 <span
-                  class="shrink-0 self-center whitespace-nowrap text-right text-xs font-medium tabular-nums"
+                  class="shrink-0 self-start pt-0.5 whitespace-nowrap text-right text-xs font-medium tabular-nums"
                   :class="isOverdue(item.row.task) ? 'text-rose-600' : 'text-slate-500'"
                   :title="dateRangeTitle(item.row.task) || undefined"
                 >{{ durationLabel(item.row.task) }}</span>
@@ -396,7 +396,7 @@ watch(
               <!-- Milestone row -->
               <div
                 v-else-if="item.row.type === 'milestone'"
-                class="grid h-full cursor-pointer items-start gap-2 px-2.5 py-1 text-xs hover:bg-violet-50/40"
+                class="grid min-h-full cursor-pointer items-start gap-2 px-2.5 py-1 text-xs hover:bg-violet-50/40"
                 :class="LIST_GRID_COLS"
                 @click="emit('select', item.row.milestone.id)"
               >
