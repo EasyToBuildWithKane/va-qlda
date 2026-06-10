@@ -9,6 +9,7 @@ import Badge from '@/shared/ui/Badge.vue';
 import BlockerFormModal from '@/modules/project/components/BlockerFormModal.vue';
 import BlockerDetailModal from '@/modules/project/components/BlockerDetailModal.vue';
 import BlockerCommentModal from '@/modules/project/components/BlockerCommentModal.vue';
+import BlockerRowActions from '@/modules/project/components/BlockerRowActions.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import ColumnVisibilityDropdown from '@/shared/ui/ColumnVisibilityDropdown.vue';
@@ -96,26 +97,16 @@ function loadCollapsedGroups() {
 }
 
 const collapsedGroups = ref(loadCollapsedGroups());
-const openActionMenuId = ref(null);
 const detailModalBlocker = ref(null);
 const detailModalTab = ref('detail');
 const showDetailModal = ref(false);
 const commentModalBlocker = ref(null);
 const showCommentModal = ref(false);
 
-function closeActionMenu() {
-    openActionMenuId.value = null;
-}
-
-function toggleActionMenu(id) {
-    openActionMenuId.value = openActionMenuId.value === id ? null : id;
-}
-
 function openDetailModal(b, tab = 'detail') {
     detailModalBlocker.value = b;
     detailModalTab.value = tab;
     showDetailModal.value = true;
-    closeActionMenu();
 }
 
 function closeDetailModal() {
@@ -126,7 +117,6 @@ function closeDetailModal() {
 function openCommentModal(b) {
     commentModalBlocker.value = b;
     showCommentModal.value = true;
-    closeActionMenu();
 }
 
 function closeCommentModal() {
@@ -137,11 +127,6 @@ function closeCommentModal() {
 function onDetailEditResolution(b) {
     closeDetailModal();
     openResolve(b);
-}
-
-function runAction(fn) {
-    closeActionMenu();
-    fn();
 }
 
 const {
@@ -307,9 +292,6 @@ function onToolbarClickOutside(e) {
     }
     if (colDdRef.value && !colDdRef.value.contains(e.target)) {
         showColDd.value = false;
-    }
-    if (openActionMenuId.value != null && !e.target.closest('[data-blocker-action-menu]')) {
-        closeActionMenu();
     }
 }
 
@@ -1018,112 +1000,15 @@ function toggleAllGroups() {
                         />
                       </button>
                     </td>
-                    <td
-                      class="relative px-1 py-2 align-top"
-                      data-blocker-action-menu
-                    >
-                      <div class="relative flex justify-center">
-                        <button
-                          type="button"
-                          class="grid h-8 w-8 place-items-center rounded-lg border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700"
-                          :class="openActionMenuId === b.id ? 'border-brand/30 text-brand' : ''"
-                          :aria-expanded="openActionMenuId === b.id"
-                          aria-haspopup="menu"
-                          :title="`Thao tác ${b.code}`"
-                          :aria-label="`Thao tác ${b.code}`"
-                          @click.stop="toggleActionMenu(b.id)"
-                        >
-                          <AppIcon
-                            name="more-horizontal"
-                            :size="16"
-                          />
-                        </button>
-                        <transition
-                          enter-active-class="transition duration-150 ease-out"
-                          enter-from-class="translate-y-1 opacity-0"
-                          enter-to-class="translate-y-0 opacity-100"
-                          leave-active-class="transition duration-100 ease-in"
-                          leave-from-class="translate-y-0 opacity-100"
-                          leave-to-class="translate-y-1 opacity-0"
-                        >
-                          <div
-                            v-if="openActionMenuId === b.id"
-                            class="absolute right-0 top-full z-30 mt-1 w-48 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
-                            role="menu"
-                            :aria-label="`Menu thao tác ${b.code}`"
-                          >
-                            <button
-                              type="button"
-                              role="menuitem"
-                              class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-50"
-                              @click.stop="openDetailModal(b, 'detail')"
-                            >
-                              <AppIcon
-                                name="eye"
-                                :size="14"
-                                class="shrink-0"
-                              />
-                              Xem chi tiết
-                            </button>
-                            <button
-                              type="button"
-                              role="menuitem"
-                              class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-50"
-                              @click.stop="openCommentModal(b)"
-                            >
-                              <AppIcon
-                                name="comment"
-                                :size="14"
-                                class="shrink-0"
-                              />
-                              Bình luận
-                              <span class="ml-auto tabular-nums text-xs text-slate-400">{{ b.comments_count ?? 0 }}</span>
-                            </button>
-                            <button
-                              v-if="b.can?.update && !isTerminal(b)"
-                              type="button"
-                              role="menuitem"
-                              class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-emerald-800 transition hover:bg-emerald-50"
-                              @click.stop="runAction(() => openResolve(b))"
-                            >
-                              <AppIcon
-                                name="meeting-notes"
-                                :size="14"
-                                class="shrink-0"
-                              />
-                              Hướng xử lý
-                            </button>
-                            <button
-                              v-if="b.can?.update"
-                              type="button"
-                              role="menuitem"
-                              class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-50"
-                              @click.stop="runAction(() => open(b))"
-                            >
-                              <AppIcon
-                                name="edit"
-                                :size="14"
-                                class="shrink-0"
-                              />
-                              Sửa
-                            </button>
-                            <button
-                              v-if="b.can?.delete"
-                              type="button"
-                              role="menuitem"
-                              class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-rose-700 transition hover:bg-rose-50"
-                              @click.stop="runAction(() => remove(b))"
-                            >
-                              <AppIcon
-                                name="delete"
-                                :size="14"
-                                class="shrink-0"
-                              />
-                              Xoá
-                            </button>
-                          </div>
-                        </transition>
-                      </div>
+                    <td class="px-1 py-2 align-top">
+                      <BlockerRowActions
+                        :blocker="b"
+                        @detail="openDetailModal($event, 'detail')"
+                        @comment="openCommentModal"
+                        @resolve="openResolve"
+                        @edit="open"
+                        @delete="remove"
+                      />
                     </td>
                   </tr>
                 </template>
