@@ -18,7 +18,7 @@ return [
 
     'redis_channel' => env('REALTIME_REDIS_CHANNEL', 'va-qlda:realtime'),
 
-    'client_url' => env('REALTIME_CLIENT_URL', 'http://127.0.0.1:6001'),
+    'client_url' => env('REALTIME_CLIENT_URL', 'https://projects.vaschools.edu.vn'),
 
     'server_port' => (int) env('REALTIME_SERVER_PORT', 6001),
 

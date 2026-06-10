@@ -23,6 +23,11 @@ class BlockerPolicy
         return $account->role !== SystemRole::Viewer;
     }
 
+    public function comment(SystemAccount $account, Blocker $blocker): bool
+    {
+        return $account->role !== SystemRole::Viewer;
+    }
+
     public function update(SystemAccount $account, Blocker $blocker): bool
     {
         return $this->isReviewer($account)

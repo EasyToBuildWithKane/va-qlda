@@ -58,6 +58,7 @@ class BlockerResource extends JsonResource
             'can' => $user ? [
                 'update' => $user->can('update', $this->resource),
                 'delete' => $user->can('delete', $this->resource),
+                'comment' => $user->can('comment', $this->resource),
             ] : null,
         ];
     }

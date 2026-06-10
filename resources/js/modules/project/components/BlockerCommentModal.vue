@@ -83,14 +83,22 @@ const modalTitle = computed(() => {
     return `Bình luận · ${props.blocker.code}`;
 });
 
+const closeAfterSubmit = () => {
+    formDraft.clear();
+    form.clearErrors();
+    form.reset('body');
+    emit('close');
+};
+
 const submit = () => {
     if (!form.body.trim() || !props.blocker) return;
     form.post('/comments', {
         preserveScroll: true,
-        onSuccess: () => {
-            formDraft.clear();
-            form.reset('body');
-            emit('close');
+        onSuccess: closeAfterSubmit,
+        onFinish: () => {
+            if (!form.hasErrors && props.show) {
+                closeAfterSubmit();
+            }
         },
     });
 };

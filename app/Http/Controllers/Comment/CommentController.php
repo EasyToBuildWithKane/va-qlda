@@ -191,7 +191,7 @@ class CommentController extends Controller
         }
 
         if ($model instanceof Blocker) {
-            abort_unless($user->can('update', $model), 403);
+            abort_unless($user->can('comment', $model), 403);
 
             return;
         }
