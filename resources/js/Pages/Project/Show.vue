@@ -133,8 +133,6 @@ const riskPanelRef = ref(null);
 const {
     viewMode,
     activityLog,
-    activityVisible,
-    showMoreActivity,
     pushActivity,
     seedActivityIfEmpty,
     openIssueCount,
@@ -434,11 +432,7 @@ const onSprintSaved = () => {
                 v-if="showActivity"
                 :class="showProjectDetail ? '' : 'lg:col-span-3'"
               >
-                <ActivityFeed
-                  :activities="activityLog"
-                  :visible-count="activityVisible"
-                  @show-more="showMoreActivity"
-                />
+                <ActivityFeed :activities="activityLog" />
               </div>
             </div>
 

@@ -84,21 +84,21 @@ const showFallback = computed(() =>
     <iframe
       v-else-if="kind === 'pdf' || file.is_pdf"
       :src="file.url"
-      class="h-full min-h-[min(88vh,1200px)] w-full flex-1 rounded-lg border border-slate-200 bg-white dark:border-slate-600"
+      class="h-full min-h-0 w-full flex-1 rounded-lg border border-slate-200 bg-white dark:border-slate-600"
       title="Xem trước PDF"
     />
 
     <iframe
       v-else-if="kind === 'google_doc' || kind === 'google_sheet'"
       :src="file.embed_url"
-      class="h-full min-h-[min(88vh,1200px)] w-full flex-1 rounded-lg border border-slate-200 bg-white dark:border-slate-600"
+      class="h-full min-h-0 w-full flex-1 rounded-lg border border-slate-200 bg-white dark:border-slate-600"
       :title="kind === 'google_sheet' ? 'Xem trước Google Sheets' : 'Xem trước Google Docs'"
       allow="clipboard-read; clipboard-write"
     />
 
     <div
       v-else-if="kind === 'docx'"
-      class="h-full min-h-[min(60vh,640px)] overflow-auto rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-600 dark:bg-white"
+      class="h-full min-h-0 overflow-auto rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-600 dark:bg-white"
     >
       <div
         :ref="setDocxContainer"
@@ -108,7 +108,7 @@ const showFallback = computed(() =>
 
     <div
       v-else-if="kind === 'xlsx'"
-      class="flex h-full min-h-[min(60vh,640px)] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-600"
+      class="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-600"
     >
       <div
         v-if="xlsxSheetNames.length > 1"

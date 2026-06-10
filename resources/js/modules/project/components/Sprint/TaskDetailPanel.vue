@@ -21,6 +21,8 @@ import {
 } from '@/composables/useTaskWorkspace';
 import { normalizeList, normalizeEntities, normalizeKeyed } from '@/composables/useNormalizeList';
 import { matchesSearchKey } from '@/shared/utils/normalizeSearchKey';
+import { useClientPagination } from '@/shared/composables/useClientPagination';
+import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
 
 const props = defineProps({
     task: { type: Object, default: null },
@@ -202,7 +204,15 @@ const assigneeList = computed(() => normalizeEntities(unref(ws.assignees)));
 const blockerList = computed(() => normalizeEntities(unref(ws.taskBlockers)));
 const relatedBlockedByList = computed(() => normalizeEntities(unref(ws.relatedBlockedBy)));
 const relatedBlockingList = computed(() => normalizeEntities(unref(ws.relatedBlocking)));
-const activityList = computed(() => normalizeEntities(unref(ws.activityTimeline)));
+const activityItems = computed(() => normalizeEntities(unref(ws.activityTimeline)));
+const {
+    paginatedItems: activityList,
+    meta: activityPaginationMeta,
+    perPage: activityPerPage,
+    setPerPage: setActivityPerPage,
+    goToPage: goActivityPage,
+    PER_PAGE_OPTIONS: ACTIVITY_PER_PAGE_OPTIONS,
+} = useClientPagination(activityItems, 'va-qlda.task.activity.perPage', 10);
 const commentList = computed(() => normalizeEntities(activeTask.value?.comments));
 const subtaskList = computed(() => normalizeEntities(activeTask.value?.subtasks));
 const attachmentList = computed(() => normalizeEntities(activeTask.value?.attachments));
@@ -761,45 +771,54 @@ const worklogList = computed(() => normalizeEntities(activeTask.value?.worklogs)
             </div>
 
             <!-- ACTIVITY -->
-            <div
-              v-show="tab === 'activity'"
-              class="space-y-0"
-            >
-              <div
-                v-for="ev in activityList"
-                :key="ev.id"
-                class="relative flex gap-3 pb-6 pl-1 last:pb-0"
-              >
-                <div class="relative flex flex-col items-center">
-                  <span
-                    class="grid h-8 w-8 shrink-0 place-items-center rounded-full ring-2"
-                    :class="toneClass(ev.tone)"
-                  >
-                    <AppIcon
-                      :name="ev.icon"
-                      :size="14"
-                    />
-                  </span>
-                  <span class="mt-1 w-px flex-1 bg-slate-200 dark:bg-slate-700" />
+            <div v-show="tab === 'activity'">
+              <div class="space-y-0">
+                <div
+                  v-for="ev in activityList"
+                  :key="ev.id"
+                  class="relative flex gap-3 pb-6 pl-1 last:pb-0"
+                >
+                  <div class="relative flex flex-col items-center">
+                    <span
+                      class="grid h-8 w-8 shrink-0 place-items-center rounded-full ring-2"
+                      :class="toneClass(ev.tone)"
+                    >
+                      <AppIcon
+                        :name="ev.icon"
+                        :size="14"
+                      />
+                    </span>
+                    <span class="mt-1 w-px flex-1 bg-slate-200 dark:bg-slate-700" />
+                  </div>
+                  <div class="min-w-0 flex-1 pt-0.5">
+                    <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                      {{ ev.title }}
+                    </p>
+                    <p class="mt-0.5 text-xs text-slate-500">
+                      {{ datetime(ev.at) }}
+                    </p>
+                    <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                      {{ ev.detail }}
+                    </p>
+                  </div>
                 </div>
-                <div class="min-w-0 flex-1 pt-0.5">
-                  <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">
-                    {{ ev.title }}
-                  </p>
-                  <p class="mt-0.5 text-xs text-slate-500">
-                    {{ datetime(ev.at) }}
-                  </p>
-                  <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
-                    {{ ev.detail }}
-                  </p>
-                </div>
+                <p
+                  v-if="!activityItems.length"
+                  class="py-8 text-center text-sm text-slate-400"
+                >
+                  Chưa có hoạt động ghi nhận.
+                </p>
               </div>
-              <p
-                v-if="!activityList.length"
-                class="py-8 text-center text-sm text-slate-400"
-              >
-                Chưa có hoạt động ghi nhận.
-              </p>
+              <DatagridPaginationFooter
+                v-if="activityPaginationMeta.total"
+                variant="bar"
+                client
+                :meta="activityPaginationMeta"
+                :per-page="activityPerPage"
+                :per-page-options="ACTIVITY_PER_PAGE_OPTIONS"
+                @update:per-page="setActivityPerPage"
+                @page-change="goActivityPage"
+              />
             </div>
 
             <!-- LINKS / DOCS -->

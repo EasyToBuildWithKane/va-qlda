@@ -517,321 +517,323 @@ const activityTone = (event) => ({
       </div>
 
       <!-- Preview + audit -->
-      <div class="flex min-h-0 flex-col overflow-hidden bg-slate-100/80 dark:bg-slate-950 lg:min-h-0">
+      <div class="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-100/80 dark:bg-slate-950">
         <template v-if="selected">
-          <!-- Preview -->
-          <div class="min-h-0 flex-[2_1_0] overflow-hidden p-3 pb-0 lg:min-h-[min(62vh,820px)]">
-            <div
-              class="card flex h-full min-h-[min(58vh,780px)] flex-col overflow-hidden dark:border-slate-700 dark:bg-slate-900"
-            >
-              <div class="flex shrink-0 items-center justify-between gap-2 border-b border-slate-100 px-4 py-2.5 dark:border-slate-700">
-                <h3 class="min-w-0 truncate font-medium text-slate-800 dark:text-slate-100">
-                  {{ selected.original_name }}
-                </h3>
-                <div class="flex shrink-0 items-center gap-1">
-                  <a
-                    :href="selected.url"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="btn-ghost grid h-8 w-8 place-items-center p-0"
-                    title="Mở tab mới"
-                  >
-                    <AppIcon
-                      name="eye"
-                      :size="15"
-                    />
-                  </a>
-                  <a
-                    v-if="!selected.is_external_link"
-                    :href="selected.url"
-                    download
-                    class="btn-ghost grid h-8 w-8 place-items-center p-0"
-                    title="Tải xuống"
-                  >
-                    <AppIcon
-                      name="download"
-                      :size="15"
-                    />
-                  </a>
-                  <button
-                    v-if="canDelete"
-                    type="button"
-                    class="btn-ghost grid h-8 w-8 place-items-center p-0 text-rose-500"
-                    title="Xoá"
-                    @click="removeFile(selected)"
-                  >
-                    <AppIcon
-                      name="delete"
-                      :size="15"
-                    />
-                  </button>
-                </div>
-              </div>
-              <div class="min-h-0 flex-1 overflow-auto bg-slate-100/50 p-3 dark:bg-slate-950">
-                <DocumentPreviewPane :file="selected" />
-              </div>
-            </div>
-          </div>
-
-          <!-- Meta + notes + audit -->
-          <div
-            class="doc-meta-panel min-h-0 shrink-0 overflow-y-auto border-t border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900 lg:max-h-[min(32vh,320px)]"
-          >
-            <div class="grid gap-3 p-3 sm:p-4 lg:grid-cols-2 lg:gap-4">
-              <!-- Cột trái: thông tin + ghi chú -->
-              <div class="flex flex-col gap-3">
-                <section class="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
-                  <header class="border-b border-slate-100 bg-slate-50/90 px-3.5 py-2 dark:border-slate-800 dark:bg-slate-800/50">
-                    <h4 class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                      {{ selected.is_external_link ? 'Thông tin link' : 'Thông tin file' }}
-                    </h4>
-                  </header>
-                  <ul class="divide-y divide-slate-100 text-sm dark:divide-slate-800">
-                    <li class="flex flex-col gap-1 px-3.5 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-                      <span class="shrink-0 text-xs font-medium text-slate-500">Người tải lên</span>
-                      <span class="flex min-w-0 items-center gap-2 font-medium text-slate-800 dark:text-slate-100">
-                        <Avatar
-                          v-if="selected.uploaded_by"
-                          :name="selected.uploaded_by.name"
-                          :size="24"
-                        />
-                        <span class="truncate">{{ selected.uploaded_by?.name ?? '—' }}</span>
-                      </span>
-                    </li>
-                    <li class="flex flex-col gap-0.5 px-3.5 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-                      <span class="text-xs font-medium text-slate-500">Ngày tải</span>
-                      <span class="text-slate-800 dark:text-slate-200">{{ datetime(selected.created_at) }}</span>
-                    </li>
-                    <li class="flex flex-col gap-0.5 px-3.5 py-2.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-                      <span class="shrink-0 text-xs font-medium text-slate-500">Cập nhật</span>
-                      <span class="min-w-0 text-right text-slate-800 dark:text-slate-200 sm:text-left">
-                        {{ datetime(selected.updated_at) }}
-                        <span
-                          v-if="selected.updated_by?.name"
-                          class="mt-0.5 block text-xs font-normal text-slate-400"
-                        >bởi {{ selected.updated_by.name }}</span>
-                      </span>
-                    </li>
-                    <li class="flex items-center justify-between gap-4 px-3.5 py-2.5">
-                      <span class="text-xs font-medium text-slate-500">Dung lượng</span>
-                      <span class="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold tabular-nums text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-                        {{ formatSize(selected.size, selected) }}
-                      </span>
-                    </li>
-                    <li class="flex items-center justify-between gap-4 px-3.5 py-2.5">
-                      <span class="text-xs font-medium text-slate-500">Định dạng</span>
-                      <span
-                        class="max-w-[60%] truncate rounded-md bg-brand/10 px-2 py-0.5 text-xs font-semibold text-brand"
-                        :title="selected.mime_type"
-                      >{{ formatFileType(selected) }}</span>
-                    </li>
-                  </ul>
-                </section>
-
-                <section class="flex flex-1 flex-col overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
-                  <header class="flex items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/90 px-3.5 py-2 dark:border-slate-800 dark:bg-slate-800/50">
-                    <h4 class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                      Ghi chú
-                    </h4>
-                    <button
-                      v-if="canEdit && !editingNotes"
-                      type="button"
-                      class="rounded-md px-2 py-0.5 text-xs font-medium text-brand transition hover:bg-brand/10"
-                      @click="editingNotes = true"
-                    >
-                      Chỉnh sửa
-                    </button>
-                  </header>
-                  <div class="flex min-h-[88px] flex-1 flex-col px-3.5 py-2.5">
-                    <textarea
-                      v-if="editingNotes && canEdit"
-                      v-model="notesForm.notes"
-                      rows="3"
-                      class="input min-h-[72px] w-full flex-1 resize-y text-sm"
-                      placeholder="Mô tả phiên bản, nguồn tài liệu, ghi chú nội bộ…"
-                    />
-                    <p
-                      v-else
-                      class="flex-1 whitespace-pre-wrap text-sm leading-relaxed"
-                      :class="selected.notes ? 'text-slate-700 dark:text-slate-200' : 'italic text-slate-400'"
-                    >
-                      {{ selected.notes || 'Chưa có ghi chú.' }}
-                    </p>
-                    <div
-                      v-if="editingNotes && canEdit"
-                      class="mt-2 flex justify-end gap-2 border-t border-slate-100 pt-2 dark:border-slate-800"
-                    >
-                      <button
-                        type="button"
-                        class="btn-ghost text-xs"
-                        @click="editingNotes = false; notesForm.notes = selected.notes ?? ''"
-                      >
-                        Huỷ
-                      </button>
-                      <button
-                        type="button"
-                        class="btn-primary text-xs"
-                        :disabled="notesForm.processing"
-                        @click="saveNotes"
-                      >
-                        Lưu
-                      </button>
-                    </div>
-                  </div>
-                  <footer
-                    v-if="selected.is_external_link && canEdit"
-                    class="border-t border-slate-100 bg-slate-50/50 px-3.5 py-2 dark:border-slate-800 dark:bg-slate-800/30"
-                  >
-                    <button
-                      v-if="!editingLink"
-                      type="button"
-                      class="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-600 transition hover:border-brand/40 hover:bg-brand/5 hover:text-brand dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-brand/50"
-                      @click="editingLink = true"
+          <div class="grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)_minmax(0,min(40vh,360px))] overflow-hidden">
+            <!-- Preview -->
+            <div class="min-h-0 overflow-hidden p-3 pb-0">
+              <div
+                class="card flex h-full min-h-0 flex-col overflow-hidden dark:border-slate-700 dark:bg-slate-900"
+              >
+                <div class="flex shrink-0 items-center justify-between gap-2 border-b border-slate-100 px-4 py-2.5 dark:border-slate-700">
+                  <h3 class="min-w-0 truncate font-medium text-slate-800 dark:text-slate-100">
+                    {{ selected.original_name }}
+                  </h3>
+                  <div class="flex shrink-0 items-center gap-1">
+                    <a
+                      :href="selected.url"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="btn-ghost grid h-8 w-8 place-items-center p-0"
+                      title="Mở tab mới"
                     >
                       <AppIcon
-                        name="link"
-                        :size="14"
+                        name="eye"
+                        :size="15"
                       />
-                      Sửa link Google
-                    </button>
-                    <div
-                      v-else
-                      class="space-y-2"
+                    </a>
+                    <a
+                      v-if="!selected.is_external_link"
+                      :href="selected.url"
+                      download
+                      class="btn-ghost grid h-8 w-8 place-items-center p-0"
+                      title="Tải xuống"
                     >
-                      <input
-                        v-model="linkForm.title"
-                        type="text"
-                        class="input w-full text-sm"
-                        placeholder="Tên hiển thị"
+                      <AppIcon
+                        name="download"
+                        :size="15"
+                      />
+                    </a>
+                    <button
+                      v-if="canDelete"
+                      type="button"
+                      class="btn-ghost grid h-8 w-8 place-items-center p-0 text-rose-500"
+                      title="Xoá"
+                      @click="removeFile(selected)"
+                    >
+                      <AppIcon
+                        name="delete"
+                        :size="15"
+                      />
+                    </button>
+                  </div>
+                </div>
+                <div class="min-h-0 flex-1 overflow-hidden bg-slate-100/50 p-3 dark:bg-slate-950">
+                  <DocumentPreviewPane :file="selected" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Meta + notes + audit -->
+            <div
+              class="doc-meta-panel min-h-0 overflow-y-auto border-t border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900"
+            >
+              <div class="grid gap-3 p-3 sm:p-4 lg:grid-cols-2 lg:gap-4">
+                <!-- Cột trái: thông tin + ghi chú -->
+                <div class="flex flex-col gap-3">
+                  <section class="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                    <header class="border-b border-slate-100 bg-slate-50/90 px-3.5 py-2 dark:border-slate-800 dark:bg-slate-800/50">
+                      <h4 class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                        {{ selected.is_external_link ? 'Thông tin link' : 'Thông tin file' }}
+                      </h4>
+                    </header>
+                    <ul class="divide-y divide-slate-100 text-sm dark:divide-slate-800">
+                      <li class="flex flex-col gap-1 px-3.5 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                        <span class="shrink-0 text-xs font-medium text-slate-500">Người tải lên</span>
+                        <span class="flex min-w-0 items-center gap-2 font-medium text-slate-800 dark:text-slate-100">
+                          <Avatar
+                            v-if="selected.uploaded_by"
+                            :name="selected.uploaded_by.name"
+                            :size="24"
+                          />
+                          <span class="truncate">{{ selected.uploaded_by?.name ?? '—' }}</span>
+                        </span>
+                      </li>
+                      <li class="flex flex-col gap-0.5 px-3.5 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                        <span class="text-xs font-medium text-slate-500">Ngày tải</span>
+                        <span class="text-slate-800 dark:text-slate-200">{{ datetime(selected.created_at) }}</span>
+                      </li>
+                      <li class="flex flex-col gap-0.5 px-3.5 py-2.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                        <span class="shrink-0 text-xs font-medium text-slate-500">Cập nhật</span>
+                        <span class="min-w-0 text-right text-slate-800 dark:text-slate-200 sm:text-left">
+                          {{ datetime(selected.updated_at) }}
+                          <span
+                            v-if="selected.updated_by?.name"
+                            class="mt-0.5 block text-xs font-normal text-slate-400"
+                          >bởi {{ selected.updated_by.name }}</span>
+                        </span>
+                      </li>
+                      <li class="flex items-center justify-between gap-4 px-3.5 py-2.5">
+                        <span class="text-xs font-medium text-slate-500">Dung lượng</span>
+                        <span class="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold tabular-nums text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                          {{ formatSize(selected.size, selected) }}
+                        </span>
+                      </li>
+                      <li class="flex items-center justify-between gap-4 px-3.5 py-2.5">
+                        <span class="text-xs font-medium text-slate-500">Định dạng</span>
+                        <span
+                          class="max-w-[60%] truncate rounded-md bg-brand/10 px-2 py-0.5 text-xs font-semibold text-brand"
+                          :title="selected.mime_type"
+                        >{{ formatFileType(selected) }}</span>
+                      </li>
+                    </ul>
+                  </section>
+
+                  <section class="flex flex-1 flex-col overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                    <header class="flex items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/90 px-3.5 py-2 dark:border-slate-800 dark:bg-slate-800/50">
+                      <h4 class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                        Ghi chú
+                      </h4>
+                      <button
+                        v-if="canEdit && !editingNotes"
+                        type="button"
+                        class="rounded-md px-2 py-0.5 text-xs font-medium text-brand transition hover:bg-brand/10"
+                        @click="editingNotes = true"
                       >
-                      <input
-                        v-model="linkForm.external_url"
-                        type="url"
-                        class="input w-full text-sm"
-                        placeholder="https://docs.google.com/document/d/…"
+                        Chỉnh sửa
+                      </button>
+                    </header>
+                    <div class="flex min-h-[88px] flex-1 flex-col px-3.5 py-2.5">
+                      <textarea
+                        v-if="editingNotes && canEdit"
+                        v-model="notesForm.notes"
+                        rows="3"
+                        class="input min-h-[72px] w-full flex-1 resize-y text-sm"
+                        placeholder="Mô tả phiên bản, nguồn tài liệu, ghi chú nội bộ…"
+                      />
+                      <p
+                        v-else
+                        class="flex-1 whitespace-pre-wrap text-sm leading-relaxed"
+                        :class="selected.notes ? 'text-slate-700 dark:text-slate-200' : 'italic text-slate-400'"
                       >
-                      <div class="flex justify-end gap-2">
+                        {{ selected.notes || 'Chưa có ghi chú.' }}
+                      </p>
+                      <div
+                        v-if="editingNotes && canEdit"
+                        class="mt-2 flex justify-end gap-2 border-t border-slate-100 pt-2 dark:border-slate-800"
+                      >
                         <button
                           type="button"
                           class="btn-ghost text-xs"
-                          @click="editingLink = false; linkForm.title = selected.original_name; linkForm.external_url = selected.url"
+                          @click="editingNotes = false; notesForm.notes = selected.notes ?? ''"
                         >
                           Huỷ
                         </button>
                         <button
                           type="button"
                           class="btn-primary text-xs"
-                          :disabled="linkForm.processing"
-                          @click="saveLink"
+                          :disabled="notesForm.processing"
+                          @click="saveNotes"
                         >
-                          Lưu link
+                          Lưu
                         </button>
                       </div>
                     </div>
-                  </footer>
-                  <footer
-                    v-else-if="canDelete && !selected.is_external_link"
-                    class="border-t border-slate-100 bg-slate-50/50 px-3.5 py-2 dark:border-slate-800 dark:bg-slate-800/30"
-                  >
-                    <button
-                      type="button"
-                      class="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-600 transition hover:border-brand/40 hover:bg-brand/5 hover:text-brand dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-brand/50"
-                      @click="pickReplace"
+                    <footer
+                      v-if="selected.is_external_link && canEdit"
+                      class="border-t border-slate-100 bg-slate-50/50 px-3.5 py-2 dark:border-slate-800 dark:bg-slate-800/30"
                     >
-                      <AppIcon
-                        name="refresh"
-                        :size="14"
-                      />
-                      Thay thế file
-                    </button>
-                    <input
-                      ref="replaceInput"
-                      type="file"
-                      class="hidden"
-                      :accept="acceptFor(activeCategory)"
-                      @change="onReplaceSelected"
+                      <button
+                        v-if="!editingLink"
+                        type="button"
+                        class="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-600 transition hover:border-brand/40 hover:bg-brand/5 hover:text-brand dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-brand/50"
+                        @click="editingLink = true"
+                      >
+                        <AppIcon
+                          name="link"
+                          :size="14"
+                        />
+                        Sửa link Google
+                      </button>
+                      <div
+                        v-else
+                        class="space-y-2"
+                      >
+                        <input
+                          v-model="linkForm.title"
+                          type="text"
+                          class="input w-full text-sm"
+                          placeholder="Tên hiển thị"
+                        >
+                        <input
+                          v-model="linkForm.external_url"
+                          type="url"
+                          class="input w-full text-sm"
+                          placeholder="https://docs.google.com/document/d/…"
+                        >
+                        <div class="flex justify-end gap-2">
+                          <button
+                            type="button"
+                            class="btn-ghost text-xs"
+                            @click="editingLink = false; linkForm.title = selected.original_name; linkForm.external_url = selected.url"
+                          >
+                            Huỷ
+                          </button>
+                          <button
+                            type="button"
+                            class="btn-primary text-xs"
+                            :disabled="linkForm.processing"
+                            @click="saveLink"
+                          >
+                            Lưu link
+                          </button>
+                        </div>
+                      </div>
+                    </footer>
+                    <footer
+                      v-else-if="canDelete && !selected.is_external_link"
+                      class="border-t border-slate-100 bg-slate-50/50 px-3.5 py-2 dark:border-slate-800 dark:bg-slate-800/30"
                     >
-                  </footer>
-                </section>
-              </div>
+                      <button
+                        type="button"
+                        class="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-600 transition hover:border-brand/40 hover:bg-brand/5 hover:text-brand dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-brand/50"
+                        @click="pickReplace"
+                      >
+                        <AppIcon
+                          name="refresh"
+                          :size="14"
+                        />
+                        Thay thế file
+                      </button>
+                      <input
+                        ref="replaceInput"
+                        type="file"
+                        class="hidden"
+                        :accept="acceptFor(activeCategory)"
+                        @change="onReplaceSelected"
+                      >
+                    </footer>
+                  </section>
+                </div>
 
-              <!-- Cột phải: audit -->
-              <section class="flex min-h-[200px] flex-col overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900 lg:min-h-0">
-                <header class="flex items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/90 px-3.5 py-2 dark:border-slate-800 dark:bg-slate-800/50">
-                  <h4 class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                    Lịch sử chỉnh sửa
-                  </h4>
-                  <span
-                    v-if="activities.length"
-                    class="rounded-full bg-slate-200/80 px-2 py-0.5 text-[10px] font-bold text-slate-600 dark:bg-slate-700 dark:text-slate-300"
-                  >{{ activities.length }}</span>
-                </header>
-
-                <ul
-                  v-if="activities.length"
-                  class="doc-audit-list relative flex-1 space-y-0 overflow-y-auto px-3 py-3"
-                >
-                  <li
-                    v-for="(item, index) in activities"
-                    :key="item.id"
-                    class="doc-audit-item relative flex gap-3 pb-4 pl-1 last:pb-0"
-                    :class="index < activities.length - 1 ? 'doc-audit-item--line' : ''"
-                  >
+                <!-- Cột phải: audit -->
+                <section class="flex min-h-[200px] flex-col overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900 lg:min-h-0">
+                  <header class="flex items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/90 px-3.5 py-2 dark:border-slate-800 dark:bg-slate-800/50">
+                    <h4 class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      Lịch sử chỉnh sửa
+                    </h4>
                     <span
-                      class="relative z-[1] mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full ring-2 ring-white dark:ring-slate-900"
-                      :class="activityTone(item.event)"
+                      v-if="activities.length"
+                      class="rounded-full bg-slate-200/80 px-2 py-0.5 text-[10px] font-bold text-slate-600 dark:bg-slate-700 dark:text-slate-300"
+                    >{{ activities.length }}</span>
+                  </header>
+
+                  <ul
+                    v-if="activities.length"
+                    class="doc-audit-list relative space-y-0 px-3 py-3"
+                  >
+                    <li
+                      v-for="(item, index) in activities"
+                      :key="item.id"
+                      class="doc-audit-item relative flex gap-3 pb-4 pl-1 last:pb-0"
+                      :class="index < activities.length - 1 ? 'doc-audit-item--line' : ''"
                     >
+                      <span
+                        class="relative z-[1] mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full ring-2 ring-white dark:ring-slate-900"
+                        :class="activityTone(item.event)"
+                      >
+                        <AppIcon
+                          :name="activityIcon(item.event)"
+                          :size="13"
+                        />
+                      </span>
+                      <div class="min-w-0 flex-1 pt-0.5">
+                        <p class="text-sm font-medium leading-snug text-slate-800 dark:text-slate-100">
+                          {{ item.description }}
+                        </p>
+                        <p class="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] text-slate-400">
+                          <span>{{ datetime(item.created_at) }}</span>
+                          <span
+                            v-if="item.employee?.name"
+                            class="text-slate-300"
+                          >·</span>
+                          <span
+                            v-if="item.employee?.name"
+                            class="font-medium text-slate-500"
+                          >
+                            {{ item.employee.name }}
+                          </span>
+                        </p>
+                      </div>
+                    </li>
+                  </ul>
+
+                  <div
+                    v-else
+                    class="flex flex-1 flex-col items-center justify-center px-4 py-8 text-center"
+                  >
+                    <span class="grid h-10 w-10 place-items-center rounded-full bg-slate-100 text-slate-400 dark:bg-slate-800">
                       <AppIcon
-                        :name="activityIcon(item.event)"
-                        :size="13"
+                        name="report-history"
+                        :size="18"
                       />
                     </span>
-                    <div class="min-w-0 flex-1 pt-0.5">
-                      <p class="text-sm font-medium leading-snug text-slate-800 dark:text-slate-100">
-                        {{ item.description }}
-                      </p>
-                      <p class="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] text-slate-400">
-                        <span>{{ datetime(item.created_at) }}</span>
-                        <span
-                          v-if="item.employee?.name"
-                          class="text-slate-300"
-                        >·</span>
-                        <span
-                          v-if="item.employee?.name"
-                          class="font-medium text-slate-500"
-                        >
-                          {{ item.employee.name }}
-                        </span>
-                      </p>
-                    </div>
-                  </li>
-                </ul>
-
-                <div
-                  v-else
-                  class="flex flex-1 flex-col items-center justify-center px-4 py-8 text-center"
-                >
-                  <span class="grid h-10 w-10 place-items-center rounded-full bg-slate-100 text-slate-400 dark:bg-slate-800">
-                    <AppIcon
-                      name="report-history"
-                      :size="18"
-                    />
-                  </span>
-                  <p class="mt-2 text-sm text-slate-500">
-                    Chưa có lịch sử
-                  </p>
-                  <p class="mt-0.5 max-w-[220px] text-xs text-slate-400">
-                    Tải lên, sửa ghi chú hoặc thay file để ghi nhận audit.
-                  </p>
-                </div>
-              </section>
+                    <p class="mt-2 text-sm text-slate-500">
+                      Chưa có lịch sử
+                    </p>
+                    <p class="mt-0.5 max-w-[220px] text-xs text-slate-400">
+                      Tải lên, sửa ghi chú hoặc thay file để ghi nhận audit.
+                    </p>
+                  </div>
+                </section>
+              </div>
             </div>
           </div>
         </template>
 
         <div
           v-else
-          class="flex flex-1 flex-col items-center justify-center p-8 text-center text-slate-400"
+          class="flex min-h-0 flex-1 flex-col items-center justify-center p-8 text-center text-slate-400"
         >
           <AppIcon
             name="documents"
@@ -938,15 +940,5 @@ const activityTone = (event) => ({
 
 .doc-meta-panel {
     scrollbar-gutter: stable;
-}
-
-.doc-audit-list {
-    max-height: min(280px, 32vh);
-}
-
-@media (min-width: 1024px) {
-    .doc-audit-list {
-        max-height: none;
-    }
 }
 </style>

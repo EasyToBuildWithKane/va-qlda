@@ -141,9 +141,6 @@ export function useProjectDashboard(projectId, sources) {
         persistActivity();
     };
 
-    const activityVisible = ref(10);
-    const showMoreActivity = () => { activityVisible.value += 10; };
-
     const issues = computed(() => (sources.blockers?.value ?? []).map(blockerToIssue));
     const openIssueCount = computed(() => issues.value.filter((i) => !['resolved', 'closed'].includes(i.status)).length);
 
@@ -241,8 +238,6 @@ export function useProjectDashboard(projectId, sources) {
         viewMode,
         currentEmployeeId,
         activityLog,
-        activityVisible,
-        showMoreActivity,
         pushActivity,
         seedActivityIfEmpty,
         issues,
