@@ -14,12 +14,12 @@ export const COLUMNS = [
     { key: 'created_at', label: 'Ngày tạo', align: 'left', sortable: true, colClass: 'min-w-[6rem]' },
     { key: 'updated_at', label: 'Cập nhật', align: 'left', sortable: true, colClass: 'min-w-[6rem]' },
     { key: 'task_count', label: 'Công việc', align: 'center', sortable: true, colClass: 'min-w-[4.5rem]' },
-    { key: 'member_count', label: 'Thành viên', align: 'center', sortable: true, colClass: 'min-w-[5rem]' },
+    { key: 'member_count', label: 'Thành viên', align: 'left', sortable: true, colClass: 'min-w-[11rem]' },
     { key: 'open_blocker_count', label: 'Khúc mắc', align: 'center', sortable: true, colClass: 'min-w-[4.5rem]' },
 ];
 
 export const DEFAULT_VISIBLE = [
-    'type', 'department', 'manager', 'status', 'progress', 'due_date', 'task_count',
+    'type', 'department', 'manager', 'status', 'progress', 'due_date', 'task_count', 'member_count',
 ];
 
 /** A sortable / exportable primitive for a given project + column key. */

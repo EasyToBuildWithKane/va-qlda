@@ -7,6 +7,7 @@ import Avatar from '@/shared/ui/Avatar.vue';
 import { COLUMNS, cellValue } from '@/modules/project/config/columns';
 import { currency, date } from '@/composables/useFormat';
 import ProjectListRowActions from '@/modules/project/components/ProjectListRowActions.vue';
+import ProjectMembers from '@/modules/project/components/ProjectMembers.vue';
 
 const props = defineProps({
     projects: { type: Array, default: () => [] },
@@ -171,9 +172,10 @@ const progressTone = (v) => {
 
             <template v-if="isOpen(g)">
               <tr
-                v-for="p in g.projects"
+                v-for="(p, rowIndex) in g.projects"
                 :key="p.id"
-                class="group hover:bg-slate-50/80"
+                class="project-grid-row group hover:bg-slate-50/80"
+                :style="{ '--row-delay': `${rowIndex * 35}ms` }"
               >
                 <td class="whitespace-nowrap border-b border-slate-100 px-3 py-2.5">
                   <div class="flex items-center gap-2">
@@ -297,7 +299,18 @@ const progressTone = (v) => {
                     <span class="text-sm font-medium tabular-nums text-slate-600">{{ p.task_count ?? 0 }}</span>
                   </template>
                   <template v-else-if="c.key === 'member_count'">
-                    <span class="text-sm font-medium tabular-nums text-slate-600">{{ p.member_count ?? 0 }}</span>
+                    <ProjectMembers
+                      v-if="Array.isArray(p.members) && p.members.length"
+                      :members="p.members"
+                      :max-visible="4"
+                      :max-name-labels="3"
+                      show-names
+                      compact
+                    />
+                    <span
+                      v-else
+                      class="text-xs text-slate-400"
+                    >Chưa có thành viên</span>
                   </template>
                   <template v-else-if="c.key === 'open_blocker_count'">
                     <span
@@ -335,5 +348,27 @@ const progressTone = (v) => {
 <style scoped>
 .project-grid-scroll {
     -webkit-overflow-scrolling: touch;
+}
+
+.project-grid-row {
+    animation: project-row-in 0.4s ease backwards;
+    animation-delay: var(--row-delay, 0ms);
+}
+
+@keyframes project-row-in {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .project-grid-row {
+        animation: none;
+    }
 }
 </style>

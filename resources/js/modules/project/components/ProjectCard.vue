@@ -5,6 +5,7 @@ import AppIcon from '@/Components/AppIcon.vue';
 import Badge from '@/shared/ui/Badge.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
 import ProgressBar from '@/shared/ui/ProgressBar.vue';
+import ProjectMembers from '@/modules/project/components/ProjectMembers.vue';
 import { date } from '@/composables/useFormat';
 
 const props = defineProps({
@@ -31,7 +32,7 @@ const members = computed(() => {
 
 <template>
   <div
-    class="card overflow-hidden transition hover:shadow-elevation-2"
+    class="project-card card overflow-hidden transition duration-300 hover:shadow-elevation-2 hover:-translate-y-0.5"
     :class="draggable ? 'cursor-grab active:cursor-grabbing' : ''"
     :draggable="draggable"
     @dragstart="emit('dragstart', project)"
@@ -109,41 +110,16 @@ const members = computed(() => {
         </span>
       </div>
 
-      <!-- Member avatars -->
-      <div class="flex items-center justify-between">
-        <div class="flex items-center">
-          <template
-            v-for="(m, i) in members.slice(0, 5)"
-            :key="m.id"
-          >
-            <span
-              :style="{ zIndex: 5 - i, marginLeft: i === 0 ? '0' : '-6px' }"
-              class="relative inline-block rounded-full ring-2 ring-white"
-            >
-              <Avatar
-                :name="m.name"
-                :src="m.avatar_path"
-                :size="24"
-              />
-            </span>
-          </template>
-          <span
-            v-if="members.length > 5"
-            class="relative ml-[-6px] inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-200 text-[10px] font-semibold text-slate-600 ring-2 ring-white"
-          >
-            +{{ members.length - 5 }}
-          </span>
-          <span
-            v-if="!members.length"
-            class="flex items-center gap-1 text-xs text-slate-400"
-          >
-            <AppIcon
-              name="members"
-              :size="13"
-            /> 0 thành viên
-          </span>
-        </div>
-        <div class="flex items-center gap-3 text-xs text-slate-500">
+      <div class="flex items-start justify-between gap-2">
+        <ProjectMembers
+          :members="members"
+          :max-visible="5"
+          :max-name-labels="4"
+          show-names
+          compact
+          class="min-w-0 flex-1"
+        />
+        <div class="flex shrink-0 items-center gap-3 pt-0.5 text-xs text-slate-500">
           <span class="flex items-center gap-1"><AppIcon
             name="task"
             :size="13"
