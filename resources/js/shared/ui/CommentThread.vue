@@ -36,10 +36,39 @@ function normalizeList(raw) {
 
 const threadComments = ref(normalizeList(props.comments));
 
+function commentSortKey(c) {
+    return new Date(c?.created_at || 0).getTime();
+}
+
+/** Giữ bình luận từ Socket.IO / optimistic khi Inertia props chưa kịp cập nhật. */
+function syncFromServerProps(raw) {
+    const server = normalizeList(raw);
+    const byId = new Map();
+
+    for (const c of server) {
+        if (c?.id != null) {
+            byId.set(c.id, c);
+        }
+    }
+
+    for (const c of threadComments.value) {
+        if (!c?.id) continue;
+        if (isPendingComment(c)) {
+            byId.set(c.id, c);
+            continue;
+        }
+        if (!byId.has(c.id)) {
+            byId.set(c.id, c);
+        }
+    }
+
+    threadComments.value = [...byId.values()].sort((a, b) => commentSortKey(b) - commentSortKey(a));
+}
+
 watch(
     () => props.comments,
     (raw) => {
-        threadComments.value = normalizeList(raw);
+        syncFromServerProps(raw);
     },
     { deep: true },
 );
@@ -79,11 +108,14 @@ const { subscribed: realtimeSubscribed } = useCommentRealtime(typeRef, idRef, {
 
 const reloadKeysRef = computed(() => props.partialReloadKeys || []);
 
+const pollActive = computed(() => reloadKeysRef.value.length > 0);
+
 useCommentThreadPoll({
-    active: computed(() => true),
-    enabled: realtimeEnabled,
+    active: pollActive,
+    enabled: computed(() => true),
     subscribed: realtimeSubscribed,
     reloadKeys: reloadKeysRef,
+    fastIntervalMs: 15000,
 });
 
 const list = computed(() => threadComments.value);

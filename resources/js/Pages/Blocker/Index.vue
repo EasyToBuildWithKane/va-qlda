@@ -18,6 +18,7 @@ import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterC
 import { useVisibleColumns } from '@/shared/composables/useVisibleColumns';
 import { date, datetime } from '@/composables/useFormat';
 import { useDialog } from '@/composables/useDialog';
+import { useCommentThreadPoll } from '@/composables/useCommentThreadPoll';
 
 const PER_PAGE_OPTIONS = [5, 10, 15, 20];
 const GROUP_GENERAL = '__general__';
@@ -135,6 +136,15 @@ function closeCommentModal() {
     showCommentModal.value = false;
     commentModalBlockerId.value = null;
 }
+
+/** Đồng bộ danh sách + số bình luận khi đang mở modal (realtime hoặc partial reload). */
+useCommentThreadPoll({
+    active: computed(() => showDetailModal.value || showCommentModal.value),
+    enabled: computed(() => true),
+    subscribed: computed(() => false),
+    reloadKeys: computed(() => ['blockers']),
+    fastIntervalMs: 12000,
+});
 
 function onDetailEditResolution(b) {
     closeDetailModal();
@@ -1068,6 +1078,7 @@ function toggleAllGroups() {
       :initial-tab="detailModalTab"
       :can-comment="can.comment"
       :can-update="detailModalBlocker?.can?.update && !isTerminal(detailModalBlocker)"
+      :partial-reload-keys="['blockers']"
       @close="closeDetailModal"
       @edit-resolution="onDetailEditResolution"
     />
