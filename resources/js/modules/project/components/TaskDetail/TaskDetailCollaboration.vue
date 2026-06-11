@@ -4,6 +4,7 @@ import { router, usePage } from '@inertiajs/vue3';
 import Avatar from '@/shared/ui/Avatar.vue';
 import { datetime } from '@/composables/useFormat';
 import { useToast } from '@/shared/composables/useToast';
+import { useDialog } from '@/composables/useDialog';
 import { normalizeEntities } from '@/composables/useNormalizeList';
 import { useCommentRealtime } from '@/composables/useCommentRealtime';
 
@@ -15,6 +16,7 @@ const props = defineProps({
 
 const page = usePage();
 const toast = useToast();
+const dialog = useDialog();
 const body = ref('');
 const replyTo = ref(null);
 const editingId = ref(null);
@@ -186,8 +188,14 @@ const saveEdit = (c) => {
     });
 };
 
-const remove = (c) => {
-    if (!confirm('Xoá bình luận này?')) return;
+const remove = async (c) => {
+    const ok = await dialog.confirm({
+        title: 'Xoá trao đổi',
+        message: 'Bình luận này sẽ bị xoá vĩnh viễn. Tiếp tục?',
+        tone: 'danger',
+        confirmText: 'Xoá',
+    });
+    if (!ok) return;
     router.delete(`/comments/${c.id}`, {
         preserveScroll: true,
         only: ['tasks'],
