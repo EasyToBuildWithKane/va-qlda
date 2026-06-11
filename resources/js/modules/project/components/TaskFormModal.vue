@@ -8,6 +8,10 @@ import AppIcon from '@/Components/AppIcon.vue';
 import PersonSelect from '@/modules/project/components/PersonSelect.vue';
 import PersonMultiSelect from '@/modules/project/components/PersonMultiSelect.vue';
 import TaskFormBulkPanel from '@/modules/project/components/TaskFormBulkPanel.vue';
+import TaskEnumChipRow from '@/modules/project/components/TaskEnumChipRow.vue';
+import Badge from '@/shared/ui/Badge.vue';
+import ProgressBar from '@/shared/ui/ProgressBar.vue';
+import { date } from '@/composables/useFormat';
 import { useModalFormDraft, shallowPickDraft, draftHasMeaningfulContent } from '@/composables/useModalFormDraft';
 import {
     buildDraftSaveMeta,
@@ -25,6 +29,8 @@ const props = defineProps({
     priorityOptions: { type: Array, default: () => [] },
     phaseOptions: { type: Array, default: () => [] },
     defaultStatus: { type: String, default: 'todo' },
+    /** Gán sprint khi mở modal tạo từ cột sprint (không dùng object task giả). */
+    initialSprintId: { type: Number, default: null },
 });
 
 const emit = defineEmits(['close', 'saved']);
@@ -33,6 +39,8 @@ const modalClose = inject('modalClose', () => emit('close'));
 const createMode = ref('single'); // single | bulk
 const bulkDirty = ref(false);
 const bulkPanelRef = ref(null);
+
+const isEditing = computed(() => props.task?.id != null);
 
 const modalDirty = computed(() => form.isDirty || (createMode.value === 'bulk' && bulkDirty.value));
 
@@ -58,8 +66,25 @@ const form = useForm({
 });
 
 const taskDraftScope = computed(() => (
-    props.task ? `edit.${props.task.id}` : `create.${props.projectId}`
+    isEditing.value ? `edit.${props.task.id}` : `create.${props.projectId}`
 ));
+
+const enumFieldValue = (field) => {
+    if (field == null) return null;
+    if (typeof field === 'object' && field.value != null) return field.value;
+    return field;
+};
+
+const editSprintLabel = computed(() => {
+    if (!isEditing.value) return null;
+    const sid = form.sprint_id ?? props.task.sprint_id;
+    if (!sid) return 'Backlog';
+    const s = props.sprints.find((x) => x.id === sid);
+    return s?.name ?? props.task.sprint?.name ?? `Sprint #${sid}`;
+});
+
+const editStatusMeta = computed(() => props.statusOptions.find((o) => o.value === form.status));
+const editPriorityMeta = computed(() => props.priorityOptions.find((o) => o.value === form.priority));
 
 const TASK_DRAFT_FIELDS = [
     'title', 'description', 'sprint_id', 'status', 'priority',
@@ -132,12 +157,13 @@ const bulkInitialDefaults = computed(() => ({
 }));
 
 const modalTitle = computed(() => {
-    if (props.task) return 'Chỉnh sửa công việc';
+    if (isEditing.value) return `Chỉnh sửa #${props.task.id}`;
     return createMode.value === 'bulk' ? 'Thêm nhiều công việc' : 'Thêm công việc';
 });
 
 const modalMaxWidth = computed(() => {
-    if (createMode.value === 'bulk' && !props.task) return 'max-w-5xl';
+    if (createMode.value === 'bulk' && !isEditing.value) return 'max-w-5xl';
+    if (isEditing.value) return 'max-w-5xl';
     return 'max-w-4xl';
 });
 
@@ -148,7 +174,7 @@ const handleKeydown = (e) => {
         modalClose();
         return;
     }
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && createMode.value === 'single' && !props.task) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && createMode.value === 'single') {
         e.preventDefault();
         submit();
     }
@@ -161,12 +187,12 @@ watch(() => props.show, async (open) => {
         bulkDirty.value = false;
         form.clearErrors();
         const epoch = formDraft.bumpOpenEpoch();
-        if (props.task) {
+        if (isEditing.value) {
             form.title = props.task.title;
             form.description = props.task.description ?? '';
             form.sprint_id = props.task.sprint_id;
-            form.status = props.task.status.value;
-            form.priority = props.task.priority.value;
+            form.status = enumFieldValue(props.task.status) ?? props.defaultStatus;
+            form.priority = enumFieldValue(props.task.priority) ?? 'medium';
             form.assignee_id = props.task.assignee?.id ?? null;
             form.assignee_ids = (props.task.assignees ?? []).map((a) => a.id);
             form.reporter_id = props.task.reporter?.id ?? null;
@@ -190,6 +216,7 @@ watch(() => props.show, async (open) => {
         } else {
             form.reset();
             form.status = props.defaultStatus;
+            if (props.initialSprintId) form.sprint_id = props.initialSprintId;
             await restoreModalDraft(formDraft, {
                 isActive: () => props.show,
                 openEpoch: epoch,
@@ -218,7 +245,7 @@ const submit = () => {
             emit('close');
         },
     };
-    if (props.task) {
+    if (isEditing.value) {
         form.put(`/projects/${props.projectId}/tasks/${props.task.id}`, opts);
     } else {
         form.post(`/projects/${props.projectId}/tasks`, opts);
@@ -231,7 +258,12 @@ const onBulkSaved = () => {
     emit('close');
 };
 
-const dependencyOptions = computed(() => props.tasks.filter((t) => !props.task || t.id !== props.task.id));
+const dependencyOptions = computed(() => props.tasks.filter((t) => !isEditing.value || t.id !== props.task.id));
+
+const onEditStatusPick = (value) => {
+    form.status = value;
+    syncProgressFromStatus();
+};
 
 const statusSelectOptions = computed(() => valueLabelOptions(props.statusOptions));
 const prioritySelectOptions = computed(() => valueLabelOptions(props.priorityOptions));
@@ -256,7 +288,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
   >
     <!-- Mode tabs (create only) -->
     <div
-      v-if="!task"
+      v-if="!isEditing"
       class="mb-3 flex rounded-lg border border-slate-200 bg-slate-50 p-0.5 dark:border-slate-700 dark:bg-slate-900/50"
     >
       <button
@@ -291,7 +323,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
     </div>
 
     <TaskFormBulkPanel
-      v-if="!task && createMode === 'bulk'"
+      v-if="!isEditing && createMode === 'bulk'"
       ref="bulkPanelRef"
       :project-id="projectId"
       :sprints="sprints"
@@ -309,15 +341,67 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
     <!-- Single create / edit -->
     <form
       v-else
-      class="space-y-3"
+      class="space-y-4"
       @submit.prevent="submit"
     >
+      <div
+        v-if="isEditing"
+        class="rounded-xl border border-brand/15 bg-gradient-to-br from-brand/[0.06] via-white to-slate-50 p-4 dark:border-brand/25 dark:from-brand/10 dark:via-slate-900 dark:to-slate-900/80"
+      >
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div class="min-w-0 space-y-1">
+            <p
+              v-if="task.parent"
+              class="text-xs text-slate-500"
+            >
+              Công việc con của
+              <span class="font-medium text-slate-700 dark:text-slate-300">#{{ task.parent.id }} {{ task.parent.title }}</span>
+            </p>
+            <div class="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+              <span class="inline-flex items-center gap-1 rounded-md bg-white/80 px-2 py-0.5 font-medium dark:bg-slate-800/80">
+                <AppIcon
+                  name="sprint"
+                  :size="13"
+                  class="text-brand"
+                />
+                {{ editSprintLabel }}
+              </span>
+              <span v-if="form.start_date || form.due_date">
+                {{ date(form.start_date) || '—' }} → {{ date(form.due_date) || '—' }}
+              </span>
+              <span v-if="form.estimate_hours != null">{{ form.estimate_hours }}h ước tính</span>
+            </div>
+          </div>
+          <div class="flex flex-wrap items-center gap-1.5">
+            <Badge
+              v-if="editStatusMeta"
+              :label="editStatusMeta.label"
+              :color="editStatusMeta.color"
+            />
+            <Badge
+              v-if="editPriorityMeta"
+              :label="editPriorityMeta.label"
+              :color="editPriorityMeta.color"
+            />
+          </div>
+        </div>
+        <div class="mt-3 flex items-center gap-3">
+          <ProgressBar
+            :value="form.progress_percent"
+            :show-label="false"
+            class="min-w-0 flex-1"
+          />
+          <span class="shrink-0 text-sm font-semibold tabular-nums text-brand">{{ form.progress_percent }}%</span>
+        </div>
+      </div>
+
       <div>
         <label class="label">Tiêu đề <span class="text-rose-500">*</span></label>
         <input
           v-model="form.title"
           type="text"
           class="input"
+          :class="isEditing ? 'text-base font-medium' : ''"
           placeholder="Mô tả ngắn công việc…"
           autofocus
         >
@@ -328,19 +412,57 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
           {{ form.errors.title }}
         </p>
       </div>
+
+      <div
+        v-if="isEditing"
+        class="space-y-3 rounded-xl border border-slate-200/80 bg-slate-50/50 p-3.5 dark:border-slate-700 dark:bg-slate-900/40"
+      >
+        <div>
+          <label class="label mb-1.5">Trạng thái</label>
+          <TaskEnumChipRow
+            :model-value="form.status"
+            :options="statusOptions"
+            aria-label="Trạng thái công việc"
+            @update:model-value="onEditStatusPick"
+          />
+        </div>
+        <div>
+          <label class="label mb-1.5">Ưu tiên</label>
+          <TaskEnumChipRow
+            v-model="form.priority"
+            :options="priorityOptions"
+            aria-label="Ưu tiên công việc"
+          />
+        </div>
+        <div>
+          <label class="label mb-1.5">Tiến độ</label>
+          <input
+            v-model.number="form.progress_percent"
+            type="range"
+            min="0"
+            max="100"
+            step="5"
+            class="w-full accent-brand"
+          >
+        </div>
+      </div>
+
       <div class="grid gap-6 lg:grid-cols-2 lg:gap-x-8">
         <div class="space-y-3">
           <div>
             <label class="label">Mô tả</label>
             <textarea
               v-model="form.description"
-              :rows="task ? 4 : 5"
+              :rows="isEditing ? 5 : 5"
               class="input min-h-[7.5rem] resize-y lg:min-h-[10rem]"
               placeholder="Yêu cầu, tiêu chí hoàn thành…"
             />
           </div>
 
-          <div class="grid gap-3 sm:grid-cols-2">
+          <div
+            v-if="!isEditing"
+            class="grid gap-3 sm:grid-cols-2"
+          >
             <div>
               <label class="label">Trạng thái <span class="text-rose-500">*</span></label>
               <SearchSelect
@@ -360,6 +482,9 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
                 :clearable="false"
               />
             </div>
+          </div>
+
+          <div class="grid gap-3 sm:grid-cols-2">
             <div>
               <label class="label">Sprint</label>
               <SearchSelect
@@ -414,20 +539,6 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
                 min="0"
                 class="input max-w-xs"
                 placeholder="8"
-              >
-            </div>
-            <div
-              v-if="task"
-              class="sm:col-span-2"
-            >
-              <label class="label">Tiến độ: <strong class="text-brand">{{ form.progress_percent }}%</strong></label>
-              <input
-                v-model.number="form.progress_percent"
-                type="range"
-                min="0"
-                max="100"
-                step="5"
-                class="mt-1.5 w-full accent-brand"
               >
             </div>
           </div>
@@ -507,7 +618,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
           class="btn-primary"
           :disabled="form.processing"
         >
-          {{ task ? 'Lưu thay đổi' : 'Thêm công việc' }}
+          {{ isEditing ? 'Lưu thay đổi' : 'Thêm công việc' }}
         </button>
       </div>
     </form>

@@ -29,7 +29,7 @@ const props = defineProps({
 });
 
 const { patchTaskStatus } = useSprintTaskStatusPatch(props.projectId, props.statusOptions);
-const emit = defineEmits(['open-task']);
+const emit = defineEmits(['open-task', 'edit-task']);
 
 const colCount = computed(() => (props.compact ? 10 : 11));
 const taskPool = computed(() => (props.allTasks?.length ? props.allTasks : props.tasks));
@@ -357,7 +357,20 @@ const isDateOverdue = (row, parent) => {
             class="border-b border-slate-100 px-2 py-2 dark:border-slate-800"
             @click.stop
           >
+            <button
+              v-if="canContribute"
+              type="button"
+              class="grid h-7 w-7 place-items-center rounded-md text-slate-400 transition hover:bg-brand/10 hover:text-brand"
+              title="Chỉnh sửa công việc"
+              @click="emit('edit-task', entry.task)"
+            >
+              <AppIcon
+                name="edit"
+                :size="14"
+              />
+            </button>
             <AppIcon
+              v-else
               name="chevron-right"
               :size="14"
               class="text-slate-300"

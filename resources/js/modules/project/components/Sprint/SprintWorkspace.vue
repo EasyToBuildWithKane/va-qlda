@@ -76,6 +76,7 @@ const sprintModal = ref(false);
 const editingSprint = ref(null);
 const taskModal = ref(false);
 const editingTask = ref(null);
+const taskSprintPreset = ref(null);
 const taskDefaultStatus = ref('todo');
 
 const toggleSprint = (id) => {
@@ -97,14 +98,18 @@ const onTaskDetailUpdated = () => {
     if (fresh) detailTask.value = fresh;
 };
 const openTaskModal = (t = null, status = 'todo', sprintId = null) => {
-    editingTask.value = t;
+    editingTask.value = t?.id != null ? t : null;
+    taskSprintPreset.value = (!t?.id && sprintId) ? sprintId : null;
     taskDefaultStatus.value = status;
-    if (!t && sprintId) editingTask.value = { sprint_id: sprintId };
     taskModal.value = true;
+};
+const openTaskEdit = (t) => {
+    if (!t?.id) return;
+    openTaskModal(t);
 };
 const openTaskEditFromDetail = (t) => {
     detailTask.value = null;
-    openTaskModal(t);
+    openTaskEdit(t);
 };
 const openSprint = (s = null) => { editingSprint.value = s; sprintModal.value = true; };
 
@@ -279,6 +284,7 @@ onMounted(() => {
         @toggle-sprint="toggleSprint"
         @open-sprint="openSprint"
         @open-task="openTask"
+        @edit-task="openTaskEdit"
         @add-task="({ sprintId }) => openTaskModal(null, 'todo', sprintId)"
         @duplicate-sprint="duplicateSprint"
         @close-sprint="closeSprint"
@@ -338,6 +344,7 @@ onMounted(() => {
       :show="taskModal"
       :project-id="pid"
       :task="editingTask"
+      :initial-sprint-id="taskSprintPreset"
       :sprints="sprints"
       :employees="employees"
       :tasks="tasks"

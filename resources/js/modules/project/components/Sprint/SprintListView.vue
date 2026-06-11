@@ -21,7 +21,7 @@ defineProps({
     canContribute: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(['toggle-sprint', 'open-sprint', 'open-task', 'add-task', 'duplicate-sprint', 'close-sprint', 'delete-sprint']);
+const emit = defineEmits(['toggle-sprint', 'open-sprint', 'open-task', 'edit-task', 'add-task', 'duplicate-sprint', 'close-sprint', 'delete-sprint']);
 
 /** Thu gọn nhóm giai đoạn (mặc định mở hết). */
 const collapsedPhases = ref(new Set());
@@ -179,6 +179,7 @@ const togglePhase = (key) => {
                 :status-options="statusOptions"
                 :can-contribute="canContribute"
                 @open-task="emit('open-task', $event)"
+                @edit-task="emit('edit-task', $event)"
               />
             </div>
           </div>
@@ -250,6 +251,7 @@ const togglePhase = (key) => {
               :can-contribute="canContribute"
               compact
               @open-task="emit('open-task', $event)"
+              @edit-task="emit('edit-task', $event)"
             />
           </div>
         </div>
