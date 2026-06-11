@@ -836,9 +836,14 @@ function toggleAllGroups() {
                       class="blocker-cell-wrap blocker-col-title px-2 py-2.5 align-top"
                     >
                       <div class="min-w-0">
-                        <p class="break-words text-sm font-medium leading-snug text-slate-800">
+                        <button
+                          type="button"
+                          class="block w-full break-words text-left text-sm font-medium leading-snug text-slate-800 underline-offset-2 hover:text-brand hover:underline"
+                          title="Xem chi tiết"
+                          @click.stop="openDetailModal(b, 'detail')"
+                        >
                           {{ b.title }}
-                        </p>
+                        </button>
                         <p
                           v-if="!isColVisible('code')"
                           class="mt-0.5 break-all font-mono text-[11px] text-brand/90"
