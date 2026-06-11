@@ -11,7 +11,8 @@ import {
     X, Search, Filter, Clock, Link2, GanttChartSquare, Pencil, Flag,
     PiggyBank, ArrowLeft, Building2, Info, Building, Globe, MapPin,
     Columns3, Download, Upload, FileDown, RotateCw, Eye, Copy, Archive, ChevronDown,
-    Save, Check, ArrowUpDown, CalendarClock, Users2, CircleDollarSign, Image, Ellipsis, EyeOff, Send,
+    Save, Check, ArrowUpDown, CalendarClock, Users2, CircleDollarSign, Image, Ellipsis, EllipsisVertical,
+    EyeOff, Send,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -126,6 +127,7 @@ const map = {
     money: CircleDollarSign,
     menu: Ellipsis,
     'more-horizontal': Ellipsis,
+    'more-vertical': EllipsisVertical,
 };
 
 const component = computed(() => map[props.name] || Circle);

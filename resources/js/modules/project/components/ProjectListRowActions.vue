@@ -102,22 +102,17 @@ function onRemove() {
     <button
       ref="triggerRef"
       type="button"
-      class="inline-flex h-8 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
+      class="grid h-8 w-8 place-items-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700"
+      :class="open ? 'border-brand/30 text-brand' : ''"
       :aria-expanded="open"
       aria-haspopup="menu"
+      aria-label="Thao tác"
       title="Thao tác"
       @click.stop="toggle"
     >
       <AppIcon
-        name="more-horizontal"
+        name="more-vertical"
         :size="16"
-      />
-      <span class="hidden sm:inline">Thao tác</span>
-      <AppIcon
-        name="chevron-down"
-        :size="12"
-        class="opacity-50 transition-transform"
-        :class="open && 'rotate-180'"
       />
     </button>
 
