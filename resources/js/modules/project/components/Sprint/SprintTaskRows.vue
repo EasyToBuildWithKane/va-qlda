@@ -79,10 +79,10 @@ const statusDot = {
     amber: 'bg-amber-500',
 };
 
-const assigneeNames = (row) => {
+const assigneeOverflowTitle = (row) => {
     const list = getAssignees(row);
-    if (list.length) return list.map((a) => a.name).join(', ');
-    return row.assignee?.name || '—';
+    if (list.length <= 3) return '';
+    return list.slice(3).map((a) => a.name).join(', ');
 };
 
 const canEditStatus = computed(() => props.canContribute);
@@ -110,17 +110,17 @@ const isDateOverdue = (row, parent) => {
 
 <template>
   <div class="overflow-x-auto">
-    <table class="w-full min-w-[960px] border-separate border-spacing-0 text-sm">
+    <table class="w-full min-w-[1020px] border-separate border-spacing-0 text-sm">
       <thead>
         <tr class="text-left text-[10px] font-semibold uppercase tracking-wider text-slate-400">
           <th class="w-9 border-b border-slate-100 px-1 py-1.5 dark:border-slate-800" />
           <th class="w-11 border-b border-slate-100 px-2 py-1.5 dark:border-slate-800">
             ID
           </th>
-          <th class="min-w-[9rem] border-b border-slate-100 px-2 py-1.5 dark:border-slate-800">
+          <th class="min-w-[18rem] border-b border-slate-100 px-2 py-1.5 dark:border-slate-800">
             Công việc
           </th>
-          <th class="min-w-[6.5rem] border-b border-slate-100 px-2 py-1.5 dark:border-slate-800">
+          <th class="w-[4.5rem] border-b border-slate-100 px-2 py-1.5 dark:border-slate-800">
             Người làm
           </th>
           <th class="w-[6.5rem] border-b border-slate-100 px-2 py-1.5 dark:border-slate-800">
@@ -221,23 +221,29 @@ const isDateOverdue = (row, parent) => {
           </td>
           <td class="border-b border-slate-100 px-2 py-2 dark:border-slate-800">
             <template v-if="!entry.isSubtask">
-              <div class="flex min-w-0 items-center gap-1.5">
-                <template v-if="getAssignees(entry.task).length">
-                  <Avatar
-                    v-for="a in getAssignees(entry.task).slice(0, 2)"
-                    :key="a.id"
-                    :name="a.name"
-                    :src="a.avatar_path"
-                    :size="20"
-                  />
-                </template>
+              <div
+                v-if="getAssignees(entry.task).length"
+                class="flex items-center -space-x-1"
+              >
+                <Avatar
+                  v-for="a in getAssignees(entry.task).slice(0, 3)"
+                  :key="a.id"
+                  :name="a.name"
+                  :src="a.avatar_path"
+                  :size="22"
+                />
                 <span
-                  class="truncate text-xs text-slate-600 dark:text-slate-300"
-                  :title="assigneeNames(entry.task)"
+                  v-if="getAssignees(entry.task).length > 3"
+                  class="inline-grid h-[22px] min-w-[22px] place-items-center rounded-full bg-slate-100 px-1 text-[10px] font-semibold text-slate-600 ring-2 ring-white dark:bg-slate-700 dark:text-slate-200 dark:ring-slate-900"
+                  :title="assigneeOverflowTitle(entry.task)"
                 >
-                  {{ assigneeNames(entry.task) }}
+                  +{{ getAssignees(entry.task).length - 3 }}
                 </span>
               </div>
+              <span
+                v-else
+                class="text-slate-300"
+              >—</span>
             </template>
             <span
               v-else

@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import Badge from '@/shared/ui/Badge.vue';
 import ProgressBar from '@/shared/ui/ProgressBar.vue';
@@ -8,7 +8,7 @@ import { date } from '@/composables/useFormat';
 import { groupTasksByPhase } from '@/composables/useTaskPhaseGroups';
 import { countTaskTree } from '@/composables/useTaskHierarchy';
 
-defineProps({
+const props = defineProps({
     sprints: { type: Array, default: () => [] },
     tasksBySprint: { type: Object, default: () => ({}) },
     backlogTasks: { type: Array, default: () => [] },
@@ -20,6 +20,18 @@ defineProps({
     canManage: { type: Boolean, default: false },
     canContribute: { type: Boolean, default: false },
 });
+
+const sortedSprints = computed(() =>
+    [...props.sprints].sort((a, b) => {
+        const oa = a.sort_order ?? 0;
+        const ob = b.sort_order ?? 0;
+        if (oa !== ob) return oa - ob;
+        const da = a.start_date ? new Date(`${a.start_date}T00:00:00`).getTime() : 0;
+        const db = b.start_date ? new Date(`${b.start_date}T00:00:00`).getTime() : 0;
+        if (da !== db) return da - db;
+        return a.id - b.id;
+    }),
+);
 
 const emit = defineEmits(['toggle-sprint', 'open-sprint', 'open-task', 'edit-task', 'add-task', 'duplicate-sprint', 'close-sprint', 'delete-sprint']);
 
@@ -36,13 +48,6 @@ const togglePhase = (key) => {
     collapsedPhases.value = s;
 };
 
-function sprintAccentClass(sprint) {
-    const v = sprint?.status?.value;
-    if (v === 'active') return 'border-l-brand';
-    if (v === 'completed') return 'border-l-emerald-400';
-    return 'border-l-slate-200 dark:border-l-slate-600';
-}
-
 function formatSprintRange(start, end) {
     const a = start ? date(start) : '—';
     const b = end ? date(end) : '—';
@@ -54,10 +59,9 @@ function formatSprintRange(start, end) {
 <template>
   <div class="space-y-2.5">
     <div
-      v-for="s in sprints"
+      v-for="s in sortedSprints"
       :key="s.id"
       class="overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900"
-      :class="['border-l-[3px]', sprintAccentClass(s)]"
     >
       <div
         class="group flex cursor-pointer items-start gap-2 px-3 py-2.5 transition hover:bg-slate-50/90 sm:items-center sm:gap-3 sm:px-4 sm:py-3 dark:hover:bg-slate-800/40"
@@ -266,7 +270,7 @@ function formatSprintRange(start, end) {
       class="overflow-hidden rounded-xl border border-dashed border-slate-300 bg-slate-50/50 dark:border-slate-600 dark:bg-slate-900/50"
     >
       <div
-        class="flex cursor-pointer items-center gap-3 border-l-[3px] border-l-slate-300 px-3 py-2.5 sm:px-4 sm:py-3 dark:border-l-slate-600"
+        class="flex cursor-pointer items-center gap-3 px-3 py-2.5 sm:px-4 sm:py-3"
         @click="emit('toggle-sprint', 'backlog')"
       >
         <AppIcon
