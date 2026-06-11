@@ -136,6 +136,7 @@ Route::middleware('auth')->group(function () {
     // Blockers (Vướng mắc) — cross-project tracker.
     Route::prefix('blockers')->name('blockers.')->group(function () {
         Route::get('/', [BlockerController::class, 'index'])->name('index');
+        Route::get('/evidence-link-preview', [BlockerController::class, 'evidenceLinkPreview'])->name('evidence-link-preview');
         Route::post('/', [BlockerController::class, 'store'])->name('store');
         Route::post('/bulk-create', [BlockerController::class, 'bulkStore'])->name('bulk-create');
         Route::post('/import', [BlockerController::class, 'import'])->name('import');

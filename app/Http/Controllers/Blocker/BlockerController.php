@@ -16,9 +16,11 @@ use App\Support\Enums\BlockerSeverity;
 use App\Support\Enums\BlockerStatus;
 use App\Support\Enums\NotificationType;
 use App\Support\Enums\SystemRole;
+use App\Support\EvidenceLinkPreview;
 use App\Support\NotificationDispatcher;
 use App\Support\Options;
 use App\Support\ProjectActivityLogger;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -128,6 +130,19 @@ class BlockerController extends Controller
                 'create' => $account->can('create', Blocker::class),
                 'comment' => $account->role !== SystemRole::Viewer,
             ],
+        ]);
+    }
+
+    public function evidenceLinkPreview(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', Blocker::class);
+
+        $validated = $request->validate([
+            'url' => ['required', 'string', 'url', 'max:2048'],
+        ]);
+
+        return response()->json([
+            'image_url' => EvidenceLinkPreview::resolveImageUrl($validated['url']),
         ]);
     }
 
