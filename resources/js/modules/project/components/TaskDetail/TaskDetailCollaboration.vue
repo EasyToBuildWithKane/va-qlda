@@ -38,6 +38,14 @@ watch(
 
 const commentList = computed(() => threadComments.value);
 
+function syncCommentsFromInertia() {
+    const tasks = page.props.tasks;
+    if (!Array.isArray(tasks)) return;
+    const task = tasks.find((t) => Number(t.id) === Number(props.commentableId));
+    if (!task) return;
+    threadComments.value = normalizeEntities(task.comments);
+}
+
 function replyList(c) {
     return normalizeEntities(c?.replies);
 }
@@ -151,6 +159,7 @@ const submit = () => {
         onSuccess: () => {
             body.value = '';
             replyTo.value = null;
+            syncCommentsFromInertia();
             toast.success('Đã gửi bình luận');
         },
     });
@@ -170,13 +179,20 @@ const saveEdit = (c) => {
     router.put(`/comments/${c.id}`, { body: editBody.value }, {
         preserveScroll: true,
         only: ['tasks'],
-        onSuccess: () => { editingId.value = null; },
+        onSuccess: () => {
+            editingId.value = null;
+            syncCommentsFromInertia();
+        },
     });
 };
 
 const remove = (c) => {
     if (!confirm('Xoá bình luận này?')) return;
-    router.delete(`/comments/${c.id}`, { preserveScroll: true, only: ['tasks'] });
+    router.delete(`/comments/${c.id}`, {
+        preserveScroll: true,
+        only: ['tasks'],
+        onSuccess: () => syncCommentsFromInertia(),
+    });
 };
 
 const toggleReaction = (c, emoji) => {

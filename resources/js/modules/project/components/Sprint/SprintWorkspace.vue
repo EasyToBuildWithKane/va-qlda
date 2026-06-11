@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, toRef, onMounted } from 'vue';
+import { ref, computed, toRef, onMounted, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
 import SprintFormModal from '@/modules/project/components/SprintFormModal.vue';
@@ -97,6 +97,14 @@ const onTaskDetailUpdated = () => {
     const fresh = props.tasks.find((t) => t.id === detailTask.value.id);
     if (fresh) detailTask.value = fresh;
 };
+
+watch(
+    () => props.tasks,
+    () => {
+        if (detailTask.value) onTaskDetailUpdated();
+    },
+    { deep: true },
+);
 const openTaskModal = (t = null, status = 'todo', sprintId = null) => {
     editingTask.value = t?.id != null ? t : null;
     taskSprintPreset.value = (!t?.id && sprintId) ? sprintId : null;

@@ -130,6 +130,14 @@ const onTaskDetailUpdated = () => {
     if (fresh) detailTask.value = fresh;
 };
 
+watch(
+    () => props.tasks,
+    () => {
+        if (detailTask.value) onTaskDetailUpdated();
+    },
+    { deep: true },
+);
+
 const ganttRevertPreviewId = ref(null);
 
 const onGanttDate = ({ id, start, end }) => {
