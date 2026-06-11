@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Blocker;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Blocker\BulkStoreBlockerRequest;
 use App\Http\Requests\Blocker\ImportBlockerRequest;
 use App\Http\Requests\Blocker\StoreBlockerRequest;
 use App\Http\Requests\Blocker\UpdateBlockerRequest;
@@ -148,6 +149,36 @@ class BlockerController extends Controller
             'success' => 'Đã ghi nhận vướng mắc.',
             'created_blocker_id' => $blocker->id,
         ]);
+    }
+
+    public function bulkStore(BulkStoreBlockerRequest $request): RedirectResponse
+    {
+        $data = $request->validated();
+        $defaults = $data['defaults'] ?? [];
+        $account = $request->user();
+        $created = 0;
+
+        DB::transaction(function () use ($data, $defaults, $account, &$created) {
+            foreach ($data['rows'] as $row) {
+                $status = $defaults['status'] ?? BlockerStatus::Open->value;
+                $blocker = Blocker::create([
+                    'project_id' => $defaults['project_id'] ?? null,
+                    'title' => $row['title'],
+                    'severity' => $defaults['severity'] ?? BlockerSeverity::Medium->value,
+                    'status' => $status,
+                    'owner_id' => $defaults['owner_id'] ?? null,
+                    'due_date' => $defaults['due_date'] ?? null,
+                    'raised_by_id' => $account->employee_id,
+                    'raised_at' => now(),
+                ]);
+
+                BlockerActivityLogger::created($blocker, $account);
+                NotificationDispatcher::blockerCreated($blocker, $account);
+                $created++;
+            }
+        });
+
+        return back()->with('success', "Đã ghi nhận {$created} vướng mắc.");
     }
 
     public function import(ImportBlockerRequest $request): RedirectResponse

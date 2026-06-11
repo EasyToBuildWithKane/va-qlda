@@ -266,6 +266,36 @@ class BlockerTest extends TestCase
         $this->assertDatabaseHas('blockers', ['id' => $b2->id, 'status' => BlockerStatus::Resolved->value]);
     }
 
+    public function test_admin_can_bulk_create_blockers(): void
+    {
+        $project = Project::factory()->create();
+
+        $this->actingAs($this->admin(), 'system')
+            ->post('/blockers/bulk-create', [
+                'defaults' => [
+                    'project_id' => $project->id,
+                    'severity' => BlockerSeverity::High->value,
+                    'status' => BlockerStatus::Open->value,
+                ],
+                'rows' => [
+                    ['title' => 'Vướng mắc A'],
+                    ['title' => 'Vướng mắc B'],
+                ],
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('blockers', [
+            'project_id' => $project->id,
+            'title' => 'Vướng mắc A',
+            'severity' => BlockerSeverity::High->value,
+        ]);
+        $this->assertDatabaseHas('blockers', [
+            'project_id' => $project->id,
+            'title' => 'Vướng mắc B',
+        ]);
+    }
+
     public function test_resolving_blocker_notifies_telegram_blocker_chat_when_configured(): void
     {
         config([

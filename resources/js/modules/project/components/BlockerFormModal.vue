@@ -7,6 +7,7 @@ import FieldTooltip from '@/shared/ui/FieldTooltip.vue';
 import PersonSelect from '@/modules/project/components/PersonSelect.vue';
 import SearchSelect from '@/shared/ui/SearchSelect.vue';
 import BlockerAttachmentsBlock from '@/modules/project/components/BlockerAttachmentsBlock.vue';
+import BlockerFormBulkPanel from '@/modules/project/components/BlockerFormBulkPanel.vue';
 import { valueLabelOptions } from '@/shared/utils/selectOptions';
 import { date } from '@/composables/useFormat';
 import { useToast } from '@/shared/composables/useToast';
@@ -35,6 +36,9 @@ const emit = defineEmits(['close', 'saved']);
 const modalClose = inject('modalClose', () => emit('close'));
 const toast = useToast();
 const pendingCreateFiles = ref([]);
+const createMode = ref('single');
+const bulkDirty = ref(false);
+const bulkPanelRef = ref(null);
 
 const form = useForm({
     project_id: null,
@@ -65,6 +69,10 @@ const formDraft = useModalFormDraft('blocker', {
             label: l?.label ?? '',
             url: l?.url ?? '',
         })),
+        createMode: createMode.value,
+        bulk: createMode.value === 'bulk'
+            ? bulkPanelRef.value?.getDraftSnapshot?.() ?? null
+            : null,
     }),
 });
 
@@ -85,7 +93,7 @@ const applyFormDraft = (data) => {
 };
 
 const saveDraftOnClose = () => {
-    formDraft.saveOnClose(form.data(), buildDraftSaveMeta(props.blocker));
+    formDraft.saveOnClose(form.data(), buildDraftSaveMeta(props.blocker, { createMode: createMode.value }));
 };
 
 const resolutionInputRef = ref(null);
@@ -100,9 +108,12 @@ const clearPendingCreateFiles = () => {
 watch(() => props.show, async (open) => {
     if (!open) {
         clearPendingCreateFiles();
+        bulkPanelRef.value?.reset?.();
         return;
     }
     form.clearErrors();
+    createMode.value = 'single';
+    bulkDirty.value = false;
     const epoch = formDraft.bumpOpenEpoch();
     const preset = (props.initialDescription ?? '').trim();
     if (props.blocker) {
@@ -123,7 +134,16 @@ watch(() => props.show, async (open) => {
             isActive: () => props.show,
             openEpoch: epoch,
             entity: props.blocker,
-            applyDraft: applyFormDraft,
+            applyDraft: async (data, meta) => {
+                applyFormDraft(data);
+                const mode = meta?.createMode ?? data.createMode;
+                if (mode && !props.blocker) createMode.value = mode;
+                await nextTick();
+                const bulkSnap = meta?.bulk ?? data.bulk;
+                if (bulkSnap && createMode.value === 'bulk') {
+                    bulkPanelRef.value?.applyDraftSnapshot?.(bulkSnap);
+                }
+            },
             form,
         });
     } else {
@@ -137,7 +157,16 @@ watch(() => props.show, async (open) => {
             isActive: () => props.show,
             openEpoch: epoch,
             entity: null,
-            applyDraft: applyFormDraft,
+            applyDraft: async (data, meta) => {
+                applyFormDraft(data);
+                const mode = meta?.createMode ?? data.createMode;
+                if (mode) createMode.value = mode;
+                await nextTick();
+                const bulkSnap = meta?.bulk ?? data.bulk;
+                if (bulkSnap && createMode.value === 'bulk') {
+                    bulkPanelRef.value?.applyDraftSnapshot?.(bulkSnap);
+                }
+            },
             form,
         });
         if (!restored && preset) {
@@ -208,10 +237,32 @@ const projectBannerLabel = computed(() => {
 });
 
 const modalTitle = computed(() => {
-    if (!props.blocker) return 'Ghi nhận vướng mắc';
+    if (!props.blocker) {
+        return createMode.value === 'bulk' ? 'Ghi nhận nhiều vướng mắc' : 'Ghi nhận vướng mắc';
+    }
     if (props.focusResolution) return 'Hướng xử lý vướng mắc';
     return 'Cập nhật vướng mắc';
 });
+
+const modalMaxWidth = computed(() => {
+    if (!props.blocker && createMode.value === 'bulk') return 'max-w-5xl';
+    if (props.blocker || createMode.value === 'single') return 'max-w-5xl';
+    return 'max-w-4xl';
+});
+
+const bulkInitialDefaults = computed(() => ({
+    project_id: form.project_id ?? props.defaultProjectId ?? null,
+    severity: form.severity,
+    status: form.status,
+    owner_id: form.owner_id,
+    due_date: form.due_date,
+}));
+
+const onBulkSaved = () => {
+    formDraft.clear();
+    emit('saved');
+    emit('close');
+};
 
 const modalSubtitle = computed(() => {
     if (!props.blocker) return null;
@@ -270,7 +321,11 @@ const uploadAfterCreate = (blockerId) => {
     });
 };
 
-const modalDirty = computed(() => form.isDirty || pendingCreateFiles.value.length > 0);
+const modalDirty = computed(() =>
+    form.isDirty
+    || pendingCreateFiles.value.length > 0
+    || (!props.blocker && createMode.value === 'bulk' && bulkDirty.value),
+);
 
 const submit = () => {
     const payload = { ...form.data(), evidence_links: cleanedEvidenceLinks() };
@@ -325,22 +380,71 @@ const submit = () => {
     :show="show"
     :dirty="modalDirty"
     :title="modalTitle"
-    max-width="max-w-5xl"
+    :max-width="modalMaxWidth"
     :on-save-draft="saveDraftOnClose"
     @close="emit('close')"
   >
-    <p
-      v-if="modalSubtitle"
-      class="-mt-1 mb-4 truncate text-sm text-slate-500"
-      :title="modalSubtitle"
+    <div
+      v-if="!blocker && !focusResolution"
+      class="mb-3 flex rounded-lg border border-slate-200 bg-slate-50 p-0.5"
     >
-      {{ modalSubtitle }}
-    </p>
+      <button
+        type="button"
+        class="flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-semibold transition"
+        :class="createMode === 'single'
+          ? 'bg-white text-brand shadow-sm'
+          : 'text-slate-500 hover:text-slate-700'"
+        @click="createMode = 'single'"
+      >
+        <AppIcon
+          name="blockers"
+          :size="16"
+        />
+        Một vướng mắc
+      </button>
+      <button
+        type="button"
+        class="flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-semibold transition"
+        :class="createMode === 'bulk'
+          ? 'bg-white text-brand shadow-sm'
+          : 'text-slate-500 hover:text-slate-700'"
+        @click="createMode = 'bulk'"
+      >
+        <AppIcon
+          name="template"
+          :size="16"
+        />
+        Nhiều vướng mắc
+        <span class="rounded-full bg-brand/10 px-1.5 py-0.5 text-[10px] font-bold uppercase text-brand">Nhanh</span>
+      </button>
+    </div>
+
+    <BlockerFormBulkPanel
+      v-if="!blocker && !focusResolution && createMode === 'bulk'"
+      ref="bulkPanelRef"
+      :projects="projects"
+      :employees="employees"
+      :severity-options="severityOptions"
+      :status-options="statusOptions"
+      :lock-project="lockProject"
+      :default-project-id="defaultProjectId"
+      :initial-defaults="bulkInitialDefaults"
+      @saved="onBulkSaved"
+      @dirty-change="bulkDirty = $event"
+    />
 
     <form
+      v-else
       class="flex flex-col"
       @submit.prevent="submit"
     >
+      <p
+        v-if="modalSubtitle"
+        class="-mt-1 mb-4 truncate text-sm text-slate-500"
+        :title="modalSubtitle"
+      >
+        {{ modalSubtitle }}
+      </p>
       <div
         v-if="showProjectBanner"
         class="mb-4 flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2.5"

@@ -137,6 +137,7 @@ Route::middleware('auth')->group(function () {
     Route::prefix('blockers')->name('blockers.')->group(function () {
         Route::get('/', [BlockerController::class, 'index'])->name('index');
         Route::post('/', [BlockerController::class, 'store'])->name('store');
+        Route::post('/bulk-create', [BlockerController::class, 'bulkStore'])->name('bulk-create');
         Route::post('/import', [BlockerController::class, 'import'])->name('import');
         Route::post('/bulk', [BlockerController::class, 'bulk'])->name('bulk');
         Route::put('/{blocker}', [BlockerController::class, 'update'])->name('update');
