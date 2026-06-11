@@ -12,6 +12,11 @@ use Illuminate\Support\Facades\DB;
 
 class ProjectIndexQuery
 {
+    /** @var list<int> */
+    public const PER_PAGE_OPTIONS = [5, 10, 15, 20, 50, 100];
+
+    public const DEFAULT_PER_PAGE = 100;
+
     public function __construct(
         private readonly ProjectSummaryQuery $summaryQuery,
     ) {}
@@ -64,9 +69,9 @@ class ProjectIndexQuery
                 ->orWhere('code', 'like', "%{$search}%"));
         }
 
-        $perPage = (int) $request->query('per_page', 10);
-        if (! in_array($perPage, [5, 10, 15, 20], true)) {
-            $perPage = 10;
+        $perPage = (int) $request->query('per_page', self::DEFAULT_PER_PAGE);
+        if (! in_array($perPage, self::PER_PAGE_OPTIONS, true)) {
+            $perPage = self::DEFAULT_PER_PAGE;
         }
 
         $projects = $query->paginate($perPage)->withQueryString();

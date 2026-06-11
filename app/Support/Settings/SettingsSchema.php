@@ -1,0 +1,206 @@
+<?php
+
+namespace App\Support\Settings;
+
+use App\Support\Auth\Permissions;
+use Illuminate\Validation\Rule;
+
+/**
+ * Single source of truth for admin-editable system settings.
+ *
+ * Each scalar field declares its type, default, validation and the config()
+ * path it overlays at runtime (see SettingsServiceProvider). The DB table
+ * stores only overrides; the defaults here keep the app fully working with an
+ * empty table. Groups map 1:1 to the tabs on /settings.
+ *
+ *   general      — app identity surfaced to the UI (va.*)
+ *   auth         — login + Google domain allow-list (va.*)
+ *   telegram     — bot + notification channels (telegram.*)
+ *   permissions  — editable role → permission matrix (va_permissions.role_grants)
+ *
+ * Setting keys are namespaced "{group}.{name}"; the matrix uses the single key
+ * "permissions.role_grants".
+ */
+final class SettingsSchema
+{
+    /** Tabs/groups, in display order. */
+    public const GROUPS = ['general', 'auth', 'telegram', 'permissions'];
+
+    public const MATRIX_KEY = 'permissions.role_grants';
+
+    /** Roles the admin may edit in the matrix — "admin" stays full-access. */
+    public const EDITABLE_ROLES = ['lead', 'member', 'viewer'];
+
+    public const LOCKED_ROLE = 'admin';
+
+    /**
+     * @return array<int, array{key:string, label:string, icon:string, description:string}>
+     */
+    public static function groups(): array
+    {
+        return [
+            ['key' => 'general', 'label' => 'Chung', 'icon' => 'settings', 'description' => 'Nhận diện hệ thống'],
+            ['key' => 'auth', 'label' => 'Đăng nhập & Bảo mật', 'icon' => 'account', 'description' => 'Đăng nhập & domain email'],
+            ['key' => 'telegram', 'label' => 'Thông báo Telegram', 'icon' => 'send', 'description' => 'Bot & kênh thông báo'],
+            ['key' => 'permissions', 'label' => 'Phân quyền', 'icon' => 'members', 'description' => 'Ma trận vai trò × quyền'],
+        ];
+    }
+
+    /**
+     * Scalar field definitions (general / auth / telegram). The permissions
+     * matrix is handled separately.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private static function fieldDefs(): array
+    {
+        return [
+            // ── general ──────────────────────────────────────────────
+            ['group' => 'general', 'name' => 'app_name', 'type' => 'string', 'label' => 'Tên hệ thống',
+                'help' => 'Hiển thị ở tiêu đề trang và chân thanh bên.', 'config' => 'va.app_name',
+                'default' => 'VAschools QLDA', 'rules' => ['required', 'string', 'max:120']],
+            ['group' => 'general', 'name' => 'app_short_name', 'type' => 'string', 'label' => 'Tên viết tắt',
+                'help' => '2–6 ký tự, hiện ở ô thương hiệu khi thu gọn thanh bên.', 'config' => 'va.app_short_name',
+                'default' => 'VA', 'rules' => ['required', 'string', 'max:6']],
+            ['group' => 'general', 'name' => 'support_email', 'type' => 'string', 'label' => 'Email hỗ trợ',
+                'help' => 'Địa chỉ liên hệ hỗ trợ nội bộ.', 'config' => 'va.support_email',
+                'default' => null, 'rules' => ['nullable', 'email', 'max:190']],
+            ['group' => 'general', 'name' => 'app_version', 'type' => 'string', 'label' => 'Phiên bản hiển thị',
+                'help' => 'Nhãn phiên bản ở chân thanh bên (vd. 1.0).', 'config' => 'va.app_version',
+                'default' => '1.0', 'rules' => ['nullable', 'string', 'max:20']],
+
+            // ── auth ─────────────────────────────────────────────────
+            ['group' => 'auth', 'name' => 'password_login_enabled', 'type' => 'bool', 'label' => 'Cho phép đăng nhập bằng mật khẩu',
+                'help' => 'Bật route POST /login (chủ yếu cho dev/E2E). Production nên tắt — chỉ đăng nhập Google.',
+                'config' => 'va.password_login_enabled', 'default' => false, 'rules' => ['boolean']],
+            ['group' => 'auth', 'name' => 'google_allowed_domains', 'type' => 'list', 'label' => 'Domain email Google cho phép',
+                'help' => 'Bỏ trống = chấp nhận mọi email đã xác minh. Mỗi dòng một domain (vd. vaschools.edu.vn).',
+                'config' => 'va.google_allowed_domains', 'default' => [], 'rules' => ['array'], 'itemRules' => ['string', 'max:190']],
+
+            // ── telegram ─────────────────────────────────────────────
+            ['group' => 'telegram', 'name' => 'enabled', 'type' => 'bool', 'label' => 'Bật thông báo Telegram',
+                'help' => 'Tắt sẽ không gọi API Telegram dù có token.', 'config' => 'telegram.enabled',
+                'default' => false, 'rules' => ['boolean']],
+            ['group' => 'telegram', 'name' => 'bot_token', 'type' => 'secret', 'label' => 'Bot token',
+                'help' => 'Lấy từ @BotFather. Để trống nếu không muốn thay đổi.', 'config' => 'telegram.bot_token',
+                'default' => null, 'rules' => ['nullable', 'string', 'max:190']],
+            ['group' => 'telegram', 'name' => 'chat_id', 'type' => 'string', 'label' => 'Chat ID chung',
+                'help' => 'ID nhóm nhận thông báo chung (thường âm với supergroup).', 'config' => 'telegram.chat_id',
+                'default' => null, 'rules' => ['nullable', 'string', 'max:64']],
+            ['group' => 'telegram', 'name' => 'blocker_chat_id', 'type' => 'string', 'label' => 'Chat ID vướng mắc',
+                'help' => 'Nhóm riêng nhận thông báo vướng mắc (tùy chọn).', 'config' => 'telegram.blocker_chat_id',
+                'default' => null, 'rules' => ['nullable', 'string', 'max:64']],
+            ['group' => 'telegram', 'name' => 'daily_report_review', 'type' => 'bool', 'label' => 'Báo khi duyệt/trả báo cáo ngày',
+                'help' => 'Gửi thông báo khi chấm điểm hoặc trả báo cáo trên trang Chờ phê duyệt.',
+                'config' => 'telegram.daily_report_review', 'default' => true, 'rules' => ['boolean']],
+            ['group' => 'telegram', 'name' => 'blocker_resolved', 'type' => 'bool', 'label' => 'Báo khi vướng mắc được giải quyết',
+                'help' => 'Gửi thông báo khi vướng mắc chuyển Đã giải quyết/Đã đóng.',
+                'config' => 'telegram.blocker_resolved', 'default' => true, 'rules' => ['boolean']],
+        ];
+    }
+
+    /**
+     * Scalar fields for a group, with the full namespaced key attached.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public static function fields(string $group): array
+    {
+        $out = [];
+        foreach (self::fieldDefs() as $def) {
+            if ($def['group'] !== $group) {
+                continue;
+            }
+            $def['key'] = "{$def['group']}.{$def['name']}";
+            $def['secret'] = $def['type'] === 'secret';
+            unset($def['rules'], $def['itemRules'], $def['config']);
+            $out[] = $def;
+        }
+
+        return $out;
+    }
+
+    /**
+     * full key → config() dot-path (scalar fields + the matrix).
+     *
+     * @return array<string, string>
+     */
+    public static function configMap(): array
+    {
+        $map = [];
+        foreach (self::fieldDefs() as $def) {
+            $map["{$def['group']}.{$def['name']}"] = $def['config'];
+        }
+        $map[self::MATRIX_KEY] = 'va_permissions.role_grants';
+
+        return $map;
+    }
+
+    /**
+     * full key → literal default (scalar fields + the matrix).
+     *
+     * @return array<string, mixed>
+     */
+    public static function defaults(): array
+    {
+        $out = [];
+        foreach (self::fieldDefs() as $def) {
+            $out["{$def['group']}.{$def['name']}"] = $def['default'];
+        }
+        $out[self::MATRIX_KEY] = config('va_permissions.role_grants', []);
+
+        return $out;
+    }
+
+    /** @return array<int, string> full keys of secret fields. */
+    public static function secretKeys(): array
+    {
+        return array_values(array_map(
+            fn (array $d) => "{$d['group']}.{$d['name']}",
+            array_filter(self::fieldDefs(), fn (array $d) => $d['type'] === 'secret'),
+        ));
+    }
+
+    public static function type(string $key): ?string
+    {
+        foreach (self::fieldDefs() as $def) {
+            if ("{$def['group']}.{$def['name']}" === $key) {
+                return $def['type'];
+            }
+        }
+
+        return $key === self::MATRIX_KEY ? 'matrix' : null;
+    }
+
+    /**
+     * Validation rules for an update, keyed by the request payload shape
+     * (scalar groups use short field names; permissions uses "grants.*").
+     *
+     * @return array<string, mixed>
+     */
+    public static function rules(string $group): array
+    {
+        if ($group === 'permissions') {
+            $rules = ['grants' => ['required', 'array']];
+            foreach (self::EDITABLE_ROLES as $role) {
+                $rules["grants.{$role}"] = ['nullable', 'array'];
+                $rules["grants.{$role}.*"] = ['string', Rule::in(Permissions::permissionKeys())];
+            }
+
+            return $rules;
+        }
+
+        $rules = [];
+        foreach (self::fieldDefs() as $def) {
+            if ($def['group'] !== $group) {
+                continue;
+            }
+            $rules[$def['name']] = $def['rules'];
+            if (isset($def['itemRules'])) {
+                $rules["{$def['name']}.*"] = $def['itemRules'];
+            }
+        }
+
+        return $rules;
+    }
+}

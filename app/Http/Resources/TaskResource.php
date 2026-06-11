@@ -3,7 +3,11 @@
 namespace App\Http\Resources;
 
 use App\Http\Resources\Concerns\PresentsEntities;
+use App\Support\Enums\TaskHoursTiming;
+use App\Support\Enums\TaskSlaResult;
+use App\Support\Enums\TaskStatus;
 use App\Support\PublicMediaUrl;
+use App\Support\TaskCompletion;
 use App\Support\TaskTimeliness;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -20,6 +24,10 @@ class TaskResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $user = $request->user();
+        $isDone = $this->status === TaskStatus::Done;
+        $mayUnlock = $user && TaskCompletion::actorMayUnlockStatus($user);
+
         return [
             'id' => $this->id,
             'project_id' => $this->project_id,
@@ -52,6 +60,17 @@ class TaskResource extends JsonResource
             'late_reasons' => TaskTimeliness::lateReasons($this->resource),
             'estimate_deadline_at' => TaskTimeliness::estimateDeadline($this->resource)?->toIso8601String(),
             'estimate_hours' => $this->estimate_hours !== null ? (float) $this->estimate_hours : null,
+            'actual_hours' => $this->actual_hours !== null ? (float) $this->actual_hours : null,
+            'completion_note' => $this->completion_note,
+            'completed_at' => $this->completed_at?->toIso8601String(),
+            'hours_timing' => $this->hours_timing
+                ? ['value' => $this->hours_timing, 'label' => TaskHoursTiming::from($this->hours_timing)->label(), 'color' => TaskHoursTiming::from($this->hours_timing)->color()]
+                : null,
+            'sla_result' => $this->sla_result
+                ? ['value' => $this->sla_result, 'label' => TaskSlaResult::from($this->sla_result)->label(), 'color' => TaskSlaResult::from($this->sla_result)->color()]
+                : null,
+            'status_locked' => $isDone && ! $mayUnlock,
+            'can_change_status' => ! $isDone || $mayUnlock,
             'story_points' => $this->story_points !== null ? (float) $this->story_points : null,
             'epic' => $this->whenLoaded('epic', fn () => $this->epic ? (new EpicResource($this->epic))->resolve() : null),
             'parent' => $this->whenLoaded('parent', fn () => $this->parent ? [

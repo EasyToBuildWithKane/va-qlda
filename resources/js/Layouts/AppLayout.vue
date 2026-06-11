@@ -21,6 +21,12 @@ const user = computed(() => page.props.auth?.user);
 const nav = computed(() => page.props.nav ?? []);
 const flash = computed(() => page.props.flash ?? {});
 
+// App identity (admin-editable via /settings, shared as `app` prop).
+const appInfo = computed(() => page.props.app ?? {});
+const appShortName = computed(() => appInfo.value.short_name || 'VA');
+const appName = computed(() => appInfo.value.name || 'VAschools QLDA');
+const appVersion = computed(() => appInfo.value.version || '1.0');
+
 const toast = useToast();
 watch(flash, (f) => {
     if (f.success) toast.success(f.success);
@@ -55,6 +61,36 @@ const roleLabel = computed(() => roleLabels[user.value?.role] ?? user.value?.rol
 const RAIL_KEY = 'va-qlda.sidebar.rail';
 const rail = ref(localStorage.getItem(RAIL_KEY) === '1');
 watch(rail, (v) => localStorage.setItem(RAIL_KEY, v ? '1' : '0'));
+
+// --- Rail tooltip ---
+// A single styled tooltip rendered via <Teleport to="body"> so it escapes the
+// nav's overflow clipping. Positioned (fixed) at the hovered element's vertical
+// centre, just right of the 64 px rail.
+const tip = reactive({ show: false, label: '', sub: '', tone: '', top: 0 });
+let tipTimer = null;
+const showTip = (e, label, sub = '', tone = '') => {
+    clearTimeout(tipTimer);
+    const r = e.currentTarget.getBoundingClientRect();
+    Object.assign(tip, { show: true, label, sub, tone, top: r.top + r.height / 2 });
+};
+const hideTip = () => {
+    tipTimer = setTimeout(() => { tip.show = false; }, 60);
+};
+const tipSubClass = computed(() => ({
+    amber: 'text-amber-300',
+    sky: 'text-sky-300',
+    accent: 'text-accent',
+}[tip.tone] || 'text-slate-300'));
+
+// Collapsed-rail status cue: a small dot for dev/maintenance items
+// (planned items keep their amber clock badge).
+const showRailStatus = (item) => !!item.status && item.status !== 'live' && item.status !== 'planned';
+const railTone = (item) => {
+    if (isPlanned(item)) return 'amber';
+    if (item.status === 'maintenance') return 'sky';
+    if (item.status === 'dev') return 'accent';
+    return '';
+};
 
 // --- Per-group collapse (stable key, not display heading) ---
 const COLLAPSE_KEY = 'va-qlda.sidebar.collapsed';
@@ -176,8 +212,11 @@ onMounted(scrollActiveNavItemIntoView);
         :class="rail ? 'h-16 px-0' : 'px-5 py-4'"
       >
         <template v-if="rail">
-          <div class="h-9 w-9 shrink-0 rounded-btn bg-white/10 text-white grid place-items-center font-display font-bold text-sm">
-            VA
+          <div
+            class="h-9 w-9 shrink-0 rounded-btn bg-white/10 text-white grid place-items-center font-display font-bold text-sm uppercase tracking-tight"
+            :title="appName"
+          >
+            {{ appShortName }}
           </div>
         </template>
         <template v-else>
@@ -230,7 +269,9 @@ onMounted(scrollActiveNavItemIntoView);
           aria-hidden="true"
         />
 
-        <!-- ═══ Rail nav: flat icon strip ═══ -->
+        <!-- ═══ Rail nav: grouped activity-bar ═══
+             Group marker (section identity) + activity-bar items with a
+             left accent bar for the active route and a styled hover tooltip. -->
         <nav
           v-if="rail"
           ref="sidebarNavRef"
@@ -242,29 +283,52 @@ onMounted(scrollActiveNavItemIntoView);
             v-for="(group, gi) in nav"
             :key="groupKey(group)"
           >
+            <!-- Section divider -->
             <div
               v-if="gi > 0"
-              class="w-8 my-1.5 border-t"
-              :class="isUpcomingGroup(group) ? 'border-amber-300/30' : 'border-white/[0.1]'"
+              class="my-1.5 h-px w-7"
+              :class="isUpcomingGroup(group) ? 'bg-amber-300/30' : 'bg-white/[0.1]'"
+              aria-hidden="true"
             />
+            <!-- Group marker — hover shows the section heading -->
+            <div
+              class="mb-0.5 grid h-6 w-6 cursor-default place-items-center rounded-md"
+              :class="isUpcomingGroup(group) ? 'text-amber-200/70' : 'text-brand-100/35'"
+              @mouseenter="showTip($event, group.heading)"
+              @mouseleave="hideTip"
+            >
+              <AppIcon
+                :name="group.icon"
+                :size="13"
+              />
+            </div>
+            <!-- Items -->
             <component
               :is="isPlanned(item) ? 'div' : Link"
               v-for="item in group.items"
               :key="item.label"
               :href="isPlanned(item) ? undefined : item.href"
-              :title="`${item.label}${isPlanned(item) ? ' · Sắp ra mắt' : ''}`"
-              class="relative grid h-10 w-10 place-items-center rounded-lg transition-colors"
+              class="relative grid h-11 w-11 place-items-center rounded-xl transition-colors"
               :class="[
                 isActive(item.href)
                   ? 'sidebar-nav-item--active bg-white/[0.12] text-white'
                   : 'text-brand-100/60 hover:bg-white/[0.07] hover:text-white',
                 isPlanned(item) && 'opacity-70 cursor-not-allowed hover:bg-amber-400/10 hover:text-amber-100/80',
               ]"
+              @mouseenter="showTip($event, item.label, isPlanned(item) ? 'Sắp ra mắt' : (showRailStatus(item) ? statusOf(item).label : ''), railTone(item))"
+              @mouseleave="hideTip"
             >
+              <!-- Active accent bar at the rail's left edge -->
+              <span
+                v-if="isActive(item.href)"
+                class="absolute left-0 -ml-3 h-5 w-1 rounded-r-full bg-accent"
+                aria-hidden="true"
+              />
               <AppIcon
                 :name="item.icon"
                 :size="19"
               />
+              <!-- Planned badge -->
               <span
                 v-if="isPlanned(item)"
                 class="absolute -right-0.5 -top-0.5 grid h-3.5 w-3.5 place-items-center rounded-full bg-amber-400/90 ring-[1.5px] ring-brand"
@@ -275,6 +339,12 @@ onMounted(scrollActiveNavItemIntoView);
                   class="text-brand"
                 />
               </span>
+              <!-- Dev / maintenance status dot -->
+              <span
+                v-else-if="showRailStatus(item)"
+                class="absolute right-0.5 top-0.5 h-2 w-2 rounded-full ring-2 ring-brand"
+                :class="statusOf(item).dot"
+              />
             </component>
           </template>
         </nav>
@@ -463,9 +533,41 @@ onMounted(scrollActiveNavItemIntoView);
 
         <!-- App version + copyright -->
         <div class="flex items-center justify-between border-t border-white/[0.06] pt-2.5">
-          <span class="text-[10px] text-brand-100/30 tracking-wide">VAschools QLDA · v1.0</span>
-          <span class="text-[10px] text-brand-100/30">© {{ new Date().getFullYear() }}</span>
+          <span class="text-[10px] text-brand-100/30 tracking-wide truncate">{{ appName }} · v{{ appVersion }}</span>
+          <span class="text-[10px] text-brand-100/30 shrink-0 pl-1.5">© {{ new Date().getFullYear() }}</span>
         </div>
+      </div>
+
+      <!-- ── Rail footer: user avatar (click to expand) ── -->
+      <div
+        v-if="rail"
+        class="border-t border-white/[0.07] py-3 flex flex-col items-center"
+      >
+        <button
+          type="button"
+          class="relative rounded-full transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-accent/40"
+          aria-label="Mở rộng thanh bên"
+          @click="rail = false"
+          @mouseenter="showTip($event, userDisplayName, roleLabel)"
+          @mouseleave="hideTip"
+        >
+          <img
+            v-if="userAvatarSrc"
+            :src="userAvatarSrc"
+            :alt="userDisplayName"
+            class="h-9 w-9 rounded-full object-cover ring-1 ring-white/15"
+          >
+          <div
+            v-else
+            class="h-9 w-9 rounded-full bg-white/10 ring-1 ring-white/15 grid place-items-center text-[12px] font-bold text-white leading-none select-none"
+          >
+            {{ userInitials }}
+          </div>
+          <span
+            class="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-brand"
+            aria-hidden="true"
+          />
+        </button>
       </div>
     </aside>
 
@@ -538,5 +640,31 @@ onMounted(scrollActiveNavItemIntoView);
 
     <!-- Notification center (right drawer) -->
     <NotificationCenterDrawer />
+
+    <!-- Rail hover tooltip — Teleported so it escapes the sidebar overflow -->
+    <Teleport to="body">
+      <transition
+        enter-active-class="transition duration-100 ease-out"
+        enter-from-class="opacity-0"
+        enter-to-class="opacity-100"
+        leave-active-class="transition duration-75 ease-in"
+        leave-from-class="opacity-100"
+        leave-to-class="opacity-0"
+      >
+        <div
+          v-if="tip.show && rail"
+          :style="{ top: tip.top + 'px' }"
+          class="pointer-events-none fixed left-[68px] z-[60] -translate-y-1/2 rounded-lg bg-slate-900/95 px-2.5 py-1.5 shadow-elevation-2 ring-1 ring-white/10"
+          role="tooltip"
+        >
+          <span class="block whitespace-nowrap text-[12.5px] font-medium leading-tight text-white">{{ tip.label }}</span>
+          <span
+            v-if="tip.sub"
+            class="block whitespace-nowrap text-[10.5px] leading-tight"
+            :class="tipSubClass"
+          >{{ tip.sub }}</span>
+        </div>
+      </transition>
+    </Teleport>
   </div>
 </template>

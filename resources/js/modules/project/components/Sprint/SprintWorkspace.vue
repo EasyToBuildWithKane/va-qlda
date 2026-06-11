@@ -8,6 +8,7 @@ import SprintListView from '@/modules/project/components/Sprint/SprintListView.v
 import SprintCalendarView from '@/modules/project/components/Sprint/SprintCalendarView.vue';
 import TaskDetailPanel from '@/modules/project/components/Sprint/TaskDetailPanel.vue';
 import SprintDataModal from '@/modules/project/components/Sprint/SprintDataModal.vue';
+import TaskCompleteModal from '@/modules/project/components/Sprint/TaskCompleteModal.vue';
 import { useSprintWorkspace } from '@/composables/useSprintWorkspace';
 import { filterRootTasks } from '@/composables/useTaskHierarchy';
 import { useSprintTaskTable } from '@/composables/useSprintTaskTable';
@@ -147,6 +148,14 @@ const closeSprint = (s) => {
 const removeSprint = async (s) => {
     if (!await dialog.confirm({ title: 'Xoá sprint', message: `Xoá "${s.name}"?`, tone: 'danger', confirmText: 'Xoá' })) return;
     router.delete(`/projects/${pid}/sprints/${s.id}`, { preserveScroll: true });
+};
+
+const reorderSprints = (ids) => {
+    router.patch(`/projects/${pid}/sprints/reorder`, { ids }, {
+        preserveScroll: true,
+        onSuccess: () => toast.success('Đã cập nhật thứ tự sprint'),
+        onError: () => toast.error('Không thể sắp xếp sprint'),
+    });
 };
 
 const openDataModal = (t = 'import') => {
@@ -304,6 +313,7 @@ onMounted(() => {
         @duplicate-sprint="duplicateSprint"
         @close-sprint="closeSprint"
         @delete-sprint="removeSprint"
+        @reorder-sprints="reorderSprints"
       />
 
       <EmptyState
@@ -370,6 +380,8 @@ onMounted(() => {
       @close="taskModal = false"
       @saved="onTaskDetailUpdated"
     />
+    <TaskCompleteModal :project-id="pid" />
+
     <SprintDataModal
       :show="dataModalOpen"
       :initial-tab="dataModalTab"

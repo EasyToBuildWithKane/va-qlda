@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Project;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Project\ReorderSprintsRequest;
 use App\Http\Requests\Project\StoreSprintRequest;
 use App\Models\Project;
 use App\Models\Sprint;
 use App\Support\NotificationDispatcher;
 use App\Support\ProjectActivityLogger;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 
 class SprintController extends Controller
 {
@@ -17,8 +19,10 @@ class SprintController extends Controller
         $data = $request->validated();
         unset($data['sort_order']);
 
+        $maxOrder = (int) $project->sprints()->max('sort_order');
+        $data['sort_order'] = $maxOrder + 1;
+
         $sprint = $project->sprints()->create($data);
-        $this->syncSprintSortOrders($project);
         ProjectActivityLogger::sprintCreated($project, $sprint, $request->user());
         NotificationDispatcher::sprintChanged($project, $sprint, 'tạo', $request->user());
 
@@ -33,7 +37,6 @@ class SprintController extends Controller
         unset($data['sort_order']);
 
         $sprint->update($data);
-        $this->syncSprintSortOrders($project);
         ProjectActivityLogger::sprintUpdated($project, $sprint->fresh(), $request->user());
         NotificationDispatcher::sprintChanged($project, $sprint, 'cập nhật', $request->user());
 
@@ -50,18 +53,32 @@ class SprintController extends Controller
         ProjectActivityLogger::sprintDeleted($project, $name, $sprintId, request()->user());
         NotificationDispatcher::sprintChanged($project, $sprint, 'xoá', request()->user());
         $sprint->delete();
-        $this->syncSprintSortOrders($project);
+        $this->renumberSprintSortOrders($project);
 
         return back()->with('success', 'Đã xoá sprint.');
     }
 
-    /**
-     * Gán sort_order 1..n theo ngày bắt đầu (sớm → muộn), không cần người dùng nhập số.
-     */
-    private function syncSprintSortOrders(Project $project): void
+    public function reorder(ReorderSprintsRequest $request, Project $project): RedirectResponse
+    {
+        $ids = $request->validated('ids');
+
+        DB::transaction(function () use ($project, $ids) {
+            foreach ($ids as $index => $id) {
+                Sprint::query()
+                    ->where('project_id', $project->id)
+                    ->whereKey($id)
+                    ->update(['sort_order' => $index + 1]);
+            }
+        });
+
+        return back()->with('success', 'Đã cập nhật thứ tự sprint.');
+    }
+
+    /** Giữ thứ tự hiện tại, đánh lại 1..n sau khi xoá. */
+    private function renumberSprintSortOrders(Project $project): void
     {
         $sprints = $project->sprints()
-            ->orderBy('start_date')
+            ->orderBy('sort_order')
             ->orderBy('id')
             ->get();
 

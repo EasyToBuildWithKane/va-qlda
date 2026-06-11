@@ -98,7 +98,16 @@ export function useSprintWorkspace(sprintsSource, tasksSource, projectSource) {
         const st = tasksBySprint.value[sprintId] || [];
         const done = st.filter(isTaskDone);
         const est = st.reduce((a, t) => a + (Number(t.estimate_hours) || 0), 0);
+        const actual = done.reduce((a, t) => a + (Number(t.actual_hours) || 0), 0);
         const doneEst = done.reduce((a, t) => a + (Number(t.estimate_hours) || 0), 0);
+        const earlyCount = done.filter((t) => t.hours_timing?.value === 'early').length;
+        const onPlanCount = done.filter((t) => t.hours_timing?.value === 'on_plan').length;
+        const overSlaCount = done.filter((t) => t.sla_result?.value === 'exceeded').length;
+        const slaEligible = done.filter((t) => t.sla_result?.value).length;
+        const slaMetCount = done.filter((t) => t.sla_result?.value === 'met').length;
+        const slaComplianceRate = slaEligible > 0
+            ? Math.round((slaMetCount / slaEligible) * 100)
+            : null;
         const members = new Set();
         st.forEach((t) => getAssignees(t).forEach((a) => members.add(a.id)));
         return {
@@ -108,6 +117,11 @@ export function useSprintWorkspace(sprintsSource, tasksSource, projectSource) {
             progress: completionPercentFromTasks(st, isTaskDone),
             velocity: doneEst,
             capacity: est,
+            totalActualHours: Math.round(actual * 10) / 10,
+            earlyCount,
+            onPlanCount,
+            overSlaCount,
+            slaComplianceRate,
             memberCount: members.size,
         };
     };

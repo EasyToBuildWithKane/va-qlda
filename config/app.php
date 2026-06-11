@@ -164,6 +164,9 @@ return [
          * Application Service Providers...
          */
         App\Providers\AppServiceProvider::class,
+        // Boots before RouteServiceProvider so DB setting overrides reach
+        // config() before routes/web.php reads va.password_login_enabled.
+        App\Providers\SettingsServiceProvider::class,
         App\Providers\AuthServiceProvider::class,
         // App\Providers\BroadcastServiceProvider::class,
         App\Providers\EventServiceProvider::class,

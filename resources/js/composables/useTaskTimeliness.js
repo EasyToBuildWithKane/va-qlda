@@ -65,7 +65,7 @@ export function isTaskEstimateOverrun(t) {
     if (!deadline) return false;
 
     if (isTaskDone(t)) {
-        const finished = parseDateTime(t?.updated_at);
+        const finished = parseDateTime(t?.completed_at) || parseDateTime(t?.updated_at);
         return !!(finished && finished > deadline);
     }
 
@@ -150,20 +150,45 @@ export function getTaskSlaState(t) {
 
     const deadlineText = formatSlaDateTime(deadline);
 
+    if (isTaskDone(t)) {
+        if (t?.sla_result?.value === 'exceeded') {
+            const over = getTaskEstimateOverrunHours(t);
+            return {
+                label: t.sla_result.label || 'Vượt SLA',
+                detail: over ? `Vượt ${over}h · hạn ${deadlineText}` : `Hạn ${deadlineText}`,
+                tone: 'danger',
+            };
+        }
+        if (t?.sla_result?.value === 'met') {
+            const timing = t?.hours_timing?.label;
+            return {
+                label: t.sla_result.label || 'Đạt SLA',
+                detail: timing ? `${timing} · hạn ${deadlineText}` : `Hạn ${deadlineText}`,
+                tone: t?.hours_timing?.value === 'on_plan' ? 'warn' : 'ok',
+            };
+        }
+        if (isTaskEstimateOverrun(t)) {
+            const over = getTaskEstimateOverrunHours(t);
+            return {
+                label: 'Quá SLA',
+                detail: over ? `Vượt ${over}h · hạn ${deadlineText}` : `Hạn ${deadlineText}`,
+                tone: 'danger',
+            };
+        }
+
+        return {
+            label: 'Đúng SLA',
+            detail: `Hạn ${deadlineText}`,
+            tone: 'ok',
+        };
+    }
+
     if (isTaskEstimateOverrun(t)) {
         const over = getTaskEstimateOverrunHours(t);
         return {
             label: 'Quá SLA',
             detail: over ? `Vượt ${over}h · hạn ${deadlineText}` : `Hạn ${deadlineText}`,
             tone: 'danger',
-        };
-    }
-
-    if (isTaskDone(t)) {
-        return {
-            label: 'Đúng SLA',
-            detail: `Hạn ${deadlineText}`,
-            tone: 'ok',
         };
     }
 

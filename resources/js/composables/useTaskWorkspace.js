@@ -145,6 +145,7 @@ export function useTaskWorkspace(taskSource, ctx = {}) {
         created: { icon: 'add', tone: 'brand' },
         updated: { icon: 'edit', tone: 'slate' },
         status_changed: { icon: 'task', tone: 'sky' },
+        completed: { icon: 'done', tone: 'emerald' },
         comment: { icon: 'comment', tone: 'violet' },
         attachment: { icon: 'documents', tone: 'amber' },
         worklog: { icon: 'timer', tone: 'sky' },

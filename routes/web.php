@@ -30,6 +30,7 @@ use App\Http\Controllers\Project\TaskController;
 use App\Http\Controllers\Project\TaskWatcherController;
 use App\Http\Controllers\Project\WorklogController;
 use App\Http\Controllers\Realtime\RealtimeController;
+use App\Http\Controllers\Settings\SystemSettingController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -99,6 +100,7 @@ Route::middleware('auth')->group(function () {
 
         // Sprints
         Route::post('/{project}/sprints', [SprintController::class, 'store'])->name('sprints.store');
+        Route::patch('/{project}/sprints/reorder', [SprintController::class, 'reorder'])->name('sprints.reorder');
         Route::put('/{project}/sprints/{sprint}', [SprintController::class, 'update'])->name('sprints.update');
         Route::delete('/{project}/sprints/{sprint}', [SprintController::class, 'destroy'])->name('sprints.destroy');
 
@@ -227,6 +229,14 @@ Route::middleware('auth')->group(function () {
         Route::put('/{department}', [DepartmentController::class, 'update'])->name('update');
         Route::patch('/{department}/toggle', [DepartmentController::class, 'toggleStatus'])->name('toggle');
         Route::delete('/{department}', [DepartmentController::class, 'destroy'])->name('destroy');
+    });
+
+    // System configuration (admin-only — gated by policy in the controller).
+    Route::prefix('settings')->name('settings.')->group(function () {
+        Route::get('/', [SystemSettingController::class, 'index'])->name('index');
+        Route::put('/{group}', [SystemSettingController::class, 'update'])
+            ->whereIn('group', ['general', 'auth', 'telegram', 'permissions'])
+            ->name('update');
     });
 
     // Polymorphic comments (bug/feedback/blocker/task threads)

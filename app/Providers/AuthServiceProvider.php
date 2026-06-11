@@ -13,6 +13,7 @@ use App\Models\Department;
 use App\Models\Feedback;
 use App\Models\OrgTeam;
 use App\Models\Project;
+use App\Models\SystemSetting;
 use App\Policies\AiAccountPolicy;
 use App\Policies\AiPaymentRequestPolicy;
 use App\Policies\AiPurchaseProposalPolicy;
@@ -23,6 +24,7 @@ use App\Policies\DepartmentPolicy;
 use App\Policies\FeedbackPolicy;
 use App\Policies\OrgTeamPolicy;
 use App\Policies\ProjectPolicy;
+use App\Policies\SystemSettingPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 
 class AuthServiceProvider extends ServiceProvider
@@ -46,6 +48,7 @@ class AuthServiceProvider extends ServiceProvider
         AiAccount::class => AiAccountPolicy::class,
         AiPaymentRequest::class => AiPaymentRequestPolicy::class,
         AiPurchaseProposal::class => AiPurchaseProposalPolicy::class,
+        SystemSetting::class => SystemSettingPolicy::class,
     ];
 
     /**

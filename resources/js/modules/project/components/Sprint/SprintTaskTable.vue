@@ -65,7 +65,10 @@ const patchField = (row, payload) => {
     });
 };
 
-const canEditStatus = computed(() => props.canContribute);
+const canEditStatusFor = (row) => {
+    if (!props.canContribute) return false;
+    return row?.can_change_status !== false;
+};
 
 const statusDot = {
     slate: 'bg-slate-400', sky: 'bg-sky-500', violet: 'bg-violet-500',
@@ -260,7 +263,7 @@ const statusDot = {
             @click.stop
           >
             <select
-              v-if="canEditStatus"
+              v-if="canEditStatusFor(row)"
               :value="row.status?.value"
               class="h-7 rounded-lg border border-slate-200 text-[10px] font-semibold dark:border-slate-600 dark:bg-slate-800"
               @change="patchField(row, { status: $event.target.value })"

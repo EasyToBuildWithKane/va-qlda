@@ -14,7 +14,8 @@ import { useToast } from '@/shared/composables/useToast';
 import { exportProjectList } from '@/composables/useProjectListExport';
 import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
 
-const PER_PAGE_OPTIONS = [5, 10, 15, 20];
+const PER_PAGE_OPTIONS = [5, 10, 15, 20, 50, 100];
+const DEFAULT_PER_PAGE = 100;
 
 const props = defineProps({
     projects: { type: Object, required: true },
@@ -31,7 +32,7 @@ const props = defineProps({
 
 const dialog = useDialog();
 const toast = useToast();
-const perPage = ref(Number(props.filters.per_page) || props.projects.meta?.per_page || 10);
+const perPage = ref(Number(props.filters.per_page) || props.projects.meta?.per_page || DEFAULT_PER_PAGE);
 
 // ---- Persisted UI state ---------------------------------------------------
 const VIEW_KEY = 'va-qlda.projects.view';

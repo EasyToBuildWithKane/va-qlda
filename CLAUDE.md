@@ -21,6 +21,7 @@
 | DailyReport | Clean: `Application/`, `Domain/` |
 | Project, Task | Application Use Cases + MVC read paths |
 | Blocker, Bug, Feedback, … | MVC: Controller → Model / Support |
+| System Config | MVC + Settings overlay: `SettingsSchema`/`SettingsRepository` → `config()` runtime (admin-only). Xem `docs/SYSTEM_CONFIG.md` |
 
 Không refactor sang Use Case khi user chỉ sửa bug nhỏ. Module mới: ưu tiên FormRequest + Policy + Resource giống module cùng loại.
 
@@ -29,6 +30,7 @@ Không refactor sang Use Case khi user chỉ sửa bug nhỏ. Module mới: ưu 
 - Backend: `$this->authorize('manage', $project)` / Policy trong `AuthServiceProvider`.
 - Frontend: `usePage().props.auth.user`, `project.can?.manage` từ Resource.
 - Nav: `App\Support\Navigation` — filter theo `roles`.
+- Ma trận `role_grants` (config/va_permissions.php) admin chỉnh được runtime tại `/settings` (tab Phân quyền); `admin` luôn full quyền. `Permissions::roleAllows` đọc `config()` đã overlay — không sửa nơi check.
 
 ## Copy & UX
 

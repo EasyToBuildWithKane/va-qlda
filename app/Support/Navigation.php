@@ -339,8 +339,8 @@ class Navigation
                     [
                         'label' => 'Cấu hình hệ thống',
                         'icon' => 'system-config',
-                        'href' => '#',
-                        'status' => 'planned',
+                        'href' => '/settings',
+                        'status' => 'live',
                         'roles' => ['admin'],
                     ],
                 ],

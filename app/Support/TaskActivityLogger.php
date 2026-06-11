@@ -80,6 +80,27 @@ class TaskActivityLogger
         );
     }
 
+    public static function completed(Task $task, ?SystemAccount $account): void
+    {
+        $estimate = $task->estimate_hours !== null ? (float) $task->estimate_hours : null;
+        $actual = $task->actual_hours !== null ? (float) $task->actual_hours : null;
+
+        self::log(
+            $task,
+            'completed',
+            'Hoàn thành công việc',
+            [
+                'completed_at' => $task->completed_at?->toIso8601String(),
+                'estimate_hours' => $estimate,
+                'actual_hours' => $actual,
+                'hours_timing' => $task->hours_timing,
+                'sla_result' => $task->sla_result,
+                'completion_note' => $task->completion_note,
+            ],
+            $account?->employee_id,
+        );
+    }
+
     public static function commentAdded(Task $task, ?SystemAccount $account): void
     {
         self::log($task, 'comment', 'Thêm bình luận', null, $account?->employee_id);

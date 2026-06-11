@@ -1,5 +1,7 @@
 import { router } from '@inertiajs/vue3';
 import { useToast } from '@/shared/composables/useToast';
+import { useTaskCompleteModal } from '@/composables/useTaskCompleteModal';
+import { isTaskStatusLocked } from '@/composables/useTaskCompletion';
 
 const STATUS_EFFECT_HINT = {
     todo: 'Task về backlog — SLA giờ tạm dừng.',
@@ -14,6 +16,7 @@ const STATUS_EFFECT_HINT = {
  */
 export function useSprintTaskStatusPatch(projectId, statusOptions = []) {
     const toast = useToast();
+    const { requestComplete } = useTaskCompleteModal();
 
     const labelFor = (value) =>
         statusOptions.find((o) => o.value === value)?.label ?? value;
@@ -21,6 +24,17 @@ export function useSprintTaskStatusPatch(projectId, statusOptions = []) {
     const patchTaskStatus = (row, status, hooks = {}) => {
         const prev = row?.status?.value;
         if (!row?.id || prev === status) return;
+
+        if (isTaskStatusLocked(row) && status !== 'done') {
+            toast.error('Công việc đã hoàn thành — không thể đổi trạng thái.');
+            hooks.onError?.();
+            return;
+        }
+
+        if (status === 'done' && prev !== 'done') {
+            requestComplete(row, hooks);
+            return;
+        }
 
         router.patch(`/projects/${projectId}/tasks/${row.id}`, { status }, {
             preserveScroll: true,

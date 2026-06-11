@@ -20,6 +20,9 @@ import ActivityFeed from '@/modules/project/components/Dashboard/ActivityFeed.vu
 import ProjectOverviewCard from '@/modules/project/components/Dashboard/ProjectOverviewCard.vue';
 import ProjectDocumentsPanel from '@/modules/project/components/Documents/ProjectDocumentsPanel.vue';
 import SprintWorkspace from '@/modules/project/components/Sprint/SprintWorkspace.vue';
+import TaskCompleteModal from '@/modules/project/components/Sprint/TaskCompleteModal.vue';
+import { useTaskCompleteModal } from '@/composables/useTaskCompleteModal';
+import { isTaskStatusLocked } from '@/composables/useTaskCompletion';
 import { useToast } from '@/shared/composables/useToast';
 import { useProjectDashboard } from '@/composables/useProjectDashboard';
 import { useProjectExport } from '@/composables/useProjectExport';
@@ -152,11 +155,25 @@ const onGanttDate = ({ id, start, end }) => {
         },
     });
 };
-const onBoardMove = ({ id, status }) => router.patch(`/projects/${pid}/tasks/${id}`, { status }, {
-    preserveScroll: true,
-    only: ['tasks'],
-    onSuccess: () => onTaskDetailUpdated(),
-});
+const { requestComplete } = useTaskCompleteModal();
+
+const onBoardMove = ({ id, status }) => {
+    const task = props.tasks.find((t) => t.id === id);
+    if (!task) return;
+    if (isTaskStatusLocked(task) && status !== 'done') {
+        toast.error('Công việc đã hoàn thành — không thể đổi trạng thái.');
+        return;
+    }
+    if (status === 'done' && task.status?.value !== 'done') {
+        requestComplete(task, { onSuccess: () => onTaskDetailUpdated() });
+        return;
+    }
+    router.patch(`/projects/${pid}/tasks/${id}`, { status }, {
+        preserveScroll: true,
+        only: ['tasks'],
+        onSuccess: () => onTaskDetailUpdated(),
+    });
+};
 
 // ---- Overview computed ----
 const completedTasks = computed(() => props.tasks.filter((t) => t.status.value === 'done').length);
@@ -642,6 +659,7 @@ const onSprintSaved = () => {
       @close="sprintModal = false"
       @saved="onSprintSaved"
     />
+    <TaskCompleteModal :project-id="project.id" />
   </AppLayout>
 </template>
 

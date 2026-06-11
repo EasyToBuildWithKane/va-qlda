@@ -3,6 +3,7 @@ import { ref, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
 import { useToast } from '@/shared/composables/useToast';
+import { useSprintTaskStatusPatch } from '@/composables/useSprintTaskStatusPatch';
 import { normalizeEntities } from '@/composables/useNormalizeList';
 
 const props = defineProps({
@@ -23,6 +24,7 @@ const totalHours = computed(() =>
 const emit = defineEmits(['open-task', 'created']);
 
 const toast = useToast();
+const { patchTaskStatus } = useSprintTaskStatusPatch(props.projectId, []);
 const title = ref('');
 const estimateHours = ref(null);
 const adding = ref(false);
@@ -54,10 +56,11 @@ const addSubtask = () => {
 
 const toggleDone = (st) => {
     const next = st.status?.value === 'done' ? 'todo' : 'done';
-    router.patch(`/projects/${props.projectId}/tasks/${st.id}`, { status: next }, {
-        preserveScroll: true,
-        only: ['tasks'],
-    });
+    if (st.can_change_status === false && next !== 'done') {
+        toast.error('Công việc đã hoàn thành — không thể đổi trạng thái.');
+        return;
+    }
+    patchTaskStatus(st, next, { onSuccess: () => emit('created') });
 };
 
 const patchHours = (st, raw) => {

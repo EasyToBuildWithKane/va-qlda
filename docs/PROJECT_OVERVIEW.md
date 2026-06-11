@@ -38,6 +38,7 @@ VA QLDA
 ├── [FEEDBACK]      Góp ý & đề xuất từ nhân viên (FB-0001)
 ├── [COMMENT]       Thảo luận đa hình (Task, Bug, Blocker, Feedback)
 ├── [DEPARTMENT]    Quản lý phòng ban
+├── [SYSTEM CONFIG] Cấu hình hệ thống (admin: nhận diện, đăng nhập, Telegram, phân quyền) → docs/SYSTEM_CONFIG.md
 └── [DASHBOARD]     Tổng quan hệ thống (đang phát triển)
 ```
 

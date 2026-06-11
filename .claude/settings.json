@@ -3,7 +3,11 @@
     "allow": [
       "Bash(git commit -m ' *)",
       "PowerShell(& \"C:\\\\ServBay\\\\bin\\\\php.cmd\" vendor/bin/pint config/realtime.php 2>&1)",
-      "PowerShell(& \"C:\\\\ServBay\\\\bin\\\\php.cmd\" vendor/bin/pint --test config/realtime.php 2>&1)"
+      "PowerShell(& \"C:\\\\ServBay\\\\bin\\\\php.cmd\" vendor/bin/pint --test config/realtime.php 2>&1)",
+      "Bash(vendor/bin/pint app/Support/Settings app/Http/Controllers/Settings app/Http/Requests/Settings app/Providers/SettingsServiceProvider.php app/Policies/SystemSettingPolicy.php app/Models/SystemSetting.php \"database/migrations/2026_06_11_000100_create_system_settings_table.php\")",
+      "PowerShell(php -v)",
+      "PowerShell(node -v)",
+      "PowerShell(npm -v)"
     ]
   }
 }

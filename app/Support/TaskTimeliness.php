@@ -68,7 +68,9 @@ class TaskTimeliness
         }
 
         if (self::isDone($task)) {
-            return $task->updated_at->greaterThan($deadline);
+            $finished = $task->completed_at ?? $task->updated_at;
+
+            return $finished->greaterThan($deadline);
         }
 
         if (! in_array($task->status->value, self::ACTIVE_STATUSES, true)) {

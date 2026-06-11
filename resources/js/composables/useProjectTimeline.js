@@ -2,6 +2,7 @@ import { computed, ref, reactive, toValue } from 'vue';
 import { isTaskOverdue } from '@/composables/useTaskTimeliness';
 import { groupTasksByPhase } from '@/composables/useTaskPhaseGroups';
 import { buildTaskDisplayRows, countTaskTree } from '@/composables/useTaskHierarchy';
+import { sortSprints } from '@/composables/useSprintSort';
 
 export const TIMELINE_STATUS_BAR = {
     todo: 'bg-slate-400',
@@ -161,14 +162,6 @@ export function useProjectTimeline(props) {
         sprints.value.forEach((s) => map.set(s.id, s));
         return map;
     });
-
-    const sortSprints = (list) =>
-        [...list].sort((a, b) => {
-            const da = a.start_date ? new Date(`${a.start_date}T00:00:00`).getTime() : 0;
-            const db = b.start_date ? new Date(`${b.start_date}T00:00:00`).getTime() : 0;
-            if (da !== db) return da - db;
-            return (a.sort_order || 0) - (b.sort_order || 0);
-        });
 
     const tasksForSprintGroup = (sprintId) => {
         const list = filteredTasks.value.filter((t) => !isMilestone(t) && !t.parent_id && t.sprint_id === sprintId);

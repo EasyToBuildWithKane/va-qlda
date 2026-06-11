@@ -108,7 +108,7 @@ class Project extends Model
 
     public function sprints(): HasMany
     {
-        return $this->hasMany(Sprint::class)->orderBy('start_date')->orderBy('sort_order');
+        return $this->hasMany(Sprint::class)->orderBy('sort_order')->orderBy('id');
     }
 
     public function tasks(): HasMany

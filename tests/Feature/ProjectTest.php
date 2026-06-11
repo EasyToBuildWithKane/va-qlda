@@ -43,6 +43,20 @@ class ProjectTest extends TestCase
             ->assertOk();
     }
 
+    public function test_project_index_shows_all_projects_on_first_visit_without_per_page(): void
+    {
+        Project::factory()->count(12)->create();
+
+        $this->actingAs($this->admin(), 'system')
+            ->get('/projects')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('projects.meta.per_page', 100)
+                ->where('projects.meta.total', 12)
+                ->has('projects.data', 12)
+            );
+    }
+
     public function test_project_index_merges_task_assignees_into_member_avatars(): void
     {
         $project = Project::factory()->create();

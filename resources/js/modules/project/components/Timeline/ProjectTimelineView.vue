@@ -59,14 +59,27 @@ const taskHoursLabel = (task) => {
 const effectiveBarStyle = (task, parent = null) =>
     props.barStyle({ ...task, ...effectiveDates(task, parent) });
 
-const assigneeLabel = (task) => {
+const assigneeTitle = (task) => {
     const people = props.getAssignees(task);
-    if (!people.length) return '—';
-    if (people.length === 1) return people[0].name;
-    return `${people[0].name} +${people.length - 1}`;
+    if (!people.length) return 'Chưa gán người thực hiện';
+    return people.map((a) => a.name).join(', ');
 };
 
-const assigneeTitle = (task) => props.getAssignees(task).map((a) => a.name).join(', ');
+const assigneesForRow = (task) => props.getAssignees(task).slice(0, 4);
+
+const truncateTitle = (text, max = 36) => {
+    const t = String(text || '').trim();
+    if (!t) return '—';
+    return t.length > max ? `${t.slice(0, max)}…` : t;
+};
+
+/** Nhãn trên thanh Gantt — ưu tiên tên công việc, không chỉ %. */
+const barInnerLabel = (task) => {
+    const title = truncateTitle(task.title, 40);
+    const prog = Number(task.progress) || 0;
+    if (prog > 0 && prog < 100) return `${title} · ${prog}%`;
+    return title;
+};
 
 const durationLabel = (task, parent = null, isSubtask = false) => {
     const hours = taskHoursLabel(task);
@@ -83,12 +96,21 @@ const durationLabel = (task, parent = null, isSubtask = false) => {
 
 const barTitle = (task, parent = null) => {
     const { start_date, due_date } = effectiveDates(task, parent);
-    const range = [start_date, due_date].filter(Boolean).join(' → ');
+    const range = [start_date, due_date].filter(Boolean).map((d) => date(d)).join(' → ');
     const hours = taskHoursLabel(task);
-    return [task.title, range, hours].filter(Boolean).join(' · ');
+    const people = assigneeTitle(task);
+    const prog = Number(task.progress) || 0;
+    return [
+        task.title,
+        task.status?.label,
+        range,
+        prog ? `Tiến độ ${prog}%` : null,
+        hours,
+        people !== 'Chưa gán người thực hiện' ? people : null,
+    ].filter(Boolean).join(' · ');
 };
 
-const LIST_GRID_COLS = 'grid-cols-[minmax(0,1fr)_minmax(128px,38%)_minmax(76px,auto)]';
+const LIST_GRID_COLS = 'grid-cols-[minmax(0,1fr)_minmax(44px,auto)_minmax(76px,auto)]';
 
 const dateRangeTitle = (task, parent = null) => {
     const { start_date, due_date } = effectiveDates(task, parent);
@@ -252,7 +274,7 @@ watch(
 <template>
   <!-- h-full fills whatever the parent gives us (ProjectTimelineCenter flex-1) -->
   <div class="flex h-full flex-col overflow-hidden border-t border-slate-200 bg-white">
-    <div class="grid min-h-0 flex-1 grid-cols-[3fr_7fr]">
+    <div class="grid min-h-0 flex-1 grid-cols-[minmax(240px,32%)_1fr]">
       <!-- ── Left panel: task grid ── -->
       <div class="z-20 flex min-w-0 flex-col border-r border-slate-200 bg-slate-50/90">
         <!-- Header row -->
@@ -261,7 +283,10 @@ watch(
           :class="LIST_GRID_COLS"
         >
           <span>Công việc</span>
-          <span>Người TH</span>
+          <span
+            class="text-center"
+            title="Người thực hiện"
+          >TH</span>
           <span class="whitespace-nowrap text-right">Số ngày</span>
         </div>
         <!-- Scrollable list (synced with right panel) -->
@@ -386,17 +411,32 @@ watch(
                   />
                 </div>
                 <div
-                  class="flex min-w-0 items-center gap-1.5 self-start pt-0.5"
-                  :title="assigneeTitle(item.row.task) || undefined"
+                  class="flex min-w-0 items-center justify-end gap-0 self-start pt-0.5"
+                  :title="assigneeTitle(item.row.task)"
                 >
-                  <Avatar
-                    v-if="getAssignees(item.row.task)[0]"
-                    :name="getAssignees(item.row.task)[0].name"
-                    :src="getAssignees(item.row.task)[0].avatar_path"
-                    :size="18"
-                    class="shrink-0"
-                  />
-                  <span class="min-w-0 truncate text-slate-700">{{ assigneeLabel(item.row.task) }}</span>
+                  <template v-if="assigneesForRow(item.row.task).length">
+                    <div class="flex items-center">
+                      <Avatar
+                        v-for="(person, idx) in assigneesForRow(item.row.task)"
+                        :key="person.id"
+                        :name="person.name"
+                        :src="person.avatar_path"
+                        :size="20"
+                        class="shrink-0 ring-2 ring-slate-50"
+                        :style="idx > 0 ? { marginLeft: '-6px' } : undefined"
+                      />
+                    </div>
+                    <span
+                      v-if="getAssignees(item.row.task).length > 4"
+                      class="ml-0.5 text-[10px] font-semibold text-slate-500"
+                      :title="assigneeTitle(item.row.task)"
+                    >+{{ getAssignees(item.row.task).length - 4 }}</span>
+                  </template>
+                  <span
+                    v-else
+                    class="inline-grid h-5 w-5 place-items-center rounded-full bg-slate-100 text-[10px] text-slate-400"
+                    title="Chưa gán người thực hiện"
+                  >—</span>
                 </div>
                 <span
                   class="shrink-0 self-start pt-0.5 whitespace-nowrap text-right text-xs font-medium tabular-nums"
@@ -429,10 +469,22 @@ watch(
                   <span class="shrink-0 text-violet-600">◆</span>
                   {{ item.row.milestone.title }}
                 </span>
-                <span
-                  class="flex min-w-0 items-center gap-1.5 self-center truncate text-slate-600"
-                  :title="assigneeTitle(item.row.milestone) || undefined"
-                >{{ assigneeLabel(item.row.milestone) }}</span>
+                <div
+                  class="flex min-w-0 items-center justify-end self-center"
+                  :title="assigneeTitle(item.row.milestone)"
+                >
+                  <Avatar
+                    v-if="getAssignees(item.row.milestone)[0]"
+                    :name="getAssignees(item.row.milestone)[0].name"
+                    :src="getAssignees(item.row.milestone)[0].avatar_path"
+                    :size="20"
+                    class="shrink-0"
+                  />
+                  <span
+                    v-else
+                    class="inline-grid h-5 w-5 place-items-center rounded-full bg-slate-100 text-[10px] text-slate-400"
+                  >—</span>
+                </div>
                 <span
                   class="shrink-0 self-center whitespace-nowrap text-right text-xs tabular-nums text-slate-500"
                   :title="date(item.row.milestone.due_date || item.row.milestone.start_date) || undefined"
@@ -482,7 +534,7 @@ watch(
               class="pointer-events-none absolute bottom-0 top-0 z-10 w-px bg-rose-500/80"
               :style="{ left: `${todayPercent}%` }"
             >
-              <span class="absolute -left-5 top-0 whitespace-nowrap rounded bg-rose-500 px-1 py-0.5 text-[9px] font-bold uppercase text-white">Today</span>
+              <span class="absolute -left-6 top-0 whitespace-nowrap rounded bg-rose-500 px-1 py-0.5 text-[9px] font-bold text-white">Hôm nay</span>
             </div>
 
             <!-- Dependency SVG lines -->
@@ -538,10 +590,10 @@ watch(
               >
                 <div
                   v-if="effectiveBarStyle(item.row.task, item.row.parent)"
-                  class="absolute top-[7px] flex h-[26px] cursor-pointer items-center rounded-md text-[10px] font-semibold text-white shadow-sm transition-shadow hover:shadow-md"
+                  class="absolute top-[7px] flex h-[28px] cursor-pointer items-center overflow-hidden rounded-md border border-black/10 text-[11px] font-medium text-white shadow-sm transition-shadow hover:shadow-md"
                   :class="[
                     statusClass(item.row.task),
-                    item.row.depth ? 'h-[22px] top-[9px] opacity-90' : '',
+                    item.row.depth ? 'h-[24px] top-[8px] text-[10px]' : '',
                     isOverdue(item.row.task) ? 'ring-2 ring-rose-300' : '',
                     dragState?.id === item.row.task.id ? 'opacity-90 ring-2 ring-brand/40' : '',
                   ]"
@@ -551,7 +603,7 @@ watch(
                 >
                   <!-- Progress fill inside bar -->
                   <span
-                    class="pointer-events-none absolute inset-0 rounded-md bg-black/10"
+                    class="pointer-events-none absolute inset-y-0 left-0 rounded-l-md bg-white/20"
                     :style="{ width: `${item.row.task.progress || 0}%` }"
                   />
                   <!-- Resize left handle -->
@@ -560,17 +612,16 @@ watch(
                     class="relative z-10 w-2 shrink-0 cursor-ew-resize self-stretch rounded-l-md bg-black/20 hover:bg-black/30"
                     @pointerdown.stop="onBarPointerDown($event, item.row.task, 'resize-left')"
                   />
-                  <!-- Label -->
+                  <!-- Label: tên task (hover xem đủ qua title) -->
                   <span
-                    class="relative z-10 flex flex-1 cursor-grab items-center truncate px-1.5 active:cursor-grabbing"
+                    class="relative z-10 flex min-w-0 flex-1 cursor-grab items-center gap-1 truncate px-2 active:cursor-grabbing"
                     @pointerdown.stop="onBarPointerDown($event, item.row.task, 'move')"
                   >
-                    <template v-if="taskHoursLabel(item.row.task) && item.row.depth">
-                      {{ taskHoursLabel(item.row.task) }}
-                    </template>
-                    <template v-else>
-                      {{ item.row.task.progress || 0 }}%
-                    </template>
+                    <span class="truncate drop-shadow-sm">{{ barInnerLabel(item.row.task) }}</span>
+                    <span
+                      v-if="item.row.task.status?.label"
+                      class="hidden shrink-0 rounded bg-black/25 px-1 py-px text-[9px] font-semibold uppercase tracking-wide sm:inline"
+                    >{{ item.row.task.status.label }}</span>
                   </span>
                   <!-- Resize right handle -->
                   <span

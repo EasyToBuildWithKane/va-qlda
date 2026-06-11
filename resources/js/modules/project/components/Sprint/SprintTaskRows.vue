@@ -19,6 +19,7 @@ import {
     isSubtask,
 } from '@/composables/useTaskHierarchy';
 import { taskProgressFromStatus } from '@/shared/utils/taskProgress';
+import { getTaskCompletionBadge } from '@/composables/useTaskCompletion';
 
 const props = defineProps({
     tasks: { type: Array, default: () => [] },
@@ -85,7 +86,20 @@ const assigneeOverflowTitle = (row) => {
     return list.slice(3).map((a) => a.name).join(', ');
 };
 
-const canEditStatus = computed(() => props.canContribute);
+const canEditStatusFor = (task) => {
+    if (!props.canContribute) return false;
+    return task?.can_change_status !== false;
+};
+
+const onStatusChange = (task, event) => {
+    const prev = task?.status?.value;
+    const next = event.target.value;
+    if (next === prev) return;
+    patchTaskStatus(task, next, {
+        onCancel: () => { event.target.value = prev; },
+        onError: () => { event.target.value = prev; },
+    });
+};
 
 const scheduleFor = (row, parent) => getTaskSchedule(row, taskPool.value, parent);
 
@@ -217,6 +231,14 @@ const isDateOverdue = (row, parent) => {
               >
                 {{ entry.childCount }} con
               </span>
+              <span
+                v-if="!entry.isSubtask && getTaskCompletionBadge(entry.task)"
+                class="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
+                :class="getTaskSlaToneClass(getTaskCompletionBadge(entry.task).tone)"
+                :title="getTaskCompletionBadge(entry.task).detail"
+              >
+                {{ getTaskCompletionBadge(entry.task).label }}
+              </span>
             </div>
           </td>
           <td class="border-b border-slate-100 px-2 py-2 dark:border-slate-800">
@@ -255,10 +277,10 @@ const isDateOverdue = (row, parent) => {
             @click.stop
           >
             <select
-              v-if="canEditStatus"
+              v-if="canEditStatusFor(entry.task)"
               :value="entry.task.status?.value"
               class="h-7 w-full max-w-[6.5rem] rounded-lg border border-slate-200 text-[10px] font-semibold dark:border-slate-600 dark:bg-slate-800"
-              @change="patchTaskStatus(entry.task, $event.target.value)"
+              @change="onStatusChange(entry.task, $event)"
             >
               <option
                 v-for="o in statusOptions"
@@ -269,7 +291,7 @@ const isDateOverdue = (row, parent) => {
               </option>
             </select>
             <span
-              v-else
+              v-else-if="entry.task.status?.label"
               class="flex items-center gap-1 text-xs"
             >
               <span

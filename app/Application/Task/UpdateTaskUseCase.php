@@ -12,6 +12,8 @@ use App\Support\TaskTimeliness;
 
 class UpdateTaskUseCase
 {
+    use Concerns\AppliesTaskStatusRules;
+
     /**
      * @param  array<string, mixed>  $data  Validated from UpdateTaskRequest (without dependencies / assignee_ids)
      * @param  array<int>|null  $dependencies
@@ -40,6 +42,7 @@ class UpdateTaskUseCase
             }
         }
 
+        $data = $this->applyStatusTransitionRules($task, $data, $actor);
         $task->update($data);
         $fresh = $task->fresh();
         TaskTimeliness::syncWorkStartedAt($fresh, $previousStatus);
@@ -52,12 +55,7 @@ class UpdateTaskUseCase
         }
 
         if ($fresh->wasChanged('status')) {
-            TaskActivityLogger::statusChanged(
-                $fresh,
-                $previousStatus,
-                $fresh->status->value,
-                $actor,
-            );
+            $this->logStatusSideEffects($fresh, $previousStatus, $actor, true);
             NotificationDispatcher::taskStatusChanged($fresh, $previousStatus, $fresh->status->value, $actor);
         }
 

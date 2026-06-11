@@ -12,6 +12,8 @@ use App\Support\TaskTimeliness;
 
 class PatchTaskUseCase
 {
+    use Concerns\AppliesTaskStatusRules;
+
     /**
      * Kanban / Gantt lightweight patch with status → progress mapping.
      *
@@ -29,6 +31,7 @@ class PatchTaskUseCase
         }
 
         $previousStatus = $task->status->value;
+        $validated = $this->applyStatusTransitionRules($task, $validated, $actor);
         $task->update($validated);
         $changes = collect($task->getChanges())->except(['updated_at'])->all();
         $fresh = $task->fresh();
@@ -41,12 +44,7 @@ class PatchTaskUseCase
         TaskTimeliness::syncWorkStartedAt($fresh, $previousStatus);
 
         if (isset($changes['status'])) {
-            TaskActivityLogger::statusChanged(
-                $fresh,
-                $previousStatus,
-                $fresh->status->value,
-                $actor,
-            );
+            $this->logStatusSideEffects($fresh, $previousStatus, $actor, true);
             NotificationDispatcher::taskStatusChanged($fresh, $previousStatus, $fresh->status->value, $actor);
         } elseif ($changes !== []) {
             TaskActivityLogger::updated($fresh, $actor, $changes);

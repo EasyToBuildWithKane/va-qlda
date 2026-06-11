@@ -14,6 +14,9 @@ import TaskDetailSubtasks from '@/modules/project/components/TaskDetail/TaskDeta
 import { date, datetime, hours } from '@/composables/useFormat';
 import { useToast } from '@/shared/composables/useToast';
 import { useSprintTaskStatusPatch } from '@/composables/useSprintTaskStatusPatch';
+import { getTaskCompletionBadge } from '@/composables/useTaskCompletion';
+import { getTaskSlaToneClass } from '@/composables/useTaskTimeliness';
+import { usePermission } from '@/shared/composables/usePermission';
 import {
     taskDisplayId,
     useTaskWorkspace,
@@ -63,6 +66,7 @@ watch(showAssignMenu, async (open) => {
 });
 const collaborationRef = ref(null);
 
+const { isRole } = usePermission();
 const { patchTaskStatus } = useSprintTaskStatusPatch(props.projectId, props.statusOptions);
 const { fullscreen, resizing, startResize, toggleFullscreen, panelStyle } = useTaskPanelLayout();
 
@@ -70,6 +74,17 @@ const activeTask = computed(() => {
     let raw = unref(props.task);
     if (isRef(raw)) raw = raw.value;
     return raw && typeof raw === 'object' && raw.id != null ? raw : null;
+});
+
+const completionBadge = computed(() => getTaskCompletionBadge(activeTask.value));
+
+const canChangeStatus = computed(() => {
+    if (!props.canEdit) return false;
+    const t = activeTask.value;
+    if (!t) return false;
+    if (t.can_change_status === false) return false;
+    if (t.status?.value === 'done' && t.status_locked && !isRole('admin')) return false;
+    return t.can_change_status !== false;
 });
 
 const ws = useTaskWorkspace(activeTask, {
@@ -401,8 +416,17 @@ const worklogList = computed(() => normalizeEntities(activeTask.value?.worklogs)
                 /> Sửa
               </button>
 
+              <span
+                v-if="completionBadge"
+                class="inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                :class="getTaskSlaToneClass(completionBadge.tone)"
+                :title="completionBadge.detail"
+              >
+                {{ completionBadge.label }}
+              </span>
+
               <div
-                v-if="canEdit"
+                v-if="canChangeStatus"
                 class="relative"
               >
                 <button
@@ -842,6 +866,13 @@ const worklogList = computed(() => normalizeEntities(activeTask.value?.worklogs)
                     </p>
                     <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
                       {{ ev.detail }}
+                    </p>
+                    <p
+                      v-if="ev.type === 'completed' && ev.meta"
+                      class="mt-1 text-xs text-slate-500"
+                    >
+                      ƯT {{ ev.meta.estimate_hours ?? '—' }}h · TT {{ ev.meta.actual_hours ?? '—' }}h
+                      <span v-if="ev.meta.sla_result"> · SLA {{ ev.meta.sla_result === 'met' ? 'đạt' : 'vượt' }}</span>
                     </p>
                   </div>
                 </div>

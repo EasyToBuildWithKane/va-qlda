@@ -46,6 +46,8 @@ class UpdateTaskRequest extends FormRequest
             'start_date' => ['nullable', 'date'],
             'due_date' => ['nullable', 'date', 'after_or_equal:start_date'],
             'estimate_hours' => ['nullable', 'numeric', 'min:0'],
+            'actual_hours' => ['sometimes', 'nullable', 'numeric', 'min:0.01', 'max:9999'],
+            'completion_note' => ['sometimes', 'nullable', 'string', 'max:2000'],
             'progress' => ['sometimes', 'integer', 'min:0', 'max:100'],
             'dependencies' => ['nullable', 'array'],
             'dependencies.*' => ['integer', 'different:'.$taskId, Rule::exists('tasks', 'id')->where('project_id', $projectId)],

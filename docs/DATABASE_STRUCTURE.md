@@ -567,6 +567,23 @@ Bảng audit trail tự động theo dõi thay đổi model.
 
 ---
 
+### 3.28 va_prd_system_settings ✨ MỚI
+
+Lưu **override** cấu hình runtime (admin chỉnh ở `/settings`). Bảng trống ⇒ app dùng default từ `config/*`. Xem `docs/SYSTEM_CONFIG.md`.
+
+| Column | Type | Nullable | Description |
+|---|---|---|---|
+| id | bigint UNSIGNED | NO | PK |
+| key | varchar(255) | NO | Unique, namespaced `{group}.{name}` (vd. `telegram.enabled`); matrix: `permissions.role_grants` |
+| value | longtext | YES | JSON-encoded (scalar / list / matrix) |
+| updated_by | bigint UNSIGNED | YES | FK → system_accounts, nullOnDelete |
+| created_at | timestamp | YES | |
+| updated_at | timestamp | YES | |
+
+**Indexes:** key (unique)
+
+---
+
 ## 4. Domain Boundaries
 
 ```

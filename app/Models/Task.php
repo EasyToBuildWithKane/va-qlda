@@ -29,6 +29,11 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property \Illuminate\Support\Carbon|null $work_started_at
  * @property \Illuminate\Support\Carbon|null $due_date
  * @property string|null $estimate_hours
+ * @property string|null $actual_hours
+ * @property string|null $completion_note
+ * @property \Illuminate\Support\Carbon|null $completed_at
+ * @property string|null $hours_timing
+ * @property string|null $sla_result
  * @property int $progress
  * @property int $order_column
  */
@@ -54,6 +59,11 @@ class Task extends Model
         'work_started_at',
         'due_date',
         'estimate_hours',
+        'actual_hours',
+        'completion_note',
+        'completed_at',
+        'hours_timing',
+        'sla_result',
         'story_points',
         'progress',
         'order_column',
@@ -68,6 +78,8 @@ class Task extends Model
         'work_started_at' => 'datetime',
         'due_date' => 'date',
         'estimate_hours' => 'decimal:2',
+        'actual_hours' => 'decimal:2',
+        'completed_at' => 'datetime',
         'story_points' => 'decimal:2',
         'progress' => 'integer',
     ];

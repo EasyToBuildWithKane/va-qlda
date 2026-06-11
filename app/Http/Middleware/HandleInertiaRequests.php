@@ -38,6 +38,13 @@ class HandleInertiaRequests extends Middleware
         $account = $request->user();
 
         return array_merge(parent::share($request), [
+            // App identity (admin-editable via /settings, overlaid onto config).
+            'app' => [
+                'name' => config('va.app_name'),
+                'short_name' => config('va.app_short_name'),
+                'version' => config('va.app_version'),
+                'support_email' => config('va.support_email'),
+            ],
             'auth' => [
                 'user' => $account ? [
                     'id' => $account->id,

@@ -189,11 +189,23 @@ class TaskTest extends TestCase
 
         $this->actingAs($this->admin(), 'system')
             ->patch("/projects/{$project->id}/tasks/{$task->id}", [
-                'status' => TaskStatus::Done->value,
+                'status' => TaskStatus::InProgress->value,
             ])
             ->assertRedirect();
 
-        $this->assertDatabaseHas('tasks', ['id' => $task->id, 'status' => TaskStatus::Done->value]);
+        $this->actingAs($this->admin(), 'system')
+            ->patch("/projects/{$project->id}/tasks/{$task->id}", [
+                'status' => TaskStatus::Done->value,
+                'actual_hours' => 2,
+            ])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('tasks', [
+            'id' => $task->id,
+            'status' => TaskStatus::Done->value,
+            'actual_hours' => '2.00',
+        ]);
     }
 
     // ─── Delete ───────────────────────────────────────────────────────────────
@@ -330,6 +342,95 @@ class TaskTest extends TestCase
                 'rows' => [['title' => 'Blocked Import']],
             ])
             ->assertForbidden();
+    }
+
+    // ─── Hoàn thành & khóa trạng thái ─────────────────────────────────────────
+
+    public function test_complete_task_requires_actual_hours(): void
+    {
+        $project = Project::factory()->create();
+        $task = $project->tasks()->create($this->taskPayload([
+            'status' => TaskStatus::InProgress->value,
+            'estimate_hours' => 4,
+        ]));
+
+        $this->actingAs($this->admin(), 'system')
+            ->patch("/projects/{$project->id}/tasks/{$task->id}", [
+                'status' => TaskStatus::Done->value,
+            ])
+            ->assertSessionHasErrors('actual_hours');
+    }
+
+    public function test_complete_task_stores_sla_and_activity(): void
+    {
+        $project = Project::factory()->create();
+        $task = $project->tasks()->create($this->taskPayload([
+            'status' => TaskStatus::InProgress->value,
+            'estimate_hours' => 6,
+            'work_started_at' => now()->subHours(2),
+        ]));
+
+        $this->actingAs($this->admin(), 'system')
+            ->patch("/projects/{$project->id}/tasks/{$task->id}", [
+                'status' => TaskStatus::Done->value,
+                'actual_hours' => 5,
+                'completion_note' => 'Xong đúng hạn',
+            ])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $task->refresh();
+        $this->assertSame(TaskStatus::Done, $task->status);
+        $this->assertSame('5.00', $task->actual_hours);
+        $this->assertNotNull($task->completed_at);
+        $this->assertSame('early', $task->hours_timing);
+        $this->assertSame('met', $task->sla_result);
+
+        $this->assertDatabaseHas('task_activities', [
+            'task_id' => $task->id,
+            'event' => 'completed',
+        ]);
+    }
+
+    public function test_member_cannot_reopen_done_task(): void
+    {
+        $project = Project::factory()->create();
+        $task = $project->tasks()->create($this->taskPayload([
+            'status' => TaskStatus::Done->value,
+            'actual_hours' => 3,
+            'completed_at' => now(),
+            'sla_result' => 'met',
+        ]));
+
+        $this->actingAs($this->lead(), 'system')
+            ->patch("/projects/{$project->id}/tasks/{$task->id}", [
+                'status' => TaskStatus::InProgress->value,
+            ])
+            ->assertSessionHasErrors('status');
+    }
+
+    public function test_admin_can_reopen_done_task(): void
+    {
+        $project = Project::factory()->create();
+        $task = $project->tasks()->create($this->taskPayload([
+            'status' => TaskStatus::Done->value,
+            'actual_hours' => 3,
+            'completed_at' => now(),
+            'hours_timing' => 'on_plan',
+            'sla_result' => 'met',
+        ]));
+
+        $this->actingAs($this->admin(), 'system')
+            ->patch("/projects/{$project->id}/tasks/{$task->id}", [
+                'status' => TaskStatus::InProgress->value,
+            ])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $task->refresh();
+        $this->assertSame(TaskStatus::InProgress, $task->status);
+        $this->assertNull($task->actual_hours);
+        $this->assertNull($task->sla_result);
     }
 
     // ─── Guest ────────────────────────────────────────────────────────────────

@@ -13,6 +13,7 @@ import {
     Columns3, Download, Upload, FileDown, RotateCw, Eye, Copy, Archive, ChevronDown,
     Save, Check, ArrowUpDown, CalendarClock, Users2, CircleDollarSign, Image, Ellipsis, EllipsisVertical,
     EyeOff, Send,
+    GripVertical,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -128,6 +129,7 @@ const map = {
     menu: Ellipsis,
     'more-horizontal': Ellipsis,
     'more-vertical': EllipsisVertical,
+    'grip-vertical': GripVertical,
 };
 
 const component = computed(() => map[props.name] || Circle);
