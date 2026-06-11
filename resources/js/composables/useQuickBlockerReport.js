@@ -59,11 +59,8 @@ export function useQuickBlockerReport(pulseRef = null) {
     const projectName = computed(() => activeProject.value?.name ?? '');
     const projectCode = computed(() => activeProject.value?.code ?? '');
 
-    const canUploadAttachments = computed(() => {
-        const p = projectFromProps.value;
-        if (!p?.can) return false;
-        return Boolean(p.can.manage || p.can.contribute);
-    });
+    /** Tạo mới: sau khi ghi nhận, người báo được quyền `update` blocker → upload minh chứng hợp lệ. */
+    const canUploadAttachments = computed(() => canReport.value);
 
     const buildInitialDescription = () => {
         const url = new URL(window.location.href);
