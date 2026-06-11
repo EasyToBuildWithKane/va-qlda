@@ -23,7 +23,6 @@ defineProps({
 
 const emit = defineEmits(['toggle-sprint', 'open-sprint', 'open-task', 'edit-task', 'add-task', 'duplicate-sprint', 'close-sprint', 'delete-sprint']);
 
-/** Thu gọn nhóm giai đoạn (mặc định mở hết). */
 const collapsedPhases = ref(new Set());
 
 const phaseKey = (scopeId, phaseId) => `${scopeId}:phase-${phaseId}`;
@@ -36,112 +35,175 @@ const togglePhase = (key) => {
     else s.add(key);
     collapsedPhases.value = s;
 };
+
+function sprintAccentClass(sprint) {
+    const v = sprint?.status?.value;
+    if (v === 'active') return 'border-l-brand';
+    if (v === 'completed') return 'border-l-emerald-400';
+    return 'border-l-slate-200 dark:border-l-slate-600';
+}
+
+function formatSprintRange(start, end) {
+    const a = start ? date(start) : '—';
+    const b = end ? date(end) : '—';
+    if (a === '—' && b === '—') return 'Chưa đặt lịch';
+    return `${a} – ${b}`;
+}
 </script>
 
 <template>
-  <div class="space-y-2">
+  <div class="space-y-2.5">
     <div
       v-for="s in sprints"
       :key="s.id"
-      class="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900"
+      class="overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900"
+      :class="['border-l-[3px]', sprintAccentClass(s)]"
     >
       <div
-        class="flex cursor-pointer items-center gap-3 px-4 py-3 transition hover:bg-slate-50/80 dark:hover:bg-slate-800/50"
+        class="group flex cursor-pointer items-start gap-2 px-3 py-2.5 transition hover:bg-slate-50/90 sm:items-center sm:gap-3 sm:px-4 sm:py-3 dark:hover:bg-slate-800/40"
         @click="emit('toggle-sprint', s.id)"
       >
-        <AppIcon
-          :name="expandedIds.has(s.id) ? 'chevron-down' : 'chevron-right'"
-          :size="16"
-          class="shrink-0 text-slate-400"
-        />
+        <button
+          type="button"
+          class="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-md text-slate-400 transition group-hover:bg-white group-hover:text-slate-600 sm:mt-0 dark:group-hover:bg-slate-800"
+          :aria-expanded="expandedIds.has(s.id)"
+          :aria-label="expandedIds.has(s.id) ? 'Thu gọn sprint' : 'Mở sprint'"
+          @click.stop="emit('toggle-sprint', s.id)"
+        >
+          <AppIcon
+            :name="expandedIds.has(s.id) ? 'chevron-down' : 'chevron-right'"
+            :size="15"
+          />
+        </button>
+
         <div class="min-w-0 flex-1">
-          <div class="flex flex-wrap items-center gap-2">
-            <span class="font-display font-semibold text-slate-800 dark:text-slate-100">{{ s.name }}</span>
+          <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <h3 class="max-w-full truncate text-sm font-semibold leading-snug text-slate-900 dark:text-slate-50">
+              {{ s.name }}
+            </h3>
             <Badge
-              :label="s.status?.label"
-              :color="s.status?.color"
+              v-if="s.status"
+              :label="s.status.label"
+              :color="s.status.color"
+              class="!px-2 !py-px !text-[10px] !font-semibold"
             />
-            <span class="text-xs text-slate-400">{{ date(s.start_date) }} → {{ date(s.end_date) }}</span>
             <span
               v-if="sprintMetrics(s.id).lateCount"
-              class="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold text-rose-700 dark:bg-rose-950/50 dark:text-rose-300"
+              class="inline-flex items-center gap-0.5 rounded-md bg-rose-50 px-1.5 py-0.5 text-[10px] font-semibold text-rose-700 ring-1 ring-rose-200/80 dark:bg-rose-950/40 dark:text-rose-300"
             >
+              <AppIcon
+                name="clock"
+                :size="10"
+              />
               {{ sprintMetrics(s.id).lateCount }} trễ
             </span>
           </div>
+          <p class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-slate-500 dark:text-slate-400">
+            <span class="inline-flex items-center gap-1 tabular-nums">
+              <AppIcon
+                name="calendar"
+                :size="11"
+                class="shrink-0 text-slate-400"
+              />
+              {{ formatSprintRange(s.start_date, s.end_date) }}
+            </span>
+            <span
+              class="hidden text-slate-300 sm:inline"
+              aria-hidden="true"
+            >·</span>
+            <span>{{ sprintMetrics(s.id).taskCount }} công việc</span>
+            <span
+              class="hidden text-slate-300 sm:inline"
+              aria-hidden="true"
+            >·</span>
+            <span class="tabular-nums">Vel {{ sprintMetrics(s.id).velocity }}h</span>
+          </p>
           <p
             v-if="s.goal"
-            class="mt-0.5 truncate text-xs text-slate-500"
+            class="mt-1 line-clamp-2 text-[11px] leading-relaxed text-slate-400 dark:text-slate-500"
+            :title="s.goal"
           >
             {{ s.goal }}
           </p>
         </div>
-        <div class="flex shrink-0 items-center gap-4 text-xs text-slate-500">
-          <span>{{ sprintMetrics(s.id).taskCount }} task</span>
-          <span>Vel {{ sprintMetrics(s.id).velocity }}h</span>
-          <div class="w-24">
+
+        <div class="hidden shrink-0 flex-col items-end gap-1.5 sm:flex sm:min-w-[7rem]">
+          <span class="text-[10px] font-medium tabular-nums text-slate-500">
+            {{ sprintMetrics(s.id).progress }}%
+          </span>
+          <div class="w-28">
             <ProgressBar :value="sprintMetrics(s.id).progress" />
           </div>
         </div>
-        <span
+
+        <div
           v-if="canManage"
-          class="flex gap-0.5"
+          class="flex shrink-0 gap-0.5 rounded-lg border border-transparent p-0.5 transition group-hover:border-slate-200/80 group-hover:bg-white dark:group-hover:border-slate-600 dark:group-hover:bg-slate-800/80"
           @click.stop
         >
           <button
             type="button"
-            class="grid h-7 w-7 place-items-center rounded text-slate-400 hover:bg-slate-100"
-            title="Sửa"
+            class="grid h-7 w-7 place-items-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700"
+            title="Sửa sprint"
             @click="emit('open-sprint', s)"
-          ><AppIcon
-            name="edit"
-            :size="14"
-          /></button>
+          >
+            <AppIcon
+              name="edit"
+              :size="14"
+            />
+          </button>
           <button
             type="button"
-            class="grid h-7 w-7 place-items-center rounded text-slate-400 hover:bg-slate-100"
+            class="grid h-7 w-7 place-items-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700"
             title="Nhân bản"
             @click="emit('duplicate-sprint', s)"
-          ><AppIcon
-            name="copy"
-            :size="14"
-          /></button>
+          >
+            <AppIcon
+              name="copy"
+              :size="14"
+            />
+          </button>
           <button
             type="button"
-            class="grid h-7 w-7 place-items-center rounded text-slate-400 hover:bg-slate-100"
+            class="grid h-7 w-7 place-items-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700"
             title="Đóng sprint"
             @click="emit('close-sprint', s)"
-          ><AppIcon
-            name="check"
-            :size="14"
-          /></button>
+          >
+            <AppIcon
+              name="check"
+              :size="14"
+            />
+          </button>
           <button
             type="button"
-            class="grid h-7 w-7 place-items-center rounded text-slate-400 hover:bg-rose-50 hover:text-rose-600"
-            title="Xoá"
+            class="grid h-7 w-7 place-items-center rounded-md text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40"
+            title="Xoá sprint"
             @click="emit('delete-sprint', s)"
-          ><AppIcon
-            name="delete"
-            :size="14"
-          /></button>
-        </span>
+          >
+            <AppIcon
+              name="delete"
+              :size="14"
+            />
+          </button>
+        </div>
       </div>
+
       <div
         v-if="expandedIds.has(s.id)"
         class="border-t border-slate-100 dark:border-slate-800"
       >
         <div
           v-if="!(tasksBySprint[s.id] || []).length"
-          class="px-2 py-4 text-center text-sm text-slate-400"
+          class="px-3 py-4 text-center text-sm text-slate-400"
         >
-          Chưa có task.
+          Chưa có công việc.
           <button
             v-if="canManage"
             type="button"
             class="text-brand hover:underline"
             @click="emit('add-task', { sprintId: s.id })"
           >
-            Thêm task
+            Thêm công việc
           </button>
         </div>
         <div
@@ -192,7 +254,7 @@ const togglePhase = (key) => {
               class="text-xs text-brand hover:underline"
               @click="emit('add-task', { sprintId: s.id })"
             >
-              + Thêm task
+              + Thêm công việc
             </button>
           </div>
         </div>
@@ -204,16 +266,22 @@ const togglePhase = (key) => {
       class="overflow-hidden rounded-xl border border-dashed border-slate-300 bg-slate-50/50 dark:border-slate-600 dark:bg-slate-900/50"
     >
       <div
-        class="flex cursor-pointer items-center gap-3 px-4 py-3"
+        class="flex cursor-pointer items-center gap-3 border-l-[3px] border-l-slate-300 px-3 py-2.5 sm:px-4 sm:py-3 dark:border-l-slate-600"
         @click="emit('toggle-sprint', 'backlog')"
       >
         <AppIcon
           :name="expandedIds.has('backlog') ? 'chevron-down' : 'chevron-right'"
-          :size="16"
-          class="text-slate-400"
+          :size="15"
+          class="shrink-0 text-slate-400"
         />
-        <span class="font-semibold text-slate-600 dark:text-slate-300">Backlog</span>
-        <span class="text-xs text-slate-400">{{ backlogTasks.length }} task</span>
+        <div class="min-w-0 flex-1">
+          <p class="text-sm font-semibold text-slate-700 dark:text-slate-200">
+            Backlog
+          </p>
+          <p class="mt-0.5 text-[11px] text-slate-500">
+            {{ backlogTasks.length }} công việc chưa gán sprint
+          </p>
+        </div>
       </div>
       <div
         v-if="expandedIds.has('backlog')"

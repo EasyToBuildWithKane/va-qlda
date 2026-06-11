@@ -179,33 +179,29 @@ onMounted(() => {
 
 <template>
   <div class="flex h-full min-h-0 flex-col bg-slate-50/50 dark:bg-slate-950">
-    <!-- Header -->
-    <div class="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-200/80 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
-      <div>
-        <h2 class="font-display text-lg font-bold text-slate-900 dark:text-slate-50">
-          Sprint Workspace
-        </h2>
-        <p class="text-xs text-slate-500">
-          Điều phối sprint, task và tiến độ dự án
-        </p>
-      </div>
-      <button
-        v-if="canManage"
-        type="button"
-        class="btn-primary text-sm"
-        @click="openSprint()"
-      >
-        <AppIcon
-          name="add"
-          :size="15"
-        /> Sprint
-      </button>
-    </div>
-
-    <!-- Sticky toolbar -->
-    <div class="sticky top-0 z-20 shrink-0 border-b border-slate-200/80 bg-white/95 px-3 py-2 backdrop-blur dark:border-slate-800 dark:bg-slate-900/95">
+    <!-- Toolbar -->
+    <div class="sticky top-0 z-20 shrink-0 border-b border-slate-200/80 bg-white/95 px-3 py-2.5 backdrop-blur dark:border-slate-800 dark:bg-slate-900/95">
       <div class="flex flex-wrap items-center gap-2">
-        <div class="relative min-w-[12rem] flex-1">
+        <div class="flex shrink-0 items-center gap-2 pr-1">
+          <span class="grid h-8 w-8 place-items-center rounded-lg bg-brand-50 text-brand dark:bg-brand-950/40">
+            <AppIcon
+              name="sprint"
+              :size="16"
+            />
+          </span>
+          <div class="hidden min-w-0 sm:block">
+            <p class="text-sm font-semibold leading-none text-slate-800 dark:text-slate-100">
+              Sprint
+            </p>
+            <p class="mt-0.5 text-[10px] text-slate-400">
+              {{ sprints.length }} chu kỳ
+              <span v-if="sprints.filter((sp) => sp.status?.value === 'active').length">
+                · {{ sprints.filter((sp) => sp.status?.value === 'active').length }} đang chạy
+              </span>
+            </p>
+          </div>
+        </div>
+        <div class="relative min-w-[12rem] flex-1 lg:min-w-[16rem]">
           <AppIcon
             name="search"
             :size="14"
@@ -258,6 +254,17 @@ onMounted(() => {
             name="add"
             :size="14"
           /> Task
+        </button>
+        <button
+          v-if="canManage"
+          type="button"
+          class="btn-primary text-xs"
+          @click="openSprint()"
+        >
+          <AppIcon
+            name="add"
+            :size="14"
+          /> Sprint
         </button>
       </div>
     </div>

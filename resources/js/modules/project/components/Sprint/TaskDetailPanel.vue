@@ -137,21 +137,10 @@ const goComment = () => {
     setTimeout(() => collaborationRef.value?.focusComposer(), 80);
 };
 
-const toggleWatch = () => {
-    if (!activeTask.value?.id) return;
-    router.post(`/projects/${props.projectId}/tasks/${activeTask.value.id}/watchers/toggle`, {}, {
-        preserveScroll: true,
-        only: ['tasks'],
-        onSuccess: () => emit('updated'),
-    });
-};
-
 const openSubtask = (st) => {
     const full = props.allTasks.find((t) => t.id === st.id) || st;
     emit('open-task', full);
 };
-
-const attachTab = () => { tab.value = 'overview'; };
 
 const scheduleLine = computed(() => {
     const t = activeTask.value;
@@ -161,6 +150,16 @@ const scheduleLine = computed(() => {
     if (t.due_date) parts.push(`Hạn ${date(t.due_date)}`);
     return parts.join(' · ');
 });
+
+const metaDotClass = {
+    slate: 'bg-slate-400',
+    sky: 'bg-sky-500',
+    violet: 'bg-violet-500',
+    emerald: 'bg-emerald-500',
+    rose: 'bg-rose-500',
+    amber: 'bg-amber-500',
+    brand: 'bg-brand',
+};
 
 const timeSummary = computed(() => {
     const parts = [];
@@ -265,60 +264,15 @@ const worklogList = computed(() => normalizeEntities(activeTask.value?.worklogs)
           />
 
           <!-- ── HEADER ── -->
-          <header class="shrink-0 border-b border-slate-100 px-4 pb-3 pt-3 dark:border-slate-800">
-            <div class="flex items-start justify-between gap-2">
-              <div class="min-w-0 flex-1">
-                <div class="flex flex-wrap items-center gap-1.5">
-                  <span class="font-mono text-[10px] text-slate-400">{{ taskDisplayId(activeTask) }}</span>
-                  <Badge
-                    v-if="activeTask.status?.label"
-                    :label="activeTask.status.label"
-                    :color="activeTask.status.color"
-                  />
-                  <Badge
-                    v-if="activeTask.priority?.label"
-                    :label="activeTask.priority.label"
-                    :color="activeTask.priority.color"
-                  />
-                  <Badge
-                    v-if="activeTask.phase?.label"
-                    :label="activeTask.phase.label"
-                    color="violet"
-                  />
-                </div>
-                <h1 class="mt-1.5 font-display text-lg font-bold leading-snug text-slate-900 dark:text-white">
-                  {{ activeTask.title }}
-                </h1>
-                <p
-                  v-if="ws.headerContext"
-                  class="mt-1 text-xs text-slate-500"
-                >
-                  {{ ws.headerContext }}
-                </p>
-                <p
-                  v-if="scheduleLine"
-                  class="mt-0.5 text-xs text-slate-400"
-                >
-                  {{ scheduleLine }}
-                </p>
-                <p
-                  v-if="activeTask.parent?.id"
-                  class="mt-1 text-xs text-slate-500"
-                >
-                  Thuộc
-                  <button
-                    type="button"
-                    class="font-medium text-brand hover:underline"
-                    @click="openSubtask(activeTask.parent)"
-                  >
-                    #{{ activeTask.parent.id }} {{ activeTask.parent.title }}
-                  </button>
-                </p>
-              </div>
-              <div class="flex shrink-0 items-center gap-0.5">
+          <header class="shrink-0 border-b border-slate-200/80 bg-slate-50/40 px-4 pb-3 pt-3 dark:border-slate-800 dark:bg-slate-900/40">
+            <div class="flex items-center justify-between gap-3">
+              <span class="shrink-0 rounded-md border border-slate-200/90 bg-white px-2 py-0.5 font-mono text-[11px] font-medium tracking-tight text-slate-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                {{ taskDisplayId(activeTask) }}
+              </span>
+              <div class="flex shrink-0 items-center gap-0.5 rounded-lg border border-slate-200/90 bg-white p-0.5 dark:border-slate-600 dark:bg-slate-800">
                 <button
                   type="button"
-                  class="grid h-7 w-7 place-items-center rounded-md text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  class="grid h-7 w-7 place-items-center rounded-md text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-slate-200"
                   :title="fullscreen ? 'Thu nhỏ' : 'Toàn màn hình'"
                   @click="toggleFullscreen"
                 >
@@ -329,7 +283,7 @@ const worklogList = computed(() => normalizeEntities(activeTask.value?.worklogs)
                 </button>
                 <button
                   type="button"
-                  class="grid h-7 w-7 place-items-center rounded-md text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  class="grid h-7 w-7 place-items-center rounded-md text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-slate-200"
                   title="Đóng"
                   @click="emit('close')"
                 >
@@ -341,7 +295,100 @@ const worklogList = computed(() => normalizeEntities(activeTask.value?.worklogs)
               </div>
             </div>
 
-            <div class="mt-2.5 flex flex-wrap items-center gap-1">
+            <h1 class="mt-2.5 font-display text-[15px] font-semibold leading-snug tracking-tight text-slate-900 dark:text-slate-50">
+              {{ activeTask.title }}
+            </h1>
+
+            <div
+              v-if="activeTask.status?.label || activeTask.priority?.label || activeTask.phase?.label"
+              class="mt-2 flex flex-wrap items-center gap-1.5"
+            >
+              <span
+                v-if="activeTask.status?.label"
+                class="inline-flex items-center gap-1 rounded-md border border-slate-200/90 bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300"
+              >
+                <span
+                  class="h-1.5 w-1.5 shrink-0 rounded-full"
+                  :class="metaDotClass[activeTask.status.color] || metaDotClass.slate"
+                />
+                {{ activeTask.status.label }}
+              </span>
+              <span
+                v-if="activeTask.priority?.label"
+                class="inline-flex items-center gap-1 rounded-md border border-slate-200/90 bg-white px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300"
+              >
+                <span
+                  class="h-1.5 w-1.5 shrink-0 rounded-full"
+                  :class="metaDotClass[activeTask.priority.color] || metaDotClass.slate"
+                />
+                {{ activeTask.priority.label }}
+              </span>
+              <span
+                v-if="activeTask.phase?.label"
+                class="inline-flex items-center gap-1 rounded-md border border-slate-200/90 bg-white px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300"
+              >
+                <span
+                  class="h-1.5 w-1.5 shrink-0 rounded-full"
+                  :class="metaDotClass.violet"
+                />
+                {{ activeTask.phase.label }}
+              </span>
+            </div>
+
+            <div
+              v-if="ws.sprintLine || ws.epicLabel || scheduleLine"
+              class="mt-2.5 space-y-1 rounded-lg border border-slate-200/80 bg-white px-2.5 py-2 dark:border-slate-700 dark:bg-slate-900/60"
+            >
+              <p
+                v-if="ws.sprintLine"
+                class="flex items-start gap-1.5 text-[11px] leading-relaxed text-slate-600 dark:text-slate-400"
+              >
+                <AppIcon
+                  name="sprint"
+                  :size="12"
+                  class="mt-0.5 shrink-0 text-violet-500"
+                />
+                <span class="min-w-0 break-words">{{ ws.sprintLine }}</span>
+              </p>
+              <p
+                v-if="ws.epicLabel"
+                class="flex items-start gap-1.5 text-[11px] leading-relaxed text-slate-600 dark:text-slate-400"
+              >
+                <AppIcon
+                  name="flag"
+                  :size="12"
+                  class="mt-0.5 shrink-0 text-slate-400"
+                />
+                <span class="min-w-0 break-words">{{ ws.epicLabel }}</span>
+              </p>
+              <p
+                v-if="scheduleLine"
+                class="flex items-center gap-1.5 text-[11px] tabular-nums text-slate-500 dark:text-slate-400"
+              >
+                <AppIcon
+                  name="calendar"
+                  :size="12"
+                  class="shrink-0 text-slate-400"
+                />
+                {{ scheduleLine }}
+              </p>
+            </div>
+
+            <p
+              v-if="activeTask.parent?.id"
+              class="mt-2 text-[11px] text-slate-500"
+            >
+              Thuộc
+              <button
+                type="button"
+                class="font-medium text-brand hover:underline"
+                @click="openSubtask(activeTask.parent)"
+              >
+                #{{ activeTask.parent.id }} {{ activeTask.parent.title }}
+              </button>
+            </p>
+
+            <div class="mt-3 flex flex-wrap items-center gap-1 border-t border-slate-200/80 pt-2.5 dark:border-slate-700">
               <button
                 v-if="canEdit"
                 type="button"
@@ -461,30 +508,6 @@ const worklogList = computed(() => normalizeEntities(activeTask.value?.worklogs)
               >
                 <AppIcon
                   name="copy"
-                  :size="14"
-                />
-              </button>
-              <button
-                type="button"
-                class="grid h-7 w-7 place-items-center rounded-md border text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800"
-                :class="ws.isWatching ? 'border-brand bg-brand/10 text-brand' : 'border-slate-200 dark:border-slate-600'"
-                :title="ws.isWatching ? 'Đang theo dõi' : 'Theo dõi'"
-                @click="toggleWatch"
-              >
-                <AppIcon
-                  name="eye"
-                  :size="14"
-                />
-              </button>
-              <button
-                v-if="canEdit"
-                type="button"
-                class="grid h-7 w-7 place-items-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800"
-                title="Đính kèm"
-                @click="attachTab"
-              >
-                <AppIcon
-                  name="upload"
                   :size="14"
                 />
               </button>
