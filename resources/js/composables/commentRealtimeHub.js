@@ -9,6 +9,8 @@ let sharedSocket = null;
 let socketRefCount = 0;
 /** @type {string | null} */
 let socketUrlUsed = null;
+/** @type {boolean} */
+let socketWebsocket = false;
 /** @type {Map<string, Set<object>>} */
 const handlersByRoom = new Map();
 /** @type {Set<string>} */
@@ -88,8 +90,20 @@ async function rejoinAllRooms() {
     }
 }
 
+function socketCacheKey(url) {
+    return `${url}|${socketWebsocket ? 'ws' : 'poll'}`;
+}
+
+function transportOptions() {
+    if (socketWebsocket) {
+        return { transports: ['polling', 'websocket'] };
+    }
+    return { transports: ['polling'], upgrade: false };
+}
+
 function ensureSharedSocket(url) {
-    if (sharedSocket && socketUrlUsed === url) {
+    const key = socketCacheKey(url);
+    if (sharedSocket && socketUrlUsed === key) {
         return sharedSocket;
     }
     if (sharedSocket) {
@@ -97,11 +111,10 @@ function ensureSharedSocket(url) {
         sharedSocket = null;
         joinedRooms.clear();
     }
-    socketUrlUsed = url;
+    socketUrlUsed = key;
     sharedSocket = io(url, {
         path: '/socket.io',
-        // Polling trước — nhiều proxy (LiteSpeed/nginx) chưa upgrade WS ổn định
-        transports: ['polling', 'websocket'],
+        ...transportOptions(),
         withCredentials: true,
         reconnection: true,
         reconnectionAttempts: 15,
@@ -120,7 +133,10 @@ function getSharedSocket(url) {
     return ensureSharedSocket(url);
 }
 
-export function acquireSharedSocket(url) {
+export function acquireSharedSocket(url, options = {}) {
+    if (options.websocket !== undefined) {
+        socketWebsocket = options.websocket === true;
+    }
     socketRefCount += 1;
     return ensureSharedSocket(url);
 }

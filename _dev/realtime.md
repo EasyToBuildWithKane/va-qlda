@@ -165,6 +165,13 @@ redis-cli ping
 
 Browser: tab Trao đổi vướng mắc → badge **Realtime** (xanh) after deploy frontend with `useCommentRealtime` indicator.
 
+**Console: `WebSocket connection … transport=websocket&sid=…` failed**
+
+Polling đã OK (có `sid`), chỉ **upgrade WebSocket** qua proxy bị lỗi. Realtime vẫn có thể chạy qua long-polling.
+
+- Production mặc định: `REALTIME_WEBSOCKET=false` (client không thử `wss`).
+- Sau khi bật **Enable WebSocket** + test `wss` OK trên LiteSpeed: `REALTIME_WEBSOCKET=true` + `php artisan config:clear` + build frontend.
+
 `allowBrowse 0` — no directory listing on `/socket.io/` (optional hardening).
 
 ### 4. Verify end-to-end

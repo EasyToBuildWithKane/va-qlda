@@ -22,4 +22,10 @@ return [
 
     'server_port' => (int) env('REALTIME_SERVER_PORT', 6001),
 
+    /*
+    | Bật true khi reverse proxy hỗ trợ WebSocket upgrade ổn định.
+    | LiteSpeed/OpenLiteSpeed hay lỗi wss + sid — để false, client chỉ long-polling.
+    */
+    'websocket' => (bool) env('REALTIME_WEBSOCKET', false),
+
 ];

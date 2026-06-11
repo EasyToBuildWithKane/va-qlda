@@ -56,6 +56,7 @@ class HandleInertiaRequests extends Middleware
             'realtime' => [
                 'enabled' => (bool) config('realtime.enabled'),
                 'url' => config('realtime.client_url'),
+                'websocket' => (bool) config('realtime.websocket'),
             ],
             'nav' => $account ? Navigation::for($account) : [],
             'flash' => [

@@ -48,7 +48,9 @@ export function useCommentRealtime(commentableType, commentableId, handlers = {}
 
         try {
             if (!socketHeld) {
-                acquireSharedSocket(url);
+                acquireSharedSocket(url, {
+                    websocket: page.props.realtime?.websocket === true,
+                });
                 socketHeld = true;
             }
             const room = await joinCommentRoom({ url, type, id });
