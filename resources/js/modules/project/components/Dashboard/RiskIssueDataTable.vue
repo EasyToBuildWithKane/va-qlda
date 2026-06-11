@@ -252,7 +252,7 @@ const isTerminal = (row) => TERMINAL_STATUS.has(row.status?.value);
 const canResolve = (row) => canEditRow(row) && !isTerminal(row);
 
 const changeStatus = (row, status) => {
-    if (row.status?.value === status) return;
+    if (isTerminal(row) || row.status?.value === status) return;
     statusUpdating.value = new Set([...statusUpdating.value, row.id]);
     router.put(`/blockers/${row.id}`, { status }, {
         preserveScroll: true,

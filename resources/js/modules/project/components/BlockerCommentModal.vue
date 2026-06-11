@@ -94,6 +94,7 @@ const submit = () => {
     if (!form.body.trim() || !props.blocker) return;
     form.post('/comments', {
         preserveScroll: true,
+        only: ['blockers'],
         onSuccess: closeAfterSubmit,
         onFinish: () => {
             if (!form.hasErrors && props.show) {

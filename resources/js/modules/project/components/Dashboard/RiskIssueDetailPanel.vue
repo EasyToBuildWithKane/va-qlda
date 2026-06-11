@@ -183,6 +183,7 @@ const timeline = computed(() => {
           :commentable-id="row.id"
           :can-comment="canComment"
           :can-moderate="!!row.can?.update"
+          :partial-reload-keys="['blockers']"
         />
       </div>
     </div>

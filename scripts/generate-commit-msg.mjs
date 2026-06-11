@@ -114,8 +114,112 @@ function describeArea(path) {
     return top.replace(/^\./, '') || 'project';
 }
 
+/**
+ * Gợi ý scope + subject + body theo module VA-QLDA (ưu tiên hơn mô tả generic).
+ * @param {string[]} paths
+ * @returns {{ type?: string, scope?: string, subject: string, body?: string[] }|null}
+ */
+function detectFeatureTheme(paths) {
+    const text = paths.join(' ');
+    const body = [];
+
+    const hasBlocker =
+        /Blocker|blockers/i.test(text) && (text.includes('app/') || text.includes('resources/js/'));
+    const hasTelegram = /Telegram|telegram\.php/.test(text);
+    const hasRealtime =
+        /useCommentRealtime|realtime\/|_dev\/realtime|CommentThread|CommentRealtime/.test(text);
+    const hasDailyReport = /DailyReport|daily-report/.test(text);
+
+    if (hasBlocker && hasTelegram) {
+        body.push('Notify Telegram on each status change; lock resolved/closed from reverting.');
+    } else if (hasBlocker && /UpdateBlockerRequest|isTerminal|statusLocked/.test(text)) {
+        body.push('Lock resolved/closed status on API and UI.');
+    }
+
+    if (hasBlocker && /CommentThread|partialReloadKeys|blockersList/.test(text)) {
+        body.push('Reload blockers after comment post; sync detail modal by id.');
+    }
+
+    if (hasRealtime) {
+        body.push('Socket.IO reconnect re-subscribes room; Realtime badge in CommentThread.');
+        if (text.includes('_dev/')) {
+            body.push('Deploy notes: Redis, Node :6001, OLS /socket.io/ proxy.');
+        }
+    }
+
+    if (hasDailyReport && hasTelegram) {
+        return {
+            type: 'feat',
+            scope: 'daily-report',
+            subject: 'vietnamese telegram for review and reject',
+            body: body.length ? body : undefined,
+        };
+    }
+
+    if (hasBlocker && hasRealtime && hasTelegram) {
+        return {
+            type: 'feat',
+            scope: 'blockers',
+            subject: 'status lock, telegram, comments and realtime',
+            body: body.length ? body : undefined,
+        };
+    }
+
+    if (hasBlocker && hasRealtime) {
+        return {
+            type: 'feat',
+            scope: 'blockers',
+            subject: 'comment reload and realtime reconnect',
+            body: body.length ? body : undefined,
+        };
+    }
+
+    if (hasBlocker && hasTelegram) {
+        return {
+            type: 'feat',
+            scope: 'blockers',
+            subject: 'telegram status notify and lock terminal state',
+            body: body.length ? body : undefined,
+        };
+    }
+
+    if (hasBlocker && body.length) {
+        return {
+            type: 'fix',
+            scope: 'blockers',
+            subject: 'trao doi tab and blocker workflow',
+            body,
+        };
+    }
+
+    if (hasRealtime && !hasBlocker) {
+        return {
+            type: 'feat',
+            scope: 'realtime',
+            subject: 'improve comment socket.io subscription',
+            body: body.length ? body : undefined,
+        };
+    }
+
+    if (paths.every(isDocs) && hasRealtime) {
+        return {
+            type: 'docs',
+            scope: 'realtime',
+            subject: 'socket.io deploy and openlitespeed proxy',
+            body: body.length ? body : undefined,
+        };
+    }
+
+    return null;
+}
+
 function buildSubject(type, changes) {
     const paths = changes.map((c) => c.path);
+    const theme = detectFeatureTheme(paths);
+    if (theme?.subject) {
+        return theme.subject;
+    }
+
     const areas = [...new Set(paths.map(describeArea))].slice(0, 3);
     const areaText = areas.join(', ');
 
@@ -154,6 +258,11 @@ function buildSubject(type, changes) {
 function detectScope(changes) {
     const paths = changes.map((c) => c.path);
 
+    const themeScope = detectFeatureTheme(paths)?.scope;
+    if (themeScope) {
+        return themeScope;
+    }
+
     if (paths.every(isFrontend)) {
         const match = paths[0]?.match(/^resources\/js\/Pages\/([^/]+)/);
         if (match) {
@@ -182,6 +291,11 @@ function detectScope(changes) {
  */
 function detectType(changes) {
     const paths = changes.map((c) => c.path);
+
+    const themeType = detectFeatureTheme(paths)?.type;
+    if (themeType) {
+        return themeType;
+    }
 
     if (paths.length === 0) {
         return null;
@@ -254,21 +368,47 @@ function detectType(changes) {
 }
 
 /**
- * @returns {string|null}
+ * @returns {{ header: string, body: string }|null}
  */
-export function generateCommitMessage() {
+export function generateCommitMessageWithBody() {
     const changes = getStagedChanges();
+    const paths = changes.map((c) => c.path);
     const type = detectType(changes);
 
     if (!type) {
         return null;
     }
 
-    const scope = detectScope(changes);
+    const theme = detectFeatureTheme(paths);
+    const scope = theme?.scope ?? detectScope(changes);
     const subject = buildSubject(type, changes);
-    const header = scope ? `${type}(${scope}): ${subject}` : `${type}: ${subject}`;
+    const headerRaw = scope ? `${type}(${scope}): ${subject}` : `${type}: ${subject}`;
+    const header = headerRaw.length > 72 ? `${headerRaw.slice(0, 69)}...` : headerRaw;
 
-    return header.length > 72 ? `${header.slice(0, 69)}...` : header;
+    const bodyLines = (theme?.body ?? [])
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .filter((line) => line.length <= 100);
+
+    const body = bodyLines.join('\n');
+
+    return { header, body };
+}
+
+/**
+ * @returns {string|null}
+ */
+export function generateCommitMessage() {
+    const result = generateCommitMessageWithBody();
+    if (!result) {
+        return null;
+    }
+
+    if (result.body) {
+        return `${result.header}\n\n${result.body}`;
+    }
+
+    return result.header;
 }
 
 if (process.argv[1]?.endsWith('generate-commit-msg.mjs')) {

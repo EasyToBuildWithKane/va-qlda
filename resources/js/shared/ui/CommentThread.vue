@@ -15,11 +15,14 @@ const props = defineProps({
     /** Xoá bình luận của người khác (vd. quản lý vướng mắc / contribute task) */
     canModerate: { type: Boolean, default: false },
     placeholder: { type: String, default: 'Viết phản hồi cho người xử lý…' },
+    /** Partial reload Inertia sau POST/DELETE (vd. ['blockers'] trên /blockers) */
+    partialReloadKeys: { type: Array, default: () => [] },
 });
 
 const page = usePage();
 const dialog = useDialog();
 const deletingId = ref(null);
+const realtimeEnabled = computed(() => !!page.props.realtime?.enabled);
 
 function normalizeList(raw) {
     if (Array.isArray(raw)) return raw;
@@ -59,7 +62,7 @@ function mergeUpdated(comment) {
 const typeRef = computed(() => props.commentableType);
 const idRef = computed(() => props.commentableId);
 
-useCommentRealtime(typeRef, idRef, {
+const { subscribed: realtimeSubscribed } = useCommentRealtime(typeRef, idRef, {
     onCreated: mergeComment,
     onUpdated: mergeUpdated,
     onDeleted: removeCommentLocal,
@@ -97,6 +100,7 @@ const submit = () => {
     if (!form.body.trim()) return;
     form.post('/comments', {
         preserveScroll: true,
+        ...(props.partialReloadKeys.length ? { only: props.partialReloadKeys } : {}),
         onSuccess: () => form.reset('body'),
     });
 };
@@ -114,6 +118,7 @@ async function removeComment(c) {
     deletingId.value = c.id;
     router.delete(`/comments/${c.id}`, {
         preserveScroll: true,
+        ...(props.partialReloadKeys.length ? { only: props.partialReloadKeys } : {}),
         onFinish: () => {
             deletingId.value = null;
         },
@@ -123,12 +128,20 @@ async function removeComment(c) {
 
 <template>
   <div>
-    <h3 class="mb-3 flex items-center gap-2 font-display text-sm font-semibold text-slate-800 dark:text-slate-100">
+    <h3 class="mb-3 flex flex-wrap items-center gap-2 font-display text-sm font-semibold text-slate-800 dark:text-slate-100">
       <AppIcon
         name="comment"
         :size="18"
       /> Trao đổi
       <span class="text-sm font-normal text-slate-400">({{ list.length }})</span>
+      <span
+        v-if="realtimeEnabled && realtimeSubscribed"
+        class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700"
+        title="Người khác gửi trao đổi sẽ hiện ngay không cần tải lại trang"
+      >
+        <span class="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+        Realtime
+      </span>
     </h3>
 
     <form

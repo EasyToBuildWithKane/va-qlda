@@ -301,12 +301,13 @@ class BlockerTest extends TestCase
             return str_contains($request->url(), 'api.telegram.org/bottest-bot-token/sendMessage')
                 && ($request['chat_id'] ?? null) === '-100888'
                 && str_contains($request['text'], 'Vướng mắc đã xử lý')
+                && str_contains($request['text'], 'Chuyển trạng thái')
                 && str_contains($request['text'], 'Chờ API HRM')
                 && str_contains($request['text'], 'Đã phối hợp team HRM');
         });
     }
 
-    public function test_open_to_in_progress_does_not_notify_blocker_telegram(): void
+    public function test_in_progress_status_notifies_telegram_blocker_chat(): void
     {
         config([
             'telegram.enabled' => true,
@@ -330,7 +331,30 @@ class BlockerTest extends TestCase
             ])
             ->assertRedirect();
 
-        Http::assertNothingSent();
+        Http::assertSent(function ($request) {
+            return str_contains($request['text'], 'Vướng mắc đang xử lý')
+                && str_contains($request['text'], 'Đang mở →');
+        });
+    }
+
+    public function test_resolved_blocker_cannot_change_status(): void
+    {
+        Http::fake();
+        config(['telegram.enabled' => false]);
+
+        $project = Project::factory()->create();
+        $blocker = $this->createBlocker($project);
+        $blocker->update(['status' => BlockerStatus::Resolved->value, 'resolved_at' => now()]);
+
+        $this->actingAs($this->admin(), 'system')
+            ->put("/blockers/{$blocker->id}", [
+                'title' => $blocker->title,
+                'severity' => BlockerSeverity::High->value,
+                'status' => BlockerStatus::Open->value,
+            ])
+            ->assertSessionHasErrors('status');
+
+        $this->assertSame(BlockerStatus::Resolved, $blocker->fresh()->status);
     }
 
     // ─── Import ───────────────────────────────────────────────────────────────

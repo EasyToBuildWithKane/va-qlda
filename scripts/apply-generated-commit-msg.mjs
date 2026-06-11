@@ -36,7 +36,8 @@ export function applyGeneratedCommitMessage(commitMsgFile, options = {}) {
 
     const body = commentBlock ? `${generated}\n\n${commentBlock}\n` : `${generated}\n`;
     fs.writeFileSync(commitMsgFile, body, 'utf8');
-    process.stderr.write(`▶ ${logLabel}: ${generated}\n`);
+    const preview = generated.split('\n')[0];
+    process.stderr.write(`▶ ${logLabel}: ${preview}\n`);
 
     return 'ok';
 }

@@ -20,6 +20,7 @@ const props = defineProps({
     initialTab: { type: String, default: 'detail' },
     canComment: { type: Boolean, default: false },
     canUpdate: { type: Boolean, default: false },
+    partialReloadKeys: { type: Array, default: () => ['blockers'] },
 });
 
 const emit = defineEmits(['close', 'edit-resolution']);
@@ -304,6 +305,7 @@ const statusBadgeColor = computed(() => {
             :commentable-id="blocker.id"
             :can-comment="canComment"
             :can-moderate="canUpdate"
+            :partial-reload-keys="partialReloadKeys"
             placeholder="Chia sẻ cập nhật, câu hỏi hoặc thông tin hỗ trợ xử lý vướng mắc…"
           />
         </div>

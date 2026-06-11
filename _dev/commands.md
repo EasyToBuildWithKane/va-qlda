@@ -26,6 +26,8 @@ Import alias: `@` → `resources/js/`.
 |---------|-------------|
 | `npm run build` | Production Vite build → `public/build/` |
 | `npm run preview` | Preview production build locally *(not defined in `package.json`; use `vite preview` if needed)* |
+| `npm run realtime` | Socket.IO server for live comment threads (requires Redis) |
+| `npm run realtime:dev` | Same with `--watch` on `realtime/server.mjs` |
 
 ---
 

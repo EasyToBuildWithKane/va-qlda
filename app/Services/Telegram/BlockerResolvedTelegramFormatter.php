@@ -12,12 +12,19 @@ class BlockerResolvedTelegramFormatter
 
     private const MESSAGE_MAX = 4000;
 
-    public function format(Blocker $blocker, SystemAccount $actor, BlockerStatus $newStatus): string
-    {
+    public function format(
+        Blocker $blocker,
+        SystemAccount $actor,
+        BlockerStatus $oldStatus,
+        BlockerStatus $newStatus,
+    ): string {
         $headline = match ($newStatus) {
             BlockerStatus::Resolved => 'Vướng mắc đã xử lý',
             BlockerStatus::Closed => 'Vướng mắc đã đóng',
-            default => 'Vướng mắc cập nhật',
+            BlockerStatus::InProgress => 'Vướng mắc đang xử lý',
+            BlockerStatus::Blocked => 'Vướng mắc bị chặn',
+            BlockerStatus::Open => 'Vướng mắc mở lại',
+            default => 'Cập nhật trạng thái vướng mắc',
         };
 
         $actor->loadMissing('employee');
@@ -32,7 +39,8 @@ class BlockerResolvedTelegramFormatter
         }
 
         $lines[] = $this->bracket('Tiêu đề').' '.$this->escape($this->compactLine((string) $blocker->title, 240));
-        $lines[] = $this->bracket('Trạng thái').' <b>'.$this->escape($newStatus->labelVi()).'</b>';
+        $lines[] = $this->bracket('Chuyển trạng thái').' '
+            .$this->escape($oldStatus->labelVi()).' → <b>'.$this->escape($newStatus->labelVi()).'</b>';
         $lines[] = $this->bracket('Mức độ').' '.$this->escape($blocker->severity->label());
 
         $projectLabel = $blocker->project?->code ?? $blocker->project?->name;

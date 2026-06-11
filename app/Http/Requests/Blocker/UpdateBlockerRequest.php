@@ -2,10 +2,12 @@
 
 namespace App\Http\Requests\Blocker;
 
+use App\Models\Blocker;
 use App\Support\Enums\BlockerSeverity;
 use App\Support\Enums\BlockerStatus;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class UpdateBlockerRequest extends FormRequest
 {
@@ -32,6 +34,28 @@ class UpdateBlockerRequest extends FormRequest
             'evidence_links.*.label' => ['nullable', 'string', 'max:120'],
             'evidence_links.*.url' => ['required', 'string', 'url', 'max:2048'],
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            if (! $this->has('status')) {
+                return;
+            }
+
+            $blocker = $this->route('blocker');
+            if (! $blocker instanceof Blocker) {
+                return;
+            }
+
+            $newStatus = $this->input('status');
+            if ($blocker->status->isTerminal() && $newStatus !== $blocker->status->value) {
+                $validator->errors()->add(
+                    'status',
+                    'Vướng mắc đã giải quyết hoặc đã đóng — không thể đổi sang trạng thái khác.',
+                );
+            }
+        });
     }
 
     /**

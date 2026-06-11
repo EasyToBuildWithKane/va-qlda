@@ -13,7 +13,7 @@ class BlockerResolvedTelegramNotifier
         private readonly BlockerResolvedTelegramFormatter $formatter,
     ) {}
 
-    public function notifyIfTerminalTransition(
+    public function notifyStatusChanged(
         Blocker $blocker,
         SystemAccount $actor,
         string $oldStatus,
@@ -30,14 +30,14 @@ class BlockerResolvedTelegramNotifier
 
         $old = BlockerStatus::tryFrom($oldStatus);
         $new = BlockerStatus::tryFrom($newStatus);
-        if ($old === null || $new === null || $old->isTerminal() || ! $new->isTerminal()) {
+        if ($old === null || $new === null || $old === $new) {
             return;
         }
 
         $blocker->loadMissing(['project', 'owner', 'raisedBy']);
 
         $this->telegram->sendMessage(
-            $this->formatter->format($blocker, $actor, $new),
+            $this->formatter->format($blocker, $actor, $old, $new),
             'HTML',
             $chatId,
         );

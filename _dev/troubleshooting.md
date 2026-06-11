@@ -363,3 +363,23 @@ php artisan route:cache     # re-cache for performance
 ```
 
 **Fix (permanent):** Deploy must clear caches before re-caching — see `_dev/workflows.md` › Deploy. Run `php artisan optimize:clear` then `config:cache` + `route:cache` + `view:cache`. Never run `config:cache` alone.
+
+---
+
+## Comment realtime — second user does not see new messages
+
+**Symptoms:** User A posts on blocker **Trao đổi**; A sees the comment; User B on the same thread does not until refresh. No green **Realtime** badge.
+
+**Cause (typical on production):** Stack incomplete — one or more of: `REALTIME_ENABLED=false`, Redis not running / Laravel cannot `Redis::publish`, Node `realtime/server.mjs` not running, nginx not proxying `/socket.io/` to port `6001`.
+
+**Fix:** Full checklist in [`_dev/realtime.md`](realtime.md) (nginx snippet, systemd, env vars).
+
+**Quick checks:**
+
+```bash
+redis-cli ping
+curl -s -o /dev/null -w "%{http_code}" "https://YOUR_APP/socket.io/?EIO=4&transport=polling"
+php artisan tinker --execute="echo config('realtime.enabled') ? 'on' : 'off';"
+```
+
+**Note:** Poster still gets updates via Inertia `only: ['blockers']`; realtime is for **other** viewers on the same thread.

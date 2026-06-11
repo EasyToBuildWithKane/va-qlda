@@ -220,6 +220,10 @@ const modalSubtitle = computed(() => {
 
 const severitySelectOptions = computed(() => valueLabelOptions(props.severityOptions));
 const statusSelectOptions = computed(() => valueLabelOptions(props.statusOptions));
+const statusLocked = computed(() => {
+    const v = props.blocker?.status?.value;
+    return v === 'resolved' || v === 'closed';
+});
 
 const submitLabel = computed(() => {
     if (isResolutionFlow.value) return 'Lưu hướng xử lý';
@@ -292,6 +296,9 @@ const submit = () => {
         }
         delete payload.root_cause;
         delete payload.resolution;
+        if (statusLocked.value) {
+            payload.status = props.blocker.status.value;
+        }
         form.transform(() => payload).put(`/blockers/${props.blocker.id}`, {
             preserveScroll: true,
             onSuccess: finishSave,
@@ -498,7 +505,14 @@ const submit = () => {
                   :options="statusSelectOptions"
                   placeholder="Chọn…"
                   :clearable="false"
+                  :disabled="statusLocked"
                 />
+                <p
+                  v-if="statusLocked"
+                  class="mt-1 text-xs text-slate-500"
+                >
+                  Đã giải quyết hoặc đã đóng — không thể đổi trạng thái.
+                </p>
               </div>
               <div>
                 <label class="label flex items-center gap-1.5">

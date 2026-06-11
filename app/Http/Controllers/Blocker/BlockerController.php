@@ -250,7 +250,7 @@ class BlockerController extends Controller
         NotificationDispatcher::blockerUpdated($blocker, $account, $notifyChanges);
 
         if ($statusChanged && isset($data['status'])) {
-            $blockerTelegram->notifyIfTerminalTransition(
+            $blockerTelegram->notifyStatusChanged(
                 $blocker,
                 $account,
                 $oldStatus,
@@ -327,20 +327,31 @@ class BlockerController extends Controller
         }
 
         $statusTransitions = [];
+        $statusUpdateIds = $data['ids'];
         if ($data['action'] === 'status' && isset($data['status'])) {
             $newStatus = $data['status'];
+            $statusUpdateIds = [];
             foreach ($blockers as $blocker) {
-                $oldStatus = $blocker->status->value;
-                if ($oldStatus !== $newStatus) {
-                    $statusTransitions[] = ['blocker' => $blocker, 'old' => $oldStatus, 'new' => $newStatus];
+                if ($blocker->status->isTerminal()) {
+                    continue;
                 }
+                $oldStatus = $blocker->status->value;
+                if ($oldStatus === $newStatus) {
+                    continue;
+                }
+                $statusUpdateIds[] = $blocker->id;
+                $statusTransitions[] = ['blocker' => $blocker, 'old' => $oldStatus, 'new' => $newStatus];
             }
         }
 
-        Blocker::query()->whereIn('id', $data['ids'])->update($payload);
+        if ($data['action'] === 'status' && $statusUpdateIds !== []) {
+            Blocker::query()->whereIn('id', $statusUpdateIds)->update($payload);
+        } elseif ($data['action'] !== 'status') {
+            Blocker::query()->whereIn('id', $data['ids'])->update($payload);
+        }
 
         foreach ($statusTransitions as $transition) {
-            $blockerTelegram->notifyIfTerminalTransition(
+            $blockerTelegram->notifyStatusChanged(
                 $transition['blocker']->fresh(),
                 $account,
                 $transition['old'],

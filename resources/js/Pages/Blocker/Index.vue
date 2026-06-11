@@ -97,31 +97,43 @@ function loadCollapsedGroups() {
 }
 
 const collapsedGroups = ref(loadCollapsedGroups());
-const detailModalBlocker = ref(null);
+const detailModalBlockerId = ref(null);
 const detailModalTab = ref('detail');
 const showDetailModal = ref(false);
-const commentModalBlocker = ref(null);
+const commentModalBlockerId = ref(null);
 const showCommentModal = ref(false);
 
+const blockersList = computed(() => props.blockers?.data ?? []);
+
+const detailModalBlocker = computed(() => {
+    if (!detailModalBlockerId.value) return null;
+    return blockersList.value.find((row) => row.id === detailModalBlockerId.value) ?? null;
+});
+
+const commentModalBlocker = computed(() => {
+    if (!commentModalBlockerId.value) return null;
+    return blockersList.value.find((row) => row.id === commentModalBlockerId.value) ?? null;
+});
+
 function openDetailModal(b, tab = 'detail') {
-    detailModalBlocker.value = b;
+    detailModalBlockerId.value = b?.id ?? null;
     detailModalTab.value = tab;
     showDetailModal.value = true;
 }
 
 function closeDetailModal() {
     showDetailModal.value = false;
-    detailModalBlocker.value = null;
+    detailModalBlockerId.value = null;
 }
 
 function openCommentModal(b) {
-    commentModalBlocker.value = b;
+    commentModalBlockerId.value = b?.id ?? null;
     showCommentModal.value = true;
 }
 
 function closeCommentModal() {
     showCommentModal.value = false;
-    commentModalBlocker.value = null;
+    commentModalBlockerId.value = null;
 }
 
 function onDetailEditResolution(b) {
@@ -330,7 +342,7 @@ function isTerminal(b) {
 }
 
 function updateStatus(b, status) {
-    if (!b.can?.update || b.status.value === status) return;
+    if (!b.can?.update || b.status.value === status || isTerminal(b)) return;
     statusUpdating.value.add(b.id);
     router.put(`/blockers/${b.id}`, { status }, {
         preserveScroll: true,
@@ -861,14 +873,13 @@ function toggleAllGroups() {
                       class="blocker-col-status px-2 py-2.5 align-top"
                     >
                       <div
-                        v-if="b.can?.update"
+                        v-if="b.can?.update && !isTerminal(b)"
                         class="flex min-w-0 items-center gap-1"
                       >
                         <select
                           :value="b.status.value"
                           class="input h-7 min-w-0 flex-1 px-2 py-0 text-xs"
                           :disabled="statusUpdating.has(b.id)"
-                          :class="isTerminal(b) ? 'text-slate-500' : ''"
                           aria-label="Trạng thái"
                           @click.stop
                           @change="updateStatus(b, $event.target.value)"
@@ -882,7 +893,6 @@ function toggleAllGroups() {
                           </option>
                         </select>
                         <button
-                          v-if="!isTerminal(b)"
                           type="button"
                           class="grid h-7 w-7 shrink-0 place-items-center rounded-md border border-emerald-200/90 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
                           title="Đánh dấu đã xử lý"
