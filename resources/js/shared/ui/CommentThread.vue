@@ -6,6 +6,7 @@ import AppIcon from '@/Components/AppIcon.vue';
 import { datetime } from '@/composables/useFormat';
 import { useDialog } from '@/composables/useDialog';
 import { useCommentRealtime } from '@/composables/useCommentRealtime';
+import { useCommentThreadPoll } from '@/composables/useCommentThreadPoll';
 import { authorFromPageUser, createPendingComment, isPendingComment } from '@/composables/useCommentOptimistic';
 import { useToast } from '@/shared/composables/useToast';
 
@@ -74,6 +75,15 @@ const { subscribed: realtimeSubscribed } = useCommentRealtime(typeRef, idRef, {
     onCreated: mergeComment,
     onUpdated: mergeUpdated,
     onDeleted: removeCommentLocal,
+});
+
+const reloadKeysRef = computed(() => props.partialReloadKeys || []);
+
+useCommentThreadPoll({
+    active: computed(() => true),
+    enabled: realtimeEnabled,
+    subscribed: realtimeSubscribed,
+    reloadKeys: reloadKeysRef,
 });
 
 const list = computed(() => threadComments.value);

@@ -7,12 +7,15 @@ import { useToast } from '@/shared/composables/useToast';
 import { useDialog } from '@/composables/useDialog';
 import { normalizeEntities } from '@/composables/useNormalizeList';
 import { useCommentRealtime } from '@/composables/useCommentRealtime';
+import { useCommentThreadPoll } from '@/composables/useCommentThreadPoll';
 import { authorFromPageUser, createPendingComment, isPendingComment } from '@/composables/useCommentOptimistic';
 
 const props = defineProps({
     comments: { type: Array, default: () => [] },
     commentableId: { type: [Number, String], required: true },
     canComment: { type: Boolean, default: false },
+    /** Tab trao đổi đang mở — bật poll fallback khi chưa realtime. */
+    pollActive: { type: Boolean, default: true },
 });
 
 const page = usePage();
@@ -36,6 +39,14 @@ watch(
     () => props.comments,
     (raw) => {
         threadComments.value = normalizeEntities(raw);
+    },
+    { deep: true },
+);
+
+watch(
+    () => page.props.tasks,
+    () => {
+        syncCommentsFromInertia();
     },
     { deep: true },
 );
@@ -166,6 +177,13 @@ const { subscribed: realtimeSubscribed } = useCommentRealtime(commentableType, c
     onDeleted: removeCommentLocal,
 });
 
+useCommentThreadPoll({
+    active: computed(() => props.pollActive),
+    enabled: realtimeEnabled,
+    subscribed: realtimeSubscribed,
+    reloadKeys: computed(() => ['tasks']),
+});
+
 const submit = () => {
     if (!props.canComment || !body.value.trim()) return;
     const text = body.value.trim();
@@ -240,7 +258,6 @@ const toggleReaction = (c, emoji) => {
     applyReactionLocal(c.id, emoji);
     router.post(`/comments/${c.id}/react`, { emoji }, {
         preserveScroll: true,
-        only: ['tasks'],
         onError: () => {
             threadComments.value = normalizeEntities(props.comments);
         },

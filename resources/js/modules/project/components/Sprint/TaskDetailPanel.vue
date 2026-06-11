@@ -778,6 +778,7 @@ const worklogList = computed(() => normalizeEntities(activeTask.value?.worklogs)
                 :comments="commentList"
                 :commentable-id="activeTask.id"
                 :can-comment="canComment"
+                :poll-active="tab === 'collaboration'"
               />
             </div>
 
