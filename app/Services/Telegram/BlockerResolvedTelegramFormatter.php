@@ -24,7 +24,6 @@ class BlockerResolvedTelegramFormatter
             BlockerStatus::InProgress => 'Vướng mắc đang xử lý',
             BlockerStatus::Blocked => 'Vướng mắc bị chặn',
             BlockerStatus::Open => 'Vướng mắc mở lại',
-            default => 'Cập nhật trạng thái vướng mắc',
         };
 
         $actor->loadMissing('employee');

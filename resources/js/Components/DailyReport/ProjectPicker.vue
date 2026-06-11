@@ -35,33 +35,42 @@ const toggle = (opt) => {
 </script>
 
 <template>
-    <div>
-        <div class="flex flex-wrap gap-2">
-            <button
-                v-for="opt in options"
-                :key="opt.id"
-                type="button"
-                class="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition"
-                :class="isSelected(opt)
-                    ? styleOf(opt.color).on + ' shadow-sm'
-                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'"
-                @click="toggle(opt)"
-            >
-                <span
-                    v-if="!isSelected(opt)"
-                    class="h-2 w-2 rounded-full"
-                    :class="styleOf(opt.color).dot"
-                ></span>
-                <svg v-else class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M16.7 5.3a1 1 0 0 1 0 1.4l-7.5 7.5a1 1 0 0 1-1.4 0L3.3 9.7a1 1 0 1 1 1.4-1.4l3.3 3.29 6.8-6.8a1 1 0 0 1 1.4 0Z" clip-rule="evenodd" />
-                </svg>
-                {{ opt.name }}
-            </button>
-        </div>
-
-        <p class="mt-2 text-xs text-slate-400">
-            <span v-if="modelValue.length">Đã chọn {{ modelValue.length }} dự án trong ngày.</span>
-            <span v-else>Chọn các dự án bạn đã làm việc hôm nay (có thể chọn nhiều).</span>
-        </p>
+  <div>
+    <div class="flex flex-wrap gap-2">
+      <button
+        v-for="opt in options"
+        :key="opt.id"
+        type="button"
+        class="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium transition"
+        :class="isSelected(opt)
+          ? styleOf(opt.color).on + ' shadow-sm'
+          : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'"
+        @click="toggle(opt)"
+      >
+        <span
+          v-if="!isSelected(opt)"
+          class="h-2 w-2 rounded-full"
+          :class="styleOf(opt.color).dot"
+        />
+        <svg
+          v-else
+          class="h-3.5 w-3.5"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+        >
+          <path
+            fill-rule="evenodd"
+            d="M16.7 5.3a1 1 0 0 1 0 1.4l-7.5 7.5a1 1 0 0 1-1.4 0L3.3 9.7a1 1 0 1 1 1.4-1.4l3.3 3.29 6.8-6.8a1 1 0 0 1 1.4 0Z"
+            clip-rule="evenodd"
+          />
+        </svg>
+        {{ opt.name }}
+      </button>
     </div>
+
+    <p class="mt-2 text-xs text-slate-400">
+      <span v-if="modelValue.length">Đã chọn {{ modelValue.length }} dự án trong ngày.</span>
+      <span v-else>Chọn các dự án bạn đã làm việc hôm nay (có thể chọn nhiều).</span>
+    </p>
+  </div>
 </template>

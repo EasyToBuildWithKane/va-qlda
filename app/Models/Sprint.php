@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Support\Enums\SprintStatus;
+use App\Support\Enums\TaskStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -45,11 +46,20 @@ class Sprint extends Model
         return $this->hasMany(Task::class);
     }
 
-    /** Progress = average task progress in this sprint. */
+    /** Progress = % root tasks đã hoàn thành trong sprint. */
     public function progress(): int
     {
-        $tasks = $this->relationLoaded('tasks') ? $this->tasks : $this->tasks()->get(['progress']);
+        $query = $this->tasks()->whereNull('parent_id');
+        $tasks = $this->relationLoaded('tasks')
+            ? $this->tasks->whereNull('parent_id')
+            : $query->get(['status']);
 
-        return $tasks->isEmpty() ? 0 : (int) round($tasks->avg('progress'));
+        if ($tasks->isEmpty()) {
+            return 0;
+        }
+
+        $done = $tasks->filter(fn ($t) => $t->status === TaskStatus::Done)->count();
+
+        return (int) round($done / $tasks->count() * 100);
     }
 }

@@ -48,6 +48,7 @@ class ProjectListResource extends JsonResource
                 'color' => $this->department->color,
             ] : null),
             'manager' => $this->whenLoaded('manager', fn () => $this->person($this->manager)),
+            'members' => MemberResource::collection($this->whenLoaded('members')),
             'can' => $user ? [
                 'update' => $user->can('update', $this->resource),
                 'delete' => $user->can('delete', $this->resource),

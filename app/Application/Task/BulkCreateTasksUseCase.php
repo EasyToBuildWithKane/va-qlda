@@ -9,6 +9,7 @@ use App\Support\Enums\TaskPriority;
 use App\Support\Enums\TaskStatus;
 use App\Support\NotificationDispatcher;
 use App\Support\TaskActivityLogger;
+use App\Support\TaskProgress;
 use App\Support\TaskTimeliness;
 use Illuminate\Support\Facades\DB;
 
@@ -27,16 +28,17 @@ class BulkCreateTasksUseCase
 
         DB::transaction(function () use ($data, $defaults, $assigneeIds, $project, $actor, $orderBase, &$created) {
             foreach ($data['rows'] as $i => $row) {
+                $status = $defaults['status'] ?? TaskStatus::Todo->value;
                 $payload = [
                     'title' => $row['title'],
-                    'status' => $defaults['status'] ?? TaskStatus::Todo->value,
+                    'status' => $status,
                     'priority' => $defaults['priority'] ?? TaskPriority::Medium->value,
                     'phase' => $defaults['phase'] ?? TaskPhase::Development->value,
                     'sprint_id' => $defaults['sprint_id'] ?? null,
                     'assignee_id' => $defaults['assignee_id'] ?? null,
                     'reviewer_id' => $defaults['reviewer_id'] ?? null,
                     'reporter_id' => $defaults['reporter_id'] ?? $actor->employee_id,
-                    'progress' => 0,
+                    'progress' => TaskProgress::fromStatus($status),
                     'order_column' => $orderBase + $i + 1,
                 ];
 

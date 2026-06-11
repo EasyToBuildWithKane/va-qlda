@@ -7,6 +7,7 @@ use App\Models\SystemAccount;
 use App\Models\Task;
 use App\Support\NotificationDispatcher;
 use App\Support\TaskActivityLogger;
+use App\Support\TaskProgress;
 use App\Support\TaskTimeliness;
 
 class CreateTaskUseCase
@@ -19,6 +20,8 @@ class CreateTaskUseCase
         $dependencies = $data['dependencies'] ?? [];
         $assigneeIds = $data['assignee_ids'] ?? [];
         unset($data['dependencies'], $data['assignee_ids']);
+        unset($data['progress']);
+        $data['progress'] = TaskProgress::fromStatus($data['status']);
 
         $task = $project->tasks()->create([
             ...$data,

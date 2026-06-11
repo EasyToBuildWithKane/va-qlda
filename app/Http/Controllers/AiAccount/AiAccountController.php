@@ -323,9 +323,6 @@ class AiAccountController extends Controller
             ->values();
     }
 
-    /**
-     * @return array<string, mixed>|null
-     */
     private function applyManualStatus(
         AiAccount $account,
         AiAccountStatus $status,

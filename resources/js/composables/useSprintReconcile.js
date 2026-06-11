@@ -123,7 +123,7 @@ export function useSprintReconcile(sprintsSource, tasksSource) {
             }
         });
 
-        titles.forEach((list, title) => {
+        titles.forEach((list, _title) => {
             if (list.length > 1) {
                 result.push({
                     level: 'warning',

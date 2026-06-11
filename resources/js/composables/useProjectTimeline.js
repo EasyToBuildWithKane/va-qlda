@@ -1,6 +1,6 @@
 import { computed, ref, reactive, toValue } from 'vue';
 import { isTaskOverdue } from '@/composables/useTaskTimeliness';
-import { detectTaskPhase, groupTasksByPhase } from '@/composables/useTaskPhaseGroups';
+import { groupTasksByPhase } from '@/composables/useTaskPhaseGroups';
 import { buildTaskDisplayRows, countTaskTree } from '@/composables/useTaskHierarchy';
 
 export const TIMELINE_STATUS_BAR = {
@@ -136,8 +136,6 @@ export function useProjectTimeline(props) {
         if (kpis.value.overdue >= 3) return { label: 'At Risk', emoji: '🟡', tone: 'amber' };
         return { label: 'Healthy', emoji: '🟢', tone: 'emerald' };
     });
-
-    const detectPhase = detectTaskPhase;
 
     const sprintById = computed(() => {
         const map = new Map();

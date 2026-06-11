@@ -7,6 +7,7 @@ use App\Models\SystemAccount;
 use App\Models\Task;
 use App\Support\NotificationDispatcher;
 use App\Support\TaskActivityLogger;
+use App\Support\TaskProgress;
 use App\Support\TaskTimeliness;
 
 class UpdateTaskUseCase
@@ -25,6 +26,7 @@ class UpdateTaskUseCase
         SystemAccount $actor,
     ): Task {
         $previousStatus = $task->status->value;
+        TaskProgress::syncProgressFromStatus($data);
 
         if ($task->parent_id !== null) {
             unset($data['parent_id'], $data['start_date'], $data['due_date'], $data['sprint_id'], $data['phase']);

@@ -1,4 +1,5 @@
 <script setup>
+/* eslint-disable vue/no-v-html -- markdown preview from controlled editor input */
 import { ref, computed, nextTick } from 'vue';
 import MarkdownIt from 'markdown-it';
 import InfoTooltip from './InfoTooltip.vue';
@@ -62,58 +63,82 @@ const apply = async (tool) => {
 </script>
 
 <template>
-    <div>
-        <div class="flex items-center justify-between mb-1">
-            <span class="label mb-0 flex items-center gap-1.5">
-                <span
-                    class="inline-block h-1.5 w-1.5 rounded-full"
-                    :class="filled ? 'bg-success' : 'bg-slate-300'"
-                ></span>
-                {{ label }}
-                <span v-if="required" class="text-danger" title="Bắt buộc">*</span>
-                <InfoTooltip v-if="tooltip" :text="tooltip" />
-            </span>
-            <div class="flex items-center gap-3 text-xs">
-                <span class="text-slate-400">{{ count }}/{{ max }}</span>
-                <button type="button" class="text-brand hover:underline" @click="preview = !preview">
-                    {{ preview ? 'Soạn thảo' : 'Xem trước' }}
-                </button>
-            </div>
-        </div>
-
-        <p v-if="hint" class="mb-1.5 text-xs text-slate-400">{{ hint }}</p>
-
-        <!-- Toolbar (edit mode only) -->
-        <div v-if="!preview" class="mb-1 flex items-center gap-1">
-            <button
-                v-for="tool in toolbar"
-                :key="tool.key"
-                type="button"
-                class="grid h-7 min-w-7 place-items-center rounded-input border border-slate-200 px-1.5 text-xs text-slate-500 transition hover:border-brand hover:bg-brand-50 hover:text-brand"
-                :class="{ 'italic': tool.italic, 'font-bold': tool.key === 'bold' }"
-                :title="tool.title"
-                @click="apply(tool)"
-            >
-                {{ tool.label }}
-            </button>
-        </div>
-
-        <div
-            v-if="preview"
-            class="input min-h-[6rem] bg-slate-50 whitespace-normal markdown-body"
-            v-html="html"
-        ></div>
-        <textarea
-            v-else
-            ref="textarea"
-            :rows="rows"
-            :maxlength="max"
-            :placeholder="placeholder"
-            class="input font-mono text-sm"
-            :value="modelValue"
-            @input="emit('update:modelValue', $event.target.value)"
-        ></textarea>
-
-        <p v-if="error" class="mt-1 text-sm text-danger">{{ error }}</p>
+  <div>
+    <div class="flex items-center justify-between mb-1">
+      <span class="label mb-0 flex items-center gap-1.5">
+        <span
+          class="inline-block h-1.5 w-1.5 rounded-full"
+          :class="filled ? 'bg-success' : 'bg-slate-300'"
+        />
+        {{ label }}
+        <span
+          v-if="required"
+          class="text-danger"
+          title="Bắt buộc"
+        >*</span>
+        <InfoTooltip
+          v-if="tooltip"
+          :text="tooltip"
+        />
+      </span>
+      <div class="flex items-center gap-3 text-xs">
+        <span class="text-slate-400">{{ count }}/{{ max }}</span>
+        <button
+          type="button"
+          class="text-brand hover:underline"
+          @click="preview = !preview"
+        >
+          {{ preview ? 'Soạn thảo' : 'Xem trước' }}
+        </button>
+      </div>
     </div>
+
+    <p
+      v-if="hint"
+      class="mb-1.5 text-xs text-slate-400"
+    >
+      {{ hint }}
+    </p>
+
+    <!-- Toolbar (edit mode only) -->
+    <div
+      v-if="!preview"
+      class="mb-1 flex items-center gap-1"
+    >
+      <button
+        v-for="tool in toolbar"
+        :key="tool.key"
+        type="button"
+        class="grid h-7 min-w-7 place-items-center rounded-input border border-slate-200 px-1.5 text-xs text-slate-500 transition hover:border-brand hover:bg-brand-50 hover:text-brand"
+        :class="{ 'italic': tool.italic, 'font-bold': tool.key === 'bold' }"
+        :title="tool.title"
+        @click="apply(tool)"
+      >
+        {{ tool.label }}
+      </button>
+    </div>
+
+    <div
+      v-if="preview"
+      class="input min-h-[6rem] bg-slate-50 whitespace-normal markdown-body"
+      v-html="html"
+    />
+    <textarea
+      v-else
+      ref="textarea"
+      :rows="rows"
+      :maxlength="max"
+      :placeholder="placeholder"
+      class="input font-mono text-sm"
+      :value="modelValue"
+      @input="emit('update:modelValue', $event.target.value)"
+    />
+
+    <p
+      v-if="error"
+      class="mt-1 text-sm text-danger"
+    >
+      {{ error }}
+    </p>
+  </div>
 </template>

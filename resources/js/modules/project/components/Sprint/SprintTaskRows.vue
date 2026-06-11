@@ -18,6 +18,7 @@ import {
     getTaskSchedule,
     isSubtask,
 } from '@/composables/useTaskHierarchy';
+import { taskProgressFromStatus } from '@/shared/utils/taskProgress';
 
 const props = defineProps({
     tasks: { type: Array, default: () => [] },
@@ -342,16 +343,16 @@ const isDateOverdue = (row, parent) => {
               class="flex items-center gap-1"
             >
               <ProgressBar
-                :value="entry.task.progress"
+                :value="taskProgressFromStatus(entry.task.status)"
                 :show-label="false"
                 class="min-w-[2.5rem] flex-1"
               />
-              <span class="w-8 shrink-0 text-right text-[10px] font-medium text-slate-500">{{ entry.task.progress }}%</span>
+              <span class="w-8 shrink-0 text-right text-[10px] font-medium text-slate-500">{{ taskProgressFromStatus(entry.task.status) }}%</span>
             </div>
             <span
               v-else
               class="text-[10px] text-slate-400"
-            >{{ entry.task.progress }}%</span>
+            >{{ taskProgressFromStatus(entry.task.status) }}%</span>
           </td>
           <td
             class="border-b border-slate-100 px-2 py-2 dark:border-slate-800"

@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Support\Enums\ProjectScope;
 use App\Support\Enums\ProjectStatus;
 use App\Support\Enums\ProjectType;
+use App\Support\Enums\TaskStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -153,18 +154,22 @@ class Project extends Model
     // ---- Computed -------------------------------------------------------
 
     /**
-     * Progress = average task progress (0 when there are no tasks).
+     * Progress = % task gốc đã hoàn thành (theo trạng thái).
      * Uses the loaded `tasks` relation when present to avoid extra queries.
      */
     public function progress(): int
     {
-        $tasks = $this->relationLoaded('tasks') ? $this->tasks : $this->tasks()->get(['progress']);
+        $tasks = $this->relationLoaded('tasks')
+            ? $this->tasks->whereNull('parent_id')
+            : $this->tasks()->whereNull('parent_id')->get(['status']);
 
         if ($tasks->isEmpty()) {
             return 0;
         }
 
-        return (int) round($tasks->avg('progress'));
+        $done = $tasks->filter(fn ($t) => $t->status === TaskStatus::Done)->count();
+
+        return (int) round($done / $tasks->count() * 100);
     }
 
     /** Total logged labour cost across all the project's tasks. */

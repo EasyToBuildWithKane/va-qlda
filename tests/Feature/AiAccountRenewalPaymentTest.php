@@ -150,7 +150,7 @@ class AiAccountRenewalPaymentTest extends TestCase
     {
         $creator = SystemAccount::factory()->create();
 
-        return AiPurchaseProposal::create([
+        $proposal = AiPurchaseProposal::create([
             'tool_name' => $account->tool_name,
             'group_function' => $account->group_function,
             'license_type' => $account->license_type,
@@ -162,5 +162,8 @@ class AiAccountRenewalPaymentTest extends TestCase
             'proposer_name' => 'Test',
             'justification' => 'Phiếu test chi phí từ đề xuất đã duyệt.',
         ]);
+        $account->update(['ai_purchase_proposal_id' => $proposal->id]);
+
+        return $proposal;
     }
 }

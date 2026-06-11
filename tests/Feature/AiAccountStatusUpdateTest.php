@@ -33,7 +33,7 @@ class AiAccountStatusUpdateTest extends TestCase
             'notify_before_days' => 14,
         ]);
 
-        AiPurchaseProposal::create([
+        $proposal = AiPurchaseProposal::create([
             'tool_name' => 'Test AI',
             'group_function' => AiAccountGroupFunction::Dev,
             'license_type' => 'Pro',
@@ -45,6 +45,7 @@ class AiAccountStatusUpdateTest extends TestCase
             'proposer_name' => 'Người tạo',
             'justification' => 'Đề xuất test cập nhật trạng thái tài khoản AI.',
         ]);
+        $account->update(['ai_purchase_proposal_id' => $proposal->id]);
 
         $this->actingAs($creator, 'system');
 

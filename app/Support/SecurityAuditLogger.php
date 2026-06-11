@@ -27,14 +27,17 @@ class SecurityAuditLogger
         ]);
     }
 
-    public static function aiAccountPasswordViewed(SystemAccount $actor, int $aiAccountId, string $label): void
+    public static function aiAccountPasswordViewed(SystemAccount $actor, string $aiAccountId, string $label): void
     {
         self::log(
             $actor,
             'ai_account.password_viewed',
             'ai_account',
-            $aiAccountId,
-            ['label' => $label],
+            null,
+            [
+                'label' => $label,
+                'ai_account_id' => $aiAccountId,
+            ],
         );
     }
 }

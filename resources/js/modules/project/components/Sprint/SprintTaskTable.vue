@@ -14,6 +14,7 @@ import {
     isTaskDateOverdue,
     isTaskOverdue,
 } from '@/composables/useTaskTimeliness';
+import { taskProgressFromStatus } from '@/shared/utils/taskProgress';
 
 const props = defineProps({
     table: { type: Object, required: true },
@@ -378,11 +379,11 @@ const statusDot = {
           >
             <div class="flex w-[4.5rem] items-center gap-1">
               <ProgressBar
-                :value="row.progress"
+                :value="taskProgressFromStatus(row.status)"
                 :show-label="false"
                 class="flex-1"
               />
-              <span class="w-8 shrink-0 text-right text-[10px] font-medium text-slate-500">{{ row.progress }}%</span>
+              <span class="w-8 shrink-0 text-right text-[10px] font-medium text-slate-500">{{ taskProgressFromStatus(row.status) }}%</span>
             </div>
           </td>
           <td

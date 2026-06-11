@@ -221,7 +221,7 @@ class TaskTest extends TestCase
         $this->assertDatabaseHas('tasks', [
             'project_id' => $project->id,
             'title' => 'Imported Task B',
-            'progress' => 25,
+            'progress' => 33,
         ]);
     }
 

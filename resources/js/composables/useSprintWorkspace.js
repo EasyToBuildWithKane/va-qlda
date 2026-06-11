@@ -2,6 +2,7 @@ import { computed } from 'vue';
 import { getAssignees } from '@/composables/useSprintFilters';
 import { isTaskDone, isTaskOverdue } from '@/composables/useTaskTimeliness';
 import { filterRootTasks } from '@/composables/useTaskHierarchy';
+import { completionPercentFromTasks } from '@/shared/utils/taskProgress';
 
 export { isTaskDone, isTaskOverdue } from '@/composables/useTaskTimeliness';
 
@@ -73,9 +74,7 @@ export function useSprintWorkspace(sprintsSource, tasksSource, projectSource) {
             return s + st.reduce((a, t) => a + (Number(t.estimate_hours) || 0), 0);
         }, 0);
         const burnRate = totalEstimate > 0 ? Math.round((doneEstimate / totalEstimate) * 100) : 0;
-        const projectProgress = allTasks.length
-            ? Math.round(allTasks.reduce((s, t) => s + (t.progress || 0), 0) / allTasks.length)
-            : 0;
+        const projectProgress = completionPercentFromTasks(rootTasks.value, isTaskDone);
 
         return {
             totalSprints: allSprints.length,
@@ -96,7 +95,6 @@ export function useSprintWorkspace(sprintsSource, tasksSource, projectSource) {
     });
 
     const sprintMetrics = (sprintId) => {
-        const sp = sprintById.value.get(sprintId);
         const st = tasksBySprint.value[sprintId] || [];
         const done = st.filter(isTaskDone);
         const est = st.reduce((a, t) => a + (Number(t.estimate_hours) || 0), 0);
@@ -107,7 +105,7 @@ export function useSprintWorkspace(sprintsSource, tasksSource, projectSource) {
             taskCount: st.length,
             doneCount: done.length,
             lateCount: st.filter(isTaskOverdue).length,
-            progress: sp?.progress ?? (st.length ? Math.round(st.reduce((a, t) => a + t.progress, 0) / st.length) : 0),
+            progress: completionPercentFromTasks(st, isTaskDone),
             velocity: doneEst,
             capacity: est,
             memberCount: members.size,

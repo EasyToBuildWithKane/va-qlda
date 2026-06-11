@@ -8,6 +8,7 @@ use App\Support\Enums\TaskPriority;
 use App\Support\Enums\TaskStatus;
 use App\Support\NotificationDispatcher;
 use App\Support\TaskActivityLogger;
+use App\Support\TaskProgress;
 use App\Support\TaskTimeliness;
 use Illuminate\Support\Facades\DB;
 
@@ -36,7 +37,7 @@ class ImportTasksUseCase
                     'start_date' => $row['start_date'] ?? null,
                     'due_date' => $row['due_date'] ?? null,
                     'estimate_hours' => $row['estimate_hours'] ?? null,
-                    'progress' => $row['progress'] ?? 0,
+                    'progress' => TaskProgress::fromStatus($row['status'] ?? TaskStatus::Todo->value),
                     'order_column' => $orderBase + $i + 1,
                 ]);
 

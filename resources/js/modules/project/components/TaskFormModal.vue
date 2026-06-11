@@ -12,6 +12,7 @@ import TaskEnumChipRow from '@/modules/project/components/TaskEnumChipRow.vue';
 import Badge from '@/shared/ui/Badge.vue';
 import ProgressBar from '@/shared/ui/ProgressBar.vue';
 import { date } from '@/composables/useFormat';
+import { taskProgressFromStatus } from '@/shared/utils/taskProgress';
 import { useModalFormDraft, shallowPickDraft, draftHasMeaningfulContent } from '@/composables/useModalFormDraft';
 import {
     buildDraftSaveMeta,
@@ -85,6 +86,7 @@ const editSprintLabel = computed(() => {
 
 const editStatusMeta = computed(() => props.statusOptions.find((o) => o.value === form.status));
 const editPriorityMeta = computed(() => props.priorityOptions.find((o) => o.value === form.priority));
+const displayProgress = computed(() => taskProgressFromStatus(form.status));
 
 const TASK_DRAFT_FIELDS = [
     'title', 'description', 'sprint_id', 'status', 'priority',
@@ -232,10 +234,11 @@ watch(() => props.show, async (open) => {
 });
 
 const submit = () => {
-    form.transform(({ progress_percent, ...data }) => ({
-        ...data,
-        progress: progress_percent,
-    }));
+    form.transform((data) => {
+        const payload = { ...data, progress: taskProgressFromStatus(data.status) };
+        delete payload.progress_percent;
+        return payload;
+    });
 
     const opts = {
         preserveScroll: true,
@@ -270,8 +273,7 @@ const prioritySelectOptions = computed(() => valueLabelOptions(props.priorityOpt
 const phaseSelectOptions = computed(() => valueLabelOptions(props.phaseOptions));
 
 const syncProgressFromStatus = () => {
-    if (form.status === 'done') form.progress_percent = 100;
-    else if (form.status === 'todo' || form.status === 'blocked') form.progress_percent = 0;
+    form.progress_percent = taskProgressFromStatus(form.status);
 };
 
 onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
@@ -387,12 +389,15 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
         </div>
         <div class="mt-3 flex items-center gap-3">
           <ProgressBar
-            :value="form.progress_percent"
+            :value="displayProgress"
             :show-label="false"
             class="min-w-0 flex-1"
           />
-          <span class="shrink-0 text-sm font-semibold tabular-nums text-brand">{{ form.progress_percent }}%</span>
+          <span class="shrink-0 text-sm font-semibold tabular-nums text-brand">{{ displayProgress }}%</span>
         </div>
+        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          Tiến độ tự tính theo trạng thái công việc.
+        </p>
       </div>
 
       <div>
@@ -433,17 +438,6 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
             :options="priorityOptions"
             aria-label="Ưu tiên công việc"
           />
-        </div>
-        <div>
-          <label class="label mb-1.5">Tiến độ</label>
-          <input
-            v-model.number="form.progress_percent"
-            type="range"
-            min="0"
-            max="100"
-            step="5"
-            class="w-full accent-brand"
-          >
         </div>
       </div>
 

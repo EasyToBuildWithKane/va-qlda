@@ -15,10 +15,10 @@ const styles = {
 </script>
 
 <template>
-    <span
-        class="inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold text-white"
-        :class="styles[color] || styles.slate"
-    >
-        {{ grade }}
-    </span>
+  <span
+    class="inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold text-white"
+    :class="styles[color] || styles.slate"
+  >
+    {{ grade }}
+  </span>
 </template>

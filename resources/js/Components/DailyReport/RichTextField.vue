@@ -89,42 +89,81 @@ const tools = computed(() => [
 </script>
 
 <template>
-    <div>
-        <div v-if="label" class="flex items-center justify-between mb-1">
-            <span class="label mb-0 flex items-center gap-1.5">
-                <span class="inline-block h-1.5 w-1.5 rounded-full" :class="filled ? 'bg-success' : 'bg-slate-300'"></span>
-                {{ label }}
-                <span v-if="required" class="text-danger" title="Bắt buộc">*</span>
-                <InfoTooltip v-if="tooltip" :text="tooltip" />
-            </span>
-            <span class="text-xs text-slate-400">{{ plainText.length }} ký tự</span>
-        </div>
-
-        <p v-if="hint" class="mb-1.5 text-xs text-slate-400">{{ hint }}</p>
-
-        <div class="rounded-input border border-slate-300 overflow-hidden focus-within:border-brand focus-within:ring-1 focus-within:ring-brand/30">
-            <!-- Toolbar -->
-            <div class="flex items-center gap-1 border-b border-slate-200 bg-slate-50 px-2 py-1.5">
-                <button
-                    v-for="t in tools"
-                    :key="t.key"
-                    type="button"
-                    class="grid h-7 min-w-7 place-items-center rounded-input px-1.5 text-sm transition"
-                    :class="[t.cls, t.active ? 'bg-brand text-white' : 'text-slate-500 hover:bg-slate-200']"
-                    :title="t.title"
-                    @click="t.on"
-                >{{ t.label }}</button>
-
-                <span class="mx-1 h-5 w-px bg-slate-200"></span>
-                <button type="button" class="grid h-7 w-7 place-items-center rounded-input text-slate-500 transition hover:bg-slate-200" title="Hoàn tác" @click="undo">↶</button>
-                <button type="button" class="grid h-7 w-7 place-items-center rounded-input text-slate-500 transition hover:bg-slate-200" title="Làm lại" @click="redo">↷</button>
-            </div>
-
-            <EditorContent :editor="editor" />
-        </div>
-
-        <p v-if="error" class="mt-1 text-sm text-danger">{{ error }}</p>
+  <div>
+    <div
+      v-if="label"
+      class="flex items-center justify-between mb-1"
+    >
+      <span class="label mb-0 flex items-center gap-1.5">
+        <span
+          class="inline-block h-1.5 w-1.5 rounded-full"
+          :class="filled ? 'bg-success' : 'bg-slate-300'"
+        />
+        {{ label }}
+        <span
+          v-if="required"
+          class="text-danger"
+          title="Bắt buộc"
+        >*</span>
+        <InfoTooltip
+          v-if="tooltip"
+          :text="tooltip"
+        />
+      </span>
+      <span class="text-xs text-slate-400">{{ plainText.length }} ký tự</span>
     </div>
+
+    <p
+      v-if="hint"
+      class="mb-1.5 text-xs text-slate-400"
+    >
+      {{ hint }}
+    </p>
+
+    <div class="rounded-input border border-slate-300 overflow-hidden focus-within:border-brand focus-within:ring-1 focus-within:ring-brand/30">
+      <!-- Toolbar -->
+      <div class="flex items-center gap-1 border-b border-slate-200 bg-slate-50 px-2 py-1.5">
+        <button
+          v-for="t in tools"
+          :key="t.key"
+          type="button"
+          class="grid h-7 min-w-7 place-items-center rounded-input px-1.5 text-sm transition"
+          :class="[t.cls, t.active ? 'bg-brand text-white' : 'text-slate-500 hover:bg-slate-200']"
+          :title="t.title"
+          @click="t.on"
+        >
+          {{ t.label }}
+        </button>
+
+        <span class="mx-1 h-5 w-px bg-slate-200" />
+        <button
+          type="button"
+          class="grid h-7 w-7 place-items-center rounded-input text-slate-500 transition hover:bg-slate-200"
+          title="Hoàn tác"
+          @click="undo"
+        >
+          ↶
+        </button>
+        <button
+          type="button"
+          class="grid h-7 w-7 place-items-center rounded-input text-slate-500 transition hover:bg-slate-200"
+          title="Làm lại"
+          @click="redo"
+        >
+          ↷
+        </button>
+      </div>
+
+      <EditorContent :editor="editor" />
+    </div>
+
+    <p
+      v-if="error"
+      class="mt-1 text-sm text-danger"
+    >
+      {{ error }}
+    </p>
+  </div>
 </template>
 
 <style>

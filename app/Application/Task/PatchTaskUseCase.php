@@ -7,6 +7,7 @@ use App\Models\Task;
 use App\Support\Enums\TaskStatus;
 use App\Support\NotificationDispatcher;
 use App\Support\TaskActivityLogger;
+use App\Support\TaskProgress;
 use App\Support\TaskTimeliness;
 
 class PatchTaskUseCase
@@ -21,14 +22,10 @@ class PatchTaskUseCase
     {
         $newStatus = $validated['status'] ?? $task->status->value;
 
-        if ($newStatus === TaskStatus::Done->value && ! isset($validated['progress'])) {
-            $validated['progress'] = 100;
-        } elseif ($newStatus === TaskStatus::InProgress->value && $task->progress < 1) {
-            $validated['progress'] = max(1, (int) $task->progress);
-        } elseif ($newStatus === TaskStatus::InReview->value && $task->progress < 50) {
-            $validated['progress'] = max(50, (int) $task->progress);
-        } elseif ($newStatus === TaskStatus::Todo->value && $task->progress >= 100) {
-            $validated['progress'] = 0;
+        if (isset($validated['status'])) {
+            $validated['progress'] = TaskProgress::fromStatus($newStatus);
+        } else {
+            unset($validated['progress']);
         }
 
         $previousStatus = $task->status->value;

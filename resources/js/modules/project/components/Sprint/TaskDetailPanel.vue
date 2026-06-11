@@ -21,6 +21,7 @@ import {
 } from '@/composables/useTaskWorkspace';
 import { normalizeList, normalizeEntities, normalizeKeyed } from '@/composables/useNormalizeList';
 import { matchesSearchKey } from '@/shared/utils/normalizeSearchKey';
+import { taskProgressFromStatus } from '@/shared/utils/taskProgress';
 import { useClientPagination } from '@/shared/composables/useClientPagination';
 import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
 
@@ -73,10 +74,7 @@ const ws = useTaskWorkspace(activeTask, {
     currentEmployeeId,
 });
 
-const progressPct = computed(() => {
-    const n = Number(activeTask.value?.progress);
-    return Number.isFinite(n) ? Math.min(100, Math.max(0, Math.round(n))) : 0;
-});
+const progressPct = computed(() => taskProgressFromStatus(activeTask.value?.status));
 
 const md = new MarkdownIt({ linkify: true, breaks: true });
 
