@@ -126,6 +126,7 @@ php artisan config:cache
 php artisan cache:clear
 php artisan queue:work
 php artisan key:generate                 # First-time .env setup
+php artisan telegram:list-chats          # Sau khi gửi tin trong group Telegram — lấy chat_id
 php artisan migrate:fresh --force --seed # CI / clean DB reset
 ```
 

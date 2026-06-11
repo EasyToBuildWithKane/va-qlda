@@ -9,6 +9,7 @@ use App\Http\Requests\Blocker\UpdateBlockerRequest;
 use App\Http\Resources\BlockerResource;
 use App\Models\Blocker;
 use App\Services\NotificationService;
+use App\Services\Telegram\BlockerResolvedTelegramNotifier;
 use App\Support\BlockerActivityLogger;
 use App\Support\Enums\BlockerSeverity;
 use App\Support\Enums\BlockerStatus;
@@ -194,8 +195,11 @@ class BlockerController extends Controller
         return back()->with('success', "Đã nhập {$created} vướng mắc từ file.");
     }
 
-    public function update(UpdateBlockerRequest $request, Blocker $blocker): RedirectResponse
-    {
+    public function update(
+        UpdateBlockerRequest $request,
+        Blocker $blocker,
+        BlockerResolvedTelegramNotifier $blockerTelegram,
+    ): RedirectResponse {
         $data = $request->validated();
 
         $trackFields = ['title', 'description', 'root_cause', 'resolution', 'evidence_links', 'severity', 'status', 'owner_id', 'due_date'];
@@ -245,6 +249,15 @@ class BlockerController extends Controller
         }
         NotificationDispatcher::blockerUpdated($blocker, $account, $notifyChanges);
 
+        if ($statusChanged && isset($data['status'])) {
+            $blockerTelegram->notifyIfTerminalTransition(
+                $blocker,
+                $account,
+                $oldStatus,
+                $data['status'],
+            );
+        }
+
         return back()->with('success', 'Đã cập nhật vướng mắc.');
     }
 
@@ -264,7 +277,7 @@ class BlockerController extends Controller
         return back()->with('success', 'Đã xoá vướng mắc.');
     }
 
-    public function bulk(Request $request): RedirectResponse
+    public function bulk(Request $request, BlockerResolvedTelegramNotifier $blockerTelegram): RedirectResponse
     {
         $data = $request->validate([
             'ids' => ['required', 'array', 'min:1'],
@@ -313,7 +326,27 @@ class BlockerController extends Controller
             $payload['owner_id'] = $data['owner_id'] ?? null;
         }
 
+        $statusTransitions = [];
+        if ($data['action'] === 'status' && isset($data['status'])) {
+            $newStatus = $data['status'];
+            foreach ($blockers as $blocker) {
+                $oldStatus = $blocker->status->value;
+                if ($oldStatus !== $newStatus) {
+                    $statusTransitions[] = ['blocker' => $blocker, 'old' => $oldStatus, 'new' => $newStatus];
+                }
+            }
+        }
+
         Blocker::query()->whereIn('id', $data['ids'])->update($payload);
+
+        foreach ($statusTransitions as $transition) {
+            $blockerTelegram->notifyIfTerminalTransition(
+                $transition['blocker']->fresh(),
+                $account,
+                $transition['old'],
+                $transition['new'],
+            );
+        }
 
         $bulkLabel = $data['action'] === 'status' ? 'Cập nhật hàng loạt trạng thái' : 'Cập nhật hàng loạt người xử lý';
         foreach ($blockers as $blocker) {

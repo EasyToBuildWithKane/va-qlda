@@ -13,34 +13,34 @@ class DailyReportReviewTelegramFormatter
     private const MESSAGE_MAX = 4000;
 
     /**
-     * @return array<int, array{jp: string, fields: array<int, array{short: string, key: string, optional?: bool}>}>
+     * @return array<int, array{title: string, fields: array<int, array{label: string, key: string, optional?: bool}>}>
      */
-    private function horensoBlocks(): array
+    private function contentSections(): array
     {
         return [
             [
-                'jp' => '報告',
+                'title' => 'Báo cáo',
                 'fields' => [
-                    ['short' => 'Mục tiêu', 'key' => 'goals_today'],
-                    ['short' => 'Tiến độ', 'key' => 'progress_update'],
+                    ['label' => 'Mục tiêu hôm nay', 'key' => 'goals_today'],
+                    ['label' => 'Tiến độ thực hiện', 'key' => 'progress_update'],
                 ],
             ],
             [
-                'jp' => '連絡',
+                'title' => 'Liên lạc',
                 'fields' => [
-                    ['short' => 'Vướng mắc', 'key' => 'blockers', 'optional' => true],
+                    ['label' => 'Khó khăn & vướng mắc', 'key' => 'blockers', 'optional' => true],
                 ],
             ],
             [
-                'jp' => '相談',
+                'title' => 'Trao đổi',
                 'fields' => [
-                    ['short' => 'Kaizen', 'key' => 'improvement_suggestions', 'optional' => true],
+                    ['label' => 'Đề xuất cải tiến', 'key' => 'improvement_suggestions', 'optional' => true],
                 ],
             ],
             [
-                'jp' => '計画',
+                'title' => 'Kế hoạch',
                 'fields' => [
-                    ['short' => 'Ngày mai', 'key' => 'plan_tomorrow'],
+                    ['label' => 'Kế hoạch ngày mai', 'key' => 'plan_tomorrow'],
                 ],
             ],
         ];
@@ -54,11 +54,14 @@ class DailyReportReviewTelegramFormatter
         $total = number_format((float) $score->total_score, 2, '.', '');
         $grade = $score->grade;
 
-        $lines = $this->beginMessage($report, $this->bracket('Đã duyệt').' '.$this->bracket('HORENSO'));
-        $this->appendHorensoBlocks($lines, $report);
+        $lines = $this->beginMessage($report, '<b>Báo cáo đã duyệt</b>');
+        $this->appendContentSections($lines, $report);
 
-        $lines[] = $this->bracket('Đánh giá').' <b>'.$this->escape($grade->value).'</b> '
-            .$this->bracket($total).' · '.$this->escape($score->reviewer?->full_name ?? '—');
+        $lines[] = '';
+        $lines[] = '<b>'.$this->bracket('Kết quả duyệt').'</b>';
+        $lines[] = $this->bracket('Xếp loại').' <b>'.$this->escape($grade->label()).'</b>';
+        $lines[] = $this->bracket('Tổng điểm').' '.$this->escape($total);
+        $lines[] = $this->bracket('Người duyệt').' '.$this->escape($score->reviewer?->full_name ?? '—');
 
         if (filled($score->notes)) {
             $lines[] = $this->bracket('Nhận xét').' '.$this->escape($this->compactLine((string) $score->notes, 320));
@@ -72,11 +75,14 @@ class DailyReportReviewTelegramFormatter
         $report->loadMissing('employee');
         $reviewerName = Employee::query()->find($reviewerEmployeeId)?->full_name ?? '—';
 
-        $lines = $this->beginMessage($report, $this->bracket('Trả lại').' '.$this->bracket('HORENSO'));
-        $this->appendHorensoBlocks($lines, $report);
+        $lines = $this->beginMessage($report, '<b>Báo cáo bị trả lại</b>');
 
-        $lines[] = $this->bracket('Người trả').' '.$this->escape($reviewerName);
+        $lines[] = '';
+        $lines[] = '<b>'.$this->bracket('Thông tin trả lại').'</b>';
+        $lines[] = $this->bracket('Người trả lại').' '.$this->escape($reviewerName);
         $lines[] = $this->bracket('Lý do').' '.$this->escape($this->compactLine($notes, 400));
+
+        $this->appendContentSections($lines, $report);
 
         return $this->finalizeMessage($lines, $report);
     }
@@ -106,7 +112,8 @@ class DailyReportReviewTelegramFormatter
 
         $lines = [
             $statusLine,
-            $this->bracket('Nhân viên').' '.$who.' · '.$meta,
+            $this->bracket('Nhân viên').' '.$who,
+            $meta,
         ];
 
         if (filled($report->title)) {
@@ -119,11 +126,14 @@ class DailyReportReviewTelegramFormatter
     /**
      * @param  array<int, string>  $lines
      */
-    private function appendHorensoBlocks(array &$lines, DailyReport $report): void
+    private function appendContentSections(array &$lines, DailyReport $report): void
     {
-        foreach ($this->horensoBlocks() as $block) {
+        $lines[] = '';
+        $lines[] = '<b>'.$this->bracket('Nội dung báo cáo').'</b>';
+
+        foreach ($this->contentSections() as $section) {
             $entries = [];
-            foreach ($block['fields'] as $field) {
+            foreach ($section['fields'] as $field) {
                 $plain = $this->htmlToPlain($report->{$field['key']} ?? null);
                 $optional = (bool) ($field['optional'] ?? false);
 
@@ -131,12 +141,12 @@ class DailyReportReviewTelegramFormatter
                     if ($optional) {
                         continue;
                     }
-                    $entries[] = $this->bracket($field['short']).' —';
+                    $entries[] = $this->bracket($field['label']).' —';
 
                     continue;
                 }
 
-                $entries[] = $this->bracket($field['short']).' '
+                $entries[] = $this->bracket($field['label']).' '
                     .$this->escape($this->compactLine($plain, self::FIELD_MAX));
             }
 
@@ -145,7 +155,7 @@ class DailyReportReviewTelegramFormatter
             }
 
             $lines[] = '';
-            $lines[] = '<b>'.$this->bracket($block['jp']).'</b>';
+            $lines[] = '<b>'.$this->escape($section['title']).'</b>';
             array_push($lines, ...$entries);
         }
     }
@@ -158,7 +168,7 @@ class DailyReportReviewTelegramFormatter
         $url = route('daily-reports.show', $report);
 
         $lines[] = '';
-        $lines[] = '<a href="'.$this->escapeAttr($url).'">'.$this->bracket('Chi tiết').'</a>';
+        $lines[] = '<a href="'.$this->escapeAttr($url).'">'.$this->bracket('Xem chi tiết trên hệ thống').'</a>';
 
         $text = implode("\n", $lines);
 

@@ -194,9 +194,9 @@ class DailyReportTest extends TestCase
 
         Http::assertSent(function ($request) {
             return str_contains($request->url(), 'api.telegram.org/bottest-bot-token/sendMessage')
-                && str_contains($request['text'], 'HORENSO')
-                && str_contains($request['text'], '報告')
-                && str_contains($request['text'], 'Mục tiêu')
+                && str_contains($request['text'], 'Báo cáo đã duyệt')
+                && str_contains($request['text'], 'Kết quả duyệt')
+                && str_contains($request['text'], 'Mục tiêu hôm nay')
                 && str_contains($request['text'], 'Hoàn thành API login')
                 && str_contains($request['text'], 'Báo cáo test Telegram');
         });
@@ -274,7 +274,8 @@ class DailyReportTest extends TestCase
 
         Http::assertSent(function ($request) {
             return str_contains($request->url(), 'api.telegram.org/bottest-bot-token/sendMessage')
-                && str_contains($request['text'], 'Trả lại')
+                && str_contains($request['text'], 'Báo cáo bị trả lại')
+                && str_contains($request['text'], 'Thông tin trả lại')
                 && str_contains($request['text'], 'Thiếu mục ảnh hưởng dự án')
                 && str_contains($request['text'], 'Báo cáo bị trả');
         });

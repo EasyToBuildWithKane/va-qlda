@@ -9,14 +9,14 @@ class TelegramBotService
 {
     public function isConfigured(): bool
     {
-        return (bool) config('telegram.enabled')
-            && filled(config('telegram.bot_token'))
-            && filled(config('telegram.chat_id'));
+        return $this->canSendToChat(config('telegram.chat_id'));
     }
 
-    public function sendMessage(string $text, ?string $parseMode = 'HTML'): bool
+    public function sendMessage(string $text, ?string $parseMode = 'HTML', ?string $chatId = null): bool
     {
-        if (! $this->isConfigured()) {
+        $targetChatId = $chatId ?? config('telegram.chat_id');
+
+        if (! $this->canSendToChat($targetChatId)) {
             return false;
         }
 
@@ -25,7 +25,7 @@ class TelegramBotService
 
         try {
             $response = Http::timeout(10)->asForm()->post($url, array_filter([
-                'chat_id' => config('telegram.chat_id'),
+                'chat_id' => $targetChatId,
                 'text' => $text,
                 'parse_mode' => $parseMode,
                 'disable_web_page_preview' => true,
@@ -48,5 +48,12 @@ class TelegramBotService
 
             return false;
         }
+    }
+
+    private function canSendToChat(mixed $chatId): bool
+    {
+        return (bool) config('telegram.enabled')
+            && filled(config('telegram.bot_token'))
+            && filled($chatId);
     }
 }

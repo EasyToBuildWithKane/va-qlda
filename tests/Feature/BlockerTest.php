@@ -11,6 +11,7 @@ use App\Support\Enums\BlockerStatus;
 use App\Support\Enums\SystemRole;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -263,6 +264,73 @@ class BlockerTest extends TestCase
 
         $this->assertDatabaseHas('blockers', ['id' => $b1->id, 'status' => BlockerStatus::Resolved->value]);
         $this->assertDatabaseHas('blockers', ['id' => $b2->id, 'status' => BlockerStatus::Resolved->value]);
+    }
+
+    public function test_resolving_blocker_notifies_telegram_blocker_chat_when_configured(): void
+    {
+        config([
+            'telegram.enabled' => true,
+            'telegram.bot_token' => 'test-bot-token',
+            'telegram.chat_id' => '-100999',
+            'telegram.blocker_resolved' => true,
+            'telegram.blocker_chat_id' => '-100888',
+        ]);
+
+        Http::fake([
+            'api.telegram.org/*' => Http::response(['ok' => true], 200),
+        ]);
+
+        $project = Project::factory()->create();
+        $lead = $this->lead();
+        $blocker = $this->createBlocker($project, $lead);
+        $blocker->update([
+            'title' => 'Chờ API HRM',
+            'resolution' => 'Đã phối hợp team HRM xong endpoint.',
+        ]);
+
+        $this->actingAs($lead, 'system')
+            ->put("/blockers/{$blocker->id}", [
+                'title' => 'Chờ API HRM',
+                'severity' => BlockerSeverity::High->value,
+                'status' => BlockerStatus::Resolved->value,
+                'resolution' => 'Đã phối hợp team HRM xong endpoint.',
+            ])
+            ->assertRedirect();
+
+        Http::assertSent(function ($request) {
+            return str_contains($request->url(), 'api.telegram.org/bottest-bot-token/sendMessage')
+                && ($request['chat_id'] ?? null) === '-100888'
+                && str_contains($request['text'], 'Vướng mắc đã xử lý')
+                && str_contains($request['text'], 'Chờ API HRM')
+                && str_contains($request['text'], 'Đã phối hợp team HRM');
+        });
+    }
+
+    public function test_open_to_in_progress_does_not_notify_blocker_telegram(): void
+    {
+        config([
+            'telegram.enabled' => true,
+            'telegram.bot_token' => 'test-bot-token',
+            'telegram.blocker_chat_id' => '-100888',
+            'telegram.blocker_resolved' => true,
+        ]);
+
+        Http::fake([
+            'api.telegram.org/*' => Http::response(['ok' => true], 200),
+        ]);
+
+        $project = Project::factory()->create();
+        $blocker = $this->createBlocker($project);
+
+        $this->actingAs($this->admin(), 'system')
+            ->put("/blockers/{$blocker->id}", [
+                'title' => $blocker->title,
+                'severity' => BlockerSeverity::High->value,
+                'status' => BlockerStatus::InProgress->value,
+            ])
+            ->assertRedirect();
+
+        Http::assertNothingSent();
     }
 
     // ─── Import ───────────────────────────────────────────────────────────────
