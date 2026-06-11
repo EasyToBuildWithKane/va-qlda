@@ -115,37 +115,26 @@ const linkBtnClass = (active) => (active
 
   <div
     v-else
-    class="flex flex-col gap-3 border-t border-slate-200/70 bg-slate-50/40 px-5 py-3 sm:flex-row sm:items-center sm:justify-between"
+    class="flex flex-col gap-1.5 border-t border-slate-200/70 bg-slate-50/40 px-4 py-2 sm:flex-row sm:items-center sm:justify-between"
   >
-    <p class="flex items-center gap-2 text-xs text-slate-500">
-      <span
-        class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white text-brand shadow-sm ring-1 ring-slate-200/80"
-        aria-hidden="true"
-      >
-        <AppIcon
-          name="list"
-          :size="14"
-        />
-      </span>
-      <span>
-        <span class="text-slate-500">Hiển thị </span>
-        <span class="font-semibold tabular-nums text-slate-800">{{ rangeLabel }}</span>
-        <span class="text-slate-400"> bản ghi</span>
-      </span>
+    <p class="text-[11px] leading-tight text-slate-500">
+      <span class="text-slate-500">Hiển thị </span>
+      <span class="font-semibold tabular-nums text-slate-700">{{ rangeLabel }}</span>
+      <span class="text-slate-400"> bản ghi</span>
     </p>
 
     <div
-      class="flex flex-wrap items-center gap-2 sm:justify-end"
-      :class="showNav ? 'sm:gap-3' : ''"
+      class="flex flex-wrap items-center gap-1.5 sm:justify-end"
+      :class="showNav ? 'sm:gap-2' : ''"
     >
       <label
-        class="inline-flex h-9 items-center gap-2 rounded-btn border border-slate-200/90 bg-white pl-3 pr-2 text-slate-600 shadow-sm transition hover:border-slate-300"
+        class="inline-flex h-7 items-center gap-1.5 rounded-md border border-slate-200/90 bg-white pl-2 pr-1.5 text-slate-600 shadow-sm transition hover:border-slate-300"
       >
-        <span class="text-xs font-medium text-slate-500">Số dòng</span>
+        <span class="text-[11px] font-medium text-slate-500">Số dòng</span>
         <span class="relative inline-flex items-center">
           <select
             :value="perPage"
-            class="h-7 min-w-[2.75rem] cursor-pointer appearance-none rounded-md border-0 bg-slate-50 py-0 pl-2 pr-7 text-sm font-semibold tabular-nums text-slate-800 ring-1 ring-slate-200/80 transition hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand/25"
+            class="h-5 min-w-[2.25rem] cursor-pointer appearance-none rounded border-0 bg-slate-50 py-0 pl-1.5 pr-5 text-xs font-semibold tabular-nums text-slate-800 ring-1 ring-slate-200/80 transition hover:bg-white focus:bg-white focus:outline-none focus:ring-1 focus:ring-brand/30"
             aria-label="Số dòng mỗi trang"
             @change="emit('update:perPage', Number($event.target.value))"
           >
@@ -159,16 +148,16 @@ const linkBtnClass = (active) => (active
           </select>
           <AppIcon
             name="chevron-down"
-            :size="14"
-            class="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400"
+            :size="12"
+            class="pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 text-slate-400"
           />
         </span>
-        <span class="text-xs text-slate-400">/ trang</span>
+        <span class="text-[11px] text-slate-400">/ trang</span>
       </label>
 
       <nav
         v-if="showNav"
-        class="inline-flex items-center gap-0.5 rounded-btn border border-slate-200/90 bg-white p-0.5 shadow-sm"
+        class="inline-flex items-center gap-px rounded-md border border-slate-200/90 bg-white p-px shadow-sm"
         aria-label="Phân trang"
       >
         <template
@@ -178,7 +167,7 @@ const linkBtnClass = (active) => (active
           <button
             v-if="client && link.page != null"
             type="button"
-            class="inline-flex h-8 min-w-[2.25rem] items-center justify-center rounded-md px-2.5 text-sm font-medium transition"
+            class="inline-flex h-7 min-w-[1.75rem] items-center justify-center rounded px-1.5 text-xs font-medium transition"
             :class="linkBtnClass(link.active)"
             :aria-current="link.active ? 'page' : undefined"
             @click="onPageLink(link)"
@@ -189,7 +178,7 @@ const linkBtnClass = (active) => (active
             v-else-if="!client && link.url"
             :href="link.url"
             preserve-scroll
-            class="inline-flex h-8 min-w-[2.25rem] items-center justify-center rounded-md px-2.5 text-sm font-medium transition"
+            class="inline-flex h-7 min-w-[1.75rem] items-center justify-center rounded px-1.5 text-xs font-medium transition"
             :class="linkBtnClass(link.active)"
             :aria-current="link.active ? 'page' : undefined"
           >
@@ -197,7 +186,7 @@ const linkBtnClass = (active) => (active
           </Link>
           <span
             v-else
-            class="inline-flex h-8 min-w-[2.25rem] items-center justify-center px-2.5 text-sm text-slate-300"
+            class="inline-flex h-7 min-w-[1.75rem] items-center justify-center px-1.5 text-xs text-slate-300"
             v-html="link.label"
           />
         </template>

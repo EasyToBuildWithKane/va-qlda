@@ -342,10 +342,10 @@ const activityTone = (event) => ({
     <!-- Header gọn -->
     <div class="shrink-0 border-b border-slate-200 bg-slate-50/80 px-3 py-2 dark:border-slate-700 dark:bg-slate-900/80">
       <div class="flex items-center justify-between gap-2">
-        <h2 class="font-display text-sm font-semibold text-slate-800 dark:text-slate-100">
+        <h2 class="font-display text-base font-semibold text-slate-800 dark:text-slate-100">
           Tài liệu dự án
         </h2>
-        <span class="text-xs text-slate-500">
+        <span class="text-sm text-slate-500">
           Tổng <span class="font-semibold text-brand">{{ totalCount }}</span>
         </span>
       </div>
@@ -354,7 +354,7 @@ const activityTone = (event) => ({
           v-for="cat in categories"
           :key="cat.value"
           type="button"
-          class="flex shrink-0 items-center gap-1 border-b-2 px-2 py-1.5 text-xs font-medium transition sm:px-2.5 sm:text-sm"
+          class="flex shrink-0 items-center gap-1 border-b-2 px-2 py-1.5 text-sm font-medium transition sm:px-2.5 sm:text-base"
           :class="activeCategory === cat.value
             ? (colorTab[cat.color] || 'border-brand text-brand')
             : 'border-transparent text-slate-500 hover:text-slate-700'"
@@ -381,7 +381,7 @@ const activityTone = (event) => ({
     >
       <div class="flex flex-wrap items-center justify-between gap-2">
         <p
-          class="min-w-0 flex-1 truncate text-[11px] text-slate-500 dark:text-slate-400"
+          class="min-w-0 flex-1 truncate text-sm text-slate-500 dark:text-slate-400"
           :title="activeCat?.description"
         >
           <span class="font-medium text-slate-600 dark:text-slate-300">{{ activeCat?.label }}:</span>
@@ -393,7 +393,7 @@ const activityTone = (event) => ({
         >
           <button
             type="button"
-            class="btn-ghost inline-flex items-center gap-1.5 border border-slate-200 text-xs dark:border-slate-600"
+            class="btn-ghost inline-flex items-center gap-1.5 border border-slate-200 text-sm dark:border-slate-600"
             @click="openAddLinkModal"
           >
             <AppIcon
@@ -404,7 +404,7 @@ const activityTone = (event) => ({
           </button>
           <button
             type="button"
-            class="btn-ghost inline-flex items-center gap-1.5 border border-slate-200 text-xs dark:border-slate-600"
+            class="btn-ghost inline-flex items-center gap-1.5 border border-slate-200 text-sm dark:border-slate-600"
             :disabled="uploadingCategory === activeCategory"
             @click="pickFiles(activeCategory)"
           >
@@ -435,7 +435,7 @@ const activityTone = (event) => ({
         @dragleave="dragging = false"
         @drop.prevent="onDrop(activeCategory, $event)"
       >
-        <p class="text-xs font-medium text-slate-600 dark:text-slate-300">
+        <p class="text-sm font-medium text-slate-600 dark:text-slate-300">
           Kéo thả file vào đây · PDF, Office, ảnh, ZIP… · tối đa 20MB/file
         </p>
       </div>
@@ -447,7 +447,7 @@ const activityTone = (event) => ({
       :class="workspaceGridClass"
     >
       <div class="flex min-h-0 flex-col overflow-hidden border-b border-slate-200 bg-slate-50/50 lg:border-b-0 lg:border-r dark:border-slate-700 dark:bg-slate-900/50">
-        <div class="shrink-0 border-b border-slate-200/80 bg-white px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
+        <div class="shrink-0 border-b border-slate-200/80 bg-white px-2.5 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
           Danh sách ({{ categoryFiles.length }})
         </div>
         <div
@@ -467,13 +467,13 @@ const activityTone = (event) => ({
               :size="32"
               class="text-slate-300"
             />
-            <p class="mt-2 text-xs text-slate-400">
+            <p class="mt-2 text-sm text-slate-400">
               {{ canUpload ? 'Chưa có tài liệu — kéo thả hoặc chọn file.' : 'Chưa có tài liệu.' }}
             </p>
             <button
               v-if="canUpload"
               type="button"
-              class="mt-2 text-xs font-medium text-brand hover:underline"
+              class="mt-2 text-sm font-medium text-brand hover:underline"
               @click="pickFiles(activeCategory)"
             >
               Tải file đầu tiên
@@ -512,8 +512,8 @@ const activityTone = (event) => ({
                   <span v-else>{{ listBadge(file) }}</span>
                 </span>
                 <span class="min-w-0 flex-1">
-                  <span class="line-clamp-2 text-xs font-medium leading-snug text-slate-800 dark:text-slate-100">{{ file.original_name }}</span>
-                  <span class="mt-0.5 block text-[9px] leading-tight text-slate-400">
+                  <span class="line-clamp-2 text-sm font-medium leading-snug text-slate-800 dark:text-slate-100">{{ file.original_name }}</span>
+                  <span class="mt-0.5 block text-xs leading-tight text-slate-400">
                     {{ formatSize(file.size, file) }}
                     <span v-if="file.uploaded_by?.name"> · {{ file.uploaded_by.name.split(' ').pop() }}</span>
                   </span>
@@ -528,7 +528,7 @@ const activityTone = (event) => ({
       <div class="flex min-h-0 flex-col overflow-hidden bg-slate-100/80 dark:bg-slate-950 lg:border-l lg:border-slate-200/80 dark:lg:border-slate-800">
         <template v-if="selected">
           <div class="flex shrink-0 items-center gap-2 border-b border-slate-200/80 bg-white px-2 py-1.5 dark:border-slate-700 dark:bg-slate-900">
-            <h3 class="min-w-0 flex-1 truncate text-sm font-medium text-slate-800 dark:text-slate-100">
+            <h3 class="min-w-0 flex-1 truncate text-base font-medium text-slate-800 dark:text-slate-100">
               {{ selected.original_name }}
             </h3>
             <button
@@ -581,8 +581,11 @@ const activityTone = (event) => ({
               </button>
             </div>
           </div>
-          <div class="min-h-0 flex-1 overflow-hidden p-1.5">
-            <DocumentPreviewPane :file="selected" />
+          <div class="flex min-h-0 flex-1 flex-col overflow-hidden p-1.5">
+            <DocumentPreviewPane
+              class="min-h-0 flex-1"
+              :file="selected"
+            />
           </div>
         </template>
         <div

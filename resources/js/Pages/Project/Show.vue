@@ -316,19 +316,17 @@ const onSprintSaved = () => {
         <!-- ===== DOCUMENTS ===== -->
         <div
           v-show="tab === 'documents'"
-          class="documents-tab-viewport flex h-full min-h-0 flex-col overflow-hidden"
+          class="documents-tab-viewport flex min-h-0 flex-1 flex-col overflow-hidden"
         >
-          <div class="documents-tab-scaled min-h-0 flex-1">
-            <ProjectDocumentsPanel
-              class="h-full min-h-0"
-              :project-id="project.id"
-              :attachments="attachments"
-              :categories="documentCategories"
-              :can-upload="canContribute"
-              :can-edit="canContribute"
-              :can-delete="canManage"
-            />
-          </div>
+          <ProjectDocumentsPanel
+            class="h-full min-h-0 flex-1"
+            :project-id="project.id"
+            :attachments="attachments"
+            :categories="documentCategories"
+            :can-upload="canContribute"
+            :can-edit="canContribute"
+            :can-delete="canManage"
+          />
         </div>
 
         <!-- ===== TIMELINE / GANTT ===== -->
@@ -568,10 +566,11 @@ const onSprintSaved = () => {
         <!-- ===== FEEDBACK ===== -->
         <div
           v-show="tab === 'feedback'"
-          class="h-full w-full min-w-0 overflow-x-hidden overflow-y-auto dark:bg-slate-950"
+          class="flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden dark:bg-slate-950"
         >
-          <div class="w-full min-w-0 p-4 sm:p-5 lg:p-6">
+          <div class="flex min-h-0 w-full min-w-0 flex-1 flex-col p-4 sm:p-5 lg:p-6">
             <ProjectFeedbackPanel
+              class="min-h-0 flex-1"
               :project-id="project.id"
               :project-code="project.code"
               :project-name="project.name"
@@ -639,19 +638,11 @@ const onSprintSaved = () => {
 </template>
 
 <style scoped>
-/* Tab Tài liệu ~80% — nhiều nội dung hơn trong viewport, preview Google/PDF gọn hơn */
 .documents-tab-viewport {
     background: rgb(248 250 252);
 }
 
 :global(.dark) .documents-tab-viewport {
     background: rgb(2 6 23);
-}
-
-.documents-tab-scaled {
-    transform: scale(0.8);
-    transform-origin: top left;
-    width: 125%;
-    height: 125%;
 }
 </style>

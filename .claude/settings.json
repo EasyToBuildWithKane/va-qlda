@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git commit -m ' *)",
+      "PowerShell(& \"C:\\\\ServBay\\\\bin\\\\php.cmd\" vendor/bin/pint config/realtime.php 2>&1)",
+      "PowerShell(& \"C:\\\\ServBay\\\\bin\\\\php.cmd\" vendor/bin/pint --test config/realtime.php 2>&1)"
+    ]
+  }
+}

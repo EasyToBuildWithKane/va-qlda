@@ -25,7 +25,7 @@ function onToggle(key, checked) {
   >
     <div
       v-if="show"
-      class="absolute left-0 top-full z-30 mt-1.5 w-56 origin-top-left rounded-xl border border-slate-200 bg-white shadow-elevation-2 sm:left-auto sm:right-0 sm:origin-top-right"
+      class="absolute left-0 top-full z-50 mt-1.5 w-56 origin-top-left rounded-xl border border-slate-200 bg-white shadow-elevation-2 sm:left-auto sm:right-0 sm:origin-top-right"
     >
       <div class="border-b border-slate-100 px-4 py-2.5">
         <span class="text-xs font-bold uppercase tracking-wide text-slate-500">Cột hiển thị</span>
