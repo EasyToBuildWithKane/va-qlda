@@ -66,7 +66,8 @@ routes/api.php      ← Rỗng (chưa sử dụng)
 
 | Method | URI | Controller | Middleware | Mô Tả |
 |---|---|---|---|---|
-| GET | `/daily-reports` | DailyReportController@index | auth | Lịch sử báo cáo |
+| GET | `/daily-reports` | DailyReportController@index | auth | Lịch sử báo cáo (filters: `q`, `status`, `project_id`, `employee_ids[]`, `grade`, `from`, `to`, `late`, `group`; trả `summary` kèm `trend`/`completion_rate`) |
+| GET | `/daily-reports/export-data` | DailyReportController@exportData | auth | **JSON** — toàn bộ kết quả lọc (không phân trang, ≤5000) cho Excel 7 sheet client-side. Cùng filters như index; member tự giới hạn báo cáo của mình |
 | GET | `/daily-reports/today` | DailyReportController@today | auth | Form báo cáo hôm nay |
 | POST | `/daily-reports` | DailyReportController@store | auth | Tạo báo cáo mới |
 | GET | `/daily-reports/{report}` | DailyReportController@show | auth | Xem báo cáo |
@@ -219,10 +220,11 @@ Notification Group [JSON API] ✨ MỚI
 └── /notifications/{id}/*        (read, acknowledge, assign)
 
 Daily Report Group
-├── /daily-reports          (index, store)
-├── /daily-reports/today    (today form)
-├── /daily-reports/review   (review queue)
-└── /daily-reports/{id}     (show, update, submit, score, reject)
+├── /daily-reports             (index, store)
+├── /daily-reports/export-data (JSON — toàn bộ kết quả lọc cho Excel 7 sheet)
+├── /daily-reports/today       (today form)
+├── /daily-reports/review      (review queue)
+└── /daily-reports/{id}        (show, update, submit, score, reject)
 
 Project Group
 ├── /projects               (index, create, store)

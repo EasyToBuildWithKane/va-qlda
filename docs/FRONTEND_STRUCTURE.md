@@ -116,6 +116,7 @@ Pages import feature components từ `@/modules/project/components/...` và prim
 |---|---|
 | `Badge.vue`, `Avatar.vue`, `ProgressBar.vue` | Status / user / progress |
 | `MoneyInput.vue`, `MultiChips.vue`, `RadioCard.vue`, `FieldTooltip.vue` | Form helpers |
+| `SearchSelect.vue`, `SearchMultiSelect.vue` | Dropdown tìm-kiếm 1 chọn / nhiều chọn (teleport, viewport-aware) |
 | `CommentThread.vue` | Thread bình luận (Task/Bug/Blocker) |
 | `EmptyState.vue`, `LoadingSpinner.vue`, `SkeletonLoader.vue` | Empty / loading |
 | `form/FormField.vue`, `TextInput.vue`, `SelectInput.vue`, `DateInput.vue` | Form primitives |
@@ -135,6 +136,15 @@ Pages import feature components từ `@/modules/project/components/...` và prim
 ### 6.4 Daily Report — `Components/DailyReport/`
 
 `GradePill`, `StatusBadge`, `ScoringPanel`, `RichTextField`, `ProjectPicker`, …
+
+Trang lịch sử (`Pages/DailyReport/History.vue`) — dashboard SaaS:
+
+| Component | Vai trò |
+|---|---|
+| `ReportDashboard.vue` | Dải KPI (tổng/đã duyệt/chờ/nháp/trễ) + **pill xu hướng** ±% so với kỳ trước |
+| `ReportCard.vue` | Thẻ báo cáo: header (avatar, chức vụ, thời gian, điểm), dự án + task (badge trạng thái), các mục HORENSO thu gọn (`.rich-content`) |
+
+Bộ lọc: `SearchMultiSelect` (chọn nhiều người báo cáo). Nhóm **Ngày / Tuần / Tháng** (client-side, helper trong `History.vue`). Toolbar sticky, trạng thái lọc lưu trên URL. Xuất Excel 7 sheet dùng dữ liệu **toàn bộ kết quả lọc** (xem §7.2 `useDailyReportHistoryExport`).
 
 ### 6.5 Notifications — `Components/Notifications/`
 
@@ -166,9 +176,10 @@ Pages import feature components từ `@/modules/project/components/...` và prim
 | Task | `useTaskWorkspace`, `useTaskBulkCreate`, `useTaskHierarchy`, `useTaskPhaseGroups`, `useTaskTimeliness` |
 | Project | `useProjectDashboard`, `useProjectTimeline`, `useProjectExport`, `useProjectListExport`, `useProjectCreateDraft` |
 | Risk | `useRiskImport`, `useRiskExport`, `useRiskTable` |
+| Daily report | `modules/daily-report/composables/useDailyReportHistoryExport` — **async**: `axios.get` `daily-reports.export-data` (toàn bộ kết quả lọc) → dựng workbook 7 sheet `xlsx-js-style` |
 | Other | `useNotifications`, `useDocumentPreview`, `useDialog`, `useFormat`, `useConfirmClose`, `useVirtualScroll`, `useNormalizeList` |
 
-**Quy tắc:** Excel I/O trong composable — **không** import `xlsx` trong `.vue`.
+**Quy tắc:** Excel I/O trong composable — **không** import `xlsx` trong `.vue`. Xuất "toàn bộ dữ liệu lọc" (vượt trang hiện tại) → fetch endpoint JSON rồi build client-side; `xlsx-js-style` **không** vẽ chart gốc (dùng bảng tổng hợp + conditional formatting thay thế).
 
 ---
 

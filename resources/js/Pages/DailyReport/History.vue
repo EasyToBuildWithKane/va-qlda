@@ -5,12 +5,14 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import StatusBadge from '@/Components/DailyReport/StatusBadge.vue';
 import GradePill from '@/Components/DailyReport/GradePill.vue';
-import HistoryKpiStrip from '@/Components/DailyReport/HistoryKpiStrip.vue';
+import ReportDashboard from '@/Components/DailyReport/ReportDashboard.vue';
+import ReportCard from '@/Components/DailyReport/ReportCard.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
+import SearchMultiSelect from '@/shared/ui/SearchMultiSelect.vue';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
 import { useConfirmDelete } from '@/composables/useConfirmClose';
 import { useToast } from '@/shared/composables/useToast';
@@ -19,6 +21,7 @@ import { exportDailyReportHistory } from '@/modules/daily-report/composables/use
 
 const PER_PAGE_OPTIONS = [5, 10, 15, 20];
 const VIEW_KEY = 'va-qlda.reports.view';
+const GROUP_KEY = 'va-qlda.reports.group';
 const confirmDelete = useConfirmDelete();
 const toast = useToast();
 
@@ -27,7 +30,7 @@ const props = defineProps({
     summary: {
         type: Object,
         default: () => ({
-            total: 0, draft: 0, submitted: 0, reviewed: 0, late: 0,
+            total: 0, draft: 0, submitted: 0, reviewed: 0, late: 0, completion_rate: 0, trend: {},
         }),
     },
     filters: { type: Object, default: () => ({}) },
@@ -39,11 +42,20 @@ const props = defineProps({
     canReview: { type: Boolean, default: false },
 });
 
+function normalizeIds(value) {
+    if (Array.isArray(value)) return value.map((v) => Number(v)).filter(Boolean);
+    if (value == null || value === '') return [];
+    if (typeof value === 'object') return Object.values(value).map((v) => Number(v)).filter(Boolean);
+    return [Number(value)].filter(Boolean);
+}
+
+const VALID_GROUPS = ['day', 'week', 'month'];
+
 const filterForm = reactive({
     q: props.filters.q ?? '',
     status: props.filters.status ?? '',
     project_id: props.filters.project_id ?? '',
-    employee_id: props.filters.employee_id ?? '',
+    employee_ids: normalizeIds(props.filters.employee_ids ?? props.filters.employee_id),
     grade: props.filters.grade ?? '',
     from: props.filters.from ?? '',
     to: props.filters.to ?? '',
@@ -52,18 +64,28 @@ const filterForm = reactive({
 
 const perPage = ref(Number(props.filters.per_page) || props.reports.meta?.per_page || 10);
 const viewMode = ref('cards');
-const collapsedDates = ref({});
+const groupMode = ref(VALID_GROUPS.includes(props.filters.group) ? props.filters.group : 'day');
+const collapsedGroups = ref({});
 const exportMenu = ref(false);
 const exportRef = ref(null);
+const exporting = ref(false);
 
 function routeParams(resetPage = false) {
-    const params = Object.fromEntries(
-        Object.entries({
-            ...filterForm,
-            per_page: perPage.value,
-            late: filterForm.late ? '1' : '',
-        }).filter(([, v]) => v !== '' && v != null && v !== false),
-    );
+    const raw = {
+        ...filterForm,
+        per_page: perPage.value,
+        group: groupMode.value,
+        late: filterForm.late ? '1' : '',
+    };
+    const params = {};
+    for (const [k, v] of Object.entries(raw)) {
+        if (v === '' || v == null || v === false) continue;
+        if (Array.isArray(v)) {
+            if (v.length) params[k] = v;
+            continue;
+        }
+        params[k] = v;
+    }
     if (resetPage) params.page = 1;
     return params;
 }
@@ -78,7 +100,7 @@ const applyFilters = (resetPage = true) => {
 
 const clearFilters = () => {
     Object.assign(filterForm, {
-        q: '', status: '', project_id: '', employee_id: '', grade: '', from: '', to: '', late: false,
+        q: '', status: '', project_id: '', employee_ids: [], grade: '', from: '', to: '', late: false,
     });
     applyFilters(true);
 };
@@ -91,6 +113,7 @@ function onPerPageChange(n) {
 const activeCount = computed(() =>
     Object.entries(filterForm).filter(([k, v]) => {
         if (k === 'late') return v === true;
+        if (k === 'employee_ids') return v.length > 0;
         return v !== '' && v != null;
     }).length,
 );
@@ -105,13 +128,14 @@ watch(
     () => [
         filterForm.status,
         filterForm.project_id,
-        filterForm.employee_id,
+        filterForm.employee_ids,
         filterForm.grade,
         filterForm.from,
         filterForm.to,
         filterForm.late,
     ],
     () => applyFilters(true),
+    { deep: true },
 );
 
 const HISTORY_FILTER_CONTROLS = [
@@ -147,25 +171,65 @@ const columns = reactive([
     { key: 'feedback', label: 'Phản hồi', visible: true },
 ]);
 const visible = (key) => columns.find((c) => c.key === key)?.visible ?? false;
-const visibleColumnKeys = computed(() => columns.filter((c) => c.visible).map((c) => c.key));
 
-const groupedByDate = computed(() => {
+// ---- Grouping (Ngày / Tuần / Tháng) — client-side over the current page ----
+
+function parseYmd(ymd) {
+    const [y, m, d] = String(ymd).split('-').map(Number);
+    return new Date(y, (m || 1) - 1, d || 1);
+}
+
+function isoWeek(dateObj) {
+    const date = new Date(dateObj.getTime());
+    date.setHours(0, 0, 0, 0);
+    date.setDate(date.getDate() + 3 - ((date.getDay() + 6) % 7));
+    const week1 = new Date(date.getFullYear(), 0, 4);
+    const week = 1 + Math.round(((date - week1) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7);
+    return { year: date.getFullYear(), week };
+}
+
+function pad2(n) {
+    return String(n).padStart(2, '0');
+}
+
+function groupOf(dateStr) {
+    if (groupMode.value === 'month') {
+        const [y, m] = String(dateStr).split('-');
+        return { key: `${y}-${m}`, label: `Tháng ${m}/${y}` };
+    }
+    if (groupMode.value === 'week') {
+        const d = parseYmd(dateStr);
+        const { year, week } = isoWeek(d);
+        const monday = new Date(d);
+        monday.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+        const range = `${pad2(monday.getDate())}/${pad2(monday.getMonth() + 1)}–${pad2(sunday.getDate())}/${pad2(sunday.getMonth() + 1)}`;
+        return { key: `${year}-W${pad2(week)}`, label: `Tuần ${week}/${year} · ${range}` };
+    }
+    return { key: dateStr, label: formatDate(dateStr) };
+}
+
+const grouped = computed(() => {
     const order = [];
     const map = new Map();
     for (const r of props.reports.data ?? []) {
-        const d = r.date;
-        if (!map.has(d)) {
-            map.set(d, []);
-            order.push(d);
+        const g = groupOf(r.date);
+        if (!map.has(g.key)) {
+            map.set(g.key, { key: g.key, label: g.label, items: [] });
+            order.push(g.key);
         }
-        map.get(d).push(r);
+        map.get(g.key).items.push(r);
     }
-    return order.map((date) => ({
-        date,
-        items: [...map.get(date)].sort((a, b) =>
-            (a.employee?.name ?? '').localeCompare(b.employee?.name ?? '', 'vi'),
-        ),
-    }));
+    return order.map((key) => {
+        const grp = map.get(key);
+        return {
+            ...grp,
+            items: [...grp.items].sort((a, b) =>
+                (a.employee?.name ?? '').localeCompare(b.employee?.name ?? '', 'vi'),
+            ),
+        };
+    });
 });
 
 const tableRows = computed(() => [...(props.reports.data ?? [])]);
@@ -177,17 +241,25 @@ function projectChips(report) {
         .slice(0, 3);
 }
 
-function isDayCollapsed(date) {
-    return collapsedDates.value[date] === true;
+function isGroupCollapsed(key) {
+    return collapsedGroups.value[key] === true;
 }
 
-function toggleDay(date) {
-    collapsedDates.value[date] = !collapsedDates.value[date];
+function toggleGroup(key) {
+    collapsedGroups.value[key] = !collapsedGroups.value[key];
 }
 
 function setViewMode(mode) {
     viewMode.value = mode;
     localStorage.setItem(VIEW_KEY, mode);
+}
+
+function setGroupMode(mode) {
+    if (groupMode.value === mode) return;
+    groupMode.value = mode;
+    collapsedGroups.value = {};
+    localStorage.setItem(GROUP_KEY, mode);
+    applyFilters(false);
 }
 
 function onKpiStatus(status) {
@@ -207,27 +279,37 @@ const persistColumns = () => {
     );
 };
 
-function runExport(format) {
+async function runExport(format) {
     exportMenu.value = false;
-    const rows = props.reports.data ?? [];
-    if (!rows.length) {
-        toast.warning('Không có dữ liệu trên trang hiện tại để xuất.');
-        return;
+    if (exporting.value) return;
+    exporting.value = true;
+    toast.info('Đang chuẩn bị dữ liệu xuất…');
+    try {
+        const name = await exportDailyReportHistory({
+            params: routeParams(false),
+            filters: { ...filterForm, group: groupMode.value },
+            meta: props.reports.meta,
+            format,
+        });
+        if (name) toast.success(`Đã tải ${name}`);
+        else toast.warning('Không có dữ liệu để xuất.');
+    } catch (e) {
+        toast.error('Xuất dữ liệu thất bại. Vui lòng thử lại.');
+        console.error(e);
+    } finally {
+        exporting.value = false;
     }
-    const name = exportDailyReportHistory({
-        rows,
-        visibleColumnKeys: visibleColumnKeys.value,
-        filters: { ...filterForm, ...routeParams(false) },
-        meta: props.reports.meta,
-        format,
-    });
-    if (name) toast.success(`Đã tải ${name}`);
 }
 
 onMounted(() => {
     try {
         const savedView = localStorage.getItem(VIEW_KEY);
         if (savedView === 'cards' || savedView === 'table') viewMode.value = savedView;
+
+        if (!VALID_GROUPS.includes(props.filters.group)) {
+            const savedGroup = localStorage.getItem(GROUP_KEY);
+            if (VALID_GROUPS.includes(savedGroup)) groupMode.value = savedGroup;
+        }
 
         if (!props.canFilterEmployee) visibleFilters.value.employee = false;
 
@@ -263,6 +345,12 @@ function hasFeedback(r) {
     if (r.status === 'draft' && (r.review_notes || '').trim()) return true;
     return Boolean((r.score?.notes || '').trim());
 }
+
+const GROUP_TABS = [
+    { key: 'day', label: 'Ngày', icon: 'calendar' },
+    { key: 'week', label: 'Tuần', icon: 'weekly' },
+    { key: 'month', label: 'Tháng', icon: 'daily' },
+];
 </script>
 
 <template>
@@ -272,7 +360,7 @@ function hasFeedback(r) {
     <template #header>
       <PageHeader
         title="Lịch sử báo cáo"
-        subtitle="Theo dõi báo cáo HORENSO theo ngày và trạng thái duyệt"
+        subtitle="Theo dõi báo cáo HORENSO theo ngày, tuần và tháng"
         icon="report-history"
         icon-color="sky"
         :badge="summary.total ?? reports.meta?.total"
@@ -303,7 +391,7 @@ function hasFeedback(r) {
       </PageHeader>
     </template>
 
-    <HistoryKpiStrip
+    <ReportDashboard
       :summary="summary"
       :status-filter="filterForm.status"
       :late-filter="filterForm.late"
@@ -311,8 +399,8 @@ function hasFeedback(r) {
       @toggle-late="onKpiToggleLate"
     />
 
-    <div class="card mb-4 overflow-visible">
-      <div class="border-b border-slate-100 px-5 py-3">
+    <div class="card sticky top-0 z-30 mb-4 overflow-visible backdrop-blur supports-[backdrop-filter]:bg-white/90 dark:supports-[backdrop-filter]:bg-slate-900/90">
+      <div class="border-b border-slate-100 px-5 py-3 dark:border-slate-700">
         <div class="flex flex-wrap items-center gap-2">
           <DatagridToolbarSearch
             v-model="filterForm.q"
@@ -329,7 +417,7 @@ function hasFeedback(r) {
               class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
               :class="showFilterPanelDd
                 ? 'border-brand/40 bg-brand/5 text-brand'
-                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'"
+                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'"
               :title="`Hiển thị bộ lọc (${enabledFilterControlCount}/${FILTER_CONTROLS.length})`"
               @click="openFilterPanel(() => { colsMenu = false; exportMenu = false; })"
             >
@@ -356,8 +444,8 @@ function hasFeedback(r) {
               class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
               :class="colsMenu
                 ? 'border-brand/40 bg-brand/5 text-brand'
-                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'"
-              title="Cột hiển thị"
+                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'"
+              title="Cột hiển thị (chế độ bảng)"
               @click="colsMenu = !colsMenu; exportMenu = false"
             >
               <AppIcon
@@ -368,7 +456,7 @@ function hasFeedback(r) {
             </button>
             <div
               v-if="colsMenu"
-              class="absolute right-0 z-20 mt-1 w-56 rounded-card border border-slate-200 bg-white p-1.5 shadow-elevation-2"
+              class="absolute right-0 z-20 mt-1 w-56 rounded-card border border-slate-200 bg-white p-1.5 shadow-elevation-2 dark:border-slate-700 dark:bg-slate-900"
             >
               <p class="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                 Hiển thị cột
@@ -376,7 +464,7 @@ function hasFeedback(r) {
               <label
                 v-for="c in columns"
                 :key="c.key"
-                class="flex cursor-pointer items-center gap-2 rounded-btn px-2 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
+                class="flex cursor-pointer items-center gap-2 rounded-btn px-2 py-1.5 text-sm text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
                 :class="{ 'opacity-40 pointer-events-none': c.manager && !canFilterEmployee }"
               >
                 <input
@@ -396,67 +484,91 @@ function hasFeedback(r) {
           >
             <button
               type="button"
-              class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
+              class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none disabled:opacity-50"
               :class="exportMenu
                 ? 'border-brand/40 bg-brand/5 text-brand'
-                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'"
-              title="Xuất danh sách trang hiện tại"
+                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'"
+              :disabled="exporting"
+              title="Xuất toàn bộ dữ liệu đang lọc"
               @click="exportMenu = !exportMenu; colsMenu = false"
             >
               <AppIcon
                 name="export"
                 :size="15"
               />
-              <span>Xuất</span>
+              <span>{{ exporting ? 'Đang xuất…' : 'Xuất' }}</span>
             </button>
             <div
               v-if="exportMenu"
-              class="absolute right-0 z-20 mt-1 w-40 rounded-card border border-slate-200 bg-white p-1 shadow-elevation-2"
+              class="absolute right-0 z-20 mt-1 w-52 rounded-card border border-slate-200 bg-white p-1 shadow-elevation-2 dark:border-slate-700 dark:bg-slate-900"
             >
               <button
                 type="button"
-                class="flex w-full rounded-btn px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
-                @click="runExport('csv')"
+                class="flex w-full flex-col rounded-btn px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-800"
+                @click="runExport('xlsx')"
               >
-                CSV
+                <span class="text-sm font-medium text-slate-700 dark:text-slate-200">Excel báo cáo (7 sheet)</span>
+                <span class="text-[10px] text-slate-400">Toàn bộ kết quả đang lọc</span>
               </button>
               <button
                 type="button"
-                class="flex w-full rounded-btn px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
-                @click="runExport('xlsx')"
+                class="flex w-full rounded-btn px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                @click="runExport('csv')"
               >
-                Excel
+                CSV (đơn giản)
               </button>
             </div>
           </div>
 
-          <div class="ml-auto flex shrink-0 rounded-btn border border-slate-200 p-0.5">
-            <button
-              type="button"
-              class="inline-flex h-8 items-center gap-1 rounded-btn px-2.5 text-xs font-medium transition"
-              :class="viewMode === 'cards' ? 'bg-brand/10 text-brand' : 'text-slate-500 hover:text-slate-700'"
-              title="Nhóm theo ngày — thẻ ngang"
-              @click="setViewMode('cards')"
-            >
-              <AppIcon
-                name="grid"
-                :size="14"
-              />
-              Thẻ
-            </button>
-            <button
-              type="button"
-              class="inline-flex h-8 items-center gap-1 rounded-btn px-2.5 text-xs font-medium transition"
-              :class="viewMode === 'table' ? 'bg-brand/10 text-brand' : 'text-slate-500 hover:text-slate-700'"
-              title="Bảng danh sách"
-              @click="setViewMode('table')"
-            >
-              <AppIcon
-                name="list"
-                :size="14"
-              />
-              Bảng
-            </button>
+          <div class="ml-auto flex shrink-0 items-center gap-2">
+            <!-- Group by -->
+            <div class="flex rounded-btn border border-slate-200 p-0.5 dark:border-slate-700">
+              <button
+                v-for="g in GROUP_TABS"
+                :key="g.key"
+                type="button"
+                class="inline-flex h-8 items-center gap-1 rounded-btn px-2.5 text-xs font-medium transition"
+                :class="groupMode === g.key ? 'bg-brand/10 text-brand' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'"
+                :title="`Nhóm theo ${g.label.toLowerCase()}`"
+                @click="setGroupMode(g.key)"
+              >
+                <AppIcon
+                  :name="g.icon"
+                  :size="14"
+                />
+                {{ g.label }}
+              </button>
+            </div>
+
+            <!-- View toggle -->
+            <div class="flex rounded-btn border border-slate-200 p-0.5 dark:border-slate-700">
+              <button
+                type="button"
+                class="inline-flex h-8 items-center gap-1 rounded-btn px-2.5 text-xs font-medium transition"
+                :class="viewMode === 'cards' ? 'bg-brand/10 text-brand' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'"
+                title="Thẻ báo cáo"
+                @click="setViewMode('cards')"
+              >
+                <AppIcon
+                  name="grid"
+                  :size="14"
+                />
+                Thẻ
+              </button>
+              <button
+                type="button"
+                class="inline-flex h-8 items-center gap-1 rounded-btn px-2.5 text-xs font-medium transition"
+                :class="viewMode === 'table' ? 'bg-brand/10 text-brand' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'"
+                title="Bảng danh sách"
+                @click="setViewMode('table')"
+              >
+                <AppIcon
+                  name="list"
+                  :size="14"
+                />
+                Bảng
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -464,7 +576,7 @@ function hasFeedback(r) {
       <Transition name="fade-slide">
         <div
           v-if="hasFilterRow"
-          class="flex flex-wrap items-center gap-2 border-t border-slate-100 px-5 py-3"
+          class="flex flex-wrap items-center gap-2 border-t border-slate-100 px-5 py-3 dark:border-slate-700"
         >
           <select
             v-if="visibleFilters.status"
@@ -502,23 +614,18 @@ function hasFeedback(r) {
             </option>
           </select>
 
-          <select
+          <div
             v-if="visibleFilters.employee && canFilterEmployee"
-            v-model="filterForm.employee_id"
-            class="input h-9 min-w-[10rem] text-sm sm:w-48"
-            aria-label="Người báo cáo"
+            class="min-w-[14rem] sm:w-64"
           >
-            <option value="">
-              Người báo cáo: Tất cả
-            </option>
-            <option
-              v-for="e in employees"
-              :key="e.id"
-              :value="e.id"
-            >
-              {{ e.name }}
-            </option>
-          </select>
+            <SearchMultiSelect
+              v-model="filterForm.employee_ids"
+              :options="employees"
+              show-avatar
+              placeholder="Người báo cáo: Tất cả"
+              search-placeholder="Tìm nhân viên…"
+            />
+          </div>
 
           <select
             v-if="visibleFilters.grade"
@@ -587,28 +694,28 @@ function hasFeedback(r) {
         </Link>
       </div>
 
-      <!-- Chế độ thẻ: nhóm theo ngày -->
+      <!-- Card view: grouped by day / week / month -->
       <div
         v-else-if="viewMode === 'cards'"
-        class="divide-y divide-slate-100"
+        class="divide-y divide-slate-100 dark:divide-slate-700"
       >
         <section
-          v-for="group in groupedByDate"
-          :key="group.date"
+          v-for="group in grouped"
+          :key="group.key"
           class="min-w-0"
         >
           <button
             type="button"
-            class="flex w-full flex-wrap items-center gap-2 border-b border-slate-100 bg-slate-50/80 px-4 py-2.5 text-left transition hover:bg-slate-100/80"
-            @click="toggleDay(group.date)"
+            class="flex w-full flex-wrap items-center gap-2 border-b border-slate-100 bg-slate-50/80 px-4 py-2.5 text-left transition hover:bg-slate-100/80 dark:border-slate-700 dark:bg-slate-800/60 dark:hover:bg-slate-800"
+            @click="toggleGroup(group.key)"
           >
             <AppIcon
-              :name="isDayCollapsed(group.date) ? 'chevron-right' : 'chevron-down'"
+              :name="isGroupCollapsed(group.key) ? 'chevron-right' : 'chevron-down'"
               :size="16"
               class="shrink-0 text-slate-400"
             />
-            <span class="font-display text-sm font-semibold tabular-nums text-slate-800">
-              {{ formatDate(group.date) }}
+            <span class="font-display text-sm font-semibold tabular-nums text-slate-800 dark:text-slate-100">
+              {{ group.label }}
             </span>
             <span class="text-xs text-slate-500">
               {{ group.items.length }} báo cáo
@@ -616,117 +723,27 @@ function hasFeedback(r) {
           </button>
 
           <div
-            v-show="!isDayCollapsed(group.date)"
-            class="flex gap-3 overflow-x-auto px-4 py-3 pb-4 snap-x snap-mandatory scroll-smooth"
+            v-show="!isGroupCollapsed(group.key)"
+            class="grid grid-cols-1 gap-3 px-4 py-3 md:grid-cols-2 xl:grid-cols-3"
           >
-            <article
+            <ReportCard
               v-for="r in group.items"
               :key="r.id"
-              class="flex w-[min(100%,18rem)] min-w-[18rem] max-w-[21rem] shrink-0 snap-start flex-col rounded-card border border-slate-200 bg-white p-3 shadow-sm transition hover:border-brand/25 hover:shadow-md"
-            >
-              <div class="mb-2 flex items-start gap-2">
-                <Avatar
-                  v-if="visible('employee')"
-                  :name="r.employee?.name ?? '?'"
-                  :src="r.employee?.avatar_path"
-                  :size="32"
-                />
-                <div class="min-w-0 flex-1">
-                  <div
-                    v-if="visible('employee')"
-                    class="truncate text-xs font-semibold text-slate-700"
-                    :title="r.employee?.name"
-                  >
-                    {{ r.employee?.name ?? '—' }}
-                  </div>
-                  <div
-                    v-if="visible('projects') && projectChips(r).length"
-                    class="mt-1 flex flex-wrap gap-1"
-                  >
-                    <span
-                      v-for="(chip, i) in projectChips(r)"
-                      :key="i"
-                      class="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-600"
-                    >
-                      {{ chip }}
-                    </span>
-                  </div>
-                </div>
-                <div class="flex shrink-0 flex-col items-end gap-1">
-                  <span
-                    v-if="r.is_late"
-                    class="rounded bg-rose-50 px-1.5 py-0.5 text-[10px] font-semibold text-danger"
-                  >Trễ</span>
-                  <span
-                    v-if="visible('feedback') && hasFeedback(r)"
-                    class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-amber-50 text-amber-600"
-                    title="Có phản hồi"
-                  >
-                    <AppIcon
-                      name="feedback"
-                      :size="12"
-                    />
-                  </span>
-                </div>
-              </div>
-
-              <Link
-                v-if="visible('title')"
-                :href="`/daily-reports/${r.id}`"
-                class="mb-2 line-clamp-2 text-sm font-medium leading-snug text-slate-800 hover:text-brand"
-                :title="r.title"
-              >
-                {{ r.title }}
-              </Link>
-
-              <div class="mt-auto flex flex-wrap items-center gap-2 pt-1">
-                <StatusBadge
-                  v-if="visible('status')"
-                  :label="r.status_label"
-                  :color="r.status_color"
-                />
-                <div
-                  v-if="visible('score') && r.score"
-                  class="inline-flex items-center gap-1.5"
-                >
-                  <GradePill
-                    :grade="r.score.grade"
-                    :color="r.score.grade_color"
-                  />
-                  <span class="text-xs font-semibold tabular-nums text-slate-600">
-                    {{ Number(r.score.total_score ?? 0).toFixed(1) }}
-                  </span>
-                </div>
-              </div>
-
-              <div class="mt-3 flex items-center gap-1 border-t border-slate-100 pt-2">
-                <Link
-                  :href="`/daily-reports/${r.id}`"
-                  class="inline-flex h-8 flex-1 items-center justify-center rounded-btn text-xs font-medium text-brand hover:bg-brand/5"
-                >
-                  Chi tiết
-                </Link>
-                <button
-                  v-if="r.can?.delete"
-                  type="button"
-                  class="inline-flex h-8 items-center rounded-btn px-2.5 text-xs font-medium text-danger hover:bg-rose-50"
-                  @click="removeReport(r)"
-                >
-                  Xoá
-                </button>
-              </div>
-            </article>
+              :report="r"
+              :show-employee="visible('employee')"
+              @delete="removeReport"
+            />
           </div>
         </section>
       </div>
 
-      <!-- Chế độ bảng -->
+      <!-- Table view -->
       <div
         v-else
         class="overflow-x-auto"
       >
         <table class="w-full text-sm">
-          <thead class="border-b border-slate-200 bg-slate-50/80 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+          <thead class="border-b border-slate-200 bg-slate-50/80 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:border-slate-700 dark:bg-slate-800/60">
             <tr>
               <th class="whitespace-nowrap px-4 py-2.5">
                 Ngày
@@ -772,13 +789,13 @@ function hasFeedback(r) {
               </th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-100">
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
             <tr
               v-for="r in tableRows"
               :key="r.id"
-              class="transition hover:bg-slate-50/80"
+              class="transition hover:bg-slate-50/80 dark:hover:bg-slate-800/50"
             >
-              <td class="whitespace-nowrap px-4 py-3 align-middle text-slate-600">
+              <td class="whitespace-nowrap px-4 py-3 align-middle text-slate-600 dark:text-slate-300">
                 <span class="tabular-nums">{{ formatDate(r.date) }}</span>
                 <span
                   v-if="r.is_late"
@@ -795,7 +812,7 @@ function hasFeedback(r) {
                     :src="r.employee?.avatar_path"
                     :size="28"
                   />
-                  <span class="max-w-[10rem] truncate text-slate-700">{{ r.employee?.name ?? '—' }}</span>
+                  <span class="max-w-[10rem] truncate text-slate-700 dark:text-slate-200">{{ r.employee?.name ?? '—' }}</span>
                 </div>
               </td>
               <td
@@ -804,7 +821,7 @@ function hasFeedback(r) {
               >
                 <Link
                   :href="`/daily-reports/${r.id}`"
-                  class="line-clamp-2 font-medium text-slate-800 hover:text-brand"
+                  class="line-clamp-2 font-medium text-slate-800 hover:text-brand dark:text-slate-100"
                 >
                   {{ r.title }}
                 </Link>

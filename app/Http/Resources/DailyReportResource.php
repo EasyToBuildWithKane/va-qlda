@@ -42,6 +42,7 @@ class DailyReportResource extends JsonResource
             'employee' => $this->whenLoaded('employee', fn () => [
                 'id' => $this->employee->id,
                 'name' => $this->employee->full_name,
+                'role_title' => $this->employee->role_title,
                 'avatar_path' => PublicMediaUrl::fromPublicDisk($this->employee->avatar_path),
             ]),
             'score' => $this->when(

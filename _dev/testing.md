@@ -16,6 +16,8 @@ php artisan test --filter=TaskTest
 | Unit | `tests/Unit/` | ScoringService |
 | Feature | `tests/Feature/` | Login, Project, Task, Blocker, Bug, Department, Feedback, DailyReport, **Notification** |
 
+`DailyReportTest` (20 test) phủ thêm: `summary.trend`/`completion_rate`, lọc nhiều người (`employee_ids[]`), endpoint `export-data` (toàn bộ kết quả lọc + self-scoping member).
+
 **CI:** job `backend-tests` trong `.github/workflows/ci.yml`.
 
 ---
@@ -69,6 +71,8 @@ npx playwright test --project=visual --update-snapshots
 Job `playwright` chạy sau PHPUnit + `npm run build` → `npm run test:e2e` (chỉ chromium).
 
 Visual regression: `npm run test:e2e:visual` — so với baseline trong `tests/e2e/visual/snapshots/`. Đổi UI cố ý: `--update-snapshots`. Helper: `tests/e2e/helpers/visualCapture.js`.
+
+> ⚠️ Redesign `/daily-reports` (2026-06) đổi toàn bộ giao diện → baseline `admin-daily-reports-history.png` đã lỗi thời. Chạy lại `npm run test:e2e:visual --update-snapshots` và commit ảnh mới trước khi job `playwright` xanh.
 
 ---
 

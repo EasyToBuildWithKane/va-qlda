@@ -22,6 +22,7 @@ use App\Support\Options;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -45,14 +46,7 @@ class DailyReportController extends Controller
             $perPage = 10;
         }
 
-        $summaryQuery = clone $query;
-        $summary = [
-            'total' => (clone $summaryQuery)->count(),
-            'draft' => (clone $summaryQuery)->where('status', ReportStatus::Draft)->count(),
-            'submitted' => (clone $summaryQuery)->where('status', ReportStatus::Submitted)->count(),
-            'reviewed' => (clone $summaryQuery)->where('status', ReportStatus::Reviewed)->count(),
-            'late' => (clone $summaryQuery)->where('is_late', true)->count(),
-        ];
+        $summary = $this->summaryWithTrend($request, $account);
 
         $reports = $query->paginate($perPage)->withQueryString();
 
@@ -60,7 +54,7 @@ class DailyReportController extends Controller
             'reports' => DailyReportResource::collection($reports),
             'summary' => $summary,
             'filters' => (object) $request->only([
-                'status', 'project_id', 'employee_id', 'grade', 'q', 'from', 'to', 'per_page', 'late',
+                'status', 'project_id', 'employee_id', 'employee_ids', 'grade', 'q', 'from', 'to', 'per_page', 'late', 'group',
             ]),
             'statuses' => collect(ReportStatus::cases())
                 ->map(fn (ReportStatus $s) => ['value' => $s->value, 'label' => $s->label()]),
@@ -73,7 +67,28 @@ class DailyReportController extends Controller
         ]);
     }
 
-    private function historyReportsQuery(Request $request, SystemAccount $account): Builder
+    /**
+     * Full filtered dataset (no pagination) for the styled Excel export. Uses
+     * the exact same filters as the list so the workbook matches the screen.
+     * Member self-scoping is enforced inside historyReportsQuery().
+     */
+    public function exportData(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $this->authorize('viewAny', DailyReport::class);
+
+        $rows = $this->historyReportsQuery($request, $request->user())
+            ->limit(5000)
+            ->get();
+
+        return DailyReportResource::collection($rows)->response();
+    }
+
+    /**
+     * Build the filtered history query. Pass $withDates = false to apply every
+     * filter except the from/to window (used by the trend comparison so a custom
+     * date window can be substituted for the same filter set).
+     */
+    private function historyReportsQuery(Request $request, SystemAccount $account, bool $withDates = true): Builder
     {
         $isMember = $account->role === SystemRole::Member;
 
@@ -83,8 +98,8 @@ class DailyReportController extends Controller
 
         if ($isMember) {
             $query->where('employee_id', $account->employee_id);
-        } elseif ($employeeId = $request->query('employee_id')) {
-            $query->where('employee_id', $employeeId);
+        } elseif ($employeeIds = $this->employeeIdFilter($request)) {
+            $query->whereIn('employee_id', $employeeIds);
         }
 
         if ($status = $request->query('status')) {
@@ -106,14 +121,139 @@ class DailyReportController extends Controller
                     ->orWhereHas('employee', fn (Builder $e) => $e->where('full_name', 'like', $like));
             });
         }
-        if ($from = $request->query('from')) {
-            $query->whereDate('date', '>=', $from);
-        }
-        if ($to = $request->query('to')) {
-            $query->whereDate('date', '<=', $to);
+        if ($withDates) {
+            if ($from = $request->query('from')) {
+                $query->whereDate('date', '>=', $from);
+            }
+            if ($to = $request->query('to')) {
+                $query->whereDate('date', '<=', $to);
+            }
         }
 
         return $query;
+    }
+
+    /**
+     * Normalised list of employee ids to filter by (supports multi-select
+     * `employee_ids[]` plus the legacy single `employee_id`). Capped to 100.
+     *
+     * @return int[]
+     */
+    private function employeeIdFilter(Request $request): array
+    {
+        $ids = $request->query('employee_ids', []);
+        if (! is_array($ids)) {
+            $ids = [$ids];
+        }
+        if ($single = $request->query('employee_id')) {
+            $ids[] = $single;
+        }
+
+        return collect($ids)
+            ->map(fn ($id) => (int) $id)
+            ->filter()
+            ->unique()
+            ->take(100)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Filtered-set counts plus a period-over-period trend. The big tiles show
+     * the filtered summary; the trend pills compare the current window against
+     * the immediately preceding window of equal length.
+     *
+     * @return array<string, mixed>
+     */
+    private function summaryWithTrend(Request $request, SystemAccount $account): array
+    {
+        $summary = $this->countSummary($this->historyReportsQuery($request, $account));
+
+        [$curFrom, $curTo, $prevFrom, $prevTo] = $this->trendWindows($request);
+
+        $current = $this->countSummary(
+            $this->historyReportsQuery($request, $account, withDates: false)
+                ->whereBetween('date', [$curFrom, $curTo]),
+        );
+        $previous = $this->countSummary(
+            $this->historyReportsQuery($request, $account, withDates: false)
+                ->whereBetween('date', [$prevFrom, $prevTo]),
+        );
+
+        $metrics = ['total', 'reviewed', 'submitted', 'draft', 'late', 'completion_rate'];
+        $trend = [];
+        foreach ($metrics as $key) {
+            $trend[$key] = $this->percentChange($previous[$key], $current[$key]);
+        }
+
+        return [
+            ...$summary,
+            'trend' => $trend,
+            'period' => [
+                'current' => ['from' => $curFrom, 'to' => $curTo],
+                'previous' => ['from' => $prevFrom, 'to' => $prevTo],
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, int|float>
+     */
+    private function countSummary(Builder $query): array
+    {
+        $total = (clone $query)->count();
+        $reviewed = (clone $query)->where('status', ReportStatus::Reviewed)->count();
+
+        return [
+            'total' => $total,
+            'draft' => (clone $query)->where('status', ReportStatus::Draft)->count(),
+            'submitted' => (clone $query)->where('status', ReportStatus::Submitted)->count(),
+            'reviewed' => $reviewed,
+            'late' => (clone $query)->where('is_late', true)->count(),
+            'completion_rate' => $total > 0 ? round($reviewed / $total * 100, 1) : 0.0,
+        ];
+    }
+
+    /**
+     * Current/previous comparison windows. If from/to is set, the previous
+     * window is the equal-length span ending the day before `from`; otherwise
+     * the default is the last 30 days vs the prior 30 days.
+     *
+     * @return array{0:string,1:string,2:string,3:string} [curFrom, curTo, prevFrom, prevTo]
+     */
+    private function trendWindows(Request $request): array
+    {
+        $from = $request->query('from');
+        $to = $request->query('to');
+
+        if ($from && $to) {
+            $curFrom = Carbon::parse($from)->startOfDay();
+            $curTo = Carbon::parse($to)->startOfDay();
+        } else {
+            $curTo = Carbon::parse(DailyReportCalendar::today());
+            $curFrom = $curTo->copy()->subDays(29);
+        }
+
+        $lengthDays = $curFrom->diffInDays($curTo) + 1;
+        $prevTo = $curFrom->copy()->subDay();
+        $prevFrom = $prevTo->copy()->subDays($lengthDays - 1);
+
+        return [
+            $curFrom->toDateString(),
+            $curTo->toDateString(),
+            $prevFrom->toDateString(),
+            $prevTo->toDateString(),
+        ];
+    }
+
+    /** Signed percent change from previous → current, rounded to 1 dp. */
+    private function percentChange(int|float $previous, int|float $current): ?float
+    {
+        if ($previous == 0) {
+            return $current == 0 ? 0.0 : null; // null = "new" (no prior baseline)
+        }
+
+        return round(($current - $previous) / $previous * 100, 1);
     }
 
     /**

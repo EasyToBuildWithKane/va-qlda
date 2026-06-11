@@ -328,6 +328,72 @@ class DailyReportTest extends TestCase
                 ->where('canReview', false));
     }
 
+    public function test_history_summary_includes_trend_and_completion_rate(): void
+    {
+        $member = $this->member();
+        DailyReport::factory()->reviewed()->create(['employee_id' => $member->employee_id]);
+
+        $this->actingAs($member, 'system')
+            ->get(route('daily-reports.index'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('DailyReport/History')
+                ->has('summary.trend')
+                ->has('summary.period.current')
+                ->where('summary.completion_rate', 100));
+    }
+
+    public function test_lead_can_filter_history_by_multiple_employees(): void
+    {
+        $lead = $this->lead();
+        $a = $this->member();
+        $b = $this->member();
+        $c = $this->member();
+
+        DailyReport::factory()->create(['employee_id' => $a->employee_id]);
+        DailyReport::factory()->create(['employee_id' => $b->employee_id]);
+        DailyReport::factory()->create(['employee_id' => $c->employee_id]);
+
+        $this->actingAs($lead, 'system')
+            ->get(route('daily-reports.index', ['employee_ids' => [$a->employee_id, $b->employee_id]]))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('DailyReport/History')
+                ->has('reports.data', 2));
+    }
+
+    public function test_export_data_returns_full_filtered_set(): void
+    {
+        $lead = $this->lead();
+        $a = $this->member();
+        $b = $this->member();
+
+        foreach (['2026-06-01', '2026-06-02', '2026-06-03'] as $date) {
+            DailyReport::factory()->create(['employee_id' => $a->employee_id, 'date' => $date]);
+        }
+        DailyReport::factory()->create(['employee_id' => $b->employee_id, 'date' => '2026-06-01']);
+
+        $this->actingAs($lead, 'system')
+            ->getJson(route('daily-reports.export-data', ['employee_ids' => [$a->employee_id]]))
+            ->assertOk()
+            ->assertJsonCount(3, 'data');
+    }
+
+    public function test_export_data_is_scoped_to_member_own_reports(): void
+    {
+        $member = $this->member();
+        $other = $this->member();
+
+        DailyReport::factory()->create(['employee_id' => $member->employee_id, 'date' => '2026-06-01']);
+        DailyReport::factory()->create(['employee_id' => $member->employee_id, 'date' => '2026-06-02']);
+        DailyReport::factory()->create(['employee_id' => $other->employee_id, 'date' => '2026-06-01']);
+
+        $this->actingAs($member, 'system')
+            ->getJson(route('daily-reports.export-data'))
+            ->assertOk()
+            ->assertJsonCount(2, 'data');
+    }
+
     public function test_member_cannot_delete_submitted_report(): void
     {
         $member = $this->member();

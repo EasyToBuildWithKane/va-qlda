@@ -72,6 +72,7 @@ Route::middleware('auth')->group(function () {
     // Daily Report — static segments before /{report} to avoid capture.
     Route::prefix('daily-reports')->name('daily-reports.')->group(function () {
         Route::get('/', [DailyReportController::class, 'index'])->name('index');
+        Route::get('/export-data', [DailyReportController::class, 'exportData'])->name('export-data');
         Route::get('/today', [DailyReportController::class, 'today'])->name('today');
         Route::get('/review', [DailyReportReviewController::class, 'index'])->name('review');
         Route::post('/', [DailyReportController::class, 'store'])->name('store');
