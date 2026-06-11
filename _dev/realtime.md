@@ -14,8 +14,8 @@ Browser A ──POST /comments──► Laravel ──Redis PUBLISH──► Nod
 |-------|----------------|
 | Publish | `App\Support\Realtime\CommentRealtimePublisher` |
 | Subscribe token | `GET /realtime/thread-token` |
-| Client | `resources/js/composables/useCommentRealtime.js` |
-| UI | `CommentThread.vue`, `TaskDetailCollaboration.vue` |
+| Client | `resources/js/composables/useCommentRealtime.js`, hub `commentRealtimeHub.js` (một Socket.IO dùng chung) |
+| UI | `CommentThread.vue`, `TaskDetailCollaboration.vue` — optimistic + badge **Realtime** |
 | Node server | `realtime/server.mjs` — `npm run realtime` |
 
 Shared Inertia props: `realtime.enabled`, `realtime.url` (`REALTIME_CLIENT_URL`).

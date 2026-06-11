@@ -67,6 +67,8 @@ const patchHours = (st, raw) => {
     }, {
         preserveScroll: true,
         only: ['tasks'],
+        onSuccess: () => emit('created'),
+        onError: () => toast.error('Không cập nhật được giờ ước tính'),
     });
 };
 </script>

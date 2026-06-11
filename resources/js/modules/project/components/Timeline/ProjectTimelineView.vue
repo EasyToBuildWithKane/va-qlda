@@ -4,6 +4,7 @@ import AppIcon from '@/Components/AppIcon.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
 import { useVirtualScroll } from '@/composables/useVirtualScroll';
 import { date } from '@/composables/useFormat';
+import { getTaskSchedule } from '@/composables/useTaskHierarchy';
 
 const props = defineProps({
     flatRows: { type: Array, default: () => [] },
@@ -24,6 +25,7 @@ const props = defineProps({
     isBlocked: { type: Function, required: true },
     statusBarClass: { type: Object, default: () => ({}) },
     revertPreviewTaskId: { type: Number, default: null },
+    allTasks: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits(['select', 'date-change']);
@@ -42,13 +44,20 @@ const { totalHeight, visibleItems } = useVirtualScroll(rightScroll, flatRowsRef,
 
 const statusClass = (task) => props.statusBarClass[task.status?.value] || 'bg-slate-400';
 
-const effectiveDates = (task) => {
+const effectiveDates = (task, parent = null) => {
     const p = previews.value[task.id];
-    if (!p) return { start_date: task.start_date, due_date: task.due_date };
-    return { start_date: p.start, due_date: p.end };
+    if (p) return { start_date: p.start, due_date: p.end };
+    return getTaskSchedule(task, props.allTasks, parent);
 };
 
-const effectiveBarStyle = (task) => props.barStyle({ ...task, ...effectiveDates(task) });
+const taskHoursLabel = (task) => {
+    if (task?.estimate_hours == null || task.estimate_hours === '') return null;
+    const n = Number(task.estimate_hours);
+    return Number.isFinite(n) ? `${n}h` : null;
+};
+
+const effectiveBarStyle = (task, parent = null) =>
+    props.barStyle({ ...task, ...effectiveDates(task, parent) });
 
 const assigneeLabel = (task) => {
     const people = props.getAssignees(task);
@@ -59,19 +68,30 @@ const assigneeLabel = (task) => {
 
 const assigneeTitle = (task) => props.getAssignees(task).map((a) => a.name).join(', ');
 
-const durationLabel = (task) => {
-    const { start_date, due_date } = effectiveDates(task);
-    if (!start_date || !due_date) return '—';
+const durationLabel = (task, parent = null, isSubtask = false) => {
+    const hours = taskHoursLabel(task);
+    if (isSubtask && hours) return hours;
+    const { start_date, due_date } = effectiveDates(task, parent);
+    if (!start_date || !due_date) return hours || '—';
     const s = new Date(`${start_date}T00:00:00`);
     const e = new Date(`${due_date}T00:00:00`);
     const days = Math.round((e - s) / 86400000) + 1;
-    return days > 0 ? `${days} ngày` : '—';
+    const daysPart = days > 0 ? `${days} ngày` : '—';
+    if (hours) return `${daysPart} · ${hours}`;
+    return daysPart;
+};
+
+const barTitle = (task, parent = null) => {
+    const { start_date, due_date } = effectiveDates(task, parent);
+    const range = [start_date, due_date].filter(Boolean).join(' → ');
+    const hours = taskHoursLabel(task);
+    return [task.title, range, hours].filter(Boolean).join(' · ');
 };
 
 const LIST_GRID_COLS = 'grid-cols-[minmax(0,1fr)_minmax(128px,38%)_minmax(76px,auto)]';
 
-const dateRangeTitle = (task) => {
-    const { start_date, due_date } = effectiveDates(task);
+const dateRangeTitle = (task, parent = null) => {
+    const { start_date, due_date } = effectiveDates(task, parent);
     if (!start_date && !due_date) return '';
     const parts = [];
     if (start_date) parts.push(date(start_date));
@@ -380,9 +400,11 @@ watch(
                 </div>
                 <span
                   class="shrink-0 self-start pt-0.5 whitespace-nowrap text-right text-xs font-medium tabular-nums"
-                  :class="isOverdue(item.row.task) ? 'text-rose-600' : 'text-slate-500'"
-                  :title="dateRangeTitle(item.row.task) || undefined"
-                >{{ durationLabel(item.row.task) }}</span>
+                  :title="dateRangeTitle(item.row.task, item.row.parent) || undefined"
+                  :class="[
+                    isOverdue(item.row.task) ? 'text-rose-600' : item.row.depth ? 'text-brand' : 'text-slate-500',
+                  ]"
+                >{{ durationLabel(item.row.task, item.row.parent, !!item.row.depth) }}</span>
               </div>
 
               <!-- Milestone header -->
@@ -515,15 +537,16 @@ watch(
                 @click.self="emit('select', item.row.task.id)"
               >
                 <div
-                  v-if="effectiveBarStyle(item.row.task)"
+                  v-if="effectiveBarStyle(item.row.task, item.row.parent)"
                   class="absolute top-[7px] flex h-[26px] cursor-pointer items-center rounded-md text-[10px] font-semibold text-white shadow-sm transition-shadow hover:shadow-md"
                   :class="[
                     statusClass(item.row.task),
+                    item.row.depth ? 'h-[22px] top-[9px] opacity-90' : '',
                     isOverdue(item.row.task) ? 'ring-2 ring-rose-300' : '',
                     dragState?.id === item.row.task.id ? 'opacity-90 ring-2 ring-brand/40' : '',
                   ]"
-                  :style="effectiveBarStyle(item.row.task)"
-                  :title="`${item.row.task.title} · ${effectiveDates(item.row.task).start_date} → ${effectiveDates(item.row.task).due_date}`"
+                  :style="effectiveBarStyle(item.row.task, item.row.parent)"
+                  :title="barTitle(item.row.task, item.row.parent)"
                   @click.stop="onBarClick(item.row.task)"
                 >
                   <!-- Progress fill inside bar -->
@@ -542,7 +565,12 @@ watch(
                     class="relative z-10 flex flex-1 cursor-grab items-center truncate px-1.5 active:cursor-grabbing"
                     @pointerdown.stop="onBarPointerDown($event, item.row.task, 'move')"
                   >
-                    {{ item.row.task.progress || 0 }}%
+                    <template v-if="taskHoursLabel(item.row.task) && item.row.depth">
+                      {{ taskHoursLabel(item.row.task) }}
+                    </template>
+                    <template v-else>
+                      {{ item.row.task.progress || 0 }}%
+                    </template>
                   </span>
                   <!-- Resize right handle -->
                   <span

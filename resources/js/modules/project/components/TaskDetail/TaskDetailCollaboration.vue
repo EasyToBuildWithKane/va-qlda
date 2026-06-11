@@ -7,6 +7,7 @@ import { useToast } from '@/shared/composables/useToast';
 import { useDialog } from '@/composables/useDialog';
 import { normalizeEntities } from '@/composables/useNormalizeList';
 import { useCommentRealtime } from '@/composables/useCommentRealtime';
+import { authorFromPageUser, createPendingComment, isPendingComment } from '@/composables/useCommentOptimistic';
 
 const props = defineProps({
     comments: { type: Array, default: () => [] },
@@ -27,6 +28,7 @@ const composerRef = ref(null);
 const EMOJIS = ['👍', '❤️', '🎉', '🔥', '👀', '✅', '😂', '🙏'];
 
 const myEmployeeId = computed(() => page.props.auth?.user?.employee?.id ?? null);
+const realtimeEnabled = computed(() => !!page.props.realtime?.enabled);
 
 const threadComments = ref(normalizeEntities(props.comments));
 
@@ -52,8 +54,24 @@ function replyList(c) {
     return normalizeEntities(c?.replies);
 }
 
+function dropMatchingPending(comment) {
+    const bodyText = comment?.body;
+    const authorId = comment?.author?.id;
+    threadComments.value = threadComments.value
+        .filter((c) => !isPendingComment(c) || c.body !== bodyText || c.author?.id !== authorId)
+        .map((c) => ({
+            ...c,
+            replies: replyList(c).filter(
+                (r) => !isPendingComment(r) || r.body !== bodyText || r.author?.id !== authorId,
+            ),
+        }));
+}
+
 function mergeComment(comment) {
     if (!comment?.id) return;
+    if (!isPendingComment(comment)) {
+        dropMatchingPending(comment);
+    }
 
     if (comment.parent_id) {
         threadComments.value = threadComments.value.map((root) => {
@@ -142,7 +160,7 @@ function applyReactionLocal(commentId, emoji) {
 const commentableType = computed(() => 'task');
 const commentableId = computed(() => props.commentableId);
 
-useCommentRealtime(commentableType, commentableId, {
+const { subscribed: realtimeSubscribed } = useCommentRealtime(commentableType, commentableId, {
     onCreated: mergeComment,
     onUpdated: mergeUpdated,
     onDeleted: removeCommentLocal,
@@ -150,19 +168,34 @@ useCommentRealtime(commentableType, commentableId, {
 
 const submit = () => {
     if (!props.canComment || !body.value.trim()) return;
+    const text = body.value.trim();
+    const parentId = replyTo.value?.id ?? null;
+    const pending = createPendingComment(
+        text,
+        parentId,
+        authorFromPageUser(page.props.auth?.user),
+    );
+    mergeComment(pending);
+    body.value = '';
+    const savedReply = replyTo.value;
+    replyTo.value = null;
     router.post('/comments', {
         commentable_type: 'task',
         commentable_id: props.commentableId,
-        parent_id: replyTo.value?.id ?? null,
-        body: body.value.trim(),
+        parent_id: parentId,
+        body: text,
     }, {
         preserveScroll: true,
         only: ['tasks'],
         onSuccess: () => {
-            body.value = '';
-            replyTo.value = null;
             syncCommentsFromInertia();
             toast.success('Đã gửi bình luận');
+        },
+        onError: () => {
+            removeCommentLocal(pending.id);
+            body.value = text;
+            replyTo.value = savedReply;
+            toast.error('Không gửi được bình luận');
         },
     });
 };
@@ -223,6 +256,25 @@ defineExpose({ focusComposer });
 
 <template>
   <div class="space-y-4">
+    <div
+      v-if="realtimeEnabled"
+      class="flex flex-wrap items-center gap-2"
+    >
+      <span
+        v-if="realtimeSubscribed"
+        class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
+        title="Đồng bộ trao đổi theo thời gian thực với team"
+      >
+        <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+        Realtime
+      </span>
+      <span
+        v-else
+        class="text-[10px] text-slate-400"
+      >
+        Đang kết nối realtime…
+      </span>
+    </div>
     <form
       v-if="canComment"
       class="rounded-xl border border-slate-200 bg-slate-50/80 p-3 dark:border-slate-700 dark:bg-slate-800/50"
@@ -293,7 +345,10 @@ defineExpose({ focusComposer });
       :key="c.id"
       class="space-y-2"
     >
-      <article class="rounded-xl border border-slate-100 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900/80">
+      <article
+        class="comment-enter rounded-xl border border-slate-100 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900/80"
+        :class="isPendingComment(c) ? 'opacity-80' : ''"
+      >
         <div class="flex gap-3">
           <Avatar
             :name="c.author?.name"
@@ -427,3 +482,26 @@ defineExpose({ focusComposer });
     </p>
   </div>
 </template>
+
+<style scoped>
+.comment-enter {
+    animation: comment-slide-in 0.35s ease backwards;
+}
+
+@keyframes comment-slide-in {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .comment-enter {
+        animation: none;
+    }
+}
+</style>

@@ -1,13 +1,18 @@
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { usePage } from '@inertiajs/vue3';
-import axios from 'axios';
-import { io } from 'socket.io-client';
-
-const CONNECT_TIMEOUT_MS = 15000;
+import {
+    acquireSharedSocket,
+    isSocketConnected,
+    joinCommentRoom,
+    registerHandlers,
+    releaseSharedSocket,
+    roomNameForComment,
+    unregisterHandlers,
+} from '@/composables/commentRealtimeHub';
 
 /**
  * Socket.IO cho luồng bình luận (blocker, task, …).
- * Laravel publish Redis → Node `realtime/server.mjs` → browser.
+ * Một kết nối dùng chung — nhiều thread / chuyển task không ngắt team khác.
  *
  * @param {import('vue').Ref<string>|import('vue').ComputedRef<string>} commentableType
  * @param {import('vue').Ref<number|string>|import('vue').ComputedRef<number|string>} commentableId
@@ -17,106 +22,19 @@ export function useCommentRealtime(commentableType, commentableId, handlers = {}
     const page = usePage();
     const connected = ref(false);
     const subscribed = ref(false);
-    let socket = null;
     let activeRoom = null;
-    let latestToken = null;
+    let pollId = null;
 
     const enabled = () => page.props.realtime?.enabled && page.props.realtime?.url;
+    let socketHeld = false;
 
-    function attachCommentListener(sock) {
-        sock.off('comment');
-        sock.on('comment', (payload) => {
-            const curType = commentableType.value;
-            const curId = Number(commentableId.value);
-            if (!payload || payload.commentable_type !== curType || Number(payload.commentable_id) !== curId) {
-                return;
-            }
-            if (payload.event === 'comment.created' && payload.data?.comment) {
-                handlers.onCreated?.(payload.data.comment);
-            }
-            if (payload.event === 'comment.updated' && payload.data?.comment) {
-                handlers.onUpdated?.(payload.data.comment);
-            }
-            if (payload.event === 'comment.deleted' && payload.data?.comment_id) {
-                handlers.onDeleted?.(Number(payload.data.comment_id));
-            }
-        });
-    }
-
-    function ensureSocket() {
-        if (socket) {
-            return socket;
-        }
-
-        const socketUrl = page.props.realtime.url || window.location.origin;
-        socket = io(socketUrl, {
-            path: '/socket.io',
-            transports: ['websocket', 'polling'],
-            withCredentials: true,
-            reconnection: true,
-            reconnectionAttempts: 8,
-        });
-
-        attachCommentListener(socket);
-
-        socket.on('connect', () => {
-            connected.value = true;
-            if (latestToken) {
-                emitSubscribe(latestToken).catch(() => {
-                    subscribed.value = false;
-                });
-            }
-        });
-
-        socket.on('disconnect', () => {
-            connected.value = false;
-            subscribed.value = false;
-            activeRoom = null;
-        });
-
-        return socket;
-    }
-
-    function emitSubscribe(token) {
-        return new Promise((resolve, reject) => {
-            if (!socket) {
-                reject(new Error('no_socket'));
-                return;
-            }
-            socket.emit('subscribe:comments', { token }, (res) => {
-                if (res?.ok) {
-                    activeRoom = res.room;
-                    subscribed.value = true;
-                    resolve();
-                } else {
-                    subscribed.value = false;
-                    reject(new Error(res?.error || 'subscribe_failed'));
-                }
-            });
-        });
-    }
-
-    function waitForConnect(sock) {
-        if (sock.connected) {
-            return Promise.resolve();
-        }
-        return new Promise((resolve, reject) => {
-            const timer = setTimeout(() => {
-                reject(new Error('connect_timeout'));
-            }, CONNECT_TIMEOUT_MS);
-            sock.once('connect', () => {
-                clearTimeout(timer);
-                resolve();
-            });
-            sock.once('connect_error', (err) => {
-                clearTimeout(timer);
-                reject(err);
-            });
-        });
-    }
+    const syncConnected = () => {
+        connected.value = enabled() && isSocketConnected();
+    };
 
     async function subscribe() {
         subscribed.value = false;
+        syncConnected();
         if (!enabled()) {
             return;
         }
@@ -126,53 +44,59 @@ export function useCommentRealtime(commentableType, commentableId, handlers = {}
             return;
         }
 
-        try {
-            const { data } = await axios.get('/realtime/thread-token', {
-                params: { type, id },
-            });
-            if (!data?.token) {
-                return;
-            }
+        const url = page.props.realtime.url || window.location.origin;
 
-            latestToken = data.token;
-            const sock = ensureSocket();
-            await waitForConnect(sock);
-            await emitSubscribe(latestToken);
+        try {
+            if (!socketHeld) {
+                acquireSharedSocket(url);
+                socketHeld = true;
+            }
+            const room = await joinCommentRoom({ url, type, id });
+            if (activeRoom && activeRoom !== room) {
+                unregisterHandlers(activeRoom, handlers);
+            }
+            activeRoom = room;
+            registerHandlers(room, handlers);
+            subscribed.value = true;
+            syncConnected();
         } catch {
             subscribed.value = false;
+            syncConnected();
         }
     }
 
-    function leaveRoom() {
-        if (socket && activeRoom) {
-            socket.emit('unsubscribe:comments', { room: activeRoom });
+    function leave() {
+        if (activeRoom) {
+            unregisterHandlers(activeRoom, handlers);
             activeRoom = null;
         }
         subscribed.value = false;
-        latestToken = null;
-    }
-
-    function teardownSocket() {
-        leaveRoom();
-        if (socket) {
-            socket.disconnect();
-            socket = null;
-        }
-        connected.value = false;
     }
 
     onMounted(() => {
         subscribe();
+        pollId = window.setInterval(syncConnected, 2000);
     });
 
     watch([commentableType, commentableId], async () => {
-        leaveRoom();
+        leave();
         await subscribe();
     });
 
     onBeforeUnmount(() => {
-        teardownSocket();
+        if (pollId) {
+            clearInterval(pollId);
+            pollId = null;
+        }
+        leave();
+        if (socketHeld) {
+            releaseSharedSocket();
+            socketHeld = false;
+        }
+        connected.value = false;
     });
 
     return { connected, subscribed };
 }
+
+export { roomNameForComment };

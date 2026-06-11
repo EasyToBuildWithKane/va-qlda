@@ -19,6 +19,7 @@ import {
     useTaskWorkspace,
     useTaskPanelLayout,
 } from '@/composables/useTaskWorkspace';
+import { getDirectChildren } from '@/composables/useTaskHierarchy';
 import { normalizeList, normalizeEntities, normalizeKeyed } from '@/composables/useNormalizeList';
 import { matchesSearchKey } from '@/shared/utils/normalizeSearchKey';
 import { taskProgressFromStatus } from '@/shared/utils/taskProgress';
@@ -154,10 +155,13 @@ const scheduleLine = computed(() => {
 });
 
 const timeSummary = computed(() => {
-    if (ws.estimateHours.value == null) {
-        return ws.loggedHours.value > 0 ? `Đã ghi ${ws.loggedHours.value}h` : null;
+    const parts = [];
+    if (ws.estimateHours.value != null) {
+        const prefix = ws.estimateFromSubtasksOnly.value ? 'Tổng công việc con' : 'Ước tính';
+        parts.push(`${prefix} ${ws.estimateHours.value}h`);
     }
-    return `Ước tính ${ws.estimateHours.value}h · Đã ghi ${ws.loggedHours.value}h`;
+    if (ws.loggedHours.value > 0) parts.push(`Đã ghi ${ws.loggedHours.value}h`);
+    return parts.length ? parts.join(' · ') : null;
 });
 
 const toneClass = (tone) => ({
@@ -219,7 +223,9 @@ const {
     PER_PAGE_OPTIONS: ACTIVITY_PER_PAGE_OPTIONS,
 } = useClientPagination(activityItems, 'va-qlda.task.activity.perPage', 10);
 const commentList = computed(() => normalizeEntities(activeTask.value?.comments));
-const subtaskList = computed(() => normalizeEntities(activeTask.value?.subtasks));
+const subtaskList = computed(() =>
+    normalizeEntities(getDirectChildren(activeTask.value, props.allTasks)),
+);
 const attachmentList = computed(() => normalizeEntities(activeTask.value?.attachments));
 const watcherList = computed(() => normalizeEntities(activeTask.value?.watchers));
 const worklogList = computed(() => normalizeEntities(activeTask.value?.worklogs));

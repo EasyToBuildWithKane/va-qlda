@@ -122,6 +122,7 @@ class TaskController extends Controller
             'story_points' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:999'],
             'epic_id' => ['sometimes', 'nullable', 'integer', Rule::exists('epics', 'id')->where('project_id', $project->id)],
             'description' => ['sometimes', 'nullable', 'string', 'max:10000'],
+            'estimate_hours' => ['sometimes', 'nullable', 'numeric', 'min:0'],
         ]);
 
         $result = $this->patchTask->execute($task, $validated, $request->user());

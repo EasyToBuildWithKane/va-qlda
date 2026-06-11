@@ -67,6 +67,25 @@ export function useProjectTimeline(props) {
 
     const isOverdue = (t) => isTaskOverdue(t);
 
+    const resolveSchedule = (task) => {
+        if (!task || isMilestone(task)) return null;
+        let start = task.start_date;
+        let due = task.due_date;
+        if (task.parent_id && (!start || !due)) {
+            const parent = taskById.value.get(task.parent_id);
+            start = start || parent?.start_date;
+            due = due || parent?.due_date;
+        }
+        if (!start || !due) return null;
+        return { start_date: start, due_date: due };
+    };
+
+    const pushTaskRows = (rows, roots, groupKey) => {
+        buildTaskDisplayRows(roots, tasks.value, { includeSubtasks: true }).forEach(({ task, depth, parent }) => {
+            rows.push({ type: 'task', task, groupKey, depth, parent });
+        });
+    };
+
     const uniqueAssignees = computed(() => {
         const map = new Map();
         tasks.value.forEach((t) => {
@@ -108,7 +127,7 @@ export function useProjectTimeline(props) {
     });
 
     const scheduledTasks = computed(() =>
-        filteredTasks.value.filter((t) => t.start_date && t.due_date && !isMilestone(t)),
+        filteredTasks.value.filter((t) => resolveSchedule(t) !== null),
     );
 
     const milestones = computed(() => filteredTasks.value.filter(isMilestone));
@@ -217,7 +236,10 @@ export function useProjectTimeline(props) {
         if (project.value?.start_date) dates.push(parseDate(project.value.start_date));
         if (project.value?.due_date) dates.push(parseDate(project.value.due_date));
         scheduledTasks.value.forEach((t) => {
-            dates.push(parseDate(t.start_date), parseDate(t.due_date));
+            const sched = resolveSchedule(t);
+            if (sched) {
+                dates.push(parseDate(sched.start_date), parseDate(sched.due_date));
+            }
         });
         milestones.value.forEach((m) => dates.push(parseDate(m.due_date || m.start_date)));
 
@@ -273,8 +295,10 @@ export function useProjectTimeline(props) {
     });
 
     const barStyle = (task) => {
-        const s = parseDate(task.start_date);
-        const e = parseDate(task.due_date);
+        const sched = resolveSchedule(task);
+        if (!sched) return null;
+        const s = parseDate(sched.start_date);
+        const e = parseDate(sched.due_date);
         if (!s || !e) return null;
         const { start, span } = range.value;
         const left = ((s.getTime() - start.getTime()) / span) * 100;
@@ -331,7 +355,7 @@ export function useProjectTimeline(props) {
     const appendPhaseBlocks = (rows, phaseTasks, parentKey) => {
         groupTasksByPhase(phaseTasks).forEach((ph) => {
             const phaseKey = `${parentKey}:phase-${ph.key}`;
-            const treeRows = buildTaskDisplayRows(ph.tasks, tasks.value, { includeSubtasks: false });
+            const treeRows = buildTaskDisplayRows(ph.tasks, tasks.value, { includeSubtasks: true });
             rows.push({
                 type: 'phase',
                 key: phaseKey,
@@ -341,11 +365,12 @@ export function useProjectTimeline(props) {
                 indent: 1,
             });
             if (!isGroupOpen(phaseKey)) return;
-            treeRows.forEach(({ task }) => rows.push({
+            treeRows.forEach(({ task, depth, parent }) => rows.push({
                 type: 'task',
                 task,
                 groupKey: phaseKey,
-                depth: 0,
+                depth,
+                parent,
             }));
         });
     };
@@ -366,9 +391,7 @@ export function useProjectTimeline(props) {
                     indent: 0,
                 });
                 if (!isGroupOpen(key)) return;
-                buildTaskDisplayRows(ph.tasks, tasks.value, { includeSubtasks: false }).forEach(({ task }) => {
-                    rows.push({ type: 'task', task, groupKey: key, depth: 0 });
-                });
+                pushTaskRows(rows, ph.tasks, key);
             });
         } else {
             sprintGroups.value.forEach((group) => {
@@ -385,9 +408,7 @@ export function useProjectTimeline(props) {
                 if (groupBy.value === 'nested') {
                     appendPhaseBlocks(rows, group.tasks, group.key);
                 } else {
-                    buildTaskDisplayRows(group.tasks, tasks.value, { includeSubtasks: false }).forEach(({ task }) => {
-                        rows.push({ type: 'task', task, groupKey: group.key, depth: 0 });
-                    });
+                    pushTaskRows(rows, group.tasks, group.key);
                 }
             });
         }

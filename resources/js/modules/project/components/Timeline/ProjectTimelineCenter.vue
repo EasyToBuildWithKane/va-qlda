@@ -222,6 +222,7 @@ const kpiChips = computed(() => {
         :is-blocked="isBlocked"
         :status-bar-class="TIMELINE_STATUS_BAR"
         :revert-preview-task-id="revertPreviewTaskId"
+        :all-tasks="props.tasks"
         @select="emit('select-task', $event)"
         @date-change="emit('date-change', $event)"
       />

@@ -6,6 +6,8 @@ import AppIcon from '@/Components/AppIcon.vue';
 import { datetime } from '@/composables/useFormat';
 import { useDialog } from '@/composables/useDialog';
 import { useCommentRealtime } from '@/composables/useCommentRealtime';
+import { authorFromPageUser, createPendingComment, isPendingComment } from '@/composables/useCommentOptimistic';
+import { useToast } from '@/shared/composables/useToast';
 
 const props = defineProps({
     comments: { type: [Array, Object], default: () => [] },
@@ -21,6 +23,7 @@ const props = defineProps({
 
 const page = usePage();
 const dialog = useDialog();
+const toast = useToast();
 const deletingId = ref(null);
 const realtimeEnabled = computed(() => !!page.props.realtime?.enabled);
 
@@ -42,6 +45,11 @@ watch(
 
 function mergeComment(comment) {
     if (!comment?.id) return;
+    if (!isPendingComment(comment)) {
+        threadComments.value = threadComments.value.filter(
+            (c) => !isPendingComment(c) || c.body !== comment.body || c.author?.id !== comment.author?.id,
+        );
+    }
     if (threadComments.value.some((c) => c.id === comment.id)) return;
     threadComments.value = [comment, ...threadComments.value];
 }
@@ -98,10 +106,22 @@ function canDeleteComment(c) {
 
 const submit = () => {
     if (!form.body.trim()) return;
-    form.post('/comments', {
+    const text = form.body.trim();
+    const pending = createPendingComment(
+        text,
+        null,
+        authorFromPageUser(page.props.auth?.user),
+    );
+    mergeComment(pending);
+    form.body = '';
+    form.transform((data) => ({ ...data, body: text })).post('/comments', {
         preserveScroll: true,
         ...(props.partialReloadKeys.length ? { only: props.partialReloadKeys } : {}),
         onSuccess: () => form.reset('body'),
+        onError: () => {
+            removeCommentLocal(pending.id);
+            toast.error('Không gửi được bình luận');
+        },
     });
 };
 

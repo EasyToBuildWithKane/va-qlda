@@ -30,10 +30,11 @@ class PatchTaskUseCase
 
         $previousStatus = $task->status->value;
         $task->update($validated);
+        $changes = collect($task->getChanges())->except(['updated_at'])->all();
         $fresh = $task->fresh();
         TaskTimeliness::syncWorkStartedAt($fresh, $previousStatus);
 
-        if ($fresh->wasChanged('status')) {
+        if (isset($changes['status'])) {
             TaskActivityLogger::statusChanged(
                 $fresh,
                 $previousStatus,
@@ -41,20 +42,21 @@ class PatchTaskUseCase
                 $actor,
             );
             NotificationDispatcher::taskStatusChanged($fresh, $previousStatus, $fresh->status->value, $actor);
-        } elseif ($fresh->getChanges() !== []) {
-            $chg = collect($fresh->getChanges())->except(['updated_at'])->all();
-            TaskActivityLogger::updated($fresh, $actor, $chg);
-            NotificationDispatcher::taskUpdated($fresh, $actor, $chg);
+        } elseif ($changes !== []) {
+            TaskActivityLogger::updated($fresh, $actor, $changes);
+            NotificationDispatcher::taskUpdated($fresh, $actor, $changes);
         }
 
-        $flash = match ($newStatus) {
-            TaskStatus::InProgress->value => 'Đã bắt đầu làm — SLA giờ ước tính đang chạy.',
-            TaskStatus::InReview->value => 'Đã chuyển sang chờ duyệt.',
-            TaskStatus::Done->value => 'Đã hoàn thành — tiến độ 100%.',
-            TaskStatus::Blocked->value => 'Đã đánh dấu bị chặn.',
-            TaskStatus::Todo->value => 'Đã chuyển về cần làm.',
-            default => 'Đã cập nhật trạng thái.',
-        };
+        $flash = isset($validated['status'])
+            ? match ($newStatus) {
+                TaskStatus::InProgress->value => 'Đã bắt đầu làm — SLA giờ ước tính đang chạy.',
+                TaskStatus::InReview->value => 'Đã chuyển sang chờ duyệt.',
+                TaskStatus::Done->value => 'Đã hoàn thành — tiến độ 100%.',
+                TaskStatus::Blocked->value => 'Đã đánh dấu bị chặn.',
+                TaskStatus::Todo->value => 'Đã chuyển về cần làm.',
+                default => 'Đã cập nhật trạng thái.',
+            }
+        : 'Đã cập nhật công việc.';
 
         return ['task' => $fresh, 'flash' => $flash];
     }

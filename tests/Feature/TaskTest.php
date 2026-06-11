@@ -115,6 +115,32 @@ class TaskTest extends TestCase
         $this->assertDatabaseHas('tasks', ['id' => $task->id, 'title' => 'New Title']);
     }
 
+    public function test_admin_can_put_subtask_estimate_hours_only(): void
+    {
+        $project = Project::factory()->create();
+        $parent = $project->tasks()->create($this->taskPayload([
+            'title' => 'Parent',
+            'start_date' => '2026-06-01',
+            'due_date' => '2026-06-10',
+        ]));
+        $subtask = $project->tasks()->create(array_merge($this->taskPayload(['title' => 'Child']), [
+            'parent_id' => $parent->id,
+            'start_date' => $parent->start_date,
+            'due_date' => $parent->due_date,
+        ]));
+
+        $this->actingAs($this->admin(), 'system')
+            ->patch("/projects/{$project->id}/tasks/{$subtask->id}", [
+                'estimate_hours' => 4.5,
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('tasks', [
+            'id' => $subtask->id,
+            'estimate_hours' => 4.5,
+        ]);
+    }
+
     public function test_member_cannot_update_task(): void
     {
         $project = Project::factory()->create();

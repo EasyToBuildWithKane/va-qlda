@@ -1,5 +1,6 @@
 import { computed, ref, unref, isRef } from 'vue';
 import { getAssignees } from '@/composables/useSprintFilters';
+import { getSubtaskStats } from '@/composables/useTaskHierarchy';
 import { isTaskOverdue } from '@/composables/useTaskTimeliness';
 
 const PANEL_WIDTH_KEY = 'va-qlda.taskPanel.width';
@@ -61,9 +62,22 @@ export function useTaskWorkspace(taskSource, ctx = {}) {
         return task.value.watchers.some((w) => w.id === id);
     });
 
+    const subtaskStats = computed(() => {
+        const t = task.value;
+        if (!t?.id || t.parent_id) return null;
+        return getSubtaskStats(t, allTasks.value);
+    });
+
     const estimateHours = computed(() => {
         const v = task.value?.estimate_hours;
-        return v != null && v !== '' ? Number(v) : null;
+        if (v != null && v !== '') return Number(v);
+        const fromChildren = subtaskStats.value?.hours;
+        return fromChildren > 0 ? fromChildren : null;
+    });
+
+    const estimateFromSubtasksOnly = computed(() => {
+        const v = task.value?.estimate_hours;
+        return (v == null || v === '') && (subtaskStats.value?.hours > 0);
     });
 
     const loggedHours = computed(() => {
@@ -196,7 +210,13 @@ export function useTaskWorkspace(taskSource, ctx = {}) {
             { key: 'status', label: 'Trạng thái', icon: 'status', value: t.status?.label, color: t.status?.color },
             { key: 'priority', label: 'Ưu tiên', icon: 'flag', value: t.priority?.label, color: t.priority?.color },
             { key: 'progress', label: 'Tiến độ', icon: 'progress', value: `${progressPct.value}%`, color: progressPct.value >= 100 ? 'emerald' : 'sky' },
-            { key: 'estimate', label: 'Ước tính', icon: 'timer', value: estimateHours.value != null ? `${estimateHours.value}h` : '—', color: 'slate' },
+            {
+                key: 'estimate',
+                label: estimateFromSubtasksOnly.value ? 'Ước tính (con)' : 'Ước tính',
+                icon: 'timer',
+                value: estimateHours.value != null ? `${estimateHours.value}h` : '—',
+                color: 'slate',
+            },
             { key: 'logged', label: 'Đã log', icon: 'clock', value: `${loggedHours.value}h`, color: loggedHours.value > (estimateHours.value || Infinity) ? 'rose' : 'emerald' },
             { key: 'start', label: 'Bắt đầu', icon: 'calendar', value: t.start_date ? formatShortDate(t.start_date) : '—', color: 'slate' },
             { key: 'due', label: 'Deadline', icon: 'calendar-check', value: t.due_date ? formatShortDate(t.due_date) : '—', color: isTaskOverdue(t) ? 'rose' : 'slate' },
@@ -214,6 +234,8 @@ export function useTaskWorkspace(taskSource, ctx = {}) {
         isWatching,
         epics,
         estimateHours,
+        estimateFromSubtasksOnly,
+        subtaskStats,
         loggedHours,
         remainingHours,
         progressPct,
