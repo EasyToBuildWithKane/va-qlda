@@ -106,6 +106,23 @@ class TaskController extends Controller
     }
 
     /**
+     * Deep link cũ / bookmark: chuyển về trang dự án + ?task= (Inertia).
+     */
+    public function show(Request $request, Project $project, Task $task): RedirectResponse
+    {
+        $this->authorize('view', $project);
+        abort_unless($task->project_id === $project->id, 404);
+
+        $query = array_filter([
+            'tab' => $request->query('tab', 'sprints'),
+            'task' => $task->id,
+            'discussion' => $request->query('discussion'),
+        ], fn ($v) => $v !== null && $v !== '');
+
+        return redirect()->to(route('projects.show', $project).'?'.http_build_query($query));
+    }
+
+    /**
      * Lightweight status/progress change used by the Kanban board and Gantt.
      */
     public function updateStatus(Request $request, Project $project, Task $task): RedirectResponse

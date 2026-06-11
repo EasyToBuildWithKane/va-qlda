@@ -3,12 +3,15 @@
 namespace Tests\Feature;
 
 use App\Models\Department;
+use App\Models\Employee;
 use App\Models\Project;
 use App\Models\SystemAccount;
 use App\Support\Enums\ProjectScope;
 use App\Support\Enums\ProjectStatus;
 use App\Support\Enums\ProjectType;
 use App\Support\Enums\SystemRole;
+use App\Support\Enums\TaskPriority;
+use App\Support\Enums\TaskStatus;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -35,6 +38,22 @@ class ProjectTest extends TestCase
 
     public function test_admin_can_list_projects(): void
     {
+        $this->actingAs($this->admin(), 'system')
+            ->get('/projects')
+            ->assertOk();
+    }
+
+    public function test_project_index_merges_task_assignees_into_member_avatars(): void
+    {
+        $project = Project::factory()->create();
+        $assignee = Employee::factory()->create();
+        $project->tasks()->create([
+            'title' => 'Assigned work',
+            'status' => TaskStatus::Todo,
+            'priority' => TaskPriority::Medium,
+            'assignee_id' => $assignee->id,
+        ]);
+
         $this->actingAs($this->admin(), 'system')
             ->get('/projects')
             ->assertOk();

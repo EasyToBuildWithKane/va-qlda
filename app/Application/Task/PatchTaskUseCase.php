@@ -32,6 +32,12 @@ class PatchTaskUseCase
         $task->update($validated);
         $changes = collect($task->getChanges())->except(['updated_at'])->all();
         $fresh = $task->fresh();
+
+        if (array_key_exists('assignee_id', $validated)) {
+            $assigneeId = $validated['assignee_id'];
+            $fresh->assignees()->sync($assigneeId ? [(int) $assigneeId] : []);
+        }
+
         TaskTimeliness::syncWorkStartedAt($fresh, $previousStatus);
 
         if (isset($changes['status'])) {

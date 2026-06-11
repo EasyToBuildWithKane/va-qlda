@@ -68,7 +68,9 @@ class UpdateTaskUseCase
         }
 
         if ($dependencies !== null) {
-            $beforeDeps = $task->dependencies()->pluck('id')->sort()->values()->all();
+            $depRelation = $task->dependencies();
+            $depIdColumn = $depRelation->getRelated()->qualifyColumn('id');
+            $beforeDeps = $depRelation->pluck($depIdColumn)->sort()->values()->all();
             $task->dependencies()->sync($dependencies);
             $afterDeps = collect($dependencies)->map(fn ($id) => (int) $id)->sort()->values()->all();
             if ($beforeDeps !== $afterDeps) {

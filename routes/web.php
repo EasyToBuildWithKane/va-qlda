@@ -103,6 +103,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/{project}/sprints/{sprint}', [SprintController::class, 'destroy'])->name('sprints.destroy');
 
         // Tasks
+        Route::get('/{project}/tasks/{task}', [TaskController::class, 'show'])->name('tasks.show');
         Route::post('/{project}/tasks', [TaskController::class, 'store'])->name('tasks.store');
         Route::post('/{project}/tasks/bulk', [TaskController::class, 'bulkStore'])->name('tasks.bulk');
         Route::post('/{project}/tasks/import', [TaskController::class, 'import'])->name('tasks.import');

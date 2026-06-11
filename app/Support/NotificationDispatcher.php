@@ -210,7 +210,7 @@ class NotificationDispatcher
             'actor' => $actor,
             'project_id' => $project->id,
             'sprint_id' => $sprint->id,
-            'action_url' => "/projects/{$project->id}?tab=sprint",
+            'action_url' => "/projects/{$project->id}?tab=sprints",
         ]);
     }
 

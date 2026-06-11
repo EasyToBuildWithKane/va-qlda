@@ -115,6 +115,25 @@ class TaskTest extends TestCase
         $this->assertDatabaseHas('tasks', ['id' => $task->id, 'title' => 'New Title']);
     }
 
+    public function test_admin_can_update_task_dependencies(): void
+    {
+        $project = Project::factory()->create();
+        $predecessor = $project->tasks()->create($this->taskPayload(['title' => 'Predecessor']));
+        $task = $project->tasks()->create($this->taskPayload(['title' => 'Successor']));
+
+        $this->actingAs($this->admin(), 'system')
+            ->put("/projects/{$project->id}/tasks/{$task->id}", $this->taskPayload([
+                'title' => 'Successor',
+                'dependencies' => [$predecessor->id],
+            ]))
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('task_dependencies', [
+            'task_id' => $task->id,
+            'depends_on_id' => $predecessor->id,
+        ]);
+    }
+
     public function test_admin_can_put_subtask_estimate_hours_only(): void
     {
         $project = Project::factory()->create();
@@ -152,6 +171,16 @@ class TaskTest extends TestCase
     }
 
     // ─── Status patch ─────────────────────────────────────────────────────────
+
+    public function test_task_deep_link_redirects_to_project_show_with_query(): void
+    {
+        $project = Project::factory()->create();
+        $task = $project->tasks()->create($this->taskPayload());
+
+        $this->actingAs($this->admin(), 'system')
+            ->get("/projects/{$project->id}/tasks/{$task->id}")
+            ->assertRedirect("/projects/{$project->id}?".http_build_query(['tab' => 'sprints', 'task' => $task->id]));
+    }
 
     public function test_admin_can_patch_task_status(): void
     {

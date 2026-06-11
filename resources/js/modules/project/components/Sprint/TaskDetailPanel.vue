@@ -1,6 +1,6 @@
 <script setup>
 /* eslint-disable vue/no-v-html -- task description HTML from TipTap editor */
-import { ref, computed, watch, toRef, unref, isRef } from 'vue';
+import { ref, computed, watch, toRef, unref, isRef, nextTick } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
 import MarkdownIt from 'markdown-it';
 import AppIcon from '@/Components/AppIcon.vue';
@@ -54,6 +54,13 @@ const tab = ref(props.initialPanelTab || 'overview');
 const showStatusMenu = ref(false);
 const showAssignMenu = ref(false);
 const assignMenuSearch = ref('');
+const assignSearchRef = ref(null);
+
+watch(showAssignMenu, async (open) => {
+    if (!open) return;
+    await nextTick();
+    assignSearchRef.value?.focus({ preventScroll: true });
+});
 const collaborationRef = ref(null);
 
 const { patchTaskStatus } = useSprintTaskStatusPatch(props.projectId, props.statusOptions);
@@ -90,7 +97,8 @@ const descriptionHtml = computed(() => {
 
 const taskUrl = computed(() => {
     if (typeof window === 'undefined' || !activeTask.value) return '';
-    return `${window.location.origin}/projects/${props.projectId}#task-${activeTask.value.id}`;
+    const q = new URLSearchParams({ tab: 'sprints', task: String(activeTask.value.id) });
+    return `${window.location.origin}/projects/${props.projectId}?${q}`;
 });
 
 const copyLink = async () => {
@@ -400,11 +408,11 @@ const worklogList = computed(() => normalizeEntities(activeTask.value?.worklogs)
                 >
                   <div class="border-b border-slate-100 p-1.5 dark:border-slate-700">
                     <input
+                      ref="assignSearchRef"
                       v-model="assignMenuSearch"
                       type="text"
                       class="input w-full py-1 text-xs"
                       placeholder="Tìm theo tên…"
-                      autofocus
                     >
                   </div>
                   <div class="max-h-44 overflow-y-auto py-1">
