@@ -2,6 +2,7 @@
 /* eslint-disable vue/no-v-html -- Laravel pagination link labels */
 import { Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
+import AppIcon from '@/Components/AppIcon.vue';
 
 const props = defineProps({
     meta: { type: Object, default: null },
@@ -31,6 +32,12 @@ const rangeLabel = computed(() => {
 });
 
 const isBar = computed(() => props.variant === 'bar');
+
+const showNav = computed(() => (props.meta?.links?.length ?? 0) > 3);
+
+const linkBtnClass = (active) => (active
+    ? 'bg-brand text-white shadow-sm ring-1 ring-brand/20'
+    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-800');
 </script>
 
 <template>
@@ -66,8 +73,8 @@ const isBar = computed(() => props.variant === 'bar');
           </label>
 
           <nav
-            v-if="meta?.links?.length > 3"
-            class="flex flex-wrap gap-1"
+            v-if="showNav"
+            class="inline-flex flex-wrap items-center gap-0.5 rounded-btn border border-slate-200 bg-white p-0.5 shadow-sm"
             aria-label="Phân trang"
           >
             <template
@@ -77,10 +84,8 @@ const isBar = computed(() => props.variant === 'bar');
               <button
                 v-if="client && link.page != null"
                 type="button"
-                class="inline-flex min-w-[2rem] items-center justify-center rounded-btn px-2 py-1 text-xs font-medium transition"
-                :class="link.active
-                  ? 'bg-brand text-white'
-                  : 'text-slate-600 hover:bg-slate-100'"
+                class="inline-flex h-8 min-w-[2rem] items-center justify-center rounded-md px-2 text-xs font-medium transition"
+                :class="linkBtnClass(link.active)"
                 :aria-current="link.active ? 'page' : undefined"
                 @click="onPageLink(link)"
               >
@@ -90,16 +95,15 @@ const isBar = computed(() => props.variant === 'bar');
                 v-else-if="!client && link.url"
                 :href="link.url"
                 preserve-scroll
-                class="inline-flex min-w-[2rem] items-center justify-center rounded-btn px-2 py-1 text-xs font-medium transition"
-                :class="link.active
-                  ? 'bg-brand text-white'
-                  : 'text-slate-600 hover:bg-slate-100'"
+                class="inline-flex h-8 min-w-[2rem] items-center justify-center rounded-md px-2 text-xs font-medium transition"
+                :class="linkBtnClass(link.active)"
+                :aria-current="link.active ? 'page' : undefined"
               >
                 <span v-html="link.label" />
               </Link>
               <span
                 v-else
-                class="inline-flex min-w-[2rem] items-center justify-center px-2 py-1 text-xs text-slate-300"
+                class="inline-flex h-8 min-w-[2rem] items-center justify-center px-2 text-xs text-slate-300"
                 v-html="link.label"
               />
             </template>
@@ -111,36 +115,60 @@ const isBar = computed(() => props.variant === 'bar');
 
   <div
     v-else
-    class="flex flex-col gap-3 border-t border-slate-100 bg-gradient-to-b from-slate-50/80 to-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
+    class="flex flex-col gap-3 border-t border-slate-200/70 bg-slate-50/40 px-5 py-3 sm:flex-row sm:items-center sm:justify-between"
   >
-    <p class="text-sm text-slate-500">
-      <span class="font-medium text-slate-700">{{ rangeLabel }}</span>
-      <span class="text-slate-400"> bản ghi</span>
+    <p class="flex items-center gap-2 text-xs text-slate-500">
+      <span
+        class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white text-brand shadow-sm ring-1 ring-slate-200/80"
+        aria-hidden="true"
+      >
+        <AppIcon
+          name="list"
+          :size="14"
+        />
+      </span>
+      <span>
+        <span class="text-slate-500">Hiển thị </span>
+        <span class="font-semibold tabular-nums text-slate-800">{{ rangeLabel }}</span>
+        <span class="text-slate-400"> bản ghi</span>
+      </span>
     </p>
 
-    <div class="flex flex-wrap items-center justify-end gap-3">
-      <label class="inline-flex items-center gap-2 rounded-btn border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600 shadow-sm">
-        <span class="text-xs font-medium text-slate-500">Hiển thị</span>
-        <select
-          :value="perPage"
-          class="h-7 min-w-[3.25rem] cursor-pointer border-0 bg-transparent py-0 pl-0 pr-6 text-sm font-semibold text-slate-800 focus:ring-0"
-          aria-label="Số dòng mỗi trang"
-          @change="emit('update:perPage', Number($event.target.value))"
-        >
-          <option
-            v-for="n in perPageOptions"
-            :key="n"
-            :value="n"
+    <div
+      class="flex flex-wrap items-center gap-2 sm:justify-end"
+      :class="showNav ? 'sm:gap-3' : ''"
+    >
+      <label
+        class="inline-flex h-9 items-center gap-2 rounded-btn border border-slate-200/90 bg-white pl-3 pr-2 text-slate-600 shadow-sm transition hover:border-slate-300"
+      >
+        <span class="text-xs font-medium text-slate-500">Số dòng</span>
+        <span class="relative inline-flex items-center">
+          <select
+            :value="perPage"
+            class="h-7 min-w-[2.75rem] cursor-pointer appearance-none rounded-md border-0 bg-slate-50 py-0 pl-2 pr-7 text-sm font-semibold tabular-nums text-slate-800 ring-1 ring-slate-200/80 transition hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand/25"
+            aria-label="Số dòng mỗi trang"
+            @change="emit('update:perPage', Number($event.target.value))"
           >
-            {{ n }}
-          </option>
-        </select>
-        <span class="text-xs text-slate-500">/ trang</span>
+            <option
+              v-for="n in perPageOptions"
+              :key="n"
+              :value="n"
+            >
+              {{ n }}
+            </option>
+          </select>
+          <AppIcon
+            name="chevron-down"
+            :size="14"
+            class="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400"
+          />
+        </span>
+        <span class="text-xs text-slate-400">/ trang</span>
       </label>
 
       <nav
-        v-if="meta?.links?.length > 3"
-        class="inline-flex items-center gap-0.5 rounded-btn border border-slate-200 bg-white p-0.5 shadow-sm"
+        v-if="showNav"
+        class="inline-flex items-center gap-0.5 rounded-btn border border-slate-200/90 bg-white p-0.5 shadow-sm"
         aria-label="Phân trang"
       >
         <template
@@ -150,10 +178,8 @@ const isBar = computed(() => props.variant === 'bar');
           <button
             v-if="client && link.page != null"
             type="button"
-            class="inline-flex h-8 min-w-[2rem] items-center justify-center rounded-md px-2.5 text-sm font-medium transition"
-            :class="link.active
-              ? 'bg-brand text-white shadow-sm'
-              : 'text-slate-600 hover:bg-slate-100'"
+            class="inline-flex h-8 min-w-[2.25rem] items-center justify-center rounded-md px-2.5 text-sm font-medium transition"
+            :class="linkBtnClass(link.active)"
             :aria-current="link.active ? 'page' : undefined"
             @click="onPageLink(link)"
           >
@@ -163,17 +189,15 @@ const isBar = computed(() => props.variant === 'bar');
             v-else-if="!client && link.url"
             :href="link.url"
             preserve-scroll
-            class="inline-flex h-8 min-w-[2rem] items-center justify-center rounded-md px-2.5 text-sm font-medium transition"
-            :class="link.active
-              ? 'bg-brand text-white shadow-sm'
-              : 'text-slate-600 hover:bg-slate-100'"
+            class="inline-flex h-8 min-w-[2.25rem] items-center justify-center rounded-md px-2.5 text-sm font-medium transition"
+            :class="linkBtnClass(link.active)"
             :aria-current="link.active ? 'page' : undefined"
           >
             <span v-html="link.label" />
           </Link>
           <span
             v-else
-            class="inline-flex h-8 min-w-[2rem] items-center justify-center px-2.5 text-sm text-slate-300"
+            class="inline-flex h-8 min-w-[2.25rem] items-center justify-center px-2.5 text-sm text-slate-300"
             v-html="link.label"
           />
         </template>
