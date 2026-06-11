@@ -95,15 +95,15 @@ class ProjectIndexQuery
 
         $projectIds = $projects->pluck('id')->all();
 
-        $assigneeRows = DB::table('tasks')
-            ->leftJoin('task_assignees', 'tasks.id', '=', 'task_assignees.task_id')
-            ->whereIn('tasks.project_id', $projectIds)
-            ->whereNull('tasks.deleted_at')
+        $assigneeRows = DB::table('tasks as t')
+            ->leftJoin('task_assignees as ta', 't.id', '=', 'ta.task_id')
+            ->whereIn('t.project_id', $projectIds)
+            ->whereNull('t.deleted_at')
             ->where(function ($q) {
-                $q->whereNotNull('tasks.assignee_id')
-                    ->orWhereNotNull('task_assignees.employee_id');
+                $q->whereNotNull('t.assignee_id')
+                    ->orWhereNotNull('ta.employee_id');
             })
-            ->selectRaw('tasks.project_id, COALESCE(task_assignees.employee_id, tasks.assignee_id) as employee_id')
+            ->selectRaw('t.project_id, COALESCE(ta.employee_id, t.assignee_id) as employee_id')
             ->distinct()
             ->get()
             ->groupBy('project_id');
