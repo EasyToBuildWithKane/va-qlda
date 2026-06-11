@@ -42,9 +42,14 @@ class BlockerResolvedTelegramFormatter
             .$this->escape($oldStatus->labelVi()).' → <b>'.$this->escape($newStatus->labelVi()).'</b>';
         $lines[] = $this->bracket('Mức độ').' '.$this->escape($blocker->severity->label());
 
-        $projectLabel = $blocker->project?->code ?? $blocker->project?->name;
-        if (filled($projectLabel)) {
-            $lines[] = $this->bracket('Dự án').' '.$this->escape((string) $projectLabel);
+        if ($blocker->project) {
+            $projectParts = array_values(array_filter([
+                filled($blocker->project->code) ? (string) $blocker->project->code : null,
+                filled($blocker->project->name) ? (string) $blocker->project->name : null,
+            ]));
+            if ($projectParts !== []) {
+                $lines[] = $this->bracket('Dự án').' '.$this->escape(implode(' — ', $projectParts));
+            }
         }
 
         if ($blocker->owner) {
@@ -60,13 +65,15 @@ class BlockerResolvedTelegramFormatter
         $this->appendOptionalField($lines, 'Nguyên nhân', $blocker->root_cause);
         $this->appendOptionalField($lines, 'Cách xử lý', $blocker->resolution);
 
-        if ($blocker->resolved_at) {
-            $lines[] = $this->bracket('Thời điểm').' '.$blocker->resolved_at->format('d/m/Y H:i');
-        }
+        $statusChangedAt = $blocker->updated_at ?? now();
+        $lines[] = $this->bracket('Cập nhật trạng thái lúc').' '
+            .$statusChangedAt->timezone(config('app.timezone'))->format('d/m/Y H:i');
 
-        $url = route('blockers.index', array_filter([
-            'q' => $blocker->code ?: $blocker->title,
-        ]));
+        $url = $blocker->project_id
+            ? route('projects.show', ['project' => $blocker->project_id]).'?tab=blockers'
+            : route('blockers.index', array_filter([
+                'q' => $blocker->code ?: $blocker->title,
+            ]));
 
         $lines[] = '';
         $lines[] = '<a href="'.$this->escapeAttr($url).'">'.$this->bracket('Xem trên hệ thống').'</a>';

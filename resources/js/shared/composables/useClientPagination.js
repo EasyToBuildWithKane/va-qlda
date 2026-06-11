@@ -13,11 +13,43 @@ function loadPerPage(storageKey, fallback = 10) {
     return fallback;
 }
 
+/** @returns {number[]} Page numbers with gaps collapsed (ellipsis added separately). */
+export function clientPaginationPageNumbers(current, last, onEachSide = 2) {
+    if (last <= 0) return [];
+    if (last === 1) return [1];
+
+    const left = Math.max(2, current - onEachSide);
+    const right = Math.min(last - 1, current + onEachSide);
+    const pages = [1];
+
+    if (left > 2) {
+        pages.push(null);
+    } else {
+        for (let i = 2; i < left; i++) pages.push(i);
+    }
+
+    for (let i = left; i <= right; i++) {
+        pages.push(i);
+    }
+
+    if (right < last - 1) {
+        pages.push(null);
+    } else {
+        for (let i = right + 1; i < last; i++) pages.push(i);
+    }
+
+    if (last > 1) {
+        pages.push(last);
+    }
+
+    return pages;
+}
+
 /**
  * @param {import('vue').Ref<Array>|import('vue').ComputedRef<Array>} itemsRef
  * @param {string} [storageKey]
  */
-export function buildClientPaginationLinks(current, last) {
+export function buildClientPaginationLinks(current, last, onEachSide = 2) {
     const links = [];
     links.push({
         label: '&laquo;',
@@ -25,11 +57,15 @@ export function buildClientPaginationLinks(current, last) {
         active: false,
     });
 
-    for (let i = 1; i <= last; i++) {
+    for (const entry of clientPaginationPageNumbers(current, last, onEachSide)) {
+        if (entry === null) {
+            links.push({ label: '…', page: null, active: false });
+            continue;
+        }
         links.push({
-            label: String(i),
-            page: i,
-            active: i === current,
+            label: String(entry),
+            page: entry,
+            active: entry === current,
         });
     }
 

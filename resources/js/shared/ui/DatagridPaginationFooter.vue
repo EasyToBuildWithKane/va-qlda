@@ -157,7 +157,7 @@ const linkBtnClass = (active) => (active
 
       <nav
         v-if="showNav"
-        class="inline-flex items-center gap-px rounded-md border border-slate-200/90 bg-white p-px shadow-sm"
+        class="inline-flex max-w-full flex-wrap items-center justify-end gap-px rounded-md border border-slate-200/90 bg-white p-px shadow-sm"
         aria-label="Phân trang"
       >
         <template

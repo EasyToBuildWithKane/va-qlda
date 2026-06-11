@@ -310,7 +310,10 @@ class BlockerTest extends TestCase
             'api.telegram.org/*' => Http::response(['ok' => true], 200),
         ]);
 
-        $project = Project::factory()->create();
+        $project = Project::factory()->create([
+            'code' => 'PRJ-025',
+            'name' => 'Chi tiết chi phí chuyến',
+        ]);
         $lead = $this->lead();
         $blocker = $this->createBlocker($project, $lead);
         $blocker->update([
@@ -327,13 +330,16 @@ class BlockerTest extends TestCase
             ])
             ->assertRedirect();
 
-        Http::assertSent(function ($request) {
+        Http::assertSent(function ($request) use ($project) {
             return str_contains($request->url(), 'api.telegram.org/bottest-bot-token/sendMessage')
                 && ($request['chat_id'] ?? null) === '-100888'
                 && str_contains($request['text'], 'Vướng mắc đã xử lý')
                 && str_contains($request['text'], 'Chuyển trạng thái')
                 && str_contains($request['text'], 'Chờ API HRM')
-                && str_contains($request['text'], 'Đã phối hợp team HRM');
+                && str_contains($request['text'], 'Đã phối hợp team HRM')
+                && str_contains($request['text'], '[Dự án] PRJ-025 — Chi tiết chi phí chuyến')
+                && str_contains($request['text'], '[Cập nhật trạng thái lúc]')
+                && str_contains($request['text'], "/projects/{$project->id}?tab=blockers");
         });
     }
 
@@ -363,7 +369,8 @@ class BlockerTest extends TestCase
 
         Http::assertSent(function ($request) {
             return str_contains($request['text'], 'Vướng mắc đang xử lý')
-                && str_contains($request['text'], 'Đang mở →');
+                && str_contains($request['text'], 'Đang mở →')
+                && str_contains($request['text'], '[Cập nhật trạng thái lúc]');
         });
     }
 
