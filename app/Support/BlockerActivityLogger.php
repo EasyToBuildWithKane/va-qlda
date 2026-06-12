@@ -73,6 +73,27 @@ class BlockerActivityLogger
         );
     }
 
+    public static function recheckApplied(
+        Blocker $blocker,
+        string $result,
+        ?string $note,
+        ?SystemAccount $account,
+    ): void {
+        $label = match ($result) {
+            'passed' => 'Kiểm tra lại: đạt — đóng vướng mắc',
+            'failed' => 'Kiểm tra lại: không đạt — trả về đang xử lý',
+            default => 'Kiểm tra lại',
+        };
+
+        self::log(
+            $blocker,
+            'recheck',
+            $label,
+            array_filter(['result' => $result, 'note' => $note]),
+            $account?->employee_id,
+        );
+    }
+
     public static function commentAdded(Blocker $blocker, ?SystemAccount $account): void
     {
         self::log(

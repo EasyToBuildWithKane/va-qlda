@@ -21,10 +21,11 @@ const props = defineProps({
     initialTab: { type: String, default: 'detail' },
     canComment: { type: Boolean, default: false },
     canUpdate: { type: Boolean, default: false },
+    canRecheck: { type: Boolean, default: false },
     partialReloadKeys: { type: Array, default: () => ['blockers'] },
 });
 
-const emit = defineEmits(['close', 'edit-resolution']);
+const emit = defineEmits(['close', 'edit-resolution', 'recheck']);
 
 const activeTab = ref('detail');
 
@@ -90,6 +91,8 @@ const metaItems = computed(() => {
     if (b.raised_at) items.push({ label: 'Ngày báo', value: date(b.raised_at) });
     items.push({ label: 'Hạn xử lý', value: b.due_date ? date(b.due_date) : '—' });
     if (b.resolved_at) items.push({ label: 'Đã xong', value: datetime(b.resolved_at) });
+    if (b.recheck_result?.label) items.push({ label: 'Kiểm tra', value: b.recheck_result.label });
+    if (b.rechecked_at) items.push({ label: 'Kiểm tra lúc', value: datetime(b.rechecked_at) });
     if (b.updated_at) items.push({ label: 'Cập nhật', value: datetime(b.updated_at) });
     return items;
 });
@@ -320,6 +323,18 @@ const metaItems = computed(() => {
               {{ blocker.resolution?.trim() || 'Chưa có hướng xử lý.' }}
             </p>
           </section>
+
+          <section
+            v-if="blocker.recheck_note?.trim()"
+            class="blocker-detail-section border-rose-200/80 bg-rose-50/40"
+          >
+            <h3 class="blocker-detail-label text-rose-800/90">
+              Ghi chú kiểm tra lại
+            </h3>
+            <p class="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-slate-800">
+              {{ blocker.recheck_note.trim() }}
+            </p>
+          </section>
         </div>
 
         <div
@@ -338,7 +353,19 @@ const metaItems = computed(() => {
         </div>
       </div>
 
-      <div class="mt-5 flex justify-end border-t border-slate-100 pt-4">
+      <div class="mt-5 flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4">
+        <button
+          v-if="canRecheck"
+          type="button"
+          class="btn-primary mr-auto inline-flex h-9 items-center gap-1.5 px-4 text-sm"
+          @click="emit('recheck', blocker)"
+        >
+          <AppIcon
+            name="done"
+            :size="15"
+          />
+          Kiểm tra lại
+        </button>
         <button
           type="button"
           class="btn-ghost h-9 px-4 text-sm"

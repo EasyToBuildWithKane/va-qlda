@@ -34,6 +34,7 @@ class ProjectShowDataLoader
             'blockers' => fn ($q) => $q->with([
                 'raisedBy',
                 'owner',
+                'recheckedBy',
                 'comments' => fn ($c) => $c->with('author')->latest(),
                 'attachments' => fn ($a) => $a->with('uploadedBy')->latest(),
                 'activities' => fn ($a) => $a->with('employee')->latest(),

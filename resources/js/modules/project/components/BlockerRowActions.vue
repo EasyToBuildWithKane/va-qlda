@@ -8,7 +8,7 @@ const props = defineProps({
     blocker: { type: Object, required: true },
 });
 
-const emit = defineEmits(['detail', 'comment', 'resolve', 'edit', 'delete']);
+const emit = defineEmits(['detail', 'comment', 'resolve', 'recheck', 'edit', 'delete']);
 
 const open = ref(false);
 const triggerRef = ref(null);
@@ -146,6 +146,20 @@ function run(emitName) {
           />
           Bình luận
           <span class="ml-auto tabular-nums text-xs text-slate-400">{{ blocker.comments_count ?? 0 }}</span>
+        </button>
+        <button
+          v-if="blocker.can?.recheck"
+          type="button"
+          role="menuitem"
+          class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-amber-900 transition hover:bg-amber-50"
+          @click.stop="run('recheck')"
+        >
+          <AppIcon
+            name="done"
+            :size="14"
+            class="shrink-0"
+          />
+          Kiểm tra lại
         </button>
         <button
           v-if="blocker.can?.update && !isTerminal"

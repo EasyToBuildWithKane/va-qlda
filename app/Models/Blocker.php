@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Enums\BlockerRecheckResult;
 use App\Support\Enums\BlockerSeverity;
 use App\Support\Enums\BlockerStatus;
 use Illuminate\Database\Eloquent\Builder;
@@ -26,6 +27,10 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
  * @property string|null $root_cause
  * @property \Illuminate\Support\Carbon|null $due_date
  * @property string|null $resolution
+ * @property BlockerRecheckResult|null $recheck_result
+ * @property string|null $recheck_note
+ * @property \Illuminate\Support\Carbon|null $rechecked_at
+ * @property int|null $rechecked_by_id
  * @property array<int, array{label?: string, url: string}>|null $evidence_links
  */
 class Blocker extends Model
@@ -44,6 +49,10 @@ class Blocker extends Model
         'raised_at',
         'due_date',
         'resolved_at',
+        'recheck_result',
+        'recheck_note',
+        'rechecked_at',
+        'rechecked_by_id',
         'resolution',
         'evidence_links',
     ];
@@ -54,6 +63,8 @@ class Blocker extends Model
         'raised_at' => 'datetime',
         'due_date' => 'date',
         'resolved_at' => 'datetime',
+        'recheck_result' => BlockerRecheckResult::class,
+        'rechecked_at' => 'datetime',
         'evidence_links' => 'array',
     ];
 
@@ -148,6 +159,11 @@ class Blocker extends Model
     public function owner(): BelongsTo
     {
         return $this->belongsTo(Employee::class, 'owner_id');
+    }
+
+    public function recheckedBy(): BelongsTo
+    {
+        return $this->belongsTo(Employee::class, 'rechecked_by_id');
     }
 
     public function comments(): MorphMany

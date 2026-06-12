@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Http\Resources\Concerns\PresentsEntities;
+use App\Support\BlockerRecheck;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -45,6 +46,11 @@ class BlockerResource extends JsonResource
             'raised_at' => $this->raised_at?->toIso8601String(),
             'due_date' => $this->due_date?->toDateString(),
             'resolved_at' => $this->resolved_at?->toIso8601String(),
+            'recheck_result' => $this->recheck_result ? $this->enum($this->recheck_result) : null,
+            'recheck_note' => $this->recheck_note,
+            'rechecked_at' => $this->rechecked_at?->toIso8601String(),
+            'rechecked_by' => $this->whenLoaded('recheckedBy', fn () => $this->person($this->recheckedBy)),
+            'needs_recheck' => BlockerRecheck::needsRecheck($this->resource),
             'resolution' => $this->resolution,
             'evidence_links' => $this->evidence_links ?? [],
             'updated_at' => $this->updated_at?->toIso8601String(),
@@ -59,6 +65,7 @@ class BlockerResource extends JsonResource
                 'update' => $user->can('update', $this->resource),
                 'delete' => $user->can('delete', $this->resource),
                 'comment' => $user->can('comment', $this->resource),
+                'recheck' => $user->can('recheck', $this->resource) && BlockerRecheck::needsRecheck($this->resource),
             ] : null,
         ];
     }

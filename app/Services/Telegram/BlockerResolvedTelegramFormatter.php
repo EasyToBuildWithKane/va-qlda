@@ -17,11 +17,16 @@ class BlockerResolvedTelegramFormatter
         SystemAccount $actor,
         BlockerStatus $oldStatus,
         BlockerStatus $newStatus,
+        ?string $recheckNote = null,
     ): string {
         $headline = match ($newStatus) {
             BlockerStatus::Resolved => 'Vướng mắc đã xử lý',
-            BlockerStatus::Closed => 'Vướng mắc đã đóng',
-            BlockerStatus::InProgress => 'Vướng mắc đang xử lý',
+            BlockerStatus::Closed => $oldStatus === BlockerStatus::Resolved
+                ? 'Kiểm tra lại đạt — vướng mắc đã đóng'
+                : 'Vướng mắc đã đóng',
+            BlockerStatus::InProgress => $oldStatus === BlockerStatus::Resolved
+                ? 'Kiểm tra lại không đạt — cần xử lý lại'
+                : 'Vướng mắc đang xử lý',
             BlockerStatus::Blocked => 'Vướng mắc bị chặn',
             BlockerStatus::Open => 'Vướng mắc mở lại',
         };
@@ -64,6 +69,7 @@ class BlockerResolvedTelegramFormatter
 
         $this->appendOptionalField($lines, 'Nguyên nhân', $blocker->root_cause);
         $this->appendOptionalField($lines, 'Cách xử lý', $blocker->resolution);
+        $this->appendOptionalField($lines, 'Ghi chú kiểm tra lại', $recheckNote);
 
         $statusChangedAt = $blocker->updated_at ?? now();
         $lines[] = $this->bracket('Cập nhật trạng thái lúc').' '

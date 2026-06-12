@@ -18,6 +18,7 @@ class BlockerResolvedTelegramNotifier
         SystemAccount $actor,
         string $oldStatus,
         string $newStatus,
+        ?string $recheckNote = null,
     ): void {
         if (! config('telegram.blocker_resolved')) {
             return;
@@ -37,7 +38,7 @@ class BlockerResolvedTelegramNotifier
         $blocker->loadMissing(['project', 'owner', 'raisedBy']);
 
         $this->telegram->sendMessage(
-            $this->formatter->format($blocker, $actor, $old, $new),
+            $this->formatter->format($blocker, $actor, $old, $new, $recheckNote),
             'HTML',
             $chatId,
         );

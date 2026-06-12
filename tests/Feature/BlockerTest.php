@@ -394,6 +394,96 @@ class BlockerTest extends TestCase
         $this->assertSame(BlockerStatus::Resolved, $blocker->fresh()->status);
     }
 
+    public function test_raiser_recheck_fail_reopens_blocker_and_notifies_telegram(): void
+    {
+        config([
+            'telegram.enabled' => true,
+            'telegram.bot_token' => 'test-bot-token',
+            'telegram.blocker_resolved' => true,
+            'telegram.blocker_chat_id' => '-100888',
+        ]);
+
+        Http::fake([
+            'api.telegram.org/*' => Http::response(['ok' => true], 200),
+        ]);
+
+        $project = Project::factory()->create();
+        $raiser = $this->member();
+        $blocker = $this->createBlocker($project, $raiser);
+        $blocker->update([
+            'status' => BlockerStatus::Resolved->value,
+            'resolved_at' => now(),
+            'recheck_result' => 'pending',
+            'resolution' => 'Đã sửa xong theo yêu cầu.',
+        ]);
+
+        $this->actingAs($raiser, 'system')
+            ->post("/blockers/{$blocker->id}/recheck", [
+                'result' => 'failed',
+                'note' => 'Chưa đúng quy trình phê duyệt.',
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $blocker->refresh();
+        $this->assertSame(BlockerStatus::InProgress, $blocker->status);
+        $this->assertSame('failed', $blocker->recheck_result->value);
+        $this->assertSame('Chưa đúng quy trình phê duyệt.', $blocker->recheck_note);
+        $this->assertNull($blocker->resolved_at);
+
+        Http::assertSent(function ($request) {
+            return str_contains($request['text'], 'Kiểm tra lại không đạt')
+                && str_contains($request['text'], 'Chưa đúng quy trình phê duyệt.');
+        });
+    }
+
+    public function test_raiser_recheck_pass_closes_blocker(): void
+    {
+        config(['telegram.enabled' => false]);
+        Http::fake();
+
+        $project = Project::factory()->create();
+        $raiser = $this->member();
+        $blocker = $this->createBlocker($project, $raiser);
+        $blocker->update([
+            'status' => BlockerStatus::Resolved->value,
+            'resolved_at' => now(),
+            'recheck_result' => 'pending',
+        ]);
+
+        $this->actingAs($raiser, 'system')
+            ->post("/blockers/{$blocker->id}/recheck", [
+                'result' => 'passed',
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $fresh = $blocker->fresh();
+        $this->assertSame(BlockerStatus::Closed, $fresh->status);
+        $this->assertSame('passed', $fresh->recheck_result->value);
+    }
+
+    public function test_resolving_blocker_sets_recheck_pending(): void
+    {
+        config(['telegram.enabled' => false]);
+        Http::fake();
+
+        $project = Project::factory()->create();
+        $blocker = $this->createBlocker($project);
+
+        $this->actingAs($this->admin(), 'system')
+            ->put("/blockers/{$blocker->id}", [
+                'title' => $blocker->title,
+                'severity' => BlockerSeverity::High->value,
+                'status' => BlockerStatus::Resolved->value,
+            ])
+            ->assertRedirect();
+
+        $fresh = $blocker->fresh();
+        $this->assertSame(BlockerStatus::Resolved, $fresh->status);
+        $this->assertSame('pending', $fresh->recheck_result->value);
+    }
+
     // ─── Import ───────────────────────────────────────────────────────────────
 
     public function test_admin_can_import_blockers(): void

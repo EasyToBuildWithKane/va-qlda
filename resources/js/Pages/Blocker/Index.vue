@@ -10,6 +10,7 @@ import BlockerFormModal from '@/modules/project/components/BlockerFormModal.vue'
 import BlockerDetailModal from '@/modules/project/components/BlockerDetailModal.vue';
 import BlockerCommentModal from '@/modules/project/components/BlockerCommentModal.vue';
 import BlockerRowActions from '@/modules/project/components/BlockerRowActions.vue';
+import BlockerRecheckModal from '@/modules/project/components/BlockerRecheckModal.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import ColumnVisibilityDropdown from '@/shared/ui/ColumnVisibilityDropdown.vue';
@@ -67,6 +68,7 @@ const BLOCKER_FILTER_CONTROLS = [
     { key: 'raised_by', label: 'Người báo' },
     { key: 'overdue', label: 'Quá hạn' },
     { key: 'mine', label: 'Tôi xử lý' },
+    { key: 'recheck_pending', label: 'Chờ kiểm tra lại' },
 ];
 
 const BLOCKER_TABLE_COLUMNS = [
@@ -80,6 +82,9 @@ const BLOCKER_TABLE_COLUMNS = [
     { key: 'raised_at', label: 'Ngày báo', default: false },
     { key: 'due_date', label: 'Hạn xử lý' },
     { key: 'resolved_at', label: 'Ngày xử lý xong', default: false },
+    { key: 'recheck', label: 'Kiểm tra lại' },
+    { key: 'recheck_note', label: 'Ghi chú kiểm tra', default: false },
+    { key: 'rechecked_by', label: 'Người kiểm tra', default: false },
     { key: 'comments', label: 'Bình luận', default: false },
     { key: 'description', label: 'Mô tả', default: false },
     { key: 'root_cause', label: 'Nguyên nhân', default: false },
@@ -103,6 +108,8 @@ const detailModalTab = ref('detail');
 const showDetailModal = ref(false);
 const commentModalBlockerId = ref(null);
 const showCommentModal = ref(false);
+const recheckModalBlockerId = ref(null);
+const showRecheckModal = ref(false);
 
 const blockersList = computed(() => props.blockers?.data ?? []);
 
@@ -114,6 +121,11 @@ const detailModalBlocker = computed(() => {
 const commentModalBlocker = computed(() => {
     if (!commentModalBlockerId.value) return null;
     return blockersList.value.find((row) => row.id === commentModalBlockerId.value) ?? null;
+});
+
+const recheckModalBlocker = computed(() => {
+    if (!recheckModalBlockerId.value) return null;
+    return blockersList.value.find((row) => row.id === recheckModalBlockerId.value) ?? null;
 });
 
 function openDetailModal(b, tab = 'detail') {
@@ -135,6 +147,16 @@ function openCommentModal(b) {
 function closeCommentModal() {
     showCommentModal.value = false;
     commentModalBlockerId.value = null;
+}
+
+function openRecheckModal(b) {
+    recheckModalBlockerId.value = b?.id ?? null;
+    showRecheckModal.value = true;
+}
+
+function closeRecheckModal() {
+    showRecheckModal.value = false;
+    recheckModalBlockerId.value = null;
 }
 
 /** Đồng bộ danh sách + số bình luận khi đang mở modal (realtime hoặc partial reload). */
@@ -194,6 +216,7 @@ const filterForm = reactive({
     raised_by_id: props.filters.raised_by_id ?? '',
     mine: props.filters.mine ? '1' : '',
     overdue: props.filters.overdue ? '1' : '',
+    recheck_pending: props.filters.recheck_pending ? '1' : '',
 });
 
 const appliedFilterCount = computed(() =>
@@ -205,6 +228,7 @@ const appliedFilterCount = computed(() =>
         filterForm.raised_by_id,
         filterForm.mine,
         filterForm.overdue,
+        filterForm.recheck_pending,
     ].filter((v) => v !== '' && v != null).length,
 );
 
@@ -264,6 +288,7 @@ function routeParams() {
         raised_by_id: filterForm.raised_by_id || undefined,
         mine: filterForm.mine || undefined,
         overdue: filterForm.overdue || undefined,
+        recheck_pending: filterForm.recheck_pending || undefined,
         per_page: perPage.value,
     };
 }
@@ -287,6 +312,7 @@ watch(
         filterForm.raised_by_id,
         filterForm.mine,
         filterForm.overdue,
+        filterForm.recheck_pending,
     ],
     reloadBlockers,
 );
@@ -305,6 +331,7 @@ function clearFilters() {
     filterForm.raised_by_id = '';
     filterForm.mine = '';
     filterForm.overdue = '';
+    filterForm.recheck_pending = '';
     reloadBlockers();
 }
 
@@ -349,6 +376,19 @@ function blockerRowClass(b) {
 
 function isTerminal(b) {
     return TERMINAL_STATUSES.has(b.status?.value);
+}
+
+function recheckDisplay(b) {
+    if (b.needs_recheck) {
+        return { label: 'Chờ kiểm tra', color: 'amber' };
+    }
+    if (b.recheck_result?.value) {
+        return { label: b.recheck_result.label, color: b.recheck_result.color };
+    }
+    if (b.status?.value === 'resolved') {
+        return { label: 'Chờ kiểm tra', color: 'amber' };
+    }
+    return null;
 }
 
 function updateStatus(b, status) {
@@ -425,7 +465,7 @@ function toggleAllGroups() {
       />
     </template>
 
-    <div class="mb-4 grid grid-cols-3 gap-3">
+    <div class="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
       <div class="card p-4">
         <p class="text-xs text-slate-500">
           Đang mở
@@ -448,6 +488,14 @@ function toggleAllGroups() {
         </p>
         <p class="mt-1 font-display text-2xl font-bold text-emerald-600">
           {{ summary.resolved ?? 0 }}
+        </p>
+      </div>
+      <div class="card p-4">
+        <p class="text-xs text-slate-500">
+          Chờ kiểm tra lại
+        </p>
+        <p class="mt-1 font-display text-2xl font-bold text-amber-600">
+          {{ summary.recheck_pending ?? 0 }}
         </p>
       </div>
     </div>
@@ -668,6 +716,19 @@ function toggleAllGroups() {
           >
           Tôi xử lý
         </label>
+        <label
+          v-if="visibleFilters.recheck_pending"
+          class="inline-flex h-9 items-center gap-2 rounded-btn border border-slate-200 bg-white px-3 text-sm text-slate-600"
+        >
+          <input
+            v-model="filterForm.recheck_pending"
+            true-value="1"
+            false-value=""
+            type="checkbox"
+            class="rounded border-slate-300 text-brand"
+          >
+          Chờ kiểm tra lại
+        </label>
         <button
           v-if="appliedFilterCount || filterForm.q"
           type="button"
@@ -756,6 +817,24 @@ function toggleAllGroups() {
                 class="px-2 py-2 text-left align-middle"
               >
                 Xong
+              </th>
+              <th
+                v-if="isColVisible('recheck')"
+                class="px-2 py-2 text-left align-middle"
+              >
+                KT lại
+              </th>
+              <th
+                v-if="isColVisible('recheck_note')"
+                class="px-2 py-2 text-left align-middle"
+              >
+                Ghi chú KT
+              </th>
+              <th
+                v-if="isColVisible('rechecked_by')"
+                class="px-2 py-2 text-left align-middle blocker-col-person"
+              >
+                Người KT
               </th>
               <th
                 v-if="isColVisible('comments')"
@@ -988,6 +1067,61 @@ function toggleAllGroups() {
                       {{ b.resolved_at ? datetime(b.resolved_at) : '—' }}
                     </td>
                     <td
+                      v-if="isColVisible('recheck')"
+                      class="px-2 py-2.5 align-top"
+                    >
+                      <div class="flex min-w-0 flex-col gap-1.5">
+                        <Badge
+                          v-if="recheckDisplay(b)"
+                          :label="recheckDisplay(b).label"
+                          :color="recheckDisplay(b).color"
+                        />
+                        <span
+                          v-else
+                          class="text-xs text-slate-300"
+                        >—</span>
+                        <button
+                          v-if="b.can?.recheck"
+                          type="button"
+                          class="inline-flex w-fit items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-900 hover:bg-amber-100"
+                          @click.stop="openRecheckModal(b)"
+                        >
+                          <AppIcon
+                            name="done"
+                            :size="12"
+                          />
+                          Kiểm tra
+                        </button>
+                      </div>
+                    </td>
+                    <td
+                      v-if="isColVisible('recheck_note')"
+                      class="blocker-cell-wrap px-2 py-2.5 align-top text-xs text-slate-600"
+                    >
+                      <span class="block break-words whitespace-pre-wrap">{{ b.recheck_note?.trim() || '—' }}</span>
+                    </td>
+                    <td
+                      v-if="isColVisible('rechecked_by')"
+                      class="blocker-col-person blocker-cell-wrap px-2 py-2.5 align-top"
+                    >
+                      <div
+                        v-if="personCell(b.rechecked_by)"
+                        class="blocker-person flex min-w-0 items-start gap-1.5"
+                      >
+                        <Avatar
+                          :name="b.rechecked_by.name"
+                          :src="b.rechecked_by.avatar_path"
+                          :size="22"
+                          class="shrink-0"
+                        />
+                        <span class="min-w-0 break-words text-xs text-slate-700">{{ b.rechecked_by.name }}</span>
+                      </div>
+                      <span
+                        v-else
+                        class="text-xs text-slate-300"
+                      >—</span>
+                    </td>
+                    <td
                       v-if="isColVisible('comments')"
                       class="px-2 py-2.5 text-center align-top text-xs tabular-nums"
                     >
@@ -1031,6 +1165,7 @@ function toggleAllGroups() {
                         @detail="openDetailModal($event, 'detail')"
                         @comment="openCommentModal"
                         @resolve="openResolve"
+                        @recheck="openRecheckModal"
                         @edit="open"
                         @delete="remove"
                       />
@@ -1078,9 +1213,11 @@ function toggleAllGroups() {
       :initial-tab="detailModalTab"
       :can-comment="can.comment"
       :can-update="detailModalBlocker?.can?.update && !isTerminal(detailModalBlocker)"
+      :can-recheck="!!detailModalBlocker?.can?.recheck"
       :partial-reload-keys="['blockers']"
       @close="closeDetailModal"
       @edit-resolution="onDetailEditResolution"
+      @recheck="openRecheckModal"
     />
 
     <BlockerCommentModal
@@ -1088,6 +1225,12 @@ function toggleAllGroups() {
       :blocker="commentModalBlocker"
       :can-comment="can.comment"
       @close="closeCommentModal"
+    />
+
+    <BlockerRecheckModal
+      :show="showRecheckModal"
+      :blocker="recheckModalBlocker"
+      @close="closeRecheckModal"
     />
   </AppLayout>
 </template>

@@ -40,6 +40,18 @@ class BlockerPolicy
             || $this->isReviewer($account);
     }
 
+    public function recheck(SystemAccount $account, Blocker $blocker): bool
+    {
+        return $this->isReviewer($account)
+            || $this->isRaiser($account, $blocker);
+    }
+
+    private function isRaiser(SystemAccount $account, Blocker $blocker): bool
+    {
+        return $account->employee_id !== null
+            && $account->employee_id === $blocker->raised_by_id;
+    }
+
     private function isReviewer(SystemAccount $account): bool
     {
         return in_array($account->role, [SystemRole::Admin, SystemRole::Lead], true);

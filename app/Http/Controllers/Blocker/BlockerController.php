@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Blocker;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Blocker\BulkStoreBlockerRequest;
 use App\Http\Requests\Blocker\ImportBlockerRequest;
+use App\Http\Requests\Blocker\RecheckBlockerRequest;
 use App\Http\Requests\Blocker\StoreBlockerRequest;
 use App\Http\Requests\Blocker\UpdateBlockerRequest;
 use App\Http\Resources\BlockerResource;
@@ -12,6 +13,8 @@ use App\Models\Blocker;
 use App\Services\NotificationService;
 use App\Services\Telegram\BlockerResolvedTelegramNotifier;
 use App\Support\BlockerActivityLogger;
+use App\Support\BlockerRecheck;
+use App\Support\Enums\BlockerRecheckResult;
 use App\Support\Enums\BlockerSeverity;
 use App\Support\Enums\BlockerStatus;
 use App\Support\Enums\NotificationType;
@@ -61,6 +64,7 @@ class BlockerController extends Controller
                 'task',
                 'raisedBy',
                 'owner',
+                'recheckedBy',
                 'attachments' => fn ($a) => $a->with('uploadedBy')->latest(),
                 'comments' => fn ($c) => $c->whereNull('parent_id')->with(['author', 'replies.author'])->latest(),
             ])
@@ -96,6 +100,13 @@ class BlockerController extends Controller
         if ($request->boolean('overdue')) {
             $query->overdue();
         }
+        if ($request->boolean('recheck_pending')) {
+            $query->where('status', BlockerStatus::Resolved->value)
+                ->where(function ($q) {
+                    $q->whereNull('recheck_result')
+                        ->orWhere('recheck_result', BlockerRecheckResult::Pending->value);
+                });
+        }
         if ($search = $request->query('q')) {
             $query->where(fn ($q) => $q
                 ->where('title', 'like', "%{$search}%")
@@ -113,12 +124,16 @@ class BlockerController extends Controller
             'blockers' => BlockerResource::collection($query->paginate($perPage)->withQueryString()),
             'filters' => (object) $request->only([
                 'status', 'severity', 'project_id', 'owner_id', 'raised_by_id',
-                'mine', 'overdue', 'q', 'per_page',
+                'mine', 'overdue', 'recheck_pending', 'q', 'per_page',
             ]),
             'summary' => [
                 'open' => Blocker::open()->count(),
                 'critical' => Blocker::open()->where('severity', BlockerSeverity::Critical->value)->count(),
                 'resolved' => Blocker::where('status', BlockerStatus::Resolved->value)->count(),
+                'recheck_pending' => Blocker::query()
+                    ->where('status', BlockerStatus::Resolved->value)
+                    ->where('recheck_result', BlockerRecheckResult::Pending->value)
+                    ->count(),
             ],
             'options' => [
                 'projects' => Options::projects(),
@@ -258,6 +273,13 @@ class BlockerController extends Controller
                 BlockerStatus::Closed->value,
             ], true);
             $data['resolved_at'] = $terminal ? ($blocker->resolved_at ?? now()) : null;
+
+            if ($data['status'] === BlockerStatus::Resolved->value) {
+                $data['recheck_result'] = BlockerRecheckResult::Pending->value;
+                $data['recheck_note'] = null;
+                $data['rechecked_at'] = null;
+                $data['rechecked_by_id'] = null;
+            }
         }
 
         $blocker->update($data);
@@ -305,6 +327,43 @@ class BlockerController extends Controller
         }
 
         return back()->with('success', 'Đã cập nhật vướng mắc.');
+    }
+
+    public function recheck(
+        RecheckBlockerRequest $request,
+        Blocker $blocker,
+        BlockerResolvedTelegramNotifier $blockerTelegram,
+    ): RedirectResponse {
+        $result = BlockerRecheckResult::from($request->validated('result'));
+        $note = $request->validated('note');
+        $account = $request->user();
+
+        $transition = BlockerRecheck::apply($blocker, $result, $account, filled($note) ? trim((string) $note) : null);
+        $blocker->refresh();
+
+        BlockerActivityLogger::recheckApplied($blocker, $result->value, $blocker->recheck_note, $account);
+        BlockerActivityLogger::statusChanged(
+            $blocker,
+            $transition['old_status'],
+            $transition['new_status'],
+            $account,
+        );
+
+        NotificationDispatcher::blockerUpdated($blocker, $account, ['status' => $transition['new_status']]);
+
+        $blockerTelegram->notifyStatusChanged(
+            $blocker,
+            $account,
+            $transition['old_status'],
+            $transition['new_status'],
+            $result === BlockerRecheckResult::Failed ? $blocker->recheck_note : null,
+        );
+
+        $message = $result === BlockerRecheckResult::Passed
+            ? 'Đã xác nhận xử lý đúng — vướng mắc được đóng.'
+            : 'Đã trả về người xử lý — trạng thái chuyển sang đang xử lý.';
+
+        return back()->with('success', $message);
     }
 
     public function destroy(Blocker $blocker): RedirectResponse
@@ -366,6 +425,12 @@ class BlockerController extends Controller
             ], true);
             if ($terminal) {
                 $payload['resolved_at'] = now();
+            }
+            if ($data['status'] === BlockerStatus::Resolved->value) {
+                $payload['recheck_result'] = BlockerRecheckResult::Pending->value;
+                $payload['recheck_note'] = null;
+                $payload['rechecked_at'] = null;
+                $payload['rechecked_by_id'] = null;
             }
         }
         if ($data['action'] === 'assignee') {
