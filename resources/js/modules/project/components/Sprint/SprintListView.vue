@@ -66,14 +66,6 @@ function formatSprintRange(start, end) {
     return `${a} – ${b}`;
 }
 
-function sprintStatusTopClass(sprint) {
-    const v = sprint?.status?.value;
-    if (v === 'active') return 'border-t-brand';
-    if (v === 'completed') return 'border-t-emerald-500';
-    if (v === 'planned') return 'border-t-sky-400';
-    return 'border-t-slate-200 dark:border-t-slate-600';
-}
-
 function onDragStart(sprintId, event) {
     if (!props.canManage) return;
     dragId.value = sprintId;
@@ -138,8 +130,6 @@ function onDragEnd() {
       :key="s.id"
       class="overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm transition dark:border-slate-700 dark:bg-slate-900"
       :class="[
-        'border-t-[3px]',
-        sprintStatusTopClass(s),
         dragId === s.id ? 'opacity-60 ring-2 ring-brand/25' : '',
         dropTargetId === s.id && dragId && dragId !== s.id ? 'ring-2 ring-brand/40' : '',
       ]"
