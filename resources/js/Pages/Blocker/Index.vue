@@ -68,7 +68,7 @@ const BLOCKER_FILTER_CONTROLS = [
     { key: 'raised_by', label: 'Người báo' },
     { key: 'overdue', label: 'Quá hạn' },
     { key: 'mine', label: 'Tôi xử lý' },
-    { key: 'recheck_pending', label: 'Chờ kiểm tra lại' },
+    { key: 'recheck_pending', label: 'Chờ kiểm tra' },
 ];
 
 const BLOCKER_TABLE_COLUMNS = [
@@ -82,9 +82,9 @@ const BLOCKER_TABLE_COLUMNS = [
     { key: 'raised_at', label: 'Ngày báo', default: false },
     { key: 'due_date', label: 'Hạn xử lý' },
     { key: 'resolved_at', label: 'Ngày xử lý xong', default: false },
-    { key: 'recheck', label: 'Kiểm tra lại' },
-    { key: 'recheck_note', label: 'Ghi chú kiểm tra', default: false },
-    { key: 'rechecked_by', label: 'Người kiểm tra', default: false },
+    { key: 'recheck', label: 'Chờ kiểm tra' },
+    { key: 'recheck_note', label: 'Ghi chú xác nhận', default: false },
+    { key: 'rechecked_by', label: 'Người xác nhận', default: false },
     { key: 'comments', label: 'Bình luận', default: false },
     { key: 'description', label: 'Mô tả', default: false },
     { key: 'root_cause', label: 'Nguyên nhân', default: false },
@@ -492,7 +492,7 @@ function toggleAllGroups() {
       </div>
       <div class="card p-4">
         <p class="text-xs text-slate-500">
-          Chờ kiểm tra lại
+          Chờ kiểm tra
         </p>
         <p class="mt-1 font-display text-2xl font-bold text-amber-600">
           {{ summary.recheck_pending ?? 0 }}
@@ -727,7 +727,7 @@ function toggleAllGroups() {
             type="checkbox"
             class="rounded border-slate-300 text-brand"
           >
-          Chờ kiểm tra lại
+          Chờ kiểm tra
         </label>
         <button
           v-if="appliedFilterCount || filterForm.q"
@@ -822,19 +822,19 @@ function toggleAllGroups() {
                 v-if="isColVisible('recheck')"
                 class="px-2 py-2 text-left align-middle"
               >
-                KT lại
+                Chờ KT
               </th>
               <th
                 v-if="isColVisible('recheck_note')"
                 class="px-2 py-2 text-left align-middle"
               >
-                Ghi chú KT
+                Ghi chú
               </th>
               <th
                 v-if="isColVisible('rechecked_by')"
                 class="px-2 py-2 text-left align-middle blocker-col-person"
               >
-                Người KT
+                Người xác nhận
               </th>
               <th
                 v-if="isColVisible('comments')"
@@ -1070,9 +1070,21 @@ function toggleAllGroups() {
                       v-if="isColVisible('recheck')"
                       class="px-2 py-2.5 align-top"
                     >
-                      <div class="flex min-w-0 flex-col gap-1.5">
+                      <div class="flex min-w-0 flex-col gap-1">
+                        <button
+                          v-if="b.can?.recheck && b.needs_recheck"
+                          type="button"
+                          class="inline-flex w-fit rounded-md transition hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand"
+                          title="Bấm để xác nhận xử lý"
+                          @click.stop="openRecheckModal(b)"
+                        >
+                          <Badge
+                            label="Chờ kiểm tra"
+                            color="amber"
+                          />
+                        </button>
                         <Badge
-                          v-if="recheckDisplay(b)"
+                          v-else-if="recheckDisplay(b)"
                           :label="recheckDisplay(b).label"
                           :color="recheckDisplay(b).color"
                         />
@@ -1080,18 +1092,6 @@ function toggleAllGroups() {
                           v-else
                           class="text-xs text-slate-300"
                         >—</span>
-                        <button
-                          v-if="b.can?.recheck"
-                          type="button"
-                          class="inline-flex w-fit items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-900 hover:bg-amber-100"
-                          @click.stop="openRecheckModal(b)"
-                        >
-                          <AppIcon
-                            name="done"
-                            :size="12"
-                          />
-                          Kiểm tra
-                        </button>
                       </div>
                     </td>
                     <td

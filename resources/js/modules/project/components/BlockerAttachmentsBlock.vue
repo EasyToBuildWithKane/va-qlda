@@ -15,6 +15,8 @@ const props = defineProps({
     pendingFiles: { type: Array, default: () => [] },
     /** Giao diện gọn trong modal */
     compact: { type: Boolean, default: false },
+    /** Chờ đến khi bấm Lưu/Ghi nhận (tạo mới hoặc sửa) — không POST ngay từng lần chọn file */
+    stageUntilSave: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['update:pendingFiles']);
@@ -37,6 +39,7 @@ const available = computed(() =>
 const imageFiles = computed(() => available.value.filter((f) => f.is_image));
 const otherFiles = computed(() => available.value.filter((f) => !f.is_image));
 const isCreateStage = computed(() => props.canUpload && props.blockerId == null);
+const shouldStageFiles = computed(() => props.stageUntilSave || isCreateStage.value);
 const missingFiles = computed(() =>
     props.attachments.filter((f) => f.file_available === false || !f.url),
 );
@@ -70,7 +73,15 @@ onBeforeUnmount(clearPending);
 
 const appendStaged = (files) => {
     const next = [...props.pendingFiles];
+    const maxTotal = 50;
+    let added = 0;
     for (const file of files) {
+        if (next.length >= maxTotal) {
+            if (added === 0) {
+                toast.warning(`Tối đa ${maxTotal} ảnh/file chờ tải mỗi lần lưu.`);
+            }
+            break;
+        }
         const isImage = (file.type || '').startsWith('image/');
         next.push({
             key: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
@@ -79,6 +90,10 @@ const appendStaged = (files) => {
             isImage,
             preview: isImage ? URL.createObjectURL(file) : null,
         });
+        added += 1;
+    }
+    if (added > 0 && files.length > added) {
+        toast.warning(`Chỉ thêm ${added} file (giới hạn ${maxTotal} file/lần lưu).`);
     }
     emit('update:pendingFiles', next);
 };
@@ -93,7 +108,7 @@ const uploadFiles = (fileList) => {
     const files = [...(fileList || [])];
     if (!files.length || !props.canUpload) return;
 
-    if (isCreateStage.value) {
+    if (shouldStageFiles.value) {
         appendStaged(files);
         return;
     }
@@ -206,10 +221,10 @@ watch(imageFiles, (list) => {
         />
         <div class="mt-2 sm:mt-0">
           <p class="text-sm font-medium text-slate-700 dark:text-slate-200">
-            Kéo thả ảnh hoặc file vào đây
+            Kéo thả hoặc chọn nhiều ảnh
           </p>
           <p class="mt-0.5 text-xs text-slate-500">
-            Hình ảnh, PDF, Office, ZIP · tối đa 10MB/file
+            1 vướng mắc · nhiều ảnh được · JPG, PNG, WebP… · tối đa 10MB/ảnh
           </p>
         </div>
       </div>
@@ -255,13 +270,21 @@ watch(imageFiles, (list) => {
     </div>
 
     <div
-      v-if="isCreateStage && pendingFiles.length"
-      class="space-y-1.5"
+      v-if="shouldStageFiles && pendingFiles.length"
+      class="rounded-lg border border-amber-200/90 bg-amber-50/70 p-3 ring-1 ring-amber-100"
     >
-      <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-        Sẽ tải lên khi ghi nhận ({{ pendingFiles.length }})
+      <p class="flex items-center gap-1.5 text-xs font-semibold text-amber-950">
+        <AppIcon
+          name="clock"
+          :size="14"
+          class="text-amber-700"
+        />
+        Chờ lưu · {{ pendingFiles.length }} file
       </p>
-      <div class="flex flex-wrap gap-2">
+      <p class="mt-0.5 text-[11px] text-amber-900/80">
+        Ảnh/file sẽ được tải lên cùng lúc khi bạn bấm «Ghi nhận» hoặc «Lưu thay đổi».
+      </p>
+      <div class="mt-2.5 flex flex-wrap gap-2">
         <div
           v-for="item in pendingFiles"
           :key="item.key"
@@ -456,13 +479,7 @@ watch(imageFiles, (list) => {
       v-else-if="!attachments.length && !pending.length && !pendingFiles.length && canUpload"
       class="text-center text-xs text-slate-400"
     >
-      Chưa có ảnh hay file — dùng khu vực phía trên để tải lên.
-    </p>
-    <p
-      v-if="isCreateStage && canUpload"
-      class="text-center text-[11px] text-slate-500"
-    >
-      File chọn trước sẽ được tải lên ngay sau khi bấm «Ghi nhận vướng mắc».
+      Chưa có ảnh — khu vực phía trên để thêm.
     </p>
 
     <Teleport to="body">

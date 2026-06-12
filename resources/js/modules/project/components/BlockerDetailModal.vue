@@ -91,8 +91,10 @@ const metaItems = computed(() => {
     if (b.raised_at) items.push({ label: 'Ngày báo', value: date(b.raised_at) });
     items.push({ label: 'Hạn xử lý', value: b.due_date ? date(b.due_date) : '—' });
     if (b.resolved_at) items.push({ label: 'Đã xong', value: datetime(b.resolved_at) });
-    if (b.recheck_result?.label) items.push({ label: 'Kiểm tra', value: b.recheck_result.label });
-    if (b.rechecked_at) items.push({ label: 'Kiểm tra lúc', value: datetime(b.rechecked_at) });
+    if (b.recheck_result?.label && !b.needs_recheck) {
+        items.push({ label: 'Xác nhận', value: b.recheck_result.label });
+    }
+    if (b.rechecked_at) items.push({ label: 'Xác nhận lúc', value: datetime(b.rechecked_at) });
     if (b.updated_at) items.push({ label: 'Cập nhật', value: datetime(b.updated_at) });
     return items;
 });
@@ -329,7 +331,7 @@ const metaItems = computed(() => {
             class="blocker-detail-section border-rose-200/80 bg-rose-50/40"
           >
             <h3 class="blocker-detail-label text-rose-800/90">
-              Ghi chú kiểm tra lại
+              Ghi chú khi không đạt
             </h3>
             <p class="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-slate-800">
               {{ blocker.recheck_note.trim() }}
@@ -364,7 +366,7 @@ const metaItems = computed(() => {
             name="done"
             :size="15"
           />
-          Kiểm tra lại
+          Xác nhận xử lý
         </button>
         <button
           type="button"

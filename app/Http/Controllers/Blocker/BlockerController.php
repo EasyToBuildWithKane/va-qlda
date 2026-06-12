@@ -187,8 +187,9 @@ class BlockerController extends Controller
         $defaults = $data['defaults'] ?? [];
         $account = $request->user();
         $created = 0;
+        $createdIds = [];
 
-        DB::transaction(function () use ($data, $defaults, $account, &$created) {
+        DB::transaction(function () use ($data, $defaults, $account, &$created, &$createdIds) {
             foreach ($data['rows'] as $row) {
                 $status = $defaults['status'] ?? BlockerStatus::Open->value;
                 $blocker = Blocker::create([
@@ -205,10 +206,14 @@ class BlockerController extends Controller
                 BlockerActivityLogger::created($blocker, $account);
                 NotificationDispatcher::blockerCreated($blocker, $account);
                 $created++;
+                $createdIds[] = $blocker->id;
             }
         });
 
-        return back()->with('success', "Đã ghi nhận {$created} vướng mắc.");
+        return back()->with([
+            'success' => "Đã ghi nhận {$created} vướng mắc.",
+            'created_blocker_ids' => $createdIds,
+        ]);
     }
 
     public function import(ImportBlockerRequest $request): RedirectResponse

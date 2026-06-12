@@ -159,7 +159,7 @@ function run(emitName) {
             :size="14"
             class="shrink-0"
           />
-          Kiểm tra lại
+          Xác nhận xử lý
         </button>
         <button
           v-if="blocker.can?.update && !isTerminal"

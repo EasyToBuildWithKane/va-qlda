@@ -1,6 +1,6 @@
 <script setup>
 import { computed, inject, watch, ref, nextTick } from 'vue';
-import { router, useForm } from '@inertiajs/vue3';
+import { useForm } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
 import Modal from '@/Components/Ui/Modal.vue';
 import FieldTooltip from '@/shared/ui/FieldTooltip.vue';
@@ -8,11 +8,15 @@ import PersonSelect from '@/modules/project/components/PersonSelect.vue';
 import SearchSelect from '@/shared/ui/SearchSelect.vue';
 import BlockerAttachmentsBlock from '@/modules/project/components/BlockerAttachmentsBlock.vue';
 import BlockerFormBulkPanel from '@/modules/project/components/BlockerFormBulkPanel.vue';
+import BlockerTitleComposer from '@/modules/project/components/BlockerTitleComposer.vue';
+import BlockerCreateModeTabs from '@/modules/project/components/BlockerCreateModeTabs.vue';
+import BlockerFormSection from '@/modules/project/components/BlockerFormSection.vue';
 import { valueLabelOptions } from '@/shared/utils/selectOptions';
 import { date } from '@/composables/useFormat';
 import { useToast } from '@/shared/composables/useToast';
 import { useModalFormDraft } from '@/composables/useModalFormDraft';
 import { buildDraftSaveMeta, restoreModalDraft } from '@/composables/useModalDraftHelpers';
+import { uploadFilesToBlocker } from '@/composables/useBlockerAttachmentUpload';
 
 const props = defineProps({
     show: { type: Boolean, default: false },
@@ -111,6 +115,7 @@ watch(() => props.show, async (open) => {
         bulkPanelRef.value?.reset?.();
         return;
     }
+    clearPendingCreateFiles();
     form.clearErrors();
     createMode.value = 'single';
     bulkDirty.value = false;
@@ -282,6 +287,14 @@ const submitLabel = computed(() => {
     return 'Lưu thay đổi';
 });
 
+const pendingAttachmentSummary = computed(() => {
+    const n = pendingCreateFiles.value.length;
+    if (!n) return null;
+    const images = pendingCreateFiles.value.filter((p) => p.isImage).length;
+    if (images === n) return `${n} ảnh sẽ tải khi bấm Lưu`;
+    return `${n} file sẽ tải khi bấm Lưu`;
+});
+
 function textOrDash(value) {
     const t = (value ?? '').trim();
     return t || null;
@@ -307,15 +320,17 @@ const finishSave = () => {
     emit('close');
 };
 
-const uploadAfterCreate = (blockerId) => {
+const uploadPendingAttachments = (blockerId, successMessage) => {
     const files = pendingCreateFiles.value.map((p) => p.file);
-    router.post(`/blockers/${blockerId}/attachments`, { files }, {
-        forceFormData: true,
-        preserveScroll: true,
-        onSuccess: () => toast.success('Đã ghi nhận và tải file minh chứng'),
-        onError: () => toast.error('Đã ghi nhận vướng mắc nhưng không tải được file đính kèm'),
+    if (!files.length) {
+        finishSave();
+        return;
+    }
+    uploadFilesToBlocker(blockerId, files, {
+        onPartialError: () => toast.warning('Đã lưu vướng mắc nhưng một số ảnh/file chưa tải được.'),
         onFinish: () => {
             clearPendingCreateFiles();
+            if (successMessage) toast.success(successMessage);
             finishSave();
         },
     });
@@ -356,7 +371,18 @@ const submit = () => {
         }
         form.transform(() => payload).put(`/blockers/${props.blocker.id}`, {
             preserveScroll: true,
-            onSuccess: finishSave,
+            onSuccess: () => {
+                if (pendingCreateFiles.value.length) {
+                    uploadPendingAttachments(
+                        props.blocker.id,
+                        pendingCreateFiles.value.some((p) => p.isImage)
+                            ? 'Đã lưu và tải ảnh minh chứng'
+                            : 'Đã lưu và tải file đính kèm',
+                    );
+                } else {
+                    finishSave();
+                }
+            },
         });
         return;
     }
@@ -365,7 +391,7 @@ const submit = () => {
         onSuccess: (page) => {
             const id = page.props.flash?.created_blocker_id;
             if (id && pendingCreateFiles.value.length) {
-                uploadAfterCreate(id);
+                uploadPendingAttachments(id, 'Đã ghi nhận vướng mắc và ảnh minh chứng');
             } else {
                 clearPendingCreateFiles();
                 finishSave();
@@ -384,40 +410,11 @@ const submit = () => {
     :on-save-draft="saveDraftOnClose"
     @close="emit('close')"
   >
-    <div
+    <BlockerCreateModeTabs
       v-if="!blocker && !focusResolution"
-      class="mb-3 flex rounded-lg border border-slate-200 bg-slate-50 p-0.5"
-    >
-      <button
-        type="button"
-        class="flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-semibold transition"
-        :class="createMode === 'single'
-          ? 'bg-white text-brand shadow-sm'
-          : 'text-slate-500 hover:text-slate-700'"
-        @click="createMode = 'single'"
-      >
-        <AppIcon
-          name="blockers"
-          :size="16"
-        />
-        Một vướng mắc
-      </button>
-      <button
-        type="button"
-        class="flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-semibold transition"
-        :class="createMode === 'bulk'
-          ? 'bg-white text-brand shadow-sm'
-          : 'text-slate-500 hover:text-slate-700'"
-        @click="createMode = 'bulk'"
-      >
-        <AppIcon
-          name="template"
-          :size="16"
-        />
-        Nhiều vướng mắc
-        <span class="rounded-full bg-brand/10 px-1.5 py-0.5 text-[10px] font-bold uppercase text-brand">Nhanh</span>
-      </button>
-    </div>
+      :mode="createMode"
+      @update:mode="createMode = $event"
+    />
 
     <BlockerFormBulkPanel
       v-if="!blocker && !focusResolution && createMode === 'bulk'"
@@ -429,6 +426,7 @@ const submit = () => {
       :lock-project="lockProject"
       :default-project-id="defaultProjectId"
       :initial-defaults="bulkInitialDefaults"
+      :can-upload-attachments="canUploadAttachments"
       @saved="onBulkSaved"
       @dirty-change="bulkDirty = $event"
     />
@@ -565,27 +563,27 @@ const submit = () => {
 
         <div
           v-if="showMainForm"
-          class="grid gap-5 lg:grid-cols-2 lg:gap-6"
+          class="space-y-4"
         >
-          <div class="min-w-0 space-y-3">
-            <div>
-              <label class="label flex items-center gap-1.5">
-                Tiêu đề <span class="text-danger">*</span>
-                <FieldTooltip text="Một câu tóm tắt, dễ nhận biết trong danh sách." />
-              </label>
-              <input
-                v-model="form.title"
-                type="text"
-                class="input"
-                :placeholder="isEdit ? undefined : 'VD: API đăng nhập trả về lỗi 500 khi tải cao…'"
-              >
-              <p
-                v-if="form.errors.title"
-                class="mt-1 text-xs text-danger"
-              >
-                {{ form.errors.title }}
-              </p>
-            </div>
+          <BlockerTitleComposer
+            v-model="form.title"
+            :step="!isEdit ? 1 : null"
+            :error="form.errors.title"
+          >
+            <template #icon>
+              <AppIcon
+                name="blockers"
+                :size="16"
+              />
+            </template>
+          </BlockerTitleComposer>
+
+          <BlockerFormSection
+            :step="isEdit ? null : 2"
+            title="Phân công & mô tả"
+            :hint="!isEdit ? 'Mức độ, người xử lý và bối cảnh thêm (nếu cần).' : 'Cập nhật thông tin phân công và mô tả.'"
+            dense
+          >
             <div class="grid gap-3 sm:grid-cols-2">
               <div>
                 <label class="label flex items-center gap-1.5">
@@ -639,116 +637,136 @@ const submit = () => {
                 />
               </div>
             </div>
-            <div>
+            <div class="mt-3">
               <label class="label flex items-center gap-1.5">
                 Mô tả chi tiết
+                <span class="font-normal text-slate-400">(tuỳ chọn)</span>
               </label>
               <textarea
                 v-model="form.description"
                 rows="3"
                 class="input resize-y text-sm"
-                placeholder="Bối cảnh, tác động…"
+                placeholder="Bối cảnh, tác động, ai bị ảnh hưởng…"
               />
             </div>
             <p
               v-if="!isEdit"
-              class="text-xs text-slate-500"
+              class="mt-2 rounded-lg bg-slate-50 px-2.5 py-2 text-xs text-slate-600 ring-1 ring-slate-200/80"
             >
-              Nguyên nhân và hướng xử lý do người xử lý cập nhật qua «Hướng xử lý» trên danh sách.
+              Nguyên nhân và hướng xử lý do <strong class="font-medium text-slate-800">người xử lý</strong> điền sau qua «Hướng xử lý» trên danh sách.
             </p>
-          </div>
+          </BlockerFormSection>
 
-          <div class="min-w-0 space-y-3 lg:border-l lg:border-slate-200 lg:pl-6 dark:lg:border-slate-700">
-            <div>
-              <div class="mb-1 flex items-center justify-between gap-2">
-                <label class="label flex items-center gap-1.5">
-                  Link dẫn chứng
-                  <FieldTooltip text="Jira, Figma, log, ticket…" />
-                </label>
-                <button
-                  type="button"
-                  class="text-xs font-medium text-brand hover:underline"
-                  :disabled="form.evidence_links.length >= 20"
-                  @click="addEvidenceLink"
-                >
-                  + Thêm link
-                </button>
-              </div>
-              <div class="max-h-36 space-y-2 overflow-y-auto pr-0.5">
-                <div
-                  v-for="(link, index) in form.evidence_links"
-                  :key="index"
-                  class="flex flex-col gap-1.5 sm:flex-row sm:items-center"
-                >
-                  <input
-                    v-model="link.label"
-                    type="text"
-                    class="input text-sm sm:w-28"
-                    placeholder="Nhãn"
-                  >
-                  <input
-                    v-model="link.url"
-                    type="url"
-                    class="input min-w-0 flex-1 text-sm"
-                    placeholder="https://…"
-                  >
+          <BlockerFormSection
+            :step="isEdit ? null : 3"
+            title="Minh chứng"
+            hint="Chọn nhiều ảnh một lần; link Jira/Figma nếu có. Tất cả tải lên khi bạn bấm nút Lưu bên dưới."
+            optional
+            dense
+          >
+            <div class="space-y-4">
+              <div>
+                <div class="mb-1 flex items-center justify-between gap-2">
+                  <label class="label mb-0 flex items-center gap-1.5">
+                    Link dẫn chứng
+                  </label>
                   <button
                     type="button"
-                    class="text-xs text-rose-500 hover:underline sm:shrink-0"
-                    @click="removeEvidenceLink(index)"
+                    class="text-xs font-medium text-brand hover:underline"
+                    :disabled="form.evidence_links.length >= 20"
+                    @click="addEvidenceLink"
                   >
-                    Xoá
+                    + Thêm link
                   </button>
                 </div>
+                <div class="max-h-36 space-y-2 overflow-y-auto pr-0.5">
+                  <div
+                    v-for="(link, index) in form.evidence_links"
+                    :key="index"
+                    class="flex flex-col gap-1.5 sm:flex-row sm:items-center"
+                  >
+                    <input
+                      v-model="link.label"
+                      type="text"
+                      class="input text-sm sm:w-28"
+                      placeholder="Nhãn"
+                    >
+                    <input
+                      v-model="link.url"
+                      type="url"
+                      class="input min-w-0 flex-1 text-sm"
+                      placeholder="https://…"
+                    >
+                    <button
+                      type="button"
+                      class="text-xs text-rose-500 hover:underline sm:shrink-0"
+                      @click="removeEvidenceLink(index)"
+                    >
+                      Xoá
+                    </button>
+                  </div>
+                </div>
+                <p
+                  v-if="!form.evidence_links.length"
+                  class="mt-1 text-xs text-slate-400"
+                >
+                  Chưa có link — bấm «Thêm link» nếu cần.
+                </p>
+                <p
+                  v-if="form.errors['evidence_links.0.url']"
+                  class="mt-1 text-xs text-danger"
+                >
+                  {{ form.errors['evidence_links.0.url'] }}
+                </p>
               </div>
-              <p
-                v-if="!form.evidence_links.length"
-                class="mt-1 text-xs text-slate-400"
-              >
-                Chưa có link dẫn chứng.
-              </p>
-              <p
-                v-if="form.errors['evidence_links.0.url']"
-                class="mt-1 text-xs text-danger"
-              >
-                {{ form.errors['evidence_links.0.url'] }}
-              </p>
-            </div>
 
-            <div>
-              <label class="label flex items-center gap-1.5">
-                Ảnh & file minh chứng
-                <FieldTooltip text="Kéo thả hoặc chọn ảnh; nhấn thumbnail để phóng to. Upload lưu ngay, không cần bấm Lưu." />
-              </label>
               <BlockerAttachmentsBlock
                 v-if="showAttachmentsBlock"
                 :blocker-id="attachmentBlockerId"
                 :attachments="attachmentList"
                 :can-upload="canUploadAttachments"
                 :pending-files="pendingCreateFiles"
+                stage-until-save
                 compact
                 @update:pending-files="pendingCreateFiles = $event"
               />
             </div>
-          </div>
+          </BlockerFormSection>
         </div>
       </div>
 
-      <div class="mt-5 flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 pt-4">
-        <button
-          type="button"
-          class="btn-ghost"
-          @click="modalClose()"
+      <div class="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
+        <p
+          v-if="pendingAttachmentSummary"
+          class="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-950 ring-1 ring-amber-200/90"
         >
-          Huỷ
-        </button>
-        <button
-          type="submit"
-          class="btn-primary"
-          :disabled="form.processing"
-        >
-          {{ submitLabel }}
-        </button>
+          <AppIcon
+            name="image"
+            :size="14"
+            class="shrink-0 text-amber-700"
+          />
+          {{ pendingAttachmentSummary }}
+        </p>
+        <span
+          v-else
+          class="hidden sm:block"
+        />
+        <div class="flex w-full flex-wrap justify-end gap-2 sm:w-auto">
+          <button
+            type="button"
+            class="btn-ghost"
+            @click="modalClose()"
+          >
+            Huỷ
+          </button>
+          <button
+            type="submit"
+            class="btn-primary"
+            :disabled="form.processing"
+          >
+            {{ submitLabel }}
+          </button>
+        </div>
       </div>
     </form>
   </Modal>

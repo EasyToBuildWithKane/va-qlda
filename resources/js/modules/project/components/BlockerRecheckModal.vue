@@ -29,7 +29,7 @@ watch(
 
 const title = computed(() => {
     const code = props.blocker?.code;
-    return code ? `Kiểm tra lại ${code}` : 'Kiểm tra lại xử lý';
+    return code ? `Xác nhận xử lý ${code}` : 'Xác nhận xử lý';
 });
 
 const requiresNote = computed(() => form.result === 'failed');
@@ -56,14 +56,18 @@ function submit() {
     @close="close"
   >
     <template v-if="blocker">
-      <p class="text-sm text-slate-600">
-        Xác nhận người xử lý đã giải quyết đúng cho:
-        <span class="font-medium text-slate-900">{{ blocker.title }}</span>
-      </p>
+      <div class="rounded-lg border border-slate-200 bg-slate-50/90 px-3 py-2.5">
+        <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+          Vướng mắc
+        </p>
+        <p class="mt-0.5 text-sm font-semibold text-slate-900">
+          {{ blocker.title }}
+        </p>
+      </div>
 
       <div
         v-if="blocker.resolution"
-        class="mt-3 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2.5 text-sm text-slate-700"
+        class="mt-3 rounded-lg border border-emerald-200/80 bg-emerald-50/40 px-3 py-2.5 text-sm text-slate-700"
       >
         <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">
           Hướng xử lý
@@ -75,7 +79,7 @@ function submit() {
 
       <fieldset class="mt-4 space-y-2">
         <legend class="text-xs font-medium text-slate-500">
-          Kết quả kiểm tra
+          Kết quả xác nhận
         </legend>
         <label class="flex cursor-pointer items-start gap-2 rounded-lg border border-emerald-200/80 bg-emerald-50/50 px-3 py-2.5 has-[:checked]:ring-2 has-[:checked]:ring-emerald-300/80">
           <input
