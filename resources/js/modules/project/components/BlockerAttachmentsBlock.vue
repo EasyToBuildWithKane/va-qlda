@@ -15,6 +15,8 @@ const props = defineProps({
     pendingFiles: { type: Array, default: () => [] },
     /** Giao diện gọn trong modal */
     compact: { type: Boolean, default: false },
+    /** Một hàng trong form ghi nhiều vướng mắc — nút ảnh + thumbnail nhỏ */
+    inline: { type: Boolean, default: false },
     /** Chờ đến khi bấm Lưu/Ghi nhận (tạo mới hoặc sửa) — không POST ngay từng lần chọn file */
     stageUntilSave: { type: Boolean, default: false },
 });
@@ -201,9 +203,70 @@ watch(imageFiles, (list) => {
 </script>
 
 <template>
-  <div class="space-y-3">
+  <div :class="inline ? 'space-y-1' : 'space-y-3'">
     <div
-      v-if="canUpload"
+      v-if="canUpload && inline"
+      class="flex flex-wrap items-center gap-1.5"
+    >
+      <button
+        type="button"
+        class="inline-flex h-8 shrink-0 items-center gap-1 rounded-btn border border-slate-200 bg-white px-2 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
+        :disabled="uploading"
+        @click="pickImages"
+      >
+        <AppIcon
+          name="image"
+          :size="14"
+        />
+        Ảnh
+      </button>
+      <div
+        v-for="item in pendingFiles"
+        :key="item.key"
+        class="group relative h-10 w-10 shrink-0 overflow-hidden rounded-md border border-slate-200 bg-slate-100"
+      >
+        <img
+          v-if="item.preview"
+          :src="item.preview"
+          :alt="item.name"
+          class="h-full w-full object-cover"
+        >
+        <div
+          v-else
+          class="flex h-full items-center justify-center text-slate-400"
+        >
+          <AppIcon
+            name="template"
+            :size="14"
+          />
+        </div>
+        <button
+          type="button"
+          class="absolute inset-0 grid place-items-center bg-black/45 text-white opacity-0 transition group-hover:opacity-100"
+          title="Bỏ file"
+          @click="removeStaged(item.key)"
+        >
+          <AppIcon
+            name="close"
+            :size="12"
+          />
+        </button>
+      </div>
+      <span
+        v-if="!pendingFiles.length"
+        class="text-[11px] text-slate-400"
+      >Tuỳ chọn</span>
+      <input
+        ref="imageInput"
+        type="file"
+        class="hidden"
+        multiple
+        accept="image/jpeg,image/png,image/gif,image/webp"
+        @change="onFilesSelected"
+      >
+    </div>
+    <div
+      v-else-if="canUpload"
       class="rounded-xl border-2 border-dashed transition"
       :class="[
         dragging ? 'border-brand bg-brand/5' : 'border-slate-200 dark:border-slate-600',
@@ -270,7 +333,7 @@ watch(imageFiles, (list) => {
     </div>
 
     <div
-      v-if="shouldStageFiles && pendingFiles.length"
+      v-if="shouldStageFiles && pendingFiles.length && !inline"
       class="rounded-lg border border-amber-200/90 bg-amber-50/70 p-3 ring-1 ring-amber-100"
     >
       <p class="flex items-center gap-1.5 text-xs font-semibold text-amber-950">
@@ -476,7 +539,7 @@ watch(imageFiles, (list) => {
       Chưa có file đính kèm.
     </p>
     <p
-      v-else-if="!attachments.length && !pending.length && !pendingFiles.length && canUpload"
+      v-else-if="!inline && !attachments.length && !pending.length && !pendingFiles.length && canUpload"
       class="text-center text-xs text-slate-400"
     >
       Chưa có ảnh — khu vực phía trên để thêm.

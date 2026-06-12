@@ -59,36 +59,41 @@ export function uploadFilesToBlocker(blockerId, files, hooks = {}) {
 }
 
 /**
- * Tải cùng bộ file lên lần lượt cho nhiều vướng mắc (sau bulk-create).
+ * Tải file chờ lưu lên từng vướng mắc (cùng thứ tự sau bulk-create).
  *
+ * @param {{ pendingFiles?: { file: File }[] }[]} rows
  * @param {number[]} blockerIds
- * @param {File[]} files
  * @param {{ onFinish?: () => void, onPartialError?: () => void }} hooks
  */
-export function uploadFilesToBlockers(blockerIds, files, hooks = {}) {
-    const ids = [...blockerIds];
-    const list = [...files];
-    if (!ids.length || !list.length) {
+export function uploadAttachmentsForCreatedBlockers(rows, blockerIds, hooks = {}) {
+    const pairs = rows.map((row, index) => ({
+        blockerId: blockerIds[index],
+        files: (row.pendingFiles ?? []).map((p) => p.file).filter(Boolean),
+    })).filter((p) => p.blockerId != null && p.files.length > 0);
+
+    if (!pairs.length) {
         hooks.onFinish?.();
         return;
     }
 
     let hadError = false;
+    let pairIndex = 0;
 
-    const nextBlocker = () => {
-        const id = ids.shift();
-        if (id == null) {
+    const nextPair = () => {
+        if (pairIndex >= pairs.length) {
             if (hadError) hooks.onPartialError?.();
             hooks.onFinish?.();
             return;
         }
-        uploadFilesToBlocker(id, list, {
+        const { blockerId, files } = pairs[pairIndex];
+        pairIndex += 1;
+        uploadFilesToBlocker(blockerId, files, {
             onPartialError: () => {
                 hadError = true;
             },
-            onFinish: () => nextBlocker(),
+            onFinish: () => nextPair(),
         });
     };
 
-    nextBlocker();
+    nextPair();
 }

@@ -9,7 +9,7 @@ defineProps({
 </script>
 
 <template>
-  <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+  <section class="flex h-full flex-col overflow-hidden rounded-lg border border-slate-200 bg-white">
     <header
       class="flex items-start gap-3 border-b border-slate-100 bg-slate-50/90"
       :class="dense ? 'px-3 py-2.5' : 'px-4 py-3'"
@@ -38,7 +38,10 @@ defineProps({
       </div>
       <slot name="header-action" />
     </header>
-    <div :class="dense ? 'p-3' : 'p-4'">
+    <div
+      class="flex flex-1 flex-col"
+      :class="dense ? 'p-3' : 'p-4'"
+    >
       <slot />
     </div>
   </section>

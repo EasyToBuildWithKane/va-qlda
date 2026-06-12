@@ -18,40 +18,31 @@ const placeholders = {
 </script>
 
 <template>
-  <section
-    class="overflow-hidden rounded-xl border border-brand/20 bg-gradient-to-b from-brand-50/40 via-white to-white shadow-sm ring-1 ring-brand/5"
-  >
-    <div class="border-b border-brand/10 bg-brand/5 px-4 py-2.5">
-      <div class="flex flex-wrap items-center gap-2">
-        <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-white text-brand shadow-sm ring-1 ring-brand/15">
-          <span
-            v-if="step != null && step !== ''"
-            class="font-display text-xs font-bold"
-          >{{ step }}</span>
-          <slot
-            v-else
-            name="icon"
-          >
-            <span class="font-display text-sm font-bold">!</span>
-          </slot>
-        </span>
-        <div class="min-w-0 flex-1">
-          <h3 class="text-sm font-semibold text-slate-900">
-            {{ variant === 'bulk-compose' ? 'Danh sách đề vướng mắc' : 'Đề vướng mắc' }}
-            <span class="text-rose-600">*</span>
-          </h3>
-          <p class="text-xs text-slate-600">
-            {{
-              variant === 'bulk-compose'
-                ? 'Một dòng = một vướng mắc · tiêu đề ngắn, dễ nhận biết trên bảng.'
-                : 'Một câu tóm tắt — người xử lý hiểu ngay khi nhìn danh sách.'
-            }}
-          </p>
-        </div>
+  <section class="overflow-hidden rounded-lg border border-slate-200 bg-white">
+    <header class="flex items-start gap-3 border-b border-slate-100 bg-slate-50/90 px-3 py-2.5">
+      <span
+        v-if="step != null && step !== ''"
+        class="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-brand font-display text-xs font-bold text-white shadow-sm"
+        aria-hidden="true"
+      >
+        {{ step }}
+      </span>
+      <div class="min-w-0 flex-1">
+        <h3 class="text-sm font-semibold text-slate-900">
+          {{ variant === 'bulk-compose' ? 'Danh sách đề vướng mắc' : 'Đề vướng mắc' }}
+          <span class="text-rose-600">*</span>
+        </h3>
+        <p class="mt-0.5 text-xs leading-relaxed text-slate-500">
+          {{
+            variant === 'bulk-compose'
+              ? 'Một dòng = một vướng mắc · tiêu đề ngắn, dễ nhận biết trên bảng.'
+              : 'Một câu tóm tắt — người xử lý hiểu ngay khi nhìn danh sách.'
+          }}
+        </p>
       </div>
-    </div>
+    </header>
 
-    <div class="p-4">
+    <div class="p-3">
       <textarea
         v-if="variant === 'bulk-compose'"
         :value="modelValue"
@@ -65,7 +56,7 @@ const placeholders = {
         v-else
         :value="modelValue"
         type="text"
-        class="input text-base font-semibold text-slate-900 placeholder:font-normal placeholder:text-slate-400"
+        class="input text-sm font-semibold text-slate-900 placeholder:font-normal placeholder:text-slate-400"
         :placeholder="placeholders.single"
         :maxlength="maxLength"
         :disabled="disabled"

@@ -18,7 +18,7 @@ const tabs = [
     {
         id: 'bulk',
         label: 'Nhiều vướng mắc',
-        hint: 'Dán danh sách đề — ghi hàng loạt, ảnh chung',
+        hint: 'Mỗi hàng một đề + ảnh riêng — ghi nhanh nhiều case',
         icon: 'template',
         badge: 'Nhanh',
     },
@@ -37,10 +37,10 @@ const tabs = [
       type="button"
       role="tab"
       :aria-selected="mode === tab.id"
-      class="flex min-h-[4.25rem] flex-col items-start rounded-xl border px-3 py-2.5 text-left transition"
+      class="flex min-h-[3.75rem] flex-col items-start rounded-lg border px-3 py-2 text-left transition"
       :class="mode === tab.id
-        ? 'border-brand/40 bg-brand-50/60 shadow-sm ring-2 ring-brand/20'
-        : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/80'"
+        ? 'border-brand/35 bg-brand-50/50 ring-1 ring-brand/25'
+        : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'"
       @click="emit('update:mode', tab.id)"
     >
       <span class="flex w-full items-center gap-2">
@@ -63,7 +63,7 @@ const tabs = [
           {{ tab.badge }}
         </span>
       </span>
-      <span class="mt-1 pl-7 text-xs leading-snug text-slate-500">
+      <span class="mt-0.5 pl-7 text-[11px] leading-snug text-slate-500">
         {{ tab.hint }}
       </span>
     </button>

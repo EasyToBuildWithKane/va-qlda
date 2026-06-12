@@ -1,23 +1,21 @@
 <script setup>
-import { ref, computed, watch, onUnmounted, inject } from 'vue';
+import { ref, computed, watch, inject } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
 import PersonSelect from '@/modules/project/components/PersonSelect.vue';
 import SearchSelect from '@/shared/ui/SearchSelect.vue';
 import FieldTooltip from '@/shared/ui/FieldTooltip.vue';
 import BlockerAttachmentsBlock from '@/modules/project/components/BlockerAttachmentsBlock.vue';
-import BlockerTitleComposer from '@/modules/project/components/BlockerTitleComposer.vue';
 import BlockerFormSection from '@/modules/project/components/BlockerFormSection.vue';
 import { valueLabelOptions } from '@/shared/utils/selectOptions';
 import { useToast } from '@/shared/composables/useToast';
-import { uploadFilesToBlockers } from '@/composables/useBlockerAttachmentUpload';
+import { uploadAttachmentsForCreatedBlockers } from '@/composables/useBlockerAttachmentUpload';
 import {
     BULK_MAX_ROWS,
     bulkValidationSummary,
     getBlockerBulkSampleText,
     nextBulkRowId,
     parseBulkText,
-    rowsToBulkText,
     validateBlockerBulkRows,
 } from '@/composables/useBlockerBulkCreate';
 
@@ -36,11 +34,17 @@ const emit = defineEmits(['saved', 'dirty-change']);
 const modalClose = inject('modalClose', () => {});
 const toast = useToast();
 
-const bulkText = ref('');
-const bulkRows = ref([]);
-const view = ref('compose');
+const emptyBulkRow = (overrides = {}) => ({
+    id: nextBulkRowId(),
+    title: '',
+    selected: true,
+    pendingFiles: [],
+    ...overrides,
+});
+
+const bulkRows = ref([emptyBulkRow()]);
 const showTips = ref(true);
-const pendingBulkFiles = ref([]);
+const pasteText = ref('');
 
 const defaults = ref({
     project_id: null,
@@ -49,6 +53,12 @@ const defaults = ref({
     owner_id: null,
     due_date: null,
 });
+
+const revokeRowFiles = (row) => {
+    (row?.pendingFiles ?? []).forEach((p) => {
+        if (p.preview) URL.revokeObjectURL(p.preview);
+    });
+};
 
 const applyInitialDefaults = () => {
     const d = props.initialDefaults || {};
@@ -62,30 +72,28 @@ const applyInitialDefaults = () => {
 };
 
 const reset = () => {
-    bulkText.value = '';
-    bulkRows.value = [];
-    view.value = 'compose';
+    bulkRows.value.forEach(revokeRowFiles);
+    bulkRows.value = [emptyBulkRow()];
+    pasteText.value = '';
     showTips.value = true;
-    pendingBulkFiles.value.forEach((p) => {
-        if (p.preview) URL.revokeObjectURL(p.preview);
-    });
-    pendingBulkFiles.value = [];
     applyInitialDefaults();
 };
 
 defineExpose({
     reset,
     getDraftSnapshot: () => ({
-        bulkText: bulkText.value,
-        bulkRows: bulkRows.value.map((r) => ({ ...r })),
-        view: view.value,
+        bulkRows: bulkRows.value.map(({ id, title, selected }) => ({ id, title, selected })),
         defaults: { ...defaults.value },
+        pasteText: pasteText.value,
     }),
     applyDraftSnapshot: (snap) => {
         if (!snap) return;
-        bulkText.value = snap.bulkText ?? '';
-        bulkRows.value = (snap.bulkRows ?? []).map((r) => ({ ...r }));
-        view.value = snap.view ?? 'compose';
+        bulkRows.value.forEach(revokeRowFiles);
+        const rows = snap.bulkRows ?? [];
+        bulkRows.value = rows.length
+            ? rows.map((r) => emptyBulkRow({ id: r.id, title: r.title ?? '', selected: r.selected !== false }))
+            : [emptyBulkRow()];
+        pasteText.value = snap.pasteText ?? '';
         if (snap.defaults) {
             defaults.value = { ...snap.defaults };
         }
@@ -98,10 +106,16 @@ watch(
     { deep: true, immediate: true },
 );
 
+watch(
+    () => bulkRows.value.length,
+    (n) => {
+        if (n === 0) bulkRows.value = [emptyBulkRow()];
+    },
+);
+
 const isDirty = computed(() =>
-    !!bulkText.value.trim()
-    || bulkRows.value.length > 0
-    || pendingBulkFiles.value.length > 0,
+    bulkRows.value.some((r) => (r.title ?? '').trim() || (r.pendingFiles?.length ?? 0) > 0)
+    || !!pasteText.value.trim(),
 );
 watch(isDirty, (v) => emit('dirty-change', v), { immediate: true });
 
@@ -119,44 +133,8 @@ const errorsById = computed(() => {
 const rowErrors = (id) => errorsById.value.get(id) || [];
 const rowHasErrors = (id) => rowErrors(id).length > 0;
 
-const lineCountInText = computed(() => parseBulkText(bulkText.value).length);
-
-const syncRowsFromText = () => {
-    bulkRows.value = parseBulkText(bulkText.value);
-    if (!bulkRows.value.length) {
-        toast.warning('Chưa có dòng hợp lệ. Mỗi dòng là một tiêu đề vướng mắc.');
-        return false;
-    }
-    if (lineCountInText.value > BULK_MAX_ROWS) {
-        toast.warning(`Chỉ lấy ${BULK_MAX_ROWS} dòng đầu (giới hạn mỗi lần ghi nhận).`);
-    }
-    return true;
-};
-
-const goPreview = () => {
-    if (!syncRowsFromText()) return;
-    view.value = 'preview';
-};
-
-const backToCompose = () => {
-    bulkText.value = rowsToBulkText(bulkRows.value);
-    view.value = 'compose';
-};
-
-const insertSample = () => {
-    bulkText.value = bulkText.value.trim()
-        ? `${bulkText.value.trim()}\n${getBlockerBulkSampleText()}`
-        : getBlockerBulkSampleText();
-};
-
-const clearAll = () => {
-    bulkText.value = '';
-    bulkRows.value = [];
-    view.value = 'compose';
-    pendingBulkFiles.value.forEach((p) => {
-        if (p.preview) URL.revokeObjectURL(p.preview);
-    });
-    pendingBulkFiles.value = [];
+const setRowPendingFiles = (rowId, files) => {
+    bulkRows.value = bulkRows.value.map((r) => (r.id === rowId ? { ...r, pendingFiles: files } : r));
 };
 
 const addEmptyRow = () => {
@@ -164,11 +142,52 @@ const addEmptyRow = () => {
         toast.warning(`Tối đa ${BULK_MAX_ROWS} vướng mắc mỗi lần.`);
         return;
     }
-    bulkRows.value = [...bulkRows.value, { id: nextBulkRowId(), title: '', selected: true }];
+    bulkRows.value = [...bulkRows.value, emptyBulkRow()];
 };
 
 const removeRow = (id) => {
+    if (bulkRows.value.length <= 1) {
+        const row = bulkRows.value[0];
+        revokeRowFiles(row);
+        bulkRows.value = [emptyBulkRow()];
+        return;
+    }
+    const row = bulkRows.value.find((r) => r.id === id);
+    revokeRowFiles(row);
     bulkRows.value = bulkRows.value.filter((r) => r.id !== id);
+};
+
+const appendRowsFromText = (text) => {
+    const parsed = parseBulkText(text);
+    if (!parsed.length) {
+        toast.warning('Chưa có dòng hợp lệ. Mỗi dòng là một tiêu đề vướng mắc.');
+        return;
+    }
+    const room = BULK_MAX_ROWS - bulkRows.value.length;
+    const slice = parsed.slice(0, Math.max(0, room));
+    if (slice.length < parsed.length) {
+        toast.warning(`Chỉ thêm ${slice.length} dòng (giới hạn ${BULK_MAX_ROWS} hàng).`);
+    }
+    bulkRows.value = [
+        ...bulkRows.value,
+        ...slice.map((r) => emptyBulkRow({ title: r.title, selected: true })),
+    ];
+};
+
+const applyPaste = () => {
+    if (!pasteText.value.trim()) return;
+    appendRowsFromText(pasteText.value);
+    pasteText.value = '';
+};
+
+const addSampleRows = () => {
+    appendRowsFromText(getBlockerBulkSampleText());
+};
+
+const clearAll = () => {
+    bulkRows.value.forEach(revokeRowFiles);
+    bulkRows.value = [emptyBulkRow()];
+    pasteText.value = '';
 };
 
 const toggleSelectAll = (checked) => {
@@ -193,9 +212,9 @@ const finishBulkSaved = (count) => {
 };
 
 const submit = () => {
-    const rows = bulkRows.value.filter((r) => r.selected && !rowHasErrors(r.id));
+    const rows = bulkRows.value.filter((r) => r.selected && !rowHasErrors(r.id) && (r.title ?? '').trim());
     if (!rows.length) {
-        toast.error('Chọn ít nhất một dòng hợp lệ để ghi nhận.');
+        toast.error('Chọn ít nhất một hàng có đề hợp lệ để ghi nhận.');
         return;
     }
 
@@ -205,14 +224,13 @@ const submit = () => {
         preserveScroll: true,
         onSuccess: (page) => {
             const ids = page.props.flash?.created_blocker_ids ?? [];
-            const files = pendingBulkFiles.value.map((p) => p.file);
-            if (props.canUploadAttachments && files.length && ids.length) {
+            const needsUpload = props.canUploadAttachments && rows.some((r) => (r.pendingFiles?.length ?? 0) > 0);
+            if (needsUpload && ids.length) {
                 uploadingAttachments.value = true;
-                uploadFilesToBlockers(ids, files, {
-                    onPartialError: () => toast.warning('Đã ghi nhận vướng mắc nhưng một số file minh chứng không tải được.'),
+                uploadAttachmentsForCreatedBlockers(rows, ids, {
+                    onPartialError: () => toast.warning('Đã ghi nhận vướng mắc nhưng một số ảnh chưa tải được.'),
                     onFinish: () => {
                         uploadingAttachments.value = false;
-                        pendingBulkFiles.value = [];
                         finishBulkSaved(rows.length);
                     },
                 });
@@ -224,21 +242,6 @@ const submit = () => {
     });
 };
 
-const handleKeydown = (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-        e.preventDefault();
-        if (view.value === 'compose') goPreview();
-        else if (summary.value.canSubmit) submit();
-    }
-};
-
-watch(view, (v) => {
-    if (v === 'preview') document.addEventListener('keydown', handleKeydown);
-    else document.removeEventListener('keydown', handleKeydown);
-});
-
-onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
-
 const severitySelectOptions = computed(() => valueLabelOptions(props.severityOptions));
 const statusSelectOptions = computed(() => valueLabelOptions(props.statusOptions));
 
@@ -248,13 +251,17 @@ const projectLabel = computed(() => {
     if (!p) return null;
     return p.code ? `${p.name} (${p.code})` : p.name;
 });
+
+const pendingAttachmentCount = computed(() =>
+    bulkRows.value.reduce((n, r) => n + (r.pendingFiles?.length ?? 0), 0),
+);
 </script>
 
 <template>
-  <div class="space-y-3">
+  <div class="space-y-4">
     <div
       v-if="showTips"
-      class="flex gap-2 rounded-lg border border-brand/15 bg-brand-50/40 px-3 py-2 text-xs text-slate-700"
+      class="flex gap-2 rounded-lg border border-slate-200 bg-slate-50/90 px-3 py-2 text-xs text-slate-700"
     >
       <AppIcon
         name="info"
@@ -263,10 +270,10 @@ const projectLabel = computed(() => {
       />
       <div class="min-w-0 flex-1">
         <p class="font-semibold text-slate-800">
-          Ghi nhận nhiều vướng mắc một lần
+          Mỗi hàng = một vướng mắc
         </p>
         <p class="mt-0.5 text-slate-600">
-          Mỗi dòng = một đề vướng mắc · có thể đính kèm ảnh chung cho cả lần ghi nhận.
+          Nhập đề và chọn ảnh riêng từng hàng. Có thể dán nhiều dòng đề bên dưới để thêm hàng nhanh.
         </p>
       </div>
       <button
@@ -283,15 +290,14 @@ const projectLabel = computed(() => {
     </div>
 
     <BlockerFormSection
-      step="1"
       title="Cài đặt chung"
-      hint="Áp dụng cho mọi dòng trong lần ghi nhận này."
+      hint="Áp dụng cho mọi hàng trong lần ghi nhận này."
       dense
     >
-      <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+      <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
         <div
           v-if="!lockProject"
-          class="sm:col-span-2 lg:col-span-2"
+          class="sm:col-span-2"
         >
           <label class="label flex items-center gap-1 text-[11px]">
             Dự án
@@ -337,7 +343,7 @@ const projectLabel = computed(() => {
             class="input h-9 text-sm"
           >
         </div>
-        <div class="sm:col-span-2 lg:col-span-5">
+        <div class="sm:col-span-2">
           <label class="label text-[11px]">Người phụ trách</label>
           <PersonSelect
             v-model="defaults.owner_id"
@@ -348,135 +354,43 @@ const projectLabel = computed(() => {
       </div>
     </BlockerFormSection>
 
-    <nav
-      class="flex items-stretch gap-2 rounded-xl border border-slate-200 bg-slate-50/80 p-1"
-      aria-label="Các bước ghi nhận hàng loạt"
+    <BlockerFormSection
+      title="Danh sách vướng mắc"
+      :hint="`${bulkRows.length} / ${BULK_MAX_ROWS} hàng · ${summary.valid} hợp lệ`"
+      dense
     >
-      <button
-        type="button"
-        class="flex min-w-0 flex-1 flex-col rounded-lg px-3 py-2 text-left transition"
-        :class="view === 'compose'
-          ? 'bg-white text-brand shadow-sm ring-1 ring-brand/15'
-          : 'text-slate-600 hover:bg-white/60'"
-        @click="view = 'compose'"
-      >
-        <span class="flex items-center gap-2 text-xs font-bold uppercase tracking-wide">
-          <span
-            class="grid h-6 w-6 place-items-center rounded-full text-[11px]"
-            :class="view === 'compose' ? 'bg-brand text-white' : 'bg-slate-200 text-slate-600'"
-          >1</span>
-          Nhập danh sách
-        </span>
-        <span class="mt-1 pl-8 text-[11px] leading-snug text-slate-500">Mỗi dòng một đề vướng mắc</span>
-      </button>
-      <button
-        type="button"
-        class="flex min-w-0 flex-1 flex-col rounded-lg px-3 py-2 text-left transition"
-        :class="view === 'preview'
-          ? 'bg-white text-brand shadow-sm ring-1 ring-brand/15'
-          : 'text-slate-600 hover:bg-white/60'"
-        :disabled="!bulkRows.length && view !== 'preview'"
-        @click="bulkRows.length ? (view = 'preview') : goPreview()"
-      >
-        <span class="flex items-center gap-2 text-xs font-bold uppercase tracking-wide">
-          <span
-            class="grid h-6 w-6 place-items-center rounded-full text-[11px]"
-            :class="view === 'preview' ? 'bg-brand text-white' : 'bg-slate-200 text-slate-600'"
-          >2</span>
-          Kiểm tra & ghi nhận
-        </span>
-        <span class="mt-1 pl-8 text-[11px] leading-snug text-slate-500">Sửa từng dòng, chọn dòng hợp lệ</span>
-      </button>
-    </nav>
-
-    <div
-      v-show="view === 'compose'"
-      class="space-y-3"
-    >
-      <div class="flex flex-wrap items-center justify-end gap-1">
-        <button
-          type="button"
-          class="btn-ghost py-1 text-xs"
-          @click="insertSample"
-        >
-          Chèn mẫu
-        </button>
-        <button
-          type="button"
-          class="btn-ghost py-1 text-xs text-slate-500"
-          :disabled="!bulkText.trim() && !pendingBulkFiles.length"
-          @click="clearAll"
-        >
-          Xoá hết
-        </button>
-      </div>
-
-      <div class="grid gap-4 lg:grid-cols-5">
-        <div class="min-w-0 lg:col-span-3">
-          <BlockerTitleComposer
-            v-model="bulkText"
-            variant="bulk-compose"
-          >
-            <template #icon>
-              <AppIcon
-                name="template"
-                :size="16"
-              />
-            </template>
-            <template #footer>
-              <span
-                class="rounded bg-slate-800/80 px-1.5 py-0.5 text-[10px] font-medium text-white tabular-nums"
-              >
-                {{ lineCountInText }} / {{ BULK_MAX_ROWS }}
-              </span>
-            </template>
-          </BlockerTitleComposer>
-        </div>
-
-        <div
-          v-if="canUploadAttachments"
-          class="min-w-0 lg:col-span-2"
-        >
-          <BlockerFormSection
-            title="Ảnh chung"
-            hint="Gắn vào từng vướng mắc sau khi ghi nhận."
-            optional
-            dense
-          >
-            <BlockerAttachmentsBlock
-              :blocker-id="null"
-              :attachments="[]"
-              :can-upload="canUploadAttachments"
-              :pending-files="pendingBulkFiles"
-              stage-until-save
-              compact
-              @update:pending-files="pendingBulkFiles = $event"
-            />
-          </BlockerFormSection>
-        </div>
-      </div>
-
-      <div class="flex justify-end">
-        <button
-          type="button"
-          class="btn-primary text-sm"
-          :disabled="!bulkText.trim()"
-          @click="goPreview"
-        >
-          Tiếp tục
-          <AppIcon
-            name="chevron"
-            :size="14"
+      <div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-end">
+        <div class="min-w-0 flex-1">
+          <label class="label text-[11px]">Dán nhanh nhiều đề (mỗi dòng một hàng)</label>
+          <textarea
+            v-model="pasteText"
+            rows="2"
+            class="input resize-y text-sm"
+            placeholder="Dán từ Excel hoặc gõ nhiều dòng…"
+            @keydown.ctrl.enter.prevent="applyPaste"
+            @keydown.meta.enter.prevent="applyPaste"
           />
-        </button>
+        </div>
+        <div class="flex shrink-0 flex-wrap gap-1.5">
+          <button
+            type="button"
+            class="btn-ghost py-1.5 text-xs"
+            :disabled="!pasteText.trim()"
+            @click="applyPaste"
+          >
+            Thêm hàng
+          </button>
+          <button
+            type="button"
+            class="btn-ghost py-1.5 text-xs"
+            @click="addSampleRows"
+          >
+            Chèn mẫu
+          </button>
+        </div>
       </div>
-    </div>
 
-    <div
-      v-show="view === 'preview'"
-      class="space-y-2"
-    >
-      <div class="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs">
+      <div class="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2 text-xs">
         <span class="font-semibold text-emerald-700">{{ summary.valid }} hợp lệ</span>
         <span
           v-if="summary.invalid"
@@ -489,125 +403,133 @@ const projectLabel = computed(() => {
         <span class="ml-auto text-slate-400">{{ summary.selected }} / {{ summary.total }} chọn</span>
       </div>
 
-      <div class="overflow-hidden rounded-lg border border-slate-200">
-        <div class="flex items-center gap-2 border-b border-slate-100 bg-slate-50 px-3 py-1.5 text-[10px] font-semibold uppercase text-slate-500">
-          <input
-            type="checkbox"
-            class="rounded accent-brand"
-            :checked="allSelected"
-            @change="toggleSelectAll($event.target.checked)"
-          >
-          <span class="w-5">#</span>
-          <span class="flex-1">Đề vướng mắc</span>
-          <span class="w-20 text-right">Kiểm tra</span>
+      <div class="mt-2 overflow-hidden rounded-lg border border-slate-200">
+        <div
+          class="hidden gap-2 border-b border-slate-100 bg-slate-50 px-3 py-2 text-[10px] font-semibold uppercase text-slate-500 lg:grid lg:grid-cols-[2rem_1fr_minmax(8rem,11rem)_2rem]"
+        >
+          <span />
+          <span>Đề vướng mắc</span>
+          <span>Minh chứng</span>
+          <span />
         </div>
-        <ul class="max-h-[min(260px,38vh)] divide-y divide-slate-100 overflow-y-auto">
+        <ul class="max-h-[min(320px,42vh)] divide-y divide-slate-100 overflow-y-auto">
           <li
             v-for="(row, idx) in bulkRows"
             :key="row.id"
-            class="flex items-start gap-2 px-3 py-1.5"
-            :class="rowHasErrors(row.id) ? 'bg-amber-50/60' : ''"
+            class="grid gap-2 px-3 py-2.5 lg:grid-cols-[2rem_1fr_minmax(8rem,11rem)_2rem] lg:items-center"
+            :class="rowHasErrors(row.id) ? 'bg-amber-50/50' : ''"
           >
-            <input
-              v-model="row.selected"
-              type="checkbox"
-              class="mt-2 rounded accent-brand"
-              :disabled="rowHasErrors(row.id)"
-            >
-            <span class="mt-1.5 w-5 shrink-0 text-xs text-slate-400">{{ idx + 1 }}</span>
-            <input
-              v-model="row.title"
-              type="text"
-              class="input min-w-0 flex-1 py-1 text-sm"
-              :class="rowHasErrors(row.id) ? 'border-amber-300' : ''"
-            >
-            <div class="w-20 shrink-0 pt-1 text-right">
+            <div class="flex items-center gap-2 lg:flex-col lg:gap-0.5">
+              <input
+                v-model="row.selected"
+                type="checkbox"
+                class="rounded accent-brand"
+                :disabled="rowHasErrors(row.id)"
+              >
+              <span class="text-xs tabular-nums text-slate-400">{{ idx + 1 }}</span>
+            </div>
+            <div class="min-w-0">
+              <input
+                v-model="row.title"
+                type="text"
+                class="input w-full py-1.5 text-sm"
+                :class="rowHasErrors(row.id) ? 'border-amber-300' : ''"
+                placeholder="VD: API đăng nhập trả lỗi 500…"
+                maxlength="255"
+              >
+              <p
+                v-for="err in rowErrors(row.id)"
+                :key="err.code"
+                class="mt-0.5 text-[10px] text-amber-700"
+              >
+                {{ err.message }}
+              </p>
+            </div>
+            <div class="min-w-0">
+              <BlockerAttachmentsBlock
+                v-if="canUploadAttachments"
+                :blocker-id="null"
+                :attachments="[]"
+                :can-upload="canUploadAttachments"
+                :pending-files="row.pendingFiles"
+                stage-until-save
+                inline
+                @update:pending-files="setRowPendingFiles(row.id, $event)"
+              />
               <span
-                v-if="!rowHasErrors(row.id)"
-                class="text-[10px] font-medium text-emerald-600"
-              >OK</span>
-              <template v-else>
-                <span
-                  v-for="err in rowErrors(row.id)"
-                  :key="err.code"
-                  class="block text-[10px] text-amber-700"
-                  :title="err.message"
-                >
-                  {{ err.message }}
-                </span>
-              </template>
+                v-else
+                class="text-[11px] text-slate-400"
+              >—</span>
             </div>
             <button
               type="button"
-              class="mt-1 shrink-0 text-slate-400 hover:text-rose-500"
-              title="Xoá dòng"
+              class="justify-self-end text-slate-400 hover:text-rose-500 lg:justify-self-center"
+              title="Xoá hàng"
               @click="removeRow(row.id)"
             >
               <AppIcon
                 name="delete"
-                :size="14"
+                :size="16"
               />
             </button>
           </li>
         </ul>
       </div>
 
-      <button
-        type="button"
-        class="btn-ghost w-full border border-dashed border-slate-200 text-xs"
-        @click="addEmptyRow"
-      >
-        + Thêm dòng
-      </button>
-
-      <div
-        v-if="canUploadAttachments && pendingBulkFiles.length"
-        class="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2 text-xs text-slate-600"
-      >
-        <span class="font-medium text-slate-800">{{ pendingBulkFiles.length }} file minh chứng</span>
-        sẽ gắn vào từng vướng mắc được ghi nhận.
+      <div class="mt-2 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          class="btn-ghost border border-dashed border-slate-200 text-xs"
+          @click="addEmptyRow"
+        >
+          + Thêm hàng
+        </button>
+        <label class="ml-auto flex items-center gap-1.5 text-xs text-slate-600">
+          <input
+            type="checkbox"
+            class="rounded accent-brand"
+            :checked="allSelected"
+            @change="toggleSelectAll($event.target.checked)"
+          >
+          Chọn tất cả hợp lệ
+        </label>
       </div>
+    </BlockerFormSection>
 
-      <div class="flex flex-wrap justify-between gap-2 pt-1">
+    <div class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
+      <p
+        v-if="pendingAttachmentCount"
+        class="text-xs text-slate-500"
+      >
+        {{ pendingAttachmentCount }} ảnh chờ tải (theo từng hàng khi ghi nhận)
+      </p>
+      <span v-else />
+      <div class="flex flex-wrap gap-2">
         <button
           type="button"
           class="btn-ghost text-sm"
-          @click="backToCompose"
+          :disabled="!isDirty"
+          @click="clearAll"
         >
-          Sửa danh sách
+          Xoá hết
         </button>
-        <div class="flex gap-2">
-          <button
-            type="button"
-            class="btn-ghost"
-            @click="modalClose()"
-          >
-            Huỷ
-          </button>
-          <button
-            type="button"
-            class="btn-primary"
-            :disabled="!summary.canSubmit || submitting"
-            @click="submit"
-          >
-            <span v-if="submitting">Đang ghi nhận…</span>
-            <span v-else>Ghi nhận {{ summary.valid }} vướng mắc</span>
-          </button>
-        </div>
+        <button
+          type="button"
+          class="btn-ghost"
+          @click="modalClose()"
+        >
+          Huỷ
+        </button>
+        <button
+          type="button"
+          class="btn-primary"
+          :disabled="!summary.canSubmit || submitting"
+          @click="submit"
+        >
+          <span v-if="submitting">Đang ghi nhận…</span>
+          <span v-else>Ghi nhận {{ summary.valid }} vướng mắc</span>
+        </button>
       </div>
-    </div>
-
-    <div
-      v-if="view === 'compose'"
-      class="flex justify-end border-t border-slate-100 pt-3"
-    >
-      <button
-        type="button"
-        class="btn-ghost"
-        @click="modalClose()"
-      >
-        Huỷ
-      </button>
     </div>
   </div>
 </template>
