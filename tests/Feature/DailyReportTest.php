@@ -116,6 +116,27 @@ class DailyReportTest extends TestCase
         Carbon::setTestNow();
     }
 
+    public function test_submit_rejects_empty_rich_text_fields(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2024-01-08 09:00:00'));
+        $account = $this->member();
+        $report = DailyReport::factory()->create([
+            'employee_id' => $account->employee_id,
+            'goals_today' => '<p><br></p>',
+            'progress_update' => '<p>Đã làm xong phần A</p>',
+            'plan_tomorrow' => '<p>Ngày mai tiếp tục</p>',
+        ]);
+
+        $this->actingAs($account, 'system')
+            ->from(route('daily-reports.show', $report))
+            ->post(route('daily-reports.submit', $report))
+            ->assertSessionHasErrors('submit');
+
+        $this->assertSame(ReportStatus::Draft, $report->refresh()->status);
+
+        Carbon::setTestNow();
+    }
+
     public function test_cannot_submit_on_weekend(): void
     {
         Carbon::setTestNow(Carbon::parse('2024-01-07 10:00:00')); // Sunday

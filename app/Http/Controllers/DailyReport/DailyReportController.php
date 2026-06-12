@@ -15,6 +15,7 @@ use App\Http\Resources\DailyReportResource;
 use App\Models\Project;
 use App\Models\SystemAccount;
 use App\Support\DailyReportCalendar;
+use App\Support\DailyReportFieldContent;
 use App\Support\Enums\Grade;
 use App\Support\Enums\ReportStatus;
 use App\Support\Enums\SystemRole;
@@ -349,12 +350,19 @@ class DailyReportController extends Controller
     {
         $this->authorize('submit', $report);
 
-        $required = ['goals_today', 'progress_update', 'plan_tomorrow'];
-        $missing = collect($required)->filter(fn (string $field) => blank($report->{$field}));
+        $required = [
+            'goals_today' => 'Mục tiêu hôm nay',
+            'progress_update' => 'Tiến độ thực hiện',
+            'plan_tomorrow' => 'Kế hoạch ngày mai',
+        ];
+        $missingLabels = collect($required)
+            ->filter(fn (string $label, string $field) => ! DailyReportFieldContent::hasMeaningfulText($report->{$field}))
+            ->values()
+            ->all();
 
-        if ($missing->isNotEmpty()) {
+        if ($missingLabels !== []) {
             throw ValidationException::withMessages([
-                'submit' => 'Hãy điền đủ mục tiêu, tiến độ và kế hoạch ngày mai trước khi nộp.',
+                'submit' => 'Hãy điền đủ: '.implode(', ', $missingLabels).'. Lưu bản nháp tại «Báo cáo hôm nay» rồi nộp lại.',
             ]);
         }
 

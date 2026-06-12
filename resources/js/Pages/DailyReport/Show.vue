@@ -1,7 +1,8 @@
 <script setup>
 /* eslint-disable vue/no-v-html -- rendered markdown report fields */
 import { computed } from 'vue';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { useToast } from '@/shared/composables/useToast';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import StatusBadge from '@/Components/DailyReport/StatusBadge.vue';
@@ -17,6 +18,10 @@ const confirmDelete = useConfirmDelete();
 const props = defineProps({
     report: { type: Object, required: true },
 });
+
+const page = usePage();
+const toast = useToast();
+const submitError = computed(() => page.props.errors?.submit ?? null);
 
 const render = (html) => html || '<span class="text-slate-300">—</span>';
 const hasText = (html) => (html || '').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim().length > 0;
@@ -37,7 +42,15 @@ const hasRejectNotes = computed(
     () => props.report.status === 'draft' && Boolean((props.report.review_notes || '').trim()),
 );
 
-const submit = () => router.post(`/daily-reports/${props.report.id}/submit`);
+const submit = () => {
+    router.post(`/daily-reports/${props.report.id}/submit`, {}, {
+        preserveScroll: true,
+        onError: (errors) => {
+            const msg = errors.submit ?? 'Không thể nộp báo cáo. Kiểm tra nội dung và thử lại.';
+            toast.error(msg);
+        },
+    });
+};
 
 const remove = () => {
     confirmDelete(
@@ -161,6 +174,13 @@ const remove = () => {
             />
           </section>
         </div>
+
+        <p
+          v-if="submitError"
+          class="text-sm text-danger"
+        >
+          {{ submitError }}
+        </p>
 
         <div class="flex flex-wrap gap-2">
           <Link

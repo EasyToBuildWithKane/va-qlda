@@ -15,8 +15,10 @@ import { pillars, fields, builtinTemplates } from '@/modules/daily-report/config
 import { useDialog } from '@/composables/useDialog';
 import { date, dateLongVi } from '@/composables/useFormat';
 import { mergeSpawnedTaskIds } from '@/types/dailyReport';
+import { useToast } from '@/shared/composables/useToast';
 
 const dialog = useDialog();
+const toast = useToast();
 
 const props = defineProps({
     report: { type: Object, default: null },
@@ -219,9 +221,22 @@ const save = () => {
 
 const submit = () => {
     if (!isEditing.value) return;
+    if (!readyToSubmit.value) {
+        toast.error(`Chưa đủ điều kiện nộp. Còn thiếu: ${missingLabel.value}.`);
+        return;
+    }
     form.put(`/daily-reports/${props.report.id}`, {
         preserveScroll: true,
-        onSuccess: () => router.post(`/daily-reports/${props.report.id}/submit`),
+        onSuccess: () => {
+            router.post(`/daily-reports/${props.report.id}/submit`, {}, {
+                preserveScroll: true,
+                onError: (errors) => {
+                    const msg = errors.submit ?? 'Không thể nộp báo cáo.';
+                    toast.error(msg);
+                },
+            });
+        },
+        onError: () => toast.error('Không lưu được bản nháp. Kiểm tra dự án / task phát sinh rồi thử lại.'),
     });
 };
 
