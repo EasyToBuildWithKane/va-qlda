@@ -463,6 +463,27 @@ class BlockerTest extends TestCase
         $this->assertSame('passed', $fresh->recheck_result->value);
     }
 
+    public function test_admin_cannot_recheck_blocker(): void
+    {
+        config(['telegram.enabled' => false]);
+        Http::fake();
+
+        $project = Project::factory()->create();
+        $raiser = $this->member();
+        $blocker = $this->createBlocker($project, $raiser);
+        $blocker->update([
+            'status' => BlockerStatus::Resolved->value,
+            'resolved_at' => now(),
+            'recheck_result' => 'pending',
+        ]);
+
+        $this->actingAs($this->admin(), 'system')
+            ->post("/blockers/{$blocker->id}/recheck", [
+                'result' => 'passed',
+            ])
+            ->assertForbidden();
+    }
+
     public function test_resolving_blocker_sets_recheck_pending(): void
     {
         config(['telegram.enabled' => false]);

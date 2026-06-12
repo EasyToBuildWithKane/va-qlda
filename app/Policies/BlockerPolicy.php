@@ -42,8 +42,7 @@ class BlockerPolicy
 
     public function recheck(SystemAccount $account, Blocker $blocker): bool
     {
-        return $this->isReviewer($account)
-            || $this->isRaiser($account, $blocker);
+        return $this->isRaiser($account, $blocker);
     }
 
     private function isRaiser(SystemAccount $account, Blocker $blocker): bool
