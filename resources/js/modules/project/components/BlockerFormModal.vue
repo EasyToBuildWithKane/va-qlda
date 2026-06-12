@@ -439,34 +439,27 @@ const submit = () => {
     >
       <p
         v-if="modalSubtitle"
-        class="-mt-1 mb-4 truncate text-sm text-slate-500"
+        class="-mt-1 mb-3 truncate text-xs text-slate-500"
         :title="modalSubtitle"
       >
         {{ modalSubtitle }}
       </p>
       <div
         v-if="showProjectBanner"
-        class="mb-4 flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2.5"
+        class="mb-3 flex items-center gap-2 rounded-lg border border-slate-200/80 bg-slate-50/60 px-3 py-2 text-sm"
       >
-        <span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-white text-brand shadow-sm ring-1 ring-slate-200/80">
-          <AppIcon
-            name="projects"
-            :size="18"
-          />
-        </span>
-        <div class="min-w-0 flex-1">
-          <p class="text-[10px] font-bold uppercase tracking-wide text-slate-400">
-            {{ isEdit && !blocker?.project_id ? 'Phạm vi' : 'Dự án' }}
-          </p>
-          <p class="truncate text-sm font-semibold text-slate-800">
-            {{ projectBannerLabel }}
-          </p>
-        </div>
+        <AppIcon
+          name="projects"
+          :size="16"
+          class="shrink-0 text-brand"
+        />
+        <span class="text-slate-500">{{ isEdit && !blocker?.project_id ? 'Phạm vi' : 'Dự án' }}:</span>
+        <span class="min-w-0 truncate font-medium text-slate-800">{{ projectBannerLabel }}</span>
       </div>
 
       <div
         v-else-if="showProjectSelector"
-        class="mb-4"
+        class="mb-3 max-w-md"
       >
         <label class="label flex items-center gap-1.5">
           Dự án
@@ -488,8 +481,7 @@ const submit = () => {
         </p>
       </div>
 
-      <div class="min-h-[12rem]">
-        <!-- Tab: Hướng xử lý (chỉ sửa) — v-if: tránh đọc blocker.* khi tạo mới (v-show vẫn evaluate) -->
+      <div>
         <div
           v-if="blocker && showResolutionPanel"
           class="space-y-4"
@@ -564,131 +556,117 @@ const submit = () => {
 
         <div
           v-if="showMainForm"
-          class="space-y-4"
+          class="space-y-3"
         >
           <BlockerTitleComposer
             v-model="form.title"
-            :step="!isEdit ? 1 : null"
+            compact
             :error="form.errors.title"
           />
 
-          <div class="grid gap-4 lg:grid-cols-2 lg:items-stretch">
-            <BlockerFormSection
-              class="h-full"
-              :step="isEdit ? null : 2"
-              title="Phân công & mô tả"
-              :hint="!isEdit ? 'Mức độ, người phụ trách, hạn và mô tả.' : 'Cập nhật phân công và mô tả.'"
-              dense
-            >
-              <div class="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label class="label flex items-center gap-1.5">
-                    Mức độ
-                    <FieldTooltip text="Mức nghiêm trọng / ưu tiên xử lý." />
-                  </label>
-                  <SearchSelect
-                    v-model="form.severity"
-                    :options="severitySelectOptions"
-                    placeholder="Chọn…"
-                    :clearable="false"
-                  />
-                </div>
-                <div>
-                  <label class="label flex items-center gap-1.5">
-                    Trạng thái
-                    <FieldTooltip text="Trạng thái xử lý hiện tại." />
-                  </label>
-                  <SearchSelect
-                    v-model="form.status"
-                    :options="statusSelectOptions"
-                    placeholder="Chọn…"
-                    :clearable="false"
-                    :disabled="statusLocked"
-                  />
-                  <p
-                    v-if="statusLocked"
-                    class="mt-1 text-xs text-slate-500"
-                  >
-                    Đã giải quyết hoặc đã đóng — không thể đổi trạng thái.
-                  </p>
-                </div>
-                <div>
-                  <label class="label flex items-center gap-1.5">
-                    Hạn xử lý
-                  </label>
-                  <input
-                    v-model="form.due_date"
-                    type="date"
-                    class="input"
-                  >
-                </div>
-                <div>
-                  <label class="label flex items-center gap-1.5">
-                    Người phụ trách
-                  </label>
-                  <PersonSelect
-                    v-model="form.owner_id"
-                    :options="employees"
-                    placeholder="Tìm & chọn…"
-                  />
-                </div>
-              </div>
-              <div class="mt-3">
-                <label class="label flex items-center gap-1.5">
-                  Mô tả chi tiết
-                  <span class="font-normal text-slate-400">(tuỳ chọn)</span>
-                </label>
-                <textarea
-                  v-model="form.description"
-                  rows="4"
-                  class="input min-h-[5.5rem] resize-y text-sm"
-                  placeholder="Bối cảnh, tác động, ai bị ảnh hưởng…"
-                />
-              </div>
-              <p
-                v-if="!isEdit"
-                class="mt-3 text-xs leading-relaxed text-slate-500"
+          <div class="rounded-lg border border-slate-200 p-3 sm:p-4">
+            <div class="grid gap-4 lg:grid-cols-2 lg:items-start">
+              <BlockerFormSection
+                plain
+                title="Phân công & mô tả"
               >
-                Nguyên nhân và hướng xử lý do <strong class="font-medium text-slate-700">người xử lý</strong> điền sau qua «Hướng xử lý».
-              </p>
-            </BlockerFormSection>
-
-            <BlockerFormSection
-              class="h-full"
-              :step="isEdit ? null : 3"
-              title="Minh chứng"
-              hint="Ảnh và link Jira/Figma — tải lên khi bấm Lưu."
-              optional
-              dense
-            >
-              <div class="space-y-3">
-                <div>
-                  <div class="mb-1 flex items-center justify-between gap-2">
-                    <label class="label mb-0 flex items-center gap-1.5">
-                      Link dẫn chứng
+                <div class="grid gap-2.5 sm:grid-cols-2">
+                  <div>
+                    <label class="label flex items-center gap-1.5">
+                      Mức độ
+                      <FieldTooltip text="Mức nghiêm trọng / ưu tiên xử lý." />
                     </label>
-                    <button
-                      type="button"
-                      class="text-xs font-medium text-brand hover:underline"
-                      :disabled="form.evidence_links.length >= 20"
-                      @click="addEvidenceLink"
-                    >
-                      + Thêm link
-                    </button>
+                    <SearchSelect
+                      v-model="form.severity"
+                      :options="severitySelectOptions"
+                      placeholder="Chọn…"
+                      :clearable="false"
+                    />
                   </div>
-                  <div class="max-h-32 space-y-2 overflow-y-auto pr-0.5">
-                    <div
-                      v-for="(link, index) in form.evidence_links"
-                      :key="index"
-                      class="flex flex-col gap-1.5"
+                  <div>
+                    <label class="label flex items-center gap-1.5">
+                      Trạng thái
+                      <FieldTooltip text="Trạng thái xử lý hiện tại." />
+                    </label>
+                    <SearchSelect
+                      v-model="form.status"
+                      :options="statusSelectOptions"
+                      placeholder="Chọn…"
+                      :clearable="false"
+                      :disabled="statusLocked"
+                    />
+                    <p
+                      v-if="statusLocked"
+                      class="mt-1 text-xs text-slate-500"
                     >
-                      <input
-                        v-model="link.label"
-                        type="text"
-                        class="input text-sm"
-                        placeholder="Nhãn"
+                      Đã giải quyết hoặc đã đóng — không thể đổi trạng thái.
+                    </p>
+                  </div>
+                  <div>
+                    <label class="label flex items-center gap-1.5">
+                      Hạn xử lý
+                    </label>
+                    <input
+                      v-model="form.due_date"
+                      type="date"
+                      class="input"
+                    >
+                  </div>
+                  <div>
+                    <label class="label flex items-center gap-1.5">
+                      Người phụ trách
+                    </label>
+                    <PersonSelect
+                      v-model="form.owner_id"
+                      :options="employees"
+                      placeholder="Tìm & chọn…"
+                    />
+                  </div>
+                </div>
+                <div class="mt-2.5">
+                  <label class="label flex items-center gap-1.5">
+                    Mô tả
+                    <span class="font-normal text-slate-400">(tuỳ chọn)</span>
+                  </label>
+                  <textarea
+                    v-model="form.description"
+                    rows="3"
+                    class="input resize-y text-sm"
+                    placeholder="Bối cảnh, tác động…"
+                  />
+                </div>
+              </BlockerFormSection>
+
+              <BlockerFormSection
+                plain
+                title="Minh chứng"
+                optional
+              >
+                <div class="space-y-2.5">
+                  <div>
+                    <div class="mb-1 flex items-center justify-between gap-2">
+                      <span class="text-[11px] font-medium text-slate-600">Link</span>
+                      <button
+                        type="button"
+                        class="text-xs font-medium text-brand hover:underline"
+                        :disabled="form.evidence_links.length >= 20"
+                        @click="addEvidenceLink"
                       >
-                      <div class="flex gap-1.5">
+                        + Thêm
+                      </button>
+                    </div>
+                    <div class="max-h-28 space-y-1.5 overflow-y-auto">
+                      <div
+                        v-for="(link, index) in form.evidence_links"
+                        :key="index"
+                        class="flex gap-1.5"
+                      >
+                        <input
+                          v-model="link.label"
+                          type="text"
+                          class="input w-20 shrink-0 text-sm"
+                          placeholder="Nhãn"
+                        >
                         <input
                           v-model="link.url"
                           type="url"
@@ -697,76 +675,59 @@ const submit = () => {
                         >
                         <button
                           type="button"
-                          class="shrink-0 px-2 text-xs text-rose-500 hover:underline"
+                          class="shrink-0 px-1 text-xs text-rose-500 hover:underline"
                           @click="removeEvidenceLink(index)"
                         >
                           Xoá
                         </button>
                       </div>
                     </div>
+                    <p
+                      v-if="form.errors['evidence_links.0.url']"
+                      class="mt-1 text-xs text-danger"
+                    >
+                      {{ form.errors['evidence_links.0.url'] }}
+                    </p>
                   </div>
-                  <p
-                    v-if="!form.evidence_links.length"
-                    class="mt-1 text-xs text-slate-400"
-                  >
-                    Chưa có link.
-                  </p>
-                  <p
-                    v-if="form.errors['evidence_links.0.url']"
-                    class="mt-1 text-xs text-danger"
-                  >
-                    {{ form.errors['evidence_links.0.url'] }}
-                  </p>
-                </div>
 
-                <BlockerAttachmentsBlock
-                  v-if="showAttachmentsBlock"
-                  :blocker-id="attachmentBlockerId"
-                  :attachments="attachmentList"
-                  :can-upload="canUploadAttachments"
-                  :pending-files="pendingCreateFiles"
-                  stage-until-save
-                  compact
-                  @update:pending-files="pendingCreateFiles = $event"
-                />
-              </div>
-            </BlockerFormSection>
+                  <BlockerAttachmentsBlock
+                    v-if="showAttachmentsBlock"
+                    :blocker-id="attachmentBlockerId"
+                    :attachments="attachmentList"
+                    :can-upload="canUploadAttachments"
+                    :pending-files="pendingCreateFiles"
+                    stage-until-save
+                    compact
+                    @update:pending-files="pendingCreateFiles = $event"
+                  />
+                </div>
+              </BlockerFormSection>
+            </div>
           </div>
         </div>
       </div>
 
-      <div class="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
+      <div class="mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 pt-3">
         <p
           v-if="pendingAttachmentSummary"
-          class="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-950 ring-1 ring-amber-200/90"
+          class="mr-auto text-xs text-slate-500"
         >
-          <AppIcon
-            name="image"
-            :size="14"
-            class="shrink-0 text-amber-700"
-          />
           {{ pendingAttachmentSummary }}
         </p>
-        <span
-          v-else
-          class="hidden sm:block"
-        />
-        <div class="flex w-full flex-wrap justify-end gap-2 sm:w-auto">
-          <button
-            type="button"
-            class="btn-ghost"
-            @click="modalClose()"
-          >
-            Huỷ
-          </button>
-          <button
-            type="submit"
-            class="btn-primary"
-            :disabled="form.processing"
-          >
-            {{ submitLabel }}
-          </button>
-        </div>
+        <button
+          type="button"
+          class="btn-ghost"
+          @click="modalClose()"
+        >
+          Huỷ
+        </button>
+        <button
+          type="submit"
+          class="btn-primary"
+          :disabled="form.processing"
+        >
+          {{ submitLabel }}
+        </button>
       </div>
     </form>
   </Modal>

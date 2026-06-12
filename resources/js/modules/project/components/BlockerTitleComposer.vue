@@ -7,6 +7,8 @@ defineProps({
     step: { type: [Number, String], default: null },
     disabled: { type: Boolean, default: false },
     maxLength: { type: Number, default: 255 },
+    /** Chỉ label + input, không bọc card */
+    compact: { type: Boolean, default: false },
 });
 
 defineEmits(['update:modelValue']);
@@ -18,7 +20,39 @@ const placeholders = {
 </script>
 
 <template>
-  <section class="overflow-hidden rounded-lg border border-slate-200 bg-white">
+  <div
+    v-if="compact"
+    class="space-y-1"
+  >
+    <label class="label flex items-center justify-between gap-2">
+      <span>
+        Đề vướng mắc
+        <span class="text-rose-600">*</span>
+      </span>
+      <span class="tabular-nums text-[11px] font-normal text-slate-400">
+        {{ (modelValue || '').length }} / {{ maxLength }}
+      </span>
+    </label>
+    <input
+      :value="modelValue"
+      type="text"
+      class="input text-sm font-medium text-slate-900 placeholder:font-normal placeholder:text-slate-400"
+      :placeholder="placeholders.single"
+      :maxlength="maxLength"
+      :disabled="disabled"
+      @input="$emit('update:modelValue', $event.target.value)"
+    >
+    <p
+      v-if="error"
+      class="text-xs text-danger"
+    >
+      {{ error }}
+    </p>
+  </div>
+  <section
+    v-else
+    class="overflow-hidden rounded-lg border border-slate-200 bg-white"
+  >
     <header class="flex items-start gap-3 border-b border-slate-100 bg-slate-50/90 px-3 py-2.5">
       <span
         v-if="step != null && step !== ''"

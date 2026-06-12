@@ -9,25 +9,14 @@ defineProps({
 const emit = defineEmits(['update:mode']);
 
 const tabs = [
-    {
-        id: 'single',
-        label: 'Một vướng mắc',
-        hint: 'Đề + mô tả + nhiều ảnh — phù hợp từng case cụ thể',
-        icon: 'blockers',
-    },
-    {
-        id: 'bulk',
-        label: 'Nhiều vướng mắc',
-        hint: 'Mỗi hàng một đề + ảnh riêng — ghi nhanh nhiều case',
-        icon: 'template',
-        badge: 'Nhanh',
-    },
+    { id: 'single', label: 'Một vướng mắc', icon: 'blockers' },
+    { id: 'bulk', label: 'Nhiều vướng mắc', icon: 'template' },
 ];
 </script>
 
 <template>
   <div
-    class="mb-4 grid gap-2 sm:grid-cols-2"
+    class="mb-3 flex w-full rounded-lg bg-slate-100/90 p-0.5"
     role="tablist"
     aria-label="Cách ghi nhận"
   >
@@ -37,35 +26,19 @@ const tabs = [
       type="button"
       role="tab"
       :aria-selected="mode === tab.id"
-      class="flex min-h-[3.75rem] flex-col items-start rounded-lg border px-3 py-2 text-left transition"
+      class="flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold transition sm:flex-none sm:px-4"
       :class="mode === tab.id
-        ? 'border-brand/35 bg-brand-50/50 ring-1 ring-brand/25'
-        : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'"
+        ? 'bg-white text-brand shadow-sm ring-1 ring-slate-200/80'
+        : 'text-slate-600 hover:text-slate-800'"
       @click="emit('update:mode', tab.id)"
     >
-      <span class="flex w-full items-center gap-2">
-        <AppIcon
-          :name="tab.icon"
-          :size="18"
-          class="shrink-0"
-          :class="mode === tab.id ? 'text-brand' : 'text-slate-400'"
-        />
-        <span
-          class="text-sm font-semibold"
-          :class="mode === tab.id ? 'text-brand' : 'text-slate-800'"
-        >
-          {{ tab.label }}
-        </span>
-        <span
-          v-if="tab.badge"
-          class="ml-auto rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-brand"
-        >
-          {{ tab.badge }}
-        </span>
-      </span>
-      <span class="mt-0.5 pl-7 text-[11px] leading-snug text-slate-500">
-        {{ tab.hint }}
-      </span>
+      <AppIcon
+        :name="tab.icon"
+        :size="16"
+        class="shrink-0"
+        :class="mode === tab.id ? 'text-brand' : 'text-slate-400'"
+      />
+      {{ tab.label }}
     </button>
   </div>
 </template>
