@@ -4,6 +4,7 @@ namespace App\Application\DailyReport;
 
 use App\Domain\DailyReport\Exceptions\DailyReportException;
 use App\Domain\DailyReport\Models\DailyReport;
+use App\Domain\DailyReport\Support\ReportProjectTaskStatus;
 use App\Support\DailyReportCalendar;
 use App\Support\Enums\ReportStatus;
 
@@ -26,6 +27,8 @@ class SubmitDailyReportUseCase
         if (! in_array($now->isoWeekday(), config('daily_report.working_days'), true)) {
             throw DailyReportException::notWorkingDay();
         }
+
+        ReportProjectTaskStatus::freezeIntoReport($report->refresh());
 
         $report->forceFill([
             'status' => ReportStatus::Submitted,

@@ -1,12 +1,15 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { useConfirmDelete } from '@/composables/useConfirmClose';
+import TaskStatusBadge from '@/Components/TaskStatusBadge.vue';
+import { createSpawnLocalKey } from '@/modules/daily-report/utils/spawnLocalKey';
 
 const props = defineProps({
     // [{ id, name, tasks: [{ id, title }] }]
     modelValue: { type: Array, default: () => [] },
     // [{ id, name, code, color, tasks: [{ id, title, status }] }]
     options: { type: Array, default: () => [] },
+    taskStatusSnapshot: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits(['update:modelValue']);
@@ -25,11 +28,6 @@ const colorOf = (id) => soft[optionOf(id)?.color] || soft.slate;
 const statusLabels = {
     todo: 'Cần làm', in_progress: 'Đang làm', in_review: 'Đang review',
     done: 'Hoàn thành', blocked: 'Bị chặn',
-};
-const statusColors = {
-    todo: 'bg-slate-100 text-slate-500', in_progress: 'bg-sky-50 text-sky-700',
-    in_review: 'bg-violet-50 text-violet-700', done: 'bg-emerald-50 text-emerald-700',
-    blocked: 'bg-rose-50 text-rose-700',
 };
 
 const selectedIds = computed(() => new Set(props.modelValue.map((p) => p.id)));
@@ -78,13 +76,15 @@ const addTask = (proj, event) => {
     ));
 };
 
-const removeTask = (proj, taskId) => {
-    const task = (proj.tasks || []).find((t) => t.id === taskId);
+const removeTask = (proj, taskIndex) => {
+    const task = (proj.tasks || [])[taskIndex];
     confirmDelete(
         `Bỏ công việc "${task?.title ?? ''}" khỏi báo cáo?`,
         () => update(
             props.modelValue.map((p) =>
-                p.id === proj.id ? { ...p, tasks: (p.tasks || []).filter((t) => t.id !== taskId) } : p,
+                p.id === proj.id
+                    ? { ...p, tasks: (p.tasks || []).filter((_, i) => i !== taskIndex) }
+                    : p,
             ),
         ),
         { title: 'Bỏ công việc', confirmText: 'Bỏ' },
@@ -92,7 +92,30 @@ const removeTask = (proj, taskId) => {
 };
 
 const statusOf = (proj, taskId) =>
-    optionOf(proj.id)?.tasks?.find((t) => t.id === taskId)?.status ?? null;
+    proj.tasks?.find((t) => t.id === taskId)?.status
+    ?? optionOf(proj.id)?.tasks?.find((t) => t.id === taskId)?.status
+    ?? 'todo';
+
+const spawnDraft = ref({});
+
+const addSpawnedTask = (proj) => {
+    const title = (spawnDraft.value[proj.id] || '').trim();
+    if (!title) return;
+    update(props.modelValue.map((p) =>
+        p.id === proj.id
+            ? {
+                ...p,
+                tasks: [...(p.tasks || []), {
+                    id: 0,
+                    title,
+                    status: 'todo',
+                    _localKey: createSpawnLocalKey(),
+                }],
+            }
+            : p,
+    ));
+    spawnDraft.value[proj.id] = '';
+};
 </script>
 
 <template>
@@ -125,21 +148,26 @@ const statusOf = (proj, taskId) =>
           class="mb-2 flex flex-wrap gap-1.5"
         >
           <span
-            v-for="t in p.tasks"
-            :key="t.id"
+            v-for="(t, idx) in p.tasks"
+            :key="`${p.id}-${t.id}-${idx}`"
             class="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-700"
           >
+            <TaskStatusBadge
+              v-if="t.id > 0"
+              :task-id="t.id"
+              :initial-status="statusOf(p, t.id)"
+              :snapshot="taskStatusSnapshot"
+            />
             <span
-              v-if="statusOf(p, t.id)"
-              class="rounded px-1 py-0.5 text-[10px] font-medium"
-              :class="statusColors[statusOf(p, t.id)] || 'bg-slate-100 text-slate-500'"
-            >{{ statusLabels[statusOf(p, t.id)] || statusOf(p, t.id) }}</span>
+              v-else
+              class="rounded px-1 py-0.5 text-[10px] font-medium bg-amber-50 text-amber-700"
+            >Phát sinh</span>
             {{ t.title }}
             <button
               type="button"
               class="text-slate-400 hover:text-danger"
               :title="`Bỏ task ${t.title}`"
-              @click="removeTask(p, t.id)"
+              @click="removeTask(p, idx)"
             >×</button>
           </span>
         </div>
@@ -177,6 +205,24 @@ const statusOf = (proj, taskId) =>
         >
           Đã thêm tất cả task của dự án.
         </p>
+
+        <div class="mt-2 flex flex-wrap items-center gap-2">
+          <input
+            v-model="spawnDraft[p.id]"
+            type="text"
+            class="input min-w-0 flex-1 text-sm"
+            placeholder="Task phát sinh trong ngày…"
+            maxlength="255"
+            @keydown.enter.prevent="addSpawnedTask(p)"
+          >
+          <button
+            type="button"
+            class="btn-ghost shrink-0 text-xs"
+            @click="addSpawnedTask(p)"
+          >
+            + Phát sinh
+          </button>
+        </div>
       </div>
     </div>
 

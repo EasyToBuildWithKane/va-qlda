@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Domain\DailyReport\Models\DailyReport;
 use App\Support\Enums\TaskPhase;
 use App\Support\Enums\TaskPriority;
+use App\Support\Enums\TaskSource;
 use App\Support\Enums\TaskStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -67,9 +69,12 @@ class Task extends Model
         'story_points',
         'progress',
         'order_column',
+        'source',
+        'daily_report_id',
     ];
 
     protected $casts = [
+        'source' => TaskSource::class,
         'status' => TaskStatus::class,
         'priority' => TaskPriority::class,
         'phase' => TaskPhase::class,
@@ -87,6 +92,11 @@ class Task extends Model
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);
+    }
+
+    public function dailyReport(): BelongsTo
+    {
+        return $this->belongsTo(DailyReport::class);
     }
 
     public function sprint(): BelongsTo

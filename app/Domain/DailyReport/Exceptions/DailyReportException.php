@@ -25,4 +25,9 @@ class DailyReportException extends DomainException
     {
         return new self('Chỉ có thể xoá báo cáo ở trạng thái nháp.');
     }
+
+    public static function projectNotAllowed(string $projectName): self
+    {
+        return new self("Bạn không có quyền ghi task vào dự án «{$projectName}».");
+    }
 }

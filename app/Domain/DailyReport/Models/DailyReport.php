@@ -53,12 +53,14 @@ class DailyReport extends Model
         'submitted_at',
         'reviewed_at',
         'review_notes',
+        'task_status_snapshot',
     ];
 
     protected $casts = [
         'status' => ReportStatus::class,
         'is_late' => 'boolean',
         'projects' => 'array',
+        'task_status_snapshot' => 'array',
         'submitted_at' => 'datetime',
         'reviewed_at' => 'datetime',
     ];

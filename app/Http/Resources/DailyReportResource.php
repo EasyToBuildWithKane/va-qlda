@@ -18,6 +18,15 @@ class DailyReportResource extends JsonResource
     public function toArray(Request $request): array
     {
         $user = $request->user();
+        $isOwner = $user !== null && $user->employee_id === $this->employee_id;
+
+        $taskStatusSnapshot = collect($this->task_status_snapshot ?? []);
+
+        if (! $isOwner) {
+            $taskStatusSnapshot = $taskStatusSnapshot
+                ->filter(fn (mixed $entry) => is_array($entry) && empty($entry['synced_after_submit']))
+                ->values();
+        }
 
         return [
             'id' => $this->id,
@@ -30,6 +39,7 @@ class DailyReportResource extends JsonResource
             'blockers' => $this->blockers,
             'improvement_suggestions' => $this->improvement_suggestions,
             'plan_tomorrow' => $this->plan_tomorrow,
+            'task_status_snapshot' => $taskStatusSnapshot->all(),
 
             'status' => $this->status->value,
             'status_label' => $this->status->label(),

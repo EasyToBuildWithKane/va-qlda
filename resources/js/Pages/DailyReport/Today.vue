@@ -1,4 +1,7 @@
 <script setup>
+/**
+ * @typedef {import('@/types/dailyReport').ReportProjectLink} ReportProjectLink
+ */
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { Head, Link, useForm, router, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -11,6 +14,7 @@ import InfoTooltip from '@/Components/DailyReport/InfoTooltip.vue';
 import { pillars, fields, builtinTemplates } from '@/modules/daily-report/config/reportConfig';
 import { useDialog } from '@/composables/useDialog';
 import { date, dateLongVi } from '@/composables/useFormat';
+import { mergeSpawnedTaskIds } from '@/types/dailyReport';
 
 const dialog = useDialog();
 
@@ -25,6 +29,10 @@ const isEditing = computed(() => props.report !== null);
 const editable = computed(() => !props.report || props.report.status === 'draft');
 
 const reportDate = computed(() => props.report?.date ?? props.today);
+
+const taskStatusSnapshot = computed(
+    () => props.report?.task_status_snapshot ?? [],
+);
 
 // Auto-generated title prefix for a new report: "Báo cáo ngày DD/MM/YYYY - ".
 const titlePrefix = computed(
@@ -172,9 +180,38 @@ const applyTemplate = async (map) => {
 };
 
 // ---- Persistence ----------------------------------------------------------
+/** @param {ReportProjectLink[]|undefined} serverProjects */
+const applyServerSpawnIds = (serverProjects) => {
+    mergeSpawnedTaskIds(form.projects, serverProjects);
+};
+
+const afterSaveSuccess = () => {
+    lastSavedAt.value = new Date();
+    router.reload({
+        only: ['report'],
+        preserveScroll: true,
+        preserveState: true,
+        onFinish: () => {
+            applyServerSpawnIds(props.report?.projects);
+        },
+    });
+};
+
+watch(
+    () => props.report?.projects,
+    (serverProjects) => {
+        if (!isEditing.value) return;
+        applyServerSpawnIds(serverProjects);
+    },
+    { deep: true },
+);
+
 const save = () => {
     if (isEditing.value) {
-        form.put(`/daily-reports/${props.report.id}`, { preserveScroll: true });
+        form.put(`/daily-reports/${props.report.id}`, {
+            preserveScroll: true,
+            onSuccess: afterSaveSuccess,
+        });
     } else {
         form.post('/daily-reports');
     }
@@ -189,21 +226,37 @@ const submit = () => {
 };
 
 const lastSavedAt = ref(props.report ? new Date() : null);
-let timer = null;
+let saveTimer = null;
+let snapshotTimer = null;
 onMounted(() => {
     if (isEditing.value && editable.value) {
-        timer = setInterval(() => {
+        saveTimer = setInterval(() => {
             if (form.isDirty && !form.processing) {
                 form.put(`/daily-reports/${props.report.id}`, {
                     preserveScroll: true,
                     preserveState: true,
-                    onSuccess: () => (lastSavedAt.value = new Date()),
+                    onSuccess: afterSaveSuccess,
                 });
             }
         }, 30000);
+
+        snapshotTimer = setInterval(() => {
+            if (form.processing || document.visibilityState !== 'visible') return;
+            router.reload({
+                only: ['report'],
+                preserveScroll: true,
+                preserveState: true,
+                onFinish: () => {
+                    applyServerSpawnIds(props.report?.projects);
+                },
+            });
+        }, 25000);
     }
 });
-onUnmounted(() => timer && clearInterval(timer));
+onUnmounted(() => {
+    if (saveTimer) clearInterval(saveTimer);
+    if (snapshotTimer) clearInterval(snapshotTimer);
+});
 
 const savedTimeLabel = computed(() =>
     lastSavedAt.value
@@ -459,6 +512,7 @@ const savedTimeLabel = computed(() =>
               <ProjectSelect
                 v-model="form.projects"
                 :options="projectOptions"
+                :task-status-snapshot="taskStatusSnapshot"
               />
             </div>
           </div>

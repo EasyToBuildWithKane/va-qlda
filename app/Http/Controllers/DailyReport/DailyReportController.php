@@ -295,7 +295,15 @@ class DailyReportController extends Controller
 
     public function store(StoreDailyReportRequest $request, CreateDailyReportUseCase $useCase): RedirectResponse
     {
-        $report = $useCase->execute($request->user()->employee_id, $request->validated());
+        try {
+            $report = $useCase->execute(
+                $request->user()->employee_id,
+                $request->validated(),
+                $request->user(),
+            );
+        } catch (DailyReportException $e) {
+            return back()->with('error', $e->getMessage());
+        }
 
         return redirect()
             ->route('daily-reports.show', $report)
@@ -313,7 +321,11 @@ class DailyReportController extends Controller
 
     public function update(UpdateDailyReportRequest $request, DailyReport $report, UpdateDailyReportUseCase $useCase): RedirectResponse
     {
-        $useCase->execute($report, $request->validated());
+        try {
+            $useCase->execute($report, $request->validated(), $request->user());
+        } catch (DailyReportException $e) {
+            return back()->with('error', $e->getMessage());
+        }
 
         return back()->with('success', 'Đã lưu báo cáo.');
     }

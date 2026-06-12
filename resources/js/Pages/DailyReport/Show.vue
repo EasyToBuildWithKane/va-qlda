@@ -5,6 +5,7 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import StatusBadge from '@/Components/DailyReport/StatusBadge.vue';
+import TaskStatusBadge from '@/Components/TaskStatusBadge.vue';
 import GradePill from '@/Components/DailyReport/GradePill.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import { fields } from '@/modules/daily-report/config/reportConfig';
@@ -91,13 +92,34 @@ const remove = () => {
 
           <div
             v-if="report.projects?.length"
-            class="mt-3 flex flex-wrap gap-1.5 border-t border-slate-100 pt-3"
+            class="mt-3 space-y-2 border-t border-slate-100 pt-3"
           >
-            <span
+            <div
               v-for="p in report.projects"
               :key="p.id"
-              class="inline-flex items-center rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-semibold text-brand"
-            >{{ p.name }}</span>
+            >
+              <p class="text-xs font-semibold text-brand">
+                {{ p.name }}
+              </p>
+              <div
+                v-if="p.tasks?.length"
+                class="mt-1 flex flex-wrap gap-1.5"
+              >
+                <span
+                  v-for="t in p.tasks"
+                  :key="`${p.id}-${t.id}`"
+                  class="inline-flex items-center gap-1 rounded-md border border-slate-100 bg-slate-50 px-2 py-0.5 text-xs text-slate-700"
+                >
+                  {{ t.title }}
+                  <TaskStatusBadge
+                    v-if="t.id"
+                    :task-id="t.id"
+                    :initial-status="t.status || 'todo'"
+                    :snapshot="report.task_status_snapshot ?? []"
+                  />
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 

@@ -5,6 +5,7 @@ import { Link } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
 import StatusBadge from '@/Components/DailyReport/StatusBadge.vue';
+import TaskStatusBadge from '@/Components/TaskStatusBadge.vue';
 import GradePill from '@/Components/DailyReport/GradePill.vue';
 import { date as formatDate, datetime } from '@/composables/useFormat';
 import { fields as reportFields, pillars } from '@/modules/daily-report/config/reportConfig';
@@ -23,15 +24,6 @@ const pillarColor = Object.fromEntries(pillars.map((p) => [p.key, p.color]));
 const ACCENT = {
     brand: 'bg-brand', amber: 'bg-amber-400', emerald: 'bg-emerald-400', sky: 'bg-sky-400',
 };
-
-const TASK_STATUS = {
-    todo: { label: 'Cần làm', cls: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300' },
-    in_progress: { label: 'Đang làm', cls: 'bg-sky-100 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300' },
-    in_review: { label: 'Đang review', cls: 'bg-violet-100 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300' },
-    done: { label: 'Hoàn thành', cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300' },
-    blocked: { label: 'Bị chặn', cls: 'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300' },
-};
-const taskStatus = (s) => TASK_STATUS[s] ?? TASK_STATUS.todo;
 
 /** Strip HTML and entities to detect visually-empty rich-text (e.g. "<ul><li></li></ul>"). */
 function hasText(html) {
@@ -179,10 +171,12 @@ const hasFeedback = computed(() => {
             :title="t.title"
           >
             <span class="max-w-[9rem] truncate">{{ t.title }}</span>
-            <span
-              class="rounded-full px-1.5 py-0.5 text-[9px] font-semibold"
-              :class="taskStatus(t.status).cls"
-            >{{ taskStatus(t.status).label }}</span>
+            <TaskStatusBadge
+              v-if="t.id"
+              :task-id="t.id"
+              :initial-status="t.status || 'todo'"
+              :snapshot="report.task_status_snapshot ?? []"
+            />
           </span>
         </div>
       </div>
