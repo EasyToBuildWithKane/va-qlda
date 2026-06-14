@@ -254,8 +254,15 @@ class Navigation
                     [
                         'label' => 'Cơ sở tri thức',
                         'icon' => 'knowledge',
-                        'href' => '#',
-                        'status' => 'planned',
+                        'href' => '/knowledge-base',
+                        'status' => 'live',
+                    ],
+                    [
+                        'label' => 'Coaching / Mentoring',
+                        'icon' => 'weekly',
+                        'href' => '/coaching',
+                        'status' => 'live',
+                        'roles' => ['admin', 'lead', 'member'],
                     ],
                     [
                         'label' => 'Cuộc họp & Biên bản',

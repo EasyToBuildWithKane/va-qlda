@@ -23,7 +23,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
  * @property string $uuid
  * @property int $employee_id
  * @property int|null $project_id Legacy denormalized — see docs/DAILY_REPORT_PROJECTS.md
- * @property array<int, array{id: int, name?: string, code?: string}>|null $projects Source of truth for linked projects
+ * @property array<int, array{id: int, name?: string, code?: string, tasks?: array<int, array<string, mixed>>}>|null $projects Source of truth for linked projects
  * @property \Illuminate\Support\Carbon $date
  * @property string $title
  * @property ReportStatus $status

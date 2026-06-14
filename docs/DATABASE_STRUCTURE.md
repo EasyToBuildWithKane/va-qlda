@@ -8,7 +8,7 @@
 |---|---|
 | Database Engine | MySQL |
 | Table Prefix | `va_prd_` |
-| Total Tables | ~29 tables (27 core + app_notifications + notification_preferences) |
+| Total Tables | ~42 tables (29 core + 13 thiết kế KB/Coaching) |
 | ORM | Laravel Eloquent |
 | Soft Deletes | employees, tasks, bugs |
 | UUID Support | daily_reports (+ có thể mở rộng) |
@@ -614,6 +614,16 @@ Notification Domain:              ← MỚI
 
 Audit Domain:
     activity_log
+
+Knowledge Base Domain:              ← Thiết kế (LT-02), chưa migrate
+    kb_categories, kb_articles, kb_tags, kb_article_tags,
+    kb_article_images, kb_article_attachments,
+    kb_article_favorites, kb_article_reads
+    (+ comments polymorphic → KbArticle)
+
+Coaching / Mentoring Domain:        ← Thiết kế (LT-08), chưa migrate
+    coaching_courses, coaching_sessions,
+    coaching_session_materials, coaching_assignments, coaching_progress
 ```
 
 ---
@@ -690,3 +700,241 @@ API: kèm trong `api.ai-accounts.summary` và `api.ai-accounts.proposals.index` 
 ### 6.4 Xóa TK / PĐX và TK mồ côi
 
 Soft delete TK, đồng bộ PĐX, đếm badge vs chi phí theo nhóm, `purgeOrphanedFromProposal`: **`docs/AI_ACCOUNTS.md`**.
+
+---
+
+## 7. Knowledge Base Domain (thiết kế — LT-02)
+
+> Chi tiết nghiệp vụ: [`docs/KNOWLEDGE_BASE.md`](KNOWLEDGE_BASE.md). Bảng chưa có migration trong repo.
+
+### 7.1 va_prd_kb_categories
+
+| Column | Type | Nullable | Description |
+|---|---|---|---|
+| id | bigint UNSIGNED | NO | PK |
+| name | varchar(255) | NO | Tên danh mục |
+| slug | varchar(100) | NO | Unique, seed: general, development, … |
+| description | text | YES | |
+| color | varchar(50) | YES | Tailwind token / hex |
+| icon | varchar(50) | YES | AppIcon name |
+| parent_id | bigint UNSIGNED | YES | FK → kb_categories (cây con) |
+| sort_order | int | NO | Default: 0 |
+| is_active | tinyint(1) | NO | Default: 1 |
+| created_at | timestamp | YES | |
+| updated_at | timestamp | YES | |
+
+**Indexes:** slug (unique), parent_id (FK)
+
+---
+
+### 7.2 va_prd_kb_articles
+
+| Column | Type | Nullable | Description |
+|---|---|---|---|
+| id | bigint UNSIGNED | NO | PK |
+| category_id | bigint UNSIGNED | NO | FK → kb_categories |
+| author_id | bigint UNSIGNED | NO | FK → employees |
+| title | varchar(500) | NO | |
+| slug | varchar(255) | NO | Unique, SEO |
+| excerpt | text | YES | Mô tả ngắn |
+| content | longtext | YES | HTML TipTap |
+| status | varchar(20) | NO | draft / published / archived |
+| view_count | int UNSIGNED | NO | Default: 0 |
+| published_at | datetime | YES | |
+| archived_at | datetime | YES | |
+| created_at | timestamp | YES | |
+| updated_at | timestamp | YES | |
+
+**Indexes:** slug (unique), category_id, author_id, status; FULLTEXT(title, excerpt, content) — tùy chọn
+
+---
+
+### 7.3 va_prd_kb_tags
+
+| Column | Type | Nullable | Description |
+|---|---|---|---|
+| id | bigint UNSIGNED | NO | PK |
+| name | varchar(100) | NO | |
+| slug | varchar(100) | NO | Unique |
+| color | varchar(50) | YES | |
+| created_at | timestamp | YES | |
+| updated_at | timestamp | YES | |
+
+---
+
+### 7.4 va_prd_kb_article_tags (Pivot)
+
+| Column | Type | Description |
+|---|---|---|
+| article_id | bigint UNSIGNED | FK → kb_articles |
+| tag_id | bigint UNSIGNED | FK → kb_tags |
+
+**PK:** (article_id, tag_id)
+
+---
+
+### 7.5 va_prd_kb_article_images
+
+| Column | Type | Nullable | Description |
+|---|---|---|---|
+| id | bigint UNSIGNED | NO | PK |
+| article_id | bigint UNSIGNED | NO | FK → kb_articles |
+| uploaded_by_id | bigint UNSIGNED | NO | FK → employees |
+| original_name | varchar(500) | NO | |
+| path | varchar(1000) | NO | Storage path |
+| mime_type | varchar(100) | YES | |
+| size | bigint UNSIGNED | YES | Bytes |
+| alt_text | varchar(500) | YES | |
+| sort_order | int | NO | Default: 0 |
+| created_at | timestamp | YES | |
+
+---
+
+### 7.6 va_prd_kb_article_attachments
+
+| Column | Type | Nullable | Description |
+|---|---|---|---|
+| id | bigint UNSIGNED | NO | PK |
+| article_id | bigint UNSIGNED | NO | FK → kb_articles |
+| uploaded_by_id | bigint UNSIGNED | NO | FK → employees |
+| original_name | varchar(500) | NO | |
+| path | varchar(1000) | NO | |
+| mime_type | varchar(100) | YES | |
+| size | bigint UNSIGNED | YES | |
+| created_at | timestamp | YES | |
+| updated_at | timestamp | YES | |
+
+---
+
+### 7.7 va_prd_kb_article_favorites (Pivot)
+
+| Column | Type | Description |
+|---|---|---|
+| system_account_id | bigint UNSIGNED | FK → system_accounts |
+| article_id | bigint UNSIGNED | FK → kb_articles |
+| created_at | timestamp | |
+
+**PK:** (system_account_id, article_id)
+
+---
+
+### 7.8 va_prd_kb_article_reads (Pivot)
+
+| Column | Type | Description |
+|---|---|---|
+| system_account_id | bigint UNSIGNED | FK → system_accounts |
+| article_id | bigint UNSIGNED | FK → kb_articles |
+| read_at | datetime | NO | |
+| created_at | timestamp | |
+
+**PK:** (system_account_id, article_id)
+
+**Comments:** `va_prd_comments.commentable_type = App\Models\KbArticle`.
+
+---
+
+## 8. Coaching / Mentoring Domain (thiết kế — LT-08)
+
+> Chi tiết nghiệp vụ: [`docs/COACHING_MENTORING.md`](COACHING_MENTORING.md). Bảng chưa có migration trong repo.
+
+### 8.1 va_prd_coaching_courses
+
+| Column | Type | Nullable | Description |
+|---|---|---|---|
+| id | bigint UNSIGNED | NO | PK |
+| code | varchar(20) | YES | Auto: COACH-001 |
+| name | varchar(255) | NO | Tên khóa |
+| description | text | YES | |
+| objectives | text | YES | Mục tiêu |
+| student_id | bigint UNSIGNED | YES | FK → employees (học viên) |
+| coach_id | bigint UNSIGNED | YES | FK → employees |
+| status | varchar(20) | NO | planning / active / completed / cancelled |
+| start_date | date | YES | |
+| end_date | date | YES | |
+| total_fee | decimal(15,2) | YES | Học phí tổng (VNĐ) |
+| hourly_rate | decimal(10,2) | YES | Giá theo giờ |
+| total_hours | decimal(6,2) | YES | Tổng giờ kế hoạch |
+| created_by | bigint UNSIGNED | YES | FK → system_accounts |
+| created_at | timestamp | YES | |
+| updated_at | timestamp | YES | |
+
+**Indexes:** code (unique), student_id, coach_id, status
+
+---
+
+### 8.2 va_prd_coaching_sessions
+
+| Column | Type | Nullable | Description |
+|---|---|---|---|
+| id | bigint UNSIGNED | NO | PK |
+| course_id | bigint UNSIGNED | NO | FK → coaching_courses |
+| title | varchar(255) | NO | Tên buổi |
+| session_number | int UNSIGNED | NO | Số thứ tự trong khóa |
+| date | date | YES | Ngày học |
+| start_time | time | YES | |
+| end_time | time | YES | |
+| total_hours | decimal(4,2) | YES | Tổng giờ buổi |
+| topic | varchar(500) | YES | Chủ đề |
+| content | longtext | YES | HTML |
+| notes | text | YES | Ghi chú |
+| status | varchar(20) | NO | pending / in_progress / completed / cancelled |
+| created_at | timestamp | YES | |
+| updated_at | timestamp | YES | |
+
+**Indexes:** unique(course_id, session_number), course_id, date, status
+
+---
+
+### 8.3 va_prd_coaching_session_materials
+
+| Column | Type | Nullable | Description |
+|---|---|---|---|
+| id | bigint UNSIGNED | NO | PK |
+| session_id | bigint UNSIGNED | NO | FK → coaching_sessions |
+| type | varchar(30) | NO | canva, google_docs, pdf, pptx, youtube, loom, gdrive, file |
+| title | varchar(255) | NO | |
+| url | varchar(1000) | YES | Link ngoài |
+| path | varchar(1000) | YES | File upload |
+| mime_type | varchar(100) | YES | |
+| size | bigint UNSIGNED | YES | |
+| sort_order | int | NO | Default: 0 |
+| created_at | timestamp | YES | |
+
+---
+
+### 8.4 va_prd_coaching_assignments
+
+| Column | Type | Nullable | Description |
+|---|---|---|---|
+| id | bigint UNSIGNED | NO | PK |
+| session_id | bigint UNSIGNED | NO | FK → coaching_sessions |
+| title | varchar(500) | NO | |
+| description | text | YES | |
+| deadline | datetime | YES | |
+| priority | varchar(20) | NO | high / medium / low |
+| status | varchar(20) | NO | todo / doing / review / done |
+| submission_path | varchar(1000) | YES | File nộp |
+| github_url | varchar(500) | YES | |
+| notes | text | YES | |
+| created_at | timestamp | YES | |
+| updated_at | timestamp | YES | |
+
+---
+
+### 8.5 va_prd_coaching_progress
+
+| Column | Type | Nullable | Description |
+|---|---|---|---|
+| id | bigint UNSIGNED | NO | PK |
+| course_id | bigint UNSIGNED | NO | FK → coaching_courses |
+| session_id | bigint UNSIGNED | NO | FK → coaching_sessions |
+| system_account_id | bigint UNSIGNED | NO | FK → system_accounts |
+| is_viewed | tinyint(1) | NO | Default: 0 |
+| is_in_progress | tinyint(1) | NO | Default: 0 |
+| is_completed | tinyint(1) | NO | Default: 0 |
+| updated_at | timestamp | YES | |
+
+**Indexes:** unique(course_id, session_id, system_account_id)
+
+**Business rule:** Tiến độ khóa % = `completed_sessions / total_sessions` (ưu tiên `coaching_sessions.status = completed`).
+

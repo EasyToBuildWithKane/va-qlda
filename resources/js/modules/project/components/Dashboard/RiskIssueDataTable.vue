@@ -359,7 +359,7 @@ defineExpose({ scrollHere });
         </div>
       </div>
 
-      <div class="mt-3 flex flex-wrap items-center justify-between gap-2">
+      <div class="mt-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
           <DatagridToolbarSearch
             v-model="search"

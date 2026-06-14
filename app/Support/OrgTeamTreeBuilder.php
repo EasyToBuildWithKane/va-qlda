@@ -9,7 +9,7 @@ use Illuminate\Support\Collection;
 class OrgTeamTreeBuilder
 {
     /**
-     * @return list<array<string, mixed>>
+     * @return array<int, array<string, mixed>>
      */
     public static function forest(): array
     {
@@ -20,11 +20,16 @@ class OrgTeamTreeBuilder
             ->get();
 
         $byParent = $teams->groupBy(fn (OrgTeam $t) => $t->parent_id ?? 0);
+        /** @var Collection<int, Collection<int, OrgTeam>> $byParent */
+        $byParent = Collection::make($byParent->all());
 
-        return self::buildChildren($byParent, 0)
+        $result = self::buildChildren($byParent, 0)
             ->map(fn (OrgTeam $node) => self::toNode($node, $byParent))
             ->values()
             ->all();
+
+        /** @var array<int, array<string, mixed>> $result */
+        return $result;
     }
 
     /**

@@ -184,7 +184,9 @@ class ProjectActivityFeedBuilder
             'id' => $id,
             'type' => $type,
             'message' => $message,
-            'at' => $at instanceof \DateTimeInterface ? $at->toIso8601String() : (string) $at,
+            'at' => $at instanceof \Illuminate\Support\Carbon
+                ? $at->toIso8601String()
+                : ($at instanceof \DateTimeInterface ? $at->format(\DateTimeInterface::ATOM) : (string) $at),
         ];
     }
 }

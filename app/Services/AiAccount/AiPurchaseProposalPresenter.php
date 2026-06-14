@@ -125,7 +125,7 @@ class AiPurchaseProposalPresenter
             'recipient_email' => $proposal->recipient_email,
             'recipient_phone' => $proposal->recipient_phone,
             'purchase_type' => $purchaseType,
-            'purchase_type_label' => $proposal->purchase_type?->labelVi() ?? 'Mua mới',
+            'purchase_type_label' => $proposal->purchase_type->labelVi(),
             'registration_email' => $proposal->registration_email,
             'registration_emails' => $proposal->registrationEmailsList(),
             'planned_use_date' => $proposal->planned_use_date?->format('Y-m-d'),

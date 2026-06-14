@@ -29,7 +29,10 @@ class GoogleAuthController extends Controller
             LoginRedirectSanitizer::sanitize($request->query('redirect')),
         );
 
-        return Socialite::driver('google')
+        /** @var \Laravel\Socialite\Two\GoogleProvider $google */
+        $google = Socialite::driver('google');
+
+        return $google
             ->scopes(['openid', 'profile', 'email'])
             ->redirect();
     }

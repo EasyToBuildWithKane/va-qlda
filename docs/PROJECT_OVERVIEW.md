@@ -39,7 +39,9 @@ VA QLDA
 ├── [COMMENT]       Thảo luận đa hình (Task, Bug, Blocker, Feedback)
 ├── [DEPARTMENT]    Quản lý phòng ban
 ├── [SYSTEM CONFIG] Cấu hình hệ thống (admin: nhận diện, đăng nhập, Telegram, phân quyền) → docs/SYSTEM_CONFIG.md
-└── [DASHBOARD]     Tổng quan hệ thống (đang phát triển)
+├── [DASHBOARD]     Tổng quan hệ thống (đang phát triển)
+├── [KNOWLEDGE BASE] Tri thức nội bộ (bài viết, danh mục, tags, tìm kiếm, yêu thích) → docs/KNOWLEDGE_BASE.md
+└── [COACHING]      Coaching/Mentoring (khóa học, buổi học, bài tập, tiến độ, dashboard tài chính) → docs/COACHING_MENTORING.md
 ```
 
 ---
@@ -212,5 +214,6 @@ Tạo Project
 | **Notification System (in-app bell + drawer)** | ✅ Hoàn thành |
 | Team Dashboard | 🔄 Đang phát triển |
 | Weekly Performance Review | 📋 Kế hoạch |
-| Knowledge Base | 📋 Kế hoạch |
+| Knowledge Base (Wiki) | ✅ Triển khai v1 → docs/KNOWLEDGE_BASE.md |
+| Coaching / Mentoring | ✅ Triển khai v1 → docs/COACHING_MENTORING.md |
 | Account Settings | 📋 Kế hoạch |

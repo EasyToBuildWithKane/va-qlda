@@ -136,7 +136,7 @@ class AiAccountPasswordViewerController extends Controller
             'label' => trim(($employee?->full_name ?? $account->display_name).' · '.($employee?->email ?? $account->username)),
             'name' => $employee?->full_name ?? $account->display_name,
             'email' => $employee?->email ?? $account->username,
-            'role_label' => $account->role?->label() ?? '—',
+            'role_label' => $account->role->label(),
             'department' => is_array($employee?->meta) ? ($employee->meta['department_name'] ?? null) : null,
             'avatar_path' => PublicMediaUrl::fromPublicDisk($employee?->avatar_path),
         ];

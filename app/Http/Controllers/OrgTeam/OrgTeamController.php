@@ -108,9 +108,6 @@ class OrgTeamController extends Controller
         return back()->with('success', 'Đã xoá nhóm và các nhóm con.');
     }
 
-    /**
-     * @param  list<array{employee_id: int, branch?: string|null, sort_order?: int}>  $rows
-     */
     private function recalcDescendantLevels(OrgTeam $team): void
     {
         $team->load('children');
@@ -132,7 +129,7 @@ class OrgTeamController extends Controller
         /** @var list<int> $sectionIds */
         $sectionIds = [];
         foreach (array_values($sections) as $index => $sectionRow) {
-            $title = trim((string) ($sectionRow['title'] ?? ''));
+            $title = trim((string) $sectionRow['title']);
             if ($title === '') {
                 continue;
             }

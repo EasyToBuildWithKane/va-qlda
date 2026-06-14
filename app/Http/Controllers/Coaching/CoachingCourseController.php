@@ -1,0 +1,138 @@
+<?php
+
+namespace App\Http\Controllers\Coaching;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Coaching\StoreCoachingCourseRequest;
+use App\Http\Requests\Coaching\UpdateCoachingCourseRequest;
+use App\Http\Resources\CoachingCourseResource;
+use App\Models\CoachingCourse;
+use App\Models\CoachingSession;
+use App\Support\Enums\CoachingCourseStatus;
+use App\Support\Enums\CoachingSessionStatus;
+use App\Support\Options;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
+
+class CoachingCourseController extends Controller
+{
+    public function index(Request $request): Response
+    {
+        $this->authorize('viewAny', CoachingCourse::class);
+
+        $account = $request->user();
+        $query = CoachingCourse::query()
+            ->with(['student', 'coach'])
+            ->withCount('sessions')
+            ->latest();
+
+        if ($account->role->value === 'member' && $account->employee_id) {
+            $query->where('student_id', $account->employee_id);
+        }
+
+        if ($status = $request->query('status')) {
+            $query->where('status', $status);
+        }
+
+        if ($search = $request->query('q')) {
+            $query->where(fn ($q) => $q->where('name', 'like', "%{$search}%")->orWhere('code', 'like', "%{$search}%"));
+        }
+
+        return Inertia::render('Coaching/Courses/Index', [
+            'courses' => CoachingCourseResource::collection($query->paginate(20)->withQueryString()),
+            'filters' => (object) $request->only(['q', 'status']),
+            'options' => [
+                'statuses' => CoachingCourseStatus::options(),
+            ],
+            'can' => ['create' => $account->can('create', CoachingCourse::class)],
+        ]);
+    }
+
+    public function create(): Response
+    {
+        $this->authorize('create', CoachingCourse::class);
+
+        return Inertia::render('Coaching/Courses/Edit', [
+            'course' => null,
+            'employees' => Options::employees(),
+            'options' => ['statuses' => CoachingCourseStatus::options()],
+        ]);
+    }
+
+    public function store(StoreCoachingCourseRequest $request): RedirectResponse
+    {
+        $data = $request->validated();
+        $data['created_by'] = $request->user()->id;
+
+        $course = CoachingCourse::create($data);
+
+        return redirect()
+            ->route('coaching.courses.show', $course)
+            ->with('success', 'Đã tạo khóa học.');
+    }
+
+    public function show(CoachingCourse $course): Response
+    {
+        $this->authorize('view', $course);
+
+        $course->load(['student', 'coach', 'sessions.materials', 'sessions.assignments']);
+        $course->progress_percent_computed = $course->progressPercent();
+
+        return Inertia::render('Coaching/Courses/Show', [
+            'course' => (new CoachingCourseResource($course))->resolve(),
+            'sessionStatuses' => CoachingSessionStatus::options(),
+        ]);
+    }
+
+    public function edit(CoachingCourse $course): Response
+    {
+        $this->authorize('update', $course);
+
+        return Inertia::render('Coaching/Courses/Edit', [
+            'course' => (new CoachingCourseResource($course))->resolve(),
+            'employees' => Options::employees(),
+            'options' => ['statuses' => CoachingCourseStatus::options()],
+        ]);
+    }
+
+    public function update(UpdateCoachingCourseRequest $request, CoachingCourse $course): RedirectResponse
+    {
+        $course->update($request->validated());
+
+        return redirect()
+            ->route('coaching.courses.show', $course)
+            ->with('success', 'Đã cập nhật khóa học.');
+    }
+
+    public function destroy(CoachingCourse $course): RedirectResponse
+    {
+        $this->authorize('delete', $course);
+        $course->delete();
+
+        return redirect()
+            ->route('coaching.courses.index')
+            ->with('success', 'Đã xóa khóa học.');
+    }
+
+    public function storeSession(Request $request, CoachingCourse $course): RedirectResponse
+    {
+        $this->authorize('update', $course);
+
+        $data = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'session_number' => ['required', 'integer', 'min:1'],
+            'date' => ['nullable', 'date'],
+            'total_hours' => ['nullable', 'numeric', 'min:0'],
+            'status' => ['nullable', 'string'],
+        ]);
+
+        $data['course_id'] = $course->id;
+        $data['status'] ??= CoachingSessionStatus::Pending->value;
+
+        CoachingSession::create($data);
+
+        return back()->with('success', 'Đã thêm buổi học.');
+    }
+}

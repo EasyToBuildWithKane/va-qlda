@@ -5,6 +5,7 @@ namespace App\Support\Realtime;
 use App\Models\Blocker;
 use App\Models\Bug;
 use App\Models\Feedback;
+use App\Models\KbArticle;
 use App\Models\SystemAccount;
 use App\Models\Task;
 use Illuminate\Database\Eloquent\Model;
@@ -17,6 +18,7 @@ class CommentThreadAuthorizer
         'feedback' => Feedback::class,
         'blocker' => Blocker::class,
         'task' => Task::class,
+        'kb_article' => KbArticle::class,
     ];
 
     public static function canSubscribe(SystemAccount $account, string $type, int $id): bool

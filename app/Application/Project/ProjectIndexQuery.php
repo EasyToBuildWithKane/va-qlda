@@ -23,8 +23,8 @@ class ProjectIndexQuery
 
     /**
      * @return array{
-     *     projects: LengthAwarePaginator<int, Project>,
-     *     filters: object,
+     *     projects: LengthAwarePaginator,
+     *     filters: \stdClass,
      *     summary: array{total: int, active: int, completed: int, overdue: int},
      *     can: array{create: bool}
      * }
@@ -134,7 +134,7 @@ class ProjectIndexQuery
                     continue;
                 }
                 $merged->push($employees->get($eid));
-                $seen->put($eid, true);
+                $seen->put($eid, 1);
                 if ($merged->count() >= 8) {
                     break;
                 }

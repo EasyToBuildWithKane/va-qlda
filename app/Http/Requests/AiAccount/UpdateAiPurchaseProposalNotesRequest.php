@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\AiAccount;
 
+use App\Models\AiPurchaseProposal;
 use App\Support\Enums\AiPurchaseProposalStatus;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -10,6 +11,9 @@ class UpdateAiPurchaseProposalNotesRequest extends FormRequest
     public function authorize(): bool
     {
         $proposal = $this->route('proposal');
+        if (! $proposal instanceof AiPurchaseProposal) {
+            return false;
+        }
 
         return $this->user()->role === \App\Support\Enums\SystemRole::Admin
             && in_array($proposal->status, [

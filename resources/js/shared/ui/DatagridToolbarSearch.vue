@@ -11,14 +11,14 @@ const emit = defineEmits(['update:modelValue', 'clear']);
 </script>
 
 <template>
-  <div class="flex min-w-0 flex-1 items-center gap-2">
+  <div class="flex min-w-0 w-full flex-1 basis-full items-center gap-2 lg:basis-auto lg:min-w-0">
     <label
       :for="inputId"
       class="shrink-0 text-xs font-medium text-slate-500"
     >
       Tìm kiếm
     </label>
-    <div class="relative min-w-0 flex-1 sm:min-w-[200px] lg:min-w-[28rem] xl:min-w-[32rem]">
+    <div class="relative min-w-0 flex-1 sm:min-w-[12rem] md:min-w-[16rem] xl:min-w-[28rem] 2xl:min-w-[32rem]">
       <AppIcon
         name="search"
         :size="15"

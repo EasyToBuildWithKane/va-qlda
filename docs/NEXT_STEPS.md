@@ -148,13 +148,29 @@
   - API Resource documentation (Swagger/OpenAPI)
 - **Ước tính:** 2-3 tuần
 
-### LT-02 — Knowledge Base (Wiki)
-- **Mục tiêu:** Hệ thống tài liệu nội bộ — procedures, onboarding guides, HOWTOs
+### LT-02 — Knowledge Base (Tri Thức)
+- **Mục tiêu:** Wiki nội bộ kiểu Viblo/Notion/Confluence (đơn giản) — procedures, onboarding, HOWTO, kinh nghiệm thực tế
+- **Tài liệu thiết kế:** [`docs/KNOWLEDGE_BASE.md`](KNOWLEDGE_BASE.md)
 - **Scope:**
-  - Page model với parent/child hierarchy
-  - Rich text editor (TipTap, đã có)
-  - Search, tags, versioning
+  - 8 chuyên mục seed + tags; bài viết (title, slug, excerpt, TipTap, ảnh, đính kèm)
+  - Trạng thái draft / published / archived; full-text search; lọc tag & danh mục
+  - UI: sidebar danh mục, list, chi tiết + TOC, breadcrumb, bài liên quan, responsive
+  - Yêu thích, đã đọc, lượt xem; bình luận (polymorphic Comment)
+  - Phân quyền xem theo role; MVC + Policy; lưu file `public` disk
+- **Dependencies:** TipTap (đã có), Comment morph (đã có); tùy chọn Scout phase 2
 - **Ước tính:** 2-3 tuần
+
+### LT-08 — Coaching / Mentoring
+- **Mục tiêu:** Module độc lập — khóa học, buổi học, tài liệu (Canva/Docs/Video/File), bài tập, tiến độ %, dashboard tài chính
+- **Tài liệu thiết kế:** [`docs/COACHING_MENTORING.md`](COACHING_MENTORING.md)
+- **Scope:**
+  - CRUD khóa + buổi; materials đa loại; assignments (todo→done)
+  - Progress per session; KPI tháng (buổi, giờ, học viên, doanh thu, hủy)
+  - Dashboard tổng quan + Chart.js (doanh thu, giờ dạy, tiến độ khóa)
+  - Roles: admin/coach/student (map `system` roles + policy); xuất báo cáo Excel
+  - Application Use Cases cho aggregation tài chính
+- **Dependencies:** TipTap, Chart.js, file storage (đã có)
+- **Ước tính:** 3-4 tuần
 
 ### LT-03 — Performance Review Module
 - **Mục tiêu:** Đánh giá nhân sự định kỳ (quarterly/annual)
@@ -220,7 +236,8 @@ Stage 3 (Tháng 5-6):
 
 Stage 4 (6 tháng+):
     + LT-01 (REST API)
-    + LT-02 (Knowledge Base)
+    + LT-02 (Knowledge Base — docs/KNOWLEDGE_BASE.md)
+    + LT-08 (Coaching/Mentoring — docs/COACHING_MENTORING.md)
     + LT-03 (Performance Review)
     + LT-04 (Advanced Analytics)
     + LT-05 (Real-Time — cần WebSocket)

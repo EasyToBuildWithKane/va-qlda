@@ -14,6 +14,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string|null $phone
  * @property string|null $company_name
  * @property string|null $department_name
+ * @property string|null $unit_name
+ * @property string|null $headquarter_name
  * @property string|null $position_name
  * @property string|null $concurrent_position_name
  * @property \Illuminate\Support\Carbon|null $start_working_date

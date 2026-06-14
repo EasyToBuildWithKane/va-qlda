@@ -45,7 +45,7 @@ class CmsIntegrationStatus extends Command
         }
 
         $stats = $sync->qldaLinkStats();
-        $stats['cms_users'] = $cmsUsers ?? 0;
+        $stats['cms_users'] = $cmsUsers;
 
         $this->newLine();
         $this->table(

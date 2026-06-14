@@ -129,6 +129,39 @@ function detectFeatureTheme(paths) {
     const hasRealtime =
         /useCommentRealtime|realtime\/|_dev\/realtime|CommentThread|CommentRealtime/.test(text);
     const hasDailyReport = /DailyReport|daily-report/.test(text);
+    const hasKnowledgeBase = /KnowledgeBase|knowledge-base|KbArticle/.test(text);
+    const hasCoaching = /Coaching|coaching/.test(text);
+
+    if (hasKnowledgeBase && hasCoaching) {
+        return {
+            type: 'feat',
+            scope: 'kb-coaching',
+            subject: 'knowledge base and coaching modules v1',
+            body: [
+                'KB: articles, FULLTEXT search, gallery, export, datagrid toolbar.',
+                'Coaching: courses, sessions, dashboard, Excel export, safe embeds.',
+                'PHPStan level 5 fixes for CI.',
+            ],
+        };
+    }
+
+    if (hasKnowledgeBase) {
+        return {
+            type: 'feat',
+            scope: 'knowledge-base',
+            subject: 'internal knowledge base v1',
+            body: ['Articles, search, gallery images, CSV/Excel export.'],
+        };
+    }
+
+    if (hasCoaching) {
+        return {
+            type: 'feat',
+            scope: 'coaching',
+            subject: 'coaching and mentoring module v1',
+            body: ['Courses, sessions, financial dashboard, styled export.'],
+        };
+    }
 
     if (hasBlocker && hasTelegram) {
         body.push('Notify Telegram on each status change; lock resolved/closed from reverting.');
@@ -291,6 +324,10 @@ function detectScope(changes) {
  */
 function detectType(changes) {
     const paths = changes.map((c) => c.path);
+
+    if (paths.some((p) => p.includes('phpstan') || p === 'phpstan.neon.dist')) {
+        return 'ci';
+    }
 
     const themeType = detectFeatureTheme(paths)?.type;
     if (themeType) {

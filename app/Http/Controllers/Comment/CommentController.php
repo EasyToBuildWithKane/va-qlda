@@ -8,6 +8,7 @@ use App\Models\Blocker;
 use App\Models\Bug;
 use App\Models\Comment;
 use App\Models\Feedback;
+use App\Models\KbArticle;
 use App\Models\Task;
 use App\Support\BlockerActivityLogger;
 use App\Support\BugActivityLogger;
@@ -27,6 +28,7 @@ class CommentController extends Controller
         'feedback' => Feedback::class,
         'blocker' => Blocker::class,
         'task' => Task::class,
+        'kb_article' => KbArticle::class,
     ];
 
     public function store(StoreCommentRequest $request): RedirectResponse
@@ -167,6 +169,12 @@ class CommentController extends Controller
             return;
         }
 
+        if ($target instanceof KbArticle) {
+            abort_unless($user->can('view', $target), 403);
+
+            return;
+        }
+
         abort(403);
     }
 
@@ -192,6 +200,12 @@ class CommentController extends Controller
 
         if ($model instanceof Blocker) {
             abort_unless($user->can('comment', $model), 403);
+
+            return;
+        }
+
+        if ($model instanceof KbArticle) {
+            abort_unless($user->can('view', $model), 403);
 
             return;
         }

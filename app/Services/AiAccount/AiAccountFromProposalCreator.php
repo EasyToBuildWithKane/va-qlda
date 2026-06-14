@@ -9,7 +9,6 @@ use App\Support\Enums\AiAccountLifecycleStatus;
 use App\Support\Enums\AiAccountStatus;
 use App\Support\Enums\AiPaymentRequestStatus;
 use App\Support\Enums\AiPurchaseProposalStatus;
-use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
 
 class AiAccountFromProposalCreator
@@ -98,7 +97,7 @@ class AiAccountFromProposalCreator
         }
     }
 
-    private function resolvePurchaseDate(AiPurchaseProposal $proposal): Carbon
+    private function resolvePurchaseDate(AiPurchaseProposal $proposal): \Carbon\CarbonInterface
     {
         if ($proposal->start_date) {
             return $proposal->start_date->copy()->startOfDay();
@@ -110,7 +109,7 @@ class AiAccountFromProposalCreator
         return now()->startOfDay();
     }
 
-    private function resolveExpiryDate(AiPurchaseProposal $proposal, Carbon $purchaseDate): Carbon
+    private function resolveExpiryDate(AiPurchaseProposal $proposal, \Carbon\CarbonInterface $purchaseDate): \Carbon\CarbonInterface
     {
         if ($proposal->end_date && $proposal->end_date->greaterThan($purchaseDate)) {
             return $proposal->end_date->copy()->startOfDay();

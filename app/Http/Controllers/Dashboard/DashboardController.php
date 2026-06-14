@@ -40,7 +40,7 @@ class DashboardController extends Controller
                 'status' => $r->status->value,
                 'label' => $r->status->label(),
                 'color' => $r->status->color(),
-                'total' => $r->total,
+                'total' => (int) $r->getAttribute('total'),
             ]);
 
         // ---- Task status distribution ------------------------------------
@@ -51,7 +51,7 @@ class DashboardController extends Controller
                 'status' => $r->status->value,
                 'label' => $r->status->label(),
                 'color' => $r->status->color(),
-                'total' => $r->total,
+                'total' => (int) $r->getAttribute('total'),
             ]);
 
         // ---- Blocker severity distribution (open only) -------------------
@@ -63,7 +63,7 @@ class DashboardController extends Controller
                 'severity' => $r->severity->value,
                 'label' => $r->severity->label(),
                 'color' => $r->severity->color(),
-                'total' => $r->total,
+                'total' => (int) $r->getAttribute('total'),
             ]);
 
         // ---- Task completion trend (last 30 days) ------------------------
@@ -112,7 +112,7 @@ class DashboardController extends Controller
                 'priority' => $r->priority->value,
                 'label' => $r->priority->label(),
                 'color' => $r->priority->color(),
-                'total' => $r->total,
+                'total' => (int) $r->getAttribute('total'),
             ]);
 
         return Inertia::render('Dashboard/Index', [

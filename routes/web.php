@@ -11,12 +11,16 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Blocker\BlockerAttachmentController;
 use App\Http\Controllers\Blocker\BlockerController;
 use App\Http\Controllers\Bug\BugController;
+use App\Http\Controllers\Coaching\CoachingCourseController;
+use App\Http\Controllers\Coaching\CoachingDashboardController;
+use App\Http\Controllers\Coaching\CoachingSessionController;
 use App\Http\Controllers\Comment\CommentController;
 use App\Http\Controllers\DailyReport\DailyReportController;
 use App\Http\Controllers\DailyReport\DailyReportReviewController;
 use App\Http\Controllers\Dashboard\DashboardController;
 use App\Http\Controllers\Department\DepartmentController;
 use App\Http\Controllers\Feedback\FeedbackController;
+use App\Http\Controllers\KnowledgeBase\KbArticleController;
 use App\Http\Controllers\Notification\NotificationController;
 use App\Http\Controllers\Notification\NotificationManagementController;
 use App\Http\Controllers\OrgTeam\OrgTeamController;
@@ -171,6 +175,47 @@ Route::middleware('auth')->group(function () {
         Route::get('/{feedback}', [FeedbackController::class, 'show'])->name('show');
         Route::put('/{feedback}', [FeedbackController::class, 'update'])->name('update');
         Route::delete('/{feedback}', [FeedbackController::class, 'destroy'])->name('destroy');
+    });
+
+    // Knowledge base (Tri thức)
+    Route::prefix('knowledge-base')->name('knowledge-base.')->group(function () {
+        Route::get('/', [KbArticleController::class, 'index'])->name('index');
+        Route::get('/export-data', [KbArticleController::class, 'exportData'])->name('export-data');
+        Route::get('/articles/create', [KbArticleController::class, 'create'])->name('articles.create');
+        Route::post('/articles', [KbArticleController::class, 'store'])->name('articles.store');
+        Route::get('/articles/{article}', [KbArticleController::class, 'show'])->name('articles.show');
+        Route::get('/articles/{article}/edit', [KbArticleController::class, 'edit'])->name('articles.edit');
+        Route::put('/articles/{article}', [KbArticleController::class, 'update'])->name('articles.update');
+        Route::delete('/articles/{article}', [KbArticleController::class, 'destroy'])->name('articles.destroy');
+        Route::post('/articles/{article}/favorite', [KbArticleController::class, 'toggleFavorite'])->name('articles.favorite');
+        Route::post('/articles/{article}/read', [KbArticleController::class, 'markRead'])->name('articles.read');
+        Route::post('/articles/{article}/attachments', [KbArticleController::class, 'storeAttachment'])->name('articles.attachments.store');
+        Route::post('/articles/{article}/images', [KbArticleController::class, 'storeImage'])->name('articles.images.store');
+        Route::post('/articles/{article}/gallery', [KbArticleController::class, 'storeGalleryImage'])->name('articles.gallery.store');
+        Route::patch('/gallery/{image}', [KbArticleController::class, 'updateGalleryImage'])->name('gallery.update');
+        Route::delete('/gallery/{image}', [KbArticleController::class, 'destroyGalleryImage'])->name('gallery.destroy');
+        Route::get('/attachments/{attachment}/file', [KbArticleController::class, 'attachmentFile'])->name('attachments.file');
+        Route::get('/images/{image}/file', [KbArticleController::class, 'imageFile'])->name('images.file');
+    });
+
+    // Coaching / Mentoring
+    Route::prefix('coaching')->name('coaching.')->group(function () {
+        Route::get('/', CoachingDashboardController::class)->name('dashboard');
+        Route::get('/courses', [CoachingCourseController::class, 'index'])->name('courses.index');
+        Route::get('/courses/create', [CoachingCourseController::class, 'create'])->name('courses.create');
+        Route::post('/courses', [CoachingCourseController::class, 'store'])->name('courses.store');
+        Route::get('/courses/{course}', [CoachingCourseController::class, 'show'])->name('courses.show');
+        Route::get('/courses/{course}/edit', [CoachingCourseController::class, 'edit'])->name('courses.edit');
+        Route::put('/courses/{course}', [CoachingCourseController::class, 'update'])->name('courses.update');
+        Route::delete('/courses/{course}', [CoachingCourseController::class, 'destroy'])->name('courses.destroy');
+        Route::post('/courses/{course}/sessions', [CoachingCourseController::class, 'storeSession'])->name('courses.sessions.store');
+        Route::get('/sessions/{session}', [CoachingSessionController::class, 'show'])->name('sessions.show');
+        Route::patch('/sessions/{session}', [CoachingSessionController::class, 'update'])->name('sessions.update');
+        Route::post('/sessions/{session}/materials', [CoachingSessionController::class, 'storeMaterial'])->name('sessions.materials.store');
+        Route::post('/sessions/{session}/assignments', [CoachingSessionController::class, 'storeAssignment'])->name('sessions.assignments.store');
+        Route::patch('/assignments/{assignment}', [CoachingSessionController::class, 'updateAssignment'])->name('assignments.update');
+        Route::post('/progress', [CoachingSessionController::class, 'upsertProgress'])->name('progress.upsert');
+        Route::get('/materials/{material}/file', [CoachingSessionController::class, 'materialFile'])->name('materials.file');
     });
 
     // AI accounts (JSON API + Inertia pages)

@@ -434,6 +434,9 @@ class AiExecutiveAnalyticsBuilder
         $previousYear = [];
 
         foreach ($period as $point) {
+            if (! $point instanceof Carbon) {
+                continue;
+            }
             [$rangeStart, $rangeEnd, $label] = $this->bucketRange($point, $granularity);
             $labels[] = $label;
             $actual[] = $this->sumPaidBetween($rangeStart, $rangeEnd);
@@ -477,8 +480,7 @@ class AiExecutiveAnalyticsBuilder
         };
     }
 
-    /** @return iterable<int, Carbon> */
-    private function buildPeriod(Carbon $start, Carbon $end, string $granularity): iterable
+    private function buildPeriod(Carbon $start, Carbon $end, string $granularity): \Carbon\CarbonPeriod
     {
         $step = match ($granularity) {
             'day' => '1 day',

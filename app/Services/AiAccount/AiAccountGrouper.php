@@ -127,7 +127,7 @@ class AiAccountGrouper
 
         if ($totalMonthly > 0) {
             foreach ($rows as &$row) {
-                $row['cost_share_percent'] = (int) round((($row['cost_monthly'] ?? 0) / $totalMonthly) * 100);
+                $row['cost_share_percent'] = (int) round(((int) $row['cost_monthly'] / $totalMonthly) * 100);
             }
             unset($row);
         } else {
@@ -273,10 +273,6 @@ class AiAccountGrouper
         ];
     }
 
-    /**
-     * @param  Collection<int, AiAccount>  $accounts
-     * @return array<string, mixed>|null
-     */
     private function groupLabel(AiAccountGroupFunction $group): string
     {
         foreach (AiAccountGroupFunction::options() as $opt) {

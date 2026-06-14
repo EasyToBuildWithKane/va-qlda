@@ -28,10 +28,11 @@ trait ValidatesOrgTeamSections
 
         $maxIndex = count($sections) - 1;
         foreach ($this->input('members', []) as $index => $row) {
-            if (! isset($row['section_index']) || $row['section_index'] === '' || $row['section_index'] === null) {
+            $sectionIndexRaw = $row['section_index'] ?? null;
+            if ($sectionIndexRaw === null || $sectionIndexRaw === '') {
                 continue;
             }
-            $sectionIndex = (int) $row['section_index'];
+            $sectionIndex = (int) $sectionIndexRaw;
             if ($sectionIndex > $maxIndex) {
                 $validator->errors()->add(
                     "members.{$index}.section_index",

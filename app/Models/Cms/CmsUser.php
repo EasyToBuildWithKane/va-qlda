@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string $name
  * @property string $email
  * @property string|null $avatar
+ * @property \Illuminate\Support\Carbon|null $deleted_at
  */
 class CmsUser extends Model
 {
