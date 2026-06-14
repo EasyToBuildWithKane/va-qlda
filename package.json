@@ -50,6 +50,12 @@
         "vite": "^5.0.0"
     },
     "dependencies": {
+        "@fullcalendar/core": "^6.1.20",
+        "@fullcalendar/daygrid": "^6.1.20",
+        "@fullcalendar/interaction": "^6.1.20",
+        "@fullcalendar/list": "^6.1.20",
+        "@fullcalendar/timegrid": "^6.1.20",
+        "@fullcalendar/vue3": "^6.1.20",
         "@inertiajs/vue3": "^2.3.24",
         "@tiptap/extension-image": "^3.24.0",
         "@tiptap/extension-link": "^3.24.0",

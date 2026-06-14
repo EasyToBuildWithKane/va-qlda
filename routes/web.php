@@ -214,9 +214,14 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictCoachingOnlyUsers::class
         Route::delete('/courses/{course}', [CoachingCourseController::class, 'destroy'])->name('courses.destroy');
         Route::post('/courses/{course}/sessions', [CoachingCourseController::class, 'storeSession'])->name('courses.sessions.store');
         Route::get('/sessions/schedule', [CoachingSessionController::class, 'schedule'])->name('sessions.schedule');
+        Route::get('/sessions/calendar/feed', [CoachingSessionController::class, 'calendarFeed'])->name('sessions.calendar.feed');
+        Route::post('/sessions/calendar', [CoachingSessionController::class, 'calendarStore'])->name('sessions.calendar.store');
         Route::get('/sessions', [CoachingSessionController::class, 'index'])->name('sessions.index');
+        Route::get('/sessions/export', [CoachingSessionController::class, 'exportIndex'])->name('sessions.export');
         Route::get('/sessions/{session}', [CoachingSessionController::class, 'show'])->name('sessions.show');
+        Route::patch('/sessions/{session}/calendar', [CoachingSessionController::class, 'calendarUpdate'])->name('sessions.calendar.update');
         Route::patch('/sessions/{session}', [CoachingSessionController::class, 'update'])->name('sessions.update');
+        Route::delete('/sessions/{session}', [CoachingSessionController::class, 'destroy'])->name('sessions.destroy');
         Route::post('/sessions/{session}/materials', [CoachingSessionController::class, 'storeMaterial'])->name('sessions.materials.store');
         Route::post('/sessions/{session}/assignments', [CoachingSessionController::class, 'storeAssignment'])->name('sessions.assignments.store');
         Route::patch('/assignments/{assignment}', [CoachingSessionController::class, 'updateAssignment'])->name('assignments.update');

@@ -1,112 +1,216 @@
 <script setup>
-import { ref, computed, reactive, watch, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import AppIcon from '@/Components/AppIcon.vue';
-import Badge from '@/shared/ui/Badge.vue';
 import CoachingWorkspace from '@/modules/coaching/components/CoachingWorkspace.vue';
 import CoachingSessionFormModal from '@/modules/coaching/components/CoachingSessionFormModal.vue';
+import CoachingSessionsSummaryBar from '@/modules/coaching/components/CoachingSessionsSummaryBar.vue';
+import CoachingSessionsGroupView from '@/modules/coaching/components/CoachingSessionsGroupView.vue';
+import CoachingSessionsTableView from '@/modules/coaching/components/CoachingSessionsTableView.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import ColumnVisibilityDropdown from '@/shared/ui/ColumnVisibilityDropdown.vue';
 import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
 import { useVisibleColumns } from '@/shared/composables/useVisibleColumns';
-import { date, hours as fmtHours } from '@/composables/useFormat';
+import { useCoachingSessionList, useCoachingSessionGroups } from '@/composables/useCoachingSessionList';
+import {
+    exportCoachingSessionsCsv,
+    exportCoachingSessionsWorkbook,
+} from '@/composables/useCoachingExport';
+import { useToast } from '@/shared/composables/useToast';
+import { useDialog } from '@/composables/useDialog';
 
 const PER_PAGE_OPTIONS = [10, 15, 20, 30];
+const VIEW_KEY = 'va-qlda.coaching.sessions.view';
 
 const props = defineProps({
     sessions: { type: Object, required: true },
+    summary: { type: Object, required: true },
     filters: { type: Object, default: () => ({}) },
     options: { type: Object, default: () => ({}) },
     selectedCourse: { type: Object, default: null },
 });
 
+const toast = useToast();
+const dialog = useDialog();
 const sessionModal = ref(false);
+const statusUpdating = ref(new Set());
+const exportLoading = ref(false);
+const viewMode = ref(localStorage.getItem(VIEW_KEY) === 'table' ? 'table' : 'groups');
+
+const {
+    filterForm,
+    perPage,
+    sessionRows,
+    groupedSessions,
+    routeParams,
+    onPerPageChange,
+    appliedFilterCount,
+    clearFilters,
+    refreshList,
+    setStatusFilter,
+    applyMonthPreset,
+    applyUnscheduledPreset,
+    fetchAllForExport,
+    isNavigating,
+} = useCoachingSessionList({
+    filters: props.filters,
+    getSessions: () => props.sessions,
+});
+
+const {
+    isGroupExpanded,
+    toggleGroup,
+    toggleAllGroups,
+    allGroupsExpanded,
+} = useCoachingSessionGroups('va-qlda.coaching.sessions.collapsed-groups');
+
+function setViewMode(mode) {
+    viewMode.value = mode;
+    localStorage.setItem(VIEW_KEY, mode);
+}
 
 const SESSION_COLUMNS = [
     { key: 'course', label: 'Khóa học', default: true },
     { key: 'date', label: 'Ngày', default: true },
-    { key: 'hours', label: 'Giờ', default: true },
+    { key: 'time', label: 'Giờ học', default: true },
+    { key: 'hours', label: 'Tổng giờ', default: true },
     { key: 'status', label: 'Trạng thái', default: true },
-    { key: 'topic', label: 'Chủ đề', default: false },
-    { key: 'materials', label: 'Tài liệu', default: false },
-    { key: 'assignments', label: 'Bài tập', default: false },
+    { key: 'topic', label: 'Chủ đề', default: true },
+    { key: 'materials', label: 'Tài liệu', default: true },
+    { key: 'assignments', label: 'Bài tập', default: true },
 ];
 
 const {
-    visibleCols, showColDd, persistVisibleColumns, openColPanel, isColVisible,
+    visibleCols, showColDd, visibleColumnCount, persistVisibleColumns, openColPanel, isColVisible,
 } = useVisibleColumns(SESSION_COLUMNS, 'va-qlda.coaching.sessions.columns');
 
 const FILTER_CONTROLS_DEF = [
     { key: 'status', label: 'Trạng thái', default: true },
     { key: 'course', label: 'Khóa học', default: true },
+    { key: 'date_from', label: 'Từ ngày', default: true },
+    { key: 'date_to', label: 'Đến ngày', default: false },
+    { key: 'scheduled', label: 'Lịch học', default: false },
+    { key: 'has_materials', label: 'Tài liệu', default: false },
+    { key: 'has_assignments', label: 'Bài tập', default: false },
 ];
+
 const {
     visibleFilters, showFilterPanelDd, enabledFilterControlCount, hasFilterRow,
     persistVisibleFilters, openFilterPanel, FILTER_CONTROLS,
 } = useVisibleFilterControls(FILTER_CONTROLS_DEF, 'va-qlda.coaching.sessions.visible-filters');
 
-const filterForm = reactive({
-    q: props.filters.q ?? '',
-    status: props.filters.status ?? '',
-    course: props.filters.course ?? '',
-});
-
-const perPage = ref(Number(props.filters.per_page) || props.sessions.meta?.per_page || 20);
-const sessionRows = computed(() => props.sessions.data ?? []);
-
-function sessionStatusColor(value) {
-    if (value === 'in_progress') return 'amber';
-    if (value === 'completed') return 'emerald';
-    if (value === 'cancelled') return 'rose';
-    return 'slate';
-}
-
-function routeParams(resetPage = false) {
-    const params = Object.fromEntries(
-        Object.entries({ ...filterForm, per_page: perPage.value }).filter(([, v]) => v !== '' && v != null),
-    );
-    if (resetPage) params.page = 1;
-    return params;
-}
-
-function load(resetPage = true) {
-    router.get(route('coaching.sessions.index'), routeParams(resetPage), {
-        preserveState: true,
-        replace: true,
-        preserveScroll: true,
-    });
-}
-
-let qTimer = null;
-watch(() => filterForm.q, () => {
-    clearTimeout(qTimer);
-    qTimer = setTimeout(() => load(true), 350);
-});
-watch(() => filterForm.status, () => load(true));
-watch(() => filterForm.course, () => load(true));
-
-function onPerPageChange(n) {
-    perPage.value = n;
-    load(true);
-}
-
 const canAddSession = computed(() => props.selectedCourse?.can?.update === true);
+
+const summaryActiveStatus = computed(() => {
+    if (filterForm.scheduled === '0') return '__unscheduled__';
+    return filterForm.status;
+});
 
 const filterDdRef = ref(null);
 const colDdRef = ref(null);
+const exportDdRef = ref(null);
+const showExportDd = ref(false);
+
 const onDocClick = (e) => {
     if (filterDdRef.value && !filterDdRef.value.contains(e.target)) showFilterPanelDd.value = false;
     if (colDdRef.value && !colDdRef.value.contains(e.target)) showColDd.value = false;
+    if (exportDdRef.value && !exportDdRef.value.contains(e.target)) showExportDd.value = false;
 };
 onMounted(() => document.addEventListener('mousedown', onDocClick));
 onUnmounted(() => document.removeEventListener('mousedown', onDocClick));
 
-const openFilter = () => openFilterPanel(() => { showColDd.value = false; });
-const openCol = () => openColPanel(() => { showFilterPanelDd.value = false; });
+const openFilter = () => openFilterPanel(() => { showColDd.value = false; showExportDd.value = false; });
+const openCol = () => openColPanel(() => { showFilterPanelDd.value = false; showExportDd.value = false; });
+const toggleExport = () => {
+    showExportDd.value = !showExportDd.value;
+    if (showExportDd.value) {
+        showFilterPanelDd.value = false;
+        showColDd.value = false;
+    }
+};
+
+function exportPayload(sessions, scopeLabel) {
+    return {
+        sessions,
+        filters: { ...filterForm },
+        summary: props.summary,
+        scopeLabel,
+    };
+}
+
+function doExportCsv() {
+    showExportDd.value = false;
+    exportCoachingSessionsCsv(exportPayload(sessionRows.value, 'Trang hiện tại'));
+    toast.success('Đã tải file CSV.');
+}
+
+function doExportExcelPage() {
+    showExportDd.value = false;
+    exportCoachingSessionsWorkbook(exportPayload(sessionRows.value, 'Trang hiện tại'));
+    toast.success('Đã tải file Excel.');
+}
+
+async function doExportExcelAll() {
+    showExportDd.value = false;
+    exportLoading.value = true;
+    try {
+        const { data, meta } = await fetchAllForExport();
+        exportCoachingSessionsWorkbook(exportPayload(data, meta.truncated
+            ? `Theo bộ lọc (tối đa ${meta.limit} buổi)`
+            : 'Toàn bộ theo bộ lọc'));
+        if (meta.truncated) {
+            toast.success(`Đã xuất ${meta.exported}/${meta.total_matching} buổi (giới hạn ${meta.limit}).`);
+        } else {
+            toast.success(`Đã xuất ${meta.exported} buổi theo bộ lọc.`);
+        }
+    } catch {
+        toast.error('Không xuất được dữ liệu. Thử lại sau.');
+    } finally {
+        exportLoading.value = false;
+    }
+}
+
+function onSummaryStatus(status) {
+    filterForm.scheduled = '';
+    setStatusFilter(status);
+}
+
+function onSummaryUnscheduled() {
+    filterForm.status = '';
+    applyUnscheduledPreset();
+}
+
+function updateStatus(s, status) {
+    if (!s.can?.update || s.status?.value === status) return;
+    statusUpdating.value.add(s.id);
+    router.patch(route('coaching.sessions.update', { session: s.id }), { status }, {
+        preserveScroll: true,
+        onFinish: () => statusUpdating.value.delete(s.id),
+        onSuccess: () => toast.success('Đã cập nhật trạng thái.'),
+    });
+}
+
+function goDetail(s) {
+    router.visit(route('coaching.sessions.show', { session: s.id }));
+}
+
+async function removeSession(s) {
+    if (!s.can?.delete) return;
+    if (!await dialog.confirm({
+        title: 'Xóa buổi học',
+        message: `Xóa buổi ${s.session_number}: «${s.title}»? Hành động không hoàn tác.`,
+        tone: 'danger',
+        confirmText: 'Xóa',
+    })) return;
+    router.delete(route('coaching.sessions.destroy', { session: s.id }), {
+        preserveScroll: true,
+        onSuccess: () => toast.success('Đã xóa buổi học.'),
+    });
+}
 </script>
 
 <template>
@@ -115,10 +219,21 @@ const openCol = () => openColPanel(() => { showFilterPanelDd.value = false; });
     <template #header>
       <PageHeader
         title="Danh sách buổi học"
-        subtitle="Tìm kiếm, lọc và mở chi tiết từng buổi"
+        subtitle="KPI theo bộ lọc · nhóm theo khóa · cập nhật nhanh"
         icon="weekly"
+        :badge="summary.total"
         back-href="/coaching"
       >
+        <Link
+          href="/coaching/sessions/schedule"
+          class="btn-ghost h-9 gap-1.5 px-3 text-sm"
+        >
+          <AppIcon
+            name="calendar"
+            :size="15"
+          />
+          Lịch học
+        </Link>
         <button
           v-if="canAddSession"
           type="button"
@@ -136,13 +251,37 @@ const openCol = () => openColPanel(() => { showFilterPanelDd.value = false; });
 
     <CoachingWorkspace>
       <section class="card overflow-visible">
-        <div class="flex flex-col gap-3 border-b border-slate-100 bg-slate-50/60 px-5 py-3.5 lg:flex-row lg:items-center">
+        <CoachingSessionsSummaryBar
+          :summary="summary"
+          :active-status="summaryActiveStatus"
+          @filter-status="onSummaryStatus"
+          @filter-unscheduled="onSummaryUnscheduled"
+        />
+
+        <div class="flex flex-col gap-2.5 border-b border-slate-100 bg-slate-50/40 px-4 py-3.5 sm:px-5 lg:flex-row lg:items-center lg:gap-3">
           <DatagridToolbarSearch
             v-model="filterForm.q"
             input-id="coaching-session-search"
-            placeholder="Tên buổi, chủ đề, khóa học…"
+            placeholder="Tên buổi, chủ đề, khóa…"
+            compact
           />
-          <div class="flex flex-wrap items-center gap-2">
+
+          <div class="flex min-w-0 flex-wrap items-center gap-2 lg:shrink-0">
+            <button
+              type="button"
+              class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 transition hover:border-slate-300 disabled:opacity-50"
+              title="Tải lại và xóa toàn bộ bộ lọc"
+              :disabled="isNavigating"
+              @click="refreshList(() => toast.success('Đã tải lại danh sách và xóa bộ lọc.'))"
+            >
+              <AppIcon
+                name="refresh"
+                :size="15"
+                :class="isNavigating ? 'animate-spin' : ''"
+              />
+              <span class="hidden sm:inline">Tải lại</span>
+            </button>
+
             <div
               ref="filterDdRef"
               class="relative"
@@ -169,6 +308,7 @@ const openCol = () => openColPanel(() => { showFilterPanelDd.value = false; });
                 @persist="persistVisibleFilters"
               />
             </div>
+
             <div
               ref="colDdRef"
               class="relative"
@@ -196,17 +336,134 @@ const openCol = () => openColPanel(() => { showFilterPanelDd.value = false; });
                 @persist="persistVisibleColumns"
               />
             </div>
+
+            <div
+              ref="exportDdRef"
+              class="relative"
+            >
+              <button
+                type="button"
+                class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none disabled:opacity-50"
+                :class="showExportDd
+                  ? 'border-brand/40 bg-brand/5 text-brand'
+                  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800'"
+                title="Xuất Excel / CSV"
+                :disabled="exportLoading"
+                @click="toggleExport"
+              >
+                <AppIcon
+                  name="export"
+                  :size="15"
+                />
+                <span>Xuất</span>
+              </button>
+              <div
+                v-if="showExportDd"
+                class="absolute right-0 z-30 mt-1 min-w-[11rem] rounded-card border border-slate-200 bg-white py-1 shadow-lg"
+              >
+                <button
+                  type="button"
+                  class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50"
+                  @click="doExportCsv"
+                >
+                  CSV · trang này
+                </button>
+                <button
+                  type="button"
+                  class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50"
+                  @click="doExportExcelPage"
+                >
+                  Excel · trang này
+                </button>
+                <button
+                  type="button"
+                  class="block w-full border-t border-slate-100 px-3 py-2 text-left text-xs font-medium text-brand hover:bg-brand/5"
+                  @click="doExportExcelAll"
+                >
+                  Excel · theo lọc
+                </button>
+              </div>
+            </div>
+
+            <div class="flex rounded-btn border border-slate-200 p-0.5">
+              <button
+                type="button"
+                class="inline-flex h-8 items-center gap-1 rounded-btn px-2.5 text-xs font-medium transition"
+                :class="viewMode === 'groups' ? 'bg-brand/10 text-brand' : 'text-slate-500 hover:text-slate-700'"
+                title="Nhóm theo khóa (cuộn ngang)"
+                @click="setViewMode('groups')"
+              >
+                <AppIcon
+                  name="grid"
+                  :size="14"
+                />
+                <span class="hidden sm:inline">Nhóm</span>
+              </button>
+              <button
+                type="button"
+                class="inline-flex h-8 items-center gap-1 rounded-btn px-2.5 text-xs font-medium transition"
+                :class="viewMode === 'table' ? 'bg-brand/10 text-brand' : 'text-slate-500 hover:text-slate-700'"
+                title="Bảng chi tiết"
+                @click="setViewMode('table')"
+              >
+                <AppIcon
+                  name="list"
+                  :size="14"
+                />
+                <span class="hidden sm:inline">Bảng</span>
+              </button>
+            </div>
+
+            <button
+              v-if="groupedSessions.length"
+              type="button"
+              class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 hover:border-slate-300"
+              :title="allGroupsExpanded(groupedSessions) ? 'Thu gọn tất cả khóa' : 'Mở tất cả khóa'"
+              @click="toggleAllGroups(groupedSessions)"
+            >
+              <AppIcon
+                name="chevron-down"
+                :size="15"
+                class="transition-transform"
+                :class="allGroupsExpanded(groupedSessions) ? '' : '-rotate-90'"
+              />
+              <span class="hidden sm:inline">{{ allGroupsExpanded(groupedSessions) ? 'Thu nhóm' : 'Mở nhóm' }}</span>
+            </button>
           </div>
         </div>
 
         <div
           v-if="hasFilterRow"
-          class="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-slate-50/30 px-5 py-2.5"
+          class="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-slate-50/30 px-4 py-2.5 sm:px-5"
         >
+          <div class="flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              class="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-600 hover:border-brand/30 hover:text-brand"
+              @click="applyMonthPreset(0)"
+            >
+              Tháng này
+            </button>
+            <button
+              type="button"
+              class="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-600 hover:border-brand/30 hover:text-brand"
+              @click="applyMonthPreset(-1)"
+            >
+              Tháng trước
+            </button>
+            <button
+              type="button"
+              class="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-600 hover:border-brand/30 hover:text-brand"
+              @click="applyUnscheduledPreset()"
+            >
+              Chưa lên lịch
+            </button>
+          </div>
+
           <select
             v-if="visibleFilters.status"
             v-model="filterForm.status"
-            class="input h-9 w-48 text-sm"
+            class="input h-9 w-full min-w-0 sm:w-44 text-sm"
             aria-label="Trạng thái buổi học"
           >
             <option value="">
@@ -223,7 +480,7 @@ const openCol = () => openColPanel(() => { showFilterPanelDd.value = false; });
           <select
             v-if="visibleFilters.course"
             v-model="filterForm.course"
-            class="input h-9 min-w-[12rem] max-w-md text-sm"
+            class="input h-9 w-full min-w-0 sm:min-w-[12rem] sm:max-w-md text-sm"
             aria-label="Khóa học"
           >
             <option value="">
@@ -237,11 +494,81 @@ const openCol = () => openColPanel(() => { showFilterPanelDd.value = false; });
               {{ c.code }} — {{ c.name }}
             </option>
           </select>
+          <input
+            v-if="visibleFilters.date_from"
+            v-model="filterForm.date_from"
+            type="date"
+            class="input h-9 w-full min-w-0 sm:w-40 text-sm"
+            aria-label="Từ ngày"
+          >
+          <input
+            v-if="visibleFilters.date_to"
+            v-model="filterForm.date_to"
+            type="date"
+            class="input h-9 w-full min-w-0 sm:w-40 text-sm"
+            aria-label="Đến ngày"
+          >
+          <select
+            v-if="visibleFilters.scheduled"
+            v-model="filterForm.scheduled"
+            class="input h-9 w-full min-w-0 sm:w-44 text-sm"
+            aria-label="Lịch học"
+          >
+            <option value="">
+              Lịch (mọi)
+            </option>
+            <option value="1">
+              Đã có ngày học
+            </option>
+            <option value="0">
+              Chưa lên lịch
+            </option>
+          </select>
+          <select
+            v-if="visibleFilters.has_materials"
+            v-model="filterForm.has_materials"
+            class="input h-9 w-full min-w-0 sm:w-44 text-sm"
+            aria-label="Lọc tài liệu"
+          >
+            <option value="">
+              Tài liệu (mọi)
+            </option>
+            <option value="1">
+              Đã có tài liệu
+            </option>
+            <option value="0">
+              Chưa có tài liệu
+            </option>
+          </select>
+          <select
+            v-if="visibleFilters.has_assignments"
+            v-model="filterForm.has_assignments"
+            class="input h-9 w-full min-w-0 sm:w-44 text-sm"
+            aria-label="Lọc bài tập"
+          >
+            <option value="">
+              Bài tập (mọi)
+            </option>
+            <option value="1">
+              Đã có bài tập
+            </option>
+            <option value="0">
+              Chưa có bài tập
+            </option>
+          </select>
+          <button
+            v-if="appliedFilterCount || filterForm.q"
+            type="button"
+            class="text-xs font-medium text-brand hover:underline"
+            @click="clearFilters"
+          >
+            Đặt lại
+          </button>
         </div>
 
         <div
           v-if="selectedCourse"
-          class="border-b border-brand/10 bg-brand/[0.03] px-5 py-2 text-xs text-slate-600"
+          class="border-b border-brand/10 bg-brand/[0.03] px-4 py-2 text-xs text-slate-600 sm:px-5"
         >
           Đang lọc theo khóa
           <span class="font-medium text-slate-800">{{ selectedCourse.name }}</span>
@@ -254,151 +581,51 @@ const openCol = () => openColPanel(() => { showFilterPanelDd.value = false; });
         </div>
 
         <div
-          v-if="!sessionRows.length"
-          class="px-6 py-12 text-center text-sm text-slate-500"
+          v-if="isNavigating"
+          class="h-0.5 w-full overflow-hidden bg-slate-100"
         >
-          Không có buổi học phù hợp.
-          <span v-if="!filterForm.course"> Chọn khóa học trong bộ lọc để thêm buổi mới.</span>
+          <div class="h-full w-1/3 animate-pulse bg-brand" />
         </div>
 
         <div
-          v-else
-          class="overflow-x-auto"
+          v-if="!sessionRows.length"
+          class="px-6 py-12 text-center text-sm text-slate-500"
         >
-          <table class="w-full text-left text-sm">
-            <thead>
-              <tr class="border-b border-slate-100 bg-slate-50/50 text-xs font-medium text-slate-500">
-                <th class="w-12 px-5 py-3">
-                  #
-                </th>
-                <th class="px-4 py-3">
-                  Tên buổi
-                </th>
-                <th
-                  v-if="isColVisible('course')"
-                  class="px-4 py-3"
-                >
-                  Khóa học
-                </th>
-                <th
-                  v-if="isColVisible('date')"
-                  class="px-4 py-3"
-                >
-                  Ngày
-                </th>
-                <th
-                  v-if="isColVisible('hours')"
-                  class="px-4 py-3 text-right"
-                >
-                  Giờ
-                </th>
-                <th
-                  v-if="isColVisible('status')"
-                  class="px-4 py-3"
-                >
-                  Trạng thái
-                </th>
-                <th
-                  v-if="isColVisible('topic')"
-                  class="px-4 py-3"
-                >
-                  Chủ đề
-                </th>
-                <th
-                  v-if="isColVisible('materials')"
-                  class="px-4 py-3 text-right"
-                >
-                  Tài liệu
-                </th>
-                <th
-                  v-if="isColVisible('assignments')"
-                  class="px-4 py-3 text-right"
-                >
-                  Bài tập
-                </th>
-                <th class="px-4 py-3 text-right">
-                  Thao tác
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="s in sessionRows"
-                :key="s.id"
-                class="border-b border-slate-50 transition hover:bg-brand/[0.02]"
-              >
-                <td class="px-5 py-3 font-mono text-xs text-slate-400">
-                  {{ s.session_number }}
-                </td>
-                <td class="px-4 py-3 font-medium text-slate-800">
-                  {{ s.title }}
-                </td>
-                <td
-                  v-if="isColVisible('course')"
-                  class="px-4 py-3"
-                >
-                  <Link
-                    v-if="s.course"
-                    :href="route('coaching.courses.show', { course: s.course.id })"
-                    class="text-slate-700 hover:text-brand"
-                  >
-                    <span class="font-mono text-xs text-slate-400">{{ s.course.code }}</span>
-                    <span class="ml-1">{{ s.course.name }}</span>
-                  </Link>
-                  <span v-else>—</span>
-                </td>
-                <td
-                  v-if="isColVisible('date')"
-                  class="px-4 py-3 text-slate-600"
-                >
-                  {{ date(s.date) }}
-                </td>
-                <td
-                  v-if="isColVisible('hours')"
-                  class="px-4 py-3 text-right text-slate-600"
-                >
-                  {{ s.total_hours != null ? fmtHours(s.total_hours) : '—' }}
-                </td>
-                <td
-                  v-if="isColVisible('status')"
-                  class="px-4 py-3"
-                >
-                  <Badge
-                    v-if="s.status"
-                    :label="s.status.label"
-                    :color="sessionStatusColor(s.status.value)"
-                  />
-                </td>
-                <td
-                  v-if="isColVisible('topic')"
-                  class="max-w-[16rem] truncate px-4 py-3 text-slate-600"
-                >
-                  {{ s.topic || '—' }}
-                </td>
-                <td
-                  v-if="isColVisible('materials')"
-                  class="px-4 py-3 text-right text-slate-600"
-                >
-                  {{ s.materials_count ?? s.materials?.length ?? 0 }}
-                </td>
-                <td
-                  v-if="isColVisible('assignments')"
-                  class="px-4 py-3 text-right text-slate-600"
-                >
-                  {{ s.assignments_count ?? s.assignments?.length ?? 0 }}
-                </td>
-                <td class="px-4 py-3 text-right">
-                  <Link
-                    :href="route('coaching.sessions.show', { session: s.id })"
-                    class="text-xs font-medium text-brand hover:underline"
-                  >
-                    Chi tiết
-                  </Link>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          Không có buổi học phù hợp với bộ lọc.
+          <button
+            type="button"
+            class="ml-1 font-medium text-brand hover:underline"
+            @click="clearFilters"
+          >
+            Xóa bộ lọc
+          </button>
         </div>
+
+        <CoachingSessionsGroupView
+          v-else-if="viewMode === 'groups'"
+          :groups="groupedSessions"
+          :status-options="options.statuses"
+          :status-updating-ids="statusUpdating"
+          :is-group-expanded="isGroupExpanded"
+          @toggle-group="toggleGroup"
+          @update-status="updateStatus"
+          @detail="goDetail"
+          @delete="removeSession"
+        />
+
+        <CoachingSessionsTableView
+          v-else
+          :groups="groupedSessions"
+          :status-options="options.statuses"
+          :status-updating-ids="statusUpdating"
+          :is-group-expanded="isGroupExpanded"
+          :is-col-visible="isColVisible"
+          :visible-column-count="visibleColumnCount"
+          @toggle-group="toggleGroup"
+          @update-status="updateStatus"
+          @detail="goDetail"
+          @delete="removeSession"
+        />
 
         <DatagridPaginationFooter
           v-if="sessions.meta"

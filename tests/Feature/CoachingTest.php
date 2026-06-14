@@ -107,7 +107,9 @@ class CoachingTest extends TestCase
         $this->actingAs($admin)
             ->get(route('coaching.sessions.index'))
             ->assertOk()
-            ->assertInertia(fn ($page) => $page->component('Coaching/Sessions/Index'));
+            ->assertInertia(fn ($page) => $page
+                ->component('Coaching/Sessions/Index')
+                ->has('summary.total'));
 
         $this->actingAs($admin)
             ->get(route('coaching.sessions.schedule'))
@@ -213,5 +215,47 @@ class CoachingTest extends TestCase
             'system_account_id' => $student->id,
             'is_completed' => true,
         ]);
+    }
+
+    public function test_admin_can_delete_session(): void
+    {
+        $admin = $this->admin();
+        $course = CoachingCourse::create([
+            'name' => 'Del',
+            'status' => CoachingCourseStatus::Active,
+        ]);
+        $session = CoachingSession::create([
+            'course_id' => $course->id,
+            'title' => 'Buổi xóa',
+            'session_number' => 1,
+            'status' => CoachingSessionStatus::Pending,
+        ]);
+
+        $this->actingAs($admin)
+            ->delete(route('coaching.sessions.destroy', $session))
+            ->assertRedirect(route('coaching.sessions.index'));
+
+        $this->assertDatabaseMissing('coaching_sessions', ['id' => $session->id]);
+    }
+
+    public function test_sessions_export_returns_json_for_filters(): void
+    {
+        $admin = $this->admin();
+        $course = CoachingCourse::create([
+            'name' => 'Export',
+            'status' => CoachingCourseStatus::Active,
+        ]);
+        CoachingSession::create([
+            'course_id' => $course->id,
+            'title' => 'Buổi A',
+            'session_number' => 1,
+            'status' => CoachingSessionStatus::Pending,
+        ]);
+
+        $this->actingAs($admin)
+            ->getJson(route('coaching.sessions.export', ['course' => $course->id]))
+            ->assertOk()
+            ->assertJsonPath('meta.exported', 1)
+            ->assertJsonCount(1, 'data');
     }
 }

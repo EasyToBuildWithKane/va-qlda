@@ -32,6 +32,13 @@ class CoachingSessionResource extends JsonResource
             'content' => $this->content,
             'notes' => $this->notes,
             'status' => $this->enum($this->status),
+            'can' => $this->when(
+                $this->relationLoaded('course') && $request->user(),
+                fn () => [
+                    'update' => $request->user()->can('update', $this->course),
+                    'delete' => $request->user()->can('update', $this->course),
+                ],
+            ),
             'materials_count' => $this->whenCounted('materials'),
             'assignments_count' => $this->whenCounted('assignments'),
             'course' => $this->whenLoaded('course', fn () => [
