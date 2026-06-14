@@ -31,9 +31,13 @@ const emit = defineEmits(['update-status', 'detail', 'delete']);
           <p class="font-mono text-[10px] font-semibold uppercase tracking-wide text-brand">
             Buổi {{ session.session_number }}
           </p>
-          <h3 class="mt-0.5 line-clamp-2 text-sm font-semibold text-slate-800">
+          <Link
+            :href="route('coaching.sessions.show', { session: session.id })"
+            class="mt-0.5 line-clamp-2 text-sm font-semibold text-slate-800 underline-offset-2 transition-colors hover:text-brand hover:underline"
+            :title="session.title"
+          >
             {{ session.title }}
-          </h3>
+          </Link>
         </div>
         <CoachingSessionRowActions
           :session="session"

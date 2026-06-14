@@ -273,6 +273,7 @@ Prefix: `va_prd_`. Chi tiết: `docs/DATABASE_STRUCTURE.md` §8.
 | POST | `/coaching/sessions/{session}/materials` | `coaching.sessions.materials.store` | |
 | POST | `/coaching/sessions/{session}/assignments` | `coaching.sessions.assignments.store` | |
 | PATCH | `/coaching/assignments/{assignment}` | `coaching.assignments.update` | |
+| DELETE | `/coaching/assignments/{assignment}` | `coaching.assignments.destroy` | Coach (quản lý khóa) |
 | POST | `/coaching/progress` | `coaching.progress.upsert` | |
 | GET | `/coaching/materials/{material}/file` | `coaching.materials.file` | Download public disk |
 

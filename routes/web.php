@@ -225,6 +225,7 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictCoachingOnlyUsers::class
         Route::post('/sessions/{session}/materials', [CoachingSessionController::class, 'storeMaterial'])->name('sessions.materials.store');
         Route::post('/sessions/{session}/assignments', [CoachingSessionController::class, 'storeAssignment'])->name('sessions.assignments.store');
         Route::patch('/assignments/{assignment}', [CoachingSessionController::class, 'updateAssignment'])->name('assignments.update');
+        Route::delete('/assignments/{assignment}', [CoachingSessionController::class, 'destroyAssignment'])->name('assignments.destroy');
         Route::post('/progress', [CoachingSessionController::class, 'upsertProgress'])->name('progress.upsert');
         Route::get('/materials/{material}/file', [CoachingSessionController::class, 'materialFile'])->name('materials.file');
     });

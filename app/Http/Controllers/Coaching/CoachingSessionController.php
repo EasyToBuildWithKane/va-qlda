@@ -580,6 +580,20 @@ class CoachingSessionController extends Controller
         return back()->with('success', 'Đã cập nhật bài tập.');
     }
 
+    public function destroyAssignment(CoachingAssignment $assignment): RedirectResponse
+    {
+        $assignment->loadMissing('session.course');
+        $this->authorize('update', $assignment->session->course);
+
+        if ($assignment->submission_path) {
+            Storage::disk('public')->delete($assignment->submission_path);
+        }
+
+        $assignment->delete();
+
+        return back()->with('success', 'Đã xóa bài tập.');
+    }
+
     public function upsertProgress(Request $request): RedirectResponse
     {
         $data = $request->validate([

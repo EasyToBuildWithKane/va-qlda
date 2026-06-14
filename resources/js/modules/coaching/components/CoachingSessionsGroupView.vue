@@ -40,7 +40,7 @@ const emit = defineEmits(['toggle-group', 'update-status', 'detail', 'delete']);
           <Link
             v-if="group.course"
             :href="route('coaching.courses.show', { course: group.course.id })"
-            class="block truncate text-sm font-semibold text-slate-800 hover:text-brand"
+            class="block truncate text-sm font-semibold text-slate-800 underline-offset-2 transition-colors hover:text-brand hover:underline"
             @click.stop
           >
             <span class="font-mono text-xs font-normal text-slate-500">{{ group.course.code }}</span>

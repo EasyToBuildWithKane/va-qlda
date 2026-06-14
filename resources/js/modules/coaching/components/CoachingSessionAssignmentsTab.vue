@@ -7,7 +7,10 @@ import Modal from '@/Components/Ui/Modal.vue';
 import KbRichTextField from '@/Components/KnowledgeBase/KbRichTextField.vue';
 import DateInput from '@/shared/ui/form/DateInput.vue';
 import { useToast } from '@/shared/composables/useToast';
+import { useDialog } from '@/composables/useDialog';
 import { date as fmtDate } from '@/composables/useFormat';
+
+defineOptions({ inheritAttrs: false });
 
 const props = defineProps({
     sessionId: { type: Number, required: true },
@@ -17,6 +20,7 @@ const props = defineProps({
 });
 
 const toast = useToast();
+const dialog = useDialog();
 
 const addForm = useForm({ title: '', description: '', deadline: '' });
 const showAddModal = ref(false);
@@ -103,10 +107,33 @@ function submitAdd() {
         },
     });
 }
+
+const deletingId = ref(null);
+
+async function removeAssignment(a) {
+    if (!props.canManage || deletingId.value) return;
+    if (!await dialog.confirm({
+        title: 'Xóa bài tập',
+        message: `Xóa «${a.title}»? Hành động không hoàn tác.`,
+        tone: 'danger',
+        confirmText: 'Xóa',
+    })) return;
+
+    deletingId.value = a.id;
+    router.delete(route('coaching.assignments.destroy', { assignment: a.id }), {
+        preserveScroll: true,
+        onSuccess: () => toast.success('Đã xóa bài tập.'),
+        onError: () => toast.error('Không xóa được bài tập.'),
+        onFinish: () => { deletingId.value = null; },
+    });
+}
 </script>
 
 <template>
-  <div class="w-full space-y-4">
+  <div
+    class="flex w-full flex-1 flex-col space-y-4"
+    v-bind="$attrs"
+  >
     <div
       v-if="canManage"
       class="flex flex-wrap items-center justify-end gap-2"
@@ -175,12 +202,28 @@ function submitAdd() {
           </button>
 
           <div class="min-w-0 flex-1">
-            <p
-              class="text-sm font-semibold text-slate-800"
-              :class="isDone(a) ? 'text-slate-500 line-through decoration-slate-400' : ''"
-            >
-              {{ a.title }}
-            </p>
+            <div class="flex items-start justify-between gap-2">
+              <p
+                class="min-w-0 flex-1 text-sm font-semibold text-slate-800"
+                :class="isDone(a) ? 'text-slate-500 line-through decoration-slate-400' : ''"
+              >
+                {{ a.title }}
+              </p>
+              <button
+                v-if="canManage"
+                type="button"
+                class="inline-flex h-8 shrink-0 items-center gap-1 rounded-btn border border-slate-200 px-2 text-xs font-medium text-slate-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
+                :disabled="deletingId === a.id || completeProcessing"
+                title="Xóa bài tập"
+                @click="removeAssignment(a)"
+              >
+                <AppIcon
+                  name="trash"
+                  :size="14"
+                />
+                <span class="hidden sm:inline">Xóa</span>
+              </button>
+            </div>
             <div
               v-if="a.description"
               class="rich-content prose prose-sm mt-1 max-w-none text-slate-600 prose-headings:text-sm prose-p:text-xs prose-p:leading-relaxed"

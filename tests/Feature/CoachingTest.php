@@ -340,6 +340,33 @@ class CoachingTest extends TestCase
         ]);
     }
 
+    public function test_coach_can_delete_assignment(): void
+    {
+        $admin = $this->admin();
+        $course = CoachingCourse::create([
+            'name' => 'Khóa xóa BT',
+            'status' => CoachingCourseStatus::Active,
+        ]);
+        $session = CoachingSession::create([
+            'course_id' => $course->id,
+            'title' => 'Buổi 1',
+            'session_number' => 1,
+            'status' => CoachingSessionStatus::Pending,
+        ]);
+        $assignment = CoachingAssignment::create([
+            'session_id' => $session->id,
+            'title' => 'Bài cũ',
+            'status' => CoachingAssignmentStatus::Todo,
+        ]);
+
+        $this->actingAs($admin)
+            ->delete(route('coaching.assignments.destroy', $assignment))
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseMissing('coaching_assignments', ['id' => $assignment->id]);
+    }
+
     public function test_student_can_complete_assignment_with_notes(): void
     {
         $student = SystemAccount::factory()->role(SystemRole::Member)->create();

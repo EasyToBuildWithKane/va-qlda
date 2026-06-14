@@ -112,7 +112,7 @@ const tableColspan = computed(() => 2 + props.visibleColumnCount);
                 <Link
                   v-if="group.course"
                   :href="route('coaching.courses.show', { course: group.course.id })"
-                  class="min-w-0 flex-1 truncate text-sm font-semibold text-slate-800 hover:text-brand"
+                  class="min-w-0 flex-1 truncate text-sm font-semibold text-slate-800 underline-offset-2 transition-colors hover:text-brand hover:underline"
                   @click.stop
                 >
                   <span class="font-mono text-xs font-normal text-slate-500">{{ group.course.code }}</span>
@@ -142,8 +142,14 @@ const tableColspan = computed(() => 2 + props.visibleColumnCount);
               <td class="px-3 py-3 font-mono text-xs text-slate-400">
                 {{ s.session_number }}
               </td>
-              <td class="px-3 py-3 font-medium text-slate-800">
-                {{ s.title }}
+              <td class="px-3 py-3">
+                <Link
+                  :href="route('coaching.sessions.show', { session: s.id })"
+                  class="font-medium text-slate-800 underline-offset-2 transition-colors hover:text-brand hover:underline"
+                  :title="s.title"
+                >
+                  {{ s.title }}
+                </Link>
               </td>
               <td
                 v-if="isColVisible('date')"

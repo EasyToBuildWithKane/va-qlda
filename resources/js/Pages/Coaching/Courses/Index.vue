@@ -419,10 +419,15 @@ async function removeCourse(c) {
             class="flex flex-col gap-3 px-5 py-4 transition hover:bg-brand/[0.02] sm:flex-row sm:items-center sm:justify-between"
           >
             <div class="min-w-0 flex-1">
-              <span class="font-mono text-xs text-slate-400">{{ c.code }}</span>
-              <h2 class="font-display font-semibold text-slate-800">
-                {{ c.name }}
-              </h2>
+              <Link
+                :href="route('coaching.courses.show', { course: c.id })"
+                class="group block min-w-0"
+              >
+                <span class="font-mono text-xs text-slate-400 group-hover:text-slate-500">{{ c.code }}</span>
+                <h2 class="font-display font-semibold text-slate-800 underline-offset-2 transition-colors group-hover:text-brand group-hover:underline">
+                  {{ c.name }}
+                </h2>
+              </Link>
               <p class="mt-0.5 text-xs text-slate-500">
                 Học viên:
                 <span :class="c.student_display ? '' : 'text-slate-400'">{{ displayCourseStudent(c.student_display) }}</span>
@@ -530,9 +535,13 @@ async function removeCourse(c) {
                 class="border-b border-slate-50 transition hover:bg-brand/[0.02]"
               >
                 <td class="px-5 py-3">
-                  <p class="font-medium text-slate-800">
+                  <Link
+                    :href="route('coaching.courses.show', { course: c.id })"
+                    class="font-medium text-slate-800 underline-offset-2 transition-colors hover:text-brand hover:underline"
+                    :title="c.name"
+                  >
                     {{ c.name }}
-                  </p>
+                  </Link>
                 </td>
                 <td
                   v-if="isColVisible('code')"
