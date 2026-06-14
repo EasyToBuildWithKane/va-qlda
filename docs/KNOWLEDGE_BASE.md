@@ -24,26 +24,36 @@
 Pattern **MVC** giống Blocker / Feedback — không tách Clean Architecture trừ khi sau này cần workflow phức tạp.
 
 ```
-routes/web.php
-    → KbArticleController, KbCategoryController (optional thin)
-    → FormRequest (Store/Update KbArticle)
+routes/web.php (prefix knowledge-base., name knowledge-base.*)
+    → KbArticleController
+        index, create, store, show, edit, update, destroy
+        toggleFavorite, markRead, exportData (JSON)
+        storeAttachment, storeImage, storeGalleryImage
+        updateGalleryImage, destroyGalleryImage
+        attachmentFile, imageFile
+    → StoreKbArticleRequest, UpdateKbArticleRequest
     → KbArticlePolicy
     → KbArticleResource, KbCategoryResource
-    → Models: KbArticle, KbCategory, KbTag, …
+    → Models: KbArticle, KbCategory, KbTag, KbArticleImage, KbArticleAttachment, …
+    → app/Support/KnowledgeBase/
+        KbArticleSearch, KbContentAnchors, KbTagSync
 
 resources/js/
-    → Pages/KnowledgeBase/Index.vue      (sidebar + list)
-    → Pages/KnowledgeBase/Show.vue       (chi tiết + TOC)
-    → Pages/KnowledgeBase/Edit.vue       (TipTap + upload)
-    → modules/knowledge-base/          (sidebar, ArticleCard, TocPanel, …)
-    → composables/useKbArticle.js, useKbSearch.js
+    → Pages/KnowledgeBase/Index.vue   (sidebar danh mục, datagrid, xuất CSV/Excel)
+    → Pages/KnowledgeBase/Show.vue    (breadcrumb, TOC server, related, comments)
+    → Pages/KnowledgeBase/Edit.vue    (TipTap + gallery)
+    → Components/KnowledgeBase/KbRichTextField.vue, KbImageGallery.vue
+    → composables/useKbExport.js
+    → shared/ui: DatagridToolbarSearch, FilterVisibilityDropdown, CommentThread
 ```
+
+**Route model binding:** `{article}` resolve theo **`slug`** (`KbArticle::getRouteKeyName()`).
 
 **Lưu file:** disk `public`, path `knowledge-base/{article_id}/images|attachments` — URL qua `PublicMediaUrl` + route tải (pattern Project attachment).
 
-**Rich text:** TipTap (đã có trong dự án) — chèn ảnh inline qua upload → chèn URL vào editor.
+**Rich text:** TipTap — ảnh inline qua `POST knowledge-base.articles.images.store`; gallery riêng qua `articles.gallery.store`.
 
-**Tìm kiếm v1:** `WHERE title LIKE` + `FULLTEXT` trên `title, excerpt, content` (MySQL) hoặc Laravel Scout (tùy chọn phase 2).
+**Tìm kiếm v1:** `KbArticleSearch` — FULLTEXT / LIKE trên title, excerpt, content (MySQL migration `2026_06_14_130000_kb_articles_fulltext_and_image_usage.php`).
 
 ---
 
@@ -162,11 +172,13 @@ Tham chiếu UX: Viblo (list + tag), Notion Wiki (sidebar cây), Confluence (bre
 
 ### 7.2 Trang chính
 
-| Route (đề xuất) | Page |
-|---|---|
-| `GET /knowledge-base` | `KnowledgeBase/Index.vue` |
-| `GET /knowledge-base/articles/{article:slug}` | `KnowledgeBase/Show.vue` |
-| `GET/POST .../create`, `edit`, `update` | `KnowledgeBase/Edit.vue` |
+| Page | Route name | URI |
+|---|---|---|
+| `KnowledgeBase/Index.vue` | `knowledge-base.index` | `GET /knowledge-base` |
+| `KnowledgeBase/Show.vue` | `knowledge-base.articles.show` | `GET /knowledge-base/articles/{article:slug}` |
+| `KnowledgeBase/Edit.vue` | `knowledge-base.articles.create` / `.edit` | `GET …/create`, `GET …/{article}/edit` |
+
+Sidebar danh mục, yêu thích và toolbar datagrid nằm trong **Index.vue** (không tách `modules/knowledge-base/`).
 
 ---
 
@@ -189,42 +201,50 @@ Prefix bảng: `va_prd_`. Chi tiết cột: `docs/DATABASE_STRUCTURE.md` §7.
 
 ---
 
-## 9. Route map (đề xuất)
+## 9. Route map (thực tế — `routes/web.php`)
 
 | Method | URI | Name | Ghi chú |
 |---|---|---|---|
-| GET | `/knowledge-base` | `knowledge-base.index` | List + filters |
-| GET | `/knowledge-base/articles/create` | `knowledge-base.articles.create` | lead+ |
+| GET | `/knowledge-base` | `knowledge-base.index` | List + filters Inertia |
+| GET | `/knowledge-base/export-data` | `knowledge-base.export-data` | **JSON** — lọc giống index, ≤200 (export client) |
+| GET | `/knowledge-base/articles/create` | `knowledge-base.articles.create` | |
 | POST | `/knowledge-base/articles` | `knowledge-base.articles.store` | |
-| GET | `/knowledge-base/articles/{article:slug}` | `knowledge-base.articles.show` | |
+| GET | `/knowledge-base/articles/{article}` | `knowledge-base.articles.show` | `{article}` = **slug** |
 | GET | `/knowledge-base/articles/{article}/edit` | `knowledge-base.articles.edit` | |
-| PUT/PATCH | `/knowledge-base/articles/{article}` | `knowledge-base.articles.update` | |
+| PUT | `/knowledge-base/articles/{article}` | `knowledge-base.articles.update` | |
 | DELETE | `/knowledge-base/articles/{article}` | `knowledge-base.articles.destroy` | |
 | POST | `/knowledge-base/articles/{article}/favorite` | `knowledge-base.articles.favorite` | toggle |
 | POST | `/knowledge-base/articles/{article}/read` | `knowledge-base.articles.read` | mark read |
-| POST | `/knowledge-base/articles/{article}/images` | `knowledge-base.articles.images.store` | |
 | POST | `/knowledge-base/articles/{article}/attachments` | `knowledge-base.articles.attachments.store` | |
+| POST | `/knowledge-base/articles/{article}/images` | `knowledge-base.articles.images.store` | inline TipTap |
+| POST | `/knowledge-base/articles/{article}/gallery` | `knowledge-base.articles.gallery.store` | gallery grid |
+| PATCH | `/knowledge-base/gallery/{image}` | `knowledge-base.gallery.update` | alt text |
+| DELETE | `/knowledge-base/gallery/{image}` | `knowledge-base.gallery.destroy` | |
 | GET | `/knowledge-base/attachments/{attachment}/file` | `knowledge-base.attachments.file` | authorize + fileExists |
+| GET | `/knowledge-base/images/{image}/file` | `knowledge-base.images.file` | inline / gallery file |
 
-Nav: `App\Support\Navigation` — mục «Tri thức», roles `admin`, `lead`, `member`, `viewer` (đọc).
+Nav: `App\Support\Navigation` — nhóm «Tri thức & Cơ sở», mục `/knowledge-base`; roles `admin`, `lead`, `member`, `viewer` (đọc theo policy).
+
+Chi tiết đầy đủ bảng: `docs/API_STRUCTURE.md` §2.17 · grouping §3.
 
 ---
 
 ## 10. Frontend components map
 
-| Component | Vai trò |
+| File | Vai trò |
 |---|---|
-| `KbSidebar.vue` | Cây danh mục, yêu thích, mobile drawer |
-| `KbArticleList.vue` | Card/list + empty state |
-| `KbArticleMeta.vue` | Tác giả, ngày, tags, lượt xem |
-| `KbTocPanel.vue` | TOC từ headings |
-| `KbRelatedArticles.vue` | Bài liên quan |
-| `KbEditor.vue` | TipTap + image upload hook |
-| `KbAttachmentList.vue` | Tải file đính kèm |
-| `useKbArticle.js` | Form state, slugify, publish |
-| `useKbSearch.js` | Debounce search, filter sync URL |
+| `Pages/KnowledgeBase/Index.vue` | Sidebar danh mục + yêu thích; datagrid (Tìm kiếm, Lọc, Cột, Xuất); pagination |
+| `Pages/KnowledgeBase/Show.vue` | Breadcrumb, meta, TOC (`toc` props), body HTML, attachments, related, favorite/read |
+| `Pages/KnowledgeBase/Edit.vue` | Form bài viết + publish fields |
+| `KbRichTextField.vue` | TipTap + upload ảnh inline |
+| `KbImageGallery.vue` | CRUD gallery (`gallery.store` / `gallery.update` / `gallery.destroy`) |
+| `useKbExport.js` | `fetchKbArticlesForExport`, CSV + styled Excel (`export-data` JSON) |
+| `CommentThread.vue` | Bình luận morph trên Show |
+| `useVisibleFilterControls` / `useVisibleColumns` | Toolbar pattern datagrid (localStorage keys `va-qlda.knowledge-base.*`) |
 
-Tests: Feature (policy, publish, slug unique); E2E (index → show, favorite).
+**Không có** `modules/knowledge-base/` — UI list/TOC chính nằm trong Pages; composable `useKbArticle.js` / `useKbSearch.js` **chưa** tách (logic filter trong Index + Inertia `router.get`).
+
+Tests: `tests/Feature/*` KB policy/CRUD; E2E `tests/e2e/knowledge-coaching.spec.js`.
 
 ---
 

@@ -228,6 +228,30 @@ Prefix `coaching.`, middleware `auth` (+ `RestrictCoachingOnlyUsers` khi áp d�
 | POST | `/coaching/progress` | CoachingSessionController@upsertProgress | Redirect | Tiến độ |
 | GET | `/coaching/materials/{material}/file` | CoachingSessionController@materialFile | Stream | Tải file |
 
+### 2.17 Knowledge Base (Tri thức)
+
+Prefix `knowledge-base.`, middleware `auth`. Chi tiết: [`docs/KNOWLEDGE_BASE.md`](KNOWLEDGE_BASE.md) §9.
+
+| Method | URI | Controller | Response | Mô Tả |
+|---|---|---|---|---|
+| GET | `/knowledge-base` | KbArticleController@index | Inertia | Danh sách + sidebar |
+| GET | `/knowledge-base/export-data` | KbArticleController@exportData | JSON | Export client (≤200) |
+| GET | `/knowledge-base/articles/create` | KbArticleController@create | Inertia | |
+| POST | `/knowledge-base/articles` | KbArticleController@store | Redirect | |
+| GET | `/knowledge-base/articles/{article}` | KbArticleController@show | Inertia | Binding **slug** |
+| GET | `/knowledge-base/articles/{article}/edit` | KbArticleController@edit | Inertia | |
+| PUT | `/knowledge-base/articles/{article}` | KbArticleController@update | Redirect | |
+| DELETE | `/knowledge-base/articles/{article}` | KbArticleController@destroy | Redirect | |
+| POST | `/knowledge-base/articles/{article}/favorite` | KbArticleController@toggleFavorite | Redirect | |
+| POST | `/knowledge-base/articles/{article}/read` | KbArticleController@markRead | Redirect | |
+| POST | `/knowledge-base/articles/{article}/attachments` | KbArticleController@storeAttachment | Redirect | |
+| POST | `/knowledge-base/articles/{article}/images` | KbArticleController@storeImage | Redirect | TipTap inline |
+| POST | `/knowledge-base/articles/{article}/gallery` | KbArticleController@storeGalleryImage | Redirect | |
+| PATCH | `/knowledge-base/gallery/{image}` | KbArticleController@updateGalleryImage | Redirect | |
+| DELETE | `/knowledge-base/gallery/{image}` | KbArticleController@destroyGalleryImage | Redirect | |
+| GET | `/knowledge-base/attachments/{attachment}/file` | KbArticleController@attachmentFile | Stream | |
+| GET | `/knowledge-base/images/{image}/file` | KbArticleController@imageFile | Stream | |
+
 ---
 
 ## 3. API Grouping (Theo Domain)
@@ -276,6 +300,28 @@ Communication Group
 
 Organization Group
 └── /departments            (CRUD + toggle)
+
+Knowledge Base Group
+├── /knowledge-base                    (index — Inertia)
+├── /knowledge-base/export-data        (JSON — export ≤200)
+├── /knowledge-base/articles/*         (CRUD — {article} slug)
+├── /knowledge-base/articles/{id}/favorite|read|attachments|images|gallery
+├── /knowledge-base/gallery/{image}    (PATCH alt, DELETE)
+└── /knowledge-base/attachments|images/{id}/file (stream)
+
+Coaching / Mentoring Group
+├── /coaching                          (dashboard — Inertia)
+├── /coaching/courses/*                (CRUD khóa + POST sessions)
+├── /coaching/sessions                 (index datagrid — Inertia)
+├── /coaching/sessions/export          (JSON ≤500)
+├── /coaching/sessions/schedule        (lịch — Inertia)
+├── /coaching/sessions/calendar/*      (feed JSON, POST/PATCH calendar)
+├── /coaching/sessions/{id}/*          (show, update, destroy, materials, assignments)
+├── /coaching/assignments/{id}         (PATCH)
+├── /coaching/progress                 (POST upsert)
+└── /coaching/materials/{id}/file      (stream)
+
+Doc chi tiết: [`docs/KNOWLEDGE_BASE.md`](KNOWLEDGE_BASE.md), [`docs/COACHING_MENTORING.md`](COACHING_MENTORING.md).
 ```
 
 ---
@@ -299,6 +345,11 @@ Organization Group
 | Bugs/Feedback | ✅ | ✅ | ✅ | ✅* |
 | Comments | ✅ | ✅ | ✅ | - |
 | Departments | ✅ | ✅* | - | - |
+| Knowledge Base (read published) | ✅ | ✅ | ✅ | ✅* |
+| Knowledge Base (authoring) | ✅ | ✅ | ✅* | - |
+| Coaching (full / coach) | ✅ | ✅ | - | - |
+| Coaching (student scope) | ✅ | ✅ | ✅* | - |
+| Coaching-only Google users | — | — | — | — (chỉ module Coaching) |
 
 *\* = Xem/tạo được nhưng không xóa*
 

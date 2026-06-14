@@ -50,6 +50,7 @@ resources/js/
 ├── Components/
 │   ├── Ui/                   ← Modal, Drawer, PageHeader, ToastContainer, AppDialog
 │   ├── AppIcon.vue
+│   ├── KnowledgeBase/        ← KbRichTextField, KbImageGallery
 │   ├── DailyReport/          ← Feature chưa migrate modules/
 │   └── Notifications/
 ├── modules/                  ← Feature modules (Phase 2)
@@ -254,6 +255,16 @@ Trang Index có toolbar: label **Tìm kiếm**, nút **Lọc** / **Cột** / **X
 | `Coaching/Sessions/Schedule.vue` | `useCoachingCalendar.js`, `MiniCalendar.vue` |
 
 Doc module: `docs/COACHING_MENTORING.md`.
+
+### Knowledge Base pages
+
+| Page | Composables / components |
+|---|---|
+| `KnowledgeBase/Index.vue` | `useKbExport.js`, datagrid shared UI, sidebar in-page |
+| `KnowledgeBase/Show.vue` | `CommentThread`, TOC từ props `toc` |
+| `KnowledgeBase/Edit.vue` | `KbRichTextField`, `KbImageGallery` |
+
+Doc module: `docs/KNOWLEDGE_BASE.md`.
 
 ---
 
