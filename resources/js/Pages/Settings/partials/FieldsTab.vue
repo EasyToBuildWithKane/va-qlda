@@ -1,26 +1,33 @@
 <script setup>
+import { ref, watch, onMounted, onUnmounted, inject } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
 import FormField from '@/shared/ui/form/FormField.vue';
 import TextInput from '@/shared/ui/form/TextInput.vue';
 import PasswordInput from '@/shared/ui/form/PasswordInput.vue';
 import ToggleSwitch from '@/shared/ui/form/ToggleSwitch.vue';
+import TagInput from './TagInput.vue';
+import { useToast } from '@/shared/composables/useToast';
 
-// Generic editor for a scalar settings group (general / auth / telegram).
-// Field defs come from the backend SettingsSchema so this stays single-sourced.
 const props = defineProps({
     group: { type: String, required: true },
     title: { type: String, default: '' },
     description: { type: String, default: '' },
     fields: { type: Array, default: () => [] },
     canManage: { type: Boolean, default: false },
+    hideHeader: { type: Boolean, default: false },
+    suppressDirtyReport: { type: Boolean, default: false },
 });
 
-// Build the form model from field values. Lists are edited as newline text.
+const emit = defineEmits(['dirty-change']);
+const toast = useToast();
+const setGroupDirty = inject('setGroupDirty', null);
+const savedAt = ref(null);
+
 function buildModel() {
     const data = {};
     for (const f of props.fields) {
-        if (f.type === 'list') data[f.name] = (f.value ?? []).join('\n');
+        if (f.type === 'list') data[f.name] = [...(f.value ?? [])];
         else if (f.type === 'bool') data[f.name] = !!f.value;
         else data[f.name] = f.value ?? '';
     }
@@ -29,6 +36,42 @@ function buildModel() {
 
 const form = useForm(buildModel());
 
+watch(
+    () => form.isDirty,
+    (dirty) => {
+        if (props.suppressDirtyReport) {
+            emit('dirty-change', dirty);
+            return;
+        }
+        if (typeof setGroupDirty === 'function') {
+            setGroupDirty(props.group, dirty);
+        }
+    },
+    { immediate: true },
+);
+
+function isDirty() {
+    return form.isDirty;
+}
+
+defineExpose({ isDirty });
+
+watch(
+    () => props.fields,
+    () => {
+        const data = buildModel();
+        Object.keys(data).forEach((k) => {
+            form[k] = data[k];
+        });
+        form.defaults(data);
+    },
+    { deep: true },
+);
+
+function formatSavedTime(date) {
+    return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+}
+
 function submit() {
     if (!props.canManage) return;
     form
@@ -36,10 +79,9 @@ function submit() {
             const out = { ...data };
             for (const f of props.fields) {
                 if (f.type === 'list') {
-                    out[f.name] = String(out[f.name] ?? '')
-                        .split('\n')
-                        .map((s) => s.trim())
-                        .filter(Boolean);
+                    out[f.name] = Array.isArray(out[f.name])
+                        ? out[f.name].map((s) => String(s).trim()).filter(Boolean)
+                        : [];
                 }
             }
             return out;
@@ -47,13 +89,34 @@ function submit() {
         .put(`/settings/${props.group}`, {
             preserveScroll: true,
             onSuccess: () => {
-                // Clear typed secrets, then treat current state as clean.
                 for (const f of props.fields) {
                     if (f.type === 'secret') form[f.name] = '';
                 }
                 form.defaults();
+                savedAt.value = new Date();
             },
         });
+}
+
+function onKeydownSave(e) {
+    if (!(e.ctrlKey || e.metaKey) || e.key !== 's') return;
+    if (!props.canManage || !form.isDirty || form.processing) return;
+    e.preventDefault();
+    submit();
+}
+
+onMounted(() => document.addEventListener('keydown', onKeydownSave));
+onUnmounted(() => document.removeEventListener('keydown', onKeydownSave));
+
+async function copyField(name) {
+    const val = String(form[name] ?? '');
+    if (!val) return;
+    try {
+        await navigator.clipboard.writeText(val);
+        toast.success('Đã sao chép');
+    } catch {
+        toast.error('Không sao chép được');
+    }
 }
 
 const secretPlaceholder = (f) => (f.has_value ? '•••••••• (đã lưu — để trống nếu không đổi)' : 'Chưa thiết lập');
@@ -64,7 +127,10 @@ const secretPlaceholder = (f) => (f.has_value ? '•••••••• (đã 
     class="flex h-full flex-col"
     @submit.prevent="submit"
   >
-    <div class="mb-5">
+    <div
+      v-if="!hideHeader"
+      class="mb-5"
+    >
       <h2 class="text-[15px] font-semibold text-slate-800">
         {{ title }}
       </h2>
@@ -81,7 +147,6 @@ const secretPlaceholder = (f) => (f.has_value ? '•••••••• (đã 
         v-for="f in fields"
         :key="f.key"
       >
-        <!-- Boolean: label/help left, switch right -->
         <div
           v-if="f.type === 'bool'"
           class="flex items-start justify-between gap-4 rounded-card border border-slate-100 bg-slate-50/50 px-3.5 py-3"
@@ -105,7 +170,6 @@ const secretPlaceholder = (f) => (f.has_value ? '•••••••• (đã 
           />
         </div>
 
-        <!-- Secret -->
         <FormField
           v-else-if="f.type === 'secret'"
           :id="f.key"
@@ -120,7 +184,6 @@ const secretPlaceholder = (f) => (f.has_value ? '•••••••• (đã 
           />
         </FormField>
 
-        <!-- List (newline-separated) -->
         <FormField
           v-else-if="f.type === 'list'"
           :id="f.key"
@@ -128,17 +191,14 @@ const secretPlaceholder = (f) => (f.has_value ? '•••••••• (đã 
           :hint="f.help"
           :error="form.errors[f.name]"
         >
-          <textarea
+          <TagInput
             :id="f.key"
             v-model="form[f.name]"
-            rows="3"
             :disabled="!canManage"
-            class="input w-full font-mono text-[13px] leading-relaxed disabled:bg-slate-50"
             placeholder="vaschools.edu.vn"
           />
         </FormField>
 
-        <!-- String / default -->
         <FormField
           v-else
           :id="f.key"
@@ -146,17 +206,30 @@ const secretPlaceholder = (f) => (f.has_value ? '•••••••• (đã 
           :hint="f.help"
           :error="form.errors[f.name]"
         >
-          <TextInput
-            :id="f.key"
-            v-model="form[f.name]"
-            :disabled="!canManage"
-          />
+          <div class="relative [&_input]:pr-10">
+            <TextInput
+              :id="f.key"
+              v-model="form[f.name]"
+              :disabled="!canManage"
+            />
+            <button
+              v-if="canManage && String(form[f.name] ?? '').length"
+              type="button"
+              class="absolute right-2 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              title="Sao chép"
+              @click="copyField(f.name)"
+            >
+              <AppIcon
+                name="copy"
+                :size="15"
+              />
+            </button>
+          </div>
         </FormField>
       </template>
     </div>
 
-    <!-- Save bar -->
-    <div class="mt-7 flex items-center gap-3 border-t border-slate-100 pt-4">
+    <div class="mt-7 flex flex-wrap items-center gap-3 border-t border-slate-100 pt-4">
       <button
         type="submit"
         class="btn-primary"
@@ -179,8 +252,13 @@ const secretPlaceholder = (f) => (f.has_value ? '•••••••• (đã 
         <AppIcon
           name="check"
           :size="14"
-        /> Đã lưu
+        />
+        Đã lưu<span v-if="savedAt"> lúc {{ formatSavedTime(savedAt) }}</span>
       </span>
+      <span
+        v-if="canManage"
+        class="text-[11px] text-slate-400"
+      >Ctrl+S để lưu</span>
     </div>
   </form>
 </template>

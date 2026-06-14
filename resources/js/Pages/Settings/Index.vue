@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed, provide } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
@@ -19,7 +19,45 @@ const props = defineProps({
 });
 
 const active = ref('general');
+const dirtyGroups = ref(new Set());
+
+function setGroupDirty(groupKey, isDirty) {
+    const next = new Set(dirtyGroups.value);
+    if (isDirty) next.add(groupKey);
+    else next.delete(groupKey);
+    dirtyGroups.value = next;
+}
+
+provide('setGroupDirty', setGroupDirty);
+
 const groupMeta = (key) => props.groups.find((g) => g.key === key) ?? { label: '', description: '' };
+
+function fieldValue(fields, name) {
+    const f = (fields ?? []).find((x) => x.name === name);
+    return f?.value;
+}
+
+function fieldBool(fields, name) {
+    return !!fieldValue(fields, name);
+}
+
+const healthChips = computed(() => [
+    {
+        key: 'email',
+        label: 'Email',
+        on: fieldBool(props.settings.email, 'enabled'),
+    },
+    {
+        key: 'telegram',
+        label: 'Telegram',
+        on: fieldBool(props.settings.telegram, 'enabled'),
+    },
+    {
+        key: 'password',
+        label: 'Đăng nhập mật khẩu',
+        on: fieldBool(props.settings.auth, 'password_login_enabled'),
+    },
+]);
 </script>
 
 <template>
@@ -35,36 +73,66 @@ const groupMeta = (key) => props.groups.find((g) => g.key === key) ?? { label: '
 
     <div class="w-full max-w-none">
       <div class="flex flex-col gap-6 md:flex-row">
-        <!-- Tab rail -->
-        <nav class="flex shrink-0 gap-2 overflow-x-auto pb-1 md:w-64 md:flex-col md:overflow-visible md:pb-0">
-          <button
-            v-for="g in groups"
-            :key="g.key"
-            type="button"
-            class="group flex shrink-0 items-center gap-3 rounded-card border px-3.5 py-3 text-left transition-colors md:w-full"
-            :class="active === g.key
-              ? 'border-brand/30 bg-brand/[0.06]'
-              : 'border-transparent hover:bg-slate-50'"
-            @click="active = g.key"
-          >
-            <span
-              class="grid h-9 w-9 shrink-0 place-items-center rounded-lg transition-colors"
-              :class="active === g.key ? 'bg-brand text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-slate-200'"
-            >
-              <AppIcon
-                :name="g.icon"
-                :size="17"
-              />
-            </span>
-            <span class="min-w-0">
+        <div class="flex shrink-0 flex-col gap-3 md:w-64">
+          <!-- Status health (desktop) -->
+          <div class="hidden flex-col gap-1.5 md:flex">
+            <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+              Trạng thái nhanh
+            </p>
+            <div class="flex flex-wrap gap-1.5">
               <span
-                class="block text-[13.5px] font-semibold leading-tight"
-                :class="active === g.key ? 'text-brand' : 'text-slate-700'"
-              >{{ g.label }}</span>
-              <span class="mt-0.5 hidden truncate text-[11.5px] text-slate-400 md:block">{{ g.description }}</span>
-            </span>
-          </button>
-        </nav>
+                v-for="chip in healthChips"
+                :key="chip.key"
+                class="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium"
+                :class="chip.on
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                  : 'border-slate-200 bg-slate-50 text-slate-500'"
+              >
+                <span
+                  class="h-1.5 w-1.5 shrink-0 rounded-full"
+                  :class="chip.on ? 'bg-emerald-500' : 'bg-slate-300'"
+                />
+                {{ chip.label }}: {{ chip.on ? 'Bật' : 'Tắt' }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Tab rail -->
+          <nav class="flex shrink-0 gap-2 overflow-x-auto pb-1 md:flex-col md:overflow-visible md:pb-0">
+            <button
+              v-for="g in groups"
+              :key="g.key"
+              type="button"
+              class="group flex shrink-0 items-center gap-3 rounded-card border px-3.5 py-3 text-left transition-colors md:w-full"
+              :class="active === g.key
+                ? 'border-brand/30 bg-brand/[0.06]'
+                : 'border-transparent hover:bg-slate-50'"
+              @click="active = g.key"
+            >
+              <span
+                class="grid h-9 w-9 shrink-0 place-items-center rounded-lg transition-colors"
+                :class="active === g.key ? 'bg-brand text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-slate-200'"
+              >
+                <AppIcon
+                  :name="g.icon"
+                  :size="17"
+                />
+              </span>
+              <span class="min-w-0 flex-1">
+                <span
+                  class="block text-[13.5px] font-semibold leading-tight"
+                  :class="active === g.key ? 'text-brand' : 'text-slate-700'"
+                >{{ g.label }}</span>
+                <span class="mt-0.5 hidden truncate text-[11.5px] text-slate-400 md:block">{{ g.description }}</span>
+              </span>
+              <span
+                v-if="dirtyGroups.has(g.key)"
+                class="ml-auto h-2 w-2 shrink-0 rounded-full bg-amber-400"
+                title="Có thay đổi chưa lưu"
+              />
+            </button>
+          </nav>
+        </div>
 
         <!-- Active panel -->
         <section class="card min-w-0 flex-1 p-5 md:p-6">

@@ -166,6 +166,7 @@ class SystemSettingController extends Controller
     private function emailTemplatesPayload(): array
     {
         return EmailTemplate::query()
+            ->with('updatedBy')
             ->orderBy('id')
             ->get()
             ->map(fn (EmailTemplate $t) => [
@@ -179,6 +180,8 @@ class SystemSettingController extends Controller
                 'default_subject' => EmailTemplateDefaults::forKey($t->key)['subject'],
                 'default_body_html' => EmailTemplateDefaults::forKey($t->key)['body_html'],
                 'snippets' => EmailTemplateSnippets::forKey($t->key),
+                'updated_at' => $t->updated_at?->locale('vi')->diffForHumans(),
+                'updated_by_name' => $t->updatedBy?->display_name,
             ])
             ->all();
     }

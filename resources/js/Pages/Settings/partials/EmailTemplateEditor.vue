@@ -3,6 +3,7 @@ import { computed, watch, onBeforeUnmount, ref } from 'vue';
 import { useEditor, EditorContent } from '@tiptap/vue-3';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
+import Underline from '@tiptap/extension-underline';
 import { useDialog } from '@/composables/useDialog';
 
 const props = defineProps({
@@ -17,12 +18,14 @@ const emit = defineEmits(['update:modelValue']);
 
 const dialog = useDialog();
 const mode = ref('visual');
+const statsTick = ref(0);
 
 const editor = useEditor({
     content: props.modelValue || '',
     editable: !props.disabled,
     extensions: [
         StarterKit.configure({ link: { openOnClick: false, autolink: true } }),
+        Underline,
         Placeholder.configure({ placeholder: 'Soạn nội dung email… Dùng khối mẫu hoặc chèn biến bên dưới.' }),
     ],
     editorProps: {
@@ -32,6 +35,10 @@ const editor = useEditor({
     },
     onUpdate: ({ editor: ed }) => {
         emit('update:modelValue', ed.isEmpty ? '' : ed.getHTML());
+        statsTick.value += 1;
+    },
+    onSelectionUpdate: () => {
+        statsTick.value += 1;
     },
 });
 
@@ -41,6 +48,7 @@ watch(() => props.modelValue, (val) => {
     const html = val || '';
     if (html !== ed.getHTML() && !(ed.isEmpty && !html)) {
         ed.commands.setContent(html, false);
+        statsTick.value += 1;
     }
 });
 
@@ -56,6 +64,7 @@ const run = (fn) => editor.value && fn(editor.value.chain().focus()).run();
 function insertHtml(html) {
     if (props.disabled || !editor.value) return;
     editor.value.chain().focus().insertContent(html).run();
+    statsTick.value += 1;
 }
 
 function insertVariable(key) {
@@ -95,15 +104,38 @@ async function setLink() {
 }
 
 const toolbar = computed(() => [
+    { key: 'undo', label: '↶', cls: '', title: 'Hoàn tác', active: false, on: () => run((c) => c.undo()) },
+    { key: 'redo', label: '↷', cls: '', title: 'Làm lại', active: false, on: () => run((c) => c.redo()) },
+    { key: 'sep1', sep: true },
     { key: 'bold', label: 'B', cls: 'font-bold', title: 'In đậm', active: isActive('bold'), on: () => run((c) => c.toggleBold()) },
     { key: 'italic', label: 'I', cls: 'italic', title: 'In nghiêng', active: isActive('italic'), on: () => run((c) => c.toggleItalic()) },
+    { key: 'underline', label: 'U', cls: 'underline', title: 'Gạch chân', active: isActive('underline'), on: () => run((c) => c.toggleUnderline()) },
     { key: 'h3', label: 'H', cls: 'font-semibold', title: 'Tiêu đề', active: isActive('heading', { level: 3 }), on: () => run((c) => c.toggleHeading({ level: 3 })) },
+    { key: 'sep2', sep: true },
     { key: 'bullet', label: '•', cls: '', title: 'Danh sách', active: isActive('bulletList'), on: () => run((c) => c.toggleBulletList()) },
+    { key: 'ordered', label: '1.', cls: '', title: 'Danh sách số', active: isActive('orderedList'), on: () => run((c) => c.toggleOrderedList()) },
+    { key: 'quote', label: '❝', cls: '', title: 'Trích dẫn', active: isActive('blockquote'), on: () => run((c) => c.toggleBlockquote()) },
+    { key: 'hr', label: '—', cls: '', title: 'Đường kẻ ngang', active: false, on: () => run((c) => c.setHorizontalRule()) },
     { key: 'link', label: '🔗', cls: '', title: 'Liên kết', active: isActive('link'), on: setLink },
 ]);
 
+const contentStats = computed(() => {
+    statsTick.value;
+    if (mode.value === 'html') {
+        const text = props.modelValue.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+        const words = text ? text.split(' ').filter(Boolean).length : 0;
+        return { words, chars: text.length };
+    }
+    const ed = editor.value;
+    if (!ed) return { words: 0, chars: 0 };
+    const text = ed.getText().replace(/\s+/g, ' ').trim();
+    const words = text ? text.split(' ').filter(Boolean).length : 0;
+    return { words, chars: text.length };
+});
+
 function onHtmlInput(e) {
     emit('update:modelValue', e.target.value);
+    statsTick.value += 1;
 }
 
 function variableToken(key) {
@@ -144,20 +176,31 @@ defineExpose({ insertVariable, insertSnippet });
       class="overflow-hidden rounded-input border border-slate-200 focus-within:border-brand focus-within:ring-1 focus-within:ring-brand/30"
     >
       <div class="flex flex-wrap items-center gap-1 border-b border-slate-100 bg-slate-50 px-2 py-1.5">
-        <button
+        <template
           v-for="t in toolbar"
           :key="t.key"
-          type="button"
-          class="grid h-7 min-w-7 place-items-center rounded px-1.5 text-sm transition disabled:opacity-40"
-          :class="[t.cls, t.active ? 'bg-brand text-white' : 'text-slate-500 hover:bg-slate-200']"
-          :title="t.title"
-          :disabled="disabled"
-          @click="t.on"
         >
-          {{ t.label }}
-        </button>
+          <span
+            v-if="t.sep"
+            class="mx-0.5 h-5 w-px bg-slate-200"
+          />
+          <button
+            v-else
+            type="button"
+            class="grid h-7 min-w-7 place-items-center rounded px-1.5 text-sm transition disabled:opacity-40"
+            :class="[t.cls, t.active ? 'bg-brand text-white' : 'text-slate-500 hover:bg-slate-200']"
+            :title="t.title"
+            :disabled="disabled"
+            @click="t.on"
+          >
+            {{ t.label }}
+          </button>
+        </template>
       </div>
       <EditorContent :editor="editor" />
+      <p class="border-t border-slate-100 px-3 py-1.5 text-[11px] text-slate-400">
+        ~{{ contentStats.words }} từ · {{ contentStats.chars }} ký tự
+      </p>
     </div>
 
     <textarea
@@ -168,6 +211,12 @@ defineExpose({ insertVariable, insertSnippet });
       :disabled="disabled"
       @input="onHtmlInput"
     />
+    <p
+      v-show="mode === 'html'"
+      class="text-[11px] text-slate-400"
+    >
+      ~{{ contentStats.words }} từ · {{ contentStats.chars }} ký tự
+    </p>
 
     <div class="grid gap-3 lg:grid-cols-2">
       <div class="rounded-lg border border-slate-100 bg-slate-50/80 p-3">
