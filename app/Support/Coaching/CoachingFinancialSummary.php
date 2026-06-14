@@ -2,6 +2,7 @@
 
 namespace App\Support\Coaching;
 
+use App\Models\CoachingCourse;
 use App\Models\CoachingSession;
 use App\Support\Enums\CoachingSessionStatus;
 use Carbon\Carbon;
@@ -48,6 +49,25 @@ class CoachingFinancialSummary
 
         $completedCount = $completed->count();
 
+        $coursesInMonth = $sessions
+            ->map(fn (CoachingSession $s) => $s->course)
+            ->filter()
+            ->unique('id')
+            ->values();
+
+        if ($coursesInMonth->isEmpty()) {
+            $coursesInMonth = CoachingCourse::query()
+                ->where(function ($q) use ($end) {
+                    $q->whereNull('start_date')
+                        ->orWhere('start_date', '<=', $end->toDateString());
+                })
+                ->where(function ($q) use ($start) {
+                    $q->whereNull('end_date')
+                        ->orWhere('end_date', '>=', $start->toDateString());
+                })
+                ->get(['id', 'student_id', 'student_name']);
+        }
+
         return [
             'sessions_total' => $sessions->count(),
             'sessions_completed' => $completedCount,
@@ -56,7 +76,7 @@ class CoachingFinancialSummary
             'revenue_total' => round($revenue, 2),
             'avg_per_hour' => $hours > 0 ? round($revenue / $hours, 2) : null,
             'avg_per_session' => $completedCount > 0 ? round($revenue / $completedCount, 2) : null,
-            'students_distinct' => $completed->pluck('course.student_id')->filter()->unique()->count(),
+            'students_distinct' => CoachingStudentMetrics::countDistinct($coursesInMonth),
         ];
     }
 

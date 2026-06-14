@@ -44,6 +44,15 @@ const props = defineProps({
 
 const toast = useToast();
 
+const toneClass = {
+    brand: 'text-brand bg-rose-50',
+    emerald: 'text-emerald-700 bg-emerald-50',
+    sky: 'text-sky-700 bg-sky-50',
+    amber: 'text-amber-700 bg-amber-50',
+    violet: 'text-violet-700 bg-violet-50',
+    slate: 'text-slate-600 bg-slate-100',
+};
+
 const chartLabels = computed(() => props.revenueSeries.map((r) => r.month));
 
 const chartData = computed(() => ({
@@ -157,20 +166,96 @@ function exportExcel() {
 }
 
 const kpiCards = computed(() => [
-    { key: 'courses', label: 'Tổng khóa học', value: props.summary.courses_total, icon: 'knowledge', accent: false },
-    { key: 'active', label: 'Khóa đang diễn ra', value: props.summary.courses_active, icon: 'rocket', accent: true },
-    { key: 'sessions', label: 'Tổng buổi học', value: props.summary.sessions_total, icon: 'calendar', accent: false },
-    { key: 'hours', label: 'Tổng giờ đào tạo', value: fmtHours(props.summary.hours_total), icon: 'clock', accent: false, raw: true },
+    {
+        key: 'students',
+        label: 'Học viên',
+        value: props.summary.students_distinct ?? 0,
+        sub: 'Theo khóa (tên hoặc nhân sự)',
+        icon: 'people',
+        tone: 'emerald',
+    },
+    {
+        key: 'active',
+        label: 'Khóa đang diễn ra',
+        value: props.summary.courses_active,
+        sub: `/ ${props.summary.courses_total} tổng`,
+        icon: 'rocket',
+        tone: 'brand',
+    },
+    {
+        key: 'sessions',
+        label: 'Tổng buổi học',
+        value: props.summary.sessions_total,
+        sub: `${props.monthly.sessions_completed} hoàn thành tháng này`,
+        icon: 'calendar',
+        tone: 'sky',
+    },
+    {
+        key: 'hours',
+        label: 'Tổng giờ đào tạo',
+        value: fmtHours(props.summary.hours_total),
+        sub: `${fmtHours(props.monthly.hours_total)} trong tháng`,
+        icon: 'clock',
+        tone: 'violet',
+        isText: true,
+    },
 ]);
 
 const monthlyStats = computed(() => [
-    { label: 'Buổi học', value: `${props.monthly.sessions_total} (${props.monthly.sessions_completed} hoàn thành)` },
-    { label: 'Giờ dạy', value: fmtHours(props.monthly.hours_total) },
-    { label: 'Doanh thu', value: currency(props.monthly.revenue_total), highlight: true },
-    { label: 'TB / giờ', value: props.monthly.avg_per_hour != null ? currency(props.monthly.avg_per_hour) : '—' },
-    { label: 'TB / buổi', value: props.monthly.avg_per_session != null ? currency(props.monthly.avg_per_session) : '—' },
-    { label: 'Học viên', value: props.monthly.students_distinct ?? '—' },
+    {
+        key: 'revenue',
+        label: 'Doanh thu tháng',
+        value: currency(props.monthly.revenue_total),
+        icon: 'budget',
+        tone: 'brand',
+        highlight: true,
+    },
+    {
+        key: 'students',
+        label: 'Học viên (tháng)',
+        value: String(props.monthly.students_distinct ?? 0),
+        icon: 'people',
+        tone: 'emerald',
+    },
+    {
+        key: 'sessions',
+        label: 'Buổi học',
+        value: `${props.monthly.sessions_total}`,
+        sub: `${props.monthly.sessions_completed} hoàn thành`,
+        icon: 'calendar',
+        tone: 'sky',
+    },
+    {
+        key: 'hours',
+        label: 'Giờ dạy',
+        value: fmtHours(props.monthly.hours_total),
+        icon: 'clock',
+        tone: 'violet',
+        isText: true,
+    },
+    {
+        key: 'avg_hour',
+        label: 'TB / giờ',
+        value: props.monthly.avg_per_hour != null ? currency(props.monthly.avg_per_hour) : '—',
+        icon: 'performance',
+        tone: 'amber',
+        isText: true,
+    },
+    {
+        key: 'avg_session',
+        label: 'TB / buổi',
+        value: props.monthly.avg_per_session != null ? currency(props.monthly.avg_per_session) : '—',
+        icon: 'cost',
+        tone: 'slate',
+        isText: true,
+    },
 ]);
+
+const monthLabel = computed(() => {
+    const [y, m] = props.month.split('-').map(Number);
+    if (!y || !m) return props.month;
+    return `tháng ${m}/${y}`;
+});
 </script>
 
 <template>
@@ -179,6 +264,8 @@ const monthlyStats = computed(() => [
     <PageHeader
       title="Coaching / Mentoring"
       subtitle="Dashboard đào tạo và tài chính"
+      icon="knowledge"
+      icon-color="brand"
     >
       <Link
         v-if="can.create"
@@ -207,149 +294,186 @@ const monthlyStats = computed(() => [
       </Link>
     </PageHeader>
 
-    <div class="mx-auto max-w-7xl space-y-10 pb-10">
+    <div class="mx-auto max-w-7xl space-y-6 pb-10">
       <!-- KPI -->
-      <section>
-        <h2 class="mb-4 font-display text-xs font-semibold uppercase tracking-wide text-slate-400">
-          Tổng quan
-        </h2>
-        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div
-            v-for="card in kpiCards"
-            :key="card.key"
-            class="card flex items-start gap-3 p-5"
-          >
-            <div
-              class="grid h-10 w-10 shrink-0 place-items-center rounded-card"
-              :class="card.accent ? 'bg-brand/10 text-brand' : 'bg-slate-100 text-slate-600'"
-            >
-              <AppIcon
-                :name="card.icon"
-                :size="20"
-              />
-            </div>
+      <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div
+          v-for="card in kpiCards"
+          :key="card.key"
+          class="rounded-xl border border-slate-200/70 bg-gradient-to-br from-white to-slate-50/80 p-4"
+        >
+          <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
-              <p class="text-xs font-medium text-slate-500">
+              <p class="text-[11px] font-medium tracking-wide text-slate-500">
                 {{ card.label }}
               </p>
               <p
-                class="mt-1 font-display text-2xl font-semibold tabular-nums"
-                :class="card.accent ? 'text-brand' : 'text-slate-800'"
+                class="mt-1.5 font-display text-2xl font-semibold tabular-nums text-slate-800"
+                :class="card.tone === 'brand' ? 'text-brand' : ''"
               >
-                {{ card.raw ? card.value : card.value }}
+                {{ card.value }}
+              </p>
+              <p class="mt-1 text-xs text-slate-400">
+                {{ card.sub }}
+              </p>
+            </div>
+            <span
+              class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+              :class="toneClass[card.tone]"
+            >
+              <AppIcon
+                :name="card.icon"
+                :size="18"
+              />
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tháng hiện tại -->
+      <section class="overflow-hidden rounded-xl border border-brand/15 bg-gradient-to-r from-brand/[0.06] via-white to-white">
+        <div class="flex flex-wrap items-end justify-between gap-4 border-b border-brand/10 px-5 py-4 sm:px-6">
+          <div>
+            <h2 class="font-display text-sm font-semibold text-slate-800">
+              Kỳ {{ monthLabel }}
+            </h2>
+            <p class="mt-0.5 text-xs text-slate-500">
+              Chỉ số vận hành và doanh thu trong tháng đang xem.
+            </p>
+          </div>
+          <p class="font-display text-2xl font-bold tabular-nums text-brand">
+            {{ currency(monthly.revenue_total) }}
+          </p>
+        </div>
+        <div class="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3 sm:p-5">
+          <div
+            v-for="stat in monthlyStats"
+            :key="stat.key"
+            class="flex items-center gap-3 rounded-lg border border-slate-100 bg-white/90 px-4 py-3 shadow-sm"
+          >
+            <span
+              class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
+              :class="toneClass[stat.tone]"
+            >
+              <AppIcon
+                :name="stat.icon"
+                :size="16"
+              />
+            </span>
+            <div class="min-w-0">
+              <p class="text-[11px] font-medium text-slate-500">
+                {{ stat.label }}
+              </p>
+              <p
+                class="text-sm font-semibold tabular-nums"
+                :class="stat.highlight ? 'text-brand' : 'text-slate-800'"
+              >
+                {{ stat.value }}
+              </p>
+              <p
+                v-if="stat.sub"
+                class="text-[11px] text-slate-400"
+              >
+                {{ stat.sub }}
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- Tháng hiện tại -->
-      <section class="card overflow-hidden">
-        <div class="border-b border-slate-100 bg-slate-50/80 px-6 py-4">
-          <h2 class="font-display text-sm font-semibold text-slate-800">
-            Thống kê tháng {{ month }}
-          </h2>
-          <p class="mt-0.5 text-xs text-slate-500">
-            Chỉ số vận hành và doanh thu trong kỳ hiện tại.
-          </p>
+      <div class="grid gap-6 lg:grid-cols-2">
+        <!-- Biểu đồ doanh thu -->
+        <div class="card p-5 lg:col-span-1">
+          <div class="mb-4">
+            <h3 class="font-display text-sm font-semibold text-slate-800">
+              Doanh thu — 12 tháng
+            </h3>
+            <p class="text-xs text-slate-500">
+              Di chuột hoặc chạm để xem chi tiết từng tháng.
+            </p>
+          </div>
+          <div class="h-[min(20rem,45vh)] min-h-[220px]">
+            <Line
+              :data="chartData"
+              :options="revenueChartOptions"
+            />
+          </div>
         </div>
-        <dl class="grid gap-px bg-slate-100 sm:grid-cols-2 lg:grid-cols-3">
-          <div
-            v-for="stat in monthlyStats"
-            :key="stat.label"
-            class="bg-white px-6 py-4"
-          >
-            <dt class="text-xs font-medium text-slate-500">
-              {{ stat.label }}
-            </dt>
-            <dd
-              class="mt-1 text-base font-semibold tabular-nums"
-              :class="stat.highlight ? 'text-brand' : 'text-slate-800'"
-            >
-              {{ stat.value }}
-            </dd>
-          </div>
-        </dl>
-      </section>
 
-      <!-- Biểu đồ -->
-      <section>
-        <h2 class="mb-4 font-display text-xs font-semibold uppercase tracking-wide text-slate-400">
-          Xu hướng 12 tháng
-        </h2>
-        <div class="grid gap-6 lg:grid-cols-2">
-          <div class="card p-6">
-            <div class="mb-4 flex items-start justify-between gap-2">
-              <div>
-                <h3 class="font-display text-sm font-semibold text-slate-800">
-                  Doanh thu
-                </h3>
-                <p class="text-xs text-slate-500">
-                  Di chuột hoặc chạm để xem chi tiết từng tháng.
-                </p>
-              </div>
-            </div>
-            <div class="h-[min(22rem,50vh)] min-h-[240px]">
-              <Line
-                :data="chartData"
-                :options="revenueChartOptions"
-              />
-            </div>
-          </div>
-          <div class="card p-6">
+        <!-- Biểu đồ giờ + tiến độ -->
+        <div class="flex flex-col gap-6">
+          <div class="card p-5">
             <div class="mb-4">
               <h3 class="font-display text-sm font-semibold text-slate-800">
-                Giờ giảng dạy
+                Giờ giảng dạy — 12 tháng
               </h3>
               <p class="text-xs text-slate-500">
                 Tổng giờ buổi học đã hoàn thành theo tháng.
               </p>
             </div>
-            <div class="h-[min(22rem,50vh)] min-h-[240px]">
+            <div class="h-[min(14rem,32vh)] min-h-[180px]">
               <Bar
                 :data="hoursChartData"
                 :options="hoursChartOptions"
               />
             </div>
           </div>
-        </div>
-      </section>
 
-      <!-- Tiến độ -->
-      <section
-        v-if="activeCourses.length"
-        class="card overflow-hidden"
-      >
-        <div class="border-b border-slate-100 bg-slate-50/80 px-6 py-4">
-          <h2 class="font-display text-sm font-semibold text-slate-800">
-            Tiến độ khóa đang học
-          </h2>
-        </div>
-        <ul class="divide-y divide-slate-100 px-6 py-2">
-          <li
-            v-for="c in activeCourses"
-            :key="c.id"
-            class="py-4"
+          <section
+            v-if="activeCourses.length"
+            class="card flex-1 overflow-hidden"
           >
-            <div class="flex flex-wrap items-center justify-between gap-2 text-sm">
-              <Link
-                :href="route('coaching.courses.show', { course: c.id })"
-                class="font-medium text-brand hover:underline"
+            <div class="border-b border-slate-100 bg-slate-50/80 px-5 py-3">
+              <h3 class="font-display text-sm font-semibold text-slate-800">
+                Tiến độ khóa đang học
+              </h3>
+            </div>
+            <ul class="divide-y divide-slate-100 px-5">
+              <li
+                v-for="c in activeCourses"
+                :key="c.id"
+                class="py-3.5"
               >
-                <span class="font-mono text-xs text-slate-400">{{ c.code }}</span>
-                {{ c.name }}
-              </Link>
-              <span class="font-semibold tabular-nums text-slate-700">{{ c.progress_percent }}%</span>
-            </div>
-            <div class="mt-2 h-2.5 overflow-hidden rounded-full bg-slate-100">
-              <div
-                class="h-full rounded-full bg-brand transition-all"
-                :style="{ width: `${c.progress_percent}%` }"
+                <div class="flex flex-wrap items-center justify-between gap-2 text-sm">
+                  <Link
+                    :href="route('coaching.courses.show', { course: c.id })"
+                    class="min-w-0 font-medium text-brand hover:underline"
+                  >
+                    <span class="mr-1.5 font-mono text-[10px] text-slate-400">{{ c.code }}</span>
+                    {{ c.name }}
+                  </Link>
+                  <span class="shrink-0 rounded-full bg-brand/10 px-2 py-0.5 text-xs font-semibold tabular-nums text-brand">
+                    {{ c.progress_percent }}%
+                  </span>
+                </div>
+                <div class="mt-2 h-2 overflow-hidden rounded-full bg-slate-100">
+                  <div
+                    class="h-full rounded-full bg-brand transition-all"
+                    :style="{ width: `${c.progress_percent}%` }"
+                  />
+                </div>
+              </li>
+            </ul>
+          </section>
+          <div
+            v-else
+            class="card flex flex-1 flex-col items-center justify-center gap-2 p-8 text-center"
+          >
+            <span class="inline-flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+              <AppIcon
+                name="rocket"
+                :size="24"
               />
-            </div>
-          </li>
-        </ul>
-      </section>
+            </span>
+            <p class="text-sm font-medium text-slate-600">
+              Chưa có khóa đang diễn ra
+            </p>
+            <p class="text-xs text-slate-400">
+              Tạo khóa mới hoặc đổi trạng thái khóa sang «Đang học».
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   </AppLayout>
 </template>

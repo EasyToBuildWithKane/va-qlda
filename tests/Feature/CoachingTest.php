@@ -67,6 +67,22 @@ class CoachingTest extends TestCase
                 ->where('course.id', $course->id));
     }
 
+    public function test_coaching_dashboard_counts_student_by_free_text_name(): void
+    {
+        CoachingCourse::create([
+            'name' => 'Khóa tên HV',
+            'status' => CoachingCourseStatus::Active,
+            'student_name' => 'Nguyễn Văn A',
+        ]);
+
+        $this->actingAs($this->admin())
+            ->get(route('coaching.dashboard'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Coaching/Dashboard')
+                ->where('summary.students_distinct', 1));
+    }
+
     public function test_viewer_cannot_access_coaching_dashboard(): void
     {
         $viewer = SystemAccount::factory()->role(SystemRole::Viewer)->create();

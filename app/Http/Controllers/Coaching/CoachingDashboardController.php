@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\CoachingCourse;
 use App\Models\CoachingSession;
 use App\Support\Coaching\CoachingFinancialSummary;
+use App\Support\Coaching\CoachingStudentMetrics;
 use App\Support\Enums\CoachingCourseStatus;
 use App\Support\Enums\CoachingSessionStatus;
 use Illuminate\Http\Request;
@@ -38,7 +39,7 @@ class CoachingDashboardController extends Controller
             'summary' => [
                 'courses_total' => CoachingCourse::count(),
                 'courses_active' => CoachingCourse::where('status', CoachingCourseStatus::Active->value)->count(),
-                'students_distinct' => CoachingCourse::query()->distinct('student_id')->count('student_id'),
+                'students_distinct' => CoachingStudentMetrics::countDistinctInDatabase(),
                 'sessions_total' => CoachingSession::count(),
                 'hours_total' => (float) CoachingSession::where('status', CoachingSessionStatus::Completed->value)->sum('total_hours'),
             ],

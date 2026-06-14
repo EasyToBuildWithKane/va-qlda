@@ -125,39 +125,39 @@ function submit() {
     :show="show"
     :dirty="form.isDirty"
     :title="isEdit ? 'Sửa khóa học' : 'Thêm khóa học mới'"
-    max-width="max-w-2xl"
+    max-width="max-w-4xl"
     :on-save-draft="saveDraftOnClose"
     close-confirm-title="Đóng form?"
     :close-confirm-message="isEdit ? 'Thay đổi chưa lưu sẽ bị mất.' : 'Thông tin khóa học chưa lưu sẽ bị mất.'"
     @close="emit('close')"
   >
     <form
-      class="flex max-h-[min(70vh,36rem)] flex-col"
+      class="flex flex-col"
       @submit.prevent="submit"
     >
-      <div class="min-h-0 flex-1 space-y-5 overflow-y-auto pr-1">
-        <div>
-          <ProposalFormLabel
-            label="Tên khóa học"
-            required
-            :tooltip="H.name"
-          />
-          <input
-            v-model="form.name"
-            type="text"
-            class="input w-full"
-            :placeholder="P.name"
-            required
-          >
-          <p
-            v-if="form.errors.name"
-            class="mt-1 text-xs text-danger"
-          >
-            {{ form.errors.name }}
-          </p>
-        </div>
+      <div class="space-y-5">
+        <div class="grid gap-5 lg:grid-cols-2">
+          <div class="lg:col-span-2">
+            <ProposalFormLabel
+              label="Tên khóa học"
+              required
+              :tooltip="H.name"
+            />
+            <input
+              v-model="form.name"
+              type="text"
+              class="input w-full"
+              :placeholder="P.name"
+              required
+            >
+            <p
+              v-if="form.errors.name"
+              class="mt-1 text-xs text-danger"
+            >
+              {{ form.errors.name }}
+            </p>
+          </div>
 
-        <div class="grid gap-4 sm:grid-cols-2">
           <div>
             <ProposalFormLabel
               label="Học viên"
@@ -184,9 +184,7 @@ function submit() {
               autocomplete="name"
             >
           </div>
-        </div>
 
-        <div class="grid gap-4 sm:grid-cols-2">
           <div>
             <ProposalFormLabel
               label="Ngày bắt đầu"
@@ -209,86 +207,84 @@ function submit() {
               class="input w-full"
             >
           </div>
-        </div>
 
-        <div class="grid gap-4 sm:grid-cols-3">
-          <div class="rounded-card border border-brand/15 bg-brand/5 p-3 sm:col-span-1">
+          <div class="lg:col-span-2">
             <ProposalFormLabel
-              label="Học phí (VNĐ)"
-              :tooltip="H.total_fee"
+              label="Trạng thái"
+              :tooltip="H.status"
             />
-            <MoneyInput
-              v-model="form.total_fee"
-              :placeholder="P.total_fee"
-              words-class="mt-1 text-[10px] font-medium italic text-brand"
-            />
-          </div>
-          <div>
-            <ProposalFormLabel
-              label="Đơn giá / giờ"
-              :tooltip="H.hourly_rate"
-            />
-            <MoneyInput
-              v-model="form.hourly_rate"
-              :placeholder="P.hourly_rate"
-              words-class="mt-1 text-[10px] font-medium italic text-brand"
-            />
-          </div>
-          <div>
-            <ProposalFormLabel
-              label="Tổng giờ"
-              :tooltip="H.total_hours"
-            />
-            <DecimalHoursInput
-              v-model="form.total_hours"
-              :placeholder="P.total_hours"
-            />
-          </div>
-        </div>
-
-        <div>
-          <ProposalFormLabel
-            label="Trạng thái"
-            :tooltip="H.status"
-          />
-          <select
-            v-model="form.status"
-            class="input w-full"
-          >
-            <option
-              v-for="s in statuses"
-              :key="s.value"
-              :value="s.value"
+            <select
+              v-model="form.status"
+              class="input w-full max-w-xs"
             >
-              {{ s.label }}
-            </option>
-          </select>
-        </div>
+              <option
+                v-for="s in statuses"
+                :key="s.value"
+                :value="s.value"
+              >
+                {{ s.label }}
+              </option>
+            </select>
+          </div>
+          <div class="grid gap-4 sm:grid-cols-3 lg:col-span-2">
+            <div class="rounded-card border border-brand/15 bg-brand/5 p-3 sm:col-span-1">
+              <ProposalFormLabel
+                label="Học phí (VNĐ)"
+                :tooltip="H.total_fee"
+              />
+              <MoneyInput
+                v-model="form.total_fee"
+                :placeholder="P.total_fee"
+                words-class="mt-1 text-[10px] font-medium italic text-brand"
+              />
+            </div>
+            <div>
+              <ProposalFormLabel
+                label="Đơn giá / giờ"
+                :tooltip="H.hourly_rate"
+              />
+              <MoneyInput
+                v-model="form.hourly_rate"
+                :placeholder="P.hourly_rate"
+                words-class="mt-1 text-[10px] font-medium italic text-brand"
+              />
+            </div>
+            <div>
+              <ProposalFormLabel
+                label="Tổng giờ"
+                :tooltip="H.total_hours"
+              />
+              <DecimalHoursInput
+                v-model="form.total_hours"
+                :placeholder="P.total_hours"
+              />
+            </div>
+          </div>
 
-        <div>
-          <ProposalFormLabel
-            label="Mô tả"
-            :tooltip="H.description"
-          />
-          <textarea
-            v-model="form.description"
-            class="input w-full"
-            rows="2"
-            :placeholder="P.description"
-          />
-        </div>
-
-        <div>
-          <ProposalFormLabel
-            label="Mục tiêu"
-            :tooltip="H.objectives"
-          />
-          <textarea
-            v-model="form.objectives"
-            class="input w-full font-mono text-sm"
-            rows="2"
-            :placeholder="P.objectives"
-          />
+          <div>
+            <ProposalFormLabel
+              label="Mô tả"
+              :tooltip="H.description"
+            />
+            <textarea
+              v-model="form.description"
+              class="input w-full"
+              rows="3"
+              :placeholder="P.description"
+            />
+          </div>
+          <div>
+            <ProposalFormLabel
+              label="Mục tiêu"
+              :tooltip="H.objectives"
+            />
+            <textarea
+              v-model="form.objectives"
+              class="input w-full font-mono text-sm"
+              rows="3"
+              :placeholder="P.objectives"
+            />
+          </div>
         </div>
       </div>
 
