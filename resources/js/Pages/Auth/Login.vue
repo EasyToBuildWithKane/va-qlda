@@ -75,7 +75,7 @@ watch(
         <div class="mt-8 flex flex-col items-center gap-3">
           <a
             :href="googleEnabled ? googleAuthUrl : '#'"
-            class="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white p-3 shadow-md transition focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2"
+            class="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white p-2 shadow-md transition outline-none ring-0 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 active:outline-none"
             :class="googleEnabled ? 'hover:shadow-lg' : 'cursor-not-allowed opacity-80'"
             aria-label="Đăng nhập bằng Google"
             @click="onGoogleClick"
@@ -83,9 +83,9 @@ watch(
             <img
               src="/images/google.png"
               alt=""
-              class="block h-12 w-12 sm:h-14 sm:w-14"
-              width="56"
-              height="56"
+              class="block h-9 w-9 sm:h-10 sm:w-10"
+              width="40"
+              height="40"
               loading="eager"
               decoding="async"
             >

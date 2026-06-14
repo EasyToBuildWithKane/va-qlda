@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, watch, toRef } from 'vue';
-import { Head, router, usePage } from '@inertiajs/vue3';
+import { Head, router, usePage, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
@@ -180,6 +180,18 @@ const completedTasks = computed(() => props.tasks.filter((t) => t.status.value =
 const openBlockerCount = computed(() => props.blockers.filter((b) => !['resolved', 'closed'].includes(b.status?.value)).length);
 const openFeedbackCount = computed(() => props.feedbackSummary?.open ?? 0);
 const canFeedbackCreate = computed(() => props.can?.feedbackCreate ?? false);
+const feedbackListHref = computed(() => `/feedback?project_id=${pid}`);
+
+const blockersTableRef = ref(null);
+const feedbackPanelRef = ref(null);
+
+function openBlockerCreate() {
+    blockersTableRef.value?.openCreate?.();
+}
+
+function openFeedbackCreate() {
+    feedbackPanelRef.value?.openCreate?.();
+}
 
 // ---- Dashboard (overview tab) ----
 const riskPanelRef = ref(null);
@@ -297,7 +309,48 @@ const onSprintSaved = () => {
         icon="all-projects"
         :icon-color="projectIconColor"
         back-href="/projects"
-      />
+      >
+        <div
+          v-if="tab === 'blockers' || tab === 'feedback'"
+          class="flex shrink-0 flex-wrap items-center justify-end gap-2"
+        >
+          <Link
+            v-if="tab === 'feedback'"
+            :href="feedbackListHref"
+            class="inline-flex h-9 items-center gap-1.5 rounded-btn border border-slate-200 bg-white px-3 text-xs font-medium text-slate-600 hover:border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300"
+          >
+            <AppIcon
+              name="export"
+              :size="14"
+            />
+            Mở danh sách đầy đủ
+          </Link>
+          <button
+            v-if="tab === 'blockers' && canManage"
+            type="button"
+            class="btn-primary inline-flex h-9 items-center gap-1.5 px-3 text-xs font-semibold"
+            @click="openBlockerCreate"
+          >
+            <AppIcon
+              name="add"
+              :size="15"
+            />
+            Thêm rủi ro
+          </button>
+          <button
+            v-if="tab === 'feedback' && canFeedbackCreate"
+            type="button"
+            class="btn-primary inline-flex h-9 items-center gap-1.5 px-3 text-xs font-semibold"
+            @click="openFeedbackCreate"
+          >
+            <AppIcon
+              name="add"
+              :size="15"
+            />
+            Ghi phản hồi
+          </button>
+        </div>
+      </PageHeader>
     </template>
 
     <!-- Full-height flex column -->
@@ -574,6 +627,8 @@ const onSprintSaved = () => {
         >
           <div class="w-full min-w-0 p-4 sm:p-5 lg:p-6">
             <RiskIssueDataTable
+              ref="blockersTableRef"
+              layout="page"
               :project-id="project.id"
               :project-code="project.code"
               :project-name="project.name"
@@ -595,6 +650,7 @@ const onSprintSaved = () => {
         >
           <div class="flex min-h-0 w-full min-w-0 flex-1 flex-col p-4 sm:p-5 lg:p-6">
             <ProjectFeedbackPanel
+              ref="feedbackPanelRef"
               class="min-h-0 flex-1"
               :project-id="project.id"
               :project-code="project.code"

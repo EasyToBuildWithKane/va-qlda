@@ -21,15 +21,18 @@ import {
     RISK_STATUS_TEXT,
 } from '@/composables/useRiskTable';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
+import DatagridToolbarActionButton from '@/shared/ui/DatagridToolbarActionButton.vue';
+import DatagridFilterField from '@/shared/ui/DatagridFilterField.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
 
 const RISK_FILTER_CONTROLS_DEF = [
-    { key: 'status', label: 'Trạng thái', default: true },
-    { key: 'severity', label: 'Mức độ', default: true },
-    { key: 'owner', label: 'Người phụ trách', default: true },
+    { key: 'status', label: 'Trạng thái', default: false },
+    { key: 'severity', label: 'Mức độ', default: false },
+    { key: 'owner', label: 'Người phụ trách', default: false },
 ];
-const VISIBLE_FILTERS_KEY = 'va-qlda.project-risks.visible-filters';
+const VISIBLE_FILTERS_KEY = 'va-qlda.project-risks.visible-filters.v2';
+const FILTER_CONTROL_CLASS = 'input h-10 w-full text-sm dark:border-slate-600 dark:bg-slate-800';
 
 const TERMINAL_STATUS = new Set(['resolved', 'closed']);
 
@@ -44,6 +47,8 @@ const props = defineProps({
     canManage: { type: Boolean, default: false },
     canContribute: { type: Boolean, default: false },
     loading: { type: Boolean, default: false },
+    /** `page` = tab Vướng mắc (ẩn tiêu đề, nút tạo ở PageHeader) */
+    layout: { type: String, default: 'panel' },
 });
 
 const canEditRow = (row) => props.canManage || row.can?.update;
@@ -294,12 +299,12 @@ const onDocClick = (e) => {
 };
 
 onMounted(() => {
-    document.addEventListener('click', onDocClick);
+    document.addEventListener('mousedown', onDocClick);
     window.addEventListener('resize', onColumnsReposition);
     window.addEventListener('scroll', onColumnsReposition, true);
 });
 onUnmounted(() => {
-    document.removeEventListener('click', onDocClick);
+    document.removeEventListener('mousedown', onDocClick);
     window.removeEventListener('resize', onColumnsReposition);
     window.removeEventListener('scroll', onColumnsReposition, true);
 });
@@ -338,7 +343,9 @@ const truncate = (text, max = 48) => {
     return text.length > max ? `${text.slice(0, max)}…` : text;
 };
 
-defineExpose({ scrollHere });
+const openImport = () => { importModalOpen.value = true; };
+
+defineExpose({ scrollHere, openCreate, openImport });
 </script>
 
 <template>
@@ -348,8 +355,11 @@ defineExpose({ scrollHere });
     :class="highlight ? 'ring-brand/30' : 'ring-transparent'"
   >
     <!-- Header + toolbar -->
-    <div class="border-b border-slate-100 px-4 py-3 dark:border-slate-800">
-      <div class="flex flex-wrap items-center justify-between gap-3">
+    <div class="border-b border-slate-100 px-4 py-3 dark:border-slate-800 sm:px-5 sm:py-4">
+      <div
+        v-if="layout !== 'page'"
+        class="mb-3 flex flex-wrap items-center justify-between gap-3"
+      >
         <div>
           <h2 class="font-display text-base font-bold text-slate-900 dark:text-slate-50">
             Rủi ro & Vướng mắc
@@ -360,242 +370,253 @@ defineExpose({ scrollHere });
         </div>
       </div>
 
-      <div class="mt-3 flex min-w-0 flex-wrap items-center gap-2 sm:flex-nowrap">
-        <DatagridToolbarSearch
-          v-model="search"
-          compact
-          input-id="risk-issue-search"
-          placeholder="Mã, tiêu đề, mô tả…"
-        />
-        <div
-          ref="filterPanelDdRef"
-          class="relative shrink-0"
-        >
-          <button
-            type="button"
-            class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none dark:border-slate-600 dark:bg-slate-900"
-            :class="showFilterPanelDd
-              ? 'border-brand/40 bg-brand/5 text-brand'
-              : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800 dark:text-slate-300'"
-            :title="`Bộ lọc (${enabledFilterControlCount}/${FILTER_CONTROLS.length} đang hiển thị)`"
-            aria-label="Hiển thị bộ lọc trên thanh công cụ"
-            @click.stop="openRiskFilterPanel"
-          >
-            <AppIcon
-              name="filter"
-              :size="15"
-            />
-            <span>Lọc</span>
-          </button>
-          <FilterVisibilityDropdown
-            v-model="visibleFilters"
-            :show="showFilterPanelDd"
-            :anchor-ref="filterPanelDdRef"
-            :controls="FILTER_CONTROLS"
-            @persist="persistVisibleFilters"
+      <div class="flex w-full min-w-0 flex-wrap items-center gap-2 lg:flex-nowrap">
+        <div class="min-w-0 w-full basis-full lg:min-w-[10rem] lg:flex-1 lg:basis-auto">
+          <DatagridToolbarSearch
+            v-model="search"
+            input-id="risk-issue-search"
+            placeholder="Mã, tiêu đề, mô tả…"
+            stretch
+            inline-actions
+            hide-label
+            input-height="h-10"
           />
         </div>
-        <div class="relative shrink-0">
-          <button
+
+        <div class="flex shrink-0 flex-wrap items-center gap-2">
+          <div
+            ref="filterPanelDdRef"
+            class="relative shrink-0"
+          >
+            <DatagridToolbarActionButton
+              icon="filter"
+              :active="showFilterPanelDd"
+              :title="`Hiển thị bộ lọc (${enabledFilterControlCount}/${FILTER_CONTROLS.length})`"
+              @click.stop="openRiskFilterPanel"
+            >
+              Lọc
+            </DatagridToolbarActionButton>
+            <FilterVisibilityDropdown
+              v-model="visibleFilters"
+              :show="showFilterPanelDd"
+              :anchor-ref="filterPanelDdRef"
+              :controls="FILTER_CONTROLS"
+              @persist="persistVisibleFilters"
+            />
+          </div>
+
+          <div
             ref="columnsBtnRef"
-            type="button"
-            class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-800 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300"
-            :class="showColumns && 'border-brand/40 bg-brand/5 text-brand'"
-            title="Cột hiển thị"
-            aria-label="Cột hiển thị"
-            @click.stop="toggleColumnsMenu"
+            class="relative shrink-0"
           >
-            <AppIcon
-              name="columns"
-              :size="15"
-            />
-            <span>Cột</span>
-          </button>
-          <Teleport to="body">
-            <div
-              v-if="showColumns"
-              ref="columnsMenuRef"
-              class="fixed z-[200] w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-elevation-2 dark:border-slate-600 dark:bg-slate-900"
-              :style="columnsMenuStyle"
-              @click.stop
+            <DatagridToolbarActionButton
+              icon="columns"
+              :active="showColumns"
+              title="Cột hiển thị"
+              @click.stop="toggleColumnsMenu"
             >
-              <p class="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                Cột hiển thị
-              </p>
-              <p class="px-2 pb-1 text-[10px] text-slate-400">
-                Cột «Vướng mắc» luôn hiển thị
-              </p>
-              <label
-                v-for="c in RISK_TABLE_COLUMNS"
-                :key="c.key"
-                class="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
+              Cột
+            </DatagridToolbarActionButton>
+            <Teleport to="body">
+              <div
+                v-if="showColumns"
+                ref="columnsMenuRef"
+                class="fixed z-[200] w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-elevation-2 dark:border-slate-600 dark:bg-slate-900"
+                :style="columnsMenuStyle"
+                @click.stop
               >
-                <input
-                  type="checkbox"
-                  class="rounded"
-                  :checked="colVisible(c.key)"
-                  :disabled="colVisible(c.key) && visibleColumns.length <= 1"
-                  @change="toggleColumn(c.key)"
+                <p class="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                  Cột hiển thị
+                </p>
+                <p class="px-2 pb-1 text-[10px] text-slate-400">
+                  Cột «Vướng mắc» luôn hiển thị
+                </p>
+                <label
+                  v-for="c in RISK_TABLE_COLUMNS"
+                  :key="c.key"
+                  class="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
                 >
-                {{ c.label }}
-              </label>
-            </div>
-          </Teleport>
-        </div>
-        <button
-          v-if="canManage"
-          type="button"
-          class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-800 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300"
-          @click="importModalOpen = true"
-        >
-          <AppIcon
-            name="upload"
-            :size="15"
-          />
-          <span>Nhập</span>
-        </button>
-        <div class="relative shrink-0">
-          <button
+                  <input
+                    type="checkbox"
+                    class="rounded border-slate-300 text-brand focus:ring-brand/30"
+                    :checked="colVisible(c.key)"
+                    :disabled="colVisible(c.key) && visibleColumns.length <= 1"
+                    @change="toggleColumn(c.key)"
+                  >
+                  {{ c.label }}
+                </label>
+              </div>
+            </Teleport>
+          </div>
+
+          <DatagridToolbarActionButton
+            v-if="canManage"
+            icon="upload"
+            title="Nhập từ Excel"
+            @click="importModalOpen = true"
+          >
+            Nhập
+          </DatagridToolbarActionButton>
+
+          <div
             ref="exportBtnRef"
+            class="relative shrink-0"
+          >
+            <DatagridToolbarActionButton
+              icon="export"
+              :active="showExportMenu"
+              :disabled="!table.filtered.value.length"
+              title="Xuất CSV hoặc Excel"
+              @click.stop="toggleExportMenu"
+            >
+              Xuất
+            </DatagridToolbarActionButton>
+            <Teleport to="body">
+              <div
+                v-if="showExportMenu"
+                ref="exportMenuRef"
+                class="fixed z-[200] w-[12.5rem] overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-elevation-2 dark:border-slate-600 dark:bg-slate-900"
+                :style="exportMenuStyle"
+                @click.stop
+              >
+                <p class="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                  Định dạng
+                </p>
+                <button
+                  type="button"
+                  class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                  @click="runExport('xlsx')"
+                >
+                  <AppIcon
+                    name="export"
+                    :size="15"
+                    class="text-emerald-600"
+                  />
+                  <span>
+                    <span class="font-medium">Excel</span>
+                    <span class="block text-[10px] text-slate-400">.xlsx · có định dạng</span>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                  @click="runExport('csv')"
+                >
+                  <AppIcon
+                    name="download"
+                    :size="15"
+                    class="text-sky-600"
+                  />
+                  <span>
+                    <span class="font-medium">CSV</span>
+                    <span class="block text-[10px] text-slate-400">.csv · mở bằng Excel</span>
+                  </span>
+                </button>
+              </div>
+            </Teleport>
+          </div>
+
+          <button
+            v-if="canManage && layout !== 'page'"
             type="button"
-            class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-800 disabled:opacity-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300"
-            :class="showExportMenu && 'border-brand/40 bg-brand/5 text-brand'"
-            :disabled="!table.filtered.value.length"
-            title="Xuất CSV hoặc Excel"
-            aria-label="Xuất dữ liệu"
-            @click.stop="toggleExportMenu"
+            class="btn-primary inline-flex h-10 shrink-0 items-center gap-1.5 px-4 text-sm"
+            @click="openCreate"
           >
             <AppIcon
-              name="export"
+              name="add"
               :size="15"
             />
-            <span>Xuất</span>
+            Thêm rủi ro
           </button>
-          <Teleport to="body">
-            <div
-              v-if="showExportMenu"
-              ref="exportMenuRef"
-              class="fixed z-[200] w-[12.5rem] overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-elevation-2 dark:border-slate-600 dark:bg-slate-900"
-              :style="exportMenuStyle"
-              @click.stop
-            >
-              <p class="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                Định dạng
-              </p>
-              <button
-                type="button"
-                class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
-                @click="runExport('xlsx')"
-              >
-                <AppIcon
-                  name="export"
-                  :size="15"
-                  class="text-emerald-600"
-                />
-                <span>
-                  <span class="font-medium">Excel</span>
-                  <span class="block text-[10px] text-slate-400">.xlsx · có định dạng</span>
-                </span>
-              </button>
-              <button
-                type="button"
-                class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
-                @click="runExport('csv')"
-              >
-                <AppIcon
-                  name="download"
-                  :size="15"
-                  class="text-sky-600"
-                />
-                <span>
-                  <span class="font-medium">CSV</span>
-                  <span class="block text-[10px] text-slate-400">.csv · mở bằng Excel</span>
-                </span>
-              </button>
-            </div>
-          </Teleport>
         </div>
-        <button
-          v-if="canManage"
-          type="button"
-          class="btn-primary h-9 shrink-0 gap-1.5 px-4 text-sm"
-          @click="openCreate"
-        >
-          <AppIcon
-            name="add"
-            :size="15"
-          />
-          Thêm rủi ro
-        </button>
       </div>
 
-      <div
-        v-if="hasFilterRow"
-        class="mt-2.5 flex flex-wrap items-center gap-2 border-t border-slate-50 pt-2.5 dark:border-slate-800"
+      <Transition name="fade-slide">
+        <div
+          v-if="hasFilterRow"
+          class="grid grid-cols-1 gap-3 border-t border-slate-100 px-0 pt-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 dark:border-slate-800"
+        >
+          <DatagridFilterField v-if="visibleFilters.status">
+            <select
+              v-model="filterStatus"
+              :class="FILTER_CONTROL_CLASS"
+              aria-label="Trạng thái"
+            >
+              <option value="all">
+                Trạng thái
+              </option>
+              <option
+                v-for="o in statusOptions"
+                :key="o.value"
+                :value="o.value"
+              >
+                {{ o.label }}
+              </option>
+            </select>
+          </DatagridFilterField>
+
+          <DatagridFilterField v-if="visibleFilters.severity">
+            <select
+              v-model="filterSeverity"
+              :class="FILTER_CONTROL_CLASS"
+              aria-label="Mức độ"
+            >
+              <option value="all">
+                Mức độ
+              </option>
+              <option
+                v-for="o in severityOptions"
+                :key="o.value"
+                :value="o.value"
+              >
+                {{ o.label }}
+              </option>
+            </select>
+          </DatagridFilterField>
+
+          <DatagridFilterField v-if="visibleFilters.owner">
+            <select
+              v-model="filterOwner"
+              :class="FILTER_CONTROL_CLASS"
+              aria-label="Người phụ trách"
+            >
+              <option value="all">
+                Người phụ trách
+              </option>
+              <option value="none">
+                Chưa giao
+              </option>
+              <option
+                v-for="o in table.ownerOptions.value"
+                :key="o.id"
+                :value="String(o.id)"
+              >
+                {{ o.name }}
+              </option>
+            </select>
+          </DatagridFilterField>
+
+          <div
+            v-if="search || filterStatus !== 'all' || filterSeverity !== 'all' || filterOwner !== 'all'"
+            class="col-span-full flex justify-end"
+          >
+            <button
+              type="button"
+              class="text-xs font-medium text-brand"
+              @click="table.resetFilters()"
+            >
+              Đặt lại bộ lọc
+            </button>
+          </div>
+        </div>
+      </Transition>
+
+      <p
+        v-if="layout === 'page'"
+        class="mt-2 text-xs text-slate-500 dark:text-slate-400"
       >
-        <select
-          v-if="visibleFilters.status"
-          v-model="filterStatus"
-          class="input h-9 w-[min(100%,11rem)] shrink-0 text-sm dark:border-slate-600 dark:bg-slate-800 sm:w-44"
-          aria-label="Lọc theo trạng thái"
-        >
-          <option value="all">
-            Trạng thái: Tất cả
-          </option>
-          <option
-            v-for="o in statusOptions"
-            :key="o.value"
-            :value="o.value"
-          >
-            {{ o.label }}
-          </option>
-        </select>
-        <select
-          v-if="visibleFilters.severity"
-          v-model="filterSeverity"
-          class="input h-9 w-[min(100%,11rem)] shrink-0 text-sm dark:border-slate-600 dark:bg-slate-800 sm:w-44"
-          aria-label="Lọc theo mức độ"
-        >
-          <option value="all">
-            Mức độ: Tất cả
-          </option>
-          <option
-            v-for="o in severityOptions"
-            :key="o.value"
-            :value="o.value"
-          >
-            {{ o.label }}
-          </option>
-        </select>
-        <select
-          v-if="visibleFilters.owner"
-          v-model="filterOwner"
-          class="input h-9 w-[min(100%,12rem)] shrink-0 text-sm dark:border-slate-600 dark:bg-slate-800 sm:w-52"
-          aria-label="Lọc theo người phụ trách"
-        >
-          <option value="all">
-            Người phụ trách: Tất cả
-          </option>
-          <option value="none">
-            Chưa giao
-          </option>
-          <option
-            v-for="o in table.ownerOptions.value"
-            :key="o.id"
-            :value="String(o.id)"
-          >
-            {{ o.name }}
-          </option>
-        </select>
-        <button
-          v-if="search || filterStatus !== 'all' || filterSeverity !== 'all' || filterOwner !== 'all'"
-          type="button"
-          class="btn-ghost h-9 text-xs text-slate-500"
-          @click="table.resetFilters()"
-        >
-          Xoá bộ lọc
-        </button>
-      </div>
+        {{ listSummary }}
+      </p>
     </div>
 
     <!-- Table -->

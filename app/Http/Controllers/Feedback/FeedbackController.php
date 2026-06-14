@@ -31,6 +31,11 @@ class FeedbackController extends Controller
             ->withCount('comments')
             ->latest();
 
+        if ($scope = $request->query('scope')) {
+            if ($scope === 'open') {
+                $query->open();
+            }
+        }
         if ($status = $request->query('status')) {
             $query->where('status', $status);
         }
@@ -49,11 +54,15 @@ class FeedbackController extends Controller
                 ->orWhere('code', 'like', "%{$search}%"));
         }
 
+        $perPage = min(max((int) $request->query('per_page', 20), 5), 50);
+
         return Inertia::render('Feedback/Index', [
-            'feedback' => FeedbackResource::collection($query->paginate(20)->withQueryString()),
-            'filters' => (object) $request->only(['status', 'category', 'project_id', 'mine', 'q']),
+            'feedback' => FeedbackResource::collection($query->paginate($perPage)->withQueryString()),
+            'filters' => (object) $request->only(['status', 'category', 'project_id', 'mine', 'q', 'scope', 'per_page']),
             'summary' => [
+                'total' => Feedback::count(),
                 'open' => Feedback::open()->count(),
+                'new' => Feedback::where('status', FeedbackStatus::New->value)->count(),
                 'resolved' => Feedback::where('status', FeedbackStatus::Resolved->value)->count(),
                 'avg_rating' => round((float) Feedback::whereNotNull('rating')->avg('rating'), 1),
             ],

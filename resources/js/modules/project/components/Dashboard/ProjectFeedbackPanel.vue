@@ -1,16 +1,19 @@
 <script setup>
 import { reactive, ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
-import AppIcon from '@/Components/AppIcon.vue';
 import Badge from '@/shared/ui/Badge.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
 import FeedbackFormModal from '@/modules/project/components/FeedbackFormModal.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
+import DatagridToolbarActionButton from '@/shared/ui/DatagridToolbarActionButton.vue';
+import DatagridFilterField from '@/shared/ui/DatagridFilterField.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import ColumnVisibilityDropdown from '@/shared/ui/ColumnVisibilityDropdown.vue';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
 import { useVisibleColumns } from '@/shared/composables/useVisibleColumns';
 import { date, datetime } from '@/composables/useFormat';
+
+const FILTER_CONTROL_CLASS = 'input h-10 w-full text-sm';
 
 const props = defineProps({
     projectId: { type: Number, required: true },
@@ -60,7 +63,7 @@ const {
     persistVisibleFilters,
     openFilterPanel,
     FILTER_CONTROLS: filterControls,
-} = useVisibleFilterControls(FILTER_CONTROLS, 'va-qlda.project-feedback.visible-filters.v2');
+} = useVisibleFilterControls(FILTER_CONTROLS, 'va-qlda.project-feedback.visible-filters.v3');
 
 const {
     visibleCols,
@@ -155,106 +158,48 @@ function onToolbarClickOutside(e) {
 onMounted(() => document.addEventListener('mousedown', onToolbarClickOutside));
 onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOutside));
 
-const fullListHref = computed(() => `/feedback?project_id=${props.projectId}`);
-
 function onSaved() {
     modal.value = false;
     router.reload({ only: ['feedbacks', 'feedbackSummary'], preserveScroll: true });
 }
+
+function openCreate() {
+    modal.value = true;
+}
+
+defineExpose({ openCreate });
 </script>
 
 <template>
-  <div class="flex h-full min-h-0 w-full min-w-0 flex-col gap-4">
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <h2 class="font-display text-lg font-semibold text-slate-800">
-          Phản hồi dự án
-        </h2>
-        <p class="mt-0.5 text-sm text-slate-500">
-          Cùng nguồn dữ liệu với
-          <Link
-            :href="fullListHref"
-            class="font-medium text-brand hover:underline"
-          >
-            trang Phản hồi
-          </Link>
-          — đã lọc theo dự án này.
-        </p>
-      </div>
-      <Link
-        :href="fullListHref"
-        class="inline-flex h-9 items-center gap-1.5 rounded-btn border border-slate-200 bg-white px-3 text-xs font-medium text-slate-600 hover:border-slate-300"
-      >
-        <AppIcon
-          name="export"
-          :size="14"
-        />
-        Mở danh sách đầy đủ
-      </Link>
-    </div>
+  <div class="flex h-full min-h-0 w-full min-w-0 flex-col">
+    <div class="card flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div class="shrink-0 overflow-visible border-b border-slate-100 px-5 py-4 dark:border-slate-700">
+        <div class="flex w-full min-w-0 flex-wrap items-center gap-2 lg:flex-nowrap">
+          <div class="min-w-0 w-full basis-full lg:min-w-[10rem] lg:flex-1 lg:basis-auto">
+            <DatagridToolbarSearch
+              v-model="filterForm.q"
+              input-id="project-feedback-search"
+              placeholder="Mã, tiêu đề, nội dung…"
+              stretch
+              inline-actions
+              hide-label
+              input-height="h-10"
+            />
+          </div>
 
-    <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-      <div class="card p-4">
-        <p class="text-xs text-slate-500">
-          Đang xử lý
-        </p>
-        <p class="mt-1 font-display text-2xl font-bold text-sky-600">
-          {{ summary.open ?? 0 }}
-        </p>
-      </div>
-      <div class="card p-4">
-        <p class="text-xs text-slate-500">
-          Đã xử lý
-        </p>
-        <p class="mt-1 font-display text-2xl font-bold text-emerald-600">
-          {{ summary.resolved ?? 0 }}
-        </p>
-      </div>
-      <div class="card p-4">
-        <p class="text-xs text-slate-500">
-          Đánh giá TB
-        </p>
-        <p class="mt-1 font-display text-2xl font-bold text-amber-500">
-          {{ summary.avg_rating ?? '—' }}
-          <span
-            v-if="summary.avg_rating"
-            class="text-base"
-          >★</span>
-        </p>
-      </div>
-    </div>
-
-    <div class="card shrink-0 overflow-visible">
-      <div class="border-b border-slate-100 px-4 py-3 sm:px-5">
-        <div class="flex min-w-0 flex-wrap items-center gap-2">
-          <DatagridToolbarSearch
-            v-model="filterForm.q"
-            half
-            input-id="project-feedback-search"
-            placeholder="Mã, tiêu đề, nội dung…"
-          />
-          <div
-            class="flex shrink-0 flex-wrap items-center gap-2"
-          >
+          <div class="flex shrink-0 items-center gap-2">
             <div
               ref="filterPanelDdRef"
               class="relative shrink-0"
             >
-              <button
-                type="button"
-                class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition"
-                :class="showFilterPanelDd
-                  ? 'border-brand/40 bg-brand/5 text-brand'
-                  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'"
+              <DatagridToolbarActionButton
+                icon="filter"
+                :active="showFilterPanelDd"
                 :title="`Hiển thị bộ lọc (${enabledFilterControlCount}/${filterControls.length})`"
                 @click="openFilterPanel(() => { showColDd = false; })"
               >
-                <AppIcon
-                  name="filter"
-                  :size="15"
-                />
-                <span>Lọc</span>
-              </button>
+                Lọc
+              </DatagridToolbarActionButton>
               <FilterVisibilityDropdown
                 v-model="visibleFilters"
                 :show="showFilterPanelDd"
@@ -263,162 +208,162 @@ function onSaved() {
                 @persist="persistVisibleFilters"
               />
             </div>
+
             <div
               ref="colDdRef"
               class="relative shrink-0"
             >
-              <button
-                type="button"
-                class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition"
-                :class="showColDd
-                  ? 'border-brand/40 bg-brand/5 text-brand'
-                  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'"
+              <DatagridToolbarActionButton
+                icon="columns"
+                :active="showColDd"
                 title="Cột hiển thị"
                 @click="openColPanel(() => { showFilterPanelDd = false; })"
               >
-                <AppIcon
-                  name="columns"
-                  :size="15"
-                />
-                <span>Cột</span>
-              </button>
+                Cột
+              </DatagridToolbarActionButton>
               <ColumnVisibilityDropdown
                 v-model="visibleCols"
                 :show="showColDd"
                 :columns="TABLE_COLUMNS"
+                :anchor-ref="colDdRef"
                 @persist="persistVisibleColumns"
               />
             </div>
-            <button
-              v-if="canCreate"
-              type="button"
-              class="btn-primary inline-flex h-9 shrink-0 items-center gap-1.5 px-4 text-sm"
-              @click="modal = true"
-            >
-              <AppIcon
-                name="add"
-                :size="15"
-              />
-              Ghi phản hồi
-            </button>
           </div>
         </div>
+
+        <Transition name="fade-slide">
+          <div
+            v-if="hasFilterRow"
+            class="grid grid-cols-1 gap-3 border-t border-slate-100 px-0 pt-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 dark:border-slate-700"
+          >
+            <DatagridFilterField v-if="visibleFilters.status">
+              <select
+                v-model="filterForm.status"
+                :class="FILTER_CONTROL_CLASS"
+                aria-label="Trạng thái"
+              >
+                <option value="">
+                  Trạng thái
+                </option>
+                <option
+                  v-for="o in statusOptions"
+                  :key="o.value"
+                  :value="o.value"
+                >
+                  {{ o.label }}
+                </option>
+              </select>
+            </DatagridFilterField>
+
+            <DatagridFilterField v-if="visibleFilters.category">
+              <select
+                v-model="filterForm.category"
+                :class="FILTER_CONTROL_CLASS"
+                aria-label="Phân loại"
+              >
+                <option value="">
+                  Phân loại
+                </option>
+                <option
+                  v-for="o in categoryOptions"
+                  :key="o.value"
+                  :value="o.value"
+                >
+                  {{ o.label }}
+                </option>
+              </select>
+            </DatagridFilterField>
+
+            <DatagridFilterField v-if="visibleFilters.priority">
+              <select
+                v-model="filterForm.priority"
+                :class="FILTER_CONTROL_CLASS"
+                aria-label="Ưu tiên"
+              >
+                <option value="">
+                  Ưu tiên
+                </option>
+                <option
+                  v-for="o in priorityOptions"
+                  :key="o.value"
+                  :value="o.value"
+                >
+                  {{ o.label }}
+                </option>
+              </select>
+            </DatagridFilterField>
+
+            <DatagridFilterField v-if="visibleFilters.assignee">
+              <select
+                v-model="filterForm.assignee_id"
+                :class="FILTER_CONTROL_CLASS"
+                aria-label="Người xử lý"
+              >
+                <option value="">
+                  Người xử lý
+                </option>
+                <option
+                  v-for="e in employees"
+                  :key="e.id"
+                  :value="e.id"
+                >
+                  {{ e.name }}
+                </option>
+              </select>
+            </DatagridFilterField>
+
+            <DatagridFilterField v-if="visibleFilters.rating">
+              <select
+                v-model="filterForm.rating"
+                :class="FILTER_CONTROL_CLASS"
+                aria-label="Đánh giá"
+              >
+                <option value="">
+                  Đánh giá
+                </option>
+                <option
+                  v-for="n in ratingFilterOptions"
+                  :key="n"
+                  :value="n"
+                >
+                  {{ n }} ★
+                </option>
+              </select>
+            </DatagridFilterField>
+
+            <DatagridFilterField
+              v-if="visibleFilters.mine"
+              class="flex items-center"
+            >
+              <label class="flex h-10 w-full cursor-pointer items-center gap-2 rounded-btn border border-slate-200 px-3 text-sm text-slate-600 dark:border-slate-700 dark:text-slate-300">
+                <input
+                  v-model="filterForm.mine"
+                  true-value="1"
+                  false-value=""
+                  type="checkbox"
+                  class="rounded border-slate-300 text-brand focus:ring-brand/30"
+                >
+                Tôi xử lý
+              </label>
+            </DatagridFilterField>
+
+            <div
+              v-if="appliedFilterCount || filterForm.q"
+              class="col-span-full flex justify-end"
+            >
+              <button
+                type="button"
+                class="text-xs font-medium text-brand"
+                @click="clearFilters"
+              >
+                Đặt lại bộ lọc
+              </button>
+            </div>
+          </div>
+        </Transition>
       </div>
 
-      <div
-        v-if="hasFilterRow"
-        class="flex flex-wrap items-center gap-2 border-b border-slate-100 px-4 py-3 sm:px-5"
-      >
-        <select
-          v-if="visibleFilters.status"
-          v-model="filterForm.status"
-          class="input h-9 w-40 text-sm"
-          aria-label="Trạng thái"
-        >
-          <option value="">
-            Trạng thái: Tất cả
-          </option>
-          <option
-            v-for="o in statusOptions"
-            :key="o.value"
-            :value="o.value"
-          >
-            {{ o.label }}
-          </option>
-        </select>
-        <select
-          v-if="visibleFilters.category"
-          v-model="filterForm.category"
-          class="input h-9 w-44 text-sm"
-          aria-label="Phân loại"
-        >
-          <option value="">
-            Phân loại: Tất cả
-          </option>
-          <option
-            v-for="o in categoryOptions"
-            :key="o.value"
-            :value="o.value"
-          >
-            {{ o.label }}
-          </option>
-        </select>
-        <select
-          v-if="visibleFilters.priority"
-          v-model="filterForm.priority"
-          class="input h-9 w-40 text-sm"
-          aria-label="Ưu tiên"
-        >
-          <option value="">
-            Ưu tiên: Tất cả
-          </option>
-          <option
-            v-for="o in priorityOptions"
-            :key="o.value"
-            :value="o.value"
-          >
-            {{ o.label }}
-          </option>
-        </select>
-        <select
-          v-if="visibleFilters.assignee"
-          v-model="filterForm.assignee_id"
-          class="input h-9 min-w-[11rem] text-sm sm:w-48"
-          aria-label="Người xử lý"
-        >
-          <option value="">
-            Người xử lý: Tất cả
-          </option>
-          <option
-            v-for="e in employees"
-            :key="e.id"
-            :value="e.id"
-          >
-            {{ e.name }}
-          </option>
-        </select>
-        <select
-          v-if="visibleFilters.rating"
-          v-model="filterForm.rating"
-          class="input h-9 w-36 text-sm"
-          aria-label="Đánh giá"
-        >
-          <option value="">
-            Đánh giá: Tất cả
-          </option>
-          <option
-            v-for="n in ratingFilterOptions"
-            :key="n"
-            :value="n"
-          >
-            {{ n }} ★
-          </option>
-        </select>
-        <label
-          v-if="visibleFilters.mine"
-          class="inline-flex h-9 items-center gap-2 rounded-btn border border-slate-200 bg-white px-3 text-sm text-slate-600"
-        >
-          <input
-            v-model="filterForm.mine"
-            true-value="1"
-            false-value=""
-            type="checkbox"
-            class="rounded border-slate-300 text-brand"
-          >
-          Tôi xử lý
-        </label>
-        <button
-          v-if="appliedFilterCount || filterForm.q"
-          type="button"
-          class="text-xs font-medium text-brand hover:underline"
-          @click="clearFilters"
-        >
-          Đặt lại
-        </button>
-      </div>
-    </div>
-
-    <div class="card flex min-h-0 flex-1 flex-col overflow-hidden">
       <div class="min-h-0 flex-1 overflow-x-auto overflow-y-auto">
         <table class="w-full min-w-[640px] text-sm">
           <thead class="sticky top-0 z-10 bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">

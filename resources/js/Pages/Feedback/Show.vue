@@ -7,6 +7,7 @@ import Badge from '@/shared/ui/Badge.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
 import CommentThread from '@/shared/ui/CommentThread.vue';
 import FeedbackFormModal from '@/modules/project/components/FeedbackFormModal.vue';
+import { useDialog } from '@/composables/useDialog';
 import { date } from '@/composables/useFormat';
 
 const props = defineProps({
@@ -14,8 +15,22 @@ const props = defineProps({
     options: { type: Object, default: () => ({}) },
 });
 
+const dialog = useDialog();
 const modal = ref(false);
 const changeStatus = (e) => router.put(`/feedback/${props.feedback.id}`, { status: e.target.value }, { preserveScroll: true });
+
+const remove = async () => {
+    if (!props.feedback.can?.delete) return;
+    const ok = await dialog.confirm({
+        title: 'Xoá phản hồi',
+        message: `Xoá phản hồi «${props.feedback.title}»? Hành động không thể hoàn tác.`,
+        tone: 'danger',
+        confirmText: 'Xoá',
+    });
+    if (ok) {
+        router.delete(`/feedback/${props.feedback.id}`);
+    }
+};
 </script>
 
 <template>
@@ -59,16 +74,30 @@ const changeStatus = (e) => router.put(`/feedback/${props.feedback.id}`, { statu
               v-if="feedback.rating"
               class="text-sm text-amber-500"
             >{{ '★'.repeat(feedback.rating) }}<span class="text-slate-300">{{ '★'.repeat(5 - feedback.rating) }}</span></span>
-            <button
-              v-if="feedback.can?.update"
-              class="btn-ghost ml-auto text-sm"
-              @click="modal = true"
-            >
-              <AppIcon
-                name="edit"
-                :size="15"
-              /> Sửa
-            </button>
+            <div class="ml-auto flex flex-wrap items-center gap-1">
+              <button
+                v-if="feedback.can?.update"
+                type="button"
+                class="btn-ghost text-sm"
+                @click="modal = true"
+              >
+                <AppIcon
+                  name="edit"
+                  :size="15"
+                /> Sửa
+              </button>
+              <button
+                v-if="feedback.can?.delete"
+                type="button"
+                class="btn-ghost text-sm text-rose-600 hover:bg-rose-50"
+                @click="remove"
+              >
+                <AppIcon
+                  name="delete"
+                  :size="15"
+                /> Xoá
+              </button>
+            </div>
           </div>
           <p class="whitespace-pre-wrap text-sm leading-relaxed text-slate-600">
             {{ feedback.description }}
