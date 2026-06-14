@@ -1,6 +1,6 @@
 <script setup>
 defineProps({
-    label: { type: String, required: true },
+    label: { type: String, default: '' },
     htmlFor: { type: String, default: null },
 });
 </script>

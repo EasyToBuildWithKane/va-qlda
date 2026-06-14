@@ -499,7 +499,7 @@ const FILTER_CONTROL_CLASS = "input h-10 w-full text-sm";
         <div
           class="flex flex-col gap-3"
         >
-          <!-- Hàng 1: tìm kiếm + Lọc + Cột (luôn cùng một hàng) -->
+          <!-- Hàng 1: tìm kiếm + Lọc + Cột + Xuất -->
           <div
             class="flex w-full min-w-0 flex-nowrap items-center gap-2"
           >
@@ -561,12 +561,7 @@ const FILTER_CONTROL_CLASS = "input h-10 w-full text-sm";
                 Cột
               </DatagridToolbarActionButton>
             </div>
-          </div>
 
-          <!-- Hàng 2: Xuất + nhóm thời gian / chế độ xem -->
-          <div
-            class="flex min-w-0 flex-wrap items-center gap-2"
-          >
             <div
               ref="exportRef"
               class="relative shrink-0"
@@ -585,7 +580,12 @@ const FILTER_CONTROL_CLASS = "input h-10 w-full text-sm";
                 {{ exporting ? "Đang xuất…" : "Xuất" }}
               </DatagridToolbarActionButton>
             </div>
+          </div>
 
+          <!-- Hàng 2: nhóm thời gian / chế độ xem -->
+          <div
+            class="flex min-w-0 flex-wrap items-center gap-2"
+          >
             <DatagridSegmentedControl
               :model-value="groupMode"
               :items="GROUP_TABS"
@@ -683,7 +683,6 @@ const FILTER_CONTROL_CLASS = "input h-10 w-full text-sm";
         >
           <DatagridFilterField
             v-if="visibleFilters.status"
-            label="Trạng thái"
           >
             <select
               v-model="filterForm.status"
@@ -691,7 +690,7 @@ const FILTER_CONTROL_CLASS = "input h-10 w-full text-sm";
               aria-label="Trạng thái"
             >
               <option value="">
-                Tất cả
+                Trạng thái
               </option>
               <option
                 v-for="s in statuses"
@@ -705,7 +704,6 @@ const FILTER_CONTROL_CLASS = "input h-10 w-full text-sm";
 
           <DatagridFilterField
             v-if="visibleFilters.project"
-            label="Dự án"
           >
             <select
               v-model="filterForm.project_id"
@@ -713,7 +711,7 @@ const FILTER_CONTROL_CLASS = "input h-10 w-full text-sm";
               aria-label="Dự án"
             >
               <option value="">
-                Tất cả
+                Dự án
               </option>
               <option
                 v-for="p in projects"
@@ -727,21 +725,19 @@ const FILTER_CONTROL_CLASS = "input h-10 w-full text-sm";
 
           <DatagridFilterField
             v-if="visibleFilters.employee && canFilterEmployee"
-            label="Người báo cáo"
           >
             <SearchMultiSelect
               v-model="filterForm.employee_ids"
               :options="employees"
               show-avatar
               control-size="md"
-              placeholder="Tất cả"
+              placeholder="Người báo cáo"
               search-placeholder="Tìm nhân viên…"
             />
           </DatagridFilterField>
 
           <DatagridFilterField
             v-if="visibleFilters.grade"
-            label="Xếp loại"
           >
             <select
               v-model="filterForm.grade"
@@ -749,7 +745,7 @@ const FILTER_CONTROL_CLASS = "input h-10 w-full text-sm";
               aria-label="Xếp loại"
             >
               <option value="">
-                Tất cả
+                Xếp loại
               </option>
               <option
                 v-for="g in grades"
@@ -763,26 +759,36 @@ const FILTER_CONTROL_CLASS = "input h-10 w-full text-sm";
 
           <DatagridFilterField
             v-if="visibleFilters.from"
-            label="Từ ngày"
           >
-            <input
-              v-model="filterForm.from"
-              type="date"
-              :class="FILTER_CONTROL_CLASS"
-              aria-label="Từ ngày"
-            >
+            <div class="relative w-full">
+              <span
+                v-if="!filterForm.from"
+                class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-slate-600 dark:text-slate-300"
+              >Từ ngày</span>
+              <input
+                v-model="filterForm.from"
+                type="date"
+                :class="[FILTER_CONTROL_CLASS, 'input--picker']"
+                aria-label="Từ ngày"
+              >
+            </div>
           </DatagridFilterField>
 
           <DatagridFilterField
             v-if="visibleFilters.to"
-            label="Đến ngày"
           >
-            <input
-              v-model="filterForm.to"
-              type="date"
-              :class="FILTER_CONTROL_CLASS"
-              aria-label="Đến ngày"
-            >
+            <div class="relative w-full">
+              <span
+                v-if="!filterForm.to"
+                class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-slate-600 dark:text-slate-300"
+              >Đến ngày</span>
+              <input
+                v-model="filterForm.to"
+                type="date"
+                :class="[FILTER_CONTROL_CLASS, 'input--picker']"
+                aria-label="Đến ngày"
+              >
+            </div>
           </DatagridFilterField>
 
           <div
