@@ -26,11 +26,11 @@ const editor = useEditor({
     extensions: [
         StarterKit.configure({ link: { openOnClick: false, autolink: true } }),
         Underline,
-        Placeholder.configure({ placeholder: 'Soạn nội dung email… Dùng khối mẫu hoặc chèn biến bên dưới.' }),
+        Placeholder.configure({ placeholder: 'Soạn nội dung email…' }),
     ],
     editorProps: {
         attributes: {
-            class: 'tiptap email-template-editor min-h-[220px] px-3 py-2 text-sm leading-relaxed focus:outline-none',
+            class: 'tiptap email-template-editor min-h-[200px] px-3 py-2 text-sm leading-relaxed focus:outline-none',
         },
     },
     onUpdate: ({ editor: ed }) => {
@@ -142,12 +142,12 @@ function variableToken(key) {
     return `{{${key}}}`;
 }
 
-defineExpose({ insertVariable, insertSnippet });
+const hasInsertRow = computed(() => props.snippets.length > 0 || props.variables.length > 0);
 </script>
 
 <template>
-  <div class="space-y-3">
-    <div class="flex flex-wrap items-center justify-between gap-2">
+  <div class="space-y-2">
+    <div class="flex flex-wrap items-center gap-2">
       <div class="flex rounded-lg border border-slate-200 p-0.5">
         <button
           type="button"
@@ -166,9 +166,9 @@ defineExpose({ insertVariable, insertSnippet });
           HTML
         </button>
       </div>
-      <p class="text-[11px] text-slate-400">
-        Khối mẫu giữ style email; chế độ HTML cho tùy chỉnh nâng cao.
-      </p>
+      <span class="text-[11px] text-slate-400 tabular-nums">
+        {{ contentStats.words }} từ · {{ contentStats.chars }} ký tự
+      </span>
     </div>
 
     <div
@@ -198,63 +198,52 @@ defineExpose({ insertVariable, insertSnippet });
         </template>
       </div>
       <EditorContent :editor="editor" />
-      <p class="border-t border-slate-100 px-3 py-1.5 text-[11px] text-slate-400">
-        ~{{ contentStats.words }} từ · {{ contentStats.chars }} ký tự
-      </p>
     </div>
 
     <textarea
       v-show="mode === 'html'"
       :value="modelValue"
-      rows="14"
+      rows="12"
       class="input w-full font-mono text-[11px] leading-relaxed"
       :disabled="disabled"
       @input="onHtmlInput"
     />
-    <p
-      v-show="mode === 'html'"
-      class="text-[11px] text-slate-400"
-    >
-      ~{{ contentStats.words }} từ · {{ contentStats.chars }} ký tự
-    </p>
 
-    <div class="grid gap-3 lg:grid-cols-2">
-      <div class="rounded-lg border border-slate-100 bg-slate-50/80 p-3">
-        <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Khối mẫu
-        </p>
-        <div class="flex flex-wrap gap-1.5">
-          <button
-            v-for="s in snippets"
-            :key="s.id"
-            type="button"
-            class="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-600 hover:border-brand/40 hover:text-brand disabled:opacity-40"
-            :title="s.description"
-            :disabled="disabled"
-            @click="insertSnippet(s)"
-          >
-            + {{ s.label }}
-          </button>
-        </div>
-      </div>
-      <div class="rounded-lg border border-slate-100 bg-slate-50/80 p-3">
-        <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Chèn biến
-        </p>
-        <div class="flex flex-wrap gap-1.5">
-          <button
-            v-for="v in variables"
-            :key="v.key"
-            type="button"
-            class="rounded border border-slate-200 bg-white px-2 py-0.5 font-mono text-[10px] text-slate-600 hover:border-brand/40 hover:text-brand disabled:opacity-40"
-            :title="v.hint"
-            :disabled="disabled"
-            @click="insertVariable(v.key)"
-          >
-            {{ variableToken(v.key) }}
-          </button>
-        </div>
-      </div>
+    <div
+      v-if="hasInsertRow"
+      class="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-slate-100 bg-slate-50/60 px-3 py-2"
+    >
+      <template v-if="snippets.length">
+        <span class="text-[11px] font-medium text-slate-500">Khối</span>
+        <button
+          v-for="s in snippets"
+          :key="s.id"
+          type="button"
+          class="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-medium text-slate-600 hover:border-brand/40 hover:text-brand disabled:opacity-40"
+          :disabled="disabled"
+          @click="insertSnippet(s)"
+        >
+          {{ s.label }}
+        </button>
+      </template>
+      <template v-if="variables.length">
+        <span
+          v-if="snippets.length"
+          class="hidden h-4 w-px bg-slate-200 sm:block"
+        />
+        <span class="text-[11px] font-medium text-slate-500">Biến</span>
+        <button
+          v-for="v in variables"
+          :key="v.key"
+          type="button"
+          class="rounded border border-slate-200 bg-white px-1.5 py-0.5 font-mono text-[10px] text-slate-600 hover:border-brand/40 hover:text-brand disabled:opacity-40"
+          :title="v.label"
+          :disabled="disabled"
+          @click="insertVariable(v.key)"
+        >
+          {{ variableToken(v.key) }}
+        </button>
+      </template>
     </div>
 
     <p

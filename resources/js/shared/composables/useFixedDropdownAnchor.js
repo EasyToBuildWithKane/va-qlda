@@ -50,9 +50,10 @@ export function useFixedDropdownAnchor(getAnchorEl, isOpen, options = {}) {
             width: `${width}px`,
             zIndex,
             visibility: 'visible',
+            pointerEvents: 'auto',
             ...(openUp.value
-                ? { bottom: `${window.innerHeight - rect.top + gap}px` }
-                : { top: `${rect.bottom + gap}px` }),
+                ? { bottom: `${window.innerHeight - rect.top + gap}px`, top: 'auto' }
+                : { top: `${rect.bottom + gap}px`, bottom: 'auto' }),
         };
     }
 
@@ -72,15 +73,28 @@ export function useFixedDropdownAnchor(getAnchorEl, isOpen, options = {}) {
         window.removeEventListener('resize', position);
     }
 
+    function hiddenOffScreenStyle() {
+        return {
+            position: 'fixed',
+            left: '-9999px',
+            top: '0',
+            width: `${width}px`,
+            zIndex,
+            visibility: 'hidden',
+            pointerEvents: 'none',
+        };
+    }
+
     watch(
         isOpen,
         (open) => {
             if (open) {
-                panelStyle.value = { visibility: 'hidden' };
+                panelStyle.value = hiddenOffScreenStyle();
                 requestAnimationFrame(() => position());
                 startListen();
             } else {
                 stopListen();
+                panelStyle.value = hiddenOffScreenStyle();
             }
         },
         { flush: 'post' },

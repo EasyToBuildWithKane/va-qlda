@@ -35,7 +35,7 @@ const emit = defineEmits(['update:modelValue', 'clear']);
         ? 'min-w-[9rem] sm:min-w-[11rem]'
         : stretch
           ? 'min-w-0 flex-1'
-          : 'sm:min-w-[12rem] md:min-w-[16rem] xl:min-w-[28rem] 2xl:min-w-[32rem]'"
+          : 'sm:min-w-[12rem] md:min-w-[16rem] lg:min-w-[28rem] xl:min-w-[32rem]'"
     >
       <AppIcon
         name="search"

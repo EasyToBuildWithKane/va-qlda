@@ -28,20 +28,20 @@ function onToggle(key, checked) {
   <Teleport to="body">
     <Transition
       enter-active-class="transition duration-150 ease-out"
-      enter-from-class="opacity-0 scale-95 -translate-y-1"
+      enter-from-class="opacity-0"
       leave-active-class="transition duration-100 ease-in"
-      leave-to-class="opacity-0 scale-95 -translate-y-1"
+      leave-to-class="opacity-0"
     >
       <div
         v-if="show"
         :style="panelStyle"
-        class="origin-top-right rounded-xl border border-slate-200 bg-white shadow-elevation-2 dark:border-slate-700 dark:bg-slate-900"
+        class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-elevation-2 dark:border-slate-700 dark:bg-slate-900"
         data-filter-visibility-panel
       >
         <div class="border-b border-slate-100 px-4 py-2.5 dark:border-slate-700">
           <span class="text-xs font-bold uppercase tracking-wide text-slate-500">Hiển thị trên thanh công cụ</span>
         </div>
-        <div class="px-2 py-2">
+        <div class="max-h-64 overflow-y-auto px-2 py-2">
           <label
             v-for="f in controls"
             :key="f.key"

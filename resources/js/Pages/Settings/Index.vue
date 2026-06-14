@@ -44,40 +44,35 @@ const groupMeta = (key) => props.groups.find((g) => g.key === key) ?? { label: '
       />
     </template>
 
-    <div class="flex w-full max-w-none flex-col gap-6">
+    <div class="flex w-full max-w-none flex-col gap-5">
       <nav
-        class="-mx-1 flex shrink-0 gap-2 overflow-x-auto px-1 pb-1"
+        class="grid grid-cols-2 gap-1 rounded-xl border border-slate-200 bg-slate-50/90 p-1 sm:grid-cols-3 lg:grid-cols-5"
         aria-label="Nhóm cấu hình"
       >
         <button
           v-for="g in groups"
           :key="g.key"
           type="button"
-          class="group flex shrink-0 items-center gap-3 rounded-card border px-3.5 py-3 text-left transition-colors"
+          class="relative flex min-w-0 items-center justify-center gap-1.5 rounded-lg px-2 py-2.5 text-center transition-colors sm:gap-2 sm:px-2.5"
           :class="active === g.key
-            ? 'border-brand/30 bg-brand/[0.06]'
-            : 'border-transparent hover:bg-slate-50'"
+            ? 'bg-white text-brand shadow-sm ring-1 ring-slate-200/80'
+            : 'text-slate-600 hover:bg-white/60 hover:text-slate-800'"
+          :title="g.description"
           @click="active = g.key"
         >
+          <AppIcon
+            :name="g.icon"
+            :size="15"
+            class="shrink-0"
+            :class="active === g.key ? 'text-brand' : 'text-slate-400'"
+          />
           <span
-            class="grid h-9 w-9 shrink-0 place-items-center rounded-lg transition-colors"
-            :class="active === g.key ? 'bg-brand text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-slate-200'"
-          >
-            <AppIcon
-              :name="g.icon"
-              :size="17"
-            />
-          </span>
-          <span class="min-w-0 pr-1">
-            <span
-              class="block whitespace-nowrap text-[13.5px] font-semibold leading-tight"
-              :class="active === g.key ? 'text-brand' : 'text-slate-700'"
-            >{{ g.label }}</span>
-            <span class="mt-0.5 hidden truncate text-[11.5px] text-slate-400 sm:block">{{ g.description }}</span>
-          </span>
+            class="min-w-0 truncate text-[11px] font-semibold leading-tight sm:text-xs lg:text-[13px]"
+            :class="active === g.key ? 'text-brand' : ''"
+          >{{ g.label }}</span>
           <span
             v-if="dirtyGroups.has(g.key)"
-            class="ml-1 h-2 w-2 shrink-0 rounded-full bg-amber-400"
+            class="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-amber-400"
             title="Có thay đổi chưa lưu"
           />
         </button>
@@ -111,7 +106,6 @@ const groupMeta = (key) => props.groups.find((g) => g.key === key) ?? { label: '
         <EmailTemplateTab
           v-show="active === 'email'"
           :title="groupMeta('email').label"
-          :description="groupMeta('email').description"
           :email-fields="settings.email ?? []"
           :email-templates="emailTemplates"
           :email-preview-brand="emailPreviewBrand"

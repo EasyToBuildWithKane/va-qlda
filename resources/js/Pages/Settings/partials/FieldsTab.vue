@@ -16,6 +16,7 @@ const props = defineProps({
     fields: { type: Array, default: () => [] },
     canManage: { type: Boolean, default: false },
     hideHeader: { type: Boolean, default: false },
+    hideFieldHints: { type: Boolean, default: false },
     suppressDirtyReport: { type: Boolean, default: false },
 });
 
@@ -157,7 +158,7 @@ const secretPlaceholder = (f) => (f.has_value ? '•••••••• (đã 
               class="block text-sm font-medium text-slate-700"
             >{{ f.label }}</label>
             <p
-              v-if="f.help"
+              v-if="f.help && !hideFieldHints"
               class="mt-0.5 text-xs text-slate-400"
             >
               {{ f.help }}
@@ -174,7 +175,7 @@ const secretPlaceholder = (f) => (f.has_value ? '•••••••• (đã 
           v-else-if="f.type === 'secret'"
           :id="f.key"
           :label="f.label"
-          :hint="f.help"
+          :hint="hideFieldHints ? null : f.help"
           :error="form.errors[f.name]"
         >
           <PasswordInput
@@ -188,7 +189,7 @@ const secretPlaceholder = (f) => (f.has_value ? '•••••••• (đã 
           v-else-if="f.type === 'list'"
           :id="f.key"
           :label="f.label"
-          :hint="f.help"
+          :hint="hideFieldHints ? null : f.help"
           :error="form.errors[f.name]"
         >
           <TagInput
@@ -203,7 +204,7 @@ const secretPlaceholder = (f) => (f.has_value ? '•••••••• (đã 
           v-else
           :id="f.key"
           :label="f.label"
-          :hint="f.help"
+          :hint="hideFieldHints ? null : f.help"
           :error="form.errors[f.name]"
         >
           <div class="relative [&_input]:pr-10">
