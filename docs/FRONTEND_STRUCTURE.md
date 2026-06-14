@@ -131,8 +131,8 @@ Pages import feature components từ `@/modules/project/components/...` và prim
 | `CommentThread.vue` | Thread bình luận (Task/Bug/Blocker) |
 | `EmptyState.vue`, `LoadingSpinner.vue`, `SkeletonLoader.vue` | Empty / loading |
 | `DatagridToolbarSearch.vue`, `FilterVisibilityDropdown.vue`, `ColumnVisibilityDropdown.vue` | Toolbar bảng (tìm kiếm, bật lọc/cột) |
-| `DatagridToolbarActionButton.vue`, `DatagridSegmentedControl.vue`, `DatagridFilterField.vue` | Nút Lọc/Cột/Xuất đồng nhất, segmented toggle, ô lọc grid `w-full h-10` |
-| `FilterDatePicker.vue` | Lọc ngày (`@vuepic/vue-datepicker`, hiển thị `dd/MM/yyyy`, model ISO) |
+| `DatagridToolbarActionButton.vue`, `DatagridSegmentedControl.vue`, `DatagridFilterField.vue` | Nút Lọc/Cột/Xuất, segmented, ô lọc grid `w-full h-10` |
+| `FilterDatePicker.vue` | Lọc ngày (`@vuepic/vue-datepicker`, `dd/MM/yyyy` ↔ ISO) |
 | `form/FormField.vue`, `TextInput.vue`, `SelectInput.vue`, `DateInput.vue`, `TimeInput.vue` | Form primitives (`input--picker`: date/time hiển thị rõ, click cả ô) |
 
 ### 6.3 Project Module — `modules/project/components/`
@@ -158,7 +158,7 @@ Trang lịch sử (`Pages/DailyReport/History.vue`) — dashboard SaaS:
 | `ReportDashboard.vue` | Dải KPI (tổng/đã duyệt/chờ/nháp/trễ) + **pill xu hướng** ±% so với kỳ trước |
 | `ReportCard.vue` | Thẻ báo cáo: header (avatar, chức vụ, thời gian, điểm), dự án + task (badge trạng thái), các mục HORENSO thu gọn (`.rich-content`) |
 
-Bộ lọc: `SearchMultiSelect` (chọn nhiều người báo cáo). Nhóm **Ngày / Tuần / Tháng** (client-side, helper trong `History.vue`). Toolbar sticky, trạng thái lọc lưu trên URL. Xuất Excel 7 sheet dùng dữ liệu **toàn bộ kết quả lọc** (xem §7.2 `useDailyReportHistoryExport`).
+Bộ lọc: shared datagrid (`DatagridToolbarSearch` `hide-label`, `FilterDatePicker` + key `date_range`, grid `xl:grid-cols-6`, `SearchMultiSelect` `control-size="md"`). Nhóm **Ngày / Tuần / Tháng** + **Thẻ / Bảng** (`DatagridSegmentedControl`). Toolbar **không sticky**; lọc hiển thị opt-in (`default: false`, `useVisibleFilterControls`); trạng thái lọc trên URL. Xuất Excel 7 sheet — `useDailyReportHistoryExport`.
 
 ### 6.5 Notifications — `Components/Notifications/`
 
@@ -258,9 +258,10 @@ Rule: `.cursor/rules/datagrid-toolbar.mdc` · skill `.cursor/skills/datagrid-too
 | Ngữ cảnh | Ví dụ |
 |----------|--------|
 | Trang Index, ô tìm dài | `Pages/AiAccount/CostReport.vue`, `Pages/Coaching/Sessions/Index.vue` |
+| Toolbar SaaS đầy đủ (một hàng desktop, grid, datepicker) | `Pages/DailyReport/History.vue` |
 | Tab dự án: tìm `half`, nút cùng hàng, lọc opt-in | `modules/project/components/Dashboard/ProjectFeedbackPanel.vue` |
 
-Shared: `DatagridToolbarSearch.vue` (props `half`, `compact`, `stretch`, `capInputWidth`, `inputHeight`), `DatagridToolbarActionButton`, `DatagridSegmentedControl`, `DatagridFilterField`, `FilterVisibilityDropdown.vue`, composable `useVisibleFilterControls.js` (`default: false` = ẩn dòng 2 lần đầu). Mẫu grid lọc: `Pages/DailyReport/History.vue` (`grid-cols-1 sm:2 md:3 xl:6`, `gap-3`, `h-10`).
+Shared: `DatagridToolbarSearch` (`hide-label`, `inline-actions`, …), `DatagridToolbarActionButton`, `DatagridSegmentedControl`, `DatagridFilterField`, `FilterDatePicker`, `FilterVisibilityDropdown`, `useVisibleFilterControls` (`default: false`). Grid lọc: `xl:grid-cols-6`, `gap-3`, `h-10`.
 
 ### Coaching pages
 

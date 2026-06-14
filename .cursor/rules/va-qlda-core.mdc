@@ -43,7 +43,7 @@ alwaysApply: true
 ## Datagrid toolbar (UI bảng — bắt buộc)
 
 - Rule: `.cursor/rules/datagrid-toolbar.mdc` · Skill: `.cursor/skills/datagrid-toolbar/SKILL.md`
-- Mẫu full: `CostReport.vue` · tab dự án: `ProjectFeedbackPanel.vue` (`half`, lọc `default: false`).
+- Mẫu full: `Pages/DailyReport/History.vue` (`hide-label`, một hàng `lg:flex-nowrap`, grid lọc, `FilterDatePicker`); tab dự án: `ProjectFeedbackPanel.vue` (`half`).
 
 ## Cấm
 
