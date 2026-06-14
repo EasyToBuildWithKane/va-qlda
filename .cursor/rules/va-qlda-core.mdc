@@ -68,3 +68,8 @@ This project has a `_dev/` memory folder. Always read relevant `_dev/` files bef
 **Hai lớp:** `_dev/*.md` = nguồn chuẩn · `_dev/vi/*.md` = giải thích VI (`lenh-cli`, `quy-trinh`, `quy-uoc`, `ci-cd`, `kiem-thu`, `loi-thuong-gap`, `tong-quan`).
 
 When a user asks about something not in `_dev/`, answer the question AND suggest updating the relevant `_dev/` file with the new information.
+
+## Đồng bộ tài liệu (bắt buộc)
+
+- Rule: `.cursor/rules/docs-sync.mdc` — mọi task thay đổi route, schema, module, auth, workflow → cập nhật `docs/` và/hoặc `_dev/` **cùng lượt** với code.
+- Module có doc riêng: Coaching → `docs/COACHING_MENTORING.md`; KB → `docs/KNOWLEDGE_BASE.md`.

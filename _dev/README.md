@@ -37,7 +37,7 @@ npx playwright show-report               # View last E2E report
 | Workflow | One-liner |
 |----------|-----------|
 | **Daily dev** | `git pull` → `npm install`/`composer install` if needed → `migrate` → `npm run dev` + `php artisan serve` |
-| **New feature** | `git checkout -b feat/name` → code + E2E test → `git commit` (lint + commitlint) → `git push` (E2E) → open PR |
+| **New feature** | `git checkout -b feat/name` → code → **sync `docs/`** (`.cursor/rules/docs-sync.mdc`) → E2E test → commit → push → PR |
 | **Pull request** | Conventional Commits title · CI must pass (PHPUnit + build + Playwright) · squash merge |
 | **Deploy** | No automated deploy workflow — merge to `main`, deploy manually to staging/prod |
 | **Hotfix** | `git checkout -b fix/name main` → fix + test → commit → PR to `main` → manual deploy |

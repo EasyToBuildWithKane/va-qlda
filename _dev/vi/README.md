@@ -23,6 +23,7 @@ Thư mục này dùng để **giải thích bằng tiếng Việt** — onboardi
 | [kiem-thu.md](kiem-thu.md) | Playwright E2E — setup, chạy test, viết spec | [../testing.md](../testing.md) |
 | [loi-thuong-gap.md](loi-thuong-gap.md) | Husky, commitlint, ESLint, CI, npm, Vite | [../troubleshooting.md](../troubleshooting.md) |
 | [realtime.md](realtime.md) | Trao đổi Socket.IO — dev 2 người, deploy production | [../realtime.md](../realtime.md) |
+| *(rule Cursor)* | Đồng bộ `docs/` + `_dev/` khi đổi code | [../../.cursor/rules/docs-sync.mdc](../../.cursor/rules/docs-sync.mdc) |
 
 ## AI / Cursor / Claude
 

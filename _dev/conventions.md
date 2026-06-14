@@ -57,6 +57,15 @@ Use lowercase, hyphen-separated descriptions. Match commit type prefix when poss
 
 ---
 
+## Documentation (đồng bộ với code)
+
+- Rule Cursor: `.cursor/rules/docs-sync.mdc` (always apply).
+- Thay route → `docs/API_STRUCTURE.md`; migration → `docs/DATABASE_STRUCTURE.md`; UI module → `docs/FRONTEND_STRUCTURE.md` + doc chuyên đề (`docs/COACHING_MENTORING.md`, …).
+- Workflow dev: `_dev/workflows.md` bước 3 trong «Creating a feature».
+- Commit chỉ doc: `docs(scope): mô tả ngắn`.
+
+---
+
 ## Vue component conventions
 
 This project uses **JavaScript** (not TypeScript) for frontend code.

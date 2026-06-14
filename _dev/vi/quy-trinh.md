@@ -31,15 +31,16 @@ npm run test:e2e        # cũng tự chạy khi git push
 
 1. `git checkout -b feat/mo-ta-ngan`
 2. Code backend (Controller, FormRequest, Policy) và/hoặc frontend (Page, Component, composable)
-3. **Nếu đổi UI:** thêm/sửa spec Playwright trong `tests/e2e/`
-4. `git add -p` — stage có chọn lọc
-5. `git commit -m "feat(scope): mo ta"`
+3. **Cập nhật tài liệu** theo `.cursor/rules/docs-sync.mdc` (route, schema, module doc)
+4. **Nếu đổi UI:** thêm/sửa spec Playwright trong `tests/e2e/`
+5. `git add -p` — stage có chọn lọc
+6. `git commit -m "feat(scope): mo ta"`
    - **pre-commit** → ESLint qua lint-staged
    - **commit-msg** → commitlint kiểm tra format
    - *(tùy chọn)* **prepare-commit-msg** gợi ý message
-6. `git push origin feat/mo-ta-ngan`
+7. `git push origin feat/mo-ta-ngan`
    - **pre-push** → chạy full Playwright E2E
-7. Mở PR trên GitHub → CI chạy tự động (xem [`ci-cd.md`](ci-cd.md))
+8. Mở PR trên GitHub → CI chạy tự động (xem [`ci-cd.md`](ci-cd.md))
 
 ---
 

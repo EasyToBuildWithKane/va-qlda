@@ -33,8 +33,9 @@ Skill: `.cursor/skills/ship-ready/SKILL.md`.
 
 1. `git checkout -b feat/short-description`
 2. Implement backend (Controller, FormRequest, Policy) and/or frontend (Page, Component, composable)
-3. If UI changes: add/update Playwright spec in `tests/e2e/`
-4. `git add -p` — stage selectively
+3. **Cập nhật tài liệu** — map trong `.cursor/rules/docs-sync.mdc` (vd. route → `docs/API_STRUCTURE.md`, migration → `docs/DATABASE_STRUCTURE.md`, module → doc chuyên đề)
+4. If UI changes: add/update Playwright spec in `tests/e2e/`
+5. `git add -p` — stage selectively
 5. `npm run commit` hoặc `git commit` (message IDE «Updates» → hook tự sửa nếu đã `git add`)
    - **pre-commit** → ESLint staged Vue/JS
    - **prepare-commit-msg** / **fix-commit-msg** → gợi ý Conventional Commits

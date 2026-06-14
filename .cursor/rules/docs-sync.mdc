@@ -1,0 +1,39 @@
+---
+description: Đồng bộ docs/ và _dev/ với code — bắt buộc khi task/commit thay đổi hành vi, route, schema, UI module
+alwaysApply: true
+---
+
+# Documentation sync — VA-QLDA
+
+Mọi task sửa **hành vi, route, schema, phân quyền, cấu trúc frontend/backend** phải **cập nhật tài liệu trong cùng PR/commit** (trừ khi user nói rõ «chỉ code, bỏ qua docs»).
+
+Skill map: `.cursor/skills/va-qlda-docs/SKILL.md`
+
+## Bản đồ file cần sửa
+
+| Thay đổi trong code | Cập nhật tối thiểu |
+|---------------------|-------------------|
+| `routes/web.php` (route mới/đổi tên) | `docs/API_STRUCTURE.md` + doc module (vd. `docs/COACHING_MENTORING.md`) |
+| Migration / cột / FK / enum DB | `docs/DATABASE_STRUCTURE.md` + enum doc nếu có |
+| Page / `modules/*` / composable mới | `docs/FRONTEND_STRUCTURE.md` + doc module |
+| Controller / Support / Policy module | `docs/ARCHITECTURE.md` hoặc doc module (pattern MVC vs Use Case) |
+| Nav / role / middleware auth | `docs/PROJECT_OVERVIEW.md` hoặc doc module + `App\Support\Navigation` comment nếu cần |
+| Lệnh CLI, hook, CI, workflow dev | `_dev/*.md` trước → `_dev/vi/*.md` tương ứng |
+| Roadmap / trạng thái LT-xx | `docs/NEXT_STEPS.md`, `docs/TECHNICAL_DEBT.md` nếu mở/đóng nợ |
+
+## Checklist agent (trước khi kết thúc task)
+
+1. Grep hoặc đọc doc module liên quan — **không** để header «chưa triển khai» khi code đã có migration/route.
+2. Route map trong doc khớp `routes/web.php` (method, URI, `name()`).
+3. Component/composable liệt kê trong doc **tồn tại** trong repo hoặc ghi «planned» rõ ràng.
+4. Nếu thêm quy trình dev mới → `_dev/workflows.md` + `_dev/conventions.md` (một dòng checklist đủ).
+
+## Checklist dev (trước PR)
+
+- [ ] Diff có đổi route/schema/module → đã sửa ít nhất một file trong `docs/` hoặc `_dev/` tương ứng
+- [ ] Commit message có thể dùng `docs(scope): …` khi chỉ doc; feature commit **gộp** doc trong cùng PR
+
+## Cấm
+
+- Ship route/migration lớn mà `docs/API_STRUCTURE.md` / `DATABASE_STRUCTURE.md` vẫn ghi «thiết kế — chưa migrate».
+- Copy doc cũ (Use Case, component) khi implementation đã chuyển pattern (vd. Coaching → `app/Support/Coaching/`).

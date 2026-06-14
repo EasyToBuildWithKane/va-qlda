@@ -29,6 +29,10 @@ description: >-
 | `docs/REFACTOR_PLAN.md` | Phase 1–5 ✅ complete; follow-up items |
 | `docs/TECHNICAL_DEBT.md` | Open issues (TD-002, TD-010, …) |
 | `docs/NEXT_STEPS.md` | Roadmap, quick wins |
+| `docs/COACHING_MENTORING.md` | Module Coaching — routes, UI, phân quyền |
+| `docs/KNOWLEDGE_BASE.md` | Knowledge Base / blog nội bộ |
+
+**Đồng bộ bắt buộc:** `.cursor/rules/docs-sync.mdc` — cập nhật doc map trên khi code đổi.
 
 ## Operational memory (`_dev/`)
 
@@ -50,6 +54,7 @@ description: >-
    - Project/Task mutations → Application Use Case
    - Blocker/Bug → MVC
 4. Import/export → `.cursor/rules/import-export-reconcile.mdc`.
+5. Sau khi sửa code → áp dụng checklist `docs-sync.mdc` (API_STRUCTURE, DATABASE_STRUCTURE, doc module).
 
 ## Project facts (quick)
 

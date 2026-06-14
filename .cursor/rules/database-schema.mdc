@@ -31,4 +31,4 @@ DailyReport → Domain model (UUID), scores
 
 ## Tham chiếu
 
-`docs/DATABASE_STRUCTURE.md` — schema từng bảng.
+`docs/DATABASE_STRUCTURE.md` — schema từng bảng. Cập nhật khi migration: `.cursor/rules/docs-sync.mdc`.

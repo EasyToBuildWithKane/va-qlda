@@ -63,4 +63,4 @@ defineProps({ items: Array });
 
 ## Tham chiếu
 
-`docs/FRONTEND_STRUCTURE.md`, `_dev/workflows.md`, `.cursor/rules/import-export-reconcile.mdc`
+`docs/FRONTEND_STRUCTURE.md`, `_dev/workflows.md`, `.cursor/rules/import-export-reconcile.mdc`, `.cursor/rules/docs-sync.mdc`
