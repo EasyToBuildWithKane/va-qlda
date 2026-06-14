@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Settings;
 
+use App\Mail\EmailTemplateTestMail;
 use App\Models\EmailTemplate;
 use App\Models\SystemAccount;
 use App\Providers\SettingsServiceProvider;
@@ -10,6 +11,7 @@ use App\Support\Settings\SettingsRepository;
 use App\Support\Settings\SettingsSchema;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class SystemSettingTest extends TestCase
@@ -176,6 +178,27 @@ class SystemSettingTest extends TestCase
 
         $template->refresh();
         $this->assertSame('Test subject {{task_name}}', $template->subject);
+    }
+
+    public function test_admin_can_send_test_email_template(): void
+    {
+        Mail::fake();
+
+        $template = EmailTemplate::query()->where('key', EmailTemplate::KEY_TASK_ASSIGNED)->first();
+        $this->assertNotNull($template);
+
+        $this->actingAs($this->admin(), 'system')
+            ->post("/settings/email-templates/{$template->id}/test", [
+                'email' => 'admin.test@vaschools.edu.vn',
+                'subject' => 'Thử {{task_name}}',
+                'body_html' => '<p>Xin chào {{assignee_name}}</p>',
+            ])
+            ->assertRedirect();
+
+        Mail::assertSent(EmailTemplateTestMail::class, function (EmailTemplateTestMail $mail) {
+            return str_contains($mail->mailSubject, 'Thử')
+                && str_contains($mail->htmlBody, 'Xin chào Nguyễn');
+        });
     }
 
     public function test_overlay_forces_admin_wildcard(): void

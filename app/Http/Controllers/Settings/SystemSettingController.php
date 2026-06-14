@@ -3,19 +3,24 @@
 namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Settings\SendTestEmailTemplateRequest;
 use App\Http\Requests\Settings\UpdateEmailTemplateRequest;
 use App\Http\Requests\Settings\UpdateSettingsRequest;
+use App\Mail\EmailTemplateTestMail;
 use App\Models\EmailTemplate;
 use App\Models\SystemAccount;
 use App\Models\SystemSetting;
 use App\Support\Enums\SystemRole;
 use App\Support\Mail\EmailTemplateDefaults;
+use App\Support\Mail\EmailTemplateSampleVars;
+use App\Support\Mail\EmailTemplateSnippets;
 use App\Support\Navigation;
 use App\Support\Settings\SettingsRepository;
 use App\Support\Settings\SettingsSchema;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -37,6 +42,7 @@ class SystemSettingController extends Controller
             'settings' => $this->settingsPayload(),
             'emailTemplates' => $this->emailTemplatesPayload(),
             'emailPreviewBrand' => (string) ($this->settings->get('email.from_name') ?: config('va.app_name', 'VAschools QLDA')),
+            'emailTestRecipient' => $this->testEmailRecipient($request->user()),
             'permissions' => $this->permissionsPayload(),
             'can' => ['manage' => $request->user()->can('manage', SystemSetting::class)],
         ]);
@@ -85,6 +91,32 @@ class SystemSettingController extends Controller
         });
 
         return back()->with('success', 'Đã khôi phục mẫu email chuẩn.');
+    }
+
+    public function sendTestEmailTemplate(SendTestEmailTemplateRequest $request, EmailTemplate $emailTemplate): RedirectResponse
+    {
+        $this->authorize('manage', SystemSetting::class);
+
+        $validated = $request->validated();
+        $vars = EmailTemplateSampleVars::forKey($emailTemplate->key);
+        $rendered = EmailTemplate::renderDeliveryFromParts(
+            $validated['subject'],
+            $validated['body_html'],
+            $vars,
+        );
+
+        try {
+            Mail::to($validated['email'])->send(new EmailTemplateTestMail(
+                $rendered['subject'],
+                $rendered['html'],
+            ));
+        } catch (\Throwable $e) {
+            report($e);
+
+            return back()->with('error', 'Không gửi được email thử. Kiểm tra cấu hình MAIL_* trên server.');
+        }
+
+        return back()->with('success', 'Đã gửi email thử tới '.$validated['email'].'.');
     }
 
     public function update(UpdateSettingsRequest $request, string $group): RedirectResponse
@@ -146,6 +178,7 @@ class SystemSettingController extends Controller
                 'variables' => EmailTemplate::variableMeta($t->key),
                 'default_subject' => EmailTemplateDefaults::forKey($t->key)['subject'],
                 'default_body_html' => EmailTemplateDefaults::forKey($t->key)['body_html'],
+                'snippets' => EmailTemplateSnippets::forKey($t->key),
             ])
             ->all();
     }
@@ -240,5 +273,13 @@ class SystemSettingController extends Controller
         $out[SettingsSchema::LOCKED_ROLE] = ['*'];
 
         return $out;
+    }
+
+    private function testEmailRecipient(SystemAccount $user): ?string
+    {
+        $user->loadMissing('employee');
+        $email = trim((string) ($user->employee?->email ?? ''));
+
+        return filter_var($email, FILTER_VALIDATE_EMAIL) ? $email : null;
     }
 }

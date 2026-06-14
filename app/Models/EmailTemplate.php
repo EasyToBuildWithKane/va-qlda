@@ -75,6 +75,24 @@ class EmailTemplate extends Model
     }
 
     /**
+     * Render subject + full HTML document from arbitrary template strings (preview / test send).
+     *
+     * @param  array<string, string|int|null>  $vars
+     * @return array{subject: string, html: string}
+     */
+    public static function renderDeliveryFromParts(string $subjectTemplate, string $bodyTemplate, array $vars): array
+    {
+        $model = new self;
+        $model->subject = $subjectTemplate;
+        $model->body_html = $bodyTemplate;
+
+        $subject = $model->renderSubject($vars);
+        $html = EmailBrandLayout::wrap($model->renderBody($vars), $subject);
+
+        return ['subject' => $subject, 'html' => $html];
+    }
+
+    /**
      * @return array<int, array{key: string, label: string, hint: string}>
      */
     public static function variableMeta(string $key): array

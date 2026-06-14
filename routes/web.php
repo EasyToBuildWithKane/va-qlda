@@ -244,6 +244,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/email-templates', [SystemSettingController::class, 'emailTemplates'])->name('email-templates.index');
         Route::put('/email-templates/{emailTemplate}', [SystemSettingController::class, 'updateEmailTemplate'])->name('email-templates.update');
         Route::post('/email-templates/{emailTemplate}/reset', [SystemSettingController::class, 'resetEmailTemplate'])->name('email-templates.reset');
+        Route::post('/email-templates/{emailTemplate}/test', [SystemSettingController::class, 'sendTestEmailTemplate'])->name('email-templates.test');
     });
 
     // Polymorphic comments (bug/feedback/blocker/task threads)
