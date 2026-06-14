@@ -9,6 +9,8 @@ defineProps({
         /** @type {{ key: string, label: string, icon?: string, title?: string }[]} */
     },
     ariaLabel: { type: String, default: 'Chọn chế độ' },
+    /** Ẩn chữ, chỉ icon dưới breakpoint sm (toolbar hẹp) */
+    iconOnlyBelowSm: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['update:modelValue']);
@@ -24,7 +26,7 @@ const emit = defineEmits(['update:modelValue']);
       v-for="item in items"
       :key="item.key"
       type="button"
-      class="inline-flex min-w-0 items-center justify-center gap-1.5 rounded-md px-3 text-xs font-medium transition"
+      class="inline-flex min-w-0 items-center justify-center gap-1 rounded-md px-2 text-xs font-medium transition sm:gap-1.5 sm:px-3"
       :class="
         modelValue === item.key
           ? 'bg-white text-brand shadow-sm dark:bg-slate-700 dark:text-brand-100'
@@ -38,7 +40,10 @@ const emit = defineEmits(['update:modelValue']);
         :name="item.icon"
         :size="14"
       />
-      <span class="whitespace-nowrap">{{ item.label }}</span>
+      <span
+        class="whitespace-nowrap"
+        :class="iconOnlyBelowSm ? 'hidden sm:inline' : ''"
+      >{{ item.label }}</span>
     </button>
   </div>
 </template>

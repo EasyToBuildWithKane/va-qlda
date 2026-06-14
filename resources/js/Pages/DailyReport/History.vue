@@ -497,11 +497,10 @@ const FILTER_CONTROL_CLASS = "input h-10 w-full text-sm";
         class="border-b border-slate-100 px-5 py-4 dark:border-slate-700"
       >
         <div
-          class="flex flex-col gap-3"
+          class="flex w-full min-w-0 flex-wrap items-center gap-x-2 gap-y-2.5"
         >
-          <!-- Hàng 1: tìm kiếm + Lọc + Cột + Xuất -->
           <div
-            class="flex w-full min-w-0 flex-nowrap items-center gap-2"
+            class="order-1 min-w-0 w-full basis-full md:min-w-[12rem] md:max-w-xl md:flex-1 md:basis-auto lg:max-w-2xl"
           >
             <DatagridToolbarSearch
               v-model="filterForm.q"
@@ -511,94 +510,103 @@ const FILTER_CONTROL_CLASS = "input h-10 w-full text-sm";
               inline-actions
               input-height="h-10"
             />
-
-            <div
-              ref="filterPanelDdRef"
-              class="relative shrink-0"
-            >
-              <DatagridToolbarActionButton
-                icon="filter"
-                :active="showFilterPanelDd"
-                :title="`Hiển thị bộ lọc (${enabledFilterControlCount}/${FILTER_CONTROLS.length})`"
-                @click="
-                  openFilterPanel(() => {
-                    colsMenu = false;
-                    exportMenu = false;
-                  })
-                "
-              >
-                Lọc
-              </DatagridToolbarActionButton>
-              <FilterVisibilityDropdown
-                v-model="visibleFilters"
-                :show="showFilterPanelDd"
-                :anchor-ref="filterPanelDdRef"
-                :controls="
-                  FILTER_CONTROLS.filter(
-                    (f) =>
-                      f.key !== 'employee' ||
-                      canFilterEmployee,
-                  )
-                "
-                @persist="persistVisibleFilters"
-              />
-            </div>
-
-            <div
-              ref="colsRef"
-              class="relative shrink-0"
-            >
-              <DatagridToolbarActionButton
-                icon="columns"
-                :active="colsMenu"
-                title="Cột hiển thị (chế độ bảng)"
-                @click="
-                  colsMenu = !colsMenu;
-                  exportMenu = false;
-                  showFilterPanelDd = false;
-                "
-              >
-                Cột
-              </DatagridToolbarActionButton>
-            </div>
-
-            <div
-              ref="exportRef"
-              class="relative shrink-0"
-            >
-              <DatagridToolbarActionButton
-                icon="export"
-                :active="exportMenu"
-                :disabled="exporting"
-                title="Xuất toàn bộ dữ liệu đang lọc"
-                @click="
-                  exportMenu = !exportMenu;
-                  colsMenu = false;
-                  showFilterPanelDd = false;
-                "
-              >
-                {{ exporting ? "Đang xuất…" : "Xuất" }}
-              </DatagridToolbarActionButton>
-            </div>
           </div>
 
-          <!-- Hàng 2: nhóm thời gian / chế độ xem (căn phải) -->
           <div
-            class="flex w-full min-w-0 flex-wrap items-center justify-end gap-2"
+            class="order-2 flex w-full min-w-0 basis-full items-center justify-between gap-2 md:contents"
           >
-            <DatagridSegmentedControl
-              :model-value="groupMode"
-              :items="GROUP_TABS"
-              aria-label="Nhóm theo thời gian"
-              @update:model-value="setGroupMode"
-            />
+            <div
+              class="flex shrink-0 items-center gap-2"
+            >
+              <div
+                ref="filterPanelDdRef"
+                class="relative shrink-0"
+              >
+                <DatagridToolbarActionButton
+                  icon="filter"
+                  :active="showFilterPanelDd"
+                  :title="`Hiển thị bộ lọc (${enabledFilterControlCount}/${FILTER_CONTROLS.length})`"
+                  @click="
+                    openFilterPanel(() => {
+                      colsMenu = false;
+                      exportMenu = false;
+                    })
+                  "
+                >
+                  Lọc
+                </DatagridToolbarActionButton>
+                <FilterVisibilityDropdown
+                  v-model="visibleFilters"
+                  :show="showFilterPanelDd"
+                  :anchor-ref="filterPanelDdRef"
+                  :controls="
+                    FILTER_CONTROLS.filter(
+                      (f) =>
+                        f.key !== 'employee' ||
+                        canFilterEmployee,
+                    )
+                  "
+                  @persist="persistVisibleFilters"
+                />
+              </div>
 
-            <DatagridSegmentedControl
-              :model-value="viewMode"
-              :items="VIEW_TABS"
-              aria-label="Chế độ hiển thị"
-              @update:model-value="setViewMode"
-            />
+              <div
+                ref="colsRef"
+                class="relative shrink-0"
+              >
+                <DatagridToolbarActionButton
+                  icon="columns"
+                  :active="colsMenu"
+                  title="Cột hiển thị (chế độ bảng)"
+                  @click="
+                    colsMenu = !colsMenu;
+                    exportMenu = false;
+                    showFilterPanelDd = false;
+                  "
+                >
+                  Cột
+                </DatagridToolbarActionButton>
+              </div>
+
+              <div
+                ref="exportRef"
+                class="relative shrink-0"
+              >
+                <DatagridToolbarActionButton
+                  icon="export"
+                  :active="exportMenu"
+                  :disabled="exporting"
+                  title="Xuất toàn bộ dữ liệu đang lọc"
+                  @click="
+                    exportMenu = !exportMenu;
+                    colsMenu = false;
+                    showFilterPanelDd = false;
+                  "
+                >
+                  {{ exporting ? "Đang xuất…" : "Xuất" }}
+                </DatagridToolbarActionButton>
+              </div>
+            </div>
+
+            <div
+              class="flex min-w-0 shrink-0 flex-wrap items-center justify-end gap-2 md:ml-auto"
+            >
+              <DatagridSegmentedControl
+                :model-value="groupMode"
+                :items="GROUP_TABS"
+                aria-label="Nhóm theo thời gian"
+                icon-only-below-sm
+                @update:model-value="setGroupMode"
+              />
+
+              <DatagridSegmentedControl
+                :model-value="viewMode"
+                :items="VIEW_TABS"
+                aria-label="Chế độ hiển thị"
+                icon-only-below-sm
+                @update:model-value="setViewMode"
+              />
+            </div>
           </div>
         </div>
 
