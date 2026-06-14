@@ -67,6 +67,60 @@ class CoachingTest extends TestCase
                 ->where('course.id', $course->id));
     }
 
+    public function test_admin_can_store_session_on_course(): void
+    {
+        $admin = $this->admin();
+        $course = CoachingCourse::create([
+            'name' => 'Khóa buổi',
+            'status' => CoachingCourseStatus::Active,
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('coaching.courses.sessions.store', $course), [
+                'title' => 'Buổi 1',
+                'session_number' => 1,
+                'date' => '2026-06-14',
+                'total_hours' => 2.5,
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('coaching_sessions', [
+            'course_id' => $course->id,
+            'title' => 'Buổi 1',
+            'session_number' => 1,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('coaching.courses.show', $course))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Coaching/Courses/Show')
+                ->where('nextSessionNumber', 2));
+    }
+
+    public function test_duplicate_session_number_returns_validation_error(): void
+    {
+        $admin = $this->admin();
+        $course = CoachingCourse::create([
+            'name' => 'Khóa dup',
+            'status' => CoachingCourseStatus::Active,
+        ]);
+        CoachingSession::create([
+            'course_id' => $course->id,
+            'title' => 'Buổi 1',
+            'session_number' => 1,
+            'status' => CoachingSessionStatus::Pending,
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('coaching.courses.sessions.store', $course), [
+                'title' => 'Buổi trùng',
+                'session_number' => 1,
+            ])
+            ->assertSessionHasErrors('session_number');
+    }
+
     public function test_coaching_dashboard_counts_student_by_free_text_name(): void
     {
         CoachingCourse::create([

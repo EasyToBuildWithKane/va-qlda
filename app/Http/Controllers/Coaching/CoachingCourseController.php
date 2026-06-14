@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Coaching;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Coaching\StoreCoachingCourseRequest;
+use App\Http\Requests\Coaching\StoreCoachingSessionRequest;
 use App\Http\Requests\Coaching\UpdateCoachingCourseRequest;
 use App\Http\Resources\CoachingCourseResource;
 use App\Models\CoachingCourse;
@@ -89,6 +90,7 @@ class CoachingCourseController extends Controller
 
         return Inertia::render('Coaching/Courses/Show', [
             'course' => (new CoachingCourseResource($course))->resolve(),
+            'nextSessionNumber' => ((int) $course->sessions()->max('session_number')) + 1,
             'sessionStatuses' => CoachingSessionStatus::options(),
         ]);
     }
@@ -122,18 +124,9 @@ class CoachingCourseController extends Controller
             ->with('success', 'Đã xóa khóa học.');
     }
 
-    public function storeSession(Request $request, CoachingCourse $course): RedirectResponse
+    public function storeSession(StoreCoachingSessionRequest $request, CoachingCourse $course): RedirectResponse
     {
-        $this->authorize('update', $course);
-
-        $data = $request->validate([
-            'title' => ['required', 'string', 'max:255'],
-            'session_number' => ['required', 'integer', 'min:1'],
-            'date' => ['nullable', 'date'],
-            'total_hours' => ['nullable', 'numeric', 'min:0'],
-            'status' => ['nullable', 'string'],
-        ]);
-
+        $data = $request->validated();
         $data['course_id'] = $course->id;
         $data['status'] ??= CoachingSessionStatus::Pending->value;
 

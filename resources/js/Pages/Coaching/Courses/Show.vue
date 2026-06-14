@@ -10,13 +10,13 @@ import { currency, date, hours as fmtHours } from '@/composables/useFormat';
 
 const props = defineProps({
     course: { type: Object, required: true },
+    nextSessionNumber: { type: Number, default: 1 },
     sessionStatuses: { type: Array, default: () => [] },
 });
 
 const sessionModal = ref(false);
 
 const sessions = computed(() => props.course.sessions ?? []);
-const nextSessionNumber = computed(() => (sessions.value.length ?? 0) + 1);
 
 const statusColor = computed(() => {
     const v = props.course.status?.value;
