@@ -17,6 +17,8 @@ defineProps({
     capInputWidth: { type: Boolean, default: false },
     /** stretch + Lọc/Cột cùng hàng: ô tìm co theo phần còn lại, không basis-full */
     inlineActions: { type: Boolean, default: false },
+    /** Ẩn label «Tìm kiếm» — placeholder + aria-label trên input */
+    hideLabel: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['update:modelValue', 'clear']);
@@ -25,21 +27,25 @@ const emit = defineEmits(['update:modelValue', 'clear']);
 <template>
   <div
     class="flex min-w-0 items-center gap-2"
-    :class="half
-      ? 'w-full min-w-0 sm:w-1/2 sm:max-w-[50%]'
-      : compact
-        ? 'w-auto max-w-[min(100%,20rem)] shrink'
-        : stretch
-          ? inlineActions
-            ? 'min-w-0 flex-1'
+    :class="[
+      hideLabel ? 'w-full' : '',
+      half
+        ? 'w-full min-w-0 sm:w-1/2 sm:max-w-[50%]'
+        : compact
+          ? 'w-auto max-w-[min(100%,20rem)] shrink'
+          : stretch
+            ? inlineActions
+              ? 'min-w-0 flex-1'
+              : capInputWidth
+                ? 'w-full min-w-0 basis-full max-w-none flex-1 sm:max-w-[36rem] sm:basis-auto'
+                : 'w-full min-w-0 flex-1'
             : capInputWidth
-              ? 'w-full min-w-0 basis-full max-w-none flex-1 sm:max-w-[36rem] sm:basis-auto'
-              : 'w-full min-w-0 flex-1'
-          : capInputWidth
-            ? 'w-full min-w-0 flex-1 max-w-[36rem]'
-            : 'w-full flex-1 basis-full lg:basis-auto lg:min-w-0'"
+              ? 'w-full min-w-0 flex-1 max-w-[36rem]'
+              : 'w-full flex-1 basis-full lg:basis-auto lg:min-w-0',
+    ]"
   >
     <label
+      v-if="!hideLabel"
       :for="inputId"
       class="shrink-0 text-xs font-medium text-slate-500"
     >
@@ -67,6 +73,7 @@ const emit = defineEmits(['update:modelValue', 'clear']);
         :value="modelValue"
         type="search"
         :placeholder="placeholder"
+        :aria-label="hideLabel ? placeholder : undefined"
         :class="['input w-full pl-9 pr-8 text-sm placeholder:text-slate-400', inputHeight]"
         autocomplete="off"
         @input="emit('update:modelValue', $event.target.value)"
