@@ -54,6 +54,10 @@ class UpdateSettingsRequest extends FormRequest
             'bot_token' => 'Bot token',
             'chat_id' => 'Chat ID',
             'blocker_chat_id' => 'Chat ID vướng mắc',
+            'enabled' => 'Bật gửi email',
+            'from_name' => 'Tên người gửi',
+            'notify_on_assign' => 'Email khi giao việc',
+            'notify_daily_at' => 'Giờ gửi tổng hợp',
         ];
     }
 }

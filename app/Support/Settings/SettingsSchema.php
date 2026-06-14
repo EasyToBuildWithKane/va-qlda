@@ -24,7 +24,7 @@ use Illuminate\Validation\Rule;
 final class SettingsSchema
 {
     /** Tabs/groups, in display order. */
-    public const GROUPS = ['general', 'auth', 'telegram', 'permissions'];
+    public const GROUPS = ['general', 'auth', 'telegram', 'email', 'permissions'];
 
     public const MATRIX_KEY = 'permissions.role_grants';
 
@@ -42,6 +42,7 @@ final class SettingsSchema
             ['key' => 'general', 'label' => 'Chung', 'icon' => 'settings', 'description' => 'Nhận diện hệ thống'],
             ['key' => 'auth', 'label' => 'Đăng nhập & Bảo mật', 'icon' => 'account', 'description' => 'Đăng nhập & domain email'],
             ['key' => 'telegram', 'label' => 'Thông báo Telegram', 'icon' => 'send', 'description' => 'Bot & kênh thông báo'],
+            ['key' => 'email', 'label' => 'Email & Thông báo', 'icon' => 'mail', 'description' => 'Cấu hình gửi email và mẫu thông báo'],
             ['key' => 'permissions', 'label' => 'Phân quyền', 'icon' => 'members', 'description' => 'Ma trận vai trò × quyền'],
         ];
     }
@@ -96,6 +97,21 @@ final class SettingsSchema
             ['group' => 'telegram', 'name' => 'blocker_resolved', 'type' => 'bool', 'label' => 'Báo khi vướng mắc được giải quyết',
                 'help' => 'Gửi thông báo khi vướng mắc chuyển Đã giải quyết/Đã đóng.',
                 'config' => 'telegram.blocker_resolved', 'default' => true, 'rules' => ['boolean']],
+
+            // ── email ────────────────────────────────────────────────
+            ['group' => 'email', 'name' => 'enabled', 'type' => 'bool', 'label' => 'Bật gửi email công việc',
+                'help' => 'Cho phép gửi email tổng hợp và thông báo giao việc (cần cấu hình MAIL_* trên server).',
+                'config' => 'task_email.enabled', 'default' => false, 'rules' => ['boolean']],
+            ['group' => 'email', 'name' => 'from_name', 'type' => 'string', 'label' => 'Tên người gửi (From name)',
+                'help' => 'Hiển thị trên hộp thư người nhận.', 'config' => 'task_email.from_name',
+                'default' => 'VAschools QLDA', 'rules' => ['nullable', 'string', 'max:120']],
+            ['group' => 'email', 'name' => 'notify_on_assign', 'type' => 'bool', 'label' => 'Email khi giao việc',
+                'help' => 'Gửi email cho người được assign khi tạo công việc mới.',
+                'config' => 'task_email.notify_on_assign', 'default' => true, 'rules' => ['boolean']],
+            ['group' => 'email', 'name' => 'notify_daily_at', 'type' => 'string', 'label' => 'Giờ gửi tổng hợp ngày (HH:MM)',
+                'help' => 'Dùng cho lịch tự động sau này; nút gửi thủ công vẫn hoạt động bất kể giá trị này.',
+                'config' => 'task_email.notify_daily_at', 'default' => '17:00',
+                'rules' => ['nullable', 'string', 'regex:/^\d{2}:\d{2}$/']],
         ];
     }
 

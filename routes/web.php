@@ -20,6 +20,7 @@ use App\Http\Controllers\Feedback\FeedbackController;
 use App\Http\Controllers\Notification\NotificationController;
 use App\Http\Controllers\Notification\NotificationManagementController;
 use App\Http\Controllers\OrgTeam\OrgTeamController;
+use App\Http\Controllers\Project\EmailNotificationController;
 use App\Http\Controllers\Project\EpicController;
 use App\Http\Controllers\Project\ProjectAttachmentController;
 use App\Http\Controllers\Project\ProjectController;
@@ -103,6 +104,8 @@ Route::middleware('auth')->group(function () {
         Route::patch('/{project}/sprints/reorder', [SprintController::class, 'reorder'])->name('sprints.reorder');
         Route::put('/{project}/sprints/{sprint}', [SprintController::class, 'update'])->name('sprints.update');
         Route::delete('/{project}/sprints/{sprint}', [SprintController::class, 'destroy'])->name('sprints.destroy');
+        Route::post('/{project}/email/daily-summary', [EmailNotificationController::class, 'dailySummary'])->name('email.daily-summary');
+        Route::post('/{project}/sprints/{sprint}/email/summary', [EmailNotificationController::class, 'sprintSummary'])->name('email.sprint-summary');
 
         // Tasks
         Route::get('/{project}/tasks/{task}', [TaskController::class, 'show'])->name('tasks.show');
@@ -236,8 +239,10 @@ Route::middleware('auth')->group(function () {
     Route::prefix('settings')->name('settings.')->group(function () {
         Route::get('/', [SystemSettingController::class, 'index'])->name('index');
         Route::put('/{group}', [SystemSettingController::class, 'update'])
-            ->whereIn('group', ['general', 'auth', 'telegram', 'permissions'])
+            ->whereIn('group', ['general', 'auth', 'telegram', 'email', 'permissions'])
             ->name('update');
+        Route::get('/email-templates', [SystemSettingController::class, 'emailTemplates'])->name('email-templates.index');
+        Route::put('/email-templates/{emailTemplate}', [SystemSettingController::class, 'updateEmailTemplate'])->name('email-templates.update');
     });
 
     // Polymorphic comments (bug/feedback/blocker/task threads)

@@ -2,9 +2,11 @@
 
 namespace App\Application\Task;
 
+use App\Models\Employee;
 use App\Models\Project;
 use App\Models\SystemAccount;
 use App\Models\Task;
+use App\Services\TaskEmailService;
 use App\Support\NotificationDispatcher;
 use App\Support\TaskActivityLogger;
 use App\Support\TaskProgress;
@@ -12,6 +14,8 @@ use App\Support\TaskTimeliness;
 
 class CreateTaskUseCase
 {
+    public function __construct(private readonly TaskEmailService $taskEmail) {}
+
     /**
      * @param  array<string, mixed>  $data  Validated payload from StoreTaskRequest
      */
@@ -36,11 +40,33 @@ class CreateTaskUseCase
             $task->assignees()->sync($assigneeIds);
         }
 
-        $fresh = $task->fresh();
+        $fresh = $task->fresh()->load(['project', 'sprint', 'assignees', 'assignee']);
         TaskTimeliness::syncWorkStartedAt($fresh);
         TaskActivityLogger::created($fresh, $actor);
-        NotificationDispatcher::taskCreated($fresh->load('project'), $actor);
+        NotificationDispatcher::taskCreated($fresh, $actor);
+
+        $this->queueAssignmentEmails($fresh);
 
         return $fresh;
+    }
+
+    private function queueAssignmentEmails(Task $task): void
+    {
+        if (! $this->taskEmail->notifyOnAssignEnabled()) {
+            return;
+        }
+
+        $employeeIds = collect([$task->assignee_id])
+            ->merge($task->assignees->pluck('id'))
+            ->filter()
+            ->unique()
+            ->values();
+
+        foreach ($employeeIds as $employeeId) {
+            $employee = Employee::query()->find($employeeId);
+            if ($employee instanceof Employee) {
+                $this->taskEmail->queueTaskAssigned($task, $employee);
+            }
+        }
     }
 }

@@ -12,7 +12,7 @@ import {
     PiggyBank, ArrowLeft, Building2, Info, Building, Globe, MapPin,
     Columns3, Download, Upload, FileDown, RotateCw, Eye, Copy, Archive, ChevronDown,
     Save, Check, ArrowUpDown, CalendarClock, Users2, CircleDollarSign, Image, Ellipsis, EllipsisVertical,
-    EyeOff, Send,
+    EyeOff, Send, Mail,
     GripVertical,
 } from 'lucide-vue-next';
 
@@ -120,6 +120,7 @@ const map = {
     list: ListChecks,
     save: Save,
     send: Send,
+    mail: Mail,
     check: Check,
     sort: ArrowUpDown,
     star: Star,

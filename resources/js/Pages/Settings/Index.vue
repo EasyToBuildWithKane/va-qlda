@@ -6,10 +6,12 @@ import PageHeader from '@/Components/Ui/PageHeader.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import FieldsTab from './partials/FieldsTab.vue';
 import PermissionsTab from './partials/PermissionsTab.vue';
+import EmailTemplateTab from './partials/EmailTemplateTab.vue';
 
 const props = defineProps({
     groups: { type: Array, default: () => [] },
     settings: { type: Object, default: () => ({}) },
+    emailTemplates: { type: Array, default: () => [] },
     permissions: { type: Object, default: () => ({}) },
     can: { type: Object, default: () => ({}) },
 });
@@ -24,12 +26,12 @@ const groupMeta = (key) => props.groups.find((g) => g.key === key) ?? { label: '
     <template #header>
       <PageHeader
         title="Cấu hình hệ thống"
-        subtitle="Quản trị nhận diện, đăng nhập, thông báo và phân quyền"
+        subtitle="Quản trị nhận diện, đăng nhập, email, thông báo và phân quyền"
         icon="system-config"
       />
     </template>
 
-    <div class="mx-auto max-w-5xl">
+    <div class="w-full max-w-none">
       <div class="flex flex-col gap-6 md:flex-row">
         <!-- Tab rail -->
         <nav class="flex shrink-0 gap-2 overflow-x-auto pb-1 md:w-64 md:flex-col md:overflow-visible md:pb-0">
@@ -86,6 +88,14 @@ const groupMeta = (key) => props.groups.find((g) => g.key === key) ?? { label: '
             :title="groupMeta('telegram').label"
             :description="groupMeta('telegram').description"
             :fields="settings.telegram ?? []"
+            :can-manage="can.manage"
+          />
+          <EmailTemplateTab
+            v-show="active === 'email'"
+            :title="groupMeta('email').label"
+            :description="groupMeta('email').description"
+            :email-fields="settings.email ?? []"
+            :email-templates="emailTemplates"
             :can-manage="can.manage"
           />
           <PermissionsTab

@@ -28,7 +28,7 @@ export default defineConfig({
     projects: [
         {
             name: 'chromium',
-            testIgnore: '**/visual/**',
+            testIgnore: ['**/visual/**', '**/smoke/**'],
             use: { ...devices['Desktop Chrome'] },
         },
         {
@@ -36,6 +36,15 @@ export default defineConfig({
             testDir: './tests/e2e/visual',
             snapshotPathTemplate: '{testDir}/snapshots/{testFilePath}/{arg}{ext}',
             use: { ...devices['Desktop Chrome'] },
+        },
+        {
+            name: 'smoke',
+            testDir: './tests/e2e/smoke',
+            use: {
+                ...devices['Desktop Chrome'],
+                screenshot: 'on',
+                video: 'off',
+            },
         },
     ],
     webServer: {

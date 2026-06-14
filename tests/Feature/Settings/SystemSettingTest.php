@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Settings;
 
+use App\Models\EmailTemplate;
 use App\Models\SystemAccount;
 use App\Providers\SettingsServiceProvider;
 use App\Support\Enums\SystemRole;
@@ -42,7 +43,8 @@ class SystemSettingTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Settings/Index')
-                ->has('groups', 4)
+                ->has('groups', 5)
+                ->has('emailTemplates', 3)
                 ->where('can.manage', true)
             );
     }
@@ -157,6 +159,23 @@ class SystemSettingTest extends TestCase
         (new SettingsServiceProvider($this->app))->boot();
 
         $this->assertTrue(config('telegram.enabled'));
+    }
+
+    public function test_admin_can_update_email_template(): void
+    {
+        $template = EmailTemplate::query()->where('key', EmailTemplate::KEY_TASK_ASSIGNED)->first();
+        $this->assertNotNull($template);
+
+        $this->actingAs($this->admin(), 'system')
+            ->put("/settings/email-templates/{$template->id}", [
+                'subject' => 'Test subject {{task_name}}',
+                'body_html' => '<p>Hello {{assignee_name}}</p>',
+                'is_active' => true,
+            ])
+            ->assertRedirect();
+
+        $template->refresh();
+        $this->assertSame('Test subject {{task_name}}', $template->subject);
     }
 
     public function test_overlay_forces_admin_wildcard(): void

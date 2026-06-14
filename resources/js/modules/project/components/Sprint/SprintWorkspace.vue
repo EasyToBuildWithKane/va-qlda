@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, toRef, onMounted, watch } from 'vue';
+import { ref, computed, toRef, onMounted, onBeforeUnmount, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
 import SprintFormModal from '@/modules/project/components/SprintFormModal.vue';
@@ -72,6 +72,8 @@ const viewMode = ref('list');
 const dataModalOpen = ref(false);
 const dataModalTab = ref('import');
 const expandedSprints = ref(new Set());
+const emailMenuOpen = ref(false);
+const emailMenuRef = ref(null);
 const detailTask = ref(null);
 const sprintModal = ref(false);
 const editingSprint = ref(null);
@@ -179,10 +181,44 @@ const viewModes = [
     { key: 'calendar', label: 'Lịch', icon: 'calendar' },
 ];
 
+const emailSprintId = computed(() => {
+    if (expandedSprints.value.size > 0) {
+        return [...expandedSprints.value][0];
+    }
+
+    return props.sprints[0]?.id ?? null;
+});
+
+function onEmailClickOutside(e) {
+    if (emailMenuRef.value && !emailMenuRef.value.contains(e.target)) {
+        emailMenuOpen.value = false;
+    }
+}
+
+function sendDailySummaryEmail() {
+    emailMenuOpen.value = false;
+    router.post(route('projects.email.daily-summary', pid), {}, {
+        preserveScroll: true,
+    });
+}
+
+function sendSprintSummaryEmail() {
+    if (!emailSprintId.value) return;
+    emailMenuOpen.value = false;
+    router.post(route('projects.email.sprint-summary', [pid, emailSprintId.value]), {}, {
+        preserveScroll: true,
+    });
+}
+
 onMounted(() => {
     const s = new Set(expandedSprints.value);
     props.sprints.slice(0, 2).forEach((sp) => s.add(sp.id));
     expandedSprints.value = s;
+    document.addEventListener('mousedown', onEmailClickOutside);
+});
+
+onBeforeUnmount(() => {
+    document.removeEventListener('mousedown', onEmailClickOutside);
 });
 </script>
 
@@ -263,6 +299,45 @@ onMounted(() => {
             name="add"
             :size="14"
           /> Task
+        </button>
+        <button
+          v-if="canManage"
+          ref="emailMenuRef"
+          type="button"
+          class="relative inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border border-slate-200 px-2.5 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-600"
+          @click="emailMenuOpen = !emailMenuOpen"
+        >
+          <AppIcon
+            name="mail"
+            :size="15"
+          />
+          <span>Gửi email</span>
+          <AppIcon
+            name="chevron-down"
+            :size="12"
+          />
+          <div
+            v-if="emailMenuOpen"
+            class="absolute right-0 top-full z-30 mt-1 min-w-[12rem] rounded-lg border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-600 dark:bg-slate-900"
+          >
+            <button
+              type="button"
+              class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+              @click="sendDailySummaryEmail"
+            >
+              Tổng hợp hôm nay
+            </button>
+            <button
+              type="button"
+              class="block w-full px-3 py-2 text-left text-xs disabled:cursor-not-allowed disabled:text-slate-300"
+              :class="emailSprintId ? 'text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800' : 'text-slate-400'"
+              :disabled="!emailSprintId"
+              :title="emailSprintId ? 'Gửi theo sprint đang mở đầu tiên' : 'Chưa có sprint'"
+              @click="sendSprintSummaryEmail"
+            >
+              Tổng hợp sprint
+            </button>
+          </div>
         </button>
         <button
           v-if="canManage"

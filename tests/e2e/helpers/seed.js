@@ -1,7 +1,10 @@
 import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { e2eDatabaseEnv, e2eDatabasePath } from './database.js';
+
+const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 
 /**
  * Ensure SQLite E2E database exists and is seeded.
@@ -18,5 +21,7 @@ export function ensureE2EDatabase() {
     execSync('php artisan migrate:fresh --force --seed', {
         stdio: 'inherit',
         env,
+        cwd: projectRoot,
+        shell: process.platform === 'win32',
     });
 }

@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Settings;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Settings\UpdateEmailTemplateRequest;
 use App\Http\Requests\Settings\UpdateSettingsRequest;
+use App\Models\EmailTemplate;
 use App\Models\SystemAccount;
 use App\Models\SystemSetting;
 use App\Support\Enums\SystemRole;
@@ -32,9 +34,35 @@ class SystemSettingController extends Controller
         return Inertia::render('Settings/Index', [
             'groups' => SettingsSchema::groups(),
             'settings' => $this->settingsPayload(),
+            'emailTemplates' => $this->emailTemplatesPayload(),
             'permissions' => $this->permissionsPayload(),
             'can' => ['manage' => $request->user()->can('manage', SystemSetting::class)],
         ]);
+    }
+
+    public function emailTemplates(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $this->authorize('viewAny', SystemSetting::class);
+
+        return response()->json(['templates' => $this->emailTemplatesPayload()]);
+    }
+
+    public function updateEmailTemplate(UpdateEmailTemplateRequest $request, EmailTemplate $emailTemplate): RedirectResponse
+    {
+        $this->authorize('manage', SystemSetting::class);
+
+        $validated = $request->validated();
+
+        DB::transaction(function () use ($validated, $emailTemplate, $request) {
+            $emailTemplate->update([
+                'subject' => $validated['subject'],
+                'body_html' => $validated['body_html'],
+                'is_active' => (bool) ($validated['is_active'] ?? true),
+                'updated_by' => $request->user()->id,
+            ]);
+        });
+
+        return back()->with('success', 'Đã lưu mẫu email.');
     }
 
     public function update(UpdateSettingsRequest $request, string $group): RedirectResponse
@@ -63,7 +91,7 @@ class SystemSettingController extends Controller
     {
         $out = [];
 
-        foreach (['general', 'auth', 'telegram'] as $group) {
+        foreach (['general', 'auth', 'telegram', 'email'] as $group) {
             $out[$group] = array_map(function (array $field): array {
                 $value = $this->settings->get($field['key']);
 
@@ -76,6 +104,26 @@ class SystemSettingController extends Controller
         }
 
         return $out;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function emailTemplatesPayload(): array
+    {
+        return EmailTemplate::query()
+            ->orderBy('id')
+            ->get()
+            ->map(fn (EmailTemplate $t) => [
+                'id' => $t->id,
+                'key' => $t->key,
+                'name' => $t->name,
+                'subject' => $t->subject,
+                'body_html' => $t->body_html,
+                'is_active' => $t->is_active,
+                'variables' => EmailTemplate::variableHints($t->key),
+            ])
+            ->all();
     }
 
     /**
