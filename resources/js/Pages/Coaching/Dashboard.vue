@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
@@ -39,29 +39,41 @@ const props = defineProps({
     monthly: { type: Object, required: true },
     month: { type: String, required: true },
     revenueSeries: { type: Array, default: () => [] },
+    dailySeries: { type: Array, default: () => [] },
     activeCourses: { type: Array, default: () => [] },
     can: { type: Object, default: () => ({}) },
 });
 
 const toast = useToast();
 
-const toneClass = {
-    brand: 'text-brand bg-rose-50',
-    emerald: 'text-emerald-700 bg-emerald-50',
-    sky: 'text-sky-700 bg-sky-50',
-    amber: 'text-amber-700 bg-amber-50',
-    violet: 'text-violet-700 bg-violet-50',
-    slate: 'text-slate-600 bg-slate-100',
-};
+const CHART_GRANULARITY_OPTS = [
+    { value: 'month', label: 'Theo tháng' },
+    { value: 'day', label: 'Theo ngày' },
+];
 
-const chartLabels = computed(() => props.revenueSeries.map((r) => r.month));
+/** Mặc định: doanh thu 12 tháng; giờ dạy chi tiết theo ngày trong kỳ đang xem. */
+const revenueGranularity = ref('month');
+const hoursGranularity = ref('day');
+
+function seriesForGranularity(granularity) {
+    return granularity === 'day' ? props.dailySeries : props.revenueSeries;
+}
+
+function labelFromPoint(granularity, point) {
+    if (granularity === 'day') return point.label ?? point.day;
+    return point.month;
+}
+
+const revenueChartLabels = computed(() =>
+    seriesForGranularity(revenueGranularity.value).map((r) => labelFromPoint(revenueGranularity.value, r)),
+);
 
 const chartData = computed(() => ({
-    labels: chartLabels.value,
+    labels: revenueChartLabels.value,
     datasets: [
         {
             label: 'Doanh thu (VNĐ)',
-            data: props.revenueSeries.map((r) => r.revenue),
+            data: seriesForGranularity(revenueGranularity.value).map((r) => r.revenue),
             borderColor: '#9A0036',
             backgroundColor: 'rgba(154, 0, 54, 0.12)',
             pointBackgroundColor: '#9A0036',
@@ -73,17 +85,42 @@ const chartData = computed(() => ({
     ],
 }));
 
+const hoursChartLabels = computed(() =>
+    seriesForGranularity(hoursGranularity.value).map((r) => labelFromPoint(hoursGranularity.value, r)),
+);
+
 const hoursChartData = computed(() => ({
-    labels: chartLabels.value,
+    labels: hoursChartLabels.value,
     datasets: [{
         label: 'Giờ dạy',
-        data: props.revenueSeries.map((r) => r.hours),
+        data: seriesForGranularity(hoursGranularity.value).map((r) => r.hours),
         backgroundColor: 'rgba(154, 0, 54, 0.75)',
         hoverBackgroundColor: '#9A0036',
         borderRadius: 6,
-        maxBarThickness: 40,
+        maxBarThickness: hoursGranularity.value === 'day' ? 12 : 40,
     }],
 }));
+
+const revenueChartSubtitle = computed(() =>
+    revenueGranularity.value === 'day'
+        ? `Theo từng ngày trong ${monthLabel.value}.`
+        : '12 tháng gần nhất — di chuột hoặc chạm để xem chi tiết.',
+);
+
+const hoursChartSubtitle = computed(() =>
+    hoursGranularity.value === 'day'
+        ? `Giờ buổi hoàn thành theo ngày — ${monthLabel.value}.`
+        : 'Tổng giờ buổi học đã hoàn thành theo tháng.',
+);
+
+const toneClass = {
+    brand: 'text-brand bg-rose-50',
+    emerald: 'text-emerald-700 bg-emerald-50',
+    sky: 'text-sky-700 bg-sky-50',
+    amber: 'text-amber-700 bg-amber-50',
+    violet: 'text-violet-700 bg-violet-50',
+    slate: 'text-slate-600 bg-slate-100',
+};
 
 const sharedChartPlugins = {
     legend: { display: false },
@@ -388,13 +425,31 @@ const monthLabel = computed(() => {
         <div class="grid gap-6 lg:grid-cols-2">
           <!-- Biểu đồ doanh thu -->
           <div class="card p-5 lg:col-span-1">
-            <div class="mb-4">
-              <h3 class="font-display text-sm font-semibold text-slate-800">
-                Doanh thu — 12 tháng
-              </h3>
-              <p class="text-xs text-slate-500">
-                Di chuột hoặc chạm để xem chi tiết từng tháng.
-              </p>
+            <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 class="font-display text-sm font-semibold text-slate-800">
+                  Doanh thu
+                </h3>
+                <p class="text-xs text-slate-500">
+                  {{ revenueChartSubtitle }}
+                </p>
+              </div>
+              <div
+                class="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5"
+                role="group"
+                aria-label="Khoảng thống kê doanh thu"
+              >
+                <button
+                  v-for="opt in CHART_GRANULARITY_OPTS"
+                  :key="`rev-${opt.value}`"
+                  type="button"
+                  class="rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors"
+                  :class="revenueGranularity === opt.value ? 'bg-white text-brand shadow-sm' : 'text-slate-500 hover:text-slate-700'"
+                  @click="revenueGranularity = opt.value"
+                >
+                  {{ opt.label }}
+                </button>
+              </div>
             </div>
             <div class="h-[min(20rem,45vh)] min-h-[220px]">
               <Line
@@ -407,13 +462,31 @@ const monthLabel = computed(() => {
           <!-- Biểu đồ giờ + tiến độ -->
           <div class="flex flex-col gap-6">
             <div class="card p-5">
-              <div class="mb-4">
-                <h3 class="font-display text-sm font-semibold text-slate-800">
-                  Giờ giảng dạy — 12 tháng
-                </h3>
-                <p class="text-xs text-slate-500">
-                  Tổng giờ buổi học đã hoàn thành theo tháng.
-                </p>
+              <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h3 class="font-display text-sm font-semibold text-slate-800">
+                    Giờ giảng dạy
+                  </h3>
+                  <p class="text-xs text-slate-500">
+                    {{ hoursChartSubtitle }}
+                  </p>
+                </div>
+                <div
+                  class="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5"
+                  role="group"
+                  aria-label="Khoảng thống kê giờ dạy"
+                >
+                  <button
+                    v-for="opt in CHART_GRANULARITY_OPTS"
+                    :key="`hrs-${opt.value}`"
+                    type="button"
+                    class="rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors"
+                    :class="hoursGranularity === opt.value ? 'bg-white text-brand shadow-sm' : 'text-slate-500 hover:text-slate-700'"
+                    @click="hoursGranularity = opt.value"
+                  >
+                    {{ opt.label }}
+                  </button>
+                </div>
               </div>
               <div class="h-[min(14rem,32vh)] min-h-[180px]">
                 <Bar

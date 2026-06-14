@@ -1,0 +1,316 @@
+<script setup>
+import { computed, ref } from 'vue';
+import { router, useForm } from '@inertiajs/vue3';
+import AppIcon from '@/Components/AppIcon.vue';
+import DateInput from '@/shared/ui/form/DateInput.vue';
+import { useToast } from '@/shared/composables/useToast';
+import { date as fmtDate } from '@/composables/useFormat';
+
+const props = defineProps({
+    sessionId: { type: Number, required: true },
+    assignments: { type: Array, default: () => [] },
+    canManage: { type: Boolean, default: false },
+    canComplete: { type: Boolean, default: false },
+});
+
+const toast = useToast();
+
+const addForm = useForm({ title: '', description: '', deadline: '' });
+
+const completingId = ref(null);
+const completeNotes = ref('');
+const completeProcessing = ref(false);
+const completeError = ref('');
+
+const doneCount = computed(() => props.assignments.filter((a) => a.status === 'done').length);
+const totalCount = computed(() => props.assignments.length);
+const progressPct = computed(() => (totalCount.value ? Math.round((doneCount.value / totalCount.value) * 100) : 0));
+
+function isDone(a) {
+    return a.status === 'done';
+}
+
+function canToggle() {
+    return props.canComplete;
+}
+
+function startComplete(a) {
+    if (!canToggle() || isDone(a)) return;
+    completingId.value = a.id;
+    completeNotes.value = '';
+    completeError.value = '';
+}
+
+function cancelComplete() {
+    completingId.value = null;
+    completeNotes.value = '';
+    completeError.value = '';
+}
+
+function submitComplete(a) {
+    const notes = completeNotes.value.trim();
+    if (!notes) {
+        completeError.value = 'Vui lòng nhập nội dung hoàn thành.';
+        return;
+    }
+    completeError.value = '';
+    completeProcessing.value = true;
+    router.patch(`/coaching/assignments/${a.id}`, { status: 'done', notes }, {
+        preserveScroll: true,
+        onSuccess: () => {
+            toast.success('Đã đánh dấu hoàn thành.');
+            cancelComplete();
+        },
+        onError: (errors) => {
+            const msg = errors?.notes || errors?.status || 'Không cập nhật được bài tập.';
+            completeError.value = Array.isArray(msg) ? msg[0] : msg;
+            toast.error(completeError.value);
+        },
+        onFinish: () => { completeProcessing.value = false; },
+    });
+}
+
+function reopen(a) {
+    if (!canToggle() || !isDone(a)) return;
+    router.patch(`/coaching/assignments/${a.id}`, { status: 'todo' }, {
+        preserveScroll: true,
+        onSuccess: () => toast.success('Đã mở lại bài tập.'),
+        onError: () => toast.error('Không đổi được trạng thái.'),
+    });
+}
+
+function submitAdd() {
+    addForm.post(`/coaching/sessions/${props.sessionId}/assignments`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            addForm.reset();
+            toast.success('Đã giao bài tập.');
+        },
+    });
+}
+</script>
+
+<template>
+  <div class="mx-auto max-w-3xl space-y-4">
+    <div
+      v-if="totalCount"
+      class="rounded-xl border border-slate-100 bg-white px-4 py-3 shadow-sm"
+    >
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <p class="text-sm font-semibold text-slate-800">
+          Tiến độ bài tập
+        </p>
+        <p class="text-xs font-medium text-slate-500">
+          {{ doneCount }}/{{ totalCount }} hoàn thành
+        </p>
+      </div>
+      <div class="mt-2 h-2 overflow-hidden rounded-full bg-slate-100">
+        <div
+          class="h-full rounded-full bg-brand transition-all duration-300"
+          :style="{ width: `${progressPct}%` }"
+        />
+      </div>
+    </div>
+
+    <ul
+      v-if="totalCount"
+      class="space-y-2"
+      role="list"
+    >
+      <li
+        v-for="a in assignments"
+        :key="a.id"
+        class="overflow-hidden rounded-xl border border-slate-100 bg-white shadow-sm transition-colors"
+        :class="isDone(a) ? 'border-emerald-100/80 bg-emerald-50/20' : ''"
+      >
+        <div class="flex gap-3 px-4 py-3">
+          <button
+            type="button"
+            class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md border transition-colors"
+            :class="isDone(a)
+              ? 'border-emerald-500 bg-emerald-500 text-white'
+              : 'border-slate-300 bg-white text-transparent hover:border-brand hover:bg-brand/5'"
+            :disabled="!canComplete || completeProcessing"
+            :title="isDone(a) ? 'Mở lại' : 'Hoàn thành'"
+            :aria-label="isDone(a) ? `Mở lại: ${a.title}` : `Hoàn thành: ${a.title}`"
+            @click="isDone(a) ? reopen(a) : startComplete(a)"
+          >
+            <AppIcon
+              v-if="isDone(a)"
+              name="check"
+              :size="14"
+            />
+          </button>
+
+          <div class="min-w-0 flex-1">
+            <p
+              class="text-sm font-semibold text-slate-800"
+              :class="isDone(a) ? 'text-slate-500 line-through decoration-slate-400' : ''"
+            >
+              {{ a.title }}
+            </p>
+            <p
+              v-if="a.description"
+              class="mt-1 text-xs leading-relaxed text-slate-600"
+            >
+              {{ a.description }}
+            </p>
+            <p
+              v-if="a.deadline"
+              class="mt-1.5 flex items-center gap-1 text-xs text-slate-500"
+            >
+              <AppIcon
+                name="calendar"
+                :size="12"
+              />
+              Hạn {{ fmtDate(a.deadline) }}
+            </p>
+            <div
+              v-if="isDone(a) && a.notes"
+              class="mt-2 rounded-lg border border-emerald-100 bg-white/80 px-3 py-2"
+            >
+              <p class="text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
+                Nội dung hoàn thành
+              </p>
+              <p class="mt-1 whitespace-pre-wrap text-sm text-slate-700">
+                {{ a.notes }}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div
+          v-if="completingId === a.id"
+          class="border-t border-brand/15 bg-brand/[0.04] px-4 py-3"
+        >
+          <label
+            :for="`assignment-complete-${a.id}`"
+            class="label"
+          >
+            Nội dung hoàn thành <span class="text-danger">*</span>
+          </label>
+          <textarea
+            :id="`assignment-complete-${a.id}`"
+            v-model="completeNotes"
+            class="input mt-1 w-full text-sm"
+            rows="4"
+            placeholder="Mô tả kết quả, link repo, ghi chú đã làm…"
+            :disabled="completeProcessing"
+          />
+          <p
+            v-if="completeError"
+            class="mt-1 text-xs text-danger"
+          >
+            {{ completeError }}
+          </p>
+          <div class="mt-3 flex flex-wrap justify-end gap-2">
+            <button
+              type="button"
+              class="inline-flex h-9 items-center rounded-btn border border-slate-200 px-3 text-xs font-medium text-slate-600 hover:bg-slate-50"
+              :disabled="completeProcessing"
+              @click="cancelComplete"
+            >
+              Huỷ
+            </button>
+            <button
+              type="button"
+              class="btn-primary inline-flex h-9 items-center gap-1.5 px-4 text-xs"
+              :disabled="completeProcessing"
+              @click="submitComplete(a)"
+            >
+              <AppIcon
+                name="check"
+                :size="14"
+              />
+              Xác nhận hoàn thành
+            </button>
+          </div>
+        </div>
+      </li>
+    </ul>
+
+    <div
+      v-else
+      class="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50/50 px-6 py-12 text-center"
+    >
+      <AppIcon
+        name="task"
+        :size="32"
+        class="text-slate-300"
+      />
+      <p class="mt-3 text-sm font-medium text-slate-600">
+        Chưa có bài tập
+      </p>
+      <p
+        v-if="canManage"
+        class="mt-1 text-xs text-slate-500"
+      >
+        Thêm mục bên dưới để giao cho học viên.
+      </p>
+      <p
+        v-else-if="!canComplete"
+        class="mt-1 text-xs text-slate-500"
+      >
+        Coach sẽ giao bài tập tại đây.
+      </p>
+    </div>
+
+    <form
+      v-if="canManage"
+      class="space-y-3 rounded-xl border border-dashed border-brand/25 bg-brand/[0.03] p-4 sm:p-5"
+      @submit.prevent="submitAdd"
+    >
+      <p class="text-sm font-semibold text-slate-800">
+        Giao bài tập mới
+      </p>
+      <div>
+        <label class="label">Tiêu đề</label>
+        <input
+          v-model="addForm.title"
+          class="input w-full"
+          placeholder="VD: Làm CRUD User, đọc chương 3…"
+          required
+        >
+        <p
+          v-if="addForm.errors.title"
+          class="mt-1 text-xs text-danger"
+        >
+          {{ addForm.errors.title }}
+        </p>
+      </div>
+      <div>
+        <label class="label">Yêu cầu / mô tả</label>
+        <textarea
+          v-model="addForm.description"
+          class="input w-full"
+          rows="3"
+          placeholder="Chi tiết cần làm (tuỳ chọn)"
+        />
+      </div>
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div class="w-full sm:max-w-[11rem]">
+          <label class="label">Hạn nộp</label>
+          <DateInput v-model="addForm.deadline" />
+        </div>
+        <button
+          type="submit"
+          class="btn-primary h-10 w-full gap-1.5 px-5 text-sm sm:w-auto"
+          :disabled="addForm.processing"
+        >
+          <AppIcon
+            name="add"
+            :size="15"
+          />
+          Giao bài tập
+        </button>
+      </div>
+    </form>
+
+    <p
+      v-else-if="canComplete && totalCount"
+      class="text-center text-xs text-slate-500"
+    >
+      Đánh dấu từng mục khi xong — cần điền nội dung hoàn thành.
+    </p>
+  </div>
+</template>

@@ -12,6 +12,7 @@ import TimeInput from '@/shared/ui/form/TimeInput.vue';
 import CoachingWorkspace from '@/modules/coaching/components/CoachingWorkspace.vue';
 import KbRichTextField from '@/Components/KnowledgeBase/KbRichTextField.vue';
 import CoachingMaterialEmbed from '@/modules/coaching/components/CoachingMaterialEmbed.vue';
+import CoachingSessionAssignmentsTab from '@/modules/coaching/components/CoachingSessionAssignmentsTab.vue';
 import { useToast } from '@/shared/composables/useToast';
 import { useDialog } from '@/composables/useDialog';
 import { date as fmtDate, hours as fmtHours, timeOfDay } from '@/composables/useFormat';
@@ -42,13 +43,6 @@ const STATUS_LABEL = {
 const STATUS_COLOR = {
     pending: 'slate', in_progress: 'amber', completed: 'emerald', cancelled: 'rose',
 };
-const ASSIGN_STATUS_LABEL = {
-    todo: 'Cần làm', doing: 'Đang làm', review: 'Chờ duyệt', done: 'Hoàn thành',
-};
-const ASSIGN_STATUS_COLOR = {
-    todo: 'slate', doing: 'amber', review: 'sky', done: 'emerald',
-};
-
 const tabs = [
     { key: 'overview', label: 'Tổng quan', icon: 'overview' },
     { key: 'content', label: 'Nội dung', icon: 'documents' },
@@ -81,11 +75,10 @@ const metaForm = useForm({
 });
 
 const materialForm = useForm({ type: 'youtube', title: '', url: '', file: null });
-const assignmentForm = useForm({ title: '', description: '', deadline: '' });
 const contentForm = useForm({ content: props.session.content ?? '' });
 
 const formsDirty = computed(
-    () => metaForm.isDirty || contentForm.isDirty || materialForm.isDirty || assignmentForm.isDirty,
+    () => metaForm.isDirty || contentForm.isDirty || materialForm.isDirty,
 );
 
 function sessionMetaDefaults() {
@@ -102,7 +95,6 @@ function syncFormsFromSession() {
     metaForm.defaults(sessionMetaDefaults()).reset();
     contentForm.defaults({ content: props.session.content ?? '' }).reset();
     materialForm.reset();
-    assignmentForm.reset();
 }
 
 function startEdit() {
@@ -164,16 +156,6 @@ function submitMaterial() {
         onSuccess: () => {
             materialForm.reset();
             toast.success('Đã thêm tài liệu.');
-        },
-    });
-}
-
-function submitAssignment() {
-    assignmentForm.post(`/coaching/sessions/${props.session.id}/assignments`, {
-        preserveScroll: true,
-        onSuccess: () => {
-            assignmentForm.reset();
-            toast.success('Đã thêm bài tập.');
         },
     });
 }
@@ -337,7 +319,7 @@ function tabBadge(key) {
               Đang chỉnh sửa buổi học
             </span>
             <span class="text-xs text-slate-600">
-              Lưu từng tab (Tổng quan / Nội dung) hoặc thêm tài liệu, bài tập bên dưới.
+              Lưu từng tab (Tổng quan / Nội dung) hoặc thêm tài liệu khi chỉnh sửa; bài tập giao tại tab Bài tập.
             </span>
           </div>
 
@@ -640,101 +622,13 @@ function tabBadge(key) {
               </form>
             </div>
 
-            <!-- Bài tập -->
-            <div
+            <CoachingSessionAssignmentsTab
               v-show="activeTab === 'assignments'"
-              class="mx-auto max-w-3xl space-y-4"
-            >
-              <ul
-                v-if="session.assignments?.length"
-                class="space-y-2"
-              >
-                <li
-                  v-for="a in session.assignments"
-                  :key="a.id"
-                  class="flex flex-col gap-2 rounded-xl border border-slate-100 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div class="min-w-0">
-                    <p class="text-sm font-semibold text-slate-800">
-                      {{ a.title }}
-                    </p>
-                    <p
-                      v-if="a.deadline"
-                      class="mt-0.5 flex items-center gap-1 text-xs text-slate-500"
-                    >
-                      <AppIcon
-                        name="calendar"
-                        :size="12"
-                      />
-                      Hạn {{ fmtDate(a.deadline) }}
-                    </p>
-                  </div>
-                  <Badge
-                    class="self-start sm:self-center"
-                    :label="ASSIGN_STATUS_LABEL[a.status] || a.status"
-                    :color="ASSIGN_STATUS_COLOR[a.status] || 'slate'"
-                  />
-                </li>
-              </ul>
-              <div
-                v-else
-                class="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50/50 px-6 py-12 text-center"
-              >
-                <AppIcon
-                  name="task"
-                  :size="32"
-                  class="text-slate-300"
-                />
-                <p class="mt-3 text-sm font-medium text-slate-600">
-                  Chưa có bài tập
-                </p>
-              </div>
-
-              <form
-                v-if="isEditing"
-                class="space-y-3 rounded-xl border border-dashed border-brand/25 bg-brand/[0.03] p-4 sm:p-5"
-                @submit.prevent="submitAssignment"
-              >
-                <p class="text-sm font-semibold text-slate-800">
-                  Thêm bài tập (chỉnh sửa)
-                </p>
-                <div>
-                  <label class="label">Tiêu đề</label>
-                  <input
-                    v-model="assignmentForm.title"
-                    class="input w-full"
-                    placeholder="Tên bài tập"
-                    required
-                  >
-                </div>
-                <div>
-                  <label class="label">Mô tả</label>
-                  <textarea
-                    v-model="assignmentForm.description"
-                    class="input w-full"
-                    rows="3"
-                    placeholder="Yêu cầu, ghi chú (tuỳ chọn)"
-                  />
-                </div>
-                <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                  <div class="w-full sm:max-w-[11rem]">
-                    <label class="label">Hạn nộp</label>
-                    <DateInput v-model="assignmentForm.deadline" />
-                  </div>
-                  <button
-                    type="submit"
-                    class="btn-primary h-10 w-full gap-1.5 px-5 text-sm sm:w-auto"
-                    :disabled="assignmentForm.processing"
-                  >
-                    <AppIcon
-                      name="add"
-                      :size="15"
-                    />
-                    Thêm bài tập
-                  </button>
-                </div>
-              </form>
-            </div>
+              :session-id="session.id"
+              :assignments="session.assignments ?? []"
+              :can-manage="can.manageAssignments === true"
+              :can-complete="can.completeAssignments === true"
+            />
           </div>
         </section>
       </div>

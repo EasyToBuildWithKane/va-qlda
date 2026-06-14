@@ -15,9 +15,19 @@ import {
     exportCoachingCoursesCsv,
     exportCoachingCoursesWorkbook,
 } from '@/composables/useCoachingExport';
-import { currency, date } from '@/composables/useFormat';
 import { useToast } from '@/shared/composables/useToast';
+import { useDialog } from '@/composables/useDialog';
+import {
+    displayCourseCoach,
+    displayCourseDateRange,
+    displayCourseFee,
+    displayCourseProgress,
+    displayCourseSessionsCount,
+    displayCourseStudent,
+    isCoursePlaceholderText,
+} from '@/composables/coachingCourseDisplay';
 import CoachingCourseFormModal from '@/modules/coaching/components/CoachingCourseFormModal.vue';
+import CoachingCourseRowActions from '@/modules/coaching/components/CoachingCourseRowActions.vue';
 import CoachingWorkspace from '@/modules/coaching/components/CoachingWorkspace.vue';
 
 const PER_PAGE_OPTIONS = [10, 15, 20, 30];
@@ -33,6 +43,7 @@ const props = defineProps({
 });
 
 const toast = useToast();
+const dialog = useDialog();
 const inertiaPage = usePage();
 const VIEW_KEY = 'va-qlda.coaching.courses.view';
 const viewMode = ref(localStorage.getItem(VIEW_KEY) === 'table' ? 'table' : 'cards');
@@ -176,6 +187,28 @@ function statusColor(value) {
     if (value === 'completed') return 'sky';
     if (value === 'cancelled') return 'rose';
     return 'slate';
+}
+
+function goCourseDetail(c) {
+    router.visit(route('coaching.courses.show', { course: c.id }));
+}
+
+function goCourseEdit(c) {
+    router.visit(route('coaching.courses.edit', { course: c.id }));
+}
+
+async function removeCourse(c) {
+    if (!c.can?.delete) return;
+    if (!await dialog.confirm({
+        title: 'Xóa khóa học',
+        message: `Xóa khóa «${c.name}» (${c.code})? Toàn bộ buổi học liên quan cũng bị xóa. Hành động không hoàn tác.`,
+        tone: 'danger',
+        confirmText: 'Xóa',
+    })) return;
+    router.delete(route('coaching.courses.destroy', { course: c.id }), {
+        preserveScroll: true,
+        onSuccess: () => toast.success('Đã xóa khóa học.'),
+    });
 }
 </script>
 
@@ -391,18 +424,13 @@ function statusColor(value) {
                 {{ c.name }}
               </h2>
               <p class="mt-0.5 text-xs text-slate-500">
-                <template v-if="c.student_display">
-                  Học viên: {{ c.student_display }}
-                </template>
-                <template v-if="c.coach_display">
-                  · Coach: {{ c.coach_display }}
-                </template>
+                Học viên:
+                <span :class="c.student_display ? '' : 'text-slate-400'">{{ displayCourseStudent(c.student_display) }}</span>
+                · Coach:
+                <span :class="c.coach_display ? '' : 'text-slate-400'">{{ displayCourseCoach(c.coach_display) }}</span>
               </p>
-              <p
-                v-if="c.sessions_count != null"
-                class="mt-1 text-xs text-slate-400"
-              >
-                {{ c.sessions_count }} buổi
+              <p class="mt-1 text-xs text-slate-400">
+                {{ displayCourseSessionsCount(c.sessions_count) }}
               </p>
             </div>
             <div class="flex shrink-0 items-center gap-3">
@@ -411,12 +439,12 @@ function statusColor(value) {
                 :label="c.status.label"
                 :color="statusColor(c.status.value)"
               />
-              <Link
-                :href="route('coaching.courses.show', { course: c.id })"
-                class="btn-ghost h-8 px-3 text-xs"
-              >
-                Chi tiết
-              </Link>
+              <CoachingCourseRowActions
+                :course="c"
+                @detail="goCourseDetail"
+                @edit="goCourseEdit"
+                @delete="removeCourse"
+              />
             </div>
           </div>
         </div>
@@ -514,15 +542,19 @@ function statusColor(value) {
                 </td>
                 <td
                   v-if="isColVisible('student')"
-                  class="px-3 py-3 text-slate-600"
+                  class="px-3 py-3"
                 >
-                  {{ c.student_display || '—' }}
+                  <span
+                    :class="c.student_display ? 'text-slate-600' : 'text-slate-500'"
+                  >{{ displayCourseStudent(c.student_display) }}</span>
                 </td>
                 <td
                   v-if="isColVisible('coach')"
-                  class="px-3 py-3 text-slate-600"
+                  class="px-3 py-3"
                 >
-                  {{ c.coach_display || '—' }}
+                  <span
+                    :class="c.coach_display ? 'text-slate-600' : 'text-slate-500'"
+                  >{{ displayCourseCoach(c.coach_display) }}</span>
                 </td>
                 <td
                   v-if="isColVisible('status')"
@@ -536,35 +568,43 @@ function statusColor(value) {
                 </td>
                 <td
                   v-if="isColVisible('progress')"
-                  class="px-3 py-3 text-right text-slate-600"
+                  class="px-3 py-3 text-right"
                 >
-                  {{ c.progress_percent != null ? `${c.progress_percent}%` : '—' }}
+                  <span
+                    :class="c.progress_percent != null ? 'text-slate-600' : 'text-slate-500'"
+                  >{{ displayCourseProgress(c.progress_percent) }}</span>
                 </td>
                 <td
                   v-if="isColVisible('sessions')"
-                  class="px-3 py-3 text-right text-slate-600"
+                  class="px-3 py-3 text-right"
                 >
-                  {{ c.sessions_count ?? '—' }}
+                  <span
+                    :class="c.sessions_count ? 'text-slate-600' : 'text-slate-500'"
+                  >{{ displayCourseSessionsCount(c.sessions_count) }}</span>
                 </td>
                 <td
                   v-if="isColVisible('dates')"
-                  class="px-3 py-3 text-xs text-slate-500"
+                  class="px-3 py-3 text-xs"
                 >
-                  {{ date(c.start_date) }} – {{ date(c.end_date) }}
+                  <span
+                    :class="isCoursePlaceholderText(displayCourseDateRange(c.start_date, c.end_date)) ? 'text-slate-500' : 'text-slate-600'"
+                  >{{ displayCourseDateRange(c.start_date, c.end_date) }}</span>
                 </td>
                 <td
                   v-if="isColVisible('fee')"
-                  class="px-3 py-3 text-right text-slate-600"
+                  class="px-3 py-3 text-right"
                 >
-                  {{ currency(c.total_fee) }}
+                  <span
+                    :class="c.total_fee != null && c.total_fee !== '' ? 'text-slate-600' : 'text-slate-500'"
+                  >{{ displayCourseFee(c.total_fee) }}</span>
                 </td>
                 <td class="px-3 py-3 text-right">
-                  <Link
-                    :href="route('coaching.courses.show', { course: c.id })"
-                    class="text-xs font-medium text-brand hover:underline"
-                  >
-                    Chi tiết
-                  </Link>
+                  <CoachingCourseRowActions
+                    :course="c"
+                    @detail="goCourseDetail"
+                    @edit="goCourseEdit"
+                    @delete="removeCourse"
+                  />
                 </td>
               </tr>
             </tbody>

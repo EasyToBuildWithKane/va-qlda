@@ -100,4 +100,51 @@ class CoachingFinancialSummary
 
         return array_reverse($out);
     }
+
+    /**
+     * @return array<int, array{day:string, label:string, revenue:float, hours:float}>
+     */
+    public static function dailySeries(int $year, int $month): array
+    {
+        $start = Carbon::create($year, $month, 1)->startOfMonth();
+        $end = $start->copy()->endOfMonth();
+
+        $completed = CoachingSession::query()
+            ->with('course')
+            ->where('status', CoachingSessionStatus::Completed->value)
+            ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
+            ->get();
+
+        $revenueByDay = [];
+        $hoursByDay = [];
+
+        foreach ($completed as $session) {
+            $day = $session->date?->toDateString();
+            if (! $day) {
+                continue;
+            }
+            $hours = (float) ($session->total_hours ?? 0);
+            $hoursByDay[$day] = ($hoursByDay[$day] ?? 0) + $hours;
+
+            $course = $session->course;
+            if ($course && $course->hourly_rate && $hours > 0) {
+                $revenueByDay[$day] = ($revenueByDay[$day] ?? 0) + (float) $course->hourly_rate * $hours;
+            }
+        }
+
+        $out = [];
+        $cursor = $start->copy();
+        while ($cursor->lte($end)) {
+            $key = $cursor->toDateString();
+            $out[] = [
+                'day' => $key,
+                'label' => $cursor->format('d/m'),
+                'revenue' => round($revenueByDay[$key] ?? 0, 2),
+                'hours' => round($hoursByDay[$key] ?? 0, 2),
+            ];
+            $cursor->addDay();
+        }
+
+        return $out;
+    }
 }

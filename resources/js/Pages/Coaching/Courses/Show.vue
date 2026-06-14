@@ -6,7 +6,14 @@ import PageHeader from '@/Components/Ui/PageHeader.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import Badge from '@/shared/ui/Badge.vue';
 import CoachingWorkspace from '@/modules/coaching/components/CoachingWorkspace.vue';
-import { currency, date, hours as fmtHours } from '@/composables/useFormat';
+import {
+    displayCourseCoach,
+    displayCourseFee,
+    displayCourseHourlyRate,
+    displayCourseSingleDate,
+    displayCourseStudent,
+    displayCourseTotalHours,
+} from '@/composables/coachingCourseDisplay';
 
 const props = defineProps({
     course: { type: Object, required: true },
@@ -94,7 +101,7 @@ const sessionsScheduleHref = computed(() => route('coaching.sessions.schedule'))
             Học phí dự kiến
           </p>
           <p class="mt-1 font-display text-lg font-semibold text-slate-800">
-            {{ currency(course.total_fee) }}
+            {{ displayCourseFee(course.total_fee) }}
           </p>
         </div>
       </div>
@@ -155,32 +162,44 @@ const sessionsScheduleHref = computed(() => route('coaching.sessions.schedule'))
                 <dt class="text-xs font-medium text-slate-500">
                   Ngày bắt đầu
                 </dt>
-                <dd class="mt-1 text-sm font-medium text-slate-800">
-                  {{ date(course.start_date) }}
+                <dd
+                  class="mt-1 text-sm font-medium"
+                  :class="course.start_date ? 'text-slate-800' : 'text-slate-500'"
+                >
+                  {{ displayCourseSingleDate(course.start_date) }}
                 </dd>
               </div>
               <div>
                 <dt class="text-xs font-medium text-slate-500">
                   Ngày kết thúc
                 </dt>
-                <dd class="mt-1 text-sm font-medium text-slate-800">
-                  {{ date(course.end_date) }}
+                <dd
+                  class="mt-1 text-sm font-medium"
+                  :class="course.end_date ? 'text-slate-800' : 'text-slate-500'"
+                >
+                  {{ displayCourseSingleDate(course.end_date) }}
                 </dd>
               </div>
               <div>
                 <dt class="text-xs font-medium text-slate-500">
                   Đơn giá / giờ
                 </dt>
-                <dd class="mt-1 text-sm font-medium text-slate-800">
-                  {{ currency(course.hourly_rate) }}
+                <dd
+                  class="mt-1 text-sm font-medium"
+                  :class="course.hourly_rate != null && course.hourly_rate !== '' ? 'text-slate-800' : 'text-slate-500'"
+                >
+                  {{ displayCourseHourlyRate(course.hourly_rate) }}
                 </dd>
               </div>
               <div>
                 <dt class="text-xs font-medium text-slate-500">
                   Tổng giờ dự kiến
                 </dt>
-                <dd class="mt-1 text-sm font-medium text-slate-800">
-                  {{ course.total_hours != null ? fmtHours(course.total_hours) : '—' }}
+                <dd
+                  class="mt-1 text-sm font-medium"
+                  :class="course.total_hours != null ? 'text-slate-800' : 'text-slate-500'"
+                >
+                  {{ displayCourseTotalHours(course.total_hours) }}
                 </dd>
               </div>
             </dl>
@@ -200,16 +219,22 @@ const sessionsScheduleHref = computed(() => route('coaching.sessions.schedule'))
                 <p class="text-xs font-medium text-slate-500">
                   Học viên
                 </p>
-                <p class="mt-1 text-sm font-semibold text-slate-800">
-                  {{ course.student_display || '—' }}
+                <p
+                  class="mt-1 text-sm font-semibold"
+                  :class="course.student_display ? 'text-slate-800' : 'text-slate-500'"
+                >
+                  {{ displayCourseStudent(course.student_display) }}
                 </p>
               </div>
               <div class="rounded-lg bg-slate-50/80 px-4 py-3">
                 <p class="text-xs font-medium text-slate-500">
                   Coach / Mentor
                 </p>
-                <p class="mt-1 text-sm font-semibold text-slate-800">
-                  {{ course.coach_display || '—' }}
+                <p
+                  class="mt-1 text-sm font-semibold"
+                  :class="course.coach_display ? 'text-slate-800' : 'text-slate-500'"
+                >
+                  {{ displayCourseCoach(course.coach_display) }}
                 </p>
               </div>
             </div>

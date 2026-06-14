@@ -60,7 +60,7 @@ resources/js/
 │   ├── daily-report/
 │   │   └── config/reportConfig.js
 │   └── coaching/                 ← Coaching / Mentoring (2026-06)
-│       ├── components/           ← Sessions table, calendar, modals, drawer
+│       ├── components/           ← Sessions table, calendar, modals, drawer, CoachingSessionAssignmentsTab
 │       ├── composables/          ← useCoachingCalendar.js
 │       └── config/               ← coachingFormHints.js
 ├── shared/                   ← Cross-module (Phase 2 + 4)

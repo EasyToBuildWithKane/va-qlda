@@ -12,6 +12,7 @@ class SafeEmbedUrl
         'youtu.be',
         'loom.com',
         'canva.com',
+        'canva.link',
         'docs.google.com',
         'drive.google.com',
     ];

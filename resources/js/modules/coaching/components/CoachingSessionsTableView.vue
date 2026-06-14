@@ -41,12 +41,6 @@ const tableColspan = computed(() => 2 + props.visibleColumnCount);
             Tên buổi
           </th>
           <th
-            v-if="isColVisible('course')"
-            class="px-3 py-3"
-          >
-            Khóa học
-          </th>
-          <th
             v-if="isColVisible('date')"
             class="px-3 py-3"
           >
@@ -115,7 +109,19 @@ const tableColspan = computed(() => 2 + props.visibleColumnCount);
               class="px-3 py-2"
             >
               <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                <span class="min-w-0 flex-1 truncate text-sm font-semibold text-slate-800">{{ group.label }}</span>
+                <Link
+                  v-if="group.course"
+                  :href="route('coaching.courses.show', { course: group.course.id })"
+                  class="min-w-0 flex-1 truncate text-sm font-semibold text-slate-800 hover:text-brand"
+                  @click.stop
+                >
+                  <span class="font-mono text-xs font-normal text-slate-500">{{ group.course.code }}</span>
+                  <span class="ml-2">{{ group.course.name }}</span>
+                </Link>
+                <span
+                  v-else
+                  class="min-w-0 flex-1 truncate text-sm font-semibold text-slate-600"
+                >{{ group.label }}</span>
                 <span class="text-[11px] text-slate-500">
                   {{ group.stats.completed }}/{{ group.stats.total }} HT · {{ displaySessionHours(group.stats.hours) }}
                 </span>
@@ -138,23 +144,6 @@ const tableColspan = computed(() => 2 + props.visibleColumnCount);
               </td>
               <td class="px-3 py-3 font-medium text-slate-800">
                 {{ s.title }}
-              </td>
-              <td
-                v-if="isColVisible('course')"
-                class="px-3 py-3"
-              >
-                <Link
-                  v-if="s.course"
-                  :href="route('coaching.courses.show', { course: s.course.id })"
-                  class="text-slate-700 hover:text-brand"
-                >
-                  <span class="font-mono text-xs text-slate-400">{{ s.course.code }}</span>
-                  <span class="ml-1">{{ s.course.name }}</span>
-                </Link>
-                <span
-                  v-else
-                  class="text-slate-500"
-                >Chưa gán khóa</span>
               </td>
               <td
                 v-if="isColVisible('date')"

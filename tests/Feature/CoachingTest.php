@@ -2,9 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Models\CoachingAssignment;
 use App\Models\CoachingCourse;
 use App\Models\CoachingSession;
 use App\Models\SystemAccount;
+use App\Support\Coaching\CoachingFinancialSummary;
+use App\Support\Enums\CoachingAssignmentStatus;
 use App\Support\Enums\CoachingCourseStatus;
 use App\Support\Enums\CoachingMaterialType;
 use App\Support\Enums\CoachingSessionStatus;
@@ -25,7 +28,44 @@ class CoachingTest extends TestCase
     {
         $this->actingAs($this->admin())
             ->get(route('coaching.dashboard'))
-            ->assertOk();
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Coaching/Dashboard')
+                ->has('revenueSeries')
+                ->has('dailySeries'));
+    }
+
+    public function test_coaching_daily_series_aggregates_completed_sessions_by_date(): void
+    {
+        $course = CoachingCourse::create([
+            'name' => 'Khóa thống kê ngày',
+            'status' => CoachingCourseStatus::Active,
+            'hourly_rate' => 100000,
+        ]);
+        CoachingSession::create([
+            'course_id' => $course->id,
+            'title' => 'Buổi A',
+            'session_number' => 1,
+            'date' => '2026-06-10',
+            'total_hours' => 2,
+            'status' => CoachingSessionStatus::Completed,
+        ]);
+        CoachingSession::create([
+            'course_id' => $course->id,
+            'title' => 'Buổi B',
+            'session_number' => 2,
+            'date' => '2026-06-10',
+            'total_hours' => 1,
+            'status' => CoachingSessionStatus::Completed,
+        ]);
+
+        $series = CoachingFinancialSummary::dailySeries(2026, 6);
+        $day10 = collect($series)->firstWhere('day', '2026-06-10');
+
+        $this->assertNotNull($day10);
+        $this->assertSame(3.0, $day10['hours']);
+        $this->assertSame(300000.0, $day10['revenue']);
+        $this->assertCount(30, $series);
     }
 
     public function test_admin_can_create_course(): void
@@ -185,6 +225,78 @@ class CoachingTest extends TestCase
                 'url' => 'https://evil.example/watch?v=1',
             ])
             ->assertSessionHasErrors('url');
+    }
+
+    public function test_assignment_done_requires_completion_notes(): void
+    {
+        $admin = $this->admin();
+        $course = CoachingCourse::create([
+            'name' => 'Assign',
+            'status' => CoachingCourseStatus::Active,
+        ]);
+        $session = CoachingSession::create([
+            'course_id' => $course->id,
+            'title' => 'Buổi 1',
+            'session_number' => 1,
+            'status' => CoachingSessionStatus::Pending,
+        ]);
+        $assignment = CoachingAssignment::create([
+            'session_id' => $session->id,
+            'title' => 'BT1',
+            'status' => CoachingAssignmentStatus::Todo,
+        ]);
+
+        $this->actingAs($admin)
+            ->patch(route('coaching.assignments.update', $assignment), [
+                'status' => CoachingAssignmentStatus::Done->value,
+            ])
+            ->assertSessionHasErrors('notes');
+
+        $this->actingAs($admin)
+            ->patch(route('coaching.assignments.update', $assignment), [
+                'status' => CoachingAssignmentStatus::Done->value,
+                'notes' => 'Đã nộp link GitHub và demo.',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('coaching_assignments', [
+            'id' => $assignment->id,
+            'status' => CoachingAssignmentStatus::Done->value,
+            'notes' => 'Đã nộp link GitHub và demo.',
+        ]);
+    }
+
+    public function test_student_can_complete_assignment_with_notes(): void
+    {
+        $student = SystemAccount::factory()->role(SystemRole::Member)->create();
+        $course = CoachingCourse::create([
+            'name' => 'HV',
+            'status' => CoachingCourseStatus::Active,
+            'student_id' => $student->employee_id,
+        ]);
+        $session = CoachingSession::create([
+            'course_id' => $course->id,
+            'title' => 'Buổi 1',
+            'session_number' => 1,
+            'status' => CoachingSessionStatus::Pending,
+        ]);
+        $assignment = CoachingAssignment::create([
+            'session_id' => $session->id,
+            'title' => 'Làm lab',
+            'status' => CoachingAssignmentStatus::Todo,
+        ]);
+
+        $this->actingAs($student)
+            ->patch(route('coaching.assignments.update', $assignment), [
+                'status' => CoachingAssignmentStatus::Done->value,
+                'notes' => 'Hoàn thành lab, đã push code.',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('coaching_assignments', [
+            'id' => $assignment->id,
+            'status' => CoachingAssignmentStatus::Done->value,
+        ]);
     }
 
     public function test_completing_session_syncs_student_progress(): void

@@ -339,19 +339,25 @@ class CoachingSessionController extends Controller
         $session->load(['course', 'materials', 'assignments']);
         $this->authorize('view', $session->course);
 
+        $user = request()->user();
+        $course = $session->course;
+        $isStudent = $user->employee_id !== null && $user->employee_id === $course->student_id;
+
         return Inertia::render('Coaching/Sessions/Show', [
             'session' => (new CoachingSessionResource($session))->resolve(),
             'course' => [
-                'id' => $session->course->id,
-                'name' => $session->course->name,
-                'code' => $session->course->code,
+                'id' => $course->id,
+                'name' => $course->name,
+                'code' => $course->code,
             ],
             'materialTypes' => array_map(fn (CoachingMaterialType $t) => [
                 'value' => $t->value,
                 'label' => $t->label(),
             ], CoachingMaterialType::cases()),
             'can' => [
-                'update' => request()->user()->can('update', $session->course),
+                'update' => $user->can('update', $course),
+                'manageAssignments' => $user->can('update', $course),
+                'completeAssignments' => $user->can('update', $course) || $isStudent,
             ],
         ]);
     }
@@ -552,6 +558,17 @@ class CoachingSessionController extends Controller
         }
 
         $data = $request->validate($rules);
+
+        $nextStatus = $data['status'] ?? $assignment->status->value;
+        if ($nextStatus === CoachingAssignmentStatus::Done->value) {
+            $notes = trim((string) ($data['notes'] ?? $assignment->notes ?? ''));
+            if ($notes === '') {
+                return back()->withErrors([
+                    'notes' => 'Vui lòng nhập nội dung hoàn thành.',
+                ]);
+            }
+            $data['notes'] = $notes;
+        }
 
         if ($request->hasFile('submission') && $canStudent) {
             $file = $request->file('submission');

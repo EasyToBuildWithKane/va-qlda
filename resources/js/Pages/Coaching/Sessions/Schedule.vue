@@ -379,6 +379,15 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
 const showEmpty = computed(
     () => !calendar.loading.value && !calendar.error.value && renderedCount.value === 0,
 );
+
+const hasActiveFilters = computed(
+    () => calendar.filters.statuses.size > 0 || !!calendar.filters.query,
+);
+
+function statusFilterOn(value) {
+    const set = calendar.filters.statuses;
+    return set.size === 0 || set.has(value);
+}
 </script>
 
 <template>
@@ -417,38 +426,88 @@ const showEmpty = computed(
       </PageHeader>
     </template>
 
-    <!-- Stat chips -->
-    <div class="mb-4 grid grid-cols-2 gap-3 sm:max-w-xl">
-      <div class="card flex items-center gap-3 px-4 py-3">
-        <span class="grid h-9 w-9 place-items-center rounded-lg bg-brand/10 text-brand">
-          <AppIcon
-            name="report-today"
-            :size="18"
-          />
-        </span>
-        <div>
-          <p class="text-lg font-semibold leading-none text-slate-800">
-            {{ stats.today }}
-          </p>
-          <p class="mt-0.5 text-xs text-slate-500">
-            Buổi hôm nay
-          </p>
+    <!-- Thống kê + chú thích trạng thái (cùng hàng trên desktop) -->
+    <div class="mb-4 flex flex-col gap-3 xl:flex-row xl:items-end">
+      <div class="grid shrink-0 grid-cols-2 gap-3 sm:max-w-md xl:max-w-none">
+        <div class="card flex items-center gap-3 px-4 py-3">
+          <span class="grid h-9 w-9 place-items-center rounded-lg bg-brand/10 text-brand">
+            <AppIcon
+              name="report-today"
+              :size="18"
+            />
+          </span>
+          <div class="min-w-0">
+            <p class="text-lg font-semibold leading-none text-slate-800">
+              {{ stats.today }}
+            </p>
+            <p class="mt-0.5 text-xs text-slate-500">
+              Buổi hôm nay
+            </p>
+          </div>
+        </div>
+        <div class="card flex items-center gap-3 px-4 py-3">
+          <span class="grid h-9 w-9 place-items-center rounded-lg bg-sky-50 text-sky-600">
+            <AppIcon
+              name="calendar"
+              :size="18"
+            />
+          </span>
+          <div class="min-w-0">
+            <p class="text-lg font-semibold leading-none text-slate-800">
+              {{ stats.week }}
+            </p>
+            <p class="mt-0.5 text-xs text-slate-500">
+              Buổi trong tuần
+            </p>
+          </div>
         </div>
       </div>
-      <div class="card flex items-center gap-3 px-4 py-3">
-        <span class="grid h-9 w-9 place-items-center rounded-lg bg-sky-50 text-sky-600">
-          <AppIcon
-            name="calendar"
-            :size="18"
-          />
-        </span>
-        <div>
-          <p class="text-lg font-semibold leading-none text-slate-800">
-            {{ stats.week }}
+
+      <div class="flex min-w-0 flex-1 flex-col gap-2">
+        <div class="flex items-center justify-between gap-2">
+          <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Trạng thái
           </p>
-          <p class="mt-0.5 text-xs text-slate-500">
-            Buổi trong tuần
-          </p>
+          <button
+            v-if="hasActiveFilters"
+            type="button"
+            class="inline-flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-700"
+            @click="clearFilters"
+          >
+            <AppIcon
+              name="close"
+              :size="12"
+            />
+            Xóa bộ lọc
+          </button>
+        </div>
+        <div class="grid min-h-0 flex-1 grid-cols-2 gap-3 sm:grid-cols-4">
+          <button
+            v-for="s in statuses"
+            :key="s.value"
+            type="button"
+            class="card flex items-center gap-3 px-4 py-3 text-left transition"
+            :class="
+              statusFilterOn(s.value)
+                ? 'ring-2 ring-brand/25'
+                : 'opacity-55 hover:opacity-100'
+            "
+            :aria-pressed="statusFilterOn(s.value)"
+            @click="toggleStatus(s.value)"
+          >
+            <span
+              class="grid h-9 w-9 shrink-0 place-items-center rounded-lg"
+              :style="{ backgroundColor: statusMeta(s.value).tint }"
+            >
+              <span
+                class="h-3 w-3 rounded-full"
+                :style="{ backgroundColor: statusMeta(s.value).color }"
+              />
+            </span>
+            <p class="text-sm font-semibold leading-tight text-slate-800">
+              {{ s.label }}
+            </p>
+          </button>
         </div>
       </div>
     </div>
@@ -458,12 +517,8 @@ const showEmpty = computed(
       <aside class="hidden w-72 shrink-0 lg:block">
         <div class="card sticky top-4 h-[calc(100vh-9rem)]">
           <CalendarSidebar
-            :statuses="statuses"
-            :filters="calendar.filters"
             :selected-date="selectedDate"
             @select-date="pickDate"
-            @toggle-status="toggleStatus"
-            @clear="clearFilters"
           />
         </div>
       </aside>
@@ -645,23 +700,9 @@ const showEmpty = computed(
           </div>
         </div>
 
-        <!-- Legend -->
-        <div class="mt-3 flex flex-wrap items-center gap-3 px-1 text-xs text-slate-500">
-          <span
-            v-for="s in statuses"
-            :key="s.value"
-            class="inline-flex items-center gap-1.5"
-          >
-            <span
-              class="h-2.5 w-2.5 rounded-full"
-              :style="{ backgroundColor: statusMeta(s.value).color }"
-            />
-            {{ s.label }}
-          </span>
-          <span class="ml-auto hidden text-slate-400 md:inline">
-            Phím tắt: T hôm nay · D/W/M/A đổi chế độ · N thêm buổi
-          </span>
-        </div>
+        <p class="mt-3 hidden px-1 text-right text-xs text-slate-400 md:block">
+          Phím tắt: T hôm nay · D/W/M/A đổi chế độ · N thêm buổi
+        </p>
       </div>
     </div>
 
@@ -695,12 +736,8 @@ const showEmpty = computed(
             </div>
             <CalendarSidebar
               class="h-[calc(100%-3.5rem)]"
-              :statuses="statuses"
-              :filters="calendar.filters"
               :selected-date="selectedDate"
               @select-date="(d) => { pickDate(d); sidebarOpen = false; }"
-              @toggle-status="toggleStatus"
-              @clear="clearFilters"
             />
           </div>
         </div>

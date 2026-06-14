@@ -71,7 +71,6 @@ function setViewMode(mode) {
 }
 
 const SESSION_COLUMNS = [
-    { key: 'course', label: 'Khóa học', default: true },
     { key: 'date', label: 'Ngày', default: true },
     { key: 'time', label: 'Giờ học', default: true },
     { key: 'hours', label: 'Tổng giờ', default: true },
@@ -523,7 +522,12 @@ async function removeSession(s) {
             class="border-b border-brand/10 bg-brand/[0.03] px-4 py-2 text-xs text-slate-600 sm:px-5"
           >
             Đang lọc theo khóa
-            <span class="font-medium text-slate-800">{{ selectedCourse.name }}</span>
+            <Link
+              :href="route('coaching.courses.show', { course: selectedCourse.id })"
+              class="font-medium text-slate-800 hover:text-brand hover:underline"
+            >
+              {{ selectedCourse.name }}
+            </Link>
             <Link
               :href="route('coaching.sessions.index')"
               class="ml-2 font-medium text-brand hover:underline"

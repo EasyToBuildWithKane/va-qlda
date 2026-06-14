@@ -149,6 +149,8 @@ Bảng `coaching_session_materials`, cột `type`:
 | `path` | File local `public` disk |
 | `sort_order` | Thứ tự trong buổi |
 
+**Host URL được phép** (`SafeEmbedUrl`): YouTube (`youtube.com`, `youtu.be`), Loom, Canva (`canva.com`, `canva.link`), Google Docs / Drive. Link rút gọn `canva.link` được lưu và mở tab; embed iframe ưu tiên URL dạng `canva.com/design/…`.
+
 ---
 
 ## 7. Bài tập
@@ -160,12 +162,12 @@ Bảng `coaching_assignments` gắn `session_id`.
 | Tiêu đề / mô tả | `title`, `description` |
 | Deadline | `deadline` (datetime) |
 | Độ ưu tiên | `high` \| `medium` \| `low` |
-| Trạng thái | `todo` \| `doing` \| `review` \| `done` |
+| Trạng thái | `todo` \| `doing` \| `review` \| `done` — UI tab **Bài tập** dùng checklist `todo` ↔ `done` |
 | File nộp | `submission_path` |
 | Link GitHub | `github_url` |
-| Ghi chú | `notes` |
+| Ghi chú | `notes` — **bắt buộc** khi đánh dấu `done` |
 
-Học viên (`member`) cập nhật trạng thái + upload nộp; coach chuyển `review` → `done`.
+**UI (`Sessions/Show` → tab Bài tập):** `CoachingSessionAssignmentsTab.vue` — thanh tiến độ, checklist từng mục. Coach (`manageAssignments`) giao bài không cần bật «Chỉnh sửa» toàn trang. Học viên / coach (`completeAssignments`) tick hoàn thành → nhập «Nội dung hoàn thành» → `PATCH /coaching/assignments/{id}`. Tick lại để mở lại (`status=todo`).
 
 ---
 
@@ -215,8 +217,8 @@ Ví dụ tháng 06/2026: 20 buổi, 48 giờ, 24.000.000 VNĐ → 500.000 VNĐ/g
 - Tổng học viên (distinct)
 - Tổng buổi học / tổng giờ đào tạo (lifetime hoặc YTD)
 - Tổng doanh thu / doanh thu tháng hiện tại
-- Biểu đồ: doanh thu theo tháng (12 tháng)
-- Biểu đồ: số giờ giảng dạy theo tháng
+- Biểu đồ: doanh thu (mặc định **theo tháng** — 12 tháng; có thể chuyển **theo ngày** trong kỳ)
+- Biểu đồ: giờ giảng dạy (mặc định **theo ngày** trong kỳ; có thể chuyển **theo tháng**)
 - Biểu đồ: tiến độ từng khóa `active` (bar %)
 
 Page: `Pages/Coaching/Dashboard.vue` (Chart.js inline + `CoachingWorkspace.vue`).
@@ -289,14 +291,16 @@ Nav (`Navigation.php`): Dashboard, Khóa học, Lịch buổi (`sessions/schedul
 | `CoachingSessionsTableView.vue` / `CoachingSessionsGroupView.vue` | Bảng / nhóm theo ngày |
 | `CoachingSessionCard.vue` | Card buổi (group view) |
 | `SessionDrawer.vue` | Chi tiết nhanh buổi |
-| `CoachingSessionRowActions.vue` | Hành động hàng |
+| `CoachingSessionRowActions.vue` | Hành động hàng buổi (menu ⋯) |
+| `CoachingCourseRowActions.vue` | Hành động hàng khóa (chi tiết / sửa / xóa) |
 | `CalendarSidebar.vue`, `MiniCalendar.vue` | Lịch |
 | `CoachingSessionFormModal.vue`, `QuickSessionModal.vue` | Tạo/sửa buổi |
 | `CoachingCourseFormModal.vue` | Modal khóa |
 | `CoachingMaterialEmbed.vue` | Embed an toàn |
 | `useCoachingCalendar.js` | Feed + drag lịch |
 | `useCoachingSessionList.js` | Filter, cột, export danh sách |
-| `coachingSessionDisplay.js` | Label/format hiển thị |
+| `coachingSessionDisplay.js` | Label/format hiển thị buổi |
+| `coachingCourseDisplay.js` | Label/format ô trống khóa học |
 | `useCoachingExport.js` | Xuất Excel báo cáo tháng + export sessions |
 
 **Planned / chưa tách component:** Kanban bài tập (`AssignmentBoard`), timeline riêng — logic chủ yếu trên `Sessions/Show.vue` (tab chi tiết; form chỉ khi bấm «Chỉnh sửa» trên header).
