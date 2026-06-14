@@ -69,6 +69,7 @@ const calendarOptions = reactive({
     slotMinTime: '06:00:00',
     slotMaxTime: '22:00:00',
     slotDuration: '00:30:00',
+    slotMinHeight: 56,
     dayMaxEvents: 3,
     weekends: true,
     editable: canManage.value,
@@ -124,7 +125,6 @@ function decorateEventEl(arg) {
     const tip = [
         arg.event.title,
         p.studentName ? `Học viên: ${p.studentName}` : null,
-        p.coachName ? `Coach: ${p.coachName}` : null,
         p.statusLabel,
     ]
         .filter(Boolean)
@@ -289,10 +289,6 @@ function onSearch(value) {
     searchTimer = setTimeout(() => api()?.refetchEvents(), 250);
 }
 
-function toggleCoach(name) {
-    calendar.toggleSetValue(calendar.filters.coaches, name);
-    api()?.refetchEvents();
-}
 function toggleStatus(value) {
     calendar.toggleSetValue(calendar.filters.statuses, value);
     api()?.refetchEvents();
@@ -328,7 +324,7 @@ function exportCalendar() {
             `DTSTART:${icsTime(start)}`,
             `DTEND:${icsTime(end)}`,
             `SUMMARY:${icsEsc(e.title)}`,
-            `DESCRIPTION:${icsEsc(`Học viên: ${p.studentName || '—'} | Coach: ${p.coachName || '—'} | ${p.statusLabel || ''}`)}`,
+            `DESCRIPTION:${icsEsc(`Học viên: ${p.studentName || '—'} | ${p.statusLabel || ''}`)}`,
             'END:VEVENT',
         );
     }
@@ -403,7 +399,7 @@ const showEmpty = computed(
     </template>
 
     <!-- Stat chips -->
-    <div class="mb-4 grid grid-cols-3 gap-3">
+    <div class="mb-4 grid grid-cols-2 gap-3 sm:max-w-xl">
       <div class="card flex items-center gap-3 px-4 py-3">
         <span class="grid h-9 w-9 place-items-center rounded-lg bg-brand/10 text-brand">
           <AppIcon
@@ -436,22 +432,6 @@ const showEmpty = computed(
           </p>
         </div>
       </div>
-      <div class="card flex items-center gap-3 px-4 py-3">
-        <span class="grid h-9 w-9 place-items-center rounded-lg bg-violet-50 text-violet-600">
-          <AppIcon
-            name="people"
-            :size="18"
-          />
-        </span>
-        <div>
-          <p class="text-lg font-semibold leading-none text-slate-800">
-            {{ stats.coaches }}
-          </p>
-          <p class="mt-0.5 text-xs text-slate-500">
-            Coach đang hoạt động
-          </p>
-        </div>
-      </div>
     </div>
 
     <div class="flex gap-4">
@@ -459,12 +439,10 @@ const showEmpty = computed(
       <aside class="hidden w-72 shrink-0 lg:block">
         <div class="card sticky top-4 h-[calc(100vh-9rem)]">
           <CalendarSidebar
-            :coaches="coaches"
             :statuses="statuses"
             :filters="calendar.filters"
             :selected-date="selectedDate"
             @select-date="pickDate"
-            @toggle-coach="toggleCoach"
             @toggle-status="toggleStatus"
             @clear="clearFilters"
           />
@@ -536,7 +514,7 @@ const showEmpty = computed(
                 <input
                   :value="calendar.filters.query"
                   type="search"
-                  placeholder="Tìm học viên, coach, khóa…"
+                  placeholder="Tìm học viên, khóa…"
                   class="input h-8 w-56 pl-8 text-sm"
                   @input="onSearch($event.target.value)"
                 >
@@ -597,13 +575,13 @@ const showEmpty = computed(
                 </p>
                 <p class="mt-1 text-xs text-slate-400">
                   {{
-                    calendar.filters.coaches.size || calendar.filters.statuses.size || calendar.filters.query
+                    calendar.filters.statuses.size || calendar.filters.query
                       ? 'Thử bỏ bớt bộ lọc.'
                       : 'Chọn một ô trống để tạo buổi học mới.'
                   }}
                 </p>
                 <button
-                  v-if="canManage && !(calendar.filters.coaches.size || calendar.filters.statuses.size || calendar.filters.query)"
+                  v-if="canManage && !(calendar.filters.statuses.size || calendar.filters.query)"
                   type="button"
                   class="btn-primary mt-3 h-8 gap-1.5 px-3 text-xs"
                   @click="openCreate({ date: selectedDate })"
@@ -698,12 +676,10 @@ const showEmpty = computed(
             </div>
             <CalendarSidebar
               class="h-[calc(100%-3.5rem)]"
-              :coaches="coaches"
               :statuses="statuses"
               :filters="calendar.filters"
               :selected-date="selectedDate"
               @select-date="(d) => { pickDate(d); sidebarOpen = false; }"
-              @toggle-coach="toggleCoach"
               @toggle-status="toggleStatus"
               @clear="clearFilters"
             />
@@ -765,15 +741,29 @@ const showEmpty = computed(
     color: #475569;
     padding: 4px 6px;
 }
+.cc-calendar .fc .fc-timegrid-col {
+    border-left: 1px solid #e2e8f0;
+}
+.cc-calendar .fc .fc-timegrid-slot {
+    border-top-color: #f1f5f9;
+}
+.cc-calendar .fc .fc-timegrid-slot-label {
+    border-right: 2px solid #e2e8f0;
+}
 .cc-calendar .fc-event {
-    border-radius: 8px;
+    border-radius: 6px;
     border-width: 1px;
-    border-left-width: 3px;
-    padding: 1px 4px;
+    border-left-width: 5px;
+    border-left-style: solid;
+    padding: 4px 6px 4px 8px;
+    min-height: 2.75rem;
     cursor: pointer;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
     transition: box-shadow 0.15s ease, transform 0.15s ease;
     overflow: hidden;
+}
+.cc-calendar .fc-timegrid-event .fc-event {
+    margin-inline: 2px 4px;
 }
 .cc-calendar .fc-event:hover {
     box-shadow: 0 4px 12px rgba(15, 23, 42, 0.14);
@@ -783,22 +773,30 @@ const showEmpty = computed(
     white-space: nowrap;
 }
 .cc-ev {
-    line-height: 1.25;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    line-height: 1.3;
     overflow: hidden;
+    min-height: 100%;
 }
 .cc-ev-title {
     font-weight: 600;
     font-size: 12px;
-    white-space: nowrap;
+    line-height: 1.25;
     overflow: hidden;
-    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
 }
 .cc-ev-sub {
     font-size: 11px;
-    opacity: 0.85;
-    white-space: nowrap;
+    opacity: 0.9;
+    line-height: 1.25;
     overflow: hidden;
-    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
 }
 .cc-calendar .fc .fc-more-link {
     font-size: 11px;

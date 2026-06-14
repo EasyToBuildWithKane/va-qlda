@@ -8,7 +8,7 @@ const props = defineProps({
     activeStatus: { type: String, default: '' },
 });
 
-const emit = defineEmits(['filter-status', 'filter-unscheduled']);
+const emit = defineEmits(['filter-status']);
 
 const toneClass = {
     brand: 'kpi-card--brand',
@@ -43,7 +43,6 @@ const cards = computed(() => {
             filter: '',
             tone: 'brand',
             icon: 'weekly',
-            hero: true,
             sub: total ? `${s.courses ?? 0} khóa · theo bộ lọc` : 'Chưa có buổi phù hợp',
             progress: null,
         },
@@ -79,16 +78,6 @@ const cards = computed(() => {
             progress: pct(s.completed ?? 0),
         },
         {
-            key: 'in_progress',
-            label: 'Đang học',
-            field: 'in_progress',
-            filter: 'in_progress',
-            tone: 'amber',
-            icon: 'worklog',
-            sub: total ? `${pct(s.in_progress ?? 0)}% tổng buổi` : 'Bấm để lọc',
-            progress: pct(s.in_progress ?? 0),
-        },
-        {
             key: 'pending',
             label: 'Chưa học',
             field: 'pending',
@@ -97,16 +86,6 @@ const cards = computed(() => {
             icon: 'task',
             sub: total ? `${pct(s.pending ?? 0)}% tổng buổi` : 'Bấm để lọc',
             progress: pct(s.pending ?? 0),
-        },
-        {
-            key: 'unscheduled',
-            label: 'Chưa lên lịch',
-            field: 'unscheduled',
-            filter: '__unscheduled__',
-            tone: 'rose',
-            icon: 'calendar',
-            sub: 'Chưa có ngày học · bấm lọc',
-            progress: total ? pct(s.unscheduled ?? 0) : null,
         },
     ];
 });
@@ -119,7 +98,6 @@ function displayValue(summary, card) {
 
 function isActive(card) {
     if (!card.filter) return false;
-    if (card.filter === '__unscheduled__') return props.activeStatus === '__unscheduled__';
     return props.activeStatus === card.filter;
 }
 
@@ -129,17 +107,13 @@ function isInteractive(card) {
 
 function onCard(card) {
     if (!card.filter) return;
-    if (card.filter === '__unscheduled__') {
-        emit('filter-unscheduled');
-        return;
-    }
     emit('filter-status', card.filter);
 }
 </script>
 
 <template>
   <section
-    class="kpi-strip relative overflow-hidden border-b border-slate-100 bg-gradient-to-b from-slate-50/90 to-white px-4 py-4 sm:px-5 sm:py-5"
+    class="kpi-strip relative shrink-0 overflow-x-hidden border-b border-slate-100 bg-gradient-to-b from-slate-50/90 to-white px-4 py-4 sm:px-5 sm:py-5"
     aria-label="Thống kê buổi học theo bộ lọc"
   >
     <!-- Nền trang trí clip-path lồng (section) -->
@@ -165,7 +139,7 @@ function onCard(card) {
       </p>
     </header>
 
-    <div class="relative grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+    <div class="relative grid grid-cols-2 gap-3 pb-1 sm:grid-cols-3 lg:grid-cols-5">
       <component
         :is="isInteractive(card) ? 'button' : 'div'"
         v-for="card in cards"
@@ -174,7 +148,6 @@ function onCard(card) {
         class="kpi-card group relative min-h-[6.75rem] text-left outline-none transition-[transform,box-shadow] duration-300 ease-out"
         :class="[
           toneClass[card.tone],
-          card.hero ? 'lg:col-span-2 xl:col-span-2' : '',
           isInteractive(card) ? 'kpi-card--interactive cursor-pointer' : 'kpi-card--static',
           isActive(card) ? 'kpi-card--active' : '',
         ]"

@@ -1,4 +1,5 @@
 <script setup>
+defineOptions({ inheritAttrs: false });
 /*
  * Coaching content shell.
  *
@@ -10,7 +11,10 @@
 </script>
 
 <template>
-  <div class="min-w-0">
+  <div
+    class="min-w-0"
+    :class="$attrs.class"
+  >
     <slot />
   </div>
 </template>

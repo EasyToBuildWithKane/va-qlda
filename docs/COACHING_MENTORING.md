@@ -179,6 +179,8 @@ Bảng `coaching_progress` — một bản ghi / `(course_id, session_id, system
 | `is_in_progress` | Đang học buổi này |
 | `is_completed` | Hoàn thành buổi (đồng bộ khi session → `completed` hoặc manual) |
 
+**UI:** Trang `Sessions/Show` không còn sidebar «Trạng thái buổi» / «Theo dõi học tập»; cập nhật trạng thái buổi qua danh sách & lịch. API `POST /coaching/progress` vẫn giữ cho tích hợp sau.
+
 **% tiến độ:** ưu tiên đếm `session.status = completed`; fallback đếm `is_completed` trên progress nếu chưa có session status.
 
 ---
@@ -297,7 +299,7 @@ Nav (`Navigation.php`): Dashboard, Khóa học, Lịch buổi (`sessions/schedul
 | `coachingSessionDisplay.js` | Label/format hiển thị |
 | `useCoachingExport.js` | Xuất Excel báo cáo tháng + export sessions |
 
-**Planned / chưa tách component:** Kanban bài tập (`AssignmentBoard`), timeline riêng — logic chủ yếu trên `Sessions/Show.vue`.
+**Planned / chưa tách component:** Kanban bài tập (`AssignmentBoard`), timeline riêng — logic chủ yếu trên `Sessions/Show.vue` (UI tab: Tổng quan · Nội dung · Tài liệu · Bài tập + dải tóm tắt).
 
 ---
 

@@ -38,7 +38,7 @@ const taskStatusSnapshot = computed(
 
 // Auto-generated title prefix for a new report: "Báo cáo ngày DD/MM/YYYY - ".
 const titlePrefix = computed(
-    () => `Báo cáo ngày ${date(reportDate.value)} - `,
+    () => `Báo cáo ngày ${date(reportDate.value)}`,
 );
 
 const form = useForm({

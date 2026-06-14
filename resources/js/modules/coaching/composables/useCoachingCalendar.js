@@ -71,6 +71,7 @@ export function useCoachingCalendar({ feedUrl, storeUrl, updateUrlFor }) {
             classNames: [`cc-evt`, `cc-evt--${ev.extendedProps?.status || 'unknown'}`],
             backgroundColor: m.tint,
             borderColor: m.color,
+            borderLeftColor: m.color,
             textColor: m.text,
         };
     }

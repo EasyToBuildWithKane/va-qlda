@@ -132,7 +132,7 @@ class CoachingSessionController extends Controller
             ]);
 
         $coaches = $courses
-            ->filter(fn ($c) => $c['coach_name'])
+            ->filter(fn ($c) => (bool) $c['coach_name'])
             ->groupBy('coach_name')
             ->map(fn ($group, $name) => [
                 'id' => $group->first()['coach_id'],

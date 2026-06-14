@@ -32,7 +32,6 @@ const rows = computed(() => {
     if (!s) return [];
     return [
         { icon: 'members', label: 'Học viên', value: s.studentName || '—' },
-        { icon: 'people', label: 'Coach', value: s.coachName || '—' },
         { icon: 'calendar', label: 'Ngày', value: s.date ? fmtDate(s.date) : '—' },
         { icon: 'clock', label: 'Thời gian', value: timeRange.value },
         {
@@ -99,9 +98,6 @@ const rows = computed(() => {
           <div class="min-w-0 flex-1">
             <p class="truncate text-sm font-semibold text-slate-800">
               {{ session.studentName || 'Chưa có học viên' }}
-            </p>
-            <p class="truncate text-xs text-slate-500">
-              Coach: {{ session.coachName || '—' }}
             </p>
           </div>
         </div>

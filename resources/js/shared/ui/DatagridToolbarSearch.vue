@@ -7,6 +7,8 @@ defineProps({
     placeholder: { type: String, default: 'Tìm kiếm…' },
     /** Thu gọn cho panel nhúng (tab dự án) — ô tìm ngắn, nút cùng hàng */
     compact: { type: Boolean, default: false },
+    /** Chiếm phần còn lại trên hàng toolbar (danh sách coaching, …) */
+    stretch: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['update:modelValue', 'clear']);
@@ -17,7 +19,9 @@ const emit = defineEmits(['update:modelValue', 'clear']);
     class="flex min-w-0 items-center gap-2"
     :class="compact
       ? 'w-auto max-w-[min(100%,20rem)] shrink'
-      : 'w-full flex-1 basis-full lg:basis-auto lg:min-w-0'"
+      : stretch
+        ? 'w-full min-w-0 flex-1'
+        : 'w-full flex-1 basis-full lg:basis-auto lg:min-w-0'"
   >
     <label
       :for="inputId"
@@ -29,7 +33,9 @@ const emit = defineEmits(['update:modelValue', 'clear']);
       class="relative min-w-0 flex-1"
       :class="compact
         ? 'min-w-[9rem] sm:min-w-[11rem]'
-        : 'sm:min-w-[12rem] md:min-w-[16rem] xl:min-w-[28rem] 2xl:min-w-[32rem]'"
+        : stretch
+          ? 'min-w-0 flex-1'
+          : 'sm:min-w-[12rem] md:min-w-[16rem] xl:min-w-[28rem] 2xl:min-w-[32rem]'"
     >
       <AppIcon
         name="search"
