@@ -1,28 +1,35 @@
 <script setup>
-import { reactive, ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
-import { Head, Link, router } from '@inertiajs/vue3';
-import AppLayout from '@/Layouts/AppLayout.vue';
-import AppIcon from '@/Components/AppIcon.vue';
-import StatusBadge from '@/Components/DailyReport/StatusBadge.vue';
-import GradePill from '@/Components/DailyReport/GradePill.vue';
-import ReportDashboard from '@/Components/DailyReport/ReportDashboard.vue';
-import ReportCard from '@/Components/DailyReport/ReportCard.vue';
-import PageHeader from '@/Components/Ui/PageHeader.vue';
-import Avatar from '@/shared/ui/Avatar.vue';
-import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
-import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
-import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
-import SearchMultiSelect from '@/shared/ui/SearchMultiSelect.vue';
-import { useFixedDropdownAnchor } from '@/shared/composables/useFixedDropdownAnchor';
-import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
-import { useConfirmDelete } from '@/composables/useConfirmClose';
-import { useToast } from '@/shared/composables/useToast';
-import { date as formatDate } from '@/composables/useFormat';
-import { exportDailyReportHistory } from '@/modules/daily-report/composables/useDailyReportHistoryExport';
+import {
+    reactive,
+    ref,
+    computed,
+    watch,
+    onMounted,
+    onBeforeUnmount,
+} from "vue";
+import { Head, Link, router } from "@inertiajs/vue3";
+import AppLayout from "@/Layouts/AppLayout.vue";
+import AppIcon from "@/Components/AppIcon.vue";
+import StatusBadge from "@/Components/DailyReport/StatusBadge.vue";
+import GradePill from "@/Components/DailyReport/GradePill.vue";
+import ReportDashboard from "@/Components/DailyReport/ReportDashboard.vue";
+import ReportCard from "@/Components/DailyReport/ReportCard.vue";
+import PageHeader from "@/Components/Ui/PageHeader.vue";
+import Avatar from "@/shared/ui/Avatar.vue";
+import DatagridToolbarSearch from "@/shared/ui/DatagridToolbarSearch.vue";
+import FilterVisibilityDropdown from "@/shared/ui/FilterVisibilityDropdown.vue";
+import DatagridPaginationFooter from "@/shared/ui/DatagridPaginationFooter.vue";
+import SearchMultiSelect from "@/shared/ui/SearchMultiSelect.vue";
+import { useFixedDropdownAnchor } from "@/shared/composables/useFixedDropdownAnchor";
+import { useVisibleFilterControls } from "@/shared/composables/useVisibleFilterControls";
+import { useConfirmDelete } from "@/composables/useConfirmClose";
+import { useToast } from "@/shared/composables/useToast";
+import { date as formatDate } from "@/composables/useFormat";
+import { exportDailyReportHistory } from "@/modules/daily-report/composables/useDailyReportHistoryExport";
 
 const PER_PAGE_OPTIONS = [5, 10, 15, 20];
-const VIEW_KEY = 'va-qlda.reports.view';
-const GROUP_KEY = 'va-qlda.reports.group';
+const VIEW_KEY = "va-qlda.reports.view";
+const GROUP_KEY = "va-qlda.reports.group";
 const confirmDelete = useConfirmDelete();
 const toast = useToast();
 
@@ -31,7 +38,13 @@ const props = defineProps({
     summary: {
         type: Object,
         default: () => ({
-            total: 0, draft: 0, submitted: 0, reviewed: 0, late: 0, completion_rate: 0, trend: {},
+            total: 0,
+            draft: 0,
+            submitted: 0,
+            reviewed: 0,
+            late: 0,
+            completion_rate: 0,
+            trend: {},
         }),
     },
     filters: { type: Object, default: () => ({}) },
@@ -44,28 +57,38 @@ const props = defineProps({
 });
 
 function normalizeIds(value) {
-    if (Array.isArray(value)) return value.map((v) => Number(v)).filter(Boolean);
-    if (value == null || value === '') return [];
-    if (typeof value === 'object') return Object.values(value).map((v) => Number(v)).filter(Boolean);
+    if (Array.isArray(value))
+        return value.map((v) => Number(v)).filter(Boolean);
+    if (value == null || value === "") return [];
+    if (typeof value === "object")
+        return Object.values(value)
+            .map((v) => Number(v))
+            .filter(Boolean);
     return [Number(value)].filter(Boolean);
 }
 
-const VALID_GROUPS = ['day', 'week', 'month'];
+const VALID_GROUPS = ["day", "week", "month"];
 
 const filterForm = reactive({
-    q: props.filters.q ?? '',
-    status: props.filters.status ?? '',
-    project_id: props.filters.project_id ?? '',
-    employee_ids: normalizeIds(props.filters.employee_ids ?? props.filters.employee_id),
-    grade: props.filters.grade ?? '',
-    from: props.filters.from ?? '',
-    to: props.filters.to ?? '',
+    q: props.filters.q ?? "",
+    status: props.filters.status ?? "",
+    project_id: props.filters.project_id ?? "",
+    employee_ids: normalizeIds(
+        props.filters.employee_ids ?? props.filters.employee_id,
+    ),
+    grade: props.filters.grade ?? "",
+    from: props.filters.from ?? "",
+    to: props.filters.to ?? "",
     late: Boolean(props.filters.late),
 });
 
-const perPage = ref(Number(props.filters.per_page) || props.reports.meta?.per_page || 10);
-const viewMode = ref('cards');
-const groupMode = ref(VALID_GROUPS.includes(props.filters.group) ? props.filters.group : 'day');
+const perPage = ref(
+    Number(props.filters.per_page) || props.reports.meta?.per_page || 10,
+);
+const viewMode = ref("cards");
+const groupMode = ref(
+    VALID_GROUPS.includes(props.filters.group) ? props.filters.group : "day",
+);
 const collapsedGroups = ref({});
 const exporting = ref(false);
 
@@ -74,11 +97,11 @@ function routeParams(resetPage = false) {
         ...filterForm,
         per_page: perPage.value,
         group: groupMode.value,
-        late: filterForm.late ? '1' : '',
+        late: filterForm.late ? "1" : "",
     };
     const params = {};
     for (const [k, v] of Object.entries(raw)) {
-        if (v === '' || v == null || v === false) continue;
+        if (v === "" || v == null || v === false) continue;
         if (Array.isArray(v)) {
             if (v.length) params[k] = v;
             continue;
@@ -90,7 +113,7 @@ function routeParams(resetPage = false) {
 }
 
 const applyFilters = (resetPage = true) => {
-    router.get('/daily-reports', routeParams(resetPage), {
+    router.get("/daily-reports", routeParams(resetPage), {
         preserveState: true,
         replace: true,
         preserveScroll: true,
@@ -99,7 +122,14 @@ const applyFilters = (resetPage = true) => {
 
 const clearFilters = () => {
     Object.assign(filterForm, {
-        q: '', status: '', project_id: '', employee_ids: [], grade: '', from: '', to: '', late: false,
+        q: "",
+        status: "",
+        project_id: "",
+        employee_ids: [],
+        grade: "",
+        from: "",
+        to: "",
+        late: false,
     });
     applyFilters(true);
 };
@@ -109,19 +139,23 @@ function onPerPageChange(n) {
     applyFilters(true);
 }
 
-const activeCount = computed(() =>
-    Object.entries(filterForm).filter(([k, v]) => {
-        if (k === 'late') return v === true;
-        if (k === 'employee_ids') return v.length > 0;
-        return v !== '' && v != null;
-    }).length,
+const activeCount = computed(
+    () =>
+        Object.entries(filterForm).filter(([k, v]) => {
+            if (k === "late") return v === true;
+            if (k === "employee_ids") return v.length > 0;
+            return v !== "" && v != null;
+        }).length,
 );
 
 let kwTimer = null;
-watch(() => filterForm.q, () => {
-    clearTimeout(kwTimer);
-    kwTimer = setTimeout(() => applyFilters(true), 350);
-});
+watch(
+    () => filterForm.q,
+    () => {
+        clearTimeout(kwTimer);
+        kwTimer = setTimeout(() => applyFilters(true), 350);
+    },
+);
 
 watch(
     () => [
@@ -138,12 +172,12 @@ watch(
 );
 
 const HISTORY_FILTER_CONTROLS = [
-    { key: 'status', label: 'Trạng thái' },
-    { key: 'project', label: 'Dự án' },
-    { key: 'employee', label: 'Người báo cáo' },
-    { key: 'grade', label: 'Xếp loại' },
-    { key: 'from', label: 'Từ ngày', default: false },
-    { key: 'to', label: 'Đến ngày', default: false },
+    { key: "status", label: "Trạng thái" },
+    { key: "project", label: "Dự án" },
+    { key: "employee", label: "Người báo cáo" },
+    { key: "grade", label: "Xếp loại" },
+    { key: "from", label: "Từ ngày", default: false },
+    { key: "to", label: "Đến ngày", default: false },
 ];
 
 const {
@@ -154,7 +188,10 @@ const {
     persistVisibleFilters,
     openFilterPanel,
     FILTER_CONTROLS,
-} = useVisibleFilterControls(HISTORY_FILTER_CONTROLS, 'va-qlda.reports.visible-filters');
+} = useVisibleFilterControls(
+    HISTORY_FILTER_CONTROLS,
+    "va-qlda.reports.visible-filters",
+);
 
 const filterPanelDdRef = ref(null);
 const colsRef = ref(null);
@@ -175,21 +212,26 @@ const { panelStyle: exportPanelStyle } = useFixedDropdownAnchor(
     { width: 208, zIndex: 85 },
 );
 
-const COLS_KEY = 'va-qlda.reports.columns';
+const COLS_KEY = "va-qlda.reports.columns";
 const columns = reactive([
-    { key: 'employee', label: 'Người báo cáo', visible: props.canFilterEmployee, manager: true },
-    { key: 'title', label: 'Tiêu đề', visible: true },
-    { key: 'projects', label: 'Dự án', visible: true },
-    { key: 'status', label: 'Trạng thái', visible: true },
-    { key: 'score', label: 'Điểm', visible: true },
-    { key: 'feedback', label: 'Phản hồi', visible: true },
+    {
+        key: "employee",
+        label: "Người báo cáo",
+        visible: props.canFilterEmployee,
+        manager: true,
+    },
+    { key: "title", label: "Tiêu đề", visible: true },
+    { key: "projects", label: "Dự án", visible: true },
+    { key: "status", label: "Trạng thái", visible: true },
+    { key: "score", label: "Điểm", visible: true },
+    { key: "feedback", label: "Phản hồi", visible: true },
 ]);
 const visible = (key) => columns.find((c) => c.key === key)?.visible ?? false;
 
 // ---- Grouping (Ngày / Tuần / Tháng) — client-side over the current page ----
 
 function parseYmd(ymd) {
-    const [y, m, d] = String(ymd).split('-').map(Number);
+    const [y, m, d] = String(ymd).split("-").map(Number);
     return new Date(y, (m || 1) - 1, d || 1);
 }
 
@@ -198,20 +240,24 @@ function isoWeek(dateObj) {
     date.setHours(0, 0, 0, 0);
     date.setDate(date.getDate() + 3 - ((date.getDay() + 6) % 7));
     const week1 = new Date(date.getFullYear(), 0, 4);
-    const week = 1 + Math.round(((date - week1) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7);
+    const week =
+        1 +
+        Math.round(
+            ((date - week1) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7,
+        );
     return { year: date.getFullYear(), week };
 }
 
 function pad2(n) {
-    return String(n).padStart(2, '0');
+    return String(n).padStart(2, "0");
 }
 
 function groupOf(dateStr) {
-    if (groupMode.value === 'month') {
-        const [y, m] = String(dateStr).split('-');
+    if (groupMode.value === "month") {
+        const [y, m] = String(dateStr).split("-");
         return { key: `${y}-${m}`, label: `Tháng ${m}/${y}` };
     }
-    if (groupMode.value === 'week') {
+    if (groupMode.value === "week") {
         const d = parseYmd(dateStr);
         const { year, week } = isoWeek(d);
         const monday = new Date(d);
@@ -219,7 +265,10 @@ function groupOf(dateStr) {
         const sunday = new Date(monday);
         sunday.setDate(monday.getDate() + 6);
         const range = `${pad2(monday.getDate())}/${pad2(monday.getMonth() + 1)}–${pad2(sunday.getDate())}/${pad2(sunday.getMonth() + 1)}`;
-        return { key: `${year}-W${pad2(week)}`, label: `Tuần ${week}/${year} · ${range}` };
+        return {
+            key: `${year}-W${pad2(week)}`,
+            label: `Tuần ${week}/${year} · ${range}`,
+        };
     }
     return { key: dateStr, label: formatDate(dateStr) };
 }
@@ -240,7 +289,10 @@ const grouped = computed(() => {
         return {
             ...grp,
             items: [...grp.items].sort((a, b) =>
-                (a.employee?.name ?? '').localeCompare(b.employee?.name ?? '', 'vi'),
+                (a.employee?.name ?? "").localeCompare(
+                    b.employee?.name ?? "",
+                    "vi",
+                ),
             ),
         };
     });
@@ -283,13 +335,15 @@ function onKpiStatus(status) {
 
 function onKpiToggleLate() {
     filterForm.late = !filterForm.late;
-    if (filterForm.late) filterForm.status = '';
+    if (filterForm.late) filterForm.status = "";
 }
 
 const persistColumns = () => {
     localStorage.setItem(
         COLS_KEY,
-        JSON.stringify(Object.fromEntries(columns.map((c) => [c.key, c.visible]))),
+        JSON.stringify(
+            Object.fromEntries(columns.map((c) => [c.key, c.visible])),
+        ),
     );
 };
 
@@ -297,7 +351,7 @@ async function runExport(format) {
     exportMenu.value = false;
     if (exporting.value) return;
     exporting.value = true;
-    toast.info('Đang chuẩn bị dữ liệu xuất…');
+    toast.info("Đang chuẩn bị dữ liệu xuất…");
     try {
         const name = await exportDailyReportHistory({
             params: routeParams(false),
@@ -306,9 +360,9 @@ async function runExport(format) {
             format,
         });
         if (name) toast.success(`Đã tải ${name}`);
-        else toast.warning('Không có dữ liệu để xuất.');
+        else toast.warning("Không có dữ liệu để xuất.");
     } catch (e) {
-        toast.error('Xuất dữ liệu thất bại. Vui lòng thử lại.');
+        toast.error("Xuất dữ liệu thất bại. Vui lòng thử lại.");
         console.error(e);
     } finally {
         exporting.value = false;
@@ -318,7 +372,8 @@ async function runExport(format) {
 onMounted(() => {
     try {
         const savedView = localStorage.getItem(VIEW_KEY);
-        if (savedView === 'cards' || savedView === 'table') viewMode.value = savedView;
+        if (savedView === "cards" || savedView === "table")
+            viewMode.value = savedView;
 
         if (!VALID_GROUPS.includes(props.filters.group)) {
             const savedGroup = localStorage.getItem(GROUP_KEY);
@@ -327,27 +382,36 @@ onMounted(() => {
 
         if (!props.canFilterEmployee) visibleFilters.value.employee = false;
 
-        const saved = JSON.parse(localStorage.getItem(COLS_KEY) || 'null');
+        const saved = JSON.parse(localStorage.getItem(COLS_KEY) || "null");
         if (saved) {
-            if (saved.grade !== undefined && saved.score === undefined) saved.score = saved.grade;
+            if (saved.grade !== undefined && saved.score === undefined)
+                saved.score = saved.grade;
             columns.forEach((c) => {
-                if (c.key in saved && !(c.manager && !props.canFilterEmployee)) {
+                if (
+                    c.key in saved &&
+                    !(c.manager && !props.canFilterEmployee)
+                ) {
                     c.visible = !!saved[c.key];
                 }
             });
         }
-    } catch { /* ignore */ }
-    document.addEventListener('click', onDocClick);
+    } catch {
+        /* ignore */
+    }
+    document.addEventListener("click", onDocClick);
 });
-onBeforeUnmount(() => document.removeEventListener('click', onDocClick));
+onBeforeUnmount(() => document.removeEventListener("click", onDocClick));
 
 const onDocClick = (e) => {
     const t = e.target;
-    if (t.closest?.('[data-filter-visibility-panel]')) return;
-    if (t.closest?.('[data-daily-report-toolbar-panel]')) return;
-    if (filterPanelDdRef.value && !filterPanelDdRef.value.contains(t)) showFilterPanelDd.value = false;
-    if (colsMenu.value && colsRef.value && !colsRef.value.contains(t)) colsMenu.value = false;
-    if (exportMenu.value && exportRef.value && !exportRef.value.contains(t)) exportMenu.value = false;
+    if (t.closest?.("[data-filter-visibility-panel]")) return;
+    if (t.closest?.("[data-daily-report-toolbar-panel]")) return;
+    if (filterPanelDdRef.value && !filterPanelDdRef.value.contains(t))
+        showFilterPanelDd.value = false;
+    if (colsMenu.value && colsRef.value && !colsRef.value.contains(t))
+        colsMenu.value = false;
+    if (exportMenu.value && exportRef.value && !exportRef.value.contains(t))
+        exportMenu.value = false;
 };
 
 const removeReport = (r) => {
@@ -359,14 +423,14 @@ const removeReport = (r) => {
 
 function hasFeedback(r) {
     if (r.has_feedback) return true;
-    if (r.status === 'draft' && (r.review_notes || '').trim()) return true;
-    return Boolean((r.score?.notes || '').trim());
+    if (r.status === "draft" && (r.review_notes || "").trim()) return true;
+    return Boolean((r.score?.notes || "").trim());
 }
 
 const GROUP_TABS = [
-    { key: 'day', label: 'Ngày', icon: 'calendar' },
-    { key: 'week', label: 'Tuần', icon: 'weekly' },
-    { key: 'month', label: 'Tháng', icon: 'daily' },
+    { key: "day", label: "Ngày", icon: "calendar" },
+    { key: "week", label: "Tuần", icon: "weekly" },
+    { key: "month", label: "Tháng", icon: "daily" },
 ];
 </script>
 
@@ -416,11 +480,21 @@ const GROUP_TABS = [
       @toggle-late="onKpiToggleLate"
     />
 
-    <div class="card sticky top-0 z-20 mb-4 overflow-visible backdrop-blur supports-[backdrop-filter]:bg-white/90 dark:supports-[backdrop-filter]:bg-slate-900/90">
-      <div class="border-b border-slate-100 px-4 py-3 sm:px-5 dark:border-slate-700">
-        <div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-          <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-            <div class="flex min-w-0 flex-1 basis-full items-center gap-2 sm:basis-auto sm:flex-initial lg:max-w-[min(100%,22rem)] xl:max-w-[min(100%,26rem)]">
+    <div
+      class="card sticky top-0 z-20 mb-4 overflow-visible backdrop-blur supports-[backdrop-filter]:bg-white/90 dark:supports-[backdrop-filter]:bg-slate-900/90"
+    >
+      <div
+        class="border-b border-slate-100 px-4 py-3 sm:px-5 dark:border-slate-700"
+      >
+        <div
+          class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between"
+        >
+          <div
+            class="flex min-w-0 flex-1 flex-wrap items-center gap-2"
+          >
+            <div
+              class="flex min-w-0 flex-1 basis-full items-center gap-2 sm:basis-auto sm:flex-initial lg:max-w-[min(100%,22rem)] xl:max-w-[min(100%,26rem)]"
+            >
               <DatagridToolbarSearch
                 v-model="filterForm.q"
                 stretch
@@ -436,11 +510,18 @@ const GROUP_TABS = [
               <button
                 type="button"
                 class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
-                :class="showFilterPanelDd
-                  ? 'border-brand/40 bg-brand/5 text-brand'
-                  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'"
+                :class="
+                  showFilterPanelDd
+                    ? 'border-brand/40 bg-brand/5 text-brand'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                "
                 :title="`Hiển thị bộ lọc (${enabledFilterControlCount}/${FILTER_CONTROLS.length})`"
-                @click="openFilterPanel(() => { colsMenu = false; exportMenu = false; })"
+                @click="
+                  openFilterPanel(() => {
+                    colsMenu = false;
+                    exportMenu = false;
+                  })
+                "
               >
                 <AppIcon
                   name="filter"
@@ -452,7 +533,13 @@ const GROUP_TABS = [
                 v-model="visibleFilters"
                 :show="showFilterPanelDd"
                 :anchor-ref="filterPanelDdRef"
-                :controls="FILTER_CONTROLS.filter((f) => f.key !== 'employee' || canFilterEmployee)"
+                :controls="
+                  FILTER_CONTROLS.filter(
+                    (f) =>
+                      f.key !== 'employee' ||
+                      canFilterEmployee,
+                  )
+                "
                 @persist="persistVisibleFilters"
               />
             </div>
@@ -464,11 +551,17 @@ const GROUP_TABS = [
               <button
                 type="button"
                 class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
-                :class="colsMenu
-                  ? 'border-brand/40 bg-brand/5 text-brand'
-                  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'"
+                :class="
+                  colsMenu
+                    ? 'border-brand/40 bg-brand/5 text-brand'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                "
                 title="Cột hiển thị (chế độ bảng)"
-                @click="colsMenu = !colsMenu; exportMenu = false; showFilterPanelDd = false"
+                @click="
+                  colsMenu = !colsMenu;
+                  exportMenu = false;
+                  showFilterPanelDd = false;
+                "
               >
                 <AppIcon
                   name="columns"
@@ -485,31 +578,45 @@ const GROUP_TABS = [
               <button
                 type="button"
                 class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none disabled:opacity-50"
-                :class="exportMenu
-                  ? 'border-brand/40 bg-brand/5 text-brand'
-                  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'"
+                :class="
+                  exportMenu
+                    ? 'border-brand/40 bg-brand/5 text-brand'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                "
                 :disabled="exporting"
                 title="Xuất toàn bộ dữ liệu đang lọc"
-                @click="exportMenu = !exportMenu; colsMenu = false; showFilterPanelDd = false"
+                @click="
+                  exportMenu = !exportMenu;
+                  colsMenu = false;
+                  showFilterPanelDd = false;
+                "
               >
                 <AppIcon
                   name="export"
                   :size="15"
                 />
-                <span>{{ exporting ? 'Đang xuất…' : 'Xuất' }}</span>
+                <span>{{
+                  exporting ? "Đang xuất…" : "Xuất"
+                }}</span>
               </button>
             </div>
           </div>
 
           <div class="flex shrink-0 flex-wrap items-center gap-2">
             <!-- Group by -->
-            <div class="flex rounded-btn border border-slate-200 p-0.5 dark:border-slate-700">
+            <div
+              class="flex rounded-btn border border-slate-200 p-0.5 dark:border-slate-700"
+            >
               <button
                 v-for="g in GROUP_TABS"
                 :key="g.key"
                 type="button"
                 class="inline-flex h-8 items-center gap-1 rounded-btn px-2.5 text-xs font-medium transition"
-                :class="groupMode === g.key ? 'bg-brand/10 text-brand' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'"
+                :class="
+                  groupMode === g.key
+                    ? 'bg-brand/10 text-brand'
+                    : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
+                "
                 :title="`Nhóm theo ${g.label.toLowerCase()}`"
                 @click="setGroupMode(g.key)"
               >
@@ -522,11 +629,17 @@ const GROUP_TABS = [
             </div>
 
             <!-- View toggle -->
-            <div class="flex rounded-btn border border-slate-200 p-0.5 dark:border-slate-700">
+            <div
+              class="flex rounded-btn border border-slate-200 p-0.5 dark:border-slate-700"
+            >
               <button
                 type="button"
                 class="inline-flex h-8 items-center gap-1 rounded-btn px-2.5 text-xs font-medium transition"
-                :class="viewMode === 'cards' ? 'bg-brand/10 text-brand' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'"
+                :class="
+                  viewMode === 'cards'
+                    ? 'bg-brand/10 text-brand'
+                    : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
+                "
                 title="Thẻ báo cáo"
                 @click="setViewMode('cards')"
               >
@@ -539,7 +652,11 @@ const GROUP_TABS = [
               <button
                 type="button"
                 class="inline-flex h-8 items-center gap-1 rounded-btn px-2.5 text-xs font-medium transition"
-                :class="viewMode === 'table' ? 'bg-brand/10 text-brand' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'"
+                :class="
+                  viewMode === 'table'
+                    ? 'bg-brand/10 text-brand'
+                    : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
+                "
                 title="Bảng danh sách"
                 @click="setViewMode('table')"
               >
@@ -566,14 +683,19 @@ const GROUP_TABS = [
               class="origin-top-right rounded-card border border-slate-200 bg-white p-1.5 shadow-elevation-2 dark:border-slate-700 dark:bg-slate-900"
               data-daily-report-toolbar-panel
             >
-              <p class="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              <p
+                class="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400"
+              >
                 Hiển thị cột
               </p>
               <label
                 v-for="c in columns"
                 :key="c.key"
                 class="flex cursor-pointer items-center gap-2 rounded-btn px-2 py-1.5 text-sm text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
-                :class="{ 'opacity-40 pointer-events-none': c.manager && !canFilterEmployee }"
+                :class="{
+                  'opacity-40 pointer-events-none':
+                    c.manager && !canFilterEmployee,
+                }"
               >
                 <input
                   v-model="c.visible"
@@ -605,7 +727,9 @@ const GROUP_TABS = [
                 class="flex w-full flex-col rounded-btn px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-800"
                 @click="runExport('xlsx')"
               >
-                <span class="text-sm font-medium text-slate-700 dark:text-slate-200">Excel báo cáo (7 sheet)</span>
+                <span
+                  class="text-sm font-medium text-slate-700 dark:text-slate-200"
+                >Excel báo cáo (7 sheet)</span>
                 <span class="text-[10px] text-slate-400">Toàn bộ kết quả đang lọc</span>
               </button>
               <button
@@ -757,11 +881,17 @@ const GROUP_TABS = [
             @click="toggleGroup(group.key)"
           >
             <AppIcon
-              :name="isGroupCollapsed(group.key) ? 'chevron-right' : 'chevron-down'"
+              :name="
+                isGroupCollapsed(group.key)
+                  ? 'chevron-right'
+                  : 'chevron-down'
+              "
               :size="16"
               class="shrink-0 text-slate-400"
             />
-            <span class="font-display text-sm font-semibold tabular-nums text-slate-800 dark:text-slate-100">
+            <span
+              class="font-display text-sm font-semibold tabular-nums text-slate-800 dark:text-slate-100"
+            >
               {{ group.label }}
             </span>
             <span class="text-xs text-slate-500">
@@ -790,7 +920,9 @@ const GROUP_TABS = [
         class="overflow-x-auto"
       >
         <table class="w-full text-sm">
-          <thead class="border-b border-slate-200 bg-slate-50/80 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:border-slate-700 dark:bg-slate-800/60">
+          <thead
+            class="border-b border-slate-200 bg-slate-50/80 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:border-slate-700 dark:bg-slate-800/60"
+          >
             <tr>
               <th class="whitespace-nowrap px-4 py-2.5">
                 Ngày
@@ -836,14 +968,20 @@ const GROUP_TABS = [
               </th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+          <tbody
+            class="divide-y divide-slate-100 dark:divide-slate-700"
+          >
             <tr
               v-for="r in tableRows"
               :key="r.id"
               class="transition hover:bg-slate-50/80 dark:hover:bg-slate-800/50"
             >
-              <td class="whitespace-nowrap px-4 py-3 align-middle text-slate-600 dark:text-slate-300">
-                <span class="tabular-nums">{{ formatDate(r.date) }}</span>
+              <td
+                class="whitespace-nowrap px-4 py-3 align-middle text-slate-600 dark:text-slate-300"
+              >
+                <span class="tabular-nums">{{
+                  formatDate(r.date)
+                }}</span>
                 <span
                   v-if="r.is_late"
                   class="ml-1 rounded bg-rose-50 px-1 text-[10px] font-semibold text-danger"
@@ -859,7 +997,9 @@ const GROUP_TABS = [
                     :src="r.employee?.avatar_path"
                     :size="28"
                   />
-                  <span class="max-w-[10rem] truncate text-slate-700 dark:text-slate-200">{{ r.employee?.name ?? '—' }}</span>
+                  <span
+                    class="max-w-[10rem] truncate text-slate-700 dark:text-slate-200"
+                  >{{ r.employee?.name ?? "—" }}</span>
                 </div>
               </td>
               <td
@@ -878,7 +1018,7 @@ const GROUP_TABS = [
                 class="max-w-[8rem] truncate px-4 py-3 text-xs text-slate-500"
                 :title="projectChips(r).join(', ')"
               >
-                {{ projectChips(r).join(', ') || '—' }}
+                {{ projectChips(r).join(", ") || "—" }}
               </td>
               <td
                 v-if="visible('status')"
@@ -901,7 +1041,13 @@ const GROUP_TABS = [
                     :grade="r.score.grade"
                     :color="r.score.grade_color"
                   />
-                  <span class="text-xs font-semibold tabular-nums">{{ Number(r.score.total_score ?? 0).toFixed(1) }}</span>
+                  <span
+                    class="text-xs font-semibold tabular-nums"
+                  >{{
+                    Number(
+                      r.score.total_score ?? 0,
+                    ).toFixed(1)
+                  }}</span>
                 </div>
                 <span
                   v-else
@@ -919,7 +1065,9 @@ const GROUP_TABS = [
                   class="inline text-amber-500"
                 />
               </td>
-              <td class="whitespace-nowrap px-4 py-3 text-right align-middle">
+              <td
+                class="whitespace-nowrap px-4 py-3 text-right align-middle"
+              >
                 <Link
                   :href="`/daily-reports/${r.id}`"
                   class="text-xs font-medium text-brand hover:underline"
@@ -947,7 +1095,9 @@ const GROUP_TABS = [
 <style scoped>
 .fade-slide-enter-active,
 .fade-slide-leave-active {
-    transition: opacity 0.2s ease, transform 0.2s ease;
+    transition:
+        opacity 0.2s ease,
+        transform 0.2s ease;
 }
 .fade-slide-enter-from,
 .fade-slide-leave-to {
