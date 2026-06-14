@@ -70,6 +70,27 @@ function normalizeIds(value) {
     return [Number(value)].filter(Boolean);
 }
 
+function pad2(n) {
+    return String(n).padStart(2, "0");
+}
+
+/** ISO `yyyy-mm-dd` → hiển thị `dd/mm/yyyy` trên ô text lọc */
+function formatFilterDateDisplay(iso) {
+    if (!iso) return "";
+    const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!m) return String(iso);
+    return `${m[3]}/${m[2]}/${m[1]}`;
+}
+
+function normalizeFilterDateForQuery(val) {
+    const s = String(val ?? "").trim();
+    if (!s) return "";
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (m) return `${m[3]}-${pad2(m[2])}-${pad2(m[1])}`;
+    return s;
+}
+
 const VALID_GROUPS = ["day", "week", "month"];
 
 const filterForm = reactive({
@@ -80,8 +101,8 @@ const filterForm = reactive({
         props.filters.employee_ids ?? props.filters.employee_id,
     ),
     grade: props.filters.grade ?? "",
-    from: props.filters.from ?? "",
-    to: props.filters.to ?? "",
+    from: formatFilterDateDisplay(props.filters.from ?? ""),
+    to: formatFilterDateDisplay(props.filters.to ?? ""),
     late: Boolean(props.filters.late),
 });
 
@@ -107,6 +128,11 @@ function routeParams(resetPage = false) {
         if (v === "" || v == null || v === false) continue;
         if (Array.isArray(v)) {
             if (v.length) params[k] = v;
+            continue;
+        }
+        if (k === "from" || k === "to") {
+            const normalized = normalizeFilterDateForQuery(v);
+            if (normalized) params[k] = normalized;
             continue;
         }
         params[k] = v;
@@ -179,8 +205,7 @@ const HISTORY_FILTER_CONTROLS = [
     { key: "project", label: "Dự án", default: false },
     { key: "employee", label: "Người báo cáo", default: false },
     { key: "grade", label: "Xếp loại", default: false },
-    { key: "from", label: "Từ ngày", default: false },
-    { key: "to", label: "Đến ngày", default: false },
+    { key: "date_range", label: "Thời gian", default: false },
 ];
 
 const {
@@ -193,7 +218,7 @@ const {
     FILTER_CONTROLS,
 } = useVisibleFilterControls(
     HISTORY_FILTER_CONTROLS,
-    "va-qlda.reports.visible-filters.v2",
+    "va-qlda.reports.visible-filters.v3",
 );
 
 const filterPanelDdRef = ref(null);
@@ -249,10 +274,6 @@ function isoWeek(dateObj) {
             ((date - week1) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7,
         );
     return { year: date.getFullYear(), week };
-}
-
-function pad2(n) {
-    return String(n).padStart(2, "0");
 }
 
 function groupOf(dateStr) {
@@ -757,39 +778,31 @@ const FILTER_CONTROL_CLASS = "input h-10 w-full text-sm";
             </select>
           </DatagridFilterField>
 
-          <DatagridFilterField
-            v-if="visibleFilters.from"
+          <div
+            v-if="visibleFilters.date_range"
+            class="min-w-0 w-full sm:col-span-2 xl:col-span-2"
           >
-            <div class="relative w-full">
-              <span
-                v-if="!filterForm.from"
-                class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-slate-600 dark:text-slate-300"
-              >Từ ngày</span>
+            <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
               <input
                 v-model="filterForm.from"
-                type="date"
-                :class="[FILTER_CONTROL_CLASS, 'input--picker']"
+                type="text"
+                inputmode="numeric"
+                autocomplete="off"
+                :class="FILTER_CONTROL_CLASS"
+                placeholder="Từ ngày"
                 aria-label="Từ ngày"
               >
-            </div>
-          </DatagridFilterField>
-
-          <DatagridFilterField
-            v-if="visibleFilters.to"
-          >
-            <div class="relative w-full">
-              <span
-                v-if="!filterForm.to"
-                class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-slate-600 dark:text-slate-300"
-              >Đến ngày</span>
               <input
                 v-model="filterForm.to"
-                type="date"
-                :class="[FILTER_CONTROL_CLASS, 'input--picker']"
+                type="text"
+                inputmode="numeric"
+                autocomplete="off"
+                :class="FILTER_CONTROL_CLASS"
+                placeholder="Đến ngày"
                 aria-label="Đến ngày"
               >
             </div>
-          </DatagridFilterField>
+          </div>
 
           <div
             v-if="activeCount"
