@@ -62,7 +62,7 @@ const subLabel = computed(() => {
         />
         <div class="min-w-0 flex-1">
           <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-            Trưởng Ban/Khối
+            Người Quản Lý
           </p>
           <p class="truncate text-sm font-semibold text-slate-800">
             {{ leader.name }}

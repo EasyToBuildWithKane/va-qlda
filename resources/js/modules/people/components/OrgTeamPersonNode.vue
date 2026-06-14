@@ -22,7 +22,7 @@ function onActivate() {
   <component
     :is="interactive ? 'button' : 'div'"
     type="button"
-    class="org-person-node"
+    class="org-person-node org-flow-node"
     :class="{
       'org-person-node--leader': isLeader,
       'org-person-node--interactive': interactive,
@@ -89,29 +89,32 @@ function onActivate() {
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    width: 9.75rem;
-    min-height: 11rem;
+    width: 10rem;
+    min-height: 10.5rem;
     padding: 0.75rem 0.55rem 0.55rem;
+    padding-left: 0.65rem;
     text-align: center;
-    background: #fff;
+    background: rgb(255 255 255 / 0.94);
     border: 1px solid rgb(226 232 240);
-    border-radius: 0.875rem;
-    box-shadow: 0 1px 3px rgb(15 23 42 / 0.06);
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 3px rgb(15 23 42 / 0.05);
+    backdrop-filter: blur(4px);
 }
 
 .org-person-node--interactive {
     cursor: pointer;
     transition:
-        border-color 0.15s ease,
-        box-shadow 0.15s ease,
-        transform 0.15s ease;
+        border-color 0.2s ease,
+        box-shadow 0.25s ease,
+        transform 0.25s ease;
 }
 
 .org-person-node--interactive:hover {
-    border-color: rgb(154 0 54 / 0.28);
+    border-color: rgb(14 165 233 / 0.4);
     box-shadow:
-        0 2px 8px rgb(15 23 42 / 0.06),
-        0 0 0 1px rgb(154 0 54 / 0.06);
+        0 4px 16px rgb(14 165 233 / 0.1),
+        0 0 0 1px rgb(14 165 233 / 0.08);
+    transform: translateY(-2px);
 }
 
 .org-person-node--interactive:focus-visible {
@@ -120,9 +123,35 @@ function onActivate() {
 }
 
 .org-person-node--leader {
-    border-color: rgb(154 0 54 / 0.28);
-    background: #fff;
-    box-shadow: 0 1px 3px rgb(15 23 42 / 0.06);
+    border-color: rgb(154 0 54 / 0.25);
+    background: rgb(255 255 255 / 0.98);
+    box-shadow:
+        0 2px 12px rgb(154 0 54 / 0.06),
+        0 0 0 1px rgb(14 165 233 / 0.06);
+}
+
+.org-chart-canvas .org-person-node--leader.org-flow-node {
+    animation: org-leader-glow 3.5s ease-in-out infinite;
+}
+
+@keyframes org-leader-glow {
+    0%,
+    100% {
+        box-shadow:
+            0 2px 12px rgb(154 0 54 / 0.06),
+            0 0 0 1px rgb(14 165 233 / 0.06);
+    }
+    50% {
+        box-shadow:
+            0 4px 20px rgb(14 165 233 / 0.12),
+            0 0 0 1px rgb(14 165 233 / 0.15);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .org-chart-canvas .org-person-node--leader.org-flow-node {
+        animation: none;
+    }
 }
 
 .org-person-node__badge {

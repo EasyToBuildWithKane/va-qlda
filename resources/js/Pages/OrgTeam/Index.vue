@@ -11,6 +11,7 @@ import OrgTeamFormModal from '@/modules/people/components/OrgTeamFormModal.vue';
 import OrgTeamPersonDetailDrawer from '@/modules/people/components/OrgTeamPersonDetailDrawer.vue';
 import OrgTeamRootCard from '@/modules/people/components/OrgTeamRootCard.vue';
 import OrgTeamForestSummaryBar from '@/modules/people/components/OrgTeamForestSummaryBar.vue';
+import OrgTeamChartCanvas from '@/modules/people/components/OrgTeamChartCanvas.vue';
 import { summarizeForest } from '@/modules/people/composables/useOrgTeamTreeStats.js';
 import { useDialog } from '@/composables/useDialog';
 
@@ -303,34 +304,23 @@ function openChartForRoot(nodeOrId) {
         </button>
       </div>
 
-      <section
+      <OrgTeamChartCanvas
         :key="`${activeRoot.id}-${pageMode}`"
-        class="min-w-0 overflow-hidden rounded-card border border-slate-200/80 bg-white shadow-sm"
+        :title="activeRoot.name"
+        :level-label="`Sơ đồ · ${activeRoot.level === 1 ? 'Ban / Khối' : 'Nhóm'}`"
       >
-        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3 sm:px-5">
-          <div class="min-w-0">
-            <p class="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
-              Sơ đồ · {{ activeRoot.level === 1 ? 'Ban / Khối' : 'Nhóm' }}
-            </p>
-            <p class="font-display truncate text-base font-semibold text-slate-900">
-              {{ activeRoot.name }}
-            </p>
-          </div>
-        </div>
-        <div class="overflow-x-auto px-3 py-6 sm:px-6">
-          <ul class="org-tree org-tree--root flex min-w-min justify-center">
-            <OrgTeamChart
-              :node="activeRoot"
-              :edit-mode="pageMode === 'edit'"
-              :can-manage="!!can.create"
-              @edit="openEdit"
-              @add-child="onAddChild"
-              @delete="onDelete"
-              @select-person="onSelectPerson"
-            />
-          </ul>
-        </div>
-      </section>
+        <ul class="org-tree org-tree--root flex min-w-min justify-center">
+          <OrgTeamChart
+            :node="activeRoot"
+            :edit-mode="pageMode === 'edit'"
+            :can-manage="!!can.create"
+            @edit="openEdit"
+            @add-child="onAddChild"
+            @delete="onDelete"
+            @select-person="onSelectPerson"
+          />
+        </ul>
+      </OrgTeamChartCanvas>
     </div>
 
     <OrgTeamFormModal

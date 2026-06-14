@@ -1,0 +1,182 @@
+/* Workspace sơ đồ — lưới automation + ambient tech */
+
+.org-chart-canvas {
+    --org-canvas-brand: rgb(154 0 54);
+    --org-canvas-sky: rgb(14 165 233);
+    --org-canvas-violet: rgb(139 92 246);
+
+    position: relative;
+    overflow: hidden;
+    border-radius: 0.75rem;
+    border: 1px solid rgb(226 232 240 / 0.9);
+    background: linear-gradient(165deg, rgb(248 250 252) 0%, rgb(255 255 255) 42%, rgb(253 242 246 / 0.35) 100%);
+}
+
+.org-chart-canvas__ambient {
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+}
+
+.org-chart-canvas__grid {
+    position: absolute;
+    inset: 0;
+    opacity: 0.55;
+    background-image:
+        linear-gradient(rgb(148 163 184 / 0.12) 1px, transparent 1px),
+        linear-gradient(90deg, rgb(148 163 184 / 0.12) 1px, transparent 1px);
+    background-size: 24px 24px;
+    mask-image: radial-gradient(ellipse 85% 70% at 50% 35%, #000 20%, transparent 75%);
+}
+
+.org-chart-canvas__scan {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgb(14 165 233 / 0.35),
+        rgb(154 0 54 / 0.25),
+        transparent
+    );
+    box-shadow: 0 0 24px rgb(14 165 233 / 0.2);
+    animation: org-canvas-scan 8s ease-in-out infinite;
+}
+
+.org-chart-canvas__orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(48px);
+    opacity: 0.35;
+    animation: org-canvas-orb 12s ease-in-out infinite;
+}
+
+.org-chart-canvas__orb--brand {
+    top: -3rem;
+    right: 10%;
+    width: 14rem;
+    height: 14rem;
+    background: rgb(154 0 54 / 0.18);
+}
+
+.org-chart-canvas__orb--sky {
+    bottom: -4rem;
+    left: 8%;
+    width: 12rem;
+    height: 12rem;
+    background: rgb(14 165 233 / 0.14);
+    animation-delay: -4s;
+}
+
+.org-chart-canvas__header {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 0.75rem 1.5rem;
+    border-bottom: 1px solid rgb(226 232 240 / 0.8);
+    background: rgb(255 255 255 / 0.72);
+    backdrop-filter: blur(8px);
+    padding: 0.75rem 1rem;
+}
+
+@media (min-width: 640px) {
+    .org-chart-canvas__header {
+        padding: 0.875rem 1.25rem;
+    }
+}
+
+.org-chart-canvas__eyebrow {
+    margin: 0;
+    font-size: 0.625rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgb(154 0 54 / 0.75);
+}
+
+.org-chart-canvas__title {
+    margin: 0.15rem 0 0;
+    font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    color: rgb(15 23 42);
+}
+
+.org-chart-canvas__legend {
+    margin: 0;
+    font-size: 0.625rem;
+    font-weight: 500;
+    color: rgb(100 116 139);
+    line-height: 1.4;
+}
+
+.org-chart-canvas__legend-flow {
+    display: inline-block;
+    padding: 0.1rem 0.35rem;
+    border-radius: 0.25rem;
+    border: 1px solid rgb(226 232 240);
+    background: rgb(255 255 255 / 0.9);
+    font-weight: 600;
+    color: rgb(51 65 85);
+}
+
+.org-chart-canvas__legend-arrow {
+    margin: 0 0.2rem;
+    color: rgb(14 165 233 / 0.85);
+}
+
+.org-chart-canvas__viewport {
+    position: relative;
+    z-index: 1;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 1.25rem 1rem 1.75rem;
+    -webkit-overflow-scrolling: touch;
+}
+
+@media (min-width: 640px) {
+    .org-chart-canvas__viewport {
+        padding: 1.5rem 1.5rem 2rem;
+    }
+}
+
+@keyframes org-canvas-scan {
+    0% {
+        top: -2%;
+        opacity: 0;
+    }
+    8% {
+        opacity: 0.7;
+    }
+    92% {
+        opacity: 0.5;
+    }
+    100% {
+        top: 102%;
+        opacity: 0;
+    }
+}
+
+@keyframes org-canvas-orb {
+    0%,
+    100% {
+        transform: translate(0, 0) scale(1);
+    }
+    50% {
+        transform: translate(12px, -8px) scale(1.05);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .org-chart-canvas__scan,
+    .org-chart-canvas__orb {
+        animation: none;
+    }
+}

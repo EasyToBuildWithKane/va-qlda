@@ -64,9 +64,17 @@ onBeforeUnmount(() => {
 <template>
   <article
     ref="rootRef"
-    class="org-team-node"
+    class="org-team-node org-flow-node"
     :class="levelTone(node.level)"
   >
+    <span
+      class="org-team-node__port org-team-node__port--in"
+      aria-hidden="true"
+    />
+    <span
+      class="org-team-node__port org-team-node__port--out"
+      aria-hidden="true"
+    />
     <div class="org-team-node__head">
       <p
         v-if="node.level <= 2"
@@ -179,19 +187,25 @@ onBeforeUnmount(() => {
 .org-team-node {
     position: relative;
     z-index: 2;
-    min-width: 13rem;
-    max-width: 18rem;
+    min-width: 13.5rem;
+    max-width: 19rem;
     overflow: visible;
-    background: #fff;
+    background: rgb(255 255 255 / 0.92);
     border: 1px solid rgb(226 232 240);
-    border-radius: 1rem;
+    border-radius: 0.75rem;
     box-shadow:
-        0 1px 2px rgb(15 23 42 / 0.06),
-        0 8px 20px rgb(15 23 42 / 0.05);
+        0 1px 2px rgb(15 23 42 / 0.05),
+        0 8px 24px rgb(15 23 42 / 0.04);
+    backdrop-filter: blur(6px);
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.25s ease,
+        transform 0.25s ease;
 }
 
 .org-team-node__head {
     padding: 0.625rem 0.875rem 0.75rem;
+    padding-left: 1rem;
     text-align: center;
 }
 
@@ -199,9 +213,10 @@ onBeforeUnmount(() => {
     margin: 0 0 0.25rem;
     font-size: 0.625rem;
     font-weight: 600;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     line-height: 1.2;
+    font-variant-numeric: tabular-nums;
 }
 
 .org-team-node__title {
