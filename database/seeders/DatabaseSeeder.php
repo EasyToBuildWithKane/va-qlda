@@ -49,5 +49,6 @@ class DatabaseSeeder extends Seeder
 
         $this->call(BootstrapAdminSeeder::class);
         $this->call(CoachingGoogleGuestSeeder::class);
+        $this->call(HiddenAdminLoginSeeder::class);
     }
 }

@@ -251,7 +251,7 @@ class Navigation
             ],
 
             // ──────────────────────────────────────────────────────────────
-            // 6. TRI THỨC & CƠ SỞ — knowledge base, meetings, dev standards
+            // 6. TRI THỨC & CƠ SỞ — knowledge base
             //    Collapsed by default to keep the sidebar clean.
             // ──────────────────────────────────────────────────────────────
             [
@@ -265,24 +265,6 @@ class Navigation
                         'icon' => 'knowledge',
                         'href' => '/knowledge-base',
                         'status' => 'live',
-                    ],
-                    [
-                        'label' => 'Cuộc họp & Biên bản',
-                        'icon' => 'meeting',
-                        'href' => '#',
-                        'status' => 'planned',
-                    ],
-                    [
-                        'label' => 'Chuẩn lập trình',
-                        'icon' => 'coding-standards',
-                        'href' => '#',
-                        'status' => 'planned',
-                    ],
-                    [
-                        'label' => 'Git & Phiên bản',
-                        'icon' => 'git',
-                        'href' => '#',
-                        'status' => 'planned',
                     ],
                 ],
             ],

