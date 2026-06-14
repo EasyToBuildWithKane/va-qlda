@@ -8,6 +8,11 @@ const props = defineProps({
 });
 
 const src = computed(() => props.embedSrc || null);
+
+const isDocumentPreview = computed(() => {
+    const s = src.value ?? '';
+    return s.includes('docs.google.com') || s.includes('drive.google.com');
+});
 </script>
 
 <template>
@@ -16,7 +21,10 @@ const src = computed(() => props.embedSrc || null);
       v-if="src"
       :src="src"
       :title="title"
-      class="aspect-video w-full rounded-lg border border-slate-200 bg-slate-50"
+      class="w-full rounded-lg border border-slate-200 bg-slate-50"
+      :class="isDocumentPreview
+        ? 'min-h-[22rem] h-[min(50vh,36rem)]'
+        : 'aspect-video'"
       sandbox="allow-scripts allow-same-origin allow-popups"
       loading="lazy"
       referrerpolicy="no-referrer"

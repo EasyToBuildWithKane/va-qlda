@@ -1,7 +1,7 @@
 <script setup>
 /* eslint-disable vue/no-v-html */
 import { computed, ref, watch } from 'vue';
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import AppIcon from '@/Components/AppIcon.vue';
@@ -169,10 +169,10 @@ function tabBadge(key) {
 
 <template>
   <Head :title="`Buổi ${session.session_number}: ${session.title}`" />
-  <AppLayout>
+  <AppLayout flush>
     <template #header>
       <PageHeader
-        :title="`Buổi ${session.session_number}: ${session.title}`"
+        :title="`Buổi ${session.session_number}`"
         :subtitle="course.name"
         icon="weekly"
         :back-href="`/coaching/courses/${course.id}`"
@@ -208,103 +208,117 @@ function tabBadge(key) {
       </PageHeader>
     </template>
 
-    <CoachingWorkspace>
-      <div class="mx-auto w-full max-w-5xl space-y-4">
-        <!-- Tóm tắt nhanh -->
-        <section
-          class="card overflow-hidden"
-          aria-label="Tóm tắt buổi học"
-        >
-          <div class="border-b border-slate-100 bg-gradient-to-r from-brand-50/80 to-white px-4 py-3 sm:px-5">
-            <div class="flex flex-wrap items-center justify-between gap-2">
-              <p class="font-display text-sm font-semibold text-slate-800">
-                {{ session.title || 'Chưa có tên buổi' }}
-              </p>
+    <div class="flex min-h-0 min-w-0 flex-1 flex-col p-4 sm:p-6">
+      <CoachingWorkspace class="flex min-h-0 min-w-0 flex-1 flex-col">
+        <section class="card flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+          <!-- Hero + KPI -->
+          <div class="border-b border-slate-100 bg-gradient-to-br from-brand/[0.08] via-white to-slate-50/90 px-4 py-5 sm:px-6 lg:px-8">
+            <div class="flex flex-wrap items-start justify-between gap-4">
+              <div class="min-w-0 flex-1">
+                <p class="text-[11px] font-semibold uppercase tracking-wider text-brand">
+                  Buổi {{ session.session_number }}
+                </p>
+                <h1 class="mt-0.5 font-display text-xl font-semibold leading-snug text-slate-900 sm:text-2xl">
+                  {{ session.title || 'Chưa có tên buổi' }}
+                </h1>
+                <Link
+                  :href="route('coaching.courses.show', { course: course.id })"
+                  class="mt-2 inline-flex items-center gap-1 text-sm text-slate-600 transition hover:text-brand"
+                >
+                  <span class="font-mono text-xs text-slate-400">{{ course.code }}</span>
+                  <span>{{ course.name }}</span>
+                  <AppIcon
+                    name="chevron-right"
+                    :size="14"
+                    class="opacity-60"
+                  />
+                </Link>
+              </div>
               <Badge
-                class="sm:hidden"
+                class="hidden shrink-0 sm:inline-flex"
                 :label="STATUS_LABEL[statusValue] || statusValue"
                 :color="STATUS_COLOR[statusValue] || 'slate'"
               />
             </div>
-          </div>
-          <dl class="grid grid-cols-2 gap-3 p-4 sm:grid-cols-4 sm:gap-4 sm:p-5">
-            <div class="rounded-lg bg-slate-50/90 px-3 py-2.5">
-              <dt class="flex items-center gap-1 text-[11px] font-medium uppercase tracking-wide text-slate-500">
-                <AppIcon
-                  name="calendar"
-                  :size="12"
-                />
-                Ngày học
-              </dt>
-              <dd class="mt-1 text-sm font-medium text-slate-800">
-                {{ session.date ? fmtDate(session.date) : '—' }}
-              </dd>
-            </div>
-            <div class="rounded-lg bg-slate-50/90 px-3 py-2.5">
-              <dt class="flex items-center gap-1 text-[11px] font-medium uppercase tracking-wide text-slate-500">
-                <AppIcon
-                  name="worklog"
-                  :size="12"
-                />
-                Tổng giờ
-              </dt>
-              <dd class="mt-1 text-sm font-medium text-slate-800">
-                {{ session.total_hours != null ? fmtHours(session.total_hours) : '—' }}
-              </dd>
-            </div>
-            <div class="rounded-lg bg-slate-50/90 px-3 py-2.5">
-              <dt class="flex items-center gap-1 text-[11px] font-medium uppercase tracking-wide text-slate-500">
-                <AppIcon
-                  name="clock"
-                  :size="12"
-                />
-                Khung giờ
-              </dt>
-              <dd class="mt-1 text-sm font-medium text-slate-800">
-                {{ sessionTimeLabel || '—' }}
-              </dd>
-            </div>
-            <div class="rounded-lg bg-slate-50/90 px-3 py-2.5">
-              <dt class="flex items-center gap-1 text-[11px] font-medium uppercase tracking-wide text-slate-500">
-                <AppIcon
-                  name="link"
-                  :size="12"
-                />
-                Tài liệu · Bài tập
-              </dt>
-              <dd class="mt-1 text-sm font-medium text-slate-800">
-                {{ materialCount }} · {{ assignmentCount }}
-              </dd>
-            </div>
-          </dl>
-        </section>
 
-        <!-- Tab shell -->
-        <section class="card overflow-hidden">
+            <dl class="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
+              <div class="rounded-xl border border-white/80 bg-white/90 px-3 py-3 shadow-sm ring-1 ring-slate-100/80">
+                <dt class="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                  <AppIcon
+                    name="calendar"
+                    :size="12"
+                  />
+                  Ngày học
+                </dt>
+                <dd class="mt-1.5 text-sm font-semibold tabular-nums text-slate-800">
+                  {{ session.date ? fmtDate(session.date) : '—' }}
+                </dd>
+              </div>
+              <div class="rounded-xl border border-white/80 bg-white/90 px-3 py-3 shadow-sm ring-1 ring-slate-100/80">
+                <dt class="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                  <AppIcon
+                    name="worklog"
+                    :size="12"
+                  />
+                  Tổng giờ
+                </dt>
+                <dd class="mt-1.5 text-sm font-semibold text-slate-800">
+                  {{ session.total_hours != null ? fmtHours(session.total_hours) : '—' }}
+                </dd>
+              </div>
+              <div class="rounded-xl border border-white/80 bg-white/90 px-3 py-3 shadow-sm ring-1 ring-slate-100/80">
+                <dt class="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                  <AppIcon
+                    name="clock"
+                    :size="12"
+                  />
+                  Khung giờ
+                </dt>
+                <dd class="mt-1.5 text-sm font-semibold text-slate-800">
+                  {{ sessionTimeLabel || '—' }}
+                </dd>
+              </div>
+              <div class="rounded-xl border border-white/80 bg-white/90 px-3 py-3 shadow-sm ring-1 ring-slate-100/80">
+                <dt class="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                  <AppIcon
+                    name="task"
+                    :size="12"
+                  />
+                  Tài liệu · Bài tập
+                </dt>
+                <dd class="mt-1.5 text-sm font-semibold tabular-nums text-slate-800">
+                  {{ materialCount }}
+                  <span class="font-normal text-slate-400">·</span>
+                  {{ assignmentCount }}
+                </dd>
+              </div>
+            </dl>
+          </div>
+
           <nav
-            class="flex shrink-0 items-stretch gap-0 overflow-x-auto overscroll-x-contain border-b border-slate-200 bg-white [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            class="sticky top-0 z-10 flex shrink-0 items-stretch gap-0 overflow-x-auto overscroll-x-contain border-b border-slate-200 bg-white/95 backdrop-blur-sm [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             aria-label="Nội dung buổi học"
           >
             <button
               v-for="t in tabs"
               :key="t.key"
               type="button"
-              class="flex min-w-[5.5rem] shrink-0 flex-col items-center justify-center gap-0.5 border-b-2 px-3 py-3 text-center transition sm:min-w-0 sm:flex-row sm:gap-1.5 sm:px-4 sm:py-3.5 sm:text-left"
+              class="flex min-w-[5.5rem] shrink-0 items-center justify-center gap-1.5 border-b-2 px-4 py-3.5 text-sm font-semibold transition sm:min-w-0 sm:px-6"
               :class="activeTab === t.key
-                ? 'border-brand bg-brand-50/30 text-brand'
-                : 'border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-700'"
+                ? 'border-brand bg-brand-50/40 text-brand'
+                : 'border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-800'"
               @click="activeTab = t.key"
             >
               <AppIcon
                 :name="t.icon"
-                :size="16"
-                class="shrink-0 opacity-80"
+                :size="17"
+                class="shrink-0 opacity-90"
               />
-              <span class="text-xs font-semibold sm:text-sm">{{ t.label }}</span>
+              <span>{{ t.label }}</span>
               <span
                 v-if="tabBadge(t.key) > 0"
-                class="inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold"
-                :class="activeTab === t.key ? 'bg-brand/15 text-brand' : 'bg-slate-200 text-slate-600'"
+                class="inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold"
+                :class="activeTab === t.key ? 'bg-brand text-white' : 'bg-slate-200 text-slate-600'"
               >
                 {{ tabBadge(t.key) }}
               </span>
@@ -313,325 +327,368 @@ function tabBadge(key) {
 
           <div
             v-if="isEditing"
-            class="flex flex-wrap items-center justify-between gap-2 border-b border-brand/15 bg-brand-50/40 px-4 py-2.5 text-sm sm:px-6"
+            class="flex flex-wrap items-center justify-between gap-2 border-b border-brand/15 bg-brand-50/50 px-4 py-2.5 text-sm sm:px-6 lg:px-8"
           >
             <span class="font-medium text-brand">
               Đang chỉnh sửa buổi học
             </span>
             <span class="text-xs text-slate-600">
-              Lưu từng tab (Tổng quan / Nội dung) hoặc thêm tài liệu khi chỉnh sửa; bài tập giao tại tab Bài tập.
+              Lưu từng tab hoặc thêm tài liệu; bài tập giao tại tab Bài tập.
             </span>
           </div>
 
-          <div class="p-4 sm:p-6">
-            <!-- Tổng quan -->
-            <div
-              v-show="activeTab === 'overview'"
-              class="mx-auto max-w-3xl"
-            >
-              <p
-                v-if="isEditing"
-                class="mb-4 text-sm text-slate-600"
-              >
-                Cập nhật tên buổi, ngày và khung giờ. Bấm «Lưu thông tin» rồi quay lại chế độ xem chi tiết.
-              </p>
-              <p
-                v-else
-                class="mb-4 text-sm text-slate-600"
-              >
-                Thông tin đã lưu của buổi học. Bấm «Chỉnh sửa» trên header để thay đổi.
-              </p>
-              <div
-                v-if="isEditing"
-                class="grid gap-4 sm:grid-cols-2"
-              >
-                <div class="sm:col-span-2">
-                  <label class="label">Tên buổi học</label>
-                  <input
-                    v-model="metaForm.title"
-                    type="text"
-                    class="input w-full"
-                    placeholder="Tên hiển thị trên lịch và chi tiết buổi"
-                  >
-                </div>
-                <div>
-                  <label class="label">Ngày học</label>
-                  <DateInput v-model="metaForm.date" />
-                </div>
-                <div>
-                  <label class="label">Tổng giờ</label>
-                  <DecimalHoursInput
-                    v-model="metaForm.total_hours"
-                    placeholder="2,5"
-                  />
-                </div>
-                <div>
-                  <label class="label">Giờ bắt đầu</label>
-                  <TimeInput v-model="metaForm.start_time" />
-                </div>
-                <div>
-                  <label class="label">Giờ kết thúc</label>
-                  <TimeInput v-model="metaForm.end_time" />
-                </div>
-                <div class="sm:col-span-2 flex justify-stretch sm:justify-end">
-                  <button
-                    type="button"
-                    class="btn-primary h-10 w-full gap-1.5 px-5 text-sm sm:w-auto"
-                    :disabled="metaForm.processing"
-                    @click="saveMeta"
-                  >
-                    <AppIcon
-                      name="save"
-                      :size="15"
-                    />
-                    Lưu thông tin
-                  </button>
-                </div>
-              </div>
-              <dl
-                v-else
-                class="divide-y divide-slate-100 rounded-lg border border-slate-100"
-              >
-                <div class="grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4">
-                  <dt class="text-xs font-medium text-slate-500">
-                    Tên buổi học
-                  </dt>
-                  <dd class="text-sm text-slate-800 sm:col-span-2">
-                    {{ session.title || '—' }}
-                  </dd>
-                </div>
-                <div class="grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4">
-                  <dt class="text-xs font-medium text-slate-500">
-                    Ngày học
-                  </dt>
-                  <dd class="text-sm text-slate-800 sm:col-span-2">
-                    {{ fmtDate(session.date) }}
-                  </dd>
-                </div>
-                <div class="grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4">
-                  <dt class="text-xs font-medium text-slate-500">
-                    Tổng giờ
-                  </dt>
-                  <dd class="text-sm text-slate-800 sm:col-span-2">
-                    {{ session.total_hours != null ? fmtHours(session.total_hours) : '—' }}
-                  </dd>
-                </div>
-                <div class="grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4">
-                  <dt class="text-xs font-medium text-slate-500">
-                    Khung giờ
-                  </dt>
-                  <dd class="text-sm text-slate-800 sm:col-span-2">
-                    {{ sessionTimeLabel || '—' }}
-                  </dd>
-                </div>
-              </dl>
-            </div>
-
-            <!-- Nội dung -->
-            <div
-              v-show="activeTab === 'content'"
-              class="mx-auto max-w-3xl"
-            >
-              <div
-                v-if="isEditing"
-                class="space-y-4"
-              >
-                <KbRichTextField
-                  v-model="contentForm.content"
-                  label=""
-                />
-                <div class="flex justify-stretch sm:justify-end">
-                  <button
-                    type="button"
-                    class="btn-primary h-10 w-full gap-1.5 px-5 text-sm sm:w-auto"
-                    :disabled="contentForm.processing"
-                    @click="saveContent"
-                  >
-                    <AppIcon
-                      name="save"
-                      :size="15"
-                    />
-                    Lưu nội dung
-                  </button>
-                </div>
-              </div>
-              <div
-                v-else-if="hasContent"
-                class="rich-content prose prose-sm max-w-none rounded-lg border border-slate-100 bg-white p-4 sm:p-6"
-                v-html="session.content"
-              />
-              <div
-                v-else
-                class="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50/50 px-6 py-14 text-center"
-              >
-                <AppIcon
-                  name="documents"
-                  :size="32"
-                  class="text-slate-300"
-                />
-                <p class="mt-3 text-sm font-medium text-slate-600">
-                  Chưa có nội dung chi tiết
-                </p>
-                <p class="mt-1 max-w-sm text-xs text-slate-500">
-                  <template v-if="canEdit">
-                    Bấm «Chỉnh sửa» trên header để thêm ghi chú hoặc outline.
-                  </template>
-                  <template v-else>
-                    Coach sẽ bổ sung ghi chú, outline hoặc tài liệu lý thuyết tại đây.
-                  </template>
-                </p>
-              </div>
-            </div>
-
-            <!-- Tài liệu -->
-            <div
-              v-show="activeTab === 'materials'"
-              class="mx-auto max-w-3xl space-y-4"
-            >
-              <ul
-                v-if="session.materials?.length"
-                class="space-y-3"
-              >
-                <li
-                  v-for="m in session.materials"
-                  :key="m.id"
-                  class="overflow-hidden rounded-xl border border-slate-100 bg-white shadow-sm"
+          <div class="min-h-0 flex-1 overflow-y-auto">
+            <div class="w-full px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
+              <!-- Tổng quan -->
+              <div v-show="activeTab === 'overview'">
+                <p
+                  v-if="isEditing"
+                  class="mb-5 max-w-3xl text-sm text-slate-600"
                 >
-                  <div class="flex flex-wrap items-center gap-2 border-b border-slate-50 px-4 py-3">
-                    <span class="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-medium text-slate-600">
-                      {{ m.type_label }}
-                    </span>
-                    <span class="min-w-0 flex-1 text-sm font-semibold text-slate-800">
-                      {{ m.title }}
-                    </span>
+                  Cập nhật tên buổi, ngày và khung giờ. Bấm «Lưu thông tin» rồi quay lại chế độ xem.
+                </p>
+                <p
+                  v-else
+                  class="mb-5 max-w-3xl text-sm text-slate-600"
+                >
+                  Thông tin buổi học. Bấm «Chỉnh sửa» trên header để thay đổi.
+                </p>
+                <div
+                  v-if="isEditing"
+                  class="grid max-w-4xl gap-4 sm:grid-cols-2"
+                >
+                  <div class="sm:col-span-2">
+                    <label class="label">Tên buổi học</label>
+                    <input
+                      v-model="metaForm.title"
+                      type="text"
+                      class="input w-full"
+                      placeholder="Tên hiển thị trên lịch và chi tiết buổi"
+                    >
                   </div>
-                  <div class="p-4">
-                    <CoachingMaterialEmbed
-                      v-if="m.embedAllowed && m.embedSrc"
-                      :url="m.url"
-                      :embed-src="m.embedSrc"
-                      :title="m.title"
+                  <div>
+                    <label class="label">Ngày học</label>
+                    <DateInput v-model="metaForm.date" />
+                  </div>
+                  <div>
+                    <label class="label">Tổng giờ</label>
+                    <DecimalHoursInput
+                      v-model="metaForm.total_hours"
+                      placeholder="2,5"
                     />
-                    <a
-                      v-else-if="m.url"
-                      :href="m.url"
-                      target="_blank"
-                      rel="noopener"
-                      class="inline-flex h-9 items-center gap-2 rounded-btn border border-slate-200 px-3 text-sm font-medium text-brand hover:bg-brand-50/50"
+                  </div>
+                  <div>
+                    <label class="label">Giờ bắt đầu</label>
+                    <TimeInput v-model="metaForm.start_time" />
+                  </div>
+                  <div>
+                    <label class="label">Giờ kết thúc</label>
+                    <TimeInput v-model="metaForm.end_time" />
+                  </div>
+                  <div class="flex sm:col-span-2 sm:justify-end">
+                    <button
+                      type="button"
+                      class="btn-primary h-10 w-full gap-1.5 px-5 text-sm sm:w-auto"
+                      :disabled="metaForm.processing"
+                      @click="saveMeta"
+                    >
+                      <AppIcon
+                        name="save"
+                        :size="15"
+                      />
+                      Lưu thông tin
+                    </button>
+                  </div>
+                </div>
+                <div
+                  v-else
+                  class="grid gap-4 lg:grid-cols-2"
+                >
+                  <dl class="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-100 bg-white shadow-sm">
+                    <div class="grid gap-1 px-5 py-3.5 sm:grid-cols-3 sm:gap-4">
+                      <dt class="text-xs font-medium text-slate-500">
+                        Tên buổi học
+                      </dt>
+                      <dd class="text-sm font-medium text-slate-800 sm:col-span-2">
+                        {{ session.title || '—' }}
+                      </dd>
+                    </div>
+                    <div class="grid gap-1 px-5 py-3.5 sm:grid-cols-3 sm:gap-4">
+                      <dt class="text-xs font-medium text-slate-500">
+                        Ngày học
+                      </dt>
+                      <dd class="text-sm text-slate-800 sm:col-span-2">
+                        {{ fmtDate(session.date) }}
+                      </dd>
+                    </div>
+                    <div class="grid gap-1 px-5 py-3.5 sm:grid-cols-3 sm:gap-4">
+                      <dt class="text-xs font-medium text-slate-500">
+                        Tổng giờ
+                      </dt>
+                      <dd class="text-sm text-slate-800 sm:col-span-2">
+                        {{ session.total_hours != null ? fmtHours(session.total_hours) : '—' }}
+                      </dd>
+                    </div>
+                    <div class="grid gap-1 px-5 py-3.5 sm:grid-cols-3 sm:gap-4">
+                      <dt class="text-xs font-medium text-slate-500">
+                        Khung giờ
+                      </dt>
+                      <dd class="text-sm text-slate-800 sm:col-span-2">
+                        {{ sessionTimeLabel || '—' }}
+                      </dd>
+                    </div>
+                  </dl>
+                  <div class="flex flex-col gap-3 rounded-xl border border-dashed border-slate-200 bg-slate-50/60 p-5">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Chuyển nhanh
+                    </p>
+                    <button
+                      type="button"
+                      class="flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-800 shadow-sm transition hover:border-brand/30 hover:text-brand"
+                      @click="activeTab = 'content'"
+                    >
+                      <AppIcon
+                        name="documents"
+                        :size="18"
+                        class="text-brand"
+                      />
+                      Nội dung buổi học
+                    </button>
+                    <button
+                      type="button"
+                      class="flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-800 shadow-sm transition hover:border-brand/30 hover:text-brand"
+                      @click="activeTab = 'materials'"
                     >
                       <AppIcon
                         name="link"
-                        :size="14"
+                        :size="18"
+                        class="text-brand"
                       />
-                      Mở liên kết
-                    </a>
-                    <a
-                      v-else-if="m.file_url"
-                      :href="m.file_url"
-                      class="inline-flex h-9 items-center gap-2 rounded-btn border border-slate-200 px-3 text-sm font-medium text-brand hover:bg-brand-50/50"
+                      Tài liệu ({{ materialCount }})
+                    </button>
+                    <button
+                      type="button"
+                      class="flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-800 shadow-sm transition hover:border-brand/30 hover:text-brand"
+                      @click="activeTab = 'assignments'"
                     >
                       <AppIcon
-                        name="download"
-                        :size="14"
+                        name="task"
+                        :size="18"
+                        class="text-brand"
                       />
-                      Tải file
-                    </a>
+                      Bài tập ({{ assignmentCount }})
+                    </button>
                   </div>
-                </li>
-              </ul>
-              <div
-                v-else
-                class="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50/50 px-6 py-12 text-center"
-              >
-                <AppIcon
-                  name="link"
-                  :size="32"
-                  class="text-slate-300"
-                />
-                <p class="mt-3 text-sm font-medium text-slate-600">
-                  Chưa có tài liệu
-                </p>
+                </div>
               </div>
 
-              <form
-                v-if="isEditing"
-                class="space-y-3 rounded-xl border border-dashed border-brand/25 bg-brand/[0.03] p-4 sm:p-5"
-                @submit.prevent="submitMaterial"
-              >
-                <p class="text-sm font-semibold text-slate-800">
-                  Thêm tài liệu (chỉnh sửa)
-                </p>
-                <div class="grid gap-3 sm:grid-cols-2">
-                  <div>
-                    <label class="label">Loại</label>
-                    <select
-                      v-model="materialForm.type"
-                      class="input w-full text-sm"
-                    >
-                      <option
-                        v-for="mt in materialTypes"
-                        :key="mt.value"
-                        :value="mt.value"
-                      >
-                        {{ mt.label }}
-                      </option>
-                    </select>
-                  </div>
-                  <div>
-                    <label class="label">Tiêu đề</label>
-                    <input
-                      v-model="materialForm.title"
-                      class="input w-full"
-                      placeholder="Tiêu đề hiển thị"
-                      required
-                    >
-                  </div>
-                </div>
-                <div>
-                  <label class="label">URL hoặc file</label>
-                  <input
-                    v-model="materialForm.url"
-                    class="input w-full"
-                    placeholder="YouTube, Canva, Loom, Google…"
-                  >
-                  <input
-                    type="file"
-                    class="input mt-2 w-full text-sm"
-                    @change="materialForm.file = $event.target.files?.[0] ?? null"
-                  >
-                </div>
-                <p
-                  v-if="materialForm.errors.url"
-                  class="text-xs text-danger"
+              <!-- Nội dung -->
+              <div v-show="activeTab === 'content'">
+                <div
+                  v-if="isEditing"
+                  class="space-y-5"
                 >
-                  {{ materialForm.errors.url }}
-                </p>
-                <div class="flex justify-stretch sm:justify-end">
-                  <button
-                    type="submit"
-                    class="btn-primary h-10 w-full gap-1.5 px-5 text-sm sm:w-auto"
-                    :disabled="materialForm.processing"
-                  >
-                    <AppIcon
-                      name="add"
-                      :size="15"
-                    />
-                    Thêm tài liệu
-                  </button>
+                  <KbRichTextField
+                    v-model="contentForm.content"
+                    label=""
+                    enable-google-workspace-embed
+                    editor-min-height-class="min-h-[320px] lg:min-h-[420px]"
+                    placeholder="Ghi chú buổi học, outline, nhúng Google Sheet/Docs…"
+                    hint="Dùng «Sheet» / «Docs» trên toolbar để xem trước full width. File Google cần quyền xem qua link."
+                  />
+                  <div class="flex justify-end border-t border-slate-100 pt-4">
+                    <button
+                      type="button"
+                      class="btn-primary h-10 gap-1.5 px-6 text-sm"
+                      :disabled="contentForm.processing"
+                      @click="saveContent"
+                    >
+                      <AppIcon
+                        name="save"
+                        :size="15"
+                      />
+                      Lưu nội dung
+                    </button>
+                  </div>
                 </div>
-              </form>
-            </div>
+                <div
+                  v-else-if="hasContent"
+                  class="rich-content prose prose-base max-w-none rounded-xl border border-slate-100 bg-white px-5 py-6 shadow-sm sm:px-8 sm:py-8 lg:px-10"
+                  v-html="session.content"
+                />
+                <div
+                  v-else
+                  class="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50/50 px-6 py-16 text-center"
+                >
+                  <AppIcon
+                    name="documents"
+                    :size="36"
+                    class="text-slate-300"
+                  />
+                  <p class="mt-3 text-sm font-medium text-slate-600">
+                    Chưa có nội dung chi tiết
+                  </p>
+                  <p class="mt-1 max-w-md text-xs text-slate-500">
+                    <template v-if="canEdit">
+                      Bấm «Chỉnh sửa» để thêm outline, Sheet/Docs nhúng hoặc ghi chú.
+                    </template>
+                    <template v-else>
+                      Coach sẽ bổ sung nội dung tại đây.
+                    </template>
+                  </p>
+                </div>
+              </div>
 
-            <CoachingSessionAssignmentsTab
-              v-show="activeTab === 'assignments'"
-              :session-id="session.id"
-              :assignments="session.assignments ?? []"
-              :can-manage="can.manageAssignments === true"
-              :can-complete="can.completeAssignments === true"
-            />
+              <!-- Tài liệu -->
+              <div
+                v-show="activeTab === 'materials'"
+                class="space-y-5"
+              >
+                <ul
+                  v-if="session.materials?.length"
+                  class="grid grid-cols-1 gap-4"
+                >
+                  <li
+                    v-for="m in session.materials"
+                    :key="m.id"
+                    class="flex min-h-0 flex-col overflow-hidden rounded-xl border border-slate-100 bg-white shadow-sm"
+                  >
+                    <div class="flex flex-wrap items-center gap-2 border-b border-slate-50 px-4 py-3">
+                      <span class="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-medium text-slate-600">
+                        {{ m.type_label }}
+                      </span>
+                      <span class="min-w-0 flex-1 text-sm font-semibold text-slate-800">
+                        {{ m.title }}
+                      </span>
+                    </div>
+                    <div class="min-h-0 flex-1 p-4">
+                      <CoachingMaterialEmbed
+                        v-if="m.embedAllowed && m.embedSrc"
+                        :url="m.url"
+                        :embed-src="m.embedSrc"
+                        :title="m.title"
+                      />
+                      <a
+                        v-else-if="m.url"
+                        :href="m.url"
+                        target="_blank"
+                        rel="noopener"
+                        class="inline-flex h-9 items-center gap-2 rounded-btn border border-slate-200 px-3 text-sm font-medium text-brand hover:bg-brand-50/50"
+                      >
+                        <AppIcon
+                          name="link"
+                          :size="14"
+                        />
+                        Mở liên kết
+                      </a>
+                      <a
+                        v-else-if="m.file_url"
+                        :href="m.file_url"
+                        class="inline-flex h-9 items-center gap-2 rounded-btn border border-slate-200 px-3 text-sm font-medium text-brand hover:bg-brand-50/50"
+                      >
+                        <AppIcon
+                          name="download"
+                          :size="14"
+                        />
+                        Tải file
+                      </a>
+                    </div>
+                  </li>
+                </ul>
+                <div
+                  v-else
+                  class="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50/50 px-6 py-16 text-center"
+                >
+                  <AppIcon
+                    name="link"
+                    :size="36"
+                    class="text-slate-300"
+                  />
+                  <p class="mt-3 text-sm font-medium text-slate-600">
+                    Chưa có tài liệu
+                  </p>
+                </div>
+
+                <form
+                  v-if="isEditing"
+                  class="max-w-3xl space-y-3 rounded-xl border border-dashed border-brand/25 bg-brand/[0.03] p-5 lg:max-w-2xl"
+                  @submit.prevent="submitMaterial"
+                >
+                  <p class="text-sm font-semibold text-slate-800">
+                    Thêm tài liệu
+                  </p>
+                  <div class="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <label class="label">Loại</label>
+                      <select
+                        v-model="materialForm.type"
+                        class="input w-full text-sm"
+                      >
+                        <option
+                          v-for="mt in materialTypes"
+                          :key="mt.value"
+                          :value="mt.value"
+                        >
+                          {{ mt.label }}
+                        </option>
+                      </select>
+                    </div>
+                    <div>
+                      <label class="label">Tiêu đề</label>
+                      <input
+                        v-model="materialForm.title"
+                        class="input w-full"
+                        placeholder="Tiêu đề hiển thị"
+                        required
+                      >
+                    </div>
+                  </div>
+                  <div>
+                    <label class="label">URL hoặc file</label>
+                    <input
+                      v-model="materialForm.url"
+                      class="input w-full"
+                      placeholder="YouTube, Canva, Loom, Google…"
+                    >
+                    <input
+                      type="file"
+                      class="input mt-2 w-full text-sm"
+                      @change="materialForm.file = $event.target.files?.[0] ?? null"
+                    >
+                  </div>
+                  <p
+                    v-if="materialForm.errors.url"
+                    class="text-xs text-danger"
+                  >
+                    {{ materialForm.errors.url }}
+                  </p>
+                  <div class="flex justify-end">
+                    <button
+                      type="submit"
+                      class="btn-primary h-10 gap-1.5 px-5 text-sm"
+                      :disabled="materialForm.processing"
+                    >
+                      <AppIcon
+                        name="add"
+                        :size="15"
+                      />
+                      Thêm tài liệu
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              <CoachingSessionAssignmentsTab
+                v-show="activeTab === 'assignments'"
+                :session-id="session.id"
+                :assignments="session.assignments ?? []"
+                :can-manage="can.manageAssignments === true"
+                :can-complete="can.completeAssignments === true"
+              />
+            </div>
           </div>
         </section>
-      </div>
-    </CoachingWorkspace>
+      </CoachingWorkspace>
+    </div>
   </AppLayout>
 </template>

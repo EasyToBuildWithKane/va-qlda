@@ -42,7 +42,7 @@ resources/js/
 
 **Charts:** Chart.js + vue-chartjs (đã có trong dự án).
 
-**Editor nội dung buổi học:** TipTap cho `content` (HTML).
+**Editor nội dung buổi học:** TipTap (`KbRichTextField`) cho `content` (HTML). Toolbar **Sheet** / **Docs** chèn block embed Google Workspace (`preview?rm=minimal`) — cùng pattern preview link Google Docs/Sheets như tài liệu dự án (`GoogleWorkspaceUrl` / `ProjectDocumentsPanel`).
 
 ---
 

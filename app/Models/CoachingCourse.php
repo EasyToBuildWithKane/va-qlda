@@ -88,4 +88,26 @@ class CoachingCourse extends Model
 
         return (int) round(100 * $completed / $total);
     }
+
+    /**
+     * Tiến độ % cho API/Inertia — ưu tiên runtime override, rồi withCount, cuối cùng query.
+     */
+    public function resolveProgressPercent(): int
+    {
+        if (isset($this->progress_percent_computed)) {
+            return (int) $this->progress_percent_computed;
+        }
+
+        if (array_key_exists('sessions_count', $this->getAttributes())
+            && array_key_exists('completed_sessions_count', $this->getAttributes())) {
+            $total = (int) $this->sessions_count;
+            if ($total === 0) {
+                return 0;
+            }
+
+            return (int) round(100 * (int) $this->completed_sessions_count / $total);
+        }
+
+        return $this->progressPercent();
+    }
 }

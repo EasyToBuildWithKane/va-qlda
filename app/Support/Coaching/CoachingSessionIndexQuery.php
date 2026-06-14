@@ -16,9 +16,9 @@ class CoachingSessionIndexQuery
     {
         $query = CoachingSessionScope::forAccount($account)
             ->with(['course:id,name,code,student_id,coach_id'])
-            ->withCount(['materials', 'assignments'])
             ->join('coaching_courses as coaching_courses_sort', 'coaching_courses_sort.id', '=', 'coaching_sessions.course_id')
             ->select('coaching_sessions.*')
+            ->withCount(['materials', 'assignments'])
             ->orderBy('coaching_courses_sort.name')
             ->orderByDesc('coaching_sessions.session_number');
 

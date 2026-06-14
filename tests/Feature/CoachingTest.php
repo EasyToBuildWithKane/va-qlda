@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\CoachingAssignment;
 use App\Models\CoachingCourse;
 use App\Models\CoachingSession;
+use App\Models\CoachingSessionMaterial;
 use App\Models\SystemAccount;
 use App\Support\Coaching\CoachingFinancialSummary;
 use App\Support\Enums\CoachingAssignmentStatus;
@@ -107,6 +108,40 @@ class CoachingTest extends TestCase
                 ->where('course.id', $course->id));
     }
 
+    public function test_courses_index_includes_progress_percent_from_sessions(): void
+    {
+        $admin = $this->admin();
+        $course = CoachingCourse::create([
+            'name' => 'Khóa tiến độ',
+            'status' => CoachingCourseStatus::Active,
+        ]);
+        CoachingSession::create([
+            'course_id' => $course->id,
+            'title' => 'Buổi 1',
+            'session_number' => 1,
+            'date' => '2026-06-01',
+            'total_hours' => 2,
+            'status' => CoachingSessionStatus::Completed,
+        ]);
+        CoachingSession::create([
+            'course_id' => $course->id,
+            'title' => 'Buổi 2',
+            'session_number' => 2,
+            'date' => '2026-06-08',
+            'total_hours' => 2,
+            'status' => CoachingSessionStatus::Pending,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('coaching.courses.index'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Coaching/Courses/Index')
+                ->has('courses.data', 1)
+                ->where('courses.data.0.id', $course->id)
+                ->where('courses.data.0.progress_percent', 50));
+    }
+
     public function test_admin_can_store_session_on_course(): void
     {
         $admin = $this->admin();
@@ -155,6 +190,45 @@ class CoachingTest extends TestCase
             ->get(route('coaching.sessions.schedule'))
             ->assertOk()
             ->assertInertia(fn ($page) => $page->component('Coaching/Sessions/Schedule'));
+    }
+
+    public function test_sessions_index_includes_material_and_assignment_counts(): void
+    {
+        $admin = $this->admin();
+        $course = CoachingCourse::create([
+            'name' => 'Khóa đếm TL/BT',
+            'status' => CoachingCourseStatus::Active,
+        ]);
+        $session = CoachingSession::create([
+            'course_id' => $course->id,
+            'title' => 'Buổi có TL/BT',
+            'session_number' => 1,
+            'status' => CoachingSessionStatus::Pending,
+        ]);
+        CoachingSessionMaterial::create([
+            'session_id' => $session->id,
+            'type' => CoachingMaterialType::GoogleDocs,
+            'title' => 'Slide',
+            'url' => 'https://docs.google.com/document/d/abc/edit',
+            'sort_order' => 0,
+        ]);
+        CoachingAssignment::create([
+            'session_id' => $session->id,
+            'title' => 'Bài 1',
+            'status' => CoachingAssignmentStatus::Todo,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('coaching.sessions.index', ['course' => $course->id]))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Coaching/Sessions/Index')
+                ->has('sessions.data', 1)
+                ->where('sessions.data.0.id', $session->id)
+                ->where('sessions.data.0.materials_count', 1)
+                ->where('sessions.data.0.assignments_count', 1)
+                ->where('summary.with_materials', 1)
+                ->where('summary.with_assignments', 1));
     }
 
     public function test_duplicate_session_number_returns_validation_error(): void

@@ -1,7 +1,10 @@
 <script setup>
+/* eslint-disable vue/no-v-html */
 import { computed, ref } from 'vue';
 import { router, useForm } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
+import Modal from '@/Components/Ui/Modal.vue';
+import KbRichTextField from '@/Components/KnowledgeBase/KbRichTextField.vue';
 import DateInput from '@/shared/ui/form/DateInput.vue';
 import { useToast } from '@/shared/composables/useToast';
 import { date as fmtDate } from '@/composables/useFormat';
@@ -16,6 +19,7 @@ const props = defineProps({
 const toast = useToast();
 
 const addForm = useForm({ title: '', description: '', deadline: '' });
+const showAddModal = ref(false);
 
 const completingId = ref(null);
 const completeNotes = ref('');
@@ -79,19 +83,47 @@ function reopen(a) {
     });
 }
 
+function openAddModal() {
+    addForm.clearErrors();
+    showAddModal.value = true;
+}
+
+function closeAddModal() {
+    showAddModal.value = false;
+    addForm.reset();
+    addForm.clearErrors();
+}
+
 function submitAdd() {
     addForm.post(`/coaching/sessions/${props.sessionId}/assignments`, {
         preserveScroll: true,
         onSuccess: () => {
-            addForm.reset();
             toast.success('Đã giao bài tập.');
+            closeAddModal();
         },
     });
 }
 </script>
 
 <template>
-  <div class="mx-auto max-w-3xl space-y-4">
+  <div class="w-full space-y-4">
+    <div
+      v-if="canManage"
+      class="flex flex-wrap items-center justify-end gap-2"
+    >
+      <button
+        type="button"
+        class="btn-primary inline-flex h-9 items-center gap-1.5 px-4 text-sm"
+        @click="openAddModal"
+      >
+        <AppIcon
+          name="add"
+          :size="15"
+        />
+        Giao bài tập
+      </button>
+    </div>
+
     <div
       v-if="totalCount"
       class="rounded-xl border border-slate-100 bg-white px-4 py-3 shadow-sm"
@@ -149,12 +181,11 @@ function submitAdd() {
             >
               {{ a.title }}
             </p>
-            <p
+            <div
               v-if="a.description"
-              class="mt-1 text-xs leading-relaxed text-slate-600"
-            >
-              {{ a.description }}
-            </p>
+              class="rich-content prose prose-sm mt-1 max-w-none text-slate-600 prose-headings:text-sm prose-p:text-xs prose-p:leading-relaxed"
+              v-html="a.description"
+            />
             <p
               v-if="a.deadline"
               class="mt-1.5 flex items-center gap-1 text-xs text-slate-500"
@@ -245,7 +276,7 @@ function submitAdd() {
         v-if="canManage"
         class="mt-1 text-xs text-slate-500"
       >
-        Thêm mục bên dưới để giao cho học viên.
+        Bấm «Giao bài tập» phía trên để giao cho học viên.
       </p>
       <p
         v-else-if="!canComplete"
@@ -255,59 +286,74 @@ function submitAdd() {
       </p>
     </div>
 
-    <form
-      v-if="canManage"
-      class="space-y-3 rounded-xl border border-dashed border-brand/25 bg-brand/[0.03] p-4 sm:p-5"
-      @submit.prevent="submitAdd"
+    <Modal
+      :show="showAddModal"
+      title="Giao bài tập mới"
+      max-width="max-w-4xl"
+      :dirty="addForm.isDirty"
+      close-confirm-title="Huỷ giao bài tập?"
+      close-confirm-message="Thông tin đã nhập sẽ bị bỏ."
+      @close="closeAddModal"
     >
-      <p class="text-sm font-semibold text-slate-800">
-        Giao bài tập mới
-      </p>
-      <div>
-        <label class="label">Tiêu đề</label>
-        <input
-          v-model="addForm.title"
-          class="input w-full"
-          placeholder="VD: Làm CRUD User, đọc chương 3…"
-          required
-        >
-        <p
-          v-if="addForm.errors.title"
-          class="mt-1 text-xs text-danger"
-        >
-          {{ addForm.errors.title }}
-        </p>
-      </div>
-      <div>
-        <label class="label">Yêu cầu / mô tả</label>
-        <textarea
-          v-model="addForm.description"
-          class="input w-full"
-          rows="3"
-          placeholder="Chi tiết cần làm (tuỳ chọn)"
-        />
-      </div>
-      <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div class="w-full sm:max-w-[11rem]">
-          <label class="label">Hạn nộp</label>
-          <DateInput v-model="addForm.deadline" />
+      <form
+        class="space-y-5"
+        @submit.prevent="submitAdd"
+      >
+        <div>
+          <label class="label">Tiêu đề</label>
+          <input
+            v-model="addForm.title"
+            class="input w-full text-sm"
+            placeholder="VD: Làm CRUD User, đọc chương 3…"
+            required
+            autofocus
+          >
+          <p
+            v-if="addForm.errors.title"
+            class="mt-1 text-xs text-danger"
+          >
+            {{ addForm.errors.title }}
+          </p>
         </div>
-        <button
-          type="submit"
-          class="btn-primary h-10 w-full gap-1.5 px-5 text-sm sm:w-auto"
-          :disabled="addForm.processing"
-        >
-          <AppIcon
-            name="add"
-            :size="15"
-          />
-          Giao bài tập
-        </button>
-      </div>
-    </form>
+        <KbRichTextField
+          v-model="addForm.description"
+          label="Yêu cầu / mô tả"
+          placeholder="Mô tả chi tiết: bước làm, tiêu chí nộp bài, link tham khảo…"
+          hint="In đậm, gạch chân, danh sách, tiêu đề H2/H3, liên kết — giống soạn nội dung buổi học."
+          editor-min-height-class="min-h-[280px]"
+        />
+        <div class="grid gap-4 border-t border-slate-100 pt-4 sm:grid-cols-[minmax(11rem,14rem)_1fr] sm:items-end">
+          <div>
+            <label class="label">Hạn nộp</label>
+            <DateInput v-model="addForm.deadline" />
+          </div>
+          <div class="flex flex-wrap justify-end gap-2 sm:justify-end">
+            <button
+              type="button"
+              class="inline-flex h-10 items-center rounded-btn border border-slate-200 px-4 text-sm font-medium text-slate-600 hover:bg-slate-50"
+              :disabled="addForm.processing"
+              @click="closeAddModal"
+            >
+              Huỷ
+            </button>
+            <button
+              type="submit"
+              class="btn-primary inline-flex h-10 items-center gap-1.5 px-5 text-sm"
+              :disabled="addForm.processing"
+            >
+              <AppIcon
+                name="add"
+                :size="15"
+              />
+              Giao bài tập
+            </button>
+          </div>
+        </div>
+      </form>
+    </Modal>
 
     <p
-      v-else-if="canComplete && totalCount"
+      v-if="!canManage && canComplete && totalCount"
       class="text-center text-xs text-slate-500"
     >
       Đánh dấu từng mục khi xong — cần điền nội dung hoàn thành.

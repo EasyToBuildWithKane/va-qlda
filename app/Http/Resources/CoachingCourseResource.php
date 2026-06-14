@@ -34,10 +34,7 @@ class CoachingCourseResource extends JsonResource
             'total_fee' => $this->total_fee !== null ? (float) $this->total_fee : null,
             'hourly_rate' => $this->hourly_rate !== null ? (float) $this->hourly_rate : null,
             'total_hours' => $this->total_hours !== null ? (float) $this->total_hours : null,
-            'progress_percent' => $this->when(
-                isset($this->progress_percent_computed),
-                (int) ($this->progress_percent_computed ?? $this->progressPercent()),
-            ),
+            'progress_percent' => $this->resolveProgressPercent(),
             'student' => $this->whenLoaded('student', fn () => $this->person($this->student)),
             'student_id' => $this->student_id,
             'student_display' => $this->student_name ?: $this->student?->full_name,

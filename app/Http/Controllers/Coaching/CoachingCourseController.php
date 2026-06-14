@@ -25,7 +25,13 @@ class CoachingCourseController extends Controller
         $account = $request->user();
         $query = CoachingCourse::query()
             ->with(['student', 'coach'])
-            ->withCount('sessions')
+            ->withCount([
+                'sessions',
+                'sessions as completed_sessions_count' => fn ($q) => $q->where(
+                    'status',
+                    CoachingSessionStatus::Completed->value,
+                ),
+            ])
             ->latest();
 
         if ($account->role->value === 'member' && $account->employee_id) {
