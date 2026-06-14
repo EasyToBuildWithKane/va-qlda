@@ -299,7 +299,7 @@ Nav (`Navigation.php`): Dashboard, Khóa học, Lịch buổi (`sessions/schedul
 | `coachingSessionDisplay.js` | Label/format hiển thị |
 | `useCoachingExport.js` | Xuất Excel báo cáo tháng + export sessions |
 
-**Planned / chưa tách component:** Kanban bài tập (`AssignmentBoard`), timeline riêng — logic chủ yếu trên `Sessions/Show.vue` (UI tab: Tổng quan · Nội dung · Tài liệu · Bài tập + dải tóm tắt).
+**Planned / chưa tách component:** Kanban bài tập (`AssignmentBoard`), timeline riêng — logic chủ yếu trên `Sessions/Show.vue` (tab chi tiết; form chỉ khi bấm «Chỉnh sửa» trên header).
 
 ---
 

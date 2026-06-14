@@ -1,6 +1,8 @@
 <script setup>
 import { computed, reactive, watch } from 'vue';
 import Modal from '@/Components/Ui/Modal.vue';
+import DateInput from '@/shared/ui/form/DateInput.vue';
+import TimeInput from '@/shared/ui/form/TimeInput.vue';
 
 const props = defineProps({
     show: { type: Boolean, default: false },
@@ -22,7 +24,6 @@ const blank = () => ({
     date: '',
     start_time: '',
     end_time: '',
-    topic: '',
 });
 
 const form = reactive(blank());
@@ -45,7 +46,6 @@ watch(
                 date: s.date || '',
                 start_time: s.startTime || '',
                 end_time: s.endTime || '',
-                topic: s.topic || '',
             });
         } else {
             Object.assign(form, blank(), {
@@ -80,7 +80,7 @@ function submit() {
         date: form.date,
         start_time: form.start_time || null,
         end_time: form.end_time || null,
-        topic: form.topic || null,
+        topic: form.title.trim(),
     };
     if (isEdit.value) {
         emit('submit', { mode: 'edit', id: props.session.id, payload });
@@ -165,12 +165,10 @@ const courseLabel = computed(() => {
       <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div>
           <label class="mb-1 block text-sm font-medium text-slate-700">Ngày</label>
-          <input
+          <DateInput
             v-model="form.date"
-            type="date"
-            class="input w-full"
-            :class="{ 'border-rose-300': errors.date }"
-          >
+            :invalid="!!errors.date"
+          />
           <p
             v-if="errors.date"
             class="mt-1 text-xs text-rose-600"
@@ -180,20 +178,14 @@ const courseLabel = computed(() => {
         </div>
         <div>
           <label class="mb-1 block text-sm font-medium text-slate-700">Bắt đầu</label>
-          <input
-            v-model="form.start_time"
-            type="time"
-            class="input w-full"
-          >
+          <TimeInput v-model="form.start_time" />
         </div>
         <div>
           <label class="mb-1 block text-sm font-medium text-slate-700">Kết thúc</label>
-          <input
+          <TimeInput
             v-model="form.end_time"
-            type="time"
-            class="input w-full"
-            :class="{ 'border-rose-300': errors.end_time }"
-          >
+            :invalid="!!errors.end_time"
+          />
           <p
             v-if="errors.end_time"
             class="mt-1 text-xs text-rose-600"
@@ -201,17 +193,6 @@ const courseLabel = computed(() => {
             {{ errors.end_time }}
           </p>
         </div>
-      </div>
-
-      <!-- Topic -->
-      <div>
-        <label class="mb-1 block text-sm font-medium text-slate-700">Chủ đề (tuỳ chọn)</label>
-        <input
-          v-model="form.topic"
-          type="text"
-          class="input w-full"
-          placeholder="Nội dung chính của buổi học"
-        >
       </div>
 
       <div class="flex justify-end gap-2 pt-2">

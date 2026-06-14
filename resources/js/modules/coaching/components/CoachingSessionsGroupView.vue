@@ -15,10 +15,15 @@ const emit = defineEmits(['toggle-group', 'update-status', 'detail', 'delete']);
 </script>
 
 <template>
-  <div class="divide-y divide-slate-100">
+  <div
+    class="flex min-h-0 flex-col divide-y divide-slate-100"
+    :class="groups.length === 1 ? 'min-h-0 flex-1' : ''"
+  >
     <section
       v-for="group in groups"
       :key="group.key"
+      class="flex min-h-0 flex-col"
+      :class="groups.length === 1 ? 'flex-1' : ''"
     >
       <button
         type="button"
@@ -58,7 +63,8 @@ const emit = defineEmits(['toggle-group', 'update-status', 'detail', 'delete']);
 
       <div
         v-if="isGroupExpanded(group.key)"
-        class="flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 py-4 pb-5 sm:px-5"
+        class="grid grid-cols-1 gap-3 px-4 py-4 sm:grid-cols-2 sm:px-5 xl:grid-cols-3 2xl:grid-cols-4"
+        :class="groups.length === 1 ? 'min-h-0 flex-1 auto-rows-fr' : ''"
       >
         <CoachingSessionCard
           v-for="s in group.items"
@@ -66,7 +72,7 @@ const emit = defineEmits(['toggle-group', 'update-status', 'detail', 'delete']);
           :session="s"
           :status-options="statusOptions"
           :status-updating="statusUpdatingIds.has(s.id)"
-          class="snap-start"
+          class="h-full min-h-0"
           @update-status="(sess, val) => emit('update-status', sess, val)"
           @detail="emit('detail', $event)"
           @delete="emit('delete', $event)"

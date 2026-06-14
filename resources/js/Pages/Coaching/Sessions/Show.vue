@@ -1,17 +1,26 @@
 <script setup>
 /* eslint-disable vue/no-v-html */
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import Badge from '@/shared/ui/Badge.vue';
 import DecimalHoursInput from '@/shared/ui/DecimalHoursInput.vue';
+import DateInput from '@/shared/ui/form/DateInput.vue';
+import TimeInput from '@/shared/ui/form/TimeInput.vue';
 import CoachingWorkspace from '@/modules/coaching/components/CoachingWorkspace.vue';
 import KbRichTextField from '@/Components/KnowledgeBase/KbRichTextField.vue';
 import CoachingMaterialEmbed from '@/modules/coaching/components/CoachingMaterialEmbed.vue';
 import { useToast } from '@/shared/composables/useToast';
-import { date as fmtDate, hours as fmtHours } from '@/composables/useFormat';
+import { useDialog } from '@/composables/useDialog';
+import { date as fmtDate, hours as fmtHours, timeOfDay } from '@/composables/useFormat';
+
+function toTimeInputValue(value) {
+    if (value == null || value === '') return '';
+    const m = String(value).trim().match(/^(\d{1,2}):(\d{2})/);
+    return m ? `${m[1].padStart(2, '0')}:${m[2]}` : '';
+}
 
 const props = defineProps({
     session: { type: Object, required: true },
@@ -21,6 +30,11 @@ const props = defineProps({
 });
 
 const toast = useToast();
+const dialog = useDialog();
+
+const editMode = ref(false);
+const canEdit = computed(() => props.can?.update === true);
+const isEditing = computed(() => editMode.value && canEdit.value);
 
 const STATUS_LABEL = {
     pending: 'Chưa học', in_progress: 'Đang học', completed: 'Hoàn thành', cancelled: 'Hủy',
@@ -52,35 +66,94 @@ const hasContent = computed(() => Boolean(props.session.content));
 const sessionTimeLabel = computed(() => {
     const s = props.session.start_time;
     const e = props.session.end_time;
-    if (s && e) return `${s} – ${e}`;
-    if (s) return `Bắt đầu ${s}`;
-    if (e) return `Kết thúc ${e}`;
+    if (s && e) return `${timeOfDay(s)} – ${timeOfDay(e)}`;
+    if (s) return `Bắt đầu ${timeOfDay(s)}`;
+    if (e) return `Kết thúc ${timeOfDay(e)}`;
     return null;
 });
 
 const metaForm = useForm({
+    title: props.session.title ?? '',
     date: props.session.date ?? '',
     total_hours: props.session.total_hours ?? null,
-    topic: props.session.topic ?? '',
-    start_time: props.session.start_time ?? '',
-    end_time: props.session.end_time ?? '',
+    start_time: toTimeInputValue(props.session.start_time),
+    end_time: toTimeInputValue(props.session.end_time),
 });
 
 const materialForm = useForm({ type: 'youtube', title: '', url: '', file: null });
 const assignmentForm = useForm({ title: '', description: '', deadline: '' });
 const contentForm = useForm({ content: props.session.content ?? '' });
 
+const formsDirty = computed(
+    () => metaForm.isDirty || contentForm.isDirty || materialForm.isDirty || assignmentForm.isDirty,
+);
+
+function sessionMetaDefaults() {
+    return {
+        title: props.session.title ?? '',
+        date: props.session.date ?? '',
+        total_hours: props.session.total_hours ?? null,
+        start_time: toTimeInputValue(props.session.start_time),
+        end_time: toTimeInputValue(props.session.end_time),
+    };
+}
+
+function syncFormsFromSession() {
+    metaForm.defaults(sessionMetaDefaults()).reset();
+    contentForm.defaults({ content: props.session.content ?? '' }).reset();
+    materialForm.reset();
+    assignmentForm.reset();
+}
+
+function startEdit() {
+    syncFormsFromSession();
+    editMode.value = true;
+}
+
+async function cancelEdit() {
+    if (formsDirty.value) {
+        const ok = await dialog.confirm({
+            title: 'Huỷ chỉnh sửa?',
+            message: 'Thay đổi chưa lưu sẽ bị bỏ.',
+            confirmText: 'Huỷ chỉnh sửa',
+            cancelText: 'Tiếp tục sửa',
+        });
+        if (!ok) return;
+    }
+    syncFormsFromSession();
+    editMode.value = false;
+}
+
+function leaveEditAfterSave() {
+    syncFormsFromSession();
+    editMode.value = false;
+}
+
+watch(
+    () => props.session,
+    () => {
+        if (!editMode.value) syncFormsFromSession();
+    },
+    { deep: true },
+);
+
 function saveMeta() {
     metaForm.patch(`/coaching/sessions/${props.session.id}`, {
         preserveScroll: true,
-        onSuccess: () => toast.success('Đã lưu thông tin buổi học.'),
+        onSuccess: () => {
+            toast.success('Đã lưu thông tin buổi học.');
+            leaveEditAfterSave();
+        },
     });
 }
 
 function saveContent() {
     contentForm.patch(`/coaching/sessions/${props.session.id}`, {
         preserveScroll: true,
-        onSuccess: () => toast.success('Đã lưu nội dung.'),
+        onSuccess: () => {
+            toast.success('Đã lưu nội dung.');
+            leaveEditAfterSave();
+        },
     });
 }
 
@@ -88,14 +161,20 @@ function submitMaterial() {
     materialForm.post(`/coaching/sessions/${props.session.id}/materials`, {
         preserveScroll: true,
         forceFormData: true,
-        onSuccess: () => { materialForm.reset(); toast.success('Đã thêm tài liệu.'); },
+        onSuccess: () => {
+            materialForm.reset();
+            toast.success('Đã thêm tài liệu.');
+        },
     });
 }
 
 function submitAssignment() {
     assignmentForm.post(`/coaching/sessions/${props.session.id}/assignments`, {
         preserveScroll: true,
-        onSuccess: () => { assignmentForm.reset(); toast.success('Đã thêm bài tập.'); },
+        onSuccess: () => {
+            assignmentForm.reset();
+            toast.success('Đã thêm bài tập.');
+        },
     });
 }
 
@@ -120,6 +199,30 @@ function tabBadge(key) {
           :label="STATUS_LABEL[statusValue] || statusValue"
           :color="STATUS_COLOR[statusValue] || 'slate'"
         />
+        <button
+          v-if="canEdit && !isEditing"
+          type="button"
+          class="btn-primary h-9 gap-1.5 px-3 text-sm"
+          @click="startEdit"
+        >
+          <AppIcon
+            name="edit"
+            :size="15"
+          />
+          Chỉnh sửa
+        </button>
+        <button
+          v-else-if="isEditing"
+          type="button"
+          class="btn-ghost h-9 gap-1.5 px-3 text-sm"
+          @click="cancelEdit"
+        >
+          <AppIcon
+            name="close"
+            :size="15"
+          />
+          Xem chi tiết
+        </button>
       </PageHeader>
     </template>
 
@@ -133,7 +236,7 @@ function tabBadge(key) {
           <div class="border-b border-slate-100 bg-gradient-to-r from-brand-50/80 to-white px-4 py-3 sm:px-5">
             <div class="flex flex-wrap items-center justify-between gap-2">
               <p class="font-display text-sm font-semibold text-slate-800">
-                {{ session.topic || 'Chưa có chủ đề' }}
+                {{ session.title || 'Chưa có tên buổi' }}
               </p>
               <Badge
                 class="sm:hidden"
@@ -226,26 +329,52 @@ function tabBadge(key) {
             </button>
           </nav>
 
+          <div
+            v-if="isEditing"
+            class="flex flex-wrap items-center justify-between gap-2 border-b border-brand/15 bg-brand-50/40 px-4 py-2.5 text-sm sm:px-6"
+          >
+            <span class="font-medium text-brand">
+              Đang chỉnh sửa buổi học
+            </span>
+            <span class="text-xs text-slate-600">
+              Lưu từng tab (Tổng quan / Nội dung) hoặc thêm tài liệu, bài tập bên dưới.
+            </span>
+          </div>
+
           <div class="p-4 sm:p-6">
             <!-- Tổng quan -->
             <div
               v-show="activeTab === 'overview'"
               class="mx-auto max-w-3xl"
             >
-              <p class="mb-4 text-sm text-slate-600">
-                Ngày, giờ và chủ đề buổi học. Thông tin tóm tắt phía trên luôn phản ánh dữ liệu đã lưu.
+              <p
+                v-if="isEditing"
+                class="mb-4 text-sm text-slate-600"
+              >
+                Cập nhật tên buổi, ngày và khung giờ. Bấm «Lưu thông tin» rồi quay lại chế độ xem chi tiết.
+              </p>
+              <p
+                v-else
+                class="mb-4 text-sm text-slate-600"
+              >
+                Thông tin đã lưu của buổi học. Bấm «Chỉnh sửa» trên header để thay đổi.
               </p>
               <div
-                v-if="can.update"
+                v-if="isEditing"
                 class="grid gap-4 sm:grid-cols-2"
               >
+                <div class="sm:col-span-2">
+                  <label class="label">Tên buổi học</label>
+                  <input
+                    v-model="metaForm.title"
+                    type="text"
+                    class="input w-full"
+                    placeholder="Tên hiển thị trên lịch và chi tiết buổi"
+                  >
+                </div>
                 <div>
                   <label class="label">Ngày học</label>
-                  <input
-                    v-model="metaForm.date"
-                    type="date"
-                    class="input w-full"
-                  >
+                  <DateInput v-model="metaForm.date" />
                 </div>
                 <div>
                   <label class="label">Tổng giờ</label>
@@ -256,28 +385,11 @@ function tabBadge(key) {
                 </div>
                 <div>
                   <label class="label">Giờ bắt đầu</label>
-                  <input
-                    v-model="metaForm.start_time"
-                    type="time"
-                    class="input w-full"
-                  >
+                  <TimeInput v-model="metaForm.start_time" />
                 </div>
                 <div>
                   <label class="label">Giờ kết thúc</label>
-                  <input
-                    v-model="metaForm.end_time"
-                    type="time"
-                    class="input w-full"
-                  >
-                </div>
-                <div class="sm:col-span-2">
-                  <label class="label">Chủ đề</label>
-                  <input
-                    v-model="metaForm.topic"
-                    type="text"
-                    class="input w-full"
-                    placeholder="Chủ đề chính của buổi học"
-                  >
+                  <TimeInput v-model="metaForm.end_time" />
                 </div>
                 <div class="sm:col-span-2 flex justify-stretch sm:justify-end">
                   <button
@@ -298,6 +410,14 @@ function tabBadge(key) {
                 v-else
                 class="divide-y divide-slate-100 rounded-lg border border-slate-100"
               >
+                <div class="grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4">
+                  <dt class="text-xs font-medium text-slate-500">
+                    Tên buổi học
+                  </dt>
+                  <dd class="text-sm text-slate-800 sm:col-span-2">
+                    {{ session.title || '—' }}
+                  </dd>
+                </div>
                 <div class="grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4">
                   <dt class="text-xs font-medium text-slate-500">
                     Ngày học
@@ -322,14 +442,6 @@ function tabBadge(key) {
                     {{ sessionTimeLabel || '—' }}
                   </dd>
                 </div>
-                <div class="grid gap-1 px-4 py-3 sm:grid-cols-3 sm:gap-4">
-                  <dt class="text-xs font-medium text-slate-500">
-                    Chủ đề
-                  </dt>
-                  <dd class="text-sm text-slate-800 sm:col-span-2">
-                    {{ session.topic || '—' }}
-                  </dd>
-                </div>
               </dl>
             </div>
 
@@ -339,7 +451,7 @@ function tabBadge(key) {
               class="mx-auto max-w-3xl"
             >
               <div
-                v-if="can.update"
+                v-if="isEditing"
                 class="space-y-4"
               >
                 <KbRichTextField
@@ -379,7 +491,12 @@ function tabBadge(key) {
                   Chưa có nội dung chi tiết
                 </p>
                 <p class="mt-1 max-w-sm text-xs text-slate-500">
-                  Coach sẽ bổ sung ghi chú, outline hoặc tài liệu lý thuyết tại đây.
+                  <template v-if="canEdit">
+                    Bấm «Chỉnh sửa» trên header để thêm ghi chú hoặc outline.
+                  </template>
+                  <template v-else>
+                    Coach sẽ bổ sung ghi chú, outline hoặc tài liệu lý thuyết tại đây.
+                  </template>
                 </p>
               </div>
             </div>
@@ -455,12 +572,12 @@ function tabBadge(key) {
               </div>
 
               <form
-                v-if="can.update"
-                class="space-y-3 rounded-xl border border-slate-200 bg-slate-50/60 p-4 sm:p-5"
+                v-if="isEditing"
+                class="space-y-3 rounded-xl border border-dashed border-brand/25 bg-brand/[0.03] p-4 sm:p-5"
                 @submit.prevent="submitMaterial"
               >
                 <p class="text-sm font-semibold text-slate-800">
-                  Thêm tài liệu
+                  Thêm tài liệu (chỉnh sửa)
                 </p>
                 <div class="grid gap-3 sm:grid-cols-2">
                   <div>
@@ -574,12 +691,12 @@ function tabBadge(key) {
               </div>
 
               <form
-                v-if="can.update"
-                class="space-y-3 rounded-xl border border-slate-200 bg-slate-50/60 p-4 sm:p-5"
+                v-if="isEditing"
+                class="space-y-3 rounded-xl border border-dashed border-brand/25 bg-brand/[0.03] p-4 sm:p-5"
                 @submit.prevent="submitAssignment"
               >
                 <p class="text-sm font-semibold text-slate-800">
-                  Thêm bài tập
+                  Thêm bài tập (chỉnh sửa)
                 </p>
                 <div>
                   <label class="label">Tiêu đề</label>
@@ -602,11 +719,7 @@ function tabBadge(key) {
                 <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                   <div class="w-full sm:max-w-[11rem]">
                     <label class="label">Hạn nộp</label>
-                    <input
-                      v-model="assignmentForm.deadline"
-                      type="date"
-                      class="input w-full"
-                    >
+                    <DateInput v-model="assignmentForm.deadline" />
                   </div>
                   <button
                     type="submit"

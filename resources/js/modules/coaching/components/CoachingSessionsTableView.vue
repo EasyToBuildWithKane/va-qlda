@@ -9,7 +9,7 @@ import {
     displaySessionDate,
     displaySessionHours,
     displaySessionTimeRange,
-    displaySessionTopic,
+    displaySessionTitle,
     displayMaterialsCount,
     displayAssignmentsCount,
 } from '@/composables/coachingSessionDisplay';
@@ -204,7 +204,7 @@ const tableColspan = computed(() => 2 + props.visibleColumnCount);
                 v-if="isColVisible('topic')"
                 class="max-w-[14rem] px-3 py-3 text-slate-600"
               >
-                <span class="line-clamp-2">{{ displaySessionTopic(s.topic) }}</span>
+                <span class="line-clamp-2">{{ displaySessionTitle(s) }}</span>
               </td>
               <td
                 v-if="isColVisible('materials')"

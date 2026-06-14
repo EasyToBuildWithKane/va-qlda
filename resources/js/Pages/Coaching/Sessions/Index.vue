@@ -76,7 +76,7 @@ const SESSION_COLUMNS = [
     { key: 'time', label: 'Giờ học', default: true },
     { key: 'hours', label: 'Tổng giờ', default: true },
     { key: 'status', label: 'Trạng thái', default: true },
-    { key: 'topic', label: 'Chủ đề', default: true },
+    { key: 'topic', label: 'Tên buổi', default: true },
     { key: 'materials', label: 'Tài liệu', default: true },
     { key: 'assignments', label: 'Bài tập', default: true },
 ];
@@ -539,7 +539,10 @@ async function removeSession(s) {
             <div class="h-full w-1/3 animate-pulse bg-brand" />
           </div>
 
-          <div class="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+          <div
+            class="min-h-0 flex-1 overflow-y-auto overflow-x-hidden"
+            :class="viewMode === 'groups' ? 'flex flex-col' : ''"
+          >
             <div
               v-if="!sessionRows.length"
               class="px-6 py-12 text-center text-sm text-slate-500"
@@ -556,6 +559,7 @@ async function removeSession(s) {
 
             <CoachingSessionsGroupView
               v-else-if="viewMode === 'groups'"
+              class="min-h-0 flex-1"
               :groups="groupedSessions"
               :status-options="options.statuses"
               :status-updating-ids="statusUpdating"

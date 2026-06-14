@@ -124,7 +124,7 @@ Pages import feature components từ `@/modules/project/components/...` và prim
 | `SearchSelect.vue`, `SearchMultiSelect.vue` | Dropdown tìm-kiếm 1 chọn / nhiều chọn (teleport, viewport-aware) |
 | `CommentThread.vue` | Thread bình luận (Task/Bug/Blocker) |
 | `EmptyState.vue`, `LoadingSpinner.vue`, `SkeletonLoader.vue` | Empty / loading |
-| `form/FormField.vue`, `TextInput.vue`, `SelectInput.vue`, `DateInput.vue` | Form primitives |
+| `form/FormField.vue`, `TextInput.vue`, `SelectInput.vue`, `DateInput.vue`, `TimeInput.vue` | Form primitives (`input--picker`: date/time hiển thị rõ, click cả ô) |
 
 ### 6.3 Project Module — `modules/project/components/`
 

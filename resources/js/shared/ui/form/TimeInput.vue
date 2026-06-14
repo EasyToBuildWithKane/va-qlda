@@ -1,11 +1,10 @@
 <script setup>
 defineProps({
-    modelValue: { type: String, default: null },
+    modelValue: { type: String, default: '' },
     id: { type: String, default: null },
     invalid: { type: Boolean, default: false },
     disabled: { type: Boolean, default: false },
-    min: { type: String, default: null },
-    max: { type: String, default: null },
+    step: { type: [Number, String], default: 60 },
 });
 
 defineEmits(['update:modelValue']);
@@ -14,13 +13,12 @@ defineEmits(['update:modelValue']);
 <template>
   <input
     :id="id"
-    type="date"
+    type="time"
     :value="modelValue"
     :disabled="disabled"
-    :min="min"
-    :max="max"
+    :step="step"
     class="input input--picker w-full tabular-nums"
     :class="invalid ? 'border-danger focus:border-danger focus:ring-danger/30' : ''"
-    @input="$emit('update:modelValue', $event.target.value || null)"
+    @input="$emit('update:modelValue', $event.target.value || '')"
   >
 </template>

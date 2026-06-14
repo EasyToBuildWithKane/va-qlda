@@ -40,6 +40,15 @@ export function dateLongVi(value) {
     });
 }
 
+/** "HH:mm" hoặc "HH:mm:ss" → "HH:mm". */
+export function timeOfDay(value) {
+    if (value == null || value === '') return '—';
+    const s = String(value).trim();
+    const m = s.match(/^(\d{1,2}):(\d{2})/);
+    if (!m) return s;
+    return `${m[1].padStart(2, '0')}:${m[2]}`;
+}
+
 /** ISO datetime → "dd/mm/yyyy HH:mm". */
 export function datetime(value) {
     if (!value) return '—';
@@ -114,5 +123,5 @@ export function dongToWords(value) {
 }
 
 export function useFormat() {
-    return { currency, number, date, datetime, hours, dongToWords };
+    return { currency, number, date, datetime, hours, timeOfDay, dongToWords };
 }

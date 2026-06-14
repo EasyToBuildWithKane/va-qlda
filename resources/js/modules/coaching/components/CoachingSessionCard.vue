@@ -7,7 +7,7 @@ import {
     displaySessionDate,
     displaySessionHours,
     displaySessionTimeRange,
-    displaySessionTopic,
+    displaySessionTitle,
     displayMaterialsCount,
     displayAssignmentsCount,
 } from '@/composables/coachingSessionDisplay';
@@ -23,7 +23,7 @@ const emit = defineEmits(['update-status', 'detail', 'delete']);
 
 <template>
   <article
-    class="flex w-[min(100%,20rem)] shrink-0 flex-col rounded-card border border-slate-200 bg-white shadow-sm transition hover:border-brand/20 hover:shadow-md"
+    class="flex h-full w-full min-h-0 flex-col rounded-card border border-slate-200 bg-white shadow-sm transition hover:border-brand/20 hover:shadow-md"
   >
     <div class="border-b border-slate-100 px-3.5 py-2.5">
       <div class="flex items-start justify-between gap-2">
@@ -96,10 +96,10 @@ const emit = defineEmits(['update-status', 'detail', 'delete']);
       </div>
       <div>
         <dt class="text-slate-400">
-          Chủ đề
+          Tên buổi
         </dt>
         <dd class="mt-0.5 line-clamp-2 text-slate-700">
-          {{ displaySessionTopic(session.topic) }}
+          {{ displaySessionTitle(session) }}
         </dd>
       </div>
       <div class="flex justify-between gap-2">

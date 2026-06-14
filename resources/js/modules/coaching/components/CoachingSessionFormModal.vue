@@ -4,6 +4,7 @@ import { useForm } from '@inertiajs/vue3';
 import Modal from '@/Components/Ui/Modal.vue';
 import ProposalFormLabel from '@/modules/aiAccount/components/ProposalFormLabel.vue';
 import DecimalHoursInput from '@/shared/ui/DecimalHoursInput.vue';
+import DateInput from '@/shared/ui/form/DateInput.vue';
 
 const props = defineProps({
     show: { type: Boolean, default: false },
@@ -120,12 +121,10 @@ function submit() {
         </div>
         <div>
           <ProposalFormLabel label="Ngày học" />
-          <input
+          <DateInput
             v-model="form.date"
-            type="date"
-            class="input w-full"
-            :class="form.errors.date ? 'border-danger focus:border-danger focus:ring-danger/30' : ''"
-          >
+            :invalid="!!form.errors.date"
+          />
           <p
             v-if="form.errors.date"
             class="mt-1 text-xs text-danger"

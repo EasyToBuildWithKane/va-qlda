@@ -100,21 +100,40 @@ function handleDatesSet(arg) {
 
 function renderEvent(arg) {
     const p = arg.event.extendedProps;
+    const meta = statusMeta(p.status);
     const wrap = document.createElement('div');
     wrap.className = 'cc-ev';
+
+    const head = document.createElement('div');
+    head.className = 'cc-ev-meta';
+    const dot = document.createElement('span');
+    dot.className = 'cc-ev-dot';
+    dot.setAttribute('aria-hidden', 'true');
+    dot.style.backgroundColor = meta.color;
+    head.appendChild(dot);
+    if (arg.timeText) {
+        const time = document.createElement('span');
+        time.className = 'cc-ev-time';
+        time.textContent = arg.timeText;
+        head.appendChild(time);
+    }
+    if (p.statusLabel) {
+        const badge = document.createElement('span');
+        badge.className = 'cc-ev-badge';
+        badge.textContent = p.statusLabel;
+        head.appendChild(badge);
+    }
+    wrap.appendChild(head);
 
     const title = document.createElement('div');
     title.className = 'cc-ev-title';
     title.textContent = arg.event.title;
     wrap.appendChild(title);
 
-    const bits = [];
-    if (arg.timeText) bits.push(arg.timeText);
-    if (p.studentName) bits.push(p.studentName);
-    if (bits.length) {
+    if (p.studentName) {
         const sub = document.createElement('div');
         sub.className = 'cc-ev-sub';
-        sub.textContent = bits.join(' · ');
+        sub.textContent = p.studentName;
         wrap.appendChild(sub);
     }
     return { domNodes: [wrap] };
@@ -751,52 +770,94 @@ const showEmpty = computed(
     border-right: 2px solid #e2e8f0;
 }
 .cc-calendar .fc-event {
-    border-radius: 6px;
+    border-radius: 8px;
     border-width: 1px;
-    border-left-width: 5px;
-    border-left-style: solid;
-    padding: 4px 6px 4px 8px;
-    min-height: 2.75rem;
+    border-style: solid;
+    padding: 0;
+    min-height: 3.25rem;
     cursor: pointer;
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
     transition: box-shadow 0.15s ease, transform 0.15s ease;
     overflow: hidden;
 }
+.cc-calendar .fc-event .fc-event-main {
+    padding: 6px 8px;
+}
 .cc-calendar .fc-timegrid-event .fc-event {
-    margin-inline: 2px 4px;
+    margin-inline: 1px 2px;
+}
+.cc-calendar .fc-daygrid-event-harness {
+    margin-left: 1px !important;
+    margin-right: 1px !important;
+}
+.cc-calendar .fc-daygrid-block-event .fc-event-main {
+    padding: 5px 7px;
 }
 .cc-calendar .fc-event:hover {
-    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.14);
+    box-shadow: 0 3px 10px rgba(15, 23, 42, 0.12);
     transform: translateY(-1px);
+    z-index: 2;
 }
 .cc-calendar .fc-daygrid-event {
-    white-space: nowrap;
+    white-space: normal;
 }
 .cc-ev {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 3px;
     line-height: 1.3;
     overflow: hidden;
     min-height: 100%;
+    width: 100%;
+}
+.cc-ev-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 6px;
+    min-width: 0;
+}
+.cc-ev-dot {
+    flex-shrink: 0;
+    width: 7px;
+    height: 7px;
+    border-radius: 9999px;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.85);
+}
+.cc-ev-time {
+    font-size: 10px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.01em;
+    opacity: 0.95;
+}
+.cc-ev-badge {
+    font-size: 9px;
+    font-weight: 600;
+    line-height: 1.2;
+    padding: 1px 5px;
+    border-radius: 9999px;
+    background-color: rgba(255, 255, 255, 0.72);
+    border: 1px solid rgba(15, 23, 42, 0.06);
+    white-space: nowrap;
 }
 .cc-ev-title {
     font-weight: 600;
     font-size: 12px;
-    line-height: 1.25;
+    line-height: 1.3;
     overflow: hidden;
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
+    word-break: break-word;
 }
 .cc-ev-sub {
     font-size: 11px;
-    opacity: 0.9;
     line-height: 1.25;
+    opacity: 0.88;
     overflow: hidden;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 .cc-calendar .fc .fc-more-link {
     font-size: 11px;

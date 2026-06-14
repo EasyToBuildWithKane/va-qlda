@@ -397,6 +397,10 @@ class CoachingSessionController extends Controller
             }
         }
 
+        if (isset($data['title'])) {
+            $data['topic'] = $data['title'];
+        }
+
         $session->update($data);
 
         if (

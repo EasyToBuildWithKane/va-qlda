@@ -1,4 +1,4 @@
-import { date, hours as fmtHours } from '@/composables/useFormat';
+import { date, hours as fmtHours, timeOfDay } from '@/composables/useFormat';
 
 export function sessionStatusColor(value) {
     if (value === 'in_progress') return 'amber';
@@ -16,14 +16,20 @@ export function displaySessionHours(val) {
 }
 
 export function displaySessionTimeRange(s) {
-    if (s.start_time && s.end_time) return `${s.start_time.slice(0, 5)} – ${s.end_time.slice(0, 5)}`;
-    if (s.start_time) return `Bắt đầu ${s.start_time.slice(0, 5)}`;
-    if (s.end_time) return `Kết thúc ${s.end_time.slice(0, 5)}`;
+    if (s.start_time && s.end_time) return `${timeOfDay(s.start_time)} – ${timeOfDay(s.end_time)}`;
+    if (s.start_time) return `Bắt đầu ${timeOfDay(s.start_time)}`;
+    if (s.end_time) return `Kết thúc ${timeOfDay(s.end_time)}`;
     return 'Chưa xếp giờ';
 }
 
 export function displaySessionTopic(val) {
     return val?.trim() ? val : 'Chưa có chủ đề';
+}
+
+/** Tên buổi (ưu tiên title, fallback topic cũ). */
+export function displaySessionTitle(session) {
+    const t = (session?.title || session?.topic || '').trim();
+    return t || 'Chưa có tên buổi';
 }
 
 export function displayMaterialsCount(s) {
