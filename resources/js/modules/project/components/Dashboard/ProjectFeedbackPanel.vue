@@ -226,13 +226,16 @@ function onSaved() {
 
     <div class="card shrink-0 overflow-visible">
       <div class="border-b border-slate-100 px-4 py-3 sm:px-5">
-        <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-            <DatagridToolbarSearch
-              v-model="filterForm.q"
-              input-id="project-feedback-search"
-              placeholder="Mã, tiêu đề, nội dung…"
-            />
+        <div class="flex min-w-0 flex-wrap items-center gap-2">
+          <DatagridToolbarSearch
+            v-model="filterForm.q"
+            half
+            input-id="project-feedback-search"
+            placeholder="Mã, tiêu đề, nội dung…"
+          />
+          <div
+            class="flex shrink-0 flex-wrap items-center gap-2"
+          >
             <div
               ref="filterPanelDdRef"
               class="relative shrink-0"
@@ -286,19 +289,19 @@ function onSaved() {
                 @persist="persistVisibleColumns"
               />
             </div>
+            <button
+              v-if="canCreate"
+              type="button"
+              class="btn-primary inline-flex h-9 shrink-0 items-center gap-1.5 px-4 text-sm"
+              @click="modal = true"
+            >
+              <AppIcon
+                name="add"
+                :size="15"
+              />
+              Ghi phản hồi
+            </button>
           </div>
-          <button
-            v-if="canCreate"
-            type="button"
-            class="btn-primary h-9 shrink-0 gap-1.5 px-4 text-sm"
-            @click="modal = true"
-          >
-            <AppIcon
-              name="add"
-              :size="15"
-            />
-            Ghi phản hồi
-          </button>
         </div>
       </div>
 
