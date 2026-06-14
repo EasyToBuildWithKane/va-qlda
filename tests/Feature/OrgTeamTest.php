@@ -83,4 +83,28 @@ class OrgTeamTest extends TestCase
             ])
             ->assertSessionHasErrors('parent_id');
     }
+
+    public function test_admin_can_create_multiple_root_teams(): void
+    {
+        $admin = $this->admin();
+
+        $this->actingAs($admin, 'system')
+            ->post(route('org-teams.store'), ['name' => 'Khối PM'])
+            ->assertRedirect();
+
+        $this->actingAs($admin, 'system')
+            ->post(route('org-teams.store'), ['name' => 'Khối Vận hành'])
+            ->assertRedirect();
+
+        $roots = OrgTeam::query()->whereNull('parent_id')->orderBy('name')->pluck('name')->all();
+        $this->assertSame(['Khối PM', 'Khối Vận hành'], $roots);
+
+        $this->actingAs($admin, 'system')
+            ->get(route('org-teams.index'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('trees', 2)
+                ->where('trees.0.name', 'Khối PM')
+                ->where('trees.1.name', 'Khối Vận hành'));
+    }
 }

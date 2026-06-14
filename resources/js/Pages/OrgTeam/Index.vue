@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
@@ -9,7 +9,7 @@ import OrgTeamFormModal from '@/modules/people/components/OrgTeamFormModal.vue';
 import OrgTeamPersonDetailDrawer from '@/modules/people/components/OrgTeamPersonDetailDrawer.vue';
 import { useDialog } from '@/composables/useDialog';
 
-defineProps({
+const props = defineProps({
     trees: { type: Array, default: () => [] },
     parentOptions: { type: Array, default: () => [] },
     employees: { type: Array, default: () => [] },
@@ -20,13 +20,69 @@ const dialog = useDialog();
 const modalOpen = ref(false);
 const editing = ref(null);
 const presetParentId = ref(null);
+const forceRoot = ref(false);
+const pendingSelectNewRoot = ref(false);
 const pageMode = ref('view');
+const activeRootId = ref(null);
 const selectedPerson = ref(null);
 const personDrawerOpen = ref(false);
+
+const pageSubtitle = computed(() => {
+    const n = props.trees.length;
+    if (n === 0) {
+        return 'Sơ đồ team và thành viên';
+    }
+    if (n === 1) {
+        return '1 Ban/Khối — có thể thêm nhiều team độc lập';
+    }
+
+    return `${n} Ban/Khối — chọn tab để xem từng sơ đồ`;
+});
+
+const activeRoot = computed(() => {
+    if (!props.trees.length) {
+        return null;
+    }
+    const id = activeRootId.value;
+    const match = props.trees.find((t) => t.id === id);
+
+    return match ?? props.trees[0];
+});
+
+watch(
+    () => props.trees,
+    (trees) => {
+        if (!trees.length) {
+            activeRootId.value = null;
+
+            return;
+        }
+        if (pendingSelectNewRoot.value) {
+            const newest = [...trees].sort((a, b) => b.id - a.id)[0];
+            activeRootId.value = newest?.id ?? trees[0].id;
+            pendingSelectNewRoot.value = false;
+
+            return;
+        }
+        if (activeRootId.value == null || !trees.some((t) => t.id === activeRootId.value)) {
+            activeRootId.value = trees[0].id;
+        }
+    },
+    { immediate: true, deep: true },
+);
+
+function openCreateRoot() {
+    editing.value = null;
+    presetParentId.value = null;
+    forceRoot.value = true;
+    pendingSelectNewRoot.value = true;
+    modalOpen.value = true;
+}
 
 function openCreate(parentId = null) {
     editing.value = null;
     presetParentId.value = parentId;
+    forceRoot.value = false;
     modalOpen.value = true;
 }
 
@@ -68,9 +124,10 @@ function closePersonDrawer() {
     <template #header>
       <PageHeader
         title="Quản lý team"
-        subtitle="Sơ đồ team và thành viên"
+        :subtitle="pageSubtitle"
         icon="org-teams"
         icon-color="brand"
+        :badge="trees.length > 1 ? trees.length : null"
       >
         <div class="flex shrink-0 flex-wrap items-center gap-2">
           <div
@@ -106,16 +163,16 @@ function closePersonDrawer() {
             </button>
           </div>
           <button
-            v-if="can.create && pageMode === 'edit'"
+            v-if="can.create"
             type="button"
             class="btn-primary flex items-center gap-1.5 text-sm"
-            @click="openCreate(null)"
+            @click="openCreateRoot()"
           >
             <AppIcon
               name="plus"
               :size="15"
             />
-            Thêm nhóm
+            Thêm Ban/Khối
           </button>
         </div>
       </PageHeader>
@@ -137,9 +194,9 @@ function closePersonDrawer() {
         v-if="can.create"
         type="button"
         class="btn-primary text-sm"
-        @click="pageMode = 'edit'; openCreate(null)"
+        @click="openCreateRoot()"
       >
-        Thêm nhóm
+        Thêm Ban/Khối đầu tiên
       </button>
     </div>
 
@@ -157,26 +214,51 @@ function closePersonDrawer() {
         v-else-if="can.create"
         class="text-xs text-slate-500"
       >
-        Chế độ chỉnh sửa — dùng menu trên thẻ nhóm để sửa hoặc xoá.
+        Chế độ chỉnh sửa — thêm nhóm con trên thẻ nhóm, hoặc «Thêm Ban/Khối» để tạo team độc lập mới.
       </p>
 
+      <div
+        v-if="trees.length > 1"
+        class="flex flex-wrap gap-2"
+        role="tablist"
+        aria-label="Chọn Ban/Khối"
+      >
+        <button
+          v-for="root in trees"
+          :key="root.id"
+          type="button"
+          role="tab"
+          class="rounded-full border px-3 py-1.5 text-xs font-medium transition-colors"
+          :class="activeRoot?.id === root.id
+            ? 'border-brand/30 bg-brand text-white shadow-sm'
+            : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800'"
+          :aria-selected="activeRoot?.id === root.id"
+          @click="activeRootId = root.id"
+        >
+          {{ root.name }}
+        </button>
+      </div>
+
       <section
-        v-for="root in trees"
-        :key="root.id"
+        v-if="activeRoot"
+        :key="activeRoot.id"
         class="overflow-hidden rounded-lg border border-slate-200 bg-white"
       >
-        <div
-          v-if="trees.length > 1"
-          class="border-b border-slate-100 px-4 py-2"
-        >
-          <p class="text-xs text-slate-500">
-            {{ root.name }}
+        <div class="border-b border-slate-100 px-4 py-2.5">
+          <p class="text-sm font-semibold text-slate-800">
+            {{ activeRoot.name }}
+          </p>
+          <p
+            v-if="trees.length > 1"
+            class="mt-0.5 text-xs text-slate-500"
+          >
+            Team {{ trees.findIndex((t) => t.id === activeRoot.id) + 1 }} / {{ trees.length }}
           </p>
         </div>
         <div class="overflow-x-auto px-3 py-6 sm:px-6">
           <ul class="org-tree org-tree--root flex min-w-min justify-center">
             <OrgTeamChart
-              :node="root"
+              :node="activeRoot"
               :edit-mode="pageMode === 'edit'"
               :can-manage="!!can.create"
               @edit="openEdit"
@@ -195,8 +277,9 @@ function closePersonDrawer() {
       :parent-options="parentOptions"
       :employees="employees"
       :preset-parent-id="presetParentId"
-      @close="modalOpen = false"
-      @saved="modalOpen = false"
+      :force-root="forceRoot"
+      @close="modalOpen = false; forceRoot = false"
+      @saved="modalOpen = false; forceRoot = false"
     />
 
     <OrgTeamPersonDetailDrawer

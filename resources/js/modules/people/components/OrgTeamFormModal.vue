@@ -14,6 +14,7 @@ const props = defineProps({
     parentOptions: { type: Array, default: () => [] },
     employees: { type: Array, default: () => [] },
     presetParentId: { type: [Number, String, null], default: null },
+    forceRoot: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['close', 'saved']);
@@ -61,6 +62,19 @@ const saveDraftOnClose = () => {
 };
 
 const isEdit = computed(() => !!props.team);
+
+const modalTitle = computed(() => {
+    if (isEdit.value) {
+        return 'Sửa nhóm';
+    }
+    if (props.forceRoot) {
+        return 'Thêm Ban/Khối';
+    }
+
+    return props.presetParentId != null ? 'Thêm nhóm con' : 'Thêm nhóm';
+});
+
+const showParentField = computed(() => !props.forceRoot && (isEdit.value || props.presetParentId == null));
 
 const parentChoices = computed(() => {
     let list = props.parentOptions.filter((p) => p.level < 2);
@@ -112,7 +126,9 @@ watch(
             });
         } else {
             form.reset();
-            form.parent_id = props.presetParentId != null ? Number(props.presetParentId) : null;
+            form.parent_id = props.forceRoot
+                ? null
+                : (props.presetParentId != null ? Number(props.presetParentId) : null);
             form.is_active = true;
             form.sections = [];
             form.members = [];
@@ -174,7 +190,7 @@ const submit = () => {
 
     const payload = {
         ...form.data(),
-        parent_id: form.parent_id || null,
+        parent_id: props.forceRoot ? null : (form.parent_id || null),
         sections,
         members: form.members
             .filter((m) => m.employee_id)
@@ -218,7 +234,7 @@ const submit = () => {
   <Modal
     :show="show"
     :dirty="form.isDirty"
-    :title="isEdit ? 'Sửa nhóm' : 'Thêm nhóm'"
+    :title="modalTitle"
     max-width="max-w-2xl"
     :on-save-draft="saveDraftOnClose"
     @close="emit('close')"
@@ -228,12 +244,12 @@ const submit = () => {
       @submit.prevent="submit"
     >
       <div>
-        <label class="label">Tên nhóm</label>
+        <label class="label">{{ forceRoot ? 'Tên Ban/Khối' : 'Tên nhóm' }}</label>
         <input
           v-model="form.name"
           type="text"
           class="input w-full"
-          placeholder="Ví dụ: Phần mềm, Hỗ trợ dự án…"
+          :placeholder="forceRoot ? 'Ví dụ: Khối Phần mềm, Khối Vận hành…' : 'Ví dụ: Tổ BA, Tổ Dev…'"
           required
         >
         <p
@@ -244,7 +260,10 @@ const submit = () => {
         </p>
       </div>
 
-      <div class="grid gap-4 sm:grid-cols-2">
+      <div
+        v-if="showParentField"
+        class="grid gap-4 sm:grid-cols-2"
+      >
         <div>
           <label class="label">Nằm trong nhóm</label>
           <select
@@ -253,7 +272,7 @@ const submit = () => {
             :disabled="isEdit && team?.children?.length > 0"
           >
             <option :value="null">
-              Không — nhóm độc lập
+              Không — Ban/Khối độc lập (team mới)
             </option>
             <option
               v-for="p in parentChoices"
@@ -279,6 +298,21 @@ const submit = () => {
           />
         </div>
       </div>
+      <div v-else>
+        <label class="label">Trưởng nhóm</label>
+        <PersonSelect
+          v-model="form.leader_id"
+          :options="employees"
+          placeholder="Chọn trưởng nhóm"
+        />
+      </div>
+
+      <p
+        v-if="forceRoot"
+        class="rounded-lg border border-brand/15 bg-brand/5 px-3 py-2 text-xs text-slate-600"
+      >
+        Ban/Khối là team độc lập — mỗi Ban/Khối có sơ đồ riêng trên trang này. Thêm nhóm con sau khi lưu, qua menu trên thẻ nhóm (chế độ chỉnh sửa).
+      </p>
 
       <div>
         <div class="mb-2 flex items-center justify-between gap-2">
@@ -402,7 +436,7 @@ const submit = () => {
           class="btn-primary"
           :disabled="form.processing"
         >
-          {{ isEdit ? 'Lưu' : 'Thêm' }}
+          {{ isEdit ? 'Lưu' : (forceRoot ? 'Tạo Ban/Khối' : 'Thêm') }}
         </button>
       </div>
     </form>

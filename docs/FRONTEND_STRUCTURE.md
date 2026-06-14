@@ -105,6 +105,7 @@ AppLayout.vue
 | Project | `Index`, `Create`, `Edit`, `Show` |
 | Blocker / Feedback | `Index`, `Show` (Feedback) |
 | Department | `Pages/Department/Index.vue` |
+| Org team | `Pages/OrgTeam/Index.vue` — nhiều **Ban/Khối** (cây gốc độc lập); UI tab chọn team, modal `OrgTeamFormModal` (`forceRoot`) |
 | Notifications | `Pages/Notifications/Management.vue` |
 
 Pages import feature components từ `@/modules/project/components/...` và primitives từ `@/shared/ui/...`.
