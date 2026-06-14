@@ -15,6 +15,8 @@ import {
     EyeOff, Send, Mail,
     GripVertical,
     Menu,
+    Phone, Briefcase, Award, Target, ExternalLink,
+    GraduationCap, Route, Gauge, Sparkles, BadgeCheck, Flame,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -133,6 +135,20 @@ const map = {
     'more-horizontal': Ellipsis,
     'more-vertical': EllipsisVertical,
     'grip-vertical': GripVertical,
+    // profile / talent module
+    phone: Phone,
+    briefcase: Briefcase,
+    award: Award,
+    target: Target,
+    'external-link': ExternalLink,
+    github: GitBranch,
+    linkedin: ExternalLink,
+    learning: GraduationCap,
+    career: Route,
+    'talent-score': Gauge,
+    sparkles: Sparkles,
+    certified: BadgeCheck,
+    streak: Flame,
 };
 
 const component = computed(() => map[props.name] || Circle);

@@ -7,6 +7,9 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
+import DatagridToolbarActionButton from '@/shared/ui/DatagridToolbarActionButton.vue';
+import DatagridFilterField from '@/shared/ui/DatagridFilterField.vue';
+import FilterDatePicker from '@/shared/ui/FilterDatePicker.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import { useAiAnalyticsReport } from '@/modules/aiAccount/composables/useAiAnalyticsReport';
 import { exportAiAnalyticsWorkbook } from '@/modules/aiAccount/composables/useAiAnalyticsExport';
@@ -20,22 +23,24 @@ import { useToast } from '@/shared/composables/useToast';
 import { formatVnd } from '@/modules/aiAccount/utils/formatVnd';
 
 const FILTER_CONTROLS_DEF = [
-    { key: 'date_created', label: 'Khoảng thời gian PĐX', default: true },
+    { key: 'date_created', label: 'Khoảng thời gian PĐX', default: false },
     { key: 'purchase_date', label: 'Ngày mua', default: false },
-    { key: 'expiry', label: 'Ngày hết hạn', default: true },
-    { key: 'department', label: 'Phòng ban', default: true },
-    { key: 'group_function', label: 'Nhóm chức năng', default: true },
-    { key: 'tool', label: 'Loại AI', default: true },
+    { key: 'expiry', label: 'Ngày hết hạn', default: false },
+    { key: 'department', label: 'Phòng ban', default: false },
+    { key: 'group_function', label: 'Nhóm chức năng', default: false },
+    { key: 'tool', label: 'Loại AI', default: false },
     { key: 'vendor', label: 'Nhà cung cấp', default: false },
-    { key: 'status', label: 'Trạng thái TK', default: true },
+    { key: 'status', label: 'Trạng thái TK', default: false },
     { key: 'lifecycle', label: 'Vòng đời', default: false },
     { key: 'proposer', label: 'Người đề xuất', default: false },
     { key: 'cost_range', label: 'Khoảng chi phí', default: false },
 ];
 
+const FILTER_CONTROL_CLASS = 'input h-10 w-full text-sm';
+
 const COL_STORAGE_KEY = 'va-qlda.ai-analytics.columns';
 const COL_ORDER_KEY = 'va-qlda.ai-analytics.column-order';
-const VISIBLE_FILTERS_KEY = 'va-qlda.ai-analytics.visible-filters';
+const VISIBLE_FILTERS_KEY = 'va-qlda.ai-analytics.visible-filters.v2';
 
 const props = defineProps({
     options: { type: Object, required: true },
@@ -367,39 +372,31 @@ function rowStableId(row) {
     </template>
 
     <div class="card overflow-visible shadow-sm">
-      <div class="relative z-20 overflow-visible border-b border-slate-100 bg-slate-50/40 px-5 py-3.5">
-        <div class="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
-          <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-            <div class="flex min-w-0 flex-1 basis-full items-center gap-2 lg:min-w-[28rem] lg:basis-auto xl:min-w-[32rem]">
-              <DatagridToolbarSearch
-                v-model="search"
-                input-id="ai-analytics-search"
-                placeholder="Mã hồ sơ, sản phẩm, người dùng…"
-              />
-            </div>
+      <div class="relative z-20 overflow-visible border-b border-slate-100 px-5 py-4 dark:border-slate-700">
+        <div class="flex w-full min-w-0 flex-wrap items-center gap-2 lg:flex-nowrap">
+          <div class="min-w-0 w-full basis-full lg:flex-1 lg:basis-auto">
+            <DatagridToolbarSearch
+              v-model="search"
+              input-id="ai-analytics-search"
+              placeholder="Mã hồ sơ, sản phẩm, người dùng…"
+              input-height="h-10"
+              cap-input-width
+            />
+          </div>
+
+          <div class="flex shrink-0 flex-wrap items-center gap-2">
             <div
               ref="filterPanelDdRef"
               class="relative shrink-0"
             >
-              <button
-                type="button"
-                class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
-                :class="showFilterPanelDd
-                  ? 'border-brand/40 bg-brand/5 text-brand'
-                  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800'"
-                :title="`Bộ lọc (${enabledFilterControlCount}/${FILTER_CONTROLS.length} đang hiển thị)`"
-                aria-label="Hiển thị bộ lọc trên thanh công cụ"
+              <DatagridToolbarActionButton
+                icon="filter"
+                :active="showFilterPanelDd"
+                :title="`Hiển thị bộ lọc (${enabledFilterControlCount}/${FILTER_CONTROLS.length})`"
                 @click="openFilterPanel"
               >
-                <AppIcon
-                  name="filter"
-                  :size="15"
-                /><span>Lọc</span>
-                <span
-                  v-if="enabledFilterControlCount"
-                  class="text-brand"
-                >({{ enabledFilterControlCount }})</span>
-              </button>
+                Lọc
+              </DatagridToolbarActionButton>
               <FilterVisibilityDropdown
                 v-model="visibleFilters"
                 :show="showFilterPanelDd"
@@ -408,25 +405,19 @@ function rowStableId(row) {
                 @persist="persistVisibleFilters"
               />
             </div>
+
             <div
               ref="colDdRef"
               class="relative shrink-0"
             >
-              <button
-                type="button"
-                class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
-                :class="showColDd
-                  ? 'border-brand/40 bg-brand/5 text-brand'
-                  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800'"
+              <DatagridToolbarActionButton
+                icon="columns"
+                :active="showColDd"
                 title="Cột hiển thị"
-                aria-label="Cột hiển thị"
                 @click="openCol"
               >
-                <AppIcon
-                  name="columns"
-                  :size="15"
-                /><span>Cột</span>
-              </button>
+                Cột
+              </DatagridToolbarActionButton>
               <Transition
                 enter-active-class="transition duration-150 ease-out"
                 enter-from-class="opacity-0 scale-95 -translate-y-1"
@@ -463,21 +454,19 @@ function rowStableId(row) {
                 </div>
               </Transition>
             </div>
+
             <div
               ref="exportDdRef"
               class="relative shrink-0"
             >
-              <button
-                type="button"
-                class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
-                :class="showExportDd && 'border-brand/40 bg-brand/5 text-brand'"
+              <DatagridToolbarActionButton
+                icon="export"
+                :active="showExportDd"
+                :disabled="exporting || loading"
                 @click="openExportMenu"
               >
-                <AppIcon
-                  name="export"
-                  :size="15"
-                /><span>Xuất</span>
-              </button>
+                {{ exporting ? 'Đang xuất…' : 'Xuất' }}
+              </DatagridToolbarActionButton>
               <Transition
                 enter-active-class="transition duration-150 ease-out"
                 enter-from-class="opacity-0 scale-95 -translate-y-1"
@@ -494,232 +483,248 @@ function rowStableId(row) {
                     :disabled="exporting || loading"
                     @click.stop="exportExcel"
                   >
-                    {{ exporting ? 'Đang xuất…' : 'Excel báo cáo (.xlsx)' }}
+                    Excel báo cáo (.xlsx)
                   </button>
                 </div>
               </Transition>
             </div>
           </div>
-          <select
-            v-model="groupBy"
-            class="h-9 shrink-0 rounded-lg border border-slate-200 bg-white px-2 text-xs text-slate-700"
-            aria-label="Nhóm dữ liệu"
-          >
-            <option value="">
-              Không nhóm
-            </option>
-            <option
-              v-for="c in groupableColumns"
-              :key="c.key"
-              :value="c.key"
+
+          <div class="ml-auto min-w-0 shrink-0 sm:max-w-[14rem] sm:flex-1 lg:max-w-xs">
+            <select
+              v-model="groupBy"
+              :class="FILTER_CONTROL_CLASS"
+              aria-label="Nhóm dữ liệu"
             >
-              Nhóm: {{ c.label }}
-            </option>
-          </select>
+              <option value="">
+                Nhóm dữ liệu
+              </option>
+              <option
+                v-for="c in groupableColumns"
+                :key="c.key"
+                :value="c.key"
+              >
+                {{ c.label }}
+              </option>
+            </select>
+          </div>
         </div>
 
-        <div
-          v-if="hasFilterRow"
-          class="mt-2.5 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-2.5"
-        >
+        <Transition name="fade-slide">
           <div
-            v-if="visibleFilters.date_created"
-            class="flex max-w-full shrink-0 flex-wrap items-center gap-1.5"
+            v-if="hasFilterRow"
+            class="grid grid-cols-1 gap-3 border-t border-slate-100 px-0 pt-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 dark:border-slate-700"
           >
-            <span class="shrink-0 text-xs font-medium text-slate-500">Ngày tạo PĐX:</span>
-            <input
-              v-model="createdFrom"
-              type="date"
-              class="input h-9 w-[9.5rem] shrink-0 text-xs"
-              aria-label="Từ ngày tạo PĐX"
+            <div
+              v-if="visibleFilters.date_created"
+              class="min-w-0 w-full sm:col-span-2 xl:col-span-2"
             >
-            <span class="shrink-0 text-xs text-slate-300">→</span>
-            <input
-              v-model="createdTo"
-              type="date"
-              class="input h-9 w-[9.5rem] shrink-0 text-xs"
-              aria-label="Đến ngày tạo PĐX"
+              <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
+                <FilterDatePicker
+                  v-model="createdFrom"
+                  placeholder="Từ ngày PĐX"
+                  :max-date="createdTo || null"
+                />
+                <FilterDatePicker
+                  v-model="createdTo"
+                  placeholder="Đến ngày PĐX"
+                  :min-date="createdFrom || null"
+                />
+              </div>
+            </div>
+
+            <div
+              v-if="visibleFilters.purchase_date"
+              class="min-w-0 w-full sm:col-span-2 xl:col-span-2"
             >
+              <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
+                <FilterDatePicker
+                  v-model="purchaseFrom"
+                  placeholder="Từ ngày mua"
+                  :max-date="purchaseTo || null"
+                />
+                <FilterDatePicker
+                  v-model="purchaseTo"
+                  placeholder="Đến ngày mua"
+                  :min-date="purchaseFrom || null"
+                />
+              </div>
+            </div>
+
+            <div
+              v-if="visibleFilters.expiry"
+              class="min-w-0 w-full sm:col-span-2 xl:col-span-2"
+            >
+              <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
+                <FilterDatePicker
+                  v-model="expiryFrom"
+                  placeholder="Từ ngày hết hạn"
+                  :max-date="expiryTo || null"
+                />
+                <FilterDatePicker
+                  v-model="expiryTo"
+                  placeholder="Đến ngày hết hạn"
+                  :min-date="expiryFrom || null"
+                />
+              </div>
+            </div>
+
+            <DatagridFilterField v-if="visibleFilters.department">
+              <select
+                v-model="department"
+                :class="FILTER_CONTROL_CLASS"
+                aria-label="Phòng ban"
+              >
+                <option value="all">
+                  Phòng ban
+                </option>
+                <option
+                  v-for="d in filterOptions.departments"
+                  :key="d"
+                  :value="d"
+                >
+                  {{ d }}
+                </option>
+              </select>
+            </DatagridFilterField>
+
+            <DatagridFilterField v-if="visibleFilters.group_function">
+              <select
+                v-model="groupFunction"
+                :class="FILTER_CONTROL_CLASS"
+                aria-label="Nhóm chức năng"
+              >
+                <option value="all">
+                  Nhóm chức năng
+                </option>
+                <option
+                  v-for="o in options.group_function"
+                  :key="o.value"
+                  :value="o.value"
+                >
+                  {{ o.label }}
+                </option>
+              </select>
+            </DatagridFilterField>
+
+            <DatagridFilterField v-if="visibleFilters.tool">
+              <select
+                v-model="tool"
+                :class="FILTER_CONTROL_CLASS"
+                aria-label="Loại AI"
+              >
+                <option value="all">
+                  Loại AI
+                </option>
+                <option
+                  v-for="t in filterOptions.tools"
+                  :key="t"
+                  :value="t"
+                >
+                  {{ t }}
+                </option>
+              </select>
+            </DatagridFilterField>
+
+            <DatagridFilterField v-if="visibleFilters.vendor">
+              <select
+                v-model="vendor"
+                :class="FILTER_CONTROL_CLASS"
+                aria-label="Nhà cung cấp"
+              >
+                <option value="all">
+                  Nhà cung cấp
+                </option>
+                <option
+                  v-for="v in filterOptions.vendors"
+                  :key="v"
+                  :value="v"
+                >
+                  {{ v }}
+                </option>
+              </select>
+            </DatagridFilterField>
+
+            <DatagridFilterField v-if="visibleFilters.status">
+              <select
+                v-model="status"
+                :class="FILTER_CONTROL_CLASS"
+                aria-label="Trạng thái TK"
+              >
+                <option value="all">
+                  Trạng thái TK
+                </option>
+                <option
+                  v-for="o in options.status"
+                  :key="o.value"
+                  :value="o.value"
+                >
+                  {{ o.label }}
+                </option>
+              </select>
+            </DatagridFilterField>
+
+            <DatagridFilterField v-if="visibleFilters.lifecycle">
+              <select
+                v-model="lifecycleStatus"
+                :class="FILTER_CONTROL_CLASS"
+                aria-label="Vòng đời"
+              >
+                <option value="all">
+                  Vòng đời
+                </option>
+                <option
+                  v-for="o in options.lifecycle_status"
+                  :key="o.value"
+                  :value="o.value"
+                >
+                  {{ o.label }}
+                </option>
+              </select>
+            </DatagridFilterField>
+
+            <DatagridFilterField v-if="visibleFilters.proposer">
+              <select
+                v-model="proposer"
+                :class="FILTER_CONTROL_CLASS"
+                aria-label="Người đề xuất"
+              >
+                <option value="all">
+                  Người đề xuất
+                </option>
+                <option
+                  v-for="p in filterOptions.proposers"
+                  :key="p"
+                  :value="p"
+                >
+                  {{ p }}
+                </option>
+              </select>
+            </DatagridFilterField>
+
+            <div
+              v-if="visibleFilters.cost_range"
+              class="min-w-0 w-full sm:col-span-2 xl:col-span-2"
+            >
+              <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
+                <input
+                  v-model="costMin"
+                  type="number"
+                  placeholder="Chi phí từ (VNĐ)"
+                  :class="FILTER_CONTROL_CLASS"
+                  aria-label="Chi phí tối thiểu"
+                >
+                <input
+                  v-model="costMax"
+                  type="number"
+                  placeholder="Chi phí đến (VNĐ)"
+                  :class="FILTER_CONTROL_CLASS"
+                  aria-label="Chi phí tối đa"
+                >
+              </div>
+            </div>
           </div>
-          <div
-            v-if="visibleFilters.purchase_date"
-            class="flex max-w-full shrink-0 flex-wrap items-center gap-1.5"
-          >
-            <span class="shrink-0 text-xs font-medium text-slate-500">Ngày mua:</span>
-            <input
-              v-model="purchaseFrom"
-              type="date"
-              class="input h-9 w-[9.5rem] shrink-0 text-xs"
-              aria-label="Từ ngày mua"
-            >
-            <span class="shrink-0 text-xs text-slate-300">→</span>
-            <input
-              v-model="purchaseTo"
-              type="date"
-              class="input h-9 w-[9.5rem] shrink-0 text-xs"
-              aria-label="Đến ngày mua"
-            >
-          </div>
-          <div
-            v-if="visibleFilters.expiry"
-            class="flex max-w-full shrink-0 flex-wrap items-center gap-1.5"
-          >
-            <span class="shrink-0 text-xs font-medium text-slate-500">Ngày hết hạn:</span>
-            <input
-              v-model="expiryFrom"
-              type="date"
-              class="input h-9 w-[9.5rem] shrink-0 text-xs"
-              aria-label="Từ ngày hết hạn"
-            >
-            <span class="shrink-0 text-xs text-slate-300">→</span>
-            <input
-              v-model="expiryTo"
-              type="date"
-              class="input h-9 w-[9.5rem] shrink-0 text-xs"
-              aria-label="Đến ngày hết hạn"
-            >
-          </div>
-          <select
-            v-if="visibleFilters.department"
-            v-model="department"
-            class="input h-9 w-[min(100%,11rem)] shrink-0 text-xs sm:w-52"
-            aria-label="Lọc theo phòng ban"
-          >
-            <option value="all">
-              Phòng ban: Tất cả
-            </option>
-            <option
-              v-for="d in filterOptions.departments"
-              :key="d"
-              :value="d"
-            >
-              {{ d }}
-            </option>
-          </select>
-          <select
-            v-if="visibleFilters.group_function"
-            v-model="groupFunction"
-            class="input h-9 w-[min(100%,11rem)] shrink-0 text-xs sm:w-48"
-            aria-label="Lọc theo nhóm chức năng"
-          >
-            <option value="all">
-              Nhóm chức năng: Tất cả
-            </option>
-            <option
-              v-for="o in options.group_function"
-              :key="o.value"
-              :value="o.value"
-            >
-              {{ o.label }}
-            </option>
-          </select>
-          <select
-            v-if="visibleFilters.tool"
-            v-model="tool"
-            class="input h-9 w-[min(100%,11rem)] shrink-0 text-xs sm:w-44"
-            aria-label="Lọc theo loại AI"
-          >
-            <option value="all">
-              Loại AI: Tất cả
-            </option>
-            <option
-              v-for="t in filterOptions.tools"
-              :key="t"
-              :value="t"
-            >
-              {{ t }}
-            </option>
-          </select>
-          <select
-            v-if="visibleFilters.vendor"
-            v-model="vendor"
-            class="input h-9 w-[min(100%,11rem)] shrink-0 text-xs sm:w-48"
-            aria-label="Lọc theo nhà cung cấp"
-          >
-            <option value="all">
-              Nhà cung cấp: Tất cả
-            </option>
-            <option
-              v-for="v in filterOptions.vendors"
-              :key="v"
-              :value="v"
-            >
-              {{ v }}
-            </option>
-          </select>
-          <select
-            v-if="visibleFilters.status"
-            v-model="status"
-            class="input h-9 w-[min(100%,11rem)] shrink-0 text-xs sm:w-48"
-            aria-label="Lọc theo trạng thái tài khoản"
-          >
-            <option value="all">
-              Trạng thái TK: Tất cả
-            </option>
-            <option
-              v-for="o in options.status"
-              :key="o.value"
-              :value="o.value"
-            >
-              {{ o.label }}
-            </option>
-          </select>
-          <select
-            v-if="visibleFilters.lifecycle"
-            v-model="lifecycleStatus"
-            class="input h-9 w-[min(100%,11rem)] shrink-0 text-xs sm:w-44"
-            aria-label="Lọc theo vòng đời"
-          >
-            <option value="all">
-              Vòng đời: Tất cả
-            </option>
-            <option
-              v-for="o in options.lifecycle_status"
-              :key="o.value"
-              :value="o.value"
-            >
-              {{ o.label }}
-            </option>
-          </select>
-          <select
-            v-if="visibleFilters.proposer"
-            v-model="proposer"
-            class="input h-9 w-[min(100%,11rem)] shrink-0 text-xs sm:max-w-[14rem] sm:w-56"
-            aria-label="Lọc theo người đề xuất"
-          >
-            <option value="all">
-              Người đề xuất: Tất cả
-            </option>
-            <option
-              v-for="p in filterOptions.proposers"
-              :key="p"
-              :value="p"
-            >
-              {{ p }}
-            </option>
-          </select>
-          <div
-            v-if="visibleFilters.cost_range"
-            class="flex max-w-full shrink-0 flex-wrap items-center gap-1.5"
-          >
-            <span class="shrink-0 text-xs font-medium text-slate-500">Chi phí/tháng:</span>
-            <input
-              v-model="costMin"
-              type="number"
-              placeholder="Từ (VNĐ)"
-              class="input h-9 w-28 shrink-0 text-xs"
-              aria-label="Chi phí tối thiểu"
-            >
-            <span class="shrink-0 text-xs text-slate-300">→</span>
-            <input
-              v-model="costMax"
-              type="number"
-              placeholder="Đến (VNĐ)"
-              class="input h-9 w-28 shrink-0 text-xs"
-              aria-label="Chi phí tối đa"
-            >
-          </div>
-        </div>
+        </Transition>
       </div>
 
       <div class="w-full min-w-0 overflow-x-auto">

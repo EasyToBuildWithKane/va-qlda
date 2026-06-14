@@ -10,6 +10,7 @@ use App\Models\AiPurchaseProposal;
 use App\Models\Blocker;
 use App\Models\CoachingCourse;
 use App\Models\Department;
+use App\Models\Employee;
 use App\Models\Feedback;
 use App\Models\KbArticle;
 use App\Models\OrgTeam;
@@ -22,6 +23,7 @@ use App\Policies\BlockerPolicy;
 use App\Policies\CoachingCoursePolicy;
 use App\Policies\DailyReportPolicy;
 use App\Policies\DepartmentPolicy;
+use App\Policies\EmployeePolicy;
 use App\Policies\FeedbackPolicy;
 use App\Policies\KbArticlePolicy;
 use App\Policies\OrgTeamPolicy;
@@ -43,6 +45,7 @@ class AuthServiceProvider extends ServiceProvider
         DailyReport::class => DailyReportPolicy::class,
         Project::class => ProjectPolicy::class,
         Department::class => DepartmentPolicy::class,
+        Employee::class => EmployeePolicy::class,
         OrgTeam::class => OrgTeamPolicy::class,
         Blocker::class => BlockerPolicy::class,
         Feedback::class => FeedbackPolicy::class,

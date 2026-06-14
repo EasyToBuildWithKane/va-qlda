@@ -224,8 +224,8 @@ class Navigation
                     [
                         'label' => 'Hồ sơ thành viên',
                         'icon' => 'member-profiles',
-                        'href' => '#',
-                        'status' => 'planned',
+                        'href' => '/members',
+                        'status' => 'live',
                     ],
                     [
                         'label' => 'Đánh giá nhóm',

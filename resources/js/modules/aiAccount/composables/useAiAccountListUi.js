@@ -18,7 +18,7 @@ function groupHeaderCost(group, accounts, useFilteredSum) {
 }
 
 const FILTER_VALUES_KEY = 'va-qlda.ai-accounts.filters';
-const VISIBLE_FILTERS_KEY = 'va-qlda.ai-accounts.filter-controls';
+const VISIBLE_FILTERS_KEY = 'va-qlda.ai-accounts.filter-controls.v2';
 const COLS_KEY = 'va-qlda.ai-accounts.columns';
 const PER_PAGE_KEY = 'va-qlda.ai-accounts.per-page';
 
@@ -79,6 +79,7 @@ export function useAiAccountListUi(groupsRef, optionsRef) {
 
     const onDocClick = (e) => {
         if (e.target.closest?.('[data-filter-visibility-panel]')) return;
+        if (e.target.closest?.('[data-column-visibility-panel]')) return;
         if (filterDdRef.value && !filterDdRef.value.contains(e.target)) {
             showFilterPanelDd.value = false;
         }

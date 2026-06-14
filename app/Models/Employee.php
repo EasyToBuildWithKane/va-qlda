@@ -69,6 +69,22 @@ class Employee extends Model
     }
 
     /**
+     * Org-team memberships (a person can sit in more than one team/section).
+     */
+    public function orgMemberships(): HasMany
+    {
+        return $this->hasMany(OrgTeamMember::class);
+    }
+
+    /**
+     * Time logged by this person across all tasks.
+     */
+    public function worklogs(): HasMany
+    {
+        return $this->hasMany(Worklog::class);
+    }
+
+    /**
      * Uniform display name. The table stores `full_name`; expose it as `name`
      * so resources and the UI can rely on a single attribute everywhere.
      */

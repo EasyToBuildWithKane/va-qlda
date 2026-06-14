@@ -75,7 +75,7 @@ class SkillCatalog
     ];
 
     /**
-     * @param  array<int, string>|null  $skills        Raw employees.skills array.
+     * @param  array<int, string>|null  $skills  Raw employees.skills array.
      * @param  array<int, array<string, mixed>>|null  $details  Optional meta['skill_details'].
      * @return array{groups: list<array{key:string, label:string, items: list<array<string, mixed>>}>, total:int, has_levels:bool}
      */

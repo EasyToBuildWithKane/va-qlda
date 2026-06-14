@@ -3,6 +3,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
 import VndAmount from '@/modules/aiAccount/components/VndAmount.vue';
+import DatagridToolbarActionButton from '@/shared/ui/DatagridToolbarActionButton.vue';
 import ColumnVisibilityDropdown from '@/shared/ui/ColumnVisibilityDropdown.vue';
 import { useVisibleColumns } from '@/shared/composables/useVisibleColumns';
 import { GROUP_COST_COLUMNS } from '@/modules/aiAccount/config/groupCostColumns';
@@ -82,6 +83,7 @@ function runExport(format) {
 }
 
 function onDocClick(e) {
+    if (e.target.closest?.('[data-column-visibility-panel]')) return;
     if (colDdRef.value && !colDdRef.value.contains(e.target)) showColDd.value = false;
     if (exportDdRef.value && !exportDdRef.value.contains(e.target)) showExportDd.value = false;
 }
@@ -92,114 +94,76 @@ onUnmounted(() => document.removeEventListener('mousedown', onDocClick));
 
 <template>
   <div class="card overflow-visible">
-    <div class="border-b border-slate-100 bg-slate-50/40 px-5 py-4">
-      <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div class="min-w-0 space-y-1">
-          <div class="flex flex-wrap items-center gap-2">
-            <h2 class="font-semibold text-slate-800">
-              Chi phí AI theo nhóm
-            </h2>
-            <span
-              class="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-brand/10 px-1.5 text-[11px] font-bold text-brand"
-            >
-              {{ rows.length }}
-            </span>
-          </div>
-        </div>
+    <div class="border-b border-slate-100 px-5 py-4 dark:border-slate-700">
+      <div class="flex w-full min-w-0 flex-wrap items-center gap-2 lg:flex-nowrap">
+        <p class="min-w-0 flex-1 text-sm text-slate-600">
+          <span class="font-semibold text-slate-800">{{ rows.length }}</span> nhóm chức năng
+        </p>
 
-        <div class="flex shrink-0 flex-wrap items-center gap-2">
-          <div
-            ref="exportDdRef"
-            class="relative"
-          >
-            <button
-              type="button"
-              class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition"
-              :class="showExportDd
-                ? 'border-brand/40 bg-brand/5 text-brand'
-                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'"
-              aria-label="Xuất báo cáo chi phí theo nhóm"
-              @click="openExport"
-            >
-              <AppIcon
-                name="export"
-                :size="15"
-              />
-              <span>Xuất</span>
-              <AppIcon
-                name="chevron-down"
-                :size="13"
-                class="opacity-50"
-                :class="showExportDd && 'rotate-180'"
-              />
-            </button>
-            <div
-              v-if="showExportDd"
-              class="absolute right-0 top-full z-30 mt-1.5 min-w-[10rem] rounded-xl border border-slate-200 bg-white py-1 shadow-elevation-2"
-            >
-              <button
-                type="button"
-                class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
-                @click="runExport('xlsx')"
-              >
-                <AppIcon
-                  name="performance"
-                  :size="15"
-                  class="text-brand"
-                />
-                Excel (.xlsx)
-              </button>
-              <button
-                type="button"
-                class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
-                @click="runExport('csv')"
-              >
-                <AppIcon
-                  name="export"
-                  :size="15"
-                  class="text-slate-500"
-                />
-                CSV
-              </button>
-            </div>
-          </div>
-
+        <div class="ml-auto flex shrink-0 flex-wrap items-center gap-2">
           <div
             ref="colDdRef"
-            class="relative"
+            class="relative shrink-0"
           >
-            <button
-              type="button"
-              class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition"
-              :class="showColDd
-                ? 'border-brand/40 bg-brand/5 text-brand'
-                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'"
-              aria-label="Cột hiển thị"
+            <DatagridToolbarActionButton
+              icon="columns"
+              :active="showColDd"
+              title="Cột hiển thị"
               @click="openCol"
             >
-              <AppIcon
-                name="columns"
-                :size="15"
-              />
-              <span>Cột</span>
-            </button>
+              Cột
+            </DatagridToolbarActionButton>
             <ColumnVisibilityDropdown
               v-model="visibleCols"
               :show="showColDd"
+              :anchor-ref="colDdRef"
               :columns="GROUP_COST_COLUMNS"
               :fixed-labels="['Nhóm chức năng']"
               @persist="persistVisibleColumns"
             />
           </div>
 
+          <div
+            ref="exportDdRef"
+            class="relative shrink-0"
+          >
+            <DatagridToolbarActionButton
+              icon="export"
+              :active="showExportDd"
+              title="Xuất báo cáo chi phí theo nhóm"
+              @click="openExport"
+            >
+              Xuất
+            </DatagridToolbarActionButton>
+            <div
+              v-if="showExportDd"
+              class="absolute right-0 top-full z-30 mt-1.5 min-w-[10rem] rounded-xl border border-slate-200 bg-white py-1 shadow-elevation-2 dark:border-slate-700 dark:bg-slate-900"
+            >
+              <button
+                type="button"
+                class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                @click="runExport('xlsx')"
+              >
+                Excel (.xlsx)
+              </button>
+              <button
+                type="button"
+                class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                @click="runExport('csv')"
+              >
+                CSV
+              </button>
+            </div>
+          </div>
+
           <Link
             v-if="showAccountLink"
             :href="route('ai-accounts.index')"
-            class="btn-ghost h-9 gap-1.5 border border-slate-200 text-sm"
+            class="btn-ghost inline-flex h-10 items-center gap-1.5 border border-slate-200 px-3 text-xs font-medium"
           >
             <AppIcon
               name="back"
-              :size="16"
+              :size="15"
             />
             Danh sách TK
           </Link>

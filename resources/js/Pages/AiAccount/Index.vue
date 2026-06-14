@@ -7,6 +7,8 @@ import AppIcon from '@/Components/AppIcon.vue';
 import { useDialog } from '@/composables/useDialog';
 import { useAiAccounts } from '@/modules/aiAccount/composables/useAiAccounts';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
+import DatagridToolbarActionButton from '@/shared/ui/DatagridToolbarActionButton.vue';
+import DatagridFilterField from '@/shared/ui/DatagridFilterField.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import ColumnVisibilityDropdown from '@/shared/ui/ColumnVisibilityDropdown.vue';
 import { useAiAccountListUi } from '@/modules/aiAccount/composables/useAiAccountListUi';
@@ -17,6 +19,8 @@ import AiAccountRenewModal from '@/modules/aiAccount/components/AiAccountRenewMo
 import AiAccountPasswordViewersModal from '@/modules/aiAccount/components/AiAccountPasswordViewersModal.vue';
 import AiAccountBanner from '@/modules/aiAccount/components/AiAccountBanner.vue';
 import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
+
+const FILTER_CONTROL_CLASS = 'input h-10 w-full text-sm';
 
 const props = defineProps({
     can: { type: Object, default: () => ({}) },
@@ -114,7 +118,7 @@ const listBadge = computed(() => {
 let searchTimer = null;
 watch(search, () => {
     clearTimeout(searchTimer);
-    searchTimer = setTimeout(() => fetchList(), 300);
+    searchTimer = setTimeout(() => fetchList(), 350);
 });
 
 onMounted(() => {
@@ -214,99 +218,51 @@ function showAttentionOnly() {
         subtitle="Tài khoản đang dùng · liên kết với phiếu đề xuất mua sắm"
         icon="account"
         icon-color="brand"
-        :badge="totalCount || null"
-      />
+        :badge="listBadge || null"
+      >
+        <button
+          v-if="can.create"
+          type="button"
+          class="btn-primary inline-flex h-9 shrink-0 items-center gap-1.5 px-3 text-xs font-semibold"
+          @click="openCreate"
+        >
+          <AppIcon
+            name="add"
+            :size="15"
+          />
+          Thêm tài khoản
+        </button>
+      </PageHeader>
     </template>
 
     <AiAccountBanner :banner="banner" />
 
     <div class="card overflow-visible shadow-sm">
-      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4">
-        <div class="flex min-w-0 flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-2">
-          <div class="flex items-center gap-2">
-            <h2 class="font-semibold text-slate-700">
-              Danh sách tài khoản
-            </h2>
-            <span
-              class="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-brand/10 px-1.5 text-[11px] font-bold text-brand"
-            >
-              {{ listBadge }}
-            </span>
+      <div class="border-b border-slate-100 px-5 py-4 dark:border-slate-700">
+        <div class="flex w-full min-w-0 flex-wrap items-center gap-2 lg:flex-nowrap">
+          <div class="min-w-0 w-full basis-full lg:flex-1 lg:basis-auto">
+            <DatagridToolbarSearch
+              v-model="search"
+              input-id="ai-accounts-search"
+              placeholder="Tên công cụ, email, license, ghi chú…"
+              input-height="h-10"
+              cap-input-width
+            />
           </div>
-          <p
-            v-if="activeFilterCount > 0 || search.trim()"
-            class="text-xs text-slate-500"
-          >
-            <template v-if="filterSummaryLabel">
-              {{ filterSummaryLabel }}
-            </template>
-            <template v-else-if="search.trim()">
-              Tìm kiếm
-            </template>
-            <template v-if="search.trim()">
-              <span v-if="filterSummaryLabel"> · </span>«{{ search.trim() }}»
-            </template>
-          </p>
-        </div>
-        <div class="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            class="inline-flex h-9 items-center gap-1 rounded-btn border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 hover:border-slate-300"
-            :title="allGroupsExpanded ? 'Thu gọn mọi nhóm' : 'Mở rộng mọi nhóm'"
-            @click="toggleAllGroups"
-          >
-            <AppIcon
-              name="chevron-down"
-              :size="15"
-              class="transition-transform"
-              :class="allGroupsExpanded ? 'rotate-180' : ''"
-            />
-            {{ allGroupsExpanded ? 'Đóng tất cả nhóm' : 'Mở tất cả nhóm' }}
-          </button>
-          <button
-            v-if="can.create"
-            type="button"
-            class="btn-primary gap-1.5 text-sm"
-            @click="openCreate"
-          >
-            <AppIcon
-              name="add"
-              :size="15"
-            />
-            Thêm tài khoản
-          </button>
-        </div>
-      </div>
-
-      <div class="border-b border-slate-100 bg-slate-50/40 px-5 py-3.5">
-        <div class="flex flex-col gap-2.5 sm:flex-row sm:items-center">
-          <DatagridToolbarSearch
-            v-model="search"
-            input-id="ai-accounts-search"
-            placeholder="Tên công cụ, email, license, ghi chú…"
-          />
 
           <div class="flex shrink-0 flex-wrap items-center gap-2">
             <div
               ref="filterDdRef"
               class="relative shrink-0"
             >
-              <button
-                type="button"
-                class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
-                :class="showFilterPanelDd
-                  ? 'border-brand/40 bg-brand/5 text-brand'
-                  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800'"
+              <DatagridToolbarActionButton
+                icon="filter"
+                :active="showFilterPanelDd"
                 :title="`Hiển thị bộ lọc (${enabledFilterControlCount}/${FILTER_CONTROLS.length})`"
-                aria-label="Hiển thị bộ lọc trên thanh công cụ"
                 @click="openFilter"
               >
-                <AppIcon
-                  name="filter"
-                  :size="15"
-                />
-                <span>Lọc</span>
-              </button>
+                Lọc
+              </DatagridToolbarActionButton>
               <FilterVisibilityDropdown
                 v-model="visibleFilters"
                 :show="showFilterPanelDd"
@@ -320,25 +276,18 @@ function showAttentionOnly() {
               ref="colDdRef"
               class="relative shrink-0"
             >
-              <button
-                type="button"
-                class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
-                :class="showColDd
-                  ? 'border-brand/40 bg-brand/5 text-brand'
-                  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800'"
+              <DatagridToolbarActionButton
+                icon="columns"
+                :active="showColDd"
                 title="Cột hiển thị"
-                aria-label="Cột hiển thị"
                 @click="openCol"
               >
-                <AppIcon
-                  name="columns"
-                  :size="15"
-                />
-                <span>Cột</span>
-              </button>
+                Cột
+              </DatagridToolbarActionButton>
               <ColumnVisibilityDropdown
                 v-model="visibleCols"
                 :show="showColDd"
+                :anchor-ref="colDdRef"
                 :columns="AI_ACCOUNT_TABLE_COLUMNS"
                 :fixed-labels="['Công cụ', 'Thao tác']"
                 @persist="persistVisibleColumns"
@@ -347,116 +296,154 @@ function showAttentionOnly() {
 
             <Link
               :href="route('ai-accounts.cost-report')"
-              class="btn-ghost hidden h-9 gap-1.5 border border-slate-200 text-sm sm:inline-flex"
+              class="btn-ghost hidden h-10 items-center gap-1.5 border border-slate-200 px-3 text-xs font-medium sm:inline-flex"
             >
               <AppIcon
                 name="performance"
-                :size="16"
+                :size="15"
               />
               Báo cáo
             </Link>
             <button
               v-if="can.manage_password_viewers"
               type="button"
-              class="btn-ghost hidden h-9 gap-1.5 border border-slate-200 text-sm md:inline-flex"
+              class="btn-ghost hidden h-10 items-center gap-1.5 border border-slate-200 px-3 text-xs font-medium md:inline-flex"
               title="Cấp quyền xem mật khẩu theo từng công cụ AI"
               @click="openPasswordViewers()"
             >
               <AppIcon
                 name="eye"
-                :size="16"
+                :size="15"
               />
               Quyền xem MK
             </button>
             <button
               v-if="can.trigger_reminder"
               type="button"
-              class="btn-ghost hidden h-9 gap-1.5 border border-slate-200 text-sm md:inline-flex"
+              class="btn-ghost hidden h-10 items-center gap-1.5 border border-slate-200 px-3 text-xs font-medium md:inline-flex"
               @click="triggerReminder"
             >
               <AppIcon
                 name="notifications"
-                :size="16"
+                :size="15"
               />
               Nhắc nhở
             </button>
           </div>
+
+          <div class="ml-auto flex shrink-0 items-center gap-2">
+            <DatagridToolbarActionButton
+              icon="chevron-down"
+              :title="allGroupsExpanded ? 'Thu gọn mọi nhóm' : 'Mở rộng mọi nhóm'"
+              @click="toggleAllGroups"
+            >
+              <span class="hidden sm:inline">{{ allGroupsExpanded ? 'Thu nhóm' : 'Mở nhóm' }}</span>
+              <span class="sm:hidden">{{ allGroupsExpanded ? 'Thu' : 'Mở' }}</span>
+            </DatagridToolbarActionButton>
+          </div>
         </div>
 
-        <div
-          v-if="hasFilterRow"
-          class="mt-2.5 flex flex-wrap items-center gap-2 border-t border-slate-50 pt-2.5"
+        <p
+          v-if="activeFilterCount > 0 || search.trim()"
+          class="mt-2 text-xs text-slate-500"
         >
-          <select
-            v-if="visibleFilters.status"
-            v-model="filters.status"
-            class="input h-9 w-[min(100%,11rem)] shrink-0 text-sm sm:w-52"
-            aria-label="Lọc theo trạng thái"
-          >
-            <option
-              v-for="opt in AI_ACCOUNT_STATUS_FILTER_OPTS"
-              :key="opt.key"
-              :value="opt.key"
-            >
-              {{ opt.label }} ({{ statusCounts[opt.key] ?? 0 }})
-            </option>
-          </select>
-
-          <select
-            v-if="visibleFilters.renewal_payment"
-            v-model="filters.renewalPayment"
-            class="input h-9 w-[min(100%,14rem)] shrink-0 text-sm sm:w-60"
-            aria-label="Lọc theo thanh toán gia hạn"
-          >
-            <option
-              v-for="opt in AI_ACCOUNT_RENEWAL_PAYMENT_FILTER_OPTS"
-              :key="opt.key"
-              :value="opt.key"
-            >
-              {{ opt.label }} ({{ paymentCounts[opt.key] ?? 0 }})
-            </option>
-          </select>
-
-          <template v-if="visibleFilters.group">
-            <button
-              v-for="g in groupFilterOptions"
-              :key="g.value"
-              type="button"
-              class="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-btn border px-2.5 text-xs font-medium transition"
-              :class="filters.groups.includes(g.value)
-                ? 'border-brand/40 bg-brand/5 text-brand'
-                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'"
-              @click="toggleGroupFilter(g.value)"
-            >
-              <span
-                class="h-2 w-2 shrink-0 rounded-full"
-                :style="{ backgroundColor: g.dot_color }"
-              />
-              {{ g.label }}
-            </button>
+          <template v-if="filterSummaryLabel">
+            {{ filterSummaryLabel }}
           </template>
+          <template v-if="search.trim()">
+            <span v-if="filterSummaryLabel"> · </span>«{{ search.trim() }}»
+          </template>
+        </p>
 
-          <label
-            v-if="visibleFilters.attention"
-            class="inline-flex h-9 shrink-0 cursor-pointer items-center gap-2 rounded-btn border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-700 hover:border-slate-300"
+        <Transition name="fade-slide">
+          <div
+            v-if="hasFilterRow"
+            class="grid grid-cols-1 gap-3 border-t border-slate-100 px-0 pt-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 dark:border-slate-700"
           >
-            <input
-              v-model="filters.attentionOnly"
-              type="checkbox"
-              class="rounded border-slate-300 text-brand focus:ring-brand/30"
+            <DatagridFilterField v-if="visibleFilters.status">
+              <select
+                v-model="filters.status"
+                :class="FILTER_CONTROL_CLASS"
+                aria-label="Trạng thái"
+              >
+                <option
+                  v-for="opt in AI_ACCOUNT_STATUS_FILTER_OPTS"
+                  :key="opt.key"
+                  :value="opt.key"
+                >
+                  {{ opt.label }} ({{ statusCounts[opt.key] ?? 0 }})
+                </option>
+              </select>
+            </DatagridFilterField>
+
+            <DatagridFilterField v-if="visibleFilters.renewal_payment">
+              <select
+                v-model="filters.renewalPayment"
+                :class="FILTER_CONTROL_CLASS"
+                aria-label="Thanh toán gia hạn"
+              >
+                <option
+                  v-for="opt in AI_ACCOUNT_RENEWAL_PAYMENT_FILTER_OPTS"
+                  :key="opt.key"
+                  :value="opt.key"
+                >
+                  {{ opt.label }} ({{ paymentCounts[opt.key] ?? 0 }})
+                </option>
+              </select>
+            </DatagridFilterField>
+
+            <DatagridFilterField
+              v-if="visibleFilters.group"
+              class="col-span-full xl:col-span-6"
             >
-            Chỉ sắp hết hạn / đã hết hạn
-          </label>
+              <div class="flex flex-wrap gap-2">
+                <button
+                  v-for="g in groupFilterOptions"
+                  :key="g.value"
+                  type="button"
+                  class="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-btn border px-3 text-xs font-medium transition"
+                  :class="filters.groups.includes(g.value)
+                    ? 'border-brand/40 bg-brand/5 text-brand'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'"
+                  @click="toggleGroupFilter(g.value)"
+                >
+                  <span
+                    class="h-2 w-2 shrink-0 rounded-full"
+                    :style="{ backgroundColor: g.dot_color }"
+                  />
+                  {{ g.label }}
+                </button>
+              </div>
+            </DatagridFilterField>
 
-          <button
-            v-if="activeFilterCount > 0"
-            type="button"
-            class="text-xs font-medium text-brand hover:underline"
-            @click="clearAllFilters"
-          >
-            Xoá bộ lọc
-          </button>
-        </div>
+            <DatagridFilterField
+              v-if="visibleFilters.attention"
+              class="flex items-center"
+            >
+              <label class="flex h-10 w-full cursor-pointer items-center gap-2 rounded-btn border border-slate-200 px-3 text-sm text-slate-700 dark:border-slate-700">
+                <input
+                  v-model="filters.attentionOnly"
+                  type="checkbox"
+                  class="rounded border-slate-300 text-brand focus:ring-brand/30"
+                >
+                Chỉ sắp hết hạn / đã hết hạn
+              </label>
+            </DatagridFilterField>
+
+            <div
+              v-if="activeFilterCount > 0"
+              class="col-span-full flex justify-end"
+            >
+              <button
+                type="button"
+                class="text-xs font-medium text-brand"
+                @click="clearAllFilters"
+              >
+                Đặt lại bộ lọc
+              </button>
+            </div>
+          </div>
+        </Transition>
       </div>
 
       <AiAccountAttentionStrip

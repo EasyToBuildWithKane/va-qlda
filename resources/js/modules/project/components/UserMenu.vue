@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
-import { router } from '@inertiajs/vue3';
+import { Link, router } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
 
 const props = defineProps({
@@ -151,18 +151,22 @@ onBeforeUnmount(() => {
 
         <!-- ── Menu items ── -->
         <div class="p-1.5 space-y-0.5">
-          <!-- Profile (coming soon) -->
-          <div class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] text-slate-400 cursor-not-allowed select-none">
-            <div class="h-7 w-7 shrink-0 rounded-lg bg-slate-100 flex items-center justify-center">
+          <!-- My profile -->
+          <Link
+            href="/profile"
+            role="menuitem"
+            class="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/20"
+            @click="closeMenu"
+          >
+            <div class="h-7 w-7 shrink-0 rounded-lg bg-brand/10 flex items-center justify-center">
               <AppIcon
                 name="account"
                 :size="14"
-                class="text-slate-400"
+                class="text-brand"
               />
             </div>
-            <span class="flex-1">Hồ sơ cá nhân</span>
-            <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-400">Sắp ra mắt</span>
-          </div>
+            <span class="flex-1 text-left">Hồ sơ của tôi</span>
+          </Link>
 
           <!-- Notifications -->
           <button

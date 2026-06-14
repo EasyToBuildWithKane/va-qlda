@@ -29,9 +29,9 @@ export const AI_ACCOUNT_RENEWAL_PAYMENT_FILTER_OPTS = [
 ];
 
 export const AI_ACCOUNT_FILTER_CONTROLS = [
-    { key: 'status', label: 'Trạng thái', default: true },
-    { key: 'renewal_payment', label: 'Thanh toán gia hạn', default: true },
-    { key: 'group', label: 'Nhóm chức năng', default: true },
+    { key: 'status', label: 'Trạng thái', default: false },
+    { key: 'renewal_payment', label: 'Thanh toán gia hạn', default: false },
+    { key: 'group', label: 'Nhóm chức năng', default: false },
     { key: 'attention', label: 'Cần chú ý (sắp/hết hạn)', default: false },
 ];
 
