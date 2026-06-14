@@ -59,6 +59,7 @@ const {
     persistVisibleFilters,
     openFilterPanel,
     hasFilterRow,
+    enabledFilterControlCount,
     FILTER_CONTROLS,
 } = useVisibleFilterControls(KB_FILTER_CONTROLS, 'va-qlda.knowledge-base.visible-filters');
 
@@ -72,8 +73,8 @@ const {
 
 const filterDdRef = ref(null);
 const colDdRef = ref(null);
-const exportMenu = ref(false);
-const exportRef = ref(null);
+const exportDdRef = ref(null);
+const showExportDd = ref(false);
 const exporting = ref(false);
 
 function routeParams(resetPage = false) {
@@ -89,7 +90,7 @@ function routeParams(resetPage = false) {
 }
 
 function load(resetPage = false) {
-    router.get('/knowledge-base', routeParams(resetPage), {
+    router.get(route('knowledge-base.index'), routeParams(resetPage), {
         preserveState: true,
         replace: true,
         preserveScroll: true,
@@ -120,20 +121,27 @@ function selectCategory(id) {
 const onDocClick = (e) => {
     if (filterDdRef.value && !filterDdRef.value.contains(e.target)) showFilterPanelDd.value = false;
     if (colDdRef.value && !colDdRef.value.contains(e.target)) showColDd.value = false;
-    if (exportMenu.value && exportRef.value && !exportRef.value.contains(e.target)) exportMenu.value = false;
+    if (exportDdRef.value && !exportDdRef.value.contains(e.target)) showExportDd.value = false;
 };
 onMounted(() => document.addEventListener('mousedown', onDocClick));
 onUnmounted(() => document.removeEventListener('mousedown', onDocClick));
 
 function openFilter() {
-    openFilterPanel(() => { showColDd.value = false; exportMenu.value = false; });
+    openFilterPanel(() => { showColDd.value = false; showExportDd.value = false; });
 }
 function openCol() {
-    openColPanel(() => { showFilterPanelDd.value = false; exportMenu.value = false; });
+    openColPanel(() => { showFilterPanelDd.value = false; showExportDd.value = false; });
+}
+function toggleExport() {
+    showExportDd.value = !showExportDd.value;
+    if (showExportDd.value) {
+        showFilterPanelDd.value = false;
+        showColDd.value = false;
+    }
 }
 
 async function runExport(format) {
-    exportMenu.value = false;
+    showExportDd.value = false;
     if (exporting.value) return;
     exporting.value = true;
     try {
@@ -229,104 +237,121 @@ async function runExport(format) {
       </aside>
 
       <div class="min-w-0 flex-1 space-y-3">
-        <div class="card p-3">
-          <div class="flex flex-wrap items-center gap-2">
+        <div class="card overflow-visible">
+          <div class="flex flex-col gap-2.5 border-b border-slate-100 bg-slate-50/40 px-4 py-3.5 sm:px-5 lg:flex-row lg:items-center">
             <DatagridToolbarSearch
               v-model="filterForm.q"
               input-id="kb-search"
+              placeholder="Tiêu đề, mô tả, thẻ…"
             />
-            <div
-              ref="filterDdRef"
-              class="relative shrink-0"
-            >
-              <button
-                type="button"
-                class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
-                title="Hiển thị bộ lọc"
-                @click="openFilter"
-              >
-                <AppIcon
-                  name="filter"
-                  :size="15"
-                />
-                <span>Lọc</span>
-              </button>
-              <FilterVisibilityDropdown
-                v-model="visibleFilters"
-                :show="showFilterPanelDd"
-                :controls="FILTER_CONTROLS"
-                @persist="persistVisibleFilters"
-              />
-            </div>
-            <div
-              ref="colDdRef"
-              class="relative shrink-0"
-            >
-              <button
-                type="button"
-                class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
-                title="Hiển thị cột thẻ bài"
-                @click="openCol"
-              >
-                <AppIcon
-                  name="columns"
-                  :size="15"
-                />
-                <span>Cột</span>
-              </button>
-              <ColumnVisibilityDropdown
-                v-model="visibleCols"
-                :show="showColDd"
-                :columns="CARD_COLUMNS"
-                @persist="persistVisibleColumns"
-              />
-            </div>
-            <div
-              ref="exportRef"
-              class="relative shrink-0"
-            >
-              <button
-                type="button"
-                class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
-                :disabled="exporting"
-                title="Xuất danh sách đang lọc (tối đa 200)"
-                @click="exportMenu = !exportMenu; showFilterPanelDd = false; showColDd = false"
-              >
-                <AppIcon
-                  name="export"
-                  :size="15"
-                />
-                <span>{{ exporting ? 'Đang xuất…' : 'Xuất' }}</span>
-              </button>
+
+            <div class="flex shrink-0 flex-wrap items-center gap-2">
               <div
-                v-if="exportMenu"
-                class="absolute right-0 z-20 mt-1 min-w-[8rem] rounded-btn border border-slate-200 bg-white py-1 shadow-lg"
+                ref="filterDdRef"
+                class="relative"
               >
                 <button
                   type="button"
-                  class="block w-full px-3 py-2 text-left text-xs hover:bg-slate-50"
-                  @click="runExport('csv')"
+                  class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
+                  :class="showFilterPanelDd
+                    ? 'border-brand/40 bg-brand/5 text-brand'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800'"
+                  :title="`Hiển thị bộ lọc (${enabledFilterControlCount}/${FILTER_CONTROLS.length})`"
+                  @click="openFilter"
                 >
-                  CSV
+                  <AppIcon
+                    name="filter"
+                    :size="15"
+                  />
+                  <span>Lọc</span>
                 </button>
+                <FilterVisibilityDropdown
+                  v-model="visibleFilters"
+                  :show="showFilterPanelDd"
+                  :controls="FILTER_CONTROLS"
+                  @persist="persistVisibleFilters"
+                />
+              </div>
+
+              <div
+                ref="colDdRef"
+                class="relative"
+              >
                 <button
                   type="button"
-                  class="block w-full px-3 py-2 text-left text-xs hover:bg-slate-50"
-                  @click="runExport('excel')"
+                  class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
+                  :class="showColDd
+                    ? 'border-brand/40 bg-brand/5 text-brand'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800'"
+                  title="Trường hiển thị trên thẻ bài"
+                  @click="openCol"
                 >
-                  Excel
+                  <AppIcon
+                    name="columns"
+                    :size="15"
+                  />
+                  <span>Cột</span>
                 </button>
+                <ColumnVisibilityDropdown
+                  v-model="visibleCols"
+                  :show="showColDd"
+                  :columns="CARD_COLUMNS"
+                  @persist="persistVisibleColumns"
+                />
+              </div>
+
+              <div
+                ref="exportDdRef"
+                class="relative"
+              >
+                <button
+                  type="button"
+                  class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
+                  :class="showExportDd
+                    ? 'border-brand/40 bg-brand/5 text-brand'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800'"
+                  :disabled="exporting"
+                  title="Xuất danh sách đang lọc (tối đa 200)"
+                  @click="toggleExport"
+                >
+                  <AppIcon
+                    name="export"
+                    :size="15"
+                  />
+                  <span>{{ exporting ? 'Đang xuất…' : 'Xuất' }}</span>
+                </button>
+                <div
+                  v-if="showExportDd"
+                  class="absolute right-0 z-30 mt-1 min-w-[9rem] rounded-card border border-slate-200 bg-white py-1 shadow-lg"
+                >
+                  <button
+                    type="button"
+                    class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50"
+                    @click="runExport('csv')"
+                  >
+                    CSV
+                  </button>
+                  <button
+                    type="button"
+                    class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50"
+                    @click="runExport('excel')"
+                  >
+                    Excel
+                  </button>
+                </div>
               </div>
             </div>
           </div>
+
           <div
             v-if="hasFilterRow"
-            class="mt-2.5 flex flex-wrap gap-2 border-t border-slate-100 pt-2.5"
+            class="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-slate-50/30 px-4 py-2.5 sm:px-5"
           >
             <select
               v-if="visibleFilters.tag && tags.length"
               v-model="filterForm.tag"
-              class="input h-9 text-xs"
+              class="input h-9 w-48 text-sm"
+              aria-label="Lọc theo thẻ"
             >
               <option value="">
                 Tất cả thẻ
@@ -342,7 +367,8 @@ async function runExport(format) {
             <select
               v-if="visibleFilters.status && options.statuses?.length"
               v-model="filterForm.status"
-              class="input h-9 text-xs"
+              class="input h-9 w-48 text-sm"
+              aria-label="Trạng thái bài viết"
             >
               <option value="">
                 Mọi trạng thái

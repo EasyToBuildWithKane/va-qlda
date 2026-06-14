@@ -43,9 +43,14 @@ class CoachingCourseController extends Controller
                 ->orWhere('coach_name', 'like', "%{$search}%"));
         }
 
+        $perPage = min(50, max(5, (int) $request->query('per_page', 20)));
+
         return Inertia::render('Coaching/Courses/Index', [
-            'courses' => CoachingCourseResource::collection($query->paginate(20)->withQueryString()),
-            'filters' => (object) $request->only(['q', 'status']),
+            'courses' => CoachingCourseResource::collection($query->paginate($perPage)->withQueryString()),
+            'filters' => (object) array_merge(
+                $request->only(['q', 'status']),
+                ['per_page' => $perPage],
+            ),
             'options' => [
                 'statuses' => CoachingCourseStatus::options(),
             ],

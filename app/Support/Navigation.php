@@ -3,22 +3,24 @@
 namespace App\Support;
 
 use App\Models\SystemAccount;
+use App\Support\Auth\CoachingOnlyAccess;
 
 /**
  * Builds the sidebar menu as collapsible groups.
  *
  * Structure  →  Group (collapsible) → Item (link)
  *
- * Eight workflow-aligned groups:
+ * Nine workflow-aligned groups:
  *
  *   1. overview   — Tổng quan          dashboards
  *   2. daily      — Báo cáo ngày       daily report workflow
  *   3. projects   — Quản lý dự án      project & sprint management
  *   4. quality    — Chất lượng         bugs, feedback, action items
  *   5. people     — Nhân sự            departments, profiles, evaluations
- *   6. knowledge  — Tri thức           knowledge base, meetings, standards
- *   7. ai         — AI & Chi phí       AI accounts & purchase proposals
- *   8. admin      — Quản trị           ops center, system config (admin only)
+ *   6. knowledge  — Tri thức           knowledge base
+ *   7. coaching   — Coaching           dashboard & khóa học / buổi học
+ *   8. ai         — AI & Chi phí       AI accounts & purchase proposals
+ *   9. admin      — Quản trị           ops center, system config (admin only)
  *
  * Item status flags (used by the sidebar for styling):
  *
@@ -65,6 +67,13 @@ class Navigation
                 'defaultCollapsed' => $group['defaultCollapsed'] ?? false,
                 'items' => $items,
             ];
+        }
+
+        if (CoachingOnlyAccess::appliesTo($account)) {
+            $groups = array_values(array_filter(
+                $groups,
+                static fn (array $group): bool => $group['key'] === 'coaching',
+            ));
         }
 
         return $groups;
@@ -243,7 +252,7 @@ class Navigation
 
             // ──────────────────────────────────────────────────────────────
             // 6. TRI THỨC & CƠ SỞ — knowledge base, meetings, dev standards
-            //    All planned; collapsed by default to keep the sidebar clean.
+            //    Collapsed by default to keep the sidebar clean.
             // ──────────────────────────────────────────────────────────────
             [
                 'key' => 'knowledge',
@@ -256,13 +265,6 @@ class Navigation
                         'icon' => 'knowledge',
                         'href' => '/knowledge-base',
                         'status' => 'live',
-                    ],
-                    [
-                        'label' => 'Coaching / Mentoring',
-                        'icon' => 'weekly',
-                        'href' => '/coaching',
-                        'status' => 'live',
-                        'roles' => ['admin', 'lead', 'member'],
                     ],
                     [
                         'label' => 'Cuộc họp & Biên bản',
@@ -286,7 +288,32 @@ class Navigation
             ],
 
             // ──────────────────────────────────────────────────────────────
-            // 7. AI & CHI PHÍ — AI account pool + purchase proposals
+            // 7. COACHING — dashboard tài chính & quản lý khóa / buổi học
+            // ──────────────────────────────────────────────────────────────
+            [
+                'key' => 'coaching',
+                'heading' => 'Coaching & Mentoring',
+                'icon' => 'weekly',
+                'items' => [
+                    [
+                        'label' => 'Dashboard',
+                        'icon' => 'overview',
+                        'href' => '/coaching',
+                        'status' => 'live',
+                        'roles' => ['admin', 'lead', 'member'],
+                    ],
+                    [
+                        'label' => 'Khóa học',
+                        'icon' => 'knowledge',
+                        'href' => '/coaching/courses',
+                        'status' => 'live',
+                        'roles' => ['admin', 'lead', 'member'],
+                    ],
+                ],
+            ],
+
+            // ──────────────────────────────────────────────────────────────
+            // 8. AI & CHI PHÍ — AI account pool + purchase proposals
             //    All active accounts can request or view AI tools.
             // ──────────────────────────────────────────────────────────────
             [
@@ -328,7 +355,7 @@ class Navigation
             ],
 
             // ──────────────────────────────────────────────────────────────
-            // 8. QUẢN TRỊ — operational monitoring + system config
+            // 9. QUẢN TRỊ — operational monitoring + system config
             //    Admin-only. Invisible to lead / member / viewer.
             // ──────────────────────────────────────────────────────────────
             [

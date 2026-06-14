@@ -176,3 +176,91 @@ export function exportCoachingMonthlyWorkbook(payload) {
     const safeMonth = month.replace(/[^\d-]/g, '');
     XLSX.writeFile(wb, `VA_Coaching_${safeMonth}.xlsx`);
 }
+
+const COURSE_HEADERS = [
+    'Mã', 'Tên khóa', 'Trạng thái', 'Học viên', 'Coach', 'Tiến độ %', 'Số buổi',
+    'Bắt đầu', 'Kết thúc', 'Học phí', 'Đơn giá/giờ', 'Tổng giờ',
+];
+
+function courseRow(c) {
+    return [
+        c.code ?? '',
+        c.name ?? '',
+        c.status?.label ?? '',
+        c.student_display ?? '',
+        c.coach_display ?? '',
+        c.progress_percent ?? '',
+        c.sessions_count ?? '',
+        c.start_date ?? '',
+        c.end_date ?? '',
+        c.total_fee ?? '',
+        c.hourly_rate ?? '',
+        c.total_hours ?? '',
+    ];
+}
+
+function coursesToCsv(rows) {
+    const esc = (v) => {
+        const s = v == null ? '' : String(v);
+        return s.includes(',') || s.includes('"') || s.includes('\n')
+            ? `"${s.replace(/"/g, '""')}"`
+            : s;
+    };
+    const lines = [COURSE_HEADERS.map(esc).join(',')];
+    rows.forEach((c) => lines.push(courseRow(c).map(esc).join(',')));
+    return lines.join('\n');
+}
+
+/**
+ * @param {{ courses: array, filters?: object }} opts
+ */
+export function exportCoachingCoursesCsv({ courses, filters = {} }) {
+    const blob = new Blob(['\uFEFF' + coursesToCsv(courses)], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const note = filters.q || filters.status ? '_loc' : '';
+    a.download = `VA_Coaching_KhoaHoc${note}_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+/**
+ * @param {{ courses: array, filters?: object }} opts
+ */
+export function exportCoachingCoursesWorkbook({ courses, filters = {} }) {
+    const ws = {};
+    let row = 0;
+    setCell(ws, row, 0, 'Danh sách khóa học Coaching', S.title);
+    mergeRow(ws, row, 0, COURSE_HEADERS.length - 1);
+    row += 1;
+    const filterParts = [];
+    if (filters.q) filterParts.push(`Từ khóa: ${filters.q}`);
+    if (filters.status) filterParts.push(`Trạng thái: ${filters.status}`);
+    setCell(ws, row, 0, filterParts.length ? filterParts.join(' · ') : 'Không lọc', S.subtitle);
+    mergeRow(ws, row, 0, COURSE_HEADERS.length - 1);
+    row += 2;
+
+    COURSE_HEADERS.forEach((h, c) => setCell(ws, row, c, h, S.header));
+    row += 1;
+
+    courses.forEach((course, ri) => {
+        const full = courseRow(course);
+        const alt = ri % 2 === 1;
+        full.forEach((val, c) => {
+            const isMoney = c >= 9 && c <= 10 && val != null && val !== '';
+            setCell(ws, row, c, val, isMoney ? S.money(alt) : S.cell(alt));
+        });
+        row += 1;
+    });
+
+    ws['!ref'] = XLSX.utils.encode_range({
+        s: { r: 0, c: 0 },
+        e: { r: Math.max(row, 1), c: COURSE_HEADERS.length - 1 },
+    });
+    ws['!cols'] = COURSE_HEADERS.map(() => ({ wch: 16 }));
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Khoa hoc');
+    XLSX.writeFile(wb, `VA_Coaching_KhoaHoc_${new Date().toISOString().slice(0, 10)}.xlsx`);
+}

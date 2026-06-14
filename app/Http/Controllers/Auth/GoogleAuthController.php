@@ -5,9 +5,9 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\SystemAccount;
-use App\Providers\RouteServiceProvider;
 use App\Services\Cms\CmsEmployeeSyncService;
 use App\Services\Cms\SystemAccountProvisioner;
+use App\Support\Auth\CoachingOnlyAccess;
 use App\Support\Auth\LoginRedirectSanitizer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -57,7 +57,7 @@ class GoogleAuthController extends Controller
                 ->with('error', 'Tài khoản Google không có email. Không thể đăng nhập.');
         }
 
-        if (! $this->emailDomainAllowed($email)) {
+        if (! $this->emailAllowed($email)) {
             return redirect()->route('login')
                 ->with('error', 'Email không thuộc tổ chức được phép đăng nhập.');
         }
@@ -106,7 +106,7 @@ class GoogleAuthController extends Controller
 
         $target = LoginRedirectSanitizer::sanitize(
             $request->session()->pull('login.redirect'),
-            RouteServiceProvider::HOME,
+            CoachingOnlyAccess::homePath($account),
         );
 
         return redirect()->to($target);
@@ -116,6 +116,15 @@ class GoogleAuthController extends Controller
     {
         return filled(config('services.google.client_id'))
             && filled(config('services.google.client_secret'));
+    }
+
+    private function emailAllowed(string $email): bool
+    {
+        if (CoachingOnlyAccess::googleEmailAllowed($email)) {
+            return true;
+        }
+
+        return $this->emailDomainAllowed($email);
     }
 
     private function emailDomainAllowed(string $email): bool

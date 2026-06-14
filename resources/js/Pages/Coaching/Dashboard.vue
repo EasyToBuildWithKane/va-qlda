@@ -182,7 +182,7 @@ const monthlyStats = computed(() => [
     >
       <Link
         v-if="can.create"
-        href="/coaching/courses/create"
+        :href="`${route('coaching.courses.index')}?create=1`"
         class="btn-primary h-9 px-3 text-sm"
       >
         Thêm khóa học
@@ -333,7 +333,7 @@ const monthlyStats = computed(() => [
           >
             <div class="flex flex-wrap items-center justify-between gap-2 text-sm">
               <Link
-                :href="`/coaching/courses/${c.id}`"
+                :href="route('coaching.courses.show', { course: c.id })"
                 class="font-medium text-brand hover:underline"
               >
                 <span class="font-mono text-xs text-slate-400">{{ c.code }}</span>

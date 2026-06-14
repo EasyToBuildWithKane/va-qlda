@@ -38,4 +38,18 @@ return [
         explode(',', (string) env('GOOGLE_ALLOWED_DOMAINS', 'vaschools.edu.vn'))
     )),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Google OAuth — allowed individual emails (not whole domains)
+    |--------------------------------------------------------------------------
+    |
+    | Comma-separated. Lowercase recommended. Does not open all @gmail.com —
+    | only listed addresses may sign in via Google and are limited to Coaching.
+    |
+    */
+    'google_allowed_emails' => array_values(array_unique(array_filter(array_map(
+        static fn (string $email): string => strtolower(trim($email)),
+        explode(',', (string) env('GOOGLE_ALLOWED_EMAILS', ''))
+    )))),
+
 ];

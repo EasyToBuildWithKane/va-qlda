@@ -54,7 +54,7 @@ Route::middleware('guest')->group(function () {
     }
 });
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', \App\Http\Middleware\RestrictCoachingOnlyUsers::class])->group(function () {
     Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
 
     Route::get('/', fn () => redirect()->route('dashboard'));

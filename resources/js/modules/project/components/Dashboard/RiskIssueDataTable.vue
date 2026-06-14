@@ -359,176 +359,172 @@ defineExpose({ scrollHere });
         </div>
       </div>
 
-      <div class="mt-3 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-          <DatagridToolbarSearch
-            v-model="search"
-            input-id="risk-issue-search"
-            placeholder="Mã, tiêu đề, người phụ trách, mô tả…"
-          />
-          <div
-            ref="filterPanelDdRef"
-            class="relative shrink-0"
-          >
-            <button
-              type="button"
-              class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none dark:border-slate-600 dark:bg-slate-900"
-              :class="showFilterPanelDd
-                ? 'border-brand/40 bg-brand/5 text-brand'
-                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800 dark:text-slate-300'"
-              :title="`Bộ lọc (${enabledFilterControlCount}/${FILTER_CONTROLS.length} đang hiển thị)`"
-              aria-label="Hiển thị bộ lọc trên thanh công cụ"
-              @click.stop="openRiskFilterPanel"
-            >
-              <AppIcon
-                name="filter"
-                :size="15"
-              />
-              <span>Lọc</span>
-            </button>
-            <FilterVisibilityDropdown
-              v-model="visibleFilters"
-              :show="showFilterPanelDd"
-              :controls="FILTER_CONTROLS"
-              @persist="persistVisibleFilters"
-            />
-          </div>
-          <div class="relative shrink-0">
-            <button
-              ref="columnsBtnRef"
-              type="button"
-              class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-800 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300"
-              :class="showColumns && 'border-brand/40 bg-brand/5 text-brand'"
-              title="Cột hiển thị"
-              aria-label="Cột hiển thị"
-              @click.stop="toggleColumnsMenu"
-            >
-              <AppIcon
-                name="columns"
-                :size="15"
-              />
-              <span>Cột</span>
-            </button>
-            <Teleport to="body">
-              <div
-                v-if="showColumns"
-                ref="columnsMenuRef"
-                class="fixed z-[200] w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-elevation-2 dark:border-slate-600 dark:bg-slate-900"
-                :style="columnsMenuStyle"
-                @click.stop
-              >
-                <p class="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                  Cột hiển thị
-                </p>
-                <p class="px-2 pb-1 text-[10px] text-slate-400">
-                  Cột «Vướng mắc» luôn hiển thị
-                </p>
-                <label
-                  v-for="c in RISK_TABLE_COLUMNS"
-                  :key="c.key"
-                  class="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
-                >
-                  <input
-                    type="checkbox"
-                    class="rounded"
-                    :checked="colVisible(c.key)"
-                    :disabled="colVisible(c.key) && visibleColumns.length <= 1"
-                    @change="toggleColumn(c.key)"
-                  >
-                  {{ c.label }}
-                </label>
-              </div>
-            </Teleport>
-          </div>
-        </div>
-
-        <div class="flex shrink-0 flex-wrap items-center gap-2">
+      <div class="mt-3 flex min-w-0 flex-wrap items-center gap-2 sm:flex-nowrap">
+        <DatagridToolbarSearch
+          v-model="search"
+          compact
+          input-id="risk-issue-search"
+          placeholder="Mã, tiêu đề, mô tả…"
+        />
+        <div
+          ref="filterPanelDdRef"
+          class="relative shrink-0"
+        >
           <button
-            v-if="canManage"
+            type="button"
+            class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none dark:border-slate-600 dark:bg-slate-900"
+            :class="showFilterPanelDd
+              ? 'border-brand/40 bg-brand/5 text-brand'
+              : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800 dark:text-slate-300'"
+            :title="`Bộ lọc (${enabledFilterControlCount}/${FILTER_CONTROLS.length} đang hiển thị)`"
+            aria-label="Hiển thị bộ lọc trên thanh công cụ"
+            @click.stop="openRiskFilterPanel"
+          >
+            <AppIcon
+              name="filter"
+              :size="15"
+            />
+            <span>Lọc</span>
+          </button>
+          <FilterVisibilityDropdown
+            v-model="visibleFilters"
+            :show="showFilterPanelDd"
+            :controls="FILTER_CONTROLS"
+            @persist="persistVisibleFilters"
+          />
+        </div>
+        <div class="relative shrink-0">
+          <button
+            ref="columnsBtnRef"
             type="button"
             class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-800 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300"
-            @click="importModalOpen = true"
+            :class="showColumns && 'border-brand/40 bg-brand/5 text-brand'"
+            title="Cột hiển thị"
+            aria-label="Cột hiển thị"
+            @click.stop="toggleColumnsMenu"
           >
             <AppIcon
-              name="upload"
+              name="columns"
               :size="15"
             />
-            <span>Nhập</span>
+            <span>Cột</span>
           </button>
-          <div class="relative shrink-0">
-            <button
-              ref="exportBtnRef"
-              type="button"
-              class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-800 disabled:opacity-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300"
-              :class="showExportMenu && 'border-brand/40 bg-brand/5 text-brand'"
-              :disabled="!table.filtered.value.length"
-              title="Xuất CSV hoặc Excel"
-              aria-label="Xuất dữ liệu"
-              @click.stop="toggleExportMenu"
+          <Teleport to="body">
+            <div
+              v-if="showColumns"
+              ref="columnsMenuRef"
+              class="fixed z-[200] w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-elevation-2 dark:border-slate-600 dark:bg-slate-900"
+              :style="columnsMenuStyle"
+              @click.stop
             >
-              <AppIcon
-                name="export"
-                :size="15"
-              />
-              <span>Xuất</span>
-            </button>
-            <Teleport to="body">
-              <div
-                v-if="showExportMenu"
-                ref="exportMenuRef"
-                class="fixed z-[200] w-[12.5rem] overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-elevation-2 dark:border-slate-600 dark:bg-slate-900"
-                :style="exportMenuStyle"
-                @click.stop
+              <p class="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                Cột hiển thị
+              </p>
+              <p class="px-2 pb-1 text-[10px] text-slate-400">
+                Cột «Vướng mắc» luôn hiển thị
+              </p>
+              <label
+                v-for="c in RISK_TABLE_COLUMNS"
+                :key="c.key"
+                class="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
               >
-                <p class="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                  Định dạng
-                </p>
-                <button
-                  type="button"
-                  class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
-                  @click="runExport('xlsx')"
+                <input
+                  type="checkbox"
+                  class="rounded"
+                  :checked="colVisible(c.key)"
+                  :disabled="colVisible(c.key) && visibleColumns.length <= 1"
+                  @change="toggleColumn(c.key)"
                 >
-                  <AppIcon
-                    name="export"
-                    :size="15"
-                    class="text-emerald-600"
-                  />
-                  <span>
-                    <span class="font-medium">Excel</span>
-                    <span class="block text-[10px] text-slate-400">.xlsx · có định dạng</span>
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
-                  @click="runExport('csv')"
-                >
-                  <AppIcon
-                    name="download"
-                    :size="15"
-                    class="text-sky-600"
-                  />
-                  <span>
-                    <span class="font-medium">CSV</span>
-                    <span class="block text-[10px] text-slate-400">.csv · mở bằng Excel</span>
-                  </span>
-                </button>
-              </div>
-            </Teleport>
-          </div>
+                {{ c.label }}
+              </label>
+            </div>
+          </Teleport>
+        </div>
+        <button
+          v-if="canManage"
+          type="button"
+          class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-800 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300"
+          @click="importModalOpen = true"
+        >
+          <AppIcon
+            name="upload"
+            :size="15"
+          />
+          <span>Nhập</span>
+        </button>
+        <div class="relative shrink-0">
           <button
-            v-if="canManage"
+            ref="exportBtnRef"
             type="button"
-            class="btn-primary h-9 gap-1.5 px-4 text-sm"
-            @click="openCreate"
+            class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 transition hover:border-slate-300 hover:text-slate-800 disabled:opacity-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300"
+            :class="showExportMenu && 'border-brand/40 bg-brand/5 text-brand'"
+            :disabled="!table.filtered.value.length"
+            title="Xuất CSV hoặc Excel"
+            aria-label="Xuất dữ liệu"
+            @click.stop="toggleExportMenu"
           >
             <AppIcon
-              name="add"
+              name="export"
               :size="15"
             />
-            Thêm rủi ro
+            <span>Xuất</span>
           </button>
+          <Teleport to="body">
+            <div
+              v-if="showExportMenu"
+              ref="exportMenuRef"
+              class="fixed z-[200] w-[12.5rem] overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-elevation-2 dark:border-slate-600 dark:bg-slate-900"
+              :style="exportMenuStyle"
+              @click.stop
+            >
+              <p class="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                Định dạng
+              </p>
+              <button
+                type="button"
+                class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                @click="runExport('xlsx')"
+              >
+                <AppIcon
+                  name="export"
+                  :size="15"
+                  class="text-emerald-600"
+                />
+                <span>
+                  <span class="font-medium">Excel</span>
+                  <span class="block text-[10px] text-slate-400">.xlsx · có định dạng</span>
+                </span>
+              </button>
+              <button
+                type="button"
+                class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                @click="runExport('csv')"
+              >
+                <AppIcon
+                  name="download"
+                  :size="15"
+                  class="text-sky-600"
+                />
+                <span>
+                  <span class="font-medium">CSV</span>
+                  <span class="block text-[10px] text-slate-400">.csv · mở bằng Excel</span>
+                </span>
+              </button>
+            </div>
+          </Teleport>
         </div>
+        <button
+          v-if="canManage"
+          type="button"
+          class="btn-primary h-9 shrink-0 gap-1.5 px-4 text-sm"
+          @click="openCreate"
+        >
+          <AppIcon
+            name="add"
+            :size="15"
+          />
+          Thêm rủi ro
+        </button>
       </div>
 
       <div

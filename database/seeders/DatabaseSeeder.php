@@ -48,5 +48,6 @@ class DatabaseSeeder extends Seeder
         $this->call(ProjectManagementSeeder::class);
 
         $this->call(BootstrapAdminSeeder::class);
+        $this->call(CoachingGoogleGuestSeeder::class);
     }
 }

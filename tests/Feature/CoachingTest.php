@@ -50,6 +50,23 @@ class CoachingTest extends TestCase
         $this->assertStringStartsWith('COACH-', $course->code);
     }
 
+    public function test_admin_can_view_course_show_page(): void
+    {
+        $admin = $this->admin();
+        $course = CoachingCourse::create([
+            'name' => 'Khóa Vue',
+            'status' => CoachingCourseStatus::Active,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('coaching.courses.show', $course))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Coaching/Courses/Show')
+                ->has('course.id')
+                ->where('course.id', $course->id));
+    }
+
     public function test_viewer_cannot_access_coaching_dashboard(): void
     {
         $viewer = SystemAccount::factory()->role(SystemRole::Viewer)->create();
