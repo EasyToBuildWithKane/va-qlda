@@ -48,17 +48,36 @@ class FeedbackController extends Controller
         if ($request->boolean('mine') && $account->employee_id) {
             $query->where('assignee_id', $account->employee_id);
         }
+        if ($priority = $request->query('priority')) {
+            $query->where('priority', $priority);
+        }
+        if ($assigneeId = $request->query('assignee_id')) {
+            $query->where('assignee_id', $assigneeId);
+        }
+        if ($request->query('rating') !== null && $request->query('rating') !== '') {
+            $query->where('rating', (int) $request->query('rating'));
+        }
+        if ($from = $request->query('created_from')) {
+            $query->whereDate('created_at', '>=', $from);
+        }
+        if ($to = $request->query('created_to')) {
+            $query->whereDate('created_at', '<=', $to);
+        }
         if ($search = $request->query('q')) {
             $query->where(fn ($q) => $q
                 ->where('title', 'like', "%{$search}%")
-                ->orWhere('code', 'like', "%{$search}%"));
+                ->orWhere('code', 'like', "%{$search}%")
+                ->orWhere('description', 'like', "%{$search}%"));
         }
 
         $perPage = min(max((int) $request->query('per_page', 20), 5), 50);
 
         return Inertia::render('Feedback/Index', [
             'feedback' => FeedbackResource::collection($query->paginate($perPage)->withQueryString()),
-            'filters' => (object) $request->only(['status', 'category', 'project_id', 'mine', 'q', 'scope', 'per_page']),
+            'filters' => (object) $request->only([
+                'status', 'category', 'project_id', 'mine', 'q', 'scope', 'per_page',
+                'priority', 'assignee_id', 'rating', 'created_from', 'created_to',
+            ]),
             'summary' => [
                 'total' => Feedback::count(),
                 'open' => Feedback::open()->count(),

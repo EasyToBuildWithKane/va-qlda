@@ -3,7 +3,6 @@ import { computed, watch, onBeforeUnmount, ref } from 'vue';
 import { useEditor, EditorContent } from '@tiptap/vue-3';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
-import Underline from '@tiptap/extension-underline';
 import { useDialog } from '@/composables/useDialog';
 
 const props = defineProps({
@@ -25,7 +24,6 @@ const editor = useEditor({
     editable: !props.disabled,
     extensions: [
         StarterKit.configure({ link: { openOnClick: false, autolink: true } }),
-        Underline,
         Placeholder.configure({ placeholder: 'Soạn nội dung email…' }),
     ],
     editorProps: {

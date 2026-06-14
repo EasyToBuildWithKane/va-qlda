@@ -1,92 +1,106 @@
 <script setup>
+import { computed } from 'vue';
+import KpiSummaryStrip from '@/shared/ui/KpiSummaryStrip.vue';
 import VndAmount from '@/modules/aiAccount/components/VndAmount.vue';
+import { formatVnd } from '@/modules/aiAccount/utils/formatVnd';
 
-defineProps({
+const props = defineProps({
     metrics: { type: Object, default: null },
     loading: { type: Boolean, default: false },
+    activeStatus: { type: String, default: 'all' },
 });
+
+const emit = defineEmits(['filter-status']);
+
+const activeKey = computed(() => {
+    const map = {
+        all: 'proposals',
+        pending: 'pending',
+        approved: 'approved',
+        paid: 'paid',
+    };
+    return map[props.activeStatus] ?? '';
+});
+
+const cards = computed(() => {
+    const m = props.metrics ?? {};
+    const total = m.proposals_total ?? 0;
+    const pending = m.proposals_pending ?? 0;
+    const approved = m.proposals_approved ?? 0;
+
+    return [
+        {
+            key: 'proposals',
+            label: 'Phiếu đề xuất',
+            value: total,
+            tone: 'brand',
+            icon: 'documents',
+            sub: `Chờ: ${pending} · Đã duyệt: ${approved}`,
+            interactive: true,
+            payload: 'all',
+        },
+        {
+            key: 'pending',
+            label: 'Chờ duyệt PĐX',
+            value: pending,
+            tone: 'amber',
+            icon: 'clock',
+            sub: total ? `${Math.round((pending / total) * 100)}% phiếu` : 'Bấm để lọc',
+            progress: total ? Math.round((pending / total) * 100) : null,
+            interactive: true,
+            payload: 'pending',
+        },
+        {
+            key: 'approved',
+            label: 'ĐNTT chờ duyệt',
+            value: m.payment_requests_pending ?? 0,
+            tone: 'violet',
+            icon: 'review-reports',
+            sub: `Đã duyệt: ${m.payment_requests_approved ?? 0} · Đã TT: ${m.payment_requests_paid ?? 0}`,
+            interactive: false,
+        },
+        {
+            key: 'paid',
+            label: 'Đã thanh toán',
+            value: formatVnd(m.budget_paid_total),
+            tone: 'emerald',
+            icon: 'budget',
+            sub: `NS đề xuất: ${formatVnd(m.budget_proposed_total)}`,
+            interactive: false,
+            isVnd: true,
+            rawPaid: m.budget_paid_total,
+        },
+    ];
+});
+
+function onSelect(card) {
+    if (card.payload) emit('filter-status', card.payload);
+}
 </script>
 
 <template>
-  <div
-    v-if="loading"
-    class="mb-4 rounded-card border border-slate-100 bg-white px-5 py-6 text-center text-sm text-slate-500"
+  <KpiSummaryStrip
+    aria-label="Thống kê quy trình mua AI"
+    heading="Tổng quan PĐX & thanh toán"
+    hint="Thẻ có viền nét đứt — bấm để lọc danh sách đề xuất"
+    grid-class="grid-cols-2 gap-3 sm:grid-cols-2 xl:grid-cols-4"
+    :cards="cards"
+    :active-key="activeKey"
+    :progress-denominator="metrics?.proposals_total ?? 0"
+    :loading="loading"
+    @select="onSelect"
   >
-    Đang tải thống kê…
-  </div>
-  <div
-    v-else-if="metrics"
-    class="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
-  >
-    <div class="rounded-card border border-slate-100 bg-white px-4 py-3 shadow-sm">
-      <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-        Phiếu đề xuất
-      </p>
-      <p class="mt-1 font-display text-2xl font-bold text-slate-800">
-        {{ metrics.proposals_total ?? 0 }}
-      </p>
-      <p class="mt-1 text-xs text-slate-500">
-        Chờ duyệt: <span class="font-semibold text-amber-700">{{ metrics.proposals_pending ?? 0 }}</span>
-        · Đã duyệt: <span class="font-semibold text-emerald-700">{{ metrics.proposals_approved ?? 0 }}</span>
-      </p>
-    </div>
-
-    <div class="rounded-card border border-slate-100 bg-white px-4 py-3 shadow-sm">
-      <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-        Đề nghị thanh toán
-      </p>
-      <p class="mt-1 text-xs text-slate-600">
-        Chờ duyệt:
-        <span class="font-semibold text-amber-700">{{ metrics.payment_requests_pending ?? 0 }}</span>
-      </p>
-      <p class="text-xs text-slate-600">
-        Đã duyệt:
-        <span class="font-semibold text-emerald-700">{{ metrics.payment_requests_approved ?? 0 }}</span>
-        · Đã thanh toán:
-        <span class="font-semibold text-blue-700">{{ metrics.payment_requests_paid ?? 0 }}</span>
-      </p>
-    </div>
-
-    <div class="rounded-card border border-slate-100 bg-white px-4 py-3 shadow-sm">
-      <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-        Ngân sách đề xuất
-      </p>
-      <p class="mt-1">
+    <template #value="{ card }">
+      <template v-if="card.isVnd">
         <VndAmount
-          :amount="metrics.budget_proposed_total ?? 0"
+          :amount="card.rawPaid ?? 0"
           compact
-          class="font-display text-xl font-bold text-slate-800"
+          class="font-display text-xl font-bold text-slate-900 sm:text-[1.65rem]"
         />
-      </p>
-      <p class="mt-1 text-xs text-slate-500">
-        Đã duyệt PĐX:
-        <VndAmount
-          :amount="metrics.budget_proposal_approved_total ?? 0"
-          compact
-          class="inline font-medium text-emerald-700"
-        />
-      </p>
-    </div>
-
-    <div class="rounded-card border border-slate-100 bg-white px-4 py-3 shadow-sm">
-      <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-        Đã thanh toán
-      </p>
-      <p class="mt-1">
-        <VndAmount
-          :amount="metrics.budget_paid_total ?? 0"
-          compact
-          class="font-display text-xl font-bold text-blue-800"
-        />
-      </p>
-      <p class="mt-1 text-xs text-slate-500">
-        ĐNTT đã duyệt (chưa TT):
-        <VndAmount
-          :amount="(metrics.budget_payment_approved_total ?? 0) - (metrics.budget_paid_total ?? 0)"
-          compact
-          class="inline font-medium text-slate-600"
-        />
-      </p>
-    </div>
-  </div>
+      </template>
+      <template v-else>
+        {{ card.value }}
+      </template>
+    </template>
+  </KpiSummaryStrip>
 </template>

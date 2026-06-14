@@ -1,0 +1,60 @@
+---
+description: Content header — AppLayout #header, PageHeader, icon nav, back (bắt buộc)
+globs: resources/js/Pages/**/*.vue,resources/js/Layouts/**/*.vue
+alwaysApply: true
+---
+
+# Content header — Production (bắt buộc)
+
+Thanh tiêu đề trang = slot `#header` của `AppLayout` + `PageHeader.vue`. Skill: `.cursor/skills/content-header/SKILL.md`
+
+| Ngữ cảnh | Tham chiếu vàng |
+|----------|-----------------|
+| Index + nút primary | `resources/js/Pages/AiAccount/Index.vue` |
+| Index + badge + actions | `resources/js/Pages/AiAccount/CostReport.vue` |
+| Dashboard (icon nav) | `resources/js/Pages/AiAccount/Dashboard.vue`, `Coaching/Dashboard.vue` |
+| Lịch / full workspace | `resources/js/Pages/Coaching/Sessions/Schedule.vue` |
+| Drill-down (có back) | `resources/js/Pages/Project/Create.vue`, `Project/Show.vue` |
+
+## 1. Vị trí & component
+
+- **Luôn** `<template #header>` trên `AppLayout` — **không** lặp `PageHeader` trong `<main>`.
+- Import: `@/Components/Ui/PageHeader.vue`.
+- `<Head title="…" />` trước hoặc ngay trong `AppLayout`; tiêu đề tab ngắn, khớp nội dung header.
+
+## 2. Props chuẩn
+
+| Prop | Quy tắc |
+|------|---------|
+| `title` | Tiếng Việt, ~1 dòng, `truncate` (component xử lý) |
+| `subtitle` | Mô tả ngắn; có thể bỏ nếu trang quá đơn giản |
+| `icon` | **Bắt buộc** trang có mục sidebar — lấy `icon` cùng mục trong `App\Support\Navigation.php` |
+| `icon-color` | Mặc định `brand`; chỉ đổi khi có semantic (vd. `emerald` tạo mới) |
+| `badge` | Số KPI tùy chọn (`null` khi không có) |
+| `back-href` | **Chỉ** trang con / wizard / chi tiết thoát khỏi ngữ cảnh cha — **không** dùng cho mục nav cấp 1 |
+
+## 3. Actions (slot mặc định)
+
+- Nút primary: `btn-primary` · `h-9` · `gap-1.5` · `px-3` · `text-xs` hoặc `text-sm`.
+- Nút phụ: `btn-ghost` cùng chiều cao.
+- `AppIcon` trong nút `:size="15"`–`16`.
+- Quyền: `v-if` theo `can.*` từ props; không hiện nút vô hiệu.
+
+## 4. Layout đặc biệt
+
+- Full-height (tab dự án, lịch): `AppLayout :flush="true"` khi cần; header vẫn qua `#header`.
+- Không tự chèn `<a>` back lặp class `PageHeader` — dùng prop `back-href` hoặc bỏ hẳn.
+
+## 5. Anti-patterns (cấm)
+
+- `PageHeader` trong body → topbar mặc định «Bảng điều khiển» + tiêu đề trùng.
+- `back-href` về hub module (vd. `/coaching`, `/ai-accounts`) khi trang đã có trong sidebar.
+- Header không `icon` trong khi nav có icon.
+- Tiêu đề/action tiếng Anh user-facing.
+
+## 6. Checklist PR (content header)
+
+- [ ] `#header` + một `PageHeader`
+- [ ] Icon khớp `Navigation.php` (nếu có menu)
+- [ ] `back-href` chỉ khi drill-down
+- [ ] Actions `h-9`, quyền đúng

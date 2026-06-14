@@ -81,13 +81,35 @@ class AiExecutiveAnalyticsBuilder
         $yearStart = $now->copy()->startOfYear();
         $yearPaid = $this->sumPaidBetween($yearStart, $now);
         $monthPaid = $this->sumPaidBetween($now->copy()->startOfMonth(), $now);
+        $lastMonthStart = $now->copy()->subMonth()->startOfMonth();
+        $lastMonthEnd = $now->copy()->subMonth()->endOfMonth();
+        $lastMonthPaid = $this->sumPaidBetween($lastMonthStart, $lastMonthEnd);
+
+        $costCurrentMonth = $monthPaid > 0 ? $monthPaid : $totalMonthly;
+        $costCurrentYear = $yearPaid > 0 ? $yearPaid : $totalMonthly * max(1, $now->month);
+        $costForecastYearEnd = $yearPaid > 0 && $now->dayOfYear > 0
+            ? (int) round(($yearPaid / $now->dayOfYear) * $now->daysInYear)
+            : $totalMonthly * 12;
+
+        $monthlyRunRateChangePercent = null;
+        $runRateCompareBase = $lastMonthPaid > 0 ? $lastMonthPaid : null;
+        $runRateCompareCurrent = $runRateCompareBase !== null
+            ? ($monthPaid > 0 ? $monthPaid : $totalMonthly)
+            : null;
+        if ($runRateCompareBase !== null && $runRateCompareBase > 0 && $runRateCompareCurrent !== null) {
+            $monthlyRunRateChangePercent = round(
+                (($runRateCompareCurrent - $runRateCompareBase) / $runRateCompareBase) * 100,
+                1,
+            );
+        }
 
         $kpis = [
             'accounts_in_use' => $accounts->where('status', AiAccountStatus::Active)->count(),
             'accounts_expiring_soon' => (int) ($metrics['accounts_expiring_soon_count'] ?? 0),
             'accounts_expired' => (int) ($metrics['accounts_expired_count'] ?? 0),
-            'cost_current_month' => $monthPaid > 0 ? $monthPaid : $totalMonthly,
-            'cost_current_year' => $yearPaid > 0 ? $yearPaid : $totalMonthly * max(1, $now->month),
+            'cost_current_month' => $costCurrentMonth,
+            'cost_current_year' => $costCurrentYear,
+            'cost_forecast_year_end' => $costForecastYearEnd,
             'avg_cost_per_user' => $avgCostPerUser,
             'avg_cost_per_department' => $avgCostPerDept,
             'accounts_by_type' => $accountsByType,
@@ -96,6 +118,7 @@ class AiExecutiveAnalyticsBuilder
             'budget_paid_total' => $budgetPaid,
             'budget_used_total' => $budgetUsed,
             'monthly_run_rate' => $totalMonthly,
+            'monthly_run_rate_change_percent' => $monthlyRunRateChangePercent,
         ];
 
         return [

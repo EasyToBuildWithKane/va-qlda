@@ -8,13 +8,18 @@ import Badge from '@/shared/ui/Badge.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
 import FeedbackFormModal from '@/modules/project/components/FeedbackFormModal.vue';
 import FeedbackSummaryBar from '@/modules/project/components/FeedbackSummaryBar.vue';
+import FeedbackListRowActions from '@/modules/project/components/FeedbackListRowActions.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import DatagridToolbarActionButton from '@/shared/ui/DatagridToolbarActionButton.vue';
 import DatagridFilterField from '@/shared/ui/DatagridFilterField.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
+import ColumnVisibilityDropdown from '@/shared/ui/ColumnVisibilityDropdown.vue';
+import FilterDatePicker from '@/shared/ui/FilterDatePicker.vue';
 import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
+import { useVisibleColumns } from '@/shared/composables/useVisibleColumns';
 import { useDialog } from '@/composables/useDialog';
+import { date, datetime } from '@/composables/useFormat';
 
 const PER_PAGE_OPTIONS = [10, 15, 20, 30];
 
@@ -29,16 +34,38 @@ const props = defineProps({
 const dialog = useDialog();
 const modal = ref(false);
 const filterPanelDdRef = ref(null);
+const colDdRef = ref(null);
 const perPage = ref(Number(props.filters.per_page) || props.feedback.meta?.per_page || 20);
 
 const FEEDBACK_FILTER_CONTROLS = [
     { key: 'status', label: 'Trạng thái', default: false },
     { key: 'category', label: 'Phân loại', default: false },
     { key: 'project', label: 'Dự án', default: false },
+    { key: 'priority', label: 'Ưu tiên', default: false },
+    { key: 'assignee', label: 'Người xử lý', default: false },
+    { key: 'rating', label: 'Đánh giá', default: false },
     { key: 'mine', label: 'Tôi xử lý', default: false },
+    { key: 'date_range', label: 'Thời gian', default: false },
+];
+
+const FEEDBACK_TABLE_COLUMNS = [
+    { key: 'code', label: 'Mã' },
+    { key: 'title', label: 'Tiêu đề' },
+    { key: 'project', label: 'Dự án', default: false },
+    { key: 'category', label: 'Phân loại' },
+    { key: 'priority', label: 'Ưu tiên', default: false },
+    { key: 'rating', label: 'Đánh giá', default: false },
+    { key: 'reporter', label: 'Người gửi' },
+    { key: 'status', label: 'Trạng thái' },
+    { key: 'assignee', label: 'Người xử lý' },
+    { key: 'comments_count', label: 'Bình luận', default: false },
+    { key: 'created_at', label: 'Ngày tạo', default: false },
+    { key: 'updated_at', label: 'Cập nhật', default: false },
+    { key: 'resolved_at', label: 'Ngày xử lý xong', default: false },
 ];
 
 const FILTER_CONTROL_CLASS = 'input h-10 w-full text-sm';
+const RATING_FILTER_OPTIONS = [1, 2, 3, 4, 5];
 
 const {
     visibleFilters,
@@ -48,12 +75,24 @@ const {
     persistVisibleFilters,
     openFilterPanel,
     FILTER_CONTROLS,
-} = useVisibleFilterControls(FEEDBACK_FILTER_CONTROLS, 'va-qlda.feedback.visible-filters.v2');
+} = useVisibleFilterControls(FEEDBACK_FILTER_CONTROLS, 'va-qlda.feedback.visible-filters.v3');
+
+const {
+    visibleCols,
+    showColDd,
+    persistVisibleColumns,
+    openColPanel,
+    isColVisible,
+    TABLE_COLUMNS,
+} = useVisibleColumns(FEEDBACK_TABLE_COLUMNS, 'va-qlda.feedback.columns.v1');
 
 function onToolbarClickOutside(e) {
     if (e.target.closest?.('[data-filter-visibility-panel]')) return;
     if (filterPanelDdRef.value && !filterPanelDdRef.value.contains(e.target)) {
         showFilterPanelDd.value = false;
+    }
+    if (colDdRef.value && !colDdRef.value.contains(e.target)) {
+        showColDd.value = false;
     }
 }
 onMounted(() => document.addEventListener('mousedown', onToolbarClickOutside));
@@ -63,14 +102,33 @@ const filterForm = reactive({
     status: props.filters.status ?? '',
     category: props.filters.category ?? '',
     project_id: props.filters.project_id ?? '',
+    priority: props.filters.priority ?? '',
+    assignee_id: props.filters.assignee_id ?? '',
+    rating: props.filters.rating ?? '',
     mine: props.filters.mine ? '1' : '',
     scope: props.filters.scope ?? '',
     q: props.filters.q ?? '',
+    created_from: props.filters.created_from ?? '',
+    created_to: props.filters.created_to ?? '',
 });
 
 const appliedFilterCount = computed(() =>
-    [filterForm.status, filterForm.category, filterForm.project_id, filterForm.mine, filterForm.scope]
-        .filter((v) => v !== '' && v != null).length,
+    [
+        filterForm.status,
+        filterForm.category,
+        filterForm.project_id,
+        filterForm.priority,
+        filterForm.assignee_id,
+        filterForm.rating,
+        filterForm.mine,
+        filterForm.scope,
+        filterForm.created_from,
+        filterForm.created_to,
+    ].filter((v) => v !== '' && v != null).length,
+);
+
+const tableColspan = computed(() =>
+    TABLE_COLUMNS.filter((c) => isColVisible(c.key)).length + 1,
 );
 
 function feedbackRouteParams(resetPage = false) {
@@ -78,9 +136,14 @@ function feedbackRouteParams(resetPage = false) {
         status: filterForm.status || undefined,
         category: filterForm.category || undefined,
         project_id: filterForm.project_id || undefined,
+        priority: filterForm.priority || undefined,
+        assignee_id: filterForm.assignee_id || undefined,
+        rating: filterForm.rating || undefined,
         mine: filterForm.mine || undefined,
         scope: filterForm.scope || undefined,
         q: filterForm.q || undefined,
+        created_from: filterForm.created_from || undefined,
+        created_to: filterForm.created_to || undefined,
         per_page: perPage.value,
     };
     if (resetPage) params.page = 1;
@@ -98,7 +161,18 @@ watch(() => filterForm.q, () => {
 });
 
 watch(
-    () => [filterForm.status, filterForm.category, filterForm.project_id, filterForm.mine, filterForm.scope],
+    () => [
+        filterForm.status,
+        filterForm.category,
+        filterForm.project_id,
+        filterForm.priority,
+        filterForm.assignee_id,
+        filterForm.rating,
+        filterForm.mine,
+        filterForm.scope,
+        filterForm.created_from,
+        filterForm.created_to,
+    ],
     () => navigate(true),
 );
 
@@ -109,8 +183,13 @@ function clearFilters() {
     filterForm.status = '';
     filterForm.category = '';
     filterForm.project_id = '';
+    filterForm.priority = '';
+    filterForm.assignee_id = '';
+    filterForm.rating = '';
     filterForm.mine = '';
     filterForm.scope = '';
+    filterForm.created_from = '';
+    filterForm.created_to = '';
 }
 
 function onQuickFilter({ scope, status }) {
@@ -189,7 +268,7 @@ const remove = async (f) => {
                 icon="filter"
                 :active="showFilterPanelDd"
                 :title="`Hiển thị bộ lọc (${enabledFilterControlCount}/${FILTER_CONTROLS.length})`"
-                @click="openFilterPanel()"
+                @click="openFilterPanel(() => { showColDd = false; })"
               >
                 Lọc
               </DatagridToolbarActionButton>
@@ -199,6 +278,28 @@ const remove = async (f) => {
                 :anchor-ref="filterPanelDdRef"
                 :controls="FILTER_CONTROLS"
                 @persist="persistVisibleFilters"
+              />
+            </div>
+
+            <div
+              ref="colDdRef"
+              class="relative shrink-0"
+            >
+              <DatagridToolbarActionButton
+                icon="columns"
+                :active="showColDd"
+                title="Cột hiển thị"
+                @click="openColPanel(() => { showFilterPanelDd = false; })"
+              >
+                Cột
+              </DatagridToolbarActionButton>
+              <ColumnVisibilityDropdown
+                v-model="visibleCols"
+                :show="showColDd"
+                :columns="TABLE_COLUMNS"
+                :anchor-ref="colDdRef"
+                :fixed-labels="['Thao tác']"
+                @persist="persistVisibleColumns"
               />
             </div>
           </div>
@@ -267,6 +368,63 @@ const remove = async (f) => {
               </select>
             </DatagridFilterField>
 
+            <DatagridFilterField v-if="visibleFilters.priority">
+              <select
+                v-model="filterForm.priority"
+                :class="FILTER_CONTROL_CLASS"
+                aria-label="Ưu tiên"
+              >
+                <option value="">
+                  Ưu tiên
+                </option>
+                <option
+                  v-for="o in options.priority"
+                  :key="o.value"
+                  :value="o.value"
+                >
+                  {{ o.label }}
+                </option>
+              </select>
+            </DatagridFilterField>
+
+            <DatagridFilterField v-if="visibleFilters.assignee">
+              <select
+                v-model="filterForm.assignee_id"
+                :class="FILTER_CONTROL_CLASS"
+                aria-label="Người xử lý"
+              >
+                <option value="">
+                  Người xử lý
+                </option>
+                <option
+                  v-for="e in options.employees"
+                  :key="e.id"
+                  :value="e.id"
+                >
+                  {{ e.name }}
+                </option>
+              </select>
+            </DatagridFilterField>
+
+            <DatagridFilterField v-if="visibleFilters.rating">
+              <select
+                v-model="filterForm.rating"
+                :class="FILTER_CONTROL_CLASS"
+                aria-label="Đánh giá"
+              >
+                <option value="">
+                  Đánh giá
+                </option>
+                <option
+                  v-for="n in RATING_FILTER_OPTIONS"
+                  :key="n"
+                  :value="n"
+                >
+                  {{ n }} ★
+                </option>
+              </select>
+            </DatagridFilterField>
+
             <DatagridFilterField
               v-if="visibleFilters.mine"
               class="flex items-center"
@@ -284,8 +442,26 @@ const remove = async (f) => {
             </DatagridFilterField>
 
             <div
+              v-if="visibleFilters.date_range"
+              class="min-w-0 w-full sm:col-span-2 xl:col-span-2"
+            >
+              <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
+                <FilterDatePicker
+                  v-model="filterForm.created_from"
+                  placeholder="Từ ngày"
+                  :max-date="filterForm.created_to || null"
+                />
+                <FilterDatePicker
+                  v-model="filterForm.created_to"
+                  placeholder="Đến ngày"
+                  :min-date="filterForm.created_from || null"
+                />
+              </div>
+            </div>
+
+            <div
               v-if="appliedFilterCount || filterForm.q"
-              class="flex items-center sm:col-span-2 xl:col-span-2"
+              class="col-span-full flex justify-end"
             >
               <button
                 type="button"
@@ -300,29 +476,92 @@ const remove = async (f) => {
       </div>
 
       <div class="overflow-x-auto">
-        <table class="w-full text-sm">
+        <table class="w-full min-w-[720px] text-sm">
           <thead class="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
             <tr>
-              <th class="px-4 py-2.5 font-medium">
+              <th
+                v-if="isColVisible('code')"
+                class="px-4 py-2.5 font-medium"
+              >
                 Mã
               </th>
-              <th class="px-4 py-2.5 font-medium">
+              <th
+                v-if="isColVisible('title')"
+                class="px-4 py-2.5 font-medium"
+              >
                 Tiêu đề
               </th>
-              <th class="px-4 py-2.5 font-medium">
+              <th
+                v-if="isColVisible('project')"
+                class="px-4 py-2.5 font-medium"
+              >
+                Dự án
+              </th>
+              <th
+                v-if="isColVisible('category')"
+                class="px-4 py-2.5 font-medium"
+              >
                 Phân loại
               </th>
-              <th class="px-4 py-2.5 font-medium">
+              <th
+                v-if="isColVisible('priority')"
+                class="px-4 py-2.5 font-medium"
+              >
+                Ưu tiên
+              </th>
+              <th
+                v-if="isColVisible('rating')"
+                class="px-4 py-2.5 font-medium"
+              >
+                Đánh giá
+              </th>
+              <th
+                v-if="isColVisible('reporter')"
+                class="px-4 py-2.5 font-medium"
+              >
                 Người gửi
               </th>
-              <th class="px-4 py-2.5 font-medium">
+              <th
+                v-if="isColVisible('status')"
+                class="px-4 py-2.5 font-medium"
+              >
                 Trạng thái
               </th>
-              <th class="px-4 py-2.5 font-medium">
+              <th
+                v-if="isColVisible('assignee')"
+                class="px-4 py-2.5 font-medium"
+              >
                 Người xử lý
               </th>
-              <th class="px-4 py-2.5 font-medium text-right">
-                Thao tác
+              <th
+                v-if="isColVisible('comments_count')"
+                class="px-4 py-2.5 font-medium text-center"
+              >
+                BL
+              </th>
+              <th
+                v-if="isColVisible('created_at')"
+                class="px-4 py-2.5 font-medium"
+              >
+                Ngày tạo
+              </th>
+              <th
+                v-if="isColVisible('updated_at')"
+                class="px-4 py-2.5 font-medium"
+              >
+                Cập nhật
+              </th>
+              <th
+                v-if="isColVisible('resolved_at')"
+                class="px-4 py-2.5 font-medium"
+              >
+                Ngày xử lý xong
+              </th>
+              <th
+                class="w-11 px-2 py-2.5 text-right font-medium"
+                aria-label="Thao tác"
+              >
+                <span class="sr-only">Thao tác</span>
               </th>
             </tr>
           </thead>
@@ -332,10 +571,16 @@ const remove = async (f) => {
               :key="f.id"
               class="transition-colors hover:bg-slate-50/80"
             >
-              <td class="px-4 py-2.5 font-mono text-xs text-slate-500">
+              <td
+                v-if="isColVisible('code')"
+                class="whitespace-nowrap px-4 py-2.5 font-mono text-xs text-slate-500"
+              >
                 {{ f.code }}
               </td>
-              <td class="px-4 py-2.5">
+              <td
+                v-if="isColVisible('title')"
+                class="max-w-xs px-4 py-2.5"
+              >
                 <Link
                   :href="`/feedback/${f.id}`"
                   class="font-medium text-slate-700 hover:text-brand"
@@ -343,28 +588,76 @@ const remove = async (f) => {
                   {{ f.title }}
                 </Link>
                 <p
-                  v-if="f.project?.name"
+                  v-if="f.project?.name && !isColVisible('project')"
                   class="mt-0.5 text-[11px] text-slate-400"
                 >
                   {{ f.project.name }}
                 </p>
               </td>
-              <td class="px-4 py-2.5">
+              <td
+                v-if="isColVisible('project')"
+                class="px-4 py-2.5 text-slate-600"
+              >
+                <Link
+                  v-if="f.project"
+                  :href="`/projects/${f.project.id}?tab=feedback`"
+                  class="text-sm hover:text-brand"
+                >
+                  {{ f.project.name }}
+                </Link>
+                <span
+                  v-else
+                  class="text-slate-400"
+                >—</span>
+              </td>
+              <td
+                v-if="isColVisible('category')"
+                class="px-4 py-2.5"
+              >
                 <Badge
                   :label="f.category.label"
                   :color="f.category.color"
                 />
               </td>
-              <td class="px-4 py-2.5 text-slate-500">
+              <td
+                v-if="isColVisible('priority')"
+                class="px-4 py-2.5"
+              >
+                <Badge
+                  v-if="f.priority"
+                  :label="f.priority.label"
+                  :color="f.priority.color"
+                />
+                <span
+                  v-else
+                  class="text-slate-400"
+                >—</span>
+              </td>
+              <td
+                v-if="isColVisible('rating')"
+                class="px-4 py-2.5 text-amber-600"
+              >
+                {{ f.rating ? `${f.rating} ★` : '—' }}
+              </td>
+              <td
+                v-if="isColVisible('reporter')"
+                class="px-4 py-2.5 text-slate-500"
+              >
                 {{ f.reporter_display }}
               </td>
-              <td class="px-4 py-2.5">
+              <td
+                v-if="isColVisible('status')"
+                class="px-4 py-2.5"
+              >
                 <Badge
                   :label="f.status.label"
                   :color="f.status.color"
                 />
               </td>
-              <td class="px-4 py-2.5">
+              <td
+                v-if="isColVisible('assignee')"
+                class="px-4 py-2.5"
+              >
                 <div
                   v-if="f.assignee"
                   class="flex items-center gap-1.5"
@@ -381,36 +674,40 @@ const remove = async (f) => {
                   class="text-slate-400"
                 >—</span>
               </td>
-              <td class="px-4 py-2.5">
-                <div class="flex items-center justify-end gap-1">
-                  <Link
-                    :href="`/feedback/${f.id}`"
-                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-brand"
-                    title="Chi tiết"
-                  >
-                    <AppIcon
-                      name="eye"
-                      :size="16"
-                    />
-                  </Link>
-                  <button
-                    v-if="f.can?.delete"
-                    type="button"
-                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
-                    title="Xoá phản hồi"
-                    @click="remove(f)"
-                  >
-                    <AppIcon
-                      name="delete"
-                      :size="16"
-                    />
-                  </button>
-                </div>
+              <td
+                v-if="isColVisible('comments_count')"
+                class="px-4 py-2.5 text-center tabular-nums text-slate-600"
+              >
+                {{ f.comments_count ?? 0 }}
+              </td>
+              <td
+                v-if="isColVisible('created_at')"
+                class="whitespace-nowrap px-4 py-2.5 text-xs text-slate-600"
+              >
+                {{ f.created_at ? date(f.created_at) : '—' }}
+              </td>
+              <td
+                v-if="isColVisible('updated_at')"
+                class="whitespace-nowrap px-4 py-2.5 text-xs text-slate-600"
+              >
+                {{ f.updated_at ? datetime(f.updated_at) : '—' }}
+              </td>
+              <td
+                v-if="isColVisible('resolved_at')"
+                class="whitespace-nowrap px-4 py-2.5 text-xs text-slate-600"
+              >
+                {{ f.resolved_at ? datetime(f.resolved_at) : '—' }}
+              </td>
+              <td class="px-2 py-2.5 text-right">
+                <FeedbackListRowActions
+                  :feedback="f"
+                  @remove="remove"
+                />
               </td>
             </tr>
             <tr v-if="!feedback.data.length">
               <td
-                colspan="7"
+                :colspan="Math.max(tableColspan, 2)"
                 class="px-4 py-12 text-center text-slate-400"
               >
                 Không có phản hồi phù hợp bộ lọc.
@@ -422,7 +719,7 @@ const remove = async (f) => {
             :meta="feedback.meta"
             :per-page="perPage"
             :per-page-options="PER_PAGE_OPTIONS"
-            :colspan="7"
+            :colspan="tableColspan"
             @update:per-page="perPage = $event"
           />
         </table>

@@ -21,6 +21,7 @@ import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterC
 import { useVisibleColumns } from '@/shared/composables/useVisibleColumns';
 import { date, datetime } from '@/composables/useFormat';
 import { useDialog } from '@/composables/useDialog';
+import BlockerSummaryBar from '@/modules/project/components/BlockerSummaryBar.vue';
 import { useCommentThreadPoll } from '@/composables/useCommentThreadPoll';
 
 const PER_PAGE_OPTIONS = [5, 10, 15, 20];
@@ -455,6 +456,11 @@ function toggleAllGroups() {
     if (allGroupsExpanded.value) collapseAllGroups();
     else expandAllGroups();
 }
+function onBlockerQuickFilter(payload) {
+    filterForm.status = payload.status ?? '';
+    filterForm.severity = payload.severity ?? '';
+    filterForm.recheck_pending = payload.recheck_pending ?? '';
+}
 
 </script>
 
@@ -484,40 +490,11 @@ function toggleAllGroups() {
       </PageHeader>
     </template>
 
-    <div class="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-      <div class="card p-4">
-        <p class="text-xs text-slate-500">
-          Đang mở
-        </p>
-        <p class="mt-1 font-display text-2xl font-bold text-amber-600">
-          {{ summary.open ?? 0 }}
-        </p>
-      </div>
-      <div class="card p-4">
-        <p class="text-xs text-slate-500">
-          Nghiêm trọng
-        </p>
-        <p class="mt-1 font-display text-2xl font-bold text-rose-600">
-          {{ summary.critical ?? 0 }}
-        </p>
-      </div>
-      <div class="card p-4">
-        <p class="text-xs text-slate-500">
-          Đã giải quyết
-        </p>
-        <p class="mt-1 font-display text-2xl font-bold text-emerald-600">
-          {{ summary.resolved ?? 0 }}
-        </p>
-      </div>
-      <div class="card p-4">
-        <p class="text-xs text-slate-500">
-          Chờ kiểm tra
-        </p>
-        <p class="mt-1 font-display text-2xl font-bold text-amber-600">
-          {{ summary.recheck_pending ?? 0 }}
-        </p>
-      </div>
-    </div>
+    <BlockerSummaryBar
+      :summary="summary"
+      :filters="filterForm"
+      @quick-filter="onBlockerQuickFilter"
+    />
 
     <div class="card overflow-visible">
       <div class="border-b border-slate-100 px-5 py-4 dark:border-slate-700">

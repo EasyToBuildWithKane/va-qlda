@@ -1,6 +1,8 @@
 # FRONTEND STRUCTURE — VA QLDA
 
-> **Cập nhật 2026-06-14** — thêm `modules/coaching/` (Sessions Index datagrid, lịch).
+> **Cập nhật 2026-06-15** — content header (`PageHeader` + `#header`); coaching sessions datagrid.
+
+> Rule agent: `.cursor/rules/content-header.mdc` · skill `content-header`.
 
 ---
 
@@ -64,7 +66,7 @@ resources/js/
 │       ├── composables/          ← useCoachingCalendar.js
 │       └── config/               ← coachingFormHints.js
 ├── shared/                   ← Cross-module (Phase 2 + 4)
-│   ├── ui/                   ← Badge, Avatar, ProgressBar, form/*, EmptyState, …
+│   ├── ui/                   ← Badge, Avatar, ProgressBar, form/*, **KpiSummaryStrip**, …
 │   └── composables/          ← useToast, usePermission, useFilter
 ├── composables/              ← Feature composables (useSprint*, useProject*, useRisk*, …)
 ├── stores/                   ← Pinia (Phase 3)
@@ -103,9 +105,9 @@ AppLayout.vue
 | Dashboard | `Pages/Dashboard/Index.vue` |
 | DailyReport | `Today`, `History`, `Show`, `Review` |
 | Project | `Index`, `Create`, `Edit`, `Show` |
-| Blocker / Feedback | `Index`, `Show` (Feedback) |
+| Blocker / Feedback | `Index`, `Show` (Feedback) — Index: **`FeedbackSummaryBar`** (dải KPI `kpi-strip` / `kpi-card`, lọc nhanh scope/status; rule `kpi-summary-strip`) + datagrid toolbar (Lọc/Cột), `FilterDatePicker` khoảng ngày, `FeedbackListRowActions` |
 | Department | `Pages/Department/Index.vue` |
-| Org team | `Pages/OrgTeam/Index.vue` — nhiều **Ban/Khối** (cây gốc độc lập); UI tab chọn team, modal `OrgTeamFormModal` (`forceRoot`) |
+| Org team | `Pages/OrgTeam/Index.vue` — **Tổng quan** (KPI + `OrgTeamRootCard` grid, tìm kiếm khi >3 root), **Sơ đồ** / **Chỉnh sửa**; sidebar `OrgTeamRootSidebar` khi ≥2 Ban/Khối; composable `useOrgTeamTreeStats.js`; modal `OrgTeamFormModal` (`forceRoot`) · **`Pages/OrgTeam/Members.vue`** — danh sách tổng nhân sự trong sơ đồ (`GET /org-teams/members`, `OrgTeamRosterBuilder`) |
 | Notifications | `Pages/Notifications/Management.vue` |
 
 Pages import feature components từ `@/modules/project/components/...` và primitives từ `@/shared/ui/...`.
@@ -117,6 +119,8 @@ Pages import feature components từ `@/modules/project/components/...` và prim
 ### 6.1 UI Primitives — `Components/Ui/`
 
 `Modal.vue`, `Drawer.vue`, `AppDialog.vue`, `ToastContainer.vue`, `PageHeader.vue`
+
+**Content header (2026-06):** Mỗi Inertia page đặt **một** `PageHeader` trong `AppLayout` slot `#header` (topbar `h-14`). Props: `title`, `subtitle`, `icon` (khớp `App\Support\Navigation.php`), `icon-color` (thường `brand`), `badge` tùy chọn. Prop `back-href` chỉ trang drill-down (Create/Edit/Show con) — không dùng cho mục sidebar cấp 1 (vd. dashboard AI, lịch coaching). Actions trong default slot: `btn-primary` / `btn-ghost`, `h-9`. Mẫu: `Pages/AiAccount/Index.vue`, `Pages/AiAccount/Dashboard.vue`, `Pages/Coaching/Sessions/Schedule.vue`.
 
 ### 6.1b App shell — `Components/Layout/`
 
@@ -156,7 +160,8 @@ Trang lịch sử (`Pages/DailyReport/History.vue`) — dashboard SaaS:
 
 | Component | Vai trò |
 |---|---|
-| `ReportDashboard.vue` | Dải KPI (tổng/đã duyệt/chờ/nháp/trễ) + **pill xu hướng** ±% so với kỳ trước |
+| `DailyReportSummaryBar.vue` | Dải KPI `kpi-strip` (tổng/đã duyệt/chờ/nháp/trễ) + trend pill — thay `ReportDashboard` trên History |
+| `ReportDashboard.vue` | *(legacy)* — không còn gắn page; giữ tham chiếu trend pill nếu cần |
 | `ReportCard.vue` | Thẻ báo cáo: header (avatar, chức vụ, thời gian, điểm), dự án + task (badge trạng thái), các mục HORENSO thu gọn (`.rich-content`) |
 
 Bộ lọc: shared datagrid (`DatagridToolbarSearch` `hide-label`, `FilterDatePicker` + key `date_range`, grid `xl:grid-cols-6`, `SearchMultiSelect` `control-size="md"`). Nhóm **Ngày / Tuần / Tháng** + **Thẻ / Bảng** (`DatagridSegmentedControl`). Toolbar **không sticky**; lọc hiển thị opt-in (`default: false`, `useVisibleFilterControls`); trạng thái lọc trên URL. Xuất Excel 7 sheet — `useDailyReportHistoryExport`.

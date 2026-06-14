@@ -5,11 +5,14 @@ namespace App\Http\Controllers\OrgTeam;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\OrgTeam\StoreOrgTeamRequest;
 use App\Http\Requests\OrgTeam\UpdateOrgTeamRequest;
+use App\Http\Resources\OrgTeamRosterEntryResource;
 use App\Models\OrgTeam;
 use App\Support\Options;
+use App\Support\OrgTeam\OrgTeamRosterBuilder;
 use App\Support\OrgTeamTreeBuilder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -39,6 +42,49 @@ class OrgTeamController extends Controller
             'can' => [
                 'create' => $request->user()->can('create', OrgTeam::class),
             ],
+        ]);
+    }
+
+    public function members(Request $request): Response
+    {
+        $this->authorize('viewAny', OrgTeam::class);
+
+        $allRows = OrgTeamRosterBuilder::allRows();
+        $filtered = OrgTeamRosterBuilder::filtered($request);
+
+        $perPage = $request->integer('per_page', 24);
+        if (! in_array($perPage, [24, 48, 96], true)) {
+            $perPage = 24;
+        }
+
+        $page = max(1, $request->integer('page', 1));
+        $items = $filtered->slice(($page - 1) * $perPage, $perPage)->values();
+
+        $paginator = new LengthAwarePaginator(
+            $items,
+            $filtered->count(),
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()],
+        );
+
+        $flatTeams = OrgTeam::query()
+            ->orderBy('level')
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'name', 'level', 'parent_id']);
+
+        return Inertia::render('OrgTeam/Members', [
+            'roster' => OrgTeamRosterEntryResource::collection($paginator),
+            'filters' => (object) $request->only(['q', 'root_id', 'team_id', 'branch', 'status', 'per_page']),
+            'summary' => OrgTeamRosterBuilder::summary($allRows),
+            'filteredCount' => $filtered->count(),
+            'rootOptions' => OrgTeam::query()->whereNull('parent_id')->orderBy('name')->get(['id', 'name']),
+            'teamOptions' => $flatTeams->map(fn (OrgTeam $t) => [
+                'id' => $t->id,
+                'label' => str_repeat('— ', max(0, $t->level - 1)).$t->name,
+            ])->values(),
+            'branchOptions' => OrgTeamRosterBuilder::branchOptions(),
         ]);
     }
 

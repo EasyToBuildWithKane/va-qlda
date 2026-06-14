@@ -20,6 +20,7 @@ import {
 import { Line, Bar } from 'vue-chartjs';
 import { exportCoachingMonthlyWorkbook } from '@/composables/useCoachingExport';
 import { currency, hours as fmtHours } from '@/composables/useFormat';
+import CoachingDashboardSummaryBar from '@/modules/coaching/components/CoachingDashboardSummaryBar.vue';
 import { useToast } from '@/shared/composables/useToast';
 
 ChartJS.register(
@@ -207,41 +208,6 @@ function exportExcel() {
     toast.success('Đã xuất file Excel báo cáo coaching (nhiều sheet theo ngày/tuần/tháng).');
 }
 
-const kpiCards = computed(() => [
-    {
-        key: 'students',
-        label: 'Học viên',
-        value: props.summary.students_distinct ?? 0,
-        sub: 'Theo khóa (tên hoặc nhân sự)',
-        icon: 'people',
-        tone: 'emerald',
-    },
-    {
-        key: 'active',
-        label: 'Khóa đang diễn ra',
-        value: props.summary.courses_active,
-        sub: `/ ${props.summary.courses_total} tổng`,
-        icon: 'rocket',
-        tone: 'brand',
-    },
-    {
-        key: 'sessions',
-        label: 'Tổng buổi học',
-        value: props.summary.sessions_total,
-        sub: `${props.monthly.sessions_completed} hoàn thành tháng này`,
-        icon: 'calendar',
-        tone: 'sky',
-    },
-    {
-        key: 'hours',
-        label: 'Tổng giờ đào tạo',
-        value: fmtHours(props.summary.hours_total),
-        sub: `${fmtHours(props.monthly.hours_total)} trong tháng`,
-        icon: 'clock',
-        tone: 'violet',
-        isText: true,
-    },
-]);
 
 const monthlyStats = computed(() => [
     {
@@ -340,40 +306,10 @@ const monthLabel = computed(() => {
 
     <CoachingWorkspace>
       <div class="space-y-6 pb-10">
-        <!-- KPI -->
-        <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <div
-            v-for="card in kpiCards"
-            :key="card.key"
-            class="rounded-xl border border-slate-200/70 bg-gradient-to-br from-white to-slate-50/80 p-4"
-          >
-            <div class="flex items-start justify-between gap-3">
-              <div class="min-w-0">
-                <p class="text-[11px] font-medium tracking-wide text-slate-500">
-                  {{ card.label }}
-                </p>
-                <p
-                  class="mt-1.5 font-display text-2xl font-semibold tabular-nums text-slate-800"
-                  :class="card.tone === 'brand' ? 'text-brand' : ''"
-                >
-                  {{ card.value }}
-                </p>
-                <p class="mt-1 text-xs text-slate-400">
-                  {{ card.sub }}
-                </p>
-              </div>
-              <span
-                class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
-                :class="toneClass[card.tone]"
-              >
-                <AppIcon
-                  :name="card.icon"
-                  :size="18"
-                />
-              </span>
-            </div>
-          </div>
-        </div>
+        <CoachingDashboardSummaryBar
+          :summary="summary"
+          :monthly="monthly"
+        />
 
         <!-- Tháng hiện tại -->
         <section class="overflow-hidden rounded-xl border border-brand/15 bg-gradient-to-r from-brand/[0.06] via-white to-white">

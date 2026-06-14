@@ -18,20 +18,9 @@ const roster = useOrgTeamRoster(() => ({
     sections: props.sections,
 }));
 
-const memberCards = computed(() => {
-    const cards = [];
-    for (const group of roster.value.sectionGroups) {
-        for (const person of group.people) {
-            cards.push({
-                ...person,
-                displayRole: group.title || person.role,
-                sectionLabel: group.title,
-            });
-        }
-    }
-
-    return cards;
-});
+const hasMultipleSections = computed(
+    () => roster.value.sectionGroups.filter((g) => g.people.length).length > 1,
+);
 
 function withTeamContext(person) {
     return {
@@ -48,7 +37,7 @@ function onSelect(person) {
 
 <template>
   <div
-    v-if="roster.leader || memberCards.length"
+    v-if="roster.leader || roster.sectionGroups.length"
     class="org-tree__people"
   >
     <div
@@ -65,28 +54,41 @@ function onSelect(person) {
     </div>
 
     <div
-      v-if="memberCards.length"
+      v-if="roster.sectionGroups.length"
       class="org-tree__members-section"
+      :class="{ 'org-tree__members-section--columns': hasMultipleSections }"
     >
-      <ul
-        class="org-tree__members-row"
-        :class="{ 'org-tree__members-row--multi': memberCards.length > 1 }"
+      <div
+        v-for="group in roster.sectionGroups"
+        :key="group.key"
+        class="org-tree__section-column"
       >
-        <li
-          v-for="person in memberCards"
-          :key="person.key"
-          class="org-tree__members-item"
+        <p
+          v-if="group.title"
+          class="org-tree__section-title"
         >
-          <OrgTeamPersonNode
-            :name="person.name"
-            :avatar="person.avatar"
-            :role="person.displayRole || person.roleTitle"
-            :section-label="person.sectionLabel"
-            :is-leader="false"
-            @select="onSelect(person)"
-          />
-        </li>
-      </ul>
+          {{ group.title }}
+        </p>
+        <ul
+          class="org-tree__members-row"
+          :class="{ 'org-tree__members-row--multi': group.people.length > 1 }"
+        >
+          <li
+            v-for="person in group.people"
+            :key="person.key"
+            class="org-tree__members-item"
+          >
+            <OrgTeamPersonNode
+              :name="person.name"
+              :avatar="person.avatar"
+              :role="person.displayRole || person.roleTitle || person.branchLabel"
+              :section-label="group.title ? null : person.sectionTitle"
+              :is-leader="false"
+              @select="onSelect(person)"
+            />
+          </li>
+        </ul>
+      </div>
     </div>
   </div>
 </template>

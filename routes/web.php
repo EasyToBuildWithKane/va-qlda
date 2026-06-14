@@ -280,6 +280,7 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictCoachingOnlyUsers::class
 
     Route::prefix('org-teams')->name('org-teams.')->group(function () {
         Route::get('/', [OrgTeamController::class, 'index'])->name('index');
+        Route::get('/members', [OrgTeamController::class, 'members'])->name('members');
         Route::post('/', [OrgTeamController::class, 'store'])->name('store');
         Route::put('/{orgTeam}', [OrgTeamController::class, 'update'])->name('update');
         Route::delete('/{orgTeam}', [OrgTeamController::class, 'destroy'])->name('destroy');

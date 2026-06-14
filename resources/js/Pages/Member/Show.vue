@@ -4,35 +4,37 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import ProfileView from '@/modules/profile/components/ProfileView.vue';
 
-defineProps({
+const props = defineProps({
     profile: { type: Object, required: true },
     editable: { type: Boolean, default: false },
     canViewPerformance: { type: Boolean, default: false },
+    canViewSuccession: { type: Boolean, default: false },
     stats: { type: Object, default: null },
     projectExperience: { type: Array, default: null },
     activity: { type: Array, default: null },
+    talentScore: { type: Object, default: null },
+    skillGap: { type: Object, default: null },
+    careerRoadmap: { type: Array, default: () => [] },
+    kpis: { type: Array, default: null },
+    certifications: { type: Array, default: () => [] },
+    learning: { type: Array, default: () => [] },
+    feedback360: { type: Object, default: null },
+    succession: { type: Object, default: null },
 });
 </script>
 
 <template>
-  <Head :title="`Hồ sơ · ${profile.name}`" />
+  <Head :title="`Hồ sơ · ${props.profile.name}`" />
   <AppLayout>
     <template #header>
       <PageHeader
-        :title="profile.name"
-        :subtitle="profile.role_title || 'Hồ sơ thành viên'"
+        :title="props.profile.name"
+        :subtitle="props.profile.role_title || 'Hồ sơ thành viên'"
         icon="member-profiles"
         back-href="/members"
       />
     </template>
 
-    <ProfileView
-      :profile="profile"
-      :editable="editable"
-      :can-view-performance="canViewPerformance"
-      :stats="stats"
-      :project-experience="projectExperience"
-      :activity="activity"
-    />
+    <ProfileView v-bind="props" />
   </AppLayout>
 </template>

@@ -368,6 +368,8 @@ function rowStableId(row) {
       <PageHeader
         title="Báo cáo phân tích chuyên sâu"
         subtitle="Bảng dữ liệu tài khoản AI — lọc, nhóm, xuất Excel báo cáo quản trị"
+        icon="performance"
+        icon-color="brand"
       />
     </template>
 

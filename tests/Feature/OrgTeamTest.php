@@ -107,4 +107,24 @@ class OrgTeamTest extends TestCase
                 ->where('trees.0.name', 'Khối PM')
                 ->where('trees.1.name', 'Khối Vận hành'));
     }
+
+    public function test_authenticated_user_can_view_org_team_roster(): void
+    {
+        $admin = $this->admin();
+        $leader = Employee::factory()->create(['full_name' => 'Trưởng A']);
+        $member = Employee::factory()->create(['full_name' => 'Thành viên B']);
+
+        $root = OrgTeam::create(['name' => 'Khối Dev', 'level' => 1, 'leader_id' => $leader->id]);
+        OrgTeam::create(['name' => 'Tổ 1', 'level' => 2, 'parent_id' => $root->id]);
+        $child = OrgTeam::query()->where('name', 'Tổ 1')->first();
+        $child->members()->create(['employee_id' => $member->id, 'sort_order' => 0]);
+
+        $this->actingAs($admin, 'system')
+            ->get(route('org-teams.members'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('OrgTeam/Members')
+                ->has('roster.data', 2)
+                ->where('summary.total', 2));
+    }
 }

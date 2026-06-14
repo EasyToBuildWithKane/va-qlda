@@ -3,7 +3,7 @@ import { computed, ref } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
-import AppIcon from '@/Components/AppIcon.vue';
+import NotificationOpsSummaryBar from '@/modules/notifications/components/NotificationOpsSummaryBar.vue';
 
 const props = defineProps({
     stats: { type: Object, required: true },
@@ -232,83 +232,7 @@ function isExpanded(group) {
     <!-- TAB: Tổng quan                                                -->
     <!-- ══════════════════════════════════════════════════════════════ -->
     <template v-if="activeTab === 'overview'">
-      <!-- KPI Cards -->
-      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-5">
-        <div class="card p-4">
-          <p class="text-[11px] uppercase tracking-wide text-slate-500 mb-1">
-            Tổng sự kiện
-          </p>
-          <p class="text-2xl font-display font-bold text-slate-800">
-            {{ stats.total.toLocaleString() }}
-          </p>
-        </div>
-
-        <div class="card p-4">
-          <p class="text-[11px] uppercase tracking-wide text-slate-500 mb-1">
-            Chưa đọc
-          </p>
-          <p class="text-2xl font-display font-bold text-brand">
-            {{ stats.unread.toLocaleString() }}
-          </p>
-        </div>
-
-        <div
-          class="card p-4 transition-colors"
-          :class="stats.critical > 0 ? 'border-rose-200 bg-rose-50/30' : ''"
-        >
-          <p
-            class="text-[11px] uppercase tracking-wide mb-1"
-            :class="stats.critical > 0 ? 'text-rose-600' : 'text-slate-500'"
-          >
-            Critical
-          </p>
-          <p
-            class="text-2xl font-display font-bold"
-            :class="stats.critical > 0 ? 'text-rose-700' : 'text-slate-800'"
-          >
-            {{ stats.critical }}
-          </p>
-        </div>
-
-        <div class="card p-4 border-amber-100 bg-amber-50/20">
-          <p class="text-[11px] uppercase tracking-wide text-amber-700 mb-1">
-            High
-          </p>
-          <p class="text-2xl font-display font-bold text-amber-800">
-            {{ stats.high }}
-          </p>
-        </div>
-
-        <div class="card p-4">
-          <p class="text-[11px] uppercase tracking-wide text-slate-500 mb-1">
-            Hôm nay
-          </p>
-          <p class="text-2xl font-display font-bold text-sky-700">
-            {{ stats.today }}
-          </p>
-        </div>
-
-        <div
-          class="card p-4 transition-colors"
-          :class="stats.unread_critical > 0 ? 'border-rose-200 bg-rose-50/40' : ''"
-        >
-          <p
-            class="text-[11px] uppercase tracking-wide mb-1"
-            :class="stats.unread_critical > 0 ? 'text-rose-600' : 'text-slate-500'"
-          >
-            Cần chú ý
-          </p>
-          <p
-            class="text-2xl font-display font-bold"
-            :class="stats.unread_critical > 0 ? 'text-rose-700' : 'text-slate-400'"
-          >
-            {{ stats.unread_critical }}
-          </p>
-          <p class="text-[10px] text-slate-400 mt-0.5">
-            Critical chưa đọc
-          </p>
-        </div>
-      </div>
+      <NotificationOpsSummaryBar :stats="stats" />
 
       <!-- Operational Health -->
       <div class="card p-5 mb-5">

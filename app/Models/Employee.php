@@ -84,6 +84,40 @@ class Employee extends Model
         return $this->hasMany(Worklog::class);
     }
 
+    // ── Talent module ────────────────────────────────────────────────────
+
+    /** Leveled skill matrix (richer than the quick `skills` JSON list). */
+    public function skillEntries(): HasMany
+    {
+        return $this->hasMany(EmployeeSkill::class)->orderByDesc('level')->orderBy('name');
+    }
+
+    public function certifications(): HasMany
+    {
+        return $this->hasMany(Certification::class)->orderByDesc('issued_at');
+    }
+
+    public function kpis(): HasMany
+    {
+        return $this->hasMany(PerformanceKpi::class);
+    }
+
+    public function learningItems(): HasMany
+    {
+        return $this->hasMany(LearningItem::class)->latest('updated_at');
+    }
+
+    /** 360° reviews where this person is the subject. */
+    public function reviewsReceived(): HasMany
+    {
+        return $this->hasMany(FeedbackReview::class)->latest();
+    }
+
+    public function successionPlan(): HasOne
+    {
+        return $this->hasOne(SuccessionPlan::class);
+    }
+
     /**
      * Uniform display name. The table stores `full_name`; expose it as `name`
      * so resources and the UI can rely on a single attribute everywhere.

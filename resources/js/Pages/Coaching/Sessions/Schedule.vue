@@ -19,10 +19,7 @@ import QuickSessionModal from '@/modules/coaching/components/QuickSessionModal.v
 import { useCoachingCalendar, statusMeta } from '@/modules/coaching/composables/useCoachingCalendar.js';
 
 const props = defineProps({
-    stats: { type: Object, default: () => ({ today: 0, week: 0, coaches: 0 }) },
-    coaches: { type: Array, default: () => [] },
     courses: { type: Array, default: () => [] },
-    statuses: { type: Array, default: () => [] },
     can: { type: Object, default: () => ({ manage: false }) },
 });
 
@@ -308,17 +305,6 @@ function onSearch(value) {
     searchTimer = setTimeout(() => api()?.refetchEvents(), 250);
 }
 
-function toggleStatus(value) {
-    calendar.toggleSetValue(calendar.filters.statuses, value);
-    api()?.refetchEvents();
-}
-function clearFilters() {
-    calendar.filters.coaches.clear();
-    calendar.filters.statuses.clear();
-    calendar.filters.query = '';
-    api()?.refetchEvents();
-}
-
 /* ── ICS export of the visible range ─────────────────────────────── */
 function icsTime(d) {
     return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`;
@@ -380,14 +366,6 @@ const showEmpty = computed(
     () => !calendar.loading.value && !calendar.error.value && renderedCount.value === 0,
 );
 
-const hasActiveFilters = computed(
-    () => calendar.filters.statuses.size > 0 || !!calendar.filters.query,
-);
-
-function statusFilterOn(value) {
-    const set = calendar.filters.statuses;
-    return set.size === 0 || set.has(value);
-}
 </script>
 
 <template>
@@ -398,7 +376,7 @@ function statusFilterOn(value) {
         title="Lịch Coaching"
         subtitle="Quản lý lịch các buổi coaching theo ngày / tuần / tháng"
         icon="calendar"
-        back-href="/coaching"
+        icon-color="brand"
       >
         <button
           type="button"
@@ -425,92 +403,6 @@ function statusFilterOn(value) {
         </button>
       </PageHeader>
     </template>
-
-    <!-- Thống kê + chú thích trạng thái (cùng hàng trên desktop) -->
-    <div class="mb-4 flex flex-col gap-3 xl:flex-row xl:items-end">
-      <div class="grid shrink-0 grid-cols-2 gap-3 sm:max-w-md xl:max-w-none">
-        <div class="card flex items-center gap-3 px-4 py-3">
-          <span class="grid h-9 w-9 place-items-center rounded-lg bg-brand/10 text-brand">
-            <AppIcon
-              name="report-today"
-              :size="18"
-            />
-          </span>
-          <div class="min-w-0">
-            <p class="text-lg font-semibold leading-none text-slate-800">
-              {{ stats.today }}
-            </p>
-            <p class="mt-0.5 text-xs text-slate-500">
-              Buổi hôm nay
-            </p>
-          </div>
-        </div>
-        <div class="card flex items-center gap-3 px-4 py-3">
-          <span class="grid h-9 w-9 place-items-center rounded-lg bg-sky-50 text-sky-600">
-            <AppIcon
-              name="calendar"
-              :size="18"
-            />
-          </span>
-          <div class="min-w-0">
-            <p class="text-lg font-semibold leading-none text-slate-800">
-              {{ stats.week }}
-            </p>
-            <p class="mt-0.5 text-xs text-slate-500">
-              Buổi trong tuần
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div class="flex min-w-0 flex-1 flex-col gap-2">
-        <div class="flex items-center justify-between gap-2">
-          <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">
-            Trạng thái
-          </p>
-          <button
-            v-if="hasActiveFilters"
-            type="button"
-            class="inline-flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-700"
-            @click="clearFilters"
-          >
-            <AppIcon
-              name="close"
-              :size="12"
-            />
-            Xóa bộ lọc
-          </button>
-        </div>
-        <div class="grid min-h-0 flex-1 grid-cols-2 gap-3 sm:grid-cols-4">
-          <button
-            v-for="s in statuses"
-            :key="s.value"
-            type="button"
-            class="card flex items-center gap-3 px-4 py-3 text-left transition"
-            :class="
-              statusFilterOn(s.value)
-                ? 'ring-2 ring-brand/25'
-                : 'opacity-55 hover:opacity-100'
-            "
-            :aria-pressed="statusFilterOn(s.value)"
-            @click="toggleStatus(s.value)"
-          >
-            <span
-              class="grid h-9 w-9 shrink-0 place-items-center rounded-lg"
-              :style="{ backgroundColor: statusMeta(s.value).tint }"
-            >
-              <span
-                class="h-3 w-3 rounded-full"
-                :style="{ backgroundColor: statusMeta(s.value).color }"
-              />
-            </span>
-            <p class="text-sm font-semibold leading-tight text-slate-800">
-              {{ s.label }}
-            </p>
-          </button>
-        </div>
-      </div>
-    </div>
 
     <div class="flex gap-4">
       <!-- Sidebar (desktop) -->

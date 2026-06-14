@@ -3,8 +3,9 @@
 namespace App\Http\Resources;
 
 use App\Http\Resources\Concerns\PresentsEntities;
+use App\Support\Enums\SystemRole;
 use App\Support\Profile\Seniority;
-use App\Support\Profile\SkillCatalog;
+use App\Support\Profile\TalentProfile;
 use App\Support\PublicMediaUrl;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -46,7 +47,7 @@ class EmployeeProfileResource extends JsonResource
             'location' => $meta['location'] ?? null,
             'seniority' => Seniority::for($e),
             'account_role' => ($e->relationLoaded('account') && $e->account)
-                ? $this->enum($e->account->role)
+                ? $this->systemAccountRole($e->account)
                 : null,
             'socials' => [
                 'github' => $socials['github'] ?? null,
@@ -54,7 +55,7 @@ class EmployeeProfileResource extends JsonResource
                 'portfolio' => $socials['portfolio'] ?? null,
                 'website' => $socials['website'] ?? null,
             ],
-            'skills' => SkillCatalog::build($e->skills, $meta['skill_details'] ?? null),
+            'skills' => TalentProfile::skillMatrix($e),
             'teams' => $this->teams(),
             'manager' => $this->manager(),
             'current_projects' => $this->currentProjects(),
@@ -80,7 +81,7 @@ class EmployeeProfileResource extends JsonResource
             ->map(fn ($m) => $m->team ? [
                 'id' => $m->team->id,
                 'name' => $m->team->name,
-                'section' => $m->section?->name,
+                'section' => $m->section?->title,
                 'is_leader' => $m->team->leader_id === $this->resource->id,
             ] : null)
             ->filter()
@@ -133,5 +134,22 @@ class EmployeeProfileResource extends JsonResource
             ])
             ->values()
             ->all();
+    }
+
+    /**
+     * Avoid 500 when legacy rows store an invalid system_accounts.role value.
+     *
+     * @return array{value:string, label:string, color:string|null}|null
+     */
+    private function systemAccountRole(\App\Models\SystemAccount $account): ?array
+    {
+        $raw = $account->getRawOriginal('role');
+        if (! is_string($raw) || $raw === '') {
+            return null;
+        }
+
+        $role = SystemRole::tryFrom($raw);
+
+        return $role ? $this->enum($role) : null;
     }
 }

@@ -222,6 +222,12 @@ class Navigation
                         'roles' => ['admin', 'lead'],
                     ],
                     [
+                        'label' => 'Thành viên phòng',
+                        'icon' => 'members',
+                        'href' => '/org-teams/members',
+                        'status' => 'live',
+                    ],
+                    [
                         'label' => 'Hồ sơ thành viên',
                         'icon' => 'member-profiles',
                         'href' => '/members',

@@ -31,7 +31,9 @@ class AiAnalyticsDashboardTest extends TestCase
                     'kpis' => [
                         'accounts_in_use',
                         'cost_current_month',
+                        'cost_forecast_year_end',
                         'usage_rate_percent',
+                        'monthly_run_rate_change_percent',
                     ],
                     'cost_over_time' => ['labels', 'datasets'],
                     'by_product',

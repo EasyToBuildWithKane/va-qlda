@@ -10,8 +10,8 @@ import {
 import { Doughnut, Bar, Line } from 'vue-chartjs';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
-import AppIcon from '@/Components/AppIcon.vue';
 import { useAiExecutiveDashboard } from '@/modules/aiAccount/composables/useAiExecutiveDashboard';
+import AiExecutiveSummaryStrip from '@/modules/aiAccount/components/AiExecutiveSummaryStrip.vue';
 import { formatVnd } from '@/modules/aiAccount/utils/formatVnd';
 
 ChartJS.register(
@@ -38,30 +38,6 @@ watch([granularity, comparePreviousYear], load);
 
 const kpis = computed(() => data.value?.kpis ?? {});
 const alerts = computed(() => data.value?.alerts ?? []);
-
-const kpiCards = computed(() => [
-    { label: 'TK đang sử dụng', value: kpis.value.accounts_in_use ?? 0, icon: 'account', tone: 'brand' },
-    { label: 'Sắp hết hạn (30 ngày)', value: kpis.value.accounts_expiring_soon ?? 0, icon: 'clock', tone: 'amber' },
-    { label: 'Đã hết hạn', value: kpis.value.accounts_expired ?? 0, icon: 'flag', tone: 'rose' },
-    { label: 'Chi phí tháng này', value: formatVnd(kpis.value.cost_current_month), icon: 'budget', tone: 'sky', isText: true },
-    { label: 'Chi phí năm nay', value: formatVnd(kpis.value.cost_current_year), icon: 'performance', tone: 'violet', isText: true },
-    { label: 'TB / người dùng', value: formatVnd(kpis.value.avg_cost_per_user), icon: 'people', tone: 'emerald', isText: true },
-    { label: 'Tỷ lệ sử dụng', value: `${kpis.value.usage_rate_percent ?? 0}%`, icon: 'timeline', tone: 'brand', isText: true },
-    { label: 'NS đã duyệt', value: formatVnd(kpis.value.budget_approved_total), icon: 'budget', tone: 'brand', isText: true },
-    { label: 'NS đã thanh toán', value: formatVnd(kpis.value.budget_paid_total), icon: 'budget', tone: 'emerald', isText: true },
-    { label: 'NS đã sử dụng', value: formatVnd(kpis.value.budget_used_total), icon: 'cost', tone: 'amber', isText: true },
-    { label: 'Vận hành / tháng (PĐX)', value: formatVnd(kpis.value.monthly_run_rate), icon: 'cost', tone: 'sky', isText: true },
-]);
-
-const toneClass = {
-    brand: 'text-brand bg-rose-50',
-    amber: 'text-amber-700 bg-amber-50',
-    rose: 'text-rose-600 bg-rose-50',
-    sky: 'text-sky-700 bg-sky-50',
-    violet: 'text-violet-700 bg-violet-50',
-    emerald: 'text-emerald-700 bg-emerald-50',
-    slate: 'text-slate-600 bg-slate-100',
-};
 
 const chartColors = ['#9A0036', '#185FA5', '#854F0B', '#534AB7', '#3B6D11', '#0ea5e9', '#f59e0b', '#64748b'];
 
@@ -164,14 +140,18 @@ const GRANULARITY_OPTS = [
 </script>
 
 <template>
+  <Head title="Dashboard AI & Chi phí" />
   <AppLayout>
-    <Head title="Dashboard AI & Chi phí" />
-    <div class="mx-auto max-w-[1600px] space-y-5 px-4 py-5 sm:px-6 lg:px-8">
+    <template #header>
       <PageHeader
         title="Dashboard quản trị AI"
         subtitle="Tổng quan chi phí, ngân sách và trạng thái tài khoản — dữ liệu từ PĐX & ĐNTT"
+        icon="overview"
+        icon-color="brand"
       />
+    </template>
 
+    <div class="mx-auto max-w-[1600px] space-y-5">
       <div
         v-if="error"
         class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800"
@@ -205,42 +185,12 @@ const GRANULARITY_OPTS = [
         </div>
       </div>
 
-      <div
-        v-if="loading && !data"
-        class="rounded-xl border border-slate-200 bg-white p-10 text-center text-sm text-slate-500"
-      >
-        Đang tải dashboard…
-      </div>
+      <AiExecutiveSummaryStrip
+        :kpis="kpis"
+        :loading="loading && !data"
+      />
 
-      <template v-else-if="data">
-        <div class="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          <div
-            v-for="card in kpiCards"
-            :key="card.label"
-            class="rounded-xl border border-slate-200/70 bg-gradient-to-br from-white to-slate-50/80 p-4"
-          >
-            <div class="flex items-start justify-between gap-3">
-              <div class="min-w-0">
-                <p class="text-[11px] tracking-wide text-slate-500">
-                  {{ card.label }}
-                </p>
-                <p class="mt-1.5 font-display text-lg text-slate-800 tabular-nums">
-                  {{ card.isText ? card.value : card.value }}
-                </p>
-              </div>
-              <span
-                class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg opacity-90"
-                :class="toneClass[card.tone]"
-              >
-                <AppIcon
-                  :name="card.icon"
-                  :size="16"
-                />
-              </span>
-            </div>
-          </div>
-        </div>
-
+      <template v-if="data">
         <div class="rounded-xl border border-slate-200/80 bg-white p-5">
           <div class="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
             <h2 class="text-sm text-slate-600">

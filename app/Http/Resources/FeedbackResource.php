@@ -43,6 +43,7 @@ class FeedbackResource extends JsonResource
             'assignee_id' => $this->assignee_id,
             'resolved_at' => $this->resolved_at?->toIso8601String(),
             'created_at' => $this->created_at?->toIso8601String(),
+            'updated_at' => $this->updated_at?->toIso8601String(),
             'comments_count' => $this->whenCounted('comments'),
             'comments' => CommentResource::collection($this->whenLoaded('comments')),
             'can' => $user ? [

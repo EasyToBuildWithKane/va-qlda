@@ -38,7 +38,18 @@ import PageHeader from '@/Components/Ui/PageHeader.vue';
 import ProjectCard from '@/modules/project/components/ProjectCard.vue';
 defineProps({ items: Array });
 </script>
+
+<template>
+  <Head title="…" />
+  <AppLayout>
+    <template #header>
+      <PageHeader title="…" subtitle="…" icon="…" icon-color="brand" />
+    </template>
+  </AppLayout>
+</template>
 ```
+
+**Content header:** `.cursor/rules/content-header.mdc` + skill `content-header` — không lặp `PageHeader` trong main; `back-href` chỉ drill-down.
 
 ## Forms & data
 
@@ -53,7 +64,9 @@ defineProps({ items: Array });
 - Dialog/toast: `useDialog`, `useToast` — không `alert()` native.
 - Modal data: `dirty` + `useConfirmClose`.
 - ESLint: `--max-warnings=0` (pre-commit Husky).
+- **Content header (bắt buộc):** `.cursor/rules/content-header.mdc` + skill `content-header`.
 - **Datagrid toolbar (bắt buộc):** `.cursor/rules/datagrid-toolbar.mdc` + skill `datagrid-toolbar` — `DatagridToolbarSearch` (`hide-label`, `inline-actions`, `half`, `compact`), `DatagridToolbarActionButton`, `FilterDatePicker`, grid lọc, opt-in `default: false`. Mẫu đầy đủ: `DailyReport/History.vue`; classic: `CostReport.vue`; tab: `ProjectFeedbackPanel.vue`.
+- **KPI summary strip (bắt buộc khi clone /feedback):** `.cursor/rules/kpi-summary-strip.mdc` + skill `kpi-summary-strip` — `kpi-strip` / `kpi-card`, `FeedbackSummaryBar.vue`, prop `summary`, lọc nhanh qua emit.
 
 ## Cấm
 

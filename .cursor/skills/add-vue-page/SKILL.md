@@ -43,7 +43,16 @@ const form = useForm({ ... });
 form.post(route('projects.store'), { preserveScroll: true });
 ```
 
-## 5. Datagrid toolbar (bắt buộc nếu có bảng)
+## 5. Content header (bắt buộc)
+
+Đọc skill **`content-header`** và rule `.cursor/rules/content-header.mdc`.
+
+- `PageHeader` trong `<template #header>` của `AppLayout` — không trong body.
+- `icon` trùng mục `App\Support\Navigation.php` khi có menu.
+- `back-href` chỉ trang con (Create/Edit/Show); không back về hub module có trong sidebar.
+- Mẫu: `Pages/AiAccount/Index.vue`, `Pages/Coaching/Dashboard.vue`.
+
+## 6. Datagrid toolbar (bắt buộc nếu có bảng)
 
 Đọc skill **`datagrid-toolbar`** và rule `.cursor/rules/datagrid-toolbar.mdc`.
 
@@ -52,16 +61,16 @@ form.post(route('projects.store'), { preserveScroll: true });
 - Giá trị lọc (`<select>`) trên **dòng 2**; gửi API khi có endpoint.
 - Xuất: composable CSV + Excel (`xlsx-js-style`). Mẫu: `Pages/AiAccount/CostReport.vue`.
 
-## 6. Data modal (import/export)
+## 7. Data modal (import/export)
 
 Một nút **Dữ liệu** → `*DataModal.vue` tabs `import|export|reconcile`.  
 Copy: `modules/project/components/Dashboard/RiskImportModal.vue`, `Sprint/SprintDataModal.vue`.
 
-## 7. Navigation
+## 8. Navigation
 
 Update `App\Support\Navigation.php` khi thêm menu item.
 
-## 8. Quality
+## 9. Quality
 
 - `npm run lint` — zero warnings
 - Playwright E2E nếu đổi UI critical path

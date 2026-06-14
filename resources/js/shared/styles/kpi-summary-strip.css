@@ -1,0 +1,170 @@
+.kpi-strip__bg-outer {
+    clip-path: polygon(18% 0, 100% 0, 100% 100%, 0 100%);
+}
+
+.kpi-strip__bg-inner {
+    clip-path: polygon(22% 0, 100% 0, 100% 92%, 8% 100%, 0 28%);
+}
+
+.kpi-card__shell-outer {
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%);
+}
+
+.kpi-card__shell-inner {
+    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 calc(100% - 6px), 0 10px);
+    background: linear-gradient(135deg, rgb(248 250 252 / 0.95) 0%, rgb(255 255 255 / 0.85) 55%, rgb(255 255 255) 100%);
+}
+
+.kpi-card__shell-accent {
+    clip-path: polygon(0 0, 100% 0, 72% 100%, 0 100%);
+    transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+.kpi-card__shine {
+    clip-path: polygon(0 0, 40% 0, 28% 100%, 0 100%);
+    background: linear-gradient(
+        105deg,
+        transparent 0%,
+        rgb(255 255 255 / 0.55) 45%,
+        transparent 70%
+    );
+    transform: translateX(-120%);
+}
+
+.kpi-card--interactive:hover .kpi-card__shine {
+    animation: kpi-shimmer 0.85s ease-out forwards;
+}
+
+.kpi-card--interactive:hover {
+    transform: translateY(-3px);
+}
+
+.kpi-card--interactive:focus-visible {
+    transform: translateY(-2px);
+    box-shadow: 0 0 0 3px rgb(154 0 54 / 0.22);
+}
+
+.kpi-card--active .kpi-card__shell-outer {
+    box-shadow:
+        0 4px 18px rgb(154 0 54 / 0.12),
+        inset 0 0 0 1px rgb(154 0 54 / 0.35);
+}
+
+.kpi-card--brand .kpi-card__shell-accent {
+    background: linear-gradient(120deg, rgb(154 0 54 / 0.14), rgb(154 0 54 / 0.04));
+}
+
+.kpi-card--brand .kpi-card__bar {
+    background: linear-gradient(90deg, #9a0036, #c41e5a);
+}
+
+.kpi-card--emerald .kpi-card__shell-accent {
+    background: linear-gradient(120deg, rgb(16 185 129 / 0.18), rgb(16 185 129 / 0.04));
+}
+
+.kpi-card--emerald .kpi-card__bar {
+    background: linear-gradient(90deg, #059669, #34d399);
+}
+
+.kpi-card--amber .kpi-card__shell-accent {
+    background: linear-gradient(120deg, rgb(245 158 11 / 0.2), rgb(245 158 11 / 0.05));
+}
+
+.kpi-card--amber .kpi-card__bar {
+    background: linear-gradient(90deg, #d97706, #fbbf24);
+}
+
+.kpi-card--sky .kpi-card__shell-accent {
+    background: linear-gradient(120deg, rgb(14 165 233 / 0.16), rgb(14 165 233 / 0.04));
+}
+
+.kpi-card--sky .kpi-card__bar {
+    background: linear-gradient(90deg, #0284c7, #38bdf8);
+}
+
+.kpi-card--violet .kpi-card__shell-accent {
+    background: linear-gradient(120deg, rgb(139 92 246 / 0.16), rgb(139 92 246 / 0.04));
+}
+
+.kpi-card--violet .kpi-card__bar {
+    background: linear-gradient(90deg, #7c3aed, #a78bfa);
+}
+
+.kpi-card--rose .kpi-card__shell-accent {
+    background: linear-gradient(120deg, rgb(244 63 94 / 0.16), rgb(244 63 94 / 0.04));
+}
+
+.kpi-card--rose .kpi-card__bar {
+    background: linear-gradient(90deg, #e11d48, #fb7185);
+}
+
+.kpi-card--slate .kpi-card__shell-accent {
+    background: linear-gradient(120deg, rgb(100 116 139 / 0.14), rgb(100 116 139 / 0.04));
+}
+
+.kpi-card--slate .kpi-card__bar {
+    background: linear-gradient(90deg, #475569, #94a3b8);
+}
+
+.kpi-card--static .kpi-card__shell-outer {
+    box-shadow:
+        0 1px 2px rgb(15 23 42 / 0.04),
+        inset 0 0 0 1px rgb(226 232 240 / 0.95);
+}
+
+.kpi-card--interactive .kpi-card__shell-outer {
+    box-shadow: inset 0 0 0 1px rgb(203 213 225 / 0.9);
+    outline: 1px dashed rgb(203 213 225 / 0.85);
+    outline-offset: -4px;
+}
+
+.kpi-card--interactive:hover .kpi-card__shell-outer {
+    box-shadow:
+        0 8px 24px rgb(15 23 42 / 0.08),
+        inset 0 0 0 1px rgb(154 0 54 / 0.28);
+    outline-color: rgb(154 0 54 / 0.35);
+    outline-style: solid;
+}
+
+.kpi-card__trend--good {
+    background: rgb(236 253 245);
+    color: rgb(4 120 87);
+}
+
+.kpi-card__trend--bad {
+    background: rgb(255 241 242);
+    color: rgb(190 18 60);
+}
+
+.kpi-card__trend--neutral {
+    background: rgb(241 245 249);
+    color: rgb(100 116 139);
+}
+
+@keyframes kpi-shimmer {
+    0% {
+        transform: translateX(-120%);
+        opacity: 0;
+    }
+    15% {
+        opacity: 1;
+    }
+    100% {
+        transform: translateX(220%);
+        opacity: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .kpi-card--interactive:hover {
+        transform: none;
+    }
+
+    .kpi-card--interactive:hover .kpi-card__shine {
+        animation: none;
+    }
+
+    .kpi-card__bar {
+        transition: none;
+    }
+}

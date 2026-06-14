@@ -169,6 +169,8 @@ routes/api.php      ← Rỗng (chưa sử dụng)
 | PUT | `/feedback/{feedback}` | FeedbackController@update | auth | Sửa góp ý |
 | DELETE | `/feedback/{feedback}` | FeedbackController@destroy | auth | Xóa góp ý |
 
+**Query `GET /feedback`:** `status`, `category`, `project_id`, `priority`, `assignee_id`, `rating`, `mine`, `scope`, `q` (title/code/description), `created_from`, `created_to` (lọc theo `created_at`), `per_page`, `page`.
+
 ### 2.14 Comments
 
 | Method | URI | Controller | Middleware | Mô Tả |
@@ -187,6 +189,16 @@ routes/api.php      ← Rỗng (chưa sử dụng)
 | PUT | `/departments/{department}` | DepartmentController@update | auth | Sửa phòng ban |
 | PATCH | `/departments/{department}/toggle` | DepartmentController@toggleStatus | auth | Bật/tắt hoạt động |
 | DELETE | `/departments/{department}` | DepartmentController@destroy | auth | Xóa phòng ban |
+
+### 2.15.1 Org teams (sơ đồ nhân sự)
+
+| Method | URI | Controller | Middleware | Mô Tả |
+|---|---|---|---|---|
+| GET | `/org-teams` | OrgTeamController@index | auth | Sơ đồ team (Inertia) |
+| GET | `/org-teams/members` | OrgTeamController@members | auth | Danh sách tổng thành viên trong sơ đồ |
+| POST | `/org-teams` | OrgTeamController@store | auth | Tạo nhóm |
+| PUT | `/org-teams/{orgTeam}` | OrgTeamController@update | auth | Sửa nhóm |
+| DELETE | `/org-teams/{orgTeam}` | OrgTeamController@destroy | auth | Xóa nhóm |
 
 ### 2.16 Coaching / Mentoring
 

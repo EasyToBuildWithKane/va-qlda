@@ -96,6 +96,8 @@ Sau deploy, user **tải lại** trang Index hoặc Chi phí theo nhóm (một r
 
 Chi phí ngân sách / KPI thẻ: PĐX countable + ĐNTT đã thanh toán (giống mục «Luồng nghiệp vụ»). Phòng ban trên biểu đồ: `department_using` / `proposer_department` trên PĐX. «Tỷ lệ sử dụng»: lifecycle `in_use` + trạng thái active. Cảnh báo «không dùng X ngày»: proxy từ `last_reminded_at` / `allocated_at`.
 
+**Dashboard — 6 thẻ KPI (lưới 3×2):** (1) TK đang dùng + tỷ lệ sử dụng; (2) sắp hết hạn / đã hết hạn; (3) chi phí tháng + TB/người; (4) chi phí năm + `cost_forecast_year_end` (nội suy theo ĐNTT YTD); (5) ngân sách duyệt / thanh toán / sử dụng; (6) vận hành PĐX/tháng + `monthly_run_rate_change_percent` (so chi phí tháng vs tháng trước khi có ĐNTT).
+
 ---
 
 ## Agent / rule

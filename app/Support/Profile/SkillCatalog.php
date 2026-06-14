@@ -81,6 +81,9 @@ class SkillCatalog
      */
     public static function build(?array $skills, ?array $details = null): array
     {
+        if ($skills !== null && ! is_array($skills)) {
+            $skills = [];
+        }
         /** @var array<string, array<string, mixed>> $byKey indexed by normalized name */
         $byKey = [];
         $hasLevels = false;
@@ -142,6 +145,12 @@ class SkillCatalog
         ];
     }
 
+    /** Infer the category bucket for a raw skill name (public helper). */
+    public static function categoryFor(string $name): string
+    {
+        return self::categorize(Str::lower(trim($name)));
+    }
+
     private static function categorize(string $lowerName): string
     {
         foreach (self::CATEGORIES as $key => $def) {
@@ -155,7 +164,8 @@ class SkillCatalog
         return 'other';
     }
 
-    private static function displayName(string $raw): string
+    /** Canonical display name for a raw skill string (public helper). */
+    public static function displayName(string $raw): string
     {
         $key = Str::lower(trim($raw));
 

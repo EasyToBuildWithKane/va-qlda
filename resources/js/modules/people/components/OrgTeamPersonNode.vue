@@ -51,7 +51,7 @@ function onActivate() {
     <Avatar
       :src="avatar"
       :name="name"
-      :size="44"
+      :size="48"
     />
 
     <p class="org-person-node__name">
@@ -89,14 +89,14 @@ function onActivate() {
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    width: 9.25rem;
-    min-height: 10.75rem;
-    padding: 0.625rem 0.5rem 0.5rem;
+    width: 9.75rem;
+    min-height: 11rem;
+    padding: 0.75rem 0.55rem 0.55rem;
     text-align: center;
     background: #fff;
     border: 1px solid rgb(226 232 240);
-    border-radius: 0.75rem;
-    box-shadow: 0 1px 2px rgb(15 23 42 / 0.05);
+    border-radius: 0.875rem;
+    box-shadow: 0 1px 3px rgb(15 23 42 / 0.06);
 }
 
 .org-person-node--interactive {
@@ -121,10 +121,10 @@ function onActivate() {
 
 .org-person-node--leader {
     border-color: rgb(154 0 54 / 0.35);
-    background: linear-gradient(180deg, #fff 0%, #fdf2f6 100%);
+    background: linear-gradient(180deg, #fff 0%, #fdf2f6 55%, #fff 100%);
     box-shadow:
-        0 1px 2px rgb(154 0 54 / 0.08),
-        0 0 0 1px rgb(154 0 54 / 0.06);
+        0 2px 8px rgb(154 0 54 / 0.1),
+        0 0 0 1px rgb(154 0 54 / 0.08);
 }
 
 .org-person-node__badge {
@@ -174,7 +174,7 @@ function onActivate() {
     margin-top: 0.5rem;
     width: 100%;
     min-height: 2.7em;
-    font-size: 0.6875rem;
+    font-size: 0.75rem;
     font-weight: 700;
     line-height: 1.35;
     color: rgb(15 23 42);

@@ -17,6 +17,7 @@ import { COLUMNS, DEFAULT_VISIBLE } from '@/modules/project/config/columns';
 import { useDialog } from '@/composables/useDialog';
 import { useToast } from '@/shared/composables/useToast';
 import { exportProjectList } from '@/composables/useProjectListExport';
+import ProjectPortfolioSummaryBar from '@/modules/project/components/ProjectPortfolioSummaryBar.vue';
 import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
 
 const PER_PAGE_OPTIONS = [5, 10, 15, 20, 50, 100];
@@ -300,13 +301,10 @@ const toggleLane = (key) => {
 const expandAllLanes = () => { collapsedLanes.value = new Set(); };
 const collapseAllLanes = () => { collapsedLanes.value = new Set(columns.value.map((c) => c.key)); };
 
-// ---- Dashboard cards ------------------------------------------------------
-const cards = computed(() => [
-    { label: 'Tổng dự án', value: props.summary.total ?? 0, icon: 'projects', tone: 'text-brand', bg: 'bg-brand-50' },
-    { label: 'Đang thực hiện', value: props.summary.active ?? 0, icon: 'sprint', tone: 'text-sky-600', bg: 'bg-sky-50' },
-    { label: 'Hoàn thành', value: props.summary.completed ?? 0, icon: 'done', tone: 'text-emerald-600', bg: 'bg-emerald-50' },
-    { label: 'Trễ hạn', value: props.summary.overdue ?? 0, icon: 'flag', tone: 'text-rose-600', bg: 'bg-rose-50' },
-]);
+function onPortfolioQuickFilter({ status }) {
+    serverFilters.status = status ?? '';
+}
+
 </script>
 
 <template>
@@ -334,48 +332,25 @@ const cards = computed(() => [
       </PageHeader>
     </template>
 
-    <!-- Dashboard summary cards -->
-    <div class="mb-5 grid grid-cols-2 gap-4 sm:grid-cols-4">
-      <div
-        v-for="c in cards"
-        :key="c.label"
-        class="card flex items-center gap-3 p-4"
-      >
-        <span
-          class="grid h-10 w-10 shrink-0 place-items-center rounded-btn"
-          :class="c.bg"
-        >
-          <AppIcon
-            :name="c.icon"
-            :size="20"
-            :class="c.tone"
-          />
-        </span>
-        <div class="min-w-0">
-          <p class="truncate text-xs text-slate-500">
-            {{ c.label }}
-          </p>
-          <p
-            class="font-display text-xl font-bold"
-            :class="c.tone"
-          >
-            {{ c.value }}
-          </p>
-        </div>
-      </div>
-    </div>
+    <ProjectPortfolioSummaryBar
+      :summary="summary"
+      :active-status="serverFilters.status"
+      @quick-filter="onPortfolioQuickFilter"
+    />
 
     <!-- ===== TOOLBAR ===== -->
     <div class="card mb-3 overflow-visible">
       <div class="border-b border-slate-100 px-5 py-4 dark:border-slate-700">
         <div class="flex w-full min-w-0 flex-wrap items-center gap-2 lg:flex-nowrap">
-          <div class="min-w-0 w-full basis-full lg:flex-1 lg:basis-auto">
+          <div class="min-w-0 w-full basis-full lg:min-w-[10rem] lg:flex-1 lg:basis-auto">
             <DatagridToolbarSearch
               v-model="serverFilters.q"
               input-id="projects-search"
               placeholder="Tìm theo tên hoặc mã dự án…"
+              stretch
+              inline-actions
+              hide-label
               input-height="h-10"
-              cap-input-width
             />
           </div>
 

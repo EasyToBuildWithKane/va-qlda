@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\EmployeeProfileResource;
 use App\Http\Resources\MemberCardResource;
 use App\Models\Employee;
+use App\Support\Enums\SystemRole;
 use App\Support\Profile\ProfileSnapshot;
+use App\Support\Profile\TalentProfile;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -69,19 +71,24 @@ class MemberController extends Controller
             'account:id,employee_id,role',
             'orgMemberships.team:id,name,leader_id',
             'orgMemberships.team.leader:id,full_name,avatar_path,code,email,role_title',
-            'orgMemberships.section:id,name',
+            'orgMemberships.section:id,org_team_id,title',
             'projects',
+            ...TalentProfile::EAGER,
         ]);
 
-        $canPerformance = $request->user()->can('viewPerformance', $employee);
+        $user = $request->user();
+        $canPerformance = $user->can('viewPerformance', $employee);
+        $canSuccession = $user->hasRole(SystemRole::Admin, SystemRole::Lead);
 
         return Inertia::render('Member/Show', [
             'profile' => (new EmployeeProfileResource($employee))->toArray($request),
             'editable' => false,
             'canViewPerformance' => $canPerformance,
+            'canViewSuccession' => $canSuccession,
             'stats' => $canPerformance ? ProfileSnapshot::stats($employee) : null,
             'projectExperience' => $canPerformance ? ProfileSnapshot::projectExperience($employee) : null,
             'activity' => $canPerformance ? ProfileSnapshot::activity($employee) : null,
+            ...TalentProfile::bundle($employee, $canPerformance, $canSuccession),
         ]);
     }
 }

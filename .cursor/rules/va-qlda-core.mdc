@@ -34,6 +34,11 @@ alwaysApply: true
 - Brand: `#9A0036`, tokens Tailwind `brand`, `card`, `btn-primary`, `font-display`.
 - Layout: `AppLayout` + `#header` → `PageHeader`; route helper `route()` (Ziggy).
 
+## Content header (bắt buộc)
+
+- Rule: `.cursor/rules/content-header.mdc` · Skill: `.cursor/skills/content-header/SKILL.md`
+- Một `PageHeader` trong `#header`; icon khớp `Navigation.php`; không `back-href` cho mục sidebar cấp 1.
+
 ## CI & chất lượng (trước push)
 
 - **Blocking CI:** `vendor/bin/pint --test`, `php artisan test`, `npm run lint`, `npm run build`, Playwright E2E.
@@ -44,6 +49,11 @@ alwaysApply: true
 
 - Rule: `.cursor/rules/datagrid-toolbar.mdc` · Skill: `.cursor/skills/datagrid-toolbar/SKILL.md`
 - Mẫu full: `Pages/DailyReport/History.vue` (`hide-label`, một hàng `lg:flex-nowrap`, grid lọc, `FilterDatePicker`); tab dự án: `ProjectFeedbackPanel.vue` (`half`).
+
+## KPI summary strip (thống kê Index — bắt buộc khi thêm dải thẻ tương tự /feedback)
+
+- Rule: `.cursor/rules/kpi-summary-strip.mdc` · Skill: `.cursor/skills/kpi-summary-strip/SKILL.md`
+- Mẫu: `modules/project/components/FeedbackSummaryBar.vue` + `Pages/Feedback/Index.vue`; nhúng: `CoachingSessionsSummaryBar.vue`.
 
 ## Cấm
 

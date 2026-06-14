@@ -1,8 +1,10 @@
 <script setup>
-import { onBeforeUnmount, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
+import Avatar from '@/shared/ui/Avatar.vue';
+import { useOrgTeamRoster, toIterableList } from '@/modules/people/composables/useOrgTeamPeople.js';
 
-defineProps({
+const props = defineProps({
     node: { type: Object, required: true },
     editMode: { type: Boolean, default: false },
     canManage: { type: Boolean, default: false },
@@ -19,6 +21,14 @@ const levelClass = {
 function levelTone(level) {
     return levelClass[level] || 'org-team-node--l3';
 }
+
+const roster = useOrgTeamRoster(() => ({
+    leader: props.node.leader,
+    members: props.node.members,
+    sections: props.node.sections,
+}));
+
+const childCount = computed(() => toIterableList(props.node.children).length);
 
 const menuOpen = ref(false);
 const rootRef = ref(null);
@@ -67,6 +77,37 @@ onBeforeUnmount(() => {
       <h3 class="org-team-node__title">
         {{ node.name }}
       </h3>
+      <div
+        v-if="node.level > 1 && node.leader"
+        class="org-team-node__leader-mini"
+      >
+        <Avatar
+          :src="node.leader.avatar_path"
+          :name="node.leader.name"
+          :size="22"
+        />
+        <span class="org-team-node__leader-mini-name">{{ node.leader.name }}</span>
+      </div>
+    </div>
+
+    <div class="org-team-node__stats">
+      <span class="org-team-node__stat">
+        <AppIcon
+          name="member-profiles"
+          :size="12"
+        />
+        {{ roster.totalCount }}
+      </span>
+      <span
+        v-if="childCount"
+        class="org-team-node__stat"
+      >
+        <AppIcon
+          name="org-teams"
+          :size="12"
+        />
+        {{ childCount }} con
+      </span>
     </div>
 
     <div
@@ -138,15 +179,15 @@ onBeforeUnmount(() => {
 .org-team-node {
     position: relative;
     z-index: 2;
-    min-width: 12rem;
-    max-width: 17rem;
+    min-width: 13rem;
+    max-width: 18rem;
     overflow: visible;
     background: #fff;
     border: 1px solid rgb(226 232 240);
-    border-radius: 0.875rem;
+    border-radius: 1rem;
     box-shadow:
         0 1px 2px rgb(15 23 42 / 0.06),
-        0 4px 14px rgb(15 23 42 / 0.05);
+        0 8px 20px rgb(15 23 42 / 0.05);
 }
 
 .org-team-node__head {
@@ -193,6 +234,63 @@ onBeforeUnmount(() => {
 .org-team-node--l1 .org-team-node__title {
     font-size: 1rem;
     color: #fff;
+}
+
+.org-team-node__leader-mini {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    margin-top: 0.5rem;
+}
+
+.org-team-node__leader-mini-name {
+    max-width: 10rem;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    color: rgb(100 116 139);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.org-team-node--l1 .org-team-node__leader-mini-name {
+    color: rgb(255 255 255 / 0.85);
+}
+
+.org-team-node__stats {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem 0.625rem;
+    border-top: 1px solid rgb(241 245 249);
+}
+
+.org-team-node--l1 .org-team-node__stats {
+    border-top-color: rgb(255 255 255 / 0.12);
+}
+
+.org-team-node__stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.125rem 0.5rem;
+    font-size: 0.625rem;
+    font-weight: 600;
+    color: rgb(100 116 139);
+    background: rgb(248 250 252);
+    border-radius: 999px;
+}
+
+.org-team-node--l1 .org-team-node__stat {
+    color: rgb(255 255 255 / 0.9);
+    background: rgb(255 255 255 / 0.12);
+}
+
+.org-team-node--l2 .org-team-node__stat {
+    background: rgb(154 0 54 / 0.06);
+    color: rgb(102 0 38);
 }
 
 .org-team-node--l2 .org-team-node__head {

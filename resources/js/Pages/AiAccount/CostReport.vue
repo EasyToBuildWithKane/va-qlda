@@ -182,6 +182,10 @@ const filterSummary = computed(() => {
     return parts.join(' · ');
 });
 
+function onWorkflowKpiFilter(key) {
+    statusFilter.value = key === 'pending' ? 'pending' : 'all';
+}
+
 async function clearFilters() {
     statusFilter.value = 'all';
     typeFilter.value = 'all';
@@ -533,6 +537,8 @@ function runExport(scope, format) {
     <ProposalWorkflowKpiStrip
       :metrics="workflowMetrics"
       :loading="loading"
+      :active-status="statusFilter"
+      @filter-status="onWorkflowKpiFilter"
     />
 
     <!-- ── Danh sách hồ sơ (master → detail) ── -->

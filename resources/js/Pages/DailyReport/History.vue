@@ -12,7 +12,7 @@ import AppLayout from "@/Layouts/AppLayout.vue";
 import AppIcon from "@/Components/AppIcon.vue";
 import StatusBadge from "@/Components/DailyReport/StatusBadge.vue";
 import GradePill from "@/Components/DailyReport/GradePill.vue";
-import ReportDashboard from "@/Components/DailyReport/ReportDashboard.vue";
+import DailyReportSummaryBar from '@/modules/daily-report/components/DailyReportSummaryBar.vue';
 import ReportCard from "@/Components/DailyReport/ReportCard.vue";
 import PageHeader from "@/Components/Ui/PageHeader.vue";
 import Avatar from "@/shared/ui/Avatar.vue";
@@ -482,7 +482,7 @@ const FILTER_CONTROL_CLASS = "input h-10 w-full text-sm";
       </PageHeader>
     </template>
 
-    <ReportDashboard
+    <DailyReportSummaryBar
       :summary="summary"
       :status-filter="filterForm.status"
       :late-filter="filterForm.late"

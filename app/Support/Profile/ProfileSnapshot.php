@@ -5,6 +5,7 @@ namespace App\Support\Profile;
 use App\Models\Employee;
 use App\Models\Task;
 use App\Models\Worklog;
+use App\Support\Enums\ProjectStatus;
 use App\Support\Enums\TaskStatus;
 use Illuminate\Support\Carbon;
 
@@ -87,7 +88,7 @@ class ProfileSnapshot
                     'name' => $p->name,
                     'code' => $p->code,
                     'color' => $p->color,
-                    'status' => self::enum($p->status),
+                    'status' => self::enumFromRaw($p->getRawOriginal('status'), ProjectStatus::class),
                     'role' => $pivot->role,
                     'allocation' => $pivot->allocation,
                     'joined_at' => $pivot->joined_at
@@ -172,6 +173,25 @@ class ProfileSnapshot
         usort($events, fn ($a, $b) => strcmp((string) $b['at'], (string) $a['at']));
 
         return array_slice($events, 0, $limit);
+    }
+
+    /**
+     * @param  class-string<\BackedEnum>  $enumClass
+     * @return array{value:string, label:string, color:string|null}|null
+     */
+    private static function enumFromRaw(mixed $raw, string $enumClass): ?array
+    {
+        if (! is_string($raw) || $raw === '') {
+            return null;
+        }
+
+        if (! is_subclass_of($enumClass, \BackedEnum::class)) {
+            return null;
+        }
+
+        $enum = $enumClass::tryFrom($raw);
+
+        return self::enum($enum);
     }
 
     /**

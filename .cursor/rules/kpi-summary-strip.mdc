@@ -1,0 +1,66 @@
+---
+description: Dải thống kê KPI — kpi-strip, kpi-card, lọc nhanh (bắt buộc khi thêm section tương tự /feedback)
+globs: resources/js/Pages/**/*.vue,resources/js/modules/**/components/**/*.vue
+alwaysApply: true
+---
+
+# KPI summary strip — Production (bắt buộc)
+
+Section **Thống kê** + thẻ KPI cắt góc (clip-path) trên trang Index. Skill: `.cursor/skills/kpi-summary-strip/SKILL.md`
+
+| Ngữ cảnh | Tham chiếu vàng |
+|----------|-----------------|
+| Index độc lập (`/feedback`) — strip trong card, lọc scope/status | `FeedbackSummaryBar.vue` + `Pages/Feedback/Index.vue` |
+| Báo cáo ngày `/daily-reports` | `DailyReportSummaryBar.vue` + `Pages/DailyReport/History.vue` |
+| Dự án `/projects` | `ProjectPortfolioSummaryBar.vue` + `Pages/Project/Index.vue` |
+| Vướng mắc `/blockers` | `BlockerSummaryBar.vue` + `Pages/Blocker/Index.vue` |
+| Coaching hub `/coaching` | `CoachingDashboardSummaryBar.vue` + `Pages/Coaching/Dashboard.vue` |
+| AI dashboard / cost report | `AiExecutiveSummaryStrip.vue`, `ProposalWorkflowKpiStrip.vue` |
+| Thông báo vận hành | `NotificationOpsSummaryBar.vue` + `Pages/Notifications/Management.vue` |
+| Nhúng workspace (border-bottom) | `CoachingSessionsSummaryBar.vue` |
+| **Shared** | `shared/ui/KpiSummaryStrip.vue` + `shared/styles/kpi-summary-strip.css` |
+
+## 1. Vị trí trang
+
+- **Sau** `#header` / `PageHeader`, **trước** khối datagrid (`.card` toolbar + bảng).
+- Prop Inertia `summary` từ controller (aggregate toàn cục hoặc theo quyền — không phụ thuộc page paginate).
+- Badge header (vd. số «đang xử lý») có thể trùng một KPI strip — không lặp tiêu đề dài.
+
+## 2. Section `kpi-strip`
+
+- `<section class="kpi-strip …" :aria-label="…">` — nhãn tiếng Việt mô tả domain.
+- **Index standalone:** `rounded-card border border-slate-200/80 shadow-sm mb-5` (Feedback).
+- **Nhúng:** `shrink-0 border-b border-slate-100` (Coaching Schedule).
+- Nền: `bg-gradient-to-b from-slate-50/90 to-white` + lớp trang trí `kpi-strip__bg-outer` / `__bg-inner` (clip-path, brand tint).
+- Header strip: eyebrow `THỐNG KÊ` (`text-[10px] uppercase tracking-[0.14em] text-brand/80`), `h2` một dòng, hint phải (vd. «Thẻ viền nét đứt — bấm lọc nhanh»).
+
+## 3. Lưới thẻ
+
+- `grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5` (5 thẻ) hoặc điều chỉnh cột nếu ít hơn 4 KPI.
+- Mỗi thẻ: `kpi-card` + modifier tone (`kpi-card--brand|emerald|amber|sky|violet|rose|slate`).
+- **Tương tác:** `button` + `kpi-card--interactive` (viền dashed → solid hover) khi có `filter`; **tĩnh:** `div` + `kpi-card--static`.
+- Trạng thái lọc: `kpi-card--active`, `aria-pressed`, emit filter payload lên page (`@quick-filter` / `@filter-status`).
+- Nội dung: label uppercase nhỏ, giá trị `font-display text-2xl tabular-nums`, icon `AppIcon` trong ô `h-10 w-10 rounded-lg ring-1`, subtitle `text-[11px]`, optional thanh `%` (`kpi-card__bar`).
+
+## 4. Tone & dữ liệu
+
+- Tone map semantic: tổng = `brand`, hoàn thành = `emerald`, chờ/xử lý = `sky`, mới = `violet`, đánh giá/cảnh báo = `amber`.
+- Config thẻ qua `computed` mảng `{ key, label, field, tone, icon, sub, progress, filter, format? }` — không hard-code 5 block HTML lặp.
+- `progress`: `%` so với `summary.total` khi có ý nghĩa; ẩn bar khi `total === 0`.
+- Copy scoped CSS `kpi-*` từ **FeedbackSummaryBar** (shell clip-path, shimmer, `prefers-reduced-motion`).
+
+## 5. Anti-patterns (cấm)
+
+- Thẻ KPI phẳng `rounded-xl shadow` generic — lệch brand VA (thiếu shell/accent).
+- Click lọc mà không sync `activeScope` / `activeStatus` với query Inertia.
+- Chỉ đếm trên `paginate` items thay vì query aggregate backend.
+- Section thống kê **bên trong** `.card` datagrid (tách strip ra ngoài).
+- Tiếng Anh user-facing trên label/hint strip.
+
+## 6. Checklist PR (KPI strip)
+
+- [ ] `*SummaryBar.vue` module + props `summary`, active filter, emit
+- [ ] Controller trả `summary` object ổn định
+- [ ] Page wire `onQuickFilter` → `router.get` / reactive filters
+- [ ] CSS `kpi-strip` / `kpi-card` khớp Feedback (hoặc shared extract nếu ≥3 module)
+- [ ] `aria-label`, `focus-visible`, reduced motion

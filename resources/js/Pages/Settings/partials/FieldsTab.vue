@@ -125,9 +125,20 @@ const secretPlaceholder = (f) => (f.has_value ? '•••••••• (đã 
 
 <template>
   <form
-    class="flex h-full flex-col"
+    class="relative flex h-full flex-col"
     @submit.prevent="submit"
   >
+    <!-- Chrome/password-manager: secret fields live in a form; satisfy username hint (hidden). -->
+    <input
+      type="text"
+      name="username"
+      autocomplete="username"
+      tabindex="-1"
+      aria-hidden="true"
+      class="pointer-events-none absolute h-0 w-0 opacity-0"
+      value="vaschools-settings"
+      readonly
+    >
     <div
       v-if="!hideHeader"
       class="mb-5"
@@ -182,6 +193,7 @@ const secretPlaceholder = (f) => (f.has_value ? '•••••••• (đã 
             :id="f.key"
             v-model="form[f.name]"
             :placeholder="secretPlaceholder(f)"
+            autocomplete="new-password"
           />
         </FormField>
 
