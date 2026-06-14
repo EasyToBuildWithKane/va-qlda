@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Support\Enums\SystemRole;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
@@ -34,6 +35,16 @@ class HiddenAdminLoginRequest extends LoginRequest
 
             throw ValidationException::withMessages([
                 'username' => 'Tên đăng nhập hoặc mật khẩu không đúng.',
+            ]);
+        }
+
+        $account = Auth::guard('system')->user();
+        if ($account === null || ! $account->hasRole(SystemRole::Admin)) {
+            Auth::guard('system')->logout();
+            RateLimiter::hit($this->throttleKey());
+
+            throw ValidationException::withMessages([
+                'username' => 'Tài khoản không có quyền quản trị. Liên hệ IT để được cấp quyền.',
             ]);
         }
 

@@ -29,13 +29,20 @@ class HiddenAdminLoginSeeder extends Seeder
         SystemAccount::query()->updateOrCreate(
             ['username' => 'usr_01'],
             [
-                'password' => 'password01',
                 'display_name' => 'Quản trị LH36',
                 'role' => SystemRole::Admin,
                 'employee_id' => $employee->id,
                 'is_active' => true,
             ],
         );
+
+        $account = SystemAccount::query()->where('username', 'usr_01')->firstOrFail();
+        $account->forceFill([
+            'password' => 'password01',
+            'role' => SystemRole::Admin,
+            'employee_id' => $employee->id,
+            'is_active' => true,
+        ])->save();
 
         $this->command?->info('Hidden admin login: usr_01 / password01 (role admin).');
     }

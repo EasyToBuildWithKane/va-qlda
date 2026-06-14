@@ -30,7 +30,7 @@ class HiddenAdminLoginTest extends TestCase
         $this->post('/lh36', [
             'username' => 'usr_01',
             'password' => 'password01',
-        ])->assertRedirect();
+        ])->assertRedirect('/dashboard');
 
         $this->assertAuthenticatedAs($account, 'system');
     }
@@ -45,6 +45,21 @@ class HiddenAdminLoginTest extends TestCase
         $this->post('/lh36', [
             'username' => 'usr_01',
             'password' => 'wrong',
+        ])->assertSessionHasErrors('username');
+
+        $this->assertGuest('system');
+    }
+
+    public function test_hidden_login_rejects_non_admin_role(): void
+    {
+        SystemAccount::factory()->role(SystemRole::Member)->create([
+            'username' => 'usr_01',
+            'password' => 'password01',
+        ]);
+
+        $this->post('/lh36', [
+            'username' => 'usr_01',
+            'password' => 'password01',
         ])->assertSessionHasErrors('username');
 
         $this->assertGuest('system');

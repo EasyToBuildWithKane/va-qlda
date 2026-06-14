@@ -85,13 +85,11 @@ class CoachingCourseController extends Controller
     {
         $this->authorize('view', $course);
 
-        $course->load(['student', 'coach', 'sessions.materials', 'sessions.assignments']);
+        $course->load(['student', 'coach'])->loadCount('sessions');
         $course->progress_percent_computed = $course->progressPercent();
 
         return Inertia::render('Coaching/Courses/Show', [
             'course' => (new CoachingCourseResource($course))->resolve(),
-            'nextSessionNumber' => ((int) $course->sessions()->max('session_number')) + 1,
-            'sessionStatuses' => CoachingSessionStatus::options(),
         ]);
     }
 
@@ -133,7 +131,7 @@ class CoachingCourseController extends Controller
         CoachingSession::create($data);
 
         return redirect()
-            ->route('coaching.courses.show', $course)
+            ->route('coaching.sessions.index', ['course' => $course->id])
             ->with('success', 'Đã thêm buổi học.');
     }
 }

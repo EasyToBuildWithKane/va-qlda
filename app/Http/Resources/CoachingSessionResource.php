@@ -32,6 +32,13 @@ class CoachingSessionResource extends JsonResource
             'content' => $this->content,
             'notes' => $this->notes,
             'status' => $this->enum($this->status),
+            'materials_count' => $this->whenCounted('materials'),
+            'assignments_count' => $this->whenCounted('assignments'),
+            'course' => $this->whenLoaded('course', fn () => [
+                'id' => $this->course->id,
+                'name' => $this->course->name,
+                'code' => $this->course->code,
+            ]),
             'materials' => $this->whenLoaded('materials', fn () => $this->materials->map(fn ($m) => [
                 'id' => $m->id,
                 'type' => $m->type->value,

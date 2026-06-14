@@ -10,6 +10,7 @@ use App\Models\CoachingProgress;
 use App\Models\CoachingSession;
 use App\Models\CoachingSessionMaterial;
 use App\Models\SystemAccount;
+use App\Support\Coaching\CoachingSessionScope;
 use App\Support\Coaching\SafeEmbedUrl;
 use App\Support\Enums\CoachingAssignmentStatus;
 use App\Support\Enums\CoachingMaterialType;
@@ -25,6 +26,107 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class CoachingSessionController extends Controller
 {
+    public function index(Request $request): Response
+    {
+        $this->authorize('viewAny', CoachingCourse::class);
+
+        $account = $request->user();
+        $query = CoachingSessionScope::forAccount($account)
+            ->with(['course:id,name,code,student_id,coach_id'])
+            ->withCount(['materials', 'assignments'])
+            ->orderByDesc('date')
+            ->orderByDesc('session_number');
+
+        if ($courseId = $request->query('course')) {
+            $query->where('course_id', (int) $courseId);
+        }
+
+        if ($status = $request->query('status')) {
+            $query->where('status', $status);
+        }
+
+        if ($search = $request->query('q')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                    ->orWhere('topic', 'like', "%{$search}%")
+                    ->orWhereHas('course', fn ($c) => $c
+                        ->where('name', 'like', "%{$search}%")
+                        ->orWhere('code', 'like', "%{$search}%"));
+            });
+        }
+
+        $perPage = min(50, max(5, (int) $request->query('per_page', 20)));
+
+        $coursesQuery = CoachingCourse::query()->orderBy('name');
+        if ($account->role->value === 'member' && $account->employee_id) {
+            $coursesQuery->where('student_id', $account->employee_id);
+        }
+        $coursesForFilter = $coursesQuery->get(['id', 'name', 'code'])->map(fn (CoachingCourse $c) => [
+            'id' => $c->id,
+            'name' => $c->name,
+            'code' => $c->code,
+            'can' => ['update' => $account->can('update', $c)],
+        ]);
+
+        $selectedCourse = null;
+        if ($courseId) {
+            $course = CoachingCourse::query()->find((int) $courseId);
+            if ($course && $account->can('view', $course)) {
+                $selectedCourse = [
+                    'id' => $course->id,
+                    'name' => $course->name,
+                    'code' => $course->code,
+                    'can' => ['update' => $account->can('update', $course)],
+                    'next_session_number' => ((int) $course->sessions()->max('session_number')) + 1,
+                ];
+            }
+        }
+
+        return Inertia::render('Coaching/Sessions/Index', [
+            'sessions' => CoachingSessionResource::collection(
+                $query->paginate($perPage)->withQueryString(),
+            ),
+            'filters' => (object) array_merge(
+                $request->only(['q', 'status', 'course']),
+                ['per_page' => $perPage],
+            ),
+            'options' => [
+                'statuses' => CoachingSessionStatus::options(),
+                'courses' => $coursesForFilter,
+            ],
+            'selectedCourse' => $selectedCourse,
+        ]);
+    }
+
+    public function schedule(Request $request): Response
+    {
+        $this->authorize('viewAny', CoachingCourse::class);
+
+        $account = $request->user();
+        $month = $request->query('month', now()->format('Y-m'));
+        if (! preg_match('/^\d{4}-\d{2}$/', $month)) {
+            $month = now()->format('Y-m');
+        }
+
+        [$year, $mon] = array_map('intval', explode('-', $month));
+        $start = sprintf('%04d-%02d-01', $year, $mon);
+        $end = date('Y-m-t', strtotime($start));
+
+        $sessions = CoachingSessionScope::forAccount($account)
+            ->with(['course:id,name,code'])
+            ->whereNotNull('date')
+            ->whereBetween('date', [$start, $end])
+            ->orderBy('date')
+            ->orderBy('start_time')
+            ->orderBy('session_number')
+            ->get();
+
+        return Inertia::render('Coaching/Sessions/Schedule', [
+            'sessions' => CoachingSessionResource::collection($sessions)->resolve(),
+            'month' => $month,
+        ]);
+    }
+
     public function show(CoachingSession $session): Response
     {
         $session->load(['course', 'materials', 'assignments']);

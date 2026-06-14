@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\HiddenAdminLoginRequest;
-use App\Support\Auth\CoachingOnlyAccess;
+use App\Providers\RouteServiceProvider;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
@@ -29,6 +29,8 @@ class HiddenAdminLoginController extends Controller
         $account = Auth::guard('system')->user();
         $account->forceFill(['last_login_at' => now()])->save();
 
-        return redirect()->intended(CoachingOnlyAccess::homePath($account));
+        $request->session()->forget('url.intended');
+
+        return redirect()->to(RouteServiceProvider::HOME);
     }
 }

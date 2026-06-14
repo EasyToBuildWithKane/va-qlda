@@ -291,6 +291,20 @@ class Navigation
                         'status' => 'live',
                         'roles' => ['admin', 'lead', 'member'],
                     ],
+                    [
+                        'label' => 'Lịch buổi học',
+                        'icon' => 'calendar',
+                        'href' => '/coaching/sessions/schedule',
+                        'status' => 'live',
+                        'roles' => ['admin', 'lead', 'member'],
+                    ],
+                    [
+                        'label' => 'Danh sách buổi học',
+                        'icon' => 'weekly',
+                        'href' => '/coaching/sessions',
+                        'status' => 'live',
+                        'roles' => ['admin', 'lead', 'member'],
+                    ],
                 ],
             ],
 

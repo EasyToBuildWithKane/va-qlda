@@ -213,6 +213,8 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictCoachingOnlyUsers::class
         Route::put('/courses/{course}', [CoachingCourseController::class, 'update'])->name('courses.update');
         Route::delete('/courses/{course}', [CoachingCourseController::class, 'destroy'])->name('courses.destroy');
         Route::post('/courses/{course}/sessions', [CoachingCourseController::class, 'storeSession'])->name('courses.sessions.store');
+        Route::get('/sessions/schedule', [CoachingSessionController::class, 'schedule'])->name('sessions.schedule');
+        Route::get('/sessions', [CoachingSessionController::class, 'index'])->name('sessions.index');
         Route::get('/sessions/{session}', [CoachingSessionController::class, 'show'])->name('sessions.show');
         Route::patch('/sessions/{session}', [CoachingSessionController::class, 'update'])->name('sessions.update');
         Route::post('/sessions/{session}/materials', [CoachingSessionController::class, 'storeMaterial'])->name('sessions.materials.store');

@@ -82,7 +82,7 @@ class CoachingTest extends TestCase
                 'date' => '2026-06-14',
                 'total_hours' => 2.5,
             ])
-            ->assertRedirect()
+            ->assertRedirect(route('coaching.sessions.index', ['course' => $course->id]))
             ->assertSessionHas('success');
 
         $this->assertDatabaseHas('coaching_sessions', [
@@ -92,11 +92,27 @@ class CoachingTest extends TestCase
         ]);
 
         $this->actingAs($admin)
-            ->get(route('coaching.courses.show', $course))
+            ->get(route('coaching.sessions.index', ['course' => $course->id]))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->component('Coaching/Courses/Show')
-                ->where('nextSessionNumber', 2));
+                ->component('Coaching/Sessions/Index')
+                ->has('selectedCourse.id')
+                ->where('selectedCourse.next_session_number', 2));
+    }
+
+    public function test_admin_can_view_sessions_schedule_and_index(): void
+    {
+        $admin = $this->admin();
+
+        $this->actingAs($admin)
+            ->get(route('coaching.sessions.index'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->component('Coaching/Sessions/Index'));
+
+        $this->actingAs($admin)
+            ->get(route('coaching.sessions.schedule'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->component('Coaching/Sessions/Schedule'));
     }
 
     public function test_duplicate_session_number_returns_validation_error(): void
