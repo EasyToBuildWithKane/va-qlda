@@ -132,6 +132,7 @@ Pages import feature components từ `@/modules/project/components/...` và prim
 | `EmptyState.vue`, `LoadingSpinner.vue`, `SkeletonLoader.vue` | Empty / loading |
 | `DatagridToolbarSearch.vue`, `FilterVisibilityDropdown.vue`, `ColumnVisibilityDropdown.vue` | Toolbar bảng (tìm kiếm, bật lọc/cột) |
 | `DatagridToolbarActionButton.vue`, `DatagridSegmentedControl.vue`, `DatagridFilterField.vue` | Nút Lọc/Cột/Xuất đồng nhất, segmented toggle, ô lọc grid `w-full h-10` |
+| `FilterDatePicker.vue` | Lọc ngày (`@vuepic/vue-datepicker`, hiển thị `dd/MM/yyyy`, model ISO) |
 | `form/FormField.vue`, `TextInput.vue`, `SelectInput.vue`, `DateInput.vue`, `TimeInput.vue` | Form primitives (`input--picker`: date/time hiển thị rõ, click cả ô) |
 
 ### 6.3 Project Module — `modules/project/components/`

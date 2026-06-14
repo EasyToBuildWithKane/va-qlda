@@ -21,6 +21,7 @@ import FilterVisibilityDropdown from "@/shared/ui/FilterVisibilityDropdown.vue";
 import DatagridToolbarActionButton from "@/shared/ui/DatagridToolbarActionButton.vue";
 import DatagridSegmentedControl from "@/shared/ui/DatagridSegmentedControl.vue";
 import DatagridFilterField from "@/shared/ui/DatagridFilterField.vue";
+import FilterDatePicker from "@/shared/ui/FilterDatePicker.vue";
 import DatagridPaginationFooter from "@/shared/ui/DatagridPaginationFooter.vue";
 import SearchMultiSelect from "@/shared/ui/SearchMultiSelect.vue";
 import { useFixedDropdownAnchor } from "@/shared/composables/useFixedDropdownAnchor";
@@ -74,23 +75,6 @@ function pad2(n) {
     return String(n).padStart(2, "0");
 }
 
-/** ISO `yyyy-mm-dd` → hiển thị `dd/mm/yyyy` trên ô text lọc */
-function formatFilterDateDisplay(iso) {
-    if (!iso) return "";
-    const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/);
-    if (!m) return String(iso);
-    return `${m[3]}/${m[2]}/${m[1]}`;
-}
-
-function normalizeFilterDateForQuery(val) {
-    const s = String(val ?? "").trim();
-    if (!s) return "";
-    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-    const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-    if (m) return `${m[3]}-${pad2(m[2])}-${pad2(m[1])}`;
-    return s;
-}
-
 const VALID_GROUPS = ["day", "week", "month"];
 
 const filterForm = reactive({
@@ -101,8 +85,8 @@ const filterForm = reactive({
         props.filters.employee_ids ?? props.filters.employee_id,
     ),
     grade: props.filters.grade ?? "",
-    from: formatFilterDateDisplay(props.filters.from ?? ""),
-    to: formatFilterDateDisplay(props.filters.to ?? ""),
+    from: props.filters.from ?? "",
+    to: props.filters.to ?? "",
     late: Boolean(props.filters.late),
 });
 
@@ -128,11 +112,6 @@ function routeParams(resetPage = false) {
         if (v === "" || v == null || v === false) continue;
         if (Array.isArray(v)) {
             if (v.length) params[k] = v;
-            continue;
-        }
-        if (k === "from" || k === "to") {
-            const normalized = normalizeFilterDateForQuery(v);
-            if (normalized) params[k] = normalized;
             continue;
         }
         params[k] = v;
@@ -783,24 +762,16 @@ const FILTER_CONTROL_CLASS = "input h-10 w-full text-sm";
             class="min-w-0 w-full sm:col-span-2 xl:col-span-2"
           >
             <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
-              <input
+              <FilterDatePicker
                 v-model="filterForm.from"
-                type="text"
-                inputmode="numeric"
-                autocomplete="off"
-                :class="FILTER_CONTROL_CLASS"
                 placeholder="Từ ngày"
-                aria-label="Từ ngày"
-              >
-              <input
+                :max-date="filterForm.to || null"
+              />
+              <FilterDatePicker
                 v-model="filterForm.to"
-                type="text"
-                inputmode="numeric"
-                autocomplete="off"
-                :class="FILTER_CONTROL_CLASS"
                 placeholder="Đến ngày"
-                aria-label="Đến ngày"
-              >
+                :min-date="filterForm.from || null"
+              />
             </div>
           </div>
 
