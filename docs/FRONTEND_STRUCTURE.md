@@ -107,7 +107,7 @@ AppLayout.vue
 | Project | `Index`, `Create`, `Edit`, `Show` |
 | Blocker / Feedback | `Index`, `Show` (Feedback) — Index: **`FeedbackSummaryBar`** (dải KPI `kpi-strip` / `kpi-card`, lọc nhanh scope/status; rule `kpi-summary-strip`) + datagrid toolbar (Lọc/Cột), `FilterDatePicker` khoảng ngày, `FeedbackListRowActions` |
 | Department | `Pages/Department/Index.vue` |
-| Org team | `Pages/OrgTeam/Index.vue` — **Tổng quan** (KPI + `OrgTeamRootCard` grid, tìm kiếm khi >3 root), **Sơ đồ** / **Chỉnh sửa**; sidebar `OrgTeamRootSidebar` khi ≥2 Ban/Khối; composable `useOrgTeamTreeStats.js`; modal `OrgTeamFormModal` (`forceRoot`) · **`Pages/OrgTeam/Members.vue`** — danh sách tổng nhân sự trong sơ đồ (`GET /org-teams/members`, `OrgTeamRosterBuilder`) |
+| Org team | `Pages/OrgTeam/Index.vue` — header gọn; chế độ `DatagridSegmentedControl` (Tổng quan / Sơ đồ / Chỉnh sửa); `OrgTeamForestSummaryBar` + `OrgTeamRootCard`; chọn Ban/Khối bằng pill khi ≥2 root (không sidebar); composable `useOrgTeamTreeStats.js`; modal `OrgTeamFormModal` (`forceRoot`) · **`Pages/OrgTeam/Members.vue`** — `OrgTeamMembersSummaryBar` + datagrid (`GET /org-teams/members`, `OrgTeamRosterBuilder`) |
 | Notifications | `Pages/Notifications/Management.vue` |
 
 Pages import feature components từ `@/modules/project/components/...` và primitives từ `@/shared/ui/...`.

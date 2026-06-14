@@ -215,25 +215,26 @@ onBeforeUnmount(() => {
 }
 
 .org-team-node--l1 {
-    border-color: rgb(154 0 54 / 0.28);
+    border-color: rgb(154 0 54 / 0.22);
     box-shadow:
-        0 1px 2px rgb(154 0 54 / 0.08),
-        0 6px 18px rgb(15 23 42 / 0.06);
+        0 1px 2px rgb(15 23 42 / 0.05),
+        0 4px 12px rgb(15 23 42 / 0.04);
 }
 
 .org-team-node--l1 .org-team-node__head {
     padding-top: 0.75rem;
     padding-bottom: 0.875rem;
-    background: linear-gradient(165deg, #9a0036 0%, #810030 100%);
+    background: #fff;
+    border-bottom: 1px solid rgb(241 245 249);
 }
 
 .org-team-node--l1 .org-team-node__level {
-    color: rgb(255 255 255 / 0.72);
+    color: rgb(154 0 54 / 0.8);
 }
 
 .org-team-node--l1 .org-team-node__title {
     font-size: 1rem;
-    color: #fff;
+    color: rgb(15 23 42);
 }
 
 .org-team-node__leader-mini {
@@ -255,7 +256,7 @@ onBeforeUnmount(() => {
 }
 
 .org-team-node--l1 .org-team-node__leader-mini-name {
-    color: rgb(255 255 255 / 0.85);
+    color: rgb(100 116 139);
 }
 
 .org-team-node__stats {
@@ -268,7 +269,7 @@ onBeforeUnmount(() => {
 }
 
 .org-team-node--l1 .org-team-node__stats {
-    border-top-color: rgb(255 255 255 / 0.12);
+    border-top-color: rgb(241 245 249);
 }
 
 .org-team-node__stat {
@@ -284,31 +285,33 @@ onBeforeUnmount(() => {
 }
 
 .org-team-node--l1 .org-team-node__stat {
-    color: rgb(255 255 255 / 0.9);
-    background: rgb(255 255 255 / 0.12);
+    color: rgb(71 85 105);
+    background: rgb(248 250 252);
+    border: 1px solid rgb(226 232 240);
 }
 
 .org-team-node--l2 .org-team-node__stat {
-    background: rgb(154 0 54 / 0.06);
-    color: rgb(102 0 38);
+    background: rgb(248 250 252);
+    color: rgb(71 85 105);
+    border: 1px solid rgb(226 232 240);
 }
 
 .org-team-node--l2 .org-team-node__head {
-    background: #fdf2f6;
-    border-bottom: 1px solid rgb(154 0 54 / 0.1);
+    background: #fff;
+    border-bottom: 1px solid rgb(241 245 249);
 }
 
 .org-team-node--l2 .org-team-node__level {
-    color: rgb(154 0 54 / 0.75);
+    color: rgb(100 116 139);
 }
 
 .org-team-node--l2 .org-team-node__title {
-    color: #660026;
+    color: rgb(15 23 42);
 }
 
 .org-team-node--l3 .org-team-node__head {
-    background: rgb(248 250 252);
-    border-bottom: 1px solid rgb(226 232 240);
+    background: #fff;
+    border-bottom: 1px solid rgb(241 245 249);
 }
 
 .org-team-node--l3 .org-team-node__level {

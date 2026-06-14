@@ -5,11 +5,12 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
+import DatagridSegmentedControl from '@/shared/ui/DatagridSegmentedControl.vue';
 import OrgTeamChart from '@/modules/people/components/OrgTeamChart.vue';
 import OrgTeamFormModal from '@/modules/people/components/OrgTeamFormModal.vue';
 import OrgTeamPersonDetailDrawer from '@/modules/people/components/OrgTeamPersonDetailDrawer.vue';
 import OrgTeamRootCard from '@/modules/people/components/OrgTeamRootCard.vue';
-import OrgTeamRootSidebar from '@/modules/people/components/OrgTeamRootSidebar.vue';
+import OrgTeamForestSummaryBar from '@/modules/people/components/OrgTeamForestSummaryBar.vue';
 import { summarizeForest } from '@/modules/people/composables/useOrgTeamTreeStats.js';
 import { useDialog } from '@/composables/useDialog';
 
@@ -34,22 +35,16 @@ const overviewQuery = ref('');
 
 const forestStats = computed(() => summarizeForest(props.trees));
 
-const useSidebarNav = computed(() => props.trees.length >= 2);
-
-const pageSubtitle = computed(() => {
-    const n = props.trees.length;
-    if (n === 0) {
-        return 'Sơ đồ team và thành viên';
-    }
-    const people = forestStats.value.peopleCount;
-    if (pageMode.value === 'overview') {
-        return `${n} Ban/Khối · ${people} thành viên trên toàn hệ thống`;
-    }
-    if (n === 1) {
-        return '1 Ban/Khối — có thể thêm nhiều team độc lập';
+const modeItems = computed(() => {
+    const items = [
+        { key: 'overview', label: 'Tổng quan', icon: 'grid' },
+        { key: 'chart', label: 'Sơ đồ', icon: 'org-teams' },
+    ];
+    if (props.can.create) {
+        items.push({ key: 'edit', label: 'Chỉnh sửa', icon: 'edit' });
     }
 
-    return `${n} Ban/Khối — chọn team để xem sơ đồ chi tiết`;
+    return items;
 });
 
 const activeRoot = computed(() => {
@@ -150,10 +145,6 @@ function openChartForRoot(nodeOrId) {
     activeRootId.value = id;
     pageMode.value = 'chart';
 }
-
-function backToOverview() {
-    pageMode.value = 'overview';
-}
 </script>
 
 <template>
@@ -163,59 +154,13 @@ function backToOverview() {
     <template #header>
       <PageHeader
         title="Quản lý team"
-        :subtitle="pageSubtitle"
         icon="org-teams"
         icon-color="brand"
-        :badge="trees.length > 1 ? trees.length : null"
       >
         <div class="flex shrink-0 flex-wrap items-center gap-2">
-          <div
-            v-if="trees.length"
-            class="flex rounded-btn bg-slate-100 p-0.5"
-            role="tablist"
-            aria-label="Chế độ trang"
-          >
-            <button
-              type="button"
-              role="tab"
-              class="rounded px-3 py-1.5 text-xs font-medium transition-colors"
-              :class="pageMode === 'overview'
-                ? 'bg-white text-slate-800 shadow-sm'
-                : 'text-slate-500 hover:text-slate-700'"
-              :aria-selected="pageMode === 'overview'"
-              @click="pageMode = 'overview'"
-            >
-              Tổng quan
-            </button>
-            <button
-              type="button"
-              role="tab"
-              class="rounded px-3 py-1.5 text-xs font-medium transition-colors"
-              :class="pageMode === 'chart'
-                ? 'bg-white text-slate-800 shadow-sm'
-                : 'text-slate-500 hover:text-slate-700'"
-              :aria-selected="pageMode === 'chart'"
-              @click="pageMode = 'chart'"
-            >
-              Sơ đồ
-            </button>
-            <button
-              v-if="can.create"
-              type="button"
-              role="tab"
-              class="rounded px-3 py-1.5 text-xs font-medium transition-colors"
-              :class="pageMode === 'edit'
-                ? 'bg-white text-slate-800 shadow-sm'
-                : 'text-slate-500 hover:text-slate-700'"
-              :aria-selected="pageMode === 'edit'"
-              @click="pageMode = 'edit'"
-            >
-              Chỉnh sửa
-            </button>
-          </div>
           <Link
             href="/org-teams/members"
-            class="btn-secondary flex items-center gap-1.5 text-sm"
+            class="btn-secondary flex h-9 items-center gap-1.5 px-3 text-xs"
           >
             <AppIcon
               name="members"
@@ -226,7 +171,7 @@ function backToOverview() {
           <button
             v-if="can.create"
             type="button"
-            class="btn-primary flex items-center gap-1.5 text-sm"
+            class="btn-primary flex h-9 items-center gap-1.5 px-3 text-xs"
             @click="openCreateRoot()"
           >
             <AppIcon
@@ -238,6 +183,29 @@ function backToOverview() {
         </div>
       </PageHeader>
     </template>
+
+    <div
+      v-if="trees.length"
+      class="mb-4 flex flex-wrap items-center gap-3"
+    >
+      <DatagridSegmentedControl
+        v-model="pageMode"
+        :items="modeItems"
+        aria-label="Chế độ trang quản lý team"
+      />
+      <p
+        v-if="pageMode === 'chart'"
+        class="text-[11px] text-slate-500"
+      >
+        Bấm thẻ nhân sự trên sơ đồ để xem chi tiết.
+      </p>
+      <p
+        v-else-if="pageMode === 'edit' && can.create"
+        class="text-[11px] text-slate-500"
+      >
+        Thêm nhóm con trên thẻ nhóm, hoặc «Thêm Ban/Khối» để tạo team gốc mới.
+      </p>
+    </div>
 
     <div
       v-if="!trees.length"
@@ -269,58 +237,9 @@ function backToOverview() {
 
     <div
       v-else-if="pageMode === 'overview'"
-      class="space-y-6"
+      class="space-y-5"
     >
-      <div class="grid gap-3 sm:grid-cols-3">
-        <div class="card flex items-center gap-4 px-5 py-4">
-          <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-brand/10 text-brand">
-            <AppIcon
-              name="org-teams"
-              :size="22"
-            />
-          </span>
-          <div>
-            <p class="text-xs font-medium text-slate-500">
-              Ban / Khối
-            </p>
-            <p class="font-display text-2xl font-bold tabular-nums text-slate-900">
-              {{ forestStats.rootCount }}
-            </p>
-          </div>
-        </div>
-        <div class="card flex items-center gap-4 px-5 py-4">
-          <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
-            <AppIcon
-              name="members"
-              :size="22"
-            />
-          </span>
-          <div>
-            <p class="text-xs font-medium text-slate-500">
-              Tổng nhóm (cây)
-            </p>
-            <p class="font-display text-2xl font-bold tabular-nums text-slate-900">
-              {{ forestStats.teamCount }}
-            </p>
-          </div>
-        </div>
-        <div class="card flex items-center gap-4 px-5 py-4">
-          <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
-            <AppIcon
-              name="member-profiles"
-              :size="22"
-            />
-          </span>
-          <div>
-            <p class="text-xs font-medium text-slate-500">
-              Thành viên
-            </p>
-            <p class="font-display text-2xl font-bold tabular-nums text-slate-900">
-              {{ forestStats.peopleCount }}
-            </p>
-          </div>
-        </div>
-      </div>
+      <OrgTeamForestSummaryBar :stats="forestStats" />
 
       <div
         v-if="trees.length > 3"
@@ -335,104 +254,83 @@ function backToOverview() {
         />
       </div>
 
-      <div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-        <OrgTeamRootCard
-          v-for="root in filteredOverviewRoots"
-          :key="root.id"
-          :node="root"
-          :active="activeRootId === root.id"
-          @select="openChartForRoot"
-          @edit="openEdit"
-        />
+      <div>
+        <p class="mb-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+          Danh sách Ban / Khối
+        </p>
+        <div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          <OrgTeamRootCard
+            v-for="root in filteredOverviewRoots"
+            :key="root.id"
+            :node="root"
+            :active="activeRootId === root.id"
+            @select="openChartForRoot"
+            @edit="openEdit"
+          />
+        </div>
+        <p
+          v-if="!filteredOverviewRoots.length"
+          class="py-8 text-center text-sm text-slate-500"
+        >
+          Không có team nào khớp tìm kiếm.
+        </p>
       </div>
-      <p
-        v-if="!filteredOverviewRoots.length"
-        class="py-8 text-center text-sm text-slate-500"
-      >
-        Không có team nào khớp tìm kiếm.
-      </p>
     </div>
 
     <div
-      v-else
+      v-else-if="activeRoot"
       class="space-y-4"
     >
-      <p
-        v-if="pageMode === 'chart'"
-        class="text-xs text-slate-500"
-      >
-        Bấm vào thẻ thành viên để xem chi tiết. Dùng sidebar hoặc tab «Tổng quan» khi có nhiều Ban/Khối.
-      </p>
-      <p
-        v-else-if="can.create"
-        class="text-xs text-slate-500"
-      >
-        Chế độ chỉnh sửa — thêm nhóm con trên thẻ nhóm, hoặc «Thêm Ban/Khối» để tạo team độc lập mới.
-      </p>
-
       <div
-        class="flex flex-col gap-4 lg:flex-row lg:items-start"
-        :class="{ 'lg:gap-6': useSidebarNav }"
+        v-if="trees.length > 1"
+        class="flex flex-wrap gap-2"
+        role="tablist"
+        aria-label="Chọn Ban/Khối"
       >
-        <OrgTeamRootSidebar
-          v-if="useSidebarNav"
-          :trees="trees"
-          :active-id="activeRoot?.id ?? null"
-          @select="activeRootId = $event"
-          @back-overview="backToOverview"
-        />
-
-        <section
-          v-if="activeRoot"
-          :key="`${activeRoot.id}-${pageMode}`"
-          class="min-w-0 flex-1 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm"
+        <button
+          v-for="root in trees"
+          :key="root.id"
+          type="button"
+          role="tab"
+          class="rounded-full border px-3 py-1.5 text-xs font-medium transition-colors"
+          :class="activeRoot?.id === root.id
+            ? 'border-brand/30 bg-brand text-white shadow-sm'
+            : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'"
+          :aria-selected="activeRoot?.id === root.id"
+          @click="activeRootId = root.id"
         >
-          <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-gradient-to-r from-slate-50/80 to-white px-4 py-3 sm:px-5">
-            <div class="min-w-0">
-              <p class="text-[10px] font-semibold uppercase tracking-wide text-brand/70">
-                {{ activeRoot.level === 1 ? 'Ban / Khối' : 'Nhóm' }}
-              </p>
-              <p class="font-display truncate text-lg font-bold text-slate-900">
-                {{ activeRoot.name }}
-              </p>
-            </div>
-            <div
-              v-if="!useSidebarNav && trees.length > 1"
-              class="flex flex-wrap gap-2"
-              role="tablist"
-              aria-label="Chọn Ban/Khối"
-            >
-              <button
-                v-for="root in trees"
-                :key="root.id"
-                type="button"
-                role="tab"
-                class="rounded-full border px-3 py-1.5 text-xs font-medium transition-colors"
-                :class="activeRoot?.id === root.id
-                  ? 'border-brand/30 bg-brand text-white shadow-sm'
-                  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'"
-                :aria-selected="activeRoot?.id === root.id"
-                @click="activeRootId = root.id"
-              >
-                {{ root.name }}
-              </button>
-            </div>
-          </div>
-          <div class="overflow-x-auto px-3 py-6 sm:px-6">
-            <ul class="org-tree org-tree--root flex min-w-min justify-center">
-              <OrgTeamChart
-                :node="activeRoot"
-                :edit-mode="pageMode === 'edit'"
-                :can-manage="!!can.create"
-                @edit="openEdit"
-                @add-child="onAddChild"
-                @delete="onDelete"
-                @select-person="onSelectPerson"
-              />
-            </ul>
-          </div>
-        </section>
+          {{ root.name }}
+        </button>
       </div>
+
+      <section
+        :key="`${activeRoot.id}-${pageMode}`"
+        class="min-w-0 overflow-hidden rounded-card border border-slate-200/80 bg-white shadow-sm"
+      >
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3 sm:px-5">
+          <div class="min-w-0">
+            <p class="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+              Sơ đồ · {{ activeRoot.level === 1 ? 'Ban / Khối' : 'Nhóm' }}
+            </p>
+            <p class="font-display truncate text-base font-semibold text-slate-900">
+              {{ activeRoot.name }}
+            </p>
+          </div>
+        </div>
+        <div class="overflow-x-auto px-3 py-6 sm:px-6">
+          <ul class="org-tree org-tree--root flex min-w-min justify-center">
+            <OrgTeamChart
+              :node="activeRoot"
+              :edit-mode="pageMode === 'edit'"
+              :can-manage="!!can.create"
+              @edit="openEdit"
+              @add-child="onAddChild"
+              @delete="onDelete"
+              @select-person="onSelectPerson"
+            />
+          </ul>
+        </div>
+      </section>
     </div>
 
     <OrgTeamFormModal

@@ -120,11 +120,9 @@ function onActivate() {
 }
 
 .org-person-node--leader {
-    border-color: rgb(154 0 54 / 0.35);
-    background: linear-gradient(180deg, #fff 0%, #fdf2f6 55%, #fff 100%);
-    box-shadow:
-        0 2px 8px rgb(154 0 54 / 0.1),
-        0 0 0 1px rgb(154 0 54 / 0.08);
+    border-color: rgb(154 0 54 / 0.28);
+    background: #fff;
+    box-shadow: 0 1px 3px rgb(15 23 42 / 0.06);
 }
 
 .org-person-node__badge {
@@ -139,7 +137,8 @@ function onActivate() {
     letter-spacing: 0.04em;
     text-transform: uppercase;
     color: #9a0036;
-    background: rgb(154 0 54 / 0.1);
+    background: #fff;
+    border: 1px solid rgb(154 0 54 / 0.2);
     border-radius: 999px;
 }
 

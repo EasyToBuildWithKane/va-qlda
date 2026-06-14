@@ -9,6 +9,7 @@ import Badge from '@/shared/ui/Badge.vue';
 import EmptyState from '@/shared/ui/EmptyState.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
+import OrgTeamMembersSummaryBar from '@/modules/people/components/OrgTeamMembersSummaryBar.vue';
 
 const FILTER_CONTROL_CLASS = 'input h-10 w-full text-sm';
 
@@ -78,6 +79,10 @@ function setStatus(val) {
     load(true);
 }
 
+function onSummaryStatus(status) {
+    setStatus(status);
+}
+
 function onPerPageChange(val) {
     perPage.value = val;
     load(true);
@@ -91,14 +96,13 @@ function onPerPageChange(val) {
     <template #header>
       <PageHeader
         title="Thành viên phòng"
-        :subtitle="`${summary.total} người trong sơ đồ team · ${filteredCount} sau lọc`"
         icon="members"
         icon-color="brand"
         :badge="summary.total"
       >
         <Link
           href="/org-teams"
-          class="btn-secondary flex items-center gap-1.5 text-sm"
+          class="btn-secondary flex h-9 items-center gap-1.5 px-3 text-xs"
         >
           <AppIcon
             name="org-teams"
@@ -110,56 +114,11 @@ function onPerPageChange(val) {
     </template>
 
     <div class="space-y-4">
-      <div class="grid gap-3 sm:grid-cols-3">
-        <div class="card flex items-center gap-3 px-4 py-3">
-          <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-brand/10 text-brand">
-            <AppIcon
-              name="members"
-              :size="20"
-            />
-          </span>
-          <div>
-            <p class="text-xs text-slate-500">
-              Tổng trong sơ đồ
-            </p>
-            <p class="font-display text-xl font-bold tabular-nums text-slate-900">
-              {{ summary.total }}
-            </p>
-          </div>
-        </div>
-        <div class="card flex items-center gap-3 px-4 py-3">
-          <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-700">
-            <AppIcon
-              name="member-profiles"
-              :size="20"
-            />
-          </span>
-          <div>
-            <p class="text-xs text-slate-500">
-              Trưởng nhóm
-            </p>
-            <p class="font-display text-xl font-bold tabular-nums text-slate-900">
-              {{ summary.leaders }}
-            </p>
-          </div>
-        </div>
-        <div class="card flex items-center gap-3 px-4 py-3">
-          <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
-            <AppIcon
-              name="check-circle"
-              :size="20"
-            />
-          </span>
-          <div>
-            <p class="text-xs text-slate-500">
-              Đang hoạt động
-            </p>
-            <p class="font-display text-xl font-bold tabular-nums text-slate-900">
-              {{ summary.active }}
-            </p>
-          </div>
-        </div>
-      </div>
+      <OrgTeamMembersSummaryBar
+        :summary="summary"
+        :active-status="filterForm.status"
+        @filter-status="onSummaryStatus"
+      />
 
       <div class="card overflow-hidden">
         <div class="border-b border-slate-100 px-4 py-4 sm:px-5">
