@@ -14,6 +14,7 @@ import {
     Save, Check, ArrowUpDown, CalendarClock, Users2, CircleDollarSign, Image, Ellipsis, EllipsisVertical,
     EyeOff, Send, Mail,
     GripVertical,
+    Menu,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -127,7 +128,8 @@ const map = {
     'calendar-clock': CalendarClock,
     people: Users2,
     money: CircleDollarSign,
-    menu: Ellipsis,
+    menu: Menu,
+    'menu-hamburger': Menu,
     'more-horizontal': Ellipsis,
     'more-vertical': EllipsisVertical,
     'grip-vertical': GripVertical,

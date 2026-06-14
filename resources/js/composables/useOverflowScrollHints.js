@@ -3,9 +3,10 @@ import { nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 /**
  * Theo dõi vùng scroll: hiện gợi ý fade trên/dưới khi còn nội dung ẩn.
  * @param {import('vue').WatchSource[]} refreshDeps — đổi layout (nav, collapse…) → đo lại
+ * @param {import('vue').Ref<HTMLElement|null>} [externalScrollEl] — phần tử cuộn (nếu gán từ component con)
  */
-export function useOverflowScrollHints(refreshDeps = []) {
-    const scrollEl = ref(null);
+export function useOverflowScrollHints(refreshDeps = [], externalScrollEl = null) {
+    const scrollEl = externalScrollEl ?? ref(null);
     const edges = reactive({ top: false, bottom: false });
 
     const refresh = () => {

@@ -83,13 +83,15 @@ resources/js/
 
 ```
 AppLayout.vue
-├── Sidebar (role-filtered nav)
+├── AppSidebar + AppSidebarMobileDrawer (`Components/Layout/`, `composables/useAppSidebar.js`)
 ├── NotificationBell + NotificationCenterDrawer
 ├── UserMenu (modules/project/components/UserMenu.vue)
 ├── <slot> → Inertia Page
 ├── ToastContainer → shared/composables/useToast
 └── AppDialog → useDialog
 ```
+
+**Sidebar UX (2026-06):** Desktop `lg+` — expanded (`w-72`) hoặc rail (`w-[4.25rem]`), tooltip + flyout nhóm khi rail; `< lg` — drawer trái (hamburger topbar, overlay, vuốt đóng). Trạng thái rail/nhóm: `localStorage` (`va-qlda.sidebar.rail`, `va-qlda.sidebar.collapsed`).
 
 ---
 
@@ -114,6 +116,10 @@ Pages import feature components từ `@/modules/project/components/...` và prim
 ### 6.1 UI Primitives — `Components/Ui/`
 
 `Modal.vue`, `Drawer.vue`, `AppDialog.vue`, `ToastContainer.vue`, `PageHeader.vue`
+
+### 6.1b App shell — `Components/Layout/`
+
+`AppSidebar.vue`, `AppSidebarBrand.vue`, `AppSidebarExpandedNav.vue`, `AppSidebarRailNav.vue`, `AppSidebarRailFlyout.vue`, `AppSidebarRailTooltip.vue`, `AppSidebarFooter.vue`, `AppSidebarMobileDrawer.vue` — dùng bởi `Layouts/AppLayout.vue`; logic nav/active/collapse: `composables/useAppSidebar.js`.
 
 ### 6.2 Shared UI — `shared/ui/`
 
