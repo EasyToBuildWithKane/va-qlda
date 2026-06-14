@@ -61,7 +61,7 @@ Module dùng **vai trò mở rộng** (lưu trên `system_accounts` hoặc pivot
 
 **Khách Google (whitelist):** email trong `va.google_allowed_emails` → chỉ thấy nav Coaching, home `/coaching` (`CoachingOnlyAccess`).
 
-Quyền xuất: Excel styled qua composable `useCoachingExport.js` (dashboard tháng); danh sách buổi — CSV/Excel client qua `GET coaching.sessions.export` (JSON ≤500 dòng) + `useCoachingSessionList` / `useCoachingExport`.
+Quyền xuất: Excel styled qua composable `useCoachingExport.js` (dashboard tháng); danh sách buổi — CSV/Excel client qua `GET coaching.sessions.export` (JSON ≤500 dòng, kèm tài liệu/bài tập chi tiết) + `useCoachingSessionList` / `useCoachingExport` (workbook: Tổng quan, Tóm tắt tháng, Theo tháng, Theo ngày, Danh sách, Theo khóa).
 
 ---
 

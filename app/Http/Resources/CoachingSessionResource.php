@@ -45,6 +45,8 @@ class CoachingSessionResource extends JsonResource
                 'id' => $this->course->id,
                 'name' => $this->course->name,
                 'code' => $this->course->code,
+                'student_display' => $this->course->student_name ?: $this->course->student?->full_name,
+                'coach_display' => $this->course->coach_name ?: $this->course->coach?->full_name,
             ]),
             'materials' => $this->whenLoaded('materials', fn () => $this->materials->map(fn ($m) => [
                 'id' => $m->id,

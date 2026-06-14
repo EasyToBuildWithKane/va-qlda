@@ -15,7 +15,14 @@ class CoachingSessionIndexQuery
     public static function for(Request $request, SystemAccount $account): Builder
     {
         $query = CoachingSessionScope::forAccount($account)
-            ->with(['course:id,name,code,student_id,coach_id'])
+            ->with([
+                'course' => fn ($q) => $q
+                    ->select('id', 'name', 'code', 'student_name', 'coach_name', 'student_id', 'coach_id')
+                    ->with([
+                        'student:id,full_name',
+                        'coach:id,full_name',
+                    ]),
+            ])
             ->join('coaching_courses as coaching_courses_sort', 'coaching_courses_sort.id', '=', 'coaching_sessions.course_id')
             ->select('coaching_sessions.*')
             ->withCount(['materials', 'assignments'])

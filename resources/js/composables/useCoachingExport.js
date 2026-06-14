@@ -1,5 +1,5 @@
 import XLSX from 'xlsx-js-style';
-import { datetime } from '@/composables/useFormat';
+import { datetime, dateFromYmd } from '@/composables/useFormat';
 
 const BRAND = '9A0036';
 const BRAND_SOFT = 'FDF2F6';
@@ -266,9 +266,74 @@ export function exportCoachingCoursesWorkbook({ courses, filters = {} }) {
 }
 
 const SESSION_HEADERS = [
-    'STT buổi', 'Tên buổi', 'Mã khóa', 'Tên khóa', 'Ngày', 'Giờ bắt đầu', 'Giờ kết thúc',
-    'Tổng giờ', 'Trạng thái', 'Chủ đề', 'Số tài liệu', 'Số bài tập', 'Ghi chú ngắn',
+    'STT buổi', 'Tên buổi', 'Mã khóa', 'Tên khóa', 'Học viên', 'Coach', 'Tháng', 'Ngày', 'Thứ',
+    'Giờ bắt đầu', 'Giờ kết thúc', 'Tổng giờ', 'Trạng thái', 'Chủ đề', 'Nội dung',
+    'Tài liệu (chi tiết)', 'Bài tập (chi tiết)', 'Ghi chú',
 ];
+
+const COL_TOTAL_HOURS = SESSION_HEADERS.indexOf('Tổng giờ');
+
+function truncateText(val, max = 480) {
+    if (val == null || val === '') return '';
+    const s = String(val).replace(/\s+/g, ' ').trim();
+    return s.length > max ? `${s.slice(0, max)}…` : s;
+}
+
+function sessionMonthLabel(dateYmd) {
+    if (!dateYmd) return 'Chưa lên lịch';
+    const m = /^(\d{4})-(\d{2})/.exec(String(dateYmd));
+    if (!m) return 'Chưa lên lịch';
+    return `Tháng ${m[2]}/${m[1]}`;
+}
+
+function sessionMonthKey(dateYmd) {
+    if (!dateYmd) return '0000-00';
+    const m = /^(\d{4}-\d{2})/.exec(String(dateYmd));
+    return m ? m[1] : '0000-00';
+}
+
+function sessionWeekdayLabel(dateYmd) {
+    const d = dateFromYmd(dateYmd);
+    if (!d) return '—';
+    return d.toLocaleDateString('vi-VN', { weekday: 'long' });
+}
+
+function formatMaterialsDetail(s) {
+    if (Array.isArray(s.materials) && s.materials.length) {
+        return s.materials.map((m) => {
+            const type = m.type_label ?? m.type ?? '';
+            const title = m.title ?? 'Không tên';
+            return type ? `${title} (${type})` : title;
+        }).join('; ');
+    }
+    const n = s.materials_count ?? s.materials?.length;
+    if (n != null && n > 0) return `${n} mục (chưa tải chi tiết — dùng «Excel · theo lọc»)`;
+    return 'Chưa có tài liệu';
+}
+
+function formatAssignmentsDetail(s) {
+    if (Array.isArray(s.assignments) && s.assignments.length) {
+        return s.assignments.map((a) => {
+            const st = a.status ? `[${a.status}]` : '';
+            return `${a.title ?? 'Bài tập'}${st ? ` ${st}` : ''}`;
+        }).join('; ');
+    }
+    const n = s.assignments_count ?? s.assignments?.length;
+    if (n != null && n > 0) return `${n} bài (chưa tải chi tiết — dùng «Excel · theo lọc»)`;
+    return 'Chưa có bài tập';
+}
+
+function sortSessionsForExport(sessions) {
+    return [...sessions].sort((a, b) => {
+        const da = a.date ?? '9999-12-31';
+        const db = b.date ?? '9999-12-31';
+        if (da !== db) return da.localeCompare(db);
+        const ca = a.course?.name ?? '';
+        const cb = b.course?.name ?? '';
+        if (ca !== cb) return ca.localeCompare(cb, 'vi');
+        return (a.session_number ?? 0) - (b.session_number ?? 0);
+    });
+}
 
 function sessionDisplay(val, empty = 'Chưa có') {
     if (val == null || val === '') return empty;
@@ -276,21 +341,24 @@ function sessionDisplay(val, empty = 'Chưa có') {
 }
 
 function sessionRow(s) {
-    const matCount = s.materials_count ?? s.materials?.length;
-    const assignCount = s.assignments_count ?? s.assignments?.length;
     return [
         s.session_number ?? '',
         s.title ?? '',
         s.course?.code ?? '',
         s.course?.name ?? '',
-        s.date ?? '',
+        sessionDisplay(s.course?.student_display, '—'),
+        sessionDisplay(s.course?.coach_display, '—'),
+        sessionMonthLabel(s.date),
+        s.date ?? 'Chưa lên lịch',
+        sessionWeekdayLabel(s.date),
         s.start_time ?? '',
         s.end_time ?? '',
         s.total_hours ?? '',
         s.status?.label ?? '',
         sessionDisplay(s.topic, 'Chưa có chủ đề'),
-        matCount != null && matCount > 0 ? matCount : 'Chưa có tài liệu',
-        assignCount != null && assignCount > 0 ? assignCount : 'Chưa có bài tập',
+        truncateText(s.content),
+        formatMaterialsDetail(s),
+        formatAssignmentsDetail(s),
         sessionDisplay(s.notes, 'Chưa có ghi chú'),
     ];
 }
@@ -378,61 +446,83 @@ function buildSessionsOverviewSheet({ summary, filters, scopeLabel, exportedCoun
     return ws;
 }
 
+function writeSessionTableRows(ws, startRow, sessions) {
+    let row = startRow;
+    sessions.forEach((session, ri) => {
+        const full = sessionRow(session);
+        const alt = ri % 2 === 1;
+        full.forEach((val, c) => {
+            const isHours = c === COL_TOTAL_HOURS && typeof val === 'number';
+            setCell(ws, row, c, val, isHours ? S.hours(alt) : S.cell(alt));
+        });
+        row += 1;
+    });
+    return row;
+}
+
+function sessionSheetColWidths() {
+    return [
+        { wch: 8 }, { wch: 26 }, { wch: 12 }, { wch: 22 }, { wch: 18 }, { wch: 18 },
+        { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 10 }, { wch: 10 }, { wch: 10 },
+        { wch: 14 }, { wch: 22 }, { wch: 28 }, { wch: 32 }, { wch: 32 }, { wch: 22 },
+    ];
+}
+
 function buildSessionsDataSheet(sessions) {
     const ws = {};
     let row = 0;
     SESSION_HEADERS.forEach((h, c) => setCell(ws, row, c, h, S.header));
     row += 1;
-
-    sessions.forEach((session, ri) => {
-        const full = sessionRow(session);
-        const alt = ri % 2 === 1;
-        full.forEach((val, c) => {
-            const isHours = c === 7 && typeof val === 'number';
-            setCell(ws, row, c, val, isHours ? S.hours(alt) : S.cell(alt));
-        });
-        row += 1;
-    });
+    row = writeSessionTableRows(ws, row, sortSessionsForExport(sessions));
 
     ws['!ref'] = XLSX.utils.encode_range({
         s: { r: 0, c: 0 },
         e: { r: Math.max(row, 1), c: SESSION_HEADERS.length - 1 },
     });
-    ws['!cols'] = [
-        { wch: 8 }, { wch: 28 }, { wch: 12 }, { wch: 24 }, { wch: 12 },
-        { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 14 }, { wch: 24 },
-        { wch: 14 }, { wch: 14 }, { wch: 20 },
-    ];
+    ws['!cols'] = sessionSheetColWidths();
     return ws;
 }
 
-function buildSessionsByCourseSheet(sessions) {
-    const ws = {};
-    let row = 0;
+function groupSessions(sessions, keyFn) {
     const groups = new Map();
     sessions.forEach((s) => {
-        const key = s.course?.code ?? 'NA';
+        const key = keyFn(s);
         if (!groups.has(key)) {
-            groups.set(key, { label: s.course ? `${s.course.code} — ${s.course.name}` : 'Chưa gán khóa', items: [] });
+            groups.set(key, { key, items: [] });
         }
         groups.get(key).items.push(s);
     });
+    return groups;
+}
 
-    [...groups.values()].sort((a, b) => a.label.localeCompare(b.label, 'vi')).forEach((group) => {
-        setCell(ws, row, 0, group.label, S.section);
+function groupStats(items) {
+    const hours = items.reduce((sum, s) => sum + (Number(s.total_hours) || 0), 0);
+    const completed = items.filter((s) => s.status?.value === 'completed').length;
+    return { count: items.length, hours, completed };
+}
+
+function buildSessionsGroupedSheet(sessions, { keyFn, labelFn, sortKeys }) {
+    const ws = {};
+    let row = 0;
+    const groups = groupSessions(sessions, keyFn);
+    const keys = sortKeys([...groups.keys()]);
+
+    keys.forEach((key) => {
+        const group = groups.get(key);
+        const stats = groupStats(group.items);
+        const label = labelFn(key, group);
+        setCell(
+            ws,
+            row,
+            0,
+            `${label} · ${stats.count} buổi · ${stats.completed} hoàn thành · ${stats.hours.toFixed(1)} giờ`,
+            S.section,
+        );
         mergeRow(ws, row, 0, SESSION_HEADERS.length - 1);
         row += 1;
         SESSION_HEADERS.forEach((h, c) => setCell(ws, row, c, h, S.header));
         row += 1;
-        group.items.forEach((session, ri) => {
-            const full = sessionRow(session);
-            const alt = ri % 2 === 1;
-            full.forEach((val, c) => {
-                const isHours = c === 7 && typeof val === 'number';
-                setCell(ws, row, c, val, isHours ? S.hours(alt) : S.cell(alt));
-            });
-            row += 1;
-        });
+        row = writeSessionTableRows(ws, row, sortSessionsForExport(group.items));
         row += 1;
     });
 
@@ -440,7 +530,58 @@ function buildSessionsByCourseSheet(sessions) {
         s: { r: 0, c: 0 },
         e: { r: Math.max(row, 1), c: SESSION_HEADERS.length - 1 },
     });
+    ws['!cols'] = sessionSheetColWidths();
     return ws;
+}
+
+function buildSessionsMonthlySummarySheet(sessions) {
+    const ws = {};
+    let row = 0;
+    setCell(ws, row, 0, 'Tóm tắt theo tháng', S.title);
+    mergeRow(ws, row, 0, 6);
+    row += 2;
+
+    const headers = ['Tháng', 'Số buổi', 'Hoàn thành', 'Đang học', 'Chưa học', 'Đã hủy', 'Tổng giờ'];
+    headers.forEach((h, c) => setCell(ws, row, c, h, S.header));
+    row += 1;
+
+    const groups = groupSessions(sessions, (s) => sessionMonthKey(s.date));
+    const keys = [...groups.keys()].sort((a, b) => b.localeCompare(a));
+
+    keys.forEach((key, i) => {
+        const items = groups.get(key).items;
+        const alt = i % 2 === 1;
+        const completed = items.filter((s) => s.status?.value === 'completed').length;
+        const inProgress = items.filter((s) => s.status?.value === 'in_progress').length;
+        const pending = items.filter((s) => s.status?.value === 'pending').length;
+        const cancelled = items.filter((s) => s.status?.value === 'cancelled').length;
+        const hours = items.reduce((sum, s) => sum + (Number(s.total_hours) || 0), 0);
+        const monthLabel = key === '0000-00' ? 'Chưa lên lịch' : sessionMonthLabel(`${key}-01`);
+
+        setCell(ws, row, 0, monthLabel, S.cell(alt));
+        setCell(ws, row, 1, items.length, S.cell(alt));
+        setCell(ws, row, 2, completed, S.cell(alt));
+        setCell(ws, row, 3, inProgress, S.cell(alt));
+        setCell(ws, row, 4, pending, S.cell(alt));
+        setCell(ws, row, 5, cancelled, S.cell(alt));
+        setCell(ws, row, 6, hours, S.hours(alt));
+        row += 1;
+    });
+
+    ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: Math.max(row, 1), c: 6 } });
+    ws['!cols'] = [{ wch: 18 }, { wch: 10 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 12 }];
+    return ws;
+}
+
+function buildSessionsByCourseSheet(sessions) {
+    return buildSessionsGroupedSheet(sessions, {
+        keyFn: (s) => s.course?.code ?? 'NA',
+        labelFn: (key, group) => {
+            const s = group.items[0];
+            return s?.course ? `${s.course.code} — ${s.course.name}` : 'Chưa gán khóa';
+        },
+        sortKeys: (keys) => keys.sort((a, b) => a.localeCompare(b, 'vi')),
+    });
 }
 
 /**
@@ -458,6 +599,23 @@ export function exportCoachingSessionsWorkbook({
         buildSessionsOverviewSheet({ summary, filters, scopeLabel, exportedCount: sessions.length }),
         'Tong quan',
     );
+    if (sessions.length > 0) {
+        XLSX.utils.book_append_sheet(wb, buildSessionsMonthlySummarySheet(sessions), 'Tom tat thang');
+        XLSX.utils.book_append_sheet(wb, buildSessionsGroupedSheet(sessions, {
+            keyFn: (s) => sessionMonthKey(s.date),
+            labelFn: (key) => (key === '0000-00' ? 'Chưa lên lịch' : sessionMonthLabel(`${key}-01`)),
+            sortKeys: (keys) => keys.sort((a, b) => b.localeCompare(a)),
+        }), 'Theo thang');
+        XLSX.utils.book_append_sheet(wb, buildSessionsGroupedSheet(sessions, {
+            keyFn: (s) => s.date ?? '__unscheduled__',
+            labelFn: (key) => (key === '__unscheduled__' ? 'Chưa lên lịch' : `${key} · ${sessionWeekdayLabel(key)}`),
+            sortKeys: (keys) => keys.sort((a, b) => {
+                if (a === '__unscheduled__') return 1;
+                if (b === '__unscheduled__') return -1;
+                return b.localeCompare(a);
+            }),
+        }), 'Theo ngay');
+    }
     XLSX.utils.book_append_sheet(wb, buildSessionsDataSheet(sessions), 'Danh sach');
     if (sessions.length > 0) {
         XLSX.utils.book_append_sheet(wb, buildSessionsByCourseSheet(sessions), 'Theo khoa');

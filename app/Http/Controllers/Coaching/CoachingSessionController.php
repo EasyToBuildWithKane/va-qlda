@@ -87,7 +87,10 @@ class CoachingSessionController extends Controller
         $query = CoachingSessionIndexQuery::for($request, $request->user());
         $totalMatching = (clone $query)->count('coaching_sessions.id');
         $limit = 500;
-        $sessions = (clone $query)->limit($limit)->get();
+        $sessions = (clone $query)
+            ->with(['materials', 'assignments'])
+            ->limit($limit)
+            ->get();
 
         return response()->json([
             'data' => CoachingSessionResource::collection($sessions)->resolve(),

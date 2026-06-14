@@ -15,15 +15,11 @@ const emit = defineEmits(['toggle-group', 'update-status', 'detail', 'delete']);
 </script>
 
 <template>
-  <div
-    class="flex min-h-0 flex-col divide-y divide-slate-100"
-    :class="groups.length === 1 ? 'min-h-0 flex-1' : ''"
-  >
+  <div class="flex flex-col divide-y divide-slate-100">
     <section
       v-for="group in groups"
       :key="group.key"
-      class="flex min-h-0 flex-col"
-      :class="groups.length === 1 ? 'flex-1' : ''"
+      class="flex flex-col"
     >
       <button
         type="button"
@@ -64,7 +60,6 @@ const emit = defineEmits(['toggle-group', 'update-status', 'detail', 'delete']);
       <div
         v-if="isGroupExpanded(group.key)"
         class="grid grid-cols-1 gap-3 px-4 py-4 sm:grid-cols-2 sm:px-5 xl:grid-cols-3 2xl:grid-cols-4"
-        :class="groups.length === 1 ? 'min-h-0 flex-1 auto-rows-fr' : ''"
       >
         <CoachingSessionCard
           v-for="s in group.items"

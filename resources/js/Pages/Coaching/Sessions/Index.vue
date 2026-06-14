@@ -203,7 +203,7 @@ async function removeSession(s) {
 
 <template>
   <Head title="Danh sách buổi học" />
-  <AppLayout flush>
+  <AppLayout>
     <template #header>
       <PageHeader
         title="Danh sách buổi học"
@@ -237,9 +237,9 @@ async function removeSession(s) {
       </PageHeader>
     </template>
 
-    <div class="flex min-h-0 min-w-0 flex-1 flex-col p-4 sm:p-6">
-      <CoachingWorkspace class="flex min-h-0 min-w-0 flex-1 flex-col">
-        <section class="card flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+    <div class="min-w-0">
+      <CoachingWorkspace>
+        <section class="card min-w-0">
           <CoachingSessionsSummaryBar
             :summary="summary"
             :active-status="summaryActiveStatus"
@@ -365,7 +365,7 @@ async function removeSession(s) {
                   type="button"
                   class="inline-flex h-8 items-center gap-1 rounded-btn px-2.5 text-xs font-medium transition"
                   :class="viewMode === 'groups' ? 'bg-brand/10 text-brand' : 'text-slate-500 hover:text-slate-700'"
-                  title="Nhóm theo khóa (cuộn ngang)"
+                  title="Nhóm theo khóa"
                   @click="setViewMode('groups')"
                 >
                   <AppIcon
@@ -543,10 +543,7 @@ async function removeSession(s) {
             <div class="h-full w-1/3 animate-pulse bg-brand" />
           </div>
 
-          <div
-            class="min-h-0 flex-1 overflow-y-auto overflow-x-hidden"
-            :class="viewMode === 'groups' ? 'flex flex-col' : ''"
-          >
+          <div>
             <div
               v-if="!sessionRows.length"
               class="px-6 py-12 text-center text-sm text-slate-500"
@@ -563,7 +560,6 @@ async function removeSession(s) {
 
             <CoachingSessionsGroupView
               v-else-if="viewMode === 'groups'"
-              class="min-h-0 flex-1"
               :groups="groupedSessions"
               :status-options="options.statuses"
               :status-updating-ids="statusUpdating"
