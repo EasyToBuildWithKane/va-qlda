@@ -9,6 +9,7 @@ use App\Models\EmailTemplate;
 use App\Models\SystemAccount;
 use App\Models\SystemSetting;
 use App\Support\Enums\SystemRole;
+use App\Support\Mail\EmailTemplateDefaults;
 use App\Support\Navigation;
 use App\Support\Settings\SettingsRepository;
 use App\Support\Settings\SettingsSchema;
@@ -35,6 +36,7 @@ class SystemSettingController extends Controller
             'groups' => SettingsSchema::groups(),
             'settings' => $this->settingsPayload(),
             'emailTemplates' => $this->emailTemplatesPayload(),
+            'emailPreviewBrand' => (string) ($this->settings->get('email.from_name') ?: config('va.app_name', 'VAschools QLDA')),
             'permissions' => $this->permissionsPayload(),
             'can' => ['manage' => $request->user()->can('manage', SystemSetting::class)],
         ]);
@@ -63,6 +65,26 @@ class SystemSettingController extends Controller
         });
 
         return back()->with('success', 'Đã lưu mẫu email.');
+    }
+
+    public function resetEmailTemplate(Request $request, EmailTemplate $emailTemplate): RedirectResponse
+    {
+        $this->authorize('manage', SystemSetting::class);
+
+        $defaults = EmailTemplateDefaults::forKey($emailTemplate->key);
+        if ($defaults['subject'] === '' && $defaults['body_html'] === '') {
+            return back()->with('error', 'Không có mẫu mặc định cho loại email này.');
+        }
+
+        DB::transaction(function () use ($defaults, $emailTemplate, $request) {
+            $emailTemplate->update([
+                'subject' => $defaults['subject'],
+                'body_html' => $defaults['body_html'],
+                'updated_by' => $request->user()->id,
+            ]);
+        });
+
+        return back()->with('success', 'Đã khôi phục mẫu email chuẩn.');
     }
 
     public function update(UpdateSettingsRequest $request, string $group): RedirectResponse
@@ -121,7 +143,9 @@ class SystemSettingController extends Controller
                 'subject' => $t->subject,
                 'body_html' => $t->body_html,
                 'is_active' => $t->is_active,
-                'variables' => EmailTemplate::variableHints($t->key),
+                'variables' => EmailTemplate::variableMeta($t->key),
+                'default_subject' => EmailTemplateDefaults::forKey($t->key)['subject'],
+                'default_body_html' => EmailTemplateDefaults::forKey($t->key)['body_html'],
             ])
             ->all();
     }

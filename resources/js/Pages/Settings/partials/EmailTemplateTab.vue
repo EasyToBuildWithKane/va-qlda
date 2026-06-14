@@ -1,23 +1,26 @@
 <script setup>
-/* eslint-disable vue/no-v-html -- admin email template preview with sample placeholders */
 import { ref, computed, watch } from 'vue';
-import { useForm } from '@inertiajs/vue3';
+import { router, useForm } from '@inertiajs/vue3';
 import FieldsTab from './FieldsTab.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import Modal from '@/Components/Ui/Modal.vue';
 import ToggleSwitch from '@/shared/ui/form/ToggleSwitch.vue';
+import { useDialog } from '@/composables/useDialog';
+import { buildTemplatePreviewDocument } from '@/composables/useEmailTemplatePreview';
 
 const props = defineProps({
     title: { type: String, default: '' },
     description: { type: String, default: '' },
     emailFields: { type: Array, default: () => [] },
     emailTemplates: { type: Array, default: () => [] },
+    emailPreviewBrand: { type: String, default: 'VAschools QLDA' },
     canManage: { type: Boolean, default: false },
 });
 
+const dialog = useDialog();
 const selectedId = ref(props.emailTemplates[0]?.id ?? null);
-const previewOpen = ref(false);
-const previewHtml = ref('');
+const editorTab = ref('edit');
+const previewFullscreen = ref(false);
 
 const selectedTemplate = computed(() =>
     props.emailTemplates.find((t) => t.id === selectedId.value) ?? null,
@@ -46,6 +49,12 @@ watch(
     { immediate: true },
 );
 
+const livePreview = computed(() => buildTemplatePreviewDocument(
+    templateForm.subject,
+    templateForm.body_html,
+    props.emailPreviewBrand,
+));
+
 function saveTemplate() {
     const t = selectedTemplate.value;
     if (!t || !props.canManage) return;
@@ -55,39 +64,33 @@ function saveTemplate() {
     });
 }
 
-const sampleVars = {
-    assignee_name: 'Nguyễn Văn A',
-    task_name: 'Thiết kế màn hình Sprint',
-    project_name: 'Dự án mẫu',
-    sprint_name: 'Sprint 1',
-    due_date: '20/06/2026',
-    task_url: '#',
-    date: '14/06/2026',
-    task_count: '3',
-    tasks_table: '<p><em>[Bảng công việc]</em></p>',
-};
-
-function renderPreview(text) {
-    let out = text ?? '';
-    Object.entries(sampleVars).forEach(([key, val]) => {
-        out = out.split(`{{${key}}}`).join(val);
-    });
-    return out;
-}
-
-function openPreview() {
+async function resetTemplate() {
     const t = selectedTemplate.value;
-    if (!t) return;
-    previewHtml.value = renderPreview(t.body_html);
-    previewOpen.value = true;
+    if (!t || !props.canManage) return;
+    const ok = await dialog.confirm({
+        title: 'Khôi phục mẫu chuẩn?',
+        message: 'Nội dung hiện tại sẽ được thay bằng mẫu production mặc định của hệ thống.',
+        tone: 'warning',
+        confirmText: 'Khôi phục',
+    });
+    if (!ok) return;
+    router.post(route('settings.email-templates.reset', t.id), {}, { preserveScroll: true });
 }
 
 function variableToken(name) {
     return `{{${name}}}`;
 }
+
 function insertVariable(token) {
     if (!props.canManage) return;
     templateForm.body_html = `${templateForm.body_html}{{${token}}}`;
+}
+
+function applyDefaultToEditor() {
+    const t = selectedTemplate.value;
+    if (!t || !props.canManage) return;
+    templateForm.subject = t.default_subject ?? t.subject;
+    templateForm.body_html = t.default_body_html ?? t.body_html;
 }
 </script>
 
@@ -102,70 +105,114 @@ function insertVariable(token) {
     />
 
     <div class="border-t border-slate-100 pt-8">
-      <h3 class="text-[15px] font-semibold text-slate-800">
-        Mẫu email
-      </h3>
-      <p class="mt-0.5 text-[12.5px] text-slate-400">
-        Chỉnh tiêu đề và nội dung HTML; dùng biến dạng <code class="text-[11px]">&#123;&#123;tên_biến&#125;&#125;</code>.
-      </p>
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h3 class="text-[15px] font-semibold text-slate-800">
+            Mẫu email
+          </h3>
+          <p class="mt-0.5 max-w-2xl text-[12.5px] leading-relaxed text-slate-400">
+            Nội dung HTML là phần thân email; hệ thống tự bọc header/footer thương hiệu khi gửi.
+            Xem trước bên phải phản ánh đúng email người nhận nhận được.
+          </p>
+        </div>
+        <div class="flex rounded-lg border border-slate-200 p-0.5">
+          <button
+            type="button"
+            class="rounded-md px-3 py-1.5 text-xs font-medium transition"
+            :class="editorTab === 'edit' ? 'bg-brand text-white' : 'text-slate-500 hover:text-slate-800'"
+            @click="editorTab = 'edit'"
+          >
+            Chỉnh sửa
+          </button>
+          <button
+            type="button"
+            class="rounded-md px-3 py-1.5 text-xs font-medium transition"
+            :class="editorTab === 'preview' ? 'bg-brand text-white' : 'text-slate-500 hover:text-slate-800'"
+            @click="editorTab = 'preview'"
+          >
+            Xem trước
+          </button>
+        </div>
+      </div>
 
-      <div class="mt-4 flex flex-col gap-4 lg:flex-row">
-        <ul class="flex shrink-0 gap-2 overflow-x-auto lg:w-52 lg:flex-col lg:overflow-visible">
+      <div class="mt-5 flex flex-col gap-5 xl:flex-row">
+        <!-- Template picker -->
+        <ul class="flex shrink-0 gap-2 overflow-x-auto xl:w-56 xl:flex-col xl:overflow-visible">
           <li
             v-for="t in emailTemplates"
             :key="t.id"
           >
             <button
               type="button"
-              class="w-full rounded-card border px-3 py-2.5 text-left text-sm transition"
+              class="w-full rounded-card border px-3 py-3 text-left transition"
               :class="selectedId === t.id
-                ? 'border-brand/30 bg-brand/[0.06] font-medium text-brand'
-                : 'border-slate-100 hover:bg-slate-50 text-slate-700'"
+                ? 'border-brand/30 bg-brand/[0.06]'
+                : 'border-slate-100 hover:bg-slate-50'"
               @click="selectedId = t.id"
             >
-              {{ t.name }}
+              <span
+                class="block text-sm font-semibold"
+                :class="selectedId === t.id ? 'text-brand' : 'text-slate-800'"
+              >{{ t.name }}</span>
+              <span class="mt-0.5 block font-mono text-[10px] text-slate-400">{{ t.key }}</span>
             </button>
           </li>
         </ul>
 
         <div
           v-if="selectedTemplate"
-          class="min-w-0 flex-1 space-y-4 rounded-card border border-slate-100 p-4"
+          class="grid min-w-0 flex-1 gap-5 lg:grid-cols-2"
         >
-          <div class="flex flex-wrap items-center justify-between gap-2">
-            <span class="text-xs font-medium uppercase tracking-wide text-slate-400">{{ selectedTemplate.key }}</span>
-            <div class="flex items-center gap-2">
-              <span class="text-xs text-slate-500">Kích hoạt</span>
-              <ToggleSwitch
-                v-model="templateForm.is_active"
-                :disabled="!canManage"
-              />
+          <!-- Editor column -->
+          <div
+            v-show="editorTab === 'edit'"
+            class="space-y-4 rounded-card border border-slate-100 bg-white p-4 lg:block"
+            :class="editorTab !== 'edit' ? 'hidden' : ''"
+          >
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+              <span class="text-xs font-medium text-slate-500">Trạng thái gửi</span>
+              <div class="flex items-center gap-2">
+                <span class="text-xs text-slate-500">{{ templateForm.is_active ? 'Đang bật' : 'Tắt' }}</span>
+                <ToggleSwitch
+                  v-model="templateForm.is_active"
+                  :disabled="!canManage"
+                />
+              </div>
             </div>
-          </div>
 
-          <div>
-            <label class="mb-1 block text-sm font-medium text-slate-700">Tiêu đề</label>
-            <input
-              v-model="templateForm.subject"
-              type="text"
-              class="input w-full"
-              :disabled="!canManage"
-            >
-            <p
-              v-if="templateForm.errors.subject"
-              class="mt-1 text-xs text-rose-600"
-            >
-              {{ templateForm.errors.subject }}
-            </p>
-          </div>
+            <div>
+              <label class="mb-1 block text-sm font-medium text-slate-700">Tiêu đề email</label>
+              <input
+                v-model="templateForm.subject"
+                type="text"
+                class="input w-full"
+                :disabled="!canManage"
+                placeholder="[QLDA] …"
+              >
+              <p
+                v-if="templateForm.errors.subject"
+                class="mt-1 text-xs text-rose-600"
+              >
+                {{ templateForm.errors.subject }}
+              </p>
+            </div>
 
-          <div class="flex flex-col gap-4 xl:flex-row">
-            <div class="min-w-0 flex-1">
-              <label class="mb-1 block text-sm font-medium text-slate-700">Nội dung HTML</label>
+            <div>
+              <div class="mb-1 flex items-center justify-between gap-2">
+                <label class="text-sm font-medium text-slate-700">Nội dung (HTML)</label>
+                <button
+                  v-if="canManage"
+                  type="button"
+                  class="text-[11px] font-medium text-brand hover:underline"
+                  @click="applyDefaultToEditor"
+                >
+                  Dán mẫu chuẩn vào form
+                </button>
+              </div>
               <textarea
                 v-model="templateForm.body_html"
-                rows="14"
-                class="input w-full font-mono text-[12px] leading-relaxed"
+                rows="16"
+                class="input w-full font-mono text-[11.5px] leading-relaxed"
                 :disabled="!canManage"
               />
               <p
@@ -175,64 +222,125 @@ function insertVariable(token) {
                 {{ templateForm.errors.body_html }}
               </p>
             </div>
-            <aside class="shrink-0 xl:w-44">
-              <p class="mb-2 text-xs font-medium text-slate-500">
-                Biến gợi ý
+
+            <div class="rounded-lg border border-slate-100 bg-slate-50/80 p-3">
+              <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Biến động
               </p>
-              <div class="flex flex-wrap gap-1.5 xl:flex-col">
-                <button
+              <ul class="space-y-2">
+                <li
                   v-for="v in selectedTemplate.variables"
-                  :key="v"
-                  type="button"
-                  class="rounded border border-slate-200 bg-slate-50 px-2 py-1 text-left font-mono text-[11px] text-slate-600 hover:border-brand/30 hover:text-brand"
-                  :disabled="!canManage"
-                  @click="insertVariable(v)"
+                  :key="v.key"
+                  class="flex flex-wrap items-start justify-between gap-2 border-b border-slate-100/80 pb-2 last:border-0 last:pb-0"
                 >
-                  {{ variableToken(v) }}
-                </button>
-              </div>
-            </aside>
+                  <div class="min-w-0">
+                    <p class="text-xs font-medium text-slate-700">
+                      {{ v.label }}
+                    </p>
+                    <p class="text-[11px] text-slate-400">
+                      {{ v.hint }}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    class="shrink-0 rounded border border-slate-200 bg-white px-2 py-0.5 font-mono text-[10px] text-slate-600 hover:border-brand/40 hover:text-brand"
+                    :disabled="!canManage"
+                    @click="insertVariable(v.key)"
+                  >
+                    {{ variableToken(v.key) }}
+                  </button>
+                </li>
+              </ul>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
+              <button
+                type="button"
+                class="btn-primary"
+                :disabled="!canManage || templateForm.processing || !templateForm.isDirty"
+                @click="saveTemplate"
+              >
+                <AppIcon
+                  name="save"
+                  :size="16"
+                />
+                Lưu mẫu
+              </button>
+              <button
+                v-if="canManage"
+                type="button"
+                class="inline-flex h-9 items-center gap-1 rounded-btn border border-slate-200 px-3 text-xs font-medium text-slate-600 hover:bg-slate-50"
+                @click="resetTemplate"
+              >
+                <AppIcon
+                  name="refresh"
+                  :size="15"
+                />
+                Khôi phục chuẩn
+              </button>
+            </div>
           </div>
 
-          <div class="flex flex-wrap items-center gap-3 border-t border-slate-100 pt-4">
-            <button
-              type="button"
-              class="btn-primary"
-              :disabled="!canManage || templateForm.processing || !templateForm.isDirty"
-              @click="saveTemplate"
-            >
-              <AppIcon
-                name="save"
-                :size="16"
+          <!-- Preview column -->
+          <div
+            class="flex min-h-[28rem] flex-col rounded-card border border-slate-200 bg-slate-100/60 p-3"
+            :class="editorTab === 'preview' ? 'col-span-full lg:col-span-2' : ''"
+          >
+            <div class="mb-2 flex flex-wrap items-center justify-between gap-2 px-1">
+              <div class="min-w-0">
+                <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  Hộp thư — xem trước
+                </p>
+                <p class="truncate text-sm font-medium text-slate-800">
+                  {{ livePreview.subject || '(Chưa có tiêu đề)' }}
+                </p>
+                <p class="text-[11px] text-slate-400">
+                  Từ: {{ emailPreviewBrand }} · Dữ liệu mẫu
+                </p>
+              </div>
+              <button
+                type="button"
+                class="inline-flex h-8 items-center gap-1 rounded-btn border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
+                @click="previewFullscreen = true"
+              >
+                <AppIcon
+                  name="eye"
+                  :size="14"
+                />
+                Phóng to
+              </button>
+            </div>
+
+            <div class="min-h-0 flex-1 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+              <iframe
+                :srcdoc="livePreview.html"
+                title="Xem trước email"
+                class="h-full min-h-[24rem] w-full border-0 bg-white"
+                sandbox="allow-same-origin"
               />
-              Lưu mẫu
-            </button>
-            <button
-              type="button"
-              class="inline-flex h-9 items-center gap-1 rounded-btn border border-slate-200 px-3 text-xs font-medium text-slate-600 hover:bg-slate-50"
-              @click="openPreview"
-            >
-              <AppIcon
-                name="eye"
-                :size="15"
-              />
-              Xem trước
-            </button>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
     <Modal
-      :show="previewOpen"
-      title="Xem trước mẫu email"
-      max-width="max-w-2xl"
-      @close="previewOpen = false"
+      :show="previewFullscreen"
+      title="Xem trước email (toàn màn hình)"
+      max-width="max-w-4xl"
+      @close="previewFullscreen = false"
     >
-      <div
-        class="prose prose-sm max-w-none rounded border border-slate-100 bg-white p-4"
-        v-html="previewHtml"
-      />
+      <p class="mb-2 text-sm font-medium text-slate-700">
+        {{ livePreview.subject }}
+      </p>
+      <div class="overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+        <iframe
+          :srcdoc="livePreview.html"
+          title="Xem trước email phóng to"
+          class="h-[70vh] w-full border-0 bg-white"
+          sandbox="allow-same-origin"
+        />
+      </div>
     </Modal>
   </div>
 </template>

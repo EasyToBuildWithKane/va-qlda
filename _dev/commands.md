@@ -76,7 +76,10 @@ Config: `playwright.config.js` — test dir `tests/e2e/`, base URL `http://127.0
 
 | Command | Description |
 |---------|-------------|
-| `npm run test:e2e` | Run all E2E tests (headless Chromium) |
+| `npm run test:e2e` | Run E2E hành vi (project `chromium`, bỏ qua `smoke/` và `visual/`) |
+| `npm run test:e2e:visual` | So sánh snapshot UI theo màn (`tests/e2e/visual/`) |
+| `npm run test:e2e:visual:update` | Cập nhật baseline snapshot sau khi đổi UI có chủ đích |
+| `npm run test:e2e:smoke` | Chụp full-page thủ công (không so snapshot CI) |
 | `npm run test:e2e:ui` | Interactive UI mode |
 | `npm run test:e2e:install` | Install Chromium + OS deps (`playwright install --with-deps chromium`) |
 | `npx playwright test --debug` | Debug mode (step through tests) |

@@ -22,6 +22,5 @@ export function ensureE2EDatabase() {
         stdio: 'inherit',
         env,
         cwd: projectRoot,
-        shell: process.platform === 'win32',
     });
 }

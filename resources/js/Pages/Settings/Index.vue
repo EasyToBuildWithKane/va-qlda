@@ -12,6 +12,7 @@ const props = defineProps({
     groups: { type: Array, default: () => [] },
     settings: { type: Object, default: () => ({}) },
     emailTemplates: { type: Array, default: () => [] },
+    emailPreviewBrand: { type: String, default: 'VAschools QLDA' },
     permissions: { type: Object, default: () => ({}) },
     can: { type: Object, default: () => ({}) },
 });
@@ -96,6 +97,7 @@ const groupMeta = (key) => props.groups.find((g) => g.key === key) ?? { label: '
             :description="groupMeta('email').description"
             :email-fields="settings.email ?? []"
             :email-templates="emailTemplates"
+            :email-preview-brand="emailPreviewBrand"
             :can-manage="can.manage"
           />
           <PermissionsTab

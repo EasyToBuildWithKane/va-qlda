@@ -49,7 +49,7 @@ class DailyTaskSummaryMail extends Mailable implements ShouldQueue
 
         if ($template !== null && $template->is_active) {
             return new Content(
-                htmlString: $template->renderBody($vars),
+                htmlString: $template->renderBodyForDelivery($vars),
             );
         }
 

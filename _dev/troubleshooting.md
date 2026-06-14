@@ -161,9 +161,16 @@ taskkill /F /PID <pid>
 
 ## Playwright tests fail locally
 
+**`The system cannot find the path specified` (Windows, ngay sau `test:e2e:visual`):**
+
+1. Cài dependency: `npm install`
+2. Cài browser: `npm run test:e2e:install`
+3. Script E2E gọi trực tiếp `node node_modules/@playwright/test/cli.js` — không dùng lệnh `playwright` global.
+4. `php` phải có trong PATH (chạy thử `php -v` trong cùng terminal CMD).
+
 **Checklist:**
 
-1. Default E2E port is **8000** (`npm run test:e2e`). Pre-push uses **8001** so dev server on 8000 can stay running.
+1. Default E2E port is **8000** (`npm run test:e2e`). Nếu đang chạy `php artisan serve` trên 8000: tắt server đó **hoặc** `$env:PLAYWRIGHT_REUSE_SERVER='1'; npm run test:e2e:visual` (PowerShell). Pre-push dùng **8001**.
 2. Database migrated and seeded?
    ```bash
    php artisan migrate:fresh --seed

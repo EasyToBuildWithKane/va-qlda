@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\Mail\EmailTemplateDefaults;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -21,49 +22,26 @@ return new class extends Migration
         });
 
         $now = now();
-
-        DB::table('email_templates')->insert([
-            [
-                'key' => 'task_assigned',
-                'name' => 'Thông báo giao việc',
-                'subject' => '[QLDA] Giao việc: {{task_name}} — {{project_name}}',
-                'body_html' => '<p>Xin chào <strong>{{assignee_name}}</strong>,</p>'
-                    .'<p>Bạn được giao công việc mới trong dự án <strong>{{project_name}}</strong>.</p>'
-                    .'<p><strong>{{task_name}}</strong></p>'
-                    .'<p>Sprint: {{sprint_name}}<br>Hạn: {{due_date}}</p>'
-                    .'<p><a href="{{task_url}}">Mở công việc</a></p>',
+        $names = [
+            'task_assigned' => 'Thông báo giao việc',
+            'daily_summary' => 'Tổng hợp công việc trong ngày',
+            'sprint_summary' => 'Tổng hợp công việc theo sprint',
+        ];
+        $rows = [];
+        foreach ($names as $key => $name) {
+            $defaults = EmailTemplateDefaults::forKey($key);
+            $rows[] = [
+                'key' => $key,
+                'name' => $name,
+                'subject' => $defaults['subject'],
+                'body_html' => $defaults['body_html'],
                 'is_active' => true,
                 'updated_by' => null,
                 'created_at' => $now,
                 'updated_at' => $now,
-            ],
-            [
-                'key' => 'daily_summary',
-                'name' => 'Tổng hợp công việc trong ngày',
-                'subject' => '[QLDA] Tổng hợp {{date}} — {{project_name}}',
-                'body_html' => '<p>Xin chào <strong>{{assignee_name}}</strong>,</p>'
-                    .'<p>Danh sách công việc của bạn trong ngày <strong>{{date}}</strong> (dự án {{project_name}}):</p>'
-                    .'{{tasks_table}}'
-                    .'<p>Tổng: {{task_count}} công việc.</p>',
-                'is_active' => true,
-                'updated_by' => null,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ],
-            [
-                'key' => 'sprint_summary',
-                'name' => 'Tổng hợp công việc theo sprint',
-                'subject' => '[QLDA] Sprint {{sprint_name}} — {{project_name}}',
-                'body_html' => '<p>Xin chào <strong>{{assignee_name}}</strong>,</p>'
-                    .'<p>Công việc được giao trong sprint <strong>{{sprint_name}}</strong> (dự án {{project_name}}):</p>'
-                    .'{{tasks_table}}'
-                    .'<p>Tổng: {{task_count}} công việc.</p>',
-                'is_active' => true,
-                'updated_by' => null,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ],
-        ]);
+            ];
+        }
+        DB::table('email_templates')->insert($rows);
     }
 
     public function down(): void
