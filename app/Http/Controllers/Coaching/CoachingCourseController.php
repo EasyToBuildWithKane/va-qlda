@@ -130,8 +130,10 @@ class CoachingCourseController extends Controller
         $data['course_id'] = $course->id;
         $data['status'] ??= CoachingSessionStatus::Pending->value;
 
-        CoachingSession::create($data);
+        $session = CoachingSession::create($data);
 
-        return back()->with('success', 'Đã thêm buổi học.');
+        return redirect()
+            ->route('coaching.sessions.show', $session)
+            ->with('success', 'Đã thêm buổi học.');
     }
 }

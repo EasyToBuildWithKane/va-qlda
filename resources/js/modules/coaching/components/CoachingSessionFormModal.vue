@@ -32,6 +32,13 @@ watch(() => props.show, (open) => {
 
 const dirty = computed(() => form.title !== '' || form.date !== '' || form.total_hours != null);
 
+// Surface any server error not bound to a visible field (e.g. status, generic).
+const generalError = computed(() => {
+    const known = ['title', 'session_number', 'date', 'total_hours'];
+    const extra = Object.keys(form.errors).filter((k) => !known.includes(k));
+    return extra.length ? form.errors[extra[0]] : '';
+});
+
 function close() {
     emit('close');
 }
@@ -62,6 +69,13 @@ function submit() {
       class="space-y-4"
       @submit.prevent="submit"
     >
+      <p
+        v-if="generalError"
+        class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-600"
+      >
+        {{ generalError }}
+      </p>
+
       <div>
         <ProposalFormLabel
           label="Tên buổi"
@@ -71,6 +85,7 @@ function submit() {
           v-model="form.title"
           type="text"
           class="input w-full"
+          :class="form.errors.title ? 'border-danger focus:border-danger focus:ring-danger/30' : ''"
           placeholder="Ví dụ: Buổi 1 — Giới thiệu Laravel"
           required
         >
@@ -92,9 +107,16 @@ function submit() {
             v-model.number="form.session_number"
             type="number"
             class="input w-full"
+            :class="form.errors.session_number ? 'border-danger focus:border-danger focus:ring-danger/30' : ''"
             min="1"
             required
           >
+          <p
+            v-if="form.errors.session_number"
+            class="mt-1 text-xs text-danger"
+          >
+            {{ form.errors.session_number }}
+          </p>
         </div>
         <div>
           <ProposalFormLabel label="Ngày học" />
@@ -102,7 +124,14 @@ function submit() {
             v-model="form.date"
             type="date"
             class="input w-full"
+            :class="form.errors.date ? 'border-danger focus:border-danger focus:ring-danger/30' : ''"
           >
+          <p
+            v-if="form.errors.date"
+            class="mt-1 text-xs text-danger"
+          >
+            {{ form.errors.date }}
+          </p>
         </div>
       </div>
 
@@ -111,7 +140,14 @@ function submit() {
         <DecimalHoursInput
           v-model="form.total_hours"
           placeholder="2,5"
+          :invalid="!!form.errors.total_hours"
         />
+        <p
+          v-if="form.errors.total_hours"
+          class="mt-1 text-xs text-danger"
+        >
+          {{ form.errors.total_hours }}
+        </p>
       </div>
 
       <div class="flex justify-end gap-2 border-t border-slate-100 pt-4">

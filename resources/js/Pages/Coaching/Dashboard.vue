@@ -4,6 +4,7 @@ import { Head, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import AppIcon from '@/Components/AppIcon.vue';
+import CoachingWorkspace from '@/modules/coaching/components/CoachingWorkspace.vue';
 import {
     Chart as ChartJS,
     CategoryScale,
@@ -261,219 +262,223 @@ const monthLabel = computed(() => {
 <template>
   <Head title="Coaching" />
   <AppLayout>
-    <PageHeader
-      title="Coaching / Mentoring"
-      subtitle="Dashboard đào tạo và tài chính"
-      icon="knowledge"
-      icon-color="brand"
-    >
-      <Link
-        v-if="can.create"
-        :href="`${route('coaching.courses.index')}?create=1`"
-        class="btn-primary h-9 px-3 text-sm"
+    <template #header>
+      <PageHeader
+        title="Coaching / Mentoring"
+        subtitle="Dashboard đào tạo và tài chính"
+        icon="knowledge"
+        icon-color="brand"
       >
-        Thêm khóa học
-      </Link>
-      <button
-        v-if="can.export"
-        type="button"
-        class="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-btn border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50"
-        @click="exportExcel"
-      >
-        <AppIcon
-          name="download"
-          :size="15"
-        />
-        <span>Xuất Excel</span>
-      </button>
-      <Link
-        href="/coaching/courses"
-        class="btn-ghost h-9 px-3 text-sm"
-      >
-        Danh sách khóa
-      </Link>
-    </PageHeader>
-
-    <div class="mx-auto max-w-7xl space-y-6 pb-10">
-      <!-- KPI -->
-      <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <div
-          v-for="card in kpiCards"
-          :key="card.key"
-          class="rounded-xl border border-slate-200/70 bg-gradient-to-br from-white to-slate-50/80 p-4"
+        <Link
+          v-if="can.create"
+          :href="`${route('coaching.courses.index')}?create=1`"
+          class="btn-primary h-9 px-3 text-sm"
         >
-          <div class="flex items-start justify-between gap-3">
-            <div class="min-w-0">
-              <p class="text-[11px] font-medium tracking-wide text-slate-500">
-                {{ card.label }}
-              </p>
-              <p
-                class="mt-1.5 font-display text-2xl font-semibold tabular-nums text-slate-800"
-                :class="card.tone === 'brand' ? 'text-brand' : ''"
-              >
-                {{ card.value }}
-              </p>
-              <p class="mt-1 text-xs text-slate-400">
-                {{ card.sub }}
-              </p>
-            </div>
-            <span
-              class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
-              :class="toneClass[card.tone]"
-            >
-              <AppIcon
-                :name="card.icon"
-                :size="18"
-              />
-            </span>
-          </div>
-        </div>
-      </div>
+          Thêm khóa học
+        </Link>
+        <button
+          v-if="can.export"
+          type="button"
+          class="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-btn border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+          @click="exportExcel"
+        >
+          <AppIcon
+            name="download"
+            :size="15"
+          />
+          <span>Xuất Excel</span>
+        </button>
+        <Link
+          href="/coaching/courses"
+          class="btn-ghost h-9 px-3 text-sm"
+        >
+          Danh sách khóa
+        </Link>
+      </PageHeader>
+    </template>
 
-      <!-- Tháng hiện tại -->
-      <section class="overflow-hidden rounded-xl border border-brand/15 bg-gradient-to-r from-brand/[0.06] via-white to-white">
-        <div class="flex flex-wrap items-end justify-between gap-4 border-b border-brand/10 px-5 py-4 sm:px-6">
-          <div>
-            <h2 class="font-display text-sm font-semibold text-slate-800">
-              Kỳ {{ monthLabel }}
-            </h2>
-            <p class="mt-0.5 text-xs text-slate-500">
-              Chỉ số vận hành và doanh thu trong tháng đang xem.
-            </p>
-          </div>
-          <p class="font-display text-2xl font-bold tabular-nums text-brand">
-            {{ currency(monthly.revenue_total) }}
-          </p>
-        </div>
-        <div class="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3 sm:p-5">
+    <CoachingWorkspace>
+      <div class="space-y-6 pb-10">
+        <!-- KPI -->
+        <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <div
-            v-for="stat in monthlyStats"
-            :key="stat.key"
-            class="flex items-center gap-3 rounded-lg border border-slate-100 bg-white/90 px-4 py-3 shadow-sm"
+            v-for="card in kpiCards"
+            :key="card.key"
+            class="rounded-xl border border-slate-200/70 bg-gradient-to-br from-white to-slate-50/80 p-4"
           >
-            <span
-              class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
-              :class="toneClass[stat.tone]"
-            >
-              <AppIcon
-                :name="stat.icon"
-                :size="16"
-              />
-            </span>
-            <div class="min-w-0">
-              <p class="text-[11px] font-medium text-slate-500">
-                {{ stat.label }}
-              </p>
-              <p
-                class="text-sm font-semibold tabular-nums"
-                :class="stat.highlight ? 'text-brand' : 'text-slate-800'"
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <p class="text-[11px] font-medium tracking-wide text-slate-500">
+                  {{ card.label }}
+                </p>
+                <p
+                  class="mt-1.5 font-display text-2xl font-semibold tabular-nums text-slate-800"
+                  :class="card.tone === 'brand' ? 'text-brand' : ''"
+                >
+                  {{ card.value }}
+                </p>
+                <p class="mt-1 text-xs text-slate-400">
+                  {{ card.sub }}
+                </p>
+              </div>
+              <span
+                class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+                :class="toneClass[card.tone]"
               >
-                {{ stat.value }}
-              </p>
-              <p
-                v-if="stat.sub"
-                class="text-[11px] text-slate-400"
-              >
-                {{ stat.sub }}
-              </p>
+                <AppIcon
+                  :name="card.icon"
+                  :size="18"
+                />
+              </span>
             </div>
           </div>
         </div>
-      </section>
 
-      <div class="grid gap-6 lg:grid-cols-2">
-        <!-- Biểu đồ doanh thu -->
-        <div class="card p-5 lg:col-span-1">
-          <div class="mb-4">
-            <h3 class="font-display text-sm font-semibold text-slate-800">
-              Doanh thu — 12 tháng
-            </h3>
-            <p class="text-xs text-slate-500">
-              Di chuột hoặc chạm để xem chi tiết từng tháng.
+        <!-- Tháng hiện tại -->
+        <section class="overflow-hidden rounded-xl border border-brand/15 bg-gradient-to-r from-brand/[0.06] via-white to-white">
+          <div class="flex flex-wrap items-end justify-between gap-4 border-b border-brand/10 px-5 py-4 sm:px-6">
+            <div>
+              <h2 class="font-display text-sm font-semibold text-slate-800">
+                Kỳ {{ monthLabel }}
+              </h2>
+              <p class="mt-0.5 text-xs text-slate-500">
+                Chỉ số vận hành và doanh thu trong tháng đang xem.
+              </p>
+            </div>
+            <p class="font-display text-2xl font-bold tabular-nums text-brand">
+              {{ currency(monthly.revenue_total) }}
             </p>
           </div>
-          <div class="h-[min(20rem,45vh)] min-h-[220px]">
-            <Line
-              :data="chartData"
-              :options="revenueChartOptions"
-            />
+          <div class="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3 sm:p-5">
+            <div
+              v-for="stat in monthlyStats"
+              :key="stat.key"
+              class="flex items-center gap-3 rounded-lg border border-slate-100 bg-white/90 px-4 py-3 shadow-sm"
+            >
+              <span
+                class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
+                :class="toneClass[stat.tone]"
+              >
+                <AppIcon
+                  :name="stat.icon"
+                  :size="16"
+                />
+              </span>
+              <div class="min-w-0">
+                <p class="text-[11px] font-medium text-slate-500">
+                  {{ stat.label }}
+                </p>
+                <p
+                  class="text-sm font-semibold tabular-nums"
+                  :class="stat.highlight ? 'text-brand' : 'text-slate-800'"
+                >
+                  {{ stat.value }}
+                </p>
+                <p
+                  v-if="stat.sub"
+                  class="text-[11px] text-slate-400"
+                >
+                  {{ stat.sub }}
+                </p>
+              </div>
+            </div>
           </div>
-        </div>
+        </section>
 
-        <!-- Biểu đồ giờ + tiến độ -->
-        <div class="flex flex-col gap-6">
-          <div class="card p-5">
+        <div class="grid gap-6 lg:grid-cols-2">
+          <!-- Biểu đồ doanh thu -->
+          <div class="card p-5 lg:col-span-1">
             <div class="mb-4">
               <h3 class="font-display text-sm font-semibold text-slate-800">
-                Giờ giảng dạy — 12 tháng
+                Doanh thu — 12 tháng
               </h3>
               <p class="text-xs text-slate-500">
-                Tổng giờ buổi học đã hoàn thành theo tháng.
+                Di chuột hoặc chạm để xem chi tiết từng tháng.
               </p>
             </div>
-            <div class="h-[min(14rem,32vh)] min-h-[180px]">
-              <Bar
-                :data="hoursChartData"
-                :options="hoursChartOptions"
+            <div class="h-[min(20rem,45vh)] min-h-[220px]">
+              <Line
+                :data="chartData"
+                :options="revenueChartOptions"
               />
             </div>
           </div>
 
-          <section
-            v-if="activeCourses.length"
-            class="card flex-1 overflow-hidden"
-          >
-            <div class="border-b border-slate-100 bg-slate-50/80 px-5 py-3">
-              <h3 class="font-display text-sm font-semibold text-slate-800">
-                Tiến độ khóa đang học
-              </h3>
+          <!-- Biểu đồ giờ + tiến độ -->
+          <div class="flex flex-col gap-6">
+            <div class="card p-5">
+              <div class="mb-4">
+                <h3 class="font-display text-sm font-semibold text-slate-800">
+                  Giờ giảng dạy — 12 tháng
+                </h3>
+                <p class="text-xs text-slate-500">
+                  Tổng giờ buổi học đã hoàn thành theo tháng.
+                </p>
+              </div>
+              <div class="h-[min(14rem,32vh)] min-h-[180px]">
+                <Bar
+                  :data="hoursChartData"
+                  :options="hoursChartOptions"
+                />
+              </div>
             </div>
-            <ul class="divide-y divide-slate-100 px-5">
-              <li
-                v-for="c in activeCourses"
-                :key="c.id"
-                class="py-3.5"
-              >
-                <div class="flex flex-wrap items-center justify-between gap-2 text-sm">
-                  <Link
-                    :href="route('coaching.courses.show', { course: c.id })"
-                    class="min-w-0 font-medium text-brand hover:underline"
-                  >
-                    <span class="mr-1.5 font-mono text-[10px] text-slate-400">{{ c.code }}</span>
-                    {{ c.name }}
-                  </Link>
-                  <span class="shrink-0 rounded-full bg-brand/10 px-2 py-0.5 text-xs font-semibold tabular-nums text-brand">
-                    {{ c.progress_percent }}%
-                  </span>
-                </div>
-                <div class="mt-2 h-2 overflow-hidden rounded-full bg-slate-100">
-                  <div
-                    class="h-full rounded-full bg-brand transition-all"
-                    :style="{ width: `${c.progress_percent}%` }"
-                  />
-                </div>
-              </li>
-            </ul>
-          </section>
-          <div
-            v-else
-            class="card flex flex-1 flex-col items-center justify-center gap-2 p-8 text-center"
-          >
-            <span class="inline-flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
-              <AppIcon
-                name="rocket"
-                :size="24"
-              />
-            </span>
-            <p class="text-sm font-medium text-slate-600">
-              Chưa có khóa đang diễn ra
-            </p>
-            <p class="text-xs text-slate-400">
-              Tạo khóa mới hoặc đổi trạng thái khóa sang «Đang học».
-            </p>
+
+            <section
+              v-if="activeCourses.length"
+              class="card flex-1 overflow-hidden"
+            >
+              <div class="border-b border-slate-100 bg-slate-50/80 px-5 py-3">
+                <h3 class="font-display text-sm font-semibold text-slate-800">
+                  Tiến độ khóa đang học
+                </h3>
+              </div>
+              <ul class="divide-y divide-slate-100 px-5">
+                <li
+                  v-for="c in activeCourses"
+                  :key="c.id"
+                  class="py-3.5"
+                >
+                  <div class="flex flex-wrap items-center justify-between gap-2 text-sm">
+                    <Link
+                      :href="route('coaching.courses.show', { course: c.id })"
+                      class="min-w-0 font-medium text-brand hover:underline"
+                    >
+                      <span class="mr-1.5 font-mono text-[10px] text-slate-400">{{ c.code }}</span>
+                      {{ c.name }}
+                    </Link>
+                    <span class="shrink-0 rounded-full bg-brand/10 px-2 py-0.5 text-xs font-semibold tabular-nums text-brand">
+                      {{ c.progress_percent }}%
+                    </span>
+                  </div>
+                  <div class="mt-2 h-2 overflow-hidden rounded-full bg-slate-100">
+                    <div
+                      class="h-full rounded-full bg-brand transition-all"
+                      :style="{ width: `${c.progress_percent}%` }"
+                    />
+                  </div>
+                </li>
+              </ul>
+            </section>
+            <div
+              v-else
+              class="card flex flex-1 flex-col items-center justify-center gap-2 p-8 text-center"
+            >
+              <span class="inline-flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                <AppIcon
+                  name="rocket"
+                  :size="24"
+                />
+              </span>
+              <p class="text-sm font-medium text-slate-600">
+                Chưa có khóa đang diễn ra
+              </p>
+              <p class="text-xs text-slate-400">
+                Tạo khóa mới hoặc đổi trạng thái khóa sang «Đang học».
+              </p>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </CoachingWorkspace>
   </AppLayout>
 </template>
