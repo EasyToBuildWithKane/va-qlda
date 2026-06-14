@@ -1,7 +1,7 @@
 # KNOWLEDGE BASE — Module Tri Thức
 
 > Wiki nội bộ kiểu Viblo / Notion Wiki / Confluence (phiên bản đơn giản), tích hợp trong VA-QLDA (Laravel 10 + Inertia + Vue 3).
-> **Trạng thái:** 📋 Thiết kế — chưa triển khai code. Roadmap: `docs/NEXT_STEPS.md` (LT-02).
+> **Trạng thái:** ✅ Triển khai v1 (2026-06-14) — migrations, CRUD bài viết, tìm kiếm, file. Chi tiết route: `routes/web.php` prefix `knowledge-base.`.
 
 ---
 

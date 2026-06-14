@@ -1,6 +1,6 @@
 # FRONTEND STRUCTURE — VA QLDA
 
-> **Cập nhật 2026-06-03** — sau refactor Phase 2–5 (`modules/`, `shared/`, Pinia, lazy routes).
+> **Cập nhật 2026-06-14** — thêm `modules/coaching/` (Sessions Index datagrid, lịch).
 
 ---
 
@@ -56,8 +56,12 @@ resources/js/
 │   ├── project/
 │   │   ├── components/       ← ProjectCard, Sprint/, TaskDetail/, Dashboard/, …
 │   │   └── config/           ← columns.js, sprintTableColumns.js, riskTableColumns.js
-│   └── daily-report/
-│       └── config/reportConfig.js
+│   ├── daily-report/
+│   │   └── config/reportConfig.js
+│   └── coaching/                 ← Coaching / Mentoring (2026-06)
+│       ├── components/           ← Sessions table, calendar, modals, drawer
+│       ├── composables/          ← useCoachingCalendar.js
+│       └── config/               ← coachingFormHints.js
 ├── shared/                   ← Cross-module (Phase 2 + 4)
 │   ├── ui/                   ← Badge, Avatar, ProgressBar, form/*, EmptyState, …
 │   └── composables/          ← useToast, usePermission, useFilter
@@ -236,6 +240,20 @@ usePage().props.auth.user.role;
 
 Một nút **Dữ liệu** → `*DataModal.vue` (3 tab: import · export · reconcile).  
 Pattern: `RiskImportModal`, `SprintDataModal` + composables `useRiskImport`, `useSprintData`.
+
+### Datagrid toolbar (bảng)
+
+Trang Index có toolbar: label **Tìm kiếm**, nút **Lọc** / **Cột** / **Xuất** — rule `.cursor/rules/datagrid-toolbar.mdc`. Ví dụ: `Pages/AiAccount/CostReport.vue`, `Pages/Coaching/Sessions/Index.vue`.
+
+### Coaching pages
+
+| Page | Composables / module |
+|---|---|
+| `Coaching/Dashboard.vue` | `CoachingWorkspace.vue`, `useCoachingExport.js` |
+| `Coaching/Sessions/Index.vue` | `useCoachingSessionList.js`, `CoachingSessionsSummaryBar.vue`, table/group views |
+| `Coaching/Sessions/Schedule.vue` | `useCoachingCalendar.js`, `MiniCalendar.vue` |
+
+Doc module: `docs/COACHING_MENTORING.md`.
 
 ---
 

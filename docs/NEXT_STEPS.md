@@ -149,28 +149,16 @@
 - **Ước tính:** 2-3 tuần
 
 ### LT-02 — Knowledge Base (Tri Thức)
-- **Mục tiêu:** Wiki nội bộ kiểu Viblo/Notion/Confluence (đơn giản) — procedures, onboarding, HOWTO, kinh nghiệm thực tế
-- **Tài liệu thiết kế:** [`docs/KNOWLEDGE_BASE.md`](KNOWLEDGE_BASE.md)
-- **Scope:**
-  - 8 chuyên mục seed + tags; bài viết (title, slug, excerpt, TipTap, ảnh, đính kèm)
-  - Trạng thái draft / published / archived; full-text search; lọc tag & danh mục
-  - UI: sidebar danh mục, list, chi tiết + TOC, breadcrumb, bài liên quan, responsive
-  - Yêu thích, đã đọc, lượt xem; bình luận (polymorphic Comment)
-  - Phân quyền xem theo role; MVC + Policy; lưu file `public` disk
-- **Dependencies:** TipTap (đã có), Comment morph (đã có); tùy chọn Scout phase 2
-- **Ước tính:** 2-3 tuần
+- **Trạng thái:** ✅ v1 shipped (2026-06-14) — checklist cuối `docs/KNOWLEDGE_BASE.md`
+- **Mục tiêu:** Wiki nội bộ — procedures, onboarding, HOWTO
+- **Tài liệu:** [`docs/KNOWLEDGE_BASE.md`](KNOWLEDGE_BASE.md)
+- **Follow-up:** Scout full-text (optional), mở rộng phân quyền chi tiết
 
 ### LT-08 — Coaching / Mentoring
+- **Trạng thái:** ✅ v1 shipped (2026-06-14) — xem checklist `docs/COACHING_MENTORING.md` §14
 - **Mục tiêu:** Module độc lập — khóa học, buổi học, tài liệu (Canva/Docs/Video/File), bài tập, tiến độ %, dashboard tài chính
-- **Tài liệu thiết kế:** [`docs/COACHING_MENTORING.md`](COACHING_MENTORING.md)
-- **Scope:**
-  - CRUD khóa + buổi; materials đa loại; assignments (todo→done)
-  - Progress per session; KPI tháng (buổi, giờ, học viên, doanh thu, hủy)
-  - Dashboard tổng quan + Chart.js (doanh thu, giờ dạy, tiến độ khóa)
-  - Roles: admin/coach/student (map `system` roles + policy); xuất báo cáo Excel
-  - Application Use Cases cho aggregation tài chính
-- **Dependencies:** TipTap, Chart.js, file storage (đã có)
-- **Ước tính:** 3-4 tuần
+- **Tài liệu:** [`docs/COACHING_MENTORING.md`](COACHING_MENTORING.md)
+- **Follow-up:** route báo cáo tháng riêng (optional), Kanban bài tập tách component, pivot nhiều học viên
 
 ### LT-03 — Performance Review Module
 - **Mục tiêu:** Đánh giá nhân sự định kỳ (quarterly/annual)

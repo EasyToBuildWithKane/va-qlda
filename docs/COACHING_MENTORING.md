@@ -1,7 +1,7 @@
 # COACHING / MENTORING — Module Đào tạo & Mentoring
 
 > Module **độc lập** với Knowledge Base / Blog — lưu khóa học, buổi học, tài liệu, bài tập, tiến độ và dashboard tài chính.
-> **Trạng thái:** 📋 Thiết kế — chưa triển khai code. Roadmap: `docs/NEXT_STEPS.md` (LT-08).
+> **Trạng thái:** ✅ Triển khai v1 (2026-06-14) — migrations, CRUD, dashboard, lịch & danh sách buổi. Chi tiết route/UI bên dưới khớp `routes/web.php`.
 
 ---
 
@@ -22,22 +22,22 @@
 
 ## 2. Kiến trúc
 
-- **CRUD & materials:** MVC (Controller → Model / FormRequest / Policy / Resource).
-- **Dashboard aggregation:** `app/Application/Coaching/` (Use Cases) — `BuildMonthlyStats`, `BuildFinancialSummary`, `BuildOverviewDashboard` (tránh query nặng trong Controller).
+- **CRUD, materials, assignments, lịch:** MVC — `Http/Controllers/Coaching/*` → Model / FormRequest / `CoachingCoursePolicy` / `CoachingSessionResource`.
+- **Aggregation tài chính & KPI:** `app/Support/Coaching/` — `CoachingFinancialSummary`, `CoachingStudentMetrics`, `CoachingSessionIndexQuery`, `CoachingSessionScope`, `SafeEmbedUrl` (không có `app/Application/Coaching/`).
+- **Tài khoản chỉ Coaching:** `App\Support\Auth\CoachingOnlyAccess` + middleware `RestrictCoachingOnlyUsers` — email trong `config/va.php` → `google_allowed_emails`; nav chỉ nhóm Coaching.
 
 ```
-routes/web.php
-    → CoachingCourseController, CoachingSessionController,
-      CoachingAssignmentController, CoachingDashboardController
-    → Policies: CoachingCoursePolicy, …
-    → Application/Coaching/*UseCase
+routes/web.php (prefix coaching.)
+    → CoachingDashboardController (__invoke)
+    → CoachingCourseController (courses + storeSession)
+    → CoachingSessionController (index, schedule, calendar JSON, CRUD session, materials, assignments, progress)
 
 resources/js/
     → Pages/Coaching/Dashboard.vue
     → Pages/Coaching/Courses/Index.vue, Show.vue, Edit.vue
-    → Pages/Coaching/Sessions/Show.vue (materials + assignments)
-    → modules/coaching/
-    → composables/useCoachingProgress.js, useCoachingFinance.js
+    → Pages/Coaching/Sessions/Index.vue, Schedule.vue, Show.vue
+    → modules/coaching/components/*, composables/useCoachingCalendar.js
+    → composables/useCoachingExport.js, useCoachingSessionList.js, coachingSessionDisplay.js
 ```
 
 **Charts:** Chart.js + vue-chartjs (đã có trong dự án).
@@ -57,9 +57,11 @@ Module dùng **vai trò mở rộng** (lưu trên `system_accounts` hoặc pivot
 | Mentor | `lead` / `member` + flag | Tương tự coach (read-only finance tùy policy) | Hạn chế | Hạn chế | ❌ | ❌ |
 | Student | `member` / học viên (`employee`) | Khóa được gán | ❌ | Bài tập của mình | ❌ | ❌ |
 
-**v1 đơn giản hóa:** `admin` full; `lead` = coach (mọi khóa); `member` = student (chỉ khóa có `student_id` = employee của account); `viewer` = không vào module hoặc chỉ dashboard read-only admin.
+**v1 đơn giản hóa:** `admin` full; `lead` = coach (mọi khóa); `member` = student (chỉ khóa có `student_id` = employee của account); `viewer` = không vào module.
 
-Quyền xuất: Excel styled qua composable `useCoachingExport.js` (pattern `useRiskExport.js`).
+**Khách Google (whitelist):** email trong `va.google_allowed_emails` → chỉ thấy nav Coaching, home `/coaching` (`CoachingOnlyAccess`).
+
+Quyền xuất: Excel styled qua composable `useCoachingExport.js` (dashboard tháng); danh sách buổi — CSV/Excel client qua `GET coaching.sessions.export` (JSON ≤500 dòng) + `useCoachingSessionList` / `useCoachingExport`.
 
 ---
 
@@ -73,6 +75,7 @@ Quyền xuất: Excel styled qua composable `useCoachingExport.js` (pattern `use
 | Mô tả | `description` (text) |
 | Mục tiêu | `objectives` (text) |
 | Học viên | `student_id` → `employees` (v1: một học viên chính; v2: pivot nhiều học viên) |
+| Tên học viên / coach (text) | `student_name`, `coach_name` — khi không map employee (guest Google) |
 | Coach | `coach_id` → `employees` |
 | Trạng thái | `planning` \| `active` \| `completed` \| `cancelled` |
 | Ngày bắt đầu / kết thúc | `start_date`, `end_date` |
@@ -168,7 +171,7 @@ Học viên (`member`) cập nhật trạng thái + upload nộp; coach chuyển
 
 ## 8. Theo dõi học tập
 
-Bảng `coaching_progress` — một bản ghi / `(course_id, session_id, account_id)`:
+Bảng `coaching_progress` — một bản ghi / `(course_id, session_id, system_account_id)`:
 
 | Cờ | Ý nghĩa |
 |---|---|
@@ -214,7 +217,16 @@ Ví dụ tháng 06/2026: 20 buổi, 48 giờ, 24.000.000 VNĐ → 500.000 VNĐ/g
 - Biểu đồ: số giờ giảng dạy theo tháng
 - Biểu đồ: tiến độ từng khóa `active` (bar %)
 
-Page: `Pages/Coaching/Dashboard.vue`.
+Page: `Pages/Coaching/Dashboard.vue` (Chart.js inline + `CoachingWorkspace.vue`).
+
+### 9.4 Danh sách & lịch buổi (v1.1)
+
+| Page | Route | Mô tả |
+|---|---|---|
+| `Sessions/Index.vue` | `coaching.sessions.index` | Datagrid: tìm kiếm, lọc server (`CoachingSessionIndexQuery`), bảng/nhóm, drawer chi tiết, xuất |
+| `Sessions/Schedule.vue` | `coaching.sessions.schedule` | Lịch tuần + mini calendar; tạo/sửa qua calendar API |
+
+JSON phụ: `coaching.sessions.calendar.feed`, `coaching.sessions.export` (export index).
 
 ---
 
@@ -232,46 +244,60 @@ Prefix: `va_prd_`. Chi tiết: `docs/DATABASE_STRUCTURE.md` §8.
 
 ---
 
-## 11. Route map (đề xuất)
+## 11. Route map (thực tế — `routes/web.php`)
 
-| Method | URI | Name |
-|---|---|---|
-| GET | `/coaching` | `coaching.dashboard` |
-| GET | `/coaching/courses` | `coaching.courses.index` |
-| GET | `/coaching/courses/create` | `coaching.courses.create` |
-| POST | `/coaching/courses` | `coaching.courses.store` |
-| GET | `/coaching/courses/{course}` | `coaching.courses.show` |
-| GET | `/coaching/courses/{course}/edit` | `coaching.courses.edit` |
-| PUT | `/coaching/courses/{course}` | `coaching.courses.update` |
-| DELETE | `/coaching/courses/{course}` | `coaching.courses.destroy` |
-| POST | `/coaching/courses/{course}/sessions` | `coaching.sessions.store` |
-| GET | `/coaching/sessions/{session}` | `coaching.sessions.show` |
-| PATCH | `/coaching/sessions/{session}` | `coaching.sessions.update` |
-| POST | `/coaching/sessions/{session}/materials` | `coaching.materials.store` |
-| POST | `/coaching/sessions/{session}/assignments` | `coaching.assignments.store` |
-| PATCH | `/coaching/assignments/{assignment}` | `coaching.assignments.update` |
-| POST | `/coaching/progress` | `coaching.progress.upsert` |
-| GET | `/coaching/reports/monthly` | `coaching.reports.monthly` | Inertia props / export |
-| GET | `/coaching/materials/{material}/file` | `coaching.materials.file` |
+| Method | URI | Name | Ghi chú |
+|---|---|---|---|
+| GET | `/coaching` | `coaching.dashboard` | KPI + biểu đồ |
+| GET | `/coaching/courses` | `coaching.courses.index` | |
+| GET | `/coaching/courses/create` | `coaching.courses.create` | |
+| POST | `/coaching/courses` | `coaching.courses.store` | |
+| GET | `/coaching/courses/{course}` | `coaching.courses.show` | |
+| GET | `/coaching/courses/{course}/edit` | `coaching.courses.edit` | |
+| PUT | `/coaching/courses/{course}` | `coaching.courses.update` | |
+| DELETE | `/coaching/courses/{course}` | `coaching.courses.destroy` | |
+| POST | `/coaching/courses/{course}/sessions` | `coaching.courses.sessions.store` | Tạo buổi từ khóa |
+| GET | `/coaching/sessions/schedule` | `coaching.sessions.schedule` | Inertia lịch |
+| GET | `/coaching/sessions/calendar/feed` | `coaching.sessions.calendar.feed` | JSON feed |
+| POST | `/coaching/sessions/calendar` | `coaching.sessions.calendar.store` | Tạo từ lịch |
+| GET | `/coaching/sessions` | `coaching.sessions.index` | Danh sách + filter |
+| GET | `/coaching/sessions/export` | `coaching.sessions.export` | JSON export (≤500) |
+| GET | `/coaching/sessions/{session}` | `coaching.sessions.show` | Materials + assignments |
+| PATCH | `/coaching/sessions/{session}/calendar` | `coaching.sessions.calendar.update` | |
+| PATCH | `/coaching/sessions/{session}` | `coaching.sessions.update` | |
+| DELETE | `/coaching/sessions/{session}` | `coaching.sessions.destroy` | |
+| POST | `/coaching/sessions/{session}/materials` | `coaching.sessions.materials.store` | |
+| POST | `/coaching/sessions/{session}/assignments` | `coaching.sessions.assignments.store` | |
+| PATCH | `/coaching/assignments/{assignment}` | `coaching.assignments.update` | |
+| POST | `/coaching/progress` | `coaching.progress.upsert` | |
+| GET | `/coaching/materials/{material}/file` | `coaching.materials.file` | Download public disk |
 
-Nav: «Coaching / Mentoring» — `admin`, `lead`; `member` nếu là học viên có khóa.
+Nav (`Navigation.php`): Dashboard, Khóa học, Lịch buổi (`sessions/schedule`), Danh sách buổi (`sessions`) — `admin`, `lead`; `member` nếu là học viên; coaching-only users chỉ nhóm này.
+
+**Chưa có route:** `coaching.reports.monthly` — báo cáo tháng qua props dashboard + `exportCoachingMonthlyWorkbook` client-side.
 
 ---
 
 ## 12. Frontend components map
 
-| Component | Vai trò |
+| File | Vai trò |
 |---|---|
-| `CoachingKpiCards.vue` | Widget tổng quan |
-| `CoachingRevenueChart.vue` | Line/bar Chart.js |
-| `CoachingHoursChart.vue` | Giờ dạy theo tháng |
-| `CourseProgressChart.vue` | % từng khóa active |
-| `SessionTimeline.vue` | Danh sách buổi theo khóa |
-| `SessionMaterialsPanel.vue` | Tabs Canva/Docs/Video/File |
-| `AssignmentBoard.vue` | Kanban todo→done |
-| `useCoachingFinance.js` | Tính avg/giờ, avg/buổi |
-| `useCoachingProgress.js` | % khóa, mark viewed |
-| `useCoachingExport.js` | Xuất báo cáo tháng Excel |
+| `CoachingWorkspace.vue` | Shell dashboard (KPI + charts) |
+| `CoachingSessionsSummaryBar.vue` | Toolbar + KPI dòng 2 danh sách buổi (datagrid pattern) |
+| `CoachingSessionsTableView.vue` / `CoachingSessionsGroupView.vue` | Bảng / nhóm theo ngày |
+| `CoachingSessionCard.vue` | Card buổi (group view) |
+| `SessionDrawer.vue` | Chi tiết nhanh buổi |
+| `CoachingSessionRowActions.vue` | Hành động hàng |
+| `CalendarSidebar.vue`, `MiniCalendar.vue` | Lịch |
+| `CoachingSessionFormModal.vue`, `QuickSessionModal.vue` | Tạo/sửa buổi |
+| `CoachingCourseFormModal.vue` | Modal khóa |
+| `CoachingMaterialEmbed.vue` | Embed an toàn |
+| `useCoachingCalendar.js` | Feed + drag lịch |
+| `useCoachingSessionList.js` | Filter, cột, export danh sách |
+| `coachingSessionDisplay.js` | Label/format hiển thị |
+| `useCoachingExport.js` | Xuất Excel báo cáo tháng + export sessions |
+
+**Planned / chưa tách component:** Kanban bài tập (`AssignmentBoard`), timeline riêng — logic chủ yếu trên `Sessions/Show.vue`.
 
 ---
 
@@ -293,7 +319,7 @@ avg_per_hour = month_revenue / month_teaching_hours
 avg_per_session = month_revenue / completed_sessions_in_month
 ```
 
-Use Case `BuildFinancialSummary` nhận `year`, `month`, trả DTO cho Dashboard + export.
+Use Case `CoachingFinancialSummary::forMonth()` nhận `year`, `month`, trả DTO cho Dashboard + export.
 
 ---
 
@@ -306,7 +332,9 @@ Use Case `BuildFinancialSummary` nhận `year`, `month`, trả DTO cho Dashboard
 - [x] Báo cáo tháng + xuất Excel (`useCoachingExport.js`)
 - [x] Policy theo admin/coach/student
 - [x] Embed an toàn (`SafeEmbedUrl` + sandbox iframe)
-- [x] Feature tests + E2E smoke
+- [x] Danh sách buổi + lịch + export JSON index + feature tests (`CoachingTest.php`)
+- [ ] Route Inertia riêng báo cáo tháng (optional — hiện export từ dashboard)
+- [ ] Application Use Cases tách aggregation (optional refactor từ Support)
 
 ---
 

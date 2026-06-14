@@ -8,7 +8,7 @@
 |---|---|
 | Database Engine | MySQL |
 | Table Prefix | `va_prd_` |
-| Total Tables | ~42 tables (29 core + 13 thiết kế KB/Coaching) |
+| Total Tables | ~42+ (core + KB + Coaching — migrations `2026_06_14_*`) |
 | ORM | Laravel Eloquent |
 | Soft Deletes | employees, tasks, bugs |
 | UUID Support | daily_reports (+ có thể mở rộng) |
@@ -615,15 +615,16 @@ Notification Domain:              ← MỚI
 Audit Domain:
     activity_log
 
-Knowledge Base Domain:              ← Thiết kế (LT-02), chưa migrate
+Knowledge Base Domain:              ← Migrate 2026-06-14
     kb_categories, kb_articles, kb_tags, kb_article_tags,
     kb_article_images, kb_article_attachments,
     kb_article_favorites, kb_article_reads
     (+ comments polymorphic → KbArticle)
 
-Coaching / Mentoring Domain:        ← Thiết kế (LT-08), chưa migrate
+Coaching / Mentoring Domain:        ← Migrate 2026-06-14
     coaching_courses, coaching_sessions,
     coaching_session_materials, coaching_assignments, coaching_progress
+    (+ student_name, coach_name trên courses)
 ```
 
 ---
@@ -703,7 +704,9 @@ Soft delete TK, đồng bộ PĐX, đếm badge vs chi phí theo nhóm, `purgeOr
 
 ---
 
-## 7. Knowledge Base Domain (thiết kế — LT-02)
+## 7. Knowledge Base Domain
+
+> Chi tiết: [`docs/KNOWLEDGE_BASE.md`](KNOWLEDGE_BASE.md). Migration: `2026_06_14_120000_create_knowledge_base_tables.php`.
 
 > Chi tiết nghiệp vụ: [`docs/KNOWLEDGE_BASE.md`](KNOWLEDGE_BASE.md). Bảng chưa có migration trong repo.
 
@@ -833,9 +836,9 @@ Soft delete TK, đồng bộ PĐX, đếm badge vs chi phí theo nhóm, `purgeOr
 
 ---
 
-## 8. Coaching / Mentoring Domain (thiết kế — LT-08)
+## 8. Coaching / Mentoring Domain
 
-> Chi tiết nghiệp vụ: [`docs/COACHING_MENTORING.md`](COACHING_MENTORING.md). Bảng chưa có migration trong repo.
+> Chi tiết nghiệp vụ: [`docs/COACHING_MENTORING.md`](COACHING_MENTORING.md). Migrations: `2026_06_14_120100_create_coaching_tables.php`, `2026_06_14_140000_add_coaching_course_participant_names.php`.
 
 ### 8.1 va_prd_coaching_courses
 
@@ -846,6 +849,8 @@ Soft delete TK, đồng bộ PĐX, đếm badge vs chi phí theo nhóm, `purgeOr
 | name | varchar(255) | NO | Tên khóa |
 | description | text | YES | |
 | objectives | text | YES | Mục tiêu |
+| student_name | varchar(255) | YES | Tên học viên (text, guest) |
+| coach_name | varchar(255) | YES | Tên coach (text) |
 | student_id | bigint UNSIGNED | YES | FK → employees (học viên) |
 | coach_id | bigint UNSIGNED | YES | FK → employees |
 | status | varchar(20) | NO | planning / active / completed / cancelled |

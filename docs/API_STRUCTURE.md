@@ -198,6 +198,36 @@ routes/api.php      ← Rỗng (chưa sử dụng)
 | PATCH | `/departments/{department}/toggle` | DepartmentController@toggleStatus | auth | Bật/tắt hoạt động |
 | DELETE | `/departments/{department}` | DepartmentController@destroy | auth | Xóa phòng ban |
 
+### 2.16 Coaching / Mentoring
+
+Prefix `coaching.`, middleware `auth` (+ `RestrictCoachingOnlyUsers` khi áp dụng). Chi tiết: [`docs/COACHING_MENTORING.md`](COACHING_MENTORING.md) §11.
+
+| Method | URI | Controller | Response | Mô Tả |
+|---|---|---|---|---|
+| GET | `/coaching` | CoachingDashboardController | Inertia | Dashboard KPI + charts |
+| GET | `/coaching/courses` | CoachingCourseController@index | Inertia | Danh sách khóa |
+| GET | `/coaching/courses/create` | CoachingCourseController@create | Inertia | Form tạo |
+| POST | `/coaching/courses` | CoachingCourseController@store | Redirect | Tạo khóa |
+| GET | `/coaching/courses/{course}` | CoachingCourseController@show | Inertia | Chi tiết khóa |
+| GET | `/coaching/courses/{course}/edit` | CoachingCourseController@edit | Inertia | Sửa khóa |
+| PUT | `/coaching/courses/{course}` | CoachingCourseController@update | Redirect | Cập nhật |
+| DELETE | `/coaching/courses/{course}` | CoachingCourseController@destroy | Redirect | Xóa |
+| POST | `/coaching/courses/{course}/sessions` | CoachingCourseController@storeSession | Redirect | Thêm buổi |
+| GET | `/coaching/sessions/schedule` | CoachingSessionController@schedule | Inertia | Lịch tuần |
+| GET | `/coaching/sessions/calendar/feed` | CoachingSessionController@calendarFeed | JSON | Sự kiện lịch |
+| POST | `/coaching/sessions/calendar` | CoachingSessionController@calendarStore | Redirect/JSON | Tạo từ lịch |
+| GET | `/coaching/sessions` | CoachingSessionController@index | Inertia | Danh sách buổi (filter server) |
+| GET | `/coaching/sessions/export` | CoachingSessionController@exportIndex | JSON | Export ≤500 bản ghi |
+| GET | `/coaching/sessions/{session}` | CoachingSessionController@show | Inertia | Buổi + materials + assignments |
+| PATCH | `/coaching/sessions/{session}/calendar` | CoachingSessionController@calendarUpdate | Redirect/JSON | Sửa từ lịch |
+| PATCH | `/coaching/sessions/{session}` | CoachingSessionController@update | Redirect | Sửa buổi |
+| DELETE | `/coaching/sessions/{session}` | CoachingSessionController@destroy | Redirect | Xóa buổi |
+| POST | `/coaching/sessions/{session}/materials` | CoachingSessionController@storeMaterial | Redirect | Tài liệu |
+| POST | `/coaching/sessions/{session}/assignments` | CoachingSessionController@storeAssignment | Redirect | Bài tập |
+| PATCH | `/coaching/assignments/{assignment}` | CoachingSessionController@updateAssignment | Redirect | Cập nhật bài tập |
+| POST | `/coaching/progress` | CoachingSessionController@upsertProgress | Redirect | Tiến độ |
+| GET | `/coaching/materials/{material}/file` | CoachingSessionController@materialFile | Stream | Tải file |
+
 ---
 
 ## 3. API Grouping (Theo Domain)
