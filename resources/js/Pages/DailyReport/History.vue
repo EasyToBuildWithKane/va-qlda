@@ -175,10 +175,10 @@ watch(
 );
 
 const HISTORY_FILTER_CONTROLS = [
-    { key: "status", label: "Trạng thái" },
-    { key: "project", label: "Dự án" },
-    { key: "employee", label: "Người báo cáo" },
-    { key: "grade", label: "Xếp loại" },
+    { key: "status", label: "Trạng thái", default: false },
+    { key: "project", label: "Dự án", default: false },
+    { key: "employee", label: "Người báo cáo", default: false },
+    { key: "grade", label: "Xếp loại", default: false },
     { key: "from", label: "Từ ngày", default: false },
     { key: "to", label: "Đến ngày", default: false },
 ];
@@ -193,7 +193,7 @@ const {
     FILTER_CONTROLS,
 } = useVisibleFilterControls(
     HISTORY_FILTER_CONTROLS,
-    "va-qlda.reports.visible-filters",
+    "va-qlda.reports.visible-filters.v2",
 );
 
 const filterPanelDdRef = ref(null);
@@ -491,7 +491,7 @@ const FILTER_CONTROL_CLASS = "input h-10 w-full text-sm";
     />
 
     <div
-      class="card sticky top-0 z-20 mb-4 overflow-visible backdrop-blur supports-[backdrop-filter]:bg-white/90 dark:supports-[backdrop-filter]:bg-slate-900/90"
+      class="card mb-4 overflow-visible"
     >
       <div
         class="border-b border-slate-100 px-5 py-4 dark:border-slate-700"
@@ -582,9 +582,9 @@ const FILTER_CONTROL_CLASS = "input h-10 w-full text-sm";
             </div>
           </div>
 
-          <!-- Hàng 2: nhóm thời gian / chế độ xem -->
+          <!-- Hàng 2: nhóm thời gian / chế độ xem (căn phải) -->
           <div
-            class="flex min-w-0 flex-wrap items-center gap-2"
+            class="flex w-full min-w-0 flex-wrap items-center justify-end gap-2"
           >
             <DatagridSegmentedControl
               :model-value="groupMode"
