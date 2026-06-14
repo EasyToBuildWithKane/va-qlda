@@ -1,5 +1,5 @@
 <script setup>
-import { toRef } from 'vue';
+import { computed, toRef } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import { useFixedDropdownAnchor } from '@/shared/composables/useFixedDropdownAnchor';
 
@@ -9,15 +9,18 @@ const props = defineProps({
     modelValue: { type: Object, required: true },
     fixedLabels: { type: Array, default: () => [] },
     /** Template ref của nút / wrapper — panel teleport ra body */
-    anchorRef: { type: Object, default: null },
+    anchorRef: { type: [Object, null], default: null },
 });
 
 const emit = defineEmits(['update:modelValue', 'persist']);
 
 const panelWidth = 224;
 
+/** Có anchor từ parent → teleport; không có → panel absolute trong wrapper */
+const useTeleportedPanel = computed(() => props.anchorRef != null);
+
 const { panelStyle } = useFixedDropdownAnchor(
-    () => props.anchorRef?.value ?? null,
+    () => props.anchorRef,
     toRef(props, 'show'),
     { width: panelWidth, zIndex: 85 },
 );
@@ -30,7 +33,7 @@ function onToggle(key, checked) {
 
 <template>
   <Teleport
-    v-if="anchorRef"
+    v-if="useTeleportedPanel"
     to="body"
   >
     <Transition

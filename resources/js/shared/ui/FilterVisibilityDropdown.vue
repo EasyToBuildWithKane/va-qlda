@@ -13,7 +13,7 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'persist']);
 
 const { panelStyle } = useFixedDropdownAnchor(
-    () => props.anchorRef?.value ?? null,
+    () => props.anchorRef,
     toRef(props, 'show'),
     { width: 224, zIndex: 85 },
 );

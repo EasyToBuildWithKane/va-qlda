@@ -23,18 +23,26 @@ export function useOverflowScrollHints(refreshDeps = [], externalScrollEl = null
         edges.bottom = max > pad && top < max - pad;
     };
 
-    let resizeObserver;
+    let resizeObserver = null;
+
+    function ensureResizeObserver() {
+        if (resizeObserver) return resizeObserver;
+        if (typeof ResizeObserver === 'undefined') return null;
+        resizeObserver = new ResizeObserver(() => refresh());
+        return resizeObserver;
+    }
 
     const bindElement = (el) => {
-        resizeObserver?.disconnect();
-        if (el) {
-            resizeObserver.observe(el);
+        const ro = ensureResizeObserver();
+        ro?.disconnect();
+        if (el && ro) {
+            ro.observe(el);
             refresh();
         }
     };
 
     onMounted(() => {
-        resizeObserver = new ResizeObserver(() => refresh());
+        ensureResizeObserver();
         bindElement(scrollEl.value);
         window.addEventListener('resize', refresh);
         nextTick(refresh);
@@ -48,6 +56,7 @@ export function useOverflowScrollHints(refreshDeps = [], externalScrollEl = null
 
     onUnmounted(() => {
         resizeObserver?.disconnect();
+        resizeObserver = null;
         window.removeEventListener('resize', refresh);
     });
 

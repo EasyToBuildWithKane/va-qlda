@@ -487,21 +487,16 @@ const GROUP_TABS = [
         class="border-b border-slate-100 px-4 py-3 sm:px-5 dark:border-slate-700"
       >
         <div
-          class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between"
+          class="flex flex-col gap-3 lg:flex-row lg:items-center"
         >
           <div
             class="flex min-w-0 flex-1 flex-wrap items-center gap-2"
           >
-            <div
-              class="flex min-w-0 flex-1 basis-full items-center gap-2 sm:basis-auto sm:flex-initial lg:max-w-[min(100%,22rem)] xl:max-w-[min(100%,26rem)]"
-            >
-              <DatagridToolbarSearch
-                v-model="filterForm.q"
-                stretch
-                input-id="daily-reports-search"
-                placeholder="Tiêu đề, tên nhân viên…"
-              />
-            </div>
+            <DatagridToolbarSearch
+              v-model="filterForm.q"
+              input-id="daily-reports-search"
+              placeholder="Tiêu đề, tên nhân viên…"
+            />
 
             <div
               ref="filterPanelDdRef"
@@ -600,12 +595,10 @@ const GROUP_TABS = [
                 }}</span>
               </button>
             </div>
-          </div>
 
-          <div class="flex shrink-0 flex-wrap items-center gap-2">
             <!-- Group by -->
             <div
-              class="flex rounded-btn border border-slate-200 p-0.5 dark:border-slate-700"
+              class="flex shrink-0 rounded-btn border border-slate-200 p-0.5 dark:border-slate-700"
             >
               <button
                 v-for="g in GROUP_TABS"
@@ -630,7 +623,7 @@ const GROUP_TABS = [
 
             <!-- View toggle -->
             <div
-              class="flex rounded-btn border border-slate-200 p-0.5 dark:border-slate-700"
+              class="flex shrink-0 rounded-btn border border-slate-200 p-0.5 dark:border-slate-700"
             >
               <button
                 type="button"
@@ -673,14 +666,14 @@ const GROUP_TABS = [
         <Teleport to="body">
           <Transition
             enter-active-class="transition duration-150 ease-out"
-            enter-from-class="opacity-0 scale-95 -translate-y-1"
+            enter-from-class="opacity-0"
             leave-active-class="transition duration-100 ease-in"
-            leave-to-class="opacity-0 scale-95 -translate-y-1"
+            leave-to-class="opacity-0"
           >
             <div
               v-if="colsMenu"
               :style="colsPanelStyle"
-              class="origin-top-right rounded-card border border-slate-200 bg-white p-1.5 shadow-elevation-2 dark:border-slate-700 dark:bg-slate-900"
+              class="overflow-hidden rounded-card border border-slate-200 bg-white p-1.5 shadow-elevation-2 dark:border-slate-700 dark:bg-slate-900"
               data-daily-report-toolbar-panel
             >
               <p
@@ -712,14 +705,14 @@ const GROUP_TABS = [
         <Teleport to="body">
           <Transition
             enter-active-class="transition duration-150 ease-out"
-            enter-from-class="opacity-0 scale-95 -translate-y-1"
+            enter-from-class="opacity-0"
             leave-active-class="transition duration-100 ease-in"
-            leave-to-class="opacity-0 scale-95 -translate-y-1"
+            leave-to-class="opacity-0"
           >
             <div
               v-if="exportMenu"
               :style="exportPanelStyle"
-              class="origin-top-right rounded-card border border-slate-200 bg-white p-1 shadow-elevation-2 dark:border-slate-700 dark:bg-slate-900"
+              class="overflow-hidden rounded-card border border-slate-200 bg-white p-1 shadow-elevation-2 dark:border-slate-700 dark:bg-slate-900"
               data-daily-report-toolbar-panel
             >
               <button

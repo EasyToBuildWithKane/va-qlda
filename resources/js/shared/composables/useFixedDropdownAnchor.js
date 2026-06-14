@@ -1,4 +1,22 @@
-import { onBeforeUnmount, ref, watch } from 'vue';
+import { nextTick, onBeforeUnmount, ref, watch } from 'vue';
+
+/**
+ * Template ref từ parent có thể là Ref, hoặc HTMLElement (Vue unwrap prop).
+ */
+export function resolveAnchorElement(source) {
+    if (source == null) return null;
+    if (typeof Element !== 'undefined' && source instanceof Element) return source;
+    if (typeof source === 'object' && 'value' in source) {
+        const inner = source.value;
+        if (inner != null && typeof Element !== 'undefined' && inner instanceof Element) return inner;
+    }
+    return null;
+}
+
+function readAnchor(getAnchorEl) {
+    const raw = typeof getAnchorEl === 'function' ? getAnchorEl() : getAnchorEl;
+    return resolveAnchorElement(raw);
+}
 
 /**
  * Position a teleported panel under (or above) an anchor element using fixed coordinates.
@@ -12,9 +30,24 @@ export function useFixedDropdownAnchor(getAnchorEl, isOpen, options = {}) {
     const gap = options.gap ?? 6;
     const maxHeight = options.maxHeight ?? 320;
 
+    function hiddenOffScreenStyle() {
+        return {
+            position: 'fixed',
+            left: '-9999px',
+            top: '0',
+            width: `${width}px`,
+            zIndex,
+            visibility: 'hidden',
+            pointerEvents: 'none',
+        };
+    }
+
     function position() {
-        const el = typeof getAnchorEl === 'function' ? getAnchorEl() : getAnchorEl?.value;
-        if (!el) return;
+        const el = readAnchor(getAnchorEl);
+        if (!el) {
+            panelStyle.value = hiddenOffScreenStyle();
+            return false;
+        }
 
         const rect = el.getBoundingClientRect();
         const spaceBelow = window.innerHeight - rect.bottom - gap;
@@ -55,6 +88,7 @@ export function useFixedDropdownAnchor(getAnchorEl, isOpen, options = {}) {
                 ? { bottom: `${window.innerHeight - rect.top + gap}px`, top: 'auto' }
                 : { top: `${rect.bottom + gap}px`, bottom: 'auto' }),
         };
+        return true;
     }
 
     let listening = false;
@@ -73,24 +107,21 @@ export function useFixedDropdownAnchor(getAnchorEl, isOpen, options = {}) {
         window.removeEventListener('resize', position);
     }
 
-    function hiddenOffScreenStyle() {
-        return {
-            position: 'fixed',
-            left: '-9999px',
-            top: '0',
-            width: `${width}px`,
-            zIndex,
-            visibility: 'hidden',
-            pointerEvents: 'none',
-        };
+    async function schedulePosition() {
+        panelStyle.value = hiddenOffScreenStyle();
+        await nextTick();
+        requestAnimationFrame(() => {
+            if (!position()) {
+                requestAnimationFrame(() => position());
+            }
+        });
     }
 
     watch(
         isOpen,
         (open) => {
             if (open) {
-                panelStyle.value = hiddenOffScreenStyle();
-                requestAnimationFrame(() => position());
+                schedulePosition();
                 startListen();
             } else {
                 stopListen();
