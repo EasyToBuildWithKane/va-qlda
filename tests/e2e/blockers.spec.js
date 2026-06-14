@@ -20,14 +20,14 @@ test.describe('Blockers (Vướng mắc)', () => {
         test('does not see create button', async ({ page }) => {
             await page.goto('/blockers');
 
-            await expect(page.getByRole('button', { name: /ghi nhận/i })).toHaveCount(0);
+            await expect(page.getByRole('button', { name: 'Ghi nhận vướng mắc' })).toHaveCount(0);
         });
     });
 
     test('member can open create blocker form', async ({ page }) => {
         await page.goto('/blockers');
 
-        await page.getByRole('button', { name: /ghi nhận/i }).click();
+        await page.getByRole('button', { name: 'Ghi nhận vướng mắc' }).click();
         await expect(page.getByRole('dialog').or(page.locator('form'))).toBeVisible();
     });
 

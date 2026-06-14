@@ -22,7 +22,7 @@ test.describe('Authentication', () => {
 
         await page.goto('/dashboard');
         await expect(page.getByRole('heading', { name: 'Bảng điều khiển' })).toBeVisible();
-        await expect(page.getByText('Foundation ready')).toBeVisible();
+        await expect(page.getByText('Tổng quan hiệu suất & tiến độ hệ thống')).toBeVisible();
     });
 
     test('password login rejects invalid credentials', async ({ page }) => {
