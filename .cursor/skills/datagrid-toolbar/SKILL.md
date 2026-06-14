@@ -1,123 +1,148 @@
 ---
 name: datagrid-toolbar
 description: >-
-  Implements or reviews VA-QLDA datagrid toolbars: long search with "Tìm kiếm"
-  label, short icon+text buttons (Lọc/Cột/Xuất), filters on second row, server-side
-  filter params, CSV/Excel export composable. Mandatory for Pages and module
-  table UIs. Use when building Index pages, CostReport, Department list, or
-  any card+table toolbar.
+  Implements or reviews VA-QLDA datagrid toolbars: DatagridToolbarSearch (long,
+  half, compact), icon+text Lọc/Cột/Xuất, filter row opt-in via useVisibleFilterControls,
+  embedded project-tab layout (search half + actions same row). Use for Index pages,
+  CostReport, ProjectFeedbackPanel, RiskIssueDataTable, or any card+table toolbar.
 ---
 
 # Datagrid toolbar — VA-QLDA (bắt buộc)
 
 Rule: `.cursor/rules/datagrid-toolbar.mdc` (`alwaysApply: true`)
 
-Reference implementation: `resources/js/Pages/AiAccount/CostReport.vue`
+| Ngữ cảnh | Tham chiếu vàng |
+|----------|-----------------|
+| Trang full width | `resources/js/Pages/AiAccount/CostReport.vue` |
+| Tab / panel nhúng (ô tìm ~50%, nút cùng hàng) | `resources/js/modules/project/components/Dashboard/ProjectFeedbackPanel.vue` |
+| Panel nhúng, ô tìm ngắn | `resources/js/modules/project/components/Dashboard/RiskIssueDataTable.vue` (`compact`) |
 
 ## When to use
 
 - New or refactor page with **search + table + toolbar actions**
-- User asks for filter bar, column picker, export, list toolbar UX
+- User asks for filter bar, column picker, export, «tìm kiếm một nửa», «bộ lọc chọn mới hiện»
 - PR review on `Pages/**` or `modules/**/components/**` with datagrid
 
-## 1. Layout (copy)
+## 1. Layout
+
+### Full-width page (Index, CostReport)
 
 ```
-┌─ Toolbar row 1 ─────────────────────────────────────────────────────┐
+┌─ Row 1 ─────────────────────────────────────────────────────────────┐
 │ [Tìm kiếm] [════════════ input flex-1 long ════════════] [Lọc][Cột] │ [Xuất▼] [Primary]
 └─────────────────────────────────────────────────────────────────────┘
-┌─ Toolbar row 2 (if filter controls enabled) ────────────────────────┐
+┌─ Row 2 (hasFilterRow) ──────────────────────────────────────────────┐
 │ [Trạng thái ▼] [Loại ▼]  · summary · Đặt lại                          │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-### Search (required)
+### Embedded panel (project tab, dashboard card)
+
+```
+┌─ Row 1 (flex-wrap, gap-2) ────────────────────────────────────────────┐
+│ [Tìm kiếm][════ half width ~50% sm+ ════] [Lọc][Cột][Primary]        │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+- **Không** `lg:justify-between` tách primary sang cột phải — gom nút trong `flex shrink-0 flex-wrap items-center gap-2`.
+- Dòng 2: `v-if="hasFilterRow"`; mỗi control `v-if="visibleFilters.{key}"`.
+
+## 2. DatagridToolbarSearch
+
+Component: `resources/js/shared/ui/DatagridToolbarSearch.vue`
+
+| Prop | Khi dùng |
+|------|----------|
+| *(mặc định)* | Trang Index — `flex-1`, `lg:min-w-[28rem]` `xl:min-w-[32rem]` |
+| `half` | Tab dự án / panel rộng vừa — `sm:w-1/2 sm:max-w-[50%]` |
+| `compact` | Toolbar chật, ô tìm ngắn (Risk trong project) |
+| `stretch` | Ô tìm chiếm phần flex còn lại (coaching list, …) |
 
 ```vue
-<div class="flex min-w-0 flex-1 items-center gap-2">
-  <label for="{page}-search" class="shrink-0 text-xs font-medium text-slate-500">
-    Tìm kiếm
-  </label>
-  <div class="relative min-w-0 flex-1 sm:min-w-[200px] lg:min-w-[28rem] xl:min-w-[32rem]">
-    <AppIcon name="search" class="absolute left-3 top-1/2 -translate-y-1/2 …" />
-    <input id="{page}-search" type="search" class="input h-9 w-full pl-9 pr-8 text-sm" />
-    <!-- clear button when value -->
+<!-- Project tab feedback -->
+<div class="flex min-w-0 flex-wrap items-center gap-2">
+  <DatagridToolbarSearch v-model="q" half input-id="project-feedback-search" />
+  <div class="flex shrink-0 flex-wrap items-center gap-2">
+    <!-- Lọc, Cột, btn-primary -->
   </div>
 </div>
 ```
 
-- **Never** cap search with `max-w-xl` on large breakpoints.
-- Wire `v-model` + debounced API or client filter per module.
+## 3. Filter visibility (Lọc) — opt-in dòng 2
 
-### Icon + short label buttons (required)
+**Lọc** chỉ bật/tắt control trên dòng 2, không chọn giá trị.
+
+```js
+const FILTER_CONTROLS = [
+  { key: 'status', label: 'Trạng thái', default: false },
+  { key: 'category', label: 'Phân loại', default: false },
+  // default: true → hiện ngay lần đầu (CostReport, Risk status/severity)
+];
+
+const {
+  visibleFilters,
+  hasFilterRow,
+  persistVisibleFilters,
+  openFilterPanel,
+} = useVisibleFilterControls(FILTER_CONTROLS, 'va-qlda.{module}.visible-filters.v2');
+```
+
+Composable: `resources/js/shared/composables/useVisibleFilterControls.js`
+
+- **defaultState:** `c.default !== false` → không khai báo `default` = bật; `default: false` = tắt lần đầu.
+- **localStorage:** merge theo key — chỉ override khi key có trong JSON đã lưu; key mới trong code dùng `defaultState`.
+- **Đổi hành vi mặc định** cho user đã lưu cũ → bump `storageKey` (`.v2`, `.v3`).
+
+UI: `FilterVisibilityDropdown.vue` + `@persist="persistVisibleFilters"`.
+
+Filter **values** on row 2:
+
+```js
+watch(search, debounce(() => router.get(...), 350));
+watch([status, category], () => router.get(...));
+```
+
+## 4. Icon + short label buttons
 
 | Control | Label | Icon |
 |---------|-------|------|
-| Filter visibility panel | `Lọc` | `filter` |
-| Column visibility | `Cột` | `columns` |
-| Export menu | `Xuất` | `export` |
+| Filter visibility | `Lọc` | `filter` |
+| Columns | `Cột` | `columns` |
+| Export | `Xuất` | `export` |
 
 ```vue
-<button
-  type="button"
-  class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium …"
->
+<button type="button" class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium …">
   <AppIcon name="filter" :size="15" />
   <span>Lọc</span>
 </button>
 ```
 
-## 2. Filter panel vs filter values (bắt buộc)
+## 5. Export
 
-- **Lọc** ≠ chọn giá trị lọc. **Lọc** = checkbox bật/tắt control nào hiện ở **dòng 2**.
-- Dùng `useVisibleFilterControls(controls, storageKey)` + `FilterVisibilityDropdown.vue`.
-- **Giá trị** (`status`, `type`, …): `<select>` / input trên **dòng 2**, `v-if="visibleFilters.status"`.
-- On change: build params → `loadProposals(params)` / Inertia `router.get` with query.
+- Composable `use{Entity}Export.js`; `xlsx-js-style`; CSV + Excel từ một nút **Xuất**
+- Không blob/export logic trong `.vue`
 
-```js
-function buildFilterParams() {
-  const p = {};
-  if (status.value !== 'all') p.status = status.value;
-  if (search.trim()) p.search = search.trim();
-  return p;
-}
-watch([status, type], () => applyFilters());
-watch(search, debounce(applyFilters, 350));
-```
-
-## 3. Export (required for exportable grids)
-
-- Composable: `use{Entity}Export.js` in `modules/{domain}/composables/` or `composables/`
-- API: `exportX({ list, columns, visibleKeys, filterNote, format: 'csv' | 'xlsx' })`
-- Library: `xlsx-js-style`; filename `VA_{Entity}_{YYYY-MM-DD}.xlsx`
-- Copy styles from `useAiProposalExport.js` or `useProjectListExport.js`
-
-## 4. Click-outside & state
+## 6. Click-outside
 
 ```js
-const showFilterDd = ref(false);
-const showColDd = ref(false);
-const showExportDd = ref(false);
 function onToolbarClickOutside(e) {
-  if (filterRef.value && !filterRef.value.contains(e.target)) showFilterDd.value = false;
-  // col, export, …
+  if (e.target.closest?.('[data-filter-visibility-panel]')) return;
+  if (filterPanelDdRef.value && !filterPanelDdRef.value.contains(e.target)) showFilterPanelDd.value = false;
 }
-onMounted(() => document.addEventListener('mousedown', onToolbarClickOutside));
-onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOutside));
 ```
 
-## 5. Review checklist
+Mở Lọc → đóng Cột/Xuất (callback trong `openFilterPanel`).
 
-Pass only if all true:
+## 7. Review checklist
 
-1. Visible **Tìm kiếm** label + long input (`lg:min-w-[28rem]` or wider)
-2. **Lọc**, **Cột**, **Xuất** have icon + short text (not icon-only)
-3. Filter values on second row when enabled
-4. Search/filter hits backend when API exists
-5. Export via composable (CSV + Excel), not inline blob in page
+1. **Tìm kiếm** label + đúng prop (`half` / `compact` / long)
+2. Panel nhúng: Lọc, Cột, Primary **cùng hàng**
+3. Dòng 2 chỉ khi `hasFilterRow`; opt-in = `default: false` trên controls
+4. Search/filter gọi API khi có endpoint
+5. Lọc/Cột/Xuất: icon + chữ ngắn (không `w-9` icon-only)
 
 ## Related
 
-- Import/export modal: `.cursor/rules/import-export-reconcile.mdc`
-- Add page: `.cursor/skills/add-vue-page/SKILL.md`
-- Frontend rule: `.cursor/rules/vue-inertia-frontend.mdc`
+- `.cursor/rules/import-export-reconcile.mdc`
+- `.cursor/skills/add-vue-page/SKILL.md`
+- `.cursor/rules/vue-inertia-frontend.mdc`

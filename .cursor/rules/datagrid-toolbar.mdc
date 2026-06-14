@@ -8,7 +8,7 @@ alwaysApply: true
 
 Mọi trang **bảng + toolbar** (Index, CostReport, Department, Sprint, …) phải tuân pattern này. Tham chiếu vàng: `resources/js/Pages/AiAccount/CostReport.vue`.
 
-**Đã áp dụng (2026-06):** các trang trên + `useVisibleFilterControls.js`, `FilterVisibilityDropdown.vue`, `DatagridToolbarSearch.vue`. **Lọc = hiển thị control** trên Blockers, Bugs, Feedback, Departments, DailyReport/History, CostReport.
+**Đã áp dụng (2026-06):** các trang trên + `useVisibleFilterControls.js`, `FilterVisibilityDropdown.vue`, `DatagridToolbarSearch.vue`. **Lọc = hiển thị control** trên Blockers, Bugs, Feedback, Departments, DailyReport/History, CostReport. **Tab Phản hồi dự án:** `ProjectFeedbackPanel.vue` — tìm `half`, nút cùng hàng, bộ lọc opt-in (`default: false`).
 
 Skill chi tiết: `.cursor/skills/datagrid-toolbar/SKILL.md`
 
@@ -16,9 +16,9 @@ Skill chi tiết: `.cursor/skills/datagrid-toolbar/SKILL.md`
 
 | Vùng | Quy tắc |
 |------|---------|
-| **Tìm kiếm** | Label ngắn cố định `Tìm kiếm` (`<label for="…">`, `text-xs font-medium text-slate-500`). Input `flex-1`, **không** `max-w-xl` — tối thiểu `lg:min-w-[28rem]` `xl:min-w-[32rem]`. Icon search trong ô, nút xoá từ khoá khi có giá trị. |
+| **Tìm kiếm** | Label cố định `Tìm kiếm` qua `DatagridToolbarSearch.vue`. **Trang Index / full width:** input `flex-1`, **không** `max-w-xl` — `lg:min-w-[28rem]` `xl:min-w-[32rem]`. **Panel nhúng (tab dự án):** prop `half` (~50% từ `sm`) hoặc `compact` (ô ngắn); nút **Lọc / Cột / Primary** cùng **một hàng** (`flex-wrap`), không `justify-between` tách primary sang cột riêng. |
 | **Lọc / Cột / Xuất** | Nút `h-9` + **icon + label ngắn** (`Lọc`, `Cột`, `Xuất`). **Lọc** = dropdown checkbox «bộ lọc nào hiển thị trên dòng 2» (`useVisibleFilterControls` + `FilterVisibilityDropdown`) — **không** đặt giá trị lọc trong panel Lọc. |
-| **Primary** | Nút tạo mới (vd. `Thêm phiếu`) giữ text đầy đủ, `btn-primary`. |
+| **Primary** | Nút tạo mới (vd. `Ghi phản hồi`) **cùng hàng** với Lọc/Cột trong panel nhúng; trang Index có thể đặt cuối hàng toolbar. |
 
 ```html
 <div class="flex min-w-0 flex-1 items-center gap-2">
@@ -35,7 +35,9 @@ Skill chi tiết: `.cursor/skills/datagrid-toolbar/SKILL.md`
 ## 2. Bộ lọc giá trị — dòng thứ hai
 
 - Panel «Lọc» chỉ **bật/tắt** control nào hiện trên toolbar (checkbox), không nhét giá trị lọc vào dropdown đó.
-- `<select>` / filter giá trị (trạng thái, loại, …) đặt **dòng dưới** toolbar (`border-t`, `mt-2.5`, `pt-2.5`) khi control được bật.
+- **Lần đầu (chưa localStorage):** dòng 2 **ẩn** nếu mọi control có `default: false`; user bật qua **Lọc** mới thấy `<select>`. Trang muốn sẵn vài filter → `default: true` từng mục (vd. CostReport).
+- Đổi default toàn bộ UX → **bump** `storageKey` (vd. `…visible-filters.v2`) để không đọc tuỳ chọn cũ.
+- `<select>` / filter giá trị đặt **dòng dưới** (`v-if="hasFilterRow"` + `visibleFilters.{key}`), `border-b` hoặc `border-t` tách toolbar.
 - Đổi filter → **gửi server** (`loadProposals` / Inertia query) với debounce tìm kiếm ~350ms; KPI/count tổng giữ global nếu API hỗ trợ.
 
 ## 3. Xuất
@@ -60,8 +62,8 @@ Skill chi tiết: `.cursor/skills/datagrid-toolbar/SKILL.md`
 
 ## 6. Checklist PR (datagrid)
 
-- [ ] Label `Tìm kiếm` + input dài (`flex-1`, min-width lg/xl)
-- [ ] Nút Lọc / Cột / Xuất: icon + label ngắn
-- [ ] Filter giá trị ở dòng 2 khi bật
+- [ ] Label `Tìm kiếm` + `DatagridToolbarSearch` (dài / `half` / `compact` đúng ngữ cảnh)
+- [ ] Nút Lọc / Cột / Xuất: icon + label ngắn; panel nhúng: primary cùng hàng
+- [ ] Filter giá trị ở dòng 2 **chỉ** khi user bật qua Lọc (hoặc `default: true` có chủ đích)
 - [ ] API/debounce cho search + filter
 - [ ] Xuất CSV + Excel qua composable styled

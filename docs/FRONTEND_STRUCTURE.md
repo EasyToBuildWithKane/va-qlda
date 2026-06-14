@@ -130,6 +130,8 @@ Pages import feature components từ `@/modules/project/components/...` và prim
 | `SearchSelect.vue`, `SearchMultiSelect.vue` | Dropdown tìm-kiếm 1 chọn / nhiều chọn (teleport, viewport-aware) |
 | `CommentThread.vue` | Thread bình luận (Task/Bug/Blocker) |
 | `EmptyState.vue`, `LoadingSpinner.vue`, `SkeletonLoader.vue` | Empty / loading |
+| `DatagridToolbarSearch.vue`, `FilterVisibilityDropdown.vue`, `ColumnVisibilityDropdown.vue` | Toolbar bảng (tìm kiếm, bật lọc/cột) |
+| `DatagridToolbarActionButton.vue`, `DatagridSegmentedControl.vue`, `DatagridFilterField.vue` | Nút Lọc/Cột/Xuất đồng nhất, segmented toggle, ô lọc grid `w-full h-10` |
 | `form/FormField.vue`, `TextInput.vue`, `SelectInput.vue`, `DateInput.vue`, `TimeInput.vue` | Form primitives (`input--picker`: date/time hiển thị rõ, click cả ô) |
 
 ### 6.3 Project Module — `modules/project/components/`
@@ -139,7 +141,7 @@ Pages import feature components từ `@/modules/project/components/...` và prim
 | Core | `ProjectCard`, `ProjectDataGrid`, `ProjectForm`, `ProjectMembers`, `GanttChart`, `TaskBoard`, … |
 | Sprint/ | `SprintWorkspace`, `SprintTaskTable`, `SprintDataModal`, `TaskDetailPanel`, … |
 | TaskDetail/ | `TaskDetailRichEditor`, `TaskDetailCollaboration`, `TaskDetailSubtasks`, … |
-| Dashboard/ | `ProjectOverviewCard`, `RiskIssueDataTable`, `RiskImportModal`, `ActivityFeed`, … |
+| Dashboard/ | `ProjectOverviewCard`, `RiskIssueDataTable`, `ProjectFeedbackPanel`, `RiskImportModal`, `ActivityFeed`, … |
 | Timeline/ | `ProjectTimelineView`, `ProjectTimelineBurndown`, … |
 | Documents/ | `ProjectDocumentsPanel`, `DocumentPreviewPane` |
 | Modals | `TaskFormModal`, `SprintFormModal`, `BlockerFormModal`, … |
@@ -250,7 +252,14 @@ Pattern: `RiskImportModal`, `SprintDataModal` + composables `useRiskImport`, `us
 
 ### Datagrid toolbar (bảng)
 
-Trang Index có toolbar: label **Tìm kiếm**, nút **Lọc** / **Cột** / **Xuất** — rule `.cursor/rules/datagrid-toolbar.mdc`. Ví dụ: `Pages/AiAccount/CostReport.vue`, `Pages/Coaching/Sessions/Index.vue`.
+Rule: `.cursor/rules/datagrid-toolbar.mdc` · skill `.cursor/skills/datagrid-toolbar/SKILL.md`.
+
+| Ngữ cảnh | Ví dụ |
+|----------|--------|
+| Trang Index, ô tìm dài | `Pages/AiAccount/CostReport.vue`, `Pages/Coaching/Sessions/Index.vue` |
+| Tab dự án: tìm `half`, nút cùng hàng, lọc opt-in | `modules/project/components/Dashboard/ProjectFeedbackPanel.vue` |
+
+Shared: `DatagridToolbarSearch.vue` (props `half`, `compact`, `stretch`, `capInputWidth`, `inputHeight`), `DatagridToolbarActionButton`, `DatagridSegmentedControl`, `DatagridFilterField`, `FilterVisibilityDropdown.vue`, composable `useVisibleFilterControls.js` (`default: false` = ẩn dòng 2 lần đầu). Mẫu grid lọc: `Pages/DailyReport/History.vue` (`grid-cols-1 sm:2 md:3 xl:6`, `gap-3`, `h-10`).
 
 ### Coaching pages
 

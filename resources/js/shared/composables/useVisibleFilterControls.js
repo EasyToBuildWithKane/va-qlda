@@ -9,17 +9,24 @@ export function useVisibleFilterControls(controls, storageKey) {
         Object.fromEntries(controls.map((c) => [c.key, c.default !== false]));
 
     function load() {
+        const base = defaultState();
         try {
-            const saved = JSON.parse(localStorage.getItem(storageKey));
-            if (saved && typeof saved === 'object') {
-                return Object.fromEntries(
-                    controls.map((c) => [c.key, saved[c.key] !== false]),
-                );
-            }
+            const raw = localStorage.getItem(storageKey);
+            if (!raw) return base;
+            const saved = JSON.parse(raw);
+            if (!saved || typeof saved !== 'object') return base;
+            return Object.fromEntries(
+                controls.map((c) => [
+                    c.key,
+                    Object.prototype.hasOwnProperty.call(saved, c.key)
+                        ? saved[c.key] !== false
+                        : base[c.key],
+                ]),
+            );
         } catch {
             /* ignore */
         }
-        return defaultState();
+        return base;
     }
 
     const visibleFilters = ref(load());

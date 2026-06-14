@@ -43,7 +43,7 @@ alwaysApply: true
 ## Datagrid toolbar (UI bảng — bắt buộc)
 
 - Rule: `.cursor/rules/datagrid-toolbar.mdc` · Skill: `.cursor/skills/datagrid-toolbar/SKILL.md`
-- Mẫu: `resources/js/Pages/AiAccount/CostReport.vue` — label **Tìm kiếm**, input dài, nút **Lọc** / **Cột** / **Xuất** (icon + chữ ngắn).
+- Mẫu full: `CostReport.vue` · tab dự án: `ProjectFeedbackPanel.vue` (`half`, lọc `default: false`).
 
 ## Cấm
 

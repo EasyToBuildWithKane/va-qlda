@@ -18,6 +18,9 @@ import PageHeader from "@/Components/Ui/PageHeader.vue";
 import Avatar from "@/shared/ui/Avatar.vue";
 import DatagridToolbarSearch from "@/shared/ui/DatagridToolbarSearch.vue";
 import FilterVisibilityDropdown from "@/shared/ui/FilterVisibilityDropdown.vue";
+import DatagridToolbarActionButton from "@/shared/ui/DatagridToolbarActionButton.vue";
+import DatagridSegmentedControl from "@/shared/ui/DatagridSegmentedControl.vue";
+import DatagridFilterField from "@/shared/ui/DatagridFilterField.vue";
 import DatagridPaginationFooter from "@/shared/ui/DatagridPaginationFooter.vue";
 import SearchMultiSelect from "@/shared/ui/SearchMultiSelect.vue";
 import { useFixedDropdownAnchor } from "@/shared/composables/useFixedDropdownAnchor";
@@ -432,6 +435,13 @@ const GROUP_TABS = [
     { key: "week", label: "Tuần", icon: "weekly" },
     { key: "month", label: "Tháng", icon: "daily" },
 ];
+
+const VIEW_TABS = [
+    { key: "cards", label: "Thẻ", icon: "grid", title: "Thẻ báo cáo" },
+    { key: "table", label: "Bảng", icon: "list", title: "Bảng danh sách" },
+];
+
+const FILTER_CONTROL_CLASS = "input h-10 w-full text-sm";
 </script>
 
 <template>
@@ -484,181 +494,108 @@ const GROUP_TABS = [
       class="card sticky top-0 z-20 mb-4 overflow-visible backdrop-blur supports-[backdrop-filter]:bg-white/90 dark:supports-[backdrop-filter]:bg-slate-900/90"
     >
       <div
-        class="border-b border-slate-100 px-4 py-3 sm:px-5 dark:border-slate-700"
+        class="border-b border-slate-100 px-5 py-4 dark:border-slate-700"
       >
         <div
-          class="flex flex-col gap-3 lg:flex-row lg:items-center"
+          class="flex flex-col gap-3"
         >
           <div
-            class="flex min-w-0 flex-1 flex-wrap items-center gap-2"
+            class="flex w-full flex-wrap items-center gap-3"
           >
             <DatagridToolbarSearch
               v-model="filterForm.q"
               input-id="daily-reports-search"
               placeholder="Tiêu đề, tên nhân viên…"
+              stretch
+              cap-input-width
+              input-height="h-10"
             />
 
             <div
-              ref="filterPanelDdRef"
-              class="relative shrink-0"
+              class="flex min-w-0 flex-wrap items-center gap-2 sm:ml-auto"
             >
-              <button
-                type="button"
-                class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
-                :class="
-                  showFilterPanelDd
-                    ? 'border-brand/40 bg-brand/5 text-brand'
-                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'
-                "
-                :title="`Hiển thị bộ lọc (${enabledFilterControlCount}/${FILTER_CONTROLS.length})`"
-                @click="
-                  openFilterPanel(() => {
-                    colsMenu = false;
+              <div
+                ref="filterPanelDdRef"
+                class="relative shrink-0"
+              >
+                <DatagridToolbarActionButton
+                  icon="filter"
+                  :active="showFilterPanelDd"
+                  :title="`Hiển thị bộ lọc (${enabledFilterControlCount}/${FILTER_CONTROLS.length})`"
+                  @click="
+                    openFilterPanel(() => {
+                      colsMenu = false;
+                      exportMenu = false;
+                    })
+                  "
+                >
+                  Lọc
+                </DatagridToolbarActionButton>
+                <FilterVisibilityDropdown
+                  v-model="visibleFilters"
+                  :show="showFilterPanelDd"
+                  :anchor-ref="filterPanelDdRef"
+                  :controls="
+                    FILTER_CONTROLS.filter(
+                      (f) =>
+                        f.key !== 'employee' ||
+                        canFilterEmployee,
+                    )
+                  "
+                  @persist="persistVisibleFilters"
+                />
+              </div>
+
+              <div
+                ref="colsRef"
+                class="relative shrink-0"
+              >
+                <DatagridToolbarActionButton
+                  icon="columns"
+                  :active="colsMenu"
+                  title="Cột hiển thị (chế độ bảng)"
+                  @click="
+                    colsMenu = !colsMenu;
                     exportMenu = false;
-                  })
-                "
+                    showFilterPanelDd = false;
+                  "
+                >
+                  Cột
+                </DatagridToolbarActionButton>
+              </div>
+
+              <div
+                ref="exportRef"
+                class="relative shrink-0"
               >
-                <AppIcon
-                  name="filter"
-                  :size="15"
-                />
-                <span>Lọc</span>
-              </button>
-              <FilterVisibilityDropdown
-                v-model="visibleFilters"
-                :show="showFilterPanelDd"
-                :anchor-ref="filterPanelDdRef"
-                :controls="
-                  FILTER_CONTROLS.filter(
-                    (f) =>
-                      f.key !== 'employee' ||
-                      canFilterEmployee,
-                  )
-                "
-                @persist="persistVisibleFilters"
+                <DatagridToolbarActionButton
+                  icon="export"
+                  :active="exportMenu"
+                  :disabled="exporting"
+                  title="Xuất toàn bộ dữ liệu đang lọc"
+                  @click="
+                    exportMenu = !exportMenu;
+                    colsMenu = false;
+                    showFilterPanelDd = false;
+                  "
+                >
+                  {{ exporting ? "Đang xuất…" : "Xuất" }}
+                </DatagridToolbarActionButton>
+              </div>
+
+              <DatagridSegmentedControl
+                :model-value="groupMode"
+                :items="GROUP_TABS"
+                aria-label="Nhóm theo thời gian"
+                @update:model-value="setGroupMode"
               />
-            </div>
 
-            <div
-              ref="colsRef"
-              class="relative shrink-0"
-            >
-              <button
-                type="button"
-                class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
-                :class="
-                  colsMenu
-                    ? 'border-brand/40 bg-brand/5 text-brand'
-                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'
-                "
-                title="Cột hiển thị (chế độ bảng)"
-                @click="
-                  colsMenu = !colsMenu;
-                  exportMenu = false;
-                  showFilterPanelDd = false;
-                "
-              >
-                <AppIcon
-                  name="columns"
-                  :size="15"
-                />
-                <span>Cột</span>
-              </button>
-            </div>
-
-            <div
-              ref="exportRef"
-              class="relative shrink-0"
-            >
-              <button
-                type="button"
-                class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none disabled:opacity-50"
-                :class="
-                  exportMenu
-                    ? 'border-brand/40 bg-brand/5 text-brand'
-                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'
-                "
-                :disabled="exporting"
-                title="Xuất toàn bộ dữ liệu đang lọc"
-                @click="
-                  exportMenu = !exportMenu;
-                  colsMenu = false;
-                  showFilterPanelDd = false;
-                "
-              >
-                <AppIcon
-                  name="export"
-                  :size="15"
-                />
-                <span>{{
-                  exporting ? "Đang xuất…" : "Xuất"
-                }}</span>
-              </button>
-            </div>
-
-            <!-- Group by -->
-            <div
-              class="flex shrink-0 rounded-btn border border-slate-200 p-0.5 dark:border-slate-700"
-            >
-              <button
-                v-for="g in GROUP_TABS"
-                :key="g.key"
-                type="button"
-                class="inline-flex h-8 items-center gap-1 rounded-btn px-2.5 text-xs font-medium transition"
-                :class="
-                  groupMode === g.key
-                    ? 'bg-brand/10 text-brand'
-                    : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
-                "
-                :title="`Nhóm theo ${g.label.toLowerCase()}`"
-                @click="setGroupMode(g.key)"
-              >
-                <AppIcon
-                  :name="g.icon"
-                  :size="14"
-                />
-                {{ g.label }}
-              </button>
-            </div>
-
-            <!-- View toggle -->
-            <div
-              class="flex shrink-0 rounded-btn border border-slate-200 p-0.5 dark:border-slate-700"
-            >
-              <button
-                type="button"
-                class="inline-flex h-8 items-center gap-1 rounded-btn px-2.5 text-xs font-medium transition"
-                :class="
-                  viewMode === 'cards'
-                    ? 'bg-brand/10 text-brand'
-                    : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
-                "
-                title="Thẻ báo cáo"
-                @click="setViewMode('cards')"
-              >
-                <AppIcon
-                  name="grid"
-                  :size="14"
-                />
-                Thẻ
-              </button>
-              <button
-                type="button"
-                class="inline-flex h-8 items-center gap-1 rounded-btn px-2.5 text-xs font-medium transition"
-                :class="
-                  viewMode === 'table'
-                    ? 'bg-brand/10 text-brand'
-                    : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
-                "
-                title="Bảng danh sách"
-                @click="setViewMode('table')"
-              >
-                <AppIcon
-                  name="list"
-                  :size="14"
-                />
-                Bảng
-              </button>
+              <DatagridSegmentedControl
+                :model-value="viewMode"
+                :items="VIEW_TABS"
+                aria-label="Chế độ hiển thị"
+                @update:model-value="setViewMode"
+              />
             </div>
           </div>
         </div>
@@ -740,99 +677,124 @@ const GROUP_TABS = [
       <Transition name="fade-slide">
         <div
           v-if="hasFilterRow"
-          class="flex flex-wrap items-center gap-2 border-t border-slate-100 px-5 py-3 dark:border-slate-700"
+          class="grid grid-cols-1 gap-3 border-t border-slate-100 px-5 py-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 dark:border-slate-700"
         >
-          <select
+          <DatagridFilterField
             v-if="visibleFilters.status"
-            v-model="filterForm.status"
-            class="input h-9 w-44 text-sm"
-            aria-label="Trạng thái"
+            label="Trạng thái"
           >
-            <option value="">
-              Trạng thái: Tất cả
-            </option>
-            <option
-              v-for="s in statuses"
-              :key="s.value"
-              :value="s.value"
+            <select
+              v-model="filterForm.status"
+              :class="FILTER_CONTROL_CLASS"
+              aria-label="Trạng thái"
             >
-              {{ s.label }}
-            </option>
-          </select>
+              <option value="">
+                Tất cả
+              </option>
+              <option
+                v-for="s in statuses"
+                :key="s.value"
+                :value="s.value"
+              >
+                {{ s.label }}
+              </option>
+            </select>
+          </DatagridFilterField>
 
-          <select
+          <DatagridFilterField
             v-if="visibleFilters.project"
-            v-model="filterForm.project_id"
-            class="input h-9 min-w-[11rem] text-sm sm:w-52"
-            aria-label="Dự án"
+            label="Dự án"
           >
-            <option value="">
-              Dự án: Tất cả
-            </option>
-            <option
-              v-for="p in projects"
-              :key="p.id"
-              :value="p.id"
+            <select
+              v-model="filterForm.project_id"
+              :class="FILTER_CONTROL_CLASS"
+              aria-label="Dự án"
             >
-              {{ p.name }}
-            </option>
-          </select>
+              <option value="">
+                Tất cả
+              </option>
+              <option
+                v-for="p in projects"
+                :key="p.id"
+                :value="p.id"
+              >
+                {{ p.name }}
+              </option>
+            </select>
+          </DatagridFilterField>
 
-          <div
+          <DatagridFilterField
             v-if="visibleFilters.employee && canFilterEmployee"
-            class="min-w-[14rem] sm:w-64"
+            label="Người báo cáo"
           >
             <SearchMultiSelect
               v-model="filterForm.employee_ids"
               :options="employees"
               show-avatar
-              placeholder="Người báo cáo: Tất cả"
+              control-size="md"
+              placeholder="Tất cả"
               search-placeholder="Tìm nhân viên…"
             />
-          </div>
+          </DatagridFilterField>
 
-          <select
+          <DatagridFilterField
             v-if="visibleFilters.grade"
-            v-model="filterForm.grade"
-            class="input h-9 w-40 text-sm"
-            aria-label="Xếp loại"
+            label="Xếp loại"
           >
-            <option value="">
-              Xếp loại: Tất cả
-            </option>
-            <option
-              v-for="g in grades"
-              :key="g.value"
-              :value="g.value"
+            <select
+              v-model="filterForm.grade"
+              :class="FILTER_CONTROL_CLASS"
+              aria-label="Xếp loại"
             >
-              {{ g.label }}
-            </option>
-          </select>
+              <option value="">
+                Tất cả
+              </option>
+              <option
+                v-for="g in grades"
+                :key="g.value"
+                :value="g.value"
+              >
+                {{ g.label }}
+              </option>
+            </select>
+          </DatagridFilterField>
 
-          <input
+          <DatagridFilterField
             v-if="visibleFilters.from"
-            v-model="filterForm.from"
-            type="date"
-            class="input h-9 w-40 text-sm"
-            aria-label="Từ ngày"
+            label="Từ ngày"
           >
+            <input
+              v-model="filterForm.from"
+              type="date"
+              :class="FILTER_CONTROL_CLASS"
+              aria-label="Từ ngày"
+            >
+          </DatagridFilterField>
 
-          <input
+          <DatagridFilterField
             v-if="visibleFilters.to"
-            v-model="filterForm.to"
-            type="date"
-            class="input h-9 w-40 text-sm"
-            aria-label="Đến ngày"
+            label="Đến ngày"
           >
+            <input
+              v-model="filterForm.to"
+              type="date"
+              :class="FILTER_CONTROL_CLASS"
+              aria-label="Đến ngày"
+            >
+          </DatagridFilterField>
 
-          <button
+          <div
             v-if="activeCount"
-            type="button"
-            class="text-xs font-medium text-brand hover:underline"
-            @click="clearFilters"
+            class="col-span-full flex justify-end pt-0.5"
           >
-            Đặt lại
-          </button>
+            <button
+              type="button"
+              class="inline-flex h-10 items-center px-2 text-xs font-medium text-brand hover:underline"
+              @click="clearFilters"
+            >
+              Đặt lại bộ lọc
+            </button>
+          </div>
         </div>
       </Transition>
     </div>

@@ -31,12 +31,12 @@ const filterPanelDdRef = ref(null);
 const colDdRef = ref(null);
 
 const FILTER_CONTROLS = [
-    { key: 'status', label: 'Trạng thái' },
-    { key: 'category', label: 'Phân loại' },
-    { key: 'priority', label: 'Ưu tiên' },
-    { key: 'assignee', label: 'Người xử lý' },
-    { key: 'rating', label: 'Đánh giá' },
-    { key: 'mine', label: 'Tôi xử lý' },
+    { key: 'status', label: 'Trạng thái', default: false },
+    { key: 'category', label: 'Phân loại', default: false },
+    { key: 'priority', label: 'Ưu tiên', default: false },
+    { key: 'assignee', label: 'Người xử lý', default: false },
+    { key: 'rating', label: 'Đánh giá', default: false },
+    { key: 'mine', label: 'Tôi xử lý', default: false },
 ];
 
 const FEEDBACK_TABLE_COLUMNS = [
@@ -60,7 +60,7 @@ const {
     persistVisibleFilters,
     openFilterPanel,
     FILTER_CONTROLS: filterControls,
-} = useVisibleFilterControls(FILTER_CONTROLS, 'va-qlda.project-feedback.visible-filters');
+} = useVisibleFilterControls(FILTER_CONTROLS, 'va-qlda.project-feedback.visible-filters.v2');
 
 const {
     visibleCols,

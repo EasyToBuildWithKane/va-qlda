@@ -11,6 +11,10 @@ defineProps({
     half: { type: Boolean, default: false },
     /** Chiếm phần còn lại trên hàng toolbar (danh sách coaching, …) */
     stretch: { type: Boolean, default: false },
+    /** Chiều cao input (mặc định h-9; trang lọc SaaS dùng h-10) */
+    inputHeight: { type: String, default: 'h-9' },
+    /** Giới hạn chiều rộng ô tìm (~500–600px) khi stretch / full toolbar */
+    capInputWidth: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['update:modelValue', 'clear']);
@@ -24,8 +28,12 @@ const emit = defineEmits(['update:modelValue', 'clear']);
       : compact
         ? 'w-auto max-w-[min(100%,20rem)] shrink'
         : stretch
-          ? 'w-full min-w-0 flex-1'
-          : 'w-full flex-1 basis-full lg:basis-auto lg:min-w-0'"
+          ? capInputWidth
+            ? 'w-full min-w-0 basis-full max-w-none flex-1 sm:max-w-[36rem] sm:basis-auto'
+            : 'w-full min-w-0 flex-1'
+          : capInputWidth
+            ? 'w-full min-w-0 flex-1 max-w-[36rem]'
+            : 'w-full flex-1 basis-full lg:basis-auto lg:min-w-0'"
   >
     <label
       :for="inputId"
@@ -39,8 +47,8 @@ const emit = defineEmits(['update:modelValue', 'clear']);
         ? 'min-w-0 flex-1'
         : compact
           ? 'min-w-[9rem] sm:min-w-[11rem]'
-          : stretch
-            ? 'min-w-0 flex-1'
+          : capInputWidth || stretch
+            ? 'min-w-0 w-full flex-1'
             : 'sm:min-w-[12rem] md:min-w-[16rem] lg:min-w-[28rem] xl:min-w-[32rem]'"
     >
       <AppIcon
@@ -53,7 +61,7 @@ const emit = defineEmits(['update:modelValue', 'clear']);
         :value="modelValue"
         type="search"
         :placeholder="placeholder"
-        class="input h-9 w-full pl-9 pr-8 text-sm placeholder:text-slate-400"
+        :class="['input w-full pl-9 pr-8 text-sm placeholder:text-slate-400', inputHeight]"
         autocomplete="off"
         @input="emit('update:modelValue', $event.target.value)"
       >

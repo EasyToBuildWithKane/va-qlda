@@ -23,6 +23,8 @@ const props = defineProps({
     panelZIndex: { type: Number, default: 70 },
     /** Max chips rendered inline before collapsing to a "+N" pill. */
     maxChips: { type: Number, default: 3 },
+    /** sm = min-h-9 (mặc định); md = h-10 cố định cho filter grid */
+    controlSize: { type: String, default: 'sm' },
 });
 
 const emit = defineEmits(['update:modelValue']);
@@ -139,8 +141,11 @@ const visibleChips = computed(() => selectedOptions.value.slice(0, props.maxChip
       :id="id"
       ref="trigger"
       type="button"
-      class="input flex min-h-9 w-full flex-wrap items-center gap-1 py-1 text-left"
-      :class="disabled ? 'cursor-not-allowed opacity-60' : ''"
+      :class="[
+        'input flex w-full flex-wrap items-center gap-1 text-left',
+        controlSize === 'md' ? 'h-10 min-h-10 max-h-10 overflow-hidden py-0 px-2.5' : 'min-h-9 py-1',
+        disabled ? 'cursor-not-allowed opacity-60' : '',
+      ]"
       :disabled="disabled"
       @click="toggleOpen"
     >
