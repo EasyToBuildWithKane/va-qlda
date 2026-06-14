@@ -7,6 +7,7 @@ const props = defineProps({
     placeholder: { type: String, default: '0' },
     id: { type: String, default: null },
     invalid: { type: Boolean, default: false },
+    wordsClass: { type: String, default: 'mt-1 text-xs italic text-slate-400' },
 });
 
 const emit = defineEmits(['update:modelValue']);
@@ -53,7 +54,7 @@ const words = computed(() => dongToWords(props.modelValue));
     </div>
     <p
       v-if="words"
-      class="mt-1 text-xs italic text-slate-400"
+      :class="wordsClass"
     >
       {{ words }}
     </p>

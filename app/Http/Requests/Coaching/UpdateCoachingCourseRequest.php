@@ -22,6 +22,8 @@ class UpdateCoachingCourseRequest extends FormRequest
             'name' => ['sometimes', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'objectives' => ['nullable', 'string'],
+            'student_name' => ['nullable', 'string', 'max:255'],
+            'coach_name' => ['nullable', 'string', 'max:255'],
             'student_id' => ['nullable', 'integer', 'exists:employees,id'],
             'coach_id' => ['nullable', 'integer', 'exists:employees,id'],
             'status' => ['sometimes', 'string', Rule::in(CoachingCourseStatus::values())],

@@ -90,10 +90,13 @@ watch(() => filterForm.q, () => {
             {{ c.name }}
           </h2>
           <p
-            v-if="c.student"
+            v-if="c.student_display"
             class="text-xs text-slate-500"
           >
-            Học viên: {{ c.student.full_name }}
+            Học viên: {{ c.student_display }}
+            <template v-if="c.coach_display">
+              · Coach: {{ c.coach_display }}
+            </template>
           </p>
         </div>
         <Badge

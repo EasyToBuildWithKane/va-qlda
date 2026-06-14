@@ -19,6 +19,8 @@ class CoachingCourse extends Model
         'name',
         'description',
         'objectives',
+        'student_name',
+        'coach_name',
         'student_id',
         'coach_id',
         'status',

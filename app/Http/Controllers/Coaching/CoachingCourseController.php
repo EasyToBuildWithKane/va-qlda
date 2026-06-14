@@ -10,7 +10,6 @@ use App\Models\CoachingCourse;
 use App\Models\CoachingSession;
 use App\Support\Enums\CoachingCourseStatus;
 use App\Support\Enums\CoachingSessionStatus;
-use App\Support\Options;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -37,7 +36,11 @@ class CoachingCourseController extends Controller
         }
 
         if ($search = $request->query('q')) {
-            $query->where(fn ($q) => $q->where('name', 'like', "%{$search}%")->orWhere('code', 'like', "%{$search}%"));
+            $query->where(fn ($q) => $q
+                ->where('name', 'like', "%{$search}%")
+                ->orWhere('code', 'like', "%{$search}%")
+                ->orWhere('student_name', 'like', "%{$search}%")
+                ->orWhere('coach_name', 'like', "%{$search}%"));
         }
 
         return Inertia::render('Coaching/Courses/Index', [
@@ -56,7 +59,6 @@ class CoachingCourseController extends Controller
 
         return Inertia::render('Coaching/Courses/Edit', [
             'course' => null,
-            'employees' => Options::employees(),
             'options' => ['statuses' => CoachingCourseStatus::options()],
         ]);
     }
@@ -92,7 +94,6 @@ class CoachingCourseController extends Controller
 
         return Inertia::render('Coaching/Courses/Edit', [
             'course' => (new CoachingCourseResource($course))->resolve(),
-            'employees' => Options::employees(),
             'options' => ['statuses' => CoachingCourseStatus::options()],
         ]);
     }
