@@ -21,13 +21,7 @@ return new class extends Migration
 
         $articlesTable = Schema::getConnection()->getTablePrefix().'kb_articles';
 
-        $fulltextExists = DB::table('information_schema.statistics')
-            ->where('table_schema', DB::raw('DATABASE()'))
-            ->where('table_name', $articlesTable)
-            ->where('index_name', 'kb_articles_fulltext')
-            ->exists();
-
-        if (! $fulltextExists) {
+        if (! $this->fulltextIndexExists($articlesTable, 'kb_articles_fulltext')) {
             DB::statement(
                 "ALTER TABLE `{$articlesTable}` ADD FULLTEXT `kb_articles_fulltext` (`title`, `excerpt`, `content`)"
             );
@@ -39,13 +33,7 @@ return new class extends Migration
         if (Schema::getConnection()->getDriverName() === 'mysql') {
             $articlesTable = Schema::getConnection()->getTablePrefix().'kb_articles';
 
-            $fulltextExists = DB::table('information_schema.statistics')
-                ->where('table_schema', DB::raw('DATABASE()'))
-                ->where('table_name', $articlesTable)
-                ->where('index_name', 'kb_articles_fulltext')
-                ->exists();
-
-            if ($fulltextExists) {
+            if ($this->fulltextIndexExists($articlesTable, 'kb_articles_fulltext')) {
                 DB::statement("ALTER TABLE `{$articlesTable}` DROP INDEX `kb_articles_fulltext`");
             }
         }
@@ -55,5 +43,19 @@ return new class extends Migration
                 $table->dropColumn('usage');
             });
         }
+    }
+
+    private function fulltextIndexExists(string $prefixedTable, string $indexName): bool
+    {
+        $db = Schema::getConnection()->getDatabaseName();
+
+        $rows = DB::select(
+            'SELECT 1 FROM information_schema.statistics
+             WHERE table_schema = ? AND table_name = ? AND index_name = ?
+             LIMIT 1',
+            [$db, $prefixedTable, $indexName],
+        );
+
+        return $rows !== [];
     }
 };

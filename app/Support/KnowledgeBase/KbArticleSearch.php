@@ -39,12 +39,17 @@ class KbArticleSearch
             return false;
         }
 
-        $table = $query->getModel()->getTable();
+        $connection = Schema::getConnection();
+        $table = $connection->getTablePrefix().$query->getModel()->getTable();
+        $db = $connection->getDatabaseName();
 
-        return DB::table('information_schema.statistics')
-            ->where('table_schema', DB::raw('DATABASE()'))
-            ->where('table_name', $table)
-            ->where('index_type', 'FULLTEXT')
-            ->exists();
+        $rows = DB::select(
+            'SELECT 1 FROM information_schema.statistics
+             WHERE table_schema = ? AND table_name = ? AND index_type = ?
+             LIMIT 1',
+            [$db, $table, 'FULLTEXT'],
+        );
+
+        return $rows !== [];
     }
 }
