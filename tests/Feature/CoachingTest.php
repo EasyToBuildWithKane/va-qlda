@@ -66,7 +66,30 @@ class CoachingTest extends TestCase
         $this->assertNotNull($day10);
         $this->assertSame(3.0, $day10['hours']);
         $this->assertSame(300000.0, $day10['revenue']);
+        $this->assertSame(2, $day10['sessions']);
         $this->assertCount(30, $series);
+    }
+
+    public function test_coaching_weekly_series_aggregates_days_in_month(): void
+    {
+        $course = CoachingCourse::create([
+            'name' => 'Khóa tuần',
+            'status' => CoachingCourseStatus::Active,
+            'hourly_rate' => 50000,
+        ]);
+        CoachingSession::create([
+            'course_id' => $course->id,
+            'title' => 'Buổi',
+            'session_number' => 1,
+            'date' => '2026-06-03',
+            'total_hours' => 1,
+            'status' => CoachingSessionStatus::Completed,
+        ]);
+
+        $weeks = CoachingFinancialSummary::weeklySeries(2026, 6);
+
+        $this->assertNotEmpty($weeks);
+        $this->assertGreaterThanOrEqual(1, collect($weeks)->sum('sessions'));
     }
 
     public function test_admin_can_create_course(): void

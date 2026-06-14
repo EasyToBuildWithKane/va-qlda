@@ -40,6 +40,7 @@ const {
 } = useVisibleFilterControls(FEEDBACK_FILTER_CONTROLS, 'va-qlda.feedback.visible-filters');
 
 function onToolbarClickOutside(e) {
+    if (e.target.closest?.('[data-filter-visibility-panel]')) return;
     if (filterPanelDdRef.value && !filterPanelDdRef.value.contains(e.target)) {
         showFilterPanelDd.value = false;
     }
@@ -158,6 +159,7 @@ function clearFilters() {
               <FilterVisibilityDropdown
                 v-model="visibleFilters"
                 :show="showFilterPanelDd"
+                :anchor-ref="filterPanelDdRef"
                 :controls="FILTER_CONTROLS"
                 @persist="persistVisibleFilters"
               />

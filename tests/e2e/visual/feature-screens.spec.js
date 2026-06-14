@@ -22,7 +22,6 @@ const ADMIN_SCREENS = [
     { id: 'daily-reports-review', path: '/daily-reports/review', heading: /duyệt báo cáo/i },
     { id: 'blockers', path: '/blockers', heading: /vướng mắc/i },
     { id: 'departments', path: '/departments', heading: 'Quản lý phòng ban' },
-    { id: 'bugs', path: '/bugs', heading: /bug/i },
     { id: 'feedback', path: '/feedback', heading: /phản hồi/i },
     { id: 'knowledge-base', path: '/knowledge-base', heading: /cơ sở tri thức/i },
     { id: 'coaching', path: '/coaching', heading: /coaching/i },

@@ -81,7 +81,7 @@ class CoachingFinancialSummary
     }
 
     /**
-     * @return array<int, array{month:string, revenue:float, hours:float}>
+     * @return array<int, array{month:string, revenue:float, hours:float, sessions_total:int, sessions_completed:int}>
      */
     public static function revenueSeries(int $months = 12): array
     {
@@ -94,6 +94,8 @@ class CoachingFinancialSummary
                 'month' => $cursor->format('Y-m'),
                 'revenue' => $summary['revenue_total'],
                 'hours' => $summary['hours_total'],
+                'sessions_total' => $summary['sessions_total'],
+                'sessions_completed' => $summary['sessions_completed'],
             ];
             $cursor->subMonth();
         }
@@ -102,7 +104,7 @@ class CoachingFinancialSummary
     }
 
     /**
-     * @return array<int, array{day:string, label:string, revenue:float, hours:float}>
+     * @return array<int, array{day:string, label:string, weekday:string, revenue:float, hours:float, sessions:int}>
      */
     public static function dailySeries(int $year, int $month): array
     {
@@ -117,6 +119,7 @@ class CoachingFinancialSummary
 
         $revenueByDay = [];
         $hoursByDay = [];
+        $sessionsByDay = [];
 
         foreach ($completed as $session) {
             $day = $session->date?->toDateString();
@@ -125,6 +128,7 @@ class CoachingFinancialSummary
             }
             $hours = (float) ($session->total_hours ?? 0);
             $hoursByDay[$day] = ($hoursByDay[$day] ?? 0) + $hours;
+            $sessionsByDay[$day] = ($sessionsByDay[$day] ?? 0) + 1;
 
             $course = $session->course;
             if ($course && $course->hourly_rate && $hours > 0) {
@@ -139,11 +143,69 @@ class CoachingFinancialSummary
             $out[] = [
                 'day' => $key,
                 'label' => $cursor->format('d/m'),
+                'weekday' => $cursor->locale('vi')->isoFormat('dddd'),
                 'revenue' => round($revenueByDay[$key] ?? 0, 2),
                 'hours' => round($hoursByDay[$key] ?? 0, 2),
+                'sessions' => (int) ($sessionsByDay[$key] ?? 0),
             ];
             $cursor->addDay();
         }
+
+        return $out;
+    }
+
+    /**
+     * Tổng hợp theo tuần (bắt đầu thứ Hai) trong phạm vi tháng đang xem.
+     *
+     * @return array<int, array{week_start:string, week_end:string, label:string, revenue:float, hours:float, sessions:int, days_with_activity:int}>
+     */
+    public static function weeklySeries(int $year, int $month): array
+    {
+        $start = Carbon::create($year, $month, 1)->startOfMonth();
+        $end = $start->copy()->endOfMonth();
+        $daily = self::dailySeries($year, $month);
+
+        $buckets = [];
+        foreach ($daily as $row) {
+            $day = Carbon::parse($row['day']);
+            $weekStart = $day->copy()->startOfWeek(Carbon::MONDAY);
+            $weekEnd = $weekStart->copy()->endOfWeek(Carbon::MONDAY);
+            $key = $weekStart->toDateString();
+
+            if (! isset($buckets[$key])) {
+                $clipStart = $weekStart->lt($start) ? $start->copy() : $weekStart->copy();
+                $clipEnd = $weekEnd->gt($end) ? $end->copy() : $weekEnd->copy();
+                $buckets[$key] = [
+                    'week_start' => $clipStart->toDateString(),
+                    'week_end' => $clipEnd->toDateString(),
+                    'label' => sprintf(
+                        'Tuần %s – %s',
+                        $clipStart->format('d/m'),
+                        $clipEnd->format('d/m/Y')
+                    ),
+                    'revenue' => 0.0,
+                    'hours' => 0.0,
+                    'sessions' => 0,
+                    'days_with_activity' => 0,
+                ];
+            }
+
+            $buckets[$key]['revenue'] += (float) $row['revenue'];
+            $buckets[$key]['hours'] += (float) $row['hours'];
+            $buckets[$key]['sessions'] += (int) $row['sessions'];
+            if ($row['sessions'] > 0 || $row['hours'] > 0 || $row['revenue'] > 0) {
+                $buckets[$key]['days_with_activity'] += 1;
+            }
+        }
+
+        $out = array_values($buckets);
+        usort($out, fn (array $a, array $b) => strcmp($a['week_start'], $b['week_start']));
+
+        foreach ($out as &$row) {
+            $row['revenue'] = round($row['revenue'], 2);
+            $row['hours'] = round($row['hours'], 2);
+        }
+        unset($row);
 
         return $out;
     }

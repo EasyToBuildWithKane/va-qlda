@@ -3,15 +3,11 @@
 namespace Tests\Feature;
 
 use App\Models\Blocker;
-use App\Models\Bug;
 use App\Models\Project;
 use App\Models\SecurityAuditLog;
 use App\Models\SystemAccount;
 use App\Models\Task;
-use App\Support\BugActivityLogger;
-use App\Support\Enums\BugSeverity;
 use App\Support\Enums\SystemRole;
-use App\Support\Enums\TaskPriority;
 use App\Support\Enums\TaskStatus;
 use App\Support\ProjectActivityFeedBuilder;
 use App\Support\ProjectActivityLogger;
@@ -71,26 +67,6 @@ class AuditActivityTest extends TestCase
         $this->assertDatabaseHas('project_activities', [
             'project_id' => $project->id,
             'event' => 'blocker_deleted',
-        ]);
-    }
-
-    public function test_bug_create_writes_bug_activity(): void
-    {
-        $account = SystemAccount::factory()->role(SystemRole::Lead)->create();
-        $project = Project::factory()->create();
-
-        $bug = Bug::create([
-            'project_id' => $project->id,
-            'title' => 'Lỗi login',
-            'severity' => BugSeverity::Major->value,
-            'priority' => TaskPriority::Medium->value,
-            'status' => 'open',
-        ]);
-        BugActivityLogger::created($bug, $account);
-
-        $this->assertDatabaseHas('bug_activities', [
-            'bug_id' => $bug->id,
-            'event' => 'created',
         ]);
     }
 

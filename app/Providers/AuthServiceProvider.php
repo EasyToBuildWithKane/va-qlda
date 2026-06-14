@@ -8,7 +8,6 @@ use App\Models\AiAccount;
 use App\Models\AiPaymentRequest;
 use App\Models\AiPurchaseProposal;
 use App\Models\Blocker;
-use App\Models\Bug;
 use App\Models\CoachingCourse;
 use App\Models\Department;
 use App\Models\Feedback;
@@ -20,7 +19,6 @@ use App\Policies\AiAccountPolicy;
 use App\Policies\AiPaymentRequestPolicy;
 use App\Policies\AiPurchaseProposalPolicy;
 use App\Policies\BlockerPolicy;
-use App\Policies\BugPolicy;
 use App\Policies\CoachingCoursePolicy;
 use App\Policies\DailyReportPolicy;
 use App\Policies\DepartmentPolicy;
@@ -46,9 +44,8 @@ class AuthServiceProvider extends ServiceProvider
         Project::class => ProjectPolicy::class,
         Department::class => DepartmentPolicy::class,
         OrgTeam::class => OrgTeamPolicy::class,
-        Bug::class => BugPolicy::class,
-        Feedback::class => FeedbackPolicy::class,
         Blocker::class => BlockerPolicy::class,
+        Feedback::class => FeedbackPolicy::class,
         AiAccount::class => AiAccountPolicy::class,
         AiPaymentRequest::class => AiPaymentRequestPolicy::class,
         AiPurchaseProposal::class => AiPurchaseProposalPolicy::class,

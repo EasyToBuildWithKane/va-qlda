@@ -277,6 +277,7 @@ watch(groupBy, (key) => {
 });
 
 function onDocMouseDown(e) {
+    if (e.target.closest?.('[data-filter-visibility-panel]')) return;
     if (filterPanelDdRef.value && !filterPanelDdRef.value.contains(e.target)) {
         showFilterPanelDd.value = false;
     }
@@ -402,6 +403,7 @@ function rowStableId(row) {
               <FilterVisibilityDropdown
                 v-model="visibleFilters"
                 :show="showFilterPanelDd"
+                :anchor-ref="filterPanelDdRef"
                 :controls="FILTER_CONTROLS"
                 @persist="persistVisibleFilters"
               />

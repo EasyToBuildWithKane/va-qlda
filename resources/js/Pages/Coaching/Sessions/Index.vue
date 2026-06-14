@@ -109,6 +109,7 @@ const exportDdRef = ref(null);
 const showExportDd = ref(false);
 
 const onDocClick = (e) => {
+    if (e.target.closest?.('[data-filter-visibility-panel]')) return;
     if (filterDdRef.value && !filterDdRef.value.contains(e.target)) showFilterPanelDd.value = false;
     if (colDdRef.value && !colDdRef.value.contains(e.target)) showColDd.value = false;
     if (exportDdRef.value && !exportDdRef.value.contains(e.target)) showExportDd.value = false;
@@ -279,6 +280,7 @@ async function removeSession(s) {
                 <FilterVisibilityDropdown
                   v-model="visibleFilters"
                   :show="showFilterPanelDd"
+                  :anchor-ref="filterDdRef"
                   :controls="FILTER_CONTROLS"
                   @persist="persistVisibleFilters"
                 />

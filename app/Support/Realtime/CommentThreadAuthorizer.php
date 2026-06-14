@@ -3,7 +3,6 @@
 namespace App\Support\Realtime;
 
 use App\Models\Blocker;
-use App\Models\Bug;
 use App\Models\Feedback;
 use App\Models\KbArticle;
 use App\Models\SystemAccount;
@@ -14,7 +13,6 @@ class CommentThreadAuthorizer
 {
     /** @var array<string, class-string<Model>> */
     private const TYPES = [
-        'bug' => Bug::class,
         'feedback' => Feedback::class,
         'blocker' => Blocker::class,
         'task' => Task::class,

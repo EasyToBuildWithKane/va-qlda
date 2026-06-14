@@ -47,6 +47,7 @@ class CoachingDashboardController extends Controller
             'month' => sprintf('%04d-%02d', $year, $month),
             'revenueSeries' => CoachingFinancialSummary::revenueSeries(12),
             'dailySeries' => CoachingFinancialSummary::dailySeries($year, $month),
+            'weeklySeries' => CoachingFinancialSummary::weeklySeries($year, $month),
             'activeCourses' => $activeCourses,
             'can' => [
                 'create' => $request->user()->can('create', CoachingCourse::class),

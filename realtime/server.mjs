@@ -77,7 +77,7 @@ function verifySubscribeToken(token) {
         if (Number(exp) < Math.floor(Date.now() / 1000)) {
             return null;
         }
-        const allowed = new Set(['bug', 'feedback', 'blocker', 'task']);
+        const allowed = new Set(['feedback', 'blocker', 'task']);
         if (!allowed.has(type)) {
             return null;
         }

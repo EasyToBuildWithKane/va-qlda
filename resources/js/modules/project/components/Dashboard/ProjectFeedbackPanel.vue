@@ -143,6 +143,7 @@ function clearFilters() {
 }
 
 function onToolbarClickOutside(e) {
+    if (e.target.closest?.('[data-filter-visibility-panel]')) return;
     if (filterPanelDdRef.value && !filterPanelDdRef.value.contains(e.target)) {
         showFilterPanelDd.value = false;
     }
@@ -254,6 +255,7 @@ function onSaved() {
               <FilterVisibilityDropdown
                 v-model="visibleFilters"
                 :show="showFilterPanelDd"
+                :anchor-ref="filterPanelDdRef"
                 :controls="filterControls"
                 @persist="persistVisibleFilters"
               />

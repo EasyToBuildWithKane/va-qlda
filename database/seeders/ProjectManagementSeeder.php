@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\Blocker;
-use App\Models\Bug;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\Epic;
@@ -19,7 +18,7 @@ use Illuminate\Support\Carbon;
 /**
  * Demo data for the project-management module: enriches a few existing projects
  * with dates/budget/manager, adds members + rates, sprints, epics, scheduled
- * tasks (so the Gantt renders), worklogs (so cost rolls up), blockers, bugs and
+ * tasks (so the Gantt renders), worklogs (so cost rolls up), blockers and
  * feedback with comments. Runs after ProjectSeeder.
  */
 class ProjectManagementSeeder extends Seeder
@@ -144,14 +143,6 @@ class ProjectManagementSeeder extends Seeder
         // --- Blockers -------------------------------------------------------
         Blocker::create(['code' => 'BLK-0001', 'project_id' => $portal->id, 'task_id' => $t3->id, 'title' => 'Thiếu API dữ liệu tin tức',       'description' => 'Chưa có endpoint cung cấp tin tức cho trang chủ.',      'severity' => 'high',   'status' => 'open',        'raised_by_id' => $team['frontend']->id, 'owner_id' => $team['backend']->id, 'raised_at' => Carbon::now()->subDays(2)]);
         Blocker::create(['code' => 'BLK-0002', 'project_id' => $qlda->id,   'title' => 'Hiệu năng truy vấn timeline', 'description' => 'Truy vấn Gantt chậm khi nhiều công việc.',               'severity' => 'medium', 'status' => 'in_progress', 'raised_by_id' => $team['member']->id,   'owner_id' => $team['admin']->id,   'raised_at' => Carbon::now()->subDays(1)]);
-
-        // --- Bugs (internal + external reporters) ---------------------------
-        $bug1 = Bug::create(['code' => 'BUG-0001', 'project_id' => $portal->id, 'task_id' => $t3->id, 'title' => 'Nút đăng nhập không phản hồi trên Safari', 'description' => 'Bấm đăng nhập không có gì xảy ra.', 'steps_to_reproduce' => "1. Mở Safari\n2. Bấm Đăng nhập", 'expected' => 'Chuyển tới trang chủ', 'actual' => 'Không phản hồi', 'environment' => 'Safari 17 / macOS', 'severity' => 'major',   'priority' => 'high',   'status' => 'in_progress', 'reporter_employee_id' => $team['qa']->id,    'assignee_id' => $team['frontend']->id]);
-        $bug2 = Bug::create(['code' => 'BUG-0002', 'project_id' => $portal->id,                        'title' => 'Sai chính tả ở trang liên hệ',              'description' => 'Lỗi chính tả "Liên hêj".',                                                                                                                                                          'severity' => 'trivial', 'priority' => 'low',    'status' => 'open',        'reporter_name' => 'Phụ huynh Nguyễn', 'reporter_email' => 'parent@example.com',                   'assignee_id' => $team['member']->id]);
-        Bug::create(['code' => 'BUG-0003', 'project_id' => $qlda->id,                          'title' => 'Tổng chi phí tính sai khi xoá worklog',     'description' => 'Chi phí không cập nhật sau khi xoá.',                                                                                                                                               'severity' => 'critical', 'priority' => 'urgent', 'status' => 'open',        'reporter_employee_id' => $team['admin']->id,                                                             'assignee_id' => $team['member']->id]);
-
-        $bug1->comments()->create(['employee_id' => $team['frontend']->id, 'body' => 'Đã tái hiện được, đang kiểm tra sự kiện click bị chặn.']);
-        $bug1->comments()->create(['employee_id' => $team['qa']->id,       'body' => 'Cảm ơn, mình sẽ test lại sau khi có bản vá.']);
 
         // --- Feedback (người dùng ↔ người sửa) ------------------------------
         $fb1 = Feedback::create(['project_id' => $portal->id, 'category' => 'feature_request', 'title' => 'Thêm đăng nhập bằng Google',           'description' => 'Mong có đăng nhập nhanh bằng tài khoản Google.',   'rating' => 4, 'priority' => 'medium', 'status' => 'under_review', 'reporter_name' => 'Cô Lan (Giáo viên)', 'reporter_email' => 'lan@example.com',  'assignee_id' => $team['lead']->id]);

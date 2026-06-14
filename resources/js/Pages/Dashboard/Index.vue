@@ -83,14 +83,6 @@ const kpiCards = computed(() => [
         color: 'text-rose-600',
         bg: 'bg-rose-50',
     },
-    {
-        label: 'Bug đang mở',
-        value: props.kpi.openBugs ?? 0,
-        sub: 'Cần sửa lỗi',
-        icon: 'bug',
-        color: 'text-violet-600',
-        bg: 'bg-violet-50',
-    },
 ]);
 
 // ---- Project status doughnut -----------------------------------------

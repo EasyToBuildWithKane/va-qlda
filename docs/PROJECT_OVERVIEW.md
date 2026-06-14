@@ -207,7 +207,7 @@ Tạo Project
 | Risk Import/Export (Excel) | ✅ Hoàn thành |
 | Daily Report | ✅ Hoàn thành |
 | Blocker Tracking | ✅ Hoàn thành |
-| Bug Tracking | ✅ Hoàn thành |
+| Bug Tracking | ❌ Đã gỡ (2026-06) — dùng Feedback / Blocker |
 | Feedback | ✅ Hoàn thành |
 | Department Management | ✅ Hoàn thành |
 | Comments & Reactions | ✅ Hoàn thành |

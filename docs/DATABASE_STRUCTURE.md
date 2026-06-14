@@ -356,7 +356,9 @@ Tương tự task_activities, FK → blockers.
 
 ---
 
-### 3.18 va_prd_bugs
+### 3.18 va_prd_bugs *(đã gỡ module — migration `2026_06_14_120000_drop_bugs_module`)*
+
+Bảng `bugs` và `bug_activities` không còn trên môi trường đã migrate. Schema lịch sử tham chiếu dưới đây.
 
 | Column | Type | Nullable | Description |
 |---|---|---|---|

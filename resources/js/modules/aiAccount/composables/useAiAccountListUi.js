@@ -78,6 +78,7 @@ export function useAiAccountListUi(groupsRef, optionsRef) {
     const colDdRef = ref(null);
 
     const onDocClick = (e) => {
+        if (e.target.closest?.('[data-filter-visibility-panel]')) return;
         if (filterDdRef.value && !filterDdRef.value.contains(e.target)) {
             showFilterPanelDd.value = false;
         }

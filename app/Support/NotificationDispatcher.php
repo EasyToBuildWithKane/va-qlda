@@ -3,7 +3,6 @@
 namespace App\Support;
 
 use App\Models\Blocker;
-use App\Models\Bug;
 use App\Models\Feedback;
 use App\Models\Project;
 use App\Models\Sprint;
@@ -306,25 +305,6 @@ class NotificationDispatcher
     private static function blockerRef(Blocker $blocker): string
     {
         return $blocker->code ?? ('RSK-'.$blocker->id);
-    }
-
-    public static function bugChanged(Bug $bug, string $verb, ?SystemAccount $actor, ?array $changes = null): void
-    {
-        $svc = self::service();
-        $ref = $bug->code ?? ('BUG-'.$bug->id);
-        $title = $actor
-            ? "{$actor->display_name} {$verb} {$ref}"
-            : "{$verb} {$ref}";
-
-        $body = $changes ? NotificationChangeSummary::bug($changes) : $bug->title;
-
-        $recipients = $svc->accountsForEmployees(array_filter([$bug->assignee_id, $bug->reporter_employee_id]));
-
-        $svc->notify($recipients, NotificationType::TaskUpdated, $title, $body, [
-            'actor' => $actor,
-            'project_id' => $bug->project_id,
-            'action_url' => "/bugs/{$bug->id}",
-        ]);
     }
 
     public static function feedbackChanged(Feedback $feedback, string $verb, ?SystemAccount $actor, ?array $changes = null): void

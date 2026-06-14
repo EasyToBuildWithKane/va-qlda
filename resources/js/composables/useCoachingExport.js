@@ -149,6 +149,8 @@ function buildSeriesSheet(revenueSeries) {
     setCell(ws, 0, 0, 'Tháng', S.header);
     setCell(ws, 0, 1, 'Doanh thu (VNĐ)', S.header);
     setCell(ws, 0, 2, 'Giờ dạy', S.header);
+    setCell(ws, 0, 3, 'Tổng buổi', S.header);
+    setCell(ws, 0, 4, 'Buổi hoàn thành', S.header);
 
     revenueSeries.forEach((row, i) => {
         const r = i + 1;
@@ -156,22 +158,242 @@ function buildSeriesSheet(revenueSeries) {
         setCell(ws, r, 0, row.month, S.cell(alt));
         setCell(ws, r, 1, row.revenue ?? 0, S.money(alt));
         setCell(ws, r, 2, row.hours ?? 0, S.hours(alt));
+        setCell(ws, r, 3, row.sessions_total ?? 0, S.cell(alt));
+        setCell(ws, r, 4, row.sessions_completed ?? 0, S.cell(alt));
     });
 
     const last = Math.max(1, revenueSeries.length);
-    ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: last, c: 2 } });
-    ws['!cols'] = [{ wch: 14 }, { wch: 18 }, { wch: 12 }];
+    ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: last, c: 4 } });
+    ws['!cols'] = [{ wch: 14 }, { wch: 18 }, { wch: 12 }, { wch: 12 }, { wch: 16 }];
+    return ws;
+}
+
+function monthDisplayLabel(monthYmd) {
+    const m = /^(\d{4})-(\d{2})/.exec(String(monthYmd ?? ''));
+    if (!m) return monthYmd ?? '';
+    return `Tháng ${m[2]}/${m[1]}`;
+}
+
+function buildDashboardGuideSheet(month) {
+    const ws = {};
+    let row = 0;
+    setCell(ws, row, 0, 'Hướng dẫn báo cáo Excel — Coaching Dashboard', S.title);
+    mergeRow(ws, row, 0, 2);
+    row += 2;
+
+    const lines = [
+        ['1. Mục đích', 'File tổng hợp KPI, doanh thu và giờ dạy theo ngày / tuần / tháng khớp dashboard.'],
+        ['2. Kỳ báo cáo', `Tháng đang xem trên web: ${monthDisplayLabel(month)} (${month}).`],
+        ['3. Tong quan', 'Chỉ số toàn hệ thống và chỉ số riêng tháng đang xem.'],
+        ['4. Chi tiet thang', 'Bảng chi tiết từng chỉ số tháng (buổi, giờ, doanh thu, TB).'],
+        ['5. Theo ngay', 'Mỗi ngày trong tháng: thứ, số buổi hoàn thành, giờ, doanh thu (buổi completed).'],
+        ['6. Theo tuan', 'Gộp theo tuần (thứ Hai – Chủ nhật), cắt trong phạm vi tháng.'],
+        ['7. 12 thang', '12 tháng gần nhất: doanh thu, giờ, tổng buổi và buổi hoàn thành.'],
+        ['8. Tien do khoa', 'Khóa đang diễn ra và % tiến độ tại thời điểm xuất.'],
+        ['9. Lưu ý', 'Doanh thu = giờ buổi hoàn thành × đơn giá/giờ khóa. Ngày không có buổi vẫn hiển thị 0.'],
+    ];
+
+    lines.forEach(([title, body], i) => {
+        const alt = i % 2 === 1;
+        setCell(ws, row, 0, title, S.section);
+        mergeRow(ws, row, 0, 2);
+        row += 1;
+        setCell(ws, row, 0, body, S.cell(alt));
+        mergeRow(ws, row, 0, 2);
+        row += 2;
+    });
+
+    ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: Math.max(row, 1), c: 2 } });
+    ws['!cols'] = [{ wch: 22 }, { wch: 72 }, { wch: 12 }];
+    return ws;
+}
+
+function buildMonthDetailSheet({ month, monthly }) {
+    const ws = {};
+    let row = 0;
+    setCell(ws, row, 0, `Chi tiết ${monthDisplayLabel(month)}`, S.title);
+    mergeRow(ws, row, 0, 3);
+    row += 1;
+    setCell(ws, row, 0, `Kỳ ${month} · Xuất ${datetime(new Date().toISOString())}`, S.subtitle);
+    mergeRow(ws, row, 0, 3);
+    row += 2;
+
+    setCell(ws, row, 0, 'Chỉ số', S.header);
+    setCell(ws, row, 1, 'Giá trị', S.header);
+    setCell(ws, row, 2, 'Ghi chú', S.header);
+    mergeRow(ws, row, 2, 3);
+    row += 1;
+
+    const rows = [
+        ['Tổng buổi (có ngày trong tháng)', monthly.sessions_total, 'Mọi trạng thái'],
+        ['Buổi hoàn thành', monthly.sessions_completed, 'Dùng tính giờ & doanh thu'],
+        ['Buổi hủy', monthly.sessions_cancelled, ''],
+        ['Tổng giờ dạy (hoàn thành)', monthly.hours_total, 'hours', 'hours'],
+        ['Doanh thu (VNĐ)', monthly.revenue_total, 'Từ buổi hoàn thành', 'money'],
+        ['Trung bình / giờ (VNĐ)', monthly.avg_per_hour, 'Doanh thu ÷ giờ', 'money'],
+        ['Trung bình / buổi (VNĐ)', monthly.avg_per_session, 'Doanh thu ÷ buổi hoàn thành', 'money'],
+        ['Học viên (distinct)', monthly.students_distinct, 'Khóa có hoạt động trong tháng'],
+    ];
+
+    rows.forEach(([label, val, note, kind], i) => {
+        const alt = i % 2 === 1;
+        setCell(ws, row, 0, label, S.cell(alt));
+        let style = S.cell(alt);
+        let cellVal = val ?? '—';
+        if (val != null && val !== '—') {
+            if (kind === 'money') {
+                style = S.money(alt, label.includes('Doanh thu'));
+                cellVal = val;
+            } else if (kind === 'hours') {
+                style = S.hours(alt);
+                cellVal = val;
+            }
+        }
+        setCell(ws, row, 1, cellVal, style);
+        setCell(ws, row, 2, note ?? '', S.cell(alt));
+        mergeRow(ws, row, 2, 3);
+        row += 1;
+    });
+
+    ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: row, c: 3 } });
+    ws['!cols'] = [{ wch: 36 }, { wch: 18 }, { wch: 36 }, { wch: 12 }];
+    return ws;
+}
+
+function buildDailySeriesSheet(dailySeries, month) {
+    const ws = {};
+    let row = 0;
+    setCell(ws, row, 0, `Theo ngày — ${monthDisplayLabel(month)}`, S.title);
+    mergeRow(ws, row, 0, 5);
+    row += 2;
+
+    const headers = ['Ngày (ISO)', 'Hiển thị', 'Thứ', 'Buổi hoàn thành', 'Giờ dạy', 'Doanh thu (VNĐ)'];
+    headers.forEach((h, c) => setCell(ws, row, c, h, S.header));
+    row += 1;
+
+    let cumRevenue = 0;
+    let cumHours = 0;
+    dailySeries.forEach((point, i) => {
+        const alt = i % 2 === 1;
+        const rev = point.revenue ?? 0;
+        const hrs = point.hours ?? 0;
+        cumRevenue += rev;
+        cumHours += hrs;
+        setCell(ws, row, 0, point.day ?? '', S.cell(alt));
+        setCell(ws, row, 1, point.label ?? '', S.cell(alt));
+        setCell(ws, row, 2, point.weekday ?? sessionWeekdayLabel(point.day), S.cell(alt));
+        setCell(ws, row, 3, point.sessions ?? 0, S.cell(alt));
+        setCell(ws, row, 4, hrs, S.hours(alt));
+        setCell(ws, row, 5, rev, S.money(alt));
+        row += 1;
+    });
+
+    setCell(ws, row, 0, 'Cộng tháng', S.section);
+    mergeRow(ws, row, 0, 2);
+    setCell(ws, row, 3, dailySeries.reduce((s, p) => s + (p.sessions ?? 0), 0), S.cell(false));
+    setCell(ws, row, 4, cumHours, S.hours(false));
+    setCell(ws, row, 5, cumRevenue, S.money(false, true));
+
+    ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: Math.max(row, 1), c: 5 } });
+    ws['!cols'] = [{ wch: 14 }, { wch: 10 }, { wch: 14 }, { wch: 16 }, { wch: 12 }, { wch: 18 }];
+    return ws;
+}
+
+function buildWeeklySeriesSheet(weeklySeries, month) {
+    const ws = {};
+    let row = 0;
+    setCell(ws, row, 0, `Theo tuần — ${monthDisplayLabel(month)}`, S.title);
+    mergeRow(ws, row, 0, 6);
+    row += 1;
+    setCell(ws, row, 0, 'Tuần tính từ thứ Hai; khoảng ngày cắt trong tháng đang xem.', S.subtitle);
+    mergeRow(ws, row, 0, 6);
+    row += 2;
+
+    const headers = ['Tuần', 'Từ ngày', 'Đến ngày', 'Ngày có hoạt động', 'Buổi hoàn thành', 'Giờ dạy', 'Doanh thu (VNĐ)'];
+    headers.forEach((h, c) => setCell(ws, row, c, h, S.header));
+    row += 1;
+
+    weeklySeries.forEach((w, i) => {
+        const alt = i % 2 === 1;
+        setCell(ws, row, 0, w.label ?? '', S.cell(alt));
+        setCell(ws, row, 1, w.week_start ?? '', S.cell(alt));
+        setCell(ws, row, 2, w.week_end ?? '', S.cell(alt));
+        setCell(ws, row, 3, w.days_with_activity ?? 0, S.cell(alt));
+        setCell(ws, row, 4, w.sessions ?? 0, S.cell(alt));
+        setCell(ws, row, 5, w.hours ?? 0, S.hours(alt));
+        setCell(ws, row, 6, w.revenue ?? 0, S.money(alt));
+        row += 1;
+    });
+
+    ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: Math.max(row, 1), c: 6 } });
+    ws['!cols'] = [{ wch: 28 }, { wch: 12 }, { wch: 12 }, { wch: 18 }, { wch: 16 }, { wch: 12 }, { wch: 18 }];
+    return ws;
+}
+
+function buildActiveCoursesSheet(activeCourses) {
+    const ws = {};
+    let row = 0;
+    setCell(ws, row, 0, 'Tiến độ khóa đang diễn ra', S.title);
+    mergeRow(ws, row, 0, 3);
+    row += 2;
+
+    const headers = ['Mã khóa', 'Tên khóa', 'Tiến độ %', 'Ghi chú'];
+    headers.forEach((h, c) => setCell(ws, row, c, h, S.header));
+    row += 1;
+
+    if (!activeCourses?.length) {
+        setCell(ws, row, 0, 'Không có khóa trạng thái «Đang học»', S.cell(false));
+        mergeRow(ws, row, 0, 3);
+        row += 1;
+    } else {
+        activeCourses.forEach((c, i) => {
+            const alt = i % 2 === 1;
+            setCell(ws, row, 0, c.code ?? '', S.cell(alt));
+            setCell(ws, row, 1, c.name ?? '', S.cell(alt));
+            setCell(ws, row, 2, c.progress_percent ?? 0, S.cell(alt));
+            setCell(ws, row, 3, (c.progress_percent ?? 0) >= 100 ? 'Hoàn thành' : 'Đang học', S.cell(alt));
+            row += 1;
+        });
+    }
+
+    ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: Math.max(row, 1), c: 3 } });
+    ws['!cols'] = [{ wch: 14 }, { wch: 36 }, { wch: 12 }, { wch: 16 }];
     return ws;
 }
 
 /**
- * @param {{ month: string, monthly: object, revenueSeries: array, summary?: object }} payload
+ * @param {{
+ *   month: string,
+ *   monthly: object,
+ *   revenueSeries: array,
+ *   dailySeries?: array,
+ *   weeklySeries?: array,
+ *   activeCourses?: array,
+ *   summary?: object
+ * }} payload
  */
 export function exportCoachingMonthlyWorkbook(payload) {
-    const { month, monthly, revenueSeries = [], summary = null } = payload;
+    const {
+        month,
+        monthly,
+        revenueSeries = [],
+        dailySeries = [],
+        weeklySeries = [],
+        activeCourses = [],
+        summary = null,
+    } = payload;
     const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, buildDashboardGuideSheet(month), 'Huong dan');
     XLSX.utils.book_append_sheet(wb, buildOverviewSheet({ month, monthly, summary }), 'Tong quan');
+    XLSX.utils.book_append_sheet(wb, buildMonthDetailSheet({ month, monthly }), 'Chi tiet thang');
+    if (dailySeries.length > 0) {
+        XLSX.utils.book_append_sheet(wb, buildDailySeriesSheet(dailySeries, month), 'Theo ngay');
+    }
+    if (weeklySeries.length > 0) {
+        XLSX.utils.book_append_sheet(wb, buildWeeklySeriesSheet(weeklySeries, month), 'Theo tuan');
+    }
     XLSX.utils.book_append_sheet(wb, buildSeriesSheet(revenueSeries), '12 thang');
+    XLSX.utils.book_append_sheet(wb, buildActiveCoursesSheet(activeCourses), 'Tien do khoa');
 
     const safeMonth = month.replace(/[^\d-]/g, '');
     XLSX.writeFile(wb, `VA_Coaching_${safeMonth}.xlsx`);

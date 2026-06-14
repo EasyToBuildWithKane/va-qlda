@@ -272,6 +272,7 @@ function openExportMenu() {
 }
 
 function onToolbarClickOutside(e) {
+    if (e.target.closest?.('[data-filter-visibility-panel]')) return;
     if (filterPanelDdRef.value && !filterPanelDdRef.value.contains(e.target)) showFilterPanelDd.value = false;
     if (colDdRef.value && !colDdRef.value.contains(e.target)) showColDd.value = false;
     if (exportDdRef.value && !exportDdRef.value.contains(e.target)) showExportDd.value = false;
@@ -580,6 +581,7 @@ function runExport(scope, format) {
               <FilterVisibilityDropdown
                 v-model="visibleFilters"
                 :show="showFilterPanelDd"
+                :anchor-ref="filterPanelDdRef"
                 :controls="FILTER_CONTROLS"
                 @persist="persistVisibleFilters"
               />

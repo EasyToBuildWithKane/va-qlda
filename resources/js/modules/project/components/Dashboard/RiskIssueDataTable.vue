@@ -283,7 +283,8 @@ const onDocClick = (e) => {
     const inColumnsMenu = columnsMenuRef.value?.contains(e.target);
     const inExportBtn = exportBtnRef.value?.contains(e.target);
     const inExportMenu = exportMenuRef.value?.contains(e.target);
-    const inFilterPanel = filterPanelDdRef.value?.contains(e.target);
+    const inFilterPanel = filterPanelDdRef.value?.contains(e.target)
+        || e.target.closest?.('[data-filter-visibility-panel]');
     const inActionMenu = actionMenuRef.value?.contains(e.target);
     const inAnyActionBtn = Object.values(actionBtnRefs.value).some((el) => el?.contains(e.target));
     if (!inColumnsBtn && !inColumnsMenu) showColumns.value = false;
@@ -389,6 +390,7 @@ defineExpose({ scrollHere });
           <FilterVisibilityDropdown
             v-model="visibleFilters"
             :show="showFilterPanelDd"
+            :anchor-ref="filterPanelDdRef"
             :controls="FILTER_CONTROLS"
             @persist="persistVisibleFilters"
           />

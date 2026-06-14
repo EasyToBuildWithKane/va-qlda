@@ -14,7 +14,7 @@ php artisan test --filter=TaskTest
 | Suite | Path | Ghi chú |
 |-------|------|---------|
 | Unit | `tests/Unit/` | ScoringService |
-| Feature | `tests/Feature/` | Login, Project, Task, Blocker, Bug, Department, Feedback, DailyReport, **Notification** |
+| Feature | `tests/Feature/` | Login, Project, Task, Blocker, Department, Feedback, DailyReport, **Notification** |
 
 `DailyReportTest` (20 test) phủ thêm: `summary.trend`/`completion_rate`, lọc nhiều người (`employee_ids[]`), endpoint `export-data` (toàn bộ kết quả lọc + self-scoping member).
 
@@ -46,7 +46,6 @@ npm run test:e2e:install
 | `auth.spec.js` | Login, dashboard, invalid creds |
 | `projects.spec.js` | List, summary, create (admin), **project show + Sprint tab** |
 | `blockers.spec.js` | List, quyền, guest redirect |
-| `bugs.spec.js` | List, quyền |
 | `departments.spec.js` | List, CRUD cơ bản |
 | `daily-report.spec.js` | Luồng báo cáo ngày |
 | `notifications.spec.js` | Bell UI, JSON unread-count |

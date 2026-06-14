@@ -40,6 +40,7 @@ const props = defineProps({
     month: { type: String, required: true },
     revenueSeries: { type: Array, default: () => [] },
     dailySeries: { type: Array, default: () => [] },
+    weeklySeries: { type: Array, default: () => [] },
     activeCourses: { type: Array, default: () => [] },
     can: { type: Object, default: () => ({}) },
 });
@@ -198,9 +199,12 @@ function exportExcel() {
         month: props.month,
         monthly: props.monthly,
         revenueSeries: props.revenueSeries,
+        dailySeries: props.dailySeries,
+        weeklySeries: props.weeklySeries,
+        activeCourses: props.activeCourses,
         summary: props.summary,
     });
-    toast.success('Đã xuất file Excel báo cáo coaching.');
+    toast.success('Đã xuất file Excel báo cáo coaching (nhiều sheet theo ngày/tuần/tháng).');
 }
 
 const kpiCards = computed(() => [

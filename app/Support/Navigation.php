@@ -15,7 +15,7 @@ use App\Support\Auth\CoachingOnlyAccess;
  *   1. overview   — Tổng quan          dashboards
  *   2. daily      — Báo cáo ngày       daily report workflow
  *   3. projects   — Quản lý dự án      project & sprint management
- *   4. quality    — Chất lượng         bugs, feedback, action items
+ *   4. quality    — Chất lượng         feedback, action items
  *   5. people     — Nhân sự            departments, profiles, evaluations
  *   6. knowledge  — Tri thức           knowledge base
  *   7. coaching   — Coaching           dashboard & khóa học / buổi học
@@ -176,20 +176,13 @@ class Navigation
             ],
 
             // ──────────────────────────────────────────────────────────────
-            // 4. CHẤT LƯỢNG — bugs, feedback, action items
-            //    These all track defects and improvement signals from work.
+            // 4. CHẤT LƯỢNG — feedback, action items
             // ──────────────────────────────────────────────────────────────
             [
                 'key' => 'quality',
                 'heading' => 'Chất lượng',
-                'icon' => 'bug',
+                'icon' => 'feedback',
                 'items' => [
-                    [
-                        'label' => 'Quản lý lỗi',
-                        'icon' => 'bug',
-                        'href' => '/bugs',
-                        'status' => 'live',
-                    ],
                     [
                         'label' => 'Theo dõi phản hồi',
                         'icon' => 'feedback',

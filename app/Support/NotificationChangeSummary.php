@@ -41,16 +41,6 @@ class NotificationChangeSummary
     ];
 
     /** @var array<string, string> */
-    private const BUG_LABELS = [
-        'title' => 'tiêu đề',
-        'description' => 'mô tả',
-        'severity' => 'mức độ',
-        'priority' => 'ưu tiên',
-        'status' => 'trạng thái',
-        'assignee_id' => 'người xử lý',
-    ];
-
-    /** @var array<string, string> */
     private const FEEDBACK_LABELS = [
         'title' => 'tiêu đề',
         'description' => 'mô tả',
@@ -102,14 +92,6 @@ class NotificationChangeSummary
     public static function blocker(array $changes): ?string
     {
         return self::summarize($changes, self::BLOCKER_LABELS);
-    }
-
-    /**
-     * @param  array<string, mixed>  $changes
-     */
-    public static function bug(array $changes): ?string
-    {
-        return self::summarize($changes, self::BUG_LABELS);
     }
 
     /**

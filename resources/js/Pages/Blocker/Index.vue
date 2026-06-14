@@ -336,6 +336,8 @@ function clearFilters() {
 }
 
 function onToolbarClickOutside(e) {
+    if (e.target.closest?.('[data-filter-visibility-panel]')) return;
+    if (e.target.closest?.('[data-column-visibility-panel]')) return;
     if (filterPanelDdRef.value && !filterPanelDdRef.value.contains(e.target)) {
         showFilterPanelDd.value = false;
     }
@@ -462,7 +464,20 @@ function toggleAllGroups() {
         icon="blockers"
         icon-color="amber"
         :badge="summary.open ?? null"
-      />
+      >
+        <button
+          v-if="can.create"
+          type="button"
+          class="btn-primary h-9 shrink-0 gap-1.5 px-3 text-sm"
+          @click="open()"
+        >
+          <AppIcon
+            name="add"
+            :size="15"
+          />
+          Ghi nhận vướng mắc
+        </button>
+      </PageHeader>
     </template>
 
     <div class="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -501,94 +516,83 @@ function toggleAllGroups() {
     </div>
 
     <div class="card overflow-visible">
-      <div class="border-b border-slate-100 px-5 py-3">
-        <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-            <DatagridToolbarSearch
-              v-model="filterForm.q"
-              input-id="blockers-search"
-              placeholder="Mã, tiêu đề, mô tả, nguyên nhân…"
-            />
-            <div
-              ref="filterPanelDdRef"
-              class="relative shrink-0"
-            >
-              <button
-                type="button"
-                class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition"
-                :class="showFilterPanelDd
-                  ? 'border-brand/40 bg-brand/5 text-brand'
-                  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'"
-                :title="`Hiển thị bộ lọc (${enabledFilterControlCount}/${FILTER_CONTROLS.length})`"
-                @click="openFilterPanel(() => { showColDd = false; })"
-              >
-                <AppIcon
-                  name="filter"
-                  :size="15"
-                />
-                <span>Lọc</span>
-              </button>
-              <FilterVisibilityDropdown
-                v-model="visibleFilters"
-                :show="showFilterPanelDd"
-                :controls="FILTER_CONTROLS"
-                @persist="persistVisibleFilters"
-              />
-            </div>
-            <div
-              ref="colDdRef"
-              class="relative shrink-0"
-            >
-              <button
-                type="button"
-                class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition"
-                :class="showColDd
-                  ? 'border-brand/40 bg-brand/5 text-brand'
-                  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'"
-                title="Cột hiển thị"
-                @click="openColPanel(() => { showFilterPanelDd = false; })"
-              >
-                <AppIcon
-                  name="columns"
-                  :size="15"
-                />
-                <span>Cột</span>
-              </button>
-              <ColumnVisibilityDropdown
-                v-model="visibleCols"
-                :show="showColDd"
-                :columns="TABLE_COLUMNS"
-                :fixed-labels="['Trạng thái / Xử lý', 'Chi tiết']"
-                @persist="persistVisibleColumns"
-              />
-            </div>
+      <div class="flex flex-col gap-2.5 border-b border-slate-100 bg-slate-50/40 px-5 py-3.5 lg:flex-row lg:items-center">
+        <DatagridToolbarSearch
+          v-model="filterForm.q"
+          input-id="blockers-search"
+          placeholder="Mã, tiêu đề, mô tả…"
+          compact
+        />
+        <div class="flex shrink-0 flex-wrap items-center gap-2">
+          <div
+            ref="filterPanelDdRef"
+            class="relative"
+          >
             <button
-              v-if="groupedBlockers.length"
               type="button"
-              class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 hover:border-slate-300"
-              :title="allGroupsExpanded ? 'Thu gọn tất cả nhóm dự án' : 'Mở tất cả nhóm dự án'"
-              @click="toggleAllGroups"
+              class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
+              :class="showFilterPanelDd
+                ? 'border-brand/40 bg-brand/5 text-brand'
+                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800'"
+              :title="`Hiển thị bộ lọc (${enabledFilterControlCount}/${FILTER_CONTROLS.length})`"
+              @click="openFilterPanel(() => { showColDd = false; })"
             >
               <AppIcon
-                name="chevron-down"
+                name="filter"
                 :size="15"
-                class="transition-transform"
-                :class="allGroupsExpanded ? '' : '-rotate-90'"
               />
-              <span class="hidden sm:inline">{{ allGroupsExpanded ? 'Thu nhóm' : 'Mở nhóm' }}</span>
+              <span>Lọc</span>
             </button>
+            <FilterVisibilityDropdown
+              v-model="visibleFilters"
+              :show="showFilterPanelDd"
+              :anchor-ref="filterPanelDdRef"
+              :controls="FILTER_CONTROLS"
+              @persist="persistVisibleFilters"
+            />
+          </div>
+          <div
+            ref="colDdRef"
+            class="relative"
+          >
+            <button
+              type="button"
+              class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
+              :class="showColDd
+                ? 'border-brand/40 bg-brand/5 text-brand'
+                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800'"
+              title="Cột hiển thị"
+              @click="openColPanel(() => { showFilterPanelDd = false; })"
+            >
+              <AppIcon
+                name="columns"
+                :size="15"
+              />
+              <span>Cột</span>
+            </button>
+            <ColumnVisibilityDropdown
+              v-model="visibleCols"
+              :show="showColDd"
+              :anchor-ref="colDdRef"
+              :columns="TABLE_COLUMNS"
+              :fixed-labels="['Trạng thái / Xử lý', 'Chi tiết']"
+              @persist="persistVisibleColumns"
+            />
           </div>
           <button
-            v-if="can.create"
+            v-if="groupedBlockers.length"
             type="button"
-            class="btn-primary h-9 shrink-0 gap-1.5 px-4 text-sm"
-            @click="open()"
+            class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 hover:border-slate-300"
+            :title="allGroupsExpanded ? 'Thu gọn tất cả nhóm dự án' : 'Mở tất cả nhóm dự án'"
+            @click="toggleAllGroups"
           >
             <AppIcon
-              name="add"
+              name="chevron-down"
               :size="15"
+              class="transition-transform"
+              :class="allGroupsExpanded ? '' : '-rotate-90'"
             />
-            Ghi nhận vướng mắc
+            <span class="hidden sm:inline">{{ allGroupsExpanded ? 'Thu nhóm' : 'Mở nhóm' }}</span>
           </button>
         </div>
       </div>

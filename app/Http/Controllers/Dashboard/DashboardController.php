@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
 use App\Models\Blocker;
-use App\Models\Bug;
 use App\Models\Employee;
 use App\Models\Project;
 use App\Models\Task;
@@ -30,7 +29,6 @@ class DashboardController extends Controller
             ->whereNotNull('due_date')
             ->whereDate('due_date', '<', now())
             ->count();
-        $openBugs = Bug::whereNotIn('status', ['closed', 'resolved', 'wontfix'])->count();
 
         // ---- Project status distribution --------------------------------
         $projectsByStatus = Project::select('status', DB::raw('count(*) as total'))
@@ -124,7 +122,6 @@ class DashboardController extends Controller
                 'doneTasks' => $doneTasks,
                 'openBlockers' => $openBlockers,
                 'overdueTasks' => $overdueTasks,
-                'openBugs' => $openBugs,
             ],
             'projectsByStatus' => $projectsByStatus,
             'tasksByStatus' => $tasksByStatus,

@@ -159,17 +159,7 @@ routes/api.php      ← Rỗng (chưa sử dụng)
 | POST | `/blockers/{blocker}/attachments` | BlockerController@storeAttachment | auth | Upload file |
 | DELETE | `/blockers/{blocker}/attachments/{attachment}` | BlockerController@destroyAttachment | auth | Xóa file |
 
-### 2.12 Bugs
-
-| Method | URI | Controller | Middleware | Mô Tả |
-|---|---|---|---|---|
-| GET | `/bugs` | BugController@index | auth | Danh sách lỗi |
-| POST | `/bugs` | BugController@store | auth | Báo lỗi |
-| GET | `/bugs/{bug}` | BugController@show | auth | Chi tiết lỗi |
-| PUT | `/bugs/{bug}` | BugController@update | auth | Sửa thông tin lỗi |
-| DELETE | `/bugs/{bug}` | BugController@destroy | auth | Xóa lỗi |
-
-### 2.13 Feedback
+### 2.12 Feedback
 
 | Method | URI | Controller | Middleware | Mô Tả |
 |---|---|---|---|---|
@@ -292,7 +282,6 @@ Project Group
 
 Issue Tracking Group
 ├── /blockers               (index, store, import, bulk, CRUD + attachments)
-├── /bugs                   (CRUD)
 └── /feedback               (CRUD)
 
 Communication Group
@@ -342,7 +331,7 @@ Doc chi tiết: [`docs/KNOWLEDGE_BASE.md`](KNOWLEDGE_BASE.md), [`docs/COACHING_M
 | Tasks/Sprints (manage) | ✅ | ✅ | ✅* | - |
 | Worklogs (own) | ✅ | ✅ | ✅ | - |
 | Blockers | ✅ | ✅ | ✅ | ✅* |
-| Bugs/Feedback | ✅ | ✅ | ✅ | ✅* |
+| Feedback | ✅ | ✅ | ✅ | ✅* |
 | Comments | ✅ | ✅ | ✅ | - |
 | Departments | ✅ | ✅* | - | - |
 | Knowledge Base (read published) | ✅ | ✅ | ✅ | ✅* |
@@ -359,7 +348,7 @@ Doc chi tiết: [`docs/KNOWLEDGE_BASE.md`](KNOWLEDGE_BASE.md), [`docs/COACHING_M
 
 | Pattern | Ví Dụ |
 |---|---|
-| Resource plural noun | `/projects`, `/blockers`, `/bugs` |
+| Resource plural noun | `/projects`, `/blockers`, `/feedback` |
 | Nested resource | `/projects/{project}/tasks` |
 | Custom action via verb | `/projects/{project}/duplicate` |
 | Status toggle via PATCH | `PATCH /departments/{department}/toggle` |

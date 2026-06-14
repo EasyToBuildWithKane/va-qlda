@@ -310,6 +310,7 @@ function showAttentionOnly() {
               <FilterVisibilityDropdown
                 v-model="visibleFilters"
                 :show="showFilterPanelDd"
+                :anchor-ref="filterDdRef"
                 :controls="FILTER_CONTROLS"
                 @persist="persistVisibleFilters"
               />

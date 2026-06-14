@@ -11,7 +11,6 @@ use App\Http\Controllers\Auth\HiddenAdminLoginController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Blocker\BlockerAttachmentController;
 use App\Http\Controllers\Blocker\BlockerController;
-use App\Http\Controllers\Bug\BugController;
 use App\Http\Controllers\Coaching\CoachingCourseController;
 use App\Http\Controllers\Coaching\CoachingDashboardController;
 use App\Http\Controllers\Coaching\CoachingSessionController;
@@ -161,15 +160,6 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictCoachingOnlyUsers::class
         Route::get('/{blocker}/attachments/{attachment}/file', [BlockerAttachmentController::class, 'file'])->name('attachments.file');
         Route::post('/{blocker}/attachments', [BlockerAttachmentController::class, 'store'])->name('attachments.store');
         Route::delete('/{blocker}/attachments/{attachment}', [BlockerAttachmentController::class, 'destroy'])->name('attachments.destroy');
-    });
-
-    // Bug tracker
-    Route::prefix('bugs')->name('bugs.')->group(function () {
-        Route::get('/', [BugController::class, 'index'])->name('index');
-        Route::post('/', [BugController::class, 'store'])->name('store');
-        Route::get('/{bug}', [BugController::class, 'show'])->name('show');
-        Route::put('/{bug}', [BugController::class, 'update'])->name('update');
-        Route::delete('/{bug}', [BugController::class, 'destroy'])->name('destroy');
     });
 
     // Feedback tracker

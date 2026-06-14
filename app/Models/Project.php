@@ -136,11 +136,6 @@ class Project extends Model
         return $this->hasMany(ProjectAttachment::class)->latest();
     }
 
-    public function bugs(): HasMany
-    {
-        return $this->hasMany(Bug::class);
-    }
-
     public function feedbacks(): HasMany
     {
         return $this->hasMany(Feedback::class);

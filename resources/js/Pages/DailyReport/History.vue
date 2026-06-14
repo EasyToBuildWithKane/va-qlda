@@ -13,6 +13,7 @@ import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
 import SearchMultiSelect from '@/shared/ui/SearchMultiSelect.vue';
+import { useFixedDropdownAnchor } from '@/shared/composables/useFixedDropdownAnchor';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
 import { useConfirmDelete } from '@/composables/useConfirmClose';
 import { useToast } from '@/shared/composables/useToast';
@@ -66,8 +67,6 @@ const perPage = ref(Number(props.filters.per_page) || props.reports.meta?.per_pa
 const viewMode = ref('cards');
 const groupMode = ref(VALID_GROUPS.includes(props.filters.group) ? props.filters.group : 'day');
 const collapsedGroups = ref({});
-const exportMenu = ref(false);
-const exportRef = ref(null);
 const exporting = ref(false);
 
 function routeParams(resetPage = false) {
@@ -160,6 +159,21 @@ const {
 const filterPanelDdRef = ref(null);
 const colsRef = ref(null);
 const colsMenu = ref(false);
+
+const { panelStyle: colsPanelStyle } = useFixedDropdownAnchor(
+    () => colsRef.value,
+    colsMenu,
+    { width: 224, zIndex: 85 },
+);
+
+const exportRef = ref(null);
+const exportMenu = ref(false);
+
+const { panelStyle: exportPanelStyle } = useFixedDropdownAnchor(
+    () => exportRef.value,
+    exportMenu,
+    { width: 208, zIndex: 85 },
+);
 
 const COLS_KEY = 'va-qlda.reports.columns';
 const columns = reactive([
@@ -328,9 +342,12 @@ onMounted(() => {
 onBeforeUnmount(() => document.removeEventListener('click', onDocClick));
 
 const onDocClick = (e) => {
-    if (filterPanelDdRef.value && !filterPanelDdRef.value.contains(e.target)) showFilterPanelDd.value = false;
-    if (colsMenu.value && colsRef.value && !colsRef.value.contains(e.target)) colsMenu.value = false;
-    if (exportMenu.value && exportRef.value && !exportRef.value.contains(e.target)) exportMenu.value = false;
+    const t = e.target;
+    if (t.closest?.('[data-filter-visibility-panel]')) return;
+    if (t.closest?.('[data-daily-report-toolbar-panel]')) return;
+    if (filterPanelDdRef.value && !filterPanelDdRef.value.contains(t)) showFilterPanelDd.value = false;
+    if (colsMenu.value && colsRef.value && !colsRef.value.contains(t)) colsMenu.value = false;
+    if (exportMenu.value && exportRef.value && !exportRef.value.contains(t)) exportMenu.value = false;
 };
 
 const removeReport = (r) => {
@@ -399,128 +416,92 @@ const GROUP_TABS = [
       @toggle-late="onKpiToggleLate"
     />
 
-    <div class="card sticky top-0 z-30 mb-4 overflow-visible backdrop-blur supports-[backdrop-filter]:bg-white/90 dark:supports-[backdrop-filter]:bg-slate-900/90">
-      <div class="border-b border-slate-100 px-5 py-3 dark:border-slate-700">
-        <div class="flex flex-wrap items-center gap-2">
-          <DatagridToolbarSearch
-            v-model="filterForm.q"
-            input-id="daily-reports-search"
-            placeholder="Tiêu đề, tên nhân viên…"
-          />
-
-          <div
-            ref="filterPanelDdRef"
-            class="relative shrink-0"
-          >
-            <button
-              type="button"
-              class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
-              :class="showFilterPanelDd
-                ? 'border-brand/40 bg-brand/5 text-brand'
-                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'"
-              :title="`Hiển thị bộ lọc (${enabledFilterControlCount}/${FILTER_CONTROLS.length})`"
-              @click="openFilterPanel(() => { colsMenu = false; exportMenu = false; })"
-            >
-              <AppIcon
-                name="filter"
-                :size="15"
+    <div class="card sticky top-0 z-20 mb-4 overflow-visible backdrop-blur supports-[backdrop-filter]:bg-white/90 dark:supports-[backdrop-filter]:bg-slate-900/90">
+      <div class="border-b border-slate-100 px-4 py-3 sm:px-5 dark:border-slate-700">
+        <div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+            <div class="flex min-w-0 flex-1 basis-full items-center gap-2 sm:basis-auto sm:flex-initial lg:max-w-[min(100%,22rem)] xl:max-w-[min(100%,26rem)]">
+              <DatagridToolbarSearch
+                v-model="filterForm.q"
+                stretch
+                input-id="daily-reports-search"
+                placeholder="Tiêu đề, tên nhân viên…"
               />
-              <span>Lọc</span>
-            </button>
-            <FilterVisibilityDropdown
-              v-model="visibleFilters"
-              :show="showFilterPanelDd"
-              :controls="FILTER_CONTROLS.filter((f) => f.key !== 'employee' || canFilterEmployee)"
-              @persist="persistVisibleFilters"
-            />
-          </div>
-
-          <div
-            ref="colsRef"
-            class="relative shrink-0"
-          >
-            <button
-              type="button"
-              class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
-              :class="colsMenu
-                ? 'border-brand/40 bg-brand/5 text-brand'
-                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'"
-              title="Cột hiển thị (chế độ bảng)"
-              @click="colsMenu = !colsMenu; exportMenu = false"
-            >
-              <AppIcon
-                name="columns"
-                :size="15"
-              />
-              <span>Cột</span>
-            </button>
-            <div
-              v-if="colsMenu"
-              class="absolute right-0 z-20 mt-1 w-56 rounded-card border border-slate-200 bg-white p-1.5 shadow-elevation-2 dark:border-slate-700 dark:bg-slate-900"
-            >
-              <p class="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Hiển thị cột
-              </p>
-              <label
-                v-for="c in columns"
-                :key="c.key"
-                class="flex cursor-pointer items-center gap-2 rounded-btn px-2 py-1.5 text-sm text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
-                :class="{ 'opacity-40 pointer-events-none': c.manager && !canFilterEmployee }"
-              >
-                <input
-                  v-model="c.visible"
-                  type="checkbox"
-                  class="rounded"
-                  @change="persistColumns"
-                >
-                {{ c.label }}
-              </label>
             </div>
-          </div>
 
-          <div
-            ref="exportRef"
-            class="relative shrink-0"
-          >
-            <button
-              type="button"
-              class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none disabled:opacity-50"
-              :class="exportMenu
-                ? 'border-brand/40 bg-brand/5 text-brand'
-                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'"
-              :disabled="exporting"
-              title="Xuất toàn bộ dữ liệu đang lọc"
-              @click="exportMenu = !exportMenu; colsMenu = false"
-            >
-              <AppIcon
-                name="export"
-                :size="15"
-              />
-              <span>{{ exporting ? 'Đang xuất…' : 'Xuất' }}</span>
-            </button>
             <div
-              v-if="exportMenu"
-              class="absolute right-0 z-20 mt-1 w-52 rounded-card border border-slate-200 bg-white p-1 shadow-elevation-2 dark:border-slate-700 dark:bg-slate-900"
+              ref="filterPanelDdRef"
+              class="relative shrink-0"
             >
               <button
                 type="button"
-                class="flex w-full flex-col rounded-btn px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-800"
-                @click="runExport('xlsx')"
+                class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
+                :class="showFilterPanelDd
+                  ? 'border-brand/40 bg-brand/5 text-brand'
+                  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'"
+                :title="`Hiển thị bộ lọc (${enabledFilterControlCount}/${FILTER_CONTROLS.length})`"
+                @click="openFilterPanel(() => { colsMenu = false; exportMenu = false; })"
               >
-                <span class="text-sm font-medium text-slate-700 dark:text-slate-200">Excel báo cáo (7 sheet)</span>
-                <span class="text-[10px] text-slate-400">Toàn bộ kết quả đang lọc</span>
+                <AppIcon
+                  name="filter"
+                  :size="15"
+                />
+                <span>Lọc</span>
               </button>
+              <FilterVisibilityDropdown
+                v-model="visibleFilters"
+                :show="showFilterPanelDd"
+                :anchor-ref="filterPanelDdRef"
+                :controls="FILTER_CONTROLS.filter((f) => f.key !== 'employee' || canFilterEmployee)"
+                @persist="persistVisibleFilters"
+              />
+            </div>
+
+            <div
+              ref="colsRef"
+              class="relative shrink-0"
+            >
               <button
                 type="button"
-                class="flex w-full rounded-btn px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
-                @click="runExport('csv')"
+                class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
+                :class="colsMenu
+                  ? 'border-brand/40 bg-brand/5 text-brand'
+                  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'"
+                title="Cột hiển thị (chế độ bảng)"
+                @click="colsMenu = !colsMenu; exportMenu = false; showFilterPanelDd = false"
               >
-                CSV (đơn giản)
+                <AppIcon
+                  name="columns"
+                  :size="15"
+                />
+                <span>Cột</span>
+              </button>
+            </div>
+
+            <div
+              ref="exportRef"
+              class="relative shrink-0"
+            >
+              <button
+                type="button"
+                class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none disabled:opacity-50"
+                :class="exportMenu
+                  ? 'border-brand/40 bg-brand/5 text-brand'
+                  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'"
+                :disabled="exporting"
+                title="Xuất toàn bộ dữ liệu đang lọc"
+                @click="exportMenu = !exportMenu; colsMenu = false; showFilterPanelDd = false"
+              >
+                <AppIcon
+                  name="export"
+                  :size="15"
+                />
+                <span>{{ exporting ? 'Đang xuất…' : 'Xuất' }}</span>
               </button>
             </div>
           </div>
 
-          <div class="ml-auto flex shrink-0 items-center gap-2">
+          <div class="flex shrink-0 flex-wrap items-center gap-2">
             <!-- Group by -->
             <div class="flex rounded-btn border border-slate-200 p-0.5 dark:border-slate-700">
               <button
@@ -571,6 +552,72 @@ const GROUP_TABS = [
             </div>
           </div>
         </div>
+
+        <Teleport to="body">
+          <Transition
+            enter-active-class="transition duration-150 ease-out"
+            enter-from-class="opacity-0 scale-95 -translate-y-1"
+            leave-active-class="transition duration-100 ease-in"
+            leave-to-class="opacity-0 scale-95 -translate-y-1"
+          >
+            <div
+              v-if="colsMenu"
+              :style="colsPanelStyle"
+              class="origin-top-right rounded-card border border-slate-200 bg-white p-1.5 shadow-elevation-2 dark:border-slate-700 dark:bg-slate-900"
+              data-daily-report-toolbar-panel
+            >
+              <p class="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Hiển thị cột
+              </p>
+              <label
+                v-for="c in columns"
+                :key="c.key"
+                class="flex cursor-pointer items-center gap-2 rounded-btn px-2 py-1.5 text-sm text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
+                :class="{ 'opacity-40 pointer-events-none': c.manager && !canFilterEmployee }"
+              >
+                <input
+                  v-model="c.visible"
+                  type="checkbox"
+                  class="rounded"
+                  @change="persistColumns"
+                >
+                {{ c.label }}
+              </label>
+            </div>
+          </Transition>
+        </Teleport>
+
+        <Teleport to="body">
+          <Transition
+            enter-active-class="transition duration-150 ease-out"
+            enter-from-class="opacity-0 scale-95 -translate-y-1"
+            leave-active-class="transition duration-100 ease-in"
+            leave-to-class="opacity-0 scale-95 -translate-y-1"
+          >
+            <div
+              v-if="exportMenu"
+              :style="exportPanelStyle"
+              class="origin-top-right rounded-card border border-slate-200 bg-white p-1 shadow-elevation-2 dark:border-slate-700 dark:bg-slate-900"
+              data-daily-report-toolbar-panel
+            >
+              <button
+                type="button"
+                class="flex w-full flex-col rounded-btn px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-800"
+                @click="runExport('xlsx')"
+              >
+                <span class="text-sm font-medium text-slate-700 dark:text-slate-200">Excel báo cáo (7 sheet)</span>
+                <span class="text-[10px] text-slate-400">Toàn bộ kết quả đang lọc</span>
+              </button>
+              <button
+                type="button"
+                class="flex w-full rounded-btn px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                @click="runExport('csv')"
+              >
+                CSV (đơn giản)
+              </button>
+            </div>
+          </Transition>
+        </Teleport>
       </div>
 
       <Transition name="fade-slide">

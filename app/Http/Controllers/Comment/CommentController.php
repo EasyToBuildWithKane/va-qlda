@@ -5,13 +5,11 @@ namespace App\Http\Controllers\Comment;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Comment\StoreCommentRequest;
 use App\Models\Blocker;
-use App\Models\Bug;
 use App\Models\Comment;
 use App\Models\Feedback;
 use App\Models\KbArticle;
 use App\Models\Task;
 use App\Support\BlockerActivityLogger;
-use App\Support\BugActivityLogger;
 use App\Support\FeedbackActivityLogger;
 use App\Support\NotificationDispatcher;
 use App\Support\Realtime\CommentRealtimePublisher;
@@ -24,7 +22,6 @@ class CommentController extends Controller
 {
     /** Whitelist of commentable types so arbitrary models can't be targeted. */
     private const TYPES = [
-        'bug' => Bug::class,
         'feedback' => Feedback::class,
         'blocker' => Blocker::class,
         'task' => Task::class,
@@ -68,8 +65,6 @@ class CommentController extends Controller
             TaskActivityLogger::commentAdded($model, $user);
             $isMention = str_contains($data['body'], '@');
             NotificationDispatcher::taskComment($model->fresh(['project', 'watchers']), $user, $isMention);
-        } elseif ($model instanceof Bug) {
-            BugActivityLogger::commentAdded($model, $user);
         } elseif ($model instanceof Feedback) {
             FeedbackActivityLogger::commentAdded($model, $user);
         }
@@ -248,10 +243,6 @@ class CommentController extends Controller
             $action === 'updated'
                 ? BlockerActivityLogger::commentUpdated($target, $user)
                 : BlockerActivityLogger::commentDeleted($target, $user);
-        } elseif ($target instanceof Bug) {
-            $action === 'updated'
-                ? BugActivityLogger::commentUpdated($target, $user)
-                : BugActivityLogger::commentDeleted($target, $user);
         } elseif ($target instanceof Feedback) {
             $action === 'updated'
                 ? FeedbackActivityLogger::commentUpdated($target, $user)

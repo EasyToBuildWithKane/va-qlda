@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, provide } from 'vue';
+import { ref, provide } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
@@ -31,33 +31,6 @@ function setGroupDirty(groupKey, isDirty) {
 provide('setGroupDirty', setGroupDirty);
 
 const groupMeta = (key) => props.groups.find((g) => g.key === key) ?? { label: '', description: '' };
-
-function fieldValue(fields, name) {
-    const f = (fields ?? []).find((x) => x.name === name);
-    return f?.value;
-}
-
-function fieldBool(fields, name) {
-    return !!fieldValue(fields, name);
-}
-
-const healthChips = computed(() => [
-    {
-        key: 'email',
-        label: 'Email',
-        on: fieldBool(props.settings.email, 'enabled'),
-    },
-    {
-        key: 'telegram',
-        label: 'Telegram',
-        on: fieldBool(props.settings.telegram, 'enabled'),
-    },
-    {
-        key: 'password',
-        label: 'Đăng nhập mật khẩu',
-        on: fieldBool(props.settings.auth, 'password_login_enabled'),
-    },
-]);
 </script>
 
 <template>
@@ -71,112 +44,86 @@ const healthChips = computed(() => [
       />
     </template>
 
-    <div class="w-full max-w-none">
-      <div class="flex flex-col gap-6 md:flex-row">
-        <div class="flex shrink-0 flex-col gap-3 md:w-64">
-          <!-- Status health (desktop) -->
-          <div class="hidden flex-col gap-1.5 md:flex">
-            <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-              Trạng thái nhanh
-            </p>
-            <div class="flex flex-wrap gap-1.5">
-              <span
-                v-for="chip in healthChips"
-                :key="chip.key"
-                class="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-medium"
-                :class="chip.on
-                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                  : 'border-slate-200 bg-slate-50 text-slate-500'"
-              >
-                <span
-                  class="h-1.5 w-1.5 shrink-0 rounded-full"
-                  :class="chip.on ? 'bg-emerald-500' : 'bg-slate-300'"
-                />
-                {{ chip.label }}: {{ chip.on ? 'Bật' : 'Tắt' }}
-              </span>
-            </div>
-          </div>
+    <div class="flex w-full max-w-none flex-col gap-6">
+      <nav
+        class="-mx-1 flex shrink-0 gap-2 overflow-x-auto px-1 pb-1"
+        aria-label="Nhóm cấu hình"
+      >
+        <button
+          v-for="g in groups"
+          :key="g.key"
+          type="button"
+          class="group flex shrink-0 items-center gap-3 rounded-card border px-3.5 py-3 text-left transition-colors"
+          :class="active === g.key
+            ? 'border-brand/30 bg-brand/[0.06]'
+            : 'border-transparent hover:bg-slate-50'"
+          @click="active = g.key"
+        >
+          <span
+            class="grid h-9 w-9 shrink-0 place-items-center rounded-lg transition-colors"
+            :class="active === g.key ? 'bg-brand text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-slate-200'"
+          >
+            <AppIcon
+              :name="g.icon"
+              :size="17"
+            />
+          </span>
+          <span class="min-w-0 pr-1">
+            <span
+              class="block whitespace-nowrap text-[13.5px] font-semibold leading-tight"
+              :class="active === g.key ? 'text-brand' : 'text-slate-700'"
+            >{{ g.label }}</span>
+            <span class="mt-0.5 hidden truncate text-[11.5px] text-slate-400 sm:block">{{ g.description }}</span>
+          </span>
+          <span
+            v-if="dirtyGroups.has(g.key)"
+            class="ml-1 h-2 w-2 shrink-0 rounded-full bg-amber-400"
+            title="Có thay đổi chưa lưu"
+          />
+        </button>
+      </nav>
 
-          <!-- Tab rail -->
-          <nav class="flex shrink-0 gap-2 overflow-x-auto pb-1 md:flex-col md:overflow-visible md:pb-0">
-            <button
-              v-for="g in groups"
-              :key="g.key"
-              type="button"
-              class="group flex shrink-0 items-center gap-3 rounded-card border px-3.5 py-3 text-left transition-colors md:w-full"
-              :class="active === g.key
-                ? 'border-brand/30 bg-brand/[0.06]'
-                : 'border-transparent hover:bg-slate-50'"
-              @click="active = g.key"
-            >
-              <span
-                class="grid h-9 w-9 shrink-0 place-items-center rounded-lg transition-colors"
-                :class="active === g.key ? 'bg-brand text-white' : 'bg-slate-100 text-slate-500 group-hover:bg-slate-200'"
-              >
-                <AppIcon
-                  :name="g.icon"
-                  :size="17"
-                />
-              </span>
-              <span class="min-w-0 flex-1">
-                <span
-                  class="block text-[13.5px] font-semibold leading-tight"
-                  :class="active === g.key ? 'text-brand' : 'text-slate-700'"
-                >{{ g.label }}</span>
-                <span class="mt-0.5 hidden truncate text-[11.5px] text-slate-400 md:block">{{ g.description }}</span>
-              </span>
-              <span
-                v-if="dirtyGroups.has(g.key)"
-                class="ml-auto h-2 w-2 shrink-0 rounded-full bg-amber-400"
-                title="Có thay đổi chưa lưu"
-              />
-            </button>
-          </nav>
-        </div>
-
-        <!-- Active panel -->
-        <section class="card min-w-0 flex-1 p-5 md:p-6">
-          <FieldsTab
-            v-show="active === 'general'"
-            group="general"
-            :title="groupMeta('general').label"
-            :description="groupMeta('general').description"
-            :fields="settings.general ?? []"
-            :can-manage="can.manage"
-          />
-          <FieldsTab
-            v-show="active === 'auth'"
-            group="auth"
-            :title="groupMeta('auth').label"
-            :description="groupMeta('auth').description"
-            :fields="settings.auth ?? []"
-            :can-manage="can.manage"
-          />
-          <FieldsTab
-            v-show="active === 'telegram'"
-            group="telegram"
-            :title="groupMeta('telegram').label"
-            :description="groupMeta('telegram').description"
-            :fields="settings.telegram ?? []"
-            :can-manage="can.manage"
-          />
-          <EmailTemplateTab
-            v-show="active === 'email'"
-            :title="groupMeta('email').label"
-            :description="groupMeta('email').description"
-            :email-fields="settings.email ?? []"
-            :email-templates="emailTemplates"
-            :email-preview-brand="emailPreviewBrand"
-            :email-test-recipient="emailTestRecipient ?? ''"
-            :can-manage="can.manage"
-          />
-          <PermissionsTab
-            v-show="active === 'permissions'"
-            :permissions="permissions"
-            :can-manage="can.manage"
-          />
-        </section>
-      </div>
+      <section class="card min-w-0 p-5 md:p-6">
+        <FieldsTab
+          v-show="active === 'general'"
+          group="general"
+          :title="groupMeta('general').label"
+          :description="groupMeta('general').description"
+          :fields="settings.general ?? []"
+          :can-manage="can.manage"
+        />
+        <FieldsTab
+          v-show="active === 'auth'"
+          group="auth"
+          :title="groupMeta('auth').label"
+          :description="groupMeta('auth').description"
+          :fields="settings.auth ?? []"
+          :can-manage="can.manage"
+        />
+        <FieldsTab
+          v-show="active === 'telegram'"
+          group="telegram"
+          :title="groupMeta('telegram').label"
+          :description="groupMeta('telegram').description"
+          :fields="settings.telegram ?? []"
+          :can-manage="can.manage"
+        />
+        <EmailTemplateTab
+          v-show="active === 'email'"
+          :title="groupMeta('email').label"
+          :description="groupMeta('email').description"
+          :email-fields="settings.email ?? []"
+          :email-templates="emailTemplates"
+          :email-preview-brand="emailPreviewBrand"
+          :email-test-recipient="emailTestRecipient ?? ''"
+          :can-manage="can.manage"
+        />
+        <PermissionsTab
+          v-show="active === 'permissions'"
+          :permissions="permissions"
+          :can-manage="can.manage"
+        />
+      </section>
     </div>
   </AppLayout>
 </template>

@@ -146,6 +146,7 @@ const filterDdRef = ref(null);
 const colDdRef = ref(null);
 
 const onDocClick = (e) => {
+    if (e.target.closest?.('[data-filter-visibility-panel]')) return;
     if (filterDdRef.value && !filterDdRef.value.contains(e.target)) showFilterPanelDd.value = false;
     if (colDdRef.value && !colDdRef.value.contains(e.target)) showColDd.value = false;
 };
@@ -267,6 +268,7 @@ const toggleStatus = async (d) => {
             <FilterVisibilityDropdown
               v-model="visibleFilters"
               :show="showFilterPanelDd"
+              :anchor-ref="filterDdRef"
               :controls="FILTER_CONTROLS"
               @persist="persistVisibleFilters"
             />

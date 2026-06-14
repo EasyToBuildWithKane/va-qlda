@@ -4,8 +4,6 @@ namespace App\Support;
 
 use App\Support\Enums\BlockerSeverity;
 use App\Support\Enums\BlockerStatus;
-use App\Support\Enums\BugSeverity;
-use App\Support\Enums\BugStatus;
 use App\Support\Enums\FeedbackCategory;
 use App\Support\Enums\FeedbackStatus;
 use App\Support\Enums\ProjectAttachmentCategory;
@@ -73,8 +71,6 @@ class Options
             'rateType' => RateType::options(),
             'blockerSeverity' => BlockerSeverity::options(),
             'blockerStatus' => BlockerStatus::options(),
-            'bugSeverity' => BugSeverity::options(),
-            'bugStatus' => BugStatus::options(),
             'feedbackCategory' => FeedbackCategory::options(),
             'feedbackStatus' => FeedbackStatus::options(),
             'projectAttachmentCategory' => ProjectAttachmentCategory::options(),

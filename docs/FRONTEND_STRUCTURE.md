@@ -103,7 +103,7 @@ AppLayout.vue
 | Dashboard | `Pages/Dashboard/Index.vue` |
 | DailyReport | `Today`, `History`, `Show`, `Review` |
 | Project | `Index`, `Create`, `Edit`, `Show` |
-| Blocker / Bug / Feedback | `Index`, `Show` (Bug, Feedback) |
+| Blocker / Feedback | `Index`, `Show` (Feedback) |
 | Department | `Pages/Department/Index.vue` |
 | Notifications | `Pages/Notifications/Management.vue` |
 
@@ -142,7 +142,7 @@ Pages import feature components từ `@/modules/project/components/...` và prim
 | Dashboard/ | `ProjectOverviewCard`, `RiskIssueDataTable`, `RiskImportModal`, `ActivityFeed`, … |
 | Timeline/ | `ProjectTimelineView`, `ProjectTimelineBurndown`, … |
 | Documents/ | `ProjectDocumentsPanel`, `DocumentPreviewPane` |
-| Modals | `TaskFormModal`, `SprintFormModal`, `BlockerFormModal`, `BugFormModal`, … |
+| Modals | `TaskFormModal`, `SprintFormModal`, `BlockerFormModal`, … |
 
 ### 6.4 Daily Report — `Components/DailyReport/`
 
