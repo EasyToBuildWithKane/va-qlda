@@ -1,6 +1,6 @@
 <script setup>
 import { Head, useForm, usePage } from '@inertiajs/vue3';
-import { computed, nextTick, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import ToastContainer from '@/Components/Ui/ToastContainer.vue';
 import FormField from '@/shared/ui/form/FormField.vue';
@@ -19,18 +19,35 @@ const flash = computed(() => page.props.flash ?? {});
 const toast = useToast();
 
 const shakeCard = ref(false);
+/** Sau lần vào đầu hoặc khi có lỗi — tắt stagger opacity để form không “biến mất”. */
+const formReady = ref(false);
 
-watch(
-    () => form.errors.username,
-    async (msg) => {
-        if (!msg || form.processing) {
-            return;
-        }
-        shakeCard.value = false;
-        await nextTick();
+const loginErrorMessage = computed(() => {
+    const u = form.errors.username;
+    if (typeof u === 'string' && u.length) return u;
+    const p = form.errors.password;
+    if (typeof p === 'string' && p.length) return p;
+    return null;
+});
+
+function triggerShake() {
+    shakeCard.value = false;
+    void nextTick(() => {
         shakeCard.value = true;
-    },
-);
+    });
+}
+
+function markFormReady() {
+    formReady.value = true;
+}
+
+watch(loginErrorMessage, (msg) => {
+    if (!msg || form.processing) {
+        return;
+    }
+    markFormReady();
+    triggerShake();
+});
 
 watch(
     flash,
@@ -41,9 +58,17 @@ watch(
     { immediate: true, deep: true },
 );
 
+onMounted(() => {
+    window.setTimeout(markFormReady, 1100);
+});
+
 function submit() {
     form.post(route('auth.hidden-login.store'), {
         preserveScroll: true,
+        onError: () => {
+            markFormReady();
+            triggerShake();
+        },
         onFinish: () => form.reset('password'),
     });
 }
@@ -109,8 +134,37 @@ function submit() {
             </p>
           </div>
 
+          <Transition name="lh36-error">
+            <div
+              v-if="loginErrorMessage && !form.processing"
+              key="login-error"
+              role="alert"
+              aria-live="assertive"
+              class="lh36-error-banner mt-6 flex gap-3 rounded-xl border border-danger/25 bg-danger/5 px-4 py-3 text-left"
+            >
+              <span
+                class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-danger/10 text-danger"
+                aria-hidden="true"
+              >
+                <AppIcon
+                  name="alert"
+                  :size="18"
+                />
+              </span>
+              <div class="min-w-0 flex-1">
+                <p class="text-sm font-semibold text-danger">
+                  Đăng nhập không thành công
+                </p>
+                <p class="mt-1 text-sm leading-relaxed text-danger/90">
+                  {{ loginErrorMessage }}
+                </p>
+              </div>
+            </div>
+          </Transition>
+
           <form
-            class="lh36-form lh36-enter-form mt-8 space-y-5"
+            class="lh36-form mt-8 space-y-5"
+            :class="formReady ? 'lh36-form-ready' : 'lh36-enter-form'"
             novalidate
             @submit.prevent="submit"
           >
@@ -234,6 +288,12 @@ function submit() {
     animation: lh36-fade-up 0.45s ease-out forwards;
 }
 
+.lh36-form-ready > * {
+    opacity: 1;
+    animation: none;
+    transform: none;
+}
+
 .lh36-enter-form > *:nth-child(1) {
     animation-delay: 0.68s;
 }
@@ -252,6 +312,34 @@ function submit() {
 
 .lh36-shake {
     animation: lh36-shake 0.45s ease-in-out;
+}
+
+/* Banner lỗi đăng nhập */
+.lh36-error-enter-active {
+    animation: lh36-error-in 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.lh36-error-leave-active {
+    animation: lh36-error-out 0.25s ease-in forwards;
+}
+
+@keyframes lh36-error-in {
+    from {
+        opacity: 0;
+        transform: translate3d(0, -8px, 0) scale(0.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+    }
+}
+
+@keyframes lh36-error-out {
+    to {
+        opacity: 0;
+        transform: translate3d(0, -4px, 0);
+    }
 }
 
 @keyframes lh36-bg-drift {
@@ -336,10 +424,16 @@ function submit() {
     .lh36-enter-title,
     .lh36-enter-subtitle,
     .lh36-enter-form > *,
-    .lh36-shake {
+    .lh36-shake,
+    .lh36-error-enter-active,
+    .lh36-error-leave-active {
         animation: none !important;
         opacity: 1 !important;
         transform: none !important;
+    }
+
+    .lh36-form-ready > * {
+        opacity: 1 !important;
     }
 }
 </style>
