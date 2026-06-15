@@ -4,6 +4,7 @@ import { useForm } from '@inertiajs/vue3';
 import Drawer from '@/Components/Ui/Drawer.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import { skillItemTitle } from '../utils/skillItemTitle';
+import SkillGroupInput from './SkillGroupInput.vue';
 
 const props = defineProps({
     show: { type: Boolean, default: false },
@@ -50,11 +51,22 @@ watch(
     },
 );
 
+function lastGroupName() {
+    const rows = form.skills;
+    for (let i = rows.length - 1; i >= 0; i -= 1) {
+        const c = rows[i]?.category?.trim();
+        if (c) {
+            return c;
+        }
+    }
+    return DEFAULT_GROUP;
+}
+
 function addSkill() {
     if (form.skills.length < 40) {
         form.skills.push({
             name: '',
-            category: DEFAULT_GROUP,
+            category: lastGroupName(),
             level: 3,
             years: '',
             note: '',
@@ -97,14 +109,6 @@ function submit() {
         Ma trận hiển thị thanh mức độ theo từng nhóm.
       </p>
 
-      <datalist id="profile-skill-groups">
-        <option
-          v-for="g in groupSuggestions"
-          :key="g"
-          :value="g"
-        />
-      </datalist>
-
       <div class="space-y-3">
         <div
           v-for="(s, i) in form.skills"
@@ -134,17 +138,16 @@ function submit() {
           </div>
 
           <div class="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
-            <input
+            <SkillGroupInput
+              :id="`profile-skill-group-${i}`"
               v-model="s.category"
-              type="text"
-              list="profile-skill-groups"
-              class="input sm:col-span-1"
+              class="sm:col-span-1"
+              :suggestions="groupSuggestions"
               placeholder="Nhóm kỹ năng"
-              aria-label="Nhóm kỹ năng"
-            >
+            />
             <select
               v-model.number="s.level"
-              class="input"
+              class="input h-10"
               aria-label="Mức độ"
             >
               <option
