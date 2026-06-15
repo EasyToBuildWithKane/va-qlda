@@ -90,23 +90,17 @@ class CongngheController extends Controller
     }
 
     /**
-     * Sản phẩm đang vận hành (pha "Vận hành cải tiến"); nếu chưa có thì lấy dự án
-     * đang triển khai để khối sản phẩm không rỗng.
+     * Hệ sinh thái sản phẩm — toàn bộ dự án đã hoàn thành (nền tảng đã nghiệm thu,
+     * đưa vào vận hành). Lấy đầy đủ, không giới hạn, sắp xếp theo lần cập nhật gần nhất.
      *
      * @return array<int, array<string, mixed>>
      */
     private function products(): array
     {
-        $query = Project::where('type', ProjectType::Operation);
-
-        if ($query->clone()->count() === 0) {
-            $query = Project::where('status', ProjectStatus::Active);
-        }
-
-        return $query
+        return Project::where('status', ProjectStatus::Completed)
+            ->with('manager:id,full_name,avatar_path,role_title')
             ->orderByDesc('updated_at')
-            ->take(8)
-            ->get(['id', 'name', 'code', 'color', 'status', 'type'])
+            ->get(['id', 'name', 'code', 'description', 'color', 'status', 'type', 'manager_id'])
             ->map(fn (Project $p) => $this->projectCard($p))
             ->values()
             ->all();
@@ -117,14 +111,89 @@ class CongngheController extends Controller
      */
     private function projectCard(Project $project): array
     {
+        $manager = $project->manager;
+
         return [
             'id' => $project->id,
             'name' => $project->name,
             'code' => $project->code,
             'color' => $project->color,
+            'description' => $project->description,
             'progress' => $project->progress(),
             'status' => $project->status->label(),
             'statusColor' => $project->status->color(),
+            'manager' => $manager ? [
+                'id' => $manager->id,
+                'name' => $manager->full_name,
+                'avatar' => PublicMediaUrl::fromPublicDisk($manager->avatar_path),
+                'role_title' => $manager->role_title,
+            ] : null,
         ];
+    }
+
+    /**
+     * Danh bạ nhân sự xuất hiện trên sơ đồ tổ chức (id → hồ sơ ngắn). Dùng để
+     * modal chi tiết trên landing tra cứu nhanh khi bấm vào một thẻ thành viên.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function orgPeople(): array
+    {
+        $leaderTeams = OrgTeam::query()
+            ->whereNotNull('leader_id')
+            ->get(['id', 'name', 'leader_id']);
+
+        $memberRows = OrgTeamMember::query()
+            ->whereNotNull('employee_id')
+            ->with(['team:id,name', 'section:id,title'])
+            ->get(['id', 'employee_id', 'org_team_id', 'section_id']);
+
+        /** @var array<int, array{team: string|null, section: string|null, is_leader: bool}> $context */
+        $context = [];
+        foreach ($leaderTeams as $team) {
+            $context[$team->leader_id] ??= [
+                'team' => $team->name,
+                'section' => null,
+                'is_leader' => true,
+            ];
+        }
+        foreach ($memberRows as $row) {
+            if (! isset($context[$row->employee_id])) {
+                $context[$row->employee_id] = [
+                    'team' => $row->team?->name,
+                    'section' => $row->section?->title,
+                    'is_leader' => false,
+                ];
+            }
+        }
+
+        $ids = array_keys($context);
+        if ($ids === []) {
+            return [];
+        }
+
+        return Employee::query()
+            ->whereIn('id', $ids)
+            ->get()
+            ->mapWithKeys(function (Employee $e) use ($context): array {
+                $meta = is_array($e->meta) ? $e->meta : [];
+                $ctx = $context[$e->id] ?? ['team' => null, 'section' => null, 'is_leader' => false];
+
+                return [$e->id => [
+                    'id' => $e->id,
+                    'name' => $e->full_name,
+                    'code' => $e->code,
+                    'avatar' => PublicMediaUrl::fromPublicDisk($e->avatar_path),
+                    'role_title' => $e->role_title ?: ($meta['position_name'] ?? null),
+                    'email' => $e->email,
+                    'phone' => $e->phone,
+                    'bio' => $meta['bio'] ?? null,
+                    'team' => $ctx['team'],
+                    'section' => $ctx['section'],
+                    'is_leader' => $ctx['is_leader'],
+                    'is_active' => (bool) $e->is_active,
+                ]];
+            })
+            ->all();
     }
 }
