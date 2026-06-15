@@ -31,6 +31,7 @@ const emit = defineEmits([
     'duplicate-sprint',
     'close-sprint',
     'delete-sprint',
+    'delete-task',
     'reorder-sprints',
 ]);
 
@@ -375,8 +376,10 @@ function onDragEnd() {
                     :project-id="projectId"
                     :status-options="statusOptions"
                     :can-contribute="canContribute"
+                    :can-manage="canManage"
                     @open-task="emit('open-task', $event)"
                     @edit-task="emit('edit-task', $event)"
+                    @delete-task="emit('delete-task', $event)"
                   />
                 </div>
               </div>
@@ -454,9 +457,11 @@ function onDragEnd() {
               :project-id="projectId"
               :status-options="statusOptions"
               :can-contribute="canContribute"
+              :can-manage="canManage"
               compact
               @open-task="emit('open-task', $event)"
               @edit-task="emit('edit-task', $event)"
+              @delete-task="emit('delete-task', $event)"
             />
           </div>
         </div>

@@ -13,6 +13,7 @@ import TaskDetailRichEditor from '@/modules/project/components/TaskDetail/TaskDe
 import TaskDetailSubtasks from '@/modules/project/components/TaskDetail/TaskDetailSubtasks.vue';
 import { date, datetime, hours } from '@/composables/useFormat';
 import { useToast } from '@/shared/composables/useToast';
+import { useDialog } from '@/composables/useDialog';
 import { useSprintTaskStatusPatch } from '@/composables/useSprintTaskStatusPatch';
 import { getTaskCompletionBadge } from '@/composables/useTaskCompletion';
 import { getTaskSlaToneClass } from '@/composables/useTaskTimeliness';
@@ -44,15 +45,17 @@ const props = defineProps({
     epics: { type: Array, default: () => [] },
     canEdit: { type: Boolean, default: false },
     canComment: { type: Boolean, default: false },
+    canDelete: { type: Boolean, default: false },
     initialPanelTab: { type: String, default: 'overview' },
 });
 
 const page = usePage();
 const currentEmployeeId = computed(() => page.props.auth?.user?.employee?.id ?? null);
 
-const emit = defineEmits(['close', 'edit', 'open-task', 'updated', 'panel-tab-change']);
+const emit = defineEmits(['close', 'edit', 'open-task', 'updated', 'panel-tab-change', 'deleted']);
 
 const toast = useToast();
+const dialog = useDialog();
 const tab = ref(props.initialPanelTab || 'overview');
 const showStatusMenu = ref(false);
 const showAssignMenu = ref(false);
@@ -123,6 +126,32 @@ const copyLink = async () => {
     } catch {
         toast.error('Không sao chép được liên kết');
     }
+};
+
+const removeTask = async () => {
+    const t = activeTask.value;
+    if (!t?.id || !props.canDelete) return;
+    const childCount = getDirectChildren(t.id, props.allTasks).length;
+    let message = `Xoá công việc «${t.title}»? Hành động không thể hoàn tác.`;
+    if (childCount) {
+        message += ` ${childCount} công việc con sẽ tách khỏi công việc cha.`;
+    }
+    if (!await dialog.confirm({
+        title: 'Xoá công việc',
+        message,
+        tone: 'danger',
+        confirmText: 'Xoá',
+    })) {
+        return;
+    }
+    router.delete(`/projects/${props.projectId}/tasks/${t.id}`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            toast.success('Đã xoá công việc');
+            emit('deleted');
+        },
+        onError: () => toast.error('Không thể xoá công việc'),
+    });
 };
 
 const onStatusPick = (status) => {
@@ -414,6 +443,20 @@ const worklogList = computed(() => normalizeEntities(activeTask.value?.worklogs)
                   name="edit"
                   :size="13"
                 /> Sửa
+              </button>
+
+              <button
+                v-if="canDelete"
+                type="button"
+                class="inline-flex items-center gap-1 rounded-md border border-rose-200 px-2 py-1 text-xs font-medium text-rose-600 hover:bg-rose-50 dark:border-rose-900 dark:text-rose-400 dark:hover:bg-rose-950/40"
+                title="Xoá công việc"
+                @click="removeTask"
+              >
+                <AppIcon
+                  name="delete"
+                  :size="13"
+                />
+                Xoá
               </button>
 
               <span

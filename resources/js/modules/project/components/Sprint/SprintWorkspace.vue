@@ -152,6 +152,33 @@ const removeSprint = async (s) => {
     router.delete(`/projects/${pid}/sprints/${s.id}`, { preserveScroll: true });
 };
 
+const removeTask = async (t) => {
+    if (!t?.id || !props.canManage) return;
+    const childCount = props.tasks.filter((x) => x.parent_id === t.id).length;
+    let message = `Xoá công việc «${t.title}»? Hành động không thể hoàn tác.`;
+    if (childCount) {
+        message += ` ${childCount} công việc con sẽ tách khỏi công việc cha.`;
+    }
+    if (!await dialog.confirm({
+        title: 'Xoá công việc',
+        message,
+        tone: 'danger',
+        confirmText: 'Xoá',
+    })) {
+        return;
+    }
+    router.delete(`/projects/${pid}/tasks/${t.id}`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            if (detailTask.value?.id === t.id) {
+                detailTask.value = null;
+            }
+            toast.success('Đã xoá công việc');
+        },
+        onError: () => toast.error('Không thể xoá công việc'),
+    });
+};
+
 const reorderSprints = (ids) => {
     router.patch(`/projects/${pid}/sprints/reorder`, { ids }, {
         preserveScroll: true,
@@ -388,6 +415,7 @@ onBeforeUnmount(() => {
         @duplicate-sprint="duplicateSprint"
         @close-sprint="closeSprint"
         @delete-sprint="removeSprint"
+        @delete-task="removeTask"
         @reorder-sprints="reorderSprints"
       />
 
@@ -427,10 +455,12 @@ onBeforeUnmount(() => {
       :epics="epics"
       :can-edit="canContribute"
       :can-comment="canContribute"
+      :can-delete="canManage"
       @close="detailTask = null"
       @edit="openTaskEditFromDetail"
       @open-task="openTask"
       @updated="onTaskDetailUpdated"
+      @deleted="detailTask = null"
     />
 
     <SprintFormModal

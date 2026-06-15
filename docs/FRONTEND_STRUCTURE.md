@@ -95,6 +95,8 @@ AppLayout.vue
 
 **Sidebar UX (2026-06):** Desktop `lg+` — expanded (`w-72`) hoặc rail (`w-[4.25rem]`), tooltip + flyout nhóm khi rail; `< lg` — drawer trái (hamburger topbar, overlay, vuốt đóng). Trạng thái rail/nhóm: `localStorage` (`va-qlda.sidebar.rail`, `va-qlda.sidebar.collapsed`).
 
+**Badge số liệu thật trên nav:** mục có `badgeKey` được `App\Support\NavigationBadges::decorate()` gắn `item.badge` (số đếm thực); render pill đỏ ở expanded/mobile, số góc icon + chấm trên nhóm thu gọn ở rail, pill trong flyout. Ẩn khi count = 0. Xem [§12 Role-Based UI](#12-role-based-ui).
+
 ---
 
 ## 5. Inertia Pages
@@ -309,3 +311,13 @@ Doc module: `docs/KNOWLEDGE_BASE.md`.
 
 Nav filter backend `App\Support\Navigation` → `usePage().props.auth`.  
 Roles: `admin` | `lead` | `member` | `viewer`.
+
+**Cờ hiển thị mục nav** (`Navigation::definition()` item):
+
+| Cờ | Kiểu | Ý nghĩa |
+|---|---|---|
+| `roles` | allowlist | Chỉ role trong danh sách thấy mục; không khai báo = mọi role. |
+| `hideForRoles` | blocklist | Ẩn mục với role trong danh sách (áp dụng **sau** `roles`). VD `['admin']` ẩn «Thông báo», «Gửi đề xuất phần mềm», «Đề xuất của tôi» khỏi admin. |
+| `badgeKey` | counter | Khóa badge số liệu thật; `App\Support\NavigationBadges::decorate()` đếm → gắn `item.badge`. |
+
+`badgeKey` hỗ trợ: `notifications_unread` (`NotificationService::unreadCount`), `proposals_new` (đề xuất status `New`). Decorate chạy trong `HandleInertiaRequests::share()` (prop `nav`), **chỉ query khóa còn lại sau lọc role** (không lặp luật phân quyền) và **strip `badgeKey`** trước khi gửi frontend. Thêm badge mới: khai báo `badgeKey` ở `Navigation`, thêm nhánh `match` trong `NavigationBadges::counts()`, render `item.badge` ở `AppSidebarExpandedNav` / `AppSidebarRailNav` / `AppSidebarRailFlyout`.

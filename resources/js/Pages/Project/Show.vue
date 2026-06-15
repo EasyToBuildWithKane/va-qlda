@@ -355,38 +355,44 @@ const onSprintSaved = () => {
 
     <!-- Full-height flex column -->
     <div class="flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden bg-slate-50">
-      <!-- ── Compact tab strip ── -->
+      <!-- ── Tab strip (pill, đồng bộ typography text-xs/sm) ── -->
       <nav
-        class="flex shrink-0 items-center gap-0.5 overflow-x-auto overscroll-x-contain border-b border-slate-200 bg-white px-2 sm:px-3"
+        class="flex shrink-0 items-center overflow-x-auto overscroll-x-contain border-b border-slate-200 bg-white px-2 py-1.5 sm:px-3"
         aria-label="Tab dự án"
       >
-        <button
-          v-for="t in tabList"
-          :key="t.key"
-          class="flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-2.5 py-2.5 text-sm font-medium transition sm:px-3"
-          :class="tab === t.key
-            ? 'border-brand text-brand'
-            : 'border-transparent text-slate-500 hover:text-slate-700'"
-          @click="tab = t.key"
+        <div
+          class="inline-flex min-w-0 items-stretch gap-0.5 rounded-lg border border-slate-200/90 bg-slate-100/90 p-0.5 dark:border-slate-700 dark:bg-slate-800/60"
+          role="group"
         >
-          <AppIcon
-            :name="t.icon"
-            :size="15"
-          />
-          {{ t.label }}
-          <span
-            v-if="t.key === 'documents' && attachmentCount"
-            class="ml-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-sky-100 px-1 text-[10px] font-bold text-sky-600"
-          >{{ attachmentCount }}</span>
-          <span
-            v-if="t.key === 'blockers' && openBlockerCount"
-            class="ml-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-100 px-1 text-[10px] font-bold text-rose-600"
-          >{{ openBlockerCount }}</span>
-          <span
-            v-if="t.key === 'feedback' && openFeedbackCount"
-            class="ml-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-100 px-1 text-[10px] font-bold text-amber-700"
-          >{{ openFeedbackCount }}</span>
-        </button>
+          <button
+            v-for="t in tabList"
+            :key="t.key"
+            type="button"
+            class="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1.5 text-xs font-medium transition sm:px-2.5 sm:text-sm"
+            :class="tab === t.key
+              ? 'bg-white text-brand shadow-sm dark:bg-slate-700 dark:text-brand-100'
+              : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'"
+            @click="tab = t.key"
+          >
+            <AppIcon
+              :name="t.icon"
+              :size="14"
+            />
+            {{ t.label }}
+            <span
+              v-if="t.key === 'documents' && attachmentCount"
+              class="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-sky-100 px-1 text-[10px] font-semibold tabular-nums text-sky-700 dark:bg-sky-950 dark:text-sky-300"
+            >{{ attachmentCount }}</span>
+            <span
+              v-if="t.key === 'blockers' && openBlockerCount"
+              class="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-100 px-1 text-[10px] font-semibold tabular-nums text-rose-700 dark:bg-rose-950 dark:text-rose-300"
+            >{{ openBlockerCount }}</span>
+            <span
+              v-if="t.key === 'feedback' && openFeedbackCount"
+              class="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-100 px-1 text-[10px] font-semibold tabular-nums text-amber-800 dark:bg-amber-950 dark:text-amber-200"
+            >{{ openFeedbackCount }}</span>
+          </button>
+        </div>
       </nav>
 
       <!-- ── Tab content: fills all remaining height ── -->
@@ -685,11 +691,13 @@ const onSprintSaved = () => {
       :epics="epics"
       :can-edit="canContribute"
       :can-comment="canContribute"
+      :can-delete="canManage"
       @close="closeTaskDetail"
       @edit="openTaskEditFromDetail"
       @open-task="openTaskDetail"
       @updated="onTaskDetailUpdated"
       @panel-tab-change="onTaskPanelTabChange"
+      @deleted="closeTaskDetail"
     />
 
     <!-- ===== Modals ===== -->

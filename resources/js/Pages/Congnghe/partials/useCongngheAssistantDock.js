@@ -103,6 +103,12 @@ export function useCongngheAssistantDock(asideRef) {
         ensurePosition();
     }
 
+    function onScrollDock() {
+        if (!hidden.value) {
+            ensurePosition();
+        }
+    }
+
     function detachWindowPointer() {
         if (typeof window === 'undefined') {
             return;
@@ -187,10 +193,12 @@ export function useCongngheAssistantDock(asideRef) {
         readStored();
         nextTickEnsure();
         window.addEventListener('resize', onResizeDock, { passive: true });
+        window.addEventListener('scroll', onScrollDock, { passive: true, capture: true });
     });
 
     onBeforeUnmount(() => {
         window.removeEventListener('resize', onResizeDock);
+        window.removeEventListener('scroll', onScrollDock, { capture: true });
         detachWindowPointer();
     });
 

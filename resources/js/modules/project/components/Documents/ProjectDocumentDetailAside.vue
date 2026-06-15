@@ -36,7 +36,7 @@ const emit = defineEmits([
   <div class="flex flex-col gap-3 p-3">
     <section class="overflow-hidden rounded-lg border border-slate-200/80 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
       <header class="border-b border-slate-100 bg-slate-50/90 px-3 py-1.5 dark:border-slate-800 dark:bg-slate-800/50">
-        <h4 class="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+        <h4 class="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
           {{ selected.is_external_link ? 'Thông tin link' : 'Thông tin file' }}
         </h4>
       </header>
@@ -74,13 +74,13 @@ const emit = defineEmits([
 
     <section class="overflow-hidden rounded-lg border border-slate-200/80 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
       <header class="flex items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/90 px-3 py-1.5 dark:border-slate-800 dark:bg-slate-800/50">
-        <h4 class="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+        <h4 class="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
           Ghi chú
         </h4>
         <button
           v-if="canEdit && !editingNotes"
           type="button"
-          class="text-[10px] font-medium text-brand hover:underline"
+          class="text-xs font-medium text-brand hover:underline"
           @click="emit('edit-notes')"
         >
           Sửa
@@ -108,14 +108,14 @@ const emit = defineEmits([
         >
           <button
             type="button"
-            class="btn-ghost px-2 py-1 text-[10px]"
+            class="btn-ghost px-2 py-1 text-xs"
             @click="emit('cancel-notes')"
           >
             Huỷ
           </button>
           <button
             type="button"
-            class="btn-primary px-2 py-1 text-[10px]"
+            class="btn-primary px-2 py-1 text-xs"
             :disabled="notesForm.processing"
             @click="emit('save-notes')"
           >
@@ -130,7 +130,7 @@ const emit = defineEmits([
         <button
           v-if="!editingLink"
           type="button"
-          class="w-full rounded border border-dashed border-slate-300 py-1.5 text-[10px] font-medium text-slate-600 hover:border-brand/40 hover:text-brand dark:border-slate-600"
+          class="w-full rounded border border-dashed border-slate-300 py-1.5 text-xs font-medium text-slate-600 hover:border-brand/40 hover:text-brand dark:border-slate-600"
           @click="emit('edit-link')"
         >
           Sửa link Google
@@ -156,14 +156,14 @@ const emit = defineEmits([
           <div class="flex justify-end gap-1.5">
             <button
               type="button"
-              class="btn-ghost px-2 py-1 text-[10px]"
+              class="btn-ghost px-2 py-1 text-xs"
               @click="emit('cancel-link')"
             >
               Huỷ
             </button>
             <button
               type="button"
-              class="btn-primary px-2 py-1 text-[10px]"
+              class="btn-primary px-2 py-1 text-xs"
               :disabled="linkForm.processing"
               @click="emit('save-link')"
             >
@@ -178,7 +178,7 @@ const emit = defineEmits([
       >
         <button
           type="button"
-          class="w-full rounded border border-dashed border-slate-300 py-1.5 text-[10px] font-medium text-slate-600 hover:border-brand/40 hover:text-brand dark:border-slate-600"
+          class="w-full rounded border border-dashed border-slate-300 py-1.5 text-xs font-medium text-slate-600 hover:border-brand/40 hover:text-brand dark:border-slate-600"
           @click="emit('replace')"
         >
           Thay thế file
@@ -188,12 +188,12 @@ const emit = defineEmits([
 
     <section class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-slate-200/80 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
       <header class="flex items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/90 px-3 py-1.5 dark:border-slate-800 dark:bg-slate-800/50">
-        <h4 class="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+        <h4 class="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
           Lịch sử
         </h4>
         <span
           v-if="activities.length"
-          class="rounded-full bg-slate-200/80 px-1.5 py-0.5 text-[9px] font-bold dark:bg-slate-700"
+          class="rounded-full bg-slate-200/80 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums dark:bg-slate-700"
         >{{ activities.length }}</span>
       </header>
       <ul
@@ -219,7 +219,7 @@ const emit = defineEmits([
             <p class="text-xs font-medium leading-snug text-slate-800 dark:text-slate-100">
               {{ item.description }}
             </p>
-            <p class="mt-0.5 text-[10px] text-slate-400">
+            <p class="mt-0.5 text-[11px] text-slate-500 sm:text-xs">
               {{ datetime(item.created_at) }}
               <span v-if="item.employee?.name"> · {{ item.employee.name }}</span>
             </p>

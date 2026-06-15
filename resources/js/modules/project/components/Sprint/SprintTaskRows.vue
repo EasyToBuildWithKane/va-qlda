@@ -27,11 +27,12 @@ const props = defineProps({
     projectId: { type: Number, required: true },
     statusOptions: { type: Array, default: () => [] },
     canContribute: { type: Boolean, default: false },
+    canManage: { type: Boolean, default: false },
     compact: { type: Boolean, default: false },
 });
 
 const { patchTaskStatus } = useSprintTaskStatusPatch(props.projectId, props.statusOptions);
-const emit = defineEmits(['open-task', 'edit-task']);
+const emit = defineEmits(['open-task', 'edit-task', 'delete-task']);
 
 const colCount = computed(() => (props.compact ? 10 : 11));
 const taskPool = computed(() => (props.allTasks?.length ? props.allTasks : props.tasks));
@@ -161,7 +162,7 @@ const isDateOverdue = (row, parent) => {
           <th class="w-[4.5rem] border-b border-slate-100 px-2 py-1.5 dark:border-slate-800">
             Tiến độ
           </th>
-          <th class="w-7 border-b border-slate-100 dark:border-slate-800" />
+          <th class="w-[4.5rem] border-b border-slate-100 dark:border-slate-800" />
         </tr>
       </thead>
       <tbody v-if="!visibleRows.length">
@@ -383,27 +384,41 @@ const isDateOverdue = (row, parent) => {
             >{{ taskProgressFromStatus(entry.task.status) }}%</span>
           </td>
           <td
-            class="border-b border-slate-100 px-2 py-2 dark:border-slate-800"
+            class="border-b border-slate-100 px-1 py-2 dark:border-slate-800"
             @click.stop
           >
-            <button
-              v-if="canContribute"
-              type="button"
-              class="grid h-7 w-7 place-items-center rounded-md text-slate-400 transition hover:bg-brand/10 hover:text-brand"
-              title="Chỉnh sửa công việc"
-              @click="emit('edit-task', entry.task)"
-            >
+            <div class="flex items-center justify-end gap-0.5">
+              <button
+                v-if="canContribute"
+                type="button"
+                class="grid h-7 w-7 place-items-center rounded-md text-slate-400 transition hover:bg-brand/10 hover:text-brand"
+                title="Chỉnh sửa công việc"
+                @click="emit('edit-task', entry.task)"
+              >
+                <AppIcon
+                  name="edit"
+                  :size="14"
+                />
+              </button>
+              <button
+                v-if="canManage"
+                type="button"
+                class="grid h-7 w-7 place-items-center rounded-md text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40"
+                title="Xoá công việc"
+                @click="emit('delete-task', entry.task)"
+              >
+                <AppIcon
+                  name="delete"
+                  :size="14"
+                />
+              </button>
               <AppIcon
-                name="edit"
+                v-if="!canContribute && !canManage"
+                name="chevron-right"
                 :size="14"
+                class="text-slate-300"
               />
-            </button>
-            <AppIcon
-              v-else
-              name="chevron-right"
-              :size="14"
-              class="text-slate-300"
-            />
+            </div>
           </td>
         </tr>
       </tbody>

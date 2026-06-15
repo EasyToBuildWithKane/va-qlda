@@ -207,7 +207,8 @@ DailyReportScore ──→ DailyReport, Employee
 
 Support:
 Options.php ──→ Employee, Project, Department (direct Model coupling)
-Navigation.php ──→ SystemAccount (role-based)
+Navigation.php ──→ SystemAccount (role-based, định nghĩa thuần)
+NavigationBadges.php ──→ NotificationService, CongngheSoftwareProposal (đếm badge nav)
 TaskActivityLogger.php ──→ Task, Employee
 BlockerActivityLogger.php ──→ Blocker, Employee
 ```

@@ -61,13 +61,7 @@ const colorBadge = {
     rose: 'bg-rose-100 text-rose-700',
 };
 
-const colorTab = {
-    sky: 'border-sky-500 text-sky-700',
-    violet: 'border-violet-500 text-violet-700',
-    amber: 'border-amber-500 text-amber-700',
-    emerald: 'border-emerald-500 text-emerald-700',
-    rose: 'border-rose-500 text-rose-700',
-};
+const sectionLabelClass = 'text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400';
 
 const byCategory = computed(() => {
     const map = {};
@@ -339,39 +333,49 @@ const activityTone = (event) => ({
 
 <template>
   <div class="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-white dark:bg-slate-900">
-    <!-- Header gọn -->
+    <!-- Danh mục + tổng số -->
     <div class="shrink-0 border-b border-slate-200 bg-slate-50/80 px-3 py-2 dark:border-slate-700 dark:bg-slate-900/80">
-      <div class="flex items-center justify-between gap-2">
-        <h2 class="font-display text-base font-semibold text-slate-800 dark:text-slate-100">
-          Tài liệu dự án
-        </h2>
-        <span class="text-sm text-slate-500">
-          Tổng <span class="font-semibold text-brand">{{ totalCount }}</span>
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <p :class="sectionLabelClass">
+          Danh mục tài liệu
+        </p>
+        <span class="text-xs text-slate-500">
+          Tổng
+          <span class="font-semibold tabular-nums text-brand">{{ totalCount }}</span>
+          file
         </span>
       </div>
-      <nav class="mt-1.5 flex gap-0.5 overflow-x-auto">
-        <button
-          v-for="cat in categories"
-          :key="cat.value"
-          type="button"
-          class="flex shrink-0 items-center gap-1 border-b-2 px-2 py-1.5 text-sm font-medium transition sm:px-2.5 sm:text-base"
-          :class="activeCategory === cat.value
-            ? (colorTab[cat.color] || 'border-brand text-brand')
-            : 'border-transparent text-slate-500 hover:text-slate-700'"
-          @click="activeCategory = cat.value"
+      <nav
+        class="mt-2 overflow-x-auto overscroll-x-contain"
+        aria-label="Danh mục tài liệu"
+      >
+        <div
+          class="inline-flex min-w-0 items-stretch gap-0.5 rounded-lg border border-slate-200/90 bg-white p-0.5 shadow-sm dark:border-slate-700 dark:bg-slate-900"
+          role="group"
         >
-          <AppIcon
-            :name="cat.icon"
-            :size="14"
-          />
-          {{ cat.label }}
-          <span
-            class="inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold"
-            :class="(byCategory[cat.value] || []).length
-              ? (colorBadge[cat.color] || 'bg-brand/10 text-brand')
-              : 'bg-slate-100 text-slate-400'"
-          >{{ (byCategory[cat.value] || []).length }}</span>
-        </button>
+          <button
+            v-for="cat in categories"
+            :key="cat.value"
+            type="button"
+            class="inline-flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition sm:px-2.5"
+            :class="activeCategory === cat.value
+              ? 'bg-brand/10 text-brand ring-1 ring-brand/15 dark:bg-brand/20 dark:text-brand-100'
+              : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200'"
+            @click="activeCategory = cat.value"
+          >
+            <AppIcon
+              :name="cat.icon"
+              :size="13"
+            />
+            <span class="whitespace-nowrap">{{ cat.label }}</span>
+            <span
+              class="inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold tabular-nums"
+              :class="(byCategory[cat.value] || []).length
+                ? (colorBadge[cat.color] || 'bg-brand/10 text-brand')
+                : 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500'"
+            >{{ (byCategory[cat.value] || []).length }}</span>
+          </button>
+        </div>
       </nav>
     </div>
 
@@ -381,10 +385,10 @@ const activityTone = (event) => ({
     >
       <div class="flex flex-wrap items-center justify-between gap-2">
         <p
-          class="min-w-0 flex-1 truncate text-sm text-slate-500 dark:text-slate-400"
+          class="min-w-0 flex-1 truncate text-xs leading-snug text-slate-500 dark:text-slate-400 sm:text-sm"
           :title="activeCat?.description"
         >
-          <span class="font-medium text-slate-600 dark:text-slate-300">{{ activeCat?.label }}:</span>
+          <span class="font-medium text-slate-700 dark:text-slate-300">{{ activeCat?.label }}:</span>
           {{ activeCat?.description }}
         </p>
         <div
@@ -393,7 +397,7 @@ const activityTone = (event) => ({
         >
           <button
             type="button"
-            class="btn-ghost inline-flex items-center gap-1.5 border border-slate-200 text-sm dark:border-slate-600"
+            class="btn-ghost inline-flex h-9 items-center gap-1.5 border border-slate-200 px-2.5 text-xs font-medium dark:border-slate-600 sm:text-sm"
             @click="openAddLinkModal"
           >
             <AppIcon
@@ -404,7 +408,7 @@ const activityTone = (event) => ({
           </button>
           <button
             type="button"
-            class="btn-ghost inline-flex items-center gap-1.5 border border-slate-200 text-sm dark:border-slate-600"
+            class="btn-ghost inline-flex h-9 items-center gap-1.5 border border-slate-200 px-2.5 text-xs font-medium dark:border-slate-600 sm:text-sm"
             :disabled="uploadingCategory === activeCategory"
             @click="pickFiles(activeCategory)"
           >
@@ -435,7 +439,7 @@ const activityTone = (event) => ({
         @dragleave="dragging = false"
         @drop.prevent="onDrop(activeCategory, $event)"
       >
-        <p class="text-sm font-medium text-slate-600 dark:text-slate-300">
+        <p class="text-xs font-medium text-slate-600 dark:text-slate-300 sm:text-sm">
           Kéo thả file vào đây · PDF, Office, ảnh, ZIP… · tối đa 20MB/file
         </p>
       </div>
@@ -447,7 +451,10 @@ const activityTone = (event) => ({
       :class="workspaceGridClass"
     >
       <div class="flex min-h-0 flex-col overflow-hidden border-b border-slate-200 bg-slate-50/50 lg:border-b-0 lg:border-r dark:border-slate-700 dark:bg-slate-900/50">
-        <div class="shrink-0 border-b border-slate-200/80 bg-white px-2.5 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
+        <div
+          class="shrink-0 border-b border-slate-200/80 bg-white px-2.5 py-1.5 dark:border-slate-700 dark:bg-slate-900"
+          :class="sectionLabelClass"
+        >
           Danh sách ({{ categoryFiles.length }})
         </div>
         <div
@@ -467,13 +474,13 @@ const activityTone = (event) => ({
               :size="32"
               class="text-slate-300"
             />
-            <p class="mt-2 text-sm text-slate-400">
+            <p class="mt-2 text-xs text-slate-400 sm:text-sm">
               {{ canUpload ? 'Chưa có tài liệu — kéo thả hoặc chọn file.' : 'Chưa có tài liệu.' }}
             </p>
             <button
               v-if="canUpload"
               type="button"
-              class="mt-2 text-sm font-medium text-brand hover:underline"
+              class="mt-2 text-xs font-medium text-brand hover:underline sm:text-sm"
               @click="pickFiles(activeCategory)"
             >
               Tải file đầu tiên
@@ -512,8 +519,8 @@ const activityTone = (event) => ({
                   <span v-else>{{ listBadge(file) }}</span>
                 </span>
                 <span class="min-w-0 flex-1">
-                  <span class="line-clamp-2 text-sm font-medium leading-snug text-slate-800 dark:text-slate-100">{{ file.original_name }}</span>
-                  <span class="mt-0.5 block text-xs leading-tight text-slate-400">
+                  <span class="line-clamp-2 text-xs font-medium leading-snug text-slate-800 dark:text-slate-100 sm:text-sm">{{ file.original_name }}</span>
+                  <span class="mt-0.5 block text-[11px] leading-tight text-slate-500 sm:text-xs">
                     {{ formatSize(file.size, file) }}
                     <span v-if="file.uploaded_by?.name"> · {{ file.uploaded_by.name.split(' ').pop() }}</span>
                   </span>
@@ -528,12 +535,12 @@ const activityTone = (event) => ({
       <div class="flex min-h-0 flex-col overflow-hidden bg-slate-100/80 dark:bg-slate-950 lg:border-l lg:border-slate-200/80 dark:lg:border-slate-800">
         <template v-if="selected">
           <div class="flex shrink-0 items-center gap-2 border-b border-slate-200/80 bg-white px-2 py-1.5 dark:border-slate-700 dark:bg-slate-900">
-            <h3 class="min-w-0 flex-1 truncate text-base font-medium text-slate-800 dark:text-slate-100">
+            <h3 class="min-w-0 flex-1 truncate text-sm font-semibold text-slate-800 dark:text-slate-100">
               {{ selected.original_name }}
             </h3>
             <button
               type="button"
-              class="btn-ghost inline-flex shrink-0 items-center gap-1 px-2 py-1 text-[11px] lg:hidden"
+              class="btn-ghost inline-flex h-8 shrink-0 items-center gap-1 px-2 text-xs font-medium lg:hidden"
               @click="detailDrawerOpen = true"
             >
               <AppIcon
@@ -597,7 +604,7 @@ const activityTone = (event) => ({
             :size="32"
             class="opacity-40"
           />
-          <p class="mt-2 text-sm">
+          <p class="mt-2 text-xs sm:text-sm">
             Chọn tài liệu để xem trước.
           </p>
         </div>
