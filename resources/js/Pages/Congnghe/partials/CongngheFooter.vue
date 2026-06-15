@@ -1,119 +1,86 @@
 <script setup>
+import { computed } from 'vue';
+import { usePage } from '@inertiajs/vue3';
 import { congngheBrand } from './congngheBrand.js';
 import CongngheBrandImage from './CongngheBrandImage.vue';
 
 const year = new Date().getFullYear();
+const page = usePage();
+const portal = computed(() => page.props.portal ?? { canEnterQlda: false, qldaHome: '/dashboard' });
 
-const exploreLinks = [
+const links = [
     { href: '#gioi-thieu', label: 'Giới thiệu' },
-    { href: '#lo-trinh', label: 'Lộ trình 2026–2027' },
-    { href: '#san-pham', label: 'Hệ sinh thái sản phẩm' },
-    { href: '#to-chuc', label: 'Sơ đồ tổ chức' },
-    { href: '#du-an', label: 'Dự án triển khai' },
+    { href: '#thanh-tuu', label: 'Thành tựu' },
+    { href: '#san-pham', label: 'Sản phẩm' },
+    { href: '#to-chuc', label: 'Tổ chức' },
+    { href: '#du-an', label: 'Dự án' },
+    { href: '#lo-trinh', label: 'Lộ trình' },
 ];
 </script>
 
 <template>
-  <footer class="relative overflow-hidden border-t border-brand/40 bg-gradient-to-br from-[#120818] via-brand/25 to-[#05060c]">
-    <div
-      class="pointer-events-none absolute inset-0 opacity-40"
-      aria-hidden="true"
-      style="background-image: radial-gradient(circle at 20% 0%, rgba(154,0,54,0.35), transparent 45%), radial-gradient(circle at 80% 100%, rgba(56,189,248,0.12), transparent 40%);"
-    />
-    <div class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-cyan-400/30 via-brand to-violet-500/30" />
+  <footer class="relative border-t border-white/10 bg-[#070912]/95">
+    <div class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand/50 to-transparent" />
 
-    <div class="relative mx-auto max-w-7xl px-5 py-14 sm:px-8 sm:py-16">
-      <div class="grid gap-10 lg:grid-cols-[1.5fr_1fr_minmax(140px,0.85fr)] lg:items-end lg:gap-8 xl:gap-10">
+    <div class="relative mx-auto max-w-7xl px-5 py-8 sm:px-8">
+      <div class="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between lg:gap-8">
         <!-- Brand -->
-        <div class="min-w-0 text-center lg:text-left">
-          <div class="flex flex-col items-center gap-3 sm:flex-row sm:items-start sm:justify-center lg:justify-start">
-            <CongngheBrandImage
-              :src="congngheBrand.logoVertical"
-              alt="Vietnam America Schools"
-              :cutout="false"
-              class="h-16 w-auto sm:h-[4.5rem]"
-              loading="lazy"
-            />
-            <div class="min-w-0">
-              <p class="font-display text-lg font-bold text-white sm:text-xl">
-                Phòng Công Nghệ
-              </p>
-              <p class="mt-1 text-sm text-white/65">
-                Đơn vị kiến tạo nền tảng số &amp; AI cho toàn hệ thống.
-              </p>
-            </div>
+        <div class="flex min-w-0 flex-col items-center gap-3 sm:flex-row sm:items-center lg:items-center">
+          <CongngheBrandImage
+            :src="congngheBrand.logoVertical"
+            alt="Vietnam America Schools"
+            class="h-11 w-auto shrink-0 sm:h-12"
+            loading="lazy"
+          />
+          <div class="min-w-0 text-center sm:text-left">
+            <p class="font-display text-base font-bold text-white sm:text-lg">
+              Phòng Công Nghệ
+            </p>
+            <a
+              href="mailto:phongcongnghe@vaschools.edu.vn"
+              class="mt-0.5 inline-block text-xs text-cyan-200/70 transition hover:text-white"
+            >
+              phongcongnghe@vaschools.edu.vn
+            </a>
           </div>
-          <p class="mt-4 text-sm leading-relaxed text-white/55">
-            Kiến tạo hạ tầng dữ liệu, sản phẩm phần mềm và năng lực trí tuệ nhân tạo —
-            đồng hành cùng đội ngũ bằng những giải pháp thật, đo lường được.
-          </p>
+        </div>
+
+        <!-- Liên kết nhanh -->
+        <nav
+          class="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 lg:flex-1 lg:justify-center"
+          aria-label="Liên kết trang"
+        >
           <a
-            href="mailto:phongcongnghe@vaschools.edu.vn"
-            class="mt-4 inline-flex items-center justify-center gap-2 text-sm text-cyan-100/80 transition hover:text-white lg:justify-start"
+            v-for="link in links"
+            :key="link.href"
+            :href="link.href"
+            class="text-[13px] text-white/55 transition hover:text-white"
+          >{{ link.label }}</a>
+          <a
+            v-if="portal.canEnterQlda"
+            :href="portal.qldaHome"
+            class="text-[13px] font-medium text-brand-200/90 transition hover:text-brand-100"
           >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <rect
-                x="3"
-                y="5"
-                width="18"
-                height="14"
-                rx="2"
-              />
-              <path d="m3 7 9 6 9-6" />
-            </svg>
-            phongcongnghe@vaschools.edu.vn
+            Vào QLDA
           </a>
-        </div>
+        </nav>
 
-        <div class="text-center lg:text-left">
-          <p class="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-200/70">
-            Khám phá
-          </p>
-          <ul class="mt-4 space-y-2.5">
-            <li
-              v-for="link in exploreLinks"
-              :key="link.label"
-            >
-              <a
-                :href="link.href"
-                class="text-sm text-white/65 transition hover:text-white"
-              >{{ link.label }}</a>
-            </li>
-          </ul>
-        </div>
-
-        <!-- Mascot bên phải -->
-        <div class="flex justify-center lg:justify-end">
+        <div class="hidden shrink-0 justify-center lg:flex lg:justify-end">
           <CongngheBrandImage
             :src="congngheBrand.mascotHoodie"
-            alt="Linh vật VAS — Phòng Công Nghệ"
-            class="h-44 w-auto sm:h-52 lg:h-56 xl:h-64"
+            alt=""
+            class="h-28 w-auto xl:h-32"
             loading="lazy"
           />
         </div>
       </div>
 
-      <div class="mt-10 flex flex-col items-center justify-between gap-3 border-t border-white/15 pt-6 sm:flex-row">
-        <div class="flex flex-wrap items-center justify-center gap-3 sm:justify-start">
-          <CongngheBrandImage
-            :src="congngheBrand.badgeCircle"
-            alt=""
-            class="h-9 w-9 opacity-90"
-            loading="lazy"
-          />
-          <p class="text-center text-[12.5px] text-white/45 sm:text-left">
-            © {{ year }} Vietnam America Schools · Phòng Công Nghệ
-          </p>
-        </div>
-        <p class="text-[12.5px] text-white/35">
-          Laravel · Vue · Inertia — nội bộ VAS
+      <div class="mt-6 flex flex-col items-center justify-between gap-2 border-t border-white/10 pt-4 text-[11px] text-white/40 sm:flex-row">
+        <p class="text-center sm:text-left">
+          © {{ year }} Vietnam America Schools · Phòng Công Nghệ
+        </p>
+        <p class="text-white/30">
+          Nội bộ VAS
         </p>
       </div>
     </div>

@@ -1,52 +1,88 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import SectionHeading from './SectionHeading.vue';
-import GlassCard from './GlassCard.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
 import { tone } from './tones.js';
-import { useInView } from './motion.js';
+import { useInView, prefersReducedMotionNow } from './motion.js';
 import { openCongngheProject } from './useCongngheProjectModal.js';
-import CongngheProjectGallery from './CongngheProjectGallery.vue';
 
 const props = defineProps({
     products: { type: Array, default: () => [] },
 });
 
-const { target, shown: sectionVisible } = useInView({ threshold: 0.12 });
+const { target, shown: sectionVisible } = useInView({ threshold: 0.1 });
 
-const slideIndex = ref(0);
-const slideDirection = ref(1);
+const trackRef = ref(null);
+const activeIndex = ref(0);
+let scrollRaf = null;
 
 const slideCount = computed(() => props.products.length);
-const current = computed(() => props.products[slideIndex.value] ?? null);
-
-const canPrev = computed(() => slideIndex.value > 0);
-const canNext = computed(() => slideIndex.value < slideCount.value - 1);
+const canPrev = computed(() => activeIndex.value > 0);
+const canNext = computed(() => activeIndex.value < slideCount.value - 1);
 
 watch(
     () => props.products.length,
     (len) => {
-        if (slideIndex.value >= len) {
-            slideIndex.value = Math.max(0, len - 1);
+        if (activeIndex.value >= len) {
+            activeIndex.value = Math.max(0, len - 1);
         }
     },
 );
 
-function goSlide(delta) {
-    const next = slideIndex.value + delta;
-    if (next < 0 || next >= slideCount.value) {
+function syncActiveFromScroll() {
+    const track = trackRef.value;
+    if (!track || !slideCount.value) {
         return;
     }
-    slideDirection.value = delta;
-    slideIndex.value = next;
+    const cards = track.querySelectorAll('[data-eco-card]');
+    if (!cards.length) {
+        return;
+    }
+    const center = track.scrollLeft + track.clientWidth / 2;
+    let best = 0;
+    let bestDist = Infinity;
+    cards.forEach((node, i) => {
+        const el = /** @type {HTMLElement} */ (node);
+        const mid = el.offsetLeft + el.offsetWidth / 2;
+        const dist = Math.abs(mid - center);
+        if (dist < bestDist) {
+            bestDist = dist;
+            best = i;
+        }
+    });
+    activeIndex.value = best;
 }
 
-function goToSlide(i) {
-    if (i === slideIndex.value || i < 0 || i >= slideCount.value) {
+function onTrackScroll() {
+    if (scrollRaf) {
         return;
     }
-    slideDirection.value = i > slideIndex.value ? 1 : -1;
-    slideIndex.value = i;
+    scrollRaf = requestAnimationFrame(() => {
+        scrollRaf = null;
+        syncActiveFromScroll();
+    });
+}
+
+function scrollToIndex(i) {
+    const track = trackRef.value;
+    if (!track || i < 0 || i >= slideCount.value) {
+        return;
+    }
+    const card = track.querySelector(`[data-eco-card="${i}"]`);
+    if (!card) {
+        return;
+    }
+    const el = /** @type {HTMLElement} */ (card);
+    const left = el.offsetLeft - (track.clientWidth - el.offsetWidth) / 2;
+    track.scrollTo({
+        left: Math.max(0, left),
+        behavior: prefersReducedMotionNow() ? 'auto' : 'smooth',
+    });
+    activeIndex.value = i;
+}
+
+function goStep(delta) {
+    scrollToIndex(activeIndex.value + delta);
 }
 
 function onKeydown(e) {
@@ -68,15 +104,31 @@ function onKeydown(e) {
     }
     if (e.key === 'ArrowLeft') {
         e.preventDefault();
-        goSlide(-1);
+        goStep(-1);
     } else if (e.key === 'ArrowRight') {
         e.preventDefault();
-        goSlide(1);
+        goStep(1);
     }
 }
 
-onMounted(() => window.addEventListener('keydown', onKeydown));
-onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
+function coverUrl(product) {
+    return product?.images?.[0]?.url ?? null;
+}
+
+function openProduct(product) {
+    openCongngheProject(product);
+}
+
+onMounted(() => {
+    window.addEventListener('keydown', onKeydown);
+});
+
+onBeforeUnmount(() => {
+    window.removeEventListener('keydown', onKeydown);
+    if (scrollRaf) {
+        cancelAnimationFrame(scrollRaf);
+    }
+});
 </script>
 
 <template>
@@ -90,50 +142,56 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
       aria-hidden="true"
       class="pointer-events-none absolute inset-0 -z-0"
     >
-      <div class="absolute left-[6%] top-20 h-64 w-64 rounded-full bg-emerald-500/10 blur-[120px] animate-cn-float" />
-      <div class="absolute right-[8%] bottom-8 h-72 w-72 rounded-full bg-brand/12 blur-[120px] animate-cn-float-x" />
+      <div class="absolute left-[4%] top-16 h-56 w-56 rounded-full bg-emerald-500/12 blur-[100px] animate-cn-float" />
+      <div class="absolute right-[6%] bottom-6 h-64 w-64 rounded-full bg-cyan-500/10 blur-[100px] animate-cn-float-x" />
     </div>
 
     <div class="relative mx-auto max-w-7xl px-5 sm:px-8">
-      <div class="flex flex-wrap items-end justify-between gap-6">
+      <div
+        class="flex flex-wrap items-end justify-between gap-4 transition-all duration-700"
+        :class="sectionVisible ? 'translate-y-0 opacity-100' : 'translate-y-5 opacity-0'"
+      >
         <SectionHeading
           eyebrow="Hệ sinh thái sản phẩm"
           title="Những nền tảng đã hoàn thành"
-          subtitle="Sản phẩm đã nghiệm thu — lướt slide để xem từng nền tảng, mô tả và hình ảnh tham chiếu."
+          subtitle="Thư viện sản phẩm nghiệm thu — lướt ngang để duyệt toàn bộ; bấm thẻ để xem mô tả và ảnh (khác mục hành trình theo giai đoạn bên dưới)."
         />
         <div
           v-if="slideCount"
           class="flex shrink-0 items-center gap-2"
         >
+          <span class="hidden rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-emerald-200/90 sm:inline">
+            {{ slideCount }} sản phẩm
+          </span>
           <button
             type="button"
-            class="grid h-11 w-11 place-items-center rounded-full border border-white/15 bg-white/5 text-white/70 backdrop-blur transition enabled:hover:border-brand/40 enabled:hover:bg-white/10 enabled:hover:text-white disabled:cursor-not-allowed disabled:opacity-35"
+            class="grid h-9 w-9 place-items-center rounded-full border border-emerald-400/25 bg-white/5 text-white/70 transition enabled:hover:border-emerald-400/50 enabled:hover:bg-emerald-400/10 enabled:hover:text-white disabled:opacity-30"
             :disabled="!canPrev"
-            aria-label="Slide trước"
-            @click="goSlide(-1)"
+            aria-label="Sản phẩm trước"
+            @click="goStep(-1)"
           >
             <svg
-              width="18"
-              height="18"
+              width="16"
+              height="16"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
               stroke-width="2"
             ><path d="M15 6l-6 6 6 6" /></svg>
           </button>
-          <span class="min-w-[4.5rem] text-center font-mono text-[11px] tabular-nums text-white/50">
-            {{ slideIndex + 1 }} / {{ slideCount }}
+          <span class="min-w-[3.25rem] text-center font-mono text-[11px] tabular-nums text-white/45">
+            {{ activeIndex + 1 }}/{{ slideCount }}
           </span>
           <button
             type="button"
-            class="grid h-11 w-11 place-items-center rounded-full border border-white/15 bg-white/5 text-white/70 backdrop-blur transition enabled:hover:border-brand/40 enabled:hover:bg-white/10 enabled:hover:text-white disabled:cursor-not-allowed disabled:opacity-35"
+            class="grid h-9 w-9 place-items-center rounded-full border border-emerald-400/25 bg-white/5 text-white/70 transition enabled:hover:border-emerald-400/50 enabled:hover:bg-emerald-400/10 enabled:hover:text-white disabled:opacity-30"
             :disabled="!canNext"
-            aria-label="Slide sau"
-            @click="goSlide(1)"
+            aria-label="Sản phẩm sau"
+            @click="goStep(1)"
           >
             <svg
-              width="18"
-              height="18"
+              width="16"
+              height="16"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -144,199 +202,151 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
       </div>
 
       <div
-        v-if="slideCount && current"
-        class="mt-10"
+        v-if="slideCount"
+        class="relative mt-8 transition-all duration-700 delay-100"
+        :class="sectionVisible ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'"
       >
-        <div class="relative overflow-hidden rounded-3xl ring-1 ring-white/10">
-          <div
-            class="flex transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
-            :style="{ transform: `translateX(-${slideIndex * 100}%)` }"
+        <!-- Fade mép trái/phải -->
+        <div
+          class="pointer-events-none absolute inset-y-0 left-0 z-10 w-8 bg-gradient-to-r from-[#05060c] to-transparent sm:w-12"
+          aria-hidden="true"
+        />
+        <div
+          class="pointer-events-none absolute inset-y-0 right-0 z-10 w-8 bg-gradient-to-l from-[#05060c] to-transparent sm:w-12"
+          aria-hidden="true"
+        />
+
+        <div
+          ref="trackRef"
+          class="cn-eco-track flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain scroll-smooth py-2 pl-0.5 pr-2 sm:gap-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          role="list"
+          aria-label="Danh sách sản phẩm hoàn thành"
+          @scroll="onTrackScroll"
+        >
+          <article
+            v-for="(product, idx) in products"
+            :key="product.id"
+            role="listitem"
+            :data-eco-card="idx"
+            class="cn-eco-card group relative w-[min(78vw,17.5rem)] shrink-0 snap-center sm:w-[17.5rem]"
+            :class="[
+              sectionVisible ? 'cn-eco-card--in' : 'opacity-0',
+              activeIndex === idx ? 'cn-eco-card--active' : '',
+            ]"
+            :style="{ '--eco-delay': `${idx * 55}ms` }"
           >
-            <article
-              v-for="(product, idx) in products"
-              :key="product.id"
-              class="w-full shrink-0 px-0.5"
-              :aria-hidden="idx !== slideIndex"
+            <button
+              type="button"
+              class="flex h-full w-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0a0c14]/90 text-left shadow-[0_12px_40px_-20px_rgba(0,0,0,0.8)] ring-1 ring-white/5 transition duration-300 hover:border-emerald-400/35 hover:shadow-[0_16px_48px_-16px_rgba(52,211,153,0.25)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400/60"
+              @click="openProduct(product)"
             >
-              <GlassCard
-                tilt
-                :padded="false"
-                class="cn-product-slide min-h-[24rem] overflow-hidden p-0 sm:min-h-[22rem]"
-                :class="idx === slideIndex ? (slideDirection > 0 ? 'cn-product-slide--in-next' : 'cn-product-slide--in-prev') : ''"
-              >
-                <div class="grid gap-0 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
-                  <!-- Nội dung -->
-                  <div
-                    class="flex flex-col justify-between border-b border-white/10 p-6 sm:p-8 lg:border-b-0 lg:border-r"
-                    :style="{
-                      background: `linear-gradient(160deg, ${product.color || '#9A0036'}18 0%, transparent 50%), rgba(255,255,255,0.02)`,
-                    }"
-                  >
-                    <div class="flex flex-wrap items-center justify-between gap-3">
-                      <span
-                        class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ring-1 ring-inset"
-                        :class="tone(product.statusColor).soft"
-                      >
-                        <span
-                          class="h-1.5 w-1.5 rounded-full"
-                          :class="tone(product.statusColor).dot"
-                        />
-                        {{ product.status }}
-                      </span>
-                      <span
-                        v-if="product.images?.length"
-                        class="font-mono text-[10px] uppercase tracking-wider text-white/40"
-                      >
-                        {{ product.images.length }} ảnh tham chiếu
-                      </span>
-                    </div>
-
-                    <div class="mt-6 lg:mt-4">
-                      <p
-                        v-if="product.code"
-                        class="font-mono text-[11px] uppercase tracking-[0.2em] text-white/40"
-                      >
-                        {{ product.code }}
-                      </p>
-                      <h3 class="mt-2 font-display text-2xl font-bold leading-tight text-white sm:text-[1.75rem] lg:text-3xl">
-                        {{ product.name }}
-                      </h3>
-                      <p class="mt-4 text-sm leading-relaxed text-white/60 sm:text-[15px] lg:line-clamp-4">
-                        {{ product.description || 'Nền tảng đã hoàn thành và đưa vào vận hành.' }}
-                      </p>
-                    </div>
-
-                    <div class="mt-6 space-y-5">
-                      <div>
-                        <div class="flex items-center justify-between font-mono text-[11px] text-white/55">
-                          <span>TIẾN ĐỘ TỔNG THỂ</span>
-                          <span class="text-base font-semibold text-white">{{ product.progress }}%</span>
-                        </div>
-                        <div class="mt-2.5 h-2 overflow-hidden rounded-full bg-white/10">
-                          <div
-                            class="h-full rounded-full bg-[linear-gradient(110deg,#9A0036,#ff4d8d,#9A0036)] bg-[length:200%_100%] animate-cn-shimmer"
-                            :style="{ width: `${product.progress}%` }"
-                          />
-                        </div>
-                      </div>
-
-                      <button
-                        type="button"
-                        class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand to-[#c4185b] px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-brand/25 transition hover:brightness-110 sm:w-auto"
-                        @click="openCongngheProject(product)"
-                      >
-                        Xem mô tả chi tiết
-                        <svg
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          stroke-width="2"
-                        ><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-                      </button>
-                    </div>
-                  </div>
-
-                  <!-- Preview & phụ trách -->
-                  <div class="flex flex-col p-6 sm:p-8">
-                    <CongngheProjectGallery
-                      :key="product.id"
-                      :images="product.images"
-                    />
-
-                    <div class="mt-6 border-t border-white/10 pt-5">
-                      <p class="font-mono text-[10px] uppercase tracking-[0.18em] text-white/40">
-                        Phụ trách chính
-                      </p>
-                      <div
-                        v-if="product.manager"
-                        class="mt-3 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-3.5"
-                      >
-                        <Avatar
-                          :name="product.manager.name"
-                          :src="product.manager.avatar"
-                          :size="44"
-                        />
-                        <div class="min-w-0 flex-1">
-                          <p class="truncate font-semibold text-white">
-                            {{ product.manager.name }}
-                          </p>
-                          <p class="truncate text-sm text-white/50">
-                            {{ product.manager.role_title || 'Phụ trách chính' }}
-                          </p>
-                        </div>
-                      </div>
-                      <p
-                        v-else
-                        class="mt-3 text-sm text-white/40"
-                      >
-                        Chưa phân công phụ trách
-                      </p>
-                    </div>
-
-                    <div class="mt-5 flex flex-wrap gap-1.5">
-                      <button
-                        v-for="(_, dotIdx) in products"
-                        :key="`dot-${dotIdx}`"
-                        type="button"
-                        class="h-2 rounded-full transition-all duration-300"
-                        :class="dotIdx === slideIndex
-                          ? 'w-8 bg-[linear-gradient(110deg,#9A0036,#ff4d8d)]'
-                          : 'w-2 bg-white/20 hover:bg-white/40'"
-                        :aria-label="`Đến sản phẩm ${dotIdx + 1}`"
-                        :aria-current="dotIdx === slideIndex ? 'true' : undefined"
-                        @click="goToSlide(dotIdx)"
-                      />
-                    </div>
-                  </div>
+              <!-- Ảnh bìa -->
+              <div class="relative aspect-[16/10] overflow-hidden bg-white/[0.04]">
+                <img
+                  v-if="coverUrl(product)"
+                  :src="coverUrl(product)"
+                  alt=""
+                  class="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]"
+                  loading="lazy"
+                  decoding="async"
+                >
+                <div
+                  v-else
+                  class="flex h-full w-full items-center justify-center"
+                  :style="{ background: `linear-gradient(135deg, ${product.color || '#9A0036'}55, #0a0c14)` }"
+                >
+                  <span class="font-display text-3xl font-bold text-white/20">{{ (product.code || product.name || '?').slice(0, 2) }}</span>
                 </div>
-              </GlassCard>
-            </article>
-          </div>
+                <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#0a0c14] via-transparent to-transparent opacity-90" />
+                <span
+                  class="absolute left-2.5 top-2.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ring-inset backdrop-blur-sm"
+                  :class="tone(product.statusColor).soft"
+                >
+                  <span
+                    class="h-1 w-1 rounded-full"
+                    :class="tone(product.statusColor).dot"
+                  />
+                  {{ product.status }}
+                </span>
+                <span
+                  v-if="product.images?.length > 1"
+                  class="absolute bottom-2 right-2 rounded-md bg-black/50 px-1.5 py-0.5 font-mono text-[9px] text-white/70 backdrop-blur-sm"
+                >
+                  +{{ product.images.length - 1 }} ảnh
+                </span>
+              </div>
+
+              <!-- Nội dung gọn -->
+              <div class="flex flex-1 flex-col p-3.5 sm:p-4">
+                <p
+                  v-if="product.code"
+                  class="font-mono text-[10px] uppercase tracking-[0.16em] text-emerald-200/50"
+                >
+                  {{ product.code }}
+                </p>
+                <h3 class="mt-1 line-clamp-2 font-display text-[15px] font-bold leading-snug text-white">
+                  {{ product.name }}
+                </h3>
+                <p class="mt-1.5 line-clamp-2 text-[11px] leading-relaxed text-white/50">
+                  {{ product.description || 'Nền tảng đã nghiệm thu và vận hành.' }}
+                </p>
+
+                <div class="mt-auto flex items-center justify-between gap-2 border-t border-white/[0.06] pt-3">
+                  <div
+                    v-if="product.manager"
+                    class="flex min-w-0 items-center gap-2"
+                  >
+                    <Avatar
+                      :name="product.manager.name"
+                      :src="product.manager.avatar"
+                      :size="28"
+                    />
+                    <span class="truncate text-[11px] text-white/55">{{ product.manager.name }}</span>
+                  </div>
+                  <span
+                    v-else
+                    class="text-[11px] text-white/35"
+                  >Chưa gán PM</span>
+                  <span class="inline-flex shrink-0 items-center gap-0.5 text-[11px] font-semibold text-emerald-300/90 transition group-hover:gap-1">
+                    Chi tiết
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    ><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                  </span>
+                </div>
+              </div>
+            </button>
+          </article>
         </div>
 
-        <!-- Thanh chọn nhanh -->
+        <!-- Chấm điều hướng (nhiều sản phẩm) -->
         <div
           v-if="slideCount > 1"
-          class="mt-5 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          class="mt-4 flex flex-wrap items-center justify-center gap-1.5"
         >
           <button
-            v-for="(product, idx) in products"
-            :key="`thumb-${product.id}`"
+            v-for="(_, dotIdx) in products"
+            :key="`eco-dot-${dotIdx}`"
             type="button"
-            class="flex min-w-[10.5rem] max-w-[14rem] shrink-0 items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-all duration-200"
-            :class="idx === slideIndex
-              ? 'border-brand/50 bg-brand/10 shadow-[0_0_24px_-8px_rgba(154,0,54,0.8)]'
-              : 'border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.06]'"
-            @click="goToSlide(idx)"
-          >
-            <span
-              v-if="product.images?.[0]?.url"
-              class="h-10 w-14 shrink-0 overflow-hidden rounded-lg ring-1 ring-white/10"
-            >
-              <img
-                :src="product.images[0].url"
-                alt=""
-                class="h-full w-full object-cover"
-              >
-            </span>
-            <span
-              v-else
-              class="h-10 w-10 shrink-0 rounded-lg ring-1 ring-inset ring-white/15"
-              :style="{ backgroundColor: `${product.color || '#9A0036'}44` }"
-            />
-            <span class="min-w-0 flex-1">
-              <span class="block truncate text-[12px] font-semibold text-white">{{ product.name }}</span>
-              <span class="font-mono text-[10px] text-white/40">{{ product.code || '—' }}</span>
-            </span>
-          </button>
+            class="h-1.5 rounded-full transition-all duration-300"
+            :class="dotIdx === activeIndex
+              ? 'w-6 bg-gradient-to-r from-emerald-400 to-cyan-400'
+              : 'w-1.5 bg-white/25 hover:bg-white/45'"
+            :aria-label="`Đến sản phẩm ${dotIdx + 1}`"
+            :aria-current="dotIdx === activeIndex ? 'true' : undefined"
+            @click="scrollToIndex(dotIdx)"
+          />
         </div>
       </div>
 
       <p
         v-else
-        class="mt-12 rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-6 py-12 text-center text-sm text-white/45"
+        class="mt-12 rounded-2xl border border-dashed border-emerald-400/20 bg-emerald-400/[0.04] px-6 py-12 text-center text-sm text-white/45"
       >
         Chưa có dự án nào hoàn thành. Dữ liệu sẽ hiển thị khi có sản phẩm được nghiệm thu.
       </p>
@@ -345,40 +355,39 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
 </template>
 
 <style scoped>
-.cn-product-slide--in-next {
-    animation: cn-product-in-next 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+.cn-eco-track {
+    scroll-padding-inline: 1rem;
 }
 
-.cn-product-slide--in-prev {
-    animation: cn-product-in-prev 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+.cn-eco-card--in {
+    animation: cn-eco-card-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: var(--eco-delay, 0ms);
 }
 
-@keyframes cn-product-in-next {
+.cn-eco-card--active button {
+    border-color: rgba(52, 211, 153, 0.35);
+    box-shadow: 0 0 0 1px rgba(52, 211, 153, 0.15), 0 16px 48px -16px rgba(52, 211, 153, 0.2);
+}
+
+@keyframes cn-eco-card-in {
     from {
-        opacity: 0.65;
-        transform: translateX(10px);
+        opacity: 0;
+        transform: translateY(12px) scale(0.97);
     }
     to {
         opacity: 1;
-        transform: translateX(0);
-    }
-}
-
-@keyframes cn-product-in-prev {
-    from {
-        opacity: 0.65;
-        transform: translateX(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
+        transform: translateY(0) scale(1);
     }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .cn-product-slide--in-next,
-    .cn-product-slide--in-prev {
+    .cn-eco-card--in {
         animation: none;
+        opacity: 1;
+    }
+
+    .cn-eco-track {
+        scroll-behavior: auto;
     }
 }
 </style>

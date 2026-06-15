@@ -58,6 +58,10 @@ defineProps({
 
 <style>
 /* PNG thương hiệu xuất kèm nền đen — chỉ hiện họa tiết trên nền landing tối */
+.cn-brand-img-shell {
+    isolation: isolate;
+}
+
 .cn-brand-cutout {
     mix-blend-mode: screen;
 }

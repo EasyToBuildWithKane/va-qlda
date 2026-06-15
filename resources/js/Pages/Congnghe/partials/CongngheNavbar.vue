@@ -88,17 +88,15 @@ onBeforeUnmount(() => {
     <nav class="relative mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-2.5 sm:px-6">
       <a
         href="#top"
-        class="group flex min-w-0 items-center gap-2 sm:gap-2.5"
+        class="group flex min-w-0 items-center gap-2.5 sm:gap-3"
       >
-        <span class="relative shrink-0 rounded-lg p-0.5 ring-1 ring-cyan-500/20 transition group-hover:ring-brand/50">
-          <CongngheBrandImage
-            :src="congngheBrand.badgeCircle"
-            alt="Vietnam America Schools"
-            class="h-8 w-8 sm:h-9 sm:w-9"
-            width="36"
-            height="36"
-          />
-        </span>
+        <CongngheBrandImage
+          :src="congngheBrand.logoVertical"
+          alt="Vietnam America Schools"
+          class="h-9 w-auto shrink-0 sm:h-10"
+          width="40"
+          height="40"
+        />
         <span class="hidden min-w-0 flex-col leading-tight sm:flex">
           <span class="truncate font-display text-sm font-bold text-white">Phòng Công Nghệ</span>
           <span class="font-mono text-[10px] tracking-wider text-cyan-200/50">VAS · TECH PORTAL</span>
