@@ -15,7 +15,7 @@ const reduced = prefersReducedMotionNow();
 
 const sizeClass = {
     hero: 'h-[88%] w-auto max-h-[min(72vw,420px)] sm:max-h-[440px] lg:max-h-[480px] xl:max-h-[520px]',
-    assistant: 'h-[4.5rem] w-auto sm:h-[5.25rem] md:h-[5.75rem]',
+    assistant: 'h-[3.75rem] w-auto sm:h-[4.25rem] md:h-[5rem] lg:h-[5.75rem]',
     inline: 'h-32 w-auto sm:h-36 md:h-40',
     footer: 'h-36 w-auto sm:h-44 md:h-48 lg:h-52',
 };
@@ -41,11 +41,7 @@ const sizeClass = {
     <template v-if="variant === 'assistant'">
       <span
         v-if="!reduced"
-        class="absolute inset-0 rounded-full border border-brand/30 animate-cn-ping-ring"
-        aria-hidden="true"
-      />
-      <span
-        class="absolute -inset-1 rounded-full bg-[radial-gradient(circle,rgba(154,0,54,0.35),transparent_70%)] blur-md"
+        class="pointer-events-none absolute -inset-3 rounded-full border border-brand/25 animate-cn-ping-ring"
         aria-hidden="true"
       />
     </template>
@@ -53,7 +49,7 @@ const sizeClass = {
     <CongngheBrandImage
       :src="src"
       :alt="alt"
-      class="relative z-10 object-contain drop-shadow-[0_12px_28px_rgba(154,0,54,0.4)]"
+      class="relative z-10 object-contain drop-shadow-[0_8px_24px_rgba(154,0,54,0.45)]"
       :class="[
         sizeClass[variant] ?? sizeClass.inline,
         reduced ? '' : (variant === 'assistant' ? 'animate-cn-assistant-bob' : 'animate-cn-float'),

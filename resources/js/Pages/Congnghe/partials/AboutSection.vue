@@ -63,7 +63,7 @@ const pillars = [
           />
 
           <div
-            class="mt-8 hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.06] to-brand/[0.08] p-5 backdrop-blur-md sm:block md:p-6 lg:mt-10"
+            class="mt-8 hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.06] to-brand/[0.08] p-5 backdrop-blur-md lg:block lg:mt-10 lg:p-6"
           >
             <div class="flex flex-col items-center gap-4 sm:flex-row sm:items-center md:flex-col md:items-center lg:flex-row lg:items-center">
               <CongngheMascotAnimated

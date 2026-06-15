@@ -2,14 +2,12 @@
 import {
     computed, onBeforeUnmount, onMounted, ref, watch,
 } from 'vue';
-import { Link, usePage } from '@inertiajs/vue3';
+import { usePage } from '@inertiajs/vue3';
 import Avatar from '@/shared/ui/Avatar.vue';
 import { congngheBrand } from './congngheBrand.js';
 import CongngheBrandImage from './CongngheBrandImage.vue';
 
 const page = usePage();
-
-const portal = computed(() => page.props.portal ?? { canEnterQlda: false, qldaHome: '/dashboard' });
 
 const authUser = computed(() => page.props.auth?.user ?? null);
 const userName = computed(
@@ -115,7 +113,7 @@ const headerShellClass = computed(() => (
         : 'border-cyan-500/15 bg-[#070912]/78 shadow-[0_8px_32px_-12px_rgba(0,0,0,0.55)]'
 ));
 
-const navPadClass = computed(() => (scrolled.value ? 'py-2' : 'py-2.5 sm:py-3'));
+const navPadClass = computed(() => (scrolled.value ? 'py-2.5 sm:py-3' : 'py-3.5 sm:py-4 md:py-[1.125rem]'));
 </script>
 
 <template>
@@ -155,15 +153,15 @@ const navPadClass = computed(() => (scrolled.value ? 'py-2' : 'py-2.5 sm:py-3'))
           :src="congngheBrand.badgeCircle"
           alt="Vietnam America Schools"
           class="rounded-xl ring-1 ring-cyan-500/25 transition duration-300 group-hover:ring-brand/50"
-          :class="scrolled ? 'h-8 w-8 sm:h-8 sm:w-8' : 'h-9 w-9 sm:h-10 sm:w-10'"
+          :class="scrolled ? 'h-9 w-9 sm:h-10 sm:w-10' : 'h-10 w-10 sm:h-11 sm:w-11 md:h-12 md:w-12'"
           width="40"
           height="40"
         />
         <span class="min-w-0 flex flex-col leading-tight">
-          <span class="truncate font-display text-[13px] font-bold text-white sm:text-sm">
+          <span class="truncate font-display text-sm font-bold text-white sm:text-base md:text-[1.05rem]">
             Phòng Công Nghệ
           </span>
-          <span class="hidden font-mono text-[10px] tracking-[0.14em] text-cyan-200/45 sm:block">
+          <span class="hidden font-mono text-[10px] tracking-[0.14em] text-cyan-200/45 sm:block md:text-[11px]">
             VAS · TECH PORTAL
           </span>
         </span>
@@ -176,13 +174,13 @@ const navPadClass = computed(() => (scrolled.value ? 'py-2' : 'py-2.5 sm:py-3'))
         aria-label="Mục trang"
       >
         <div
-          class="flex items-center gap-0.5 rounded-full border border-white/10 bg-[#0a0c16]/90 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+          class="flex items-center gap-0.5 rounded-full border border-white/10 bg-[#0a0c16]/90 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
         >
           <a
             v-for="link in links"
             :key="link.href"
             :href="link.href"
-            class="relative rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50"
+            class="relative rounded-full px-3.5 py-2 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50 md:px-4 md:text-sm"
             :class="activeId === link.id ? 'text-white' : 'text-white/55 hover:text-white/90'"
             :aria-current="activeId === link.id ? 'true' : undefined"
           >
@@ -197,66 +195,22 @@ const navPadClass = computed(() => (scrolled.value ? 'py-2' : 'py-2.5 sm:py-3'))
 
       <!-- Actions -->
       <div class="flex shrink-0 items-center justify-end gap-2 lg:justify-self-end">
-        <a
-          href="mailto:phongcongnghe@vaschools.edu.vn"
-          class="hidden h-9 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 text-xs font-medium text-white/70 transition hover:border-white/20 hover:bg-white/[0.08] hover:text-white xl:inline-flex"
-        >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            aria-hidden="true"
-          >
-            <rect
-              x="3"
-              y="5"
-              width="18"
-              height="14"
-              rx="2"
-            />
-            <path d="m3 7 9 6 9-6" />
-          </svg>
-          Liên hệ
-        </a>
-
-        <Link
-          v-if="portal.canEnterQlda"
-          :href="portal.qldaHome"
-          class="hidden h-9 items-center gap-1.5 rounded-full bg-gradient-to-r from-brand via-[#b01848] to-[#ff4d8d] px-3.5 text-xs font-semibold text-white shadow-[0_8px_24px_-8px_rgba(255,77,141,0.55)] transition hover:brightness-110 sm:inline-flex"
-        >
-          Bảng điều khiển
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2.2"
-            aria-hidden="true"
-          >
-            <path d="M5 12h14M13 6l6 6-6 6" />
-          </svg>
-        </Link>
-
         <div
           v-if="authUser"
-          class="hidden max-w-[200px] items-center gap-2 rounded-full border border-white/10 bg-white/[0.05] py-1 pl-1 pr-2.5 md:flex lg:max-w-[210px]"
+          class="hidden max-w-[220px] items-center gap-2 rounded-full border border-white/10 bg-white/[0.05] py-1 pl-1 pr-2.5 md:flex lg:max-w-[240px]"
         >
           <Avatar
             :name="userName"
             :src="userAvatar"
-            :size="30"
+            :size="34"
           />
           <div class="min-w-0 leading-tight">
-            <p class="truncate text-[11px] font-semibold text-white">
+            <p class="truncate text-xs font-semibold text-white">
               {{ userName }}
             </p>
             <p
               v-if="userRole"
-              class="truncate font-mono text-[9px] uppercase tracking-wide text-cyan-200/40"
+              class="truncate font-mono text-[10px] uppercase tracking-wide text-cyan-200/40"
             >
               {{ userRole }}
             </p>
@@ -265,7 +219,7 @@ const navPadClass = computed(() => (scrolled.value ? 'py-2' : 'py-2.5 sm:py-3'))
 
         <button
           type="button"
-          class="relative grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-white/[0.06] text-white/85 transition hover:bg-white/10 lg:hidden"
+          class="relative grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/[0.06] text-white/85 transition hover:bg-white/10 lg:hidden"
           :aria-expanded="open"
           aria-controls="congnghe-mobile-nav"
           aria-label="Mở menu điều hướng"
@@ -346,24 +300,6 @@ const navPadClass = computed(() => (scrolled.value ? 'py-2' : 'py-2.5 sm:py-3'))
               : 'border-white/10 bg-white/[0.03] text-white/75 hover:border-white/20 hover:bg-white/[0.06] hover:text-white'"
             @click="closeMenu"
           >{{ link.label }}</a>
-        </div>
-
-        <div class="mt-4 flex flex-col gap-2 border-t border-white/10 pt-4">
-          <a
-            href="mailto:phongcongnghe@vaschools.edu.vn"
-            class="flex h-10 items-center justify-center gap-2 rounded-xl border border-white/10 text-sm font-medium text-white/80"
-            @click="closeMenu"
-          >
-            Liên hệ phòng
-          </a>
-          <Link
-            v-if="portal.canEnterQlda"
-            :href="portal.qldaHome"
-            class="flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand to-[#ff4d8d] text-sm font-semibold text-white"
-            @click="closeMenu"
-          >
-            Vào bảng điều khiển
-          </Link>
         </div>
       </div>
     </transition>

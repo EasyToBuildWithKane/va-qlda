@@ -1,27 +1,39 @@
 <script setup>
 /**
  * Ảnh thương hiệu / mascot có nền đen trong file — blend screen trên nền tối landing.
- * `isolatedCutout`: nền cố định + isolation (header backdrop-blur không blend đúng nếu không bọc).
+ * `isolatedCutout` / `blendOnSurface`: nền cố định + isolation (tránh hộp đen trên blur/gradient).
  */
+import { computed } from 'vue';
+
 defineOptions({ inheritAttrs: false });
 
-defineProps({
+const props = defineProps({
     src: { type: String, required: true },
     alt: { type: String, default: '' },
     /** Tắt khi ảnh đã có alpha (logo nền sáng, ảnh dự án). */
     cutout: { type: Boolean, default: true },
     /** Bọc nền khớp header — xóa hộp đen trên navbar cố định. */
     isolatedCutout: { type: Boolean, default: false },
+    /** Màu nền cha — bật isolated khi set (trợ lý, footer). */
+    blendOnSurface: { type: String, default: '' },
     /** Màu nền blend (mặc định header /congnghe). */
     surfaceColor: { type: String, default: '#070912' },
 });
+
+const wrapIsolated = computed(
+    () => props.isolatedCutout || Boolean(props.blendOnSurface),
+);
+
+const resolvedSurface = computed(
+    () => props.blendOnSurface || props.surfaceColor,
+);
 </script>
 
 <template>
   <span
-    v-if="isolatedCutout"
+    v-if="wrapIsolated"
     class="cn-brand-mark inline-flex shrink-0 items-center justify-center overflow-hidden"
-    :style="{ backgroundColor: surfaceColor }"
+    :style="{ backgroundColor: resolvedSurface }"
     v-bind="$attrs"
   >
     <img

@@ -17,6 +17,8 @@ const props = defineProps({
     readonlyMaxScale: { type: Number, default: 1.8 },
     /** Phóng to kích thước thẻ trong layout (landing). */
     layoutScale: { type: Number, default: 1 },
+    /** Readonly vẫn cho pan/zoom (landing mobile). */
+    readonlyPan: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['select-person', 'select-leader']);
@@ -100,6 +102,8 @@ const canvasStyle = computed(() => ({
     transform: vp.transform.value,
 }));
 
+const viewportInteractive = computed(() => !props.readonly || props.readonlyPan);
+
 /* ---- toggles ---- */
 function toggleMembers(node) {
     const next = new Set(expanded.value);
@@ -129,11 +133,10 @@ function collapseAll() {
 /* ---- viewport fitting ---- */
 let fittedOnce = false;
 function fit() {
+    const narrow = typeof window !== 'undefined' && window.innerWidth < 640;
     vp.fitTo(graph.value.width, graph.value.height, {
-        // Locked landing view fills the available width (cards render larger);
-        // the interactive view never upscales past 1×.
         maxInitialScale: props.readonly ? props.readonlyMaxScale : 1,
-        padding: props.readonly ? 48 : 24,
+        padding: props.readonly ? (narrow ? 20 : 48) : 24,
     });
 }
 function applyInitialExpansion() {
@@ -174,6 +177,11 @@ watch(() => props.trees, () => {
         }
     });
 });
+
+watch(
+    () => [props.layoutScale, props.readonlyMaxScale],
+    () => nextTick(fit),
+);
 
 // Center on the first match when filtering.
 watch(
@@ -237,9 +245,13 @@ watch(
     <div
       ref="viewportRef"
       class="org-graph__viewport"
-      :class="{ 'is-panning': vp.isPanning.value, 'is-readonly': readonly }"
-      @wheel="readonly || vp.onWheel($event)"
-      @pointerdown="readonly || vp.onPointerDown($event)"
+      :class="{
+        'is-panning': vp.isPanning.value,
+        'is-readonly': readonly && !readonlyPan,
+        'is-readonly-pan': readonly && readonlyPan,
+      }"
+      @wheel="viewportInteractive && vp.onWheel($event)"
+      @pointerdown="viewportInteractive && vp.onPointerDown($event)"
     >
       <div
         class="org-graph__ambient"
@@ -311,8 +323,9 @@ watch(
 
       <!-- zoom controls -->
       <div
-        v-if="!readonly"
+        v-if="!readonly || readonlyPan"
         class="org-graph__zoom"
+        :class="{ 'org-graph__zoom--compact': readonly && readonlyPan }"
       >
         <button
           type="button"
@@ -421,11 +434,21 @@ watch(
 }
 
 /* Locked landing view: no pan/zoom affordances, taller + wider canvas. */
-.org-graph--readonly .org-graph__viewport,
+.org-graph--readonly .org-graph__viewport.is-readonly,
 .org-graph__viewport.is-readonly {
     cursor: default;
     height: clamp(520px, 78vh, 900px);
     touch-action: auto;
+}
+
+/* Readonly + pan (landing mobile): vuốt/phóng to như graph tương tác. */
+.org-graph__viewport.is-readonly-pan {
+    cursor: grab;
+    touch-action: none;
+}
+
+.org-graph__viewport.is-readonly-pan.is-panning {
+    cursor: grabbing;
 }
 
 .org-graph__ambient {

@@ -16,6 +16,7 @@ const activeIndex = ref(0);
 let scrollRaf = null;
 
 const slideCount = computed(() => props.products.length);
+const isSingleProduct = computed(() => slideCount.value === 1);
 const canPrev = computed(() => activeIndex.value > 0);
 const canNext = computed(() => activeIndex.value < slideCount.value - 1);
 
@@ -209,18 +210,11 @@ onBeforeUnmount(() => {
       <div
         v-if="slideCount"
         class="cn-eco-carousel relative mt-8 min-w-0 transition-all duration-700 delay-100"
-        :class="sectionVisible ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'"
+        :class="[
+          sectionVisible ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0',
+          isSingleProduct ? 'cn-eco-carousel--single' : '',
+        ]"
       >
-        <!-- Fade mép trái/phải -->
-        <div
-          class="pointer-events-none absolute inset-y-0 left-0 z-10 w-6 bg-gradient-to-r from-[#05060c] to-transparent sm:w-10"
-          aria-hidden="true"
-        />
-        <div
-          class="pointer-events-none absolute inset-y-0 right-0 z-10 w-6 bg-gradient-to-l from-[#05060c] to-transparent sm:w-10"
-          aria-hidden="true"
-        />
-
         <div
           ref="trackRef"
           class="cn-eco-track flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain scroll-smooth py-2 sm:gap-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
@@ -361,6 +355,19 @@ onBeforeUnmount(() => {
         margin-inline: -2rem;
         width: calc(100% + 4rem);
     }
+}
+
+.cn-eco-carousel--single {
+    margin-inline: 0;
+    width: 100%;
+}
+
+.cn-eco-carousel--single .cn-eco-track {
+    justify-content: center;
+    overflow-x: hidden;
+    --eco-edge: 0px;
+    padding-inline: 0;
+    scroll-padding-inline: 0;
 }
 
 .cn-eco-track {

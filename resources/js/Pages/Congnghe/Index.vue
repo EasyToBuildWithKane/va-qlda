@@ -1,41 +1,46 @@
 <script setup>
-import { Head } from '@inertiajs/vue3';
-import AuroraBackground from './partials/AuroraBackground.vue';
-import ScrollProgress from './partials/ScrollProgress.vue';
-import CursorGlow from './partials/CursorGlow.vue';
-import CongngheNavbar from './partials/CongngheNavbar.vue';
-import HeroSection from './partials/HeroSection.vue';
-import AboutSection from './partials/AboutSection.vue';
-import ImpactMetrics from './partials/ImpactMetrics.vue';
-import ProductEcosystem from './partials/ProductEcosystem.vue';
-import TechStack from './partials/TechStack.vue';
-import OrgChartSection from './partials/OrgChartSection.vue';
-import ProjectTimeline from './partials/ProjectTimeline.vue';
-import AILabSection from './partials/AILabSection.vue';
-import CultureSection from './partials/CultureSection.vue';
-import RoadmapSection from './partials/RoadmapSection.vue';
-import CongngheFooter from './partials/CongngheFooter.vue';
-import CongngheMascotAssistant from './partials/CongngheMascotAssistant.vue';
-import CongngheProjectDetailModal from './partials/CongngheProjectDetailModal.vue';
+import { Head } from "@inertiajs/vue3";
+import AuroraBackground from "./partials/AuroraBackground.vue";
+import ScrollProgress from "./partials/ScrollProgress.vue";
+import CursorGlow from "./partials/CursorGlow.vue";
+import CongngheNavbar from "./partials/CongngheNavbar.vue";
+import HeroSection from "./partials/HeroSection.vue";
+import AboutSection from "./partials/AboutSection.vue";
+import ImpactMetrics from "./partials/ImpactMetrics.vue";
+import ProductEcosystem from "./partials/ProductEcosystem.vue";
+import TechStack from "./partials/TechStack.vue";
+import OrgChartSection from "./partials/OrgChartSection.vue";
+import ProjectTimeline from "./partials/ProjectTimeline.vue";
+import AILabSection from "./partials/AILabSection.vue";
+import CultureSection from "./partials/CultureSection.vue";
+import RoadmapSection from "./partials/RoadmapSection.vue";
+import CongngheFooter from "./partials/CongngheFooter.vue";
+import CongngheMascotAssistant from "./partials/CongngheMascotAssistant.vue";
+import CongngheProjectDetailModal from "./partials/CongngheProjectDetailModal.vue";
 
 defineProps({
     metrics: { type: Object, default: () => ({}) },
     phases: { type: Array, default: () => [] },
     products: { type: Array, default: () => [] },
-    org: { type: Object, default: () => ({ overview: {}, forest: [], people: {} }) },
+    org: {
+        type: Object,
+        default: () => ({ overview: {}, forest: [], people: {} }),
+    },
 });
 </script>
 
 <template>
   <Head title="Phòng Công Nghệ" />
 
-  <div class="relative min-h-screen overflow-x-hidden bg-[#05060c] font-sans text-white antialiased selection:bg-brand/40 selection:text-white">
+  <div
+    class="relative min-h-screen overflow-x-hidden bg-[#05060c] font-sans text-white antialiased selection:bg-brand/40 selection:text-white"
+  >
     <AuroraBackground />
     <ScrollProgress />
     <CursorGlow />
     <CongngheNavbar />
 
-    <main class="relative z-10 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] sm:pb-8 lg:pb-0">
+    <main class="relative z-10 pb-4 sm:pb-8 lg:pb-0">
       <HeroSection :metrics="metrics" />
       <AboutSection />
       <ImpactMetrics :metrics="metrics" />
@@ -57,4 +62,3 @@ defineProps({
     <CongngheProjectDetailModal />
   </div>
 </template>
-

@@ -1,31 +1,28 @@
 <script setup>
 import { congngheBrand } from './congngheBrand.js';
 import CongngheBrandImage from './CongngheBrandImage.vue';
-import CongngheMascotAnimated from './CongngheMascotAnimated.vue';
 
 const colHeadingClass =
     'min-h-[2.75rem] font-mono text-[11px] font-semibold uppercase leading-snug tracking-[0.18em] text-cyan-200/70';
 
-const cols = [
-    {
-        heading: 'Khám phá',
-        links: [
-            { href: '#gioi-thieu', label: 'Giới thiệu' },
-            { href: '#lo-trinh', label: 'Lộ trình 2026–2027' },
-            { href: '#san-pham', label: 'Hệ sinh thái sản phẩm' },
-            { href: '#to-chuc', label: 'Sơ đồ tổ chức' },
-            { href: '#du-an', label: 'Dự án triển khai' },
-        ],
-    },
-    {
-        heading: 'Liên lạc',
-        links: [
-            { href: 'mailto:phongcongnghe@vaschools.edu.vn', label: 'phongcongnghe@vaschools.edu.vn' },
-            { href: '/members', label: 'Danh bạ nội bộ' },
-            { href: '#to-chuc', label: 'Liên hệ theo sơ đồ tổ chức' },
-        ],
-    },
+const exploreLinks = [
+    { href: '#gioi-thieu', label: 'Giới thiệu' },
+    { href: '#lo-trinh', label: 'Lộ trình 2026–2027' },
+    { href: '#san-pham', label: 'Hệ sinh thái sản phẩm' },
+    { href: '#to-chuc', label: 'Sơ đồ tổ chức' },
+    { href: '#du-an', label: 'Dự án triển khai' },
 ];
+
+const contactLinks = [
+    { href: 'mailto:phongcongnghe@vaschools.edu.vn', label: 'phongcongnghe@vaschools.edu.vn' },
+    { href: '/members', label: 'Danh bạ nội bộ' },
+    { href: '#to-chuc', label: 'Liên hệ theo sơ đồ tổ chức' },
+];
+
+const year = new Date().getFullYear();
+
+/** Nền footer (gradient) — khớp blend mascot, tránh viền đen PNG. */
+const footerSurface = '#120818';
 </script>
 
 <template>
@@ -37,75 +34,42 @@ const cols = [
     />
     <div class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-cyan-400/30 via-brand to-violet-500/30" />
 
-    <div class="relative mx-auto max-w-7xl px-5 py-8 sm:px-8 sm:py-10">
+    <div class="relative mx-auto max-w-7xl px-4 py-10 sm:px-6 md:px-8 md:py-12">
       <div
-        class="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:items-start lg:gap-8 xl:gap-10"
+        class="cn-footer-grid grid grid-cols-1 gap-10 sm:grid-cols-2 sm:gap-8 lg:grid-cols-4 lg:gap-6 xl:gap-8"
       >
-        <!-- Brand -->
-        <div class="flex min-w-0 flex-col text-center sm:col-span-2 lg:col-span-1 lg:text-left">
-          <p
-            :class="colHeadingClass"
-            class="invisible select-none"
-            aria-hidden="true"
-          >
-            Khám phá
+        <div class="cn-footer-col flex min-w-0 flex-col text-center sm:text-left">
+          <p :class="colHeadingClass">
+            Phòng Công Nghệ
           </p>
-          <div class="mt-4 flex flex-col items-center gap-3 sm:flex-row sm:items-start sm:justify-center lg:justify-start">
+          <div class="mt-4 flex flex-col items-center gap-3 sm:items-start">
             <CongngheBrandImage
               :src="congngheBrand.logoVertical"
               alt="Vietnam America Schools"
               class="h-14 w-auto shrink-0 sm:h-16"
               loading="lazy"
             />
-            <div class="min-w-0">
+            <div class="min-w-0 w-full">
               <p class="font-display text-lg font-bold text-white sm:text-xl">
-                Phòng Công Nghệ
+                Vietnam America Schools
               </p>
               <p class="mt-1 text-sm text-white/65">
-                Đơn vị kiến tạo nền tảng số &amp; AI cho toàn hệ thống.
+                Kiến tạo nền tảng số &amp; AI cho toàn hệ thống.
               </p>
             </div>
           </div>
           <p class="mt-4 text-sm leading-relaxed text-white/55">
-            Kiến tạo hạ tầng dữ liệu, sản phẩm phần mềm và năng lực trí tuệ nhân tạo —
-            đồng hành cùng đội ngũ bằng những giải pháp thật, đo lường được.
+            Hạ tầng dữ liệu, sản phẩm phần mềm và trí tuệ nhân tạo — giải pháp thật, đo lường được.
           </p>
-          <a
-            href="mailto:phongcongnghe@vaschools.edu.vn"
-            class="mt-4 inline-flex items-center justify-center gap-2 text-sm text-cyan-100/80 transition hover:text-white lg:justify-start"
-          >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <rect
-                x="3"
-                y="5"
-                width="18"
-                height="14"
-                rx="2"
-              />
-              <path d="m3 7 9 6 9-6" />
-            </svg>
-            phongcongnghe@vaschools.edu.vn
-          </a>
         </div>
 
-        <div
-          v-for="col in cols"
-          :key="col.heading"
-          class="flex min-w-0 flex-col text-center lg:text-left"
-        >
+        <div class="cn-footer-col flex min-w-0 flex-col text-center sm:text-left">
           <p :class="colHeadingClass">
-            {{ col.heading }}
+            Khám phá
           </p>
           <ul class="mt-4 space-y-2.5">
             <li
-              v-for="link in col.links"
+              v-for="link in exploreLinks"
               :key="link.label"
             >
               <a
@@ -116,19 +80,34 @@ const cols = [
           </ul>
         </div>
 
-        <!-- Mascot -->
-        <div class="flex min-w-0 flex-col items-center lg:items-end">
-          <p
-            class="min-h-[2.75rem] w-full select-none font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-transparent lg:text-right"
-            aria-hidden="true"
-          >
-            VAS
+        <div class="cn-footer-col flex min-w-0 flex-col text-center sm:text-left">
+          <p :class="colHeadingClass">
+            Liên lạc
           </p>
-          <div class="mt-4 flex w-full justify-center lg:justify-end">
-            <CongngheMascotAnimated
+          <ul class="mt-4 space-y-2.5">
+            <li
+              v-for="link in contactLinks"
+              :key="link.label"
+            >
+              <a
+                :href="link.href"
+                class="break-words text-sm text-white/65 transition hover:text-white"
+              >{{ link.label }}</a>
+            </li>
+          </ul>
+        </div>
+
+        <div class="cn-footer-col flex min-w-0 flex-col text-center sm:text-left">
+          <p :class="colHeadingClass">
+            Đồng hành cùng VAS
+          </p>
+          <div class="mt-4 flex flex-1 items-center justify-center sm:justify-start">
+            <CongngheBrandImage
               :src="congngheBrand.mascotHoodie"
               alt="Linh vật VAS — Phòng Công Nghệ"
-              variant="footer"
+              :blend-on-surface="footerSurface"
+              class="h-36 w-auto max-w-full sm:h-40 lg:h-44 xl:h-48"
+              loading="lazy"
             />
           </div>
         </div>
@@ -146,10 +125,22 @@ const cols = [
             Bản quyền thuộc về Phòng Công Nghệ — Hệ thống Trường Quốc tế Việt Mỹ
           </p>
         </div>
-        <p class="shrink-0 text-center text-[12.5px] text-white/35 sm:text-right">
-          Laravel · Vue · Inertia — nội bộ VAS
+        <p class="shrink-0 text-center text-[12.5px] text-white/40 sm:text-right">
+          Cổng thông tin nội bộ · {{ year }}
         </p>
       </div>
     </div>
   </footer>
 </template>
+
+<style scoped>
+@media (min-width: 1024px) {
+    .cn-footer-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .cn-footer-col {
+        width: 100%;
+    }
+}
+</style>

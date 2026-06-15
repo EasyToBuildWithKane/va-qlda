@@ -42,7 +42,7 @@ const highlights = [
 <template>
   <section
     id="top"
-    class="relative flex min-h-[100dvh] flex-col justify-center overflow-hidden px-4 pb-20 pt-24 sm:px-6 sm:pb-16 sm:pt-28 md:px-8 lg:min-h-screen lg:px-8 lg:pt-28"
+    class="relative flex min-h-[100dvh] flex-col justify-center overflow-hidden px-4 pb-20 pt-[5.5rem] sm:px-6 sm:pb-16 sm:pt-32 md:px-8 lg:min-h-screen lg:pt-36"
   >
     <CongngheBrandBackdrop
       variant="dragon"
@@ -110,9 +110,9 @@ const highlights = [
         </dl>
       </div>
 
-      <!-- Cột phải: mascot -->
+      <!-- Cột phải: mascot (desktop — mobile dùng trợ lý ảo) -->
       <div
-        class="relative mx-auto flex w-full max-w-md items-center justify-center lg:max-w-none lg:justify-end"
+        class="relative mx-auto hidden w-full max-w-md items-center justify-center lg:flex lg:max-w-none lg:justify-end"
         :style="layer(-6)"
       >
         <CongngheMascotAnimated

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch, onBeforeUnmount } from 'vue';
+import { computed, ref, watch, onBeforeUnmount, onMounted } from 'vue';
 import SectionHeading from './SectionHeading.vue';
 import CountStat from './CountStat.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
@@ -18,6 +18,39 @@ const peopleTotal = computed(() => Number(props.overview?.people_total ?? 0));
 const graphFilter = { query: '', rootId: null, role: 'all', status: 'all' };
 
 const { target, shown: sectionVisible } = useInView({ threshold: 0.18 });
+
+const layoutScale = ref(1.72);
+const readonlyMaxScale = ref(3.25);
+
+function syncGraphViewportPrefs() {
+    if (typeof window === 'undefined') {
+        return;
+    }
+    const w = window.innerWidth;
+    if (w < 640) {
+        layoutScale.value = 1;
+        readonlyMaxScale.value = 1.35;
+    } else if (w < 1024) {
+        layoutScale.value = 1.38;
+        readonlyMaxScale.value = 2.1;
+    } else {
+        layoutScale.value = 1.72;
+        readonlyMaxScale.value = 3.25;
+    }
+}
+
+onMounted(() => {
+    syncGraphViewportPrefs();
+    window.addEventListener('resize', syncGraphViewportPrefs, { passive: true });
+});
+
+onBeforeUnmount(() => {
+    if (typeof window !== 'undefined') {
+        window.removeEventListener('resize', syncGraphViewportPrefs);
+    }
+    if (typeof document !== 'undefined') document.body.style.overflow = '';
+    window.removeEventListener('keydown', onKey);
+});
 
 /* ---- member detail modal ---- */
 const activeMember = ref(null);
@@ -95,10 +128,6 @@ watch(activeMember, (m) => {
     }
 });
 
-onBeforeUnmount(() => {
-    if (typeof document !== 'undefined') document.body.style.overflow = '';
-    window.removeEventListener('keydown', onKey);
-});
 </script>
 
 <template>
@@ -155,15 +184,19 @@ onBeforeUnmount(() => {
       v-if="roots.length"
       class="mt-8 min-w-0 w-full"
     >
-      <div class="mx-auto max-w-[1900px] px-3 sm:px-5">
+      <div class="mx-auto max-w-[1900px] px-1 sm:px-5">
+        <p class="mb-3 px-2 text-center text-[11px] leading-relaxed text-white/45 sm:hidden">
+          Vuốt để di chuyển sơ đồ · Bấm +/− góc dưới để phóng to · Bấm thẻ để xem chi tiết
+        </p>
         <div class="congnghe-org-graph congnghe-org-graph--large">
           <OrgGraph
             :trees="roots"
             :filter="graphFilter"
             initial-expand-all
             readonly
-            :layout-scale="1.32"
-            :readonly-max-scale="2.75"
+            readonly-pan
+            :layout-scale="layoutScale"
+            :readonly-max-scale="readonlyMaxScale"
             @select-person="onSelectPerson"
             @select-leader="onSelectLeader"
           />
@@ -373,7 +406,113 @@ onBeforeUnmount(() => {
 }
 
 .congnghe-org-graph--large :deep(.org-graph__viewport) {
-    height: clamp(660px, 90vh, 1120px);
+    height: clamp(720px, 92vh, 1280px);
+}
+
+@media (max-width: 639px) {
+    .congnghe-org-graph--large :deep(.org-graph__viewport),
+    .congnghe-org-graph--large :deep(.org-graph__viewport.is-readonly-pan) {
+        height: min(68vh, 520px);
+        min-height: 380px;
+        border-radius: 16px;
+    }
+
+    .congnghe-org-graph--large :deep(.org-graph__zoom) {
+        bottom: 0.65rem;
+        right: 0.65rem;
+        scale: 0.92;
+    }
+}
+
+.congnghe-org-graph--large :deep(.org-graph__edge) {
+    stroke-width: 2.5;
+}
+
+.congnghe-org-graph--large :deep(.org-node__title) {
+    font-size: 19px;
+    line-height: 1.25;
+}
+
+.congnghe-org-graph--large :deep(.org-node__title--sm) {
+    font-size: 17px;
+}
+
+.congnghe-org-graph--large :deep(.org-node__subtitle) {
+    font-size: 15px;
+    line-height: 1.35;
+}
+
+.congnghe-org-graph--large :deep(.org-node__eyebrow) {
+    font-size: 12px;
+}
+
+.congnghe-org-graph--large :deep(.org-node__section-title) {
+    font-size: 17px;
+}
+
+.congnghe-org-graph--large :deep(.org-node__section-eyebrow) {
+    font-size: 11.5px;
+}
+
+.congnghe-org-graph--large :deep(.org-node__chip),
+.congnghe-org-graph--large :deep(.org-node__section-meta) {
+    font-size: 14px;
+}
+
+.congnghe-org-graph--large :deep(.org-node__toggle) {
+    font-size: 13px;
+    padding: 0.35rem 0.55rem;
+}
+
+.congnghe-org-graph--large :deep(.org-node--team .org-node__surface),
+.congnghe-org-graph--large :deep(.org-node--person .org-node__person-inner) {
+    padding: 1.1rem 1.2rem;
+    border-radius: 18px;
+}
+
+.congnghe-org-graph--large :deep(.org-node__hub-icon) {
+    width: 54px;
+    height: 54px;
+    border-radius: 14px;
+}
+
+.congnghe-org-graph--large :deep(.org-node--org) {
+    padding: 0 1.35rem;
+    border-radius: 18px;
+}
+
+.congnghe-org-graph--large :deep(.org-node--org .font-display) {
+    font-size: 1.05rem;
+}
+
+.congnghe-org-graph--large :deep(.org-node__section-inner) {
+    padding: 0.75rem 0.85rem;
+}
+
+.congnghe-org-graph--large :deep(.org-node--section) {
+    border-radius: 16px;
+}
+
+.congnghe-org-graph--large :deep(.org-node__avatar-btn),
+.congnghe-org-graph--large :deep(.org-node__avatar-fallback) {
+    width: 46px;
+    height: 46px;
+}
+
+.congnghe-org-graph--large :deep(.org-node__avatar-btn > *) {
+    width: 46px !important;
+    height: 46px !important;
+    min-width: 46px;
+    min-height: 46px;
+}
+
+.congnghe-org-graph--large :deep(.org-node__lead-badge) {
+    width: 18px;
+    height: 18px;
+}
+
+.congnghe-org-graph--large :deep(.org-node--team .flex.items-start) {
+    gap: 0.75rem;
 }
 
 .congnghe-org-graph :deep(.org-graph__viewport) {
@@ -386,52 +525,5 @@ onBeforeUnmount(() => {
     background-image:
         linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
         linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
-}
-
-.congnghe-org-graph--large :deep(.org-node__title) {
-    font-size: 17px;
-}
-
-.congnghe-org-graph--large :deep(.org-node__title--sm) {
-    font-size: 16px;
-}
-
-.congnghe-org-graph--large :deep(.org-node__subtitle) {
-    font-size: 14px;
-}
-
-.congnghe-org-graph--large :deep(.org-node__eyebrow) {
-    font-size: 11.5px;
-}
-
-.congnghe-org-graph--large :deep(.org-node__section-title) {
-    font-size: 15.5px;
-}
-
-.congnghe-org-graph--large :deep(.org-node__section-eyebrow) {
-    font-size: 11px;
-}
-
-.congnghe-org-graph--large :deep(.org-node__chip),
-.congnghe-org-graph--large :deep(.org-node__section-meta) {
-    font-size: 13px;
-}
-
-.congnghe-org-graph--large :deep(.org-node--team .org-node__surface),
-.congnghe-org-graph--large :deep(.org-node--person .org-node__person-inner) {
-    padding: 0.95rem 1.05rem;
-}
-
-.congnghe-org-graph--large :deep(.org-node__hub-icon) {
-    width: 48px;
-    height: 48px;
-}
-
-.congnghe-org-graph--large :deep(.org-node--org) {
-    padding: 0 1.25rem;
-}
-
-.congnghe-org-graph--large :deep(.org-node__section-inner) {
-    padding: 0.6rem 0.65rem;
 }
 </style>

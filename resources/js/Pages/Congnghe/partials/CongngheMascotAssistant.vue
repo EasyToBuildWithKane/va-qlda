@@ -6,6 +6,7 @@ import CongngheMascotAnimated from './CongngheMascotAnimated.vue';
 import { congngheBrand } from './congngheBrand.js';
 import { prefersReducedMotionNow } from './motion.js';
 import { useCongngheSectionSpy } from './useCongngheSectionSpy.js';
+import { useCongngheAssistantDock } from './useCongngheAssistantDock.js';
 
 const { activeId } = useCongngheSectionSpy();
 
@@ -51,7 +52,7 @@ const sectionTips = {
     'to-chuc': {
         src: congngheBrand.mascotHoodie,
         lines: [
-            'Sơ đồ tổ chức và con người — zoom/pan trên bảng lớn, cuộn trên mobile.',
+            'Sơ đồ tổ chức — vuốt di chuyển, +/- để phóng to trên điện thoại.',
         ],
     },
     'du-an': {
@@ -137,11 +138,50 @@ function toggle() {
 }
 
 const bubbleVisible = computed(() => expanded.value);
+
+const {
+    isDragging,
+    dockEnabled,
+    dockStyle,
+    onPointerDown,
+    onPointerMove,
+    finishPointer,
+} = useCongngheAssistantDock();
+
+const asideStyle = computed(() => {
+    if (dockEnabled.value) {
+        return dockStyle();
+    }
+    return {};
+});
+
+function onFabPointerDown(e) {
+    onPointerDown(e);
+}
+
+function onFabPointerMove(e) {
+    onPointerMove(e);
+}
+
+function onFabPointerUp(e) {
+    const dragged = finishPointer(e);
+    if (!dragged) {
+        toggle();
+    }
+}
+
+function onFabClick() {
+    if (!dockEnabled.value) {
+        toggle();
+    }
+}
 </script>
 
 <template>
   <aside
-    class="cn-assistant fixed z-40 flex flex-col items-end gap-2 pointer-events-none"
+    class="cn-assistant fixed z-[45] flex max-w-[min(100vw-1rem,20rem)] flex-col items-end gap-2 pointer-events-none lg:max-w-none"
+    :class="{ 'cn-assistant--dragging': isDragging }"
+    :style="asideStyle"
     aria-live="polite"
     aria-label="Trợ lý ảo Phòng Công Nghệ"
   >
@@ -153,7 +193,7 @@ const bubbleVisible = computed(() => expanded.value);
     >
       <div
         v-if="bubbleVisible"
-        class="pointer-events-auto cn-assistant-bubble relative max-w-[min(calc(100vw-2rem),18rem)] rounded-2xl border border-white/15 bg-[#0c0e18]/95 px-3.5 py-3 shadow-[0_16px_48px_-12px_rgba(154,0,54,0.45)] backdrop-blur-xl sm:max-w-[20rem] md:max-w-[22rem]"
+        class="pointer-events-auto cn-assistant-bubble relative max-w-[min(calc(100vw-2.5rem),17rem)] rounded-2xl border border-white/15 bg-[#0c0e18]/95 px-3 py-2.5 shadow-[0_16px_48px_-12px_rgba(154,0,54,0.45)] backdrop-blur-xl sm:max-w-[20rem] sm:px-3.5 sm:py-3 md:max-w-[22rem]"
       >
         <span
           class="absolute -bottom-1.5 right-8 h-3 w-3 rotate-45 border-b border-r border-white/15 bg-[#0c0e18]/95"
@@ -164,7 +204,7 @@ const bubbleVisible = computed(() => expanded.value);
         </p>
         <p
           :key="`${activeId}-${tipIndex}`"
-          class="mt-1.5 text-[13px] leading-snug text-white/90 sm:text-sm"
+          class="mt-1 max-h-[40vh] overflow-y-auto text-[12.5px] leading-snug text-white/90 sm:mt-1.5 sm:max-h-none sm:text-sm"
           :class="prefersReducedMotionNow() ? '' : 'animate-cn-rise'"
         >
           {{ currentLine }}
@@ -184,45 +224,85 @@ const bubbleVisible = computed(() => expanded.value);
       </div>
     </transition>
 
-    <button
-      type="button"
-      class="pointer-events-auto group relative flex items-end gap-2 rounded-2xl border border-white/10 bg-[#070912]/90 p-1.5 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.65)] backdrop-blur-xl transition hover:border-brand/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50 sm:rounded-3xl sm:p-2"
-      :aria-expanded="expanded"
-      :aria-label="expanded ? 'Thu gọn trợ lý' : 'Mở trợ lý VAS'"
-      @click="toggle"
+    <div
+      class="pointer-events-auto flex items-center gap-1 sm:gap-1.5"
+      :class="dockEnabled ? 'cn-assistant-fab-row--dock' : ''"
     >
-      <CongngheMascotAnimated
-        :src="mascotSrc"
-        alt=""
-        variant="assistant"
-      />
-      <span
-        class="absolute -left-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-brand to-[#ff4d8d] text-[10px] font-bold text-white shadow-lg sm:h-6 sm:w-6 sm:text-[11px]"
-        :class="prefersReducedMotionNow() ? '' : 'animate-cn-glow'"
+      <button
+        v-if="dockEnabled"
+        type="button"
+        class="cn-assistant-grip grid h-10 w-7 shrink-0 touch-none items-center justify-center rounded-l-xl border border-white/10 border-r-0 bg-[#0c0e18]/75 text-white/40 backdrop-blur-md active:bg-white/10"
+        aria-label="Kéo trợ lý lên hoặc xuống"
+        @pointerdown="onFabPointerDown"
+        @pointermove="onFabPointerMove"
+        @pointerup="onFabPointerUp"
+        @pointercancel="onFabPointerUp"
       >
-        {{ expanded ? '−' : '?' }}
-      </span>
-    </button>
+        <span
+          class="flex flex-col gap-0.5"
+          aria-hidden="true"
+        >
+          <span class="h-0.5 w-3 rounded-full bg-current opacity-70" />
+          <span class="h-0.5 w-3 rounded-full bg-current opacity-70" />
+          <span class="h-0.5 w-3 rounded-full bg-current opacity-70" />
+        </span>
+      </button>
+
+      <button
+        type="button"
+        class="cn-assistant-fab group relative overflow-visible border-0 bg-transparent p-0 shadow-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#05060c]"
+        :class="dockEnabled ? 'touch-none' : ''"
+        :aria-expanded="expanded"
+        :aria-label="expanded ? 'Thu gọn trợ lý' : 'Mở trợ lý VAS'"
+        @click="onFabClick"
+        @pointerdown="dockEnabled ? onFabPointerDown($event) : undefined"
+        @pointermove="dockEnabled ? onFabPointerMove($event) : undefined"
+        @pointerup="dockEnabled ? onFabPointerUp($event) : undefined"
+        @pointercancel="dockEnabled ? onFabPointerUp($event) : undefined"
+      >
+        <CongngheMascotAnimated
+          :src="mascotSrc"
+          alt=""
+          variant="assistant"
+        />
+        <span
+          class="absolute -left-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-brand to-[#ff4d8d] text-[10px] font-bold text-white shadow-lg sm:h-6 sm:w-6 sm:text-[11px]"
+          :class="prefersReducedMotionNow() ? '' : 'animate-cn-glow'"
+        >
+          {{ expanded ? '−' : '?' }}
+        </span>
+      </button>
+    </div>
+
+    <p
+      v-if="dockEnabled && !isDragging"
+      class="pointer-events-none pr-1 text-[9px] text-white/35"
+    >
+      Kéo thanh ⋮ để đổi vị trí
+    </p>
   </aside>
 </template>
 
 <style scoped>
 .cn-assistant {
-    right: max(0.75rem, env(safe-area-inset-right, 0px));
-    bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+    right: max(0.5rem, env(safe-area-inset-right, 0px));
+    transition: bottom 0.15s ease-out;
+}
+
+.cn-assistant--dragging {
+    transition: none;
 }
 
 @media (min-width: 640px) {
     .cn-assistant {
-        right: max(1.25rem, env(safe-area-inset-right, 0px));
-        bottom: max(1.25rem, env(safe-area-inset-bottom, 0px));
+        right: max(1rem, env(safe-area-inset-right, 0px));
     }
 }
 
 @media (min-width: 1024px) {
     .cn-assistant {
         right: max(1.5rem, env(safe-area-inset-right, 0px));
-        bottom: max(1.5rem, env(safe-area-inset-bottom, 0px));
+        bottom: max(1.5rem, env(safe-area-inset-bottom, 0px)) !important;
     }
 }
 
@@ -239,9 +319,15 @@ const bubbleVisible = computed(() => expanded.value);
     pointer-events: none;
 }
 
+.cn-assistant-fab-row--dock {
+    filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.45));
+}
+
 @media (prefers-reduced-motion: reduce) {
     .cn-assistant-bubble,
-    .cn-assistant-bubble p {
+    .cn-assistant-bubble p,
+    .cn-assistant {
+        transition: none !important;
         animation: none !important;
     }
 }
