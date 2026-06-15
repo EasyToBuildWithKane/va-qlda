@@ -51,7 +51,7 @@ routes/api.php      ← Rỗng (chưa sử dụng)
 | GET | `/congnghe` | CongngheController | auth | Landing giới thiệu Phòng Công Nghệ |
 | GET | `/congnghe/de-xuat` | CongngheSoftwareProposalController@create | auth | Form đề xuất giải pháp phần mềm |
 | POST | `/congnghe/de-xuat` | CongngheSoftwareProposalController@store | auth | Body: `department_id` (phòng ban active trong `departments`), lưu tên phòng vào `congnghe_software_proposals.department` + file `public/congnghe/proposals/{id}`; email tới `config('va.congnghe_proposal_email')` |
-| GET | `/congnghe/de-xuat-cua-toi` | CongngheSoftwareProposalController@index | auth | Đề xuất do người gửi (theo `system_account_id` / email nhân sự); cổng Congnghe + datagrid |
+| GET | `/congnghe/de-xuat-cua-toi` | CongngheSoftwareProposalController@index | auth | Đề xuất của người gửi; query: `q`, `status`, `department`, `from`, `to`, `email_sent` (`0`\|`1`), `acknowledged` (`0`\|`1`), `has_attachments` (`0`\|`1`), `per_page`, `page` |
 | GET | `/congnghe/de-xuat-cua-toi/{proposal}` | CongngheSoftwareProposalController@show | auth (`viewAsSubmitter` — chỉ người gửi) | Chi tiết đề xuất của người gửi |
 | GET | `/congnghe/de-xuat-cua-toi/{proposal}/attachments/{attachment}/file` | CongngheSoftwareProposalAttachmentController@file | auth (`viewAsSubmitter` trên route mine) | Tải file đính kèm (URL trong Resource cho người gửi) |
 | GET | `/congnghe/proposals` | CongngheSoftwareProposalManagementController@index | auth (admin, lead) | Danh sách đề xuất PM |

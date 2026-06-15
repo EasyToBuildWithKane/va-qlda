@@ -255,6 +255,35 @@ class CongngheTest extends TestCase
             ->assertInertia(fn ($page) => $page->component('Congnghe/MyProposals'));
     }
 
+    public function test_member_own_proposals_list_filters_by_email_sent(): void
+    {
+        Mail::fake();
+        $dept = $this->createActiveDepartment();
+        $account = SystemAccount::factory()->role(SystemRole::Member)->create();
+
+        $this->actingAs($account, 'system')
+            ->post('/congnghe/de-xuat', [
+                'name' => 'Nguyễn Test',
+                'email' => 'tester@vaschools.edu.vn',
+                'department_id' => $dept->id,
+                'title' => 'Có email',
+                'content' => 'Nội dung.',
+            ]);
+
+        $this->actingAs($account, 'system')
+            ->get(route('congnghe.proposal.mine', ['email_sent' => '1']))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('proposals.data', 1)
+                ->where('proposals.data.0.title', 'Có email')
+            );
+
+        $this->actingAs($account, 'system')
+            ->get(route('congnghe.proposal.mine', ['email_sent' => '0']))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->has('proposals.data', 0));
+    }
+
     public function test_member_can_view_own_proposal_detail(): void
     {
         Mail::fake();
