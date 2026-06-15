@@ -77,7 +77,10 @@ function onSelect(person) {
         </p>
         <ul
           class="org-tree__members-row"
-          :class="{ 'org-tree__members-row--multi': group.people.length > 1 }"
+          :class="{
+            'org-tree__members-row--multi': group.people.length > 1,
+            'org-tree__members-row--single': group.people.length === 1,
+          }"
         >
           <li
             v-for="person in group.people"

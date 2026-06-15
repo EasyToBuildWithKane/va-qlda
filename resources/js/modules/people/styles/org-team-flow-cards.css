@@ -1,10 +1,8 @@
-/* Thẻ trên canvas — glass + viền quay + shimmer (chỉ trong .org-chart-canvas) */
+/* Thẻ trên canvas chỉnh sửa — phẳng, không hiệu ứng quay/shimmer */
 
 .org-chart-canvas .org-tree {
-    --org-tree-line: rgb(226 232 240 / 0.95);
-    --org-tree-line-strong: rgb(248 250 252);
-    --org-tree-spine: rgb(56 189 248 / 0.85);
-    --org-tree-spine-end: rgb(251 113 133 / 0.75);
+    --org-tree-line: rgb(203 213 240 / 0.95);
+    --org-tree-line-strong: rgb(148 163 184);
 }
 
 .org-chart-canvas .org-person-node {
@@ -17,239 +15,47 @@
     animation: none;
 }
 
-.org-chart-canvas .org-team-node {
-    isolation: isolate;
-}
-
-.org-chart-canvas .org-person-node {
-    isolation: isolate;
-    animation: none;
-}
-
-.org-chart-canvas .org-tree__branch:nth-child(odd) .org-team-node,
-.org-chart-canvas .org-tree__members-item:nth-child(odd) .org-person-node {
-    animation-delay: -2s;
-}
-
-.org-chart-canvas .org-tree__members-item:nth-child(even) .org-person-node {
-    animation-delay: -4s;
-}
-
 .org-chart-canvas .org-team-node__fx,
 .org-chart-canvas .org-person-node__fx {
-    pointer-events: none;
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    overflow: hidden;
-    z-index: 0;
-}
-
-.org-chart-canvas .org-team-node__fx--ring {
-    inset: -1px;
-    border-radius: calc(0.75rem + 1px);
-    padding: 1px;
-    background: conic-gradient(
-        from 0deg,
-        rgb(56 189 248),
-        rgb(154 0 54),
-        rgb(167 139 250),
-        rgb(56 189 248)
-    );
-    -webkit-mask:
-        linear-gradient(#fff 0 0) content-box,
-        linear-gradient(#fff 0 0);
-    mask:
-        linear-gradient(#fff 0 0) content-box,
-        linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    opacity: 0.65;
-    animation: org-card-ring-spin 4s linear infinite;
-}
-
-.org-chart-canvas .org-team-node--l1 .org-team-node__fx--ring {
-    opacity: 0.85;
-    animation-duration: 3.2s;
-}
-
-.org-chart-canvas .org-team-node__fx--shimmer,
-.org-chart-canvas .org-person-node__fx--shimmer {
-    background: linear-gradient(
-        105deg,
-        transparent 35%,
-        rgb(255 255 255 / 0.45) 48%,
-        transparent 62%
-    );
-    background-size: 200% 100%;
-    opacity: 0.35;
-    animation: org-card-shimmer 3.5s ease-in-out infinite;
-}
-
-.org-chart-canvas .org-person-node__fx--aurora {
-    inset: -20%;
-    opacity: 0.25;
-    background: radial-gradient(
-        circle at 30% 20%,
-        rgb(56 189 248 / 0.5),
-        transparent 45%
-    ),
-    radial-gradient(
-        circle at 70% 80%,
-        rgb(154 0 54 / 0.35),
-        transparent 50%
-    );
-    animation: org-person-aurora 8s ease-in-out infinite;
-}
-
-.org-chart-canvas .org-team-node > *:not(.org-team-node__fx),
-.org-chart-canvas .org-person-node > *:not(.org-person-node__fx) {
-    position: relative;
-    z-index: 1;
+    display: none !important;
 }
 
 .org-chart-canvas .org-team-node {
-    background: rgb(255 255 255 / 0.94);
-    border-color: rgb(148 163 184 / 0.35);
-    box-shadow:
-        0 1px 2px rgb(15 23 42 / 0.12),
-        0 4px 16px rgb(15 23 42 / 0.2);
+    background: rgb(255 255 255);
+    border: 1px solid rgb(226 232 240);
+    box-shadow: 0 1px 2px rgb(15 23 42 / 0.06);
 }
 
 .org-chart-canvas .org-person-node {
-    background: rgb(255 255 255 / 0.92);
-    border-color: rgb(148 163 184 / 0.35);
-    box-shadow: 0 4px 16px rgb(15 23 42 / 0.22);
+    background: rgb(255 255 255);
+    border: 1px solid rgb(226 232 240);
+    box-shadow: 0 1px 2px rgb(15 23 42 / 0.06);
 }
 
 .org-chart-canvas .org-person-node--leader {
-    border-color: rgb(251 113 133 / 0.4);
-    box-shadow:
-        0 0 16px rgb(154 0 54 / 0.12),
-        0 6px 24px rgb(15 23 42 / 0.28);
+    border-color: rgb(254 205 211);
+    background: rgb(255 251 252);
+    box-shadow: 0 1px 3px rgb(15 23 42 / 0.08);
     animation: none;
 }
 
 .org-chart-canvas .org-team-node__stat {
-    animation: org-stat-flicker 4s ease-in-out infinite;
+    animation: none;
 }
 
 .org-chart-canvas .org-person-node__badge {
-    animation: org-badge-glow 2.8s ease-in-out infinite;
+    animation: none;
+    box-shadow: none;
 }
 
-
-@keyframes org-card-float {
-    0%,
-    100% {
-        transform: translateY(0);
-    }
-    50% {
-        transform: translateY(-3px);
-    }
+.org-chart-canvas .org-person-node__chip {
+    background: rgb(241 245 249);
+    border-color: rgb(226 232 240);
+    color: rgb(71 85 105);
 }
 
-@keyframes org-card-ring-spin {
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-@keyframes org-card-shimmer {
-    0%,
-    100% {
-        background-position: 200% 0;
-    }
-    50% {
-        background-position: -50% 0;
-    }
-}
-
-@keyframes org-person-aurora {
-    0%,
-    100% {
-        transform: translate(0, 0) scale(1);
-        opacity: 0.22;
-    }
-    50% {
-        transform: translate(6%, -4%) scale(1.08);
-        opacity: 0.32;
-    }
-}
-
-@keyframes org-accent-flow {
-    0%,
-    100% {
-        background-position: 0 0;
-    }
-    50% {
-        background-position: 0 100%;
-    }
-}
-
-@keyframes org-stat-flicker {
-    0%,
-    100% {
-        opacity: 1;
-    }
-    92% {
-        opacity: 1;
-    }
-    94% {
-        opacity: 0.65;
-    }
-    96% {
-        opacity: 1;
-    }
-}
-
-@keyframes org-badge-glow {
-    0%,
-    100% {
-        box-shadow: 0 0 0 rgb(154 0 54 / 0);
-        border-color: rgb(154 0 54 / 0.25);
-    }
-    50% {
-        box-shadow: 0 0 14px rgb(251 113 133 / 0.35);
-        border-color: rgb(251 113 133 / 0.45);
-    }
-}
-
-.org-chart-canvas .org-team-node:hover {
-    border-color: rgb(148 163 184 / 0.55);
-    box-shadow:
-        0 2px 8px rgb(15 23 42 / 0.18),
-        0 6px 20px rgb(15 23 42 / 0.28);
-    transform: translateY(-2px);
-}
-
-.org-chart-canvas .org-person-node--interactive:hover {
-    animation-play-state: paused;
-    transform: translateY(-5px) scale(1.02);
-}
-
-.org-chart-canvas .org-tree__section-column {
-    background: rgb(30 41 59 / 0.35);
-    border-color: rgb(56 189 248 / 0.22);
-}
-
-.org-chart-canvas .org-tree__section-title {
-    background: rgb(30 41 59 / 0.75);
-    border-color: rgb(56 189 248 / 0.2);
-    color: rgb(226 232 240);
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .org-chart-canvas .org-team-node,
-    .org-chart-canvas .org-person-node,
-    .org-chart-canvas .org-flow-node::before,
-    .org-chart-canvas .org-team-node__fx--ring,
-    .org-chart-canvas .org-team-node__fx--shimmer,
-    .org-chart-canvas .org-person-node__fx--shimmer,
-    .org-chart-canvas .org-person-node__fx--aurora,
-    .org-chart-canvas .org-team-node__port--in,
-    .org-chart-canvas .org-team-node__stat,
-    .org-chart-canvas .org-person-node__badge {
-        animation: none;
-    }
+.org-chart-canvas .org-person-node--leader .org-person-node__badge {
+    background: rgb(253 242 246);
+    border-color: rgb(254 205 211);
+    color: rgb(154 0 54);
 }

@@ -328,7 +328,7 @@ const submit = () => {
         <div
           v-for="(section, sIdx) in form.sections"
           :key="sIdx"
-          class="mb-2 flex items-center gap-2 rounded-lg border border-slate-100 bg-slate-50/80 p-2"
+          class="mb-2 flex items-center gap-2 border-b border-slate-100 pb-2 last:border-0"
         >
           <input
             v-model="section.title"
@@ -377,7 +377,7 @@ const submit = () => {
         <div
           v-for="(row, idx) in form.members"
           :key="idx"
-          class="mb-2 flex flex-wrap items-end gap-2 rounded-lg border border-slate-100 bg-slate-50/80 p-2"
+          class="mb-2 flex flex-wrap items-end gap-2 border-b border-slate-100 pb-2 last:border-0"
         >
           <div class="min-w-[12rem] flex-1">
             <PersonSelect

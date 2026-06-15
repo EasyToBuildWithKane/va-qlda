@@ -264,9 +264,9 @@ async function onDelete(node) {
             :key="root.id"
             type="button"
             role="tab"
-            class="rounded-full border px-3 py-1.5 text-xs font-medium transition-colors"
+            class="rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors"
             :class="activeRoot?.id === root.id
-              ? 'border-brand/30 bg-brand text-white shadow-sm'
+              ? 'border-slate-300 bg-slate-800 text-white'
               : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'"
             :aria-selected="activeRoot?.id === root.id"
             @click="activeRootId = root.id"

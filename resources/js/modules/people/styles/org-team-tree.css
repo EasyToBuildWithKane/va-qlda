@@ -106,8 +106,8 @@
     display: none;
 }
 
-/* Cầu dọc ngắn từ stem trưởng nhóm xuống bus khi có nhiều thành viên */
-.org-tree__leader + .org-tree__connector + .org-tree__members-section:has(.org-tree__members-row--multi)::before {
+/* Cầu dọc ngắn từ stem trưởng nhóm xuống khu thành viên */
+.org-tree__leader + .org-tree__connector + .org-tree__members-section:has(.org-tree__members-item)::before {
     display: block;
     content: '';
     width: var(--org-tree-line-width);
@@ -243,6 +243,25 @@
     padding-top: 0.15rem;
 }
 
+/* Một thành viên trong mảng — đoạn dọc từ nhãn mảng xuống thẻ */
+.org-tree__members-row--single {
+    padding-top: 1.25rem;
+    position: relative;
+}
+
+.org-tree__members-row--single > .org-tree__members-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: var(--org-tree-line-width);
+    height: 1.25rem;
+    margin-left: calc(var(--org-tree-line-width) / -2);
+    background: var(--org-tree-line);
+    border-radius: 2px;
+    pointer-events: none;
+}
+
 /* Không trưởng nhóm: một đoạn dọc vào bus thành viên */
 .org-tree__people:not(:has(.org-tree__leader)) > .org-tree__members-section::before {
     content: '';
@@ -256,6 +275,10 @@
 
 .org-tree__people:not(:has(.org-tree__leader)) > .org-tree__members-section:has(.org-tree__members-row--multi)::before {
     height: 1.5rem;
+}
+
+.org-tree__people:not(:has(.org-tree__leader)) > .org-tree__members-section:has(.org-tree__members-row--single):not(:has(.org-tree__members-row--multi))::before {
+    height: 1.25rem;
 }
 
 .org-tree__empty-hint {
@@ -480,10 +503,8 @@
 }
 
 .org-chart-canvas .org-team-node:hover {
-    border-color: rgb(56 189 248 / 0.55);
-    box-shadow:
-        0 0 28px rgb(56 189 248 / 0.2),
-        0 8px 32px rgb(15 23 42 / 0.5);
+    border-color: rgb(203 213 225);
+    box-shadow: 0 2px 8px rgb(15 23 42 / 0.08);
 }
 
 .org-chart-canvas .org-person-node {
@@ -491,7 +512,19 @@
 }
 
 .org-chart-canvas .org-person-node--leader {
-    box-shadow: 0 2px 12px rgb(154 0 54 / 0.12);
+    box-shadow: 0 2px 8px rgb(15 23 42 / 0.1);
+}
+
+.org-chart-canvas .org-tree__members-section--columns .org-tree__section-column {
+    border: 1px solid rgb(241 245 249);
+    background: rgb(248 250 252 / 0.6);
+}
+
+.org-chart-canvas .org-tree__section-title {
+    background: rgb(255 255 255);
+    border-color: rgb(226 232 240);
+    box-shadow: none;
+    color: rgb(71 85 105);
 }
 
 /* Điểm giao trên cạnh thẻ — khớp tâm đường dọc */
@@ -503,9 +536,10 @@
 .org-chart-canvas .org-tree__connector,
 .org-chart-canvas .org-tree__members-row--multi > .org-tree__members-item::before,
 .org-chart-canvas .org-tree__members-row--multi > .org-tree__members-item::after,
+.org-chart-canvas .org-tree__members-row--single > .org-tree__members-item::before,
 .org-chart-canvas .org-tree__children > .org-tree__branch::before,
 .org-chart-canvas .org-tree__children > .org-tree__branch::after,
-.org-chart-canvas .org-tree__leader + .org-tree__connector + .org-tree__members-section:has(.org-tree__members-row--multi)::before,
+.org-chart-canvas .org-tree__leader + .org-tree__connector + .org-tree__members-section:has(.org-tree__members-item)::before,
 .org-chart-canvas .org-tree__people:not(:has(.org-tree__leader)) > .org-tree__members-section::before {
     background: var(--org-tree-line);
     box-shadow: none;

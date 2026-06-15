@@ -204,13 +204,13 @@ watch(
             >
               <stop
                 offset="0"
-                stop-color="#9a0036"
-                stop-opacity="0.55"
+                stop-color="#94a3b8"
+                stop-opacity="0.9"
               />
               <stop
                 offset="1"
-                stop-color="#c4185b"
-                stop-opacity="0.22"
+                stop-color="#cbd5e1"
+                stop-opacity="0.75"
               />
             </linearGradient>
           </defs>
@@ -411,8 +411,9 @@ watch(
 }
 
 .org-graph__edge--section-member {
-    stroke-width: 2.25;
-    stroke-opacity: 0.92;
+    stroke: #94a3b8;
+    stroke-width: 2;
+    stroke-opacity: 1;
 }
 
 .org-graph__edge--dim {
