@@ -15,6 +15,8 @@ const props = defineProps({
     readonly: { type: Boolean, default: false },
     /** Scale tối đa khi fit readonly (landing — sơ đồ lớn hơn). */
     readonlyMaxScale: { type: Number, default: 1.8 },
+    /** Phóng to kích thước thẻ trong layout (landing). */
+    layoutScale: { type: Number, default: 1 },
 });
 
 const emit = defineEmits(['select-person', 'select-leader']);
@@ -88,6 +90,7 @@ const graph = useOrgGraphLayout(
         rootId: props.filter.rootId,
         role: props.filter.role,
         status: props.filter.status,
+        layoutScale: props.layoutScale,
     }),
 );
 
@@ -130,7 +133,7 @@ function fit() {
         // Locked landing view fills the available width (cards render larger);
         // the interactive view never upscales past 1×.
         maxInitialScale: props.readonly ? props.readonlyMaxScale : 1,
-        padding: props.readonly ? 40 : 24,
+        padding: props.readonly ? 48 : 24,
     });
 }
 function applyInitialExpansion() {

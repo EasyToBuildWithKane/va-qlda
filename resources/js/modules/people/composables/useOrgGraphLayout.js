@@ -25,6 +25,9 @@ const H_GAP = 28;
 const V_GAP = 66;
 const PADDING = 56;
 
+/** @type {number} Scale for landing /congnghe (set per computeOrgGraph call). */
+let __layoutScale = 1;
+
 const UNASSIGNED_SECTION_KEY = '__unassigned__';
 
 function personFromMember(m, team, rootId, rootName) {
@@ -270,7 +273,12 @@ function buildLogical(trees, { expanded, collapsed }) {
 }
 
 function sizeOf(ln) {
-    return NODE[ln.type] ?? NODE.team;
+    const base = NODE[ln.type] ?? NODE.team;
+
+    return {
+        w: base.w * __layoutScale,
+        h: base.h * __layoutScale,
+    };
 }
 
 function shiftSubtree(ln, dx) {
@@ -300,7 +308,7 @@ function place(ln, leftX, top) {
         return w;
     }
 
-    const childTop = top + h + V_GAP;
+    const childTop = top + h + V_GAP * __layoutScale;
 
     if (ln.type === 'team') {
         const subteams = kids.filter((k) => k.type === 'team');
@@ -313,19 +321,19 @@ function place(ln, leftX, top) {
             let cursor = leftX;
             memberRow.forEach((kid, i) => {
                 cursor += place(kid, cursor, childTop);
-                if (i < memberRow.length - 1) cursor += H_GAP;
+                if (i < memberRow.length - 1) cursor += H_GAP * __layoutScale;
             });
             const row1Span = cursor - leftX;
 
             let row2Top = childTop;
             for (const mr of memberRow) {
-                row2Top = Math.max(row2Top, subtreeBottom(mr) + V_GAP);
+                row2Top = Math.max(row2Top, subtreeBottom(mr) + V_GAP * __layoutScale);
             }
 
             cursor = leftX;
             subteams.forEach((kid, i) => {
                 cursor += place(kid, cursor, row2Top);
-                if (i < subteams.length - 1) cursor += H_GAP;
+                if (i < subteams.length - 1) cursor += H_GAP * __layoutScale;
             });
             const row2Span = cursor - leftX;
 
@@ -334,10 +342,10 @@ function place(ln, leftX, top) {
                 row2Bottom = Math.max(row2Bottom, subtreeBottom(kid));
             }
 
-            const restTop = row2Bottom + V_GAP;
+            const restTop = row2Bottom + V_GAP * __layoutScale;
             let restCursor = leftX;
             rest.forEach((kid) => {
-                restCursor += H_GAP;
+                restCursor += H_GAP * __layoutScale;
                 restCursor += place(kid, restCursor, restTop);
             });
 
@@ -367,7 +375,7 @@ function place(ln, leftX, top) {
     let cursor = leftX;
     kids.forEach((kid, i) => {
         cursor += place(kid, cursor, childTop);
-        if (i < kids.length - 1) cursor += H_GAP;
+        if (i < kids.length - 1) cursor += H_GAP * __layoutScale;
     });
 
     const span = cursor - leftX;
@@ -533,6 +541,9 @@ function appendManagementUnitEdges(nodes, edges) {
  * @returns {{ nodes: object[], edges: object[], width: number, height: number, matchCount: number, hasFilter: boolean }}
  */
 export function computeOrgGraph(trees, options = {}) {
+    const layoutScale = Math.min(1.6, Math.max(1, Number(options.layoutScale) || 1));
+    __layoutScale = layoutScale;
+
     const expanded = options.expanded instanceof Set ? options.expanded : new Set(options.expanded ?? []);
     const collapsed = options.collapsed instanceof Set ? options.collapsed : new Set(options.collapsed ?? []);
     const f = {
@@ -565,7 +576,8 @@ export function computeOrgGraph(trees, options = {}) {
         maxY = Math.max(maxY, n.y + n.h);
     }
 
-    const dx = PADDING - minX;
+    const pad = PADDING * __layoutScale;
+    const dx = pad - minX;
     for (const n of nodes) {
         n.cx += dx;
         n.x = n.cx - n.w / 2;
@@ -582,8 +594,8 @@ export function computeOrgGraph(trees, options = {}) {
     return {
         nodes,
         edges,
-        width: maxX - minX + PADDING * 2,
-        height: maxY + PADDING * 2,
+        width: maxX - minX + pad * 2,
+        height: maxY + pad * 2,
         matchCount,
         hasFilter,
     };

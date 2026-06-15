@@ -15,6 +15,7 @@ import AILabSection from './partials/AILabSection.vue';
 import CultureSection from './partials/CultureSection.vue';
 import RoadmapSection from './partials/RoadmapSection.vue';
 import CongngheFooter from './partials/CongngheFooter.vue';
+import CongngheProjectDetailModal from './partials/CongngheProjectDetailModal.vue';
 
 defineProps({
     metrics: { type: Object, default: () => ({}) },
@@ -51,5 +52,6 @@ defineProps({
     </main>
 
     <CongngheFooter />
+    <CongngheProjectDetailModal />
   </div>
 </template>

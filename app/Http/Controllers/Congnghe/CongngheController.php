@@ -7,7 +7,9 @@ use App\Models\AiAccount;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\Project;
+use App\Models\ProjectAttachment;
 use App\Models\Task;
+use App\Support\Enums\ProjectAttachmentCategory;
 use App\Support\Enums\ProjectStatus;
 use App\Support\Enums\ProjectType;
 use App\Support\Enums\TaskStatus;
@@ -73,11 +75,11 @@ class CongngheController extends Controller
     {
         return collect(ProjectType::cases())
             ->map(function (ProjectType $type): array {
-                $items = Project::where('type', $type)
-                    ->with('manager:id,full_name,avatar_path,role_title')
+                $items = $this->projectQuery()
+                    ->where('type', $type)
                     ->orderByDesc('updated_at')
                     ->take(6)
-                    ->get(['id', 'name', 'code', 'description', 'color', 'status', 'type', 'manager_id'])
+                    ->get()
                     ->map(fn (Project $p) => $this->projectCard($p))
                     ->values();
 
@@ -101,13 +103,30 @@ class CongngheController extends Controller
      */
     private function products(): array
     {
-        return Project::where('status', ProjectStatus::Completed)
-            ->with('manager:id,full_name,avatar_path,role_title')
+        return $this->projectQuery()
+            ->where('status', ProjectStatus::Completed)
             ->orderByDesc('updated_at')
-            ->get(['id', 'name', 'code', 'description', 'color', 'status', 'type', 'manager_id'])
+            ->get()
             ->map(fn (Project $p) => $this->projectCard($p))
             ->values()
             ->all();
+    }
+
+    private function projectQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        return Project::query()->with([
+            'manager:id,full_name,avatar_path,role_title',
+            'attachments' => function ($query): void {
+                $query
+                    ->where('is_image', true)
+                    ->whereIn('category', [
+                        ProjectAttachmentCategory::Showcase,
+                        ProjectAttachmentCategory::Images,
+                    ])
+                    ->orderByDesc('updated_at')
+                    ->limit(24);
+            },
+        ]);
     }
 
     /**
@@ -116,6 +135,7 @@ class CongngheController extends Controller
     private function projectCard(Project $project): array
     {
         $manager = $project->manager;
+        $user = request()->user();
 
         return [
             'id' => $project->id,
@@ -126,6 +146,11 @@ class CongngheController extends Controller
             'progress' => $project->progress(),
             'status' => $project->status->label(),
             'statusColor' => $project->status->color(),
+            'type' => $project->type->value,
+            'type_label' => $project->type->label(),
+            'type_color' => $project->type->color(),
+            'images' => $this->projectImages($project),
+            'can_upload_images' => $user ? $user->can('contribute', $project) : false,
             'manager' => $manager ? [
                 'id' => $manager->id,
                 'name' => $manager->full_name,
@@ -133,6 +158,41 @@ class CongngheController extends Controller
                 'role_title' => $manager->role_title,
             ] : null,
         ];
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function projectImages(Project $project): array
+    {
+        if (! $project->relationLoaded('attachments')) {
+            return [];
+        }
+
+        $attachments = $project->attachments;
+        $showcase = $attachments->filter(
+            fn (ProjectAttachment $a) => $a->category === ProjectAttachmentCategory::Showcase,
+        );
+        $pool = $showcase->isNotEmpty()
+            ? $showcase
+            : $attachments->filter(
+                fn (ProjectAttachment $a) => $a->category === ProjectAttachmentCategory::Images,
+            );
+
+        return $pool
+            ->map(function (ProjectAttachment $a): array {
+                $url = $a->url();
+
+                return [
+                    'id' => $a->id,
+                    'url' => $url,
+                    'caption' => $a->notes ?: $a->original_name,
+                    'available' => $a->fileExists() && $url !== null,
+                ];
+            })
+            ->filter(fn (array $row) => $row['available'])
+            ->values()
+            ->all();
     }
 
     /**

@@ -9,6 +9,8 @@ enum ProjectAttachmentCategory: string
     case Ba = 'ba';
     case CustomerData = 'customer_data';
     case Images = 'images';
+    /** Ảnh hiển thị trên cổng /congnghe (modal chi tiết dự án). */
+    case Showcase = 'showcase';
 
     public function labelVi(): string
     {
@@ -18,6 +20,7 @@ enum ProjectAttachmentCategory: string
             self::Ba => 'Tài liệu BA',
             self::CustomerData => 'Data khách hàng',
             self::Images => 'Hình ảnh & media',
+            self::Showcase => 'Hình ảnh cổng Công nghệ',
         };
     }
 
@@ -29,6 +32,7 @@ enum ProjectAttachmentCategory: string
             self::Ba => 'BRD, SRS, FRS, use case, flow nghiệp vụ.',
             self::CustomerData => 'File Excel/CSV, mẫu dữ liệu, import từ khách hàng.',
             self::Images => 'Screenshot, ảnh hiện trạng, sơ đồ, tài liệu hình ảnh liên quan.',
+            self::Showcase => 'Ảnh tham chiếu, giao diện, demo — hiển thị khi bấm xem dự án trên trang Phòng Công nghệ.',
         };
     }
 
@@ -40,6 +44,7 @@ enum ProjectAttachmentCategory: string
             self::Ba => 'template',
             self::CustomerData => 'download',
             self::Images => 'image',
+            self::Showcase => 'image',
         };
     }
 
@@ -51,6 +56,7 @@ enum ProjectAttachmentCategory: string
             self::Ba => 'amber',
             self::CustomerData => 'emerald',
             self::Images => 'rose',
+            self::Showcase => 'brand',
         };
     }
 

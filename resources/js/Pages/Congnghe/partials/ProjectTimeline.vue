@@ -5,6 +5,7 @@ import GlassCard from './GlassCard.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
 import { tone } from './tones.js';
 import { useInView } from './motion.js';
+import { openCongngheProject } from './useCongngheProjectModal.js';
 
 const props = defineProps({
     phases: { type: Array, default: () => [] },
@@ -307,6 +308,21 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
                         <h3 class="mt-2 font-display text-2xl font-bold leading-tight text-white sm:text-3xl">
                           {{ project.name }}
                         </h3>
+                        <button
+                          type="button"
+                          class="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-200 transition hover:text-[#ff4d8d]"
+                          @click="openCongngheProject(project)"
+                        >
+                          Xem chi tiết &amp; hình ảnh
+                          <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                          ><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                        </button>
                         <p class="mt-4 max-w-xl text-sm leading-relaxed text-white/60 sm:text-[15px]">
                           {{ project.description || 'Chưa có mô tả cho dự án này.' }}
                         </p>

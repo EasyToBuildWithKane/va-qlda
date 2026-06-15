@@ -113,7 +113,7 @@ onBeforeUnmount(() => {
           <SectionHeading
             eyebrow="Đội ngũ · Sơ đồ tổ chức"
             title="Cấu trúc vận hành"
-            subtitle="Sơ đồ nhân sự Phòng Công nghệ — bấm vào thẻ để xem hồ sơ chi tiết."
+            subtitle="Sơ đồ nhân sự Phòng Công nghệ — cấu trúc vận hành theo nhóm và nhánh."
           />
         </div>
 
@@ -162,14 +162,12 @@ onBeforeUnmount(() => {
             :filter="graphFilter"
             initial-expand-all
             readonly
-            :readonly-max-scale="2.15"
+            :layout-scale="1.32"
+            :readonly-max-scale="2.75"
             @select-person="onSelectPerson"
             @select-leader="onSelectLeader"
           />
         </div>
-        <p class="mt-5 text-center text-sm font-medium text-white/50">
-          Bấm vào một thành viên để xem hồ sơ chi tiết
-        </p>
       </div>
     </div>
 
@@ -381,7 +379,7 @@ onBeforeUnmount(() => {
 }
 
 .congnghe-org-graph--large :deep(.org-graph__viewport) {
-    height: clamp(580px, 82vh, 980px);
+    height: clamp(660px, 90vh, 1120px);
 }
 
 .congnghe-org-graph :deep(.org-graph__viewport) {
@@ -397,31 +395,49 @@ onBeforeUnmount(() => {
 }
 
 .congnghe-org-graph--large :deep(.org-node__title) {
-    font-size: 15px;
+    font-size: 17px;
 }
 
 .congnghe-org-graph--large :deep(.org-node__title--sm) {
-    font-size: 14px;
+    font-size: 16px;
 }
 
 .congnghe-org-graph--large :deep(.org-node__subtitle) {
-    font-size: 12.5px;
+    font-size: 14px;
 }
 
 .congnghe-org-graph--large :deep(.org-node__eyebrow) {
-    font-size: 10.5px;
+    font-size: 11.5px;
 }
 
 .congnghe-org-graph--large :deep(.org-node__section-title) {
-    font-size: 13.5px;
+    font-size: 15.5px;
 }
 
 .congnghe-org-graph--large :deep(.org-node__section-eyebrow) {
-    font-size: 10px;
+    font-size: 11px;
 }
 
 .congnghe-org-graph--large :deep(.org-node__chip),
 .congnghe-org-graph--large :deep(.org-node__section-meta) {
-    font-size: 12px;
+    font-size: 13px;
+}
+
+.congnghe-org-graph--large :deep(.org-node--team .org-node__surface),
+.congnghe-org-graph--large :deep(.org-node--person .org-node__person-inner) {
+    padding: 0.95rem 1.05rem;
+}
+
+.congnghe-org-graph--large :deep(.org-node__hub-icon) {
+    width: 48px;
+    height: 48px;
+}
+
+.congnghe-org-graph--large :deep(.org-node--org) {
+    padding: 0 1.25rem;
+}
+
+.congnghe-org-graph--large :deep(.org-node__section-inner) {
+    padding: 0.6rem 0.65rem;
 }
 </style>
