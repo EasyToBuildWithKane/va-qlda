@@ -2,16 +2,15 @@ import {
     computed, onBeforeUnmount, onMounted, ref, unref, watch,
 } from 'vue';
 
-const STORAGE_KEY = 'cn-assistant-pos-v2';
+const STORAGE_KEY = 'cn-assistant-pos-v3';
 const DRAG_THRESHOLD = 6;
 const NAV_TOP = 56;
 const EDGE_PAD = 8;
 
 /**
- * Vị trí trợ lý (fixed left/top) — kéo thả tự do, lưu localStorage, ẩn/hiện.
+ * Trợ lý cố định cạnh phải (gần thanh cuộn) — chỉ kéo dọc trên thanh rail.
  */
-export function useCongngheAssistantDock(asideRef, options = {}) {
-    const posX = ref(0);
+export function useCongngheAssistantDock(asideRef) {
     const posY = ref(0);
     const positioned = ref(false);
     const isDragging = ref(false);
@@ -29,49 +28,51 @@ export function useCongngheAssistantDock(asideRef, options = {}) {
                 return { w: r.width, h: r.height };
             }
         }
-        return { w: 200, h: 168 };
+        return { w: 220, h: 168 };
     }
 
-    function defaultPos() {
+    function defaultY() {
         if (typeof window === 'undefined') {
-            return { x: EDGE_PAD, y: NAV_TOP + EDGE_PAD };
+            return NAV_TOP + EDGE_PAD;
         }
-        const { w, h } = widgetSize();
-        return {
-            x: window.innerWidth - w - EDGE_PAD,
-            y: window.innerHeight - h - EDGE_PAD,
-        };
+        const { h } = widgetSize();
+        return Math.max(NAV_TOP, window.innerHeight - h - EDGE_PAD);
     }
 
-    function clampPos(x, y) {
+    function clampY(y) {
         if (typeof window === 'undefined') {
-            return { x, y };
+            return y;
         }
-        const { w, h } = widgetSize();
-        return {
-            x: Math.min(window.innerWidth - w - EDGE_PAD, Math.max(EDGE_PAD, x)),
-            y: Math.min(window.innerHeight - h - EDGE_PAD, Math.max(NAV_TOP, y)),
-        };
+        const { h } = widgetSize();
+        return Math.min(window.innerHeight - h - EDGE_PAD, Math.max(NAV_TOP, y));
     }
 
-    function applyPos(x, y) {
-        const c = clampPos(x, y);
-        posX.value = c.x;
-        posY.value = c.y;
+    function applyY(y) {
+        posY.value = clampY(y);
         positioned.value = true;
     }
 
     function readStored() {
         try {
             const raw = localStorage.getItem(STORAGE_KEY);
-            if (!raw) {
-                return;
+            if (raw) {
+                const data = JSON.parse(raw);
+                if (data && typeof data === 'object') {
+                    hidden.value = Boolean(data.hidden);
+                    if (Number.isFinite(data.y)) {
+                        applyY(data.y);
+                        return;
+                    }
+                }
             }
-            const data = JSON.parse(raw);
-            if (data && typeof data === 'object') {
-                hidden.value = Boolean(data.hidden);
-                if (Number.isFinite(data.x) && Number.isFinite(data.y)) {
-                    applyPos(data.x, data.y);
+            const legacy = localStorage.getItem('cn-assistant-pos-v2');
+            if (legacy) {
+                const data = JSON.parse(legacy);
+                if (data && typeof data === 'object') {
+                    hidden.value = Boolean(data.hidden);
+                    if (Number.isFinite(data.y)) {
+                        applyY(data.y);
+                    }
                 }
             }
         } catch {
@@ -82,7 +83,6 @@ export function useCongngheAssistantDock(asideRef, options = {}) {
     function persist() {
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify({
-                x: Math.round(posX.value),
                 y: Math.round(posY.value),
                 hidden: hidden.value,
             }));
@@ -93,10 +93,9 @@ export function useCongngheAssistantDock(asideRef, options = {}) {
 
     function ensurePosition() {
         if (!positioned.value) {
-            const d = defaultPos();
-            applyPos(d.x, d.y);
+            applyY(defaultY());
         } else {
-            applyPos(posX.value, posY.value);
+            applyY(posY.value);
         }
     }
 
@@ -117,16 +116,15 @@ export function useCongngheAssistantDock(asideRef, options = {}) {
         if (!pointer || e.pointerId !== pointer.id) {
             return;
         }
-        const dx = e.clientX - pointer.startX;
         const dy = e.clientY - pointer.startY;
-        if (!moved && Math.hypot(dx, dy) < DRAG_THRESHOLD) {
+        if (!moved && Math.abs(dy) < DRAG_THRESHOLD) {
             return;
         }
         if (!moved) {
             moved = true;
             isDragging.value = true;
         }
-        applyPos(pointer.origX + dx, pointer.origY + dy);
+        applyY(pointer.origY + dy);
         e.preventDefault();
     }
 
@@ -142,22 +140,20 @@ export function useCongngheAssistantDock(asideRef, options = {}) {
         detachWindowPointer();
         if (wasDrag) {
             persist();
-        } else if (typeof options.onTap === 'function') {
-            options.onTap();
         }
         moved = false;
     }
 
-    function onPointerDown(e) {
+    function onRailPointerDown(e) {
         if (e.button !== 0 && e.pointerType === 'mouse') {
             return;
         }
+        e.preventDefault();
+        e.stopPropagation();
         ensurePosition();
         pointer = {
             id: e.pointerId,
-            startX: e.clientX,
             startY: e.clientY,
-            origX: posX.value,
             origY: posY.value,
         };
         moved = false;
@@ -166,22 +162,6 @@ export function useCongngheAssistantDock(asideRef, options = {}) {
         window.addEventListener('pointermove', onWindowPointerMove, { passive: false });
         window.addEventListener('pointerup', onWindowPointerUp);
         window.addEventListener('pointercancel', onWindowPointerUp);
-    }
-
-    function onPointerMove() {
-        /* legacy — dùng listener window */
-    }
-
-    function finishPointer(e) {
-        if (!pointer) {
-            return false;
-        }
-        if (e && e.pointerId !== pointer.id) {
-            return moved;
-        }
-        const wasDrag = moved;
-        onWindowPointerUp(e);
-        return wasDrag;
     }
 
     function hideAssistant() {
@@ -225,22 +205,19 @@ export function useCongngheAssistantDock(asideRef, options = {}) {
             return {};
         }
         return {
-            left: `${posX.value}px`,
             top: `${posY.value}px`,
-            right: 'auto',
+            right: 'max(0px, env(safe-area-inset-right))',
+            left: 'auto',
             bottom: 'auto',
         };
     });
 
     return {
-        posX,
         posY,
         hidden,
         isDragging,
         dockStyle,
-        onPointerDown,
-        onPointerMove,
-        finishPointer,
+        onRailPointerDown,
         hideAssistant,
         showAssistant,
         ensurePosition,

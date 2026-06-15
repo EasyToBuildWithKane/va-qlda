@@ -100,7 +100,7 @@ onBeforeUnmount(() => {
           <SectionHeading
             eyebrow="Đội ngũ · Sơ đồ tổ chức"
             title="Cấu trúc vận hành"
-            subtitle="Ban lãnh đạo theo hàng ngang — phân nhánh chuyên môn và nhân sự bên dưới."
+            subtitle="Quản lý trên cùng — Trưởng ban / Phó phòng theo hàng; nhánh chuyên môn có Trưởng nhóm."
           />
         </div>
 
@@ -139,7 +139,7 @@ onBeforeUnmount(() => {
 
     <div
       v-if="roots.length"
-      class="mx-auto mt-8 max-w-6xl px-3 sm:px-6"
+      class="mx-auto mt-8 w-full max-w-[min(100%,96rem)] px-3 sm:px-6 lg:px-8"
     >
       <CongngheOrgChart
         :trees="roots"

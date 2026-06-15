@@ -4,7 +4,8 @@ import Avatar from '@/shared/ui/Avatar.vue';
 import CongngheOrgChartBranch from './CongngheOrgChartBranch.vue';
 import { toIterableList, useOrgTeamRoster } from '@/modules/people/composables/useOrgTeamPeople.js';
 import {
-    buildLeadershipCards,
+    buildCongngheLeadershipLayout,
+    shouldShowRoleSubtitle,
     staffSectionGroups,
 } from './useCongngheOrgLayout.js';
 
@@ -20,15 +21,29 @@ const emit = defineEmits(['select-person']);
 const children = computed(() => toIterableList(props.team.children));
 const roster = useOrgTeamRoster(() => props.team);
 
-const leadershipCards = computed(() => buildLeadershipCards(roster.value));
 const staffGroups = computed(() => staffSectionGroups(roster.value));
 
-const hasLeadership = computed(() => leadershipCards.value.length > 0);
+const leadershipLayout = computed(() => buildCongngheLeadershipLayout(roster.value, {
+    nestedBranch: props.column || props.depth > 0,
+}));
+
+const managerCard = computed(() => leadershipLayout.value.managerCard);
+const leadershipCards = computed(() => leadershipLayout.value.tierCards);
+const leadershipEyebrow = computed(() => leadershipLayout.value.leadershipEyebrow);
+
+const hasLeadership = computed(() => Boolean(managerCard.value) || leadershipCards.value.length > 0);
 const hasStaff = computed(() => staffGroups.value.length > 0);
+
 const hasChildren = computed(() => children.value.length > 0);
 const hasBody = computed(() => hasLeadership.value || hasStaff.value || hasChildren.value);
 
-const staffStaggerBase = computed(() => leadershipCards.value.length + 2);
+const staffStaggerBase = computed(() => {
+    let n = leadershipCards.value.length + 2;
+    if (managerCard.value) {
+        n += 1;
+    }
+    return n;
+});
 
 function staggerStyle(index, base = 0) {
     if (!props.revealed) {
@@ -56,6 +71,10 @@ function openPerson(person, branchTitle = null) {
     emit('select-person', personPayload(person, {
         sectionTitle: branchTitle ?? person.sectionTitle,
     }));
+}
+
+function showRoleOnCard(card) {
+    return shouldShowRoleSubtitle(card.branchTitle, card.person.roleTitle);
 }
 </script>
 
@@ -98,54 +117,99 @@ function openPerson(person, branchTitle = null) {
         v-if="hasLeadership"
         class="cn-org-leadership w-full"
         role="group"
-        :aria-label="`Ban lãnh đạo — ${team.name}`"
+        :aria-label="`${leadershipEyebrow} — ${team.name}`"
       >
-        <p class="cn-org-eyebrow mb-3 text-center text-amber-200/55">
-          Ban lãnh đạo
-        </p>
-        <ul
-          class="cn-org-leadership-row mx-auto flex list-none flex-wrap items-stretch justify-center gap-3 p-0 sm:gap-4"
-        >
-          <li
-            v-for="(card, li) in leadershipCards"
-            :key="card.key"
-            class="min-w-[11.5rem] max-w-[15rem] flex-1 sm:min-w-[12.5rem] lg:min-w-[13.5rem]"
-          >
+        <template v-if="managerCard">
+          <p class="cn-org-eyebrow mb-3 text-center text-brand-200/70">
+            Quản lý
+          </p>
+          <div class="mx-auto mb-2 flex max-w-md justify-center">
             <button
               type="button"
-              class="cn-org-node cn-org-node--person cn-org-node--lead-card cn-org-animate flex h-full w-full flex-col items-center gap-3 px-4 py-5 text-center"
-              :style="staggerStyle(li, 1)"
-              @click="openPerson(card.person, card.branchTitle)"
+              class="cn-org-node cn-org-node--person cn-org-node--lead-card cn-org-node--manager cn-org-animate flex w-full max-w-[17rem] flex-col items-center gap-3 px-5 py-5 text-center sm:max-w-[19rem]"
+              :style="staggerStyle(0, 1)"
+              @click="openPerson(managerCard.person, managerCard.branchTitle)"
             >
-              <span class="line-clamp-2 min-h-[2.25rem] w-full text-[11px] font-semibold uppercase leading-snug tracking-wide text-amber-100/80 sm:text-xs">
-                {{ card.branchTitle }}
+              <span class="line-clamp-2 w-full text-[11px] font-semibold uppercase leading-snug tracking-wide text-brand-100/85 sm:text-xs">
+                {{ managerCard.branchTitle }}
               </span>
-              <span class="cn-org-avatar-ring">
+              <span class="cn-org-avatar-ring cn-org-avatar-ring--manager">
                 <Avatar
-                  :name="card.person.name"
-                  :src="card.person.avatar"
-                  :size="64"
+                  :name="managerCard.person.name"
+                  :src="managerCard.person.avatar"
+                  :size="72"
                 />
               </span>
               <span class="min-w-0 w-full">
-                <span class="block text-base font-semibold leading-tight text-white sm:text-[17px]">
-                  {{ card.person.name }}
+                <span class="block text-lg font-semibold leading-tight text-white">
+                  {{ managerCard.person.name }}
                 </span>
                 <span
-                  v-if="card.person.roleTitle"
+                  v-if="showRoleOnCard(managerCard)"
                   class="mt-1.5 block text-xs leading-snug text-white/55 sm:text-[13px]"
                 >
-                  {{ card.person.roleTitle }}
+                  {{ managerCard.person.roleTitle }}
                 </span>
               </span>
             </button>
-          </li>
-        </ul>
+          </div>
+          <div
+            v-if="leadershipCards.length"
+            class="cn-org-stem cn-org-stem--short cn-org-stem--pulse mx-auto"
+            aria-hidden="true"
+          />
+        </template>
+
+        <template v-if="leadershipCards.length">
+          <p
+            class="cn-org-eyebrow mb-3 text-center text-amber-200/55"
+            :class="managerCard ? 'mt-2' : ''"
+          >
+            {{ leadershipEyebrow }}
+          </p>
+          <ul
+            class="cn-org-leadership-row mx-auto grid list-none grid-cols-1 gap-3 p-0 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4"
+          >
+            <li
+              v-for="(card, li) in leadershipCards"
+              :key="card.key"
+            >
+              <button
+                type="button"
+                class="cn-org-node cn-org-node--person cn-org-node--lead-card cn-org-animate flex h-full w-full flex-col items-center gap-3 px-4 py-5 text-center"
+                :style="staggerStyle(li, managerCard ? 2 : 1)"
+                @click="openPerson(card.person, card.branchTitle)"
+              >
+                <span class="line-clamp-2 min-h-[2.25rem] w-full text-[11px] font-semibold uppercase leading-snug tracking-wide text-amber-100/80 sm:text-xs">
+                  {{ card.branchTitle }}
+                </span>
+                <span class="cn-org-avatar-ring">
+                  <Avatar
+                    :name="card.person.name"
+                    :src="card.person.avatar"
+                    :size="64"
+                  />
+                </span>
+                <span class="min-w-0 w-full">
+                  <span class="block text-base font-semibold leading-tight text-white sm:text-[17px]">
+                    {{ card.person.name }}
+                  </span>
+                  <span
+                    v-if="showRoleOnCard(card)"
+                    class="mt-1.5 block text-xs leading-snug text-white/55 sm:text-[13px]"
+                  >
+                    {{ card.person.roleTitle }}
+                  </span>
+                </span>
+              </button>
+            </li>
+          </ul>
+        </template>
       </div>
 
       <div
         v-if="hasStaff"
-        class="cn-org-staff mt-6 w-full max-w-6xl"
+        class="cn-org-staff mt-6 w-full"
         :class="hasLeadership ? 'pt-1' : ''"
       >
         <div
@@ -172,7 +236,7 @@ function openPerson(person, branchTitle = null) {
               </h4>
             </header>
             <ul
-              class="grid list-none gap-3 p-0 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3"
+              class="grid list-none gap-3 p-0 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4"
             >
               <li
                 v-for="(person, pi) in group.people"
@@ -194,7 +258,7 @@ function openPerson(person, branchTitle = null) {
                       {{ person.name }}
                     </span>
                     <span
-                      v-if="person.roleTitle || person.branchLabel"
+                      v-if="shouldShowRoleSubtitle(group.title, person.roleTitle || person.branchLabel)"
                       class="mt-1 block text-xs leading-snug text-white/50"
                     >
                       {{ person.roleTitle || person.branchLabel }}
@@ -347,7 +411,17 @@ function openPerson(person, branchTitle = null) {
 }
 
 .cn-org-leadership-row {
-    max-width: 64rem;
+    max-width: none;
+    width: 100%;
+}
+
+.cn-org-node--manager {
+    border-color: rgba(255, 77, 141, 0.4);
+    background: linear-gradient(165deg, rgba(154, 0, 54, 0.22), rgba(255, 255, 255, 0.05));
+}
+
+.cn-org-avatar-ring--manager {
+    background: linear-gradient(135deg, rgba(255, 77, 141, 0.65), rgba(251, 191, 36, 0.45));
 }
 
 .cn-org-node {
