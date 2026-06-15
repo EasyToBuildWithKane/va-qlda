@@ -3,10 +3,16 @@ import { computed } from 'vue';
 import Avatar from '@/shared/ui/Avatar.vue';
 import CongngheOrgChartBranch from './CongngheOrgChartBranch.vue';
 import { toIterableList, useOrgTeamRoster } from '@/modules/people/composables/useOrgTeamPeople.js';
+import {
+    buildLeadershipCards,
+    staffSectionGroups,
+} from './useCongngheOrgLayout.js';
 
 const props = defineProps({
     team: { type: Object, required: true },
     depth: { type: Number, default: 0 },
+    column: { type: Boolean, default: false },
+    revealed: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['select-person']);
@@ -14,8 +20,22 @@ const emit = defineEmits(['select-person']);
 const children = computed(() => toIterableList(props.team.children));
 const roster = useOrgTeamRoster(() => props.team);
 
-const hasPeople = computed(() => roster.value.totalCount > 0);
-const hasBody = computed(() => hasPeople.value || children.value.length > 0);
+const leadershipCards = computed(() => buildLeadershipCards(roster.value));
+const staffGroups = computed(() => staffSectionGroups(roster.value));
+
+const hasLeadership = computed(() => leadershipCards.value.length > 0);
+const hasStaff = computed(() => staffGroups.value.length > 0);
+const hasChildren = computed(() => children.value.length > 0);
+const hasBody = computed(() => hasLeadership.value || hasStaff.value || hasChildren.value);
+
+const staffStaggerBase = computed(() => leadershipCards.value.length + 2);
+
+function staggerStyle(index, base = 0) {
+    if (!props.revealed) {
+        return {};
+    }
+    return { animationDelay: `${base + index * 75}ms` };
+}
 
 function personPayload(person, extra = {}) {
     return {
@@ -32,232 +52,396 @@ function personPayload(person, extra = {}) {
     };
 }
 
-function openPerson(person) {
-    emit('select-person', personPayload(person));
-}
-
-function openLeader() {
-    const leader = roster.value.leader;
-    if (!leader) {
-        return;
-    }
-    openPerson(leader);
+function openPerson(person, branchTitle = null) {
+    emit('select-person', personPayload(person, {
+        sectionTitle: branchTitle ?? person.sectionTitle,
+    }));
 }
 </script>
 
 <template>
   <div
-    class="cn-org-branch flex flex-col items-center"
-    :class="depth === 0 ? 'cn-org-branch--root' : 'cn-org-branch--nested'"
+    class="cn-org-branch flex w-full flex-col items-center"
+    :class="[
+      depth === 0 && !column ? 'cn-org-branch--root' : '',
+      column ? 'cn-org-branch--column' : '',
+      revealed ? 'cn-org-branch--revealed' : '',
+    ]"
     role="treeitem"
     :aria-expanded="hasBody ? 'true' : 'false'"
   >
-    <!-- Nút đơn vị -->
     <div
-      class="cn-org-node cn-org-node--unit relative z-[1] max-w-[min(100%,18rem)] text-center"
-      :class="depth === 0 ? 'cn-org-node--unit-root' : ''"
+      class="cn-org-node cn-org-node--unit cn-org-animate relative z-[1] text-center"
+      :class="[
+        depth === 0 && !column ? 'cn-org-node--unit-root max-w-lg' : 'cn-org-node--unit-branch max-w-xs',
+      ]"
+      :style="staggerStyle(0)"
     >
-      <p class="font-mono text-[9px] font-semibold uppercase tracking-[0.18em] text-cyan-200/55">
-        {{ depth === 0 ? 'Đơn vị' : 'Nhóm' }}
+      <p class="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/55">
+        {{ depth === 0 && !column ? 'Đơn vị' : 'Nhánh' }}
       </p>
-      <p class="mt-0.5 font-display text-sm font-bold leading-snug text-white sm:text-base">
+      <p
+        class="mt-1 font-display font-bold leading-snug text-white"
+        :class="depth === 0 && !column ? 'text-lg sm:text-xl' : 'text-base'"
+      >
         {{ team.name }}
       </p>
     </div>
 
-    <div
-      v-if="hasBody"
-      class="cn-org-stem"
-      aria-hidden="true"
-    />
-
-    <div
-      v-if="roster.leader || roster.sectionGroups.length"
-      class="cn-org-roster w-full max-w-5xl"
-    >
-      <button
-        v-if="roster.leader"
-        type="button"
-        class="cn-org-node cn-org-node--person cn-org-node--leader mx-auto flex max-w-xs items-center gap-3 text-left"
-        @click="openLeader()"
-      >
-        <span class="relative shrink-0">
-          <Avatar
-            :name="roster.leader.name"
-            :src="roster.leader.avatar"
-            :size="44"
-          />
-          <span
-            class="absolute -bottom-0.5 -right-0.5 grid h-4 w-4 place-items-center rounded-full bg-amber-400 text-[8px] text-amber-950 shadow"
-            title="Quản lý"
-          >
-            ★
-          </span>
-        </span>
-        <span class="min-w-0 flex-1">
-          <span class="block truncate text-sm font-semibold text-white">{{ roster.leader.name }}</span>
-          <span class="block truncate text-[11px] text-white/55">
-            {{ roster.leader.roleTitle || 'Quản lý' }}
-          </span>
-        </span>
-      </button>
-
+    <template v-if="hasBody">
       <div
-        v-if="roster.sectionGroups.length"
-        class="mt-4 space-y-4"
-        :class="roster.leader ? 'pt-1' : ''"
-      >
-        <div
-          v-for="group in roster.sectionGroups"
-          :key="group.key"
-          class="cn-org-section"
-        >
-          <p
-            v-if="group.title"
-            class="mb-2 text-center font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-white/40"
-          >
-            {{ group.title }}
-          </p>
-          <ul
-            class="cn-org-people-grid mx-auto grid max-w-4xl list-none gap-2 p-0 sm:gap-2.5"
-            :class="group.people.length === 1 ? 'grid-cols-1 place-items-center' : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4'"
-          >
-            <li
-              v-for="person in group.people"
-              :key="person.key"
-            >
-              <button
-                type="button"
-                class="cn-org-node cn-org-node--person flex h-full w-full flex-col items-center gap-2 px-2 py-2.5 text-center sm:px-2.5"
-                @click="openPerson(person)"
-              >
-                <Avatar
-                  :name="person.name"
-                  :src="person.avatar"
-                  :size="40"
-                />
-                <span class="min-w-0 w-full">
-                  <span class="block truncate text-[12px] font-semibold leading-tight text-white sm:text-[13px]">
-                    {{ person.name }}
-                  </span>
-                  <span
-                    v-if="person.roleTitle || person.branchLabel"
-                    class="mt-0.5 block truncate text-[10px] leading-snug text-white/50 sm:text-[11px]"
-                  >
-                    {{ person.roleTitle || person.branchLabel }}
-                  </span>
-                </span>
-              </button>
-            </li>
-          </ul>
-        </div>
-      </div>
-    </div>
-
-    <div
-      v-if="children.length"
-      class="cn-org-children mt-5 w-full"
-    >
-      <div
-        v-if="hasPeople"
-        class="cn-org-stem cn-org-stem--to-children mx-auto"
+        class="cn-org-stem cn-org-stem--pulse"
         aria-hidden="true"
       />
+
       <div
-        class="cn-org-children-row relative flex flex-wrap items-start justify-center gap-4 pt-4 sm:gap-5 lg:gap-6"
+        v-if="hasLeadership"
+        class="cn-org-leadership w-full"
         role="group"
-        :aria-label="`Đơn vị con của ${team.name}`"
+        :aria-label="`Ban lãnh đạo — ${team.name}`"
       >
-        <CongngheOrgChartBranch
-          v-for="child in children"
-          :key="child.id"
-          :team="child"
-          :depth="depth + 1"
-          class="cn-org-child-wrap"
-          @select-person="emit('select-person', $event)"
-        />
+        <p class="cn-org-eyebrow mb-3 text-center text-amber-200/55">
+          Ban lãnh đạo
+        </p>
+        <ul
+          class="cn-org-leadership-row mx-auto flex list-none flex-wrap items-stretch justify-center gap-3 p-0 sm:gap-4"
+        >
+          <li
+            v-for="(card, li) in leadershipCards"
+            :key="card.key"
+            class="min-w-[11.5rem] max-w-[15rem] flex-1 sm:min-w-[12.5rem] lg:min-w-[13.5rem]"
+          >
+            <button
+              type="button"
+              class="cn-org-node cn-org-node--person cn-org-node--lead-card cn-org-animate flex h-full w-full flex-col items-center gap-3 px-4 py-5 text-center"
+              :style="staggerStyle(li, 1)"
+              @click="openPerson(card.person, card.branchTitle)"
+            >
+              <span class="line-clamp-2 min-h-[2.25rem] w-full text-[11px] font-semibold uppercase leading-snug tracking-wide text-amber-100/80 sm:text-xs">
+                {{ card.branchTitle }}
+              </span>
+              <span class="cn-org-avatar-ring">
+                <Avatar
+                  :name="card.person.name"
+                  :src="card.person.avatar"
+                  :size="64"
+                />
+              </span>
+              <span class="min-w-0 w-full">
+                <span class="block text-base font-semibold leading-tight text-white sm:text-[17px]">
+                  {{ card.person.name }}
+                </span>
+                <span
+                  v-if="card.person.roleTitle"
+                  class="mt-1.5 block text-xs leading-snug text-white/55 sm:text-[13px]"
+                >
+                  {{ card.person.roleTitle }}
+                </span>
+              </span>
+            </button>
+          </li>
+        </ul>
       </div>
-    </div>
+
+      <div
+        v-if="hasStaff"
+        class="cn-org-staff mt-6 w-full max-w-6xl"
+        :class="hasLeadership ? 'pt-1' : ''"
+      >
+        <div
+          v-if="hasLeadership && hasStaff"
+          class="cn-org-stem cn-org-stem--short cn-org-stem--pulse mx-auto"
+          aria-hidden="true"
+        />
+        <p
+          v-if="depth === 0"
+          class="cn-org-eyebrow mb-4 text-center text-white/40"
+        >
+          Nhân sự theo nhánh
+        </p>
+        <div class="space-y-8">
+          <section
+            v-for="(group, gi) in staffGroups"
+            :key="group.key"
+            class="cn-org-staff-branch cn-org-animate"
+            :style="staggerStyle(gi, staffStaggerBase)"
+          >
+            <header class="mb-4 text-center">
+              <h4 class="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-200/70">
+                {{ group.title || 'Thành viên' }}
+              </h4>
+            </header>
+            <ul
+              class="grid list-none gap-3 p-0 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3"
+            >
+              <li
+                v-for="(person, pi) in group.people"
+                :key="person.key"
+              >
+                <button
+                  type="button"
+                  class="cn-org-node cn-org-node--person cn-org-node--staff flex w-full flex-col items-center gap-3 px-4 py-5 text-center"
+                  :style="staggerStyle(pi, staffStaggerBase + gi * 2 + 1)"
+                  @click="openPerson(person, group.title)"
+                >
+                  <Avatar
+                    :name="person.name"
+                    :src="person.avatar"
+                    :size="52"
+                  />
+                  <span class="min-w-0 w-full">
+                    <span class="block text-sm font-semibold leading-snug text-white sm:text-[15px]">
+                      {{ person.name }}
+                    </span>
+                    <span
+                      v-if="person.roleTitle || person.branchLabel"
+                      class="mt-1 block text-xs leading-snug text-white/50"
+                    >
+                      {{ person.roleTitle || person.branchLabel }}
+                    </span>
+                  </span>
+                </button>
+              </li>
+            </ul>
+          </section>
+        </div>
+      </div>
+
+      <div
+        v-if="hasChildren"
+        class="cn-org-children mt-8 w-full"
+      >
+        <div
+          v-if="hasLeadership || hasStaff"
+          class="cn-org-stem cn-org-stem--to-children cn-org-stem--pulse mx-auto"
+          aria-hidden="true"
+        />
+        <p
+          v-if="depth === 0"
+          class="cn-org-eyebrow mb-4 text-center text-white/40"
+        >
+          Phân nhánh chuyên môn
+        </p>
+        <div
+          class="cn-org-children-grid relative grid gap-5 pt-4 sm:gap-6"
+          :class="children.length >= 2 ? 'sm:grid-cols-2' : 'grid-cols-1'"
+          role="group"
+          :aria-label="`Phân nhánh của ${team.name}`"
+        >
+          <CongngheOrgChartBranch
+            v-for="(child, ci) in children"
+            :key="child.id"
+            :team="child"
+            :depth="depth + 1"
+            :revealed="revealed"
+            column
+            class="cn-org-child-column cn-org-animate"
+            :style="staggerStyle(ci, staffStaggerBase + staffGroups.length + 2)"
+            @select-person="emit('select-person', $event)"
+          />
+        </div>
+      </div>
+    </template>
   </div>
 </template>
 
 <style scoped>
+.cn-org-eyebrow {
+    font-family: ui-monospace, monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
 .cn-org-stem {
     width: 2px;
-    height: 1.25rem;
-    margin-top: 0.35rem;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.08));
+    height: 1.5rem;
+    margin-top: 0.5rem;
+    background: linear-gradient(180deg, rgba(255, 77, 141, 0.55), rgba(255, 255, 255, 0.08));
     border-radius: 1px;
+}
+
+.cn-org-stem--short {
+    height: 1rem;
+    margin-bottom: 0.65rem;
 }
 
 .cn-org-stem--to-children {
-    height: 1rem;
+    height: 1.15rem;
 }
 
-.cn-org-children-row::before {
+.cn-org-stem--pulse {
+    animation: cn-org-stem-pulse 2.8s ease-in-out infinite;
+}
+
+@keyframes cn-org-stem-pulse {
+    0%,
+    100% {
+        opacity: 0.65;
+        filter: drop-shadow(0 0 0 transparent);
+    }
+
+    50% {
+        opacity: 1;
+        filter: drop-shadow(0 0 6px rgba(255, 77, 141, 0.45));
+    }
+}
+
+.cn-org-children-grid::before {
     content: '';
     position: absolute;
     top: 0;
-    left: 8%;
-    right: 8%;
+    left: 4%;
+    right: 4%;
     height: 2px;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2) 15%, rgba(255, 255, 255, 0.2) 85%, transparent);
-    border-radius: 1px;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 77, 141, 0.35) 15%,
+        rgba(56, 189, 248, 0.25) 50%,
+        rgba(255, 77, 141, 0.35) 85%,
+        transparent
+    );
+    animation: cn-org-line-shimmer 4s ease-in-out infinite;
 }
 
-.cn-org-child-wrap {
-    flex: 1 1 min(100%, 16rem);
-    max-width: 22rem;
+@keyframes cn-org-line-shimmer {
+    0%,
+    100% {
+        opacity: 0.5;
+    }
+
+    50% {
+        opacity: 1;
+    }
 }
 
-.cn-org-child-wrap::before {
+.cn-org-child-column {
+    position: relative;
+    padding-top: 0.85rem;
+}
+
+.cn-org-child-column::before {
     content: '';
-    display: block;
+    position: absolute;
+    top: 0;
+    left: 50%;
     width: 2px;
-    height: 1rem;
-    margin: 0 auto;
-    background: rgba(255, 255, 255, 0.22);
+    height: 0.85rem;
+    transform: translateX(-50%);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.06));
+}
+
+.cn-org-branch--column {
+    border-radius: 1.25rem;
+    background: linear-gradient(165deg, rgba(255, 255, 255, 0.04), rgba(8, 9, 16, 0.65));
+    padding: 1rem 1rem 1.25rem;
+    box-shadow: 0 16px 48px -24px rgba(0, 0, 0, 0.65);
+}
+
+@media (min-width: 640px) {
+    .cn-org-branch--column {
+        padding: 1.25rem 1.35rem 1.5rem;
+    }
+}
+
+.cn-org-leadership-row {
+    max-width: 64rem;
 }
 
 .cn-org-node {
-    border-radius: 14px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: none;
+    border-radius: 1.25rem;
     background: rgba(255, 255, 255, 0.04);
-    transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+    box-shadow:
+        0 12px 40px -20px rgba(0, 0, 0, 0.75),
+        inset 0 1px 0 rgba(255, 255, 255, 0.07);
+    transition:
+        transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+        box-shadow 0.28s ease,
+        background 0.28s ease;
 }
 
 .cn-org-node--unit {
-    padding: 0.65rem 1rem;
-    background: linear-gradient(135deg, rgba(154, 0, 54, 0.35), rgba(12, 14, 24, 0.92));
-    border-color: rgba(255, 77, 141, 0.35);
-    box-shadow: 0 8px 32px -12px rgba(154, 0, 54, 0.45);
+    padding: 0.85rem 1.25rem;
+    background: linear-gradient(135deg, rgba(154, 0, 54, 0.42), rgba(12, 14, 24, 0.88));
+    box-shadow:
+        0 20px 56px -20px rgba(154, 0, 54, 0.55),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .cn-org-node--unit-root {
-    padding: 0.85rem 1.25rem;
+    padding: 1rem 1.5rem;
+}
+
+.cn-org-node--unit-branch {
+    padding: 0.65rem 1rem;
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.14), rgba(12, 14, 24, 0.92));
+    box-shadow: 0 12px 36px -18px rgba(56, 189, 248, 0.25);
 }
 
 .cn-org-node--person {
     cursor: pointer;
 }
 
+.cn-org-node--lead-card {
+    background: linear-gradient(165deg, rgba(251, 191, 36, 0.12), rgba(255, 255, 255, 0.04));
+    box-shadow:
+        0 16px 48px -22px rgba(251, 191, 36, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.cn-org-node--staff {
+    min-height: 9.5rem;
+    justify-content: center;
+}
+
+.cn-org-avatar-ring {
+    display: inline-flex;
+    padding: 3px;
+    border-radius: 9999px;
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.55), rgba(255, 77, 141, 0.45));
+    box-shadow: 0 0 24px -4px rgba(255, 77, 141, 0.45);
+}
+
 .cn-org-node--person:hover,
 .cn-org-node--person:focus-visible {
-    border-color: rgba(255, 77, 141, 0.45);
-    background: rgba(255, 255, 255, 0.08);
-    transform: translateY(-1px);
+    transform: translateY(-4px) scale(1.02);
+    background: rgba(255, 255, 255, 0.09);
+    box-shadow:
+        0 24px 56px -20px rgba(154, 0, 54, 0.45),
+        0 0 0 1px rgba(255, 77, 141, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.12);
     outline: none;
 }
 
-.cn-org-node--leader {
-    border-color: rgba(251, 191, 36, 0.35);
-    background: rgba(251, 191, 36, 0.06);
+.cn-org-node--lead-card:hover,
+.cn-org-node--lead-card:focus-visible {
+    box-shadow:
+        0 28px 60px -18px rgba(251, 191, 36, 0.4),
+        0 0 0 1px rgba(251, 191, 36, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.14);
 }
 
-.cn-org-node--leader:hover,
-.cn-org-node--leader:focus-visible {
-    border-color: rgba(251, 191, 36, 0.55);
-    background: rgba(251, 191, 36, 0.1);
+.cn-org-branch--revealed .cn-org-animate {
+    animation: cn-org-card-rise 0.65s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+@keyframes cn-org-card-rise {
+    from {
+        opacity: 0;
+        transform: translateY(22px) scale(0.96);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.cn-org-branch:not(.cn-org-branch--revealed) .cn-org-animate {
+    opacity: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -268,6 +452,20 @@ function openLeader() {
     .cn-org-node--person:hover,
     .cn-org-node--person:focus-visible {
         transform: none;
+    }
+
+    .cn-org-stem--pulse,
+    .cn-org-children-grid::before {
+        animation: none;
+    }
+
+    .cn-org-branch--revealed .cn-org-animate {
+        animation: none;
+        opacity: 1;
+    }
+
+    .cn-org-branch:not(.cn-org-branch--revealed) .cn-org-animate {
+        opacity: 1;
     }
 }
 </style>

@@ -1,17 +1,16 @@
 import {
     computed, onBeforeUnmount, onMounted, ref, unref, watch,
 } from 'vue';
-import { prefersReducedMotionNow } from './motion.js';
 
 const STORAGE_KEY = 'cn-assistant-pos-v2';
-const DRAG_THRESHOLD = 8;
+const DRAG_THRESHOLD = 6;
 const NAV_TOP = 56;
 const EDGE_PAD = 8;
 
 /**
  * Vị trí trợ lý (fixed left/top) — kéo thả tự do, lưu localStorage, ẩn/hiện.
  */
-export function useCongngheAssistantDock(asideRef) {
+export function useCongngheAssistantDock(asideRef, options = {}) {
     const posX = ref(0);
     const posY = ref(0);
     const positioned = ref(false);
@@ -20,6 +19,7 @@ export function useCongngheAssistantDock(asideRef) {
 
     let pointer = null;
     let moved = false;
+    let captureEl = null;
 
     function widgetSize() {
         const el = unref(asideRef);
@@ -37,11 +37,9 @@ export function useCongngheAssistantDock(asideRef) {
             return { x: EDGE_PAD, y: NAV_TOP + EDGE_PAD };
         }
         const { w, h } = widgetSize();
-        const safeR = 0;
-        const safeB = 0;
         return {
-            x: window.innerWidth - w - Math.max(EDGE_PAD, safeR),
-            y: window.innerHeight - h - Math.max(EDGE_PAD, safeB),
+            x: window.innerWidth - w - EDGE_PAD,
+            y: window.innerHeight - h - EDGE_PAD,
         };
     }
 
@@ -106,12 +104,52 @@ export function useCongngheAssistantDock(asideRef) {
         ensurePosition();
     }
 
-    function canDrag() {
-        return !prefersReducedMotionNow();
+    function detachWindowPointer() {
+        if (typeof window === 'undefined') {
+            return;
+        }
+        window.removeEventListener('pointermove', onWindowPointerMove);
+        window.removeEventListener('pointerup', onWindowPointerUp);
+        window.removeEventListener('pointercancel', onWindowPointerUp);
+    }
+
+    function onWindowPointerMove(e) {
+        if (!pointer || e.pointerId !== pointer.id) {
+            return;
+        }
+        const dx = e.clientX - pointer.startX;
+        const dy = e.clientY - pointer.startY;
+        if (!moved && Math.hypot(dx, dy) < DRAG_THRESHOLD) {
+            return;
+        }
+        if (!moved) {
+            moved = true;
+            isDragging.value = true;
+        }
+        applyPos(pointer.origX + dx, pointer.origY + dy);
+        e.preventDefault();
+    }
+
+    function onWindowPointerUp(e) {
+        if (!pointer || e.pointerId !== pointer.id) {
+            return;
+        }
+        captureEl?.releasePointerCapture?.(e.pointerId);
+        captureEl = null;
+        const wasDrag = moved;
+        pointer = null;
+        isDragging.value = false;
+        detachWindowPointer();
+        if (wasDrag) {
+            persist();
+        } else if (typeof options.onTap === 'function') {
+            options.onTap();
+        }
+        moved = false;
     }
 
     function onPointerDown(e) {
-        if (!canDrag()) {
+        if (e.button !== 0 && e.pointerType === 'mouse') {
             return;
         }
         ensurePosition();
@@ -123,35 +161,26 @@ export function useCongngheAssistantDock(asideRef) {
             origY: posY.value,
         };
         moved = false;
-        e.currentTarget.setPointerCapture?.(e.pointerId);
+        captureEl = e.currentTarget;
+        captureEl.setPointerCapture?.(e.pointerId);
+        window.addEventListener('pointermove', onWindowPointerMove, { passive: false });
+        window.addEventListener('pointerup', onWindowPointerUp);
+        window.addEventListener('pointercancel', onWindowPointerUp);
     }
 
-    function onPointerMove(e) {
-        if (!pointer || e.pointerId !== pointer.id) {
-            return;
-        }
-        const dx = e.clientX - pointer.startX;
-        const dy = e.clientY - pointer.startY;
-        if (!moved && Math.hypot(dx, dy) < DRAG_THRESHOLD) {
-            return;
-        }
-        moved = true;
-        isDragging.value = true;
-        applyPos(pointer.origX + dx, pointer.origY + dy);
+    function onPointerMove() {
+        /* legacy — dùng listener window */
     }
 
     function finishPointer(e) {
-        if (!pointer || e.pointerId !== pointer.id) {
-            return null;
+        if (!pointer) {
+            return false;
         }
-        e.currentTarget.releasePointerCapture?.(e.pointerId);
+        if (e && e.pointerId !== pointer.id) {
+            return moved;
+        }
         const wasDrag = moved;
-        pointer = null;
-        isDragging.value = false;
-        if (wasDrag) {
-            persist();
-        }
-        moved = false;
+        onWindowPointerUp(e);
         return wasDrag;
     }
 
@@ -182,6 +211,7 @@ export function useCongngheAssistantDock(asideRef) {
 
     onBeforeUnmount(() => {
         window.removeEventListener('resize', onResizeDock);
+        detachWindowPointer();
     });
 
     watch(hidden, (isHidden) => {

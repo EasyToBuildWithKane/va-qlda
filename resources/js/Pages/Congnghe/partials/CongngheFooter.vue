@@ -21,9 +21,6 @@ const contactLinks = [
 ];
 
 const year = new Date().getFullYear();
-
-/** Nền footer (gradient) — khớp blend mascot, tránh viền đen PNG. */
-const footerSurface = '#120818';
 </script>
 
 <template>
@@ -102,12 +99,16 @@ const footerSurface = '#120818';
           <p :class="colHeadingClass">
             Đồng hành cùng VAS
           </p>
-          <div class="mt-4 flex flex-1 items-center justify-center sm:justify-start">
+          <div class="relative mt-4 flex flex-1 items-end justify-center sm:justify-start">
+            <div
+              class="pointer-events-none absolute inset-0 -inset-x-6 bg-[radial-gradient(ellipse_75%_65%_at_50%_55%,#120818_0%,transparent_68%)]"
+              aria-hidden="true"
+            />
             <CongngheBrandImage
               :src="congngheBrand.mascotHoodie"
               alt="Linh vật VAS — Phòng Công Nghệ"
-              :blend-on-surface="footerSurface"
-              class="h-36 w-auto max-w-full sm:h-40 lg:h-44 xl:h-48"
+              cutout-only
+              class="relative z-10 h-36 w-auto max-w-full sm:h-40 lg:h-44 xl:h-48"
               loading="lazy"
             />
           </div>

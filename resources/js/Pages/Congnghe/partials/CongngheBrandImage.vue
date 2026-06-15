@@ -3,25 +3,27 @@
  * Ảnh thương hiệu / mascot có nền đen trong file — blend screen trên nền tối landing.
  * `isolatedCutout` / `blendOnSurface`: nền cố định + isolation (tránh hộp đen trên blur/gradient).
  */
-import { computed } from "vue";
+import { computed } from 'vue';
 
 defineOptions({ inheritAttrs: false });
 
 const props = defineProps({
     src: { type: String, required: true },
-    alt: { type: String, default: "" },
+    alt: { type: String, default: '' },
     /** Tắt khi ảnh đã có alpha (logo nền sáng, ảnh dự án). */
     cutout: { type: Boolean, default: true },
     /** Bọc nền khớp header — xóa hộp đen trên navbar cố định. */
     isolatedCutout: { type: Boolean, default: false },
     /** Màu nền cha — bật isolated khi set (trợ lý, footer). */
-    blendOnSurface: { type: String, default: "" },
+    blendOnSurface: { type: String, default: '' },
     /** Màu nền blend (mặc định header /congnghe). */
-    surfaceColor: { type: String, default: "#070912" },
+    surfaceColor: { type: String, default: '#070912' },
+    /** Chỉ blend screen trên img, không bọc nền (footer radial, trợ lý kéo). */
+    cutoutOnly: { type: Boolean, default: false },
 });
 
 const wrapIsolated = computed(
-    () => props.isolatedCutout || Boolean(props.blendOnSurface),
+    () => !props.cutoutOnly && (props.isolatedCutout || Boolean(props.blendOnSurface)),
 );
 
 const resolvedSurface = computed(

@@ -3,6 +3,7 @@ import CongngheOrgChartBranch from './CongngheOrgChartBranch.vue';
 
 defineProps({
     trees: { type: Array, default: () => [] },
+    revealed: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['select-person']);
@@ -14,7 +15,8 @@ function onSelectPerson(payload) {
 
 <template>
   <div
-    class="cn-org-chart rounded-2xl border border-white/12 bg-white/[0.03] px-3 py-6 sm:rounded-3xl sm:px-6 sm:py-8"
+    class="cn-org-chart rounded-3xl px-2 py-7 sm:px-5 sm:py-9 lg:px-8"
+    :class="revealed ? 'cn-org-chart--revealed' : ''"
     role="tree"
     aria-label="Sơ đồ tổ chức Phòng Công nghệ"
   >
@@ -23,6 +25,7 @@ function onSelectPerson(payload) {
       :key="root.id"
       :team="root"
       :depth="0"
+      :revealed="revealed"
       @select-person="onSelectPerson"
     />
   </div>
@@ -31,7 +34,32 @@ function onSelectPerson(payload) {
 <style scoped>
 .cn-org-chart {
     background:
-        radial-gradient(120% 80% at 50% 0%, rgba(154, 0, 54, 0.12), transparent 55%),
-        linear-gradient(180deg, rgba(15, 15, 22, 0.6) 0%, rgba(8, 8, 14, 0.85) 100%);
+        radial-gradient(120% 80% at 50% 0%, rgba(154, 0, 54, 0.14), transparent 55%),
+        linear-gradient(180deg, rgba(15, 15, 22, 0.55) 0%, rgba(8, 8, 14, 0.82) 100%);
+    box-shadow:
+        0 24px 80px -32px rgba(154, 0, 54, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.cn-org-chart--revealed {
+    animation: cn-org-chart-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+@keyframes cn-org-chart-in {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cn-org-chart--revealed {
+        animation: none;
+    }
 }
 </style>

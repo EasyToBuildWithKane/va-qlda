@@ -100,7 +100,7 @@ onBeforeUnmount(() => {
           <SectionHeading
             eyebrow="Đội ngũ · Sơ đồ tổ chức"
             title="Cấu trúc vận hành"
-            subtitle="Sơ đồ nhân sự Phòng Công nghệ — avatar, tên và vai trò theo nhóm."
+            subtitle="Ban lãnh đạo theo hàng ngang — phân nhánh chuyên môn và nhân sự bên dưới."
           />
         </div>
 
@@ -143,6 +143,7 @@ onBeforeUnmount(() => {
     >
       <CongngheOrgChart
         :trees="roots"
+        :revealed="sectionVisible"
         @select-person="onSelectPerson"
       />
     </div>

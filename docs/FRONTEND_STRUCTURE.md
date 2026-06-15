@@ -102,7 +102,7 @@ AppLayout.vue
 | Domain | Files |
 |---|---|
 | Auth | `Pages/Auth/Login.vue` |
-| Congnghe (landing `/congnghe`) | `Pages/Congnghe/Index.vue` + `partials/*` — **không** `AppLayout`; sơ đồ `#to-chuc`: `OrgChartSection.vue` + `CongngheOrgChart.vue` / `CongngheOrgChartBranch.vue` (node avatar·tên·vai trò, không pan/zoom); form `Proposal.vue`; **quản lý (admin/lead):** `Pages/Congnghe/Proposals/Index.vue`, `Show.vue` — sidebar nhóm «Phòng Công nghệ» |
+| Congnghe (landing `/congnghe`) | `Pages/Congnghe/Index.vue` + `partials/*` — **không** `AppLayout`; sơ đồ `#to-chuc`: `OrgChartSection.vue` + `CongngheOrgChart.vue` / `CongngheOrgChartBranch.vue` + `useCongngheOrgLayout.js` (hàng ban lãnh đạo ngang theo tiêu đề nhánh QLDA, cột phân nhánh con); form `Proposal.vue`; **quản lý (admin/lead):** `Pages/Congnghe/Proposals/Index.vue`, `Show.vue` — sidebar nhóm «Phòng Công nghệ» |
 | Dashboard | `Pages/Dashboard/Index.vue` |
 | DailyReport | `Today`, `History`, `Show`, `Review` |
 | Project | `Index`, `Create`, `Edit`, `Show` |

@@ -47,11 +47,12 @@ const sizeClass = {
     </template>
 
     <span
-      class="relative z-10 inline-flex items-center justify-center drop-shadow-[0_8px_24px_rgba(154,0,54,0.45)]"
+      class="relative z-10 inline-flex items-center justify-center drop-shadow-[0_8px_24px_rgba(154,0,54,0.35)]"
     >
       <CongngheBrandImage
         :src="src"
         :alt="alt"
+        cutout-only
         class="object-contain"
         :class="[
           sizeClass[variant] ?? sizeClass.inline,
