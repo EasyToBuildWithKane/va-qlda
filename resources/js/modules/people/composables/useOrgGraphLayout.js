@@ -7,10 +7,11 @@ import { toIterableList } from '@/modules/people/composables/useOrgTeamPeople.js
  * Turns the org-team forest into an absolute-positioned node/edge model using a
  * classic top-down "tidy tree" pass. The hierarchy rendered is:
  *
- *   (synthetic org hub, only when >1 Ban/Khối)
- *     └─ Ban/Khối (team)  ── leader shown on the card
- *          └─ Nhóm (team)
- *               └─ members (person, only when the team is expanded)
+ *   (synthetic org hub, only when >1 root Nhóm)
+ *     └─ Nhóm (team)  ── leader shown on the card
+ *          └─ Nhóm con (team)
+ *               └─ nhánh / mảng (section, when team expanded)
+ *                    └─ members (person)
  *
  * Everything here is geometry + real data — no fabricated metrics.
  */
@@ -18,39 +19,107 @@ import { toIterableList } from '@/modules/people/composables/useOrgTeamPeople.js
 export const NODE = {
     org: { w: 212, h: 86 },
     team: { w: 234, h: 100 },
-    person: { w: 188, h: 84 },
+    section: { w: 176, h: 58 },
+    person: { w: 188, h: 76 },
 };
 const H_GAP = 28;
 const V_GAP = 66;
 const PADDING = 56;
 
-function memberPeople(team, rootId, rootName) {
+const UNASSIGNED_SECTION_KEY = '__unassigned__';
+
+function personFromMember(m, team, rootId, rootName) {
+    const emp = m?.employee;
+    if (!emp?.id) {
+        return null;
+    }
+    return {
+        employeeId: emp.id,
+        name: emp.name,
+        avatar: emp.avatar_path ?? null,
+        roleTitle: emp.role_title ?? null,
+        email: emp.email ?? null,
+        code: emp.code ?? null,
+        isActive: emp.is_active !== false,
+        isLeader: false,
+        sectionTitle: m.section?.title ?? null,
+        branchLabel: m.branch?.label ?? null,
+        teamId: team.id,
+        teamName: team.name,
+        rootId,
+        rootName,
+    };
+}
+
+/**
+ * Nhánh / mảng giữa nhóm và thành viên — gồm mảng đã khai báo (kể cả chưa có người).
+ * @returns {Array<{ key: string, sectionId: number|null, title: string, people: object[] }>}
+ */
+function sectionBranches(team, rootId, rootName) {
     const leaderId = team.leader?.id ?? null;
-    const out = [];
-    for (const m of toIterableList(team.members)) {
-        const emp = m?.employee;
-        if (!emp?.id || emp.id === leaderId) {
-            continue;
-        }
-        out.push({
-            employeeId: emp.id,
-            name: emp.name,
-            avatar: emp.avatar_path ?? null,
-            roleTitle: emp.role_title ?? null,
-            email: emp.email ?? null,
-            code: emp.code ?? null,
-            isActive: emp.is_active !== false,
-            isLeader: false,
-            sectionTitle: m.section?.title ?? null,
-            branchLabel: m.branch?.label ?? null,
-            teamId: team.id,
-            teamName: team.name,
-            rootId,
-            rootName,
+    const sections = toIterableList(team.sections)
+        .slice()
+        .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+
+    /** @type {Map<number|string, { key: string, sectionId: number|null, title: string, people: object[] }>} */
+    const byKey = new Map();
+
+    for (const sec of sections) {
+        if (!sec?.id) continue;
+        byKey.set(sec.id, {
+            key: `section-${team.id}-${sec.id}`,
+            sectionId: sec.id,
+            title: (sec.title ?? '').trim() || 'Nhánh',
+            people: [],
         });
     }
 
-    return out;
+    for (const m of toIterableList(team.members)) {
+        const emp = m?.employee;
+        if (!emp?.id || emp.id === leaderId) continue;
+
+        const sectionId = m.section?.id ?? m.section_id ?? null;
+        let bucket;
+        if (sectionId != null && byKey.has(sectionId)) {
+            bucket = byKey.get(sectionId);
+        } else if (sectionId != null) {
+            const title = (m.section?.title ?? '').trim() || 'Nhánh';
+            bucket = {
+                key: `section-${team.id}-orphan-${sectionId}`,
+                sectionId,
+                title,
+                people: [],
+            };
+            byKey.set(sectionId, bucket);
+        } else {
+            if (!byKey.has(UNASSIGNED_SECTION_KEY)) {
+                byKey.set(UNASSIGNED_SECTION_KEY, {
+                    key: `section-${team.id}-unassigned`,
+                    sectionId: null,
+                    title: 'Chưa phân mảng',
+                    people: [],
+                });
+            }
+            bucket = byKey.get(UNASSIGNED_SECTION_KEY);
+        }
+        const p = personFromMember(m, team, rootId, rootName);
+        if (p) bucket.people.push(p);
+    }
+
+    const ordered = [];
+    for (const sec of sections) {
+        if (!sec?.id) continue;
+        const row = byKey.get(sec.id);
+        if (row) {
+            ordered.push(row);
+            byKey.delete(sec.id);
+        }
+    }
+    for (const row of byKey.values()) {
+        ordered.push(row);
+    }
+
+    return ordered;
 }
 
 function directCount(team) {
@@ -93,7 +162,8 @@ function buildLogical(trees, { expanded, collapsed }) {
             hasSubteams: toIterableList(team.children).length > 0,
             children: [],
         };
-        ln.hasMembers = memberPeople(team, rootId, rootName).length > 0;
+        const branches = sectionBranches(team, rootId, rootName);
+        ln.hasMembers = branches.length > 0;
 
         if (!ln.collapsed) {
             for (const sub of toIterableList(team.children)) {
@@ -101,14 +171,27 @@ function buildLogical(trees, { expanded, collapsed }) {
             }
         }
         if (ln.expanded) {
-            for (const p of memberPeople(team, rootId, rootName)) {
-                ln.children.push({
-                    id: `person-${team.id}-${p.employeeId}`,
-                    type: 'person',
-                    person: p,
+            for (const branch of branches) {
+                const sectionLn = {
+                    id: branch.key,
+                    type: 'section',
+                    sectionTitle: branch.title,
+                    sectionId: branch.sectionId,
+                    teamId: team.id,
+                    peopleCount: branch.people.length,
                     rootId,
                     children: [],
-                });
+                };
+                for (const p of branch.people) {
+                    sectionLn.children.push({
+                        id: `person-${team.id}-${p.employeeId}`,
+                        type: 'person',
+                        person: p,
+                        rootId,
+                        children: [],
+                    });
+                }
+                ln.children.push(sectionLn);
             }
         }
 
@@ -192,6 +275,14 @@ function personMatches(p, f) {
     return true;
 }
 
+function sectionSelfMatches(ln, f) {
+    if (f.rootId && ln.rootId !== f.rootId) return false;
+    if (f.query && normalize(ln.sectionTitle).includes(f.query)) return true;
+
+    return false;
+}
+
+
 function teamSelfMatches(ln, f) {
     const team = ln.team;
     if (f.rootId && ln.rootId !== f.rootId) return false;
@@ -208,6 +299,7 @@ function teamSelfMatches(ln, f) {
 function markMatches(ln, f, active) {
     let self = false;
     if (ln.type === 'person') self = personMatches(ln.person, f);
+    else if (ln.type === 'section') self = sectionSelfMatches(ln, f);
     else if (ln.type === 'team') self = teamSelfMatches(ln, f);
 
     let subtree = self;

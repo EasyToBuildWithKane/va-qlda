@@ -88,7 +88,7 @@ onBeforeUnmount(() => {
         v-if="node.level <= 2"
         class="org-team-node__level"
       >
-        {{ node.level === 1 ? 'Ban / Khối' : 'Nhóm' }}
+        {{ node.level === 1 ? 'Nhóm' : 'Nhóm con' }}
       </p>
       <h3 class="org-team-node__title">
         {{ node.name }}

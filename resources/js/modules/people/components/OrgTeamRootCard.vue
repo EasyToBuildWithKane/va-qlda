@@ -37,7 +37,7 @@ const subLabel = computed(() => {
   >
     <header class="border-b border-slate-100 px-5 py-4">
       <p class="text-[10px] font-semibold uppercase tracking-[0.14em] text-brand/80">
-        Ban / Khối
+        Nhóm
       </p>
       <h3 class="mt-1 font-display text-lg font-semibold leading-snug text-slate-900">
         {{ node.name }}
@@ -129,7 +129,7 @@ const subLabel = computed(() => {
         v-if="node.can?.update"
         type="button"
         class="flex h-10 w-10 shrink-0 items-center justify-center rounded-btn border border-slate-200 text-slate-500 transition-colors hover:border-slate-300 hover:bg-slate-50 hover:text-slate-700"
-        aria-label="Sửa Ban/Khối"
+        aria-label="Sửa Nhóm"
         @click="emit('edit', node)"
       >
         <AppIcon

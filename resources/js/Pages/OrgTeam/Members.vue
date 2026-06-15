@@ -18,7 +18,7 @@ import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterC
 const FILTER_CONTROL_CLASS = 'input h-10 w-full text-sm';
 
 const MEMBERS_FILTER_CONTROLS = [
-    { key: 'root_id', label: 'Ban / Khối', default: false },
+    { key: 'root_id', label: 'Nhóm', default: false },
     { key: 'team_id', label: 'Nhóm', default: false },
     { key: 'branch', label: 'Nhánh / vai trò', default: false },
 ];
@@ -260,11 +260,11 @@ onBeforeUnmount(() => {
                 <select
                   v-model="filterForm.root_id"
                   :class="FILTER_CONTROL_CLASS"
-                  aria-label="Ban / Khối"
+                  aria-label="Nhóm"
                   @change="load(true)"
                 >
                   <option value="">
-                    Ban / Khối
+                    Nhóm
                   </option>
                   <option
                     v-for="r in rootOptions"
@@ -323,7 +323,7 @@ onBeforeUnmount(() => {
           v-if="!rows.length"
           icon="members"
           title="Không có thành viên phù hợp"
-          description="Thử đổi từ khoá hoặc bật bộ lọc Ban/Khối, nhóm, nhánh trong nút Lọc."
+          description="Thử đổi từ khoá hoặc bật bộ lọc Nhóm, nhóm con, nhánh trong nút Lọc."
         />
 
         <div

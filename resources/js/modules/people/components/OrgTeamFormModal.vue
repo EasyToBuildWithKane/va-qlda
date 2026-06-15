@@ -68,7 +68,7 @@ const modalTitle = computed(() => {
         return 'Sửa nhóm';
     }
     if (props.forceRoot) {
-        return 'Thêm Ban/Khối';
+        return 'Thêm Nhóm';
     }
 
     return props.presetParentId != null ? 'Thêm nhóm con' : 'Thêm nhóm';
@@ -244,7 +244,7 @@ const submit = () => {
       @submit.prevent="submit"
     >
       <div>
-        <label class="label">{{ forceRoot ? 'Tên Ban/Khối' : 'Tên nhóm' }}</label>
+        <label class="label">{{ forceRoot ? 'Tên Nhóm' : 'Tên nhóm' }}</label>
         <input
           v-model="form.name"
           type="text"
@@ -272,7 +272,7 @@ const submit = () => {
             :disabled="isEdit && team?.children?.length > 0"
           >
             <option :value="null">
-              Không — Ban/Khối độc lập (team mới)
+              Không — Nhóm độc lập (team mới)
             </option>
             <option
               v-for="p in parentChoices"
@@ -311,7 +311,7 @@ const submit = () => {
         v-if="forceRoot"
         class="rounded-lg border border-brand/15 bg-brand/5 px-3 py-2 text-xs text-slate-600"
       >
-        Ban/Khối là team độc lập — mỗi Ban/Khối có sơ đồ riêng trên trang này. Thêm nhóm con sau khi lưu, qua menu trên thẻ nhóm (chế độ chỉnh sửa).
+        Nhóm gốc là team độc lập — mỗi Nhóm có sơ đồ riêng trên trang này. Thêm nhóm con sau khi lưu, qua menu trên thẻ nhóm (chế độ chỉnh sửa).
       </p>
 
       <div>
@@ -436,7 +436,7 @@ const submit = () => {
           class="btn-primary"
           :disabled="form.processing"
         >
-          {{ isEdit ? 'Lưu' : (forceRoot ? 'Tạo Ban/Khối' : 'Thêm') }}
+          {{ isEdit ? 'Lưu' : (forceRoot ? 'Tạo Nhóm' : 'Thêm') }}
         </button>
       </div>
     </form>

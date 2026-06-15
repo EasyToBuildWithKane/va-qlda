@@ -23,7 +23,7 @@ const cards = computed(() => {
             value: o.teams_total ?? 0,
             icon: 'org-teams',
             tone: 'sky',
-            sub: `${o.roots_total ?? 0} Ban/Khối · ${o.subteams_total ?? 0} nhóm`,
+            sub: `${o.roots_total ?? 0} Nhóm · ${o.subteams_total ?? 0} nhóm con`,
         },
         {
             key: 'leaders',
@@ -31,7 +31,7 @@ const cards = computed(() => {
             value: o.leaders_total ?? 0,
             icon: 'award',
             tone: 'violet',
-            sub: 'Trưởng Ban / Nhóm',
+            sub: 'Trưởng nhóm',
         },
         {
             key: 'active',

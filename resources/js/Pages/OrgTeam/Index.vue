@@ -179,7 +179,7 @@ async function onDelete(node) {
               name="plus"
               :size="15"
             />
-            Thêm Ban/Khối
+            Thêm Nhóm
           </button>
         </div>
       </PageHeader>
@@ -198,7 +198,7 @@ async function onDelete(node) {
       </div>
       <div>
         <p class="font-display text-base font-semibold text-slate-800">
-          Chưa có Ban/Khối nào
+          Chưa có Nhóm nào
         </p>
         <p class="mt-1 max-w-sm text-sm text-slate-500">
           Tạo team gốc đầu tiên để dựng sơ đồ tổ chức tương tác.
@@ -210,7 +210,7 @@ async function onDelete(node) {
         class="btn-primary text-sm"
         @click="openCreateRoot()"
       >
-        Thêm Ban/Khối đầu tiên
+        Thêm Nhóm đầu tiên
       </button>
     </div>
 
@@ -230,7 +230,7 @@ async function onDelete(node) {
           v-if="pageMode === 'edit' && can.create"
           class="text-[11px] text-slate-500"
         >
-          Thêm nhóm con trên thẻ nhóm, hoặc «Thêm Ban/Khối» để tạo team gốc mới.
+          Thêm nhóm con trên thẻ nhóm, hoặc «Thêm Nhóm» để tạo nhóm gốc mới.
         </p>
       </div>
 
@@ -257,7 +257,7 @@ async function onDelete(node) {
           v-if="trees.length > 1"
           class="flex flex-wrap gap-2"
           role="tablist"
-          aria-label="Chọn Ban/Khối"
+          aria-label="Chọn Nhóm"
         >
           <button
             v-for="root in trees"
@@ -278,7 +278,7 @@ async function onDelete(node) {
         <OrgTeamChartCanvas
           :key="`edit-${activeRoot.id}`"
           :title="activeRoot.name"
-          :level-label="`Chỉnh sửa · ${activeRoot.level === 1 ? 'Ban / Khối' : 'Nhóm'}`"
+          :level-label="`Chỉnh sửa · ${activeRoot.level === 1 ? 'Nhóm' : 'Nhóm con'}`"
         >
           <ul class="org-tree org-tree--root flex min-w-min justify-center">
             <OrgTeamChart

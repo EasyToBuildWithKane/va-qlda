@@ -14,7 +14,7 @@ const team = computed(() => props.node.team ?? null);
 
 const levelLabel = computed(() => {
     const lvl = team.value?.level ?? 1;
-    return lvl === 1 ? 'Ban / Khối' : 'Nhóm';
+    return lvl <= 1 ? 'Nhóm' : 'Nhóm con';
 });
 
 const boxStyle = computed(() => ({
@@ -28,12 +28,7 @@ const boxStyle = computed(() => ({
 const dimmed = computed(() => props.node.inPath === false);
 const matched = computed(() => props.node.matched === true);
 
-const person = computed(() => props.node.person ?? null);
-
-const personMangLabel = computed(() => {
-    const title = person.value?.sectionTitle?.trim();
-    return title || null;
-});
+const person = computed(() => (props.node.type === 'person' ? props.node.person : null) ?? null);
 
 const personSubtitle = computed(() => {
     const p = person.value;
@@ -72,12 +67,12 @@ function onTeamPrimary() {
         Tổ chức
       </p>
       <p class="truncate font-display text-sm font-bold text-white">
-        {{ node.rootCount }} Ban / Khối · {{ node.peopleCount }} nhân sự
+        {{ node.rootCount }} Nhóm · {{ node.peopleCount }} nhân sự
       </p>
     </div>
   </div>
 
-  <!-- Team (Ban/Khối or Nhóm) -->
+  <!-- Team (Nhóm) -->
   <div
     v-else-if="node.type === 'team'"
     class="org-node org-node--team"
@@ -178,9 +173,36 @@ function onTeamPrimary() {
     </div>
   </div>
 
+  <!-- Nhánh / mảng (trung gian giữa nhóm và thành viên) -->
+  <div
+    v-else-if="node.type === 'section'"
+    class="org-node org-node--section"
+    :class="{ 'org-node--dim': dimmed, 'org-node--match': matched }"
+    :style="boxStyle"
+    data-node
+    @pointerdown.stop
+  >
+    <p class="org-node__eyebrow">
+      Nhánh
+    </p>
+    <p
+      class="org-node__title org-node__title--section"
+      :title="node.sectionTitle"
+    >
+      {{ node.sectionTitle }}
+    </p>
+    <p class="org-node__section-meta">
+      <AppIcon
+        name="members"
+        :size="11"
+      />
+      {{ node.peopleCount }}
+    </p>
+  </div>
+
   <!-- Person (member) -->
   <button
-    v-else
+    v-else-if="node.type === 'person'"
     type="button"
     class="org-node org-node--person"
     :class="{ 'org-node--dim': dimmed, 'org-node--match': matched }"
@@ -200,13 +222,6 @@ function onTeamPrimary() {
         :size="36"
       />
       <div class="min-w-0 flex-1 text-left">
-        <p
-          class="org-node__mang"
-          :class="personMangLabel ? 'org-node__mang--set' : 'org-node__mang--unset'"
-          :title="personMangLabel ? `Mảng: ${personMangLabel}` : 'Chưa phân mảng'"
-        >
-          {{ personMangLabel || 'Chưa phân mảng' }}
-        </p>
         <p class="org-node__title org-node__title--sm">
           {{ node.person.name }}
         </p>
@@ -276,6 +291,7 @@ function onTeamPrimary() {
 
 /* Team card */
 .org-node--team .org-node__surface,
+.org-node--section,
 .org-node--person {
     display: block;
     width: 100%;
@@ -300,6 +316,7 @@ function onTeamPrimary() {
 }
 
 .org-node--team .org-node__surface:hover,
+.org-node--section:hover,
 .org-node--person:hover {
     transform: translateY(-3px);
     border-color: rgba(154, 0, 54, 0.4);
@@ -313,6 +330,7 @@ function onTeamPrimary() {
 }
 
 .org-node--match .org-node__surface,
+.org-node--match.org-node--section,
 .org-node--match.org-node--person {
     border-color: rgba(154, 0, 54, 0.7);
     box-shadow: 0 0 0 2px rgba(154, 0, 54, 0.35), 0 18px 36px -18px rgba(154, 0, 54, 0.5);
@@ -377,31 +395,37 @@ function onTeamPrimary() {
     color: #94a3b8;
 }
 
-.org-node__mang {
-    display: inline-block;
-    max-width: 100%;
-    margin-bottom: 2px;
-    padding: 0.1rem 0.4rem;
-    border-radius: 9999px;
-    font-size: 9.5px;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.org-node__mang--set {
-    color: #9a0036;
-    background: rgba(154, 0, 54, 0.1);
+.org-node--section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.15rem;
+    padding: 0.45rem 0.55rem;
+    text-align: center;
+    background: linear-gradient(180deg, rgba(253, 242, 246, 0.95), rgba(255, 255, 255, 0.9));
     border: 1px solid rgba(154, 0, 54, 0.22);
+    box-shadow: 0 8px 20px -16px rgba(154, 0, 54, 0.45);
 }
 
-.org-node__mang--unset {
-    color: #94a3b8;
-    background: rgba(148, 163, 184, 0.12);
-    border: 1px dashed rgba(148, 163, 184, 0.35);
+.org-node__title--section {
+    width: 100%;
+    font-size: 12px;
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-height: 1.25;
+}
+
+.org-node__section-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    margin-top: 0.1rem;
+    font-size: 10px;
+    font-weight: 600;
+    color: #64748b;
 }
 
 .org-node__title {

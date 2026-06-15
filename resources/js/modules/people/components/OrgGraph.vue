@@ -24,8 +24,9 @@ const memberTeamIds = computed(() => {
     const ids = new Set();
     const walk = (team) => {
         const leaderId = team.leader?.id ?? null;
-        const has = toIterableList(team.members).some((m) => m?.employee?.id && m.employee.id !== leaderId);
-        if (has) ids.add(team.id);
+        const hasMembers = toIterableList(team.members).some((m) => m?.employee?.id && m.employee.id !== leaderId);
+        const hasSections = toIterableList(team.sections).length > 0;
+        if (hasMembers || hasSections) ids.add(team.id);
         for (const c of toIterableList(team.children)) walk(c);
     };
     for (const root of toIterableList(props.trees)) walk(root);
@@ -262,7 +263,7 @@ watch(
     </div>
 
     <p class="org-graph__hint">
-      Kéo để di chuyển · cuộn để phóng to · bấm thẻ nhóm để mở thành viên · bấm nhân sự để xem chi tiết
+      Kéo để di chuyển · cuộn để phóng to · bấm thẻ nhóm để mở nhánh & thành viên · bấm nhân sự để xem chi tiết
     </p>
   </div>
 </template>

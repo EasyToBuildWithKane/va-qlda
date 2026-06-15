@@ -66,12 +66,12 @@ function clearAll() {
     <div class="org-filter__select">
       <select
         :value="model.rootId ?? ''"
-        aria-label="Lọc theo Ban/Khối"
+        aria-label="Lọc theo Nhóm"
         class="org-filter__control"
         @change="patch({ rootId: $event.target.value ? Number($event.target.value) : null })"
       >
         <option value="">
-          Tất cả Ban/Khối
+          Tất cả Nhóm
         </option>
         <option
           v-for="root in rootOptions"

@@ -14,11 +14,11 @@ const cards = computed(() => {
     return [
         {
             key: 'roots',
-            label: 'Ban / Khối',
+            label: 'Nhóm',
             value: roots,
             tone: 'brand',
             icon: 'org-teams',
-            sub: roots === 1 ? '1 team gốc độc lập' : `${roots} team gốc — mỗi thẻ bên dưới là một Ban/Khối`,
+            sub: roots === 1 ? '1 nhóm gốc độc lập' : `${roots} nhóm gốc — mỗi thẻ bên dưới là một Nhóm`,
             interactive: false,
         },
         {
@@ -27,7 +27,7 @@ const cards = computed(() => {
             value: teams,
             tone: 'sky',
             icon: 'members',
-            sub: roots ? `Trung bình ${teams && roots ? Math.round(teams / roots) : 0} nhóm / Ban` : 'Gồm nhóm con mọi cấp',
+            sub: roots ? `Trung bình ${teams && roots ? Math.round(teams / roots) : 0} nhóm / Nhóm gốc` : 'Gồm nhóm con mọi cấp',
             interactive: false,
         },
         {
@@ -47,7 +47,7 @@ const cards = computed(() => {
   <KpiSummaryStrip
     aria-label="Thống kê sơ đồ team"
     heading="Quy mô tổ chức"
-    hint="Số liệu toàn hệ thống — bấm thẻ Ban/Khối bên dưới để mở sơ đồ chi tiết"
+    hint="Số liệu toàn hệ thống — bấm thẻ Nhóm bên dưới để mở sơ đồ chi tiết"
     grid-class="grid-cols-1 gap-3 sm:grid-cols-3"
     :cards="cards"
     :progress-denominator="0"
