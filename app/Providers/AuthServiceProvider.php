@@ -57,6 +57,7 @@ class AuthServiceProvider extends ServiceProvider
         AiPaymentRequest::class => AiPaymentRequestPolicy::class,
         AiPurchaseProposal::class => AiPurchaseProposalPolicy::class,
         SystemSetting::class => SystemSettingPolicy::class,
+        CongngheSection::class => CongngheContentPolicy::class,
         KbArticle::class => KbArticlePolicy::class,
         CoachingCourse::class => CoachingCoursePolicy::class,
         CongngheSoftwareProposal::class => CongngheSoftwareProposalPolicy::class,

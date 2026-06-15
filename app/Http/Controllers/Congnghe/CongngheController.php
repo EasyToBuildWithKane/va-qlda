@@ -10,6 +10,8 @@ use App\Models\Project;
 use App\Models\ProjectAttachment;
 use App\Models\Task;
 use App\Support\Enums\ProjectAttachmentCategory;
+use App\Support\Congnghe\CongngheContentRepository;
+use App\Support\Congnghe\CongngheIcons;
 use App\Support\Enums\ProjectStatus;
 use App\Support\Enums\ProjectType;
 use App\Support\Enums\TaskStatus;
@@ -28,11 +30,15 @@ use Inertia\Response;
  */
 class CongngheController extends Controller
 {
+    public function __construct(private readonly CongngheContentRepository $content) {}
+
     public function __invoke(): Response
     {
         $forest = OrgTeamTreeBuilder::congngheForest();
 
         return Inertia::render('Congnghe/Index', [
+            'content' => $this->content->forPublic(),
+            'icons' => CongngheIcons::pathMap(),
             'metrics' => $this->metrics($forest),
             'phases' => $this->projectPhases(),
             'products' => $this->products(),
