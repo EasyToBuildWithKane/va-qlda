@@ -30,6 +30,10 @@ const teamRate = computed(() => summary.value.teamRate ?? 0);
         </h3>
         <p class="mt-1 text-xs text-slate-500">
           Tuần {{ period.label }} — đã nộp (gửi/duyệt) / ngày làm việc kỳ vọng
+          <span
+            v-if="compliance.scope?.departmentName"
+            class="text-slate-400"
+          > · {{ compliance.scope.departmentName }}</span>
         </p>
       </div>
       <div class="flex flex-wrap items-center gap-2">

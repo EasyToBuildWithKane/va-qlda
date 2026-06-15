@@ -79,7 +79,7 @@ function sectionDataProps(key) {
   <Head :title="pageTitle" />
 
   <div
-    class="relative min-h-screen overflow-x-hidden bg-[#05060c] font-sans text-white antialiased selection:bg-brand/40 selection:text-white"
+    class="cn-anim-root relative min-h-screen overflow-x-hidden bg-[#05060c] font-sans text-white antialiased selection:bg-brand/40 selection:text-white"
   >
     <AuroraBackground />
     <ScrollProgress />

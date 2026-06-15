@@ -10,6 +10,7 @@ use App\Models\Project;
 use App\Models\Task;
 use App\Models\Worklog;
 use App\Support\DailyReportCalendar;
+use App\Support\DashboardPersonnelScope;
 use App\Support\Enums\ProjectStatus;
 use App\Support\Enums\ReportStatus;
 use App\Support\Enums\TaskStatus;
@@ -22,9 +23,12 @@ use Inertia\Response;
 
 class DashboardController extends Controller
 {
-    public function __invoke(ProjectActivityFeedBuilder $activityFeed): Response
+    public function __invoke(ProjectActivityFeedBuilder $activityFeed, DashboardPersonnelScope $personnelScope): Response
     {
         $today = Carbon::today()->toDateString();
+        $scopedEmployeeIds = $personnelScope->employeeIds();
+        $scopedEmployeeCount = $scopedEmployeeIds->count();
+        $personnelDept = $personnelScope->department();
 
         // ---- Active projects (loaded once, reused for cards + avg progress) --
         $activeProjectModels = Project::query()
@@ -51,7 +55,7 @@ class DashboardController extends Controller
 
         // ---- KPI cards (formatted for KpiSummaryStrip) ----------------------
         $totalProjects = Project::count();
-        $totalMembers = Employee::where('is_active', true)->count();
+        $totalMembers = $scopedEmployeeCount;
         $totalTasks = Task::count();
         $doneTasks = Task::where('status', TaskStatus::Done)->count();
         $openBlockers = Blocker::open()->count();
@@ -118,16 +122,21 @@ class DashboardController extends Controller
                 'key' => 'members',
                 'label' => 'Thành viên hoạt động',
                 'value' => $totalMembers,
-                'sub' => 'Nhân sự đang làm việc',
+                'sub' => $personnelDept
+                    ? 'Nhân sự '.$personnelDept->name
+                    : 'Nhân sự Phòng Công nghệ',
                 'icon' => 'people',
                 'tone' => 'violet',
             ],
         ];
 
         // ---- Daily pulse (today) -------------------------------------------
-        $reportedToday = DailyReport::whereDate('date', $today)
-            ->distinct('employee_id')
-            ->count('employee_id');
+        $reportedToday = $scopedEmployeeIds->isEmpty()
+            ? 0
+            : DailyReport::whereDate('date', $today)
+                ->whereIn('employee_id', $scopedEmployeeIds)
+                ->distinct('employee_id')
+                ->count('employee_id');
         $submittedToday = DailyReport::whereDate('date', $today)
             ->whereIn('status', [ReportStatus::Submitted->value, ReportStatus::Reviewed->value])
             ->count();
@@ -193,7 +202,7 @@ class DashboardController extends Controller
             ]);
 
         $completionTrend = $this->completionTrend(30);
-        $dailyReportCompliance = $this->dailyReportCompliance();
+        $dailyReportCompliance = $this->dailyReportCompliance($personnelScope);
 
         return Inertia::render('Dashboard/Index', [
             'kpiCards' => $kpiCards,
@@ -282,7 +291,7 @@ class DashboardController extends Controller
      *
      * @return array<string, mixed>
      */
-    private function dailyReportCompliance(): array
+    private function dailyReportCompliance(DashboardPersonnelScope $personnelScope): array
     {
         $tz = DailyReportCalendar::timezone();
         $today = Carbon::now($tz)->startOfDay();
@@ -299,10 +308,10 @@ class DashboardController extends Controller
 
         $expectedPerPerson = $expectedDates->count();
 
-        $employees = Employee::query()
-            ->where('is_active', true)
-            ->orderBy('full_name')
+        $employees = $personnelScope->employeeQuery()
             ->get(['id', 'full_name', 'avatar_path']);
+
+        $dept = $personnelScope->department();
 
         $submittedByEmployee = DailyReport::query()
             ->whereIn('employee_id', $employees->pluck('id'))
@@ -343,6 +352,10 @@ class DashboardController extends Controller
                 'from' => $weekStart->toDateString(),
                 'to' => $today->toDateString(),
                 'label' => $weekStart->format('d/m').' – '.$today->format('d/m/Y'),
+            ],
+            'scope' => [
+                'departmentId' => $dept?->id,
+                'departmentName' => $dept?->name ?? 'Phòng Công nghệ',
             ],
             'summary' => [
                 'expectedPerPerson' => $expectedPerPerson,

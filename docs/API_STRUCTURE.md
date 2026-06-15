@@ -42,7 +42,7 @@ routes/api.php      ← Rỗng (chưa sử dụng)
 | Method | URI | Controller | Middleware | Mô Tả |
 |---|---|---|---|---|
 | GET | `/` | redirect | auth | Redirect → /dashboard |
-| GET | `/dashboard` | DashboardController@index | auth | Trang tổng quan |
+| GET | `/dashboard` | DashboardController@index | auth | Trang tổng quan; nhân sự KPI/tuân thủ báo cáo ngày theo phòng ban khớp `config('va.dashboard_personnel_department_pattern')` (mặc định «Công nghệ») |
 
 ### 2.2.1 Phòng Công Nghệ (cổng nội bộ)
 

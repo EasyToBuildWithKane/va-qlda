@@ -1,5 +1,46 @@
 <script setup>
+import { onMounted, ref, watch } from 'vue';
+import { usePrefersReducedMotion, hasFinePointer } from './motion.js';
 import ParticleField from './ParticleField.vue';
+import WebGLBackdrop from './WebGLBackdrop.vue';
+
+/**
+ * Bộ chọn nền cố định cho landing /congnghe. Lớp CSS (aurora blobs + grid +
+ * vignette) luôn có mặt làm nền tảng & fallback. Trên đó:
+ *  - WebGLBackdrop (shader aurora + point cloud) khi WebGL khả dụng, không
+ *    reduced-motion, không low-power;
+ *  - ParticleField (canvas 2D neural net) làm fallback khi WebGL không có;
+ *  - chỉ CSS khi reduced-motion.
+ */
+const reduced = usePrefersReducedMotion();
+const mode = ref('css'); // 'webgl' | 'particles' | 'css'
+
+function probeWebgl() {
+    try {
+        const c = document.createElement('canvas');
+        return !!(c.getContext('webgl2') || c.getContext('webgl') || c.getContext('experimental-webgl'));
+    } catch {
+        return false;
+    }
+}
+
+function decide() {
+    if (reduced.value) {
+        mode.value = 'css';
+        return;
+    }
+    const small = window.matchMedia?.('(max-width: 639px)').matches === true;
+    const weak = !hasFinePointer() && (navigator.hardwareConcurrency || 8) <= 4;
+    if (!small && !weak && probeWebgl()) mode.value = 'webgl';
+    else mode.value = 'particles';
+}
+
+function onWebglFail() {
+    mode.value = 'particles';
+}
+
+onMounted(decide);
+watch(reduced, decide);
 </script>
 
 <template>
@@ -26,8 +67,12 @@ import ParticleField from './ParticleField.vue';
       "
     />
 
-    <!-- Neural particle network -->
-    <ParticleField />
+    <!-- Lớp động: WebGL (ưu tiên) hoặc neural net canvas 2D (fallback) -->
+    <WebGLBackdrop
+      v-if="mode === 'webgl'"
+      @fail="onWebglFail"
+    />
+    <ParticleField v-else-if="mode === 'particles'" />
 
     <!-- Vignette + grain -->
     <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_55%,rgba(5,6,12,0.75)_100%)]" />

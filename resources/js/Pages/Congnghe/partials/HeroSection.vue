@@ -1,8 +1,12 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import MagneticButton from './MagneticButton.vue';
 import CountStat from './CountStat.vue';
-import { hasFinePointer, prefersReducedMotionNow } from './motion.js';
+import TypewriterText from './TypewriterText.vue';
+import DataStreamTicker from './DataStreamTicker.vue';
+import AnalyzingBadge from './AnalyzingBadge.vue';
+import ScanLineOverlay from './ScanLineOverlay.vue';
+import { useParallaxLayers } from './motion.js';
 import { congngheBrand } from './congngheBrand.js';
 import CongngheBrandBackdrop from './CongngheBrandBackdrop.vue';
 import CongngheMascotAnimated from './CongngheMascotAnimated.vue';
@@ -12,26 +16,12 @@ const props = defineProps({
     metrics: { type: Object, default: () => ({}) },
 });
 
-const px = ref(0);
-const py = ref(0);
 const ready = ref(false);
-
-function onMove(e) {
-    px.value = (e.clientX / window.innerWidth - 0.5);
-    py.value = (e.clientY / window.innerHeight - 0.5);
-}
-
-function layer(depth) {
-    return { transform: `translate3d(${(px.value * depth).toFixed(1)}px, ${(py.value * depth).toFixed(1)}px, 0)` };
-}
+const { layer } = useParallaxLayers({ strength: 1 });
 
 onMounted(() => {
     requestAnimationFrame(() => (ready.value = true));
-    if (hasFinePointer() && !prefersReducedMotionNow()) {
-        window.addEventListener('mousemove', onMove, { passive: true });
-    }
 });
-onBeforeUnmount(() => window.removeEventListener('mousemove', onMove));
 
 const titlePrefix = computed(() => props.content?.title_prefix ?? '');
 const titleHighlight = computed(() => props.content?.title_highlight ?? '');
@@ -40,6 +30,18 @@ const description = computed(() => props.content?.description ?? '');
 const ctaPrimary = computed(() => props.content?.cta_primary ?? {});
 const ctaSecondary = computed(() => props.content?.cta_secondary ?? {});
 const highlights = computed(() => props.content?.highlights ?? []);
+
+// Ticker dữ liệu thật (suy ra client-side từ metrics)
+const streamItems = computed(() => {
+    const m = props.metrics ?? {};
+    return [
+        `${m.activeProjects ?? 0} dự án đang vận hành`,
+        `${m.completedProjects ?? 0} sản phẩm đã nghiệm thu`,
+        `${m.doneTasks ?? 0}/${m.tasks ?? 0} công việc hoàn tất`,
+        `${m.orgPeople ?? 0} nhân sự công nghệ`,
+        `${m.aiAccounts ?? 0} tài khoản AI đang dùng`,
+    ];
+});
 </script>
 
 <template>
@@ -64,13 +66,17 @@ const highlights = computed(() => props.content?.highlights ?? []);
           {{ titlePrefix }}
           <span
             v-if="titleHighlight"
-            class="bg-gradient-to-r from-cyan-200 via-brand-200 to-violet-300 bg-clip-text text-transparent"
+            class="animate-cn-text-shimmer bg-gradient-to-r from-cyan-200 via-brand-200 to-violet-300 bg-[length:200%_auto] bg-clip-text text-transparent"
           >{{ titleHighlight }}</span>
           {{ titleSuffix }}
         </h1>
 
-        <p class="mt-5 max-w-xl text-base leading-relaxed text-white/60 sm:text-lg">
-          {{ description }}
+        <p class="mt-5 min-h-[3.5rem] max-w-xl text-base leading-relaxed text-white/60 sm:text-lg">
+          <TypewriterText
+            :text="description"
+            :active="ready"
+            :speed="16"
+          />
         </p>
 
         <div class="mt-8 flex flex-wrap items-center justify-center gap-3 lg:justify-start">
@@ -114,6 +120,16 @@ const highlights = computed(() => props.content?.highlights ?? []);
             </dd>
           </div>
         </dl>
+
+        <!-- Dòng dữ liệu trực tiếp -->
+        <div class="mt-7 flex w-full max-w-lg flex-wrap items-center gap-3">
+          <AnalyzingBadge label="dữ liệu trực tiếp" />
+          <DataStreamTicker
+            class="min-w-0 flex-1"
+            :items="streamItems"
+            variant="cycle"
+          />
+        </div>
       </div>
 
       <!-- Cột phải: mascot (desktop — mobile dùng trợ lý ảo) -->
@@ -121,6 +137,10 @@ const highlights = computed(() => props.content?.highlights ?? []);
         class="relative mx-auto hidden w-full max-w-md items-center justify-center lg:flex lg:max-w-none lg:justify-end"
         :style="layer(-6)"
       >
+        <ScanLineOverlay
+          trigger="always"
+          tone="cyan"
+        />
         <CongngheMascotAnimated
           :src="congngheBrand.mascotWave"
           alt="Linh vật VAS — Phòng Công Nghệ"

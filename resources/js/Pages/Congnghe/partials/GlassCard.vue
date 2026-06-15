@@ -40,6 +40,8 @@ const bindStyle = computed(() => (props.tilt ? style.value : undefined));
       class="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover/glass:opacity-100"
       style="background: radial-gradient(220px circle at var(--cn-mx,50%) var(--cn-my,50%), rgba(255,255,255,0.10), transparent 60%);"
     />
+    <!-- lớp phủ tuỳ biến (viền conic, scan-line...) đặt ở mép card -->
+    <slot name="overlay" />
     <div class="relative">
       <slot />
     </div>

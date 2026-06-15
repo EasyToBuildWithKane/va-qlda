@@ -95,4 +95,15 @@ return [
         ? (int) $id
         : null,
 
+    /*
+    |--------------------------------------------------------------------------
+    | /dashboard — phạm vi nhân sự (báo cáo ngày, KPI thành viên)
+    |--------------------------------------------------------------------------
+    |
+    | Khớp một phần tên phòng ban active (LIKE %pattern%). Ghi đè:
+    | DASHBOARD_PERSONNEL_DEPT_PATTERN
+    |
+    */
+    'dashboard_personnel_department_pattern' => env('DASHBOARD_PERSONNEL_DEPT_PATTERN', 'Công nghệ'),
+
 ];
