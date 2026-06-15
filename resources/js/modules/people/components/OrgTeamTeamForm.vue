@@ -164,7 +164,7 @@ defineExpose({ form, submit, isDirty: () => form.isDirty });
       :class="compact ? 'grid gap-3 sm:grid-cols-2' : 'grid gap-4 sm:grid-cols-2'"
     >
       <div :class="showParentField ? '' : 'sm:col-span-2'">
-        <label class="label">Tên nhóm</label>
+        <label class="label">{{ isRootTeam ? 'Tên cấu trúc' : 'Tên đơn vị' }}</label>
         <input
           v-model="form.name"
           type="text"
@@ -181,14 +181,14 @@ defineExpose({ form, submit, isDirty: () => form.isDirty });
       </div>
 
       <div v-if="showParentField">
-        <label class="label">Nằm trong nhóm</label>
+        <label class="label">Thuộc cấu trúc</label>
         <select
           v-model="form.parent_id"
           class="input w-full"
           :disabled="isEdit && team?.children?.length > 0"
         >
           <option :value="null">
-            Nhóm gốc độc lập
+            Cấu trúc độc lập
           </option>
           <option
             v-for="p in parentChoices"
@@ -215,7 +215,7 @@ defineExpose({ form, submit, isDirty: () => form.isDirty });
         placeholder="Chọn quản lý"
       />
       <p class="mt-1 text-[11px] text-slate-500">
-        Nhóm chính: Giám đốc CNTT kiêm Trưởng phòng · Nhóm con: quản lý Phần mềm / Phần cứng.
+        Nhóm chính: Giám đốc CNTT kiêm Trưởng phòng · Đơn vị: quản lý Phần mềm / Phần cứng.
       </p>
     </div>
 
@@ -463,7 +463,7 @@ defineExpose({ form, submit, isDirty: () => form.isDirty });
         class="btn-primary"
         :disabled="form.processing"
       >
-        {{ isEdit ? 'Lưu nhóm' : 'Tạo nhóm' }}
+        {{ isEdit ? 'Lưu' : 'Tạo' }}
       </button>
     </div>
   </form>

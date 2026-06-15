@@ -192,7 +192,7 @@ function openCreateRoot() {
               name="plus"
               :size="15"
             />
-            Thêm Nhóm
+            Thêm cấu trúc
           </button>
         </div>
       </PageHeader>
@@ -211,7 +211,7 @@ function openCreateRoot() {
       </div>
       <div>
         <p class="font-display text-base font-semibold text-slate-800">
-          Chưa có Nhóm nào
+          Chưa có cấu trúc nào
         </p>
         <p class="mt-1 max-w-sm text-sm text-slate-500">
           Tạo team gốc đầu tiên để dựng sơ đồ tổ chức tương tác.
@@ -223,7 +223,7 @@ function openCreateRoot() {
         class="btn-primary text-sm"
         @click="openCreateRoot()"
       >
-        Thêm Nhóm đầu tiên
+        Thêm cấu trúc đầu tiên
       </button>
     </div>
 

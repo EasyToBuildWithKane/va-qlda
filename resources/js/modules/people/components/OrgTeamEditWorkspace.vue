@@ -42,9 +42,12 @@ function onChildCreated() {
 }
 
 async function deleteTeam(node) {
+    const isRoot = node.level === 1;
     const ok = await dialog.confirm({
-        title: 'Xoá nhóm',
-        message: `Xoá «${node.name}» và các nhóm bên trong? Không thể hoàn tác.`,
+        title: isRoot ? 'Xoá cấu trúc' : 'Xoá đơn vị',
+        message: isRoot
+            ? `Xoá cấu trúc «${node.name}» và mọi đơn vị bên trong? Không thể hoàn tác.`
+            : `Xoá đơn vị «${node.name}»? Không thể hoàn tác.`,
         confirmLabel: 'Xóa',
         variant: 'danger',
     });
@@ -52,12 +55,7 @@ async function deleteTeam(node) {
         return;
     }
     router.delete(`/org-teams/${node.id}`, {
-        preserveScroll: true,
-        onSuccess: () => {
-            if (node.id === props.tree.id) {
-                router.visit('/org-teams');
-            }
-        },
+        preserveScroll: false,
     });
 }
 
@@ -79,14 +77,14 @@ function navIndent(depth) {
           </p>
           <ol class="mt-2 list-decimal space-y-1 pl-4 text-sm leading-relaxed text-slate-600">
             <li>
-              <strong class="font-semibold text-slate-800">Nhóm chính</strong> — quản lý = GĐ CNTT kiêm Trưởng phòng.
+              <strong class="font-semibold text-slate-800">Cấu trúc</strong> — quản lý = GĐ CNTT kiêm Trưởng phòng.
             </li>
             <li>
               Bấm <strong class="font-semibold text-slate-800">Mẫu Phòng CNTT</strong> hoặc thêm nhánh
               «Trưởng ban CNTT», «Phó Phòng Công nghệ» và gán người.
             </li>
             <li>
-              <strong class="font-semibold text-slate-800">Nhóm con</strong> Phần mềm &amp; Phần cứng — quản lý + thành viên ở mục «Thành viên khác».
+              <strong class="font-semibold text-slate-800">Đơn vị</strong> Phần mềm &amp; Phần cứng — quản lý + thành viên ở mục «Thành viên khác».
             </li>
             <li>
               Lưu từng khối, sau đó <strong class="font-semibold text-slate-800">Xem sơ đồ</strong> để kiểm tra.
@@ -149,7 +147,7 @@ function navIndent(depth) {
               name="plus"
               :size="14"
             />
-            Thêm nhóm con
+            Thêm đơn vị
           </button>
         </nav>
       </aside>
@@ -168,7 +166,7 @@ function navIndent(depth) {
                 {{ node.name }}
               </h2>
               <p class="text-xs text-slate-500">
-                {{ node.level_label || (node.level === 1 ? 'Nhóm chính' : 'Nhóm con') }}
+                {{ node.level_label || (node.level === 1 ? 'Cấu trúc' : 'Đơn vị') }}
                 <span v-if="node.leader?.name"> · Quản lý: {{ node.leader.name }}</span>
               </p>
             </div>
@@ -182,7 +180,7 @@ function navIndent(depth) {
                 name="delete"
                 :size="14"
               />
-              Xóa nhóm
+              {{ node.level === 1 ? 'Xóa cấu trúc' : 'Xóa đơn vị' }}
             </button>
           </header>
 
@@ -217,7 +215,7 @@ function navIndent(depth) {
                 name="plus"
                 :size="14"
               />
-              Thêm nhóm con dưới «{{ node.name }}»
+              Thêm đơn vị dưới «{{ node.name }}»
             </button>
           </footer>
         </section>
@@ -229,7 +227,7 @@ function navIndent(depth) {
         >
           <header class="border-b border-brand/10 px-4 py-3 sm:px-5">
             <h2 class="font-display text-sm font-semibold text-brand">
-              Tạo nhóm con mới
+              Tạo đơn vị mới
             </h2>
           </header>
           <div class="px-4 py-4 sm:px-5">

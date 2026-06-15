@@ -18,6 +18,34 @@ class OrgTeamTest extends TestCase
         return SystemAccount::factory()->role(SystemRole::Admin)->create();
     }
 
+    private function lead(): SystemAccount
+    {
+        return SystemAccount::factory()->role(SystemRole::Lead)->create();
+    }
+
+    public function test_lead_can_delete_child_unit(): void
+    {
+        $lead = $this->lead();
+        $root = OrgTeam::create(['name' => 'Phòng CNTT', 'level' => 1]);
+        $child = OrgTeam::create(['name' => 'Phần mềm', 'level' => 2, 'parent_id' => $root->id]);
+
+        $this->actingAs($lead, 'system')
+            ->delete(route('org-teams.destroy', $child))
+            ->assertRedirect(route('org-teams.edit', $root));
+
+        $this->assertNull(OrgTeam::query()->find($child->id));
+    }
+
+    public function test_lead_cannot_delete_root_structure(): void
+    {
+        $lead = $this->lead();
+        $root = OrgTeam::create(['name' => 'Phòng CNTT', 'level' => 1]);
+
+        $this->actingAs($lead, 'system')
+            ->delete(route('org-teams.destroy', $root))
+            ->assertForbidden();
+    }
+
     public function test_guest_cannot_access_org_teams(): void
     {
         $this->get(route('org-teams.index'))->assertRedirect('/tech/login');

@@ -20,13 +20,13 @@ const isEdit = computed(() => !!props.team);
 
 const modalTitle = computed(() => {
     if (isEdit.value) {
-        return 'Sửa nhóm';
+        return 'Sửa cấu trúc';
     }
     if (props.forceRoot) {
-        return 'Thêm Nhóm';
+        return 'Tạo cấu trúc';
     }
 
-    return props.presetParentId != null ? 'Thêm nhóm con' : 'Thêm nhóm';
+    return props.presetParentId != null ? 'Thêm đơn vị' : 'Thêm đơn vị';
 });
 
 function onSaved() {

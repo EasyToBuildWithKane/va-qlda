@@ -55,9 +55,9 @@ function switchRoot(id) {
         v-if="roots.length > 1"
         class="flex flex-wrap items-center gap-2"
         role="tablist"
-        aria-label="Chọn nhóm gốc"
+        aria-label="Chọn cấu trúc"
       >
-        <span class="text-xs font-medium text-slate-500">Nhóm gốc:</span>
+        <span class="text-xs font-medium text-slate-500">Cấu trúc:</span>
         <button
           v-for="root in roots"
           :key="root.id"

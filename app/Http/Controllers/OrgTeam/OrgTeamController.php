@@ -196,9 +196,27 @@ class OrgTeamController extends Controller
     {
         $this->authorize('delete', $orgTeam);
 
+        $root = $orgTeam;
+        while ($root->parent_id !== null) {
+            $parent = OrgTeam::query()->find($root->parent_id);
+            if ($parent === null) {
+                break;
+            }
+            $root = $parent;
+        }
+
+        $isRoot = $orgTeam->parent_id === null;
         $orgTeam->delete();
 
-        return back()->with('success', 'Đã xoá nhóm và các nhóm con.');
+        if ($isRoot) {
+            return redirect()
+                ->route('org-teams.index')
+                ->with('success', 'Đã xoá cấu trúc và các đơn vị bên trong.');
+        }
+
+        return redirect()
+            ->route('org-teams.edit', $root)
+            ->with('success', 'Đã xoá đơn vị.');
     }
 
     private function recalcDescendantLevels(OrgTeam $team): void

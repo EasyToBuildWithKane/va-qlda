@@ -30,7 +30,11 @@ class OrgTeamPolicy
 
     public function delete(SystemAccount $account, OrgTeam $orgTeam): bool
     {
-        return $account->role === SystemRole::Admin;
+        if ($account->role === SystemRole::Admin) {
+            return true;
+        }
+
+        return $this->canManage($account) && $orgTeam->level > 1;
     }
 
     private function canManage(SystemAccount $account): bool
