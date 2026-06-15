@@ -18,12 +18,21 @@ class CongngheSoftwareProposalManagementController extends Controller
     {
         $this->authorize('viewAny', CongngheSoftwareProposal::class);
 
-        $query = CongngheSoftwareProposal::query()
-            ->withCount('attachments')
-            ->latest();
+        $query = CongngheSoftwareProposal::query()->withCount('attachments');
+
+        $group = $request->query('group', 'department');
+        if ($group === 'department') {
+            $query->orderBy('department')->orderByDesc('created_at');
+        } else {
+            $query->latest();
+        }
 
         if ($status = $request->query('status')) {
             $query->where('status', $status);
+        }
+
+        if ($department = trim((string) $request->query('department', ''))) {
+            $query->where('department', $department);
         }
 
         if ($search = trim((string) $request->query('q', ''))) {
@@ -46,7 +55,7 @@ class CongngheSoftwareProposalManagementController extends Controller
             'proposals' => CongngheSoftwareProposalResource::collection(
                 $query->paginate($perPage)->withQueryString(),
             ),
-            'filters' => (object) $request->only(['status', 'q', 'email_pending', 'per_page']),
+            'filters' => (object) $request->only(['status', 'q', 'email_pending', 'department', 'group', 'per_page']),
             'summary' => [
                 'total' => CongngheSoftwareProposal::count(),
                 'new' => CongngheSoftwareProposal::where('status', CongngheSoftwareProposalStatus::New)->count(),
@@ -58,6 +67,13 @@ class CongngheSoftwareProposalManagementController extends Controller
             ],
             'options' => [
                 'statuses' => CongngheSoftwareProposalStatus::options(),
+                'departments' => CongngheSoftwareProposal::query()
+                    ->select('department')
+                    ->distinct()
+                    ->orderBy('department')
+                    ->pluck('department')
+                    ->values()
+                    ->all(),
             ],
             'can' => [
                 'manage' => $request->user()->can('viewAny', CongngheSoftwareProposal::class),

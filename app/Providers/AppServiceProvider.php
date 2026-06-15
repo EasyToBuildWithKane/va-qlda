@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\Task;
 use App\Observers\TaskObserver;
+use App\Support\Congnghe\CongngheContentRepository;
 use App\Support\Options\DepartmentOptions;
 use App\Support\Options\EmployeeOptions;
 use App\Support\Options\ProjectOptions;
@@ -18,6 +19,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(ProjectOptions::class);
         $this->app->singleton(DepartmentOptions::class);
         $this->app->singleton(SettingsRepository::class);
+        $this->app->singleton(CongngheContentRepository::class);
     }
 
     /**

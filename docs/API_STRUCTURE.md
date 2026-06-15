@@ -54,7 +54,7 @@ routes/api.php      ← Rỗng (chưa sử dụng)
 | GET | `/congnghe/de-xuat-cua-toi` | CongngheSoftwareProposalController@index | auth | Đề xuất của người gửi; query: `q`, `status`, `department`, `from`, `to`, `email_sent` (`0`\|`1`), `acknowledged` (`0`\|`1`), `has_attachments` (`0`\|`1`), `per_page`, `page` |
 | GET | `/congnghe/de-xuat-cua-toi/{proposal}` | CongngheSoftwareProposalController@show | auth (`viewAsSubmitter` — chỉ người gửi) | Chi tiết đề xuất của người gửi |
 | GET | `/congnghe/de-xuat-cua-toi/{proposal}/attachments/{attachment}/file` | CongngheSoftwareProposalAttachmentController@file | auth (`viewAsSubmitter` trên route mine) | Tải file đính kèm (URL trong Resource cho người gửi) |
-| GET | `/congnghe/proposals` | CongngheSoftwareProposalManagementController@index | auth (admin, lead) | Danh sách đề xuất PM |
+| GET | `/congnghe/proposals` | CongngheSoftwareProposalManagementController@index | auth (admin, lead) | Query: `q`, `status`, `department`, `email_pending` (`1`), `group` (`department`\|`none`), `per_page`, `page`; props `summary`, `options.departments` |
 | GET | `/congnghe/proposals/{proposal}` | CongngheSoftwareProposalManagementController@show | auth (admin, lead) | Chi tiết |
 | PUT | `/congnghe/proposals/{proposal}` | CongngheSoftwareProposalManagementController@update | auth (admin, lead) | Cập nhật trạng thái |
 | GET | `/congnghe/proposals/{proposal}/attachments/{attachment}/file` | CongngheSoftwareProposalAttachmentController@file | auth (owner hoặc admin/lead) | Tải file đính kèm |

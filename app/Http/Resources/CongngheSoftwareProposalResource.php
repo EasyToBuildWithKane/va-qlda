@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Http\Resources\Concerns\PresentsEntities;
+use App\Support\Enums\CongngheSoftwareProposalStatus;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -36,6 +37,9 @@ class CongngheSoftwareProposalResource extends JsonResource
             ),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
+            'processed_at' => $this->status !== CongngheSoftwareProposalStatus::New
+                ? $this->updated_at?->toIso8601String()
+                : null,
             'attachments_count' => $this->whenCounted('attachments'),
             'attachments' => CongngheSoftwareProposalAttachmentResource::collection($this->whenLoaded('attachments')),
             'can' => $user ? [
