@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 import KpiSummaryStrip from '@/shared/ui/KpiSummaryStrip.vue';
+import ProfileInfoPanel from './ProfileInfoPanel.vue';
 import { profileDisplayValue } from '../utils/profileDisplay';
 
 const props = defineProps({
@@ -82,6 +83,11 @@ const progressDenominator = computed(() => {
     return 100;
 });
 
+const completionBadge = computed(() => {
+    const c = props.stats.profile_completion ?? 0;
+    return `${c}% hoàn thiện`;
+});
+
 function onSelect(card) {
     if (card.payload) {
         emit('go-tab', card.payload);
@@ -90,14 +96,25 @@ function onSelect(card) {
 </script>
 
 <template>
-  <KpiSummaryStrip
-    aria-label="Thống kê hồ sơ cá nhân"
-    heading="Chỉ số hồ sơ"
-    hint="Thẻ có viền nét đứt — bấm để mở tab liên quan"
-    :cards="cards"
-    :active-key="activeTab === 'skills' ? 'skill' : activeTab === 'achievements' ? 'projects' : ''"
-    :progress-denominator="progressDenominator"
-    grid-class="grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5"
-    @select="onSelect"
-  />
+  <ProfileInfoPanel
+    title="Chỉ số hồ sơ"
+    icon="target"
+    subtitle="Thẻ có viền nét đứt — bấm để mở tab liên quan"
+    section-key="profile-overview-kpi"
+    :collapsed-badge="completionBadge"
+  >
+    <KpiSummaryStrip
+      hide-header
+      aria-label="Thống kê hồ sơ cá nhân"
+      heading="Chỉ số hồ sơ"
+      hint=""
+      eyebrow="Thống kê"
+      shell-class="kpi-strip relative mb-0 overflow-x-hidden border-0 bg-transparent px-4 py-4 shadow-none sm:px-5 sm:py-4"
+      :cards="cards"
+      :active-key="activeTab === 'skills' ? 'skill' : activeTab === 'achievements' ? 'projects' : ''"
+      :progress-denominator="progressDenominator"
+      grid-class="grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5"
+      @select="onSelect"
+    />
+  </ProfileInfoPanel>
 </template>

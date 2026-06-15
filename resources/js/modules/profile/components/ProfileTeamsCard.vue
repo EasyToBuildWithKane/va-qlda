@@ -17,6 +17,8 @@ const hasAny = () => props.teams.length || props.manager;
     title="Tổ chức"
     icon="org-teams"
     subtitle="Nhóm QLDA và quản lý trực tiếp"
+    section-key="profile-teams"
+    :collapsed-badge="teams.length ? `${teams.length} nhóm` : null"
   >
     <div class="space-y-4 p-5">
       <div v-if="manager">

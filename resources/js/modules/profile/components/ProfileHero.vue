@@ -4,6 +4,7 @@ import AppIcon from '@/Components/AppIcon.vue';
 import Badge from '@/shared/ui/Badge.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
 import { profileDisplayValue } from '../utils/profileDisplay';
+import { useProfileSectionCollapse } from '../composables/useProfileSectionCollapse';
 
 const props = defineProps({
     profile: { type: Object, required: true },
@@ -66,6 +67,8 @@ function displayValue(raw) {
 function isEmpty(raw) {
     return displayValue(raw) === profileDisplayValue(null);
 }
+
+const { open: specOpen, toggle: toggleSpec } = useProfileSectionCollapse('profile-hero-spec', true);
 </script>
 
 <template>
@@ -150,56 +153,75 @@ function isEmpty(raw) {
         </div>
       </div>
 
-      <dl
-        class="mt-5 grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-slate-200/80 bg-slate-200/80 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"
-      >
-        <div
-          v-for="row in specRows"
-          :key="row.label"
-          class="flex min-w-0 flex-col gap-1 bg-white px-3.5 py-3 sm:px-4"
+      <div class="mt-5 border-t border-slate-100 pt-4">
+        <button
+          type="button"
+          class="flex w-full items-center justify-between gap-2 rounded-lg px-1 py-1 text-left transition-colors hover:bg-slate-50"
+          :aria-expanded="specOpen"
+          @click="toggleSpec"
         >
-          <dt class="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-400">
-            <AppIcon
-              :name="row.icon"
-              :size="12"
-              class="shrink-0 opacity-70"
-            />
-            {{ row.label }}
-          </dt>
-          <dd class="min-w-0 text-[13px] leading-snug">
-            <Badge
-              v-if="row.badge"
-              :label="row.badge.label"
-              :color="row.badge.color"
-            />
-            <a
-              v-else-if="row.href && !isEmpty(row.value)"
-              :href="row.href"
-              class="block truncate font-medium text-slate-800 underline decoration-slate-300/80 underline-offset-2 hover:text-brand"
-              :class="row.mono ? 'font-mono text-[12px]' : ''"
-            >{{ row.value }}</a>
-            <span
-              v-else-if="row.status"
-              class="inline-flex items-center gap-1.5 font-medium"
-              :class="row.status === 'active' ? 'text-emerald-700' : 'text-slate-500'"
-            >
-              <span
-                class="h-1.5 w-1.5 rounded-full"
-                :class="row.status === 'active' ? 'bg-emerald-500' : 'bg-slate-400'"
+          <span class="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+            Thông tin liên hệ & vận hành
+          </span>
+          <AppIcon
+            :name="specOpen ? 'chevron-down' : 'chevron-right'"
+            :size="16"
+            class="shrink-0 text-slate-400"
+          />
+        </button>
+
+        <dl
+          v-show="specOpen"
+          class="mt-3 grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-slate-200/80 bg-slate-200/80 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"
+        >
+          <div
+            v-for="row in specRows"
+            :key="row.label"
+            class="flex min-w-0 flex-col gap-1 bg-white px-3.5 py-3 sm:px-4"
+          >
+            <dt class="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-400">
+              <AppIcon
+                :name="row.icon"
+                :size="12"
+                class="shrink-0 opacity-70"
               />
-              {{ row.value }}
-            </span>
-            <span
-              v-else
-              class="block truncate"
-              :class="[
-                isEmpty(row.value) ? 'italic text-slate-400' : 'font-medium text-slate-800',
-                row.mono && !isEmpty(row.value) ? 'font-mono text-[12px]' : '',
-              ]"
-            >{{ displayValue(row.value) }}</span>
-          </dd>
-        </div>
-      </dl>
+              {{ row.label }}
+            </dt>
+            <dd class="min-w-0 text-[13px] leading-snug">
+              <Badge
+                v-if="row.badge"
+                :label="row.badge.label"
+                :color="row.badge.color"
+              />
+              <a
+                v-else-if="row.href && !isEmpty(row.value)"
+                :href="row.href"
+                class="block truncate font-medium text-slate-800 underline decoration-slate-300/80 underline-offset-2 hover:text-brand"
+                :class="row.mono ? 'font-mono text-[12px]' : ''"
+              >{{ row.value }}</a>
+              <span
+                v-else-if="row.status"
+                class="inline-flex items-center gap-1.5 font-medium"
+                :class="row.status === 'active' ? 'text-emerald-700' : 'text-slate-500'"
+              >
+                <span
+                  class="h-1.5 w-1.5 rounded-full"
+                  :class="row.status === 'active' ? 'bg-emerald-500' : 'bg-slate-400'"
+                />
+                {{ row.value }}
+              </span>
+              <span
+                v-else
+                class="block truncate"
+                :class="[
+                  isEmpty(row.value) ? 'italic text-slate-400' : 'font-medium text-slate-800',
+                  row.mono && !isEmpty(row.value) ? 'font-mono text-[12px]' : '',
+                ]"
+              >{{ displayValue(row.value) }}</span>
+            </dd>
+          </div>
+        </dl>
+      </div>
     </div>
   </section>
 </template>

@@ -36,7 +36,7 @@ onBeforeUnmount(() => {
 <template>
   <div
     v-show="active"
-    class="pointer-events-none fixed -z-[5] h-[420px] w-[420px] rounded-full opacity-60 blur-[60px] transition-opacity"
+    class="pointer-events-none fixed z-[1] h-[420px] w-[420px] rounded-full opacity-60 blur-[60px] transition-opacity"
     style="background: radial-gradient(circle, rgba(154,0,54,0.22), transparent 65%);"
     :style="{ transform: `translate3d(${x - 210}px, ${y - 210}px, 0)` }"
   />

@@ -4,7 +4,7 @@ import ParticleField from './ParticleField.vue';
 
 <template>
   <div
-    class="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-[#05060c]"
+    class="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-[#05060c]"
     aria-hidden="true"
   >
     <!-- Aurora mesh blobs -->

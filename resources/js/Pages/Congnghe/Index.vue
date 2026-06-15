@@ -1,5 +1,8 @@
 <script setup>
 import { Head } from '@inertiajs/vue3';
+import AuroraBackground from './partials/AuroraBackground.vue';
+import ScrollProgress from './partials/ScrollProgress.vue';
+import CursorGlow from './partials/CursorGlow.vue';
 import CongngheNavbar from './partials/CongngheNavbar.vue';
 import HeroSection from './partials/HeroSection.vue';
 import AboutSection from './partials/AboutSection.vue';
@@ -24,10 +27,13 @@ defineProps({
 <template>
   <Head title="Phòng Công Nghệ" />
 
-  <div class="min-h-screen overflow-x-hidden bg-[#0b0b12] font-sans text-white antialiased">
+  <div class="relative min-h-screen overflow-x-hidden bg-[#05060c] font-sans text-white antialiased selection:bg-brand/40 selection:text-white">
+    <AuroraBackground />
+    <ScrollProgress />
+    <CursorGlow />
     <CongngheNavbar />
 
-    <main>
+    <main class="relative z-10">
       <HeroSection :metrics="metrics" />
       <AboutSection />
       <ImpactMetrics :metrics="metrics" />

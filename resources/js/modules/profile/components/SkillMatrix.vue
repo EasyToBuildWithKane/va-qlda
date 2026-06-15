@@ -1,7 +1,8 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import EmptyState from '@/shared/ui/EmptyState.vue';
+import ProfileInfoPanel from './ProfileInfoPanel.vue';
 import { skillGroupTone, skillLevelLabel } from '../utils/skillGroupTone';
 
 const props = defineProps({
@@ -10,32 +11,40 @@ const props = defineProps({
 
 const groups = computed(() => props.skills?.groups ?? []);
 
+const collapsedGroups = ref(new Set());
+
+function toggleGroup(key) {
+    const next = new Set(collapsedGroups.value);
+    if (next.has(key)) {
+        next.delete(key);
+    } else {
+        next.add(key);
+    }
+    collapsedGroups.value = next;
+}
+
+function isGroupOpen(key) {
+    return !collapsedGroups.value.has(key);
+}
+
 function barPercent(item) {
     return item.percent ?? Math.round(((item.level ?? 3) / 5) * 100);
 }
+
+const matrixBadge = computed(() => {
+    const t = props.skills?.total ?? 0;
+    return t ? `${t} kỹ năng` : null;
+});
 </script>
 
 <template>
-  <section class="rounded-2xl border border-slate-200/70 bg-white shadow-sm">
-    <header class="flex items-center justify-between border-b border-slate-100 px-5 py-3.5">
-      <div class="flex items-center gap-2.5">
-        <div class="grid h-8 w-8 place-items-center rounded-lg bg-brand/10 text-brand">
-          <AppIcon
-            name="sparkles"
-            :size="16"
-          />
-        </div>
-        <div>
-          <h2 class="text-sm font-semibold text-slate-800">
-            Ma trận kỹ năng
-          </h2>
-          <p class="text-[12px] text-slate-400">
-            {{ skills.total }} kỹ năng · {{ groups.length }} nhóm · thanh = mức độ 1–5
-          </p>
-        </div>
-      </div>
-    </header>
-
+  <ProfileInfoPanel
+    title="Ma trận kỹ năng"
+    icon="sparkles"
+    :subtitle="`${skills.total} kỹ năng · ${groups.length} nhóm · thanh = mức độ 1–5`"
+    section-key="profile-skill-matrix"
+    :collapsed-badge="matrixBadge"
+  >
     <div class="p-5">
       <EmptyState
         v-if="skills.total === 0"
@@ -46,33 +55,46 @@ function barPercent(item) {
 
       <div
         v-else
-        class="space-y-7"
+        class="space-y-3"
       >
         <section
           v-for="group in groups"
           :key="group.key"
-          class="skill-matrix-group"
+          class="overflow-hidden rounded-xl border border-slate-200/80"
         >
-          <div class="mb-3 flex items-center gap-3">
+          <button
+            type="button"
+            class="flex w-full items-center gap-3 bg-slate-50/80 px-3.5 py-2.5 text-left transition-colors hover:bg-slate-100/80"
+            :aria-expanded="isGroupOpen(group.key)"
+            @click="toggleGroup(group.key)"
+          >
             <span
-              class="h-8 w-1 shrink-0 rounded-full"
+              class="h-7 w-1 shrink-0 rounded-full"
               :class="skillGroupTone(group.key).barClass"
             />
             <div class="min-w-0 flex-1">
-              <h3 class="font-display text-[13px] font-semibold tracking-tight text-slate-800">
+              <h3 class="font-display text-[13px] font-semibold text-slate-800">
                 {{ group.label }}
               </h3>
               <p class="text-[11px] text-slate-400">
                 {{ group.items.length }} kỹ năng
               </p>
             </div>
-          </div>
+            <AppIcon
+              :name="isGroupOpen(group.key) ? 'chevron-down' : 'chevron-right'"
+              :size="16"
+              class="shrink-0 text-slate-400"
+            />
+          </button>
 
-          <ul class="space-y-4">
+          <ul
+            v-show="isGroupOpen(group.key)"
+            class="space-y-3 border-t border-slate-100 p-3.5"
+          >
             <li
               v-for="item in group.items"
               :key="item.name"
-              class="rounded-xl border border-slate-100 bg-slate-50/40 px-3.5 py-3 ring-1 ring-inset"
+              class="rounded-xl border border-slate-100 bg-white px-3.5 py-3 ring-1 ring-inset"
               :class="skillGroupTone(group.key).ringClass"
             >
               <div class="mb-2 flex items-start justify-between gap-3">
@@ -119,5 +141,5 @@ function barPercent(item) {
         </section>
       </div>
     </div>
-  </section>
+  </ProfileInfoPanel>
 </template>

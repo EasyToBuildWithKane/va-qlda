@@ -34,6 +34,7 @@ const bioState = computed(() => profileFieldState(props.profile.bio));
     title="Liên hệ & giới thiệu"
     icon="account"
     subtitle="Thông tin bạn có thể chỉnh sửa trong «Chỉnh sửa hồ sơ»"
+    section-key="profile-contact"
   >
     <div class="border-b border-slate-100 px-5 py-4">
       <p class="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">

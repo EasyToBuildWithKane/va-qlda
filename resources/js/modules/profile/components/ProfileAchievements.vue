@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import EmptyState from '@/shared/ui/EmptyState.vue';
+import ProfileInfoPanel from './ProfileInfoPanel.vue';
 import ProfileProjectsCard from './ProfileProjectsCard.vue';
 import { useCountUp } from '@/shared/composables/useCountUp.js';
 import { date } from '@/composables/useFormat';
@@ -39,84 +40,91 @@ const timeline = computed(() => {
     }
     return events.sort((a, b) => new Date(b.date) - new Date(a.date));
 });
+
+const statsBadge = computed(() => `${stats.value.projects_total ?? 0} dự án · ${stats.value.tasks_done ?? 0} việc`);
 </script>
 
 <template>
   <div class="space-y-5">
-    <!-- Stat tiles -->
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-      <div class="profile-ach-tile">
-        <div class="profile-ach-tile__icon bg-brand/10 text-brand">
-          <AppIcon
-            name="projects"
-            :size="18"
-          />
+    <ProfileInfoPanel
+      title="Chỉ số thành tích"
+      icon="leaderboard"
+      subtitle="Tổng hợp dự án, công việc và worklog trên QLDA"
+      section-key="profile-ach-stats"
+      :collapsed-badge="statsBadge"
+    >
+      <div class="grid grid-cols-1 gap-4 p-5 sm:grid-cols-3">
+        <div class="profile-ach-tile">
+          <div class="profile-ach-tile__icon bg-brand/10 text-brand">
+            <AppIcon
+              name="projects"
+              :size="18"
+            />
+          </div>
+          <div>
+            <p class="profile-ach-tile__value">
+              {{ projectsUp.display.value }}
+            </p>
+            <p class="profile-ach-tile__label">
+              Dự án tham gia
+            </p>
+          </div>
         </div>
-        <div>
-          <p class="profile-ach-tile__value">
-            {{ projectsUp.display.value }}
-          </p>
-          <p class="profile-ach-tile__label">
-            Dự án tham gia
-          </p>
-        </div>
-      </div>
 
-      <div class="profile-ach-tile">
-        <div class="profile-ach-tile__icon bg-emerald-50 text-emerald-600">
-          <AppIcon
-            name="done"
-            :size="18"
-          />
+        <div class="profile-ach-tile">
+          <div class="profile-ach-tile__icon bg-emerald-50 text-emerald-600">
+            <AppIcon
+              name="done"
+              :size="18"
+            />
+          </div>
+          <div>
+            <p class="profile-ach-tile__value">
+              {{ tasksUp.display.value }}
+              <span
+                v-if="stats.tasks_total"
+                class="text-sm font-medium text-slate-400"
+              >/ {{ stats.tasks_total }}</span>
+            </p>
+            <p class="profile-ach-tile__label">
+              Công việc hoàn thành
+              <span v-if="stats.task_completion != null">· {{ stats.task_completion }}%</span>
+            </p>
+          </div>
         </div>
-        <div>
-          <p class="profile-ach-tile__value">
-            {{ tasksUp.display.value }}
-            <span
-              v-if="stats.tasks_total"
-              class="text-sm font-medium text-slate-400"
-            >/ {{ stats.tasks_total }}</span>
-          </p>
-          <p class="profile-ach-tile__label">
-            Công việc hoàn thành
-            <span v-if="stats.task_completion != null">· {{ stats.task_completion }}%</span>
-          </p>
-        </div>
-      </div>
 
-      <div class="profile-ach-tile">
-        <div class="profile-ach-tile__icon bg-sky-50 text-sky-600">
-          <AppIcon
-            name="worklog"
-            :size="18"
-          />
-        </div>
-        <div>
-          <p class="profile-ach-tile__value">
-            {{ hoursUp.display.value }}<span class="text-sm font-medium text-slate-400">h</span>
-          </p>
-          <p class="profile-ach-tile__label">
-            Giờ ghi nhận (worklog)
-          </p>
+        <div class="profile-ach-tile">
+          <div class="profile-ach-tile__icon bg-sky-50 text-sky-600">
+            <AppIcon
+              name="worklog"
+              :size="18"
+            />
+          </div>
+          <div>
+            <p class="profile-ach-tile__value">
+              {{ hoursUp.display.value }}<span class="text-sm font-medium text-slate-400">h</span>
+            </p>
+            <p class="profile-ach-tile__label">
+              Giờ ghi nhận (worklog)
+            </p>
+          </div>
         </div>
       </div>
-    </div>
+    </ProfileInfoPanel>
 
     <div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
-      <ProfileProjectsCard :projects="projects" />
+      <ProfileProjectsCard
+        :projects="projects"
+        section-key="profile-ach-projects"
+      />
 
-      <!-- Timeline -->
-      <section class="rounded-2xl border border-slate-200/70 bg-white shadow-sm">
-        <header class="flex items-center gap-2.5 border-b border-slate-100 px-5 py-3.5">
-          <AppIcon
-            name="timeline"
-            :size="16"
-            class="text-slate-400"
-          />
-          <h2 class="text-sm font-semibold text-slate-800">
-            Dòng thời gian
-          </h2>
-        </header>
+      <ProfileInfoPanel
+        title="Dòng thời gian"
+        icon="timeline"
+        subtitle="Mốc gia nhập và tham gia dự án"
+        section-key="profile-ach-timeline"
+        :collapsed-badge="timeline.length ? `${timeline.length} mốc` : null"
+      >
         <div class="p-5">
           <ol
             v-if="timeline.length"
@@ -148,7 +156,7 @@ const timeline = computed(() => {
             description="Ngày tham gia và dự án sẽ tạo nên dòng thời gian của bạn."
           />
         </div>
-      </section>
+      </ProfileInfoPanel>
     </div>
   </div>
 </template>
@@ -160,9 +168,8 @@ const timeline = computed(() => {
     gap: 0.85rem;
     border-radius: 16px;
     border: 1px solid rgba(226, 232, 240, 0.8);
-    background: #fff;
+    background: rgb(248 250 252 / 0.5);
     padding: 1rem 1.1rem;
-    box-shadow: 0 10px 26px -22px rgba(15, 23, 42, 0.5);
 }
 
 .profile-ach-tile__icon {

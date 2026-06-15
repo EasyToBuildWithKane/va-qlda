@@ -1,5 +1,6 @@
 <script setup>
 import AppIcon from '@/Components/AppIcon.vue';
+import ProfileInfoPanel from './ProfileInfoPanel.vue';
 
 defineProps({
     insights: { type: Array, default: () => [] },
@@ -15,24 +16,13 @@ const toneClass = {
 </script>
 
 <template>
-  <section class="rounded-2xl border border-slate-200/70 bg-white shadow-sm">
-    <header class="flex items-center gap-2.5 border-b border-slate-100 px-5 py-3.5">
-      <div class="grid h-8 w-8 place-items-center rounded-lg bg-brand/10 text-brand">
-        <AppIcon
-          name="sparkles"
-          :size="16"
-        />
-      </div>
-      <div>
-        <h2 class="text-sm font-semibold text-slate-800">
-          Gợi ý phát triển
-        </h2>
-        <p class="text-[12px] text-slate-400">
-          Phân tích từ dữ liệu kỹ năng của bạn
-        </p>
-      </div>
-    </header>
-
+  <ProfileInfoPanel
+    title="Gợi ý phát triển"
+    icon="sparkles"
+    subtitle="Phân tích từ dữ liệu kỹ năng của bạn"
+    section-key="profile-skill-insights"
+    :collapsed-badge="insights.length ? `${insights.length} gợi ý` : null"
+  >
     <div class="p-5">
       <ul
         v-if="insights.length"
@@ -64,5 +54,5 @@ const toneClass = {
         Chưa có gợi ý — thêm và chấm mức độ kỹ năng để nhận phân tích.
       </p>
     </div>
-  </section>
+  </ProfileInfoPanel>
 </template>

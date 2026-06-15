@@ -4,8 +4,8 @@ import { Radar } from 'vue-chartjs';
 import {
     Chart as ChartJS, RadialLinearScale, PointElement, LineElement, Filler, Tooltip,
 } from 'chart.js';
-import AppIcon from '@/Components/AppIcon.vue';
 import EmptyState from '@/shared/ui/EmptyState.vue';
+import ProfileInfoPanel from './ProfileInfoPanel.vue';
 
 ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip);
 
@@ -56,27 +56,21 @@ const options = {
         },
     },
 };
+
+const collapsedBadge = computed(() => {
+    const n = props.radar.filter((r) => r.count > 0).length;
+    return n ? `${n} nhóm` : null;
+});
 </script>
 
 <template>
-  <section class="rounded-2xl border border-slate-200/70 bg-white shadow-sm">
-    <header class="flex items-center gap-2.5 border-b border-slate-100 px-5 py-3.5">
-      <div class="grid h-8 w-8 place-items-center rounded-lg bg-brand/10 text-brand">
-        <AppIcon
-          name="performance"
-          :size="16"
-        />
-      </div>
-      <div>
-        <h2 class="text-sm font-semibold text-slate-800">
-          Bản đồ năng lực
-        </h2>
-        <p class="text-[12px] text-slate-400">
-          Điểm trung bình theo lĩnh vực
-        </p>
-      </div>
-    </header>
-
+  <ProfileInfoPanel
+    title="Bản đồ năng lực"
+    icon="performance"
+    subtitle="Điểm trung bình theo nhóm kỹ năng"
+    section-key="profile-skill-radar"
+    :collapsed-badge="collapsedBadge"
+  >
     <div class="p-5">
       <div
         v-if="hasData"
@@ -94,5 +88,5 @@ const options = {
         description="Chấm mức độ (1–5) cho kỹ năng để dựng bản đồ năng lực."
       />
     </div>
-  </section>
+  </ProfileInfoPanel>
 </template>

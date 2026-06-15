@@ -1,9 +1,10 @@
 <script setup>
-import AppIcon from '@/Components/AppIcon.vue';
 import EmptyState from '@/shared/ui/EmptyState.vue';
+import ProfileInfoPanel from './ProfileInfoPanel.vue';
 
 defineProps({
     projects: { type: Array, default: () => [] },
+    sectionKey: { type: String, default: 'profile-projects-list' },
 });
 
 const roleLabel = {
@@ -16,17 +17,12 @@ const roleLabel = {
 </script>
 
 <template>
-  <section class="rounded-2xl border border-slate-200/70 bg-white shadow-sm">
-    <header class="flex items-center gap-2.5 border-b border-slate-100 px-5 py-3.5">
-      <AppIcon
-        name="projects"
-        :size="16"
-        class="text-slate-400"
-      />
-      <h2 class="text-sm font-semibold text-slate-800">
-        Dự án đang tham gia
-      </h2>
-    </header>
+  <ProfileInfoPanel
+    title="Dự án đang tham gia"
+    icon="projects"
+    :section-key="sectionKey"
+    :collapsed-badge="projects.length ? `${projects.length} dự án` : null"
+  >
     <div class="p-5">
       <ul
         v-if="projects.length"
@@ -68,5 +64,5 @@ const roleLabel = {
         description="Khi được phân vào dự án, danh sách sẽ hiển thị tại đây."
       />
     </div>
-  </section>
+  </ProfileInfoPanel>
 </template>

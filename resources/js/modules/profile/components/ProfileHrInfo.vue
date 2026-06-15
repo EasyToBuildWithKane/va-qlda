@@ -41,6 +41,7 @@ const roleFields = computed(() => [
     title="Hồ sơ nhân sự (CMS)"
     icon="member-profiles"
     subtitle="Dữ liệu đồng bộ từ hệ thống nhân sự — chỉ đọc trên QLDA"
+    section-key="profile-hr"
   >
     <ProfileFieldList
       group-title="Định danh"

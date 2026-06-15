@@ -40,8 +40,9 @@ const cols = computed(() => [
 </script>
 
 <template>
-  <footer class="relative border-t border-white/10 bg-[#08080f]">
-    <div class="mx-auto max-w-7xl px-5 py-14 sm:px-8">
+  <footer class="relative border-t border-white/10 bg-[#070810]">
+    <div class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand/50 to-transparent" />
+    <div class="mx-auto max-w-7xl px-5 py-16 sm:px-8">
       <div class="grid gap-10 md:grid-cols-[1.4fr_1fr_1fr]">
         <div>
           <div class="flex items-center gap-2.5">
@@ -90,7 +91,7 @@ const cols = computed(() => [
           v-for="col in cols"
           :key="col.heading"
         >
-          <p class="text-xs font-semibold uppercase tracking-wider text-white/40">
+          <p class="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">
             {{ col.heading }}
           </p>
           <ul class="mt-4 space-y-2.5">

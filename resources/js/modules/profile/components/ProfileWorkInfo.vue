@@ -34,6 +34,7 @@ const fields = computed(() => {
     title="Vận hành trên QLDA"
     icon="briefcase"
     subtitle="Vai trò, nhóm và trạng thái trên hệ thống quản lý dự án"
+    section-key="profile-work"
   >
     <ProfileFieldList :fields="fields" />
   </ProfileInfoPanel>

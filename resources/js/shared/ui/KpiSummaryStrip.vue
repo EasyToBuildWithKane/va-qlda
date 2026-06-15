@@ -21,6 +21,8 @@ const props = defineProps({
         type: String,
         default: 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-5',
     },
+    hideHeader: { type: Boolean, default: false },
+    shellClass: { type: String, default: '' },
 });
 
 const emit = defineEmits(['select']);
@@ -45,9 +47,14 @@ const iconToneClass = {
     slate: 'text-slate-600 bg-slate-100 ring-slate-200/80',
 };
 
-const stripClass = computed(() => (props.variant === 'embedded'
-    ? 'kpi-strip relative shrink-0 overflow-x-hidden border-b border-slate-100 bg-gradient-to-b from-slate-50/90 to-white px-4 py-4 sm:px-5 sm:py-5'
-    : 'kpi-strip relative mb-5 overflow-x-hidden rounded-card border border-slate-200/80 bg-gradient-to-b from-slate-50/90 to-white px-4 py-4 shadow-sm sm:px-5 sm:py-5'));
+const stripClass = computed(() => {
+    if (props.shellClass) {
+        return props.shellClass;
+    }
+    return props.variant === 'embedded'
+        ? 'kpi-strip relative shrink-0 overflow-x-hidden border-b border-slate-100 bg-gradient-to-b from-slate-50/90 to-white px-4 py-4 sm:px-5 sm:py-5'
+        : 'kpi-strip relative mb-5 overflow-x-hidden rounded-card border border-slate-200/80 bg-gradient-to-b from-slate-50/90 to-white px-4 py-4 shadow-sm sm:px-5 sm:py-5';
+});
 
 function isInteractive(card) {
     return Boolean(card.interactive);
@@ -94,7 +101,10 @@ function showProgress(card) {
       <div class="kpi-strip__bg-inner absolute -right-4 top-2 h-24 w-[min(45%,18rem)] bg-brand/[0.04]" />
     </div>
 
-    <header class="relative mb-3 flex flex-wrap items-end justify-between gap-2">
+    <header
+      v-if="!hideHeader"
+      class="relative mb-3 flex flex-wrap items-end justify-between gap-2"
+    >
       <div>
         <p class="text-[10px] font-semibold uppercase tracking-[0.14em] text-brand/80">
           {{ eyebrow }}
