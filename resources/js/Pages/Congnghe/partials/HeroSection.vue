@@ -1,56 +1,85 @@
 <script setup>
+import { onBeforeUnmount, onMounted, ref } from 'vue';
+import MagneticButton from './MagneticButton.vue';
+import CountStat from './CountStat.vue';
+import { hasFinePointer, prefersReducedMotionNow } from './motion.js';
+
 defineProps({
     metrics: { type: Object, default: () => ({}) },
 });
 
+const px = ref(0);
+const py = ref(0);
+const ready = ref(false);
+
+function onMove(e) {
+    px.value = (e.clientX / window.innerWidth - 0.5);
+    py.value = (e.clientY / window.innerHeight - 0.5);
+}
+
+function layer(depth) {
+    return { transform: `translate3d(${(px.value * depth).toFixed(1)}px, ${(py.value * depth).toFixed(1)}px, 0)` };
+}
+
+onMounted(() => {
+    requestAnimationFrame(() => (ready.value = true));
+    if (hasFinePointer() && !prefersReducedMotionNow()) {
+        window.addEventListener('mousemove', onMove, { passive: true });
+    }
+});
+onBeforeUnmount(() => window.removeEventListener('mousemove', onMove));
+
+const chips = [
+    { label: 'AI', cls: 'left-1/2 top-1 -translate-x-1/2', depth: -28 },
+    { label: 'Data', cls: 'right-0 top-1/3', depth: 34 },
+    { label: 'Cloud', cls: 'bottom-2 left-1/2 -translate-x-1/2', depth: -22 },
+    { label: 'Web', cls: 'left-0 top-1/2', depth: 26 },
+];
+
 const highlights = [
-    { key: 'projects', label: 'Dự án' },
-    { key: 'members', label: 'Nhân sự' },
-    { key: 'departments', label: 'Phòng ban' },
+    { key: 'projects', label: 'Dự án', suffix: '+' },
+    { key: 'members', label: 'Nhân sự', suffix: '' },
+    { key: 'departments', label: 'Phòng ban', suffix: '' },
 ];
 </script>
 
 <template>
   <section
     id="top"
-    class="relative flex min-h-screen items-center overflow-hidden pt-16"
+    class="relative flex min-h-screen items-center overflow-hidden pt-24"
   >
-    <!-- Background glow -->
-    <div
-      class="pointer-events-none absolute inset-0"
-      aria-hidden="true"
-    >
-      <div class="absolute -left-32 top-10 h-[420px] w-[420px] rounded-full bg-brand/30 blur-[120px]" />
-      <div class="absolute right-0 top-1/3 h-[360px] w-[360px] rounded-full bg-[#ff4d8d]/20 blur-[120px]" />
-      <div class="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(154,0,54,0.18),transparent_60%)]" />
-    </div>
-
-    <div class="relative mx-auto grid max-w-7xl items-center gap-12 px-5 py-16 sm:px-8 lg:grid-cols-[1.15fr_0.85fr]">
-      <div>
-        <span class="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-[12.5px] font-medium text-white/80 backdrop-blur">
-          <span class="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
-          Vietnam America Schools · Đổi mới giáo dục bằng công nghệ
+    <div class="relative mx-auto grid w-full max-w-7xl items-center gap-12 px-5 pb-16 sm:px-8 lg:grid-cols-[1.1fr_0.9fr]">
+      <!-- Copy -->
+      <div
+        class="transition-all duration-700"
+        :class="ready ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'"
+      >
+        <span class="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 font-mono text-[11.5px] font-medium tracking-wide text-white/80 backdrop-blur">
+          <span class="relative flex h-2 w-2">
+            <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-70" />
+            <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+          </span>
+          AI-NATIVE PLATFORM · VIETNAM AMERICA SCHOOLS
         </span>
 
-        <h1 class="mt-6 font-display text-4xl font-extrabold leading-[1.08] tracking-tight text-white sm:text-5xl lg:text-6xl">
-          Phòng Công Nghệ
-          <span class="mt-2 block bg-gradient-to-r from-[#ff85b3] via-[#ff4d8d] to-brand bg-clip-text text-transparent">
-            Kiến tạo nền tảng số
-          </span>
+        <h1 class="mt-6 font-display text-[2.6rem] font-extrabold leading-[1.04] tracking-tight text-white sm:text-6xl">
+          Kiến tạo
+          <span class="relative bg-gradient-to-r from-[#ff9ec4] via-[#ff4d8d] to-[#7c3aed] bg-clip-text text-transparent">nền tảng số</span>
+          cho giáo dục tương lai
         </h1>
 
-        <p class="mt-6 max-w-xl text-base leading-relaxed text-white/65 sm:text-lg">
-          Chúng tôi xây dựng hạ tầng dữ liệu, sản phẩm phần mềm và năng lực AI
-          phục vụ toàn hệ thống giáo dục — biến mỗi quy trình thành sản phẩm
-          thật, vận hành được và đo lường được.
+        <p class="mt-6 max-w-xl text-base leading-relaxed text-white/60 sm:text-lg">
+          Phòng Công Nghệ xây dựng hạ tầng dữ liệu, sản phẩm phần mềm và năng lực AI
+          phục vụ toàn hệ thống — biến mỗi quy trình thành sản phẩm thật, vận hành và
+          đo lường được.
         </p>
 
-        <div class="mt-8 flex flex-wrap items-center gap-3">
-          <a
+        <div class="mt-9 flex flex-wrap items-center gap-3">
+          <MagneticButton
             href="#san-pham"
-            class="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-brand to-[#d4145a] px-6 py-3 text-sm font-semibold text-white shadow-xl shadow-brand/30 transition hover:shadow-brand/50"
+            variant="primary"
           >
-            Khám phá sản phẩm
+            Khám phá hệ sinh thái
             <svg
               width="16"
               height="16"
@@ -59,13 +88,13 @@ const highlights = [
               stroke="currentColor"
               stroke-width="2"
             ><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-          </a>
-          <a
+          </MagneticButton>
+          <MagneticButton
             href="#to-chuc"
-            class="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-6 py-3 text-sm font-semibold text-white/85 backdrop-blur transition hover:bg-white/10"
+            variant="ghost"
           >
             Đội ngũ &amp; tổ chức
-          </a>
+          </MagneticButton>
         </div>
 
         <dl class="mt-12 grid max-w-md grid-cols-3 gap-6">
@@ -73,36 +102,51 @@ const highlights = [
             v-for="h in highlights"
             :key="h.key"
           >
-            <dt class="font-display text-3xl font-bold text-white">
-              {{ metrics[h.key] ?? 0 }}<span class="text-brand">+</span>
+            <dt class="font-display text-3xl font-bold text-white sm:text-4xl">
+              <CountStat
+                :value="Number(metrics[h.key] ?? 0)"
+                :active="ready"
+              /><span class="bg-gradient-to-r from-brand to-[#ff4d8d] bg-clip-text text-transparent">{{ h.suffix }}</span>
             </dt>
-            <dd class="mt-1 text-[12.5px] text-white/50">
+            <dd class="mt-1 font-mono text-[11px] uppercase tracking-wider text-white/45">
               {{ h.label }}
             </dd>
           </div>
         </dl>
       </div>
 
-      <!-- Orbit visual -->
-      <div class="relative hidden aspect-square w-full max-w-md lg:block">
-        <div class="absolute inset-0 rounded-full border border-white/10" />
-        <div class="absolute inset-8 rounded-full border border-white/10" />
-        <div class="absolute inset-16 rounded-full border border-dashed border-white/10" />
+      <!-- AI core visual -->
+      <div
+        class="relative mx-auto hidden aspect-square w-full max-w-md lg:block"
+        :style="layer(-10)"
+      >
+        <div class="absolute inset-0 rounded-full border border-white/10 animate-cn-spin-slow" />
+        <div class="absolute inset-[12%] rounded-full border border-white/10 [animation:cn-spin-slow_22s_linear_infinite_reverse]" />
+        <div class="absolute inset-[24%] rounded-full border border-dashed border-white/15 animate-cn-spin-slow" />
+        <div class="absolute inset-[20%] rounded-full bg-[radial-gradient(circle,rgba(255,77,141,0.25),transparent_70%)] blur-xl animate-cn-glow" />
+
         <div class="absolute inset-0 grid place-items-center">
-          <div class="grid h-32 w-32 place-items-center rounded-3xl bg-gradient-to-br from-brand to-[#ff4d8d] shadow-2xl shadow-brand/40">
-            <span class="font-display text-4xl font-black text-white">CN</span>
+          <div
+            class="grid h-32 w-32 place-items-center rounded-[1.75rem] bg-gradient-to-br from-brand to-[#ff4d8d] shadow-2xl shadow-brand/50 animate-cn-float"
+            :style="layer(18)"
+          >
+            <span class="font-display text-4xl font-black text-white drop-shadow">CN</span>
           </div>
         </div>
-        <span class="absolute left-1/2 top-2 -translate-x-1/2 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/80 backdrop-blur">AI</span>
-        <span class="absolute right-2 top-1/2 -translate-y-1/2 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/80 backdrop-blur">Web</span>
-        <span class="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/80 backdrop-blur">Data</span>
-        <span class="absolute left-2 top-1/2 -translate-y-1/2 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/80 backdrop-blur">Cloud</span>
+
+        <span
+          v-for="chip in chips"
+          :key="chip.label"
+          class="absolute rounded-xl border border-white/10 bg-white/[0.06] px-3 py-1.5 font-mono text-xs font-medium text-white/85 backdrop-blur-xl animate-cn-float"
+          :class="chip.cls"
+          :style="layer(chip.depth)"
+        >{{ chip.label }}</span>
       </div>
     </div>
 
     <a
       href="#gioi-thieu"
-      class="absolute bottom-6 left-1/2 -translate-x-1/2 text-white/40 transition hover:text-white"
+      class="absolute bottom-6 left-1/2 -translate-x-1/2 text-white/35 transition hover:text-white"
       aria-label="Cuộn xuống"
     >
       <svg

@@ -10,16 +10,18 @@ use Illuminate\Support\Str;
  * skill matrix for the profile page.
  *
  * Enriched format (optional, stored in employees.meta['skill_details']):
- *   [{ "name": "Laravel", "level": 5, "years": 4, "category": "backend",
- *      "certified": true, "projects": 6 }, ...]
+ *   [{ "name": "Laravel", "level": 5, "years": 4, "category": "Backend",
+ *      "note": "..." }, ...]
  *
- * When no level data exists the matrix still groups skills by inferred domain so
- * the UI can render clean chips instead of fabricated progress bars.
+ * `category` is a free-form group label (e.g. "Lập trình Web", "DevOps").
+ * Legacy slug values (backend, frontend, …) still map to their Vietnamese labels.
  */
 class SkillCatalog
 {
+    public const DEFAULT_GROUP = 'Chung';
+
     /**
-     * Ordered category definitions: key => [label, keyword fragments].
+     * Legacy slug → label (backward compatible reads).
      *
      * @var array<string, array{label:string, match:list<string>}>
      */
@@ -86,23 +88,13 @@ class SkillCatalog
         }
         /** @var array<string, array<string, mixed>> $byKey indexed by normalized name */
         $byKey = [];
-        $hasLevels = false;
 
         foreach ($skills ?? [] as $raw) {
             if (! is_string($raw) || trim($raw) === '') {
                 continue;
             }
             $key = Str::lower(trim($raw));
-            $byKey[$key] = [
-                'name' => self::displayName($raw),
-                'category' => self::categorize($key),
-                'level' => null,
-                'percent' => null,
-                'years' => null,
-                'certified' => false,
-                'projects' => null,
-                'note' => null,
-            ];
+            $byKey[$key] = self::blankSkill($raw, self::DEFAULT_GROUP);
         }
 
         foreach ($details ?? [] as $detail) {
@@ -111,50 +103,38 @@ class SkillCatalog
                 continue;
             }
             $key = Str::lower(trim($name));
-            $level = isset($detail['level']) ? (int) $detail['level'] : null;
-            if ($level !== null) {
-                $hasLevels = true;
-            }
-            $byKey[$key] = [
-                'name' => self::displayName($name),
-                'category' => $detail['category'] ?? self::categorize($key),
-                'level' => $level,
-                'percent' => $level !== null ? (int) round($level / 5 * 100) : null,
-                'years' => isset($detail['years']) ? (float) $detail['years'] : null,
-                'certified' => (bool) ($detail['certified'] ?? false),
-                'projects' => isset($detail['projects']) ? (int) $detail['projects'] : null,
-                'note' => isset($detail['note']) && trim((string) $detail['note']) !== '' ? (string) $detail['note'] : null,
-            ];
+            $category = isset($detail['category']) && trim((string) $detail['category']) !== ''
+                ? trim((string) $detail['category'])
+                : self::DEFAULT_GROUP;
+            $level = isset($detail['level']) && is_numeric($detail['level'])
+                ? max(1, min(5, (int) $detail['level']))
+                : 3;
+
+            $byKey[$key] = self::filledSkill($name, $category, $level, $detail);
         }
 
-        // Bucket into ordered groups; collect "other" last.
-        $groups = [];
-        foreach (array_keys(self::CATEGORIES) as $catKey) {
-            $items = array_values(array_filter($byKey, fn ($s) => $s['category'] === $catKey));
-            if ($items !== []) {
-                $groups[] = ['key' => $catKey, 'label' => self::CATEGORIES[$catKey]['label'], 'items' => $items];
-            }
+        foreach ($byKey as &$item) {
+            self::applyLevelPercent($item);
         }
-        $other = array_values(array_filter($byKey, fn ($s) => ! isset(self::CATEGORIES[$s['category']])));
-        if ($other !== []) {
-            $groups[] = ['key' => 'other', 'label' => 'Khác', 'items' => $other];
-        }
+        unset($item);
+
+        $groups = self::bucketIntoGroups($byKey);
 
         return [
             'groups' => $groups,
             'total' => count($byKey),
-            'has_levels' => $hasLevels,
+            'has_levels' => count($byKey) > 0,
         ];
     }
 
-    /** Infer the category bucket for a raw skill name (public helper). */
+    /** @deprecated Prefer explicit group on skill_details; kept for callers that infer slug. */
     public static function categoryFor(string $name): string
     {
         return self::categorize(Str::lower(trim($name)));
     }
 
     /**
-     * Ordered competency domains (key => label), for radar / gap analysis.
+     * Ordered legacy competency domains (key => label).
      *
      * @return array<string, string>
      */
@@ -168,6 +148,109 @@ class SkillCatalog
         return $out;
     }
 
+    /**
+     * @return array{key:string, label:string}
+     */
+    public static function resolveGroup(string $categoryRaw): array
+    {
+        $trimmed = trim($categoryRaw);
+        if ($trimmed === '') {
+            return ['key' => 'chung', 'label' => self::DEFAULT_GROUP];
+        }
+
+        $lower = Str::lower($trimmed);
+        if (isset(self::CATEGORIES[$lower])) {
+            return ['key' => $lower, 'label' => self::CATEGORIES[$lower]['label']];
+        }
+
+        $slug = Str::slug($trimmed);
+        if ($slug === '') {
+            $slug = 'group-'.substr(md5($trimmed), 0, 8);
+        }
+
+        return ['key' => $slug, 'label' => $trimmed];
+    }
+
+    /** Canonical display name for a raw skill string (public helper). */
+    public static function displayName(string $raw): string
+    {
+        $key = Str::lower(trim($raw));
+
+        return self::DISPLAY_NAMES[$key] ?? Str::title(trim($raw));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function blankSkill(string $raw, string $category): array
+    {
+        return [
+            'name' => self::displayName($raw),
+            'category' => $category,
+            'level' => 3,
+            'percent' => null,
+            'years' => null,
+            'projects' => null,
+            'note' => null,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $detail
+     * @return array<string, mixed>
+     */
+    private static function filledSkill(string $name, string $category, int $level, array $detail): array
+    {
+        return [
+            'name' => self::displayName($name),
+            'category' => $category,
+            'level' => $level,
+            'percent' => null,
+            'years' => isset($detail['years']) && $detail['years'] !== '' && $detail['years'] !== null
+                ? (float) $detail['years']
+                : null,
+            'projects' => isset($detail['projects']) ? (int) $detail['projects'] : null,
+            'note' => isset($detail['note']) && trim((string) $detail['note']) !== ''
+                ? trim((string) $detail['note'])
+                : null,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $item
+     */
+    private static function applyLevelPercent(array &$item): void
+    {
+        $level = isset($item['level']) && is_numeric($item['level'])
+            ? max(1, min(5, (int) $item['level']))
+            : 3;
+        $item['level'] = $level;
+        $item['percent'] = (int) round($level / 5 * 100);
+    }
+
+    /**
+     * @param  array<string, array<string, mixed>>  $byKey
+     * @return list<array{key:string, label:string, items: list<array<string, mixed>>}>
+     */
+    private static function bucketIntoGroups(array $byKey): array
+    {
+        /** @var array<string, array{key:string, label:string, items: list<array<string, mixed>>}> $map */
+        $map = [];
+        $order = [];
+
+        foreach ($byKey as $item) {
+            $resolved = self::resolveGroup((string) ($item['category'] ?? self::DEFAULT_GROUP));
+            $gKey = $resolved['key'];
+            if (! isset($map[$gKey])) {
+                $map[$gKey] = ['key' => $gKey, 'label' => $resolved['label'], 'items' => []];
+                $order[] = $gKey;
+            }
+            $map[$gKey]['items'][] = $item;
+        }
+
+        return array_values(array_map(fn (string $k) => $map[$k], $order));
+    }
+
     private static function categorize(string $lowerName): string
     {
         foreach (self::CATEGORIES as $key => $def) {
@@ -179,13 +262,5 @@ class SkillCatalog
         }
 
         return 'other';
-    }
-
-    /** Canonical display name for a raw skill string (public helper). */
-    public static function displayName(string $raw): string
-    {
-        $key = Str::lower(trim($raw));
-
-        return self::DISPLAY_NAMES[$key] ?? Str::title(trim($raw));
     }
 }

@@ -1,5 +1,6 @@
 <script setup>
 import SectionHeading from './SectionHeading.vue';
+import GlassCard from './GlassCard.vue';
 import { useInView } from './motion.js';
 
 const { target, shown } = useInView();
@@ -33,45 +34,47 @@ const pillars = [
   <section
     id="gioi-thieu"
     ref="target"
-    class="relative border-t border-white/5 py-24"
+    class="relative py-28"
   >
     <div class="mx-auto max-w-7xl px-5 sm:px-8">
       <SectionHeading
         eyebrow="Giới thiệu"
-        title="Chúng tôi là Phòng Công Nghệ"
+        title="Kim chỉ nam cho mọi hoạt động"
         subtitle="Đơn vị kiến tạo hạ tầng số, sản phẩm phần mềm và năng lực AI cho toàn bộ hệ thống Vietnam America Schools."
       />
 
       <div class="mt-14 grid gap-6 md:grid-cols-3">
-        <article
+        <GlassCard
           v-for="(p, i) in pillars"
           :key="p.key"
-          class="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-7 transition-all duration-700 hover:border-brand/40 hover:bg-white/[0.05]"
-          :class="shown ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'"
+          tilt
+          :padded="false"
+          class="p-7 transition-all duration-700"
+          :class="shown ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'"
           :style="{ transitionDelay: `${i * 120}ms` }"
         >
-          <div class="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-brand/10 blur-2xl transition-opacity group-hover:opacity-100" />
-          <div class="relative grid h-12 w-12 place-items-center rounded-xl bg-gradient-to-br from-brand/80 to-[#ff4d8d]/80 text-white shadow-lg shadow-brand/20">
+          <span class="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-brand-300">0{{ i + 1 }}</span>
+          <div class="mt-3 grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-brand to-[#ff4d8d] p-3 text-white shadow-lg shadow-brand/30">
             <svg
-              width="22"
-              height="22"
+              width="24"
+              height="24"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              stroke-width="1.8"
+              stroke-width="1.7"
               stroke-linejoin="round"
             ><path :d="p.icon" /></svg>
           </div>
-          <p class="relative mt-5 text-xs font-semibold uppercase tracking-wider text-brand">
+          <p class="mt-5 font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-white/45">
             {{ p.tag }}
           </p>
-          <h3 class="relative mt-2 font-display text-lg font-bold text-white">
+          <h3 class="mt-1.5 font-display text-lg font-bold text-white">
             {{ p.title }}
           </h3>
-          <p class="relative mt-3 text-sm leading-relaxed text-white/55">
+          <p class="mt-3 text-sm leading-relaxed text-white/55">
             {{ p.body }}
           </p>
-        </article>
+        </GlassCard>
       </div>
     </div>
   </section>

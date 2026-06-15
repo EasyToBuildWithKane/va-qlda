@@ -135,10 +135,11 @@ class ProfileStats
         }
 
         $radar = [];
-        foreach (SkillCatalog::categoryLabels() as $key => $label) {
+        foreach ($built['groups'] as $group) {
+            $key = $group['key'];
             $radar[] = [
                 'key' => $key,
-                'label' => $label,
+                'label' => $group['label'],
                 'score' => $byKey[$key]['score'] ?? 0,
                 'count' => $byKey[$key]['count'] ?? 0,
             ];
@@ -210,15 +211,6 @@ class ProfileStats
                 'icon' => 'career',
                 'tone' => 'sky',
                 'text' => 'Lĩnh vực chưa có kỹ năng: '.implode(', ', $labels).'. Bổ sung để mở rộng năng lực.',
-            ];
-        }
-
-        $certified = count(array_filter($details, fn ($d) => is_array($d) && ! empty($d['certified'])));
-        if ($certified > 0) {
-            $out[] = [
-                'icon' => 'certified',
-                'tone' => 'violet',
-                'text' => "{$certified} kỹ năng đã có chứng chỉ xác thực.",
             ];
         }
 

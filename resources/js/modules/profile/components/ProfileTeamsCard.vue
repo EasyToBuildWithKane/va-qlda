@@ -1,5 +1,5 @@
 <script setup>
-import AppIcon from '@/Components/AppIcon.vue';
+import ProfileInfoPanel from './ProfileInfoPanel.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
 import Badge from '@/shared/ui/Badge.vue';
 
@@ -12,39 +12,30 @@ const hasAny = () => props.teams.length || props.manager;
 </script>
 
 <template>
-  <section
+  <ProfileInfoPanel
     v-if="hasAny()"
-    class="rounded-2xl border border-slate-200/70 bg-white shadow-sm"
+    title="Tổ chức"
+    icon="org-teams"
+    subtitle="Nhóm QLDA và quản lý trực tiếp"
   >
-    <header class="flex items-center gap-2.5 border-b border-slate-100 px-5 py-3.5">
-      <AppIcon
-        name="org-teams"
-        :size="16"
-        class="text-slate-400"
-      />
-      <h2 class="text-sm font-semibold text-slate-800">
-        Tổ chức
-      </h2>
-    </header>
-
     <div class="space-y-4 p-5">
       <div v-if="manager">
-        <p class="mb-2 text-[11px] uppercase tracking-wide text-slate-400">
+        <p class="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
           Quản lý trực tiếp
         </p>
-        <div class="flex items-center gap-2.5">
+        <div class="mt-2 flex items-center gap-2.5 rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2.5">
           <Avatar
             :name="manager.name"
             :src="manager.avatar_path"
             :size="36"
           />
           <div class="min-w-0">
-            <p class="truncate text-[13px] font-medium text-slate-700">
+            <p class="truncate text-[13px] font-medium text-slate-800">
               {{ manager.name }}
             </p>
             <p
               v-if="manager.role_title"
-              class="truncate text-[12px] text-slate-400"
+              class="truncate text-[12px] text-slate-500"
             >
               {{ manager.role_title }}
             </p>
@@ -53,22 +44,22 @@ const hasAny = () => props.teams.length || props.manager;
       </div>
 
       <div v-if="teams.length">
-        <p class="mb-2 text-[11px] uppercase tracking-wide text-slate-400">
+        <p class="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
           Nhóm tham gia
         </p>
-        <ul class="space-y-2">
+        <ul class="mt-2 space-y-2">
           <li
             v-for="t in teams"
             :key="t.id"
-            class="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2"
+            class="flex items-center justify-between gap-2 rounded-xl border border-slate-100 bg-white px-3 py-2.5"
           >
             <div class="min-w-0">
-              <p class="truncate text-[13px] font-medium text-slate-700">
+              <p class="truncate text-[13px] font-medium text-slate-800">
                 {{ t.name }}
               </p>
               <p
                 v-if="t.section"
-                class="truncate text-[11.5px] text-slate-400"
+                class="truncate font-mono text-[11px] text-slate-400"
               >
                 {{ t.section }}
               </p>
@@ -82,5 +73,5 @@ const hasAny = () => props.teams.length || props.manager;
         </ul>
       </div>
     </div>
-  </section>
+  </ProfileInfoPanel>
 </template>

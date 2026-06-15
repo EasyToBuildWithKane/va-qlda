@@ -14,18 +14,12 @@ const props = defineProps({
 
 const emit = defineEmits(['close']);
 
-const socials = props.profile.socials || {};
-
 const form = useForm({
     _method: 'put',
     phone: props.profile.phone || '',
     role_title: props.profile.role_title || '',
     bio: props.profile.bio || '',
     location: props.profile.location || '',
-    github: socials.github || '',
-    linkedin: socials.linkedin || '',
-    portfolio: socials.portfolio || '',
-    website: socials.website || '',
     avatar: null,
 });
 
@@ -139,54 +133,6 @@ function submit() {
           :invalid="!!form.errors.location"
         />
       </FormField>
-
-      <!-- Socials -->
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <FormField
-          label="GitHub"
-          :error="form.errors.github"
-        >
-          <TextInput
-            v-model="form.github"
-            type="url"
-            placeholder="https://github.com/..."
-            :invalid="!!form.errors.github"
-          />
-        </FormField>
-        <FormField
-          label="LinkedIn"
-          :error="form.errors.linkedin"
-        >
-          <TextInput
-            v-model="form.linkedin"
-            type="url"
-            placeholder="https://linkedin.com/in/..."
-            :invalid="!!form.errors.linkedin"
-          />
-        </FormField>
-        <FormField
-          label="Portfolio"
-          :error="form.errors.portfolio"
-        >
-          <TextInput
-            v-model="form.portfolio"
-            type="url"
-            placeholder="https://..."
-            :invalid="!!form.errors.portfolio"
-          />
-        </FormField>
-        <FormField
-          label="Website"
-          :error="form.errors.website"
-        >
-          <TextInput
-            v-model="form.website"
-            type="url"
-            placeholder="https://..."
-            :invalid="!!form.errors.website"
-          />
-        </FormField>
-      </div>
 
       <div class="flex items-center justify-end gap-2 border-t border-slate-100 pt-4">
         <button

@@ -1,7 +1,8 @@
 <script setup>
 import { ref } from 'vue';
-import { Link } from '@inertiajs/vue3';
 import SectionHeading from './SectionHeading.vue';
+import GlassCard from './GlassCard.vue';
+import MagneticButton from './MagneticButton.vue';
 import { tone } from './tones.js';
 
 defineProps({
@@ -11,14 +12,14 @@ defineProps({
 const scroller = ref(null);
 
 function scrollBy(dir) {
-    scroller.value?.scrollBy({ left: dir * 340, behavior: 'smooth' });
+    scroller.value?.scrollBy({ left: dir * 360, behavior: 'smooth' });
 }
 </script>
 
 <template>
   <section
     id="san-pham"
-    class="relative border-t border-white/5 py-24"
+    class="relative py-28"
   >
     <div class="mx-auto max-w-7xl px-5 sm:px-8">
       <div class="flex flex-wrap items-end justify-between gap-6">
@@ -32,10 +33,12 @@ function scrollBy(dir) {
           class="hidden gap-2 sm:flex"
         >
           <button
+            v-for="(dir, idx) in [-1, 1]"
+            :key="idx"
             type="button"
-            class="grid h-11 w-11 place-items-center rounded-full border border-white/15 text-white/70 transition hover:bg-white/5 hover:text-white"
-            aria-label="Trước"
-            @click="scrollBy(-1)"
+            class="grid h-11 w-11 place-items-center rounded-full border border-white/15 bg-white/5 text-white/70 backdrop-blur transition hover:border-brand/40 hover:bg-white/10 hover:text-white"
+            :aria-label="dir < 0 ? 'Trước' : 'Sau'"
+            @click="scrollBy(dir)"
           >
             <svg
               width="18"
@@ -44,22 +47,7 @@ function scrollBy(dir) {
               fill="none"
               stroke="currentColor"
               stroke-width="2"
-            ><path d="M15 6l-6 6 6 6" /></svg>
-          </button>
-          <button
-            type="button"
-            class="grid h-11 w-11 place-items-center rounded-full border border-white/15 text-white/70 transition hover:bg-white/5 hover:text-white"
-            aria-label="Sau"
-            @click="scrollBy(1)"
-          >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            ><path d="M9 6l6 6-6 6" /></svg>
+            ><path :d="dir < 0 ? 'M15 6l-6 6 6 6' : 'M9 6l6 6-6 6'" /></svg>
           </button>
         </div>
       </div>
@@ -69,14 +57,16 @@ function scrollBy(dir) {
         ref="scroller"
         class="mt-12 flex snap-x snap-mandatory gap-5 overflow-x-auto pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
-        <article
+        <GlassCard
           v-for="product in products"
           :key="product.id"
-          class="group relative w-[300px] shrink-0 snap-start overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-6 transition hover:border-brand/40 hover:bg-white/[0.05]"
+          tilt
+          :padded="false"
+          class="w-[310px] shrink-0 snap-start p-6"
         >
           <div class="flex items-start justify-between">
             <span
-              class="grid h-12 w-12 place-items-center rounded-xl font-display text-lg font-bold text-white shadow-lg"
+              class="grid h-12 w-12 place-items-center rounded-xl font-display text-lg font-bold text-white shadow-lg ring-1 ring-white/20"
               :style="{ backgroundColor: product.color || '#9A0036' }"
             >
               {{ (product.code || product.name || '?').slice(0, 2).toUpperCase() }}
@@ -98,24 +88,24 @@ function scrollBy(dir) {
           </h3>
           <p
             v-if="product.code"
-            class="mt-1 text-xs font-medium uppercase tracking-wide text-white/40"
+            class="mt-1 font-mono text-[11px] uppercase tracking-wide text-white/40"
           >
             {{ product.code }}
           </p>
 
           <div class="mt-6">
-            <div class="flex items-center justify-between text-[12px] text-white/55">
-              <span>Tiến độ</span>
+            <div class="flex items-center justify-between font-mono text-[11px] text-white/55">
+              <span>TIẾN ĐỘ</span>
               <span class="font-semibold text-white">{{ product.progress }}%</span>
             </div>
             <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
               <div
-                class="h-full rounded-full bg-gradient-to-r from-brand to-[#ff4d8d] transition-all duration-700"
+                class="h-full rounded-full bg-[linear-gradient(110deg,#9A0036,#ff4d8d,#9A0036)] bg-[length:200%_100%] animate-cn-shimmer"
                 :style="{ width: `${product.progress}%` }"
               />
             </div>
           </div>
-        </article>
+        </GlassCard>
       </div>
 
       <p
@@ -126,9 +116,11 @@ function scrollBy(dir) {
       </p>
 
       <div class="mt-8">
-        <Link
+        <MagneticButton
           href="/projects"
-          class="inline-flex items-center gap-2 text-sm font-semibold text-brand transition hover:text-[#ff4d8d]"
+          inertia
+          variant="ghost"
+          class="!px-5 !py-2.5 !text-[13px]"
         >
           Xem toàn bộ dự án
           <svg
@@ -139,7 +131,7 @@ function scrollBy(dir) {
             stroke="currentColor"
             stroke-width="2"
           ><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-        </Link>
+        </MagneticButton>
       </div>
     </div>
   </section>

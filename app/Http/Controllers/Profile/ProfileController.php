@@ -128,12 +128,12 @@ class ProfileController extends Controller
                 continue;
             }
             $names[] = $name;
+            $group = trim((string) ($s['category'] ?? ''));
             $details[] = [
                 'name' => $name,
                 'level' => (int) ($s['level'] ?? 3),
-                'category' => $s['category'] ?? SkillCatalog::categoryFor($name),
+                'category' => $group !== '' ? $group : SkillCatalog::DEFAULT_GROUP,
                 'years' => isset($s['years']) && $s['years'] !== '' ? (float) $s['years'] : null,
-                'certified' => ! empty($s['certified']),
                 'note' => isset($s['note']) && trim((string) $s['note']) !== '' ? trim((string) $s['note']) : null,
             ];
         }

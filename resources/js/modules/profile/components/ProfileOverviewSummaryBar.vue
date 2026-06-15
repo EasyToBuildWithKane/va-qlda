@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 import KpiSummaryStrip from '@/shared/ui/KpiSummaryStrip.vue';
+import { profileDisplayValue } from '../utils/profileDisplay';
 
 const props = defineProps({
     stats: { type: Object, required: true },
@@ -32,7 +33,7 @@ const cards = computed(() => {
         {
             key: 'skill',
             label: 'Điểm kỹ năng',
-            value: skillScore != null ? `${skillScore}/100` : '—',
+            value: skillScore != null ? `${skillScore}/100` : profileDisplayValue(null),
             tone: 'amber',
             icon: 'talent-score',
             sub: skillScore != null ? 'Trung bình mức độ kỹ năng' : 'Chưa chấm mức độ',

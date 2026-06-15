@@ -34,7 +34,7 @@ class ProfileSelfTest extends TestCase
                 ->where('editable', true)
                 ->has('profile.stats')
                 ->where('profile.stats.skill_score', 80)
-                ->has('profile.stats.skill_radar', 8)
+                ->has('profile.stats.skill_radar', 1)
                 ->has('profile.stats.profile_completion')
                 ->has('profile.hr_info')
                 ->where('profile.hr_info.code', $employee->code)
@@ -52,7 +52,7 @@ class ProfileSelfTest extends TestCase
         $this->actingAs($account, 'system')
             ->put(route('profile.update'), [
                 'skills' => [
-                    ['name' => 'Vue', 'level' => 3, 'certified' => true, 'note' => 'Cert ABC'],
+                    ['name' => 'Vue', 'level' => 3, 'category' => 'Lập trình Web', 'note' => 'Dự án nội bộ'],
                 ],
             ])
             ->assertRedirect();
@@ -62,8 +62,8 @@ class ProfileSelfTest extends TestCase
         $this->assertSame('0911111111', $employee->phone);
         $this->assertSame('Senior Dev', $employee->role_title);
         $this->assertSame(['Vue'], $employee->skills);
-        $this->assertTrue($employee->meta['skill_details'][0]['certified']);
-        $this->assertSame('Cert ABC', $employee->meta['skill_details'][0]['note']);
+        $this->assertSame('Lập trình Web', $employee->meta['skill_details'][0]['category']);
+        $this->assertSame('Dự án nội bộ', $employee->meta['skill_details'][0]['note']);
     }
 
     public function test_identity_only_update_preserves_skills(): void
