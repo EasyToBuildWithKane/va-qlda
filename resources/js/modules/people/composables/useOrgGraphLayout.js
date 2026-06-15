@@ -165,6 +165,9 @@ function buildLogical(trees, { expanded, collapsed }) {
             collapsed: collapsed.has(team.id),
             hasSubteams: toIterableList(team.children).length > 0,
             children: [],
+            managementSourceIds: [],
+            subteamChildIds: [],
+            rewireSubteamEdges: false,
         };
         const branches = sectionBranches(team, rootId, rootName);
         ln.hasMembers = branches.length > 0;
@@ -173,13 +176,17 @@ function buildLogical(trees, { expanded, collapsed }) {
             for (const branch of branches) {
                 if (isUnassignedBranch(branch)) {
                     for (const p of branch.people) {
-                        ln.children.push({
+                        const personLn = {
                             id: `person-${team.id}-${p.employeeId}`,
                             type: 'person',
                             person: p,
                             rootId,
                             children: [],
-                        });
+                        };
+                        ln.children.push(personLn);
+                        if (team.level === 1) {
+                            ln.managementSourceIds.push(personLn.id);
+                        }
                     }
                     continue;
                 }
@@ -194,22 +201,54 @@ function buildLogical(trees, { expanded, collapsed }) {
                     rootId,
                     children: [],
                 };
+                const hoistSinglePerson = team.level === 1 && branch.people.length === 1;
                 for (const p of branch.people) {
-                    sectionLn.children.push({
+                    const personData = {
+                        ...p,
+                        sectionTitle: branch.title,
+                    };
+                    const personLn = {
                         id: `person-${team.id}-${p.employeeId}`,
                         type: 'person',
-                        person: p,
+                        person: personData,
                         rootId,
                         children: [],
-                    });
+                    };
+                    if (hoistSinglePerson) {
+                        ln.children.push(personLn);
+                        ln.managementSourceIds.push(personLn.id);
+                    } else {
+                        sectionLn.children.push(personLn);
+                        if (team.level === 1) {
+                            ln.managementSourceIds.push(personLn.id);
+                        }
+                    }
                 }
-                ln.children.push(sectionLn);
+                if (!hoistSinglePerson) {
+                    if (team.level === 1 && !sectionLn.children.length) {
+                        ln.managementSourceIds.push(sectionLn.id);
+                    }
+                    ln.children.push(sectionLn);
+                }
             }
         }
         if (!ln.collapsed) {
             for (const sub of toIterableList(team.children)) {
-                ln.children.push(makeTeam(sub, rootId, rootName));
+                const subLn = makeTeam(sub, rootId, rootName);
+                ln.children.push(subLn);
+                if (team.level === 1) {
+                    ln.subteamChildIds.push(subLn.id);
+                }
             }
+        }
+
+        if (
+            team.level === 1
+            && ln.managementSourceIds.length > 0
+            && ln.subteamChildIds.length > 0
+            && ln.expanded
+        ) {
+            ln.rewireSubteamEdges = true;
         }
 
         return ln;
@@ -415,7 +454,12 @@ function orthogonalDown(x1, y1, x2, y2) {
 }
 
 function edgePath(x1, y1, x2, y2, kind) {
-    if (kind === 'section-member' || kind === 'team-member' || kind === 'team-child') {
+    if (
+        kind === 'section-member'
+        || kind === 'team-member'
+        || kind === 'team-child'
+        || kind === 'management-unit'
+    ) {
         return orthogonalDown(x1, y1, x2, y2);
     }
 
@@ -423,30 +467,66 @@ function edgePath(x1, y1, x2, y2, kind) {
     return `M ${x1} ${y1} C ${x1} ${my} ${x2} ${my} ${x2} ${y2}`;
 }
 
+function pushEdge(edges, parent, child, kind) {
+    edges.push({
+        id: `${parent.id}__${child.id}`,
+        from: parent.id,
+        to: child.id,
+        kind,
+        x1: parent.cx,
+        y1: parent.y + parent.h,
+        x2: child.cx,
+        y2: child.y,
+        inPath: child.inPath && parent.inPath,
+    });
+}
+
 function flatten(ln, nodes, edges, parent) {
     nodes.push(ln);
     if (parent) {
         let kind = 'default';
+        let skip = false;
         if (parent.type === 'section' && ln.type === 'person') {
             kind = 'section-member';
         } else if (parent.type === 'team' && ln.type === 'person') {
             kind = 'team-member';
         } else if (parent.type === 'team' && ln.type === 'team') {
             kind = 'team-child';
+            if (parent.rewireSubteamEdges) {
+                skip = true;
+            }
         }
-        edges.push({
-            id: `${parent.id}__${ln.id}`,
-            from: parent.id,
-            to: ln.id,
-            kind,
-            x1: parent.cx,
-            y1: parent.y + parent.h,
-            x2: ln.cx,
-            y2: ln.y,
-            inPath: ln.inPath && parent.inPath,
-        });
+        if (!skip) {
+            pushEdge(edges, parent, ln, kind);
+        }
     }
     for (const c of ln.children) flatten(c, nodes, edges, ln);
+}
+
+/** Cấp quản lý (nhánh / người) → đơn vị con; không nối thẳng từ thẻ phòng xuống đơn vị. */
+function appendManagementUnitEdges(nodes, edges) {
+    const byId = new Map(nodes.map((n) => [n.id, n]));
+
+    for (const team of nodes) {
+        if (team.type !== 'team' || !team.rewireSubteamEdges) {
+            continue;
+        }
+        const sources = team.managementSourceIds
+            .map((id) => byId.get(id))
+            .filter(Boolean);
+        const subteams = team.subteamChildIds
+            .map((id) => byId.get(id))
+            .filter(Boolean);
+        if (!sources.length || !subteams.length) {
+            continue;
+        }
+
+        for (const src of sources) {
+            for (const sub of subteams) {
+                pushEdge(edges, src, sub, 'management-unit');
+            }
+        }
+    }
 }
 
 /**
@@ -474,6 +554,7 @@ export function computeOrgGraph(trees, options = {}) {
     const nodes = [];
     const edges = [];
     flatten(root, nodes, edges, null);
+    appendManagementUnitEdges(nodes, edges);
 
     let minX = Infinity;
     let maxX = -Infinity;

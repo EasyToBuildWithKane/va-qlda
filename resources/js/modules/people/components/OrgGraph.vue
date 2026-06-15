@@ -19,6 +19,41 @@ const vp = useGraphViewport({ minScale: 0.35, maxScale: 1.8 });
 const expanded = ref(new Set());
 const collapsed = ref(new Set());
 
+function defaultExpandedRootIds() {
+    const ids = new Set();
+    const walk = (team) => {
+        const leaderId = team.leader?.id ?? null;
+        const hasBranchMembers = toIterableList(team.members).some(
+            (m) => m?.employee?.id && m.employee.id !== leaderId,
+        );
+        const hasSections = toIterableList(team.sections).length > 0;
+        const hasSubteams = toIterableList(team.children).length > 0;
+        if (team.level === 1 && hasSubteams && (hasSections || hasBranchMembers)) {
+            ids.add(team.id);
+        }
+        for (const c of toIterableList(team.children)) {
+            walk(c);
+        }
+    };
+    for (const root of toIterableList(props.trees)) {
+        walk(root);
+    }
+
+    return ids;
+}
+
+function syncDefaultExpansion() {
+    const defaults = defaultExpandedRootIds();
+    if (!defaults.size) {
+        return;
+    }
+    const next = new Set(expanded.value);
+    for (const id of defaults) {
+        next.add(id);
+    }
+    expanded.value = next;
+}
+
 /** Team ids that actually have non-leader members (used for "expand all"). */
 const memberTeamIds = computed(() => {
     const ids = new Set();
@@ -89,19 +124,19 @@ function fit() {
 }
 onMounted(() => {
     vp.bindViewport(viewportRef.value);
+    syncDefaultExpansion();
     nextTick(fit);
 });
-watch(
-    () => [graph.value.width, graph.value.height],
-    ([w]) => {
-        if (!fittedOnce && w > 0) {
+watch(() => props.trees, () => {
+    fittedOnce = false;
+    syncDefaultExpansion();
+    nextTick(() => {
+        if (!fittedOnce) {
             fit();
             fittedOnce = true;
         }
-    },
-);
-// Re-fit when the underlying structure (not just expand state) changes.
-watch(() => props.trees, () => { fittedOnce = false; nextTick(() => { if (!fittedOnce) { fit(); fittedOnce = true; } }); });
+    });
+});
 
 // Center on the first match when filtering.
 watch(
@@ -222,7 +257,8 @@ watch(
               'org-graph__edge--dim': edge.inPath === false,
               'org-graph__edge--orthogonal': edge.kind === 'section-member'
                 || edge.kind === 'team-member'
-                || edge.kind === 'team-child',
+                || edge.kind === 'team-child'
+                || edge.kind === 'management-unit',
             }"
             :d="edge.path"
           />

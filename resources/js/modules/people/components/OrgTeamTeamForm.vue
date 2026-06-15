@@ -3,6 +3,8 @@ import { computed, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
 import PersonSelect from '@/modules/project/components/PersonSelect.vue';
+import OrgTeamFormCollapsibleSection from '@/modules/people/components/OrgTeamFormCollapsibleSection.vue';
+import ToggleSwitch from '@/shared/ui/form/ToggleSwitch.vue';
 import {
     applyTechDeptSectionPresets,
     buildOrgTeamSubmitPayload,
@@ -22,6 +24,7 @@ const props = defineProps({
     showCancel: { type: Boolean, default: false },
     showAdvanced: { type: Boolean, default: true },
     compact: { type: Boolean, default: false },
+    unitDisplayName: { type: String, default: '' },
 });
 
 const emit = defineEmits(['saved', 'cancel']);
@@ -52,6 +55,54 @@ const parentChoices = computed(() => {
     return list;
 });
 
+const SORT_ORDER_PRESETS = [
+    { value: 0, label: 'Mặc định — cùng nhóm với các đơn vị khác' },
+    { value: 10, label: 'Ưu tiên cao — hiển thị trước trong nhóm' },
+    { value: 50, label: 'Giữa nhóm' },
+    { value: 100, label: 'Ưu tiên thấp — hiển thị sau trong nhóm' },
+];
+
+const sortOrderOptions = computed(() => {
+    const current = Number(form.sort_order) || 0;
+    const hasPreset = SORT_ORDER_PRESETS.some((o) => o.value === current);
+    if (hasPreset) {
+        return SORT_ORDER_PRESETS;
+    }
+
+    return [
+        ...SORT_ORDER_PRESETS,
+        { value: current, label: `Thứ tự đã lưu (${current})` },
+    ];
+});
+
+const sortOrderBadge = computed(() => {
+    const current = Number(form.sort_order) || 0;
+    const short = { 0: 'Mặc định', 10: 'Ưu tiên cao', 50: 'Giữa nhóm', 100: 'Ưu tiên thấp' };
+
+    return short[current] ?? 'Tùy chỉnh';
+});
+
+const activeOnDiagramSummary = computed(() => (form.is_active ? 'Đang hiển thị' : 'Đã ẩn'));
+
+const managementSectionTitle = computed(() => (isRootTeam.value ? 'Nhóm chức danh trên sơ đồ' : 'Nhóm nhân sự theo vai trò'));
+
+const managementBadge = computed(() => {
+    const n = form.sections.length;
+    if (n === 0) {
+        return 'Chưa có nhóm';
+    }
+
+    return `${n} nhóm`;
+});
+
+const displayOptionsBadge = computed(() => {
+    const parts = [sortOrderBadge.value, activeOnDiagramSummary.value];
+
+    return parts.join(' · ');
+});
+
+const saveLabel = computed(() => (isEdit.value ? 'Lưu thay đổi' : 'Tạo bộ phận'));
+
 const membersBySection = computed(() => {
     const map = new Map();
     map.set('unassigned', []);
@@ -72,6 +123,8 @@ const membersBySection = computed(() => {
 
     return map;
 });
+
+const unassignedCount = computed(() => (membersBySection.value.get('unassigned') ?? []).length);
 
 function resetForContext() {
     form.clearErrors();
@@ -156,140 +209,134 @@ defineExpose({ form, submit, isDirty: () => form.isDirty });
 
 <template>
   <form
-    class="space-y-5"
+    class="space-y-4"
     :class="compact ? 'text-sm' : ''"
     @submit.prevent="submit"
   >
-    <div
-      :class="compact ? 'grid gap-3 sm:grid-cols-2' : 'grid gap-4 sm:grid-cols-2'"
+    <OrgTeamFormCollapsibleSection
+      step="1"
+      :title="isRootTeam ? 'Tên phòng / ban' : 'Tên bộ phận'"
+      hint="Tên hiển thị trên sơ đồ và người đứng đầu"
+      :default-open="true"
     >
-      <div :class="showParentField ? '' : 'sm:col-span-2'">
-        <label class="label">{{ isRootTeam ? 'Tên cấu trúc' : 'Tên đơn vị' }}</label>
-        <input
-          v-model="form.name"
-          type="text"
-          class="input w-full"
-          :placeholder="isRootTeam ? 'Ví dụ: Phòng Công nghệ' : 'Ví dụ: Phần mềm, Phần cứng…'"
-          required
+      <div class="space-y-4">
+        <div
+          :class="compact ? 'grid gap-3 sm:grid-cols-2' : 'grid gap-4 sm:grid-cols-2'"
         >
-        <p
-          v-if="form.errors.name"
-          class="mt-1 text-xs text-rose-600"
-        >
-          {{ form.errors.name }}
-        </p>
-      </div>
+          <div :class="showParentField ? '' : 'sm:col-span-2'">
+            <label class="label">{{ isRootTeam ? 'Tên trên sơ đồ' : 'Tên bộ phận' }}</label>
+            <input
+              v-model="form.name"
+              type="text"
+              class="input w-full"
+              :placeholder="isRootTeam ? 'Ví dụ: Phòng Công nghệ' : 'Ví dụ: Phần mềm, Phần cứng…'"
+              required
+            >
+            <p class="mt-1 text-xs text-slate-500">
+              {{ isRootTeam ? 'Thường là tên phòng, ban hoặc khối.' : 'Tên tổ, nhóm hoặc mảng công việc.' }}
+            </p>
+            <p
+              v-if="form.errors.name"
+              class="mt-1 text-xs text-rose-600"
+            >
+              {{ form.errors.name }}
+            </p>
+          </div>
 
-      <div v-if="showParentField">
-        <label class="label">Thuộc cấu trúc</label>
-        <select
-          v-model="form.parent_id"
-          class="input w-full"
-          :disabled="isEdit && team?.children?.length > 0"
-        >
-          <option :value="null">
-            Cấu trúc độc lập
-          </option>
-          <option
-            v-for="p in parentChoices"
-            :key="p.id"
-            :value="p.id"
-          >
-            {{ p.label }}
-          </option>
-        </select>
-        <p
-          v-if="form.errors.parent_id"
-          class="mt-1 text-xs text-rose-600"
-        >
-          {{ form.errors.parent_id }}
-        </p>
-      </div>
-    </div>
-
-    <div>
-      <label class="label">Quản lý</label>
-      <PersonSelect
-        v-model="form.leader_id"
-        :options="employees"
-        placeholder="Chọn quản lý"
-      />
-    </div>
-
-    <div
-      v-if="showAdvanced"
-      class="grid gap-3 sm:grid-cols-3"
-    >
-      <div>
-        <label class="label">Thứ tự hiển thị</label>
-        <input
-          v-model.number="form.sort_order"
-          type="number"
-          min="0"
-          max="9999"
-          class="input w-full"
-        >
-      </div>
-      <div class="flex items-end pb-1 sm:col-span-2">
-        <label class="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
-          <input
-            v-model="form.is_active"
-            type="checkbox"
-            class="rounded border-slate-300 text-brand focus:ring-brand"
-          >
-          Đang hoạt động trên sơ đồ
-        </label>
-      </div>
-    </div>
-
-    <div class="rounded-xl border border-slate-200/90 bg-slate-50/50 p-4">
-      <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          {{ isRootTeam ? 'Cấp quản lý' : 'Nhánh' }}
-        </p>
-        <div class="flex flex-wrap gap-2">
-          <button
-            v-if="isRootTeam"
-            type="button"
-            class="btn-ghost h-8 px-2 text-xs"
-            @click="applyTechTemplate"
-          >
-            Mẫu Phòng CNTT
-          </button>
-          <button
-            type="button"
-            class="text-xs font-medium text-brand hover:underline"
-            @click="addSection()"
-          >
-            + Thêm nhánh
-          </button>
+          <div v-if="showParentField">
+            <label class="label">Thuộc phòng / ban nào?</label>
+            <select
+              v-model="form.parent_id"
+              class="input w-full"
+              :disabled="isEdit && team?.children?.length > 0"
+            >
+              <option :value="null">
+                Đứng riêng (cấp cao nhất)
+              </option>
+              <option
+                v-for="p in parentChoices"
+                :key="p.id"
+                :value="p.id"
+              >
+                {{ p.label }}
+              </option>
+            </select>
+            <p
+              v-if="form.errors.parent_id"
+              class="mt-1 text-xs text-rose-600"
+            >
+              {{ form.errors.parent_id }}
+            </p>
+          </div>
         </div>
+
+        <div>
+          <label class="label">Người phụ trách</label>
+          <PersonSelect
+            v-model="form.leader_id"
+            :options="employees"
+            placeholder="Chọn tên trong danh sách nhân sự"
+          />
+          <p class="mt-1 text-xs text-slate-500">
+            Người đại diện đơn vị trên sơ đồ (trưởng phòng, trưởng ban…).
+          </p>
+        </div>
+      </div>
+    </OrgTeamFormCollapsibleSection>
+
+    <OrgTeamFormCollapsibleSection
+      step="2"
+      :title="managementSectionTitle"
+      :hint="isRootTeam
+        ? 'Ví dụ: Trưởng ban, Phó phòng — mỗi nhóm gắn đúng người'
+        : 'Chia nhân sự theo vai trò nếu cần'"
+      :badge="managementBadge"
+      :default-open="true"
+    >
+      <p class="mb-3 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">
+        {{ isRootTeam
+          ? 'Mỗi dòng là một ô trên sơ đồ. Thêm nhóm, đặt tên (ví dụ «Trưởng ban»), rồi chọn người.'
+          : 'Tuỳ chọn — chỉ cần khi muốn nhóm người theo vai trò trên sơ đồ.' }}
+      </p>
+      <div class="mb-3 flex justify-end">
+        <button
+          type="button"
+          class="btn-secondary h-8 px-3 text-xs"
+          @click="addSection()"
+        >
+          <AppIcon
+            name="plus"
+            :size="14"
+            class="mr-1 inline"
+          />
+          Thêm nhóm
+        </button>
       </div>
 
       <div
         v-if="!form.sections.length"
-        class="rounded-lg border border-dashed border-slate-200 bg-white px-3 py-4 text-center text-xs text-slate-500"
+        class="rounded-lg border border-dashed border-slate-200 bg-slate-50/50 px-3 py-5 text-center text-sm text-slate-500"
       >
-        Chưa có mục nào.
+        Chưa có nhóm nào. Bấm «Thêm nhóm» nếu cần chia vai trò trên sơ đồ.
       </div>
 
       <div
         v-for="(section, sIdx) in form.sections"
         :key="`sec-${sIdx}`"
-        class="mb-3 overflow-hidden rounded-lg border border-slate-200 bg-white last:mb-0"
+        class="mb-3 overflow-hidden rounded-lg border border-slate-200 bg-slate-50/30 last:mb-0"
       >
-        <div class="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-slate-50/80 px-3 py-2">
+        <div class="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-white px-3 py-2">
           <input
             v-model="section.title"
             type="text"
             class="input min-w-0 flex-1 border-0 bg-transparent text-sm font-medium shadow-none focus:ring-0"
-            placeholder="Tên nhánh"
+            placeholder="Tên hiển thị (ví dụ: Trưởng ban CNTT)"
             maxlength="120"
           >
           <button
             type="button"
             class="rounded-lg p-1.5 text-slate-400 hover:bg-white hover:text-rose-600"
-            title="Xoá nhánh"
+            title="Xóa nhóm này"
             @click="removeSection(sIdx)"
           >
             <AppIcon
@@ -299,13 +346,17 @@ defineExpose({ form, submit, isDirty: () => form.isDirty });
           </button>
         </div>
 
-        <div class="space-y-2 px-3 py-3">
+        <div class="space-y-2 bg-white px-3 py-3">
           <div
             v-for="{ row, memberIndex } in membersBySection.get(sIdx) ?? []"
             :key="`m-${memberIndex}`"
             class="flex flex-wrap items-end gap-2"
           >
             <div class="min-w-[10rem] flex-1">
+              <label
+                v-if="membersBySection.get(sIdx)?.length > 1"
+                class="mb-1 block text-[11px] text-slate-500"
+              >Người trong nhóm</label>
               <PersonSelect
                 v-model="row.employee_id"
                 :options="employees"
@@ -314,14 +365,15 @@ defineExpose({ form, submit, isDirty: () => form.isDirty });
             </div>
             <div
               v-if="branchOptions.length"
-              class="w-40"
+              class="w-full sm:w-44"
             >
+              <label class="mb-1 block text-[11px] text-slate-500">Kiêm nhiệm</label>
               <select
                 v-model="row.branch"
                 class="input w-full text-sm"
               >
                 <option :value="null">
-                  Vai trò phụ
+                  Không
                 </option>
                 <option
                   v-for="b in branchOptions"
@@ -335,6 +387,7 @@ defineExpose({ form, submit, isDirty: () => form.isDirty });
             <button
               type="button"
               class="rounded-lg p-2 text-slate-400 hover:text-rose-600"
+              title="Xóa người này"
               @click="removeMemberAt(memberIndex)"
             >
               <AppIcon
@@ -348,110 +401,189 @@ defineExpose({ form, submit, isDirty: () => form.isDirty });
             class="text-xs font-medium text-brand hover:underline"
             @click="addMemberToSection(sIdx)"
           >
-            + Thêm vào nhánh này
+            + Thêm người vào nhóm này
           </button>
         </div>
       </div>
-    </div>
 
-    <div class="rounded-xl border border-slate-200/90 p-4">
-      <div class="mb-3 flex items-center justify-between gap-2">
-        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Thành viên khác
+      <div class="mt-4 border-t border-slate-100 pt-4">
+        <p class="text-xs font-semibold text-slate-700">
+          Người thuộc đơn vị (chưa xếp nhóm)
         </p>
-        <button
-          type="button"
-          class="text-xs font-medium text-brand hover:underline"
-          @click="addMemberToSection(null)"
-        >
-          + Thêm thành viên
-        </button>
-      </div>
-
-      <div
-        v-if="!(membersBySection.get('unassigned') ?? []).length"
-        class="rounded-lg border border-dashed border-slate-200 px-3 py-3 text-center text-xs text-slate-500"
-      >
-        —
-      </div>
-
-      <div
-        v-for="{ row, memberIndex } in membersBySection.get('unassigned') ?? []"
-        :key="`u-${memberIndex}`"
-        class="mb-2 flex flex-wrap items-end gap-2 border-b border-slate-100 pb-2 last:border-0"
-      >
-        <div class="min-w-[10rem] flex-1">
-          <PersonSelect
-            v-model="row.employee_id"
-            :options="employees"
-            placeholder="Chọn người"
-          />
-        </div>
-        <div
-          v-if="branchOptions.length"
-          class="w-40"
-        >
-          <select
-            v-model="row.branch"
-            class="input w-full text-sm"
+        <p class="mt-0.5 text-[11px] text-slate-500">
+          Dùng khi cần liệt kê thêm nhân sự không gắn vai trò cụ thể trên sơ đồ.
+        </p>
+        <div class="mb-2 mt-3 flex justify-end">
+          <button
+            type="button"
+            class="text-xs font-medium text-brand hover:underline"
+            @click="addMemberToSection(null)"
           >
-            <option :value="null">
-              Vai trò phụ
-            </option>
-            <option
-              v-for="b in branchOptions"
-              :key="b.value"
-              :value="b.value"
-            >
-              {{ b.label }}
-            </option>
-          </select>
+            + Thêm người
+          </button>
         </div>
-        <button
-          type="button"
-          class="rounded-lg p-2 text-slate-400 hover:text-rose-600"
-          @click="removeMemberAt(memberIndex)"
+
+        <div
+          v-if="!unassignedCount"
+          class="rounded-lg border border-dashed border-slate-200 px-3 py-3 text-center text-xs text-slate-500"
         >
-          <AppIcon
-            name="delete"
-            :size="15"
-          />
-        </button>
+          Chưa có ai — bỏ qua nếu không cần.
+        </div>
+
+        <div
+          v-for="{ row, memberIndex } in membersBySection.get('unassigned') ?? []"
+          :key="`u-${memberIndex}`"
+          class="mb-2 flex flex-wrap items-end gap-2 border-b border-slate-100 pb-2 last:border-0"
+        >
+          <div class="min-w-[10rem] flex-1">
+            <PersonSelect
+              v-model="row.employee_id"
+              :options="employees"
+              placeholder="Chọn người"
+            />
+          </div>
+          <div
+            v-if="branchOptions.length"
+            class="w-full sm:w-44"
+          >
+            <select
+              v-model="row.branch"
+              class="input w-full text-sm"
+            >
+              <option :value="null">
+                Kiêm nhiệm: không
+              </option>
+              <option
+                v-for="b in branchOptions"
+                :key="b.value"
+                :value="b.value"
+              >
+                {{ b.label }}
+              </option>
+            </select>
+          </div>
+          <button
+            type="button"
+            class="rounded-lg p-2 text-slate-400 hover:text-rose-600"
+            @click="removeMemberAt(memberIndex)"
+          >
+            <AppIcon
+              name="delete"
+              :size="15"
+            />
+          </button>
+        </div>
       </div>
 
-      <p
-        v-if="form.errors.members"
-        class="mt-2 text-xs text-rose-600"
-      >
-        {{ form.errors.members }}
-      </p>
       <p
         v-if="form.errors.sections"
         class="mt-2 text-xs text-rose-600"
       >
         {{ form.errors.sections }}
       </p>
-    </div>
+      <p
+        v-if="form.errors.members"
+        class="mt-2 text-xs text-rose-600"
+      >
+        {{ form.errors.members }}
+      </p>
+    </OrgTeamFormCollapsibleSection>
+
+    <OrgTeamFormCollapsibleSection
+      v-if="showAdvanced"
+      step="3"
+      title="Cách hiển thị trên sơ đồ"
+      hint="Thứ tự và ẩn/hiện — ít khi cần chỉnh"
+      optional
+      :badge="displayOptionsBadge"
+    >
+      <div class="space-y-4">
+        <div>
+          <label class="label">Xếp chỗ trên sơ đồ</label>
+          <select
+            :value="form.sort_order"
+            class="input w-full"
+            @change="form.sort_order = Number($event.target.value)"
+          >
+            <option
+              v-for="opt in sortOrderOptions"
+              :key="opt.value"
+              :value="opt.value"
+            >
+              {{ opt.label }}
+            </option>
+          </select>
+        </div>
+        <div class="flex items-center justify-between gap-4 rounded-lg border border-slate-100 bg-slate-50/60 px-4 py-3">
+          <div class="min-w-0">
+            <p class="text-sm font-medium text-slate-800">
+              Cho phép hiện trên sơ đồ
+            </p>
+            <p class="mt-0.5 text-xs text-slate-500">
+              Tắt nếu tạm ẩn đơn vị (không xóa dữ liệu).
+            </p>
+          </div>
+          <ToggleSwitch v-model="form.is_active" />
+        </div>
+      </div>
+    </OrgTeamFormCollapsibleSection>
+
+    <OrgTeamFormCollapsibleSection
+      v-if="isRootTeam"
+      title="Bắt đầu từ mẫu Phòng CNTT"
+      hint="Gợi ý sẵn nhóm chức danh — chỉ dùng lần đầu"
+      optional
+      badge="Mẫu"
+    >
+      <div class="rounded-lg border border-dashed border-brand/25 bg-brand/[0.03] px-4 py-4">
+        <p class="text-sm text-slate-700">
+          Hệ thống thêm các nhóm «Trưởng ban CNTT», «Phó Phòng Công nghệ» nếu bạn chưa tạo.
+        </p>
+        <button
+          type="button"
+          class="btn-secondary mt-3 h-9 px-3 text-xs"
+          @click="applyTechTemplate"
+        >
+          Dùng mẫu này
+        </button>
+      </div>
+    </OrgTeamFormCollapsibleSection>
 
     <div
       v-if="showActions"
-      class="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4"
+      class="rounded-xl border border-brand/15 bg-brand/[0.04] p-4"
     >
-      <button
-        v-if="showCancel"
-        type="button"
-        class="btn-secondary"
-        @click="emit('cancel')"
-      >
-        Huỷ
-      </button>
-      <button
-        type="submit"
-        class="btn-primary"
-        :disabled="form.processing"
-      >
-        {{ isEdit ? 'Lưu' : 'Tạo' }}
-      </button>
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p class="text-sm text-slate-600">
+          <template v-if="isEdit && (unitDisplayName || form.name)">
+            Thay đổi áp dụng cho <span class="font-semibold text-slate-800">«{{ unitDisplayName || form.name }}»</span>.
+          </template>
+          <template v-else>
+            Kiểm tra lại thông tin trước khi tạo.
+          </template>
+        </p>
+        <div class="flex shrink-0 flex-wrap justify-end gap-2">
+          <button
+            v-if="showCancel"
+            type="button"
+            class="btn-secondary"
+            @click="emit('cancel')"
+          >
+            Huỷ
+          </button>
+          <button
+            type="submit"
+            class="btn-primary inline-flex min-w-[10rem] items-center justify-center gap-1.5"
+            :disabled="form.processing"
+          >
+            <AppIcon
+              name="save"
+              :size="16"
+            />
+            {{ saveLabel }}
+          </button>
+        </div>
+      </div>
     </div>
   </form>
 </template>

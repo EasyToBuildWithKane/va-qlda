@@ -31,8 +31,8 @@ function switchRoot(id) {
   <AppLayout>
     <template #header>
       <PageHeader
-        title="Chỉnh sửa cấu trúc"
-        :subtitle="tree.name"
+        title="Cập nhật sơ đồ tổ chức"
+        :subtitle="`Đang chỉnh: ${tree.name}`"
         icon="edit"
         icon-color="brand"
         back-href="/org-teams"
@@ -57,7 +57,7 @@ function switchRoot(id) {
         role="tablist"
         aria-label="Chọn cấu trúc"
       >
-        <span class="text-xs font-medium text-slate-500">Cấu trúc:</span>
+        <span class="text-xs font-medium text-slate-500">Chọn phòng / ban:</span>
         <button
           v-for="root in roots"
           :key="root.id"

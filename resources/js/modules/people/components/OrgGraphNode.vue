@@ -37,6 +37,9 @@ const person = computed(() => (props.node.type === 'person' ? props.node.person 
 const personSubtitle = computed(() => {
     const p = person.value;
     if (!p) return 'Thành viên';
+    if (p.sectionTitle?.trim()) {
+        return p.sectionTitle.trim();
+    }
     const parts = [];
     if (p.roleTitle?.trim()) parts.push(p.roleTitle.trim());
     if (p.branchLabel?.trim() && p.branchLabel !== p.roleTitle) {

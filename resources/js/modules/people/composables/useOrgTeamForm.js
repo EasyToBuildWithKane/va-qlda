@@ -127,3 +127,36 @@ export function flattenOrgTeamTree(node, depth = 0) {
 
     return rows;
 }
+
+/**
+ * @param {number} nodeId
+ * @param {Array<{ node: object, depth: number }>} flatRows
+ * @returns {string[]}
+ */
+export function orgTeamBreadcrumbNames(nodeId, flatRows) {
+    const byId = new Map(flatRows.map(({ node }) => [node.id, node]));
+    const parts = [];
+    let current = byId.get(nodeId);
+    while (current) {
+        parts.unshift(current.name);
+        current = current.parent_id != null ? byId.get(current.parent_id) : null;
+    }
+
+    return parts;
+}
+
+/**
+ * @param {object} node
+ * @returns {string}
+ */
+export function orgTeamFriendlyLevelLabel(node) {
+    const level = node?.level;
+    if (level === 1) {
+        return 'Phòng / ban (cấp cao nhất)';
+    }
+    if (level === 2) {
+        return 'Bộ phận / tổ';
+    }
+
+    return node?.level_label ?? 'Đơn vị';
+}
