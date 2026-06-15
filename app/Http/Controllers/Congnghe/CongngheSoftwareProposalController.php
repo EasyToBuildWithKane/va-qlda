@@ -11,6 +11,7 @@ use App\Models\Department;
 use App\Models\Employee;
 use App\Models\SystemAccount;
 use App\Services\Congnghe\CongngheSoftwareProposalRecorder;
+use App\Support\Enums\CongngheSoftwareProposalStatus;
 use App\Support\Options;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -28,17 +29,39 @@ class CongngheSoftwareProposalController extends Controller
     public function index(Request $request): Response
     {
         $account = $request->user();
+        $baseQuery = $this->ownedProposalsQuery($account);
+        $query = (clone $baseQuery)->withCount('attachments')->latest();
+
+        if ($status = $request->query('status')) {
+            $query->where('status', $status);
+        }
+
+        if ($search = trim((string) $request->query('q', ''))) {
+            $query->where(function (Builder $q) use ($search): void {
+                $q->where('title', 'like', "%{$search}%")
+                    ->orWhere('reference_code', 'like', "%{$search}%")
+                    ->orWhere('department', 'like', "%{$search}%");
+            });
+        }
+
         $perPage = min(max((int) $request->query('per_page', 15), 5), 30);
 
-        $proposals = $this->ownedProposalsQuery($account)
-            ->withCount('attachments')
-            ->latest()
-            ->paginate($perPage)
-            ->withQueryString();
+        $proposals = $query->paginate($perPage)->withQueryString();
+
+        $summaryQuery = clone $baseQuery;
 
         return Inertia::render('Congnghe/MyProposals', [
             'proposals' => CongngheSoftwareProposalResource::collection($proposals),
-            'filters' => (object) $request->only(['per_page']),
+            'filters' => (object) $request->only(['status', 'q', 'per_page']),
+            'summary' => [
+                'total' => (clone $summaryQuery)->count(),
+                'new' => (clone $summaryQuery)->where('status', CongngheSoftwareProposalStatus::New)->count(),
+                'in_progress' => (clone $summaryQuery)->where('status', CongngheSoftwareProposalStatus::InProgress)->count(),
+                'done' => (clone $summaryQuery)->where('status', CongngheSoftwareProposalStatus::Done)->count(),
+            ],
+            'options' => [
+                'statuses' => CongngheSoftwareProposalStatus::options(),
+            ],
         ]);
     }
 

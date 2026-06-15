@@ -15,6 +15,7 @@ use App\Support\OrgTeamTreeBuilder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class CongngheTest extends TestCase
@@ -194,6 +195,35 @@ class CongngheTest extends TestCase
         });
 
         $this->assertDatabaseCount('congnghe_software_proposal_attachments', 1);
+    }
+
+    public function test_member_can_download_own_proposal_attachment(): void
+    {
+        Mail::fake();
+        Storage::fake('public');
+        $dept = $this->createActiveDepartment();
+        $account = SystemAccount::factory()->role(SystemRole::Member)->create();
+        $file = UploadedFile::fake()->create('yeu-cau.pdf', 120, 'application/pdf');
+
+        $this->actingAs($account, 'system')
+            ->post('/congnghe/de-xuat', [
+                'name' => 'Nguyễn Test',
+                'email' => 'tester@vaschools.edu.vn',
+                'department_id' => $dept->id,
+                'title' => 'Có file',
+                'content' => 'Nội dung.',
+                'attachments' => [$file],
+            ]);
+
+        $proposal = \App\Models\CongngheSoftwareProposal::query()->with('attachments')->first();
+        $attachment = $proposal->attachments->first();
+
+        $this->actingAs($account, 'system')
+            ->get(route('congnghe.proposal.mine.attachments.file', [
+                'proposal' => $proposal->id,
+                'attachment' => $attachment->id,
+            ]))
+            ->assertOk();
     }
 
     public function test_lead_can_view_proposals_index(): void

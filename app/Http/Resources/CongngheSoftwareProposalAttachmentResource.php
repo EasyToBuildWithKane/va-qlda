@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Models\CongngheSoftwareProposal;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -17,6 +18,10 @@ class CongngheSoftwareProposalAttachmentResource extends JsonResource
     {
         $proposalId = $this->congnghe_software_proposal_id;
         $available = $this->fileExists();
+        $user = $request->user();
+        $fileRoute = $user?->can('viewAny', CongngheSoftwareProposal::class)
+            ? 'congnghe.proposals.attachments.file'
+            : 'congnghe.proposal.mine.attachments.file';
 
         return [
             'id' => $this->id,
@@ -26,7 +31,7 @@ class CongngheSoftwareProposalAttachmentResource extends JsonResource
             'is_image' => $this->is_image,
             'file_available' => $available,
             'url' => $available
-                ? route('congnghe.proposals.attachments.file', [
+                ? route($fileRoute, [
                     'proposal' => $proposalId,
                     'attachment' => $this->id,
                 ])

@@ -76,6 +76,8 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictCoachingOnlyUsers::class
     Route::get('/congnghe/de-xuat', [CongngheSoftwareProposalController::class, 'create'])->name('congnghe.proposal');
     Route::post('/congnghe/de-xuat', [CongngheSoftwareProposalController::class, 'store'])->name('congnghe.proposal.store');
     Route::get('/congnghe/de-xuat-cua-toi', [CongngheSoftwareProposalController::class, 'index'])->name('congnghe.proposal.mine');
+    Route::get('/congnghe/de-xuat-cua-toi/{proposal}/attachments/{attachment}/file', [CongngheSoftwareProposalAttachmentController::class, 'file'])
+        ->name('congnghe.proposal.mine.attachments.file');
     Route::get('/congnghe/de-xuat-cua-toi/{proposal}', [CongngheSoftwareProposalController::class, 'show'])->name('congnghe.proposal.mine.show');
     Route::prefix('congnghe/proposals')->name('congnghe.proposals.')->group(function () {
         Route::get('/', [CongngheSoftwareProposalManagementController::class, 'index'])->name('index');

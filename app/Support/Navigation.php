@@ -102,6 +102,13 @@ class Navigation
                         'roles' => ['admin', 'lead', 'member', 'viewer'],
                     ],
                     [
+                        'label' => 'Đề xuất của tôi',
+                        'icon' => 'template',
+                        'href' => '/congnghe/de-xuat-cua-toi',
+                        'status' => 'live',
+                        'roles' => ['admin', 'lead', 'member', 'viewer'],
+                    ],
+                    [
                         'label' => 'Bảng điều khiển',
                         'icon' => 'overview',
                         'href' => '/dashboard',

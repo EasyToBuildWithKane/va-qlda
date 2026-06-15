@@ -102,7 +102,7 @@ AppLayout.vue
 | Domain | Files |
 |---|---|
 | Auth | `Pages/Auth/Login.vue` |
-| Congnghe (landing `/congnghe`) | `Pages/Congnghe/Index.vue` + `partials/*` — **không** `AppLayout`; header `CongngheNavbar.vue` + menu `CongngheUserMenu.vue` (đề xuất đã gửi, hồ sơ, đăng xuất); sơ đồ `#to-chuc`: `OrgChartSection.vue` + `CongngheOrgChart.vue` / `CongngheOrgChartBranch.vue` + `useCongngheOrgLayout.js` (hàng ban lãnh đạo ngang theo tiêu đề nhánh QLDA, cột phân nhánh con); form `Proposal.vue`; **người gửi:** `MyProposals.vue`, `MyProposalShow.vue` (`/congnghe/de-xuat-cua-toi`); **quản lý (admin/lead):** `Pages/Congnghe/Proposals/Index.vue`, `Show.vue` — sidebar nhóm «Phòng Công nghệ» |
+| Congnghe (landing `/congnghe`) | `Pages/Congnghe/Index.vue` + `partials/*` — **không** `AppLayout`; header `CongngheNavbar.vue` + menu `CongngheUserMenu.vue` (đề xuất đã gửi, hồ sơ, đăng xuất); sơ đồ `#to-chuc`: `OrgChartSection.vue` + `CongngheOrgChart.vue` / `CongngheOrgChartBranch.vue` + `useCongngheOrgLayout.js` (hàng ban lãnh đạo ngang theo tiêu đề nhánh QLDA, cột phân nhánh con); form `Proposal.vue`; **người gửi:** `MyProposals.vue`, `MyProposalShow.vue` (`/congnghe/de-xuat-cua-toi`) — **AppLayout** + datagrid (sidebar «Đề xuất của tôi» trong `Navigation.php`); **quản lý (admin/lead):** `Pages/Congnghe/Proposals/Index.vue`, `Show.vue` — sidebar nhóm «Phòng Công nghệ» |
 | Dashboard | `Pages/Dashboard/Index.vue` |
 | DailyReport | `Today`, `History`, `Show`, `Review` |
 | Project | `Index`, `Create`, `Edit`, `Show` |

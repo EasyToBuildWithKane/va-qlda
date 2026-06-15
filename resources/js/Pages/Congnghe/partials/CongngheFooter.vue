@@ -42,9 +42,9 @@ const year = new Date().getFullYear();
           </p>
           <div class="mt-4 flex flex-col items-center gap-3 sm:items-start">
             <CongngheBrandImage
-              :src="congngheBrand.logoVertical"
+              :src="congngheBrand.wordmarkStacked"
               alt="Vietnam America Schools"
-              class="h-14 w-auto shrink-0 sm:h-16"
+              class="h-auto w-52 shrink-0 sm:w-60"
               loading="lazy"
             />
             <div class="min-w-0 w-full">
@@ -95,18 +95,18 @@ const year = new Date().getFullYear();
           </ul>
         </div>
 
-        <div class="cn-footer-col flex min-w-0 flex-col text-center sm:text-left">
+        <div class="cn-footer-col flex min-w-0 flex-col text-center">
           <p :class="colHeadingClass">
             Đồng hành cùng VAS
           </p>
-          <div class="relative mt-4 flex flex-1 flex-col items-center justify-end gap-3 sm:items-start">
+          <div class="relative mt-4 flex flex-1 flex-col items-center justify-center gap-3">
             <CongngheBrandImage
               :src="congngheBrand.mascotVaJacket"
               alt="Linh vật VAS"
               class="h-36 w-auto max-w-full sm:h-40 lg:h-44"
               loading="lazy"
             />
-            <p class="max-w-xs text-center text-sm leading-relaxed text-white/55 sm:text-left">
+            <p class="mx-auto max-w-xs text-center text-sm leading-relaxed text-white/55">
               Cùng kiến tạo nền tảng số — từ ý tưởng đến sản phẩm vận hành thật.
             </p>
           </div>
