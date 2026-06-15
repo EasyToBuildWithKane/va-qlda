@@ -1,0 +1,62 @@
+.cn-portal-datagrid {
+    --cn-portal-input: rgb(255 255 255 / 0.04);
+}
+
+.cn-portal-datagrid .input {
+    border-color: rgb(255 255 255 / 0.12);
+    background: var(--cn-portal-input);
+    color: rgb(255 255 255 / 0.92);
+}
+
+.cn-portal-datagrid .input::placeholder {
+    color: rgb(255 255 255 / 0.35);
+}
+
+.cn-portal-datagrid .input:focus {
+    border-color: rgb(154 0 54 / 0.55);
+    --tw-ring-color: rgb(154 0 54 / 0.25);
+}
+
+.cn-portal-datagrid [class*='text-slate-400'] {
+    color: rgb(255 255 255 / 0.4);
+}
+
+.cn-portal-datagrid [class*='text-slate-600'] {
+    color: rgb(255 255 255 / 0.55);
+}
+
+.cn-portal-datagrid [class*='hover:text-slate-600']:hover {
+    color: rgb(255 255 255 / 0.85);
+}
+
+.cn-portal-datagrid [class*='hover:text-slate-800']:hover {
+    color: rgb(255 255 255 / 0.95);
+}
+
+.cn-portal-datagrid [class*='bg-slate-50'] {
+    background: rgb(255 255 255 / 0.03);
+}
+
+.cn-portal-datagrid [class*='border-slate-100'] {
+    border-color: rgb(255 255 255 / 0.08);
+}
+
+.cn-portal-datagrid [class*='divide-slate-100'] > :not([hidden]) ~ :not([hidden]) {
+    border-color: rgb(255 255 255 / 0.06);
+}
+
+.cn-portal-datagrid .text-brand {
+    color: rgb(255 120 160);
+}
+
+.cn-portal-datagrid .hover\:text-brand:hover {
+    color: rgb(255 160 190);
+}
+
+.cn-portal-datagrid [class*='bg-brand'][class*='text-white'] {
+    background: rgb(154 0 54);
+}
+
+.cn-portal-datagrid [class*='hover:bg-slate-100']:hover {
+    background: rgb(255 255 255 / 0.06);
+}

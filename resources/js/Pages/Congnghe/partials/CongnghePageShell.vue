@@ -2,7 +2,6 @@
 import AuroraBackground from './AuroraBackground.vue';
 import CongngheNavbar from './CongngheNavbar.vue';
 import CongngheFooter from './CongngheFooter.vue';
-import CongngheMascotAssistant from './CongngheMascotAssistant.vue';
 </script>
 
 <template>
@@ -17,6 +16,5 @@ import CongngheMascotAssistant from './CongngheMascotAssistant.vue';
     </main>
 
     <CongngheFooter />
-    <CongngheMascotAssistant />
   </div>
 </template>

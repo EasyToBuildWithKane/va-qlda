@@ -21,11 +21,11 @@ const emit = defineEmits(['select-person']);
 const children = computed(() => toIterableList(props.team.children));
 const roster = useOrgTeamRoster(() => props.team);
 
-const staffGroups = computed(() => staffSectionGroups(roster.value));
-
 const leadershipLayout = computed(() => buildCongngheLeadershipLayout(roster.value, {
     nestedBranch: props.column || props.depth > 0,
 }));
+
+const staffGroups = computed(() => staffSectionGroups(roster.value, leadershipLayout.value));
 
 const managerCard = computed(() => leadershipLayout.value.managerCard);
 const leadershipCards = computed(() => leadershipLayout.value.tierCards);

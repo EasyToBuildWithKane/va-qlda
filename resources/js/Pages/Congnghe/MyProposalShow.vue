@@ -69,6 +69,17 @@ function formatSize(bytes) {
           <dl class="grid gap-4 sm:grid-cols-2">
             <div>
               <dt class="text-xs font-semibold uppercase tracking-wide text-white/45">
+                Người gửi
+              </dt>
+              <dd class="mt-1 font-medium text-white">
+                {{ proposal.submitter_name || '—' }}
+              </dd>
+              <dd class="mt-0.5 text-sm text-white/55">
+                {{ proposal.submitter_email || '—' }}
+              </dd>
+            </div>
+            <div>
+              <dt class="text-xs font-semibold uppercase tracking-wide text-white/45">
                 Thời điểm gửi
               </dt>
               <dd class="mt-1 text-white tabular-nums">

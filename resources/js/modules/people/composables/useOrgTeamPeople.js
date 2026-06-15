@@ -78,7 +78,7 @@ export function useOrgTeamRoster(nodeOrProps) {
             if (!emp?.id) {
                 continue;
             }
-            if (leaderId && emp.id === leaderId) {
+            if (leaderId != null && Number(emp.id) === Number(leaderId)) {
                 continue;
             }
 

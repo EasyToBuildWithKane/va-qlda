@@ -70,6 +70,63 @@ export function shouldShowRoleSubtitle(branchTitle, roleTitle) {
     return true;
 }
 
+/** @param {number|string|null|undefined} id */
+function employeeIdKey(id) {
+    const n = Number(id);
+    return Number.isFinite(n) ? n : null;
+}
+
+/** @param {{ key: string, branchTitle: string, person: object }[]} cards */
+function dedupeLeadershipCards(cards) {
+    const seen = new Set();
+    return cards.filter((card) => {
+        const key = employeeIdKey(card.person?.employeeId);
+        if (key == null) {
+            return true;
+        }
+        if (seen.has(key)) {
+            return false;
+        }
+        seen.add(key);
+        return true;
+    });
+}
+
+/**
+ * @param {{ leader: object|null, sectionGroups: Array<{ key: string, title: string|null, people: object[] }> }} roster
+ * @param {{ managerCard: object|null, tierCards: object[] }|null} leadershipLayout
+ */
+function leadershipEmployeeIds(roster, leadershipLayout = null) {
+    const ids = new Set();
+    const add = (person) => {
+        const key = employeeIdKey(person?.employeeId);
+        if (key != null) {
+            ids.add(key);
+        }
+    };
+
+    add(roster.leader);
+    if (leadershipLayout) {
+        if (leadershipLayout.managerCard) {
+            add(leadershipLayout.managerCard.person);
+        }
+        for (const card of leadershipLayout.tierCards ?? []) {
+            add(card.person);
+        }
+    } else {
+        for (const group of roster.sectionGroups) {
+            if (!isCongngheLeadershipSection(group.title)) {
+                continue;
+            }
+            for (const person of group.people) {
+                add(person);
+            }
+        }
+    }
+
+    return ids;
+}
+
 /**
  * @param {{ leader: object|null, sectionGroups: Array<{ key: string, title: string|null, people: object[] }> }} roster
  * @param {{ nestedBranch?: boolean }} options
@@ -77,7 +134,7 @@ export function shouldShowRoleSubtitle(branchTitle, roleTitle) {
 export function buildCongngheLeadershipLayout(roster, options = {}) {
     const nestedBranch = Boolean(options.nestedBranch);
     const leader = roster.leader;
-    const leaderId = leader?.employeeId ?? null;
+    const leaderId = employeeIdKey(leader?.employeeId);
 
     /** @type {{ key: string, branchTitle: string, person: object, sort: number }[]} */
     const fromSections = [];
@@ -89,7 +146,7 @@ export function buildCongngheLeadershipLayout(roster, options = {}) {
         const branchTitle = (group.title ?? '').trim() || 'Lãnh đạo';
         const sort = leadershipSortRank(group.title);
         for (const person of group.people) {
-            if (leaderId != null && person.employeeId === leaderId) {
+            if (leaderId != null && employeeIdKey(person.employeeId) === leaderId) {
                 continue;
             }
             fromSections.push({
@@ -108,17 +165,22 @@ export function buildCongngheLeadershipLayout(roster, options = {}) {
             key, branchTitle, person,
         }));
 
-        if (leader && !tierCards.some((c) => c.person.employeeId === leader.employeeId)) {
-            tierCards.unshift({
-                key: `leader-${leader.key}`,
-                branchTitle: 'Trưởng nhóm',
-                person: leader,
-            });
+        if (leader) {
+            const leaderKey = employeeIdKey(leader.employeeId);
+            const alreadyListed = leaderKey != null
+                && tierCards.some((c) => employeeIdKey(c.person.employeeId) === leaderKey);
+            if (!alreadyListed) {
+                tierCards.unshift({
+                    key: `leader-${leader.key}`,
+                    branchTitle: 'Trưởng nhóm',
+                    person: leader,
+                });
+            }
         }
 
         return {
             managerCard: null,
-            tierCards,
+            tierCards: dedupeLeadershipCards(tierCards),
             leadershipEyebrow: 'Trưởng nhóm',
         };
     }
@@ -131,9 +193,9 @@ export function buildCongngheLeadershipLayout(roster, options = {}) {
         }
         : null;
 
-    const tierCards = fromSections.map(({ key, branchTitle, person }) => ({
+    const tierCards = dedupeLeadershipCards(fromSections.map(({ key, branchTitle, person }) => ({
         key, branchTitle, person,
-    }));
+    })));
 
     return {
         managerCard,
@@ -148,8 +210,21 @@ export function buildLeadershipCards(roster) {
     return managerCard ? [managerCard, ...tierCards] : tierCards;
 }
 
-export function staffSectionGroups(roster) {
-    return roster.sectionGroups.filter(
-        (g) => g.people.length > 0 && !isCongngheLeadershipSection(g.title),
-    );
+/**
+ * @param {{ leader: object|null, sectionGroups: Array<{ key: string, title: string|null, people: object[] }> }} roster
+ * @param {{ managerCard: object|null, tierCards: object[] }|null} [leadershipLayout]
+ */
+export function staffSectionGroups(roster, leadershipLayout = null) {
+    const excludeIds = leadershipEmployeeIds(roster, leadershipLayout);
+
+    return roster.sectionGroups
+        .filter((g) => g.people.length > 0 && !isCongngheLeadershipSection(g.title))
+        .map((g) => ({
+            ...g,
+            people: g.people.filter((p) => {
+                const key = employeeIdKey(p.employeeId);
+                return key == null || !excludeIds.has(key);
+            }),
+        }))
+        .filter((g) => g.people.length > 0);
 }

@@ -61,6 +61,23 @@ function syncDepartmentFromDefaults() {
     }
 }
 
+function syncSubmitterFromDefaults() {
+    const d = props.defaults;
+    if (d.name) {
+        form.name = d.name;
+    }
+    if (d.email) {
+        form.email = d.email;
+    }
+    const auth = page.props.auth?.user;
+    if (!form.name) {
+        form.name = auth?.employee?.full_name ?? auth?.display_name ?? '';
+    }
+    if (!form.email && auth?.email) {
+        form.email = auth.email;
+    }
+}
+
 function formatSize(bytes) {
     if (!bytes) return '0 B';
     const units = ['B', 'KB', 'MB'];
@@ -139,9 +156,19 @@ function flashToast() {
 }
 
 onMounted(() => {
+    syncSubmitterFromDefaults();
     syncDepartmentFromDefaults();
     flashToast();
 });
+
+watch(
+    () => props.defaults,
+    () => {
+        syncSubmitterFromDefaults();
+        syncDepartmentFromDefaults();
+    },
+    { deep: true },
+);
 
 watch(
     () => [page.props.flash?.success, page.props.flash?.error],

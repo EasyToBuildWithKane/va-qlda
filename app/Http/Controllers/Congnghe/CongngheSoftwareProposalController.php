@@ -30,17 +30,49 @@ class CongngheSoftwareProposalController extends Controller
     {
         $account = $request->user();
         $baseQuery = $this->ownedProposalsQuery($account);
-        $query = (clone $baseQuery)->withCount('attachments')->latest();
+        $query = (clone $baseQuery)->withCount('attachments')->with('attachments')->latest();
 
         if ($status = $request->query('status')) {
             $query->where('status', $status);
+        }
+
+        if ($department = trim((string) $request->query('department', ''))) {
+            $query->where('department', $department);
+        }
+
+        if ($from = $request->query('from')) {
+            $query->whereDate('created_at', '>=', $from);
+        }
+
+        if ($to = $request->query('to')) {
+            $query->whereDate('created_at', '<=', $to);
+        }
+
+        if ($request->query('email_sent') === '1') {
+            $query->whereNotNull('email_sent_at');
+        } elseif ($request->query('email_sent') === '0') {
+            $query->whereNull('email_sent_at');
+        }
+
+        if ($request->query('acknowledged') === '1') {
+            $query->where('status', '!=', CongngheSoftwareProposalStatus::New);
+        } elseif ($request->query('acknowledged') === '0') {
+            $query->where('status', CongngheSoftwareProposalStatus::New);
+        }
+
+        if ($request->query('has_attachments') === '1') {
+            $query->has('attachments');
+        } elseif ($request->query('has_attachments') === '0') {
+            $query->doesntHave('attachments');
         }
 
         if ($search = trim((string) $request->query('q', ''))) {
             $query->where(function (Builder $q) use ($search): void {
                 $q->where('title', 'like', "%{$search}%")
                     ->orWhere('reference_code', 'like', "%{$search}%")
-                    ->orWhere('department', 'like', "%{$search}%");
+                    ->orWhere('department', 'like', "%{$search}%")
+                    ->orWhere('submitter_name', 'like', "%{$search}%")
+                    ->orWhere('submitter_email', 'like', "%{$search}%");
             });
         }
 
@@ -52,7 +84,17 @@ class CongngheSoftwareProposalController extends Controller
 
         return Inertia::render('Congnghe/MyProposals', [
             'proposals' => CongngheSoftwareProposalResource::collection($proposals),
-            'filters' => (object) $request->only(['status', 'q', 'per_page']),
+            'filters' => (object) $request->only([
+                'status',
+                'q',
+                'per_page',
+                'department',
+                'from',
+                'to',
+                'email_sent',
+                'acknowledged',
+                'has_attachments',
+            ]),
             'summary' => [
                 'total' => (clone $summaryQuery)->count(),
                 'new' => (clone $summaryQuery)->where('status', CongngheSoftwareProposalStatus::New)->count(),
@@ -61,6 +103,14 @@ class CongngheSoftwareProposalController extends Controller
             ],
             'options' => [
                 'statuses' => CongngheSoftwareProposalStatus::options(),
+                'departments' => (clone $baseQuery)
+                    ->select('department')
+                    ->distinct()
+                    ->orderBy('department')
+                    ->pluck('department')
+                    ->filter(fn (?string $name): bool => trim((string) $name) !== '')
+                    ->values()
+                    ->all(),
             ],
         ]);
     }
@@ -85,10 +135,18 @@ class CongngheSoftwareProposalController extends Controller
 
         [$departmentName, $departmentId] = $this->resolveProposalDepartment($employee);
 
+        $submitterEmail = trim((string) ($employee?->email ?? ''));
+        if ($submitterEmail === '' && $account !== null) {
+            $username = trim((string) $account->username);
+            if ($username !== '' && str_contains($username, '@')) {
+                $submitterEmail = $username;
+            }
+        }
+
         return Inertia::render('Congnghe/Proposal', [
             'defaults' => [
                 'name' => $employee?->full_name ?? $account?->display_name ?? '',
-                'email' => $employee?->email ?? '',
+                'email' => $submitterEmail,
                 'department' => $departmentName,
                 'department_id' => $departmentId,
             ],

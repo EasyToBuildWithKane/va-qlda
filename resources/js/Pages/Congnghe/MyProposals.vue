@@ -4,21 +4,31 @@ import {
 } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import CongnghePageShell from './partials/CongnghePageShell.vue';
+import CongngheMyProposalsSummaryBar from './partials/CongngheMyProposalsSummaryBar.vue';
+import CongngheMyProposalDetailModal from './partials/CongngheMyProposalDetailModal.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import Badge from '@/shared/ui/Badge.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import DatagridToolbarActionButton from '@/shared/ui/DatagridToolbarActionButton.vue';
 import DatagridFilterField from '@/shared/ui/DatagridFilterField.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
+import FilterDatePicker from '@/shared/ui/FilterDatePicker.vue';
 import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
 import { datetime } from '@/composables/useFormat';
+
+const PROPOSAL_CREATE_HREF = '/congnghe/de-xuat';
 
 const PER_PAGE_OPTIONS = [10, 15, 20, 30];
 const FILTER_CONTROL_CLASS = 'input h-10 w-full text-sm';
 
 const FILTER_CONTROLS = [
     { key: 'status', label: 'Trạng thái', default: false },
+    { key: 'department', label: 'Phòng ban', default: false },
+    { key: 'date_range', label: 'Ngày gửi', default: false },
+    { key: 'email_sent', label: 'Email PCN', default: false },
+    { key: 'acknowledged', label: 'Tiếp nhận', default: false },
+    { key: 'has_attachments', label: 'File đính kèm', default: false },
 ];
 
 const STATUS_TONE = {
@@ -38,6 +48,8 @@ const props = defineProps({
 
 const filterPanelDdRef = ref(null);
 const perPage = ref(Number(props.filters.per_page) || props.proposals.meta?.per_page || 15);
+const detailOpen = ref(false);
+const activeProposal = ref(null);
 
 const {
     visibleFilters,
@@ -46,18 +58,54 @@ const {
     hasFilterRow,
     persistVisibleFilters,
     openFilterPanel,
-} = useVisibleFilterControls(FILTER_CONTROLS, 'va-qlda.congnghe-my-proposals.filters.v1');
+} = useVisibleFilterControls(FILTER_CONTROLS, 'va-qlda.congnghe-my-proposals.filters.v2');
 
 const filterForm = reactive({
     status: props.filters.status ?? '',
+    department: props.filters.department ?? '',
+    from: props.filters.from ?? '',
+    to: props.filters.to ?? '',
+    email_sent: props.filters.email_sent ?? '',
+    acknowledged: props.filters.acknowledged ?? '',
+    has_attachments: props.filters.has_attachments ?? '',
     q: props.filters.q ?? '',
+});
+
+const activeFilterCount = computed(() => {
+    let n = 0;
+    if (filterForm.status) n += 1;
+    if (filterForm.department) n += 1;
+    if (filterForm.from || filterForm.to) n += 1;
+    if (filterForm.email_sent) n += 1;
+    if (filterForm.acknowledged) n += 1;
+    if (filterForm.has_attachments) n += 1;
+    if (filterForm.q?.trim()) n += 1;
+    return n;
 });
 
 const listBadge = computed(() => props.summary.total ?? null);
 
+function clearFilters() {
+    filterForm.status = '';
+    filterForm.department = '';
+    filterForm.from = '';
+    filterForm.to = '';
+    filterForm.email_sent = '';
+    filterForm.acknowledged = '';
+    filterForm.has_attachments = '';
+    filterForm.q = '';
+    navigate(true);
+}
+
 function routeParams(resetPage = false) {
     const params = {
         status: filterForm.status || undefined,
+        department: filterForm.department || undefined,
+        from: filterForm.from || undefined,
+        to: filterForm.to || undefined,
+        email_sent: filterForm.email_sent || undefined,
+        acknowledged: filterForm.acknowledged || undefined,
+        has_attachments: filterForm.has_attachments || undefined,
         q: filterForm.q || undefined,
         per_page: perPage.value,
     };
@@ -69,7 +117,12 @@ function navigate(resetPage = false) {
     router.get(route('congnghe.proposal.mine'), routeParams(resetPage), {
         preserveState: true,
         replace: true,
+        preserveScroll: true,
     });
+}
+
+function onQuickFilter(payload) {
+    filterForm.status = payload.status ?? '';
 }
 
 let qTimer = null;
@@ -78,7 +131,18 @@ watch(() => filterForm.q, () => {
     qTimer = setTimeout(() => navigate(true), 350);
 });
 
-watch(() => filterForm.status, () => navigate(true));
+watch(
+    () => [
+        filterForm.status,
+        filterForm.department,
+        filterForm.from,
+        filterForm.to,
+        filterForm.email_sent,
+        filterForm.acknowledged,
+        filterForm.has_attachments,
+    ],
+    () => navigate(true),
+);
 watch(perPage, () => navigate(true));
 
 function onToolbarClickOutside(e) {
@@ -99,13 +163,31 @@ function acknowledged(row) {
     const status = row.status?.value ?? row.status;
     return status !== 'new';
 }
+
+function openDetail(row) {
+    activeProposal.value = row;
+    detailOpen.value = true;
+}
+
+function closeDetail() {
+    detailOpen.value = false;
+    activeProposal.value = null;
+}
+
+function submitterName(row) {
+    return row.submitter_name?.trim() || '—';
+}
+
+function submitterEmail(row) {
+    return row.submitter_email?.trim() || '—';
+}
 </script>
 
 <template>
   <Head title="Đề xuất đã gửi" />
 
   <CongnghePageShell>
-    <div class="mx-auto max-w-6xl">
+    <div class="relative z-20 mx-auto max-w-6xl">
       <header class="mb-8 flex flex-col gap-4 sm:mb-10 sm:flex-row sm:items-end sm:justify-between">
         <div class="min-w-0 text-center sm:text-left">
           <Link
@@ -133,8 +215,8 @@ function acknowledged(row) {
           </p>
         </div>
         <Link
-          :href="route('congnghe.proposal')"
-          class="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 self-center rounded-xl border border-brand/45 bg-brand/25 px-4 text-sm font-semibold text-white transition hover:bg-brand/35 sm:self-auto"
+          :href="PROPOSAL_CREATE_HREF"
+          class="relative z-20 inline-flex h-10 shrink-0 items-center justify-center gap-1.5 self-center rounded-xl border border-brand/45 bg-brand/25 px-4 text-sm font-semibold text-white shadow-[0_4px_20px_-6px_rgba(154,0,54,0.65)] transition hover:bg-brand/35 sm:self-auto"
         >
           <AppIcon
             name="add"
@@ -144,55 +226,24 @@ function acknowledged(row) {
         </Link>
       </header>
 
-      <section
-        class="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4"
-        aria-label="Thống kê đề xuất của tôi"
-      >
-        <div class="rounded-card border border-slate-200/80 bg-white px-4 py-3 shadow-sm">
-          <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-            Tổng
-          </p>
-          <p class="font-display text-2xl tabular-nums text-slate-900">
-            {{ summary.total ?? 0 }}
-          </p>
-        </div>
-        <div class="rounded-card border border-violet-200/80 bg-violet-50/50 px-4 py-3 shadow-sm">
-          <p class="text-[10px] font-semibold uppercase tracking-wide text-violet-700/80">
-            Mới
-          </p>
-          <p class="font-display text-2xl tabular-nums text-violet-900">
-            {{ summary.new ?? 0 }}
-          </p>
-        </div>
-        <div class="rounded-card border border-amber-200/80 bg-amber-50/40 px-4 py-3 shadow-sm">
-          <p class="text-[10px] font-semibold uppercase tracking-wide text-amber-800/80">
-            Đang xử lý
-          </p>
-          <p class="font-display text-2xl tabular-nums text-amber-950">
-            {{ summary.in_progress ?? 0 }}
-          </p>
-        </div>
-        <div class="rounded-card border border-emerald-200/80 bg-emerald-50/40 px-4 py-3 shadow-sm">
-          <p class="text-[10px] font-semibold uppercase tracking-wide text-emerald-800/80">
-            Hoàn thành
-          </p>
-          <p class="font-display text-2xl tabular-nums text-emerald-950">
-            {{ summary.done ?? 0 }}
-          </p>
-        </div>
-      </section>
+      <CongngheMyProposalsSummaryBar
+        :summary="summary"
+        :active-status="filterForm.status"
+        @quick-filter="onQuickFilter"
+      />
 
-      <div class="card overflow-hidden">
-        <div class="border-b border-slate-100 px-5 py-4">
+      <div class="cn-portal-datagrid overflow-hidden rounded-2xl border border-white/10 bg-[#0a0c16]/90 shadow-[0_8px_40px_-12px_rgba(0,0,0,0.55)] backdrop-blur-xl">
+        <div class="border-b border-white/10 px-5 py-4">
           <div class="flex w-full min-w-0 flex-wrap items-center gap-2 lg:flex-nowrap">
             <div class="min-w-0 w-full basis-full lg:flex-1 lg:basis-auto">
               <DatagridToolbarSearch
                 v-model="filterForm.q"
+                input-id="cn-my-proposals-q"
                 hide-label
                 stretch
                 inline-actions
                 input-height="h-10"
-                placeholder="Tìm mã, tiêu đề, phòng ban…"
+                placeholder="Tìm mã, tiêu đề, người gửi, email, phòng ban…"
                 aria-label="Tìm đề xuất của tôi"
               />
             </div>
@@ -242,18 +293,133 @@ function acknowledged(row) {
                 </option>
               </select>
             </DatagridFilterField>
+
+            <DatagridFilterField
+              v-if="visibleFilters.department"
+              label="Phòng ban"
+            >
+              <select
+                v-model="filterForm.department"
+                :class="FILTER_CONTROL_CLASS"
+              >
+                <option value="">
+                  Phòng ban
+                </option>
+                <option
+                  v-for="dept in options.departments"
+                  :key="dept"
+                  :value="dept"
+                >
+                  {{ dept }}
+                </option>
+              </select>
+            </DatagridFilterField>
+
+            <DatagridFilterField
+              v-if="visibleFilters.email_sent"
+              label="Email PCN"
+            >
+              <select
+                v-model="filterForm.email_sent"
+                :class="FILTER_CONTROL_CLASS"
+              >
+                <option value="">
+                  Email PCN
+                </option>
+                <option value="1">
+                  Đã gửi email
+                </option>
+                <option value="0">
+                  Chưa gửi email
+                </option>
+              </select>
+            </DatagridFilterField>
+
+            <DatagridFilterField
+              v-if="visibleFilters.acknowledged"
+              label="Tiếp nhận"
+            >
+              <select
+                v-model="filterForm.acknowledged"
+                :class="FILTER_CONTROL_CLASS"
+              >
+                <option value="">
+                  Tiếp nhận
+                </option>
+                <option value="1">
+                  Đã ghi nhận
+                </option>
+                <option value="0">
+                  Chưa ghi nhận
+                </option>
+              </select>
+            </DatagridFilterField>
+
+            <DatagridFilterField
+              v-if="visibleFilters.has_attachments"
+              label="File đính kèm"
+            >
+              <select
+                v-model="filterForm.has_attachments"
+                :class="FILTER_CONTROL_CLASS"
+              >
+                <option value="">
+                  File đính kèm
+                </option>
+                <option value="1">
+                  Có file
+                </option>
+                <option value="0">
+                  Không có file
+                </option>
+              </select>
+            </DatagridFilterField>
+
+            <div
+              v-if="visibleFilters.date_range"
+              class="min-w-0 w-full sm:col-span-2 xl:col-span-2"
+            >
+              <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
+                <FilterDatePicker
+                  v-model="filterForm.from"
+                  placeholder="Từ ngày"
+                  :max-date="filterForm.to || null"
+                />
+                <FilterDatePicker
+                  v-model="filterForm.to"
+                  placeholder="Đến ngày"
+                  :min-date="filterForm.from || null"
+                />
+              </div>
+            </div>
+
+            <div
+              v-if="activeFilterCount"
+              class="col-span-full flex justify-end pt-0.5"
+            >
+              <button
+                type="button"
+                class="inline-flex h-10 items-center px-2 text-xs font-medium text-brand hover:underline"
+                @click="clearFilters"
+              >
+                Đặt lại bộ lọc
+              </button>
+            </div>
           </div>
         </div>
 
         <div class="overflow-x-auto">
           <table class="w-full min-w-[720px] text-left text-sm">
-            <thead class="border-b border-slate-100 bg-slate-50/80 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <thead class="border-b border-white/10 bg-white/[0.03] text-xs font-semibold uppercase tracking-wide text-white/45">
               <tr>
                 <th class="px-5 py-3">
                   Mã
                 </th>
                 <th class="px-5 py-3">
                   Tiêu đề
+                </th>
+                <th class="px-5 py-3">
+                  Người gửi
                 </th>
                 <th class="px-5 py-3">
                   Phòng ban
@@ -275,29 +441,39 @@ function acknowledged(row) {
                 </th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-slate-100">
+            <tbody class="divide-y divide-white/[0.06]">
               <tr
                 v-for="row in proposals.data"
                 :key="row.id"
-                class="hover:bg-slate-50/80"
+                class="transition hover:bg-white/[0.04]"
               >
-                <td class="px-5 py-3 font-mono text-xs text-slate-600">
-                  <Link
-                    :href="route('congnghe.proposal.mine.show', row.id)"
+                <td class="px-5 py-3 font-mono text-xs text-white/55">
+                  <button
+                    type="button"
                     class="font-semibold text-brand hover:underline"
+                    @click="openDetail(row)"
                   >
                     {{ row.reference_code ?? '—' }}
-                  </Link>
+                  </button>
                 </td>
                 <td class="max-w-[220px] px-5 py-3">
-                  <Link
-                    :href="route('congnghe.proposal.mine.show', row.id)"
-                    class="line-clamp-2 font-medium text-slate-900 hover:text-brand"
+                  <button
+                    type="button"
+                    class="line-clamp-2 text-left font-medium text-white/90 hover:text-brand"
+                    @click="openDetail(row)"
                   >
                     {{ row.title }}
-                  </Link>
+                  </button>
                 </td>
-                <td class="px-5 py-3 text-slate-600">
+                <td class="px-5 py-3">
+                  <div class="font-medium text-white/85">
+                    {{ submitterName(row) }}
+                  </div>
+                  <div class="text-xs text-white/45">
+                    {{ submitterEmail(row) }}
+                  </div>
+                </td>
+                <td class="px-5 py-3 text-white/60">
                   {{ row.department }}
                 </td>
                 <td class="px-5 py-3">
@@ -324,21 +500,21 @@ function acknowledged(row) {
                     {{ emailSent(row) ? 'Đã gửi' : 'Chưa gửi' }}
                   </Badge>
                 </td>
-                <td class="px-5 py-3 tabular-nums text-slate-600">
+                <td class="px-5 py-3 tabular-nums text-white/60">
                   {{ row.attachments_count ?? 0 }}
                 </td>
-                <td class="px-5 py-3 text-slate-600 tabular-nums">
+                <td class="px-5 py-3 tabular-nums text-white/60">
                   {{ datetime(row.created_at) }}
                 </td>
               </tr>
               <tr v-if="!proposals.data?.length">
                 <td
-                  colspan="8"
-                  class="px-5 py-12 text-center text-slate-500"
+                  colspan="9"
+                  class="px-5 py-12 text-center text-white/50"
                 >
                   Bạn chưa gửi đề xuất nào.
                   <Link
-                    :href="route('congnghe.proposal')"
+                    :href="PROPOSAL_CREATE_HREF"
                     class="ml-1 font-semibold text-brand hover:underline"
                   >
                     Gửi đề xuất mới
@@ -358,5 +534,13 @@ function acknowledged(row) {
         />
       </div>
     </div>
+
+    <CongngheMyProposalDetailModal
+      :show="detailOpen"
+      :proposal="activeProposal"
+      @close="closeDetail"
+    />
   </CongnghePageShell>
 </template>
+
+<style src="./partials/congnghe-portal-datagrid.css"></style>
