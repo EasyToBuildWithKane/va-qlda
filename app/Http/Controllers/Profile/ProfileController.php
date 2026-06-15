@@ -5,12 +5,8 @@ namespace App\Http\Controllers\Profile;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Profile\UpdateProfileRequest;
 use App\Http\Resources\EmployeeProfileResource;
-use App\Models\Certification;
 use App\Models\Employee;
-use App\Support\Enums\SystemRole;
-use App\Support\Profile\ProfileSnapshot;
 use App\Support\Profile\SkillCatalog;
-use App\Support\Profile\TalentProfile;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,8 +16,7 @@ use Inertia\Response;
 
 /**
  * "Hồ sơ của tôi" — the authenticated person's own profile, with self-service
- * editing. Reuses the same presentation as the member profile; performance is
- * always visible since you are viewing yourself.
+ * editing. Reuses the same presentation as the member profile.
  */
 class ProfileController extends Controller
 {
@@ -33,10 +28,6 @@ class ProfileController extends Controller
             return Inertia::render('Profile/Show', [
                 'profile' => null,
                 'editable' => false,
-                'canViewPerformance' => false,
-                'stats' => null,
-                'projectExperience' => null,
-                'activity' => null,
             ]);
         }
 
@@ -46,22 +37,11 @@ class ProfileController extends Controller
             'orgMemberships.team.leader:id,full_name,avatar_path,code,email,role_title',
             'orgMemberships.section:id,org_team_id,title',
             'projects',
-            ...TalentProfile::EAGER,
         ]);
-
-        // Succession (risk/retention) is a management view — visible on your own
-        // profile only if you are a manager yourself.
-        $canSuccession = $request->user()->hasRole(SystemRole::Admin, SystemRole::Lead);
 
         return Inertia::render('Profile/Show', [
             'profile' => (new EmployeeProfileResource($employee))->toArray($request),
             'editable' => true,
-            'canViewPerformance' => true,
-            'canViewSuccession' => $canSuccession,
-            'stats' => ProfileSnapshot::stats($employee),
-            'projectExperience' => ProfileSnapshot::projectExperience($employee),
-            'activity' => ProfileSnapshot::activity($employee),
-            ...TalentProfile::bundle($employee, true, $canSuccession),
         ]);
     }
 
@@ -85,12 +65,12 @@ class ProfileController extends Controller
         ], fn ($v) => $v !== null && $v !== '');
 
         $skills = array_values($data['skills'] ?? []);
+        [$skillNames, $meta['skill_details']] = $this->normalizeSkills($skills);
 
         $attributes = [
             'phone' => $data['phone'] ?? null,
             'role_title' => $data['role_title'] ?? null,
-            // Keep the quick JSON list (names) in sync for the directory preview.
-            'skills' => array_values(array_filter(array_map(fn ($s) => $s['name'] ?? null, $skills))),
+            'skills' => $skillNames,
             'meta' => $meta,
         ];
 
@@ -98,76 +78,39 @@ class ProfileController extends Controller
             $old = $employee->avatar_path;
             $attributes['avatar_path'] = $request->file('avatar')->store('avatars', 'public');
 
-            // Only clean up files we previously uploaded (avatars/*), never seeds.
             if (is_string($old) && str_starts_with($old, 'avatars/')) {
                 Storage::disk('public')->delete($old);
             }
         }
 
-        DB::transaction(function () use ($employee, $attributes, $skills, $data) {
-            $employee->update($attributes);
-            $this->syncSkills($employee, $skills);
-            $this->syncCertifications($employee, array_values($data['certifications'] ?? []));
-        });
+        DB::transaction(fn () => $employee->update($attributes));
 
         return back()->with('success', 'Đã cập nhật hồ sơ.');
     }
 
     /**
-     * Replace the leveled skill matrix with the submitted set (self-managed list).
-     *
      * @param  list<array<string, mixed>>  $skills
+     * @return array{0: list<string>, 1: list<array<string, mixed>>}
      */
-    private function syncSkills(Employee $employee, array $skills): void
+    private function normalizeSkills(array $skills): array
     {
-        $employee->skillEntries()->delete();
-
-        $rows = [];
-        $order = 0;
+        $names = [];
+        $details = [];
         foreach ($skills as $s) {
             $name = trim((string) ($s['name'] ?? ''));
             if ($name === '') {
                 continue;
             }
-            $rows[] = [
+            $names[] = $name;
+            $details[] = [
                 'name' => $name,
-                'category' => $s['category'] ?? SkillCatalog::categoryFor($name),
                 'level' => (int) ($s['level'] ?? 3),
-                'years_experience' => isset($s['years']) && $s['years'] !== '' ? (float) $s['years'] : null,
-                'sort_order' => $order++,
+                'category' => $s['category'] ?? SkillCatalog::categoryFor($name),
+                'years' => isset($s['years']) && $s['years'] !== '' ? (float) $s['years'] : null,
             ];
         }
 
-        if ($rows !== []) {
-            $employee->skillEntries()->createMany($rows);
-        }
-    }
-
-    /**
-     * @param  list<array<string, mixed>>  $certs
-     */
-    private function syncCertifications(Employee $employee, array $certs): void
-    {
-        $employee->certifications()->delete();
-
-        $rows = [];
-        foreach ($certs as $c) {
-            $name = trim((string) ($c['name'] ?? ''));
-            if ($name === '') {
-                continue;
-            }
-            $rows[] = new Certification([
-                'name' => $name,
-                'provider' => $c['provider'] ?? null,
-                'credential_url' => $c['credential_url'] ?? null,
-                'issued_at' => $c['issued_at'] ?? null,
-                'expires_at' => $c['expires_at'] ?? null,
-            ]);
-        }
-
-        if ($rows !== []) {
-            $employee->certifications()->saveMany($rows);
-        }
+        return [$names, $details];
     }
 
     private function currentEmployee(Request $request): ?Employee

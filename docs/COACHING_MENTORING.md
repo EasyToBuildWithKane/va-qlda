@@ -169,6 +169,8 @@ Bảng `coaching_assignments` gắn `session_id`.
 
 **UI (`Sessions/Show` → tab Bài tập):** `CoachingSessionAssignmentsTab.vue` — thanh tiến độ, checklist từng mục. Coach (`manageAssignments`) giao bài không cần bật «Chỉnh sửa» toàn trang. Học viên / coach (`completeAssignments`) tick hoàn thành → nhập «Nội dung hoàn thành» → `PATCH /coaching/assignments/{id}`. Tick lại để mở lại (`status=todo`).
 
+**UI (`Sessions/Show` → tab Tài liệu):** `CoachingSessionMaterialsTab.vue` — danh sách gọn bên trái, xem trước một mục bên phải; form «Thêm tài liệu» khi bật «Chỉnh sửa» (flash server sau `POST …/materials`, không toast trùng).
+
 ---
 
 ## 8. Theo dõi học tập

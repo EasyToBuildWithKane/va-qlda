@@ -10,6 +10,8 @@ const props = defineProps({
     fixedLabels: { type: Array, default: () => [] },
     /** Template ref của nút / wrapper — panel teleport ra body */
     anchorRef: { type: [Object, null], default: null },
+    /** Prefix cho id/name checkbox (a11y) */
+    inputIdPrefix: { type: String, default: 'va-col-vis' },
 });
 
 const emit = defineEmits(['update:modelValue', 'persist']);
@@ -22,8 +24,12 @@ const useTeleportedPanel = computed(() => props.anchorRef != null);
 const { panelStyle } = useFixedDropdownAnchor(
     () => props.anchorRef,
     toRef(props, 'show'),
-    { width: panelWidth, zIndex: 85 },
+    { width: panelWidth, zIndex: 85, preferDown: true },
 );
+
+function inputId(key) {
+    return `${props.inputIdPrefix}-${key}`;
+}
 
 function onToggle(key, checked) {
     emit('update:modelValue', { ...props.modelValue, [key]: checked });
@@ -72,9 +78,12 @@ function onToggle(key, checked) {
           <label
             v-for="col in columns"
             :key="col.key"
+            :for="inputId(col.key)"
             class="flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-800"
           >
             <input
+              :id="inputId(col.key)"
+              :name="inputId(col.key)"
               type="checkbox"
               class="rounded border-slate-300 text-brand focus:ring-brand/30"
               :checked="modelValue[col.key]"
@@ -127,9 +136,12 @@ function onToggle(key, checked) {
         <label
           v-for="col in columns"
           :key="col.key"
+          :for="inputId(col.key)"
           class="flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-1.5 hover:bg-slate-50"
         >
           <input
+            :id="inputId(col.key)"
+            :name="inputId(col.key)"
             type="checkbox"
             class="rounded border-slate-300 text-brand focus:ring-brand/30"
             :checked="modelValue[col.key]"

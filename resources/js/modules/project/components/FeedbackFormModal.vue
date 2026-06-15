@@ -142,7 +142,7 @@ const submit = () => {
     :show="show"
     :dirty="form.isDirty"
     :title="feedback ? `Chỉnh sửa ${feedback.code}` : 'Phản hồi mới'"
-    max-width="max-w-4xl"
+    max-width="max-w-6xl"
     :on-save-draft="saveDraftOnClose"
     @close="emit('close')"
   >
@@ -163,185 +163,189 @@ const submit = () => {
         Ghi nhận ý kiến người dùng — điền đủ nội dung để đội xử lý nhanh hơn.
       </p>
 
-      <div class="space-y-4">
-        <BlockerFormSection
-          step="1"
-          title="Phạm vi & phân công"
-          hint="Liên kết dự án và người phụ trách xử lý phản hồi."
-        >
-          <div
-            v-if="lockProject"
-            class="mb-3 flex items-center gap-2 rounded-lg border border-slate-200/80 bg-slate-50/60 px-3 py-2.5 text-sm"
+      <div class="rounded-lg border border-slate-200 p-3 sm:p-4">
+        <div class="grid gap-5 lg:grid-cols-2 xl:grid-cols-3 xl:items-start">
+          <BlockerFormSection
+            plain
+            title="Phạm vi & phân công"
+            hint="Dự án và người xử lý."
           >
-            <AppIcon
-              name="projects"
-              :size="16"
-              class="shrink-0 text-brand"
-            />
-            <span class="text-slate-500">Dự án:</span>
-            <span class="min-w-0 truncate font-medium text-slate-800">{{ lockedProjectLabel }}</span>
-          </div>
-          <div class="grid gap-4 sm:grid-cols-2">
-            <div v-if="!lockProject">
-              <label class="label flex items-center gap-1.5">
-                Dự án
-                <span class="font-normal text-slate-400">(tuỳ chọn)</span>
-                <FieldTooltip
-                  wide
-                  text="Gắn phản hồi với dự án để đội triển khai theo dõi. Để trống nếu là ý kiến chung về hệ thống."
+            <div
+              v-if="lockProject"
+              class="mb-3 flex items-center gap-2 rounded-lg border border-slate-200/80 bg-slate-50/60 px-3 py-2.5 text-sm"
+            >
+              <AppIcon
+                name="projects"
+                :size="16"
+                class="shrink-0 text-brand"
+              />
+              <span class="text-slate-500">Dự án:</span>
+              <span class="min-w-0 truncate font-medium text-slate-800">{{ lockedProjectLabel }}</span>
+            </div>
+            <div class="space-y-3">
+              <div v-if="!lockProject">
+                <label class="label flex items-center gap-1.5">
+                  Dự án
+                  <span class="font-normal text-slate-400">(tuỳ chọn)</span>
+                  <FieldTooltip
+                    wide
+                    text="Gắn phản hồi với dự án để đội triển khai theo dõi. Để trống nếu là ý kiến chung về hệ thống."
+                  />
+                </label>
+                <SearchSelect
+                  v-model="form.project_id"
+                  :options="projects"
+                  placeholder="Chọn dự án liên quan…"
+                  search-placeholder="Tìm theo tên hoặc mã dự án…"
                 />
-              </label>
-              <SearchSelect
-                v-model="form.project_id"
-                :options="projects"
-                placeholder="Chọn dự án liên quan…"
-                search-placeholder="Tìm theo tên hoặc mã dự án…"
-              />
-            </div>
-            <div :class="lockProject ? 'sm:col-span-2' : ''">
-              <label class="label flex items-center gap-1.5">
-                Người xử lý
-                <span class="font-normal text-slate-400">(tuỳ chọn)</span>
-                <FieldTooltip text="Người được giao xử lý và phản hồi lại người gửi." />
-              </label>
-              <PersonSelect
-                v-model="form.assignee_id"
-                :options="employees"
-                placeholder="Tìm & chọn người xử lý…"
-              />
-            </div>
-          </div>
-        </BlockerFormSection>
-
-        <BlockerFormSection
-          step="2"
-          title="Nội dung phản hồi"
-          hint="Tiêu đề ngắn gọn và mô tả chi tiết giúp tìm kiếm và xử lý."
-        >
-          <div class="space-y-4">
-            <div>
-              <label class="label flex items-center gap-1.5">
-                Tiêu đề
-                <span class="text-danger">*</span>
-                <FieldTooltip text="Tóm tắt ngắn, dễ nhận diện trong danh sách phản hồi." />
-              </label>
-              <input
-                v-model="form.title"
-                type="text"
-                class="input"
-                placeholder="VD: Giao diện báo cáo ngày khó đọc trên mobile"
-              >
-              <p
-                v-if="form.errors.title"
-                class="mt-1 text-xs text-danger"
-              >
-                {{ form.errors.title }}
-              </p>
-            </div>
-            <div>
-              <label class="label flex items-center gap-1.5">
-                Nội dung chi tiết
-                <span class="text-danger">*</span>
-                <FieldTooltip
-                  wide
-                  text="Mô tả đầy đủ: bối cảnh, bước tái hiện, kỳ vọng mong muốn hoặc link ảnh chụp màn hình."
+              </div>
+              <div>
+                <label class="label flex items-center gap-1.5">
+                  Người xử lý
+                  <span class="font-normal text-slate-400">(tuỳ chọn)</span>
+                  <FieldTooltip text="Người được giao xử lý và phản hồi lại người gửi." />
+                </label>
+                <PersonSelect
+                  v-model="form.assignee_id"
+                  :options="employees"
+                  placeholder="Tìm & chọn người xử lý…"
                 />
-              </label>
-              <textarea
-                v-model="form.description"
-                rows="5"
-                class="input resize-y text-sm"
-                placeholder="Mô tả chi tiết vấn đề hoặc đề xuất. Nếu là lỗi, ghi rõ các bước tái hiện…"
-              />
-              <p
-                v-if="form.errors.description"
-                class="mt-1 text-xs text-danger"
-              >
-                {{ form.errors.description }}
-              </p>
+              </div>
             </div>
-          </div>
-        </BlockerFormSection>
+          </BlockerFormSection>
 
-        <BlockerFormSection
-          step="3"
-          title="Phân loại & theo dõi"
-          hint="Phân loại, ưu tiên, trạng thái và đánh giá trải nghiệm."
-        >
-          <div class="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label class="label flex items-center gap-1.5">
-                Phân loại
-                <span class="text-danger">*</span>
-                <FieldTooltip text="Loại ý kiến — giúp lọc và báo cáo (đề xuất, phàn nàn, khen ngợi…)." />
-              </label>
-              <SearchSelect
-                v-model="form.category"
-                :options="categorySelectOptions"
-                placeholder="Chọn phân loại phản hồi…"
-                :clearable="false"
-              />
-              <p
-                v-if="form.errors.category"
-                class="mt-1 text-xs text-danger"
-              >
-                {{ form.errors.category }}
-              </p>
+          <BlockerFormSection
+            plain
+            title="Nội dung phản hồi"
+            hint="Tiêu đề và mô tả chi tiết."
+            :class="feedback ? 'lg:col-span-2 xl:col-span-2' : 'lg:col-span-2 xl:col-span-1'"
+          >
+            <div class="space-y-3">
+              <div>
+                <label class="label flex items-center gap-1.5">
+                  Tiêu đề
+                  <span class="text-danger">*</span>
+                  <FieldTooltip text="Tóm tắt ngắn, dễ nhận diện trong danh sách phản hồi." />
+                </label>
+                <input
+                  v-model="form.title"
+                  type="text"
+                  class="input"
+                  placeholder="VD: Giao diện báo cáo ngày khó đọc trên mobile"
+                >
+                <p
+                  v-if="form.errors.title"
+                  class="mt-1 text-xs text-danger"
+                >
+                  {{ form.errors.title }}
+                </p>
+              </div>
+              <div>
+                <label class="label flex items-center gap-1.5">
+                  Nội dung chi tiết
+                  <span class="text-danger">*</span>
+                  <FieldTooltip
+                    wide
+                    text="Mô tả đầy đủ: bối cảnh, bước tái hiện, kỳ vọng mong muốn hoặc link ảnh chụp màn hình."
+                  />
+                </label>
+                <textarea
+                  v-model="form.description"
+                  rows="8"
+                  class="input min-h-[10rem] resize-y text-sm"
+                  placeholder="Mô tả chi tiết vấn đề hoặc đề xuất. Nếu là lỗi, ghi rõ các bước tái hiện…"
+                />
+                <p
+                  v-if="form.errors.description"
+                  class="mt-1 text-xs text-danger"
+                >
+                  {{ form.errors.description }}
+                </p>
+              </div>
             </div>
-            <div>
-              <label class="label flex items-center gap-1.5">
-                Ưu tiên
-                <span class="text-danger">*</span>
-                <FieldTooltip text="Mức độ cần xử lý — tham chiếu khi sắp xếp việc trong đội." />
-              </label>
-              <SearchSelect
-                v-model="form.priority"
-                :options="prioritySelectOptions"
-                placeholder="Chọn mức ưu tiên…"
-                :clearable="false"
-              />
-              <p
-                v-if="form.errors.priority"
-                class="mt-1 text-xs text-danger"
-              >
-                {{ form.errors.priority }}
-              </p>
+          </BlockerFormSection>
+
+          <BlockerFormSection
+            plain
+            title="Phân loại & theo dõi"
+            hint="Loại, ưu tiên, trạng thái, đánh giá."
+          >
+            <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+              <div class="sm:col-span-2 xl:col-span-1">
+                <label class="label flex items-center gap-1.5">
+                  Phân loại
+                  <span class="text-danger">*</span>
+                  <FieldTooltip text="Loại ý kiến — giúp lọc và báo cáo (đề xuất, phàn nàn, khen ngợi…)." />
+                </label>
+                <SearchSelect
+                  v-model="form.category"
+                  :options="categorySelectOptions"
+                  placeholder="Chọn phân loại phản hồi…"
+                  :clearable="false"
+                />
+                <p
+                  v-if="form.errors.category"
+                  class="mt-1 text-xs text-danger"
+                >
+                  {{ form.errors.category }}
+                </p>
+              </div>
+              <div>
+                <label class="label flex items-center gap-1.5">
+                  Ưu tiên
+                  <span class="text-danger">*</span>
+                  <FieldTooltip text="Mức độ cần xử lý — tham chiếu khi sắp xếp việc trong đội." />
+                </label>
+                <SearchSelect
+                  v-model="form.priority"
+                  :options="prioritySelectOptions"
+                  placeholder="Chọn mức ưu tiên…"
+                  :clearable="false"
+                />
+                <p
+                  v-if="form.errors.priority"
+                  class="mt-1 text-xs text-danger"
+                >
+                  {{ form.errors.priority }}
+                </p>
+              </div>
+              <div>
+                <label class="label flex items-center gap-1.5">
+                  Trạng thái
+                  <FieldTooltip text="Tiến trình xử lý: mới, đang xử lý, đã xử lý…" />
+                </label>
+                <SearchSelect
+                  v-model="form.status"
+                  :options="statusSelectOptions"
+                  placeholder="Chọn trạng thái…"
+                  :clearable="false"
+                />
+              </div>
+              <div>
+                <label class="label flex items-center gap-1.5">
+                  Đánh giá
+                  <span class="font-normal text-slate-400">(tuỳ chọn)</span>
+                  <FieldTooltip text="Điểm trải nghiệm từ người gửi, thang 1–5 sao." />
+                </label>
+                <SearchSelect
+                  v-model="form.rating"
+                  :options="ratingSelectOptions"
+                  placeholder="Chưa có đánh giá…"
+                />
+              </div>
             </div>
-            <div>
-              <label class="label flex items-center gap-1.5">
-                Trạng thái
-                <FieldTooltip text="Tiến trình xử lý: mới, đang xử lý, đã xử lý…" />
-              </label>
-              <SearchSelect
-                v-model="form.status"
-                :options="statusSelectOptions"
-                placeholder="Chọn trạng thái…"
-                :clearable="false"
-              />
-            </div>
-            <div>
-              <label class="label flex items-center gap-1.5">
-                Đánh giá
-                <span class="font-normal text-slate-400">(tuỳ chọn)</span>
-                <FieldTooltip text="Điểm trải nghiệm từ người gửi, thang 1–5 sao." />
-              </label>
-              <SearchSelect
-                v-model="form.rating"
-                :options="ratingSelectOptions"
-                placeholder="Chưa có đánh giá…"
-              />
-            </div>
-          </div>
-        </BlockerFormSection>
+          </BlockerFormSection>
+        </div>
 
         <BlockerFormSection
           v-if="!feedback"
-          step="4"
+          plain
           title="Người gửi phản hồi"
           hint="Nội bộ (nhân viên) hoặc người dùng bên ngoài."
+          class="mt-5 border-t border-slate-100 pt-5"
         >
-          <div class="space-y-3">
-            <div class="flex flex-wrap gap-4 text-sm">
+          <div class="grid gap-4 lg:grid-cols-3 lg:items-start">
+            <div class="flex flex-wrap gap-3 text-sm lg:col-span-3">
               <label class="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 transition has-[:checked]:border-brand/40 has-[:checked]:bg-brand/5">
                 <input
                   v-model="reporterType"
@@ -361,7 +365,10 @@ const submit = () => {
                 <span class="font-medium text-slate-700">Người dùng / bên ngoài</span>
               </label>
             </div>
-            <div v-if="reporterType === 'internal'">
+            <div
+              v-if="reporterType === 'internal'"
+              class="lg:col-span-2"
+            >
               <label class="label flex items-center gap-1.5">
                 Nhân viên gửi
                 <FieldTooltip text="Chọn nhân viên trong hệ thống là người gửi phản hồi." />
@@ -372,10 +379,7 @@ const submit = () => {
                 placeholder="Tìm & chọn nhân viên…"
               />
             </div>
-            <div
-              v-else
-              class="grid gap-3 sm:grid-cols-2"
-            >
+            <template v-else>
               <div>
                 <label class="label flex items-center gap-1.5">
                   Họ tên
@@ -400,16 +404,16 @@ const submit = () => {
                   placeholder="email@example.com"
                 >
               </div>
-            </div>
+            </template>
             <p
               v-if="form.errors.reporter_name"
-              class="text-xs text-danger"
+              class="text-xs text-danger lg:col-span-3"
             >
               {{ form.errors.reporter_name }}
             </p>
             <p
               v-if="form.errors.reporter_email"
-              class="text-xs text-danger"
+              class="text-xs text-danger lg:col-span-3"
             >
               {{ form.errors.reporter_email }}
             </p>

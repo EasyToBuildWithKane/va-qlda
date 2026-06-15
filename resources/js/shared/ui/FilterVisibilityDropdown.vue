@@ -8,6 +8,8 @@ const props = defineProps({
     modelValue: { type: Object, required: true },
     /** Template ref của nút / wrapper — panel teleport ra body */
     anchorRef: { type: Object, default: null },
+    /** Prefix cho id/name checkbox (a11y) */
+    inputIdPrefix: { type: String, default: 'va-filter-vis' },
 });
 
 const emit = defineEmits(['update:modelValue', 'persist']);
@@ -15,8 +17,12 @@ const emit = defineEmits(['update:modelValue', 'persist']);
 const { panelStyle } = useFixedDropdownAnchor(
     () => props.anchorRef,
     toRef(props, 'show'),
-    { width: 224, zIndex: 85 },
+    { width: 224, zIndex: 85, preferDown: true },
 );
+
+function inputId(key) {
+    return `${props.inputIdPrefix}-${key}`;
+}
 
 function onToggle(key, checked) {
     emit('update:modelValue', { ...props.modelValue, [key]: checked });
@@ -45,9 +51,12 @@ function onToggle(key, checked) {
           <label
             v-for="f in controls"
             :key="f.key"
+            :for="inputId(f.key)"
             class="flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-800"
           >
             <input
+              :id="inputId(f.key)"
+              :name="inputId(f.key)"
               type="checkbox"
               class="rounded border-slate-300 text-brand focus:ring-brand/30"
               :checked="modelValue[f.key]"

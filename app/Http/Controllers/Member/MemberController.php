@@ -6,9 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\EmployeeProfileResource;
 use App\Http\Resources\MemberCardResource;
 use App\Models\Employee;
-use App\Support\Enums\SystemRole;
-use App\Support\Profile\ProfileSnapshot;
-use App\Support\Profile\TalentProfile;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -16,8 +13,7 @@ use Inertia\Response;
 /**
  * Member directory + member profile pages (Hồ sơ thành viên).
  *
- * Read-mostly: identity, skills and project history come from existing data.
- * The performance sections are gated by EmployeePolicy::viewPerformance.
+ * Read-mostly: identity, skills and growth sections from talent tables.
  */
 class MemberController extends Controller
 {
@@ -73,22 +69,11 @@ class MemberController extends Controller
             'orgMemberships.team.leader:id,full_name,avatar_path,code,email,role_title',
             'orgMemberships.section:id,org_team_id,title',
             'projects',
-            ...TalentProfile::EAGER,
         ]);
-
-        $user = $request->user();
-        $canPerformance = $user->can('viewPerformance', $employee);
-        $canSuccession = $user->hasRole(SystemRole::Admin, SystemRole::Lead);
 
         return Inertia::render('Member/Show', [
             'profile' => (new EmployeeProfileResource($employee))->toArray($request),
             'editable' => false,
-            'canViewPerformance' => $canPerformance,
-            'canViewSuccession' => $canSuccession,
-            'stats' => $canPerformance ? ProfileSnapshot::stats($employee) : null,
-            'projectExperience' => $canPerformance ? ProfileSnapshot::projectExperience($employee) : null,
-            'activity' => $canPerformance ? ProfileSnapshot::activity($employee) : null,
-            ...TalentProfile::bundle($employee, $canPerformance, $canSuccession),
         ]);
     }
 }

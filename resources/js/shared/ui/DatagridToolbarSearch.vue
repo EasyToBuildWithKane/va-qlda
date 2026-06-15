@@ -4,6 +4,7 @@ import AppIcon from '@/Components/AppIcon.vue';
 defineProps({
     modelValue: { type: String, default: '' },
     inputId: { type: String, required: true },
+    inputName: { type: String, default: null },
     placeholder: { type: String, default: 'Tìm kiếm…' },
     /** Thu gọn cho panel nhúng (tab dự án) — ô tìm ngắn, nút cùng hàng */
     compact: { type: Boolean, default: false },
@@ -70,6 +71,7 @@ const emit = defineEmits(['update:modelValue', 'clear']);
       />
       <input
         :id="inputId"
+        :name="inputName || undefined"
         :value="modelValue"
         type="search"
         :placeholder="placeholder"

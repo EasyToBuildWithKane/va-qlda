@@ -7,7 +7,10 @@
     --org-tree-spine-end: rgb(251 113 133 / 0.55);
 }
 
-.org-chart-canvas .org-team-node,
+.org-chart-canvas .org-team-node {
+    isolation: isolate;
+}
+
 .org-chart-canvas .org-person-node {
     isolation: isolate;
     animation: org-card-float 6s ease-in-out infinite;
@@ -97,11 +100,10 @@
 
 .org-chart-canvas .org-team-node {
     background: rgb(255 255 255 / 0.94);
-    border-color: rgb(56 189 248 / 0.2);
+    border-color: rgb(148 163 184 / 0.35);
     box-shadow:
-        0 0 0 1px rgb(255 255 255 / 0.08),
-        0 8px 32px rgb(15 23 42 / 0.45),
-        0 0 24px rgb(56 189 248 / 0.08);
+        0 1px 2px rgb(15 23 42 / 0.12),
+        0 4px 16px rgb(15 23 42 / 0.2);
 }
 
 .org-chart-canvas .org-person-node {
@@ -144,17 +146,10 @@
     animation: org-badge-glow 2.8s ease-in-out infinite;
 }
 
-.org-chart-canvas .org-tree__stack:has(.org-tree__people) .org-team-node::after,
 .org-chart-canvas .org-tree__leader + .org-tree__members-section::before,
 .org-chart-canvas .org-tree__members-row--multi > .org-tree__members-item::before,
 .org-chart-canvas .org-tree__members-row--multi > .org-tree__members-item::after {
-    box-shadow: 0 0 8px rgb(56 189 248 / 0.35);
-    animation: org-connector-pulse 2s ease-in-out infinite;
-}
-
-.org-chart-canvas .org-tree__branch:has(> .org-tree__children) > .org-tree__stack:has(.org-tree__people)::after,
-.org-chart-canvas .org-tree__children > .org-tree__branch::before {
-    animation: org-connector-flow 1.1s linear infinite, org-connector-pulse 2s ease-in-out infinite;
+    box-shadow: 0 0 6px rgb(56 189 248 / 0.25);
 }
 
 @keyframes org-card-float {
@@ -233,7 +228,14 @@
     }
 }
 
-.org-chart-canvas .org-team-node:hover,
+.org-chart-canvas .org-team-node:hover {
+    border-color: rgb(148 163 184 / 0.55);
+    box-shadow:
+        0 2px 8px rgb(15 23 42 / 0.18),
+        0 6px 20px rgb(15 23 42 / 0.28);
+    transform: translateY(-2px);
+}
+
 .org-chart-canvas .org-person-node--interactive:hover {
     animation-play-state: paused;
     transform: translateY(-5px) scale(1.02);
@@ -253,7 +255,6 @@
 @media (prefers-reduced-motion: reduce) {
     .org-chart-canvas .org-team-node,
     .org-chart-canvas .org-person-node,
-    .org-chart-canvas .org-person-node--leader,
     .org-chart-canvas .org-flow-node::before,
     .org-chart-canvas .org-team-node__fx--ring,
     .org-chart-canvas .org-team-node__fx--shimmer,

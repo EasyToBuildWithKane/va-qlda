@@ -46,7 +46,6 @@ class DatabaseSeeder extends Seeder
 
         $this->call(ProjectSeeder::class);
         $this->call(ProjectManagementSeeder::class);
-        $this->call(TalentSeeder::class);
 
         $this->call(BootstrapAdminSeeder::class);
         $this->call(CoachingGoogleGuestSeeder::class);

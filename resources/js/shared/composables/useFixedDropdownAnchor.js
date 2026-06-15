@@ -52,7 +52,9 @@ export function useFixedDropdownAnchor(getAnchorEl, isOpen, options = {}) {
         const rect = el.getBoundingClientRect();
         const spaceBelow = window.innerHeight - rect.bottom - gap;
         const spaceAbove = rect.top - gap;
-        openUp.value = spaceBelow < maxHeight && spaceAbove > spaceBelow;
+        const preferDown = options.preferDown ?? false;
+        openUp.value =
+            !preferDown && spaceBelow < maxHeight && spaceAbove > spaceBelow;
 
         const margin = 8;
 

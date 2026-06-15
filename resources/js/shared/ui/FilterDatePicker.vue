@@ -8,6 +8,7 @@ const props = defineProps({
     modelValue: { type: String, default: '' },
     placeholder: { type: String, default: '' },
     id: { type: String, default: null },
+    name: { type: String, default: null },
     disabled: { type: Boolean, default: false },
     /** ISO `yyyy-mm-dd` */
     minDate: { type: String, default: null },
@@ -15,6 +16,12 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['update:modelValue']);
+
+const inputAriaLabel = computed(() => props.placeholder || 'Chọn ngày');
+
+const ariaLabels = computed(() => ({
+    input: inputAriaLabel.value,
+}));
 
 function isoToDate(iso) {
     if (!iso) return null;
@@ -38,7 +45,10 @@ function onUpdate(val) {
 <template>
   <div class="va-filter-date-picker min-w-0 w-full">
     <VueDatePicker
+      :id="id"
+      :name="name || id || undefined"
       :uid="id"
+      :aria-labels="ariaLabels"
       :model-value="modelValue || null"
       model-type="yyyy-MM-dd"
       format="dd/MM/yyyy"

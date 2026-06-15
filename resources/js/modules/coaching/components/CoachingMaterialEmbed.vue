@@ -7,6 +7,8 @@ const props = defineProps({
     title: { type: String, default: 'Xem trước' },
     /** Chiếm chiều cao lớn trong card tài liệu buổi học */
     tall: { type: Boolean, default: false },
+    /** Ẩn link «Mở trong tab mới» khi parent đã có nút mở */
+    hideExternalLink: { type: Boolean, default: false },
 });
 
 const src = computed(() => props.embedSrc || null);
@@ -39,7 +41,7 @@ const isDocumentPreview = computed(() => {
       referrerpolicy="no-referrer"
     />
     <a
-      v-if="url"
+      v-if="url && !hideExternalLink"
       :href="url"
       target="_blank"
       rel="noopener noreferrer"

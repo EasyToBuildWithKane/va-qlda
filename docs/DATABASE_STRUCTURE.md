@@ -14,6 +14,8 @@
 | UUID Support | daily_reports (+ có thể mở rộng) |
 | Activity Log | Spatie Activity Log |
 
+**Ghi chú (2026-06-15):** Module Talent Management đã gỡ — các bảng `employee_skills`, `certifications`, `performance_kpis`, `learning_items`, `feedback_reviews`, `succession_plans`, `career_levels` bị drop bởi migration `2026_06_15_140000_drop_talent_tables`. Kỹ năng hồ sơ lưu trên `employees.skills` (JSON) và `employees.meta.skill_details`.
+
 ---
 
 ## 2. Entity Relationship Overview

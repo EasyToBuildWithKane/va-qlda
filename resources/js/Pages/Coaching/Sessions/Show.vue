@@ -11,8 +11,8 @@ import DateInput from '@/shared/ui/form/DateInput.vue';
 import TimeInput from '@/shared/ui/form/TimeInput.vue';
 import CoachingWorkspace from '@/modules/coaching/components/CoachingWorkspace.vue';
 import KbRichTextField from '@/Components/KnowledgeBase/KbRichTextField.vue';
-import CoachingMaterialEmbed from '@/modules/coaching/components/CoachingMaterialEmbed.vue';
 import CoachingSessionAssignmentsTab from '@/modules/coaching/components/CoachingSessionAssignmentsTab.vue';
+import CoachingSessionMaterialsTab from '@/modules/coaching/components/CoachingSessionMaterialsTab.vue';
 import { useToast } from '@/shared/composables/useToast';
 import { useDialog } from '@/composables/useDialog';
 import { date as fmtDate, hours as fmtHours, timeOfDay } from '@/composables/useFormat';
@@ -74,11 +74,10 @@ const metaForm = useForm({
     end_time: toTimeInputValue(props.session.end_time),
 });
 
-const materialForm = useForm({ type: 'youtube', title: '', url: '', file: null });
 const contentForm = useForm({ content: props.session.content ?? '' });
 
 const formsDirty = computed(
-    () => metaForm.isDirty || contentForm.isDirty || materialForm.isDirty,
+    () => metaForm.isDirty || contentForm.isDirty,
 );
 
 function sessionMetaDefaults() {
@@ -94,7 +93,6 @@ function sessionMetaDefaults() {
 function syncFormsFromSession() {
     metaForm.defaults(sessionMetaDefaults()).reset();
     contentForm.defaults({ content: props.session.content ?? '' }).reset();
-    materialForm.reset();
 }
 
 function startEdit() {
@@ -149,17 +147,6 @@ function saveContent() {
     });
 }
 
-function submitMaterial() {
-    materialForm.post(`/coaching/sessions/${props.session.id}/materials`, {
-        preserveScroll: true,
-        forceFormData: true,
-        onSuccess: () => {
-            materialForm.reset();
-            toast.success('Đã thêm tài liệu.');
-        },
-    });
-}
-
 function tabBadge(key) {
     if (key === 'materials') return materialCount.value;
     if (key === 'assignments') return assignmentCount.value;
@@ -177,10 +164,6 @@ function tabBadge(key) {
         icon="weekly"
         :back-href="`/coaching/courses/${course.id}`"
       >
-        <Badge
-          :label="STATUS_LABEL[statusValue] || statusValue"
-          :color="STATUS_COLOR[statusValue] || 'slate'"
-        />
         <button
           v-if="canEdit && !isEditing"
           type="button"
@@ -548,146 +531,14 @@ function tabBadge(key) {
                   </div>
                 </div>
 
-                <!-- Tài liệu -->
-                <div
+                <CoachingSessionMaterialsTab
                   v-show="activeTab === 'materials'"
-                  class="flex min-h-[calc(100dvh-15rem)] flex-1 flex-col space-y-5"
-                >
-                  <ul
-                    v-if="session.materials?.length"
-                    class="grid flex-1 grid-cols-1 gap-4"
-                  >
-                    <li
-                      v-for="m in session.materials"
-                      :key="m.id"
-                      class="flex min-h-[min(70vh,36rem)] flex-col overflow-hidden rounded-xl border border-slate-100 bg-white shadow-sm"
-                    >
-                      <div class="flex flex-wrap items-center gap-2 border-b border-slate-50 px-4 py-3">
-                        <span class="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-medium text-slate-600">
-                          {{ m.type_label }}
-                        </span>
-                        <span class="min-w-0 flex-1 text-sm font-semibold text-slate-800">
-                          {{ m.title }}
-                        </span>
-                      </div>
-                      <div class="flex min-h-0 flex-1 flex-col p-4">
-                        <CoachingMaterialEmbed
-                          v-if="m.embedAllowed && m.embedSrc"
-                          class="min-h-0 flex-1"
-                          :url="m.url"
-                          :embed-src="m.embedSrc"
-                          :title="m.title"
-                          tall
-                        />
-                        <a
-                          v-else-if="m.url"
-                          :href="m.url"
-                          target="_blank"
-                          rel="noopener"
-                          class="inline-flex h-9 items-center gap-2 rounded-btn border border-slate-200 px-3 text-sm font-medium text-brand hover:bg-brand-50/50"
-                        >
-                          <AppIcon
-                            name="link"
-                            :size="14"
-                          />
-                          Mở liên kết
-                        </a>
-                        <a
-                          v-else-if="m.file_url"
-                          :href="m.file_url"
-                          class="inline-flex h-9 items-center gap-2 rounded-btn border border-slate-200 px-3 text-sm font-medium text-brand hover:bg-brand-50/50"
-                        >
-                          <AppIcon
-                            name="download"
-                            :size="14"
-                          />
-                          Tải file
-                        </a>
-                      </div>
-                    </li>
-                  </ul>
-                  <div
-                    v-else
-                    class="flex min-h-[calc(100dvh-16rem)] flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50/50 px-6 py-16 text-center"
-                  >
-                    <AppIcon
-                      name="link"
-                      :size="36"
-                      class="text-slate-300"
-                    />
-                    <p class="mt-3 text-sm font-medium text-slate-600">
-                      Chưa có tài liệu
-                    </p>
-                  </div>
-
-                  <form
-                    v-if="isEditing"
-                    class="max-w-3xl space-y-3 rounded-xl border border-dashed border-brand/25 bg-brand/[0.03] p-5 lg:max-w-2xl"
-                    @submit.prevent="submitMaterial"
-                  >
-                    <p class="text-sm font-semibold text-slate-800">
-                      Thêm tài liệu
-                    </p>
-                    <div class="grid gap-3 sm:grid-cols-2">
-                      <div>
-                        <label class="label">Loại</label>
-                        <select
-                          v-model="materialForm.type"
-                          class="input w-full text-sm"
-                        >
-                          <option
-                            v-for="mt in materialTypes"
-                            :key="mt.value"
-                            :value="mt.value"
-                          >
-                            {{ mt.label }}
-                          </option>
-                        </select>
-                      </div>
-                      <div>
-                        <label class="label">Tiêu đề</label>
-                        <input
-                          v-model="materialForm.title"
-                          class="input w-full"
-                          placeholder="Tiêu đề hiển thị"
-                          required
-                        >
-                      </div>
-                    </div>
-                    <div>
-                      <label class="label">URL hoặc file</label>
-                      <input
-                        v-model="materialForm.url"
-                        class="input w-full"
-                        placeholder="YouTube, Canva, Loom, Google…"
-                      >
-                      <input
-                        type="file"
-                        class="input mt-2 w-full text-sm"
-                        @change="materialForm.file = $event.target.files?.[0] ?? null"
-                      >
-                    </div>
-                    <p
-                      v-if="materialForm.errors.url"
-                      class="text-xs text-danger"
-                    >
-                      {{ materialForm.errors.url }}
-                    </p>
-                    <div class="flex justify-end">
-                      <button
-                        type="submit"
-                        class="btn-primary h-10 gap-1.5 px-5 text-sm"
-                        :disabled="materialForm.processing"
-                      >
-                        <AppIcon
-                          name="add"
-                          :size="15"
-                        />
-                        Thêm tài liệu
-                      </button>
-                    </div>
-                  </form>
-                </div>
+                  class="min-h-[calc(100dvh-15rem)] flex-1"
+                  :session-id="session.id"
+                  :materials="session.materials ?? []"
+                  :material-types="materialTypes"
+                  :is-editing="isEditing"
+                />
 
                 <CoachingSessionAssignmentsTab
                   v-show="activeTab === 'assignments'"

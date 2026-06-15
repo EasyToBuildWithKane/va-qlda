@@ -28,7 +28,7 @@ class MemberProfileTest extends TestCase
             ->assertInertia(fn ($page) => $page->component('Member/Index'));
     }
 
-    public function test_member_profile_show_includes_identity_and_performance_for_admin(): void
+    public function test_member_profile_show_includes_identity_for_admin(): void
     {
         $employee = Employee::factory()->create([
             'meta' => [
@@ -76,10 +76,7 @@ class MemberProfileTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('Member/Show')
                 ->where('profile.id', $employee->id)
-                ->where('canViewPerformance', true)
-                ->has('stats')
-                ->has('projectExperience')
-                ->has('activity')
+                ->has('profile.skills')
             );
     }
 
@@ -105,7 +102,7 @@ class MemberProfileTest extends TestCase
                 ->where('profile.teams.0.section', 'Nhánh GVS'));
     }
 
-    public function test_member_profile_hides_performance_from_other_members(): void
+    public function test_member_profile_visible_to_other_members(): void
     {
         $employee = Employee::factory()->create();
         $viewer = SystemAccount::factory()->role(SystemRole::Member)->create();
@@ -114,8 +111,8 @@ class MemberProfileTest extends TestCase
             ->get(route('members.show', $employee))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('canViewPerformance', false)
-                ->where('stats', null)
+                ->component('Member/Show')
+                ->where('profile.id', $employee->id)
             );
     }
 }

@@ -34,12 +34,6 @@ class UpdateProfileRequest extends FormRequest
             'skills.*.level' => ['nullable', 'integer', 'min:1', 'max:5'],
             'skills.*.category' => ['nullable', 'string', 'max:40'],
             'skills.*.years' => ['nullable', 'numeric', 'min:0', 'max:50'],
-            'certifications' => ['nullable', 'array', 'max:30'],
-            'certifications.*.name' => ['required', 'string', 'max:120'],
-            'certifications.*.provider' => ['nullable', 'string', 'max:120'],
-            'certifications.*.credential_url' => ['nullable', 'url', 'max:1000'],
-            'certifications.*.issued_at' => ['nullable', 'date'],
-            'certifications.*.expires_at' => ['nullable', 'date'],
             'avatar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
         ];
     }
@@ -57,8 +51,6 @@ class UpdateProfileRequest extends FormRequest
             'website.url' => 'Liên kết Website không hợp lệ.',
             'skills.max' => 'Tối đa 40 kỹ năng.',
             'skills.*.name.required' => 'Tên kỹ năng không được để trống.',
-            'certifications.max' => 'Tối đa 30 chứng chỉ.',
-            'certifications.*.name.required' => 'Tên chứng chỉ không được để trống.',
             'avatar.image' => 'Ảnh đại diện phải là tệp hình ảnh.',
             'avatar.mimes' => 'Ảnh đại diện chỉ chấp nhận JPG, PNG hoặc WEBP.',
             'avatar.max' => 'Ảnh đại diện không vượt quá 2MB.',

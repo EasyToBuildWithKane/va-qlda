@@ -88,6 +88,7 @@ const {
 
 function onToolbarClickOutside(e) {
     if (e.target.closest?.('[data-filter-visibility-panel]')) return;
+    if (e.target.closest?.('[data-column-visibility-panel]')) return;
     if (filterPanelDdRef.value && !filterPanelDdRef.value.contains(e.target)) {
         showFilterPanelDd.value = false;
     }
@@ -251,6 +252,7 @@ const remove = async (f) => {
             <DatagridToolbarSearch
               v-model="filterForm.q"
               input-id="feedback-search"
+              input-name="q"
               placeholder="Tiêu đề, mã hoặc nội dung phản hồi…"
               stretch
               inline-actions
@@ -277,6 +279,7 @@ const remove = async (f) => {
                 :show="showFilterPanelDd"
                 :anchor-ref="filterPanelDdRef"
                 :controls="FILTER_CONTROLS"
+                input-id-prefix="feedback-filter-vis"
                 @persist="persistVisibleFilters"
               />
             </div>
@@ -299,6 +302,7 @@ const remove = async (f) => {
                 :columns="TABLE_COLUMNS"
                 :anchor-ref="colDdRef"
                 :fixed-labels="['Thao tác']"
+                input-id-prefix="feedback-col-vis"
                 @persist="persistVisibleColumns"
               />
             </div>
@@ -311,10 +315,15 @@ const remove = async (f) => {
             class="grid grid-cols-1 gap-3 border-t border-slate-100 px-0 pt-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6"
           >
             <DatagridFilterField v-if="visibleFilters.status">
+              <label
+                for="feedback-filter-status"
+                class="sr-only"
+              >Trạng thái</label>
               <select
+                id="feedback-filter-status"
                 v-model="filterForm.status"
+                name="status"
                 :class="FILTER_CONTROL_CLASS"
-                aria-label="Trạng thái"
                 @change="filterForm.scope = ''"
               >
                 <option value="">
@@ -331,10 +340,15 @@ const remove = async (f) => {
             </DatagridFilterField>
 
             <DatagridFilterField v-if="visibleFilters.category">
+              <label
+                for="feedback-filter-category"
+                class="sr-only"
+              >Phân loại</label>
               <select
+                id="feedback-filter-category"
                 v-model="filterForm.category"
+                name="category"
                 :class="FILTER_CONTROL_CLASS"
-                aria-label="Phân loại"
               >
                 <option value="">
                   Phân loại
@@ -350,10 +364,15 @@ const remove = async (f) => {
             </DatagridFilterField>
 
             <DatagridFilterField v-if="visibleFilters.project">
+              <label
+                for="feedback-filter-project"
+                class="sr-only"
+              >Dự án</label>
               <select
+                id="feedback-filter-project"
                 v-model="filterForm.project_id"
+                name="project_id"
                 :class="FILTER_CONTROL_CLASS"
-                aria-label="Dự án"
               >
                 <option value="">
                   Dự án
@@ -369,10 +388,15 @@ const remove = async (f) => {
             </DatagridFilterField>
 
             <DatagridFilterField v-if="visibleFilters.priority">
+              <label
+                for="feedback-filter-priority"
+                class="sr-only"
+              >Ưu tiên</label>
               <select
+                id="feedback-filter-priority"
                 v-model="filterForm.priority"
+                name="priority"
                 :class="FILTER_CONTROL_CLASS"
-                aria-label="Ưu tiên"
               >
                 <option value="">
                   Ưu tiên
@@ -388,10 +412,15 @@ const remove = async (f) => {
             </DatagridFilterField>
 
             <DatagridFilterField v-if="visibleFilters.assignee">
+              <label
+                for="feedback-filter-assignee"
+                class="sr-only"
+              >Người xử lý</label>
               <select
+                id="feedback-filter-assignee"
                 v-model="filterForm.assignee_id"
+                name="assignee_id"
                 :class="FILTER_CONTROL_CLASS"
-                aria-label="Người xử lý"
               >
                 <option value="">
                   Người xử lý
@@ -407,10 +436,15 @@ const remove = async (f) => {
             </DatagridFilterField>
 
             <DatagridFilterField v-if="visibleFilters.rating">
+              <label
+                for="feedback-filter-rating"
+                class="sr-only"
+              >Đánh giá</label>
               <select
+                id="feedback-filter-rating"
                 v-model="filterForm.rating"
+                name="rating"
                 :class="FILTER_CONTROL_CLASS"
-                aria-label="Đánh giá"
               >
                 <option value="">
                   Đánh giá
@@ -429,9 +463,14 @@ const remove = async (f) => {
               v-if="visibleFilters.mine"
               class="flex items-center"
             >
-              <label class="flex h-10 w-full cursor-pointer items-center gap-2 rounded-btn border border-slate-200 px-3 text-sm text-slate-600">
+              <label
+                for="feedback-filter-mine"
+                class="flex h-10 w-full cursor-pointer items-center gap-2 rounded-btn border border-slate-200 px-3 text-sm text-slate-600"
+              >
                 <input
+                  id="feedback-filter-mine"
                   v-model="filterForm.mine"
+                  name="mine"
                   true-value="1"
                   false-value=""
                   type="checkbox"
@@ -446,16 +485,32 @@ const remove = async (f) => {
               class="min-w-0 w-full sm:col-span-2 xl:col-span-2"
             >
               <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
-                <FilterDatePicker
-                  v-model="filterForm.created_from"
-                  placeholder="Từ ngày"
-                  :max-date="filterForm.created_to || null"
-                />
-                <FilterDatePicker
-                  v-model="filterForm.created_to"
-                  placeholder="Đến ngày"
-                  :min-date="filterForm.created_from || null"
-                />
+                <div>
+                  <label
+                    for="feedback-filter-created-from"
+                    class="sr-only"
+                  >Từ ngày</label>
+                  <FilterDatePicker
+                    id="feedback-filter-created-from"
+                    v-model="filterForm.created_from"
+                    name="created_from"
+                    placeholder="Từ ngày"
+                    :max-date="filterForm.created_to || null"
+                  />
+                </div>
+                <div>
+                  <label
+                    for="feedback-filter-created-to"
+                    class="sr-only"
+                  >Đến ngày</label>
+                  <FilterDatePicker
+                    id="feedback-filter-created-to"
+                    v-model="filterForm.created_to"
+                    name="created_to"
+                    placeholder="Đến ngày"
+                    :min-date="filterForm.created_from || null"
+                  />
+                </div>
               </div>
             </div>
 

@@ -131,7 +131,7 @@
 - **Ước tính:** 4-5 ngày
 
 ### MI-08 — Member Profile Page
-- **Mục tiêu:** Trang cá nhân hiển thị thông tin, kỹ năng, lịch sử dự án, điểm báo cáo
+- **Trạng thái:** ✅ v1 — hero, liên hệ, nhóm, ma trận kỹ năng (`employees.skills` + `meta.skill_details`); không còn bảng talent/KPI trong DB (migration `2026_06_15_140000_drop_talent_tables`)
 - **Ước tính:** 3-4 ngày
 
 ---

@@ -10,7 +10,6 @@ import AppIcon from '@/Components/AppIcon.vue';
 const props = defineProps({
     show: { type: Boolean, default: false },
     profile: { type: Object, required: true },
-    certifications: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits(['close']);
@@ -30,13 +29,6 @@ const form = useForm({
     skills: (props.profile.skills?.groups || []).flatMap((g) =>
         g.items.map((i) => ({ name: i.name, level: i.level ?? 3 })),
     ),
-    certifications: (props.certifications || []).map((c) => ({
-        name: c.name || '',
-        provider: c.provider || '',
-        issued_at: c.issued_at || '',
-        expires_at: c.expires_at || '',
-        credential_url: c.credential_url || '',
-    })),
     avatar: null,
 });
 
@@ -44,11 +36,6 @@ const levels = [1, 2, 3, 4, 5];
 
 function addSkill() {
     if (form.skills.length < 40) form.skills.push({ name: '', level: 3 });
-}
-function addCertification() {
-    if (form.certifications.length < 30) {
-        form.certifications.push({ name: '', provider: '', issued_at: '', expires_at: '', credential_url: '' });
-    }
 }
 
 // --- Avatar preview ---
@@ -67,7 +54,6 @@ function submit() {
         .transform((data) => ({
             ...data,
             skills: data.skills.filter((s) => s.name.trim() !== ''),
-            certifications: data.certifications.filter((c) => c.name.trim() !== ''),
         }))
         .post('/profile', {
             forceFormData: true,
@@ -223,83 +209,6 @@ function submit() {
             class="text-[12.5px] text-slate-400"
           >
             Chưa có kỹ năng nào.
-          </p>
-        </div>
-      </div>
-
-      <!-- Certifications -->
-      <div>
-        <div class="mb-2 flex items-center justify-between">
-          <label class="block text-sm font-medium text-slate-700">Chứng chỉ</label>
-          <button
-            type="button"
-            class="inline-flex items-center gap-1 text-[12.5px] font-medium text-brand hover:text-brand/80"
-            @click="addCertification"
-          >
-            <AppIcon
-              name="add"
-              :size="13"
-            /> Thêm chứng chỉ
-          </button>
-        </div>
-        <div class="space-y-3">
-          <div
-            v-for="(c, i) in form.certifications"
-            :key="i"
-            class="rounded-xl border border-slate-100 p-3"
-          >
-            <div class="flex items-center gap-2">
-              <input
-                v-model="c.name"
-                type="text"
-                class="input flex-1"
-                placeholder="Tên chứng chỉ"
-              >
-              <button
-                type="button"
-                class="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-500"
-                @click="form.certifications.splice(i, 1)"
-              >
-                <AppIcon
-                  name="delete"
-                  :size="15"
-                />
-              </button>
-            </div>
-            <div class="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-              <input
-                v-model="c.provider"
-                type="text"
-                class="input"
-                placeholder="Nhà cung cấp"
-              >
-              <input
-                v-model="c.credential_url"
-                type="url"
-                class="input"
-                placeholder="Liên kết xác thực"
-              >
-              <label class="text-[11px] text-slate-400">Ngày cấp
-                <input
-                  v-model="c.issued_at"
-                  type="date"
-                  class="input mt-0.5"
-                >
-              </label>
-              <label class="text-[11px] text-slate-400">Ngày hết hạn
-                <input
-                  v-model="c.expires_at"
-                  type="date"
-                  class="input mt-0.5"
-                >
-              </label>
-            </div>
-          </div>
-          <p
-            v-if="!form.certifications.length"
-            class="text-[12.5px] text-slate-400"
-          >
-            Chưa có chứng chỉ nào.
           </p>
         </div>
       </div>

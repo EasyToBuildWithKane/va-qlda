@@ -5,16 +5,15 @@ namespace App\Http\Resources;
 use App\Http\Resources\Concerns\PresentsEntities;
 use App\Support\Enums\SystemRole;
 use App\Support\Profile\Seniority;
-use App\Support\Profile\TalentProfile;
+use App\Support\Profile\SkillCatalog;
 use App\Support\PublicMediaUrl;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
  * The identity + capability core of a person's profile page (My Profile and
- * Member Profile share it). Heavier, query-driven sections — project history,
- * performance stats, activity feed — are passed as sibling props by the
- * controller and gated by permission there.
+ * Member Profile share it). Skill matrix is built from employees.skills and
+ * meta.skill_details via SkillCatalog.
  *
  * @mixin \App\Models\Employee
  */
@@ -55,13 +54,12 @@ class EmployeeProfileResource extends JsonResource
                 'portfolio' => $socials['portfolio'] ?? null,
                 'website' => $socials['website'] ?? null,
             ],
-            'skills' => TalentProfile::skillMatrix($e),
+            'skills' => SkillCatalog::build($e->skills, $meta['skill_details'] ?? null),
             'teams' => $this->teams(),
             'manager' => $this->manager(),
             'current_projects' => $this->currentProjects(),
             'can' => $user ? [
                 'update' => $user->can('update', $e),
-                'view_performance' => $user->can('viewPerformance', $e),
             ] : null,
         ];
     }

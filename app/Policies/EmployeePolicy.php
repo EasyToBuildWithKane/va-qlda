@@ -7,13 +7,10 @@ use App\Models\SystemAccount;
 use App\Support\Enums\SystemRole;
 
 /**
- * Who may see profiles and the performance data behind them.
+ * Who may see and edit employee profiles.
  *
- *   viewAny / view      — every authenticated account (the member directory and
- *                         a person's identity + skills are open within the org).
- *   viewPerformance     — admin/lead (managers) or the person themselves. Gates
- *                         the stats strip, project history and activity feed.
- *   update              — admin, or the person editing their own profile.
+ *   viewAny / view — every authenticated account (directory + member profile).
+ *   update         — admin, or the person editing their own profile.
  */
 class EmployeePolicy
 {
@@ -25,12 +22,6 @@ class EmployeePolicy
     public function view(SystemAccount $account, Employee $employee): bool
     {
         return true;
-    }
-
-    public function viewPerformance(SystemAccount $account, Employee $employee): bool
-    {
-        return $this->isSelf($account, $employee)
-            || in_array($account->role, [SystemRole::Admin, SystemRole::Lead], true);
     }
 
     public function update(SystemAccount $account, Employee $employee): bool
