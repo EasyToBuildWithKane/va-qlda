@@ -39,10 +39,10 @@ routes/web.php (prefix knowledge-base., name knowledge-base.*)
         KbArticleSearch, KbContentAnchors, KbTagSync
 
 resources/js/
-    → Pages/KnowledgeBase/Index.vue   (sidebar danh mục, datagrid, xuất CSV/Excel)
+    → Pages/KnowledgeBase/Index.vue   (PageHeader + datagrid, lọc danh mục, xuất CSV/Excel)
     → Pages/KnowledgeBase/Show.vue    (breadcrumb, TOC server, related, comments)
     → Pages/KnowledgeBase/Edit.vue    (TipTap + gallery)
-    → Components/KnowledgeBase/KbRichTextField.vue, KbImageGallery.vue
+    → Components/KnowledgeBase/KbRichTextField.vue, KbImageGallery.vue, KbTagField.vue
     → composables/useKbExport.js
     → shared/ui: DatagridToolbarSearch, FilterVisibilityDropdown, CommentThread
 ```
@@ -156,18 +156,16 @@ Tham chiếu UX: Viblo (list + tag), Notion Wiki (sidebar cây), Confluence (bre
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ AppLayout + PageHeader «Tri thức»                            │
-├──────────────┬──────────────────────────────────────────────┤
-│ Sidebar      │ Main                                          │
-│ - Danh mục   │ [Mobile: drawer]                              │
-│ - Yêu thích  │ Index: toolbar Tìm kiếm + Lọc tag/danh mục   │
-│ - Gần đây    │       → Article list (card/table)             │
-│              │ Show: breadcrumb + title + meta + TOC + body  │
-│              │       + attachments + related + comments      │
-└──────────────┴──────────────────────────────────────────────┘
+│ AppLayout #header — PageHeader «Cơ sở tri thức» (icon knowledge) │
+├─────────────────────────────────────────────────────────────┤
+│ Index: chip yêu thích (nếu có)                               │
+│        toolbar Tìm kiếm + Lọc/Cột/Xuất + chế độ Thẻ/Danh sách │
+│        → Thẻ: lưới card nhóm theo danh mục (tiêu đề + line ngang) │
+│ Show: breadcrumb + title + meta + TOC + body + …             │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-- **Responsive:** sidebar collapse → drawer; TOC dưới title trên mobile.
+- **Responsive:** TOC dưới title trên mobile (Show).
 - **Brand:** `#9A0036`, copy tiếng Việt.
 
 ### 7.2 Trang chính
@@ -178,7 +176,7 @@ Tham chiếu UX: Viblo (list + tag), Notion Wiki (sidebar cây), Confluence (bre
 | `KnowledgeBase/Show.vue` | `knowledge-base.articles.show` | `GET /knowledge-base/articles/{article:slug}` |
 | `KnowledgeBase/Edit.vue` | `knowledge-base.articles.create` / `.edit` | `GET …/create`, `GET …/{article}/edit` |
 
-Sidebar danh mục, yêu thích và toolbar datagrid nằm trong **Index.vue** (không tách `modules/knowledge-base/`).
+Danh mục (toolbar Lọc), yêu thích và datagrid nằm trong **Index.vue** (không tách `modules/knowledge-base/`).
 
 ---
 
@@ -233,9 +231,10 @@ Chi tiết đầy đủ bảng: `docs/API_STRUCTURE.md` §2.17 · grouping §3.
 
 | File | Vai trò |
 |---|---|
-| `Pages/KnowledgeBase/Index.vue` | Sidebar danh mục + yêu thích; datagrid (Tìm kiếm, Lọc, Cột, Xuất); pagination |
+| `Pages/KnowledgeBase/Index.vue` | Yêu thích (chip); datagrid; chế độ **Thẻ** (grid nhóm danh mục + line ngang) / **Danh sách**; pagination |
 | `Pages/KnowledgeBase/Show.vue` | Breadcrumb, meta, TOC (`toc` props), body HTML, attachments, related, favorite/read |
-| `Pages/KnowledgeBase/Edit.vue` | Form bài viết + publish fields |
+| `Pages/KnowledgeBase/Edit.vue` | Form 2 cột full width, slug SEO realtime (disabled), xem trước trang, TipTap excerpt + content |
+| `KbTagField.vue` | Thẻ dạng chip + gợi ý từ `tagSuggestions` |
 | `KbRichTextField.vue` | TipTap + upload ảnh inline |
 | `KbImageGallery.vue` | CRUD gallery (`gallery.store` / `gallery.update` / `gallery.destroy`) |
 | `useKbExport.js` | `fetchKbArticlesForExport`, CSV + styled Excel (`export-data` JSON) |
@@ -252,7 +251,7 @@ Tests: `tests/Feature/*` KB policy/CRUD; E2E `tests/e2e/knowledge-coaching.spec.
 
 - [x] Migrations + seed 8 danh mục
 - [x] CRUD bài + upload ảnh/attachment + TipTap inline image
-- [x] Index: sidebar, search, filter tag/category, yêu thích
+- [x] Index: PageHeader, search, filter category/tag/status, yêu thích
 - [x] Show: breadcrumb, TOC (server anchors), related, view count, favorite/read
 - [x] Comments morph hoạt động
 - [x] Policy + Nav + messages tiếng Việt

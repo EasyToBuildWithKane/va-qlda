@@ -9,6 +9,7 @@ use App\Models\Employee;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\Worklog;
+use App\Support\DailyReportCalendar;
 use App\Support\Enums\ProjectStatus;
 use App\Support\Enums\ReportStatus;
 use App\Support\Enums\TaskStatus;
@@ -191,28 +192,8 @@ class DashboardController extends Controller
                 'total' => (int) $r->getAttribute('total'),
             ]);
 
-        $tasksByStatus = Task::select('status', DB::raw('count(*) as total'))
-            ->groupBy('status')
-            ->get()
-            ->map(fn ($r) => [
-                'status' => $r->status->value,
-                'label' => $r->status->label(),
-                'color' => $r->status->color(),
-                'total' => (int) $r->getAttribute('total'),
-            ]);
-
-        $blockersBySeverity = Blocker::open()
-            ->select('severity', DB::raw('count(*) as total'))
-            ->groupBy('severity')
-            ->get()
-            ->map(fn ($r) => [
-                'severity' => $r->severity->value,
-                'label' => $r->severity->label(),
-                'color' => $r->severity->color(),
-                'total' => (int) $r->getAttribute('total'),
-            ]);
-
         $completionTrend = $this->completionTrend(30);
+        $dailyReportCompliance = $this->dailyReportCompliance();
 
         return Inertia::render('Dashboard/Index', [
             'kpiCards' => $kpiCards,
@@ -227,9 +208,8 @@ class DashboardController extends Controller
             'overdueTasks' => $overdueList,
             'activityFeed' => $activityFeed->forSystem(60),
             'projectsByStatus' => $projectsByStatus,
-            'tasksByStatus' => $tasksByStatus,
-            'blockersBySeverity' => $blockersBySeverity,
             'completionTrend' => $completionTrend,
+            'dailyReportCompliance' => $dailyReportCompliance,
         ]);
     }
 
@@ -294,6 +274,92 @@ class DashboardController extends Controller
                 'name' => $t->assignee->full_name,
                 'avatar' => PublicMediaUrl::fromPublicDisk($t->assignee->avatar_path),
             ] : null,
+        ];
+    }
+
+    /**
+     * Per-employee daily report submission compliance for the current week (working days only).
+     *
+     * @return array<string, mixed>
+     */
+    private function dailyReportCompliance(): array
+    {
+        $tz = DailyReportCalendar::timezone();
+        $today = Carbon::now($tz)->startOfDay();
+        $weekStart = $today->copy()->startOfWeek();
+        $workingDays = config('daily_report.working_days', [1, 2, 3, 4, 5, 6]);
+        $submittedStatuses = [ReportStatus::Submitted->value, ReportStatus::Reviewed->value];
+
+        $expectedDates = collect();
+        for ($day = $weekStart->copy(); $day->lte($today); $day->addDay()) {
+            if (in_array($day->isoWeekday(), $workingDays, true)) {
+                $expectedDates->push($day->toDateString());
+            }
+        }
+
+        $expectedPerPerson = $expectedDates->count();
+
+        $employees = Employee::query()
+            ->where('is_active', true)
+            ->orderBy('full_name')
+            ->get(['id', 'full_name', 'avatar_path']);
+
+        $submittedByEmployee = DailyReport::query()
+            ->whereIn('employee_id', $employees->pluck('id'))
+            ->whereIn('date', $expectedDates->all())
+            ->whereIn('status', $submittedStatuses)
+            ->select('employee_id', DB::raw('count(*) as total'))
+            ->groupBy('employee_id')
+            ->pluck('total', 'employee_id');
+
+        $people = $employees->map(function (Employee $employee) use (
+            $expectedPerPerson,
+            $submittedByEmployee,
+        ) {
+            $submitted = (int) ($submittedByEmployee[$employee->id] ?? 0);
+            $missing = max(0, $expectedPerPerson - $submitted);
+            $rate = $expectedPerPerson > 0
+                ? round($submitted / $expectedPerPerson * 100, 1)
+                : 0.0;
+
+            return [
+                'id' => $employee->id,
+                'name' => $employee->full_name,
+                'avatar' => PublicMediaUrl::fromPublicDisk($employee->avatar_path),
+                'expected' => $expectedPerPerson,
+                'submitted' => $submitted,
+                'missing' => $missing,
+                'rate' => $rate,
+                'ok' => $expectedPerPerson > 0 && $submitted >= $expectedPerPerson,
+            ];
+        });
+
+        $totalPeople = $people->count();
+        $teamSubmitted = (int) $people->sum('submitted');
+        $teamExpected = $expectedPerPerson * $totalPeople;
+
+        return [
+            'period' => [
+                'from' => $weekStart->toDateString(),
+                'to' => $today->toDateString(),
+                'label' => $weekStart->format('d/m').' – '.$today->format('d/m/Y'),
+            ],
+            'summary' => [
+                'expectedPerPerson' => $expectedPerPerson,
+                'totalPeople' => $totalPeople,
+                'completeCount' => $people->where('ok', true)->count(),
+                'teamRate' => $teamExpected > 0
+                    ? round($teamSubmitted / $teamExpected * 100, 1)
+                    : 0.0,
+            ],
+            'people' => $people
+                ->sortBy([
+                    ['ok', 'asc'],
+                    ['rate', 'asc'],
+                    ['name', 'asc'],
+                ])
+                ->values()
+                ->all(),
         ];
     }
 

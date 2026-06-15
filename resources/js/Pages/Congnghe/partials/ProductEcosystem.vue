@@ -4,6 +4,7 @@ import SectionHeading from './SectionHeading.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
 import { useInView, prefersReducedMotionNow } from './motion.js';
 import { openCongngheProject } from './useCongngheProjectModal.js';
+import { richContentPlainText } from '@/shared/utils/richContent';
 
 const props = defineProps({
     content: { type: Object, default: () => ({}) },
@@ -300,7 +301,7 @@ onBeforeUnmount(() => {
                   {{ product.name }}
                 </h3>
                 <p class="mt-2 line-clamp-3 text-xs leading-relaxed text-white/50 sm:text-[13px]">
-                  {{ product.description || 'Nền tảng đã nghiệm thu và vận hành.' }}
+                  {{ richContentPlainText(product.description) || 'Nền tảng đã nghiệm thu và vận hành.' }}
                 </p>
 
                 <div class="mt-auto flex items-center justify-between gap-2 border-t border-white/[0.08] pt-4">

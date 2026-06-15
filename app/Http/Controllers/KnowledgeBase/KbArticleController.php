@@ -71,6 +71,7 @@ class KbArticleController extends Controller
             'categories' => KbCategoryResource::collection(
                 KbCategory::query()->where('is_active', true)->orderBy('sort_order')->get(),
             ),
+            'tagSuggestions' => KbTag::query()->orderBy('name')->limit(50)->get(['id', 'name']),
             'options' => ['statuses' => KbArticleStatus::options()],
         ]);
     }
@@ -153,6 +154,7 @@ class KbArticleController extends Controller
             'categories' => KbCategoryResource::collection(
                 KbCategory::query()->where('is_active', true)->orderBy('sort_order')->get(),
             ),
+            'tagSuggestions' => KbTag::query()->orderBy('name')->limit(50)->get(['id', 'name']),
             'options' => ['statuses' => KbArticleStatus::options()],
         ]);
     }

@@ -28,7 +28,9 @@ class DepartmentResource extends JsonResource
             'sort_order' => $this->sort_order,
             'is_active' => $this->is_active,
             'manager' => $this->whenLoaded('manager', fn () => $this->person($this->manager)),
+            'members' => $this->whenLoaded('members', fn () => $this->members->map(fn ($e) => $this->person($e))->values()),
             'project_count' => $this->whenCounted('projects'),
+            'member_count' => $this->whenCounted('members'),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
             'can' => $user ? [

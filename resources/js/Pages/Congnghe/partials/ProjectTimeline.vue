@@ -7,6 +7,12 @@ import { tone } from './tones.js';
 import { useInView } from './motion.js';
 import { openCongngheProject } from './useCongngheProjectModal.js';
 import CongngheProjectGallery from './CongngheProjectGallery.vue';
+import RichContentBody from '@/shared/ui/RichContentBody.vue';
+import {
+    CONGNGHE_PROJECT_DESC_EMPTY_CLASS,
+    CONGNGHE_PROJECT_DESC_HTML_CLASS,
+    CONGNGHE_PROJECT_DESC_PLAIN_CLASS,
+} from './congngheProjectDescriptionStyles.js';
 
 const props = defineProps({
     content: { type: Object, default: () => ({}) },
@@ -322,9 +328,15 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
                             stroke-width="2"
                           ><path d="M5 12h14M13 6l6 6-6 6" /></svg>
                         </button>
-                        <p class="mt-4 max-w-xl text-sm leading-relaxed text-white/60 sm:text-[15px]">
-                          {{ project.description || 'Chưa có mô tả cho dự án này.' }}
-                        </p>
+                        <div class="mt-4 max-w-xl">
+                          <RichContentBody
+                            :content="project.description"
+                            empty-text="Chưa có mô tả cho dự án này."
+                            :html-class="CONGNGHE_PROJECT_DESC_HTML_CLASS"
+                            :plain-class="CONGNGHE_PROJECT_DESC_PLAIN_CLASS"
+                            :empty-class="CONGNGHE_PROJECT_DESC_EMPTY_CLASS"
+                          />
+                        </div>
                       </div>
 
                       <div class="mt-8">

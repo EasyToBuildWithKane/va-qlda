@@ -4,10 +4,10 @@ import { Head, Link } from '@inertiajs/vue3';
 import {
     Chart as ChartJS,
     ArcElement, CategoryScale, LinearScale,
-    BarElement, LineElement, PointElement,
+    LineElement, PointElement,
     Title, Tooltip, Legend, Filler,
 } from 'chart.js';
-import { Doughnut, Bar, Line } from 'vue-chartjs';
+import { Doughnut, Line } from 'vue-chartjs';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import AppIcon from '@/Components/AppIcon.vue';
@@ -16,11 +16,12 @@ import Avatar from '@/shared/ui/Avatar.vue';
 import EmptyState from '@/shared/ui/EmptyState.vue';
 import ActivityFeed from '@/modules/project/components/Dashboard/ActivityFeed.vue';
 import DailyPulse from './partials/DailyPulse.vue';
+import DailyReportCompliancePanel from './partials/DailyReportCompliancePanel.vue';
 import ProjectProgressCard from './partials/ProjectProgressCard.vue';
 
 ChartJS.register(
     ArcElement, CategoryScale, LinearScale,
-    BarElement, LineElement, PointElement,
+    LineElement, PointElement,
     Title, Tooltip, Legend, Filler,
 );
 
@@ -33,9 +34,8 @@ const props = defineProps({
     overdueTasks:       { type: Array,  default: () => [] },
     activityFeed:       { type: Array,  default: () => [] },
     projectsByStatus:   { type: Array,  default: () => [] },
-    tasksByStatus:      { type: Array,  default: () => [] },
-    blockersBySeverity: { type: Array,  default: () => [] },
     completionTrend:    { type: Array,  default: () => [] },
+    dailyReportCompliance: { type: Object, default: () => ({}) },
 });
 
 // ---- Helpers ----------------------------------------------------------
@@ -77,15 +77,6 @@ const projectStatusChart = computed(() => ({
     }],
 }));
 
-const blockerSeverityChart = computed(() => ({
-    labels: props.blockersBySeverity.map(r => r.label),
-    datasets: [{
-        data: props.blockersBySeverity.map(r => r.total),
-        backgroundColor: props.blockersBySeverity.map(r => tailwindToHex(r.color)),
-        borderWidth: 2, borderColor: '#fff', hoverOffset: 6,
-    }],
-}));
-
 const doughnutOptions = {
     responsive: true,
     maintainAspectRatio: false,
@@ -93,35 +84,6 @@ const doughnutOptions = {
     plugins: {
         legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 }, padding: 14 } },
         tooltip: { callbacks: { label: (ctx) => ` ${ctx.label}: ${ctx.parsed}` } },
-    },
-};
-
-const taskStatusChart = computed(() => {
-    const order = ['todo', 'in_progress', 'in_review', 'done', 'blocked'];
-    const sorted = [...props.tasksByStatus].sort(
-        (a, b) => order.indexOf(a.status) - order.indexOf(b.status),
-    );
-    return {
-        labels: sorted.map(r => r.label),
-        datasets: [{
-            label: 'Công việc',
-            data: sorted.map(r => r.total),
-            backgroundColor: sorted.map(r => tailwindToHex(r.color)),
-            borderRadius: 6, borderSkipped: false,
-        }],
-    };
-});
-
-const barOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-        legend: { display: false },
-        tooltip: { callbacks: { label: (ctx) => ` ${ctx.parsed.y} công việc` } },
-    },
-    scales: {
-        x: { grid: { display: false } },
-        y: { beginAtZero: true, ticks: { precision: 0 } },
     },
 };
 
@@ -201,6 +163,12 @@ const lineOptions = {
     <DailyPulse
       :pulse="dailyPulse"
       :today="today"
+      class="mb-4"
+    />
+
+    <!-- Tuân thủ báo cáo ngày theo nhân sự -->
+    <DailyReportCompliancePanel
+      :compliance="dailyReportCompliance"
       class="mb-4"
     />
 
@@ -286,8 +254,8 @@ const lineOptions = {
       </div>
     </div>
 
-    <!-- 5. Bottom: attention list · activity feed · blocker severity -->
-    <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+    <!-- 5. Bottom: attention list · activity feed -->
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
       <!-- Attention list -->
       <div class="card p-5">
         <h3 class="mb-4 flex items-center gap-2 font-display font-semibold text-slate-800">
@@ -343,50 +311,6 @@ const lineOptions = {
 
       <!-- Activity feed -->
       <ActivityFeed :activities="activityFeed" />
-
-      <!-- Blocker severity -->
-      <div class="card p-5">
-        <h3 class="mb-4 flex items-center gap-2 font-display font-semibold text-slate-800">
-          <AppIcon
-            name="blockers"
-            :size="16"
-            class="text-rose-600"
-          />
-          Mức độ vướng mắc
-        </h3>
-        <div class="h-56">
-          <Doughnut
-            v-if="blockersBySeverity.length"
-            :data="blockerSeverityChart"
-            :options="doughnutOptions"
-          />
-          <div
-            v-else
-            class="flex h-full items-center justify-center text-sm text-slate-400"
-          >
-            Không có vướng mắc đang mở
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Task status bar (compact, full width) -->
-    <div class="card mt-4 p-5">
-      <h3 class="mb-4 flex items-center gap-2 font-display font-semibold text-slate-800">
-        <AppIcon
-          name="task"
-          :size="16"
-          class="text-sky-600"
-        />
-        Công việc theo trạng thái
-      </h3>
-      <div class="h-52">
-        <Bar
-          v-if="tasksByStatus.length"
-          :data="taskStatusChart"
-          :options="barOptions"
-        />
-      </div>
     </div>
   </AppLayout>
 </template>

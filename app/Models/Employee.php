@@ -72,6 +72,13 @@ class Employee extends Model
         return $this->hasMany(Project::class, 'manager_id');
     }
 
+    public function departments(): BelongsToMany
+    {
+        return $this->belongsToMany(Department::class, 'department_member')
+            ->withPivot(['joined_at', 'is_active'])
+            ->withTimestamps();
+    }
+
     /**
      * Pivot rows that count as active membership (null is_active = active, same as profile).
      *

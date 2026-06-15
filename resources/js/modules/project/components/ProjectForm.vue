@@ -8,6 +8,7 @@ import RadioCard from '@/shared/ui/RadioCard.vue';
 import MultiChips from '@/shared/ui/MultiChips.vue';
 import PersonSelect from '@/modules/project/components/PersonSelect.vue';
 import SearchSelect from '@/shared/ui/SearchSelect.vue';
+import KbRichTextField from '@/Components/KnowledgeBase/KbRichTextField.vue';
 import { valueLabelOptions } from '@/shared/utils/selectOptions';
 import { useDialog } from '@/composables/useDialog';
 import { useToast } from '@/shared/composables/useToast';
@@ -637,15 +638,14 @@ const submit = (after = 'close') => {
                 </div>
               </div>
               <div class="sm:col-span-3">
-                <label class="label flex items-center gap-1.5">
-                  Mô tả
-                  <FieldTooltip text="Mục tiêu, phạm vi và ghi chú tài liệu liên quan." />
-                </label>
-                <textarea
+                <KbRichTextField
                   v-model="form.description"
-                  rows="8"
-                  class="input min-h-[10rem] resize-y"
+                  label="Mô tả"
+                  tooltip="Mục tiêu, phạm vi và ghi chú tài liệu liên quan."
                   placeholder="Mô tả mục tiêu, phạm vi, kết quả kỳ vọng…"
+                  hint="Soạn thảo rich text — tiêu đề, danh sách, liên kết. Nội dung hiển thị trên tab Tổng quan dự án."
+                  editor-min-height-class="min-h-[16rem] sm:min-h-[18rem]"
+                  :error="form.errors.description"
                 />
               </div>
             </div>

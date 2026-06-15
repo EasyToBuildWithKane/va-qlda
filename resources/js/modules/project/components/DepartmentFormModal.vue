@@ -5,6 +5,7 @@ import Modal from '@/Components/Ui/Modal.vue';
 import FieldTooltip from '@/shared/ui/FieldTooltip.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import PersonSelect from '@/modules/project/components/PersonSelect.vue';
+import DepartmentMembersField from '@/modules/project/components/DepartmentMembersField.vue';
 import { useModalFormDraft } from '@/composables/useModalFormDraft';
 import { buildDraftSaveMeta, restoreModalDraft } from '@/composables/useModalDraftHelpers';
 
@@ -36,7 +37,7 @@ const genCode = () => {
     return 'PB-' + String(max + 1).padStart(3, '0');
 };
 
-const form = useForm({ code: '', name: '', color: 'brand', manager_id: null, is_active: true });
+const form = useForm({ code: '', name: '', color: 'brand', manager_id: null, is_active: true, member_ids: [] });
 
 const deptDraftScope = computed(() => (
     props.department ? `edit.${props.department.id}` : 'create'
@@ -44,7 +45,7 @@ const deptDraftScope = computed(() => (
 
 const formDraft = useModalFormDraft('department', {
     getScope: () => deptDraftScope.value,
-    fields: ['code', 'name', 'color', 'manager_id', 'is_active'],
+    fields: ['code', 'name', 'color', 'manager_id', 'is_active', 'member_ids'],
 });
 
 const applyFormDraft = (data) => {
@@ -53,6 +54,7 @@ const applyFormDraft = (data) => {
     form.color = data.color ?? 'brand';
     form.manager_id = data.manager_id ?? null;
     form.is_active = data.is_active ?? true;
+    form.member_ids = Array.isArray(data.member_ids) ? [...data.member_ids] : [];
 };
 
 const saveDraftOnClose = () => {
@@ -69,6 +71,7 @@ watch(() => props.show, async (open) => {
         form.color      = props.department.color ?? 'brand';
         form.manager_id = props.department.manager?.id ?? null;
         form.is_active  = props.department.is_active;
+        form.member_ids = (props.department.members ?? []).map((m) => m.id);
         await restoreModalDraft(formDraft, {
             isActive: () => props.show,
             openEpoch: epoch,
@@ -81,6 +84,7 @@ watch(() => props.show, async (open) => {
         form.code  = genCode();
         form.color = 'brand';
         form.is_active = true;
+        form.member_ids = [];
         await restoreModalDraft(formDraft, {
             isActive: () => props.show,
             openEpoch: epoch,
@@ -92,6 +96,14 @@ watch(() => props.show, async (open) => {
 });
 
 const isEdit = computed(() => !!props.department);
+
+watch(() => form.manager_id, (id) => {
+    if (!id) return;
+    const num = Number(id);
+    if (!form.member_ids.some((x) => Number(x) === num)) {
+        form.member_ids = [...form.member_ids, num];
+    }
+});
 
 const submit = () => {
     const opts = {
@@ -112,7 +124,7 @@ const submit = () => {
     :show="show"
     :dirty="form.isDirty"
     :title="isEdit ? 'Chỉnh sửa phòng ban' : 'Thêm phòng ban mới'"
-    max-width="max-w-xl"
+    max-width="max-w-2xl"
     :on-save-draft="saveDraftOnClose"
     @close="emit('close')"
   >
@@ -180,6 +192,9 @@ const submit = () => {
           :options="employees"
           placeholder="Tìm & chọn trưởng phòng…"
         />
+        <p class="mt-1 text-xs text-slate-400">
+          Trưởng phòng sẽ tự được thêm vào danh sách thành viên.
+        </p>
         <p
           v-if="form.errors.manager_id"
           class="mt-1 text-xs text-danger"
@@ -187,6 +202,13 @@ const submit = () => {
           {{ form.errors.manager_id }}
         </p>
       </div>
+
+      <DepartmentMembersField
+        v-model:member-ids="form.member_ids"
+        v-model:manager-id="form.manager_id"
+        :employees="employees"
+        :error="form.errors.member_ids"
+      />
 
       <!-- Color + Status row -->
       <div class="grid grid-cols-2 gap-5">

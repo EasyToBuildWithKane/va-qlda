@@ -106,6 +106,53 @@ class DepartmentTest extends TestCase
             );
     }
 
+    public function test_admin_can_create_department_with_members(): void
+    {
+        $admin = $this->admin();
+        $empA = $admin->employee;
+        $empB = SystemAccount::factory()->role(SystemRole::Member)->create()->employee;
+
+        $this->actingAs($admin, 'system')
+            ->post('/departments', $this->deptPayload([
+                'code' => 'DEPT-M',
+                'name' => 'With Members',
+                'manager_id' => $empA->id,
+                'member_ids' => [$empB->id],
+            ]))
+            ->assertRedirect();
+
+        $dept = Department::where('code', 'DEPT-M')->first();
+        $this->assertNotNull($dept);
+        $this->assertDatabaseHas('department_member', [
+            'department_id' => $dept->id,
+            'employee_id' => $empA->id,
+        ]);
+        $this->assertDatabaseHas('department_member', [
+            'department_id' => $dept->id,
+            'employee_id' => $empB->id,
+        ]);
+    }
+
+    public function test_admin_can_update_department_members(): void
+    {
+        $admin = $this->admin();
+        $dept = $this->createDept(['code' => 'MEM-01']);
+        $emp = SystemAccount::factory()->role(SystemRole::Member)->create()->employee;
+
+        $this->actingAs($admin, 'system')
+            ->put("/departments/{$dept->id}", [
+                'code' => 'MEM-01',
+                'name' => $dept->name,
+                'member_ids' => [$emp->id],
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('department_member', [
+            'department_id' => $dept->id,
+            'employee_id' => $emp->id,
+        ]);
+    }
+
     // ─── Store ────────────────────────────────────────────────────────────────
 
     public function test_admin_can_create_department(): void

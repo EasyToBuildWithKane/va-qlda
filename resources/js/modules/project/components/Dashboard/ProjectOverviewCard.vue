@@ -3,14 +3,13 @@ import { computed } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
 import Badge from '@/shared/ui/Badge.vue';
+import RichContentBody from '@/shared/ui/RichContentBody.vue';
 import { date } from '@/composables/useFormat';
 
 const props = defineProps({
     project: { type: Object, required: true },
     daysLeft: { type: Number, default: null },
 });
-
-const description = computed(() => props.project.description?.trim() || '');
 
 const deadlineBadge = computed(() => {
     if (props.daysLeft === null || props.daysLeft === undefined) return null;
@@ -117,18 +116,13 @@ const infoTiles = computed(() => [
 
     <div class="space-y-3 px-4 py-3">
       <!-- Description -->
-      <p
-        v-if="description"
-        class="whitespace-pre-wrap text-sm font-normal leading-relaxed text-slate-600 dark:text-slate-400"
-      >
-        {{ description }}
-      </p>
-      <p
-        v-else
-        class="text-sm italic text-slate-400 dark:text-slate-500"
-      >
-        Chưa có mô tả dự án.
-      </p>
+      <RichContentBody
+        :content="project.description"
+        empty-text="Chưa có mô tả dự án."
+        html-class="prose prose-sm max-w-none text-slate-600 dark:prose-invert dark:text-slate-400"
+        plain-class="whitespace-pre-wrap text-sm font-normal leading-relaxed text-slate-600 dark:text-slate-400"
+        empty-class="text-sm italic text-slate-400 dark:text-slate-500"
+      />
 
       <!-- Info tiles -->
       <div class="grid grid-cols-2 gap-2 lg:grid-cols-4">

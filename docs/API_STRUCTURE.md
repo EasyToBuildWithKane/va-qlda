@@ -200,8 +200,8 @@ routes/api.php      ← Rỗng (chưa sử dụng)
 | Method | URI | Controller | Middleware | Mô Tả |
 |---|---|---|---|---|
 | GET | `/departments` | DepartmentController@index | auth | Danh sách phòng ban |
-| POST | `/departments` | DepartmentController@store | auth | Tạo phòng ban |
-| PUT | `/departments/{department}` | DepartmentController@update | auth | Sửa phòng ban |
+| POST | `/departments` | DepartmentController@store | auth | Tạo phòng ban; body gồm `member_ids[]` (tối đa 200) |
+| PUT | `/departments/{department}` | DepartmentController@update | auth | Sửa phòng ban; đồng bộ `member_ids` (trưởng phòng tự nằm trong danh sách) |
 | PATCH | `/departments/{department}/toggle` | DepartmentController@toggleStatus | auth | Bật/tắt hoạt động |
 | DELETE | `/departments/{department}` | DepartmentController@destroy | auth | Xóa phòng ban |
 
@@ -252,7 +252,7 @@ Prefix `knowledge-base.`, middleware `auth`. Chi tiết: [`docs/KNOWLEDGE_BASE.m
 
 | Method | URI | Controller | Response | Mô Tả |
 |---|---|---|---|---|
-| GET | `/knowledge-base` | KbArticleController@index | Inertia | Danh sách + sidebar |
+| GET | `/knowledge-base` | KbArticleController@index | Inertia | Danh sách + datagrid (lọc danh mục trên toolbar) |
 | GET | `/knowledge-base/export-data` | KbArticleController@exportData | JSON | Export client (≤200) |
 | GET | `/knowledge-base/articles/create` | KbArticleController@create | Inertia | |
 | POST | `/knowledge-base/articles` | KbArticleController@store | Redirect | |

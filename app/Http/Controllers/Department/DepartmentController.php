@@ -10,6 +10,7 @@ use App\Models\Department;
 use App\Support\Options;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -20,8 +21,11 @@ class DepartmentController extends Controller
         $this->authorize('viewAny', Department::class);
 
         $query = Department::query()
-            ->with('manager')
-            ->withCount('projects')
+            ->with([
+                'manager',
+                'members' => fn ($q) => $q->orderBy('department_member.id')->limit(8),
+            ])
+            ->withCount('projects', 'members')
             ->orderBy('sort_order')
             ->orderBy('name');
 
@@ -100,14 +104,26 @@ class DepartmentController extends Controller
 
     public function store(StoreDepartmentRequest $request): RedirectResponse
     {
-        Department::create($request->validated());
+        $validated = $request->validated();
+        $memberIds = $this->resolveMemberIds($validated);
+
+        DB::transaction(function () use ($validated, $memberIds) {
+            $department = Department::create(collect($validated)->except('member_ids')->all());
+            $this->syncMembers($department, $memberIds);
+        });
 
         return back()->with('success', 'Đã thêm phòng ban.');
     }
 
     public function update(UpdateDepartmentRequest $request, Department $department): RedirectResponse
     {
-        $department->update($request->validated());
+        $validated = $request->validated();
+        $memberIds = $this->resolveMemberIds($validated);
+
+        DB::transaction(function () use ($department, $validated, $memberIds) {
+            $department->update(collect($validated)->except('member_ids')->all());
+            $this->syncMembers($department, $memberIds);
+        });
 
         return back()->with('success', 'Đã cập nhật phòng ban.');
     }
@@ -131,5 +147,38 @@ class DepartmentController extends Controller
         $department->delete();
 
         return back()->with('success', 'Đã xoá phòng ban.');
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     * @return list<int>
+     */
+    private function resolveMemberIds(array $validated): array
+    {
+        $ids = array_map('intval', $validated['member_ids'] ?? []);
+        if (! empty($validated['manager_id'])) {
+            $ids[] = (int) $validated['manager_id'];
+        }
+
+        return array_values(array_unique(array_filter($ids)));
+    }
+
+    /**
+     * @param  list<int>  $memberIds
+     */
+    private function syncMembers(Department $department, array $memberIds): void
+    {
+        $existingJoined = $department->members()
+            ->pluck('department_member.joined_at', 'employees.id');
+
+        $today = now()->toDateString();
+        $sync = [];
+        foreach ($memberIds as $id) {
+            $sync[$id] = [
+                'joined_at' => $existingJoined[$id] ?? $today,
+                'is_active' => true,
+            ];
+        }
+        $department->members()->sync($sync);
     }
 }

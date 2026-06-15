@@ -4,6 +4,22 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Landing /congnghe — góc xoay cho conic border (cn-border-rotate) ──
+   Phải khai báo @property ở top-level; Tailwind config không emit được. */
+@property --cn-angle {
+    syntax: '<angle>';
+    initial-value: 0deg;
+    inherits: false;
+}
+
+/* Khi người dùng bật "giảm chuyển động", tắt mọi animation cn-* đang chạy
+   vô điều kiện (aurora/grid/float...) trong phạm vi nền landing. */
+@media (prefers-reduced-motion: reduce) {
+    .cn-anim-root [class*='animate-cn-'] {
+        animation: none !important;
+    }
+}
+
 @layer base {
     html {
         @apply antialiased;

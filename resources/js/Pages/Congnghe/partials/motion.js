@@ -1,4 +1,4 @@
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 /**
  * true khi người dùng bật "giảm chuyển động" trong hệ điều hành. Mọi hiệu ứng
@@ -222,4 +222,346 @@ export function useScrollProgress() {
     });
 
     return progress;
+}
+
+/* ------------------------------------------------------------------------- *
+ * Vòng lặp & listener DÙNG CHUNG (ref-counted)                              *
+ * Nhiều hiệu ứng cùng chia 1 requestAnimationFrame / 1 mousemove / 1 scroll *
+ * thay vì mỗi composable tự add listener — guardrail hiệu năng cốt lõi.     *
+ * ------------------------------------------------------------------------- */
+
+// --- 1 rAF dùng chung (trình duyệt tự pause khi tab ẩn) ---
+const _rafSubs = new Set();
+let _rafId = null;
+function _rafLoop(now) {
+    _rafSubs.forEach((cb) => {
+        try {
+            cb(now);
+        } catch {
+            /* một consumer lỗi không được làm sập cả vòng lặp */
+        }
+    });
+    _rafId = _rafSubs.size ? requestAnimationFrame(_rafLoop) : null;
+}
+
+export function onSharedRaf(cb) {
+    onMounted(() => {
+        _rafSubs.add(cb);
+        if (_rafId === null) _rafId = requestAnimationFrame(_rafLoop);
+    });
+    onBeforeUnmount(() => {
+        _rafSubs.delete(cb);
+        if (_rafSubs.size === 0 && _rafId !== null) {
+            cancelAnimationFrame(_rafId);
+            _rafId = null;
+        }
+    });
+}
+
+// --- 1 mousemove dùng chung; vị trí con trỏ chuẩn hoá (-0.5 → 0.5) ---
+const _pointer = { x: 0, y: 0, nx: 0, ny: 0 };
+const _pointerSubs = new Set();
+function _onSharedMove(e) {
+    const w = window.innerWidth || 1;
+    const h = window.innerHeight || 1;
+    _pointer.x = e.clientX;
+    _pointer.y = e.clientY;
+    _pointer.nx = e.clientX / w - 0.5;
+    _pointer.ny = e.clientY / h - 0.5;
+    _pointerSubs.forEach((cb) => cb(_pointer));
+}
+
+export function onSharedPointer(cb) {
+    onMounted(() => {
+        if (typeof window === 'undefined') return;
+        if (_pointerSubs.size === 0) {
+            window.addEventListener('mousemove', _onSharedMove, { passive: true });
+        }
+        _pointerSubs.add(cb);
+    });
+    onBeforeUnmount(() => {
+        _pointerSubs.delete(cb);
+        if (_pointerSubs.size === 0) {
+            window.removeEventListener('mousemove', _onSharedMove);
+        }
+    });
+}
+
+export function sharedPointer() {
+    return _pointer;
+}
+
+// --- 1 scroll dùng chung (throttle bằng rAF) ---
+const _scroll = { y: 0, max: 0, progress: 0 };
+const _scrollSubs = new Set();
+let _scrollRaf = null;
+function _computeScroll() {
+    const h = document.documentElement;
+    _scroll.y = h.scrollTop;
+    _scroll.max = h.scrollHeight - h.clientHeight;
+    _scroll.progress = _scroll.max > 0 ? Math.min(1, _scroll.y / _scroll.max) : 0;
+    _scrollSubs.forEach((cb) => cb(_scroll));
+}
+function _onSharedScroll() {
+    if (_scrollRaf) return;
+    _scrollRaf = requestAnimationFrame(() => {
+        _computeScroll();
+        _scrollRaf = null;
+    });
+}
+
+export function onSharedScroll(cb) {
+    onMounted(() => {
+        if (typeof window === 'undefined') return;
+        if (_scrollSubs.size === 0) {
+            window.addEventListener('scroll', _onSharedScroll, { passive: true });
+            window.addEventListener('resize', _onSharedScroll, { passive: true });
+        }
+        _scrollSubs.add(cb);
+        _onSharedScroll();
+    });
+    onBeforeUnmount(() => {
+        _scrollSubs.delete(cb);
+        if (_scrollSubs.size === 0) {
+            window.removeEventListener('scroll', _onSharedScroll);
+            window.removeEventListener('resize', _onSharedScroll);
+            if (_scrollRaf) {
+                cancelAnimationFrame(_scrollRaf);
+                _scrollRaf = null;
+            }
+        }
+    });
+}
+
+/**
+ * Gõ chữ kiểu streaming (look "AI đang trả lời"). Trả về `{ display, done, restart }`.
+ * Reduced-motion ⇒ hiện toàn bộ ngay. Tự chạy lại khi `active` bật true hoặc text đổi.
+ */
+export function useTypewriter(text, { speed = 28, startDelay = 0, active = true, loop = false } = {}) {
+    const display = ref('');
+    const done = ref(false);
+    let timer = null;
+    let i = 0;
+
+    const fullText = () => String((typeof text === 'function' ? text() : text?.value ?? text) ?? '');
+    const isActive = () => (typeof active === 'function' ? active() : active?.value ?? active);
+
+    function clear() {
+        if (timer) {
+            clearTimeout(timer);
+            timer = null;
+        }
+    }
+
+    function finish() {
+        clear();
+        display.value = fullText();
+        done.value = true;
+    }
+
+    function start() {
+        clear();
+        if (prefersReducedMotionNow()) {
+            finish();
+            return;
+        }
+        const str = fullText();
+        i = 0;
+        display.value = '';
+        done.value = false;
+        const step = () => {
+            if (i >= str.length) {
+                done.value = true;
+                if (loop) timer = setTimeout(start, 2200);
+                return;
+            }
+            i += 1;
+            display.value = str.slice(0, i);
+            timer = setTimeout(step, speed);
+        };
+        timer = setTimeout(step, startDelay);
+    }
+
+    watch(isActive, (on) => (on ? start() : finish()), { immediate: true });
+    watch(fullText, () => {
+        if (isActive()) start();
+    });
+
+    onBeforeUnmount(clear);
+
+    return { display, done, restart: start };
+}
+
+/**
+ * Luân phiên một mảng chuỗi theo chu kỳ (cho ticker dạng "cycle").
+ * Pause khi tab ẩn; reduced-motion ⇒ khoá ở phần tử đầu.
+ */
+export function useDataStream({ values = [], interval = 2200 } = {}) {
+    const index = ref(0);
+    let timer = null;
+
+    const list = () => (typeof values === 'function' ? values() : values?.value ?? values) || [];
+    const current = computed(() => list()[index.value] ?? '');
+
+    function stop() {
+        if (timer) {
+            clearInterval(timer);
+            timer = null;
+        }
+    }
+
+    function start() {
+        stop();
+        if (prefersReducedMotionNow()) {
+            index.value = 0;
+            return;
+        }
+        timer = setInterval(() => {
+            if (typeof document !== 'undefined' && document.hidden) return;
+            const n = list().length;
+            if (n > 0) index.value = (index.value + 1) % n;
+        }, interval);
+    }
+
+    onMounted(start);
+    onBeforeUnmount(stop);
+
+    return { current, index };
+}
+
+/**
+ * Tiến độ cuộn (0 → 1) của MỘT phần tử so với viewport (đọc rect 1 lần/tick scroll).
+ * Khác useScrollProgress (toàn trang). Reduced-motion ⇒ hằng 1 (coi như đã hiện hết).
+ */
+export function useScrollScene(target, { start = 0, end = 1 } = {}) {
+    const progress = ref(0);
+
+    function update() {
+        if (prefersReducedMotionNow()) {
+            progress.value = 1;
+            return;
+        }
+        const el = target?.value ?? target;
+        if (!el || typeof el.getBoundingClientRect !== 'function') return;
+        const rect = el.getBoundingClientRect();
+        const vh = window.innerHeight || 1;
+        const total = rect.height + vh;
+        const raw = total > 0 ? Math.max(0, Math.min(1, (vh - rect.top) / total)) : 0;
+        progress.value = end > start ? Math.max(0, Math.min(1, (raw - start) / (end - start))) : raw;
+    }
+
+    onMounted(update);
+    onSharedScroll(update);
+
+    return progress;
+}
+
+/**
+ * Parallax nhiều tầng theo con trỏ (dùng chung 1 mousemove). `layer(depth)` trả về
+ * style transform. Tắt khi reduced-motion / không có chuột ⇒ transform identity.
+ */
+export function useParallaxLayers({ strength = 1 } = {}) {
+    const nx = ref(0);
+    const ny = ref(0);
+    const enabled = ref(false);
+
+    onMounted(() => {
+        enabled.value = !prefersReducedMotionNow() && hasFinePointer();
+    });
+
+    onSharedPointer((p) => {
+        if (!enabled.value) return;
+        nx.value = p.nx;
+        ny.value = p.ny;
+    });
+
+    function layer(depth = 1) {
+        if (!enabled.value) return { transform: 'translate3d(0,0,0)' };
+        const x = (nx.value * depth * strength).toFixed(1);
+        const y = (ny.value * depth * strength).toFixed(1);
+        return { transform: `translate3d(${x}px, ${y}px, 0)` };
+    }
+
+    return { layer, enabled };
+}
+
+/**
+ * Hiệu ứng gợn sóng khi nhấn. `bind` gắn vào @pointerdown; `ripples` render vào
+ * phần tử (cần position:relative + overflow:hidden). Reduced-motion ⇒ no-op.
+ */
+let _rippleId = 0;
+export function useRipple({ duration = 650 } = {}) {
+    const ripples = ref([]);
+
+    function bind(e) {
+        if (prefersReducedMotionNow()) return;
+        const el = e.currentTarget;
+        if (!el || typeof el.getBoundingClientRect !== 'function') return;
+        const rect = el.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height);
+        const id = ++_rippleId;
+        const x = (e.clientX ?? rect.left + rect.width / 2) - rect.left;
+        const y = (e.clientY ?? rect.top + rect.height / 2) - rect.top;
+        ripples.value = [
+            ...ripples.value,
+            {
+                id,
+                style: {
+                    left: `${(x - size / 2).toFixed(1)}px`,
+                    top: `${(y - size / 2).toFixed(1)}px`,
+                    width: `${size}px`,
+                    height: `${size}px`,
+                },
+            },
+        ];
+        setTimeout(() => {
+            ripples.value = ripples.value.filter((r) => r.id !== id);
+        }, duration);
+    }
+
+    return { bind, ripples };
+}
+
+/**
+ * Nhóm "nam châm": 1 mousemove kéo nhiều phần tử con về phía con trỏ khi ở gần.
+ * Dùng `register(el)` qua :ref callback. Chỉ bật khi fine-pointer + non-reduced.
+ */
+export function useMagneticGroup({ strength = 0.25 } = {}) {
+    const els = new Set();
+    let enabled = false;
+
+    onMounted(() => {
+        enabled = !prefersReducedMotionNow() && hasFinePointer();
+    });
+
+    onSharedPointer((p) => {
+        if (!enabled) return;
+        els.forEach((el) => {
+            const rect = el.getBoundingClientRect();
+            const cx = rect.left + rect.width / 2;
+            const cy = rect.top + rect.height / 2;
+            const dx = p.x - cx;
+            const dy = p.y - cy;
+            const radius = Math.max(rect.width, rect.height) * 1.25;
+            if (Math.hypot(dx, dy) < radius) {
+                el.style.transform = `translate(${(dx * strength).toFixed(1)}px, ${(dy * strength).toFixed(1)}px)`;
+            } else if (el.style.transform && el.style.transform !== 'translate(0px, 0px)') {
+                el.style.transform = 'translate(0px, 0px)';
+            }
+        });
+    });
+
+    function register(el) {
+        if (el) els.add(el);
+    }
+    function unregister(el) {
+        if (el) {
+            els.delete(el);
+            el.style.transform = '';
+        }
+    }
+
+    onBeforeUnmount(() => els.clear());
+
+    return { register, unregister };
 }

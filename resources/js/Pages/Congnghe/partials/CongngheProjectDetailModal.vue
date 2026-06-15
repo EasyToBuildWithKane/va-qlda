@@ -7,6 +7,12 @@ import {
     closeCongngheProject,
 } from './useCongngheProjectModal.js';
 import CongngheProjectGallery from './CongngheProjectGallery.vue';
+import RichContentBody from '@/shared/ui/RichContentBody.vue';
+import {
+    CONGNGHE_PROJECT_DESC_EMPTY_CLASS,
+    CONGNGHE_PROJECT_DESC_HTML_CLASS,
+    CONGNGHE_PROJECT_DESC_PLAIN_CLASS,
+} from './congngheProjectDescriptionStyles.js';
 
 const page = usePage();
 
@@ -126,9 +132,15 @@ onBeforeUnmount(() => {
                   <p class="font-mono text-[10px] uppercase tracking-[0.18em] text-white/40">
                     Mô tả
                   </p>
-                  <p class="mt-2 text-sm leading-relaxed text-white/65 sm:text-[15px]">
-                    {{ project.description || 'Chưa có mô tả cho dự án này.' }}
-                  </p>
+                  <div class="mt-2">
+                    <RichContentBody
+                      :content="project.description"
+                      empty-text="Chưa có mô tả cho dự án này."
+                      :html-class="CONGNGHE_PROJECT_DESC_HTML_CLASS"
+                      :plain-class="CONGNGHE_PROJECT_DESC_PLAIN_CLASS"
+                      :empty-class="CONGNGHE_PROJECT_DESC_EMPTY_CLASS"
+                    />
+                  </div>
                 </div>
 
                 <div

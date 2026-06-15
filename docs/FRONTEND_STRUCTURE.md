@@ -105,7 +105,7 @@ AppLayout.vue
 |---|---|
 | Auth | `Pages/Auth/Login.vue` |
 | Congnghe (landing `/congnghe`) | `Pages/Congnghe/Index.vue` + `partials/*` — **không** `AppLayout`; `CongnghePageShell.vue` cho form/chi tiết người gửi (prop Inertia `chrome`: `nav` + `footer` từ `CongngheContentRepository::portalChrome()`); header `CongngheNavbar.vue` + menu `CongngheUserMenu.vue` (đề xuất đã gửi, hồ sơ, đăng xuất); form `Proposal.vue`; **người gửi:** `MyProposals.vue` (`CongngheMyProposalsSummaryBar.vue`, `congnghe-portal-*` theme), `MyProposalShow.vue` (`/congnghe/de-xuat-cua-toi`) — cổng Congnghe, **không** sidebar QLDA; **quản lý (admin/lead):** `Pages/Congnghe/Proposals/Index.vue` (`CongngheSoftwareProposalsSummaryBar.vue`, datagrid toolbar chuẩn), `Show.vue` (`CongngheSoftwareProposalSheet.vue` — layout phiếu + xem trước đính kèm) — `AppLayout`, sidebar nhóm «Quản trị» → «Đề xuất phần mềm» |
-| Dashboard | `Pages/Dashboard/Index.vue` |
+| Dashboard | `Pages/Dashboard/Index.vue` — `DailyPulse`, **`DailyReportCompliancePanel`** (tuân thủ báo cáo ngày theo nhân sự/tuần), `ProjectProgressCard`, biểu đồ xu hướng & trạng thái dự án |
 | DailyReport | `Today`, `History`, `Show`, `Review` |
 | Project | `Index`, `Create`, `Edit`, `Show` |
 | Blocker / Feedback | `Index`, `Show` (Feedback) — Index: **`FeedbackSummaryBar`** (dải KPI `kpi-strip` / `kpi-card`, lọc nhanh scope/status; rule `kpi-summary-strip`) + datagrid toolbar (Lọc/Cột), `FilterDatePicker` khoảng ngày, `FeedbackListRowActions` |
@@ -287,7 +287,7 @@ Doc module: `docs/COACHING_MENTORING.md`.
 
 | Page | Composables / components |
 |---|---|
-| `KnowledgeBase/Index.vue` | `useKbExport.js`, datagrid shared UI, sidebar in-page |
+| `KnowledgeBase/Index.vue` | `useKbExport.js`, datagrid shared UI, lọc danh mục trên toolbar |
 | `KnowledgeBase/Show.vue` | `CommentThread`, TOC từ props `toc` |
 | `KnowledgeBase/Edit.vue` | `KbRichTextField`, `KbImageGallery` |
 

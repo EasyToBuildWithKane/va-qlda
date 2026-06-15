@@ -6,6 +6,7 @@ import AppIcon from '@/Components/AppIcon.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
 import DepartmentFormModal from '@/modules/project/components/DepartmentFormModal.vue';
+import ProjectMembers from '@/modules/project/components/ProjectMembers.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import DatagridToolbarActionButton from '@/shared/ui/DatagridToolbarActionButton.vue';
 import DatagridFilterField from '@/shared/ui/DatagridFilterField.vue';
@@ -49,6 +50,7 @@ const TABLE_COLUMNS = [
     { key: 'code', label: 'Mã', default: false },
     { key: 'color', label: 'Màu', default: false },
     { key: 'manager', label: 'Trưởng phòng', default: true },
+    { key: 'members', label: 'Thành viên', default: true },
     { key: 'projects', label: 'Số dự án', default: true },
     { key: 'sort_order', label: 'Thứ tự', default: false },
     { key: 'status', label: 'Trạng thái', default: true },
@@ -198,22 +200,11 @@ const toggleStatus = async (d) => {
         icon="department"
         icon-color="sky"
         :badge="summary.total"
-      />
-    </template>
-
-    <div class="card overflow-visible">
-      <div class="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-        <div class="flex items-center gap-2">
-          <h2 class="font-semibold text-slate-700">
-            Danh sách phòng ban
-          </h2>
-          <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-brand/10 px-1.5 text-[11px] font-bold text-brand">
-            {{ departments.meta?.total ?? summary.total }}
-          </span>
-        </div>
+      >
         <button
           v-if="can.create"
-          class="btn-primary gap-1.5 text-sm"
+          type="button"
+          class="btn-primary inline-flex h-9 shrink-0 items-center gap-1.5 px-3 text-xs font-semibold"
           @click="open()"
         >
           <AppIcon
@@ -222,6 +213,19 @@ const toggleStatus = async (d) => {
           />
           Thêm phòng ban
         </button>
+      </PageHeader>
+    </template>
+
+    <div class="card overflow-visible">
+      <div class="flex items-center border-b border-slate-100 px-5 py-4">
+        <div class="flex items-center gap-2">
+          <h2 class="font-semibold text-slate-700">
+            Danh sách phòng ban
+          </h2>
+          <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-brand/10 px-1.5 text-[11px] font-bold text-brand">
+            {{ departments.meta?.total ?? summary.total }}
+          </span>
+        </div>
       </div>
 
       <div class="border-b border-slate-100 bg-slate-50/40 px-5 py-3.5 lg:py-4">
@@ -429,6 +433,12 @@ const toggleStatus = async (d) => {
                 Trưởng phòng
               </th>
               <th
+                v-if="isColVisible('members')"
+                class="px-5 py-3"
+              >
+                Thành viên
+              </th>
+              <th
                 v-if="isColVisible('projects')"
                 class="px-5 py-3 text-center"
               >
@@ -535,6 +545,24 @@ const toggleStatus = async (d) => {
               </td>
 
               <td
+                v-if="isColVisible('members')"
+                class="px-5 py-3.5"
+              >
+                <ProjectMembers
+                  :members="d.members ?? []"
+                  compact
+                  :max-visible="4"
+                  :max-name-labels="2"
+                />
+                <p
+                  v-if="(d.member_count ?? 0) > (d.members?.length ?? 0)"
+                  class="mt-0.5 text-[10px] text-slate-400"
+                >
+                  Tổng {{ d.member_count }} người
+                </p>
+              </td>
+
+              <td
                 v-if="isColVisible('projects')"
                 class="px-5 py-3.5 text-center"
               >
@@ -605,7 +633,7 @@ const toggleStatus = async (d) => {
                   <button
                     v-if="d.can?.update"
                     class="grid h-7 w-7 place-items-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
-                    title="Chỉnh sửa"
+                    title="Chỉnh sửa & nhân sự"
                     @click="open(d)"
                   >
                     <AppIcon

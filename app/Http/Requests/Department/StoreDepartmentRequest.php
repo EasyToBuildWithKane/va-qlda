@@ -25,6 +25,19 @@ class StoreDepartmentRequest extends FormRequest
             'manager_id' => ['nullable', 'integer', 'exists:employees,id'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'is_active' => ['boolean'],
+            'member_ids' => ['nullable', 'array', 'max:200'],
+            'member_ids.*' => ['integer', 'exists:employees,id'],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'member_ids.max' => 'Tối đa 200 thành viên mỗi phòng ban.',
+            'member_ids.*.exists' => 'Thành viên không hợp lệ.',
         ];
     }
 }

@@ -115,6 +115,20 @@ Department ──→ Employee ──→ SystemAccount
 
 **Indexes:** code (unique), manager_id (FK)
 
+### 3.3.1 va_prd_department_member
+
+| Column | Type | Nullable | Description |
+|---|---|---|---|
+| id | bigint UNSIGNED | NO | PK |
+| department_id | bigint UNSIGNED | NO | FK → departments |
+| employee_id | bigint UNSIGNED | NO | FK → employees |
+| joined_at | date | YES | Ngày gán vào phòng ban |
+| is_active | tinyint(1) | NO | Default: 1 |
+| created_at | timestamp | YES | |
+| updated_at | timestamp | YES | |
+
+**Indexes:** unique (department_id, employee_id), employee_id (FK)
+
 ---
 
 ### 3.4 va_prd_projects

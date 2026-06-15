@@ -90,6 +90,58 @@ export default {
                     '50%': { transform: 'translateY(-10px) rotate(-0.5deg)' },
                     '75%': { transform: 'translateY(-4px) rotate(1.5deg)' },
                 },
+                // ── upgrade: hiệu ứng AI/tech đan xen ──
+                'cn-scan-line': {
+                    '0%': { transform: 'translateY(-120%)', opacity: '0' },
+                    '10%,90%': { opacity: '1' },
+                    '100%': { transform: 'translateY(220%)', opacity: '0' },
+                },
+                'cn-data-stream': {
+                    '0%': { backgroundPosition: '0 0' },
+                    '100%': { backgroundPosition: '0 -200%' },
+                },
+                'cn-text-shimmer': {
+                    '0%': { backgroundPosition: '200% center' },
+                    '100%': { backgroundPosition: '-200% center' },
+                },
+                'cn-border-rotate': {
+                    to: { '--cn-angle': '360deg' },
+                },
+                'cn-hologram': {
+                    '0%,100%': { opacity: '1', transform: 'translateX(0)' },
+                    '92%': { opacity: '1', transform: 'translateX(0)' },
+                    '94%': { opacity: '0.72', transform: 'translateX(0.6px)' },
+                    '96%': { opacity: '0.92', transform: 'translateX(-0.6px)' },
+                    '98%': { opacity: '0.8', transform: 'translateX(0.3px)' },
+                },
+                'cn-pulse-grid': {
+                    '0%,100%': { opacity: '0.18' },
+                    '50%': { opacity: '0.5' },
+                },
+                'cn-reveal-up': {
+                    from: { opacity: '0', transform: 'translateY(28px)' },
+                    to: { opacity: '1', transform: 'translateY(0)' },
+                },
+                'cn-reveal-left': {
+                    from: { opacity: '0', transform: 'translateX(-28px)' },
+                    to: { opacity: '1', transform: 'translateX(0)' },
+                },
+                'cn-reveal-right': {
+                    from: { opacity: '0', transform: 'translateX(28px)' },
+                    to: { opacity: '1', transform: 'translateX(0)' },
+                },
+                'cn-ripple': {
+                    from: { transform: 'scale(0)', opacity: '0.35' },
+                    to: { transform: 'scale(4)', opacity: '0' },
+                },
+                'cn-caret-blink': {
+                    '0%,49%': { opacity: '1' },
+                    '50%,100%': { opacity: '0' },
+                },
+                'cn-ticker-x': {
+                    from: { transform: 'translateX(0)' },
+                    to: { transform: 'translateX(-50%)' },
+                },
             },
             animation: {
                 'cn-aurora': 'cn-aurora 18s ease-in-out infinite',
@@ -102,6 +154,18 @@ export default {
                 'cn-grid-pan': 'cn-grid-pan 8s linear infinite',
                 'cn-ping-ring': 'cn-ping-ring 3s ease-out infinite',
                 'cn-assistant-bob': 'cn-assistant-bob 4.5s ease-in-out infinite',
+                // ── upgrade: hiệu ứng AI/tech đan xen ──
+                'cn-scan-line': 'cn-scan-line 2.6s ease-in-out infinite',
+                'cn-data-stream': 'cn-data-stream 12s linear infinite',
+                'cn-text-shimmer': 'cn-text-shimmer 7s linear infinite',
+                'cn-border-rotate': 'cn-border-rotate 6s linear infinite',
+                'cn-hologram': 'cn-hologram 5s ease-in-out infinite',
+                'cn-pulse-grid': 'cn-pulse-grid 4.5s ease-in-out infinite',
+                'cn-reveal-up': 'cn-reveal-up 0.7s cubic-bezier(0.22,1,0.36,1) both',
+                'cn-reveal-left': 'cn-reveal-left 0.7s cubic-bezier(0.22,1,0.36,1) both',
+                'cn-reveal-right': 'cn-reveal-right 0.7s cubic-bezier(0.22,1,0.36,1) both',
+                'cn-ripple': 'cn-ripple 0.65s ease-out forwards',
+                'cn-caret-blink': 'cn-caret-blink 1s step-end infinite',
             },
         },
     },
