@@ -24,8 +24,6 @@ const H_GAP = 28;
 const V_GAP = 66;
 const PADDING = 56;
 
-let uid = 0;
-
 function memberPeople(team, rootId, rootName) {
     const leaderId = team.leader?.id ?? null;
     const out = [];
@@ -261,8 +259,6 @@ export function computeOrgGraph(trees, options = {}) {
         return { nodes: [], edges: [], width: 0, height: 0, matchCount: 0, hasFilter };
     }
 
-    // Fresh ids each compute so :key churn forces edge re-animation on relayout.
-    uid += 1;
     place(root, 0, 0);
     markMatches(root, f, hasFilter);
 
@@ -283,7 +279,7 @@ export function computeOrgGraph(trees, options = {}) {
     for (const n of nodes) {
         n.cx += dx;
         n.x = n.cx - n.w / 2;
-        n.revealKey = `${uid}-${n.id}`;
+        n.revealKey = n.id;
     }
     for (const e of edges) {
         e.x1 += dx;

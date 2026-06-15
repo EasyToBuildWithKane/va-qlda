@@ -199,8 +199,9 @@ function onTeamPrimary() {
     border-radius: 16px;
     animation: org-node-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
     animation-delay: var(--reveal-delay, 0ms);
-    transition: opacity 0.3s ease, transform 0.25s ease, filter 0.3s ease;
-    will-change: transform, opacity;
+    transition: opacity 0.3s ease, transform 0.25s ease, filter 0.3s ease,
+        left 0.35s cubic-bezier(0.22, 1, 0.36, 1), top 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: transform, opacity, left, top;
 }
 
 @keyframes org-node-in {
@@ -251,7 +252,6 @@ function onTeamPrimary() {
 /* Team card */
 .org-node--team .org-node__surface,
 .org-node--person {
-    position: relative;
     display: block;
     width: 100%;
     height: 100%;
@@ -267,6 +267,7 @@ function onTeamPrimary() {
 }
 
 .org-node--team .org-node__surface {
+    position: relative;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
