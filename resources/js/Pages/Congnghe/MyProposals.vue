@@ -45,6 +45,7 @@ const props = defineProps({
     filters: { type: Object, default: () => ({}) },
     summary: { type: Object, default: () => ({}) },
     options: { type: Object, default: () => ({}) },
+    chrome: { type: Object, default: () => ({ nav: {}, footer: {} }) },
 });
 
 const filterPanelDdRef = ref(null);
@@ -190,7 +191,7 @@ function ackLabel(row) {
 <template>
   <Head title="Đề xuất đã gửi" />
 
-  <CongnghePageShell>
+  <CongnghePageShell :chrome="chrome">
     <div class="relative z-20 mx-auto max-w-6xl">
       <header class="relative z-[2] mb-8 flex flex-col gap-4 sm:mb-10 sm:flex-row sm:items-end sm:justify-between">
         <div class="min-w-0 text-center sm:text-left">

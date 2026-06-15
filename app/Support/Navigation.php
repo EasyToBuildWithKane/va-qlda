@@ -51,7 +51,8 @@ class Navigation
         foreach (self::definition() as $group) {
             $items = array_values(array_filter(
                 $group['items'],
-                fn (array $item) => ! isset($item['roles']) || \in_array($role, $item['roles'], true),
+                fn (array $item) => (! isset($item['roles']) || \in_array($role, $item['roles'], true))
+                    && ! \in_array($role, $item['hideForRoles'] ?? [], true),
             ));
 
             if ($items === []) {
@@ -128,12 +129,14 @@ class Navigation
                         'icon' => 'send',
                         'href' => '/congnghe/de-xuat',
                         'status' => 'live',
+                        'hideForRoles' => ['admin'],
                     ],
                     [
                         'label' => 'Đề xuất của tôi',
                         'icon' => 'documents',
                         'href' => '/congnghe/de-xuat-cua-toi',
                         'status' => 'live',
+                        'hideForRoles' => ['admin'],
                     ],
                     [
                         'label' => 'Quản lý đề xuất',
@@ -141,6 +144,7 @@ class Navigation
                         'href' => '/congnghe/proposals',
                         'status' => 'live',
                         'roles' => ['admin', 'lead'],
+                        'badgeKey' => 'proposals_new',
                     ],
                     [
                         'label' => 'Quản trị trang',
@@ -381,6 +385,8 @@ class Navigation
                         'icon' => 'notifications',
                         'href' => '/notifications',
                         'status' => 'live',
+                        'hideForRoles' => ['admin'],
+                        'badgeKey' => 'notifications_unread',
                     ],
                     [
                         'label' => 'Trung tâm vận hành',

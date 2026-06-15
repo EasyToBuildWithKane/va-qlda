@@ -8,6 +8,7 @@ use App\Support\Auth\PortalDestination;
 use App\Support\Enums\BlockerSeverity;
 use App\Support\Enums\BlockerStatus;
 use App\Support\Navigation;
+use App\Support\NavigationBadges;
 use App\Support\Options;
 use App\Support\PublicMediaUrl;
 use Illuminate\Http\Request;
@@ -73,7 +74,7 @@ class HandleInertiaRequests extends Middleware
                 'url' => config('realtime.client_url'),
                 'websocket' => (bool) config('realtime.websocket'),
             ],
-            'nav' => $account ? Navigation::for($account) : [],
+            'nav' => $account ? NavigationBadges::decorate(Navigation::for($account), $account) : [],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),

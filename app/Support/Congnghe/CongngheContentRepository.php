@@ -80,6 +80,21 @@ class CongngheContentRepository
     }
 
     /**
+     * Nav + footer cho các trang con /congnghe (form, đề xuất của tôi, …).
+     *
+     * @return array{nav: array<string, mixed>, footer: array<string, mixed>}
+     */
+    public function portalChrome(): array
+    {
+        $overrides = $this->overrides();
+
+        return [
+            'nav' => $this->resolved('nav', $overrides),
+            'footer' => $this->resolved('footer', $overrides),
+        ];
+    }
+
+    /**
      * Payload đầy đủ cho trang quản trị (gồm cả section đang ẩn).
      *
      * @return array<int, array<string, mixed>>

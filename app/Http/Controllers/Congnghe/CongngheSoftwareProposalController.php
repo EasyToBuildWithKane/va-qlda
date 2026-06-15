@@ -11,6 +11,7 @@ use App\Models\Department;
 use App\Models\Employee;
 use App\Models\SystemAccount;
 use App\Services\Congnghe\CongngheSoftwareProposalRecorder;
+use App\Support\Congnghe\CongngheContentRepository;
 use App\Support\Enums\CongngheSoftwareProposalStatus;
 use App\Support\Options;
 use Illuminate\Database\Eloquent\Builder;
@@ -24,6 +25,7 @@ class CongngheSoftwareProposalController extends Controller
 {
     public function __construct(
         private readonly CongngheSoftwareProposalRecorder $recorder,
+        private readonly CongngheContentRepository $content,
     ) {}
 
     public function index(Request $request): Response
@@ -83,6 +85,7 @@ class CongngheSoftwareProposalController extends Controller
         $summaryQuery = clone $baseQuery;
 
         return Inertia::render('Congnghe/MyProposals', [
+            'chrome' => $this->content->portalChrome(),
             'proposals' => CongngheSoftwareProposalResource::collection($proposals),
             'filters' => (object) $request->only([
                 'status',
@@ -123,6 +126,7 @@ class CongngheSoftwareProposalController extends Controller
         $proposal->load('attachments');
 
         return Inertia::render('Congnghe/MyProposalShow', [
+            'chrome' => $this->content->portalChrome(),
             'proposal' => (new CongngheSoftwareProposalResource($proposal))->resolve(),
         ]);
     }
@@ -145,6 +149,7 @@ class CongngheSoftwareProposalController extends Controller
         }
 
         return Inertia::render('Congnghe/Proposal', [
+            'chrome' => $this->content->portalChrome(),
             'defaults' => [
                 'name' => $employee?->full_name ?? $account?->display_name ?? '',
                 'email' => $submitterEmail,

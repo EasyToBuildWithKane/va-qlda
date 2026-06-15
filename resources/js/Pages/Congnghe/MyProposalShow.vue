@@ -16,6 +16,7 @@ import {
 
 const props = defineProps({
     proposal: { type: Object, required: true },
+    chrome: { type: Object, default: () => ({ nav: {}, footer: {} }) },
 });
 
 const attachments = computed(() => props.proposal.attachments ?? []);
@@ -42,7 +43,7 @@ function formatSize(bytes) {
 <template>
   <Head :title="proposal.reference_code ?? 'Chi tiết đề xuất'" />
 
-  <CongnghePageShell>
+  <CongnghePageShell :chrome="chrome">
     <div class="mx-auto max-w-6xl">
       <header class="mb-8 sm:mb-10">
         <Link

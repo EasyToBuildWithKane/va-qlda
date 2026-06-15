@@ -270,7 +270,11 @@ class CongngheTest extends TestCase
         $this->actingAs($account, 'system')
             ->get(route('congnghe.proposal.mine'))
             ->assertOk()
-            ->assertInertia(fn ($page) => $page->component('Congnghe/MyProposals'));
+            ->assertInertia(fn ($page) => $page
+                ->component('Congnghe/MyProposals')
+                ->has('chrome.nav.links', 6)
+                ->has('chrome.footer.explore_links')
+            );
     }
 
     public function test_member_own_proposals_list_filters_by_email_sent(): void

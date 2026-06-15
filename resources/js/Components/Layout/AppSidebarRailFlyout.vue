@@ -77,7 +77,12 @@ const panelStyle = computed(() => ({
                 />
                 <span class="min-w-0 flex-1 truncate">{{ item.label }}</span>
                 <span
-                  v-if="showBadge(item, group)"
+                  v-if="item.badge"
+                  class="inline-flex min-w-[1.25rem] shrink-0 items-center justify-center rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white tabular-nums"
+                  :aria-label="`${item.badge} mục mới`"
+                >{{ item.badge > 99 ? '99+' : item.badge }}</span>
+                <span
+                  v-else-if="showBadge(item, group)"
                   class="h-1.5 w-1.5 shrink-0 rounded-full"
                   :class="statusOf(item).dot"
                 />

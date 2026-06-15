@@ -50,6 +50,8 @@ const itemTipSub = (item) => {
     if (props.showRailStatus(item)) return props.statusOf(item).label;
     return '';
 };
+
+const groupHasBadge = (group) => group.items.some((item) => item.badge);
 </script>
 
 <template>
@@ -92,6 +94,11 @@ const itemTipSub = (item) => {
           class="absolute -left-1 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-r-full bg-accent"
           aria-hidden="true"
         />
+        <span
+          v-if="groupHasBadge(group)"
+          class="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-brand"
+          aria-hidden="true"
+        />
         <AppIcon
           :name="group.icon"
           :size="14"
@@ -124,7 +131,12 @@ const itemTipSub = (item) => {
           :size="20"
         />
         <span
-          v-if="isPlanned(item)"
+          v-if="item.badge"
+          class="absolute -right-1 -top-1 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold leading-none text-white ring-2 ring-brand tabular-nums"
+          :aria-label="`${item.badge} mục mới`"
+        >{{ item.badge > 9 ? '9+' : item.badge }}</span>
+        <span
+          v-else-if="isPlanned(item)"
           class="absolute -right-0.5 -top-0.5 grid h-3.5 w-3.5 place-items-center rounded-full bg-amber-400/90 ring-[1.5px] ring-brand"
         >
           <AppIcon

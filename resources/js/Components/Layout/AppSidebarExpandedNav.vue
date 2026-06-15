@@ -115,7 +115,13 @@ function bindNavRef(el) {
                 <span class="flex-1 truncate">{{ item.label }}</span>
 
                 <span
-                  v-if="showBadge(item, group)"
+                  v-if="item.badge"
+                  class="ml-auto inline-flex min-w-[1.25rem] shrink-0 items-center justify-center rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white tabular-nums shadow-sm"
+                  :aria-label="`${item.badge} mục mới`"
+                >{{ item.badge > 99 ? '99+' : item.badge }}</span>
+
+                <span
+                  v-else-if="showBadge(item, group)"
                   class="ml-auto inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold leading-none"
                   :class="statusOf(item).pill"
                 >

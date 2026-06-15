@@ -20,6 +20,7 @@ const props = defineProps({
     },
     departmentOptions: { type: Array, default: () => [] },
     recipientEmail: { type: String, default: 'phongcongnghe@vaschools.edu.vn' },
+    chrome: { type: Object, default: () => ({ nav: {}, footer: {} }) },
 });
 
 const page = usePage();
@@ -183,7 +184,7 @@ watch(
     class="relative min-h-screen overflow-x-hidden bg-[#05060c] font-sans text-white antialiased selection:bg-brand/40 selection:text-white"
   >
     <AuroraBackground />
-    <CongngheNavbar />
+    <CongngheNavbar :content="chrome.nav" />
 
     <main class="relative z-10 px-4 pb-16 pt-28 sm:px-6 sm:pt-32 lg:pb-24">
       <div class="mx-auto max-w-6xl">
@@ -428,7 +429,7 @@ watch(
       </div>
     </main>
 
-    <CongngheFooter />
+    <CongngheFooter :content="chrome.footer" />
     <CongngheMascotAssistant proposal-page />
   </div>
 </template>

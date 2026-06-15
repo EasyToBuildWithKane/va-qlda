@@ -1,11 +1,30 @@
 <script setup>
 import { computed } from 'vue';
+import { usePage } from '@inertiajs/vue3';
 import { congngheBrand } from './congngheBrand.js';
 import CongngheBrandImage from './CongngheBrandImage.vue';
+
+const page = usePage();
 
 const props = defineProps({
     content: { type: Object, default: () => ({}) },
 });
+
+const onLanding = computed(() => {
+    const path = page.url.split('?')[0].replace(/\/$/, '') || '/';
+    return path === '/congnghe';
+});
+
+function resolveHref(href) {
+    const value = String(href ?? '').trim();
+    if (value === '') {
+        return value;
+    }
+    if (value.startsWith('#')) {
+        return onLanding.value ? value : `/congnghe${value}`;
+    }
+    return value;
+}
 
 const colHeadingClass =
     'min-h-[2.75rem] font-mono text-[11px] font-semibold uppercase leading-snug tracking-[0.18em] text-cyan-200/70';
@@ -13,8 +32,14 @@ const colHeadingClass =
 const brandTitle = computed(() => props.content?.brand_title ?? 'Vietnam America Schools');
 const brandTagline = computed(() => props.content?.brand_tagline ?? '');
 const brandDesc = computed(() => props.content?.brand_desc ?? '');
-const exploreLinks = computed(() => props.content?.explore_links ?? []);
-const contactLinks = computed(() => props.content?.contact_links ?? []);
+const exploreLinks = computed(() => (props.content?.explore_links ?? []).map((link) => ({
+    ...link,
+    href: resolveHref(link.href),
+})));
+const contactLinks = computed(() => (props.content?.contact_links ?? []).map((link) => ({
+    ...link,
+    href: resolveHref(link.href),
+})));
 const copyright = computed(() => props.content?.copyright ?? '');
 const portalLabel = computed(() => props.content?.portal_label ?? '');
 
