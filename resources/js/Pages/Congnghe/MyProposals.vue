@@ -114,11 +114,11 @@ function routeParams(resetPage = false) {
     return params;
 }
 
-function navigate(resetPage = false) {
+function navigate(resetPage = false, { preserveScroll = true } = {}) {
     router.get(route('congnghe.proposal.mine'), routeParams(resetPage), {
         preserveState: true,
         replace: true,
-        preserveScroll: true,
+        preserveScroll,
     });
 }
 
@@ -142,7 +142,7 @@ watch(
         filterForm.acknowledged,
         filterForm.has_attachments,
     ],
-    () => navigate(true),
+    () => navigate(true, { preserveScroll: false }),
 );
 watch(perPage, () => navigate(true));
 
@@ -192,7 +192,7 @@ function ackLabel(row) {
 
   <CongnghePageShell>
     <div class="relative z-20 mx-auto max-w-6xl">
-      <header class="mb-8 flex flex-col gap-4 sm:mb-10 sm:flex-row sm:items-end sm:justify-between">
+      <header class="relative z-[2] mb-8 flex flex-col gap-4 sm:mb-10 sm:flex-row sm:items-end sm:justify-between">
         <div class="min-w-0 text-center sm:text-left">
           <Link
             :href="route('congnghe')"

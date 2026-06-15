@@ -99,14 +99,27 @@ export function proposalStatusLabel(row) {
 /** @param {Record<string, unknown>|null|undefined} row */
 export function acknowledgementStatus(row) {
     const status = row?.status?.value ?? row?.status;
-    const ok = status != null && status !== '' && status !== 'new';
+    if (status == null || status === '' || status === 'new') {
+        return {
+            acknowledged: false,
+            tone: 'amber',
+            label: 'Chưa tiếp nhận',
+            detail: 'Đang chờ Phòng Công nghệ tiếp nhận',
+        };
+    }
+    if (status === 'triaged') {
+        return {
+            acknowledged: true,
+            tone: 'sky',
+            label: 'Đã tiếp nhận',
+            detail: 'Phòng Công nghệ đã ghi nhận và phân loại đề xuất',
+        };
+    }
     return {
-        acknowledged: ok,
-        tone: ok ? 'emerald' : 'amber',
-        label: ok ? 'Đã ghi nhận' : 'Chưa ghi nhận',
-        detail: ok
-            ? 'Phòng Công nghệ đã cập nhật tiến độ'
-            : 'Đang chờ Phòng Công nghệ tiếp nhận',
+        acknowledged: true,
+        tone: 'emerald',
+        label: 'Đã ghi nhận',
+        detail: 'Phòng Công nghệ đã cập nhật tiến độ',
     };
 }
 

@@ -9,9 +9,9 @@ use App\Models\Employee;
 use App\Models\Project;
 use App\Models\ProjectAttachment;
 use App\Models\Task;
-use App\Support\Enums\ProjectAttachmentCategory;
 use App\Support\Congnghe\CongngheContentRepository;
 use App\Support\Congnghe\CongngheIcons;
+use App\Support\Enums\ProjectAttachmentCategory;
 use App\Support\Enums\ProjectStatus;
 use App\Support\Enums\ProjectType;
 use App\Support\Enums\TaskStatus;
@@ -118,6 +118,9 @@ class CongngheController extends Controller
             ->all();
     }
 
+    /**
+     * @return \Illuminate\Database\Eloquent\Builder<Project>
+     */
     private function projectQuery(): \Illuminate\Database\Eloquent\Builder
     {
         return Project::query()->with([

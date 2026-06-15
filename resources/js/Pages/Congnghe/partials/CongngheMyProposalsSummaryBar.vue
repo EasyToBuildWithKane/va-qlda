@@ -12,6 +12,7 @@ const emit = defineEmits(['quick-filter']);
 const activeKey = computed(() => {
     if (!props.activeStatus) return 'total';
     if (props.activeStatus === 'new') return 'new';
+    if (props.activeStatus === 'triaged') return 'triaged';
     if (props.activeStatus === 'in_progress') return 'in_progress';
     if (props.activeStatus === 'done') return 'done';
     return '';
@@ -43,6 +44,17 @@ const cards = computed(() => {
             progress: pct(s.new ?? 0),
             interactive: true,
             payload: { status: 'new' },
+        },
+        {
+            key: 'triaged',
+            label: 'Đã tiếp nhận',
+            value: s.triaged ?? 0,
+            tone: 'sky',
+            icon: 'notifications',
+            sub: total ? `${pct(s.triaged ?? 0)}% tổng` : 'Bấm để lọc',
+            progress: pct(s.triaged ?? 0),
+            interactive: true,
+            payload: { status: 'triaged' },
         },
         {
             key: 'in_progress',
@@ -81,8 +93,8 @@ function onSelect(card) {
     eyebrow="Thống kê"
     heading="Tổng quan đề xuất đã gửi"
     hint="Thẻ viền nét đứt — bấm để lọc nhanh"
-    grid-class="grid-cols-2 sm:grid-cols-2 lg:grid-cols-4"
-    shell-class="cn-portal-kpi__shell kpi-strip relative mb-5 overflow-x-hidden rounded-2xl border border-white/10 bg-[#0a0c16]/75 px-4 py-4 shadow-[0_8px_40px_-12px_rgba(0,0,0,0.55)] backdrop-blur-xl sm:px-5 sm:py-5"
+    grid-class="grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5"
+    shell-class="cn-portal-kpi__shell kpi-strip relative mb-5 overflow-x-clip rounded-2xl border border-white/10 bg-[#0a0c16]/75 px-4 py-4 shadow-[0_8px_40px_-12px_rgba(0,0,0,0.55)] backdrop-blur-xl sm:px-5 sm:py-5"
     :cards="cards"
     :active-key="activeKey"
     :progress-denominator="summary.total ?? 0"

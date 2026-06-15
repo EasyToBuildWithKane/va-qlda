@@ -98,6 +98,7 @@ class CongngheSoftwareProposalController extends Controller
             'summary' => [
                 'total' => (clone $summaryQuery)->count(),
                 'new' => (clone $summaryQuery)->where('status', CongngheSoftwareProposalStatus::New)->count(),
+                'triaged' => (clone $summaryQuery)->where('status', CongngheSoftwareProposalStatus::Triaged)->count(),
                 'in_progress' => (clone $summaryQuery)->where('status', CongngheSoftwareProposalStatus::InProgress)->count(),
                 'done' => (clone $summaryQuery)->where('status', CongngheSoftwareProposalStatus::Done)->count(),
             ],

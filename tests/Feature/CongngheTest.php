@@ -61,6 +61,24 @@ class CongngheTest extends TestCase
             );
     }
 
+    public function test_congnghe_passes_editable_content_with_defaults(): void
+    {
+        $account = SystemAccount::factory()->role(SystemRole::Member)->create();
+
+        $this->actingAs($account, 'system')
+            ->get('/congnghe')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('content.hero')
+                ->has('content.nav')
+                ->has('content.footer')
+                ->has('content.sections', 9)
+                ->where('content.hero.title_prefix', 'Kiến tạo')
+                ->where('content.sections.0.key', 'about')
+                ->has('icons')
+            );
+    }
+
     public function test_whitelisted_email_sees_qlda_entry_on_congnghe(): void
     {
         $allowed = TechLoginAccess::allowedEmails()[0];

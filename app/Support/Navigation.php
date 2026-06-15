@@ -10,17 +10,25 @@ use App\Support\Auth\CoachingOnlyAccess;
  *
  * Structure  →  Group (collapsible) → Item (link)
  *
- * Nine workflow-aligned groups:
+ * Groups follow the user's mental model (business domains, not technical
+ * modules) so related features sit together — "tôi muốn …" navigation:
  *
- *   1. overview   — Tổng quan          dashboards
- *   2. daily      — Báo cáo ngày       daily report workflow
- *   3. projects   — Quản lý dự án      project & sprint management
- *   4. quality    — Chất lượng         feedback, action items
- *   5. people     — Nhân sự            departments, profiles, evaluations
- *   6. knowledge  — Tri thức           knowledge base
- *   7. coaching   — Coaching           dashboard & khóa học / buổi học
- *   8. ai         — AI & Chi phí       AI accounts & purchase proposals
- *   9. admin      — Quản trị           ops center, system config (admin only)
+ *    1. overview   — Tổng quan             bảng điều khiển
+ *    2. congnghe   — Trung tâm Công Nghệ   landing, đề xuất phần mềm, quản trị
+ *    3. projects   — Công việc & Dự án     dự án, vướng mắc
+ *    4. daily      — Báo cáo               báo cáo ngày: viết → duyệt
+ *    5. people     — Tổ chức & Nhân sự     sơ đồ, phòng ban, thành viên, hồ sơ
+ *    6. coaching   — Đào tạo & Coaching    dashboard, khóa học, buổi học
+ *    7. knowledge  — Tri thức & Nội dung   cơ sở tri thức
+ *    8. ai         — AI Workspace          tài khoản AI, phân tích, chi phí
+ *    9. quality    — Chất lượng & Phản hồi feedback
+ *   10. system     — Hệ thống              thông báo, vận hành, cấu hình
+ *
+ * Only live, route-backed destinations appear here (real routes only) so the
+ * sidebar stays low-noise; future features are added to their group when built.
+ *
+ * Group key `coaching` is load-bearing — CoachingOnlyAccess (in for()) and the
+ * coaching-only nav test key off it, so it must not be renamed.
  *
  * Item status flags (used by the sidebar for styling):
  *
@@ -28,9 +36,6 @@ use App\Support\Auth\CoachingOnlyAccess;
  *   dev         — đang phát triển
  *   maintenance — đang bảo trì
  *   planned     — sắp ra mắt (href = '#', disabled in UI)
- *
- * Planned items are placed in their logical group (not a separate "upcoming"
- * dump) so that users can see where each feature belongs in the workflow.
  */
 class Navigation
 {
@@ -95,13 +100,6 @@ class Navigation
                 'icon' => 'dashboard',
                 'items' => [
                     [
-                        'label' => 'Phòng Công Nghệ',
-                        'icon' => 'rocket',
-                        'href' => '/congnghe',
-                        'status' => 'live',
-                        'roles' => ['admin', 'lead', 'member', 'viewer'],
-                    ],
-                    [
                         'label' => 'Bảng điều khiển',
                         'icon' => 'overview',
                         'href' => '/dashboard',
@@ -112,11 +110,79 @@ class Navigation
             ],
 
             // ──────────────────────────────────────────────────────────────
-            // 2. BÁO CÁO NGÀY — daily report write → review → approve loop
+            // 2. TRUNG TÂM CÔNG NGHỆ — landing + đề xuất phần mềm + quản trị
+            // ──────────────────────────────────────────────────────────────
+            [
+                'key' => 'congnghe',
+                'heading' => 'Trung tâm Công Nghệ',
+                'icon' => 'rocket',
+                'items' => [
+                    [
+                        'label' => 'Landing Công Nghệ',
+                        'icon' => 'rocket',
+                        'href' => '/congnghe',
+                        'status' => 'live',
+                    ],
+                    [
+                        'label' => 'Gửi đề xuất phần mềm',
+                        'icon' => 'send',
+                        'href' => '/congnghe/de-xuat',
+                        'status' => 'live',
+                    ],
+                    [
+                        'label' => 'Đề xuất của tôi',
+                        'icon' => 'documents',
+                        'href' => '/congnghe/de-xuat-cua-toi',
+                        'status' => 'live',
+                    ],
+                    [
+                        'label' => 'Quản lý đề xuất',
+                        'icon' => 'template',
+                        'href' => '/congnghe/proposals',
+                        'status' => 'live',
+                        'roles' => ['admin', 'lead'],
+                    ],
+                    [
+                        'label' => 'Quản trị trang',
+                        'icon' => 'edit',
+                        'href' => '/congnghe/quan-tri',
+                        'status' => 'live',
+                        'roles' => ['admin'],
+                    ],
+                ],
+            ],
+
+            // ──────────────────────────────────────────────────────────────
+            // 3. CÔNG VIỆC & DỰ ÁN — projects, blockers
+            //    Sprints / tasks / board are accessed inside a project page,
+            //    so they are not top-level nav items here.
+            // ──────────────────────────────────────────────────────────────
+            [
+                'key' => 'projects',
+                'heading' => 'Công việc & Dự án',
+                'icon' => 'projects',
+                'items' => [
+                    [
+                        'label' => 'Tất cả dự án',
+                        'icon' => 'all-projects',
+                        'href' => '/projects',
+                        'status' => 'live',
+                    ],
+                    [
+                        'label' => 'Vướng mắc',
+                        'icon' => 'blockers',
+                        'href' => '/blockers',
+                        'status' => 'live',
+                    ],
+                ],
+            ],
+
+            // ──────────────────────────────────────────────────────────────
+            // 4. BÁO CÁO — daily report write → review → approve loop
             // ──────────────────────────────────────────────────────────────
             [
                 'key' => 'daily',
-                'heading' => 'Báo cáo ngày',
+                'heading' => 'Báo cáo',
                 'icon' => 'daily',
                 'items' => [
                     [
@@ -143,55 +209,20 @@ class Navigation
             ],
 
             // ──────────────────────────────────────────────────────────────
-            // 3. QUẢN LÝ DỰ ÁN — projects, blockers, portfolio
-            //    Sprints / tasks / board are accessed inside a project page,
-            //    so they are not top-level nav items here.
-            // ──────────────────────────────────────────────────────────────
-            [
-                'key' => 'projects',
-                'heading' => 'Quản lý dự án',
-                'icon' => 'projects',
-                'items' => [
-                    [
-                        'label' => 'Tất cả dự án',
-                        'icon' => 'all-projects',
-                        'href' => '/projects',
-                        'status' => 'live',
-                    ],
-                    [
-                        'label' => 'Vướng mắc',
-                        'icon' => 'blockers',
-                        'href' => '/blockers',
-                        'status' => 'live',
-                    ],
-                ],
-            ],
-
-            // ──────────────────────────────────────────────────────────────
-            // 4. CHẤT LƯỢNG — feedback, action items
-            // ──────────────────────────────────────────────────────────────
-            [
-                'key' => 'quality',
-                'heading' => 'Chất lượng',
-                'icon' => 'feedback',
-                'items' => [
-                    [
-                        'label' => 'Theo dõi phản hồi',
-                        'icon' => 'feedback',
-                        'href' => '/feedback',
-                        'status' => 'live',
-                    ],
-                ],
-            ],
-
-            // ──────────────────────────────────────────────────────────────
-            // 5. NHÂN SỰ & HIỆU SUẤT — org structure, members
+            // 5. TỔ CHỨC & NHÂN SỰ — org structure, members
             // ──────────────────────────────────────────────────────────────
             [
                 'key' => 'people',
-                'heading' => 'Nhân sự & Hiệu suất',
-                'icon' => 'members',
+                'heading' => 'Tổ chức & Nhân sự',
+                'icon' => 'org-teams',
                 'items' => [
+                    [
+                        'label' => 'Sơ đồ tổ chức',
+                        'icon' => 'org-teams',
+                        'href' => '/org-teams',
+                        'status' => 'live',
+                        'roles' => ['admin', 'lead'],
+                    ],
                     [
                         'label' => 'Phòng ban',
                         'icon' => 'department',
@@ -200,14 +231,7 @@ class Navigation
                         'roles' => ['admin', 'lead'],
                     ],
                     [
-                        'label' => 'Quản lý',
-                        'icon' => 'org-teams',
-                        'href' => '/org-teams',
-                        'status' => 'live',
-                        'roles' => ['admin', 'lead'],
-                    ],
-                    [
-                        'label' => 'Thành viên sơ đồ',
+                        'label' => 'Thành viên',
                         'icon' => 'members',
                         'href' => '/org-teams/members',
                         'status' => 'live',
@@ -222,34 +246,17 @@ class Navigation
             ],
 
             // ──────────────────────────────────────────────────────────────
-            // 6. TRI THỨC & CƠ SỞ — knowledge base
-            //    Collapsed by default to keep the sidebar clean.
-            // ──────────────────────────────────────────────────────────────
-            [
-                'key' => 'knowledge',
-                'heading' => 'Tri thức & Cơ sở',
-                'icon' => 'knowledge',
-                'defaultCollapsed' => true,
-                'items' => [
-                    [
-                        'label' => 'Cơ sở tri thức',
-                        'icon' => 'knowledge',
-                        'href' => '/knowledge-base',
-                        'status' => 'live',
-                    ],
-                ],
-            ],
-
-            // ──────────────────────────────────────────────────────────────
-            // 7. COACHING — dashboard tài chính & quản lý khóa / buổi học
+            // 6. ĐÀO TẠO & COACHING — dashboard, khóa học, buổi học
+            //    Group key `coaching` is load-bearing (CoachingOnlyAccess +
+            //    CoachingGoogleGuestTest) — do not rename.
             // ──────────────────────────────────────────────────────────────
             [
                 'key' => 'coaching',
-                'heading' => 'Coaching & Mentoring',
-                'icon' => 'weekly',
+                'heading' => 'Đào tạo & Coaching',
+                'icon' => 'learning',
                 'items' => [
                     [
-                        'label' => 'Dashboard',
+                        'label' => 'Coaching Dashboard',
                         'icon' => 'overview',
                         'href' => '/coaching',
                         'status' => 'live',
@@ -280,22 +287,42 @@ class Navigation
             ],
 
             // ──────────────────────────────────────────────────────────────
-            // 8. AI & CHI PHÍ — AI account pool + purchase proposals
+            // 7. TRI THỨC & NỘI DUNG — knowledge base
+            //    Collapsed by default to keep the sidebar clean.
+            // ──────────────────────────────────────────────────────────────
+            [
+                'key' => 'knowledge',
+                'heading' => 'Tri thức & Nội dung',
+                'icon' => 'knowledge',
+                'defaultCollapsed' => true,
+                'items' => [
+                    [
+                        'label' => 'Cơ sở tri thức',
+                        'icon' => 'knowledge',
+                        'href' => '/knowledge-base',
+                        'status' => 'live',
+                    ],
+                ],
+            ],
+
+            // ──────────────────────────────────────────────────────────────
+            // 8. AI WORKSPACE — AI account pool, analytics, chi phí
             //    All active accounts can request or view AI tools.
             // ──────────────────────────────────────────────────────────────
             [
                 'key' => 'ai',
-                'heading' => 'AI & Chi phí',
-                'icon' => 'cost',
+                'heading' => 'AI Workspace',
+                'icon' => 'sparkles',
+                'defaultCollapsed' => true,
                 'items' => [
                     [
-                        'label' => 'Dashboard AI',
+                        'label' => 'AI Dashboard',
                         'icon' => 'overview',
                         'href' => '/ai-accounts/dashboard',
                         'status' => 'live',
                     ],
                     [
-                        'label' => 'Báo cáo phân tích',
+                        'label' => 'Phân tích sử dụng',
                         'icon' => 'performance',
                         'href' => '/ai-accounts/analytics',
                         'status' => 'live',
@@ -307,7 +334,7 @@ class Navigation
                         'status' => 'live',
                     ],
                     [
-                        'label' => 'PĐX & ĐNTT',
+                        'label' => 'Chi phí AI',
                         'icon' => 'budget',
                         'href' => '/ai-accounts/cost-report',
                         'status' => 'live',
@@ -322,31 +349,42 @@ class Navigation
             ],
 
             // ──────────────────────────────────────────────────────────────
-            // 9. QUẢN TRỊ — operational monitoring + system config
-            //    Admin-only. Invisible to lead / member / viewer.
+            // 9. CHẤT LƯỢNG & PHẢN HỒI — feedback
             // ──────────────────────────────────────────────────────────────
             [
-                'key' => 'admin',
-                'heading' => 'Quản trị',
-                'icon' => 'settings',
+                'key' => 'quality',
+                'heading' => 'Chất lượng & Phản hồi',
+                'icon' => 'feedback',
+                'defaultCollapsed' => true,
                 'items' => [
                     [
-                        'label' => 'Trang Công Nghệ',
-                        'icon' => 'rocket',
-                        'href' => '/congnghe/quan-tri',
+                        'label' => 'Theo dõi phản hồi',
+                        'icon' => 'feedback',
+                        'href' => '/feedback',
                         'status' => 'live',
-                        'roles' => ['admin'],
                     ],
+                ],
+            ],
+
+            // ──────────────────────────────────────────────────────────────
+            // 10. HỆ THỐNG — notifications, ops monitoring, system config
+            //     Thông báo mở cho mọi vai trò; vận hành & cấu hình admin-only.
+            // ──────────────────────────────────────────────────────────────
+            [
+                'key' => 'system',
+                'heading' => 'Hệ thống',
+                'icon' => 'settings',
+                'defaultCollapsed' => true,
+                'items' => [
                     [
-                        'label' => 'Đề xuất phần mềm',
-                        'icon' => 'template',
-                        'href' => '/congnghe/proposals',
+                        'label' => 'Thông báo',
+                        'icon' => 'notifications',
+                        'href' => '/notifications',
                         'status' => 'live',
-                        'roles' => ['admin', 'lead'],
                     ],
                     [
                         'label' => 'Trung tâm vận hành',
-                        'icon' => 'notifications',
+                        'icon' => 'send',
                         'href' => '/notifications/manage',
                         'status' => 'live',
                         'roles' => ['admin'],
