@@ -5,6 +5,7 @@ import CongngheOrgChartBranch from './CongngheOrgChartBranch.vue';
 import { toIterableList, useOrgTeamRoster } from '@/modules/people/composables/useOrgTeamPeople.js';
 import {
     buildCongngheLeadershipLayout,
+    shouldShowLeadershipCardLabel,
     shouldShowRoleSubtitle,
     staffSectionGroups,
 } from './useCongngheOrgLayout.js';
@@ -138,10 +139,16 @@ function showRoleOnCard(card) {
                 />
               </span>
               <span class="min-w-0 flex-1">
-                <span class="line-clamp-1 text-[10px] font-semibold uppercase tracking-wide text-brand-100/85">
+                <span
+                  v-if="shouldShowLeadershipCardLabel(managerCard.branchTitle, 'Quản lý')"
+                  class="line-clamp-1 text-[10px] font-semibold uppercase tracking-wide text-brand-100/85"
+                >
                   {{ managerCard.branchTitle }}
                 </span>
-                <span class="mt-0.5 block text-sm font-semibold leading-tight text-white">
+                <span
+                  class="block text-sm font-semibold leading-tight text-white"
+                  :class="shouldShowLeadershipCardLabel(managerCard.branchTitle, 'Quản lý') ? 'mt-0.5' : ''"
+                >
                   {{ managerCard.person.name }}
                 </span>
                 <span
@@ -189,10 +196,16 @@ function showRoleOnCard(card) {
                   />
                 </span>
                 <span class="min-w-0 flex-1">
-                  <span class="line-clamp-1 text-[10px] font-semibold uppercase tracking-wide text-amber-100/80">
+                  <span
+                    v-if="shouldShowLeadershipCardLabel(card.branchTitle, leadershipEyebrow)"
+                    class="line-clamp-1 text-[10px] font-semibold uppercase tracking-wide text-amber-100/80"
+                  >
                     {{ card.branchTitle }}
                   </span>
-                  <span class="mt-0.5 block text-sm font-semibold leading-tight text-white">
+                  <span
+                    class="block text-sm font-semibold leading-tight text-white"
+                    :class="shouldShowLeadershipCardLabel(card.branchTitle, leadershipEyebrow) ? 'mt-0.5' : ''"
+                  >
                     {{ card.person.name }}
                   </span>
                   <span

@@ -1,11 +1,19 @@
 .cn-portal-datagrid {
     --cn-portal-input: rgb(255 255 255 / 0.04);
+    --cn-portal-border: rgb(255 255 255 / 0.12);
+    --cn-portal-muted: rgb(255 255 255 / 0.45);
+    --cn-portal-text: rgb(255 255 255 / 0.88);
 }
 
+/* Inputs: search, select, date */
 .cn-portal-datagrid .input {
-    border-color: rgb(255 255 255 / 0.12);
+    border-color: var(--cn-portal-border);
     background: var(--cn-portal-input);
-    color: rgb(255 255 255 / 0.92);
+    color: var(--cn-portal-text);
+}
+
+.cn-portal-datagrid select.input {
+    min-height: 2.5rem;
 }
 
 .cn-portal-datagrid .input::placeholder {
@@ -17,12 +25,63 @@
     --tw-ring-color: rgb(154 0 54 / 0.25);
 }
 
+.cn-portal-datagrid .va-filter-date-picker :deep(.dp__input) {
+    border-color: var(--cn-portal-border);
+    background: var(--cn-portal-input);
+    color: var(--cn-portal-text);
+    min-height: 2.5rem;
+}
+
+.cn-portal-datagrid .va-filter-date-picker :deep(.dp__input::placeholder) {
+    color: rgb(255 255 255 / 0.35);
+}
+
+.cn-portal-datagrid .va-filter-date-picker :deep(.dp__input_icon) {
+    color: rgb(255 255 255 / 0.4);
+}
+
+/* Toolbar — nút Lọc */
+.cn-portal-datagrid button.inline-flex.h-10.border-slate-200 {
+    border-color: var(--cn-portal-border);
+    background: rgb(255 255 255 / 0.05);
+    color: rgb(255 255 255 / 0.78);
+}
+
+.cn-portal-datagrid button.inline-flex.h-10.border-slate-200:hover {
+    border-color: rgb(255 255 255 / 0.22);
+    background: rgb(255 255 255 / 0.08);
+    color: rgb(255 255 255 / 0.95);
+}
+
+.cn-portal-datagrid button.inline-flex.h-10.border-brand\/40 {
+    border-color: rgb(154 0 54 / 0.45);
+    background: rgb(154 0 54 / 0.18);
+    color: rgb(255 180 200);
+}
+
+/* Table helpers */
 .cn-portal-datagrid [class*='text-slate-400'] {
     color: rgb(255 255 255 / 0.4);
 }
 
 .cn-portal-datagrid [class*='text-slate-600'] {
     color: rgb(255 255 255 / 0.55);
+}
+
+.cn-portal-datagrid [class*='text-slate-500'] {
+    color: var(--cn-portal-muted);
+}
+
+.cn-portal-datagrid [class*='text-slate-700'] {
+    color: rgb(255 255 255 / 0.82);
+}
+
+.cn-portal-datagrid [class*='text-slate-800'] {
+    color: rgb(255 255 255 / 0.92);
+}
+
+.cn-portal-datagrid [class*='text-slate-300'] {
+    color: rgb(255 255 255 / 0.28);
 }
 
 .cn-portal-datagrid [class*='hover:text-slate-600']:hover {
@@ -34,15 +93,24 @@
 }
 
 .cn-portal-datagrid [class*='bg-slate-50'] {
-    background: rgb(255 255 255 / 0.03);
+    background: rgb(255 255 255 / 0.06);
 }
 
-.cn-portal-datagrid [class*='border-slate-100'] {
-    border-color: rgb(255 255 255 / 0.08);
+.cn-portal-datagrid [class*='border-slate-100'],
+.cn-portal-datagrid [class*='border-slate-200'] {
+    border-color: rgb(255 255 255 / 0.1);
 }
 
 .cn-portal-datagrid [class*='divide-slate-100'] > :not([hidden]) ~ :not([hidden]) {
     border-color: rgb(255 255 255 / 0.06);
+}
+
+.cn-portal-datagrid [class*='bg-white'] {
+    background: rgb(255 255 255 / 0.05);
+}
+
+.cn-portal-datagrid [class*='hover:border-slate-300']:hover {
+    border-color: rgb(255 255 255 / 0.18);
 }
 
 .cn-portal-datagrid .text-brand {
@@ -55,8 +123,49 @@
 
 .cn-portal-datagrid [class*='bg-brand'][class*='text-white'] {
     background: rgb(154 0 54);
+    color: rgb(255 255 255);
 }
 
 .cn-portal-datagrid [class*='hover:bg-slate-100']:hover {
-    background: rgb(255 255 255 / 0.06);
+    background: rgb(255 255 255 / 0.1);
+}
+
+.cn-portal-datagrid [class*='ring-slate-200'] {
+    --tw-ring-color: rgb(255 255 255 / 0.12);
+}
+
+.cn-portal-datagrid [class*='focus:ring-brand'] {
+    --tw-ring-color: rgb(154 0 54 / 0.35);
+}
+
+/* Phân trang */
+.cn-portal-datagrid .cn-portal-datagrid__footer > div {
+    border-color: rgb(255 255 255 / 0.1) !important;
+    background: rgb(255 255 255 / 0.02) !important;
+}
+
+.cn-portal-datagrid .cn-portal-datagrid__footer nav {
+    border-color: rgb(255 255 255 / 0.12) !important;
+    background: rgb(255 255 255 / 0.04) !important;
+    box-shadow: none;
+}
+
+.cn-portal-datagrid .cn-portal-datagrid__footer label.inline-flex {
+    border-color: rgb(255 255 255 / 0.12) !important;
+    background: rgb(255 255 255 / 0.04) !important;
+    color: rgb(255 255 255 / 0.65) !important;
+}
+
+.cn-portal-datagrid .cn-portal-datagrid__footer label select {
+    background: rgb(255 255 255 / 0.06) !important;
+    color: rgb(255 255 255 / 0.9) !important;
+    --tw-ring-color: rgb(255 255 255 / 0.15) !important;
+}
+
+.cn-portal-datagrid .cn-portal-datagrid__footer p {
+    color: var(--cn-portal-muted) !important;
+}
+
+.cn-portal-datagrid .cn-portal-datagrid__footer p span.font-semibold {
+    color: rgb(255 255 255 / 0.88) !important;
 }

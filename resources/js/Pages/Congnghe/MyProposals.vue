@@ -15,7 +15,16 @@ import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import FilterDatePicker from '@/shared/ui/FilterDatePicker.vue';
 import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
-import { datetime } from '@/composables/useFormat';
+import {
+    acknowledgementStatus,
+    attachmentCountText,
+    departmentText,
+    emailPcnStatus,
+    referenceCodeLabel,
+    submitterEmailText,
+    submitterNameText,
+    submittedDateText,
+} from './partials/congngheProposalDisplay.js';
 
 const PROPOSAL_CREATE_HREF = '/congnghe/de-xuat';
 
@@ -155,31 +164,34 @@ function onToolbarClickOutside(e) {
 onMounted(() => document.addEventListener('mousedown', onToolbarClickOutside));
 onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOutside));
 
-function emailSent(row) {
-    return Boolean(row.email_sent_at);
-}
-
-function acknowledged(row) {
-    const status = row.status?.value ?? row.status;
-    return status !== 'new';
-}
-
 function openDetail(row) {
     activeProposal.value = row;
     detailOpen.value = true;
 }
 
 function closeDetail() {
-    detailOpen.value = false;
     activeProposal.value = null;
+    detailOpen.value = false;
 }
 
 function submitterName(row) {
-    return row.submitter_name?.trim() || '—';
+    return submitterNameText(row.submitter_name);
 }
 
 function submitterEmail(row) {
-    return row.submitter_email?.trim() || '—';
+    return submitterEmailText(row.submitter_email);
+}
+
+function departmentLabel(row) {
+    return departmentText(row.department);
+}
+
+function emailPcnLabel(row) {
+    return emailPcnStatus(row);
+}
+
+function ackLabel(row) {
+    return acknowledgementStatus(row);
 }
 </script>
 
@@ -233,50 +245,50 @@ function submitterEmail(row) {
       />
 
       <div class="cn-portal-datagrid overflow-hidden rounded-2xl border border-white/10 bg-[#0a0c16]/90 shadow-[0_8px_40px_-12px_rgba(0,0,0,0.55)] backdrop-blur-xl">
-        <div class="border-b border-white/10 px-5 py-4">
-          <div class="flex w-full min-w-0 flex-wrap items-center gap-2 lg:flex-nowrap">
-            <div class="min-w-0 w-full basis-full lg:flex-1 lg:basis-auto">
-              <DatagridToolbarSearch
-                v-model="filterForm.q"
-                input-id="cn-my-proposals-q"
-                hide-label
-                stretch
-                inline-actions
-                input-height="h-10"
-                placeholder="Tìm mã, tiêu đề, người gửi, email, phòng ban…"
-                aria-label="Tìm đề xuất của tôi"
-              />
-            </div>
-            <div
-              ref="filterPanelDdRef"
-              class="relative shrink-0"
-            >
-              <DatagridToolbarActionButton
-                label="Lọc"
-                icon="filter"
-                :active="showFilterPanelDd"
-                :badge="enabledFilterControlCount > 0 ? enabledFilterControlCount : null"
-                @click="openFilterPanel()"
-              />
-              <FilterVisibilityDropdown
-                v-model="visibleFilters"
-                :show="showFilterPanelDd"
-                :anchor-ref="filterPanelDdRef"
-                :controls="FILTER_CONTROLS"
-                input-id-prefix="cn-my-proposal-filter-vis"
-                @persist="persistVisibleFilters"
-              />
+        <div class="border-b border-white/10">
+          <div class="px-5 py-4">
+            <div class="flex w-full min-w-0 flex-wrap items-center gap-2 lg:flex-nowrap">
+              <div class="min-w-0 w-full basis-full lg:flex-1 lg:basis-auto">
+                <DatagridToolbarSearch
+                  v-model="filterForm.q"
+                  input-id="cn-my-proposals-q"
+                  hide-label
+                  stretch
+                  inline-actions
+                  input-height="h-10"
+                  placeholder="Tìm mã, tiêu đề, người gửi, email, phòng ban…"
+                  aria-label="Tìm đề xuất của tôi"
+                />
+              </div>
+              <div
+                ref="filterPanelDdRef"
+                class="relative shrink-0"
+              >
+                <DatagridToolbarActionButton
+                  icon="filter"
+                  :active="showFilterPanelDd"
+                  :title="`Hiển thị bộ lọc (${enabledFilterControlCount}/${FILTER_CONTROLS.length})`"
+                  @click="openFilterPanel()"
+                >
+                  Lọc
+                </DatagridToolbarActionButton>
+                <FilterVisibilityDropdown
+                  v-model="visibleFilters"
+                  :show="showFilterPanelDd"
+                  :anchor-ref="filterPanelDdRef"
+                  :controls="FILTER_CONTROLS"
+                  input-id-prefix="cn-my-proposal-filter-vis"
+                  @persist="persistVisibleFilters"
+                />
+              </div>
             </div>
           </div>
 
           <div
             v-if="hasFilterRow"
-            class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6"
+            class="grid grid-cols-1 gap-3 border-t border-white/10 px-5 py-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6"
           >
-            <DatagridFilterField
-              v-if="visibleFilters.status"
-              label="Trạng thái"
-            >
+            <DatagridFilterField v-if="visibleFilters.status">
               <select
                 v-model="filterForm.status"
                 :class="FILTER_CONTROL_CLASS"
@@ -294,10 +306,7 @@ function submitterEmail(row) {
               </select>
             </DatagridFilterField>
 
-            <DatagridFilterField
-              v-if="visibleFilters.department"
-              label="Phòng ban"
-            >
+            <DatagridFilterField v-if="visibleFilters.department">
               <select
                 v-model="filterForm.department"
                 :class="FILTER_CONTROL_CLASS"
@@ -315,10 +324,7 @@ function submitterEmail(row) {
               </select>
             </DatagridFilterField>
 
-            <DatagridFilterField
-              v-if="visibleFilters.email_sent"
-              label="Email PCN"
-            >
+            <DatagridFilterField v-if="visibleFilters.email_sent">
               <select
                 v-model="filterForm.email_sent"
                 :class="FILTER_CONTROL_CLASS"
@@ -335,10 +341,7 @@ function submitterEmail(row) {
               </select>
             </DatagridFilterField>
 
-            <DatagridFilterField
-              v-if="visibleFilters.acknowledged"
-              label="Tiếp nhận"
-            >
+            <DatagridFilterField v-if="visibleFilters.acknowledged">
               <select
                 v-model="filterForm.acknowledged"
                 :class="FILTER_CONTROL_CLASS"
@@ -355,10 +358,7 @@ function submitterEmail(row) {
               </select>
             </DatagridFilterField>
 
-            <DatagridFilterField
-              v-if="visibleFilters.has_attachments"
-              label="File đính kèm"
-            >
+            <DatagridFilterField v-if="visibleFilters.has_attachments">
               <select
                 v-model="filterForm.has_attachments"
                 :class="FILTER_CONTROL_CLASS"
@@ -453,7 +453,7 @@ function submitterEmail(row) {
                     class="font-semibold text-brand hover:underline"
                     @click="openDetail(row)"
                   >
-                    {{ row.reference_code ?? '—' }}
+                    {{ referenceCodeLabel(row.reference_code) }}
                   </button>
                 </td>
                 <td class="max-w-[220px] px-5 py-3">
@@ -474,7 +474,7 @@ function submitterEmail(row) {
                   </div>
                 </td>
                 <td class="px-5 py-3 text-white/60">
-                  {{ row.department }}
+                  {{ departmentLabel(row) }}
                 </td>
                 <td class="px-5 py-3">
                   <Badge
@@ -486,25 +486,28 @@ function submitterEmail(row) {
                 </td>
                 <td class="px-5 py-3">
                   <Badge
-                    :tone="acknowledged(row) ? 'emerald' : 'amber'"
+                    :tone="ackLabel(row).tone"
                     size="sm"
                   >
-                    {{ acknowledged(row) ? 'Đã ghi nhận' : 'Chưa' }}
+                    {{ ackLabel(row).label }}
                   </Badge>
                 </td>
                 <td class="px-5 py-3">
                   <Badge
-                    :tone="emailSent(row) ? 'emerald' : 'amber'"
+                    :tone="emailPcnLabel(row).tone"
                     size="sm"
                   >
-                    {{ emailSent(row) ? 'Đã gửi' : 'Chưa gửi' }}
+                    {{ emailPcnLabel(row).label }}
                   </Badge>
+                  <p class="mt-1 text-[11px] leading-snug text-white/45">
+                    {{ emailPcnLabel(row).detail }}
+                  </p>
+                </td>
+                <td class="px-5 py-3 text-sm text-white/60">
+                  {{ attachmentCountText(row.attachments_count) }}
                 </td>
                 <td class="px-5 py-3 tabular-nums text-white/60">
-                  {{ row.attachments_count ?? 0 }}
-                </td>
-                <td class="px-5 py-3 tabular-nums text-white/60">
-                  {{ datetime(row.created_at) }}
+                  {{ submittedDateText(row.created_at) }}
                 </td>
               </tr>
               <tr v-if="!proposals.data?.length">
@@ -525,13 +528,15 @@ function submitterEmail(row) {
           </table>
         </div>
 
-        <DatagridPaginationFooter
-          variant="bar"
-          :meta="proposals.meta"
-          :per-page="perPage"
-          :per-page-options="PER_PAGE_OPTIONS"
-          @update:per-page="(v) => { perPage = v; }"
-        />
+        <div class="cn-portal-datagrid__footer">
+          <DatagridPaginationFooter
+            variant="bar"
+            :meta="proposals.meta"
+            :per-page="perPage"
+            :per-page-options="PER_PAGE_OPTIONS"
+            @update:per-page="(v) => { perPage = v; }"
+          />
+        </div>
       </div>
     </div>
 

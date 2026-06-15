@@ -70,6 +70,25 @@ export function shouldShowRoleSubtitle(branchTitle, roleTitle) {
     return true;
 }
 
+/**
+ * Ẩn nhãn nhỏ trên thẻ lãnh đạo khi trùng eyebrow phía trên (vd. «Trưởng nhóm»).
+ *
+ * @param {string|null|undefined} branchTitle
+ * @param {string|null|undefined} sectionEyebrow
+ */
+export function shouldShowLeadershipCardLabel(branchTitle, sectionEyebrow) {
+    const branch = (branchTitle ?? '').trim();
+    if (!branch) {
+        return false;
+    }
+    const eyebrow = (sectionEyebrow ?? '').trim();
+    if (!eyebrow) {
+        return true;
+    }
+
+    return normalizeTitle(branch) !== normalizeTitle(eyebrow);
+}
+
 /** @param {number|string|null|undefined} id */
 function employeeIdKey(id) {
     const n = Number(id);

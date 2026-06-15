@@ -4,7 +4,15 @@ import { Head, Link } from '@inertiajs/vue3';
 import CongnghePageShell from './partials/CongnghePageShell.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import Badge from '@/shared/ui/Badge.vue';
-import { datetime } from '@/composables/useFormat';
+import {
+    acknowledgementStatus,
+    emailPcnStatus,
+    referenceCodeLabel,
+    submitterEmailText,
+    submitterNameText,
+    departmentText,
+    submittedAtText,
+} from './partials/congngheProposalDisplay.js';
 
 const props = defineProps({
     proposal: { type: Object, required: true },
@@ -22,7 +30,11 @@ const attachments = computed(() => props.proposal.attachments ?? []);
 
 const statusValue = computed(() => props.proposal.status?.value ?? props.proposal.status);
 
-const acknowledged = computed(() => statusValue.value !== 'new');
+const ack = computed(() => acknowledgementStatus(props.proposal));
+
+const emailPcn = computed(() => emailPcnStatus(props.proposal));
+
+const referenceLabel = computed(() => referenceCodeLabel(props.proposal.reference_code));
 
 function formatSize(bytes) {
     if (!bytes) return '0 B';
@@ -56,11 +68,8 @@ function formatSize(bytes) {
         <h1 class="mt-4 font-display text-2xl font-bold text-white sm:text-3xl">
           {{ proposal.title }}
         </h1>
-        <p
-          v-if="proposal.reference_code"
-          class="mt-2 font-mono text-sm text-cyan-200/70"
-        >
-          Mã {{ proposal.reference_code }}
+        <p class="mt-2 font-mono text-sm text-cyan-200/70">
+          {{ referenceLabel }}
         </p>
       </header>
 
@@ -72,10 +81,10 @@ function formatSize(bytes) {
                 Người gửi
               </dt>
               <dd class="mt-1 font-medium text-white">
-                {{ proposal.submitter_name || '—' }}
+                {{ submitterNameText(proposal.submitter_name) }}
               </dd>
               <dd class="mt-0.5 text-sm text-white/55">
-                {{ proposal.submitter_email || '—' }}
+                {{ submitterEmailText(proposal.submitter_email) }}
               </dd>
             </div>
             <div>
@@ -83,7 +92,7 @@ function formatSize(bytes) {
                 Thời điểm gửi
               </dt>
               <dd class="mt-1 text-white tabular-nums">
-                {{ datetime(proposal.created_at) }}
+                {{ submittedAtText(proposal.created_at) }}
               </dd>
             </div>
             <div>
@@ -91,7 +100,7 @@ function formatSize(bytes) {
                 Phòng ban
               </dt>
               <dd class="mt-1 text-white">
-                {{ proposal.department }}
+                {{ departmentText(proposal.department) }}
               </dd>
             </div>
             <div>
@@ -164,14 +173,14 @@ function formatSize(bytes) {
             </h2>
             <p class="mt-3">
               <Badge
-                :tone="acknowledged ? 'emerald' : 'amber'"
+                :tone="ack.tone"
                 size="sm"
               >
-                {{ acknowledged ? 'Đã ghi nhận' : 'Chưa ghi nhận' }}
+                {{ ack.label }}
               </Badge>
             </p>
             <p class="mt-2 text-xs text-white/45">
-              Trạng thái khác «Mới» nghĩa là Phòng Công nghệ đã cập nhật tiến độ.
+              {{ ack.detail }}
             </p>
           </div>
 
@@ -181,19 +190,14 @@ function formatSize(bytes) {
             </h2>
             <p class="mt-3">
               <Badge
-                v-if="proposal.email_sent_at"
-                tone="emerald"
+                :tone="emailPcn.tone"
                 size="sm"
               >
-                Đã gửi {{ datetime(proposal.email_sent_at) }}
+                {{ emailPcn.label }}
               </Badge>
-              <Badge
-                v-else
-                tone="amber"
-                size="sm"
-              >
-                Chưa gửi
-              </Badge>
+            </p>
+            <p class="mt-2 text-sm text-white/60">
+              {{ emailPcn.detail }}
             </p>
           </div>
 
