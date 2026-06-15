@@ -90,11 +90,11 @@ const editingSkills = ref(false);
         </button>
       </div>
 
-      <div class="space-y-5">
+      <div class="grid grid-cols-1 gap-5 lg:grid-cols-2 lg:items-start">
         <SkillMatrix :skills="profile.skills" />
         <SkillRadar :radar="profile.stats?.skill_radar || []" />
-        <ProfileInsights :insights="profile.stats?.insights || []" />
       </div>
+      <ProfileInsights :insights="profile.stats?.insights || []" />
     </div>
 
     <!-- Thành tích -->

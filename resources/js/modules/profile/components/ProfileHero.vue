@@ -4,6 +4,7 @@ import AppIcon from '@/Components/AppIcon.vue';
 import Badge from '@/shared/ui/Badge.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
 import { profileDisplayValue } from '../utils/profileDisplay';
+import { formatProfileProjectTeams } from '../utils/profileTeams';
 import { useProfileSectionCollapse } from '../composables/useProfileSectionCollapse';
 
 const props = defineProps({
@@ -13,18 +14,12 @@ const props = defineProps({
 
 defineEmits(['edit']);
 
-const leadTeam = computed(() => props.profile.teams?.find((t) => t.is_leader) ?? null);
-const primaryTeam = computed(() => props.profile.teams?.[0] ?? null);
-
 const roleTitle = computed(() => profileDisplayValue(props.profile.role_title));
 const roleIsEmpty = computed(() => roleTitle.value === profileDisplayValue(null));
 
 const teamLabel = computed(() => {
-    if (!primaryTeam.value) {
-        return profileDisplayValue(null);
-    }
-    const suffix = leadTeam.value ? ' · Quản lý nhóm' : '';
-    return `${primaryTeam.value.name}${suffix}`;
+    const formatted = formatProfileProjectTeams(props.profile.teams);
+    return formatted ?? profileDisplayValue(null);
 });
 
 const specRows = computed(() => [
@@ -49,8 +44,8 @@ const specRows = computed(() => [
     },
     {
         icon: 'org-teams',
-        label: 'Nhóm QLDA',
-        value: primaryTeam.value ? teamLabel.value : null,
+        label: 'Nhóm quản lý dự án',
+        value: teamLabel.value !== profileDisplayValue(null) ? teamLabel.value : null,
     },
     {
         icon: 'performance',

@@ -7,6 +7,7 @@ use App\Models\AiAccount;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\OrgTeam;
+use App\Models\OrgTeamMember;
 use App\Models\Project;
 use App\Models\Task;
 use App\Support\Enums\ProjectStatus;
@@ -14,6 +15,7 @@ use App\Support\Enums\ProjectType;
 use App\Support\Enums\TaskStatus;
 use App\Support\OrgTeam\OrgTeamOverviewBuilder;
 use App\Support\OrgTeamTreeBuilder;
+use App\Support\PublicMediaUrl;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -35,6 +37,7 @@ class CongngheController extends Controller
             'org' => [
                 'overview' => OrgTeamOverviewBuilder::build(),
                 'forest' => OrgTeamTreeBuilder::forest(),
+                'people' => $this->orgPeople(),
             ],
         ]);
     }
@@ -67,9 +70,10 @@ class CongngheController extends Controller
         return collect(ProjectType::cases())
             ->map(function (ProjectType $type): array {
                 $items = Project::where('type', $type)
+                    ->with('manager:id,full_name,avatar_path,role_title')
                     ->orderByDesc('updated_at')
                     ->take(6)
-                    ->get(['id', 'name', 'code', 'color', 'status', 'type'])
+                    ->get(['id', 'name', 'code', 'description', 'color', 'status', 'type', 'manager_id'])
                     ->map(fn (Project $p) => $this->projectCard($p))
                     ->values();
 

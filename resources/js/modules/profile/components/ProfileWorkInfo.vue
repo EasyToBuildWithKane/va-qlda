@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import ProfileInfoPanel from './ProfileInfoPanel.vue';
 import ProfileFieldList from './ProfileFieldList.vue';
+import { formatProfileProjectTeams } from '../utils/profileTeams';
 
 const props = defineProps({
     profile: { type: Object, required: true },
@@ -9,7 +10,6 @@ const props = defineProps({
 
 const fields = computed(() => {
     const p = props.profile;
-    const primaryTeam = p.teams?.[0] ?? null;
     return [
         {
             label: 'Vai trò hệ thống',
@@ -19,7 +19,7 @@ const fields = computed(() => {
             label: 'Cấp bậc',
             value: p.seniority?.label ?? null,
         },
-        { label: 'Nhóm QLDA', value: primaryTeam?.name ?? null },
+        { label: 'Nhóm quản lý dự án', value: formatProfileProjectTeams(p.teams) },
         { label: 'Quản lý trực tiếp', value: p.manager?.name ?? null },
         {
             label: 'Trạng thái',

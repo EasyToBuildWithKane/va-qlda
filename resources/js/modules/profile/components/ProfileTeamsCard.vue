@@ -16,7 +16,7 @@ const hasAny = () => props.teams.length || props.manager;
     v-if="hasAny()"
     title="Tổ chức"
     icon="org-teams"
-    subtitle="Nhóm QLDA và quản lý trực tiếp"
+    subtitle="Nhóm quản lý dự án và quản lý trực tiếp"
     section-key="profile-teams"
     :collapsed-badge="teams.length ? `${teams.length} nhóm` : null"
   >
@@ -47,7 +47,7 @@ const hasAny = () => props.teams.length || props.manager;
 
       <div v-if="teams.length">
         <p class="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
-          Nhóm tham gia
+          Nhóm quản lý dự án
         </p>
         <ul class="mt-2 space-y-2">
           <li
