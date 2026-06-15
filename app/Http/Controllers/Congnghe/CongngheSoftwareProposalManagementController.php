@@ -50,8 +50,10 @@ class CongngheSoftwareProposalManagementController extends Controller
             'summary' => [
                 'total' => CongngheSoftwareProposal::count(),
                 'new' => CongngheSoftwareProposal::where('status', CongngheSoftwareProposalStatus::New)->count(),
+                'triaged' => CongngheSoftwareProposal::where('status', CongngheSoftwareProposalStatus::Triaged)->count(),
                 'in_progress' => CongngheSoftwareProposal::where('status', CongngheSoftwareProposalStatus::InProgress)->count(),
                 'done' => CongngheSoftwareProposal::where('status', CongngheSoftwareProposalStatus::Done)->count(),
+                'rejected' => CongngheSoftwareProposal::where('status', CongngheSoftwareProposalStatus::Rejected)->count(),
                 'email_pending' => CongngheSoftwareProposal::whereNull('email_sent_at')->count(),
             ],
             'options' => [

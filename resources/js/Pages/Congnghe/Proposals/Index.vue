@@ -4,9 +4,9 @@ import {
 } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
-import AppIcon from '@/Components/AppIcon.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import Badge from '@/shared/ui/Badge.vue';
+import CongngheSoftwareProposalsSummaryBar from '@/Pages/Congnghe/partials/CongngheSoftwareProposalsSummaryBar.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import DatagridToolbarActionButton from '@/shared/ui/DatagridToolbarActionButton.vue';
 import DatagridFilterField from '@/shared/ui/DatagridFilterField.vue';
@@ -57,6 +57,8 @@ const filterForm = reactive({
     q: props.filters.q ?? '',
 });
 
+const activeEmailPending = computed(() => filterForm.email_pending === '1');
+
 const listBadge = computed(() => props.summary.new ?? props.summary.total ?? null);
 
 function routeParams(resetPage = false) {
@@ -90,6 +92,11 @@ watch(
 
 watch(perPage, () => navigate(true));
 
+function onQuickFilter({ status, email_pending }) {
+    filterForm.status = status ?? '';
+    filterForm.email_pending = email_pending ? '1' : '';
+}
+
 function onToolbarClickOutside(e) {
     if (e.target.closest?.('[data-filter-visibility-panel]')) return;
     if (filterPanelDdRef.value && !filterPanelDdRef.value.contains(e.target)) {
@@ -113,66 +120,24 @@ function statusLabel(value) {
     <template #header>
       <PageHeader
         title="Đề xuất phần mềm"
-        subtitle="Tiếp nhận yêu cầu phần mềm từ cổng Phòng Công nghệ"
-        icon="rocket"
+        subtitle="Quản lý đề xuất giải pháp phần mềm gửi tới Phòng Công nghệ"
+        icon="template"
         icon-color="brand"
         :badge="listBadge"
-      >
-        <Link
-          href="/congnghe/de-xuat"
-          class="btn-ghost inline-flex h-9 shrink-0 items-center gap-1.5 px-3 text-xs font-semibold"
-        >
-          <AppIcon
-            name="add"
-            :size="15"
-          />
-          Form công khai
-        </Link>
-      </PageHeader>
+      />
     </template>
 
-    <section
-      class="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4"
-      aria-label="Thống kê đề xuất"
-    >
-      <div class="rounded-card border border-slate-200/80 bg-white px-4 py-3 shadow-sm">
-        <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-          Tổng
-        </p>
-        <p class="font-display text-2xl tabular-nums text-slate-900">
-          {{ summary.total ?? 0 }}
-        </p>
-      </div>
-      <div class="rounded-card border border-violet-200/80 bg-violet-50/50 px-4 py-3 shadow-sm">
-        <p class="text-[10px] font-semibold uppercase tracking-wide text-violet-700/80">
-          Mới
-        </p>
-        <p class="font-display text-2xl tabular-nums text-violet-900">
-          {{ summary.new ?? 0 }}
-        </p>
-      </div>
-      <div class="rounded-card border border-amber-200/80 bg-amber-50/40 px-4 py-3 shadow-sm">
-        <p class="text-[10px] font-semibold uppercase tracking-wide text-amber-800/80">
-          Đang xử lý
-        </p>
-        <p class="font-display text-2xl tabular-nums text-amber-950">
-          {{ summary.in_progress ?? 0 }}
-        </p>
-      </div>
-      <div class="rounded-card border border-emerald-200/80 bg-emerald-50/40 px-4 py-3 shadow-sm">
-        <p class="text-[10px] font-semibold uppercase tracking-wide text-emerald-800/80">
-          Hoàn thành
-        </p>
-        <p class="font-display text-2xl tabular-nums text-emerald-950">
-          {{ summary.done ?? 0 }}
-        </p>
-      </div>
-    </section>
+    <CongngheSoftwareProposalsSummaryBar
+      :summary="summary"
+      :active-status="filterForm.status"
+      :active-email-pending="activeEmailPending"
+      @quick-filter="onQuickFilter"
+    />
 
     <div class="card overflow-hidden">
       <div class="border-b border-slate-100 px-5 py-4">
         <div class="flex w-full min-w-0 flex-wrap items-center gap-2 lg:flex-nowrap">
-          <div class="min-w-0 w-full basis-full lg:flex-1 lg:basis-auto">
+          <div class="min-w-0 w-full basis-full lg:min-w-[10rem] lg:flex-1 lg:basis-auto">
             <DatagridToolbarSearch
               v-model="filterForm.q"
               hide-label
@@ -183,31 +148,33 @@ function statusLabel(value) {
               aria-label="Tìm đề xuất"
             />
           </div>
-          <div
-            ref="filterPanelDdRef"
-            class="relative shrink-0"
-          >
-            <DatagridToolbarActionButton
-              label="Lọc"
-              icon="filter"
-              :active="showFilterPanelDd"
-              :badge="enabledFilterControlCount > 0 ? enabledFilterControlCount : null"
-              @click="openFilterPanel()"
-            />
-            <FilterVisibilityDropdown
-              v-model="visibleFilters"
-              :show="showFilterPanelDd"
-              :anchor-ref="filterPanelDdRef"
-              :controls="FILTER_CONTROLS"
-              input-id-prefix="cn-proposal-filter-vis"
-              @persist="persistVisibleFilters"
-            />
+          <div class="flex shrink-0 items-center gap-2">
+            <div
+              ref="filterPanelDdRef"
+              class="relative shrink-0"
+            >
+              <DatagridToolbarActionButton
+                label="Lọc"
+                icon="filter"
+                :active="showFilterPanelDd"
+                :badge="enabledFilterControlCount > 0 ? enabledFilterControlCount : null"
+                @click="openFilterPanel()"
+              />
+              <FilterVisibilityDropdown
+                v-model="visibleFilters"
+                :show="showFilterPanelDd"
+                :anchor-ref="filterPanelDdRef"
+                :controls="FILTER_CONTROLS"
+                input-id-prefix="cn-proposal-filter-vis"
+                @persist="persistVisibleFilters"
+              />
+            </div>
           </div>
         </div>
 
         <div
           v-if="hasFilterRow"
-          class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6"
+          class="grid grid-cols-1 gap-3 border-t border-slate-100 px-0 pt-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6"
         >
           <DatagridFilterField
             v-if="visibleFilters.status"
@@ -216,6 +183,7 @@ function statusLabel(value) {
             <select
               v-model="filterForm.status"
               :class="FILTER_CONTROL_CLASS"
+              @change="filterForm.email_pending = ''"
             >
               <option value="">
                 Trạng thái
@@ -236,6 +204,7 @@ function statusLabel(value) {
             <select
               v-model="filterForm.email_pending"
               :class="FILTER_CONTROL_CLASS"
+              @change="filterForm.status = ''"
             >
               <option value="">
                 Email
