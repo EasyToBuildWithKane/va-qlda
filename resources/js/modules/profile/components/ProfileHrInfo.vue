@@ -20,7 +20,7 @@ const orgFields = computed(() => [
     { label: 'Công ty', value: h.value.company_name },
     { label: 'Mã công ty', value: h.value.company_id, mono: true },
     { label: 'Phòng ban', value: h.value.department_name },
-    { label: 'Mã phòng ban', value: h.value.department_id, mono: true },
+    { label: 'Mã phòng ban', value: h.value.department_code, mono: true },
     { label: 'Đơn vị', value: h.value.unit_name },
     { label: 'Trụ sở / Chi nhánh', value: h.value.headquarter_name },
 ]);

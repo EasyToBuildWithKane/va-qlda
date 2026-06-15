@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use App\Http\Resources\Concerns\PresentsEntities;
 use App\Support\Enums\SystemRole;
+use App\Support\Profile\ProfileOrgRelations;
 use App\Support\Profile\ProfileStats;
 use App\Support\Profile\Seniority;
 use App\Support\Profile\SkillCatalog;
@@ -82,9 +83,10 @@ class EmployeeProfileResource extends JsonResource
             'unit_name' => $meta['unit_name'] ?? null,
             'headquarter_name' => $meta['headquarter_name'] ?? null,
             'position_name' => $meta['position_name'] ?? null,
-            'concurrent_position_name' => $meta['concurrent_position_name'] ?? null,
+            'concurrent_position_name' => ProfileOrgRelations::concurrentPositionLabel($e)
+                ?? $meta['concurrent_position_name'] ?? null,
             'start_working_date' => $e->join_date?->toDateString(),
-            'department_id' => $meta['department_id'] ?? null,
+            'department_code' => ProfileOrgRelations::departmentCode($meta),
             'company_id' => $meta['company_id'] ?? null,
         ];
     }
@@ -113,25 +115,15 @@ class EmployeeProfileResource extends JsonResource
     }
 
     /**
-     * Manager = the leader of the first team this person belongs to but does
-     * not lead. Null when they have no team or lead all of them.
+     * Quản lý trực tiếp theo sơ đồ tổ chức QLDA (cấp trên).
      *
      * @return array{id:int, name:string, avatar_path:string|null, code?:string, email?:string|null, role_title?:string|null}|null
      */
     private function manager(): ?array
     {
-        if (! $this->resource->relationLoaded('orgMemberships')) {
-            return null;
-        }
+        $leader = ProfileOrgRelations::directManager($this->resource);
 
-        foreach ($this->resource->orgMemberships as $m) {
-            $leader = $m->team?->leader;
-            if ($leader && $leader->id !== $this->resource->id) {
-                return $this->person($leader);
-            }
-        }
-
-        return null;
+        return $leader ? $this->person($leader) : null;
     }
 
     /**

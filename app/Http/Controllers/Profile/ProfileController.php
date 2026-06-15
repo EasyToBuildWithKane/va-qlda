@@ -38,9 +38,14 @@ class ProfileController extends Controller
 
         $employee->load([
             'account:id,employee_id,role',
-            'orgMemberships.team:id,name,leader_id',
+            'orgMemberships.team:id,name,leader_id,parent_id,level',
             'orgMemberships.team.leader:id,full_name,avatar_path,code,email,role_title',
+            'orgMemberships.team.parent:id,name,leader_id,parent_id,level',
+            'orgMemberships.team.parent.leader:id,full_name,avatar_path,code,email,role_title',
             'orgMemberships.section:id,org_team_id,title',
+            'ledTeams:id,name,leader_id,parent_id,level',
+            'ledTeams.parent:id,name,leader_id,parent_id,level',
+            'ledTeams.parent.leader:id,full_name,avatar_path,code,email,role_title',
             'projects',
         ]);
 

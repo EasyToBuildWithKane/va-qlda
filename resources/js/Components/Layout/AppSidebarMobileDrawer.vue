@@ -149,7 +149,7 @@ onUnmounted(() => {
               </button>
             </div>
 
-            <div class="relative min-h-0 flex-1 overflow-hidden">
+            <div class="relative flex min-h-0 flex-1 flex-col overflow-hidden">
               <AppSidebarExpandedNav
                 :register-nav-el="registerNavEl"
                 :nav="nav"

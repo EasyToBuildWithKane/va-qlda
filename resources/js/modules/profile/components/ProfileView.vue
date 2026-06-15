@@ -32,7 +32,7 @@ const editingSkills = ref(false);
 </script>
 
 <template>
-  <div class="mx-auto max-w-6xl space-y-5">
+  <div class="w-full space-y-5">
     <ProfileHero
       :profile="profile"
       :editable="editable"
@@ -54,21 +54,17 @@ const editingSkills = ref(false);
         @go-tab="tab = $event"
       />
 
-      <div class="grid grid-cols-1 gap-5 xl:grid-cols-12">
-        <div class="space-y-5 xl:col-span-8">
-          <ProfileHrInfo
-            :hr-info="profile.hr_info ?? {}"
-            :role-title="profile.role_title"
-          />
-          <ProfileWorkInfo :profile="profile" />
-          <ProfileContactCard :profile="profile" />
-        </div>
-        <aside class="space-y-5 xl:col-span-4">
-          <ProfileTeamsCard
-            :teams="profile.teams"
-            :manager="profile.manager"
-          />
-        </aside>
+      <div class="space-y-5">
+        <ProfileHrInfo
+          :hr-info="profile.hr_info ?? {}"
+          :role-title="profile.role_title"
+        />
+        <ProfileWorkInfo :profile="profile" />
+        <ProfileContactCard :profile="profile" />
+        <ProfileTeamsCard
+          :teams="profile.teams"
+          :manager="profile.manager"
+        />
       </div>
     </template>
 
@@ -94,14 +90,10 @@ const editingSkills = ref(false);
         </button>
       </div>
 
-      <div class="grid grid-cols-1 gap-5 lg:grid-cols-3">
-        <div class="lg:col-span-2">
-          <SkillMatrix :skills="profile.skills" />
-        </div>
-        <aside class="space-y-5">
-          <SkillRadar :radar="profile.stats?.skill_radar || []" />
-          <ProfileInsights :insights="profile.stats?.insights || []" />
-        </aside>
+      <div class="space-y-5">
+        <SkillMatrix :skills="profile.skills" />
+        <SkillRadar :radar="profile.stats?.skill_radar || []" />
+        <ProfileInsights :insights="profile.stats?.insights || []" />
       </div>
     </div>
 

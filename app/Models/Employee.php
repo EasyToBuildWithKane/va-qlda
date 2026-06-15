@@ -121,6 +121,14 @@ class Employee extends Model
     }
 
     /**
+     * Org teams this person leads on the org chart.
+     */
+    public function ledTeams(): HasMany
+    {
+        return $this->hasMany(OrgTeam::class, 'leader_id')->orderBy('level')->orderBy('name');
+    }
+
+    /**
      * Time logged by this person across all tasks.
      */
     public function worklogs(): HasMany
