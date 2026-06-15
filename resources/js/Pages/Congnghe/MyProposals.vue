@@ -3,9 +3,8 @@ import {
     computed, onBeforeUnmount, onMounted, reactive, ref, watch,
 } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
-import AppLayout from '@/Layouts/AppLayout.vue';
+import CongnghePageShell from './partials/CongnghePageShell.vue';
 import AppIcon from '@/Components/AppIcon.vue';
-import PageHeader from '@/Components/Ui/PageHeader.vue';
 import Badge from '@/shared/ui/Badge.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import DatagridToolbarActionButton from '@/shared/ui/DatagridToolbarActionButton.vue';
@@ -103,20 +102,39 @@ function acknowledged(row) {
 </script>
 
 <template>
-  <Head title="Đề xuất của tôi" />
+  <Head title="Đề xuất đã gửi" />
 
-  <AppLayout>
-    <template #header>
-      <PageHeader
-        title="Đề xuất của tôi"
-        subtitle="Theo dõi đề xuất phần mềm bạn đã gửi tới Phòng Công nghệ"
-        icon="template"
-        icon-color="brand"
-        :badge="listBadge"
-      >
+  <CongnghePageShell>
+    <div class="mx-auto max-w-6xl">
+      <header class="mb-8 flex flex-col gap-4 sm:mb-10 sm:flex-row sm:items-end sm:justify-between">
+        <div class="min-w-0 text-center sm:text-left">
+          <Link
+            :href="route('congnghe')"
+            class="inline-flex items-center gap-1.5 text-xs font-medium text-white/50 transition hover:text-white/80"
+          >
+            <AppIcon
+              name="chevron-left"
+              :size="14"
+            />
+            Cổng Phòng Công nghệ
+          </Link>
+          <p class="mt-3 font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan-200/55">
+            Theo dõi đề xuất
+          </p>
+          <h1 class="mt-2 font-display text-2xl font-bold text-white sm:text-3xl">
+            Đề xuất đã gửi
+            <span
+              v-if="listBadge"
+              class="ml-2 align-middle font-mono text-lg font-semibold text-cyan-200/70"
+            >({{ listBadge }})</span>
+          </h1>
+          <p class="mt-2 max-w-xl text-sm text-white/60">
+            Theo dõi trạng thái tiếp nhận và email hệ thống cho từng đề xuất bạn đã gửi.
+          </p>
+        </div>
         <Link
           :href="route('congnghe.proposal')"
-          class="btn-primary inline-flex h-9 shrink-0 items-center gap-1.5 px-3 text-xs font-semibold"
+          class="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 self-center rounded-xl border border-brand/45 bg-brand/25 px-4 text-sm font-semibold text-white transition hover:bg-brand/35 sm:self-auto"
         >
           <AppIcon
             name="add"
@@ -124,221 +142,221 @@ function acknowledged(row) {
           />
           Gửi đề xuất mới
         </Link>
-      </PageHeader>
-    </template>
+      </header>
 
-    <section
-      class="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4"
-      aria-label="Thống kê đề xuất của tôi"
-    >
-      <div class="rounded-card border border-slate-200/80 bg-white px-4 py-3 shadow-sm">
-        <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-          Tổng
-        </p>
-        <p class="font-display text-2xl tabular-nums text-slate-900">
-          {{ summary.total ?? 0 }}
-        </p>
-      </div>
-      <div class="rounded-card border border-violet-200/80 bg-violet-50/50 px-4 py-3 shadow-sm">
-        <p class="text-[10px] font-semibold uppercase tracking-wide text-violet-700/80">
-          Mới
-        </p>
-        <p class="font-display text-2xl tabular-nums text-violet-900">
-          {{ summary.new ?? 0 }}
-        </p>
-      </div>
-      <div class="rounded-card border border-amber-200/80 bg-amber-50/40 px-4 py-3 shadow-sm">
-        <p class="text-[10px] font-semibold uppercase tracking-wide text-amber-800/80">
-          Đang xử lý
-        </p>
-        <p class="font-display text-2xl tabular-nums text-amber-950">
-          {{ summary.in_progress ?? 0 }}
-        </p>
-      </div>
-      <div class="rounded-card border border-emerald-200/80 bg-emerald-50/40 px-4 py-3 shadow-sm">
-        <p class="text-[10px] font-semibold uppercase tracking-wide text-emerald-800/80">
-          Hoàn thành
-        </p>
-        <p class="font-display text-2xl tabular-nums text-emerald-950">
-          {{ summary.done ?? 0 }}
-        </p>
-      </div>
-    </section>
+      <section
+        class="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4"
+        aria-label="Thống kê đề xuất của tôi"
+      >
+        <div class="rounded-card border border-slate-200/80 bg-white px-4 py-3 shadow-sm">
+          <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+            Tổng
+          </p>
+          <p class="font-display text-2xl tabular-nums text-slate-900">
+            {{ summary.total ?? 0 }}
+          </p>
+        </div>
+        <div class="rounded-card border border-violet-200/80 bg-violet-50/50 px-4 py-3 shadow-sm">
+          <p class="text-[10px] font-semibold uppercase tracking-wide text-violet-700/80">
+            Mới
+          </p>
+          <p class="font-display text-2xl tabular-nums text-violet-900">
+            {{ summary.new ?? 0 }}
+          </p>
+        </div>
+        <div class="rounded-card border border-amber-200/80 bg-amber-50/40 px-4 py-3 shadow-sm">
+          <p class="text-[10px] font-semibold uppercase tracking-wide text-amber-800/80">
+            Đang xử lý
+          </p>
+          <p class="font-display text-2xl tabular-nums text-amber-950">
+            {{ summary.in_progress ?? 0 }}
+          </p>
+        </div>
+        <div class="rounded-card border border-emerald-200/80 bg-emerald-50/40 px-4 py-3 shadow-sm">
+          <p class="text-[10px] font-semibold uppercase tracking-wide text-emerald-800/80">
+            Hoàn thành
+          </p>
+          <p class="font-display text-2xl tabular-nums text-emerald-950">
+            {{ summary.done ?? 0 }}
+          </p>
+        </div>
+      </section>
 
-    <div class="card overflow-hidden">
-      <div class="border-b border-slate-100 px-5 py-4">
-        <div class="flex w-full min-w-0 flex-wrap items-center gap-2 lg:flex-nowrap">
-          <div class="min-w-0 w-full basis-full lg:flex-1 lg:basis-auto">
-            <DatagridToolbarSearch
-              v-model="filterForm.q"
-              hide-label
-              stretch
-              inline-actions
-              input-height="h-10"
-              placeholder="Tìm mã, tiêu đề, phòng ban…"
-              aria-label="Tìm đề xuất của tôi"
-            />
+      <div class="card overflow-hidden">
+        <div class="border-b border-slate-100 px-5 py-4">
+          <div class="flex w-full min-w-0 flex-wrap items-center gap-2 lg:flex-nowrap">
+            <div class="min-w-0 w-full basis-full lg:flex-1 lg:basis-auto">
+              <DatagridToolbarSearch
+                v-model="filterForm.q"
+                hide-label
+                stretch
+                inline-actions
+                input-height="h-10"
+                placeholder="Tìm mã, tiêu đề, phòng ban…"
+                aria-label="Tìm đề xuất của tôi"
+              />
+            </div>
+            <div
+              ref="filterPanelDdRef"
+              class="relative shrink-0"
+            >
+              <DatagridToolbarActionButton
+                label="Lọc"
+                icon="filter"
+                :active="showFilterPanelDd"
+                :badge="enabledFilterControlCount > 0 ? enabledFilterControlCount : null"
+                @click="openFilterPanel()"
+              />
+              <FilterVisibilityDropdown
+                v-model="visibleFilters"
+                :show="showFilterPanelDd"
+                :anchor-ref="filterPanelDdRef"
+                :controls="FILTER_CONTROLS"
+                input-id-prefix="cn-my-proposal-filter-vis"
+                @persist="persistVisibleFilters"
+              />
+            </div>
           </div>
+
           <div
-            ref="filterPanelDdRef"
-            class="relative shrink-0"
+            v-if="hasFilterRow"
+            class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6"
           >
-            <DatagridToolbarActionButton
-              label="Lọc"
-              icon="filter"
-              :active="showFilterPanelDd"
-              :badge="enabledFilterControlCount > 0 ? enabledFilterControlCount : null"
-              @click="openFilterPanel()"
-            />
-            <FilterVisibilityDropdown
-              v-model="visibleFilters"
-              :show="showFilterPanelDd"
-              :anchor-ref="filterPanelDdRef"
-              :controls="FILTER_CONTROLS"
-              input-id-prefix="cn-my-proposal-filter-vis"
-              @persist="persistVisibleFilters"
-            />
+            <DatagridFilterField
+              v-if="visibleFilters.status"
+              label="Trạng thái"
+            >
+              <select
+                v-model="filterForm.status"
+                :class="FILTER_CONTROL_CLASS"
+              >
+                <option value="">
+                  Trạng thái
+                </option>
+                <option
+                  v-for="opt in options.statuses"
+                  :key="opt.value"
+                  :value="opt.value"
+                >
+                  {{ opt.label }}
+                </option>
+              </select>
+            </DatagridFilterField>
           </div>
         </div>
 
-        <div
-          v-if="hasFilterRow"
-          class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6"
-        >
-          <DatagridFilterField
-            v-if="visibleFilters.status"
-            label="Trạng thái"
-          >
-            <select
-              v-model="filterForm.status"
-              :class="FILTER_CONTROL_CLASS"
-            >
-              <option value="">
-                Trạng thái
-              </option>
-              <option
-                v-for="opt in options.statuses"
-                :key="opt.value"
-                :value="opt.value"
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-[720px] text-left text-sm">
+            <thead class="border-b border-slate-100 bg-slate-50/80 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <tr>
+                <th class="px-5 py-3">
+                  Mã
+                </th>
+                <th class="px-5 py-3">
+                  Tiêu đề
+                </th>
+                <th class="px-5 py-3">
+                  Phòng ban
+                </th>
+                <th class="px-5 py-3">
+                  Trạng thái
+                </th>
+                <th class="px-5 py-3">
+                  Tiếp nhận
+                </th>
+                <th class="px-5 py-3">
+                  Email PCN
+                </th>
+                <th class="px-5 py-3">
+                  File
+                </th>
+                <th class="px-5 py-3">
+                  Ngày gửi
+                </th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              <tr
+                v-for="row in proposals.data"
+                :key="row.id"
+                class="hover:bg-slate-50/80"
               >
-                {{ opt.label }}
-              </option>
-            </select>
-          </DatagridFilterField>
+                <td class="px-5 py-3 font-mono text-xs text-slate-600">
+                  <Link
+                    :href="route('congnghe.proposal.mine.show', row.id)"
+                    class="font-semibold text-brand hover:underline"
+                  >
+                    {{ row.reference_code ?? '—' }}
+                  </Link>
+                </td>
+                <td class="max-w-[220px] px-5 py-3">
+                  <Link
+                    :href="route('congnghe.proposal.mine.show', row.id)"
+                    class="line-clamp-2 font-medium text-slate-900 hover:text-brand"
+                  >
+                    {{ row.title }}
+                  </Link>
+                </td>
+                <td class="px-5 py-3 text-slate-600">
+                  {{ row.department }}
+                </td>
+                <td class="px-5 py-3">
+                  <Badge
+                    :tone="STATUS_TONE[row.status?.value] ?? 'slate'"
+                    size="sm"
+                  >
+                    {{ row.status?.label }}
+                  </Badge>
+                </td>
+                <td class="px-5 py-3">
+                  <Badge
+                    :tone="acknowledged(row) ? 'emerald' : 'amber'"
+                    size="sm"
+                  >
+                    {{ acknowledged(row) ? 'Đã ghi nhận' : 'Chưa' }}
+                  </Badge>
+                </td>
+                <td class="px-5 py-3">
+                  <Badge
+                    :tone="emailSent(row) ? 'emerald' : 'amber'"
+                    size="sm"
+                  >
+                    {{ emailSent(row) ? 'Đã gửi' : 'Chưa gửi' }}
+                  </Badge>
+                </td>
+                <td class="px-5 py-3 tabular-nums text-slate-600">
+                  {{ row.attachments_count ?? 0 }}
+                </td>
+                <td class="px-5 py-3 text-slate-600 tabular-nums">
+                  {{ datetime(row.created_at) }}
+                </td>
+              </tr>
+              <tr v-if="!proposals.data?.length">
+                <td
+                  colspan="8"
+                  class="px-5 py-12 text-center text-slate-500"
+                >
+                  Bạn chưa gửi đề xuất nào.
+                  <Link
+                    :href="route('congnghe.proposal')"
+                    class="ml-1 font-semibold text-brand hover:underline"
+                  >
+                    Gửi đề xuất mới
+                  </Link>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-      </div>
 
-      <div class="overflow-x-auto">
-        <table class="w-full min-w-[720px] text-left text-sm">
-          <thead class="border-b border-slate-100 bg-slate-50/80 text-xs font-semibold uppercase tracking-wide text-slate-500">
-            <tr>
-              <th class="px-5 py-3">
-                Mã
-              </th>
-              <th class="px-5 py-3">
-                Tiêu đề
-              </th>
-              <th class="px-5 py-3">
-                Phòng ban
-              </th>
-              <th class="px-5 py-3">
-                Trạng thái
-              </th>
-              <th class="px-5 py-3">
-                Tiếp nhận
-              </th>
-              <th class="px-5 py-3">
-                Email PCN
-              </th>
-              <th class="px-5 py-3">
-                File
-              </th>
-              <th class="px-5 py-3">
-                Ngày gửi
-              </th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-100">
-            <tr
-              v-for="row in proposals.data"
-              :key="row.id"
-              class="hover:bg-slate-50/80"
-            >
-              <td class="px-5 py-3 font-mono text-xs text-slate-600">
-                <Link
-                  :href="route('congnghe.proposal.mine.show', row.id)"
-                  class="font-semibold text-brand hover:underline"
-                >
-                  {{ row.reference_code ?? '—' }}
-                </Link>
-              </td>
-              <td class="max-w-[220px] px-5 py-3">
-                <Link
-                  :href="route('congnghe.proposal.mine.show', row.id)"
-                  class="line-clamp-2 font-medium text-slate-900 hover:text-brand"
-                >
-                  {{ row.title }}
-                </Link>
-              </td>
-              <td class="px-5 py-3 text-slate-600">
-                {{ row.department }}
-              </td>
-              <td class="px-5 py-3">
-                <Badge
-                  :tone="STATUS_TONE[row.status?.value] ?? 'slate'"
-                  size="sm"
-                >
-                  {{ row.status?.label }}
-                </Badge>
-              </td>
-              <td class="px-5 py-3">
-                <Badge
-                  :tone="acknowledged(row) ? 'emerald' : 'amber'"
-                  size="sm"
-                >
-                  {{ acknowledged(row) ? 'Đã ghi nhận' : 'Chưa' }}
-                </Badge>
-              </td>
-              <td class="px-5 py-3">
-                <Badge
-                  :tone="emailSent(row) ? 'emerald' : 'amber'"
-                  size="sm"
-                >
-                  {{ emailSent(row) ? 'Đã gửi' : 'Chưa gửi' }}
-                </Badge>
-              </td>
-              <td class="px-5 py-3 tabular-nums text-slate-600">
-                {{ row.attachments_count ?? 0 }}
-              </td>
-              <td class="px-5 py-3 text-slate-600 tabular-nums">
-                {{ datetime(row.created_at) }}
-              </td>
-            </tr>
-            <tr v-if="!proposals.data?.length">
-              <td
-                colspan="8"
-                class="px-5 py-12 text-center text-slate-500"
-              >
-                Bạn chưa gửi đề xuất nào.
-                <Link
-                  :href="route('congnghe.proposal')"
-                  class="ml-1 font-semibold text-brand hover:underline"
-                >
-                  Gửi đề xuất mới
-                </Link>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <DatagridPaginationFooter
+          variant="bar"
+          :meta="proposals.meta"
+          :per-page="perPage"
+          :per-page-options="PER_PAGE_OPTIONS"
+          @update:per-page="(v) => { perPage = v; }"
+        />
       </div>
-
-      <DatagridPaginationFooter
-        variant="bar"
-        :meta="proposals.meta"
-        :per-page="perPage"
-        :per-page-options="PER_PAGE_OPTIONS"
-        @update:per-page="(v) => { perPage = v; }"
-      />
     </div>
-  </AppLayout>
+  </CongnghePageShell>
 </template>

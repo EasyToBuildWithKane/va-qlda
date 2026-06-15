@@ -102,54 +102,44 @@ onBeforeUnmount(() => {
     <div class="mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
       <div
         v-if="roots.length"
-        class="flex flex-col gap-8 md:gap-10"
+        class="flex flex-col gap-6 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between md:gap-8"
       >
-        <div class="flex flex-col gap-6 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
-          <SectionHeading
-            class="min-w-0 max-w-3xl"
-            eyebrow="Đội ngũ · Sơ đồ tổ chức"
-            title="Cấu trúc vận hành"
-            subtitle="Quản lý trên cùng — Trưởng ban / Phó phòng theo hàng; nhánh chuyên môn có Trưởng nhóm."
-          />
+        <SectionHeading
+          class="min-w-0 max-w-3xl"
+          eyebrow="Đội ngũ · Sơ đồ tổ chức"
+          title="Cấu trúc vận hành"
+          subtitle="Quản lý trên cùng — Trưởng ban / Phó phòng theo hàng; nhánh chuyên môn có Trưởng nhóm."
+        />
 
-          <div class="inline-flex shrink-0 items-center gap-3 rounded-xl border border-white/12 bg-white/[0.06] px-5 py-3.5 text-left backdrop-blur">
-            <span class="relative grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-brand to-[#ff4d8d] text-white shadow-md shadow-brand/25">
-              <svg
-                width="22"
-                height="22"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.8"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              ><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle
-                cx="9"
-                cy="7"
-                r="4"
-              /><path d="M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75" /></svg>
-              <span class="absolute inset-0 rounded-lg ring-2 ring-brand/40 animate-cn-ping-ring" />
-            </span>
-            <div>
-              <p class="font-display text-2xl font-extrabold leading-none text-white sm:text-3xl">
-                <CountStat
-                  :value="peopleTotal"
-                  :active="sectionVisible"
-                />
-              </p>
-              <p class="mt-1 font-mono text-[10px] uppercase tracking-wider text-white/55">
-                Nhân sự trên sơ đồ
-              </p>
-            </div>
+        <div class="inline-flex shrink-0 items-center gap-3 rounded-xl border border-white/12 bg-white/[0.06] px-5 py-3.5 text-left backdrop-blur">
+          <span class="relative grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-brand to-[#ff4d8d] text-white shadow-md shadow-brand/25">
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            ><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle
+              cx="9"
+              cy="7"
+              r="4"
+            /><path d="M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+            <span class="absolute inset-0 rounded-lg ring-2 ring-brand/40 animate-cn-ping-ring" />
+          </span>
+          <div>
+            <p class="font-display text-2xl font-extrabold leading-none text-white sm:text-3xl">
+              <CountStat
+                :value="peopleTotal"
+                :active="sectionVisible"
+              />
+            </p>
+            <p class="mt-1 font-mono text-[10px] uppercase tracking-wider text-white/55">
+              Nhân sự trên sơ đồ
+            </p>
           </div>
-        </div>
-
-        <div class="min-w-0 w-full">
-          <CongngheOrgChart
-            :trees="roots"
-            :revealed="sectionVisible"
-            @select-person="onSelectPerson"
-          />
         </div>
       </div>
 
@@ -163,6 +153,17 @@ onBeforeUnmount(() => {
           Sơ đồ tổ chức chưa được thiết lập.
         </p>
       </template>
+    </div>
+
+    <div
+      v-if="roots.length"
+      class="cn-org-chart-bleed mx-auto mt-8 min-w-0 w-full px-3 sm:mt-10 sm:px-5 md:px-6 lg:px-8"
+    >
+      <CongngheOrgChart
+        :trees="roots"
+        :revealed="sectionVisible"
+        @select-person="onSelectPerson"
+      />
     </div>
 
     <Teleport to="body">
@@ -323,6 +324,17 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+/* Sơ đồ rộng hơn các section max-w-7xl; vẫn giữ lề an toàn trên viewport hẹp */
+.cn-org-chart-bleed {
+    max-width: min(100rem, calc(100vw - 1.5rem));
+}
+
+@media (min-width: 640px) {
+    .cn-org-chart-bleed {
+        max-width: min(100rem, calc(100vw - 2.5rem));
+    }
+}
+
 .cn-modal-enter-active,
 .cn-modal-leave-active {
     transition: opacity 0.25s ease;

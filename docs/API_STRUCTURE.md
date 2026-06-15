@@ -51,9 +51,9 @@ routes/api.php      ← Rỗng (chưa sử dụng)
 | GET | `/congnghe` | CongngheController | auth | Landing giới thiệu Phòng Công Nghệ |
 | GET | `/congnghe/de-xuat` | CongngheSoftwareProposalController@create | auth | Form đề xuất giải pháp phần mềm |
 | POST | `/congnghe/de-xuat` | CongngheSoftwareProposalController@store | auth | Body: `department_id` (phòng ban active trong `departments`), lưu tên phòng vào `congnghe_software_proposals.department` + file `public/congnghe/proposals/{id}`; email tới `config('va.congnghe_proposal_email')` |
-| GET | `/congnghe/de-xuat-cua-toi` | CongngheSoftwareProposalController@index | auth | Đề xuất do người dùng gửi (theo `system_account_id` / email nhân sự); `AppLayout` + datagrid |
-| GET | `/congnghe/de-xuat-cua-toi/{proposal}` | CongngheSoftwareProposalController@show | auth (owner hoặc admin/lead) | Chi tiết đề xuất của người gửi |
-| GET | `/congnghe/de-xuat-cua-toi/{proposal}/attachments/{attachment}/file` | CongngheSoftwareProposalAttachmentController@file | auth (owner hoặc admin/lead) | Tải file đính kèm (URL trong Resource cho người gửi) |
+| GET | `/congnghe/de-xuat-cua-toi` | CongngheSoftwareProposalController@index | auth | Đề xuất do người gửi (theo `system_account_id` / email nhân sự); cổng Congnghe + datagrid |
+| GET | `/congnghe/de-xuat-cua-toi/{proposal}` | CongngheSoftwareProposalController@show | auth (`viewAsSubmitter` — chỉ người gửi) | Chi tiết đề xuất của người gửi |
+| GET | `/congnghe/de-xuat-cua-toi/{proposal}/attachments/{attachment}/file` | CongngheSoftwareProposalAttachmentController@file | auth (`viewAsSubmitter` trên route mine) | Tải file đính kèm (URL trong Resource cho người gửi) |
 | GET | `/congnghe/proposals` | CongngheSoftwareProposalManagementController@index | auth (admin, lead) | Danh sách đề xuất PM |
 | GET | `/congnghe/proposals/{proposal}` | CongngheSoftwareProposalManagementController@show | auth (admin, lead) | Chi tiết |
 | PUT | `/congnghe/proposals/{proposal}` | CongngheSoftwareProposalManagementController@update | auth (admin, lead) | Cập nhật trạng thái |

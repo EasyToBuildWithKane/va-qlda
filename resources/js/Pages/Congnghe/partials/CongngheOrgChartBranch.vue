@@ -173,7 +173,7 @@ function showRoleOnCard(card) {
             <li
               v-for="(card, li) in leadershipCards"
               :key="card.key"
-              class="w-full max-w-[20rem] sm:w-[calc(50%-0.3125rem)] lg:max-w-none lg:w-[calc(50%-0.3125rem)] xl:w-[calc(33.333%-0.5rem)]"
+              class="w-full max-w-[20rem] sm:w-[calc(50%-0.3125rem)] lg:max-w-none lg:w-[calc(33.333%-0.5rem)] 2xl:w-[calc(25%-0.5rem)]"
             >
               <button
                 type="button"
@@ -242,7 +242,7 @@ function showRoleOnCard(card) {
               <li
                 v-for="(person, pi) in group.people"
                 :key="person.key"
-                class="w-full max-w-[18rem] sm:w-[calc(50%-0.3125rem)] lg:max-w-none lg:w-[calc(33.333%-0.5rem)]"
+                class="w-full max-w-[18rem] sm:w-[calc(50%-0.3125rem)] lg:max-w-none lg:w-[calc(33.333%-0.5rem)] 2xl:w-[calc(25%-0.5rem)]"
               >
                 <button
                   type="button"
@@ -291,7 +291,7 @@ function showRoleOnCard(card) {
         </p>
         <div
           class="cn-org-children-grid relative mx-auto grid w-full max-w-none grid-cols-1 gap-3 pt-3 sm:gap-4"
-          :class="children.length >= 3 ? 'sm:grid-cols-2 xl:grid-cols-3' : children.length >= 2 ? 'sm:grid-cols-2' : ''"
+          :class="children.length >= 3 ? 'sm:grid-cols-2 lg:grid-cols-3' : children.length >= 2 ? 'sm:grid-cols-2' : ''"
           role="group"
           :aria-label="`Phân nhánh của ${team.name}`"
         >

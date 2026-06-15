@@ -67,7 +67,7 @@ class CongngheSoftwareProposalController extends Controller
 
     public function show(CongngheSoftwareProposal $proposal): Response
     {
-        $this->authorize('view', $proposal);
+        $this->authorize('viewAsSubmitter', $proposal);
 
         $proposal->load('attachments');
 

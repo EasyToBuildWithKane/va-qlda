@@ -91,7 +91,7 @@ onBeforeUnmount(() => {
     >
       <div
         v-if="menuOpen"
-        class="absolute right-0 z-[60] mt-2 w-[min(100vw-2rem,280px)] overflow-hidden rounded-2xl border border-white/10 bg-[#0c0e18]/98 shadow-2xl shadow-black/50 backdrop-blur-xl"
+        class="absolute right-0 z-[60] mt-2 w-[min(100vw-2rem,280px)] overflow-hidden rounded-2xl border border-white/12 bg-[#12101a] shadow-2xl shadow-black/50 ring-1 ring-brand/20"
         role="menu"
         aria-label="Menu tài khoản"
       >
@@ -130,11 +130,11 @@ onBeforeUnmount(() => {
           </div>
         </div>
 
-        <div class="p-1.5 space-y-0.5">
+        <div class="space-y-0.5 bg-[#16141f] p-1.5">
           <Link
             :href="route('congnghe.proposal.mine')"
             role="menuitem"
-            class="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] text-white/85 transition hover:bg-white/[0.06]"
+            class="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] text-white/85 transition hover:bg-white/[0.08]"
             @click="closeMenu"
           >
             <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-cyan-500/15">
@@ -146,25 +146,9 @@ onBeforeUnmount(() => {
             </div>
             <span class="flex-1 text-left">Đề xuất đã gửi</span>
           </Link>
-
-          <Link
-            href="/profile"
-            role="menuitem"
-            class="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] text-white/85 transition hover:bg-white/[0.06]"
-            @click="closeMenu"
-          >
-            <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/10">
-              <AppIcon
-                name="account"
-                :size="14"
-                class="text-white/70"
-              />
-            </div>
-            <span class="flex-1 text-left">Thông tin tài khoản</span>
-          </Link>
         </div>
 
-        <div class="border-t border-white/10 p-1.5">
+        <div class="border-t border-white/10 bg-[#0e0c14] p-1.5">
           <button
             type="button"
             role="menuitem"

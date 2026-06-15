@@ -102,13 +102,6 @@ class Navigation
                         'roles' => ['admin', 'lead', 'member', 'viewer'],
                     ],
                     [
-                        'label' => 'Đề xuất của tôi',
-                        'icon' => 'template',
-                        'href' => '/congnghe/de-xuat-cua-toi',
-                        'status' => 'live',
-                        'roles' => ['admin', 'lead', 'member', 'viewer'],
-                    ],
-                    [
                         'label' => 'Bảng điều khiển',
                         'icon' => 'overview',
                         'href' => '/dashboard',
@@ -368,9 +361,9 @@ class Navigation
             //    Admin-only. Invisible to lead / member / viewer.
             // ──────────────────────────────────────────────────────────────
             [
-                'key' => 'congnghe_admin',
-                'heading' => 'Phòng Công nghệ',
-                'icon' => 'rocket',
+                'key' => 'admin',
+                'heading' => 'Quản trị',
+                'icon' => 'settings',
                 'items' => [
                     [
                         'label' => 'Đề xuất phần mềm',
@@ -379,21 +372,6 @@ class Navigation
                         'status' => 'live',
                         'roles' => ['admin', 'lead'],
                     ],
-                    [
-                        'label' => 'Cổng giới thiệu',
-                        'icon' => 'rocket',
-                        'href' => '/congnghe',
-                        'status' => 'live',
-                        'roles' => ['admin', 'lead'],
-                    ],
-                ],
-            ],
-
-            [
-                'key' => 'admin',
-                'heading' => 'Quản trị',
-                'icon' => 'settings',
-                'items' => [
                     [
                         'label' => 'Trung tâm vận hành',
                         'icon' => 'notifications',

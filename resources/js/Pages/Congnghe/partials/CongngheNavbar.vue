@@ -300,13 +300,6 @@ const navPadClass = computed(() => (scrolled.value ? 'py-2.5 sm:py-3' : 'py-3.5 
             Đề xuất đã gửi
           </Link>
           <Link
-            href="/profile"
-            class="col-span-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-center text-sm font-medium text-white/85"
-            @click="closeMenu"
-          >
-            Thông tin tài khoản
-          </Link>
-          <Link
             :href="proposalHref"
             class="col-span-2 rounded-xl border border-brand/45 bg-brand/25 px-3 py-2.5 text-center text-sm font-semibold text-white"
             @click="closeMenu"

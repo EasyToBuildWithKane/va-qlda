@@ -14,7 +14,12 @@ class CongngheSoftwareProposalAttachmentController extends Controller
         CongngheSoftwareProposal $proposal,
         CongngheSoftwareProposalAttachment $attachment,
     ): StreamedResponse {
-        $this->authorize('view', $proposal);
+        $routeName = request()->route()?->getName();
+        if ($routeName === 'congnghe.proposal.mine.attachments.file') {
+            $this->authorize('viewAsSubmitter', $proposal);
+        } else {
+            $this->authorize('view', $proposal);
+        }
 
         if ($attachment->congnghe_software_proposal_id !== $proposal->id) {
             abort(404);

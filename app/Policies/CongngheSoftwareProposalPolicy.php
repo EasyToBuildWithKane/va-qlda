@@ -18,6 +18,12 @@ class CongngheSoftwareProposalPolicy
         return $this->viewAny($account) || $this->isOwner($account, $proposal);
     }
 
+    /** Cổng «Đề xuất đã gửi» — chỉ người gửi, không dùng luồng quản trị. */
+    public function viewAsSubmitter(SystemAccount $account, CongngheSoftwareProposal $proposal): bool
+    {
+        return $this->isOwner($account, $proposal);
+    }
+
     private function isOwner(SystemAccount $account, CongngheSoftwareProposal $proposal): bool
     {
         if ($proposal->system_account_id === $account->id) {
