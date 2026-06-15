@@ -29,8 +29,10 @@ return new class extends Migration
 
         Schema::create('congnghe_software_proposal_attachments', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('congnghe_software_proposal_id')
-                ->constrained('congnghe_software_proposals')
+            $table->unsignedBigInteger('congnghe_software_proposal_id');
+            $table->foreign('congnghe_software_proposal_id', 'cn_sw_prop_att_prop_fk')
+                ->references('id')
+                ->on('congnghe_software_proposals')
                 ->cascadeOnDelete();
             $table->string('original_name');
             $table->string('path');
