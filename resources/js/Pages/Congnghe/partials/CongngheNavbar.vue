@@ -1,11 +1,28 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { usePage } from '@inertiajs/vue3';
-import MagneticButton from './MagneticButton.vue';
+import Avatar from '@/shared/ui/Avatar.vue';
 import { congngheBrand } from './congngheBrand.js';
 
 const page = usePage();
-const portal = computed(() => page.props.portal ?? { canEnterQlda: false, qldaHome: '/dashboard' });
+
+const authUser = computed(() => page.props.auth?.user ?? null);
+const userName = computed(
+    () => authUser.value?.employee?.full_name
+        ?? authUser.value?.display_name
+        ?? authUser.value?.username
+        ?? 'Thành viên',
+);
+const userEmail = computed(() => authUser.value?.email ?? '');
+const userAvatar = computed(() => authUser.value?.employee?.avatar_path ?? null);
+const userRole = computed(() => {
+    const role = authUser.value?.role;
+    if (role === 'admin') return 'Quản trị';
+    if (role === 'lead') return 'Trưởng nhóm';
+    if (role === 'member') return 'Thành viên';
+    if (role === 'viewer') return 'Xem';
+    return role ?? '';
+});
 
 const links = [
     { href: '#gioi-thieu', id: 'gioi-thieu', label: 'Giới thiệu' },
@@ -21,7 +38,7 @@ const open = ref(false);
 const activeId = ref('');
 
 function onScroll() {
-    scrolled.value = window.scrollY > 24;
+    scrolled.value = window.scrollY > 16;
 }
 
 let spy = null;
@@ -54,95 +71,93 @@ onBeforeUnmount(() => {
 
 <template>
   <header
-    class="fixed inset-x-0 top-0 z-50 transition-all duration-300"
-    :class="scrolled ? 'py-2' : 'py-3'"
+    class="fixed inset-x-0 top-0 z-50 border-b border-cyan-500/15 bg-[#070912]/92 shadow-[0_8px_32px_-12px_rgba(0,0,0,0.65)] backdrop-blur-xl transition-shadow duration-300"
+    :class="scrolled && 'shadow-[0_12px_40px_-16px_rgba(154,0,54,0.35)]'"
   >
     <div
-      class="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-brand to-transparent transition-opacity duration-300"
-      :class="scrolled ? 'opacity-100' : 'opacity-60'"
+      class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-cyan-400/40 via-brand to-violet-500/40"
+      aria-hidden="true"
     />
-    <nav
-      class="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 sm:px-6"
-      :class="scrolled
-        ? 'rounded-2xl border border-white/10 bg-[#0a0b14]/88 py-2 shadow-[0_12px_40px_-16px_rgba(0,0,0,0.85)] backdrop-blur-xl'
-        : 'py-1'"
-    >
-      <!-- Brand -->
+    <div
+      class="pointer-events-none absolute inset-0 opacity-[0.35]"
+      aria-hidden="true"
+      style="background-image: linear-gradient(rgba(56,189,248,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(56,189,248,0.04) 1px, transparent 1px); background-size: 32px 32px;"
+    />
+
+    <nav class="relative mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-2.5 sm:px-6">
       <a
         href="#top"
-        class="group flex min-w-0 items-center gap-2.5 sm:gap-3"
+        class="group flex min-w-0 items-center gap-2 sm:gap-2.5"
       >
-        <span class="relative shrink-0 rounded-xl bg-black/40 p-1 ring-1 ring-white/10 transition group-hover:ring-brand/40">
+        <span class="relative shrink-0 rounded-lg bg-black/50 p-0.5 ring-1 ring-cyan-500/20 transition group-hover:ring-brand/50">
           <img
             :src="congngheBrand.badgeCircle"
             alt="Vietnam America Schools"
-            class="h-9 w-9 object-contain sm:h-10 sm:w-10"
-            width="40"
-            height="40"
+            class="h-8 w-8 object-contain sm:h-9 sm:w-9"
+            width="36"
+            height="36"
             decoding="async"
           >
         </span>
         <span class="hidden min-w-0 flex-col leading-tight sm:flex">
           <span class="truncate font-display text-sm font-bold text-white">Phòng Công Nghệ</span>
-          <span class="mt-0.5 flex items-center gap-2">
-            <img
-              :src="congngheBrand.wordmarkStacked"
-              alt=""
-              class="h-7 w-auto max-w-[140px] object-contain object-left opacity-90"
-              loading="lazy"
-              decoding="async"
-            >
-          </span>
+          <span class="font-mono text-[10px] tracking-wider text-cyan-200/50">VAS · TECH PORTAL</span>
         </span>
       </a>
 
-      <!-- Center pill -->
-      <div
-        class="hidden items-center gap-0.5 rounded-full border border-white/10 bg-white/[0.06] p-1 backdrop-blur-xl transition-shadow lg:flex"
-        :class="scrolled && 'shadow-[0_8px_30px_-12px_rgba(0,0,0,0.6)]'"
-      >
+      <div class="hidden items-center gap-0.5 rounded-full border border-white/10 bg-[#0c0e18]/80 p-1 lg:flex">
         <a
           v-for="link in links"
           :key="link.href"
           :href="link.href"
-          class="relative rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors"
-          :class="activeId === link.id ? 'text-white' : 'text-white/60 hover:text-white'"
+          class="relative rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors"
+          :class="activeId === link.id ? 'text-white' : 'text-white/55 hover:text-white'"
         >
           <span
             v-if="activeId === link.id"
-            class="absolute inset-0 rounded-full bg-gradient-to-r from-brand/90 to-[#6b0028]/90 shadow-[0_0_18px_-2px_rgba(154,0,54,0.55)]"
+            class="absolute inset-0 rounded-full bg-gradient-to-r from-brand/90 to-[#4a1030] ring-1 ring-cyan-400/20"
           />
           <span class="relative">{{ link.label }}</span>
         </a>
       </div>
 
-      <!-- Actions -->
       <div class="flex shrink-0 items-center gap-2">
-        <MagneticButton
-          v-if="portal.canEnterQlda"
-          :href="portal.qldaHome"
-          variant="primary"
-          class="hidden !px-4 !py-2 !text-[13px] sm:inline-flex"
+        <div
+          v-if="authUser"
+          class="hidden max-w-[220px] items-center gap-2.5 rounded-full border border-white/10 bg-white/[0.06] py-1 pl-1 pr-3 sm:flex"
         >
-          Vào hệ thống
-          <svg
-            width="15"
-            height="15"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2.2"
-          ><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-        </MagneticButton>
+          <Avatar
+            :name="userName"
+            :src="userAvatar"
+            :size="32"
+          />
+          <div class="min-w-0 leading-tight">
+            <p class="truncate text-xs font-semibold text-white">
+              {{ userName }}
+            </p>
+            <p
+              v-if="userEmail"
+              class="truncate font-mono text-[10px] text-cyan-200/45"
+            >
+              {{ userEmail }}
+            </p>
+            <p
+              v-else-if="userRole"
+              class="font-mono text-[10px] text-white/40"
+            >
+              {{ userRole }}
+            </p>
+          </div>
+        </div>
         <button
           type="button"
-          class="grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/5 text-white/80 backdrop-blur hover:bg-white/10 lg:hidden"
+          class="grid h-9 w-9 place-items-center rounded-lg border border-white/10 bg-white/5 text-white/80 hover:bg-white/10 lg:hidden"
           aria-label="Mở menu"
           @click="open = !open"
         >
           <svg
-            width="22"
-            height="22"
+            width="20"
+            height="20"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -161,20 +176,27 @@ onBeforeUnmount(() => {
     >
       <div
         v-if="open"
-        class="mx-4 mt-2 overflow-hidden rounded-2xl border border-white/10 bg-[#0a0b14]/95 backdrop-blur-xl lg:hidden"
+        class="relative border-t border-white/10 bg-[#0a0b14]/98 px-4 py-3 backdrop-blur-xl lg:hidden"
       >
-        <div class="flex items-center gap-3 border-b border-white/10 bg-gradient-to-r from-brand/20 to-transparent px-4 py-3">
-          <img
-            :src="congngheBrand.logoVertical"
-            alt="VAS"
-            class="h-14 w-auto object-contain"
-            loading="lazy"
-          >
-          <p class="text-xs text-white/55">
-            Phòng Công Nghệ
-          </p>
+        <div
+          v-if="authUser"
+          class="mb-3 flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5"
+        >
+          <Avatar
+            :name="userName"
+            :src="userAvatar"
+            :size="36"
+          />
+          <div class="min-w-0">
+            <p class="truncate text-sm font-semibold text-white">
+              {{ userName }}
+            </p>
+            <p class="truncate text-xs text-white/50">
+              {{ userEmail || userRole }}
+            </p>
+          </div>
         </div>
-        <div class="grid gap-1 p-3">
+        <div class="grid gap-1">
           <a
             v-for="link in links"
             :key="link.href"
@@ -182,13 +204,6 @@ onBeforeUnmount(() => {
             class="rounded-xl px-3 py-2.5 text-sm font-medium text-white/75 hover:bg-white/5 hover:text-white"
             @click="open = false"
           >{{ link.label }}</a>
-          <a
-            v-if="portal.canEnterQlda"
-            :href="portal.qldaHome"
-            class="mt-1 rounded-xl bg-gradient-to-r from-brand to-[#6b0028] px-3 py-2.5 text-center text-sm font-semibold text-white"
-          >
-            Vào hệ thống
-          </a>
         </div>
       </div>
     </transition>

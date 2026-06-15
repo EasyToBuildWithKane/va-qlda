@@ -2,7 +2,6 @@
 import { computed } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import { congngheBrand } from './congngheBrand.js';
-import CongngheBrandBackdrop from './CongngheBrandBackdrop.vue';
 
 const year = new Date().getFullYear();
 
@@ -43,78 +42,78 @@ const cols = computed(() => [
 </script>
 
 <template>
-  <footer class="relative overflow-hidden border-t border-brand/25 bg-gradient-to-b from-[#0a0810] via-[#070810] to-[#05060c]">
-    <CongngheBrandBackdrop
-      variant="dragon"
-      align="left"
-      opacity-class="opacity-[0.05]"
+  <footer class="relative overflow-hidden border-t border-brand/40 bg-gradient-to-br from-[#120818] via-brand/25 to-[#05060c]">
+    <div
+      class="pointer-events-none absolute inset-0 opacity-40"
+      aria-hidden="true"
+      style="background-image: radial-gradient(circle at 20% 0%, rgba(154,0,54,0.35), transparent 45%), radial-gradient(circle at 80% 100%, rgba(56,189,248,0.12), transparent 40%);"
     />
-    <div class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand/60 to-transparent" />
-    <div class="pointer-events-none absolute -right-8 bottom-0 hidden w-[min(280px,40vw)] sm:block">
-      <img
-        :src="congngheBrand.mascotHoodie"
-        alt=""
-        class="h-auto w-full translate-y-[12%] object-contain opacity-90 drop-shadow-[0_24px_48px_rgba(0,0,0,0.55)]"
-        loading="lazy"
-        decoding="async"
-      >
-    </div>
+    <div class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-cyan-400/30 via-brand to-violet-500/30" />
 
-    <div class="relative mx-auto max-w-7xl px-5 py-16 sm:px-8">
-      <div class="grid gap-10 md:grid-cols-[1.5fr_1fr_1fr]">
-        <div class="relative z-10 max-w-md">
-          <div class="flex flex-wrap items-start gap-4">
-            <img
-              :src="congngheBrand.logoVertical"
-              alt="Vietnam America Schools"
-              class="h-20 w-auto object-contain sm:h-24"
-              loading="lazy"
-              decoding="async"
-            >
-            <div class="min-w-0 pt-1">
-              <p class="font-display text-lg font-bold text-white">
-                Phòng Công Nghệ
-              </p>
-              <p class="mt-1 text-sm text-white/50">
-                Đơn vị kiến tạo nền tảng số &amp; AI cho toàn hệ thống.
-              </p>
-            </div>
-          </div>
-          <p class="mt-5 text-sm leading-relaxed text-white/50">
-            Kiến tạo hạ tầng dữ liệu, sản phẩm phần mềm và năng lực trí tuệ nhân tạo —
-            đồng hành cùng đội ngũ bằng những giải pháp thật, đo lường được.
-          </p>
-          <a
-            href="mailto:phongcongnghe@vaschools.edu.vn"
-            class="mt-4 inline-flex items-center gap-2 text-sm text-white/60 transition hover:text-white"
+    <div class="relative mx-auto max-w-7xl px-5 py-14 sm:px-8 sm:py-16">
+      <div class="grid gap-10 lg:grid-cols-[1.65fr_1fr_1fr] lg:items-start">
+        <!-- Brand + mascot cùng hàng -->
+        <div class="flex flex-col gap-6 sm:flex-row sm:items-center sm:gap-8">
+          <img
+            :src="congngheBrand.mascotHoodie"
+            alt=""
+            class="mx-auto h-36 w-auto shrink-0 object-contain drop-shadow-[0_16px_32px_rgba(0,0,0,0.5)] sm:mx-0 sm:h-40"
+            loading="lazy"
+            decoding="async"
           >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
+          <div class="min-w-0 flex-1 text-center sm:text-left">
+            <div class="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
+              <img
+                :src="congngheBrand.logoVertical"
+                alt="Vietnam America Schools"
+                class="h-16 w-auto object-contain sm:h-[4.5rem]"
+                loading="lazy"
+                decoding="async"
+              >
+              <div class="min-w-0">
+                <p class="font-display text-lg font-bold text-white sm:text-xl">
+                  Phòng Công Nghệ
+                </p>
+                <p class="mt-1 text-sm text-white/65">
+                  Đơn vị kiến tạo nền tảng số &amp; AI cho toàn hệ thống.
+                </p>
+              </div>
+            </div>
+            <p class="mt-4 text-sm leading-relaxed text-white/55">
+              Kiến tạo hạ tầng dữ liệu, sản phẩm phần mềm và năng lực trí tuệ nhân tạo —
+              đồng hành cùng đội ngũ bằng những giải pháp thật, đo lường được.
+            </p>
+            <a
+              href="mailto:phongcongnghe@vaschools.edu.vn"
+              class="mt-4 inline-flex items-center justify-center gap-2 text-sm text-cyan-100/80 transition hover:text-white sm:justify-start"
             >
-              <rect
-                x="3"
-                y="5"
-                width="18"
-                height="14"
-                rx="2"
-              />
-              <path d="m3 7 9 6 9-6" />
-            </svg>
-            phongcongnghe@vaschools.edu.vn
-          </a>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <rect
+                  x="3"
+                  y="5"
+                  width="18"
+                  height="14"
+                  rx="2"
+                />
+                <path d="m3 7 9 6 9-6" />
+              </svg>
+              phongcongnghe@vaschools.edu.vn
+            </a>
+          </div>
         </div>
 
         <div
           v-for="col in cols"
           :key="col.heading"
-          class="relative z-10"
         >
-          <p class="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-300/80">
+          <p class="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-200/70">
             {{ col.heading }}
           </p>
           <ul class="mt-4 space-y-2.5">
@@ -124,22 +123,22 @@ const cols = computed(() => [
             >
               <a
                 :href="link.href"
-                class="text-sm text-white/60 transition hover:text-white"
+                class="text-sm text-white/65 transition hover:text-white"
               >{{ link.label }}</a>
             </li>
           </ul>
         </div>
       </div>
 
-      <div class="relative z-10 mt-12 flex flex-col items-center justify-between gap-4 border-t border-white/10 pt-6 sm:flex-row">
+      <div class="mt-10 flex flex-col items-center justify-between gap-3 border-t border-white/15 pt-6 sm:flex-row">
         <div class="flex flex-wrap items-center justify-center gap-3 sm:justify-start">
           <img
             :src="congngheBrand.badgeCircle"
             alt=""
-            class="h-10 w-10 object-contain opacity-80"
+            class="h-9 w-9 object-contain opacity-90"
             loading="lazy"
           >
-          <p class="text-center text-[12.5px] text-white/40 sm:text-left">
+          <p class="text-center text-[12.5px] text-white/45 sm:text-left">
             © {{ year }} Vietnam America Schools · Phòng Công Nghệ
           </p>
         </div>

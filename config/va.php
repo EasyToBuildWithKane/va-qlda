@@ -82,7 +82,7 @@ return [
         static fn (string $part): string => strtolower(trim($part)),
         explode(',', (string) env(
             'CONGNGHE_ORG_ROOT_PATTERNS',
-            'phong cong nghe,phong cntt,ban cong nghe,cong nghe thong tin'
+            'phong cong nghe,phong cntt,ban cong nghe,cong nghe thong tin,phong công nghệ,cntt'
         ))
     ))),
 

@@ -15,7 +15,7 @@ const props = defineProps({
 const roots = computed(() => props.forest ?? []);
 const peopleTotal = computed(() => Number(props.overview?.people_total ?? 0));
 
-const graphFilter = { query: '', rootId: null, role: 'all', status: 'active' };
+const graphFilter = { query: '', rootId: null, role: 'all', status: 'all' };
 
 const { target, shown: sectionVisible } = useInView({ threshold: 0.18 });
 

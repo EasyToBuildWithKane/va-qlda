@@ -56,6 +56,21 @@ class OrgTeamTreeBuilder
             return $matched;
         }
 
+        $broad = array_values(array_filter(
+            $forest,
+            fn (array $node): bool => self::nameMatchesPatterns((string) ($node['name'] ?? ''), [
+                'cong nghe',
+                'cntt',
+                'cng',
+                'information',
+                'technology',
+                'it',
+            ]),
+        ));
+        if ($broad !== []) {
+            return $broad;
+        }
+
         return count($forest) === 1 ? $forest : [];
     }
 
