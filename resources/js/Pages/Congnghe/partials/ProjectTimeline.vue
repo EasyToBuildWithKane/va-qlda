@@ -6,6 +6,7 @@ import Avatar from '@/shared/ui/Avatar.vue';
 import { tone } from './tones.js';
 import { useInView } from './motion.js';
 import { openCongngheProject } from './useCongngheProjectModal.js';
+import CongngheProjectGallery from './CongngheProjectGallery.vue';
 
 const props = defineProps({
     phases: { type: Array, default: () => [] },
@@ -313,7 +314,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
                           class="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-200 transition hover:text-[#ff4d8d]"
                           @click="openCongngheProject(project)"
                         >
-                          Xem chi tiết &amp; hình ảnh
+                          Xem mô tả chi tiết
                           <svg
                             width="14"
                             height="14"
@@ -342,9 +343,14 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
                       </div>
                     </div>
 
-                    <!-- Manager & meta -->
+                    <!-- Gallery & meta -->
                     <div class="flex flex-col justify-between p-6 sm:p-8">
-                      <div>
+                      <CongngheProjectGallery
+                        :key="project.id"
+                        :images="project.images"
+                      />
+
+                      <div class="mt-6">
                         <p class="font-mono text-[10px] uppercase tracking-[0.18em] text-white/40">
                           Phụ trách chính
                         </p>

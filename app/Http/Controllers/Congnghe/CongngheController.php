@@ -135,7 +135,6 @@ class CongngheController extends Controller
     private function projectCard(Project $project): array
     {
         $manager = $project->manager;
-        $user = request()->user();
 
         return [
             'id' => $project->id,
@@ -150,7 +149,7 @@ class CongngheController extends Controller
             'type_label' => $project->type->label(),
             'type_color' => $project->type->color(),
             'images' => $this->projectImages($project),
-            'can_upload_images' => $user ? $user->can('contribute', $project) : false,
+            'can_upload_images' => false,
             'manager' => $manager ? [
                 'id' => $manager->id,
                 'name' => $manager->full_name,

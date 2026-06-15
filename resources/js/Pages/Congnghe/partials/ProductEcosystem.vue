@@ -6,6 +6,7 @@ import Avatar from '@/shared/ui/Avatar.vue';
 import { tone } from './tones.js';
 import { useInView } from './motion.js';
 import { openCongngheProject } from './useCongngheProjectModal.js';
+import CongngheProjectGallery from './CongngheProjectGallery.vue';
 
 const props = defineProps({
     products: { type: Array, default: () => [] },
@@ -245,7 +246,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
                         class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand to-[#c4185b] px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-brand/25 transition hover:brightness-110 sm:w-auto"
                         @click="openCongngheProject(product)"
                       >
-                        Xem chi tiết &amp; gallery
+                        Xem mô tả chi tiết
                         <svg
                           width="16"
                           height="16"
@@ -260,82 +261,10 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
 
                   <!-- Preview & phụ trách -->
                   <div class="flex flex-col p-6 sm:p-8">
-                    <p class="font-mono text-[10px] uppercase tracking-[0.18em] text-white/40">
-                      Hình ảnh tham chiếu
-                    </p>
-                    <button
-                      type="button"
-                      class="group relative mt-3 flex-1 overflow-hidden rounded-2xl border border-white/10 bg-black/20 text-left transition hover:border-brand/35"
-                      @click="openCongngheProject(product)"
-                    >
-                      <img
-                        v-if="product.images?.[0]?.url"
-                        :src="product.images[0].url"
-                        :alt="product.images[0].caption || product.name"
-                        class="h-full min-h-[11rem] w-full object-cover transition duration-500 group-hover:scale-[1.02] sm:min-h-[13rem]"
-                      >
-                      <div
-                        v-else
-                        class="flex min-h-[11rem] flex-col items-center justify-center gap-3 px-6 text-center sm:min-h-[13rem]"
-                        :style="{
-                          background: `linear-gradient(145deg, ${product.color || '#9A0036'}33, rgba(255,255,255,0.03))`,
-                        }"
-                      >
-                        <span class="grid h-14 w-14 place-items-center rounded-2xl border border-white/15 bg-white/5 text-white/40">
-                          <svg
-                            width="28"
-                            height="28"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="1.5"
-                          ><rect
-                            x="3"
-                            y="3"
-                            width="18"
-                            height="18"
-                            rx="2"
-                          /><circle
-                            cx="8.5"
-                            cy="8.5"
-                            r="1.5"
-                          /><path d="m21 15-5-5L5 21" /></svg>
-                        </span>
-                        <p class="text-sm text-white/45">
-                          Chưa có ảnh — bấm để xem mô tả đầy đủ
-                        </p>
-                      </div>
-                      <span
-                        class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#05060c]/90 via-[#05060c]/50 to-transparent px-4 py-3 text-xs font-medium text-white/80 opacity-0 transition group-hover:opacity-100"
-                      >
-                        Mở gallery dự án
-                      </span>
-                    </button>
-
-                    <div
-                      v-if="product.images?.length > 1"
-                      class="mt-3 flex gap-2 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-                    >
-                      <button
-                        v-for="img in product.images.slice(0, 5)"
-                        :key="img.id"
-                        type="button"
-                        class="h-12 w-16 shrink-0 overflow-hidden rounded-lg border border-white/15 opacity-80 transition hover:border-brand/40 hover:opacity-100"
-                        @click="openCongngheProject(product)"
-                      >
-                        <img
-                          :src="img.url"
-                          :alt="img.caption"
-                          class="h-full w-full object-cover"
-                        >
-                      </button>
-                      <span
-                        v-if="product.images.length > 5"
-                        class="flex h-12 shrink-0 items-center px-2 font-mono text-[10px] text-white/40"
-                      >
-                        +{{ product.images.length - 5 }}
-                      </span>
-                    </div>
+                    <CongngheProjectGallery
+                      :key="product.id"
+                      :images="product.images"
+                    />
 
                     <div class="mt-6 border-t border-white/10 pt-5">
                       <p class="font-mono text-[10px] uppercase tracking-[0.18em] text-white/40">

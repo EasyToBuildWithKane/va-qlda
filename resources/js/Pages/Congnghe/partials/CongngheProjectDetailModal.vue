@@ -1,20 +1,15 @@
 <script setup>
-import { computed, ref, watch, onBeforeUnmount } from 'vue';
-import { router, usePage } from '@inertiajs/vue3';
+import { computed, watch, onBeforeUnmount } from 'vue';
+import { usePage } from '@inertiajs/vue3';
 import Avatar from '@/shared/ui/Avatar.vue';
 import { tone } from './tones.js';
 import {
     activeCongngheProject,
     closeCongngheProject,
 } from './useCongngheProjectModal.js';
-import { useToast } from '@/shared/composables/useToast';
+import CongngheProjectGallery from './CongngheProjectGallery.vue';
 
 const page = usePage();
-const toast = useToast();
-
-const uploading = ref(false);
-const lightboxIndex = ref(0);
-const fileInput = ref(null);
 
 const open = computed(() => activeCongngheProject.value != null);
 
@@ -33,17 +28,11 @@ const project = computed(() => {
     return fromProducts ?? activeCongngheProject.value;
 });
 
-const images = computed(() => project.value?.images ?? []);
-const lightboxImage = computed(() => images.value[lightboxIndex.value] ?? null);
-
 watch(open, (isOpen) => {
     if (typeof document === 'undefined') {
         return;
     }
     document.body.style.overflow = isOpen ? 'hidden' : '';
-    if (isOpen) {
-        lightboxIndex.value = 0;
-    }
 });
 
 function onKey(e) {
@@ -69,44 +58,6 @@ onBeforeUnmount(() => {
     }
     window.removeEventListener('keydown', onKey);
 });
-
-function pickFiles() {
-    fileInput.value?.click();
-}
-
-function onFilesSelected(e) {
-    const files = [...(e.target.files ?? [])];
-    e.target.value = '';
-    if (!files.length || !project.value?.can_upload_images) {
-        return;
-    }
-
-    const fd = new FormData();
-    fd.append('category', 'showcase');
-    files.forEach((file, index) => {
-        fd.append(`files[${index}]`, file);
-    });
-
-    uploading.value = true;
-    router.post(route('projects.attachments.store', project.value.id), fd, {
-        preserveScroll: true,
-        forceFormData: true,
-        onSuccess: () => {
-            toast.success('Đã thêm hình ảnh dự án.');
-            router.reload({ only: ['phases', 'products'], preserveScroll: true });
-        },
-        onError: () => {
-            toast.error('Không thể tải ảnh lên. Kiểm tra định dạng và dung lượng (tối đa 20MB/file).');
-        },
-        onFinish: () => {
-            uploading.value = false;
-        },
-    });
-}
-
-function selectImage(index) {
-    lightboxIndex.value = index;
-}
 </script>
 
 <template>
@@ -218,83 +169,14 @@ function selectImage(index) {
             </div>
 
             <div class="mt-8">
-              <div class="flex flex-wrap items-center justify-between gap-3">
-                <p class="font-mono text-[10px] uppercase tracking-[0.18em] text-white/40">
-                  Hình ảnh tham chiếu
-                </p>
-                <button
-                  v-if="project.can_upload_images"
-                  type="button"
-                  class="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/80 transition hover:border-brand/40 hover:bg-brand/10 hover:text-white disabled:opacity-50"
-                  :disabled="uploading"
-                  @click="pickFiles"
-                >
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  ><path d="M12 5v14M5 12h14" /></svg>
-                  {{ uploading ? 'Đang tải…' : 'Thêm ảnh' }}
-                </button>
-              </div>
-
-              <input
-                ref="fileInput"
-                type="file"
-                class="hidden"
-                accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml"
-                multiple
-                @change="onFilesSelected"
-              >
-
-              <div
-                v-if="lightboxImage"
-                class="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-black/30"
-              >
-                <img
-                  :src="lightboxImage.url"
-                  :alt="lightboxImage.caption"
-                  class="max-h-[min(42vh,360px)] w-full object-contain"
-                >
-                <p
-                  v-if="lightboxImage.caption"
-                  class="border-t border-white/10 px-4 py-2.5 text-center text-xs text-white/55"
-                >
-                  {{ lightboxImage.caption }}
-                </p>
-              </div>
-
-              <div
-                v-if="images.length"
-                class="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-              >
-                <button
-                  v-for="(img, idx) in images"
-                  :key="img.id"
-                  type="button"
-                  class="h-16 w-24 shrink-0 overflow-hidden rounded-lg border-2 transition"
-                  :class="idx === lightboxIndex ? 'border-brand shadow-[0_0_20px_-6px_rgba(154,0,54,0.9)]' : 'border-white/15 opacity-80 hover:border-white/35 hover:opacity-100'"
-                  @click="selectImage(idx)"
-                >
-                  <img
-                    :src="img.url"
-                    :alt="img.caption"
-                    class="h-full w-full object-cover"
-                  >
-                </button>
-              </div>
-
-              <p
-                v-else
-                class="mt-4 rounded-2xl border border-dashed border-white/12 bg-white/[0.02] px-4 py-8 text-center text-sm text-white/45"
-              >
-                Chưa có hình ảnh tham chiếu.
-                <span v-if="project.can_upload_images"> Bấm «Thêm ảnh» để tải screenshot hoặc mockup (PNG, JPG, WebP).</span>
-                <span v-else> Ảnh được cập nhật từ tab Tài liệu dự án → «Hình ảnh cổng Công nghệ».</span>
+              <p class="font-mono text-[10px] uppercase tracking-[0.18em] text-white/40">
+                Hình ảnh tham chiếu
               </p>
+              <CongngheProjectGallery
+                :key="project.id"
+                :images="project.images"
+                density="modal"
+              />
             </div>
           </div>
         </div>
