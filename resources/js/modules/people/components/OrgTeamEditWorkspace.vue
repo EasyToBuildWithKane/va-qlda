@@ -2,7 +2,6 @@
 import { computed, ref, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
-import OrgTeamEditGuide from '@/modules/people/components/OrgTeamEditGuide.vue';
 import OrgTeamTeamForm from '@/modules/people/components/OrgTeamTeamForm.vue';
 import {
     flattenOrgTeamTree,
@@ -45,6 +44,8 @@ const createParentNode = computed(() => {
     return flatRows.value.find(({ node }) => node.id === createChildForParentId.value)?.node ?? null;
 });
 
+const isCreateMode = computed(() => createChildForParentId.value != null && canManage.value);
+
 watch(
     () => props.tree?.id,
     (id) => {
@@ -63,9 +64,6 @@ function selectUnit(id) {
 function startCreateChild(parentId) {
     createChildForParentId.value = parentId;
     selectedUnitId.value = null;
-    setTimeout(() => {
-        document.getElementById('org-team-create-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 50);
 }
 
 function cancelCreate() {
@@ -100,95 +98,144 @@ async function deleteTeam(node) {
     });
 }
 
-function unitOptionLabel({ node, depth }) {
-    const prefix = depth > 0 ? `${'— '.repeat(depth)}` : '';
-
-    return `${prefix}${node.name}`;
+function tabIsActive(nodeId) {
+    return !isCreateMode.value && selectedUnitId.value === nodeId;
 }
 </script>
 
 <template>
-  <div class="mx-auto max-w-3xl space-y-5">
-    <OrgTeamEditGuide />
-
+  <div class="w-full min-w-0">
     <div
-      v-if="canManage"
-      class="rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm sm:p-5"
+      v-if="!canManage"
+      class="card px-4 py-10 text-center text-sm text-slate-500"
     >
-      <label
-        for="org-team-unit-picker"
-        class="text-sm font-semibold text-slate-900"
-      >
-        Chọn đơn vị cần chỉnh
-      </label>
-      <p class="mt-0.5 text-xs text-slate-500">
-        Mỗi dòng là một ô trên sơ đồ — chọn một, sửa và lưu.
-      </p>
-      <select
-        id="org-team-unit-picker"
-        :value="createChildForParentId != null ? '' : selectedUnitId"
-        class="input mt-3 w-full text-sm"
-        :disabled="createChildForParentId != null"
-        @change="selectUnit(Number($event.target.value))"
-      >
-        <option
-          v-for="{ node, depth } in flatRows"
-          :key="node.id"
-          :value="node.id"
-        >
-          {{ unitOptionLabel({ node, depth }) }}
-        </option>
-      </select>
-
-      <div
-        v-if="flatRows.length <= 10"
-        class="mt-3 hidden flex-wrap gap-2 sm:flex"
-      >
-        <button
-          v-for="{ node, depth } in flatRows"
-          :key="`chip-${node.id}`"
-          type="button"
-          class="rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors"
-          :class="selectedUnitId === node.id && createChildForParentId == null
-            ? 'border-brand/40 bg-brand/10 text-brand'
-            : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300 hover:bg-white'"
-          :style="depth ? { marginLeft: `${Math.min(depth, 3) * 0.5}rem` } : undefined"
-          @click="selectUnit(node.id)"
-        >
-          {{ node.name }}
-        </button>
-      </div>
+      Bạn chỉ được xem — không có quyền chỉnh sửa.
     </div>
 
-    <section
-      v-if="createChildForParentId != null && canManage"
-      id="org-team-create-panel"
-      class="scroll-mt-24 overflow-hidden rounded-xl border-2 border-dashed border-brand/35 bg-brand/[0.03] shadow-sm"
+    <div
+      v-else
+      class="card overflow-hidden"
     >
-      <header class="border-b border-brand/15 bg-white/80 px-4 py-4 sm:px-5">
+      <nav
+        class="flex items-stretch gap-0 overflow-x-auto border-b border-slate-200 bg-slate-50/90"
+        role="tablist"
+        aria-label="Chọn đơn vị trên sơ đồ"
+      >
+        <button
+          v-for="{ node, depth } in flatRows"
+          :key="node.id"
+          type="button"
+          role="tab"
+          class="relative flex shrink-0 flex-col items-start border-r border-slate-200/80 px-4 py-3 text-left transition-colors last:border-r-0"
+          :class="tabIsActive(node.id)
+            ? 'bg-white text-brand'
+            : 'text-slate-600 hover:bg-white/60 hover:text-slate-900'"
+          :aria-selected="tabIsActive(node.id)"
+          :style="depth > 0 ? { paddingLeft: `${1 + depth * 0.65}rem` } : undefined"
+          @click="selectUnit(node.id)"
+        >
+          <span
+            class="max-w-[12rem] truncate text-sm font-semibold sm:max-w-[14rem]"
+            :title="node.name"
+          >
+            {{ node.name }}
+          </span>
+          <span class="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-slate-400">
+            {{ depth === 0 ? 'Phòng / ban' : 'Bộ phận' }}
+          </span>
+          <span
+            v-if="tabIsActive(node.id)"
+            class="absolute inset-x-0 bottom-0 h-0.5 bg-brand"
+            aria-hidden="true"
+          />
+        </button>
+
+        <button
+          v-if="isCreateMode"
+          type="button"
+          role="tab"
+          class="relative flex shrink-0 flex-col items-start border-r border-slate-200/80 bg-brand/5 px-4 py-3 text-left text-brand"
+          aria-selected="true"
+        >
+          <span class="text-sm font-semibold">
+            + Bộ phận mới
+          </span>
+          <span
+            v-if="createParentNode"
+            class="mt-0.5 max-w-[12rem] truncate text-[10px] text-slate-500"
+          >
+            Thuộc {{ createParentNode.name }}
+          </span>
+          <span
+            class="absolute inset-x-0 bottom-0 h-0.5 bg-brand"
+            aria-hidden="true"
+          />
+        </button>
+      </nav>
+
+      <div
+        v-if="isCreateMode"
+        class="border-b border-slate-100 bg-white px-4 py-3 sm:px-6"
+      >
         <button
           type="button"
-          class="mb-2 flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-brand"
+          class="flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-brand"
           @click="cancelCreate"
         >
           <AppIcon
             name="chevron-left"
             :size="14"
           />
-          Quay lại
+          Quay lại tab trước
         </button>
-        <h2 class="font-display text-base font-semibold text-slate-900">
-          Thêm bộ phận mới
-        </h2>
-        <p
-          v-if="createParentNode"
-          class="mt-1 text-sm text-slate-600"
-        >
-          Thuộc: <span class="font-medium text-slate-800">{{ createParentNode.name }}</span>
-        </p>
-      </header>
-      <div class="px-4 py-4 sm:px-5">
+      </div>
+
+      <div
+        v-else-if="selectedRow"
+        class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 bg-white px-4 py-3 sm:px-6"
+      >
+        <div class="min-w-0">
+          <p
+            v-if="selectedBreadcrumb.length > 1"
+            class="text-xs text-slate-500"
+          >
+            {{ selectedBreadcrumb.join(' › ') }}
+          </p>
+          <p class="text-sm font-medium text-slate-800">
+            {{ orgTeamFriendlyLevelLabel(selectedRow.node) }}
+          </p>
+        </div>
+        <div class="flex shrink-0 flex-wrap gap-2">
+          <button
+            v-if="selectedRow.node.level < 2"
+            type="button"
+            class="btn-secondary flex h-9 items-center gap-1.5 px-3 text-xs"
+            @click="startCreateChild(selectedRow.node.id)"
+          >
+            <AppIcon
+              name="plus"
+              :size="15"
+            />
+            Thêm bộ phận con
+          </button>
+          <button
+            v-if="selectedRow.node.can?.delete"
+            type="button"
+            class="btn-ghost flex h-9 items-center gap-1 px-2 text-xs text-rose-600 hover:bg-rose-50"
+            @click="deleteTeam(selectedRow.node)"
+          >
+            <AppIcon
+              name="delete"
+              :size="14"
+            />
+            {{ selectedRow.node.level === 1 ? 'Xóa sơ đồ' : 'Xóa' }}
+          </button>
+        </div>
+      </div>
+
+      <div class="bg-white px-4 py-5 sm:px-6 sm:py-6">
         <OrgTeamTeamForm
+          v-if="isCreateMode"
           :parent-options="parentOptions"
           :employees="employees"
           :branch-options="branchOptions"
@@ -197,30 +244,8 @@ function unitOptionLabel({ node, depth }) {
           @saved="onChildCreated"
           @cancel="cancelCreate"
         />
-      </div>
-    </section>
-
-    <section
-      v-else-if="selectedRow && canManage"
-      class="scroll-mt-24 overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm"
-    >
-      <header class="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-4 py-4 sm:px-5">
-        <p
-          v-if="selectedBreadcrumb.length > 1"
-          class="text-xs text-slate-500"
-        >
-          {{ selectedBreadcrumb.slice(0, -1).join(' › ') }}
-        </p>
-        <h2 class="font-display text-lg font-semibold text-slate-900">
-          {{ selectedRow.node.name }}
-        </h2>
-        <p class="mt-0.5 text-sm text-slate-500">
-          {{ orgTeamFriendlyLevelLabel(selectedRow.node) }}
-        </p>
-      </header>
-
-      <div class="px-4 py-4 sm:px-5">
         <OrgTeamTeamForm
+          v-else-if="selectedRow"
           :team="selectedRow.node"
           :parent-options="parentOptions"
           :employees="employees"
@@ -228,40 +253,6 @@ function unitOptionLabel({ node, depth }) {
           :unit-display-name="selectedRow.node.name"
         />
       </div>
-
-      <footer class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 bg-slate-50/50 px-4 py-3 sm:px-5">
-        <button
-          v-if="selectedRow.node.level < 2"
-          type="button"
-          class="btn-secondary flex h-9 items-center gap-1.5 px-3 text-xs"
-          @click="startCreateChild(selectedRow.node.id)"
-        >
-          <AppIcon
-            name="plus"
-            :size="15"
-          />
-          Thêm bộ phận con
-        </button>
-        <button
-          v-if="selectedRow.node.can?.delete"
-          type="button"
-          class="btn-ghost ml-auto flex h-9 items-center gap-1 px-2 text-xs text-rose-600 hover:bg-rose-50"
-          @click="deleteTeam(selectedRow.node)"
-        >
-          <AppIcon
-            name="delete"
-            :size="14"
-          />
-          {{ selectedRow.node.level === 1 ? 'Xóa cả sơ đồ' : 'Xóa bộ phận' }}
-        </button>
-      </footer>
-    </section>
-
-    <p
-      v-else-if="!canManage"
-      class="rounded-xl border border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-500"
-    >
-      Bạn chỉ được xem — không có quyền chỉnh sửa.
-    </p>
+    </div>
   </div>
 </template>

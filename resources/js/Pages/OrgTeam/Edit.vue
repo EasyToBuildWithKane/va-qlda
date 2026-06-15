@@ -50,29 +50,28 @@ function switchRoot(id) {
       </PageHeader>
     </template>
 
-    <div class="space-y-4">
-      <div
+    <div class="w-full min-w-0 space-y-4">
+      <nav
         v-if="roots.length > 1"
-        class="flex flex-wrap items-center gap-2"
+        class="card flex overflow-x-auto p-1"
         role="tablist"
-        aria-label="Chọn cấu trúc"
+        aria-label="Chọn phòng hoặc ban"
       >
-        <span class="text-xs font-medium text-slate-500">Chọn phòng / ban:</span>
         <button
           v-for="root in roots"
           :key="root.id"
           type="button"
           role="tab"
-          class="rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors"
+          class="relative shrink-0 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors"
           :class="activeRootId === root.id
-            ? 'border-brand/40 bg-brand text-white shadow-sm'
-            : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'"
+            ? 'bg-brand text-white shadow-sm'
+            : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'"
           :aria-selected="activeRootId === root.id"
           @click="switchRoot(root.id)"
         >
           {{ root.name }}
         </button>
-      </div>
+      </nav>
 
       <OrgTeamEditWorkspace
         :tree="tree"
