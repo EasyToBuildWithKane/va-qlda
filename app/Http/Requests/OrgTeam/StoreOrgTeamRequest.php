@@ -58,7 +58,7 @@ class StoreOrgTeamRequest extends FormRequest
         return [
             'name.required' => 'Vui lòng nhập tên nhóm.',
             'parent_id.exists' => 'Nhóm cha không tồn tại.',
-            'leader_id.exists' => 'Trưởng nhóm không hợp lệ.',
+            'leader_id.exists' => 'Quản lý không hợp lệ.',
             'members.*.employee_id.distinct' => 'Mỗi thành viên chỉ được thêm một lần trong nhóm.',
             'sections.*.title.required' => 'Vui lòng nhập tiêu đề nhánh.',
         ];

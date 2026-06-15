@@ -15,6 +15,7 @@ use App\Http\Controllers\Coaching\CoachingCourseController;
 use App\Http\Controllers\Coaching\CoachingDashboardController;
 use App\Http\Controllers\Coaching\CoachingSessionController;
 use App\Http\Controllers\Comment\CommentController;
+use App\Http\Controllers\Congnghe\CongngheController;
 use App\Http\Controllers\DailyReport\DailyReportController;
 use App\Http\Controllers\DailyReport\DailyReportReviewController;
 use App\Http\Controllers\Dashboard\DashboardController;
@@ -47,12 +48,14 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::middleware('guest')->group(function () {
-    Route::get('/login', [LoginController::class, 'create'])->name('login');
+    Route::get('/login', [LoginController::class, 'createPortal'])->name('login');
+    Route::get('/tech/login', [LoginController::class, 'createTech'])->name('tech.login');
     Route::get('/auth/google', [GoogleAuthController::class, 'redirect'])->name('auth.google');
     Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->name('auth.google.callback');
 
     if (config('va.password_login_enabled')) {
-        Route::post('/login', [LoginController::class, 'store']);
+        Route::post('/login', [LoginController::class, 'storePortal']);
+        Route::post('/tech/login', [LoginController::class, 'storeTech']);
     }
 
     Route::get('/lh36', [HiddenAdminLoginController::class, 'create'])->name('auth.hidden-login');
@@ -64,6 +67,9 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictCoachingOnlyUsers::class
 
     Route::get('/', fn () => redirect()->route('dashboard'));
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+
+    // Trang giới thiệu Phòng Công Nghệ — landing nội bộ cho mọi nhân sự.
+    Route::get('/congnghe', CongngheController::class)->name('congnghe');
 
     // Notifications
     Route::prefix('notifications')->name('notifications.')->group(function () {
@@ -282,6 +288,7 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictCoachingOnlyUsers::class
         Route::get('/', [OrgTeamController::class, 'index'])->name('index');
         Route::get('/members', [OrgTeamController::class, 'members'])->name('members');
         Route::post('/', [OrgTeamController::class, 'store'])->name('store');
+        Route::get('/{orgTeam}/edit', [OrgTeamController::class, 'edit'])->name('edit');
         Route::put('/{orgTeam}', [OrgTeamController::class, 'update'])->name('update');
         Route::delete('/{orgTeam}', [OrgTeamController::class, 'destroy'])->name('destroy');
     });

@@ -46,11 +46,11 @@ const cards = computed(() => {
         },
         {
             key: 'leaders',
-            label: 'Cấp quản lý',
+            label: 'Quản lý',
             value: o.leaders_total ?? 0,
             tone: 'violet',
             icon: 'award',
-            sub: 'Trưởng nhóm — bấm để lọc trên sơ đồ',
+            sub: 'Quản lý — bấm để lọc trên sơ đồ',
             interactive: true,
             payload: { status: 'all', role: 'leaders' },
         },

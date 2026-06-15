@@ -35,7 +35,7 @@ const ADMIN_SCREENS = [
 
 test.describe('Visual — snapshot theo màn hình', () => {
     test('login', async ({ page }) => {
-        await page.goto('/login');
+        await page.goto('/tech/login');
         await expect(page.getByRole('heading', { name: 'Đăng nhập', level: 1 })).toBeVisible();
         await captureFeatureScreen(page, 'login');
     });

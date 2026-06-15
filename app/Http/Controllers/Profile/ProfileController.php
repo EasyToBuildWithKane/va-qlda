@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Profile\UpdateProfileRequest;
 use App\Http\Resources\EmployeeProfileResource;
 use App\Models\Employee;
+use App\Services\Cms\CmsEmployeeSyncService;
 use App\Support\Profile\SkillCatalog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,9 +21,13 @@ use Inertia\Response;
  */
 class ProfileController extends Controller
 {
-    public function show(Request $request): Response
+    public function show(Request $request, CmsEmployeeSyncService $cmsSync): Response
     {
         $employee = $this->currentEmployee($request);
+
+        if ($employee !== null) {
+            $employee = $cmsSync->refreshEmployeeIfLinked($employee);
+        }
 
         if ($employee === null) {
             return Inertia::render('Profile/Show', [

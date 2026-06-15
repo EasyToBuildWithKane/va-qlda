@@ -46,7 +46,7 @@ const emit = defineEmits(['close']);
             name="members"
             :size="12"
           />
-          Trưởng nhóm
+          Quản lý
         </span>
         <span
           v-else-if="person.sectionTitle"

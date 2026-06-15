@@ -75,7 +75,7 @@ class ProjectTest extends TestCase
 
     public function test_guest_is_redirected_from_projects(): void
     {
-        $this->get('/projects')->assertRedirect('/login');
+        $this->get('/projects')->assertRedirect('/tech/login');
     }
 
     // ─── Create / Store ───────────────────────────────────────────────────────

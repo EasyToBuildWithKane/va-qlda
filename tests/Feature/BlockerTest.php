@@ -78,7 +78,7 @@ class BlockerTest extends TestCase
 
     public function test_guest_is_redirected_from_blockers(): void
     {
-        $this->get('/blockers')->assertRedirect('/login');
+        $this->get('/blockers')->assertRedirect('/tech/login');
     }
 
     // ─── Store ────────────────────────────────────────────────────────────────

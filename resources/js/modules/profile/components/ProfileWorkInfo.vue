@@ -1,7 +1,6 @@
 <script setup>
 import { computed } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
-import { date } from '@/composables/useFormat';
 
 const props = defineProps({
     profile: { type: Object, required: true },
@@ -10,19 +9,25 @@ const props = defineProps({
 const rows = computed(() => {
     const p = props.profile;
     const primaryTeam = p.teams?.[0] ?? null;
-    const out = [
-        { icon: 'briefcase', label: 'Chức danh', value: p.role_title || '—' },
-        { icon: 'org-teams', label: 'Đơn vị', value: primaryTeam?.name || '—' },
+    return [
+        {
+            icon: 'settings',
+            label: 'Vai trò hệ thống',
+            value: p.account_role?.label || '—',
+        },
+        {
+            icon: 'career',
+            label: 'Cấp bậc',
+            value: p.seniority?.label || '—',
+        },
+        { icon: 'org-teams', label: 'Nhóm QLDA', value: primaryTeam?.name || '—' },
         { icon: 'account', label: 'Quản lý trực tiếp', value: p.manager?.name || '—' },
-        { icon: 'calendar', label: 'Ngày tham gia', value: p.join_date ? date(p.join_date) : '—' },
-        { icon: 'clock', label: 'Thâm niên', value: p.stats?.tenure?.label || '—' },
         {
             icon: 'performance',
             label: 'Trạng thái',
             value: p.is_active ? 'Đang hoạt động' : 'Ngừng hoạt động',
         },
     ];
-    return out;
 });
 </script>
 
@@ -35,7 +40,7 @@ const rows = computed(() => {
         class="text-slate-400"
       />
       <h2 class="text-sm font-semibold text-slate-800">
-        Thông tin công việc
+        Vận hành trên QLDA
       </h2>
     </header>
 

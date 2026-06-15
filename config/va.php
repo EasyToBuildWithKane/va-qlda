@@ -52,4 +52,21 @@ return [
         explode(',', (string) env('GOOGLE_ALLOWED_EMAILS', ''))
     )))),
 
+    /*
+    |--------------------------------------------------------------------------
+    | /tech/login — whitelist (only these emails may use the tech QLDA portal)
+    |--------------------------------------------------------------------------
+    |
+    | Override with TECH_LOGIN_ALLOWED_EMAILS (comma-separated). Empty env uses
+    | the default list below.
+    |
+    */
+    'tech_login_allowed_emails' => array_values(array_unique(array_filter(array_map(
+        static fn (string $email): string => strtolower(trim($email)),
+        explode(',', (string) env(
+            'TECH_LOGIN_ALLOWED_EMAILS',
+            'phongcongnghe@vaschools.edu.vn,toanbq@vaschools.edu.vn,hungnv@vaschools.edu.vn,truongnv@vaschools.edu.vn,thangkc@vaschools.edu.vn,locd@hcm.vaschools.edu.vn,khoana@hcm.vaschools.edu.vn,thaipq@hcm.vaschools.edu.vn,kieunlt@hcm.vaschools.edu.vn,hoadt@hcm.vaschools.edu.vn,binhtl@hcm.vaschools.edu.vn,quangtm@hcm.vaschools.edu.vn,truchtm@vaschools.edu.vn,hoangbh@vaschools.edu.vn,vunh@vaschools.edu.vn'
+        ))
+    )))),
+
 ];

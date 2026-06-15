@@ -103,7 +103,7 @@ function onTeamPrimary() {
           v-if="team.leader"
           type="button"
           class="org-node__avatar-btn"
-          :title="`Trưởng nhóm: ${team.leader.name}`"
+          :title="`Quản lý: ${team.leader.name}`"
           @click.stop="emit('select-leader', node)"
         >
           <Avatar

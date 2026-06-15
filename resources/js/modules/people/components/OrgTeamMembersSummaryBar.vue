@@ -30,17 +30,17 @@ const cards = computed(() => {
             value: total,
             tone: 'brand',
             icon: 'members',
-            sub: 'Mọi người xuất hiện trên cây team',
+            sub: 'Thành viên gán trong nhóm — không tính quản lý',
             interactive: true,
             payload: 'all',
         },
         {
             key: 'leaders',
-            label: 'Trưởng nhóm',
+            label: 'Quản lý',
             value: leaders,
             tone: 'amber',
             icon: 'member-profiles',
-            sub: total ? `${pct(leaders)}% tổng — đang là leader ít nhất một nhóm` : 'Chưa có trưởng nhóm',
+            sub: total ? `${pct(leaders)}% tổng — đang là quản lý ít nhất một nhóm` : 'Chưa có quản lý',
             interactive: false,
         },
         {
@@ -75,7 +75,7 @@ function onSelect(card) {
 <template>
   <KpiSummaryStrip
     aria-label="Thống kê thành viên phòng"
-    heading="Nhân sự trên sơ đồ team"
+    heading="Thành viên trên sơ đồ"
     hint="Thẻ viền nét đứt — bấm để lọc trạng thái trong bảng"
     grid-class="grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4"
     :cards="cards"

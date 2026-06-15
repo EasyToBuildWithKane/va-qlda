@@ -24,15 +24,50 @@ class OrgTeamController extends Controller
     {
         $this->authorize('viewAny', OrgTeam::class);
 
+        return Inertia::render('OrgTeam/Index', [
+            'trees' => OrgTeamTreeBuilder::forest(),
+            'overview' => OrgTeamOverviewBuilder::build(),
+            'parentOptions' => [],
+            'employees' => Options::employees(),
+            'branchOptions' => OrgTeamRosterBuilder::branchOptions(),
+            'can' => [
+                'create' => $request->user()->can('create', OrgTeam::class),
+            ],
+        ]);
+    }
+
+    public function edit(Request $request, OrgTeam $orgTeam): Response|RedirectResponse
+    {
+        $this->authorize('update', $orgTeam);
+
+        $root = $orgTeam;
+        while ($root->parent_id !== null) {
+            $root = OrgTeam::query()->findOrFail($root->parent_id);
+        }
+
+        if ($root->id !== $orgTeam->id) {
+            return redirect()->route('org-teams.edit', $root);
+        }
+
+        $forest = OrgTeamTreeBuilder::forest();
+        $tree = collect($forest)->firstWhere('id', $root->id);
+        if ($tree === null) {
+            abort(404);
+        }
+
         $flatTeams = OrgTeam::query()
             ->orderBy('level')
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get(['id', 'name', 'level', 'parent_id']);
 
-        return Inertia::render('OrgTeam/Index', [
-            'trees' => OrgTeamTreeBuilder::forest(),
-            'overview' => OrgTeamOverviewBuilder::build(),
+        return Inertia::render('OrgTeam/Edit', [
+            'tree' => $tree,
+            'roots' => OrgTeam::query()
+                ->whereNull('parent_id')
+                ->orderBy('sort_order')
+                ->orderBy('name')
+                ->get(['id', 'name']),
             'parentOptions' => $flatTeams->map(fn (OrgTeam $t) => [
                 'id' => $t->id,
                 'name' => $t->name,
@@ -41,8 +76,9 @@ class OrgTeamController extends Controller
                 'label' => str_repeat('— ', max(0, $t->level - 1)).$t->name,
             ])->values(),
             'employees' => Options::employees(),
+            'branchOptions' => OrgTeamRosterBuilder::branchOptions(),
             'can' => [
-                'create' => $request->user()->can('create', OrgTeam::class),
+                'manage' => $request->user()->can('update', $root),
             ],
         ]);
     }
@@ -51,8 +87,9 @@ class OrgTeamController extends Controller
     {
         $this->authorize('viewAny', OrgTeam::class);
 
-        $allRows = OrgTeamRosterBuilder::allRows();
-        $filtered = OrgTeamRosterBuilder::filtered($request);
+        $memberRows = OrgTeamRosterBuilder::allRows(membersOnly: true);
+        $chartRows = OrgTeamRosterBuilder::allRows(membersOnly: false);
+        $filtered = OrgTeamRosterBuilder::filtered($request, membersOnly: true);
 
         $perPage = $request->integer('per_page', 24);
         if (! in_array($perPage, [24, 48, 96], true)) {
@@ -79,7 +116,7 @@ class OrgTeamController extends Controller
         return Inertia::render('OrgTeam/Members', [
             'roster' => OrgTeamRosterEntryResource::collection($paginator),
             'filters' => (object) $request->only(['q', 'root_id', 'team_id', 'branch', 'status', 'per_page']),
-            'summary' => OrgTeamRosterBuilder::summary($allRows),
+            'summary' => OrgTeamRosterBuilder::summary($memberRows, $chartRows),
             'filteredCount' => $filtered->count(),
             'rootOptions' => OrgTeam::query()->whereNull('parent_id')->orderBy('name')->get(['id', 'name']),
             'teamOptions' => $flatTeams->map(fn (OrgTeam $t) => [
@@ -92,7 +129,9 @@ class OrgTeamController extends Controller
 
     public function store(StoreOrgTeamRequest $request): RedirectResponse
     {
-        DB::transaction(function () use ($request) {
+        $team = null;
+
+        DB::transaction(function () use ($request, &$team) {
             $team = OrgTeam::create([
                 'name' => $request->validated('name'),
                 'parent_id' => $request->validated('parent_id'),
@@ -108,6 +147,12 @@ class OrgTeamController extends Controller
                 $request->validated('members') ?? [],
             );
         });
+
+        if ($team !== null && $team->parent_id === null) {
+            return redirect()
+                ->route('org-teams.edit', $team)
+                ->with('success', 'Đã tạo nhóm. Tiếp tục chỉnh sửa cấu trúc bên dưới.');
+        }
 
         return back()->with('success', 'Đã tạo nhóm.');
     }

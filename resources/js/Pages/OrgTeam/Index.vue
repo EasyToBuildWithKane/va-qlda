@@ -1,22 +1,18 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { Head, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import DatagridToolbarActionButton from '@/shared/ui/DatagridToolbarActionButton.vue';
-import DatagridSegmentedControl from '@/shared/ui/DatagridSegmentedControl.vue';
 import DatagridFilterField from '@/shared/ui/DatagridFilterField.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import OrgTeamOverviewSummaryBar from '@/modules/people/components/OrgTeamOverviewSummaryBar.vue';
 import OrgGraph from '@/modules/people/components/OrgGraph.vue';
-import OrgTeamChart from '@/modules/people/components/OrgTeamChart.vue';
-import OrgTeamChartCanvas from '@/modules/people/components/OrgTeamChartCanvas.vue';
 import OrgTeamFormModal from '@/modules/people/components/OrgTeamFormModal.vue';
 import OrgTeamPersonDetailDrawer from '@/modules/people/components/OrgTeamPersonDetailDrawer.vue';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
-import { useDialog } from '@/composables/useDialog';
 
 const FILTER_CONTROL_CLASS = 'input h-10 w-full text-sm';
 
@@ -28,7 +24,7 @@ const ORG_GRAPH_FILTER_CONTROLS = [
 
 const ROLE_OPTIONS = [
     { value: 'all', label: 'Vai trò' },
-    { value: 'leaders', label: 'Trưởng nhóm' },
+    { value: 'leaders', label: 'Quản lý' },
     { value: 'members', label: 'Thành viên' },
 ];
 
@@ -43,25 +39,28 @@ const props = defineProps({
     overview: { type: Object, default: () => ({}) },
     parentOptions: { type: Array, default: () => [] },
     employees: { type: Array, default: () => [] },
+    branchOptions: { type: Array, default: () => [] },
     can: { type: Object, default: () => ({}) },
 });
 
-const dialog = useDialog();
-
-const pageMode = ref('graph');
 const filter = ref({ query: '', rootId: null, role: 'all', status: 'all' });
 
 const selectedPerson = ref(null);
 const personDrawerOpen = ref(false);
 
 const modalOpen = ref(false);
-const editing = ref(null);
-const presetParentId = ref(null);
 const forceRoot = ref(false);
-const pendingSelectNewRoot = ref(false);
-const activeRootId = ref(null);
 
 const filterPanelDdRef = ref(null);
+
+const primaryEditHref = computed(() => {
+    if (!props.trees.length) {
+        return null;
+    }
+    const sorted = [...props.trees].sort((a, b) => b.id - a.id);
+
+    return `/org-teams/${sorted[0].id}/edit`;
+});
 
 const {
     visibleFilters,
@@ -77,44 +76,6 @@ const {
 );
 
 const rootOptions = computed(() => props.trees.map((t) => ({ id: t.id, name: t.name })));
-
-const modeItems = computed(() => {
-    const items = [{ key: 'graph', label: 'Sơ đồ', icon: 'org-teams' }];
-    if (props.can.create) {
-        items.push({ key: 'edit', label: 'Chỉnh sửa', icon: 'edit' });
-    }
-
-    return items;
-});
-
-const activeRoot = computed(() => {
-    if (!props.trees.length) return null;
-    return props.trees.find((t) => t.id === activeRootId.value) ?? props.trees[0];
-});
-
-watch(
-    () => props.trees,
-    (trees) => {
-        if (!trees.length) {
-            activeRootId.value = null;
-            pageMode.value = 'graph';
-
-            return;
-        }
-        if (pendingSelectNewRoot.value) {
-            const newest = [...trees].sort((a, b) => b.id - a.id)[0];
-            activeRootId.value = newest?.id ?? trees[0].id;
-            pendingSelectNewRoot.value = false;
-            pageMode.value = 'edit';
-
-            return;
-        }
-        if (activeRootId.value == null || !trees.some((t) => t.id === activeRootId.value)) {
-            activeRootId.value = trees[0].id;
-        }
-    },
-    { immediate: true, deep: true },
-);
 
 function onToolbarClickOutside(e) {
     if (e.target.closest?.('[data-filter-visibility-panel]')) {
@@ -174,7 +135,7 @@ function openLeader(node) {
         isLeader: true,
         teamName: node.team.name,
         sectionTitle: null,
-        branchLabel: 'Trưởng nhóm',
+        branchLabel: 'Quản lý',
         roleTitle: leader.role_title ?? null,
         email: leader.email ?? null,
         code: leader.code ?? null,
@@ -182,41 +143,9 @@ function openLeader(node) {
     personDrawerOpen.value = true;
 }
 
-/* ---------------- edit mode ---------------- */
 function openCreateRoot() {
-    editing.value = null;
-    presetParentId.value = null;
     forceRoot.value = true;
-    pendingSelectNewRoot.value = true;
     modalOpen.value = true;
-}
-
-function openCreate(parentId = null) {
-    editing.value = null;
-    presetParentId.value = parentId;
-    forceRoot.value = false;
-    modalOpen.value = true;
-}
-
-function openEdit(node) {
-    editing.value = node;
-    presetParentId.value = null;
-    modalOpen.value = true;
-}
-
-function onAddChild(node) {
-    openCreate(node.id);
-}
-
-async function onDelete(node) {
-    const ok = await dialog.confirm({
-        title: 'Xoá nhóm',
-        message: `Xoá «${node.name}» và các nhóm bên trong? Không thể hoàn tác.`,
-        confirmLabel: 'Xóa',
-        variant: 'danger',
-    });
-    if (!ok) return;
-    router.delete(`/org-teams/${node.id}`, { preserveScroll: true });
 }
 </script>
 
@@ -233,6 +162,17 @@ async function onDelete(node) {
       >
         <div class="flex shrink-0 flex-wrap items-center gap-2">
           <Link
+            v-if="can.create && primaryEditHref"
+            :href="primaryEditHref"
+            class="btn-secondary flex h-9 items-center gap-1.5 px-3 text-xs"
+          >
+            <AppIcon
+              name="edit"
+              :size="15"
+            />
+            Chỉnh sửa cấu trúc
+          </Link>
+          <Link
             href="/org-teams/members"
             class="btn-secondary flex h-9 items-center gap-1.5 px-3 text-xs"
           >
@@ -240,7 +180,7 @@ async function onDelete(node) {
               name="members"
               :size="15"
             />
-            Thành viên phòng
+            Thành viên sơ đồ
           </Link>
           <button
             v-if="can.create"
@@ -301,10 +241,7 @@ async function onDelete(node) {
       <div class="card overflow-visible">
         <div class="border-b border-slate-100 px-4 py-4 sm:px-5">
           <div class="flex w-full min-w-0 flex-wrap items-center gap-2 lg:flex-nowrap">
-            <div
-              v-if="pageMode === 'graph'"
-              class="min-w-0 w-full basis-full lg:min-w-[10rem] lg:flex-1 lg:basis-auto"
-            >
+            <div class="min-w-0 w-full basis-full lg:min-w-[10rem] lg:flex-1 lg:basis-auto">
               <DatagridToolbarSearch
                 v-model="filter.query"
                 input-id="org-graph-search"
@@ -317,10 +254,7 @@ async function onDelete(node) {
               />
             </div>
 
-            <div
-              v-if="pageMode === 'graph'"
-              class="flex shrink-0 items-center gap-2"
-            >
+            <div class="flex shrink-0 items-center gap-2">
               <div
                 ref="filterPanelDdRef"
                 class="relative shrink-0"
@@ -342,27 +276,11 @@ async function onDelete(node) {
                 />
               </div>
             </div>
-
-            <div class="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-2">
-              <DatagridSegmentedControl
-                v-model="pageMode"
-                :items="modeItems"
-                aria-label="Chế độ trang sơ đồ tổ chức"
-                icon-only-below-sm
-              />
-            </div>
           </div>
-
-          <p
-            v-if="pageMode === 'edit' && can.create"
-            class="mt-3 text-[11px] text-slate-500"
-          >
-            Thêm nhóm con trên thẻ nhóm, hoặc «Thêm Nhóm» để tạo nhóm gốc mới.
-          </p>
 
           <Transition name="fade-slide">
             <div
-              v-if="pageMode === 'graph' && hasFilterRow"
+              v-if="hasFilterRow"
               class="mt-4 grid grid-cols-1 gap-3 border-t border-slate-100 pt-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6"
             >
               <DatagridFilterField v-if="visibleFilters.root_id">
@@ -422,69 +340,22 @@ async function onDelete(node) {
           </Transition>
         </div>
 
-        <template v-if="pageMode === 'graph'">
-          <OrgGraph
-            :trees="trees"
-            :filter="filter"
-            @select-person="openPerson"
-            @select-leader="openLeader"
-          />
-        </template>
-      </div>
-
-      <!-- Edit mode (preserved tree editor) -->
-      <div
-        v-if="pageMode === 'edit' && activeRoot"
-        class="space-y-4"
-      >
-        <div
-          v-if="trees.length > 1"
-          class="flex flex-wrap gap-2"
-          role="tablist"
-          aria-label="Chọn Nhóm"
-        >
-          <button
-            v-for="root in trees"
-            :key="root.id"
-            type="button"
-            role="tab"
-            class="rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors"
-            :class="activeRoot?.id === root.id
-              ? 'border-slate-300 bg-slate-800 text-white'
-              : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'"
-            :aria-selected="activeRoot?.id === root.id"
-            @click="activeRootId = root.id"
-          >
-            {{ root.name }}
-          </button>
-        </div>
-
-        <OrgTeamChartCanvas
-          :key="`edit-${activeRoot.id}`"
-          :title="activeRoot.name"
-          :level-label="`Chỉnh sửa · ${activeRoot.level === 1 ? 'Nhóm' : 'Nhóm con'}`"
-        >
-          <ul class="org-tree org-tree--root flex min-w-min justify-center">
-            <OrgTeamChart
-              :node="activeRoot"
-              :edit-mode="true"
-              :can-manage="!!can.create"
-              @edit="openEdit"
-              @add-child="onAddChild"
-              @delete="onDelete"
-              @select-person="openPerson"
-            />
-          </ul>
-        </OrgTeamChartCanvas>
+        <OrgGraph
+          :trees="trees"
+          :filter="filter"
+          @select-person="openPerson"
+          @select-leader="openLeader"
+        />
       </div>
     </div>
 
     <OrgTeamFormModal
       :show="modalOpen"
-      :team="editing"
+      :team="null"
       :parent-options="parentOptions"
       :employees="employees"
-      :preset-parent-id="presetParentId"
+      :branch-options="branchOptions"
+      :preset-parent-id="null"
       :force-root="forceRoot"
       @close="modalOpen = false; forceRoot = false"
       @saved="modalOpen = false; forceRoot = false"

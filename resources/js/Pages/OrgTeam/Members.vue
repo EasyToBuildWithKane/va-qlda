@@ -170,12 +170,13 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <Head title="Thành viên phòng" />
+  <Head title="Thành viên trong sơ đồ" />
 
   <AppLayout>
     <template #header>
       <PageHeader
-        title="Thành viên phòng"
+        title="Thành viên trong sơ đồ"
+        subtitle="Chỉ nhân sự được gán vào nhóm trên sơ đồ — không gồm quản lý trên thẻ nhóm"
         icon="members"
         icon-color="brand"
         :badge="summary.total"
@@ -340,7 +341,7 @@ onBeforeUnmount(() => {
           v-if="!rows.length"
           icon="members"
           title="Không có thành viên phù hợp"
-          description="Thử đổi từ khoá hoặc bật bộ lọc Nhóm, nhóm con, nhánh trong nút Lọc."
+          description="Danh sách chỉ gồm người được gán vào nhóm trên sơ đồ. Quản lý xem trên thẻ nhóm tại trang Sơ đồ."
         />
 
         <div
@@ -387,7 +388,7 @@ onBeforeUnmount(() => {
                         </span>
                         <Badge
                           v-if="row.is_leader"
-                          label="Trưởng nhóm"
+                          label="Quản lý"
                           color="amber"
                         />
                         <span
@@ -423,7 +424,7 @@ onBeforeUnmount(() => {
                         v-if="a.is_leader"
                         class="ml-1 text-[10px] font-semibold uppercase text-brand"
                       >
-                        · Trưởng nhóm
+                        · Quản lý
                       </span>
                     </li>
                   </ul>

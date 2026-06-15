@@ -17,7 +17,7 @@ function patch(partial) {
 
 const roleOptions = [
     { value: 'all', label: 'Tất cả vai trò' },
-    { value: 'leaders', label: 'Trưởng nhóm' },
+    { value: 'leaders', label: 'Quản lý' },
     { value: 'members', label: 'Thành viên' },
 ];
 

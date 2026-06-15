@@ -20,7 +20,7 @@ class OrgTeamTest extends TestCase
 
     public function test_guest_cannot_access_org_teams(): void
     {
-        $this->get(route('org-teams.index'))->assertRedirect('/login');
+        $this->get(route('org-teams.index'))->assertRedirect('/tech/login');
     }
 
     public function test_admin_can_view_index(): void
@@ -42,11 +42,16 @@ class OrgTeamTest extends TestCase
                 'name' => 'Leader Phần Mềm',
                 'leader_id' => $leader->id,
             ])
-            ->assertRedirect();
-
-        $l1 = OrgTeam::query()->where('name', 'Leader Phần Mềm')->first();
+            ->assertRedirect(route('org-teams.edit', $l1 = OrgTeam::query()->where('name', 'Leader Phần Mềm')->first()));
         $this->assertNotNull($l1);
         $this->assertSame(1, $l1->level);
+
+        $this->actingAs($admin, 'system')
+            ->get(route('org-teams.edit', $l1))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('OrgTeam/Edit')
+                ->where('tree.name', 'Leader Phần Mềm'));
 
         $this->actingAs($admin, 'system')
             ->post(route('org-teams.store'), [
@@ -90,11 +95,14 @@ class OrgTeamTest extends TestCase
 
         $this->actingAs($admin, 'system')
             ->post(route('org-teams.store'), ['name' => 'Khối PM'])
-            ->assertRedirect();
+            ->assertRedirect(route('org-teams.edit', $pm = OrgTeam::query()->where('name', 'Khối PM')->first()));
 
         $this->actingAs($admin, 'system')
             ->post(route('org-teams.store'), ['name' => 'Khối Vận hành'])
-            ->assertRedirect();
+            ->assertRedirect(route('org-teams.edit', $ops = OrgTeam::query()->where('name', 'Khối Vận hành')->first()));
+
+        $this->assertNotNull($pm);
+        $this->assertNotNull($ops);
 
         $roots = OrgTeam::query()->whereNull('parent_id')->orderBy('name')->pluck('name')->all();
         $this->assertSame(['Khối PM', 'Khối Vận hành'], $roots);
@@ -108,6 +116,20 @@ class OrgTeamTest extends TestCase
                 ->where('trees.1.name', 'Khối Vận hành'));
     }
 
+    public function test_admin_can_open_edit_workspace(): void
+    {
+        $admin = $this->admin();
+        $root = OrgTeam::create(['name' => 'Phòng CNTT', 'level' => 1]);
+
+        $this->actingAs($admin, 'system')
+            ->get(route('org-teams.edit', $root))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('OrgTeam/Edit')
+                ->has('branchOptions')
+                ->where('tree.name', 'Phòng CNTT'));
+    }
+
     public function test_authenticated_user_can_view_org_team_roster(): void
     {
         $admin = $this->admin();
@@ -119,18 +141,20 @@ class OrgTeamTest extends TestCase
         $child = OrgTeam::query()->where('name', 'Tổ 1')->first();
         $child->members()->create(['employee_id' => $member->id, 'sort_order' => 0]);
 
-        $built = \App\Support\OrgTeam\OrgTeamRosterBuilder::allRows();
+        $built = \App\Support\OrgTeam\OrgTeamRosterBuilder::allRows(membersOnly: true);
         $memberRow = $built->firstWhere('name', 'Thành viên B');
         $this->assertNotEmpty($memberRow['assignments'] ?? null);
         $this->assertSame('Khối Dev › Tổ 1', $memberRow['assignments'][0]['path'] ?? null);
+        $this->assertNull($built->firstWhere('name', 'Trưởng A'));
 
         $this->actingAs($admin, 'system')
             ->get(route('org-teams.members'))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('OrgTeam/Members')
-                ->has('roster.data', 2)
-                ->where('summary.total', 2)
+                ->has('roster.data', 1)
+                ->where('summary.total', 1)
+                ->where('summary.leaders', 1)
                 ->has('roster.data.0.assignments', 1)
                 ->where('roster.data.0.assignments.0.path', 'Khối Dev › Tổ 1'));
     }

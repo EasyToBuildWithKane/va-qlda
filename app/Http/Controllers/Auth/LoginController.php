@@ -4,48 +4,41 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
-use App\Support\Auth\CoachingOnlyAccess;
+use App\Support\Auth\PortalDestination;
+use App\Support\Auth\TechLoginAccess;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class LoginController extends Controller
 {
     /**
-     * Show the login screen.
+     * Portal login (/login) — all org users; post-login routes (e.g. /congnghe) later.
      */
-    public function create(Request $request): Response
+    public function createPortal(Request $request): Response
     {
-        $redirect = $request->query('redirect');
-
-        return Inertia::render('Auth/Login', [
-            'googleEnabled' => filled(config('services.google.client_id'))
-                && filled(config('services.google.client_secret')),
-            'googleAuthUrl' => route('auth.google', array_filter([
-                'redirect' => is_string($redirect) ? $redirect : null,
-            ])),
-        ]);
+        return $this->renderLogin($request, 'portal');
     }
 
     /**
-     * Authenticate and start a session.
+     * Tech QLDA login (/tech/login) — whitelist only.
      */
-    public function store(LoginRequest $request): RedirectResponse
+    public function createTech(Request $request): Response
     {
-        if (! config('va.password_login_enabled')) {
-            abort(404);
-        }
+        return $this->renderLogin($request, 'tech');
+    }
 
-        $request->authenticate();
+    public function storePortal(LoginRequest $request): RedirectResponse
+    {
+        return $this->storePasswordLogin($request, 'portal');
+    }
 
-        $request->session()->regenerate();
-
-        $account = Auth::guard('system')->user();
-        $account->forceFill(['last_login_at' => now()])->save();
-
-        return redirect()->intended(CoachingOnlyAccess::homePath($account));
+    public function storeTech(LoginRequest $request): RedirectResponse
+    {
+        return $this->storePasswordLogin($request, 'tech');
     }
 
     /**
@@ -58,6 +51,47 @@ class LoginController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('login');
+        return redirect()->route('tech.login');
+    }
+
+    private function renderLogin(Request $request, string $portal): Response
+    {
+        $redirect = $request->query('redirect');
+
+        return Inertia::render('Auth/Login', [
+            'googleEnabled' => filled(config('services.google.client_id'))
+                && filled(config('services.google.client_secret')),
+            'googleAuthUrl' => route('auth.google', array_filter([
+                'portal' => $portal,
+                'redirect' => is_string($redirect) ? $redirect : null,
+            ])),
+        ]);
+    }
+
+    private function storePasswordLogin(LoginRequest $request, string $portal): RedirectResponse
+    {
+        if (! config('va.password_login_enabled')) {
+            abort(404);
+        }
+
+        $request->authenticate();
+
+        $request->session()->regenerate();
+
+        $account = Auth::guard('system')->user();
+
+        if ($portal === 'tech' && ! TechLoginAccess::isAllowedEmail($account->employee?->email)) {
+            Auth::guard('system')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            throw ValidationException::withMessages([
+                'username' => 'Email nhân sự không được phép đăng nhập cổng Công nghệ.',
+            ]);
+        }
+
+        $account->forceFill(['last_login_at' => now()])->save();
+
+        return redirect()->intended(PortalDestination::homePath($account, $portal));
     }
 }

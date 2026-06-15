@@ -75,7 +75,7 @@ const hasAny = () => props.teams.length || props.manager;
             </div>
             <Badge
               v-if="t.is_leader"
-              label="Trưởng nhóm"
+              label="Quản lý"
               color="amber"
             />
           </li>

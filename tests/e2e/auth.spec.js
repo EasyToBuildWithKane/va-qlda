@@ -3,7 +3,7 @@ import { postLogin } from './helpers/loginPost.js';
 
 test.describe('Authentication', () => {
     test('login page shows Google sign-in', async ({ page }) => {
-        await page.goto('/login');
+        await page.goto('/tech/login');
 
         await expect(page.getByRole('heading', { name: 'Đăng nhập', level: 1 })).toBeVisible();
         const googleLink = page.getByRole('link', { name: 'Đăng nhập bằng Google' });

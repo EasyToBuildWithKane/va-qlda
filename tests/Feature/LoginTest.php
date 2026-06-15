@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\Employee;
 use App\Models\SystemAccount;
+use App\Support\Auth\TechLoginAccess;
 use App\Support\Enums\SystemRole;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -11,9 +13,20 @@ class LoginTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_login_page_renders(): void
+    public function test_portal_login_page_renders(): void
     {
         $this->get('/login')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Auth/Login')
+                ->has('googleAuthUrl')
+                ->has('googleEnabled')
+            );
+    }
+
+    public function test_tech_login_page_renders(): void
+    {
+        $this->get('/tech/login')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Auth/Login')
@@ -26,13 +39,18 @@ class LoginTest extends TestCase
     {
         config(['va.password_login_enabled' => false]);
 
+        $this->post('/tech/login', [
+            'username' => 'member',
+            'password' => 'password',
+        ])->assertNotFound();
+
         $this->post('/login', [
             'username' => 'member',
             'password' => 'password',
         ])->assertNotFound();
     }
 
-    public function test_member_can_login_with_valid_credentials(): void
+    public function test_member_can_login_via_portal_with_valid_credentials(): void
     {
         $account = SystemAccount::factory()->role(SystemRole::Member)->create([
             'username' => 'testuser',
@@ -45,6 +63,39 @@ class LoginTest extends TestCase
         ])->assertRedirect();
 
         $this->assertAuthenticatedAs($account, 'system');
+    }
+
+    public function test_tech_whitelisted_member_can_login_via_tech_portal(): void
+    {
+        $allowed = TechLoginAccess::allowedEmails()[0];
+
+        $employee = Employee::factory()->create(['email' => $allowed]);
+        $account = SystemAccount::factory()->role(SystemRole::Member)->forEmployee($employee)->create([
+            'username' => 'techuser',
+            'password' => 'secret123',
+        ]);
+
+        $this->post('/tech/login', [
+            'username' => 'techuser',
+            'password' => 'secret123',
+        ])->assertRedirect();
+
+        $this->assertAuthenticatedAs($account, 'system');
+    }
+
+    public function test_tech_login_rejects_non_whitelisted_employee_email(): void
+    {
+        $account = SystemAccount::factory()->role(SystemRole::Member)->create([
+            'username' => 'outsider',
+            'password' => 'secret123',
+        ]);
+
+        $this->post('/tech/login', [
+            'username' => 'outsider',
+            'password' => 'secret123',
+        ])->assertSessionHasErrors('username');
+
+        $this->assertGuest('system');
     }
 
     public function test_login_fails_with_wrong_password(): void
@@ -78,12 +129,16 @@ class LoginTest extends TestCase
         $this->assertGuest('system');
     }
 
-    public function test_authenticated_user_cannot_view_login_page(): void
+    public function test_authenticated_user_cannot_view_login_pages(): void
     {
         $account = SystemAccount::factory()->create();
 
         $this->actingAs($account, 'system')
             ->get('/login')
+            ->assertRedirect();
+
+        $this->actingAs($account, 'system')
+            ->get('/tech/login')
             ->assertRedirect();
     }
 
@@ -93,8 +148,13 @@ class LoginTest extends TestCase
 
         $this->actingAs($account, 'system')
             ->post('/logout')
-            ->assertRedirect('/login');
+            ->assertRedirect(route('tech.login'));
 
         $this->assertGuest('system');
+    }
+
+    public function test_guest_app_route_redirects_to_tech_login(): void
+    {
+        $this->get('/dashboard')->assertRedirect(route('tech.login'));
     }
 }

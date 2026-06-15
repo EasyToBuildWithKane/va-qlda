@@ -3,9 +3,12 @@ import { ref } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import DatagridSegmentedControl from '@/shared/ui/DatagridSegmentedControl.vue';
 import ProfileHero from './ProfileHero.vue';
+import ProfileOverviewSummaryBar from './ProfileOverviewSummaryBar.vue';
+import ProfileHrInfo from './ProfileHrInfo.vue';
 import ProfileWorkInfo from './ProfileWorkInfo.vue';
 import ProfileContactCard from './ProfileContactCard.vue';
 import ProfileTeamsCard from './ProfileTeamsCard.vue';
+import ProfileProjectsCard from './ProfileProjectsCard.vue';
 import SkillMatrix from './SkillMatrix.vue';
 import SkillRadar from './SkillRadar.vue';
 import ProfileInsights from './ProfileInsights.vue';
@@ -41,24 +44,35 @@ const editingSkills = ref(false);
       v-model="tab"
       :items="tabs"
       aria-label="Mục hồ sơ"
+      class="w-full"
     />
 
     <!-- Tổng quan -->
-    <div
-      v-if="tab === 'overview'"
-      class="grid grid-cols-1 gap-5 lg:grid-cols-3"
-    >
-      <div class="space-y-5 lg:col-span-2">
-        <ProfileWorkInfo :profile="profile" />
-        <ProfileContactCard :profile="profile" />
+    <template v-if="tab === 'overview'">
+      <ProfileOverviewSummaryBar
+        :stats="profile.stats ?? {}"
+        :active-tab="tab"
+        @go-tab="tab = $event"
+      />
+
+      <div class="grid grid-cols-1 gap-5 lg:grid-cols-3">
+        <div class="space-y-5 lg:col-span-2">
+          <ProfileHrInfo
+            :hr-info="profile.hr_info ?? {}"
+            :role-title="profile.role_title"
+          />
+          <ProfileWorkInfo :profile="profile" />
+          <ProfileContactCard :profile="profile" />
+        </div>
+        <aside class="space-y-5">
+          <ProfileTeamsCard
+            :teams="profile.teams"
+            :manager="profile.manager"
+          />
+          <ProfileProjectsCard :projects="profile.current_projects ?? []" />
+        </aside>
       </div>
-      <aside class="space-y-5">
-        <ProfileTeamsCard
-          :teams="profile.teams"
-          :manager="profile.manager"
-        />
-      </aside>
-    </div>
+    </template>
 
     <!-- Năng lực & Kỹ năng -->
     <div

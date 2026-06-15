@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import NotificationOpsSummaryBar from '@/modules/notifications/components/NotificationOpsSummaryBar.vue';
@@ -190,18 +190,6 @@ function isExpanded(group) {
         icon-color="brand"
       />
     </template>
-
-    <!-- Breadcrumb -->
-    <div class="mb-5 flex items-center gap-2 text-[13px]">
-      <Link
-        href="/dashboard"
-        class="text-slate-500 hover:text-brand"
-      >
-        Dashboard
-      </Link>
-      <span class="text-slate-300">/</span>
-      <span class="font-medium text-slate-700">Trung tâm vận hành</span>
-    </div>
 
     <!-- Tab navigation -->
     <div class="flex gap-0.5 border-b border-slate-200 mb-6">

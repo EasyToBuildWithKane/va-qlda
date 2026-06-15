@@ -8,7 +8,7 @@ const MOBILE_BREAKPOINT = 1024;
 
 const ROLE_LABELS = {
     admin: 'Quản trị viên',
-    lead: 'Trưởng nhóm',
+    lead: 'Quản lý',
     member: 'Thành viên',
     viewer: 'Người xem',
 };

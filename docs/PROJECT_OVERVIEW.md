@@ -151,7 +151,7 @@ Tạo Project
 | Role | Mô Tả | Quyền Chính |
 |---|---|---|
 | `admin` | Quản trị viên hệ thống | Toàn quyền, cấu hình hệ thống |
-| `lead` | Trưởng nhóm / Team Lead | Tạo dự án, review báo cáo, quản lý thành viên |
+| `lead` | Quản lý | Tạo dự án, review báo cáo, quản lý thành viên |
 | `member` | Thành viên nhóm | Làm việc trong dự án, viết báo cáo ngày |
 | `viewer` | Giám đốc / Quan sát | Chỉ xem, không chỉnh sửa |
 

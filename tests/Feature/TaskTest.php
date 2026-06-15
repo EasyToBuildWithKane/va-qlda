@@ -440,6 +440,6 @@ class TaskTest extends TestCase
         $project = Project::factory()->create();
 
         $this->post("/projects/{$project->id}/tasks", $this->taskPayload())
-            ->assertRedirect('/login');
+            ->assertRedirect('/tech/login');
     }
 }

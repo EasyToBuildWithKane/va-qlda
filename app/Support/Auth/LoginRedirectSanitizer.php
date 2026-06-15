@@ -25,6 +25,7 @@ class LoginRedirectSanitizer
 
         $lower = strtolower($redirect);
         if (str_starts_with($lower, '/login')
+            || str_starts_with($lower, '/tech/login')
             || str_starts_with($lower, '/auth/google')
             || str_starts_with($lower, '/logout')) {
             return $default;

@@ -1,0 +1,78 @@
+<script setup>
+import { Link } from '@inertiajs/vue3';
+import SectionHeading from './SectionHeading.vue';
+import PersonAvatar from './PersonAvatar.vue';
+import { useInView } from './motion.js';
+
+defineProps({
+    team: { type: Array, default: () => [] },
+});
+
+const { target, shown } = useInView({ threshold: 0.1 });
+</script>
+
+<template>
+  <section
+    id="doi-ngu"
+    ref="target"
+    class="relative border-t border-white/5 py-24"
+  >
+    <div class="mx-auto max-w-7xl px-5 sm:px-8">
+      <SectionHeading
+        eyebrow="Thành viên"
+        title="Những con người đứng sau sản phẩm"
+        subtitle="Đội ngũ kỹ sư, chuyên viên dữ liệu và vận hành sản phẩm của Phòng Công Nghệ."
+      />
+
+      <div
+        v-if="team.length"
+        class="mt-12 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6"
+      >
+        <div
+          v-for="(member, i) in team"
+          :key="member.id"
+          class="group flex flex-col items-center rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-center transition-all duration-500 hover:border-brand/40 hover:bg-white/[0.05]"
+          :class="shown ? 'translate-y-0 opacity-100' : 'translate-y-5 opacity-0'"
+          :style="{ transitionDelay: `${i * 50}ms` }"
+        >
+          <PersonAvatar
+            :name="member.name"
+            :src="member.avatar"
+            size="lg"
+            class="transition-transform group-hover:scale-105"
+          />
+          <p class="mt-3 line-clamp-1 text-sm font-semibold text-white">
+            {{ member.name }}
+          </p>
+          <p class="mt-0.5 line-clamp-2 text-[12px] leading-snug text-white/45">
+            {{ member.role || 'Thành viên' }}
+          </p>
+        </div>
+      </div>
+
+      <p
+        v-else
+        class="mt-12 rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-6 py-12 text-center text-sm text-white/45"
+      >
+        Chưa có thành viên nào được ghi nhận.
+      </p>
+
+      <div class="mt-8">
+        <Link
+          href="/members"
+          class="inline-flex items-center gap-2 text-sm font-semibold text-brand transition hover:text-[#ff4d8d]"
+        >
+          Xem danh bạ thành viên
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          ><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+        </Link>
+      </div>
+    </div>
+  </section>
+</template>

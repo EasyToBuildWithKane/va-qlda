@@ -21,7 +21,7 @@ class KnowledgeBaseTest extends TestCase
 
     public function test_index_requires_auth(): void
     {
-        $this->get(route('knowledge-base.index'))->assertRedirect(route('login'));
+        $this->get(route('knowledge-base.index'))->assertRedirect(route('tech.login'));
     }
 
     public function test_member_can_view_knowledge_base_index(): void

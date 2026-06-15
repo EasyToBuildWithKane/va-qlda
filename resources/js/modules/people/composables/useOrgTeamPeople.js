@@ -65,7 +65,7 @@ export function useOrgTeamRoster(nodeOrProps) {
         if (leaderRaw) {
             leader = fromEmployee(leaderRaw, {
                 key: `leader-${leaderRaw.id}`,
-                role: 'Trưởng nhóm',
+                role: 'Quản lý',
                 isLeader: true,
             });
         }

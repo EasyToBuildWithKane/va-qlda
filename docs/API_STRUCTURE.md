@@ -195,8 +195,9 @@ routes/api.php      ← Rỗng (chưa sử dụng)
 | Method | URI | Controller | Middleware | Mô Tả |
 |---|---|---|---|---|
 | GET | `/org-teams` | OrgTeamController@index | auth | Sơ đồ team (Inertia) |
-| GET | `/org-teams/members` | OrgTeamController@members | auth | Danh sách tổng thành viên trong sơ đồ |
-| POST | `/org-teams` | OrgTeamController@store | auth | Tạo nhóm |
+| GET | `/org-teams/members` | OrgTeamController@members | auth | Thành viên gán trong sơ đồ (không gồm quản lý trên thẻ nhóm) |
+| GET | `/org-teams/{orgTeam}/edit` | OrgTeamController@edit | auth (admin/lead) | Chỉnh sửa cấu trúc — dạng danh sách, không sơ đồ |
+| POST | `/org-teams` | OrgTeamController@store | auth | Tạo nhóm (nhóm gốc → redirect trang chỉnh sửa) |
 | PUT | `/org-teams/{orgTeam}` | OrgTeamController@update | auth | Sửa nhóm |
 | DELETE | `/org-teams/{orgTeam}` | OrgTeamController@destroy | auth | Xóa nhóm |
 

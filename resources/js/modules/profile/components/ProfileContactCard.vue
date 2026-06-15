@@ -7,30 +7,20 @@ const props = defineProps({
 });
 
 const rows = computed(() => {
-    const out = [];
-    if (props.profile.email) {
-        out.push({ icon: 'mail', label: 'Email', value: props.profile.email, href: `mailto:${props.profile.email}` });
-    }
-    if (props.profile.phone) {
-        out.push({ icon: 'phone', label: 'Điện thoại', value: props.profile.phone, href: `tel:${props.profile.phone}` });
-    }
-    if (props.profile.location) {
-        out.push({ icon: 'map-pin', label: 'Địa điểm', value: props.profile.location, href: null });
-    }
-    return out;
-});
-
-const socials = computed(() => {
-    const s = props.profile.socials || {};
+    const p = props.profile;
+    const s = p.socials || {};
     return [
-        { key: 'github', icon: 'github', label: 'GitHub', href: s.github },
-        { key: 'linkedin', icon: 'linkedin', label: 'LinkedIn', href: s.linkedin },
-        { key: 'portfolio', icon: 'external-link', label: 'Portfolio', href: s.portfolio },
-        { key: 'website', icon: 'globe', label: 'Website', href: s.website },
-    ].filter((x) => x.href);
+        { icon: 'mail', label: 'Email', value: p.email || '—', href: p.email ? `mailto:${p.email}` : null },
+        { icon: 'phone', label: 'Điện thoại', value: p.phone || '—', href: p.phone ? `tel:${p.phone}` : null },
+        { icon: 'map-pin', label: 'Địa điểm', value: p.location || '—', href: null },
+        { icon: 'github', label: 'GitHub', value: s.github || '—', href: s.github || null },
+        { icon: 'linkedin', label: 'LinkedIn', value: s.linkedin || '—', href: s.linkedin || null },
+        { icon: 'external-link', label: 'Portfolio', value: s.portfolio || '—', href: s.portfolio || null },
+        { icon: 'globe', label: 'Website', value: s.website || '—', href: s.website || null },
+    ];
 });
 
-const hasAny = computed(() => rows.value.length || socials.value.length || props.profile.bio);
+const hasBio = computed(() => Boolean(props.profile.bio));
 </script>
 
 <template>
@@ -47,28 +37,26 @@ const hasAny = computed(() => rows.value.length || socials.value.length || props
     </header>
 
     <div class="space-y-4 p-5">
+      <div v-if="hasBio">
+        <p class="mb-1 text-[11px] uppercase tracking-wide text-slate-400">
+          Giới thiệu
+        </p>
+        <p class="text-[13px] leading-relaxed text-slate-600">
+          {{ profile.bio }}
+        </p>
+      </div>
       <p
-        v-if="profile.bio"
-        class="text-[13px] leading-relaxed text-slate-600"
-      >
-        {{ profile.bio }}
-      </p>
-
-      <p
-        v-if="!hasAny"
+        v-else
         class="text-[13px] text-slate-400"
       >
-        Chưa có thông tin liên hệ.
+        Chưa có phần giới thiệu.
       </p>
 
-      <ul
-        v-if="rows.length"
-        class="space-y-3"
-      >
-        <li
+      <dl class="grid grid-cols-1 gap-x-6 gap-y-4 border-t border-slate-100 pt-4 sm:grid-cols-2">
+        <div
           v-for="r in rows"
           :key="r.label"
-          class="flex items-start gap-2.5"
+          class="flex items-start gap-2.5 min-w-0"
         >
           <div class="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-500">
             <AppIcon
@@ -76,44 +64,26 @@ const hasAny = computed(() => rows.value.length || socials.value.length || props
               :size="13"
             />
           </div>
-          <div class="min-w-0">
-            <p class="text-[11px] uppercase tracking-wide text-slate-400">
+          <div class="min-w-0 flex-1">
+            <dt class="text-[11px] uppercase tracking-wide text-slate-400">
               {{ r.label }}
-            </p>
-            <a
-              v-if="r.href"
-              :href="r.href"
-              class="block truncate text-[13px] font-medium text-slate-700 hover:text-brand"
-            >{{ r.value }}</a>
-            <p
-              v-else
-              class="truncate text-[13px] font-medium text-slate-700"
-            >
-              {{ r.value }}
-            </p>
+            </dt>
+            <dd class="min-w-0">
+              <a
+                v-if="r.href"
+                :href="r.href"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="block break-all text-[13px] font-medium text-slate-700 hover:text-brand"
+              >{{ r.value }}</a>
+              <span
+                v-else
+                class="block break-words text-[13px] font-medium text-slate-700"
+              >{{ r.value }}</span>
+            </dd>
           </div>
-        </li>
-      </ul>
-
-      <div
-        v-if="socials.length"
-        class="flex flex-wrap gap-2 border-t border-slate-100 pt-4"
-      >
-        <a
-          v-for="s in socials"
-          :key="s.key"
-          :href="s.href"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-[12px] font-medium text-slate-600 transition-colors hover:border-brand/30 hover:text-brand"
-        >
-          <AppIcon
-            :name="s.icon"
-            :size="13"
-          />
-          {{ s.label }}
-        </a>
-      </div>
+        </div>
+      </dl>
     </div>
   </section>
 </template>

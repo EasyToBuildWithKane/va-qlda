@@ -1,0 +1,110 @@
+<script setup>
+import { Link } from '@inertiajs/vue3';
+
+const year = new Date().getFullYear();
+
+const cols = [
+    {
+        heading: 'Khám phá',
+        links: [
+            { href: '#gioi-thieu', label: 'Giới thiệu' },
+            { href: '#san-pham', label: 'Hệ sinh thái sản phẩm' },
+            { href: '#to-chuc', label: 'Sơ đồ tổ chức' },
+            { href: '#du-an', label: 'Dự án triển khai' },
+        ],
+    },
+    {
+        heading: 'Hệ thống',
+        links: [
+            { href: '/dashboard', label: 'Bảng điều khiển', inertia: true },
+            { href: '/projects', label: 'Quản lý dự án', inertia: true },
+            { href: '/daily-reports/today', label: 'Báo cáo ngày', inertia: true },
+            { href: '/knowledge-base', label: 'Tri thức', inertia: true },
+        ],
+    },
+];
+</script>
+
+<template>
+  <footer class="relative border-t border-white/10 bg-[#08080f]">
+    <div class="mx-auto max-w-7xl px-5 py-14 sm:px-8">
+      <div class="grid gap-10 md:grid-cols-[1.4fr_1fr_1fr]">
+        <div>
+          <div class="flex items-center gap-2.5">
+            <span class="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-brand to-[#ff4d8d] text-sm font-bold text-white">
+              CN
+            </span>
+            <div class="leading-none">
+              <p class="font-display text-base font-bold text-white">
+                Phòng Công Nghệ
+              </p>
+              <p class="mt-1 text-[11px] tracking-wide text-white/45">
+                Vietnam America Schools
+              </p>
+            </div>
+          </div>
+          <p class="mt-4 max-w-sm text-sm leading-relaxed text-white/50">
+            Kiến tạo nền tảng công nghệ và dữ liệu cho hệ thống giáo dục —
+            đồng hành cùng đội ngũ bằng những sản phẩm thật, đo lường được.
+          </p>
+          <a
+            href="mailto:phongcongnghe@vaschools.edu.vn"
+            class="mt-4 inline-flex items-center gap-2 text-sm text-white/60 transition hover:text-white"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <rect
+                x="3"
+                y="5"
+                width="18"
+                height="14"
+                rx="2"
+              />
+              <path d="m3 7 9 6 9-6" />
+            </svg>
+            phongcongnghe@vaschools.edu.vn
+          </a>
+        </div>
+
+        <div
+          v-for="col in cols"
+          :key="col.heading"
+        >
+          <p class="text-xs font-semibold uppercase tracking-wider text-white/40">
+            {{ col.heading }}
+          </p>
+          <ul class="mt-4 space-y-2.5">
+            <li
+              v-for="link in col.links"
+              :key="link.label"
+            >
+              <Link
+                v-if="link.inertia"
+                :href="link.href"
+                class="text-sm text-white/60 transition hover:text-white"
+              >
+                {{ link.label }}
+              </Link>
+              <a
+                v-else
+                :href="link.href"
+                class="text-sm text-white/60 transition hover:text-white"
+              >{{ link.label }}</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="mt-12 flex flex-col items-center justify-between gap-3 border-t border-white/10 pt-6 text-[12.5px] text-white/40 sm:flex-row">
+        <p>© {{ year }} Phòng Công Nghệ — Vietnam America Schools.</p>
+        <p>Được xây dựng nội bộ trên Laravel · Vue · Inertia.</p>
+      </div>
+    </div>
+  </footer>
+</template>

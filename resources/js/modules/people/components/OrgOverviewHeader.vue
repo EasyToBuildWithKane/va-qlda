@@ -31,7 +31,7 @@ const cards = computed(() => {
             value: o.leaders_total ?? 0,
             icon: 'award',
             tone: 'violet',
-            sub: 'Trưởng nhóm',
+            sub: 'Quản lý',
         },
         {
             key: 'active',

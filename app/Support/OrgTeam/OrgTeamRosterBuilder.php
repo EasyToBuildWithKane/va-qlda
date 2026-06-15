@@ -13,9 +13,10 @@ use Illuminate\Support\Collection;
 class OrgTeamRosterBuilder
 {
     /**
+     * @param  bool  $membersOnly  Chỉ thành viên gán trong nhóm (bỏ quản lý trên thẻ sơ đồ).
      * @return Collection<int, array<string, mixed>>
      */
-    public static function allRows(): Collection
+    public static function allRows(bool $membersOnly = false): Collection
     {
         $teams = OrgTeam::query()
             ->with('leader:id,full_name,code,email,avatar_path,role_title,is_active')
@@ -67,21 +68,23 @@ class OrgTeamRosterBuilder
             return implode(' › ', $parts);
         };
 
-        foreach ($teams as $team) {
-            if ($team->leader_id && $team->leader) {
-                $employeeId = $ensureEmployee($team->leader);
-                $root = $resolveRoot($team);
-                $byEmployee[$employeeId]['assignments'][] = [
-                    'team_id' => $team->id,
-                    'root_team_id' => $root->id,
-                    'path' => $pathLabel($team),
-                    'team_name' => $team->name,
-                    'root_name' => $root->name,
-                    'section' => null,
-                    'branch' => null,
-                    'branch_label' => null,
-                    'is_leader' => true,
-                ];
+        if (! $membersOnly) {
+            foreach ($teams as $team) {
+                if ($team->leader_id && $team->leader) {
+                    $employeeId = $ensureEmployee($team->leader);
+                    $root = $resolveRoot($team);
+                    $byEmployee[$employeeId]['assignments'][] = [
+                        'team_id' => $team->id,
+                        'root_team_id' => $root->id,
+                        'path' => $pathLabel($team),
+                        'team_name' => $team->name,
+                        'root_name' => $root->name,
+                        'section' => null,
+                        'branch' => null,
+                        'branch_label' => null,
+                        'is_leader' => true,
+                    ];
+                }
             }
         }
 
@@ -126,11 +129,14 @@ class OrgTeamRosterBuilder
     }
 
     /**
-     * @return array{total: int, leaders: int, active: int}
+     * @param  Collection<int, array<string, mixed>>  $memberRows  Thành viên trong bảng (không gồm quản lý).
+     * @param  Collection<int, array<string, mixed>>|null  $chartRows  Toàn bộ người trên sơ đồ (để đếm quản lý).
+     * @return array{total: int, leaders: int, active: int, inactive: int}
      */
-    public static function summary(Collection $rows): array
+    public static function summary(Collection $memberRows, ?Collection $chartRows = null): array
     {
-        $leaders = $rows->filter(function (array $row) {
+        $chart = $chartRows ?? $memberRows;
+        $leaders = $chart->filter(function (array $row) {
             foreach ($row['assignments'] as $a) {
                 if ($a['is_leader']) {
                     return true;
@@ -140,19 +146,23 @@ class OrgTeamRosterBuilder
             return false;
         })->count();
 
+        $active = $memberRows->where('is_active', true)->count();
+        $total = $memberRows->count();
+
         return [
-            'total' => $rows->count(),
+            'total' => $total,
             'leaders' => $leaders,
-            'active' => $rows->where('is_active', true)->count(),
+            'active' => $active,
+            'inactive' => max(0, $total - $active),
         ];
     }
 
     /**
      * @return Collection<int, array<string, mixed>>
      */
-    public static function filtered(Request $request): Collection
+    public static function filtered(Request $request, bool $membersOnly = false): Collection
     {
-        $rows = self::allRows();
+        $rows = self::allRows($membersOnly);
         $search = trim((string) $request->query('q'));
         $rootId = $request->integer('root_id') ?: null;
         $teamId = $request->integer('team_id') ?: null;

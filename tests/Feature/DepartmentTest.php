@@ -72,7 +72,7 @@ class DepartmentTest extends TestCase
 
     public function test_guest_is_redirected_from_departments(): void
     {
-        $this->get('/departments')->assertRedirect('/login');
+        $this->get('/departments')->assertRedirect('/tech/login');
     }
 
     public function test_departments_index_paginates_and_filters(): void

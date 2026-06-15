@@ -36,6 +36,8 @@ class ProfileSelfTest extends TestCase
                 ->where('profile.stats.skill_score', 80)
                 ->has('profile.stats.skill_radar', 8)
                 ->has('profile.stats.profile_completion')
+                ->has('profile.hr_info')
+                ->where('profile.hr_info.code', $employee->code)
             );
     }
 

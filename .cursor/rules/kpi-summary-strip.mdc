@@ -17,6 +17,7 @@ Section **Thống kê** + thẻ KPI cắt góc (clip-path) trên trang Index. Sk
 | Coaching hub `/coaching` | `CoachingDashboardSummaryBar.vue` + `Pages/Coaching/Dashboard.vue` |
 | AI dashboard / cost report | `AiExecutiveSummaryStrip.vue`, `ProposalWorkflowKpiStrip.vue` |
 | Thông báo vận hành | `NotificationOpsSummaryBar.vue` + `Pages/Notifications/Management.vue` |
+| Hồ sơ cá nhân `/profile` | `ProfileOverviewSummaryBar.vue` + `ProfileView.vue` (tab Tổng quan) |
 | Nhúng workspace (border-bottom) | `CoachingSessionsSummaryBar.vue` |
 | **Shared** | `shared/ui/KpiSummaryStrip.vue` + `shared/styles/kpi-summary-strip.css` |
 

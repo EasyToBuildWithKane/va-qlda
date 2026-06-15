@@ -9,6 +9,8 @@ use App\Services\Cms\CmsEmployeeSyncService;
 use App\Services\Cms\SystemAccountProvisioner;
 use App\Support\Auth\CoachingOnlyAccess;
 use App\Support\Auth\LoginRedirectSanitizer;
+use App\Support\Auth\PortalDestination;
+use App\Support\Auth\TechLoginAccess;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -19,11 +21,14 @@ class GoogleAuthController extends Controller
 {
     public function redirect(Request $request): SymfonyRedirectResponse
     {
+        $portal = $this->normalizePortal($request->query('portal'));
+
         if (! $this->googleConfigured()) {
-            return redirect()->route('login')
+            return redirect()->route($this->loginRouteName($portal))
                 ->with('error', 'Đăng nhập Google chưa được cấu hình trên máy chủ.');
         }
 
+        $request->session()->put('login.portal', $portal);
         $request->session()->put(
             'login.redirect',
             LoginRedirectSanitizer::sanitize($request->query('redirect')),
@@ -39,26 +44,34 @@ class GoogleAuthController extends Controller
 
     public function callback(Request $request): RedirectResponse
     {
+        $portal = $this->normalizePortal($request->session()->pull('login.portal', 'portal'));
+        $loginRoute = $this->loginRouteName($portal);
+
         if (! $this->googleConfigured()) {
-            return redirect()->route('login')
+            return redirect()->route($loginRoute)
                 ->with('error', 'Đăng nhập Google chưa được cấu hình.');
         }
 
         try {
             $googleUser = Socialite::driver('google')->user();
         } catch (\Throwable) {
-            return redirect()->route('login')
+            return redirect()->route($loginRoute)
                 ->with('error', 'Không thể xác thực với Google. Vui lòng thử lại.');
         }
 
         $email = strtolower(trim((string) $googleUser->getEmail()));
         if ($email === '') {
-            return redirect()->route('login')
+            return redirect()->route($loginRoute)
                 ->with('error', 'Tài khoản Google không có email. Không thể đăng nhập.');
         }
 
-        if (! $this->emailAllowed($email)) {
-            return redirect()->route('login')
+        if ($portal === 'tech') {
+            if (! TechLoginAccess::isAllowedEmail($email)) {
+                return redirect()->route($loginRoute)
+                    ->with('error', 'Email không được phép đăng nhập cổng Công nghệ.');
+            }
+        } elseif (! $this->emailAllowed($email)) {
+            return redirect()->route($loginRoute)
                 ->with('error', 'Email không thuộc tổ chức được phép đăng nhập.');
         }
 
@@ -68,7 +81,7 @@ class GoogleAuthController extends Controller
             ->first();
 
         if ($employee === null) {
-            return redirect()->route('login')
+            return redirect()->route($loginRoute)
                 ->with('error', 'Email chưa được liên kết với nhân sự trong hệ thống.');
         }
 
@@ -86,7 +99,7 @@ class GoogleAuthController extends Controller
 
         if ($account === null) {
             if ($employee->cms_user_id === null) {
-                return redirect()->route('login')
+                return redirect()->route($loginRoute)
                     ->with('error', 'Chưa có tài khoản đăng nhập cho nhân sự này. Liên hệ quản trị.');
             }
 
@@ -96,7 +109,7 @@ class GoogleAuthController extends Controller
         }
 
         if (! $account->is_active) {
-            return redirect()->route('login')
+            return redirect()->route($loginRoute)
                 ->with('error', 'Tài khoản đăng nhập đã bị vô hiệu hóa. Liên hệ quản trị.');
         }
 
@@ -106,7 +119,7 @@ class GoogleAuthController extends Controller
 
         $target = LoginRedirectSanitizer::sanitize(
             $request->session()->pull('login.redirect'),
-            CoachingOnlyAccess::homePath($account),
+            PortalDestination::homePath($account, $portal),
         );
 
         return redirect()->to($target);
@@ -142,5 +155,15 @@ class GoogleAuthController extends Controller
         $domain = substr($email, $at + 1);
 
         return in_array($domain, $domains, true);
+    }
+
+    private function normalizePortal(?string $portal): string
+    {
+        return $portal === 'tech' ? 'tech' : 'portal';
+    }
+
+    private function loginRouteName(string $portal): string
+    {
+        return $portal === 'tech' ? 'tech.login' : 'login';
     }
 }

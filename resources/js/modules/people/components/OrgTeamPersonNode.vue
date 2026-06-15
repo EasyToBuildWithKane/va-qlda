@@ -41,7 +41,7 @@ function onActivate() {
       v-if="isLeader"
       class="org-person-node__badge"
     >
-      Trưởng nhóm
+      Quản lý
     </span>
     <span
       v-else-if="sectionLabel"

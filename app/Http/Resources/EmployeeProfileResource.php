@@ -60,9 +60,32 @@ class EmployeeProfileResource extends JsonResource
             'teams' => $this->teams(),
             'manager' => $this->manager(),
             'current_projects' => $this->currentProjects(),
+            'hr_info' => $this->hrInfo($e, $meta),
             'can' => $user ? [
                 'update' => $user->can('update', $e),
             ] : null,
+        ];
+    }
+
+    /**
+     * HR fields mirrored from CMS `user_info` (synced into employees + meta).
+     *
+     * @return array<string, mixed>
+     */
+    private function hrInfo(\App\Models\Employee $e, array $meta): array
+    {
+        return [
+            'code' => $e->code,
+            'phone' => $e->phone,
+            'company_name' => $meta['company_name'] ?? null,
+            'department_name' => $meta['department_name'] ?? null,
+            'unit_name' => $meta['unit_name'] ?? null,
+            'headquarter_name' => $meta['headquarter_name'] ?? null,
+            'position_name' => $meta['position_name'] ?? null,
+            'concurrent_position_name' => $meta['concurrent_position_name'] ?? null,
+            'start_working_date' => $e->join_date?->toDateString(),
+            'department_id' => $meta['department_id'] ?? null,
+            'company_id' => $meta['company_id'] ?? null,
         ];
     }
 

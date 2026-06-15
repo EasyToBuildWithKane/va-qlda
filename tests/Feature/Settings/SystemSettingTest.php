@@ -64,7 +64,7 @@ class SystemSettingTest extends TestCase
 
     public function test_guest_is_redirected_from_settings(): void
     {
-        $this->get('/settings')->assertRedirect('/login');
+        $this->get('/settings')->assertRedirect('/tech/login');
     }
 
     // ─── Update ─────────────────────────────────────────────────────────────

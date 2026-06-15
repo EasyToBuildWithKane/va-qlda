@@ -95,6 +95,13 @@ class Navigation
                 'icon' => 'dashboard',
                 'items' => [
                     [
+                        'label' => 'Phòng Công Nghệ',
+                        'icon' => 'rocket',
+                        'href' => '/congnghe',
+                        'status' => 'live',
+                        'roles' => ['admin', 'lead', 'member', 'viewer'],
+                    ],
+                    [
                         'label' => 'Bảng điều khiển',
                         'icon' => 'overview',
                         'href' => '/dashboard',
@@ -215,14 +222,14 @@ class Navigation
                         'roles' => ['admin', 'lead'],
                     ],
                     [
-                        'label' => 'Quản lý team',
+                        'label' => 'Quản lý',
                         'icon' => 'org-teams',
                         'href' => '/org-teams',
                         'status' => 'live',
                         'roles' => ['admin', 'lead'],
                     ],
                     [
-                        'label' => 'Thành viên phòng',
+                        'label' => 'Thành viên sơ đồ',
                         'icon' => 'members',
                         'href' => '/org-teams/members',
                         'status' => 'live',
