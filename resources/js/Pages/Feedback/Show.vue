@@ -1,13 +1,12 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { computed } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import PageHeader from '@/Components/Ui/PageHeader.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import Badge from '@/shared/ui/Badge.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
 import CommentThread from '@/shared/ui/CommentThread.vue';
-import FeedbackFormModal from '@/modules/project/components/FeedbackFormModal.vue';
-import { useDialog } from '@/composables/useDialog';
 import { date, datetime } from '@/composables/useFormat';
 
 const props = defineProps({
@@ -15,10 +14,7 @@ const props = defineProps({
     options: { type: Object, default: () => ({}) },
 });
 
-const dialog = useDialog();
-const modal = ref(false);
-
-// Soft tint + dot màu cho từng màu trạng thái — chuỗi literal để Tailwind giữ lại.
+// Soft tint + dot màu cho từng màu trạng thái — chuỗi literal để Tailwind giữ lại. + dot màu cho từng màu trạng thái — chuỗi literal để Tailwind giữ lại.
 const ACCENTS = {
     slate: { dot: 'bg-slate-400', tint: 'bg-slate-50 border-slate-200', text: 'text-slate-700' },
     sky: { dot: 'bg-sky-500', tint: 'bg-sky-50 border-sky-200', text: 'text-sky-700' },
@@ -33,41 +29,18 @@ const isResolved = computed(() => ['resolved', 'declined'].includes(props.feedba
 const ratingValue = computed(() => Number(props.feedback.rating) || 0);
 
 const changeStatus = (e) => router.put(`/feedback/${props.feedback.id}`, { status: e.target.value }, { preserveScroll: true });
-
-const remove = async () => {
-    if (!props.feedback.can?.delete) return;
-    const ok = await dialog.confirm({
-        title: 'Xoá phản hồi',
-        message: `Xoá phản hồi «${props.feedback.title}»? Hành động không thể hoàn tác.`,
-        tone: 'danger',
-        confirmText: 'Xoá',
-    });
-    if (ok) {
-        router.delete(`/feedback/${props.feedback.id}`);
-    }
-};
 </script>
 
 <template>
   <Head :title="feedback.code + ' — ' + feedback.title" />
   <AppLayout>
     <template #header>
-      <div class="flex min-w-0 items-center gap-2">
-        <Link
-          href="/feedback"
-          class="grid h-8 w-8 shrink-0 place-items-center rounded-btn text-slate-400 hover:bg-slate-100"
-          title="Quay lại danh sách"
-        >
-          <AppIcon
-            name="back"
-            :size="18"
-          />
-        </Link>
-        <span class="shrink-0 font-mono text-sm text-slate-400">{{ feedback.code }}</span>
-        <h1 class="truncate font-display font-semibold text-slate-800">
-          {{ feedback.title }}
-        </h1>
-      </div>
+      <PageHeader
+        title="Chi tiết phản hồi"
+        :subtitle="feedback.code"
+        icon="feedback"
+        icon-color="brand"
+      />
     </template>
 
     <div class="grid gap-5 lg:grid-cols-3">
@@ -75,43 +48,13 @@ const remove = async () => {
       <div class="space-y-5 lg:col-span-2">
         <!-- Tổng quan: trạng thái nổi bật + lưới thuộc tính có nhãn -->
         <section class="card overflow-hidden">
-          <!-- Hàng tiêu đề + hành động -->
-          <header class="flex flex-wrap items-start gap-3 border-b border-slate-100 px-5 py-4">
-            <div class="min-w-0 flex-1">
-              <p class="text-xs font-medium uppercase tracking-wide text-slate-400">
-                {{ feedback.category.label }}
-              </p>
-              <h2 class="mt-0.5 font-display text-lg font-semibold leading-snug text-slate-800">
-                {{ feedback.title }}
-              </h2>
-            </div>
-            <div
-              v-if="feedback.can?.update || feedback.can?.delete"
-              class="flex shrink-0 items-center gap-1"
-            >
-              <button
-                v-if="feedback.can?.update"
-                type="button"
-                class="btn-ghost h-8 gap-1 px-2.5 text-sm"
-                @click="modal = true"
-              >
-                <AppIcon
-                  name="edit"
-                  :size="15"
-                /> Sửa
-              </button>
-              <button
-                v-if="feedback.can?.delete"
-                type="button"
-                class="btn-ghost h-8 gap-1 px-2.5 text-sm text-rose-600 hover:bg-rose-50"
-                @click="remove"
-              >
-                <AppIcon
-                  name="delete"
-                  :size="15"
-                /> Xoá
-              </button>
-            </div>
+          <header class="border-b border-slate-100 px-5 py-4">
+            <p class="text-xs font-medium uppercase tracking-wide text-slate-400">
+              {{ feedback.category.label }}
+            </p>
+            <h2 class="mt-0.5 font-display text-lg font-semibold leading-snug text-slate-800">
+              {{ feedback.title }}
+            </h2>
           </header>
 
           <!-- Banner trạng thái -->
@@ -227,18 +170,6 @@ const remove = async () => {
 
         <!-- Bình luận -->
         <section class="card p-5">
-          <h3 class="mb-4 flex items-center gap-2 text-sm font-semibold text-slate-700">
-            <AppIcon
-              name="comment"
-              :size="16"
-              class="text-slate-400"
-            />
-            Trao đổi
-            <span
-              v-if="(feedback.comments || []).length"
-              class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500"
-            >{{ feedback.comments.length }}</span>
-          </h3>
           <CommentThread
             :comments="feedback.comments || []"
             commentable-type="feedback"
@@ -377,16 +308,5 @@ const remove = async () => {
         </div>
       </div>
     </div>
-
-    <FeedbackFormModal
-      :show="modal"
-      :feedback="feedback"
-      :projects="options.projects"
-      :employees="options.employees"
-      :category-options="options.category"
-      :status-options="options.status"
-      :priority-options="options.priority"
-      @close="modal = false"
-    />
   </AppLayout>
 </template>

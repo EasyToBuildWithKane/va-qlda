@@ -15,6 +15,7 @@ use App\Models\KbTag;
 use App\Support\Enums\KbArticleStatus;
 use App\Support\Enums\KbImageUsage;
 use App\Support\KnowledgeBase\KbArticleSearch;
+use App\Support\KnowledgeBase\KbBlogSidebarData;
 use App\Support\KnowledgeBase\KbContentAnchors;
 use App\Support\KnowledgeBase\KbTagSync;
 use Illuminate\Http\JsonResponse;
@@ -62,6 +63,27 @@ class KbArticleController extends Controller
         ]);
     }
 
+    public function blog(Request $request): Response
+    {
+        $this->authorize('viewAny', KbArticle::class);
+
+        $account = $request->user();
+        $articles = $this->filteredArticlesQuery($request, $account)
+            ->with(['galleryImages' => fn ($q) => $q->orderBy('sort_order')->limit(1)])
+            ->reorder()
+            ->orderByDesc('published_at')
+            ->orderByDesc('id')
+            ->paginate((int) $request->query('per_page', 10))
+            ->withQueryString();
+
+        return Inertia::render('KnowledgeBase/Blog', [
+            'articles' => KbArticleResource::collection($articles),
+            'sidebar' => KbBlogSidebarData::build($account),
+            'filters' => (object) $request->only(['q', 'category_id', 'tag', 'per_page']),
+            'can' => ['create' => $account->can('create', KbArticle::class)],
+        ]);
+    }
+
     public function create(Request $request): Response
     {
         $this->authorize('create', KbArticle::class);
@@ -76,7 +98,7 @@ class KbArticleController extends Controller
         ]);
     }
 
-    public function store(StoreKbArticleRequest $request): RedirectResponse
+    public function store(StoreKbArticleRequest $request): RedirectResponse|JsonResponse
     {
         $data = $request->validated();
         $tagNames = $data['tag_names'] ?? null;
@@ -94,6 +116,13 @@ class KbArticleController extends Controller
 
             return $article;
         });
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'slug' => $article->slug,
+                'edit_url' => route('knowledge-base.articles.edit', $article),
+            ]);
+        }
 
         return redirect()
             ->route('knowledge-base.articles.edit', $article)

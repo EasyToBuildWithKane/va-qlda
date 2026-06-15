@@ -253,6 +253,7 @@ Prefix `knowledge-base.`, middleware `auth`. Chi tiết: [`docs/KNOWLEDGE_BASE.m
 | Method | URI | Controller | Response | Mô Tả |
 |---|---|---|---|---|
 | GET | `/knowledge-base` | KbArticleController@index | Inertia | Danh sách + datagrid (lọc danh mục trên toolbar) |
+| GET | `/knowledge-base/blog` | KbArticleController@blog | Inertia | Blog + sidebar (chuyên mục, mới, thẻ) |
 | GET | `/knowledge-base/export-data` | KbArticleController@exportData | JSON | Export client (≤200) |
 | GET | `/knowledge-base/articles/create` | KbArticleController@create | Inertia | |
 | POST | `/knowledge-base/articles` | KbArticleController@store | Redirect | |
@@ -320,6 +321,7 @@ Organization Group
 
 Knowledge Base Group
 ├── /knowledge-base                    (index — Inertia)
+├── /knowledge-base/blog               (blog + sidebar — Inertia)
 ├── /knowledge-base/export-data        (JSON — export ≤200)
 ├── /knowledge-base/articles/*         (CRUD — {article} slug)
 ├── /knowledge-base/articles/{id}/favorite|read|attachments|images|gallery

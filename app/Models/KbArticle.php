@@ -103,6 +103,20 @@ class KbArticle extends Model
         return $this->images()->where('usage', KbImageUsage::Gallery->value);
     }
 
+    public function coverImageUrl(): ?string
+    {
+        if (! $this->relationLoaded('galleryImages')) {
+            return null;
+        }
+
+        $img = $this->galleryImages->first();
+        if (! $img) {
+            return null;
+        }
+
+        return route('knowledge-base.images.file', ['image' => $img->id]);
+    }
+
     public function attachments(): HasMany
     {
         return $this->hasMany(KbArticleAttachment::class, 'article_id');

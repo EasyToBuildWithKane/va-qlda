@@ -31,6 +31,19 @@ class KnowledgeBaseTest extends TestCase
             ->assertOk();
     }
 
+    public function test_member_can_view_knowledge_base_blog(): void
+    {
+        $this->actingAs($this->member())
+            ->get(route('knowledge-base.blog'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('KnowledgeBase/Blog')
+                ->has('sidebar.categories')
+                ->has('sidebar.recentPosts')
+                ->has('sidebar.popularPosts')
+                ->has('sidebar.tags'));
+    }
+
     public function test_member_can_create_article(): void
     {
         $account = $this->member();
@@ -49,6 +62,28 @@ class KnowledgeBaseTest extends TestCase
         $this->assertDatabaseHas('kb_articles', [
             'title' => 'Bài test KB',
             'status' => KbArticleStatus::Published->value,
+        ]);
+    }
+
+    public function test_member_can_bootstrap_draft_article_via_json_store(): void
+    {
+        $account = $this->member();
+        $category = KbCategory::query()->where('slug', 'general')->first();
+        $this->assertNotNull($category);
+
+        $this->actingAs($account)
+            ->postJson(route('knowledge-base.articles.store'), [
+                'category_id' => $category->id,
+                'title' => 'Nháp ảnh',
+                'status' => KbArticleStatus::Draft->value,
+            ])
+            ->assertOk()
+            ->assertJsonPath('slug', 'nhap-anh');
+
+        $this->assertDatabaseHas('kb_articles', [
+            'title' => 'Nháp ảnh',
+            'slug' => 'nhap-anh',
+            'status' => KbArticleStatus::Draft->value,
         ]);
     }
 

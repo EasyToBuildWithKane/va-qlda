@@ -306,6 +306,12 @@ class Navigation
                         'href' => '/knowledge-base',
                         'status' => 'live',
                     ],
+                    [
+                        'label' => 'Blog',
+                        'icon' => 'documents',
+                        'href' => '/knowledge-base/blog',
+                        'status' => 'live',
+                    ],
                 ],
             ],
 

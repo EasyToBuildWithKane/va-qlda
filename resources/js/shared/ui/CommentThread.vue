@@ -20,6 +20,11 @@ const props = defineProps({
     placeholder: { type: String, default: 'Viết phản hồi cho người xử lý…' },
     /** Partial reload Inertia sau POST/DELETE (vd. ['blockers'] trên /blockers) */
     partialReloadKeys: { type: Array, default: () => [] },
+    heading: { type: String, default: 'Trao đổi' },
+    emptyMessage: { type: String, default: 'Chưa có trao đổi nào.' },
+    deleteDialogTitle: { type: String, default: 'Xoá trao đổi' },
+    deleteButtonTitle: { type: String, default: 'Xoá trao đổi' },
+    realtimeHint: { type: String, default: 'Người khác gửi trao đổi sẽ hiện ngay không cần tải lại trang' },
 });
 
 const page = usePage();
@@ -170,7 +175,7 @@ const submit = () => {
 async function removeComment(c) {
     if (!canDeleteComment(c) || deletingId.value) return;
     const ok = await dialog.confirm({
-        title: 'Xoá trao đổi',
+        title: props.deleteDialogTitle,
         message: 'Bình luận này sẽ bị xoá vĩnh viễn. Tiếp tục?',
         tone: 'danger',
         confirmText: 'Xoá',
@@ -194,12 +199,12 @@ async function removeComment(c) {
       <AppIcon
         name="comment"
         :size="18"
-      /> Trao đổi
+      /> {{ heading }}
       <span class="text-sm font-normal text-slate-400">({{ list.length }})</span>
       <span
         v-if="realtimeEnabled && realtimeSubscribed"
         class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700"
-        title="Người khác gửi trao đổi sẽ hiện ngay không cần tải lại trang"
+        :title="realtimeHint"
       >
         <span class="h-1.5 w-1.5 rounded-full bg-emerald-500" />
         Realtime
@@ -249,7 +254,7 @@ async function removeComment(c) {
               type="button"
               class="shrink-0 rounded-md p-1 text-slate-400 opacity-0 transition hover:bg-rose-50 hover:text-rose-600 group-hover:opacity-100 focus:opacity-100 disabled:opacity-40"
               :disabled="deletingId === c.id"
-              title="Xoá trao đổi"
+              :title="deleteButtonTitle"
               :aria-label="`Xoá bình luận của ${c.author?.name || 'người dùng'}`"
               @click="removeComment(c)"
             >
@@ -268,7 +273,7 @@ async function removeComment(c) {
         v-if="list.length === 0"
         class="text-sm text-slate-400"
       >
-        Chưa có trao đổi nào.
+        {{ emptyMessage }}
       </li>
     </ul>
   </div>

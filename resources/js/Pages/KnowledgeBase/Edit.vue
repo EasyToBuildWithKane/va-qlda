@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import axios from 'axios';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import AppIcon from '@/Components/AppIcon.vue';
@@ -11,6 +12,9 @@ import FieldTooltip from '@/shared/ui/FieldTooltip.vue';
 import Badge from '@/shared/ui/Badge.vue';
 import RichContentBody from '@/shared/ui/RichContentBody.vue';
 import { slugifyTitle } from '@/shared/utils/slugify';
+import { useToast } from '@/shared/composables/useToast';
+
+const toast = useToast();
 
 const props = defineProps({
     article: { type: Object, default: null },
@@ -21,12 +25,60 @@ const props = defineProps({
 
 const isEdit = computed(() => Boolean(props.article?.id));
 const previewMode = ref(false);
+const bootstrappedSlug = ref(null);
+const bootstrapInFlight = ref(false);
+
+const persistedSlug = computed(() => props.article?.slug ?? bootstrappedSlug.value ?? '');
 
 const imageUploadUrl = computed(() => (
-    isEdit.value && props.article?.slug
-        ? route('knowledge-base.articles.images.store', props.article.slug)
+    persistedSlug.value
+        ? route('knowledge-base.articles.images.store', persistedSlug.value)
         : ''
 ));
+
+async function resolveImageUploadUrl() {
+    if (imageUploadUrl.value) return imageUploadUrl.value;
+    if (bootstrapInFlight.value) return '';
+    if (!form.category_id) {
+        toast.error('Chọn danh mục trước khi chèn ảnh.');
+        return '';
+    }
+    const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    bootstrapInFlight.value = true;
+    try {
+        const title = form.title.trim() || 'Nháp không tiêu đề';
+        const { data } = await axios.post(
+            route('knowledge-base.articles.store'),
+            {
+                category_id: form.category_id,
+                title,
+                slug: form.slug || slugifyTitle(title),
+                excerpt: form.excerpt,
+                content: form.content,
+                status: 'draft',
+                tag_names: form.tag_names?.length ? form.tag_names : [],
+            },
+            {
+                headers: {
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    ...(csrf ? { 'X-CSRF-TOKEN': csrf } : {}),
+                },
+            },
+        );
+        if (data?.slug) {
+            bootstrappedSlug.value = data.slug;
+            return route('knowledge-base.articles.images.store', data.slug);
+        }
+        toast.error('Không tạo được bản nháp để lưu ảnh.');
+        return '';
+    } catch {
+        toast.error('Không tạo được bản nháp để lưu ảnh. Kiểm tra tiêu đề và danh mục.');
+        return '';
+    } finally {
+        bootstrapInFlight.value = false;
+    }
+}
 
 const form = useForm({
     category_id: props.article?.category_id ?? (props.categories.data?.[0]?.id ?? ''),
@@ -67,8 +119,8 @@ function submit() {
         tag_names: form.tag_names?.length ? form.tag_names : [],
     };
 
-    if (isEdit.value) {
-        form.transform(() => payload).put(`/knowledge-base/articles/${props.article.slug}`, { preserveScroll: true });
+    if (persistedSlug.value) {
+        form.transform(() => payload).put(`/knowledge-base/articles/${persistedSlug.value}`, { preserveScroll: true });
     } else {
         form.transform(() => payload).post('/knowledge-base/articles');
     }
@@ -251,6 +303,9 @@ function togglePreview() {
             placeholder="Tóm tắt 1–2 câu giúp người đọc nắm nội dung trước khi mở bài…"
             tooltip="Hiển thị dưới tiêu đề trên thẻ bài viết và trang chi tiết."
             :error="form.errors.excerpt"
+            :image-upload-url="imageUploadUrl"
+            :resolve-image-upload-url="resolveImageUploadUrl"
+            hint="Có thể chèn ảnh bằng nút 🖼, kéo thả hoặc Ctrl+V."
             editor-min-height-class="min-h-[100px]"
           />
 
@@ -258,18 +313,19 @@ function togglePreview() {
             v-model="form.content"
             label="Nội dung"
             placeholder="Viết nội dung chi tiết: bước thực hiện, lưu ý, hình minh hoạ…"
-            tooltip="Nội dung chính của bài — hỗ trợ định dạng, liên kết và ảnh (sau khi lưu bài)."
+            tooltip="Nội dung chính của bài — hỗ trợ định dạng, liên kết và ảnh."
             required
             :error="form.errors.content"
             :image-upload-url="imageUploadUrl"
-            hint="Lưu bài trước khi chèn ảnh vào nội dung (tự động sau khi tạo bài mới)."
+            :resolve-image-upload-url="resolveImageUploadUrl"
+            hint="Chèn ảnh: nút 🖼, kéo thả vào khung, hoặc dán ảnh từ clipboard (Ctrl+V)."
             editor-min-height-class="min-h-[280px]"
           />
 
           <KbImageGallery
-            v-if="isEdit"
-            :article-slug="article.slug"
-            :images="article.gallery_images ?? []"
+            v-if="persistedSlug"
+            :article-slug="persistedSlug"
+            :images="article?.gallery_images ?? []"
           />
         </div>
 
@@ -363,8 +419,8 @@ function togglePreview() {
             </p>
             <ul class="list-disc space-y-1 pl-4">
               <li>Dùng tiêu đề rõ ràng — slug SEO cập nhật ngay.</li>
+              <li>Chèn ảnh vào mô tả hoặc nội dung bằng nút 🖼, kéo thả hoặc dán (Ctrl+V).</li>
               <li>Bấm <strong class="font-medium text-slate-700">Xem trước</strong> trên header để kiểm tra bố cục.</li>
-              <li>Sau khi tạo bài, quay lại để chèn ảnh vào nội dung.</li>
             </ul>
           </div>
         </div>

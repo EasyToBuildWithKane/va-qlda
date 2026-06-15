@@ -6,7 +6,6 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import AppIcon from '@/Components/AppIcon.vue';
-import Badge from '@/shared/ui/Badge.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import DatagridToolbarActionButton from '@/shared/ui/DatagridToolbarActionButton.vue';
 import DatagridFilterField from '@/shared/ui/DatagridFilterField.vue';
@@ -14,11 +13,11 @@ import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import ColumnVisibilityDropdown from '@/shared/ui/ColumnVisibilityDropdown.vue';
 import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
 import DatagridSegmentedControl from '@/shared/ui/DatagridSegmentedControl.vue';
+import KbArticleCard from '@/Components/KnowledgeBase/KbArticleCard.vue';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
 import { useVisibleColumns } from '@/shared/composables/useVisibleColumns';
 import { exportKbArticlesWorkbook, exportKbArticlesCsv, fetchKbArticlesForExport } from '@/composables/useKbExport';
 import { useToast } from '@/shared/composables/useToast';
-import { datetime } from '@/composables/useFormat';
 
 const VIEW_KEY = 'va-qlda.knowledge-base.view';
 const PER_PAGE_OPTIONS = [10, 15, 20, 30];
@@ -31,7 +30,7 @@ const VIEW_TABS = [
 const FILTER_CONTROL_CLASS = 'input h-10 w-full text-sm';
 
 const KB_FILTER_CONTROLS = [
-    { key: 'category', label: 'Danh mục', default: true },
+    { key: 'category', label: 'Danh mục', default: false },
     { key: 'tag', label: 'Thẻ', default: false },
     { key: 'status', label: 'Trạng thái', default: false },
 ];
@@ -117,7 +116,7 @@ const {
     hasFilterRow,
     enabledFilterControlCount,
     FILTER_CONTROLS,
-} = useVisibleFilterControls(KB_FILTER_CONTROLS, 'va-qlda.knowledge-base.visible-filters.v2');
+} = useVisibleFilterControls(KB_FILTER_CONTROLS, 'va-qlda.knowledge-base.visible-filters.v3');
 
 const {
     visibleCols,
@@ -225,6 +224,16 @@ async function runExport(format) {
         icon-color="brand"
         :badge="articles.meta?.total ?? null"
       >
+        <Link
+          href="/knowledge-base/blog"
+          class="btn-ghost inline-flex h-9 shrink-0 items-center gap-1.5 px-3 text-sm"
+        >
+          <AppIcon
+            name="documents"
+            :size="15"
+          />
+          Blog
+        </Link>
         <Link
           v-if="can.create"
           href="/knowledge-base/articles/create"
@@ -474,91 +483,42 @@ async function runExport(format) {
               {{ group.items.length }} bài
             </span>
           </div>
-          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            <Link
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <KbArticleCard
               v-for="a in group.items"
               :key="a.id"
-              :href="`/knowledge-base/articles/${a.slug}`"
-              class="flex h-full flex-col rounded-card border border-slate-200/80 bg-white p-4 shadow-sm transition hover:border-brand/30 hover:shadow-md"
-            >
-              <div
-                v-if="isColVisible('status')"
-                class="mb-2 flex flex-wrap items-center gap-2"
-              >
-                <Badge
-                  v-if="a.status"
-                  :label="a.status.label"
-                  color="slate"
-                />
-              </div>
-              <h3 class="font-display text-base font-semibold leading-snug text-slate-800">
-                {{ a.title }}
-              </h3>
-              <p
-                v-if="isColVisible('excerpt') && a.excerpt"
-                class="mt-2 line-clamp-3 flex-1 text-sm text-slate-500"
-              >
-                {{ a.excerpt }}
-              </p>
-              <p
-                v-if="isColVisible('tags') && a.tags?.length"
-                class="mt-3 text-xs text-slate-400"
-              >
-                {{ a.tags.map((t) => t.name).join(' · ') }}
-              </p>
-              <p class="mt-3 flex flex-wrap gap-x-3 gap-y-1 border-t border-slate-100 pt-3 text-xs text-slate-400">
-                <span v-if="isColVisible('views')">{{ a.view_count }} lượt xem</span>
-                <span v-if="isColVisible('author') && a.author">{{ a.author.full_name }}</span>
-                <span v-if="isColVisible('updated') && a.updated_at">{{ datetime(a.updated_at) }}</span>
-              </p>
-            </Link>
+              :article="a"
+              variant="grid"
+              :show-status="isColVisible('status')"
+              :show-category="isColVisible('category')"
+              :show-excerpt="isColVisible('excerpt')"
+              :show-tags="isColVisible('tags')"
+              :show-views="isColVisible('views')"
+              :show-author="isColVisible('author')"
+              :show-updated="isColVisible('updated')"
+            />
           </div>
         </section>
       </div>
 
-      <template v-else>
-        <Link
+      <div
+        v-else
+        class="space-y-3 p-4 sm:p-5"
+      >
+        <KbArticleCard
           v-for="a in articles.data"
           :key="a.id"
-          :href="`/knowledge-base/articles/${a.slug}`"
-          class="block border-t border-slate-100 p-4 transition first:border-t-0 hover:bg-slate-50/50"
-        >
-          <div
-            v-if="isColVisible('status') || isColVisible('category')"
-            class="mb-1 flex flex-wrap items-center gap-2"
-          >
-            <Badge
-              v-if="isColVisible('status') && a.status"
-              :label="a.status.label"
-              color="slate"
-            />
-            <span
-              v-if="isColVisible('category') && a.category"
-              class="text-xs text-slate-400"
-            >{{ a.category.name }}</span>
-          </div>
-          <h2 class="font-display text-base font-semibold text-slate-800">
-            {{ a.title }}
-          </h2>
-          <p
-            v-if="isColVisible('excerpt') && a.excerpt"
-            class="mt-1 line-clamp-2 text-sm text-slate-500"
-          >
-            {{ a.excerpt }}
-          </p>
-          <p
-            v-if="isColVisible('tags') && a.tags?.length"
-            class="mt-2 text-xs text-slate-400"
-          >
-            {{ a.tags.map((t) => t.name).join(' · ') }}
-          </p>
-          <p class="mt-2 flex flex-wrap gap-3 text-xs text-slate-400">
-            <span v-if="isColVisible('views')">{{ a.view_count }} lượt xem</span>
-            <span v-if="isColVisible('author') && a.author">{{ a.author.full_name }}</span>
-            <span v-if="isColVisible('updated') && a.updated_at">{{ datetime(a.updated_at) }}</span>
-          </p>
-        </Link>
-      </template>
+          :article="a"
+          variant="list"
+          :show-status="isColVisible('status')"
+          :show-category="isColVisible('category')"
+          :show-excerpt="isColVisible('excerpt')"
+          :show-tags="isColVisible('tags')"
+          :show-views="isColVisible('views')"
+          :show-author="isColVisible('author')"
+          :show-updated="isColVisible('updated')"
+        />
+      </div>
 
       <DatagridPaginationFooter
         v-if="articles.meta"

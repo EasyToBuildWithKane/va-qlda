@@ -61,6 +61,10 @@ class KbArticleResource extends JsonResource
                 });
             }),
             'comments_count' => $this->whenCounted('comments'),
+            'cover_url' => $this->when(
+                $this->relationLoaded('galleryImages'),
+                fn () => $this->coverImageUrl(),
+            ),
             'comments' => CommentResource::collection($this->whenLoaded('comments')),
             'is_favorite' => $this->when(property_exists($this->resource, 'is_favorite'), (bool) $this->resource->is_favorite),
             'is_read' => $this->when(property_exists($this->resource, 'is_read'), (bool) $this->resource->is_read),

@@ -109,6 +109,10 @@
     .rich-content h3 {
         @apply font-semibold text-slate-800 mt-3 mb-1;
     }
+    .rich-content img,
+    .tiptap img {
+        @apply my-2 max-h-96 max-w-full rounded-md border border-slate-200;
+    }
 
     /* Google Docs/Sheets embed trong nội dung rich-text (coaching, KB) */
     .rich-content .coaching-rich-embed,

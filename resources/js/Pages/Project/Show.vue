@@ -308,7 +308,6 @@ const onSprintSaved = () => {
         :subtitle="projectHeaderSubtitle"
         icon="all-projects"
         :icon-color="projectIconColor"
-        back-href="/projects"
       >
         <div
           v-if="tab === 'blockers' || tab === 'feedback'"

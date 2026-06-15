@@ -5,6 +5,7 @@ import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import Image from '@tiptap/extension-image';
 import axios from 'axios';
+import AppIcon from '@/Components/AppIcon.vue';
 import InfoTooltip from '@/Components/DailyReport/InfoTooltip.vue';
 import { useDialog } from '@/composables/useDialog';
 import { useToast } from '@/shared/composables/useToast';
@@ -14,6 +15,7 @@ import { GoogleWorkspaceEmbed } from '@/shared/tiptap/GoogleWorkspaceEmbed';
 const dialog = useDialog();
 const toast = useToast();
 const fileInput = ref(null);
+const imageUploading = ref(false);
 
 const props = defineProps({
     modelValue: { type: String, default: '' },
@@ -23,8 +25,10 @@ const props = defineProps({
     tooltip: { type: String, default: '' },
     required: { type: Boolean, default: false },
     placeholder: { type: String, default: '' },
-    /** Route name ziggy: knowledge-base.articles.images.store */
+    /** POST multipart — knowledge-base.articles.images.store */
     imageUploadUrl: { type: String, default: '' },
+    /** Khi chưa có URL (trang tạo bài): tạo bản nháp rồi trả URL upload */
+    resolveImageUploadUrl: { type: Function, default: null },
     /** Tailwind min-height class for editor body */
     editorMinHeightClass: { type: String, default: 'min-h-[160px]' },
     /** Chèn preview Google Docs / Sheets (coaching session content) */
@@ -32,6 +36,46 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['update:modelValue']);
+
+const canInsertImages = computed(
+    () => Boolean(props.imageUploadUrl || props.resolveImageUploadUrl),
+);
+
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+
+function isAllowedImageFile(file) {
+    if (!file) return false;
+    if (file.type?.startsWith('image/')) return true;
+    return /\.(jpe?g|png|gif|webp)$/i.test(file.name ?? '');
+}
+
+function uploadRequestHeaders() {
+    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    return {
+        Accept: 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        ...(token ? { 'X-CSRF-TOKEN': token } : {}),
+    };
+}
+
+function imageFileFromClipboard(clipboardData) {
+    if (!clipboardData?.items) return null;
+    for (let i = 0; i < clipboardData.items.length; i += 1) {
+        const item = clipboardData.items[i];
+        if (item.kind === 'file' && item.type.startsWith('image/')) {
+            return item.getAsFile();
+        }
+    }
+    return null;
+}
+
+async function resolveUploadEndpoint() {
+    if (props.imageUploadUrl) return props.imageUploadUrl;
+    if (typeof props.resolveImageUploadUrl === 'function') {
+        return props.resolveImageUploadUrl();
+    }
+    return '';
+}
 
 function buildExtensions() {
     const ext = [
@@ -51,6 +95,21 @@ const editor = useEditor({
     editorProps: {
         attributes: {
             class: `tiptap rich-content focus:outline-none ${props.editorMinHeightClass} px-3 py-2 text-sm`,
+        },
+        handlePaste: (_view, event) => {
+            const file = imageFileFromClipboard(event.clipboardData);
+            if (!file) return false;
+            event.preventDefault();
+            void uploadImage(file);
+            return true;
+        },
+        handleDrop: (_view, event, _slice, moved) => {
+            if (moved) return false;
+            const file = event.dataTransfer?.files?.[0];
+            if (!file?.type?.startsWith('image/')) return false;
+            event.preventDefault();
+            void uploadImage(file);
+            return true;
         },
     },
     onUpdate: ({ editor: ed }) => {
@@ -75,27 +134,41 @@ const isActive = (name, attrs) => editor.value?.isActive(name, attrs) ?? false;
 const run = (fn) => editor.value && fn(editor.value.chain().focus()).run();
 
 async function uploadImage(file) {
-    if (!props.imageUploadUrl) {
-        toast.error('Lưu bài trước khi chèn ảnh.');
+    if (!canInsertImages.value || imageUploading.value) return;
+    if (!isAllowedImageFile(file)) {
+        toast.error('Chỉ chấp nhận ảnh JPG, PNG, GIF hoặc WebP.');
         return;
     }
-    const form = new FormData();
-    form.append('image', file);
+    if (file.size > MAX_IMAGE_BYTES) {
+        toast.error('Ảnh tối đa 5MB.');
+        return;
+    }
+    imageUploading.value = true;
     try {
-        const { data } = await axios.post(props.imageUploadUrl, form, {
-            headers: { 'Content-Type': 'multipart/form-data' },
+        const endpoint = await resolveUploadEndpoint();
+        if (!endpoint) {
+            toast.error('Không thể chèn ảnh lúc này. Chọn danh mục và thử lại.');
+            return;
+        }
+        const form = new FormData();
+        form.append('image', file);
+        const { data } = await axios.post(endpoint, form, {
+            headers: uploadRequestHeaders(),
         });
         if (data?.url) {
             run((c) => c.setImage({ src: data.url, alt: file.name }));
+            toast.success('Đã chèn ảnh.');
         }
     } catch {
         toast.error('Không tải được ảnh. Vui lòng thử lại.');
+    } finally {
+        imageUploading.value = false;
     }
 }
 
 function pickImage() {
-    if (!props.imageUploadUrl) {
-        toast.error('Lưu bài trước khi chèn ảnh.');
+    if (!canInsertImages.value) {
+        toast.error('Không thể chèn ảnh lúc này. Chọn danh mục và thử lại.');
         return;
     }
     fileInput.value?.click();
@@ -164,10 +237,10 @@ async function insertGoogleWorkspace(preferType) {
 <template>
   <div>
     <input
-      v-if="imageUploadUrl"
+      v-if="canInsertImages"
       ref="fileInput"
       type="file"
-      accept="image/jpeg,image/png,image/gif,image/webp"
+      accept="image/jpeg,image/png,image/gif,image/webp,image/*"
       class="hidden"
       @change="onFileChange"
     >
@@ -300,13 +373,19 @@ async function insertGoogleWorkspace(preferType) {
           </button>
         </template>
         <button
-          v-if="imageUploadUrl"
+          v-if="canInsertImages"
           type="button"
-          class="grid h-7 min-w-7 place-items-center rounded-input text-sm"
-          title="Chèn ảnh"
+          class="inline-flex h-7 items-center gap-1 rounded-input px-2 text-xs font-medium text-slate-500 hover:bg-slate-200"
+          :class="imageUploading ? 'pointer-events-none opacity-50' : ''"
+          :disabled="imageUploading"
+          title="Tải ảnh từ máy (kéo thả hoặc dán Ctrl+V)"
           @click="pickImage"
         >
-          🖼
+          <AppIcon
+            name="upload"
+            :size="14"
+          />
+          <span class="hidden sm:inline">{{ imageUploading ? 'Đang tải…' : 'Ảnh' }}</span>
         </button>
         <span class="mx-0.5 hidden h-5 w-px bg-slate-200 sm:inline-block" />
         <button

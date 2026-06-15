@@ -207,6 +207,7 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictCoachingOnlyUsers::class
     // Knowledge base (Tri thức)
     Route::prefix('knowledge-base')->name('knowledge-base.')->group(function () {
         Route::get('/', [KbArticleController::class, 'index'])->name('index');
+        Route::get('/blog', [KbArticleController::class, 'blog'])->name('blog');
         Route::get('/export-data', [KbArticleController::class, 'exportData'])->name('export-data');
         Route::get('/articles/create', [KbArticleController::class, 'create'])->name('articles.create');
         Route::post('/articles', [KbArticleController::class, 'store'])->name('articles.store');

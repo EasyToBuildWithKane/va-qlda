@@ -40,7 +40,9 @@ routes/web.php (prefix knowledge-base., name knowledge-base.*)
 
 resources/js/
     → Pages/KnowledgeBase/Index.vue   (PageHeader + datagrid, lọc danh mục, xuất CSV/Excel)
-    → Pages/KnowledgeBase/Show.vue    (breadcrumb, TOC server, related, comments)
+    → Pages/KnowledgeBase/Blog.vue    (layout blog: sidebar + feed ảnh bìa)
+    → Pages/KnowledgeBase/Show.vue    (PageHeader drill-down, layout bài báo, TOC, bình luận)
+    → Components/KnowledgeBase/KbArticleCard.vue, KbBlogSidebar.vue, KbBlogPostCard.vue
     → Pages/KnowledgeBase/Edit.vue    (TipTap + gallery)
     → Components/KnowledgeBase/KbRichTextField.vue, KbImageGallery.vue, KbTagField.vue
     → composables/useKbExport.js
@@ -51,7 +53,7 @@ resources/js/
 
 **Lưu file:** disk `public`, path `knowledge-base/{article_id}/images|attachments` — URL qua `PublicMediaUrl` + route tải (pattern Project attachment).
 
-**Rich text:** TipTap — ảnh inline qua `POST knowledge-base.articles.images.store`; gallery riêng qua `articles.gallery.store`.
+**Rich text:** TipTap — ảnh inline qua `POST knowledge-base.articles.images.store` (nút 🖼, kéo thả, dán clipboard); trang tạo bài tự tạo bản nháp JSON khi chèn ảnh lần đầu (`POST articles` + `Accept: application/json`).
 
 **Tìm kiếm v1:** `KbArticleSearch` — FULLTEXT / LIKE trên title, excerpt, content (MySQL migration `2026_06_14_130000_kb_articles_fulltext_and_image_usage.php`).
 
