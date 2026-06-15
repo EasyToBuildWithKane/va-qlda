@@ -16,7 +16,6 @@ const props = defineProps({
 
 const dialog = useDialog();
 
-const showGuide = ref(true);
 const activeNavId = ref(null);
 const createChildForParentId = ref(null);
 
@@ -66,50 +65,11 @@ function navIndent(depth) {
 
 <template>
   <div class="space-y-4">
-    <div
-      v-if="showGuide"
-      class="rounded-card border border-slate-200/80 bg-gradient-to-b from-slate-50/90 to-white px-4 py-4 shadow-sm sm:px-5"
-    >
-      <div class="flex items-start justify-between gap-3">
-        <div>
-          <p class="text-[10px] font-semibold uppercase tracking-[0.14em] text-brand/80">
-            Quy trình Phòng Công nghệ
-          </p>
-          <ol class="mt-2 list-decimal space-y-1 pl-4 text-sm leading-relaxed text-slate-600">
-            <li>
-              <strong class="font-semibold text-slate-800">Cấu trúc</strong> — quản lý = GĐ CNTT kiêm Trưởng phòng.
-            </li>
-            <li>
-              Bấm <strong class="font-semibold text-slate-800">Mẫu Phòng CNTT</strong> hoặc thêm nhánh
-              «Trưởng ban CNTT», «Phó Phòng Công nghệ» và gán người.
-            </li>
-            <li>
-              <strong class="font-semibold text-slate-800">Đơn vị</strong> Phần mềm &amp; Phần cứng — quản lý + thành viên ở mục «Thành viên khác».
-            </li>
-            <li>
-              Lưu từng khối, sau đó <strong class="font-semibold text-slate-800">Xem sơ đồ</strong> để kiểm tra.
-            </li>
-          </ol>
-        </div>
-        <button
-          type="button"
-          class="shrink-0 rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-          aria-label="Ẩn gợi ý"
-          @click="showGuide = false"
-        >
-          <AppIcon
-            name="close"
-            :size="16"
-          />
-        </button>
-      </div>
-    </div>
-
     <div class="lg:grid lg:grid-cols-12 lg:gap-6">
       <aside class="mb-4 lg:col-span-3 lg:mb-0">
         <nav
           class="rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm lg:sticky lg:top-4"
-          aria-label="Danh sách nhóm trong cấu trúc"
+          aria-label="Danh sách đơn vị"
         >
           <p class="mb-2 px-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
             Mục lục
@@ -165,9 +125,11 @@ function navIndent(depth) {
               <h2 class="font-display text-base font-semibold text-slate-900">
                 {{ node.name }}
               </h2>
-              <p class="text-xs text-slate-500">
-                {{ node.level_label || (node.level === 1 ? 'Cấu trúc' : 'Đơn vị') }}
-                <span v-if="node.leader?.name"> · Quản lý: {{ node.leader.name }}</span>
+              <p
+                v-if="node.level_label"
+                class="text-xs text-slate-500"
+              >
+                {{ node.level_label }}
               </p>
             </div>
             <button
@@ -199,7 +161,7 @@ function navIndent(depth) {
             v-else
             class="px-4 py-6 text-sm text-slate-500 sm:px-5"
           >
-            Bạn không có quyền chỉnh sửa nhóm này.
+            Bạn không có quyền chỉnh sửa đơn vị này.
           </p>
 
           <footer

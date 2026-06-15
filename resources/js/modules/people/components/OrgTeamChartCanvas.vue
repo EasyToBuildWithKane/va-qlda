@@ -29,9 +29,6 @@ defineProps({
           {{ title }}
         </p>
       </div>
-      <p class="org-chart-canvas__hint">
-        Bấm thẻ nhóm để sửa · thêm nhóm con từ menu trên thẻ
-      </p>
     </header>
 
     <div class="org-chart-canvas__viewport">

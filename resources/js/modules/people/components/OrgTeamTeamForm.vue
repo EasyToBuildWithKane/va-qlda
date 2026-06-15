@@ -214,9 +214,6 @@ defineExpose({ form, submit, isDirty: () => form.isDirty });
         :options="employees"
         placeholder="Chọn quản lý"
       />
-      <p class="mt-1 text-[11px] text-slate-500">
-        Nhóm chính: Giám đốc CNTT kiêm Trưởng phòng · Đơn vị: quản lý Phần mềm / Phần cứng.
-      </p>
     </div>
 
     <div
@@ -247,14 +244,9 @@ defineExpose({ form, submit, isDirty: () => form.isDirty });
 
     <div class="rounded-xl border border-slate-200/90 bg-slate-50/50 p-4">
       <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Nhánh / vị trí ngang hàng
-          </p>
-          <p class="text-[11px] text-slate-500">
-            Dùng cho Trưởng ban CNTT, Phó Phòng… — mỗi nhánh gán người bên dưới.
-          </p>
-        </div>
+        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          {{ isRootTeam ? 'Cấp quản lý' : 'Nhánh' }}
+        </p>
         <div class="flex flex-wrap gap-2">
           <button
             v-if="isRootTeam"
@@ -278,7 +270,7 @@ defineExpose({ form, submit, isDirty: () => form.isDirty });
         v-if="!form.sections.length"
         class="rounded-lg border border-dashed border-slate-200 bg-white px-3 py-4 text-center text-xs text-slate-500"
       >
-        Chưa có nhánh. Bấm «Mẫu Phòng CNTT» hoặc «+ Thêm nhánh».
+        Chưa có mục nào.
       </div>
 
       <div
@@ -364,14 +356,9 @@ defineExpose({ form, submit, isDirty: () => form.isDirty });
 
     <div class="rounded-xl border border-slate-200/90 p-4">
       <div class="mb-3 flex items-center justify-between gap-2">
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Thành viên khác
-          </p>
-          <p class="text-[11px] text-slate-500">
-            Không thuộc nhánh ngang hàng (thường dùng ở nhóm con Phần mềm / Phần cứng).
-          </p>
-        </div>
+        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Thành viên khác
+        </p>
         <button
           type="button"
           class="text-xs font-medium text-brand hover:underline"
@@ -385,7 +372,7 @@ defineExpose({ form, submit, isDirty: () => form.isDirty });
         v-if="!(membersBySection.get('unassigned') ?? []).length"
         class="rounded-lg border border-dashed border-slate-200 px-3 py-3 text-center text-xs text-slate-500"
       >
-        Chưa có thành viên ngoài nhánh.
+        —
       </div>
 
       <div

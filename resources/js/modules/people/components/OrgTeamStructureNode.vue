@@ -18,6 +18,14 @@ const children = computed(() => toIterableList(props.node.children));
 
 const leader = computed(() => props.node.leader ?? null);
 
+const levelBadge = computed(() => {
+    if (props.node.level_label) {
+        return props.node.level_label;
+    }
+
+    return props.node.level === 1 ? 'Cấp quản lý' : 'Đơn vị';
+});
+
 const sectionRows = computed(() => {
     const sections = toIterableList(props.node.sections)
         .slice()
@@ -53,25 +61,19 @@ const sectionRows = computed(() => {
     const rows = sections.map((sec) => ({
         key: `sec-${sec.id}`,
         title: (sec.title ?? '').trim() || 'Nhánh',
-        empty: !(bySectionId.get(sec.id)?.length),
         people: bySectionId.get(sec.id) ?? [],
     }));
 
     if (unassigned.length) {
         rows.push({
             key: 'unassigned',
-            title: 'Chưa gán nhánh',
-            empty: false,
+            title: 'Thành viên khác',
             people: unassigned,
         });
     }
 
     return rows;
 });
-
-const memberTotal = computed(() =>
-    sectionRows.value.reduce((sum, g) => sum + g.people.length, 0),
-);
 
 function personPayload(emp, extra = {}) {
     return {
@@ -121,7 +123,7 @@ const depthPad = computed(() => ({
             {{ node.name }}
           </h3>
           <span class="rounded-md bg-slate-200/80 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
-            {{ node.level_label || (node.level === 1 ? 'Nhóm chính' : 'Nhóm con') }}
+            {{ levelBadge }}
           </span>
           <span
             v-if="node.is_active === false"
@@ -130,11 +132,6 @@ const depthPad = computed(() => ({
             Ngừng hoạt động
           </span>
         </div>
-        <p class="mt-0.5 text-xs text-slate-500">
-          {{ leader ? '1 quản lý' : 'Chưa có quản lý' }}
-          <span v-if="memberTotal"> · {{ memberTotal }} thành viên</span>
-          <span v-if="children.length"> · {{ children.length }} nhóm con</span>
-        </p>
       </div>
       <div
         v-if="canManage"
@@ -150,7 +147,7 @@ const depthPad = computed(() => ({
             name="plus"
             :size="14"
           />
-          Nhóm con
+          Đơn vị con
         </button>
         <button
           type="button"
@@ -205,15 +202,18 @@ const depthPad = computed(() => ({
         </button>
         <p
           v-else
-          class="rounded-lg border border-dashed border-slate-200 px-3 py-3 text-xs text-slate-500"
+          class="text-xs text-slate-500"
         >
-          Chưa chọn quản lý — bấm «Sửa» để gán (vd. Giám đốc CNTT kiêm Trưởng phòng).
+          Chưa có quản lý
         </p>
       </div>
 
       <div v-if="sectionRows.length">
-        <p class="mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
-          Nhánh / vị trí ngang hàng
+        <p
+          v-if="node.level === 1"
+          class="mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400"
+        >
+          Cấp quản lý
         </p>
         <div class="space-y-3">
           <div
@@ -221,14 +221,8 @@ const depthPad = computed(() => ({
             :key="group.key"
             class="rounded-lg border border-slate-100 bg-slate-50/40"
           >
-            <div class="flex items-center justify-between gap-2 border-b border-slate-100/80 px-3 py-2">
+            <div class="border-b border-slate-100/80 px-3 py-2">
               <span class="text-xs font-semibold text-slate-700">{{ group.title }}</span>
-              <span
-                v-if="group.empty"
-                class="text-[10px] text-slate-400"
-              >
-                Chưa có người — thêm trong «Sửa»
-              </span>
             </div>
             <ul
               v-if="group.people.length"
@@ -263,20 +257,13 @@ const depthPad = computed(() => ({
           </div>
         </div>
       </div>
-      <p
-        v-else-if="depth === 0"
-        class="rounded-lg border border-dashed border-brand/20 bg-brand/5 px-3 py-3 text-xs leading-relaxed text-slate-600"
-      >
-        Thêm <strong class="font-semibold text-slate-800">Nhánh</strong> trong «Sửa» cho các vị trí ngang hàng
-        (vd. Trưởng ban CNTT, Phó Phòng Công nghệ), rồi gán nhân sự vào từng nhánh.
-      </p>
 
       <div
         v-if="children.length"
         class="space-y-3 pt-1"
       >
         <p class="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
-          Nhóm con
+          Đơn vị
         </p>
         <div
           class="space-y-3"
@@ -295,12 +282,6 @@ const depthPad = computed(() => ({
           />
         </div>
       </div>
-      <p
-        v-else-if="node.level === 1"
-        class="rounded-lg border border-dashed border-slate-200 px-3 py-3 text-xs text-slate-500"
-      >
-        Chưa có nhóm con — bấm «Nhóm con» để tạo Phần mềm, Phần cứng, …
-      </p>
     </div>
   </article>
 </template>

@@ -8,10 +8,9 @@ import { toIterableList } from '@/modules/people/composables/useOrgTeamPeople.js
  * classic top-down "tidy tree" pass. The hierarchy rendered is:
  *
  *   (synthetic org hub, only when >1 root Nhóm)
- *     └─ Nhóm (team)  ── leader shown on the card
- *          └─ Nhóm con (team)
- *               └─ nhánh / mảng (section, when team expanded)
- *                    └─ members (person)
+ *     └─ team (cấp quản lý / đơn vị) ── leader on card
+ *          ├─ nhánh & thành viên (section / person, when expanded) — above sub-units
+ *          └─ đơn vị con (team)
  *
  * Everything here is geometry + real data — no fabricated metrics.
  */
@@ -170,11 +169,6 @@ function buildLogical(trees, { expanded, collapsed }) {
         const branches = sectionBranches(team, rootId, rootName);
         ln.hasMembers = branches.length > 0;
 
-        if (!ln.collapsed) {
-            for (const sub of toIterableList(team.children)) {
-                ln.children.push(makeTeam(sub, rootId, rootName));
-            }
-        }
         if (ln.expanded) {
             for (const branch of branches) {
                 if (isUnassignedBranch(branch)) {
@@ -210,6 +204,11 @@ function buildLogical(trees, { expanded, collapsed }) {
                     });
                 }
                 ln.children.push(sectionLn);
+            }
+        }
+        if (!ln.collapsed) {
+            for (const sub of toIterableList(team.children)) {
+                ln.children.push(makeTeam(sub, rootId, rootName));
             }
         }
 
@@ -273,26 +272,26 @@ function place(ln, leftX, top) {
 
         if (subteams.length && memberRow.length) {
             let cursor = leftX;
-            subteams.forEach((kid, i) => {
+            memberRow.forEach((kid, i) => {
                 cursor += place(kid, cursor, childTop);
-                if (i < subteams.length - 1) cursor += H_GAP;
+                if (i < memberRow.length - 1) cursor += H_GAP;
             });
             const row1Span = cursor - leftX;
 
             let row2Top = childTop;
-            for (const st of subteams) {
-                row2Top = Math.max(row2Top, subtreeBottom(st) + V_GAP);
+            for (const mr of memberRow) {
+                row2Top = Math.max(row2Top, subtreeBottom(mr) + V_GAP);
             }
 
             cursor = leftX;
-            memberRow.forEach((kid, i) => {
+            subteams.forEach((kid, i) => {
                 cursor += place(kid, cursor, row2Top);
-                if (i < memberRow.length - 1) cursor += H_GAP;
+                if (i < subteams.length - 1) cursor += H_GAP;
             });
             const row2Span = cursor - leftX;
 
             let row2Bottom = row2Top;
-            for (const kid of memberRow) {
+            for (const kid of subteams) {
                 row2Bottom = Math.max(row2Bottom, subtreeBottom(kid));
             }
 
@@ -305,11 +304,11 @@ function place(ln, leftX, top) {
 
             const span = Math.max(row1Span, row2Span, restCursor - leftX);
             const cxCandidates = [];
-            if (subteams.length) {
-                cxCandidates.push((subteams[0].cx + subteams[subteams.length - 1].cx) / 2);
-            }
             if (memberRow.length) {
                 cxCandidates.push((memberRow[0].cx + memberRow[memberRow.length - 1].cx) / 2);
+            }
+            if (subteams.length) {
+                cxCandidates.push((subteams[0].cx + subteams[subteams.length - 1].cx) / 2);
             }
             ln.cx = cxCandidates.length
                 ? cxCandidates.reduce((a, b) => a + b, 0) / cxCandidates.length

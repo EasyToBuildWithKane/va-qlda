@@ -267,10 +267,6 @@ watch(
         </button>
       </div>
     </div>
-
-    <p class="org-graph__hint">
-      Kéo để di chuyển · cuộn để phóng to · bấm thẻ nhóm để mở nhánh & thành viên · bấm nhân sự để xem chi tiết
-    </p>
   </div>
 </template>
 
@@ -475,11 +471,5 @@ watch(
     font-weight: 700;
     color: #64748b;
     font-variant-numeric: tabular-nums;
-}
-
-.org-graph__hint {
-    font-size: 11px;
-    color: #94a3b8;
-    text-align: center;
 }
 </style>

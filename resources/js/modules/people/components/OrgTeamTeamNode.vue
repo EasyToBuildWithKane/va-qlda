@@ -88,7 +88,7 @@ onBeforeUnmount(() => {
         v-if="node.level <= 2"
         class="org-team-node__level"
       >
-        {{ node.level === 1 ? 'Nhóm' : 'Nhóm con' }}
+        {{ node.level === 1 ? 'Cấp quản lý' : 'Đơn vị' }}
       </p>
       <h3 class="org-team-node__title">
         {{ node.name }}
@@ -158,7 +158,7 @@ onBeforeUnmount(() => {
             name="edit"
             :size="14"
           />
-          Sửa nhóm
+          Sửa
         </button>
         <button
           v-if="node.level < 2"
@@ -171,7 +171,7 @@ onBeforeUnmount(() => {
             name="plus"
             :size="14"
           />
-          Thêm nhóm con
+          Thêm đơn vị
         </button>
         <button
           v-if="node.can?.delete"
@@ -184,7 +184,7 @@ onBeforeUnmount(() => {
             name="delete"
             :size="14"
           />
-          Xoá nhóm
+          Xoá
         </button>
       </div>
     </div>

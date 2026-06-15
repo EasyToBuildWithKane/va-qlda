@@ -41,7 +41,7 @@ class OrgTeamResource extends JsonResource
     public static function levelLabel(int $level): string
     {
         return match ($level) {
-            1 => 'Cấu trúc',
+            1 => 'Cấp quản lý',
             2 => 'Đơn vị',
             default => "Tầng {$level}",
         };

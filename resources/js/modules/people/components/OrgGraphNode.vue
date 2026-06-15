@@ -14,7 +14,11 @@ const team = computed(() => props.node.team ?? null);
 
 const levelLabel = computed(() => {
     const lvl = team.value?.level ?? 1;
-    return lvl <= 1 ? 'Nhóm' : 'Nhóm con';
+    if (lvl <= 1) {
+        return 'Cấp quản lý';
+    }
+
+    return team.value?.level_label || 'Đơn vị';
 });
 
 const boxStyle = computed(() => ({
@@ -77,7 +81,7 @@ function onTeamPrimary() {
           Tổ chức
         </p>
         <p class="truncate font-display text-sm font-bold text-white">
-          {{ node.rootCount }} Nhóm · {{ node.peopleCount }} nhân sự
+          {{ node.rootCount }} cấu trúc · {{ node.peopleCount }} nhân sự
         </p>
       </div>
     </div>
@@ -180,21 +184,11 @@ function onTeamPrimary() {
       v-else-if="node.type === 'section'"
       class="org-node__section-inner"
     >
-      <p class="org-node__section-eyebrow">
-        Mảng
-      </p>
       <p
         class="org-node__section-title"
         :title="node.sectionTitle"
       >
         {{ node.sectionTitle }}
-      </p>
-      <p class="org-node__section-meta">
-        <AppIcon
-          name="members"
-          :size="11"
-        />
-        {{ node.peopleCount }} thành viên
       </p>
     </div>
 
