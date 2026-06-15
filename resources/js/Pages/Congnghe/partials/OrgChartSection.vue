@@ -27,7 +27,7 @@ const stats = computed(() => [
 <template>
   <section
     id="to-chuc"
-    class="relative border-t border-white/5 py-24"
+    class="relative py-28"
   >
     <div class="mx-auto max-w-7xl px-5 sm:px-8">
       <SectionHeading
@@ -45,7 +45,7 @@ const stats = computed(() => [
           <p class="font-display text-2xl font-bold text-white sm:text-3xl">
             {{ s.value }}
           </p>
-          <p class="mt-1 text-[12px] text-white/50">
+          <p class="mt-1 font-mono text-[10.5px] uppercase tracking-wider text-white/45">
             {{ s.label }}
           </p>
         </div>

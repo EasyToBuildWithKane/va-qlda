@@ -1,5 +1,6 @@
 <script setup>
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
+import { usePage } from '@inertiajs/vue3';
 import SectionHeading from './SectionHeading.vue';
 import GlassCard from './GlassCard.vue';
 import MagneticButton from './MagneticButton.vue';
@@ -8,6 +9,9 @@ import { tone } from './tones.js';
 defineProps({
     products: { type: Array, default: () => [] },
 });
+
+const page = usePage();
+const portal = computed(() => page.props.portal ?? { canEnterQlda: false, qldaHome: '/dashboard' });
 
 const scroller = ref(null);
 
@@ -115,7 +119,10 @@ function scrollBy(dir) {
         Chưa có sản phẩm nào được ghi nhận. Dữ liệu sẽ hiển thị khi có dự án vận hành.
       </p>
 
-      <div class="mt-8">
+      <div
+        v-if="portal.canEnterQlda"
+        class="mt-8"
+      >
         <MagneticButton
           href="/projects"
           inertia

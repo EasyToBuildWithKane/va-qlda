@@ -1,5 +1,6 @@
 <script setup>
 import SectionHeading from './SectionHeading.vue';
+import GlassCard from './GlassCard.vue';
 import { useInView } from './motion.js';
 
 const { target, shown } = useInView();
@@ -18,7 +19,7 @@ const values = [
   <section
     id="van-hoa"
     ref="target"
-    class="relative border-t border-white/5 py-24"
+    class="relative py-28"
   >
     <div class="mx-auto max-w-7xl px-5 sm:px-8">
       <SectionHeading
@@ -29,32 +30,37 @@ const values = [
       />
 
       <div class="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <article
+        <GlassCard
           v-for="(v, i) in values"
           :key="v.title"
-          class="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-6 transition-all duration-700 hover:border-brand/40"
-          :class="shown ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'"
+          tilt
+          :padded="false"
+          class="p-6 transition-all duration-700"
+          :class="shown ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'"
           :style="{ transitionDelay: `${i * 80}ms` }"
         >
-          <span class="grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br from-brand/80 to-[#ff4d8d]/80 text-white shadow-lg shadow-brand/20">
-            <svg
-              width="22"
-              height="22"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.8"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            ><path :d="v.icon" /></svg>
-          </span>
+          <div class="flex items-center justify-between">
+            <span class="grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br from-brand/80 to-[#ff4d8d]/80 text-white shadow-lg shadow-brand/20">
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              ><path :d="v.icon" /></svg>
+            </span>
+            <span class="font-mono text-[11px] uppercase tracking-wider text-white/25">0{{ i + 1 }}</span>
+          </div>
           <h3 class="mt-4 font-display text-base font-bold text-white">
             {{ v.title }}
           </h3>
           <p class="mt-2 text-sm leading-relaxed text-white/55">
             {{ v.body }}
           </p>
-        </article>
+        </GlassCard>
       </div>
     </div>
   </section>

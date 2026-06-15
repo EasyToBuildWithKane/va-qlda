@@ -1,10 +1,20 @@
 <script setup>
-import { Link } from '@inertiajs/vue3';
+import { computed } from 'vue';
+import { usePage } from '@inertiajs/vue3';
 import SectionHeading from './SectionHeading.vue';
+import GlassCard from './GlassCard.vue';
+import MagneticButton from './MagneticButton.vue';
+import CountStat from './CountStat.vue';
+import { useInView } from './motion.js';
 
 defineProps({
     metrics: { type: Object, default: () => ({}) },
 });
+
+const page = usePage();
+const portal = computed(() => page.props.portal ?? { canEnterQlda: false, qldaHome: '/dashboard' });
+
+const { target, shown } = useInView({ threshold: 0.2 });
 
 const initiatives = [
     {
@@ -28,23 +38,24 @@ const initiatives = [
 <template>
   <section
     id="ai-lab"
-    class="relative overflow-hidden border-t border-white/5 py-24"
+    ref="target"
+    class="relative overflow-hidden py-28"
   >
-    <div
-      class="pointer-events-none absolute right-0 top-0 h-[360px] w-[360px] rounded-full bg-brand/20 blur-[130px]"
-      aria-hidden="true"
-    />
     <div class="relative mx-auto max-w-7xl px-5 sm:px-8">
       <div class="grid gap-12 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
         <div>
           <SectionHeading
-            eyebrow="AI &amp; Innovation Lab"
+            eyebrow="AI · Innovation Lab"
             title="Đặt AI vào trung tâm vận hành"
             subtitle="Chúng tôi không chạy theo xu hướng — chúng tôi đưa AI vào những bài toán thật, tạo ra giá trị đo lường được mỗi ngày."
           />
 
-          <div class="mt-8 inline-flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.03] px-6 py-5">
-            <span class="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-brand to-[#ff4d8d] text-white shadow-lg shadow-brand/30">
+          <GlassCard
+            tilt
+            :padded="false"
+            class="mt-8 inline-flex items-center gap-4 px-6 py-5"
+          >
+            <span class="relative grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-brand to-[#ff4d8d] text-white shadow-lg shadow-brand/30">
               <svg
                 width="26"
                 height="26"
@@ -53,21 +64,30 @@ const initiatives = [
                 stroke="currentColor"
                 stroke-width="1.8"
               ><path d="M12 2a5 5 0 0 1 5 5v1a5 5 0 0 1-1 9H8a5 5 0 0 1-1-9V7a5 5 0 0 1 5-5Z" /><path d="M9 21h6" /></svg>
+              <span class="absolute inset-0 rounded-2xl ring-2 ring-brand/40 animate-cn-ping-ring" />
             </span>
             <div>
               <p class="font-display text-3xl font-extrabold text-white">
-                {{ metrics.aiAccounts ?? 0 }}
+                <CountStat
+                  :value="Number(metrics.aiAccounts ?? 0)"
+                  :active="shown"
+                />
               </p>
               <p class="text-[12.5px] text-white/55">
                 tài khoản AI đang được quản lý &amp; tối ưu chi phí
               </p>
             </div>
-          </div>
+          </GlassCard>
 
-          <div class="mt-6">
-            <Link
+          <div
+            v-if="portal.canEnterQlda"
+            class="mt-6"
+          >
+            <MagneticButton
               href="/ai-accounts/dashboard"
-              class="inline-flex items-center gap-2 text-sm font-semibold text-brand transition hover:text-[#ff4d8d]"
+              inertia
+              variant="ghost"
+              class="!px-5 !py-2.5 !text-[13px]"
             >
               Xem bảng điều khiển AI
               <svg
@@ -78,17 +98,21 @@ const initiatives = [
                 stroke="currentColor"
                 stroke-width="2"
               ><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-            </Link>
+            </MagneticButton>
           </div>
         </div>
 
         <div class="grid gap-4">
-          <article
-            v-for="item in initiatives"
+          <GlassCard
+            v-for="(item, i) in initiatives"
             :key="item.title"
-            class="flex items-start gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-6 transition hover:border-brand/40 hover:bg-white/[0.05]"
+            tilt
+            :padded="false"
+            class="flex items-start gap-4 p-6 transition-all duration-700"
+            :class="shown ? 'translate-x-0 opacity-100' : 'translate-x-6 opacity-0'"
+            :style="{ transitionDelay: `${i * 120}ms` }"
           >
-            <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/5 text-brand ring-1 ring-white/10">
+            <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/5 text-brand-300 ring-1 ring-white/10">
               <svg
                 width="22"
                 height="22"
@@ -108,7 +132,7 @@ const initiatives = [
                 {{ item.body }}
               </p>
             </div>
-          </article>
+          </GlassCard>
         </div>
       </div>
     </div>
