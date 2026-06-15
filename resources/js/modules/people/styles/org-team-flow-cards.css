@@ -23,7 +23,7 @@
 
 .org-chart-canvas .org-person-node {
     isolation: isolate;
-    animation: org-card-float 6s ease-in-out infinite;
+    animation: none;
 }
 
 .org-chart-canvas .org-tree__branch:nth-child(odd) .org-team-node,
@@ -119,33 +119,15 @@
 .org-chart-canvas .org-person-node {
     background: rgb(255 255 255 / 0.92);
     border-color: rgb(148 163 184 / 0.35);
-    box-shadow:
-        inset 3px 0 0 rgb(56 189 248 / 0.45),
-        0 6px 24px rgb(15 23 42 / 0.35);
+    box-shadow: 0 4px 16px rgb(15 23 42 / 0.22);
 }
 
 .org-chart-canvas .org-person-node--leader {
     border-color: rgb(251 113 133 / 0.4);
     box-shadow:
-        inset 3px 0 0 rgb(154 0 54 / 0.65),
-        0 0 20px rgb(154 0 54 / 0.15),
-        0 8px 28px rgb(15 23 42 / 0.4);
-    animation: org-card-float 5s ease-in-out infinite, org-leader-glow 3s ease-in-out infinite;
-}
-
-.org-chart-canvas .org-flow-node::before {
-    background: linear-gradient(
-        180deg,
-        rgb(56 189 248 / 0.85),
-        rgb(154 0 54 / 0.85),
-        rgb(167 139 250 / 0.75)
-    );
-    background-size: 100% 200%;
-    animation: org-accent-flow 2.5s ease-in-out infinite;
-}
-
-.org-chart-canvas .org-team-node__port--in {
-    animation: org-port-pulse 2s ease-in-out infinite;
+        0 0 16px rgb(154 0 54 / 0.12),
+        0 6px 24px rgb(15 23 42 / 0.28);
+    animation: none;
 }
 
 .org-chart-canvas .org-team-node__stat {
@@ -156,14 +138,6 @@
     animation: org-badge-glow 2.8s ease-in-out infinite;
 }
 
-.org-chart-canvas .org-tree__leader + .org-tree__members-section::before,
-.org-chart-canvas .org-tree__members-row--multi > .org-tree__members-item::before,
-.org-chart-canvas .org-tree__members-row--multi > .org-tree__members-item::after,
-.org-chart-canvas .org-tree__branch:has(> .org-tree__children) > .org-tree__children::before,
-.org-chart-canvas .org-tree__children > .org-tree__branch::before,
-.org-chart-canvas .org-tree__children > .org-tree__branch::after {
-    box-shadow: 0 0 8px rgb(56 189 248 / 0.22);
-}
 
 @keyframes org-card-float {
     0%,

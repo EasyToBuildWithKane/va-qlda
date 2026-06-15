@@ -28,6 +28,7 @@ defineProps({
         </h3>
         <span class="font-mono text-[11px] text-slate-400">{{ member.code }}</span>
         <Badge
+          v-if="member.seniority.value !== 'member'"
           :label="member.seniority.label"
           :color="member.seniority.color"
         />
@@ -44,6 +45,30 @@ defineProps({
           · {{ member.email }}
         </template>
       </p>
+      <div
+        v-if="member.projects_preview?.length"
+        class="mt-1.5 flex flex-wrap items-center gap-1"
+      >
+        <span
+          v-for="p in member.projects_preview.slice(0, 3)"
+          :key="p.id"
+          class="inline-flex max-w-[10rem] truncate rounded-md border px-1.5 py-0.5 text-[10px] font-medium"
+          :style="{
+            backgroundColor: `${p.color || '#9A0036'}14`,
+            color: p.color || '#9A0036',
+            borderColor: `${p.color || '#9A0036'}40`,
+          }"
+          :title="p.name"
+        >
+          {{ p.code || p.name }}
+        </span>
+        <span
+          v-if="member.projects_count > 3"
+          class="text-[10px] font-medium text-slate-400"
+        >
+          +{{ member.projects_count - 3 }}
+        </span>
+      </div>
       <div
         v-if="member.skills_preview?.length"
         class="mt-1.5 flex flex-wrap gap-1"
@@ -64,7 +89,7 @@ defineProps({
       </div>
     </div>
 
-    <div class="hidden shrink-0 flex-col items-end gap-1 text-right sm:flex">
+    <div class="flex shrink-0 flex-col items-end gap-1 text-right">
       <span class="inline-flex items-center gap-1 text-xs font-medium text-slate-600">
         <AppIcon
           name="projects"

@@ -63,6 +63,16 @@ class Employee extends Model
             ->withTimestamps();
     }
 
+    /**
+     * Limit a `projects()` relation query to active pivot rows (member profile parity).
+     *
+     * @param  \Illuminate\Database\Eloquent\Relations\BelongsToMany|\Illuminate\Database\Eloquent\Builder  $query
+     */
+    public static function applyActiveProjectPivotFilter($query): void
+    {
+        $query->where('project_member.is_active', true);
+    }
+
     public function assignedTasks(): HasMany
     {
         return $this->hasMany(Task::class, 'assignee_id');

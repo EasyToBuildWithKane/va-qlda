@@ -61,14 +61,14 @@
     height: 1.25rem;
 }
 
+.org-chart-canvas .org-tree__stack--flow {
+    gap: 0;
+}
+
 .org-chart-canvas .org-tree__connector--stem {
-    height: 1.5rem;
-    background: linear-gradient(
-        180deg,
-        rgb(226 232 240 / 0.95),
-        rgb(56 189 248 / 0.85)
-    );
-    box-shadow: 0 0 10px rgb(56 189 248 / 0.28);
+    height: 1.25rem;
+    background: var(--org-tree-line);
+    box-shadow: none;
 }
 
 /* (legacy) không dùng pseudo từ thẻ nhóm — connector trong template */
@@ -282,8 +282,22 @@
 }
 
 .org-tree__connector--to-children {
-    height: 1rem;
-    margin-top: 0.35rem;
+    height: 1.25rem;
+    margin-top: 0;
+}
+
+.org-chart-canvas .org-tree__branch:has(> .org-tree__children) {
+    gap: 0;
+}
+
+.org-chart-canvas .org-tree__connector--to-children {
+    height: 1.25rem;
+    margin: 0;
+    background: var(--org-tree-line);
+}
+
+.org-chart-canvas .org-tree__children {
+    margin-top: 0;
 }
 
 /* Cột dọc từ nhánh cha xuống bus ngang (fallback khi không có connector template) */
@@ -393,11 +407,12 @@
     }
 }
 
-/* Canvas: thẻ nhóm nhỏ (tiêu đề phụ), đường nối rõ, không float làm lệch connector */
+/* Canvas: thẻ nhóm nhỏ + đường nối org chart (orthogonal), không kiểu flow/port */
 .org-chart-canvas .org-tree {
-    --org-tree-line: rgb(226 232 240 / 0.92);
+    --org-tree-line: rgb(203 213 225 / 0.95);
     --org-tree-line-strong: rgb(248 250 252);
     --org-tree-line-width: 2px;
+    --org-child-drop: 1.5rem;
 }
 
 .org-chart-canvas .org-team-node {
@@ -447,39 +462,21 @@
 }
 
 .org-chart-canvas .org-team-node__port {
-    width: 6px;
-    height: 6px;
-    margin-left: -3px;
-    animation: none;
-}
-
-.org-chart-canvas .org-team-node__port--in {
-    top: -4px;
-}
-
-.org-chart-canvas .org-team-node__port--out {
-    bottom: -4px;
-    animation: none;
-}
-
-.org-chart-canvas .org-flow-node.org-team-node::before {
-    top: 0.35rem;
-    bottom: 0.35rem;
-    width: 2px;
-}
-
-.org-chart-canvas .org-team-node--l1::before {
-    width: 3px;
+    display: none;
 }
 
 .org-chart-canvas .org-tree__stack:has(.org-tree__people) .org-team-node::after {
     display: none;
 }
 
-/* Nút flow (team / person) — dùng trong scoped components */
-
+/* Thẻ node — không dùng viền trái làm “đường”; nối bằng .org-tree__connector + bus */
 .org-chart-canvas .org-flow-node {
     position: relative;
+}
+
+.org-chart-canvas .org-flow-node::before,
+.org-chart-canvas .org-flow-node::after {
+    display: none;
 }
 
 .org-chart-canvas .org-team-node:hover {
@@ -489,39 +486,29 @@
         0 8px 32px rgb(15 23 42 / 0.5);
 }
 
-.org-chart-canvas .org-flow-node::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0.65rem;
-    bottom: 0.65rem;
-    width: 3px;
-    border-radius: 0 4px 4px 0;
-    background: linear-gradient(180deg, rgb(14 165 233 / 0.5), rgb(154 0 54 / 0.65));
-    opacity: 0.85;
-}
-
-.org-chart-canvas .org-team-node--l1::before {
-    opacity: 1;
-    width: 4px;
-    top: 0.5rem;
-    bottom: 0.5rem;
-}
-
-.org-chart-canvas .org-person-node::before {
-    display: none;
-}
-
 .org-chart-canvas .org-person-node {
-    box-shadow:
-        inset 3px 0 0 rgb(148 163 184 / 0.35),
-        0 1px 3px rgb(15 23 42 / 0.05);
+    box-shadow: 0 1px 3px rgb(15 23 42 / 0.12);
 }
 
 .org-chart-canvas .org-person-node--leader {
-    box-shadow:
-        inset 3px 0 0 rgb(154 0 54 / 0.45),
-        0 2px 12px rgb(154 0 54 / 0.06);
+    box-shadow: 0 2px 12px rgb(154 0 54 / 0.12);
+}
+
+/* Điểm giao trên cạnh thẻ — khớp tâm đường dọc */
+.org-chart-canvas .org-team-node,
+.org-chart-canvas .org-person-node {
+    overflow: visible;
+}
+
+.org-chart-canvas .org-tree__connector,
+.org-chart-canvas .org-tree__members-row--multi > .org-tree__members-item::before,
+.org-chart-canvas .org-tree__members-row--multi > .org-tree__members-item::after,
+.org-chart-canvas .org-tree__children > .org-tree__branch::before,
+.org-chart-canvas .org-tree__children > .org-tree__branch::after,
+.org-chart-canvas .org-tree__leader + .org-tree__connector + .org-tree__members-section:has(.org-tree__members-row--multi)::before,
+.org-chart-canvas .org-tree__people:not(:has(.org-tree__leader)) > .org-tree__members-section::before {
+    background: var(--org-tree-line);
+    box-shadow: none;
 }
 
 @keyframes org-leader-glow {

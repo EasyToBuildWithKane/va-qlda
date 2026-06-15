@@ -35,6 +35,14 @@ class MemberCardResource extends JsonResource
             'skills_preview' => array_slice($skills, 0, 5),
             'skills_total' => count($skills),
             'projects_count' => (int) ($e->projects_count ?? 0),
+            'projects_preview' => $e->relationLoaded('projects')
+                ? $e->projects->map(fn ($p) => [
+                    'id' => $p->id,
+                    'name' => $p->name,
+                    'code' => $p->code,
+                    'color' => $p->color,
+                ])->values()->all()
+                : [],
         ];
     }
 }

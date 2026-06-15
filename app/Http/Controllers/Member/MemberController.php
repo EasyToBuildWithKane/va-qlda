@@ -31,8 +31,17 @@ class MemberController extends Controller
                 'email',
                 'is_active',
                 'skills',
+                'meta',
             ])
-            ->withCount('projects')
+            ->with([
+                'projects' => fn ($q) => $q
+                    ->tap(fn ($q) => Employee::applyActiveProjectPivotFilter($q))
+                    ->select('projects.id', 'projects.name', 'projects.code', 'projects.color')
+                    ->orderBy('projects.name'),
+            ])
+            ->withCount([
+                'projects as projects_count' => fn ($q) => Employee::applyActiveProjectPivotFilter($q),
+            ])
             ->orderBy('full_name');
 
         if ($search = trim((string) $request->query('q'))) {
@@ -40,7 +49,14 @@ class MemberController extends Controller
                 $q->where('full_name', 'like', "%{$search}%")
                     ->orWhere('code', 'like', "%{$search}%")
                     ->orWhere('role_title', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhereHas('projects', function ($pq) use ($search) {
+                        Employee::applyActiveProjectPivotFilter($pq);
+                        $pq->where(function ($pq2) use ($search) {
+                            $pq2->where('projects.name', 'like', "%{$search}%")
+                                ->orWhere('projects.code', 'like', "%{$search}%");
+                        });
+                    });
             });
         }
 
@@ -49,6 +65,13 @@ class MemberController extends Controller
             $query->where('is_active', true);
         } elseif ($status === 'inactive') {
             $query->where('is_active', false);
+        }
+
+        $projectScope = $request->query('project');
+        if ($projectScope === 'assigned') {
+            $query->whereHas('projects', fn ($q) => Employee::applyActiveProjectPivotFilter($q));
+        } elseif ($projectScope === 'unassigned') {
+            $query->whereDoesntHave('projects', fn ($q) => Employee::applyActiveProjectPivotFilter($q));
         }
 
         $perPage = $request->integer('per_page', 12);
@@ -60,13 +83,13 @@ class MemberController extends Controller
             'members' => MemberCardResource::collection(
                 $query->paginate($perPage)->withQueryString(),
             ),
-            'filters' => (object) $request->only(['q', 'status', 'per_page']),
+            'filters' => (object) $request->only(['q', 'status', 'project', 'per_page']),
             'summary' => $this->memberDirectorySummary(),
         ]);
     }
 
     /**
-     * @return array{total: int, active: int, inactive: int}
+     * @return array{total: int, active: int, inactive: int, on_project: int, no_project: int}
      */
     private function memberDirectorySummary(): array
     {
@@ -76,10 +99,21 @@ class MemberController extends Controller
             ->selectRaw('SUM(CASE WHEN is_active = 0 THEN 1 ELSE 0 END) as inactive')
             ->first();
 
+        $onProject = Employee::query()
+            ->whereHas('projects', fn ($q) => Employee::applyActiveProjectPivotFilter($q))
+            ->count();
+
+        $noProject = Employee::query()
+            ->where('is_active', true)
+            ->whereDoesntHave('projects', fn ($q) => Employee::applyActiveProjectPivotFilter($q))
+            ->count();
+
         return [
             'total' => (int) ($row->total ?? 0),
             'active' => (int) ($row->active ?? 0),
             'inactive' => (int) ($row->inactive ?? 0),
+            'on_project' => $onProject,
+            'no_project' => $noProject,
         ];
     }
 

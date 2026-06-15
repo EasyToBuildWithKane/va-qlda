@@ -199,10 +199,14 @@
     box-shadow: 0 0 12px rgb(56 189 248 / 0.08);
 }
 
-.org-chart-canvas__legend-arrow {
-    margin: 0 0.2rem;
-    color: rgb(56 189 248 / 0.9);
-    animation: org-canvas-arrow-blink 2s ease-in-out infinite;
+.org-chart-canvas__legend-line-v {
+    display: inline-block;
+    width: 2px;
+    height: 0.65rem;
+    margin: 0 0.35rem;
+    vertical-align: middle;
+    border-radius: 1px;
+    background: rgb(203 213 225 / 0.95);
 }
 
 .org-chart-canvas__status {
@@ -342,7 +346,6 @@
     .org-chart-canvas__scan--delayed,
     .org-chart-canvas__orb,
     .org-chart-canvas__eyebrow,
-    .org-chart-canvas__legend-arrow,
     .org-chart-canvas__status-dot {
         animation: none;
     }

@@ -18,6 +18,28 @@ class MemberProfileTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_member_directory_index_includes_active_project_memberships(): void
+    {
+        $employee = Employee::factory()->create(['full_name' => 'Nguyễn Văn Khoa']);
+        $project = Project::factory()->create(['name' => 'Dự án Alpha', 'code' => 'DA-ALPHA']);
+        $project->members()->attach($employee->id, [
+            'role' => 'developer',
+            'is_active' => true,
+            'joined_at' => now()->toDateString(),
+        ]);
+
+        $this->actingAs(SystemAccount::factory()->role(SystemRole::Member)->create(), 'system')
+            ->get('/members?q=Khoa')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Member/Index')
+                ->has('members.data', 1)
+                ->where('members.data.0.projects_count', 1)
+                ->where('members.data.0.projects_preview.0.code', 'DA-ALPHA')
+                ->has('summary.on_project')
+            );
+    }
+
     public function test_member_directory_index_is_available_to_authenticated_users(): void
     {
         Employee::factory()->count(2)->create();

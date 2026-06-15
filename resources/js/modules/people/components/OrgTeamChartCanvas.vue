@@ -50,16 +50,17 @@ defineProps({
         </p>
       </div>
       <p class="org-chart-canvas__legend">
-        Luồng: <span class="org-chart-canvas__legend-flow">Nhóm</span>
+        Đường nối:
+        <span class="org-chart-canvas__legend-flow">Nhóm</span>
         <span
-          class="org-chart-canvas__legend-arrow"
+          class="org-chart-canvas__legend-line-v"
           aria-hidden="true"
-        >→</span>
+        />
         <span class="org-chart-canvas__legend-flow">Trưởng nhóm</span>
         <span
-          class="org-chart-canvas__legend-arrow"
+          class="org-chart-canvas__legend-line-v"
           aria-hidden="true"
-        >→</span>
+        />
         <span class="org-chart-canvas__legend-flow">Thành viên</span>
       </p>
     </header>

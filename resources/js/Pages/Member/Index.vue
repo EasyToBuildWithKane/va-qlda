@@ -38,6 +38,7 @@ const toast = useToast();
 const filterForm = reactive({
     q: props.filters.q ?? '',
     status: props.filters.status ?? '',
+    project: props.filters.project ?? '',
 });
 
 const perPage = ref(Number(props.filters.per_page) || props.members.meta?.per_page || 12);
@@ -127,6 +128,13 @@ function applyFilters(resetPage = true) {
 
 function onKpiStatus(status) {
     filterForm.status = status || '';
+    filterForm.project = '';
+    applyFilters(true);
+}
+
+function onKpiProject(scope) {
+    filterForm.project = scope || '';
+    filterForm.status = '';
     applyFilters(true);
 }
 
@@ -221,7 +229,9 @@ const statusLabel = (active) => (active ? 'Đang hoạt động' : 'Ngừng ho�
     <MemberDirectorySummaryBar
       :summary="summary"
       :status-filter="filterForm.status"
+      :project-filter="filterForm.project"
       @filter-status="onKpiStatus"
+      @filter-project="onKpiProject"
     />
 
     <div class="card overflow-visible">
@@ -494,9 +504,14 @@ const statusLabel = (active) => (active ? 'Đang hoạt động' : 'Ngừng ho�
                 class="px-5 py-3.5"
               >
                 <Badge
+                  v-if="m.seniority.value !== 'member'"
                   :label="m.seniority.label"
                   :color="m.seniority.color"
                 />
+                <span
+                  v-else
+                  class="text-slate-400"
+                >—</span>
               </td>
               <td
                 v-if="isColVisible('skills')"
@@ -525,9 +540,29 @@ const statusLabel = (active) => (active ? 'Đang hoạt động' : 'Ngừng ho�
               </td>
               <td
                 v-if="isColVisible('projects')"
-                class="px-5 py-3.5 text-center tabular-nums text-slate-700"
+                class="max-w-[14rem] px-5 py-3.5 text-left"
               >
-                {{ m.projects_count }}
+                <div
+                  v-if="m.projects_preview?.length"
+                  class="flex flex-wrap gap-1"
+                >
+                  <span
+                    v-for="p in m.projects_preview.slice(0, 2)"
+                    :key="p.id"
+                    class="truncate rounded bg-slate-50 px-1.5 py-0.5 text-[10px] font-medium text-slate-600 ring-1 ring-slate-100"
+                    :title="p.name"
+                  >
+                    {{ p.code || p.name }}
+                  </span>
+                  <span
+                    v-if="m.projects_count > 2"
+                    class="text-[10px] tabular-nums text-slate-400"
+                  >+{{ m.projects_count - 2 }}</span>
+                </div>
+                <span
+                  v-else
+                  class="text-slate-400"
+                >—</span>
               </td>
               <td
                 v-if="isColVisible('status')"
