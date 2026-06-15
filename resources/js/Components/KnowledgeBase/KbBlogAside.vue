@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 import { Link } from '@inertiajs/vue3';
+import AppIcon from '@/Components/AppIcon.vue';
 
 const props = defineProps({
     sidebar: { type: Object, required: true },
