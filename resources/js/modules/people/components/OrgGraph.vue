@@ -176,7 +176,19 @@ watch(
         class="org-graph__canvas"
         :style="canvasStyle"
       >
+        <OrgGraphNode
+          v-for="(node, i) in graph.nodes"
+          :key="node.revealKey"
+          :node="node"
+          :index="i"
+          @toggle-members="toggleMembers"
+          @toggle-subteams="toggleSubteams"
+          @select-person="emit('select-person', $event)"
+          @select-leader="emit('select-leader', $event)"
+        />
+
         <svg
+          v-if="graph.edges.length"
           class="org-graph__edges"
           :width="graph.width"
           :height="graph.height"
@@ -206,21 +218,13 @@ watch(
             v-for="edge in graph.edges"
             :key="edge.id"
             class="org-graph__edge"
-            :class="{ 'org-graph__edge--dim': edge.inPath === false }"
+            :class="{
+              'org-graph__edge--dim': edge.inPath === false,
+              'org-graph__edge--section-member': edge.kind === 'section-member',
+            }"
             :d="edge.path"
           />
         </svg>
-
-        <OrgGraphNode
-          v-for="(node, i) in graph.nodes"
-          :key="node.revealKey"
-          :node="node"
-          :index="i"
-          @toggle-members="toggleMembers"
-          @toggle-subteams="toggleSubteams"
-          @select-person="emit('select-person', $event)"
-          @select-leader="emit('select-leader', $event)"
-        />
       </div>
 
       <!-- zoom controls -->
@@ -391,6 +395,7 @@ watch(
     position: absolute;
     top: 0;
     left: 0;
+    z-index: 2;
     overflow: visible;
     pointer-events: none;
 }
@@ -400,25 +405,34 @@ watch(
     stroke: url(#org-edge-grad);
     stroke-width: 2;
     stroke-linecap: round;
-    stroke-dasharray: 1400;
-    stroke-dashoffset: 1400;
-    animation: org-edge-draw 0.9s ease forwards 0.1s;
+    stroke-linejoin: round;
+    opacity: 0;
+    animation: org-edge-in 0.45s ease forwards;
+}
+
+.org-graph__edge--section-member {
+    stroke-width: 2.25;
+    stroke-opacity: 0.92;
 }
 
 .org-graph__edge--dim {
     opacity: 0.18;
+    animation: none;
 }
 
-@keyframes org-edge-draw {
+@keyframes org-edge-in {
+    from {
+        opacity: 0;
+    }
     to {
-        stroke-dashoffset: 0;
+        opacity: 1;
     }
 }
 
 @media (prefers-reduced-motion: reduce) {
     .org-graph__edge {
         animation: none;
-        stroke-dashoffset: 0;
+        opacity: 1;
     }
 }
 

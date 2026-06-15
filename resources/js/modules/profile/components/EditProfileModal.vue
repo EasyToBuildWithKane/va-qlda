@@ -26,17 +26,8 @@ const form = useForm({
     linkedin: socials.linkedin || '',
     portfolio: socials.portfolio || '',
     website: socials.website || '',
-    skills: (props.profile.skills?.groups || []).flatMap((g) =>
-        g.items.map((i) => ({ name: i.name, level: i.level ?? 3 })),
-    ),
     avatar: null,
 });
-
-const levels = [1, 2, 3, 4, 5];
-
-function addSkill() {
-    if (form.skills.length < 40) form.skills.push({ name: '', level: 3 });
-}
 
 // --- Avatar preview ---
 const avatarPreview = ref(null);
@@ -50,20 +41,15 @@ function onAvatarChange(e) {
 const previewSrc = computed(() => avatarPreview.value || props.profile.avatar_path);
 
 function submit() {
-    form
-        .transform((data) => ({
-            ...data,
-            skills: data.skills.filter((s) => s.name.trim() !== ''),
-        }))
-        .post('/profile', {
-            forceFormData: true,
-            preserveScroll: true,
-            onSuccess: () => {
-                form.reset('avatar');
-                avatarPreview.value = null;
-                emit('close');
-            },
-        });
+    form.post('/profile', {
+        forceFormData: true,
+        preserveScroll: true,
+        onSuccess: () => {
+            form.reset('avatar');
+            avatarPreview.value = null;
+            emit('close');
+        },
+    });
 }
 </script>
 
@@ -153,65 +139,6 @@ function submit() {
           :invalid="!!form.errors.location"
         />
       </FormField>
-
-      <!-- Skills with level -->
-      <div>
-        <div class="mb-2 flex items-center justify-between">
-          <label class="block text-sm font-medium text-slate-700">Kỹ năng & mức độ</label>
-          <button
-            type="button"
-            class="inline-flex items-center gap-1 text-[12.5px] font-medium text-brand hover:text-brand/80"
-            @click="addSkill"
-          >
-            <AppIcon
-              name="add"
-              :size="13"
-            /> Thêm kỹ năng
-          </button>
-        </div>
-        <div class="space-y-2">
-          <div
-            v-for="(s, i) in form.skills"
-            :key="i"
-            class="flex items-center gap-2"
-          >
-            <input
-              v-model="s.name"
-              type="text"
-              class="input flex-1"
-              placeholder="VD: Laravel"
-            >
-            <select
-              v-model.number="s.level"
-              class="input w-28 shrink-0"
-            >
-              <option
-                v-for="n in levels"
-                :key="n"
-                :value="n"
-              >
-                Cấp {{ n }}/5
-              </option>
-            </select>
-            <button
-              type="button"
-              class="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-500"
-              @click="form.skills.splice(i, 1)"
-            >
-              <AppIcon
-                name="delete"
-                :size="15"
-              />
-            </button>
-          </div>
-          <p
-            v-if="!form.skills.length"
-            class="text-[12.5px] text-slate-400"
-          >
-            Chưa có kỹ năng nào.
-          </p>
-        </div>
-      </div>
 
       <!-- Socials -->
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">

@@ -54,25 +54,44 @@ class ProfileController extends Controller
 
         $data = $request->validated();
 
+        // Partial-safe: only touch fields the request actually carries, so the
+        // identity editor and the skill-matrix editor never clobber each other.
+        $attributes = [];
         $meta = is_array($employee->meta) ? $employee->meta : [];
-        $meta['bio'] = $data['bio'] ?? null;
-        $meta['location'] = $data['location'] ?? null;
-        $meta['socials'] = array_filter([
-            'github' => $data['github'] ?? null,
-            'linkedin' => $data['linkedin'] ?? null,
-            'portfolio' => $data['portfolio'] ?? null,
-            'website' => $data['website'] ?? null,
-        ], fn ($v) => $v !== null && $v !== '');
+        $touchMeta = false;
 
-        $skills = array_values($data['skills'] ?? []);
-        [$skillNames, $meta['skill_details']] = $this->normalizeSkills($skills);
+        if ($request->has('phone')) {
+            $attributes['phone'] = $data['phone'] ?? null;
+        }
+        if ($request->has('role_title')) {
+            $attributes['role_title'] = $data['role_title'] ?? null;
+        }
+        if ($request->has('bio')) {
+            $meta['bio'] = $data['bio'] ?? null;
+            $touchMeta = true;
+        }
+        if ($request->has('location')) {
+            $meta['location'] = $data['location'] ?? null;
+            $touchMeta = true;
+        }
+        if ($request->hasAny(['github', 'linkedin', 'portfolio', 'website'])) {
+            $meta['socials'] = array_filter([
+                'github' => $data['github'] ?? null,
+                'linkedin' => $data['linkedin'] ?? null,
+                'portfolio' => $data['portfolio'] ?? null,
+                'website' => $data['website'] ?? null,
+            ], fn ($v) => $v !== null && $v !== '');
+            $touchMeta = true;
+        }
+        if ($request->has('skills')) {
+            [$skillNames, $meta['skill_details']] = $this->normalizeSkills(array_values($data['skills'] ?? []));
+            $attributes['skills'] = $skillNames;
+            $touchMeta = true;
+        }
 
-        $attributes = [
-            'phone' => $data['phone'] ?? null,
-            'role_title' => $data['role_title'] ?? null,
-            'skills' => $skillNames,
-            'meta' => $meta,
-        ];
+        if ($touchMeta) {
+            $attributes['meta'] = $meta;
+        }
 
         if ($request->hasFile('avatar')) {
             $old = $employee->avatar_path;
@@ -83,7 +102,9 @@ class ProfileController extends Controller
             }
         }
 
-        DB::transaction(fn () => $employee->update($attributes));
+        if ($attributes !== []) {
+            DB::transaction(fn () => $employee->update($attributes));
+        }
 
         return back()->with('success', 'Đã cập nhật hồ sơ.');
     }
@@ -107,6 +128,8 @@ class ProfileController extends Controller
                 'level' => (int) ($s['level'] ?? 3),
                 'category' => $s['category'] ?? SkillCatalog::categoryFor($name),
                 'years' => isset($s['years']) && $s['years'] !== '' ? (float) $s['years'] : null,
+                'certified' => ! empty($s['certified']),
+                'note' => isset($s['note']) && trim((string) $s['note']) !== '' ? trim((string) $s['note']) : null,
             ];
         }
 

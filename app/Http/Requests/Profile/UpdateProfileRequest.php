@@ -34,6 +34,8 @@ class UpdateProfileRequest extends FormRequest
             'skills.*.level' => ['nullable', 'integer', 'min:1', 'max:5'],
             'skills.*.category' => ['nullable', 'string', 'max:40'],
             'skills.*.years' => ['nullable', 'numeric', 'min:0', 'max:50'],
+            'skills.*.certified' => ['nullable', 'boolean'],
+            'skills.*.note' => ['nullable', 'string', 'max:200'],
             'avatar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
         ];
     }

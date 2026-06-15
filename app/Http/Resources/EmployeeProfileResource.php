@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use App\Http\Resources\Concerns\PresentsEntities;
 use App\Support\Enums\SystemRole;
+use App\Support\Profile\ProfileStats;
 use App\Support\Profile\Seniority;
 use App\Support\Profile\SkillCatalog;
 use App\Support\PublicMediaUrl;
@@ -55,6 +56,7 @@ class EmployeeProfileResource extends JsonResource
                 'website' => $socials['website'] ?? null,
             ],
             'skills' => SkillCatalog::build($e->skills, $meta['skill_details'] ?? null),
+            'stats' => ProfileStats::for($e),
             'teams' => $this->teams(),
             'manager' => $this->manager(),
             'current_projects' => $this->currentProjects(),
@@ -135,6 +137,7 @@ class EmployeeProfileResource extends JsonResource
                 'color' => $p->color,
                 'role' => $p->pivot->role ?? ($this->resource->id === $p->manager_id ? 'manager' : null),
                 'allocation' => $p->pivot->allocation ?? null,
+                'joined_at' => isset($p->pivot->joined_at) ? (string) $p->pivot->joined_at : null,
             ])
             ->values()
             ->all();

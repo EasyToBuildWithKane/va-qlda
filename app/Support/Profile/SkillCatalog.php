@@ -101,6 +101,7 @@ class SkillCatalog
                 'years' => null,
                 'certified' => false,
                 'projects' => null,
+                'note' => null,
             ];
         }
 
@@ -122,6 +123,7 @@ class SkillCatalog
                 'years' => isset($detail['years']) ? (float) $detail['years'] : null,
                 'certified' => (bool) ($detail['certified'] ?? false),
                 'projects' => isset($detail['projects']) ? (int) $detail['projects'] : null,
+                'note' => isset($detail['note']) && trim((string) $detail['note']) !== '' ? (string) $detail['note'] : null,
             ];
         }
 
@@ -149,6 +151,21 @@ class SkillCatalog
     public static function categoryFor(string $name): string
     {
         return self::categorize(Str::lower(trim($name)));
+    }
+
+    /**
+     * Ordered competency domains (key => label), for radar / gap analysis.
+     *
+     * @return array<string, string>
+     */
+    public static function categoryLabels(): array
+    {
+        $out = [];
+        foreach (self::CATEGORIES as $key => $def) {
+            $out[$key] = $def['label'];
+        }
+
+        return $out;
     }
 
     private static function categorize(string $lowerName): string

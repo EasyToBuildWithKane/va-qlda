@@ -271,12 +271,16 @@ function place(ln, leftX, top) {
             });
             const row2Span = cursor - leftX;
 
+            const restTop = sections.length
+                ? row2Top + NODE.section.h + V_GAP
+                : childTop;
+            let restCursor = leftX;
             rest.forEach((kid) => {
-                cursor += H_GAP;
-                cursor += place(kid, cursor, childTop);
+                restCursor += H_GAP;
+                restCursor += place(kid, restCursor, restTop);
             });
 
-            const span = Math.max(row1Span, row2Span, cursor - leftX);
+            const span = Math.max(row1Span, row2Span, restCursor - leftX);
             const cxCandidates = [];
             if (subteams.length) {
                 cxCandidates.push((subteams[0].cx + subteams[subteams.length - 1].cx) / 2);
@@ -378,13 +382,30 @@ function markMatches(ln, f, active) {
     return subtree;
 }
 
+function edgePath(x1, y1, x2, y2, kind) {
+    if (kind === 'section-member') {
+        const drop = Math.min(22, Math.max(10, (y2 - y1) * 0.28));
+        const midY = y1 + drop;
+        if (Math.abs(x1 - x2) < 1.5) {
+            return `M ${x1} ${y1} L ${x1} ${y2}`;
+        }
+
+        return `M ${x1} ${y1} L ${x1} ${midY} L ${x2} ${midY} L ${x2} ${y2}`;
+    }
+
+    const my = (y1 + y2) / 2;
+    return `M ${x1} ${y1} C ${x1} ${my} ${x2} ${my} ${x2} ${y2}`;
+}
+
 function flatten(ln, nodes, edges, parent) {
     nodes.push(ln);
     if (parent) {
+        const kind = parent.type === 'section' && ln.type === 'person' ? 'section-member' : 'default';
         edges.push({
             id: `${parent.id}__${ln.id}`,
             from: parent.id,
             to: ln.id,
+            kind,
             x1: parent.cx,
             y1: parent.y + parent.h,
             x2: ln.cx,
@@ -439,8 +460,7 @@ export function computeOrgGraph(trees, options = {}) {
     for (const e of edges) {
         e.x1 += dx;
         e.x2 += dx;
-        const my = (e.y1 + e.y2) / 2;
-        e.path = `M ${e.x1} ${e.y1} C ${e.x1} ${my} ${e.x2} ${my} ${e.x2} ${e.y2}`;
+        e.path = edgePath(e.x1, e.y1, e.x2, e.y2, e.kind);
     }
 
     const matchCount = hasFilter ? nodes.filter((n) => n.matched).length : 0;
