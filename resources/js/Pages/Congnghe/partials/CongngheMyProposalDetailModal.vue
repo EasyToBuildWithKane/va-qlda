@@ -1,13 +1,13 @@
 <script setup>
 import { computed, onBeforeUnmount, watch } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
-import Badge from '@/shared/ui/Badge.vue';
 import {
     acknowledgementStatus,
     attachmentCountText,
     departmentText,
     emailPcnStatus,
     PROPOSAL_EMPTY,
+    proposalStatusLabel,
     referenceCodeLabel,
     submitterEmailText,
     submitterNameText,
@@ -21,19 +21,9 @@ const props = defineProps({
 
 const emit = defineEmits(['close']);
 
-const STATUS_TONE = {
-    new: 'violet',
-    triaged: 'sky',
-    in_progress: 'amber',
-    done: 'emerald',
-    rejected: 'slate',
-};
-
-const statusValue = computed(() => props.proposal?.status?.value ?? props.proposal?.status ?? '');
-
-const statusLabel = computed(() => props.proposal?.status?.label ?? PROPOSAL_EMPTY.status);
-
 const attachments = computed(() => props.proposal?.attachments ?? []);
+
+const statusText = computed(() => proposalStatusLabel(props.proposal));
 
 const ack = computed(() => acknowledgementStatus(props.proposal));
 
@@ -224,21 +214,13 @@ onBeforeUnmount(() => {
                   <h3 class="text-xs font-semibold uppercase tracking-wide text-white/45">
                     Trạng thái xử lý
                   </h3>
-                  <div class="mt-3 flex flex-wrap gap-2">
-                    <Badge
-                      :tone="STATUS_TONE[statusValue] ?? 'slate'"
-                      size="sm"
-                    >
-                      {{ statusLabel }}
-                    </Badge>
-                    <Badge
-                      :tone="ack.tone"
-                      size="sm"
-                    >
-                      {{ ack.label }}
-                    </Badge>
-                  </div>
-                  <p class="mt-2 text-[11px] leading-snug text-white/45">
+                  <p class="mt-2 text-sm font-medium text-white/90">
+                    {{ statusText }}
+                  </p>
+                  <p class="mt-2 text-sm text-white/75">
+                    {{ ack.label }}
+                  </p>
+                  <p class="mt-1 text-[11px] leading-snug text-white/45">
                     {{ ack.detail }}
                   </p>
                 </section>
@@ -247,15 +229,10 @@ onBeforeUnmount(() => {
                   <h3 class="text-xs font-semibold uppercase tracking-wide text-white/45">
                     Email tới Phòng Công nghệ
                   </h3>
-                  <div class="mt-3">
-                    <Badge
-                      :tone="emailPcn.tone"
-                      size="sm"
-                    >
-                      {{ emailPcn.label }}
-                    </Badge>
-                  </div>
-                  <p class="mt-2 text-sm text-white/70">
+                  <p class="mt-2 text-sm font-medium text-white/90">
+                    {{ emailPcn.label }}
+                  </p>
+                  <p class="mt-1 text-sm text-white/60">
                     {{ emailPcn.detail }}
                   </p>
                 </section>

@@ -4,6 +4,10 @@ import SectionHeading from './SectionHeading.vue';
 import CountStat from './CountStat.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
 import CongngheOrgChart from './CongngheOrgChart.vue';
+import {
+    formatCongngheMemberRoleTitle,
+    shouldShowMemberSectionChip,
+} from './useCongngheOrgLayout.js';
 import { useInView } from './motion.js';
 
 const props = defineProps({
@@ -50,7 +54,7 @@ function onSelectPerson(person) {
         avatar: person.avatar,
         role_title: person.roleTitle,
         email: person.email,
-        section: person.sectionTitle,
+        section: person.isLeader ? null : (person.sectionTitle ?? null),
         team: person.teamName,
         is_active: person.isActive,
         is_leader: person.isLeader ?? false,
@@ -62,6 +66,22 @@ function close() {
 }
 
 const hasContact = computed(() => Boolean(activeMember.value?.email || activeMember.value?.phone));
+
+const activeMemberRoleDisplay = computed(() => {
+    const m = activeMember.value;
+    if (!m?.role_title) {
+        return null;
+    }
+    return formatCongngheMemberRoleTitle(m.role_title);
+});
+
+const showMemberSectionChip = computed(() => {
+    const m = activeMember.value;
+    if (!m) {
+        return false;
+    }
+    return shouldShowMemberSectionChip(m.section, Boolean(m.is_leader));
+});
 
 function onKey(e) {
     if (e.key === 'Escape') close();
@@ -208,6 +228,7 @@ onBeforeUnmount(() => {
                       :name="activeMember.name"
                       :src="activeMember.avatar"
                       :size="92"
+                      img-alt=""
                     />
                   </span>
                   <span
@@ -221,10 +242,10 @@ onBeforeUnmount(() => {
                   {{ activeMember.name }}
                 </h3>
                 <p
-                  v-if="activeMember.role_title"
+                  v-if="activeMemberRoleDisplay"
                   class="mt-1 text-sm text-white/60"
                 >
-                  {{ activeMember.role_title }}
+                  {{ activeMemberRoleDisplay }}
                 </p>
 
                 <div class="mt-3 flex flex-wrap items-center justify-center gap-2">
@@ -247,7 +268,7 @@ onBeforeUnmount(() => {
                     {{ activeMember.team }}
                   </span>
                   <span
-                    v-if="activeMember.section"
+                    v-if="showMemberSectionChip"
                     class="inline-flex items-center gap-1.5 rounded-full bg-white/5 px-2.5 py-1 text-[11px] font-medium text-white/65 ring-1 ring-inset ring-white/10"
                   >
                     {{ activeMember.section }}

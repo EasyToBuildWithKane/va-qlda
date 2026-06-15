@@ -5,7 +5,11 @@ const props = defineProps({
     name: { type: String, default: '' },
     src: { type: String, default: null },
     size: { type: Number, default: 32 },
+    /** null = dùng `name`; chuỗi rỗng = ảnh trang trí (không lặp tên khi ảnh lỗi) */
+    imgAlt: { type: String, default: null },
 });
+
+const imageAlt = computed(() => (props.imgAlt !== null ? props.imgAlt : props.name));
 
 const initials = computed(() => {
     const parts = (props.name || '?').trim().split(/\s+/);
@@ -39,7 +43,7 @@ const tone = computed(() => {
     <img
       v-if="src"
       :src="src"
-      :alt="name"
+      :alt="imageAlt"
       class="h-full w-full rounded-full object-cover"
     >
     <template v-else>{{ initials }}</template>

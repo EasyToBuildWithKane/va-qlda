@@ -89,6 +89,41 @@ export function shouldShowLeadershipCardLabel(branchTitle, sectionEyebrow) {
     return normalizeTitle(branch) !== normalizeTitle(eyebrow);
 }
 
+/**
+ * Chip nhóm/section trên modal — ẩn khi trùng badge «Quản lý» / nhãn lãnh đạo từ sơ đồ.
+ *
+ * @param {string|null|undefined} sectionTitle
+ * @param {boolean} isLeader
+ */
+export function shouldShowMemberSectionChip(sectionTitle, isLeader) {
+    const section = (sectionTitle ?? '').trim();
+    if (!section) {
+        return false;
+    }
+    if (isLeader && isCongngheLeadershipSection(section)) {
+        return false;
+    }
+
+    return true;
+}
+
+/** @param {string|null|undefined} roleTitle */
+export function formatCongngheMemberRoleTitle(roleTitle) {
+    const raw = (roleTitle ?? '').trim();
+    if (!raw) {
+        return null;
+    }
+    if (!raw.includes('_')) {
+        return raw;
+    }
+
+    return raw
+        .split('_')
+        .map((part) => part.trim())
+        .filter(Boolean)
+        .join(' · ');
+}
+
 /** @param {number|string|null|undefined} id */
 function employeeIdKey(id) {
     const n = Number(id);

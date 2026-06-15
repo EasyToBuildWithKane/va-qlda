@@ -7,7 +7,6 @@ import CongnghePageShell from './partials/CongnghePageShell.vue';
 import CongngheMyProposalsSummaryBar from './partials/CongngheMyProposalsSummaryBar.vue';
 import CongngheMyProposalDetailModal from './partials/CongngheMyProposalDetailModal.vue';
 import AppIcon from '@/Components/AppIcon.vue';
-import Badge from '@/shared/ui/Badge.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import DatagridToolbarActionButton from '@/shared/ui/DatagridToolbarActionButton.vue';
 import DatagridFilterField from '@/shared/ui/DatagridFilterField.vue';
@@ -20,6 +19,7 @@ import {
     attachmentCountText,
     departmentText,
     emailPcnStatus,
+    proposalStatusLabel,
     referenceCodeLabel,
     submitterEmailText,
     submitterNameText,
@@ -39,14 +39,6 @@ const FILTER_CONTROLS = [
     { key: 'acknowledged', label: 'Tiếp nhận', default: false },
     { key: 'has_attachments', label: 'File đính kèm', default: false },
 ];
-
-const STATUS_TONE = {
-    new: 'violet',
-    triaged: 'sky',
-    in_progress: 'amber',
-    done: 'emerald',
-    rejected: 'slate',
-};
 
 const props = defineProps({
     proposals: { type: Object, required: true },
@@ -476,30 +468,22 @@ function ackLabel(row) {
                 <td class="px-5 py-3 text-white/60">
                   {{ departmentLabel(row) }}
                 </td>
-                <td class="px-5 py-3">
-                  <Badge
-                    :tone="STATUS_TONE[row.status?.value] ?? 'slate'"
-                    size="sm"
-                  >
-                    {{ row.status?.label }}
-                  </Badge>
+                <td class="px-5 py-3 text-sm text-white/85">
+                  {{ proposalStatusLabel(row) }}
                 </td>
                 <td class="px-5 py-3">
-                  <Badge
-                    :tone="ackLabel(row).tone"
-                    size="sm"
-                  >
+                  <p class="text-sm text-white/85">
                     {{ ackLabel(row).label }}
-                  </Badge>
+                  </p>
+                  <p class="mt-0.5 text-[11px] leading-snug text-white/45">
+                    {{ ackLabel(row).detail }}
+                  </p>
                 </td>
                 <td class="px-5 py-3">
-                  <Badge
-                    :tone="emailPcnLabel(row).tone"
-                    size="sm"
-                  >
+                  <p class="text-sm text-white/85">
                     {{ emailPcnLabel(row).label }}
-                  </Badge>
-                  <p class="mt-1 text-[11px] leading-snug text-white/45">
+                  </p>
+                  <p class="mt-0.5 text-[11px] leading-snug text-white/45">
                     {{ emailPcnLabel(row).detail }}
                   </p>
                 </td>

@@ -84,6 +84,15 @@ export function attachmentCountText(count) {
 }
 
 /** @param {Record<string, unknown>|null|undefined} row */
+export function proposalStatusLabel(row) {
+    const label = row?.status?.label;
+    if (label != null && String(label).trim() !== '') {
+        return String(label).trim();
+    }
+    return PROPOSAL_EMPTY.status;
+}
+
+/** @param {Record<string, unknown>|null|undefined} row */
 export function acknowledgementStatus(row) {
     const status = row?.status?.value ?? row?.status;
     const ok = status != null && status !== '' && status !== 'new';

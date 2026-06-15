@@ -3,10 +3,10 @@ import { computed } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import CongnghePageShell from './partials/CongnghePageShell.vue';
 import AppIcon from '@/Components/AppIcon.vue';
-import Badge from '@/shared/ui/Badge.vue';
 import {
     acknowledgementStatus,
     emailPcnStatus,
+    proposalStatusLabel,
     referenceCodeLabel,
     submitterEmailText,
     submitterNameText,
@@ -18,17 +18,7 @@ const props = defineProps({
     proposal: { type: Object, required: true },
 });
 
-const STATUS_TONE = {
-    new: 'violet',
-    triaged: 'sky',
-    in_progress: 'amber',
-    done: 'emerald',
-    rejected: 'slate',
-};
-
 const attachments = computed(() => props.proposal.attachments ?? []);
-
-const statusValue = computed(() => props.proposal.status?.value ?? props.proposal.status);
 
 const ack = computed(() => acknowledgementStatus(props.proposal));
 
@@ -107,13 +97,8 @@ function formatSize(bytes) {
               <dt class="text-xs font-semibold uppercase tracking-wide text-white/45">
                 Trạng thái
               </dt>
-              <dd class="mt-1">
-                <Badge
-                  :tone="STATUS_TONE[statusValue] ?? 'slate'"
-                  size="sm"
-                >
-                  {{ proposal.status?.label }}
-                </Badge>
+              <dd class="mt-1 text-sm text-white/90">
+                {{ proposalStatusLabel(proposal) }}
               </dd>
             </div>
           </dl>
@@ -171,13 +156,8 @@ function formatSize(bytes) {
             <h2 class="font-semibold text-white">
               Tiếp nhận Phòng CN
             </h2>
-            <p class="mt-3">
-              <Badge
-                :tone="ack.tone"
-                size="sm"
-              >
-                {{ ack.label }}
-              </Badge>
+            <p class="mt-3 text-sm text-white/85">
+              {{ ack.label }}
             </p>
             <p class="mt-2 text-xs text-white/45">
               {{ ack.detail }}
@@ -188,13 +168,8 @@ function formatSize(bytes) {
             <h2 class="font-semibold text-white">
               Email hệ thống
             </h2>
-            <p class="mt-3">
-              <Badge
-                :tone="emailPcn.tone"
-                size="sm"
-              >
-                {{ emailPcn.label }}
-              </Badge>
+            <p class="mt-3 text-sm text-white/85">
+              {{ emailPcn.label }}
             </p>
             <p class="mt-2 text-sm text-white/60">
               {{ emailPcn.detail }}
