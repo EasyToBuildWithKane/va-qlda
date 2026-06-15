@@ -1,7 +1,9 @@
 <script setup>
 import SectionHeading from './SectionHeading.vue';
 import GlassCard from './GlassCard.vue';
+import CongngheMascotAnimated from './CongngheMascotAnimated.vue';
 import { useInView } from './motion.js';
+import { congngheBrand } from './congngheBrand.js';
 import CongngheBrandBackdrop from './CongngheBrandBackdrop.vue';
 
 const { target, shown } = useInView();
@@ -35,53 +37,89 @@ const pillars = [
   <section
     id="gioi-thieu"
     ref="target"
-    class="relative py-20"
+    class="relative scroll-mt-24 py-16 sm:scroll-mt-28 sm:py-20 md:py-24"
   >
     <CongngheBrandBackdrop
       variant="badge"
       align="left"
       opacity-class="opacity-[0.05]"
     />
-    <div class="relative mx-auto max-w-7xl px-5 sm:px-8">
-      <SectionHeading
-        eyebrow="Giới thiệu"
-        title="Kim chỉ nam cho mọi hoạt động"
-        subtitle="Đơn vị kiến tạo hạ tầng số, sản phẩm phần mềm và năng lực AI cho toàn bộ hệ thống Vietnam America Schools."
-      />
+    <div
+      class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand/40 to-transparent"
+      aria-hidden="true"
+    />
 
-      <div class="mt-14 grid gap-6 md:grid-cols-3">
-        <GlassCard
-          v-for="(p, i) in pillars"
-          :key="p.key"
-          tilt
-          :padded="false"
-          class="p-7 transition-all duration-700"
-          :class="shown ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'"
-          :style="{ transitionDelay: `${i * 120}ms` }"
+    <div class="relative mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
+      <div class="grid gap-10 lg:grid-cols-12 lg:items-start lg:gap-10 xl:gap-12">
+        <div
+          class="lg:col-span-5 xl:col-span-4"
+          :class="shown ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'"
+          style="transition: opacity 0.7s ease, transform 0.7s ease"
         >
-          <span class="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-brand-300">0{{ i + 1 }}</span>
-          <div class="mt-3 grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-brand to-[#ff4d8d] p-3 text-white shadow-lg shadow-brand/30">
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.7"
-              stroke-linejoin="round"
-            ><path :d="p.icon" /></svg>
+          <SectionHeading
+            eyebrow="Giới thiệu"
+            title="Kim chỉ nam cho mọi hoạt động"
+            subtitle="Đơn vị kiến tạo hạ tầng số, sản phẩm phần mềm và năng lực AI cho toàn bộ hệ thống Vietnam America Schools."
+          />
+
+          <div
+            class="mt-8 hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.06] to-brand/[0.08] p-5 backdrop-blur-md sm:block md:p-6 lg:mt-10"
+          >
+            <div class="flex flex-col items-center gap-4 sm:flex-row sm:items-center md:flex-col md:items-center lg:flex-row lg:items-center">
+              <CongngheMascotAnimated
+                :src="congngheBrand.mascotVaJacket"
+                alt="Linh vật VAS"
+                variant="inline"
+              />
+              <p class="text-center text-sm leading-relaxed text-white/60 sm:text-left md:text-center lg:text-left">
+                Trợ lý góc màn hình sẽ gợi ý theo từng mục bạn đang xem — thử cuộn trang hoặc bấm vào linh vật nhé.
+              </p>
+            </div>
           </div>
-          <p class="mt-5 font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-white/45">
-            {{ p.tag }}
-          </p>
-          <h3 class="mt-1.5 font-display text-lg font-bold text-white">
-            {{ p.title }}
-          </h3>
-          <p class="mt-3 text-sm leading-relaxed text-white/55">
-            {{ p.body }}
-          </p>
-        </GlassCard>
+        </div>
+
+        <div class="grid gap-5 sm:gap-6 md:grid-cols-2 lg:col-span-7 lg:grid-cols-1 xl:col-span-8 xl:grid-cols-3 xl:gap-6">
+          <GlassCard
+            v-for="(p, i) in pillars"
+            :key="p.key"
+            tilt
+            :padded="false"
+            class="p-6 transition-all duration-700 sm:p-7 md:col-span-2 md:last:col-span-2 xl:col-span-1 xl:last:col-span-1"
+            :class="shown ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'"
+            :style="{ transitionDelay: `${120 + i * 100}ms` }"
+          >
+            <span class="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-brand-300">0{{ i + 1 }}</span>
+            <div class="mt-3 grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-brand to-[#ff4d8d] p-3 text-white shadow-lg shadow-brand/30">
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.7"
+                stroke-linejoin="round"
+              ><path :d="p.icon" /></svg>
+            </div>
+            <p class="mt-5 font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-white/45">
+              {{ p.tag }}
+            </p>
+            <h3 class="mt-1.5 font-display text-lg font-bold text-white sm:text-xl">
+              {{ p.title }}
+            </h3>
+            <p class="mt-3 text-sm leading-relaxed text-white/55">
+              {{ p.body }}
+            </p>
+          </GlassCard>
+        </div>
       </div>
     </div>
   </section>
 </template>
+
+<style scoped>
+@media (prefers-reduced-motion: reduce) {
+    section [style*='transition'] {
+        transition: none !important;
+    }
+}
+</style>

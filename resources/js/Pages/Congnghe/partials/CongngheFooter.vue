@@ -1,8 +1,10 @@
 <script setup>
 import { congngheBrand } from './congngheBrand.js';
 import CongngheBrandImage from './CongngheBrandImage.vue';
+import CongngheMascotAnimated from './CongngheMascotAnimated.vue';
 
-const year = new Date().getFullYear();
+const colHeadingClass =
+    'min-h-[2.75rem] font-mono text-[11px] font-semibold uppercase leading-snug tracking-[0.18em] text-cyan-200/70';
 
 const cols = [
     {
@@ -36,14 +38,23 @@ const cols = [
     <div class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-cyan-400/30 via-brand to-violet-500/30" />
 
     <div class="relative mx-auto max-w-7xl px-5 py-8 sm:px-8 sm:py-10">
-      <div class="grid gap-8 lg:grid-cols-[1.5fr_1fr_1fr_minmax(140px,0.85fr)] lg:items-start lg:gap-8 xl:gap-10">
+      <div
+        class="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:items-start lg:gap-8 xl:gap-10"
+      >
         <!-- Brand -->
-        <div class="min-w-0 text-center lg:text-left">
-          <div class="flex flex-col items-center gap-3 sm:flex-row sm:items-start sm:justify-center lg:justify-start">
+        <div class="flex min-w-0 flex-col text-center sm:col-span-2 lg:col-span-1 lg:text-left">
+          <p
+            :class="colHeadingClass"
+            class="invisible select-none"
+            aria-hidden="true"
+          >
+            Khám phá
+          </p>
+          <div class="mt-4 flex flex-col items-center gap-3 sm:flex-row sm:items-start sm:justify-center lg:justify-start">
             <CongngheBrandImage
               :src="congngheBrand.logoVertical"
               alt="Vietnam America Schools"
-              class="h-16 w-auto sm:h-[4.5rem]"
+              class="h-14 w-auto shrink-0 sm:h-16"
               loading="lazy"
             />
             <div class="min-w-0">
@@ -87,9 +98,9 @@ const cols = [
         <div
           v-for="col in cols"
           :key="col.heading"
-          class="text-center lg:text-left"
+          class="flex min-w-0 flex-col text-center lg:text-left"
         >
-          <p class="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-200/70">
+          <p :class="colHeadingClass">
             {{ col.heading }}
           </p>
           <ul class="mt-4 space-y-2.5">
@@ -105,30 +116,37 @@ const cols = [
           </ul>
         </div>
 
-        <!-- Mascot bên phải -->
-        <div class="flex justify-center lg:justify-end">
-          <CongngheBrandImage
-            :src="congngheBrand.mascotHoodie"
-            alt="Linh vật VAS — Phòng Công Nghệ"
-            class="h-44 w-auto sm:h-52 lg:h-56 xl:h-64"
-            loading="lazy"
-          />
+        <!-- Mascot -->
+        <div class="flex min-w-0 flex-col items-center lg:items-end">
+          <p
+            class="min-h-[2.75rem] w-full select-none font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-transparent lg:text-right"
+            aria-hidden="true"
+          >
+            VAS
+          </p>
+          <div class="mt-4 flex w-full justify-center lg:justify-end">
+            <CongngheMascotAnimated
+              :src="congngheBrand.mascotHoodie"
+              alt="Linh vật VAS — Phòng Công Nghệ"
+              variant="footer"
+            />
+          </div>
         </div>
       </div>
 
-      <div class="mt-10 flex flex-col items-center justify-between gap-3 border-t border-white/15 pt-6 sm:flex-row">
+      <div class="mt-10 flex flex-col items-center justify-between gap-4 border-t border-white/15 pt-6 sm:flex-row sm:gap-6">
         <div class="flex flex-wrap items-center justify-center gap-3 sm:justify-start">
           <CongngheBrandImage
             :src="congngheBrand.badgeCircle"
             alt=""
-            class="h-9 w-9 opacity-90"
+            class="h-8 w-8 shrink-0 opacity-90"
             loading="lazy"
           />
-          <p class="text-center text-[12.5px] text-white/45 sm:text-left">
-            © {{ year }} Vietnam America Schools · Phòng Công Nghệ
+          <p class="max-w-xl text-center text-[12.5px] leading-relaxed text-white/50 sm:text-left">
+            Bản quyền thuộc về Phòng Công Nghệ — Hệ thống Trường Quốc tế Việt Mỹ
           </p>
         </div>
-        <p class="text-[12.5px] text-white/35">
+        <p class="shrink-0 text-center text-[12.5px] text-white/35 sm:text-right">
           Laravel · Vue · Inertia — nội bộ VAS
         </p>
       </div>

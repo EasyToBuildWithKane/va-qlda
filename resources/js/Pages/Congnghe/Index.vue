@@ -15,6 +15,7 @@ import AILabSection from './partials/AILabSection.vue';
 import CultureSection from './partials/CultureSection.vue';
 import RoadmapSection from './partials/RoadmapSection.vue';
 import CongngheFooter from './partials/CongngheFooter.vue';
+import CongngheMascotAssistant from './partials/CongngheMascotAssistant.vue';
 import CongngheProjectDetailModal from './partials/CongngheProjectDetailModal.vue';
 
 defineProps({
@@ -34,7 +35,7 @@ defineProps({
     <CursorGlow />
     <CongngheNavbar />
 
-    <main class="relative z-10">
+    <main class="relative z-10 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] sm:pb-8 lg:pb-0">
       <HeroSection :metrics="metrics" />
       <AboutSection />
       <ImpactMetrics :metrics="metrics" />
@@ -52,6 +53,7 @@ defineProps({
     </main>
 
     <CongngheFooter />
+    <CongngheMascotAssistant />
     <CongngheProjectDetailModal />
   </div>
 </template>

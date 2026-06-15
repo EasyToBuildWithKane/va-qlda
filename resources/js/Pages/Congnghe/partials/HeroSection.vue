@@ -5,7 +5,7 @@ import CountStat from './CountStat.vue';
 import { hasFinePointer, prefersReducedMotionNow } from './motion.js';
 import { congngheBrand } from './congngheBrand.js';
 import CongngheBrandBackdrop from './CongngheBrandBackdrop.vue';
-import CongngheBrandImage from './CongngheBrandImage.vue';
+import CongngheMascotAnimated from './CongngheMascotAnimated.vue';
 
 defineProps({
     metrics: { type: Object, default: () => ({}) },
@@ -42,7 +42,7 @@ const highlights = [
 <template>
   <section
     id="top"
-    class="relative flex min-h-screen flex-col justify-center overflow-hidden px-5 pb-16 pt-28 sm:px-8"
+    class="relative flex min-h-[100dvh] flex-col justify-center overflow-hidden px-4 pb-20 pt-24 sm:px-6 sm:pb-16 sm:pt-28 md:px-8 lg:min-h-screen lg:px-8 lg:pt-28"
   >
     <CongngheBrandBackdrop
       variant="dragon"
@@ -115,19 +115,12 @@ const highlights = [
         class="relative mx-auto flex w-full max-w-md items-center justify-center lg:max-w-none lg:justify-end"
         :style="layer(-6)"
       >
-        <div class="relative flex aspect-square w-full max-w-[min(100%,420px)] items-center justify-center lg:max-w-[480px] xl:max-w-[520px]">
-          <div class="absolute inset-0 rounded-full border border-cyan-400/15 animate-cn-spin-slow" />
-          <div class="absolute inset-[12%] rounded-full border border-white/10 [animation:cn-spin-slow_24s_linear_infinite_reverse]" />
-          <div class="absolute inset-[24%] rounded-full bg-[radial-gradient(circle,rgba(154,0,54,0.28),transparent_70%)] blur-lg" />
-          <CongngheBrandImage
-            :src="congngheBrand.mascotWave"
-            alt="Linh vật VAS — Phòng Công Nghệ"
-            class="relative z-10 h-[88%] w-auto drop-shadow-[0_20px_40px_rgba(154,0,54,0.35)] animate-cn-float"
-            width="520"
-            height="520"
-            :style="layer(10)"
-          />
-        </div>
+        <CongngheMascotAnimated
+          :src="congngheBrand.mascotWave"
+          alt="Linh vật VAS — Phòng Công Nghệ"
+          variant="hero"
+          :parallax-style="layer(10)"
+        />
       </div>
     </div>
 

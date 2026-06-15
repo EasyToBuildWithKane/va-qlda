@@ -84,6 +84,12 @@ export default {
                     '0%': { transform: 'scale(0.9)', opacity: '0.6' },
                     '80%,100%': { transform: 'scale(2.2)', opacity: '0' },
                 },
+                'cn-assistant-bob': {
+                    '0%,100%': { transform: 'translateY(0) rotate(-1deg)' },
+                    '25%': { transform: 'translateY(-6px) rotate(1deg)' },
+                    '50%': { transform: 'translateY(-10px) rotate(-0.5deg)' },
+                    '75%': { transform: 'translateY(-4px) rotate(1.5deg)' },
+                },
             },
             animation: {
                 'cn-aurora': 'cn-aurora 18s ease-in-out infinite',
@@ -95,6 +101,7 @@ export default {
                 'cn-shimmer': 'cn-shimmer 6s linear infinite',
                 'cn-grid-pan': 'cn-grid-pan 8s linear infinite',
                 'cn-ping-ring': 'cn-ping-ring 3s ease-out infinite',
+                'cn-assistant-bob': 'cn-assistant-bob 4.5s ease-in-out infinite',
             },
         },
     },

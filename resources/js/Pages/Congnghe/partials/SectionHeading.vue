@@ -16,7 +16,7 @@ defineProps({
       <span class="h-1.5 w-1.5 rounded-full bg-brand shadow-[0_0_8px_2px_rgba(255,77,141,0.6)]" />
       {{ eyebrow }}
     </p>
-    <h2 class="mt-5 font-display text-3xl font-extrabold leading-[1.1] tracking-tight text-white sm:text-4xl lg:text-[2.7rem]">
+    <h2 class="mt-5 font-display text-[1.65rem] font-extrabold leading-[1.12] tracking-tight text-white sm:text-4xl lg:text-[2.7rem]">
       {{ title }}
     </h2>
     <p

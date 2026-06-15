@@ -114,13 +114,13 @@ function toneOf(tone) {
   <section
     id="thanh-tuu"
     ref="target"
-    class="relative py-20"
+    class="relative scroll-mt-24 py-16 sm:scroll-mt-28 sm:py-20 md:py-24"
   >
     <div
       class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/30 to-transparent"
       aria-hidden="true"
     />
-    <div class="mx-auto max-w-7xl px-5 sm:px-8">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
       <div class="flex flex-wrap items-end justify-between gap-4">
         <SectionHeading
           eyebrow="Thành tựu nổi bật"

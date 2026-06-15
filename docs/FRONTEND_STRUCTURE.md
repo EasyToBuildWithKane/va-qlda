@@ -102,7 +102,7 @@ AppLayout.vue
 | Domain | Files |
 |---|---|
 | Auth | `Pages/Auth/Login.vue` |
-| Congnghe (landing `/congnghe`) | `Pages/Congnghe/Index.vue` + `partials/*` — **không** `AppLayout`; navbar/footer riêng; gallery dự án `CongngheProjectGallery.vue` (xem ảnh inline, không upload trên landing); modal `CongngheProjectDetailModal.vue` (chỉ xem); ảnh brand `public/images/congnghe/brand/` |
+| Congnghe (landing `/congnghe`) | `Pages/Congnghe/Index.vue` + `partials/*` — **không** `AppLayout`; navbar/footer riêng; trợ lý mascot `CongngheMascotAssistant.vue` + `CongngheMascotAnimated.vue`; gallery dự án `CongngheProjectGallery.vue` (xem ảnh inline, không upload trên landing); modal `CongngheProjectDetailModal.vue` (chỉ xem); ảnh brand `public/images/congnghe/brand/` |
 | Dashboard | `Pages/Dashboard/Index.vue` |
 | DailyReport | `Today`, `History`, `Show`, `Review` |
 | Project | `Index`, `Create`, `Edit`, `Show` |

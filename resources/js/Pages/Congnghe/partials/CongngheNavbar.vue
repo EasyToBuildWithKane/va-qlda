@@ -1,11 +1,15 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
-import { usePage } from '@inertiajs/vue3';
+import {
+    computed, onBeforeUnmount, onMounted, ref, watch,
+} from 'vue';
+import { Link, usePage } from '@inertiajs/vue3';
 import Avatar from '@/shared/ui/Avatar.vue';
 import { congngheBrand } from './congngheBrand.js';
 import CongngheBrandImage from './CongngheBrandImage.vue';
 
 const page = usePage();
+
+const portal = computed(() => page.props.portal ?? { canEnterQlda: false, qldaHome: '/dashboard' });
 
 const authUser = computed(() => page.props.auth?.user ?? null);
 const userName = computed(
@@ -37,9 +41,20 @@ const links = [
 const scrolled = ref(false);
 const open = ref(false);
 const activeId = ref('');
+const visibleSections = new Map();
 
 function onScroll() {
-    scrolled.value = window.scrollY > 16;
+    scrolled.value = window.scrollY > 12;
+}
+
+function closeMenu() {
+    open.value = false;
+}
+
+function onKeydown(e) {
+    if (e.key === 'Escape') {
+        closeMenu();
+    }
 }
 
 let spy = null;
@@ -47,112 +62,213 @@ let spy = null;
 onMounted(() => {
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('keydown', onKeydown);
 
     if (typeof IntersectionObserver !== 'undefined') {
         spy = new IntersectionObserver(
             (entries) => {
                 entries.forEach((e) => {
-                    if (e.isIntersecting) activeId.value = e.target.id;
+                    if (e.isIntersecting) {
+                        visibleSections.set(e.target.id, e.intersectionRatio);
+                    } else {
+                        visibleSections.delete(e.target.id);
+                    }
                 });
+
+                let bestId = '';
+                let bestRatio = 0;
+                visibleSections.forEach((ratio, id) => {
+                    if (ratio >= bestRatio) {
+                        bestRatio = ratio;
+                        bestId = id;
+                    }
+                });
+                if (bestId) {
+                    activeId.value = bestId;
+                }
             },
-            { rootMargin: '-45% 0px -50% 0px', threshold: 0 },
+            { rootMargin: '-42% 0px -48% 0px', threshold: [0, 0.15, 0.35, 0.55, 0.75] },
         );
         links.forEach((l) => {
             const el = document.getElementById(l.id);
-            if (el) spy.observe(el);
+            if (el) {
+                spy.observe(el);
+            }
         });
     }
 });
 
 onBeforeUnmount(() => {
     window.removeEventListener('scroll', onScroll);
+    window.removeEventListener('keydown', onKeydown);
     spy?.disconnect();
+    document.body.style.overflow = '';
 });
+
+watch(open, (isOpen) => {
+    document.body.style.overflow = isOpen ? 'hidden' : '';
+});
+
+const headerShellClass = computed(() => (
+    scrolled.value
+        ? 'border-white/10 bg-[#06070f]/95 shadow-[0_10px_40px_-16px_rgba(154,0,54,0.45)]'
+        : 'border-cyan-500/15 bg-[#070912]/78 shadow-[0_8px_32px_-12px_rgba(0,0,0,0.55)]'
+));
+
+const navPadClass = computed(() => (scrolled.value ? 'py-2' : 'py-2.5 sm:py-3'));
 </script>
 
 <template>
   <header
-    class="fixed inset-x-0 top-0 z-50 border-b border-cyan-500/15 bg-[#070912]/92 shadow-[0_8px_32px_-12px_rgba(0,0,0,0.65)] backdrop-blur-xl transition-shadow duration-300"
-    :class="scrolled && 'shadow-[0_12px_40px_-16px_rgba(154,0,54,0.35)]'"
+    class="fixed inset-x-0 top-0 z-50 border-b backdrop-blur-xl transition-[background-color,box-shadow,border-color,padding] duration-300"
+    :class="headerShellClass"
   >
     <div
-      class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-cyan-400/40 via-brand to-violet-500/40"
+      class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent"
       aria-hidden="true"
     />
     <div
-      class="pointer-events-none absolute inset-0 opacity-[0.35]"
+      class="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-cyan-500/10 via-brand/35 to-violet-500/10"
       aria-hidden="true"
-      style="background-image: linear-gradient(rgba(56,189,248,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(56,189,248,0.04) 1px, transparent 1px); background-size: 32px 32px;"
+    />
+    <div
+      class="pointer-events-none absolute inset-0 opacity-[0.28]"
+      aria-hidden="true"
+      style="background-image: linear-gradient(rgba(56,189,248,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(56,189,248,0.05) 1px, transparent 1px); background-size: 28px 28px;"
+    />
+    <div
+      class="pointer-events-none absolute inset-0 bg-gradient-to-b from-brand/[0.07] via-transparent to-transparent"
+      aria-hidden="true"
     />
 
-    <nav class="relative mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-2.5 sm:px-6">
+    <nav
+      class="relative mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:grid lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:items-center lg:gap-4"
+      :class="navPadClass"
+    >
+      <!-- Brand -->
       <a
         href="#top"
-        class="group flex min-w-0 items-center gap-2 sm:gap-2.5"
+        class="group flex min-w-0 items-center gap-2.5 lg:justify-self-start"
       >
-        <span class="relative shrink-0 transition group-hover:opacity-90">
-          <CongngheBrandImage
-            :src="congngheBrand.badgeCircle"
-            alt="Vietnam America Schools"
-            class="h-8 w-8 sm:h-9 sm:w-9"
-            width="36"
-            height="36"
-          />
-        </span>
-        <span class="hidden min-w-0 flex-col leading-tight sm:flex">
-          <span class="truncate font-display text-sm font-bold text-white">Phòng Công Nghệ</span>
-          <span class="font-mono text-[10px] tracking-wider text-cyan-200/50">VAS · TECH PORTAL</span>
+        <CongngheBrandImage
+          isolated-cutout
+          :src="congngheBrand.badgeCircle"
+          alt="Vietnam America Schools"
+          class="rounded-xl ring-1 ring-cyan-500/25 transition duration-300 group-hover:ring-brand/50"
+          :class="scrolled ? 'h-8 w-8 sm:h-8 sm:w-8' : 'h-9 w-9 sm:h-10 sm:w-10'"
+          width="40"
+          height="40"
+        />
+        <span class="min-w-0 flex flex-col leading-tight">
+          <span class="truncate font-display text-[13px] font-bold text-white sm:text-sm">
+            Phòng Công Nghệ
+          </span>
+          <span class="hidden font-mono text-[10px] tracking-[0.14em] text-cyan-200/45 sm:block">
+            VAS · TECH PORTAL
+          </span>
         </span>
       </a>
 
-      <div class="hidden items-center gap-0.5 rounded-full border border-white/10 bg-[#0c0e18]/80 p-1 lg:flex">
-        <a
-          v-for="link in links"
-          :key="link.href"
-          :href="link.href"
-          class="relative rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors"
-          :class="activeId === link.id ? 'text-white' : 'text-white/55 hover:text-white'"
+      <!-- Desktop nav — căn giữa -->
+      <div
+        class="hidden lg:flex lg:justify-center lg:justify-self-center"
+        role="navigation"
+        aria-label="Mục trang"
+      >
+        <div
+          class="flex items-center gap-0.5 rounded-full border border-white/10 bg-[#0a0c16]/90 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
         >
-          <span
-            v-if="activeId === link.id"
-            class="absolute inset-0 rounded-full bg-gradient-to-r from-brand/90 to-[#4a1030] ring-1 ring-cyan-400/20"
-          />
-          <span class="relative">{{ link.label }}</span>
-        </a>
+          <a
+            v-for="link in links"
+            :key="link.href"
+            :href="link.href"
+            class="relative rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50"
+            :class="activeId === link.id ? 'text-white' : 'text-white/55 hover:text-white/90'"
+            :aria-current="activeId === link.id ? 'true' : undefined"
+          >
+            <span
+              v-if="activeId === link.id"
+              class="absolute inset-0 rounded-full bg-gradient-to-r from-brand via-[#8f0030] to-[#4a1030] shadow-[0_4px_16px_-4px_rgba(154,0,54,0.65)] ring-1 ring-cyan-400/25"
+            />
+            <span class="relative">{{ link.label }}</span>
+          </a>
+        </div>
       </div>
 
-      <div class="flex shrink-0 items-center gap-2">
+      <!-- Actions -->
+      <div class="flex shrink-0 items-center justify-end gap-2 lg:justify-self-end">
+        <a
+          href="mailto:phongcongnghe@vaschools.edu.vn"
+          class="hidden h-9 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 text-xs font-medium text-white/70 transition hover:border-white/20 hover:bg-white/[0.08] hover:text-white xl:inline-flex"
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            aria-hidden="true"
+          >
+            <rect
+              x="3"
+              y="5"
+              width="18"
+              height="14"
+              rx="2"
+            />
+            <path d="m3 7 9 6 9-6" />
+          </svg>
+          Liên hệ
+        </a>
+
+        <Link
+          v-if="portal.canEnterQlda"
+          :href="portal.qldaHome"
+          class="hidden h-9 items-center gap-1.5 rounded-full bg-gradient-to-r from-brand via-[#b01848] to-[#ff4d8d] px-3.5 text-xs font-semibold text-white shadow-[0_8px_24px_-8px_rgba(255,77,141,0.55)] transition hover:brightness-110 sm:inline-flex"
+        >
+          Bảng điều khiển
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.2"
+            aria-hidden="true"
+          >
+            <path d="M5 12h14M13 6l6 6-6 6" />
+          </svg>
+        </Link>
+
         <div
           v-if="authUser"
-          class="hidden max-w-[220px] items-center gap-2.5 rounded-full border border-white/10 bg-white/[0.06] py-1 pl-1 pr-3 sm:flex"
+          class="hidden max-w-[200px] items-center gap-2 rounded-full border border-white/10 bg-white/[0.05] py-1 pl-1 pr-2.5 md:flex lg:max-w-[210px]"
         >
           <Avatar
             :name="userName"
             :src="userAvatar"
-            :size="32"
+            :size="30"
           />
           <div class="min-w-0 leading-tight">
-            <p class="truncate text-xs font-semibold text-white">
+            <p class="truncate text-[11px] font-semibold text-white">
               {{ userName }}
             </p>
             <p
-              v-if="userEmail"
-              class="truncate font-mono text-[10px] text-cyan-200/45"
-            >
-              {{ userEmail }}
-            </p>
-            <p
-              v-else-if="userRole"
-              class="font-mono text-[10px] text-white/40"
+              v-if="userRole"
+              class="truncate font-mono text-[9px] uppercase tracking-wide text-cyan-200/40"
             >
               {{ userRole }}
             </p>
           </div>
         </div>
+
         <button
           type="button"
-          class="grid h-9 w-9 place-items-center rounded-lg border border-white/10 bg-white/5 text-white/80 hover:bg-white/10 lg:hidden"
-          aria-label="Mở menu"
+          class="relative grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-white/[0.06] text-white/85 transition hover:bg-white/10 lg:hidden"
+          :aria-expanded="open"
+          aria-controls="congnghe-mobile-nav"
+          aria-label="Mở menu điều hướng"
           @click="open = !open"
         >
           <svg
@@ -163,31 +279,53 @@ onBeforeUnmount(() => {
             stroke="currentColor"
             stroke-width="2"
             stroke-linecap="round"
-          ><path :d="open ? 'M6 6l12 12M6 18L18 6' : 'M4 7h16M4 12h16M4 17h16'" /></svg>
+            aria-hidden="true"
+          >
+            <path :d="open ? 'M6 6l12 12M6 18L18 6' : 'M4 7h16M4 12h16M4 17h16'" />
+          </svg>
         </button>
       </div>
     </nav>
 
+    <!-- Mobile menu -->
+    <Teleport to="body">
+      <transition
+        enter-active-class="transition duration-200 ease-out"
+        enter-from-class="opacity-0"
+        leave-active-class="transition duration-150 ease-in"
+        leave-to-class="opacity-0"
+      >
+        <button
+          v-if="open"
+          type="button"
+          class="fixed inset-0 z-[45] bg-[#020308]/75 backdrop-blur-sm lg:hidden"
+          aria-label="Đóng menu"
+          @click="closeMenu"
+        />
+      </transition>
+    </Teleport>
+
     <transition
-      enter-active-class="transition duration-200"
-      enter-from-class="-translate-y-2 opacity-0"
-      leave-active-class="transition duration-150"
+      enter-active-class="transition duration-250 ease-out"
+      enter-from-class="-translate-y-3 opacity-0"
+      leave-active-class="transition duration-200 ease-in"
       leave-to-class="-translate-y-2 opacity-0"
     >
       <div
         v-if="open"
-        class="relative border-t border-white/10 bg-[#0a0b14]/98 px-4 py-3 backdrop-blur-xl lg:hidden"
+        id="congnghe-mobile-nav"
+        class="relative z-[46] border-t border-white/10 bg-[#080a12]/98 px-4 py-4 backdrop-blur-xl lg:hidden"
       >
         <div
           v-if="authUser"
-          class="mb-3 flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5"
+          class="mb-4 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3"
         >
           <Avatar
             :name="userName"
             :src="userAvatar"
-            :size="36"
+            :size="40"
           />
-          <div class="min-w-0">
+          <div class="min-w-0 flex-1">
             <p class="truncate text-sm font-semibold text-white">
               {{ userName }}
             </p>
@@ -196,14 +334,36 @@ onBeforeUnmount(() => {
             </p>
           </div>
         </div>
-        <div class="grid gap-1">
+
+        <div class="grid grid-cols-2 gap-2">
           <a
             v-for="link in links"
             :key="link.href"
             :href="link.href"
-            class="rounded-xl px-3 py-2.5 text-sm font-medium text-white/75 hover:bg-white/5 hover:text-white"
-            @click="open = false"
+            class="rounded-xl border px-3 py-2.5 text-sm font-medium transition"
+            :class="activeId === link.id
+              ? 'border-brand/50 bg-brand/20 text-white'
+              : 'border-white/10 bg-white/[0.03] text-white/75 hover:border-white/20 hover:bg-white/[0.06] hover:text-white'"
+            @click="closeMenu"
           >{{ link.label }}</a>
+        </div>
+
+        <div class="mt-4 flex flex-col gap-2 border-t border-white/10 pt-4">
+          <a
+            href="mailto:phongcongnghe@vaschools.edu.vn"
+            class="flex h-10 items-center justify-center gap-2 rounded-xl border border-white/10 text-sm font-medium text-white/80"
+            @click="closeMenu"
+          >
+            Liên hệ phòng
+          </a>
+          <Link
+            v-if="portal.canEnterQlda"
+            :href="portal.qldaHome"
+            class="flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand to-[#ff4d8d] text-sm font-semibold text-white"
+            @click="closeMenu"
+          >
+            Vào bảng điều khiển
+          </Link>
         </div>
       </div>
     </transition>
