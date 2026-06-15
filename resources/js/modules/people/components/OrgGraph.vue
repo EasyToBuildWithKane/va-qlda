@@ -17,6 +17,10 @@ const props = defineProps({
     readonlyMaxScale: { type: Number, default: 1.8 },
     /** Phóng to kích thước thẻ trong layout (landing). */
     layoutScale: { type: Number, default: 1 },
+    /** Zoom tối thiểu khi fit readonly (landing — tránh thu nhỏ quá). */
+    readonlyMinScale: { type: Number, default: 0 },
+    /** Thẻ & avatar lớn hơn (landing /congnghe). */
+    prominentCards: { type: Boolean, default: false },
     /** Readonly vẫn cho pan/zoom (landing mobile). */
     readonlyPan: { type: Boolean, default: false },
 });
@@ -136,6 +140,7 @@ function fit() {
     const narrow = typeof window !== 'undefined' && window.innerWidth < 640;
     vp.fitTo(graph.value.width, graph.value.height, {
         maxInitialScale: props.readonly ? props.readonlyMaxScale : 1,
+        minInitialScale: props.readonly ? props.readonlyMinScale : 0,
         padding: props.readonly ? (narrow ? 20 : 48) : 24,
     });
 }
@@ -179,7 +184,7 @@ watch(() => props.trees, () => {
 });
 
 watch(
-    () => [props.layoutScale, props.readonlyMaxScale],
+    () => [props.layoutScale, props.readonlyMaxScale, props.readonlyMinScale],
     () => nextTick(fit),
 );
 
@@ -272,6 +277,7 @@ watch(
           :node="node"
           :index="i"
           :readonly="readonly"
+          :prominent="prominentCards"
           @toggle-members="toggleMembers"
           @toggle-subteams="toggleSubteams"
           @select-person="emit('select-person', $event)"

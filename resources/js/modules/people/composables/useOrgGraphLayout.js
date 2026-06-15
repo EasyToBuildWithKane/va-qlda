@@ -541,7 +541,7 @@ function appendManagementUnitEdges(nodes, edges) {
  * @returns {{ nodes: object[], edges: object[], width: number, height: number, matchCount: number, hasFilter: boolean }}
  */
 export function computeOrgGraph(trees, options = {}) {
-    const layoutScale = Math.min(1.85, Math.max(1, Number(options.layoutScale) || 1));
+    const layoutScale = Math.min(2.25, Math.max(1, Number(options.layoutScale) || 1));
     __layoutScale = layoutScale;
 
     const expanded = options.expanded instanceof Set ? options.expanded : new Set(options.expanded ?? []);

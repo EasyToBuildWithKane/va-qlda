@@ -1,26 +1,80 @@
-import { onBeforeUnmount, onMounted, ref } from 'vue';
+import {
+    computed, onBeforeUnmount, onMounted, ref, unref, watch,
+} from 'vue';
 import { prefersReducedMotionNow } from './motion.js';
 
-const STORAGE_KEY = 'cn-assistant-bottom-px';
+const STORAGE_KEY = 'cn-assistant-pos-v2';
 const DRAG_THRESHOLD = 8;
+const NAV_TOP = 56;
+const EDGE_PAD = 8;
 
 /**
- * Vị trí dọc trợ lý (px từ đáy viewport) — mobile/tablet kéo thả, desktop cố định.
+ * Vị trí trợ lý (fixed left/top) — kéo thả tự do, lưu localStorage, ẩn/hiện.
  */
-export function useCongngheAssistantDock() {
-    const bottomPx = ref(16);
+export function useCongngheAssistantDock(asideRef) {
+    const posX = ref(0);
+    const posY = ref(0);
+    const positioned = ref(false);
     const isDragging = ref(false);
-    const dockEnabled = ref(false);
+    const hidden = ref(false);
 
     let pointer = null;
     let moved = false;
 
+    function widgetSize() {
+        const el = unref(asideRef);
+        if (el) {
+            const r = el.getBoundingClientRect();
+            if (r.width > 0 && r.height > 0) {
+                return { w: r.width, h: r.height };
+            }
+        }
+        return { w: 200, h: 168 };
+    }
+
+    function defaultPos() {
+        if (typeof window === 'undefined') {
+            return { x: EDGE_PAD, y: NAV_TOP + EDGE_PAD };
+        }
+        const { w, h } = widgetSize();
+        const safeR = 0;
+        const safeB = 0;
+        return {
+            x: window.innerWidth - w - Math.max(EDGE_PAD, safeR),
+            y: window.innerHeight - h - Math.max(EDGE_PAD, safeB),
+        };
+    }
+
+    function clampPos(x, y) {
+        if (typeof window === 'undefined') {
+            return { x, y };
+        }
+        const { w, h } = widgetSize();
+        return {
+            x: Math.min(window.innerWidth - w - EDGE_PAD, Math.max(EDGE_PAD, x)),
+            y: Math.min(window.innerHeight - h - EDGE_PAD, Math.max(NAV_TOP, y)),
+        };
+    }
+
+    function applyPos(x, y) {
+        const c = clampPos(x, y);
+        posX.value = c.x;
+        posY.value = c.y;
+        positioned.value = true;
+    }
+
     function readStored() {
         try {
             const raw = localStorage.getItem(STORAGE_KEY);
-            const n = Number(raw);
-            if (Number.isFinite(n) && n >= 0) {
-                bottomPx.value = n;
+            if (!raw) {
+                return;
+            }
+            const data = JSON.parse(raw);
+            if (data && typeof data === 'object') {
+                hidden.value = Boolean(data.hidden);
+                if (Number.isFinite(data.x) && Number.isFinite(data.y)) {
+                    applyPos(data.x, data.y);
+                }
             }
         } catch {
             /* ignore */
@@ -29,37 +83,44 @@ export function useCongngheAssistantDock() {
 
     function persist() {
         try {
-            localStorage.setItem(STORAGE_KEY, String(Math.round(bottomPx.value)));
+            localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                x: Math.round(posX.value),
+                y: Math.round(posY.value),
+                hidden: hidden.value,
+            }));
         } catch {
             /* ignore */
         }
     }
 
-    function clampBottom(value) {
-        if (typeof window === 'undefined') {
-            return value;
+    function ensurePosition() {
+        if (!positioned.value) {
+            const d = defaultPos();
+            applyPos(d.x, d.y);
+        } else {
+            applyPos(posX.value, posY.value);
         }
-        const safeBottom = 8;
-        const navClearance = 64;
-        const widgetApprox = 140;
-        const min = safeBottom;
-        const max = Math.max(min, window.innerHeight - navClearance - widgetApprox);
-        return Math.min(max, Math.max(min, value));
     }
 
-    function syncEnabled() {
-        dockEnabled.value = typeof window !== 'undefined'
-            && window.matchMedia('(max-width: 1023px)').matches;
+    function onResizeDock() {
+        ensurePosition();
+    }
+
+    function canDrag() {
+        return !prefersReducedMotionNow();
     }
 
     function onPointerDown(e) {
-        if (!dockEnabled.value || prefersReducedMotionNow()) {
+        if (!canDrag()) {
             return;
         }
+        ensurePosition();
         pointer = {
             id: e.pointerId,
+            startX: e.clientX,
             startY: e.clientY,
-            startBottom: bottomPx.value,
+            origX: posX.value,
+            origY: posY.value,
         };
         moved = false;
         e.currentTarget.setPointerCapture?.(e.pointerId);
@@ -69,13 +130,14 @@ export function useCongngheAssistantDock() {
         if (!pointer || e.pointerId !== pointer.id) {
             return;
         }
-        const dy = pointer.startY - e.clientY;
-        if (!moved && Math.abs(dy) < DRAG_THRESHOLD) {
+        const dx = e.clientX - pointer.startX;
+        const dy = e.clientY - pointer.startY;
+        if (!moved && Math.hypot(dx, dy) < DRAG_THRESHOLD) {
             return;
         }
         moved = true;
         isDragging.value = true;
-        bottomPx.value = clampBottom(pointer.startBottom + dy);
+        applyPos(pointer.origX + dx, pointer.origY + dy);
     }
 
     function finishPointer(e) {
@@ -93,15 +155,28 @@ export function useCongngheAssistantDock() {
         return wasDrag;
     }
 
-    function onResizeDock() {
-        syncEnabled();
-        bottomPx.value = clampBottom(bottomPx.value);
+    function hideAssistant() {
+        hidden.value = true;
+        persist();
+    }
+
+    function showAssistant() {
+        hidden.value = false;
+        persist();
+        nextTickEnsure();
+    }
+
+    function nextTickEnsure() {
+        if (typeof requestAnimationFrame !== 'undefined') {
+            requestAnimationFrame(() => ensurePosition());
+        } else {
+            ensurePosition();
+        }
     }
 
     onMounted(() => {
         readStored();
-        bottomPx.value = clampBottom(bottomPx.value);
-        syncEnabled();
+        nextTickEnsure();
         window.addEventListener('resize', onResizeDock, { passive: true });
     });
 
@@ -109,18 +184,35 @@ export function useCongngheAssistantDock() {
         window.removeEventListener('resize', onResizeDock);
     });
 
-    const dockStyle = () => ({
-        bottom: `max(${bottomPx.value}px, env(safe-area-inset-bottom, 0px))`,
+    watch(hidden, (isHidden) => {
+        if (!isHidden) {
+            nextTickEnsure();
+        }
+    });
+
+    const dockStyle = computed(() => {
+        if (!positioned.value && typeof window === 'undefined') {
+            return {};
+        }
+        return {
+            left: `${posX.value}px`,
+            top: `${posY.value}px`,
+            right: 'auto',
+            bottom: 'auto',
+        };
     });
 
     return {
-        bottomPx,
+        posX,
+        posY,
+        hidden,
         isDragging,
-        dockEnabled,
         dockStyle,
         onPointerDown,
         onPointerMove,
         finishPointer,
-        clampBottom,
+        hideAssistant,
+        showAssistant,
+        ensurePosition,
     };
 }

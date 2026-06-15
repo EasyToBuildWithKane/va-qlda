@@ -8,7 +8,12 @@ const props = defineProps({
     index: { type: Number, default: 0 },
     /** Khóa tương tác cấu trúc (không cho thu/mở nhánh); vẫn cho bấm xem chi tiết. */
     readonly: { type: Boolean, default: false },
+    /** Landing /congnghe — avatar & typography lớn hơn mặc định admin. */
+    prominent: { type: Boolean, default: false },
 });
+
+const teamAvatarSize = computed(() => (props.prominent ? 48 : 38));
+const personAvatarSize = computed(() => (props.prominent ? 44 : 36));
 
 const emit = defineEmits(['toggle-members', 'toggle-subteams', 'select-person', 'select-leader']);
 
@@ -65,6 +70,7 @@ function onTeamPrimary() {
       {
         'org-node--dim': dimmed,
         'org-node--match': matched,
+        'org-node--prominent': prominent,
       },
     ]"
     :style="boxStyle"
@@ -120,7 +126,7 @@ function onTeamPrimary() {
           <Avatar
             :name="team.leader.name"
             :src="team.leader.avatar_path"
-            :size="38"
+            :size="teamAvatarSize"
           />
           <span class="org-node__lead-badge">
             <AppIcon
@@ -214,7 +220,7 @@ function onTeamPrimary() {
         <Avatar
           :name="node.person.name"
           :src="node.person.avatar"
-          :size="36"
+          :size="personAvatarSize"
         />
         <div class="min-w-0 flex-1 text-left">
           <p class="org-node__title org-node__title--sm">
@@ -518,5 +524,40 @@ function onTeamPrimary() {
     font-size: 10.5px;
     font-weight: 600;
     color: #9a0036;
+}
+
+.org-node--prominent.org-node--team .org-node__surface,
+.org-node--prominent.org-node--person .org-node__person-inner {
+    padding: 0.95rem 1rem;
+}
+
+.org-node--prominent .org-node__eyebrow {
+    font-size: 11px;
+}
+
+.org-node--prominent .org-node__title {
+    font-size: 16px;
+}
+
+.org-node--prominent .org-node__title--sm {
+    font-size: 15px;
+}
+
+.org-node--prominent .org-node__subtitle {
+    font-size: 13.5px;
+    font-weight: 600;
+}
+
+.org-node--prominent .org-node__section-title {
+    font-size: 14px;
+}
+
+.org-node--prominent .org-node__chip {
+    font-size: 12.5px;
+}
+
+.org-node--prominent .org-node__avatar-fallback {
+    width: 48px;
+    height: 48px;
 }
 </style>

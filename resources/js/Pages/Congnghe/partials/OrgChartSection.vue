@@ -19,8 +19,9 @@ const graphFilter = { query: '', rootId: null, role: 'all', status: 'all' };
 
 const { target, shown: sectionVisible } = useInView({ threshold: 0.18 });
 
-const layoutScale = ref(1.72);
+const layoutScale = ref(2.05);
 const readonlyMaxScale = ref(3.25);
+const readonlyMinScale = ref(0.62);
 
 function syncGraphViewportPrefs() {
     if (typeof window === 'undefined') {
@@ -28,14 +29,17 @@ function syncGraphViewportPrefs() {
     }
     const w = window.innerWidth;
     if (w < 640) {
-        layoutScale.value = 1;
-        readonlyMaxScale.value = 1.35;
+        layoutScale.value = 1.15;
+        readonlyMaxScale.value = 1.45;
+        readonlyMinScale.value = 0.5;
     } else if (w < 1024) {
-        layoutScale.value = 1.38;
-        readonlyMaxScale.value = 2.1;
-    } else {
         layoutScale.value = 1.72;
+        readonlyMaxScale.value = 2.25;
+        readonlyMinScale.value = 0.56;
+    } else {
+        layoutScale.value = 2.05;
         readonlyMaxScale.value = 3.25;
+        readonlyMinScale.value = 0.62;
     }
 }
 
@@ -195,8 +199,10 @@ watch(activeMember, (m) => {
             initial-expand-all
             readonly
             readonly-pan
+            prominent-cards
             :layout-scale="layoutScale"
             :readonly-max-scale="readonlyMaxScale"
+            :readonly-min-scale="readonlyMinScale"
             @select-person="onSelectPerson"
             @select-leader="onSelectLeader"
           />
@@ -429,45 +435,47 @@ watch(activeMember, (m) => {
 }
 
 .congnghe-org-graph--large :deep(.org-node__title) {
-    font-size: 19px;
-    line-height: 1.25;
+    font-size: 24px;
+    line-height: 1.22;
 }
 
 .congnghe-org-graph--large :deep(.org-node__title--sm) {
-    font-size: 17px;
+    font-size: 21px;
 }
 
 .congnghe-org-graph--large :deep(.org-node__subtitle) {
-    font-size: 15px;
+    font-size: 18px;
+    font-weight: 600;
     line-height: 1.35;
+    color: #334155;
 }
 
 .congnghe-org-graph--large :deep(.org-node__eyebrow) {
-    font-size: 12px;
+    font-size: 13px;
 }
 
 .congnghe-org-graph--large :deep(.org-node__section-title) {
-    font-size: 17px;
+    font-size: 19px;
 }
 
 .congnghe-org-graph--large :deep(.org-node__section-eyebrow) {
-    font-size: 11.5px;
+    font-size: 12px;
 }
 
 .congnghe-org-graph--large :deep(.org-node__chip),
 .congnghe-org-graph--large :deep(.org-node__section-meta) {
-    font-size: 14px;
+    font-size: 15px;
 }
 
 .congnghe-org-graph--large :deep(.org-node__toggle) {
-    font-size: 13px;
-    padding: 0.35rem 0.55rem;
+    font-size: 14px;
+    padding: 0.4rem 0.6rem;
 }
 
 .congnghe-org-graph--large :deep(.org-node--team .org-node__surface),
 .congnghe-org-graph--large :deep(.org-node--person .org-node__person-inner) {
-    padding: 1.1rem 1.2rem;
-    border-radius: 18px;
+    padding: 1.35rem 1.45rem;
+    border-radius: 20px;
 }
 
 .congnghe-org-graph--large :deep(.org-node__hub-icon) {
@@ -495,24 +503,26 @@ watch(activeMember, (m) => {
 
 .congnghe-org-graph--large :deep(.org-node__avatar-btn),
 .congnghe-org-graph--large :deep(.org-node__avatar-fallback) {
-    width: 46px;
-    height: 46px;
+    width: 54px;
+    height: 54px;
 }
 
 .congnghe-org-graph--large :deep(.org-node__avatar-btn > *) {
-    width: 46px !important;
-    height: 46px !important;
-    min-width: 46px;
-    min-height: 46px;
+    width: 54px !important;
+    height: 54px !important;
+    min-width: 54px;
+    min-height: 54px;
+    font-size: 20px !important;
 }
 
 .congnghe-org-graph--large :deep(.org-node__lead-badge) {
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
 }
 
-.congnghe-org-graph--large :deep(.org-node--team .flex.items-start) {
-    gap: 0.75rem;
+.congnghe-org-graph--large :deep(.org-node--team .flex.items-start),
+.congnghe-org-graph--large :deep(.org-node--person .flex.items-center) {
+    gap: 0.875rem;
 }
 
 .congnghe-org-graph :deep(.org-graph__viewport) {

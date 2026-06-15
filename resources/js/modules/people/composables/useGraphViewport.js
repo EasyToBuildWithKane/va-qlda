@@ -80,16 +80,20 @@ export function useGraphViewport({ minScale = 0.3, maxScale = 2 } = {}) {
         window.removeEventListener('pointerup', onPointerUp);
     }
 
-    /** Fit the whole content into the viewport (never upscales past 1×). */
-    function fitTo(contentW, contentH, { maxInitialScale = 1, padding = 0 } = {}) {
+    /** Fit content into the viewport; optional min scale (landing — chữ/thẻ lớn hơn, pan khi tràn). */
+    function fitTo(contentW, contentH, { maxInitialScale = 1, minInitialScale = 0, padding = 0 } = {}) {
         content = { w: contentW, h: contentH };
         const { w, h } = vpSize();
         if (!contentW || !contentH || !w || !h) return;
-        const s = clamp(Math.min(
+        let s = Math.min(
             (w - padding) / contentW,
             (h - padding) / contentH,
             maxInitialScale,
-        ));
+        );
+        if (minInitialScale > 0) {
+            s = Math.max(s, minInitialScale);
+        }
+        s = clamp(s);
         scale.value = s;
         tx.value = (w - contentW * s) / 2;
         ty.value = (h - contentH * s) / 2;

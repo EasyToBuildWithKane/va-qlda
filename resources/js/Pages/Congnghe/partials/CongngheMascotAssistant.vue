@@ -12,6 +12,7 @@ const { activeId } = useCongngheSectionSpy();
 
 const expanded = ref(true);
 const tipIndex = ref(0);
+const asideRef = ref(null);
 let idleTimer = null;
 
 const sectionTips = {
@@ -140,26 +141,21 @@ function toggle() {
 const bubbleVisible = computed(() => expanded.value);
 
 const {
+    hidden,
     isDragging,
-    dockEnabled,
     dockStyle,
     onPointerDown,
     onPointerMove,
     finishPointer,
-} = useCongngheAssistantDock();
+    hideAssistant,
+    showAssistant,
+} = useCongngheAssistantDock(asideRef);
 
-const asideStyle = computed(() => {
-    if (dockEnabled.value) {
-        return dockStyle();
-    }
-    return {};
-});
-
-function onFabPointerDown(e) {
+function onDragPointerDown(e) {
     onPointerDown(e);
 }
 
-function onFabPointerMove(e) {
+function onDragPointerMove(e) {
     onPointerMove(e);
 }
 
@@ -170,18 +166,32 @@ function onFabPointerUp(e) {
     }
 }
 
-function onFabClick() {
-    if (!dockEnabled.value) {
-        toggle();
-    }
+function onHideClick() {
+    expanded.value = false;
+    hideAssistant();
 }
 </script>
 
 <template>
+  <!-- Tab mở lại khi đã ẩn -->
+  <button
+    v-if="hidden"
+    type="button"
+    class="fixed z-[45] flex items-center gap-1.5 rounded-full border border-white/15 bg-[#0c0e18]/90 px-3 py-2 text-xs font-semibold text-white/85 shadow-lg backdrop-blur-md transition hover:border-brand/40 hover:text-white"
+    style="right: max(0.75rem, env(safe-area-inset-right)); bottom: max(0.75rem, env(safe-area-inset-bottom));"
+    aria-label="Hiện trợ lý VAS"
+    @click="showAssistant"
+  >
+    <span class="h-2 w-2 rounded-full bg-brand shadow-[0_0_8px_rgba(255,77,141,0.8)]" />
+    Trợ lý VAS
+  </button>
+
   <aside
-    class="cn-assistant fixed z-[45] flex max-w-[min(100vw-1rem,20rem)] flex-col items-end gap-2 pointer-events-none lg:max-w-none"
+    v-else
+    ref="asideRef"
+    class="cn-assistant fixed z-[45] flex w-max max-w-[min(calc(100vw-1rem),20rem)] flex-col items-end gap-2 pointer-events-none sm:max-w-[22rem]"
     :class="{ 'cn-assistant--dragging': isDragging }"
-    :style="asideStyle"
+    :style="dockStyle"
     aria-live="polite"
     aria-label="Trợ lý ảo Phòng Công Nghệ"
   >
@@ -193,15 +203,32 @@ function onFabClick() {
     >
       <div
         v-if="bubbleVisible"
-        class="pointer-events-auto cn-assistant-bubble relative max-w-[min(calc(100vw-2.5rem),17rem)] rounded-2xl border border-white/15 bg-[#0c0e18]/95 px-3 py-2.5 shadow-[0_16px_48px_-12px_rgba(154,0,54,0.45)] backdrop-blur-xl sm:max-w-[20rem] sm:px-3.5 sm:py-3 md:max-w-[22rem]"
+        class="pointer-events-auto cn-assistant-bubble relative max-w-[min(calc(100vw-2.5rem),17rem)] rounded-2xl border border-white/15 bg-[#0c0e18]/95 px-3 py-2.5 shadow-[0_16px_48px_-12px_rgba(154,0,54,0.45)] backdrop-blur-xl sm:max-w-[20rem] sm:px-3.5 sm:py-3"
       >
         <span
           class="absolute -bottom-1.5 right-8 h-3 w-3 rotate-45 border-b border-r border-white/15 bg-[#0c0e18]/95"
           aria-hidden="true"
         />
-        <p class="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/60">
-          Trợ lý VAS
-        </p>
+        <div class="flex items-start justify-between gap-2">
+          <p class="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/60">
+            Trợ lý VAS
+          </p>
+          <button
+            type="button"
+            class="grid h-6 w-6 shrink-0 place-items-center rounded-md text-white/45 transition hover:bg-white/10 hover:text-white"
+            aria-label="Ẩn trợ lý"
+            @click="onHideClick"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            ><path d="M18 6 6 18M6 6l12 12" /></svg>
+          </button>
+        </div>
         <p
           :key="`${activeId}-${tipIndex}`"
           class="mt-1 max-h-[40vh] overflow-y-auto text-[12.5px] leading-snug text-white/90 sm:mt-1.5 sm:max-h-none sm:text-sm"
@@ -225,40 +252,66 @@ function onFabClick() {
     </transition>
 
     <div
-      class="pointer-events-auto flex items-center gap-1 sm:gap-1.5"
-      :class="dockEnabled ? 'cn-assistant-fab-row--dock' : ''"
+      class="pointer-events-auto cn-assistant-fab-row flex items-center gap-1 sm:gap-1.5"
     >
       <button
-        v-if="dockEnabled"
         type="button"
-        class="cn-assistant-grip grid h-10 w-7 shrink-0 touch-none items-center justify-center rounded-l-xl border border-white/10 border-r-0 bg-[#0c0e18]/75 text-white/40 backdrop-blur-md active:bg-white/10"
-        aria-label="Kéo trợ lý lên hoặc xuống"
-        @pointerdown="onFabPointerDown"
-        @pointermove="onFabPointerMove"
+        class="cn-assistant-grip grid h-10 w-8 shrink-0 touch-none cursor-grab items-center justify-center rounded-l-xl border border-white/10 border-r-0 bg-[#0c0e18]/75 text-white/40 backdrop-blur-md active:cursor-grabbing active:bg-white/10"
+        aria-label="Kéo trợ lý đến vị trí bất kỳ"
+        @pointerdown="onDragPointerDown"
+        @pointermove="onDragPointerMove"
         @pointerup="onFabPointerUp"
         @pointercancel="onFabPointerUp"
       >
-        <span
-          class="flex flex-col gap-0.5"
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="currentColor"
           aria-hidden="true"
         >
-          <span class="h-0.5 w-3 rounded-full bg-current opacity-70" />
-          <span class="h-0.5 w-3 rounded-full bg-current opacity-70" />
-          <span class="h-0.5 w-3 rounded-full bg-current opacity-70" />
-        </span>
+          <circle
+            cx="9"
+            cy="6"
+            r="1.5"
+          />
+          <circle
+            cx="15"
+            cy="6"
+            r="1.5"
+          />
+          <circle
+            cx="9"
+            cy="12"
+            r="1.5"
+          />
+          <circle
+            cx="15"
+            cy="12"
+            r="1.5"
+          />
+          <circle
+            cx="9"
+            cy="18"
+            r="1.5"
+          />
+          <circle
+            cx="15"
+            cy="18"
+            r="1.5"
+          />
+        </svg>
       </button>
 
       <button
         type="button"
-        class="cn-assistant-fab group relative overflow-visible border-0 bg-transparent p-0 shadow-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#05060c]"
-        :class="dockEnabled ? 'touch-none' : ''"
+        class="cn-assistant-fab group relative touch-none overflow-visible border-0 bg-transparent p-0 shadow-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#05060c]"
         :aria-expanded="expanded"
         :aria-label="expanded ? 'Thu gọn trợ lý' : 'Mở trợ lý VAS'"
-        @click="onFabClick"
-        @pointerdown="dockEnabled ? onFabPointerDown($event) : undefined"
-        @pointermove="dockEnabled ? onFabPointerMove($event) : undefined"
-        @pointerup="dockEnabled ? onFabPointerUp($event) : undefined"
-        @pointercancel="dockEnabled ? onFabPointerUp($event) : undefined"
+        @pointerdown="onDragPointerDown"
+        @pointermove="onDragPointerMove"
+        @pointerup="onFabPointerUp"
+        @pointercancel="onFabPointerUp"
       >
         <CongngheMascotAnimated
           :src="mascotSrc"
@@ -272,38 +325,40 @@ function onFabClick() {
           {{ expanded ? '−' : '?' }}
         </span>
       </button>
+
+      <button
+        type="button"
+        class="grid h-10 w-8 shrink-0 place-items-center rounded-r-xl border border-white/10 border-l-0 bg-[#0c0e18]/75 text-white/45 backdrop-blur-md transition hover:bg-white/10 hover:text-white"
+        aria-label="Ẩn trợ lý"
+        @click="onHideClick"
+      >
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        ><path d="M18 6 6 18M6 6l12 12" /></svg>
+      </button>
     </div>
 
     <p
-      v-if="dockEnabled && !isDragging"
-      class="pointer-events-none pr-1 text-[9px] text-white/35"
+      v-if="!isDragging"
+      class="pointer-events-none max-w-[12rem] text-right text-[9px] leading-snug text-white/35"
     >
-      Kéo thanh ⋮ để đổi vị trí
+      Kéo biểu tượng ⋮⋮ để đặt vị trí · Bấm × để ẩn
     </p>
   </aside>
 </template>
 
 <style scoped>
 .cn-assistant {
-    right: max(0.5rem, env(safe-area-inset-right, 0px));
-    transition: bottom 0.15s ease-out;
+    transition: left 0.15s ease-out, top 0.15s ease-out;
 }
 
 .cn-assistant--dragging {
     transition: none;
-}
-
-@media (min-width: 640px) {
-    .cn-assistant {
-        right: max(1rem, env(safe-area-inset-right, 0px));
-    }
-}
-
-@media (min-width: 1024px) {
-    .cn-assistant {
-        right: max(1.5rem, env(safe-area-inset-right, 0px));
-        bottom: max(1.5rem, env(safe-area-inset-bottom, 0px)) !important;
-    }
 }
 
 .cn-assistant-bubble::before {
@@ -319,7 +374,7 @@ function onFabClick() {
     pointer-events: none;
 }
 
-.cn-assistant-fab-row--dock {
+.cn-assistant-fab-row {
     filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.45));
 }
 
