@@ -2,12 +2,23 @@
 import {
     computed, onBeforeUnmount, onMounted, ref, watch,
 } from 'vue';
-import { usePage } from '@inertiajs/vue3';
+import { usePage, Link } from '@inertiajs/vue3';
 import Avatar from '@/shared/ui/Avatar.vue';
 import { congngheBrand } from './congngheBrand.js';
 import CongngheBrandImage from './CongngheBrandImage.vue';
 
 const page = usePage();
+
+const onLanding = computed(() => {
+    const path = page.url.split('?')[0].replace(/\/$/, '') || '/';
+    return path === '/congnghe';
+});
+
+function sectionHref(id) {
+    return onLanding.value ? `#${id}` : `/congnghe#${id}`;
+}
+
+const proposalHref = '/congnghe/de-xuat';
 
 const authUser = computed(() => page.props.auth?.user ?? null);
 const userName = computed(
@@ -28,12 +39,12 @@ const userRole = computed(() => {
 });
 
 const links = [
-    { href: '#gioi-thieu', id: 'gioi-thieu', label: 'Giới thiệu' },
-    { href: '#thanh-tuu', id: 'thanh-tuu', label: 'Thành tựu' },
-    { href: '#san-pham', id: 'san-pham', label: 'Sản phẩm' },
-    { href: '#to-chuc', id: 'to-chuc', label: 'Tổ chức' },
-    { href: '#du-an', id: 'du-an', label: 'Dự án' },
-    { href: '#lo-trinh', id: 'lo-trinh', label: 'Lộ trình' },
+    { id: 'gioi-thieu', label: 'Giới thiệu' },
+    { id: 'thanh-tuu', label: 'Thành tựu' },
+    { id: 'san-pham', label: 'Sản phẩm' },
+    { id: 'to-chuc', label: 'Tổ chức' },
+    { id: 'du-an', label: 'Dự án' },
+    { id: 'lo-trinh', label: 'Lộ trình' },
 ];
 
 const scrolled = ref(false);
@@ -178,8 +189,8 @@ const navPadClass = computed(() => (scrolled.value ? 'py-2.5 sm:py-3' : 'py-3.5 
         >
           <a
             v-for="link in links"
-            :key="link.href"
-            :href="link.href"
+            :key="link.id"
+            :href="sectionHref(link.id)"
             class="relative rounded-full px-3.5 py-2 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50 md:px-4 md:text-sm"
             :class="activeId === link.id ? 'text-white' : 'text-white/55 hover:text-white/90'"
             :aria-current="activeId === link.id ? 'true' : undefined"
@@ -195,6 +206,12 @@ const navPadClass = computed(() => (scrolled.value ? 'py-2.5 sm:py-3' : 'py-3.5 
 
       <!-- Actions -->
       <div class="flex shrink-0 items-center justify-end gap-2 lg:justify-self-end">
+        <Link
+          :href="proposalHref"
+          class="hidden h-10 items-center gap-1.5 rounded-full border border-brand/45 bg-brand/20 px-4 text-xs font-semibold text-white shadow-[0_4px_20px_-6px_rgba(154,0,54,0.65)] transition hover:bg-brand/35 sm:flex sm:text-sm"
+        >
+          Đề xuất PM
+        </Link>
         <div
           v-if="authUser"
           class="hidden max-w-[220px] items-center gap-2 rounded-full border border-white/10 bg-white/[0.05] py-1 pl-1 pr-2.5 md:flex lg:max-w-[240px]"
@@ -290,10 +307,17 @@ const navPadClass = computed(() => (scrolled.value ? 'py-2.5 sm:py-3' : 'py-3.5 
         </div>
 
         <div class="grid grid-cols-2 gap-2">
+          <Link
+            :href="proposalHref"
+            class="col-span-2 rounded-xl border border-brand/45 bg-brand/25 px-3 py-2.5 text-center text-sm font-semibold text-white"
+            @click="closeMenu"
+          >
+            Đề xuất giải pháp phần mềm
+          </Link>
           <a
             v-for="link in links"
-            :key="link.href"
-            :href="link.href"
+            :key="link.id"
+            :href="sectionHref(link.id)"
             class="rounded-xl border px-3 py-2.5 text-sm font-medium transition"
             :class="activeId === link.id
               ? 'border-brand/50 bg-brand/20 text-white'

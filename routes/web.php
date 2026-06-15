@@ -16,6 +16,9 @@ use App\Http\Controllers\Coaching\CoachingDashboardController;
 use App\Http\Controllers\Coaching\CoachingSessionController;
 use App\Http\Controllers\Comment\CommentController;
 use App\Http\Controllers\Congnghe\CongngheController;
+use App\Http\Controllers\Congnghe\CongngheSoftwareProposalAttachmentController;
+use App\Http\Controllers\Congnghe\CongngheSoftwareProposalController;
+use App\Http\Controllers\Congnghe\CongngheSoftwareProposalManagementController;
 use App\Http\Controllers\DailyReport\DailyReportController;
 use App\Http\Controllers\DailyReport\DailyReportReviewController;
 use App\Http\Controllers\Dashboard\DashboardController;
@@ -70,6 +73,15 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictCoachingOnlyUsers::class
 
     // Trang giới thiệu Phòng Công Nghệ — landing nội bộ cho mọi nhân sự.
     Route::get('/congnghe', CongngheController::class)->name('congnghe');
+    Route::get('/congnghe/de-xuat', [CongngheSoftwareProposalController::class, 'create'])->name('congnghe.proposal');
+    Route::post('/congnghe/de-xuat', [CongngheSoftwareProposalController::class, 'store'])->name('congnghe.proposal.store');
+    Route::prefix('congnghe/proposals')->name('congnghe.proposals.')->group(function () {
+        Route::get('/', [CongngheSoftwareProposalManagementController::class, 'index'])->name('index');
+        Route::get('/{proposal}', [CongngheSoftwareProposalManagementController::class, 'show'])->name('show');
+        Route::put('/{proposal}', [CongngheSoftwareProposalManagementController::class, 'update'])->name('update');
+        Route::get('/{proposal}/attachments/{attachment}/file', [CongngheSoftwareProposalAttachmentController::class, 'file'])
+            ->name('attachments.file');
+    });
 
     // Notifications
     Route::prefix('notifications')->name('notifications.')->group(function () {

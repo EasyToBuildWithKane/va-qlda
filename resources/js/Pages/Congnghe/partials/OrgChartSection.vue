@@ -1,9 +1,9 @@
 <script setup>
-import { computed, ref, watch, onBeforeUnmount, onMounted } from 'vue';
+import { computed, ref, watch, onBeforeUnmount } from 'vue';
 import SectionHeading from './SectionHeading.vue';
 import CountStat from './CountStat.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
-import OrgGraph from '@/modules/people/components/OrgGraph.vue';
+import CongngheOrgChart from './CongngheOrgChart.vue';
 import { useInView } from './motion.js';
 
 const props = defineProps({
@@ -15,48 +15,8 @@ const props = defineProps({
 const roots = computed(() => props.forest ?? []);
 const peopleTotal = computed(() => Number(props.overview?.people_total ?? 0));
 
-const graphFilter = { query: '', rootId: null, role: 'all', status: 'all' };
-
 const { target, shown: sectionVisible } = useInView({ threshold: 0.18 });
 
-const layoutScale = ref(2.05);
-const readonlyMaxScale = ref(3.25);
-const readonlyMinScale = ref(0.62);
-
-function syncGraphViewportPrefs() {
-    if (typeof window === 'undefined') {
-        return;
-    }
-    const w = window.innerWidth;
-    if (w < 640) {
-        layoutScale.value = 1.15;
-        readonlyMaxScale.value = 1.45;
-        readonlyMinScale.value = 0.5;
-    } else if (w < 1024) {
-        layoutScale.value = 1.72;
-        readonlyMaxScale.value = 2.25;
-        readonlyMinScale.value = 0.56;
-    } else {
-        layoutScale.value = 2.05;
-        readonlyMaxScale.value = 3.25;
-        readonlyMinScale.value = 0.62;
-    }
-}
-
-onMounted(() => {
-    syncGraphViewportPrefs();
-    window.addEventListener('resize', syncGraphViewportPrefs, { passive: true });
-});
-
-onBeforeUnmount(() => {
-    if (typeof window !== 'undefined') {
-        window.removeEventListener('resize', syncGraphViewportPrefs);
-    }
-    if (typeof document !== 'undefined') document.body.style.overflow = '';
-    window.removeEventListener('keydown', onKey);
-});
-
-/* ---- member detail modal ---- */
 const activeMember = ref(null);
 
 function lookup(id) {
@@ -93,21 +53,7 @@ function onSelectPerson(person) {
         section: person.sectionTitle,
         team: person.teamName,
         is_active: person.isActive,
-        is_leader: false,
-    });
-}
-
-function onSelectLeader(node) {
-    const leader = node?.team?.leader;
-    if (!leader) return;
-    activeMember.value = buildMember(leader.id, {
-        name: leader.name,
-        avatar: leader.avatar_path,
-        role_title: leader.role_title,
-        email: leader.email,
-        team: node.team?.name,
-        is_active: leader.is_active,
-        is_leader: true,
+        is_leader: person.isLeader ?? false,
     });
 }
 
@@ -132,6 +78,14 @@ watch(activeMember, (m) => {
     }
 });
 
+onBeforeUnmount(() => {
+    if (typeof document !== 'undefined') {
+        document.body.style.overflow = '';
+    }
+    if (typeof window !== 'undefined') {
+        window.removeEventListener('keydown', onKey);
+    }
+});
 </script>
 
 <template>
@@ -146,7 +100,7 @@ watch(activeMember, (m) => {
           <SectionHeading
             eyebrow="Đội ngũ · Sơ đồ tổ chức"
             title="Cấu trúc vận hành"
-            subtitle="Sơ đồ nhân sự Phòng Công nghệ — cấu trúc vận hành theo nhóm và nhánh."
+            subtitle="Sơ đồ nhân sự Phòng Công nghệ — avatar, tên và vai trò theo nhóm."
           />
         </div>
 
@@ -183,31 +137,14 @@ watch(activeMember, (m) => {
       </div>
     </div>
 
-    <!-- Sơ đồ tổ chức: full-bleed, các thẻ lớn hơn, cứng (không pan/zoom) -->
     <div
       v-if="roots.length"
-      class="mt-8 min-w-0 w-full"
+      class="mx-auto mt-8 max-w-6xl px-3 sm:px-6"
     >
-      <div class="mx-auto max-w-[1900px] px-1 sm:px-5">
-        <p class="mb-3 px-2 text-center text-[11px] leading-relaxed text-white/45 sm:hidden">
-          Vuốt để di chuyển sơ đồ · Bấm +/− góc dưới để phóng to · Bấm thẻ để xem chi tiết
-        </p>
-        <div class="congnghe-org-graph congnghe-org-graph--large">
-          <OrgGraph
-            :trees="roots"
-            :filter="graphFilter"
-            initial-expand-all
-            readonly
-            readonly-pan
-            prominent-cards
-            :layout-scale="layoutScale"
-            :readonly-max-scale="readonlyMaxScale"
-            :readonly-min-scale="readonlyMinScale"
-            @select-person="onSelectPerson"
-            @select-leader="onSelectLeader"
-          />
-        </div>
-      </div>
+      <CongngheOrgChart
+        :trees="roots"
+        @select-person="onSelectPerson"
+      />
     </div>
 
     <p
@@ -217,7 +154,6 @@ watch(activeMember, (m) => {
       Sơ đồ tổ chức chưa được thiết lập.
     </p>
 
-    <!-- Member detail modal -->
     <Teleport to="body">
       <Transition name="cn-modal">
         <div
@@ -234,7 +170,6 @@ watch(activeMember, (m) => {
             role="dialog"
             aria-modal="true"
           >
-            <!-- glow header -->
             <div class="pointer-events-none absolute inset-x-0 top-0 h-40 bg-[radial-gradient(80%_120%_at_50%_-20%,rgba(255,77,141,0.35),transparent_70%)]" />
 
             <button
@@ -254,7 +189,6 @@ watch(activeMember, (m) => {
             </button>
 
             <div class="relative px-7 pb-7 pt-9">
-              <!-- identity -->
               <div class="flex flex-col items-center text-center">
                 <span class="relative">
                   <span class="block rounded-full p-[3px] ring-2 ring-brand/40">
@@ -309,7 +243,6 @@ watch(activeMember, (m) => {
                 </div>
               </div>
 
-              <!-- bio -->
               <div class="mt-6 rounded-2xl border border-white/8 bg-white/[0.03] p-4">
                 <p class="font-mono text-[10px] uppercase tracking-[0.2em] text-white/35">
                   Giới thiệu
@@ -319,7 +252,6 @@ watch(activeMember, (m) => {
                 </p>
               </div>
 
-              <!-- contact -->
               <div class="mt-4 space-y-2.5">
                 <p class="font-mono text-[10px] uppercase tracking-[0.2em] text-white/35">
                   Liên lạc
@@ -380,7 +312,6 @@ watch(activeMember, (m) => {
 </template>
 
 <style scoped>
-/* modal transition */
 .cn-modal-enter-active,
 .cn-modal-leave-active {
     transition: opacity 0.25s ease;
@@ -409,131 +340,5 @@ watch(activeMember, (m) => {
     .cn-modal-leave-active .cn-modal-panel {
         transition: none;
     }
-}
-
-.congnghe-org-graph--large :deep(.org-graph__viewport) {
-    height: clamp(720px, 92vh, 1280px);
-}
-
-@media (max-width: 639px) {
-    .congnghe-org-graph--large :deep(.org-graph__viewport),
-    .congnghe-org-graph--large :deep(.org-graph__viewport.is-readonly-pan) {
-        height: min(68vh, 520px);
-        min-height: 380px;
-        border-radius: 16px;
-    }
-
-    .congnghe-org-graph--large :deep(.org-graph__zoom) {
-        bottom: 0.65rem;
-        right: 0.65rem;
-        scale: 0.92;
-    }
-}
-
-.congnghe-org-graph--large :deep(.org-graph__edge) {
-    stroke-width: 2.5;
-}
-
-.congnghe-org-graph--large :deep(.org-node__title) {
-    font-size: 24px;
-    line-height: 1.22;
-}
-
-.congnghe-org-graph--large :deep(.org-node__title--sm) {
-    font-size: 21px;
-}
-
-.congnghe-org-graph--large :deep(.org-node__subtitle) {
-    font-size: 18px;
-    font-weight: 600;
-    line-height: 1.35;
-    color: #334155;
-}
-
-.congnghe-org-graph--large :deep(.org-node__eyebrow) {
-    font-size: 13px;
-}
-
-.congnghe-org-graph--large :deep(.org-node__section-title) {
-    font-size: 19px;
-}
-
-.congnghe-org-graph--large :deep(.org-node__section-eyebrow) {
-    font-size: 12px;
-}
-
-.congnghe-org-graph--large :deep(.org-node__chip),
-.congnghe-org-graph--large :deep(.org-node__section-meta) {
-    font-size: 15px;
-}
-
-.congnghe-org-graph--large :deep(.org-node__toggle) {
-    font-size: 14px;
-    padding: 0.4rem 0.6rem;
-}
-
-.congnghe-org-graph--large :deep(.org-node--team .org-node__surface),
-.congnghe-org-graph--large :deep(.org-node--person .org-node__person-inner) {
-    padding: 1.35rem 1.45rem;
-    border-radius: 20px;
-}
-
-.congnghe-org-graph--large :deep(.org-node__hub-icon) {
-    width: 54px;
-    height: 54px;
-    border-radius: 14px;
-}
-
-.congnghe-org-graph--large :deep(.org-node--org) {
-    padding: 0 1.35rem;
-    border-radius: 18px;
-}
-
-.congnghe-org-graph--large :deep(.org-node--org .font-display) {
-    font-size: 1.05rem;
-}
-
-.congnghe-org-graph--large :deep(.org-node__section-inner) {
-    padding: 0.75rem 0.85rem;
-}
-
-.congnghe-org-graph--large :deep(.org-node--section) {
-    border-radius: 16px;
-}
-
-.congnghe-org-graph--large :deep(.org-node__avatar-btn),
-.congnghe-org-graph--large :deep(.org-node__avatar-fallback) {
-    width: 54px;
-    height: 54px;
-}
-
-.congnghe-org-graph--large :deep(.org-node__avatar-btn > *) {
-    width: 54px !important;
-    height: 54px !important;
-    min-width: 54px;
-    min-height: 54px;
-    font-size: 20px !important;
-}
-
-.congnghe-org-graph--large :deep(.org-node__lead-badge) {
-    width: 20px;
-    height: 20px;
-}
-
-.congnghe-org-graph--large :deep(.org-node--team .flex.items-start),
-.congnghe-org-graph--large :deep(.org-node--person .flex.items-center) {
-    gap: 0.875rem;
-}
-
-.congnghe-org-graph :deep(.org-graph__viewport) {
-    border-color: rgba(255, 255, 255, 0.12);
-    background:
-        radial-gradient(120% 80% at 50% -10%, rgba(30, 30, 42, 0.95) 0%, rgba(15, 15, 22, 0.98) 55%, #0b0b12 100%);
-}
-
-.congnghe-org-graph :deep(.org-graph__grid) {
-    background-image:
-        linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
 }
 </style>

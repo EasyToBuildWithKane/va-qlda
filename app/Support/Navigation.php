@@ -361,6 +361,28 @@ class Navigation
             //    Admin-only. Invisible to lead / member / viewer.
             // ──────────────────────────────────────────────────────────────
             [
+                'key' => 'congnghe_admin',
+                'heading' => 'Phòng Công nghệ',
+                'icon' => 'rocket',
+                'items' => [
+                    [
+                        'label' => 'Đề xuất phần mềm',
+                        'icon' => 'template',
+                        'href' => '/congnghe/proposals',
+                        'status' => 'live',
+                        'roles' => ['admin', 'lead'],
+                    ],
+                    [
+                        'label' => 'Cổng giới thiệu',
+                        'icon' => 'rocket',
+                        'href' => '/congnghe',
+                        'status' => 'live',
+                        'roles' => ['admin', 'lead'],
+                    ],
+                ],
+            ],
+
+            [
                 'key' => 'admin',
                 'heading' => 'Quản trị',
                 'icon' => 'settings',

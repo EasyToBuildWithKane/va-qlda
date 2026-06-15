@@ -44,6 +44,18 @@ routes/api.php      ← Rỗng (chưa sử dụng)
 | GET | `/` | redirect | auth | Redirect → /dashboard |
 | GET | `/dashboard` | DashboardController@index | auth | Trang tổng quan |
 
+### 2.2.1 Phòng Công Nghệ (cổng nội bộ)
+
+| Method | URI | Controller | Middleware | Mô Tả |
+|---|---|---|---|---|
+| GET | `/congnghe` | CongngheController | auth | Landing giới thiệu Phòng Công Nghệ |
+| GET | `/congnghe/de-xuat` | CongngheSoftwareProposalController@create | auth | Form đề xuất giải pháp phần mềm |
+| POST | `/congnghe/de-xuat` | CongngheSoftwareProposalController@store | auth | Lưu `congnghe_software_proposals` + file `public/congnghe/proposals/{id}`; email tới `config('va.congnghe_proposal_email')` |
+| GET | `/congnghe/proposals` | CongngheSoftwareProposalManagementController@index | auth (admin, lead) | Danh sách đề xuất PM |
+| GET | `/congnghe/proposals/{proposal}` | CongngheSoftwareProposalManagementController@show | auth (admin, lead) | Chi tiết |
+| PUT | `/congnghe/proposals/{proposal}` | CongngheSoftwareProposalManagementController@update | auth (admin, lead) | Cập nhật trạng thái |
+| GET | `/congnghe/proposals/{proposal}/attachments/{attachment}/file` | CongngheSoftwareProposalAttachmentController@file | auth (admin, lead) | Tải file đính kèm |
+
 ### 2.3 Notifications ✨ MỚI — JSON API
 
 > Các endpoints này trả **JsonResponse** (không phải Inertia). Frontend dùng axios/fetch.

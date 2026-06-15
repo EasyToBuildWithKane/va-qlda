@@ -9,6 +9,7 @@ use App\Models\AiPaymentRequest;
 use App\Models\AiPurchaseProposal;
 use App\Models\Blocker;
 use App\Models\CoachingCourse;
+use App\Models\CongngheSoftwareProposal;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\Feedback;
@@ -21,6 +22,7 @@ use App\Policies\AiPaymentRequestPolicy;
 use App\Policies\AiPurchaseProposalPolicy;
 use App\Policies\BlockerPolicy;
 use App\Policies\CoachingCoursePolicy;
+use App\Policies\CongngheSoftwareProposalPolicy;
 use App\Policies\DailyReportPolicy;
 use App\Policies\DepartmentPolicy;
 use App\Policies\EmployeePolicy;
@@ -55,6 +57,7 @@ class AuthServiceProvider extends ServiceProvider
         SystemSetting::class => SystemSettingPolicy::class,
         KbArticle::class => KbArticlePolicy::class,
         CoachingCourse::class => CoachingCoursePolicy::class,
+        CongngheSoftwareProposal::class => CongngheSoftwareProposalPolicy::class,
     ];
 
     /**

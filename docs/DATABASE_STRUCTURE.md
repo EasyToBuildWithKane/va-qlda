@@ -388,6 +388,30 @@ Bảng `bugs` và `bug_activities` không còn trên môi trường đã migrate
 
 ---
 
+### 3.19a va_prd_congnghe_software_proposals
+
+Đề xuất giải pháp phần mềm từ cổng `/congnghe/de-xuat`.
+
+| Column | Type | Nullable | Description |
+|---|---|---|---|
+| id | bigint UNSIGNED | NO | PK |
+| reference_code | varchar(24) | YES | Mã CN-00001 (unique) |
+| system_account_id | bigint UNSIGNED | YES | FK → system_accounts |
+| submitter_name | varchar(120) | NO | |
+| submitter_email | varchar(255) | NO | |
+| department | varchar(160) | NO | |
+| title | varchar(200) | NO | |
+| content | text | NO | |
+| status | varchar(32) | NO | new / triaged / in_progress / done / rejected |
+| email_sent_at | timestamp | YES | |
+| email_error | varchar(500) | YES | |
+| created_at | timestamp | YES | |
+| updated_at | timestamp | YES | |
+
+**va_prd_congnghe_software_proposal_attachments:** `congnghe_software_proposal_id`, `original_name`, `path` (disk `public`), `mime_type`, `size`, `is_image`.
+
+---
+
 ### 3.19 va_prd_feedbacks
 
 | Column | Type | Nullable | Description |

@@ -6,6 +6,7 @@ const colHeadingClass =
     'min-h-[2.75rem] font-mono text-[11px] font-semibold uppercase leading-snug tracking-[0.18em] text-cyan-200/70';
 
 const exploreLinks = [
+    { href: '/congnghe/de-xuat', label: 'Đề xuất phần mềm' },
     { href: '#gioi-thieu', label: 'Giới thiệu' },
     { href: '#lo-trinh', label: 'Lộ trình 2026–2027' },
     { href: '#san-pham', label: 'Hệ sinh thái sản phẩm' },

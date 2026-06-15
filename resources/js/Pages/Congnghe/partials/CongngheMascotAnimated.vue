@@ -46,16 +46,20 @@ const sizeClass = {
       />
     </template>
 
-    <CongngheBrandImage
-      :src="src"
-      :alt="alt"
-      class="relative z-10 object-contain drop-shadow-[0_8px_24px_rgba(154,0,54,0.45)]"
-      :class="[
-        sizeClass[variant] ?? sizeClass.inline,
-        reduced ? '' : (variant === 'assistant' ? 'animate-cn-assistant-bob' : 'animate-cn-float'),
-      ]"
-      :style="parallaxStyle"
-      decoding="async"
-    />
+    <span
+      class="relative z-10 inline-flex items-center justify-center drop-shadow-[0_8px_24px_rgba(154,0,54,0.45)]"
+    >
+      <CongngheBrandImage
+        :src="src"
+        :alt="alt"
+        class="object-contain"
+        :class="[
+          sizeClass[variant] ?? sizeClass.inline,
+          reduced ? '' : (variant === 'assistant' ? 'animate-cn-assistant-bob' : 'animate-cn-float'),
+        ]"
+        :style="parallaxStyle"
+        decoding="async"
+      />
+    </span>
   </div>
 </template>

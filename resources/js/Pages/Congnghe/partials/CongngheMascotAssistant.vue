@@ -8,6 +8,12 @@ import { prefersReducedMotionNow } from './motion.js';
 import { useCongngheSectionSpy } from './useCongngheSectionSpy.js';
 import { useCongngheAssistantDock } from './useCongngheAssistantDock.js';
 
+import { congngheMascotActions } from './congngheMascotActions.js';
+
+const props = defineProps({
+    proposalPage: { type: Boolean, default: false },
+});
+
 const { activeId } = useCongngheSectionSpy();
 
 const expanded = ref(true);
@@ -53,7 +59,7 @@ const sectionTips = {
     'to-chuc': {
         src: congngheBrand.mascotHoodie,
         lines: [
-            'Sơ đồ tổ chức — vuốt di chuyển, +/- để phóng to trên điện thoại.',
+            'Sơ đồ tổ chức dạng thẻ — bấm avatar để xem chi tiết liên hệ.',
         ],
     },
     'du-an': {
@@ -91,6 +97,18 @@ const currentLine = computed(() => {
 });
 
 const mascotSrc = computed(() => context.value.src);
+
+const quickActions = computed(() => congngheMascotActions({ onProposalPage: props.proposalPage }));
+
+function actionClass(kind) {
+    if (kind === 'primary') {
+        return 'border-brand/45 bg-brand/25 text-white hover:bg-brand/40';
+    }
+    if (kind === 'mailto') {
+        return 'border-cyan-500/25 bg-cyan-500/10 text-cyan-100/90 hover:bg-cyan-500/20';
+    }
+    return 'border-white/10 bg-white/[0.04] text-white/80 hover:bg-white/[0.08] hover:text-white';
+}
 
 function cycleTip() {
     const lines = context.value.lines;
@@ -209,33 +227,35 @@ function onHideClick() {
           class="absolute -bottom-1.5 right-8 h-3 w-3 rotate-45 border-b border-r border-white/15 bg-[#0c0e18]/95"
           aria-hidden="true"
         />
-        <div class="flex items-start justify-between gap-2">
-          <p class="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/60">
-            Trợ lý VAS
-          </p>
-          <button
-            type="button"
-            class="grid h-6 w-6 shrink-0 place-items-center rounded-md text-white/45 transition hover:bg-white/10 hover:text-white"
-            aria-label="Ẩn trợ lý"
-            @click="onHideClick"
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            ><path d="M18 6 6 18M6 6l12 12" /></svg>
-          </button>
-        </div>
+        <p class="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-200/60">
+          Trợ lý VAS
+        </p>
         <p
           :key="`${activeId}-${tipIndex}`"
-          class="mt-1 max-h-[40vh] overflow-y-auto text-[12.5px] leading-snug text-white/90 sm:mt-1.5 sm:max-h-none sm:text-sm"
+          class="mt-1 max-h-[28vh] overflow-y-auto text-[12.5px] leading-snug text-white/90 sm:mt-1.5 sm:max-h-none sm:text-sm"
           :class="prefersReducedMotionNow() ? '' : 'animate-cn-rise'"
         >
           {{ currentLine }}
         </p>
+        <div class="mt-3 border-t border-white/10 pt-3">
+          <p class="font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-white/40">
+            Bạn muốn
+          </p>
+          <ul class="mt-2 space-y-1.5">
+            <li
+              v-for="action in quickActions"
+              :key="action.key"
+            >
+              <a
+                :href="action.href"
+                class="block rounded-lg border px-2.5 py-2 text-[12px] font-medium leading-snug transition sm:text-[13px]"
+                :class="actionClass(action.kind)"
+              >
+                {{ action.label }}
+              </a>
+            </li>
+          </ul>
+        </div>
         <div
           v-if="context.lines.length > 1"
           class="mt-2 flex gap-1"
@@ -252,62 +272,14 @@ function onHideClick() {
     </transition>
 
     <div
-      class="pointer-events-auto cn-assistant-fab-row flex items-center gap-1 sm:gap-1.5"
+      class="pointer-events-auto cn-assistant-fab-row relative"
     >
       <button
         type="button"
-        class="cn-assistant-grip grid h-10 w-8 shrink-0 touch-none cursor-grab items-center justify-center rounded-l-xl border border-white/10 border-r-0 bg-[#0c0e18]/75 text-white/40 backdrop-blur-md active:cursor-grabbing active:bg-white/10"
-        aria-label="Kéo trợ lý đến vị trí bất kỳ"
-        @pointerdown="onDragPointerDown"
-        @pointermove="onDragPointerMove"
-        @pointerup="onFabPointerUp"
-        @pointercancel="onFabPointerUp"
-      >
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="currentColor"
-          aria-hidden="true"
-        >
-          <circle
-            cx="9"
-            cy="6"
-            r="1.5"
-          />
-          <circle
-            cx="15"
-            cy="6"
-            r="1.5"
-          />
-          <circle
-            cx="9"
-            cy="12"
-            r="1.5"
-          />
-          <circle
-            cx="15"
-            cy="12"
-            r="1.5"
-          />
-          <circle
-            cx="9"
-            cy="18"
-            r="1.5"
-          />
-          <circle
-            cx="15"
-            cy="18"
-            r="1.5"
-          />
-        </svg>
-      </button>
-
-      <button
-        type="button"
-        class="cn-assistant-fab group relative touch-none overflow-visible border-0 bg-transparent p-0 shadow-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#05060c]"
+        class="cn-assistant-fab group relative touch-none cursor-grab overflow-visible border-0 bg-transparent p-0 shadow-none transition active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#05060c]"
+        :class="{ 'cursor-grabbing': isDragging }"
         :aria-expanded="expanded"
-        :aria-label="expanded ? 'Thu gọn trợ lý' : 'Mở trợ lý VAS'"
+        :aria-label="expanded ? 'Thu gọn trợ lý — giữ và kéo để di chuyển' : 'Mở trợ lý VAS — giữ và kéo để di chuyển'"
         @pointerdown="onDragPointerDown"
         @pointermove="onDragPointerMove"
         @pointerup="onFabPointerUp"
@@ -319,18 +291,18 @@ function onHideClick() {
           variant="assistant"
         />
         <span
-          class="absolute -left-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-brand to-[#ff4d8d] text-[10px] font-bold text-white shadow-lg sm:h-6 sm:w-6 sm:text-[11px]"
+          class="absolute -left-1 bottom-0 flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-brand to-[#ff4d8d] text-[10px] font-bold text-white shadow-lg sm:h-6 sm:w-6 sm:text-[11px]"
           :class="prefersReducedMotionNow() ? '' : 'animate-cn-glow'"
         >
           {{ expanded ? '−' : '?' }}
         </span>
       </button>
-
       <button
         type="button"
-        class="grid h-10 w-8 shrink-0 place-items-center rounded-r-xl border border-white/10 border-l-0 bg-[#0c0e18]/75 text-white/45 backdrop-blur-md transition hover:bg-white/10 hover:text-white"
+        class="absolute -right-0.5 -top-0.5 z-20 grid h-6 w-6 place-items-center rounded-full border border-white/15 bg-[#0c0e18]/95 text-white/70 shadow-md backdrop-blur-sm transition hover:border-white/25 hover:bg-[#151828] hover:text-white sm:h-7 sm:w-7"
         aria-label="Ẩn trợ lý"
-        @click="onHideClick"
+        @pointerdown.stop
+        @click.stop="onHideClick"
       >
         <svg
           width="14"
@@ -338,7 +310,8 @@ function onHideClick() {
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          stroke-width="2"
+          stroke-width="2.25"
+          aria-hidden="true"
         ><path d="M18 6 6 18M6 6l12 12" /></svg>
       </button>
     </div>
@@ -347,7 +320,7 @@ function onHideClick() {
       v-if="!isDragging"
       class="pointer-events-none max-w-[12rem] text-right text-[9px] leading-snug text-white/35"
     >
-      Kéo biểu tượng ⋮⋮ để đặt vị trí · Bấm × để ẩn
+      Giữ linh vật để kéo · Bấm × để ẩn
     </p>
   </aside>
 </template>
@@ -372,10 +345,6 @@ function onHideClick() {
     -webkit-mask-composite: xor;
     mask-composite: exclude;
     pointer-events: none;
-}
-
-.cn-assistant-fab-row {
-    filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.45));
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -11,6 +11,8 @@ use App\Support\Enums\SystemRole;
 use App\Support\OrgTeam\OrgTeamOverviewBuilder;
 use App\Support\OrgTeamTreeBuilder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class CongngheTest extends TestCase
@@ -105,5 +107,91 @@ class CongngheTest extends TestCase
 
         $overview = OrgTeamOverviewBuilder::buildFromForest($forest);
         $this->assertSame(13, $overview['people_total']);
+    }
+
+    public function test_member_can_view_software_proposal_form(): void
+    {
+        $account = SystemAccount::factory()->role(SystemRole::Member)->create();
+
+        $this->actingAs($account, 'system')
+            ->get('/congnghe/de-xuat')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Congnghe/Proposal')
+                ->has('defaults')
+                ->has('departmentOptions')
+            );
+    }
+
+    public function test_member_can_submit_software_proposal_and_mail_is_sent(): void
+    {
+        Mail::fake();
+
+        $account = SystemAccount::factory()->role(SystemRole::Member)->create();
+
+        $this->actingAs($account, 'system')
+            ->post('/congnghe/de-xuat', [
+                'name' => 'Nguyễn Test',
+                'email' => 'tester@vaschools.edu.vn',
+                'department' => 'Phòng Học vụ',
+                'title' => 'Phần mềm đăng ký học',
+                'content' => 'Cần module đăng ký trực tuyến cho phụ huynh.',
+            ])
+            ->assertRedirect(route('congnghe.proposal'));
+
+        Mail::assertSent(\App\Mail\CongngheSoftwareProposalMail::class, function (\App\Mail\CongngheSoftwareProposalMail $mail) {
+            return $mail->proposal->title === 'Phần mềm đăng ký học'
+                && $mail->proposal->submitter_email === 'tester@vaschools.edu.vn';
+        });
+
+        $this->assertDatabaseHas('congnghe_software_proposals', [
+            'submitter_email' => 'tester@vaschools.edu.vn',
+            'title' => 'Phần mềm đăng ký học',
+            'status' => 'new',
+        ]);
+    }
+
+    public function test_software_proposal_accepts_file_attachments(): void
+    {
+        Mail::fake();
+
+        $account = SystemAccount::factory()->role(SystemRole::Member)->create();
+        $file = UploadedFile::fake()->create('yeu-cau.pdf', 120, 'application/pdf');
+
+        $this->actingAs($account, 'system')
+            ->post('/congnghe/de-xuat', [
+                'name' => 'Nguyễn Test',
+                'email' => 'tester@vaschools.edu.vn',
+                'department' => 'Phòng Học vụ',
+                'title' => 'Đề xuất có file',
+                'content' => 'Nội dung.',
+                'attachments' => [$file],
+            ])
+            ->assertRedirect(route('congnghe.proposal'));
+
+        Mail::assertSent(\App\Mail\CongngheSoftwareProposalMail::class, function (\App\Mail\CongngheSoftwareProposalMail $mail) {
+            return $mail->proposal->attachments->count() === 1;
+        });
+
+        $this->assertDatabaseCount('congnghe_software_proposal_attachments', 1);
+    }
+
+    public function test_lead_can_view_proposals_index(): void
+    {
+        $account = SystemAccount::factory()->role(SystemRole::Lead)->create();
+
+        $this->actingAs($account, 'system')
+            ->get(route('congnghe.proposals.index'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->component('Congnghe/Proposals/Index'));
+    }
+
+    public function test_member_cannot_view_proposals_index(): void
+    {
+        $account = SystemAccount::factory()->role(SystemRole::Member)->create();
+
+        $this->actingAs($account, 'system')
+            ->get(route('congnghe.proposals.index'))
+            ->assertForbidden();
     }
 }

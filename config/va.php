@@ -15,6 +15,8 @@ return [
     'app_name' => env('APP_DISPLAY_NAME', 'VAschools QLDA'),
     'app_short_name' => env('APP_SHORT_NAME', 'VA'),
     'support_email' => env('SUPPORT_EMAIL', 'phongcongnghe@vaschools.edu.vn'),
+    /** Email nhận đề xuất PM từ cổng /congnghe/de-xuat */
+    'congnghe_proposal_email' => env('CONGNGHE_PROPOSAL_EMAIL', 'phongcongnghe@vaschools.edu.vn'),
     'app_version' => env('APP_DISPLAY_VERSION', '1.0'),
 
     /*
