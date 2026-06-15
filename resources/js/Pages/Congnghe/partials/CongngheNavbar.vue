@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import Avatar from '@/shared/ui/Avatar.vue';
 import { congngheBrand } from './congngheBrand.js';
+import CongngheBrandImage from './CongngheBrandImage.vue';
 
 const page = usePage();
 
@@ -89,15 +90,14 @@ onBeforeUnmount(() => {
         href="#top"
         class="group flex min-w-0 items-center gap-2 sm:gap-2.5"
       >
-        <span class="relative shrink-0 rounded-lg bg-black/50 p-0.5 ring-1 ring-cyan-500/20 transition group-hover:ring-brand/50">
-          <img
+        <span class="relative shrink-0 rounded-lg p-0.5 ring-1 ring-cyan-500/20 transition group-hover:ring-brand/50">
+          <CongngheBrandImage
             :src="congngheBrand.badgeCircle"
             alt="Vietnam America Schools"
-            class="h-8 w-8 object-contain sm:h-9 sm:w-9"
+            class="h-8 w-8 sm:h-9 sm:w-9"
             width="36"
             height="36"
-            decoding="async"
-          >
+          />
         </span>
         <span class="hidden min-w-0 flex-col leading-tight sm:flex">
           <span class="truncate font-display text-sm font-bold text-white">Phòng Công Nghệ</span>

@@ -3,9 +3,13 @@
 namespace Tests\Feature;
 
 use App\Models\Employee;
+use App\Models\OrgTeam;
+use App\Models\OrgTeamMember;
 use App\Models\SystemAccount;
 use App\Support\Auth\TechLoginAccess;
 use App\Support\Enums\SystemRole;
+use App\Support\OrgTeam\OrgTeamOverviewBuilder;
+use App\Support\OrgTeamTreeBuilder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -70,5 +74,36 @@ class CongngheTest extends TestCase
         $this->actingAs($account, 'system')
             ->get('/congnghe')
             ->assertOk();
+    }
+
+    public function test_congnghe_forest_resolves_nested_phong_cong_nghe_branch(): void
+    {
+        $otherRoot = OrgTeam::create(['name' => 'Ban Giám hiệu', 'level' => 1, 'sort_order' => 0]);
+        $cntt = OrgTeam::create([
+            'name' => 'Phòng Công nghệ thông tin',
+            'level' => 2,
+            'parent_id' => $otherRoot->id,
+            'sort_order' => 1,
+        ]);
+
+        $leader = Employee::factory()->create();
+        $cntt->update(['leader_id' => $leader->id]);
+
+        $members = Employee::factory()->count(12)->create();
+        foreach ($members as $i => $employee) {
+            OrgTeamMember::create([
+                'org_team_id' => $cntt->id,
+                'employee_id' => $employee->id,
+                'sort_order' => $i,
+            ]);
+        }
+
+        $forest = OrgTeamTreeBuilder::congngheForest();
+        $this->assertCount(1, $forest);
+        $this->assertSame('Phòng Công nghệ thông tin', $forest[0]['name']);
+        $this->assertCount(12, $forest[0]['members'] ?? []);
+
+        $overview = OrgTeamOverviewBuilder::buildFromForest($forest);
+        $this->assertSame(13, $overview['people_total']);
     }
 }

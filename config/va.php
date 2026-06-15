@@ -86,4 +86,11 @@ return [
         ))
     ))),
 
+    /*
+    | Ghi đè: ID nhóm OrgTeam làm gốc sơ đồ /congnghe (CONGNGHE_ORG_ROOT_TEAM_ID).
+    */
+    'congnghe_org_root_team_id' => ($id = env('CONGNGHE_ORG_ROOT_TEAM_ID')) !== null && $id !== ''
+        ? (int) $id
+        : null,
+
 ];

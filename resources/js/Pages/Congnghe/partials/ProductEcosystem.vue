@@ -147,27 +147,6 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
         v-if="slideCount && current"
         class="mt-10"
       >
-        <div
-          class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-400/15 bg-emerald-400/[0.06] px-4 py-3 backdrop-blur-sm"
-        >
-          <div class="flex flex-wrap items-center gap-2">
-            <span class="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-200">
-              <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-cn-glow" />
-              Đã nghiệm thu · vận hành
-            </span>
-            <span
-              v-if="current.type_label"
-              class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset"
-              :class="tone(current.type_color).soft"
-            >
-              {{ current.type_label }}
-            </span>
-          </div>
-          <p class="font-mono text-[10px] uppercase tracking-wider text-white/35">
-            Phím ← → để lướt
-          </p>
-        </div>
-
         <div class="relative overflow-hidden rounded-3xl ring-1 ring-white/10">
           <div
             class="flex transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"

@@ -22,34 +22,30 @@ const stats = computed(() => {
             label: 'Dự án triển khai',
             suffix: '+',
             tone: 'brand',
-            icon: 'layers',
-            sub: 'Đang và đã hoàn thành',
+            sub: 'Đang & hoàn thành',
             progress: null,
         },
         {
             key: 'orgPeople',
-            label: 'Nhân sự trên sơ đồ',
+            label: 'Nhân sự sơ đồ',
             suffix: '',
             tone: 'cyan',
-            icon: 'people',
             sub: 'Phòng Công nghệ',
             progress: null,
         },
         {
             key: 'doneTasks',
-            label: 'Công việc hoàn thành',
+            label: 'Task hoàn thành',
             suffix: '+',
             tone: 'emerald',
-            icon: 'check',
-            sub: tasks ? `${taskPct}% tổng task` : 'Theo dữ liệu QLDA',
+            sub: tasks ? `${taskPct}% tổng task` : 'Theo QLDA',
             progress: taskPct,
         },
         {
             key: 'departments',
-            label: 'Phòng ban đồng hành',
+            label: 'Phòng ban',
             suffix: '',
             tone: 'violet',
-            icon: 'building',
             sub: 'Liên phòng ban',
             progress: null,
         },
@@ -58,7 +54,6 @@ const stats = computed(() => {
             label: 'Nhóm tổ chức',
             suffix: '',
             tone: 'amber',
-            icon: 'teams',
             sub: 'Nhánh & đơn vị',
             progress: null,
         },
@@ -67,8 +62,7 @@ const stats = computed(() => {
             label: 'Tài khoản AI',
             suffix: '',
             tone: 'rose',
-            icon: 'ai',
-            sub: 'Được quản lý tập trung',
+            sub: 'Quản lý tập trung',
             progress: null,
         },
     ];
@@ -76,40 +70,34 @@ const stats = computed(() => {
 
 const toneMap = {
     brand: {
-        card: 'from-brand/25 via-brand/5 to-transparent border-brand/30 ring-brand/20',
-        icon: 'bg-brand/20 text-brand-200 ring-brand/30',
+        accent: 'text-brand-200',
         bar: 'from-brand to-[#ff4d8d]',
-        num: 'text-white',
+        dot: 'bg-brand',
     },
     cyan: {
-        card: 'from-cyan-500/20 via-cyan-500/5 to-transparent border-cyan-400/25 ring-cyan-400/15',
-        icon: 'bg-cyan-500/15 text-cyan-200 ring-cyan-400/25',
+        accent: 'text-cyan-200',
         bar: 'from-cyan-400 to-brand',
-        num: 'text-white',
+        dot: 'bg-cyan-400',
     },
     emerald: {
-        card: 'from-emerald-500/20 via-emerald-500/5 to-transparent border-emerald-400/25 ring-emerald-400/15',
-        icon: 'bg-emerald-500/15 text-emerald-200 ring-emerald-400/25',
+        accent: 'text-emerald-200',
         bar: 'from-emerald-400 to-cyan-400',
-        num: 'text-white',
+        dot: 'bg-emerald-400',
     },
     violet: {
-        card: 'from-violet-500/20 via-violet-500/5 to-transparent border-violet-400/25 ring-violet-400/15',
-        icon: 'bg-violet-500/15 text-violet-200 ring-violet-400/25',
+        accent: 'text-violet-200',
         bar: 'from-violet-400 to-brand',
-        num: 'text-white',
+        dot: 'bg-violet-400',
     },
     amber: {
-        card: 'from-amber-500/20 via-amber-500/5 to-transparent border-amber-400/25 ring-amber-400/15',
-        icon: 'bg-amber-500/15 text-amber-100 ring-amber-400/25',
+        accent: 'text-amber-100',
         bar: 'from-amber-400 to-brand',
-        num: 'text-white',
+        dot: 'bg-amber-400',
     },
     rose: {
-        card: 'from-rose-500/20 via-rose-500/5 to-transparent border-rose-400/25 ring-rose-400/15',
-        icon: 'bg-rose-500/15 text-rose-200 ring-rose-400/25',
+        accent: 'text-rose-200',
         bar: 'from-rose-400 to-violet-400',
-        num: 'text-white',
+        dot: 'bg-rose-400',
     },
 };
 
@@ -133,139 +121,99 @@ function toneOf(tone) {
       aria-hidden="true"
     />
     <div class="mx-auto max-w-7xl px-5 sm:px-8">
-      <div class="flex flex-wrap items-end justify-between gap-6">
+      <div class="flex flex-wrap items-end justify-between gap-4">
         <SectionHeading
           eyebrow="Thành tựu nổi bật"
           title="Những con số biết nói"
           subtitle="Tổng hợp trực tiếp từ dữ liệu vận hành — cập nhật theo thời gian thực."
         />
-        <div class="hidden items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1.5 font-mono text-[11px] text-emerald-300 sm:flex">
+        <div class="hidden shrink-0 items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1.5 font-mono text-[11px] text-emerald-300 sm:flex">
           <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-cn-glow" />
           LIVE DATA
         </div>
       </div>
 
-      <div class="mt-12 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
-        <article
-          v-for="(s, i) in stats"
-          :key="s.key"
-          class="cn-metric-card group relative overflow-hidden rounded-2xl border bg-gradient-to-br p-5 ring-1 transition-all duration-700 sm:p-6"
-          :class="[
-            toneOf(s.tone).card,
-            shown ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0',
-          ]"
-          :style="{ transitionDelay: `${i * 70}ms` }"
+      <!-- Một hàng trên desktop; mobile cuộn ngang -->
+      <div
+        class="cn-metrics-strip relative mt-10 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] ring-1 ring-white/5 transition-all duration-700"
+        :class="shown ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'"
+      >
+        <div
+          class="flex snap-x snap-mandatory gap-0 overflow-x-auto overscroll-x-contain lg:grid lg:grid-cols-6 lg:overflow-visible lg:snap-none"
+          role="list"
         >
-          <div
-            class="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/[0.04] blur-2xl transition group-hover:bg-white/[0.07]"
-            aria-hidden="true"
-          />
-          <div class="flex items-start justify-between gap-2">
+          <article
+            v-for="(s, i) in stats"
+            :key="s.key"
+            role="listitem"
+            class="cn-metric-cell group relative min-w-[42%] shrink-0 snap-start border-r border-white/[0.06] p-3.5 last:border-r-0 sm:min-w-[30%] sm:p-4 lg:min-w-0 lg:p-3 lg:last:border-r-0 xl:p-4"
+            :class="shown ? 'opacity-100' : 'opacity-0'"
+            :style="{ transitionDelay: `${i * 50}ms` }"
+          >
             <span
-              class="grid h-10 w-10 shrink-0 place-items-center rounded-xl ring-1"
-              :class="toneOf(s.tone).icon"
-            >
-              <svg
-                v-if="s.icon === 'layers'"
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.8"
-              ><path d="M12 2 2 7l10 5 10-5-10-5ZM2 17l10 5 10-5M2 12l10 5 10-5" /></svg>
-              <svg
-                v-else-if="s.icon === 'people'"
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.8"
-              ><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle
-                cx="9"
-                cy="7"
-                r="4"
-              /><path d="M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75" /></svg>
-              <svg
-                v-else-if="s.icon === 'check'"
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              ><path d="M20 6 9 17l-5-5" /></svg>
-              <svg
-                v-else-if="s.icon === 'building'"
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.8"
-              ><path d="M3 21V7l9-4 9 4v14M9 21v-6h6v6" /></svg>
-              <svg
-                v-else-if="s.icon === 'teams'"
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.8"
-              ><path d="M12 2a4 4 0 1 0 0 8 4 4 0 0 0 0-8ZM4 22a8 8 0 0 1 16 0" /></svg>
-              <svg
-                v-else
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.8"
-              ><path d="M12 2a5 5 0 0 1 5 5v1a5 5 0 0 1-1 9H8a5 5 0 0 1-1-9V7a5 5 0 0 1 5-5Z" /></svg>
-            </span>
-            <span class="font-mono text-[10px] tabular-nums text-white/25">0{{ i + 1 }}</span>
-          </div>
-
-          <p
-            class="mt-4 font-display text-3xl font-extrabold tabular-nums sm:text-4xl"
-            :class="toneOf(s.tone).num"
-          >
-            <CountStat
-              :value="valueOf(s.key)"
-              :active="shown"
-            /><span class="text-lg text-brand-200/90 sm:text-xl">{{ s.suffix }}</span>
-          </p>
-          <p class="mt-1.5 text-sm font-semibold text-white/90">
-            {{ s.label }}
-          </p>
-          <p class="mt-0.5 text-[11px] text-white/45">
-            {{ s.sub }}
-          </p>
-
-          <div
-            v-if="s.progress != null && s.progress > 0"
-            class="mt-4 h-1 overflow-hidden rounded-full bg-white/10"
-          >
-            <div
-              class="h-full rounded-full bg-gradient-to-r transition-all duration-1000"
+              class="pointer-events-none absolute left-0 top-0 h-0.5 w-full scale-x-0 bg-gradient-to-r opacity-80 transition-transform duration-500 group-hover:scale-x-100"
               :class="toneOf(s.tone).bar"
-              :style="{ width: shown ? `${s.progress}%` : '0%' }"
+              aria-hidden="true"
             />
-          </div>
-        </article>
+            <span
+              class="mb-2 inline-block h-1 w-1 rounded-full opacity-70"
+              :class="toneOf(s.tone).dot"
+              aria-hidden="true"
+            />
+
+            <p class="flex items-baseline gap-0.5 whitespace-nowrap font-display text-[1.65rem] font-extrabold leading-none tabular-nums text-white sm:text-3xl lg:text-[1.75rem] xl:text-[2rem]">
+              <CountStat
+                :value="valueOf(s.key)"
+                :active="shown"
+              /><span
+                v-if="s.suffix"
+                class="text-base font-bold sm:text-lg"
+                :class="toneOf(s.tone).accent"
+              >{{ s.suffix }}</span>
+            </p>
+
+            <p
+              class="mt-1.5 truncate text-[11px] font-semibold leading-tight text-white/90 sm:text-xs"
+              :title="s.label"
+            >
+              {{ s.label }}
+            </p>
+            <p
+              class="mt-0.5 truncate text-[10px] leading-tight text-white/45"
+              :title="s.sub"
+            >
+              {{ s.sub }}
+            </p>
+
+            <div
+              v-if="s.progress != null && s.progress > 0"
+              class="mt-2.5 h-0.5 overflow-hidden rounded-full bg-white/10"
+            >
+              <div
+                class="h-full rounded-full bg-gradient-to-r transition-all duration-1000"
+                :class="toneOf(s.tone).bar"
+                :style="{ width: shown ? `${s.progress}%` : '0%' }"
+              />
+            </div>
+          </article>
+        </div>
       </div>
     </div>
   </section>
 </template>
 
 <style scoped>
-.cn-metric-card {
-    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%);
+.cn-metrics-strip {
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%);
+}
+
+.cn-metric-cell {
+    transition: opacity 0.5s ease, transform 0.5s ease;
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .cn-metric-card {
+    .cn-metrics-strip,
+    .cn-metric-cell {
         transition: none;
     }
 }

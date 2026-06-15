@@ -55,3 +55,10 @@ defineProps({
     <CongngheProjectDetailModal />
   </div>
 </template>
+
+<style>
+/* PNG thương hiệu xuất kèm nền đen — chỉ hiện họa tiết trên nền landing tối */
+.cn-brand-cutout {
+    mix-blend-mode: screen;
+}
+</style>

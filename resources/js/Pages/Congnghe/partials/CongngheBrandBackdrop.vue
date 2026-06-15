@@ -3,6 +3,7 @@
  * Lớp nền trang trí thương hiệu VAS — watermark kỳ lân / huy hiệu.
  */
 import { congngheBrand } from './congngheBrand.js';
+import CongngheBrandImage from './CongngheBrandImage.vue';
 defineProps({
     variant: {
         type: String,
@@ -26,11 +27,11 @@ defineProps({
     class="pointer-events-none absolute inset-0 overflow-hidden"
     aria-hidden="true"
   >
-    <img
+    <CongngheBrandImage
       v-if="variant === 'dragon' || variant === 'both'"
       :src="congngheBrand.dragonSilhouette"
       alt=""
-      class="absolute h-auto max-h-[min(520px,85vh)] w-auto max-w-[min(420px,70vw)] select-none object-contain"
+      class="absolute h-auto max-h-[min(520px,85vh)] w-auto max-w-[min(420px,70vw)] select-none"
       :class="[
         opacityClass,
         align === 'right' && 'right-0 top-1/2 -translate-y-1/2 translate-x-[18%]',
@@ -38,13 +39,12 @@ defineProps({
         align === 'center' && 'left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 scale-110',
       ]"
       loading="lazy"
-      decoding="async"
-    >
-    <img
+    />
+    <CongngheBrandImage
       v-if="variant === 'badge' || variant === 'both'"
       :src="congngheBrand.badgeCircle"
       alt=""
-      class="absolute h-48 w-48 select-none object-contain sm:h-64 sm:w-64"
+      class="absolute h-48 w-48 select-none sm:h-64 sm:w-64"
       :class="[
         opacityClass,
         align === 'left' && 'left-8 top-8',
@@ -52,7 +52,6 @@ defineProps({
         align === 'center' && 'left-1/2 top-8 -translate-x-1/2',
       ]"
       loading="lazy"
-      decoding="async"
-    >
+    />
   </div>
 </template>
