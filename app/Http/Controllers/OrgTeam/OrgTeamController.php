@@ -8,6 +8,7 @@ use App\Http\Requests\OrgTeam\UpdateOrgTeamRequest;
 use App\Http\Resources\OrgTeamRosterEntryResource;
 use App\Models\OrgTeam;
 use App\Support\Options;
+use App\Support\OrgTeam\OrgTeamOverviewBuilder;
 use App\Support\OrgTeam\OrgTeamRosterBuilder;
 use App\Support\OrgTeamTreeBuilder;
 use Illuminate\Http\RedirectResponse;
@@ -31,6 +32,7 @@ class OrgTeamController extends Controller
 
         return Inertia::render('OrgTeam/Index', [
             'trees' => OrgTeamTreeBuilder::forest(),
+            'overview' => OrgTeamOverviewBuilder::build(),
             'parentOptions' => $flatTeams->map(fn (OrgTeam $t) => [
                 'id' => $t->id,
                 'name' => $t->name,

@@ -30,7 +30,7 @@ trait PresentsEntities
     }
 
     /**
-     * @return array{id:int, name:string, avatar_path:string|null, code?:string, email?:string|null, role_title?:string|null}|null
+     * @return array{id:int, name:string, avatar_path:string|null, code?:string, email?:string|null, role_title?:string|null, is_active:bool}|null
      */
     protected function person(?Employee $employee): ?array
     {
@@ -45,6 +45,7 @@ trait PresentsEntities
             'code' => $employee->code,
             'email' => $employee->email,
             'role_title' => $employee->role_title,
+            'is_active' => (bool) $employee->is_active,
         ];
     }
 }

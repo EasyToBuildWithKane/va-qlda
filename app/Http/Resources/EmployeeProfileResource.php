@@ -122,13 +122,19 @@ class EmployeeProfileResource extends JsonResource
 
         return $this->resource->projects
             ->filter(fn ($p) => (bool) ($p->pivot->is_active ?? true))
+            ->merge(
+                $this->resource->relationLoaded('managedProjects')
+                    ? $this->resource->managedProjects
+                    : collect(),
+            )
+            ->unique('id')
             ->map(fn ($p) => [
                 'id' => $p->id,
                 'name' => $p->name,
                 'code' => $p->code,
                 'color' => $p->color,
-                'role' => $p->pivot->role,
-                'allocation' => $p->pivot->allocation,
+                'role' => $p->pivot->role ?? ($this->resource->id === $p->manager_id ? 'manager' : null),
+                'allocation' => $p->pivot->allocation ?? null,
             ])
             ->values()
             ->all();

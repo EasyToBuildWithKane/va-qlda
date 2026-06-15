@@ -40,6 +40,42 @@ class MemberProfileTest extends TestCase
             );
     }
 
+    public function test_member_directory_treats_inactive_pivot_as_not_participating(): void
+    {
+        $employee = Employee::factory()->create(['full_name' => 'Inactive Pivot']);
+        $project = Project::factory()->create(['code' => 'OFF-01']);
+        $project->members()->attach($employee->id, [
+            'role' => 'developer',
+            'is_active' => false,
+            'joined_at' => now()->toDateString(),
+        ]);
+
+        $this->actingAs(SystemAccount::factory()->role(SystemRole::Member)->create(), 'system')
+            ->get('/members?q=Inactive')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('members.data.0.projects_count', 0)
+            );
+    }
+
+    public function test_member_directory_includes_project_manager_without_pivot_row(): void
+    {
+        $employee = Employee::factory()->create(['full_name' => 'Quản lý Dự án']);
+        Project::factory()->create([
+            'name' => 'Dự án Beta',
+            'code' => 'DA-BETA',
+            'manager_id' => $employee->id,
+        ]);
+
+        $this->actingAs(SystemAccount::factory()->role(SystemRole::Member)->create(), 'system')
+            ->get('/members?q=Quản')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('members.data.0.projects_count', 1)
+                ->where('members.data.0.projects_preview.0.code', 'DA-BETA')
+            );
+    }
+
     public function test_member_directory_index_is_available_to_authenticated_users(): void
     {
         Employee::factory()->count(2)->create();

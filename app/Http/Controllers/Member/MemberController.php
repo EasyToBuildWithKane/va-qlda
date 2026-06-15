@@ -38,9 +38,9 @@ class MemberController extends Controller
                     ->tap(fn ($q) => Employee::applyActiveProjectPivotFilter($q))
                     ->select('projects.id', 'projects.name', 'projects.code', 'projects.color')
                     ->orderBy('projects.name'),
-            ])
-            ->withCount([
-                'projects as projects_count' => fn ($q) => Employee::applyActiveProjectPivotFilter($q),
+                'managedProjects' => fn ($q) => $q
+                    ->select('projects.id', 'projects.manager_id', 'projects.name', 'projects.code', 'projects.color')
+                    ->orderBy('projects.name'),
             ])
             ->orderBy('full_name');
 
@@ -56,6 +56,12 @@ class MemberController extends Controller
                             $pq2->where('projects.name', 'like', "%{$search}%")
                                 ->orWhere('projects.code', 'like', "%{$search}%");
                         });
+                    })
+                    ->orWhereHas('managedProjects', function ($mq) use ($search) {
+                        $mq->where(function ($mq2) use ($search) {
+                            $mq2->where('projects.name', 'like', "%{$search}%")
+                                ->orWhere('projects.code', 'like', "%{$search}%");
+                        });
                     });
             });
         }
@@ -69,9 +75,9 @@ class MemberController extends Controller
 
         $projectScope = $request->query('project');
         if ($projectScope === 'assigned') {
-            $query->whereHas('projects', fn ($q) => Employee::applyActiveProjectPivotFilter($q));
+            $query->participatingInProjects();
         } elseif ($projectScope === 'unassigned') {
-            $query->whereDoesntHave('projects', fn ($q) => Employee::applyActiveProjectPivotFilter($q));
+            $query->where('is_active', true)->notParticipatingInProjects();
         }
 
         $perPage = $request->integer('per_page', 12);
@@ -99,13 +105,11 @@ class MemberController extends Controller
             ->selectRaw('SUM(CASE WHEN is_active = 0 THEN 1 ELSE 0 END) as inactive')
             ->first();
 
-        $onProject = Employee::query()
-            ->whereHas('projects', fn ($q) => Employee::applyActiveProjectPivotFilter($q))
-            ->count();
+        $onProject = Employee::query()->participatingInProjects()->count();
 
         $noProject = Employee::query()
             ->where('is_active', true)
-            ->whereDoesntHave('projects', fn ($q) => Employee::applyActiveProjectPivotFilter($q))
+            ->notParticipatingInProjects()
             ->count();
 
         return [
@@ -126,7 +130,10 @@ class MemberController extends Controller
             'orgMemberships.team:id,name,leader_id',
             'orgMemberships.team.leader:id,full_name,avatar_path,code,email,role_title',
             'orgMemberships.section:id,org_team_id,title',
-            'projects',
+            'projects' => function ($q) {
+                Employee::applyActiveProjectPivotFilter($q);
+            },
+            'managedProjects',
         ]);
 
         return Inertia::render('Member/Show', [

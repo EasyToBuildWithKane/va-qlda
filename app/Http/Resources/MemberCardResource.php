@@ -22,6 +22,7 @@ class MemberCardResource extends JsonResource
         /** @var \App\Models\Employee $e */
         $e = $this->resource;
         $skills = is_array($e->skills) ? array_values(array_filter($e->skills, 'is_string')) : [];
+        $projects = $this->participatingProjectsForCard($e);
 
         return [
             'id' => $e->id,
@@ -34,15 +35,24 @@ class MemberCardResource extends JsonResource
             'seniority' => Seniority::for($e),
             'skills_preview' => array_slice($skills, 0, 5),
             'skills_total' => count($skills),
-            'projects_count' => (int) ($e->projects_count ?? 0),
-            'projects_preview' => $e->relationLoaded('projects')
-                ? $e->projects->map(fn ($p) => [
-                    'id' => $p->id,
-                    'name' => $p->name,
-                    'code' => $p->code,
-                    'color' => $p->color,
-                ])->values()->all()
-                : [],
+            'projects_count' => $projects->count(),
+            'projects_preview' => $projects->map(fn ($p) => [
+                'id' => $p->id,
+                'name' => $p->name,
+                'code' => $p->code,
+                'color' => $p->color,
+            ])->values()->all(),
         ];
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, \App\Models\Project>
+     */
+    private function participatingProjectsForCard(\App\Models\Employee $e): \Illuminate\Support\Collection
+    {
+        $pivot = $e->relationLoaded('projects') ? $e->projects : collect();
+        $managed = $e->relationLoaded('managedProjects') ? $e->managedProjects : collect();
+
+        return $pivot->merge($managed)->unique('id')->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)->values();
     }
 }

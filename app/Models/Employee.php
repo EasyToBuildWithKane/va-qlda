@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -64,13 +65,46 @@ class Employee extends Model
     }
 
     /**
-     * Limit a `projects()` relation query to active pivot rows (member profile parity).
+     * Projects this person manages (may not have a project_member pivot row).
+     */
+    public function managedProjects(): HasMany
+    {
+        return $this->hasMany(Project::class, 'manager_id');
+    }
+
+    /**
+     * Pivot rows that count as active membership (null is_active = active, same as profile).
      *
      * @param  \Illuminate\Database\Eloquent\Relations\BelongsToMany|\Illuminate\Database\Eloquent\Builder  $query
      */
     public static function applyActiveProjectPivotFilter($query): void
     {
-        $query->where('project_member.is_active', true);
+        $query->where(function ($q) {
+            $q->where('project_member.is_active', true)
+                ->orWhereNull('project_member.is_active');
+        });
+    }
+
+    /**
+     * On at least one project via pivot and/or as project manager.
+     */
+    public function scopeParticipatingInProjects(Builder $query): void
+    {
+        $query->where(function ($q) {
+            $q->whereHas('projects', fn ($pq) => static::applyActiveProjectPivotFilter($pq))
+                ->orWhereHas('managedProjects');
+        });
+    }
+
+    /**
+     * No active pivot membership and not listed as project manager.
+     */
+    public function scopeNotParticipatingInProjects(Builder $query): void
+    {
+        $query->where(function ($q) {
+            $q->whereDoesntHave('projects', fn ($pq) => static::applyActiveProjectPivotFilter($pq))
+                ->whereDoesntHave('managedProjects');
+        });
     }
 
     public function assignedTasks(): HasMany
