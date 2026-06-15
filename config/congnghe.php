@@ -324,11 +324,12 @@ return [
             'brand_tagline' => 'Kiến tạo nền tảng số & AI cho toàn hệ thống.',
             'brand_desc' => 'Hạ tầng dữ liệu, sản phẩm phần mềm và trí tuệ nhân tạo — giải pháp thật, đo lường được.',
             'explore_links' => [
-                ['label' => 'Giới thiệu', 'anchor' => '#gioi-thieu'],
-                ['label' => 'Lộ trình 2026–2027', 'anchor' => '#lo-trinh'],
-                ['label' => 'Hệ sinh thái sản phẩm', 'anchor' => '#san-pham'],
-                ['label' => 'Sơ đồ tổ chức', 'anchor' => '#to-chuc'],
-                ['label' => 'Dự án triển khai', 'anchor' => '#du-an'],
+                ['label' => 'Đề xuất phần mềm', 'href' => '/congnghe/de-xuat'],
+                ['label' => 'Giới thiệu', 'href' => '#gioi-thieu'],
+                ['label' => 'Lộ trình 2026–2027', 'href' => '#lo-trinh'],
+                ['label' => 'Hệ sinh thái sản phẩm', 'href' => '#san-pham'],
+                ['label' => 'Sơ đồ tổ chức', 'href' => '#to-chuc'],
+                ['label' => 'Dự án triển khai', 'href' => '#du-an'],
             ],
             'contact_links' => [
                 ['label' => 'phongcongnghe@vaschools.edu.vn', 'href' => 'mailto:phongcongnghe@vaschools.edu.vn'],

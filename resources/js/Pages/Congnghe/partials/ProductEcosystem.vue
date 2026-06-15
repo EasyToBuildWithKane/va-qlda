@@ -6,10 +6,13 @@ import { useInView, prefersReducedMotionNow } from './motion.js';
 import { openCongngheProject } from './useCongngheProjectModal.js';
 
 const props = defineProps({
+    content: { type: Object, default: () => ({}) },
     products: { type: Array, default: () => [] },
 });
 
 const { target, shown: sectionVisible } = useInView({ threshold: 0.1 });
+
+const heading = computed(() => props.content?.heading ?? {});
 
 const trackRef = ref(null);
 const activeIndex = ref(0);
@@ -158,9 +161,9 @@ onBeforeUnmount(() => {
       >
         <SectionHeading
           class="min-w-0 max-w-2xl flex-1"
-          eyebrow="Hệ sinh thái sản phẩm"
-          title="Những nền tảng đã hoàn thành"
-          subtitle="Thư viện sản phẩm nghiệm thu — lướt ngang để duyệt toàn bộ; bấm thẻ để xem mô tả và ảnh (khác mục hành trình theo giai đoạn bên dưới)."
+          :eyebrow="heading.eyebrow"
+          :title="heading.title"
+          :subtitle="heading.subtitle"
         />
         <div
           v-if="slideCount"

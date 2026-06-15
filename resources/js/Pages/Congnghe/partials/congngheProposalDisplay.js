@@ -89,6 +89,10 @@ export function proposalStatusLabel(row) {
     if (label != null && String(label).trim() !== '') {
         return String(label).trim();
     }
+    const raw = row?.status?.value ?? row?.status;
+    if (raw != null && String(raw).trim() !== '') {
+        return String(raw).trim();
+    }
     return PROPOSAL_EMPTY.status;
 }
 

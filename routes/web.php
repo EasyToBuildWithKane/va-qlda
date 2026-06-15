@@ -15,6 +15,7 @@ use App\Http\Controllers\Coaching\CoachingCourseController;
 use App\Http\Controllers\Coaching\CoachingDashboardController;
 use App\Http\Controllers\Coaching\CoachingSessionController;
 use App\Http\Controllers\Comment\CommentController;
+use App\Http\Controllers\Congnghe\CongngheAdminController;
 use App\Http\Controllers\Congnghe\CongngheController;
 use App\Http\Controllers\Congnghe\CongngheSoftwareProposalAttachmentController;
 use App\Http\Controllers\Congnghe\CongngheSoftwareProposalController;
@@ -85,6 +86,14 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictCoachingOnlyUsers::class
         Route::put('/{proposal}', [CongngheSoftwareProposalManagementController::class, 'update'])->name('update');
         Route::get('/{proposal}/attachments/{attachment}/file', [CongngheSoftwareProposalAttachmentController::class, 'file'])
             ->name('attachments.file');
+    });
+
+    // Quản trị nội dung trang /congnghe (admin-only — gated by policy in controller).
+    Route::prefix('congnghe/quan-tri')->name('congnghe.admin.')->group(function () {
+        Route::get('/', [CongngheAdminController::class, 'index'])->name('index');
+        Route::put('/order', [CongngheAdminController::class, 'reorder'])->name('reorder');
+        Route::put('/sections/{section}', [CongngheAdminController::class, 'update'])->name('update');
+        Route::post('/sections/{section}/reset', [CongngheAdminController::class, 'reset'])->name('reset');
     });
 
     // Notifications

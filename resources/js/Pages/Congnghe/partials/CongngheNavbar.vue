@@ -9,6 +9,10 @@ import CongngheBrandImage from './CongngheBrandImage.vue';
 
 const page = usePage();
 
+const props = defineProps({
+    content: { type: Object, default: () => ({}) },
+});
+
 const onLanding = computed(() => {
     const path = page.url.split('?')[0].replace(/\/$/, '') || '/';
     return path === '/congnghe';
@@ -38,14 +42,12 @@ const userRole = computed(() => {
     return role ?? '';
 });
 
-const links = [
-    { id: 'gioi-thieu', label: 'Giới thiệu' },
-    { id: 'thanh-tuu', label: 'Thành tựu' },
-    { id: 'san-pham', label: 'Sản phẩm' },
-    { id: 'to-chuc', label: 'Tổ chức' },
-    { id: 'du-an', label: 'Dự án' },
-    { id: 'lo-trinh', label: 'Lộ trình' },
-];
+const brandName = computed(() => props.content?.brand_name ?? 'Phòng Công Nghệ');
+const brandTagline = computed(() => props.content?.brand_tagline ?? '');
+const links = computed(() => (props.content?.links ?? []).map((l) => ({
+    id: String(l.anchor ?? '').replace(/^#/, ''),
+    label: l.label,
+})));
 
 const scrolled = ref(false);
 const open = ref(false);
@@ -98,7 +100,7 @@ onMounted(() => {
             },
             { rootMargin: '-42% 0px -48% 0px', threshold: [0, 0.15, 0.35, 0.55, 0.75] },
         );
-        links.forEach((l) => {
+        links.value.forEach((l) => {
             const el = document.getElementById(l.id);
             if (el) {
                 spy.observe(el);
@@ -170,10 +172,13 @@ const navPadClass = computed(() => (scrolled.value ? 'py-2.5 sm:py-3' : 'py-3.5 
         />
         <span class="min-w-0 flex flex-col leading-tight">
           <span class="truncate font-display text-sm font-bold text-white sm:text-base md:text-[1.05rem]">
-            Phòng Công Nghệ
+            {{ brandName }}
           </span>
-          <span class="hidden font-mono text-[10px] tracking-[0.14em] text-cyan-200/45 sm:block md:text-[11px]">
-            VAS · TECH PORTAL
+          <span
+            v-if="brandTagline"
+            class="hidden font-mono text-[10px] tracking-[0.14em] text-cyan-200/45 sm:block md:text-[11px]"
+          >
+            {{ brandTagline }}
           </span>
         </span>
       </a>

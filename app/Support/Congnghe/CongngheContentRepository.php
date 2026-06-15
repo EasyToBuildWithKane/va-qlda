@@ -113,10 +113,14 @@ class CongngheContentRepository
      */
     public function save(string $key, array $content, bool $isVisible, ?int $userId = null): void
     {
+        // Nếu nội dung trùng default thì lưu null — chỉ giữ cờ hiển thị/vị trí,
+        // section không bị đánh dấu "đã ghi đè" và vẫn nhận default mới về sau.
+        $storeContent = $content == CongngheContentSchema::default($key) ? null : $content;
+
         CongngheSection::query()->updateOrCreate(
             ['key' => $key],
             [
-                'content' => $content,
+                'content' => $storeContent,
                 'is_visible' => $isVisible,
                 'position' => $this->overrides()[$key]['position'] ?? CongngheContentSchema::defaultPosition($key),
                 'updated_by' => $userId,

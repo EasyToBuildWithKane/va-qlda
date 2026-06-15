@@ -19,13 +19,24 @@ provide('notifications', notificationCenter);
 
 const { flush } = defineProps({ flush: Boolean });
 const page = usePage();
-const flash = computed(() => page.props.flash ?? {});
 
 const toast = useToast();
-watch(flash, (f) => {
-    if (f.success) toast.success(f.success);
-    if (f.error) toast.error(f.error);
-}, { immediate: true, deep: true });
+watch(
+    () => page.props.flash?.success,
+    (success, prevSuccess) => {
+        if (success && success !== prevSuccess) {
+            toast.success(success);
+        }
+    },
+);
+watch(
+    () => page.props.flash?.error,
+    (error, prevError) => {
+        if (error && error !== prevError) {
+            toast.error(error);
+        }
+    },
+);
 
 const sidebar = useAppSidebar();
 const {

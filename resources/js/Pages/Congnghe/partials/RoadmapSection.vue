@@ -1,4 +1,5 @@
 <script setup>
+import { computed } from 'vue';
 import SectionHeading from './SectionHeading.vue';
 import GlassCard from './GlassCard.vue';
 import { useInView } from './motion.js';
@@ -6,38 +7,16 @@ import { congngheBrand } from './congngheBrand.js';
 import CongngheBrandBackdrop from './CongngheBrandBackdrop.vue';
 import CongngheBrandImage from './CongngheBrandImage.vue';
 
+const props = defineProps({
+    content: { type: Object, default: () => ({}) },
+});
+
 const { target, shown } = useInView({ threshold: 0.1 });
 
-const milestones = [
-    {
-        period: 'Quý III · 2026',
-        title: 'Hợp nhất nền tảng dữ liệu',
-        body: 'Đồng bộ dữ liệu nhân sự, dự án và vận hành về một nguồn duy nhất.',
-        state: 'Đang triển khai',
-        live: true,
-    },
-    {
-        period: 'Quý IV · 2026',
-        title: 'Trợ lý AI nội bộ giai đoạn 1',
-        body: 'Tích hợp AI vào báo cáo ngày, tri thức và hỗ trợ tra cứu.',
-        state: 'Sắp tới',
-        live: false,
-    },
-    {
-        period: 'Quý I · 2027',
-        title: 'Cổng dịch vụ số toàn trường',
-        body: 'Mở rộng nền tảng phục vụ giáo viên và các phòng ban khác.',
-        state: 'Kế hoạch',
-        live: false,
-    },
-    {
-        period: 'Quý II · 2027',
-        title: 'Phân tích dự đoán',
-        body: 'Mô hình dự báo hỗ trợ ra quyết định vận hành dựa trên dữ liệu.',
-        state: 'Kế hoạch',
-        live: false,
-    },
-];
+const heading = computed(() => props.content?.heading ?? {});
+const milestones = computed(() => props.content?.milestones ?? []);
+const guideLabel = computed(() => props.content?.guide_label ?? '');
+const companionNote = computed(() => props.content?.companion_note ?? '');
 </script>
 
 <template>
@@ -55,9 +34,9 @@ const milestones = [
 
     <div class="relative mx-auto max-w-7xl px-5 sm:px-8">
       <SectionHeading
-        eyebrow="Lộ trình 2026 — 2027"
-        title="Chặng đường phía trước"
-        subtitle="Định hướng phát triển sản phẩm và năng lực công nghệ trong 18 tháng tới — đồng hành cùng hệ sinh thái VAS."
+        :eyebrow="heading.eyebrow"
+        :title="heading.title"
+        :subtitle="heading.subtitle"
       />
 
       <div class="mt-10 grid gap-10 lg:mt-12 lg:grid-cols-2 lg:items-center lg:gap-12 xl:gap-16">
@@ -93,10 +72,14 @@ const milestones = [
                 class="p-6"
               >
                 <div class="flex flex-wrap items-center justify-between gap-2">
-                  <p class="font-mono text-[12px] font-semibold uppercase tracking-wider text-brand-300">
+                  <p
+                    v-if="m.period"
+                    class="font-mono text-[12px] font-semibold uppercase tracking-wider text-brand-300"
+                  >
                     {{ m.period }}
                   </p>
                   <span
+                    v-if="m.state"
                     class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium"
                     :class="m.live ? 'border-emerald-400/20 bg-emerald-400/10 text-emerald-300' : 'border-white/10 bg-white/5 text-white/55'"
                   >
@@ -125,8 +108,11 @@ const milestones = [
           style="transition: opacity 700ms, transform 700ms"
         >
           <div class="w-full max-w-md rounded-2xl border border-brand/20 bg-gradient-to-b from-brand/15 to-white/[0.03] p-5 backdrop-blur-sm lg:max-w-none lg:p-8">
-            <p class="text-center font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-brand-300 sm:text-[11px]">
-              Người dẫn đường
+            <p
+              v-if="guideLabel"
+              class="text-center font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-brand-300 sm:text-[11px]"
+            >
+              {{ guideLabel }}
             </p>
             <CongngheBrandImage
               :src="congngheBrand.mascotVaJacket"
@@ -139,6 +125,7 @@ const milestones = [
       </div>
 
       <div
+        v-if="companionNote"
         class="mt-10 flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-5 sm:px-6 lg:hidden"
         :class="shown ? 'opacity-100' : 'opacity-0'"
         style="transition: opacity 700ms 400ms"
@@ -150,7 +137,7 @@ const milestones = [
           loading="lazy"
         />
         <p class="text-sm leading-relaxed text-white/55">
-          Linh vật VAS đồng hành cùng từng mốc lộ trình.
+          {{ companionNote }}
         </p>
       </div>
     </div>

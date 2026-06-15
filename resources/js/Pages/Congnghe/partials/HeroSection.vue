@@ -1,5 +1,5 @@
 <script setup>
-import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import MagneticButton from './MagneticButton.vue';
 import CountStat from './CountStat.vue';
 import { hasFinePointer, prefersReducedMotionNow } from './motion.js';
@@ -7,7 +7,8 @@ import { congngheBrand } from './congngheBrand.js';
 import CongngheBrandBackdrop from './CongngheBrandBackdrop.vue';
 import CongngheMascotAnimated from './CongngheMascotAnimated.vue';
 
-defineProps({
+const props = defineProps({
+    content: { type: Object, default: () => ({}) },
     metrics: { type: Object, default: () => ({}) },
 });
 
@@ -32,11 +33,13 @@ onMounted(() => {
 });
 onBeforeUnmount(() => window.removeEventListener('mousemove', onMove));
 
-const highlights = [
-    { key: 'projects', label: 'Dự án', suffix: '+' },
-    { key: 'orgPeople', label: 'Nhân sự sơ đồ', suffix: '' },
-    { key: 'departments', label: 'Phòng ban', suffix: '' },
-];
+const titlePrefix = computed(() => props.content?.title_prefix ?? '');
+const titleHighlight = computed(() => props.content?.title_highlight ?? '');
+const titleSuffix = computed(() => props.content?.title_suffix ?? '');
+const description = computed(() => props.content?.description ?? '');
+const ctaPrimary = computed(() => props.content?.cta_primary ?? {});
+const ctaSecondary = computed(() => props.content?.cta_secondary ?? {});
+const highlights = computed(() => props.content?.highlights ?? []);
 </script>
 
 <template>
@@ -58,23 +61,25 @@ const highlights = [
       <!-- Cột trái: copy + CTA + KPI -->
       <div class="flex flex-col items-center text-center lg:items-start lg:text-left">
         <h1 class="font-display text-[2.35rem] font-extrabold leading-[1.06] tracking-tight text-white sm:text-5xl lg:text-[3rem] xl:text-[3.25rem]">
-          Kiến tạo
-          <span class="bg-gradient-to-r from-cyan-200 via-brand-200 to-violet-300 bg-clip-text text-transparent">nền tảng số</span>
-          cho giáo dục tương lai
+          {{ titlePrefix }}
+          <span
+            v-if="titleHighlight"
+            class="bg-gradient-to-r from-cyan-200 via-brand-200 to-violet-300 bg-clip-text text-transparent"
+          >{{ titleHighlight }}</span>
+          {{ titleSuffix }}
         </h1>
 
         <p class="mt-5 max-w-xl text-base leading-relaxed text-white/60 sm:text-lg">
-          Phòng Công Nghệ xây dựng hạ tầng dữ liệu, sản phẩm phần mềm và năng lực AI
-          phục vụ toàn hệ thống — biến mỗi quy trình thành sản phẩm thật, vận hành và
-          đo lường được.
+          {{ description }}
         </p>
 
         <div class="mt-8 flex flex-wrap items-center justify-center gap-3 lg:justify-start">
           <MagneticButton
-            href="#san-pham"
+            v-if="ctaPrimary.label"
+            :href="ctaPrimary.anchor || '#'"
             variant="primary"
           >
-            Khám phá hệ sinh thái
+            {{ ctaPrimary.label }}
             <svg
               width="16"
               height="16"
@@ -85,10 +90,11 @@ const highlights = [
             ><path d="M5 12h14M13 6l6 6-6 6" /></svg>
           </MagneticButton>
           <MagneticButton
-            href="#to-chuc"
+            v-if="ctaSecondary.label"
+            :href="ctaSecondary.anchor || '#'"
             variant="ghost"
           >
-            Đội ngũ &amp; tổ chức
+            {{ ctaSecondary.label }}
           </MagneticButton>
         </div>
 

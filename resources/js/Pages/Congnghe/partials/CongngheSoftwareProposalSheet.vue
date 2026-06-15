@@ -33,6 +33,8 @@ const statusTone = computed(() => {
     return STATUS_TONE[v] ?? 'slate';
 });
 
+const statusLabel = computed(() => proposalStatusLabel(props.proposal));
+
 const referenceLabel = computed(() => referenceCodeLabel(props.proposal.reference_code));
 
 const activePreview = computed(() => {
@@ -82,7 +84,7 @@ function previewKind(file) {
 
 <template>
   <article
-    class="cn-proposal-sheet mx-auto max-w-4xl"
+    class="cn-proposal-sheet w-full min-w-0"
     aria-label="Phiếu đề xuất giải pháp phần mềm"
   >
     <div class="cn-proposal-sheet__paper card overflow-hidden shadow-sm">
@@ -104,12 +106,10 @@ function previewKind(file) {
               Trạng thái
             </p>
             <Badge
-              :tone="statusTone"
-              size="sm"
+              :label="statusLabel"
+              :color="statusTone"
               class="mt-2"
-            >
-              {{ proposalStatusLabel(proposal) }}
-            </Badge>
+            />
           </div>
         </div>
       </header>

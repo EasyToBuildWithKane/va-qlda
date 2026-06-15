@@ -11,6 +11,7 @@ import {
 import { useInView } from './motion.js';
 
 const props = defineProps({
+    content: { type: Object, default: () => ({}) },
     overview: { type: Object, default: () => ({}) },
     forest: { type: Array, default: () => [] },
     people: { type: Object, default: () => ({}) },
@@ -18,6 +19,8 @@ const props = defineProps({
 
 const roots = computed(() => props.forest ?? []);
 const peopleTotal = computed(() => Number(props.overview?.people_total ?? 0));
+const heading = computed(() => props.content?.heading ?? {});
+const statLabel = computed(() => props.content?.stat_label ?? 'Nhân sự trên sơ đồ');
 
 const { target, shown: sectionVisible } = useInView({ threshold: 0.18 });
 
@@ -126,9 +129,9 @@ onBeforeUnmount(() => {
       >
         <SectionHeading
           class="min-w-0 max-w-3xl"
-          eyebrow="Đội ngũ · Sơ đồ tổ chức"
-          title="Cấu trúc vận hành"
-          subtitle="Quản lý trên cùng — Trưởng ban / Phó phòng theo hàng; nhánh chuyên môn có Trưởng nhóm."
+          :eyebrow="heading.eyebrow"
+          :title="heading.title"
+          :subtitle="heading.subtitle"
         />
 
         <div class="inline-flex shrink-0 items-center gap-3 rounded-xl border border-white/12 bg-white/[0.06] px-5 py-3.5 text-left backdrop-blur">
@@ -157,7 +160,7 @@ onBeforeUnmount(() => {
               />
             </p>
             <p class="mt-1 font-mono text-[10px] uppercase tracking-wider text-white/55">
-              Nhân sự trên sơ đồ
+              {{ statLabel }}
             </p>
           </div>
         </div>
@@ -165,9 +168,9 @@ onBeforeUnmount(() => {
 
       <template v-else>
         <SectionHeading
-          eyebrow="Đội ngũ · Sơ đồ tổ chức"
-          title="Cấu trúc vận hành"
-          subtitle="Quản lý trên cùng — Trưởng ban / Phó phòng theo hàng; nhánh chuyên môn có Trưởng nhóm."
+          :eyebrow="heading.eyebrow"
+          :title="heading.title"
+          :subtitle="heading.subtitle"
         />
         <p class="mt-8 rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-6 py-12 text-center text-sm text-white/45">
           Sơ đồ tổ chức chưa được thiết lập.

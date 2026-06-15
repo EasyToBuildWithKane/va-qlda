@@ -1,4 +1,5 @@
 <script setup>
+import { computed, inject } from 'vue';
 import SectionHeading from './SectionHeading.vue';
 import GlassCard from './GlassCard.vue';
 import CongngheMascotAnimated from './CongngheMascotAnimated.vue';
@@ -6,31 +7,20 @@ import { useInView } from './motion.js';
 import { congngheBrand } from './congngheBrand.js';
 import CongngheBrandBackdrop from './CongngheBrandBackdrop.vue';
 
+const props = defineProps({
+    content: { type: Object, default: () => ({}) },
+});
+
 const { target, shown } = useInView();
 
-const pillars = [
-    {
-        key: 'mission',
-        tag: 'Sứ mệnh',
-        title: 'Đưa công nghệ vào mọi quy trình giáo dục',
-        body: 'Số hoá và tự động hoá các nghiệp vụ cốt lõi, để giáo viên và đội ngũ vận hành tập trung vào điều quan trọng nhất: người học.',
-        icon: 'M12 2 2 7l10 5 10-5-10-5ZM2 17l10 5 10-5M2 12l10 5 10-5',
-    },
-    {
-        key: 'vision',
-        tag: 'Tầm nhìn',
-        title: 'Nền tảng dữ liệu hợp nhất cho toàn hệ thống',
-        body: 'Trở thành trung tâm công nghệ dẫn dắt chuyển đổi số của nhà trường, nơi mọi quyết định đều dựa trên dữ liệu thật, tức thời.',
-        icon: 'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z',
-    },
-    {
-        key: 'values',
-        tag: 'Giá trị',
-        title: 'Sản phẩm thật · Đo lường được · Tử tế',
-        body: 'Chúng tôi làm ra thứ dùng được mỗi ngày, đo bằng kết quả chứ không bằng lời hứa, và luôn đặt trải nghiệm con người làm trọng tâm.',
-        icon: 'M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78Z',
-    },
-];
+const icons = inject('congngheIcons', {});
+const heading = computed(() => props.content?.heading ?? {});
+const note = computed(() => props.content?.note ?? '');
+const pillars = computed(() => props.content?.pillars ?? []);
+
+function iconPath(key) {
+    return icons[key] ?? '';
+}
 </script>
 
 <template>
@@ -57,12 +47,13 @@ const pillars = [
           style="transition: opacity 0.7s ease, transform 0.7s ease"
         >
           <SectionHeading
-            eyebrow="Giới thiệu"
-            title="Kim chỉ nam cho mọi hoạt động"
-            subtitle="Đơn vị kiến tạo hạ tầng số, sản phẩm phần mềm và năng lực AI cho toàn bộ hệ thống Vietnam America Schools."
+            :eyebrow="heading.eyebrow"
+            :title="heading.title"
+            :subtitle="heading.subtitle"
           />
 
           <div
+            v-if="note"
             class="mt-8 hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.06] to-brand/[0.08] p-5 backdrop-blur-md lg:block lg:mt-10 lg:p-6"
           >
             <div class="flex flex-col items-center gap-4 sm:flex-row sm:items-center md:flex-col md:items-center lg:flex-row lg:items-center">
@@ -72,7 +63,7 @@ const pillars = [
                 variant="inline"
               />
               <p class="text-center text-sm leading-relaxed text-white/60 sm:text-left md:text-center lg:text-left">
-                Trợ lý góc màn hình sẽ gợi ý theo từng mục bạn đang xem — thử cuộn trang hoặc bấm vào linh vật nhé.
+                {{ note }}
               </p>
             </div>
           </div>
@@ -81,7 +72,7 @@ const pillars = [
         <div class="grid gap-5 sm:gap-6 md:grid-cols-2 lg:col-span-7 lg:grid-cols-1 xl:col-span-8 xl:grid-cols-3 xl:gap-6">
           <GlassCard
             v-for="(p, i) in pillars"
-            :key="p.key"
+            :key="p.title"
             tilt
             :padded="false"
             class="p-6 transition-all duration-700 sm:p-7 md:col-span-2 md:last:col-span-2 xl:col-span-1 xl:last:col-span-1"
@@ -98,9 +89,12 @@ const pillars = [
                 stroke="currentColor"
                 stroke-width="1.7"
                 stroke-linejoin="round"
-              ><path :d="p.icon" /></svg>
+              ><path :d="iconPath(p.icon)" /></svg>
             </div>
-            <p class="mt-5 font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-white/45">
+            <p
+              v-if="p.tag"
+              class="mt-5 font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-white/45"
+            >
               {{ p.tag }}
             </p>
             <h3 class="mt-1.5 font-display text-lg font-bold text-white sm:text-xl">

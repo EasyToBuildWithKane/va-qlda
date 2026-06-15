@@ -1,24 +1,22 @@
 <script setup>
+import { computed } from 'vue';
 import { congngheBrand } from './congngheBrand.js';
 import CongngheBrandImage from './CongngheBrandImage.vue';
+
+const props = defineProps({
+    content: { type: Object, default: () => ({}) },
+});
 
 const colHeadingClass =
     'min-h-[2.75rem] font-mono text-[11px] font-semibold uppercase leading-snug tracking-[0.18em] text-cyan-200/70';
 
-const exploreLinks = [
-    { href: '/congnghe/de-xuat', label: 'Đề xuất phần mềm' },
-    { href: '#gioi-thieu', label: 'Giới thiệu' },
-    { href: '#lo-trinh', label: 'Lộ trình 2026–2027' },
-    { href: '#san-pham', label: 'Hệ sinh thái sản phẩm' },
-    { href: '#to-chuc', label: 'Sơ đồ tổ chức' },
-    { href: '#du-an', label: 'Dự án triển khai' },
-];
-
-const contactLinks = [
-    { href: 'mailto:phongcongnghe@vaschools.edu.vn', label: 'phongcongnghe@vaschools.edu.vn' },
-    { href: '/members', label: 'Danh bạ nội bộ' },
-    { href: '#to-chuc', label: 'Liên hệ theo sơ đồ tổ chức' },
-];
+const brandTitle = computed(() => props.content?.brand_title ?? 'Vietnam America Schools');
+const brandTagline = computed(() => props.content?.brand_tagline ?? '');
+const brandDesc = computed(() => props.content?.brand_desc ?? '');
+const exploreLinks = computed(() => props.content?.explore_links ?? []);
+const contactLinks = computed(() => props.content?.contact_links ?? []);
+const copyright = computed(() => props.content?.copyright ?? '');
+const portalLabel = computed(() => props.content?.portal_label ?? '');
 
 const year = new Date().getFullYear();
 </script>
@@ -43,18 +41,24 @@ const year = new Date().getFullYear();
           <div class="mt-4 flex flex-col items-center gap-3 sm:items-start">
             <CongngheBrandImage
               :src="congngheBrand.wordmarkStacked"
-              alt="Vietnam America Schools"
+              :alt="brandTitle"
               class="h-auto w-52 shrink-0 sm:w-60"
               loading="lazy"
             />
             <div class="min-w-0 w-full">
-              <p class="text-sm text-white/65">
-                Kiến tạo nền tảng số &amp; AI cho toàn hệ thống.
+              <p
+                v-if="brandTagline"
+                class="text-sm text-white/65"
+              >
+                {{ brandTagline }}
               </p>
             </div>
           </div>
-          <p class="mt-4 text-sm leading-relaxed text-white/55">
-            Hạ tầng dữ liệu, sản phẩm phần mềm và trí tuệ nhân tạo — giải pháp thật, đo lường được.
+          <p
+            v-if="brandDesc"
+            class="mt-4 text-sm leading-relaxed text-white/55"
+          >
+            {{ brandDesc }}
           </p>
         </div>
 
@@ -119,11 +123,11 @@ const year = new Date().getFullYear();
             loading="lazy"
           />
           <p class="max-w-xl text-center text-[12.5px] leading-relaxed text-white/50 sm:text-left">
-            Bản quyền thuộc về Phòng Công Nghệ — Hệ thống Trường Quốc tế Việt Mỹ
+            {{ copyright }}
           </p>
         </div>
         <p class="shrink-0 text-center text-[12.5px] text-white/40 sm:text-right">
-          Cổng thông tin nội bộ · {{ year }}
+          {{ portalLabel }} · {{ year }}
         </p>
       </div>
     </div>

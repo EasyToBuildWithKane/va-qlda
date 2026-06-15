@@ -113,7 +113,6 @@ class Navigation
 
             // ──────────────────────────────────────────────────────────────
             // 2. BÁO CÁO NGÀY — daily report write → review → approve loop
-            //    Weekly evaluation follows the same approval chain.
             // ──────────────────────────────────────────────────────────────
             [
                 'key' => 'daily',
@@ -138,13 +137,6 @@ class Navigation
                         'icon' => 'review-reports',
                         'href' => '/daily-reports/review',
                         'status' => 'live',
-                        'roles' => ['admin', 'lead'],
-                    ],
-                    [
-                        'label' => 'Đánh giá tuần',
-                        'icon' => 'weekly',
-                        'href' => '#',
-                        'status' => 'planned',
                         'roles' => ['admin', 'lead'],
                     ],
                 ],
@@ -172,13 +164,6 @@ class Navigation
                         'href' => '/blockers',
                         'status' => 'live',
                     ],
-                    [
-                        'label' => 'Danh mục tổng hợp',
-                        'icon' => 'portfolio',
-                        'href' => '#',
-                        'status' => 'planned',
-                        'roles' => ['admin', 'lead'],
-                    ],
                 ],
             ],
 
@@ -196,18 +181,11 @@ class Navigation
                         'href' => '/feedback',
                         'status' => 'live',
                     ],
-                    [
-                        'label' => 'Hạng mục hành động',
-                        'icon' => 'action-items',
-                        'href' => '#',
-                        'status' => 'planned',
-                    ],
                 ],
             ],
 
             // ──────────────────────────────────────────────────────────────
-            // 5. NHÂN SỰ & HIỆU SUẤT — org structure, members, evaluations
-            //    Departments (live) + member directory, team eval, leaderboard.
+            // 5. NHÂN SỰ & HIỆU SUẤT — org structure, members
             // ──────────────────────────────────────────────────────────────
             [
                 'key' => 'people',
@@ -239,19 +217,6 @@ class Navigation
                         'icon' => 'member-profiles',
                         'href' => '/members',
                         'status' => 'live',
-                    ],
-                    [
-                        'label' => 'Đánh giá nhóm',
-                        'icon' => 'team-eval',
-                        'href' => '#',
-                        'status' => 'planned',
-                        'roles' => ['admin', 'lead'],
-                    ],
-                    [
-                        'label' => 'Bảng xếp hạng',
-                        'icon' => 'leaderboard',
-                        'href' => '#',
-                        'status' => 'planned',
                     ],
                 ],
             ],
@@ -365,6 +330,13 @@ class Navigation
                 'heading' => 'Quản trị',
                 'icon' => 'settings',
                 'items' => [
+                    [
+                        'label' => 'Trang Công Nghệ',
+                        'icon' => 'rocket',
+                        'href' => '/congnghe/quan-tri',
+                        'status' => 'live',
+                        'roles' => ['admin'],
+                    ],
                     [
                         'label' => 'Đề xuất phần mềm',
                         'icon' => 'template',

@@ -5,10 +5,14 @@ import CountStat from './CountStat.vue';
 import { useInView } from './motion.js';
 
 const props = defineProps({
+    content: { type: Object, default: () => ({}) },
     metrics: { type: Object, default: () => ({}) },
 });
 
 const { target, shown } = useInView({ threshold: 0.2 });
+
+const heading = computed(() => props.content?.heading ?? {});
+const liveBadge = computed(() => props.content?.live_badge ?? '');
 
 const stats = computed(() => {
     const m = props.metrics ?? {};
@@ -16,56 +20,19 @@ const stats = computed(() => {
     const done = Number(m.doneTasks ?? 0);
     const taskPct = tasks > 0 ? Math.round((done / tasks) * 100) : 0;
 
-    return [
-        {
-            key: 'projects',
-            label: 'Dự án triển khai',
-            suffix: '+',
-            tone: 'brand',
-            sub: 'Đang & hoàn thành',
-            progress: null,
-        },
-        {
-            key: 'orgPeople',
-            label: 'Nhân sự sơ đồ',
-            suffix: '',
-            tone: 'cyan',
-            sub: 'Phòng Công nghệ',
-            progress: null,
-        },
-        {
-            key: 'doneTasks',
-            label: 'Task hoàn thành',
-            suffix: '+',
-            tone: 'emerald',
-            sub: tasks ? `${taskPct}% tổng task` : 'Theo QLDA',
-            progress: taskPct,
-        },
-        {
-            key: 'departments',
-            label: 'Phòng ban',
-            suffix: '',
-            tone: 'violet',
-            sub: 'Liên phòng ban',
-            progress: null,
-        },
-        {
-            key: 'orgTeams',
-            label: 'Nhóm tổ chức',
-            suffix: '',
-            tone: 'amber',
-            sub: 'Nhánh & đơn vị',
-            progress: null,
-        },
-        {
-            key: 'aiAccounts',
-            label: 'Tài khoản AI',
-            suffix: '',
-            tone: 'rose',
-            sub: 'Quản lý tập trung',
-            progress: null,
-        },
-    ];
+    return (props.content?.stats ?? []).map((s) => {
+        // doneTasks hiển thị % tự tính theo dữ liệu thật khi có công việc.
+        const isTaskPct = s.key === 'doneTasks';
+
+        return {
+            key: s.key,
+            label: s.label,
+            suffix: s.suffix ?? '',
+            tone: s.tone ?? 'brand',
+            sub: isTaskPct && tasks ? `${taskPct}% tổng task` : (s.sub ?? ''),
+            progress: isTaskPct ? taskPct : null,
+        };
+    });
 });
 
 const toneMap = {
@@ -123,13 +90,16 @@ function toneOf(tone) {
     <div class="mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
       <div class="flex flex-wrap items-end justify-between gap-4">
         <SectionHeading
-          eyebrow="Thành tựu nổi bật"
-          title="Những con số biết nói"
-          subtitle="Tổng hợp trực tiếp từ dữ liệu vận hành — cập nhật theo thời gian thực."
+          :eyebrow="heading.eyebrow"
+          :title="heading.title"
+          :subtitle="heading.subtitle"
         />
-        <div class="hidden shrink-0 items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1.5 font-mono text-[11px] text-emerald-300 sm:flex">
+        <div
+          v-if="liveBadge"
+          class="hidden shrink-0 items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1.5 font-mono text-[11px] text-emerald-300 sm:flex"
+        >
           <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-cn-glow" />
-          LIVE DATA
+          {{ liveBadge }}
         </div>
       </div>
 

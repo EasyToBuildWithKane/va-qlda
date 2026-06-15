@@ -2,7 +2,7 @@
 import {
     computed, onBeforeUnmount, onMounted, reactive, ref, watch,
 } from 'vue';
-import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
@@ -16,7 +16,6 @@ import DatagridSegmentedControl from '@/shared/ui/DatagridSegmentedControl.vue';
 import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
 import { useVisibleColumns } from '@/shared/composables/useVisibleColumns';
-import { useToast } from '@/shared/composables/useToast';
 import { date, datetime } from '@/composables/useFormat';
 
 const PER_PAGE_OPTIONS = [10, 15, 20, 30];
@@ -43,6 +42,20 @@ const GROUP_MODES = [
     { key: 'none', label: 'Danh sách', icon: 'list', title: 'Danh sách phẳng' },
 ];
 
+const DEPT_COLLAPSE_STORAGE_KEY = 'va-qlda.congnghe-proposals.collapsed-depts';
+
+function loadCollapsedDepartments() {
+    try {
+        const raw = localStorage.getItem(DEPT_COLLAPSE_STORAGE_KEY);
+        if (raw) return new Set(JSON.parse(raw));
+    } catch {
+        /* ignore */
+    }
+    return new Set();
+}
+
+const collapsedDepartments = ref(loadCollapsedDepartments());
+
 const props = defineProps({
     proposals: { type: Object, required: true },
     filters: { type: Object, default: () => ({}) },
@@ -51,8 +64,6 @@ const props = defineProps({
     can: { type: Object, default: () => ({}) },
 });
 
-const page = usePage();
-const toast = useToast();
 const filterPanelDdRef = ref(null);
 const colDdRef = ref(null);
 const perPage = ref(Number(props.filters.per_page) || props.proposals.meta?.per_page || 20);
@@ -92,6 +103,51 @@ const tableColspan = computed(() =>
     columnDefs.filter((c) => isColVisible(c.key)).length,
 );
 
+const departmentGroupKeys = computed(() => {
+    if (!groupByDepartment.value) return [];
+    const keys = new Set();
+    for (const row of props.proposals.data ?? []) {
+        keys.add(departmentKey(row));
+    }
+    return [...keys];
+});
+
+const allDepartmentGroupsExpanded = computed(() =>
+    departmentGroupKeys.value.length > 0
+    && departmentGroupKeys.value.every((k) => isDepartmentExpanded(k)),
+);
+
+function persistCollapsedDepartments() {
+    localStorage.setItem(
+        DEPT_COLLAPSE_STORAGE_KEY,
+        JSON.stringify([...collapsedDepartments.value]),
+    );
+}
+
+function isDepartmentExpanded(key) {
+    return !collapsedDepartments.value.has(key);
+}
+
+function toggleDepartmentGroup(key) {
+    const next = new Set(collapsedDepartments.value);
+    if (next.has(key)) {
+        next.delete(key);
+    } else {
+        next.add(key);
+    }
+    collapsedDepartments.value = next;
+    persistCollapsedDepartments();
+}
+
+function toggleAllDepartmentGroups() {
+    if (allDepartmentGroupsExpanded.value) {
+        collapsedDepartments.value = new Set(departmentGroupKeys.value);
+    } else {
+        collapsedDepartments.value = new Set();
+    }
+    persistCollapsedDepartments();
+}
+
 const tableEntries = computed(() => {
     const data = props.proposals.data ?? [];
     if (!groupByDepartment.value) {
@@ -117,7 +173,9 @@ const tableEntries = computed(() => {
             });
             lastDept = d;
         }
-        entries.push({ type: 'data', row });
+        if (isDepartmentExpanded(d)) {
+            entries.push({ type: 'data', row });
+        }
     }
     return entries;
 });
@@ -193,9 +251,6 @@ function updateStatus(row, value) {
         preserveScroll: true,
         onFinish: () => {
             statusUpdating.value.delete(row.id);
-        },
-        onSuccess: () => {
-            toast.success(page.props.flash?.success ?? 'Đã cập nhật trạng thái.');
         },
     });
 }
@@ -279,6 +334,15 @@ function updateStatus(row, value) {
             </div>
           </div>
           <div class="ml-auto flex shrink-0 items-center gap-2">
+            <DatagridToolbarActionButton
+              v-if="groupByDepartment && departmentGroupKeys.length"
+              :icon="allDepartmentGroupsExpanded ? 'chevron-down' : 'chevron-right'"
+              :title="allDepartmentGroupsExpanded ? 'Thu gọn tất cả phòng ban' : 'Mở tất cả phòng ban'"
+              @click="toggleAllDepartmentGroups"
+            >
+              <span class="hidden sm:inline">{{ allDepartmentGroupsExpanded ? 'Thu nhóm' : 'Mở nhóm' }}</span>
+              <span class="sm:hidden">{{ allDepartmentGroupsExpanded ? 'Thu' : 'Mở' }}</span>
+            </DatagridToolbarActionButton>
             <DatagridSegmentedControl
               v-model="filterForm.group"
               :items="GROUP_MODES"
@@ -414,7 +478,8 @@ function updateStatus(row, value) {
             >
               <tr
                 v-if="entry.type === 'group'"
-                class="border-y border-slate-200 bg-slate-100/70"
+                class="cursor-pointer border-y border-slate-200 bg-slate-100/70 transition hover:bg-slate-100"
+                @click="toggleDepartmentGroup(entry.key)"
               >
                 <td
                   :colspan="tableColspan || 1"
@@ -422,12 +487,20 @@ function updateStatus(row, value) {
                 >
                   <div class="flex flex-wrap items-center gap-2">
                     <AppIcon
+                      name="chevron-down"
+                      :size="16"
+                      class="shrink-0 text-slate-500 transition-transform"
+                      :class="isDepartmentExpanded(entry.key) ? '' : '-rotate-90'"
+                    />
+                    <AppIcon
                       name="building"
                       :size="16"
                       class="shrink-0 text-brand"
                     />
                     <span class="text-sm font-semibold text-slate-800">{{ entry.label }}</span>
-                    <span class="text-xs font-medium text-slate-500">{{ entry.count }} đề xuất</span>
+                    <span class="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold tabular-nums text-slate-600 ring-1 ring-slate-200/90">
+                      {{ entry.count }} đề xuất
+                    </span>
                   </div>
                 </td>
               </tr>

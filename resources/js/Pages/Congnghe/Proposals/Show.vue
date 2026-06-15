@@ -20,6 +20,7 @@ defineProps({
         :subtitle="referenceCodeLabel(proposal.reference_code)"
         icon="template"
         icon-color="brand"
+        :back-href="route('congnghe.proposals.index')"
       />
     </template>
 

@@ -214,7 +214,7 @@ final class CongngheContentSchema
                 ['type' => 'textarea', 'path' => 'brand_desc', 'label' => 'Mô tả', 'max' => 300],
                 ['type' => 'list', 'path' => 'explore_links', 'label' => 'Liên kết "Khám phá"', 'item_label' => 'Liên kết', 'min' => 0, 'max' => 8, 'fields' => [
                     ['key' => 'label', 'type' => 'text', 'label' => 'Nhãn', 'required' => true, 'max' => 80],
-                    ['key' => 'anchor', 'type' => 'anchor', 'label' => 'Neo (#id)'],
+                    ['key' => 'href', 'type' => 'text', 'label' => 'Đường dẫn (#id hoặc URL)', 'max' => 200],
                 ]],
                 ['type' => 'list', 'path' => 'contact_links', 'label' => 'Liên kết "Liên lạc"', 'item_label' => 'Liên kết', 'min' => 0, 'max' => 8, 'fields' => [
                     ['key' => 'label', 'type' => 'text', 'label' => 'Nhãn', 'required' => true, 'max' => 120],

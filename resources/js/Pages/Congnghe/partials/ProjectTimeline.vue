@@ -9,16 +9,14 @@ import { openCongngheProject } from './useCongngheProjectModal.js';
 import CongngheProjectGallery from './CongngheProjectGallery.vue';
 
 const props = defineProps({
+    content: { type: Object, default: () => ({}) },
     phases: { type: Array, default: () => [] },
 });
 
 const { target, shown: sectionVisible } = useInView({ threshold: 0.12 });
 
-const PHASE_HINT = {
-    rnd: 'Khám phá ý tưởng, thử nghiệm POC và xây dựng MVP trước khi mở rộng quy mô.',
-    deployment: 'Triển khai, kiểm thử tích hợp và nghiệm thu với các bên liên quan.',
-    operation: 'Vận hành ổn định, theo dõi chất lượng và cải tiến liên tục theo phản hồi thực tế.',
-};
+const heading = computed(() => props.content?.heading ?? {});
+const PHASE_HINT = computed(() => props.content?.phase_hints ?? {});
 
 const activePhaseIndex = ref(0);
 const slideIndex = ref(0);
@@ -108,9 +106,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
     <div class="relative mx-auto max-w-7xl px-5 sm:px-8">
       <div class="flex flex-wrap items-end justify-between gap-6">
         <SectionHeading
-          eyebrow="Vòng đời sản phẩm số"
-          title="Hành trình của mỗi sản phẩm"
-          subtitle="Ba giai đoạn cốt lõi — lướt slide để xem từng dự án và người phụ trách; chọn giai đoạn để chuyển chương."
+          :eyebrow="heading.eyebrow"
+          :title="heading.title"
+          :subtitle="heading.subtitle"
         />
         <div
           v-if="slideCount"
