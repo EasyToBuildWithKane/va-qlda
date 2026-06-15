@@ -1,15 +1,20 @@
 <script setup>
 import { computed } from 'vue';
-import { Link } from '@inertiajs/vue3';
+import { usePage } from '@inertiajs/vue3';
 import SectionHeading from './SectionHeading.vue';
-import PersonAvatar from './PersonAvatar.vue';
+import OrgGraph from '@/modules/people/components/OrgGraph.vue';
 
 const props = defineProps({
     overview: { type: Object, default: () => ({}) },
     forest: { type: Array, default: () => [] },
 });
 
+const page = usePage();
+const portal = computed(() => page.props.portal ?? { canEnterQlda: false, qldaHome: '/dashboard' });
+
 const roots = computed(() => props.forest ?? []);
+
+const graphFilter = { query: '', rootId: null, role: 'all', status: 'active' };
 
 const stats = computed(() => [
     { label: 'Thành viên', value: props.overview?.people_total ?? 0 },
@@ -17,10 +22,6 @@ const stats = computed(() => [
     { label: 'Quản lý', value: props.overview?.leaders_total ?? 0 },
     { label: 'Đang hoạt động', value: `${props.overview?.active_ratio ?? 0}%` },
 ]);
-
-function memberCount(node) {
-    return Array.isArray(node?.members) ? node.members.length : 0;
-}
 </script>
 
 <template>
@@ -32,7 +33,7 @@ function memberCount(node) {
       <SectionHeading
         eyebrow="Đội ngũ · Sơ đồ tổ chức"
         title="Cấu trúc vận hành"
-        subtitle="Các nhóm chuyên môn phối hợp theo sơ đồ tổ chức thực tế của phòng."
+        subtitle="Nhân sự phòng theo sơ đồ tổ chức thực tế — quản lý, nhánh và thành viên."
       />
 
       <div class="mt-10 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
@@ -52,58 +53,13 @@ function memberCount(node) {
 
       <div
         v-if="roots.length"
-        class="mt-8 grid gap-5 lg:grid-cols-2"
+        class="congnghe-org-graph mt-8"
       >
-        <article
-          v-for="root in roots"
-          :key="root.id"
-          class="rounded-2xl border border-white/10 bg-white/[0.03] p-6"
-        >
-          <div class="flex items-center justify-between gap-3">
-            <div class="flex items-center gap-3">
-              <PersonAvatar
-                :name="root.leader?.name"
-                :src="root.leader?.avatar_path"
-                size="md"
-              />
-              <div class="min-w-0">
-                <h3 class="truncate font-display text-base font-bold text-white">
-                  {{ root.name }}
-                </h3>
-                <p class="truncate text-[12.5px] text-white/50">
-                  <template v-if="root.leader">
-                    Quản lý: {{ root.leader.name }}
-                  </template>
-                  <template v-else>
-                    {{ root.level_label }}
-                  </template>
-                </p>
-              </div>
-            </div>
-            <span class="shrink-0 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-medium text-white/60">
-              {{ memberCount(root) }} thành viên
-            </span>
-          </div>
-
-          <div
-            v-if="root.children && root.children.length"
-            class="mt-5 border-t border-white/10 pt-4"
-          >
-            <p class="text-[11px] font-semibold uppercase tracking-wider text-white/40">
-              Nhóm con
-            </p>
-            <div class="mt-3 flex flex-wrap gap-2">
-              <span
-                v-for="child in root.children"
-                :key="child.id"
-                class="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-[12.5px] text-white/75"
-              >
-                <span class="h-1.5 w-1.5 rounded-full bg-brand" />
-                {{ child.name }}
-              </span>
-            </div>
-          </div>
-        </article>
+        <OrgGraph
+          :trees="roots"
+          :filter="graphFilter"
+          initial-expand-all
+        />
       </div>
 
       <p
@@ -113,8 +69,11 @@ function memberCount(node) {
         Sơ đồ tổ chức chưa được thiết lập.
       </p>
 
-      <div class="mt-8">
-        <Link
+      <div
+        v-if="portal.canEnterQlda"
+        class="mt-8"
+      >
+        <a
           href="/org-teams"
           class="inline-flex items-center gap-2 text-sm font-semibold text-brand transition hover:text-[#ff4d8d]"
         >
@@ -127,8 +86,52 @@ function memberCount(node) {
             stroke="currentColor"
             stroke-width="2"
           ><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-        </Link>
+        </a>
       </div>
     </div>
   </section>
 </template>
+
+<style scoped>
+.congnghe-org-graph :deep(.org-graph__btn) {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.congnghe-org-graph :deep(.org-graph__btn:hover) {
+    background: rgba(154, 0, 54, 0.2);
+    border-color: rgba(255, 77, 141, 0.45);
+    color: #fff;
+}
+
+.congnghe-org-graph :deep(.org-graph__viewport) {
+    border-color: rgba(255, 255, 255, 0.12);
+    background:
+        radial-gradient(120% 80% at 50% -10%, rgba(30, 30, 42, 0.95) 0%, rgba(15, 15, 22, 0.98) 55%, #0b0b12 100%);
+}
+
+.congnghe-org-graph :deep(.org-graph__grid) {
+    background-image:
+        linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+}
+
+.congnghe-org-graph :deep(.org-graph__zoom) {
+    background: rgba(15, 15, 22, 0.88);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.congnghe-org-graph :deep(.org-graph__zoombtn) {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.congnghe-org-graph :deep(.org-graph__zoombtn:hover) {
+    background: rgba(154, 0, 54, 0.25);
+    color: #fff;
+}
+
+.congnghe-org-graph :deep(.org-graph__zoomval) {
+    color: rgba(255, 255, 255, 0.45);
+}
+</style>

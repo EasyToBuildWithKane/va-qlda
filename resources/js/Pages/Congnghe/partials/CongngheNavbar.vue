@@ -1,6 +1,9 @@
 <script setup>
-import { Link } from '@inertiajs/vue3';
-import { onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { usePage } from '@inertiajs/vue3';
+
+const page = usePage();
+const portal = computed(() => page.props.portal ?? { canEnterQlda: false, qldaHome: '/dashboard' });
 
 const links = [
     { href: '#gioi-thieu', label: 'Giới thiệu' },
@@ -54,12 +57,13 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll));
       </div>
 
       <div class="flex items-center gap-2">
-        <Link
-          href="/dashboard"
+        <a
+          v-if="portal.canEnterQlda"
+          :href="portal.qldaHome"
           class="hidden rounded-full bg-gradient-to-r from-brand to-[#d4145a] px-4 py-2 text-[13px] font-semibold text-white shadow-lg shadow-brand/30 transition hover:shadow-brand/50 sm:inline-flex"
         >
           Vào hệ thống
-        </Link>
+        </a>
         <button
           type="button"
           class="grid h-10 w-10 place-items-center rounded-lg text-white/80 hover:bg-white/5 lg:hidden"
@@ -99,12 +103,13 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll));
             class="rounded-lg px-3 py-2.5 text-sm font-medium text-white/75 hover:bg-white/5 hover:text-white"
             @click="open = false"
           >{{ link.label }}</a>
-          <Link
-            href="/dashboard"
+          <a
+            v-if="portal.canEnterQlda"
+            :href="portal.qldaHome"
             class="mt-1 rounded-lg bg-gradient-to-r from-brand to-[#d4145a] px-3 py-2.5 text-center text-sm font-semibold text-white"
           >
             Vào hệ thống
-          </Link>
+          </a>
         </div>
       </div>
     </transition>

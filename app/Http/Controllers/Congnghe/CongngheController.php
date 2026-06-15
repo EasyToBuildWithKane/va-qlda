@@ -14,8 +14,6 @@ use App\Support\Enums\ProjectType;
 use App\Support\Enums\TaskStatus;
 use App\Support\OrgTeam\OrgTeamOverviewBuilder;
 use App\Support\OrgTeamTreeBuilder;
-use App\Support\PublicMediaUrl;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -34,7 +32,6 @@ class CongngheController extends Controller
             'metrics' => $this->metrics(),
             'phases' => $this->projectPhases(),
             'products' => $this->products(),
-            'team' => $this->team(),
             'org' => [
                 'overview' => OrgTeamOverviewBuilder::build(),
                 'forest' => OrgTeamTreeBuilder::forest(),
@@ -125,33 +122,5 @@ class CongngheController extends Controller
             'status' => $project->status->label(),
             'statusColor' => $project->status->color(),
         ];
-    }
-
-    /**
-     * Đội ngũ — nhân sự đang hoạt động, người vào sớm hơn xếp trước.
-     *
-     * @return array<int, array<string, mixed>>
-     */
-    private function team(): array
-    {
-        return Employee::where('is_active', true)
-            ->orderByRaw('join_date is null, join_date asc')
-            ->orderBy('full_name')
-            ->take(18)
-            ->get(['id', 'full_name', 'role_title', 'avatar_path', 'join_date'])
-            ->map(fn (Employee $e) => [
-                'id' => $e->id,
-                'name' => $e->full_name,
-                'role' => $e->role_title,
-                'avatar' => PublicMediaUrl::fromPublicDisk($e->avatar_path),
-                'initials' => Str::of($e->full_name)
-                    ->explode(' ')
-                    ->filter()
-                    ->take(-2)
-                    ->map(fn (string $part) => Str::upper(Str::substr($part, 0, 1)))
-                    ->implode(''),
-            ])
-            ->values()
-            ->all();
     }
 }

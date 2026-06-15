@@ -4,6 +4,7 @@ namespace App\Support\Auth;
 
 use App\Models\SystemAccount;
 use App\Providers\RouteServiceProvider;
+use App\Support\Enums\SystemRole;
 
 /**
  * Post-login landing path, resolved by the portal a user signed in through.
@@ -26,5 +27,29 @@ final class PortalDestination
         return $portal === 'tech'
             ? RouteServiceProvider::HOME
             : route('congnghe', [], false);
+    }
+
+    /**
+     * Có thể rời landing /congnghe để vào công cụ QLDA (dashboard, dự án, …).
+     */
+    public static function canEnterQlda(SystemAccount $account): bool
+    {
+        if (CoachingOnlyAccess::appliesTo($account)) {
+            return true;
+        }
+
+        if (TechLoginAccess::isAllowedEmail($account->employee?->email)) {
+            return true;
+        }
+
+        return $account->role === SystemRole::Admin;
+    }
+
+    /**
+     * URL đích khi bấm «Vào hệ thống» từ landing.
+     */
+    public static function qldaHomePath(SystemAccount $account): string
+    {
+        return CoachingOnlyAccess::homePath($account);
     }
 }

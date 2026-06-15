@@ -1,28 +1,42 @@
 <script setup>
-import { Link } from '@inertiajs/vue3';
+import { computed } from 'vue';
+import { usePage } from '@inertiajs/vue3';
 
 const year = new Date().getFullYear();
 
-const cols = [
+const page = usePage();
+const portal = computed(() => page.props.portal ?? { canEnterQlda: false, qldaHome: '/dashboard' });
+
+const systemLinks = computed(() => {
+    if (!portal.value.canEnterQlda) {
+        return [
+            { href: '/members', label: 'Danh bạ thành viên', external: false },
+        ];
+    }
+
+    return [
+        { href: portal.value.qldaHome, label: 'Bảng điều khiển', external: false },
+        { href: '/projects', label: 'Quản lý dự án', external: false },
+        { href: '/daily-reports/today', label: 'Báo cáo ngày', external: false },
+        { href: '/knowledge-base', label: 'Tri thức', external: false },
+    ];
+});
+
+const cols = computed(() => [
     {
         heading: 'Khám phá',
         links: [
-            { href: '#gioi-thieu', label: 'Giới thiệu' },
-            { href: '#san-pham', label: 'Hệ sinh thái sản phẩm' },
-            { href: '#to-chuc', label: 'Sơ đồ tổ chức' },
-            { href: '#du-an', label: 'Dự án triển khai' },
+            { href: '#gioi-thieu', label: 'Giới thiệu', external: true },
+            { href: '#san-pham', label: 'Hệ sinh thái sản phẩm', external: true },
+            { href: '#to-chuc', label: 'Sơ đồ tổ chức', external: true },
+            { href: '#du-an', label: 'Dự án triển khai', external: true },
         ],
     },
     {
         heading: 'Hệ thống',
-        links: [
-            { href: '/dashboard', label: 'Bảng điều khiển', inertia: true },
-            { href: '/projects', label: 'Quản lý dự án', inertia: true },
-            { href: '/daily-reports/today', label: 'Báo cáo ngày', inertia: true },
-            { href: '/knowledge-base', label: 'Tri thức', inertia: true },
-        ],
+        links: systemLinks.value,
     },
-];
+]);
 </script>
 
 <template>
@@ -84,15 +98,7 @@ const cols = [
               v-for="link in col.links"
               :key="link.label"
             >
-              <Link
-                v-if="link.inertia"
-                :href="link.href"
-                class="text-sm text-white/60 transition hover:text-white"
-              >
-                {{ link.label }}
-              </Link>
               <a
-                v-else
                 :href="link.href"
                 class="text-sm text-white/60 transition hover:text-white"
               >{{ link.label }}</a>

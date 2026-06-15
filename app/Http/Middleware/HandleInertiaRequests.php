@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\Blocker;
 use App\Services\NotificationService;
+use App\Support\Auth\PortalDestination;
 use App\Support\Enums\BlockerSeverity;
 use App\Support\Enums\BlockerStatus;
 use App\Support\Navigation;
@@ -59,6 +60,13 @@ class HandleInertiaRequests extends Middleware
                     ] : null,
                     'employee_id' => $account->employee_id,
                 ] : null,
+            ],
+            'portal' => fn () => $account ? [
+                'canEnterQlda' => PortalDestination::canEnterQlda($account),
+                'qldaHome' => PortalDestination::qldaHomePath($account),
+            ] : [
+                'canEnterQlda' => false,
+                'qldaHome' => '/dashboard',
             ],
             'realtime' => [
                 'enabled' => (bool) config('realtime.enabled'),

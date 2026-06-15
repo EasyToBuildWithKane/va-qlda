@@ -9,6 +9,8 @@ import { toIterableList } from '@/modules/people/composables/useOrgTeamPeople.js
 const props = defineProps({
     trees: { type: Array, default: () => [] },
     filter: { type: Object, default: () => ({ query: '', rootId: null, role: 'all', status: 'all' }) },
+    /** Mở toàn bộ nhánh thành viên khi mount (landing / nhúng). */
+    initialExpandAll: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['select-person', 'select-leader']);
@@ -122,14 +124,22 @@ let fittedOnce = false;
 function fit() {
     vp.fitTo(graph.value.width, graph.value.height, { maxInitialScale: 1, padding: 24 });
 }
+function applyInitialExpansion() {
+    if (props.initialExpandAll) {
+        expandAll();
+    } else {
+        syncDefaultExpansion();
+    }
+}
+
 onMounted(() => {
     vp.bindViewport(viewportRef.value);
-    syncDefaultExpansion();
+    applyInitialExpansion();
     nextTick(fit);
 });
 watch(() => props.trees, () => {
     fittedOnce = false;
-    syncDefaultExpansion();
+    applyInitialExpansion();
     nextTick(() => {
         if (!fittedOnce) {
             fit();

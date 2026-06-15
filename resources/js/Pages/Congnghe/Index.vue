@@ -7,7 +7,6 @@ import ImpactMetrics from './partials/ImpactMetrics.vue';
 import ProductEcosystem from './partials/ProductEcosystem.vue';
 import TechStack from './partials/TechStack.vue';
 import OrgChartSection from './partials/OrgChartSection.vue';
-import TeamSection from './partials/TeamSection.vue';
 import ProjectTimeline from './partials/ProjectTimeline.vue';
 import AILabSection from './partials/AILabSection.vue';
 import CultureSection from './partials/CultureSection.vue';
@@ -18,7 +17,6 @@ defineProps({
     metrics: { type: Object, default: () => ({}) },
     phases: { type: Array, default: () => [] },
     products: { type: Array, default: () => [] },
-    team: { type: Array, default: () => [] },
     org: { type: Object, default: () => ({ overview: {}, forest: [] }) },
 });
 </script>
@@ -39,7 +37,6 @@ defineProps({
         :overview="org.overview"
         :forest="org.forest"
       />
-      <TeamSection :team="team" />
       <ProjectTimeline :phases="phases" />
       <AILabSection :metrics="metrics" />
       <CultureSection />
