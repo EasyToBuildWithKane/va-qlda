@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue';
-import AppIcon from '@/Components/AppIcon.vue';
+import KpiSummaryStrip from '@/shared/ui/KpiSummaryStrip.vue';
 import ProgressRing from './ProgressRing.vue';
 import Sparkline from './Sparkline.vue';
 
@@ -19,134 +19,109 @@ const hoursValues = computed(() => (props.pulse.hoursTrend ?? []).map((d) => d.v
 
 const costLabel = computed(() => {
     const v = props.pulse.costThisWeek ?? 0;
-    if (v >= 1_000_000) return (v / 1_000_000).toFixed(1).replace('.0', '') + ' triệu';
+    if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1).replace('.0', '')} triệu`;
     return Number(v).toLocaleString('vi-VN');
 });
 
-const tiles = computed(() => [
+const reportSub = computed(() => {
+    const parts = [];
+    if (props.pulse.pendingReview) parts.push(`${props.pulse.pendingReview} chờ duyệt`);
+    if (props.pulse.lateToday) parts.push(`${props.pulse.lateToday} nộp trễ`);
+    return parts.length ? parts.join(' · ') : 'Phòng Công nghệ — hôm nay';
+});
+
+const cards = computed(() => [
+    {
+        key: 'report',
+        label: 'Báo cáo ngày',
+        value: reported.value,
+        suffix: `/${expected.value}`,
+        suffixClass: 'text-base font-medium text-slate-400',
+        tone: 'brand',
+        icon: 'daily',
+        sub: reportSub.value,
+        progress: reportRate.value,
+    },
     {
         key: 'done',
         label: 'Hoàn thành hôm nay',
         value: props.pulse.completedToday ?? 0,
-        sub: 'công việc đã xong',
+        tone: 'emerald',
         icon: 'check-circle',
-        tone: 'text-emerald-600',
-        bg: 'bg-emerald-50',
+        sub: 'Công việc đã xong trong ngày',
     },
     {
         key: 'due',
         label: 'Đến hạn hôm nay',
         value: props.pulse.dueToday ?? 0,
-        sub: `${props.pulse.overdue ?? 0} đang quá hạn`,
+        tone: 'amber',
         icon: 'calendar-clock',
-        tone: 'text-amber-600',
-        bg: 'bg-amber-50',
+        sub: `${props.pulse.overdue ?? 0} công việc đang quá hạn`,
+    },
+    {
+        key: 'hours',
+        label: 'Giờ làm hôm nay',
+        value: props.pulse.hoursToday ?? 0,
+        suffix: 'h',
+        suffixClass: 'text-lg font-medium text-slate-400',
+        tone: 'sky',
+        icon: 'worklog',
+        sub: `${props.pulse.hoursThisWeek ?? 0}h · ${costLabel.value}đ / tuần`,
     },
 ]);
 </script>
 
 <template>
-  <section class="card p-5">
-    <header class="mb-4 flex flex-wrap items-end justify-between gap-2">
-      <div>
-        <p class="text-[10px] font-semibold uppercase tracking-[0.14em] text-brand/80">
-          Nhịp công việc
-        </p>
-        <h2 class="font-display text-base font-semibold text-slate-800">
-          Hôm nay
-        </h2>
-      </div>
-      <span class="text-xs text-slate-400">{{ today }}</span>
-    </header>
-
-    <div class="grid grid-cols-1 gap-4 lg:grid-cols-4">
-      <!-- Báo cáo ngày — ring -->
-      <div class="flex items-center gap-4 rounded-xl border border-slate-100 bg-slate-50/60 p-4">
+  <KpiSummaryStrip
+    :cards="cards"
+    :progress-denominator="100"
+    eyebrow="Nhịp công việc"
+    heading="Hôm nay"
+    :hint="today"
+    aria-label="Nhịp công việc hôm nay"
+    grid-class="grid-cols-1 sm:grid-cols-2 xl:grid-cols-4"
+    shell-class="kpi-strip relative mb-4 overflow-x-hidden rounded-card border border-slate-200/80 bg-gradient-to-b from-slate-50/90 to-white px-4 py-4 shadow-sm sm:px-5 sm:py-5"
+  >
+    <template #value="{ card }">
+      <div
+        v-if="card.key === 'report'"
+        class="flex items-center gap-3"
+      >
         <ProgressRing
           :value="reportRate"
-          :size="68"
-          :stroke="7"
+          :size="52"
+          :stroke="6"
         />
-        <div class="min-w-0">
-          <p class="text-xs font-medium text-slate-500">
-            Báo cáo ngày
-          </p>
-          <p class="font-display text-lg font-bold text-slate-800">
-            {{ reported }}<span class="text-sm font-medium text-slate-400">/{{ expected }}</span>
-          </p>
-          <div class="mt-1 flex flex-wrap gap-1">
-            <span
-              v-if="pulse.pendingReview"
-              class="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700"
-            >{{ pulse.pendingReview }} chờ duyệt</span>
-            <span
-              v-if="pulse.lateToday"
-              class="inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold text-rose-700"
-            >{{ pulse.lateToday }} nộp trễ</span>
-          </div>
-        </div>
+        <span class="font-display text-2xl font-bold tabular-nums text-brand sm:text-[1.65rem]">
+          {{ reported }}<span class="text-lg font-medium text-slate-400">/{{ expected }}</span>
+        </span>
       </div>
-
-      <!-- Task tiles -->
-      <div
-        v-for="tile in tiles"
-        :key="tile.key"
-        class="flex flex-col justify-between rounded-xl border border-slate-100 bg-slate-50/60 p-4"
+      <span
+        v-else
+        class="font-display text-2xl font-bold tabular-nums leading-none tracking-tight sm:text-[1.65rem]"
+        :class="card.tone === 'brand' ? 'text-brand' : 'text-slate-900'"
       >
-        <div class="flex items-start justify-between">
-          <p class="text-xs font-medium text-slate-500">
-            {{ tile.label }}
-          </p>
-          <span :class="[tile.bg, 'rounded-lg p-1.5']">
-            <AppIcon
-              :name="tile.icon"
-              :size="15"
-              :class="tile.tone"
-            />
-          </span>
-        </div>
-        <div>
-          <p :class="['font-display text-2xl font-bold', tile.tone]">
-            {{ tile.value }}
-          </p>
-          <p class="text-[11px] text-slate-400">
-            {{ tile.sub }}
-          </p>
-        </div>
-      </div>
+        {{ card.value }}
+        <span
+          v-if="card.suffix"
+          :class="card.suffixClass"
+        >{{ card.suffix }}</span>
+      </span>
+    </template>
 
-      <!-- Giờ log — sparkline -->
-      <div class="flex flex-col justify-between rounded-xl border border-slate-100 bg-slate-50/60 p-4">
-        <div class="flex items-start justify-between">
-          <p class="text-xs font-medium text-slate-500">
-            Giờ làm hôm nay
-          </p>
-          <span class="rounded-lg bg-sky-50 p-1.5">
-            <AppIcon
-              name="worklog"
-              :size="15"
-              class="text-sky-600"
-            />
-          </span>
-        </div>
-        <div class="mt-1 flex items-end justify-between gap-2">
-          <div>
-            <p class="font-display text-2xl font-bold text-sky-700">
-              {{ pulse.hoursToday ?? 0 }}<span class="text-sm font-medium text-slate-400">h</span>
-            </p>
-            <p class="text-[11px] text-slate-400">
-              {{ pulse.hoursThisWeek ?? 0 }}h · {{ costLabel }}đ / tuần
-            </p>
-          </div>
-          <Sparkline
-            :values="hoursValues"
-            :width="96"
-            :height="34"
-            color="#0284c7"
-            fill="rgba(2,132,199,0.10)"
-          />
-        </div>
+    <template #footer="{ card }">
+      <div
+        v-if="card.key === 'hours'"
+        class="mt-2 flex justify-end"
+      >
+        <Sparkline
+          :values="hoursValues"
+          :width="112"
+          :height="36"
+          color="#0284c7"
+          fill="rgba(2,132,199,0.10)"
+        />
       </div>
-    </div>
-  </section>
+    </template>
+  </KpiSummaryStrip>
 </template>

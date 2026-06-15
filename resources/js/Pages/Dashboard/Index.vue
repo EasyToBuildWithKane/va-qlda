@@ -55,6 +55,31 @@ const today = new Date().toLocaleDateString('vi-VN', {
 
 const completionRate = computed(() => props.headline.completionRate ?? 0);
 
+const headlineCards = computed(() => {
+    const done = props.headline.doneTasks ?? 0;
+    const total = props.headline.totalTasks ?? 0;
+    return [
+        {
+            key: 'completion',
+            label: 'Hoàn thành toàn hệ thống',
+            value: completionRate.value,
+            suffix: '%',
+            tone: 'brand',
+            icon: 'performance',
+            sub: `${done} / ${total} công việc đã xong`,
+            progress: completionRate.value,
+        },
+        {
+            key: 'done_total',
+            label: 'Công việc đã xong',
+            value: done,
+            tone: 'emerald',
+            icon: 'task',
+            sub: total ? `${total - done} còn lại` : 'Chưa có công việc',
+        },
+    ];
+});
+
 // ---- Attention list (overdue first, then due today) ------------------
 const attentionTasks = computed(() => [
     ...props.overdueTasks.map((t) => ({ ...t, _overdue: true })),
@@ -135,29 +160,15 @@ const lineOptions = {
       grid-class="grid-cols-2 sm:grid-cols-3 xl:grid-cols-6"
     />
 
-    <!-- Completion banner -->
-    <div class="card mb-4 flex items-center gap-4 p-4">
-      <div class="flex-1">
-        <div class="mb-1.5 flex items-center justify-between">
-          <span class="text-sm font-medium text-slate-700">Tiến độ hoàn thành toàn hệ thống</span>
-          <span class="text-sm font-bold text-brand">{{ completionRate }}%</span>
-        </div>
-        <div class="h-2.5 overflow-hidden rounded-full bg-slate-100">
-          <div
-            class="h-full rounded-full bg-brand transition-all duration-700"
-            :style="{ width: completionRate + '%' }"
-          />
-        </div>
-      </div>
-      <div class="shrink-0 text-right">
-        <p class="font-display text-xl font-bold text-brand">
-          {{ headline.doneTasks ?? 0 }}
-        </p>
-        <p class="text-xs text-slate-400">
-          / {{ headline.totalTasks ?? 0 }} công việc
-        </p>
-      </div>
-    </div>
+    <KpiSummaryStrip
+      :cards="headlineCards"
+      :progress-denominator="100"
+      heading="Tiến độ công việc"
+      eyebrow="Thống kê"
+      aria-label="Tiến độ hoàn thành công việc toàn hệ thống"
+      grid-class="grid-cols-1 sm:grid-cols-2"
+      shell-class="kpi-strip relative mb-4 overflow-x-hidden rounded-card border border-slate-200/80 bg-gradient-to-b from-slate-50/90 to-white px-4 py-4 shadow-sm sm:px-5 sm:py-5"
+    />
 
     <!-- 2. Daily pulse -->
     <DailyPulse
@@ -310,7 +321,11 @@ const lineOptions = {
       </div>
 
       <!-- Activity feed -->
-      <ActivityFeed :activities="activityFeed" />
+      <ActivityFeed
+        :activities="activityFeed"
+        :default-per-page="5"
+        per-page-storage-key="va-qlda.dashboard.activity.perPage"
+      />
     </div>
   </AppLayout>
 </template>

@@ -7,6 +7,7 @@ import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
 const props = defineProps({
     activities: { type: Array, default: () => [] },
     perPageStorageKey: { type: String, default: 'va-qlda.project.activity.perPage' },
+    defaultPerPage: { type: Number, default: 10 },
 });
 
 const activityItems = computed(() =>
@@ -20,7 +21,7 @@ const {
     setPerPage,
     goToPage,
     PER_PAGE_OPTIONS,
-} = useClientPagination(activityItems, props.perPageStorageKey, 10);
+} = useClientPagination(activityItems, props.perPageStorageKey, props.defaultPerPage);
 </script>
 
 <template>

@@ -343,6 +343,8 @@ class DashboardController extends Controller
             ];
         });
 
+        $people = $this->attachDailyWorkToPeople($people, $today->toDateString());
+
         $totalPeople = $people->count();
         $teamSubmitted = (int) $people->sum('submitted');
         $teamExpected = $expectedPerPerson * $totalPeople;
@@ -364,6 +366,9 @@ class DashboardController extends Controller
                 'teamRate' => $teamExpected > 0
                     ? round($teamSubmitted / $teamExpected * 100, 1)
                     : 0.0,
+                'completedTasksToday' => (int) $people->sum('workToday.completed'),
+                'dueTasksToday' => (int) $people->sum('workToday.due'),
+                'hoursLoggedToday' => round((float) $people->sum('workToday.hours'), 1),
             ],
             'people' => $people
                 ->sortBy([
@@ -433,5 +438,147 @@ class DashboardController extends Controller
         }
 
         return $series;
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, array<string, mixed>>  $people
+     * @return \Illuminate\Support\Collection<int, array<string, mixed>>
+     */
+    private function attachDailyWorkToPeople(\Illuminate\Support\Collection $people, string $today): \Illuminate\Support\Collection
+    {
+        $employeeIds = $people->pluck('id');
+        if ($employeeIds->isEmpty()) {
+            return $people;
+        }
+
+        $activeStatuses = [
+            TaskStatus::Todo->value,
+            TaskStatus::InProgress->value,
+            TaskStatus::InReview->value,
+            TaskStatus::Blocked->value,
+        ];
+
+        $completedByEmp = Task::query()
+            ->whereDate('completed_at', $today)
+            ->whereIn('assignee_id', $employeeIds)
+            ->select('assignee_id', DB::raw('count(*) as total'))
+            ->groupBy('assignee_id')
+            ->pluck('total', 'assignee_id');
+
+        $dueByEmp = Task::query()
+            ->where('status', '!=', TaskStatus::Done)
+            ->whereDate('due_date', $today)
+            ->whereIn('assignee_id', $employeeIds)
+            ->select('assignee_id', DB::raw('count(*) as total'))
+            ->groupBy('assignee_id')
+            ->pluck('total', 'assignee_id');
+
+        $hoursByEmp = Worklog::query()
+            ->whereDate('date', $today)
+            ->whereIn('employee_id', $employeeIds)
+            ->select('employee_id', DB::raw('SUM(hours) as total'))
+            ->groupBy('employee_id')
+            ->pluck('total', 'employee_id');
+
+        $tasksByEmp = Task::query()
+            ->with('project:id,name,color')
+            ->whereIn('assignee_id', $employeeIds)
+            ->where(function ($q) use ($today, $activeStatuses) {
+                $q->whereDate('completed_at', $today)
+                    ->orWhere(function ($q2) use ($today) {
+                        $q2->whereDate('due_date', $today)
+                            ->where('status', '!=', TaskStatus::Done);
+                    })
+                    ->orWhere(function ($q3) use ($today, $activeStatuses) {
+                        $q3->whereIn('status', $activeStatuses)
+                            ->where(function ($q4) use ($today) {
+                                $q4->whereDate('updated_at', $today)
+                                    ->orWhereDate('due_date', $today);
+                            });
+                    });
+            })
+            ->get()
+            ->groupBy('assignee_id');
+
+        return $people->map(function (array $person) use (
+            $completedByEmp,
+            $dueByEmp,
+            $hoursByEmp,
+            $tasksByEmp,
+            $today,
+        ) {
+            $id = $person['id'];
+            $tasks = ($tasksByEmp[$id] ?? collect())
+                ->sortBy(fn (Task $t) => $this->dailyTaskSortKey($t, $today))
+                ->take(8)
+                ->map(fn (Task $t) => $this->dailyTaskChip($t, $today))
+                ->values()
+                ->all();
+
+            $person['workToday'] = [
+                'completed' => (int) ($completedByEmp[$id] ?? 0),
+                'due' => (int) ($dueByEmp[$id] ?? 0),
+                'hours' => round((float) ($hoursByEmp[$id] ?? 0), 1),
+                'tasks' => $tasks,
+            ];
+
+            return $person;
+        });
+    }
+
+    /**
+     * @return array{0: int, 1: int}
+     */
+    private function dailyTaskSortKey(Task $task, string $today): array
+    {
+        $dueToday = $task->status !== TaskStatus::Done
+            && $task->due_date?->toDateString() === $today;
+        $completedToday = $task->status === TaskStatus::Done
+            && $task->completed_at?->toDateString() === $today;
+
+        $band = match (true) {
+            $dueToday => 0,
+            $task->status === TaskStatus::Blocked => 1,
+            $task->status === TaskStatus::InProgress => 2,
+            $task->status === TaskStatus::InReview => 3,
+            $completedToday => 5,
+            default => 4,
+        };
+
+        $priorityWeight = match ($task->priority->value ?? 'medium') {
+            'urgent' => 4,
+            'high' => 3,
+            'medium' => 2,
+            'low' => 1,
+            default => 0,
+        };
+
+        return [$band, -$priorityWeight];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function dailyTaskChip(Task $task, string $today): array
+    {
+        $kind = 'active';
+        if ($task->status === TaskStatus::Done && $task->completed_at?->toDateString() === $today) {
+            $kind = 'completed';
+        } elseif ($task->status !== TaskStatus::Done && $task->due_date?->toDateString() === $today) {
+            $kind = 'due';
+        }
+
+        return [
+            'id' => $task->id,
+            'title' => $task->title,
+            'kind' => $kind,
+            'status' => $task->status->value,
+            'statusLabel' => $task->status->label(),
+            'statusColor' => $task->status->color(),
+            'project' => $task->project ? [
+                'name' => $task->project->name,
+                'color' => $task->project->color,
+            ] : null,
+        ];
     }
 }
