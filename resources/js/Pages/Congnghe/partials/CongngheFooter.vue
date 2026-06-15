@@ -48,10 +48,7 @@ const year = new Date().getFullYear();
               loading="lazy"
             />
             <div class="min-w-0 w-full">
-              <p class="font-display text-lg font-bold text-white sm:text-xl">
-                Vietnam America Schools
-              </p>
-              <p class="mt-1 text-sm text-white/65">
+              <p class="text-sm text-white/65">
                 Kiến tạo nền tảng số &amp; AI cho toàn hệ thống.
               </p>
             </div>
