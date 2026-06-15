@@ -48,40 +48,43 @@ function onTeamPrimary() {
 </script>
 
 <template>
-  <!-- Synthetic organization hub -->
   <div
-    v-if="node.type === 'org'"
-    class="org-node org-node--org"
-    :class="{ 'org-node--dim': dimmed }"
-    :style="boxStyle"
-    data-node
-  >
-    <span class="org-node__hub-icon">
-      <AppIcon
-        name="org-teams"
-        :size="20"
-      />
-    </span>
-    <div class="min-w-0">
-      <p class="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/70">
-        Tổ chức
-      </p>
-      <p class="truncate font-display text-sm font-bold text-white">
-        {{ node.rootCount }} Nhóm · {{ node.peopleCount }} nhân sự
-      </p>
-    </div>
-  </div>
-
-  <!-- Team (Nhóm) -->
-  <div
-    v-else-if="node.type === 'team'"
-    class="org-node org-node--team"
-    :class="{ 'org-node--dim': dimmed, 'org-node--match': matched }"
+    class="org-node"
+    :class="[
+      `org-node--${node.type}`,
+      {
+        'org-node--dim': dimmed,
+        'org-node--match': matched,
+      },
+    ]"
     :style="boxStyle"
     data-node
     @pointerdown.stop
   >
+    <!-- Synthetic organization hub -->
     <div
+      v-if="node.type === 'org'"
+      class="org-node__org-inner"
+    >
+      <span class="org-node__hub-icon">
+        <AppIcon
+          name="org-teams"
+          :size="20"
+        />
+      </span>
+      <div class="min-w-0">
+        <p class="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/70">
+          Tổ chức
+        </p>
+        <p class="truncate font-display text-sm font-bold text-white">
+          {{ node.rootCount }} Nhóm · {{ node.peopleCount }} nhân sự
+        </p>
+      </div>
+    </div>
+
+    <!-- Team (Nhóm) -->
+    <div
+      v-else-if="node.type === 'team'"
       class="org-node__surface group"
       role="button"
       tabindex="0"
@@ -171,71 +174,66 @@ function onTeamPrimary() {
         </span>
       </div>
     </div>
-  </div>
 
-  <!-- Nhánh / mảng (trung gian giữa nhóm và thành viên) -->
-  <div
-    v-else-if="node.type === 'section'"
-    class="org-node org-node--section"
-    :class="{ 'org-node--dim': dimmed, 'org-node--match': matched }"
-    :style="boxStyle"
-    data-node
-    @pointerdown.stop
-  >
-    <p class="org-node__eyebrow">
-      Nhánh
-    </p>
-    <p
-      class="org-node__title org-node__title--section"
-      :title="node.sectionTitle"
+    <!-- Mảng (nhánh trung gian) -->
+    <div
+      v-else-if="node.type === 'section'"
+      class="org-node__section-inner"
     >
-      {{ node.sectionTitle }}
-    </p>
-    <p class="org-node__section-meta">
-      <AppIcon
-        name="members"
-        :size="11"
-      />
-      {{ node.peopleCount }}
-    </p>
-  </div>
-
-  <!-- Person (member) -->
-  <button
-    v-else-if="node.type === 'person'"
-    type="button"
-    class="org-node org-node--person"
-    :class="{ 'org-node--dim': dimmed, 'org-node--match': matched }"
-    :style="boxStyle"
-    data-node
-    @pointerdown.stop
-    @click="emit('select-person', node.person)"
-  >
-    <span
-      class="org-node__status"
-      :class="node.person.isActive ? 'org-node__status--on' : 'org-node__status--off'"
-    />
-    <div class="flex items-center gap-2.5">
-      <Avatar
-        :name="node.person.name"
-        :src="node.person.avatar"
-        :size="36"
-      />
-      <div class="min-w-0 flex-1 text-left">
-        <p class="org-node__title org-node__title--sm">
-          {{ node.person.name }}
-        </p>
-        <p class="org-node__subtitle">
-          {{ personSubtitle }}
-        </p>
-      </div>
+      <p class="org-node__section-eyebrow">
+        Mảng
+      </p>
+      <p
+        class="org-node__section-title"
+        :title="node.sectionTitle"
+      >
+        {{ node.sectionTitle }}
+      </p>
+      <p class="org-node__section-meta">
+        <AppIcon
+          name="members"
+          :size="11"
+        />
+        {{ node.peopleCount }} thành viên
+      </p>
     </div>
-  </button>
+
+    <!-- Person (member) -->
+    <button
+      v-else-if="node.type === 'person'"
+      type="button"
+      class="org-node__person-inner"
+      @click="emit('select-person', node.person)"
+    >
+      <span
+        class="org-node__status"
+        :class="node.person.isActive ? 'org-node__status--on' : 'org-node__status--off'"
+      />
+      <div class="flex items-center gap-2.5">
+        <Avatar
+          :name="node.person.name"
+          :src="node.person.avatar"
+          :size="36"
+        />
+        <div class="min-w-0 flex-1 text-left">
+          <p class="org-node__title org-node__title--sm">
+            {{ node.person.name }}
+          </p>
+          <p class="org-node__subtitle">
+            {{ personSubtitle }}
+          </p>
+        </div>
+      </div>
+    </button>
+  </div>
 </template>
 
 <style scoped>
 .org-node {
     position: absolute;
+    z-index: 1;
+    box-sizing: border-box;
+    overflow: visible;
     border-radius: 16px;
     animation: org-node-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
     animation-delay: var(--reveal-delay, 0ms);
@@ -268,13 +266,18 @@ function onTeamPrimary() {
 
 /* Org hub */
 .org-node--org {
-    display: flex;
-    align-items: center;
-    gap: 0.65rem;
     padding: 0 1rem;
     background: linear-gradient(135deg, #9a0036, #c4185b 70%, #d6418a);
     box-shadow: 0 14px 30px -14px rgba(154, 0, 54, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.2);
     overflow: hidden;
+}
+
+.org-node__org-inner {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    width: 100%;
+    height: 100%;
 }
 
 .org-node__hub-icon {
@@ -291,9 +294,9 @@ function onTeamPrimary() {
 
 /* Team card */
 .org-node--team .org-node__surface,
-.org-node--section,
-.org-node--person {
-    display: block;
+.org-node--person .org-node__person-inner {
+    display: flex;
+    flex-direction: column;
     width: 100%;
     height: 100%;
     padding: 0.7rem 0.8rem;
@@ -309,31 +312,89 @@ function onTeamPrimary() {
 
 .org-node--team .org-node__surface {
     position: relative;
-    display: flex;
-    flex-direction: column;
     justify-content: space-between;
     cursor: pointer;
 }
 
+.org-node--person .org-node__person-inner {
+    position: relative;
+    display: block;
+    cursor: pointer;
+    border: none;
+    font: inherit;
+    color: inherit;
+}
+
 .org-node--team .org-node__surface:hover,
 .org-node--section:hover,
-.org-node--person:hover {
+.org-node--person .org-node__person-inner:hover {
     transform: translateY(-3px);
     border-color: rgba(154, 0, 54, 0.4);
     box-shadow: 0 18px 38px -18px rgba(154, 0, 54, 0.5);
 }
 
 .org-node--team .org-node__surface:focus-visible,
-.org-node--person:focus-visible {
+.org-node--person .org-node__person-inner:focus-visible {
     border-color: #9a0036;
     box-shadow: 0 0 0 3px rgba(154, 0, 54, 0.22);
 }
 
-.org-node--match .org-node__surface,
+.org-node--match.org-node--team .org-node__surface,
 .org-node--match.org-node--section,
-.org-node--match.org-node--person {
+.org-node--match.org-node--person .org-node__person-inner {
     border-color: rgba(154, 0, 54, 0.7);
     box-shadow: 0 0 0 2px rgba(154, 0, 54, 0.35), 0 18px 36px -18px rgba(154, 0, 54, 0.5);
+}
+
+/* Mảng (section) */
+.org-node--section {
+    padding: 0;
+    background: linear-gradient(180deg, rgba(253, 242, 246, 0.98), rgba(255, 255, 255, 0.95));
+    border: 1px solid rgba(154, 0, 54, 0.28);
+    box-shadow: 0 10px 24px -16px rgba(154, 0, 54, 0.4);
+}
+
+.org-node__section-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.2rem;
+    width: 100%;
+    height: 100%;
+    padding: 0.45rem 0.5rem;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.org-node__section-eyebrow {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(154, 0, 54, 0.75);
+}
+
+.org-node__section-title {
+    width: 100%;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.3;
+    color: #0f172a;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+}
+
+.org-node__section-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    font-size: 10px;
+    font-weight: 600;
+    color: #64748b;
 }
 
 .org-node__status {
@@ -395,38 +456,6 @@ function onTeamPrimary() {
     color: #94a3b8;
 }
 
-.org-node--section {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0.15rem;
-    padding: 0.45rem 0.55rem;
-    text-align: center;
-    background: linear-gradient(180deg, rgba(253, 242, 246, 0.95), rgba(255, 255, 255, 0.9));
-    border: 1px solid rgba(154, 0, 54, 0.22);
-    box-shadow: 0 8px 20px -16px rgba(154, 0, 54, 0.45);
-}
-
-.org-node__title--section {
-    width: 100%;
-    font-size: 12px;
-    white-space: normal;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    line-height: 1.25;
-}
-
-.org-node__section-meta {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.2rem;
-    margin-top: 0.1rem;
-    font-size: 10px;
-    font-weight: 600;
-    color: #64748b;
-}
 
 .org-node__title {
     font-weight: 700;

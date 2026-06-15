@@ -19,7 +19,7 @@ import { toIterableList } from '@/modules/people/composables/useOrgTeamPeople.js
 export const NODE = {
     org: { w: 212, h: 86 },
     team: { w: 234, h: 100 },
-    section: { w: 176, h: 58 },
+    section: { w: 184, h: 68 },
     person: { w: 188, h: 76 },
 };
 const H_GAP = 28;
@@ -222,6 +222,15 @@ function shiftSubtree(ln, dx) {
     for (const c of ln.children) shiftSubtree(c, dx);
 }
 
+function subtreeBottom(ln) {
+    let bottom = ln.y + ln.h;
+    for (const c of ln.children) {
+        bottom = Math.max(bottom, subtreeBottom(c));
+    }
+
+    return bottom;
+}
+
 /** Top-down tidy placement; returns the horizontal width consumed. */
 function place(ln, leftX, top) {
     const { w, h } = sizeOf(ln);
@@ -236,6 +245,60 @@ function place(ln, leftX, top) {
     }
 
     const childTop = top + h + V_GAP;
+
+    if (ln.type === 'team') {
+        const subteams = kids.filter((k) => k.type === 'team');
+        const sections = kids.filter((k) => k.type === 'section');
+        const rest = kids.filter((k) => k.type !== 'team' && k.type !== 'section');
+
+        if (subteams.length && sections.length) {
+            let cursor = leftX;
+            subteams.forEach((kid, i) => {
+                cursor += place(kid, cursor, childTop);
+                if (i < subteams.length - 1) cursor += H_GAP;
+            });
+            const row1Span = cursor - leftX;
+
+            let row2Top = childTop;
+            for (const st of subteams) {
+                row2Top = Math.max(row2Top, subtreeBottom(st) + V_GAP);
+            }
+
+            cursor = leftX;
+            sections.forEach((kid, i) => {
+                cursor += place(kid, cursor, row2Top);
+                if (i < sections.length - 1) cursor += H_GAP;
+            });
+            const row2Span = cursor - leftX;
+
+            rest.forEach((kid) => {
+                cursor += H_GAP;
+                cursor += place(kid, cursor, childTop);
+            });
+
+            const span = Math.max(row1Span, row2Span, cursor - leftX);
+            const cxCandidates = [];
+            if (subteams.length) {
+                cxCandidates.push((subteams[0].cx + subteams[subteams.length - 1].cx) / 2);
+            }
+            if (sections.length) {
+                cxCandidates.push((sections[0].cx + sections[sections.length - 1].cx) / 2);
+            }
+            ln.cx = cxCandidates.length
+                ? cxCandidates.reduce((a, b) => a + b, 0) / cxCandidates.length
+                : leftX + w / 2;
+
+            if (w > span) {
+                const shift = (w - span) / 2;
+                for (const kid of kids) shiftSubtree(kid, shift);
+                ln.cx = leftX + w / 2;
+                return w;
+            }
+
+            return span;
+        }
+    }
+
     let cursor = leftX;
     kids.forEach((kid, i) => {
         cursor += place(kid, cursor, childTop);

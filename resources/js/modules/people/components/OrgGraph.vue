@@ -383,6 +383,10 @@ watch(
     will-change: transform;
 }
 
+.org-graph__canvas :deep(.org-node) {
+    pointer-events: auto;
+}
+
 .org-graph__edges {
     position: absolute;
     top: 0;
