@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 import OrgTeamTeamNode from '@/modules/people/components/OrgTeamTeamNode.vue';
 import OrgTeamPeopleBranch from '@/modules/people/components/OrgTeamPeopleBranch.vue';
-import { toIterableList } from '@/modules/people/composables/useOrgTeamPeople.js';
+import { toIterableList, useOrgTeamRoster } from '@/modules/people/composables/useOrgTeamPeople.js';
 import '@/modules/people/styles/org-team-tree.css';
 import '@/modules/people/styles/org-team-chart-canvas.css';
 import '@/modules/people/styles/org-team-flow-cards.css';
@@ -18,6 +18,16 @@ const emit = defineEmits(['edit', 'add-child', 'delete', 'select-person']);
 
 const childTeams = computed(() => toIterableList(props.node.children));
 const hasChildren = computed(() => childTeams.value.length > 0);
+
+const roster = useOrgTeamRoster(() => ({
+    leader: props.node.leader,
+    members: props.node.members,
+    sections: props.node.sections,
+}));
+
+const hasPeople = computed(
+    () => Boolean(roster.value.leader) || roster.value.sectionGroups.length > 0,
+);
 
 const branchStyle = computed(() => ({
     '--org-depth': String(props.depth),
@@ -39,6 +49,12 @@ const branchStyle = computed(() => ({
         @delete="emit('delete', $event)"
       />
 
+      <div
+        v-if="hasPeople"
+        class="org-tree__connector org-tree__connector--stem"
+        aria-hidden="true"
+      />
+
       <OrgTeamPeopleBranch
         :team-name="node.name"
         :leader="node.leader"
@@ -47,6 +63,12 @@ const branchStyle = computed(() => ({
         @select-person="emit('select-person', $event)"
       />
     </div>
+
+    <div
+      v-if="hasChildren"
+      class="org-tree__connector org-tree__connector--stem org-tree__connector--to-children"
+      aria-hidden="true"
+    />
 
     <ul
       v-if="hasChildren"

@@ -54,6 +54,12 @@ function onSelect(person) {
     </div>
 
     <div
+      v-if="roster.leader && roster.sectionGroups.length"
+      class="org-tree__connector org-tree__connector--stem"
+      aria-hidden="true"
+    />
+
+    <div
       v-if="roster.sectionGroups.length"
       class="org-tree__members-section"
       :class="{ 'org-tree__members-section--columns': hasMultipleSections }"

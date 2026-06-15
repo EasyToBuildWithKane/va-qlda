@@ -3,6 +3,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
 import VndAmount from '@/modules/aiAccount/components/VndAmount.vue';
+import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import DatagridToolbarActionButton from '@/shared/ui/DatagridToolbarActionButton.vue';
 import ColumnVisibilityDropdown from '@/shared/ui/ColumnVisibilityDropdown.vue';
 import { useVisibleColumns } from '@/shared/composables/useVisibleColumns';
@@ -21,9 +22,33 @@ const props = defineProps({
 });
 
 const toast = useToast();
+const search = ref('');
 const showExportDd = ref(false);
 const colDdRef = ref(null);
 const exportDdRef = ref(null);
+
+function normalizeSearch(value) {
+    return String(value ?? '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .trim();
+}
+
+function labelFor(row) {
+    const opt = props.options?.group_function?.find((o) => o.value === row.group);
+    return opt?.label ?? row.group_label ?? row.group;
+}
+
+const filteredRows = computed(() => {
+    const q = normalizeSearch(search.value);
+    if (!q) return props.rows;
+    return props.rows.filter((row) => {
+        const label = normalizeSearch(labelFor(row));
+        const code = normalizeSearch(row.group);
+        return label.includes(q) || code.includes(q);
+    });
+});
 
 const {
     visibleCols,
@@ -37,23 +62,25 @@ const colVisible = computed(() =>
     Object.fromEntries(GROUP_COST_COLUMNS.map((c) => [c.key, isColVisible(c.key)])),
 );
 
-const totalMonthly = computed(() =>
-    props.cards?.monthly_cost_running
-    ?? props.rows.reduce((s, r) => s + (r.cost_monthly ?? 0), 0),
-);
+const totalMonthly = computed(() => {
+    const source = filteredRows.value;
+    if (search.value.trim()) {
+        return source.reduce((s, r) => s + (r.cost_monthly ?? 0), 0);
+    }
+    return props.cards?.monthly_cost_running
+        ?? source.reduce((s, r) => s + (r.cost_monthly ?? 0), 0);
+});
 
-const totals = computed(() => ({
-    accounts: props.rows.reduce((s, r) => s + (r.total_accounts ?? 0), 0),
-    active: props.rows.reduce((s, r) => s + (r.active_accounts ?? 0), 0),
-    expiring: props.rows.reduce((s, r) => s + (r.expiring_soon ?? 0), 0),
-    expired: props.rows.reduce((s, r) => s + (r.expired ?? 0), 0),
-    pending: props.rows.reduce((s, r) => s + (r.proposal_monthly_pending_sync ?? 0), 0),
-}));
-
-function labelFor(row) {
-    const opt = props.options?.group_function?.find((o) => o.value === row.group);
-    return opt?.label ?? row.group_label ?? row.group;
-}
+const totals = computed(() => {
+    const source = filteredRows.value;
+    return {
+        accounts: source.reduce((s, r) => s + (r.total_accounts ?? 0), 0),
+        active: source.reduce((s, r) => s + (r.active_accounts ?? 0), 0),
+        expiring: source.reduce((s, r) => s + (r.expiring_soon ?? 0), 0),
+        expired: source.reduce((s, r) => s + (r.expired ?? 0), 0),
+        pending: source.reduce((s, r) => s + (r.proposal_monthly_pending_sync ?? 0), 0),
+    };
+});
 
 function openCol() {
     openColPanel(() => {
@@ -68,15 +95,18 @@ function openExport() {
 
 function runExport(format) {
     showExportDd.value = false;
-    if (!props.rows.length) {
+    if (!filteredRows.value.length) {
         toast.warning('Không có dữ liệu nhóm để xuất.');
         return;
     }
+    const note = search.value.trim()
+        ? `${props.filterNote ? `${props.filterNote} · ` : ''}Tìm: «${search.value.trim()}»`
+        : props.filterNote;
     const name = exportAiGroupCost({
-        rows: props.rows,
+        rows: filteredRows.value,
         cards: props.cards,
         options: props.options,
-        filterNote: props.filterNote,
+        filterNote: note,
         format,
     });
     if (name) toast.success(`Đã xuất ${name}`);
@@ -96,11 +126,19 @@ onUnmounted(() => document.removeEventListener('mousedown', onDocClick));
   <div class="card overflow-visible">
     <div class="border-b border-slate-100 px-5 py-4 dark:border-slate-700">
       <div class="flex w-full min-w-0 flex-wrap items-center gap-2 lg:flex-nowrap">
-        <p class="min-w-0 flex-1 text-sm text-slate-600">
-          <span class="font-semibold text-slate-800">{{ rows.length }}</span> nhóm chức năng
-        </p>
+        <div class="min-w-0 w-full basis-full lg:min-w-[10rem] lg:flex-1 lg:basis-auto">
+          <DatagridToolbarSearch
+            v-model="search"
+            input-id="ai-cost-by-group-search"
+            placeholder="Tên nhóm chức năng, mã nhóm…"
+            stretch
+            inline-actions
+            hide-label
+            input-height="h-10"
+          />
+        </div>
 
-        <div class="ml-auto flex shrink-0 flex-wrap items-center gap-2">
+        <div class="flex shrink-0 items-center gap-2">
           <div
             ref="colDdRef"
             class="relative shrink-0"
@@ -155,7 +193,9 @@ onUnmounted(() => document.removeEventListener('mousedown', onDocClick));
               </button>
             </div>
           </div>
+        </div>
 
+        <div class="ml-auto flex shrink-0 items-center gap-2">
           <Link
             v-if="showAccountLink"
             :href="route('ai-accounts.index')"
@@ -169,6 +209,13 @@ onUnmounted(() => document.removeEventListener('mousedown', onDocClick));
           </Link>
         </div>
       </div>
+
+      <p
+        v-if="search.trim() && rows.length"
+        class="mt-2 text-xs text-slate-500"
+      >
+        {{ filteredRows.length }}/{{ rows.length }} nhóm · «{{ search.trim() }}»
+      </p>
 
       <div
         v-if="totalMonthly > 0"
@@ -205,6 +252,20 @@ onUnmounted(() => document.removeEventListener('mousedown', onDocClick));
       class="px-5 py-12 text-center text-sm text-slate-500"
     >
       Chưa có dữ liệu chi phí theo nhóm. Duyệt phiếu đề xuất để chi phí được tính tự động.
+    </div>
+
+    <div
+      v-else-if="!filteredRows.length"
+      class="px-5 py-12 text-center text-sm text-slate-500"
+    >
+      Không có nhóm phù hợp «{{ search.trim() }}».
+      <button
+        type="button"
+        class="ml-1 font-medium text-brand hover:underline"
+        @click="search = ''"
+      >
+        Xóa tìm kiếm
+      </button>
     </div>
 
     <div
@@ -251,7 +312,7 @@ onUnmounted(() => document.removeEventListener('mousedown', onDocClick));
         </thead>
         <tbody class="divide-y divide-slate-100">
           <tr
-            v-for="row in rows"
+            v-for="row in filteredRows"
             :key="row.group"
             class="transition-colors hover:bg-slate-50/60"
           >

@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
+import Modal from '@/Components/Ui/Modal.vue';
 import CoachingMaterialEmbed from '@/modules/coaching/components/CoachingMaterialEmbed.vue';
 
 defineOptions({ inheritAttrs: false });
@@ -29,7 +30,8 @@ function iconForType(type) {
 }
 
 const selectedId = ref(null);
-const showAddForm = ref(false);
+const showAddModal = ref(false);
+const previewUnavailable = ref(false);
 
 watch(
     () => props.materials,
@@ -52,13 +54,27 @@ const selectedMaterial = computed(
 
 const materialForm = useForm({ type: 'youtube', title: '', url: '', file: null });
 
-function openAddForm() {
+watch(
+    () => selectedId.value,
+    () => {
+        previewUnavailable.value = false;
+    },
+);
+
+const canInlinePreview = computed(() => {
+    const m = selectedMaterial.value;
+    if (!m?.embedSrc) return false;
+    if (previewUnavailable.value) return false;
+    return Boolean(m.embedAllowed);
+});
+
+function openAddModal() {
     materialForm.clearErrors();
-    showAddForm.value = true;
+    showAddModal.value = true;
 }
 
-function closeAddForm() {
-    showAddForm.value = false;
+function closeAddModal() {
+    showAddModal.value = false;
     materialForm.reset();
     materialForm.clearErrors();
 }
@@ -73,7 +89,7 @@ function submitMaterial() {
         forceFormData: true,
         onSuccess: () => {
             materialForm.reset();
-            showAddForm.value = false;
+            showAddModal.value = false;
         },
     });
 }
@@ -102,10 +118,9 @@ function externalHref(m) {
         Thêm link hoặc tệp đính kèm cho buổi học.
       </p>
       <button
-        v-if="!showAddForm"
         type="button"
         class="btn-primary inline-flex h-9 items-center gap-1.5 px-4 text-sm"
-        @click="openAddForm"
+        @click="openAddModal"
       >
         <AppIcon
           name="add"
@@ -115,101 +130,93 @@ function externalHref(m) {
       </button>
     </div>
 
-    <form
-      v-if="isEditing && showAddForm"
-      class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"
-      @submit.prevent="submitMaterial"
+    <Modal
+      :show="isEditing && showAddModal"
+      title="Thêm tài liệu mới"
+      max-width="max-w-2xl"
+      :dirty="materialForm.isDirty"
+      close-confirm-title="Huỷ thêm tài liệu?"
+      close-confirm-message="Thông tin đã nhập sẽ bị bỏ."
+      @close="closeAddModal"
     >
-      <div class="mb-4 flex items-start justify-between gap-3">
-        <div>
-          <p class="text-sm font-semibold text-slate-800">
-            Thêm tài liệu mới
-          </p>
-          <p class="mt-0.5 text-xs text-slate-500">
-            YouTube, Canva, Loom, Google Docs/Drive hoặc tệp PDF, PPTX.
-          </p>
-        </div>
-        <button
-          type="button"
-          class="btn-ghost inline-flex h-8 shrink-0 items-center gap-1 px-2 text-xs"
-          @click="closeAddForm"
-        >
-          <AppIcon
-            name="close"
-            :size="14"
-          />
-          Đóng
-        </button>
-      </div>
-      <div class="grid gap-3 sm:grid-cols-2">
-        <div>
-          <label class="label">Loại</label>
-          <select
-            v-model="materialForm.type"
-            class="input h-10 w-full text-sm"
-          >
-            <option
-              v-for="mt in materialTypes"
-              :key="mt.value"
-              :value="mt.value"
-            >
-              {{ mt.label }}
-            </option>
-          </select>
-        </div>
-        <div>
-          <label class="label">Tiêu đề</label>
-          <input
-            v-model="materialForm.title"
-            class="input h-10 w-full"
-            placeholder="Tiêu đề hiển thị"
-            required
-          >
-        </div>
-      </div>
-      <div class="mt-3">
-        <label class="label">URL (tuỳ chọn)</label>
-        <input
-          v-model="materialForm.url"
-          class="input h-10 w-full"
-          placeholder="https://…"
-        >
-      </div>
-      <div class="mt-3">
-        <label class="label">Hoặc tải tệp lên</label>
-        <input
-          type="file"
-          class="input w-full text-sm"
-          @change="onFileChange"
-        >
-      </div>
-      <p
-        v-if="materialForm.errors.url"
-        class="mt-2 text-xs text-danger"
+      <form
+        class="space-y-4"
+        @submit.prevent="submitMaterial"
       >
-        {{ materialForm.errors.url }}
-      </p>
-      <div class="mt-4 flex justify-end gap-2">
-        <button
-          type="button"
-          class="btn-ghost h-9 px-3 text-sm"
-          @click="closeAddForm"
+        <p class="text-xs text-slate-500">
+          YouTube, Canva, Loom, Google Docs/Drive hoặc tệp PDF, PPTX.
+        </p>
+        <div class="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label class="label">Loại</label>
+            <select
+              v-model="materialForm.type"
+              class="input h-10 w-full text-sm"
+            >
+              <option
+                v-for="mt in materialTypes"
+                :key="mt.value"
+                :value="mt.value"
+              >
+                {{ mt.label }}
+              </option>
+            </select>
+          </div>
+          <div>
+            <label class="label">Tiêu đề</label>
+            <input
+              v-model="materialForm.title"
+              class="input h-10 w-full"
+              placeholder="Tiêu đề hiển thị"
+              required
+              autofocus
+            >
+          </div>
+        </div>
+        <div>
+          <label class="label">URL (tuỳ chọn)</label>
+          <input
+            v-model="materialForm.url"
+            class="input h-10 w-full"
+            placeholder="https://…"
+          >
+        </div>
+        <div>
+          <label class="label">Hoặc tải tệp lên</label>
+          <input
+            type="file"
+            class="input w-full text-sm"
+            @change="onFileChange"
+          >
+        </div>
+        <p
+          v-if="materialForm.errors.url"
+          class="text-xs text-danger"
         >
-          Huỷ
-        </button>
-        <button
-          type="submit"
-          class="btn-primary h-9 gap-1.5 px-4 text-sm"
-          :disabled="materialForm.processing"
-        >
-          <AppIcon
-            name="add"
-            :size="15"
-          />
-          Lưu tài liệu
-        </button>
-      </div>
-    </form>
+          {{ materialForm.errors.url }}
+        </p>
+        <div class="flex justify-end gap-2 border-t border-slate-100 pt-4">
+          <button
+            type="button"
+            class="btn-ghost h-9 px-3 text-sm"
+            @click="closeAddModal"
+          >
+            Huỷ
+          </button>
+          <button
+            type="submit"
+            class="btn-primary h-9 gap-1.5 px-4 text-sm"
+            :disabled="materialForm.processing"
+          >
+            <AppIcon
+              name="add"
+              :size="15"
+            />
+            Lưu tài liệu
+          </button>
+        </div>
+      </form>
+    </Modal>
 
     <div
       v-if="!materials.length"
@@ -314,13 +321,14 @@ function externalHref(m) {
         </div>
         <div class="flex min-h-0 flex-1 flex-col p-4">
           <CoachingMaterialEmbed
-            v-if="selectedMaterial.embedAllowed && selectedMaterial.embedSrc"
+            v-if="canInlinePreview"
             class="min-h-0 flex-1"
             :url="selectedMaterial.url"
             :embed-src="selectedMaterial.embedSrc"
             :title="selectedMaterial.title"
             tall
             hide-external-link
+            @preview-unavailable="previewUnavailable = true"
           />
           <div
             v-else

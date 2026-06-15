@@ -10,6 +10,10 @@ import CoachingSessionsSummaryBar from '@/modules/coaching/components/CoachingSe
 import CoachingSessionsGroupView from '@/modules/coaching/components/CoachingSessionsGroupView.vue';
 import CoachingSessionsTableView from '@/modules/coaching/components/CoachingSessionsTableView.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
+import DatagridToolbarActionButton from '@/shared/ui/DatagridToolbarActionButton.vue';
+import DatagridSegmentedControl from '@/shared/ui/DatagridSegmentedControl.vue';
+import DatagridFilterField from '@/shared/ui/DatagridFilterField.vue';
+import FilterDatePicker from '@/shared/ui/FilterDatePicker.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import ColumnVisibilityDropdown from '@/shared/ui/ColumnVisibilityDropdown.vue';
 import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
@@ -25,6 +29,12 @@ import { useDialog } from '@/composables/useDialog';
 
 const PER_PAGE_OPTIONS = [10, 15, 20, 30];
 const VIEW_KEY = 'va-qlda.coaching.sessions.view';
+const FILTER_CONTROL_CLASS = 'input h-10 w-full text-sm';
+
+const VIEW_TABS = [
+    { key: 'groups', label: 'Nhóm', icon: 'grid', title: 'Nhóm theo khóa' },
+    { key: 'table', label: 'Bảng', icon: 'list', title: 'Bảng chi tiết' },
+];
 
 const props = defineProps({
     sessions: { type: Object, required: true },
@@ -87,8 +97,7 @@ const {
 const FILTER_CONTROLS_DEF = [
     { key: 'status', label: 'Trạng thái', default: false },
     { key: 'course', label: 'Khóa học', default: false },
-    { key: 'date_from', label: 'Từ ngày', default: false },
-    { key: 'date_to', label: 'Đến ngày', default: false },
+    { key: 'date_range', label: 'Thời gian', default: false },
     { key: 'scheduled', label: 'Lịch học', default: false },
     { key: 'has_materials', label: 'Tài liệu', default: false },
     { key: 'has_assignments', label: 'Bài tập', default: false },
@@ -97,7 +106,7 @@ const FILTER_CONTROLS_DEF = [
 const {
     visibleFilters, showFilterPanelDd, enabledFilterControlCount, hasFilterRow,
     persistVisibleFilters, openFilterPanel, FILTER_CONTROLS,
-} = useVisibleFilterControls(FILTER_CONTROLS_DEF, 'va-qlda.coaching.sessions.visible-filters.v2');
+} = useVisibleFilterControls(FILTER_CONTROLS_DEF, 'va-qlda.coaching.sessions.visible-filters.v3');
 
 const canAddSession = computed(() => props.selectedCourse?.can?.update === true);
 
@@ -240,283 +249,286 @@ async function removeSession(s) {
 
     <div class="min-w-0">
       <CoachingWorkspace>
-        <section class="card min-w-0">
+        <section class="card min-w-0 overflow-visible">
           <CoachingSessionsSummaryBar
             :summary="summary"
             :active-status="summaryActiveStatus"
             @filter-status="onSummaryStatus"
           />
 
-          <div class="flex flex-col gap-2.5 border-b border-slate-100 bg-slate-50/40 px-4 py-3.5 sm:px-5 lg:flex-row lg:items-center lg:gap-3">
-            <div class="min-w-0 flex-1">
-              <DatagridToolbarSearch
-                v-model="filterForm.q"
-                stretch
-                input-id="coaching-session-search"
-                placeholder="Tên buổi, chủ đề, khóa…"
-              />
-            </div>
-
-            <div class="flex min-w-0 flex-wrap items-center gap-2 lg:shrink-0">
-              <div
-                ref="filterDdRef"
-                class="relative"
-              >
-                <button
-                  type="button"
-                  class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
-                  :class="showFilterPanelDd
-                    ? 'border-brand/40 bg-brand/5 text-brand'
-                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800'"
-                  :title="`Hiển thị bộ lọc (${enabledFilterControlCount}/${FILTER_CONTROLS.length})`"
-                  @click="openFilter"
-                >
-                  <AppIcon
-                    name="filter"
-                    :size="15"
-                  />
-                  <span>Lọc</span>
-                </button>
-                <FilterVisibilityDropdown
-                  v-model="visibleFilters"
-                  :show="showFilterPanelDd"
-                  :anchor-ref="filterDdRef"
-                  :controls="FILTER_CONTROLS"
-                  @persist="persistVisibleFilters"
+          <div class="border-b border-slate-100 bg-slate-50/40 px-4 py-3.5 sm:px-5 lg:py-4">
+            <div class="flex w-full min-w-0 flex-wrap items-center gap-2 lg:flex-nowrap">
+              <div class="min-w-0 w-full basis-full lg:min-w-[10rem] lg:flex-1 lg:basis-auto">
+                <DatagridToolbarSearch
+                  v-model="filterForm.q"
+                  input-id="coaching-session-search"
+                  placeholder="Tên buổi, chủ đề, khóa…"
+                  stretch
+                  inline-actions
+                  hide-label
+                  input-height="h-10"
                 />
               </div>
 
-              <div
-                ref="colDdRef"
-                class="relative"
-              >
-                <button
-                  type="button"
-                  class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
-                  :class="showColDd
-                    ? 'border-brand/40 bg-brand/5 text-brand'
-                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800'"
-                  title="Cột hiển thị"
-                  @click="openCol"
-                >
-                  <AppIcon
-                    name="columns"
-                    :size="15"
-                  />
-                  <span>Cột</span>
-                </button>
-                <ColumnVisibilityDropdown
-                  v-model="visibleCols"
-                  :show="showColDd"
-                  :columns="SESSION_COLUMNS"
-                  :fixed-labels="['#', 'Tên buổi', 'Thao tác']"
-                  @persist="persistVisibleColumns"
-                />
-              </div>
-
-              <div
-                ref="exportDdRef"
-                class="relative"
-              >
-                <button
-                  type="button"
-                  class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none disabled:opacity-50"
-                  :class="showExportDd
-                    ? 'border-brand/40 bg-brand/5 text-brand'
-                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800'"
-                  title="Xuất Excel / CSV"
-                  :disabled="exportLoading"
-                  @click="toggleExport"
-                >
-                  <AppIcon
-                    name="export"
-                    :size="15"
-                  />
-                  <span>Xuất</span>
-                </button>
+              <div class="flex shrink-0 items-center gap-2">
                 <div
-                  v-if="showExportDd"
-                  class="absolute right-0 z-30 mt-1 min-w-[11rem] rounded-card border border-slate-200 bg-white py-1 shadow-lg"
+                  ref="filterDdRef"
+                  class="relative shrink-0"
                 >
-                  <button
-                    type="button"
-                    class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50"
-                    @click="doExportCsv"
+                  <DatagridToolbarActionButton
+                    icon="filter"
+                    :active="showFilterPanelDd"
+                    :title="`Hiển thị bộ lọc (${enabledFilterControlCount}/${FILTER_CONTROLS.length})`"
+                    @click="openFilter"
                   >
-                    CSV · trang này
-                  </button>
-                  <button
-                    type="button"
-                    class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50"
-                    @click="doExportExcelPage"
+                    Lọc
+                  </DatagridToolbarActionButton>
+                  <FilterVisibilityDropdown
+                    v-model="visibleFilters"
+                    :show="showFilterPanelDd"
+                    :anchor-ref="filterDdRef"
+                    :controls="FILTER_CONTROLS"
+                    @persist="persistVisibleFilters"
+                  />
+                </div>
+
+                <div
+                  ref="colDdRef"
+                  class="relative shrink-0"
+                >
+                  <DatagridToolbarActionButton
+                    icon="columns"
+                    :active="showColDd"
+                    title="Cột hiển thị"
+                    @click="openCol"
                   >
-                    Excel · trang này
-                  </button>
-                  <button
-                    type="button"
-                    class="block w-full border-t border-slate-100 px-3 py-2 text-left text-xs font-medium text-brand hover:bg-brand/5"
-                    @click="doExportExcelAll"
+                    Cột
+                  </DatagridToolbarActionButton>
+                  <ColumnVisibilityDropdown
+                    v-model="visibleCols"
+                    :show="showColDd"
+                    :columns="SESSION_COLUMNS"
+                    :anchor-ref="colDdRef"
+                    :fixed-labels="['#', 'Tên buổi', 'Thao tác']"
+                    @persist="persistVisibleColumns"
+                  />
+                </div>
+
+                <div
+                  ref="exportDdRef"
+                  class="relative shrink-0"
+                >
+                  <DatagridToolbarActionButton
+                    icon="export"
+                    :active="showExportDd"
+                    :disabled="exportLoading"
+                    title="Xuất Excel / CSV"
+                    @click="toggleExport"
                   >
-                    Excel · theo lọc
-                  </button>
+                    {{ exportLoading ? 'Đang xuất…' : 'Xuất' }}
+                  </DatagridToolbarActionButton>
+                  <div
+                    v-if="showExportDd"
+                    class="absolute right-0 z-30 mt-1 min-w-[11rem] rounded-card border border-slate-200 bg-white py-1 shadow-lg"
+                  >
+                    <button
+                      type="button"
+                      class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50"
+                      @click="doExportCsv"
+                    >
+                      CSV · trang này
+                    </button>
+                    <button
+                      type="button"
+                      class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50"
+                      @click="doExportExcelPage"
+                    >
+                      Excel · trang này
+                    </button>
+                    <button
+                      type="button"
+                      class="block w-full border-t border-slate-100 px-3 py-2 text-left text-xs font-medium text-brand hover:bg-brand/5"
+                      @click="doExportExcelAll"
+                    >
+                      Excel · theo lọc
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              <div class="flex rounded-btn border border-slate-200 p-0.5">
+              <div class="ml-auto flex min-w-0 shrink-0 flex-wrap items-center justify-end gap-2">
+                <DatagridSegmentedControl
+                  :model-value="viewMode"
+                  :items="VIEW_TABS"
+                  aria-label="Chế độ xem danh sách"
+                  icon-only-below-sm
+                  @update:model-value="setViewMode"
+                />
                 <button
+                  v-if="viewMode === 'groups' && groupedSessions.length"
                   type="button"
-                  class="inline-flex h-8 items-center gap-1 rounded-btn px-2.5 text-xs font-medium transition"
-                  :class="viewMode === 'groups' ? 'bg-brand/10 text-brand' : 'text-slate-500 hover:text-slate-700'"
-                  title="Nhóm theo khóa"
-                  @click="setViewMode('groups')"
+                  class="inline-flex h-10 shrink-0 items-center gap-1 rounded-btn border border-slate-200 bg-white px-3 text-xs font-medium text-slate-600 hover:border-slate-300"
+                  :title="allGroupsExpanded(groupedSessions) ? 'Thu gọn tất cả khóa' : 'Mở tất cả khóa'"
+                  @click="toggleAllGroups(groupedSessions)"
                 >
                   <AppIcon
-                    name="grid"
-                    :size="14"
+                    name="chevron-down"
+                    :size="15"
+                    class="transition-transform"
+                    :class="allGroupsExpanded(groupedSessions) ? '' : '-rotate-90'"
                   />
-                  <span class="hidden sm:inline">Nhóm</span>
-                </button>
-                <button
-                  type="button"
-                  class="inline-flex h-8 items-center gap-1 rounded-btn px-2.5 text-xs font-medium transition"
-                  :class="viewMode === 'table' ? 'bg-brand/10 text-brand' : 'text-slate-500 hover:text-slate-700'"
-                  title="Bảng chi tiết"
-                  @click="setViewMode('table')"
-                >
-                  <AppIcon
-                    name="list"
-                    :size="14"
-                  />
-                  <span class="hidden sm:inline">Bảng</span>
+                  <span class="hidden sm:inline">{{ allGroupsExpanded(groupedSessions) ? 'Thu nhóm' : 'Mở nhóm' }}</span>
                 </button>
               </div>
-
-              <button
-                v-if="groupedSessions.length"
-                type="button"
-                class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 hover:border-slate-300"
-                :title="allGroupsExpanded(groupedSessions) ? 'Thu gọn tất cả khóa' : 'Mở tất cả khóa'"
-                @click="toggleAllGroups(groupedSessions)"
-              >
-                <AppIcon
-                  name="chevron-down"
-                  :size="15"
-                  class="transition-transform"
-                  :class="allGroupsExpanded(groupedSessions) ? '' : '-rotate-90'"
-                />
-                <span class="hidden sm:inline">{{ allGroupsExpanded(groupedSessions) ? 'Thu nhóm' : 'Mở nhóm' }}</span>
-              </button>
             </div>
-          </div>
 
-          <div
-            v-if="hasFilterRow"
-            class="grid grid-cols-1 gap-2 border-b border-slate-100 bg-slate-50/30 px-4 py-2.5 sm:grid-cols-2 sm:px-5 lg:grid-cols-[repeat(auto-fit,minmax(11rem,1fr))] lg:items-center"
-          >
-            <select
-              v-if="visibleFilters.status"
-              v-model="filterForm.status"
-              class="input h-9 w-full min-w-0 text-sm"
-              aria-label="Trạng thái buổi học"
+            <div
+              v-if="hasFilterRow"
+              class="grid grid-cols-1 gap-3 border-t border-slate-100 pt-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6"
             >
-              <option value="">
-                Trạng thái (tất cả)
-              </option>
-              <option
-                v-for="s in options.statuses"
-                :key="s.value"
-                :value="s.value"
+              <DatagridFilterField v-if="visibleFilters.status">
+                <label
+                  for="coaching-session-filter-status"
+                  class="sr-only"
+                >Trạng thái</label>
+                <select
+                  id="coaching-session-filter-status"
+                  v-model="filterForm.status"
+                  :class="FILTER_CONTROL_CLASS"
+                >
+                  <option value="">
+                    Trạng thái
+                  </option>
+                  <option
+                    v-for="s in options.statuses"
+                    :key="s.value"
+                    :value="s.value"
+                  >
+                    {{ s.label }}
+                  </option>
+                </select>
+              </DatagridFilterField>
+
+              <DatagridFilterField v-if="visibleFilters.course">
+                <label
+                  for="coaching-session-filter-course"
+                  class="sr-only"
+                >Khóa học</label>
+                <select
+                  id="coaching-session-filter-course"
+                  v-model="filterForm.course"
+                  :class="FILTER_CONTROL_CLASS"
+                >
+                  <option value="">
+                    Khóa học
+                  </option>
+                  <option
+                    v-for="c in options.courses"
+                    :key="c.id"
+                    :value="String(c.id)"
+                  >
+                    {{ c.code }} — {{ c.name }}
+                  </option>
+                </select>
+              </DatagridFilterField>
+
+              <div
+                v-if="visibleFilters.date_range"
+                class="min-w-0 w-full sm:col-span-2 xl:col-span-2"
               >
-                {{ s.label }}
-              </option>
-            </select>
-            <select
-              v-if="visibleFilters.course"
-              v-model="filterForm.course"
-              class="input h-9 w-full min-w-0 text-sm"
-              aria-label="Khóa học"
-            >
-              <option value="">
-                Khóa học (tất cả)
-              </option>
-              <option
-                v-for="c in options.courses"
-                :key="c.id"
-                :value="String(c.id)"
+                <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
+                  <FilterDatePicker
+                    v-model="filterForm.date_from"
+                    placeholder="Từ ngày"
+                    :max-date="filterForm.date_to || null"
+                  />
+                  <FilterDatePicker
+                    v-model="filterForm.date_to"
+                    placeholder="Đến ngày"
+                    :min-date="filterForm.date_from || null"
+                  />
+                </div>
+              </div>
+
+              <DatagridFilterField v-if="visibleFilters.scheduled">
+                <label
+                  for="coaching-session-filter-scheduled"
+                  class="sr-only"
+                >Lịch học</label>
+                <select
+                  id="coaching-session-filter-scheduled"
+                  v-model="filterForm.scheduled"
+                  :class="FILTER_CONTROL_CLASS"
+                >
+                  <option value="">
+                    Lịch học
+                  </option>
+                  <option value="1">
+                    Đã có ngày học
+                  </option>
+                  <option value="0">
+                    Chưa lên lịch
+                  </option>
+                </select>
+              </DatagridFilterField>
+
+              <DatagridFilterField v-if="visibleFilters.has_materials">
+                <label
+                  for="coaching-session-filter-materials"
+                  class="sr-only"
+                >Tài liệu</label>
+                <select
+                  id="coaching-session-filter-materials"
+                  v-model="filterForm.has_materials"
+                  :class="FILTER_CONTROL_CLASS"
+                >
+                  <option value="">
+                    Tài liệu
+                  </option>
+                  <option value="1">
+                    Đã có tài liệu
+                  </option>
+                  <option value="0">
+                    Chưa có tài liệu
+                  </option>
+                </select>
+              </DatagridFilterField>
+
+              <DatagridFilterField v-if="visibleFilters.has_assignments">
+                <label
+                  for="coaching-session-filter-assignments"
+                  class="sr-only"
+                >Bài tập</label>
+                <select
+                  id="coaching-session-filter-assignments"
+                  v-model="filterForm.has_assignments"
+                  :class="FILTER_CONTROL_CLASS"
+                >
+                  <option value="">
+                    Bài tập
+                  </option>
+                  <option value="1">
+                    Đã có bài tập
+                  </option>
+                  <option value="0">
+                    Chưa có bài tập
+                  </option>
+                </select>
+              </DatagridFilterField>
+
+              <div
+                v-if="appliedFilterCount || filterForm.q"
+                class="col-span-full flex justify-end pt-0.5"
               >
-                {{ c.code }} — {{ c.name }}
-              </option>
-            </select>
-            <input
-              v-if="visibleFilters.date_from"
-              v-model="filterForm.date_from"
-              type="date"
-              class="input h-9 w-full min-w-0 text-sm"
-              aria-label="Từ ngày"
-            >
-            <input
-              v-if="visibleFilters.date_to"
-              v-model="filterForm.date_to"
-              type="date"
-              class="input h-9 w-full min-w-0 text-sm"
-              aria-label="Đến ngày"
-            >
-            <select
-              v-if="visibleFilters.scheduled"
-              v-model="filterForm.scheduled"
-              class="input h-9 w-full min-w-0 text-sm"
-              aria-label="Lịch học"
-            >
-              <option value="">
-                Lịch (mọi)
-              </option>
-              <option value="1">
-                Đã có ngày học
-              </option>
-              <option value="0">
-                Chưa lên lịch
-              </option>
-            </select>
-            <select
-              v-if="visibleFilters.has_materials"
-              v-model="filterForm.has_materials"
-              class="input h-9 w-full min-w-0 text-sm"
-              aria-label="Lọc tài liệu"
-            >
-              <option value="">
-                Tài liệu (mọi)
-              </option>
-              <option value="1">
-                Đã có tài liệu
-              </option>
-              <option value="0">
-                Chưa có tài liệu
-              </option>
-            </select>
-            <select
-              v-if="visibleFilters.has_assignments"
-              v-model="filterForm.has_assignments"
-              class="input h-9 w-full min-w-0 text-sm"
-              aria-label="Lọc bài tập"
-            >
-              <option value="">
-                Bài tập (mọi)
-              </option>
-              <option value="1">
-                Đã có bài tập
-              </option>
-              <option value="0">
-                Chưa có bài tập
-              </option>
-            </select>
-            <button
-              v-if="appliedFilterCount || filterForm.q"
-              type="button"
-              class="h-9 w-full min-w-0 justify-self-start text-xs font-medium text-brand hover:underline sm:col-span-2 lg:col-span-full"
-              @click="clearFilters"
-            >
-              Đặt lại
-            </button>
+                <button
+                  type="button"
+                  class="inline-flex h-10 items-center px-2 text-xs font-medium text-brand hover:underline"
+                  @click="clearFilters"
+                >
+                  Đặt lại bộ lọc
+                </button>
+              </div>
+            </div>
           </div>
 
           <div

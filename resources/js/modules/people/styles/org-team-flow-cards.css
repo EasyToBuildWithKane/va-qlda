@@ -1,10 +1,20 @@
 /* Thẻ trên canvas — glass + viền quay + shimmer (chỉ trong .org-chart-canvas) */
 
 .org-chart-canvas .org-tree {
-    --org-tree-line: rgb(56 189 248 / 0.5);
-    --org-tree-line-strong: rgb(56 189 248 / 0.75);
-    --org-tree-spine: rgb(167 139 250 / 0.65);
-    --org-tree-spine-end: rgb(251 113 133 / 0.55);
+    --org-tree-line: rgb(226 232 240 / 0.95);
+    --org-tree-line-strong: rgb(248 250 252);
+    --org-tree-spine: rgb(56 189 248 / 0.85);
+    --org-tree-spine-end: rgb(251 113 133 / 0.75);
+}
+
+.org-chart-canvas .org-person-node {
+    animation: none;
+}
+
+.org-chart-canvas .org-tree__branch:nth-child(odd) .org-team-node,
+.org-chart-canvas .org-tree__members-item:nth-child(odd) .org-person-node,
+.org-chart-canvas .org-tree__members-item:nth-child(even) .org-person-node {
+    animation: none;
 }
 
 .org-chart-canvas .org-team-node {
@@ -148,8 +158,11 @@
 
 .org-chart-canvas .org-tree__leader + .org-tree__members-section::before,
 .org-chart-canvas .org-tree__members-row--multi > .org-tree__members-item::before,
-.org-chart-canvas .org-tree__members-row--multi > .org-tree__members-item::after {
-    box-shadow: 0 0 6px rgb(56 189 248 / 0.25);
+.org-chart-canvas .org-tree__members-row--multi > .org-tree__members-item::after,
+.org-chart-canvas .org-tree__branch:has(> .org-tree__children) > .org-tree__children::before,
+.org-chart-canvas .org-tree__children > .org-tree__branch::before,
+.org-chart-canvas .org-tree__children > .org-tree__branch::after {
+    box-shadow: 0 0 8px rgb(56 189 248 / 0.22);
 }
 
 @keyframes org-card-float {

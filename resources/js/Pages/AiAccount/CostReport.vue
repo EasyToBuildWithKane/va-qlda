@@ -545,13 +545,15 @@ function runExport(scope, format) {
     <div class="card overflow-visible">
       <div class="border-b border-slate-100 px-5 py-4 dark:border-slate-700">
         <div class="flex w-full min-w-0 flex-wrap items-center gap-2 lg:flex-nowrap">
-          <div class="min-w-0 w-full basis-full lg:flex-1 lg:basis-auto">
+          <div class="min-w-0 w-full basis-full lg:min-w-[10rem] lg:flex-1 lg:basis-auto">
             <DatagridToolbarSearch
               v-model="search"
               input-id="cost-report-search"
               placeholder="Mã phiếu, sản phẩm, người đề xuất, nhà cung cấp…"
+              stretch
+              inline-actions
+              hide-label
               input-height="h-10"
-              cap-input-width
             />
           </div>
 

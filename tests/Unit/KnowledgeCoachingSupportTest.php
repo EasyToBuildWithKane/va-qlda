@@ -28,11 +28,18 @@ class KnowledgeCoachingSupportTest extends TestCase
         $this->assertStringContainsString('youtube.com/embed/', SafeEmbedUrl::embedSrc($url) ?? '');
     }
 
-    public function test_safe_embed_allows_canva_short_link(): void
+    public function test_safe_embed_allows_canva_short_link_without_iframe_src(): void
     {
         $url = 'https://canva.link/3gsyakx5d5kiwde';
         $this->assertTrue(SafeEmbedUrl::isAllowed($url));
-        $this->assertSame($url, SafeEmbedUrl::embedSrc($url));
+        $this->assertNull(SafeEmbedUrl::embedSrc($url));
+    }
+
+    public function test_safe_embed_canva_design_has_no_iframe_src(): void
+    {
+        $url = 'https://www.canva.com/design/DAFabc123/view';
+        $this->assertTrue(SafeEmbedUrl::isAllowed($url));
+        $this->assertNull(SafeEmbedUrl::embedSrc($url));
     }
 
     public function test_safe_embed_rejects_unknown_host(): void

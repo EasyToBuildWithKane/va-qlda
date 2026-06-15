@@ -62,8 +62,8 @@ class SafeEmbedUrl
             }
         }
 
-        if (Str::contains($url, 'canva.com/design/')) {
-            return $url.(Str::contains($url, '?') ? '&' : '?').'embed';
+        if (Str::contains($url, 'canva.com') || Str::contains($url, 'canva.link')) {
+            return null;
         }
 
         return $url;

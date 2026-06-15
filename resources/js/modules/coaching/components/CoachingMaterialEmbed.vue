@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 const props = defineProps({
     url: { type: String, default: '' },
@@ -11,12 +11,26 @@ const props = defineProps({
     hideExternalLink: { type: Boolean, default: false },
 });
 
+const emit = defineEmits(['preview-unavailable']);
+
 const src = computed(() => props.embedSrc || null);
+const iframeFailed = ref(false);
+
+watch(src, () => {
+    iframeFailed.value = false;
+});
+
+function onIframeError() {
+    iframeFailed.value = true;
+    emit('preview-unavailable');
+}
 
 const isDocumentPreview = computed(() => {
     const s = src.value ?? '';
     return s.includes('docs.google.com') || s.includes('drive.google.com');
 });
+
+const showIframe = computed(() => Boolean(src.value) && !iframeFailed.value);
 </script>
 
 <template>
@@ -25,7 +39,7 @@ const isDocumentPreview = computed(() => {
     :class="tall ? 'flex min-h-0 flex-1 flex-col' : ''"
   >
     <iframe
-      v-if="src"
+      v-if="showIframe"
       :src="src"
       :title="title"
       class="w-full rounded-lg border border-slate-200 bg-slate-50"
@@ -39,6 +53,7 @@ const isDocumentPreview = computed(() => {
       sandbox="allow-scripts allow-same-origin allow-popups"
       loading="lazy"
       referrerpolicy="no-referrer"
+      @error="onIframeError"
     />
     <a
       v-if="url && !hideExternalLink"

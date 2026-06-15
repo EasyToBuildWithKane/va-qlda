@@ -133,7 +133,7 @@ Bảng `coaching_session_materials`, cột `type`:
 
 | type | Nguồn | UI |
 |---|---|---|
-| `canva` | Link Canva | Embed preview (iframe nếu policy cho phép) + link mở tab |
+| `canva` | Link Canva | Không iframe (tránh lỗi embed); mở tab mới |
 | `google_docs` | Link Google Docs | Embed / preview link |
 | `pdf` | Upload hoặc URL | Viewer inline / tải |
 | `pptx` | Upload | Tải; preview optional |
@@ -149,7 +149,7 @@ Bảng `coaching_session_materials`, cột `type`:
 | `path` | File local `public` disk |
 | `sort_order` | Thứ tự trong buổi |
 
-**Host URL được phép** (`SafeEmbedUrl`): YouTube (`youtube.com`, `youtu.be`), Loom, Canva (`canva.com`, `canva.link`), Google Docs / Drive. Link rút gọn `canva.link` được lưu và mở tab; embed iframe ưu tiên URL dạng `canva.com/design/…`.
+**Host URL được phép** (`SafeEmbedUrl`): YouTube (`youtube.com`, `youtu.be`), Loom, Canva (`canva.com`, `canva.link`), Google Docs / Drive. Canva chỉ dùng link mở tab — `embedSrc` luôn `null`. YouTube/Loom/Google vẫn xem trước iframe khi có `embedSrc`.
 
 ---
 
