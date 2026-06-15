@@ -1,45 +1,29 @@
 <script setup>
-import { computed } from 'vue';
-import { usePage } from '@inertiajs/vue3';
 import { congngheBrand } from './congngheBrand.js';
 import CongngheBrandImage from './CongngheBrandImage.vue';
 
 const year = new Date().getFullYear();
 
-const page = usePage();
-const portal = computed(() => page.props.portal ?? { canEnterQlda: false, qldaHome: '/dashboard' });
-
-const systemLinks = computed(() => {
-    if (!portal.value.canEnterQlda) {
-        return [
-            { href: '/members', label: 'Danh bạ thành viên', external: false },
-        ];
-    }
-
-    return [
-        { href: portal.value.qldaHome, label: 'Bảng điều khiển', external: false },
-        { href: '/projects', label: 'Quản lý dự án', external: false },
-        { href: '/daily-reports/today', label: 'Báo cáo ngày', external: false },
-        { href: '/knowledge-base', label: 'Tri thức', external: false },
-    ];
-});
-
-const cols = computed(() => [
+const cols = [
     {
         heading: 'Khám phá',
         links: [
-            { href: '#gioi-thieu', label: 'Giới thiệu', external: true },
-            { href: '#lo-trinh', label: 'Lộ trình 2026–2027', external: true },
-            { href: '#san-pham', label: 'Hệ sinh thái sản phẩm', external: true },
-            { href: '#to-chuc', label: 'Sơ đồ tổ chức', external: true },
-            { href: '#du-an', label: 'Dự án triển khai', external: true },
+            { href: '#gioi-thieu', label: 'Giới thiệu' },
+            { href: '#lo-trinh', label: 'Lộ trình 2026–2027' },
+            { href: '#san-pham', label: 'Hệ sinh thái sản phẩm' },
+            { href: '#to-chuc', label: 'Sơ đồ tổ chức' },
+            { href: '#du-an', label: 'Dự án triển khai' },
         ],
     },
     {
-        heading: 'Hệ thống',
-        links: systemLinks.value,
+        heading: 'Liên lạc',
+        links: [
+            { href: 'mailto:phongcongnghe@vaschools.edu.vn', label: 'phongcongnghe@vaschools.edu.vn' },
+            { href: '/members', label: 'Danh bạ nội bộ' },
+            { href: '#to-chuc', label: 'Liên hệ theo sơ đồ tổ chức' },
+        ],
     },
-]);
+];
 </script>
 
 <template>
@@ -51,15 +35,14 @@ const cols = computed(() => [
     />
     <div class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-cyan-400/30 via-brand to-violet-500/30" />
 
-    <div class="relative mx-auto max-w-7xl px-5 py-14 sm:px-8 sm:py-16">
-      <div class="grid gap-10 lg:grid-cols-[1.5fr_1fr_1fr_minmax(140px,0.85fr)] lg:items-end lg:gap-8 xl:gap-10">
+    <div class="relative mx-auto max-w-7xl px-5 py-8 sm:px-8 sm:py-10">
+      <div class="grid gap-8 lg:grid-cols-[1.5fr_1fr_1fr_minmax(140px,0.85fr)] lg:items-start lg:gap-8 xl:gap-10">
         <!-- Brand -->
         <div class="min-w-0 text-center lg:text-left">
           <div class="flex flex-col items-center gap-3 sm:flex-row sm:items-start sm:justify-center lg:justify-start">
             <CongngheBrandImage
               :src="congngheBrand.logoVertical"
               alt="Vietnam America Schools"
-              :cutout="false"
               class="h-16 w-auto sm:h-[4.5rem]"
               loading="lazy"
             />

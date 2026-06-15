@@ -90,7 +90,7 @@ onBeforeUnmount(() => {
         href="#top"
         class="group flex min-w-0 items-center gap-2 sm:gap-2.5"
       >
-        <span class="relative shrink-0 rounded-lg p-0.5 ring-1 ring-cyan-500/20 transition group-hover:ring-brand/50">
+        <span class="relative shrink-0 transition group-hover:opacity-90">
           <CongngheBrandImage
             :src="congngheBrand.badgeCircle"
             alt="Vietnam America Schools"

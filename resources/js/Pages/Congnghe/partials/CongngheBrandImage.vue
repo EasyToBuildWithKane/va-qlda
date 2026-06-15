@@ -19,3 +19,9 @@ defineProps({
     decoding="async"
   >
 </template>
+
+<style>
+.cn-brand-cutout {
+    mix-blend-mode: screen;
+}
+</style>
