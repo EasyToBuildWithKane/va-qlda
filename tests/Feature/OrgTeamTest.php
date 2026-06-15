@@ -119,12 +119,19 @@ class OrgTeamTest extends TestCase
         $child = OrgTeam::query()->where('name', 'Tổ 1')->first();
         $child->members()->create(['employee_id' => $member->id, 'sort_order' => 0]);
 
+        $built = \App\Support\OrgTeam\OrgTeamRosterBuilder::allRows();
+        $memberRow = $built->firstWhere('name', 'Thành viên B');
+        $this->assertNotEmpty($memberRow['assignments'] ?? null);
+        $this->assertSame('Khối Dev › Tổ 1', $memberRow['assignments'][0]['path'] ?? null);
+
         $this->actingAs($admin, 'system')
             ->get(route('org-teams.members'))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('OrgTeam/Members')
                 ->has('roster.data', 2)
-                ->where('summary.total', 2));
+                ->where('summary.total', 2)
+                ->has('roster.data.0.assignments', 1)
+                ->where('roster.data.0.assignments.0.path', 'Khối Dev › Tổ 1'));
     }
 }

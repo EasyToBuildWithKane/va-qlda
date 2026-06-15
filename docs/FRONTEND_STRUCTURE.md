@@ -107,7 +107,7 @@ AppLayout.vue
 | Project | `Index`, `Create`, `Edit`, `Show` |
 | Blocker / Feedback | `Index`, `Show` (Feedback) — Index: **`FeedbackSummaryBar`** (dải KPI `kpi-strip` / `kpi-card`, lọc nhanh scope/status; rule `kpi-summary-strip`) + datagrid toolbar (Lọc/Cột), `FilterDatePicker` khoảng ngày, `FeedbackListRowActions` |
 | Department | `Pages/Department/Index.vue` |
-| Org team | `Pages/OrgTeam/Index.vue` — header gọn; chế độ `DatagridSegmentedControl`; `OrgTeamForestSummaryBar` + `OrgTeamRootCard`; sơ đồ trong `OrgTeamChartCanvas` (lưới automation, luồng nối animated) + `OrgTeamChart` / `org-team-tree.css`; pill chọn Ban/Khối; `useOrgTeamTreeStats.js`; `OrgTeamFormModal` · **`Members.vue`** — `OrgTeamMembersSummaryBar` + datagrid |
+| Org team | `Pages/OrgTeam/Index.vue` — header gọn; chế độ `DatagridSegmentedControl`; `OrgTeamForestSummaryBar` + `OrgTeamRootCard`; sơ đồ trong `OrgTeamChartCanvas` (lưới automation, luồng nối animated) + `OrgTeamChart` / `org-team-tree.css`; pill chọn Ban/Khối; `useOrgTeamTreeStats.js`; `OrgTeamFormModal` · **`Members.vue`** — `OrgTeamMembersSummaryBar`; datagrid toolbar (`DatagridToolbarSearch`, nút **Lọc** + `FilterVisibilityDropdown` / `useVisibleFilterControls`, dòng 2 `DatagridFilterField` opt-in); bảng cột vị trí sơ đồ + nhánh từ `OrgTeamRosterBuilder` |
 | Notifications | `Pages/Notifications/Management.vue` |
 
 Pages import feature components từ `@/modules/project/components/...` và primitives từ `@/shared/ui/...`.

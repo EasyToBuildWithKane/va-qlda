@@ -15,10 +15,16 @@ defineProps({
       class="org-chart-canvas__ambient"
       aria-hidden="true"
     >
+      <div class="org-chart-canvas__mesh" />
       <div class="org-chart-canvas__grid" />
-      <div class="org-chart-canvas__scan" />
+      <div class="org-chart-canvas__grid-fine" />
+      <div class="org-chart-canvas__noise" />
       <div class="org-chart-canvas__orb org-chart-canvas__orb--brand" />
       <div class="org-chart-canvas__orb org-chart-canvas__orb--sky" />
+      <div class="org-chart-canvas__orb org-chart-canvas__orb--violet" />
+      <div class="org-chart-canvas__scan" />
+      <div class="org-chart-canvas__scan org-chart-canvas__scan--delayed" />
+      <div class="org-chart-canvas__vignette" />
     </div>
 
     <header
@@ -37,6 +43,10 @@ defineProps({
           class="org-chart-canvas__title"
         >
           {{ title }}
+        </p>
+        <p class="org-chart-canvas__status">
+          <span class="org-chart-canvas__status-dot" />
+          Sơ đồ trực tiếp
         </p>
       </div>
       <p class="org-chart-canvas__legend">

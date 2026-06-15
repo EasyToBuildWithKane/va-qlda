@@ -48,27 +48,25 @@
     gap: 0.125rem;
 }
 
-/* Đường xuống từ nhóm → nhân sự / nhóm con */
-.org-tree__branch:has(> .org-tree__children) > .org-tree__stack::after,
+/* Đường xuống từ thẻ nhóm → khối nhân sự (một đoạn duy nhất) */
 .org-tree__stack:has(.org-tree__people) .org-team-node::after {
+    content: '';
+    display: block;
+    width: var(--org-tree-line-width);
+    height: 1rem;
+    margin: 0.25rem auto 0;
+    border-radius: 2px;
+    background: var(--org-tree-line);
+}
+
+/* Đường xuống từ khối nhân sự → nhánh nhóm con (khi có children) */
+.org-tree__branch:has(> .org-tree__children) > .org-tree__stack:has(.org-tree__people)::after {
     content: '';
     display: block;
     width: var(--org-tree-line-width);
     height: 1.25rem;
     margin: 0.35rem auto 0;
     border-radius: 2px;
-    background: linear-gradient(
-        to bottom,
-        var(--org-tree-spine),
-        var(--org-tree-line)
-    );
-    box-shadow: 0 0 12px rgb(14 165 233 / 0.15);
-    animation: org-connector-pulse 2.4s ease-in-out infinite;
-}
-
-.org-tree__branch:has(> .org-tree__children) > .org-tree__stack::after {
-    height: 1.5rem;
-    margin-top: 0.25rem;
     background: repeating-linear-gradient(
         to bottom,
         var(--org-tree-spine) 0,
@@ -77,7 +75,18 @@
         transparent var(--org-flow-dash)
     );
     background-size: 100% var(--org-flow-dash);
-    animation: org-connector-flow 1.1s linear infinite, org-connector-pulse 2.4s ease-in-out infinite;
+    animation: org-connector-flow 1.1s linear infinite;
+}
+
+/* Chỉ nhóm → children, không có nhân sự trên cùng stack */
+.org-tree__branch:has(> .org-tree__children) > .org-tree__stack:not(:has(.org-tree__people))::after {
+    content: '';
+    display: block;
+    width: var(--org-tree-line-width);
+    height: 1.25rem;
+    margin: 0.35rem auto 0;
+    border-radius: 2px;
+    background: var(--org-tree-line);
 }
 
 /* --- Roster: trưởng nhóm trên, nhánh thành viên dưới --- */
@@ -86,20 +95,10 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-top: 0.125rem;
+    margin-top: 0;
     width: 100%;
     max-width: none;
     position: relative;
-}
-
-.org-tree__people:has(.org-tree__leader)::before,
-.org-tree__people:has(.org-tree__members-section)::before {
-    content: '';
-    display: block;
-    width: var(--org-tree-line-width);
-    height: 0.75rem;
-    background: var(--org-tree-line);
-    border-radius: 2px;
 }
 
 .org-tree__leader {
@@ -113,8 +112,8 @@
     content: '';
     display: block;
     width: var(--org-tree-line-width);
-    height: 0.65rem;
-    margin: 0.25rem auto 0;
+    height: 1rem;
+    margin: 0.2rem auto 0;
     background: var(--org-tree-line);
     border-radius: 2px;
 }
@@ -143,6 +142,10 @@
     flex: 0 1 auto;
     min-width: 10rem;
     max-width: 100%;
+    padding: 0.35rem 0.25rem 0;
+}
+
+.org-tree__members-section--columns .org-tree__section-column {
     padding: 0.5rem 0.35rem 0;
     border-radius: 0.75rem;
     border: 1px dashed rgb(203 213 225 / 0.9);
@@ -166,32 +169,55 @@
 .org-tree__members-row {
     display: flex;
     flex-direction: row;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     justify-content: center;
-    align-items: stretch;
+    align-items: flex-start;
     gap: 0.75rem;
     list-style: none;
     margin: 0;
-    padding: 0.5rem 0.35rem 0.25rem;
+    padding: 0 0.25rem 0.25rem;
     position: relative;
     max-width: min(100%, 44rem);
 }
 
-.org-tree__members-row--multi::before {
+/* Hàng nhiều thành viên — bus ngang chỉ từ tâm thẻ đầu → tâm thẻ cuối */
+.org-tree__members-row--multi > .org-tree__members-item {
+    padding-top: 1.125rem;
+}
+
+.org-tree__members-row--multi > .org-tree__members-item::before,
+.org-tree__members-row--multi > .org-tree__members-item::after {
     content: '';
     position: absolute;
     top: 0;
-    left: 1rem;
-    right: 1rem;
-    height: var(--org-tree-line-width);
-    background: linear-gradient(
-        90deg,
-        transparent,
-        var(--org-tree-line) 8%,
-        var(--org-tree-line) 92%,
-        transparent
-    );
-    border-radius: 2px;
+    border-color: var(--org-tree-line);
+}
+
+.org-tree__members-row--multi > .org-tree__members-item::before {
+    right: 50%;
+    width: 50%;
+    height: 0;
+    border-top: var(--org-tree-line-width) solid var(--org-tree-line);
+}
+
+.org-tree__members-row--multi > .org-tree__members-item::after {
+    left: 50%;
+    width: 0;
+    height: 1.125rem;
+    border-left: var(--org-tree-line-width) solid var(--org-tree-line);
+}
+
+.org-tree__members-row--multi > .org-tree__members-item:only-child::before,
+.org-tree__members-row--multi > .org-tree__members-item:only-child::after {
+    display: none;
+}
+
+.org-tree__members-row--multi > .org-tree__members-item:first-child::before {
+    display: none;
+}
+
+.org-tree__members-row--multi > .org-tree__members-item:last-child::after {
+    display: none;
 }
 
 .org-tree__members-item {
@@ -200,25 +226,24 @@
     align-items: center;
     flex: 0 0 auto;
     position: relative;
-    padding-top: 0.85rem;
+    padding-top: 0.25rem;
     list-style: none;
     align-self: stretch;
 }
 
-.org-tree__members-row--multi .org-tree__members-item::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 50%;
-    width: var(--org-tree-line-width);
-    height: 0.85rem;
-    margin-left: calc(var(--org-tree-line-width) / -2);
-    background: var(--org-tree-line);
-    border-radius: 2px;
-}
-
 .org-tree__members-row:not(.org-tree__members-row--multi) .org-tree__members-item {
     padding-top: 0.15rem;
+}
+
+/* Không trưởng nhóm: một đoạn dọc vào bus thành viên */
+.org-tree__people:not(:has(.org-tree__leader)) > .org-tree__members-section::before {
+    content: '';
+    display: block;
+    width: var(--org-tree-line-width);
+    height: 0.75rem;
+    margin: 0 auto;
+    background: var(--org-tree-line);
+    border-radius: 2px;
 }
 
 .org-tree__empty-hint {
@@ -341,7 +366,7 @@
 
 @media (prefers-reduced-motion: reduce) {
     .org-chart-canvas .org-tree__branch,
-    .org-tree__branch:has(> .org-tree__children) > .org-tree__stack::after,
+    .org-tree__branch:has(> .org-tree__children) > .org-tree__stack:has(.org-tree__people)::after,
     .org-tree__children > .org-tree__branch::before,
     .org-tree__children > .org-tree__branch:only-child::before {
         animation: none;
@@ -355,11 +380,10 @@
 }
 
 .org-chart-canvas .org-team-node:hover {
-    border-color: rgb(14 165 233 / 0.35);
+    border-color: rgb(56 189 248 / 0.55);
     box-shadow:
-        0 4px 20px rgb(14 165 233 / 0.08),
-        0 0 0 1px rgb(14 165 233 / 0.06);
-    transform: translateY(-1px);
+        0 0 28px rgb(56 189 248 / 0.2),
+        0 8px 32px rgb(15 23 42 / 0.5);
 }
 
 .org-chart-canvas .org-flow-node::before {
@@ -382,15 +406,39 @@
 }
 
 .org-chart-canvas .org-person-node::before {
-    top: 0.75rem;
-    bottom: 0.75rem;
-    width: 2px;
-    background: linear-gradient(180deg, rgb(148 163 184 / 0.4), rgb(14 165 233 / 0.35));
+    display: none;
 }
 
-.org-chart-canvas .org-person-node--leader::before {
-    background: linear-gradient(180deg, rgb(14 165 233 / 0.55), rgb(154 0 54 / 0.7));
-    box-shadow: 0 0 14px rgb(14 165 233 / 0.2);
+.org-chart-canvas .org-person-node {
+    box-shadow:
+        inset 3px 0 0 rgb(148 163 184 / 0.35),
+        0 1px 3px rgb(15 23 42 / 0.05);
+}
+
+.org-chart-canvas .org-person-node--leader {
+    box-shadow:
+        inset 3px 0 0 rgb(154 0 54 / 0.45),
+        0 2px 12px rgb(154 0 54 / 0.06);
+}
+
+@keyframes org-leader-glow {
+    0%,
+    100% {
+        box-shadow:
+            inset 3px 0 0 rgb(154 0 54 / 0.45),
+            0 2px 12px rgb(154 0 54 / 0.06);
+    }
+    50% {
+        box-shadow:
+            inset 3px 0 0 rgb(14 165 233 / 0.55),
+            0 4px 20px rgb(14 165 233 / 0.12);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .org-chart-canvas .org-person-node--leader.org-flow-node {
+        animation: none;
+    }
 }
 
 .org-team-node__port {

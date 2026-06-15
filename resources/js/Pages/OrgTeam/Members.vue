@@ -1,5 +1,5 @@
 <script setup>
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
@@ -8,10 +8,20 @@ import Avatar from '@/shared/ui/Avatar.vue';
 import Badge from '@/shared/ui/Badge.vue';
 import EmptyState from '@/shared/ui/EmptyState.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
+import DatagridToolbarActionButton from '@/shared/ui/DatagridToolbarActionButton.vue';
+import DatagridFilterField from '@/shared/ui/DatagridFilterField.vue';
+import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
 import OrgTeamMembersSummaryBar from '@/modules/people/components/OrgTeamMembersSummaryBar.vue';
+import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
 
 const FILTER_CONTROL_CLASS = 'input h-10 w-full text-sm';
+
+const MEMBERS_FILTER_CONTROLS = [
+    { key: 'root_id', label: 'Ban / Khối', default: false },
+    { key: 'team_id', label: 'Nhóm', default: false },
+    { key: 'branch', label: 'Nhánh / vai trò', default: false },
+];
 
 const props = defineProps({
     roster: { type: Object, required: true },
@@ -33,6 +43,21 @@ const filterForm = reactive({
 
 const perPage = ref(Number(props.filters.per_page) || props.roster.meta?.per_page || 24);
 
+const {
+    visibleFilters,
+    showFilterPanelDd,
+    enabledFilterControlCount,
+    hasFilterRow,
+    persistVisibleFilters,
+    openFilterPanel,
+    FILTER_CONTROLS,
+} = useVisibleFilterControls(
+    MEMBERS_FILTER_CONTROLS,
+    'va-qlda.org-team-members.visible-filters.v1',
+);
+
+const filterPanelDdRef = ref(null);
+
 const rows = computed(() => props.roster.data ?? []);
 
 const statusTabs = computed(() => [
@@ -40,6 +65,40 @@ const statusTabs = computed(() => [
     { value: 'active', label: 'Đang hoạt động' },
     { value: 'inactive', label: 'Ngừng' },
 ]);
+
+function rowAssignments(row) {
+    const raw = row?.assignments;
+    if (Array.isArray(raw)) {
+        return raw;
+    }
+    if (raw && typeof raw === 'object') {
+        return Object.values(raw);
+    }
+    return [];
+}
+
+function assignmentBranchColor(branchValue) {
+    const match = props.branchOptions.find((b) => b.value === branchValue);
+    return match?.color ?? 'violet';
+}
+
+function showActiveFiltersInPanel() {
+    const active = {
+        root_id: filterForm.root_id,
+        team_id: filterForm.team_id,
+        branch: filterForm.branch,
+    };
+    let changed = false;
+    for (const [key, val] of Object.entries(active)) {
+        if (val != null && val !== '' && !visibleFilters.value[key]) {
+            visibleFilters.value[key] = true;
+            changed = true;
+        }
+    }
+    if (changed) {
+        persistVisibleFilters();
+    }
+}
 
 let debounce = null;
 watch(
@@ -87,6 +146,24 @@ function onPerPageChange(val) {
     perPage.value = val;
     load(true);
 }
+
+function onToolbarClickOutside(e) {
+    if (e.target.closest?.('[data-filter-visibility-panel]')) {
+        return;
+    }
+    if (filterPanelDdRef.value && !filterPanelDdRef.value.contains(e.target)) {
+        showFilterPanelDd.value = false;
+    }
+}
+
+onMounted(() => {
+    showActiveFiltersInPanel();
+    document.addEventListener('mousedown', onToolbarClickOutside);
+});
+
+onBeforeUnmount(() => {
+    document.removeEventListener('mousedown', onToolbarClickOutside);
+});
 </script>
 
 <template>
@@ -134,81 +211,119 @@ function onPerPageChange(val) {
                 aria-label="Tìm thành viên"
               />
             </div>
-            <div class="flex shrink-0 items-center gap-1 rounded-lg bg-slate-100 p-1">
-              <button
-                v-for="t in statusTabs"
-                :key="t.value"
-                type="button"
-                class="rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors"
-                :class="filterForm.status === t.value
-                  ? 'bg-white text-slate-800 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700'"
-                @click="setStatus(t.value)"
+
+            <div class="flex shrink-0 items-center gap-2">
+              <div
+                ref="filterPanelDdRef"
+                class="relative shrink-0"
               >
-                {{ t.label }}
-              </button>
+                <DatagridToolbarActionButton
+                  icon="filter"
+                  :active="showFilterPanelDd"
+                  :title="`Hiển thị bộ lọc (${enabledFilterControlCount}/${FILTER_CONTROLS.length})`"
+                  @click="openFilterPanel()"
+                >
+                  Lọc
+                </DatagridToolbarActionButton>
+                <FilterVisibilityDropdown
+                  v-model="visibleFilters"
+                  :show="showFilterPanelDd"
+                  :anchor-ref="filterPanelDdRef"
+                  :controls="FILTER_CONTROLS"
+                  @persist="persistVisibleFilters"
+                />
+              </div>
+
+              <div class="flex shrink-0 items-center gap-1 rounded-lg bg-slate-100 p-1">
+                <button
+                  v-for="t in statusTabs"
+                  :key="t.value"
+                  type="button"
+                  class="rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors"
+                  :class="filterForm.status === t.value
+                    ? 'bg-white text-slate-800 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'"
+                  @click="setStatus(t.value)"
+                >
+                  {{ t.label }}
+                </button>
+              </div>
             </div>
           </div>
 
-          <div
-            class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4"
-          >
-            <select
-              v-model="filterForm.root_id"
-              :class="FILTER_CONTROL_CLASS"
-              @change="load(true)"
+          <Transition name="fade-slide">
+            <div
+              v-if="hasFilterRow"
+              class="mt-4 grid grid-cols-1 gap-3 border-t border-slate-100 pt-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6"
             >
-              <option value="">
-                Ban / Khối
-              </option>
-              <option
-                v-for="r in rootOptions"
-                :key="r.id"
-                :value="r.id"
-              >
-                {{ r.name }}
-              </option>
-            </select>
-            <select
-              v-model="filterForm.team_id"
-              :class="FILTER_CONTROL_CLASS"
-              @change="load(true)"
-            >
-              <option value="">
-                Nhóm (mọi cấp)
-              </option>
-              <option
-                v-for="t in teamOptions"
-                :key="t.id"
-                :value="t.id"
-              >
-                {{ t.label }}
-              </option>
-            </select>
-            <select
-              v-model="filterForm.branch"
-              :class="FILTER_CONTROL_CLASS"
-              @change="load(true)"
-            >
-              <option value="">
-                Nhánh / vai trò
-              </option>
-              <option
-                v-for="b in branchOptions"
-                :key="b.value"
-                :value="b.value"
-              >
-                {{ b.label }}
-              </option>
-            </select>
-          </div>
+              <DatagridFilterField v-if="visibleFilters.root_id">
+                <select
+                  v-model="filterForm.root_id"
+                  :class="FILTER_CONTROL_CLASS"
+                  aria-label="Ban / Khối"
+                  @change="load(true)"
+                >
+                  <option value="">
+                    Ban / Khối
+                  </option>
+                  <option
+                    v-for="r in rootOptions"
+                    :key="r.id"
+                    :value="r.id"
+                  >
+                    {{ r.name }}
+                  </option>
+                </select>
+              </DatagridFilterField>
+
+              <DatagridFilterField v-if="visibleFilters.team_id">
+                <select
+                  v-model="filterForm.team_id"
+                  :class="FILTER_CONTROL_CLASS"
+                  aria-label="Nhóm"
+                  @change="load(true)"
+                >
+                  <option value="">
+                    Nhóm
+                  </option>
+                  <option
+                    v-for="t in teamOptions"
+                    :key="t.id"
+                    :value="t.id"
+                  >
+                    {{ t.label }}
+                  </option>
+                </select>
+              </DatagridFilterField>
+
+              <DatagridFilterField v-if="visibleFilters.branch">
+                <select
+                  v-model="filterForm.branch"
+                  :class="FILTER_CONTROL_CLASS"
+                  aria-label="Nhánh / vai trò"
+                  @change="load(true)"
+                >
+                  <option value="">
+                    Nhánh / vai trò
+                  </option>
+                  <option
+                    v-for="b in branchOptions"
+                    :key="b.value"
+                    :value="b.value"
+                  >
+                    {{ b.label }}
+                  </option>
+                </select>
+              </DatagridFilterField>
+            </div>
+          </Transition>
         </div>
 
         <EmptyState
           v-if="!rows.length"
           icon="members"
           title="Không có thành viên phù hợp"
-          description="Thử đổi từ khoá hoặc bộ lọc Ban/Khối, nhóm, nhánh."
+          description="Thử đổi từ khoá hoặc bật bộ lọc Ban/Khối, nhóm, nhánh trong nút Lọc."
         />
 
         <div
@@ -277,13 +392,16 @@ function onPerPageChange(val) {
                   </span>
                 </td>
                 <td class="px-4 py-3.5">
-                  <ul class="space-y-1.5">
+                  <ul
+                    v-if="rowAssignments(row).length"
+                    class="space-y-1.5"
+                  >
                     <li
-                      v-for="(a, idx) in row.assignments"
-                      :key="`${row.id}-${idx}`"
+                      v-for="(a, idx) in rowAssignments(row)"
+                      :key="`${row.id}-path-${idx}`"
                       class="text-xs leading-snug text-slate-700"
                     >
-                      <span class="font-medium">{{ a.path }}</span>
+                      <span class="font-medium">{{ a.path || row.primary_org || '—' }}</span>
                       <span
                         v-if="a.is_leader"
                         class="ml-1 text-[10px] font-semibold uppercase text-brand"
@@ -292,14 +410,31 @@ function onPerPageChange(val) {
                       </span>
                     </li>
                   </ul>
+                  <span
+                    v-else-if="row.primary_org"
+                    class="text-xs font-medium text-slate-700"
+                  >{{ row.primary_org }}</span>
+                  <span
+                    v-else
+                    class="text-xs text-slate-400"
+                  >—</span>
                 </td>
                 <td class="px-4 py-3.5 sm:pr-5">
-                  <div class="flex flex-col gap-1.5">
+                  <div
+                    v-if="rowAssignments(row).length"
+                    class="flex flex-col gap-1.5"
+                  >
                     <template
-                      v-for="(a, idx) in row.assignments"
+                      v-for="(a, idx) in rowAssignments(row)"
                       :key="`meta-${row.id}-${idx}`"
                     >
-                      <div class="flex flex-wrap gap-1">
+                      <div class="flex flex-wrap items-center gap-1">
+                        <span
+                          v-if="a.team_name"
+                          class="rounded-md bg-brand/5 px-1.5 py-0.5 text-[11px] font-medium text-brand"
+                        >
+                          {{ a.team_name }}
+                        </span>
                         <span
                           v-if="a.section"
                           class="rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-600"
@@ -309,17 +444,17 @@ function onPerPageChange(val) {
                         <Badge
                           v-if="a.branch_label"
                           :label="a.branch_label"
-                          color="violet"
+                          :color="assignmentBranchColor(a.branch)"
                         />
                       </div>
                     </template>
-                    <span
-                      v-if="!row.assignments.some((x) => x.section || x.branch_label)"
-                      class="text-xs text-slate-400"
-                    >
-                      —
-                    </span>
                   </div>
+                  <span
+                    v-else
+                    class="text-xs text-slate-400"
+                  >
+                    —
+                  </span>
                 </td>
               </tr>
             </tbody>

@@ -38,7 +38,7 @@ class OrgTeamRosterBuilder
         /** @var array<int, array<string, mixed>> $byEmployee */
         $byEmployee = [];
 
-        $ensureEmployee = function (Employee $employee) use (&$byEmployee): array {
+        $ensureEmployee = function (Employee $employee) use (&$byEmployee): int {
             $id = $employee->id;
             if (! isset($byEmployee[$id])) {
                 $byEmployee[$id] = [
@@ -53,7 +53,7 @@ class OrgTeamRosterBuilder
                 ];
             }
 
-            return $byEmployee[$id];
+            return $id;
         };
 
         $pathLabel = function (OrgTeam $team) use ($byId): string {
@@ -69,9 +69,9 @@ class OrgTeamRosterBuilder
 
         foreach ($teams as $team) {
             if ($team->leader_id && $team->leader) {
-                $row = $ensureEmployee($team->leader);
+                $employeeId = $ensureEmployee($team->leader);
                 $root = $resolveRoot($team);
-                $row['assignments'][] = [
+                $byEmployee[$employeeId]['assignments'][] = [
                     'team_id' => $team->id,
                     'root_team_id' => $root->id,
                     'path' => $pathLabel($team),
@@ -104,10 +104,10 @@ class OrgTeamRosterBuilder
                 continue;
             }
 
-            $row = $ensureEmployee($employee);
+            $employeeId = $ensureEmployee($employee);
             $root = $resolveRoot($team);
             $branch = $membership->branch;
-            $row['assignments'][] = [
+            $byEmployee[$employeeId]['assignments'][] = [
                 'team_id' => $team->id,
                 'root_team_id' => $root->id,
                 'path' => $pathLabel($team),

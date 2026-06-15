@@ -5,6 +5,7 @@ import OrgTeamPeopleBranch from '@/modules/people/components/OrgTeamPeopleBranch
 import { toIterableList } from '@/modules/people/composables/useOrgTeamPeople.js';
 import '@/modules/people/styles/org-team-tree.css';
 import '@/modules/people/styles/org-team-chart-canvas.css';
+import '@/modules/people/styles/org-team-flow-cards.css';
 
 const props = defineProps({
     node: { type: Object, required: true },

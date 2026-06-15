@@ -30,6 +30,14 @@ function onActivate() {
     @click="interactive ? onActivate() : undefined"
   >
     <span
+      class="org-person-node__fx org-person-node__fx--aurora"
+      aria-hidden="true"
+    />
+    <span
+      class="org-person-node__fx org-person-node__fx--shimmer"
+      aria-hidden="true"
+    />
+    <span
       v-if="isLeader"
       class="org-person-node__badge"
     >
@@ -125,33 +133,6 @@ function onActivate() {
 .org-person-node--leader {
     border-color: rgb(154 0 54 / 0.25);
     background: rgb(255 255 255 / 0.98);
-    box-shadow:
-        0 2px 12px rgb(154 0 54 / 0.06),
-        0 0 0 1px rgb(14 165 233 / 0.06);
-}
-
-.org-chart-canvas .org-person-node--leader.org-flow-node {
-    animation: org-leader-glow 3.5s ease-in-out infinite;
-}
-
-@keyframes org-leader-glow {
-    0%,
-    100% {
-        box-shadow:
-            0 2px 12px rgb(154 0 54 / 0.06),
-            0 0 0 1px rgb(14 165 233 / 0.06);
-    }
-    50% {
-        box-shadow:
-            0 4px 20px rgb(14 165 233 / 0.12),
-            0 0 0 1px rgb(14 165 233 / 0.15);
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .org-chart-canvas .org-person-node--leader.org-flow-node {
-        animation: none;
-    }
 }
 
 .org-person-node__badge {

@@ -68,6 +68,14 @@ onBeforeUnmount(() => {
     :class="levelTone(node.level)"
   >
     <span
+      class="org-team-node__fx org-team-node__fx--ring"
+      aria-hidden="true"
+    />
+    <span
+      class="org-team-node__fx org-team-node__fx--shimmer"
+      aria-hidden="true"
+    />
+    <span
       class="org-team-node__port org-team-node__port--in"
       aria-hidden="true"
     />

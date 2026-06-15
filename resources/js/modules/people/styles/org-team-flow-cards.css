@@ -1,0 +1,267 @@
+/* Thẻ trên canvas — glass + viền quay + shimmer (chỉ trong .org-chart-canvas) */
+
+.org-chart-canvas .org-tree {
+    --org-tree-line: rgb(56 189 248 / 0.5);
+    --org-tree-line-strong: rgb(56 189 248 / 0.75);
+    --org-tree-spine: rgb(167 139 250 / 0.65);
+    --org-tree-spine-end: rgb(251 113 133 / 0.55);
+}
+
+.org-chart-canvas .org-team-node,
+.org-chart-canvas .org-person-node {
+    isolation: isolate;
+    animation: org-card-float 6s ease-in-out infinite;
+}
+
+.org-chart-canvas .org-tree__branch:nth-child(odd) .org-team-node,
+.org-chart-canvas .org-tree__members-item:nth-child(odd) .org-person-node {
+    animation-delay: -2s;
+}
+
+.org-chart-canvas .org-tree__members-item:nth-child(even) .org-person-node {
+    animation-delay: -4s;
+}
+
+.org-chart-canvas .org-team-node__fx,
+.org-chart-canvas .org-person-node__fx {
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    overflow: hidden;
+    z-index: 0;
+}
+
+.org-chart-canvas .org-team-node__fx--ring {
+    inset: -1px;
+    border-radius: calc(0.75rem + 1px);
+    padding: 1px;
+    background: conic-gradient(
+        from 0deg,
+        rgb(56 189 248),
+        rgb(154 0 54),
+        rgb(167 139 250),
+        rgb(56 189 248)
+    );
+    -webkit-mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+    mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0.65;
+    animation: org-card-ring-spin 4s linear infinite;
+}
+
+.org-chart-canvas .org-team-node--l1 .org-team-node__fx--ring {
+    opacity: 0.85;
+    animation-duration: 3.2s;
+}
+
+.org-chart-canvas .org-team-node__fx--shimmer,
+.org-chart-canvas .org-person-node__fx--shimmer {
+    background: linear-gradient(
+        105deg,
+        transparent 35%,
+        rgb(255 255 255 / 0.45) 48%,
+        transparent 62%
+    );
+    background-size: 200% 100%;
+    opacity: 0.35;
+    animation: org-card-shimmer 3.5s ease-in-out infinite;
+}
+
+.org-chart-canvas .org-person-node__fx--aurora {
+    inset: -20%;
+    opacity: 0.25;
+    background: radial-gradient(
+        circle at 30% 20%,
+        rgb(56 189 248 / 0.5),
+        transparent 45%
+    ),
+    radial-gradient(
+        circle at 70% 80%,
+        rgb(154 0 54 / 0.35),
+        transparent 50%
+    );
+    animation: org-person-aurora 8s ease-in-out infinite;
+}
+
+.org-chart-canvas .org-team-node > *:not(.org-team-node__fx),
+.org-chart-canvas .org-person-node > *:not(.org-person-node__fx) {
+    position: relative;
+    z-index: 1;
+}
+
+.org-chart-canvas .org-team-node {
+    background: rgb(255 255 255 / 0.94);
+    border-color: rgb(56 189 248 / 0.2);
+    box-shadow:
+        0 0 0 1px rgb(255 255 255 / 0.08),
+        0 8px 32px rgb(15 23 42 / 0.45),
+        0 0 24px rgb(56 189 248 / 0.08);
+}
+
+.org-chart-canvas .org-person-node {
+    background: rgb(255 255 255 / 0.92);
+    border-color: rgb(148 163 184 / 0.35);
+    box-shadow:
+        inset 3px 0 0 rgb(56 189 248 / 0.45),
+        0 6px 24px rgb(15 23 42 / 0.35);
+}
+
+.org-chart-canvas .org-person-node--leader {
+    border-color: rgb(251 113 133 / 0.4);
+    box-shadow:
+        inset 3px 0 0 rgb(154 0 54 / 0.65),
+        0 0 20px rgb(154 0 54 / 0.15),
+        0 8px 28px rgb(15 23 42 / 0.4);
+    animation: org-card-float 5s ease-in-out infinite, org-leader-glow 3s ease-in-out infinite;
+}
+
+.org-chart-canvas .org-flow-node::before {
+    background: linear-gradient(
+        180deg,
+        rgb(56 189 248 / 0.85),
+        rgb(154 0 54 / 0.85),
+        rgb(167 139 250 / 0.75)
+    );
+    background-size: 100% 200%;
+    animation: org-accent-flow 2.5s ease-in-out infinite;
+}
+
+.org-chart-canvas .org-team-node__port--in {
+    animation: org-port-pulse 2s ease-in-out infinite;
+}
+
+.org-chart-canvas .org-team-node__stat {
+    animation: org-stat-flicker 4s ease-in-out infinite;
+}
+
+.org-chart-canvas .org-person-node__badge {
+    animation: org-badge-glow 2.8s ease-in-out infinite;
+}
+
+.org-chart-canvas .org-tree__stack:has(.org-tree__people) .org-team-node::after,
+.org-chart-canvas .org-tree__leader + .org-tree__members-section::before,
+.org-chart-canvas .org-tree__members-row--multi > .org-tree__members-item::before,
+.org-chart-canvas .org-tree__members-row--multi > .org-tree__members-item::after {
+    box-shadow: 0 0 8px rgb(56 189 248 / 0.35);
+    animation: org-connector-pulse 2s ease-in-out infinite;
+}
+
+.org-chart-canvas .org-tree__branch:has(> .org-tree__children) > .org-tree__stack:has(.org-tree__people)::after,
+.org-chart-canvas .org-tree__children > .org-tree__branch::before {
+    animation: org-connector-flow 1.1s linear infinite, org-connector-pulse 2s ease-in-out infinite;
+}
+
+@keyframes org-card-float {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-3px);
+    }
+}
+
+@keyframes org-card-ring-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes org-card-shimmer {
+    0%,
+    100% {
+        background-position: 200% 0;
+    }
+    50% {
+        background-position: -50% 0;
+    }
+}
+
+@keyframes org-person-aurora {
+    0%,
+    100% {
+        transform: translate(0, 0) scale(1);
+        opacity: 0.22;
+    }
+    50% {
+        transform: translate(6%, -4%) scale(1.08);
+        opacity: 0.32;
+    }
+}
+
+@keyframes org-accent-flow {
+    0%,
+    100% {
+        background-position: 0 0;
+    }
+    50% {
+        background-position: 0 100%;
+    }
+}
+
+@keyframes org-stat-flicker {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    92% {
+        opacity: 1;
+    }
+    94% {
+        opacity: 0.65;
+    }
+    96% {
+        opacity: 1;
+    }
+}
+
+@keyframes org-badge-glow {
+    0%,
+    100% {
+        box-shadow: 0 0 0 rgb(154 0 54 / 0);
+        border-color: rgb(154 0 54 / 0.25);
+    }
+    50% {
+        box-shadow: 0 0 14px rgb(251 113 133 / 0.35);
+        border-color: rgb(251 113 133 / 0.45);
+    }
+}
+
+.org-chart-canvas .org-team-node:hover,
+.org-chart-canvas .org-person-node--interactive:hover {
+    animation-play-state: paused;
+    transform: translateY(-5px) scale(1.02);
+}
+
+.org-chart-canvas .org-tree__section-column {
+    background: rgb(30 41 59 / 0.35);
+    border-color: rgb(56 189 248 / 0.22);
+}
+
+.org-chart-canvas .org-tree__section-title {
+    background: rgb(30 41 59 / 0.75);
+    border-color: rgb(56 189 248 / 0.2);
+    color: rgb(226 232 240);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .org-chart-canvas .org-team-node,
+    .org-chart-canvas .org-person-node,
+    .org-chart-canvas .org-person-node--leader,
+    .org-chart-canvas .org-flow-node::before,
+    .org-chart-canvas .org-team-node__fx--ring,
+    .org-chart-canvas .org-team-node__fx--shimmer,
+    .org-chart-canvas .org-person-node__fx--shimmer,
+    .org-chart-canvas .org-person-node__fx--aurora,
+    .org-chart-canvas .org-team-node__port--in,
+    .org-chart-canvas .org-team-node__stat,
+    .org-chart-canvas .org-person-node__badge {
+        animation: none;
+    }
+}
