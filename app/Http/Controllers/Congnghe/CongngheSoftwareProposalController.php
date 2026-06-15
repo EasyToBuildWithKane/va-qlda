@@ -4,11 +4,17 @@ namespace App\Http\Controllers\Congnghe;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Congnghe\StoreCongngheSoftwareProposalRequest;
+use App\Http\Resources\CongngheSoftwareProposalResource;
 use App\Mail\CongngheSoftwareProposalMail;
+use App\Models\CongngheSoftwareProposal;
+use App\Models\Department;
 use App\Models\Employee;
+use App\Models\SystemAccount;
 use App\Services\Congnghe\CongngheSoftwareProposalRecorder;
 use App\Support\Options;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -18,6 +24,34 @@ class CongngheSoftwareProposalController extends Controller
     public function __construct(
         private readonly CongngheSoftwareProposalRecorder $recorder,
     ) {}
+
+    public function index(Request $request): Response
+    {
+        $account = $request->user();
+        $perPage = min(max((int) $request->query('per_page', 15), 5), 30);
+
+        $proposals = $this->ownedProposalsQuery($account)
+            ->withCount('attachments')
+            ->latest()
+            ->paginate($perPage)
+            ->withQueryString();
+
+        return Inertia::render('Congnghe/MyProposals', [
+            'proposals' => CongngheSoftwareProposalResource::collection($proposals),
+            'filters' => (object) $request->only(['per_page']),
+        ]);
+    }
+
+    public function show(CongngheSoftwareProposal $proposal): Response
+    {
+        $this->authorize('view', $proposal);
+
+        $proposal->load('attachments');
+
+        return Inertia::render('Congnghe/MyProposalShow', [
+            'proposal' => (new CongngheSoftwareProposalResource($proposal))->resolve(),
+        ]);
+    }
 
     public function create(): Response
     {
@@ -45,12 +79,14 @@ class CongngheSoftwareProposalController extends Controller
         $validated = $request->validated();
         $files = $request->file('attachments', []);
 
+        $department = Department::active()->findOrFail((int) $validated['department_id']);
+
         $proposal = $this->recorder->record(
             (int) $request->user()->id,
             [
                 'name' => $validated['name'],
                 'email' => $validated['email'],
-                'department' => $validated['department'],
+                'department' => $department->name,
                 'title' => $validated['title'],
                 'content' => $validated['content'],
             ],
@@ -123,6 +159,21 @@ class CongngheSoftwareProposalController extends Controller
             return [(string) $match['name'], (int) $match['id']];
         }
 
-        return [$name, null];
+        return ['', null];
+    }
+
+    /**
+     * @return Builder<CongngheSoftwareProposal>
+     */
+    private function ownedProposalsQuery(SystemAccount $account): Builder
+    {
+        $employeeEmail = strtolower(trim((string) ($account->employee?->email ?? '')));
+
+        return CongngheSoftwareProposal::query()->where(function (Builder $query) use ($account, $employeeEmail): void {
+            $query->where('system_account_id', $account->id);
+            if ($employeeEmail !== '') {
+                $query->orWhereRaw('LOWER(submitter_email) = ?', [$employeeEmail]);
+            }
+        });
     }
 }

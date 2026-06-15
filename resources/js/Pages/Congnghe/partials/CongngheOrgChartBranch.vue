@@ -92,7 +92,7 @@ function showRoleOnCard(card) {
     <div
       class="cn-org-node cn-org-node--unit cn-org-animate relative z-[1] text-center"
       :class="[
-        depth === 0 && !column ? 'cn-org-node--unit-root max-w-lg' : 'cn-org-node--unit-branch max-w-xs',
+        depth === 0 && !column ? 'cn-org-node--unit-root max-w-md' : 'cn-org-node--unit-branch max-w-[14rem]',
       ]"
       :style="staggerStyle(0)"
     >
@@ -101,7 +101,7 @@ function showRoleOnCard(card) {
       </p>
       <p
         class="mt-1 font-display font-bold leading-snug text-white"
-        :class="depth === 0 && !column ? 'text-lg sm:text-xl' : 'text-base'"
+        :class="depth === 0 && !column ? 'text-base sm:text-lg' : 'text-sm'"
       >
         {{ team.name }}
       </p>
@@ -123,30 +123,30 @@ function showRoleOnCard(card) {
           <p class="cn-org-eyebrow mb-3 text-center text-brand-200/70">
             Quản lý
           </p>
-          <div class="mx-auto mb-2 flex max-w-md justify-center">
+          <div class="mx-auto mb-2 flex max-w-sm justify-center">
             <button
               type="button"
-              class="cn-org-node cn-org-node--person cn-org-node--lead-card cn-org-node--manager cn-org-animate flex w-full max-w-[17rem] flex-col items-center gap-3 px-5 py-5 text-center sm:max-w-[19rem]"
+              class="cn-org-node cn-org-node--person cn-org-node--lead-card cn-org-node--manager cn-org-animate flex w-full max-w-[20rem] flex-row items-center gap-3 px-3.5 py-3 text-left"
               :style="staggerStyle(0, 1)"
               @click="openPerson(managerCard.person, managerCard.branchTitle)"
             >
-              <span class="line-clamp-2 w-full text-[11px] font-semibold uppercase leading-snug tracking-wide text-brand-100/85 sm:text-xs">
-                {{ managerCard.branchTitle }}
-              </span>
-              <span class="cn-org-avatar-ring cn-org-avatar-ring--manager">
+              <span class="cn-org-avatar-ring cn-org-avatar-ring--manager shrink-0">
                 <Avatar
                   :name="managerCard.person.name"
                   :src="managerCard.person.avatar"
-                  :size="72"
+                  :size="52"
                 />
               </span>
-              <span class="min-w-0 w-full">
-                <span class="block text-lg font-semibold leading-tight text-white">
+              <span class="min-w-0 flex-1">
+                <span class="line-clamp-1 text-[10px] font-semibold uppercase tracking-wide text-brand-100/85">
+                  {{ managerCard.branchTitle }}
+                </span>
+                <span class="mt-0.5 block text-sm font-semibold leading-tight text-white">
                   {{ managerCard.person.name }}
                 </span>
                 <span
                   v-if="showRoleOnCard(managerCard)"
-                  class="mt-1.5 block text-xs leading-snug text-white/55 sm:text-[13px]"
+                  class="mt-0.5 block text-[11px] leading-snug text-white/55"
                 >
                   {{ managerCard.person.roleTitle }}
                 </span>
@@ -168,35 +168,36 @@ function showRoleOnCard(card) {
             {{ leadershipEyebrow }}
           </p>
           <ul
-            class="cn-org-leadership-row mx-auto grid list-none grid-cols-1 gap-3 p-0 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4"
+            class="cn-org-leadership-row mx-auto flex list-none flex-wrap justify-center gap-2 p-0 sm:gap-2.5"
           >
             <li
               v-for="(card, li) in leadershipCards"
               :key="card.key"
+              class="w-full max-w-[17rem] sm:w-[calc(50%-0.3125rem)] lg:w-[calc(50%-0.3125rem)]"
             >
               <button
                 type="button"
-                class="cn-org-node cn-org-node--person cn-org-node--lead-card cn-org-animate flex h-full w-full flex-col items-center gap-3 px-4 py-5 text-center"
+                class="cn-org-node cn-org-node--person cn-org-node--lead-card cn-org-animate flex h-full w-full flex-row items-center gap-2.5 px-3 py-2.5 text-left"
                 :style="staggerStyle(li, managerCard ? 2 : 1)"
                 @click="openPerson(card.person, card.branchTitle)"
               >
-                <span class="line-clamp-2 min-h-[2.25rem] w-full text-[11px] font-semibold uppercase leading-snug tracking-wide text-amber-100/80 sm:text-xs">
-                  {{ card.branchTitle }}
-                </span>
-                <span class="cn-org-avatar-ring">
+                <span class="cn-org-avatar-ring shrink-0">
                   <Avatar
                     :name="card.person.name"
                     :src="card.person.avatar"
-                    :size="64"
+                    :size="44"
                   />
                 </span>
-                <span class="min-w-0 w-full">
-                  <span class="block text-base font-semibold leading-tight text-white sm:text-[17px]">
+                <span class="min-w-0 flex-1">
+                  <span class="line-clamp-1 text-[10px] font-semibold uppercase tracking-wide text-amber-100/80">
+                    {{ card.branchTitle }}
+                  </span>
+                  <span class="mt-0.5 block text-sm font-semibold leading-tight text-white">
                     {{ card.person.name }}
                   </span>
                   <span
                     v-if="showRoleOnCard(card)"
-                    class="mt-1.5 block text-xs leading-snug text-white/55 sm:text-[13px]"
+                    class="mt-0.5 block text-[11px] leading-snug text-white/55"
                   >
                     {{ card.person.roleTitle }}
                   </span>
@@ -209,7 +210,7 @@ function showRoleOnCard(card) {
 
       <div
         v-if="hasStaff"
-        class="cn-org-staff mt-6 w-full"
+        class="cn-org-staff mt-4 w-full"
         :class="hasLeadership ? 'pt-1' : ''"
       >
         <div
@@ -223,43 +224,45 @@ function showRoleOnCard(card) {
         >
           Nhân sự theo nhánh
         </p>
-        <div class="space-y-8">
+        <div class="space-y-5">
           <section
             v-for="(group, gi) in staffGroups"
             :key="group.key"
             class="cn-org-staff-branch cn-org-animate"
             :style="staggerStyle(gi, staffStaggerBase)"
           >
-            <header class="mb-4 text-center">
-              <h4 class="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-200/70">
+            <header class="mb-2.5 text-center">
+              <h4 class="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-200/70">
                 {{ group.title || 'Thành viên' }}
               </h4>
             </header>
             <ul
-              class="grid list-none gap-3 p-0 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4"
+              class="mx-auto flex list-none flex-wrap justify-center gap-2 p-0 sm:gap-2.5"
             >
               <li
                 v-for="(person, pi) in group.people"
                 :key="person.key"
+                class="w-full max-w-[15rem] sm:w-[calc(50%-0.3125rem)]"
               >
                 <button
                   type="button"
-                  class="cn-org-node cn-org-node--person cn-org-node--staff flex w-full flex-col items-center gap-3 px-4 py-5 text-center"
+                  class="cn-org-node cn-org-node--person cn-org-node--staff flex w-full flex-row items-center gap-2.5 px-3 py-2.5 text-left"
                   :style="staggerStyle(pi, staffStaggerBase + gi * 2 + 1)"
                   @click="openPerson(person, group.title)"
                 >
                   <Avatar
+                    class="shrink-0"
                     :name="person.name"
                     :src="person.avatar"
-                    :size="52"
+                    :size="40"
                   />
-                  <span class="min-w-0 w-full">
-                    <span class="block text-sm font-semibold leading-snug text-white sm:text-[15px]">
+                  <span class="min-w-0 flex-1">
+                    <span class="block text-sm font-semibold leading-snug text-white">
                       {{ person.name }}
                     </span>
                     <span
                       v-if="shouldShowRoleSubtitle(group.title, person.roleTitle || person.branchLabel)"
-                      class="mt-1 block text-xs leading-snug text-white/50"
+                      class="mt-0.5 block text-[11px] leading-snug text-white/50 line-clamp-2"
                     >
                       {{ person.roleTitle || person.branchLabel }}
                     </span>
@@ -273,7 +276,7 @@ function showRoleOnCard(card) {
 
       <div
         v-if="hasChildren"
-        class="cn-org-children mt-8 w-full"
+        class="cn-org-children mt-5 w-full"
       >
         <div
           v-if="hasLeadership || hasStaff"
@@ -287,8 +290,8 @@ function showRoleOnCard(card) {
           Phân nhánh chuyên môn
         </p>
         <div
-          class="cn-org-children-grid relative grid gap-5 pt-4 sm:gap-6"
-          :class="children.length >= 2 ? 'sm:grid-cols-2' : 'grid-cols-1'"
+          class="cn-org-children-grid relative mx-auto grid max-w-3xl grid-cols-1 gap-3 pt-3 sm:gap-4"
+          :class="children.length >= 2 ? 'sm:grid-cols-2' : ''"
           role="group"
           :aria-label="`Phân nhánh của ${team.name}`"
         >
@@ -398,20 +401,20 @@ function showRoleOnCard(card) {
 }
 
 .cn-org-branch--column {
-    border-radius: 1.25rem;
+    border-radius: 1rem;
     background: linear-gradient(165deg, rgba(255, 255, 255, 0.04), rgba(8, 9, 16, 0.65));
-    padding: 1rem 1rem 1.25rem;
-    box-shadow: 0 16px 48px -24px rgba(0, 0, 0, 0.65);
+    padding: 0.75rem 0.85rem 1rem;
+    box-shadow: 0 12px 36px -20px rgba(0, 0, 0, 0.65);
 }
 
 @media (min-width: 640px) {
     .cn-org-branch--column {
-        padding: 1.25rem 1.35rem 1.5rem;
+        padding: 0.9rem 1rem 1.15rem;
     }
 }
 
 .cn-org-leadership-row {
-    max-width: none;
+    max-width: 36rem;
     width: 100%;
 }
 
@@ -426,7 +429,7 @@ function showRoleOnCard(card) {
 
 .cn-org-node {
     border: none;
-    border-radius: 1.25rem;
+    border-radius: 1rem;
     background: rgba(255, 255, 255, 0.04);
     box-shadow:
         0 12px 40px -20px rgba(0, 0, 0, 0.75),
@@ -446,7 +449,7 @@ function showRoleOnCard(card) {
 }
 
 .cn-org-node--unit-root {
-    padding: 1rem 1.5rem;
+    padding: 0.75rem 1.15rem;
 }
 
 .cn-org-node--unit-branch {
@@ -467,8 +470,8 @@ function showRoleOnCard(card) {
 }
 
 .cn-org-node--staff {
-    min-height: 9.5rem;
-    justify-content: center;
+    min-height: 0;
+    justify-content: flex-start;
 }
 
 .cn-org-avatar-ring {

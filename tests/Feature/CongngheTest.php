@@ -2,12 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Models\Department;
 use App\Models\Employee;
 use App\Models\OrgTeam;
 use App\Models\OrgTeamMember;
 use App\Models\SystemAccount;
 use App\Support\Auth\TechLoginAccess;
 use App\Support\Enums\SystemRole;
+use App\Support\Options\DepartmentOptions;
 use App\Support\OrgTeam\OrgTeamOverviewBuilder;
 use App\Support\OrgTeamTreeBuilder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -18,6 +20,19 @@ use Tests\TestCase;
 class CongngheTest extends TestCase
 {
     use RefreshDatabase;
+
+    private function createActiveDepartment(string $name = 'Phòng Học vụ'): Department
+    {
+        $dept = Department::create([
+            'code' => 'DEPT-HV',
+            'name' => $name,
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+        app(DepartmentOptions::class)->flush();
+
+        return $dept;
+    }
 
     public function test_guest_is_redirected_from_congnghe(): void
     {
@@ -111,6 +126,7 @@ class CongngheTest extends TestCase
 
     public function test_member_can_view_software_proposal_form(): void
     {
+        $dept = $this->createActiveDepartment();
         $account = SystemAccount::factory()->role(SystemRole::Member)->create();
 
         $this->actingAs($account, 'system')
@@ -119,7 +135,8 @@ class CongngheTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('Congnghe/Proposal')
                 ->has('defaults')
-                ->has('departmentOptions')
+                ->has('departmentOptions', 1)
+                ->where('departmentOptions.0.id', $dept->id)
             );
     }
 
@@ -127,13 +144,14 @@ class CongngheTest extends TestCase
     {
         Mail::fake();
 
+        $dept = $this->createActiveDepartment();
         $account = SystemAccount::factory()->role(SystemRole::Member)->create();
 
         $this->actingAs($account, 'system')
             ->post('/congnghe/de-xuat', [
                 'name' => 'Nguyễn Test',
                 'email' => 'tester@vaschools.edu.vn',
-                'department' => 'Phòng Học vụ',
+                'department_id' => $dept->id,
                 'title' => 'Phần mềm đăng ký học',
                 'content' => 'Cần module đăng ký trực tuyến cho phụ huynh.',
             ])
@@ -147,6 +165,7 @@ class CongngheTest extends TestCase
         $this->assertDatabaseHas('congnghe_software_proposals', [
             'submitter_email' => 'tester@vaschools.edu.vn',
             'title' => 'Phần mềm đăng ký học',
+            'department' => 'Phòng Học vụ',
             'status' => 'new',
         ]);
     }
@@ -155,6 +174,7 @@ class CongngheTest extends TestCase
     {
         Mail::fake();
 
+        $dept = $this->createActiveDepartment();
         $account = SystemAccount::factory()->role(SystemRole::Member)->create();
         $file = UploadedFile::fake()->create('yeu-cau.pdf', 120, 'application/pdf');
 
@@ -162,7 +182,7 @@ class CongngheTest extends TestCase
             ->post('/congnghe/de-xuat', [
                 'name' => 'Nguyễn Test',
                 'email' => 'tester@vaschools.edu.vn',
-                'department' => 'Phòng Học vụ',
+                'department_id' => $dept->id,
                 'title' => 'Đề xuất có file',
                 'content' => 'Nội dung.',
                 'attachments' => [$file],
@@ -192,6 +212,64 @@ class CongngheTest extends TestCase
 
         $this->actingAs($account, 'system')
             ->get(route('congnghe.proposals.index'))
+            ->assertForbidden();
+    }
+
+    public function test_member_can_view_own_proposals_list(): void
+    {
+        $account = SystemAccount::factory()->role(SystemRole::Member)->create();
+
+        $this->actingAs($account, 'system')
+            ->get(route('congnghe.proposal.mine'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->component('Congnghe/MyProposals'));
+    }
+
+    public function test_member_can_view_own_proposal_detail(): void
+    {
+        Mail::fake();
+        $dept = $this->createActiveDepartment();
+        $account = SystemAccount::factory()->role(SystemRole::Member)->create();
+
+        $this->actingAs($account, 'system')
+            ->post('/congnghe/de-xuat', [
+                'name' => 'Nguyễn Test',
+                'email' => 'tester@vaschools.edu.vn',
+                'department_id' => $dept->id,
+                'title' => 'Đề xuất riêng',
+                'content' => 'Nội dung.',
+            ]);
+
+        $proposalId = \App\Models\CongngheSoftwareProposal::query()->value('id');
+
+        $this->actingAs($account, 'system')
+            ->get(route('congnghe.proposal.mine.show', $proposalId))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Congnghe/MyProposalShow')
+                ->where('proposal.title', 'Đề xuất riêng')
+            );
+    }
+
+    public function test_member_cannot_view_other_users_proposal_detail(): void
+    {
+        $dept = $this->createActiveDepartment();
+        $owner = SystemAccount::factory()->role(SystemRole::Member)->create();
+        $other = SystemAccount::factory()->role(SystemRole::Member)->create();
+
+        $this->actingAs($owner, 'system')
+            ->post('/congnghe/de-xuat', [
+                'name' => 'Owner',
+                'email' => 'owner@vaschools.edu.vn',
+                'department_id' => $dept->id,
+                'title' => 'Private',
+                'content' => 'Secret.',
+            ]);
+
+        $proposalId = \App\Models\CongngheSoftwareProposal::query()->value('id');
+
+        $this->actingAs($other, 'system')
+            ->get(route('congnghe.proposal.mine.show', $proposalId))
             ->assertForbidden();
     }
 }

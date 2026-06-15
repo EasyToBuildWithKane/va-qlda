@@ -15,7 +15,21 @@ class CongngheSoftwareProposalPolicy
 
     public function view(SystemAccount $account, CongngheSoftwareProposal $proposal): bool
     {
-        return $this->viewAny($account);
+        return $this->viewAny($account) || $this->isOwner($account, $proposal);
+    }
+
+    private function isOwner(SystemAccount $account, CongngheSoftwareProposal $proposal): bool
+    {
+        if ($proposal->system_account_id === $account->id) {
+            return true;
+        }
+
+        $employeeEmail = strtolower(trim((string) ($account->employee?->email ?? '')));
+        if ($employeeEmail === '') {
+            return false;
+        }
+
+        return strtolower(trim($proposal->submitter_email)) === $employeeEmail;
     }
 
     public function update(SystemAccount $account, CongngheSoftwareProposal $proposal): bool

@@ -30,7 +30,10 @@ class CongngheSoftwareProposalResource extends JsonResource
             'content' => $this->content,
             'status' => $this->enum($this->status),
             'email_sent_at' => $this->email_sent_at?->toIso8601String(),
-            'email_error' => $this->email_error,
+            'email_error' => $this->when(
+                $user?->can('update', $this->resource),
+                $this->email_error,
+            ),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
             'attachments_count' => $this->whenCounted('attachments'),

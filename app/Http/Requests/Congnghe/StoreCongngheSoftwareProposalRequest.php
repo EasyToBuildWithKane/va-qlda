@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Congnghe;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreCongngheSoftwareProposalRequest extends FormRequest
 {
@@ -19,7 +20,11 @@ class StoreCongngheSoftwareProposalRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'email', 'max:255'],
-            'department' => ['required', 'string', 'max:160'],
+            'department_id' => [
+                'required',
+                'integer',
+                Rule::exists('departments', 'id')->where('is_active', true),
+            ],
             'title' => ['required', 'string', 'max:200'],
             'content' => ['required', 'string', 'max:10000'],
             'attachments' => ['nullable', 'array', 'max:5'],
@@ -40,7 +45,8 @@ class StoreCongngheSoftwareProposalRequest extends FormRequest
             'name.required' => 'Vui lòng nhập họ tên.',
             'email.required' => 'Vui lòng nhập email.',
             'email.email' => 'Email không hợp lệ.',
-            'department.required' => 'Vui lòng nhập phòng ban.',
+            'department_id.required' => 'Vui lòng chọn phòng ban.',
+            'department_id.exists' => 'Phòng ban không hợp lệ hoặc đã ngừng hoạt động.',
             'title.required' => 'Vui lòng nhập tiêu đề đề xuất.',
             'content.required' => 'Vui lòng mô tả nội dung đề xuất.',
             'content.max' => 'Nội dung không vượt quá 10.000 ký tự.',

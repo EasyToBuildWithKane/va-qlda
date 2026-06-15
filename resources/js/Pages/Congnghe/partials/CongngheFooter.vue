@@ -107,7 +107,7 @@ const year = new Date().getFullYear();
             <CongngheBrandImage
               :src="congngheBrand.mascotHoodie"
               alt="Linh vật VAS — Phòng Công Nghệ"
-              cutout-only
+              :cutout="false"
               class="relative z-10 h-36 w-auto max-w-full sm:h-40 lg:h-44 xl:h-48"
               loading="lazy"
             />

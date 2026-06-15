@@ -11,8 +11,6 @@ import CongngheProposalFieldLabel from './partials/CongngheProposalFieldLabel.vu
 import { CONGNGHE_PROPOSAL_HINTS as H } from './partials/congngheProposalFormHints.js';
 import { useToast } from '@/shared/composables/useToast';
 
-const CUSTOM_DEPT = '__custom__';
-
 const props = defineProps({
     defaults: {
         type: Object,
@@ -28,12 +26,11 @@ const page = usePage();
 const toast = useToast();
 const fileInput = ref(null);
 const stagedFiles = ref([]);
-const deptPick = ref('');
 
 const form = useForm({
     name: props.defaults.name ?? '',
     email: props.defaults.email ?? '',
-    department: props.defaults.department ?? '',
+    department_id: props.defaults.department_id ?? '',
     title: '',
     content: '',
     attachments: [],
@@ -44,40 +41,23 @@ const inputClass =
 
 const hasDepartmentOptions = computed(() => props.departmentOptions.length > 0);
 
-const showCustomDepartment = computed(
-    () => !hasDepartmentOptions.value || deptPick.value === CUSTOM_DEPT,
+const selectedDepartmentName = computed(() => {
+    const id = form.department_id;
+    if (id === '' || id == null) {
+        return '';
+    }
+    const dept = props.departmentOptions.find((d) => Number(d.id) === Number(id));
+    return dept?.name ?? '';
+});
+
+const departmentAutoFilled = computed(
+    () => props.defaults.department_id != null
+        && Number(form.department_id) === Number(props.defaults.department_id),
 );
 
 function syncDepartmentFromDefaults() {
     if (props.defaults.department_id != null && props.defaults.department_id !== '') {
-        deptPick.value = String(props.defaults.department_id);
-        const dept = props.departmentOptions.find(
-            (d) => Number(d.id) === Number(props.defaults.department_id),
-        );
-        form.department = dept?.name ?? props.defaults.department ?? '';
-        return;
-    }
-
-    if (props.defaults.department) {
-        form.department = props.defaults.department;
-        const match = props.departmentOptions.find((d) => d.name === props.defaults.department);
-        deptPick.value = match ? String(match.id) : CUSTOM_DEPT;
-        return;
-    }
-
-    deptPick.value = hasDepartmentOptions.value ? '' : CUSTOM_DEPT;
-}
-
-function onDepartmentPickChange() {
-    if (deptPick.value === CUSTOM_DEPT || deptPick.value === '') {
-        if (deptPick.value === '') {
-            form.department = '';
-        }
-        return;
-    }
-    const dept = props.departmentOptions.find((d) => String(d.id) === deptPick.value);
-    if (dept) {
-        form.department = dept.name;
+        form.department_id = Number(props.defaults.department_id);
     }
 }
 
@@ -126,8 +106,12 @@ function removeFile(index) {
 }
 
 function submit() {
-    if (showCustomDepartment.value && !form.department.trim()) {
-        form.setError('department', 'Vui lòng nhập phòng ban.');
+    if (!hasDepartmentOptions.value) {
+        form.setError('department_id', 'Danh sách phòng ban chưa sẵn sàng. Vui lòng thử lại sau hoặc liên hệ Phòng Công nghệ.');
+        return;
+    }
+    if (!form.department_id) {
+        form.setError('department_id', 'Vui lòng chọn phòng ban.');
         return;
     }
     form.attachments = [...stagedFiles.value];
@@ -163,10 +147,6 @@ watch(
     () => [page.props.flash?.success, page.props.flash?.error],
     () => flashToast(),
 );
-
-watch(deptPick, () => {
-    onDepartmentPickChange();
-});
 </script>
 
 <template>
@@ -257,54 +237,42 @@ watch(deptPick, () => {
                   label="Phòng ban"
                   required
                   :tooltip="H.department"
-                  :hint="defaults.department && deptPick !== CUSTOM_DEPT ? `Đang công tác: ${form.department}` : ''"
+                  :hint="departmentAutoFilled && selectedDepartmentName
+                    ? `Tự động từ hồ sơ: ${selectedDepartmentName}`
+                    : (selectedDepartmentName ? selectedDepartmentName : '')"
                 />
-                <div class="space-y-2">
-                  <select
-                    v-if="hasDepartmentOptions"
-                    id="proposal-dept-pick"
-                    v-model="deptPick"
-                    required
-                    class="h-11 w-full rounded-xl border border-white/10 bg-[#0c0e18] px-3 text-sm text-white focus:border-brand/50 focus:outline-none focus:ring-2 focus:ring-brand/25"
-                    @change="onDepartmentPickChange"
+                <select
+                  v-if="hasDepartmentOptions"
+                  id="proposal-dept-pick"
+                  v-model="form.department_id"
+                  required
+                  class="h-11 w-full rounded-xl border border-white/10 bg-[#0c0e18] px-3 text-sm text-white focus:border-brand/50 focus:outline-none focus:ring-2 focus:ring-brand/25"
+                >
+                  <option
+                    value=""
+                    disabled
                   >
-                    <option
-                      value=""
-                      disabled
-                    >
-                      Chọn phòng ban
-                    </option>
-                    <option
-                      v-for="dept in departmentOptions"
-                      :key="dept.id"
-                      :value="String(dept.id)"
-                    >
-                      {{ dept.name }}
-                    </option>
-                    <option :value="CUSTOM_DEPT">
-                      Khác — nhập tay
-                    </option>
-                  </select>
-                  <input
-                    v-if="showCustomDepartment"
-                    id="proposal-dept-custom"
-                    v-model="form.department"
-                    type="text"
-                    :required="showCustomDepartment"
-                    :class="inputClass"
-                    placeholder="Tên phòng ban / đơn vị"
+                    Chọn phòng ban
+                  </option>
+                  <option
+                    v-for="dept in departmentOptions"
+                    :key="dept.id"
+                    :value="dept.id"
                   >
-                  <input
-                    v-else
-                    type="hidden"
-                    :value="form.department"
-                  >
-                </div>
+                    {{ dept.name }}
+                  </option>
+                </select>
                 <p
-                  v-if="form.errors.department"
+                  v-else
+                  class="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-sm text-amber-100/90"
+                >
+                  Chưa tải được danh sách phòng ban. Vui lòng tải lại trang hoặc liên hệ Phòng Công nghệ.
+                </p>
+                <p
+                  v-if="form.errors.department_id"
                   class="mt-1 text-xs text-rose-300"
                 >
-                  {{ form.errors.department }}
+                  {{ form.errors.department_id }}
                 </p>
               </div>
             </div>

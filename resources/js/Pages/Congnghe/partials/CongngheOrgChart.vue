@@ -15,7 +15,7 @@ function onSelectPerson(payload) {
 
 <template>
   <div
-    class="cn-org-chart rounded-3xl px-2 py-7 sm:px-5 sm:py-9 lg:px-8"
+    class="cn-org-chart w-full max-w-3xl rounded-2xl px-2 py-5 sm:px-4 sm:py-6"
     :class="revealed ? 'cn-org-chart--revealed' : ''"
     role="tree"
     aria-label="Sơ đồ tổ chức Phòng Công nghệ"

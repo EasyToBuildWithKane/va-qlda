@@ -3,7 +3,7 @@ import {
     computed, onBeforeUnmount, onMounted, ref, watch,
 } from 'vue';
 import { usePage, Link } from '@inertiajs/vue3';
-import Avatar from '@/shared/ui/Avatar.vue';
+import CongngheUserMenu from './CongngheUserMenu.vue';
 import { congngheBrand } from './congngheBrand.js';
 import CongngheBrandImage from './CongngheBrandImage.vue';
 
@@ -214,24 +214,14 @@ const navPadClass = computed(() => (scrolled.value ? 'py-2.5 sm:py-3' : 'py-3.5 
         </Link>
         <div
           v-if="authUser"
-          class="hidden max-w-[220px] items-center gap-2 rounded-full border border-white/10 bg-white/[0.05] py-1 pl-1 pr-2.5 md:flex lg:max-w-[240px]"
+          class="hidden md:block"
         >
-          <Avatar
+          <CongngheUserMenu
             :name="userName"
-            :src="userAvatar"
-            :size="34"
+            :email="userEmail"
+            :avatar-src="userAvatar"
+            :role-label="userRole"
           />
-          <div class="min-w-0 leading-tight">
-            <p class="truncate text-xs font-semibold text-white">
-              {{ userName }}
-            </p>
-            <p
-              v-if="userRole"
-              class="truncate font-mono text-[10px] uppercase tracking-wide text-cyan-200/40"
-            >
-              {{ userRole }}
-            </p>
-          </div>
         </div>
 
         <button
@@ -289,24 +279,33 @@ const navPadClass = computed(() => (scrolled.value ? 'py-2.5 sm:py-3' : 'py-3.5 
       >
         <div
           v-if="authUser"
-          class="mb-4 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3"
+          class="mb-4 space-y-2"
         >
-          <Avatar
+          <CongngheUserMenu
             :name="userName"
-            :src="userAvatar"
-            :size="40"
+            :email="userEmail"
+            :avatar-src="userAvatar"
+            :role-label="userRole"
+            compact
+            class="w-full"
           />
-          <div class="min-w-0 flex-1">
-            <p class="truncate text-sm font-semibold text-white">
-              {{ userName }}
-            </p>
-            <p class="truncate text-xs text-white/50">
-              {{ userEmail || userRole }}
-            </p>
-          </div>
         </div>
 
         <div class="grid grid-cols-2 gap-2">
+          <Link
+            :href="route('congnghe.proposal.mine')"
+            class="col-span-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-center text-sm font-medium text-white/85"
+            @click="closeMenu"
+          >
+            Đề xuất đã gửi
+          </Link>
+          <Link
+            href="/profile"
+            class="col-span-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 text-center text-sm font-medium text-white/85"
+            @click="closeMenu"
+          >
+            Thông tin tài khoản
+          </Link>
           <Link
             :href="proposalHref"
             class="col-span-2 rounded-xl border border-brand/45 bg-brand/25 px-3 py-2.5 text-center text-sm font-semibold text-white"
