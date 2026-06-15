@@ -9,6 +9,7 @@ import Badge from '@/shared/ui/Badge.vue';
 import EmptyState from '@/shared/ui/EmptyState.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import DatagridToolbarActionButton from '@/shared/ui/DatagridToolbarActionButton.vue';
+import DatagridSegmentedControl from '@/shared/ui/DatagridSegmentedControl.vue';
 import DatagridFilterField from '@/shared/ui/DatagridFilterField.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
@@ -21,6 +22,7 @@ const MEMBERS_FILTER_CONTROLS = [
     { key: 'root_id', label: 'Nhóm', default: false },
     { key: 'team_id', label: 'Nhóm', default: false },
     { key: 'branch', label: 'Nhánh / vai trò', default: false },
+    { key: 'status', label: 'Trạng thái', default: false },
 ];
 
 const props = defineProps({
@@ -53,17 +55,17 @@ const {
     FILTER_CONTROLS,
 } = useVisibleFilterControls(
     MEMBERS_FILTER_CONTROLS,
-    'va-qlda.org-team-members.visible-filters.v1',
+    'va-qlda.org-team-members.visible-filters.v2',
 );
 
 const filterPanelDdRef = ref(null);
 
 const rows = computed(() => props.roster.data ?? []);
 
-const statusTabs = computed(() => [
-    { value: 'all', label: 'Tất cả' },
-    { value: 'active', label: 'Đang hoạt động' },
-    { value: 'inactive', label: 'Ngừng' },
+const statusSegmentItems = computed(() => [
+    { key: 'all', label: 'Tất cả' },
+    { key: 'active', label: 'Đang hoạt động' },
+    { key: 'inactive', label: 'Ngừng' },
 ]);
 
 function rowAssignments(row) {
@@ -87,6 +89,7 @@ function showActiveFiltersInPanel() {
         root_id: filterForm.root_id,
         team_id: filterForm.team_id,
         branch: filterForm.branch,
+        status: filterForm.status !== 'all' ? filterForm.status : '',
     };
     let changed = false;
     for (const [key, val] of Object.entries(active)) {
@@ -233,21 +236,16 @@ onBeforeUnmount(() => {
                   @persist="persistVisibleFilters"
                 />
               </div>
+            </div>
 
-              <div class="flex shrink-0 items-center gap-1 rounded-lg bg-slate-100 p-1">
-                <button
-                  v-for="t in statusTabs"
-                  :key="t.value"
-                  type="button"
-                  class="rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors"
-                  :class="filterForm.status === t.value
-                    ? 'bg-white text-slate-800 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-700'"
-                  @click="setStatus(t.value)"
-                >
-                  {{ t.label }}
-                </button>
-              </div>
+            <div class="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-2">
+              <DatagridSegmentedControl
+                :model-value="filterForm.status"
+                :items="statusSegmentItems"
+                aria-label="Lọc trạng thái thành viên"
+                icon-only-below-sm
+                @update:model-value="setStatus"
+              />
             </div>
           </div>
 
@@ -312,6 +310,25 @@ onBeforeUnmount(() => {
                     :value="b.value"
                   >
                     {{ b.label }}
+                  </option>
+                </select>
+              </DatagridFilterField>
+
+              <DatagridFilterField v-if="visibleFilters.status">
+                <select
+                  v-model="filterForm.status"
+                  :class="FILTER_CONTROL_CLASS"
+                  aria-label="Trạng thái"
+                  @change="load(true)"
+                >
+                  <option value="all">
+                    Trạng thái
+                  </option>
+                  <option value="active">
+                    Đang hoạt động
+                  </option>
+                  <option value="inactive">
+                    Ngừng hoạt động
                   </option>
                 </select>
               </DatagridFilterField>
