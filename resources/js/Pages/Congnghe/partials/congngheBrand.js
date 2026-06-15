@@ -8,5 +8,4 @@ export const congngheBrand = {
     dragonSilhouette: `${base}/vas-dragon-silhouette.png`,
     mascotWave: `${base}/vas-mascot-wave.png`,
     mascotVaJacket: `${base}/vas-mascot-va-jacket.png`,
-    mascotHoodie: `${base}/vas-mascot-hoodie.png`,
 };

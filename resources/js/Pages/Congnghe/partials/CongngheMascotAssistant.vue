@@ -2,8 +2,6 @@
 import {
     computed, onBeforeUnmount, onMounted, ref, watch,
 } from 'vue';
-import CongngheMascotAnimated from './CongngheMascotAnimated.vue';
-import { congngheBrand } from './congngheBrand.js';
 import { prefersReducedMotionNow } from './motion.js';
 import { useCongngheSectionSpy } from './useCongngheSectionSpy.js';
 import { useCongngheAssistantDock } from './useCongngheAssistantDock.js';
@@ -24,65 +22,55 @@ let idleTimer = null;
 
 const sectionTips = {
     top: {
-        src: congngheBrand.mascotWave,
         lines: [
             'Xin chào! Mình là trợ lý VAS — cùng bạn khám phá Phòng Công Nghệ nhé.',
             'Cuộn xuống hoặc bấm «Giới thiệu» để bắt đầu hành trình.',
         ],
     },
     'gioi-thieu': {
-        src: congngheBrand.mascotVaJacket,
         lines: [
             'Sứ mệnh, tầm nhìn và giá trị — kim chỉ nam cho mọi sản phẩm chúng mình ship.',
             'Mỗi quy trình đều hướng tới trải nghiệm người học và đội ngũ vận hành.',
         ],
     },
     'thanh-tuu': {
-        src: congngheBrand.mascotHoodie,
         lines: [
             'Các con số này lấy trực tiếp từ QLDA — cập nhật theo dữ liệu thật.',
             'Vuốt ngang trên điện thoại để xem đủ chỉ số nhé.',
         ],
     },
     'san-pham': {
-        src: congngheBrand.mascotWave,
         lines: [
             'Hệ sinh thái sản phẩm — bấm từng thẻ để xem chi tiết dự án.',
             'Carousel hỗ trợ cảm ứng: vuốt hoặc dùng nút mũi tên.',
         ],
     },
     'cong-nghe': {
-        src: congngheBrand.mascotVaJacket,
         lines: [
             'Stack công nghệ chúng mình dùng hàng ngày — Laravel, Vue, AI pipeline…',
         ],
     },
     'to-chuc': {
-        src: congngheBrand.mascotHoodie,
         lines: [
             'Sơ đồ tổ chức dạng thẻ — bấm avatar để xem chi tiết liên hệ.',
         ],
     },
     'du-an': {
-        src: congngheBrand.mascotWave,
         lines: [
             'Timeline dự án theo giai đạn — theo dõi tiến độ triển khai.',
         ],
     },
     'ai-lab': {
-        src: congngheBrand.mascotVaJacket,
         lines: [
             'AI Lab — thử nghiệm, đo lường và đưa AI vào sản phẩm an toàn.',
         ],
     },
     'van-hoa': {
-        src: congngheBrand.mascotHoodie,
         lines: [
             'Văn hoá đội ngũ: làm sản phẩm thật, tử tế và đo lường được.',
         ],
     },
     'lo-trinh': {
-        src: congngheBrand.mascotWave,
         lines: [
             'Lộ trình 2026–2027 — hướng đi chiến lược của Phòng Công Nghệ.',
             'Cảm ơn bạn đã ghé thăm! Liên hệ qua email nếu cần hỗ trợ.',
@@ -96,8 +84,6 @@ const currentLine = computed(() => {
     const lines = context.value.lines;
     return lines[tipIndex.value % lines.length] ?? lines[0];
 });
-
-const mascotSrc = computed(() => context.value.src);
 
 const quickActions = computed(() => congngheMascotActions({ onProposalPage: props.proposalPage }));
 
@@ -198,13 +184,17 @@ function onHideClick() {
     aria-label="Hiện trợ lý VAS"
     @click="showAssistant"
   >
-    <span class="relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-brand/20 ring-1 ring-brand/40">
-      <img
-        :src="congngheBrand.mascotWave"
-        alt=""
-        class="cn-assistant-tab-mascot h-7 w-auto object-contain"
-        decoding="async"
-      >
+    <span class="flex h-8 w-8 items-center justify-center rounded-full bg-brand/25 ring-1 ring-brand/40">
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        class="text-brand-100"
+        aria-hidden="true"
+      ><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
     </span>
     Trợ lý VAS
   </button>
@@ -342,28 +332,32 @@ function onHideClick() {
       <div class="cn-assistant-dock relative flex w-full justify-end">
         <button
           type="button"
-          class="cn-assistant-mascot group relative cursor-pointer select-none border-0 bg-transparent p-0"
+          class="cn-assistant-trigger group relative grid h-14 w-14 cursor-pointer select-none place-items-center rounded-2xl border-0 bg-transparent p-0 sm:h-[3.75rem] sm:w-[3.75rem]"
           :aria-expanded="panelOpen"
           aria-label="Trợ lý VAS — bấm để mở hoặc thu gọn hộp thoại"
           @click="togglePanel"
         >
           <span
-            class="cn-assistant-mascot-glow pointer-events-none absolute -inset-4 rounded-full bg-[radial-gradient(circle,rgba(154,0,54,0.35),transparent_70%)] opacity-80 transition group-hover:opacity-100"
+            class="cn-assistant-trigger-glow pointer-events-none absolute -inset-3 rounded-2xl bg-[radial-gradient(circle,rgba(154,0,54,0.35),transparent_70%)] opacity-80 transition group-hover:opacity-100"
             aria-hidden="true"
           />
           <span
-            class="cn-assistant-mascot-ring pointer-events-none absolute -inset-2 rounded-[1.25rem] border border-white/10 bg-[#05060c]/40 backdrop-blur-sm"
+            class="cn-assistant-trigger-surface pointer-events-none absolute inset-0 rounded-2xl border border-white/12 bg-[#0a0b14]/90 shadow-[0_12px_32px_-8px_rgba(154,0,54,0.45)] backdrop-blur-md"
             aria-hidden="true"
           />
-          <CongngheMascotAnimated
-            :src="mascotSrc"
-            alt=""
-            variant="assistant"
-            class="relative z-10"
-          />
+          <svg
+            width="26"
+            height="26"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.75"
+            class="relative z-10 text-brand-100 transition group-hover:text-white"
+            aria-hidden="true"
+          ><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /><path d="M8 10h8M8 14h5" /></svg>
           <span
             v-if="!panelOpen"
-            class="absolute -bottom-0.5 -left-0.5 h-2.5 w-2.5 rounded-full bg-brand shadow-[0_0_10px_rgba(255,77,141,0.9)] ring-2 ring-[#05060c]"
+            class="absolute -bottom-0.5 -left-0.5 z-20 h-2.5 w-2.5 rounded-full bg-brand shadow-[0_0_10px_rgba(255,77,141,0.9)] ring-2 ring-[#05060c]"
             aria-hidden="true"
           />
         </button>
@@ -385,13 +379,6 @@ function onHideClick() {
           ><path d="M18 6 6 18M6 6l12 12" /></svg>
         </button>
       </div>
-
-      <p
-        v-if="!isDragging"
-        class="mt-1.5 w-full text-right text-[9px] leading-snug text-white/35"
-      >
-        Thanh bên phải: kéo lên/xuống · Bấm linh vật để {{ panelOpen ? 'thu gọn' : 'mở' }}
-      </p>
     </div>
 
     <button
@@ -461,7 +448,7 @@ function onHideClick() {
     );
 }
 
-.cn-assistant--dragging .cn-assistant-mascot-glow {
+.cn-assistant--dragging .cn-assistant-trigger-glow {
     opacity: 1;
 }
 
@@ -478,12 +465,8 @@ function onHideClick() {
     pointer-events: none;
 }
 
-.cn-assistant-mascot {
+.cn-assistant-trigger {
     cursor: pointer;
-}
-
-.cn-assistant-tab-mascot {
-    mix-blend-mode: screen;
 }
 
 @media (prefers-reduced-motion: reduce) {

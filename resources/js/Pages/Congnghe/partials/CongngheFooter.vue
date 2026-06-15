@@ -99,18 +99,17 @@ const year = new Date().getFullYear();
           <p :class="colHeadingClass">
             Đồng hành cùng VAS
           </p>
-          <div class="relative mt-4 flex flex-1 items-end justify-center sm:justify-start">
-            <div
-              class="pointer-events-none absolute inset-0 -inset-x-6 bg-[radial-gradient(ellipse_75%_65%_at_50%_55%,#120818_0%,transparent_68%)]"
-              aria-hidden="true"
-            />
+          <div class="relative mt-4 flex flex-1 flex-col items-center justify-end gap-3 sm:items-start">
             <CongngheBrandImage
-              :src="congngheBrand.mascotHoodie"
-              alt="Linh vật VAS — Phòng Công Nghệ"
+              :src="congngheBrand.dragonSilhouette"
+              alt=""
               :cutout="false"
-              class="relative z-10 h-36 w-auto max-w-full sm:h-40 lg:h-44 xl:h-48"
+              class="h-28 w-auto max-w-full opacity-90 sm:h-32 lg:h-36"
               loading="lazy"
             />
+            <p class="max-w-xs text-center text-sm leading-relaxed text-white/55 sm:text-left">
+              Cùng kiến tạo nền tảng số — từ ý tưởng đến sản phẩm vận hành thật.
+            </p>
           </div>
         </div>
       </div>

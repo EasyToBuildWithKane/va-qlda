@@ -123,10 +123,10 @@ function showRoleOnCard(card) {
           <p class="cn-org-eyebrow mb-3 text-center text-brand-200/70">
             Quản lý
           </p>
-          <div class="mx-auto mb-2 flex max-w-sm justify-center">
+          <div class="mx-auto mb-2 flex w-full max-w-xl justify-center">
             <button
               type="button"
-              class="cn-org-node cn-org-node--person cn-org-node--lead-card cn-org-node--manager cn-org-animate flex w-full max-w-[20rem] flex-row items-center gap-3 px-3.5 py-3 text-left"
+              class="cn-org-node cn-org-node--person cn-org-node--lead-card cn-org-node--manager cn-org-animate flex w-full max-w-[24rem] flex-row items-center gap-3 px-3.5 py-3 text-left"
               :style="staggerStyle(0, 1)"
               @click="openPerson(managerCard.person, managerCard.branchTitle)"
             >
@@ -173,7 +173,7 @@ function showRoleOnCard(card) {
             <li
               v-for="(card, li) in leadershipCards"
               :key="card.key"
-              class="w-full max-w-[17rem] sm:w-[calc(50%-0.3125rem)] lg:w-[calc(50%-0.3125rem)]"
+              class="w-full max-w-[20rem] sm:w-[calc(50%-0.3125rem)] lg:max-w-none lg:w-[calc(50%-0.3125rem)] xl:w-[calc(33.333%-0.5rem)]"
             >
               <button
                 type="button"
@@ -242,7 +242,7 @@ function showRoleOnCard(card) {
               <li
                 v-for="(person, pi) in group.people"
                 :key="person.key"
-                class="w-full max-w-[15rem] sm:w-[calc(50%-0.3125rem)]"
+                class="w-full max-w-[18rem] sm:w-[calc(50%-0.3125rem)] lg:max-w-none lg:w-[calc(33.333%-0.5rem)]"
               >
                 <button
                   type="button"
@@ -290,8 +290,8 @@ function showRoleOnCard(card) {
           Phân nhánh chuyên môn
         </p>
         <div
-          class="cn-org-children-grid relative mx-auto grid max-w-3xl grid-cols-1 gap-3 pt-3 sm:gap-4"
-          :class="children.length >= 2 ? 'sm:grid-cols-2' : ''"
+          class="cn-org-children-grid relative mx-auto grid w-full max-w-none grid-cols-1 gap-3 pt-3 sm:gap-4"
+          :class="children.length >= 3 ? 'sm:grid-cols-2 xl:grid-cols-3' : children.length >= 2 ? 'sm:grid-cols-2' : ''"
           role="group"
           :aria-label="`Phân nhánh của ${team.name}`"
         >
@@ -414,7 +414,7 @@ function showRoleOnCard(card) {
 }
 
 .cn-org-leadership-row {
-    max-width: 36rem;
+    max-width: none;
     width: 100%;
 }
 
