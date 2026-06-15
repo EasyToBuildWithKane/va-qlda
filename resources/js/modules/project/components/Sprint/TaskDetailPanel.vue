@@ -195,23 +195,45 @@ const scheduleLine = computed(() => {
     return parts.join(' · ');
 });
 
-const metaDotClass = {
-    slate: 'bg-slate-400',
-    sky: 'bg-sky-500',
-    violet: 'bg-violet-500',
-    emerald: 'bg-emerald-500',
-    rose: 'bg-rose-500',
-    amber: 'bg-amber-500',
-    brand: 'bg-brand',
-};
+const epicDisplay = computed(() => {
+    const name = activeTask.value?.epic?.name;
+    if (typeof name !== 'string') return null;
+    const trimmed = name.trim();
+    return trimmed || null;
+});
+
+const assigneeSummary = computed(() => {
+    const list = unref(ws.assignees) ?? [];
+    if (!list.length) return null;
+    const names = list.map((a) => a?.name).filter(Boolean);
+    return names.length ? names.join(', ') : null;
+});
+
+const statusStripeBorder = computed(() => {
+    const color = activeTask.value?.status?.color || 'slate';
+    const borders = {
+        brand: 'border-l-brand',
+        slate: 'border-l-slate-400',
+        sky: 'border-l-sky-500',
+        violet: 'border-l-violet-500',
+        emerald: 'border-l-emerald-500',
+        rose: 'border-l-rose-500',
+        amber: 'border-l-amber-500',
+    };
+    return borders[color] || borders.slate;
+});
+
+const showContextCard = computed(() => Boolean(
+    unref(ws.sprintLine)?.trim() || epicDisplay.value || scheduleLine.value,
+));
 
 const timeSummary = computed(() => {
     const parts = [];
-    if (ws.estimateHours.value != null) {
-        const prefix = ws.estimateFromSubtasksOnly.value ? 'Tổng công việc con' : 'Ước tính';
-        parts.push(`${prefix} ${ws.estimateHours.value}h`);
+    if (unref(ws.estimateHours) != null) {
+        const prefix = unref(ws.estimateFromSubtasksOnly) ? 'Tổng công việc con' : 'Ước tính';
+        parts.push(`${prefix} ${unref(ws.estimateHours)}h`);
     }
-    if (ws.loggedHours.value > 0) parts.push(`Đã ghi ${ws.loggedHours.value}h`);
+    if (unref(ws.loggedHours) > 0) parts.push(`Đã ghi ${unref(ws.loggedHours)}h`);
     return parts.length ? parts.join(' · ') : null;
 });
 
@@ -308,276 +330,353 @@ const worklogList = computed(() => normalizeEntities(activeTask.value?.worklogs)
           />
 
           <!-- ── HEADER ── -->
-          <header class="shrink-0 border-b border-slate-200/80 bg-slate-50/40 px-4 pb-3 pt-3 dark:border-slate-800 dark:bg-slate-900/40">
-            <div class="flex items-center justify-between gap-3">
-              <span class="shrink-0 rounded-md border border-slate-200/90 bg-white px-2 py-0.5 font-mono text-[11px] font-medium tracking-tight text-slate-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                {{ taskDisplayId(activeTask) }}
-              </span>
-              <div class="flex shrink-0 items-center gap-0.5 rounded-lg border border-slate-200/90 bg-white p-0.5 dark:border-slate-600 dark:bg-slate-800">
-                <button
-                  type="button"
-                  class="grid h-7 w-7 place-items-center rounded-md text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-slate-200"
-                  :title="fullscreen ? 'Thu nhỏ' : 'Toàn màn hình'"
-                  @click="toggleFullscreen"
-                >
-                  <AppIcon
-                    :name="fullscreen ? 'chevron-right' : 'template'"
-                    :size="15"
-                  />
-                </button>
-                <button
-                  type="button"
-                  class="grid h-7 w-7 place-items-center rounded-md text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-slate-200"
-                  title="Đóng"
-                  @click="emit('close')"
-                >
-                  <AppIcon
-                    name="close"
-                    :size="16"
-                  />
-                </button>
-              </div>
-            </div>
-
-            <h1 class="mt-2.5 font-display text-[15px] font-semibold leading-snug tracking-tight text-slate-900 dark:text-slate-50">
-              {{ activeTask.title }}
-            </h1>
-
-            <div
-              v-if="activeTask.status?.label || activeTask.priority?.label || activeTask.phase?.label"
-              class="mt-2 flex flex-wrap items-center gap-1.5"
-            >
-              <span
-                v-if="activeTask.status?.label"
-                class="inline-flex items-center gap-1 rounded-md border border-slate-200/90 bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300"
-              >
-                <span
-                  class="h-1.5 w-1.5 shrink-0 rounded-full"
-                  :class="metaDotClass[activeTask.status.color] || metaDotClass.slate"
-                />
-                {{ activeTask.status.label }}
-              </span>
-              <span
-                v-if="activeTask.priority?.label"
-                class="inline-flex items-center gap-1 rounded-md border border-slate-200/90 bg-white px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300"
-              >
-                <span
-                  class="h-1.5 w-1.5 shrink-0 rounded-full"
-                  :class="metaDotClass[activeTask.priority.color] || metaDotClass.slate"
-                />
-                {{ activeTask.priority.label }}
-              </span>
-              <span
-                v-if="activeTask.phase?.label"
-                class="inline-flex items-center gap-1 rounded-md border border-slate-200/90 bg-white px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300"
-              >
-                <span
-                  class="h-1.5 w-1.5 shrink-0 rounded-full"
-                  :class="metaDotClass.violet"
-                />
-                {{ activeTask.phase.label }}
-              </span>
-            </div>
-
-            <div
-              v-if="ws.sprintLine || ws.epicLabel || scheduleLine"
-              class="mt-2.5 space-y-1 rounded-lg border border-slate-200/80 bg-white px-2.5 py-2 dark:border-slate-700 dark:bg-slate-900/60"
-            >
-              <p
-                v-if="ws.sprintLine"
-                class="flex items-start gap-1.5 text-[11px] leading-relaxed text-slate-600 dark:text-slate-400"
-              >
-                <AppIcon
-                  name="sprint"
-                  :size="12"
-                  class="mt-0.5 shrink-0 text-violet-500"
-                />
-                <span class="min-w-0 break-words">{{ ws.sprintLine }}</span>
-              </p>
-              <p
-                v-if="ws.epicLabel"
-                class="flex items-start gap-1.5 text-[11px] leading-relaxed text-slate-600 dark:text-slate-400"
-              >
-                <AppIcon
-                  name="flag"
-                  :size="12"
-                  class="mt-0.5 shrink-0 text-slate-400"
-                />
-                <span class="min-w-0 break-words">{{ ws.epicLabel }}</span>
-              </p>
-              <p
-                v-if="scheduleLine"
-                class="flex items-center gap-1.5 text-[11px] tabular-nums text-slate-500 dark:text-slate-400"
-              >
-                <AppIcon
-                  name="calendar"
-                  :size="12"
-                  class="shrink-0 text-slate-400"
-                />
-                {{ scheduleLine }}
-              </p>
-            </div>
-
-            <p
-              v-if="activeTask.parent?.id"
-              class="mt-2 text-[11px] text-slate-500"
-            >
-              Thuộc
-              <button
-                type="button"
-                class="font-medium text-brand hover:underline"
-                @click="openSubtask(activeTask.parent)"
-              >
-                #{{ activeTask.parent.id }} {{ activeTask.parent.title }}
-              </button>
-            </p>
-
-            <div class="mt-3 flex flex-wrap items-center gap-1 border-t border-slate-200/80 pt-2.5 dark:border-slate-700">
-              <button
-                v-if="canEdit"
-                type="button"
-                class="inline-flex items-center gap-1 rounded-md bg-brand px-2.5 py-1 text-xs font-semibold text-white hover:bg-brand/90"
-                @click="emit('edit', activeTask)"
-              >
-                <AppIcon
-                  name="edit"
-                  :size="13"
-                /> Sửa
-              </button>
-
-              <button
-                v-if="canDelete"
-                type="button"
-                class="inline-flex items-center gap-1 rounded-md border border-rose-200 px-2 py-1 text-xs font-medium text-rose-600 hover:bg-rose-50 dark:border-rose-900 dark:text-rose-400 dark:hover:bg-rose-950/40"
-                title="Xoá công việc"
-                @click="removeTask"
-              >
-                <AppIcon
-                  name="delete"
-                  :size="13"
-                />
-                Xoá
-              </button>
-
-              <span
-                v-if="completionBadge"
-                class="inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold"
-                :class="getTaskSlaToneClass(completionBadge.tone)"
-                :title="completionBadge.detail"
-              >
-                {{ completionBadge.label }}
-              </span>
-
-              <div
-                v-if="canChangeStatus"
-                class="relative"
-              >
-                <button
-                  type="button"
-                  class="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
-                  title="Đổi trạng thái"
-                  @click="showStatusMenu = !showStatusMenu"
-                >
-                  <AppIcon
-                    name="task"
-                    :size="13"
-                  />
-                  <span class="max-w-[5rem] truncate">{{ activeTask.status?.label || 'Trạng thái' }}</span>
-                </button>
-                <div
-                  v-if="showStatusMenu"
-                  class="absolute left-0 top-full z-20 mt-1 min-w-[9rem] rounded-lg border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-900"
-                >
+          <header
+            class="shrink-0 border-b border-slate-200/80 bg-gradient-to-b from-slate-50/90 to-white dark:border-slate-800 dark:from-slate-900/50 dark:to-slate-950"
+            :class="['border-l-4', statusStripeBorder]"
+          >
+            <div class="px-4 pb-3.5 pt-3">
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <p class="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500">
+                    Chi tiết công việc
+                  </p>
+                  <p class="mt-0.5 font-mono text-xs font-semibold tracking-tight text-brand">
+                    {{ taskDisplayId(activeTask) }}
+                  </p>
+                </div>
+                <div class="flex shrink-0 items-center gap-0.5 rounded-lg border border-slate-200/90 bg-white/90 p-0.5 shadow-sm dark:border-slate-600 dark:bg-slate-800/90">
                   <button
-                    v-for="o in statusOptionList"
-                    :key="o.value"
                     type="button"
-                    class="flex w-full px-3 py-1.5 text-left text-xs hover:bg-slate-50 dark:hover:bg-slate-800"
-                    :class="activeTask.status?.value === o.value ? 'font-semibold text-brand' : 'text-slate-600'"
-                    @click="onStatusPick(o.value)"
+                    class="grid h-8 w-8 place-items-center rounded-md text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-slate-200"
+                    :title="fullscreen ? 'Thu nhỏ panel' : 'Mở rộng toàn màn hình'"
+                    @click="toggleFullscreen"
                   >
-                    {{ o.label }}
+                    <AppIcon
+                      :name="fullscreen ? 'collapse-left' : 'expand-left'"
+                      :size="16"
+                    />
+                  </button>
+                  <button
+                    type="button"
+                    class="grid h-8 w-8 place-items-center rounded-md text-slate-500 transition hover:bg-slate-100 hover:text-rose-600 dark:hover:bg-slate-700 dark:hover:text-rose-400"
+                    title="Đóng"
+                    @click="emit('close')"
+                  >
+                    <AppIcon
+                      name="close"
+                      :size="16"
+                    />
                   </button>
                 </div>
               </div>
 
+              <h1 class="mt-3 font-display text-base font-semibold leading-snug tracking-tight text-slate-900 dark:text-slate-50">
+                {{ activeTask.title }}
+              </h1>
+
               <div
-                v-if="canEdit"
-                class="relative"
+                v-if="progressPct > 0 && progressPct < 100"
+                class="mt-2.5"
               >
-                <button
-                  type="button"
-                  class="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800"
-                  title="Giao việc"
-                  @click="showAssignMenu = !showAssignMenu"
+                <div class="mb-1 flex items-center justify-between text-[10px] font-medium text-slate-500">
+                  <span>Tiến độ</span>
+                  <span class="tabular-nums">{{ progressPct }}%</span>
+                </div>
+                <ProgressBar
+                  :value="progressPct"
+                  :show-label="false"
+                  height="h-1.5"
+                />
+              </div>
+
+              <div
+                v-if="activeTask.status?.label || activeTask.priority?.label || activeTask.phase?.label || completionBadge || ws.isOverdue"
+                class="mt-3 flex flex-wrap items-center gap-2"
+              >
+                <Badge
+                  v-if="activeTask.status?.label"
+                  :label="activeTask.status.label"
+                  :color="activeTask.status.color || 'slate'"
+                />
+                <Badge
+                  v-if="activeTask.priority?.label"
+                  :label="activeTask.priority.label"
+                  :color="activeTask.priority.color || 'sky'"
+                />
+                <Badge
+                  v-if="activeTask.phase?.label"
+                  :label="activeTask.phase.label"
+                  color="violet"
+                />
+                <span
+                  v-if="completionBadge"
+                  class="inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-semibold"
+                  :class="getTaskSlaToneClass(completionBadge.tone)"
+                  :title="completionBadge.detail"
+                >
+                  {{ completionBadge.label }}
+                </span>
+                <span
+                  v-if="ws.isOverdue"
+                  class="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2.5 py-0.5 text-[10px] font-semibold text-rose-700 dark:bg-rose-950/50 dark:text-rose-300"
+                >
+                  <AppIcon
+                    name="alert"
+                    :size="11"
+                  />
+                  Quá hạn
+                </span>
+              </div>
+
+              <dl
+                v-if="showContextCard"
+                class="mt-3 divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm dark:divide-slate-800 dark:border-slate-700 dark:bg-slate-900/40"
+              >
+                <div
+                  v-if="ws.sprintLine"
+                  class="grid grid-cols-[4.5rem_1fr] items-start gap-x-2 px-3 py-2.5"
+                >
+                  <dt class="pt-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                    Sprint
+                  </dt>
+                  <dd class="flex min-w-0 items-start gap-1.5 text-xs font-medium leading-snug text-slate-700 dark:text-slate-200">
+                    <AppIcon
+                      name="sprint"
+                      :size="13"
+                      class="mt-0.5 shrink-0 text-violet-500"
+                    />
+                    <span class="min-w-0 break-words">{{ ws.sprintLine }}</span>
+                  </dd>
+                </div>
+                <div
+                  v-if="epicDisplay"
+                  class="grid grid-cols-[4.5rem_1fr] items-start gap-x-2 px-3 py-2.5"
+                >
+                  <dt class="pt-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                    Epic
+                  </dt>
+                  <dd class="flex min-w-0 items-start gap-1.5 text-xs leading-snug text-slate-600 dark:text-slate-300">
+                    <AppIcon
+                      name="flag"
+                      :size="13"
+                      class="mt-0.5 shrink-0 text-amber-500"
+                    />
+                    <span class="min-w-0 break-words">{{ epicDisplay }}</span>
+                  </dd>
+                </div>
+                <div
+                  v-if="scheduleLine"
+                  class="grid grid-cols-[4.5rem_1fr] items-center gap-x-2 px-3 py-2.5"
+                >
+                  <dt class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                    Lịch
+                  </dt>
+                  <dd
+                    class="flex items-center gap-1.5 text-xs tabular-nums"
+                    :class="ws.isOverdue ? 'font-semibold text-rose-600 dark:text-rose-400' : 'text-slate-600 dark:text-slate-300'"
+                  >
+                    <AppIcon
+                      name="calendar"
+                      :size="13"
+                      class="shrink-0 text-slate-400"
+                    />
+                    {{ scheduleLine }}
+                  </dd>
+                </div>
+              </dl>
+
+              <div
+                v-if="assigneeSummary || timeSummary"
+                class="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-600 dark:text-slate-400"
+              >
+                <p
+                  v-if="assigneeSummary"
+                  class="flex min-w-0 items-center gap-1.5"
                 >
                   <AppIcon
                     name="people"
-                    :size="13"
+                    :size="12"
+                    class="shrink-0 text-slate-400"
                   />
-                </button>
-                <div
-                  v-if="showAssignMenu"
-                  class="absolute left-0 top-full z-20 mt-1 min-w-[14rem] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900"
+                  <span class="font-medium text-slate-500 dark:text-slate-500">Người làm:</span>
+                  <span class="min-w-0 truncate font-medium text-slate-700 dark:text-slate-200">{{ assigneeSummary }}</span>
+                </p>
+                <p
+                  v-if="timeSummary"
+                  class="flex items-center gap-1.5 tabular-nums"
                 >
-                  <div class="border-b border-slate-100 p-1.5 dark:border-slate-700">
-                    <input
-                      ref="assignSearchRef"
-                      v-model="assignMenuSearch"
-                      type="text"
-                      class="input w-full py-1 text-xs"
-                      placeholder="Tìm theo tên…"
-                    >
-                  </div>
-                  <div class="max-h-44 overflow-y-auto py-1">
-                    <button
-                      type="button"
-                      class="w-full px-3 py-1.5 text-left text-xs text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800"
-                      @click="onAssignPick(null)"
-                    >
-                      — Chưa gán —
-                    </button>
-                    <button
-                      v-for="e in filteredAssignees"
-                      :key="e.id"
-                      type="button"
-                      class="w-full px-3 py-1.5 text-left text-xs hover:bg-slate-50 dark:hover:bg-slate-800"
-                      @click="onAssignPick(e.id)"
-                    >
-                      {{ e.name }}
-                    </button>
-                    <p
-                      v-if="!filteredAssignees.length"
-                      class="px-3 py-2 text-center text-xs text-slate-400"
-                    >
-                      Không tìm thấy.
-                    </p>
-                  </div>
-                </div>
+                  <AppIcon
+                    name="worklog"
+                    :size="12"
+                    class="shrink-0 text-slate-400"
+                  />
+                  {{ timeSummary }}
+                </p>
               </div>
 
-              <button
-                type="button"
-                class="grid h-7 w-7 place-items-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800"
-                title="Bình luận"
-                @click="goComment"
+              <p
+                v-if="activeTask.parent?.id"
+                class="mt-2 rounded-lg border border-dashed border-slate-200/90 bg-slate-50/60 px-2.5 py-1.5 text-[11px] text-slate-600 dark:border-slate-700 dark:bg-slate-900/30 dark:text-slate-400"
               >
-                <AppIcon
-                  name="comment"
-                  :size="14"
-                />
-              </button>
-              <button
-                type="button"
-                class="grid h-7 w-7 place-items-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-600 dark:hover:bg-slate-800"
-                title="Sao chép link"
-                @click="copyLink"
-              >
-                <AppIcon
-                  name="copy"
-                  :size="14"
-                />
-              </button>
+                Công việc con của
+                <button
+                  type="button"
+                  class="font-semibold text-brand hover:underline"
+                  @click="openSubtask(activeTask.parent)"
+                >
+                  #{{ activeTask.parent.id }} · {{ activeTask.parent.title }}
+                </button>
+              </p>
+
+              <div class="mt-3.5 flex flex-wrap items-center gap-2 border-t border-slate-200/80 pt-3 dark:border-slate-700">
+                <div class="flex flex-wrap items-center gap-1.5">
+                  <button
+                    v-if="canEdit"
+                    type="button"
+                    class="inline-flex h-8 items-center gap-1.5 rounded-lg bg-brand px-3 text-xs font-semibold text-white shadow-sm hover:bg-brand/90"
+                    @click="emit('edit', activeTask)"
+                  >
+                    <AppIcon
+                      name="edit"
+                      :size="13"
+                    />
+                    Sửa
+                  </button>
+
+                  <button
+                    v-if="canDelete"
+                    type="button"
+                    class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-rose-200 bg-white px-2.5 text-xs font-medium text-rose-600 hover:bg-rose-50 dark:border-rose-900 dark:bg-slate-900 dark:text-rose-400 dark:hover:bg-rose-950/40"
+                    title="Xoá công việc"
+                    @click="removeTask"
+                  >
+                    <AppIcon
+                      name="delete"
+                      :size="13"
+                    />
+                    Xoá
+                  </button>
+
+                  <div
+                    v-if="canChangeStatus"
+                    class="relative"
+                  >
+                    <button
+                      type="button"
+                      class="inline-flex h-8 max-w-[10rem] items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                      title="Đổi trạng thái"
+                      @click="showStatusMenu = !showStatusMenu"
+                    >
+                      <AppIcon
+                        name="task"
+                        :size="13"
+                      />
+                      <span class="truncate">{{ activeTask.status?.label || 'Trạng thái' }}</span>
+                      <AppIcon
+                        name="chevron"
+                        :size="12"
+                        class="shrink-0 opacity-60"
+                      />
+                    </button>
+                    <div
+                      v-if="showStatusMenu"
+                      class="absolute left-0 top-full z-20 mt-1 min-w-[9rem] rounded-lg border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-900"
+                    >
+                      <button
+                        v-for="o in statusOptionList"
+                        :key="o.value"
+                        type="button"
+                        class="flex w-full px-3 py-1.5 text-left text-xs hover:bg-slate-50 dark:hover:bg-slate-800"
+                        :class="activeTask.status?.value === o.value ? 'font-semibold text-brand' : 'text-slate-600'"
+                        @click="onStatusPick(o.value)"
+                      >
+                        {{ o.label }}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div
+                    v-if="canEdit"
+                    class="relative"
+                  >
+                    <button
+                      type="button"
+                      class="inline-flex h-8 max-w-[11rem] items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                      title="Giao việc"
+                      @click="showAssignMenu = !showAssignMenu"
+                    >
+                      <AppIcon
+                        name="people"
+                        :size="13"
+                      />
+                      <span class="truncate">{{ assigneeSummary || 'Giao việc' }}</span>
+                    </button>
+                    <div
+                      v-if="showAssignMenu"
+                      class="absolute left-0 top-full z-20 mt-1 min-w-[14rem] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900"
+                    >
+                      <div class="border-b border-slate-100 p-1.5 dark:border-slate-700">
+                        <input
+                          ref="assignSearchRef"
+                          v-model="assignMenuSearch"
+                          type="text"
+                          class="input w-full py-1 text-xs"
+                          placeholder="Tìm theo tên…"
+                        >
+                      </div>
+                      <div class="max-h-44 overflow-y-auto py-1">
+                        <button
+                          type="button"
+                          class="w-full px-3 py-1.5 text-left text-xs text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800"
+                          @click="onAssignPick(null)"
+                        >
+                          — Chưa gán —
+                        </button>
+                        <button
+                          v-for="e in filteredAssignees"
+                          :key="e.id"
+                          type="button"
+                          class="w-full px-3 py-1.5 text-left text-xs hover:bg-slate-50 dark:hover:bg-slate-800"
+                          @click="onAssignPick(e.id)"
+                        >
+                          {{ e.name }}
+                        </button>
+                        <p
+                          v-if="!filteredAssignees.length"
+                          class="px-3 py-2 text-center text-xs text-slate-400"
+                        >
+                          Không tìm thấy.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="ml-auto flex shrink-0 items-center gap-1">
+                  <button
+                    type="button"
+                    class="grid h-8 w-8 place-items-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:hover:bg-slate-800"
+                    title="Bình luận"
+                    @click="goComment"
+                  >
+                    <AppIcon
+                      name="comment"
+                      :size="14"
+                    />
+                  </button>
+                  <button
+                    type="button"
+                    class="grid h-8 w-8 place-items-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:hover:bg-slate-800"
+                    title="Sao chép link"
+                    @click="copyLink"
+                  >
+                    <AppIcon
+                      name="copy"
+                      :size="14"
+                    />
+                  </button>
+                </div>
+              </div>
             </div>
           </header>
 

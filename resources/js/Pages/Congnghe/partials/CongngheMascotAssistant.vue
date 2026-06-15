@@ -205,7 +205,7 @@ function onHideClick() {
     <aside
       v-else
       ref="asideRef"
-      class="cn-assistant fixed z-[70] flex flex-row items-stretch"
+      class="cn-assistant fixed z-[70] flex flex-row items-stretch text-white"
       :class="{ 'cn-assistant--dragging': isDragging }"
       :style="dockStyle"
       aria-live="polite"
@@ -220,7 +220,7 @@ function onHideClick() {
         >
           <div
             v-if="panelOpen && !isDragging"
-            class="cn-assistant-panel relative mb-2 w-full overflow-visible rounded-2xl border border-white/12 bg-[#0a0b14]/95 shadow-[0_20px_50px_-16px_rgba(154,0,54,0.5)] backdrop-blur-xl"
+            class="cn-assistant-panel relative mb-2 w-full overflow-visible rounded-2xl border border-white/12 bg-[#0a0b14]/95 text-white shadow-[0_20px_50px_-16px_rgba(154,0,54,0.5)] backdrop-blur-xl"
           >
             <div class="overflow-hidden rounded-t-2xl">
               <div class="flex items-center gap-2 border-b border-white/8 bg-gradient-to-r from-brand/15 via-transparent to-cyan-500/10 px-3 py-2.5">
@@ -265,7 +265,7 @@ function onHideClick() {
             <div class="relative z-[1] px-3.5 py-3">
               <p
                 :key="`${activeId}-${tipIndex}`"
-                class="text-[13px] leading-relaxed text-white/88"
+                class="text-[13px] leading-relaxed text-white/90"
                 :class="prefersReducedMotionNow() ? '' : 'animate-cn-rise'"
               >
                 {{ currentLine }}

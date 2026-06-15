@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue';
-import { Head } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import {
     Chart as ChartJS,
     ArcElement, CategoryScale, LinearScale,
@@ -11,6 +11,12 @@ import { Doughnut, Bar, Line } from 'vue-chartjs';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import AppIcon from '@/Components/AppIcon.vue';
+import KpiSummaryStrip from '@/shared/ui/KpiSummaryStrip.vue';
+import Avatar from '@/shared/ui/Avatar.vue';
+import EmptyState from '@/shared/ui/EmptyState.vue';
+import ActivityFeed from '@/modules/project/components/Dashboard/ActivityFeed.vue';
+import DailyPulse from './partials/DailyPulse.vue';
+import ProjectProgressCard from './partials/ProjectProgressCard.vue';
 
 ChartJS.register(
     ArcElement, CategoryScale, LinearScale,
@@ -19,13 +25,17 @@ ChartJS.register(
 );
 
 const props = defineProps({
-    kpi:               { type: Object, default: () => ({}) },
-    projectsByStatus:  { type: Array,  default: () => [] },
-    tasksByStatus:     { type: Array,  default: () => [] },
-    blockersBySeverity:{ type: Array,  default: () => [] },
-    completionTrend:   { type: Array,  default: () => [] },
-    topProjects:       { type: Array,  default: () => [] },
-    tasksByPriority:   { type: Array,  default: () => [] },
+    kpiCards:           { type: Array,  default: () => [] },
+    headline:           { type: Object, default: () => ({}) },
+    dailyPulse:         { type: Object, default: () => ({}) },
+    activeProjects:     { type: Array,  default: () => [] },
+    dueToday:           { type: Array,  default: () => [] },
+    overdueTasks:       { type: Array,  default: () => [] },
+    activityFeed:       { type: Array,  default: () => [] },
+    projectsByStatus:   { type: Array,  default: () => [] },
+    tasksByStatus:      { type: Array,  default: () => [] },
+    blockersBySeverity: { type: Array,  default: () => [] },
+    completionTrend:    { type: Array,  default: () => [] },
 });
 
 // ---- Helpers ----------------------------------------------------------
@@ -37,63 +47,42 @@ const colorMap = {
     rose:    '#f43f5e',
     amber:   '#f59e0b',
 };
-function tailwindToHex(color) {
-    return colorMap[color] ?? '#94a3b8';
+const tailwindToHex = (color) => colorMap[color] ?? '#94a3b8';
+
+const today = new Date().toLocaleDateString('vi-VN', {
+    weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric',
+});
+
+const completionRate = computed(() => props.headline.completionRate ?? 0);
+
+// ---- Attention list (overdue first, then due today) ------------------
+const attentionTasks = computed(() => [
+    ...props.overdueTasks.map((t) => ({ ...t, _overdue: true })),
+    ...props.dueToday.map((t) => ({ ...t, _overdue: false })),
+].slice(0, 10));
+
+function fmtDate(iso) {
+    if (!iso) return '—';
+    const [, m, d] = iso.split('-');
+    return `${d}/${m}`;
 }
 
-// ---- KPI cards --------------------------------------------------------
-const kpiCards = computed(() => [
-    {
-        label: 'Dự án đang chạy',
-        value: props.kpi.activeProjects ?? 0,
-        sub: `/ ${props.kpi.totalProjects ?? 0} tổng`,
-        icon: 'projects',
-        color: 'text-brand',
-        bg: 'bg-rose-50',
-    },
-    {
-        label: 'Tổng công việc',
-        value: props.kpi.totalTasks ?? 0,
-        sub: `${props.kpi.doneTasks ?? 0} hoàn thành`,
-        icon: 'task',
-        color: 'text-sky-600',
-        bg: 'bg-sky-50',
-    },
-    {
-        label: 'Vướng mắc đang mở',
-        value: props.kpi.openBlockers ?? 0,
-        sub: 'Cần xử lý',
-        icon: 'blockers',
-        color: 'text-amber-600',
-        bg: 'bg-amber-50',
-    },
-    {
-        label: 'Thành viên hoạt động',
-        value: props.kpi.totalMembers ?? 0,
-        sub: 'Nhân sự đang làm việc',
-        icon: 'people',
-        color: 'text-emerald-600',
-        bg: 'bg-emerald-50',
-    },
-    {
-        label: 'Công việc quá hạn',
-        value: props.kpi.overdueTasks ?? 0,
-        sub: 'Chưa hoàn thành, đã trễ',
-        icon: 'clock',
-        color: 'text-rose-600',
-        bg: 'bg-rose-50',
-    },
-]);
-
-// ---- Project status doughnut -----------------------------------------
+// ---- Charts -----------------------------------------------------------
 const projectStatusChart = computed(() => ({
     labels: props.projectsByStatus.map(r => r.label),
     datasets: [{
         data: props.projectsByStatus.map(r => r.total),
         backgroundColor: props.projectsByStatus.map(r => tailwindToHex(r.color)),
-        borderWidth: 2,
-        borderColor: '#fff',
-        hoverOffset: 6,
+        borderWidth: 2, borderColor: '#fff', hoverOffset: 6,
+    }],
+}));
+
+const blockerSeverityChart = computed(() => ({
+    labels: props.blockersBySeverity.map(r => r.label),
+    datasets: [{
+        data: props.blockersBySeverity.map(r => r.total),
+        backgroundColor: props.blockersBySeverity.map(r => tailwindToHex(r.color)),
+        borderWidth: 2, borderColor: '#fff', hoverOffset: 6,
     }],
 }));
 
@@ -107,7 +96,6 @@ const doughnutOptions = {
     },
 };
 
-// ---- Task status bar -------------------------------------------------
 const taskStatusChart = computed(() => {
     const order = ['todo', 'in_progress', 'in_review', 'done', 'blocked'];
     const sorted = [...props.tasksByStatus].sort(
@@ -119,13 +107,12 @@ const taskStatusChart = computed(() => {
             label: 'Công việc',
             data: sorted.map(r => r.total),
             backgroundColor: sorted.map(r => tailwindToHex(r.color)),
-            borderRadius: 6,
-            borderSkipped: false,
+            borderRadius: 6, borderSkipped: false,
         }],
     };
 });
 
-const barOptions = (yTitle) => ({
+const barOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
@@ -134,23 +121,10 @@ const barOptions = (yTitle) => ({
     },
     scales: {
         x: { grid: { display: false } },
-        y: { beginAtZero: true, ticks: { precision: 0 }, title: { display: !!yTitle, text: yTitle } },
+        y: { beginAtZero: true, ticks: { precision: 0 } },
     },
-});
+};
 
-// ---- Blocker severity doughnut ---------------------------------------
-const blockerSeverityChart = computed(() => ({
-    labels: props.blockersBySeverity.map(r => r.label),
-    datasets: [{
-        data: props.blockersBySeverity.map(r => r.total),
-        backgroundColor: props.blockersBySeverity.map(r => tailwindToHex(r.color)),
-        borderWidth: 2,
-        borderColor: '#fff',
-        hoverOffset: 6,
-    }],
-}));
-
-// ---- Task completion trend line --------------------------------------
 const trendChart = computed(() => ({
     labels: props.completionTrend.map(r => r.label),
     datasets: [{
@@ -158,11 +132,8 @@ const trendChart = computed(() => ({
         data: props.completionTrend.map(r => r.total),
         borderColor: '#9A0036',
         backgroundColor: 'rgba(154,0,54,0.08)',
-        tension: 0.4,
-        fill: true,
-        pointBackgroundColor: '#9A0036',
-        pointRadius: 3,
-        pointHoverRadius: 5,
+        tension: 0.4, fill: true,
+        pointBackgroundColor: '#9A0036', pointRadius: 2, pointHoverRadius: 5,
     }],
 }));
 
@@ -171,38 +142,13 @@ const lineOptions = {
     maintainAspectRatio: false,
     plugins: {
         legend: { display: false },
-        tooltip: { callbacks: { label: (ctx) => ` ${ctx.parsed.y} task hoàn thành` } },
+        tooltip: { callbacks: { label: (ctx) => ` ${ctx.parsed.y} công việc hoàn thành` } },
     },
     scales: {
         x: { grid: { display: false }, ticks: { maxTicksLimit: 10 } },
         y: { beginAtZero: true, ticks: { precision: 0 } },
     },
 };
-
-// ---- Task priority bar -----------------------------------------------
-const priorityChart = computed(() => {
-    const order = ['low', 'medium', 'high', 'urgent'];
-    const sorted = [...props.tasksByPriority].sort(
-        (a, b) => order.indexOf(a.priority) - order.indexOf(b.priority),
-    );
-    return {
-        labels: sorted.map(r => r.label),
-        datasets: [{
-            label: 'Công việc',
-            data: sorted.map(r => r.total),
-            backgroundColor: sorted.map(r => tailwindToHex(r.color)),
-            borderRadius: 6,
-            borderSkipped: false,
-        }],
-    };
-});
-
-// ---- Completion rate helper -----------------------------------------
-const completionRate = computed(() => {
-    const total = props.kpi.totalTasks ?? 0;
-    const done  = props.kpi.doneTasks  ?? 0;
-    return total > 0 ? Math.round(done / total * 100) : 0;
-});
 </script>
 
 <template>
@@ -212,67 +158,111 @@ const completionRate = computed(() => {
     <template #header>
       <PageHeader
         title="Bảng điều khiển"
-        subtitle="Tổng quan hiệu suất & tiến độ hệ thống"
+        subtitle="Trung tâm điều hành — dự án, tiến độ & nhịp công việc hằng ngày"
         icon="overview"
         icon-color="brand"
       />
     </template>
 
-    <!-- KPI cards -->
-    <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-4">
-      <div
-        v-for="card in kpiCards"
-        :key="card.label"
-        class="card p-4 flex flex-col gap-2"
-      >
-        <div class="flex items-center justify-between">
-          <span class="text-xs text-slate-500 font-medium leading-tight">{{ card.label }}</span>
-          <span :class="[card.bg, 'rounded-lg p-1.5']">
-            <AppIcon
-              :name="card.icon"
-              :size="15"
-              :class="card.color"
-            />
-          </span>
-        </div>
-        <p :class="['font-display text-2xl font-bold', card.color]">
-          {{ card.value }}
-        </p>
-        <p class="text-xs text-slate-400">
-          {{ card.sub }}
-        </p>
-      </div>
-    </div>
+    <!-- 1. KPI strip -->
+    <KpiSummaryStrip
+      :cards="kpiCards"
+      heading="Tổng quan hệ thống"
+      eyebrow="Chỉ số chính"
+      aria-label="Chỉ số tổng quan hệ thống"
+      grid-class="grid-cols-2 sm:grid-cols-3 xl:grid-cols-6"
+    />
 
-    <!-- Completion rate banner -->
-    <div class="card p-4 mt-4 flex items-center gap-4">
+    <!-- Completion banner -->
+    <div class="card mb-4 flex items-center gap-4 p-4">
       <div class="flex-1">
-        <div class="flex items-center justify-between mb-1.5">
+        <div class="mb-1.5 flex items-center justify-between">
           <span class="text-sm font-medium text-slate-700">Tiến độ hoàn thành toàn hệ thống</span>
           <span class="text-sm font-bold text-brand">{{ completionRate }}%</span>
         </div>
-        <div class="h-2.5 rounded-full bg-slate-100 overflow-hidden">
+        <div class="h-2.5 overflow-hidden rounded-full bg-slate-100">
           <div
             class="h-full rounded-full bg-brand transition-all duration-700"
             :style="{ width: completionRate + '%' }"
           />
         </div>
       </div>
-      <div class="text-right shrink-0">
-        <p class="text-xl font-display font-bold text-brand">
-          {{ kpi.doneTasks }}
+      <div class="shrink-0 text-right">
+        <p class="font-display text-xl font-bold text-brand">
+          {{ headline.doneTasks ?? 0 }}
         </p>
         <p class="text-xs text-slate-400">
-          / {{ kpi.totalTasks }} task
+          / {{ headline.totalTasks ?? 0 }} công việc
         </p>
       </div>
     </div>
 
-    <!-- Row 1: Project status + Task status -->
-    <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-      <!-- Project status donut -->
+    <!-- 2. Daily pulse -->
+    <DailyPulse
+      :pulse="dailyPulse"
+      :today="today"
+      class="mb-4"
+    />
+
+    <!-- 3. Active projects -->
+    <section class="mb-4">
+      <div class="mb-3 flex items-center justify-between">
+        <h2 class="flex items-center gap-2 font-display font-semibold text-slate-800">
+          <AppIcon
+            name="projects"
+            :size="17"
+            class="text-brand"
+          />
+          Dự án đang triển khai
+        </h2>
+        <Link
+          href="/projects"
+          class="text-xs font-medium text-brand hover:underline"
+        >
+          Xem tất cả →
+        </Link>
+      </div>
+
+      <div
+        v-if="activeProjects.length"
+        class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3"
+      >
+        <ProjectProgressCard
+          v-for="p in activeProjects"
+          :key="p.id"
+          :project="p"
+        />
+      </div>
+      <EmptyState
+        v-else
+        icon="projects"
+        title="Chưa có dự án đang triển khai"
+        description="Các dự án ở trạng thái 'Đang triển khai' sẽ hiển thị tại đây."
+      />
+    </section>
+
+    <!-- 4. Charts -->
+    <div class="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div class="card p-5 lg:col-span-2">
+        <h3 class="mb-4 flex items-center gap-2 font-display font-semibold text-slate-800">
+          <AppIcon
+            name="performance"
+            :size="16"
+            class="text-brand"
+          />
+          Xu hướng hoàn thành công việc (30 ngày)
+        </h3>
+        <div class="h-56">
+          <Line
+            v-if="completionTrend.length"
+            :data="trendChart"
+            :options="lineOptions"
+          />
+        </div>
+      </div>
+
       <div class="card p-5">
-        <h3 class="font-display font-semibold text-slate-800 mb-4 flex items-center gap-2">
+        <h3 class="mb-4 flex items-center gap-2 font-display font-semibold text-slate-800">
           <AppIcon
             name="projects"
             :size="16"
@@ -288,32 +278,7 @@ const completionRate = computed(() => {
           />
           <div
             v-else
-            class="h-full flex items-center justify-center text-slate-400 text-sm"
-          >
-            Chưa có dữ liệu
-          </div>
-        </div>
-      </div>
-
-      <!-- Task status bar -->
-      <div class="card p-5">
-        <h3 class="font-display font-semibold text-slate-800 mb-4 flex items-center gap-2">
-          <AppIcon
-            name="task"
-            :size="16"
-            class="text-sky-600"
-          />
-          Công việc theo trạng thái
-        </h3>
-        <div class="h-56">
-          <Bar
-            v-if="tasksByStatus.length"
-            :data="taskStatusChart"
-            :options="barOptions()"
-          />
-          <div
-            v-else
-            class="h-full flex items-center justify-center text-slate-400 text-sm"
+            class="flex h-full items-center justify-center text-sm text-slate-400"
           >
             Chưa có dữ liệu
           </div>
@@ -321,40 +286,71 @@ const completionRate = computed(() => {
       </div>
     </div>
 
-    <!-- Row 2: Completion trend + Blocker severity -->
-    <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-      <!-- Completion trend line (2/3 width) -->
-      <div class="card p-5 md:col-span-2">
-        <h3 class="font-display font-semibold text-slate-800 mb-4 flex items-center gap-2">
+    <!-- 5. Bottom: attention list · activity feed · blocker severity -->
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <!-- Attention list -->
+      <div class="card p-5">
+        <h3 class="mb-4 flex items-center gap-2 font-display font-semibold text-slate-800">
           <AppIcon
-            name="overview"
+            name="clock"
             :size="16"
-            class="text-brand"
+            class="text-amber-600"
           />
-          Xu hướng hoàn thành công việc (30 ngày)
+          Công việc cần chú ý
         </h3>
-        <div class="h-56">
-          <Line
-            v-if="completionTrend.length"
-            :data="trendChart"
-            :options="lineOptions"
-          />
-          <div
-            v-else
-            class="h-full flex items-center justify-center text-slate-400 text-sm"
+        <ul
+          v-if="attentionTasks.length"
+          class="space-y-2.5"
+        >
+          <li
+            v-for="t in attentionTasks"
+            :key="t.id"
+            class="flex items-center gap-2.5"
           >
-            Chưa có dữ liệu
-          </div>
-        </div>
+            <span
+              class="h-2 w-2 shrink-0 rounded-full"
+              :style="{ backgroundColor: t.project?.color || '#94a3b8' }"
+            />
+            <div class="min-w-0 flex-1">
+              <p class="truncate text-sm text-slate-700">
+                {{ t.title }}
+              </p>
+              <p class="truncate text-[11px] text-slate-400">
+                {{ t.project?.name || 'Không thuộc dự án' }}
+              </p>
+            </div>
+            <span
+              class="shrink-0 text-[11px] font-semibold"
+              :class="t._overdue ? 'text-rose-600' : 'text-amber-600'"
+            >
+              {{ t._overdue ? 'Trễ ' : '' }}{{ fmtDate(t.dueDate) }}
+            </span>
+            <Avatar
+              v-if="t.assignee"
+              :name="t.assignee.name"
+              :src="t.assignee.avatar"
+              :size="24"
+            />
+          </li>
+        </ul>
+        <EmptyState
+          v-else
+          icon="check-circle"
+          title="Không có việc quá hạn"
+          description="Không có công việc nào quá hạn hay đến hạn hôm nay."
+        />
       </div>
 
-      <!-- Blocker severity donut -->
+      <!-- Activity feed -->
+      <ActivityFeed :activities="activityFeed" />
+
+      <!-- Blocker severity -->
       <div class="card p-5">
-        <h3 class="font-display font-semibold text-slate-800 mb-4 flex items-center gap-2">
+        <h3 class="mb-4 flex items-center gap-2 font-display font-semibold text-slate-800">
           <AppIcon
             name="blockers"
             :size="16"
-            class="text-amber-600"
+            class="text-rose-600"
           />
           Mức độ vướng mắc
         </h3>
@@ -366,83 +362,30 @@ const completionRate = computed(() => {
           />
           <div
             v-else
-            class="h-full flex items-center justify-center text-slate-400 text-sm"
+            class="flex h-full items-center justify-center text-sm text-slate-400"
           >
-            Không có vướng mắc
+            Không có vướng mắc đang mở
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Row 3: Task priority + Top projects -->
-    <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-      <!-- Task priority -->
-      <div class="card p-5">
-        <h3 class="font-display font-semibold text-slate-800 mb-4 flex items-center gap-2">
-          <AppIcon
-            name="flag"
-            :size="16"
-            class="text-violet-600"
-          />
-          Công việc theo độ ưu tiên
-        </h3>
-        <div class="h-52">
-          <Bar
-            v-if="tasksByPriority.length"
-            :data="priorityChart"
-            :options="barOptions()"
-          />
-          <div
-            v-else
-            class="h-full flex items-center justify-center text-slate-400 text-sm"
-          >
-            Chưa có dữ liệu
-          </div>
-        </div>
-      </div>
-
-      <!-- Top projects by progress -->
-      <div class="card p-5">
-        <h3 class="font-display font-semibold text-slate-800 mb-4 flex items-center gap-2">
-          <AppIcon
-            name="performance"
-            :size="16"
-            class="text-emerald-600"
-          />
-          Tiến độ dự án đang chạy
-        </h3>
-        <div class="space-y-3 overflow-y-auto max-h-52 pr-1">
-          <div
-            v-for="p in topProjects"
-            :key="p.id"
-            class="group"
-          >
-            <div class="flex items-center justify-between mb-1">
-              <a
-                :href="route('projects.show', p.id)"
-                class="text-sm font-medium text-slate-700 group-hover:text-brand truncate max-w-[70%]"
-              >
-                {{ p.name }}
-              </a>
-              <span class="text-xs font-bold text-slate-600 shrink-0">{{ p.progress }}%</span>
-            </div>
-            <div class="h-2 rounded-full bg-slate-100 overflow-hidden">
-              <div
-                class="h-full rounded-full transition-all duration-700"
-                :style="{
-                  width: p.progress + '%',
-                  backgroundColor: p.color || '#9A0036',
-                }"
-              />
-            </div>
-          </div>
-          <div
-            v-if="!topProjects.length"
-            class="text-sm text-slate-400 text-center py-6"
-          >
-            Chưa có dự án đang chạy
-          </div>
-        </div>
+    <!-- Task status bar (compact, full width) -->
+    <div class="card mt-4 p-5">
+      <h3 class="mb-4 flex items-center gap-2 font-display font-semibold text-slate-800">
+        <AppIcon
+          name="task"
+          :size="16"
+          class="text-sky-600"
+        />
+        Công việc theo trạng thái
+      </h3>
+      <div class="h-52">
+        <Bar
+          v-if="tasksByStatus.length"
+          :data="taskStatusChart"
+          :options="barOptions"
+        />
       </div>
     </div>
   </AppLayout>

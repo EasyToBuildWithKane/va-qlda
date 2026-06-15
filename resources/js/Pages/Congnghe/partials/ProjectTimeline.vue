@@ -273,7 +273,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
                 <GlassCard
                   tilt
                   :padded="false"
-                  class="cn-slide min-h-[22rem] overflow-hidden p-0 sm:min-h-[20rem]"
+                  class="cn-slide min-h-[22rem] p-0 sm:min-h-[20rem]"
                   :class="idx === slideIndex ? (slideDirection > 0 ? 'cn-slide--in-next' : 'cn-slide--in-prev') : ''"
                 >
                   <div class="grid gap-0 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
@@ -342,7 +342,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
                     </div>
 
                     <!-- Gallery & meta -->
-                    <div class="flex flex-col justify-between p-6 sm:p-8">
+                    <div class="flex min-w-0 flex-col justify-between p-6 sm:p-8">
                       <CongngheProjectGallery
                         :key="project.id"
                         :images="project.images"

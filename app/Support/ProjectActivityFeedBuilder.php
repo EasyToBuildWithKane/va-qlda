@@ -69,12 +69,30 @@ class ProjectActivityFeedBuilder
      */
     public function forProject(Project $project, int $limit = 80): array
     {
-        $events = collect();
+        return $this->build($project, $limit);
+    }
 
-        $events = $events->merge($this->projectActivities($project));
-        $events = $events->merge($this->taskActivities($project));
-        $events = $events->merge($this->blockerActivities($project));
-        $events = $events->merge($this->attachmentActivities($project));
+    /**
+     * System-wide feed: the latest activity across every project, used by the
+     * org dashboard. Scoped by recency only (no project filter).
+     *
+     * @return array<int, array{id: string, type: string, message: string, at: string}>
+     */
+    public function forSystem(int $limit = 60): array
+    {
+        return $this->build(null, $limit);
+    }
+
+    /**
+     * @return array<int, array{id: string, type: string, message: string, at: string}>
+     */
+    private function build(?Project $project, int $limit): array
+    {
+        $events = collect()
+            ->merge($this->projectActivities($project))
+            ->merge($this->taskActivities($project))
+            ->merge($this->blockerActivities($project))
+            ->merge($this->attachmentActivities($project));
 
         return $events
             ->sortByDesc(fn (array $e) => $e['at'])
@@ -83,87 +101,117 @@ class ProjectActivityFeedBuilder
             ->all();
     }
 
-    private function projectActivities(Project $project): Collection
+    private function projectActivities(?Project $project): Collection
     {
+        $system = $project === null;
+
         return ProjectActivity::query()
-            ->where('project_id', $project->id)
-            ->with('employee')
+            ->when($project, fn ($q) => $q->where('project_id', $project->id))
+            ->with(['employee', ...($system ? ['project:id,name'] : [])])
             ->latest()
-            ->limit(40)
+            ->limit($system ? 30 : 40)
             ->get()
             ->map(fn (ProjectActivity $a) => $this->row(
                 'project_'.$a->id,
                 self::PROJECT_TYPE_MAP[$a->event] ?? 'project_updated',
-                $this->withActor($a->employee?->full_name, $a->description),
+                $this->withActor(
+                    $a->employee?->full_name,
+                    $this->withScope($system ? $a->project?->name : null, $a->description),
+                ),
                 $a->created_at,
             ));
     }
 
-    private function taskActivities(Project $project): Collection
+    private function taskActivities(?Project $project): Collection
     {
-        $taskIds = Task::query()->where('project_id', $project->id)->pluck('id');
-        if ($taskIds->isEmpty()) {
-            return collect();
+        $system = $project === null;
+
+        $query = TaskActivity::query()
+            ->with(['employee', 'task:id,title,project_id', ...($system ? ['task.project:id,name'] : [])])
+            ->latest()
+            ->limit($system ? 40 : 60);
+
+        if (! $system) {
+            $taskIds = Task::query()->where('project_id', $project->id)->pluck('id');
+            if ($taskIds->isEmpty()) {
+                return collect();
+            }
+            $query->whereIn('task_id', $taskIds);
         }
 
-        return TaskActivity::query()
-            ->whereIn('task_id', $taskIds)
-            ->with(['employee', 'task:id,title'])
-            ->latest()
-            ->limit(60)
-            ->get()
-            ->map(function (TaskActivity $a) {
-                $prefix = $a->task?->title ? "[{$a->task->title}] " : '';
+        return $query->get()->map(function (TaskActivity $a) use ($system) {
+            $prefix = $a->task?->title ? "[{$a->task->title}] " : '';
+            $scope = $system ? $a->task?->project?->name : null;
 
-                return $this->row(
-                    'task_'.$a->id,
-                    self::EVENT_TYPE_MAP[$a->event] ?? 'task_updated',
-                    $this->withActor($a->employee?->full_name, $prefix.$a->description),
-                    $a->created_at,
-                );
-            });
+            return $this->row(
+                'task_'.$a->id,
+                self::EVENT_TYPE_MAP[$a->event] ?? 'task_updated',
+                $this->withActor($a->employee?->full_name, $this->withScope($scope, $prefix.$a->description)),
+                $a->created_at,
+            );
+        });
     }
 
-    private function blockerActivities(Project $project): Collection
+    private function blockerActivities(?Project $project): Collection
     {
-        $blockerIds = Blocker::query()->where('project_id', $project->id)->pluck('id');
-        if ($blockerIds->isEmpty()) {
-            return collect();
+        $system = $project === null;
+
+        $query = BlockerActivity::query()
+            ->with(['employee', ...($system ? ['blocker:id,project_id', 'blocker.project:id,name'] : [])])
+            ->latest()
+            ->limit($system ? 25 : 40);
+
+        if (! $system) {
+            $blockerIds = Blocker::query()->where('project_id', $project->id)->pluck('id');
+            if ($blockerIds->isEmpty()) {
+                return collect();
+            }
+            $query->whereIn('blocker_id', $blockerIds);
         }
 
-        return BlockerActivity::query()
-            ->whereIn('blocker_id', $blockerIds)
+        return $query->get()->map(fn (BlockerActivity $a) => $this->row(
+            'blocker_'.$a->id,
+            self::BLOCKER_TYPE_MAP[$a->event] ?? 'issue_updated',
+            $this->withActor(
+                $a->employee?->full_name,
+                $this->withScope($system ? $a->blocker?->project?->name : null, $a->description),
+            ),
+            $a->created_at,
+        ));
+    }
+
+    private function attachmentActivities(?Project $project): Collection
+    {
+        $system = $project === null;
+
+        $query = ProjectAttachmentActivity::query()
             ->with('employee')
             ->latest()
-            ->limit(40)
-            ->get()
-            ->map(fn (BlockerActivity $a) => $this->row(
-                'blocker_'.$a->id,
-                self::BLOCKER_TYPE_MAP[$a->event] ?? 'issue_updated',
-                $this->withActor($a->employee?->full_name, $a->description),
-                $a->created_at,
-            ));
-    }
+            ->limit($system ? 15 : 30);
 
-    private function attachmentActivities(Project $project): Collection
-    {
-        $attachmentIds = ProjectAttachment::query()->where('project_id', $project->id)->pluck('id');
-        if ($attachmentIds->isEmpty()) {
-            return collect();
+        if (! $system) {
+            $attachmentIds = ProjectAttachment::query()->where('project_id', $project->id)->pluck('id');
+            if ($attachmentIds->isEmpty()) {
+                return collect();
+            }
+            $query->whereIn('project_attachment_id', $attachmentIds);
         }
 
-        return ProjectAttachmentActivity::query()
-            ->whereIn('project_attachment_id', $attachmentIds)
-            ->with('employee')
-            ->latest()
-            ->limit(30)
-            ->get()
-            ->map(fn (ProjectAttachmentActivity $a) => $this->row(
-                'pdoc_'.$a->id,
-                'document',
-                $this->withActor($a->employee?->full_name, $a->description),
-                $a->created_at,
-            ));
+        return $query->get()->map(fn (ProjectAttachmentActivity $a) => $this->row(
+            'pdoc_'.$a->id,
+            'document',
+            $this->withActor($a->employee?->full_name, $a->description),
+            $a->created_at,
+        ));
+    }
+
+    private function withScope(?string $projectName, string $description): string
+    {
+        if ($projectName) {
+            return "({$projectName}) {$description}";
+        }
+
+        return $description;
     }
 
     private function withActor(?string $name, string $description): string

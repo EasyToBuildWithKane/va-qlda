@@ -30,10 +30,17 @@ watch(
 
 const active = computed(() => list.value[selectedIndex.value] ?? null);
 
+/** Khung preview: aspect-ratio + max-h để img object-contain luôn vừa khung, không bị cắt. */
 const previewFrameClass = computed(() =>
     props.density === 'modal'
-        ? 'min-h-[min(42vh,280px)] max-h-[min(52vh,420px)]'
-        : 'min-h-40 max-h-52 sm:min-h-44 sm:max-h-60',
+        ? 'aspect-[4/3] w-full max-h-[min(52vh,420px)] min-h-[min(36vh,240px)]'
+        : 'aspect-[4/3] w-full max-h-[min(22rem,48vh)] min-h-[10rem] sm:max-h-[min(24rem,52vh)]',
+);
+
+const emptyFrameClass = computed(() =>
+    props.density === 'modal'
+        ? 'min-h-[min(36vh,240px)] max-h-[min(52vh,420px)]'
+        : 'min-h-[10rem] max-h-[min(22rem,48vh)] sm:max-h-[min(24rem,52vh)]',
 );
 
 function select(index) {
@@ -100,19 +107,21 @@ onBeforeUnmount(() => {
     >
       <button
         type="button"
-        class="group relative flex w-full cursor-zoom-in items-center justify-center p-2 transition hover:bg-black/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+        class="group relative block w-full cursor-zoom-in transition hover:bg-black/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
         :class="previewFrameClass"
         aria-label="Phóng to ảnh gốc"
         @click="openLightbox"
       >
-        <img
-          :key="active.id"
-          :src="active.url"
-          alt=""
-          class="max-h-full max-w-full object-contain object-center"
-          loading="lazy"
-          decoding="async"
-        >
+        <span class="absolute inset-0 flex items-center justify-center p-2">
+          <img
+            :key="active.id"
+            :src="active.url"
+            alt=""
+            class="max-h-full max-w-full object-contain object-center"
+            loading="lazy"
+            decoding="async"
+          >
+        </span>
         <span class="pointer-events-none absolute bottom-2 right-2 rounded-full border border-white/15 bg-black/50 px-2 py-0.5 text-[10px] font-medium text-white/70 opacity-0 transition group-hover:opacity-100">
           Phóng to
         </span>
@@ -122,7 +131,7 @@ onBeforeUnmount(() => {
     <div
       v-else
       class="mt-3 flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/12 bg-white/[0.02] px-4 text-center"
-      :class="previewFrameClass"
+      :class="emptyFrameClass"
     >
       <span class="grid h-11 w-11 place-items-center rounded-xl border border-white/15 bg-white/5 text-white/35">
         <svg
@@ -151,7 +160,7 @@ onBeforeUnmount(() => {
 
     <div
       v-if="list.length > 1"
-      class="mt-3 grid grid-cols-4 gap-2 sm:grid-cols-5"
+      class="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/20"
       role="listbox"
       aria-label="Chọn ảnh xem"
     >
@@ -162,7 +171,7 @@ onBeforeUnmount(() => {
         role="option"
         :aria-selected="idx === selectedIndex"
         :aria-label="`Ảnh ${idx + 1}`"
-        class="relative flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-lg border-2 bg-black/30 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+        class="relative flex h-16 w-[4.5rem] shrink-0 items-center justify-center overflow-hidden rounded-lg border-2 bg-black/30 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:h-[4.25rem] sm:w-20"
         :class="idx === selectedIndex
           ? 'border-brand shadow-[0_0_16px_-4px_rgba(154,0,54,0.85)]'
           : 'border-white/15 opacity-85 hover:border-white/35 hover:opacity-100'"
