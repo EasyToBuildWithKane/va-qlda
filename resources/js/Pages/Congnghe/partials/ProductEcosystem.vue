@@ -1,8 +1,7 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import SectionHeading from './SectionHeading.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
-import { tone } from './tones.js';
 import { useInView, prefersReducedMotionNow } from './motion.js';
 import { openCongngheProject } from './useCongngheProjectModal.js';
 
@@ -121,6 +120,11 @@ function openProduct(product) {
 
 onMounted(() => {
     window.addEventListener('keydown', onKeydown);
+    nextTick(() => {
+        if (slideCount.value) {
+            scrollToIndex(activeIndex.value);
+        }
+    });
 });
 
 onBeforeUnmount(() => {
@@ -135,7 +139,7 @@ onBeforeUnmount(() => {
   <section
     id="san-pham"
     ref="target"
-    class="relative overflow-hidden py-20"
+    class="relative py-20"
     tabindex="-1"
   >
     <div
@@ -146,12 +150,13 @@ onBeforeUnmount(() => {
       <div class="absolute right-[6%] bottom-6 h-64 w-64 rounded-full bg-cyan-500/10 blur-[100px] animate-cn-float-x" />
     </div>
 
-    <div class="relative mx-auto max-w-7xl px-5 sm:px-8">
+    <div class="relative mx-auto min-w-0 max-w-7xl px-5 sm:px-8">
       <div
-        class="flex flex-wrap items-end justify-between gap-4 transition-all duration-700"
+        class="flex min-w-0 flex-wrap items-end justify-between gap-4 transition-all duration-700"
         :class="sectionVisible ? 'translate-y-0 opacity-100' : 'translate-y-5 opacity-0'"
       >
         <SectionHeading
+          class="min-w-0 max-w-2xl flex-1"
           eyebrow="Hệ sinh thái sản phẩm"
           title="Những nền tảng đã hoàn thành"
           subtitle="Thư viện sản phẩm nghiệm thu — lướt ngang để duyệt toàn bộ; bấm thẻ để xem mô tả và ảnh (khác mục hành trình theo giai đoạn bên dưới)."
@@ -203,22 +208,22 @@ onBeforeUnmount(() => {
 
       <div
         v-if="slideCount"
-        class="relative mt-8 transition-all duration-700 delay-100"
+        class="cn-eco-carousel relative mt-8 min-w-0 transition-all duration-700 delay-100"
         :class="sectionVisible ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'"
       >
         <!-- Fade mép trái/phải -->
         <div
-          class="pointer-events-none absolute inset-y-0 left-0 z-10 w-8 bg-gradient-to-r from-[#05060c] to-transparent sm:w-12"
+          class="pointer-events-none absolute inset-y-0 left-0 z-10 w-6 bg-gradient-to-r from-[#05060c] to-transparent sm:w-10"
           aria-hidden="true"
         />
         <div
-          class="pointer-events-none absolute inset-y-0 right-0 z-10 w-8 bg-gradient-to-l from-[#05060c] to-transparent sm:w-12"
+          class="pointer-events-none absolute inset-y-0 right-0 z-10 w-6 bg-gradient-to-l from-[#05060c] to-transparent sm:w-10"
           aria-hidden="true"
         />
 
         <div
           ref="trackRef"
-          class="cn-eco-track flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain scroll-smooth py-2 pl-0.5 pr-2 sm:gap-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          class="cn-eco-track flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain scroll-smooth py-2 sm:gap-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           role="list"
           aria-label="Danh sách sản phẩm hoàn thành"
           @scroll="onTrackScroll"
@@ -258,16 +263,6 @@ onBeforeUnmount(() => {
                   <span class="font-display text-3xl font-bold text-white/20">{{ (product.code || product.name || '?').slice(0, 2) }}</span>
                 </div>
                 <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#0a0c14] via-transparent to-transparent opacity-90" />
-                <span
-                  class="absolute left-2.5 top-2.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ring-inset backdrop-blur-sm"
-                  :class="tone(product.statusColor).soft"
-                >
-                  <span
-                    class="h-1 w-1 rounded-full"
-                    :class="tone(product.statusColor).dot"
-                  />
-                  {{ product.status }}
-                </span>
                 <span
                   v-if="product.images?.length > 1"
                   class="absolute bottom-2 right-2 rounded-md bg-black/50 px-1.5 py-0.5 font-mono text-[9px] text-white/70 backdrop-blur-sm"
@@ -355,8 +350,24 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+/* Full-bleed trong khung max-w-7xl; padding để snap-center không cắt mép thẻ */
+.cn-eco-carousel {
+    margin-inline: -1.25rem;
+    width: calc(100% + 2.5rem);
+}
+
+@media (min-width: 640px) {
+    .cn-eco-carousel {
+        margin-inline: -2rem;
+        width: calc(100% + 4rem);
+    }
+}
+
 .cn-eco-track {
-    scroll-padding-inline: 1rem;
+    --eco-card-w: min(78vw, 17.5rem);
+    --eco-edge: max(1.25rem, calc((100% - var(--eco-card-w)) / 2));
+    padding-inline: var(--eco-edge);
+    scroll-padding-inline: var(--eco-edge);
 }
 
 .cn-eco-card--in {

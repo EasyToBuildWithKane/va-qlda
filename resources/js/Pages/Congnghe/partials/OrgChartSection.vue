@@ -153,7 +153,7 @@ onBeforeUnmount(() => {
     <!-- Sơ đồ tổ chức: full-bleed, các thẻ lớn hơn, cứng (không pan/zoom) -->
     <div
       v-if="roots.length"
-      class="cn-fullbleed mt-8"
+      class="mt-8 min-w-0 w-full"
     >
       <div class="mx-auto max-w-[1900px] px-3 sm:px-5">
         <div class="congnghe-org-graph congnghe-org-graph--large">
@@ -341,12 +341,6 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-.cn-fullbleed {
-    width: 100vw;
-    margin-left: calc(50% - 50vw);
-    margin-right: calc(50% - 50vw);
-}
-
 /* modal transition */
 .cn-modal-enter-active,
 .cn-modal-leave-active {
