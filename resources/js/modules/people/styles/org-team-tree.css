@@ -342,6 +342,20 @@
     display: none;
 }
 
+/* Một nhóm con: giữ cột dọc từ nhánh cha xuống thẻ nhóm con */
+.org-tree__branch:has(> .org-tree__connector--to-children) > .org-tree__children--single::before {
+    display: block;
+}
+
+.org-tree__children--single > .org-tree__branch:only-child::after {
+    display: none;
+}
+
+.org-tree__children--single > .org-tree__branch:only-child::before {
+    top: var(--org-child-drop);
+    height: var(--org-child-drop);
+}
+
 .org-tree__children > .org-tree__branch {
     padding: var(--org-child-drop) 1.35rem 0;
     position: relative;
@@ -540,7 +554,8 @@
 .org-chart-canvas .org-tree__children > .org-tree__branch::before,
 .org-chart-canvas .org-tree__children > .org-tree__branch::after,
 .org-chart-canvas .org-tree__leader + .org-tree__connector + .org-tree__members-section:has(.org-tree__members-item)::before,
-.org-chart-canvas .org-tree__people:not(:has(.org-tree__leader)) > .org-tree__members-section::before {
+.org-chart-canvas .org-tree__people:not(:has(.org-tree__leader)) > .org-tree__members-section::before,
+.org-chart-canvas .org-tree__branch:has(> .org-tree__connector--to-children) > .org-tree__children--single::before {
     background: var(--org-tree-line);
     box-shadow: none;
 }

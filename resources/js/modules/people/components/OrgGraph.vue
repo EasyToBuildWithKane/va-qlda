@@ -220,7 +220,9 @@ watch(
             class="org-graph__edge"
             :class="{
               'org-graph__edge--dim': edge.inPath === false,
-              'org-graph__edge--section-member': edge.kind === 'section-member',
+              'org-graph__edge--orthogonal': edge.kind === 'section-member'
+                || edge.kind === 'team-member'
+                || edge.kind === 'team-child',
             }"
             :d="edge.path"
           />
@@ -410,7 +412,7 @@ watch(
     animation: org-edge-in 0.45s ease forwards;
 }
 
-.org-graph__edge--section-member {
+.org-graph__edge--orthogonal {
     stroke: #94a3b8;
     stroke-width: 2;
     stroke-opacity: 1;

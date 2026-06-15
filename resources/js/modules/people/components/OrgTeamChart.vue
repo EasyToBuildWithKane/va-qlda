@@ -73,6 +73,7 @@ const branchStyle = computed(() => ({
     <ul
       v-if="hasChildren"
       class="org-tree__children"
+      :class="{ 'org-tree__children--single': childTeams.length === 1 }"
     >
       <OrgTeamChart
         v-for="child in childTeams"

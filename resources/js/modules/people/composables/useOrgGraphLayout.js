@@ -122,6 +122,11 @@ function sectionBranches(team, rootId, rootName) {
     return ordered;
 }
 
+/** Thành viên chưa gán mảng — không chèn thẻ «Chưa phân mảng» trên sơ đồ. */
+function isUnassignedBranch(branch) {
+    return branch.sectionId == null && String(branch.key).includes('unassigned');
+}
+
 function directCount(team) {
     const leaderId = team.leader?.id ?? null;
     let n = leaderId ? 1 : 0;
@@ -172,6 +177,19 @@ function buildLogical(trees, { expanded, collapsed }) {
         }
         if (ln.expanded) {
             for (const branch of branches) {
+                if (isUnassignedBranch(branch)) {
+                    for (const p of branch.people) {
+                        ln.children.push({
+                            id: `person-${team.id}-${p.employeeId}`,
+                            type: 'person',
+                            person: p,
+                            rootId,
+                            children: [],
+                        });
+                    }
+                    continue;
+                }
+
                 const sectionLn = {
                     id: branch.key,
                     type: 'section',
@@ -249,9 +267,11 @@ function place(ln, leftX, top) {
     if (ln.type === 'team') {
         const subteams = kids.filter((k) => k.type === 'team');
         const sections = kids.filter((k) => k.type === 'section');
-        const rest = kids.filter((k) => k.type !== 'team' && k.type !== 'section');
+        const directPeople = kids.filter((k) => k.type === 'person');
+        const memberRow = [...sections, ...directPeople];
+        const rest = kids.filter((k) => k.type !== 'team' && k.type !== 'section' && k.type !== 'person');
 
-        if (subteams.length && sections.length) {
+        if (subteams.length && memberRow.length) {
             let cursor = leftX;
             subteams.forEach((kid, i) => {
                 cursor += place(kid, cursor, childTop);
@@ -265,15 +285,18 @@ function place(ln, leftX, top) {
             }
 
             cursor = leftX;
-            sections.forEach((kid, i) => {
+            memberRow.forEach((kid, i) => {
                 cursor += place(kid, cursor, row2Top);
-                if (i < sections.length - 1) cursor += H_GAP;
+                if (i < memberRow.length - 1) cursor += H_GAP;
             });
             const row2Span = cursor - leftX;
 
-            const restTop = sections.length
-                ? row2Top + NODE.section.h + V_GAP
-                : childTop;
+            let row2Bottom = row2Top;
+            for (const kid of memberRow) {
+                row2Bottom = Math.max(row2Bottom, subtreeBottom(kid));
+            }
+
+            const restTop = row2Bottom + V_GAP;
             let restCursor = leftX;
             rest.forEach((kid) => {
                 restCursor += H_GAP;
@@ -285,8 +308,8 @@ function place(ln, leftX, top) {
             if (subteams.length) {
                 cxCandidates.push((subteams[0].cx + subteams[subteams.length - 1].cx) / 2);
             }
-            if (sections.length) {
-                cxCandidates.push((sections[0].cx + sections[sections.length - 1].cx) / 2);
+            if (memberRow.length) {
+                cxCandidates.push((memberRow[0].cx + memberRow[memberRow.length - 1].cx) / 2);
             }
             ln.cx = cxCandidates.length
                 ? cxCandidates.reduce((a, b) => a + b, 0) / cxCandidates.length
@@ -382,15 +405,19 @@ function markMatches(ln, f, active) {
     return subtree;
 }
 
-function edgePath(x1, y1, x2, y2, kind) {
-    if (kind === 'section-member') {
-        const drop = Math.min(22, Math.max(10, (y2 - y1) * 0.28));
-        const midY = y1 + drop;
-        if (Math.abs(x1 - x2) < 1.5) {
-            return `M ${x1} ${y1} L ${x1} ${y2}`;
-        }
+function orthogonalDown(x1, y1, x2, y2) {
+    const drop = Math.min(22, Math.max(10, (y2 - y1) * 0.28));
+    const midY = y1 + drop;
+    if (Math.abs(x1 - x2) < 1.5) {
+        return `M ${x1} ${y1} L ${x1} ${y2}`;
+    }
 
-        return `M ${x1} ${y1} L ${x1} ${midY} L ${x2} ${midY} L ${x2} ${y2}`;
+    return `M ${x1} ${y1} L ${x1} ${midY} L ${x2} ${midY} L ${x2} ${y2}`;
+}
+
+function edgePath(x1, y1, x2, y2, kind) {
+    if (kind === 'section-member' || kind === 'team-member' || kind === 'team-child') {
+        return orthogonalDown(x1, y1, x2, y2);
     }
 
     const my = (y1 + y2) / 2;
@@ -400,7 +427,14 @@ function edgePath(x1, y1, x2, y2, kind) {
 function flatten(ln, nodes, edges, parent) {
     nodes.push(ln);
     if (parent) {
-        const kind = parent.type === 'section' && ln.type === 'person' ? 'section-member' : 'default';
+        let kind = 'default';
+        if (parent.type === 'section' && ln.type === 'person') {
+            kind = 'section-member';
+        } else if (parent.type === 'team' && ln.type === 'person') {
+            kind = 'team-member';
+        } else if (parent.type === 'team' && ln.type === 'team') {
+            kind = 'team-child';
+        }
         edges.push({
             id: `${parent.id}__${ln.id}`,
             from: parent.id,
