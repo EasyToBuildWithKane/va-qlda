@@ -102,6 +102,7 @@ AppLayout.vue
 | Domain | Files |
 |---|---|
 | Auth | `Pages/Auth/Login.vue` |
+| Congnghe (landing `/congnghe`) | `Pages/Congnghe/Index.vue` + `partials/*` — **không** `AppLayout`; navbar/footer riêng (`CongngheNavbar`, `CongngheFooter`); thương hiệu VAS: `public/images/congnghe/brand/*`, map `partials/congngheBrand.js`, nền `CongngheBrandBackdrop.vue`; anchor `#lo-trinh` → `RoadmapSection.vue` |
 | Dashboard | `Pages/Dashboard/Index.vue` |
 | DailyReport | `Today`, `History`, `Show`, `Review` |
 | Project | `Index`, `Create`, `Edit`, `Show` |

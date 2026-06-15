@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import MagneticButton from './MagneticButton.vue';
+import { congngheBrand } from './congngheBrand.js';
 
 const page = usePage();
 const portal = computed(() => page.props.portal ?? { canEnterQlda: false, qldaHome: '/dashboard' });
@@ -54,21 +55,44 @@ onBeforeUnmount(() => {
 <template>
   <header
     class="fixed inset-x-0 top-0 z-50 transition-all duration-300"
-    :class="scrolled ? 'py-2' : 'py-3.5'"
+    :class="scrolled ? 'py-2' : 'py-3'"
   >
-    <nav class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
+    <div
+      class="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-brand to-transparent transition-opacity duration-300"
+      :class="scrolled ? 'opacity-100' : 'opacity-60'"
+    />
+    <nav
+      class="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 sm:px-6"
+      :class="scrolled
+        ? 'rounded-2xl border border-white/10 bg-[#0a0b14]/88 py-2 shadow-[0_12px_40px_-16px_rgba(0,0,0,0.85)] backdrop-blur-xl'
+        : 'py-1'"
+    >
       <!-- Brand -->
       <a
         href="#top"
-        class="group flex items-center gap-2.5"
+        class="group flex min-w-0 items-center gap-2.5 sm:gap-3"
       >
-        <span class="relative grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-brand to-[#ff4d8d] text-sm font-bold text-white shadow-lg shadow-brand/40">
-          CN
-          <span class="absolute inset-0 rounded-xl ring-1 ring-white/30 animate-cn-glow" />
+        <span class="relative shrink-0 rounded-xl bg-black/40 p-1 ring-1 ring-white/10 transition group-hover:ring-brand/40">
+          <img
+            :src="congngheBrand.badgeCircle"
+            alt="Vietnam America Schools"
+            class="h-9 w-9 object-contain sm:h-10 sm:w-10"
+            width="40"
+            height="40"
+            decoding="async"
+          >
         </span>
-        <span class="hidden flex-col leading-none sm:flex">
-          <span class="font-display text-sm font-bold text-white">Phòng Công Nghệ</span>
-          <span class="font-mono text-[10px] tracking-wider text-white/40">VASCHOOLS · TECH</span>
+        <span class="hidden min-w-0 flex-col leading-tight sm:flex">
+          <span class="truncate font-display text-sm font-bold text-white">Phòng Công Nghệ</span>
+          <span class="mt-0.5 flex items-center gap-2">
+            <img
+              :src="congngheBrand.wordmarkStacked"
+              alt=""
+              class="h-7 w-auto max-w-[140px] object-contain object-left opacity-90"
+              loading="lazy"
+              decoding="async"
+            >
+          </span>
         </span>
       </a>
 
@@ -86,14 +110,14 @@ onBeforeUnmount(() => {
         >
           <span
             v-if="activeId === link.id"
-            class="absolute inset-0 rounded-full bg-gradient-to-r from-brand/80 to-[#ff4d8d]/70 shadow-[0_0_18px_-2px_rgba(255,77,141,0.6)]"
+            class="absolute inset-0 rounded-full bg-gradient-to-r from-brand/90 to-[#6b0028]/90 shadow-[0_0_18px_-2px_rgba(154,0,54,0.55)]"
           />
           <span class="relative">{{ link.label }}</span>
         </a>
       </div>
 
       <!-- Actions -->
-      <div class="flex items-center gap-2">
+      <div class="flex shrink-0 items-center gap-2">
         <MagneticButton
           v-if="portal.canEnterQlda"
           :href="portal.qldaHome"
@@ -137,9 +161,20 @@ onBeforeUnmount(() => {
     >
       <div
         v-if="open"
-        class="mx-4 mt-2 rounded-2xl border border-white/10 bg-[#0a0b14]/95 p-3 backdrop-blur-xl lg:hidden"
+        class="mx-4 mt-2 overflow-hidden rounded-2xl border border-white/10 bg-[#0a0b14]/95 backdrop-blur-xl lg:hidden"
       >
-        <div class="grid gap-1">
+        <div class="flex items-center gap-3 border-b border-white/10 bg-gradient-to-r from-brand/20 to-transparent px-4 py-3">
+          <img
+            :src="congngheBrand.logoVertical"
+            alt="VAS"
+            class="h-14 w-auto object-contain"
+            loading="lazy"
+          >
+          <p class="text-xs text-white/55">
+            Phòng Công Nghệ
+          </p>
+        </div>
+        <div class="grid gap-1 p-3">
           <a
             v-for="link in links"
             :key="link.href"
@@ -150,7 +185,7 @@ onBeforeUnmount(() => {
           <a
             v-if="portal.canEnterQlda"
             :href="portal.qldaHome"
-            class="mt-1 rounded-xl bg-gradient-to-r from-brand to-[#ff4d8d] px-3 py-2.5 text-center text-sm font-semibold text-white"
+            class="mt-1 rounded-xl bg-gradient-to-r from-brand to-[#6b0028] px-3 py-2.5 text-center text-sm font-semibold text-white"
           >
             Vào hệ thống
           </a>

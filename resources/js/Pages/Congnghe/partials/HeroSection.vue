@@ -3,6 +3,8 @@ import { onBeforeUnmount, onMounted, ref } from 'vue';
 import MagneticButton from './MagneticButton.vue';
 import CountStat from './CountStat.vue';
 import { hasFinePointer, prefersReducedMotionNow } from './motion.js';
+import { congngheBrand } from './congngheBrand.js';
+import CongngheBrandBackdrop from './CongngheBrandBackdrop.vue';
 
 defineProps({
     metrics: { type: Object, default: () => ({}) },
@@ -48,18 +50,30 @@ const highlights = [
     id="top"
     class="relative flex min-h-screen items-center overflow-hidden pt-24"
   >
+    <CongngheBrandBackdrop
+      variant="dragon"
+      align="center"
+      opacity-class="opacity-[0.04]"
+    />
+    <div class="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-brand/15 to-transparent" />
     <div class="relative mx-auto grid w-full max-w-7xl items-center gap-12 px-5 pb-16 sm:px-8 lg:grid-cols-[1.1fr_0.9fr]">
       <!-- Copy -->
       <div
         class="transition-all duration-700"
         :class="ready ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'"
       >
-        <span class="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 font-mono text-[11.5px] font-medium tracking-wide text-white/80 backdrop-blur">
+        <span class="inline-flex flex-wrap items-center gap-2.5 rounded-full border border-white/15 bg-white/5 py-1.5 pl-2 pr-3.5 font-mono text-[11.5px] font-medium tracking-wide text-white/80 backdrop-blur">
+          <img
+            :src="congngheBrand.badgeCircle"
+            alt=""
+            class="h-7 w-7 object-contain"
+            decoding="async"
+          >
           <span class="relative flex h-2 w-2">
             <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-70" />
             <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
           </span>
-          AI-NATIVE PLATFORM · VIETNAM AMERICA SCHOOLS
+          AI-NATIVE · PHÒNG CÔNG NGHỆ VAS
         </span>
 
         <h1 class="mt-6 font-display text-[2.6rem] font-extrabold leading-[1.04] tracking-tight text-white sm:text-6xl">
@@ -115,24 +129,37 @@ const highlights = [
         </dl>
       </div>
 
-      <!-- AI core visual -->
+      <!-- Brand hero visual -->
       <div
         class="relative mx-auto hidden aspect-square w-full max-w-md lg:block"
         :style="layer(-10)"
       >
-        <div class="absolute inset-0 rounded-full border border-white/10 animate-cn-spin-slow" />
-        <div class="absolute inset-[12%] rounded-full border border-white/10 [animation:cn-spin-slow_22s_linear_infinite_reverse]" />
-        <div class="absolute inset-[24%] rounded-full border border-dashed border-white/15 animate-cn-spin-slow" />
-        <div class="absolute inset-[20%] rounded-full bg-[radial-gradient(circle,rgba(255,77,141,0.25),transparent_70%)] blur-xl animate-cn-glow" />
+        <div class="absolute inset-0 rounded-full border border-brand/20 animate-cn-spin-slow" />
+        <div class="absolute inset-[10%] rounded-full border border-white/10 [animation:cn-spin-slow_22s_linear_infinite_reverse]" />
+        <div class="absolute inset-[22%] rounded-full border border-dashed border-brand/25 animate-cn-spin-slow" />
+        <div class="absolute inset-[18%] rounded-full bg-[radial-gradient(circle,rgba(154,0,54,0.35),transparent_70%)] blur-xl animate-cn-glow" />
 
-        <div class="absolute inset-0 grid place-items-center">
-          <div
-            class="grid h-32 w-32 place-items-center rounded-[1.75rem] bg-gradient-to-br from-brand to-[#ff4d8d] shadow-2xl shadow-brand/50 animate-cn-float"
-            :style="layer(18)"
+        <div
+          class="absolute inset-0 flex items-end justify-center pb-2"
+          :style="layer(14)"
+        >
+          <img
+            :src="congngheBrand.mascotWave"
+            alt="Linh vật VAS — chào mừng đến Phòng Công Nghệ"
+            class="relative z-10 h-[88%] w-auto max-w-none object-contain drop-shadow-[0_32px_64px_rgba(154,0,54,0.35)] animate-cn-float"
+            width="420"
+            height="420"
+            decoding="async"
           >
-            <span class="font-display text-4xl font-black text-white drop-shadow">CN</span>
-          </div>
         </div>
+
+        <img
+          :src="congngheBrand.dragonSilhouette"
+          alt=""
+          class="pointer-events-none absolute left-1/2 top-[8%] h-24 w-auto -translate-x-1/2 opacity-40"
+          :style="layer(8)"
+          loading="lazy"
+        >
 
         <span
           v-for="chip in chips"

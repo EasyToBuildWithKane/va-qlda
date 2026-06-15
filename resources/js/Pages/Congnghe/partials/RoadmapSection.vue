@@ -2,6 +2,8 @@
 import SectionHeading from './SectionHeading.vue';
 import GlassCard from './GlassCard.vue';
 import { useInView } from './motion.js';
+import { congngheBrand } from './congngheBrand.js';
+import CongngheBrandBackdrop from './CongngheBrandBackdrop.vue';
 
 const { target, shown } = useInView({ threshold: 0.1 });
 
@@ -41,16 +43,44 @@ const milestones = [
   <section
     id="lo-trinh"
     ref="target"
-    class="relative py-20"
+    class="relative overflow-hidden py-20"
   >
-    <div class="mx-auto max-w-7xl px-5 sm:px-8">
-      <SectionHeading
-        eyebrow="Lộ trình 2026 — 2027"
-        title="Chặng đường phía trước"
-        subtitle="Định hướng phát triển sản phẩm và năng lực công nghệ trong 18 tháng tới."
-      />
+    <div class="pointer-events-none absolute inset-0 bg-gradient-to-b from-brand/[0.08] via-transparent to-brand/[0.06]" />
+    <CongngheBrandBackdrop
+      variant="both"
+      align="right"
+      opacity-class="opacity-[0.06]"
+    />
 
-      <ol class="relative mt-14 space-y-7 before:absolute before:left-[18px] before:top-3 before:h-[calc(100%-1.5rem)] before:w-px before:bg-gradient-to-b before:from-brand before:via-brand/30 before:to-transparent sm:before:left-[22px]">
+    <div class="relative mx-auto max-w-7xl px-5 sm:px-8">
+      <div class="grid gap-10 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start lg:gap-12">
+        <SectionHeading
+          eyebrow="Lộ trình 2026 — 2027"
+          title="Chặng đường phía trước"
+          subtitle="Định hướng phát triển sản phẩm và năng lực công nghệ trong 18 tháng tới — đồng hành cùng hệ sinh thái VAS."
+        />
+
+        <aside
+          class="relative mx-auto hidden max-w-[220px] shrink-0 lg:block"
+          :class="shown ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'"
+          style="transition: opacity 700ms, transform 700ms"
+        >
+          <div class="rounded-2xl border border-white/10 bg-white/[0.04] p-3 backdrop-blur-sm">
+            <p class="font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-brand-300">
+              Người dẫn đường
+            </p>
+            <img
+              :src="congngheBrand.mascotVaJacket"
+              alt="Linh vật VAS đồng hành lộ trình công nghệ"
+              class="mt-2 h-auto w-full object-contain drop-shadow-[0_20px_40px_rgba(0,0,0,0.45)]"
+              loading="lazy"
+              decoding="async"
+            >
+          </div>
+        </aside>
+      </div>
+
+      <ol class="relative mt-10 space-y-7 before:absolute before:left-[18px] before:top-3 before:h-[calc(100%-1.5rem)] before:w-px before:bg-gradient-to-b before:from-brand before:via-brand/30 before:to-transparent sm:before:left-[22px] lg:mt-14">
         <li
           v-for="(m, i) in milestones"
           :key="m.title"
@@ -58,8 +88,17 @@ const milestones = [
           :class="shown ? 'translate-x-0 opacity-100' : '-translate-x-5 opacity-0'"
           :style="{ transitionDelay: `${i * 120}ms` }"
         >
-          <span class="absolute left-0 top-1 grid h-9 w-9 place-items-center rounded-full border border-brand/40 bg-[#0a0b14] font-mono text-[12px] font-bold text-brand-300 sm:h-11 sm:w-11">
-            {{ i + 1 }}
+          <span class="absolute left-0 top-1 grid h-9 w-9 place-items-center overflow-hidden rounded-full border border-brand/40 bg-[#0a0b14] sm:h-11 sm:w-11">
+            <img
+              v-if="i === 0"
+              :src="congngheBrand.badgeCircle"
+              alt=""
+              class="h-full w-full object-cover p-0.5"
+            >
+            <span
+              v-else
+              class="font-mono text-[12px] font-bold text-brand-300"
+            >{{ i + 1 }}</span>
             <span
               v-if="m.live"
               class="absolute inset-0 rounded-full ring-2 ring-brand/50 animate-cn-ping-ring"
@@ -94,6 +133,22 @@ const milestones = [
           </GlassCard>
         </li>
       </ol>
+
+      <div
+        class="mt-12 flex items-center justify-center gap-4 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-6 sm:px-8 lg:hidden"
+        :class="shown ? 'opacity-100' : 'opacity-0'"
+        style="transition: opacity 700ms 400ms"
+      >
+        <img
+          :src="congngheBrand.mascotVaJacket"
+          alt=""
+          class="h-28 w-auto shrink-0 object-contain"
+          loading="lazy"
+        >
+        <p class="text-sm leading-relaxed text-white/55">
+          Linh vật VAS đồng hành cùng từng mốc — từ dữ liệu hợp nhất đến AI và dịch vụ số toàn trường.
+        </p>
+      </div>
     </div>
   </section>
 </template>

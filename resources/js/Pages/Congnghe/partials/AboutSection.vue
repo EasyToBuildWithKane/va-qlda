@@ -2,6 +2,7 @@
 import SectionHeading from './SectionHeading.vue';
 import GlassCard from './GlassCard.vue';
 import { useInView } from './motion.js';
+import CongngheBrandBackdrop from './CongngheBrandBackdrop.vue';
 
 const { target, shown } = useInView();
 
@@ -36,7 +37,12 @@ const pillars = [
     ref="target"
     class="relative py-20"
   >
-    <div class="mx-auto max-w-7xl px-5 sm:px-8">
+    <CongngheBrandBackdrop
+      variant="badge"
+      align="left"
+      opacity-class="opacity-[0.05]"
+    />
+    <div class="relative mx-auto max-w-7xl px-5 sm:px-8">
       <SectionHeading
         eyebrow="Giới thiệu"
         title="Kim chỉ nam cho mọi hoạt động"
