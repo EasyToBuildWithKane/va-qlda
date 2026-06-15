@@ -15,8 +15,8 @@ Rule: `.cursor/rules/datagrid-toolbar.mdc` (`alwaysApply: true`)
 
 | Pattern | File |
 |---------|------|
+| Classic Index (hide-label, grid lọc) | `resources/js/Pages/AiAccount/CostReport.vue`, `Feedback/Index.vue` |
 | Full toolbar + segmented + column picker + filter grid + datepicker | `resources/js/Pages/DailyReport/History.vue` |
-| Classic label «Tìm kiếm», nhiều filter `default: true` | `resources/js/Pages/AiAccount/CostReport.vue` |
 | Embedded tab: `half`, primary cùng hàng | `modules/project/components/Dashboard/ProjectFeedbackPanel.vue` |
 | Compact search | `modules/project/components/Dashboard/RiskIssueDataTable.vue` |
 
@@ -70,7 +70,7 @@ Rule: `.cursor/rules/datagrid-toolbar.mdc` (`alwaysApply: true`)
 
 | Prop | Use |
 |------|-----|
-| *(default)* | Index: label «Tìm kiếm», long min-widths |
+| *(default)* | **Cấm** label «Tìm kiếm» — dùng `hide-label` + placeholder |
 | `half` | ~50% row, project tab |
 | `compact` | Short search |
 | `stretch` + `inline-actions` | Cùng hàng với nút; ô `flex-1 min-w-0` |

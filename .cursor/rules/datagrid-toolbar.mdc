@@ -10,8 +10,8 @@ Mọi trang **bảng + toolbar** tuân pattern này. Skill: `.cursor/skills/data
 
 | Ngữ cảnh | Tham chiếu vàng |
 |----------|-----------------|
-| Index / CostReport (label «Tìm kiếm») | `resources/js/Pages/AiAccount/CostReport.vue` |
-| Toolbar đầy đủ (1 hàng desktop, grid lọc, segmented) | `resources/js/Pages/DailyReport/History.vue` |
+| Index đầy đủ (hide-label, Lọc/Cột/Xuất) | `resources/js/Pages/AiAccount/CostReport.vue`, `Feedback/Index.vue` |
+| Toolbar + segmented + grid lọc | `resources/js/Pages/DailyReport/History.vue` |
 | Tab dự án (ô tìm `half`, nút cùng hàng) | `resources/js/modules/project/components/Dashboard/ProjectFeedbackPanel.vue` |
 | Ô tìm ngắn | `RiskIssueDataTable.vue` (`compact`) |
 
@@ -21,7 +21,7 @@ Mọi trang **bảng + toolbar** tuân pattern này. Skill: `.cursor/skills/data
 
 | Vùng | Quy tắc |
 |------|---------|
-| **Tìm kiếm** | `DatagridToolbarSearch.vue`. **Index / CostReport:** có label `Tìm kiếm`, `flex-1`, `lg:min-w-[28rem]` `xl:min-w-[32rem]`. **Trang SaaS dày (DailyReport History):** `hide-label`, `stretch`, `inline-actions`, `input-height="h-10"` — placeholder + `aria-label`. **Panel nhúng:** `half` hoặc `compact`. |
+| **Tìm kiếm** | `DatagridToolbarSearch.vue`. **Trang Index / datagrid:** `hide-label`, `stretch`, `inline-actions`, `input-height="h-10"` — placeholder + `aria-label` trên input; **không** label «Tìm kiếm». **Panel nhúng:** `half` hoặc `compact` + `hide-label`. |
 | **Lọc / Cột / Xuất** | `DatagridToolbarActionButton` — `h-10`, icon + chữ (`Lọc`, `Cột`, `Xuất`). **Lọc** = checkbox hiển thị control dòng 2 (`useVisibleFilterControls` + `FilterVisibilityDropdown`), không chọn giá trị trong panel Lọc. |
 | **Toggle (tuỳ trang)** | `DatagridSegmentedControl` — Ngày/Tuần/Tháng, Thẻ/Bảng; `icon-only-below-sm` trên mobile. |
 | **Một hàng desktop** | `flex flex-wrap items-center gap-2 lg:flex-nowrap`. Thứ tự DOM: **ô tìm** (`lg:flex-1`, `basis-full` chỉ mobile) → **Lọc·Cột·Xuất** (`shrink-0`) → **segmented** (`ml-auto`). **Cấm** `display: contents` + `order` để gộp hàng — làm ô tìm xuống dòng 2. |

@@ -193,6 +193,8 @@ const roleHeaderBg = {
           input-id="perm-search"
           placeholder="Tên quyền…"
           compact
+          hide-label
+          input-height="h-10"
         />
       </div>
     </div>

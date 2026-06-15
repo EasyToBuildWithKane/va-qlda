@@ -239,210 +239,218 @@ async function runExport(format) {
 
       <div class="min-w-0 flex-1 space-y-3">
         <div class="card overflow-visible">
-          <div class="flex flex-col gap-2.5 border-b border-slate-100 bg-slate-50/40 px-4 py-3.5 sm:px-5 lg:flex-row lg:items-center">
-            <DatagridToolbarSearch
-              v-model="filterForm.q"
-              input-id="kb-search"
-              placeholder="Tiêu đề, mô tả, thẻ…"
-            />
-
-            <div class="flex shrink-0 flex-wrap items-center gap-2">
-              <div
-                ref="filterDdRef"
-                class="relative"
-              >
-                <button
-                  type="button"
-                  class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
-                  :class="showFilterPanelDd
-                    ? 'border-brand/40 bg-brand/5 text-brand'
-                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800'"
-                  :title="`Hiển thị bộ lọc (${enabledFilterControlCount}/${FILTER_CONTROLS.length})`"
-                  @click="openFilter"
-                >
-                  <AppIcon
-                    name="filter"
-                    :size="15"
-                  />
-                  <span>Lọc</span>
-                </button>
-                <FilterVisibilityDropdown
-                  v-model="visibleFilters"
-                  :show="showFilterPanelDd"
-                  :anchor-ref="filterDdRef"
-                  :controls="FILTER_CONTROLS"
-                  @persist="persistVisibleFilters"
+          <div class="border-b border-slate-100 bg-slate-50/40 px-4 py-3.5 sm:px-5 lg:py-4">
+            <div class="flex w-full min-w-0 flex-wrap items-center gap-2 lg:flex-nowrap">
+              <div class="min-w-0 w-full basis-full lg:min-w-[10rem] lg:flex-1 lg:basis-auto">
+                <DatagridToolbarSearch
+                  v-model="filterForm.q"
+                  input-id="kb-search"
+                  placeholder="Tiêu đề, mô tả, thẻ…"
+                  stretch
+                  inline-actions
+                  hide-label
+                  input-height="h-10"
                 />
               </div>
 
-              <div
-                ref="colDdRef"
-                class="relative"
-              >
-                <button
-                  type="button"
-                  class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
-                  :class="showColDd
-                    ? 'border-brand/40 bg-brand/5 text-brand'
-                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800'"
-                  title="Trường hiển thị trên thẻ bài"
-                  @click="openCol"
-                >
-                  <AppIcon
-                    name="columns"
-                    :size="15"
-                  />
-                  <span>Cột</span>
-                </button>
-                <ColumnVisibilityDropdown
-                  v-model="visibleCols"
-                  :show="showColDd"
-                  :columns="CARD_COLUMNS"
-                  @persist="persistVisibleColumns"
-                />
-              </div>
-
-              <div
-                ref="exportDdRef"
-                class="relative"
-              >
-                <button
-                  type="button"
-                  class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
-                  :class="showExportDd
-                    ? 'border-brand/40 bg-brand/5 text-brand'
-                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800'"
-                  :disabled="exporting"
-                  title="Xuất danh sách đang lọc (tối đa 200)"
-                  @click="toggleExport"
-                >
-                  <AppIcon
-                    name="export"
-                    :size="15"
-                  />
-                  <span>{{ exporting ? 'Đang xuất…' : 'Xuất' }}</span>
-                </button>
+              <div class="flex shrink-0 flex-wrap items-center gap-2">
                 <div
-                  v-if="showExportDd"
-                  class="absolute right-0 z-30 mt-1 min-w-[9rem] rounded-card border border-slate-200 bg-white py-1 shadow-lg"
+                  ref="filterDdRef"
+                  class="relative"
                 >
                   <button
                     type="button"
-                    class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50"
-                    @click="runExport('csv')"
+                    class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
+                    :class="showFilterPanelDd
+                      ? 'border-brand/40 bg-brand/5 text-brand'
+                      : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800'"
+                    :title="`Hiển thị bộ lọc (${enabledFilterControlCount}/${FILTER_CONTROLS.length})`"
+                    @click="openFilter"
                   >
-                    CSV
+                    <AppIcon
+                      name="filter"
+                      :size="15"
+                    />
+                    <span>Lọc</span>
                   </button>
+                  <FilterVisibilityDropdown
+                    v-model="visibleFilters"
+                    :show="showFilterPanelDd"
+                    :anchor-ref="filterDdRef"
+                    :controls="FILTER_CONTROLS"
+                    @persist="persistVisibleFilters"
+                  />
+                </div>
+
+                <div
+                  ref="colDdRef"
+                  class="relative"
+                >
                   <button
                     type="button"
-                    class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50"
-                    @click="runExport('excel')"
+                    class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
+                    :class="showColDd
+                      ? 'border-brand/40 bg-brand/5 text-brand'
+                      : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800'"
+                    title="Trường hiển thị trên thẻ bài"
+                    @click="openCol"
                   >
-                    Excel
+                    <AppIcon
+                      name="columns"
+                      :size="15"
+                    />
+                    <span>Cột</span>
                   </button>
+                  <ColumnVisibilityDropdown
+                    v-model="visibleCols"
+                    :show="showColDd"
+                    :columns="CARD_COLUMNS"
+                    @persist="persistVisibleColumns"
+                  />
+                </div>
+
+                <div
+                  ref="exportDdRef"
+                  class="relative"
+                >
+                  <button
+                    type="button"
+                    class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
+                    :class="showExportDd
+                      ? 'border-brand/40 bg-brand/5 text-brand'
+                      : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800'"
+                    :disabled="exporting"
+                    title="Xuất danh sách đang lọc (tối đa 200)"
+                    @click="toggleExport"
+                  >
+                    <AppIcon
+                      name="export"
+                      :size="15"
+                    />
+                    <span>{{ exporting ? 'Đang xuất…' : 'Xuất' }}</span>
+                  </button>
+                  <div
+                    v-if="showExportDd"
+                    class="absolute right-0 z-30 mt-1 min-w-[9rem] rounded-card border border-slate-200 bg-white py-1 shadow-lg"
+                  >
+                    <button
+                      type="button"
+                      class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50"
+                      @click="runExport('csv')"
+                    >
+                      CSV
+                    </button>
+                    <button
+                      type="button"
+                      class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50"
+                      @click="runExport('excel')"
+                    >
+                      Excel
+                    </button>
+                  </div>
                 </div>
               </div>
+            </div>
+
+            <div
+              v-if="hasFilterRow"
+              class="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-slate-50/30 px-4 py-2.5 sm:px-5"
+            >
+              <select
+                v-if="visibleFilters.tag && tags.length"
+                v-model="filterForm.tag"
+                class="input h-9 w-48 text-sm"
+                aria-label="Lọc theo thẻ"
+              >
+                <option value="">
+                  Tất cả thẻ
+                </option>
+                <option
+                  v-for="t in tags"
+                  :key="t.id"
+                  :value="t.slug"
+                >
+                  {{ t.name }}
+                </option>
+              </select>
+              <select
+                v-if="visibleFilters.status && options.statuses?.length"
+                v-model="filterForm.status"
+                class="input h-9 w-48 text-sm"
+                aria-label="Trạng thái bài viết"
+              >
+                <option value="">
+                  Mọi trạng thái
+                </option>
+                <option
+                  v-for="s in options.statuses"
+                  :key="s.value"
+                  :value="s.value"
+                >
+                  {{ s.label }}
+                </option>
+              </select>
             </div>
           </div>
 
           <div
-            v-if="hasFilterRow"
-            class="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-slate-50/30 px-4 py-2.5 sm:px-5"
+            v-if="!articles.data?.length"
+            class="card p-8 text-center text-sm text-slate-500"
           >
-            <select
-              v-if="visibleFilters.tag && tags.length"
-              v-model="filterForm.tag"
-              class="input h-9 w-48 text-sm"
-              aria-label="Lọc theo thẻ"
-            >
-              <option value="">
-                Tất cả thẻ
-              </option>
-              <option
-                v-for="t in tags"
-                :key="t.id"
-                :value="t.slug"
-              >
-                {{ t.name }}
-              </option>
-            </select>
-            <select
-              v-if="visibleFilters.status && options.statuses?.length"
-              v-model="filterForm.status"
-              class="input h-9 w-48 text-sm"
-              aria-label="Trạng thái bài viết"
-            >
-              <option value="">
-                Mọi trạng thái
-              </option>
-              <option
-                v-for="s in options.statuses"
-                :key="s.value"
-                :value="s.value"
-              >
-                {{ s.label }}
-              </option>
-            </select>
+            Chưa có bài viết phù hợp.
           </div>
+
+          <Link
+            v-for="a in articles.data"
+            :key="a.id"
+            :href="`/knowledge-base/articles/${a.slug}`"
+            class="card block p-4 transition hover:border-brand/30"
+          >
+            <div
+              v-if="isColVisible('status') || isColVisible('category')"
+              class="mb-1 flex flex-wrap items-center gap-2"
+            >
+              <Badge
+                v-if="isColVisible('status') && a.status"
+                :label="a.status.label"
+                color="slate"
+              />
+              <span
+                v-if="isColVisible('category') && a.category"
+                class="text-xs text-slate-400"
+              >{{ a.category.name }}</span>
+            </div>
+            <h2 class="font-display text-base font-semibold text-slate-800">
+              {{ a.title }}
+            </h2>
+            <p
+              v-if="isColVisible('excerpt') && a.excerpt"
+              class="mt-1 line-clamp-2 text-sm text-slate-500"
+            >
+              {{ a.excerpt }}
+            </p>
+            <p
+              v-if="isColVisible('tags') && a.tags?.length"
+              class="mt-2 text-xs text-slate-400"
+            >
+              {{ a.tags.map((t) => t.name).join(' · ') }}
+            </p>
+            <p class="mt-2 flex flex-wrap gap-3 text-xs text-slate-400">
+              <span v-if="isColVisible('views')">{{ a.view_count }} lượt xem</span>
+              <span v-if="isColVisible('author') && a.author">{{ a.author.full_name }}</span>
+              <span v-if="isColVisible('updated') && a.updated_at">{{ datetime(a.updated_at) }}</span>
+            </p>
+          </Link>
+
+          <DatagridPaginationFooter
+            v-if="articles.meta"
+            variant="bar"
+            :meta="articles.meta"
+            :per-page="perPage"
+            :per-page-options="PER_PAGE_OPTIONS"
+            @update:per-page="onPerPageChange"
+          />
         </div>
-
-        <div
-          v-if="!articles.data?.length"
-          class="card p-8 text-center text-sm text-slate-500"
-        >
-          Chưa có bài viết phù hợp.
-        </div>
-
-        <Link
-          v-for="a in articles.data"
-          :key="a.id"
-          :href="`/knowledge-base/articles/${a.slug}`"
-          class="card block p-4 transition hover:border-brand/30"
-        >
-          <div
-            v-if="isColVisible('status') || isColVisible('category')"
-            class="mb-1 flex flex-wrap items-center gap-2"
-          >
-            <Badge
-              v-if="isColVisible('status') && a.status"
-              :label="a.status.label"
-              color="slate"
-            />
-            <span
-              v-if="isColVisible('category') && a.category"
-              class="text-xs text-slate-400"
-            >{{ a.category.name }}</span>
-          </div>
-          <h2 class="font-display text-base font-semibold text-slate-800">
-            {{ a.title }}
-          </h2>
-          <p
-            v-if="isColVisible('excerpt') && a.excerpt"
-            class="mt-1 line-clamp-2 text-sm text-slate-500"
-          >
-            {{ a.excerpt }}
-          </p>
-          <p
-            v-if="isColVisible('tags') && a.tags?.length"
-            class="mt-2 text-xs text-slate-400"
-          >
-            {{ a.tags.map((t) => t.name).join(' · ') }}
-          </p>
-          <p class="mt-2 flex flex-wrap gap-3 text-xs text-slate-400">
-            <span v-if="isColVisible('views')">{{ a.view_count }} lượt xem</span>
-            <span v-if="isColVisible('author') && a.author">{{ a.author.full_name }}</span>
-            <span v-if="isColVisible('updated') && a.updated_at">{{ datetime(a.updated_at) }}</span>
-          </p>
-        </Link>
-
-        <DatagridPaginationFooter
-          v-if="articles.meta"
-          variant="bar"
-          :meta="articles.meta"
-          :per-page="perPage"
-          :per-page-options="PER_PAGE_OPTIONS"
-          @update:per-page="onPerPageChange"
-        />
       </div>
     </div>
   </AppLayout>

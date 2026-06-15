@@ -246,162 +246,170 @@ async function removeCourse(c) {
 
     <CoachingWorkspace>
       <div class="card overflow-visible">
-        <div class="flex flex-col gap-2.5 border-b border-slate-100 bg-slate-50/40 px-5 py-3.5 lg:flex-row lg:items-center">
-          <DatagridToolbarSearch
-            v-model="filterForm.q"
-            input-id="coaching-course-search"
-            placeholder="Mã, tên khóa, học viên, coach…"
-          />
-
-          <div class="flex shrink-0 flex-wrap items-center gap-2">
-            <div
-              ref="filterDdRef"
-              class="relative"
-            >
-              <button
-                type="button"
-                class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
-                :class="showFilterPanelDd
-                  ? 'border-brand/40 bg-brand/5 text-brand'
-                  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800'"
-                :title="`Hiển thị bộ lọc (${enabledFilterControlCount}/${FILTER_CONTROLS.length})`"
-                @click="openFilter"
-              >
-                <AppIcon
-                  name="filter"
-                  :size="15"
-                />
-                <span>Lọc</span>
-              </button>
-              <FilterVisibilityDropdown
-                v-model="visibleFilters"
-                :show="showFilterPanelDd"
-                :anchor-ref="filterDdRef"
-                :controls="FILTER_CONTROLS"
-                @persist="persistVisibleFilters"
+        <div class="border-b border-slate-100 bg-slate-50/40 px-5 py-3.5 lg:py-4">
+          <div class="flex w-full min-w-0 flex-wrap items-center gap-2 lg:flex-nowrap">
+            <div class="min-w-0 w-full basis-full lg:min-w-[10rem] lg:flex-1 lg:basis-auto">
+              <DatagridToolbarSearch
+                v-model="filterForm.q"
+                input-id="coaching-course-search"
+                placeholder="Mã, tên khóa, học viên, coach…"
+                stretch
+                inline-actions
+                hide-label
+                input-height="h-10"
               />
             </div>
 
-            <div
-              ref="colDdRef"
-              class="relative"
-            >
-              <button
-                type="button"
-                class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
-                :class="showColDd
-                  ? 'border-brand/40 bg-brand/5 text-brand'
-                  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800'"
-                title="Cột hiển thị"
-                @click="openCol"
-              >
-                <AppIcon
-                  name="columns"
-                  :size="15"
-                />
-                <span>Cột</span>
-              </button>
-              <ColumnVisibilityDropdown
-                v-model="visibleCols"
-                :show="showColDd"
-                :columns="TABLE_COLUMNS"
-                :fixed-labels="['Khóa học', 'Thao tác']"
-                @persist="persistVisibleColumns"
-              />
-            </div>
-
-            <div
-              ref="exportDdRef"
-              class="relative"
-            >
-              <button
-                type="button"
-                class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
-                :class="showExportDd
-                  ? 'border-brand/40 bg-brand/5 text-brand'
-                  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800'"
-                title="Xuất danh sách"
-                @click="toggleExport"
-              >
-                <AppIcon
-                  name="export"
-                  :size="15"
-                />
-                <span>Xuất</span>
-              </button>
+            <div class="flex shrink-0 flex-wrap items-center gap-2">
               <div
-                v-if="showExportDd"
-                class="absolute right-0 z-30 mt-1 min-w-[9rem] rounded-card border border-slate-200 bg-white py-1 shadow-lg"
+                ref="filterDdRef"
+                class="relative"
               >
                 <button
                   type="button"
-                  class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50"
-                  @click="doExportCsv"
+                  class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
+                  :class="showFilterPanelDd
+                    ? 'border-brand/40 bg-brand/5 text-brand'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800'"
+                  :title="`Hiển thị bộ lọc (${enabledFilterControlCount}/${FILTER_CONTROLS.length})`"
+                  @click="openFilter"
                 >
-                  CSV
+                  <AppIcon
+                    name="filter"
+                    :size="15"
+                  />
+                  <span>Lọc</span>
+                </button>
+                <FilterVisibilityDropdown
+                  v-model="visibleFilters"
+                  :show="showFilterPanelDd"
+                  :anchor-ref="filterDdRef"
+                  :controls="FILTER_CONTROLS"
+                  @persist="persistVisibleFilters"
+                />
+              </div>
+
+              <div
+                ref="colDdRef"
+                class="relative"
+              >
+                <button
+                  type="button"
+                  class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
+                  :class="showColDd
+                    ? 'border-brand/40 bg-brand/5 text-brand'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800'"
+                  title="Cột hiển thị"
+                  @click="openCol"
+                >
+                  <AppIcon
+                    name="columns"
+                    :size="15"
+                  />
+                  <span>Cột</span>
+                </button>
+                <ColumnVisibilityDropdown
+                  v-model="visibleCols"
+                  :show="showColDd"
+                  :columns="TABLE_COLUMNS"
+                  :fixed-labels="['Khóa học', 'Thao tác']"
+                  @persist="persistVisibleColumns"
+                />
+              </div>
+
+              <div
+                ref="exportDdRef"
+                class="relative"
+              >
+                <button
+                  type="button"
+                  class="inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border px-2.5 text-xs font-medium transition select-none"
+                  :class="showExportDd
+                    ? 'border-brand/40 bg-brand/5 text-brand'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-800'"
+                  title="Xuất danh sách"
+                  @click="toggleExport"
+                >
+                  <AppIcon
+                    name="export"
+                    :size="15"
+                  />
+                  <span>Xuất</span>
+                </button>
+                <div
+                  v-if="showExportDd"
+                  class="absolute right-0 z-30 mt-1 min-w-[9rem] rounded-card border border-slate-200 bg-white py-1 shadow-lg"
+                >
+                  <button
+                    type="button"
+                    class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50"
+                    @click="doExportCsv"
+                  >
+                    CSV
+                  </button>
+                  <button
+                    type="button"
+                    class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50"
+                    @click="doExportExcel"
+                  >
+                    Excel
+                  </button>
+                </div>
+              </div>
+
+              <div class="flex rounded-btn border border-slate-200 p-0.5">
+                <button
+                  type="button"
+                  class="inline-flex h-8 items-center gap-1 rounded-btn px-2.5 text-xs font-medium transition"
+                  :class="viewMode === 'cards' ? 'bg-brand/10 text-brand' : 'text-slate-500 hover:text-slate-700'"
+                  title="Thẻ"
+                  @click="setViewMode('cards')"
+                >
+                  <AppIcon
+                    name="grid"
+                    :size="14"
+                  />
+                  Thẻ
                 </button>
                 <button
                   type="button"
-                  class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50"
-                  @click="doExportExcel"
+                  class="inline-flex h-8 items-center gap-1 rounded-btn px-2.5 text-xs font-medium transition"
+                  :class="viewMode === 'table' ? 'bg-brand/10 text-brand' : 'text-slate-500 hover:text-slate-700'"
+                  title="Bảng"
+                  @click="setViewMode('table')"
                 >
-                  Excel
+                  <AppIcon
+                    name="list"
+                    :size="14"
+                  />
+                  Bảng
                 </button>
               </div>
             </div>
-
-            <div class="flex rounded-btn border border-slate-200 p-0.5">
-              <button
-                type="button"
-                class="inline-flex h-8 items-center gap-1 rounded-btn px-2.5 text-xs font-medium transition"
-                :class="viewMode === 'cards' ? 'bg-brand/10 text-brand' : 'text-slate-500 hover:text-slate-700'"
-                title="Thẻ"
-                @click="setViewMode('cards')"
-              >
-                <AppIcon
-                  name="grid"
-                  :size="14"
-                />
-                Thẻ
-              </button>
-              <button
-                type="button"
-                class="inline-flex h-8 items-center gap-1 rounded-btn px-2.5 text-xs font-medium transition"
-                :class="viewMode === 'table' ? 'bg-brand/10 text-brand' : 'text-slate-500 hover:text-slate-700'"
-                title="Bảng"
-                @click="setViewMode('table')"
-              >
-                <AppIcon
-                  name="list"
-                  :size="14"
-                />
-                Bảng
-              </button>
-            </div>
           </div>
-        </div>
 
-        <div
-          v-if="hasFilterRow"
-          class="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-slate-50/30 px-5 py-2.5"
-        >
-          <select
-            v-if="visibleFilters.status"
-            v-model="filterForm.status"
-            class="input h-9 w-48 text-sm"
-            aria-label="Trạng thái khóa học"
+          <div
+            v-if="hasFilterRow"
+            class="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-slate-50/30 px-5 py-2.5"
           >
-            <option value="">
-              Trạng thái (tất cả)
-            </option>
-            <option
-              v-for="s in options.statuses"
-              :key="s.value"
-              :value="s.value"
+            <select
+              v-if="visibleFilters.status"
+              v-model="filterForm.status"
+              class="input h-9 w-48 text-sm"
+              aria-label="Trạng thái khóa học"
             >
-              {{ s.label }}
-            </option>
-          </select>
+              <option value="">
+                Trạng thái (tất cả)
+              </option>
+              <option
+                v-for="s in options.statuses"
+                :key="s.value"
+                :value="s.value"
+              >
+                {{ s.label }}
+              </option>
+            </select>
+          </div>
         </div>
 
         <!-- Cards -->

@@ -56,6 +56,9 @@ const preview = [
         v-model="searchQuery"
         input-id="daily-reports-review-search"
         placeholder="Tên nhân viên, tiêu đề, ngày…"
+        stretch
+        hide-label
+        input-height="h-10"
       />
     </div>
 

@@ -22,6 +22,16 @@ class MemberController extends Controller
         $this->authorize('viewAny', Employee::class);
 
         $query = Employee::query()
+            ->select([
+                'id',
+                'code',
+                'full_name',
+                'avatar_path',
+                'role_title',
+                'email',
+                'is_active',
+                'skills',
+            ])
             ->withCount('projects')
             ->orderBy('full_name');
 
@@ -51,12 +61,26 @@ class MemberController extends Controller
                 $query->paginate($perPage)->withQueryString(),
             ),
             'filters' => (object) $request->only(['q', 'status', 'per_page']),
-            'summary' => [
-                'total' => Employee::count(),
-                'active' => Employee::where('is_active', true)->count(),
-                'inactive' => Employee::where('is_active', false)->count(),
-            ],
+            'summary' => $this->memberDirectorySummary(),
         ]);
+    }
+
+    /**
+     * @return array{total: int, active: int, inactive: int}
+     */
+    private function memberDirectorySummary(): array
+    {
+        $row = Employee::query()
+            ->selectRaw('COUNT(*) as total')
+            ->selectRaw('SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as active')
+            ->selectRaw('SUM(CASE WHEN is_active = 0 THEN 1 ELSE 0 END) as inactive')
+            ->first();
+
+        return [
+            'total' => (int) ($row->total ?? 0),
+            'active' => (int) ($row->active ?? 0),
+            'inactive' => (int) ($row->inactive ?? 0),
+        ];
     }
 
     public function show(Request $request, Employee $employee): Response

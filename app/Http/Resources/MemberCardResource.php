@@ -29,6 +29,7 @@ class MemberCardResource extends JsonResource
             'name' => $e->full_name,
             'avatar_path' => PublicMediaUrl::fromPublicDisk($e->avatar_path),
             'role_title' => $e->role_title,
+            'email' => $e->email,
             'is_active' => (bool) $e->is_active,
             'seniority' => Seniority::for($e),
             'skills_preview' => array_slice($skills, 0, 5),

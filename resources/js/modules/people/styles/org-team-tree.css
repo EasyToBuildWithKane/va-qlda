@@ -106,6 +106,17 @@
     display: none;
 }
 
+/* Cầu dọc ngắn từ stem trưởng nhóm xuống bus khi có nhiều thành viên */
+.org-tree__leader + .org-tree__connector + .org-tree__members-section:has(.org-tree__members-row--multi)::before {
+    display: block;
+    content: '';
+    width: var(--org-tree-line-width);
+    height: 0.5rem;
+    margin: 0 auto 0;
+    background: var(--org-tree-line);
+    border-radius: 2px;
+}
+
 .org-tree__members-section {
     width: 100%;
     max-width: 100%;
@@ -169,8 +180,12 @@
 }
 
 /* Hàng nhiều thành viên — bus ngang từ tâm thẻ đầu → tâm thẻ cuối */
-.org-tree__members-row--multi > .org-tree__members-item {
+.org-tree__members-row--multi {
     padding-top: 1.5rem;
+}
+
+.org-tree__members-row--multi > .org-tree__members-item {
+    padding-top: 0;
 }
 
 .org-tree__members-row--multi > .org-tree__members-item::before,
@@ -183,10 +198,23 @@
     pointer-events: none;
 }
 
+/* Mỗi cột: đoạn ngang nối tâm các thẻ (đầu/cuối/giữa) */
 .org-tree__members-row--multi > .org-tree__members-item::before {
-    right: 50%;
-    width: 50%;
+    left: 0;
+    right: 0;
     height: var(--org-tree-line-width);
+}
+
+.org-tree__members-row--multi > .org-tree__members-item:first-child::before {
+    left: 50%;
+}
+
+.org-tree__members-row--multi > .org-tree__members-item:last-child::before {
+    right: 50%;
+}
+
+.org-tree__members-row--multi > .org-tree__members-item:only-child::before {
+    display: none;
 }
 
 .org-tree__members-row--multi > .org-tree__members-item::after {
@@ -196,12 +224,7 @@
     margin-left: calc(var(--org-tree-line-width) / -2);
 }
 
-.org-tree__members-row--multi > .org-tree__members-item:only-child::before,
 .org-tree__members-row--multi > .org-tree__members-item:only-child::after {
-    display: none;
-}
-
-.org-tree__members-row--multi > .org-tree__members-item:first-child::before {
     display: none;
 }
 
@@ -229,6 +252,10 @@
     margin: 0 auto;
     background: var(--org-tree-line);
     border-radius: 2px;
+}
+
+.org-tree__people:not(:has(.org-tree__leader)) > .org-tree__members-section:has(.org-tree__members-row--multi)::before {
+    height: 1.5rem;
 }
 
 .org-tree__empty-hint {

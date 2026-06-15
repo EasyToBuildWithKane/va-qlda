@@ -359,6 +359,44 @@ const headColCount = computed(() => {
 function rowStableId(row) {
     return row?.id ?? `${row?.proposal_code ?? ''}-${row?.user_name ?? ''}`;
 }
+
+const activeFilterCount = computed(() => {
+    let n = 0;
+    if (department.value !== 'all') n += 1;
+    if (groupFunction.value !== 'all') n += 1;
+    if (tool.value !== 'all') n += 1;
+    if (vendor.value !== 'all') n += 1;
+    if (status.value !== 'all') n += 1;
+    if (lifecycleStatus.value !== 'all') n += 1;
+    if (proposalStatus.value !== 'all') n += 1;
+    if (proposer.value !== 'all') n += 1;
+    if (purchaseFrom.value || purchaseTo.value) n += 1;
+    if (expiryFrom.value || expiryTo.value) n += 1;
+    if (createdFrom.value || createdTo.value) n += 1;
+    if (costMin.value !== '' || costMax.value !== '') n += 1;
+    return n;
+});
+
+function clearAllFilters() {
+    search.value = '';
+    department.value = 'all';
+    groupFunction.value = 'all';
+    tool.value = 'all';
+    vendor.value = 'all';
+    status.value = 'all';
+    lifecycleStatus.value = 'all';
+    proposalStatus.value = 'all';
+    proposer.value = 'all';
+    purchaseFrom.value = '';
+    purchaseTo.value = '';
+    expiryFrom.value = '';
+    expiryTo.value = '';
+    createdFrom.value = '';
+    createdTo.value = '';
+    costMin.value = '';
+    costMax.value = '';
+    void loadReport();
+}
 </script>
 
 <template>
@@ -376,17 +414,19 @@ function rowStableId(row) {
     <div class="card overflow-visible shadow-sm">
       <div class="relative z-20 overflow-visible border-b border-slate-100 px-5 py-4 dark:border-slate-700">
         <div class="flex w-full min-w-0 flex-wrap items-center gap-2 lg:flex-nowrap">
-          <div class="min-w-0 w-full basis-full lg:flex-1 lg:basis-auto">
+          <div class="min-w-0 w-full basis-full lg:min-w-[10rem] lg:flex-1 lg:basis-auto">
             <DatagridToolbarSearch
               v-model="search"
               input-id="ai-analytics-search"
               placeholder="Mã hồ sơ, sản phẩm, người dùng…"
+              stretch
+              inline-actions
+              hide-label
               input-height="h-10"
-              cap-input-width
             />
           </div>
 
-          <div class="flex shrink-0 flex-wrap items-center gap-2">
+          <div class="flex shrink-0 items-center gap-2">
             <div
               ref="filterPanelDdRef"
               class="relative shrink-0"
@@ -465,6 +505,7 @@ function rowStableId(row) {
                 icon="export"
                 :active="showExportDd"
                 :disabled="exporting || loading"
+                title="Xuất Excel báo cáo phân tích"
                 @click="openExportMenu"
               >
                 {{ exporting ? 'Đang xuất…' : 'Xuất' }}
@@ -492,7 +533,7 @@ function rowStableId(row) {
             </div>
           </div>
 
-          <div class="ml-auto min-w-0 shrink-0 sm:max-w-[14rem] sm:flex-1 lg:max-w-xs">
+          <div class="ml-auto flex w-full min-w-0 shrink-0 basis-full sm:w-auto sm:max-w-xs sm:basis-auto lg:min-w-[11rem]">
             <select
               v-model="groupBy"
               :class="FILTER_CONTROL_CLASS"
@@ -511,6 +552,14 @@ function rowStableId(row) {
             </select>
           </div>
         </div>
+
+        <p
+          v-if="!hasFilterRow && (activeFilterCount > 0 || search.trim())"
+          class="mt-2 text-xs text-slate-500"
+        >
+          <span v-if="activeFilterCount > 0">{{ activeFilterCount }} bộ lọc đang áp dụng</span>
+          <span v-if="search.trim()"><span v-if="activeFilterCount > 0"> · </span>«{{ search.trim() }}»</span>
+        </p>
 
         <Transition name="fade-slide">
           <div
@@ -724,6 +773,19 @@ function rowStableId(row) {
                   aria-label="Chi phí tối đa"
                 >
               </div>
+            </div>
+
+            <div
+              v-if="activeFilterCount > 0 || search.trim()"
+              class="col-span-full flex justify-end pt-0.5"
+            >
+              <button
+                type="button"
+                class="inline-flex h-10 items-center px-2 text-xs font-medium text-brand hover:underline"
+                @click="clearAllFilters"
+              >
+                Đặt lại bộ lọc
+              </button>
             </div>
           </div>
         </Transition>
