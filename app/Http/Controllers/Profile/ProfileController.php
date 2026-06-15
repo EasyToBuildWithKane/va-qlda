@@ -128,7 +128,7 @@ class ProfileController extends Controller
         $names = [];
         $details = [];
         foreach ($skills as $s) {
-            $name = trim((string) ($s['name'] ?? ''));
+            $name = trim((string) ($s['name'] ?? $s['title'] ?? ''));
             if ($name === '') {
                 continue;
             }

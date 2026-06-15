@@ -1,8 +1,9 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import Drawer from '@/Components/Ui/Drawer.vue';
 import AppIcon from '@/Components/AppIcon.vue';
+import { skillItemTitle } from '../utils/skillItemTitle';
 
 const props = defineProps({
     show: { type: Boolean, default: false },
@@ -28,7 +29,7 @@ const groupSuggestions = computed(() => {
 function initialSkills() {
     return (props.profile.skills?.groups || []).flatMap((g) =>
         g.items.map((i) => ({
-            name: i.name,
+            name: skillItemTitle(i) ?? '',
             category: i.category || g.label || DEFAULT_GROUP,
             level: i.level ?? 3,
             years: i.years ?? '',
@@ -38,6 +39,16 @@ function initialSkills() {
 }
 
 const form = useForm({ skills: initialSkills() });
+
+watch(
+    () => props.show,
+    (open) => {
+        if (open) {
+            form.clearErrors();
+            form.skills = initialSkills();
+        }
+    },
+);
 
 function addSkill() {
     if (form.skills.length < 40) {
@@ -65,7 +76,7 @@ function submit() {
                     category: s.category?.trim() || DEFAULT_GROUP,
                 })),
         }))
-        .put('/profile', {
+        .put(route('profile.update'), {
             preserveScroll: true,
             onSuccess: () => emit('close'),
         });
@@ -100,12 +111,14 @@ function submit() {
           :key="i"
           class="rounded-xl border border-slate-200/80 bg-slate-50/60 p-3"
         >
-          <div class="flex items-center gap-2">
+          <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-2">
+            <label class="sr-only">Tiêu đề kỹ năng</label>
             <input
               v-model="s.name"
               type="text"
               class="input flex-1"
-              placeholder="Tên kỹ năng (VD: Laravel)"
+              placeholder="Tiêu đề / tên kỹ năng (bắt buộc)"
+              aria-label="Tiêu đề kỹ năng"
             >
             <button
               type="button"

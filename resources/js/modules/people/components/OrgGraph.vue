@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch, onMounted, nextTick } from 'vue';
+import { computed, ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import OrgGraphNode from './OrgGraphNode.vue';
 import { useOrgGraphLayout } from '@/modules/people/composables/useOrgGraphLayout.js';
@@ -11,6 +11,8 @@ const props = defineProps({
     filter: { type: Object, default: () => ({ query: '', rootId: null, role: 'all', status: 'all' }) },
     /** Mở toàn bộ nhánh thành viên khi mount (landing / nhúng). */
     initialExpandAll: { type: Boolean, default: false },
+    /** Chế độ "cứng": ẩn thanh công cụ/zoom, khóa pan + cuộn, chỉ cho bấm xem chi tiết. */
+    readonly: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['select-person', 'select-leader']);
@@ -122,7 +124,12 @@ function collapseAll() {
 /* ---- viewport fitting ---- */
 let fittedOnce = false;
 function fit() {
-    vp.fitTo(graph.value.width, graph.value.height, { maxInitialScale: 1, padding: 24 });
+    vp.fitTo(graph.value.width, graph.value.height, {
+        // Locked landing view fills the available width (cards render larger);
+        // the interactive view never upscales past 1×.
+        maxInitialScale: props.readonly ? 1.8 : 1,
+        padding: props.readonly ? 40 : 24,
+    });
 }
 function applyInitialExpansion() {
     if (props.initialExpandAll) {
@@ -132,10 +139,25 @@ function applyInitialExpansion() {
     }
 }
 
+/* Keep the locked view fitted to its (full-width) container on resize. */
+let resizeRaf = 0;
+function onResize() {
+    cancelAnimationFrame(resizeRaf);
+    resizeRaf = requestAnimationFrame(fit);
+}
+
 onMounted(() => {
     vp.bindViewport(viewportRef.value);
     applyInitialExpansion();
     nextTick(fit);
+    if (props.readonly) {
+        window.addEventListener('resize', onResize, { passive: true });
+    }
+});
+
+onBeforeUnmount(() => {
+    window.removeEventListener('resize', onResize);
+    cancelAnimationFrame(resizeRaf);
 });
 watch(() => props.trees, () => {
     fittedOnce = false;
@@ -162,9 +184,15 @@ watch(
 </script>
 
 <template>
-  <div class="org-graph">
+  <div
+    class="org-graph"
+    :class="{ 'org-graph--readonly': readonly }"
+  >
     <!-- top toolbar -->
-    <div class="org-graph__toolbar">
+    <div
+      v-if="!readonly"
+      class="org-graph__toolbar"
+    >
       <div class="org-graph__cluster">
         <button
           type="button"
@@ -204,9 +232,9 @@ watch(
     <div
       ref="viewportRef"
       class="org-graph__viewport"
-      :class="{ 'is-panning': vp.isPanning.value }"
-      @wheel="vp.onWheel"
-      @pointerdown="vp.onPointerDown"
+      :class="{ 'is-panning': vp.isPanning.value, 'is-readonly': readonly }"
+      @wheel="readonly || vp.onWheel($event)"
+      @pointerdown="readonly || vp.onPointerDown($event)"
     >
       <div
         class="org-graph__ambient"
@@ -226,6 +254,7 @@ watch(
           :key="node.revealKey"
           :node="node"
           :index="i"
+          :readonly="readonly"
           @toggle-members="toggleMembers"
           @toggle-subteams="toggleSubteams"
           @select-person="emit('select-person', $event)"
@@ -276,7 +305,10 @@ watch(
       </div>
 
       <!-- zoom controls -->
-      <div class="org-graph__zoom">
+      <div
+        v-if="!readonly"
+        class="org-graph__zoom"
+      >
         <button
           type="button"
           class="org-graph__zoombtn"
@@ -381,6 +413,14 @@ watch(
 
 .org-graph__viewport.is-panning {
     cursor: grabbing;
+}
+
+/* Locked landing view: no pan/zoom affordances, taller + wider canvas. */
+.org-graph--readonly .org-graph__viewport,
+.org-graph__viewport.is-readonly {
+    cursor: default;
+    height: clamp(520px, 78vh, 900px);
+    touch-action: auto;
 }
 
 .org-graph__ambient {

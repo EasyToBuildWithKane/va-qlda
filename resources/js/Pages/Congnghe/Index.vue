@@ -20,7 +20,7 @@ defineProps({
     metrics: { type: Object, default: () => ({}) },
     phases: { type: Array, default: () => [] },
     products: { type: Array, default: () => [] },
-    org: { type: Object, default: () => ({ overview: {}, forest: [] }) },
+    org: { type: Object, default: () => ({ overview: {}, forest: [], people: {} }) },
 });
 </script>
 
@@ -42,6 +42,7 @@ defineProps({
       <OrgChartSection
         :overview="org.overview"
         :forest="org.forest"
+        :people="org.people"
       />
       <ProjectTimeline :phases="phases" />
       <AILabSection :metrics="metrics" />

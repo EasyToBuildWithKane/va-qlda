@@ -27,7 +27,7 @@ class ProfileStats
         $details = is_array($meta['skill_details'] ?? null) ? $meta['skill_details'] : [];
 
         $radar = self::skillRadar($employee->skills, $details);
-        $skillScore = self::skillScore($details);
+        $skillScore = self::skillScore($employee->skills, $details);
 
         $taskAgg = Task::query()
             ->where('assignee_id', $employee->id)
@@ -41,7 +41,7 @@ class ProfileStats
         return [
             'profile_completion' => self::completion($employee, $meta),
             'skill_score' => $skillScore,
-            'rated_skills' => self::ratedSkillCount($details),
+            'rated_skills' => self::ratedSkillCount($employee->skills, $details),
             'total_skills' => is_array($employee->skills) ? count($employee->skills) : 0,
             'tenure' => self::tenure($employee),
             'projects_total' => self::projectsTotal($employee),
@@ -76,25 +76,32 @@ class ProfileStats
     }
 
     /**
+     * @param  array<int, string>|null  $skills
      * @param  array<int, array<string, mixed>>  $details
      */
-    private static function skillScore(array $details): ?int
+    private static function skillScore(?array $skills, array $details): ?int
     {
-        $levels = self::levels($details);
+        $levels = self::builtSkillLevels($skills, $details);
 
         return $levels === [] ? null : (int) round(array_sum($levels) / count($levels) / 5 * 100);
     }
 
     /**
+     * Mức độ 1–5 của từng kỹ năng sau khi gộp skills + skill_details (cùng nguồn ma trận/radar).
+     *
+     * @param  array<int, string>|null  $skills
      * @param  array<int, array<string, mixed>>  $details
      * @return list<int>
      */
-    private static function levels(array $details): array
+    private static function builtSkillLevels(?array $skills, array $details): array
     {
+        $built = SkillCatalog::build($skills, $details);
         $levels = [];
-        foreach ($details as $d) {
-            if (is_array($d) && isset($d['level']) && is_numeric($d['level'])) {
-                $levels[] = max(1, min(5, (int) $d['level']));
+        foreach ($built['groups'] as $group) {
+            foreach ($group['items'] as $item) {
+                if (isset($item['level']) && is_numeric($item['level'])) {
+                    $levels[] = max(1, min(5, (int) $item['level']));
+                }
             }
         }
 
@@ -102,11 +109,12 @@ class ProfileStats
     }
 
     /**
+     * @param  array<int, string>|null  $skills
      * @param  array<int, array<string, mixed>>  $details
      */
-    private static function ratedSkillCount(array $details): int
+    private static function ratedSkillCount(?array $skills, array $details): int
     {
-        return count(self::levels($details));
+        return count(self::builtSkillLevels($skills, $details));
     }
 
     /**

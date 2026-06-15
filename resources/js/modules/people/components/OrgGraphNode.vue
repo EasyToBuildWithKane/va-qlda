@@ -6,6 +6,8 @@ import AppIcon from '@/Components/AppIcon.vue';
 const props = defineProps({
     node: { type: Object, required: true },
     index: { type: Number, default: 0 },
+    /** Khóa tương tác cấu trúc (không cho thu/mở nhánh); vẫn cho bấm xem chi tiết. */
+    readonly: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['toggle-members', 'toggle-subteams', 'select-person', 'select-leader']);
@@ -49,6 +51,7 @@ const personSubtitle = computed(() => {
 });
 
 function onTeamPrimary() {
+    if (props.readonly) return;
     if (props.node.hasMembers) emit('toggle-members', props.node);
     else if (props.node.hasSubteams) emit('toggle-subteams', props.node);
 }
@@ -93,8 +96,9 @@ function onTeamPrimary() {
     <div
       v-else-if="node.type === 'team'"
       class="org-node__surface group"
-      role="button"
-      tabindex="0"
+      :class="{ 'org-node__surface--locked': readonly }"
+      :role="readonly ? undefined : 'button'"
+      :tabindex="readonly ? undefined : 0"
       @click="onTeamPrimary"
       @keydown.enter.prevent="onTeamPrimary"
       @keydown.space.prevent="onTeamPrimary"
@@ -160,7 +164,7 @@ function onTeamPrimary() {
           {{ node.peopleCount }}
         </span>
         <span
-          v-if="node.hasMembers"
+          v-if="!readonly && node.hasMembers"
           class="org-node__toggle"
         >
           <AppIcon
@@ -170,7 +174,7 @@ function onTeamPrimary() {
           {{ node.expanded ? 'Ẩn' : 'Thành viên' }}
         </span>
         <span
-          v-else-if="node.hasSubteams"
+          v-else-if="!readonly && node.hasSubteams"
           class="org-node__toggle"
         >
           <AppIcon
@@ -328,6 +332,17 @@ function onTeamPrimary() {
     transform: translateY(-3px);
     border-color: rgba(154, 0, 54, 0.4);
     box-shadow: 0 18px 38px -18px rgba(154, 0, 54, 0.5);
+}
+
+/* Locked team card: rigid, no toggle affordance. */
+.org-node--team .org-node__surface--locked {
+    cursor: default;
+}
+
+.org-node--team .org-node__surface--locked:hover {
+    transform: none;
+    border-color: rgba(148, 163, 184, 0.28);
+    box-shadow: 0 10px 26px -18px rgba(15, 23, 42, 0.45);
 }
 
 .org-node--team .org-node__surface:focus-visible,

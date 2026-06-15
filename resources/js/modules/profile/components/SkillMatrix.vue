@@ -4,6 +4,8 @@ import AppIcon from '@/Components/AppIcon.vue';
 import EmptyState from '@/shared/ui/EmptyState.vue';
 import ProfileInfoPanel from './ProfileInfoPanel.vue';
 import { skillGroupTone, skillLevelLabel } from '../utils/skillGroupTone';
+import { skillItemTitle } from '../utils/skillItemTitle';
+import { profileDisplayValue } from '../utils/profileDisplay';
 
 const props = defineProps({
     skills: { type: Object, required: true },
@@ -92,18 +94,18 @@ const matrixBadge = computed(() => {
             class="space-y-3 border-t border-slate-100 p-3.5"
           >
             <li
-              v-for="item in group.items"
-              :key="item.name"
+              v-for="(item, itemIdx) in group.items"
+              :key="`${group.key}-${itemIdx}-${item.name || item.note || ''}`"
               class="rounded-xl border border-slate-100 bg-white px-3.5 py-3 ring-1 ring-inset"
               :class="skillGroupTone(group.key).ringClass"
             >
               <div class="mb-2 flex items-start justify-between gap-3">
                 <div class="min-w-0">
                   <p class="text-[13px] font-semibold text-slate-800">
-                    {{ item.name }}
+                    {{ skillItemTitle(item) ?? profileDisplayValue(null) }}
                   </p>
                   <p
-                    v-if="item.note"
+                    v-if="item.note && skillItemTitle(item) !== item.note?.trim()"
                     class="mt-0.5 text-[11.5px] leading-snug text-slate-500"
                   >
                     {{ item.note }}
@@ -128,7 +130,7 @@ const matrixBadge = computed(() => {
                 :aria-valuenow="barPercent(item)"
                 aria-valuemin="0"
                 aria-valuemax="100"
-                :aria-label="`${item.name} — mức ${skillLevelLabel(item.level)}`"
+                :aria-label="`${skillItemTitle(item) ?? 'Kỹ năng'} — mức ${skillLevelLabel(item.level)}`"
               >
                 <div
                   class="h-full rounded-full transition-[width] duration-500 ease-out"

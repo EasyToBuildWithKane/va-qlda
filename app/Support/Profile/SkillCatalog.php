@@ -98,11 +98,14 @@ class SkillCatalog
         }
 
         foreach ($details ?? [] as $detail) {
-            $name = is_array($detail) ? ($detail['name'] ?? null) : null;
-            if (! is_string($name) || trim($name) === '') {
+            if (! is_array($detail)) {
                 continue;
             }
-            $key = Str::lower(trim($name));
+            $name = self::detailName($detail);
+            if ($name === '') {
+                continue;
+            }
+            $key = Str::lower($name);
             $category = isset($detail['category']) && trim((string) $detail['category']) !== ''
                 ? trim((string) $detail['category'])
                 : self::DEFAULT_GROUP;
@@ -185,7 +188,7 @@ class SkillCatalog
     private static function blankSkill(string $raw, string $category): array
     {
         return [
-            'name' => self::displayName($raw),
+            'name' => trim($raw),
             'category' => $category,
             'level' => 3,
             'percent' => null,
@@ -201,8 +204,10 @@ class SkillCatalog
      */
     private static function filledSkill(string $name, string $category, int $level, array $detail): array
     {
+        $trimmed = trim($name);
+
         return [
-            'name' => self::displayName($name),
+            'name' => $trimmed,
             'category' => $category,
             'level' => $level,
             'percent' => null,
@@ -262,5 +267,23 @@ class SkillCatalog
         }
 
         return 'other';
+    }
+
+    /**
+     * @param  array<string, mixed>  $detail
+     */
+    private static function detailName(array $detail): string
+    {
+        foreach (['name', 'title', 'label'] as $key) {
+            if (! isset($detail[$key])) {
+                continue;
+            }
+            $value = trim((string) $detail[$key]);
+            if ($value !== '') {
+                return $value;
+            }
+        }
+
+        return '';
     }
 }

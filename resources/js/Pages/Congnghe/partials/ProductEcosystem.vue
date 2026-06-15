@@ -4,6 +4,7 @@ import { usePage } from '@inertiajs/vue3';
 import SectionHeading from './SectionHeading.vue';
 import GlassCard from './GlassCard.vue';
 import MagneticButton from './MagneticButton.vue';
+import Avatar from '@/shared/ui/Avatar.vue';
 import { tone } from './tones.js';
 
 defineProps({
@@ -29,8 +30,8 @@ function scrollBy(dir) {
       <div class="flex flex-wrap items-end justify-between gap-6">
         <SectionHeading
           eyebrow="Hệ sinh thái sản phẩm"
-          title="Những nền tảng đang vận hành"
-          subtitle="Các sản phẩm phần mềm do Phòng Công Nghệ phát triển và duy trì, phục vụ trực tiếp công việc hằng ngày."
+          title="Những nền tảng đã hoàn thành"
+          subtitle="Các sản phẩm đã nghiệm thu và đưa vào vận hành — thành quả do Phòng Công Nghệ phát triển, phục vụ trực tiếp công việc hằng ngày."
         />
         <div
           v-if="products.length"
@@ -66,7 +67,7 @@ function scrollBy(dir) {
           :key="product.id"
           tilt
           :padded="false"
-          class="w-[310px] shrink-0 snap-start p-6"
+          class="flex w-[330px] shrink-0 snap-start flex-col p-6"
         >
           <div class="flex items-start justify-between">
             <span
@@ -96,8 +97,14 @@ function scrollBy(dir) {
           >
             {{ product.code }}
           </p>
+          <p
+            class="mt-3 text-[12.5px] leading-relaxed text-white/50"
+            style="display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;"
+          >
+            {{ product.description || 'Nền tảng đã hoàn thành và đưa vào vận hành.' }}
+          </p>
 
-          <div class="mt-6">
+          <div class="mt-5">
             <div class="flex items-center justify-between font-mono text-[11px] text-white/55">
               <span>TIẾN ĐỘ</span>
               <span class="font-semibold text-white">{{ product.progress }}%</span>
@@ -109,6 +116,30 @@ function scrollBy(dir) {
               />
             </div>
           </div>
+
+          <div class="mt-5 flex items-center gap-2.5 border-t border-white/10 pt-4">
+            <template v-if="product.manager">
+              <Avatar
+                :name="product.manager.name"
+                :src="product.manager.avatar"
+                :size="32"
+              />
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-[12.5px] font-semibold text-white">
+                  {{ product.manager.name }}
+                </p>
+                <p class="truncate text-[11px] text-white/45">
+                  {{ product.manager.role_title || 'Phụ trách chính' }}
+                </p>
+              </div>
+            </template>
+            <p
+              v-else
+              class="text-[12px] text-white/35"
+            >
+              Chưa phân công phụ trách
+            </p>
+          </div>
         </GlassCard>
       </div>
 
@@ -116,7 +147,7 @@ function scrollBy(dir) {
         v-else
         class="mt-12 rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-6 py-12 text-center text-sm text-white/45"
       >
-        Chưa có sản phẩm nào được ghi nhận. Dữ liệu sẽ hiển thị khi có dự án vận hành.
+        Chưa có dự án nào hoàn thành. Dữ liệu sẽ hiển thị khi có sản phẩm được nghiệm thu.
       </p>
 
       <div
