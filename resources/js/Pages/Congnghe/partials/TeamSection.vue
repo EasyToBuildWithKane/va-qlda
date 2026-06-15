@@ -1,5 +1,4 @@
 <script setup>
-import { Link } from '@inertiajs/vue3';
 import SectionHeading from './SectionHeading.vue';
 import PersonAvatar from './PersonAvatar.vue';
 import { useInView } from './motion.js';
@@ -15,7 +14,7 @@ const { target, shown } = useInView({ threshold: 0.1 });
   <section
     id="doi-ngu"
     ref="target"
-    class="relative border-t border-white/5 py-24"
+    class="relative border-t border-white/5 py-20"
   >
     <div class="mx-auto max-w-7xl px-5 sm:px-8">
       <SectionHeading
@@ -56,23 +55,6 @@ const { target, shown } = useInView({ threshold: 0.1 });
       >
         Chưa có thành viên nào được ghi nhận.
       </p>
-
-      <div class="mt-8">
-        <Link
-          href="/members"
-          class="inline-flex items-center gap-2 text-sm font-semibold text-brand transition hover:text-[#ff4d8d]"
-        >
-          Xem danh bạ thành viên
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          ><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-        </Link>
-      </div>
     </div>
   </section>
 </template>

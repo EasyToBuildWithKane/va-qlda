@@ -6,8 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\AiAccount;
 use App\Models\Department;
 use App\Models\Employee;
-use App\Models\OrgTeam;
-use App\Models\OrgTeamMember;
 use App\Models\Project;
 use App\Models\Task;
 use App\Support\Enums\ProjectStatus;
@@ -30,30 +28,36 @@ class CongngheController extends Controller
 {
     public function __invoke(): Response
     {
+        $forest = OrgTeamTreeBuilder::congngheForest();
+
         return Inertia::render('Congnghe/Index', [
-            'metrics' => $this->metrics(),
+            'metrics' => $this->metrics($forest),
             'phases' => $this->projectPhases(),
             'products' => $this->products(),
             'org' => [
-                'overview' => OrgTeamOverviewBuilder::build(),
-                'forest' => OrgTeamTreeBuilder::forest(),
-                'people' => $this->orgPeople(),
+                'overview' => OrgTeamOverviewBuilder::buildFromForest($forest),
+                'forest' => $forest,
+                'people' => $this->orgPeopleFromForest($forest),
             ],
         ]);
     }
 
     /**
+     * @param  array<int, array<string, mixed>>  $forest
      * @return array<string, int>
      */
-    private function metrics(): array
+    private function metrics(array $forest): array
     {
+        $orgOverview = OrgTeamOverviewBuilder::buildFromForest($forest);
+
         return [
             'projects' => Project::count(),
             'activeProjects' => Project::where('status', ProjectStatus::Active)->count(),
             'completedProjects' => Project::where('status', ProjectStatus::Completed)->count(),
-            'members' => Employee::where('is_active', true)->count(),
+            'orgPeople' => (int) ($orgOverview['people_total'] ?? 0),
+            'members' => (int) ($orgOverview['active_people'] ?? 0),
             'departments' => Department::active()->count(),
-            'orgTeams' => OrgTeam::count(),
+            'orgTeams' => (int) ($orgOverview['teams_total'] ?? 0),
             'tasks' => Task::count(),
             'doneTasks' => Task::where('status', TaskStatus::Done)->count(),
             'aiAccounts' => AiAccount::count(),
@@ -132,38 +136,58 @@ class CongngheController extends Controller
     }
 
     /**
-     * Danh bạ nhân sự xuất hiện trên sơ đồ tổ chức (id → hồ sơ ngắn). Dùng để
-     * modal chi tiết trên landing tra cứu nhanh khi bấm vào một thẻ thành viên.
+     * Danh bạ nhân sự trên sơ đồ (chỉ người xuất hiện trong cây đã lọc).
      *
+     * @param  array<int, array<string, mixed>>  $forest
      * @return array<int, array<string, mixed>>
      */
-    private function orgPeople(): array
+    private function orgPeopleFromForest(array $forest): array
     {
-        $leaderTeams = OrgTeam::query()
-            ->whereNotNull('leader_id')
-            ->get(['id', 'name', 'leader_id']);
-
-        $memberRows = OrgTeamMember::query()
-            ->whereNotNull('employee_id')
-            ->with(['team:id,name', 'section:id,title'])
-            ->get(['id', 'employee_id', 'org_team_id', 'section_id']);
-
         /** @var array<int, array{team: string|null, section: string|null, is_leader: bool}> $context */
         $context = [];
-        foreach ($leaderTeams as $team) {
-            $context[$team->leader_id] ??= [
-                'team' => $team->name,
-                'section' => null,
-                'is_leader' => true,
-            ];
-        }
-        foreach ($memberRows as $row) {
-            if (! isset($context[$row->employee_id])) {
-                $context[$row->employee_id] = [
-                    'team' => $row->team?->name,
-                    'section' => $row->section?->title,
+
+        $walk = function (array $node) use (&$walk, &$context): void {
+            $teamName = $node['name'] ?? null;
+            $leader = is_array($node['leader'] ?? null) ? $node['leader'] : null;
+            if (! empty($leader['id'])) {
+                $id = (int) $leader['id'];
+                $context[$id] ??= [
+                    'team' => $teamName,
+                    'section' => null,
+                    'is_leader' => true,
+                ];
+            }
+
+            foreach ($node['members'] ?? [] as $row) {
+                if (! is_array($row)) {
+                    continue;
+                }
+                $emp = is_array($row['employee'] ?? null) ? $row['employee'] : null;
+                if (empty($emp['id'])) {
+                    continue;
+                }
+                $id = (int) $emp['id'];
+                if (isset($context[$id])) {
+                    continue;
+                }
+                $section = is_array($row['section'] ?? null) ? $row['section'] : null;
+                $context[$id] = [
+                    'team' => $teamName,
+                    'section' => $section['title'] ?? null,
                     'is_leader' => false,
                 ];
+            }
+
+            foreach ($node['children'] ?? [] as $child) {
+                if (is_array($child)) {
+                    $walk($child);
+                }
+            }
+        };
+
+        foreach ($forest as $root) {
+            if (is_array($root)) {
+                $walk($root);
             }
         }
 

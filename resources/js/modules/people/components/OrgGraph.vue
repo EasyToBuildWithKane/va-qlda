@@ -13,6 +13,8 @@ const props = defineProps({
     initialExpandAll: { type: Boolean, default: false },
     /** Chế độ "cứng": ẩn thanh công cụ/zoom, khóa pan + cuộn, chỉ cho bấm xem chi tiết. */
     readonly: { type: Boolean, default: false },
+    /** Scale tối đa khi fit readonly (landing — sơ đồ lớn hơn). */
+    readonlyMaxScale: { type: Number, default: 1.8 },
 });
 
 const emit = defineEmits(['select-person', 'select-leader']);
@@ -127,7 +129,7 @@ function fit() {
     vp.fitTo(graph.value.width, graph.value.height, {
         // Locked landing view fills the available width (cards render larger);
         // the interactive view never upscales past 1×.
-        maxInitialScale: props.readonly ? 1.8 : 1,
+        maxInitialScale: props.readonly ? props.readonlyMaxScale : 1,
         padding: props.readonly ? 40 : 24,
     });
 }

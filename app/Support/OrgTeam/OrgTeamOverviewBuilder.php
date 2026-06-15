@@ -49,6 +49,129 @@ class OrgTeamOverviewBuilder
             ->map(fn (Employee $e) => self::skillScore($e))
             ->filter(fn ($s) => $s !== null);
 
+        return self::overviewPayload($peopleTotal, $activePeople, $teams, $leaderIds, $scores);
+    }
+
+    /**
+     * Thống kê chỉ từ cây sơ đồ đã resolve (landing /congnghe) — không đếm toàn bộ nhân sự hệ thống.
+     *
+     * @param  array<int, array<string, mixed>>  $forest
+     * @return array<string, mixed>
+     */
+    public static function buildFromForest(array $forest): array
+    {
+        $leaderIds = collect();
+        $memberIds = collect();
+        $teamsTotal = 0;
+        $rootsTotal = 0;
+        $subteamsTotal = 0;
+        $activeTeams = 0;
+
+        $walk = function (array $node, bool $isRoot) use (
+            &$walk,
+            &$leaderIds,
+            &$memberIds,
+            &$teamsTotal,
+            &$rootsTotal,
+            &$subteamsTotal,
+            &$activeTeams,
+        ): void {
+            $teamsTotal++;
+            if ($isRoot) {
+                $rootsTotal++;
+            } else {
+                $subteamsTotal++;
+            }
+            if (($node['is_active'] ?? true) !== false) {
+                $activeTeams++;
+            }
+
+            $leader = is_array($node['leader'] ?? null) ? $node['leader'] : null;
+            if (! empty($leader['id'])) {
+                $leaderIds->push((int) $leader['id']);
+            }
+
+            $members = $node['members'] ?? [];
+            if (is_array($members)) {
+                foreach ($members as $row) {
+                    $emp = is_array($row) ? ($row['employee'] ?? null) : null;
+                    if (is_array($emp) && ! empty($emp['id'])) {
+                        $memberIds->push((int) $emp['id']);
+                    }
+                }
+            }
+
+            $children = $node['children'] ?? [];
+            if (is_array($children)) {
+                foreach ($children as $child) {
+                    if (is_array($child)) {
+                        $walk($child, false);
+                    }
+                }
+            }
+        };
+
+        foreach ($forest as $root) {
+            if (is_array($root)) {
+                $walk($root, true);
+            }
+        }
+
+        $employeeIds = $leaderIds->merge($memberIds)->unique()->values();
+        $employees = $employeeIds->isEmpty()
+            ? collect()
+            : Employee::query()
+                ->whereIn('id', $employeeIds->all())
+                ->get(['id', 'is_active', 'meta']);
+
+        $peopleTotal = $employees->count();
+        $activePeople = $employees->where('is_active', true)->count();
+
+        $scores = $employees
+            ->map(fn (Employee $e) => self::skillScore($e))
+            ->filter(fn ($s) => $s !== null);
+
+        $teams = collect([
+            (object) ['level' => 1, 'leader_id' => null, 'is_active' => true],
+        ]);
+
+        return self::overviewPayload(
+            $peopleTotal,
+            $activePeople,
+            $teams,
+            $leaderIds->unique(),
+            $scores,
+            [
+                'teams_total' => $teamsTotal,
+                'roots_total' => $rootsTotal,
+                'subteams_total' => $subteamsTotal,
+                'active_teams' => $activeTeams,
+                'leaders_total' => $leaderIds->unique()->count(),
+            ],
+        );
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, mixed>  $teams
+     * @param  \Illuminate\Support\Collection<int, mixed>  $leaderIds
+     * @param  \Illuminate\Support\Collection<int, int>  $scores
+     * @param  array<string, int|null>  $overrides
+     * @return array<string, mixed>
+     */
+    private static function overviewPayload(
+        int $peopleTotal,
+        int $activePeople,
+        $teams,
+        $leaderIds,
+        $scores,
+        array $overrides = [],
+    ): array {
+        $rootsTotal = $overrides['roots_total'] ?? $teams->where('level', 1)->count();
+        $subteamsTotal = $overrides['subteams_total'] ?? $teams->where('level', '>', 1)->count();
+        $teamsTotal = $overrides['teams_total'] ?? $teams->count();
+        $activeTeams = $overrides['active_teams'] ?? $teams->where('is_active', true)->count();
+        $leadersTotal = $overrides['leaders_total'] ?? $leaderIds->count();
+
         return [
             'people_total' => $peopleTotal,
             'active_people' => $activePeople,
@@ -57,7 +180,7 @@ class OrgTeamOverviewBuilder
             'roots_total' => $rootsTotal,
             'subteams_total' => $subteamsTotal,
             'active_teams' => $activeTeams,
-            'leaders_total' => $leaderIds->count(),
+            'leaders_total' => $leadersTotal,
             'avg_skill_score' => $scores->isNotEmpty() ? (int) round($scores->avg()) : null,
             'rated_people' => $scores->count(),
         ];

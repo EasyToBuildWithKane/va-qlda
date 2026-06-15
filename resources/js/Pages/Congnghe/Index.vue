@@ -45,7 +45,7 @@ defineProps({
         :people="org.people"
       />
       <ProjectTimeline :phases="phases" />
-      <AILabSection :metrics="metrics" />
+      <AILabSection />
       <CultureSection />
       <RoadmapSection />
     </main>

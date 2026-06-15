@@ -1,18 +1,13 @@
 <script setup>
-import { computed, ref } from 'vue';
-import { usePage } from '@inertiajs/vue3';
+import { ref } from 'vue';
 import SectionHeading from './SectionHeading.vue';
 import GlassCard from './GlassCard.vue';
-import MagneticButton from './MagneticButton.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
 import { tone } from './tones.js';
 
 defineProps({
     products: { type: Array, default: () => [] },
 });
-
-const page = usePage();
-const portal = computed(() => page.props.portal ?? { canEnterQlda: false, qldaHome: '/dashboard' });
 
 const scroller = ref(null);
 
@@ -24,7 +19,7 @@ function scrollBy(dir) {
 <template>
   <section
     id="san-pham"
-    class="relative py-28"
+    class="relative py-20"
   >
     <div class="mx-auto max-w-7xl px-5 sm:px-8">
       <div class="flex flex-wrap items-end justify-between gap-6">
@@ -69,13 +64,7 @@ function scrollBy(dir) {
           :padded="false"
           class="flex w-[330px] shrink-0 snap-start flex-col p-6"
         >
-          <div class="flex items-start justify-between">
-            <span
-              class="grid h-12 w-12 place-items-center rounded-xl font-display text-lg font-bold text-white shadow-lg ring-1 ring-white/20"
-              :style="{ backgroundColor: product.color || '#9A0036' }"
-            >
-              {{ (product.code || product.name || '?').slice(0, 2).toUpperCase() }}
-            </span>
+          <div class="flex items-start justify-end">
             <span
               class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset"
               :class="tone(product.statusColor).soft"
@@ -88,7 +77,7 @@ function scrollBy(dir) {
             </span>
           </div>
 
-          <h3 class="mt-5 font-display text-lg font-bold text-white">
+          <h3 class="mt-4 font-display text-lg font-bold text-white">
             {{ product.name }}
           </h3>
           <p
@@ -149,28 +138,6 @@ function scrollBy(dir) {
       >
         Chưa có dự án nào hoàn thành. Dữ liệu sẽ hiển thị khi có sản phẩm được nghiệm thu.
       </p>
-
-      <div
-        v-if="portal.canEnterQlda"
-        class="mt-8"
-      >
-        <MagneticButton
-          href="/projects"
-          inertia
-          variant="ghost"
-          class="!px-5 !py-2.5 !text-[13px]"
-        >
-          Xem toàn bộ dự án
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          ><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-        </MagneticButton>
-      </div>
     </div>
   </section>
 </template>

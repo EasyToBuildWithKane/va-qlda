@@ -13,7 +13,7 @@ const { target, shown } = useInView({ threshold: 0.25 });
 
 const stats = [
     { key: 'projects', label: 'Dự án đã & đang triển khai', suffix: '+', icon: 'M3 7h18M3 12h18M3 17h18' },
-    { key: 'members', label: 'Nhân sự đang hoạt động', suffix: '', icon: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0 .01' },
+    { key: 'orgPeople', label: 'Nhân sự trên sơ đồ', suffix: '', icon: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0 .01' },
     { key: 'doneTasks', label: 'Công việc đã hoàn thành', suffix: '+', icon: 'M20 6 9 17l-5-5' },
     { key: 'departments', label: 'Phòng ban đồng hành', suffix: '', icon: 'M3 21V7l9-4 9 4v14M9 21v-6h6v6' },
     { key: 'orgTeams', label: 'Nhóm trong sơ đồ tổ chức', suffix: '', icon: 'M12 2a4 4 0 1 0 0 8 4 4 0 0 0 0-8ZM4 22a8 8 0 0 1 16 0' },
@@ -35,7 +35,7 @@ function valueOf(key) {
   <section
     id="thanh-tuu"
     ref="target"
-    class="relative py-28"
+    class="relative py-20"
   >
     <div class="mx-auto max-w-7xl px-5 sm:px-8">
       <div class="flex flex-wrap items-end justify-between gap-6">

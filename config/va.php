@@ -69,4 +69,21 @@ return [
         ))
     )))),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Landing /congnghe — gốc sơ đồ tổ chức (chỉ nhánh Phòng Công nghệ)
+    |--------------------------------------------------------------------------
+    |
+    | Chuỗi con (không dấu, lowercase) khớp tên nhóm cấp 1. Có thể ghi đè bằng
+    | CONGNGHE_ORG_ROOT_PATTERNS (phân tách bằng dấu phẩy).
+    |
+    */
+    'congnghe_org_root_patterns' => array_values(array_filter(array_map(
+        static fn (string $part): string => strtolower(trim($part)),
+        explode(',', (string) env(
+            'CONGNGHE_ORG_ROOT_PATTERNS',
+            'phong cong nghe,phong cntt,ban cong nghe,cong nghe thong tin'
+        ))
+    ))),
+
 ];

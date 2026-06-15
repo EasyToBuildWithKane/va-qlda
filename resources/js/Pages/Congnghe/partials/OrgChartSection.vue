@@ -1,6 +1,5 @@
 <script setup>
 import { computed, ref, watch, onBeforeUnmount } from 'vue';
-import { usePage } from '@inertiajs/vue3';
 import SectionHeading from './SectionHeading.vue';
 import CountStat from './CountStat.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
@@ -13,15 +12,12 @@ const props = defineProps({
     people: { type: Object, default: () => ({}) },
 });
 
-const page = usePage();
-const portal = computed(() => page.props.portal ?? { canEnterQlda: false, qldaHome: '/dashboard' });
-
 const roots = computed(() => props.forest ?? []);
 const peopleTotal = computed(() => Number(props.overview?.people_total ?? 0));
 
 const graphFilter = { query: '', rootId: null, role: 'all', status: 'active' };
 
-const { target, shown } = useInView({ threshold: 0.18 });
+const { target, shown: sectionVisible } = useInView({ threshold: 0.18 });
 
 /* ---- member detail modal ---- */
 const activeMember = ref(null);
@@ -109,21 +105,23 @@ onBeforeUnmount(() => {
   <section
     id="to-chuc"
     ref="target"
-    class="relative py-28"
+    class="relative py-20"
   >
     <div class="mx-auto max-w-7xl px-5 sm:px-8">
       <div class="flex flex-wrap items-end justify-between gap-6">
-        <SectionHeading
-          eyebrow="Đội ngũ · Sơ đồ tổ chức"
-          title="Cấu trúc vận hành"
-        />
+        <div class="max-w-3xl">
+          <SectionHeading
+            eyebrow="Đội ngũ · Sơ đồ tổ chức"
+            title="Cấu trúc vận hành"
+            subtitle="Sơ đồ nhân sự Phòng Công nghệ — bấm vào thẻ để xem hồ sơ chi tiết."
+          />
+        </div>
 
-        <!-- Chỉ hiển thị tổng số nhân sự của sơ đồ -->
-        <div class="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-4 backdrop-blur">
-          <span class="relative grid h-12 w-12 place-items-center rounded-xl bg-gradient-to-br from-brand to-[#ff4d8d] text-white shadow-lg shadow-brand/30">
+        <div class="flex items-center gap-4 rounded-2xl border border-white/12 bg-white/[0.06] px-7 py-5 backdrop-blur">
+          <span class="relative grid h-14 w-14 place-items-center rounded-xl bg-gradient-to-br from-brand to-[#ff4d8d] text-white shadow-lg shadow-brand/30">
             <svg
-              width="22"
-              height="22"
+              width="26"
+              height="26"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -138,13 +136,13 @@ onBeforeUnmount(() => {
             <span class="absolute inset-0 rounded-xl ring-2 ring-brand/40 animate-cn-ping-ring" />
           </span>
           <div>
-            <p class="font-display text-3xl font-extrabold leading-none text-white">
+            <p class="font-display text-4xl font-extrabold leading-none text-white sm:text-[2.75rem]">
               <CountStat
                 :value="peopleTotal"
-                :active="shown"
+                :active="sectionVisible"
               />
             </p>
-            <p class="mt-1 font-mono text-[10.5px] uppercase tracking-wider text-white/45">
+            <p class="mt-1.5 font-mono text-xs uppercase tracking-wider text-white/55">
               Nhân sự trên sơ đồ
             </p>
           </div>
@@ -155,20 +153,21 @@ onBeforeUnmount(() => {
     <!-- Sơ đồ tổ chức: full-bleed, các thẻ lớn hơn, cứng (không pan/zoom) -->
     <div
       v-if="roots.length"
-      class="cn-fullbleed mt-10"
+      class="cn-fullbleed mt-8"
     >
-      <div class="mx-auto max-w-[1800px] px-4 sm:px-6">
-        <div class="congnghe-org-graph">
+      <div class="mx-auto max-w-[1900px] px-3 sm:px-5">
+        <div class="congnghe-org-graph congnghe-org-graph--large">
           <OrgGraph
             :trees="roots"
             :filter="graphFilter"
             initial-expand-all
             readonly
+            :readonly-max-scale="2.15"
             @select-person="onSelectPerson"
             @select-leader="onSelectLeader"
           />
         </div>
-        <p class="mt-4 text-center font-mono text-[11px] uppercase tracking-wider text-white/35">
+        <p class="mt-5 text-center text-sm font-medium text-white/50">
           Bấm vào một thành viên để xem hồ sơ chi tiết
         </p>
       </div>
@@ -180,26 +179,6 @@ onBeforeUnmount(() => {
     >
       Sơ đồ tổ chức chưa được thiết lập.
     </p>
-
-    <div
-      v-if="portal.canEnterQlda"
-      class="mx-auto mt-8 max-w-7xl px-5 text-center sm:px-8"
-    >
-      <a
-        href="/org-teams"
-        class="inline-flex items-center gap-2 text-sm font-semibold text-brand transition hover:text-[#ff4d8d]"
-      >
-        Xem sơ đồ tổ chức đầy đủ
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-        ><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-      </a>
-    </div>
 
     <!-- Member detail modal -->
     <Teleport to="body">
@@ -401,6 +380,10 @@ onBeforeUnmount(() => {
     }
 }
 
+.congnghe-org-graph--large :deep(.org-graph__viewport) {
+    height: clamp(580px, 82vh, 980px);
+}
+
 .congnghe-org-graph :deep(.org-graph__viewport) {
     border-color: rgba(255, 255, 255, 0.12);
     background:
@@ -411,5 +394,34 @@ onBeforeUnmount(() => {
     background-image:
         linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
         linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+}
+
+.congnghe-org-graph--large :deep(.org-node__title) {
+    font-size: 15px;
+}
+
+.congnghe-org-graph--large :deep(.org-node__title--sm) {
+    font-size: 14px;
+}
+
+.congnghe-org-graph--large :deep(.org-node__subtitle) {
+    font-size: 12.5px;
+}
+
+.congnghe-org-graph--large :deep(.org-node__eyebrow) {
+    font-size: 10.5px;
+}
+
+.congnghe-org-graph--large :deep(.org-node__section-title) {
+    font-size: 13.5px;
+}
+
+.congnghe-org-graph--large :deep(.org-node__section-eyebrow) {
+    font-size: 10px;
+}
+
+.congnghe-org-graph--large :deep(.org-node__chip),
+.congnghe-org-graph--large :deep(.org-node__section-meta) {
+    font-size: 12px;
 }
 </style>

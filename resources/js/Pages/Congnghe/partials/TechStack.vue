@@ -17,7 +17,7 @@ const groups = [
   <section
     id="cong-nghe"
     ref="target"
-    class="relative py-28"
+    class="relative py-20"
   >
     <div class="mx-auto max-w-7xl px-5 sm:px-8">
       <SectionHeading

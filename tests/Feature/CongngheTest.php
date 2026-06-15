@@ -29,6 +29,7 @@ class CongngheTest extends TestCase
                 ->component('Congnghe/Index')
                 ->has('metrics')
                 ->has('metrics.projects')
+                ->has('metrics.orgPeople')
                 ->has('metrics.members')
                 ->has('phases')
                 ->has('products')

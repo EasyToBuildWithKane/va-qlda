@@ -38,7 +38,7 @@ const chips = [
 
 const highlights = [
     { key: 'projects', label: 'Dự án', suffix: '+' },
-    { key: 'members', label: 'Nhân sự', suffix: '' },
+    { key: 'orgPeople', label: 'Nhân sự sơ đồ', suffix: '' },
     { key: 'departments', label: 'Phòng ban', suffix: '' },
 ];
 </script>
