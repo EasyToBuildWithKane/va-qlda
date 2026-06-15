@@ -6,7 +6,7 @@ import AppIcon from '@/Components/AppIcon.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
 import ProgressBar from '@/shared/ui/ProgressBar.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
-import ProjectTimelineCenter from '@/modules/project/components/Timeline/ProjectTimelineCenter.vue';
+import ProjectCalendar from '@/modules/project/components/Calendar/ProjectCalendar.vue';
 import TaskBoard from '@/modules/project/components/TaskBoard.vue';
 import TaskDetailPanel from '@/modules/project/components/Sprint/TaskDetailPanel.vue';
 import TaskFormModal from '@/modules/project/components/TaskFormModal.vue';
@@ -64,7 +64,7 @@ const projectMembers = computed(() => normalizeEntities(props.project?.members))
 const tabs = [
     { key: 'overview', label: 'Tổng quan', icon: 'overview' },
     { key: 'documents', label: 'Tài liệu', icon: 'documents' },
-    { key: 'timeline', label: 'Tiến độ / Gantt', icon: 'timeline' },
+    { key: 'timeline', label: 'Lịch dự án', icon: 'calendar' },
     { key: 'board', label: 'Kanban', icon: 'board' },
     { key: 'sprints', label: 'Sprint', icon: 'sprint' },
     { key: 'blockers', label: 'Vướng mắc', icon: 'blockers' },
@@ -151,7 +151,7 @@ const onGanttDate = ({ id, start, end }) => {
         onSuccess: () => toast.success('Đã cập nhật lịch công việc'),
         onError: () => {
             ganttRevertPreviewId.value = id;
-            toast.error('Không lưu được ngày trên Gantt. Vui lòng thử lại.');
+            toast.error('Không lưu được lịch công việc. Vui lòng thử lại.');
         },
     });
 };
@@ -413,20 +413,18 @@ const onSprintSaved = () => {
           />
         </div>
 
-        <!-- ===== TIMELINE / GANTT ===== -->
+        <!-- ===== LỊCH DỰ ÁN ===== -->
         <div
           v-show="tab === 'timeline'"
           class="h-full"
         >
-          <ProjectTimelineCenter
+          <ProjectCalendar
             :project="project"
             :tasks="tasks"
             :sprints="sprints"
-            :blockers="blockers"
-            :enums="enums"
             :can-manage="canManage"
             :can-contribute="canContribute"
-            :revert-preview-task-id="ganttRevertPreviewId"
+            :revert-task-id="ganttRevertPreviewId"
             @create-task="openTaskModal()"
             @select-task="(id) => openTaskDetail(tasks.find((t) => t.id == id))"
             @date-change="onGanttDate"
