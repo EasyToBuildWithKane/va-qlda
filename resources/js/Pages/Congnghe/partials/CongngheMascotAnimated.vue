@@ -52,7 +52,7 @@ const sizeClass = {
       <CongngheBrandImage
         :src="src"
         :alt="alt"
-        :cutout="false"
+        cutout-only
         class="object-contain"
         :class="[
           sizeClass[variant] ?? sizeClass.inline,

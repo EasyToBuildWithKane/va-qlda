@@ -102,16 +102,17 @@ onBeforeUnmount(() => {
     <div class="mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
       <div
         v-if="roots.length"
-        class="grid gap-8 lg:grid-cols-12 lg:items-start lg:gap-8 xl:gap-10"
+        class="flex flex-col gap-8 md:gap-10"
       >
-        <div class="min-w-0 lg:col-span-4 xl:col-span-3">
+        <div class="flex flex-col gap-6 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
           <SectionHeading
+            class="min-w-0 max-w-3xl"
             eyebrow="Đội ngũ · Sơ đồ tổ chức"
             title="Cấu trúc vận hành"
             subtitle="Quản lý trên cùng — Trưởng ban / Phó phòng theo hàng; nhánh chuyên môn có Trưởng nhóm."
           />
 
-          <div class="mt-6 inline-flex items-center gap-3 rounded-xl border border-white/12 bg-white/[0.06] px-5 py-3.5 text-left backdrop-blur">
+          <div class="inline-flex shrink-0 items-center gap-3 rounded-xl border border-white/12 bg-white/[0.06] px-5 py-3.5 text-left backdrop-blur">
             <span class="relative grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-brand to-[#ff4d8d] text-white shadow-md shadow-brand/25">
               <svg
                 width="22"
@@ -143,7 +144,7 @@ onBeforeUnmount(() => {
           </div>
         </div>
 
-        <div class="min-w-0 lg:col-span-8 xl:col-span-9">
+        <div class="min-w-0 w-full">
           <CongngheOrgChart
             :trees="roots"
             :revealed="sectionVisible"

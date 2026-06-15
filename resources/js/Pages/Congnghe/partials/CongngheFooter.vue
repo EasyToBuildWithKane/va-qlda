@@ -101,10 +101,9 @@ const year = new Date().getFullYear();
           </p>
           <div class="relative mt-4 flex flex-1 flex-col items-center justify-end gap-3 sm:items-start">
             <CongngheBrandImage
-              :src="congngheBrand.dragonSilhouette"
-              alt=""
-              :cutout="false"
-              class="h-28 w-auto max-w-full opacity-90 sm:h-32 lg:h-36"
+              :src="congngheBrand.mascotVaJacket"
+              alt="Linh vật VAS"
+              class="h-36 w-auto max-w-full sm:h-40 lg:h-44"
               loading="lazy"
             />
             <p class="max-w-xs text-center text-sm leading-relaxed text-white/55 sm:text-left">

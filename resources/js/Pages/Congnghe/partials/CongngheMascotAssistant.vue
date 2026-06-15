@@ -7,6 +7,8 @@ import { useCongngheSectionSpy } from './useCongngheSectionSpy.js';
 import { useCongngheAssistantDock } from './useCongngheAssistantDock.js';
 
 import { congngheMascotActions } from './congngheMascotActions.js';
+import { congngheBrand } from './congngheBrand.js';
+import CongngheMascotAnimated from './CongngheMascotAnimated.vue';
 
 const props = defineProps({
     proposalPage: { type: Boolean, default: false },
@@ -184,18 +186,12 @@ function onHideClick() {
     aria-label="Hiện trợ lý VAS"
     @click="showAssistant"
   >
-    <span class="flex h-8 w-8 items-center justify-center rounded-full bg-brand/25 ring-1 ring-brand/40">
-      <svg
-        width="18"
-        height="18"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        class="text-brand-100"
-        aria-hidden="true"
-      ><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
-    </span>
+    <CongngheMascotAnimated
+      :src="congngheBrand.mascotVaJacket"
+      alt=""
+      variant="assistant"
+      class="h-10 w-10 sm:h-11 sm:w-11"
+    />
     Trợ lý VAS
   </button>
 
@@ -332,32 +328,24 @@ function onHideClick() {
       <div class="cn-assistant-dock relative flex w-full justify-end">
         <button
           type="button"
-          class="cn-assistant-trigger group relative grid h-14 w-14 cursor-pointer select-none place-items-center rounded-2xl border-0 bg-transparent p-0 sm:h-[3.75rem] sm:w-[3.75rem]"
+          class="cn-assistant-trigger group relative flex h-[4.5rem] w-[4.5rem] cursor-pointer select-none items-center justify-center border-0 bg-transparent p-0 sm:h-[5rem] sm:w-[5rem]"
           :aria-expanded="panelOpen"
           aria-label="Trợ lý VAS — bấm để mở hoặc thu gọn hộp thoại"
           @click="togglePanel"
         >
           <span
-            class="cn-assistant-trigger-glow pointer-events-none absolute -inset-3 rounded-2xl bg-[radial-gradient(circle,rgba(154,0,54,0.35),transparent_70%)] opacity-80 transition group-hover:opacity-100"
+            class="cn-assistant-trigger-glow pointer-events-none absolute -inset-2 rounded-full bg-[radial-gradient(circle,rgba(154,0,54,0.4),transparent_72%)] opacity-90 transition group-hover:opacity-100"
             aria-hidden="true"
           />
-          <span
-            class="cn-assistant-trigger-surface pointer-events-none absolute inset-0 rounded-2xl border border-white/12 bg-[#0a0b14]/90 shadow-[0_12px_32px_-8px_rgba(154,0,54,0.45)] backdrop-blur-md"
-            aria-hidden="true"
+          <CongngheMascotAnimated
+            :src="congngheBrand.mascotVaJacket"
+            alt="Linh vật VAS — trợ lý ảo"
+            variant="assistant"
+            class="relative z-10"
           />
-          <svg
-            width="26"
-            height="26"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.75"
-            class="relative z-10 text-brand-100 transition group-hover:text-white"
-            aria-hidden="true"
-          ><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /><path d="M8 10h8M8 14h5" /></svg>
           <span
             v-if="!panelOpen"
-            class="absolute -bottom-0.5 -left-0.5 z-20 h-2.5 w-2.5 rounded-full bg-brand shadow-[0_0_10px_rgba(255,77,141,0.9)] ring-2 ring-[#05060c]"
+            class="absolute bottom-0 left-0 z-20 h-2.5 w-2.5 rounded-full bg-brand shadow-[0_0_10px_rgba(255,77,141,0.9)] ring-2 ring-[#05060c]"
             aria-hidden="true"
           />
         </button>
