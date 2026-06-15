@@ -88,7 +88,7 @@ function onSelect(person) {
               :name="person.name"
               :avatar="person.avatar"
               :role="person.displayRole || person.roleTitle || person.branchLabel"
-              :section-label="group.title ? null : person.sectionTitle"
+              :section-label="person.sectionTitle || group.title"
               :is-leader="false"
               @select="onSelect(person)"
             />

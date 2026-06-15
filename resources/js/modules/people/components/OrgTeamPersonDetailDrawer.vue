@@ -48,6 +48,12 @@ const emit = defineEmits(['close']);
           />
           Trưởng nhóm
         </span>
+        <span
+          v-else-if="person.sectionTitle"
+          class="mt-2 inline-flex max-w-full items-center gap-1 rounded-full border border-brand/25 bg-brand/10 px-2.5 py-0.5 text-[11px] font-semibold text-brand"
+        >
+          Mảng: {{ person.sectionTitle }}
+        </span>
       </div>
 
       <dl class="space-y-3 text-sm">

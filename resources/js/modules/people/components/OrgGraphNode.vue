@@ -28,6 +28,24 @@ const boxStyle = computed(() => ({
 const dimmed = computed(() => props.node.inPath === false);
 const matched = computed(() => props.node.matched === true);
 
+const person = computed(() => props.node.person ?? null);
+
+const personMangLabel = computed(() => {
+    const title = person.value?.sectionTitle?.trim();
+    return title || null;
+});
+
+const personSubtitle = computed(() => {
+    const p = person.value;
+    if (!p) return 'Thành viên';
+    const parts = [];
+    if (p.roleTitle?.trim()) parts.push(p.roleTitle.trim());
+    if (p.branchLabel?.trim() && p.branchLabel !== p.roleTitle) {
+        parts.push(p.branchLabel.trim());
+    }
+    return parts.length ? parts.join(' · ') : 'Thành viên';
+});
+
 function onTeamPrimary() {
     if (props.node.hasMembers) emit('toggle-members', props.node);
     else if (props.node.hasSubteams) emit('toggle-subteams', props.node);
@@ -182,11 +200,18 @@ function onTeamPrimary() {
         :size="36"
       />
       <div class="min-w-0 flex-1 text-left">
+        <p
+          class="org-node__mang"
+          :class="personMangLabel ? 'org-node__mang--set' : 'org-node__mang--unset'"
+          :title="personMangLabel ? `Mảng: ${personMangLabel}` : 'Chưa phân mảng'"
+        >
+          {{ personMangLabel || 'Chưa phân mảng' }}
+        </p>
         <p class="org-node__title org-node__title--sm">
           {{ node.person.name }}
         </p>
         <p class="org-node__subtitle">
-          {{ node.person.roleTitle || node.person.branchLabel || 'Thành viên' }}
+          {{ personSubtitle }}
         </p>
       </div>
     </div>
@@ -350,6 +375,33 @@ function onTeamPrimary() {
     letter-spacing: 0.14em;
     text-transform: uppercase;
     color: #94a3b8;
+}
+
+.org-node__mang {
+    display: inline-block;
+    max-width: 100%;
+    margin-bottom: 2px;
+    padding: 0.1rem 0.4rem;
+    border-radius: 9999px;
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.org-node__mang--set {
+    color: #9a0036;
+    background: rgba(154, 0, 54, 0.1);
+    border: 1px solid rgba(154, 0, 54, 0.22);
+}
+
+.org-node__mang--unset {
+    color: #94a3b8;
+    background: rgba(148, 163, 184, 0.12);
+    border: 1px dashed rgba(148, 163, 184, 0.35);
 }
 
 .org-node__title {

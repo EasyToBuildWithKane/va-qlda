@@ -18,7 +18,7 @@ import { toIterableList } from '@/modules/people/composables/useOrgTeamPeople.js
 export const NODE = {
     org: { w: 212, h: 86 },
     team: { w: 234, h: 100 },
-    person: { w: 188, h: 70 },
+    person: { w: 188, h: 84 },
 };
 const H_GAP = 28;
 const V_GAP = 66;
@@ -185,7 +185,7 @@ function personMatches(p, f) {
     if (f.status === 'active' && !p.isActive) return false;
     if (f.status === 'inactive' && p.isActive) return false;
     if (f.query) {
-        const hay = normalize([p.name, p.roleTitle, p.code, p.email].join(' '));
+        const hay = normalize([p.name, p.roleTitle, p.sectionTitle, p.branchLabel, p.code, p.email].join(' '));
         if (!hay.includes(f.query)) return false;
     }
 
