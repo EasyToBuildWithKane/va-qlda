@@ -5,9 +5,37 @@ export function authorFromPageUser(user) {
     const emp = user?.employee;
     return {
         id: emp?.id ?? user?.employee_id ?? null,
-        name: emp?.name ?? user?.name ?? 'Bạn',
+        name: (emp?.full_name ?? emp?.name ?? user?.name ?? 'Bạn').trim(),
         avatar_path: emp?.avatar_path ?? null,
     };
+}
+
+export function normalizeCommentBody(body) {
+    return String(body ?? '').trim();
+}
+
+/** Bình luận từ server thay thế bản optimistic (cùng nội dung / cùng tác giả). */
+export function serverCommentMatchesPending(pending, serverComment) {
+    if (!isPendingComment(pending) || isPendingComment(serverComment)) {
+        return false;
+    }
+    if (normalizeCommentBody(pending.body) !== normalizeCommentBody(serverComment.body)) {
+        return false;
+    }
+    const pendingAuthorId = pending.author?.id;
+    const serverAuthorId = serverComment.author?.id;
+    if (pendingAuthorId != null && serverAuthorId != null) {
+        return pendingAuthorId === serverAuthorId;
+    }
+    return true;
+}
+
+export function findServerCommentForPending(serverComments, pending) {
+    if (!isPendingComment(pending)) {
+        return null;
+    }
+    const list = Array.isArray(serverComments) ? serverComments : [];
+    return list.find((s) => serverCommentMatchesPending(pending, s)) ?? null;
 }
 
 export function createPendingComment(body, parentId, author) {

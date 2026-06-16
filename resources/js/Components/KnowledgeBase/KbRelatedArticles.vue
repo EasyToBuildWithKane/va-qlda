@@ -32,7 +32,7 @@ function cover(article) {
     class="w-full min-w-0"
     aria-label="Bài viết liên quan"
   >
-    <div class="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-end sm:justify-between sm:pr-28">
+    <div class="mb-4 flex flex-col gap-3 sm:mb-5 sm:flex-row sm:items-end sm:justify-between sm:pr-24">
       <div>
         <p class="text-[10px] font-semibold uppercase tracking-[0.14em] text-brand/80">
           Tiếp theo
@@ -75,7 +75,7 @@ function cover(article) {
               />
             </div>
           </div>
-          <div class="flex flex-1 flex-col p-4">
+          <div class="flex flex-1 flex-col p-3 sm:p-3.5">
             <span
               v-if="item.category?.name"
               class="text-[11px] font-semibold uppercase tracking-wide text-brand/80"

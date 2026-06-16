@@ -87,7 +87,6 @@ const sortOptions = [
           :sort-order="sortOrder"
           :partial-reload-keys="['article']"
           placeholder="Viết bình luận của bạn… (Ctrl+Enter để gửi nhanh)"
-          empty-message="Chưa có bình luận nào. Hãy mở đầu cuộc trao đổi — ý kiến của bạn giúp đồng nghiệp học hỏi thêm."
           delete-dialog-title="Xoá bình luận"
           delete-button-title="Xoá bình luận"
           realtime-hint="Bình luận mới từ đồng nghiệp hiện ngay — không cần tải lại trang."

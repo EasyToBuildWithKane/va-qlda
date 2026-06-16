@@ -7,7 +7,13 @@ import { datetime } from '@/composables/useFormat';
 import { useDialog } from '@/composables/useDialog';
 import { useCommentRealtime } from '@/composables/useCommentRealtime';
 import { useCommentThreadPoll } from '@/composables/useCommentThreadPoll';
-import { authorFromPageUser, createPendingComment, isPendingComment } from '@/composables/useCommentOptimistic';
+import {
+    authorFromPageUser,
+    createPendingComment,
+    findServerCommentForPending,
+    isPendingComment,
+    serverCommentMatchesPending,
+} from '@/composables/useCommentOptimistic';
 import { useToast } from '@/shared/composables/useToast';
 
 const props = defineProps({
@@ -21,7 +27,6 @@ const props = defineProps({
     /** Partial reload Inertia sau POST/DELETE (vd. ['blockers'] trên /blockers) */
     partialReloadKeys: { type: Array, default: () => [] },
     heading: { type: String, default: 'Trao đổi' },
-    emptyMessage: { type: String, default: 'Chưa có trao đổi nào.' },
     deleteDialogTitle: { type: String, default: 'Xoá trao đổi' },
     deleteButtonTitle: { type: String, default: 'Xoá trao đổi' },
     realtimeHint: { type: String, default: 'Người khác gửi trao đổi sẽ hiện ngay không cần tải lại trang' },
@@ -65,6 +70,9 @@ function syncFromServerProps(raw) {
     for (const c of threadComments.value) {
         if (!c?.id) continue;
         if (isPendingComment(c)) {
+            if (findServerCommentForPending(server, c)) {
+                continue;
+            }
             byId.set(c.id, c);
             continue;
         }
@@ -88,7 +96,7 @@ function mergeComment(comment) {
     if (!comment?.id) return;
     if (!isPendingComment(comment)) {
         threadComments.value = threadComments.value.filter(
-            (c) => !isPendingComment(c) || c.body !== comment.body || c.author?.id !== comment.author?.id,
+            (c) => !isPendingComment(c) || !serverCommentMatchesPending(c, comment),
         );
     }
     if (threadComments.value.some((c) => c.id === comment.id)) return;
@@ -223,7 +231,10 @@ const submit = () => {
     form.transform((data) => ({ ...data, body: text })).post('/comments', {
         preserveScroll: true,
         ...(props.partialReloadKeys.length ? { only: props.partialReloadKeys } : {}),
-        onSuccess: () => form.reset('body'),
+        onSuccess: () => {
+            removeCommentLocal(pending.id);
+            form.reset('body');
+        },
         onError: () => {
             removeCommentLocal(pending.id);
             toast.error('Không gửi được bình luận');
@@ -354,6 +365,7 @@ async function removeComment(c) {
     </form>
 
     <ul
+      v-if="displayList.length > 0"
       class="space-y-3"
       :class="isKbVariant ? 'space-y-4' : ''"
     >
@@ -409,26 +421,6 @@ async function removeComment(c) {
             {{ c.body }}
           </p>
         </div>
-      </li>
-      <li
-        v-if="sortedList.length === 0"
-        class="text-sm text-slate-400"
-        :class="isKbVariant ? 'rounded-xl border border-dashed border-slate-200/90 bg-slate-50/50 px-6 py-10 text-center dark:border-slate-700 dark:bg-slate-900/30' : ''"
-      >
-        <template v-if="isKbVariant">
-          <span class="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-full bg-brand/[0.08] text-brand">
-            <AppIcon
-              name="comment"
-              :size="22"
-            />
-          </span>
-          <p class="text-sm text-slate-500 dark:text-slate-400">
-            {{ emptyMessage }}
-          </p>
-        </template>
-        <template v-else>
-          {{ emptyMessage }}
-        </template>
       </li>
     </ul>
 

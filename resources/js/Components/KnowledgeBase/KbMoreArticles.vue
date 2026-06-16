@@ -25,7 +25,7 @@ const totalLabel = computed(() => {
     class="w-full min-w-0"
     aria-label="Các bài viết khác"
   >
-    <div class="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-end sm:justify-between sm:pr-28">
+    <div class="mb-4 flex flex-col gap-3 sm:mb-5 sm:flex-row sm:items-end sm:justify-between sm:pr-24">
       <div class="min-w-0 flex-1">
         <p class="text-[10px] font-semibold uppercase tracking-[0.14em] text-brand/80">
           Khám phá thêm

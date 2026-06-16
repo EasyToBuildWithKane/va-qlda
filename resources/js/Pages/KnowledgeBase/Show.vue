@@ -119,7 +119,7 @@ function markRead() {
       />
     </template>
 
-    <div class="kb-article-show relative min-h-0 w-full min-w-0 flex-1 overflow-y-auto px-4 pb-20 sm:px-6 lg:px-8">
+    <div class="kb-article-show relative min-h-0 w-full min-w-0 flex-1 overflow-y-auto px-3 pb-16 sm:px-5 lg:px-6">
       <KbFloatingToolbar
         :is-favorite="isFavorite"
         :favoriting="favoriting"
@@ -131,9 +131,9 @@ function markRead() {
         @mark-read="markRead"
       />
 
-      <div class="mt-6">
+      <div class="mt-4 sm:mt-5">
         <article class="min-w-0 w-full">
-          <div class="rounded-card border border-slate-200/80 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/40 sm:p-7 lg:p-8">
+          <div class="rounded-card border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/40 sm:p-5 lg:p-6">
             <KbArticleHero
               :article="article"
               :comment-count="commentCount"
@@ -141,7 +141,7 @@ function markRead() {
 
             <div
               v-if="article.excerpt?.trim()"
-              class="mt-8 rounded-lg border-l-4 border-brand/40 bg-gradient-to-r from-brand/[0.04] to-slate-50/50 px-4 py-3.5 text-base leading-relaxed text-slate-600 dark:from-brand/10 dark:to-slate-900/30 dark:text-slate-300"
+              class="mt-5 rounded-lg border-l-4 border-brand/40 bg-gradient-to-r from-brand/[0.04] to-slate-50/50 px-3.5 py-2.5 text-[0.9375rem] leading-relaxed text-slate-600 dark:from-brand/10 dark:to-slate-900/30 dark:text-slate-300"
             >
               <!-- eslint-disable-next-line vue/no-v-html -->
               <div
@@ -150,7 +150,7 @@ function markRead() {
               />
             </div>
 
-            <div class="mt-8">
+            <div class="mt-5">
               <KbArticleCover :article="article" />
             </div>
 
@@ -235,13 +235,13 @@ function markRead() {
 
       <section
         v-if="related?.length"
-        class="mt-16 border-t border-slate-200/80 pt-14 dark:border-slate-800"
+        class="mt-10 border-t border-slate-200/80 pt-8 dark:border-slate-800 sm:mt-12 sm:pt-10"
         aria-label="Bài viết cùng chuyên mục"
       >
         <KbRelatedArticles :articles="related" />
       </section>
 
-      <div class="mt-14 w-full min-w-0">
+      <div class="mt-10 w-full min-w-0 sm:mt-12">
         <KbArticleCommentsSection
           :comments="article.comments || []"
           :article-id="article.id"
@@ -251,7 +251,7 @@ function markRead() {
 
       <section
         v-if="otherArticles?.length"
-        class="mt-14 border-t border-slate-200/80 pt-14 dark:border-slate-800"
+        class="mt-10 border-t border-slate-200/80 pt-8 dark:border-slate-800 sm:mt-12 sm:pt-10"
         aria-label="Các bài viết khác"
       >
         <KbMoreArticles

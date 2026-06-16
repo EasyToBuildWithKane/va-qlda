@@ -20,7 +20,7 @@ const readingMinutes = computed(() => props.article.reading_time ?? 1);
 </script>
 
 <template>
-  <header class="kb-article-hero border-b border-slate-200/80 pb-8 dark:border-slate-800">
+  <header class="kb-article-hero border-b border-slate-200/80 pb-5 dark:border-slate-800 sm:pb-6">
     <Link
       v-if="article.category"
       :href="`/knowledge-base/blog?category_id=${article.category.id}`"
