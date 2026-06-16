@@ -4,6 +4,7 @@ import SectionHeading from './SectionHeading.vue';
 import GlassCard from './GlassCard.vue';
 import { useInView } from './motion.js';
 import CongngheBrandBackdrop from './CongngheBrandBackdrop.vue';
+import SectionParticleNetwork from './SectionParticleNetwork.vue';
 
 const props = defineProps({
     content: { type: Object, default: () => ({}) },
@@ -24,8 +25,12 @@ function iconPath(key) {
   <section
     id="gioi-thieu"
     ref="target"
-    class="relative scroll-mt-24 py-16 sm:scroll-mt-28 sm:py-20 md:py-24"
+    class="relative overflow-hidden scroll-mt-24 py-16 sm:scroll-mt-28 sm:py-20 md:py-24"
   >
+    <SectionParticleNetwork
+      tone="brand"
+      :seed="3"
+    />
     <CongngheBrandBackdrop
       variant="badge"
       align="left"

@@ -5,6 +5,7 @@ import GlassCard from './GlassCard.vue';
 import { useInView, useScrollScene } from './motion.js';
 import { congngheBrand } from './congngheBrand.js';
 import CongngheBrandBackdrop from './CongngheBrandBackdrop.vue';
+import SectionParticleNetwork from './SectionParticleNetwork.vue';
 import CongngheBrandImage from './CongngheBrandImage.vue';
 
 const props = defineProps({
@@ -27,13 +28,17 @@ const companionNote = computed(() => props.content?.companion_note ?? '');
     class="relative overflow-hidden py-20"
   >
     <div class="pointer-events-none absolute inset-0 bg-gradient-to-b from-brand/[0.08] via-[#05060c] to-brand/[0.06]" />
+    <SectionParticleNetwork
+      tone="violet"
+      :seed="29"
+    />
     <CongngheBrandBackdrop
       variant="dragon"
       align="left"
       opacity-class="opacity-[0.04]"
     />
 
-    <div class="relative mx-auto max-w-7xl px-5 sm:px-8">
+    <div class="relative z-10 mx-auto max-w-7xl px-5 sm:px-8">
       <SectionHeading
         :eyebrow="heading.eyebrow"
         :title="heading.title"

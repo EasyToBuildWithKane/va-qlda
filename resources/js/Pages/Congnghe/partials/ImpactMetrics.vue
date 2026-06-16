@@ -5,6 +5,7 @@ import CountStat from './CountStat.vue';
 import AnalyzingBadge from './AnalyzingBadge.vue';
 import DataStreamTicker from './DataStreamTicker.vue';
 import { useInView } from './motion.js';
+import SectionParticleNetwork from './SectionParticleNetwork.vue';
 
 const props = defineProps({
     content: { type: Object, default: () => ({}) },
@@ -98,13 +99,17 @@ function toneOf(tone) {
   <section
     id="thanh-tuu"
     ref="target"
-    class="relative scroll-mt-24 py-16 sm:scroll-mt-28 sm:py-20 md:py-24"
+    class="relative overflow-hidden scroll-mt-24 py-16 sm:scroll-mt-28 sm:py-20 md:py-24"
   >
+    <SectionParticleNetwork
+      tone="cyan"
+      :seed="5"
+    />
     <div
       class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/30 to-transparent"
       aria-hidden="true"
     />
-    <div class="mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
+    <div class="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
       <div class="flex flex-wrap items-end justify-between gap-4">
         <SectionHeading
           :eyebrow="heading.eyebrow"

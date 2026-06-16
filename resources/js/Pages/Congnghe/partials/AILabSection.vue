@@ -2,7 +2,7 @@
 import { computed, inject } from 'vue';
 import SectionHeading from './SectionHeading.vue';
 import HologramCard from './HologramCard.vue';
-import NeuralBackdrop from './NeuralBackdrop.vue';
+import SectionParticleNetwork from './SectionParticleNetwork.vue';
 import AnalyzingBadge from './AnalyzingBadge.vue';
 import TypewriterText from './TypewriterText.vue';
 import { useInView } from './motion.js';
@@ -28,11 +28,10 @@ function iconPath(key) {
     ref="target"
     class="relative overflow-hidden py-20"
   >
-    <!-- Mạng nơ-ron nền (giả lập "AI đang xử lý") -->
-    <NeuralBackdrop
-      class="opacity-50"
-      :node-count="22"
+    <SectionParticleNetwork
       tone="cyan"
+      :seed="22"
+      opacity-class="opacity-55"
     />
 
     <div class="relative z-10 mx-auto max-w-7xl px-5 sm:px-8">

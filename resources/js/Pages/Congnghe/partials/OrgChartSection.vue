@@ -9,6 +9,7 @@ import {
 } from './useCongngheOrgLayout.js';
 import ScanLineOverlay from './ScanLineOverlay.vue';
 import { useInView } from './motion.js';
+import SectionParticleNetwork from './SectionParticleNetwork.vue';
 
 const props = defineProps({
     content: { type: Object, default: () => ({}) },
@@ -112,14 +113,19 @@ onBeforeUnmount(() => {
   <section
     id="to-chuc"
     ref="target"
-    class="relative scroll-mt-24 py-12 sm:scroll-mt-28 sm:py-16 md:py-20"
+    class="relative overflow-hidden scroll-mt-24 py-12 sm:scroll-mt-28 sm:py-16 md:py-20"
   >
+    <SectionParticleNetwork
+      tone="violet"
+      :seed="17"
+      opacity-class="opacity-35"
+    />
     <div
       class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand/35 to-transparent"
       aria-hidden="true"
     />
 
-    <div class="mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
+    <div class="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
       <SectionHeading
         v-if="roots.length"
         class="min-w-0 max-w-3xl"

@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 import SectionHeading from './SectionHeading.vue';
 import GlassCard from './GlassCard.vue';
-import NeuralBackdrop from './NeuralBackdrop.vue';
+import SectionParticleNetwork from './SectionParticleNetwork.vue';
 import { useInView, useMagneticGroup } from './motion.js';
 
 const props = defineProps({
@@ -22,11 +22,9 @@ const groups = computed(() => props.content?.groups ?? []);
     ref="target"
     class="relative overflow-hidden py-20"
   >
-    <NeuralBackdrop
-      class="opacity-40"
-      :node-count="20"
-      :seed="13"
+    <SectionParticleNetwork
       tone="violet"
+      :seed="13"
     />
     <div class="relative z-10 mx-auto max-w-7xl px-5 sm:px-8">
       <SectionHeading

@@ -5,6 +5,7 @@ import DataStreamTicker from './DataStreamTicker.vue';
 import AnalyzingBadge from './AnalyzingBadge.vue';
 import RevealOnScroll from './RevealOnScroll.vue';
 import CongngheProjectCarousel from './CongngheProjectCarousel.vue';
+import SectionParticleNetwork from './SectionParticleNetwork.vue';
 import { useInView, useScrollScene } from './motion.js';
 
 const props = defineProps({
@@ -31,7 +32,7 @@ const streamItems = computed(() => props.products.map(
   <section
     id="san-pham"
     ref="target"
-    class="relative py-20"
+    class="relative overflow-hidden py-20"
     tabindex="-1"
   >
     <div
@@ -48,7 +49,12 @@ const streamItems = computed(() => props.products.map(
       />
     </div>
 
-    <div class="relative mx-auto min-w-0 max-w-7xl px-5 sm:px-8">
+    <SectionParticleNetwork
+      tone="emerald"
+      :seed="11"
+    />
+
+    <div class="relative z-10 mx-auto min-w-0 max-w-7xl px-5 sm:px-8">
       <div
         class="flex min-w-0 flex-wrap items-end justify-between gap-4 transition-all duration-700"
         :class="sectionVisible ? 'translate-y-0 opacity-100' : 'translate-y-5 opacity-0'"

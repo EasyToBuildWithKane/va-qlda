@@ -8,6 +8,7 @@ import CongngheProjectShowcase from './CongngheProjectShowcase.vue';
 import CongngheProjectSlider from './CongngheProjectSlider.vue';
 import { tone } from './tones.js';
 import { useInView, useMagneticGroup } from './motion.js';
+import SectionParticleNetwork from './SectionParticleNetwork.vue';
 
 const props = defineProps({
     content: { type: Object, default: () => ({}) },
@@ -89,7 +90,12 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
       <div class="absolute right-[10%] bottom-10 h-64 w-64 rounded-full bg-violet-500/12 blur-[120px] animate-cn-float-x" />
     </div>
 
-    <div class="relative mx-auto max-w-7xl px-5 sm:px-8">
+    <SectionParticleNetwork
+      tone="brand"
+      :seed="19"
+    />
+
+    <div class="relative z-10 mx-auto max-w-7xl px-5 sm:px-8">
       <div class="flex flex-wrap items-end justify-between gap-6">
         <SectionHeading
           :eyebrow="heading.eyebrow"

@@ -5,6 +5,7 @@ import GlassCard from './GlassCard.vue';
 import RippleSurface from './RippleSurface.vue';
 import ScanLineOverlay from './ScanLineOverlay.vue';
 import CongngheBrandBackdrop from './CongngheBrandBackdrop.vue';
+import SectionParticleNetwork from './SectionParticleNetwork.vue';
 import { useInView } from './motion.js';
 
 const props = defineProps({
@@ -26,8 +27,12 @@ function iconPath(key) {
   <section
     id="van-hoa"
     ref="target"
-    class="relative scroll-mt-24 py-16 sm:scroll-mt-28 sm:py-20 md:py-24"
+    class="relative overflow-hidden scroll-mt-24 py-16 sm:scroll-mt-28 sm:py-20 md:py-24"
   >
+    <SectionParticleNetwork
+      tone="brand"
+      :seed="23"
+    />
     <CongngheBrandBackdrop
       variant="badge"
       align="left"

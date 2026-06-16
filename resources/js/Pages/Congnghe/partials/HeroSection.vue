@@ -10,6 +10,7 @@ import { useParallaxLayers } from './motion.js';
 import { congngheBrand } from './congngheBrand.js';
 import CongngheBrandBackdrop from './CongngheBrandBackdrop.vue';
 import CongngheMascotAnimated from './CongngheMascotAnimated.vue';
+import SectionParticleNetwork from './SectionParticleNetwork.vue';
 
 const props = defineProps({
     content: { type: Object, default: () => ({}) },
@@ -49,6 +50,12 @@ const streamItems = computed(() => {
     id="top"
     class="relative flex min-h-[100dvh] flex-col justify-center overflow-hidden px-4 pb-20 pt-[5.5rem] sm:px-6 sm:pb-16 sm:pt-32 md:px-8 lg:min-h-screen lg:pt-36"
   >
+    <SectionParticleNetwork
+      tone="brand"
+      :seed="1"
+      :density="1.15"
+      opacity-class="opacity-50"
+    />
     <CongngheBrandBackdrop
       variant="dragon"
       align="right"
