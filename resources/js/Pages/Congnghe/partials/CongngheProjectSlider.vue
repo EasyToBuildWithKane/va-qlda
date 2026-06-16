@@ -82,9 +82,11 @@ function scrollByPage(dir) {
 }
 
 /* ---- Kéo bằng chuột (cảm ứng để trình duyệt tự cuộn) ---- */
+const DRAG_THRESHOLD = 6;
 let startX = 0;
 let startScroll = 0;
 let dragDist = 0;
+let pointerActive = false;
 
 function onPointerDown(e) {
     if (e.pointerType !== 'mouse' || e.button !== 0) {
@@ -94,15 +96,18 @@ function onPointerDown(e) {
     if (!el) {
         return;
     }
-    grabbing.value = true;
+    // Chưa bắt con trỏ vội: nếu chỉ là click thì để event tới thẳng thẻ bên trong.
+    // setPointerCapture trên viewport sẽ "đổi đích" click sang viewport ⇒ nuốt
+    // mất @click mở modal của thẻ. Chỉ bắt khi đã chắc chắn là thao tác kéo.
+    pointerActive = true;
+    grabbing.value = false;
     dragDist = 0;
     startX = e.clientX;
     startScroll = el.scrollLeft;
-    el.setPointerCapture?.(e.pointerId);
 }
 
 function onPointerMove(e) {
-    if (!grabbing.value) {
+    if (!pointerActive) {
         return;
     }
     const el = viewport.value;
@@ -111,15 +116,26 @@ function onPointerMove(e) {
     }
     const dx = e.clientX - startX;
     dragDist = Math.max(dragDist, Math.abs(dx));
+    if (!grabbing.value) {
+        if (dragDist <= DRAG_THRESHOLD) {
+            return;
+        }
+        // Vượt ngưỡng ⇒ chuyển sang chế độ kéo, lúc này mới bắt con trỏ.
+        grabbing.value = true;
+        el.setPointerCapture?.(e.pointerId);
+    }
     el.scrollLeft = startScroll - dx;
 }
 
 function onPointerUp(e) {
-    if (!grabbing.value) {
+    if (!pointerActive) {
         return;
     }
-    grabbing.value = false;
-    viewport.value?.releasePointerCapture?.(e.pointerId);
+    pointerActive = false;
+    if (grabbing.value) {
+        grabbing.value = false;
+        viewport.value?.releasePointerCapture?.(e.pointerId);
+    }
 }
 
 // Vừa kéo thì nuốt click để không mở modal nhầm.

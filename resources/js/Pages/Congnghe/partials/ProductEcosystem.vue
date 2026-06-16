@@ -1,10 +1,10 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import SectionHeading from './SectionHeading.vue';
 import DataStreamTicker from './DataStreamTicker.vue';
 import AnalyzingBadge from './AnalyzingBadge.vue';
 import RevealOnScroll from './RevealOnScroll.vue';
-import CongngheProjectSlider from './CongngheProjectSlider.vue';
+import CongngheProjectShowcase from './CongngheProjectShowcase.vue';
 import { useInView, useScrollScene } from './motion.js';
 
 const props = defineProps({
@@ -18,6 +18,14 @@ const sceneProgress = useScrollScene(target);
 const heading = computed(() => props.content?.heading ?? {});
 
 const slideCount = computed(() => props.products.length);
+
+// Hiển thị từng dự án thành một dải full-width; xếp dọc. Quá nhiều thì gập bớt.
+const INITIAL_VISIBLE = 3;
+const expanded = ref(false);
+const visibleProducts = computed(() =>
+    expanded.value ? props.products : props.products.slice(0, INITIAL_VISIBLE),
+);
+const hiddenCount = computed(() => Math.max(0, props.products.length - INITIAL_VISIBLE));
 
 // Blob nền drift theo scroll + ticker mã sản phẩm (dữ liệu thật).
 const blobA = computed(() => ({ transform: `translateY(${((sceneProgress.value - 0.5) * 60).toFixed(1)}px)` }));
@@ -82,20 +90,49 @@ const streamItems = computed(() => props.products.map(
         :speed="34"
       />
 
-      <!-- Băng chuyền sản phẩm (kéo ngang, 3 thẻ/khung) -->
-      <RevealOnScroll
+      <!-- Mỗi sản phẩm là một dải full-width (gallery + thông tin nổi bật) -->
+      <div
         v-if="slideCount"
-        variant="up"
-        class="mt-8 block"
+        class="mt-10 flex flex-col gap-8 sm:gap-10"
       >
-        <CongngheProjectSlider
-          :projects="products"
-          accent="emerald"
-        />
-      </RevealOnScroll>
+        <RevealOnScroll
+          v-for="(product, i) in visibleProducts"
+          :key="product.id"
+          variant="up"
+          :threshold="0.08"
+          class="block"
+        >
+          <CongngheProjectShowcase
+            :project="product"
+            :index="i"
+          />
+        </RevealOnScroll>
+      </div>
+
+      <div
+        v-if="hiddenCount && !expanded"
+        class="mt-9 flex justify-center"
+      >
+        <button
+          type="button"
+          class="group inline-flex items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-400/[0.06] px-6 py-3 text-sm font-semibold text-emerald-100 transition hover:border-emerald-400/50 hover:bg-emerald-400/[0.12] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400"
+          @click="expanded = true"
+        >
+          Xem tất cả {{ slideCount }} sản phẩm
+          <svg
+            class="transition-transform duration-300 group-hover:translate-y-0.5"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          ><path d="M6 9l6 6 6-6" /></svg>
+        </button>
+      </div>
 
       <p
-        v-else
+        v-if="!slideCount"
         class="mt-12 rounded-2xl border border-dashed border-emerald-400/20 bg-emerald-400/[0.04] px-6 py-12 text-center text-sm text-white/45"
       >
         Chưa có dự án nào hoàn thành. Dữ liệu sẽ hiển thị khi có sản phẩm được nghiệm thu.

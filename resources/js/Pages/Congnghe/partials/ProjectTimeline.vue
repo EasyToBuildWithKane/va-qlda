@@ -4,7 +4,7 @@ import SectionHeading from './SectionHeading.vue';
 import AnalyzingBadge from './AnalyzingBadge.vue';
 import DataStreamTicker from './DataStreamTicker.vue';
 import RevealOnScroll from './RevealOnScroll.vue';
-import CongngheProjectSlider from './CongngheProjectSlider.vue';
+import CongngheProjectShowcase from './CongngheProjectShowcase.vue';
 import { tone } from './tones.js';
 import { useInView, useMagneticGroup } from './motion.js';
 
@@ -249,19 +249,25 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
           </div>
         </div>
 
-        <!-- Băng chuyền dự án (kéo ngang, đồng nhất với Hệ sinh thái sản phẩm) -->
-        <RevealOnScroll
+        <!-- Mỗi dự án là một dải full-width (đồng nhất với Hệ sinh thái sản phẩm) -->
+        <div
           v-if="items.length"
-          variant="up"
-          class="block"
+          :key="activePhase.value"
+          class="flex flex-col gap-8 sm:gap-10"
         >
-          <CongngheProjectSlider
-            :key="activePhase.value"
-            :projects="items"
-            :reset-key="activePhase.value"
-            accent="brand"
-          />
-        </RevealOnScroll>
+          <RevealOnScroll
+            v-for="(item, i) in items"
+            :key="item.id"
+            variant="up"
+            :threshold="0.08"
+            class="block"
+          >
+            <CongngheProjectShowcase
+              :project="item"
+              :index="i"
+            />
+          </RevealOnScroll>
+        </div>
 
         <!-- Trống -->
         <div
