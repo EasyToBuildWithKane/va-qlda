@@ -271,22 +271,6 @@ watch([inView, overflowing, () => activeCongngheProject.value], syncAutoPlay, { 
     @focusin="userPaused = true"
     @focusout="(e) => { if (!e.currentTarget.contains(e.relatedTarget)) userPaused = false; }"
   >
-    <!-- Gợi ý điều hướng (trên khung thẻ) -->
-    <p
-      v-if="overflowing"
-      class="mb-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center font-mono text-[10px] uppercase tracking-[0.14em] text-white/45"
-    >
-      <span class="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1">
-        <span
-          class="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-brand/90"
-          aria-hidden="true"
-        />
-        Tự chuyển dự án
-      </span>
-      <span class="text-white/30">·</span>
-      <span>Bấm mũi tên hai bên hoặc kéo ngang</span>
-    </p>
-
     <!-- Khung thẻ + mũi tên overlay -->
     <div class="relative px-11 sm:px-14 lg:px-[4.25rem]">
       <template v-if="overflowing">
