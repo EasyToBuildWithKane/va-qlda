@@ -384,6 +384,68 @@ class Navigation
             ],
 
             // ──────────────────────────────────────────────────────────────
+            // 8b. HỢP ĐỒNG (CLM) — vòng đời hợp đồng, NCC, gia hạn, chi phí
+            //     Admin/Lead quản lý; Viewer chỉ xem dashboard & báo cáo.
+            // ──────────────────────────────────────────────────────────────
+            [
+                'key' => 'contracts',
+                'heading' => 'Quản lý Hợp đồng',
+                'icon' => 'budget',
+                'defaultCollapsed' => true,
+                'items' => [
+                    [
+                        'label' => 'Dashboard hợp đồng',
+                        'icon' => 'overview',
+                        'href' => '/contracts/dashboard',
+                        'status' => 'live',
+                        'roles' => ['admin', 'lead', 'viewer'],
+                    ],
+                    [
+                        'label' => 'Danh mục hợp đồng',
+                        'icon' => 'documents',
+                        'href' => '/contracts',
+                        'status' => 'live',
+                        'roles' => ['admin', 'lead', 'viewer'],
+                    ],
+                    [
+                        'label' => 'Nhà cung cấp',
+                        'icon' => 'org-teams',
+                        'href' => '/contracts/vendors',
+                        'status' => 'live',
+                        'roles' => ['admin', 'lead', 'viewer'],
+                    ],
+                    [
+                        'label' => 'Gia hạn',
+                        'icon' => 'renewal',
+                        'href' => '/contracts/renewals',
+                        'status' => 'live',
+                        'roles' => ['admin', 'lead', 'viewer'],
+                    ],
+                    [
+                        'label' => 'Chi phí',
+                        'icon' => 'money',
+                        'href' => '/contracts/cost',
+                        'status' => 'live',
+                        'roles' => ['admin', 'lead', 'viewer'],
+                    ],
+                    [
+                        'label' => 'Trung tâm cảnh báo',
+                        'icon' => 'alert',
+                        'href' => '/contracts/alerts',
+                        'status' => 'live',
+                        'roles' => ['admin', 'lead', 'viewer'],
+                    ],
+                    [
+                        'label' => 'Báo cáo',
+                        'icon' => 'team-eval',
+                        'href' => '/contracts/reports',
+                        'status' => 'live',
+                        'roles' => ['admin', 'lead', 'viewer'],
+                    ],
+                ],
+            ],
+
+            // ──────────────────────────────────────────────────────────────
             // 9. CHẤT LƯỢNG & PHẢN HỒI — feedback
             // ──────────────────────────────────────────────────────────────
             [

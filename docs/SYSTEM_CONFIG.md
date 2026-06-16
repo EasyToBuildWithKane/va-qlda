@@ -37,6 +37,7 @@ Pages/Settings/Index.vue       SystemSettingController             SystemSetting
                                  overlay overrides → config()
                                    ↓
                                config('telegram.*'), config('va.*'),
+                               config('task_email.*'), config('ai_accounts.reminder.*'),
                                config('va_permissions.role_grants')
                                    ↓
                                Code hiện hữu (TelegramService, routes,
@@ -57,14 +58,29 @@ Pages/Settings/Index.vue       SystemSettingController             SystemSetting
 | | | `app_short_name` | string | `va.app_short_name` |
 | | | `support_email` | string(email) | `va.support_email` |
 | | | `app_version` | string | `va.app_version` |
+| | | `congnghe_proposal_email` | string(email) | `va.congnghe_proposal_email` |
+| | | `dashboard_personnel_pattern` | string | `va.dashboard_personnel_department_pattern` |
 | **Đăng nhập & Bảo mật** | `auth` | `password_login_enabled` | bool | `va.password_login_enabled` |
 | | | `google_allowed_domains` | list | `va.google_allowed_domains` |
+| | | `google_allowed_emails` | list | `va.google_allowed_emails` |
+| | | `tech_login_allowed_emails` | list | `va.tech_login_allowed_emails` |
 | **Thông báo Telegram** | `telegram` | `enabled` | bool | `telegram.enabled` |
 | | | `bot_token` | **secret** | `telegram.bot_token` |
 | | | `chat_id` | string | `telegram.chat_id` |
 | | | `blocker_chat_id` | string | `telegram.blocker_chat_id` |
 | | | `daily_report_review` | bool | `telegram.daily_report_review` |
 | | | `blocker_resolved` | bool | `telegram.blocker_resolved` |
+| **Email & Thông báo** | `email` | `enabled` | bool | `task_email.enabled` |
+| | | `from_name` | string | `task_email.from_name` |
+| | | `notify_on_assign` | bool | `task_email.notify_on_assign` |
+| | | `notify_daily_at` | string (HH:MM) | `task_email.notify_daily_at` |
+| | | `ai_reminder_enabled` | bool | `ai_accounts.reminder.send_email` |
+| | | `ai_reminder_extra_emails` | list | `ai_accounts.reminder.extra_recipients` |
+| | | `ai_reminder_include_expired` | bool | `ai_accounts.reminder.include_expired` |
+| | | `ai_reminder_unpaid_renewal` | bool | `ai_accounts.reminder.include_unpaid_renewal` |
+| **Hợp đồng (CLM)** | `clm` | `alert_enabled` | bool | `clm.alert_enabled` |
+| | | `renewal_alert_days` | string | `clm.renewal_alert_days` |
+| | | `alert_telegram` | bool | `clm.alert_telegram` |
 | **Phân quyền** | `permissions` | `role_grants` | matrix | `va_permissions.role_grants` |
 
 `general.app_*` còn được chia sẻ ra Inertia qua prop `app` (`HandleInertiaRequests`) → `AppLayout` dùng cho ô thương hiệu (rail), tiêu đề, chân thanh bên.
@@ -110,10 +126,28 @@ Chỉ lưu **những key đã được admin sửa** (override). Decode/typing d
 3. Nếu cần dùng ở frontend toàn cục: thêm vào prop `app` trong `HandleInertiaRequests`.
 4. UI tự render (FieldsTab theo `type`). Type mới ⇒ thêm nhánh trong `FieldsTab.vue`.
 5. Không cần migration (key mới chỉ là row override khi admin lưu).
+6. Thêm key mới vào `ENV_BACKED_KEYS` trong `SettingsImportFromEnv` nếu có `.env` fallback tương ứng.
+
+## 8. Bootstrap settings lên server mới
+
+Khi deploy lên server mới (bảng `system_settings` trống), chạy:
+
+```bash
+# Xem trước — không ghi gì
+php artisan settings:import-from-env --dry-run
+
+# Seed từ .env hiện tại (bỏ qua key đã có trong DB)
+php artisan settings:import-from-env
+
+# Overwrite toàn bộ (kể cả key đã có trong DB)
+php artisan settings:import-from-env --force
+```
+
+Sau khi seed xong, các key `TELEGRAM_*`, `GOOGLE_ALLOWED_*`, `AI_ACCOUNT_REMINDER_*` có thể xóa khỏi `.env` — giá trị sẽ đọc từ DB. Khi đổi cấu hình, vào `/settings` thay vì sửa file.
 
 ---
 
-## 8. Files
+## 9. Files
 
 | Lớp | File |
 |-----|------|
@@ -123,4 +157,5 @@ Chỉ lưu **những key đã được admin sửa** (override). Decode/typing d
 | Quyền | `App\Policies\SystemSettingPolicy` (map ở `AuthServiceProvider`) |
 | HTTP | `App\Http\Controllers\Settings\SystemSettingController`, `App\Http\Requests\Settings\UpdateSettingsRequest`, routes `settings.*` |
 | Shared | `App\Http\Middleware\HandleInertiaRequests` (prop `app`), `config/va.php` (defaults) |
-| Vue | `resources/js/Pages/Settings/Index.vue` + `partials/{FieldsTab,PermissionsTab}.vue`, `resources/js/shared/ui/form/ToggleSwitch.vue` |
+| Vue | `resources/js/Pages/Settings/Index.vue` + `partials/{FieldsTab,PermissionsTab,EmailTemplateTab}.vue` |
+| CLI | `App\Console\Commands\SettingsImportFromEnv` (`settings:import-from-env`) |

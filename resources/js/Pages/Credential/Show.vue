@@ -1,6 +1,6 @@
 <script setup>
-import { computed, ref } from 'vue';
-import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { computed, onMounted, ref, watch } from 'vue';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import AppIcon from '@/Components/AppIcon.vue';
@@ -21,7 +21,19 @@ const props = defineProps({
 });
 
 const toast = useToast();
+const inertiaPage = usePage();
 const tab = ref('overview');
+
+function syncTabFromAuditQuery() {
+    if (typeof window === 'undefined') return;
+    const url = new URL(inertiaPage.url, window.location.origin);
+    if (url.searchParams.has('audit_page') || url.searchParams.has('audit_per_page')) {
+        tab.value = 'audit';
+    }
+}
+
+onMounted(syncTabFromAuditQuery);
+watch(() => inertiaPage.url, syncTabFromAuditQuery);
 
 const tabs = computed(() => {
     const items = [
@@ -70,11 +82,13 @@ const auditPerPageLocal = ref(props.auditPerPage);
 const auditLogList = computed(() => props.auditLogs?.data ?? []);
 
 function reloadAuditLogs(page) {
+    tab.value = 'audit';
     router.get(route('credentials.show', props.credential.id), {
         audit_page: page ?? props.auditLogs?.meta?.current_page ?? 1,
         audit_per_page: auditPerPageLocal.value,
     }, {
         preserveScroll: true,
+        preserveState: true,
         only: ['auditLogs', 'auditPerPage'],
     });
 }
@@ -508,9 +522,11 @@ const badgeLabelsText = computed(() => {
         v-if="auditLogs.meta?.total"
         v-model:per-page="auditPerPageLocal"
         variant="bar"
+        client
         :meta="auditLogs.meta"
         :per-page-options="[5, 10, 15, 20]"
         @update:per-page="reloadAuditLogs(1)"
+        @page-change="reloadAuditLogs"
       />
     </div>
   </AppLayout>

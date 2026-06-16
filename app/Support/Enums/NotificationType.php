@@ -54,6 +54,8 @@ enum NotificationType: string
     case SystemError = 'system_error';
     case SystemAiAccountExpiry = 'system_ai_account_expiry';
     case SystemAiAccountRenewalUnpaid = 'system_ai_account_renewal_unpaid';
+    case SystemContractExpiry = 'system_contract_expiry';
+    case SystemContractExpired = 'system_contract_expired';
 
     // Admin feed
     case AdminUserAction = 'admin_user_action';
@@ -88,7 +90,8 @@ enum NotificationType: string
 
             self::SystemImport, self::SystemExport, self::SystemBackup,
             self::SystemRestore, self::SystemSync, self::SystemError,
-            self::SystemAiAccountExpiry, self::SystemAiAccountRenewalUnpaid => NotificationCategory::System,
+            self::SystemAiAccountExpiry, self::SystemAiAccountRenewalUnpaid,
+            self::SystemContractExpiry, self::SystemContractExpired => NotificationCategory::System,
 
             default => NotificationCategory::Admin,
         };
@@ -99,10 +102,12 @@ enum NotificationType: string
         return match ($this) {
             self::TaskOverdue, self::ProjectOverdue, self::SprintBehind,
             self::SystemError, self::AdminApiError, self::AdminJobFailed,
-            self::AdminQueueFailed, self::AdminImportFailed => NotificationPriority::Critical,
+            self::AdminQueueFailed, self::AdminImportFailed,
+            self::SystemContractExpired => NotificationPriority::Critical,
 
             self::TaskDueSoon, self::TaskBlocked, self::TaskAssigned,
             self::SystemAiAccountExpiry, self::SystemAiAccountRenewalUnpaid,
+            self::SystemContractExpiry,
             self::SprintOverCapacity, self::AdminDataAnomaly,
             self::AdminUploadFailed, self::AdminPermissionError => NotificationPriority::High,
 
@@ -154,6 +159,8 @@ enum NotificationType: string
             self::SystemError => 'Lỗi hệ thống',
             self::SystemAiAccountExpiry => 'Tài khoản AI sắp hết hạn',
             self::SystemAiAccountRenewalUnpaid => 'Chưa thanh toán gia hạn AI',
+            self::SystemContractExpiry => 'Hợp đồng sắp hết hạn',
+            self::SystemContractExpired => 'Hợp đồng đã hết hạn',
             self::AdminUserAction => 'Hoạt động người dùng',
             self::AdminApiError => 'API Error',
             self::AdminValidationError => 'Validation Error',

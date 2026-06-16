@@ -14,8 +14,10 @@ use Illuminate\Validation\Rule;
  * empty table. Groups map 1:1 to the tabs on /settings.
  *
  *   general      — app identity surfaced to the UI (va.*)
- *   auth         — login + Google domain allow-list (va.*)
+ *   auth         — login + Google domain/email allow-lists (va.*)
  *   telegram     — bot + notification channels (telegram.*)
+ *   email        — task/AI email sending (task_email.*, ai_accounts.reminder.*)
+ *   clm          — contract renewal alerts (clm.*)
  *   permissions  — editable role → permission matrix (va_permissions.role_grants)
  *
  * Setting keys are namespaced "{group}.{name}"; the matrix uses the single key
@@ -24,7 +26,7 @@ use Illuminate\Validation\Rule;
 final class SettingsSchema
 {
     /** Tabs/groups, in display order. */
-    public const GROUPS = ['general', 'auth', 'telegram', 'email', 'permissions'];
+    public const GROUPS = ['general', 'auth', 'telegram', 'email', 'clm', 'permissions'];
 
     public const MATRIX_KEY = 'permissions.role_grants';
 
@@ -43,6 +45,7 @@ final class SettingsSchema
             ['key' => 'auth', 'label' => 'Đăng nhập & Bảo mật', 'icon' => 'account', 'description' => 'Đăng nhập & domain email'],
             ['key' => 'telegram', 'label' => 'Thông báo Telegram', 'icon' => 'send', 'description' => 'Bot & kênh thông báo'],
             ['key' => 'email', 'label' => 'Email & Thông báo', 'icon' => 'mail', 'description' => 'Cấu hình gửi email và mẫu thông báo'],
+            ['key' => 'clm', 'label' => 'Hợp đồng (CLM)', 'icon' => 'budget', 'description' => 'Ngưỡng cảnh báo gia hạn hợp đồng'],
             ['key' => 'permissions', 'label' => 'Phân quyền', 'icon' => 'members', 'description' => 'Ma trận vai trò × quyền'],
         ];
     }
@@ -69,6 +72,13 @@ final class SettingsSchema
             ['group' => 'general', 'name' => 'app_version', 'type' => 'string', 'label' => 'Phiên bản hiển thị',
                 'help' => 'Nhãn phiên bản ở chân thanh bên (vd. 1.0).', 'config' => 'va.app_version',
                 'default' => '1.0', 'rules' => ['nullable', 'string', 'max:20']],
+            ['group' => 'general', 'name' => 'congnghe_proposal_email', 'type' => 'string', 'label' => 'Email nhận đề xuất phần mềm',
+                'help' => 'Hộp thư nhận đề xuất từ cổng /congnghe/de-xuat (Phòng Công nghệ).', 'config' => 'va.congnghe_proposal_email',
+                'default' => null, 'rules' => ['nullable', 'email', 'max:190']],
+            ['group' => 'general', 'name' => 'dashboard_personnel_pattern', 'type' => 'string', 'label' => 'Mẫu phòng ban Dashboard',
+                'help' => 'Lọc phòng ban nhân sự trên trang Bảng điều khiển (LIKE %pattern%). Mặc định: Công nghệ.',
+                'config' => 'va.dashboard_personnel_department_pattern',
+                'default' => 'Công nghệ', 'rules' => ['nullable', 'string', 'max:120']],
 
             // ── auth ─────────────────────────────────────────────────
             ['group' => 'auth', 'name' => 'password_login_enabled', 'type' => 'bool', 'label' => 'Cho phép đăng nhập bằng mật khẩu',
@@ -77,6 +87,12 @@ final class SettingsSchema
             ['group' => 'auth', 'name' => 'google_allowed_domains', 'type' => 'list', 'label' => 'Domain email Google cho phép',
                 'help' => 'Bỏ trống = chấp nhận mọi email đã xác minh. Mỗi dòng một domain (vd. vaschools.edu.vn).',
                 'config' => 'va.google_allowed_domains', 'default' => [], 'rules' => ['array'], 'itemRules' => ['string', 'max:190']],
+            ['group' => 'auth', 'name' => 'google_allowed_emails', 'type' => 'list', 'label' => 'Email Google cho phép (cá nhân)',
+                'help' => 'Email không thuộc domain ở trên nhưng vẫn được đăng nhập (vd. gmail.com cá nhân). Mỗi dòng một địa chỉ.',
+                'config' => 'va.google_allowed_emails', 'default' => [], 'rules' => ['array'], 'itemRules' => ['email', 'max:190']],
+            ['group' => 'auth', 'name' => 'tech_login_allowed_emails', 'type' => 'list', 'label' => 'Email được phép đăng nhập cổng /tech',
+                'help' => 'Danh sách email được phép dùng /tech/login. Bỏ trống = dùng danh sách mặc định trong config. Cẩn thận: để trống sẽ fallback về default code, không chặn hoàn toàn.',
+                'config' => 'va.tech_login_allowed_emails', 'default' => [], 'rules' => ['array'], 'itemRules' => ['email', 'max:190']],
 
             // ── telegram ─────────────────────────────────────────────
             ['group' => 'telegram', 'name' => 'enabled', 'type' => 'bool', 'label' => 'Bật thông báo Telegram',
@@ -112,6 +128,30 @@ final class SettingsSchema
                 'help' => 'Dùng cho lịch tự động sau này; nút gửi thủ công vẫn hoạt động bất kể giá trị này.',
                 'config' => 'task_email.notify_daily_at', 'default' => '17:00',
                 'rules' => ['nullable', 'string', 'regex:/^\d{2}:\d{2}$/']],
+            ['group' => 'email', 'name' => 'ai_reminder_enabled', 'type' => 'bool', 'label' => 'Gửi email nhắc hết hạn tài khoản AI',
+                'help' => 'Gửi email nhắc hết hạn license AI theo lịch (08:00 và 14:00).',
+                'config' => 'ai_accounts.reminder.send_email', 'default' => true, 'rules' => ['boolean']],
+            ['group' => 'email', 'name' => 'ai_reminder_extra_emails', 'type' => 'list', 'label' => 'Email nhận nhắc bổ sung (AI)',
+                'help' => 'Hộp thư ngoài danh sách admin/lead. Mỗi dòng một địa chỉ.',
+                'config' => 'ai_accounts.reminder.extra_recipients', 'default' => [], 'rules' => ['array'], 'itemRules' => ['email', 'max:190']],
+            ['group' => 'email', 'name' => 'ai_reminder_include_expired', 'type' => 'bool', 'label' => 'Nhắc tài khoản AI đã hết hạn',
+                'help' => 'Gửi thêm nhắc cho tài khoản AI đã quá hạn nhưng chưa gia hạn.',
+                'config' => 'ai_accounts.reminder.include_expired', 'default' => true, 'rules' => ['boolean']],
+            ['group' => 'email', 'name' => 'ai_reminder_unpaid_renewal', 'type' => 'bool', 'label' => 'Nhắc gia hạn chưa thanh toán',
+                'help' => 'Gửi nhắc riêng khi hợp đồng AI đã hết hạn + chưa thanh toán gia hạn.',
+                'config' => 'ai_accounts.reminder.include_unpaid_renewal', 'default' => true, 'rules' => ['boolean']],
+
+            // ── clm (Hợp đồng) ───────────────────────────────────────
+            ['group' => 'clm', 'name' => 'alert_enabled', 'type' => 'bool', 'label' => 'Bật cảnh báo gia hạn',
+                'help' => 'Tắt sẽ không quét và không tạo thông báo hợp đồng sắp hết hạn.',
+                'config' => 'clm.alert_enabled', 'default' => true, 'rules' => ['boolean']],
+            ['group' => 'clm', 'name' => 'renewal_alert_days', 'type' => 'string', 'label' => 'Mốc nhắc gia hạn (ngày)',
+                'help' => 'Các mốc trước hạn để nhắc, phân tách bằng dấu phẩy (vd 90,60,30,7). Mốc lớn nhất cũng là cửa sổ "sắp hết hạn".',
+                'config' => 'clm.renewal_alert_days', 'default' => '90,60,30,7',
+                'rules' => ['required', 'string', 'regex:/^\s*\d{1,4}(\s*,\s*\d{1,4})*\s*$/']],
+            ['group' => 'clm', 'name' => 'alert_telegram', 'type' => 'bool', 'label' => 'Gửi cảnh báo qua Telegram',
+                'help' => 'Gửi kèm Telegram khi có hợp đồng sắp/đã hết hạn (cần bật Telegram ở tab Thông báo Telegram).',
+                'config' => 'clm.alert_telegram', 'default' => false, 'rules' => ['boolean']],
         ];
     }
 

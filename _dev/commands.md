@@ -135,6 +135,15 @@ php artisan telegram:list-chats          # Sau khi gửi tin trong group Telegra
 php artisan migrate:fresh --force --seed # CI / clean DB reset
 ```
 
+### Lệnh theo lịch (scheduler)
+
+```bash
+php artisan ai-accounts:send-reminders   # Nhắc hết hạn / chưa thanh toán tài khoản AI (08:00, 14:00)
+php artisan contracts:send-reminders     # CLM: đồng bộ trạng thái + cảnh báo hợp đồng sắp/đã hết hạn (08:00)
+```
+
+> Ngưỡng cảnh báo hợp đồng cấu hình ở `/settings` → tab **Hợp đồng (CLM)** (`clm.renewal_alert_days`, mặc định `90,60,30,7`). Chạy tay để kiểm thử; idempotent trong ngày.
+
 ---
 
 ## Dependency install

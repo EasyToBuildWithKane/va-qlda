@@ -14,6 +14,7 @@ class Kernel extends ConsoleKernel
     {
         $schedule->command('ai-accounts:send-reminders')->dailyAt('08:00');
         $schedule->command('ai-accounts:send-reminders')->dailyAt('14:00');
+        $schedule->command('contracts:send-reminders')->dailyAt('08:00');
     }
 
     /**

@@ -45,7 +45,7 @@ class SystemSettingTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Settings/Index')
-                ->has('groups', 5)
+                ->has('groups', 6) // general, auth, telegram, email, clm, permissions
                 ->has('emailTemplates', 3)
                 ->where('can.manage', true)
             );
@@ -163,6 +163,26 @@ class SystemSettingTest extends TestCase
         $this->assertTrue(config('telegram.enabled'));
     }
 
+    public function test_overlay_applies_ai_reminder_and_google_email_lists(): void
+    {
+        $this->repo()->setMany([
+            'email.ai_reminder_enabled' => false,
+            'email.ai_reminder_extra_emails' => ['extra@vaschools.edu.vn'],
+            'auth.google_allowed_emails' => ['guest@gmail.com'],
+        ]);
+        config([
+            'ai_accounts.reminder.send_email' => true,
+            'ai_accounts.reminder.extra_recipients' => [],
+            'va.google_allowed_emails' => [],
+        ]);
+
+        (new SettingsServiceProvider($this->app))->boot();
+
+        $this->assertFalse(config('ai_accounts.reminder.send_email'));
+        $this->assertSame(['extra@vaschools.edu.vn'], config('ai_accounts.reminder.extra_recipients'));
+        $this->assertSame(['guest@gmail.com'], config('va.google_allowed_emails'));
+    }
+
     public function test_admin_can_update_email_template(): void
     {
         $template = EmailTemplate::query()->where('key', EmailTemplate::KEY_TASK_ASSIGNED)->first();
@@ -211,5 +231,150 @@ class SystemSettingTest extends TestCase
         (new SettingsServiceProvider($this->app))->boot();
 
         $this->assertSame(['*'], config('va_permissions.role_grants')['admin']);
+    }
+
+    // ─── CLM group ──────────────────────────────────────────────────────────
+
+    public function test_admin_can_update_clm_settings(): void
+    {
+        $this->actingAs($this->admin(), 'system')
+            ->put('/settings/clm', [
+                'alert_enabled' => true,
+                'renewal_alert_days' => '60,30,7',
+                'alert_telegram' => false,
+            ])
+            ->assertRedirect();
+
+        $this->assertSame('60,30,7', $this->repo()->get('clm.renewal_alert_days'));
+        $this->assertTrue($this->repo()->get('clm.alert_enabled'));
+    }
+
+    public function test_clm_renewal_alert_days_rejects_non_numeric(): void
+    {
+        $this->actingAs($this->admin(), 'system')
+            ->put('/settings/clm', [
+                'alert_enabled' => true,
+                'renewal_alert_days' => 'abc,30',
+                'alert_telegram' => false,
+            ])
+            ->assertSessionHasErrors('renewal_alert_days');
+    }
+
+    public function test_settings_payload_includes_clm_group(): void
+    {
+        $this->actingAs($this->admin(), 'system')
+            ->get('/settings')
+            ->assertInertia(fn ($page) => $page
+                ->has('settings.clm')
+                ->where('settings.clm.0.name', 'alert_enabled')
+            );
+    }
+
+    // ─── Auth: google_allowed_emails (HTTP) ─────────────────────────────────
+
+    public function test_admin_can_update_auth_google_allowed_emails(): void
+    {
+        $this->actingAs($this->admin(), 'system')
+            ->put('/settings/auth', [
+                'password_login_enabled' => false,
+                'google_allowed_domains' => ['vaschools.edu.vn'],
+                'google_allowed_emails' => ['guest@gmail.com', 'other@gmail.com'],
+                'tech_login_allowed_emails' => [],
+            ])
+            ->assertRedirect();
+
+        $this->assertSame(
+            ['guest@gmail.com', 'other@gmail.com'],
+            $this->repo()->get('auth.google_allowed_emails'),
+        );
+    }
+
+    // ─── Email: ai_reminder_* (HTTP) ────────────────────────────────────────
+
+    public function test_admin_can_update_ai_reminder_settings(): void
+    {
+        $this->actingAs($this->admin(), 'system')
+            ->put('/settings/email', [
+                'enabled' => false,
+                'from_name' => 'VA Test',
+                'notify_on_assign' => false,
+                'notify_daily_at' => '09:00',
+                'ai_reminder_enabled' => false,
+                'ai_reminder_extra_emails' => ['extra@vaschools.edu.vn'],
+                'ai_reminder_include_expired' => false,
+                'ai_reminder_unpaid_renewal' => true,
+            ])
+            ->assertRedirect();
+
+        $this->assertFalse($this->repo()->get('email.ai_reminder_enabled'));
+        $this->assertSame(['extra@vaschools.edu.vn'], $this->repo()->get('email.ai_reminder_extra_emails'));
+        $this->assertFalse($this->repo()->get('email.ai_reminder_include_expired'));
+        $this->assertTrue($this->repo()->get('email.ai_reminder_unpaid_renewal'));
+    }
+
+    // ─── General: new fields ────────────────────────────────────────────────
+
+    public function test_admin_can_update_general_new_fields(): void
+    {
+        $this->actingAs($this->admin(), 'system')
+            ->put('/settings/general', [
+                'app_name' => 'VA QLDA Test',
+                'app_short_name' => 'VA',
+                'support_email' => 'it@vaschools.edu.vn',
+                'app_version' => '2.0',
+                'congnghe_proposal_email' => 'congnghe@vaschools.edu.vn',
+                'dashboard_personnel_pattern' => 'Công nghệ',
+            ])
+            ->assertRedirect();
+
+        $this->assertSame('congnghe@vaschools.edu.vn', $this->repo()->get('general.congnghe_proposal_email'));
+        $this->assertSame('Công nghệ', $this->repo()->get('general.dashboard_personnel_pattern'));
+    }
+
+    // ─── settings:import-from-env command ───────────────────────────────────
+
+    public function test_import_from_env_seeds_telegram_config(): void
+    {
+        config(['telegram.enabled' => true, 'telegram.chat_id' => '-9999']);
+
+        $this->artisan('settings:import-from-env')
+            ->assertSuccessful();
+
+        // telegram.enabled is true (non-default false) → should be seeded
+        $this->assertTrue((bool) $this->repo()->get('telegram.enabled'));
+    }
+
+    public function test_import_from_env_dry_run_does_not_write(): void
+    {
+        config(['telegram.chat_id' => '-12345']);
+
+        $this->artisan('settings:import-from-env', ['--dry-run' => true])
+            ->assertSuccessful();
+
+        // dry-run must not persist anything to DB
+        $this->assertDatabaseMissing('system_settings', ['key' => 'telegram.chat_id']);
+    }
+
+    public function test_import_from_env_skips_existing_without_force(): void
+    {
+        $this->repo()->setMany(['telegram.enabled' => false]);
+        config(['telegram.enabled' => true]);
+
+        $this->artisan('settings:import-from-env')
+            ->assertSuccessful();
+
+        // Should keep DB value (false), not overwrite with env (true)
+        $this->assertFalse((bool) $this->repo()->get('telegram.enabled'));
+    }
+
+    public function test_import_from_env_force_overwrites_existing(): void
+    {
+        $this->repo()->setMany(['telegram.enabled' => false]);
+        config(['telegram.enabled' => true]);
+
+        $this->artisan('settings:import-from-env', ['--force' => true])
+            ->assertSuccessful();
+
+        $this->assertTrue((bool) $this->repo()->get('telegram.enabled'));
     }
 }

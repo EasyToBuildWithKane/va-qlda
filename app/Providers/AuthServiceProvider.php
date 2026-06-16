@@ -11,6 +11,7 @@ use App\Models\Blocker;
 use App\Models\CoachingCourse;
 use App\Models\CongngheSection;
 use App\Models\CongngheSoftwareProposal;
+use App\Models\Contract;
 use App\Models\Credential;
 use App\Models\Department;
 use App\Models\Employee;
@@ -20,6 +21,7 @@ use App\Models\OrgTeam;
 use App\Models\Project;
 use App\Models\SystemAccount;
 use App\Models\SystemSetting;
+use App\Models\Vendor;
 use App\Policies\AiAccountPolicy;
 use App\Policies\AiPaymentRequestPolicy;
 use App\Policies\AiPurchaseProposalPolicy;
@@ -27,6 +29,7 @@ use App\Policies\BlockerPolicy;
 use App\Policies\CoachingCoursePolicy;
 use App\Policies\CongngheContentPolicy;
 use App\Policies\CongngheSoftwareProposalPolicy;
+use App\Policies\ContractPolicy;
 use App\Policies\CredentialPolicy;
 use App\Policies\DailyReportPolicy;
 use App\Policies\DepartmentPolicy;
@@ -36,6 +39,7 @@ use App\Policies\KbArticlePolicy;
 use App\Policies\OrgTeamPolicy;
 use App\Policies\ProjectPolicy;
 use App\Policies\SystemSettingPolicy;
+use App\Policies\VendorPolicy;
 use App\Support\Enums\SystemRole;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Gate;
@@ -67,6 +71,8 @@ class AuthServiceProvider extends ServiceProvider
         CoachingCourse::class => CoachingCoursePolicy::class,
         CongngheSoftwareProposal::class => CongngheSoftwareProposalPolicy::class,
         Credential::class => CredentialPolicy::class,
+        Contract::class => ContractPolicy::class,
+        Vendor::class => VendorPolicy::class,
     ];
 
     /**

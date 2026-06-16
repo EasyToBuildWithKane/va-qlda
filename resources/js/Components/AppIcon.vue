@@ -150,6 +150,10 @@ const map = {
     certified: BadgeCheck,
     streak: Flame,
     vault: LockKeyhole,
+    // contract lifecycle (CLM)
+    contract: FileText,
+    vendor: Building2,
+    renewal: RotateCw,
 };
 
 const component = computed(() => map[props.name] || Circle);

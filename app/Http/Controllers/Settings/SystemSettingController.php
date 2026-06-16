@@ -138,6 +138,7 @@ class SystemSettingController extends Controller
 
     /**
      * Per-group field list with the effective value (secrets masked).
+     * Derived from SettingsSchema::GROUPS so adding a new group here is automatic.
      *
      * @return array<string, array<int, array<string, mixed>>>
      */
@@ -145,7 +146,12 @@ class SystemSettingController extends Controller
     {
         $out = [];
 
-        foreach (['general', 'auth', 'telegram', 'email'] as $group) {
+        $scalarGroups = array_filter(
+            SettingsSchema::GROUPS,
+            static fn (string $g): bool => $g !== 'permissions',
+        );
+
+        foreach ($scalarGroups as $group) {
             $out[$group] = array_map(function (array $field): array {
                 $value = $this->settings->get($field['key']);
 

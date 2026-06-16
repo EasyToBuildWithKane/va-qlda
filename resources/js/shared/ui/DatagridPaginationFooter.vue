@@ -17,9 +17,32 @@ const props = defineProps({
 
 const emit = defineEmits(['update:perPage', 'page-change']);
 
-function onPageLink(link) {
+function resolveLinkPage(link) {
     if (link.page != null) {
-        emit('page-change', link.page);
+        return link.page;
+    }
+    if (!link.url || typeof window === 'undefined') {
+        return null;
+    }
+    try {
+        const u = new URL(link.url, window.location.origin);
+        for (const key of ['page', 'audit_page']) {
+            const raw = u.searchParams.get(key);
+            if (raw != null && raw !== '') {
+                const n = Number(raw);
+                return Number.isFinite(n) ? n : null;
+            }
+        }
+    } catch {
+        return null;
+    }
+    return null;
+}
+
+function onPageLink(link) {
+    const page = resolveLinkPage(link);
+    if (page != null) {
+        emit('page-change', page);
     }
 }
 
@@ -82,7 +105,7 @@ const linkBtnClass = (active) => (active
               :key="i"
             >
               <button
-                v-if="client && link.page != null"
+                v-if="client && resolveLinkPage(link) != null"
                 type="button"
                 class="inline-flex h-8 min-w-[2rem] items-center justify-center rounded-md px-2 text-xs font-medium transition"
                 :class="linkBtnClass(link.active)"
@@ -165,7 +188,7 @@ const linkBtnClass = (active) => (active
           :key="i"
         >
           <button
-            v-if="client && link.page != null"
+            v-if="client && resolveLinkPage(link) != null"
             type="button"
             class="inline-flex h-7 min-w-[1.75rem] items-center justify-center rounded px-1.5 text-xs font-medium transition"
             :class="linkBtnClass(link.active)"

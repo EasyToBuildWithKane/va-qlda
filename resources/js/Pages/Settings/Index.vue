@@ -112,6 +112,14 @@ const groupMeta = (key) => props.groups.find((g) => g.key === key) ?? { label: '
           :email-test-recipient="emailTestRecipient ?? ''"
           :can-manage="can.manage"
         />
+        <FieldsTab
+          v-show="active === 'clm'"
+          group="clm"
+          :title="groupMeta('clm').label"
+          :description="groupMeta('clm').description"
+          :fields="settings.clm ?? []"
+          :can-manage="can.manage"
+        />
         <PermissionsTab
           v-show="active === 'permissions'"
           :permissions="permissions"

@@ -20,6 +20,15 @@ use App\Http\Controllers\Congnghe\CongngheController;
 use App\Http\Controllers\Congnghe\CongngheSoftwareProposalAttachmentController;
 use App\Http\Controllers\Congnghe\CongngheSoftwareProposalController;
 use App\Http\Controllers\Congnghe\CongngheSoftwareProposalManagementController;
+use App\Http\Controllers\Contract\ContractAlertController;
+use App\Http\Controllers\Contract\ContractAttachmentController;
+use App\Http\Controllers\Contract\ContractCategoryController;
+use App\Http\Controllers\Contract\ContractController;
+use App\Http\Controllers\Contract\ContractCostController;
+use App\Http\Controllers\Contract\ContractDashboardController;
+use App\Http\Controllers\Contract\ContractRenewalController;
+use App\Http\Controllers\Contract\ContractReportController;
+use App\Http\Controllers\Contract\VendorController;
 use App\Http\Controllers\Credential\CredentialAccessController;
 use App\Http\Controllers\Credential\CredentialAccessRequestController;
 use App\Http\Controllers\Credential\CredentialAuditController;
@@ -51,6 +60,7 @@ use App\Http\Controllers\Project\TaskWatcherController;
 use App\Http\Controllers\Project\WorklogController;
 use App\Http\Controllers\Realtime\RealtimeController;
 use App\Http\Controllers\Settings\SystemSettingController;
+use App\Support\Settings\SettingsSchema;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -208,6 +218,43 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictCoachingOnlyUsers::class
         Route::get('/{blocker}/attachments/{attachment}/file', [BlockerAttachmentController::class, 'file'])->name('attachments.file');
         Route::post('/{blocker}/attachments', [BlockerAttachmentController::class, 'store'])->name('attachments.store');
         Route::delete('/{blocker}/attachments/{attachment}', [BlockerAttachmentController::class, 'destroy'])->name('attachments.destroy');
+    });
+
+    // Contract Lifecycle Management (CLM) — static segments before /{contract}.
+    Route::prefix('contracts')->name('contracts.')->group(function () {
+        Route::get('/', [ContractController::class, 'index'])->name('index');
+        Route::get('/dashboard', ContractDashboardController::class)->name('dashboard');
+        Route::get('/renewals', [ContractRenewalController::class, 'index'])->name('renewals');
+        Route::get('/cost', ContractCostController::class)->name('cost');
+        Route::get('/alerts', ContractAlertController::class)->name('alerts');
+        Route::get('/reports', ContractReportController::class)->name('reports');
+        Route::get('/export', [ContractController::class, 'export'])->name('export');
+        Route::post('/import', [ContractController::class, 'import'])->name('import');
+
+        // Vendors
+        Route::get('/vendors', [VendorController::class, 'index'])->name('vendors.index');
+        Route::post('/vendors', [VendorController::class, 'store'])->name('vendors.store');
+        Route::put('/vendors/{vendor}', [VendorController::class, 'update'])->name('vendors.update');
+        Route::delete('/vendors/{vendor}', [VendorController::class, 'destroy'])->name('vendors.destroy');
+
+        // Service groups (nhóm dịch vụ cho Explorer)
+        Route::post('/categories', [ContractCategoryController::class, 'store'])->name('categories.store');
+        Route::put('/categories/{category}', [ContractCategoryController::class, 'update'])->name('categories.update');
+        Route::delete('/categories/{category}', [ContractCategoryController::class, 'destroy'])->name('categories.destroy');
+
+        // Contracts CRUD (after static segments)
+        Route::post('/', [ContractController::class, 'store'])->name('store');
+        Route::get('/{contract}', [ContractController::class, 'show'])->name('show');
+        Route::put('/{contract}', [ContractController::class, 'update'])->name('update');
+        Route::delete('/{contract}', [ContractController::class, 'destroy'])->name('destroy');
+
+        // Renewals (gia hạn nhanh)
+        Route::post('/{contract}/renewals', [ContractRenewalController::class, 'store'])->name('renewals.store');
+
+        // Documents / attachments (upload + link ngoài + version)
+        Route::get('/{contract}/attachments/{attachment}/file', [ContractAttachmentController::class, 'file'])->name('attachments.file');
+        Route::post('/{contract}/attachments', [ContractAttachmentController::class, 'store'])->name('attachments.store');
+        Route::delete('/{contract}/attachments/{attachment}', [ContractAttachmentController::class, 'destroy'])->name('attachments.destroy');
     });
 
     // Feedback tracker
@@ -373,7 +420,7 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictCoachingOnlyUsers::class
     Route::prefix('settings')->name('settings.')->group(function () {
         Route::get('/', [SystemSettingController::class, 'index'])->name('index');
         Route::put('/{group}', [SystemSettingController::class, 'update'])
-            ->whereIn('group', ['general', 'auth', 'telegram', 'email', 'permissions'])
+            ->whereIn('group', SettingsSchema::GROUPS)
             ->name('update');
         Route::get('/email-templates', [SystemSettingController::class, 'emailTemplates'])->name('email-templates.index');
         Route::put('/email-templates/{emailTemplate}', [SystemSettingController::class, 'updateEmailTemplate'])->name('email-templates.update');
