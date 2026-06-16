@@ -38,19 +38,9 @@ class KbArticleController extends Controller
             ->paginate((int) $request->query('per_page', 15))
             ->withQueryString();
 
-        $favoriteArticles = KbArticle::query()
-            ->with('category')
-            ->whereIn('id', function ($q) use ($account) {
-                $q->select('article_id')
-                    ->from('kb_article_favorites')
-                    ->where('system_account_id', $account->id);
-            })
-            ->limit(10)
-            ->get(['id', 'title', 'slug']);
-
         return Inertia::render('KnowledgeBase/Index', [
             'articles' => KbArticleResource::collection($articles),
-            'favoriteArticles' => $favoriteArticles,
+            'summary' => $this->kbIndexSummary($account),
             'categories' => KbCategoryResource::collection(
                 KbCategory::query()->where('is_active', true)->orderBy('sort_order')->get(),
             ),
@@ -68,9 +58,8 @@ class KbArticleController extends Controller
         $this->authorize('viewAny', KbArticle::class);
 
         $account = $request->user();
-        $articles = $this->filteredArticlesQuery($request, $account)
+        $articles = $this->blogArticlesQuery($request)
             ->with(['galleryImages' => fn ($q) => $q->orderBy('sort_order')->limit(1)])
-            ->reorder()
             ->orderByDesc('published_at')
             ->orderByDesc('id')
             ->paginate((int) $request->query('per_page', 10))
@@ -433,6 +422,44 @@ class KbArticleController extends Controller
         return back()->with('success', 'Đã xóa ảnh khỏi thư viện.');
     }
 
+    /**
+     * @return array<string, int|bool>
+     */
+    private function kbIndexSummary($account): array
+    {
+        $base = $this->visibleArticlesQuery($account);
+
+        $statusCounts = (clone $base)
+            ->selectRaw('status, COUNT(*) as aggregate')
+            ->groupBy('status')
+            ->pluck('aggregate', 'status');
+
+        $published = (int) ($statusCounts[KbArticleStatus::Published->value] ?? 0);
+        $draft = (int) ($statusCounts[KbArticleStatus::Draft->value] ?? 0);
+        $archived = (int) ($statusCounts[KbArticleStatus::Archived->value] ?? 0);
+        $total = (int) (clone $base)->count();
+
+        return [
+            'total' => $total,
+            'published' => $published,
+            'draft' => $draft,
+            'archived' => $archived,
+            'total_views' => (int) (clone $base)->sum('view_count'),
+            'can_manage_status' => in_array($account->role->value, ['admin', 'lead'], true),
+        ];
+    }
+
+    private function visibleArticlesQuery($account)
+    {
+        $query = KbArticle::query();
+
+        if (! in_array($account->role->value, ['admin', 'lead'], true)) {
+            $query->where('status', KbArticleStatus::Published->value);
+        }
+
+        return $query;
+    }
+
     private function filteredArticlesQuery(Request $request, $account)
     {
         $query = KbArticle::query()
@@ -446,6 +473,29 @@ class KbArticleController extends Controller
         } elseif ($status = $request->query('status')) {
             $query->where('status', $status);
         }
+
+        if ($categoryId = $request->query('category_id')) {
+            $query->where('category_id', $categoryId);
+        }
+
+        if ($tag = $request->query('tag')) {
+            $query->whereHas('tags', fn ($q) => $q->where('slug', $tag));
+        }
+
+        if ($search = $request->query('q')) {
+            KbArticleSearch::apply($query, $search);
+        }
+
+        return $query;
+    }
+
+    private function blogArticlesQuery(Request $request)
+    {
+        $query = KbArticle::query()
+            ->published()
+            ->with(['category', 'author', 'tags'])
+            ->with(['galleryImages' => fn ($q) => $q->orderBy('sort_order')->limit(1)])
+            ->withCount('comments');
 
         if ($categoryId = $request->query('category_id')) {
             $query->where('category_id', $categoryId);

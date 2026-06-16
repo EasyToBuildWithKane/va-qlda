@@ -2,7 +2,8 @@
 import {
     computed, reactive, ref, watch,
 } from 'vue';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
+import { visitKbBlogFeed } from '@/composables/useKbBlogFeed';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import AppIcon from '@/Components/AppIcon.vue';
@@ -40,10 +41,16 @@ function routeParams(resetPage = false) {
 }
 
 function load(resetPage = false) {
-    router.get(route('knowledge-base.blog'), routeParams(resetPage), {
-        preserveState: true,
-        replace: true,
-        preserveScroll: true,
+    visitKbBlogFeed(routeParams(resetPage));
+}
+
+function onPageChange(page) {
+    visitKbBlogFeed({
+        q: filterForm.q || undefined,
+        category_id: props.filters.category_id || undefined,
+        tag: props.filters.tag || undefined,
+        per_page: perPage.value,
+        page,
     });
 }
 
@@ -63,12 +70,75 @@ function onFilterTag(slug) {
     load(true);
 }
 
+function clearCategoryFilter() {
+    filterForm.category_id = '';
+    visitKbBlogFeed({
+        tag: props.filters.tag || undefined,
+        q: filterForm.q || undefined,
+        per_page: perPage.value,
+        page: 1,
+    });
+}
+
+function clearTagFilter() {
+    filterForm.tag = '';
+    visitKbBlogFeed({
+        category_id: props.filters.category_id || undefined,
+        q: filterForm.q || undefined,
+        per_page: perPage.value,
+        page: 1,
+    });
+}
+
+function onSidebarCategory(categoryId) {
+    filterForm.category_id = String(categoryId);
+    filterForm.tag = '';
+    visitKbBlogFeed({
+        category_id: categoryId,
+        q: filterForm.q || undefined,
+        per_page: perPage.value,
+        page: 1,
+    });
+}
+
+function onSidebarClearFilters() {
+    filterForm.category_id = '';
+    filterForm.tag = '';
+    filterForm.q = '';
+    visitKbBlogFeed({ per_page: perPage.value, page: 1 });
+}
+
+watch(
+    () => props.filters,
+    (f) => {
+        filterForm.category_id = f.category_id ?? '';
+        filterForm.tag = f.tag ?? '';
+        if (f.q !== undefined && f.q !== filterForm.q) {
+            filterForm.q = f.q ?? '';
+        }
+    },
+    { deep: true },
+);
+
 const activeCategoryName = computed(() => {
     const id = props.filters.category_id;
     if (!id) return '';
     const cat = (props.sidebar.categories ?? []).find((c) => String(c.id) === String(id));
     return cat?.name ?? '';
 });
+
+const currentPage = computed(() => Number(props.articles.meta?.current_page) || 1);
+
+const useMagazineFeed = computed(() =>
+    currentPage.value === 1
+    && !props.filters.q
+    && (props.articles.data?.length ?? 0) > 0);
+
+const featuredArticle = computed(() =>
+    (useMagazineFeed.value ? props.articles.data[0] : null));
+
+const feedArticles = computed(() =>
+    (useMagazineFeed.value ? props.articles.data.slice(1) : props.articles.data ?? []));
 </script>
 
 <template>
@@ -96,71 +166,125 @@ const activeCategoryName = computed(() => {
       </PageHeader>
     </template>
 
-    <div class="flex flex-col gap-6 xl:flex-row xl:items-start">
-      <aside class="order-2 w-full shrink-0 xl:order-1 xl:w-60">
-        <KbBlogSidebar
-          v-model:search-query="filterForm.q"
-          :sidebar="sidebar"
-          :filters="filters"
-        />
-      </aside>
-
-      <main class="order-1 min-w-0 flex-1 xl:order-2">
-        <div
-          v-if="filters.category_id || filters.tag"
-          class="mb-4 flex flex-wrap items-center gap-2 text-sm text-slate-500"
-        >
-          <span>Đang lọc:</span>
-          <span
-            v-if="filters.category_id && activeCategoryName"
-            class="rounded-full bg-brand/5 px-2.5 py-0.5 text-xs font-medium text-brand"
-          >
-            {{ activeCategoryName }}
-          </span>
-          <span
-            v-if="filters.tag"
-            class="rounded-full bg-brand/5 px-2.5 py-0.5 text-xs font-medium text-brand"
-          >
-            #{{ filters.tag }}
-          </span>
-        </div>
-
-        <div
-          v-if="!articles.data?.length"
-          class="rounded-card border border-dashed border-slate-200 bg-slate-50/50 p-10 text-center text-sm text-slate-500"
-        >
-          Chưa có bài viết phù hợp.
-        </div>
-
-        <div
-          v-else
-          class="space-y-8"
-        >
-          <KbBlogPostCard
-            v-for="a in articles.data"
-            :key="a.id"
-            :article="a"
+    <div class="kb-blog-page -mx-1 px-1">
+      <div class="flex flex-col gap-6 xl:flex-row xl:items-start xl:gap-8">
+        <aside class="order-2 w-full shrink-0 xl:order-1 xl:w-64">
+          <KbBlogSidebar
+            v-model:search-query="filterForm.q"
+            :sidebar="sidebar"
+            :filters="filters"
+            @filter-category="onSidebarCategory"
+            @filter-tag="onFilterTag"
+            @clear-filters="onSidebarClearFilters"
           />
-        </div>
+        </aside>
 
-        <DatagridPaginationFooter
-          v-if="articles.meta"
-          class="mt-6"
-          variant="bar"
-          :meta="articles.meta"
-          :per-page="perPage"
-          :per-page-options="PER_PAGE_OPTIONS"
-          @update:per-page="onPerPageChange"
-        />
-      </main>
+        <main class="order-1 min-w-0 flex-1 xl:order-2">
+          <div
+            v-if="filters.category_id || filters.tag"
+            class="mb-5 flex flex-wrap items-center gap-2"
+            role="status"
+          >
+            <span class="text-xs font-medium uppercase tracking-wide text-slate-400">
+              Đang lọc
+            </span>
+            <button
+              v-if="filters.category_id && activeCategoryName"
+              type="button"
+              class="inline-flex items-center gap-1.5 rounded-full border border-brand/15 bg-brand/[0.06] py-1 pl-2.5 pr-1.5 text-xs font-medium text-brand transition hover:bg-brand/10"
+              @click="clearCategoryFilter"
+            >
+              {{ activeCategoryName }}
+              <AppIcon
+                name="close"
+                :size="12"
+                class="opacity-70"
+              />
+            </button>
+            <button
+              v-if="filters.tag"
+              type="button"
+              class="inline-flex items-center gap-1.5 rounded-full border border-brand/15 bg-brand/[0.06] py-1 pl-2.5 pr-1.5 text-xs font-medium text-brand transition hover:bg-brand/10"
+              @click="clearTagFilter"
+            >
+              #{{ filters.tag }}
+              <AppIcon
+                name="close"
+                :size="12"
+                class="opacity-70"
+              />
+            </button>
+          </div>
 
-      <aside class="order-3 hidden w-56 shrink-0 xl:block">
-        <KbBlogAside
-          :sidebar="sidebar"
-          :filters="filters"
-          @filter-tag="onFilterTag"
-        />
-      </aside>
+          <div
+            v-if="!articles.data?.length"
+            class="rounded-card border border-dashed border-slate-200/80 bg-gradient-to-b from-slate-50/80 to-white p-12 text-center"
+          >
+            <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-brand/[0.08] text-brand/60">
+              <AppIcon
+                name="documents"
+                :size="22"
+              />
+            </div>
+            <p class="font-display text-sm font-medium text-slate-700">
+              Chưa có bài viết phù hợp
+            </p>
+            <p class="mt-1 text-sm text-slate-500">
+              Thử đổi chuyên mục hoặc xóa bộ lọc.
+            </p>
+          </div>
+
+          <div
+            v-else
+            class="space-y-6"
+          >
+            <KbBlogPostCard
+              v-if="featuredArticle"
+              :article="featuredArticle"
+              variant="featured"
+            />
+
+            <div
+              v-if="feedArticles.length"
+              class="grid gap-5 sm:gap-6"
+              :class="useMagazineFeed ? 'md:grid-cols-2' : 'max-w-3xl'"
+            >
+              <KbBlogPostCard
+                v-for="a in feedArticles"
+                :key="a.id"
+                :article="a"
+                :variant="useMagazineFeed ? 'compact' : 'standard'"
+              />
+            </div>
+          </div>
+
+          <DatagridPaginationFooter
+            v-if="articles.meta"
+            class="mt-8"
+            variant="bar"
+            client
+            :meta="articles.meta"
+            :per-page="perPage"
+            :per-page-options="PER_PAGE_OPTIONS"
+            @update:per-page="onPerPageChange"
+            @page-change="onPageChange"
+          />
+        </main>
+
+        <aside class="order-3 hidden w-60 shrink-0 xl:block">
+          <KbBlogAside
+            :sidebar="sidebar"
+            :filters="filters"
+            @filter-tag="onFilterTag"
+          />
+        </aside>
+      </div>
     </div>
   </AppLayout>
 </template>
+
+<style scoped>
+.kb-blog-page {
+  background: radial-gradient(ellipse 120% 80% at 50% -20%, rgba(154, 0, 54, 0.04), transparent 55%);
+}
+</style>

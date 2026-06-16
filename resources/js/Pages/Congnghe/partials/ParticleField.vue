@@ -88,6 +88,29 @@ function frame() {
         }
     }
 
+    // Mạng nơ-ron bám con trỏ: nối con trỏ tới các nút lân cận + nút sáng tại con trỏ.
+    if (mouse.x > -9000) {
+        for (const n of nodes) {
+            const d = Math.hypot(mouse.x - n.x, mouse.y - n.y);
+            if (d < 220) {
+                const alpha = (1 - d / 220) * 0.55;
+                ctx.strokeStyle = `rgba(34,211,238,${alpha})`;
+                ctx.lineWidth = 0.9;
+                ctx.beginPath();
+                ctx.moveTo(mouse.x, mouse.y);
+                ctx.lineTo(n.x, n.y);
+                ctx.stroke();
+            }
+        }
+        const halo = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, 16);
+        halo.addColorStop(0, 'rgba(34,211,238,0.85)');
+        halo.addColorStop(1, 'rgba(34,211,238,0)');
+        ctx.fillStyle = halo;
+        ctx.beginPath();
+        ctx.arc(mouse.x, mouse.y, 16, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
     raf = requestAnimationFrame(frame);
 }
 

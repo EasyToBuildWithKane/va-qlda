@@ -40,7 +40,7 @@ routes/web.php (prefix knowledge-base., name knowledge-base.*)
 
 resources/js/
     → Pages/KnowledgeBase/Index.vue   (PageHeader + datagrid, lọc danh mục, xuất CSV/Excel)
-    → Pages/KnowledgeBase/Blog.vue    (layout blog: sidebar + feed ảnh bìa)
+    → Pages/KnowledgeBase/Blog.vue    (layout blog: sidebar + feed ảnh bìa; feed **chỉ Published**; lọc Inertia `only: articles,filters`)
     → Pages/KnowledgeBase/Show.vue    (PageHeader drill-down, layout bài báo, TOC, bình luận)
     → Components/KnowledgeBase/KbArticleCard.vue, KbBlogSidebar.vue, KbBlogPostCard.vue
     → Pages/KnowledgeBase/Edit.vue    (TipTap + gallery)
@@ -160,9 +160,9 @@ Tham chiếu UX: Viblo (list + tag), Notion Wiki (sidebar cây), Confluence (bre
 ┌─────────────────────────────────────────────────────────────┐
 │ AppLayout #header — PageHeader «Cơ sở tri thức» (icon knowledge) │
 ├─────────────────────────────────────────────────────────────┤
-│ Index: chip yêu thích (nếu có)                               │
-│        toolbar Tìm kiếm + Lọc/Cột/Xuất + chế độ Thẻ/Danh sách │
-│        → Thẻ: lưới card nhóm theo danh mục (tiêu đề + line ngang) │
+│ Index: KPI strip (thống kê + lọc trạng thái nhanh)             │
+│        toolbar Tìm kiếm + Lọc/Cột/Xuất                        │
+│        → Thẻ: lưới card nhóm theo danh mục (thu gọn/mở rộng)  │
 │ Show: PageHeader + title + meta + body full width + TOC cuối trang │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -178,7 +178,7 @@ Tham chiếu UX: Viblo (list + tag), Notion Wiki (sidebar cây), Confluence (bre
 | `KnowledgeBase/Show.vue` | `knowledge-base.articles.show` | `GET /knowledge-base/articles/{article:slug}` |
 | `KnowledgeBase/Edit.vue` | `knowledge-base.articles.create` / `.edit` | `GET …/create`, `GET …/{article}/edit` |
 
-Danh mục (toolbar Lọc), yêu thích và datagrid nằm trong **Index.vue** (không tách `modules/knowledge-base/`).
+Danh mục (toolbar Lọc) và datagrid nằm trong **Index.vue** (không tách `modules/knowledge-base/`). Prop Inertia `summary` phục vụ `KbSummaryBar.vue`.
 
 ---
 
@@ -233,7 +233,8 @@ Chi tiết đầy đủ bảng: `docs/API_STRUCTURE.md` §2.17 · grouping §3.
 
 | File | Vai trò |
 |---|---|
-| `Pages/KnowledgeBase/Index.vue` | Yêu thích (chip); datagrid; chế độ **Thẻ** (grid nhóm danh mục + line ngang) / **Danh sách**; pagination |
+| `Pages/KnowledgeBase/Index.vue` | `KbSummaryBar`; datagrid; nhóm danh mục thu gọn; `KbArticleCard` (meta tác giả); pagination |
+| `Components/KnowledgeBase/KbSummaryBar.vue` | KPI strip — lọc nhanh trạng thái (admin/lead) |
 | `Pages/KnowledgeBase/Show.vue` | Breadcrumb, meta, TOC (`toc` props), body HTML, attachments, related, favorite/read |
 | `Pages/KnowledgeBase/Edit.vue` | Form 2 cột full width, slug SEO realtime (disabled), xem trước trang, TipTap excerpt + content |
 | `KbTagField.vue` | Thẻ dạng chip + gợi ý từ `tagSuggestions` |
@@ -253,7 +254,7 @@ Tests: `tests/Feature/*` KB policy/CRUD; E2E `tests/e2e/knowledge-coaching.spec.
 
 - [x] Migrations + seed 8 danh mục
 - [x] CRUD bài + upload ảnh/attachment + TipTap inline image
-- [x] Index: PageHeader, search, filter category/tag/status, yêu thích
+- [x] Index: PageHeader, KPI strip, search, filter category/tag/status, nhóm danh mục thu gọn
 - [x] Show: layout full width, TOC + related (cuối trang), view count, favorite/read
 - [x] Comments morph hoạt động
 - [x] Policy + Nav + messages tiếng Việt

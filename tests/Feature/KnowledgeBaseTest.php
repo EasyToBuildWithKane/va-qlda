@@ -28,7 +28,12 @@ class KnowledgeBaseTest extends TestCase
     {
         $this->actingAs($this->member())
             ->get(route('knowledge-base.index'))
-            ->assertOk();
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('KnowledgeBase/Index')
+                ->has('summary.total')
+                ->has('summary.published')
+                ->has('summary.total_views'));
     }
 
     public function test_member_can_view_knowledge_base_blog(): void
@@ -42,6 +47,39 @@ class KnowledgeBaseTest extends TestCase
                 ->has('sidebar.recentPosts')
                 ->has('sidebar.popularPosts')
                 ->has('sidebar.tags'));
+    }
+
+    public function test_blog_feed_excludes_draft_even_for_admin(): void
+    {
+        $admin = SystemAccount::factory()->role(SystemRole::Admin)->create();
+        $category = KbCategory::query()->first();
+        $this->assertNotNull($category);
+
+        KbArticle::create([
+            'category_id' => $category->id,
+            'author_id' => $admin->employee_id,
+            'title' => 'Nháp blog',
+            'slug' => 'nhap-blog-feed',
+            'status' => KbArticleStatus::Draft,
+            'content' => '<p>x</p>',
+        ]);
+
+        KbArticle::create([
+            'category_id' => $category->id,
+            'author_id' => $admin->employee_id,
+            'title' => 'Đã xuất bản blog',
+            'slug' => 'published-blog-feed',
+            'status' => KbArticleStatus::Published,
+            'published_at' => now(),
+            'content' => '<p>x</p>',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('knowledge-base.blog'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('articles.data', 1)
+                ->where('articles.data.0.slug', 'published-blog-feed'));
     }
 
     public function test_member_can_create_article(): void

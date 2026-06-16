@@ -25,32 +25,38 @@ const maxTagCount = computed(() => {
 </script>
 
 <template>
-  <div class="space-y-4">
+  <div class="kb-blog-aside space-y-3 xl:sticky xl:top-5">
     <section
       v-if="sidebar.popularPosts?.length"
-      class="rounded-card border border-slate-200/80 bg-white p-4 shadow-sm"
+      class="kb-blog-panel"
       aria-label="Bài xem nhiều"
     >
-      <p class="mb-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+      <p class="kb-blog-panel__eyebrow px-4 pt-3.5">
         Xem nhiều
       </p>
-      <ul class="space-y-3">
+      <ul class="space-y-0.5 px-2 pb-3">
         <li
-          v-for="post in sidebar.popularPosts"
+          v-for="(post, idx) in sidebar.popularPosts"
           :key="post.id"
         >
           <Link
             :href="`/knowledge-base/articles/${post.slug}`"
-            class="group flex gap-2.5"
+            class="group flex gap-2.5 rounded-lg p-2 transition hover:bg-slate-50"
           >
+            <span
+              class="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-slate-100 font-display text-xs font-semibold tabular-nums text-slate-400 group-hover:bg-brand/[0.08] group-hover:text-brand"
+              aria-hidden="true"
+            >
+              {{ idx + 1 }}
+            </span>
             <div
-              class="h-14 w-14 shrink-0 overflow-hidden rounded-md bg-slate-100 ring-1 ring-slate-200/80"
+              class="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-slate-100 ring-1 ring-slate-200/60"
             >
               <img
                 v-if="post.cover_url"
                 :src="post.cover_url"
                 alt=""
-                class="h-full w-full object-cover"
+                class="h-full w-full object-cover transition duration-300 group-hover:scale-105"
                 loading="lazy"
               >
               <div
@@ -59,7 +65,7 @@ const maxTagCount = computed(() => {
               >
                 <AppIcon
                   name="knowledge"
-                  :size="20"
+                  :size="18"
                 />
               </div>
             </div>
@@ -67,7 +73,7 @@ const maxTagCount = computed(() => {
               <p class="line-clamp-2 text-xs font-medium leading-snug text-slate-700 group-hover:text-brand">
                 {{ post.title }}
               </p>
-              <p class="mt-1 text-[10px] text-slate-400">
+              <p class="mt-0.5 text-[10px] tabular-nums text-slate-400">
                 {{ post.view_count }} lượt xem
               </p>
             </div>
@@ -78,21 +84,21 @@ const maxTagCount = computed(() => {
 
     <section
       v-if="sidebar.tags?.length"
-      class="rounded-card border border-slate-200/80 bg-white p-4 shadow-sm"
+      class="kb-blog-panel"
       aria-label="Đám mây thẻ"
     >
-      <p class="mb-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+      <p class="kb-blog-panel__eyebrow px-4 pt-3.5 pb-2">
         Thẻ
       </p>
-      <div class="flex flex-wrap gap-x-2 gap-y-2">
+      <div class="flex flex-wrap gap-x-2.5 gap-y-2 px-4 pb-4 leading-snug">
         <button
           v-for="tag in sidebar.tags"
           :key="tag.id"
           type="button"
-          class="text-slate-600 transition hover:text-brand"
+          class="rounded-full px-1.5 py-0.5 text-slate-600 transition hover:bg-brand/[0.06] hover:text-brand"
           :class="[
             tagSizeClass(tag.articles_count, maxTagCount),
-            filters.tag === tag.slug ? 'text-brand underline decoration-brand/40' : '',
+            filters.tag === tag.slug ? 'bg-brand/[0.08] font-semibold text-brand' : '',
           ]"
           @click="emit('filter-tag', tag.slug)"
         >
@@ -102,3 +108,13 @@ const maxTagCount = computed(() => {
     </section>
   </div>
 </template>
+
+<style scoped>
+.kb-blog-panel {
+  @apply rounded-card border border-slate-200/60 bg-white/80 shadow-sm backdrop-blur-sm;
+}
+
+.kb-blog-panel__eyebrow {
+  @apply text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400;
+}
+</style>

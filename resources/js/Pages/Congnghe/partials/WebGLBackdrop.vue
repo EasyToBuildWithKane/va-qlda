@@ -65,11 +65,19 @@ const fragmentAurora = /* glsl */ `
     }
 
     void main() {
+        float aspect = uResolution.x / max(uResolution.y, 1.0);
         vec2 p = vUv - 0.5;
-        p.x *= uResolution.x / max(uResolution.y, 1.0);
+        p.x *= aspect;
         float t = uTime * 0.05;
-        vec2 m = uMouse * 0.3;
-        float n = fbm(p * 1.8 + vec2(t, -t * 0.7) + m);
+
+        // Vị trí con trỏ trong không gian p, và lực xoáy kéo nhiễu về phía con trỏ.
+        vec2 cur = vec2(uMouse.x * 0.5 * aspect, uMouse.y * 0.5);
+        vec2 toC = p - cur;
+        float cd = length(toC);
+        float swirl = smoothstep(0.7, 0.0, cd);
+        vec2 warp = uMouse * 0.5 + vec2(-toC.y, toC.x) * swirl * 0.6;
+
+        float n = fbm(p * 1.8 + vec2(t, -t * 0.7) + warp);
         float n2 = fbm(p * 3.0 - vec2(t * 0.8, t) + n);
 
         vec3 maroon = vec3(0.604, 0.0, 0.212);
@@ -78,10 +86,14 @@ const fragmentAurora = /* glsl */ `
         vec3 col = mix(maroon, violet, smoothstep(-0.4, 0.6, n));
         col = mix(col, cyan, smoothstep(0.0, 0.9, n2) * 0.5);
 
+        // Đèn AI bám con trỏ — toả màu cyan, mạnh hơn khi gần.
+        float cursorGlow = smoothstep(0.5, 0.0, cd);
+        col = mix(col, cyan, cursorGlow * 0.5);
+
         float glow = smoothstep(0.2, 0.95, n * 0.6 + n2 * 0.5);
         float vig = smoothstep(1.15, 0.2, length(p));
-        float alpha = glow * vig * 0.5;
-        gl_FragColor = vec4(col * glow, alpha);
+        float alpha = (glow + cursorGlow * 0.35) * vig * 0.5;
+        gl_FragColor = vec4(col * (glow + cursorGlow * 0.4), alpha);
     }
 `;
 
@@ -91,23 +103,34 @@ const vertexPoints = /* glsl */ `
     uniform vec2 uMouse;
     uniform float uDpr;
     varying float vD;
+    varying float vG;
     void main() {
         float depth = position.z;
         vec2 drift = vec2(sin(uTime * 0.1 + depth * 6.28), cos(uTime * 0.08 + position.x * 3.0)) * 0.02 * depth;
         vec2 par = uMouse * depth * 0.12;
-        gl_Position = vec4(position.xy + drift + par, 0.0, 1.0);
-        gl_PointSize = mix(1.0, 3.4, depth) * uDpr;
+
+        // Thấu kính theo con trỏ: hạt ở gần bị hút nhẹ về phía con trỏ.
+        vec2 toC = uMouse - position.xy;
+        float d = length(toC);
+        float pullAmt = smoothstep(0.7, 0.0, d);
+        vec2 pull = toC * pullAmt * 0.14 * depth;
+
+        gl_Position = vec4(position.xy + drift + par + pull, 0.0, 1.0);
+        gl_PointSize = mix(1.0, 3.4, depth) * (1.0 + pullAmt * 1.4) * uDpr;
         vD = depth;
+        vG = pullAmt;
     }
 `;
 
 const fragmentPoints = /* glsl */ `
     precision mediump float;
     varying float vD;
+    varying float vG;
     void main() {
         vec2 c = gl_PointCoord - 0.5;
-        float a = smoothstep(0.5, 0.0, length(c)) * (0.18 + vD * 0.4);
+        float a = smoothstep(0.5, 0.0, length(c)) * (0.18 + vD * 0.4 + vG * 0.45);
         vec3 col = mix(vec3(0.0, 0.8, 0.95), vec3(1.0, 0.45, 0.65), vD);
+        col = mix(col, vec3(0.6, 0.95, 1.0), vG * 0.6);
         gl_FragColor = vec4(col, a);
     }
 `;
@@ -147,8 +170,8 @@ function onMouseMove(e) {
 
 function frame(now) {
     const t = (now - startTime) / 1000;
-    mouse.x += (mouse.tx - mouse.x) * 0.05;
-    mouse.y += (mouse.ty - mouse.y) * 0.05;
+    mouse.x += (mouse.tx - mouse.x) * 0.09;
+    mouse.y += (mouse.ty - mouse.y) * 0.09;
 
     if (auroraProgram) {
         auroraProgram.uniforms.uTime.value = t;

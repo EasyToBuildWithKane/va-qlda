@@ -25,6 +25,12 @@ const deleting = ref(false);
 
 const href = computed(() => `/knowledge-base/articles/${props.article.slug}`);
 
+const authorName = computed(() => {
+    const a = props.article.author;
+    if (!a) return '';
+    return (a.name || a.full_name || '').trim();
+});
+
 const excerptText = computed(() => {
     const raw = props.article.excerpt?.trim() || richContentPlainText(props.article.content);
     if (!raw) return '';
@@ -159,6 +165,54 @@ async function confirmDelete() {
       </p>
 
       <div
+        v-if="showAuthor && authorName"
+        class="mt-3 flex items-start gap-2.5 rounded-lg border border-slate-100/90 bg-gradient-to-br from-slate-50/90 to-white px-3 py-2.5"
+      >
+        <div
+          v-if="article.author?.avatar_path"
+          class="h-9 w-9 shrink-0 overflow-hidden rounded-full ring-2 ring-white shadow-sm"
+        >
+          <img
+            :src="article.author.avatar_path"
+            alt=""
+            class="h-full w-full object-cover"
+            loading="lazy"
+          >
+        </div>
+        <div
+          v-else
+          class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand/[0.08] text-brand/70 ring-1 ring-brand/10"
+        >
+          <AppIcon
+            name="user"
+            :size="16"
+          />
+        </div>
+        <dl class="min-w-0 flex-1">
+          <dt class="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+            Tác giả
+          </dt>
+          <dd class="font-display text-sm font-medium italic leading-snug text-slate-800">
+            {{ authorName }}
+          </dd>
+          <dd
+            v-if="article.author?.role_title"
+            class="mt-0.5 text-[11px] leading-snug text-slate-500"
+          >
+            <span class="font-medium not-italic text-slate-400">Chức danh ·</span>
+            {{ article.author.role_title }}
+          </dd>
+          <dd
+            v-if="article.author?.code"
+            class="mt-0.5 font-mono text-[10px] text-slate-400"
+          >
+            <span class="font-sans font-medium not-italic text-slate-400">Mã NV ·</span>
+            {{ article.author.code }}
+          </dd>
+        </dl>
+      </div>
+
+      <div
         v-if="showTags && article.tags?.length"
         class="mt-3 flex flex-wrap gap-1"
       >
@@ -180,6 +234,7 @@ async function confirmDelete() {
             name="eye"
             :size="12"
           />
+          <span class="font-medium text-slate-500">Lượt xem ·</span>
           {{ article.view_count ?? 0 }}
         </span>
         <span
@@ -190,15 +245,11 @@ async function confirmDelete() {
             name="calendar"
             :size="12"
           />
+          <span class="font-medium text-slate-500">Ngày đăng ·</span>
           {{ date(article.published_at) }}
         </span>
-        <span
-          v-if="showAuthor && article.author?.full_name"
-          class="truncate"
-        >
-          {{ article.author.full_name }}
-        </span>
         <span v-if="showUpdated && article.updated_at">
+          <span class="font-medium text-slate-500">Cập nhật ·</span>
           {{ datetime(article.updated_at) }}
         </span>
       </div>

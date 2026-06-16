@@ -13,6 +13,8 @@ import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import ColumnVisibilityDropdown from '@/shared/ui/ColumnVisibilityDropdown.vue';
 import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
 import KbArticleCard from '@/Components/KnowledgeBase/KbArticleCard.vue';
+import KbSummaryBar from '@/Components/KnowledgeBase/KbSummaryBar.vue';
+import { useCoachingSessionGroups } from '@/composables/useCoachingSessionList';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
 import { useVisibleColumns } from '@/shared/composables/useVisibleColumns';
 import { exportKbArticlesWorkbook, exportKbArticlesCsv, fetchKbArticlesForExport } from '@/composables/useKbExport';
@@ -34,7 +36,7 @@ const props = defineProps({
     tags: { type: Array, default: () => [] },
     filters: { type: Object, default: () => ({}) },
     options: { type: Object, default: () => ({}) },
-    favoriteArticles: { type: Array, default: () => [] },
+    summary: { type: Object, required: true },
     can: { type: Object, default: () => ({}) },
 });
 
@@ -82,7 +84,7 @@ const CARD_COLUMNS = [
     { key: 'excerpt', label: 'Mô tả', default: true },
     { key: 'views', label: 'Lượt xem', default: true },
     { key: 'tags', label: 'Thẻ', default: false },
-    { key: 'author', label: 'Tác giả', default: false },
+    { key: 'author', label: 'Tác giả', default: true },
     { key: 'updated', label: 'Cập nhật', default: false },
 ];
 
@@ -145,6 +147,17 @@ function onPerPageChange(n) {
     perPage.value = n;
     load(true);
 }
+
+function onQuickFilter({ status }) {
+    filterForm.status = status ?? '';
+}
+
+const {
+    isGroupExpanded,
+    toggleGroup,
+    toggleAllGroups,
+    allGroupsExpanded,
+} = useCoachingSessionGroups('va-qlda.knowledge-base.collapsed-groups');
 
 const onDocClick = (e) => {
     if (e.target.closest?.('[data-filter-visibility-panel]')) return;
@@ -226,28 +239,11 @@ async function runExport(format) {
       </PageHeader>
     </template>
 
-    <section
-      v-if="favoriteArticles.length"
-      class="card mb-4 p-4"
-      aria-label="Bài viết yêu thích"
-    >
-      <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-        Yêu thích
-      </p>
-      <ul class="flex flex-wrap gap-2">
-        <li
-          v-for="fav in favoriteArticles"
-          :key="fav.id"
-        >
-          <Link
-            :href="`/knowledge-base/articles/${fav.slug}`"
-            class="inline-flex max-w-full rounded-btn border border-slate-200 bg-white px-2.5 py-1 text-sm text-slate-700 transition hover:border-brand/30 hover:text-brand"
-          >
-            <span class="truncate">{{ fav.title }}</span>
-          </Link>
-        </li>
-      </ul>
-    </section>
+    <KbSummaryBar
+      :summary="summary"
+      :active-status="filterForm.status"
+      @quick-filter="onQuickFilter"
+    />
 
     <div class="card overflow-visible">
       <div class="border-b border-slate-100 px-5 py-4">
@@ -434,12 +430,42 @@ async function runExport(format) {
         v-else
         class="divide-y divide-slate-100"
       >
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/50 px-4 py-2.5 sm:px-5">
+          <p class="text-xs text-slate-500">
+            Nhóm theo chuyên mục — bấm tiêu đề để thu gọn
+          </p>
+          <button
+            v-if="articleGroups.length > 1"
+            type="button"
+            class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 transition hover:border-brand/25 hover:text-brand"
+            @click="toggleAllGroups(articleGroups)"
+          >
+            <AppIcon
+              name="chevron-down"
+              :size="14"
+              :class="allGroupsExpanded(articleGroups) ? '' : '-rotate-90'"
+            />
+            {{ allGroupsExpanded(articleGroups) ? 'Thu gọn tất cả' : 'Mở rộng tất cả' }}
+          </button>
+        </div>
+
         <section
           v-for="group in articleGroups"
           :key="group.key"
-          class="px-4 py-5 sm:px-5"
+          class="flex flex-col"
         >
-          <div class="mb-4 flex items-center gap-3">
+          <button
+            type="button"
+            class="flex w-full items-center gap-3 px-4 py-4 text-left transition hover:bg-slate-50/80 sm:px-5"
+            :aria-expanded="isGroupExpanded(group.key)"
+            @click="toggleGroup(group.key)"
+          >
+            <AppIcon
+              name="chevron-down"
+              :size="16"
+              class="shrink-0 text-slate-500 transition-transform"
+              :class="isGroupExpanded(group.key) ? '' : '-rotate-90'"
+            />
             <h2 class="shrink-0 font-display text-sm font-semibold text-slate-800">
               {{ group.name }}
             </h2>
@@ -447,11 +473,14 @@ async function runExport(format) {
               class="h-px min-w-0 flex-1 bg-slate-200"
               aria-hidden="true"
             />
-            <span class="shrink-0 text-[11px] tabular-nums text-slate-400">
+            <span class="shrink-0 rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold tabular-nums text-slate-500 ring-1 ring-slate-200">
               {{ group.items.length }} bài
             </span>
-          </div>
-          <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+          </button>
+          <div
+            v-if="isGroupExpanded(group.key)"
+            class="grid grid-cols-1 gap-5 px-4 pb-5 sm:grid-cols-2 sm:px-5 xl:grid-cols-3 2xl:grid-cols-4"
+          >
             <KbArticleCard
               v-for="a in group.items"
               :key="a.id"
