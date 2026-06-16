@@ -2,14 +2,13 @@
 import { computed } from 'vue';
 import Avatar from '@/shared/ui/Avatar.vue';
 import CongngheProjectGallery from './CongngheProjectGallery.vue';
-import { tone } from './tones.js';
 import { openCongngheProject } from './useCongngheProjectModal.js';
 import { richContentPlainText } from '@/shared/utils/richContent';
 
 /**
  * Dải dự án full-width "chuẩn công nghệ": mỗi dự án chiếm trọn chiều rộng, một
  * bên là gallery ảnh tham chiếu (xem được, phóng to), một bên là khối thông tin
- * nổi bật (mã, loại, trạng thái, tên lớn, mô tả, tiến độ, phụ trách + CTA). Ảnh
+ * nổi bật (mã dự án, tên lớn, mô tả, tiến độ, phụ trách + CTA). Ảnh
  * đổi bên trái/phải xen kẽ theo thứ tự. Bấm tên hoặc «Xem chi tiết» ⇒ mở modal.
  */
 const props = defineProps({
@@ -20,7 +19,6 @@ const props = defineProps({
 
 const hue = computed(() => props.project?.color || '#9A0036');
 const reverse = computed(() => props.index % 2 === 1);
-const statusTone = computed(() => tone(props.project?.statusColor));
 const progress = computed(() => Math.max(0, Math.min(100, Number(props.project?.progress ?? 0))));
 const imageCount = computed(() => (props.project?.images ?? []).filter((i) => i?.url).length);
 const summary = computed(
@@ -92,39 +90,14 @@ function open() {
           class="relative flex min-w-0 flex-col"
           :class="reverse ? 'lg:order-1' : 'lg:order-2'"
         >
-          <!-- Eyebrow: mã · loại · trạng thái -->
-          <div class="flex flex-wrap items-center gap-2">
-            <span
-              class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset"
-              :class="statusTone.soft"
-            >
-              <span
-                class="relative flex h-1.5 w-1.5"
-              >
-                <span
-                  class="absolute inline-flex h-full w-full animate-cn-ping-ring rounded-full"
-                  :class="statusTone.dot"
-                />
-                <span
-                  class="relative inline-flex h-1.5 w-1.5 rounded-full"
-                  :class="statusTone.dot"
-                />
-              </span>
-              {{ project.status }}
-            </span>
-            <span
-              v-if="project.code"
-              class="font-mono text-[11px] uppercase tracking-[0.2em] [color:color-mix(in_srgb,var(--hue)_75%,white)]"
-            >
-              {{ project.code }}
-            </span>
-            <span
-              v-if="project.type_label"
-              class="inline-flex items-center rounded-full border border-white/12 bg-white/5 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-white/60"
-            >
-              {{ project.type_label }}
-            </span>
-          </div>
+          <!-- Eyebrow: mã dự án -->
+          <p
+            v-if="project.code"
+            class="font-mono text-[11px] uppercase tracking-[0.2em] text-white/50"
+          >
+            Mã dự án:
+            <span class="[color:color-mix(in_srgb,var(--hue)_75%,white)]">{{ project.code }}</span>
+          </p>
 
           <!-- Tên dự án (bấm để mở chi tiết) -->
           <h3 class="mt-3.5">

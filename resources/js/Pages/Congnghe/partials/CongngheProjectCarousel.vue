@@ -39,10 +39,48 @@ const index = ref(0);
 const dir = ref(1);
 const count = computed(() => props.projects.length);
 const current = computed(() => props.projects[index.value] ?? null);
-const canPrev = computed(() => index.value > 0);
-const canNext = computed(() => index.value < count.value - 1);
+const canNavigate = computed(() => count.value > 1);
 
 const { target, shown } = useInView({ threshold: 0.25, once: false });
+
+const AUTO_INTERVAL_MS = 6500;
+const userPaused = ref(false);
+let autoTimer = null;
+let manualPauseTimer = null;
+
+function prefersReducedMotion() {
+    return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+function clearAutoTimer() {
+    if (autoTimer) {
+        clearInterval(autoTimer);
+        autoTimer = null;
+    }
+}
+
+function syncAutoPlay() {
+    clearAutoTimer();
+    if (prefersReducedMotion() || count.value < 2 || !shown.value || activeCongngheProject.value) {
+        return;
+    }
+    autoTimer = setInterval(() => {
+        if (userPaused.value || activeCongngheProject.value || !shown.value || count.value < 2) {
+            return;
+        }
+        go((index.value + 1) % count.value);
+    }, AUTO_INTERVAL_MS);
+}
+
+function pauseAutoAfterManualNav() {
+    userPaused.value = true;
+    if (manualPauseTimer) {
+        clearTimeout(manualPauseTimer);
+    }
+    manualPauseTimer = setTimeout(() => {
+        userPaused.value = false;
+    }, AUTO_INTERVAL_MS * 1.25);
+}
 
 function go(to) {
     const clamped = Math.max(0, Math.min(count.value - 1, to));
@@ -53,10 +91,18 @@ function go(to) {
     index.value = clamped;
 }
 function prev() {
-    go(index.value - 1);
+    if (count.value < 2) {
+        return;
+    }
+    go((index.value - 1 + count.value) % count.value);
+    pauseAutoAfterManualNav();
 }
 function next() {
-    go(index.value + 1);
+    if (count.value < 2) {
+        return;
+    }
+    go((index.value + 1) % count.value);
+    pauseAutoAfterManualNav();
 }
 
 function onKeydown(e) {
@@ -81,7 +127,15 @@ function onKeydown(e) {
 }
 
 onMounted(() => window.addEventListener('keydown', onKeydown));
-onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
+onBeforeUnmount(() => {
+    window.removeEventListener('keydown', onKeydown);
+    clearAutoTimer();
+    if (manualPauseTimer) {
+        clearTimeout(manualPauseTimer);
+    }
+});
+
+watch([shown, count, () => activeCongngheProject.value], syncAutoPlay, { immediate: true });
 
 watch(
     () => props.resetKey,
@@ -100,8 +154,12 @@ watch(count, (n) => {
 <template>
   <div
     ref="target"
-    class="relative"
+    class="cn-pc-root relative px-11 sm:px-16 lg:px-[4.75rem]"
     :class="accent.ring"
+    @mouseenter="userPaused = true"
+    @mouseleave="userPaused = false"
+    @focusin="userPaused = true"
+    @focusout="(e) => { if (!e.currentTarget.contains(e.relatedTarget)) userPaused = false; }"
   >
     <!-- Khung slide: giữ bóng đổ (không cắt); cuộn ngang đã bị chặn ở root trang -->
     <div class="cn-pc-stage relative">
@@ -115,41 +173,49 @@ watch(count, (n) => {
       </Transition>
     </div>
 
-    <!-- Mũi tên hai bên -->
-    <template v-if="count > 1">
+    <!-- Mũi tên hai bên — đặt trong gutter, pulse gợi ý vuốt/chuyển -->
+    <template v-if="canNavigate">
       <button
         type="button"
-        class="cn-pc-arrow left-1 sm:-left-1 lg:-left-4"
+        class="cn-pc-arrow cn-pc-arrow--left left-0 sm:left-1"
         :class="accent.arrow"
-        :disabled="!canPrev"
         aria-label="Dự án trước"
         @click="prev"
       >
+        <span
+          class="cn-pc-arrow__ring"
+          aria-hidden="true"
+        />
         <svg
-          width="20"
-          height="20"
+          width="22"
+          height="22"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          stroke-width="2"
+          stroke-width="2.25"
         ><path d="M15 6l-6 6 6 6" /></svg>
+        <span class="cn-pc-arrow__hint">Trước</span>
       </button>
       <button
         type="button"
-        class="cn-pc-arrow right-1 sm:-right-1 lg:-right-4"
+        class="cn-pc-arrow cn-pc-arrow--right right-0 sm:right-1"
         :class="accent.arrow"
-        :disabled="!canNext"
         aria-label="Dự án sau"
         @click="next"
       >
+        <span
+          class="cn-pc-arrow__ring"
+          aria-hidden="true"
+        />
         <svg
-          width="20"
-          height="20"
+          width="22"
+          height="22"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          stroke-width="2"
+          stroke-width="2.25"
         ><path d="M9 6l6 6-6 6" /></svg>
+        <span class="cn-pc-arrow__hint">Tiếp</span>
       </button>
     </template>
 
@@ -173,19 +239,15 @@ watch(count, (n) => {
           :aria-label="`Dự án ${i + 1}`"
           class="h-1.5 rounded-full transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
           :class="i === index ? [accent.dot, 'w-7'] : 'w-1.5 bg-white/20 hover:bg-white/40'"
-          @click="go(i)"
+          @click="() => { go(i); pauseAutoAfterManualNav(); }"
         />
       </div>
       <span class="hidden items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-white/35 sm:inline-flex">
-        <svg
-          width="13"
-          height="13"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-        ><path d="M9 6 3 12l6 6M15 6l6 6-6 6" /></svg>
-        ← → để chuyển
+        <span
+          class="inline-block h-1.5 w-1.5 rounded-full bg-white/50 animate-pulse"
+          aria-hidden="true"
+        />
+        Tự chuyển · ← → hoặc bấm mũi tên
       </span>
     </div>
   </div>
@@ -198,20 +260,104 @@ watch(count, (n) => {
     z-index: 20;
     display: grid;
     place-items: center;
-    height: 2.75rem;
-    width: 2.75rem;
+    height: 3.25rem;
+    width: 3.25rem;
     transform: translateY(-50%);
     border-radius: 9999px;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    background: rgba(10, 12, 22, 0.78);
-    color: rgba(255, 255, 255, 0.72);
-    backdrop-filter: blur(8px);
-    transition: border-color 0.3s, color 0.3s, box-shadow 0.3s, opacity 0.3s;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    background: rgba(10, 12, 22, 0.88);
+    color: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(10px);
+    box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.06) inset,
+        0 8px 28px -8px rgba(0, 0, 0, 0.65);
+    transition:
+        border-color 0.3s,
+        color 0.3s,
+        box-shadow 0.3s,
+        transform 0.25s ease;
 }
 
-.cn-pc-arrow:disabled {
-    opacity: 0;
+.cn-pc-arrow__ring {
+    position: absolute;
+    inset: -5px;
+    border-radius: inherit;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    opacity: 0.85;
+    animation: cn-pc-arrow-ring 2.2s ease-out infinite;
     pointer-events: none;
+}
+
+.cn-pc-arrow__hint {
+    position: absolute;
+    top: calc(100% + 0.45rem);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.42);
+    white-space: nowrap;
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: opacity 0.25s, transform 0.25s;
+    pointer-events: none;
+}
+
+.cn-pc-arrow:hover .cn-pc-arrow__hint,
+.cn-pc-arrow:focus-visible .cn-pc-arrow__hint {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.cn-pc-arrow--left {
+    animation: cn-pc-nudge-left 2.8s ease-in-out infinite;
+}
+
+.cn-pc-arrow--right {
+    animation: cn-pc-nudge-right 2.8s ease-in-out infinite;
+}
+
+.cn-pc-arrow--left:hover,
+.cn-pc-arrow--right:hover,
+.cn-pc-arrow--left:focus-visible,
+.cn-pc-arrow--right:focus-visible {
+    animation: none;
+    transform: translateY(-50%) scale(1.06);
+}
+
+@keyframes cn-pc-arrow-ring {
+    0% {
+        transform: scale(1);
+        opacity: 0.75;
+    }
+    70% {
+        transform: scale(1.22);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1.22);
+        opacity: 0;
+    }
+}
+
+@keyframes cn-pc-nudge-left {
+    0%,
+    100% {
+        transform: translateY(-50%) translateX(0);
+    }
+    50% {
+        transform: translateY(-50%) translateX(-5px);
+    }
+}
+
+@keyframes cn-pc-nudge-right {
+    0%,
+    100% {
+        transform: translateY(-50%) translateX(0);
+    }
+    50% {
+        transform: translateY(-50%) translateX(5px);
+    }
 }
 
 /* Hiệu ứng trượt + mờ giữa các slide; slide rời được đặt absolute để không đẩy layout */
@@ -248,6 +394,12 @@ watch(count, (n) => {
 }
 
 @media (prefers-reduced-motion: reduce) {
+    .cn-pc-arrow--left,
+    .cn-pc-arrow--right,
+    .cn-pc-arrow__ring {
+        animation: none;
+    }
+
     .cn-pc-next-enter-active,
     .cn-pc-prev-enter-active,
     .cn-pc-next-leave-active,

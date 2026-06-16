@@ -274,10 +274,13 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
             v-if="restItems.length"
             class="mt-14"
           >
-            <div class="mb-5 flex items-center gap-3">
+            <div class="mb-5 flex flex-wrap items-center gap-x-3 gap-y-1">
               <span class="font-mono text-[11px] uppercase tracking-[0.18em] text-white/45">Dự án khác cùng giai đoạn</span>
-              <span class="h-px flex-1 bg-gradient-to-r from-brand/30 to-transparent" />
+              <span class="h-px min-w-[2rem] flex-1 bg-gradient-to-r from-brand/30 to-transparent" />
               <span class="font-mono text-[11px] tabular-nums text-white/35">{{ restItems.length }}</span>
+              <span class="w-full font-mono text-[10px] text-white/38 sm:w-auto sm:text-right">
+                Mũi tên hai bên · kéo ngang · tự chuyển
+              </span>
             </div>
             <RevealOnScroll
               variant="up"

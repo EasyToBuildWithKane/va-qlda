@@ -118,20 +118,13 @@ onBeforeUnmount(() => {
               ><path d="M18 6 6 18M6 6l12 12" /></svg>
             </button>
 
-            <div class="relative flex flex-wrap items-center gap-2">
-              <span
-                v-if="project.code"
-                class="font-mono text-[11px] uppercase tracking-[0.2em] [color:color-mix(in_srgb,var(--accent)_70%,white)]"
-              >
-                {{ project.code }}
-              </span>
-              <span
-                v-if="project.type_label"
-                class="inline-flex items-center rounded-full border border-white/15 bg-white/5 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-white/60"
-              >
-                {{ project.type_label }}
-              </span>
-            </div>
+            <p
+              v-if="project.code"
+              class="relative font-mono text-[11px] uppercase tracking-[0.2em] text-white/50"
+            >
+              Mã dự án:
+              <span class="[color:color-mix(in_srgb,var(--accent)_70%,white)]">{{ project.code }}</span>
+            </p>
             <h2 class="relative mt-2 max-w-[calc(100%-2.5rem)] font-display text-2xl font-bold leading-tight text-white sm:text-[1.7rem] lg:text-[2rem]">
               {{ project.name }}
             </h2>

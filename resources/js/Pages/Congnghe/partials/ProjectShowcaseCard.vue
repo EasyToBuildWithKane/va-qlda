@@ -19,6 +19,8 @@ const props = defineProps({
     featured: { type: Boolean, default: false },
     // Ẩn thanh tiến độ (vd. khi tất cả đều 100% và muốn gọn hơn).
     showProgress: { type: Boolean, default: true },
+    /** Viền đen rõ trên nền tối (băng chuyền vòng đời). */
+    darkOutline: { type: Boolean, default: false },
 });
 
 const { el, style } = useTilt({ max: props.featured ? 5 : 7, scale: props.featured ? 1.008 : 1.02 });
@@ -58,8 +60,13 @@ function open() {
       :ref="cardRef"
       type="button"
       :style="style"
-      class="cn-card__btn relative flex h-full w-full flex-col overflow-hidden rounded-[1.35rem] border border-white/10 bg-[#0a0c16]/92 text-left shadow-[0_18px_50px_-26px_rgba(0,0,0,0.9)] ring-1 ring-white/[0.04] backdrop-blur-md transition-[transform,border-color,box-shadow] duration-300 will-change-transform focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--card-hue)]"
-      :class="featured ? 'lg:flex-row' : ''"
+      class="cn-card__btn relative flex h-full w-full flex-col overflow-hidden rounded-[1.35rem] bg-[#0a0c16]/92 text-left backdrop-blur-md transition-[transform,border-color,box-shadow] duration-300 will-change-transform focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--card-hue)]"
+      :class="[
+        featured ? 'lg:flex-row' : '',
+        darkOutline
+          ? 'border-2 border-black shadow-[0_0_0_1px_rgba(255,255,255,0.07),0_16px_40px_-20px_rgba(0,0,0,0.95)] ring-1 ring-white/[0.06]'
+          : 'border border-white/10 shadow-[0_18px_50px_-26px_rgba(0,0,0,0.9)] ring-1 ring-white/[0.04]',
+      ]"
       @click="open"
     >
       <!-- Viền conic xoay theo màu dự án -->
