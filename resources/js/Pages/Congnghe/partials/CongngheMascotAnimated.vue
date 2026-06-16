@@ -26,17 +26,7 @@ const sizeClass = {
     class="relative flex items-center justify-center"
     :class="variant === 'hero' ? 'aspect-square w-full max-w-[min(100%,420px)] lg:max-w-[480px] xl:max-w-[520px]' : 'shrink-0'"
   >
-    <template v-if="variant === 'hero'">
-      <div
-        class="absolute inset-0 rounded-full border border-cyan-400/15"
-        :class="reduced ? '' : 'animate-cn-spin-slow'"
-      />
-      <div
-        class="absolute inset-[12%] rounded-full border border-white/10"
-        :class="reduced ? '' : '[animation:cn-spin-slow_24s_linear_infinite_reverse]'"
-      />
-      <div class="absolute inset-[24%] rounded-full bg-[radial-gradient(circle,rgba(154,0,54,0.28),transparent_70%)] blur-lg" />
-    </template>
+    <!-- Hero: vòng quỹ đạo công nghệ — HeroTechOrbit.vue (cột hero) -->
 
     <template v-if="variant === 'assistant'">
       <span

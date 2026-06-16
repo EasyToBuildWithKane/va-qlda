@@ -5,11 +5,11 @@ import CountStat from './CountStat.vue';
 import TypewriterText from './TypewriterText.vue';
 import DataStreamTicker from './DataStreamTicker.vue';
 import AnalyzingBadge from './AnalyzingBadge.vue';
-import ScanLineOverlay from './ScanLineOverlay.vue';
 import { useParallaxLayers } from './motion.js';
 import { congngheBrand } from './congngheBrand.js';
 import CongngheBrandBackdrop from './CongngheBrandBackdrop.vue';
 import CongngheMascotAnimated from './CongngheMascotAnimated.vue';
+import HeroTechOrbit from './HeroTechOrbit.vue';
 import SectionParticleNetwork from './SectionParticleNetwork.vue';
 
 const props = defineProps({
@@ -143,16 +143,16 @@ const streamItems = computed(() => {
         class="relative mx-auto hidden w-full max-w-md items-center justify-center lg:flex lg:max-w-none lg:justify-end"
         :style="layer(-6)"
       >
-        <ScanLineOverlay
-          trigger="always"
-          tone="cyan"
-        />
-        <CongngheMascotAnimated
-          :src="congngheBrand.mascotWave"
-          alt="Linh vật VAS — Phòng Công Nghệ"
-          variant="hero"
-          :parallax-style="layer(10)"
-        />
+        <div class="relative aspect-square w-full max-w-[min(100%,420px)] lg:max-w-[480px] xl:max-w-[520px]">
+          <HeroTechOrbit :active="ready" />
+          <CongngheMascotAnimated
+            class="relative z-10"
+            :src="congngheBrand.mascotWave"
+            alt="Linh vật VAS — Phòng Công Nghệ"
+            variant="hero"
+            :parallax-style="layer(10)"
+          />
+        </div>
       </div>
     </div>
 
