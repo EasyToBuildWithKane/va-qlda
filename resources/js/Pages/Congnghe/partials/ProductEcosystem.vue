@@ -4,7 +4,7 @@ import SectionHeading from './SectionHeading.vue';
 import DataStreamTicker from './DataStreamTicker.vue';
 import AnalyzingBadge from './AnalyzingBadge.vue';
 import RevealOnScroll from './RevealOnScroll.vue';
-import ProjectShowcaseCard from './ProjectShowcaseCard.vue';
+import CongngheProjectSlider from './CongngheProjectSlider.vue';
 import { useInView, useScrollScene } from './motion.js';
 
 const props = defineProps({
@@ -18,8 +18,6 @@ const sceneProgress = useScrollScene(target);
 const heading = computed(() => props.content?.heading ?? {});
 
 const slideCount = computed(() => props.products.length);
-const featured = computed(() => props.products[0] ?? null);
-const rest = computed(() => props.products.slice(1));
 
 // Blob nền drift theo scroll + ticker mã sản phẩm (dữ liệu thật).
 const blobA = computed(() => ({ transform: `translateY(${((sceneProgress.value - 0.5) * 60).toFixed(1)}px)` }));
@@ -84,38 +82,17 @@ const streamItems = computed(() => props.products.map(
         :speed="34"
       />
 
-      <div
+      <!-- Băng chuyền sản phẩm (kéo ngang, 3 thẻ/khung) -->
+      <RevealOnScroll
         v-if="slideCount"
-        class="mt-8"
+        variant="up"
+        class="mt-8 block"
       >
-        <!-- Card nổi bật: sản phẩm cập nhật gần nhất -->
-        <RevealOnScroll
-          v-if="featured"
-          variant="up"
-          class="block"
-        >
-          <ProjectShowcaseCard
-            :project="featured"
-            featured
-          />
-        </RevealOnScroll>
-
-        <!-- Lưới bento phần còn lại -->
-        <div
-          v-if="rest.length"
-          class="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3"
-        >
-          <RevealOnScroll
-            v-for="(product, idx) in rest"
-            :key="product.id"
-            variant="up"
-            :delay="80 + (idx % 3) * 90"
-            class="block h-full"
-          >
-            <ProjectShowcaseCard :project="product" />
-          </RevealOnScroll>
-        </div>
-      </div>
+        <CongngheProjectSlider
+          :projects="products"
+          accent="emerald"
+        />
+      </RevealOnScroll>
 
       <p
         v-else

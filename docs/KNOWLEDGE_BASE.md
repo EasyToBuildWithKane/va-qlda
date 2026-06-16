@@ -42,7 +42,7 @@ resources/js/
     → Pages/KnowledgeBase/Index.vue   (PageHeader + datagrid, lọc danh mục, xuất CSV/Excel)
     → Pages/KnowledgeBase/Blog.vue    (layout blog: sidebar + feed ảnh bìa; feed **chỉ Published**; lọc Inertia `only: articles,filters`)
     → Pages/KnowledgeBase/Show.vue    (PageHeader drill-down, layout bài báo, TOC, bình luận)
-    → Components/KnowledgeBase/KbArticleCard.vue, KbBlogSidebar.vue, KbBlogPostCard.vue
+    → Components/KnowledgeBase/KbArticleCard.vue, KbBlogPanel.vue, KbBlogTagSection.vue, KbBlogSidebar.vue, KbBlogAside.vue, KbBlogPostCard.vue
     → Pages/KnowledgeBase/Edit.vue    (TipTap + gallery)
     → Components/KnowledgeBase/KbRichTextField.vue, KbImageGallery.vue, KbTagField.vue
     → composables/useKbExport.js

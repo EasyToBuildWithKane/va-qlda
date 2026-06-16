@@ -166,9 +166,9 @@ const feedArticles = computed(() =>
       </PageHeader>
     </template>
 
-    <div class="kb-blog-page -mx-1 px-1">
-      <div class="flex flex-col gap-6 xl:flex-row xl:items-start xl:gap-8">
-        <aside class="order-2 w-full shrink-0 xl:order-1 xl:w-64">
+    <div class="kb-blog-page mx-auto w-full max-w-[90rem]">
+      <div class="kb-blog-layout grid grid-cols-1 gap-4 sm:gap-5 xl:grid-cols-[16rem_minmax(0,1fr)_14rem] xl:gap-6 xl:items-start">
+        <aside class="order-2 min-w-0 xl:order-1">
           <KbBlogSidebar
             v-model:search-query="filterForm.q"
             :sidebar="sidebar"
@@ -179,10 +179,10 @@ const feedArticles = computed(() =>
           />
         </aside>
 
-        <main class="order-1 min-w-0 flex-1 xl:order-2">
+        <main class="order-1 min-w-0 xl:order-2">
           <div
             v-if="filters.category_id || filters.tag"
-            class="mb-5 flex flex-wrap items-center gap-2"
+            class="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-slate-200/70 bg-white/80 px-3 py-2.5 sm:mb-5 sm:px-4"
             role="status"
           >
             <span class="text-xs font-medium uppercase tracking-wide text-slate-400">
@@ -236,7 +236,7 @@ const feedArticles = computed(() =>
 
           <div
             v-else
-            class="space-y-6"
+            class="space-y-4 sm:space-y-5 lg:space-y-6"
           >
             <KbBlogPostCard
               v-if="featuredArticle"
@@ -246,8 +246,8 @@ const feedArticles = computed(() =>
 
             <div
               v-if="feedArticles.length"
-              class="grid gap-5 sm:gap-6"
-              :class="useMagazineFeed ? 'md:grid-cols-2' : 'max-w-3xl'"
+              class="grid gap-4 sm:gap-5"
+              :class="useMagazineFeed ? 'md:grid-cols-2' : 'mx-auto max-w-3xl w-full'"
             >
               <KbBlogPostCard
                 v-for="a in feedArticles"
@@ -260,7 +260,7 @@ const feedArticles = computed(() =>
 
           <DatagridPaginationFooter
             v-if="articles.meta"
-            class="mt-8"
+            class="mt-6 sm:mt-8"
             variant="bar"
             client
             :meta="articles.meta"
@@ -271,7 +271,7 @@ const feedArticles = computed(() =>
           />
         </main>
 
-        <aside class="order-3 hidden w-60 shrink-0 xl:block">
+        <aside class="order-3 hidden min-w-0 xl:block">
           <KbBlogAside
             :sidebar="sidebar"
             :filters="filters"
@@ -286,5 +286,12 @@ const feedArticles = computed(() =>
 <style scoped>
 .kb-blog-page {
   background: radial-gradient(ellipse 120% 80% at 50% -20%, rgba(154, 0, 54, 0.04), transparent 55%);
+}
+
+@media (max-width: 1279px) {
+  .kb-blog-layout {
+    /* Sidebar full width under feed — consistent gutters */
+    padding-inline: 0;
+  }
 }
 </style>

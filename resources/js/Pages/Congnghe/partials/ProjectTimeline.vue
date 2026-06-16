@@ -4,7 +4,7 @@ import SectionHeading from './SectionHeading.vue';
 import AnalyzingBadge from './AnalyzingBadge.vue';
 import DataStreamTicker from './DataStreamTicker.vue';
 import RevealOnScroll from './RevealOnScroll.vue';
-import ProjectShowcaseCard from './ProjectShowcaseCard.vue';
+import CongngheProjectSlider from './CongngheProjectSlider.vue';
 import { tone } from './tones.js';
 import { useInView, useMagneticGroup } from './motion.js';
 
@@ -24,8 +24,6 @@ const activePhaseIndex = ref(0);
 
 const activePhase = computed(() => props.phases[activePhaseIndex.value] ?? props.phases[0] ?? null);
 const items = computed(() => activePhase.value?.items ?? []);
-const featuredItem = computed(() => items.value[0] ?? null);
-const restItems = computed(() => items.value.slice(1));
 
 const canPrev = computed(() => activePhaseIndex.value > 0);
 const canNext = computed(() => activePhaseIndex.value < props.phases.length - 1);
@@ -251,37 +249,19 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
           </div>
         </div>
 
-        <!-- Lưới dự án (đồng nhất với Hệ sinh thái sản phẩm) -->
-        <div
+        <!-- Băng chuyền dự án (kéo ngang, đồng nhất với Hệ sinh thái sản phẩm) -->
+        <RevealOnScroll
           v-if="items.length"
-          :key="activePhase.value"
+          variant="up"
+          class="block"
         >
-          <RevealOnScroll
-            v-if="featuredItem"
-            variant="up"
-            class="block"
-          >
-            <ProjectShowcaseCard
-              :project="featuredItem"
-              featured
-            />
-          </RevealOnScroll>
-
-          <div
-            v-if="restItems.length"
-            class="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3"
-          >
-            <RevealOnScroll
-              v-for="(project, idx) in restItems"
-              :key="project.id"
-              variant="up"
-              :delay="80 + (idx % 3) * 90"
-              class="block h-full"
-            >
-              <ProjectShowcaseCard :project="project" />
-            </RevealOnScroll>
-          </div>
-        </div>
+          <CongngheProjectSlider
+            :key="activePhase.value"
+            :projects="items"
+            :reset-key="activePhase.value"
+            accent="brand"
+          />
+        </RevealOnScroll>
 
         <!-- Trống -->
         <div

@@ -1,6 +1,8 @@
 <script setup>
 import { Link } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
+import KbBlogPanel from '@/Components/KnowledgeBase/KbBlogPanel.vue';
+import KbBlogTagSection from '@/Components/KnowledgeBase/KbBlogTagSection.vue';
 import { date } from '@/composables/useFormat';
 
 const props = defineProps({
@@ -20,27 +22,20 @@ function applyCategory(categoryId) {
     emit('filter-category', categoryId);
 }
 
-function applyTag(slug) {
-    emit('filter-tag', slug);
-}
-
 const hasActiveFilter = () =>
     Boolean(props.filters.category_id || props.filters.tag || props.filters.q);
 </script>
 
 <template>
-  <div class="kb-blog-sidebar space-y-3 xl:sticky xl:top-5">
-    <section
-      class="kb-blog-panel overflow-hidden"
+  <div class="kb-blog-sidebar flex flex-col gap-3 sm:gap-3.5 xl:sticky xl:top-5">
+    <KbBlogPanel
       aria-label="Tìm kiếm blog"
+      title="Tìm kiếm"
     >
-      <div class="kb-blog-panel__head flex items-center justify-between gap-2">
-        <p class="kb-blog-panel__eyebrow">
-          Tìm kiếm
-        </p>
+      <template #head-actions>
         <Link
           href="/knowledge-base"
-          class="inline-flex items-center gap-1 text-[10px] font-medium text-slate-400 transition hover:text-brand"
+          class="inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-slate-400 transition hover:bg-slate-50 hover:text-brand"
           title="Chế độ thư viện"
         >
           <AppIcon
@@ -49,81 +44,88 @@ const hasActiveFilter = () =>
           />
           Thư viện
         </Link>
-      </div>
-      <div class="relative px-4 pb-4">
-        <AppIcon
-          name="search"
-          :size="16"
-          class="pointer-events-none absolute left-7 top-1/2 -translate-y-1/2 text-slate-400"
-        />
-        <input
-          :value="searchQuery"
-          type="search"
-          class="input h-10 w-full border-slate-200/80 bg-slate-50/50 pl-9 text-sm transition focus:bg-white"
-          placeholder="Từ khoá…"
-          aria-label="Tìm kiếm bài viết"
-          @input="emit('update:searchQuery', $event.target.value)"
+      </template>
+
+      <div class="flex flex-col gap-2">
+        <label
+          class="flex h-10 w-full items-center gap-2.5 rounded-lg border border-slate-200/80 bg-slate-50/60 px-3 transition focus-within:border-brand/25 focus-within:bg-white focus-within:ring-2 focus-within:ring-brand/10"
         >
+          <AppIcon
+            name="search"
+            :size="16"
+            class="shrink-0 text-slate-400"
+          />
+          <input
+            :value="searchQuery"
+            type="search"
+            class="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-0"
+            placeholder="Từ khoá…"
+            aria-label="Tìm kiếm bài viết"
+            @input="emit('update:searchQuery', $event.target.value)"
+          >
+        </label>
         <button
           v-if="hasActiveFilter()"
           type="button"
-          class="mt-2 text-xs font-medium text-brand hover:underline"
+          class="self-start text-xs font-medium text-brand hover:underline"
           @click="emit('clear-filters')"
         >
           Xóa bộ lọc
         </button>
       </div>
-    </section>
+    </KbBlogPanel>
 
-    <section
+    <KbBlogPanel
       v-if="sidebar.categories?.length"
-      class="kb-blog-panel"
       aria-label="Chuyên mục"
+      title="Chuyên mục"
+      flush-body
     >
-      <p class="kb-blog-panel__eyebrow kb-blog-panel__head">
-        Chuyên mục
-      </p>
-      <ul class="space-y-0.5 px-2 pb-3 text-sm">
+      <ul class="divide-y divide-slate-100/90 text-sm">
         <li
           v-for="cat in sidebar.categories"
           :key="cat.id"
         >
           <button
             type="button"
-            class="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-2 text-left text-slate-600 transition hover:bg-slate-50 hover:text-brand"
+            class="flex w-full items-center justify-between gap-2 px-3.5 py-2.5 text-left text-slate-600 transition hover:bg-slate-50 hover:text-brand sm:px-4"
             :class="String(filters.category_id) === String(cat.id)
-              ? 'bg-brand/[0.06] font-medium text-brand shadow-[inset_2px_0_0_0_theme(colors.brand.DEFAULT)]'
+              ? 'bg-brand/[0.06] font-medium text-brand'
               : ''"
+            :aria-pressed="String(filters.category_id) === String(cat.id)"
             @click="applyCategory(cat.id)"
           >
-            <span class="truncate">{{ cat.name }}</span>
-            <span class="shrink-0 rounded-full bg-slate-100 px-1.5 py-0.5 tabular-nums text-[10px] text-slate-500">
+            <span class="min-w-0 truncate">{{ cat.name }}</span>
+            <span
+              class="shrink-0 rounded-full px-2 py-0.5 tabular-nums text-[10px] font-semibold"
+              :class="String(filters.category_id) === String(cat.id)
+                ? 'bg-brand/10 text-brand'
+                : 'bg-slate-100 text-slate-500'"
+            >
               {{ cat.articles_count }}
             </span>
           </button>
         </li>
       </ul>
-    </section>
+    </KbBlogPanel>
 
-    <section
+    <KbBlogPanel
       v-if="sidebar.recentPosts?.length"
-      class="kb-blog-panel"
       aria-label="Bài viết mới"
+      title="Bài viết mới"
+      flush-body
     >
-      <p class="kb-blog-panel__eyebrow kb-blog-panel__head">
-        Bài viết mới
-      </p>
-      <ul class="space-y-1 px-2 pb-3">
+      <ul class="divide-y divide-slate-100/90">
         <li
           v-for="post in sidebar.recentPosts"
           :key="post.id"
         >
           <Link
             :href="`/knowledge-base/articles/${post.slug}`"
-            class="group flex gap-2.5 rounded-lg p-2 transition hover:bg-slate-50"
+            class="group flex gap-2.5 px-3.5 py-2.5 transition hover:bg-slate-50 sm:px-4"
           >
             <div
-              class="h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-slate-100 ring-1 ring-slate-200/60"
+              class="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-slate-100 ring-1 ring-slate-200/60 sm:h-11 sm:w-11"
             >
               <img
                 v-if="post.cover_url"
@@ -142,7 +144,7 @@ const hasActiveFilter = () =>
                 />
               </div>
             </div>
-            <div class="min-w-0 flex-1">
+            <div class="min-w-0 flex-1 py-0.5">
               <p class="line-clamp-2 text-xs font-medium leading-snug text-slate-700 group-hover:text-brand">
                 {{ post.title }}
               </p>
@@ -156,42 +158,18 @@ const hasActiveFilter = () =>
           </Link>
         </li>
       </ul>
-    </section>
+    </KbBlogPanel>
 
-    <section
+    <div
       v-if="sidebar.tags?.length"
-      class="kb-blog-panel xl:hidden"
-      aria-label="Thẻ"
+      class="xl:hidden"
     >
-      <p class="kb-blog-panel__eyebrow kb-blog-panel__head">
-        Thẻ
-      </p>
-      <div class="flex flex-wrap gap-1.5 px-4 pb-4">
-        <button
-          v-for="tag in sidebar.tags"
-          :key="tag.id"
-          type="button"
-          class="rounded-full border border-slate-200/80 bg-white px-2.5 py-0.5 text-[11px] text-slate-600 shadow-sm transition hover:border-brand/25 hover:text-brand"
-          :class="filters.tag === tag.slug ? 'border-brand/35 bg-brand/[0.06] text-brand' : ''"
-          @click="applyTag(tag.slug)"
-        >
-          {{ tag.name }}
-        </button>
-      </div>
-    </section>
+      <KbBlogTagSection
+        :tags="sidebar.tags"
+        :active-slug="filters.tag"
+        layout="chips"
+        @filter-tag="(slug) => emit('filter-tag', slug)"
+      />
+    </div>
   </div>
 </template>
-
-<style scoped>
-.kb-blog-panel {
-  @apply rounded-card border border-slate-200/60 bg-white/80 shadow-sm backdrop-blur-sm;
-}
-
-.kb-blog-panel__head {
-  @apply px-4 pt-3.5;
-}
-
-.kb-blog-panel__eyebrow {
-  @apply text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400;
-}
-</style>

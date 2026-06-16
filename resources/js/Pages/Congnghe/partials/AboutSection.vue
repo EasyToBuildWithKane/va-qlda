@@ -40,71 +40,70 @@ function iconPath(key) {
     />
 
     <div class="relative mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
-      <div class="grid gap-10 lg:grid-cols-12 lg:items-start lg:gap-10 xl:gap-12">
-        <div
-          class="lg:col-span-5 xl:col-span-4"
-          :class="shown ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'"
-          style="transition: opacity 0.7s ease, transform 0.7s ease"
-        >
-          <SectionHeading
-            :eyebrow="heading.eyebrow"
-            :title="heading.title"
-            :subtitle="heading.subtitle"
+      <div
+        :class="shown ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'"
+        style="transition: opacity 0.7s ease, transform 0.7s ease"
+      >
+        <SectionHeading
+          :eyebrow="heading.eyebrow"
+          :title="heading.title"
+          :subtitle="heading.subtitle"
+        />
+      </div>
+
+      <div
+        v-if="note"
+        class="mt-8 rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.06] to-brand/[0.08] p-5 backdrop-blur-md sm:mt-10 sm:p-6 lg:max-w-3xl"
+        :class="shown ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'"
+        style="transition: opacity 0.7s ease 80ms, transform 0.7s ease 80ms"
+      >
+        <div class="flex flex-col items-center gap-4 sm:flex-row sm:items-center">
+          <CongngheMascotAnimated
+            :src="congngheBrand.mascotVaJacket"
+            alt="Linh vật VAS"
+            variant="inline"
           />
+          <p class="text-center text-sm leading-relaxed text-white/60 sm:text-left">
+            {{ note }}
+          </p>
+        </div>
+      </div>
 
-          <div
-            v-if="note"
-            class="mt-8 hidden rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.06] to-brand/[0.08] p-5 backdrop-blur-md lg:block lg:mt-10 lg:p-6"
-          >
-            <div class="flex flex-col items-center gap-4 sm:flex-row sm:items-center md:flex-col md:items-center lg:flex-row lg:items-center">
-              <CongngheMascotAnimated
-                :src="congngheBrand.mascotVaJacket"
-                alt="Linh vật VAS"
-                variant="inline"
-              />
-              <p class="text-center text-sm leading-relaxed text-white/60 sm:text-left md:text-center lg:text-left">
-                {{ note }}
-              </p>
-            </div>
+      <div class="mt-10 grid gap-5 sm:mt-12 sm:gap-6 lg:grid-cols-3 lg:gap-6 xl:gap-8">
+        <GlassCard
+          v-for="(p, i) in pillars"
+          :key="p.title"
+          tilt
+          :padded="false"
+          class="min-w-0 p-6 transition-all duration-700 sm:p-7 lg:p-8"
+          :class="shown ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'"
+          :style="{ transitionDelay: `${120 + i * 100}ms` }"
+        >
+          <span class="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-brand-300">0{{ i + 1 }}</span>
+          <div class="mt-3 grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-brand to-[#ff4d8d] p-3 text-white shadow-lg shadow-brand/30">
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linejoin="round"
+            ><path :d="iconPath(p.icon)" /></svg>
           </div>
-        </div>
-
-        <div class="grid gap-5 sm:gap-6 md:grid-cols-2 lg:col-span-7 lg:grid-cols-1 xl:col-span-8 xl:grid-cols-3 xl:gap-6">
-          <GlassCard
-            v-for="(p, i) in pillars"
-            :key="p.title"
-            tilt
-            :padded="false"
-            class="p-6 transition-all duration-700 sm:p-7 md:col-span-2 md:last:col-span-2 xl:col-span-1 xl:last:col-span-1"
-            :class="shown ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'"
-            :style="{ transitionDelay: `${120 + i * 100}ms` }"
+          <p
+            v-if="p.tag"
+            class="mt-5 font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-white/45"
           >
-            <span class="font-mono text-[11px] font-semibold uppercase tracking-[0.2em] text-brand-300">0{{ i + 1 }}</span>
-            <div class="mt-3 grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-brand to-[#ff4d8d] p-3 text-white shadow-lg shadow-brand/30">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.7"
-                stroke-linejoin="round"
-              ><path :d="iconPath(p.icon)" /></svg>
-            </div>
-            <p
-              v-if="p.tag"
-              class="mt-5 font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-white/45"
-            >
-              {{ p.tag }}
-            </p>
-            <h3 class="mt-1.5 font-display text-lg font-bold text-white sm:text-xl">
-              {{ p.title }}
-            </h3>
-            <p class="mt-3 text-sm leading-relaxed text-white/55">
-              {{ p.body }}
-            </p>
-          </GlassCard>
-        </div>
+            {{ p.tag }}
+          </p>
+          <h3 class="mt-1.5 font-display text-lg font-bold text-white sm:text-xl">
+            {{ p.title }}
+          </h3>
+          <p class="mt-3 text-sm leading-relaxed text-white/55">
+            {{ p.body }}
+          </p>
+        </GlassCard>
       </div>
     </div>
   </section>

@@ -131,8 +131,8 @@ function open() {
 
         <!-- Chip trạng thái -->
         <span
-          class="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full border bg-black/45 px-2.5 py-1 font-mono text-[9px] font-semibold uppercase tracking-wider backdrop-blur-md"
-          :class="statusTone.soft"
+          class="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/50 px-2.5 py-1 font-mono text-[9px] font-semibold uppercase tracking-wider backdrop-blur-md"
+          :class="statusTone.text"
         >
           <span class="relative flex h-1.5 w-1.5">
             <span

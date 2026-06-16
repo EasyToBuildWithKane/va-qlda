@@ -4,6 +4,7 @@ import SectionHeading from './SectionHeading.vue';
 import GlassCard from './GlassCard.vue';
 import RippleSurface from './RippleSurface.vue';
 import ScanLineOverlay from './ScanLineOverlay.vue';
+import CongngheBrandBackdrop from './CongngheBrandBackdrop.vue';
 import { useInView } from './motion.js';
 
 const props = defineProps({
@@ -25,25 +26,34 @@ function iconPath(key) {
   <section
     id="van-hoa"
     ref="target"
-    class="relative py-20"
+    class="relative scroll-mt-24 py-16 sm:scroll-mt-28 sm:py-20 md:py-24"
   >
-    <div class="mx-auto max-w-7xl px-5 sm:px-8">
+    <CongngheBrandBackdrop
+      variant="badge"
+      align="left"
+      opacity-class="opacity-[0.04]"
+    />
+    <div
+      class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-brand/30 via-white/10 to-transparent"
+      aria-hidden="true"
+    />
+
+    <div class="relative mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
       <SectionHeading
-        center
         :eyebrow="heading.eyebrow"
         :title="heading.title"
         :subtitle="heading.subtitle"
       />
 
-      <div class="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div class="mt-10 grid gap-4 sm:mt-12 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 lg:gap-6">
         <GlassCard
           v-for="(v, i) in values"
           :key="v.title"
           tilt
           :padded="false"
-          class="p-6 transition-all duration-700"
+          class="p-6 transition-all duration-700 sm:p-7"
           :class="shown ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'"
-          :style="{ transitionDelay: `${i * 80}ms` }"
+          :style="{ transitionDelay: `${120 + i * 80}ms` }"
         >
           <template #overlay>
             <ScanLineOverlay
