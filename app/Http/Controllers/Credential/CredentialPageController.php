@@ -69,6 +69,18 @@ class CredentialPageController extends Controller
         ]);
     }
 
+    public function edit(Request $request, Credential $credential): Response
+    {
+        $this->authorize('update', $credential);
+
+        $credential->load(['project', 'department', 'owner']);
+
+        return Inertia::render('Credential/Edit', [
+            'credential' => (new CredentialResource($credential))->resolve(),
+            'options' => $this->options(),
+        ]);
+    }
+
     public function show(Request $request, Credential $credential): Response
     {
         $this->authorize('view', $credential);

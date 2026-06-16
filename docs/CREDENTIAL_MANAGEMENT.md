@@ -8,6 +8,7 @@ Module quản lý tài khoản, mật khẩu và liên kết hạ tầng nội b
 |-----|--------|
 | `/credentials` | Danh sách + KPI |
 | `/credentials/create` | Tạo mới |
+| `/credentials/{id}/edit` | Chỉnh sửa (Inertia) |
 | `/credentials/{id}` | Chi tiết 5 tab |
 | `POST /credentials/import` | Nhập bulk ≤200 |
 | `/api/credentials/{id}/password` | Reveal password (audit) |

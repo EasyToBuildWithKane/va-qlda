@@ -62,6 +62,17 @@ function submitPassword() {
         >
           Danh sách
         </Link>
+        <Link
+          v-if="credential.can?.update"
+          :href="route('credentials.edit', credential.id)"
+          class="btn-primary inline-flex h-9 items-center gap-1.5 px-3 text-xs"
+        >
+          <AppIcon
+            name="edit"
+            :size="15"
+          />
+          Chỉnh sửa
+        </Link>
       </PageHeader>
     </template>
 
@@ -110,7 +121,7 @@ function submitPassword() {
               Username
             </dt>
             <dd class="font-medium">
-              {{ credential.username || '—' }}
+              {{ credential.username || 'Chưa có username' }}
             </dd>
           </div>
           <div>
@@ -175,36 +186,37 @@ function submitPassword() {
         </h3>
         <div class="flex flex-wrap gap-2">
           <Badge
-            v-for="b in credential.badges"
+            v-for="b in (credential.badges || []).filter(Boolean)"
             :key="b"
-            tone="brand"
-          >
-            {{ b }}
-          </Badge>
-          <Badge :tone="credential.environment?.value === 'production' ? 'rose' : 'sky'">
-            {{ credential.environment?.label }}
-          </Badge>
-          <Badge tone="emerald">
-            {{ credential.status?.label }}
-          </Badge>
+            :label="b"
+            color="brand"
+          />
+          <Badge
+            v-if="credential.environment?.label"
+            :label="credential.environment.label"
+            :color="credential.environment.value === 'production' ? 'rose' : 'sky'"
+          />
+          <Badge
+            v-if="credential.status?.label"
+            :label="credential.status.label"
+            :color="credential.status.color || 'slate'"
+          />
           <Badge
             v-if="credential.is_shared"
-            tone="sky"
-          >
-            Shared
-          </Badge>
+            label="Dùng chung"
+            color="sky"
+          />
           <Badge
             v-if="credential.is_critical"
-            tone="amber"
-          >
-            Critical
-          </Badge>
+            label="Critical"
+            color="amber"
+          />
         </div>
         <p class="mt-4 text-xs text-slate-500">
           Tạo {{ datetime(credential.created_at) }}
         </p>
         <p class="text-xs text-slate-500">
-          Hết hạn {{ credential.expires_at ? date(credential.expires_at) : '—' }}
+          Hết hạn {{ credential.expires_at ? date(credential.expires_at) : 'Không hết hạn' }}
         </p>
       </div>
     </div>

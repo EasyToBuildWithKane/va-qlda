@@ -65,4 +65,24 @@ class CredentialTest extends TestCase
 
         $response->assertForbidden();
     }
+
+    public function test_admin_can_open_credential_edit_page(): void
+    {
+        $admin = $this->admin();
+
+        $this->actingAs($admin, 'system')
+            ->post(route('credentials.store'), [
+                'name' => 'Edit me',
+                'credential_type' => CredentialType::InternalSystem->value,
+                'system_category' => CredentialCategory::Cms->value,
+                'environment' => 'production',
+            ]);
+
+        $credential = Credential::query()->where('name', 'Edit me')->firstOrFail();
+
+        $response = $this->actingAs($admin, 'system')
+            ->get(route('credentials.edit', $credential));
+
+        $response->assertOk();
+    }
 }

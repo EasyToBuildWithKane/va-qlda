@@ -22,10 +22,22 @@ trait PresentsEntities
             return null;
         }
 
+        $label = match (true) {
+            method_exists($enum, 'label') => $enum->label(),
+            method_exists($enum, 'labelVi') => $enum->labelVi(),
+            default => (string) $enum->value,
+        };
+
+        $color = match (true) {
+            method_exists($enum, 'color') => $enum->color(),
+            method_exists($enum, 'badgeColor') => $enum->badgeColor(),
+            default => null,
+        };
+
         return [
             'value' => $enum->value,
-            'label' => method_exists($enum, 'label') ? $enum->label() : (string) $enum->value,
-            'color' => method_exists($enum, 'color') ? $enum->color() : null,
+            'label' => $label,
+            'color' => $color,
         ];
     }
 

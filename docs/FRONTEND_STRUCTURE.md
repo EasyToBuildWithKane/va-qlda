@@ -157,7 +157,7 @@ Pages import feature components từ `@/modules/project/components/...` và prim
 
 | Path | Mô tả |
 |---|---|
-| `Pages/Credential/` | Index, Show (5 tab), Create |
+| `Pages/Credential/` | Index, Show (5 tab), Create, Edit |
 | `components/CredentialSummaryBar.vue` | KPI strip 12 thẻ + lọc nhanh |
 | `components/CredentialPasswordViewer.vue` | Hiện/ẩn/sao chép + audit API |
 | `CredentialDataModal.vue` | Nhập · Xuất · Đối soát |

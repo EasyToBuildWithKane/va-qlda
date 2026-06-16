@@ -6,7 +6,6 @@ import AppIcon from '@/Components/AppIcon.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import Badge from '@/shared/ui/Badge.vue';
 import CredentialSummaryBar from '@/modules/credential/components/CredentialSummaryBar.vue';
-import CredentialHelpBanner from '@/modules/credential/components/CredentialHelpBanner.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import DatagridToolbarActionButton from '@/shared/ui/DatagridToolbarActionButton.vue';
 import DatagridFilterField from '@/shared/ui/DatagridFilterField.vue';
@@ -85,10 +84,6 @@ function onToolbarClickOutside(e) {
 }
 onMounted(() => document.addEventListener('mousedown', onToolbarClickOutside));
 onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOutside));
-
-function statusTone(st) {
-    return st?.badgeColor || 'slate';
-}
 </script>
 
 <template>
@@ -114,16 +109,6 @@ function statusTone(st) {
         </Link>
       </PageHeader>
     </template>
-
-    <CredentialHelpBanner
-      title="Danh sách tài khoản & tài sản số"
-      intro="Tra cứu nhanh theo tên, username hoặc nhà cung cấp. Thẻ KPI phía dưới lọc nhanh — bấm vào thẻ để áp dụng bộ lọc."
-      :steps="[
-        'Dùng ô tìm kiếm hoặc Lọc để thu hẹp danh sách.',
-        'Bấm tên tài khoản để mở hồ sơ — xem mật khẩu tại tab Bảo mật (có audit).',
-        'Nút Dữ liệu: nhập/xuất Excel hoặc đối soát hồ sơ thiếu phụ trách / MFA.',
-      ]"
-    />
 
     <CredentialSummaryBar
       :summary="summary"
@@ -347,34 +332,45 @@ function statusTone(st) {
                   class="mt-1 flex flex-wrap gap-1"
                 >
                   <Badge
-                    v-for="b in row.badges"
+                    v-for="b in row.badges.filter(Boolean)"
                     :key="b"
-                    tone="slate"
+                    :label="b"
+                    color="slate"
                     class="text-[10px]"
-                  >
-                    {{ b }}
-                  </Badge>
+                  />
                 </div>
               </td>
               <td class="px-5 py-3 text-slate-600">
-                <div>{{ row.credential_type?.label }}</div>
-                <div class="text-xs">
-                  {{ row.system_category?.label }}
+                <div>{{ row.credential_type?.label || 'Chưa phân loại' }}</div>
+                <div class="text-xs text-slate-500">
+                  {{ row.system_category?.label || 'Chưa chọn hệ thống' }}
                 </div>
               </td>
-              <td class="px-5 py-3 font-mono text-xs">
-                {{ row.username || '—' }}
+              <td class="px-5 py-3 font-mono text-xs text-slate-600">
+                <span :class="{ 'text-slate-400 italic font-sans': !row.username }">
+                  {{ row.username || 'Chưa có username' }}
+                </span>
               </td>
               <td class="px-5 py-3">
-                {{ row.owner?.display_name || '—' }}
+                <span :class="{ 'text-slate-400 italic text-xs': !row.owner?.display_name }">
+                  {{ row.owner?.display_name || 'Chưa gán phụ trách' }}
+                </span>
               </td>
               <td class="px-5 py-3 text-xs">
-                {{ row.expires_at ? date(row.expires_at) : '—' }}
+                <span :class="{ 'text-slate-400 italic': !row.expires_at }">
+                  {{ row.expires_at ? date(row.expires_at) : 'Không hết hạn' }}
+                </span>
               </td>
               <td class="px-5 py-3">
-                <Badge :tone="statusTone(row.status)">
-                  {{ row.status?.label }}
-                </Badge>
+                <Badge
+                  v-if="row.status?.label"
+                  :label="row.status.label"
+                  :color="row.status.color || 'slate'"
+                />
+                <span
+                  v-else
+                  class="text-xs italic text-slate-400"
+                >Chưa xác định</span>
               </td>
             </tr>
             <tr v-if="!credentials.data?.length">

@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
+import RichContentBody from '@/shared/ui/RichContentBody.vue';
 import ProgressRing from './ProgressRing.vue';
 import KanbanSnapshot from './KanbanSnapshot.vue';
 import { tailwindToHex } from '../composables/useChartTheme.js';
@@ -11,12 +12,22 @@ const props = defineProps({
 
 const open = ref(false);
 
+// Tuần không có công việc cam kết → không có hiệu suất khách quan để chấm.
+// Hiển thị trạng thái trung tính thay vì điểm/xếp loại gây hiểu nhầm.
+const hasCommitment = computed(() => (props.week.summary.committed ?? 0) > 0);
+
 const rateColor = computed(() => {
     const r = props.week.summary.commitmentRate;
     if (r >= 80) return tailwindToHex('emerald');
     if (r >= 50) return tailwindToHex('amber');
     return tailwindToHex('rose');
 });
+
+function fmtDate(d) {
+    if (!d) return '';
+    const [, m, day] = String(d).split('-');
+    return day && m ? `${day}/${m}` : d;
+}
 
 const gradeTone = {
     S: 'bg-brand/10 text-brand',
@@ -36,11 +47,17 @@ const gradeTone = {
       @click="open = !open"
     >
       <ProgressRing
+        v-if="hasCommitment"
         :value="week.summary.commitmentRate"
         :size="56"
         :stroke="5"
         :color="rateColor"
       />
+      <span
+        v-else
+        class="grid h-14 w-14 shrink-0 place-items-center rounded-full border-2 border-dashed border-slate-200 font-display text-base font-bold text-slate-300"
+        aria-hidden="true"
+      >—</span>
 
       <div class="min-w-0 flex-1">
         <div class="flex flex-wrap items-center gap-2">
@@ -49,14 +66,28 @@ const gradeTone = {
           </h3>
           <span class="text-[11px] text-slate-400">{{ week.range }}</span>
           <span
+            v-if="hasCommitment"
             class="rounded-md px-1.5 py-0.5 text-[11px] font-bold"
             :class="gradeTone[week.grade]"
           >{{ week.grade }}</span>
+          <span
+            v-else
+            class="rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-400"
+          >Chưa có cam kết</span>
         </div>
-        <p class="mt-0.5 text-[12px] text-slate-500">
+        <p
+          v-if="hasCommitment"
+          class="mt-0.5 text-[12px] text-slate-500"
+        >
           Hoàn thành <span class="font-semibold text-slate-700">{{ week.summary.done }}</span>/{{ week.summary.committed }} cam kết
           · Hiệu suất <span class="font-semibold text-slate-700">{{ week.scores.performance }}%</span>
           · Đúng hạn {{ week.scores.onTime }}%
+        </p>
+        <p
+          v-else
+          class="mt-0.5 text-[12px] text-slate-400"
+        >
+          Tuần này chưa có công việc cam kết — chỉ ghi nhận báo cáo ngày.
         </p>
       </div>
 
@@ -106,9 +137,11 @@ const gradeTone = {
           </ul>
           <p
             v-else
-            class="text-[12px] text-slate-400"
+            class="text-[12px] leading-relaxed text-slate-400"
           >
-            Không có cam kết trong tuần này.
+            Không có công việc cam kết. Cam kết được lấy từ
+            <span class="font-medium text-slate-500">Công việc (Task)</span>
+            được giao cho thành viên, có hạn hoặc bắt đầu trong tuần.
           </p>
         </div>
 
@@ -118,15 +151,23 @@ const gradeTone = {
           </p>
           <ul
             v-if="week.reports.length"
-            class="space-y-1.5"
+            class="space-y-2"
           >
             <li
               v-for="(r, i) in week.reports"
               :key="i"
-              class="rounded-md bg-slate-50 px-2 py-1 text-[12px] text-slate-600"
+              class="rounded-md bg-slate-50 px-2.5 py-2"
             >
-              <span class="font-medium text-slate-500">{{ r.date }}:</span>
-              {{ r.goals || r.plan || '—' }}
+              <p class="mb-1 text-[11px] font-semibold text-slate-500">
+                {{ fmtDate(r.date) }}
+              </p>
+              <RichContentBody
+                :content="r.goals || r.plan"
+                empty-text="Không có nội dung."
+                html-class="prose prose-sm max-w-none text-[12px] leading-snug text-slate-600 [&_p]:my-0.5 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0"
+                plain-class="whitespace-pre-line text-[12px] leading-snug text-slate-600"
+                empty-class="text-[12px] text-slate-400"
+              />
             </li>
           </ul>
           <p

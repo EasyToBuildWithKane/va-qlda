@@ -29,13 +29,6 @@ export const toneSoft = {
     amber: 'bg-amber-100 text-amber-600',
 };
 
-/** Map level insight → màu hiển thị. */
-export const insightTone = {
-    success: { ring: 'border-emerald-200 bg-emerald-50', icon: 'text-emerald-600', dot: 'bg-emerald-500' },
-    info: { ring: 'border-sky-200 bg-sky-50', icon: 'text-sky-600', dot: 'bg-sky-500' },
-    warning: { ring: 'border-amber-200 bg-amber-50', icon: 'text-amber-600', dot: 'bg-amber-500' },
-};
-
 export function baseLineOptions(overrides = {}) {
     return {
         responsive: true,

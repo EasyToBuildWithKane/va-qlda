@@ -5,9 +5,8 @@ thật thành Dashboard analytics + Timeline audit theo nhân viên. Phong cách
 Enterprise (Linear / Jira Advanced Reports / Power BI). **Chỉ dùng dữ liệu thật —
 không bịa số.**
 
-> Pha 1 (lõi): Executive Dashboard + Audit theo nhân viên + Sticky Filter Bar.
-> Pha sau: màn riêng cho Dự án / Team / Workload, và (tuỳ chọn) thay rule engine
-> bằng Claude API.
+> Pha 1 (lõi): Executive Dashboard + Audit theo nhân viên + bộ lọc datagrid toolbar.
+> Pha sau: màn riêng cho Dự án / Team / Workload.
 
 ---
 
@@ -29,9 +28,8 @@ Gate `performance.view` (trong `AuthServiceProvider`) — chỉ `admin | lead | 
 Controller (mỏng)                     Service (thuần, app/Support/Performance/)
 ─────────────────                     ────────────────────────────────────────
 PerformanceDashboardController  ──▶   PerformanceFilter   (giải mã bộ lọc → kỳ + scope)
-                                      PerformanceMetrics  (engine KPI/distribution/trend)
+                                      PerformanceMetrics  (engine KPI/distribution/trend + summary)
                                       PerformanceScorer   (điểm khách quan từ task)
-                                      PerformanceInsights (rule engine heuristic)
 PerformanceAuditController      ──▶   EmployeeAuditBuilder (timeline tuần: kế hoạch vs kết quả)
 ```
 
@@ -41,9 +39,10 @@ shape (giống `DashboardController`). Bộ lọc đổi → Inertia partial rel
 
 ### Frontend (`resources/js/modules/performance/`)
 
-- `components/` — `PerformanceFilterBar` (sticky), `KpiCard` (+ `Sparkline`, `ProgressRing`),
+- `components/` — `PerformanceFilterBar` (datagrid toolbar), `PerformanceDashboardSummaryBar`,
+  `PerformanceAuditSummaryBar`, `KpiCard` (+ `Sparkline`, `ProgressRing`),
   `TrendChart`, `StatusDonut`, `WorkloadBars`, `ProjectContributionChart`, `LeaderboardTable`,
-  `InsightsPanel`, `AuditTimeline` → `WeeklyAuditCard` → `KanbanSnapshot`.
+  `AuditTimeline` → `WeeklyAuditCard` → `KanbanSnapshot`.
 - `composables/` — `useChartTheme` (palette brand + chart options), `usePerformanceExport`
   (Excel `xlsx-js-style` + in). Count-up tái dùng `@/shared/composables/useCountUp`.
 - Pages: `Pages/Performance/Dashboard.vue`, `Pages/Performance/Audit.vue`.
@@ -95,13 +94,6 @@ Audit Card:
 - **Định tính**: text `goals_today` / `plan_tomorrow` từ Báo cáo ngày của tuần (hiển
   thị cạnh, không auto-match).
 - **Drill-down**: Kanban snapshot toàn bộ task thực tế của tuần.
-
-## AI Insights (heuristic)
-
-`PerformanceInsights` sinh nhận xét từ payload metrics (KHÔNG gọi LLM). Ngưỡng trong
-`config/performance.insights`. Luật: hiệu suất nhóm, quá tải (workload band), nguy cơ
-trễ (≥ N task quá hạn), điểm sáng (đúng hạn ≥ 90%), hiệu suất thấp (< 50%), 1 dự án
-chiếm ≥ 50% workload. Interface ổn định để sau cắm Claude API nếu duyệt bảo mật.
 
 ## Xuất / In
 

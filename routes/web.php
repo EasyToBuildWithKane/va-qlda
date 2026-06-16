@@ -334,6 +334,7 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictCoachingOnlyUsers::class
         Route::get('/create', [CredentialPageController::class, 'create'])->name('create');
         Route::post('/import', [CredentialController::class, 'import'])->name('import');
         Route::post('/', [CredentialController::class, 'store'])->name('store');
+        Route::get('/{credential}/edit', [CredentialPageController::class, 'edit'])->name('edit');
         Route::get('/{credential}', [CredentialPageController::class, 'show'])->name('show');
         Route::put('/{credential}', [CredentialController::class, 'update'])->name('update');
         Route::delete('/{credential}', [CredentialController::class, 'destroy'])->name('destroy');

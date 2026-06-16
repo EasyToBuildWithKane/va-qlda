@@ -385,7 +385,7 @@ AI Accounts Group
 └── /api/ai-accounts/*                (JSON workspace)
 
 Credential Management Group
-├── /credentials                        (index, create, show — Inertia)
+├── /credentials                        (index, create, edit, show — Inertia)
 ├── POST /credentials/import            (bulk ≤200)
 └── /api/credentials/{id}/*             (password reveal, ACL, audit, relations, access-requests)
 

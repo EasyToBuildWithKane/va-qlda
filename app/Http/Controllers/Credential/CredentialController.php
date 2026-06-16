@@ -68,7 +68,9 @@ class CredentialController extends Controller
         $credential->update($data);
         CredentialActivityLogger::updated($credential, $request->user(), $changes, $request);
 
-        return back()->with('success', 'Đã cập nhật tài khoản.');
+        return redirect()
+            ->route('credentials.show', $credential)
+            ->with('success', 'Đã cập nhật tài khoản.');
     }
 
     public function destroy(Request $request, Credential $credential): RedirectResponse

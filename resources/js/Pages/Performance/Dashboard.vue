@@ -4,39 +4,41 @@ import { Head, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import AppIcon from '@/Components/AppIcon.vue';
+import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import PerformanceFilterBar from '@/modules/performance/components/PerformanceFilterBar.vue';
-import KpiCard from '@/modules/performance/components/KpiCard.vue';
+import PerformanceDashboardSummaryBar from '@/modules/performance/components/PerformanceDashboardSummaryBar.vue';
 import TrendChart from '@/modules/performance/components/TrendChart.vue';
 import StatusDonut from '@/modules/performance/components/StatusDonut.vue';
 import WorkloadBars from '@/modules/performance/components/WorkloadBars.vue';
 import ProjectContributionChart from '@/modules/performance/components/ProjectContributionChart.vue';
 import LeaderboardTable from '@/modules/performance/components/LeaderboardTable.vue';
-import InsightsPanel from '@/modules/performance/components/InsightsPanel.vue';
 import { usePerformanceExport } from '@/modules/performance/composables/usePerformanceExport.js';
 
 const props = defineProps({
     filter: { type: Object, default: () => ({}) },
     options: { type: Object, default: () => ({}) },
-    kpis: { type: Array, default: () => [] },
+    summary: { type: Object, default: () => ({}) },
     headline: { type: Object, default: () => ({}) },
     statusDistribution: { type: Array, default: () => [] },
     workloadDistribution: { type: Array, default: () => [] },
     projectContribution: { type: Array, default: () => [] },
     trend: { type: Array, default: () => [] },
     people: { type: Array, default: () => [] },
-    insights: { type: Array, default: () => [] },
 });
 
 const { exportDashboard, printReport } = usePerformanceExport();
 
-// Sparkline cho các KPI không có vòng tiến độ — dùng nhịp hoàn thành theo bucket.
-const spark = computed(() => props.trend.map((b) => b.done));
-const ringKeys = new Set(['completion', 'on_time', 'avg_score']);
-function sparkFor(card) {
-    return ringKeys.has(card.key) ? null : spark.value;
-}
+const leaderboardQuery = ref('');
 
-// Loading state (skeleton/overlay) khi đổi bộ lọc.
+const filteredPeople = computed(() => {
+    const q = leaderboardQuery.value.trim().toLowerCase();
+    if (!q) return props.people;
+    return props.people.filter((p) =>
+        (p.name ?? '').toLowerCase().includes(q)
+        || (p.role ?? '').toLowerCase().includes(q),
+    );
+});
+
 const processing = ref(false);
 let offStart;
 let offFinish;
@@ -65,29 +67,22 @@ function onExport() {
         :subtitle="`Phân tích hiệu suất & năng suất — ${filter.label || ''}`"
         icon="performance"
         icon-color="brand"
+        :badge="summary.people_count || null"
       />
     </template>
+
+    <PerformanceDashboardSummaryBar :summary="summary" />
 
     <PerformanceFilterBar
       :filter="filter"
       :options="options"
       :processing="processing"
+      @export-excel="onExport"
     >
       <template #actions>
         <button
           type="button"
-          class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
-          @click="onExport"
-        >
-          <AppIcon
-            name="export"
-            :size="14"
-          />
-          Excel
-        </button>
-        <button
-          type="button"
-          class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
+          class="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 px-3 text-xs font-medium text-slate-600 hover:bg-slate-50"
           @click="printReport"
         >
           <AppIcon
@@ -103,17 +98,6 @@ function onExport() {
       class="space-y-4 transition-opacity"
       :class="processing ? 'opacity-60' : 'opacity-100'"
     >
-      <!-- KPI grid -->
-      <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
-        <KpiCard
-          v-for="card in kpis"
-          :key="card.key"
-          :card="card"
-          :spark="sparkFor(card)"
-        />
-      </div>
-
-      <!-- Trend + status -->
       <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <section class="card p-5 lg:col-span-2">
           <h3 class="mb-4 flex items-center gap-2 font-display text-sm font-semibold text-slate-800">
@@ -140,7 +124,6 @@ function onExport() {
         </section>
       </div>
 
-      <!-- Project contribution + workload -->
       <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <section class="card p-5">
           <h3 class="mb-4 flex items-center gap-2 font-display text-sm font-semibold text-slate-800">
@@ -167,9 +150,23 @@ function onExport() {
         </section>
       </div>
 
-      <!-- Leaderboard + insights -->
-      <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <section class="card p-5 lg:col-span-2">
+      <section class="card overflow-visible">
+        <div class="border-b border-slate-100 px-5 py-4">
+          <div class="flex w-full min-w-0 flex-wrap items-center gap-2 lg:flex-nowrap">
+            <div class="min-w-0 w-full basis-full lg:flex-1 lg:basis-auto">
+              <DatagridToolbarSearch
+                v-model="leaderboardQuery"
+                input-id="performance-leaderboard-search"
+                placeholder="Tìm thành viên, vai trò…"
+                stretch
+                inline-actions
+                hide-label
+                input-height="h-10"
+              />
+            </div>
+          </div>
+        </div>
+        <div class="p-5 pt-4">
           <h3 class="mb-4 flex items-center gap-2 font-display text-sm font-semibold text-slate-800">
             <AppIcon
               name="leaderboard"
@@ -178,11 +175,9 @@ function onExport() {
             />
             Bảng xếp hạng hiệu suất nhân sự
           </h3>
-          <LeaderboardTable :people="people" />
-        </section>
-
-        <InsightsPanel :insights="insights" />
-      </div>
+          <LeaderboardTable :people="filteredPeople" />
+        </div>
+      </section>
     </div>
   </AppLayout>
 </template>

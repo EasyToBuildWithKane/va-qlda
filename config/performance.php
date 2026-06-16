@@ -5,9 +5,8 @@
 | Performance Analytics & Work Audit
 |--------------------------------------------------------------------------
 |
-| Trọng số tính điểm hiệu suất khách quan (từ dữ liệu task), ngưỡng workload
-| và ngưỡng cho rule engine "AI Insights" (heuristic). Tách khỏi code để dễ
-| chỉnh và sau này có thể đưa lên system_settings (admin-editable).
+| Trọng số tính điểm hiệu suất khách quan (từ dữ liệu task), ngưỡng workload.
+| Tách khỏi code để dễ chỉnh và sau này có thể đưa lên system_settings (admin-editable).
 |
 */
 
@@ -35,14 +34,5 @@ return [
     'workload' => [
         'healthy_max' => 8,
         'overloaded_min' => 15,
-    ],
-
-    // ── Ngưỡng rule engine (Insights heuristic) ──────────────────────────
-    'insights' => [
-        'late_streak_weeks' => 3,     // trễ liên tiếp ≥ N tuần → cảnh báo
-        'project_dominance_pct' => 50, // 1 dự án chiếm ≥ % workload 1 người → lưu ý
-        'on_time_good_pct' => 90,      // đúng hạn ≥ % → khen
-        'overdue_alert' => 3,          // ≥ N task quá hạn → cảnh báo
-        'low_score' => 50,             // điểm hiệu suất < ngưỡng → cảnh báo
     ],
 ];
