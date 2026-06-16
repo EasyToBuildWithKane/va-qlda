@@ -65,7 +65,6 @@ function sectionDataProps(key) {
         return { phases: props.phases };
     case 'org':
         return {
-            overview: props.org.overview,
             forest: props.org.forest,
             people: props.org.people,
         };

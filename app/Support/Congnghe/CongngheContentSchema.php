@@ -138,7 +138,6 @@ final class CongngheContentSchema
             ],
             'about' => [
                 ['type' => 'heading', 'path' => 'heading', 'label' => 'Tiêu đề mục'],
-                ['type' => 'textarea', 'path' => 'note', 'label' => 'Ghi chú trợ lý', 'max' => 500],
                 ['type' => 'list', 'path' => 'pillars', 'label' => 'Trụ cột', 'item_label' => 'Trụ cột', 'min' => 1, 'max' => 6, 'fields' => [
                     ['key' => 'tag', 'type' => 'text', 'label' => 'Nhãn nhỏ', 'max' => 60],
                     ['key' => 'title', 'type' => 'text', 'label' => 'Tiêu đề', 'required' => true, 'max' => 200],
@@ -170,7 +169,6 @@ final class CongngheContentSchema
             ],
             'org' => [
                 ['type' => 'heading', 'path' => 'heading', 'label' => 'Tiêu đề mục'],
-                ['type' => 'text', 'path' => 'stat_label', 'label' => 'Nhãn số liệu', 'max' => 80],
             ],
             'lifecycle' => [
                 ['type' => 'heading', 'path' => 'heading', 'label' => 'Tiêu đề mục'],

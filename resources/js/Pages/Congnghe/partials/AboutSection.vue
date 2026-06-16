@@ -2,9 +2,7 @@
 import { computed, inject } from 'vue';
 import SectionHeading from './SectionHeading.vue';
 import GlassCard from './GlassCard.vue';
-import CongngheMascotAnimated from './CongngheMascotAnimated.vue';
 import { useInView } from './motion.js';
-import { congngheBrand } from './congngheBrand.js';
 import CongngheBrandBackdrop from './CongngheBrandBackdrop.vue';
 
 const props = defineProps({
@@ -15,7 +13,6 @@ const { target, shown } = useInView();
 
 const icons = inject('congngheIcons', {});
 const heading = computed(() => props.content?.heading ?? {});
-const note = computed(() => props.content?.note ?? '');
 const pillars = computed(() => props.content?.pillars ?? []);
 
 function iconPath(key) {
@@ -49,24 +46,6 @@ function iconPath(key) {
           :title="heading.title"
           :subtitle="heading.subtitle"
         />
-      </div>
-
-      <div
-        v-if="note"
-        class="mt-8 rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.06] to-brand/[0.08] p-5 backdrop-blur-md sm:mt-10 sm:p-6 lg:max-w-3xl"
-        :class="shown ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'"
-        style="transition: opacity 0.7s ease 80ms, transform 0.7s ease 80ms"
-      >
-        <div class="flex flex-col items-center gap-4 sm:flex-row sm:items-center">
-          <CongngheMascotAnimated
-            :src="congngheBrand.mascotVaJacket"
-            alt="Linh vật VAS"
-            variant="inline"
-          />
-          <p class="text-center text-sm leading-relaxed text-white/60 sm:text-left">
-            {{ note }}
-          </p>
-        </div>
       </div>
 
       <div class="mt-10 grid gap-5 sm:mt-12 sm:gap-6 lg:grid-cols-3 lg:gap-6 xl:gap-8">

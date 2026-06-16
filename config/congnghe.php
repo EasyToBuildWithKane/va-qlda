@@ -91,7 +91,6 @@ return [
                 'title' => 'Kim chỉ nam cho mọi hoạt động',
                 'subtitle' => 'Đơn vị kiến tạo hạ tầng số, sản phẩm phần mềm và năng lực AI cho toàn bộ hệ thống Vietnam America Schools.',
             ],
-            'note' => 'Trợ lý góc màn hình sẽ gợi ý theo từng mục bạn đang xem — thử cuộn trang hoặc bấm vào linh vật nhé.',
             'pillars' => [
                 [
                     'tag' => 'Sứ mệnh',
@@ -187,7 +186,6 @@ return [
                 'title' => 'Cấu trúc vận hành',
                 'subtitle' => 'Quản lý trên cùng — Trưởng ban / Phó phòng theo hàng; nhánh chuyên môn có Trưởng nhóm.',
             ],
-            'stat_label' => 'Nhân sự trên sơ đồ',
         ],
     ],
 

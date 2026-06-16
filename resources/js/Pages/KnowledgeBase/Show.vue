@@ -5,11 +5,17 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import AppIcon from '@/Components/AppIcon.vue';
-import Badge from '@/shared/ui/Badge.vue';
-import RichContentBody from '@/shared/ui/RichContentBody.vue';
+import KbReadingProgress from '@/Components/KnowledgeBase/KbReadingProgress.vue';
+import KbArticleHero from '@/Components/KnowledgeBase/KbArticleHero.vue';
+import KbArticleCover from '@/Components/KnowledgeBase/KbArticleCover.vue';
+import KbArticleToc from '@/Components/KnowledgeBase/KbArticleToc.vue';
+import KbFloatingToolbar from '@/Components/KnowledgeBase/KbFloatingToolbar.vue';
+import KbAuthorCard from '@/Components/KnowledgeBase/KbAuthorCard.vue';
+import KbRelatedArticles from '@/Components/KnowledgeBase/KbRelatedArticles.vue';
+import KbAiPanel from '@/Components/KnowledgeBase/KbAiPanel.vue';
 import CommentThread from '@/shared/ui/CommentThread.vue';
+import { useKbScrollReveal } from '@/Components/KnowledgeBase/useKbScrollReveal.js';
 import { useCommentThreadPoll } from '@/composables/useCommentThreadPoll';
-import { date } from '@/composables/useFormat';
 import { useToast } from '@/shared/composables/useToast';
 
 const props = defineProps({
@@ -30,6 +36,9 @@ const favoriting = ref(false);
 const markingRead = ref(false);
 const isFavorite = ref(!!props.article.is_favorite);
 const isRead = ref(!!props.article.is_read);
+const contentRoot = ref(null);
+
+useKbScrollReveal(contentRoot);
 
 watch(
     () => props.article,
@@ -40,15 +49,17 @@ watch(
     { deep: true },
 );
 
-const headerSubtitle = computed(() => {
-    const parts = [];
-    if (props.article.category?.name) parts.push(props.article.category.name);
-    if (props.article.author?.full_name) parts.push(props.article.author.full_name);
-    if (props.article.published_at) parts.push(date(props.article.published_at));
-    return parts.join(' · ') || 'Bài viết tri thức nội bộ';
+const tocItems = computed(() => (props.toc?.length ? props.toc : []));
+
+const shareUrl = computed(() => {
+    if (typeof window === 'undefined') return '';
+    return window.location.href;
 });
 
-const tocItems = computed(() => (props.toc?.length ? props.toc : []));
+const pageTitle = computed(() => {
+    const t = props.article.title || '';
+    return t.length > 48 ? `${t.slice(0, 45)}…` : t;
+});
 
 function toggleFavorite() {
     if (favoriting.value) return;
@@ -83,39 +94,46 @@ function markRead() {
         },
     });
 }
+
+async function shareFromHero() {
+    const url = shareUrl.value;
+    const title = props.article.title;
+    try {
+        if (typeof navigator !== 'undefined' && navigator.share) {
+            await navigator.share({ title, url });
+            return;
+        }
+    } catch {
+        /* cancelled */
+    }
+    try {
+        await navigator.clipboard.writeText(url);
+        toast.success('Đã sao chép liên kết.');
+    } catch {
+        toast.error('Không chia sẻ được.');
+    }
+}
 </script>
 
 <template>
   <Head :title="article.title" />
   <AppLayout>
+    <KbReadingProgress />
+
     <template #header>
       <PageHeader
-        :title="article.title"
-        :subtitle="headerSubtitle"
+        :title="pageTitle"
         icon="knowledge"
         icon-color="brand"
         back-href="/knowledge-base"
       >
         <div class="flex shrink-0 items-center gap-1.5">
           <button
-            type="button"
-            class="btn-ghost inline-flex h-9 items-center gap-1.5 px-2.5 text-xs sm:px-3 sm:text-sm"
-            :class="isFavorite ? 'text-amber-600' : ''"
-            :disabled="favoriting"
-            :title="isFavorite ? 'Bỏ yêu thích' : 'Yêu thích'"
-            @click="toggleFavorite"
-          >
-            <AppIcon
-              name="star"
-              :size="15"
-            />
-            <span class="hidden sm:inline">{{ isFavorite ? 'Đã lưu' : 'Yêu thích' }}</span>
-          </button>
-          <button
             v-if="!isRead"
             type="button"
             class="btn-ghost inline-flex h-9 items-center gap-1.5 px-2.5 text-xs sm:px-3 sm:text-sm"
             :disabled="markingRead"
+            title="Đánh dấu đã đọc"
             @click="markRead"
           >
             <AppIcon
@@ -140,206 +158,181 @@ function markRead() {
       </PageHeader>
     </template>
 
-    <article class="w-full min-w-0">
-      <div class="overflow-hidden rounded-card border border-slate-200/80 bg-white shadow-sm">
-        <div class="border-b border-slate-100 bg-gradient-to-b from-slate-50/80 to-white px-5 py-6 sm:px-8 sm:py-8">
-          <div class="mb-4 flex flex-wrap items-center gap-2">
-            <Badge
-              v-if="article.status"
-              :label="article.status.label"
-              color="slate"
-            />
-            <span
-              v-if="article.category"
-              class="text-sm text-slate-500"
-            >
-              {{ article.category.name }}
-            </span>
-          </div>
-          <h1 class="font-display text-2xl font-semibold leading-tight text-slate-900 sm:text-3xl">
-            {{ article.title }}
-          </h1>
-          <div
-            v-if="article.tags?.length"
-            class="mt-4 flex flex-wrap gap-1.5"
-          >
-            <span
-              v-for="t in article.tags"
-              :key="t.id"
-              class="inline-flex items-center rounded-full bg-brand/5 px-2.5 py-0.5 text-[11px] font-medium text-brand/90"
-            >
-              #{{ t.name }}
-            </span>
-          </div>
-          <p class="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500">
-            <span
-              v-if="article.author"
-              class="inline-flex items-center gap-1"
-            >
-              <AppIcon
-                name="account"
-                :size="14"
-                class="text-slate-400"
-              />
-              {{ article.author.full_name }}
-            </span>
-            <span
-              v-if="article.published_at"
-              class="inline-flex items-center gap-1"
-            >
-              <AppIcon
-                name="calendar"
-                :size="14"
-                class="text-slate-400"
-              />
-              {{ date(article.published_at) }}
-            </span>
-            <span class="inline-flex items-center gap-1">
-              <AppIcon
-                name="eye"
-                :size="14"
-                class="text-slate-400"
-              />
-              {{ article.view_count }} lượt xem
-            </span>
-          </p>
-          <div
-            v-if="article.excerpt?.trim()"
-            class="mt-6 border-l-2 border-brand/35 pl-4"
-          >
-            <RichContentBody
-              :content="article.excerpt"
-              empty-text=""
-              html-class="prose prose-sm max-w-none text-slate-600 italic"
-              plain-class="text-sm italic leading-relaxed text-slate-600"
-            />
-          </div>
-        </div>
+    <article class="kb-article-show w-full min-w-0 pb-16">
+      <KbArticleHero
+        :article="article"
+        :is-favorite="isFavorite"
+        :favoriting="favoriting"
+        @toggle-favorite="toggleFavorite"
+        @share="shareFromHero"
+      />
 
-        <div class="px-5 py-8 sm:px-8 sm:py-10">
-          <div
-            class="rich-content prose prose-base max-w-none text-slate-700"
-            v-html="article.content"
-          />
-        </div>
-
-        <div
-          v-if="article.gallery_images?.length"
-          class="border-t border-slate-100 px-5 py-6 sm:px-8"
-        >
-          <p class="mb-4 text-xs font-semibold uppercase tracking-wide text-slate-400">
-            Thư viện ảnh
-          </p>
-          <div class="grid gap-4 sm:grid-cols-2">
-            <figure
-              v-for="img in article.gallery_images"
-              :key="img.id"
-            >
-              <img
-                :src="img.url"
-                :alt="img.alt_text || img.original_name"
-                class="max-h-72 w-full rounded-lg object-cover ring-1 ring-slate-200/80"
-                loading="lazy"
-              >
-              <figcaption
-                v-if="img.alt_text"
-                class="mt-2 text-xs text-slate-500"
-              >
-                {{ img.alt_text }}
-              </figcaption>
-            </figure>
-          </div>
-        </div>
-
-        <ul
-          v-if="article.attachments?.length"
-          class="space-y-2 border-t border-slate-100 px-5 py-6 text-sm sm:px-8"
-        >
-          <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
-            Tệp đính kèm
-          </p>
-          <li
-            v-for="att in article.attachments"
-            :key="att.id"
-          >
-            <a
-              :href="att.url"
-              class="inline-flex items-center gap-1.5 text-brand hover:underline"
-              target="_blank"
-              rel="noopener"
-            >
-              <AppIcon
-                name="documents"
-                :size="15"
-              />
-              {{ att.original_name }}
-            </a>
-          </li>
-        </ul>
+      <div class="mt-8">
+        <KbArticleCover :article="article" />
       </div>
 
-      <div class="mt-8 rounded-card border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6">
-        <CommentThread
-          :comments="article.comments || []"
-          commentable-type="kb_article"
-          :commentable-id="article.id"
-          heading="Bình luận"
-          empty-message="Chưa có bình luận nào."
-          delete-dialog-title="Xoá bình luận"
-          delete-button-title="Xoá bình luận"
-          realtime-hint="Bình luận mới sẽ hiện ngay không cần tải lại trang"
-          placeholder="Viết bình luận…"
+      <div class="mx-auto mt-12 max-w-7xl px-4 sm:px-6 lg:grid lg:grid-cols-[minmax(0,220px)_minmax(0,1fr)_minmax(0,64px)] lg:gap-8 xl:grid-cols-[minmax(0,240px)_minmax(0,1fr)_minmax(0,72px)]">
+        <KbArticleToc :items="tocItems" />
+
+        <div class="min-w-0 lg:col-start-2">
+          <div
+            ref="contentRoot"
+            class="kb-article-content rich-content prose prose-lg prose-slate mx-auto max-w-[760px] dark:prose-invert"
+            v-html="article.content"
+          />
+
+          <div
+            v-if="article.gallery_images?.length"
+            class="mx-auto mt-12 max-w-[760px]"
+          >
+            <p class="mb-4 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+              Thư viện ảnh
+            </p>
+            <div class="grid gap-4 sm:grid-cols-2">
+              <figure
+                v-for="img in article.gallery_images"
+                :key="img.id"
+              >
+                <img
+                  :src="img.url"
+                  :alt="img.alt_text || img.original_name"
+                  class="max-h-80 w-full rounded-xl object-cover ring-1 ring-slate-200/80 dark:ring-slate-700"
+                  loading="lazy"
+                >
+                <figcaption
+                  v-if="img.alt_text"
+                  class="mt-2 text-xs text-slate-500 dark:text-slate-400"
+                >
+                  {{ img.alt_text }}
+                </figcaption>
+              </figure>
+            </div>
+          </div>
+
+          <ul
+            v-if="article.attachments?.length"
+            class="mx-auto mt-10 max-w-[760px] space-y-2 text-sm"
+          >
+            <p class="mb-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+              Tệp đính kèm
+            </p>
+            <li
+              v-for="att in article.attachments"
+              :key="att.id"
+            >
+              <a
+                :href="att.url"
+                class="inline-flex items-center gap-1.5 text-brand hover:underline"
+                target="_blank"
+                rel="noopener"
+              >
+                <AppIcon
+                  name="documents"
+                  :size="15"
+                />
+                {{ att.original_name }}
+              </a>
+            </li>
+          </ul>
+
+          <div class="mx-auto mt-12 max-w-[760px] space-y-10">
+            <KbAuthorCard :author="article.author" />
+            <KbAiPanel
+              :article-title="article.title"
+              :related-questions="article.ai_questions || []"
+            />
+          </div>
+        </div>
+
+        <KbFloatingToolbar
+          :is-favorite="isFavorite"
+          :favoriting="favoriting"
+          :share-url="shareUrl"
+          :share-title="article.title"
+          @toggle-favorite="toggleFavorite"
         />
       </div>
 
-      <div
-        v-if="tocItems.length || related.length"
-        class="mt-8 grid w-full gap-4 sm:grid-cols-2"
-      >
-        <div
-          v-if="tocItems.length"
-          class="rounded-card border border-slate-200/80 bg-white p-4 text-sm shadow-sm"
-        >
-          <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
-            Mục lục
-          </p>
-          <ul class="columns-1 gap-x-6 space-y-1.5 sm:columns-2 lg:columns-3">
-            <li
-              v-for="h in tocItems"
-              :key="h.id"
-              class="break-inside-avoid"
-              :class="h.level === 3 ? 'pl-3' : ''"
-            >
-              <a
-                :href="`#${h.id}`"
-                class="text-slate-600 hover:text-brand"
-              >{{ h.text }}</a>
-            </li>
-          </ul>
-        </div>
-        <div
-          v-if="related.length"
-          class="rounded-card border border-slate-200/80 bg-white p-4 shadow-sm"
-          :class="tocItems.length ? '' : 'sm:col-span-2'"
-        >
-          <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
-            Bài liên quan
-          </p>
-          <ul class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            <li
-              v-for="r in related"
-              :key="r.id"
-            >
-              <Link
-                :href="`/knowledge-base/articles/${r.slug}`"
-                class="font-medium text-slate-700 hover:text-brand"
-              >
-                {{ r.title }}
-              </Link>
-            </li>
-          </ul>
+      <div class="mt-16">
+        <KbRelatedArticles :articles="related" />
+      </div>
+
+      <div class="mx-auto mt-12 max-w-[760px] px-4 sm:px-6">
+        <div class="rounded-2xl border border-slate-200/80 bg-white/90 p-5 shadow-sm backdrop-blur-sm dark:border-slate-700 dark:bg-slate-900/70 sm:p-6">
+          <CommentThread
+            :comments="article.comments || []"
+            commentable-type="kb_article"
+            :commentable-id="article.id"
+            heading="Bình luận"
+            empty-message="Chưa có bình luận. Hãy là người đầu tiên chia sẻ suy nghĩ."
+            delete-dialog-title="Xoá bình luận"
+            delete-button-title="Xoá bình luận"
+            realtime-hint="Bình luận mới sẽ hiện ngay không cần tải lại trang"
+            placeholder="Viết bình luận…"
+          />
         </div>
       </div>
     </article>
   </AppLayout>
 </template>
+
+<style scoped>
+.kb-article-content {
+    font-size: 1.0625rem;
+    line-height: 1.85;
+}
+
+.kb-article-content :deep(h2) {
+    @apply mt-10 scroll-mt-28 font-display text-2xl font-semibold text-slate-900 dark:text-slate-50;
+}
+
+.kb-article-content :deep(h3) {
+    @apply mt-8 scroll-mt-28 text-xl font-semibold text-slate-800 dark:text-slate-100;
+}
+
+.kb-article-content :deep(blockquote) {
+    @apply my-6 border-l-4 border-brand/40 bg-brand/[0.03] py-2 pl-4 italic text-slate-600 dark:text-slate-300;
+}
+
+.kb-article-content :deep(pre) {
+    @apply overflow-x-auto rounded-xl bg-slate-900 p-4 text-sm text-slate-100 dark:bg-slate-950;
+}
+
+.kb-article-content :deep(table) {
+    @apply my-6 w-full overflow-hidden rounded-lg border border-slate-200 text-sm dark:border-slate-700;
+}
+
+.kb-article-content :deep(th),
+.kb-article-content :deep(td) {
+    @apply border border-slate-200 px-3 py-2 dark:border-slate-700;
+}
+
+.kb-article-show :deep(.kb-reveal) {
+    opacity: 0;
+    transform: translateY(12px);
+    transition:
+        opacity 0.5s ease,
+        transform 0.5s ease;
+    transition-delay: var(--kb-reveal-delay, 0ms);
+}
+
+.kb-article-show :deep(.kb-reveal--visible) {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .kb-article-show :deep(.kb-reveal) {
+        opacity: 1;
+        transform: none;
+        transition: none;
+    }
+}
+
+@media print {
+    .kb-article-show :deep(aside),
+    .kb-article-show :deep(nav) {
+        display: none !important;
+    }
+}
+</style>

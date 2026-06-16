@@ -117,6 +117,14 @@ class KbArticle extends Model
         return route('knowledge-base.images.file', ['image' => $img->id]);
     }
 
+    public function readingTimeMinutes(): int
+    {
+        $text = strip_tags($this->content ?? '');
+        $words = str_word_count($text);
+
+        return (int) max(1, (int) round($words / 200));
+    }
+
     public function attachments(): HasMany
     {
         return $this->hasMany(KbArticleAttachment::class, 'article_id');

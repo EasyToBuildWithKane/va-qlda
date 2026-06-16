@@ -29,6 +29,7 @@ class KbArticleResource extends JsonResource
             'content' => $this->content,
             'status' => $this->enum($this->status),
             'view_count' => $this->view_count,
+            'reading_time' => $this->resource->readingTimeMinutes(),
             'published_at' => $this->published_at?->toIso8601String(),
             'archived_at' => $this->archived_at?->toIso8601String(),
             'created_at' => $this->created_at?->toIso8601String(),
@@ -62,6 +63,10 @@ class KbArticleResource extends JsonResource
             }),
             'comments_count' => $this->whenCounted('comments'),
             'cover_url' => $this->when(
+                $this->relationLoaded('galleryImages'),
+                fn () => $this->coverImageUrl(),
+            ),
+            'cover_image_url' => $this->when(
                 $this->relationLoaded('galleryImages'),
                 fn () => $this->coverImageUrl(),
             ),

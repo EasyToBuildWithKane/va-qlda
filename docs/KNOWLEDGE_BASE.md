@@ -41,7 +41,8 @@ routes/web.php (prefix knowledge-base., name knowledge-base.*)
 resources/js/
     → Pages/KnowledgeBase/Index.vue   (PageHeader + datagrid, lọc danh mục, xuất CSV/Excel)
     → Pages/KnowledgeBase/Blog.vue    (layout blog: sidebar + feed ảnh bìa; feed **chỉ Published**; lọc Inertia `only: articles,filters`)
-    → Pages/KnowledgeBase/Show.vue    (PageHeader drill-down, layout bài báo, TOC, bình luận)
+    → Pages/KnowledgeBase/Show.vue    (blog-style chi tiết: hero, cover, 3 cột TOC + nội dung + toolbar, AI panel UI, related grid)
+    → Components/KnowledgeBase/KbArticleHero.vue, KbArticleCover.vue, KbArticleToc.vue, KbFloatingToolbar.vue, KbReadingProgress.vue, KbAuthorCard.vue, KbRelatedArticles.vue, KbAiPanel.vue
     → Components/KnowledgeBase/KbArticleCard.vue, KbBlogPanel.vue, KbBlogTagSection.vue, KbBlogSidebar.vue, KbBlogAside.vue, KbBlogPostCard.vue
     → Pages/KnowledgeBase/Edit.vue    (TipTap + gallery)
     → Components/KnowledgeBase/KbRichTextField.vue, KbImageGallery.vue, KbTagField.vue
@@ -163,11 +164,12 @@ Tham chiếu UX: Viblo (list + tag), Notion Wiki (sidebar cây), Confluence (bre
 │ Index: KPI strip (thống kê + lọc trạng thái nhanh)             │
 │        toolbar Tìm kiếm + Lọc/Cột/Xuất                        │
 │        → Thẻ: lưới card nhóm theo danh mục (thu gọn/mở rộng)  │
-│ Show: PageHeader + title + meta + body full width + TOC cuối trang │
+│ Show: PageHeader gọn + hero + cover + 3 cột (TOC sticky | prose | toolbar) │
+│       author card, AI panel (UI), related grid, bình luận                  │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-- **Responsive:** TOC dưới title trên mobile (Show).
+- **Responsive:** TOC + floating toolbar chỉ desktop (`lg+`); mobile đọc một cột.
 - **Brand:** `#9A0036`, copy tiếng Việt.
 
 ### 7.2 Trang chính
@@ -235,7 +237,15 @@ Chi tiết đầy đủ bảng: `docs/API_STRUCTURE.md` §2.17 · grouping §3.
 |---|---|
 | `Pages/KnowledgeBase/Index.vue` | `KbSummaryBar`; datagrid; nhóm danh mục thu gọn; `KbArticleCard` (meta tác giả); pagination |
 | `Components/KnowledgeBase/KbSummaryBar.vue` | KPI strip — lọc nhanh trạng thái (admin/lead) |
-| `Pages/KnowledgeBase/Show.vue` | Breadcrumb, meta, TOC (`toc` props), body HTML, attachments, related, favorite/read |
+| `Pages/KnowledgeBase/Show.vue` | Hero, cover, `KbArticleToc` (sticky), prose ~760px, `KbFloatingToolbar`, gallery/attachments, `KbAuthorCard`, `KbAiPanel`, `KbRelatedArticles`, `CommentThread`; props `reading_time`, `cover_image_url` |
+| `KbArticleHero.vue` | Category, title, excerpt, meta, bookmark/share |
+| `KbArticleCover.vue` | Ảnh bìa hoặc gradient fallback theo category/tag |
+| `KbArticleToc.vue` | Mục lục H2/H3 + highlight section khi scroll |
+| `KbFloatingToolbar.vue` | Bookmark, share, copy, print, like (desktop) |
+| `KbReadingProgress.vue` | Thanh tiến độ đọc sticky trên cùng |
+| `KbAuthorCard.vue` | Card tác giả cuối bài |
+| `KbRelatedArticles.vue` | Lưới 3 cột bài liên quan (thumbnail + meta) |
+| `KbAiPanel.vue` | UI tóm tắt / hỏi bài / FAQ (stub — chờ API AI) |
 | `Pages/KnowledgeBase/Edit.vue` | Form 2 cột full width, slug SEO realtime (disabled), xem trước trang, TipTap excerpt + content |
 | `KbTagField.vue` | Thẻ dạng chip + gợi ý từ `tagSuggestions` |
 | `KbRichTextField.vue` | TipTap + upload ảnh inline |
@@ -255,7 +265,7 @@ Tests: `tests/Feature/*` KB policy/CRUD; E2E `tests/e2e/knowledge-coaching.spec.
 - [x] Migrations + seed 8 danh mục
 - [x] CRUD bài + upload ảnh/attachment + TipTap inline image
 - [x] Index: PageHeader, KPI strip, search, filter category/tag/status, nhóm danh mục thu gọn
-- [x] Show: layout full width, TOC + related (cuối trang), view count, favorite/read
+- [x] Show: layout blog-style (hero, TOC sticky desktop, related grid), view count, favorite/read; `reading_time` trên Resource
 - [x] Comments morph hoạt động
 - [x] Policy + Nav + messages tiếng Việt
 - [x] Feature tests + E2E smoke (`tests/e2e/knowledge-coaching.spec.js`)

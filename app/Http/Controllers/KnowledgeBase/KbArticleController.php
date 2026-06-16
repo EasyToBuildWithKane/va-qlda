@@ -139,9 +139,15 @@ class KbArticleController extends Controller
             ->published()
             ->where('category_id', $article->category_id)
             ->where('id', '!=', $article->id)
+            ->with(['category', 'galleryImages' => fn ($q) => $q->orderBy('sort_order')->limit(1)])
             ->latest('published_at')
-            ->limit(5)
-            ->get(['id', 'title', 'slug', 'excerpt', 'published_at']);
+            ->limit(6)
+            ->get();
+
+        $relatedResolved = $related
+            ->map(fn (KbArticle $a) => (new KbArticleResource($a))->resolve())
+            ->values()
+            ->all();
 
         $contentHtml = KbContentAnchors::apply($article->content);
         $toc = KbContentAnchors::toc($article->content);
@@ -154,7 +160,7 @@ class KbArticleController extends Controller
         return Inertia::render('KnowledgeBase/Show', [
             'article' => $resolved,
             'toc' => $toc,
-            'related' => $related,
+            'related' => $relatedResolved,
         ]);
     }
 

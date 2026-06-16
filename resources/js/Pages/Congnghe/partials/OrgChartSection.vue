@@ -1,7 +1,6 @@
 <script setup>
 import { computed, ref, watch, onBeforeUnmount } from 'vue';
 import SectionHeading from './SectionHeading.vue';
-import CountStat from './CountStat.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
 import CongngheOrgChart from './CongngheOrgChart.vue';
 import {
@@ -13,15 +12,12 @@ import { useInView } from './motion.js';
 
 const props = defineProps({
     content: { type: Object, default: () => ({}) },
-    overview: { type: Object, default: () => ({}) },
     forest: { type: Array, default: () => [] },
     people: { type: Object, default: () => ({}) },
 });
 
 const roots = computed(() => props.forest ?? []);
-const peopleTotal = computed(() => Number(props.overview?.people_total ?? 0));
 const heading = computed(() => props.content?.heading ?? {});
-const statLabel = computed(() => props.content?.stat_label ?? 'Nhân sự trên sơ đồ');
 
 const { target, shown: sectionVisible } = useInView({ threshold: 0.18 });
 
@@ -124,48 +120,13 @@ onBeforeUnmount(() => {
     />
 
     <div class="mx-auto max-w-7xl px-4 sm:px-6 md:px-8">
-      <div
+      <SectionHeading
         v-if="roots.length"
-        class="flex flex-col gap-6 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between md:gap-8"
-      >
-        <SectionHeading
-          class="min-w-0 max-w-3xl"
-          :eyebrow="heading.eyebrow"
-          :title="heading.title"
-          :subtitle="heading.subtitle"
-        />
-
-        <div class="inline-flex shrink-0 items-center gap-3 rounded-xl border border-white/12 bg-white/[0.06] px-5 py-3.5 text-left backdrop-blur">
-          <span class="relative grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-brand to-[#ff4d8d] text-white shadow-md shadow-brand/25">
-            <svg
-              width="22"
-              height="22"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.8"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            ><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle
-              cx="9"
-              cy="7"
-              r="4"
-            /><path d="M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75" /></svg>
-            <span class="absolute inset-0 rounded-lg ring-2 ring-brand/40 animate-cn-ping-ring" />
-          </span>
-          <div>
-            <p class="font-display text-2xl font-extrabold leading-none text-white sm:text-3xl">
-              <CountStat
-                :value="peopleTotal"
-                :active="sectionVisible"
-              />
-            </p>
-            <p class="mt-1 font-mono text-[10px] uppercase tracking-wider text-white/55">
-              {{ statLabel }}
-            </p>
-          </div>
-        </div>
-      </div>
+        class="min-w-0 max-w-3xl"
+        :eyebrow="heading.eyebrow"
+        :title="heading.title"
+        :subtitle="heading.subtitle"
+      />
 
       <template v-else>
         <SectionHeading
