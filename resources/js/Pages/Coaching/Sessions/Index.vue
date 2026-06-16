@@ -220,7 +220,6 @@ async function removeSession(s) {
         subtitle="KPI theo bộ lọc · nhóm theo khóa · cập nhật nhanh"
         icon="weekly"
         :badge="summary.total"
-        back-href="/coaching"
       >
         <Link
           href="/coaching/sessions/schedule"

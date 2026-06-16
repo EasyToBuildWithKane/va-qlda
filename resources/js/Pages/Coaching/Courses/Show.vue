@@ -41,7 +41,6 @@ const sessionsScheduleHref = computed(() => route('coaching.sessions.schedule'))
         :title="course.name"
         :subtitle="course.code"
         icon="knowledge"
-        back-href="/coaching/courses"
       >
         <Link
           v-if="course.can?.update"

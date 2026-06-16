@@ -11,12 +11,14 @@ use App\Models\Blocker;
 use App\Models\CoachingCourse;
 use App\Models\CongngheSection;
 use App\Models\CongngheSoftwareProposal;
+use App\Models\Credential;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\Feedback;
 use App\Models\KbArticle;
 use App\Models\OrgTeam;
 use App\Models\Project;
+use App\Models\SystemAccount;
 use App\Models\SystemSetting;
 use App\Policies\AiAccountPolicy;
 use App\Policies\AiPaymentRequestPolicy;
@@ -25,6 +27,7 @@ use App\Policies\BlockerPolicy;
 use App\Policies\CoachingCoursePolicy;
 use App\Policies\CongngheContentPolicy;
 use App\Policies\CongngheSoftwareProposalPolicy;
+use App\Policies\CredentialPolicy;
 use App\Policies\DailyReportPolicy;
 use App\Policies\DepartmentPolicy;
 use App\Policies\EmployeePolicy;
@@ -33,7 +36,9 @@ use App\Policies\KbArticlePolicy;
 use App\Policies\OrgTeamPolicy;
 use App\Policies\ProjectPolicy;
 use App\Policies\SystemSettingPolicy;
+use App\Support\Enums\SystemRole;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
+use Illuminate\Support\Facades\Gate;
 
 class AuthServiceProvider extends ServiceProvider
 {
@@ -61,6 +66,7 @@ class AuthServiceProvider extends ServiceProvider
         KbArticle::class => KbArticlePolicy::class,
         CoachingCourse::class => CoachingCoursePolicy::class,
         CongngheSoftwareProposal::class => CongngheSoftwareProposalPolicy::class,
+        Credential::class => CredentialPolicy::class,
     ];
 
     /**
@@ -68,6 +74,11 @@ class AuthServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Module Hiệu suất & Audit — chỉ vai trò quản lý (admin/lead/viewer) xem được.
+        Gate::define('performance.view', fn (SystemAccount $account) => $account->hasRole(
+            SystemRole::Admin,
+            SystemRole::Lead,
+            SystemRole::Viewer,
+        ));
     }
 }

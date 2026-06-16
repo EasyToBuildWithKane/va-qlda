@@ -985,3 +985,18 @@ Soft delete TK, đồng bộ PĐX, đếm badge vs chi phí theo nhóm, `purgeOr
 
 **Business rule:** Tiến độ khóa % = `completed_sessions / total_sessions` (ưu tiên `coaching_sessions.status = completed`).
 
+---
+
+## 9. Credential Management (vault)
+
+| Bảng | Mô tả |
+|---|---|
+| `va_prd_credentials` | Tài khoản / tài sản số; `login_password` encrypted cast |
+| `va_prd_credential_access_grants` | ACL theo `system_accounts`, `permissions` JSON |
+| `va_prd_credential_audit_logs` | Audit xem/sao chép/sửa mật khẩu |
+| `va_prd_credential_relations` | Liên kết hạ tầng (source → target) |
+| `va_prd_credential_password_histories` | Lịch sử mật khẩu (encrypted) |
+| `va_prd_credential_access_requests` | Workflow yêu cầu quyền |
+
+Enums: `App\Support\Enums\Credential*` · Policy: `CredentialPolicy` · Nav group `security`.
+

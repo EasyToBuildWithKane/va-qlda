@@ -16,7 +16,7 @@ import {
     GripVertical,
     Menu,
     Phone, Briefcase, Award, Target, ExternalLink,
-    GraduationCap, Route, Gauge, Sparkles, BadgeCheck, Flame,
+    GraduationCap, Route, Gauge, Sparkles, BadgeCheck, Flame, LockKeyhole,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -149,6 +149,7 @@ const map = {
     sparkles: Sparkles,
     certified: BadgeCheck,
     streak: Flame,
+    vault: LockKeyhole,
 };
 
 const component = computed(() => map[props.name] || Circle);

@@ -115,7 +115,6 @@ function markRead() {
         :title="pageHeaderTitle"
         icon="knowledge"
         icon-color="brand"
-        back-href="/knowledge-base/blog"
       />
     </template>
 

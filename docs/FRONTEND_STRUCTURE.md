@@ -152,6 +152,16 @@ Pages import feature components từ `@/modules/project/components/...` và prim
 | Sprint/ | `SprintWorkspace`, `SprintTaskTable`, `SprintDataModal`, `TaskDetailPanel`, … |
 | TaskDetail/ | `TaskDetailRichEditor`, `TaskDetailCollaboration`, `TaskDetailSubtasks`, … |
 | Dashboard/ | `ProjectOverviewCard`, `RiskIssueDataTable`, `ProjectFeedbackPanel`, `RiskImportModal`, `ActivityFeed`, … |
+
+### 6.4 Credential module — `modules/credential/`
+
+| Path | Mô tả |
+|---|---|
+| `Pages/Credential/` | Index, Dashboard, Show (5 tab), Create, Reports |
+| `components/CredentialSummaryBar.vue` | KPI strip 12 thẻ + lọc nhanh |
+| `components/CredentialPasswordViewer.vue` | Hiện/ẩn/sao chép + audit API |
+| `CredentialDataModal.vue` | Nhập · Xuất · Đối soát |
+| `composables/useCredentialImport.js` | Excel template/parse (marker `VA_CREDENTIAL_IMPORT_V1`) |
 | Timeline/ | `ProjectTimelineView`, `ProjectTimelineBurndown`, … |
 | Documents/ | `ProjectDocumentsPanel`, `DocumentPreviewPane` |
 | Modals | `TaskFormModal`, `SprintFormModal`, `BlockerFormModal`, … |

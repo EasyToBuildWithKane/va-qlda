@@ -6,7 +6,7 @@
 
 ## 1. Kiến Trúc Hiện Tại
 
-Dự án áp dụng **Hybrid Architecture**: Clean Architecture cho DailyReport, Application Use Cases cho Project/Task (Phase 3), injectable Services cho Notification, và MVC cho các module còn lại (Blocker, Bug, Feedback, **Coaching**, **Knowledge Base**, **Congnghe**, **AiAccount**).
+Dự án áp dụng **Hybrid Architecture**: Clean Architecture cho DailyReport, Application Use Cases cho Project/Task (Phase 3), injectable Services cho Notification, và MVC cho các module còn lại (Blocker, Bug, Feedback, **Coaching**, **Knowledge Base**, **Congnghe**, **AiAccount**, **Credential**).
 
 ```
 app/

@@ -70,7 +70,6 @@ const remove = () => {
         :subtitle="`${report.employee?.name ?? '—'} · ${formattedDate}`"
         icon="report-history"
         icon-color="sky"
-        back-href="/daily-reports"
       />
     </template>
 

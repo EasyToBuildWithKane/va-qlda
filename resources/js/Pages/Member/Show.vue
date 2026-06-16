@@ -18,7 +18,6 @@ const props = defineProps({
         :title="props.profile.name"
         :subtitle="props.profile.role_title || 'Hồ sơ thành viên'"
         icon="member-profiles"
-        back-href="/members"
       />
     </template>
 

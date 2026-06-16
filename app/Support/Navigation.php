@@ -111,6 +111,31 @@ class Navigation
             ],
 
             // ──────────────────────────────────────────────────────────────
+            // 1b. HIỆU SUẤT & AUDIT — analytics + audit nhân sự (quản lý)
+            // ──────────────────────────────────────────────────────────────
+            [
+                'key' => 'performance',
+                'heading' => 'Hiệu suất & Audit',
+                'icon' => 'performance',
+                'items' => [
+                    [
+                        'label' => 'Bảng hiệu suất',
+                        'icon' => 'performance',
+                        'href' => '/performance',
+                        'status' => 'live',
+                        'roles' => ['admin', 'lead', 'viewer'],
+                    ],
+                    [
+                        'label' => 'Audit nhân sự',
+                        'icon' => 'leaderboard',
+                        'href' => '/performance/audit',
+                        'status' => 'live',
+                        'roles' => ['admin', 'lead', 'viewer'],
+                    ],
+                ],
+            ],
+
+            // ──────────────────────────────────────────────────────────────
             // 2. TRUNG TÂM CÔNG NGHỆ — landing + đề xuất phần mềm + quản trị
             // ──────────────────────────────────────────────────────────────
             [
@@ -377,7 +402,40 @@ class Navigation
             ],
 
             // ──────────────────────────────────────────────────────────────
-            // 10. HỆ THỐNG — notifications, ops monitoring, system config
+            // 10. BẢO MẬT & TÀI SẢN SỐ — credential vault
+            // ──────────────────────────────────────────────────────────────
+            [
+                'key' => 'security',
+                'heading' => 'Bảo mật & Tài sản Số',
+                'icon' => 'vault',
+                'defaultCollapsed' => true,
+                'items' => [
+                    [
+                        'label' => 'Tổng quan',
+                        'icon' => 'overview',
+                        'href' => '/credentials/dashboard',
+                        'status' => 'live',
+                        'roles' => ['admin', 'lead'],
+                    ],
+                    [
+                        'label' => 'Tài khoản & Mật khẩu',
+                        'icon' => 'vault',
+                        'href' => '/credentials',
+                        'status' => 'live',
+                        'roles' => ['admin', 'lead', 'member'],
+                    ],
+                    [
+                        'label' => 'Báo cáo bảo mật',
+                        'icon' => 'performance',
+                        'href' => '/credentials/reports',
+                        'status' => 'live',
+                        'roles' => ['admin'],
+                    ],
+                ],
+            ],
+
+            // ──────────────────────────────────────────────────────────────
+            // 11. HỆ THỐNG — notifications, ops monitoring, system config
             //     Thông báo mở cho mọi vai trò; vận hành & cấu hình admin-only.
             // ──────────────────────────────────────────────────────────────
             [

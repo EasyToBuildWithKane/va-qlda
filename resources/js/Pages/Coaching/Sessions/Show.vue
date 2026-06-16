@@ -162,7 +162,6 @@ function tabBadge(key) {
         :title="`Buổi ${session.session_number}`"
         :subtitle="course.name"
         icon="weekly"
-        :back-href="`/coaching/courses/${course.id}`"
       >
         <button
           v-if="canEdit && !isEditing"

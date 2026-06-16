@@ -113,6 +113,18 @@ Until a deploy workflow is added:
 
 ---
 
+## Credential Management (vault)
+
+1. `php artisan migrate` — bảng `credentials` và liên quan.
+2. Sidebar **Bảo mật & Tài sản Số** → **Tài khoản & Mật khẩu** (`/credentials`).
+3. **Thêm tài khoản:** `/credentials/create` hoặc toolbar; mật khẩu lưu cast `encrypted`.
+4. **Xem mật khẩu:** tab Bảo mật → Hiện/Sao chép (API `api.credentials.show-password`, có audit + throttle 30/phút).
+5. **Phân quyền:** tab Phân quyền → cấp grant hoặc duyệt **yêu cầu truy cập** (owner/admin).
+6. **Nhập hàng loạt:** Index → **Dữ liệu** → file mẫu `VA_CREDENTIAL_IMPORT_V1`, tối đa 200 dòng → `POST /credentials/import`.
+7. Doc: `docs/CREDENTIAL_MANAGEMENT.md`, route map trong `docs/API_STRUCTURE.md`.
+
+---
+
 ## Auto-commit helpers
 
 This project includes optional commit automation scripts:
