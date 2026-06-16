@@ -1,35 +1,42 @@
-import axios from 'axios';
-import { useToast } from '@/shared/composables/useToast';
+import { httpClient } from '@/shared/services/http';
 
 export function useCredentialAccess(credentialId) {
-    const toast = useToast();
-
     async function grant(payload) {
-        const { data } = await axios.post(
+        const { data } = await httpClient.post(
             route('api.credentials.access-grants.store', { credential: credentialId }),
             payload,
         );
-        toast.success(data.message || 'Đã cấp quyền.');
-        return data.data;
+        return data;
     }
 
     async function revoke(grantId) {
-        const { data } = await axios.delete(
+        const { data } = await httpClient.delete(
             route('api.credentials.access-grants.destroy', {
                 credential: credentialId,
                 accessGrant: grantId,
             }),
         );
-        toast.success(data.message || 'Đã thu hồi.');
+        return data;
     }
 
     async function requestAccess(payload) {
-        const { data } = await axios.post(
+        const { data } = await httpClient.post(
             route('api.credentials.access-requests.store', { credential: credentialId }),
             payload,
         );
-        toast.success(data.message || 'Đã gửi yêu cầu.');
+        return data;
     }
 
-    return { grant, revoke, requestAccess };
+    async function respondAccessRequest(requestId, decision) {
+        const { data } = await httpClient.put(
+            route('api.credentials.access-requests.respond', {
+                credential: credentialId,
+                accessRequest: requestId,
+            }),
+            { decision },
+        );
+        return data;
+    }
+
+    return { grant, revoke, requestAccess, respondAccessRequest };
 }

@@ -32,10 +32,10 @@ Tham chiếu UX: `Pages/Credential/Index.vue` (username, owner, status).
 
 ## Cột Kỳ — Performance Audit (`/performance/audit`)
 
-- Component: `modules/performance/components/PerformanceAuditPeriodCell.vue`
+- Trang: `Pages/Performance/Audit.vue` — nhóm **kỳ con** dạng dòng header thu gọn (pattern giống `Pages/Blocker/Index.vue` theo dự án), không dropdown từng ô.
 - Prop hàng: `row.periodBuckets` (backend `EmployeeAuditListBuilder` + `PerformancePeriodBuckets`)
-- UI: nút dropdown nhãn kỳ → panel danh sách kỳ con (tuần/tháng) **collapse từng nhóm**; mặc định thu gọn khi mở panel.
-- Không render text kỳ phẳng một dòng trong `<td>`.
+- Bật cột **Kỳ** → ẩn cột Kỳ, hiển thị nhóm line + toolbar «Mở kỳ / Thu kỳ»; tắt cột Kỳ → bảng phẳng theo tổng kỳ.
+- Component legacy (không dùng list): `PerformanceAuditPeriodCell.vue` (dropdown) — giữ tham chiếu nếu tái sử dụng.
 
 ## Backend
 
@@ -50,4 +50,4 @@ Tham chiếu UX: `Pages/Credential/Index.vue` (username, owner, status).
 
 - [ ] Không còn `—` user-facing trong diff (grep `—` trong Vue/JS export user-facing)
 - [ ] Nullable props có nhãn tiếng Việt
-- [ ] Audit list: cột Kỳ dùng `PerformanceAuditPeriodCell` nếu chạm màn đó
+- [ ] Audit list: cột Kỳ bật → nhóm line collapse trên `Audit.vue` (không dropdown ô)

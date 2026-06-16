@@ -110,7 +110,7 @@ class CredentialPageController extends Controller
                         'label' => $c->system_category->labelVi(),
                     ],
                 ]),
-            'pending_access_requests' => $request->user()->can('manageAccess', $credential)
+            'pendingAccessRequests' => $request->user()->can('manageAccess', $credential)
                 ? $credential->accessRequests()
                     ->where('status', CredentialAccessRequestStatus::Pending)
                     ->with('requester:id,display_name')
@@ -124,7 +124,7 @@ class CredentialPageController extends Controller
                         'created_at' => $r->created_at?->toIso8601String(),
                     ])
                 : [],
-            'audit_logs' => $credential->auditLogs()
+            'auditLogs' => $credential->auditLogs()
                 ->with('account:id,display_name')
                 ->latest('created_at')
                 ->limit(50)

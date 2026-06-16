@@ -86,12 +86,20 @@ class CredentialPolicy
 
     public function manageAccess(SystemAccount $account, Credential $credential): bool
     {
+        if ($account->role === SystemRole::Admin) {
+            return true;
+        }
+
         return $credential->created_by === $account->id
             || $credential->owner_id === $account->id;
     }
 
     public function viewAccessTab(SystemAccount $account, Credential $credential): bool
     {
+        if ($account->role === SystemRole::Admin) {
+            return true;
+        }
+
         if ($credential->created_by === $account->id || $credential->owner_id === $account->id) {
             return true;
         }

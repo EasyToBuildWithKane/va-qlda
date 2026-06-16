@@ -9,7 +9,6 @@ import PageHeader from '@/Components/Ui/PageHeader.vue';
 import Badge from '@/shared/ui/Badge.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
 import PerformanceAuditSummaryBar from '@/modules/performance/components/PerformanceAuditSummaryBar.vue';
-import PerformanceAuditPeriodCell from '@/modules/performance/components/PerformanceAuditPeriodCell.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import DatagridToolbarActionButton from '@/shared/ui/DatagridToolbarActionButton.vue';
 import DatagridSegmentedControl from '@/shared/ui/DatagridSegmentedControl.vue';
@@ -80,14 +79,135 @@ const {
 const {
     visibleCols,
     showColDd,
-    visibleColumnCount,
     persistVisibleColumns,
     openColPanel,
     isColVisible,
     TABLE_COLUMNS,
 } = useVisibleColumns(PERFORMANCE_AUDIT_TABLE_COLUMNS, 'va-qlda.performance-audit.columns.v1');
 
-const tableColspan = computed(() => 1 + visibleColumnCount.value);
+const COLLAPSE_PERIOD_GROUPS_KEY = 'va-qlda.performance-audit.collapsed-period-groups';
+
+function loadCollapsedPeriodGroups() {
+    try {
+        const raw = localStorage.getItem(COLLAPSE_PERIOD_GROUPS_KEY);
+        if (raw) return new Set(JSON.parse(raw));
+    } catch {
+        /* ignore */
+    }
+    return new Set();
+}
+
+const collapsedPeriodGroups = ref(loadCollapsedPeriodGroups());
+
+const periodBucketDefs = computed(() => {
+    const rows = props.employees.data ?? [];
+    for (const row of rows) {
+        if (Array.isArray(row.periodBuckets) && row.periodBuckets.length) {
+            return row.periodBuckets.map((b) => ({
+                key: b.key,
+                label: b.label,
+                range: b.range ?? '',
+            }));
+        }
+    }
+    return [];
+});
+
+const usePeriodLineGroups = computed(
+    () => isColVisible('period') && periodBucketDefs.value.length > 0,
+);
+
+const groupedByPeriod = computed(() => {
+    const rows = props.employees.data ?? [];
+    return periodBucketDefs.value.map((def) => ({
+        ...def,
+        items: rows.map((emp) => {
+            const bucket = (emp.periodBuckets ?? []).find((b) => b.key === def.key);
+            const bucketOrNull = bucket ?? {
+                committed: 0,
+                done: 0,
+                commitmentRate: 0,
+                grade: null,
+            };
+            return {
+                employee: emp,
+                metrics: metricsForRow(emp, bucketOrNull),
+            };
+        }),
+    }));
+});
+
+const dataColumnCount = computed(() => {
+    let count = 1;
+    for (const col of TABLE_COLUMNS) {
+        if (col.key === 'period' && usePeriodLineGroups.value) continue;
+        if (isColVisible(col.key)) count += 1;
+    }
+    return count;
+});
+
+const tableColspan = computed(() => (usePeriodLineGroups.value ? 1 : 0) + dataColumnCount.value);
+
+function isAuditColVisible(key) {
+    if (key === 'period' && usePeriodLineGroups.value) return false;
+    return isColVisible(key);
+}
+
+function persistCollapsedPeriodGroups() {
+    localStorage.setItem(COLLAPSE_PERIOD_GROUPS_KEY, JSON.stringify([...collapsedPeriodGroups.value]));
+}
+
+function isPeriodGroupExpanded(key) {
+    return !collapsedPeriodGroups.value.has(key);
+}
+
+function togglePeriodGroup(key) {
+    const next = new Set(collapsedPeriodGroups.value);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    collapsedPeriodGroups.value = next;
+    persistCollapsedPeriodGroups();
+}
+
+function expandAllPeriodGroups() {
+    collapsedPeriodGroups.value = new Set();
+    persistCollapsedPeriodGroups();
+}
+
+function collapseAllPeriodGroups() {
+    collapsedPeriodGroups.value = new Set(groupedByPeriod.value.map((g) => g.key));
+    persistCollapsedPeriodGroups();
+}
+
+const allPeriodGroupsExpanded = computed(() =>
+    groupedByPeriod.value.length > 0
+    && groupedByPeriod.value.every((g) => isPeriodGroupExpanded(g.key)),
+);
+
+function toggleAllPeriodGroups() {
+    if (allPeriodGroupsExpanded.value) collapseAllPeriodGroups();
+    else expandAllPeriodGroups();
+}
+
+function metricsForRow(emp, bucketOrNull) {
+    if (bucketOrNull) {
+        const committed = bucketOrNull.committed ?? 0;
+        return {
+            committed,
+            done: bucketOrNull.done ?? 0,
+            commitmentRate: bucketOrNull.commitmentRate ?? 0,
+            avgScore: null,
+            grade: bucketOrNull.grade,
+        };
+    }
+    return {
+        committed: emp.committed ?? 0,
+        done: emp.done ?? 0,
+        commitmentRate: emp.commitmentRate ?? 0,
+        avgScore: emp.avgScore,
+        grade: emp.grade,
+    };
+}
 
 const { panelStyle: exportPanelStyle } = useFixedDropdownAnchor(
     () => exportRef.value,
@@ -338,6 +458,15 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOu
           </div>
 
           <div class="ml-auto flex shrink-0 items-center gap-2">
+            <DatagridToolbarActionButton
+              v-if="usePeriodLineGroups && groupedByPeriod.length"
+              icon="chevron-down"
+              :title="allPeriodGroupsExpanded ? 'Thu gọn tất cả nhóm kỳ' : 'Mở tất cả nhóm kỳ'"
+              @click="toggleAllPeriodGroups"
+            >
+              <span class="hidden sm:inline">{{ allPeriodGroupsExpanded ? 'Thu kỳ' : 'Mở kỳ' }}</span>
+              <span class="sm:hidden">{{ allPeriodGroupsExpanded ? 'Thu' : 'Mở' }}</span>
+            </DatagridToolbarActionButton>
             <DatagridSegmentedControl
               :model-value="form.period"
               :items="PERIOD_TABS"
@@ -461,53 +590,58 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOu
         <table class="min-w-full text-sm">
           <thead class="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
             <tr>
+              <th
+                v-if="usePeriodLineGroups"
+                class="w-9 px-1 py-3 align-middle"
+                aria-hidden="true"
+              />
               <th class="px-5 py-3">
                 Nhân sự
               </th>
               <th
-                v-if="isColVisible('team')"
+                v-if="isAuditColVisible('team')"
                 class="px-5 py-3"
               >
                 Đơn vị
               </th>
               <th
-                v-if="isColVisible('period')"
+                v-if="isAuditColVisible('period')"
                 class="px-5 py-3"
               >
                 Kỳ
               </th>
               <th
-                v-if="isColVisible('committed')"
+                v-if="isAuditColVisible('committed')"
                 class="px-5 py-3"
               >
                 Cam kết
               </th>
               <th
-                v-if="isColVisible('done')"
+                v-if="isAuditColVisible('done')"
                 class="px-5 py-3"
               >
                 Hoàn thành
               </th>
               <th
-                v-if="isColVisible('commitment_rate')"
+                v-if="isAuditColVisible('commitment_rate')"
                 class="px-5 py-3"
               >
                 Tỷ lệ
               </th>
               <th
-                v-if="isColVisible('score')"
+                v-if="isAuditColVisible('score')"
                 class="px-5 py-3"
               >
                 Điểm
               </th>
               <th
-                v-if="isColVisible('grade')"
+                v-if="isAuditColVisible('grade')"
                 class="px-5 py-3"
               >
                 Xếp loại
               </th>
               <th
-                v-if="isColVisible('rank')"
+                v-if="isAuditColVisible('rank')"
                 class="px-5 py-3"
               >
                 Hạng
@@ -515,94 +649,219 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOu
             </tr>
           </thead>
           <tbody>
-            <tr
-              v-for="row in employees.data"
-              :key="row.id"
-              class="border-t border-slate-100 hover:bg-slate-50/80"
-            >
-              <td class="px-5 py-3">
-                <Link
-                  :href="detailHref(row.id)"
-                  class="flex min-w-0 items-center gap-3"
+            <template v-if="usePeriodLineGroups">
+              <template
+                v-for="group in groupedByPeriod"
+                :key="group.key"
+              >
+                <tr
+                  class="cursor-pointer border-y border-slate-200 bg-slate-100/70 transition hover:bg-slate-100"
+                  @click="togglePeriodGroup(group.key)"
                 >
-                  <Avatar
-                    :name="row.name"
-                    :src="row.avatar"
-                    :size="36"
-                  />
-                  <div class="min-w-0">
-                    <span class="font-medium text-brand hover:underline">{{ row.name }}</span>
-                    <p
-                      v-if="row.role"
-                      class="truncate text-xs text-slate-500"
+                  <td class="px-1 py-2 text-center align-middle">
+                    <AppIcon
+                      name="chevron-down"
+                      :size="15"
+                      class="inline-block text-slate-500 transition-transform"
+                      :class="isPeriodGroupExpanded(group.key) ? '' : '-rotate-90'"
+                    />
+                  </td>
+                  <td
+                    :colspan="dataColumnCount"
+                    class="px-3 py-2 align-middle"
+                  >
+                    <div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+                      <span class="text-sm font-semibold text-slate-800">{{ group.label }}</span>
+                      <span
+                        v-if="group.range"
+                        class="text-xs text-slate-500"
+                      >{{ group.range }}</span>
+                      <span class="shrink-0 rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold tabular-nums text-slate-600 ring-1 ring-slate-200/90">
+                        {{ group.items.length }} nhân sự
+                      </span>
+                    </div>
+                  </td>
+                </tr>
+                <template v-if="isPeriodGroupExpanded(group.key)">
+                  <tr
+                    v-for="{ employee: row, metrics } in group.items"
+                    :key="`${group.key}-${row.id}`"
+                    class="border-t border-slate-100 hover:bg-slate-50/80"
+                  >
+                    <td class="px-1 py-3 align-middle">
+                      <span
+                        class="mx-auto block h-6 w-1 rounded-full bg-slate-200/80"
+                        aria-hidden="true"
+                      />
+                    </td>
+                    <td class="px-5 py-3">
+                      <Link
+                        :href="detailHref(row.id)"
+                        class="flex min-w-0 items-center gap-3"
+                      >
+                        <Avatar
+                          :name="row.name"
+                          :src="row.avatar"
+                          :size="36"
+                        />
+                        <div class="min-w-0">
+                          <span class="font-medium text-brand hover:underline">{{ row.name }}</span>
+                          <p
+                            v-if="row.role"
+                            class="truncate text-xs text-slate-500"
+                          >
+                            {{ row.role }}
+                          </p>
+                        </div>
+                      </Link>
+                    </td>
+                    <td
+                      v-if="isAuditColVisible('team')"
+                      class="px-5 py-3 text-slate-600"
                     >
-                      {{ row.role }}
-                    </p>
-                  </div>
-                </Link>
-              </td>
-              <td
-                v-if="isColVisible('team')"
-                class="px-5 py-3 text-slate-600"
+                      <span :class="{ 'text-slate-400 italic text-xs': !row.unitName }">
+                        {{ displayOrEmpty(row.unitName, EMPTY_LABELS.team) }}
+                      </span>
+                    </td>
+                    <td
+                      v-if="isAuditColVisible('committed')"
+                      class="px-5 py-3 tabular-nums"
+                    >
+                      {{ metrics.committed }}
+                    </td>
+                    <td
+                      v-if="isAuditColVisible('done')"
+                      class="px-5 py-3 tabular-nums"
+                    >
+                      {{ metrics.done }}
+                    </td>
+                    <td
+                      v-if="isAuditColVisible('commitment_rate')"
+                      class="px-5 py-3 tabular-nums"
+                    >
+                      {{ metrics.commitmentRate }}%
+                    </td>
+                    <td
+                      v-if="isAuditColVisible('score')"
+                      class="px-5 py-3 tabular-nums font-medium"
+                    >
+                      <span v-if="metrics.avgScore != null">{{ metrics.avgScore }}%</span>
+                      <span
+                        v-else
+                        class="text-xs italic text-slate-400"
+                      >{{ EMPTY_LABELS.notUpdated }}</span>
+                    </td>
+                    <td
+                      v-if="isAuditColVisible('grade')"
+                      class="px-5 py-3"
+                    >
+                      <Badge
+                        v-if="metrics.committed > 0 && metrics.grade"
+                        :label="metrics.grade"
+                        :color="gradeTone(metrics.grade)"
+                      />
+                      <span
+                        v-else
+                        class="text-xs italic text-slate-400"
+                      >{{ auditGradeLabel(metrics.grade, metrics.committed > 0) }}</span>
+                    </td>
+                    <td
+                      v-if="isAuditColVisible('rank')"
+                      class="px-5 py-3 tabular-nums text-slate-600"
+                    >
+                      #{{ row.rank }}
+                    </td>
+                  </tr>
+                </template>
+              </template>
+            </template>
+            <template v-else>
+              <tr
+                v-for="row in employees.data"
+                :key="row.id"
+                class="border-t border-slate-100 hover:bg-slate-50/80"
               >
-                <span :class="{ 'text-slate-400 italic text-xs': !row.unitName }">
-                  {{ displayOrEmpty(row.unitName, EMPTY_LABELS.team) }}
-                </span>
-              </td>
-              <td
-                v-if="isColVisible('period')"
-                class="px-5 py-3"
-              >
-                <PerformanceAuditPeriodCell
-                  :row="row"
-                  :filter-label="filter.label"
-                />
-              </td>
-              <td
-                v-if="isColVisible('committed')"
-                class="px-5 py-3 tabular-nums"
-              >
-                {{ row.committed }}
-              </td>
-              <td
-                v-if="isColVisible('done')"
-                class="px-5 py-3 tabular-nums"
-              >
-                {{ row.done }}
-              </td>
-              <td
-                v-if="isColVisible('commitment_rate')"
-                class="px-5 py-3 tabular-nums"
-              >
-                {{ row.commitmentRate }}%
-              </td>
-              <td
-                v-if="isColVisible('score')"
-                class="px-5 py-3 tabular-nums font-medium"
-              >
-                {{ row.avgScore }}%
-              </td>
-              <td
-                v-if="isColVisible('grade')"
-                class="px-5 py-3"
-              >
-                <Badge
-                  v-if="row.committed > 0 && row.grade"
-                  :label="row.grade"
-                  :color="gradeTone(row.grade)"
-                />
-                <span
-                  v-else
-                  class="text-xs italic text-slate-400"
-                >{{ auditGradeLabel(row.grade, (row.committed ?? 0) > 0) }}</span>
-              </td>
-              <td
-                v-if="isColVisible('rank')"
-                class="px-5 py-3 tabular-nums text-slate-600"
-              >
-                #{{ row.rank }}
-              </td>
-            </tr>
+                <td class="px-5 py-3">
+                  <Link
+                    :href="detailHref(row.id)"
+                    class="flex min-w-0 items-center gap-3"
+                  >
+                    <Avatar
+                      :name="row.name"
+                      :src="row.avatar"
+                      :size="36"
+                    />
+                    <div class="min-w-0">
+                      <span class="font-medium text-brand hover:underline">{{ row.name }}</span>
+                      <p
+                        v-if="row.role"
+                        class="truncate text-xs text-slate-500"
+                      >
+                        {{ row.role }}
+                      </p>
+                    </div>
+                  </Link>
+                </td>
+                <td
+                  v-if="isAuditColVisible('team')"
+                  class="px-5 py-3 text-slate-600"
+                >
+                  <span :class="{ 'text-slate-400 italic text-xs': !row.unitName }">
+                    {{ displayOrEmpty(row.unitName, EMPTY_LABELS.team) }}
+                  </span>
+                </td>
+                <td
+                  v-if="isAuditColVisible('period')"
+                  class="px-5 py-3 text-slate-600"
+                >
+                  {{ displayOrEmpty(row.periodLabel || filter.label, EMPTY_LABELS.period) }}
+                </td>
+                <td
+                  v-if="isAuditColVisible('committed')"
+                  class="px-5 py-3 tabular-nums"
+                >
+                  {{ row.committed }}
+                </td>
+                <td
+                  v-if="isAuditColVisible('done')"
+                  class="px-5 py-3 tabular-nums"
+                >
+                  {{ row.done }}
+                </td>
+                <td
+                  v-if="isAuditColVisible('commitment_rate')"
+                  class="px-5 py-3 tabular-nums"
+                >
+                  {{ row.commitmentRate }}%
+                </td>
+                <td
+                  v-if="isAuditColVisible('score')"
+                  class="px-5 py-3 tabular-nums font-medium"
+                >
+                  {{ row.avgScore }}%
+                </td>
+                <td
+                  v-if="isAuditColVisible('grade')"
+                  class="px-5 py-3"
+                >
+                  <Badge
+                    v-if="row.committed > 0 && row.grade"
+                    :label="row.grade"
+                    :color="gradeTone(row.grade)"
+                  />
+                  <span
+                    v-else
+                    class="text-xs italic text-slate-400"
+                  >{{ auditGradeLabel(row.grade, (row.committed ?? 0) > 0) }}</span>
+                </td>
+                <td
+                  v-if="isAuditColVisible('rank')"
+                  class="px-5 py-3 tabular-nums text-slate-600"
+                >
+                  #{{ row.rank }}
+                </td>
+              </tr>
+            </template>
             <tr v-if="!employees.data?.length">
               <td
                 :colspan="Math.max(tableColspan, 1)"

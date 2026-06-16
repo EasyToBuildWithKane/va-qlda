@@ -1,11 +1,10 @@
 <script setup>
 import { computed, ref } from 'vue';
-import axios from 'axios';
 import AppIcon from '@/Components/AppIcon.vue';
 import CredentialAccessGrantModal from '@/modules/credential/components/CredentialAccessGrantModal.vue';
 import CredentialAccessGrantRowActions from '@/modules/credential/components/CredentialAccessGrantRowActions.vue';
 import { useCredentialAccess } from '@/modules/credential/composables/useCredentialAccess';
-import { useToast } from '@/shared/composables/useToast';
+import { useDialog } from '@/composables/useDialog';
 import { router } from '@inertiajs/vue3';
 
 const props = defineProps({
@@ -18,8 +17,8 @@ const props = defineProps({
     pendingAccessRequests: { type: Array, default: () => [] },
 });
 
-const { grant, revoke, requestAccess } = useCredentialAccess(props.credentialId);
-const toast = useToast();
+const { grant, revoke, requestAccess, respondAccessRequest } = useCredentialAccess(props.credentialId);
+const dialog = useDialog();
 
 const modalOpen = ref(false);
 const editingGrant = ref(null);
@@ -50,45 +49,95 @@ function closeModal() {
     editingGrant.value = null;
 }
 
+function apiErrorMessage(err, fallback) {
+    const resp = err?.response?.data;
+    return resp?.message
+        || (resp?.errors ? Object.values(resp.errors).flat().join(' ') : null)
+        || fallback;
+}
+
 async function onSave(payload) {
     saving.value = true;
     try {
-        await grant(payload);
+        const data = await grant(payload);
         closeModal();
+        await dialog.alert({
+            title: 'Cấp quyền thành công',
+            message: data?.message || 'Đã cấp quyền truy cập.',
+        });
         router.reload({ preserveScroll: true });
     } catch (err) {
-        const resp = err?.response?.data;
-        const msg = resp?.message
-            || (resp?.errors ? Object.values(resp.errors).flat().join(' ') : null)
-            || 'Không lưu được quyền truy cập.';
-        toast.error(msg);
+        await dialog.alert({
+            title: 'Không lưu được quyền',
+            message: apiErrorMessage(err, 'Không lưu được quyền truy cập.'),
+            tone: 'danger',
+        });
     } finally {
         saving.value = false;
     }
 }
 
 async function onRevoke(grantRow) {
-    await revoke(grantRow.id);
-    router.reload({ preserveScroll: true });
+    const label = grantRow.account?.display_name || 'người dùng này';
+    const confirmed = await dialog.confirm({
+        title: 'Thu hồi quyền truy cập?',
+        message: `Quyền của ${label} sẽ bị gỡ khỏi tài khoản credential.`,
+        confirmText: 'Thu hồi',
+        tone: 'danger',
+    });
+    if (!confirmed) return;
+
+    try {
+        const data = await revoke(grantRow.id);
+        await dialog.alert({
+            title: 'Đã thu hồi',
+            message: data?.message || 'Đã thu hồi quyền truy cập.',
+        });
+        router.reload({ preserveScroll: true });
+    } catch (err) {
+        await dialog.alert({
+            title: 'Không thu hồi được',
+            message: apiErrorMessage(err, 'Không thu hồi được quyền truy cập.'),
+            tone: 'danger',
+        });
+    }
 }
 
 async function submitAccessRequest() {
-    await requestAccess({
-        requested_permissions: ['view', 'copy_password'],
-        reason: 'Yêu cầu truy cập qua module Credential',
-    });
+    try {
+        const data = await requestAccess({
+            requested_permissions: ['view', 'copy_password'],
+            reason: 'Yêu cầu truy cập qua module Credential',
+        });
+        await dialog.alert({
+            title: 'Đã gửi yêu cầu',
+            message: data?.message || 'Đã gửi yêu cầu truy cập. Chờ người phụ trách duyệt.',
+        });
+        router.reload({ preserveScroll: true });
+    } catch (err) {
+        await dialog.alert({
+            title: 'Không gửi được yêu cầu',
+            message: apiErrorMessage(err, 'Không gửi được yêu cầu truy cập.'),
+            tone: 'danger',
+        });
+    }
 }
 
 async function respondRequest(requestId, decision) {
+    const isApprove = decision === 'approved';
     try {
-        const { data } = await axios.put(route('api.credentials.access-requests.respond', {
-            credential: props.credentialId,
-            accessRequest: requestId,
-        }), { decision });
-        toast.success(data.message || 'Đã xử lý yêu cầu.');
+        const data = await respondAccessRequest(requestId, decision);
+        await dialog.alert({
+            title: isApprove ? 'Đã duyệt yêu cầu' : 'Đã từ chối yêu cầu',
+            message: data?.message || (isApprove ? 'Đã duyệt yêu cầu truy cập.' : 'Đã từ chối yêu cầu truy cập.'),
+        });
         router.reload({ preserveScroll: true });
-    } catch {
-        toast.error('Không xử lý được yêu cầu.');
+    } catch (err) {
+        await dialog.alert({
+            title: 'Không xử lý được yêu cầu',
+            message: apiErrorMessage(err, 'Không xử lý được yêu cầu truy cập.'),
+            tone: 'danger',
+        });
     }
 }
 </script>

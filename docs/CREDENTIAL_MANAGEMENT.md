@@ -18,7 +18,7 @@ Module quản lý tài khoản, mật khẩu và liên kết hạ tầng nội b
 ## Backend
 
 - Controllers: `app/Http/Controllers/Credential/*`
-- Policy: `CredentialPolicy` — owner/creator, grant; `manageAccess` / tab Phân quyền: người tạo + phụ trách (không admin); tab chỉ hiện với người tạo/phụ trách hoặc được cấp quyền
+- Policy: `CredentialPolicy` — owner/creator, grant; `manageAccess` / tab Phân quyền: admin, người tạo, phụ trách; tab hiện với admin, người tạo/phụ trách hoặc được cấp quyền
 - Logger: `CredentialActivityLogger`
 - KPI: `CredentialSummaryBuilder`
 

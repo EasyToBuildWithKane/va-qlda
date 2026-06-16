@@ -66,7 +66,7 @@ defineProps({ items: Array });
 - ESLint: `--max-warnings=0` (pre-commit Husky).
 - **Content header (bắt buộc):** `.cursor/rules/content-header.mdc` + skill `content-header`.
 - **Datagrid toolbar (bắt buộc):** `.cursor/rules/datagrid-toolbar.mdc` + skill `datagrid-toolbar` — `DatagridToolbarSearch` (`hide-label`, `inline-actions`, `half`, `compact`), `DatagridToolbarActionButton`, `FilterDatePicker`, grid lọc, opt-in `default: false`. Mẫu đầy đủ: `DailyReport/History.vue`; classic: `CostReport.vue`; tab: `ProjectFeedbackPanel.vue`.
-- **Empty display (bắt buộc):** `.cursor/rules/empty-display.mdc` + skill `empty-display` — không `—` trên UI; `emptyDisplay.js`; cột Kỳ audit = dropdown collapse (`PerformanceAuditPeriodCell.vue`).
+- **Empty display (bắt buộc):** `.cursor/rules/empty-display.mdc` + skill `empty-display` — không `—` trên UI; `emptyDisplay.js`; audit list: nhóm kỳ con dạng dòng collapse (`Pages/Performance/Audit.vue`, tham chiếu `Blocker/Index.vue`).
 - **KPI summary strip (bắt buộc khi clone /feedback):** `.cursor/rules/kpi-summary-strip.mdc` + skill `kpi-summary-strip` — `kpi-strip` / `kpi-card`, `FeedbackSummaryBar.vue`, prop `summary`, lọc nhanh qua emit.
 
 ## Cấm

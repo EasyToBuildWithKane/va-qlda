@@ -14,7 +14,7 @@ import { date, datetime } from '@/composables/useFormat';
 const props = defineProps({
     credential: { type: Object, required: true },
     options: { type: Object, default: () => ({}) },
-    auditLogs: { type: [Array, Object], default: () => [] },
+    auditLogs: { type: Array, default: () => [] },
     pendingAccessRequests: { type: Array, default: () => [] },
 });
 
@@ -63,12 +63,7 @@ function submitPassword() {
     });
 }
 
-const auditLogList = computed(() => {
-    const raw = props.auditLogs;
-    if (Array.isArray(raw)) return raw;
-    if (raw && Array.isArray(raw.data)) return raw.data;
-    return [];
-});
+const auditLogList = computed(() => props.auditLogs ?? []);
 
 const badgeLabelsText = computed(() => {
     const list = (props.credential.badges || []).filter(Boolean);

@@ -25,8 +25,7 @@ Skill: `.cursor/skills/empty-display/SKILL.md`
 
 ## Performance Audit — cột Kỳ
 
-- Bắt buộc `PerformanceAuditPeriodCell.vue`: dropdown + **collapse** từng kỳ con (`periodBuckets`).
-- Mẫu trang: `Pages/Performance/Audit.vue`.
+- Bắt buộc nhóm kỳ con dạng **dòng header collapse** trên `Pages/Performance/Audit.vue` (tham chiếu `Pages/Blocker/Index.vue`), prop `periodBuckets`.
 
 ## Anti-patterns
 

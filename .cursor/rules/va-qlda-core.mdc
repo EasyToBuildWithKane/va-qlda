@@ -53,7 +53,7 @@ alwaysApply: true
 ## Empty display (UI thiếu dữ liệu — bắt buộc)
 
 - Rule: `.cursor/rules/empty-display.mdc` · Skill: `.cursor/skills/empty-display/SKILL.md`
-- Utility: `shared/utils/emptyDisplay.js` — **không** hiển thị `—`; cột Kỳ audit: `PerformanceAuditPeriodCell.vue`.
+- Utility: `shared/utils/emptyDisplay.js` — **không** hiển thị `—`; cột Kỳ audit: nhóm dòng collapse trên `Pages/Performance/Audit.vue`.
 
 ## KPI summary strip (thống kê Index — bắt buộc khi thêm dải thẻ tương tự /feedback)
 
