@@ -107,7 +107,7 @@ function markRead() {
 
 <template>
   <Head :title="article.title" />
-  <AppLayout>
+  <AppLayout :flush="true">
     <KbReadingProgress />
 
     <template #header>
@@ -119,7 +119,7 @@ function markRead() {
       />
     </template>
 
-    <div class="kb-article-show relative mx-auto w-full min-w-0 max-w-[1240px] px-4 pb-20 sm:px-6">
+    <div class="kb-article-show relative min-h-0 w-full min-w-0 flex-1 overflow-y-auto px-4 pb-20 sm:px-6 lg:px-8">
       <KbFloatingToolbar
         :is-favorite="isFavorite"
         :favoriting="favoriting"
@@ -132,7 +132,7 @@ function markRead() {
       />
 
       <div class="mt-6">
-        <article class="mx-auto min-w-0 w-full max-w-[780px]">
+        <article class="min-w-0 w-full">
           <div class="rounded-card border border-slate-200/80 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/40 sm:p-7 lg:p-8">
             <KbArticleHero
               :article="article"
@@ -241,7 +241,7 @@ function markRead() {
         <KbRelatedArticles :articles="related" />
       </section>
 
-      <div class="mx-auto mt-14 w-full max-w-[780px]">
+      <div class="mt-14 w-full min-w-0">
         <KbArticleCommentsSection
           :comments="article.comments || []"
           :article-id="article.id"
@@ -250,6 +250,7 @@ function markRead() {
       </div>
 
       <section
+        v-if="otherArticles?.length"
         class="mt-14 border-t border-slate-200/80 pt-14 dark:border-slate-800"
         aria-label="Các bài viết khác"
       >

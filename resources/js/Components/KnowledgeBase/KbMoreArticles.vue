@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
+import KbArticleCardsSwiper from '@/Components/KnowledgeBase/KbArticleCardsSwiper.vue';
 import KbBlogPostCard from '@/Components/KnowledgeBase/KbBlogPostCard.vue';
 
 const props = defineProps({
@@ -24,8 +25,8 @@ const totalLabel = computed(() => {
     class="w-full min-w-0"
     aria-label="Các bài viết khác"
   >
-    <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-      <div>
+    <div class="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-end sm:justify-between sm:pr-28">
+      <div class="min-w-0 flex-1">
         <p class="text-[10px] font-semibold uppercase tracking-[0.14em] text-brand/80">
           Khám phá thêm
         </p>
@@ -33,7 +34,7 @@ const totalLabel = computed(() => {
           Tất cả bài viết khác
         </h2>
         <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          {{ totalLabel }} trên Knowledge Base — bấm thẻ để mở bài mới.
+          {{ totalLabel }} trên Knowledge Base — vuốt ngang để xem thêm.
         </p>
       </div>
       <Link
@@ -48,16 +49,16 @@ const totalLabel = computed(() => {
       </Link>
     </div>
 
-    <ul class="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-      <li
-        v-for="article in items"
-        :key="article.id"
-      >
+    <KbArticleCardsSwiper
+      :articles="items"
+      aria-label="Các bài viết khác trên Knowledge Base"
+    >
+      <template #slide="{ article }">
         <KbBlogPostCard
           :article="article"
           variant="compact"
         />
-      </li>
-    </ul>
+      </template>
+    </KbArticleCardsSwiper>
   </section>
 </template>

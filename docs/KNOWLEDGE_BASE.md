@@ -41,8 +41,8 @@ routes/web.php (prefix knowledge-base., name knowledge-base.*)
 resources/js/
     → Pages/KnowledgeBase/Index.vue   (PageHeader + datagrid, lọc danh mục, xuất CSV/Excel)
     → Pages/KnowledgeBase/Blog.vue    (layout blog: sidebar + feed ảnh bìa; feed **chỉ Published**; lọc Inertia `only: articles,filters`)
-    → Pages/KnowledgeBase/Show.vue    (chi tiết đọc bài: breadcrumb, hướng dẫn + tooltip, layout 2 cột mục lục sticky, floating toolbar, cùng chuyên mục, `otherArticles`, bình luận)
-    → Components/KnowledgeBase/KbArticleHero.vue, KbArticleCover.vue, KbArticleToc.vue, KbReadingProgress.vue, KbRelatedArticles.vue, KbMoreArticles.vue, KbFloatingToolbar.vue
+    → Pages/KnowledgeBase/Show.vue    (chi tiết đọc bài: breadcrumb, hướng dẫn + tooltip, floating toolbar, cùng chuyên mục, bình luận; full width)
+    → Components/KnowledgeBase/KbArticleHero.vue, KbArticleCover.vue, KbArticleToc.vue, KbReadingProgress.vue, KbRelatedArticles.vue, KbFloatingToolbar.vue
     → Components/KnowledgeBase/KbArticleCard.vue, KbBlogPanel.vue, KbBlogTagSection.vue, KbBlogSidebar.vue, KbBlogAside.vue, KbBlogPostCard.vue
     → Pages/KnowledgeBase/Edit.vue    (TipTap + gallery)
     → Components/KnowledgeBase/KbRichTextField.vue, KbImageGallery.vue, KbTagField.vue
@@ -72,10 +72,10 @@ sequenceDiagram
   B->>C: GET /knowledge-base/articles/{slug}
   C->>C: authorize view, increment view_count
   C->>C: load relations, favorite/read pivots
-  C->>C: related (6, cùng category), otherArticles (100)
+  C->>C: related (6, cùng category)
   C->>P: apply(content) + toc(content)
   P-->>C: HTML có id h2/h3, mảng TOC
-  C->>I: article, toc, related, otherArticles
+  C->>I: article, toc, related
   I->>I: hero/sidebar/toolbar favorite|read|share
   I->>C: POST favorite|read (only article)
 ```
@@ -218,8 +218,8 @@ Chạy: `php artisan db:seed --class=KnowledgeBaseSeeder` (sau migration KB). N�
 | Lọc tag / danh mục | Query params + datagrid toolbar (label **Tìm kiếm**, filter dòng 2) |
 | Gallery ảnh | `kb_article_images.usage=gallery`, alt, CRUD trên Edit, grid trên Show |
 | Xuất danh sách | `GET export-data` + `useKbExport.js` (CSV/Excel, tối đa 200) |
-| Bài liên quan | Cùng category, limit **6**, exclude current |
-| Các bài khác | `otherArticles`: published, limit **100**, client filter trừ bài hiện tại (`KbMoreArticles`) |
+| Bài liên quan | Cùng category, limit **6**, exclude current — carousel `KbArticleCardsSwiper` |
+| Các bài khác | `otherArticles` limit **100** — `KbMoreArticles` + Swiper (không lưới) |
 | Breadcrumb | Home → Tri thức → {Category} → {Title} |
 | Yêu thích | Pivot `kb_article_favorites` |
 | Đã đọc | Pivot `kb_article_reads` + `read_at` |
@@ -243,8 +243,8 @@ Tham chiếu UX: Viblo (list + tag), Notion Wiki (sidebar cây), Confluence (bre
 │ Index: KbSummaryBar + datagrid (Tìm kiếm, Lọc/Cột/Xuất)      │
 │ Blog:  KbBlogSidebar + feed KbBlogPostCard (Published only)  │
 │ Show:  KbFloatingToolbar (lg+, fixed phải)                   │
-│        cột đơn ~780px: card nội dung                         │
-│        → KbRelatedArticles → KbArticleCommentsSection → KbMoreArticles │
+│        full width: card nội dung                               │
+│        → KbRelatedArticles (Swiper) → KbArticleCommentsSection → KbMoreArticles (Swiper) │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -331,7 +331,6 @@ Chi tiết đầy đủ bảng: `docs/API_STRUCTURE.md` §2.17 · grouping §3.
 | `KbReadingProgress.vue` | Thanh tiến độ đọc sticky |
 | `KbAuthorCard.vue` | Card tác giả *(không dùng trên Show)* |
 | `KbRelatedArticles.vue` | Lưới bài cùng chuyên mục (tối đa 6) |
-| `KbMoreArticles.vue` | «Các bài khác» — pool 100 từ server, lọc client |
 | `KbBlogPanel.vue`, `KbBlogTagSection.vue`, `KbBlogSidebar.vue`, `KbBlogAside.vue`, `KbBlogPostCard.vue` | Hub blog |
 | `KbAiPanel.vue` | Stub AI — **chưa** gắn Show |
 | `Pages/KnowledgeBase/Edit.vue` | TipTap, slug, gallery, attachments |
@@ -353,7 +352,7 @@ Tests: `tests/Feature/*` KB policy/CRUD; E2E `tests/e2e/knowledge-coaching.spec.
 - [x] Migrations + seed 8 danh mục
 - [x] CRUD bài + upload ảnh/attachment + TipTap inline image
 - [x] Index: PageHeader, KPI strip, search, filter category/tag/status, nhóm danh mục thu gọn
-- [x] Show: layout blog-style (hero, breadcrumb, guide, TOC sidebar + mobile, floating toolbar, related + otherArticles), view count, favorite/read
+- [x] Show: layout full width (hero, breadcrumb, guide, TOC mobile, floating toolbar, related), view count, favorite/read
 - [x] Comments morph hoạt động
 - [x] Policy + Nav + messages tiếng Việt
 - [x] Feature tests + E2E smoke (`tests/e2e/knowledge-coaching.spec.js`)

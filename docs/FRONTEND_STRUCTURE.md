@@ -292,7 +292,7 @@ Doc module: `docs/COACHING_MENTORING.md`.
 |---|---|
 | `KnowledgeBase/Index.vue` | `useKbExport.js`, datagrid shared UI, lọc danh mục trên toolbar |
 | `KnowledgeBase/Blog.vue` | `KbBlogSidebar`, `KbBlogPostCard`, sidebar data từ `KbBlogSidebarData` |
-| `KnowledgeBase/Show.vue` | `KbArticleHero`, `KbArticleToc` (mobile), `KbFloatingToolbar`, `KbArticleCommentsSection`, `KbMoreArticles`, TOC server `KbContentAnchors` |
+| `KnowledgeBase/Show.vue` | `KbArticleHero`, `KbArticleToc` (mobile), `KbFloatingToolbar`, `KbArticleCommentsSection`, `KbArticleCardsSwiper` (related + more), TOC server `KbContentAnchors`; layout full width |
 | `KnowledgeBase/Edit.vue` | `KbRichTextField`, `KbImageGallery` |
 
 Doc module: `docs/KNOWLEDGE_BASE.md`.

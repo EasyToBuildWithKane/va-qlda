@@ -1,6 +1,7 @@
 <script setup>
 import { Link } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
+import KbArticleCardsSwiper from '@/Components/KnowledgeBase/KbArticleCardsSwiper.vue';
 import { richContentPlainText } from '@/shared/utils/richContent';
 import { date } from '@/composables/useFormat';
 import { kbCategoryGradientClass, kbCoverImageUrl } from '@/Components/KnowledgeBase/useKbCategoryGradient.js';
@@ -31,7 +32,7 @@ function cover(article) {
     class="w-full min-w-0"
     aria-label="Bài viết liên quan"
   >
-    <div class="mb-6 flex items-end justify-between gap-4">
+    <div class="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-end sm:justify-between sm:pr-28">
       <div>
         <p class="text-[10px] font-semibold uppercase tracking-[0.14em] text-brand/80">
           Tiếp theo
@@ -40,16 +41,16 @@ function cover(article) {
           Cùng chuyên mục
         </h2>
         <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Gợi ý nhanh trong danh mục «{{ articles[0]?.category?.name || 'này' }}».
+          Gợi ý nhanh trong danh mục «{{ articles[0]?.category?.name || 'này' }}» — vuốt ngang hoặc dùng mũi tên.
         </p>
       </div>
     </div>
 
-    <ul class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-      <li
-        v-for="item in articles"
-        :key="item.id"
-      >
+    <KbArticleCardsSwiper
+      :articles="articles"
+      aria-label="Bài viết cùng chuyên mục"
+    >
+      <template #slide="{ article: item }">
         <Link
           :href="`/knowledge-base/articles/${item.slug}`"
           class="group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm transition duration-300 hover:border-brand/20 hover:shadow-[0_12px_40px_-12px_rgba(154,0,54,0.12)] dark:border-slate-700 dark:bg-slate-900/50"
@@ -96,7 +97,7 @@ function cover(article) {
             </p>
           </div>
         </Link>
-      </li>
-    </ul>
+      </template>
+    </KbArticleCardsSwiper>
   </section>
 </template>
