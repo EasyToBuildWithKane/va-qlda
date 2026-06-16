@@ -1,0 +1,118 @@
+# Báo Cáo Hiệu Suất & Audit Nhân Sự (Performance Analytics & Work Audit)
+
+Module đánh giá hiệu suất cấp quản lý: tổng hợp dữ liệu task/worklog/báo cáo ngày
+thật thành Dashboard analytics + Timeline audit theo nhân viên. Phong cách SaaS
+Enterprise (Linear / Jira Advanced Reports / Power BI). **Chỉ dùng dữ liệu thật —
+không bịa số.**
+
+> Pha 1 (lõi): Executive Dashboard + Audit theo nhân viên + Sticky Filter Bar.
+> Pha sau: màn riêng cho Dự án / Team / Workload, và (tuỳ chọn) thay rule engine
+> bằng Claude API.
+
+---
+
+## Truy cập & phân quyền
+
+| Route | Tên | Màn |
+|-------|-----|-----|
+| `GET /performance` | `performance.index` | Executive Dashboard |
+| `GET /performance/audit` | `performance.audit` | Audit theo nhân viên |
+
+Gate `performance.view` (trong `AuthServiceProvider`) — chỉ `admin | lead | viewer`
+(quản lý / ban giám đốc). `member` không truy cập. Nav: nhóm **"Hiệu suất & Audit"**.
+
+---
+
+## Kiến trúc
+
+```
+Controller (mỏng)                     Service (thuần, app/Support/Performance/)
+─────────────────                     ────────────────────────────────────────
+PerformanceDashboardController  ──▶   PerformanceFilter   (giải mã bộ lọc → kỳ + scope)
+                                      PerformanceMetrics  (engine KPI/distribution/trend)
+                                      PerformanceScorer   (điểm khách quan từ task)
+                                      PerformanceInsights (rule engine heuristic)
+PerformanceAuditController      ──▶   EmployeeAuditBuilder (timeline tuần: kế hoạch vs kết quả)
+```
+
+Controller chỉ `authorize` + gọi service + `Inertia::render`. Service trả mảng đã
+shape (giống `DashboardController`). Bộ lọc đổi → Inertia partial reload, mọi widget
+đồng bộ vì cùng đọc một `PerformanceFilter`.
+
+### Frontend (`resources/js/modules/performance/`)
+
+- `components/` — `PerformanceFilterBar` (sticky), `KpiCard` (+ `Sparkline`, `ProgressRing`),
+  `TrendChart`, `StatusDonut`, `WorkloadBars`, `ProjectContributionChart`, `LeaderboardTable`,
+  `InsightsPanel`, `AuditTimeline` → `WeeklyAuditCard` → `KanbanSnapshot`.
+- `composables/` — `useChartTheme` (palette brand + chart options), `usePerformanceExport`
+  (Excel `xlsx-js-style` + in). Count-up tái dùng `@/shared/composables/useCountUp`.
+- Pages: `Pages/Performance/Dashboard.vue`, `Pages/Performance/Audit.vue`.
+
+---
+
+## Định nghĩa dữ liệu (nguồn thật)
+
+Mọi chỉ số tính từ `Task` (root tasks: `whereNull('parent_id')`) của nhân sự trong
+phạm vi + `Worklog`. Khoảng thời gian `[start, end]` do bộ lọc quyết định.
+
+| Khái niệm | Định nghĩa |
+|-----------|-----------|
+| **Trong kỳ (committed)** | task có `due_date` ∈ kỳ **HOẶC** `completed_at` ∈ kỳ **HOẶC** `work_started_at` ∈ kỳ |
+| **Hoàn thành (done)** | committed + `status = Done` + `completed_at` ∈ kỳ |
+| **Đúng hạn (onTime)** | done + `completed_at <= due_date` (cuối ngày) |
+| **Đang thực hiện** | snapshot hiện tại: `status ∈ {in_progress, in_review}` |
+| **Quá hạn** | snapshot: chưa Done + `due_date < hôm nay` |
+| **Story point** | tổng `story_points` của done |
+| **Giờ ghi nhận** | tổng `Worklog.hours` ∈ kỳ |
+
+Phạm vi nhân sự: `member` → `team` (OrgTeam + con) → `department` → mặc định
+**Phòng Công nghệ** (`DashboardPersonnelScope`).
+
+---
+
+## Công thức điểm (khách quan, 0–100)
+
+`config/performance.php`:
+
+```
+completion = done / committed
+onTime     = onTime / done           (chỉ tính trên task đã xong)
+quality    = 100 − (blocked / committed)
+performance = completion*0.45 + onTime*0.35 + quality*0.20   (trọng số chuẩn hoá)
+```
+
+Xếp loại: S ≥ 90, A ≥ 80, B ≥ 65, C ≥ 50, còn lại D. Điểm KPI = `completion`.
+Không dùng điểm review chủ quan (DailyReportScore) ở pha này.
+
+## Audit theo nhân viên
+
+`EmployeeAuditBuilder` chia kỳ thành **tuần** (kỳ "năm" → tháng) thành các Weekly
+Audit Card:
+
+- **Kế hoạch / Cam kết** = task đến hạn hoặc bắt đầu làm trong tuần.
+- **Kết quả** = task Done trong tuần (đánh dấu ✔/✘ từng task).
+- Tỉ lệ hoàn thành cam kết + điểm (qua `PerformanceScorer`).
+- **Định tính**: text `goals_today` / `plan_tomorrow` từ Báo cáo ngày của tuần (hiển
+  thị cạnh, không auto-match).
+- **Drill-down**: Kanban snapshot toàn bộ task thực tế của tuần.
+
+## AI Insights (heuristic)
+
+`PerformanceInsights` sinh nhận xét từ payload metrics (KHÔNG gọi LLM). Ngưỡng trong
+`config/performance.insights`. Luật: hiệu suất nhóm, quá tải (workload band), nguy cơ
+trễ (≥ N task quá hạn), điểm sáng (đúng hạn ≥ 90%), hiệu suất thấp (< 50%), 1 dự án
+chiếm ≥ 50% workload. Interface ổn định để sau cắm Claude API nếu duyệt bảo mật.
+
+## Xuất / In
+
+`usePerformanceExport`: Excel styled (`xlsx-js-style`, brand `#9A0036`) — Dashboard
+(Tổng quan + Nhân sự), Audit (theo tuần). In qua `window.print()` (`.print:hidden`
+ẩn filter bar).
+
+---
+
+## Mở rộng (pha sau)
+
+`PerformanceMetrics` đã trả sẵn `people[]` (per-employee) + `workloadDistribution`
++ `projectContribution` để dựng các màn riêng: Báo cáo theo giai đoạn / dự án / team,
+Workload & Capacity. Thêm route + page, tái dùng engine — không cần viết lại tính toán.

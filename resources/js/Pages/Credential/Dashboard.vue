@@ -3,6 +3,7 @@ import { Head, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import CredentialSummaryBar from '@/modules/credential/components/CredentialSummaryBar.vue';
+import CredentialHelpBanner from '@/modules/credential/components/CredentialHelpBanner.vue';
 import CredentialAuditTimeline from '@/modules/credential/components/CredentialAuditTimeline.vue';
 
 defineProps({
@@ -36,6 +37,16 @@ defineProps({
         </Link>
       </PageHeader>
     </template>
+
+    <CredentialHelpBanner
+      title="Bảng điều khiển bảo mật"
+      intro="Tổng quan số lượng tài khoản, cảnh báo hết hạn và hoạt động vault gần đây."
+      :steps="[
+        'Theo dõi thẻ KPI — domain/SSL sắp hết hạn, tài khoản chưa gán phụ trách.',
+        'Mục «Hoạt động gần đây»: ai vừa xem hoặc sao chép mật khẩu.',
+        'Chuyển sang Danh sách để lọc chi tiết hoặc thêm tài khoản mới.',
+      ]"
+    />
 
     <CredentialSummaryBar :summary="summary" />
 

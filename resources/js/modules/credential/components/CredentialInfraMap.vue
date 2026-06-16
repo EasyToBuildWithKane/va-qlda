@@ -3,6 +3,7 @@ import { ref } from 'vue';
 import axios from 'axios';
 import { router } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
+import CredentialFieldLabel from '@/modules/credential/components/CredentialFieldLabel.vue';
 import { useToast } from '@/shared/composables/useToast';
 
 const props = defineProps({
@@ -104,36 +105,57 @@ async function removeRelation(relationId) {
       class="card p-5"
     >
       <p class="text-sm font-medium">
-        Thêm liên kết
+        Thêm liên kết hạ tầng
+      </p>
+      <p class="mt-1 text-xs text-slate-500">
+        Ví dụ: Website → VPS → Database → Domain. Chọn tài khoản đích đã có trong vault.
       </p>
       <div class="mt-3 grid gap-3 sm:grid-cols-2">
-        <select
-          v-model="form.target_id"
-          class="input h-10 w-full text-sm"
-        >
-          <option value="">
-            Chọn tài khoản / tài sản
-          </option>
-          <option
-            v-for="c in linkableCredentials"
-            :key="c.id"
-            :value="c.id"
+        <div>
+          <CredentialFieldLabel
+            for-id="rel-target"
+            label="Tài khoản / tài sản đích"
+            required
+            tooltip="Bản ghi khác trong vault (VPS, DB, SSL…) — không chọn chính hồ sơ này."
+          />
+          <select
+            id="rel-target"
+            v-model="form.target_id"
+            class="input h-10 w-full text-sm"
           >
-            {{ c.name }} ({{ c.system_category?.label || c.system_category }})
-          </option>
-        </select>
-        <select
-          v-model="form.relation_type"
-          class="input h-10 w-full text-sm"
-        >
-          <option
-            v-for="t in relationTypes"
-            :key="t.value"
-            :value="t.value"
+            <option value="">
+              Chọn tài khoản liên kết…
+            </option>
+            <option
+              v-for="c in linkableCredentials"
+              :key="c.id"
+              :value="c.id"
+            >
+              {{ c.name }} ({{ c.system_category?.label || c.system_category }})
+            </option>
+          </select>
+        </div>
+        <div>
+          <CredentialFieldLabel
+            for-id="rel-type"
+            label="Loại liên kết"
+            required
+            tooltip="Mô tả quan hệ vận hành: chạy trên, dùng database, bảo mật SSL…"
+          />
+          <select
+            id="rel-type"
+            v-model="form.relation_type"
+            class="input h-10 w-full text-sm"
           >
-            {{ t.label }}
-          </option>
-        </select>
+            <option
+              v-for="t in relationTypes"
+              :key="t.value"
+              :value="t.value"
+            >
+              {{ t.label }}
+            </option>
+          </select>
+        </div>
       </div>
       <button
         type="button"

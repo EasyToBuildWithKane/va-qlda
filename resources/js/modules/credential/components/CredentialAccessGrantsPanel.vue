@@ -68,6 +68,9 @@ async function respondRequest(requestId, decision) {
 
 <template>
   <div class="space-y-4">
+    <p class="rounded-lg border border-slate-100 bg-slate-50/80 px-3 py-2 text-xs text-slate-600">
+      Chỉ <strong>người phụ trách</strong> hoặc Admin cấp quyền. Quyền «Sao chép mật khẩu» luôn được ghi audit.
+    </p>
     <div
       v-if="canRequestAccess && !canManageAccess"
       class="flex justify-end"

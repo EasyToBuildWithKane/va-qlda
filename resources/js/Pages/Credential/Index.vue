@@ -6,6 +6,7 @@ import AppIcon from '@/Components/AppIcon.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import Badge from '@/shared/ui/Badge.vue';
 import CredentialSummaryBar from '@/modules/credential/components/CredentialSummaryBar.vue';
+import CredentialHelpBanner from '@/modules/credential/components/CredentialHelpBanner.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import DatagridToolbarActionButton from '@/shared/ui/DatagridToolbarActionButton.vue';
 import DatagridFilterField from '@/shared/ui/DatagridFilterField.vue';
@@ -113,6 +114,16 @@ function statusTone(st) {
         </Link>
       </PageHeader>
     </template>
+
+    <CredentialHelpBanner
+      title="Danh sách tài khoản & tài sản số"
+      intro="Tra cứu nhanh theo tên, username hoặc nhà cung cấp. Thẻ KPI phía dưới lọc nhanh — bấm vào thẻ để áp dụng bộ lọc."
+      :steps="[
+        'Dùng ô tìm kiếm hoặc Lọc để thu hẹp danh sách.',
+        'Bấm tên tài khoản để mở hồ sơ — xem mật khẩu tại tab Bảo mật (có audit).',
+        'Nút Dữ liệu: nhập/xuất Excel hoặc đối soát hồ sơ thiếu phụ trách / MFA.',
+      ]"
+    />
 
     <CredentialSummaryBar
       :summary="summary"

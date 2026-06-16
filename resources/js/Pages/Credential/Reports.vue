@@ -3,6 +3,7 @@ import { Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import CredentialSummaryBar from '@/modules/credential/components/CredentialSummaryBar.vue';
+import CredentialHelpBanner from '@/modules/credential/components/CredentialHelpBanner.vue';
 
 defineProps({
     summary: { type: Object, required: true },
@@ -23,6 +24,17 @@ defineProps({
         icon="performance"
       />
     </template>
+
+    <CredentialHelpBanner
+      title="Báo cáo bảo mật (Admin)"
+      intro="Phân tích rủi ro tập trung: MFA, mật khẩu quá hạn, phân bổ theo hệ thống và phòng ban."
+      :steps="[
+        'Ưu tiên xử lý «Chưa bật MFA» và «Mật khẩu quá hạn».',
+        'Theo dõi ai truy cập secret nhiều nhất — phát hiện dùng chung bất thường.',
+        'Dùng số liệu theo phòng ban để giao phụ trách rõ ràng.',
+      ]"
+      note="Chỉ vai trò Admin xem trang này. Dữ liệu aggregate toàn vault, không phụ thuộc phân trang danh sách."
+    />
 
     <CredentialSummaryBar :summary="summary" />
 

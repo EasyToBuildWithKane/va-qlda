@@ -8,6 +8,7 @@ use App\Http\Resources\CredentialListResource;
 use App\Http\Resources\CredentialResource;
 use App\Models\Credential;
 use App\Models\CredentialAccessRequest;
+use App\Models\CredentialAuditLog;
 use App\Models\Department;
 use App\Models\Project;
 use App\Models\SystemAccount;
@@ -161,26 +162,33 @@ class CredentialPageController extends Controller
             ->limit(15)
             ->get()
             ->map(function ($row) {
-                $cat = CredentialCategory::tryFrom($row->system_category);
+                $raw = $row->system_category;
+                $cat = $raw instanceof CredentialCategory
+                    ? $raw
+                    : CredentialCategory::tryFrom((string) $raw);
 
                 return [
-                    'category' => $cat?->labelVi() ?? $row->system_category,
+                    'category' => $cat?->labelVi() ?? (string) $raw,
                     'total' => (int) $row->total,
                 ];
             });
 
-        $byDepartment = (clone $base)
-            ->whereNotNull('credentials.department_id')
-            ->join('departments', 'credentials.department_id', '=', 'departments.id')
-            ->selectRaw('departments.name as department_name, count(*) as total')
-            ->groupBy('departments.name')
+        $byDepartmentRows = (clone $base)
+            ->whereNotNull('department_id')
+            ->selectRaw('department_id, count(*) as total')
+            ->groupBy('department_id')
             ->orderByDesc('total')
             ->limit(10)
-            ->get()
-            ->map(fn ($row) => [
-                'department' => $row->department_name,
-                'total' => (int) $row->total,
-            ]);
+            ->get();
+
+        $departmentNames = Department::query()
+            ->whereIn('id', $byDepartmentRows->pluck('department_id')->filter())
+            ->pluck('name', 'id');
+
+        $byDepartment = $byDepartmentRows->map(fn ($row) => [
+            'department' => $departmentNames[$row->department_id] ?? '—',
+            'total' => (int) $row->total,
+        ]);
 
         $topAccess = CredentialAuditLog::query()
             ->selectRaw('account_id, count(*) as total')

@@ -27,6 +27,22 @@ class CredentialTest extends TestCase
         $response->assertOk();
     }
 
+    public function test_admin_can_view_credentials_dashboard(): void
+    {
+        $response = $this->actingAs($this->admin(), 'system')
+            ->get(route('credentials.dashboard'));
+
+        $response->assertOk();
+    }
+
+    public function test_admin_can_view_credentials_reports(): void
+    {
+        $response = $this->actingAs($this->admin(), 'system')
+            ->get(route('credentials.reports'));
+
+        $response->assertOk();
+    }
+
     public function test_admin_can_create_credential(): void
     {
         $admin = $this->admin();

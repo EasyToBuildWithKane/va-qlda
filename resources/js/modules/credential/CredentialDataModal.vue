@@ -98,9 +98,11 @@ function exportFiltered() {
         v-if="tab === 'import'"
         class="mt-4 space-y-3"
       >
-        <p class="text-sm text-slate-600">
-          Tải mẫu, điền sheet Nhập liệu, tối đa 200 dòng.
-        </p>
+        <ol class="list-decimal space-y-1 pl-4 text-sm text-slate-600">
+          <li>Tải file mẫu (.xlsx) — sheet «Nhập liệu», tối đa <strong>200 dòng</strong>.</li>
+          <li>Điền cột bắt buộc (*): Tên, Loại, Hệ thống (đúng enum trong mẫu).</li>
+          <li>Chọn file → kiểm tra preview → Nhập khi không còn lỗi.</li>
+        </ol>
         <div class="flex flex-wrap gap-2">
           <button
             type="button"

@@ -1,13 +1,17 @@
 <script setup>
-import { computed } from 'vue';
-import { Head, useForm } from '@inertiajs/vue3';
+import { computed, watch } from 'vue';
+import { Head, Link, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
+import CredentialHelpBanner from '@/modules/credential/components/CredentialHelpBanner.vue';
+import CredentialFieldLabel from '@/modules/credential/components/CredentialFieldLabel.vue';
 
 const props = defineProps({
     options: { type: Object, required: true },
     defaults: { type: Object, default: () => ({}) },
 });
+
+const INPUT_CLASS = 'input h-10 w-full text-sm';
 
 const form = useForm({
     name: '',
@@ -43,6 +47,13 @@ const categoriesForType = computed(() => {
     return (props.options.system_category || []).filter((o) => allowed.has(o.value));
 });
 
+watch(() => form.credential_type, () => {
+    const first = categoriesForType.value[0];
+    if (first && !categoriesForType.value.some((o) => o.value === form.system_category)) {
+        form.system_category = first.value;
+    }
+});
+
 function submit() {
     form.transform((data) => ({
         ...data,
@@ -60,117 +71,376 @@ function submit() {
     <template #header>
       <PageHeader
         title="Thêm tài khoản"
-        subtitle="Nhập thông tin truy cập — mật khẩu được mã hóa khi lưu"
+        subtitle="Lưu thông tin truy cập an toàn — mật khẩu được mã hóa trên máy chủ"
         icon="vault"
         icon-color="emerald"
-        back-href="/credentials"
-      />
+      >
+        <Link
+          :href="route('credentials.index')"
+          class="btn-ghost h-9 px-3 text-xs"
+        >
+          Về danh sách
+        </Link>
+      </PageHeader>
     </template>
 
+    <CredentialHelpBanner
+      title="Quy trình thêm tài khoản"
+      intro="Điền đủ thông tin để đội vận hành tra cứu, phân quyền và theo dõi hết hạn. Bạn có thể bổ sung mật khẩu sau khi tạo."
+      :steps="[
+        'Chọn loại và hệ thống (CMS, VPS, API Key, …).',
+        'Nhập tên dễ nhận biết, URL và thông tin đăng nhập.',
+        'Gán người phụ trách và môi trường (Production / Staging).',
+        'Bấm «Tạo tài khoản» — mở hồ sơ để cấp quyền hoặc liên kết hạ tầng.',
+      ]"
+    />
+
     <form
-      class="card mx-auto max-w-3xl space-y-4 p-6"
+      class="mx-auto max-w-3xl space-y-5"
       @submit.prevent="submit"
     >
-      <div class="grid gap-4 sm:grid-cols-2">
-        <div class="sm:col-span-2">
-          <label class="text-xs text-slate-600">Tên hiển thị *</label>
-          <input
-            v-model="form.name"
-            class="input mt-1 h-10 w-full text-sm"
-            required
-          >
-        </div>
-        <div>
-          <label class="text-xs text-slate-600">Loại *</label>
-          <select
-            v-model="form.credential_type"
-            class="input mt-1 h-10 w-full text-sm"
-          >
-            <option
-              v-for="o in options.credential_type"
-              :key="o.value"
-              :value="o.value"
+      <section class="card space-y-4 p-5 sm:p-6">
+        <h3 class="text-xs font-semibold uppercase tracking-[0.12em] text-brand/80">
+          1 · Phân loại
+        </h3>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div>
+            <CredentialFieldLabel
+              for-id="cred-type"
+              label="Loại tài khoản"
+              required
+              tooltip="Nhóm lớn: hệ thống nội bộ, hạ tầng, nhà cung cấp hoặc tài khoản làm việc."
+            />
+            <select
+              id="cred-type"
+              v-model="form.credential_type"
+              :class="INPUT_CLASS"
             >
-              {{ o.label }}
-            </option>
-          </select>
-        </div>
-        <div>
-          <label class="text-xs text-slate-600">Hệ thống / danh mục *</label>
-          <select
-            v-model="form.system_category"
-            class="input mt-1 h-10 w-full text-sm"
-          >
-            <option
-              v-for="o in categoriesForType"
-              :key="o.value"
-              :value="o.value"
+              <option
+                v-for="o in options.credential_type"
+                :key="o.value"
+                :value="o.value"
+              >
+                {{ o.label }}
+              </option>
+            </select>
+          </div>
+          <div>
+            <CredentialFieldLabel
+              for-id="cred-category"
+              label="Hệ thống / danh mục"
+              required
+              tooltip="Danh mục chi tiết (CMS, Domain, Database…). Danh sách thay đổi theo loại tài khoản."
+              wide
+            />
+            <select
+              id="cred-category"
+              v-model="form.system_category"
+              :class="INPUT_CLASS"
             >
-              {{ o.label }}
-            </option>
-          </select>
-        </div>
-        <div>
-          <label class="text-xs text-slate-600">Username</label>
-          <input
-            v-model="form.username"
-            class="input mt-1 h-10 w-full text-sm"
-          >
-        </div>
-        <div>
-          <label class="text-xs text-slate-600">Mật khẩu</label>
-          <input
-            v-model="form.login_password"
-            type="password"
-            class="input mt-1 h-10 w-full text-sm"
-          >
-        </div>
-        <div class="sm:col-span-2">
-          <label class="text-xs text-slate-600">URL đăng nhập</label>
-          <input
-            v-model="form.login_url"
-            class="input mt-1 h-10 w-full text-sm"
-          >
-        </div>
-        <div>
-          <label class="text-xs text-slate-600">Người phụ trách</label>
-          <select
-            v-model="form.owner_id"
-            class="input mt-1 h-10 w-full text-sm"
-          >
-            <option value="">
-              —
-            </option>
-            <option
-              v-for="o in options.owners"
-              :key="o.id"
-              :value="o.id"
+              <option
+                v-for="o in categoriesForType"
+                :key="o.value"
+                :value="o.value"
+              >
+                {{ o.label }}
+              </option>
+            </select>
+          </div>
+          <div>
+            <CredentialFieldLabel
+              for-id="cred-env"
+              label="Môi trường"
+              required
+              tooltip="Production: hệ thống đang phục vụ người dùng. Staging/Dev: thử nghiệm."
+            />
+            <select
+              id="cred-env"
+              v-model="form.environment"
+              :class="INPUT_CLASS"
             >
-              {{ o.display_name }}
-            </option>
-          </select>
+              <option
+                v-for="o in options.environment"
+                :key="o.value"
+                :value="o.value"
+              >
+                {{ o.label }}
+              </option>
+            </select>
+          </div>
+          <div>
+            <CredentialFieldLabel
+              for-id="cred-provider"
+              label="Nhà cung cấp"
+              tooltip="Tên dịch vụ: AWS, Cloudflare, Google Workspace, hosting… (tuỳ chọn)."
+            />
+            <input
+              id="cred-provider"
+              v-model="form.provider_name"
+              :class="INPUT_CLASS"
+              placeholder="VD: AWS, Viettel IDC, Cloudflare"
+            >
+          </div>
+        </div>
+      </section>
+
+      <section class="card space-y-4 p-5 sm:p-6">
+        <h3 class="text-xs font-semibold uppercase tracking-[0.12em] text-brand/80">
+          2 · Thông tin đăng nhập
+        </h3>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div class="sm:col-span-2">
+            <CredentialFieldLabel
+              for-id="cred-name"
+              label="Tên hiển thị"
+              required
+              tooltip="Tên ngắn gọn để tìm trong danh sách — VD: «CMS Trường ABC Production»."
+              wide
+            />
+            <input
+              id="cred-name"
+              v-model="form.name"
+              :class="INPUT_CLASS"
+              placeholder="VD: CMS website chính — Production"
+              required
+            >
+            <p
+              v-if="form.errors.name"
+              class="mt-1 text-xs text-danger"
+            >
+              {{ form.errors.name }}
+            </p>
+          </div>
+          <div class="sm:col-span-2">
+            <CredentialFieldLabel
+              for-id="cred-url"
+              label="URL đăng nhập"
+              tooltip="Link trang admin hoặc portal. Dùng https khi có thể."
+            />
+            <input
+              id="cred-url"
+              v-model="form.login_url"
+              :class="INPUT_CLASS"
+              placeholder="https://admin.example.com/login"
+              type="url"
+              autocomplete="off"
+            >
+          </div>
+          <div>
+            <CredentialFieldLabel
+              for-id="cred-user"
+              label="Username / ID đăng nhập"
+              tooltip="Tên đăng nhập, email đăng nhập hoặc mã tài khoản trên hệ thống đích."
+            />
+            <input
+              id="cred-user"
+              v-model="form.username"
+              :class="INPUT_CLASS"
+              placeholder="admin hoặc email đăng nhập"
+              autocomplete="off"
+            >
+          </div>
+          <div>
+            <CredentialFieldLabel
+              for-id="cred-pass"
+              label="Mật khẩu"
+              tooltip="Lưu mã hóa (AES). Chỉ người được cấp quyền mới xem/sao chép — mọi thao tác ghi audit."
+              wide
+            />
+            <input
+              id="cred-pass"
+              v-model="form.login_password"
+              type="password"
+              :class="INPUT_CLASS"
+              placeholder="Nhập mật khẩu hiện tại (có thể bỏ trống)"
+              autocomplete="new-password"
+            >
+          </div>
+          <div>
+            <CredentialFieldLabel
+              for-id="cred-email"
+              label="Email liên kết"
+              tooltip="Email recovery hoặc email đăng ký tài khoản (nếu khác username)."
+            />
+            <input
+              id="cred-email"
+              v-model="form.email"
+              type="email"
+              :class="INPUT_CLASS"
+              placeholder="contact@congty.vn"
+            >
+          </div>
+          <div>
+            <CredentialFieldLabel
+              for-id="cred-phone"
+              label="Số điện thoại"
+              tooltip="Số dùng xác minh 2FA hoặc liên hệ khẩn (tuỳ chọn)."
+            />
+            <input
+              id="cred-phone"
+              v-model="form.phone"
+              :class="INPUT_CLASS"
+              placeholder="09xx xxx xxx"
+            >
+          </div>
+        </div>
+      </section>
+
+      <section class="card space-y-4 p-5 sm:p-6">
+        <h3 class="text-xs font-semibold uppercase tracking-[0.12em] text-brand/80">
+          3 · Phụ trách & phạm vi
+        </h3>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div>
+            <CredentialFieldLabel
+              for-id="cred-owner"
+              label="Người phụ trách"
+              tooltip="Chủ sở hữu hồ sơ — có quyền cấp/thu hồi truy cập và duyệt yêu cầu."
+            />
+            <select
+              id="cred-owner"
+              v-model="form.owner_id"
+              :class="INPUT_CLASS"
+            >
+              <option value="">
+                Chưa gán — hiển thị trong KPI «Chưa gán phụ trách»
+              </option>
+              <option
+                v-for="o in options.owners"
+                :key="o.id"
+                :value="o.id"
+              >
+                {{ o.display_name }}
+              </option>
+            </select>
+          </div>
+          <div>
+            <CredentialFieldLabel
+              for-id="cred-dept"
+              label="Phòng ban"
+              tooltip="Phòng ban sở hữu hoặc sử dụng chính tài khoản này."
+            />
+            <select
+              id="cred-dept"
+              v-model="form.department_id"
+              :class="INPUT_CLASS"
+            >
+              <option value="">
+                Không gắn phòng ban
+              </option>
+              <option
+                v-for="d in options.departments"
+                :key="d.id"
+                :value="d.id"
+              >
+                {{ d.name }}
+              </option>
+            </select>
+          </div>
+          <div>
+            <CredentialFieldLabel
+              for-id="cred-project"
+              label="Dự án"
+              tooltip="Gắn với dự án VA-QLDA nếu tài khoản phục vụ một dự án cụ thể."
+            />
+            <select
+              id="cred-project"
+              v-model="form.project_id"
+              :class="INPUT_CLASS"
+            >
+              <option value="">
+                Không gắn dự án
+              </option>
+              <option
+                v-for="p in options.projects"
+                :key="p.id"
+                :value="p.id"
+              >
+                {{ p.name }}
+              </option>
+            </select>
+          </div>
+          <div>
+            <CredentialFieldLabel
+              for-id="cred-expires"
+              label="Ngày hết hạn"
+              tooltip="Hết hạn gói dịch vụ, domain, SSL hoặc license — dùng cảnh báo trên dashboard."
+            />
+            <input
+              id="cred-expires"
+              v-model="form.expires_at"
+              type="date"
+              :class="INPUT_CLASS"
+            >
+          </div>
+        </div>
+        <div class="flex flex-wrap gap-4 pt-1">
+          <label class="inline-flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+            <input
+              v-model="form.is_shared"
+              type="checkbox"
+              class="rounded border-slate-300 text-brand focus:ring-brand/30"
+            >
+            Tài khoản dùng chung (Shared)
+          </label>
+          <label class="inline-flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+            <input
+              v-model="form.is_critical"
+              type="checkbox"
+              class="rounded border-slate-300 text-brand focus:ring-brand/30"
+            >
+            Critical — ưu tiên bảo mật
+          </label>
+          <label class="inline-flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+            <input
+              v-model="form.mfa_enabled"
+              type="checkbox"
+              class="rounded border-slate-300 text-brand focus:ring-brand/30"
+            >
+            Đã bật MFA / 2FA
+          </label>
+        </div>
+      </section>
+
+      <section class="card space-y-4 p-5 sm:p-6">
+        <h3 class="text-xs font-semibold uppercase tracking-[0.12em] text-brand/80">
+          4 · Ghi chú
+        </h3>
+        <div>
+          <CredentialFieldLabel
+            for-id="cred-desc"
+            label="Mô tả"
+            tooltip="Tóm tắt vai trò của tài khoản trong vận hành."
+          />
+          <textarea
+            id="cred-desc"
+            v-model="form.description"
+            class="input min-h-[4.5rem] w-full text-sm"
+            placeholder="VD: Tài khoản admin WordPress — chỉ Tech Lead deploy plugin."
+          />
         </div>
         <div>
-          <label class="text-xs text-slate-600">Môi trường</label>
-          <select
-            v-model="form.environment"
-            class="input mt-1 h-10 w-full text-sm"
-          >
-            <option
-              v-for="o in options.environment"
-              :key="o.value"
-              :value="o.value"
-            >
-              {{ o.label }}
-            </option>
-          </select>
+          <CredentialFieldLabel
+            for-id="cred-notes"
+            label="Ghi chú nội bộ"
+            tooltip="Thông tin bổ sung không hiển thị ra ngoài — quy trình reset, ticket liên quan…"
+          />
+          <textarea
+            id="cred-notes"
+            v-model="form.notes"
+            class="input min-h-[4rem] w-full text-sm"
+            placeholder="VD: Reset mật khẩu qua ticket IT — không gửi qua chat cá nhân."
+          />
         </div>
-      </div>
-      <div class="flex justify-end gap-2 border-t border-slate-100 pt-4">
-        <a
-          href="/credentials"
+      </section>
+
+      <div class="flex flex-wrap justify-end gap-2 pb-6">
+        <Link
+          :href="route('credentials.index')"
           class="btn-ghost h-10 px-4 text-sm"
-        >Huỷ</a>
+        >
+          Huỷ
+        </Link>
         <button
           type="submit"
           class="btn-primary h-10 px-4 text-sm"
