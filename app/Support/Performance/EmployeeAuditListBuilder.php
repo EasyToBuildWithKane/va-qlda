@@ -29,8 +29,8 @@ class EmployeeAuditListBuilder
             ];
         }
 
-        $tasks = $this->periodTasks($filter, $employeeIds);
-        $tasksByAssignee = $tasks->groupBy('assignee_id');
+        $tasks = PerformanceTaskScope::forEmployees($employeeIds, $filter)->get();
+        $tasksByAssignee = PerformanceTaskScope::groupByAssignee($tasks, $employeeIds);
         $bucketDefs = PerformancePeriodBuckets::forFilter($filter);
 
         $unitNames = EmployeeOrgUnitResolver::labelsFor($employeeIds);
@@ -51,7 +51,7 @@ class EmployeeAuditListBuilder
                 'avatar' => PublicMediaUrl::fromPublicDisk($emp->avatar_path),
                 'unitName' => $unitNames[$emp->id] ?? null,
                 'periodLabel' => $filter->label,
-                'periodBuckets' => $this->periodBucketsForEmployee($empTasks, $bucketDefs),
+                'periodBuckets' => $this->periodBucketsForEmployee($empTasks, $bucketDefs, $filter),
                 'committed' => $metrics['committed'],
                 'done' => $metrics['done'],
                 'commitmentRate' => $metrics['commitmentRate'],
@@ -78,26 +78,7 @@ class EmployeeAuditListBuilder
      */
     private function periodTasks(PerformanceFilter $filter, Collection $employeeIds): Collection
     {
-        $query = Task::query()
-            ->whereIn('assignee_id', $employeeIds)
-            ->whereNull('parent_id')
-            ->where(function ($q) use ($filter) {
-                $q->whereBetween('due_date', [$filter->start->toDateString(), $filter->end->toDateString()])
-                    ->orWhereBetween('completed_at', [$filter->start, $filter->end])
-                    ->orWhereBetween('work_started_at', [$filter->start, $filter->end]);
-            });
-
-        if ($filter->projectId) {
-            $query->where('project_id', $filter->projectId);
-        }
-        if ($filter->sprintId) {
-            $query->where('sprint_id', $filter->sprintId);
-        }
-        if ($filter->statuses !== []) {
-            $query->whereIn('status', $filter->statuses);
-        }
-
-        return $query->get();
+        return PerformanceTaskScope::forEmployees($employeeIds, $filter)->get();
     }
 
     /**
@@ -108,19 +89,14 @@ class EmployeeAuditListBuilder
      */
     private function metricsForEmployee(
         Collection $allTasks,
-        ?PerformanceFilter $filter = null,
+        PerformanceFilter $filter,
         ?\Illuminate\Support\Carbon $start = null,
         ?\Illuminate\Support\Carbon $end = null,
     ): array {
         $start = $start ?? $filter->start;
         $end = $end ?? $filter->end;
 
-        $planned = $allTasks->filter(function (Task $t) use ($start, $end) {
-            $due = $t->due_date && $t->due_date->betweenIncluded($start, $end);
-            $started = $t->work_started_at && $t->work_started_at->betweenIncluded($start, $end);
-
-            return $due || $started;
-        });
+        $planned = PerformanceTaskScope::plannedInBucket($allTasks, $start, $end, $filter);
 
         $committed = $planned->count();
         $done = $planned->filter(
@@ -159,10 +135,10 @@ class EmployeeAuditListBuilder
      * @param  list<array{key:string, label:string, start:\Illuminate\Support\Carbon, end:\Illuminate\Support\Carbon}>  $bucketDefs
      * @return list<array<string, mixed>>
      */
-    private function periodBucketsForEmployee(Collection $allTasks, array $bucketDefs): array
+    private function periodBucketsForEmployee(Collection $allTasks, array $bucketDefs, PerformanceFilter $filter): array
     {
-        return collect($bucketDefs)->map(function (array $b) use ($allTasks) {
-            $metrics = $this->metricsForEmployee($allTasks, null, $b['start'], $b['end']);
+        return collect($bucketDefs)->map(function (array $b) use ($allTasks, $filter) {
+            $metrics = $this->metricsForEmployee($allTasks, $filter, $b['start'], $b['end']);
             $committed = $metrics['committed'];
 
             return [

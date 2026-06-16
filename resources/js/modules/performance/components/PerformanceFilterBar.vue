@@ -101,7 +101,11 @@ const periodTabs = computed(() =>
 function onPeriodChange(p) {
     suppress = true;
     state.period = p;
-    if (p !== 'sprint') state.sprint = null;
+    if (p !== 'sprint') {
+        state.sprint = null;
+    } else if (state.sprint == null && (props.options.sprints ?? []).length) {
+        state.sprint = props.options.sprints[0].value;
+    }
     suppress = false;
     apply();
 }
@@ -223,11 +227,11 @@ function runExport() {
         </DatagridFilterField>
 
         <DatagridFilterField
-          v-if="visibleFilters.sprint && state.period === 'sprint'"
+          v-if="state.period === 'sprint'"
           class="sm:col-span-2 xl:col-span-2"
         >
           <select
-            v-model="state.sprint"
+            v-model.number="state.sprint"
             :class="FILTER_CONTROL_CLASS"
             aria-label="Sprint"
           >

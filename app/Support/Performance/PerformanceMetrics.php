@@ -95,18 +95,8 @@ class PerformanceMetrics
      */
     private function periodTaskQuery(PerformanceFilter $filter, Carbon $start, Carbon $end): Builder
     {
-        $query = Task::query()
-            ->whereIn('assignee_id', $filter->employeeIds())
-            ->whereNull('parent_id')
-            ->where(function (Builder $q) use ($start, $end) {
-                $q->whereBetween('due_date', [$start->toDateString(), $end->toDateString()])
-                    ->orWhereBetween('completed_at', [$start, $end])
-                    ->orWhereBetween('work_started_at', [$start, $end]);
-            });
-
-        $this->applyScopeFilters($query, $filter);
-
-        return $query->with('project:id,name,color');
+        return PerformanceTaskScope::forEmployees($filter->employeeIds(), $filter, $start, $end)
+            ->with(['project:id,name,color', 'assignees:id']);
     }
 
     /**
@@ -116,29 +106,27 @@ class PerformanceMetrics
      */
     private function openSnapshotQuery(PerformanceFilter $filter): Builder
     {
+        $employeeIds = $filter->employeeIds();
+
         $query = Task::query()
-            ->whereIn('assignee_id', $filter->employeeIds())
             ->whereNull('parent_id')
-            ->where('status', '!=', TaskStatus::Done);
+            ->where('status', '!=', TaskStatus::Done)
+            ->where(function (Builder $q) use ($employeeIds) {
+                $q->whereIn('assignee_id', $employeeIds)
+                    ->orWhereHas(
+                        'assignees',
+                        fn (Builder $a) => $a->whereIn('employees.id', $employeeIds),
+                    );
+            });
 
-        if ($filter->projectId) {
-            $query->where('project_id', $filter->projectId);
-        }
-
-        return $query;
-    }
-
-    private function applyScopeFilters(Builder $query, PerformanceFilter $filter): void
-    {
         if ($filter->projectId) {
             $query->where('project_id', $filter->projectId);
         }
         if ($filter->sprintId) {
             $query->where('sprint_id', $filter->sprintId);
         }
-        if ($filter->statuses !== []) {
-            $query->whereIn('status', $filter->statuses);
-        }
+
+        return $query->with('assignees:id');
     }
 
     /**
@@ -192,8 +180,8 @@ class PerformanceMetrics
             ->get(['id', 'full_name', 'avatar_path', 'role_title'])
             ->keyBy('id');
 
-        $periodByEmp = $periodTasks->groupBy('assignee_id');
-        $openByEmp = $openTasks->groupBy('assignee_id');
+        $periodByEmp = PerformanceTaskScope::groupByAssignee($periodTasks, $filter->employeeIds());
+        $openByEmp = PerformanceTaskScope::groupByAssignee($openTasks, $filter->employeeIds());
 
         /** @var Collection<int, array<string, mixed>> $rows */
         $rows = $employees->map(function (Employee $emp) use ($periodByEmp, $openByEmp, $hoursByEmployee, $today) {

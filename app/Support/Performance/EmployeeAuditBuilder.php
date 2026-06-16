@@ -29,14 +29,7 @@ class EmployeeAuditBuilder
     {
         $tz = config('performance.timezone', 'Asia/Ho_Chi_Minh');
 
-        $tasks = Task::query()
-            ->where('assignee_id', $member->id)
-            ->whereNull('parent_id')
-            ->where(function ($q) use ($filter) {
-                $q->whereBetween('due_date', [$filter->start->toDateString(), $filter->end->toDateString()])
-                    ->orWhereBetween('completed_at', [$filter->start, $filter->end])
-                    ->orWhereBetween('work_started_at', [$filter->start, $filter->end]);
-            })
+        $tasks = PerformanceTaskScope::forEmployee($member->id, $filter)
             ->with('project:id,name,color')
             ->get();
 
@@ -48,7 +41,7 @@ class EmployeeAuditBuilder
 
         $buckets = $this->buckets($filter);
         $weeks = collect($buckets)->map(
-            fn (array $b) => $this->weekCard($b, $tasks, $reports)
+            fn (array $b) => $this->weekCard($b, $tasks, $reports, $filter)
         )->values();
 
         $committed = (int) $weeks->sum('summary.committed');
@@ -86,18 +79,12 @@ class EmployeeAuditBuilder
      * @param  Collection<int, DailyReport>  $reports
      * @return array<string, mixed>
      */
-    private function weekCard(array $b, Collection $allTasks, Collection $reports): array
+    private function weekCard(array $b, Collection $allTasks, Collection $reports, PerformanceFilter $filter): array
     {
         $start = $b['start'];
         $end = $b['end'];
 
-        // Kế hoạch (cam kết) = task đến hạn HOẶC bắt đầu làm trong tuần.
-        $planned = $allTasks->filter(function (Task $t) use ($start, $end) {
-            $due = $t->due_date && $t->due_date->betweenIncluded($start, $end);
-            $started = $t->work_started_at && $t->work_started_at->betweenIncluded($start, $end);
-
-            return $due || $started;
-        });
+        $planned = PerformanceTaskScope::plannedInBucket($allTasks, $start, $end, $filter);
 
         $plan = $planned->map(function (Task $t) use ($end) {
             $isDone = $t->status === TaskStatus::Done

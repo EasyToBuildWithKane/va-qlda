@@ -33,6 +33,7 @@ PerformanceDashboardController  ──▶   PerformanceFilter   (giải mã bộ
                                       PerformanceScorer   (điểm khách quan từ task)
 PerformanceAuditController      ──▶   EmployeeAuditListBuilder (danh sách: cam kết / điểm theo kỳ)
                                       EmployeeAuditBuilder (timeline tuần: kế hoạch vs kết quả)
+                                      PerformanceTaskScope (truy vấn task + gán nhân sự thống nhất)
 ```
 
 Controller chỉ `authorize` + gọi service + `Inertia::render`. Service trả mảng đã
@@ -57,9 +58,16 @@ shape (giống `DashboardController`). Bộ lọc đổi → Inertia partial rel
 Mọi chỉ số tính từ `Task` (root tasks: `whereNull('parent_id')`) của nhân sự trong
 phạm vi + `Worklog`. Khoảng thời gian `[start, end]` do bộ lọc quyết định.
 
+**Gán nhân sự:** task được tính nếu `assignee_id` thuộc phạm vi **hoặc** có bản ghi
+trong `task_assignees`.
+
+**Kỳ Sprint:** `period=sprint` + query `sprint={id}` → task trong kỳ = mọi task có
+`sprint_id` khớp (không lọc chéo thêm theo ngày). Dropdown sprint hiện ngay khi chọn
+kỳ Sprint trên `PerformanceFilterBar`.
+
 | Khái niệm | Định nghĩa |
 |-----------|-----------|
-| **Trong kỳ (committed)** | task có `due_date` ∈ kỳ **HOẶC** `completed_at` ∈ kỳ **HOẶC** `work_started_at` ∈ kỳ |
+| **Trong kỳ (committed)** | Theo ngày: `due_date` / `completed_at` / `work_started_at` chạm kỳ. Theo sprint: membership `sprint_id`. |
 | **Hoàn thành (done)** | committed + `status = Done` + `completed_at` ∈ kỳ |
 | **Đúng hạn (onTime)** | done + `completed_at <= due_date` (cuối ngày) |
 | **Đang thực hiện** | snapshot hiện tại: `status ∈ {in_progress, in_review}` |
