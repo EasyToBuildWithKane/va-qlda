@@ -1,9 +1,10 @@
 <script setup>
 import { computed, ref } from 'vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import AppIcon from '@/Components/AppIcon.vue';
+import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
 import CredentialFieldLabel from '@/modules/credential/components/CredentialFieldLabel.vue';
 import CredentialPasswordViewer from '@/modules/credential/components/CredentialPasswordViewer.vue';
 import CredentialAccessGrantsPanel from '@/modules/credential/components/CredentialAccessGrantsPanel.vue';
@@ -14,7 +15,8 @@ import { date, datetime } from '@/composables/useFormat';
 const props = defineProps({
     credential: { type: Object, required: true },
     options: { type: Object, default: () => ({}) },
-    auditLogs: { type: Array, default: () => [] },
+    auditLogs: { type: Object, default: () => ({ data: [], meta: null }) },
+    auditPerPage: { type: Number, default: 10 },
     pendingAccessRequests: { type: Array, default: () => [] },
 });
 
@@ -63,7 +65,19 @@ function submitPassword() {
     });
 }
 
-const auditLogList = computed(() => props.auditLogs ?? []);
+const auditPerPageLocal = ref(props.auditPerPage);
+
+const auditLogList = computed(() => props.auditLogs?.data ?? []);
+
+function reloadAuditLogs(page) {
+    router.get(route('credentials.show', props.credential.id), {
+        audit_page: page ?? props.auditLogs?.meta?.current_page ?? 1,
+        audit_per_page: auditPerPageLocal.value,
+    }, {
+        preserveScroll: true,
+        only: ['auditLogs', 'auditPerPage'],
+    });
+}
 
 const badgeLabelsText = computed(() => {
     const list = (props.credential.badges || []).filter(Boolean);
@@ -130,9 +144,10 @@ const badgeLabelsText = computed(() => {
           Thông tin đăng nhập
         </h3>
         <dl class="divide-y divide-slate-100">
-          <div class="grid gap-1 py-3 sm:grid-cols-[9rem_1fr] sm:items-start">
+          <div class="grid gap-1 py-3 sm:grid-cols-[11rem_minmax(0,1fr)] sm:items-center">
             <dt>
               <CredentialFieldLabel
+                compact
                 label="Username"
                 tooltip="Tên đăng nhập trên hệ thống hoặc dịch vụ bên ngoài."
               />
@@ -141,9 +156,10 @@ const badgeLabelsText = computed(() => {
               {{ displayValue(credential.username) }}
             </dd>
           </div>
-          <div class="grid gap-1 py-3 sm:grid-cols-[9rem_1fr] sm:items-start">
+          <div class="grid gap-1 py-3 sm:grid-cols-[11rem_minmax(0,1fr)] sm:items-center">
             <dt>
               <CredentialFieldLabel
+                compact
                 label="Email"
                 tooltip="Email liên kết với tài khoản (khôi phục, thông báo)."
               />
@@ -152,9 +168,10 @@ const badgeLabelsText = computed(() => {
               {{ displayValue(credential.email) }}
             </dd>
           </div>
-          <div class="grid gap-1 py-3 sm:grid-cols-[9rem_1fr] sm:items-start">
+          <div class="grid gap-1 py-3 sm:grid-cols-[11rem_minmax(0,1fr)] sm:items-center">
             <dt>
               <CredentialFieldLabel
+                compact
                 label="URL đăng nhập"
                 tooltip="Đường dẫn trang đăng nhập — có thể mở trực tiếp khi cần."
               />
@@ -170,9 +187,10 @@ const badgeLabelsText = computed(() => {
               <span v-else>{{ displayValue(credential.login_url) }}</span>
             </dd>
           </div>
-          <div class="grid gap-1 py-3 sm:grid-cols-[9rem_1fr] sm:items-start">
+          <div class="grid gap-1 py-3 sm:grid-cols-[11rem_minmax(0,1fr)] sm:items-center">
             <dt>
               <CredentialFieldLabel
+                compact
                 label="Số điện thoại"
                 tooltip="Số liên hệ hoặc OTP nếu có."
               />
@@ -189,9 +207,10 @@ const badgeLabelsText = computed(() => {
           Phạm vi & phụ trách
         </h3>
         <dl class="divide-y divide-slate-100">
-          <div class="grid gap-1 py-3 sm:grid-cols-[9rem_1fr] sm:items-start">
+          <div class="grid gap-1 py-3 sm:grid-cols-[11rem_minmax(0,1fr)] sm:items-center">
             <dt>
               <CredentialFieldLabel
+                compact
                 label="Dự án"
                 tooltip="Dự án sử dụng tài khoản này trong phạm vi QLDA."
               />
@@ -200,9 +219,10 @@ const badgeLabelsText = computed(() => {
               {{ displayValue(credential.project?.name) }}
             </dd>
           </div>
-          <div class="grid gap-1 py-3 sm:grid-cols-[9rem_1fr] sm:items-start">
+          <div class="grid gap-1 py-3 sm:grid-cols-[11rem_minmax(0,1fr)] sm:items-center">
             <dt>
               <CredentialFieldLabel
+                compact
                 label="Phòng ban"
                 tooltip="Đơn vị nội bộ quản lý hồ sơ."
               />
@@ -211,9 +231,10 @@ const badgeLabelsText = computed(() => {
               {{ displayValue(credential.department?.name) }}
             </dd>
           </div>
-          <div class="grid gap-1 py-3 sm:grid-cols-[9rem_1fr] sm:items-start">
+          <div class="grid gap-1 py-3 sm:grid-cols-[11rem_minmax(0,1fr)] sm:items-center">
             <dt>
               <CredentialFieldLabel
+                compact
                 label="Người phụ trách"
                 tooltip="Người chịu trách nhiệm vận hành và cấp quyền (cùng người tạo nếu không đổi)."
               />
@@ -222,9 +243,10 @@ const badgeLabelsText = computed(() => {
               {{ displayValue(credential.owner?.display_name) }}
             </dd>
           </div>
-          <div class="grid gap-1 py-3 sm:grid-cols-[9rem_1fr] sm:items-start">
+          <div class="grid gap-1 py-3 sm:grid-cols-[11rem_minmax(0,1fr)] sm:items-center">
             <dt>
               <CredentialFieldLabel
+                compact
                 label="Loại / Danh mục"
                 tooltip="Phân loại hệ thống để lọc và báo cáo."
               />
@@ -247,6 +269,7 @@ const badgeLabelsText = computed(() => {
         <dl class="grid gap-4 sm:grid-cols-2">
           <div>
             <CredentialFieldLabel
+              compact
               label="Mô tả"
               tooltip="Tóm tắt mục đích sử dụng tài khoản."
               wide
@@ -257,6 +280,7 @@ const badgeLabelsText = computed(() => {
           </div>
           <div>
             <CredentialFieldLabel
+              compact
               label="Ghi chú nội bộ"
               tooltip="Ghi chú vận hành — không hiển thị ra ngoài module."
               wide
@@ -273,9 +297,10 @@ const badgeLabelsText = computed(() => {
           Trạng thái & nhãn
         </h3>
         <dl class="divide-y divide-slate-100">
-          <div class="grid gap-1 py-3 sm:grid-cols-[9rem_1fr] sm:items-start">
+          <div class="grid gap-1 py-3 sm:grid-cols-[11rem_minmax(0,1fr)] sm:items-center">
             <dt>
               <CredentialFieldLabel
+                compact
                 label="Trạng thái"
                 tooltip="Trạng thái vận hành trên hệ thống (đang dùng, khóa, …)."
               />
@@ -284,9 +309,10 @@ const badgeLabelsText = computed(() => {
               {{ displayValue(credential.status?.label) }}
             </dd>
           </div>
-          <div class="grid gap-1 py-3 sm:grid-cols-[9rem_1fr] sm:items-start">
+          <div class="grid gap-1 py-3 sm:grid-cols-[11rem_minmax(0,1fr)] sm:items-center">
             <dt>
               <CredentialFieldLabel
+                compact
                 label="Môi trường"
                 tooltip="Production, staging hoặc môi trường dev tương ứng."
               />
@@ -295,9 +321,10 @@ const badgeLabelsText = computed(() => {
               {{ displayValue(credential.environment?.label) }}
             </dd>
           </div>
-          <div class="grid gap-1 py-3 sm:grid-cols-[9rem_1fr] sm:items-start">
+          <div class="grid gap-1 py-3 sm:grid-cols-[11rem_minmax(0,1fr)] sm:items-center">
             <dt>
               <CredentialFieldLabel
+                compact
                 label="Nhãn tùy chỉnh"
                 tooltip="Các nhãn gắn thêm trên hồ sơ — lọc và nhận diện nhanh."
               />
@@ -306,9 +333,10 @@ const badgeLabelsText = computed(() => {
               {{ displayValue(badgeLabelsText) }}
             </dd>
           </div>
-          <div class="grid gap-1 py-3 sm:grid-cols-[9rem_1fr] sm:items-start">
+          <div class="grid gap-1 py-3 sm:grid-cols-[11rem_minmax(0,1fr)] sm:items-center">
             <dt>
               <CredentialFieldLabel
+                compact
                 label="Dùng chung"
                 tooltip="Tài khoản dùng chung cho nhiều thành viên trong phạm vi dự án."
               />
@@ -317,9 +345,10 @@ const badgeLabelsText = computed(() => {
               {{ credential.is_shared ? 'Có' : 'Không' }}
             </dd>
           </div>
-          <div class="grid gap-1 py-3 sm:grid-cols-[9rem_1fr] sm:items-start">
+          <div class="grid gap-1 py-3 sm:grid-cols-[11rem_minmax(0,1fr)] sm:items-center">
             <dt>
               <CredentialFieldLabel
+                compact
                 label="Quan trọng (Critical)"
                 tooltip="Đánh dấu tài sản nhạy cảm — ưu tiên bảo mật và theo dõi."
               />
@@ -330,17 +359,25 @@ const badgeLabelsText = computed(() => {
           </div>
         </dl>
         <dl class="mt-4 grid gap-3 border-t border-slate-100 pt-4 sm:grid-cols-2">
-          <div>
-            <CredentialFieldLabel label="Ngày tạo hồ sơ" />
+          <div class="grid gap-1 sm:grid-cols-[11rem_minmax(0,1fr)] sm:items-center">
+            <dt>
+              <CredentialFieldLabel
+                compact
+                label="Ngày tạo hồ sơ"
+              />
+            </dt>
             <dd class="text-sm text-slate-800">
               {{ displayValue(datetime(credential.created_at)) }}
             </dd>
           </div>
-          <div>
-            <CredentialFieldLabel
-              label="Hết hạn hồ sơ"
-              tooltip="Ngày hết hạn tài khoản hoặc gói dịch vụ (nếu có)."
-            />
+          <div class="grid gap-1 sm:grid-cols-[11rem_minmax(0,1fr)] sm:items-center">
+            <dt>
+              <CredentialFieldLabel
+                compact
+                label="Hết hạn hồ sơ"
+                tooltip="Ngày hết hạn tài khoản hoặc gói dịch vụ (nếu có)."
+              />
+            </dt>
             <dd class="text-sm text-slate-800">
               {{ credential.expires_at ? date(credential.expires_at) : 'Không hết hạn' }}
             </dd>
@@ -454,16 +491,26 @@ const badgeLabelsText = computed(() => {
 
     <div
       v-else-if="tab === 'audit'"
-      class="card p-5"
+      class="card overflow-hidden"
     >
-      <CredentialFieldLabel
-        label="Nhật ký thao tác"
-        tooltip="50 sự kiện gần nhất: xem/sao chép mật khẩu, chỉnh sửa, cấp quyền."
-        wide
-      />
-      <CredentialAuditTimeline
-        class="mt-4"
-        :logs="auditLogList"
+      <div class="border-b border-slate-100 px-5 py-4">
+        <CredentialFieldLabel
+          label="Nhật ký thao tác"
+          tooltip="Ghi nhận xem/sao chép mật khẩu, chỉnh sửa, cấp và thu hồi quyền."
+          wide
+          compact
+        />
+      </div>
+      <div class="px-5 py-4">
+        <CredentialAuditTimeline :logs="auditLogList" />
+      </div>
+      <DatagridPaginationFooter
+        v-if="auditLogs.meta?.total"
+        v-model:per-page="auditPerPageLocal"
+        variant="bar"
+        :meta="auditLogs.meta"
+        :per-page-options="[5, 10, 15, 20]"
+        @update:per-page="reloadAuditLogs(1)"
       />
     </div>
   </AppLayout>

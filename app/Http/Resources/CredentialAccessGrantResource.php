@@ -20,10 +20,15 @@ class CredentialAccessGrantResource extends JsonResource
             'account_id' => $this->account_id,
             'permissions' => $this->permissions ?? [],
             'expires_at' => $this->expires_at?->toIso8601String(),
+            'created_at' => $this->created_at?->toIso8601String(),
             'account' => $this->whenLoaded('account', fn () => $this->account ? [
                 'id' => $this->account->id,
                 'display_name' => $this->account->display_name,
                 'username' => $this->account->username,
+            ] : null),
+            'granted_by' => $this->whenLoaded('grantedBy', fn () => $this->grantedBy ? [
+                'id' => $this->grantedBy->id,
+                'display_name' => $this->grantedBy->display_name,
             ] : null),
         ];
     }

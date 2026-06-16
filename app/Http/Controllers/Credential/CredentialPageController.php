@@ -7,6 +7,7 @@ use App\Http\Resources\CredentialListResource;
 use App\Http\Resources\CredentialResource;
 use App\Models\Credential;
 use App\Models\CredentialAccessRequest;
+use App\Models\CredentialAuditLog;
 use App\Models\Department;
 use App\Models\Project;
 use App\Models\SystemAccount;
@@ -89,6 +90,7 @@ class CredentialPageController extends Controller
             'department',
             'owner',
             'accessGrants.account',
+            'accessGrants.grantedBy',
             'outgoingRelations.target',
             'passwordHistories.changedBy',
         ]);
@@ -124,27 +126,8 @@ class CredentialPageController extends Controller
                         'created_at' => $r->created_at?->toIso8601String(),
                     ])
                 : [],
-            'auditLogs' => $credential->auditLogs()
-                ->with('account:id,display_name')
-                ->latest('created_at')
-                ->limit(50)
-                ->get()
-                ->map(fn (\App\Models\CredentialAuditLog $log) => [
-                    'id' => $log->id,
-                    'action' => $log->action ? [
-                        'value' => $log->action->value,
-                        'label' => $log->action->labelVi(),
-                    ] : null,
-                    'ip_address' => $log->ip_address,
-                    'metadata' => $log->metadata,
-                    'created_at' => $log->created_at?->toIso8601String(),
-                    'account' => $log->account ? [
-                        'id' => $log->account->id,
-                        'display_name' => $log->account->display_name,
-                    ] : null,
-                ])
-                ->values()
-                ->all(),
+            'auditLogs' => $this->paginatedAuditLogs($credential, $request),
+            'auditPerPage' => min(max((int) $request->query('audit_per_page', 10), 5), 50),
         ]);
     }
 
@@ -218,6 +201,51 @@ class CredentialPageController extends Controller
             'database' => $query->where('system_category', CredentialCategory::Database->value),
             default => null,
         };
+    }
+
+    /**
+     * @return array{data: array<int, array<string, mixed>>, meta: array<string, mixed>}
+     */
+    private function paginatedAuditLogs(Credential $credential, Request $request): array
+    {
+        $perPage = min(max((int) $request->query('audit_per_page', 10), 5), 50);
+
+        $paginator = $credential->auditLogs()
+            ->with('account:id,display_name')
+            ->latest('created_at')
+            ->paginate($perPage, ['*'], 'audit_page')
+            ->withQueryString();
+
+        $data = $paginator->getCollection()
+            ->map(fn (CredentialAuditLog $log) => [
+                'id' => $log->id,
+                'action' => $log->action ? [
+                    'value' => $log->action->value,
+                    'label' => $log->action->labelVi(),
+                ] : null,
+                'ip_address' => $log->ip_address,
+                'metadata' => $log->metadata,
+                'created_at' => $log->created_at?->toIso8601String(),
+                'account' => $log->account ? [
+                    'id' => $log->account->id,
+                    'display_name' => $log->account->display_name,
+                ] : null,
+            ])
+            ->values()
+            ->all();
+
+        return [
+            'data' => $data,
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'from' => $paginator->firstItem(),
+                'to' => $paginator->lastItem(),
+                'total' => $paginator->total(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'links' => $paginator->linkCollection()->toArray(),
+            ],
+        ];
     }
 
     /**

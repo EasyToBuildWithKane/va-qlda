@@ -17,11 +17,11 @@ class CredentialAccessController extends Controller
     {
         $this->authorize('view', $credential);
 
-        $grants = $credential->accessGrants()->with('account')->get();
+        $grants = $credential->accessGrants()->with(['account', 'grantedBy'])->get();
 
         return response()->json([
             'success' => true,
-            'data' => CredentialAccessGrantResource::collection($grants),
+            'data' => CredentialAccessGrantResource::collection($grants)->resolve(),
         ]);
     }
 

@@ -1,11 +1,16 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import CredentialAccessGrantModal from '@/modules/credential/components/CredentialAccessGrantModal.vue';
 import CredentialAccessGrantRowActions from '@/modules/credential/components/CredentialAccessGrantRowActions.vue';
 import { useCredentialAccess } from '@/modules/credential/composables/useCredentialAccess';
+import { normalizeResourceList } from '@/modules/credential/utils/normalizeResourceList';
+import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import { useDialog } from '@/composables/useDialog';
 import { router } from '@inertiajs/vue3';
+import { date, datetime } from '@/composables/useFormat';
+import { httpClient } from '@/shared/services/http';
+import { displayOrEmpty, EMPTY_LABELS } from '@/shared/utils/emptyDisplay';
 
 const props = defineProps({
     credentialId: { type: Number, required: true },
@@ -23,16 +28,48 @@ const dialog = useDialog();
 const modalOpen = ref(false);
 const editingGrant = ref(null);
 const saving = ref(false);
+const searchQ = ref('');
+const localGrants = ref([]);
+const loadingGrants = ref(false);
 
 const permissionLabelMap = computed(() =>
     Object.fromEntries(props.permissionOptions.map((p) => [p.value, p.label])),
 );
 
-function formatPermissions(perms) {
-    const list = perms || [];
-    if (!list.length) return 'Chưa cấp quyền cụ thể';
-    return list.map((p) => permissionLabelMap.value[p] || p).join(' · ');
+function syncGrants(raw) {
+    localGrants.value = normalizeResourceList(raw);
 }
+
+watch(() => props.grants, (value) => syncGrants(value), { immediate: true });
+
+async function fetchGrants() {
+    loadingGrants.value = true;
+    try {
+        const { data: body } = await httpClient.get(
+            route('api.credentials.access-grants.index', { credential: props.credentialId }),
+        );
+        const list = normalizeResourceList(body?.data);
+        localGrants.value = list;
+    } catch {
+        // Giữ dữ liệu từ Inertia khi API không phản hồi
+    } finally {
+        loadingGrants.value = false;
+    }
+}
+
+onMounted(() => {
+    fetchGrants();
+});
+
+const filteredGrants = computed(() => {
+    const q = searchQ.value.trim().toLowerCase();
+    if (!q) return localGrants.value;
+    return localGrants.value.filter((g) => {
+        const name = (g.account?.display_name || '').toLowerCase();
+        const username = (g.account?.username || '').toLowerCase();
+        return name.includes(q) || username.includes(q);
+    });
+});
 
 function openCreate() {
     editingGrant.value = null;
@@ -65,7 +102,8 @@ async function onSave(payload) {
             title: 'Cấp quyền thành công',
             message: data?.message || 'Đã cấp quyền truy cập.',
         });
-        router.reload({ preserveScroll: true });
+        await router.reload({ preserveScroll: true });
+        await fetchGrants();
     } catch (err) {
         await dialog.alert({
             title: 'Không lưu được quyền',
@@ -93,7 +131,8 @@ async function onRevoke(grantRow) {
             title: 'Đã thu hồi',
             message: data?.message || 'Đã thu hồi quyền truy cập.',
         });
-        router.reload({ preserveScroll: true });
+        await router.reload({ preserveScroll: true });
+        await fetchGrants();
     } catch (err) {
         await dialog.alert({
             title: 'Không thu hồi được',
@@ -131,7 +170,8 @@ async function respondRequest(requestId, decision) {
             title: isApprove ? 'Đã duyệt yêu cầu' : 'Đã từ chối yêu cầu',
             message: data?.message || (isApprove ? 'Đã duyệt yêu cầu truy cập.' : 'Đã từ chối yêu cầu truy cập.'),
         });
-        router.reload({ preserveScroll: true });
+        await router.reload({ preserveScroll: true });
+        await fetchGrants();
     } catch (err) {
         await dialog.alert({
             title: 'Không xử lý được yêu cầu',
@@ -139,6 +179,11 @@ async function respondRequest(requestId, decision) {
             tone: 'danger',
         });
     }
+}
+
+function formatExpires(expiresAt) {
+    if (!expiresAt) return 'Không hết hạn';
+    return date(expiresAt);
 }
 </script>
 
@@ -174,7 +219,7 @@ async function respondRequest(requestId, decision) {
           :key="req.id"
           class="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-white px-3 py-2"
         >
-          <span>{{ req.requester }} · {{ formatPermissions(req.requested_permissions) }}</span>
+          <span>{{ req.requester }} · {{ (req.requested_permissions || []).map((p) => permissionLabelMap[p] || p).join(' · ') }}</span>
           <span class="flex gap-2">
             <button
               type="button"
@@ -195,94 +240,140 @@ async function respondRequest(requestId, decision) {
       </ul>
     </div>
 
-    <div
-      v-if="canManageAccess"
-      class="flex justify-end"
-    >
-      <button
-        type="button"
-        class="btn-primary h-9 gap-1.5 px-3 text-xs"
-        @click="openCreate"
-      >
-        <AppIcon
-          name="add"
-          :size="15"
-        />
-        Thêm người truy cập
-      </button>
-    </div>
-
-    <div class="overflow-x-auto rounded-xl border border-slate-200/80 bg-white">
-      <table class="min-w-full text-sm">
-        <thead class="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-          <tr>
-            <th class="px-4 py-3">
-              Người dùng
-            </th>
-            <th class="px-4 py-3">
-              Username
-            </th>
-            <th class="px-4 py-3">
-              Cấp quyền
-            </th>
-            <th
-              v-if="canManageAccess"
-              class="w-16 px-4 py-3 text-right"
-            >
-              Thao tác
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="g in grants"
-            :key="g.id"
-            class="border-t border-slate-100"
+    <div class="card overflow-hidden">
+      <div class="border-b border-slate-100 px-5 py-3">
+        <div class="flex w-full min-w-0 flex-wrap items-center gap-2 lg:flex-nowrap">
+          <div class="min-w-0 w-full basis-full lg:flex-1 lg:basis-auto">
+            <DatagridToolbarSearch
+              v-model="searchQ"
+              hide-label
+              stretch
+              inline-actions
+              input-height="h-10"
+              placeholder="Tìm theo tên hoặc username…"
+              aria-label="Tìm người được cấp quyền"
+            />
+          </div>
+          <div
+            v-if="canManageAccess"
+            class="flex shrink-0 items-center gap-2"
           >
-            <td class="px-4 py-3 font-medium text-slate-800">
-              {{ g.account?.display_name || 'Chưa cập nhật' }}
-            </td>
-            <td class="px-4 py-3 text-slate-600">
-              {{ g.account?.username || 'Chưa cập nhật' }}
-            </td>
-            <td class="px-4 py-3">
-              <div class="flex flex-wrap gap-1">
-                <span
-                  v-for="perm in (g.permissions || [])"
-                  :key="perm"
-                  class="inline-flex rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-700"
-                >
-                  {{ permissionLabelMap[perm] || perm }}
-                </span>
-                <span
-                  v-if="!(g.permissions || []).length"
-                  class="text-xs text-slate-500"
-                >
-                  Chưa cập nhật
-                </span>
-              </div>
-            </td>
-            <td
-              v-if="canManageAccess"
-              class="px-4 py-3 text-right"
+            <button
+              type="button"
+              class="btn-primary h-10 gap-1.5 px-3 text-xs"
+              @click="openCreate"
             >
-              <CredentialAccessGrantRowActions
-                :grant="g"
-                @edit="openEdit"
-                @revoke="onRevoke"
+              <AppIcon
+                name="add"
+                :size="15"
               />
-            </td>
-          </tr>
-          <tr v-if="!grants.length">
-            <td
-              :colspan="canManageAccess ? 4 : 3"
-              class="px-4 py-8 text-center text-sm text-slate-500"
+              Thêm người truy cập
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-sm">
+          <thead class="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+            <tr>
+              <th class="px-4 py-3">
+                Người dùng
+              </th>
+              <th class="px-4 py-3">
+                Username
+              </th>
+              <th class="px-4 py-3">
+                Quyền
+              </th>
+              <th class="px-4 py-3">
+                Ngày cấp
+              </th>
+              <th class="px-4 py-3">
+                Hết hạn
+              </th>
+              <th class="px-4 py-3">
+                Người cấp
+              </th>
+              <th
+                v-if="canManageAccess"
+                class="w-16 px-4 py-3 text-right"
+              >
+                Thao tác
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-if="loadingGrants && !filteredGrants.length"
+              class="border-t border-slate-100"
             >
-              Chưa cấp quyền cho người dùng khác.
-            </td>
-          </tr>
-        </tbody>
-      </table>
+              <td
+                :colspan="canManageAccess ? 7 : 6"
+                class="px-4 py-8 text-center text-sm text-slate-500"
+              >
+                Đang tải danh sách quyền…
+              </td>
+            </tr>
+            <tr
+              v-for="g in filteredGrants"
+              :key="g.id"
+              class="border-t border-slate-100"
+            >
+              <td class="px-4 py-3 font-medium text-slate-800">
+                {{ displayOrEmpty(g.account?.display_name, EMPTY_LABELS.notUpdated) }}
+              </td>
+              <td class="px-4 py-3 text-slate-600">
+                {{ displayOrEmpty(g.account?.username, EMPTY_LABELS.notUpdated) }}
+              </td>
+              <td class="px-4 py-3">
+                <div class="flex flex-wrap gap-1">
+                  <span
+                    v-for="perm in (g.permissions || [])"
+                    :key="perm"
+                    class="inline-flex rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-700"
+                  >
+                    {{ permissionLabelMap[perm] || perm }}
+                  </span>
+                  <span
+                    v-if="!(g.permissions || []).length"
+                    class="text-xs text-slate-500"
+                  >
+                    Chưa cập nhật
+                  </span>
+                </div>
+              </td>
+              <td class="px-4 py-3 text-slate-600 tabular-nums">
+                {{ g.created_at ? datetime(g.created_at) : displayOrEmpty(null, EMPTY_LABELS.notUpdated) }}
+              </td>
+              <td class="px-4 py-3 text-slate-600 tabular-nums">
+                {{ formatExpires(g.expires_at) }}
+              </td>
+              <td class="px-4 py-3 text-slate-600">
+                {{ displayOrEmpty(g.granted_by?.display_name, EMPTY_LABELS.notUpdated) }}
+              </td>
+              <td
+                v-if="canManageAccess"
+                class="px-4 py-3 text-right"
+              >
+                <CredentialAccessGrantRowActions
+                  :grant="g"
+                  @edit="openEdit"
+                  @revoke="onRevoke"
+                />
+              </td>
+            </tr>
+            <tr v-if="!loadingGrants && !filteredGrants.length">
+              <td
+                :colspan="canManageAccess ? 7 : 6"
+                class="px-4 py-8 text-center text-sm text-slate-500"
+              >
+                {{ searchQ.trim() ? 'Không có người dùng khớp tìm kiếm.' : 'Chưa cấp quyền cho người dùng khác.' }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <CredentialAccessGrantModal

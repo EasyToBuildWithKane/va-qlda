@@ -26,6 +26,7 @@ Module quản lý tài khoản, mật khẩu và liên kết hạ tầng nội b
 
 - Pages: `resources/js/Pages/Credential/`
 - Module: `resources/js/modules/credential/`
+- Chi tiết `/credentials/{id}`: tab Nhật ký phân trang query `audit_page`, `audit_per_page`; tab Phân quyền datagrid toolbar + API `access-grants.index` đồng bộ danh sách
 
 ## Phân quyền nav
 

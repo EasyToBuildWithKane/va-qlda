@@ -62,7 +62,10 @@ class CredentialResource extends JsonResource
                 'id' => $this->owner->id,
                 'display_name' => $this->owner->display_name,
             ] : null),
-            'access_grants' => CredentialAccessGrantResource::collection($this->whenLoaded('accessGrants')),
+            'access_grants' => $this->when(
+                $this->relationLoaded('accessGrants'),
+                fn () => CredentialAccessGrantResource::collection($this->accessGrants)->resolve(),
+            ),
             'outgoing_relations' => CredentialRelationResource::collection($this->whenLoaded('outgoingRelations')),
             'password_histories' => CredentialPasswordHistoryResource::collection($this->whenLoaded('passwordHistories')),
             'can' => $user ? [
