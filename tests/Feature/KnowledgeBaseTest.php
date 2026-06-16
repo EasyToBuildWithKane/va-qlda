@@ -123,6 +123,36 @@ class KnowledgeBaseTest extends TestCase
         $this->assertSame(1, $article->fresh()->view_count);
     }
 
+    public function test_member_can_toggle_favorite_on_show(): void
+    {
+        $account = $this->member();
+        $category = KbCategory::query()->first();
+        $article = KbArticle::create([
+            'category_id' => $category->id,
+            'author_id' => $account->employee_id,
+            'title' => 'Fav test',
+            'slug' => 'fav-test',
+            'content' => '<p>x</p>',
+            'status' => KbArticleStatus::Published,
+            'published_at' => now(),
+        ]);
+
+        $this->actingAs($account)
+            ->post(route('knowledge-base.articles.favorite', $article))
+            ->assertRedirect(route('knowledge-base.articles.show', $article));
+
+        $this->assertDatabaseHas('kb_article_favorites', [
+            'system_account_id' => $account->id,
+            'article_id' => $article->id,
+        ]);
+
+        $this->actingAs($account)
+            ->get(route('knowledge-base.articles.show', $article))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('article.is_favorite', true));
+    }
+
     public function test_member_can_upload_inline_image(): void
     {
         $account = $this->member();

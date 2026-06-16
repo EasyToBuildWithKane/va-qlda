@@ -12,20 +12,13 @@ import DatagridFilterField from '@/shared/ui/DatagridFilterField.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import ColumnVisibilityDropdown from '@/shared/ui/ColumnVisibilityDropdown.vue';
 import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
-import DatagridSegmentedControl from '@/shared/ui/DatagridSegmentedControl.vue';
 import KbArticleCard from '@/Components/KnowledgeBase/KbArticleCard.vue';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
 import { useVisibleColumns } from '@/shared/composables/useVisibleColumns';
 import { exportKbArticlesWorkbook, exportKbArticlesCsv, fetchKbArticlesForExport } from '@/composables/useKbExport';
 import { useToast } from '@/shared/composables/useToast';
 
-const VIEW_KEY = 'va-qlda.knowledge-base.view';
 const PER_PAGE_OPTIONS = [10, 15, 20, 30];
-
-const VIEW_TABS = [
-    { key: 'cards', label: 'Thẻ', icon: 'grid', title: 'Thẻ theo danh mục' },
-    { key: 'list', label: 'Danh sách', icon: 'list', title: 'Danh sách dọc' },
-];
 
 const FILTER_CONTROL_CLASS = 'input h-10 w-full text-sm';
 
@@ -55,21 +48,6 @@ const filterForm = reactive({
 });
 
 const perPage = ref(Number(props.filters.per_page) || props.articles.meta?.per_page || 15);
-
-const viewMode = ref(
-    typeof localStorage !== 'undefined' && localStorage.getItem(VIEW_KEY) === 'list'
-        ? 'list'
-        : 'cards',
-);
-
-function setViewMode(mode) {
-    viewMode.value = mode;
-    try {
-        localStorage.setItem(VIEW_KEY, mode);
-    } catch {
-        /* ignore */
-    }
-}
 
 const categorySortIndex = computed(() => {
     const map = new Map();
@@ -365,16 +343,6 @@ async function runExport(format) {
               </div>
             </div>
           </div>
-
-          <div class="ml-auto flex shrink-0 items-center gap-2">
-            <DatagridSegmentedControl
-              :model-value="viewMode"
-              :items="VIEW_TABS"
-              aria-label="Chế độ hiển thị bài viết"
-              icon-only-below-sm
-              @update:model-value="setViewMode"
-            />
-          </div>
         </div>
 
         <div
@@ -463,7 +431,7 @@ async function runExport(format) {
       </div>
 
       <div
-        v-else-if="viewMode === 'cards'"
+        v-else
         class="divide-y divide-slate-100"
       >
         <section
@@ -483,14 +451,13 @@ async function runExport(format) {
               {{ group.items.length }} bài
             </span>
           </div>
-          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             <KbArticleCard
               v-for="a in group.items"
               :key="a.id"
               :article="a"
-              variant="grid"
               :show-status="isColVisible('status')"
-              :show-category="isColVisible('category')"
+              :show-category="false"
               :show-excerpt="isColVisible('excerpt')"
               :show-tags="isColVisible('tags')"
               :show-views="isColVisible('views')"
@@ -499,25 +466,6 @@ async function runExport(format) {
             />
           </div>
         </section>
-      </div>
-
-      <div
-        v-else
-        class="space-y-3 p-4 sm:p-5"
-      >
-        <KbArticleCard
-          v-for="a in articles.data"
-          :key="a.id"
-          :article="a"
-          variant="list"
-          :show-status="isColVisible('status')"
-          :show-category="isColVisible('category')"
-          :show-excerpt="isColVisible('excerpt')"
-          :show-tags="isColVisible('tags')"
-          :show-views="isColVisible('views')"
-          :show-author="isColVisible('author')"
-          :show-updated="isColVisible('updated')"
-        />
       </div>
 
       <DatagridPaginationFooter

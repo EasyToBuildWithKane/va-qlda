@@ -4,10 +4,14 @@ import {
 } from 'vue';
 import { usePage, Link } from '@inertiajs/vue3';
 import CongngheUserMenu from './CongngheUserMenu.vue';
+import RippleSurface from './RippleSurface.vue';
 import { congngheBrand } from './congngheBrand.js';
 import CongngheBrandImage from './CongngheBrandImage.vue';
+import { useMagneticGroup } from './motion.js';
 
 const page = usePage();
+
+const { register } = useMagneticGroup({ strength: 0.15 });
 
 const props = defineProps({
     content: { type: Object, default: () => ({}) },
@@ -143,7 +147,7 @@ const navPadClass = computed(() => (scrolled.value ? 'py-2.5 sm:py-3' : 'py-3.5 
       aria-hidden="true"
     />
     <div
-      class="pointer-events-none absolute inset-0 opacity-[0.28]"
+      class="pointer-events-none absolute inset-0 animate-cn-pulse-grid opacity-[0.28]"
       aria-hidden="true"
       style="background-image: linear-gradient(rgba(56,189,248,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(56,189,248,0.05) 1px, transparent 1px); background-size: 28px 28px;"
     />
@@ -194,9 +198,10 @@ const navPadClass = computed(() => (scrolled.value ? 'py-2.5 sm:py-3' : 'py-3.5 
         >
           <a
             v-for="link in links"
+            :ref="(el) => register(el)"
             :key="link.id"
             :href="sectionHref(link.id)"
-            class="relative rounded-full px-3.5 py-2 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50 md:px-4 md:text-sm"
+            class="relative rounded-full px-3.5 py-2 text-[13px] font-medium transition-colors will-change-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50 md:px-4 md:text-sm"
             :class="activeId === link.id ? 'text-white' : 'text-white/55 hover:text-white/90'"
             :aria-current="activeId === link.id ? 'true' : undefined"
           >
@@ -213,9 +218,10 @@ const navPadClass = computed(() => (scrolled.value ? 'py-2.5 sm:py-3' : 'py-3.5 
       <div class="flex shrink-0 items-center justify-end gap-2 lg:justify-self-end">
         <Link
           :href="proposalHref"
-          class="hidden h-10 items-center gap-1.5 rounded-full border border-brand/45 bg-brand/20 px-4 text-xs font-semibold text-white shadow-[0_4px_20px_-6px_rgba(154,0,54,0.65)] transition hover:bg-brand/35 sm:flex sm:text-sm"
+          class="relative hidden h-10 items-center gap-1.5 overflow-hidden rounded-full border border-brand/45 bg-brand/20 px-4 text-xs font-semibold text-white shadow-[0_4px_20px_-6px_rgba(154,0,54,0.65)] transition hover:bg-brand/35 sm:flex sm:text-sm"
         >
-          Đề xuất PM
+          <span class="relative z-10">Đề xuất PM</span>
+          <RippleSurface color="rgba(255,77,141,0.35)" />
         </Link>
         <div
           v-if="authUser"

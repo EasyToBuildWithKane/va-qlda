@@ -2,6 +2,8 @@
 import { computed } from 'vue';
 import SectionHeading from './SectionHeading.vue';
 import CountStat from './CountStat.vue';
+import AnalyzingBadge from './AnalyzingBadge.vue';
+import DataStreamTicker from './DataStreamTicker.vue';
 import { useInView } from './motion.js';
 
 const props = defineProps({
@@ -12,7 +14,22 @@ const props = defineProps({
 const { target, shown } = useInView({ threshold: 0.2 });
 
 const heading = computed(() => props.content?.heading ?? {});
-const liveBadge = computed(() => props.content?.live_badge ?? '');
+const liveBadge = computed(() => props.content?.live_badge ?? 'dữ liệu trực tiếp');
+
+const streamItems = computed(() => {
+    const m = props.metrics ?? {};
+    const tasks = Number(m.tasks ?? 0);
+    const done = Number(m.doneTasks ?? 0);
+    const pct = tasks > 0 ? Math.round((done / tasks) * 100) : 0;
+    return [
+        `${m.activeProjects ?? 0} dự án đang chạy`,
+        `${m.completedProjects ?? 0} dự án hoàn thành`,
+        `${pct}% công việc đã xong`,
+        `${m.departments ?? 0} phòng ban phối hợp`,
+        `${m.orgTeams ?? 0} đội nhóm`,
+        `${m.aiAccounts ?? 0} tài khoản AI`,
+    ];
+});
 
 const stats = computed(() => {
     const m = props.metrics ?? {};
@@ -94,13 +111,12 @@ function toneOf(tone) {
           :title="heading.title"
           :subtitle="heading.subtitle"
         />
-        <div
+        <AnalyzingBadge
           v-if="liveBadge"
-          class="hidden shrink-0 items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1.5 font-mono text-[11px] text-emerald-300 sm:flex"
-        >
-          <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-cn-glow" />
-          {{ liveBadge }}
-        </div>
+          class="hidden shrink-0 sm:inline-flex"
+          :label="liveBadge"
+          tone="emerald"
+        />
       </div>
 
       <!-- Một hàng trên desktop; mobile cuộn ngang -->
@@ -109,7 +125,17 @@ function toneOf(tone) {
         :class="shown ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'"
       >
         <div
-          class="flex snap-x snap-mandatory gap-0 overflow-x-auto overscroll-x-contain lg:grid lg:grid-cols-6 lg:overflow-visible lg:snap-none"
+          class="pointer-events-none absolute inset-0 z-0 animate-cn-pulse-grid"
+          style="
+            background-image:
+              linear-gradient(to right, rgba(255,255,255,0.05) 1px, transparent 1px),
+              linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px);
+            background-size: 26px 26px;
+          "
+          aria-hidden="true"
+        />
+        <div
+          class="relative z-10 flex snap-x snap-mandatory gap-0 overflow-x-auto overscroll-x-contain lg:grid lg:grid-cols-6 lg:overflow-visible lg:snap-none"
           role="list"
         >
           <article
@@ -168,6 +194,13 @@ function toneOf(tone) {
           </article>
         </div>
       </div>
+
+      <!-- Dòng dữ liệu cuộn liên tục -->
+      <DataStreamTicker
+        class="mt-5"
+        :items="streamItems"
+        variant="marquee"
+      />
     </div>
   </section>
 </template>

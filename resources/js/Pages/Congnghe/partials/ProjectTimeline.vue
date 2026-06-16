@@ -2,9 +2,11 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import SectionHeading from './SectionHeading.vue';
 import GlassCard from './GlassCard.vue';
+import AnalyzingBadge from './AnalyzingBadge.vue';
+import DataStreamTicker from './DataStreamTicker.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
 import { tone } from './tones.js';
-import { useInView } from './motion.js';
+import { useInView, useMagneticGroup } from './motion.js';
 import { openCongngheProject } from './useCongngheProjectModal.js';
 import CongngheProjectGallery from './CongngheProjectGallery.vue';
 import RichContentBody from '@/shared/ui/RichContentBody.vue';
@@ -20,9 +22,11 @@ const props = defineProps({
 });
 
 const { target, shown: sectionVisible } = useInView({ threshold: 0.12 });
+const { register } = useMagneticGroup({ strength: 0.12 });
 
 const heading = computed(() => props.content?.heading ?? {});
 const PHASE_HINT = computed(() => props.content?.phase_hints ?? {});
+const phaseStream = computed(() => props.phases.map((p) => `${p.label}: ${p.total} dự án`));
 
 const activePhaseIndex = ref(0);
 const slideIndex = ref(0);
@@ -158,6 +162,14 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
         </div>
       </div>
 
+      <DataStreamTicker
+        v-if="phaseStream.length"
+        class="mt-5"
+        :items="phaseStream"
+        variant="marquee"
+        :speed="30"
+      />
+
       <!-- Lifecycle chapter rail -->
       <div
         class="mt-10 transition-all duration-700"
@@ -171,10 +183,11 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
             :key="phase.value"
           >
             <button
+              :ref="(el) => register(el)"
               type="button"
               role="tab"
               :aria-selected="activePhaseIndex === i"
-              class="group relative flex min-w-0 flex-1 items-center gap-3 overflow-hidden rounded-2xl border px-4 py-3.5 text-left transition-all duration-300 sm:px-5"
+              class="group relative flex min-w-0 flex-1 items-center gap-3 overflow-hidden rounded-2xl border px-4 py-3.5 text-left transition-all duration-300 will-change-transform sm:px-5"
               :class="activePhaseIndex === i
                 ? 'border-white/25 bg-white/[0.08] shadow-[0_10px_40px_-16px_rgba(255,77,141,0.6)]'
                 : 'border-white/10 bg-white/[0.025] hover:border-white/20 hover:bg-white/[0.05]'"
@@ -260,9 +273,15 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
                 {{ PHASE_HINT[activePhase.value] }}
               </p>
             </div>
-            <p class="shrink-0 font-mono text-[10px] uppercase tracking-wider text-white/35">
-              Phím ← → để lướt
-            </p>
+            <div class="flex shrink-0 items-center gap-3">
+              <AnalyzingBadge
+                label="AI theo dõi tiến độ"
+                tone="violet"
+              />
+              <p class="hidden font-mono text-[10px] uppercase tracking-wider text-white/35 sm:block">
+                Phím ← → để lướt
+              </p>
+            </div>
           </div>
 
           <div class="relative overflow-hidden rounded-3xl ring-1 ring-white/10">

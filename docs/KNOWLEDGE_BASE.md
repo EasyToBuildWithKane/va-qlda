@@ -11,7 +11,7 @@
 |---|---|
 | Lưu trữ tri thức tổ chức | Quy trình, HOWTO, onboarding, kinh nghiệm thực tế, tài liệu nội bộ |
 | Khám phá nội dung | Sidebar danh mục, danh sách bài, tìm kiếm, lọc tag/danh mục |
-| Đọc & tương tác | TOC tự động, breadcrumb, bài liên quan, yêu thích, đánh dấu đã đọc, lượt xem |
+| Đọc & tương tác | TOC tự động, bài liên quan, yêu thích, đánh dấu đã đọc, lượt xem |
 | Cộng tác nội bộ | Bình luận (tái sử dụng polymorphic `Comment`) |
 | Xuất bản có kiểm soát | Draft → Published → Archived, phân quyền xem theo vai trò |
 
@@ -163,7 +163,7 @@ Tham chiếu UX: Viblo (list + tag), Notion Wiki (sidebar cây), Confluence (bre
 │ Index: chip yêu thích (nếu có)                               │
 │        toolbar Tìm kiếm + Lọc/Cột/Xuất + chế độ Thẻ/Danh sách │
 │        → Thẻ: lưới card nhóm theo danh mục (tiêu đề + line ngang) │
-│ Show: breadcrumb + title + meta + TOC + body + …             │
+│ Show: PageHeader + title + meta + body full width + TOC cuối trang │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -254,7 +254,7 @@ Tests: `tests/Feature/*` KB policy/CRUD; E2E `tests/e2e/knowledge-coaching.spec.
 - [x] Migrations + seed 8 danh mục
 - [x] CRUD bài + upload ảnh/attachment + TipTap inline image
 - [x] Index: PageHeader, search, filter category/tag/status, yêu thích
-- [x] Show: breadcrumb, TOC (server anchors), related, view count, favorite/read
+- [x] Show: layout full width, TOC + related (cuối trang), view count, favorite/read
 - [x] Comments morph hoạt động
 - [x] Policy + Nav + messages tiếng Việt
 - [x] Feature tests + E2E smoke (`tests/e2e/knowledge-coaching.spec.js`)

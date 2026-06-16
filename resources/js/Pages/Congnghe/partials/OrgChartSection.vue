@@ -8,6 +8,7 @@ import {
     formatCongngheMemberRoleTitle,
     shouldShowMemberSectionChip,
 } from './useCongngheOrgLayout.js';
+import ScanLineOverlay from './ScanLineOverlay.vue';
 import { useInView } from './motion.js';
 
 const props = defineProps({
@@ -206,6 +207,10 @@ onBeforeUnmount(() => {
             aria-modal="true"
           >
             <div class="pointer-events-none absolute inset-x-0 top-0 h-40 bg-[radial-gradient(80%_120%_at_50%_-20%,rgba(255,77,141,0.35),transparent_70%)]" />
+            <ScanLineOverlay
+              trigger="always"
+              tone="brand"
+            />
 
             <button
               type="button"

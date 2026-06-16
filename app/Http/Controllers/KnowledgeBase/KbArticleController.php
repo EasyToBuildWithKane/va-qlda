@@ -159,16 +159,13 @@ class KbArticleController extends Controller
 
         $resolved = (new KbArticleResource($article))->resolve();
         $resolved['content'] = $contentHtml;
+        $resolved['is_favorite'] = (bool) $article->is_favorite;
+        $resolved['is_read'] = (bool) $article->is_read;
 
         return Inertia::render('KnowledgeBase/Show', [
             'article' => $resolved,
             'toc' => $toc,
             'related' => $related,
-            'breadcrumb' => [
-                ['label' => 'Tri thức', 'href' => route('knowledge-base.index')],
-                ['label' => $article->category?->name ?? '—', 'href' => route('knowledge-base.index', ['category_id' => $article->category_id])],
-                ['label' => $article->title],
-            ],
         ]);
     }
 
@@ -235,15 +232,21 @@ class KbArticleController extends Controller
                 ->where('system_account_id', $account->id)
                 ->where('article_id', $article->id)
                 ->delete();
-        } else {
-            DB::table('kb_article_favorites')->insert([
-                'system_account_id' => $account->id,
-                'article_id' => $article->id,
-                'created_at' => now(),
-            ]);
+
+            return redirect()
+                ->route('knowledge-base.articles.show', $article)
+                ->with('success', 'Đã bỏ yêu thích.');
         }
 
-        return back();
+        DB::table('kb_article_favorites')->insert([
+            'system_account_id' => $account->id,
+            'article_id' => $article->id,
+            'created_at' => now(),
+        ]);
+
+        return redirect()
+            ->route('knowledge-base.articles.show', $article)
+            ->with('success', 'Đã thêm vào yêu thích.');
     }
 
     public function markRead(Request $request, KbArticle $article): RedirectResponse
@@ -262,7 +265,9 @@ class KbArticleController extends Controller
             ],
         );
 
-        return back();
+        return redirect()
+            ->route('knowledge-base.articles.show', $article)
+            ->with('success', 'Đã đánh dấu đã đọc.');
     }
 
     public function storeAttachment(Request $request, KbArticle $article): RedirectResponse
@@ -432,6 +437,7 @@ class KbArticleController extends Controller
     {
         $query = KbArticle::query()
             ->with(['category', 'author', 'tags'])
+            ->with(['galleryImages' => fn ($q) => $q->orderBy('sort_order')->limit(1)])
             ->withCount('comments')
             ->latest('updated_at');
 

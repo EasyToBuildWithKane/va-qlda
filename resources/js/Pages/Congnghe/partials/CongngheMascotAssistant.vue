@@ -9,6 +9,7 @@ import { useCongngheAssistantDock } from './useCongngheAssistantDock.js';
 import { congngheMascotActions } from './congngheMascotActions.js';
 import { congngheBrand } from './congngheBrand.js';
 import CongngheMascotAnimated from './CongngheMascotAnimated.vue';
+import TypewriterText from './TypewriterText.vue';
 
 const props = defineProps({
     proposalPage: { type: Boolean, default: false },
@@ -263,12 +264,13 @@ function onHideClick() {
             </div>
 
             <div class="relative z-[1] px-3.5 py-3">
-              <p
-                :key="`${activeId}-${tipIndex}`"
-                class="text-[13px] leading-relaxed text-white/90"
-                :class="prefersReducedMotionNow() ? '' : 'animate-cn-rise'"
-              >
-                {{ currentLine }}
+              <p class="text-[13px] leading-relaxed text-white/90">
+                <TypewriterText
+                  :key="`${activeId}-${tipIndex}`"
+                  :text="currentLine"
+                  :active="panelOpen"
+                  :speed="18"
+                />
               </p>
               <div
                 v-if="context.lines.length > 1"

@@ -1,8 +1,9 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import SectionHeading from './SectionHeading.vue';
+import DataStreamTicker from './DataStreamTicker.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
-import { useInView, prefersReducedMotionNow } from './motion.js';
+import { useInView, useScrollScene, prefersReducedMotionNow } from './motion.js';
 import { openCongngheProject } from './useCongngheProjectModal.js';
 import { richContentPlainText } from '@/shared/utils/richContent';
 
@@ -12,8 +13,16 @@ const props = defineProps({
 });
 
 const { target, shown: sectionVisible } = useInView({ threshold: 0.1 });
+const sceneProgress = useScrollScene(target);
 
 const heading = computed(() => props.content?.heading ?? {});
+
+// Drift nền theo scroll + ticker mã sản phẩm (dữ liệu thật)
+const blobA = computed(() => ({ transform: `translateY(${((sceneProgress.value - 0.5) * 60).toFixed(1)}px)` }));
+const blobB = computed(() => ({ transform: `translateY(${((0.5 - sceneProgress.value) * 60).toFixed(1)}px)` }));
+const streamItems = computed(() => props.products.map(
+    (p) => `${p.code || p.name} · ${p.progress ?? 0}%`,
+));
 
 const trackRef = ref(null);
 const activeIndex = ref(0);
@@ -151,8 +160,14 @@ onBeforeUnmount(() => {
       aria-hidden="true"
       class="pointer-events-none absolute inset-0 -z-0"
     >
-      <div class="absolute left-[4%] top-16 h-56 w-56 rounded-full bg-emerald-500/12 blur-[100px] animate-cn-float" />
-      <div class="absolute right-[6%] bottom-6 h-64 w-64 rounded-full bg-cyan-500/10 blur-[100px] animate-cn-float-x" />
+      <div
+        class="absolute left-[4%] top-16 h-56 w-56 rounded-full bg-emerald-500/12 blur-[100px] animate-cn-float"
+        :style="blobA"
+      />
+      <div
+        class="absolute right-[6%] bottom-6 h-64 w-64 rounded-full bg-cyan-500/10 blur-[100px] animate-cn-float-x"
+        :style="blobB"
+      />
     </div>
 
     <div class="relative mx-auto min-w-0 max-w-7xl px-5 sm:px-8">
@@ -210,6 +225,14 @@ onBeforeUnmount(() => {
           </button>
         </div>
       </div>
+
+      <DataStreamTicker
+        v-if="slideCount"
+        class="mt-5"
+        :items="streamItems"
+        variant="marquee"
+        :speed="34"
+      />
 
       <div
         v-if="slideCount"

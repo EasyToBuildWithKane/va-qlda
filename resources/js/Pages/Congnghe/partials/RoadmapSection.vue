@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 import SectionHeading from './SectionHeading.vue';
 import GlassCard from './GlassCard.vue';
-import { useInView } from './motion.js';
+import { useInView, useScrollScene } from './motion.js';
 import { congngheBrand } from './congngheBrand.js';
 import CongngheBrandBackdrop from './CongngheBrandBackdrop.vue';
 import CongngheBrandImage from './CongngheBrandImage.vue';
@@ -12,6 +12,7 @@ const props = defineProps({
 });
 
 const { target, shown } = useInView({ threshold: 0.1 });
+const drawProgress = useScrollScene(target, { start: 0.08, end: 0.65 });
 
 const heading = computed(() => props.content?.heading ?? {});
 const milestones = computed(() => props.content?.milestones ?? []);
@@ -42,12 +43,18 @@ const companionNote = computed(() => props.content?.companion_note ?? '');
       <div class="mt-10 grid gap-10 lg:mt-12 lg:grid-cols-2 lg:items-center lg:gap-12 xl:gap-16">
         <!-- Cột trái: timeline -->
         <div class="min-w-0">
-          <ol class="relative space-y-7 before:absolute before:left-[18px] before:top-3 before:h-[calc(100%-1.5rem)] before:w-px before:bg-gradient-to-b before:from-brand before:via-brand/30 before:to-transparent sm:before:left-[22px]">
+          <ol class="relative space-y-7 before:absolute before:left-[18px] before:top-3 before:h-[calc(100%-1.5rem)] before:w-px before:bg-white/10 sm:before:left-[22px]">
+            <!-- Đường timeline "vẽ" dần theo scroll -->
+            <span
+              class="pointer-events-none absolute left-[18px] top-3 h-[calc(100%-1.5rem)] w-px origin-top bg-gradient-to-b from-brand via-[#ff4d8d] to-brand/40 sm:left-[22px]"
+              :style="{ transform: `scaleY(${drawProgress})` }"
+              aria-hidden="true"
+            />
             <li
               v-for="(m, i) in milestones"
               :key="m.title"
               class="relative pl-14 transition-all duration-700 sm:pl-16"
-              :class="shown ? 'translate-x-0 opacity-100' : '-translate-x-5 opacity-0'"
+              :class="shown ? 'translate-x-0 opacity-100' : (i % 2 ? 'translate-x-5 opacity-0' : '-translate-x-5 opacity-0')"
               :style="{ transitionDelay: `${i * 120}ms` }"
             >
               <span class="absolute left-0 top-1 grid h-9 w-9 place-items-center overflow-hidden rounded-full border border-brand/40 bg-white/[0.04] sm:h-11 sm:w-11">

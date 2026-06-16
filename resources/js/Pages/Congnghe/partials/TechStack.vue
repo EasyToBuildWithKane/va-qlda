@@ -2,13 +2,15 @@
 import { computed } from 'vue';
 import SectionHeading from './SectionHeading.vue';
 import GlassCard from './GlassCard.vue';
-import { useInView } from './motion.js';
+import NeuralBackdrop from './NeuralBackdrop.vue';
+import { useInView, useMagneticGroup } from './motion.js';
 
 const props = defineProps({
     content: { type: Object, default: () => ({}) },
 });
 
 const { target, shown } = useInView();
+const { register } = useMagneticGroup({ strength: 0.2 });
 
 const heading = computed(() => props.content?.heading ?? {});
 const groups = computed(() => props.content?.groups ?? []);
@@ -18,9 +20,15 @@ const groups = computed(() => props.content?.groups ?? []);
   <section
     id="cong-nghe"
     ref="target"
-    class="relative py-20"
+    class="relative overflow-hidden py-20"
   >
-    <div class="mx-auto max-w-7xl px-5 sm:px-8">
+    <NeuralBackdrop
+      class="opacity-40"
+      :node-count="20"
+      :seed="13"
+      tone="violet"
+    />
+    <div class="relative z-10 mx-auto max-w-7xl px-5 sm:px-8">
       <SectionHeading
         :eyebrow="heading.eyebrow"
         :title="heading.title"
@@ -49,8 +57,9 @@ const groups = computed(() => props.content?.groups ?? []);
           <ul class="mt-4 flex flex-wrap gap-2">
             <li
               v-for="item in (group.items ?? [])"
+              :ref="(el) => register(el)"
               :key="item"
-              class="rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1.5 font-mono text-[12px] text-white/75 transition-colors hover:border-brand/40 hover:text-white"
+              class="rounded-lg border border-white/10 bg-white/[0.04] px-2.5 py-1.5 font-mono text-[12px] text-white/75 transition duration-200 will-change-transform hover:border-brand/40 hover:text-white"
             >
               {{ item }}
             </li>

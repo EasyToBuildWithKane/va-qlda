@@ -66,8 +66,8 @@ class KbArticleResource extends JsonResource
                 fn () => $this->coverImageUrl(),
             ),
             'comments' => CommentResource::collection($this->whenLoaded('comments')),
-            'is_favorite' => $this->when(property_exists($this->resource, 'is_favorite'), (bool) $this->resource->is_favorite),
-            'is_read' => $this->when(property_exists($this->resource, 'is_read'), (bool) $this->resource->is_read),
+            ...(property_exists($this->resource, 'is_favorite') ? ['is_favorite' => (bool) $this->resource->is_favorite] : []),
+            ...(property_exists($this->resource, 'is_read') ? ['is_read' => (bool) $this->resource->is_read] : []),
             'can' => $user ? [
                 'update' => $user->can('update', $this->resource),
                 'delete' => $user->can('delete', $this->resource),

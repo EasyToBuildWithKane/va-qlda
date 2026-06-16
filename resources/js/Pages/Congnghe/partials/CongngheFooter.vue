@@ -3,8 +3,11 @@ import { computed } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import { congngheBrand } from './congngheBrand.js';
 import CongngheBrandImage from './CongngheBrandImage.vue';
+import { useInView } from './motion.js';
 
 const page = usePage();
+
+const { target, shown } = useInView({ threshold: 0.12 });
 
 const props = defineProps({
     content: { type: Object, default: () => ({}) },
@@ -53,11 +56,13 @@ const year = new Date().getFullYear();
       aria-hidden="true"
       style="background-image: radial-gradient(circle at 20% 0%, rgba(154,0,54,0.35), transparent 45%), radial-gradient(circle at 80% 100%, rgba(56,189,248,0.12), transparent 40%);"
     />
-    <div class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-cyan-400/30 via-brand to-violet-500/30" />
+    <div class="pointer-events-none absolute inset-x-0 top-0 h-px animate-cn-text-shimmer bg-gradient-to-r from-cyan-400/30 via-brand to-violet-500/30 bg-[length:200%_100%]" />
 
     <div class="relative mx-auto max-w-7xl px-4 py-10 sm:px-6 md:px-8 md:py-12">
       <div
+        ref="target"
         class="cn-footer-grid grid grid-cols-1 gap-10 sm:grid-cols-2 sm:gap-8 lg:grid-cols-4 lg:gap-6 xl:gap-8"
+        :class="{ 'cn-revealed': shown }"
       >
         <div class="cn-footer-col flex min-w-0 flex-col text-center sm:text-left">
           <p :class="colHeadingClass">
@@ -167,6 +172,38 @@ const year = new Date().getFullYear();
 
     .cn-footer-col {
         width: 100%;
+    }
+}
+
+/* Reveal-on-scroll từng cột, lệch nhịp nhẹ */
+.cn-footer-col {
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+}
+
+.cn-revealed .cn-footer-col {
+    opacity: 1;
+    transform: none;
+}
+
+.cn-revealed .cn-footer-col:nth-child(2) {
+    transition-delay: 0.08s;
+}
+
+.cn-revealed .cn-footer-col:nth-child(3) {
+    transition-delay: 0.16s;
+}
+
+.cn-revealed .cn-footer-col:nth-child(4) {
+    transition-delay: 0.24s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cn-footer-col {
+        opacity: 1;
+        transform: none;
+        transition: none;
     }
 }
 </style>

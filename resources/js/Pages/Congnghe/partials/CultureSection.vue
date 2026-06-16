@@ -2,6 +2,8 @@
 import { computed, inject } from 'vue';
 import SectionHeading from './SectionHeading.vue';
 import GlassCard from './GlassCard.vue';
+import RippleSurface from './RippleSurface.vue';
+import ScanLineOverlay from './ScanLineOverlay.vue';
 import { useInView } from './motion.js';
 
 const props = defineProps({
@@ -43,8 +45,15 @@ function iconPath(key) {
           :class="shown ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'"
           :style="{ transitionDelay: `${i * 80}ms` }"
         >
+          <template #overlay>
+            <ScanLineOverlay
+              trigger="hover"
+              tone="brand"
+            />
+            <RippleSurface />
+          </template>
           <div class="flex items-center justify-between">
-            <span class="grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br from-brand/80 to-[#ff4d8d]/80 text-white shadow-lg shadow-brand/20">
+            <span class="grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br from-brand/80 to-[#ff4d8d]/80 text-white shadow-lg shadow-brand/20 transition-transform duration-300 group-hover/glass:scale-110">
               <svg
                 width="22"
                 height="22"
@@ -56,7 +65,7 @@ function iconPath(key) {
                 stroke-linejoin="round"
               ><path :d="iconPath(v.icon)" /></svg>
             </span>
-            <span class="font-mono text-[11px] uppercase tracking-wider text-white/25">0{{ i + 1 }}</span>
+            <span class="bg-gradient-to-r from-white/45 to-white/10 bg-[length:200%_auto] bg-clip-text font-mono text-[11px] uppercase tracking-wider text-transparent group-hover/glass:animate-cn-text-shimmer">0{{ i + 1 }}</span>
           </div>
           <h3 class="mt-4 font-display text-base font-bold text-white">
             {{ v.title }}
