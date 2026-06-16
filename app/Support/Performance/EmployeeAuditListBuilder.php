@@ -3,7 +3,6 @@
 namespace App\Support\Performance;
 
 use App\Models\Employee;
-use App\Models\OrgTeamMember;
 use App\Models\Task;
 use App\Support\Enums\TaskStatus;
 use App\Support\PublicMediaUrl;
@@ -32,27 +31,27 @@ class EmployeeAuditListBuilder
 
         $tasks = $this->periodTasks($filter, $employeeIds);
         $tasksByAssignee = $tasks->groupBy('assignee_id');
+        $bucketDefs = PerformancePeriodBuckets::forFilter($filter);
 
-        $teamNames = $this->primaryTeamNames($employeeIds);
+        $unitNames = EmployeeOrgUnitResolver::labelsFor($employeeIds);
 
         $employees = Employee::query()
             ->whereIn('id', $employeeIds)
             ->orderBy('full_name')
             ->get(['id', 'full_name', 'avatar_path', 'role_title']);
 
-        $rows = $employees->map(function (Employee $emp) use ($tasksByAssignee, $teamNames, $filter) {
-            $metrics = $this->metricsForEmployee(
-                $tasksByAssignee->get($emp->id, collect()),
-                $filter,
-            );
+        $rows = $employees->map(function (Employee $emp) use ($tasksByAssignee, $unitNames, $filter, $bucketDefs) {
+            $empTasks = $tasksByAssignee->get($emp->id, collect());
+            $metrics = $this->metricsForEmployee($empTasks, $filter);
 
             return [
                 'id' => $emp->id,
                 'name' => $emp->full_name,
                 'role' => $emp->role_title,
                 'avatar' => PublicMediaUrl::fromPublicDisk($emp->avatar_path),
-                'teamName' => $teamNames[$emp->id] ?? '—',
+                'unitName' => $unitNames[$emp->id] ?? null,
                 'periodLabel' => $filter->label,
+                'periodBuckets' => $this->periodBucketsForEmployee($empTasks, $bucketDefs),
                 'committed' => $metrics['committed'],
                 'done' => $metrics['done'],
                 'commitmentRate' => $metrics['commitmentRate'],
@@ -107,10 +106,14 @@ class EmployeeAuditListBuilder
      * @param  Collection<int, Task>  $allTasks
      * @return array{committed:int, done:int, commitmentRate:int, avgScore:int, grade:string}
      */
-    private function metricsForEmployee(Collection $allTasks, PerformanceFilter $filter): array
-    {
-        $start = $filter->start;
-        $end = $filter->end;
+    private function metricsForEmployee(
+        Collection $allTasks,
+        ?PerformanceFilter $filter = null,
+        ?\Illuminate\Support\Carbon $start = null,
+        ?\Illuminate\Support\Carbon $end = null,
+    ): array {
+        $start = $start ?? $filter->start;
+        $end = $end ?? $filter->end;
 
         $planned = $allTasks->filter(function (Task $t) use ($start, $end) {
             $due = $t->due_date && $t->due_date->betweenIncluded($start, $end);
@@ -147,24 +150,31 @@ class EmployeeAuditListBuilder
             'done' => $done,
             'commitmentRate' => $commitmentRate,
             'avgScore' => $avgScore,
-            'grade' => $committed > 0 ? $this->scorer->grade($avgScore) : '—',
+            'grade' => $committed > 0 ? $this->scorer->grade($avgScore) : null,
         ];
     }
 
     /**
-     * @param  Collection<int, int>  $employeeIds
-     * @return array<int, string>
+     * @param  Collection<int, Task>  $allTasks
+     * @param  list<array{key:string, label:string, start:\Illuminate\Support\Carbon, end:\Illuminate\Support\Carbon}>  $bucketDefs
+     * @return list<array<string, mixed>>
      */
-    private function primaryTeamNames(Collection $employeeIds): array
+    private function periodBucketsForEmployee(Collection $allTasks, array $bucketDefs): array
     {
-        return OrgTeamMember::query()
-            ->whereIn('employee_id', $employeeIds)
-            ->with('team:id,name')
-            ->orderBy('sort_order')
-            ->get()
-            ->groupBy('employee_id')
-            ->map(fn (Collection $members) => $members->first()?->team?->name ?? '—')
-            ->all();
+        return collect($bucketDefs)->map(function (array $b) use ($allTasks) {
+            $metrics = $this->metricsForEmployee($allTasks, null, $b['start'], $b['end']);
+            $committed = $metrics['committed'];
+
+            return [
+                'key' => $b['key'],
+                'label' => $b['label'],
+                'range' => PerformanceDisplay::rangeLabel($b['start'], $b['end']),
+                'committed' => $committed,
+                'done' => $metrics['done'],
+                'commitmentRate' => $metrics['commitmentRate'],
+                'grade' => $committed > 0 ? $metrics['grade'] : null,
+            ];
+        })->all();
     }
 
     /**

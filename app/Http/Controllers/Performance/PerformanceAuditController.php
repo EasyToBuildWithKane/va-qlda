@@ -35,7 +35,7 @@ class PerformanceAuditController extends Controller
 
         if ($search !== '') {
             $rows = $rows->filter(function (array $row) use ($search) {
-                $hay = mb_strtolower($row['name'].' '.($row['role'] ?? '').' '.($row['teamName'] ?? ''));
+                $hay = mb_strtolower($row['name'].' '.($row['role'] ?? '').' '.($row['unitName'] ?? ''));
 
                 return str_contains($hay, $search);
             });

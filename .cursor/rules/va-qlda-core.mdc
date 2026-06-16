@@ -50,6 +50,11 @@ alwaysApply: true
 - Rule: `.cursor/rules/datagrid-toolbar.mdc` · Skill: `.cursor/skills/datagrid-toolbar/SKILL.md`
 - Mẫu full: `Pages/DailyReport/History.vue` (`hide-label`, một hàng `lg:flex-nowrap`, grid lọc, `FilterDatePicker`); tab dự án: `ProjectFeedbackPanel.vue` (`half`).
 
+## Empty display (UI thiếu dữ liệu — bắt buộc)
+
+- Rule: `.cursor/rules/empty-display.mdc` · Skill: `.cursor/skills/empty-display/SKILL.md`
+- Utility: `shared/utils/emptyDisplay.js` — **không** hiển thị `—`; cột Kỳ audit: `PerformanceAuditPeriodCell.vue`.
+
 ## KPI summary strip (thống kê Index — bắt buộc khi thêm dải thẻ tương tự /feedback)
 
 - Rule: `.cursor/rules/kpi-summary-strip.mdc` · Skill: `.cursor/skills/kpi-summary-strip/SKILL.md`

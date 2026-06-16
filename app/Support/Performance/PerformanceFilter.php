@@ -200,12 +200,18 @@ class PerformanceFilter
 
         $teamIds = array_merge([$team->id], $team->descendantIds());
 
-        return OrgTeamMember::query()
+        $memberIds = OrgTeamMember::query()
             ->whereIn('org_team_id', $teamIds)
             ->pluck('employee_id')
-            ->map(fn ($id) => (int) $id)
-            ->unique()
-            ->values();
+            ->map(fn ($id) => (int) $id);
+
+        $leaderIds = OrgTeam::query()
+            ->whereIn('id', $teamIds)
+            ->whereNotNull('leader_id')
+            ->pluck('leader_id')
+            ->map(fn ($id) => (int) $id);
+
+        return $memberIds->merge($leaderIds)->unique()->values();
     }
 
     /**

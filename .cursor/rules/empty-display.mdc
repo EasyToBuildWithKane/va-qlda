@@ -1,0 +1,35 @@
+---
+description: Empty UI — không dùng «—»; nhãn tiếng Việt + cột Kỳ audit dropdown collapse
+alwaysApply: true
+---
+
+# Empty display — Production (bắt buộc)
+
+Skill: `.cursor/skills/empty-display/SKILL.md`
+
+## Quy tắc
+
+1. **Không** hiển thị ký tự `—` (em dash) hoặc `-` / `N/A` thay cho dữ liệu thiếu trên UI user-facing và Excel xuất cho người dùng.
+2. Dùng `resources/js/shared/utils/emptyDisplay.js` — `displayOrEmpty`, `EMPTY_LABELS`, `auditGradeLabel`.
+3. Backend: trả `null` hoặc bỏ key; **không** serialize `'—'` làm placeholder.
+
+## Nhãn gợi ý (tiếng Việt)
+
+| Ngữ cảnh | Nhãn |
+|----------|------|
+| Team / phòng chưa gán | Chưa gán đơn vị |
+| Kỳ / mốc thời gian | Chưa chọn kỳ |
+| Xếp loại, chưa cam kết task | Chưa có cam kết |
+| Xếp loại khác | Chưa có xếp loại |
+| Field hồ sơ / metadata | Chưa cập nhật |
+
+## Performance Audit — cột Kỳ
+
+- Bắt buộc `PerformanceAuditPeriodCell.vue`: dropdown + **collapse** từng kỳ con (`periodBuckets`).
+- Mẫu trang: `Pages/Performance/Audit.vue`.
+
+## Anti-patterns
+
+- `{{ row.x || '—' }}`
+- Badge/grade hiển thị `—` khi không có điểm
+- Export Excel điền `—` thay vì câu mô tả

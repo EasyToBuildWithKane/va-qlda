@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx-js-style';
 import { richContentPlainText } from '@/shared/utils/richContent';
+import { displayOrEmpty, EMPTY_LABELS, auditGradeLabel } from '@/shared/utils/emptyDisplay.js';
 
 /**
  * Xuất báo cáo hiệu suất ra Excel có style (brand) + in báo cáo.
@@ -311,20 +312,20 @@ export function usePerformanceExport() {
         const periodLabel = filter?.label ?? '';
 
         const header = [
-            '#', 'Thành viên', 'Vai trò', 'Team', 'Kỳ', 'Cam kết', 'Hoàn thành',
+            '#', 'Thành viên', 'Vai trò', 'Đơn vị', 'Kỳ', 'Cam kết', 'Hoàn thành',
             'Tỷ lệ cam kết %', 'Hiệu suất %', 'Xếp loại', 'Hạng',
         ];
         const dataRows = (rows ?? []).map((r, i) => [
             i + 1,
             r.name,
-            r.role ?? '',
-            r.teamName ?? '—',
-            r.periodLabel ?? periodLabel,
+            displayOrEmpty(r.role, EMPTY_LABELS.notUpdated),
+            displayOrEmpty(r.unitName ?? r.teamName, EMPTY_LABELS.team),
+            displayOrEmpty(r.periodLabel ?? periodLabel, EMPTY_LABELS.period),
             r.committed ?? 0,
             r.done ?? 0,
             r.commitmentRate ?? 0,
             r.avgScore ?? 0,
-            r.grade ?? '—',
+            auditGradeLabel(r.grade, (r.committed ?? 0) > 0),
             r.rank ?? '',
         ]);
 
@@ -332,7 +333,7 @@ export function usePerformanceExport() {
             title: 'DANH SÁCH AUDIT NHÂN SỰ',
             subtitle: periodLabel ? `Kỳ: ${periodLabel}` : '',
             header,
-            rows: dataRows.length ? dataRows : [['—', 'Không có dữ liệu', '', '', '', '', '', '', '', '', '']],
+            rows: dataRows.length ? dataRows : [['1', EMPTY_LABELS.generic, '', '', '', '', '', '', '', '', '']],
             colWidths: [4, 26, 18, 20, 22, 10, 12, 14, 12, 10, 8],
             alignCols: {
                 0: 'center', 5: 'center', 6: 'center', 7: 'center', 8: 'center', 10: 'center',

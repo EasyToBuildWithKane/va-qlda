@@ -9,6 +9,7 @@ import PageHeader from '@/Components/Ui/PageHeader.vue';
 import Badge from '@/shared/ui/Badge.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
 import PerformanceAuditSummaryBar from '@/modules/performance/components/PerformanceAuditSummaryBar.vue';
+import PerformanceAuditPeriodCell from '@/modules/performance/components/PerformanceAuditPeriodCell.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import DatagridToolbarActionButton from '@/shared/ui/DatagridToolbarActionButton.vue';
 import DatagridSegmentedControl from '@/shared/ui/DatagridSegmentedControl.vue';
@@ -23,6 +24,7 @@ import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterC
 import { useVisibleColumns } from '@/shared/composables/useVisibleColumns';
 import { useFixedDropdownAnchor } from '@/shared/composables/useFixedDropdownAnchor';
 import { useToast } from '@/shared/composables/useToast';
+import { displayOrEmpty, EMPTY_LABELS, auditGradeLabel } from '@/shared/utils/emptyDisplay.js';
 
 const props = defineProps({
     employees: { type: Object, required: true },
@@ -44,7 +46,7 @@ const PERIOD_TABS = [
 const FILTER_CONTROLS = [
     { key: 'anchor_date', label: 'Mốc thời gian', default: false },
     { key: 'department', label: 'Phòng ban', default: false },
-    { key: 'team', label: 'Team', default: false },
+    { key: 'team', label: 'Đơn vị', default: false },
 ];
 
 const FILTER_CONTROL_CLASS = 'input h-10 w-full text-sm';
@@ -225,6 +227,7 @@ function runExport() {
 }
 
 function gradeTone(grade) {
+    if (!grade || grade === EMPTY_LABELS.gradeNoCommitment) return 'slate';
     if (grade === 'S' || grade === 'A') return 'emerald';
     if (grade === 'B') return 'sky';
     if (grade === 'C') return 'amber';
@@ -243,7 +246,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOu
     <template #header>
       <PageHeader
         title="Audit nhân sự"
-        :subtitle="`Danh sách cam kết & kết quả — ${filter.label || ''}`"
+        :subtitle="`Danh sách cam kết & kết quả · ${displayOrEmpty(filter.label, EMPTY_LABELS.period)}`"
         icon="leaderboard"
         icon-color="brand"
         :badge="summary.total ?? null"
@@ -268,7 +271,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOu
               stretch
               inline-actions
               input-height="h-10"
-              placeholder="Tìm tên, vai trò, team…"
+              placeholder="Tìm tên, vai trò, đơn vị…"
               aria-label="Tìm nhân sự audit"
             />
           </div>
@@ -435,11 +438,11 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOu
               <select
                 v-model="form.team"
                 :class="FILTER_CONTROL_CLASS"
-                aria-label="Team"
+                aria-label="Đơn vị"
                 @change="applyImmediate({ page: 1 })"
               >
                 <option value="">
-                  Team
+                  Đơn vị
                 </option>
                 <option
                   v-for="t in options.teams"
@@ -465,7 +468,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOu
                 v-if="isColVisible('team')"
                 class="px-5 py-3"
               >
-                Team
+                Đơn vị
               </th>
               <th
                 v-if="isColVisible('period')"
@@ -542,13 +545,18 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOu
                 v-if="isColVisible('team')"
                 class="px-5 py-3 text-slate-600"
               >
-                {{ row.teamName || '—' }}
+                <span :class="{ 'text-slate-400 italic text-xs': !row.unitName }">
+                  {{ displayOrEmpty(row.unitName, EMPTY_LABELS.team) }}
+                </span>
               </td>
               <td
                 v-if="isColVisible('period')"
-                class="px-5 py-3 text-xs text-slate-600"
+                class="px-5 py-3"
               >
-                {{ row.periodLabel || filter.label }}
+                <PerformanceAuditPeriodCell
+                  :row="row"
+                  :filter-label="filter.label"
+                />
               </td>
               <td
                 v-if="isColVisible('committed')"
@@ -579,14 +587,14 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOu
                 class="px-5 py-3"
               >
                 <Badge
-                  v-if="row.grade && row.grade !== '—'"
+                  v-if="row.committed > 0 && row.grade"
                   :label="row.grade"
                   :color="gradeTone(row.grade)"
                 />
                 <span
                   v-else
-                  class="text-xs text-slate-400"
-                >—</span>
+                  class="text-xs italic text-slate-400"
+                >{{ auditGradeLabel(row.grade, (row.committed ?? 0) > 0) }}</span>
               </td>
               <td
                 v-if="isColVisible('rank')"

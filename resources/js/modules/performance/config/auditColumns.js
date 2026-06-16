@@ -2,7 +2,7 @@
 
 /** @type {AuditColumnDef[]} */
 export const PERFORMANCE_AUDIT_TABLE_COLUMNS = [
-    { key: 'team', label: 'Team' },
+    { key: 'team', label: 'Đơn vị' },
     { key: 'period', label: 'Kỳ' },
     { key: 'committed', label: 'Cam kết' },
     { key: 'done', label: 'Hoàn thành' },
