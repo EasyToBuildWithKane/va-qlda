@@ -34,6 +34,13 @@ export function hasFinePointer() {
         && window.matchMedia?.('(hover: hover) and (pointer: fine)').matches === true;
 }
 
+/** Vùng header cố định /congnghe — hiệu ứng con trỏ không kích hoạt khi rê trên navbar. */
+export const CONGNGHE_FIXED_HEADER_PX = 88;
+
+export function isPointerOverCongngheHeader(clientY) {
+    return clientY < CONGNGHE_FIXED_HEADER_PX;
+}
+
 /**
  * Reveal-on-scroll: trả về `target` (gắn vào phần tử) và `shown` (true khi vào
  * viewport lần đầu). Dùng cho hiệu ứng fade/slide nhẹ của các section landing.

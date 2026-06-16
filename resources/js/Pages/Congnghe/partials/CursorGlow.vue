@@ -1,6 +1,6 @@
 <script setup>
 import { onBeforeUnmount, onMounted, reactive, ref } from 'vue';
-import { hasFinePointer, prefersReducedMotionNow } from './motion.js';
+import { hasFinePointer, isPointerOverCongngheHeader, prefersReducedMotionNow } from './motion.js';
 
 /**
  * Con trỏ "sống" cho landing /congnghe: nhiều lớp đi theo chuột với độ trễ khác
@@ -27,6 +27,10 @@ const trail = reactive([
 let raf = null;
 
 function onMove(e) {
+    if (isPointerOverCongngheHeader(e.clientY)) {
+        active.value = false;
+        return;
+    }
     target.x = e.clientX;
     target.y = e.clientY;
     active.value = true;

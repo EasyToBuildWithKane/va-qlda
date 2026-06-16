@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import NeuralBackdrop from './NeuralBackdrop.vue';
-import { hasFinePointer, prefersReducedMotionNow } from './motion.js';
+import { hasFinePointer, isPointerOverCongngheHeader, prefersReducedMotionNow } from './motion.js';
 
 const props = defineProps({
     tone: { type: String, default: 'cyan' },
@@ -10,6 +10,8 @@ const props = defineProps({
     opacityClass: { type: String, default: 'opacity-75' },
     /** Mật độ tương đối so với diện tích section */
     density: { type: Number, default: 1.35 },
+    /** Bám con trỏ (đuôi nối, halo) — tắt trên UI điều khiển nhạy cảm. */
+    followPointer: { type: Boolean, default: true },
 });
 
 const root = ref(null);
@@ -79,8 +81,14 @@ function resize() {
 }
 
 function syncMouseFromEvent(e) {
-    if (!root.value || !hasFinePointer()) {
+    if (!props.followPointer || !root.value || !hasFinePointer()) {
         mouse.active = false;
+        return;
+    }
+    if (isPointerOverCongngheHeader(e.clientY)) {
+        mouse.active = false;
+        mouse.x = -9999;
+        mouse.y = -9999;
         return;
     }
     const rect = root.value.getBoundingClientRect();
@@ -229,8 +237,10 @@ onMounted(() => {
     );
     io.observe(root.value);
 
-    window.addEventListener('mousemove', onMouseMove, { passive: true });
-    window.addEventListener('mouseout', onMouseLeave, { passive: true });
+    if (props.followPointer) {
+        window.addEventListener('mousemove', onMouseMove, { passive: true });
+        window.addEventListener('mouseout', onMouseLeave, { passive: true });
+    }
     document.addEventListener('visibilitychange', onVisibility);
 });
 

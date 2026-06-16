@@ -7,7 +7,7 @@ import RevealOnScroll from './RevealOnScroll.vue';
 import CongngheProjectShowcase from './CongngheProjectShowcase.vue';
 import CongngheProjectSlider from './CongngheProjectSlider.vue';
 import { tone } from './tones.js';
-import { useInView, useMagneticGroup } from './motion.js';
+import { useInView } from './motion.js';
 import SectionParticleNetwork from './SectionParticleNetwork.vue';
 
 const props = defineProps({
@@ -16,7 +16,6 @@ const props = defineProps({
 });
 
 const { target, shown: sectionVisible } = useInView({ threshold: 0.12 });
-const { register } = useMagneticGroup({ strength: 0.12 });
 
 const heading = computed(() => props.content?.heading ?? {});
 const PHASE_HINT = computed(() => props.content?.phase_hints ?? {});
@@ -93,6 +92,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
     <SectionParticleNetwork
       tone="brand"
       :seed="19"
+      :follow-pointer="false"
     />
 
     <div class="relative z-10 mx-auto max-w-7xl px-5 sm:px-8">
@@ -162,11 +162,10 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
             :key="phase.value"
           >
             <button
-              :ref="(el) => register(el)"
               type="button"
               role="tab"
               :aria-selected="activePhaseIndex === i"
-              class="group/step relative flex min-w-0 flex-1 items-center gap-3 overflow-hidden rounded-2xl border px-4 py-3.5 text-left transition-all duration-300 will-change-transform sm:px-5"
+              class="group/step relative flex min-w-0 flex-1 items-center gap-3 overflow-hidden rounded-2xl border px-4 py-3.5 text-left transition-[border-color,background-color,box-shadow] duration-300 sm:px-5"
               :class="activePhaseIndex === i
                 ? 'border-white/25 bg-white/[0.08] shadow-[0_10px_40px_-16px_rgba(255,77,141,0.6)]'
                 : 'border-white/10 bg-white/[0.025] hover:border-white/20 hover:bg-white/[0.05]'"
@@ -185,7 +184,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
                 aria-hidden="true"
               />
               <span
-                class="relative grid h-10 w-10 shrink-0 place-items-center rounded-xl font-display text-sm font-bold ring-1 ring-inset transition-transform duration-300 group-hover/step:scale-105"
+                class="relative grid h-10 w-10 shrink-0 place-items-center rounded-xl font-display text-sm font-bold ring-1 ring-inset"
                 :class="tone(phase.color).soft"
               >
                 {{ i + 1 }}

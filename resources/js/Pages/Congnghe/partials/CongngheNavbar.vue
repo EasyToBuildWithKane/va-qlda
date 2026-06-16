@@ -7,11 +7,8 @@ import CongngheUserMenu from './CongngheUserMenu.vue';
 import RippleSurface from './RippleSurface.vue';
 import { congngheBrand } from './congngheBrand.js';
 import CongngheBrandImage from './CongngheBrandImage.vue';
-import { useMagneticGroup } from './motion.js';
 
 const page = usePage();
-
-const { register } = useMagneticGroup({ strength: 0.15 });
 
 const props = defineProps({
     content: { type: Object, default: () => ({}) },
@@ -198,7 +195,6 @@ const navPadClass = computed(() => (scrolled.value ? 'py-2.5 sm:py-3' : 'py-3.5 
         >
           <a
             v-for="link in links"
-            :ref="(el) => register(el)"
             :key="link.id"
             :href="sectionHref(link.id)"
             class="relative rounded-full px-3.5 py-2 text-[13px] font-medium transition-colors will-change-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50 md:px-4 md:text-sm"
