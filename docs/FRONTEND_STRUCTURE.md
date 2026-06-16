@@ -157,9 +157,12 @@ Pages import feature components từ `@/modules/project/components/...` và prim
 
 | Path | Mô tả |
 |---|---|
-| `Pages/Credential/` | Index, Show (5 tab), Create, Edit |
-| `components/CredentialSummaryBar.vue` | KPI strip 12 thẻ + lọc nhanh |
+| `Pages/Credential/` | Index, Show (4 tab: Tổng quan, Bảo mật, Phân quyền, Nhật ký), Create, Edit |
+| `config/columns.js` | Cột bảng Index + `useVisibleColumns` |
+| `components/CredentialSummaryBar.vue` | KPI strip 6 thẻ + lọc nhanh |
 | `components/CredentialPasswordViewer.vue` | Hiện/ẩn/sao chép + audit API |
+| `components/CredentialAccessGrantModal.vue` | Modal cấp/sửa quyền (SearchSelect + 2 cột) |
+| `components/CredentialAccessGrantRowActions.vue` | Dropdown thao tác trên bảng ACL |
 | `CredentialDataModal.vue` | Nhập · Xuất · Đối soát |
 | `composables/useCredentialImport.js` | Excel template/parse (marker `VA_CREDENTIAL_IMPORT_V1`) |
 | Timeline/ | `ProjectTimelineView`, `ProjectTimelineBurndown`, … |

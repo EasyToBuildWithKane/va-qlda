@@ -27,7 +27,8 @@ class UpdateCredentialRequest extends FormRequest
             'system_category' => ['sometimes', 'required', Rule::in(CredentialCategory::values())],
             'login_url' => ['nullable', 'string', 'max:2048'],
             'username' => ['nullable', 'string', 'max:255'],
-            'login_password' => ['nullable', 'string', 'max:2000'],
+            'login_password' => ['nullable', 'string', 'max:2000', 'confirmed'],
+            'login_password_confirmation' => ['nullable', 'string', 'max:2000'],
             'email' => ['nullable', 'email', 'max:255'],
             'phone' => ['nullable', 'string', 'max:64'],
             'provider_name' => ['nullable', 'string', 'max:255'],
@@ -48,6 +49,13 @@ class UpdateCredentialRequest extends FormRequest
             'badges' => ['nullable', 'array'],
             'badges.*' => ['string', 'max:32'],
             'meta' => ['nullable', 'array'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'login_password.confirmed' => 'Mật khẩu xác nhận không khớp.',
         ];
     }
 }

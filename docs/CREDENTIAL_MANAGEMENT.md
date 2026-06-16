@@ -9,7 +9,7 @@ Module quản lý tài khoản, mật khẩu và liên kết hạ tầng nội b
 | `/credentials` | Danh sách + KPI |
 | `/credentials/create` | Tạo mới |
 | `/credentials/{id}/edit` | Chỉnh sửa (Inertia) |
-| `/credentials/{id}` | Chi tiết 5 tab |
+| `/credentials/{id}` | Chi tiết 4 tab (Tổng quan · Bảo mật · Phân quyền · Nhật ký) |
 | `POST /credentials/import` | Nhập bulk ≤200 |
 | `/api/credentials/{id}/password` | Reveal password (audit) |
 | `/api/credentials/{id}/access-grants` | ACL |
@@ -18,7 +18,7 @@ Module quản lý tài khoản, mật khẩu và liên kết hạ tầng nội b
 ## Backend
 
 - Controllers: `app/Http/Controllers/Credential/*`
-- Policy: `CredentialPolicy` — owner, grant, admin
+- Policy: `CredentialPolicy` — owner/creator, grant; `manageAccess` / tab Phân quyền: người tạo + phụ trách (không admin); tab chỉ hiện với người tạo/phụ trách hoặc được cấp quyền
 - Logger: `CredentialActivityLogger`
 - KPI: `CredentialSummaryBuilder`
 

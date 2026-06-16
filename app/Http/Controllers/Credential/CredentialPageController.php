@@ -131,7 +131,7 @@ class CredentialPageController extends Controller
                     ->latest('created_at')
                     ->limit(50)
                     ->get(),
-            ),
+            )->resolve(),
         ]);
     }
 

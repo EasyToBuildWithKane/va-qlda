@@ -41,6 +41,10 @@ const actionIcon = {
       </p>
       <p class="text-xs text-slate-500">
         {{ datetime(log.created_at) }}
+        <span
+          v-if="log.ip_address"
+          class="text-slate-400"
+        > · {{ log.ip_address }}</span>
       </p>
     </li>
     <li

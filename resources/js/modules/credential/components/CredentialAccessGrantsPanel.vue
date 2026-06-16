@@ -1,7 +1,9 @@
 <script setup>
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import axios from 'axios';
 import AppIcon from '@/Components/AppIcon.vue';
+import CredentialAccessGrantModal from '@/modules/credential/components/CredentialAccessGrantModal.vue';
+import CredentialAccessGrantRowActions from '@/modules/credential/components/CredentialAccessGrantRowActions.vue';
 import { useCredentialAccess } from '@/modules/credential/composables/useCredentialAccess';
 import { useToast } from '@/shared/composables/useToast';
 import { router } from '@inertiajs/vue3';
@@ -18,31 +20,52 @@ const props = defineProps({
 
 const { grant, revoke, requestAccess } = useCredentialAccess(props.credentialId);
 const toast = useToast();
-const showForm = ref(false);
-const form = ref({
-    account_id: '',
-    permissions: ['view'],
-});
 
-async function submitGrant() {
-    await grant({
-        account_id: Number(form.value.account_id),
-        permissions: form.value.permissions,
-    });
-    showForm.value = false;
-    router.reload({ preserveScroll: true });
+const modalOpen = ref(false);
+const editingGrant = ref(null);
+const saving = ref(false);
+
+const permissionLabelMap = computed(() =>
+    Object.fromEntries(props.permissionOptions.map((p) => [p.value, p.label])),
+);
+
+function formatPermissions(perms) {
+    const list = perms || [];
+    if (!list.length) return 'Chưa cấp quyền cụ thể';
+    return list.map((p) => permissionLabelMap.value[p] || p).join(' · ');
 }
 
-async function onRevoke(id) {
-    await revoke(id);
-    router.reload({ preserveScroll: true });
+function openCreate() {
+    editingGrant.value = null;
+    modalOpen.value = true;
 }
 
-function togglePerm(value) {
-    const set = new Set(form.value.permissions);
-    if (set.has(value)) set.delete(value);
-    else set.add(value);
-    form.value.permissions = [...set];
+function openEdit(grantRow) {
+    editingGrant.value = grantRow;
+    modalOpen.value = true;
+}
+
+function closeModal() {
+    modalOpen.value = false;
+    editingGrant.value = null;
+}
+
+async function onSave(payload) {
+    saving.value = true;
+    try {
+        await grant(payload);
+        closeModal();
+        router.reload({ preserveScroll: true });
+    } catch {
+        toast.error('Không lưu được quyền truy cập.');
+    } finally {
+        saving.value = false;
+    }
+}
+
+async function onRevoke(grantRow) {
+    await revoke(grantRow.id);
+    router.reload({ preserveScroll: true });
 }
 
 async function submitAccessRequest() {
@@ -68,9 +91,6 @@ async function respondRequest(requestId, decision) {
 
 <template>
   <div class="space-y-4">
-    <p class="rounded-lg border border-slate-100 bg-slate-50/80 px-3 py-2 text-xs text-slate-600">
-      Chỉ <strong>người phụ trách</strong> hoặc Admin cấp quyền. Quyền «Sao chép mật khẩu» luôn được ghi audit.
-    </p>
     <div
       v-if="canRequestAccess && !canManageAccess"
       class="flex justify-end"
@@ -101,7 +121,7 @@ async function respondRequest(requestId, decision) {
           :key="req.id"
           class="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-white px-3 py-2"
         >
-          <span>{{ req.requester }} · {{ (req.requested_permissions || []).join(', ') }}</span>
+          <span>{{ req.requester }} · {{ formatPermissions(req.requested_permissions) }}</span>
           <span class="flex gap-2">
             <button
               type="button"
@@ -129,7 +149,7 @@ async function respondRequest(requestId, decision) {
       <button
         type="button"
         class="btn-primary h-9 gap-1.5 px-3 text-xs"
-        @click="showForm = !showForm"
+        @click="openCreate"
       >
         <AppIcon
           name="add"
@@ -139,62 +159,7 @@ async function respondRequest(requestId, decision) {
       </button>
     </div>
 
-    <div
-      v-if="showForm"
-      class="rounded-xl border border-brand/20 bg-brand/5 p-4"
-    >
-      <div class="grid gap-3 sm:grid-cols-2">
-        <select
-          v-model="form.account_id"
-          class="input h-10 w-full text-sm"
-        >
-          <option value="">
-            Chọn tài khoản hệ thống
-          </option>
-          <option
-            v-for="o in ownerOptions"
-            :key="o.id"
-            :value="o.id"
-          >
-            {{ o.display_name }} ({{ o.username }})
-          </option>
-        </select>
-        <div class="flex flex-wrap gap-2">
-          <label
-            v-for="p in permissionOptions"
-            :key="p.value"
-            class="inline-flex cursor-pointer items-center gap-1 rounded-lg border px-2 py-1 text-xs"
-            :class="form.permissions.includes(p.value) ? 'border-brand bg-white' : 'border-slate-200'"
-          >
-            <input
-              type="checkbox"
-              class="sr-only"
-              :checked="form.permissions.includes(p.value)"
-              @change="togglePerm(p.value)"
-            >
-            {{ p.label }}
-          </label>
-        </div>
-      </div>
-      <div class="mt-3 flex gap-2">
-        <button
-          type="button"
-          class="btn-primary h-9 px-3 text-xs"
-          @click="submitGrant"
-        >
-          Lưu
-        </button>
-        <button
-          type="button"
-          class="btn-ghost h-9 px-3 text-xs"
-          @click="showForm = false"
-        >
-          Huỷ
-        </button>
-      </div>
-    </div>
-
-    <div class="overflow-x-auto rounded-xl border border-slate-200/80">
+    <div class="overflow-x-auto rounded-xl border border-slate-200/80 bg-white">
       <table class="min-w-full text-sm">
         <thead class="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
           <tr>
@@ -202,12 +167,17 @@ async function respondRequest(requestId, decision) {
               Người dùng
             </th>
             <th class="px-4 py-3">
-              Quyền
+              Username
+            </th>
+            <th class="px-4 py-3">
+              Cấp quyền
             </th>
             <th
               v-if="canManageAccess"
-              class="px-4 py-3 w-24"
-            />
+              class="w-16 px-4 py-3 text-right"
+            >
+              Thao tác
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -216,35 +186,60 @@ async function respondRequest(requestId, decision) {
             :key="g.id"
             class="border-t border-slate-100"
           >
-            <td class="px-4 py-3 font-medium">
-              {{ g.account?.display_name || '—' }}
+            <td class="px-4 py-3 font-medium text-slate-800">
+              {{ g.account?.display_name || 'Chưa cập nhật' }}
             </td>
-            <td class="px-4 py-3 text-xs text-slate-600">
-              {{ (g.permissions || []).join(', ') }}
+            <td class="px-4 py-3 text-slate-600">
+              {{ g.account?.username || 'Chưa cập nhật' }}
+            </td>
+            <td class="px-4 py-3">
+              <div class="flex flex-wrap gap-1">
+                <span
+                  v-for="perm in (g.permissions || [])"
+                  :key="perm"
+                  class="inline-flex rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-700"
+                >
+                  {{ permissionLabelMap[perm] || perm }}
+                </span>
+                <span
+                  v-if="!(g.permissions || []).length"
+                  class="text-xs text-slate-500"
+                >
+                  Chưa cập nhật
+                </span>
+              </div>
             </td>
             <td
               v-if="canManageAccess"
-              class="px-4 py-3"
+              class="px-4 py-3 text-right"
             >
-              <button
-                type="button"
-                class="text-xs text-rose-600 hover:underline"
-                @click="onRevoke(g.id)"
-              >
-                Thu hồi
-              </button>
+              <CredentialAccessGrantRowActions
+                :grant="g"
+                @edit="openEdit"
+                @revoke="onRevoke"
+              />
             </td>
           </tr>
           <tr v-if="!grants.length">
             <td
-              colspan="3"
-              class="px-4 py-6 text-center text-slate-500"
+              :colspan="canManageAccess ? 4 : 3"
+              class="px-4 py-8 text-center text-sm text-slate-500"
             >
-              Chưa cấp quyền cho ai ngoài phụ trách.
+              Chưa cấp quyền cho người dùng khác.
             </td>
           </tr>
         </tbody>
       </table>
     </div>
+
+    <CredentialAccessGrantModal
+      :show="modalOpen"
+      :grant="editingGrant"
+      :owner-options="ownerOptions"
+      :permission-options="permissionOptions"
+      :saving="saving"
+      @close="closeModal"
+      @save="onSave"
+    />
   </div>
 </template>

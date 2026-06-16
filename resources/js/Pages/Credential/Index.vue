@@ -1,5 +1,7 @@
 <script setup>
-import { reactive, ref, watch, onMounted, onBeforeUnmount } from 'vue';
+import {
+    computed, reactive, ref, watch, onMounted, onBeforeUnmount,
+} from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AppIcon from '@/Components/AppIcon.vue';
@@ -10,9 +12,15 @@ import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import DatagridToolbarActionButton from '@/shared/ui/DatagridToolbarActionButton.vue';
 import DatagridFilterField from '@/shared/ui/DatagridFilterField.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
+import ColumnVisibilityDropdown from '@/shared/ui/ColumnVisibilityDropdown.vue';
 import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
 import CredentialDataModal from '@/modules/credential/CredentialDataModal.vue';
+import { CREDENTIAL_TABLE_COLUMNS } from '@/modules/credential/config/columns.js';
+import { exportCredentialWorkbook } from '@/modules/credential/composables/useCredentialExport.js';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
+import { useVisibleColumns } from '@/shared/composables/useVisibleColumns';
+import { useFixedDropdownAnchor } from '@/shared/composables/useFixedDropdownAnchor';
+import { useToast } from '@/shared/composables/useToast';
 import { date } from '@/composables/useFormat';
 
 const props = defineProps({
@@ -22,6 +30,8 @@ const props = defineProps({
     options: { type: Object, default: () => ({}) },
     can: { type: Object, default: () => ({}) },
 });
+
+const toast = useToast();
 
 const FILTER_CONTROLS = [
     { key: 'status', label: 'Trạng thái', default: false },
@@ -35,7 +45,11 @@ const FILTER_CONTROLS = [
 
 const FILTER_CONTROL_CLASS = 'input h-10 w-full text-sm';
 const filterPanelDdRef = ref(null);
+const colDdRef = ref(null);
+const exportRef = ref(null);
 const dataModal = ref(false);
+const exportMenu = ref(false);
+const exporting = ref(false);
 const perPage = ref(Number(props.filters.per_page) || 20);
 
 const filters = reactive({
@@ -53,10 +67,29 @@ const filters = reactive({
 const {
     visibleFilters,
     showFilterPanelDd,
+    enabledFilterControlCount,
     hasFilterRow,
     persistVisibleFilters,
     openFilterPanel,
 } = useVisibleFilterControls(FILTER_CONTROLS, 'va-qlda.credentials.visible-filters.v1');
+
+const {
+    visibleCols,
+    showColDd,
+    visibleColumnCount,
+    persistVisibleColumns,
+    openColPanel,
+    isColVisible,
+    TABLE_COLUMNS,
+} = useVisibleColumns(CREDENTIAL_TABLE_COLUMNS, 'va-qlda.credentials.columns.v1');
+
+const tableColspan = computed(() => visibleColumnCount.value);
+
+const { panelStyle: exportPanelStyle } = useFixedDropdownAnchor(
+    () => exportRef.value,
+    exportMenu,
+    { width: 220, zIndex: 85 },
+);
 
 let debounce;
 function applyFilters(extra = {}) {
@@ -78,10 +111,61 @@ function onQuickFilter(payload) {
 }
 
 function onToolbarClickOutside(e) {
-    if (filterPanelDdRef.value && !filterPanelDdRef.value.contains(e.target)) {
+    const t = e.target;
+    if (t.closest?.('[data-filter-visibility-panel]')) return;
+    if (t.closest?.('[data-column-visibility-panel]')) return;
+    if (t.closest?.('[data-credential-export-panel]')) return;
+    if (filterPanelDdRef.value && !filterPanelDdRef.value.contains(t)) {
         showFilterPanelDd.value = false;
     }
+    if (colDdRef.value && !colDdRef.value.contains(t)) {
+        showColDd.value = false;
+    }
+    if (exportRef.value && !exportRef.value.contains(t)) {
+        exportMenu.value = false;
+    }
 }
+
+function openFilterPanelSafe() {
+    openFilterPanel(() => {
+        showColDd.value = false;
+        exportMenu.value = false;
+    });
+}
+
+function openColPanelSafe() {
+    openColPanel(() => {
+        showFilterPanelDd.value = false;
+        exportMenu.value = false;
+    });
+}
+
+function toggleExportMenu() {
+    exportMenu.value = !exportMenu.value;
+    if (exportMenu.value) {
+        showFilterPanelDd.value = false;
+        showColDd.value = false;
+    }
+}
+
+function runExport() {
+    exportMenu.value = false;
+    const rows = props.credentials.data ?? [];
+    if (!rows.length) {
+        toast.warning('Không có dữ liệu để xuất trên trang này.');
+        return;
+    }
+    exporting.value = true;
+    try {
+        exportCredentialWorkbook(rows);
+        toast.success(`Đã xuất ${rows.length} tài khoản (trang hiện tại).`);
+    } catch {
+        toast.error('Xuất file thất bại. Thử lại sau.');
+    } finally {
+        exporting.value = false;
+    }
+}
+
 onMounted(() => document.addEventListener('mousedown', onToolbarClickOutside));
 onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOutside));
 </script>
@@ -116,12 +200,13 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOu
       @quick-filter="onQuickFilter"
     />
 
-    <div class="card overflow-hidden">
+    <div class="card overflow-visible">
       <div class="border-b border-slate-100 px-5 py-4">
         <div class="flex w-full min-w-0 flex-wrap items-center gap-2 lg:flex-nowrap">
-          <div class="min-w-0 w-full basis-full lg:flex-1 lg:basis-auto">
+          <div class="min-w-0 w-full basis-full lg:min-w-[10rem] lg:flex-1 lg:basis-auto">
             <DatagridToolbarSearch
               v-model="filters.q"
+              input-id="credential-search"
               hide-label
               stretch
               inline-actions
@@ -130,164 +215,241 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOu
               aria-label="Tìm tài khoản"
             />
           </div>
-          <div
-            ref="filterPanelDdRef"
-            class="relative flex shrink-0 items-center gap-2"
-          >
-            <DatagridToolbarActionButton
-              icon="filter"
-              :active="showFilterPanelDd"
-              @click="openFilterPanel()"
+          <div class="flex shrink-0 items-center gap-2">
+            <div
+              ref="filterPanelDdRef"
+              class="relative shrink-0"
             >
-              Lọc
-            </DatagridToolbarActionButton>
+              <DatagridToolbarActionButton
+                icon="filter"
+                :active="showFilterPanelDd"
+                :title="`Hiển thị bộ lọc (${enabledFilterControlCount}/${FILTER_CONTROLS.length})`"
+                @click="openFilterPanelSafe"
+              >
+                Lọc
+              </DatagridToolbarActionButton>
+              <FilterVisibilityDropdown
+                v-model="visibleFilters"
+                :show="showFilterPanelDd"
+                :anchor-ref="filterPanelDdRef"
+                :controls="FILTER_CONTROLS"
+                input-id-prefix="credential-filter-vis"
+                @persist="persistVisibleFilters"
+              />
+            </div>
+
+            <div
+              ref="colDdRef"
+              class="relative shrink-0"
+            >
+              <DatagridToolbarActionButton
+                icon="columns"
+                :active="showColDd"
+                title="Cột hiển thị"
+                @click="openColPanelSafe"
+              >
+                Cột
+              </DatagridToolbarActionButton>
+              <ColumnVisibilityDropdown
+                v-model="visibleCols"
+                :show="showColDd"
+                :columns="TABLE_COLUMNS"
+                :anchor-ref="colDdRef"
+                :fixed-labels="['Tên']"
+                input-id-prefix="credential-col-vis"
+                @persist="persistVisibleColumns"
+              />
+            </div>
+
+            <div
+              ref="exportRef"
+              class="relative shrink-0"
+            >
+              <DatagridToolbarActionButton
+                icon="export"
+                :active="exportMenu"
+                :disabled="exporting"
+                title="Xuất trang hiện tại"
+                @click="toggleExportMenu"
+              >
+                {{ exporting ? 'Đang xuất…' : 'Xuất' }}
+              </DatagridToolbarActionButton>
+            </div>
+
             <DatagridToolbarActionButton
               icon="upload"
               @click="dataModal = true"
             >
               Dữ liệu
             </DatagridToolbarActionButton>
-            <FilterVisibilityDropdown
-              v-model="visibleFilters"
-              :show="showFilterPanelDd"
-              :anchor-ref="filterPanelDdRef"
-              :controls="FILTER_CONTROLS"
-              input-id-prefix="credential-filter-vis"
-              @persist="persistVisibleFilters"
-            />
           </div>
         </div>
-        <div
-          v-if="hasFilterRow"
-          class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6"
-        >
-          <DatagridFilterField v-if="visibleFilters.status">
-            <select
-              v-model="filters.status"
-              :class="FILTER_CONTROL_CLASS"
-              @change="applyFilters()"
+
+        <Teleport to="body">
+          <Transition
+            enter-active-class="transition duration-150 ease-out"
+            enter-from-class="opacity-0"
+            leave-active-class="transition duration-100 ease-in"
+            leave-to-class="opacity-0"
+          >
+            <div
+              v-if="exportMenu"
+              :style="exportPanelStyle"
+              class="overflow-hidden rounded-card border border-slate-200 bg-white p-1 shadow-elevation-2"
+              data-credential-export-panel
             >
-              <option value="">
-                Trạng thái
-              </option>
-              <option
-                v-for="o in options.status"
-                :key="o.value"
-                :value="o.value"
+              <button
+                type="button"
+                class="flex w-full flex-col rounded-btn px-3 py-2 text-left hover:bg-slate-50"
+                @click="runExport"
               >
-                {{ o.label }}
-              </option>
-            </select>
-          </DatagridFilterField>
-          <DatagridFilterField v-if="visibleFilters.credential_type">
-            <select
-              v-model="filters.credential_type"
-              :class="FILTER_CONTROL_CLASS"
-              @change="applyFilters()"
-            >
-              <option value="">
-                Loại tài khoản
-              </option>
-              <option
-                v-for="o in options.credential_type"
-                :key="o.value"
-                :value="o.value"
+                <span class="text-sm font-medium text-slate-700">Excel (.xlsx)</span>
+                <span class="text-[10px] text-slate-400">Trang đang xem</span>
+              </button>
+            </div>
+          </Transition>
+        </Teleport>
+
+        <Transition name="fade-slide">
+          <div
+            v-if="hasFilterRow"
+            class="grid grid-cols-1 gap-3 border-t border-slate-100 px-0 pt-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6"
+          >
+            <DatagridFilterField v-if="visibleFilters.status">
+              <select
+                v-model="filters.status"
+                :class="FILTER_CONTROL_CLASS"
+                aria-label="Trạng thái"
+                @change="applyFilters()"
               >
-                {{ o.label }}
-              </option>
-            </select>
-          </DatagridFilterField>
-          <DatagridFilterField v-if="visibleFilters.system_category">
-            <select
-              v-model="filters.system_category"
-              :class="FILTER_CONTROL_CLASS"
-              @change="applyFilters()"
-            >
-              <option value="">
-                Hệ thống
-              </option>
-              <option
-                v-for="o in options.system_category"
-                :key="o.value"
-                :value="o.value"
+                <option value="">
+                  Trạng thái
+                </option>
+                <option
+                  v-for="o in options.status"
+                  :key="o.value"
+                  :value="o.value"
+                >
+                  {{ o.label }}
+                </option>
+              </select>
+            </DatagridFilterField>
+            <DatagridFilterField v-if="visibleFilters.credential_type">
+              <select
+                v-model="filters.credential_type"
+                :class="FILTER_CONTROL_CLASS"
+                aria-label="Loại"
+                @change="applyFilters()"
               >
-                {{ o.label }}
-              </option>
-            </select>
-          </DatagridFilterField>
-          <DatagridFilterField v-if="visibleFilters.project">
-            <select
-              v-model="filters.project_id"
-              :class="FILTER_CONTROL_CLASS"
-              @change="applyFilters()"
-            >
-              <option value="">
-                Dự án
-              </option>
-              <option
-                v-for="p in options.projects"
-                :key="p.id"
-                :value="p.id"
+                <option value="">
+                  Loại
+                </option>
+                <option
+                  v-for="o in options.credential_type"
+                  :key="o.value"
+                  :value="o.value"
+                >
+                  {{ o.label }}
+                </option>
+              </select>
+            </DatagridFilterField>
+            <DatagridFilterField v-if="visibleFilters.system_category">
+              <select
+                v-model="filters.system_category"
+                :class="FILTER_CONTROL_CLASS"
+                aria-label="Hệ thống"
+                @change="applyFilters()"
               >
-                {{ p.name }}
-              </option>
-            </select>
-          </DatagridFilterField>
-          <DatagridFilterField v-if="visibleFilters.department">
-            <select
-              v-model="filters.department_id"
-              :class="FILTER_CONTROL_CLASS"
-              @change="applyFilters()"
-            >
-              <option value="">
-                Phòng ban
-              </option>
-              <option
-                v-for="d in options.departments"
-                :key="d.id"
-                :value="d.id"
+                <option value="">
+                  Hệ thống
+                </option>
+                <option
+                  v-for="o in options.system_category"
+                  :key="o.value"
+                  :value="o.value"
+                >
+                  {{ o.label }}
+                </option>
+              </select>
+            </DatagridFilterField>
+            <DatagridFilterField v-if="visibleFilters.project">
+              <select
+                v-model="filters.project_id"
+                :class="FILTER_CONTROL_CLASS"
+                aria-label="Dự án"
+                @change="applyFilters()"
               >
-                {{ d.name }}
-              </option>
-            </select>
-          </DatagridFilterField>
-          <DatagridFilterField v-if="visibleFilters.owner">
-            <select
-              v-model="filters.owner_id"
-              :class="FILTER_CONTROL_CLASS"
-              @change="applyFilters()"
-            >
-              <option value="">
-                Người phụ trách
-              </option>
-              <option
-                v-for="o in options.owners"
-                :key="o.id"
-                :value="o.id"
+                <option value="">
+                  Dự án
+                </option>
+                <option
+                  v-for="p in options.projects"
+                  :key="p.id"
+                  :value="p.id"
+                >
+                  {{ p.name }}
+                </option>
+              </select>
+            </DatagridFilterField>
+            <DatagridFilterField v-if="visibleFilters.department">
+              <select
+                v-model="filters.department_id"
+                :class="FILTER_CONTROL_CLASS"
+                aria-label="Phòng ban"
+                @change="applyFilters()"
               >
-                {{ o.display_name }}
-              </option>
-            </select>
-          </DatagridFilterField>
-          <DatagridFilterField v-if="visibleFilters.environment">
-            <select
-              v-model="filters.environment"
-              :class="FILTER_CONTROL_CLASS"
-              @change="applyFilters()"
-            >
-              <option value="">
-                Môi trường
-              </option>
-              <option
-                v-for="o in options.environment"
-                :key="o.value"
-                :value="o.value"
+                <option value="">
+                  Phòng ban
+                </option>
+                <option
+                  v-for="d in options.departments"
+                  :key="d.id"
+                  :value="d.id"
+                >
+                  {{ d.name }}
+                </option>
+              </select>
+            </DatagridFilterField>
+            <DatagridFilterField v-if="visibleFilters.owner">
+              <select
+                v-model="filters.owner_id"
+                :class="FILTER_CONTROL_CLASS"
+                aria-label="Phụ trách"
+                @change="applyFilters()"
               >
-                {{ o.label }}
-              </option>
-            </select>
-          </DatagridFilterField>
-        </div>
+                <option value="">
+                  Phụ trách
+                </option>
+                <option
+                  v-for="o in options.owners"
+                  :key="o.id"
+                  :value="o.id"
+                >
+                  {{ o.display_name }}
+                </option>
+              </select>
+            </DatagridFilterField>
+            <DatagridFilterField v-if="visibleFilters.environment">
+              <select
+                v-model="filters.environment"
+                :class="FILTER_CONTROL_CLASS"
+                aria-label="Môi trường"
+                @change="applyFilters()"
+              >
+                <option value="">
+                  Môi trường
+                </option>
+                <option
+                  v-for="o in options.environment"
+                  :key="o.value"
+                  :value="o.value"
+                >
+                  {{ o.label }}
+                </option>
+              </select>
+            </DatagridFilterField>
+          </div>
+        </Transition>
       </div>
 
       <div class="overflow-x-auto">
@@ -297,19 +459,34 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOu
               <th class="px-5 py-3">
                 Tên
               </th>
-              <th class="px-5 py-3">
+              <th
+                v-if="isColVisible('type_system')"
+                class="px-5 py-3"
+              >
                 Loại / Hệ thống
               </th>
-              <th class="px-5 py-3">
+              <th
+                v-if="isColVisible('username')"
+                class="px-5 py-3"
+              >
                 Username
               </th>
-              <th class="px-5 py-3">
+              <th
+                v-if="isColVisible('owner')"
+                class="px-5 py-3"
+              >
                 Phụ trách
               </th>
-              <th class="px-5 py-3">
+              <th
+                v-if="isColVisible('expires_at')"
+                class="px-5 py-3"
+              >
                 Hết hạn
               </th>
-              <th class="px-5 py-3">
+              <th
+                v-if="isColVisible('status')"
+                class="px-5 py-3"
+              >
                 Trạng thái
               </th>
             </tr>
@@ -340,28 +517,43 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOu
                   />
                 </div>
               </td>
-              <td class="px-5 py-3 text-slate-600">
+              <td
+                v-if="isColVisible('type_system')"
+                class="px-5 py-3 text-slate-600"
+              >
                 <div>{{ row.credential_type?.label || 'Chưa phân loại' }}</div>
                 <div class="text-xs text-slate-500">
                   {{ row.system_category?.label || 'Chưa chọn hệ thống' }}
                 </div>
               </td>
-              <td class="px-5 py-3 font-mono text-xs text-slate-600">
+              <td
+                v-if="isColVisible('username')"
+                class="px-5 py-3 font-mono text-xs text-slate-600"
+              >
                 <span :class="{ 'text-slate-400 italic font-sans': !row.username }">
                   {{ row.username || 'Chưa có username' }}
                 </span>
               </td>
-              <td class="px-5 py-3">
+              <td
+                v-if="isColVisible('owner')"
+                class="px-5 py-3"
+              >
                 <span :class="{ 'text-slate-400 italic text-xs': !row.owner?.display_name }">
                   {{ row.owner?.display_name || 'Chưa gán phụ trách' }}
                 </span>
               </td>
-              <td class="px-5 py-3 text-xs">
+              <td
+                v-if="isColVisible('expires_at')"
+                class="px-5 py-3 text-xs"
+              >
                 <span :class="{ 'text-slate-400 italic': !row.expires_at }">
                   {{ row.expires_at ? date(row.expires_at) : 'Không hết hạn' }}
                 </span>
               </td>
-              <td class="px-5 py-3">
+              <td
+                v-if="isColVisible('status')"
+                class="px-5 py-3"
+              >
                 <Badge
                   v-if="row.status?.label"
                   :label="row.status.label"
@@ -375,7 +567,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOu
             </tr>
             <tr v-if="!credentials.data?.length">
               <td
-                colspan="6"
+                :colspan="Math.max(tableColspan, 1)"
                 class="px-5 py-10 text-center text-slate-500"
               >
                 Không có tài khoản phù hợp.

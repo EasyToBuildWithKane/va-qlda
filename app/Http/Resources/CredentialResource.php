@@ -72,6 +72,7 @@ class CredentialResource extends JsonResource
                 'view_password' => $user->can('viewPassword', $this->resource),
                 'share' => $user->can('share', $this->resource),
                 'manage_access' => $user->can('manageAccess', $this->resource),
+                'view_access_tab' => $user->can('viewAccessTab', $this->resource),
                 'export' => $user->can('export', $this->resource),
             ] : null,
         ];
