@@ -15,9 +15,9 @@ import KpiSummaryStrip from '@/shared/ui/KpiSummaryStrip.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
 import EmptyState from '@/shared/ui/EmptyState.vue';
 import ActivityFeed from '@/modules/project/components/Dashboard/ActivityFeed.vue';
-import DailyPulse from './partials/DailyPulse.vue';
 import DailyReportCompliancePanel from './partials/DailyReportCompliancePanel.vue';
 import ProjectProgressCard from './partials/ProjectProgressCard.vue';
+import TaskProgressStatsSection from './partials/TaskProgressStatsSection.vue';
 
 ChartJS.register(
     ArcElement, CategoryScale, LinearScale,
@@ -28,8 +28,8 @@ ChartJS.register(
 const props = defineProps({
     kpiCards:           { type: Array,  default: () => [] },
     headline:           { type: Object, default: () => ({}) },
-    dailyPulse:         { type: Object, default: () => ({}) },
     activeProjects:     { type: Array,  default: () => [] },
+    tasksByStatus:      { type: Array,  default: () => [] },
     dueToday:           { type: Array,  default: () => [] },
     overdueTasks:       { type: Array,  default: () => [] },
     activityFeed:       { type: Array,  default: () => [] },
@@ -48,37 +48,6 @@ const colorMap = {
     amber:   '#f59e0b',
 };
 const tailwindToHex = (color) => colorMap[color] ?? '#94a3b8';
-
-const today = new Date().toLocaleDateString('vi-VN', {
-    weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric',
-});
-
-const completionRate = computed(() => props.headline.completionRate ?? 0);
-
-const headlineCards = computed(() => {
-    const done = props.headline.doneTasks ?? 0;
-    const total = props.headline.totalTasks ?? 0;
-    return [
-        {
-            key: 'completion',
-            label: 'Hoàn thành toàn hệ thống',
-            value: completionRate.value,
-            suffix: '%',
-            tone: 'brand',
-            icon: 'performance',
-            sub: `${done} / ${total} công việc đã xong`,
-            progress: completionRate.value,
-        },
-        {
-            key: 'done_total',
-            label: 'Công việc đã xong',
-            value: done,
-            tone: 'emerald',
-            icon: 'task',
-            sub: total ? `${total - done} còn lại` : 'Chưa có công việc',
-        },
-    ];
-});
 
 // ---- Attention list (overdue first, then due today) ------------------
 const attentionTasks = computed(() => [
@@ -145,7 +114,7 @@ const lineOptions = {
     <template #header>
       <PageHeader
         title="Bảng điều khiển"
-        subtitle="Trung tâm điều hành — dự án, tiến độ & nhịp công việc hằng ngày"
+        subtitle="Trung tâm điều hành — dự án, tiến độ & tuân thủ báo cáo ngày"
         icon="overview"
         icon-color="brand"
       />
@@ -160,21 +129,9 @@ const lineOptions = {
       grid-class="grid-cols-2 sm:grid-cols-3 xl:grid-cols-6"
     />
 
-    <KpiSummaryStrip
-      :cards="headlineCards"
-      :progress-denominator="100"
-      heading="Tiến độ công việc"
-      eyebrow="Thống kê"
-      aria-label="Tiến độ hoàn thành công việc toàn hệ thống"
-      grid-class="grid-cols-1 sm:grid-cols-2"
-      shell-class="kpi-strip relative mb-4 overflow-x-hidden rounded-card border border-slate-200/80 bg-gradient-to-b from-slate-50/90 to-white px-4 py-4 shadow-sm sm:px-5 sm:py-5"
-    />
-
-    <!-- 2. Daily pulse -->
-    <DailyPulse
-      :pulse="dailyPulse"
-      :today="today"
-      class="mb-4"
+    <TaskProgressStatsSection
+      :headline="headline"
+      :tasks-by-status="tasksByStatus"
     />
 
     <!-- Tuân thủ báo cáo ngày theo nhân sự -->

@@ -130,44 +130,6 @@ class DashboardController extends Controller
             ],
         ];
 
-        // ---- Daily pulse (today) -------------------------------------------
-        $reportedToday = $scopedEmployeeIds->isEmpty()
-            ? 0
-            : DailyReport::whereDate('date', $today)
-                ->whereIn('employee_id', $scopedEmployeeIds)
-                ->distinct('employee_id')
-                ->count('employee_id');
-        $submittedToday = DailyReport::whereDate('date', $today)
-            ->whereIn('status', [ReportStatus::Submitted->value, ReportStatus::Reviewed->value])
-            ->count();
-        $lateToday = DailyReport::whereDate('date', $today)->where('is_late', true)->count();
-        $pendingReview = DailyReport::pendingReview()->count();
-
-        $completedToday = Task::whereDate('completed_at', $today)->count();
-        $dueTodayCount = Task::where('status', '!=', TaskStatus::Done)
-            ->whereDate('due_date', $today)
-            ->count();
-
-        $startOfWeek = Carbon::now()->startOfWeek()->toDateString();
-        $hoursToday = (float) Worklog::whereDate('date', $today)->sum('hours');
-        $hoursThisWeek = (float) Worklog::whereDate('date', '>=', $startOfWeek)->sum('hours');
-        $costThisWeek = (float) Worklog::whereDate('date', '>=', $startOfWeek)->sum('cost');
-
-        $dailyPulse = [
-            'reportedToday' => $reportedToday,
-            'expectedToday' => $totalMembers,
-            'submittedToday' => $submittedToday,
-            'lateToday' => $lateToday,
-            'pendingReview' => $pendingReview,
-            'completedToday' => $completedToday,
-            'dueToday' => $dueTodayCount,
-            'overdue' => $overdueTasks,
-            'hoursToday' => round($hoursToday, 1),
-            'hoursThisWeek' => round($hoursThisWeek, 1),
-            'costThisWeek' => round($costThisWeek),
-            'hoursTrend' => $this->hoursTrend(14),
-        ];
-
         // ---- Due today / overdue task lists --------------------------------
         $dueToday = Task::query()
             ->where('status', '!=', TaskStatus::Done)
@@ -201,6 +163,20 @@ class DashboardController extends Controller
                 'total' => (int) $r->getAttribute('total'),
             ]);
 
+        $taskStatusCounts = Task::select('status', DB::raw('count(*) as total'))
+            ->groupBy('status')
+            ->get()
+            ->keyBy(fn ($r) => $r->status->value);
+
+        $tasksByStatus = collect(TaskStatus::cases())
+            ->map(fn (TaskStatus $status) => [
+                'status' => $status->value,
+                'label' => $status->label(),
+                'color' => $status->color(),
+                'total' => (int) ($taskStatusCounts->get($status->value)?->getAttribute('total') ?? 0),
+            ])
+            ->values();
+
         $completionTrend = $this->completionTrend(30);
         $dailyReportCompliance = $this->dailyReportCompliance($personnelScope);
 
@@ -211,12 +187,12 @@ class DashboardController extends Controller
                 'totalTasks' => $totalTasks,
                 'completionRate' => $totalTasks > 0 ? (int) round($doneTasks / $totalTasks * 100) : 0,
             ],
-            'dailyPulse' => $dailyPulse,
             'activeProjects' => $activeProjects,
             'dueToday' => $dueToday,
             'overdueTasks' => $overdueList,
             'activityFeed' => $activityFeed->forSystem(60),
             'projectsByStatus' => $projectsByStatus,
+            'tasksByStatus' => $tasksByStatus,
             'completionTrend' => $completionTrend,
             'dailyReportCompliance' => $dailyReportCompliance,
         ]);
@@ -396,27 +372,6 @@ class DashboardController extends Controller
             ->keyBy('d');
 
         return $this->fillDays($days, fn (string $date) => (int) ($rows->get($date)?->total ?? 0));
-    }
-
-    /**
-     * Daily logged-hours totals for the last N days (sparkline).
-     *
-     * @return \Illuminate\Support\Collection<int, array<string, mixed>>
-     */
-    private function hoursTrend(int $days): \Illuminate\Support\Collection
-    {
-        $rows = Worklog::whereDate('date', '>=', Carbon::today()->subDays($days - 1))
-            ->select(DB::raw('DATE(date) as d'), DB::raw('SUM(hours) as total'))
-            ->groupBy('d')
-            ->orderBy('d')
-            ->get()
-            ->keyBy('d');
-
-        return $this->fillDays(
-            $days,
-            fn (string $date) => round((float) ($rows->get($date)?->total ?? 0), 1),
-            'value',
-        );
     }
 
     /**

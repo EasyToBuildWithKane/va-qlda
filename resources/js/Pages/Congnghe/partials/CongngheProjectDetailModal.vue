@@ -8,7 +8,6 @@ import {
 } from './useCongngheProjectModal.js';
 import CongngheProjectGallery from './CongngheProjectGallery.vue';
 import RichContentBody from '@/shared/ui/RichContentBody.vue';
-import { tone } from './tones.js';
 import {
     CONGNGHE_PROJECT_DESC_EMPTY_CLASS,
     CONGNGHE_PROJECT_DESC_HTML_CLASS,
@@ -35,8 +34,6 @@ const project = computed(() => {
 });
 
 const accent = computed(() => project.value?.color || '#9A0036');
-const statusTone = computed(() => tone(project.value?.statusColor));
-const progress = computed(() => Math.max(0, Math.min(100, Number(project.value?.progress ?? 0))));
 const imageCount = computed(() => (project.value?.images ?? []).filter((i) => i?.url).length);
 
 watch(open, (isOpen) => {
@@ -90,7 +87,7 @@ onBeforeUnmount(() => {
           aria-modal="true"
           :aria-label="`Chi tiết dự án ${project.name}`"
         >
-          <!-- ── Header cố định: định danh + chỉ số ── -->
+          <!-- ── Header cố định: định danh ── -->
           <header class="relative shrink-0 overflow-hidden border-b border-white/10 px-6 pb-5 pt-7 sm:px-8">
             <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(90%_140%_at_15%_-30%,color-mix(in_srgb,var(--accent)_38%,transparent),transparent_62%)]" />
             <div
@@ -129,44 +126,19 @@ onBeforeUnmount(() => {
               {{ project.name }}
             </h2>
 
-            <!-- Dải chỉ số: trạng thái · tiến độ · phụ trách -->
-            <div class="relative mt-4 flex flex-wrap items-center gap-x-5 gap-y-3">
-              <span
-                class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset"
-                :class="statusTone.soft"
-              >
-                <span
-                  class="h-1.5 w-1.5 rounded-full"
-                  :class="statusTone.dot"
-                />
-                {{ project.status }}
+            <div
+              v-if="project.manager"
+              class="relative mt-4 flex min-w-0 items-center gap-2.5"
+            >
+              <Avatar
+                :name="project.manager.name"
+                :src="project.manager.avatar"
+                :size="34"
+              />
+              <span class="min-w-0">
+                <span class="block truncate text-[13px] font-medium text-white/85">{{ project.manager.name }}</span>
+                <span class="block truncate text-[11px] text-white/45">{{ project.manager.role_title || 'Phụ trách chính' }}</span>
               </span>
-
-              <div class="flex min-w-[10rem] flex-1 items-center gap-2.5 sm:max-w-xs">
-                <span class="font-mono text-[10px] uppercase tracking-wider text-white/40">Tiến độ</span>
-                <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-white/10">
-                  <div
-                    class="h-full rounded-full"
-                    :style="{ width: `${progress}%`, background: 'linear-gradient(110deg,var(--accent),color-mix(in srgb,var(--accent) 55%,white))' }"
-                  />
-                </div>
-                <span class="font-mono text-[12px] font-semibold tabular-nums text-white/85">{{ progress }}%</span>
-              </div>
-
-              <div
-                v-if="project.manager"
-                class="ml-auto flex min-w-0 items-center gap-2.5"
-              >
-                <Avatar
-                  :name="project.manager.name"
-                  :src="project.manager.avatar"
-                  :size="34"
-                />
-                <span class="min-w-0">
-                  <span class="block truncate text-[13px] font-medium text-white/85">{{ project.manager.name }}</span>
-                  <span class="block truncate text-[11px] text-white/45">{{ project.manager.role_title || 'Phụ trách chính' }}</span>
-                </span>
-              </div>
             </div>
           </header>
 
