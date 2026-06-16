@@ -386,8 +386,6 @@ AI Accounts Group
 
 Credential Management Group
 ├── /credentials                        (index, create, show — Inertia)
-├── /credentials/dashboard              (Inertia KPI)
-├── /credentials/reports                (Inertia — admin)
 ├── POST /credentials/import            (bulk ≤200)
 └── /api/credentials/{id}/*             (password reveal, ACL, audit, relations, access-requests)
 

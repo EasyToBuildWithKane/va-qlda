@@ -411,25 +411,11 @@ class Navigation
                 'defaultCollapsed' => true,
                 'items' => [
                     [
-                        'label' => 'Tổng quan',
-                        'icon' => 'overview',
-                        'href' => '/credentials/dashboard',
-                        'status' => 'live',
-                        'roles' => ['admin', 'lead'],
-                    ],
-                    [
                         'label' => 'Tài khoản & Mật khẩu',
                         'icon' => 'vault',
                         'href' => '/credentials',
                         'status' => 'live',
                         'roles' => ['admin', 'lead', 'member'],
-                    ],
-                    [
-                        'label' => 'Báo cáo bảo mật',
-                        'icon' => 'performance',
-                        'href' => '/credentials/reports',
-                        'status' => 'live',
-                        'roles' => ['admin'],
                     ],
                 ],
             ],

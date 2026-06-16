@@ -364,7 +364,7 @@ function submit() {
             <CredentialFieldLabel
               for-id="cred-expires"
               label="Ngày hết hạn"
-              tooltip="Hết hạn gói dịch vụ, domain, SSL hoặc license — dùng cảnh báo trên dashboard."
+              tooltip="Hết hạn gói dịch vụ, domain, SSL hoặc license — dùng cảnh báo trên dải thống kê danh sách."
             />
             <input
               id="cred-expires"

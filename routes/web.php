@@ -331,9 +331,7 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictCoachingOnlyUsers::class
 
     Route::prefix('credentials')->name('credentials.')->group(function () {
         Route::get('/', [CredentialPageController::class, 'index'])->name('index');
-        Route::get('/dashboard', [CredentialPageController::class, 'dashboard'])->name('dashboard');
         Route::get('/create', [CredentialPageController::class, 'create'])->name('create');
-        Route::get('/reports', [CredentialPageController::class, 'reports'])->name('reports');
         Route::post('/import', [CredentialController::class, 'import'])->name('import');
         Route::post('/', [CredentialController::class, 'store'])->name('store');
         Route::get('/{credential}', [CredentialPageController::class, 'show'])->name('show');

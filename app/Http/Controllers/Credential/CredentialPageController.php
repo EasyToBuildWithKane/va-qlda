@@ -8,7 +8,6 @@ use App\Http\Resources\CredentialListResource;
 use App\Http\Resources\CredentialResource;
 use App\Models\Credential;
 use App\Models\CredentialAccessRequest;
-use App\Models\CredentialAuditLog;
 use App\Models\Department;
 use App\Models\Project;
 use App\Models\SystemAccount;
@@ -20,7 +19,6 @@ use App\Support\Enums\CredentialPermission;
 use App\Support\Enums\CredentialRelationType;
 use App\Support\Enums\CredentialStatus;
 use App\Support\Enums\CredentialType;
-use App\Support\Enums\SystemRole;
 use App\Support\Options;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -29,25 +27,6 @@ use Inertia\Response;
 
 class CredentialPageController extends Controller
 {
-    public function dashboard(Request $request): Response
-    {
-        $this->authorize('viewAny', Credential::class);
-
-        $account = $request->user();
-        $recentAudit = CredentialAuditLog::query()
-            ->with(['account', 'credential'])
-            ->whereHas('credential', fn (Builder $q) => $q->visibleTo($account))
-            ->latest('created_at')
-            ->limit(12)
-            ->get();
-
-        return Inertia::render('Credential/Dashboard', [
-            'summary' => CredentialSummaryBuilder::build($account),
-            'recent_audit' => CredentialAuditResource::collection($recentAudit),
-            'can' => $this->pageCan($request),
-        ]);
-    }
-
     public function index(Request $request): Response
     {
         $this->authorize('viewAny', Credential::class);
@@ -141,79 +120,6 @@ class CredentialPageController extends Controller
                     ->limit(50)
                     ->get(),
             ),
-        ]);
-    }
-
-    public function reports(Request $request): Response
-    {
-        $this->authorize('viewAny', Credential::class);
-
-        if ($request->user()->role !== SystemRole::Admin) {
-            abort(403);
-        }
-
-        $account = $request->user();
-        $base = Credential::query()->visibleTo($account);
-
-        $bySystem = (clone $base)
-            ->selectRaw('system_category, count(*) as total')
-            ->groupBy('system_category')
-            ->orderByDesc('total')
-            ->limit(15)
-            ->get()
-            ->map(function ($row) {
-                $raw = $row->system_category;
-                $cat = $raw instanceof CredentialCategory
-                    ? $raw
-                    : CredentialCategory::tryFrom((string) $raw);
-
-                return [
-                    'category' => $cat?->labelVi() ?? (string) $raw,
-                    'total' => (int) $row->total,
-                ];
-            });
-
-        $byDepartmentRows = (clone $base)
-            ->whereNotNull('department_id')
-            ->selectRaw('department_id, count(*) as total')
-            ->groupBy('department_id')
-            ->orderByDesc('total')
-            ->limit(10)
-            ->get();
-
-        $departmentNames = Department::query()
-            ->whereIn('id', $byDepartmentRows->pluck('department_id')->filter())
-            ->pluck('name', 'id');
-
-        $byDepartment = $byDepartmentRows->map(fn ($row) => [
-            'department' => $departmentNames[$row->department_id] ?? '—',
-            'total' => (int) $row->total,
-        ]);
-
-        $topAccess = CredentialAuditLog::query()
-            ->selectRaw('account_id, count(*) as total')
-            ->whereIn('action', ['viewed_password', 'copied_password'])
-            ->groupBy('account_id')
-            ->orderByDesc('total')
-            ->limit(10)
-            ->with('account:id,display_name')
-            ->get()
-            ->map(fn ($row) => [
-                'account' => $row->account?->display_name ?? '—',
-                'total' => (int) $row->total,
-            ]);
-
-        return Inertia::render('Credential/Reports', [
-            'summary' => CredentialSummaryBuilder::build($account),
-            'by_system' => $bySystem,
-            'by_department' => $byDepartment,
-            'security' => [
-                'no_mfa' => (clone $base)->where('mfa_enabled', false)->count(),
-                'password_overdue' => (clone $base)->whereNotNull('password_expires_at')
-                    ->where('password_expires_at', '<', now())->count(),
-                'locked' => (clone $base)->where('status', CredentialStatus::Locked->value)->count(),
-            ],
-            'top_access' => $topAccess,
         ]);
     }
 
