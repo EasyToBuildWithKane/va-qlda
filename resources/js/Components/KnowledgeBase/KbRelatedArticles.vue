@@ -28,7 +28,7 @@ function cover(article) {
 <template>
   <section
     v-if="articles.length"
-    class="mx-auto max-w-7xl px-4 sm:px-6"
+    class="w-full min-w-0"
     aria-label="Bài viết liên quan"
   >
     <div class="mb-6 flex items-end justify-between gap-4">

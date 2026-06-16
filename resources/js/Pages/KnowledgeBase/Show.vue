@@ -1,7 +1,7 @@
 <script setup>
 /* eslint-disable vue/no-v-html -- article HTML from TipTap */
 import { computed, ref, watch } from 'vue';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import AppIcon from '@/Components/AppIcon.vue';
@@ -10,9 +10,7 @@ import KbArticleHero from '@/Components/KnowledgeBase/KbArticleHero.vue';
 import KbArticleCover from '@/Components/KnowledgeBase/KbArticleCover.vue';
 import KbArticleToc from '@/Components/KnowledgeBase/KbArticleToc.vue';
 import KbFloatingToolbar from '@/Components/KnowledgeBase/KbFloatingToolbar.vue';
-import KbAuthorCard from '@/Components/KnowledgeBase/KbAuthorCard.vue';
 import KbRelatedArticles from '@/Components/KnowledgeBase/KbRelatedArticles.vue';
-import KbAiPanel from '@/Components/KnowledgeBase/KbAiPanel.vue';
 import CommentThread from '@/shared/ui/CommentThread.vue';
 import { useKbScrollReveal } from '@/Components/KnowledgeBase/useKbScrollReveal.js';
 import { useCommentThreadPoll } from '@/composables/useCommentThreadPoll';
@@ -56,9 +54,10 @@ const shareUrl = computed(() => {
     return window.location.href;
 });
 
-const pageTitle = computed(() => {
-    const t = props.article.title || '';
-    return t.length > 48 ? `${t.slice(0, 45)}…` : t;
+const headerTitle = computed(() => {
+    const t = (props.article.title || '').trim();
+    const labeled = t ? `Tiêu đề: ${t}` : 'Tiêu đề: —';
+    return labeled.length > 72 ? `${labeled.slice(0, 69)}…` : labeled;
 });
 
 function toggleFavorite() {
@@ -122,68 +121,60 @@ async function shareFromHero() {
 
     <template #header>
       <PageHeader
-        :title="pageTitle"
+        :title="headerTitle"
         icon="knowledge"
         icon-color="brand"
         back-href="/knowledge-base"
       >
-        <div class="flex shrink-0 items-center gap-1.5">
-          <button
-            v-if="!isRead"
-            type="button"
-            class="btn-ghost inline-flex h-9 items-center gap-1.5 px-2.5 text-xs sm:px-3 sm:text-sm"
-            :disabled="markingRead"
-            title="Đánh dấu đã đọc"
-            @click="markRead"
-          >
-            <AppIcon
-              name="check"
-              :size="15"
-            />
-            <span class="hidden sm:inline">Đã đọc</span>
-          </button>
-          <Link
-            v-if="article.can?.update"
-            :href="`/knowledge-base/articles/${article.slug}/edit`"
-            class="btn-ghost inline-flex h-9 w-9 items-center justify-center p-0"
-            title="Chỉnh sửa bài viết"
-            aria-label="Chỉnh sửa bài viết"
-          >
-            <AppIcon
-              name="edit"
-              :size="16"
-            />
-          </Link>
-        </div>
+        <button
+          v-if="!isRead"
+          type="button"
+          class="btn-ghost inline-flex h-9 shrink-0 items-center gap-1.5 px-2.5 text-xs sm:px-3 sm:text-sm"
+          :disabled="markingRead"
+          title="Đánh dấu đã đọc"
+          @click="markRead"
+        >
+          <AppIcon
+            name="check"
+            :size="15"
+          />
+          <span class="hidden sm:inline">Đã đọc</span>
+        </button>
       </PageHeader>
     </template>
 
     <article class="kb-article-show w-full min-w-0 pb-16">
-      <KbArticleHero
-        :article="article"
-        :is-favorite="isFavorite"
-        :favoriting="favoriting"
-        @toggle-favorite="toggleFavorite"
-        @share="shareFromHero"
-      />
+      <section
+        class="rounded-card border border-slate-200/80 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900/40"
+        aria-label="Thông tin bài viết"
+      >
+        <KbArticleHero
+          :article="article"
+          :is-favorite="isFavorite"
+          :favoriting="favoriting"
+          @toggle-favorite="toggleFavorite"
+          @share="shareFromHero"
+        />
+        <div class="border-t border-slate-100 px-4 pb-6 pt-2 dark:border-slate-800 sm:px-6 sm:pb-8">
+          <KbArticleCover :article="article" />
+        </div>
+      </section>
 
-      <div class="mt-8">
-        <KbArticleCover :article="article" />
-      </div>
+      <div class="mt-8 grid w-full min-w-0 grid-cols-1 gap-6 lg:grid-cols-[minmax(0,240px)_minmax(0,1fr)_minmax(0,72px)] lg:gap-8">
+        <div class="min-w-0">
+          <KbArticleToc :items="tocItems" />
+        </div>
 
-      <div class="mx-auto mt-12 max-w-7xl px-4 sm:px-6 lg:grid lg:grid-cols-[minmax(0,220px)_minmax(0,1fr)_minmax(0,64px)] lg:gap-8 xl:grid-cols-[minmax(0,240px)_minmax(0,1fr)_minmax(0,72px)]">
-        <KbArticleToc :items="tocItems" />
-
-        <div class="min-w-0 lg:col-start-2">
+        <div class="min-w-0">
           <div
             ref="contentRoot"
-            class="kb-article-content rich-content prose prose-lg prose-slate mx-auto max-w-[760px] dark:prose-invert"
+            class="kb-article-content rich-content prose prose-lg max-w-none prose-slate dark:prose-invert"
             v-html="article.content"
           />
 
           <div
             v-if="article.gallery_images?.length"
-            class="mx-auto mt-12 max-w-[760px]"
+            class="mt-12"
           >
             <p class="mb-4 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
               Thư viện ảnh
@@ -211,7 +202,7 @@ async function shareFromHero() {
 
           <ul
             v-if="article.attachments?.length"
-            class="mx-auto mt-10 max-w-[760px] space-y-2 text-sm"
+            class="mt-10 space-y-2 text-sm"
           >
             <p class="mb-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
               Tệp đính kèm
@@ -234,31 +225,25 @@ async function shareFromHero() {
               </a>
             </li>
           </ul>
-
-          <div class="mx-auto mt-12 max-w-[760px] space-y-10">
-            <KbAuthorCard :author="article.author" />
-            <KbAiPanel
-              :article-title="article.title"
-              :related-questions="article.ai_questions || []"
-            />
-          </div>
         </div>
 
-        <KbFloatingToolbar
-          :is-favorite="isFavorite"
-          :favoriting="favoriting"
-          :share-url="shareUrl"
-          :share-title="article.title"
-          @toggle-favorite="toggleFavorite"
-        />
+        <div class="min-w-0">
+          <KbFloatingToolbar
+            :is-favorite="isFavorite"
+            :favoriting="favoriting"
+            :share-url="shareUrl"
+            :share-title="article.title"
+            @toggle-favorite="toggleFavorite"
+          />
+        </div>
       </div>
 
       <div class="mt-16">
         <KbRelatedArticles :articles="related" />
       </div>
 
-      <div class="mx-auto mt-12 max-w-[760px] px-4 sm:px-6">
-        <div class="rounded-2xl border border-slate-200/80 bg-white/90 p-5 shadow-sm backdrop-blur-sm dark:border-slate-700 dark:bg-slate-900/70 sm:p-6">
+      <div class="mt-12 w-full min-w-0">
+        <div class="rounded-card border border-slate-200/80 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900/70 sm:p-6">
           <CommentThread
             :comments="article.comments || []"
             commentable-type="kb_article"

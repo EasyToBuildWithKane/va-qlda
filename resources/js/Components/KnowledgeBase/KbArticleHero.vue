@@ -24,13 +24,8 @@ const readingMinutes = computed(() => props.article.reading_time ?? 1);
 </script>
 
 <template>
-  <header class="relative mx-auto max-w-4xl px-4 pb-10 pt-2 text-center sm:px-6 sm:pb-12 sm:pt-4 lg:max-w-5xl">
-    <div
-      class="pointer-events-none absolute inset-x-0 -top-8 h-48 bg-gradient-to-b from-brand/[0.06] to-transparent dark:from-brand/10"
-      aria-hidden="true"
-    />
-
-    <div class="relative flex flex-wrap items-center justify-center gap-2">
+  <header class="w-full px-4 pb-8 pt-4 text-center sm:px-6 sm:pb-10 sm:pt-6">
+    <div class="flex flex-wrap items-center justify-center gap-2">
       <Link
         v-if="article.category"
         :href="`/knowledge-base/blog?category_id=${article.category.id}`"
@@ -47,14 +42,14 @@ const readingMinutes = computed(() => props.article.reading_time ?? 1);
     </div>
 
     <h1
-      class="relative mt-6 font-display text-3xl font-semibold leading-[1.15] tracking-tight text-slate-900 dark:text-slate-50 sm:text-4xl lg:text-[2.75rem] lg:leading-[1.12]"
+      class="mt-6 font-display text-3xl font-semibold leading-[1.15] tracking-tight text-slate-900 dark:text-slate-50 sm:text-4xl lg:text-[2.75rem] lg:leading-[1.12]"
     >
       {{ article.title }}
     </h1>
 
     <div
       v-if="article.excerpt?.trim()"
-      class="relative mx-auto mt-6 max-w-2xl text-left sm:text-center"
+      class="mx-auto mt-6 max-w-2xl text-left sm:text-center"
     >
       <RichContentBody
         :content="article.excerpt"
@@ -66,7 +61,7 @@ const readingMinutes = computed(() => props.article.reading_time ?? 1);
 
     <div
       v-if="article.tags?.length"
-      class="relative mt-6 flex flex-wrap justify-center gap-2"
+      class="mt-6 flex flex-wrap justify-center gap-2"
     >
       <span
         v-for="t in article.tags"
@@ -77,7 +72,7 @@ const readingMinutes = computed(() => props.article.reading_time ?? 1);
       </span>
     </div>
 
-    <div class="relative mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center sm:gap-6">
+    <div class="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center sm:gap-6">
       <div
         v-if="authorName"
         class="flex items-center gap-3"
@@ -133,7 +128,7 @@ const readingMinutes = computed(() => props.article.reading_time ?? 1);
       </ul>
     </div>
 
-    <div class="relative mt-8 flex flex-wrap items-center justify-center gap-2">
+    <div class="mt-8 flex flex-wrap items-center justify-center gap-2">
       <button
         type="button"
         class="inline-flex h-10 items-center gap-2 rounded-full border border-slate-200/80 bg-white/80 px-4 text-sm font-medium text-slate-700 shadow-sm backdrop-blur-sm transition hover:border-brand/25 hover:text-brand dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-200"

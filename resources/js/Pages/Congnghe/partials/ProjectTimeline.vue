@@ -5,6 +5,7 @@ import AnalyzingBadge from './AnalyzingBadge.vue';
 import DataStreamTicker from './DataStreamTicker.vue';
 import RevealOnScroll from './RevealOnScroll.vue';
 import CongngheProjectShowcase from './CongngheProjectShowcase.vue';
+import CongngheProjectSlider from './CongngheProjectSlider.vue';
 import { tone } from './tones.js';
 import { useInView, useMagneticGroup } from './motion.js';
 
@@ -24,6 +25,10 @@ const activePhaseIndex = ref(0);
 
 const activePhase = computed(() => props.phases[activePhaseIndex.value] ?? props.phases[0] ?? null);
 const items = computed(() => activePhase.value?.items ?? []);
+
+// 1 dự án chính của giai đoạn hiển thị full-width nổi bật; phần còn lại vào swiper.
+const featuredItem = computed(() => items.value[0] ?? null);
+const restItems = computed(() => items.value.slice(1));
 
 const canPrev = computed(() => activePhaseIndex.value > 0);
 const canNext = computed(() => activePhaseIndex.value < props.phases.length - 1);
@@ -249,24 +254,42 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown));
           </div>
         </div>
 
-        <!-- Mỗi dự án là một dải full-width (đồng nhất với Hệ sinh thái sản phẩm) -->
+        <!-- 1 dự án chính full-width + swiper dự án còn lại (đồng nhất Hệ sinh thái) -->
         <div
-          v-if="items.length"
+          v-if="featuredItem"
           :key="activePhase.value"
-          class="flex flex-col gap-8 sm:gap-10"
         >
           <RevealOnScroll
-            v-for="(item, i) in items"
-            :key="item.id"
             variant="up"
             :threshold="0.08"
             class="block"
           >
             <CongngheProjectShowcase
-              :project="item"
-              :index="i"
+              :project="featuredItem"
+              :index="0"
             />
           </RevealOnScroll>
+
+          <div
+            v-if="restItems.length"
+            class="mt-14"
+          >
+            <div class="mb-5 flex items-center gap-3">
+              <span class="font-mono text-[11px] uppercase tracking-[0.18em] text-white/45">Dự án khác cùng giai đoạn</span>
+              <span class="h-px flex-1 bg-gradient-to-r from-brand/30 to-transparent" />
+              <span class="font-mono text-[11px] tabular-nums text-white/35">{{ restItems.length }}</span>
+            </div>
+            <RevealOnScroll
+              variant="up"
+              class="block"
+            >
+              <CongngheProjectSlider
+                :projects="restItems"
+                :reset-key="activePhase.value"
+                accent="brand"
+              />
+            </RevealOnScroll>
+          </div>
         </div>
 
         <!-- Trống -->

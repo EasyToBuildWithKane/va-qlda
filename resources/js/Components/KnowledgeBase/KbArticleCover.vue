@@ -22,7 +22,7 @@ const tagLabel = computed(() => props.article.tags?.[0]?.name || props.article.c
 </script>
 
 <template>
-  <div class="mx-auto max-w-5xl px-4 sm:px-6">
+  <div class="w-full">
     <div
       v-if="coverUrl"
       class="group overflow-hidden rounded-2xl ring-1 ring-slate-200/80 dark:ring-slate-700"
