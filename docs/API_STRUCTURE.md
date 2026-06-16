@@ -48,6 +48,16 @@ routes/api.php      ← Rỗng (chưa sử dụng)
 | GET | `/` | redirect | auth | Redirect → /dashboard |
 | GET | `/dashboard` | DashboardController@index | auth | Trang tổng quan; nhân sự KPI/tuân thủ báo cáo ngày theo phòng ban khớp `config('va.dashboard_personnel_department_pattern')` (mặc định «Công nghệ»); `dailyReportCompliance.people[].workToday` (công việc trong ngày) |
 
+### 2.2.3 Hiệu suất & Audit
+
+Gate `performance.view` (`admin`, `lead`, `viewer`). Chi tiết module: [`docs/PERFORMANCE_ANALYTICS.md`](PERFORMANCE_ANALYTICS.md).
+
+| Method | URI | Controller | Middleware | Mô Tả |
+|---|---|---|---|---|
+| GET | `/performance` | PerformanceDashboardController | auth + gate | Executive dashboard |
+| GET | `/performance/audit` | PerformanceAuditController@index | auth + gate | Danh sách audit nhân sự; query: `period`, `date`, `department`, `team`, `project`, `status[]`, `q`, `kpi`, `per_page`, `page` |
+| GET | `/performance/audit/{employee}` | PerformanceAuditController@show | auth + gate | Timeline audit một nhân sự; query bộ lọc kỳ giống index |
+
 ### 2.2.1 Phòng Công Nghệ (cổng nội bộ)
 
 | Method | URI | Controller | Middleware | Mô Tả |

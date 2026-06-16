@@ -108,6 +108,7 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictCoachingOnlyUsers::class
     Route::prefix('performance')->name('performance.')->group(function () {
         Route::get('/', PerformanceDashboardController::class)->name('index');
         Route::get('/audit', [PerformanceAuditController::class, 'index'])->name('audit');
+        Route::get('/audit/{employee}', [PerformanceAuditController::class, 'show'])->name('audit.show');
     });
 
     // Notifications

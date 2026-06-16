@@ -56,8 +56,12 @@ async function onSave(payload) {
         await grant(payload);
         closeModal();
         router.reload({ preserveScroll: true });
-    } catch {
-        toast.error('Không lưu được quyền truy cập.');
+    } catch (err) {
+        const resp = err?.response?.data;
+        const msg = resp?.message
+            || (resp?.errors ? Object.values(resp.errors).flat().join(' ') : null)
+            || 'Không lưu được quyền truy cập.';
+        toast.error(msg);
     } finally {
         saving.value = false;
     }

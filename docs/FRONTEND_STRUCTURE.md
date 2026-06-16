@@ -111,6 +111,7 @@ AppLayout.vue
 | Blocker / Feedback | `Index`, `Show` (Feedback) — Index: **`FeedbackSummaryBar`** (dải KPI `kpi-strip` / `kpi-card`, lọc nhanh scope/status; rule `kpi-summary-strip`) + datagrid toolbar (Lọc/Cột), `FilterDatePicker` khoảng ngày, `FeedbackListRowActions` |
 | Department | `Pages/Department/Index.vue` |
 | Member directory | `Pages/Member/Index.vue` — **`MemberDirectorySummaryBar`** (5 KPI: tổng, hoạt động, ngừng, có dự án, chưa gán dự án); datagrid toolbar (`DatagridToolbarSearch`, Lọc/Cột/Xuất, `DatagridSegmentedControl` danh sách·bảng); `MemberDirectoryListRow` (chip dự án + kỹ năng) · bảng cột tùy chọn · `useMemberDirectoryExport.js` |
+| Performance | `Pages/Performance/Dashboard.vue` · **`Audit.vue`** (danh sách audit nhân sự, segmented Tuần/Tháng/Quý, `PerformanceAuditSummaryBar` mode list) · **`AuditShow.vue`** (timeline + `PerformanceFilterBar`, back về index) |
 | Org team | `Pages/OrgTeam/Index.vue` (sơ đồ) · **`Edit.vue`** — `OrgTeamEditWorkspace` + form inline `OrgTeamTeamForm` (mục lục, mẫu Phòng CNTT, nhánh + thành viên); `OrgTeamFormModal` (tạo nhóm gốc từ Index); `Members.vue` |
 | Notifications | `Pages/Notifications/Management.vue` |
 

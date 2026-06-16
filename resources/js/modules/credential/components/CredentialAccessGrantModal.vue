@@ -21,7 +21,11 @@ const isEdit = computed(() => Boolean(props.grant?.id));
 
 const title = computed(() => (isEdit.value ? 'Chỉnh sửa quyền truy cập' : 'Thêm người truy cập'));
 
-const dirty = computed(() => accountId.value !== null || permissions.value.length > 0);
+const dirty = computed(() =>
+    isEdit.value
+        ? JSON.stringify([...permissions.value].sort()) !== JSON.stringify([...(props.grant?.permissions || [])].sort())
+        : accountId.value !== null,
+);
 
 const accountSelectOptions = computed(() =>
     props.ownerOptions.map((o) => ({

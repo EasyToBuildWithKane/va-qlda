@@ -15,7 +15,8 @@ không bịa số.**
 | Route | Tên | Màn |
 |-------|-----|-----|
 | `GET /performance` | `performance.index` | Executive Dashboard |
-| `GET /performance/audit` | `performance.audit` | Audit theo nhân viên |
+| `GET /performance/audit` | `performance.audit` | Danh sách audit nhân sự (datagrid + KPI) |
+| `GET /performance/audit/{employee}` | `performance.audit.show` | Chi tiết timeline audit một nhân sự |
 
 Gate `performance.view` (trong `AuthServiceProvider`) — chỉ `admin | lead | viewer`
 (quản lý / ban giám đốc). `member` không truy cập. Nav: nhóm **"Hiệu suất & Audit"**.
@@ -30,7 +31,8 @@ Controller (mỏng)                     Service (thuần, app/Support/Performanc
 PerformanceDashboardController  ──▶   PerformanceFilter   (giải mã bộ lọc → kỳ + scope)
                                       PerformanceMetrics  (engine KPI/distribution/trend + summary)
                                       PerformanceScorer   (điểm khách quan từ task)
-PerformanceAuditController      ──▶   EmployeeAuditBuilder (timeline tuần: kế hoạch vs kết quả)
+PerformanceAuditController      ──▶   EmployeeAuditListBuilder (danh sách: cam kết / điểm theo kỳ)
+                                      EmployeeAuditBuilder (timeline tuần: kế hoạch vs kết quả)
 ```
 
 Controller chỉ `authorize` + gọi service + `Inertia::render`. Service trả mảng đã
@@ -45,7 +47,8 @@ shape (giống `DashboardController`). Bộ lọc đổi → Inertia partial rel
   `AuditTimeline` → `WeeklyAuditCard` → `KanbanSnapshot`.
 - `composables/` — `useChartTheme` (palette brand + chart options), `usePerformanceExport`
   (Excel `xlsx-js-style`). Count-up tái dùng `@/shared/composables/useCountUp`.
-- Pages: `Pages/Performance/Dashboard.vue`, `Pages/Performance/Audit.vue`.
+- Pages: `Pages/Performance/Dashboard.vue`, `Pages/Performance/Audit.vue` (index danh sách),
+  `Pages/Performance/AuditShow.vue` (chi tiết).
 
 ---
 
@@ -92,7 +95,12 @@ Không dùng điểm review chủ quan (DailyReportScore) ở pha này.
 
 ## Audit theo nhân viên
 
-`EmployeeAuditBuilder` chia kỳ thành **tuần** (kỳ "năm" → tháng) thành các Weekly
+**Danh sách (`/performance/audit`):** `EmployeeAuditListBuilder` tổng hợp cam kết / hoàn thành /
+điểm / xếp loại cho từng nhân sự trong phạm vi (một lượt query task). Toolbar datagrid: tìm kiếm,
+Lọc (mốc thời gian, phòng ban, team), Cột, Xuất; segmented **Tuần | Tháng | Quý**. KPI strip
+`PerformanceAuditSummaryBar` (`mode=list`). Bấm dòng → `performance.audit.show`.
+
+**Chi tiết (`/performance/audit/{employee}`):** `EmployeeAuditBuilder` chia kỳ thành **tuần** (kỳ "năm" → tháng) thành các Weekly
 Audit Card:
 
 - **Kế hoạch / Cam kết** = task đến hạn hoặc bắt đầu làm trong tuần.
@@ -107,7 +115,7 @@ Audit Card:
 `usePerformanceExport`: Excel styled (`xlsx-js-style`, brand `#9A0036`) — Dashboard
 (Tổng quan + Nhân sự), Audit (theo tuần). Toolbar: **Lọc** + **Xuất** (không nút In/Đặt lại).
 
-Audit: dải KPI `PerformanceAuditSummaryBar` (`KpiSummaryStrip` production) ngay sau bộ lọc.
+Audit: dải KPI `PerformanceAuditSummaryBar` trên index (`mode=list`) và show (`mode=detail`).
 
 ---
 

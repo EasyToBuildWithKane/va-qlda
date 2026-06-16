@@ -3,7 +3,6 @@ import { computed, watch } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
-import CredentialHelpBanner from '@/modules/credential/components/CredentialHelpBanner.vue';
 import CredentialFieldLabel from '@/modules/credential/components/CredentialFieldLabel.vue';
 
 const props = defineProps({
@@ -80,7 +79,6 @@ function submit() {
         title="Chỉnh sửa tài khoản"
         :subtitle="credential.name"
         icon="vault"
-        :back-href="route('credentials.show', credential.id)"
       >
         <Link
           :href="route('credentials.show', credential.id)"
@@ -91,21 +89,11 @@ function submit() {
       </PageHeader>
     </template>
 
-    <CredentialHelpBanner
-      title="Cập nhật hồ sơ"
-      intro="Chỉnh thông tin tra cứu, phạm vi và trạng thái. Để trống mật khẩu nếu không đổi secret."
-      :steps="[
-        'Kiểm tra loại, hệ thống và môi trường trước khi lưu.',
-        'Gán người phụ trách để hết hiển thị «Chưa gán phụ trách» trên danh sách.',
-        'Bấm «Lưu thay đổi» — quay về hồ sơ chi tiết.',
-      ]"
-    />
-
     <form
-      class="mx-auto max-w-3xl space-y-5"
+      class="grid w-full grid-cols-1 gap-5 lg:grid-cols-2"
       @submit.prevent="submit"
     >
-      <section class="card space-y-4 p-5 sm:p-6">
+      <section class="card flex h-full flex-col space-y-4 p-5 sm:p-6">
         <h3 class="text-xs font-semibold uppercase tracking-[0.12em] text-brand/80">
           1 · Phân loại
         </h3>
@@ -211,7 +199,7 @@ function submit() {
         </div>
       </section>
 
-      <section class="card space-y-4 p-5 sm:p-6">
+      <section class="card flex h-full flex-col space-y-4 p-5 sm:p-6">
         <h3 class="text-xs font-semibold uppercase tracking-[0.12em] text-brand/80">
           2 · Thông tin đăng nhập
         </h3>
@@ -313,7 +301,7 @@ function submit() {
         </div>
       </section>
 
-      <section class="card space-y-4 p-5 sm:p-6">
+      <section class="card flex h-full flex-col space-y-4 p-5 sm:p-6">
         <h3 class="text-xs font-semibold uppercase tracking-[0.12em] text-brand/80">
           3 · Phụ trách & phạm vi
         </h3>
@@ -429,7 +417,7 @@ function submit() {
         </div>
       </section>
 
-      <section class="card space-y-4 p-5 sm:p-6">
+      <section class="card flex h-full flex-col space-y-4 p-5 sm:p-6">
         <h3 class="text-xs font-semibold uppercase tracking-[0.12em] text-brand/80">
           4 · Ghi chú
         </h3>
@@ -461,7 +449,7 @@ function submit() {
         </div>
       </section>
 
-      <div class="flex flex-wrap justify-end gap-2 pb-6">
+      <div class="flex flex-wrap justify-end gap-2 pb-6 lg:col-span-2">
         <Link
           :href="route('credentials.show', credential.id)"
           class="btn-ghost h-10 px-4 text-sm"

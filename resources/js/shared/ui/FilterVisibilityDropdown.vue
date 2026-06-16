@@ -1,6 +1,6 @@
 <script setup>
 import { toRef } from 'vue';
-import { useFixedDropdownAnchor } from '@/shared/composables/useFixedDropdownAnchor';
+import { useFixedDropdownAnchor, resolveAnchorElement } from '@/shared/composables/useFixedDropdownAnchor';
 
 const props = defineProps({
     show: { type: Boolean, default: false },
@@ -15,9 +15,9 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'persist']);
 
 const { panelStyle } = useFixedDropdownAnchor(
-    () => props.anchorRef,
+    () => resolveAnchorElement(props.anchorRef),
     toRef(props, 'show'),
-    { width: 224, zIndex: 85, preferDown: true },
+    { width: 224, zIndex: 120, preferDown: true },
 );
 
 function inputId(key) {
@@ -41,13 +41,13 @@ function onToggle(key, checked) {
       <div
         v-if="show"
         :style="panelStyle"
-        class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-elevation-2 dark:border-slate-700 dark:bg-slate-900"
+        class="flex max-h-[inherit] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-elevation-2 dark:border-slate-700 dark:bg-slate-900"
         data-filter-visibility-panel
       >
         <div class="border-b border-slate-100 px-4 py-2.5 dark:border-slate-700">
           <span class="text-xs font-bold uppercase tracking-wide text-slate-500">Hiển thị trên thanh công cụ</span>
         </div>
-        <div class="max-h-64 overflow-y-auto px-2 py-2">
+        <div class="min-h-0 flex-1 overflow-y-auto px-2 py-2">
           <label
             v-for="f in controls"
             :key="f.key"
@@ -65,7 +65,7 @@ function onToggle(key, checked) {
             <span class="text-sm text-slate-700 dark:text-slate-200">{{ f.label }}</span>
           </label>
         </div>
-        <div class="border-t border-slate-100 px-4 py-2.5 dark:border-slate-700">
+        <div class="shrink-0 border-t border-slate-100 px-4 py-2.5 dark:border-slate-700">
           <p class="text-[11px] leading-snug text-slate-400">
             Ô tìm kiếm luôn hiển thị. Bật/tắt bộ lọc bạn muốn thấy ở dòng dưới.
           </p>

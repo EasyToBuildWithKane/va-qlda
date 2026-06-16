@@ -8,14 +8,13 @@ import CredentialFieldLabel from '@/modules/credential/components/CredentialFiel
 import CredentialPasswordViewer from '@/modules/credential/components/CredentialPasswordViewer.vue';
 import CredentialAccessGrantsPanel from '@/modules/credential/components/CredentialAccessGrantsPanel.vue';
 import CredentialAuditTimeline from '@/modules/credential/components/CredentialAuditTimeline.vue';
-import Badge from '@/shared/ui/Badge.vue';
 import { useToast } from '@/shared/composables/useToast';
 import { date, datetime } from '@/composables/useFormat';
 
 const props = defineProps({
     credential: { type: Object, required: true },
     options: { type: Object, default: () => ({}) },
-    auditLogs: { type: Array, default: () => [] },
+    auditLogs: { type: [Array, Object], default: () => [] },
     pendingAccessRequests: { type: Array, default: () => [] },
 });
 
@@ -69,6 +68,11 @@ const auditLogList = computed(() => {
     if (Array.isArray(raw)) return raw;
     if (raw && Array.isArray(raw.data)) return raw.data;
     return [];
+});
+
+const badgeLabelsText = computed(() => {
+    const list = (props.credential.badges || []).filter(Boolean);
+    return list.length ? list.join(' · ') : '';
 });
 </script>
 
@@ -273,40 +277,63 @@ const auditLogList = computed(() => {
         <h3 class="mb-4 border-b border-slate-100 pb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
           Trạng thái & nhãn
         </h3>
-        <div class="flex flex-wrap gap-2">
-          <Badge
-            v-for="b in (credential.badges || []).filter(Boolean)"
-            :key="b"
-            :label="b"
-            color="brand"
-          />
-          <Badge
-            v-if="credential.environment?.label"
-            :label="credential.environment.label"
-            :color="credential.environment.value === 'production' ? 'rose' : 'sky'"
-          />
-          <Badge
-            v-if="credential.status?.label"
-            :label="credential.status.label"
-            :color="credential.status.color || 'slate'"
-          />
-          <Badge
-            v-if="credential.is_shared"
-            label="Dùng chung"
-            color="sky"
-          />
-          <Badge
-            v-if="credential.is_critical"
-            label="Critical"
-            color="amber"
-          />
-          <span
-            v-if="!(credential.badges || []).filter(Boolean).length && !credential.environment?.label && !credential.status?.label && !credential.is_shared && !credential.is_critical"
-            class="text-sm text-slate-500"
-          >
-            Chưa cập nhật
-          </span>
-        </div>
+        <dl class="divide-y divide-slate-100">
+          <div class="grid gap-1 py-3 sm:grid-cols-[9rem_1fr] sm:items-start">
+            <dt>
+              <CredentialFieldLabel
+                label="Trạng thái"
+                tooltip="Trạng thái vận hành trên hệ thống (đang dùng, khóa, …)."
+              />
+            </dt>
+            <dd class="text-sm text-slate-800">
+              {{ displayValue(credential.status?.label) }}
+            </dd>
+          </div>
+          <div class="grid gap-1 py-3 sm:grid-cols-[9rem_1fr] sm:items-start">
+            <dt>
+              <CredentialFieldLabel
+                label="Môi trường"
+                tooltip="Production, staging hoặc môi trường dev tương ứng."
+              />
+            </dt>
+            <dd class="text-sm text-slate-800">
+              {{ displayValue(credential.environment?.label) }}
+            </dd>
+          </div>
+          <div class="grid gap-1 py-3 sm:grid-cols-[9rem_1fr] sm:items-start">
+            <dt>
+              <CredentialFieldLabel
+                label="Nhãn tùy chỉnh"
+                tooltip="Các nhãn gắn thêm trên hồ sơ — lọc và nhận diện nhanh."
+              />
+            </dt>
+            <dd class="text-sm text-slate-800">
+              {{ displayValue(badgeLabelsText) }}
+            </dd>
+          </div>
+          <div class="grid gap-1 py-3 sm:grid-cols-[9rem_1fr] sm:items-start">
+            <dt>
+              <CredentialFieldLabel
+                label="Dùng chung"
+                tooltip="Tài khoản dùng chung cho nhiều thành viên trong phạm vi dự án."
+              />
+            </dt>
+            <dd class="text-sm text-slate-800">
+              {{ credential.is_shared ? 'Có' : 'Không' }}
+            </dd>
+          </div>
+          <div class="grid gap-1 py-3 sm:grid-cols-[9rem_1fr] sm:items-start">
+            <dt>
+              <CredentialFieldLabel
+                label="Quan trọng (Critical)"
+                tooltip="Đánh dấu tài sản nhạy cảm — ưu tiên bảo mật và theo dõi."
+              />
+            </dt>
+            <dd class="text-sm text-slate-800">
+              {{ credential.is_critical ? 'Có' : 'Không' }}
+            </dd>
+          </div>
+        </dl>
         <dl class="mt-4 grid gap-3 border-t border-slate-100 pt-4 sm:grid-cols-2">
           <div>
             <CredentialFieldLabel label="Ngày tạo hồ sơ" />

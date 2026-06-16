@@ -53,8 +53,14 @@ export function useFixedDropdownAnchor(getAnchorEl, isOpen, options = {}) {
         const spaceBelow = window.innerHeight - rect.bottom - gap;
         const spaceAbove = rect.top - gap;
         const preferDown = options.preferDown ?? false;
-        openUp.value =
-            !preferDown && spaceBelow < maxHeight && spaceAbove > spaceBelow;
+
+        openUp.value = spaceBelow < maxHeight && spaceAbove > spaceBelow;
+        if (preferDown && spaceBelow >= Math.min(maxHeight, 160)) {
+            openUp.value = false;
+        }
+
+        const availableHeight = Math.max(120, openUp.value ? spaceAbove : spaceBelow);
+        const panelMaxHeight = Math.min(maxHeight, availableHeight);
 
         const margin = 8;
 
@@ -83,9 +89,11 @@ export function useFixedDropdownAnchor(getAnchorEl, isOpen, options = {}) {
             position: 'fixed',
             left: `${left}px`,
             width: `${width}px`,
+            maxHeight: `${panelMaxHeight}px`,
             zIndex,
             visibility: 'visible',
             pointerEvents: 'auto',
+            overflow: 'hidden',
             ...(openUp.value
                 ? { bottom: `${window.innerHeight - rect.top + gap}px`, top: 'auto' }
                 : { top: `${rect.bottom + gap}px`, bottom: 'auto' }),
@@ -112,11 +120,15 @@ export function useFixedDropdownAnchor(getAnchorEl, isOpen, options = {}) {
     async function schedulePosition() {
         panelStyle.value = hiddenOffScreenStyle();
         await nextTick();
-        requestAnimationFrame(() => {
-            if (!position()) {
-                requestAnimationFrame(() => position());
-            }
-        });
+        const attempt = () => {
+            if (position()) return;
+            requestAnimationFrame(() => {
+                if (!position()) {
+                    requestAnimationFrame(() => position());
+                }
+            });
+        };
+        requestAnimationFrame(attempt);
     }
 
     watch(

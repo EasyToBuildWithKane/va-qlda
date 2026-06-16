@@ -305,7 +305,44 @@ export function usePerformanceExport() {
         window.print();
     }
 
-    return { exportDashboard, exportAudit, printReport };
+    /** Xuất danh sách audit (trang hiện tại). */
+    function exportAuditList(rows, filter = {}) {
+        const wb = XLSX.utils.book_new();
+        const periodLabel = filter?.label ?? '';
+
+        const header = [
+            '#', 'Thành viên', 'Vai trò', 'Team', 'Kỳ', 'Cam kết', 'Hoàn thành',
+            'Tỷ lệ cam kết %', 'Hiệu suất %', 'Xếp loại', 'Hạng',
+        ];
+        const dataRows = (rows ?? []).map((r, i) => [
+            i + 1,
+            r.name,
+            r.role ?? '',
+            r.teamName ?? '—',
+            r.periodLabel ?? periodLabel,
+            r.committed ?? 0,
+            r.done ?? 0,
+            r.commitmentRate ?? 0,
+            r.avgScore ?? 0,
+            r.grade ?? '—',
+            r.rank ?? '',
+        ]);
+
+        const ws = buildSheet({
+            title: 'DANH SÁCH AUDIT NHÂN SỰ',
+            subtitle: periodLabel ? `Kỳ: ${periodLabel}` : '',
+            header,
+            rows: dataRows.length ? dataRows : [['—', 'Không có dữ liệu', '', '', '', '', '', '', '', '', '']],
+            colWidths: [4, 26, 18, 20, 22, 10, 12, 14, 12, 10, 8],
+            alignCols: {
+                0: 'center', 5: 'center', 6: 'center', 7: 'center', 8: 'center', 10: 'center',
+            },
+        });
+        XLSX.utils.book_append_sheet(wb, ws, 'Danh sach');
+        XLSX.writeFile(wb, `audit-danh-sach-${stamp()}.xlsx`);
+    }
+
+    return { exportDashboard, exportAudit, exportAuditList, printReport };
 }
 
 function stamp() {

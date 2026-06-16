@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Credential;
 
 use App\Http\Controllers\Controller;
-use App\Http\Resources\CredentialAuditResource;
 use App\Http\Resources\CredentialListResource;
 use App\Http\Resources\CredentialResource;
 use App\Models\Credential;
@@ -125,13 +124,27 @@ class CredentialPageController extends Controller
                         'created_at' => $r->created_at?->toIso8601String(),
                     ])
                 : [],
-            'audit_logs' => CredentialAuditResource::collection(
-                $credential->auditLogs()
-                    ->with('account')
-                    ->latest('created_at')
-                    ->limit(50)
-                    ->get(),
-            )->resolve(),
+            'audit_logs' => $credential->auditLogs()
+                ->with('account:id,display_name')
+                ->latest('created_at')
+                ->limit(50)
+                ->get()
+                ->map(fn (\App\Models\CredentialAuditLog $log) => [
+                    'id' => $log->id,
+                    'action' => $log->action ? [
+                        'value' => $log->action->value,
+                        'label' => $log->action->labelVi(),
+                    ] : null,
+                    'ip_address' => $log->ip_address,
+                    'metadata' => $log->metadata,
+                    'created_at' => $log->created_at?->toIso8601String(),
+                    'account' => $log->account ? [
+                        'id' => $log->account->id,
+                        'display_name' => $log->account->display_name,
+                    ] : null,
+                ])
+                ->values()
+                ->all(),
         ]);
     }
 

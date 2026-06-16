@@ -3,19 +3,73 @@ import { computed } from 'vue';
 import KpiSummaryStrip from '@/shared/ui/KpiSummaryStrip.vue';
 
 const props = defineProps({
+    mode: {
+        type: String,
+        default: 'detail',
+        validator: (v) => ['list', 'detail'].includes(v),
+    },
     summary: {
         type: Object,
-        default: () => ({
-            committed: 0,
-            done: 0,
-            commitmentRate: 0,
-            avgScore: 0,
-            grade: 'D',
-        }),
+        default: () => ({}),
+    },
+    activeKpi: {
+        type: String,
+        default: '',
     },
 });
 
+const emit = defineEmits(['quick-filter']);
+
+const activeKey = computed(() => props.activeKpi || '');
+
 const cards = computed(() => {
+    if (props.mode === 'list') {
+        const s = props.summary;
+        const card = (key, label, value, tone, icon, sub, filterKey, progress = null) => ({
+            key,
+            label,
+            value,
+            tone,
+            icon,
+            sub,
+            interactive: Boolean(filterKey),
+            payload: filterKey ? { kpi: filterKey } : null,
+            progress,
+        });
+
+        return [
+            card('total', 'Nhân sự', s.total ?? 0, 'brand', 'members', 'Trong phạm vi lọc'),
+            card(
+                'avg_commitment',
+                'TB cam kết đạt',
+                `${s.avgCommitmentRate ?? 0}%`,
+                'sky',
+                'performance',
+                'Trung bình có cam kết',
+                null,
+                s.avgCommitmentRate ?? 0,
+            ),
+            card(
+                'avg_score',
+                'Hiệu suất TB',
+                s.avgScore ?? 0,
+                'violet',
+                'talent-score',
+                'Theo kỳ đang chọn',
+            ),
+            card('excellent', 'Xuất sắc', s.excellentCount ?? 0, 'emerald', 'star', 'Xếp loại S hoặc A', 'excellent'),
+            card(
+                'needs_improvement',
+                'Cần cải thiện',
+                s.needsImprovementCount ?? 0,
+                'amber',
+                'alert',
+                'Xếp loại C hoặc D',
+                'needs_improvement',
+            ),
+        ];
+    }
+
     const s = props.summary;
     const committed = s.committed ?? 0;
     const rate = s.commitmentRate ?? 0;
@@ -72,16 +126,38 @@ const cards = computed(() => {
         },
     ];
 });
+
+const stripHeading = computed(() => (
+    props.mode === 'list' ? 'Tóm tắt audit theo phạm vi' : 'Tóm tắt audit theo kỳ'
+));
+
+const stripHint = computed(() => (
+    props.mode === 'list'
+        ? 'Thẻ viền nét đứt — bấm lọc nhanh xuất sắc / cần cải thiện'
+        : 'Các chỉ số theo thành viên và kỳ đang chọn'
+));
+
+function onSelect(card) {
+    if (card.payload && 'kpi' in card.payload) {
+        const next = props.activeKpi === card.payload.kpi ? '' : card.payload.kpi;
+        emit('quick-filter', { kpi: next });
+    }
+}
 </script>
 
 <template>
   <KpiSummaryStrip
     aria-label="Thống kê audit nhân sự"
     eyebrow="Thống kê"
-    heading="Tóm tắt audit theo kỳ"
-    hint="Các chỉ số theo thành viên và kỳ đang chọn"
+    :heading="stripHeading"
+    :hint="stripHint"
     :cards="cards"
-    active-key=""
-    :progress-denominator="summary.committed ?? 0"
+    :active-key="activeKey"
+    :progress-denominator="mode === 'detail' ? (summary.committed ?? 0) : (summary.total ?? 0)"
+    @select="onSelect"
   />
 </template>
+
+<style scoped>
+@import '@/shared/styles/kpi-summary-strip.css';
+</style>

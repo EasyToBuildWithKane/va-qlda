@@ -88,7 +88,7 @@ const tableColspan = computed(() => visibleColumnCount.value);
 const { panelStyle: exportPanelStyle } = useFixedDropdownAnchor(
     () => exportRef.value,
     exportMenu,
-    { width: 220, zIndex: 85 },
+    { width: 220, zIndex: 120 },
 );
 
 let debounce;
@@ -201,7 +201,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOu
     />
 
     <div class="card overflow-visible">
-      <div class="border-b border-slate-100 px-5 py-4">
+      <div class="relative z-20 border-b border-slate-100 px-5 py-4">
         <div class="flex w-full min-w-0 flex-wrap items-center gap-2 lg:flex-nowrap">
           <div class="min-w-0 w-full basis-full lg:min-w-[10rem] lg:flex-1 lg:basis-auto">
             <DatagridToolbarSearch
