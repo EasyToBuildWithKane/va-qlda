@@ -9,7 +9,6 @@ import KbReadingProgress from '@/Components/KnowledgeBase/KbReadingProgress.vue'
 import KbArticleHero from '@/Components/KnowledgeBase/KbArticleHero.vue';
 import KbArticleCover from '@/Components/KnowledgeBase/KbArticleCover.vue';
 import KbArticleToc from '@/Components/KnowledgeBase/KbArticleToc.vue';
-import KbArticleShowSidebar from '@/Components/KnowledgeBase/KbArticleShowSidebar.vue';
 import KbRelatedArticles from '@/Components/KnowledgeBase/KbRelatedArticles.vue';
 import KbAuthorCard from '@/Components/KnowledgeBase/KbAuthorCard.vue';
 import CommentThread from '@/shared/ui/CommentThread.vue';
@@ -141,8 +140,8 @@ async function shareArticle() {
           @mark-read="markRead"
         />
 
-        <div class="mt-8 flex flex-col gap-10 lg:flex-row lg:items-start lg:gap-12">
-          <div class="min-w-0 flex-1 lg:max-w-[760px]">
+        <div class="mt-8">
+          <div class="min-w-0 max-w-[760px]">
             <div
               v-if="article.excerpt?.trim()"
               class="mb-8 rounded-lg border-l-4 border-brand/35 bg-slate-50/90 px-4 py-3 text-base leading-relaxed text-slate-600 dark:bg-slate-900/40 dark:text-slate-300"
@@ -231,15 +230,6 @@ async function shareArticle() {
               <KbAuthorCard :author="article.author" />
             </div>
           </div>
-
-          <KbArticleShowSidebar
-            :toc-items="tocItems"
-            :is-favorite="isFavorite"
-            :favoriting="favoriting"
-            :share-url="shareUrl"
-            :share-title="article.title"
-            @toggle-favorite="toggleFavorite"
-          />
         </div>
       </article>
 
@@ -337,7 +327,6 @@ async function shareArticle() {
 }
 
 @media print {
-    .kb-article-show :deep(.kb-article-sidebar),
     .kb-article-show :deep(.kb-article-toc--mobile) {
         display: none !important;
     }

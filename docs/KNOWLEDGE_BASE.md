@@ -41,8 +41,8 @@ routes/web.php (prefix knowledge-base., name knowledge-base.*)
 resources/js/
     → Pages/KnowledgeBase/Index.vue   (PageHeader + datagrid, lọc danh mục, xuất CSV/Excel)
     → Pages/KnowledgeBase/Blog.vue    (layout blog: sidebar + feed ảnh bìa; feed **chỉ Published**; lọc Inertia `only: articles,filters`)
-    → Pages/KnowledgeBase/Show.vue    (chi tiết kiểu đọc bài: breadcrumb, hero meta, cột nội dung + sidebar mục lục/thao tác, related, bình luận)
-    → Components/KnowledgeBase/KbArticleHero.vue, KbArticleBreadcrumb.vue, KbArticleCover.vue, KbArticleToc.vue, KbArticleShowSidebar.vue, KbReadingProgress.vue, KbAuthorCard.vue, KbRelatedArticles.vue
+    → Pages/KnowledgeBase/Show.vue    (chi tiết đọc bài: PageHeader, hero meta, mục lục inline, related, bình luận)
+    → Components/KnowledgeBase/KbArticleHero.vue, KbArticleCover.vue, KbArticleToc.vue, KbReadingProgress.vue, KbAuthorCard.vue, KbRelatedArticles.vue
     → Components/KnowledgeBase/KbArticleCard.vue, KbBlogPanel.vue, KbBlogTagSection.vue, KbBlogSidebar.vue, KbBlogAside.vue, KbBlogPostCard.vue
     → Pages/KnowledgeBase/Edit.vue    (TipTap + gallery)
     → Components/KnowledgeBase/KbRichTextField.vue, KbImageGallery.vue, KbTagField.vue
@@ -237,9 +237,10 @@ Chi tiết đầy đủ bảng: `docs/API_STRUCTURE.md` §2.17 · grouping §3.
 |---|---|
 | `Pages/KnowledgeBase/Index.vue` | `KbSummaryBar`; datagrid; nhóm danh mục thu gọn; `KbArticleCard` (meta tác giả); pagination |
 | `Components/KnowledgeBase/KbSummaryBar.vue` | KPI strip — lọc nhanh trạng thái (admin/lead) |
-| `Pages/KnowledgeBase/Show.vue` | Breadcrumb, hero (meta tác giả, thẻ, lưu/chia sẻ), cover, mục lục (mobile gập + desktop sidebar), prose ~760px, gallery/attachments, `KbAuthorCard`, `KbRelatedArticles`, `CommentThread`; props `reading_time`, `cover_image_url` |
-| `KbArticleHero.vue` | Tiêu đề, meta, thẻ (link blog), nút lưu/chia sẻ/đã đọc |
-| `KbArticleShowSidebar.vue` | Mục lục sticky + thao tác (lưu, chia sẻ, in) |
+| `Pages/KnowledgeBase/Show.vue` | Hero (meta tác giả, lưu/chia sẻ/đã đọc), cover, mục lục inline, prose ~760px, gallery/attachments, `KbAuthorCard`, `KbRelatedArticles`, `CommentThread`; props `reading_time`, `cover_image_url` |
+| `KbArticleHero.vue` | Tiêu đề, meta, nút lưu/chia sẻ/đã đọc, thẻ tag (link blog) |
+| `KbArticleBreadcrumb.vue` | *(không dùng trên Show — có thể tái dùng sau)* |
+| `KbArticleShowSidebar.vue` | *(không dùng trên Show — thao tác đã có trên hero)*
 | `KbArticleCover.vue` | Ảnh bìa hoặc gradient fallback theo category/tag |
 | `KbArticleToc.vue` | Mục lục H2/H3 + highlight section khi scroll |
 | `KbFloatingToolbar.vue` | Bookmark, share, copy, print, like (desktop) |

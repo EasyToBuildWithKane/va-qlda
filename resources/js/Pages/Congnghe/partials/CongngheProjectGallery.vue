@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 
 const props = defineProps({
     images: { type: Array, default: () => [] },
@@ -17,6 +17,7 @@ const props = defineProps({
 
 const selectedIndex = ref(0);
 const lightboxOpen = ref(false);
+const thumbStrip = ref(null);
 
 const list = computed(() => (props.images ?? []).filter((img) => img?.url));
 
@@ -48,6 +49,38 @@ function select(index) {
         return;
     }
     selectedIndex.value = index;
+    scrollThumbIntoView(index);
+}
+
+function selectPrev() {
+    select((selectedIndex.value - 1 + list.value.length) % list.value.length);
+}
+
+function selectNext() {
+    select((selectedIndex.value + 1) % list.value.length);
+}
+
+/** Cuộn thanh thumbnail để thumbnail đang chọn luôn hiển thị trong khung. */
+function scrollThumbIntoView(idx) {
+    nextTick(() => {
+        const strip = thumbStrip.value;
+        if (!strip) return;
+        const btn = strip.children[idx];
+        if (!btn) return;
+        const { left: bLeft, right: bRight } = btn.getBoundingClientRect();
+        const { left: sLeft, right: sRight } = strip.getBoundingClientRect();
+        if (bLeft < sLeft) {
+            strip.scrollBy({ left: bLeft - sLeft - 8, behavior: 'smooth' });
+        } else if (bRight > sRight) {
+            strip.scrollBy({ left: bRight - sRight + 8, behavior: 'smooth' });
+        }
+    });
+}
+
+function scrollThumbPage(dir) {
+    const strip = thumbStrip.value;
+    if (!strip) return;
+    strip.scrollBy({ left: dir * strip.clientWidth * 0.75, behavior: 'smooth' });
 }
 
 function openLightbox() {
@@ -64,9 +97,9 @@ function onLightboxKey(e) {
     if (e.key === 'Escape') {
         closeLightbox();
     } else if (e.key === 'ArrowLeft' && list.value.length > 1) {
-        select((selectedIndex.value - 1 + list.value.length) % list.value.length);
+        selectPrev();
     } else if (e.key === 'ArrowRight' && list.value.length > 1) {
-        select((selectedIndex.value + 1) % list.value.length);
+        selectNext();
     }
 }
 
@@ -100,14 +133,15 @@ onBeforeUnmount(() => {
       Hình ảnh tham chiếu
     </p>
 
+    <!-- Khung ảnh chính + mũi tên overlay -->
     <div
       v-if="active"
-      class="mt-3 overflow-hidden rounded-2xl border border-white/10 bg-black/40"
+      class="group/frame relative mt-3 overflow-hidden rounded-2xl border border-white/10 bg-black/40"
       :class="density === 'modal' ? 'mt-4' : ''"
     >
       <button
         type="button"
-        class="group relative block w-full cursor-zoom-in transition hover:bg-black/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+        class="relative block w-full cursor-zoom-in transition hover:bg-black/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
         :class="previewFrameClass"
         aria-label="Phóng to ảnh gốc"
         @click="openLightbox"
@@ -122,10 +156,52 @@ onBeforeUnmount(() => {
             decoding="async"
           >
         </span>
-        <span class="pointer-events-none absolute bottom-2 right-2 rounded-full border border-white/15 bg-black/50 px-2 py-0.5 text-[10px] font-medium text-white/70 opacity-0 transition group-hover:opacity-100">
+        <span class="pointer-events-none absolute bottom-2 right-2 rounded-full border border-white/15 bg-black/50 px-2 py-0.5 text-[10px] font-medium text-white/70 opacity-0 transition group-hover/frame:opacity-100">
           Phóng to
         </span>
       </button>
+
+      <!-- Mũi tên trái / phải overlay trên ảnh chính -->
+      <template v-if="list.length > 1">
+        <button
+          type="button"
+          class="cn-gal-arrow left-2 opacity-0 group-hover/frame:opacity-100"
+          aria-label="Ảnh trước"
+          @click.stop="selectPrev"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+          ><path d="M15 6l-6 6 6 6" /></svg>
+        </button>
+        <button
+          type="button"
+          class="cn-gal-arrow right-2 opacity-0 group-hover/frame:opacity-100"
+          aria-label="Ảnh sau"
+          @click.stop="selectNext"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+          ><path d="M9 6l6 6-6 6" /></svg>
+        </button>
+      </template>
+
+      <!-- Đếm ảnh góc trên trái -->
+      <span
+        v-if="list.length > 1"
+        class="pointer-events-none absolute left-2 top-2 rounded-full border border-white/15 bg-black/55 px-2 py-0.5 font-mono text-[10px] tabular-nums text-white/65 opacity-0 transition group-hover/frame:opacity-100"
+      >
+        {{ selectedIndex + 1 }} / {{ list.length }}
+      </span>
     </div>
 
     <div
@@ -158,35 +234,77 @@ onBeforeUnmount(() => {
       </p>
     </div>
 
+    <!-- Thanh thumbnail: ẩn scrollbar gốc, thêm nút điều hướng hai bên -->
     <div
       v-if="list.length > 1"
-      class="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/20"
-      role="listbox"
-      aria-label="Chọn ảnh xem"
+      class="mt-3 flex items-center gap-1.5"
     >
+      <!-- Nút lùi thumbnail -->
       <button
-        v-for="(img, idx) in list"
-        :key="img.id"
         type="button"
-        role="option"
-        :aria-selected="idx === selectedIndex"
-        :aria-label="`Ảnh ${idx + 1}`"
-        class="relative flex h-16 w-[4.5rem] shrink-0 items-center justify-center overflow-hidden rounded-lg border-2 bg-black/30 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:h-[4.25rem] sm:w-20"
-        :class="idx === selectedIndex
-          ? 'border-brand shadow-[0_0_16px_-4px_rgba(154,0,54,0.85)]'
-          : 'border-white/15 opacity-85 hover:border-white/35 hover:opacity-100'"
-        @click="select(idx)"
+        class="cn-thumb-nav shrink-0"
+        aria-label="Thumbnail trước"
+        @click="scrollThumbPage(-1)"
       >
-        <img
-          :src="img.url"
-          alt=""
-          class="max-h-full max-w-full object-contain object-center p-0.5"
-          loading="lazy"
-          decoding="async"
+        <svg
+          width="13"
+          height="13"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+        ><path d="M15 6l-6 6 6 6" /></svg>
+      </button>
+
+      <!-- Strip thumbnail: no scrollbar -->
+      <div
+        ref="thumbStrip"
+        class="flex min-w-0 flex-1 gap-2 overflow-x-auto overscroll-x-contain scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        role="listbox"
+        aria-label="Chọn ảnh xem"
+      >
+        <button
+          v-for="(img, idx) in list"
+          :key="img.id"
+          type="button"
+          role="option"
+          :aria-selected="idx === selectedIndex"
+          :aria-label="`Ảnh ${idx + 1}`"
+          class="relative flex h-16 w-[4.5rem] shrink-0 items-center justify-center overflow-hidden rounded-lg border-2 bg-black/30 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:h-[4.25rem] sm:w-20"
+          :class="idx === selectedIndex
+            ? 'border-brand shadow-[0_0_16px_-4px_rgba(154,0,54,0.85)]'
+            : 'border-white/15 opacity-85 hover:border-white/35 hover:opacity-100'"
+          @click="select(idx)"
         >
+          <img
+            :src="img.url"
+            alt=""
+            class="max-h-full max-w-full object-contain object-center p-0.5"
+            loading="lazy"
+            decoding="async"
+          >
+        </button>
+      </div>
+
+      <!-- Nút tới thumbnail -->
+      <button
+        type="button"
+        class="cn-thumb-nav shrink-0"
+        aria-label="Thumbnail sau"
+        @click="scrollThumbPage(1)"
+      >
+        <svg
+          width="13"
+          height="13"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+        ><path d="M9 6l6 6-6 6" /></svg>
       </button>
     </div>
 
+    <!-- Lightbox toàn màn hình -->
     <Teleport to="body">
       <Transition name="cn-lightbox">
         <div
@@ -209,7 +327,7 @@ onBeforeUnmount(() => {
               type="button"
               class="grid h-9 w-9 place-items-center rounded-full border border-white/15 text-white/70 hover:bg-white/10"
               aria-label="Ảnh trước"
-              @click="select((selectedIndex - 1 + list.length) % list.length)"
+              @click="selectPrev"
             >
               <svg
                 width="18"
@@ -225,7 +343,7 @@ onBeforeUnmount(() => {
               type="button"
               class="grid h-9 w-9 place-items-center rounded-full border border-white/15 text-white/70 hover:bg-white/10"
               aria-label="Ảnh sau"
-              @click="select((selectedIndex + 1) % list.length)"
+              @click="selectNext"
             >
               <svg
                 width="18"
@@ -268,6 +386,50 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+/* Mũi tên overlay trên ảnh chính */
+.cn-gal-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+    display: grid;
+    place-items: center;
+    height: 2.25rem;
+    width: 2.25rem;
+    border-radius: 9999px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(5, 6, 12, 0.72);
+    color: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(6px);
+    transition: opacity 0.2s, border-color 0.2s, background 0.2s, box-shadow 0.2s;
+}
+
+.cn-gal-arrow:hover {
+    border-color: rgba(255, 255, 255, 0.38);
+    background: rgba(5, 6, 12, 0.9);
+    box-shadow: 0 0 18px -6px rgba(154, 0, 54, 0.7);
+}
+
+/* Nút điều hướng thumbnail */
+.cn-thumb-nav {
+    display: grid;
+    place-items: center;
+    height: 2rem;
+    width: 1.75rem;
+    border-radius: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255, 255, 255, 0.5);
+    transition: border-color 0.2s, color 0.2s, background 0.2s;
+    flex-shrink: 0;
+}
+
+.cn-thumb-nav:hover {
+    border-color: rgba(255, 255, 255, 0.28);
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.85);
+}
+
 .cn-lightbox-enter-active,
 .cn-lightbox-leave-active {
     transition: opacity 0.2s ease;

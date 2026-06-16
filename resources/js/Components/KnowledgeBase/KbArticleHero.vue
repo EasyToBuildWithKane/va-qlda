@@ -3,7 +3,6 @@ import { computed } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
-import KbArticleBreadcrumb from '@/Components/KnowledgeBase/KbArticleBreadcrumb.vue';
 import { date } from '@/composables/useFormat';
 
 const props = defineProps({
@@ -28,39 +27,8 @@ const readingMinutes = computed(() => props.article.reading_time ?? 1);
 
 <template>
   <header class="kb-article-hero border-b border-slate-200/80 pb-8 dark:border-slate-800">
-    <KbArticleBreadcrumb
-      :category="article.category"
-      :title="article.title"
-    />
-
-    <div class="flex flex-wrap items-start gap-2">
-      <Link
-        v-if="article.category"
-        :href="`/knowledge-base/blog?category_id=${article.category.id}`"
-        class="inline-flex items-center rounded-md bg-brand/[0.07] px-2.5 py-1 text-xs font-semibold text-brand transition hover:bg-brand/10"
-      >
-        {{ article.category.name }}
-      </Link>
-      <span
-        v-if="article.status?.value && article.status.value !== 'published'"
-        class="inline-flex rounded-md bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300"
-      >
-        {{ article.status.label }}
-      </span>
-      <span
-        v-if="isRead"
-        class="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
-      >
-        <AppIcon
-          name="check"
-          :size="12"
-        />
-        Đã đọc
-      </span>
-    </div>
-
     <h1
-      class="mt-4 font-display text-[1.75rem] font-bold leading-tight tracking-tight text-slate-900 dark:text-slate-50 sm:text-[2rem] lg:text-[2.25rem]"
+      class="font-display text-[1.75rem] font-bold leading-tight tracking-tight text-slate-900 dark:text-slate-50 sm:text-[2rem] lg:text-[2.25rem]"
     >
       {{ article.title }}
     </h1>

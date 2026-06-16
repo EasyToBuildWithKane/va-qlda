@@ -178,9 +178,9 @@ onBeforeUnmount(() => {
           </header>
 
           <!-- ── Thân: ảnh (trái) · mô tả richtext (phải) ── -->
-          <div class="relative min-h-0 flex-1 overflow-y-auto lg:grid lg:grid-cols-[1.05fr_0.95fr] lg:overflow-hidden">
+          <div class="relative min-h-0 flex-1 overflow-y-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:grid lg:grid-cols-[1.05fr_0.95fr] lg:overflow-hidden">
             <!-- Cột hình ảnh -->
-            <section class="min-w-0 border-white/10 px-6 pb-7 pt-6 sm:px-8 lg:min-h-0 lg:overflow-y-auto lg:border-r lg:pb-8">
+            <section class="min-w-0 border-white/10 px-6 pb-7 pt-6 sm:px-8 lg:min-h-0 lg:overflow-y-auto lg:border-r lg:pb-8 lg:[-ms-overflow-style:none] lg:[scrollbar-width:none] lg:[&::-webkit-scrollbar]:hidden">
               <div class="flex items-center justify-between">
                 <p class="font-mono text-[10px] uppercase tracking-[0.18em] text-white/40">
                   Hình ảnh tham chiếu
