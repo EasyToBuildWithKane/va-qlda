@@ -2,13 +2,11 @@
 
 **File gốc:** [`../conventions.md`](../conventions.md)
 
-Tiêu chuẩn được tool và rule dự án enforce.
-
 ---
 
 ## Format commit (commitlint)
 
-Config: `commitlint.config.js` — mở rộng `@commitlint/config-conventional`.
+Config: `commitlint.config.js` — `@commitlint/config-conventional`.
 
 ```
 type(scope): mo ta ngan
@@ -17,29 +15,29 @@ type(scope): mo ta ngan
 | Quy tắc | Giá trị |
 |---------|---------|
 | **Types** | `feat` · `fix` · `docs` · `style` · `refactor` · `perf` · `test` · `build` · `ci` · `chore` · `revert` |
-| **Header tối đa** | 72 ký tự |
-| **Dòng body tối đa** | 100 ký tự |
-| **Subject case** | Không dùng Sentence case, Start Case, PascalCase, HOẶC IN HOA |
+| Header | ≤ 72 ký tự |
+| Body line | ≤ 100 ký tự |
+| Subject | Không Sentence case / PascalCase / ALL CAPS |
 
 **Ví dụ:**
 
 ```
 feat(auth): add Google OAuth login
-fix(api): handle null response from payment gateway
-chore(deps): upgrade Vue to 3.5.x
-refactor(project): extract useSprintData composable
-test(e2e): add login failure scenario
+fix(kb): sync TOC sidebar on mobile
+docs(flows): update FLOWS_AND_DOCS_MAP
 ```
-
-**Kiểm tra thủ công:**
 
 ```bash
-echo "feat: test message" | npm run commitlint
+echo "feat: test" | npm run commitlint
 ```
 
-**Enforce:** hook Husky `commit-msg` chạy commitlint mỗi lần commit.
+Hook `commit-msg` enforce mỗi commit.
 
-> **Ghi chú:** Message commit thường viết tiếng Anh (Conventional Commits). UI và validation message trong app viết **tiếng Việt**.
+**Cursor gõ "Updates" / để trống:** `prepare-commit-msg` + `fix-commit-msg` sinh message từ staged diff — **phải `git add` trước**. Shortcut: `npm run commit`.
+
+**Push:** pre-push **không** E2E mặc định; CI vẫn chạy Playwright.
+
+> Commit message: **tiếng Anh** (Conventional). UI app: **tiếng Việt**.
 
 ---
 
@@ -47,92 +45,111 @@ echo "feat: test message" | npm run commitlint
 
 ```
 feat/mo-ta-ngan
-fix/ten-loi-hoac-mo-ta
+fix/ten-loi
 chore/cong-viec
-refactor/ten-module
-docs/cap-nhat-readme
+refactor/module
+docs/cap-nhat-doc
 ```
 
-Chữ thường, gạch ngang. Prefix khớp với type commit khi có thể.
+Chữ thường, gạch ngang.
 
 ---
 
-## Quy ước Vue
+## Đồng bộ tài liệu (bắt buộc khi đổi hành vi)
 
-Dự án dùng **JavaScript** (không TypeScript) cho frontend.
+Rule: [docs-sync](../../.cursor/rules/docs-sync.mdc)
+
+| Đổi trong code | Cập nhật tối thiểu |
+|----------------|-------------------|
+| Route | `docs/API_STRUCTURE.md` + doc module |
+| Migration / cột | `docs/DATABASE_STRUCTURE.md` |
+| Page / component | `docs/FRONTEND_STRUCTURE.md` + doc module |
+| Luồng UX | `docs/FLOWS_AND_DOCS_MAP.md` hoặc doc module |
+| npm script / CI | `_dev/commands.md`, `_dev/ci-cd.md` + `_dev/vi/` |
+
+Commit chỉ doc: `docs(scope): mo ta`.
+
+Hub: [docs/FLOWS_AND_DOCS_MAP.md](../../docs/FLOWS_AND_DOCS_MAP.md).
+
+---
+
+## Vue / Inertia
+
+JavaScript (không TypeScript).
 
 | Quy tắc | Quy ước |
 |---------|---------|
-| Một component / file | Một file `.vue` |
-| Tên file | PascalCase — `ProjectCard.vue`, `PageHeader.vue` |
-| API | Composition API + `<script setup>` |
-| Props | `defineProps({ ... })` — validate runtime |
+| File | PascalCase, một SFC / component |
+| API | `<script setup>` + Composition API |
 | Import | `@/` → `resources/js/` |
-| Pages | Mỏng, trong `Pages/{Domain}/`, bọc `AppLayout` |
-| Logic | Tách ra `composables/use*.js` |
-| Icon | `<AppIcon name="task" />` |
-| Dialog | `useDialog`, `useToast` — không `alert()` |
+| Pages | Mỏng trong `Pages/{Domain}/`, `AppLayout` + `#header` `PageHeader` |
+| Logic | `composables/use*.js` — không Excel trong `.vue` |
+| Feature lớn | `modules/project/`, `modules/aiAccount/` |
+| Shared UI | `shared/ui/`, `Components/Ui/` |
+| Icon / toast | `AppIcon`, `useToast`, `useDialog` — không `alert()` |
 
-**Cấu trúc thư mục:**
+**UI bắt buộc (rule Cursor):**
 
-```
-resources/js/
-├── Pages/{Domain}/
-├── Components/Ui/
-├── Components/Project/
-├── composables/
-└── Layouts/AppLayout.vue
-```
+- Content header: `.cursor/rules/content-header.mdc`
+- Toolbar bảng: `.cursor/rules/datagrid-toolbar.mdc`
+- KPI strip (khi clone /feedback): `.cursor/rules/kpi-summary-strip.mdc`
 
-**Copy & UX:** text UI, flash, validation — **tiếng Việt**.  
-Màu brand: `#9A0036` (Tailwind `brand`).
+Brand `#9A0036` (`brand`), copy user-facing **tiếng Việt**.
 
 ---
 
-## Quy ước PHP / Laravel
+## PHP / Laravel
 
 | Quy tắc | Quy ước |
 |---------|---------|
-| Kiến trúc | MVC (Project, Task, Blocker…); Clean Architecture (DailyReport) |
-| Phân quyền | `$this->authorize('manage', $project)` |
-| Validation | FormRequest + `messages()` tiếng Việt |
-| Enum | `app/Support/Enums/` — string enum + `values()`, `label()` |
-| Bảng DB | Prefix `va_prd_` |
-| Style PHP | Laravel Pint (`composer format`) |
-| Phân tích tĩnh | PHPStan (`composer analyse`) |
+| DailyReport | Use Case + Domain |
+| Project/Task mutations | Application Use Cases |
+| Blocker, KB, Coaching, … | MVC Controller → Model |
+| Quyền | `$this->authorize(...)` + Policy |
+| Validate | FormRequest, `messages()` tiếng Việt |
+| Enum | `app/Support/Enums/` |
+| Bảng | prefix `va_prd_` |
+| Style | Pint — **CI:** `vendor/bin/pint --test` |
+| Phân tích | PHPStan — CI advisory |
+
+Media URL: `PublicMediaUrl` — không expose path thô khi file mất.
 
 ---
 
-## Rule ESLint đang áp dụng
+## ESLint
 
-Config: `eslint.config.js` (ESLint 9 flat config).
+`eslint.config.js` — ESLint 9 flat; phạm vi `resources/js/**/*.{js,vue}`.
 
-**Mở rộng:**
+| Rule | Ghi chú |
+|------|---------|
+| `vue/multi-word-component-names` | off |
+| `no-unused-vars` | warn; arg `_` bỏ qua |
 
-- `@eslint/js` recommended
-- `eslint-plugin-vue` flat/recommended
-
-**Phạm vi:** `resources/js/**/*.{js,vue}`
-
-**Bỏ qua:** `public/build/**`, `node_modules/**`, `vendor/**`
-
-**Rule tùy chỉnh:**
-
-| Rule | Cấu hình | Ý nghĩa |
-|------|----------|---------|
-| `vue/multi-word-component-names` | `off` | Cho phép tên 1 từ (`Modal.vue`) |
-| `no-unused-vars` | `warn`, `argsIgnorePattern: '^_'` | Biến không dùng → cảnh báo; arg prefix `_` được bỏ qua |
-
-**CLI:** `npm run lint` fail nếu có **bất kỳ warning nào** (`--max-warnings=0`).
-
-**Pre-commit:** lint-staged chạy `eslint --fix --max-warnings=0`.
+`npm run lint` — `--max-warnings=0`. Pre-commit: lint-staged.
 
 ---
 
-## Module nhập · xuất · đối soát
+## Nhập · xuất · đối soát Excel
 
-Theo [`docs/IMPORT_EXPORT_RECONCILE.md`](../../docs/IMPORT_EXPORT_RECONCILE.md) (rule Cursor: `.cursor/rules/import-export-reconcile.mdc`):
+Spec đầy đủ + sơ đồ: [docs/IMPORT_EXPORT_RECONCILE.md](../../docs/IMPORT_EXPORT_RECONCILE.md).
 
-- Một `*DataModal.vue` — 3 tab: nhập · xuất · đối soát
-- Logic Excel trong `use*Data.js` — **cấm** import `xlsx` trong `.vue`
-- Tham chiếu: Risk/Blocker (`useRiskImport.js`, `RiskImportModal.vue`)
+- Một nút **Dữ liệu** → một modal **3 tab:** nhập · xuất · đối soát
+- Logic trong `use*Data.js` / `use*Import.js` — **cấm** `xlsx` trong `.vue`
+- Mẫu: Risk/Blocker (`RiskImportModal`, `useRiskImport.js`)
+- KB: chỉ xuất JSON + `useKbExport` (không modal 3 tab)
+
+Rule agent: `.cursor/rules/import-export-reconcile.mdc`.
+
+---
+
+## Pre-push / CI (tóm tắt)
+
+| Check | Local thường | CI |
+|-------|--------------|-----|
+| Pint | Trước push PHP | Blocking |
+| ESLint | pre-commit + `npm run lint` | Blocking |
+| PHPUnit | `php artisan test` | Blocking |
+| E2E | Tùy chọn / trước PR | Blocking |
+| PHPStan | Tùy chọn | Advisory |
+
+Skill: [ship-ready](../../.cursor/skills/ship-ready/SKILL.md).

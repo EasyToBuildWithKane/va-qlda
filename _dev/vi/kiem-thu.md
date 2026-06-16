@@ -1,144 +1,136 @@
-# Kiểm thử — Playwright E2E (tiếng Việt)
+# Kiểm thử — PHPUnit & Playwright (tiếng Việt)
 
 **File gốc:** [`../testing.md`](../testing.md)
-
-Test end-to-end cho luồng UI VA-QLDA. Config: `playwright.config.js`.
-
----
-
-## Cài đặt lần đầu
-
-```bash
-npm run test:e2e:install
-# tương đương: npx playwright install --with-deps chromium
-```
-
-Cần Node 20+, PHP 8.1+, `composer install` đã chạy.
-
----
-
-## Tổng quan config
-
-| Cấu hình | Giá trị |
-|----------|---------|
-| Thư mục test | `./tests/e2e` |
-| Base URL | `PLAYWRIGHT_BASE_URL` hoặc mặc định `http://127.0.0.1:8000` |
-| Browser | Chỉ Chromium (Desktop Chrome) |
-| Global setup | `./tests/e2e/global-setup.js` |
-| Song song | `fullyParallel: true` |
-| Retry | 0 local · 2 trên CI |
-| Workers | auto local · 1 trên CI |
-
-### Reporter
-
-| Môi trường | Reporter |
-|------------|----------|
-| Local | `list` + `html` (mở khi fail) |
-| CI | `github` + `html` (không tự mở) |
-
-### Trace / screenshot / video
-
-| Cấu hình | Giá trị |
-|----------|---------|
-| Trace | `on-first-retry` |
-| Screenshot | `only-on-failure` |
-| Video | `retain-on-failure` |
-
-### Web server (tự khởi động)
-
-Playwright tự chạy Laravel trước khi test:
-
-```
-php artisan serve --host=127.0.0.1 --port=8000
-```
-
-- Local: `reuseExistingServer: true` — dùng lại server đang chạy
-- CI: luôn start server mới
-
-Env DB E2E lấy từ `tests/e2e/helpers/database.js`.
-
----
-
-## Spec hiện có
-
-| File | Phạm vi |
-|------|---------|
-| `tests/e2e/auth.spec.js` | Trang login hiển thị, member đăng nhập → dashboard, sai mật khẩu |
-
-Thêm spec mới: `tests/e2e/<ten-tinh-nang>.spec.js`
-
----
-
-## Chạy test
-
-```bash
-npm run test:e2e                              # Tất cả, headless
-npm run test:e2e:ui                             # GUI tương tác
-npx playwright test --headed                    # Nhìn thấy browser
-npx playwright test tests/e2e/auth.spec.js      # Một file
-npx playwright test --grep "login"              # Lọc theo tên
-npx playwright test --debug                     # Debug từng bước
-npx playwright codegen http://127.0.0.1:8000    # Ghi test mới
-npx playwright show-report                      # Báo cáo HTML
-```
-
-**Mẹo:** Nếu đã có `php artisan serve` port 8000, Playwright tái sử dụng — không cần tắt.
-
----
-
-## Tích hợp CI
-
-Workflow `.github/workflows/ci.yml` → job `playwright`:
-
-1. Chạy sau PHPUnit + frontend build pass
-2. Tạo SQLite mới + `migrate:fresh --force --seed`
-3. Cài Chromium
-4. `npm run test:e2e`
-5. Fail → upload artifact 7 ngày
-
-**Hook pre-push** cũng chạy E2E trước mỗi `git push` (trừ `CI=true`).
 
 ---
 
 ## PHPUnit (backend)
 
-Tách biệt với Playwright:
-
 ```bash
 composer test
-php artisan test --filter=AuthenticationTest
+php artisan test --filter=TaskTest
 ```
 
-Job CI `backend-tests` chạy trước Playwright.
+| Suite | Đường dẫn |
+|-------|-----------|
+| Unit | `tests/Unit/` |
+| Feature | `tests/Feature/` — Login, Project, Task, Blocker, DailyReport, Notification, KB, AI, … |
+
+**CI:** job `backend-tests` — Pint trước, rồi PHPUnit.
+
+**Stub Vite:** `tests/TestCase.php` tạo `public/build/manifest.json` tối thiểu nếu thiếu — tránh Inertia 500 khi chưa `npm run build`.
+
+**DailyReport:** test phủ `summary.trend`, lọc `employee_ids[]`, endpoint JSON `export-data`.
 
 ---
 
-## Artifact / báo cáo
+## Playwright E2E
 
-| Đường dẫn | Nội dung |
-|-----------|----------|
-| `playwright-report/` | Báo cáo HTML sau mỗi lần chạy |
-| `test-results/` | Screenshot, video, trace khi fail |
+Config: `playwright.config.js` · thư mục `tests/e2e/`.
 
-Cả hai thư mục **gitignore**. Trên CI: tải từ artifact `playwright-report`.
+### Cài đặt
+
+```bash
+npm run test:e2e:install
+```
+
+Cần Node 20+, PHP trong PATH, `composer install` đã xong.
+
+### Project / lệnh
+
+| Project | Lệnh | Mô tả |
+|---------|------|--------|
+| `chromium` | `npm run test:e2e` | Luồng UI — **CI**; bỏ qua `visual/`, `smoke/` |
+| `visual` | `npm run test:e2e:visual` | Snapshot regression (TD-020) |
+| — | `npm run test:e2e:visual:update` | Cập nhật baseline sau đổi UI |
+| — | `npm run test:e2e:smoke` | Chụp full-page (không so CI) |
+
+### Spec hiện có (tham chiếu)
+
+| File | Phạm vi |
+|------|---------|
+| `auth.spec.js` | Login, dashboard, sai mật khẩu |
+| `projects.spec.js` | Danh sách, tạo (admin), project show + Sprint |
+| `blockers.spec.js` | List, quyền, guest redirect |
+| `departments.spec.js` | CRUD cơ bản |
+| `daily-report.spec.js` | Luồng báo cáo ngày |
+| `notifications.spec.js` | Bell, JSON unread-count |
+| `knowledge-coaching.spec.js` | Smoke KB / Coaching |
+| `visual/feature-screens.spec.js` | Snapshot màn hình |
+
+**Auth helper:** `tests/e2e/helpers/auth.js` — fixture đã login (`member` \| `admin` \| `lead` \| `viewer`).
+
+**Seed:** `member` / `password`, `admin` / `password`.
+
+### Chạy
+
+```bash
+npm run test:e2e
+npm run test:e2e:ui
+npx playwright test tests/e2e/projects.spec.js
+npx playwright test --grep "login"
+npx playwright test --headed --debug
+npx playwright show-report
+```
+
+**Web server:** Playwright tự `php artisan serve :8000`; local có thể reuse server đang chạy.
+
+**Retry / workers:** 0 retry local; CI retry 2, `workers: 1`.
+
+### Visual regression
+
+Baseline: `tests/e2e/visual/snapshots/`. Đổi UI cố ý:
+
+```bash
+npm run test:e2e:visual -- --update-snapshots
+```
+
+Commit ảnh mới cùng PR. Sau redesign lớn (vd. daily-reports) cần update baseline trước khi CI xanh.
+
+Helper: `tests/e2e/helpers/visualCapture.js`.
 
 ---
 
-## Viết test mới
+## Tích hợp CI
+
+Job `playwright` sau `backend-tests` + `frontend-build`:
+
+1. `npm run build`
+2. SQLite + `migrate:fresh --seed`
+3. `npm run test:e2e`
+
+**Pre-push local:** mặc định **không** chạy E2E; CI vẫn bắt buộc pass.
+
+---
+
+## Artifact
+
+| Path | Nội dung |
+|------|------------|
+| `playwright-report/` | HTML (gitignore) |
+| `test-results/` | screenshot/video/trace khi fail |
+| `tests/e2e/visual/snapshots/` | **Commit** baseline ảnh |
+
+---
+
+## Viết spec mới
 
 ```js
 import { test, expect } from '@playwright/test';
 
-test.describe('Ten tinh nang', () => {
-    test('lam gi do', async ({ page }) => {
-        await page.goto('/duong-dan');
-        await expect(page.getByRole('heading', { name: 'Tieu de' })).toBeVisible();
-    });
+test('mo ta', async ({ page }) => {
+    await page.goto('/duong-dan');
+    await expect(page.getByRole('heading', { name: 'Tieu de' })).toBeVisible();
 });
 ```
 
-**Khuyến nghị:** dùng `getByRole`, `getByLabel` thay vì CSS selector — theo pattern `auth.spec.js`.
+Ưu tiên `getByRole`, `getByLabel` — ổn định hơn CSS. Đổi UI → sửa selector trong cùng PR.
 
-**Tài khoản test (seeder):** username `member`, password `password`.
+Login POST: dùng `tests/e2e/helpers/loginPost.js` nếu cần tránh 419 CSRF.
 
-**Khi sửa UI:** cập nhật selector trong spec tương ứng — nếu không pre-push và CI sẽ fail.
+---
+
+## Liên quan
+
+- [ci-cd.md](ci-cd.md) — thứ tự job
+- [loi-thuong-gap.md](loi-thuong-gap.md) — Playwright fail, port, SQLite

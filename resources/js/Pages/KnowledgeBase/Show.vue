@@ -9,18 +9,13 @@ import PageHeader from '@/Components/Ui/PageHeader.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import FieldTooltip from '@/shared/ui/FieldTooltip.vue';
 import KbReadingProgress from '@/Components/KnowledgeBase/KbReadingProgress.vue';
-import KbArticleBreadcrumb from '@/Components/KnowledgeBase/KbArticleBreadcrumb.vue';
-import KbArticleReadingGuide from '@/Components/KnowledgeBase/KbArticleReadingGuide.vue';
 import KbArticleHero from '@/Components/KnowledgeBase/KbArticleHero.vue';
 import KbArticleCover from '@/Components/KnowledgeBase/KbArticleCover.vue';
 import KbArticleToc from '@/Components/KnowledgeBase/KbArticleToc.vue';
-import KbArticleShowSidebar from '@/Components/KnowledgeBase/KbArticleShowSidebar.vue';
 import KbFloatingToolbar from '@/Components/KnowledgeBase/KbFloatingToolbar.vue';
 import KbRelatedArticles from '@/Components/KnowledgeBase/KbRelatedArticles.vue';
 import KbMoreArticles from '@/Components/KnowledgeBase/KbMoreArticles.vue';
-import KbAuthorCard from '@/Components/KnowledgeBase/KbAuthorCard.vue';
-import CommentThread from '@/shared/ui/CommentThread.vue';
-import { useCommentThreadPoll } from '@/composables/useCommentThreadPoll';
+import KbArticleCommentsSection from '@/Components/KnowledgeBase/KbArticleCommentsSection.vue';
 import { useToast } from '@/shared/composables/useToast';
 
 const props = defineProps({
@@ -28,13 +23,6 @@ const props = defineProps({
     toc: { type: Array, default: () => [] },
     related: { type: Array, default: () => [] },
     otherArticles: { type: Array, default: () => [] },
-});
-
-useCommentThreadPoll({
-    active: computed(() => true),
-    enabled: computed(() => true),
-    subscribed: computed(() => false),
-    reloadKeys: computed(() => ['article']),
 });
 
 const toast = useToast();
@@ -115,24 +103,6 @@ function markRead() {
     });
 }
 
-async function shareArticle() {
-    const url = shareUrl.value;
-    const title = props.article.title;
-    try {
-        if (typeof navigator !== 'undefined' && navigator.share) {
-            await navigator.share({ title, url });
-            return;
-        }
-    } catch {
-        /* cancelled */
-    }
-    try {
-        await navigator.clipboard.writeText(url);
-        toast.success('Đã sao chép liên kết.');
-    } catch {
-        toast.error('Không chia sẻ được.');
-    }
-}
 </script>
 
 <template>
@@ -161,28 +131,12 @@ async function shareArticle() {
         @mark-read="markRead"
       />
 
-      <KbArticleBreadcrumb
-        :category="article.category"
-        :title="article.title"
-      />
-
-      <div class="mt-4">
-        <KbArticleReadingGuide />
-      </div>
-
-      <div class="mt-8 flex flex-col gap-10 lg:flex-row lg:items-start lg:gap-8 xl:gap-10">
-        <article class="min-w-0 flex-1 lg:max-w-[780px]">
+      <div class="mt-6">
+        <article class="mx-auto min-w-0 w-full max-w-[780px]">
           <div class="rounded-card border border-slate-200/80 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/40 sm:p-7 lg:p-8">
             <KbArticleHero
               :article="article"
-              :is-favorite="isFavorite"
-              :favoriting="favoriting"
-              :is-read="isRead"
-              :marking-read="markingRead"
               :comment-count="commentCount"
-              @toggle-favorite="toggleFavorite"
-              @share="shareArticle"
-              @mark-read="markRead"
             />
 
             <div
@@ -275,24 +229,8 @@ async function shareArticle() {
                 </li>
               </ul>
             </section>
-
-            <div class="mt-12 border-t border-slate-100 pt-10 dark:border-slate-800">
-              <KbAuthorCard :author="article.author" />
-            </div>
           </div>
         </article>
-
-        <KbArticleShowSidebar
-          :toc-items="tocItems"
-          :is-favorite="isFavorite"
-          :favoriting="favoriting"
-          :is-read="isRead"
-          :marking-read="markingRead"
-          :share-url="shareUrl"
-          :share-title="article.title"
-          @toggle-favorite="toggleFavorite"
-          @mark-read="markRead"
-        />
       </div>
 
       <section
@@ -303,6 +241,14 @@ async function shareArticle() {
         <KbRelatedArticles :articles="related" />
       </section>
 
+      <div class="mx-auto mt-14 w-full max-w-[780px]">
+        <KbArticleCommentsSection
+          :comments="article.comments || []"
+          :article-id="article.id"
+          :article-title="article.title"
+        />
+      </div>
+
       <section
         class="mt-14 border-t border-slate-200/80 pt-14 dark:border-slate-800"
         aria-label="Các bài viết khác"
@@ -310,24 +256,6 @@ async function shareArticle() {
         <KbMoreArticles
           :articles="otherArticles"
           :current-slug="article.slug"
-        />
-      </section>
-
-      <section
-        id="comments"
-        class="mt-14 scroll-mt-28 rounded-card border border-slate-200/80 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/40 sm:p-7"
-        aria-label="Bình luận"
-      >
-        <CommentThread
-          :comments="article.comments || []"
-          commentable-type="kb_article"
-          :commentable-id="article.id"
-          heading="Bình luận"
-          empty-message="Chưa có bình luận. Hãy là người đầu tiên chia sẻ suy nghĩ."
-          delete-dialog-title="Xoá bình luận"
-          delete-button-title="Xoá bình luận"
-          realtime-hint="Bình luận mới sẽ hiện ngay không cần tải lại trang"
-          placeholder="Viết bình luận…"
         />
       </section>
     </div>

@@ -73,7 +73,8 @@ This project has a `_dev/` memory folder. Always read relevant `_dev/` files bef
 | "Why is CI failing?" | `_dev/ci-cd.md` |
 | "How do I write a test?" | `_dev/testing.md` |
 | "I'm getting error Z" | `_dev/troubleshooting.md` |
-| Giải thích tiếng Việt / onboarding | `_dev/vi/` — xem [`_dev/vi/README.md`](_dev/vi/README.md) |
+| Giải thích tiếng Việt / onboarding | `_dev/vi/` — mục lục [`_dev/vi/README.md`](_dev/vi/README.md) |
+| Sơ đồ luồng & bản đồ docs ↔ code | `docs/FLOWS_AND_DOCS_MAP.md` |
 
 **Hai lớp:** `_dev/*.md` = nguồn chuẩn · `_dev/vi/*.md` = giải thích VI (`lenh-cli`, `quy-trinh`, `quy-uoc`, `ci-cd`, `kiem-thu`, `loi-thuong-gap`, `tong-quan`).
 

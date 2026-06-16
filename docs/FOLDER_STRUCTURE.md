@@ -1,6 +1,6 @@
 # FOLDER STRUCTURE — VA QLDA
 
-> **Cập nhật 2026-06-03** — sau refactor Phase 1–5.
+> **Cập nhật 2026-06-16** — sau refactor Phase 1–5. Hub luồng: [`FLOWS_AND_DOCS_MAP.md`](FLOWS_AND_DOCS_MAP.md).
 
 ---
 
@@ -15,7 +15,7 @@ va-qlda/
 │   │   ├── Project/               ← Create, Update, Duplicate, Archive, LogWork
 │   │   └── Task/                  ← Create, UpdateStatus, BulkCreate
 │   ├── Domain/DailyReport/        ← Domain models + ScoringService
-│   ├── Http/Controllers|Requests|Resources/
+│   ├── Http/Controllers|Requests|Resources/  ← KnowledgeBase/, Coaching/, Congnghe/, AiAccount/, …
 │   ├── Models/
 │   ├── Policies/
 │   ├── Providers/

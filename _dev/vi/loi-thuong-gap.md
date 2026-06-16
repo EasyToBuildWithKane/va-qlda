@@ -2,214 +2,171 @@
 
 **File gốc:** [`../troubleshooting.md`](../troubleshooting.md)
 
-Xử lý sự cố dev local, Git hooks, và CI.
+Mục lục nhanh: [Husky](#husky) · [commitlint](#commitlint) · [Push/Sync](#pushsync) · [Playwright](#playwright) · [ESLint](#eslint) · [CI](#ci) · [Deploy server](#deploy-server) · [Media 404](#media-404) · [Vite/npm](#vite--npm) · [DB test](#db-test) · [AI orphan](#ai-orphan) · [Route 404 deploy](#route-404-sau-deploy) · [Realtime bình luận](#realtime-binh-luan)
 
 ---
 
-## Deploy server — EBADENGINE / git pull đã mới nhất
+## Deploy server {#deploy-server}
 
-**Tự build sau pull:** `git config core.hooksPath .husky` + `export VA_AUTO_BUILD_ON_PULL=1` — xem `_dev/troubleshooting.md` (Server deploy).
+### EBADENGINE `lint-staged`
 
-**EBADENGINE:** Pull bản mới (lint-staged 16). Server: `npm ci --omit=dev` khi cần.
+Repo pin `lint-staged@16` (Node cũ hơn 22). `git pull` bản mới → trên server:
 
-**Already up to date:** Máy dev cần `git push` trước; server `git fetch`.
+```bash
+npm ci --omit=dev
+```
+
+### `Already up to date` nhưng thiếu code
+
+Remote chưa có commit — máy dev cần `push`. Trên server: `git fetch && git log HEAD..origin/main`.
+
+### Tự `npm run build` sau `git pull`
+
+```bash
+cd /path/to/repo
+git config core.hooksPath .husky
+chmod +x .husky/post-merge scripts/post-merge-deploy.sh
+echo 'export VA_AUTO_BUILD_ON_PULL=1' >> ~/.bashrc
+source ~/.bashrc
+```
+
+### Deploy thủ công đầy đủ
+
+```bash
+export CI=true HUSKY=0 NODE_ENV=production
+git pull
+composer install --no-dev --optimize-autoloader
+npm ci --omit=dev
+npm run build
+php artisan migrate --force
+php artisan optimize:clear
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+php artisan storage:link
+```
+
+Không chạy `npm audit fix --force` trên production.
 
 ---
 
-## Husky hook không chạy
+## Husky hook không chạy {#husky}
 
-**Triệu chứng:** Commit không qua ESLint; push không chạy E2E.
-
-**Sửa:**
+**Triệu chứng:** Commit không qua ESLint.
 
 ```bash
 npm run prepare
+ls .husky/   # pre-commit, commit-msg, pre-push, post-merge, prepare-commit-msg
 ```
 
-**Kiểm tra:**
-
-```bash
-ls .husky/
-# Cần có: pre-commit, commit-msg, pre-push, post-merge, prepare-commit-msg
-```
-
-**Windows:** Hook là shell script — chạy git qua **Git Bash** (đi kèm Git for Windows). Nếu hook im lặng fail, kiểm tra `core.hooksPath` trỏ `.husky`.
-
-**Unix / macOS / WSL:**
-
-```bash
-chmod +x .husky/*
-```
+**Windows:** Dùng Git Bash hoặc đảm bảo `core.hooksPath=.husky`. `chmod +x .husky/*` trên Unix/WSL.
 
 ---
 
-## commitlint báo lỗi
+## commitlint {#commitlint}
 
-**IDE ghi "Updates" / subject trống:** Hook tự sinh message Conventional từ file staged (`fix-commit-msg.mjs`). Cần `git add` trước. Hoặc `npm run commit`.
-
-**Triệu chứng:** `git commit` bị từ chối.
-
-**Format bắt buộc:** `type(scope): mo ta`
+Format: `type(scope): mo ta`
 
 ```bash
-echo "feat: test message" | npm run commitlint
+echo "feat: test" | npm run commitlint
 ```
 
-**Types hợp lệ:** feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert
+IDE «Updates» / trống → hook sinh message từ staged (`git add` trước) hoặc `npm run commit`.
 
-**Quy tắc:** header ≤ 72 ký tự, body line ≤ 100 ký tự, không PascalCase subject.
-
-**Bỏ qua một lần (không khuyến khích):**
-
-```bash
-git commit --no-verify -m "feat: sua khan"
-```
-
-**Gợi ý message tự động:**
-
-```bash
-npm run commit:msg
-npm run commit
-```
+Bỏ qua (khẩn cấp): `git commit --no-verify`
 
 ---
 
-## Sync Changes / git push bị chặn
+## Push / Sync {#pushsync}
 
-**Triệu chứng:** Sync **rất lâu** hoặc **fail** khi push.
+| Tình huống | Cách xử lý |
+|------------|------------|
+| Sync chậm 2–3 phút (cũ) | Hiện **mặc định không E2E** khi push — nhanh |
+| Muốn E2E trước push | PowerShell: `$env:RUN_E2E_ON_PUSH="1"; git push` hoặc `npm run push:e2e` |
+| Cổng 8001 kẹt (khi bật E2E push) | `node tests/e2e/helpers/stopStaleE2ePorts.js` |
+| Khẩn cấp | `git push --no-verify` |
 
-**Mặc định mới:** Push/Sync **không** chạy E2E local (nhanh). GitHub Actions vẫn chạy test.
-
-**Muốn E2E trước push:** `$env:RUN_E2E_ON_PUSH="1"; git push`
-
-**Lỗi cổng 8001:** `node tests/e2e/helpers/stopStaleE2ePorts.js` hoặc `taskkill /F /PID <pid>`.
+Test local không push: `npm run test:e2e`
 
 ---
 
-## Playwright: không tìm thấy browser
+## Playwright {#playwright}
 
-**Triệu chứng:** `Executable doesn't exist at .../chromium-...`
-
-**Sửa:**
+### Không tìm thấy Chromium
 
 ```bash
 npm run test:e2e:install
-# hoặc
-npx playwright install chromium
-npx playwright install --with-deps chromium
 ```
 
----
+### Windows — «The system cannot find the path specified»
 
-## Playwright fail trên máy local
+1. `npm install`
+2. `npm run test:e2e:install`
+3. `php -v` trong cùng terminal
+4. Script gọi `node node_modules/@playwright/test/cli.js` — không cần `playwright` global
 
-**Checklist:**
+### Fail local — checklist
 
-1. Port 8000 có bị chiếm không?
-2. DB đã migrate + seed?
-   ```bash
-   php artisan migrate:fresh --seed
-   ```
-3. Cần build assets?
-   ```bash
-   npm run build
-   ```
-4. Debug có giao diện:
-   ```bash
-   npx playwright test --headed --debug
-   ```
-5. Xem báo cáo:
-   ```bash
-   npx playwright show-report
-   ```
+1. Port 8000 — tắt server trùng hoặc `PLAYWRIGHT_REUSE_SERVER=1`
+2. `php artisan migrate:fresh --seed`
+3. Có thể cần `npm run build`
+4. `npx playwright test --headed --debug`
+5. `npx playwright show-report`
+
+### POST `/login` 419 (CSRF)
+
+Dùng `tests/e2e/helpers/loginPost.js`. Config E2E ép `SESSION_DRIVER=file`. Local `.env` dùng `redis` mà không có Redis → đổi `file` hoặc bật Redis.
 
 ---
 
-## ESLint chặn commit
-
-**Triệu chứng:** pre-commit fail.
-
-**Tự sửa:**
+## ESLint chặn commit {#eslint}
 
 ```bash
 npm run lint:fix
 git add -u
-git commit -m "fix: resolve lint errors"
 ```
 
-**Sửa thư mục cụ thể:**
-
-```bash
-npx eslint --fix resources/js/
-```
-
-**Bỏ qua một lần:** `git commit --no-verify`
-
-> Cảnh báo (warning) cũng **chặn commit** vì `--max-warnings=0`.
+Warning cũng fail (`--max-warnings=0`). Khẩn cấp: `--no-verify`.
 
 ---
 
-## pre-push E2E chặn push
+## pre-push E2E (khi bật RUN_E2E_ON_PUSH) {#pre-push}
 
-**Triệu chứng:** `git push` bị hủy — "E2E tests failed."
-
-**Sửa:** chạy trước:
-
-```bash
-npm run test:e2e
-```
-
-**Bỏ qua khẩn cấp:** `git push --no-verify`
-
-Trên CI runner: pre-push bỏ qua khi `CI=true`.
+Mặc định **tắt**. Nếu bật mà fail → `npm run test:e2e` local trước.
 
 ---
 
-## CI pipeline fail
+## CI pipeline fail {#ci}
 
-1. GitHub → Actions → CI → run lỗi
-2. Mở job fail (`backend-tests` = Pint+PHPUnit, `frontend-build` = ESLint+build, `playwright`, `static-analysis`)
-3. **Re-run failed jobs**
-4. Playwright: tải artifact `playwright-report`
-
-**Nguyên nhân thường gặp:**
+1. GitHub → Actions → CI
+2. Job đỏ: `backend-tests` | `frontend-build` | `playwright` | `static-analysis`
+3. Re-run failed jobs · tải artifact Playwright
 
 | Job | Thường do |
 |-----|-----------|
-| backend-tests | Pint → `vendor/bin/pint`; PHPUnit 500 → `tests/TestCase` Vite stub |
-| frontend-build | ESLint → `npm run lint:fix`; lỗi Vite build |
-| Playwright | Selector/UI; server :8000 — `playwright.config.js` |
-| PHPStan | Cảnh báo, không chặn merge |
+| backend-tests | Pint → `vendor/bin/pint`; PHPUnit assertion / migration |
+| frontend-build | ESLint → `npm run lint:fix`; lỗi Vite import |
+| playwright | Selector/UI đổi; seed; snapshot visual lỗi thời |
+| static-analysis | PHPStan — không chặn merge |
 
-**Trước push:** skill `ship-ready`
-
-**Bỏ qua CI khi push:**
-
-```bash
-git commit -m "chore: docs [skip ci]"
-```
+Trước push: skill **ship-ready**. Skip CI: `[skip ci]` trong message.
 
 ---
 
-## npm install fail sau git pull
+## npm install / build (Windows) {#vite--npm}
 
-**Triệu chứng:** Module not found, peer dependency error.
+**`npm run build` — path not found (cmd.exe):**
 
-**PowerShell:**
+1. `npm ci` hoặc xóa `node_modules` + `npm install`
+2. `node -v` (Node 20 LTS)
+3. Không copy folder project mà không cài lại `node_modules`
+
+**Sau git pull lỗi dependency:**
 
 ```powershell
-Remove-Item -Recurse -Force node_modules, package-lock.json
+Remove-Item -Recurse -Force node_modules
 npm install
 ```
-
-**Bash:**
-
-```bash
-rm -rf node_modules package-lock.json
-npm install
-```
-
-Hook `post-merge` tự `npm install` khi `package.json` đổi — nếu fail, chạy tay.
 
 ---
 
@@ -217,72 +174,76 @@ Hook `post-merge` tự `npm install` khi `package.json` đổi — nếu fail, c
 
 ```bash
 composer install
-php artisan config:clear
-php artisan cache:clear
-php artisan migrate
-```
-
-**Class not found sau file mới:**
-
-```bash
 composer dump-autoload
+cp .env.example .env && php artisan key:generate
+php artisan config:clear && php artisan cache:clear && php artisan migrate
 ```
 
-**Thiếu `.env`:**
+---
+
+## Vite dev {#vite}
+
+Trang trắng / `@vite/client` 404 → chạy `npm run dev` hoặc `npm run build`. Restart Vite. Alias `@/` = `resources/js/`.
+
+---
+
+## Media / attachment 404 {#media-404}
+
+**Triệu chứng:** `/storage/projects/...` 404, preview «Không tải được file».
+
+1. `php artisan storage:link`
+2. File mất trên disk nhưng còn DB — upload lại hoặc xóa orphan
+3. App trả `url: null` khi file mất; download qua route có auth (`projects.attachments.file`, KB tương tự)
 
 ```bash
-cp .env.example .env
-php artisan key:generate
+ls storage/app/public/projects/2/customer/
 ```
 
 ---
 
-## Vite dev server
-
-**Triệu chứng:** `@vite/client` 404, trang trắng, HMR không hoạt động.
-
-1. Chạy `npm run dev`
-2. Nếu không dùng dev server → `npm run build`
-3. Xóa cache browser
-4. Restart: Ctrl+C → `npm run dev`
-
-Alias `@/` → `resources/js/` trong `vite.config.js`.
-
----
-
-## Lỗi SQLite / database khi test
-
-E2E dùng config từ `tests/e2e/helpers/database.js`:
+## DB / SQLite test {#db-test}
 
 ```bash
 touch database/testing.sqlite
 php artisan migrate:fresh --seed
 ```
 
-CI tự tạo tại `database/testing.sqlite` trong workspace.
+CI tạo sqlite trong workspace tự động.
 
 ---
 
-## Quản lý AI — vẫn «1 TK», chi phí 0 sau khi xóa
+## AI — badge «1 TK», chi phí 0 {#ai-orphan}
 
-**Triệu chứng:** `/ai-accounts` hoặc `/ai-accounts/cost-by-group` vẫn badge 1, nhóm BA «1 hoạt động», chi phí/tháng 0 VNĐ.
+TK mồ côi sau PĐX — deploy code `purgeOrphanedFromProposal`, F5. Chi tiết: [docs/AI_ACCOUNTS.md](../../docs/AI_ACCOUNTS.md).
 
-**Nguyên nhân:** TK mồ côi (PĐX hết hạn / gỡ liên kết) còn trong DB.
-
-**Xử lý:** Deploy bản có `purgeOrphanedFromProposal`, user F5 một lần. Chi tiết: [`docs/AI_ACCOUNTS.md`](../../docs/AI_ACCOUNTS.md). File gốc EN: [`../troubleshooting.md`](../troubleshooting.md) mục AI accounts.
-
----
-
-## Route 404 sau khi deploy (vd nhập task `POST /projects/{id}/tasks/import`)
-
-**Hiện tượng:** Một hành động bị 404 trên production, trong khi hành động cũ cùng prefix (vd `POST /projects/{id}/sprints`) vẫn chạy. Code, định nghĩa route (`routes/web.php`), controller, FormRequest đều có và đúng ở commit đã deploy.
-
-**Nguyên nhân:** File `bootstrap/cache/routes-*.php` trên server còn cũ. Lần `php artisan route:cache` / `optimize` trước đã cache bảng route; route thêm sau đó (ở đây là `tasks.import`, thêm ở `33e3212`) không có trong cache nên router không khớp → 404. Bước deploy chỉ chạy `config:cache` — lệnh này **không** làm mới route.
-
-**Sửa ngay:**
 ```bash
-php artisan route:clear     # hoặc: php artisan optimize:clear
-php artisan route:cache     # cache lại cho hiệu năng
+php artisan test tests/Feature/AiAccountOrphanPurgeTest.php
 ```
 
-**Sửa triệt để:** Deploy phải xoá cache trước khi cache lại — xem `_dev/vi/quy-trinh.md` › Deploy. Chạy `php artisan optimize:clear` rồi `config:cache` + `route:cache` + `view:cache`. Đừng chỉ chạy mỗi `config:cache`.
+---
+
+## Route 404 sau deploy {#route-404-sau-deploy}
+
+**Nguyên nhân:** `bootstrap/cache/routes-*.php` cũ — route mới không có trong cache.
+
+```bash
+php artisan route:clear
+php artisan route:cache
+```
+
+Deploy đúng: `optimize:clear` trước khi cache lại — [quy-trinh.md](quy-trinh.md).
+
+---
+
+## Realtime bình luận {#realtime-binh-luan}
+
+User A gửi, B không thấy (không badge **Realtime**): stack thiếu Redis / Node / proxy `/socket.io`.
+
+Checklist đầy đủ: [realtime.md](realtime.md) · [`../realtime.md`](../realtime.md).
+
+```bash
+redis-cli ping
+php artisan tinker --execute="echo config('realtime.enabled') ? 'on' : 'off';"
+```
+
+Người gửi vẫn thấy tin qua Inertia partial reload; người khác cần realtime hoặc F5.

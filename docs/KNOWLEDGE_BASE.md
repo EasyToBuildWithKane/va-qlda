@@ -42,7 +42,7 @@ resources/js/
     → Pages/KnowledgeBase/Index.vue   (PageHeader + datagrid, lọc danh mục, xuất CSV/Excel)
     → Pages/KnowledgeBase/Blog.vue    (layout blog: sidebar + feed ảnh bìa; feed **chỉ Published**; lọc Inertia `only: articles,filters`)
     → Pages/KnowledgeBase/Show.vue    (chi tiết đọc bài: breadcrumb, hướng dẫn + tooltip, layout 2 cột mục lục sticky, floating toolbar, cùng chuyên mục, `otherArticles`, bình luận)
-    → Components/KnowledgeBase/KbArticleHero.vue, KbArticleCover.vue, KbArticleToc.vue, KbReadingProgress.vue, KbAuthorCard.vue, KbRelatedArticles.vue, KbMoreArticles.vue, KbArticleReadingGuide.vue, KbArticleShowSidebar.vue, KbFloatingToolbar.vue, KbArticleBreadcrumb.vue
+    → Components/KnowledgeBase/KbArticleHero.vue, KbArticleCover.vue, KbArticleToc.vue, KbReadingProgress.vue, KbRelatedArticles.vue, KbMoreArticles.vue, KbFloatingToolbar.vue
     → Components/KnowledgeBase/KbArticleCard.vue, KbBlogPanel.vue, KbBlogTagSection.vue, KbBlogSidebar.vue, KbBlogAside.vue, KbBlogPostCard.vue
     → Pages/KnowledgeBase/Edit.vue    (TipTap + gallery)
     → Components/KnowledgeBase/KbRichTextField.vue, KbImageGallery.vue, KbTagField.vue
@@ -195,6 +195,19 @@ draft ──publish──→ published ──archive──→ archived
 - `published_at` set khi lần đầu publish.
 - `view_count` tăng khi `Show` (debounce theo session/account tùy chọn).
 
+### 5.3 Seed tài liệu repo (`KnowledgeBaseSeeder`)
+
+`database/seeders/KnowledgeBaseSeeder.php` quét **toàn bộ** `docs/**/*.md` và `_dev/**/*.md`, chuyển Markdown → HTML (`App\Support\KnowledgeBase\KbMarkdownHtml`), `updateOrCreate` theo slug `kb-{đường-dẫn}`.
+
+| Trường | Giá trị seed |
+|--------|----------------|
+| Tác giả | **Nguyễn Anh Khoa** — `khoana@hcm.vaschools.edu.vn` (`Employee` `EMP-KHOANA`, tạo nếu chưa có) |
+| Trạng thái | `published` |
+| Danh mục | Theo prefix file (vd. `docs/AI_*` → `ai-automation`, `_dev/` → `internal-docs`) |
+| Tag | `VA-QLDA`, `Tài liệu kỹ thuật`, … (+ `Tiếng Việt` cho `_dev/vi/`) |
+
+Chạy: `php artisan db:seed --class=KnowledgeBaseSeeder` (sau migration KB). Nội dung bài có dòng *Nguồn repository: …* trỏ file gốc.
+
 ---
 
 ## 6. Chức năng nâng cao
@@ -230,15 +243,13 @@ Tham chiếu UX: Viblo (list + tag), Notion Wiki (sidebar cây), Confluence (bre
 │ Index: KbSummaryBar + datagrid (Tìm kiếm, Lọc/Cột/Xuất)      │
 │ Blog:  KbBlogSidebar + feed KbBlogPostCard (Published only)  │
 │ Show:  KbFloatingToolbar (lg+, fixed phải)                   │
-│        breadcrumb → KbArticleReadingGuide                      │
-│        2 cột lg+: [ card nội dung ~780px | sidebar TOC ]     │
-│        → KbRelatedArticles → KbMoreArticles → CommentThread  │
+│        cột đơn ~780px: card nội dung                         │
+│        → KbRelatedArticles → KbArticleCommentsSection → KbMoreArticles │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-- **Show — thứ tự trong card:** Hero → excerpt → cover → TOC mobile → prose → gallery → attachments → author.
-- **Sidebar (`KbArticleShowSidebar`):** TOC sticky + nút lưu/đã đọc/chia sẻ (desktop `lg+`).
-- **Responsive:** Floating toolbar + sidebar TOC ẩn dưới `lg`; TOC dạng `plain` trên mobile.
+- **Show — thứ tự trong card:** Hero → excerpt → cover → TOC mobile → prose → gallery → attachments.
+- **Responsive:** Floating toolbar `lg+`; TOC dạng `plain` trên mobile (không sidebar desktop).
 - **Brand:** `#9A0036`, copy tiếng Việt; tooltip: `FieldTooltip` / `shared/ui/HoverTooltip.vue` trên hero & gallery.
 
 ### 7.2 Trang chính
@@ -308,17 +319,17 @@ Chi tiết đầy đủ bảng: `docs/API_STRUCTURE.md` §2.17 · grouping §3.
 |---|---|
 | `Pages/KnowledgeBase/Index.vue` | `KbSummaryBar`; datagrid; nhóm danh mục; `KbArticleCard`; `useKbExport` |
 | `Pages/KnowledgeBase/Blog.vue` | `KbBlogSidebar`, `KbBlogAside`, `KbBlogPostCard`; lọc `only: articles,filters` |
-| `Pages/KnowledgeBase/Show.vue` | Progress, breadcrumb, guide, hero, cover, TOC, prose, gallery, attachments, sidebar, related, more, comments |
+| `Pages/KnowledgeBase/Show.vue` | Progress, hero, cover, TOC mobile, prose, gallery, attachments, related, more, comments; lưu/đã đọc qua `KbFloatingToolbar` |
 | `KbSummaryBar.vue` | KPI strip — lọc nhanh trạng thái (admin/lead) |
-| `KbArticleHero.vue` | Tiêu đề, meta, tag → blog, lưu/chia sẻ/đã đọc, số bình luận |
-| `KbArticleBreadcrumb.vue` | Tri thức → Blog → chuyên mục → tiêu đề (trên Show) |
-| `KbArticleReadingGuide.vue` | Hướng dẫn đọc + tooltip |
-| `KbArticleShowSidebar.vue` | TOC sticky desktop + actions lưu/đã đọc/chia sẻ |
+| `KbArticleHero.vue` | Tiêu đề, chuyên mục, meta tác giả/ngày/thời gian đọc |
+| `KbArticleBreadcrumb.vue` | *(không dùng trên Show)* breadcrumb blog |
+| `KbArticleReadingGuide.vue` | *(không dùng trên Show)* hướng dẫn đọc |
+| `KbArticleShowSidebar.vue` | *(không dùng trên Show)* TOC sidebar + actions |
 | `KbArticleCover.vue` | Ảnh bìa hoặc gradient fallback |
 | `KbArticleToc.vue` | Mục lục H2/H3; `variant` sidebar/plain; `display` desktop/mobile |
 | `KbFloatingToolbar.vue` | Bookmark, share, copy, print, đã đọc — fixed phải `lg+` |
 | `KbReadingProgress.vue` | Thanh tiến độ đọc sticky |
-| `KbAuthorCard.vue` | Card tác giả cuối bài |
+| `KbAuthorCard.vue` | Card tác giả *(không dùng trên Show)* |
 | `KbRelatedArticles.vue` | Lưới bài cùng chuyên mục (tối đa 6) |
 | `KbMoreArticles.vue` | «Các bài khác» — pool 100 từ server, lọc client |
 | `KbBlogPanel.vue`, `KbBlogTagSection.vue`, `KbBlogSidebar.vue`, `KbBlogAside.vue`, `KbBlogPostCard.vue` | Hub blog |
@@ -326,7 +337,8 @@ Chi tiết đầy đủ bảng: `docs/API_STRUCTURE.md` §2.17 · grouping §3.
 | `Pages/KnowledgeBase/Edit.vue` | TipTap, slug, gallery, attachments |
 | `KbTagField.vue`, `KbRichTextField.vue`, `KbImageGallery.vue` | Soạn thảo |
 | `useKbExport.js` | `fetchKbArticlesForExport`, CSV + Excel |
-| `CommentThread.vue` + `useCommentThreadPoll` | Bình luận morph |
+| `KbArticleCommentsSection.vue` | Khối thảo luận KB: header, sắp xếp, `CommentThread variant=kb` |
+| `CommentThread.vue` + `useCommentThreadPoll` | Bình luận morph; prop `variant=kb` cho UI đọc bài |
 | `FieldTooltip.vue`, `HoverTooltip.vue` | Tooltip gallery / hero |
 | `useVisibleFilterControls` / `useVisibleColumns` | Toolbar Index |
 

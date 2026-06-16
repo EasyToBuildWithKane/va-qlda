@@ -42,6 +42,7 @@ Cấu hình AI cho repo **VAschools QLDA**, đồng bộ với [`docs/`](../docs
 - [FRONTEND_STRUCTURE](../docs/FRONTEND_STRUCTURE.md)
 - [REFACTOR_PLAN](../docs/REFACTOR_PLAN.md) — Phase 1–5 ✅
 - [TECHNICAL_DEBT](../docs/TECHNICAL_DEBT.md)
+- [FLOWS_AND_DOCS_MAP](../docs/FLOWS_AND_DOCS_MAP.md)
 - [IMPORT_EXPORT_RECONCILE](../docs/IMPORT_EXPORT_RECONCILE.md)
 - [KNOWLEDGE_BASE](../docs/KNOWLEDGE_BASE.md)
 - [_dev/README.md](../_dev/README.md)

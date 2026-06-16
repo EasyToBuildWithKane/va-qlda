@@ -2,7 +2,7 @@
 
 **File gốc:** [`../commands.md`](../commands.md)
 
-Chạy mọi lệnh từ **thư mục gốc** dự án trừ khi ghi chú khác.
+Chạy mọi lệnh từ **thư mục gốc** repo trừ khi ghi chú khác.
 
 ---
 
@@ -10,128 +10,121 @@ Chạy mọi lệnh từ **thư mục gốc** dự án trừ khi ghi chú khác.
 
 | Lệnh | Giải thích |
 |------|------------|
-| `npm run dev` | Khởi động Vite — hot reload cho giao diện (`resources/js/`, `resources/css/app.css`) |
-| `php artisan serve` | Khởi động Laravel tại `http://127.0.0.1:8000` |
-| `php artisan migrate` | Chạy migration chưa áp dụng |
-| `php artisan migrate:fresh --seed` | Xóa hết bảng → migrate lại → seed dữ liệu mẫu |
+| `npm run dev` | Vite — hot reload `resources/js/`, `resources/css/app.css` |
+| `php artisan serve` | Laravel tại `http://127.0.0.1:8000` |
+| `php artisan migrate` | Migration chưa chạy |
+| `php artisan migrate:fresh --seed` | Xóa DB → migrate → seed (dev/CI) |
 
-**Setup local thông thường:** mở **2 terminal**:
+**Setup local:** 2 terminal — `npm run dev` + `php artisan serve`.
 
-- Terminal 1: `npm run dev`
-- Terminal 2: `php artisan serve`
-
-**Vite** (`vite.config.js`):
-
-- Entry: `resources/css/app.css`, `resources/js/app.js`
-- Alias `@` → `resources/js/` (import kiểu `@/Components/...`)
+**Vite** (`vite.config.js`): entry `app.css` + `app.js`; alias `@` → `resources/js/`.
 
 ---
 
-## Build & tài nguyên
+## Build & realtime
 
 | Lệnh | Giải thích |
 |------|------------|
-| `npm run build` | Build production → output `public/build/` |
-| `vite preview` | Xem bản build local *(chưa có script `npm run preview` trong `package.json`)* |
+| `npm run build` | Build production → `public/build/` |
+| `npm run realtime` | Server Socket.IO (`realtime/server.mjs`) — cần Redis |
+| `npm run realtime:dev` | Giống trên + `--watch` file server |
+
+Preview build: dùng `npx vite preview` (chưa có `npm run preview`).
 
 ---
 
-## Lint & format code
+## Lint & format
 
 | Lệnh | Giải thích |
 |------|------------|
-| `npm run lint` | ESLint toàn bộ `resources/js/` — **cảnh báo cũng tính là lỗi** (`--max-warnings=0`) |
-| `npm run lint:fix` | ESLint tự sửa được |
-| `npx lint-staged` | Chỉ lint file đã `git add` (giống hook pre-commit) |
-| `composer format` | Laravel Pint — format PHP |
-| `composer format:test` | Pint kiểm tra không sửa (`--test`) |
-| `composer analyse` | PHPStan phân tích tĩnh |
-
-**lint-staged** (`package.json`): file staged `resources/js/**/*.{js,ts,jsx,tsx,vue}` → `eslint --fix --max-warnings=0`.
+| `npm run lint` | ESLint — **cảnh báo = lỗi** (`--max-warnings=0`) |
+| `npm run lint:fix` | ESLint tự sửa |
+| `npx lint-staged` | Chỉ file staged (giống pre-commit) |
+| `vendor/bin/pint --test` | Pint kiểm tra PHP (**CI blocking**) |
+| `vendor/bin/pint` | Pint sửa PHP |
+| `composer format` / `format:test` | Alias Pint |
+| `composer analyse` | PHPStan (CI advisory) |
 
 ---
 
 ## Git hooks (Husky)
 
-Hook nằm trong `.husky/`. Cài lại: `npm run prepare`.
+Cài lại: `npm run prepare` → `node node_modules/husky/bin.js`.
 
-| Hook | Khi nào chạy | Làm gì |
-|------|--------------|--------|
-| **pre-commit** | Trước khi tạo commit | `lint-staged` — ESLint fix file JS/Vue đang staged |
-| **commit-msg** | Sau khi viết message | `commitlint` — kiểm tra format Conventional Commits |
-| **prepare-commit-msg** | Trước khi mở editor commit | Gợi ý message từ diff (`scripts/prepare-commit-msg.mjs`); bỏ qua nếu merge/squash hoặc user đã gõ sẵn |
-| **pre-push** | Trước `git push` | Chạy Playwright E2E; **bỏ qua khi `CI=true`**; fail → hủy push |
-| **post-merge** | Sau `git pull` / merge | Nếu `package.json` đổi → tự `npm install` |
+| Hook | Khi nào | Việc làm |
+|------|---------|----------|
+| **pre-commit** | Trước commit | `lint-staged` — ESLint fix JS/Vue staged |
+| **prepare-commit-msg** | Trước editor message | Gợi ý message từ diff (bỏ qua merge/squash) |
+| **commit-msg** | Sau khi gõ message | commitlint — Conventional Commits |
+| **pre-push** | Trước push | **Mặc định bỏ qua E2E**; bật: `RUN_E2E_ON_PUSH=1` |
+| **post-merge** | Sau `git pull` | `VA_AUTO_BUILD_ON_PULL=1` → có thể `npm install` + `npm run build` trên server |
 
-**Script hỗ trợ commit:**
-
-| Lệnh | Mục đích |
-|------|----------|
-| `npm run commitlint` | Kiểm tra message thủ công |
-| `npm run commit:msg` | In message gợi ý từ staged changes |
-| `npm run commit` | Tự stage + commit (`scripts/auto-commit.mjs`) |
+| Lệnh hỗ trợ | Mục đích |
+|-------------|----------|
+| `npm run commitlint` | Test message |
+| `npm run commit:msg` | In message gợi ý |
+| `npm run commit` | Auto stage + commit |
+| `npm run push:e2e` | Push kèm E2E local |
+| `npm run e2e:stop-stale` | Dọn `php artisan serve` cổng 8001–8020 |
 
 ---
 
-## Test Playwright (E2E)
+## Playwright E2E
 
-Config: `playwright.config.js` — thư mục test `tests/e2e/`, URL `http://127.0.0.1:8000`.
+Config: `playwright.config.js` · `tests/e2e/` · base URL `http://127.0.0.1:8000`.
 
 | Lệnh | Giải thích |
 |------|------------|
-| `npm run test:e2e` | Chạy tất cả E2E (Chromium headless) |
-| `npm run test:e2e:ui` | Giao diện tương tác |
-| `npm run test:e2e:install` | Cài Chromium + thư viện OS |
+| `npm run test:e2e` | Luồng UI (CI) — bỏ qua `smoke/`, `visual/` |
+| `npm run test:e2e:visual` | So sánh snapshot UI |
+| `npm run test:e2e:visual:update` | Cập nhật baseline sau đổi UI cố ý |
+| `npm run test:e2e:smoke` | Chụp full-page (không snapshot CI) |
+| `npm run test:e2e:ui` | UI mode tương tác |
+| `npm run test:e2e:install` | Cài Chromium + deps OS |
 | `npx playwright test --debug` | Debug từng bước |
-| `npx playwright test tests/e2e/auth.spec.js` | Một file spec |
-| `npx playwright test --grep "login"` | Lọc theo tên test |
-| `npx playwright test --headed` | Mở browser nhìn thấy được |
-| `npx playwright codegen http://127.0.0.1:8000` | Ghi test mới |
-| `npx playwright show-report` | Xem báo cáo HTML lần chạy trước |
+| `npx playwright show-report` | Báo cáo HTML lần chạy trước |
 
-**Lưu ý:** Playwright tự khởi động `php artisan serve` qua config `webServer`; local thì tái sử dụng server đang chạy sẵn.
+Playwright tự chạy `php artisan serve` qua `webServer`; local có thể tái sử dụng server :8000.
 
 ---
 
-## Test backend (PHPUnit)
+## PHPUnit
 
 | Lệnh | Giải thích |
 |------|------------|
-| `composer test` | Tương đương `php artisan test` |
-| `php artisan test` | Chạy toàn bộ PHPUnit |
-| `php artisan test --filter=TestName` | Một class/method |
+| `composer test` | = `php artisan test` |
+| `php artisan test --filter=TênTest` | Một class/method |
+
+`tests/TestCase.php` tạo stub `public/build/manifest.json` để Inertia không 500 trên job PHPUnit (không cần `npm build` trong job đó).
 
 ---
 
-## Tương đương CI trên máy local
+## Tương đương CI (local)
 
-Workflow: `.github/workflows/ci.yml`
-
-| Job CI | Chạy local |
+| Job CI | Lệnh local |
 |--------|------------|
-| PHPUnit | `composer test` |
-| Frontend build | `npm ci && npm run build` |
-| Playwright E2E | `npm run test:e2e:install && npm run test:e2e` |
-| Laravel Pint | `composer format:test` |
-| PHPStan | `composer analyse` |
+| `backend-tests` | `vendor/bin/pint --test` → `php artisan test` |
+| `frontend-build` | `npm ci` → `npm run lint` → `npm run build` |
+| `playwright` | `npm run test:e2e:install` → `npm run build` → `npm run test:e2e` |
+| `static-analysis` | `composer analyse` |
 
-**Chạy lại CI fail:** GitHub → Actions → chọn run → **Re-run failed jobs**.
-
-**Bỏ qua CI khi push:** thêm `[skip ci]` vào commit message.
+Re-run: GitHub → Actions → **Re-run failed jobs**.  
+Skip CI: `[skip ci]` hoặc `[ci skip]` trong commit message.
 
 ---
 
 ## Artisan thường dùng
 
 ```bash
-php artisan make:model ModelName -mcr    # Model + migration + controller + resource
-php artisan make:controller Name --resource
 php artisan route:list
+php artisan make:model Ten -mcr
+php artisan storage:link          # public/storage → storage/app/public
+php artisan key:generate
+php artisan telegram:list-chats   # Lấy chat_id Telegram sau khi bot nhận tin
+php artisan migrate:fresh --force --seed
+php artisan optimize:clear        # Trước config/route cache trên server
 php artisan config:cache
-php artisan cache:clear
-php artisan queue:work
-php artisan key:generate                 # Lần đầu setup .env
-php artisan migrate:fresh --force --seed # Reset DB (CI / dev)
+php artisan route:cache
 ```
 
 ---
@@ -139,9 +132,9 @@ php artisan migrate:fresh --force --seed # Reset DB (CI / dev)
 ## Cài dependency
 
 ```bash
-composer install    # PHP
-npm install         # Node (dev local)
-npm ci              # Cài sạch theo lockfile (CI / sau khi lock đổi)
+composer install
+npm install          # dev
+npm ci               # sạch theo lockfile (CI / sau pull đổi lock)
 ```
 
-Sau `git pull`, nếu `package.json` đổi, hook `post-merge` tự chạy `npm install`.
+`post-merge` tự `npm install` khi `package.json` đổi.

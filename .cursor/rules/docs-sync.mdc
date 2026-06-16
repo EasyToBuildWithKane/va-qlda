@@ -18,6 +18,7 @@ Skill map: `.cursor/skills/va-qlda-docs/SKILL.md`
 | Page / `modules/*` / composable mới | `docs/FRONTEND_STRUCTURE.md` + doc module |
 | Controller / Support / Policy module | `docs/ARCHITECTURE.md` hoặc doc module (pattern MVC vs Use Case) |
 | Nav / role / middleware auth | `docs/PROJECT_OVERVIEW.md` hoặc doc module + `App\Support\Navigation` comment nếu cần |
+| Luồng UX / onboarding sơ đồ | `docs/FLOWS_AND_DOCS_MAP.md` (+ mermaid trong doc module nếu sâu) |
 | Lệnh CLI, hook, CI, workflow dev | `_dev/*.md` trước → `_dev/vi/*.md` tương ứng |
 | Roadmap / trạng thái LT-xx | `docs/NEXT_STEPS.md`, `docs/TECHNICAL_DEBT.md` nếu mở/đóng nợ |
 

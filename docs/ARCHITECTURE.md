@@ -1,10 +1,12 @@
 # ARCHITECTURE — VA QLDA
 
+> Sơ đồ vận chuyển request & bản đồ module: [`FLOWS_AND_DOCS_MAP.md`](FLOWS_AND_DOCS_MAP.md).
+
 ---
 
 ## 1. Kiến Trúc Hiện Tại
 
-Dự án áp dụng **Hybrid Architecture**: Clean Architecture cho DailyReport, Application Use Cases cho Project/Task (Phase 3), injectable Services cho Notification, và MVC cho các module còn lại (Blocker, Bug, Feedback, **Coaching**, **Knowledge Base**).
+Dự án áp dụng **Hybrid Architecture**: Clean Architecture cho DailyReport, Application Use Cases cho Project/Task (Phase 3), injectable Services cho Notification, và MVC cho các module còn lại (Blocker, Bug, Feedback, **Coaching**, **Knowledge Base**, **Congnghe**, **AiAccount**).
 
 ```
 app/

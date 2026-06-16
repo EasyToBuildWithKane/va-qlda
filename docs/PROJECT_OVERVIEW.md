@@ -39,14 +39,22 @@ VA QLDA
 ├── [COMMENT]       Thảo luận đa hình (Task, Bug, Blocker, Feedback)
 ├── [DEPARTMENT]    Quản lý phòng ban
 ├── [SYSTEM CONFIG] Cấu hình hệ thống (admin: nhận diện, đăng nhập, Telegram, phân quyền) → docs/SYSTEM_CONFIG.md
-├── [DASHBOARD]     Tổng quan hệ thống (đang phát triển)
+├── [CONGNGHE]      Trung tâm Công Nghệ — landing, đề xuất phần mềm, quản trị nội dung → docs/CONGNGHE_CONTENT.md
+├── [ORG TEAMS]     Sơ đồ nhóm nhân sự (/org-teams) — admin/lead chỉnh sửa
+├── [MEMBERS]       Danh bạ & hồ sơ thành viên (/members, /profile)
+├── [AI ACCOUNTS]   Tài khoản AI, PĐX, chi phí, analytics → docs/AI_ACCOUNTS.md
+├── [DASHBOARD]     Bảng điều khiển (/dashboard) — KPI, tuân thủ báo cáo ngày
 ├── [KNOWLEDGE BASE] Tri thức nội bộ (bài viết, danh mục, tags, tìm kiếm, yêu thích) → docs/KNOWLEDGE_BASE.md
 └── [COACHING]      Coaching/Mentoring (khóa học, buổi học, bài tập, tiến độ, dashboard tài chính) → docs/COACHING_MENTORING.md
 ```
 
+> **Sơ đồ luồng tổng hợp (mermaid) + bản đồ doc ↔ code:** [`docs/FLOWS_AND_DOCS_MAP.md`](FLOWS_AND_DOCS_MAP.md).
+
 ---
 
 ## 3. Luồng Hoạt Động Tổng Thể
+
+Chi tiết sơ đồ (mermaid): [`FLOWS_AND_DOCS_MAP.md`](FLOWS_AND_DOCS_MAP.md) §7. Module KB / Coaching / Excel: doc module tương ứng.
 
 ### 3.1 Luồng Quản Lý Dự Án
 
@@ -205,6 +213,11 @@ Tạo Project
 | Gantt Chart + Timeline + Burndown | ✅ Hoàn thành |
 | Project Dashboard (overview, workload, activity feed) | ✅ Hoàn thành |
 | Risk Import/Export (Excel) | ✅ Hoàn thành |
+| Công Nghệ (landing + đề xuất + quản trị nội dung) | ✅ → docs/CONGNGHE_CONTENT.md |
+| AI Accounts (PĐX, TK, chi phí) | ✅ → docs/AI_ACCOUNTS.md |
+| Org teams (sơ đồ nhóm) | ✅ |
+| Profile / Members directory | ✅ |
+| System settings (`/settings`) | ✅ → docs/SYSTEM_CONFIG.md |
 | Daily Report | ✅ Hoàn thành |
 | Blocker Tracking | ✅ Hoàn thành |
 | Bug Tracking | ❌ Đã gỡ (2026-06) — dùng Feedback / Blocker |

@@ -7,35 +7,132 @@ use App\Models\KbArticle;
 use App\Models\KbCategory;
 use App\Models\KbTag;
 use App\Support\Enums\KbArticleStatus;
+use App\Support\KnowledgeBase\KbMarkdownHtml;
+use App\Support\KnowledgeBase\KbTagSync;
+use FilesystemIterator;
 use Illuminate\Database\Seeder;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
 
 class KnowledgeBaseSeeder extends Seeder
 {
+    private const AUTHOR_EMAIL = 'khoana@hcm.vaschools.edu.vn';
+
+    private const AUTHOR_NAME = 'Nguyễn Anh Khoa';
+
+    private const AUTHOR_CODE = 'EMP-KHOANA';
+
+    /** @var array<string, string> */
+    private const CATEGORY_BY_PATH = [
+        'docs/KNOWLEDGE_BASE' => 'general',
+        'docs/COACHING' => 'general',
+        'docs/PROJECT_OVERVIEW' => 'general',
+        'docs/NEXT_STEPS' => 'general',
+        'docs/TECHNICAL_DEBT' => 'general',
+        'docs/REFACTOR_PLAN' => 'general',
+        'docs/AI_ACCOUNTS' => 'ai-automation',
+        'docs/DAILY_REPORT' => 'project-management',
+        'docs/IMPORT_EXPORT' => 'development',
+        'docs/FRONTEND' => 'development',
+        'docs/ARCHITECTURE' => 'development',
+        'docs/FOLDER_STRUCTURE' => 'development',
+        'docs/API_STRUCTURE' => 'development',
+        'docs/DATABASE' => 'development',
+        'docs/CONGNGHE' => 'development',
+        'docs/FLOWS' => 'development',
+        'docs/SYSTEM_CONFIG' => 'internal-docs',
+    ];
+
     public function run(): void
     {
-        $author = Employee::query()->where('email', 'admin@vaschools.edu.vn')->first()
-            ?? Employee::query()->first();
+        $author = $this->resolveAuthor();
 
-        if (! $author) {
-            $this->command?->warn('KnowledgeBaseSeeder: không có employee — bỏ qua.');
-
-            return;
-        }
-
-        $general = KbCategory::query()->where('slug', 'general')->first();
-        $dev = KbCategory::query()->where('slug', 'development')->first();
-        $pm = KbCategory::query()->where('slug', 'project-management')->first();
-
-        if (! $general || ! $dev || ! $pm) {
+        $categories = KbCategory::query()->pluck('id', 'slug');
+        if ($categories->isEmpty()) {
             $this->command?->warn('KnowledgeBaseSeeder: thiếu kb_categories — chạy migration KB trước.');
 
             return;
         }
 
+        $this->ensureTags();
+
+        $files = $this->collectMarkdownFiles();
+        if ($files === []) {
+            $this->command?->warn('KnowledgeBaseSeeder: không tìm thấy file .md trong docs/ hoặc _dev/.');
+
+            return;
+        }
+
+        $publishedAt = now()->subDay();
+        $count = 0;
+
+        foreach ($files as $relativePath) {
+            $absolute = base_path($relativePath);
+            if (! is_readable($absolute)) {
+                continue;
+            }
+
+            $markdown = file_get_contents($absolute);
+            if ($markdown === false || trim($markdown) === '') {
+                continue;
+            }
+
+            $basename = basename($relativePath);
+            $title = KbMarkdownHtml::titleFromMarkdown($markdown, $basename);
+            $slug = KbMarkdownHtml::slugForRepoPath($relativePath);
+            $categorySlug = $this->categorySlugForPath($relativePath);
+            $categoryId = $categories[$categorySlug] ?? $categories['internal-docs'] ?? $categories->first();
+
+            $bodyHtml = KbMarkdownHtml::toHtml($markdown);
+            $sourceNote = '<p class="text-sm text-slate-500"><em>Nguồn repository: '
+                .e($relativePath).'</em></p>';
+            $content = $sourceNote.$bodyHtml;
+
+            $article = KbArticle::query()->updateOrCreate(
+                ['slug' => $slug],
+                [
+                    'category_id' => $categoryId,
+                    'author_id' => $author->id,
+                    'title' => $title,
+                    'excerpt' => KbMarkdownHtml::excerptHtml($markdown),
+                    'content' => $content,
+                    'status' => KbArticleStatus::Published,
+                    'view_count' => 0,
+                    'published_at' => $publishedAt,
+                    'archived_at' => null,
+                ],
+            );
+
+            KbTagSync::sync($article, $this->tagsForPath($relativePath));
+            $count++;
+        }
+
+        $this->command?->info("KnowledgeBaseSeeder: {$count} bài từ docs/ + _dev/ (tác giả: {$author->full_name}).");
+    }
+
+    private function resolveAuthor(): Employee
+    {
+        return Employee::query()->updateOrCreate(
+            ['email' => self::AUTHOR_EMAIL],
+            [
+                'code' => self::AUTHOR_CODE,
+                'full_name' => self::AUTHOR_NAME,
+                'role_title' => 'Tác giả tài liệu',
+                'join_date' => now()->subYears(2),
+                'skills' => ['documentation', 'laravel', 'vue'],
+                'is_active' => true,
+            ],
+        );
+    }
+
+    private function ensureTags(): void
+    {
         $tags = [
-            ['name' => 'Coaching', 'slug' => 'coaching'],
+            ['name' => 'Tài liệu kỹ thuật', 'slug' => 'tai-lieu-ky-thuat'],
+            ['name' => 'Dev ops', 'slug' => 'dev-ops'],
             ['name' => 'Onboarding', 'slug' => 'onboarding'],
-            ['name' => 'Laravel', 'slug' => 'laravel'],
+            ['name' => 'Tiếng Việt', 'slug' => 'tieng-viet'],
+            ['name' => 'VA-QLDA', 'slug' => 'va-qlda'],
         ];
 
         foreach ($tags as $row) {
@@ -44,74 +141,83 @@ class KnowledgeBaseSeeder extends Seeder
                 ['name' => $row['name']],
             );
         }
+    }
 
-        $articles = [
-            [
-                'slug' => 'coaching-1',
-                'category_id' => $general->id,
-                'title' => 'Coaching 1',
-                'excerpt' => '<p>Giới thiệu ngắn về buổi coaching đầu tiên trong chuỗi mentoring nội bộ VA.</p>',
-                'content' => <<<'HTML'
-<h2 id="muc-1-gioi-thieu">Giới thiệu</h2>
-<p>Coaching là hình thức đồng hành giúp nhân sự phát triển kỹ năng qua phản hồi có cấu trúc và mục tiêu rõ ràng.</p>
-<h2 id="muc-2-chuan-bi">Chuẩn bị buổi coaching</h2>
-<p>Trước buổi họp, mentor và mentee nên thống nhất agenda, tài liệu tham chiếu và kết quả mong muốn.</p>
-<ul>
-<li>Chọn không gian yên tĩnh hoặc link họp ổn định</li>
-<li>Ghi chú 2–3 điểm cần thảo luận</li>
-<li>Chuẩn bị ví dụ thực tế từ sprint gần nhất</li>
-</ul>
-<h2 id="muc-3-sau-buoi">Sau buổi coaching</h2>
-<p>Ghi lại action items, deadline và người phụ trách. Theo dõi tiến độ trong buổi coaching tiếp theo.</p>
-HTML,
-                'view_count' => 42,
-                'tag_slugs' => ['coaching', 'onboarding'],
-            ],
-            [
-                'slug' => 'quy-trinh-code-review',
-                'category_id' => $dev->id,
-                'title' => 'Quy trình code review trong dự án',
-                'excerpt' => '<p>Các bước review PR, checklist chất lượng và cách phản hồi mang tính xây dựng.</p>',
-                'content' => '<h2 id="muc-checklist">Checklist</h2><p>Kiểm tra test, Pint, và phạm vi thay đổi trước khi merge.</p><h2 id="muc-feedback">Phản hồi</h2><p>Mô tả vấn đề, đề xuất giải pháp, tách nitpick khỏi blocking comment.</p>',
-                'view_count' => 128,
-                'tag_slugs' => ['laravel'],
-            ],
-            [
-                'slug' => 'kickoff-du-an-mau',
-                'category_id' => $pm->id,
-                'title' => 'Kickoff dự án — mẫu agenda',
-                'excerpt' => '<p>Agenda kickoff 60 phút: mục tiêu, phạm vi, rủi ro và communication plan.</p>',
-                'content' => '<h2 id="muc-agenda">Agenda 60 phút</h2><p>10 phút giới thiệu · 20 phút scope · 15 phút timeline · 15 phút Q&amp;A.</p>',
-                'view_count' => 67,
-                'tag_slugs' => ['onboarding'],
-            ],
-        ];
+    /**
+     * @return list<string> paths relative to project root, forward slashes
+     */
+    private function collectMarkdownFiles(): array
+    {
+        $paths = [];
 
-        $publishedAt = now()->subDays(3);
+        foreach (['docs', '_dev'] as $root) {
+            $base = base_path($root);
+            if (! is_dir($base)) {
+                continue;
+            }
 
-        foreach ($articles as $row) {
-            $article = KbArticle::query()->updateOrCreate(
-                ['slug' => $row['slug']],
-                [
-                    'category_id' => $row['category_id'],
-                    'author_id' => $author->id,
-                    'title' => $row['title'],
-                    'excerpt' => $row['excerpt'],
-                    'content' => $row['content'],
-                    'status' => KbArticleStatus::Published,
-                    'view_count' => $row['view_count'],
-                    'published_at' => $publishedAt,
-                    'archived_at' => null,
-                ],
+            $iterator = new RecursiveIteratorIterator(
+                new RecursiveDirectoryIterator($base, FilesystemIterator::SKIP_DOTS),
             );
 
-            $tagIds = KbTag::query()
-                ->whereIn('slug', $row['tag_slugs'])
-                ->pluck('id');
+            foreach ($iterator as $file) {
+                if (! $file->isFile() || strtolower($file->getExtension()) !== 'md') {
+                    continue;
+                }
 
-            $article->tags()->sync($tagIds);
+                $full = $file->getPathname();
+                $relative = str_replace('\\', '/', substr($full, strlen(base_path()) + 1));
+                $paths[] = $relative;
+            }
         }
 
-        $this->command?->info('KnowledgeBaseSeeder: '.count($articles).' bài viết (vd. /knowledge-base/articles/coaching-1).');
+        sort($paths);
+
+        return $paths;
+    }
+
+    private function categorySlugForPath(string $relativePath): string
+    {
+        $normalized = str_replace('\\', '/', $relativePath);
+
+        foreach (self::CATEGORY_BY_PATH as $needle => $slug) {
+            if (str_contains($normalized, $needle)) {
+                return $slug;
+            }
+        }
+
+        if (str_starts_with($normalized, '_dev/vi/')) {
+            return 'internal-docs';
+        }
+
+        if (str_starts_with($normalized, '_dev/')) {
+            return 'internal-docs';
+        }
+
+        if (str_starts_with($normalized, 'docs/')) {
+            return 'development';
+        }
+
+        return 'internal-docs';
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function tagsForPath(string $relativePath): array
+    {
+        $tags = ['VA-QLDA', 'Tài liệu kỹ thuật'];
+
+        if (str_starts_with($relativePath, '_dev/vi/')) {
+            $tags[] = 'Tiếng Việt';
+            $tags[] = 'Dev ops';
+        } elseif (str_starts_with($relativePath, '_dev/')) {
+            $tags[] = 'Dev ops';
+            $tags[] = 'Onboarding';
+        } else {
+            $tags[] = 'Onboarding';
+        }
+
+        return array_values(array_unique($tags));
     }
 }

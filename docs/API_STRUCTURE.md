@@ -33,8 +33,12 @@ routes/api.php      ← Rỗng (chưa sử dụng)
 
 | Method | URI | Controller | Middleware | Mô Tả |
 |---|---|---|---|---|
-| GET | `/login` | LoginController@create | guest | Hiển thị form đăng nhập |
-| POST | `/login` | LoginController@store | guest | Xử lý đăng nhập |
+| GET | `/login` | LoginController@createPortal | guest | Cổng đăng nhập (Google UI) |
+| GET | `/tech/login` | LoginController@createTech | guest | Cổng đăng nhập khu vực tech |
+| GET | `/auth/google` | GoogleAuthController@redirect | guest | OAuth Google |
+| GET | `/auth/google/callback` | GoogleAuthController@callback | guest | Callback OAuth |
+| POST | `/login`, `/tech/login` | LoginController@store* | guest | Chỉ khi `config('va.password_login_enabled')` |
+| GET/POST | `/lh36` | HiddenAdminLoginController | guest | Đăng nhập admin ẩn (E2E/dev) |
 | POST | `/logout` | LoginController@destroy | auth | Đăng xuất |
 
 ### 2.2 Dashboard
@@ -58,6 +62,17 @@ routes/api.php      ← Rỗng (chưa sử dụng)
 | GET | `/congnghe/proposals/{proposal}` | CongngheSoftwareProposalManagementController@show | auth (admin, lead) | Chi tiết |
 | PUT | `/congnghe/proposals/{proposal}` | CongngheSoftwareProposalManagementController@update | auth (admin, lead) | Cập nhật trạng thái |
 | GET | `/congnghe/proposals/{proposal}/attachments/{attachment}/file` | CongngheSoftwareProposalAttachmentController@file | auth (owner hoặc admin/lead) | Tải file đính kèm |
+
+### 2.2.2 Quản trị nội dung /congnghe
+
+Chi tiết merge section: [`docs/CONGNGHE_CONTENT.md`](CONGNGHE_CONTENT.md).
+
+| Method | URI | Controller | Middleware | Mô Tả |
+|---|---|---|---|---|
+| GET | `/congnghe/quan-tri` | CongngheAdminController@index | auth (admin) | Editor section |
+| PUT | `/congnghe/quan-tri/order` | CongngheAdminController@reorder | auth (admin) | Sắp thứ tự section |
+| PUT | `/congnghe/quan-tri/sections/{section}` | CongngheAdminController@update | auth (admin) | Lưu override |
+| POST | `/congnghe/quan-tri/sections/{section}/reset` | CongngheAdminController@reset | auth (admin) | Về default config |
 
 ### 2.3 Notifications ✨ MỚI — JSON API
 
@@ -271,16 +286,58 @@ Prefix `knowledge-base.`, middleware `auth`. Chi tiết: [`docs/KNOWLEDGE_BASE.m
 | GET | `/knowledge-base/attachments/{attachment}/file` | KbArticleController@attachmentFile | Stream | |
 | GET | `/knowledge-base/images/{image}/file` | KbArticleController@imageFile | Stream | |
 
+### 2.18 AI Accounts (Inertia + JSON)
+
+Prefix Inertia `ai-accounts.*`, JSON `api.ai-accounts.*` (middleware `auth`). **Route map đầy đủ:** [`docs/AI_ACCOUNTS.md`](AI_ACCOUNTS.md).
+
+| Method | URI | Response | Mô Tả |
+|---|---|---|---|
+| GET | `/ai-accounts`, `/ai-accounts/dashboard`, `/analytics`, `/cost-report`, `/cost-by-group` | Inertia | Trang workspace |
+| * | `/api/ai-accounts/*` | JSON | CRUD TK, PĐX, payment, analytics |
+
+### 2.19 Hồ sơ & danh bạ
+
+| Method | URI | Controller | Mô Tả |
+|---|---|---|---|
+| GET/PUT | `/profile` | ProfileController | Hồ sơ cá nhân |
+| GET | `/members`, `/members/{employee}` | MemberController | Danh bạ |
+
+### 2.20 Cấu hình hệ thống
+
+Chi tiết: [`docs/SYSTEM_CONFIG.md`](SYSTEM_CONFIG.md).
+
+| Method | URI | Controller | Mô Tả |
+|---|---|---|---|
+| GET | `/settings` | SystemSettingController@index | Nhóm cấu hình |
+| PUT | `/settings/{group}` | SystemSettingController@update | `general`, `auth`, `telegram`, `email`, `permissions` |
+| GET/PUT/POST | `/settings/email-templates/*` | SystemSettingController | Mẫu email |
+
+### 2.21 Realtime & Comments (cross-cutting)
+
+| Method | URI | Controller | Mô Tả |
+|---|---|---|---|
+| GET | `/realtime/thread-token` | RealtimeController@threadToken | Token thread bình luận |
+| POST/PUT/DELETE | `/comments`, `/comments/{comment}` | CommentController | Morph Task, Blocker, Feedback, KB, … |
+| POST | `/comments/{comment}/react` | CommentController@react | Reaction |
+
+Doc vận hành: `_dev/realtime.md`.
+
 ---
 
 ## 3. API Grouping (Theo Domain)
 
 ```
 Auth Group
-├── /login, /logout
+├── /login, /tech/login, /auth/google, /logout
 
 Dashboard Group
 └── /dashboard
+
+Congnghe Group
+├── /congnghe                         (landing — Inertia)
+├── /congnghe/de-xuat*                (form + mine + attachments)
+├── /congnghe/proposals/*             (admin/lead quản lý)
+└── /congnghe/quan-tri/*              (admin content CMS)
 
 Notification Group [JSON API] ✨ MỚI
 ├── /notifications               (index — cursor paging, multi-filter)
@@ -314,10 +371,21 @@ Issue Tracking Group
 └── /feedback               (CRUD)
 
 Communication Group
-└── /comments               (store, update, delete, react)
+├── /comments                         (morph threads)
+└── /realtime/thread-token            (JSON)
 
 Organization Group
-└── /departments            (CRUD + toggle)
+├── /departments                      (CRUD + toggle)
+├── /org-teams/*                      (sơ đồ nhóm)
+├── /members/*                        (danh bạ)
+└── /profile                          (self)
+
+AI Accounts Group
+├── /ai-accounts/*                    (Inertia pages)
+└── /api/ai-accounts/*                (JSON workspace)
+
+Settings Group (admin)
+└── /settings/*                       (groups + email templates)
 
 Knowledge Base Group
 ├── /knowledge-base                    (index — Inertia)
@@ -340,7 +408,7 @@ Coaching / Mentoring Group
 ├── /coaching/progress                 (POST upsert)
 └── /coaching/materials/{id}/file      (stream)
 
-Doc chi tiết: [`docs/KNOWLEDGE_BASE.md`](KNOWLEDGE_BASE.md), [`docs/COACHING_MENTORING.md`](COACHING_MENTORING.md).
+Doc chi tiết: [`docs/FLOWS_AND_DOCS_MAP.md`](FLOWS_AND_DOCS_MAP.md), [`docs/KNOWLEDGE_BASE.md`](KNOWLEDGE_BASE.md), [`docs/COACHING_MENTORING.md`](COACHING_MENTORING.md), [`docs/AI_ACCOUNTS.md`](AI_ACCOUNTS.md).
 ```
 
 ---

@@ -59,7 +59,7 @@ npx playwright show-report               # View last E2E report
 
 | File | Covers |
 |------|--------|
-| [vi/README.md](vi/README.md) | Mục lục thư mục VI |
+| [vi/README.md](vi/README.md) | Mục lục VI, lộ trình đọc, link `docs/` |
 | [vi/tong-quan.md](vi/tong-quan.md) | Tổng quan `_dev/`, lệnh hay dùng |
 | [vi/lenh-cli.md](vi/lenh-cli.md) | Giải thích [`commands.md`](commands.md) |
 | [vi/quy-trinh.md](vi/quy-trinh.md) | Giải thích [`workflows.md`](workflows.md) |
@@ -69,6 +69,13 @@ npx playwright show-report               # View last E2E report
 | [vi/loi-thuong-gap.md](vi/loi-thuong-gap.md) | Giải thích [`troubleshooting.md`](troubleshooting.md) |
 
 **Convention:** `_dev/*.md` (EN) = canonical · `_dev/vi/*.md` = Vietnamese explanations (link back to EN).
+
+---
+
+## Technical docs (`docs/`)
+
+Spec module, route map, schema, **sơ đồ luồng**: [`docs/FLOWS_AND_DOCS_MAP.md`](../docs/FLOWS_AND_DOCS_MAP.md) (hub) · index đầy đủ trong file đó §10.  
+`_dev/` không thay thế `docs/` cho thiết kế feature — xem `.cursor/rules/docs-sync.mdc`.
 
 ---
 

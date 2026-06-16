@@ -32,6 +32,7 @@ description: >-
 | `docs/COACHING_MENTORING.md` | Module Coaching — routes, UI, phân quyền |
 | `docs/KNOWLEDGE_BASE.md` | Knowledge Base / blog nội bộ |
 | `docs/IMPORT_EXPORT_RECONCILE.md` | Nhập · xuất · đối soát Excel (sơ đồ luồng) |
+| `docs/FLOWS_AND_DOCS_MAP.md` | Hub sơ đồ luồng + đối chiếu docs ↔ code ↔ `_dev/` |
 
 **Đồng bộ bắt buộc:** `.cursor/rules/docs-sync.mdc` — cập nhật doc map trên khi code đổi.
 

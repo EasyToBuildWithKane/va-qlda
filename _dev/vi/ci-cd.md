@@ -1,30 +1,28 @@
 # CI/CD GitHub Actions — hướng dẫn tiếng Việt
 
-**File gốc:** [`../ci-cd.md`](../ci-cd.md)
+**File gốc:** [`../ci-cd.md`](../ci-cd.md)  
+**Trước push:** skill [ship-ready](../../.cursor/skills/ship-ready/SKILL.md) · rule [ci-quality-gates](../../.cursor/rules/ci-quality-gates.mdc)
 
-Một workflow: `.github/workflows/ci.yml`  
-Mirror GitLab: `.gitlab-ci.yml` (cùng stage, cú pháp runner khác).
+Workflow: `.github/workflows/ci.yml` · GitLab mirror: `.gitlab-ci.yml`.
 
 ---
 
-## Workflow: CI
+## Workflow CI
 
 | Thuộc tính | Giá trị |
 |------------|---------|
-| **File** | `.github/workflows/ci.yml` |
-| **Tên** | `CI` |
+| File | `.github/workflows/ci.yml` |
+| Tên | `CI` |
 
-### Kích hoạt (triggers)
+### Kích hoạt
 
 | Sự kiện | Nhánh |
 |---------|-------|
 | `push` | `main`, `master`, `develop` |
-| `pull_request` | → `main`, `master`, `develop` |
-| `workflow_dispatch` | Chạy thủ công trên GitHub Actions UI |
+| `pull_request` | → các nhánh trên |
+| `workflow_dispatch` | Chạy tay trên GitHub Actions |
 
-### Concurrency
-
-Push mới cùng nhánh → **hủy** run CI đang chạy (`cancel-in-progress: true`).
+**Concurrency:** push mới cùng ref → hủy run đang chạy (`cancel-in-progress: true`).
 
 ### Biến môi trường global
 
@@ -34,84 +32,103 @@ Push mới cùng nhánh → **hủy** run CI đang chạy (`cancel-in-progress: 
 | `APP_DEBUG` | `true` |
 | `APP_URL` | `http://127.0.0.1:8000` |
 
-SQLite E2E chỉ trên job Playwright. PHPUnit dùng stub Vite trong `tests/TestCase` (không cần `npm build` trong job PHP).
-
-**Trước push:** skill `ship-ready` · rule `ci-quality-gates.mdc` · [`../ci-cd.md`](../ci-cd.md) bản đầy đủ.
+SQLite E2E chỉ trên job `playwright`. Job PHPUnit dùng stub Vite trong `tests/TestCase.php` (không `npm build` trong job PHP).
 
 ---
 
-## Các job (chặn merge)
+## Job — blocking vs advisory
 
-### 1. PHPUnit + Pint (`backend-tests`) ✓
+### 1. `backend-tests` — **chặn merge**
 
-`vendor/bin/pint --test` → `php artisan test`
+| Bước | Lệnh |
+|------|------|
+| Chuẩn bị | `cp .env.example .env`, `key:generate` |
+| Style | `vendor/bin/pint --test` |
+| Test | `php artisan test` |
 
-### 2. ESLint + build (`frontend-build`) ✓
+### 2. `frontend-build` — **chặn merge**
 
-`npm run lint` → `npm run build`
+| Bước | Lệnh |
+|------|------|
+| Cài | `npm ci` |
+| Lint | `npm run lint` |
+| Build | `npm run build` |
 
-### 3. Playwright E2E (`playwright`) ✓
+> ESLint **có trên CI** (không chỉ pre-commit local).
 
-Sau hai job trên; `CI=true`, một worker, không reuse server :8000 trừ khi `PLAYWRIGHT_REUSE_SERVER=1`.
+### 3. `playwright` — **chặn merge**
 
-### 4. PHPStan (`static-analysis`) — chỉ cảnh báo
+**Cần:** `backend-tests` + `frontend-build` pass.
 
-`continue-on-error: true`
+| Bước | Ghi chú |
+|------|---------|
+| Build | `npm run build` |
+| DB | `database/testing.sqlite`, `migrate:fresh --seed` |
+| Chạy | `npm run test:e2e`, `CI=true` |
+
+Fail → artifact `playwright-report/`, `test-results/` (7 ngày).  
+Config: `workers: 1`; reuse server chỉ khi `PLAYWRIGHT_REUSE_SERVER=1`.
+
+### 4. `static-analysis` — **chỉ cảnh báo**
+
+PHPStan — `continue-on-error: true`, không chặn merge.
 
 ---
 
-## Sơ đồ phụ thuộc job
+## Sơ đồ phụ thuộc
 
-```
-backend-tests (Pint + PHPUnit) ──┐
-                                 ├──► playwright
-frontend-build (ESLint + build) ─┘
-
-static-analysis (song song, không chặn)
+```mermaid
+flowchart LR
+  BE[backend-tests]
+  FE[frontend-build]
+  PW[playwright]
+  SA[static-analysis]
+  BE --> PW
+  FE --> PW
+  SA -. advisory .-> SA
 ```
 
 ---
 
 ## Deploy
 
-**Không có job deploy.** CI chỉ validate code.
-
-Deploy staging/production xử lý **ngoài** repo GitHub Actions này.
+**Không có job deploy.** CI chỉ validate chất lượng.
 
 ---
 
-## Chạy lại workflow bị fail
+## Local vs CI
 
-1. GitHub → **Actions** → **CI**
-2. Chọn run bị lỗi
-3. **Re-run failed jobs** (hoặc Re-run all jobs)
-4. Playwright fail → tải artifact `playwright-report`
+| Check | Local | CI |
+|-------|-------|-----|
+| Pint | `vendor/bin/pint --test` trước push PHP | `backend-tests` |
+| ESLint | pre-commit + `npm run lint` | `frontend-build` |
+| PHPUnit | `php artisan test` | `backend-tests` |
+| Build | `npm run build` | `frontend-build` |
+| E2E | Tùy chọn; `npm run push:e2e` | `playwright` |
+| PHPStan | `composer analyse` | advisory |
 
 ---
 
 ## Bỏ qua CI
 
-Thêm vào commit message:
+Commit message: `[skip ci]` hoặc `[ci skip]`.
 
-```
-chore: cap nhat docs [skip ci]
-fix: typo [ci skip]
-```
-
-Hoặc chạy thủ công qua `workflow_dispatch`.
-
-> **Lưu ý:** Bỏ qua CI **không** bỏ qua Husky local — pre-commit ESLint và pre-push E2E vẫn chạy trừ khi dùng `--no-verify`.
+**Không** bỏ Husky trừ `--no-verify`. Pre-push local **mặc định không** chạy E2E dù skip CI.
 
 ---
 
-## Khác biệt local vs CI
+## Khi CI fail
 
-| Khía cạnh | Local | CI |
-|-----------|-------|-----|
-| Playwright retries | 0 | 2 |
-| Playwright workers | auto | 1 |
-| Reporter | list + html | github + html |
-| pre-push E2E | Chạy (trừ `CI=true`) | Bỏ qua (CI có job riêng) |
-| Pint | Chạy tay trước push | Chặn trong `backend-tests` |
-| ESLint | pre-commit + `npm run lint` | Chặn trong `frontend-build` |
-| Database | `.env` của bạn | SQLite chỉ job E2E |
+1. GitHub → **Actions** → run lỗi
+2. Mở job đỏ → đọc log
+3. **Re-run failed jobs**
+4. Playwright → tải artifact báo cáo
+
+Gợi ý xử lý: [loi-thuong-gap.md](loi-thuong-gap.md).
+
+---
+
+## Liên quan
+
+- [kiem-thu.md](kiem-thu.md) — PHPUnit, spec E2E, visual
+- [lenh-cli.md](lenh-cli.md) — lệnh tương đương local
