@@ -144,7 +144,7 @@ class EmployeeAuditBuilder
         return [
             'key' => $b['key'],
             'label' => $b['label'],
-            'range' => $start->format('d/m').' – '.$end->format('d/m/Y'),
+            'range' => PerformanceDisplay::rangeLabel($start, $end),
             'summary' => [
                 'committed' => $committed,
                 'done' => $done,

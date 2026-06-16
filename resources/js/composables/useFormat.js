@@ -23,6 +23,14 @@ export function dateFromYmd(ymd) {
     return Number.isNaN(d.getTime()) ? null : d;
 }
 
+/** ISO date/datetime → "dd/mm/yyyy 00:00" (mốc lịch, báo cáo). null → "—". */
+export function dateAtMidnight(value) {
+    if (!value) return '—';
+    const d = String(value).length === 10 ? dateFromYmd(value) : new Date(value);
+    if (!d || Number.isNaN(d.getTime())) return '—';
+    return `${d.toLocaleDateString('vi-VN')} 00:00`;
+}
+
 /** ISO date/datetime → "dd/mm/yyyy". null → "—". */
 export function date(value) {
     if (!value) return '—';
@@ -123,5 +131,5 @@ export function dongToWords(value) {
 }
 
 export function useFormat() {
-    return { currency, number, date, datetime, hours, timeOfDay, dongToWords };
+    return { currency, number, date, dateAtMidnight, datetime, hours, timeOfDay, dongToWords };
 }

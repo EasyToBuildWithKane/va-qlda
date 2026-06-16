@@ -26,11 +26,11 @@ const emit = defineEmits(['export-excel']);
 const FILTER_CONTROL_CLASS = 'input h-10 w-full text-sm';
 
 const FILTER_CONTROLS_DEF = [
-    { key: 'anchor_date', label: 'Mốc thời gian', default: true },
-    { key: 'sprint', label: 'Sprint', default: true },
+    { key: 'anchor_date', label: 'Mốc thời gian', default: false },
+    { key: 'sprint', label: 'Sprint', default: false },
     { key: 'department', label: 'Phòng ban', default: false },
     { key: 'team', label: 'Team', default: false },
-    { key: 'member', label: 'Thành viên', default: true },
+    { key: 'member', label: 'Thành viên', default: false },
     { key: 'project', label: 'Dự án', default: false },
     { key: 'status', label: 'Trạng thái task', default: false },
 ];
@@ -45,7 +45,7 @@ const {
     FILTER_CONTROLS,
 } = useVisibleFilterControls(
     FILTER_CONTROLS_DEF,
-    'va-qlda.performance.visible-filters.v2',
+    'va-qlda.performance.visible-filters.v3',
 );
 
 const filterPanelDdRef = ref(null);
@@ -102,20 +102,6 @@ function onPeriodChange(p) {
     suppress = true;
     state.period = p;
     if (p !== 'sprint') state.sprint = null;
-    suppress = false;
-    apply();
-}
-
-function reset() {
-    suppress = true;
-    state.period = 'month';
-    state.date = new Date().toISOString().slice(0, 10);
-    state.sprint = null;
-    state.department = null;
-    state.team = null;
-    state.member = null;
-    state.project = null;
-    state.status = [];
     suppress = false;
     apply();
 }
@@ -206,19 +192,6 @@ function runExport() {
               </button>
             </div>
           </div>
-
-          <button
-            type="button"
-            class="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 px-3 text-xs font-medium text-slate-600 hover:bg-slate-50"
-            title="Đặt lại bộ lọc"
-            @click="reset"
-          >
-            <AppIcon
-              name="refresh"
-              :size="14"
-            />
-            Đặt lại
-          </button>
 
           <slot name="actions" />
         </div>

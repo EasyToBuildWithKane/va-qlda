@@ -26,7 +26,7 @@ const props = defineProps({
     people: { type: Array, default: () => [] },
 });
 
-const { exportDashboard, printReport } = usePerformanceExport();
+const { exportDashboard } = usePerformanceExport();
 
 const leaderboardQuery = ref('');
 
@@ -78,21 +78,7 @@ function onExport() {
       :options="options"
       :processing="processing"
       @export-excel="onExport"
-    >
-      <template #actions>
-        <button
-          type="button"
-          class="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 px-3 text-xs font-medium text-slate-600 hover:bg-slate-50"
-          @click="printReport"
-        >
-          <AppIcon
-            name="documents"
-            :size="14"
-          />
-          In
-        </button>
-      </template>
-    </PerformanceFilterBar>
+    />
 
     <div
       class="space-y-4 transition-opacity"

@@ -19,6 +19,7 @@ const cards = computed(() => {
     const s = props.summary;
     const committed = s.committed ?? 0;
     const rate = s.commitmentRate ?? 0;
+    const hasGrade = committed > 0 && s.grade;
 
     return [
         {
@@ -36,7 +37,7 @@ const cards = computed(() => {
             value: s.done ?? 0,
             tone: 'emerald',
             icon: 'done',
-            sub: committed ? `${rate}% cam kết đạt` : '—',
+            sub: committed ? `${rate}% cam kết đạt` : 'Chưa có cam kết',
             progress: rate,
             interactive: false,
         },
@@ -63,10 +64,10 @@ const cards = computed(() => {
         {
             key: 'grade',
             label: 'Xếp loại',
-            value: s.grade ?? '—',
+            value: hasGrade ? s.grade : 'Chưa có',
             tone: 'amber',
             icon: 'star',
-            sub: 'Theo thang S–D',
+            sub: hasGrade ? 'Theo thang S–D' : 'Cần có cam kết trong kỳ',
             interactive: false,
         },
     ];
@@ -76,8 +77,9 @@ const cards = computed(() => {
 <template>
   <KpiSummaryStrip
     aria-label="Thống kê audit nhân sự"
+    eyebrow="Thống kê"
     heading="Tóm tắt audit theo kỳ"
-    hint="Timeline chi tiết theo từng tuần bên dưới"
+    hint="Các chỉ số theo thành viên và kỳ đang chọn"
     :cards="cards"
     active-key=""
     :progress-denominator="summary.committed ?? 0"

@@ -44,7 +44,7 @@ shape (giống `DashboardController`). Bộ lọc đổi → Inertia partial rel
   `TrendChart`, `StatusDonut`, `WorkloadBars`, `ProjectContributionChart`, `LeaderboardTable`,
   `AuditTimeline` → `WeeklyAuditCard` → `KanbanSnapshot`.
 - `composables/` — `useChartTheme` (palette brand + chart options), `usePerformanceExport`
-  (Excel `xlsx-js-style` + in). Count-up tái dùng `@/shared/composables/useCountUp`.
+  (Excel `xlsx-js-style`). Count-up tái dùng `@/shared/composables/useCountUp`.
 - Pages: `Pages/Performance/Dashboard.vue`, `Pages/Performance/Audit.vue`.
 
 ---
@@ -66,6 +66,13 @@ phạm vi + `Worklog`. Khoảng thời gian `[start, end]` do bộ lọc quyết
 
 Phạm vi nhân sự: `member` → `team` (OrgTeam + con) → `department` → mặc định
 **Phòng Công nghệ** (`DashboardPersonnelScope`).
+
+**Kỳ mặc định (tháng):** từ `00:00` ngày đầu tháng đến hết ngày hiện tại (không
+kéo tới cuối tháng nếu chưa tới). Nhãn hiển thị: `dd/mm/yyyy 00:00` (PHP
+`PerformanceDisplay`, JS `dateAtMidnight` trong `@/composables/useFormat`).
+
+**Bộ lọc datagrid:** dòng filter ẩn lần đầu; bật từng control qua nút **Lọc** (localStorage
+`va-qlda.performance.visible-filters.v3`, mặc định tất cả `false`).
 
 ---
 
@@ -95,11 +102,12 @@ Audit Card:
   thị cạnh, không auto-match).
 - **Drill-down**: Kanban snapshot toàn bộ task thực tế của tuần.
 
-## Xuất / In
+## Xuất
 
 `usePerformanceExport`: Excel styled (`xlsx-js-style`, brand `#9A0036`) — Dashboard
-(Tổng quan + Nhân sự), Audit (theo tuần). In qua `window.print()` (`.print:hidden`
-ẩn filter bar).
+(Tổng quan + Nhân sự), Audit (theo tuần). Toolbar: **Lọc** + **Xuất** (không nút In/Đặt lại).
+
+Audit: dải KPI `PerformanceAuditSummaryBar` (`KpiSummaryStrip` production) ngay sau bộ lọc.
 
 ---
 

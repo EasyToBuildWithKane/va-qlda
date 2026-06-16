@@ -456,17 +456,17 @@ class PerformanceMetrics
             if ($granularity === 'day') {
                 $start = $cursor->copy()->startOfDay();
                 $end = $cursor->copy()->endOfDay();
-                $label = $cursor->format('d/m');
+                $label = PerformanceDisplay::dateAtMidnight($cursor);
                 $cursor->addDay();
             } elseif ($granularity === 'month') {
                 $start = $cursor->copy()->startOfMonth();
                 $end = $cursor->copy()->endOfMonth();
-                $label = 'T'.$cursor->format('m');
+                $label = PerformanceDisplay::dateAtMidnight($start);
                 $cursor->addMonthNoOverflow()->startOfMonth();
             } else { // week
                 $start = $cursor->copy()->startOfWeek();
                 $end = $cursor->copy()->endOfWeek();
-                $label = 'Tuần '.$start->format('d/m');
+                $label = 'Tuần '.PerformanceDisplay::dateAtMidnight($start);
                 $cursor->addWeek()->startOfWeek();
             }
 

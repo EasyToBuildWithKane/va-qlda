@@ -66,7 +66,7 @@ class PerformanceFilter
         $sprintId = self::intOrNull($request->query('sprint'));
         $sprint = $period === 'sprint' && $sprintId ? Sprint::query()->find($sprintId) : null;
 
-        [$start, $end, $label] = self::resolveRange($period, $anchor, $sprint, $tz);
+        [$start, $end, $label] = self::resolveRange($period, $anchor, $sprint, $tz, Carbon::now($tz));
 
         $statuses = (array) $request->query('status', []);
         $statuses = array_values(array_filter(
@@ -93,40 +93,50 @@ class PerformanceFilter
     /**
      * @return array{0: Carbon, 1: Carbon, 2: string}
      */
-    private static function resolveRange(string $period, Carbon $anchor, ?Sprint $sprint, string $tz): array
+    private static function resolveRange(string $period, Carbon $anchor, ?Sprint $sprint, string $tz, Carbon $now): array
     {
+        $capEnd = static function (Carbon $end) use ($now): Carbon {
+            return $end->gt($now) ? $now->copy()->endOfDay() : $end;
+        };
+
         return match ($period) {
-            'week' => [
-                $s = $anchor->copy()->startOfWeek(),
-                $e = $anchor->copy()->endOfWeek(),
-                'Tuần '.$s->format('d/m').' – '.$e->format('d/m/Y'),
-            ],
-            'quarter' => [
-                $anchor->copy()->startOfQuarter(),
-                $anchor->copy()->endOfQuarter(),
-                'Quý '.$anchor->quarter.'/'.$anchor->year,
-            ],
-            'year' => [
-                $anchor->copy()->startOfYear(),
-                $anchor->copy()->endOfYear(),
-                'Năm '.$anchor->year,
-            ],
+            'week' => (function () use ($anchor, $capEnd) {
+                $s = $anchor->copy()->startOfWeek();
+                $e = $capEnd($anchor->copy()->endOfWeek());
+
+                return [$s, $e, PerformanceDisplay::rangeLabel($s, $e)];
+            })(),
+            'quarter' => (function () use ($anchor, $capEnd) {
+                $s = $anchor->copy()->startOfQuarter();
+                $e = $capEnd($anchor->copy()->endOfQuarter());
+
+                return [$s, $e, PerformanceDisplay::rangeLabel($s, $e)];
+            })(),
+            'year' => (function () use ($anchor, $capEnd) {
+                $s = $anchor->copy()->startOfYear();
+                $e = $capEnd($anchor->copy()->endOfYear());
+
+                return [$s, $e, PerformanceDisplay::rangeLabel($s, $e)];
+            })(),
             'sprint' => $sprint && $sprint->start_date && $sprint->end_date
-                ? [
-                    Carbon::parse($sprint->start_date, $tz)->startOfDay(),
-                    Carbon::parse($sprint->end_date, $tz)->endOfDay(),
-                    'Sprint: '.$sprint->name,
-                ]
-                : [
-                    $anchor->copy()->startOfMonth(),
-                    $anchor->copy()->endOfMonth(),
-                    'Tháng '.$anchor->format('m/Y'),
-                ],
-            default => [
-                $anchor->copy()->startOfMonth(),
-                $anchor->copy()->endOfMonth(),
-                'Tháng '.$anchor->format('m/Y'),
-            ],
+                ? (function () use ($sprint, $tz, $capEnd) {
+                    $s = Carbon::parse($sprint->start_date, $tz)->startOfDay();
+                    $e = $capEnd(Carbon::parse($sprint->end_date, $tz)->endOfDay());
+
+                    return [$s, $e, 'Sprint: '.$sprint->name.' · '.PerformanceDisplay::rangeLabel($s, $e)];
+                })()
+                : (function () use ($anchor, $capEnd) {
+                    $s = $anchor->copy()->startOfMonth();
+                    $e = $capEnd($anchor->copy()->endOfMonth());
+
+                    return [$s, $e, PerformanceDisplay::rangeLabel($s, $e)];
+                })(),
+            default => (function () use ($anchor, $capEnd) {
+                $s = $anchor->copy()->startOfMonth();
+                $e = $capEnd($anchor->copy()->endOfMonth());
+
+                return [$s, $e, PerformanceDisplay::rangeLabel($s, $e)];
+            })(),
         };
     }
 

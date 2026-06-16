@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import RichContentBody from '@/shared/ui/RichContentBody.vue';
+import { dateAtMidnight } from '@/composables/useFormat';
 import ProgressRing from './ProgressRing.vue';
 import KanbanSnapshot from './KanbanSnapshot.vue';
 import { tailwindToHex } from '../composables/useChartTheme.js';
@@ -24,9 +25,7 @@ const rateColor = computed(() => {
 });
 
 function fmtDate(d) {
-    if (!d) return '';
-    const [, m, day] = String(d).split('-');
-    return day && m ? `${day}/${m}` : d;
+    return dateAtMidnight(d);
 }
 
 const gradeTone = {
@@ -55,9 +54,15 @@ const gradeTone = {
       />
       <span
         v-else
-        class="grid h-14 w-14 shrink-0 place-items-center rounded-full border-2 border-dashed border-slate-200 font-display text-base font-bold text-slate-300"
+        class="inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-slate-50 ring-2 ring-slate-200/80"
         aria-hidden="true"
-      >—</span>
+      >
+        <AppIcon
+          name="calendar-clock"
+          :size="26"
+          class="text-slate-400"
+        />
+      </span>
 
       <div class="min-w-0 flex-1">
         <div class="flex flex-wrap items-center gap-2">

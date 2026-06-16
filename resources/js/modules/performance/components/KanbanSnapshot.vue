@@ -42,9 +42,9 @@ defineProps({
       </ul>
       <p
         v-if="!col.tasks.length"
-        class="py-1 text-center text-[10px] text-slate-300"
+        class="py-1 text-center text-[10px] text-slate-400"
       >
-        —
+        Không có task
       </p>
     </div>
   </div>
