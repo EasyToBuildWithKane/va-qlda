@@ -25,7 +25,7 @@ const tagLabel = computed(() => props.article.tags?.[0]?.name || props.article.c
   <div class="w-full">
     <div
       v-if="coverUrl"
-      class="group overflow-hidden rounded-2xl ring-1 ring-slate-200/80 dark:ring-slate-700"
+      class="group overflow-hidden rounded-lg ring-1 ring-slate-200/80 dark:ring-slate-700"
     >
       <img
         :src="coverUrl"
@@ -36,7 +36,7 @@ const tagLabel = computed(() => props.article.tags?.[0]?.name || props.article.c
     </div>
     <div
       v-else
-      class="relative overflow-hidden rounded-2xl ring-1 ring-slate-200/80 dark:ring-slate-700"
+      class="relative overflow-hidden rounded-lg ring-1 ring-slate-200/80 dark:ring-slate-700"
     >
       <div
         class="aspect-[2/1] w-full bg-gradient-to-br sm:aspect-[21/9]"

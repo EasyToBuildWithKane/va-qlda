@@ -9,10 +9,10 @@ import KbReadingProgress from '@/Components/KnowledgeBase/KbReadingProgress.vue'
 import KbArticleHero from '@/Components/KnowledgeBase/KbArticleHero.vue';
 import KbArticleCover from '@/Components/KnowledgeBase/KbArticleCover.vue';
 import KbArticleToc from '@/Components/KnowledgeBase/KbArticleToc.vue';
-import KbFloatingToolbar from '@/Components/KnowledgeBase/KbFloatingToolbar.vue';
+import KbArticleShowSidebar from '@/Components/KnowledgeBase/KbArticleShowSidebar.vue';
 import KbRelatedArticles from '@/Components/KnowledgeBase/KbRelatedArticles.vue';
+import KbAuthorCard from '@/Components/KnowledgeBase/KbAuthorCard.vue';
 import CommentThread from '@/shared/ui/CommentThread.vue';
-import { useKbScrollReveal } from '@/Components/KnowledgeBase/useKbScrollReveal.js';
 import { useCommentThreadPoll } from '@/composables/useCommentThreadPoll';
 import { useToast } from '@/shared/composables/useToast';
 
@@ -34,9 +34,6 @@ const favoriting = ref(false);
 const markingRead = ref(false);
 const isFavorite = ref(!!props.article.is_favorite);
 const isRead = ref(!!props.article.is_read);
-const contentRoot = ref(null);
-
-useKbScrollReveal(contentRoot);
 
 watch(
     () => props.article,
@@ -49,15 +46,17 @@ watch(
 
 const tocItems = computed(() => (props.toc?.length ? props.toc : []));
 
+const commentCount = computed(() => (props.article.comments || []).length);
+
 const shareUrl = computed(() => {
     if (typeof window === 'undefined') return '';
     return window.location.href;
 });
 
-const headerTitle = computed(() => {
+const pageHeaderTitle = computed(() => {
     const t = (props.article.title || '').trim();
-    const labeled = t ? `Tiêu đề: ${t}` : 'Tiêu đề: —';
-    return labeled.length > 72 ? `${labeled.slice(0, 69)}…` : labeled;
+    if (!t) return 'Bài viết';
+    return t.length > 56 ? `${t.slice(0, 53)}…` : t;
 });
 
 function toggleFavorite() {
@@ -94,7 +93,7 @@ function markRead() {
     });
 }
 
-async function shareFromHero() {
+async function shareArticle() {
     const url = shareUrl.value;
     const title = props.article.title;
     try {
@@ -121,114 +120,120 @@ async function shareFromHero() {
 
     <template #header>
       <PageHeader
-        :title="headerTitle"
+        :title="pageHeaderTitle"
         icon="knowledge"
         icon-color="brand"
-        back-href="/knowledge-base"
-      >
-        <button
-          v-if="!isRead"
-          type="button"
-          class="btn-ghost inline-flex h-9 shrink-0 items-center gap-1.5 px-2.5 text-xs sm:px-3 sm:text-sm"
-          :disabled="markingRead"
-          title="Đánh dấu đã đọc"
-          @click="markRead"
-        >
-          <AppIcon
-            name="check"
-            :size="15"
-          />
-          <span class="hidden sm:inline">Đã đọc</span>
-        </button>
-      </PageHeader>
+        back-href="/knowledge-base/blog"
+      />
     </template>
 
-    <article class="kb-article-show w-full min-w-0 pb-16">
-      <section
-        class="rounded-card border border-slate-200/80 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900/40"
-        aria-label="Thông tin bài viết"
-      >
+    <div class="kb-article-show mx-auto w-full min-w-0 max-w-[1180px] px-4 pb-16 sm:px-6">
+      <article class="min-w-0">
         <KbArticleHero
           :article="article"
           :is-favorite="isFavorite"
           :favoriting="favoriting"
+          :is-read="isRead"
+          :marking-read="markingRead"
+          :comment-count="commentCount"
           @toggle-favorite="toggleFavorite"
-          @share="shareFromHero"
+          @share="shareArticle"
+          @mark-read="markRead"
         />
-        <div class="border-t border-slate-100 px-4 pb-6 pt-2 dark:border-slate-800 sm:px-6 sm:pb-8">
-          <KbArticleCover :article="article" />
-        </div>
-      </section>
 
-      <div class="mt-8 grid w-full min-w-0 grid-cols-1 gap-6 lg:grid-cols-[minmax(0,240px)_minmax(0,1fr)_minmax(0,72px)] lg:gap-8">
-        <div class="min-w-0">
-          <KbArticleToc :items="tocItems" />
-        </div>
+        <div class="mt-8 flex flex-col gap-10 lg:flex-row lg:items-start lg:gap-12">
+          <div class="min-w-0 flex-1 lg:max-w-[760px]">
+            <div
+              v-if="article.excerpt?.trim()"
+              class="mb-8 rounded-lg border-l-4 border-brand/35 bg-slate-50/90 px-4 py-3 text-base leading-relaxed text-slate-600 dark:bg-slate-900/40 dark:text-slate-300"
+            >
+              <!-- eslint-disable-next-line vue/no-v-html -->
+              <div
+                class="prose prose-sm max-w-none dark:prose-invert"
+                v-html="article.excerpt"
+              />
+            </div>
 
-        <div class="min-w-0">
-          <div
-            ref="contentRoot"
-            class="kb-article-content rich-content prose prose-lg max-w-none prose-slate dark:prose-invert"
-            v-html="article.content"
-          />
+            <div class="mb-8">
+              <KbArticleCover :article="article" />
+            </div>
 
-          <div
-            v-if="article.gallery_images?.length"
-            class="mt-12"
-          >
-            <p class="mb-4 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
-              Thư viện ảnh
-            </p>
-            <div class="grid gap-4 sm:grid-cols-2">
-              <figure
-                v-for="img in article.gallery_images"
-                :key="img.id"
-              >
-                <img
-                  :src="img.url"
-                  :alt="img.alt_text || img.original_name"
-                  class="max-h-80 w-full rounded-xl object-cover ring-1 ring-slate-200/80 dark:ring-slate-700"
-                  loading="lazy"
+            <KbArticleToc
+              :items="tocItems"
+              variant="plain"
+            />
+
+            <div
+              class="kb-article-content rich-content prose prose-lg max-w-none prose-slate dark:prose-invert"
+              v-html="article.content"
+            />
+
+            <section
+              v-if="article.gallery_images?.length"
+              class="mt-12 border-t border-slate-100 pt-10 dark:border-slate-800"
+              aria-label="Thư viện ảnh"
+            >
+              <h2 class="mb-4 font-display text-lg font-semibold text-slate-900 dark:text-slate-50">
+                Thư viện ảnh
+              </h2>
+              <div class="grid gap-4 sm:grid-cols-2">
+                <figure
+                  v-for="img in article.gallery_images"
+                  :key="img.id"
                 >
-                <figcaption
-                  v-if="img.alt_text"
-                  class="mt-2 text-xs text-slate-500 dark:text-slate-400"
+                  <img
+                    :src="img.url"
+                    :alt="img.alt_text || img.original_name"
+                    class="w-full rounded-lg object-cover ring-1 ring-slate-200/80 dark:ring-slate-700"
+                    loading="lazy"
+                  >
+                  <figcaption
+                    v-if="img.alt_text"
+                    class="mt-2 text-xs text-slate-500 dark:text-slate-400"
+                  >
+                    {{ img.alt_text }}
+                  </figcaption>
+                </figure>
+              </div>
+            </section>
+
+            <section
+              v-if="article.attachments?.length"
+              class="mt-10 border-t border-slate-100 pt-8 dark:border-slate-800"
+              aria-label="Tệp đính kèm"
+            >
+              <h2 class="mb-3 font-display text-lg font-semibold text-slate-900 dark:text-slate-50">
+                Tệp đính kèm
+              </h2>
+              <ul class="divide-y divide-slate-100 rounded-lg border border-slate-200/90 dark:divide-slate-800 dark:border-slate-700">
+                <li
+                  v-for="att in article.attachments"
+                  :key="att.id"
                 >
-                  {{ img.alt_text }}
-                </figcaption>
-              </figure>
+                  <a
+                    :href="att.url"
+                    class="flex items-center gap-2 px-4 py-3 text-sm text-slate-700 transition hover:bg-slate-50 hover:text-brand dark:text-slate-300 dark:hover:bg-slate-900/50"
+                    target="_blank"
+                    rel="noopener"
+                  >
+                    <AppIcon
+                      name="documents"
+                      :size="16"
+                      class="shrink-0 text-slate-400"
+                    />
+                    <span class="min-w-0 truncate">{{ att.original_name }}</span>
+                  </a>
+                </li>
+              </ul>
+            </section>
+
+            <div class="mt-12">
+              <KbAuthorCard :author="article.author" />
             </div>
           </div>
 
-          <ul
-            v-if="article.attachments?.length"
-            class="mt-10 space-y-2 text-sm"
-          >
-            <p class="mb-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
-              Tệp đính kèm
-            </p>
-            <li
-              v-for="att in article.attachments"
-              :key="att.id"
-            >
-              <a
-                :href="att.url"
-                class="inline-flex items-center gap-1.5 text-brand hover:underline"
-                target="_blank"
-                rel="noopener"
-              >
-                <AppIcon
-                  name="documents"
-                  :size="15"
-                />
-                {{ att.original_name }}
-              </a>
-            </li>
-          </ul>
-        </div>
-
-        <div class="min-w-0">
-          <KbFloatingToolbar
+          <KbArticleShowSidebar
+            :toc-items="tocItems"
             :is-favorite="isFavorite"
             :favoriting="favoriting"
             :share-url="shareUrl"
@@ -236,51 +241,86 @@ async function shareFromHero() {
             @toggle-favorite="toggleFavorite"
           />
         </div>
-      </div>
+      </article>
 
-      <div class="mt-16">
+      <section
+        class="mt-14 border-t border-slate-200/80 pt-12 dark:border-slate-800"
+        aria-label="Bài viết liên quan"
+      >
         <KbRelatedArticles :articles="related" />
-      </div>
+      </section>
 
-      <div class="mt-12 w-full min-w-0">
-        <div class="rounded-card border border-slate-200/80 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900/70 sm:p-6">
-          <CommentThread
-            :comments="article.comments || []"
-            commentable-type="kb_article"
-            :commentable-id="article.id"
-            heading="Bình luận"
-            empty-message="Chưa có bình luận. Hãy là người đầu tiên chia sẻ suy nghĩ."
-            delete-dialog-title="Xoá bình luận"
-            delete-button-title="Xoá bình luận"
-            realtime-hint="Bình luận mới sẽ hiện ngay không cần tải lại trang"
-            placeholder="Viết bình luận…"
-          />
-        </div>
-      </div>
-    </article>
+      <section
+        id="comments"
+        class="mt-12 scroll-mt-28"
+        aria-label="Bình luận"
+      >
+        <CommentThread
+          :comments="article.comments || []"
+          commentable-type="kb_article"
+          :commentable-id="article.id"
+          heading="Bình luận"
+          empty-message="Chưa có bình luận. Hãy là người đầu tiên chia sẻ suy nghĩ."
+          delete-dialog-title="Xoá bình luận"
+          delete-button-title="Xoá bình luận"
+          realtime-hint="Bình luận mới sẽ hiện ngay không cần tải lại trang"
+          placeholder="Viết bình luận…"
+        />
+      </section>
+    </div>
   </AppLayout>
 </template>
 
 <style scoped>
 .kb-article-content {
     font-size: 1.0625rem;
-    line-height: 1.85;
+    line-height: 1.8;
+    color: rgb(51 65 85);
+}
+
+.dark .kb-article-content {
+    color: rgb(203 213 225);
 }
 
 .kb-article-content :deep(h2) {
-    @apply mt-10 scroll-mt-28 font-display text-2xl font-semibold text-slate-900 dark:text-slate-50;
+    @apply mt-12 scroll-mt-28 border-b border-slate-100 pb-2 font-display text-xl font-bold text-slate-900 dark:border-slate-800 dark:text-slate-50 sm:text-2xl;
 }
 
 .kb-article-content :deep(h3) {
-    @apply mt-8 scroll-mt-28 text-xl font-semibold text-slate-800 dark:text-slate-100;
+    @apply mt-8 scroll-mt-28 text-lg font-semibold text-slate-800 dark:text-slate-100;
+}
+
+.kb-article-content :deep(p) {
+    @apply my-4;
+}
+
+.kb-article-content :deep(a) {
+    @apply text-brand underline decoration-brand/30 underline-offset-2 transition hover:decoration-brand;
+}
+
+.kb-article-content :deep(img) {
+    @apply my-6 rounded-lg;
 }
 
 .kb-article-content :deep(blockquote) {
-    @apply my-6 border-l-4 border-brand/40 bg-brand/[0.03] py-2 pl-4 italic text-slate-600 dark:text-slate-300;
+    @apply my-6 border-l-4 border-brand/40 bg-slate-50 py-3 pl-4 pr-2 italic text-slate-600 dark:bg-slate-900/40 dark:text-slate-300;
 }
 
 .kb-article-content :deep(pre) {
-    @apply overflow-x-auto rounded-xl bg-slate-900 p-4 text-sm text-slate-100 dark:bg-slate-950;
+    @apply my-6 overflow-x-auto rounded-lg bg-slate-900 p-4 text-[0.875rem] leading-relaxed text-slate-100 dark:bg-slate-950;
+}
+
+.kb-article-content :deep(code:not(pre code)) {
+    @apply rounded bg-slate-100 px-1.5 py-0.5 text-[0.9em] text-brand dark:bg-slate-800;
+}
+
+.kb-article-content :deep(ul),
+.kb-article-content :deep(ol) {
+    @apply my-4 pl-6;
+}
+
+.kb-article-content :deep(li) {
+    @apply my-1.5;
 }
 
 .kb-article-content :deep(table) {
@@ -292,31 +332,13 @@ async function shareFromHero() {
     @apply border border-slate-200 px-3 py-2 dark:border-slate-700;
 }
 
-.kb-article-show :deep(.kb-reveal) {
-    opacity: 0;
-    transform: translateY(12px);
-    transition:
-        opacity 0.5s ease,
-        transform 0.5s ease;
-    transition-delay: var(--kb-reveal-delay, 0ms);
-}
-
-.kb-article-show :deep(.kb-reveal--visible) {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .kb-article-show :deep(.kb-reveal) {
-        opacity: 1;
-        transform: none;
-        transition: none;
-    }
+.kb-article-content :deep(th) {
+    @apply bg-slate-50 font-semibold dark:bg-slate-900/80;
 }
 
 @media print {
-    .kb-article-show :deep(aside),
-    .kb-article-show :deep(nav) {
+    .kb-article-show :deep(.kb-article-sidebar),
+    .kb-article-show :deep(.kb-article-toc--mobile) {
         display: none !important;
     }
 }

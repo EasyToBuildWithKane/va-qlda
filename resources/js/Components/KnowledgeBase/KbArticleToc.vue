@@ -1,13 +1,16 @@
 <script setup>
 import { onMounted, onUnmounted, ref, watch } from 'vue';
+import AppIcon from '@/Components/AppIcon.vue';
 
 const props = defineProps({
     items: { type: Array, default: () => [] },
-    /** CSS selector for scroll root; default viewport */
+    /** plain | panel */
+    variant: { type: String, default: 'plain' },
     rootSelector: { type: String, default: null },
 });
 
 const activeId = ref('');
+const mobileOpen = ref(false);
 
 function scrollTo(id, event) {
     event?.preventDefault();
@@ -17,6 +20,7 @@ function scrollTo(id, event) {
     if (history.replaceState) {
         history.replaceState(null, '', `#${id}`);
     }
+    mobileOpen.value = false;
 }
 
 let observer = null;
@@ -41,7 +45,7 @@ function setupObserver() {
         },
         {
             root: root || null,
-            rootMargin: '-20% 0px -55% 0px',
+            rootMargin: '-15% 0px -60% 0px',
             threshold: 0,
         },
     );
@@ -67,30 +71,83 @@ watch(
     },
     { deep: true },
 );
+
+const panelClass = 'rounded-xl border border-slate-200/90 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-900/50';
 </script>
 
 <template>
-  <nav
-    v-if="items.length"
-    class="hidden lg:block"
-    aria-label="Mục lục bài viết"
-  >
-    <div class="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto pr-2">
-      <p class="mb-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-brand/80">
-        Mục lục
-      </p>
-      <ul class="space-y-1 border-l border-slate-200/80 pl-3 dark:border-slate-700">
+  <template v-if="items.length">
+    <!-- Mobile: collapsible -->
+    <nav
+      class="kb-article-toc kb-article-toc--mobile mb-6 lg:hidden"
+      aria-label="Mục lục bài viết"
+    >
+      <button
+        type="button"
+        class="flex w-full items-center justify-between rounded-xl border border-slate-200/90 bg-slate-50/90 px-4 py-3 text-left text-sm font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-200"
+        :aria-expanded="mobileOpen"
+        @click="mobileOpen = !mobileOpen"
+      >
+        <span class="inline-flex items-center gap-2">
+          <AppIcon
+            name="list"
+            :size="16"
+            class="text-brand"
+          />
+          Mục lục ({{ items.length }})
+        </span>
+        <AppIcon
+          :name="mobileOpen ? 'chevron-up' : 'chevron-down'"
+          :size="16"
+          class="text-slate-400"
+        />
+      </button>
+      <ul
+        v-show="mobileOpen"
+        class="mt-2 space-y-0.5 rounded-xl border border-slate-200/90 bg-white p-3 dark:border-slate-700 dark:bg-slate-900/80"
+      >
         <li
           v-for="h in items"
           :key="h.id"
         >
           <a
             :href="`#${h.id}`"
-            class="block py-1 text-xs leading-snug transition-colors"
+            class="block rounded-md py-1.5 text-sm leading-snug transition-colors"
+            :class="[
+              h.level === 3 ? 'pl-3' : 'pl-1',
+              activeId === h.id
+                ? 'font-medium text-brand'
+                : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100',
+            ]"
+            @click="scrollTo(h.id, $event)"
+          >
+            {{ h.text }}
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <!-- Desktop sidebar -->
+    <nav
+      class="kb-article-toc kb-article-toc--desktop hidden lg:block"
+      :class="variant === 'panel' ? panelClass : ''"
+      aria-label="Mục lục bài viết"
+    >
+      <p class="mb-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-brand/80">
+        Mục lục
+      </p>
+      <ul class="space-y-0.5 border-l-2 border-slate-200/90 pl-3 dark:border-slate-700">
+        <li
+          v-for="h in items"
+          :key="h.id"
+        >
+          <a
+            :href="`#${h.id}`"
+            class="block py-1 text-[13px] leading-snug transition-colors"
             :class="[
               h.level === 3 ? 'pl-2' : '',
               activeId === h.id
-                ? 'font-medium text-brand'
+                ? 'border-l-2 border-brand -ml-[calc(0.75rem+2px)] pl-[calc(0.5rem+2px)] font-medium text-brand'
                 : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200',
             ]"
             @click="scrollTo(h.id, $event)"
@@ -99,6 +156,6 @@ watch(
           </a>
         </li>
       </ul>
-    </div>
-  </nav>
+    </nav>
+  </template>
 </template>

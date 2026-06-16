@@ -16,11 +16,11 @@ const displayName = computed(() => {
 <template>
   <section
     v-if="author && displayName"
-    class="mx-auto max-w-[760px] rounded-2xl border border-slate-200/80 bg-gradient-to-br from-slate-50/90 to-white p-6 shadow-sm dark:border-slate-700 dark:from-slate-900/80 dark:to-slate-950"
+    class="rounded-xl border border-slate-200/90 bg-slate-50/50 p-5 dark:border-slate-700 dark:bg-slate-900/40 sm:p-6"
     aria-label="Thông tin tác giả"
   >
-    <p class="mb-4 text-[10px] font-semibold uppercase tracking-[0.14em] text-brand/80">
-      Tác giả
+    <p class="mb-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+      Về tác giả
     </p>
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center">
       <Avatar
