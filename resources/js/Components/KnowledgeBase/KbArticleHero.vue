@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
+import HoverTooltip from '@/shared/ui/HoverTooltip.vue';
 import { date } from '@/composables/useFormat';
 
 const props = defineProps({
@@ -27,6 +28,18 @@ const readingMinutes = computed(() => props.article.reading_time ?? 1);
 
 <template>
   <header class="kb-article-hero border-b border-slate-200/80 pb-8 dark:border-slate-800">
+    <Link
+      v-if="article.category"
+      :href="`/knowledge-base/blog?category_id=${article.category.id}`"
+      class="mb-3 inline-flex items-center gap-1.5 rounded-full bg-brand/[0.07] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-brand transition hover:bg-brand/10"
+    >
+      <AppIcon
+        name="portfolio"
+        :size="12"
+      />
+      {{ article.category.name }}
+    </Link>
+
     <h1
       class="font-display text-[1.75rem] font-bold leading-tight tracking-tight text-slate-900 dark:text-slate-50 sm:text-[2rem] lg:text-[2.25rem]"
     >
@@ -96,43 +109,87 @@ const readingMinutes = computed(() => props.article.reading_time ?? 1);
       </div>
 
       <div class="flex flex-wrap items-center gap-2">
-        <button
+        <HoverTooltip
           v-if="!isRead"
-          type="button"
-          class="btn-ghost inline-flex h-9 items-center gap-1.5 px-3 text-xs sm:text-sm"
-          :disabled="markingRead"
-          @click="$emit('mark-read')"
+          label="Ghi nhận bạn đã đọc xong — hữu ích cho theo dõi cá nhân"
+          placement="top"
+        >
+          <button
+            type="button"
+            class="btn-ghost inline-flex h-9 items-center gap-1.5 px-3 text-xs sm:text-sm"
+            :disabled="markingRead"
+            @click="$emit('mark-read')"
+          >
+            <AppIcon
+              name="check"
+              :size="15"
+            />
+            Đánh dấu đã đọc
+          </button>
+        </HoverTooltip>
+        <span
+          v-else
+          class="inline-flex h-9 items-center gap-1.5 rounded-lg border border-emerald-200/80 bg-emerald-50/80 px-3 text-xs font-medium text-emerald-800 dark:border-emerald-800/50 dark:bg-emerald-950/30 dark:text-emerald-300 sm:text-sm"
         >
           <AppIcon
-            name="check"
+            name="check-circle"
             :size="15"
           />
-          Đánh dấu đã đọc
-        </button>
-        <button
-          type="button"
-          class="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200/90 bg-white px-3 text-xs font-medium text-slate-700 transition hover:border-brand/30 hover:text-brand dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 sm:text-sm"
-          :class="isFavorite ? 'border-amber-300/80 text-amber-700 dark:border-amber-600/50 dark:text-amber-400' : ''"
-          :disabled="favoriting"
-          @click="$emit('toggle-favorite')"
+          Đã đọc
+        </span>
+        <HoverTooltip
+          :label="isFavorite ? 'Bỏ khỏi danh sách yêu thích' : 'Lưu bài để xem lại sau trên blog'"
+          placement="top"
         >
-          <AppIcon
-            name="star"
-            :size="15"
-          />
-          {{ isFavorite ? 'Đã lưu' : 'Lưu bài' }}
-        </button>
-        <button
-          type="button"
-          class="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200/90 bg-white px-3 text-xs font-medium text-slate-700 transition hover:border-brand/30 hover:text-brand dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 sm:text-sm"
-          @click="$emit('share')"
+          <button
+            type="button"
+            class="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200/90 bg-white px-3 text-xs font-medium text-slate-700 transition hover:border-brand/30 hover:text-brand dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 sm:text-sm"
+            :class="isFavorite ? 'border-amber-300/80 text-amber-700 dark:border-amber-600/50 dark:text-amber-400' : ''"
+            :disabled="favoriting"
+            @click="$emit('toggle-favorite')"
+          >
+            <AppIcon
+              name="star"
+              :size="15"
+            />
+            {{ isFavorite ? 'Đã lưu' : 'Lưu bài' }}
+          </button>
+        </HoverTooltip>
+        <HoverTooltip
+          label="Chia sẻ hoặc sao chép liên kết tới đúng bài viết"
+          placement="top"
         >
-          <AppIcon
-            name="link"
-            :size="15"
-          />
-          Chia sẻ
-        </button>
+          <button
+            type="button"
+            class="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200/90 bg-white px-3 text-xs font-medium text-slate-700 transition hover:border-brand/30 hover:text-brand dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 sm:text-sm"
+            @click="$emit('share')"
+          >
+            <AppIcon
+              name="link"
+              :size="15"
+            />
+            Chia sẻ
+          </button>
+        </HoverTooltip>
+        <HoverTooltip
+          label="Cuộn xuống phần thảo luận"
+          placement="top"
+        >
+          <a
+            href="#comments"
+            class="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200/90 bg-white px-3 text-xs font-medium text-slate-700 transition hover:border-brand/30 hover:text-brand dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 sm:text-sm"
+          >
+            <AppIcon
+              name="comment"
+              :size="15"
+            />
+            Bình luận
+            <span
+              v-if="commentCount > 0"
+              class="tabular-nums text-slate-400"
+            >({{ commentCount }})</span>
+          </a>
+        </HoverTooltip>
       </div>
     </div>
 

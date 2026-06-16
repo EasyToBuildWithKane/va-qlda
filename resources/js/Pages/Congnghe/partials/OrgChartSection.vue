@@ -118,7 +118,6 @@ onBeforeUnmount(() => {
     <SectionParticleNetwork
       tone="violet"
       :seed="17"
-      opacity-class="opacity-35"
     />
     <div
       class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand/35 to-transparent"

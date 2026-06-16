@@ -1,15 +1,23 @@
 <script setup>
 /* eslint-disable vue/no-v-html -- article HTML from TipTap */
-import { computed, ref, watch } from 'vue';
+import {
+    computed, onMounted, ref, watch,
+} from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import AppIcon from '@/Components/AppIcon.vue';
+import FieldTooltip from '@/shared/ui/FieldTooltip.vue';
 import KbReadingProgress from '@/Components/KnowledgeBase/KbReadingProgress.vue';
+import KbArticleBreadcrumb from '@/Components/KnowledgeBase/KbArticleBreadcrumb.vue';
+import KbArticleReadingGuide from '@/Components/KnowledgeBase/KbArticleReadingGuide.vue';
 import KbArticleHero from '@/Components/KnowledgeBase/KbArticleHero.vue';
 import KbArticleCover from '@/Components/KnowledgeBase/KbArticleCover.vue';
 import KbArticleToc from '@/Components/KnowledgeBase/KbArticleToc.vue';
+import KbArticleShowSidebar from '@/Components/KnowledgeBase/KbArticleShowSidebar.vue';
+import KbFloatingToolbar from '@/Components/KnowledgeBase/KbFloatingToolbar.vue';
 import KbRelatedArticles from '@/Components/KnowledgeBase/KbRelatedArticles.vue';
+import KbMoreArticles from '@/Components/KnowledgeBase/KbMoreArticles.vue';
 import KbAuthorCard from '@/Components/KnowledgeBase/KbAuthorCard.vue';
 import CommentThread from '@/shared/ui/CommentThread.vue';
 import { useCommentThreadPoll } from '@/composables/useCommentThreadPoll';
@@ -19,6 +27,7 @@ const props = defineProps({
     article: { type: Object, required: true },
     toc: { type: Array, default: () => [] },
     related: { type: Array, default: () => [] },
+    otherArticles: { type: Array, default: () => [] },
 });
 
 useCommentThreadPoll({
@@ -56,6 +65,20 @@ const pageHeaderTitle = computed(() => {
     const t = (props.article.title || '').trim();
     if (!t) return 'Bài viết';
     return t.length > 56 ? `${t.slice(0, 53)}…` : t;
+});
+
+function scrollToHash() {
+    if (typeof window === 'undefined') return;
+    const hash = window.location.hash?.replace(/^#/, '');
+    if (!hash) return;
+    requestAnimationFrame(() => {
+        const el = document.getElementById(hash);
+        el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+}
+
+onMounted(() => {
+    scrollToHash();
 });
 
 function toggleFavorite() {
@@ -126,25 +149,45 @@ async function shareArticle() {
       />
     </template>
 
-    <div class="kb-article-show mx-auto w-full min-w-0 max-w-[1180px] px-4 pb-16 sm:px-6">
-      <article class="min-w-0">
-        <KbArticleHero
-          :article="article"
-          :is-favorite="isFavorite"
-          :favoriting="favoriting"
-          :is-read="isRead"
-          :marking-read="markingRead"
-          :comment-count="commentCount"
-          @toggle-favorite="toggleFavorite"
-          @share="shareArticle"
-          @mark-read="markRead"
-        />
+    <div class="kb-article-show relative mx-auto w-full min-w-0 max-w-[1240px] px-4 pb-20 sm:px-6">
+      <KbFloatingToolbar
+        :is-favorite="isFavorite"
+        :favoriting="favoriting"
+        :is-read="isRead"
+        :marking-read="markingRead"
+        :share-url="shareUrl"
+        :share-title="article.title"
+        @toggle-favorite="toggleFavorite"
+        @mark-read="markRead"
+      />
 
-        <div class="mt-8">
-          <div class="min-w-0 max-w-[760px]">
+      <KbArticleBreadcrumb
+        :category="article.category"
+        :title="article.title"
+      />
+
+      <div class="mt-4">
+        <KbArticleReadingGuide />
+      </div>
+
+      <div class="mt-8 flex flex-col gap-10 lg:flex-row lg:items-start lg:gap-8 xl:gap-10">
+        <article class="min-w-0 flex-1 lg:max-w-[780px]">
+          <div class="rounded-card border border-slate-200/80 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/40 sm:p-7 lg:p-8">
+            <KbArticleHero
+              :article="article"
+              :is-favorite="isFavorite"
+              :favoriting="favoriting"
+              :is-read="isRead"
+              :marking-read="markingRead"
+              :comment-count="commentCount"
+              @toggle-favorite="toggleFavorite"
+              @share="shareArticle"
+              @mark-read="markRead"
+            />
+
             <div
               v-if="article.excerpt?.trim()"
-              class="mb-8 rounded-lg border-l-4 border-brand/35 bg-slate-50/90 px-4 py-3 text-base leading-relaxed text-slate-600 dark:bg-slate-900/40 dark:text-slate-300"
+              class="mt-8 rounded-lg border-l-4 border-brand/40 bg-gradient-to-r from-brand/[0.04] to-slate-50/50 px-4 py-3.5 text-base leading-relaxed text-slate-600 dark:from-brand/10 dark:to-slate-900/30 dark:text-slate-300"
             >
               <!-- eslint-disable-next-line vue/no-v-html -->
               <div
@@ -153,13 +196,14 @@ async function shareArticle() {
               />
             </div>
 
-            <div class="mb-8">
+            <div class="mt-8">
               <KbArticleCover :article="article" />
             </div>
 
             <KbArticleToc
               :items="tocItems"
               variant="plain"
+              display="mobile"
             />
 
             <div
@@ -172,9 +216,12 @@ async function shareArticle() {
               class="mt-12 border-t border-slate-100 pt-10 dark:border-slate-800"
               aria-label="Thư viện ảnh"
             >
-              <h2 class="mb-4 font-display text-lg font-semibold text-slate-900 dark:text-slate-50">
-                Thư viện ảnh
-              </h2>
+              <div class="mb-4 flex items-center gap-1.5">
+                <h2 class="font-display text-lg font-semibold text-slate-900 dark:text-slate-50">
+                  Thư viện ảnh
+                </h2>
+                <FieldTooltip text="Ảnh minh họa bổ sung ngoài nội dung chính — bấm để xem kích thước đầy đủ trong tab mới nếu được liên kết." />
+              </div>
               <div class="grid gap-4 sm:grid-cols-2">
                 <figure
                   v-for="img in article.gallery_images"
@@ -201,9 +248,12 @@ async function shareArticle() {
               class="mt-10 border-t border-slate-100 pt-8 dark:border-slate-800"
               aria-label="Tệp đính kèm"
             >
-              <h2 class="mb-3 font-display text-lg font-semibold text-slate-900 dark:text-slate-50">
-                Tệp đính kèm
-              </h2>
+              <div class="mb-3 flex items-center gap-1.5">
+                <h2 class="font-display text-lg font-semibold text-slate-900 dark:text-slate-50">
+                  Tệp đính kèm
+                </h2>
+                <FieldTooltip text="Tài liệu tải về (PDF, Word, …). Mở trong tab mới để lưu hoặc in." />
+              </div>
               <ul class="divide-y divide-slate-100 rounded-lg border border-slate-200/90 dark:divide-slate-800 dark:border-slate-700">
                 <li
                   v-for="att in article.attachments"
@@ -226,23 +276,46 @@ async function shareArticle() {
               </ul>
             </section>
 
-            <div class="mt-12">
+            <div class="mt-12 border-t border-slate-100 pt-10 dark:border-slate-800">
               <KbAuthorCard :author="article.author" />
             </div>
           </div>
-        </div>
-      </article>
+        </article>
+
+        <KbArticleShowSidebar
+          :toc-items="tocItems"
+          :is-favorite="isFavorite"
+          :favoriting="favoriting"
+          :is-read="isRead"
+          :marking-read="markingRead"
+          :share-url="shareUrl"
+          :share-title="article.title"
+          @toggle-favorite="toggleFavorite"
+          @mark-read="markRead"
+        />
+      </div>
 
       <section
-        class="mt-14 border-t border-slate-200/80 pt-12 dark:border-slate-800"
-        aria-label="Bài viết liên quan"
+        v-if="related?.length"
+        class="mt-16 border-t border-slate-200/80 pt-14 dark:border-slate-800"
+        aria-label="Bài viết cùng chuyên mục"
       >
         <KbRelatedArticles :articles="related" />
       </section>
 
       <section
+        class="mt-14 border-t border-slate-200/80 pt-14 dark:border-slate-800"
+        aria-label="Các bài viết khác"
+      >
+        <KbMoreArticles
+          :articles="otherArticles"
+          :current-slug="article.slug"
+        />
+      </section>
+
+      <section
         id="comments"
-        class="mt-12 scroll-mt-28"
+        class="mt-14 scroll-mt-28 rounded-card border border-slate-200/80 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900/40 sm:p-7"
         aria-label="Bình luận"
       >
         <CommentThread
@@ -264,7 +337,7 @@ async function shareArticle() {
 <style scoped>
 .kb-article-content {
     font-size: 1.0625rem;
-    line-height: 1.8;
+    line-height: 1.85;
     color: rgb(51 65 85);
 }
 
@@ -273,7 +346,7 @@ async function shareArticle() {
 }
 
 .kb-article-content :deep(h2) {
-    @apply mt-12 scroll-mt-28 border-b border-slate-100 pb-2 font-display text-xl font-bold text-slate-900 dark:border-slate-800 dark:text-slate-50 sm:text-2xl;
+    @apply mt-12 scroll-mt-28 border-b border-slate-100 pb-2.5 font-display text-xl font-bold text-slate-900 dark:border-slate-800 dark:text-slate-50 sm:text-2xl;
 }
 
 .kb-article-content :deep(h3) {
@@ -289,7 +362,7 @@ async function shareArticle() {
 }
 
 .kb-article-content :deep(img) {
-    @apply my-6 rounded-lg;
+    @apply my-6 rounded-lg ring-1 ring-slate-200/60 dark:ring-slate-700;
 }
 
 .kb-article-content :deep(blockquote) {
@@ -328,6 +401,10 @@ async function shareArticle() {
 
 @media print {
     .kb-article-show :deep(.kb-article-toc--mobile) {
+        display: none !important;
+    }
+
+    .kb-article-show :deep(.kb-article-sidebar) {
         display: none !important;
     }
 }

@@ -1,19 +1,20 @@
 <script setup>
-import { ref } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
+import HoverTooltip from '@/shared/ui/HoverTooltip.vue';
 import { useToast } from '@/shared/composables/useToast';
 
 const props = defineProps({
     isFavorite: { type: Boolean, default: false },
     favoriting: { type: Boolean, default: false },
+    isRead: { type: Boolean, default: false },
+    markingRead: { type: Boolean, default: false },
     shareUrl: { type: String, required: true },
     shareTitle: { type: String, default: '' },
 });
 
-const emit = defineEmits(['toggle-favorite']);
+const emit = defineEmits(['toggle-favorite', 'mark-read']);
 
 const toast = useToast();
-const liked = ref(false);
 
 async function shareArticle() {
     const payload = { title: props.shareTitle, url: props.shareUrl };
@@ -44,68 +45,103 @@ function printArticle() {
 
 <template>
   <aside
-    class="hidden lg:flex lg:justify-end"
+    class="pointer-events-none fixed right-4 top-1/2 z-40 hidden -translate-y-1/2 xl:block"
     aria-label="Thanh công cụ bài viết"
   >
-    <div class="sticky top-24 flex flex-col gap-2">
-      <button
-        type="button"
-        class="grid h-11 w-11 place-items-center rounded-full border border-slate-200/80 bg-white/90 text-slate-600 shadow-sm backdrop-blur-sm transition hover:border-brand/30 hover:text-brand dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-300"
-        :class="isFavorite ? 'border-amber-300/80 text-amber-600' : ''"
-        :disabled="favoriting"
-        title="Lưu bài"
-        @click="emit('toggle-favorite')"
+    <div class="pointer-events-auto flex flex-col gap-2">
+      <HoverTooltip
+        v-if="!isRead"
+        label="Đánh dấu đã đọc"
+        placement="left"
       >
-        <AppIcon
-          name="star"
-          :size="18"
-        />
-      </button>
-      <button
-        type="button"
-        class="grid h-11 w-11 place-items-center rounded-full border border-slate-200/80 bg-white/90 text-slate-600 shadow-sm backdrop-blur-sm transition hover:border-brand/30 hover:text-brand dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-300"
-        title="Chia sẻ"
-        @click="shareArticle"
+        <button
+          type="button"
+          class="grid h-11 w-11 place-items-center rounded-full border border-slate-200/80 bg-white/90 text-slate-600 shadow-sm backdrop-blur-sm transition hover:border-brand/30 hover:text-brand dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-300"
+          :disabled="markingRead"
+          @click="emit('mark-read')"
+        >
+          <AppIcon
+            name="check"
+            :size="18"
+          />
+        </button>
+      </HoverTooltip>
+      <HoverTooltip
+        :label="isFavorite ? 'Đã lưu yêu thích' : 'Lưu bài viết'"
+        placement="left"
       >
-        <AppIcon
-          name="link"
-          :size="18"
-        />
-      </button>
-      <button
-        type="button"
-        class="grid h-11 w-11 place-items-center rounded-full border border-slate-200/80 bg-white/90 text-slate-600 shadow-sm backdrop-blur-sm transition hover:border-brand/30 hover:text-brand dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-300"
-        title="Sao chép liên kết"
-        @click="copyLink"
+        <button
+          type="button"
+          class="grid h-11 w-11 place-items-center rounded-full border border-slate-200/80 bg-white/90 text-slate-600 shadow-sm backdrop-blur-sm transition hover:border-brand/30 hover:text-brand dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-300"
+          :class="isFavorite ? 'border-amber-300/80 text-amber-600' : ''"
+          :disabled="favoriting"
+          @click="emit('toggle-favorite')"
+        >
+          <AppIcon
+            name="star"
+            :size="18"
+          />
+        </button>
+      </HoverTooltip>
+      <HoverTooltip
+        label="Chia sẻ bài viết"
+        placement="left"
       >
-        <AppIcon
-          name="documents"
-          :size="18"
-        />
-      </button>
-      <button
-        type="button"
-        class="grid h-11 w-11 place-items-center rounded-full border border-slate-200/80 bg-white/90 text-slate-600 shadow-sm backdrop-blur-sm transition hover:border-brand/30 hover:text-brand dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-300"
-        title="In bài viết"
-        @click="printArticle"
+        <button
+          type="button"
+          class="grid h-11 w-11 place-items-center rounded-full border border-slate-200/80 bg-white/90 text-slate-600 shadow-sm backdrop-blur-sm transition hover:border-brand/30 hover:text-brand dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-300"
+          @click="shareArticle"
+        >
+          <AppIcon
+            name="link"
+            :size="18"
+          />
+        </button>
+      </HoverTooltip>
+      <HoverTooltip
+        label="Sao chép liên kết"
+        placement="left"
       >
-        <AppIcon
-          name="export"
-          :size="18"
-        />
-      </button>
-      <button
-        type="button"
-        class="grid h-11 w-11 place-items-center rounded-full border border-slate-200/80 bg-white/90 shadow-sm backdrop-blur-sm transition hover:border-rose-300/80 dark:border-slate-700 dark:bg-slate-900/90"
-        :class="liked ? 'text-rose-600' : 'text-slate-600 dark:text-slate-300'"
-        title="Thích bài viết"
-        @click="liked = !liked"
+        <button
+          type="button"
+          class="grid h-11 w-11 place-items-center rounded-full border border-slate-200/80 bg-white/90 text-slate-600 shadow-sm backdrop-blur-sm transition hover:border-brand/30 hover:text-brand dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-300"
+          @click="copyLink"
+        >
+          <AppIcon
+            name="documents"
+            :size="18"
+          />
+        </button>
+      </HoverTooltip>
+      <HoverTooltip
+        label="In bài viết"
+        placement="left"
       >
-        <AppIcon
-          name="check-circle"
-          :size="18"
-        />
-      </button>
+        <button
+          type="button"
+          class="grid h-11 w-11 place-items-center rounded-full border border-slate-200/80 bg-white/90 text-slate-600 shadow-sm backdrop-blur-sm transition hover:border-brand/30 hover:text-brand dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-300"
+          @click="printArticle"
+        >
+          <AppIcon
+            name="export"
+            :size="18"
+          />
+        </button>
+      </HoverTooltip>
+      <HoverTooltip
+        label="Bình luận"
+        placement="left"
+      >
+        <a
+          href="#comments"
+          class="grid h-11 w-11 place-items-center rounded-full border border-slate-200/80 bg-white/90 text-slate-600 shadow-sm backdrop-blur-sm transition hover:border-brand/30 hover:text-brand dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-300"
+        >
+          <AppIcon
+            name="comment"
+            :size="18"
+          />
+        </a>
+      </HoverTooltip>
     </div>
   </aside>
 </template>

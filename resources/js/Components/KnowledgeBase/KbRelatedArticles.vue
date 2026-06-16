@@ -37,8 +37,11 @@ function cover(article) {
           Tiếp theo
         </p>
         <h2 class="font-display text-xl font-semibold text-slate-900 dark:text-slate-50">
-          Bài viết liên quan
+          Cùng chuyên mục
         </h2>
+        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          Gợi ý nhanh trong danh mục «{{ articles[0]?.category?.name || 'này' }}».
+        </p>
       </div>
     </div>
 

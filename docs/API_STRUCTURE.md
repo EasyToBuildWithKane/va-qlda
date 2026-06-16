@@ -264,7 +264,7 @@ Prefix `knowledge-base.`, middleware `auth`. Chi tiết: [`docs/KNOWLEDGE_BASE.m
 | POST | `/knowledge-base/articles/{article}/favorite` | KbArticleController@toggleFavorite | Redirect | |
 | POST | `/knowledge-base/articles/{article}/read` | KbArticleController@markRead | Redirect | |
 | POST | `/knowledge-base/articles/{article}/attachments` | KbArticleController@storeAttachment | Redirect | |
-| POST | `/knowledge-base/articles/{article}/images` | KbArticleController@storeImage | Redirect | TipTap inline |
+| POST | `/knowledge-base/articles/{article}/images` | KbArticleController@storeImage | JSON | TipTap inline `{ url }` |
 | POST | `/knowledge-base/articles/{article}/gallery` | KbArticleController@storeGalleryImage | Redirect | |
 | PATCH | `/knowledge-base/gallery/{image}` | KbArticleController@updateGalleryImage | Redirect | |
 | DELETE | `/knowledge-base/gallery/{image}` | KbArticleController@destroyGalleryImage | Redirect | |

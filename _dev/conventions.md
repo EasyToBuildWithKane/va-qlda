@@ -141,7 +141,7 @@ Config: `eslint.config.js` (ESLint 9 flat config).
 
 ## Import / export modules
 
-Excel import/export modules must follow the production pattern documented in `.cursor/rules/import-export-reconcile.mdc`:
+Excel import/export modules must follow the production pattern in [`docs/IMPORT_EXPORT_RECONCILE.md`](../docs/IMPORT_EXPORT_RECONCILE.md) (Cursor rule tóm tắt: `.cursor/rules/import-export-reconcile.mdc`):
 
 - One `*DataModal.vue` with 3 tabs: import · export · reconcile
 - Logic in `use*Data.js` composables — never import `xlsx` in `.vue`

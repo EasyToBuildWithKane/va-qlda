@@ -6,10 +6,10 @@ import { hasFinePointer, prefersReducedMotionNow } from './motion.js';
 const props = defineProps({
     tone: { type: String, default: 'cyan' },
     seed: { type: Number, default: 7 },
-    /** Lớp opacity Tailwind trên canvas (vd. opacity-40) */
-    opacityClass: { type: String, default: 'opacity-45' },
+    /** Lớp opacity Tailwind trên canvas (vd. opacity-75) */
+    opacityClass: { type: String, default: 'opacity-75' },
     /** Mật độ tương đối so với diện tích section */
-    density: { type: Number, default: 1 },
+    density: { type: Number, default: 1.35 },
 });
 
 const root = ref(null);
@@ -52,15 +52,15 @@ function seedNodes() {
     const rnd = seededRandom(0);
     const area = Math.max(width * height, 1);
     const target = Math.min(
-        64,
-        Math.max(18, Math.floor((area / 28000) * props.density)),
+        112,
+        Math.max(32, Math.floor((area / 15000) * props.density)),
     );
     nodes = Array.from({ length: target }, () => ({
         x: rnd() * width,
         y: rnd() * height,
-        vx: (rnd() - 0.5) * 0.35,
-        vy: (rnd() - 0.5) * 0.35,
-        r: rnd() * 1.4 + 0.55,
+        vx: (rnd() - 0.5) * 0.32,
+        vy: (rnd() - 0.5) * 0.32,
+        r: rnd() * 1.6 + 1.05,
     }));
 }
 
@@ -180,12 +180,16 @@ function frame() {
 
         ctx.beginPath();
         ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
-        ctx.fillStyle = `${c.dot}0.5)`;
+        ctx.fillStyle = `${c.link}0.88)`;
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, n.r * 0.42, 0, Math.PI * 2);
+        ctx.fillStyle = `${c.dot}0.92)`;
         ctx.fill();
     }
 
-    drawLinks(118, 0.28, 0.65);
-    drawMouseLinks(200, 0.58);
+    drawLinks(138, 0.48, 0.95);
+    drawMouseLinks(228, 0.78);
 
     raf = requestAnimationFrame(frame);
 }
@@ -250,8 +254,9 @@ onBeforeUnmount(() => {
       v-if="useStatic"
       :seed="seed"
       :tone="tone"
-      class="h-full w-full opacity-40"
-      :node-count="20"
+      class="h-full w-full opacity-55"
+      :node-count="32"
+      :link-distance="38"
     />
     <canvas
       v-else

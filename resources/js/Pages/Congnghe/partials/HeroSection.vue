@@ -53,8 +53,7 @@ const streamItems = computed(() => {
     <SectionParticleNetwork
       tone="brand"
       :seed="1"
-      :density="1.15"
-      opacity-class="opacity-50"
+      :density="1.5"
     />
     <CongngheBrandBackdrop
       variant="dragon"

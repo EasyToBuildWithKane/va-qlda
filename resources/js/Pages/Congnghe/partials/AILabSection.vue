@@ -31,7 +31,6 @@ function iconPath(key) {
     <SectionParticleNetwork
       tone="cyan"
       :seed="22"
-      opacity-class="opacity-55"
     />
 
     <div class="relative z-10 mx-auto max-w-7xl px-5 sm:px-8">

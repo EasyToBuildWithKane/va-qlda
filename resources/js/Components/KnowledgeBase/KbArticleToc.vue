@@ -1,13 +1,21 @@
 <script setup>
-import { onMounted, onUnmounted, ref, watch } from 'vue';
+import {
+    computed, onMounted, onUnmounted, ref, watch,
+} from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
+import FieldTooltip from '@/shared/ui/FieldTooltip.vue';
 
 const props = defineProps({
     items: { type: Array, default: () => [] },
     /** plain | panel */
     variant: { type: String, default: 'plain' },
+    /** all | mobile | desktop */
+    display: { type: String, default: 'all' },
     rootSelector: { type: String, default: null },
 });
+
+const showMobile = computed(() => props.display === 'all' || props.display === 'mobile');
+const showDesktop = computed(() => props.display === 'all' || props.display === 'desktop');
 
 const activeId = ref('');
 const mobileOpen = ref(false);
@@ -79,6 +87,7 @@ const panelClass = 'rounded-xl border border-slate-200/90 bg-slate-50/80 p-4 dar
   <template v-if="items.length">
     <!-- Mobile: collapsible -->
     <nav
+      v-if="showMobile"
       class="kb-article-toc kb-article-toc--mobile mb-6 lg:hidden"
       aria-label="Mục lục bài viết"
     >
@@ -129,12 +138,14 @@ const panelClass = 'rounded-xl border border-slate-200/90 bg-slate-50/80 p-4 dar
 
     <!-- Desktop sidebar -->
     <nav
+      v-if="showDesktop"
       class="kb-article-toc kb-article-toc--desktop hidden lg:block"
       :class="variant === 'panel' ? panelClass : ''"
       aria-label="Mục lục bài viết"
     >
-      <p class="mb-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-brand/80">
+      <p class="mb-3 inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-brand/80">
         Mục lục
+        <FieldTooltip text="Nhảy nhanh tới tiêu đề trong bài. Mục đang đọc được tô màu brand." />
       </p>
       <ul class="space-y-0.5 border-l-2 border-slate-200/90 pl-3 dark:border-slate-700">
         <li

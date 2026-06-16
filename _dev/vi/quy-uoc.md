@@ -131,7 +131,7 @@ Config: `eslint.config.js` (ESLint 9 flat config).
 
 ## Module nhập · xuất · đối soát
 
-Theo `.cursor/rules/import-export-reconcile.mdc`:
+Theo [`docs/IMPORT_EXPORT_RECONCILE.md`](../../docs/IMPORT_EXPORT_RECONCILE.md) (rule Cursor: `.cursor/rules/import-export-reconcile.mdc`):
 
 - Một `*DataModal.vue` — 3 tab: nhập · xuất · đối soát
 - Logic Excel trong `use*Data.js` — **cấm** import `xlsx` trong `.vue`

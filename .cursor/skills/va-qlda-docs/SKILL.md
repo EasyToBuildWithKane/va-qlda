@@ -31,6 +31,7 @@ description: >-
 | `docs/NEXT_STEPS.md` | Roadmap, quick wins |
 | `docs/COACHING_MENTORING.md` | Module Coaching — routes, UI, phân quyền |
 | `docs/KNOWLEDGE_BASE.md` | Knowledge Base / blog nội bộ |
+| `docs/IMPORT_EXPORT_RECONCILE.md` | Nhập · xuất · đối soát Excel (sơ đồ luồng) |
 
 **Đồng bộ bắt buộc:** `.cursor/rules/docs-sync.mdc` — cập nhật doc map trên khi code đổi.
 
@@ -53,7 +54,7 @@ description: >-
    - DailyReport → Use Case + Domain
    - Project/Task mutations → Application Use Case
    - Blocker/Bug → MVC
-4. Import/export → `.cursor/rules/import-export-reconcile.mdc`.
+4. Import/export → `docs/IMPORT_EXPORT_RECONCILE.md` (rule tóm tắt: `.cursor/rules/import-export-reconcile.mdc`).
 5. Sau khi sửa code → áp dụng checklist `docs-sync.mdc` (API_STRUCTURE, DATABASE_STRUCTURE, doc module).
 
 ## Project facts (quick)

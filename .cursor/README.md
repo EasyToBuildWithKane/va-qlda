@@ -10,7 +10,7 @@ Cấu hình AI cho repo **VAschools QLDA**, đồng bộ với [`docs/`](../docs
 | `laravel-backend.mdc` | `app/`, `routes/`, `database/` PHP |
 | `vue-inertia-frontend.mdc` | `resources/js/**` |
 | `database-schema.mdc` | Migrations & models |
-| `import-export-reconcile.mdc` | Nhập / xuất / đối soát Excel |
+| `import-export-reconcile.mdc` | Nhập / xuất / đối soát Excel → [`docs/IMPORT_EXPORT_RECONCILE.md`](../docs/IMPORT_EXPORT_RECONCILE.md) |
 | `backend-code-review-isc.mdc` | Review backend PHP theo ISC + bảo mật |
 | `frontend-code-review-isc.mdc` | Review frontend Vue/Inertia theo ISC + bảo mật |
 
@@ -42,6 +42,8 @@ Cấu hình AI cho repo **VAschools QLDA**, đồng bộ với [`docs/`](../docs
 - [FRONTEND_STRUCTURE](../docs/FRONTEND_STRUCTURE.md)
 - [REFACTOR_PLAN](../docs/REFACTOR_PLAN.md) — Phase 1–5 ✅
 - [TECHNICAL_DEBT](../docs/TECHNICAL_DEBT.md)
+- [IMPORT_EXPORT_RECONCILE](../docs/IMPORT_EXPORT_RECONCILE.md)
+- [KNOWLEDGE_BASE](../docs/KNOWLEDGE_BASE.md)
 - [_dev/README.md](../_dev/README.md)
 
 Cập nhật rules/skills khi `docs/` hoặc cấu trúc folder thay đổi.

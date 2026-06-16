@@ -6,6 +6,8 @@ alwaysApply: true
 
 # Nhập · Xuất · Đối soát — Production Standard (VA-QLDA)
 
+> **Nguồn đầy đủ + sơ đồ luồng (mermaid):** `docs/IMPORT_EXPORT_RECONCILE.md`
+
 Mọi module nhập/xuất/đối soát phải **copy pattern đã chứng minh**, không tự phát minh UI hoặc Excel thô.
 
 ## Tham chiếu vàng (đọc trước khi code)

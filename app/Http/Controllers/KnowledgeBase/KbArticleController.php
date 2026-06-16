@@ -135,16 +135,36 @@ class KbArticleController extends Controller
             ->where('article_id', $article->id)
             ->exists();
 
+        $cardRelations = [
+            'category',
+            'author',
+            'tags',
+            'galleryImages' => fn ($q) => $q->orderBy('sort_order')->limit(1),
+        ];
+
         $related = KbArticle::query()
             ->published()
             ->where('category_id', $article->category_id)
             ->where('id', '!=', $article->id)
-            ->with(['category', 'galleryImages' => fn ($q) => $q->orderBy('sort_order')->limit(1)])
+            ->with($cardRelations)
             ->latest('published_at')
             ->limit(6)
             ->get();
 
         $relatedResolved = $related
+            ->map(fn (KbArticle $a) => (new KbArticleResource($a))->resolve())
+            ->values()
+            ->all();
+
+        $otherArticles = KbArticle::query()
+            ->published()
+            ->where('id', '!=', $article->id)
+            ->with($cardRelations)
+            ->latest('published_at')
+            ->limit(100)
+            ->get();
+
+        $otherArticlesResolved = $otherArticles
             ->map(fn (KbArticle $a) => (new KbArticleResource($a))->resolve())
             ->values()
             ->all();
@@ -161,6 +181,7 @@ class KbArticleController extends Controller
             'article' => $resolved,
             'toc' => $toc,
             'related' => $relatedResolved,
+            'otherArticles' => $otherArticlesResolved,
         ]);
     }
 

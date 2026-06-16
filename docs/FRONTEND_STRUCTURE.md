@@ -258,8 +258,11 @@ usePage().props.auth.user.role;
 
 ### Import / Export / Đối soát
 
+**Nguồn chuẩn + sơ đồ:** [`docs/IMPORT_EXPORT_RECONCILE.md`](IMPORT_EXPORT_RECONCILE.md).
+
 Một nút **Dữ liệu** → `*DataModal.vue` (3 tab: import · export · reconcile).  
-Pattern: `RiskImportModal`, `SprintDataModal` + composables `useRiskImport`, `useSprintData`.
+Pattern: `RiskImportModal`, `SprintDataModal` + composables `useRiskImport`, `useSprintData`.  
+Knowledge Base: chỉ **xuất** qua `useKbExport.js` + `GET knowledge-base.export-data` (không modal 3 tab).
 
 ### Datagrid toolbar (bảng)
 
@@ -288,7 +291,8 @@ Doc module: `docs/COACHING_MENTORING.md`.
 | Page | Composables / components |
 |---|---|
 | `KnowledgeBase/Index.vue` | `useKbExport.js`, datagrid shared UI, lọc danh mục trên toolbar |
-| `KnowledgeBase/Show.vue` | `CommentThread`, TOC từ props `toc` |
+| `KnowledgeBase/Blog.vue` | `KbBlogSidebar`, `KbBlogPostCard`, sidebar data từ `KbBlogSidebarData` |
+| `KnowledgeBase/Show.vue` | `KbArticleHero`, `KbArticleToc`, `KbArticleShowSidebar`, `KbMoreArticles`, `CommentThread`, TOC server `KbContentAnchors` |
 | `KnowledgeBase/Edit.vue` | `KbRichTextField`, `KbImageGallery` |
 
 Doc module: `docs/KNOWLEDGE_BASE.md`.

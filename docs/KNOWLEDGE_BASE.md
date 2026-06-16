@@ -36,13 +36,13 @@ routes/web.php (prefix knowledge-base., name knowledge-base.*)
     → KbArticleResource, KbCategoryResource
     → Models: KbArticle, KbCategory, KbTag, KbArticleImage, KbArticleAttachment, …
     → app/Support/KnowledgeBase/
-        KbArticleSearch, KbContentAnchors, KbTagSync
+        KbArticleSearch, KbContentAnchors, KbTagSync, KbBlogSidebarData
 
 resources/js/
     → Pages/KnowledgeBase/Index.vue   (PageHeader + datagrid, lọc danh mục, xuất CSV/Excel)
     → Pages/KnowledgeBase/Blog.vue    (layout blog: sidebar + feed ảnh bìa; feed **chỉ Published**; lọc Inertia `only: articles,filters`)
-    → Pages/KnowledgeBase/Show.vue    (chi tiết đọc bài: PageHeader, hero meta, mục lục inline, related, bình luận)
-    → Components/KnowledgeBase/KbArticleHero.vue, KbArticleCover.vue, KbArticleToc.vue, KbReadingProgress.vue, KbAuthorCard.vue, KbRelatedArticles.vue
+    → Pages/KnowledgeBase/Show.vue    (chi tiết đọc bài: breadcrumb, hướng dẫn + tooltip, layout 2 cột mục lục sticky, floating toolbar, cùng chuyên mục, `otherArticles`, bình luận)
+    → Components/KnowledgeBase/KbArticleHero.vue, KbArticleCover.vue, KbArticleToc.vue, KbReadingProgress.vue, KbAuthorCard.vue, KbRelatedArticles.vue, KbMoreArticles.vue, KbArticleReadingGuide.vue, KbArticleShowSidebar.vue, KbFloatingToolbar.vue, KbArticleBreadcrumb.vue
     → Components/KnowledgeBase/KbArticleCard.vue, KbBlogPanel.vue, KbBlogTagSection.vue, KbBlogSidebar.vue, KbBlogAside.vue, KbBlogPostCard.vue
     → Pages/KnowledgeBase/Edit.vue    (TipTap + gallery)
     → Components/KnowledgeBase/KbRichTextField.vue, KbImageGallery.vue, KbTagField.vue
@@ -57,6 +57,70 @@ resources/js/
 **Rich text:** TipTap — ảnh inline qua `POST knowledge-base.articles.images.store` (nút 🖼, kéo thả, dán clipboard); trang tạo bài tự tạo bản nháp JSON khi chèn ảnh lần đầu (`POST articles` + `Accept: application/json`).
 
 **Tìm kiếm v1:** `KbArticleSearch` — FULLTEXT / LIKE trên title, excerpt, content (MySQL migration `2026_06_14_130000_kb_articles_fulltext_and_image_usage.php`).
+
+### 2.1 Sơ đồ luồng (đối soát code ↔ doc)
+
+#### Luồng đọc bài (`Show`)
+
+```mermaid
+sequenceDiagram
+  participant B as Browser
+  participant C as KbArticleController@show
+  participant P as KbContentAnchors
+  participant I as Inertia Show.vue
+
+  B->>C: GET /knowledge-base/articles/{slug}
+  C->>C: authorize view, increment view_count
+  C->>C: load relations, favorite/read pivots
+  C->>C: related (6, cùng category), otherArticles (100)
+  C->>P: apply(content) + toc(content)
+  P-->>C: HTML có id h2/h3, mảng TOC
+  C->>I: article, toc, related, otherArticles
+  I->>I: hero/sidebar/toolbar favorite|read|share
+  I->>C: POST favorite|read (only article)
+```
+
+#### Luồng hub nội dung
+
+```mermaid
+flowchart LR
+  subgraph Entry
+    NAV[Sidebar Tri thức]
+  end
+  NAV --> IDX["/knowledge-base Index"]
+  NAV --> BLOG["/knowledge-base/blog"]
+  IDX --> SHOW["articles/{slug} Show"]
+  BLOG --> SHOW
+  IDX --> EDIT[create / edit]
+  BLOG --> EDIT
+  SHOW -->|back-href| BLOG
+```
+
+#### Luồng media & soạn thảo
+
+```mermaid
+flowchart TB
+  EDIT[Edit.vue]
+  EDIT --> TIP[KbRichTextField TipTap]
+  TIP -->|POST images.store JSON| IMG[knowledge-base/.../images]
+  EDIT --> GAL[KbImageGallery]
+  GAL -->|POST gallery| GIMG[usage=gallery]
+  EDIT --> ATT[attachments.store]
+  SHOW[Show.vue] -->|GET images.file / attachments.file| STREAM[Stream 404 nếu mất file]
+```
+
+#### Xuất danh sách
+
+```mermaid
+flowchart LR
+  IDX[Index.vue toolbar Xuất]
+  IDX --> USE[useKbExport.js]
+  USE -->|GET export-data JSON ≤200| API[exportData]
+  USE --> CSV[CSV]
+  USE --> XLS[Excel xlsx-js-style]
+```
+
+Chuẩn modal 3 tab Nhập/Xuất/Đối soát Excel: [`docs/IMPORT_EXPORT_RECONCILE.md`](IMPORT_EXPORT_RECONCILE.md) (KB chỉ xuất JSON client).
 
 ---
 
@@ -141,13 +205,14 @@ draft ──publish──→ published ──archive──→ archived
 | Lọc tag / danh mục | Query params + datagrid toolbar (label **Tìm kiếm**, filter dòng 2) |
 | Gallery ảnh | `kb_article_images.usage=gallery`, alt, CRUD trên Edit, grid trên Show |
 | Xuất danh sách | `GET export-data` + `useKbExport.js` (CSV/Excel, tối đa 200) |
-| Bài liên quan | Cùng category + overlap tags, limit 5, exclude current |
+| Bài liên quan | Cùng category, limit **6**, exclude current |
+| Các bài khác | `otherArticles`: published, limit **100**, client filter trừ bài hiện tại (`KbMoreArticles`) |
 | Breadcrumb | Home → Tri thức → {Category} → {Title} |
 | Yêu thích | Pivot `kb_article_favorites` |
 | Đã đọc | Pivot `kb_article_reads` + `read_at` |
 | Lượt xem | `view_count` trên article |
 | Bình luận | `Comment` morph `KbArticle` |
-| TOC | Client: parse `h2`/`h3` từ HTML content, sticky sidebar desktop |
+| TOC | Server: `KbContentAnchors::toc`; client: `KbArticleToc` (sidebar desktop + plain mobile) |
 
 ---
 
@@ -159,24 +224,29 @@ Tham chiếu UX: Viblo (list + tag), Notion Wiki (sidebar cây), Confluence (bre
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ AppLayout #header — PageHeader «Cơ sở tri thức» (icon knowledge) │
+│ KbReadingProgress (sticky top)                               │
+│ AppLayout #header — PageHeader (title rút gọn, back → /blog) │
 ├─────────────────────────────────────────────────────────────┤
-│ Index: KPI strip (thống kê + lọc trạng thái nhanh)             │
-│        toolbar Tìm kiếm + Lọc/Cột/Xuất                        │
-│        → Thẻ: lưới card nhóm theo danh mục (thu gọn/mở rộng)  │
-│ Show: PageHeader gọn + hero + cover + 3 cột (TOC sticky | prose | toolbar) │
-│       author card, AI panel (UI), related grid, bình luận                  │
+│ Index: KbSummaryBar + datagrid (Tìm kiếm, Lọc/Cột/Xuất)      │
+│ Blog:  KbBlogSidebar + feed KbBlogPostCard (Published only)  │
+│ Show:  KbFloatingToolbar (lg+, fixed phải)                   │
+│        breadcrumb → KbArticleReadingGuide                      │
+│        2 cột lg+: [ card nội dung ~780px | sidebar TOC ]     │
+│        → KbRelatedArticles → KbMoreArticles → CommentThread  │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-- **Responsive:** TOC + floating toolbar chỉ desktop (`lg+`); mobile đọc một cột.
-- **Brand:** `#9A0036`, copy tiếng Việt.
+- **Show — thứ tự trong card:** Hero → excerpt → cover → TOC mobile → prose → gallery → attachments → author.
+- **Sidebar (`KbArticleShowSidebar`):** TOC sticky + nút lưu/đã đọc/chia sẻ (desktop `lg+`).
+- **Responsive:** Floating toolbar + sidebar TOC ẩn dưới `lg`; TOC dạng `plain` trên mobile.
+- **Brand:** `#9A0036`, copy tiếng Việt; tooltip: `FieldTooltip` / `shared/ui/HoverTooltip.vue` trên hero & gallery.
 
 ### 7.2 Trang chính
 
 | Page | Route name | URI |
 |---|---|---|
 | `KnowledgeBase/Index.vue` | `knowledge-base.index` | `GET /knowledge-base` |
+| `KnowledgeBase/Blog.vue` | `knowledge-base.blog` | `GET /knowledge-base/blog` |
 | `KnowledgeBase/Show.vue` | `knowledge-base.articles.show` | `GET /knowledge-base/articles/{article:slug}` |
 | `KnowledgeBase/Edit.vue` | `knowledge-base.articles.create` / `.edit` | `GET …/create`, `GET …/{article}/edit` |
 
@@ -208,6 +278,7 @@ Prefix bảng: `va_prd_`. Chi tiết cột: `docs/DATABASE_STRUCTURE.md` §7.
 | Method | URI | Name | Ghi chú |
 |---|---|---|---|
 | GET | `/knowledge-base` | `knowledge-base.index` | List + filters Inertia |
+| GET | `/knowledge-base/blog` | `knowledge-base.blog` | Blog feed + `KbBlogSidebarData` |
 | GET | `/knowledge-base/export-data` | `knowledge-base.export-data` | **JSON** — lọc giống index, ≤200 (export client) |
 | GET | `/knowledge-base/articles/create` | `knowledge-base.articles.create` | |
 | POST | `/knowledge-base/articles` | `knowledge-base.articles.store` | |
@@ -218,7 +289,7 @@ Prefix bảng: `va_prd_`. Chi tiết cột: `docs/DATABASE_STRUCTURE.md` §7.
 | POST | `/knowledge-base/articles/{article}/favorite` | `knowledge-base.articles.favorite` | toggle |
 | POST | `/knowledge-base/articles/{article}/read` | `knowledge-base.articles.read` | mark read |
 | POST | `/knowledge-base/articles/{article}/attachments` | `knowledge-base.articles.attachments.store` | |
-| POST | `/knowledge-base/articles/{article}/images` | `knowledge-base.articles.images.store` | inline TipTap |
+| POST | `/knowledge-base/articles/{article}/images` | `knowledge-base.articles.images.store` | **JSON** `{ url }` — TipTap inline |
 | POST | `/knowledge-base/articles/{article}/gallery` | `knowledge-base.articles.gallery.store` | gallery grid |
 | PATCH | `/knowledge-base/gallery/{image}` | `knowledge-base.gallery.update` | alt text |
 | DELETE | `/knowledge-base/gallery/{image}` | `knowledge-base.gallery.destroy` | |
@@ -235,26 +306,29 @@ Chi tiết đầy đủ bảng: `docs/API_STRUCTURE.md` §2.17 · grouping §3.
 
 | File | Vai trò |
 |---|---|
-| `Pages/KnowledgeBase/Index.vue` | `KbSummaryBar`; datagrid; nhóm danh mục thu gọn; `KbArticleCard` (meta tác giả); pagination |
-| `Components/KnowledgeBase/KbSummaryBar.vue` | KPI strip — lọc nhanh trạng thái (admin/lead) |
-| `Pages/KnowledgeBase/Show.vue` | Hero (meta tác giả, lưu/chia sẻ/đã đọc), cover, mục lục inline, prose ~760px, gallery/attachments, `KbAuthorCard`, `KbRelatedArticles`, `CommentThread`; props `reading_time`, `cover_image_url` |
-| `KbArticleHero.vue` | Tiêu đề, meta, nút lưu/chia sẻ/đã đọc, thẻ tag (link blog) |
-| `KbArticleBreadcrumb.vue` | *(không dùng trên Show — có thể tái dùng sau)* |
-| `KbArticleShowSidebar.vue` | *(không dùng trên Show — thao tác đã có trên hero)*
-| `KbArticleCover.vue` | Ảnh bìa hoặc gradient fallback theo category/tag |
-| `KbArticleToc.vue` | Mục lục H2/H3 + highlight section khi scroll |
-| `KbFloatingToolbar.vue` | Bookmark, share, copy, print, like (desktop) |
-| `KbReadingProgress.vue` | Thanh tiến độ đọc sticky trên cùng |
+| `Pages/KnowledgeBase/Index.vue` | `KbSummaryBar`; datagrid; nhóm danh mục; `KbArticleCard`; `useKbExport` |
+| `Pages/KnowledgeBase/Blog.vue` | `KbBlogSidebar`, `KbBlogAside`, `KbBlogPostCard`; lọc `only: articles,filters` |
+| `Pages/KnowledgeBase/Show.vue` | Progress, breadcrumb, guide, hero, cover, TOC, prose, gallery, attachments, sidebar, related, more, comments |
+| `KbSummaryBar.vue` | KPI strip — lọc nhanh trạng thái (admin/lead) |
+| `KbArticleHero.vue` | Tiêu đề, meta, tag → blog, lưu/chia sẻ/đã đọc, số bình luận |
+| `KbArticleBreadcrumb.vue` | Tri thức → Blog → chuyên mục → tiêu đề (trên Show) |
+| `KbArticleReadingGuide.vue` | Hướng dẫn đọc + tooltip |
+| `KbArticleShowSidebar.vue` | TOC sticky desktop + actions lưu/đã đọc/chia sẻ |
+| `KbArticleCover.vue` | Ảnh bìa hoặc gradient fallback |
+| `KbArticleToc.vue` | Mục lục H2/H3; `variant` sidebar/plain; `display` desktop/mobile |
+| `KbFloatingToolbar.vue` | Bookmark, share, copy, print, đã đọc — fixed phải `lg+` |
+| `KbReadingProgress.vue` | Thanh tiến độ đọc sticky |
 | `KbAuthorCard.vue` | Card tác giả cuối bài |
-| `KbRelatedArticles.vue` | Lưới 3 cột bài liên quan (thumbnail + meta) |
-| `KbAiPanel.vue` | UI tóm tắt / hỏi bài / FAQ (stub — chờ API AI) |
-| `Pages/KnowledgeBase/Edit.vue` | Form 2 cột full width, slug SEO realtime (disabled), xem trước trang, TipTap excerpt + content |
-| `KbTagField.vue` | Thẻ dạng chip + gợi ý từ `tagSuggestions` |
-| `KbRichTextField.vue` | TipTap + upload ảnh inline |
-| `KbImageGallery.vue` | CRUD gallery (`gallery.store` / `gallery.update` / `gallery.destroy`) |
-| `useKbExport.js` | `fetchKbArticlesForExport`, CSV + styled Excel (`export-data` JSON) |
-| `CommentThread.vue` | Bình luận morph trên Show |
-| `useVisibleFilterControls` / `useVisibleColumns` | Toolbar pattern datagrid (localStorage keys `va-qlda.knowledge-base.*`) |
+| `KbRelatedArticles.vue` | Lưới bài cùng chuyên mục (tối đa 6) |
+| `KbMoreArticles.vue` | «Các bài khác» — pool 100 từ server, lọc client |
+| `KbBlogPanel.vue`, `KbBlogTagSection.vue`, `KbBlogSidebar.vue`, `KbBlogAside.vue`, `KbBlogPostCard.vue` | Hub blog |
+| `KbAiPanel.vue` | Stub AI — **chưa** gắn Show |
+| `Pages/KnowledgeBase/Edit.vue` | TipTap, slug, gallery, attachments |
+| `KbTagField.vue`, `KbRichTextField.vue`, `KbImageGallery.vue` | Soạn thảo |
+| `useKbExport.js` | `fetchKbArticlesForExport`, CSV + Excel |
+| `CommentThread.vue` + `useCommentThreadPoll` | Bình luận morph |
+| `FieldTooltip.vue`, `HoverTooltip.vue` | Tooltip gallery / hero |
+| `useVisibleFilterControls` / `useVisibleColumns` | Toolbar Index |
 
 **Không có** `modules/knowledge-base/` — UI list/TOC chính nằm trong Pages; composable `useKbArticle.js` / `useKbSearch.js` **chưa** tách (logic filter trong Index + Inertia `router.get`).
 
@@ -267,7 +341,7 @@ Tests: `tests/Feature/*` KB policy/CRUD; E2E `tests/e2e/knowledge-coaching.spec.
 - [x] Migrations + seed 8 danh mục
 - [x] CRUD bài + upload ảnh/attachment + TipTap inline image
 - [x] Index: PageHeader, KPI strip, search, filter category/tag/status, nhóm danh mục thu gọn
-- [x] Show: layout blog-style (hero, TOC sticky desktop, related grid), view count, favorite/read; `reading_time` trên Resource
+- [x] Show: layout blog-style (hero, breadcrumb, guide, TOC sidebar + mobile, floating toolbar, related + otherArticles), view count, favorite/read
 - [x] Comments morph hoạt động
 - [x] Policy + Nav + messages tiếng Việt
 - [x] Feature tests + E2E smoke (`tests/e2e/knowledge-coaching.spec.js`)
