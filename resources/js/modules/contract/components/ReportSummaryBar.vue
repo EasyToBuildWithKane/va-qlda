@@ -4,17 +4,16 @@ import KpiSummaryStrip from '@/shared/ui/KpiSummaryStrip.vue';
 import { formatMoneyShort } from '@/modules/contract/composables/useContractFormat.js';
 
 const props = defineProps({
-    report: { type: Object, required: true },
+    summary: { type: Object, required: true },
 });
 
-// byVendor bao trùm toàn bộ hợp đồng (kể cả "Chưa gán NCC") → dùng làm gốc tổng.
-const base = computed(() => props.report?.byVendor ?? []);
-
 const cards = computed(() => {
-    const rows = base.value;
-    const contracts = rows.reduce((s, r) => s + (r.count || 0), 0);
-    const annual = rows.reduce((s, r) => s + (Number(r.annual_cost) || 0), 0);
-    const lifecycle = rows.reduce((s, r) => s + (Number(r.lifecycle_cost) || 0), 0);
+    const s = props.summary;
+    const contracts = s.contracts ?? 0;
+    const vendors = s.vendors ?? 0;
+    const annual = Number(s.annual_cost) || 0;
+    const lifecycle = Number(s.lifecycle_cost) || 0;
+    const annualShare = lifecycle > 0 ? Math.min(100, Math.round((annual / lifecycle) * 100)) : 0;
 
     return [
         {
@@ -23,15 +22,17 @@ const cards = computed(() => {
             value: contracts,
             tone: 'brand',
             icon: 'documents',
-            sub: 'Trong báo cáo',
+            sub: contracts ? 'Toàn bộ hợp đồng trong báo cáo' : 'Chưa có hợp đồng',
+            interactive: false,
         },
         {
             key: 'vendors',
             label: 'Nhà cung cấp',
-            value: rows.length,
+            value: vendors,
             tone: 'emerald',
             icon: 'vendor',
-            sub: 'Số NCC có hợp đồng',
+            sub: contracts ? `${vendors} dòng phân tích theo NCC` : 'Chưa có NCC',
+            interactive: false,
         },
         {
             key: 'annual',
@@ -40,6 +41,7 @@ const cards = computed(() => {
             tone: 'violet',
             icon: 'money',
             sub: 'Cộng dồn annual_cost',
+            interactive: false,
         },
         {
             key: 'lifecycle',
@@ -47,7 +49,11 @@ const cards = computed(() => {
             value: formatMoneyShort(lifecycle),
             tone: 'sky',
             icon: 'cost',
-            sub: 'Cộng dồn lifecycle_cost',
+            sub: lifecycle
+                ? `Chi phí năm ≈ ${annualShare}% vòng đời`
+                : 'Cộng dồn lifecycle_cost',
+            progress: lifecycle > 0 ? annualShare : null,
+            interactive: false,
         },
     ];
 });
@@ -57,7 +63,9 @@ const cards = computed(() => {
   <KpiSummaryStrip
     aria-label="Thống kê báo cáo hợp đồng"
     heading="Tổng quan báo cáo hợp đồng"
+    hint="Chỉ số tổng hợp — không đổi theo chiều phân tích bảng"
     :cards="cards"
+    :progress-denominator="(summary.contracts ?? 0) > 0 ? summary.contracts : (Number(summary.lifecycle_cost) > 0 ? 1 : 0)"
     grid-class="grid-cols-2 sm:grid-cols-2 lg:grid-cols-4"
   />
 </template>
