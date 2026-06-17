@@ -5,6 +5,8 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import Badge from '@/shared/ui/Badge.vue';
+import VendorDetailSummaryBar from '@/modules/contract/components/VendorDetailSummaryBar.vue';
+import VendorReviewHistoryPanel from '@/modules/contract/components/VendorReviewHistoryPanel.vue';
 import VendorFieldLabel from '@/modules/contract/components/VendorFieldLabel.vue';
 import VendorFormModal from '@/modules/contract/components/VendorFormModal.vue';
 import VendorReviewModal from '@/modules/contract/components/VendorReviewModal.vue';
@@ -12,7 +14,6 @@ import { useDialog } from '@/composables/useDialog';
 import { useToast } from '@/shared/composables/useToast';
 import { formatMoneyShort, formatDate, expiryLabel } from '@/modules/contract/composables/useContractFormat.js';
 import { displayOrEmpty, EMPTY_LABELS } from '@/shared/utils/emptyDisplay.js';
-import { date } from '@/composables/useFormat';
 
 const props = defineProps({
     vendor: { type: Object, required: true },
@@ -48,13 +49,6 @@ const showReview = ref(false);
 
 function reloadVendor() {
     router.reload({ only: ['vendor'] });
-}
-
-function scoreTone(score) {
-    if (score == null) return 'bg-slate-100 text-slate-600';
-    if (score < 7) return 'bg-rose-100 text-rose-700';
-    if (score < 8.5) return 'bg-amber-100 text-amber-700';
-    return 'bg-emerald-100 text-emerald-700';
 }
 
 async function onDelete() {
@@ -124,53 +118,7 @@ async function onDelete() {
       </PageHeader>
     </template>
 
-    <div class="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-      <div class="rounded-card border border-slate-200/80 bg-white px-4 py-3 shadow-sm">
-        <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-          Hợp đồng
-        </p>
-        <p class="mt-1 font-display text-2xl font-bold tabular-nums text-slate-900">
-          {{ vendor.contracts_count ?? 0 }}
-        </p>
-      </div>
-      <div class="rounded-card border border-slate-200/80 bg-white px-4 py-3 shadow-sm">
-        <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-          Chi phí / năm
-        </p>
-        <p class="mt-1 font-display text-2xl font-bold tabular-nums text-slate-900">
-          {{ formatMoneyShort(vendor.total_annual_cost ?? 0) }}
-        </p>
-      </div>
-      <div class="rounded-card border border-slate-200/80 bg-white px-4 py-3 shadow-sm">
-        <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-          Điểm gần nhất
-        </p>
-        <p
-          v-if="vendor.review_score != null"
-          class="mt-1 font-display text-2xl font-bold tabular-nums"
-          :class="vendor.is_low_score ? 'text-rose-600' : 'text-emerald-700'"
-        >
-          {{ vendor.review_score }}/10
-        </p>
-        <p
-          v-else
-          class="mt-2 text-sm font-medium italic text-slate-500"
-        >
-          Chưa đánh giá
-        </p>
-      </div>
-      <div class="rounded-card border border-slate-200/80 bg-white px-4 py-3 shadow-sm">
-        <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-          Trạng thái
-        </p>
-        <span
-          class="mt-2 inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold"
-          :class="vendor.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'"
-        >
-          {{ vendor.is_active ? 'Đang hợp tác' : 'Ngừng hoạt động' }}
-        </span>
-      </div>
-    </div>
+    <VendorDetailSummaryBar :vendor="vendor" />
 
     <nav
       class="mb-5 flex flex-wrap gap-1 border-b border-slate-200 pb-1"
@@ -442,58 +390,14 @@ async function onDelete() {
       </div>
     </div>
 
-    <div
+    <VendorReviewHistoryPanel
       v-else
-      class="space-y-3"
-    >
-      <article
-        v-for="r in reviews"
-        :key="r.id"
-        class="card p-4"
-      >
-        <div class="flex flex-wrap items-start justify-between gap-2">
-          <div>
-            <p class="text-sm font-medium text-slate-800">
-              {{ r.reviewed_at ? date(r.reviewed_at) : EMPTY_LABELS.period }}
-            </p>
-            <p class="text-xs text-slate-500">
-              {{ r.reviewer?.display_name ?? 'Chưa gán người đánh giá' }}
-            </p>
-          </div>
-          <span
-            v-if="r.total_score != null"
-            class="rounded-full px-2.5 py-0.5 text-xs font-semibold"
-            :class="scoreTone(r.total_score)"
-          >
-            {{ r.total_score }}/10
-          </span>
-          <span
-            v-else
-            class="text-xs italic text-slate-400"
-          >
-            Chưa có điểm tổng
-          </span>
-        </div>
-        <p
-          v-if="r.recommendation?.label"
-          class="mt-2 text-xs text-slate-600"
-        >
-          Đề xuất: <span class="font-medium">{{ r.recommendation.label }}</span>
-        </p>
-        <p
-          v-if="r.note"
-          class="mt-2 text-sm text-slate-600"
-        >
-          {{ r.note }}
-        </p>
-      </article>
-      <p
-        v-if="!reviews.length"
-        class="rounded-card border border-dashed border-slate-200 py-12 text-center text-sm italic text-slate-400"
-      >
-        Chưa có lịch sử đánh giá.
-      </p>
-    </div>
+      :reviews="reviews"
+      :criteria="options.criteria || []"
+      :recommendation-options="options.recommendation || []"
+      :can-evaluate="Boolean(vendor.can?.evaluate)"
+      @evaluate="showReview = true"
+    />
 
     <VendorFormModal
       :show="showForm"
