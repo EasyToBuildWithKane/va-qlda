@@ -1023,6 +1023,7 @@ Prefix `va_prd_`, Policy `ContractPolicy` (admin/lead/viewer).
 
 | Bảng | Thay đổi |
 |---|---|
+| `va_prd_contracts` | Thêm cột `root_contract_id` (nullable FK self → contracts, nullOnDelete) nếu thiếu — migration `2026_06_17_170000_add_root_contract_id_to_contracts_table` |
 | `va_prd_vendor_reviews` | Thêm cột `contract_id` (nullable FK → contracts, nullOnDelete) — migration `2026_06_17_151052_add_contract_id_to_vendor_reviews_table` |
 
 ### Luồng trạng thái hợp đồng

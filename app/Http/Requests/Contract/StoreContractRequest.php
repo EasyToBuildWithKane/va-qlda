@@ -6,7 +6,6 @@ use App\Http\Requests\Contract\Concerns\NormalizesContractInput;
 use App\Models\Contract;
 use App\Support\Enums\ContractBillingCycle;
 use App\Support\Enums\ContractPaymentStatus;
-use App\Support\Enums\ContractStatus;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
