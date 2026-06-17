@@ -81,7 +81,7 @@ const {
     openColPanel,
     isColVisible,
     TABLE_COLUMNS,
-} = useVisibleColumns(CONTRACT_EXPLORER_COLUMNS, 'va-qlda.contracts.explorer-columns.v1');
+} = useVisibleColumns(CONTRACT_EXPLORER_COLUMNS, 'va-qlda.contracts.explorer-columns.v2');
 
 const appliedFilterCount = computed(() => [
     filters.status, filters.payment_status, filters.vendor_id, filters.category_id,

@@ -143,6 +143,8 @@ export function useContractExplorer(contractsRef, vendorsRef, filtersRef = null)
                     count: allInCat.length,
                     setCount: setNodes.length,
                     annualCost: sumAnnual(allInCat),
+                    monthlyCost: sumMonthly(allInCat),
+                    lifecycleCost: sumLifecycle(allInCat),
                 };
             }).sort((a, b) => b.annualCost - a.annualCost);
 

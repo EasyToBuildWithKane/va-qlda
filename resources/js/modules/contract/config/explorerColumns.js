@@ -2,7 +2,6 @@
 export const CONTRACT_EXPLORER_COLUMNS = [
     { key: 'code', label: 'Mã HĐ' },
     { key: 'vendor', label: 'Nhà cung cấp' },
-    { key: 'category', label: 'Nhóm dịch vụ' },
     { key: 'name', label: 'Tên dịch vụ' },
     { key: 'role', label: 'Loại (gốc / phụ lục)', default: false },
     { key: 'using_unit', label: 'Phòng ban / đơn vị' },
