@@ -8,6 +8,20 @@ import axios from 'axios';
 window.axios = axios;
 
 window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+window.axios.defaults.withCredentials = true;
+
+const csrfMeta = document.head.querySelector('meta[name="csrf-token"]');
+if (csrfMeta) {
+    window.axios.defaults.headers.common['X-CSRF-TOKEN'] = csrfMeta.getAttribute('content');
+}
+
+/** Keep meta + axios header in sync after Inertia partial reloads (session token refresh). */
+export function syncCsrfToken(token) {
+    if (!token) return;
+    const meta = document.head.querySelector('meta[name="csrf-token"]');
+    if (meta) meta.setAttribute('content', token);
+    window.axios.defaults.headers.common['X-CSRF-TOKEN'] = token;
+}
 
 /**
  * Echo exposes an expressive API for subscribing to channels and listening

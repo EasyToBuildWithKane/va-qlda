@@ -343,6 +343,16 @@ CI creates this automatically at `${GITHUB_WORKSPACE}/database/testing.sqlite`.
 
 **Playwright `POST /login` 419:** Dùng `tests/e2e/helpers/loginPost.js`. `playwright.config.js` ép `SESSION_DRIVER=file`, `SESSION_SECURE_COOKIE=false`. Local `.env` `SESSION_DRIVER=redis` cần Redis hoặc đổi `file`.
 
+**`PUT /settings/general` (hoặc tab cấu hình khác) 419 liên tục:** Laravel «Page Expired» = cookie phiên hoặc CSRF không khớp (Inertia `useForm().put`). Kiểm tra:
+
+1. URL trình duyệt **cùng host** với `APP_URL` (không trộn `localhost` ↔ `127.0.0.1`).
+2. Local HTTP: `SESSION_SECURE_COOKIE` **false** (prod HTTPS: `true`).
+3. `SESSION_DRIVER=file` và thư mục `storage/framework/sessions` ghi được; nếu `redis` thì Redis phải chạy.
+4. Không copy `SESSION_DOMAIN` prod (`.vaschools.edu.vn`) vào local — để trống hoặc bỏ key.
+5. Hard refresh (Ctrl+F5) hoặc đăng xuất → đăng nhập lại sau khi đổi `APP_KEY`.
+
+Frontend: `HandleInertiaRequests` chia sẻ `csrf_token`; `app.js` reload khi Inertia nhận 419.
+
 ---
 
 ## AI accounts — badge «1 TK» but 0 VNĐ/month after delete

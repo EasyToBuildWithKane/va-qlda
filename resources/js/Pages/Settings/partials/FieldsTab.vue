@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, onMounted, onUnmounted, inject } from 'vue';
+import { ref, watch, onUnmounted, inject, computed } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
 import FormField from '@/shared/ui/form/FormField.vue';
@@ -18,6 +18,7 @@ const props = defineProps({
     hideHeader: { type: Boolean, default: false },
     hideFieldHints: { type: Boolean, default: false },
     suppressDirtyReport: { type: Boolean, default: false },
+    saveHotkeysEnabled: { type: Boolean, default: true },
 });
 
 const emit = defineEmits(['dirty-change']);
@@ -36,6 +37,8 @@ function buildModel() {
 }
 
 const form = useForm(buildModel());
+
+const hasSecretFields = computed(() => props.fields.some((f) => f.type === 'secret'));
 
 watch(
     () => form.isDirty,
@@ -96,18 +99,38 @@ function submit() {
                 form.defaults();
                 savedAt.value = new Date();
             },
+            onError: () => {
+                toast.error('Không lưu được. Phiên có thể đã hết hạn — trang sẽ tải lại.');
+            },
         });
 }
 
 function onKeydownSave(e) {
+    if (!props.saveHotkeysEnabled) return;
     if (!(e.ctrlKey || e.metaKey) || e.key !== 's') return;
     if (!props.canManage || !form.isDirty || form.processing) return;
     e.preventDefault();
     submit();
 }
 
-onMounted(() => document.addEventListener('keydown', onKeydownSave));
-onUnmounted(() => document.removeEventListener('keydown', onKeydownSave));
+function bindSaveHotkeys() {
+    document.addEventListener('keydown', onKeydownSave);
+}
+
+function unbindSaveHotkeys() {
+    document.removeEventListener('keydown', onKeydownSave);
+}
+
+watch(
+    () => props.saveHotkeysEnabled,
+    (enabled) => {
+        unbindSaveHotkeys();
+        if (enabled) bindSaveHotkeys();
+    },
+    { immediate: true },
+);
+
+onUnmounted(() => unbindSaveHotkeys());
 
 async function copyField(name) {
     const val = String(form[name] ?? '');
@@ -128,8 +151,9 @@ const secretPlaceholder = (f) => (f.has_value ? '•••••••• (đã 
     class="relative flex h-full flex-col"
     @submit.prevent="submit"
   >
-    <!-- Chrome/password-manager: secret fields live in a form; satisfy username hint (hidden). -->
+    <!-- Chrome/password-manager: secret fields need a username hint (one hidden field per form). -->
     <input
+      v-if="hasSecretFields"
       type="text"
       name="username"
       autocomplete="username"

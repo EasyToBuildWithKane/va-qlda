@@ -82,6 +82,7 @@ const groupMeta = (key) => props.groups.find((g) => g.key === key) ?? { label: '
         <FieldsTab
           v-show="active === 'general'"
           group="general"
+          :save-hotkeys-enabled="active === 'general'"
           :title="groupMeta('general').label"
           :description="groupMeta('general').description"
           :fields="settings.general ?? []"
@@ -90,6 +91,7 @@ const groupMeta = (key) => props.groups.find((g) => g.key === key) ?? { label: '
         <FieldsTab
           v-show="active === 'auth'"
           group="auth"
+          :save-hotkeys-enabled="active === 'auth'"
           :title="groupMeta('auth').label"
           :description="groupMeta('auth').description"
           :fields="settings.auth ?? []"
@@ -98,6 +100,7 @@ const groupMeta = (key) => props.groups.find((g) => g.key === key) ?? { label: '
         <FieldsTab
           v-show="active === 'telegram'"
           group="telegram"
+          :save-hotkeys-enabled="active === 'telegram'"
           :title="groupMeta('telegram').label"
           :description="groupMeta('telegram').description"
           :fields="settings.telegram ?? []"
@@ -105,6 +108,7 @@ const groupMeta = (key) => props.groups.find((g) => g.key === key) ?? { label: '
         />
         <EmailTemplateTab
           v-show="active === 'email'"
+          :save-hotkeys-enabled="active === 'email'"
           :title="groupMeta('email').label"
           :email-fields="settings.email ?? []"
           :email-templates="emailTemplates"
@@ -115,6 +119,7 @@ const groupMeta = (key) => props.groups.find((g) => g.key === key) ?? { label: '
         <FieldsTab
           v-show="active === 'clm'"
           group="clm"
+          :save-hotkeys-enabled="active === 'clm'"
           :title="groupMeta('clm').label"
           :description="groupMeta('clm').description"
           :fields="settings.clm ?? []"

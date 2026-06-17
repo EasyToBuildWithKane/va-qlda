@@ -19,6 +19,7 @@ const props = defineProps({
     emailPreviewBrand: { type: String, default: 'VAschools QLDA' },
     emailTestRecipient: { type: String, default: '' },
     canManage: { type: Boolean, default: false },
+    saveHotkeysEnabled: { type: Boolean, default: true },
 });
 
 const dialog = useDialog();
@@ -190,6 +191,7 @@ const sectionTabs = [
         hide-header
         hide-field-hints
         suppress-dirty-report
+        :save-hotkeys-enabled="saveHotkeysEnabled && activeSection === 'config'"
         :fields="emailFields"
         :can-manage="canManage"
         @dirty-change="onEmailConfigDirty"

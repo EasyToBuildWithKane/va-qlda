@@ -40,6 +40,7 @@ class HandleInertiaRequests extends Middleware
         $account = $request->user();
 
         return array_merge(parent::share($request), [
+            'csrf_token' => fn () => csrf_token(),
             // App identity (admin-editable via /settings, overlaid onto config).
             'app' => [
                 'name' => config('va.app_name'),
