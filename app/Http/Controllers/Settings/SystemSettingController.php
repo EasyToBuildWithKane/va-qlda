@@ -33,12 +33,17 @@ class SystemSettingController extends Controller
 {
     public function __construct(private readonly SettingsRepository $settings) {}
 
-    public function index(Request $request): Response
+    public function index(Request $request, ?string $group = null): Response
     {
         $this->authorize('viewAny', SystemSetting::class);
 
+        $activeGroup = \in_array($group, SettingsSchema::GROUPS, true)
+            ? $group
+            : SettingsSchema::GROUPS[0];
+
         return Inertia::render('Settings/Index', [
             'groups' => SettingsSchema::groups(),
+            'activeGroup' => $activeGroup,
             'settings' => $this->settingsPayload(),
             'emailTemplates' => $this->emailTemplatesPayload(),
             'emailPreviewBrand' => (string) ($this->settings->get('email.from_name') ?: config('va.app_name', 'VAschools QLDA')),

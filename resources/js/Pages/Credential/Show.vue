@@ -9,6 +9,9 @@ import CredentialFieldLabel from '@/modules/credential/components/CredentialFiel
 import CredentialPasswordViewer from '@/modules/credential/components/CredentialPasswordViewer.vue';
 import CredentialAccessGrantsPanel from '@/modules/credential/components/CredentialAccessGrantsPanel.vue';
 import CredentialAuditTimeline from '@/modules/credential/components/CredentialAuditTimeline.vue';
+import CredentialExpiryCountdown from '@/modules/credential/components/CredentialExpiryCountdown.vue';
+import { isCredentialExpiringWithinDays } from '@/modules/credential/utils/credentialExpiry';
+import { useSecondTicker } from '@/shared/composables/useSecondTicker';
 import { useToast } from '@/shared/composables/useToast';
 import { date, datetime } from '@/composables/useFormat';
 
@@ -21,6 +24,7 @@ const props = defineProps({
 });
 
 const toast = useToast();
+const { now: expiryNow } = useSecondTicker();
 const inertiaPage = usePage();
 const tab = ref('overview');
 
@@ -97,6 +101,8 @@ const badgeLabelsText = computed(() => {
     const list = (props.credential.badges || []).filter(Boolean);
     return list.length ? list.join(' · ') : '';
 });
+
+const profileExpiringSoon = computed(() => isCredentialExpiringWithinDays(props.credential.expires_at, 7));
 </script>
 
 <template>
@@ -127,6 +133,34 @@ const badgeLabelsText = computed(() => {
         </Link>
       </PageHeader>
     </template>
+
+    <div
+      v-if="profileExpiringSoon"
+      class="mb-5 flex flex-wrap items-start gap-3 rounded-card border border-amber-200/90 bg-amber-50/90 px-4 py-3 shadow-sm"
+      role="status"
+    >
+      <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-800 ring-1 ring-amber-200/80">
+        <AppIcon
+          name="clock"
+          :size="18"
+          aria-hidden="true"
+        />
+      </div>
+      <div class="min-w-0 flex-1">
+        <p class="text-sm font-medium text-amber-950">
+          Hồ sơ sắp hết hạn (trong 7 ngày)
+        </p>
+        <p class="mt-0.5 text-xs text-amber-900/90">
+          Ngày hết hạn:
+          <span class="font-medium tabular-nums">{{ credential.expires_at ? date(credential.expires_at) : '' }}</span>
+        </p>
+        <CredentialExpiryCountdown
+          :expires-at="credential.expires_at"
+          :now="expiryNow"
+          class="!mt-1.5 text-sm"
+        />
+      </div>
+    </div>
 
     <nav
       class="mb-5 flex flex-wrap gap-1 border-b border-slate-200 pb-1"
@@ -393,7 +427,14 @@ const badgeLabelsText = computed(() => {
               />
             </dt>
             <dd class="text-sm text-slate-800">
-              {{ credential.expires_at ? date(credential.expires_at) : 'Không hết hạn' }}
+              <span :class="{ 'font-medium text-amber-900': profileExpiringSoon }">
+                {{ credential.expires_at ? date(credential.expires_at) : 'Không hết hạn' }}
+              </span>
+              <CredentialExpiryCountdown
+                v-if="profileExpiringSoon"
+                :expires-at="credential.expires_at"
+                :now="expiryNow"
+              />
             </dd>
           </div>
         </dl>

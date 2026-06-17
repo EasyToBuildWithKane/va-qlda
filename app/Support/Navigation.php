@@ -507,10 +507,59 @@ class Navigation
                         'status' => 'live',
                         'roles' => ['admin'],
                     ],
+                ],
+            ],
+
+            // ──────────────────────────────────────────────────────────────
+            // 12. CẤU HÌNH HỆ THỐNG — các tab /settings tách thành menu con
+            //     Admin-only. Mỗi mục trỏ tới /settings/{group}; nhãn/icon
+            //     phản chiếu SettingsSchema::groups().
+            // ──────────────────────────────────────────────────────────────
+            [
+                'key' => 'settings',
+                'heading' => 'Cấu hình hệ thống',
+                'icon' => 'system-config',
+                'defaultCollapsed' => true,
+                'items' => [
                     [
-                        'label' => 'Cấu hình hệ thống',
-                        'icon' => 'system-config',
-                        'href' => '/settings',
+                        'label' => 'Chung',
+                        'icon' => 'settings',
+                        'href' => '/settings/general',
+                        'status' => 'live',
+                        'roles' => ['admin'],
+                    ],
+                    [
+                        'label' => 'Đăng nhập & Bảo mật',
+                        'icon' => 'account',
+                        'href' => '/settings/auth',
+                        'status' => 'live',
+                        'roles' => ['admin'],
+                    ],
+                    [
+                        'label' => 'Thông báo Telegram',
+                        'icon' => 'send',
+                        'href' => '/settings/telegram',
+                        'status' => 'live',
+                        'roles' => ['admin'],
+                    ],
+                    [
+                        'label' => 'Email & Thông báo',
+                        'icon' => 'mail',
+                        'href' => '/settings/email',
+                        'status' => 'live',
+                        'roles' => ['admin'],
+                    ],
+                    [
+                        'label' => 'Hợp đồng (CLM)',
+                        'icon' => 'budget',
+                        'href' => '/settings/clm',
+                        'status' => 'live',
+                        'roles' => ['admin'],
+                    ],
+                    [
+                        'label' => 'Phân quyền',
+                        'icon' => 'members',
+                        'href' => '/settings/permissions',
                         'status' => 'live',
                         'roles' => ['admin'],
                     ],

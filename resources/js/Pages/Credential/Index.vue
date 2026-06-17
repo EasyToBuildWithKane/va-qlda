@@ -15,7 +15,10 @@ import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import ColumnVisibilityDropdown from '@/shared/ui/ColumnVisibilityDropdown.vue';
 import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
 import CredentialDataModal from '@/modules/credential/CredentialDataModal.vue';
+import CredentialExpiryCountdown from '@/modules/credential/components/CredentialExpiryCountdown.vue';
 import { CREDENTIAL_TABLE_COLUMNS } from '@/modules/credential/config/columns.js';
+import { isCredentialExpiringWithinDays } from '@/modules/credential/utils/credentialExpiry';
+import { useSecondTicker } from '@/shared/composables/useSecondTicker';
 import { exportCredentialWorkbook } from '@/modules/credential/composables/useCredentialExport.js';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
 import { useVisibleColumns } from '@/shared/composables/useVisibleColumns';
@@ -32,6 +35,21 @@ const props = defineProps({
 });
 
 const toast = useToast();
+const { now: expiryNow } = useSecondTicker();
+
+function rowExpiringSoon(row) {
+    return isCredentialExpiringWithinDays(row.expires_at, 7);
+}
+
+function credentialRowClass(row) {
+    if (highlightedId.value === row.id) {
+        return 'bg-amber-50 ring-1 ring-inset ring-amber-300';
+    }
+    if (rowExpiringSoon(row)) {
+        return 'bg-amber-50/90 border-l-4 border-l-amber-400';
+    }
+    return '';
+}
 
 const FILTER_CONTROLS = [
     { key: 'status', label: 'Trạng thái', default: false },
@@ -531,7 +549,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOu
               :key="row.id"
               :data-credential-id="row.id"
               class="border-t border-slate-100 hover:bg-slate-50/80 transition-colors"
-              :class="highlightedId === row.id ? 'bg-amber-50 ring-1 ring-inset ring-amber-300' : ''"
+              :class="credentialRowClass(row)"
             >
               <td class="px-5 py-3">
                 <Link
@@ -552,6 +570,11 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOu
                     class="text-[10px]"
                   />
                 </div>
+                <CredentialExpiryCountdown
+                  v-if="rowExpiringSoon(row) && !isColVisible('expires_at')"
+                  :expires-at="row.expires_at"
+                  :now="expiryNow"
+                />
               </td>
               <td
                 v-if="isColVisible('type_system')"
@@ -582,9 +605,19 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOu
                 v-if="isColVisible('expires_at')"
                 class="px-5 py-3 text-xs"
               >
-                <span :class="{ 'text-slate-400 italic': !row.expires_at }">
+                <span
+                  :class="{
+                    'text-slate-400 italic': !row.expires_at,
+                    'font-medium text-amber-900': rowExpiringSoon(row),
+                  }"
+                >
                   {{ row.expires_at ? date(row.expires_at) : 'Không hết hạn' }}
                 </span>
+                <CredentialExpiryCountdown
+                  v-if="rowExpiringSoon(row)"
+                  :expires-at="row.expires_at"
+                  :now="expiryNow"
+                />
               </td>
               <td
                 v-if="isColVisible('status')"
