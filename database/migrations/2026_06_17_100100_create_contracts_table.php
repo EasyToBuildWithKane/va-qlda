@@ -17,6 +17,8 @@ return new class extends Migration
             // Tổng quan
             $table->foreignId('vendor_id')->nullable()->constrained('vendors')->nullOnDelete();
             $table->foreignId('category_id')->nullable()->constrained('contract_categories')->nullOnDelete();
+            // Bộ hợp đồng: hợp đồng gốc = null; bản gia hạn / phụ lục trỏ về gốc.
+            $table->foreignId('root_contract_id')->nullable()->constrained('contracts')->nullOnDelete();
             $table->foreignId('department_id')->nullable()->constrained('departments')->nullOnDelete();
             $table->string('using_unit')->nullable();
             $table->foreignId('owner_id')->nullable()->constrained('employees')->nullOnDelete();
@@ -51,6 +53,7 @@ return new class extends Migration
             $table->index('payment_status');
             $table->index(['vendor_id', 'status']);
             $table->index('category_id');
+            $table->index('root_contract_id');
         });
 
         Schema::create('contract_attachments', function (Blueprint $table) {

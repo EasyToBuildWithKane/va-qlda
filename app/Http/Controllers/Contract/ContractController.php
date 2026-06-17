@@ -60,7 +60,7 @@ class ContractController extends Controller
 
         $account = $request->user();
 
-        $query = Contract::query()->with('owner');
+        $query = Contract::query()->with('owner', 'finances')->withCount('attachments');
 
         if ($status = $request->query('status')) {
             $query->where('status', $status);
@@ -149,14 +149,13 @@ class ContractController extends Controller
         $this->authorize('view', $contract);
 
         $contract->load([
-            'vendor',
+            'vendor' => fn ($v) => $v->with('latestReview.reviewer'),
             'category',
             'owner',
             'manager',
             'attachments' => fn ($a) => $a->with('uploadedBy'),
             'renewals',
             'finances',
-            'reviews' => fn ($r) => $r->with('reviewer'),
             'activities' => fn ($a) => $a->limit(50),
         ]);
 
@@ -318,12 +317,13 @@ class ContractController extends Controller
                 $stats['finances']++;
             }
 
+            // Đánh giá nay gắn ở cấp NCC: tìm hợp đồng theo Mã HĐ → lấy vendor.
             foreach ($data['reviews'] ?? [] as $rv) {
                 $contract = $resolveContract($rv['code']);
-                if (! $contract) {
+                if (! $contract || ! $contract->vendor_id) {
                     continue;
                 }
-                $contract->reviews()->create([
+                Vendor::find($contract->vendor_id)?->reviews()->create([
                     'reviewer_id' => $this->resolveEmployeeIdByEmail($rv['reviewer_email'] ?? null),
                     'reviewed_at' => $rv['reviewed_at'] ?? null,
                     'service_quality' => $rv['service_quality'] ?? null,

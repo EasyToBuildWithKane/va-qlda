@@ -15,8 +15,14 @@ class ContractDashboardController extends Controller
     {
         $this->authorize('viewAny', Contract::class);
 
+        $period = $request->query('period', 'year');
+        if (! in_array($period, ['month', 'quarter', 'year'], true)) {
+            $period = 'year';
+        }
+
         return Inertia::render('Contract/Dashboard', [
-            'metrics' => $engine->build(),
+            'metrics' => $engine->build($period),
+            'filters' => ['period' => $period],
             'can' => [
                 'manage' => $request->user()->can('create', Contract::class),
             ],

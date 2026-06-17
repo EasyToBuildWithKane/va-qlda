@@ -9,7 +9,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -21,6 +20,7 @@ use Illuminate\Support\Carbon;
  * @property int|null $vendor_id
  * @property int|null $category_id
  * @property int|null $department_id
+ * @property int|null $root_contract_id
  * @property string|null $using_unit
  * @property int|null $owner_id
  * @property int|null $manager_id
@@ -51,6 +51,7 @@ class Contract extends Model
         'vendor_id',
         'category_id',
         'department_id',
+        'root_contract_id',
         'using_unit',
         'owner_id',
         'manager_id',
@@ -181,14 +182,49 @@ class Contract extends Model
         return $this->hasMany(ContractFinance::class)->orderByDesc('used_date');
     }
 
-    public function reviews(): HasMany
+    /** Hợp đồng gốc của bộ (null nếu chính nó là gốc). */
+    public function rootContract(): BelongsTo
     {
-        return $this->hasMany(ContractReview::class)->orderByDesc('reviewed_at');
+        return $this->belongsTo(Contract::class, 'root_contract_id');
     }
 
-    /** Đánh giá NCC gần nhất (dùng cho badge & cảnh báo gia hạn). */
-    public function latestReview(): HasOne
+    /** Các bản gia hạn / phụ lục trỏ về hợp đồng này. */
+    public function addenda(): HasMany
     {
-        return $this->hasOne(ContractReview::class)->latestOfMany('reviewed_at');
+        return $this->hasMany(Contract::class, 'root_contract_id');
+    }
+
+    /**
+     * Chi phí năm quy đổi: ưu tiên tổng `maintenance_fee` từ contract_finances
+     * (dữ liệu thật), fallback `annual_cost` rồi `monthly_cost * 12`.
+     */
+    public function annualCostResolved(): float
+    {
+        if ($this->relationLoaded('finances') && $this->finances->isNotEmpty()) {
+            $maintenance = (float) $this->finances->sum(fn (ContractFinance $f) => (float) ($f->maintenance_fee ?? 0));
+            if ($maintenance > 0) {
+                return round($maintenance, 2);
+            }
+            $total = (float) $this->finances->sum(fn (ContractFinance $f) => (float) ($f->total ?? 0));
+            if ($total > 0) {
+                return round($total, 2);
+            }
+        }
+
+        if ($this->annual_cost !== null) {
+            return round((float) $this->annual_cost, 2);
+        }
+
+        return round((float) ($this->monthly_cost ?? 0) * 12, 2);
+    }
+
+    /** Tổng phí khởi tạo (triển khai mới) từ contract_finances. */
+    public function initTotal(): float
+    {
+        if (! $this->relationLoaded('finances')) {
+            return 0.0;
+        }
+
+        return round((float) $this->finances->sum(fn (ContractFinance $f) => (float) ($f->init_fee ?? 0)), 2);
     }
 }

@@ -23,13 +23,14 @@ const tab = ref('overview');
 const tabs = computed(() => [
     { key: 'overview', label: 'Tổng quan', icon: 'info' },
     { key: 'finance', label: 'Tài chính', icon: 'budget' },
-    { key: 'evaluation', label: `Đánh giá${c.value.reviews?.length ? ` (${c.value.reviews.length})` : ''}`, icon: 'star' },
+    { key: 'evaluation', label: 'Đánh giá NCC', icon: 'star' },
     { key: 'documents', label: 'Hồ sơ', icon: 'documents' },
     { key: 'renewals', label: 'Gia hạn', icon: 'renewal' },
     { key: 'timeline', label: 'Timeline', icon: 'clock' },
 ]);
 
-const latestReview = computed(() => c.value.latest_review ?? c.value.reviews?.[0] ?? null);
+// Đánh giá nay ở cấp NCC — lấy đánh giá gần nhất của nhà cung cấp.
+const latestReview = computed(() => c.value.vendor?.latest_review ?? null);
 
 const reviewCriteria = [
     { key: 'service_quality', label: 'Chất lượng DV' },
@@ -67,7 +68,7 @@ const overviewRows = computed(() => [
 const financeRows = computed(() => [
     { label: 'Đơn giá', value: formatMoney(c.value.unit_price, c.value.currency) },
     { label: 'Chi phí tháng', value: formatMoney(c.value.monthly_cost, c.value.currency) },
-    { label: 'Chi phí năm', value: formatMoney(c.value.annual_cost, c.value.currency) },
+    { label: 'Chi phí năm', value: formatMoney(c.value.annual_cost ?? c.value.annual_cost_resolved, c.value.currency) },
     { label: 'Chi phí vòng đời', value: formatMoney(c.value.lifecycle_cost, c.value.currency) },
     { label: 'Tình trạng thanh toán', value: c.value.payment_status?.label ?? '—' },
 ]);
@@ -315,49 +316,63 @@ const termRows = computed(() => [
         v-else-if="tab === 'evaluation'"
         class="card p-4"
       >
-        <h3 class="mb-3 font-display text-sm font-semibold text-slate-800">
-          Đánh giá nhà cung cấp
-        </h3>
-        <ul
-          v-if="c.reviews?.length"
-          class="space-y-3"
-        >
-          <li
-            v-for="r in c.reviews"
-            :key="r.id"
-            class="rounded-lg border border-slate-200 p-3"
+        <div class="mb-3 flex items-center justify-between">
+          <h3 class="font-display text-sm font-semibold text-slate-800">
+            Đánh giá nhà cung cấp{{ c.vendor?.name ? ` · ${c.vendor.name}` : '' }}
+          </h3>
+          <a
+            v-if="c.vendor"
+            href="/contracts/vendors"
+            class="text-xs font-medium text-brand hover:underline"
           >
-            <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
-              <div class="flex items-center gap-2">
-                <span class="text-sm font-semibold text-slate-800">{{ formatDate(r.reviewed_at) }}</span>
-                <Badge
-                  v-if="r.recommendation"
-                  :label="r.recommendation.label"
-                  :color="r.recommendation.color"
-                />
-              </div>
-              <span class="text-xs text-slate-400">
-                {{ r.reviewer?.name ?? '—' }} · Tổng điểm:
-                <strong class="text-slate-600">{{ r.total_score ?? '—' }}</strong>
-              </span>
+            Quản lý đánh giá NCC →
+          </a>
+        </div>
+        <div
+          v-if="latestReview"
+          class="rounded-lg border border-slate-200 p-3"
+        >
+          <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-semibold text-slate-800">{{ formatDate(latestReview.reviewed_at) }}</span>
+              <Badge
+                v-if="latestReview.recommendation"
+                :label="latestReview.recommendation.label"
+                :color="latestReview.recommendation.color"
+              />
             </div>
-            <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs sm:grid-cols-3">
-              <div
-                v-for="cr in reviewCriteria"
-                :key="cr.key"
-                class="flex justify-between"
-              >
-                <span class="text-slate-400">{{ cr.label }}</span>
-                <span class="font-medium text-slate-600">{{ r[cr.key] ?? '—' }}</span>
-              </div>
+            <span class="text-xs text-slate-400">
+              {{ latestReview.reviewer?.name ?? '—' }} · Tổng điểm:
+              <strong
+                :class="latestReview.total_score != null && latestReview.total_score < 7 ? 'text-rose-600' : 'text-slate-600'"
+              >{{ latestReview.total_score ?? '—' }}</strong>
+            </span>
+          </div>
+          <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs sm:grid-cols-3">
+            <div
+              v-for="cr in reviewCriteria"
+              :key="cr.key"
+              class="flex justify-between"
+            >
+              <span class="text-slate-400">{{ cr.label }}</span>
+              <span class="font-medium text-slate-600">{{ latestReview[cr.key] ?? '—' }}</span>
             </div>
-          </li>
-        </ul>
+          </div>
+          <p
+            v-if="latestReview.note"
+            class="mt-2 border-t border-slate-100 pt-2 text-xs text-slate-500"
+          >
+            {{ latestReview.note }}
+          </p>
+        </div>
         <p
           v-else
           class="rounded-lg border border-dashed border-slate-200 py-8 text-center text-sm text-slate-400"
         >
-          Chưa có đánh giá nào.
+          Nhà cung cấp chưa có đánh giá. Vào trang <a
+            href="/contracts/vendors"
+            class="text-brand hover:underline"
+          >Nhà cung cấp</a> để đánh giá.
         </p>
       </div>
 

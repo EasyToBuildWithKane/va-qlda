@@ -38,7 +38,7 @@ const contractList = computed(() => {
     if (raw && typeof raw === 'object') return Object.values(raw);
     return [];
 });
-const { tree } = useContractExplorer(contractList, () => props.vendors, () => props.categories);
+const { tree } = useContractExplorer(contractList, () => props.vendors);
 
 const FILTER_CONTROLS = [
     { key: 'status', label: 'Trạng thái', default: false },
@@ -401,6 +401,7 @@ function onSaved() {
       :show="showForm"
       :vendors="vendors"
       :categories="categories"
+      :contracts="contractList"
       :employees="options.employees || []"
       :departments="options.departments || []"
       :status-options="options.status || []"

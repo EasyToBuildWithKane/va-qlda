@@ -56,7 +56,7 @@ const typeChips = computed(() => [
       />
     </template>
 
-    <div class="mx-auto max-w-5xl px-4 py-5">
+    <div class="mx-auto max-w-7xl px-4 py-5">
       <!-- Level summary strip (clickable filter) -->
       <AlertSummaryBar
         :summary="summary"

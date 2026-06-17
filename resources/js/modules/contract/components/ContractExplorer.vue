@@ -6,7 +6,7 @@ import Badge from '@/shared/ui/Badge.vue';
 import { formatMoneyShort, expiryLabel, expiryTone } from '../composables/useContractFormat.js';
 
 defineProps({
-    // tree: [{ type:'vendor', id, name, code, count, annualCost, categories:[{id,name,contracts,annualCost}], looseContracts:[] }]
+    // tree: [{ type:'vendor', id, name, code, count, setCount, annualCost, sets:[{ key, name, code, signingCount, annualCost, contracts:[] }] }]
     tree: { type: Array, default: () => [] },
 });
 
@@ -19,14 +19,18 @@ const EXPIRY_TEXT = {
 };
 const expiryTextClass = (days) => EXPIRY_TEXT[expiryTone(days)] ?? EXPIRY_TEXT.slate;
 
+// Mặc định: NCC mở, bộ hợp đồng đóng.
 const collapsed = ref(new Set());
-
 function toggle(key) {
     const next = new Set(collapsed.value);
     next.has(key) ? next.delete(key) : next.add(key);
     collapsed.value = next;
 }
 const isOpen = (key) => !collapsed.value.has(key);
+
+function roleLabel(c) {
+    return c.root_contract_id == null ? 'Gốc' : 'Gia hạn / phụ lục';
+}
 </script>
 
 <template>
@@ -55,29 +59,28 @@ const isOpen = (key) => !collapsed.value.has(key);
         </span>
         <span class="min-w-0 flex-1">
           <span class="block truncate text-sm font-semibold text-slate-800">{{ vendor.name }}</span>
-          <span class="text-xs text-slate-400">{{ vendor.count }} hợp đồng</span>
+          <span class="text-xs text-slate-400">{{ vendor.setCount }} bộ · {{ vendor.count }} hợp đồng</span>
         </span>
         <span class="shrink-0 text-sm font-semibold text-slate-700">{{ formatMoneyShort(vendor.annualCost) }}<span class="text-xs font-normal text-slate-400">/năm</span></span>
       </button>
 
-      <!-- Vendor children -->
+      <!-- Contract sets -->
       <div
         v-if="isOpen(`v-${vendor.id ?? 'none'}`)"
         class="border-t border-slate-100 px-3 py-2"
       >
-        <!-- Categories -->
         <div
-          v-for="cat in vendor.categories"
-          :key="`c-${cat.id}`"
-          class="mb-1"
+          v-for="set in vendor.sets"
+          :key="`s-${set.key}`"
+          class="mb-1 rounded-md border border-slate-100"
         >
           <button
             type="button"
-            class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-slate-50"
-            @click="toggle(`c-${cat.id}`)"
+            class="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left hover:bg-slate-50"
+            @click="toggle(`s-${set.key}`)"
           >
             <AppIcon
-              :name="isOpen(`c-${cat.id}`) ? 'chevron-down' : 'chevron-right'"
+              :name="isOpen(`s-${set.key}`) ? 'chevron-down' : 'chevron-right'"
               :size="14"
               class="shrink-0 text-slate-300"
             />
@@ -86,28 +89,41 @@ const isOpen = (key) => !collapsed.value.has(key);
               :size="14"
               class="shrink-0 text-slate-400"
             />
-            <span class="flex-1 truncate text-sm font-medium text-slate-600">{{ cat.name }}</span>
-            <span class="text-xs text-slate-400">{{ cat.contracts.length }}</span>
+            <span class="min-w-0 flex-1 truncate text-sm font-medium text-slate-700">{{ set.name }}</span>
+            <span class="shrink-0 rounded-full bg-brand/10 px-2 py-0.5 text-[11px] font-semibold text-brand">{{ set.signingCount }} lần ký</span>
+            <span class="shrink-0 text-xs font-medium text-slate-500">{{ formatMoneyShort(set.annualCost) }}</span>
           </button>
 
           <ul
-            v-if="isOpen(`c-${cat.id}`)"
-            class="ml-7 space-y-0.5 border-l border-slate-100 pl-2"
+            v-if="isOpen(`s-${set.key}`)"
+            class="ml-7 space-y-0.5 border-l border-slate-100 pl-2 pb-1"
           >
             <li
-              v-for="c in cat.contracts"
+              v-for="c in set.contracts"
               :key="c.id"
             >
-              <Link
-                :href="`/contracts/${c.id}`"
-                class="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-brand/5"
-              >
-                <AppIcon
-                  name="contract"
-                  :size="13"
-                  class="shrink-0 text-slate-300"
-                />
-                <span class="min-w-0 flex-1 truncate text-sm text-slate-700">{{ c.name }}</span>
+              <div class="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-brand/5">
+                <span
+                  class="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium"
+                  :class="c.root_contract_id == null ? 'bg-emerald-50 text-emerald-700' : 'bg-sky-50 text-sky-700'"
+                >{{ roleLabel(c) }}</span>
+                <Link
+                  :href="`/contracts/${c.id}`"
+                  class="min-w-0 flex-1 truncate text-sm text-slate-700 hover:text-brand"
+                >
+                  {{ c.name }}
+                </Link>
+                <Link
+                  v-if="c.attachments_count"
+                  :href="`/contracts/${c.id}`"
+                  class="inline-flex shrink-0 items-center gap-0.5 text-[11px] text-slate-400 hover:text-brand"
+                  title="Tài liệu đính kèm"
+                >
+                  <AppIcon
+                    name="file"
+                    :size="12"
+                  />{{ c.attachments_count }}
+                </Link>
                 <Badge
                   :label="c.status.label"
                   :color="c.status.color"
@@ -116,36 +132,11 @@ const isOpen = (key) => !collapsed.value.has(key);
                   class="shrink-0 text-xs"
                   :class="expiryTextClass(c.days_until_expiry)"
                 >{{ expiryLabel(c.days_until_expiry) }}</span>
-                <span class="shrink-0 text-xs font-medium text-slate-500">{{ formatMoneyShort(c.annual_cost) }}</span>
-              </Link>
+                <span class="shrink-0 text-xs font-medium text-slate-500">{{ formatMoneyShort(c.annual_cost_resolved ?? c.annual_cost) }}</span>
+              </div>
             </li>
           </ul>
         </div>
-
-        <!-- Loose contracts (no category) -->
-        <ul class="space-y-0.5">
-          <li
-            v-for="c in vendor.looseContracts"
-            :key="c.id"
-          >
-            <Link
-              :href="`/contracts/${c.id}`"
-              class="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-brand/5"
-            >
-              <AppIcon
-                name="contract"
-                :size="13"
-                class="ml-5 shrink-0 text-slate-300"
-              />
-              <span class="min-w-0 flex-1 truncate text-sm text-slate-700">{{ c.name }}</span>
-              <Badge
-                :label="c.status.label"
-                :color="c.status.color"
-              />
-              <span class="shrink-0 text-xs font-medium text-slate-500">{{ formatMoneyShort(c.annual_cost) }}</span>
-            </Link>
-          </li>
-        </ul>
       </div>
     </div>
 

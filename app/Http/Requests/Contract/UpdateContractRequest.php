@@ -26,6 +26,7 @@ class UpdateContractRequest extends FormRequest
             'vendor_id' => ['nullable', 'integer', 'exists:vendors,id'],
             'category_id' => ['nullable', 'integer', 'exists:contract_categories,id'],
             'department_id' => ['nullable', 'integer', 'exists:departments,id'],
+            'root_contract_id' => ['nullable', 'integer', 'exists:contracts,id', Rule::notIn([$this->route('contract')?->id])],
             'using_unit' => ['nullable', 'string', 'max:255'],
             'owner_id' => ['nullable', 'integer', 'exists:employees,id'],
             'manager_id' => ['nullable', 'integer', 'exists:employees,id'],
@@ -57,6 +58,7 @@ class UpdateContractRequest extends FormRequest
         return [
             'name.required' => 'Vui lòng nhập tên hợp đồng.',
             'expiry_date.after_or_equal' => 'Ngày hết hạn phải sau hoặc bằng ngày hiệu lực.',
+            'root_contract_id.not_in' => 'Hợp đồng không thể là hợp đồng gốc của chính nó.',
         ];
     }
 }

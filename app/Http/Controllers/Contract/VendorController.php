@@ -8,6 +8,7 @@ use App\Http\Requests\Contract\UpdateVendorRequest;
 use App\Http\Resources\VendorResource;
 use App\Models\Contract;
 use App\Models\Vendor;
+use App\Support\Enums\ContractReviewRecommendation;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -23,7 +24,9 @@ class VendorController extends Controller
 
         $query = Vendor::query()
             ->withCount('contracts')
+            ->withCount('reviews')
             ->withSum('contracts as contracts_sum_annual_cost', 'annual_cost')
+            ->with('latestReview')
             ->orderBy('name');
 
         if ($search = $request->query('q')) {
@@ -38,11 +41,26 @@ class VendorController extends Controller
             'vendors' => VendorResource::collection($query->get()),
             'filters' => (object) $request->only(['q']),
             'summary' => $this->vendorSummary(),
+            'options' => [
+                'recommendation' => ContractReviewRecommendation::options(),
+                'criteria' => self::CRITERIA_LABELS,
+            ],
             'can' => [
                 'create' => $account->can('create', Vendor::class),
+                'evaluate' => $account->can('create', Vendor::class),
             ],
         ]);
     }
+
+    /** Nhãn tiếng Việt cho 6 tiêu chí đánh giá NCC (khớp VendorReview::CRITERIA). */
+    private const CRITERIA_LABELS = [
+        ['key' => 'service_quality', 'label' => 'Chất lượng dịch vụ', 'hint' => 'Đáp ứng yêu cầu, đúng cam kết'],
+        ['key' => 'sla', 'label' => 'Tuân thủ SLA', 'hint' => 'Cam kết mức dịch vụ, thời gian phản hồi'],
+        ['key' => 'speed', 'label' => 'Tốc độ xử lý', 'hint' => 'Triển khai & hỗ trợ nhanh chóng'],
+        ['key' => 'price_satisfaction', 'label' => 'Mức độ hài lòng về giá', 'hint' => 'Giá hợp lý so với giá trị nhận được'],
+        ['key' => 'stability', 'label' => 'Độ ổn định', 'hint' => 'Dịch vụ ổn định, ít sự cố'],
+        ['key' => 'attitude', 'label' => 'Thái độ hợp tác', 'hint' => 'Thiện chí, chuyên nghiệp'],
+    ];
 
     /**
      * Tổng hợp toàn cục cho dải KPI nhà cung cấp (không phụ thuộc tìm kiếm):
@@ -57,20 +75,34 @@ class VendorController extends Controller
         $totalContracts = Contract::query()->count();
         $annualCost = (float) Contract::query()->sum('annual_cost');
 
+        // Điểm latest review mỗi NCC (chỉ NCC đã có đánh giá).
+        $latestScores = Vendor::query()
+            ->with('latestReview')
+            ->get()
+            ->map(fn (Vendor $v) => $v->latestReview?->total_score !== null ? (float) $v->latestReview->total_score : null)
+            ->filter(fn (?float $s) => $s !== null)
+            ->values();
+
         return [
             'total' => $totalVendors,
             'with_contracts' => $withContracts,
             'without_contracts' => max(0, $totalVendors - $withContracts),
             'contracts' => $totalContracts,
             'annual_cost' => round($annualCost, 2),
+            'reviewed' => $latestScores->count(),
+            'low_score' => $latestScores->filter(fn (float $s) => $s < 7)->count(),
+            'avg_score' => $latestScores->isEmpty() ? null : round($latestScores->avg(), 2),
         ];
     }
 
     public function store(StoreVendorRequest $request): RedirectResponse
     {
-        Vendor::create($request->validated());
+        $vendor = Vendor::create($request->validated());
 
-        return back()->with('success', 'Đã thêm nhà cung cấp.');
+        return back()->with([
+            'success' => 'Đã thêm nhà cung cấp.',
+            'created_vendor' => ['id' => $vendor->id, 'name' => $vendor->name],
+        ]);
     }
 
     public function update(UpdateVendorRequest $request, Vendor $vendor): RedirectResponse

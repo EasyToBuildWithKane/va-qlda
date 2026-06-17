@@ -1,26 +1,28 @@
 <script setup>
-import { computed, ref } from 'vue';
-import { Head, router } from '@inertiajs/vue3';
+import { computed, ref, watch } from 'vue';
+import { Head, router, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import VendorFormModal from '@/modules/contract/components/VendorFormModal.vue';
+import VendorReviewModal from '@/modules/contract/components/VendorReviewModal.vue';
 import VendorSummaryBar from '@/modules/contract/components/VendorSummaryBar.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import { useDialog } from '@/composables/useDialog';
 import { useToast } from '@/shared/composables/useToast';
 import { formatMoneyShort } from '@/modules/contract/composables/useContractFormat.js';
-import { watch } from 'vue';
 
 const props = defineProps({
     vendors: { type: Object, required: true },
     filters: { type: Object, default: () => ({}) },
     summary: { type: Object, default: () => ({}) },
+    options: { type: Object, default: () => ({}) },
     can: { type: Object, default: () => ({}) },
 });
 
 const dialog = useDialog();
 const toast = useToast();
+const page = usePage();
 
 const vendorList = computed(() => props.vendors.data ?? props.vendors ?? []);
 const search = ref(props.filters.q ?? '');
@@ -46,6 +48,40 @@ function openCreate() {
 function openEdit(v) {
     editing.value = v;
     showForm.value = true;
+}
+
+// ── Đánh giá NCC ──
+const showReview = ref(false);
+const reviewing = ref(null);
+
+function openReview(v) {
+    reviewing.value = v;
+    showReview.value = true;
+}
+
+// Sau khi tạo NCC mới → reload rồi mở luôn modal đánh giá (tạo xong mới đánh giá).
+function onVendorSaved() {
+    const created = page.props.flash?.created_vendor;
+    router.reload({
+        only: ['vendors', 'summary'],
+        onSuccess: () => {
+            if (created) {
+                reviewing.value = { id: created.id, name: created.name };
+                showReview.value = true;
+            }
+        },
+    });
+}
+
+function onReviewSaved() {
+    router.reload({ only: ['vendors', 'summary'] });
+}
+
+function scoreTone(score) {
+    if (score == null) return 'bg-slate-100 text-slate-500';
+    if (score < 7) return 'bg-rose-100 text-rose-700';
+    if (score < 8.5) return 'bg-amber-100 text-amber-700';
+    return 'bg-emerald-100 text-emerald-700';
 }
 
 async function onDelete(v) {
@@ -129,6 +165,14 @@ async function onDelete(v) {
                 {{ v.code }}
               </p>
             </div>
+            <span
+              v-if="v.review_score != null"
+              class="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold"
+              :class="scoreTone(v.review_score)"
+              :title="v.is_low_score ? 'Điểm đánh giá dưới 7' : 'Điểm đánh giá gần nhất'"
+            >
+              {{ v.review_score }}/10
+            </span>
             <div
               v-if="v.can?.update || v.can?.delete"
               class="flex shrink-0 gap-1"
@@ -192,6 +236,19 @@ async function onDelete(v) {
             <span class="text-slate-400">{{ v.contracts_count ?? 0 }} hợp đồng</span>
             <span class="font-medium text-slate-700">{{ formatMoneyShort(v.total_annual_cost ?? 0) }}/năm</span>
           </div>
+
+          <button
+            v-if="can.evaluate"
+            type="button"
+            class="btn-ghost mt-3 w-full justify-center text-xs"
+            @click="openReview(v)"
+          >
+            <AppIcon
+              name="performance"
+              :size="14"
+            />
+            {{ v.review_score != null ? 'Đánh giá lại' : 'Đánh giá NCC' }}
+          </button>
         </article>
 
         <p
@@ -207,7 +264,16 @@ async function onDelete(v) {
       :show="showForm"
       :vendor="editing"
       @close="showForm = false"
-      @saved="() => router.reload({ only: ['vendors'] })"
+      @saved="onVendorSaved"
+    />
+
+    <VendorReviewModal
+      :show="showReview"
+      :vendor="reviewing"
+      :criteria="options.criteria || []"
+      :recommendation-options="options.recommendation || []"
+      @close="showReview = false"
+      @saved="onReviewSaved"
     />
   </AppLayout>
 </template>

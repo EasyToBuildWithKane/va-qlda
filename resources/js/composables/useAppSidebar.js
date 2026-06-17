@@ -1,10 +1,14 @@
-import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import { useOverflowScrollHints } from '@/composables/useOverflowScrollHints';
 
 const RAIL_KEY = 'va-qlda.sidebar.rail';
 const COLLAPSE_KEY = 'va-qlda.sidebar.collapsed';
 const MOBILE_BREAKPOINT = 1024;
+
+// Module-level: survives composable re-instantiation across Inertia navigations
+// (AppLayout remounts on each navigation in template-based layout mode)
+let _savedScrollTop = 0;
 
 const ROLE_LABELS = {
     admin: 'Quản trị viên',
@@ -233,6 +237,14 @@ export function useAppSidebar() {
 
     const sidebarNavRef = ref(null);
 
+    // Save scroll position before refs are cleared on unmount (onUnmounted is too late —
+    // Vue clears ref callbacks to null during vnode teardown, before onUnmounted fires).
+    onBeforeUnmount(() => {
+        if (sidebarNavRef.value) {
+            _savedScrollTop = sidebarNavRef.value.scrollTop;
+        }
+    });
+
     const { edges: sidebarScrollEdges, onScroll: onSidebarNavScroll } = useOverflowScrollHints(
         [rail, nav, collapsed],
         sidebarNavRef,
@@ -245,19 +257,27 @@ export function useAppSidebar() {
         return e.top >= c.top - 1 && e.bottom <= c.bottom + 1;
     }
 
-    function scrollActiveNavItemIntoView() {
+    function scrollActiveNavItemIntoView(behavior = 'instant') {
         nextTick(() => {
             const root = sidebarNavRef.value;
             if (!root) return;
+
+            // On fresh mount (scrollTop=0) restore the position saved before the last unmount
+            // so the sidebar doesn't jump back to the top on every Inertia navigation.
+            if (_savedScrollTop > 0 && root.scrollTop === 0) {
+                root.scrollTop = _savedScrollTop;
+                _savedScrollTop = 0;
+            }
+
             const active = root.querySelector('.sidebar-nav-item--active');
             if (active && !isActiveNavItemInView(root, active)) {
-                active.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                active.scrollIntoView({ block: 'nearest', behavior });
             }
             onSidebarNavScroll();
         });
     }
 
-    watch(rail, () => nextTick(scrollActiveNavItemIntoView));
+    watch(rail, () => nextTick(() => scrollActiveNavItemIntoView('smooth')));
     onMounted(scrollActiveNavItemIntoView);
 
     return {

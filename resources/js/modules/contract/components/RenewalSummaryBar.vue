@@ -1,62 +1,63 @@
 <script setup>
 import { computed } from 'vue';
 import KpiSummaryStrip from '@/shared/ui/KpiSummaryStrip.vue';
+import { formatMoneyShort } from '@/modules/contract/composables/useContractFormat.js';
 
 const props = defineProps({
     groups: { type: Array, default: () => [] },
 });
 
-const DAY_TONE = { 7: 'rose', 30: 'amber', 60: 'sky', 90: 'emerald' };
-const DAY_ICON = { 7: 'alert', 30: 'clock', 60: 'clock', 90: 'renewal' };
-
-function countOf(group) {
+function listOf(group) {
     const c = group.contracts;
-    if (Array.isArray(c)) return c.length;
-    if (c?.data && Array.isArray(c.data)) return c.data.length;
-    if (c && typeof c === 'object') return Object.values(c).length;
-    return 0;
+    if (Array.isArray(c)) return c;
+    if (c?.data && Array.isArray(c.data)) return c.data;
+    if (c && typeof c === 'object') return Object.values(c);
+    return [];
 }
 
-const total = computed(() => props.groups.reduce((s, g) => s + countOf(g), 0));
+const allContracts = computed(() => props.groups.flatMap(listOf));
 
-const cards = computed(() => {
-    const t = total.value;
-    const pct = (n) => (t > 0 ? Math.round((n / t) * 100) : 0);
+const total = computed(() => allContracts.value.length);
+const critical = computed(() => allContracts.value.filter((c) => (c.days_until_expiry ?? 99) <= 7).length);
+const renewValue = computed(() => allContracts.value.reduce(
+    (s, c) => s + Number(c.annual_cost_resolved ?? c.annual_cost ?? 0), 0,
+));
 
-    const bucketCards = [...props.groups]
-        .sort((a, b) => (a.days ?? 0) - (b.days ?? 0))
-        .map((g) => {
-            const n = countOf(g);
-            return {
-                key: `d${g.days}`,
-                label: g.label ?? `Trong ${g.days} ngày`,
-                value: n,
-                tone: DAY_TONE[g.days] ?? 'slate',
-                icon: DAY_ICON[g.days] ?? 'clock',
-                sub: t ? `${pct(n)}% sắp hết hạn` : 'Không có',
-                progress: pct(n),
-            };
-        });
-
-    return [
-        {
-            key: 'total',
-            label: 'Sắp đến hạn',
-            value: t,
-            tone: 'brand',
-            icon: 'renewal',
-            sub: t ? 'Trong cửa sổ nhắc gia hạn' : 'Không có hợp đồng',
-        },
-        ...bucketCards,
-    ];
-});
+// Dải KPI tổng quan — KHÔNG lặp lại các cột mốc 7/30/60/90 bên dưới.
+const cards = computed(() => [
+    {
+        key: 'total',
+        label: 'Sắp đến hạn',
+        value: total.value,
+        tone: 'brand',
+        icon: 'renewal',
+        sub: total.value ? 'Trong cửa sổ nhắc gia hạn' : 'Không có hợp đồng',
+    },
+    {
+        key: 'critical',
+        label: 'Khẩn cấp ≤ 7 ngày',
+        value: critical.value,
+        tone: 'rose',
+        icon: 'alert',
+        sub: critical.value ? 'Cần xử lý ngay' : 'Không có',
+    },
+    {
+        key: 'value',
+        label: 'Giá trị gia hạn',
+        value: formatMoneyShort(renewValue.value),
+        tone: 'violet',
+        icon: 'budget',
+        sub: 'Tổng chi phí năm các HĐ',
+    },
+]);
 </script>
 
 <template>
   <KpiSummaryStrip
     aria-label="Thống kê gia hạn hợp đồng"
     heading="Tổng quan hợp đồng sắp đến hạn"
+    hint="Chi tiết theo mốc 7 / 30 / 60 / 90 ngày ở bên dưới"
+    grid-class="grid-cols-1 gap-3 sm:grid-cols-3"
     :cards="cards"
-    :progress-denominator="total"
   />
 </template>

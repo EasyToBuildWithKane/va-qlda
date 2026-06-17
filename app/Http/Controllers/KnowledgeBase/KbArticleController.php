@@ -18,13 +18,17 @@ use App\Support\KnowledgeBase\KbArticleSearch;
 use App\Support\KnowledgeBase\KbBlogSidebarData;
 use App\Support\KnowledgeBase\KbContentAnchors;
 use App\Support\KnowledgeBase\KbTagSync;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
+use League\Flysystem\UnableToCreateDirectory;
+use League\Flysystem\UnableToWriteFile;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class KbArticleController extends Controller
@@ -296,7 +300,7 @@ class KbArticleController extends Controller
         ]);
 
         $file = $data['file'];
-        $path = $file->store('knowledge-base/'.$article->id.'/attachments', 'public');
+        $path = $this->storeKbPublicFile($file, $article->id, 'attachments');
 
         $article->attachments()->create([
             'uploaded_by_id' => $request->user()->employee_id,
@@ -335,7 +339,7 @@ class KbArticleController extends Controller
         ]);
 
         $file = $data['image'];
-        $path = $file->store('knowledge-base/'.$article->id.'/images', 'public');
+        $path = $this->storeKbPublicFile($file, $article->id, 'images');
 
         $image = $article->images()->create([
             'uploaded_by_id' => $request->user()->employee_id,
@@ -394,7 +398,7 @@ class KbArticleController extends Controller
         ]);
 
         $file = $data['image'];
-        $path = $file->store('knowledge-base/'.$article->id.'/images', 'public');
+        $path = $this->storeKbPublicFile($file, $article->id, 'images');
         $maxSort = (int) $article->galleryImages()->max('sort_order');
 
         $article->images()->create([
@@ -537,6 +541,24 @@ class KbArticleController extends Controller
         }
 
         return $query;
+    }
+
+    private function storeKbPublicFile(UploadedFile $file, int $articleId, string $subdir): string
+    {
+        $directory = 'knowledge-base/'.$articleId.'/'.$subdir;
+        $message = 'Không ghi được file lên máy chủ. Liên hệ quản trị viên (quyền ghi thư mục storage/app/public).';
+
+        try {
+            return $file->store($directory, 'public');
+        } catch (UnableToCreateDirectory|UnableToWriteFile $e) {
+            report($e);
+
+            throw new HttpResponseException(
+                request()->expectsJson()
+                    ? response()->json(['message' => $message], 503)
+                    : back()->with('error', $message)
+            );
+        }
     }
 
     /**

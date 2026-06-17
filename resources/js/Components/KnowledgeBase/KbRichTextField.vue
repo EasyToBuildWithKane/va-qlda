@@ -159,8 +159,9 @@ async function uploadImage(file) {
             run((c) => c.setImage({ src: data.url, alt: file.name }));
             toast.success('Đã chèn ảnh.');
         }
-    } catch {
-        toast.error('Không tải được ảnh. Vui lòng thử lại.');
+    } catch (err) {
+        const msg = err.response?.data?.message;
+        toast.error(msg || 'Không tải được ảnh. Vui lòng thử lại.');
     } finally {
         imageUploading.value = false;
     }

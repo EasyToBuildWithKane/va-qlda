@@ -135,6 +135,28 @@ ls storage/app/public/projects/2/customer/
 
 ---
 
+## Knowledge base upload 500 (`UnableToCreateDirectory`)
+
+**Symptoms:** Chèn ảnh / đính kèm trên `/knowledge-base/articles/create` hoặc edit → HTTP 500; log:
+
+`Unable to create a directory at .../storage/app/public/knowledge-base/{id}/images`
+
+**Cause:** PHP-FPM user cannot create directories under `storage/app/public` (ownership or mode). Not an application logic bug.
+
+**Fix on server** (adjust user/group to match your vhost — often `www-data`, `nginx`, or the cPanel account user):
+
+```bash
+cd /path/to/public_html   # e.g. /home/projects.vaschools.edu.vn/public_html
+mkdir -p storage/app/public/knowledge-base
+chmod -R ug+rwx storage bootstrap/cache
+chown -R USER:GROUP storage bootstrap/cache
+php artisan storage:link   # if public/storage missing
+```
+
+Re-test upload. Existing modules (`projects/…`) need the same writable `storage/app/public`.
+
+---
+
 ## Sync Changes chậm / lỗi (Husky pre-push)
 
 **Sync lâu (2–3 phút):** Trước đây mỗi push chạy full Playwright. **Hiện tại mặc định không chạy E2E khi push** — Sync nhanh. CI GitHub vẫn test.

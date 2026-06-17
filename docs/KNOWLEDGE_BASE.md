@@ -52,7 +52,7 @@ resources/js/
 
 **Route model binding:** `{article}` resolve theo **`slug`** (`KbArticle::getRouteKeyName()`).
 
-**Lưu file:** disk `public`, path `knowledge-base/{article_id}/images|attachments` — URL qua `PublicMediaUrl` + route tải (pattern Project attachment).
+**Lưu file:** disk `public`, path `knowledge-base/{article_id}/images|attachments` — URL qua route tải `knowledge-base.images.file` / `attachments.file` (auth). Deploy: `storage/app/public` phải ghi được bởi PHP (xem `_dev/troubleshooting.md` — KB `UnableToCreateDirectory`).
 
 **Rich text:** TipTap — ảnh inline qua `POST knowledge-base.articles.images.store` (nút 🖼, kéo thả, dán clipboard); trang tạo bài tự tạo bản nháp JSON khi chèn ảnh lần đầu (`POST articles` + `Accept: application/json`).
 

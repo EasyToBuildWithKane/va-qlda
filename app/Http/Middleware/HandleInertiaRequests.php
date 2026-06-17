@@ -81,6 +81,7 @@ class HandleInertiaRequests extends Middleware
                 'error' => fn () => $request->session()->get('error'),
                 'created_blocker_id' => fn () => $request->session()->get('created_blocker_id'),
                 'created_blocker_ids' => fn () => $request->session()->get('created_blocker_ids'),
+                'created_vendor' => fn () => $request->session()->get('created_vendor'),
             ],
             'notifications' => fn () => $account ? [
                 'unread_count' => app(NotificationService::class)->unreadCount($account),

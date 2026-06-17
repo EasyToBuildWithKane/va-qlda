@@ -29,6 +29,7 @@ use App\Http\Controllers\Contract\ContractDashboardController;
 use App\Http\Controllers\Contract\ContractRenewalController;
 use App\Http\Controllers\Contract\ContractReportController;
 use App\Http\Controllers\Contract\VendorController;
+use App\Http\Controllers\Contract\VendorReviewController;
 use App\Http\Controllers\Credential\CredentialAccessController;
 use App\Http\Controllers\Credential\CredentialAccessRequestController;
 use App\Http\Controllers\Credential\CredentialAuditController;
@@ -236,6 +237,7 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictCoachingOnlyUsers::class
         Route::post('/vendors', [VendorController::class, 'store'])->name('vendors.store');
         Route::put('/vendors/{vendor}', [VendorController::class, 'update'])->name('vendors.update');
         Route::delete('/vendors/{vendor}', [VendorController::class, 'destroy'])->name('vendors.destroy');
+        Route::post('/vendors/{vendor}/reviews', [VendorReviewController::class, 'store'])->name('vendors.reviews.store');
 
         // Service groups (nhóm dịch vụ cho Explorer)
         Route::post('/categories', [ContractCategoryController::class, 'store'])->name('categories.store');

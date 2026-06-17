@@ -20,7 +20,6 @@ const form = useForm({
     phone: '',
     website: '',
     address: '',
-    rating: null,
     notes: '',
     is_active: true,
 });
@@ -37,7 +36,6 @@ watch(() => props.show, (open) => {
         phone: v?.phone ?? '',
         website: v?.website ?? '',
         address: v?.address ?? '',
-        rating: v?.rating ?? null,
         notes: v?.notes ?? '',
         is_active: v?.is_active ?? true,
     });
@@ -45,7 +43,10 @@ watch(() => props.show, (open) => {
 });
 
 function submit() {
-    const opts = { preserveScroll: true, onSuccess: () => { emit('saved'); emit('close'); } };
+    const opts = {
+        preserveScroll: true,
+        onSuccess: () => { emit('saved'); emit('close'); },
+    };
     if (isEdit.value) {
         form.put(`/contracts/vendors/${props.vendor.id}`, opts);
     } else {
@@ -58,96 +59,122 @@ function submit() {
   <Modal
     :show="show"
     :title="isEdit ? 'Sửa nhà cung cấp' : 'Thêm nhà cung cấp'"
-    max-width="max-w-2xl"
+    max-width="max-w-4xl"
     :dirty="form.isDirty"
     @close="emit('close')"
   >
     <form
-      class="space-y-4"
+      class="space-y-5"
       @submit.prevent="submit"
     >
-      <div class="grid gap-4 sm:grid-cols-2">
-        <div class="sm:col-span-2">
-          <label class="label">Tên nhà cung cấp *</label>
-          <input
-            v-model="form.name"
-            class="input"
-          >
-          <p
-            v-if="form.errors.name"
-            class="mt-1 text-xs text-rose-600"
-          >
-            {{ form.errors.name }}
-          </p>
+      <p class="text-[11px] text-slate-500">
+        Tạo hồ sơ nhà cung cấp trước. Sau khi lưu, bạn có thể
+        <span class="font-medium text-brand">đánh giá NCC trên 6 tiêu chí</span> từ danh sách.
+      </p>
+
+      <div class="grid gap-x-6 gap-y-4 lg:grid-cols-2">
+        <!-- Cột trái -->
+        <div class="space-y-4">
+          <div>
+            <label class="label">Tên nhà cung cấp *</label>
+            <input
+              v-model="form.name"
+              class="input"
+              placeholder="VD: Công ty TNHH Công nghệ ABC"
+              title="Tên đầy đủ của nhà cung cấp dịch vụ/phần mềm"
+            >
+            <p class="mt-1 text-[11px] text-slate-400">
+              Tên pháp lý hoặc thương hiệu của NCC.
+            </p>
+            <p
+              v-if="form.errors.name"
+              class="mt-1 text-xs text-rose-600"
+            >
+              {{ form.errors.name }}
+            </p>
+          </div>
+
+          <div>
+            <label class="label">Mã số thuế</label>
+            <input
+              v-model="form.tax_code"
+              class="input"
+              placeholder="VD: 0312345678"
+              title="Mã số thuế dùng để đối chiếu hoá đơn"
+            >
+          </div>
+
+          <div>
+            <label class="label">Người liên hệ</label>
+            <input
+              v-model="form.contact_name"
+              class="input"
+              placeholder="VD: Nguyễn Văn A — Sales"
+              title="Đầu mối liên hệ chính phía NCC"
+            >
+          </div>
+
+          <div>
+            <label class="label">Email</label>
+            <input
+              v-model="form.email"
+              type="email"
+              class="input"
+              placeholder="sales@nhacungcap.vn"
+              title="Email liên hệ / gửi báo giá"
+            >
+            <p
+              v-if="form.errors.email"
+              class="mt-1 text-xs text-rose-600"
+            >
+              {{ form.errors.email }}
+            </p>
+          </div>
         </div>
-        <div>
-          <label class="label">Mã số thuế</label>
-          <input
-            v-model="form.tax_code"
-            class="input"
-          >
-        </div>
-        <div>
-          <label class="label">Người liên hệ</label>
-          <input
-            v-model="form.contact_name"
-            class="input"
-          >
-        </div>
-        <div>
-          <label class="label">Email</label>
-          <input
-            v-model="form.email"
-            type="email"
-            class="input"
-          >
-          <p
-            v-if="form.errors.email"
-            class="mt-1 text-xs text-rose-600"
-          >
-            {{ form.errors.email }}
-          </p>
-        </div>
-        <div>
-          <label class="label">Điện thoại</label>
-          <input
-            v-model="form.phone"
-            class="input"
-          >
-        </div>
-        <div>
-          <label class="label">Website</label>
-          <input
-            v-model="form.website"
-            class="input"
-          >
-        </div>
-        <div>
-          <label class="label">Đánh giá (1–5)</label>
-          <input
-            v-model="form.rating"
-            type="number"
-            min="1"
-            max="5"
-            class="input"
-          >
-        </div>
-        <div class="sm:col-span-2">
-          <label class="label">Địa chỉ</label>
-          <input
-            v-model="form.address"
-            class="input"
-          >
-        </div>
-        <div class="sm:col-span-2">
-          <label class="label">Ghi chú</label>
-          <textarea
-            v-model="form.notes"
-            rows="2"
-            class="input"
-          />
-        </div>
-        <div>
+
+        <!-- Cột phải -->
+        <div class="space-y-4">
+          <div>
+            <label class="label">Điện thoại</label>
+            <input
+              v-model="form.phone"
+              class="input"
+              placeholder="VD: 028 1234 5678"
+              title="Số điện thoại liên hệ"
+            >
+          </div>
+
+          <div>
+            <label class="label">Website</label>
+            <input
+              v-model="form.website"
+              class="input"
+              placeholder="https://nhacungcap.vn"
+              title="Trang web chính thức của NCC"
+            >
+          </div>
+
+          <div>
+            <label class="label">Địa chỉ</label>
+            <input
+              v-model="form.address"
+              class="input"
+              placeholder="Số nhà, đường, quận/huyện, tỉnh/thành"
+              title="Địa chỉ trụ sở / xuất hoá đơn"
+            >
+          </div>
+
+          <div>
+            <label class="label">Ghi chú</label>
+            <textarea
+              v-model="form.notes"
+              rows="3"
+              class="input"
+              placeholder="Điều khoản đặc biệt, lịch sử hợp tác, lưu ý…"
+              title="Thông tin bổ sung về NCC"
+            />
+          </div>
+
           <label class="inline-flex items-center gap-2 text-sm text-slate-600">
             <input
               v-model="form.is_active"
@@ -159,7 +186,7 @@ function submit() {
         </div>
       </div>
 
-      <div class="flex justify-end gap-2 pt-2">
+      <div class="flex justify-end gap-2 border-t border-slate-100 pt-4">
         <button
           type="button"
           class="btn-ghost"
@@ -172,7 +199,7 @@ function submit() {
           class="btn-primary"
           :disabled="form.processing"
         >
-          {{ form.processing ? 'Đang lưu…' : (isEdit ? 'Lưu' : 'Thêm') }}
+          {{ form.processing ? 'Đang lưu…' : (isEdit ? 'Lưu' : 'Thêm & tiếp tục đánh giá') }}
         </button>
       </div>
     </form>

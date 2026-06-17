@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * @property int $id
@@ -68,5 +69,16 @@ class Vendor extends Model
     public function contracts(): HasMany
     {
         return $this->hasMany(Contract::class);
+    }
+
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(VendorReview::class)->orderByDesc('reviewed_at');
+    }
+
+    /** Đánh giá NCC gần nhất (dùng cho badge & cảnh báo gia hạn). */
+    public function latestReview(): HasOne
+    {
+        return $this->hasOne(VendorReview::class)->latestOfMany('reviewed_at');
     }
 }

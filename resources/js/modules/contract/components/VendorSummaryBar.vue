@@ -31,14 +31,6 @@ const cards = computed(() => {
             progress: pct(s.with_contracts ?? 0),
         },
         {
-            key: 'without_contracts',
-            label: 'Chưa có hợp đồng',
-            value: s.without_contracts ?? 0,
-            tone: 'slate',
-            icon: 'vendor',
-            sub: 'NCC tiềm năng / dự phòng',
-        },
-        {
             key: 'contracts',
             label: 'Tổng hợp đồng',
             value: s.contracts ?? 0,
@@ -52,7 +44,23 @@ const cards = computed(() => {
             value: formatMoneyShort(s.annual_cost ?? 0),
             tone: 'violet',
             icon: 'money',
-            sub: 'Tổng annual_cost theo NCC',
+            sub: 'Tổng chi phí theo NCC',
+        },
+        {
+            key: 'avg_score',
+            label: 'Điểm TB đánh giá',
+            value: s.avg_score != null ? `${s.avg_score}/10` : '—',
+            tone: 'amber',
+            icon: 'performance',
+            sub: total ? `${s.reviewed ?? 0} NCC đã đánh giá` : '—',
+        },
+        {
+            key: 'low_score',
+            label: 'NCC chấm < 7',
+            value: s.low_score ?? 0,
+            tone: 'rose',
+            icon: 'alert',
+            sub: 'Cần xem xét lại hợp tác',
         },
     ];
 });
@@ -62,6 +70,7 @@ const cards = computed(() => {
   <KpiSummaryStrip
     aria-label="Thống kê nhà cung cấp"
     heading="Tổng quan nhà cung cấp"
+    grid-class="grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6"
     :cards="cards"
     :progress-denominator="summary.total ?? 0"
   />

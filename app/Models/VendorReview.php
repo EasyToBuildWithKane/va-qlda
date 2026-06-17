@@ -9,7 +9,7 @@ use Illuminate\Support\Carbon;
 
 /**
  * @property int $id
- * @property int $contract_id
+ * @property int $vendor_id
  * @property int|null $reviewer_id
  * @property Carbon|null $reviewed_at
  * @property string|null $service_quality
@@ -22,10 +22,10 @@ use Illuminate\Support\Carbon;
  * @property ContractReviewRecommendation|null $recommendation
  * @property string|null $note
  */
-class ContractReview extends Model
+class VendorReview extends Model
 {
     protected $fillable = [
-        'contract_id',
+        'vendor_id',
         'reviewer_id',
         'reviewed_at',
         'service_quality',
@@ -51,9 +51,19 @@ class ContractReview extends Model
         'recommendation' => ContractReviewRecommendation::class,
     ];
 
-    public function contract(): BelongsTo
+    /** 6 tiêu chí chấm điểm (0–10). */
+    public const CRITERIA = [
+        'service_quality',
+        'sla',
+        'speed',
+        'price_satisfaction',
+        'stability',
+        'attitude',
+    ];
+
+    public function vendor(): BelongsTo
     {
-        return $this->belongsTo(Contract::class);
+        return $this->belongsTo(Vendor::class);
     }
 
     public function reviewer(): BelongsTo

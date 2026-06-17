@@ -21,6 +21,46 @@ export function formatMoneyShort(value, currency = 'VND') {
     return `${vndFormatter.format(Math.round(num))} ${currency}`;
 }
 
+function formatDecimalVi(value) {
+    if (Number.isInteger(value)) return String(value);
+    return value.toFixed(1).replace('.', ',');
+}
+
+/** Đọc ngắn tiếng Việt: 1 triệu, 1,5 triệu, 2 tỷ, 500 nghìn. */
+export function formatVndWords(amount) {
+    const n = Math.round(Number(amount) || 0);
+    if (n === 0) return '0 đồng';
+    if (Math.abs(n) >= 1_000_000_000) return `${formatDecimalVi(n / 1_000_000_000)} tỷ`;
+    if (Math.abs(n) >= 1_000_000) return `${formatDecimalVi(n / 1_000_000)} triệu`;
+    if (Math.abs(n) >= 1_000) return `${formatDecimalVi(n / 1_000)} nghìn`;
+    return `${vndFormatter.format(n)} đồng`;
+}
+
+/**
+ * Hiển thị đầy đủ: { primary: "1.000.000 VNĐ", secondary: "(1 triệu VNĐ)", full }.
+ * @returns {{ primary: string, secondary: string|null, full: string }}
+ */
+export function formatVndDisplay(amount, currency = 'VNĐ') {
+    const n = Math.round(Number(amount) || 0);
+    const primary = `${vndFormatter.format(n)} ${currency}`;
+    const secondary = n !== 0 ? `(${formatVndWords(n)} ${currency})` : null;
+    return { primary, secondary, full: secondary ? `${primary} ${secondary}` : primary };
+}
+
+/** Số có dấu chấm phân nhóm: 1.000.000 (không kèm đơn vị). */
+export function formatVndNumber(amount) {
+    return vndFormatter.format(Math.round(Number(amount) || 0));
+}
+
+/** Parse chuỗi tiền có dấu phân nhóm về số (giữ dấu trừ). */
+export function parseVndNumber(input) {
+    if (input === null || input === undefined) return null;
+    const digits = String(input).replace(/[^\d-]/g, '');
+    if (digits === '' || digits === '-') return null;
+    const n = Number(digits);
+    return Number.isNaN(n) ? null : n;
+}
+
 export function formatDate(value) {
     if (!value) return '—';
     const d = new Date(`${value}T00:00:00`);

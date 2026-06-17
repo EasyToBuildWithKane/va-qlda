@@ -2,12 +2,15 @@
 import { computed, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import Modal from '@/Components/Ui/Modal.vue';
+import MoneyInput from './MoneyInput.vue';
+import EmployeeAutocomplete from './EmployeeAutocomplete.vue';
 
 const props = defineProps({
     show: { type: Boolean, default: false },
     contract: { type: Object, default: null },
     vendors: { type: Array, default: () => [] },
     categories: { type: Array, default: () => [] },
+    contracts: { type: Array, default: () => [] },
     employees: { type: Array, default: () => [] },
     departments: { type: Array, default: () => [] },
     statusOptions: { type: Array, default: () => [] },
@@ -23,6 +26,7 @@ const form = useForm({
     name: '',
     vendor_id: null,
     category_id: null,
+    root_contract_id: null,
     department_id: null,
     using_unit: '',
     owner_id: null,
@@ -52,6 +56,7 @@ watch(() => props.show, (open) => {
         name: c?.name ?? '',
         vendor_id: c?.vendor_id ?? null,
         category_id: c?.category_id ?? null,
+        root_contract_id: c?.root_contract_id ?? null,
         department_id: c?.department_id ?? null,
         using_unit: c?.using_unit ?? '',
         owner_id: c?.owner?.id ?? null,
@@ -81,6 +86,13 @@ const filteredCategories = computed(() => {
     return props.categories.filter((c) => c.vendor_id === form.vendor_id || c.vendor_id == null);
 });
 
+// Hợp đồng gốc khả dụng: cùng NCC, không phải chính nó.
+const rootCandidates = computed(() => props.contracts.filter((c) => {
+    if (isEdit.value && c.id === props.contract.id) return false;
+    if (form.vendor_id && c.vendor_id && c.vendor_id !== form.vendor_id) return false;
+    return true;
+}));
+
 function submit() {
     const opts = {
         preserveScroll: true,
@@ -98,269 +110,274 @@ function submit() {
   <Modal
     :show="show"
     :title="isEdit ? 'Sửa hợp đồng' : 'Tạo hợp đồng'"
-    max-width="max-w-3xl"
+    max-width="max-w-5xl"
     :dirty="form.isDirty"
     @close="emit('close')"
   >
     <form
-      class="space-y-4"
+      class="space-y-5"
       @submit.prevent="submit"
     >
-      <div>
-        <label class="label">Tên hợp đồng *</label>
-        <input
-          v-model="form.name"
-          class="input"
-          placeholder="VD: Microsoft 365 E3 (50 license)"
-        >
-        <p
-          v-if="form.errors.name"
-          class="mt-1 text-xs text-rose-600"
-        >
-          {{ form.errors.name }}
-        </p>
-      </div>
-
-      <div class="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label class="label">Nhà cung cấp</label>
-          <select
-            v-model="form.vendor_id"
-            class="input"
-          >
-            <option :value="null">
-              — Chọn NCC —
-            </option>
-            <option
-              v-for="v in vendors"
-              :key="v.id"
-              :value="v.id"
-            >
-              {{ v.name }}
-            </option>
-          </select>
-        </div>
-        <div>
-          <label class="label">Nhóm dịch vụ</label>
-          <select
-            v-model="form.category_id"
-            class="input"
-          >
-            <option :value="null">
-              — Không —
-            </option>
-            <option
-              v-for="c in filteredCategories"
-              :key="c.id"
-              :value="c.id"
-            >
-              {{ c.name }}
-            </option>
-          </select>
-        </div>
-        <div>
-          <label class="label">Đơn vị sử dụng</label>
-          <input
-            v-model="form.using_unit"
-            class="input"
-            placeholder="VD: Toàn trường"
-          >
-        </div>
-        <div>
-          <label class="label">Phòng ban</label>
-          <select
-            v-model="form.department_id"
-            class="input"
-          >
-            <option :value="null">
-              — Không —
-            </option>
-            <option
-              v-for="d in departments"
-              :key="d.id"
-              :value="d.id"
-            >
-              {{ d.name }}
-            </option>
-          </select>
-        </div>
-        <div>
-          <label class="label">Người phụ trách</label>
-          <select
-            v-model="form.owner_id"
-            class="input"
-          >
-            <option :value="null">
-              — Không —
-            </option>
-            <option
-              v-for="e in employees"
-              :key="e.id"
-              :value="e.id"
-            >
-              {{ e.name }}
-            </option>
-          </select>
-        </div>
-        <div>
-          <label class="label">Người quản lý</label>
-          <select
-            v-model="form.manager_id"
-            class="input"
-          >
-            <option :value="null">
-              — Không —
-            </option>
-            <option
-              v-for="e in employees"
-              :key="e.id"
-              :value="e.id"
-            >
-              {{ e.name }}
-            </option>
-          </select>
-        </div>
-      </div>
-
-      <div class="grid gap-4 sm:grid-cols-3">
-        <div>
-          <label class="label">Chi phí tháng</label>
-          <input
-            v-model="form.monthly_cost"
-            type="number"
-            min="0"
-            class="input"
-          >
-        </div>
-        <div>
-          <label class="label">Chi phí năm</label>
-          <input
-            v-model="form.annual_cost"
-            type="number"
-            min="0"
-            class="input"
-          >
-        </div>
-        <div>
-          <label class="label">Chi phí vòng đời</label>
-          <input
-            v-model="form.lifecycle_cost"
-            type="number"
-            min="0"
-            class="input"
-          >
-        </div>
-        <div>
-          <label class="label">Đơn giá</label>
-          <input
-            v-model="form.unit_price"
-            type="number"
-            min="0"
-            class="input"
-          >
-        </div>
-        <div>
-          <label class="label">Tiền tệ</label>
-          <input
-            v-model="form.currency"
-            class="input"
-            maxlength="8"
-          >
-        </div>
-        <div>
-          <label class="label">Tình trạng thanh toán</label>
-          <select
-            v-model="form.payment_status"
-            class="input"
-          >
-            <option
-              v-for="o in paymentOptions"
-              :key="o.value"
-              :value="o.value"
-            >
-              {{ o.label }}
-            </option>
-          </select>
-        </div>
-      </div>
-
-      <div class="grid gap-4 sm:grid-cols-3">
-        <div>
-          <label class="label">Ngày ký</label>
-          <input
-            v-model="form.signed_date"
-            type="date"
-            class="input"
-          >
-        </div>
-        <div>
-          <label class="label">Ngày hiệu lực</label>
-          <input
-            v-model="form.effective_date"
-            type="date"
-            class="input"
-          >
-        </div>
-        <div>
-          <label class="label">Ngày hết hạn</label>
-          <input
-            v-model="form.expiry_date"
-            type="date"
-            class="input"
-          >
-          <p
-            v-if="form.errors.expiry_date"
-            class="mt-1 text-xs text-rose-600"
-          >
-            {{ form.errors.expiry_date }}
+      <div class="grid gap-x-6 gap-y-4 lg:grid-cols-2">
+        <!-- ── Cột trái: Thông tin chung ── -->
+        <div class="space-y-4">
+          <p class="text-[11px] font-semibold uppercase tracking-wide text-brand/80">
+            Thông tin chung
           </p>
-        </div>
-      </div>
 
-      <div class="grid gap-4 sm:grid-cols-3">
-        <div>
-          <label class="label">Trạng thái</label>
-          <select
-            v-model="form.status"
-            class="input"
-          >
-            <option
-              v-for="o in statusOptions"
-              :key="o.value"
-              :value="o.value"
+          <div>
+            <label class="label">Tên hợp đồng *</label>
+            <input
+              v-model="form.name"
+              class="input"
+              placeholder="VD: Microsoft 365 E3 (50 license)"
             >
-              {{ o.label }}
-            </option>
-          </select>
-        </div>
-        <div>
-          <label class="label">Chu kỳ</label>
-          <select
-            v-model="form.billing_cycle"
-            class="input"
-          >
-            <option :value="null">
-              — Không —
-            </option>
-            <option
-              v-for="o in billingOptions"
-              :key="o.value"
-              :value="o.value"
+            <p
+              v-if="form.errors.name"
+              class="mt-1 text-xs text-rose-600"
             >
-              {{ o.label }}
-            </option>
-          </select>
+              {{ form.errors.name }}
+            </p>
+          </div>
+
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label class="label">Nhà cung cấp</label>
+              <select
+                v-model="form.vendor_id"
+                class="input"
+              >
+                <option :value="null">
+                  — Chọn NCC —
+                </option>
+                <option
+                  v-for="v in vendors"
+                  :key="v.id"
+                  :value="v.id"
+                >
+                  {{ v.name }}
+                </option>
+              </select>
+            </div>
+            <div>
+              <label class="label">Nhóm dịch vụ</label>
+              <select
+                v-model="form.category_id"
+                class="input"
+              >
+                <option :value="null">
+                  — Không —
+                </option>
+                <option
+                  v-for="c in filteredCategories"
+                  :key="c.id"
+                  :value="c.id"
+                >
+                  {{ c.name }}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="label">Thuộc hợp đồng gốc</label>
+            <select
+              v-model="form.root_contract_id"
+              class="input"
+            >
+              <option :value="null">
+                — Đây là hợp đồng gốc —
+              </option>
+              <option
+                v-for="c in rootCandidates"
+                :key="c.id"
+                :value="c.id"
+              >
+                {{ c.code }} · {{ c.name }}
+              </option>
+            </select>
+            <p class="mt-1 text-[11px] text-slate-400">
+              Chọn nếu đây là bản gia hạn / phụ lục của một bộ hợp đồng.
+            </p>
+          </div>
+
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label class="label">Đơn vị sử dụng</label>
+              <input
+                v-model="form.using_unit"
+                class="input"
+                placeholder="VD: Toàn trường"
+              >
+            </div>
+            <div>
+              <label class="label">Phòng ban</label>
+              <select
+                v-model="form.department_id"
+                class="input"
+              >
+                <option :value="null">
+                  — Không —
+                </option>
+                <option
+                  v-for="d in departments"
+                  :key="d.id"
+                  :value="d.id"
+                >
+                  {{ d.name }}
+                </option>
+              </select>
+            </div>
+            <div>
+              <label class="label">Người phụ trách</label>
+              <EmployeeAutocomplete
+                v-model="form.owner_id"
+                :options="employees"
+                placeholder="Gõ tên hoặc email…"
+              />
+            </div>
+            <div>
+              <label class="label">Người quản lý</label>
+              <EmployeeAutocomplete
+                v-model="form.manager_id"
+                :options="employees"
+                placeholder="Gõ tên hoặc email…"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label class="label">Mô tả</label>
+            <textarea
+              v-model="form.description"
+              rows="3"
+              class="input"
+              placeholder="Ghi chú nội dung, phạm vi hợp đồng…"
+            />
+          </div>
         </div>
-        <div>
-          <label class="label">Kỳ gia hạn (tháng)</label>
-          <input
-            v-model="form.renewal_term_months"
-            type="number"
-            min="0"
-            class="input"
-          >
-        </div>
-        <div class="flex items-end pb-2">
+
+        <!-- ── Cột phải: Tài chính & thời hạn ── -->
+        <div class="space-y-4">
+          <p class="text-[11px] font-semibold uppercase tracking-wide text-brand/80">
+            Tài chính & thời hạn
+          </p>
+
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label class="label">Chi phí tháng</label>
+              <MoneyInput v-model="form.monthly_cost" />
+            </div>
+            <div>
+              <label class="label">Chi phí năm</label>
+              <MoneyInput v-model="form.annual_cost" />
+            </div>
+            <div>
+              <label class="label">Chi phí vòng đời</label>
+              <MoneyInput v-model="form.lifecycle_cost" />
+            </div>
+            <div>
+              <label class="label">Đơn giá</label>
+              <MoneyInput v-model="form.unit_price" />
+            </div>
+          </div>
+
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label class="label">Tình trạng thanh toán</label>
+              <select
+                v-model="form.payment_status"
+                class="input"
+              >
+                <option
+                  v-for="o in paymentOptions"
+                  :key="o.value"
+                  :value="o.value"
+                >
+                  {{ o.label }}
+                </option>
+              </select>
+            </div>
+            <div>
+              <label class="label">Chu kỳ</label>
+              <select
+                v-model="form.billing_cycle"
+                class="input"
+              >
+                <option :value="null">
+                  — Không —
+                </option>
+                <option
+                  v-for="o in billingOptions"
+                  :key="o.value"
+                  :value="o.value"
+                >
+                  {{ o.label }}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid gap-4 sm:grid-cols-3">
+            <div>
+              <label class="label">Ngày ký</label>
+              <input
+                v-model="form.signed_date"
+                type="date"
+                class="input"
+              >
+            </div>
+            <div>
+              <label class="label">Ngày hiệu lực</label>
+              <input
+                v-model="form.effective_date"
+                type="date"
+                class="input"
+              >
+            </div>
+            <div>
+              <label class="label">Ngày hết hạn</label>
+              <input
+                v-model="form.expiry_date"
+                type="date"
+                class="input"
+              >
+              <p
+                v-if="form.errors.expiry_date"
+                class="mt-1 text-xs text-rose-600"
+              >
+                {{ form.errors.expiry_date }}
+              </p>
+            </div>
+          </div>
+
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label class="label">Trạng thái</label>
+              <select
+                v-model="form.status"
+                class="input"
+              >
+                <option
+                  v-for="o in statusOptions"
+                  :key="o.value"
+                  :value="o.value"
+                >
+                  {{ o.label }}
+                </option>
+              </select>
+            </div>
+            <div>
+              <label class="label">Kỳ gia hạn (tháng)</label>
+              <input
+                v-model="form.renewal_term_months"
+                type="number"
+                min="0"
+                class="input"
+              >
+            </div>
+          </div>
+
           <label class="inline-flex items-center gap-2 text-sm text-slate-600">
             <input
               v-model="form.auto_renew"
@@ -372,16 +389,7 @@ function submit() {
         </div>
       </div>
 
-      <div>
-        <label class="label">Mô tả</label>
-        <textarea
-          v-model="form.description"
-          rows="2"
-          class="input"
-        />
-      </div>
-
-      <div class="flex justify-end gap-2 pt-2">
+      <div class="flex justify-end gap-2 border-t border-slate-100 pt-4">
         <button
           type="button"
           class="btn-ghost"

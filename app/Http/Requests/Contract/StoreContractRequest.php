@@ -27,6 +27,7 @@ class StoreContractRequest extends FormRequest
             'vendor_id' => ['nullable', 'integer', 'exists:vendors,id'],
             'category_id' => ['nullable', 'integer', 'exists:contract_categories,id'],
             'department_id' => ['nullable', 'integer', 'exists:departments,id'],
+            'root_contract_id' => ['nullable', 'integer', 'exists:contracts,id'],
             'using_unit' => ['nullable', 'string', 'max:255'],
             'owner_id' => ['nullable', 'integer', 'exists:employees,id'],
             'manager_id' => ['nullable', 'integer', 'exists:employees,id'],

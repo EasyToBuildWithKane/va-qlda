@@ -201,6 +201,24 @@ ls storage/app/public/projects/2/customer/
 
 ---
 
+## KB — upload ảnh 500 (`UnableToCreateDirectory`) {#kb-storage-500}
+
+**Triệu chứng:** Chèn ảnh TipTap / thư viện ảnh KB → 500; log Flysystem không tạo được `storage/app/public/knowledge-base/{id}/images`.
+
+**Nguyên nhân:** User PHP không ghi được `storage/app/public` (quyền hoặc owner).
+
+```bash
+cd /path/to/public_html
+mkdir -p storage/app/public/knowledge-base
+chmod -R ug+rwx storage bootstrap/cache
+chown -R USER:GROUP storage bootstrap/cache
+php artisan storage:link
+```
+
+Chi tiết EN: [_dev/troubleshooting.md](../troubleshooting.md).
+
+---
+
 ## DB / SQLite test {#db-test}
 
 ```bash

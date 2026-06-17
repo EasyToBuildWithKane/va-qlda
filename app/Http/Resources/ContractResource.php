@@ -32,12 +32,16 @@ class ContractResource extends JsonResource
                 'id' => $this->vendor->id,
                 'name' => $this->vendor->name,
                 'code' => $this->vendor->code,
+                'latest_review' => $this->vendor->relationLoaded('latestReview') && $this->vendor->latestReview
+                    ? $this->vendorReviewArray($this->vendor->latestReview)
+                    : null,
             ] : null),
             'category_id' => $this->category_id,
             'category' => $this->whenLoaded('category', fn () => $this->category ? [
                 'id' => $this->category->id,
                 'name' => $this->category->name,
             ] : null),
+            'root_contract_id' => $this->root_contract_id,
             'department_id' => $this->department_id,
             'using_unit' => $this->using_unit,
             'owner' => $this->whenLoaded('owner', fn () => $this->person($this->owner)),
@@ -47,6 +51,7 @@ class ContractResource extends JsonResource
             'unit_price' => $this->unit_price !== null ? (float) $this->unit_price : null,
             'monthly_cost' => $this->monthly_cost !== null ? (float) $this->monthly_cost : null,
             'annual_cost' => $this->annual_cost !== null ? (float) $this->annual_cost : null,
+            'annual_cost_resolved' => $this->annualCostResolved(),
             'lifecycle_cost' => $this->lifecycle_cost !== null ? (float) $this->lifecycle_cost : null,
             'payment_status' => $this->enum($this->payment_status),
             'billing_cycle' => $this->enum($this->billing_cycle),
@@ -75,8 +80,6 @@ class ContractResource extends JsonResource
                 'renewal_cost' => $f->renewal_cost !== null ? (float) $f->renewal_cost : null,
                 'note' => $f->note,
             ])),
-            'reviews' => $this->whenLoaded('reviews', fn () => $this->reviews->map(fn ($r) => $this->reviewArray($r))),
-            'latest_review' => $this->whenLoaded('latestReview', fn () => $this->latestReview ? $this->reviewArray($this->latestReview) : null),
 
             'attachments' => $this->whenLoaded('attachments', fn () => ContractAttachmentResource::collection($this->attachments)->resolve()),
             'renewals' => $this->whenLoaded('renewals', fn () => $this->renewals->map(fn ($r) => [
@@ -105,10 +108,10 @@ class ContractResource extends JsonResource
     }
 
     /**
-     * @param  \App\Models\ContractReview  $r
+     * @param  \App\Models\VendorReview  $r
      * @return array<string, mixed>
      */
-    private function reviewArray($r): array
+    private function vendorReviewArray($r): array
     {
         return [
             'id' => $r->id,

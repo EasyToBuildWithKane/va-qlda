@@ -5,16 +5,16 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Đánh giá định kỳ nhà cung cấp / dịch vụ (sheet Reviews): 6 tiêu chí điểm
- * (thang 0–10) → tổng điểm → đề xuất gia hạn / đổi NCC. Gắn vào cảnh báo.
+ * Đánh giá định kỳ nhà cung cấp (NCC): 6 tiêu chí điểm (thang 0–10) → tổng
+ * điểm → đề xuất gia hạn / đổi NCC. Gắn ở cấp NCC (không gắn hợp đồng).
  */
 return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('contract_reviews', function (Blueprint $table) {
+        Schema::create('vendor_reviews', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('contract_id')->constrained('contracts')->cascadeOnDelete();
+            $table->foreignId('vendor_id')->constrained('vendors')->cascadeOnDelete();
             $table->foreignId('reviewer_id')->nullable()->constrained('employees')->nullOnDelete();
             $table->date('reviewed_at')->nullable();
 
@@ -31,13 +31,13 @@ return new class extends Migration
             $table->text('note')->nullable();
             $table->timestamps();
 
-            $table->index(['contract_id', 'reviewed_at'], 'contract_review_contract_date_idx');
+            $table->index(['vendor_id', 'reviewed_at'], 'vendor_review_vendor_date_idx');
             $table->index('recommendation');
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('contract_reviews');
+        Schema::dropIfExists('vendor_reviews');
     }
 };
