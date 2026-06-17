@@ -7,6 +7,7 @@ import AppIcon from '@/Components/AppIcon.vue';
 import VendorFormModal from '@/modules/contract/components/VendorFormModal.vue';
 import VendorReviewModal from '@/modules/contract/components/VendorReviewModal.vue';
 import VendorSummaryBar from '@/modules/contract/components/VendorSummaryBar.vue';
+import VendorRowActions from '@/modules/contract/components/VendorRowActions.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import DatagridToolbarActionButton from '@/shared/ui/DatagridToolbarActionButton.vue';
 import DatagridFilterField from '@/shared/ui/DatagridFilterField.vue';
@@ -80,7 +81,12 @@ const filterForm = reactive({
     reviewed: props.filters.reviewed ?? '',
 });
 
-const vendorList = computed(() => props.vendors.data ?? props.vendors ?? []);
+const vendorList = computed(() => {
+    const raw = props.vendors?.data ?? props.vendors;
+    if (Array.isArray(raw)) return raw;
+    if (raw && typeof raw === 'object') return Object.values(raw);
+    return [];
+});
 
 const tableColspan = computed(() =>
     2 + TABLE_COLUMNS.filter((c) => isColVisible(c.key)).length,
@@ -96,7 +102,7 @@ function vendorRouteParams() {
 }
 
 function navigateVendors() {
-    router.get('/contracts/vendors', vendorRouteParams(), {
+    router.get(route('contracts.vendors.index'), vendorRouteParams(), {
         preserveState: true,
         preserveScroll: true,
         replace: true,
@@ -218,7 +224,7 @@ async function onDelete(v) {
         tone: 'danger',
     });
     if (!ok) return;
-    router.delete(`/contracts/vendors/${v.id}`, { preserveScroll: true });
+    router.delete(route('contracts.vendors.destroy', v.id), { preserveScroll: true });
 }
 </script>
 
@@ -229,7 +235,7 @@ async function onDelete(v) {
       <PageHeader
         title="Nhà cung cấp"
         subtitle="Quản lý NCC dịch vụ, phần mềm, hạ tầng"
-        icon="vendor"
+        icon="org-teams"
         icon-color="brand"
         :badge="summary.total ?? null"
       >
@@ -470,8 +476,8 @@ async function onDelete(v) {
               >
                 Trạng thái
               </th>
-              <th class="w-36 px-5 py-3 text-right">
-                Thao tác
+              <th class="w-14 px-5 py-3 text-right">
+                <span class="sr-only">Thao tác</span>
               </th>
             </tr>
           </thead>
@@ -574,46 +580,14 @@ async function onDelete(v) {
                   {{ v.is_active ? 'Đang hoạt động' : 'Ngừng hoạt động' }}
                 </span>
               </td>
-              <td class="px-5 py-3">
-                <div class="flex items-center justify-end gap-1">
-                  <button
-                    v-if="can.evaluate"
-                    type="button"
-                    class="btn-ghost h-8 gap-1 px-2 text-xs"
-                    :title="v.review_score != null ? 'Đánh giá lại' : 'Đánh giá NCC'"
-                    @click="openReview(v)"
-                  >
-                    <AppIcon
-                      name="performance"
-                      :size="14"
-                    />
-                    <span class="hidden xl:inline">{{ v.review_score != null ? 'Lại' : 'Đánh giá' }}</span>
-                  </button>
-                  <button
-                    v-if="v.can?.update"
-                    type="button"
-                    class="grid h-8 w-8 place-items-center rounded text-slate-400 hover:bg-slate-100"
-                    title="Sửa"
-                    @click="openEdit(v)"
-                  >
-                    <AppIcon
-                      name="edit"
-                      :size="14"
-                    />
-                  </button>
-                  <button
-                    v-if="v.can?.delete"
-                    type="button"
-                    class="grid h-8 w-8 place-items-center rounded text-slate-400 hover:bg-rose-50 hover:text-rose-600"
-                    title="Xoá"
-                    @click="onDelete(v)"
-                  >
-                    <AppIcon
-                      name="delete"
-                      :size="14"
-                    />
-                  </button>
-                </div>
+              <td class="px-5 py-3 text-right">
+                <VendorRowActions
+                  :vendor="v"
+                  :can-evaluate="can.evaluate"
+                  @review="openReview"
+                  @edit="openEdit"
+                  @delete="onDelete"
+                />
               </td>
             </tr>
             <tr v-if="!vendorList.length">

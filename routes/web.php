@@ -45,6 +45,7 @@ use App\Http\Controllers\KnowledgeBase\KbArticleController;
 use App\Http\Controllers\Member\MemberController;
 use App\Http\Controllers\Notification\NotificationController;
 use App\Http\Controllers\Notification\NotificationManagementController;
+use App\Http\Controllers\Onboarding\OnboardingController;
 use App\Http\Controllers\OrgTeam\OrgTeamController;
 use App\Http\Controllers\Performance\PerformanceAuditController;
 use App\Http\Controllers\Performance\PerformanceDashboardController;
@@ -120,6 +121,16 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictCoachingOnlyUsers::class
         Route::get('/', PerformanceDashboardController::class)->name('index');
         Route::get('/audit', [PerformanceAuditController::class, 'index'])->name('audit');
         Route::get('/audit/{employee}', [PerformanceAuditController::class, 'show'])->name('audit.show');
+    });
+
+    // Onboarding & Interactive Tour — progress tracking (content is client-side).
+    Route::prefix('onboarding')->name('onboarding.')->group(function () {
+        Route::get('/', [OnboardingController::class, 'index'])->name('index');
+        Route::post('/progress', [OnboardingController::class, 'progress'])->name('progress');
+        Route::post('/complete', [OnboardingController::class, 'complete'])->name('complete');
+        Route::post('/skip', [OnboardingController::class, 'skip'])->name('skip');
+        Route::post('/reset', [OnboardingController::class, 'reset'])->name('reset');
+        Route::post('/dismiss-welcome', [OnboardingController::class, 'dismissWelcome'])->name('dismiss-welcome');
     });
 
     // Notifications

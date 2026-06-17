@@ -58,8 +58,12 @@ class VendorController extends Controller
             $query->whereDoesntHave('latestReview');
         }
 
+        $vendors = VendorResource::collection($query->get())->resolve();
+
         return Inertia::render('Contract/Vendors', [
-            'vendors' => VendorResource::collection($query->get()),
+            'vendors' => [
+                'data' => $vendors['data'] ?? (is_array($vendors) ? array_values($vendors) : []),
+            ],
             'filters' => (object) $request->only(['q', 'scope', 'active', 'reviewed']),
             'summary' => $this->vendorSummary(),
             'options' => [

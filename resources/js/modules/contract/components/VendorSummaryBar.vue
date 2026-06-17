@@ -100,7 +100,11 @@ function onSelect(card) {
     :cards="cards"
     :active-key="activeKey"
     :progress-denominator="summary.total ?? 0"
-    grid-class="grid-cols-2 sm:grid-cols-3 lg:grid-cols-6"
+    grid-class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6"
     @select="onSelect"
   />
 </template>
+
+<style scoped>
+@import '@/shared/styles/kpi-summary-strip.css';
+</style>

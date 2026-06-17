@@ -32,6 +32,7 @@ function bindNavRef(el) {
     <div
       v-for="(group, gi) in nav"
       :key="groupKey(group)"
+      :data-tour="`nav-${group.key}`"
       :class="[
         gi > 0 ? 'mt-1.5 border-t border-white/[0.07] pt-1.5' : '',
         isUpcomingGroup(group) && 'mt-3 border-t border-amber-300/25 pt-3',

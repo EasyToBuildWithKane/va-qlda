@@ -9,6 +9,7 @@ import AppDialog from '@/Components/Ui/AppDialog.vue';
 import ToastContainer from '@/Components/Ui/ToastContainer.vue';
 import AppSidebar from '@/Components/Layout/AppSidebar.vue';
 import AppSidebarMobileDrawer from '@/Components/Layout/AppSidebarMobileDrawer.vue';
+import OnboardingRoot from '@/modules/onboarding/components/OnboardingRoot.vue';
 import { useToast } from '@/shared/composables/useToast';
 import { useNotifications } from '@/composables/useNotifications';
 import { useAppSidebar } from '@/composables/useAppSidebar';
@@ -116,6 +117,7 @@ onUnmounted(() => {
 <template>
   <div class="flex h-screen min-h-0 overflow-hidden bg-slate-50">
     <AppSidebar
+      data-tour="sidebar"
       :rail="rail"
       :nav="nav"
       :app-short-name="appShortName"
@@ -228,12 +230,16 @@ onUnmounted(() => {
               </div>
               <div class="hidden h-5 w-px bg-slate-200 sm:block" />
               <QuickBlockerReportBell />
-              <NotificationBell />
-              <UserMenu
-                :user="user"
-                :role-label="roleLabel"
-                @open-notifications="notificationCenter.openDrawer()"
-              />
+              <span data-tour="topbar-notifications">
+                <NotificationBell />
+              </span>
+              <span data-tour="topbar-user">
+                <UserMenu
+                  :user="user"
+                  :role-label="roleLabel"
+                  @open-notifications="notificationCenter.openDrawer()"
+                />
+              </span>
             </div>
           </div>
         </header>
@@ -247,5 +253,6 @@ onUnmounted(() => {
     <AppDialog />
     <ToastContainer />
     <NotificationCenterDrawer />
+    <OnboardingRoot />
   </div>
 </template>

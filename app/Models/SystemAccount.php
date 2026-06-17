@@ -34,6 +34,7 @@ class SystemAccount extends Authenticatable
         'employee_id',
         'is_active',
         'last_login_at',
+        'onboarding_seen_at',
     ];
 
     protected $hidden = [
@@ -45,6 +46,7 @@ class SystemAccount extends Authenticatable
         'password' => 'hashed',
         'is_active' => 'boolean',
         'last_login_at' => 'datetime',
+        'onboarding_seen_at' => 'datetime',
         'role' => SystemRole::class,
     ];
 
