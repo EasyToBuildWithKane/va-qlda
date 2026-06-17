@@ -20,9 +20,17 @@ function levelFor(days) {
     return 'safe';
 }
 
+/** Inertia / JsonResource đôi khi truyền `{ data: [...] }` hoặc object keyed — không phải Array. */
+function normalizeContractList(raw) {
+    if (Array.isArray(raw)) return raw;
+    if (raw?.data && Array.isArray(raw.data)) return raw.data;
+    if (raw && typeof raw === 'object') return Object.values(raw);
+    return [];
+}
+
 export function useContractCalendar(contractsRef) {
     const events = computed(() => {
-        const contracts = unref(contractsRef) || [];
+        const contracts = normalizeContractList(unref(contractsRef));
         return contracts
             .filter((c) => c.expiry_date)
             .map((c) => {

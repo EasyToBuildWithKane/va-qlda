@@ -3,7 +3,6 @@ import { computed, watch } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
-import CredentialHelpBanner from '@/modules/credential/components/CredentialHelpBanner.vue';
 import CredentialFieldLabel from '@/modules/credential/components/CredentialFieldLabel.vue';
 
 const props = defineProps({
@@ -73,7 +72,6 @@ function submit() {
         title="Thêm tài khoản"
         subtitle="Lưu thông tin truy cập an toàn — mật khẩu được mã hóa trên máy chủ"
         icon="vault"
-        icon-color="emerald"
       >
         <Link
           :href="route('credentials.index')"
@@ -84,22 +82,11 @@ function submit() {
       </PageHeader>
     </template>
 
-    <CredentialHelpBanner
-      title="Quy trình thêm tài khoản"
-      intro="Điền đủ thông tin để đội vận hành tra cứu, phân quyền và theo dõi hết hạn. Bạn có thể bổ sung mật khẩu sau khi tạo."
-      :steps="[
-        'Chọn loại và hệ thống (CMS, VPS, API Key, …).',
-        'Nhập tên dễ nhận biết, URL và thông tin đăng nhập.',
-        'Gán người phụ trách và môi trường (Production / Staging).',
-        'Bấm «Tạo tài khoản» — mở hồ sơ để cấp quyền hoặc liên kết hạ tầng.',
-      ]"
-    />
-
     <form
-      class="mx-auto max-w-3xl space-y-5"
+      class="grid w-full grid-cols-1 gap-5 lg:grid-cols-2"
       @submit.prevent="submit"
     >
-      <section class="card space-y-4 p-5 sm:p-6">
+      <section class="card flex h-full flex-col space-y-4 p-5 sm:p-6">
         <h3 class="text-xs font-semibold uppercase tracking-[0.12em] text-brand/80">
           1 · Phân loại
         </h3>
@@ -181,10 +168,31 @@ function submit() {
               placeholder="VD: AWS, Viettel IDC, Cloudflare"
             >
           </div>
+          <div>
+            <CredentialFieldLabel
+              for-id="cred-status"
+              label="Trạng thái"
+              required
+              tooltip="Đang hoạt động, ngưng dùng, hết hạn hoặc bị khóa — ảnh hưởng lọc KPI danh sách."
+            />
+            <select
+              id="cred-status"
+              v-model="form.status"
+              :class="INPUT_CLASS"
+            >
+              <option
+                v-for="o in options.status"
+                :key="o.value"
+                :value="o.value"
+              >
+                {{ o.label }}
+              </option>
+            </select>
+          </div>
         </div>
       </section>
 
-      <section class="card space-y-4 p-5 sm:p-6">
+      <section class="card flex h-full flex-col space-y-4 p-5 sm:p-6">
         <h3 class="text-xs font-semibold uppercase tracking-[0.12em] text-brand/80">
           2 · Thông tin đăng nhập
         </h3>
@@ -286,7 +294,7 @@ function submit() {
         </div>
       </section>
 
-      <section class="card space-y-4 p-5 sm:p-6">
+      <section class="card flex h-full flex-col space-y-4 p-5 sm:p-6">
         <h3 class="text-xs font-semibold uppercase tracking-[0.12em] text-brand/80">
           3 · Phụ trách & phạm vi
         </h3>
@@ -402,7 +410,7 @@ function submit() {
         </div>
       </section>
 
-      <section class="card space-y-4 p-5 sm:p-6">
+      <section class="card flex h-full flex-col space-y-4 p-5 sm:p-6">
         <h3 class="text-xs font-semibold uppercase tracking-[0.12em] text-brand/80">
           4 · Ghi chú
         </h3>
@@ -434,7 +442,7 @@ function submit() {
         </div>
       </section>
 
-      <div class="flex flex-wrap justify-end gap-2 pb-6">
+      <div class="flex flex-wrap justify-end gap-2 pb-6 lg:col-span-2">
         <Link
           :href="route('credentials.index')"
           class="btn-ghost h-10 px-4 text-sm"

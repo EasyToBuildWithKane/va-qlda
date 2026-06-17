@@ -24,7 +24,18 @@ const BUCKET_TONE = {
     90: 'border-emerald-200 bg-emerald-50/50',
 };
 
-const total = computed(() => props.groups.reduce((s, g) => s + g.contracts.length, 0));
+function normalizeList(raw) {
+    if (Array.isArray(raw)) return raw;
+    if (raw?.data && Array.isArray(raw.data)) return raw.data;
+    if (raw && typeof raw === 'object') return Object.values(raw);
+    return [];
+}
+
+const renewalGroups = computed(() => normalizeList(props.groups));
+
+const total = computed(() =>
+    renewalGroups.value.reduce((s, g) => s + normalizeList(g.contracts).length, 0),
+);
 
 const renewing = ref(null);
 const showRenew = ref(false);
@@ -71,7 +82,7 @@ function onSaved() {
 
     <div class="mx-auto max-w-7xl px-4 py-5">
       <div v-if="view === 'calendar'">
-        <ContractCalendar :contracts="calendar" />
+        <ContractCalendar :contracts="normalizeList(calendar)" />
       </div>
 
       <div
@@ -79,7 +90,7 @@ function onSaved() {
         class="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
       >
         <section
-          v-for="g in groups"
+          v-for="g in renewalGroups"
           :key="g.days"
           class="rounded-card border p-3"
           :class="BUCKET_TONE[g.days] ?? 'border-slate-200'"
@@ -88,12 +99,12 @@ function onSaved() {
             <h2 class="font-display text-sm font-semibold text-slate-800">
               {{ g.label }}
             </h2>
-            <span class="rounded-full bg-white px-2 py-0.5 text-xs font-semibold text-slate-600">{{ g.contracts.length }}</span>
+            <span class="rounded-full bg-white px-2 py-0.5 text-xs font-semibold text-slate-600">{{ normalizeList(g.contracts).length }}</span>
           </header>
 
           <ul class="space-y-2">
             <li
-              v-for="c in g.contracts"
+              v-for="c in normalizeList(g.contracts)"
               :key="c.id"
               class="rounded-lg border border-slate-200 bg-white p-2.5"
             >
@@ -131,7 +142,7 @@ function onSaved() {
               </button>
             </li>
             <li
-              v-if="!g.contracts.length"
+              v-if="!normalizeList(g.contracts).length"
               class="py-4 text-center text-xs text-slate-400"
             >
               Không có hợp đồng.

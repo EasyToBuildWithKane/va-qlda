@@ -48,12 +48,12 @@ class ContractRenewalController extends Controller
         $groups = collect($milestones)->map(fn (int $m) => [
             'days' => $m,
             'label' => "Trong {$m} ngày",
-            'contracts' => ContractListResource::collection(collect($buckets[$m] ?? []))->resolve(),
-        ])->all();
+            'contracts' => array_values(ContractListResource::collection(collect($buckets[$m] ?? []))->resolve()),
+        ])->values()->all();
 
         return Inertia::render('Contract/Renewals', [
             'groups' => $groups,
-            'calendar' => ContractListResource::collection($contracts)->resolve(),
+            'calendar' => array_values(ContractListResource::collection($contracts)->resolve()),
             'can' => [
                 'manage' => request()->user()->can('create', Contract::class),
             ],

@@ -238,17 +238,25 @@ export function useAppSidebar() {
         sidebarNavRef,
     );
 
+    function isActiveNavItemInView(container, el) {
+        if (!container || !el) return true;
+        const c = container.getBoundingClientRect();
+        const e = el.getBoundingClientRect();
+        return e.top >= c.top - 1 && e.bottom <= c.bottom + 1;
+    }
+
     function scrollActiveNavItemIntoView() {
         nextTick(() => {
             const root = sidebarNavRef.value;
             if (!root) return;
             const active = root.querySelector('.sidebar-nav-item--active');
-        active?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-        onSidebarNavScroll();
-    });
-}
+            if (active && !isActiveNavItemInView(root, active)) {
+                active.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            }
+            onSidebarNavScroll();
+        });
+    }
 
-    watch(activeHref, scrollActiveNavItemIntoView);
     watch(rail, () => nextTick(scrollActiveNavItemIntoView));
     onMounted(scrollActiveNavItemIntoView);
 
