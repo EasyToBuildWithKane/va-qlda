@@ -46,10 +46,11 @@ const FILTER_CONTROLS = [
 const FILTER_CONTROL_CLASS = 'input h-10 w-full text-sm';
 const filterPanelDdRef = ref(null);
 const colDdRef = ref(null);
-const exportRef = ref(null);
+const dataMenuRef = ref(null);
 const dataModal = ref(false);
-const exportMenu = ref(false);
-const exporting = ref(false);
+const dataMenu = ref(false);
+const dataModalInitialTab = ref('import');
+const highlightedId = ref(null);
 const perPage = ref(Number(props.filters.per_page) || 20);
 
 const filters = reactive({
@@ -85,10 +86,10 @@ const {
 
 const tableColspan = computed(() => visibleColumnCount.value);
 
-const { panelStyle: exportPanelStyle } = useFixedDropdownAnchor(
-    () => exportRef.value,
-    exportMenu,
-    { width: 220, zIndex: 120 },
+const { panelStyle: dataMenuStyle } = useFixedDropdownAnchor(
+    () => dataMenuRef.value,
+    dataMenu,
+    { width: 248, zIndex: 120 },
 );
 
 let debounce;
@@ -114,56 +115,74 @@ function onToolbarClickOutside(e) {
     const t = e.target;
     if (t.closest?.('[data-filter-visibility-panel]')) return;
     if (t.closest?.('[data-column-visibility-panel]')) return;
-    if (t.closest?.('[data-credential-export-panel]')) return;
+    if (t.closest?.('[data-credential-data-panel]')) return;
     if (filterPanelDdRef.value && !filterPanelDdRef.value.contains(t)) {
         showFilterPanelDd.value = false;
     }
     if (colDdRef.value && !colDdRef.value.contains(t)) {
         showColDd.value = false;
     }
-    if (exportRef.value && !exportRef.value.contains(t)) {
-        exportMenu.value = false;
+    if (dataMenuRef.value && !dataMenuRef.value.contains(t)) {
+        dataMenu.value = false;
     }
 }
 
 function openFilterPanelSafe() {
     openFilterPanel(() => {
         showColDd.value = false;
-        exportMenu.value = false;
+        dataMenu.value = false;
     });
 }
 
 function openColPanelSafe() {
     openColPanel(() => {
         showFilterPanelDd.value = false;
-        exportMenu.value = false;
+        dataMenu.value = false;
     });
 }
 
-function toggleExportMenu() {
-    exportMenu.value = !exportMenu.value;
-    if (exportMenu.value) {
+function toggleDataMenu() {
+    dataMenu.value = !dataMenu.value;
+    if (dataMenu.value) {
         showFilterPanelDd.value = false;
         showColDd.value = false;
     }
 }
 
 function runExport() {
-    exportMenu.value = false;
+    dataMenu.value = false;
     const rows = props.credentials.data ?? [];
     if (!rows.length) {
         toast.warning('Không có dữ liệu để xuất trên trang này.');
         return;
     }
-    exporting.value = true;
     try {
         exportCredentialWorkbook(rows);
         toast.success(`Đã xuất ${rows.length} tài khoản (trang hiện tại).`);
     } catch {
         toast.error('Xuất file thất bại. Thử lại sau.');
-    } finally {
-        exporting.value = false;
     }
+}
+
+function openDataModal(tabName = 'import') {
+    dataMenu.value = false;
+    dataModalInitialTab.value = tabName;
+    dataModal.value = true;
+}
+
+function onFixIssue(issue) {
+    if (!issue.credentialId) return;
+    highlightedId.value = issue.credentialId;
+    // Scroll to the highlighted row after Vue renders
+    setTimeout(() => {
+        const el = document.querySelector(`[data-credential-id="${issue.credentialId}"]`);
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            el.focus?.();
+        }
+        // Clear highlight after 4 seconds
+        setTimeout(() => { highlightedId.value = null; }, 4000);
+    }, 100);
 }
 
 onMounted(() => document.addEventListener('mousedown', onToolbarClickOutside));
@@ -262,49 +281,64 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOu
             </div>
 
             <div
-              ref="exportRef"
+              ref="dataMenuRef"
               class="relative shrink-0"
             >
               <DatagridToolbarActionButton
-                icon="export"
-                :active="exportMenu"
-                :disabled="exporting"
-                title="Xuất trang hiện tại"
-                @click="toggleExportMenu"
+                icon="upload"
+                :active="dataMenu"
+                title="Nhập · Xuất · Đối soát dữ liệu"
+                @click="toggleDataMenu"
               >
-                {{ exporting ? 'Đang xuất…' : 'Xuất' }}
+                Dữ liệu
               </DatagridToolbarActionButton>
             </div>
-
-            <DatagridToolbarActionButton
-              icon="upload"
-              @click="dataModal = true"
-            >
-              Dữ liệu
-            </DatagridToolbarActionButton>
           </div>
         </div>
 
         <Teleport to="body">
           <Transition
             enter-active-class="transition duration-150 ease-out"
-            enter-from-class="opacity-0"
+            enter-from-class="opacity-0 scale-95"
             leave-active-class="transition duration-100 ease-in"
-            leave-to-class="opacity-0"
+            leave-to-class="opacity-0 scale-95"
           >
             <div
-              v-if="exportMenu"
-              :style="exportPanelStyle"
+              v-if="dataMenu"
+              :style="dataMenuStyle"
               class="overflow-hidden rounded-card border border-slate-200 bg-white p-1 shadow-elevation-2"
-              data-credential-export-panel
+              data-credential-data-panel
             >
               <button
                 type="button"
-                class="flex w-full flex-col rounded-btn px-3 py-2 text-left hover:bg-slate-50"
+                class="flex w-full items-center gap-2.5 rounded-btn px-3 py-2 text-left hover:bg-slate-50"
                 @click="runExport"
               >
-                <span class="text-sm font-medium text-slate-700">Excel (.xlsx)</span>
-                <span class="text-[10px] text-slate-400">Trang đang xem</span>
+                <AppIcon
+                  name="export"
+                  :size="15"
+                  class="shrink-0 text-slate-400"
+                />
+                <div>
+                  <span class="block text-sm font-medium text-slate-700">Xuất trang này</span>
+                  <span class="block text-[10px] text-slate-400">{{ credentials.data?.length ?? 0 }} bản ghi · Excel (.xlsx)</span>
+                </div>
+              </button>
+              <hr class="my-1 border-slate-100">
+              <button
+                type="button"
+                class="flex w-full items-center gap-2.5 rounded-btn px-3 py-2 text-left hover:bg-slate-50"
+                @click="openDataModal('import')"
+              >
+                <AppIcon
+                  name="upload"
+                  :size="15"
+                  class="shrink-0 text-slate-400"
+                />
+                <div>
+                  <span class="block text-sm font-medium text-slate-700">Nhập / Xuất / Đối soát…</span>
+                  <span class="block text-[10px] text-slate-400">Mở bảng điều khiển dữ liệu</span>
+                </div>
               </button>
             </div>
           </Transition>
@@ -495,7 +529,9 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOu
             <tr
               v-for="row in credentials.data"
               :key="row.id"
-              class="border-t border-slate-100 hover:bg-slate-50/80"
+              :data-credential-id="row.id"
+              class="border-t border-slate-100 hover:bg-slate-50/80 transition-colors"
+              :class="highlightedId === row.id ? 'bg-amber-50 ring-1 ring-inset ring-amber-300' : ''"
             >
               <td class="px-5 py-3">
                 <Link
@@ -588,6 +624,9 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOu
       :options="options"
       :rows="credentials.data"
       :can-manage="can.create"
+      :initial-tab="dataModalInitialTab"
+      :active-filters="filters"
+      @fix="onFixIssue"
     />
   </AppLayout>
 </template>

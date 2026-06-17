@@ -14,6 +14,7 @@ use App\Models\Vendor;
 use App\Services\NotificationService;
 use App\Support\ContractActivityLogger;
 use App\Support\Enums\ContractAttachmentCategory;
+use App\Support\Enums\ContractBillingCycle;
 use App\Support\Enums\ContractPaymentStatus;
 use App\Support\Enums\ContractStatus;
 use App\Support\Enums\NotificationType;
@@ -22,6 +23,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -78,6 +80,7 @@ class ContractController extends Controller
             'options' => [
                 'status' => ContractStatus::options(),
                 'paymentStatus' => ContractPaymentStatus::options(),
+                'billingCycle' => ContractBillingCycle::options(),
                 'employees' => Options::employees()->values()->all(),
                 'departments' => Options::departments()->values()->all(),
             ],
@@ -99,6 +102,8 @@ class ContractController extends Controller
             'manager',
             'attachments' => fn ($a) => $a->with('uploadedBy'),
             'renewals',
+            'finances',
+            'reviews' => fn ($r) => $r->with('reviewer'),
             'activities' => fn ($a) => $a->limit(50),
         ]);
 
@@ -107,6 +112,7 @@ class ContractController extends Controller
             'options' => [
                 'status' => ContractStatus::options(),
                 'paymentStatus' => ContractPaymentStatus::options(),
+                'billingCycle' => ContractBillingCycle::options(),
                 'employees' => Options::employees(),
                 'departments' => Options::departments(),
                 'vendors' => Vendor::query()->orderBy('name')->get(['id', 'code', 'name']),
@@ -175,41 +181,169 @@ class ContractController extends Controller
     {
         $data = $request->validated();
         $account = $request->user();
-        $created = 0;
+        $stats = ['created' => 0, 'updated' => 0, 'finances' => 0, 'reviews' => 0];
 
-        DB::transaction(function () use ($data, $account, &$created) {
+        DB::transaction(function () use ($data, $account, &$stats) {
+            /** @var array<string, Contract> $byCode hợp đồng đã nhập, key = Mã HĐ chuẩn hoá */
+            $byCode = [];
+
             foreach ($data['rows'] as $row) {
-                $contract = Contract::create([
+                $vendorId = $row['vendor_id'] ?? $this->resolveVendorId($row['vendor_name'] ?? null);
+                $categoryId = $row['category_id'] ?? $this->resolveCategoryId($row['category_name'] ?? null, $vendorId);
+
+                $attrs = [
                     'name' => $row['name'],
-                    'vendor_id' => $row['vendor_id'] ?? null,
-                    'category_id' => $row['category_id'] ?? null,
+                    'description' => $row['description'] ?? null,
+                    'vendor_id' => $vendorId,
+                    'category_id' => $categoryId,
+                    'department_id' => $row['department_id'] ?? null,
                     'using_unit' => $row['using_unit'] ?? null,
                     'owner_id' => $row['owner_id'] ?? null,
                     'manager_id' => $row['manager_id'] ?? null,
-                    'currency' => $row['currency'] ?? 'VND',
-                    'unit_price' => $row['unit_price'] ?? null,
-                    'monthly_cost' => $row['monthly_cost'] ?? null,
                     'annual_cost' => $row['annual_cost'] ?? null,
                     'lifecycle_cost' => $row['lifecycle_cost'] ?? null,
                     'payment_status' => $row['payment_status'] ?? ContractPaymentStatus::Unpaid->value,
-                    'signed_date' => $row['signed_date'] ?? null,
+                    'billing_cycle' => $row['billing_cycle'] ?? null,
                     'effective_date' => $row['effective_date'] ?? null,
                     'expiry_date' => $row['expiry_date'] ?? null,
                     'status' => $row['status'] ?? ContractStatus::Active->value,
-                ]);
+                ];
 
-                ContractActivityLogger::created($contract, $account);
-                $created++;
+                $code = trim((string) ($row['code'] ?? ''));
+                $existing = $code !== '' ? Contract::withTrashed()->where('code', $code)->first() : null;
+
+                if ($existing) {
+                    $existing->fill($attrs)->save();
+                    $contract = $existing;
+                    $stats['updated']++;
+                } else {
+                    $contract = Contract::create($code !== '' ? ['code' => $code, ...$attrs] : $attrs);
+                    ContractActivityLogger::created($contract, $account);
+                    $stats['created']++;
+                }
+
+                $byCode[$this->normCode($contract->code)] = $contract;
+
+                foreach ($row['links'] ?? [] as $link) {
+                    $link = trim((string) $link);
+                    if ($link === '') {
+                        continue;
+                    }
+                    $contract->attachments()->create([
+                        'category' => 'contract',
+                        'uploaded_by_id' => $account?->employee_id,
+                        'original_name' => Str::limit(basename(str_replace('\\', '/', $link)), 200, ''),
+                        'external_url' => $link,
+                    ]);
+                }
+            }
+
+            $resolveContract = function (string $code) use (&$byCode): ?Contract {
+                $key = $this->normCode($code);
+                if (! array_key_exists($key, $byCode)) {
+                    $byCode[$key] = Contract::withTrashed()->where('code', $code)->first();
+                }
+
+                return $byCode[$key];
+            };
+
+            foreach ($data['finances'] ?? [] as $f) {
+                $contract = $resolveContract($f['code']);
+                if (! $contract) {
+                    continue;
+                }
+                $contract->finances()->create([
+                    'used_date' => $f['used_date'] ?? null,
+                    'quantity' => $f['quantity'] ?? null,
+                    'unit_price' => $f['unit_price'] ?? null,
+                    'init_fee' => $f['init_fee'] ?? null,
+                    'maintenance_fee' => $f['maintenance_fee'] ?? null,
+                    'term_months' => $f['term_months'] ?? null,
+                    'total' => $f['total'] ?? null,
+                    'renewal_cost' => $f['renewal_cost'] ?? null,
+                ]);
+                $stats['finances']++;
+            }
+
+            foreach ($data['reviews'] ?? [] as $rv) {
+                $contract = $resolveContract($rv['code']);
+                if (! $contract) {
+                    continue;
+                }
+                $contract->reviews()->create([
+                    'reviewer_id' => $this->resolveEmployeeIdByEmail($rv['reviewer_email'] ?? null),
+                    'reviewed_at' => $rv['reviewed_at'] ?? null,
+                    'service_quality' => $rv['service_quality'] ?? null,
+                    'sla' => $rv['sla'] ?? null,
+                    'speed' => $rv['speed'] ?? null,
+                    'price_satisfaction' => $rv['price_satisfaction'] ?? null,
+                    'stability' => $rv['stability'] ?? null,
+                    'attitude' => $rv['attitude'] ?? null,
+                    'total_score' => $rv['total_score'] ?? null,
+                    'recommendation' => $rv['recommendation'] ?? null,
+                ]);
+                $stats['reviews']++;
             }
         });
+
+        $summary = "Nhập {$stats['created']} mới, cập nhật {$stats['updated']} hợp đồng";
+        if ($stats['finances'] || $stats['reviews']) {
+            $summary .= " · {$stats['finances']} dòng chi phí · {$stats['reviews']} đánh giá";
+        }
 
         app(NotificationService::class)->recordSystemEvent(
             $account,
             NotificationType::SystemImport,
-            "Nhập {$created} hợp đồng từ Excel",
+            $summary.' từ Excel',
         );
 
-        return back()->with('success', "Đã nhập {$created} hợp đồng từ file.");
+        return back()->with('success', $summary.'.');
+    }
+
+    /** Tìm NCC theo tên (chuẩn hoá), tạo mới nếu chưa có — giúp nhập thẳng từ file thật. */
+    private function resolveVendorId(?string $name): ?int
+    {
+        $name = trim((string) $name);
+        if ($name === '') {
+            return null;
+        }
+
+        $vendor = Vendor::whereRaw('LOWER(name) = ?', [mb_strtolower($name)])->first()
+            ?? Vendor::create(['name' => $name]);
+
+        return $vendor->id;
+    }
+
+    /** Tìm nhóm dịch vụ theo tên trong phạm vi NCC (hoặc dùng chung), tạo mới nếu cần. */
+    private function resolveCategoryId(?string $name, ?int $vendorId): ?int
+    {
+        $name = trim((string) $name);
+        if ($name === '') {
+            return null;
+        }
+
+        $category = ContractCategory::whereRaw('LOWER(name) = ?', [mb_strtolower($name)])
+            ->where(fn ($q) => $q->where('vendor_id', $vendorId)->orWhereNull('vendor_id'))
+            ->first()
+            ?? ContractCategory::create(['name' => $name, 'vendor_id' => $vendorId]);
+
+        return $category->id;
+    }
+
+    private function resolveEmployeeIdByEmail(?string $email): ?int
+    {
+        $email = trim((string) $email);
+        if ($email === '') {
+            return null;
+        }
+
+        return \App\Models\Employee::whereRaw('LOWER(email) = ?', [mb_strtolower($email)])->value('id');
+    }
+
+    /** Chuẩn hoá Mã HĐ để khớp giữa các sheet (không phân biệt hoa/thường, khoảng trắng). */
+    private function normCode(?string $code): string
+    {
+        return mb_strtolower(trim((string) $code));
     }
 
     /** JSON cho client dựng file Excel có style (useContractExport). */

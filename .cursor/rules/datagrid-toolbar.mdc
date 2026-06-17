@@ -12,6 +12,7 @@ Mọi trang **bảng + toolbar** tuân pattern này. Skill: `.cursor/skills/data
 |----------|-----------------|
 | Index đầy đủ (hide-label, Lọc/Cột/Xuất) | `resources/js/Pages/AiAccount/CostReport.vue`, `Feedback/Index.vue` |
 | Toolbar + segmented + grid lọc | `resources/js/Pages/DailyReport/History.vue` |
+| **Toolbar có `*DataModal` — gộp Xuất vào nút "Dữ liệu"** | `resources/js/Pages/Credential/Index.vue` |
 | Tab dự án (ô tìm `half`, nút cùng hàng) | `resources/js/modules/project/components/Dashboard/ProjectFeedbackPanel.vue` |
 | Ô tìm ngắn | `RiskIssueDataTable.vue` (`compact`) |
 
@@ -49,6 +50,7 @@ Mọi trang **bảng + toolbar** tuân pattern này. Skill: `.cursor/skills/data
 ## 3. Xuất
 
 - Một nút **Xuất** → dropdown CSV | Excel; logic trong `use*Export.js`, `xlsx-js-style`.
+- **Khi trang đã có `*DataModal` (3 tab nhập/xuất/đối soát):** gộp nút Xuất vào dropdown **"Dữ liệu"** thay vì để 2 nút riêng. Dropdown "Dữ liệu" có 2 lựa chọn: «Xuất trang này (.xlsx)» (quick action) và «Nhập / Xuất / Đối soát…» (mở modal). Tham chiếu: `Pages/Credential/Index.vue`.
 
 ## 4. Dropdown & UX
 
@@ -61,6 +63,7 @@ Mọi trang **bảng + toolbar** tuân pattern này. Skill: `.cursor/skills/data
 - `md:contents` / `order` sai thứ tự ô tìm trên desktop.
 - `type="date"` native cho lọc ngày user-facing — dùng `FilterDatePicker`.
 - Ba nút Nhập/Xuất/Đối soát riêng — `import-export-reconcile.mdc`.
+- **Hai nút "Xuất" + "Dữ liệu" cạnh nhau** khi trang đã có `*DataModal` 3 tab — gộp vào 1 nút "Dữ liệu" dropdown.
 
 ## 6. Checklist PR (datagrid)
 

@@ -7,6 +7,7 @@ use App\Http\Requests\Credential\ImportCredentialRequest;
 use App\Http\Requests\Credential\StoreCredentialRequest;
 use App\Http\Requests\Credential\UpdateCredentialRequest;
 use App\Models\Credential;
+use App\Models\CredentialImportLog;
 use App\Models\CredentialPasswordHistory;
 use App\Support\Credential\CredentialActivityLogger;
 use App\Support\Enums\CredentialEnvironment;
@@ -109,21 +110,123 @@ class CredentialController extends Controller
     public function import(ImportCredentialRequest $request): RedirectResponse
     {
         $account = $request->user();
-        $rows = $request->validated('rows');
+        $validated = $request->validated();
+        $rows = $validated['rows'];
+        $overwrite = (bool) ($validated['overwrite'] ?? false);
         $count = 0;
+        $overwrittenCount = 0;
 
-        DB::transaction(function () use ($rows, $account, $request, &$count) {
+        DB::transaction(function () use ($rows, $account, $request, $overwrite, &$count, &$overwrittenCount) {
             foreach ($rows as $row) {
-                $row['created_by'] = $account->id;
-                $row['updated_by'] = $account->id;
                 $row['status'] ??= CredentialStatus::Active->value;
                 $row['environment'] ??= CredentialEnvironment::Production->value;
+
+                if ($overwrite) {
+                    $existing = Credential::where('name', $row['name'])
+                        ->where('system_category', $row['system_category'])
+                        ->first();
+                    if ($existing) {
+                        $row['updated_by'] = $account->id;
+                        $existing->update($row);
+                        CredentialActivityLogger::updated($existing, $account, array_keys($row), $request);
+                        $overwrittenCount++;
+
+                        continue;
+                    }
+                }
+
+                $row['created_by'] = $account->id;
+                $row['updated_by'] = $account->id;
                 $credential = Credential::create($row);
                 CredentialActivityLogger::created($credential, $account, $request);
                 $count++;
             }
+
+            CredentialImportLog::create([
+                'account_id' => $account->id,
+                'imported_count' => $count,
+                'overwritten_count' => $overwrittenCount,
+                'ip_address' => $request->ip(),
+                'created_at' => now(),
+            ]);
         });
 
-        return back()->with('success', "Đã nhập {$count} tài khoản.");
+        $message = "Đã nhập {$count} tài khoản";
+        if ($overwrittenCount > 0) {
+            $message .= ", ghi đè {$overwrittenCount} bản ghi";
+        }
+
+        return back()->with('success', "{$message}.");
+    }
+
+    public function exportData(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', Credential::class);
+
+        $account = $request->user();
+        $query = Credential::query()
+            ->visibleTo($account)
+            ->with(['owner', 'project', 'department'])
+            ->latest();
+
+        // Apply same filters as index page
+        if ($q = $request->query('q')) {
+            $query->where(function ($qb) use ($q) {
+                $qb->where('name', 'like', "%{$q}%")
+                    ->orWhere('username', 'like', "%{$q}%")
+                    ->orWhere('login_url', 'like', "%{$q}%")
+                    ->orWhere('provider_name', 'like', "%{$q}%");
+            });
+        }
+        foreach (['status', 'credential_type', 'system_category', 'environment'] as $field) {
+            if ($val = $request->query($field)) {
+                $query->where($field, $val);
+            }
+        }
+        if ($pid = $request->query('project_id')) {
+            $query->where('project_id', $pid);
+        }
+        if ($did = $request->query('department_id')) {
+            $query->where('department_id', $did);
+        }
+        if ($oid = $request->query('owner_id')) {
+            $query->where('owner_id', $oid);
+        }
+
+        $credentials = $query->limit(2000)->get()->map(fn ($c) => [
+            'id' => $c->id,
+            'name' => $c->name,
+            'credential_type' => $c->credential_type,
+            'system_category' => $c->system_category,
+            'username' => $c->username,
+            'login_url' => $c->login_url,
+            'provider_name' => $c->provider_name,
+            'environment' => $c->environment,
+            'status' => $c->status,
+            'owner' => $c->owner?->display_name,
+            'expires_at' => $c->expires_at?->toDateString(),
+        ]);
+
+        return response()->json(['data' => $credentials]);
+    }
+
+    public function importLogs(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', Credential::class);
+
+        $logs = CredentialImportLog::with('account:id,display_name')
+            ->latest('created_at')
+            ->limit(10)
+            ->get()
+            ->map(fn ($log) => [
+                'id' => $log->id,
+                'user' => $log->account?->display_name ?? 'Không xác định',
+                'imported_count' => $log->imported_count,
+                'overwritten_count' => $log->overwritten_count,
+                'created_at' => $log->created_at?->toDateTimeString(),
+                'created_at_human' => $log->created_at?->diffForHumans(),
+            ]);
+
+        return response()->json(['data' => $logs]);
     }
 }

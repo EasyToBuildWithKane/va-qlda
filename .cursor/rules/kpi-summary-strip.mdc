@@ -11,6 +11,7 @@ Section **Thống kê** + thẻ KPI cắt góc (clip-path) trên trang Index. Sk
 | Ngữ cảnh | Tham chiếu vàng |
 |----------|-----------------|
 | Index độc lập (`/feedback`) — strip trong card, lọc scope/status | `FeedbackSummaryBar.vue` + `Pages/Feedback/Index.vue` |
+| Tài khoản & Mật khẩu `/credentials` — **6 thẻ**, `grid-class` tùy chỉnh | `CredentialSummaryBar.vue` + `Pages/Credential/Index.vue` |
 | Báo cáo ngày `/daily-reports` | `DailyReportSummaryBar.vue` + `Pages/DailyReport/History.vue` |
 | Dự án `/projects` | `ProjectPortfolioSummaryBar.vue` + `Pages/Project/Index.vue` |
 | Vướng mắc `/blockers` | `BlockerSummaryBar.vue` + `Pages/Blocker/Index.vue` |
@@ -37,7 +38,9 @@ Section **Thống kê** + thẻ KPI cắt góc (clip-path) trên trang Index. Sk
 
 ## 3. Lưới thẻ
 
-- `grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5` (5 thẻ) hoặc điều chỉnh cột nếu ít hơn 4 KPI.
+- **5 thẻ (mặc định):** `grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5` — truyền qua `KpiSummaryStrip` mà không cần `grid-class`.
+- **6 thẻ:** dùng prop `grid-class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6"` (tham chiếu: `CredentialSummaryBar.vue`).
+- Tổng quát: `grid-class` prop của `KpiSummaryStrip` cho phép ghi đè lưới bất kỳ — chỉ dùng khi số thẻ ≠ 5.
 - Mỗi thẻ: `kpi-card` + modifier tone (`kpi-card--brand|emerald|amber|sky|violet|rose|slate`).
 - **Tương tác:** `button` + `kpi-card--interactive` (viền dashed → solid hover) khi có `filter`; **tĩnh:** `div` + `kpi-card--static`.
 - Trạng thái lọc: `kpi-card--active`, `aria-pressed`, emit filter payload lên page (`@quick-filter` / `@filter-status`).

@@ -23,6 +23,7 @@ class ImportCredentialRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'overwrite' => ['sometimes', 'boolean'],
             'rows' => ['required', 'array', 'max:200'],
             'rows.*.name' => ['required', 'string', 'max:255'],
             'rows.*.credential_type' => ['required', Rule::in(CredentialType::values())],
@@ -39,6 +40,7 @@ class ImportCredentialRequest extends FormRequest
     {
         return [
             'rows.max' => 'Mỗi lần nhập tối đa 200 dòng.',
+            'overwrite.boolean' => 'Tùy chọn ghi đè không hợp lệ.',
         ];
     }
 }

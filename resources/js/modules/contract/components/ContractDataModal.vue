@@ -12,6 +12,8 @@ import {
     createPreviewRows,
     revalidatePreviewRow,
     rowsToPayload,
+    linkedFinances,
+    linkedReviews,
 } from '../composables/useContractImport.js';
 import { downloadContractExport } from '../composables/useContractExport.js';
 
@@ -21,8 +23,10 @@ const props = defineProps({
     vendors: { type: Array, default: () => [] },
     categories: { type: Array, default: () => [] },
     employees: { type: Array, default: () => [] },
+    departments: { type: Array, default: () => [] },
     statusOptions: { type: Array, default: () => [] },
     paymentOptions: { type: Array, default: () => [] },
+    billingOptions: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits(['close', 'imported']);
@@ -39,6 +43,8 @@ const tabs = computed(() => [
 const step = ref('upload'); // upload | preview
 const previewTab = ref('valid');
 const previewRows = ref([]);
+const parsedFinances = ref([]);
+const parsedReviews = ref([]);
 const parsing = ref(false);
 const importing = ref(false);
 
@@ -47,12 +53,17 @@ const invalidRows = computed(() => previewRows.value.filter((r) => !r.valid));
 const displayedRows = computed(() => (previewTab.value === 'valid' ? validRows.value : invalidRows.value));
 const canSubmit = computed(() => validRows.value.length > 0 && !importing.value);
 
+const linkedFin = computed(() => linkedFinances(parsedFinances.value, validRows.value));
+const linkedRev = computed(() => linkedReviews(parsedReviews.value, validRows.value));
+
 const importOpts = computed(() => ({
     vendors: props.vendors,
     categories: props.categories,
     employees: props.employees,
+    departments: props.departments,
     statusOptions: props.statusOptions,
     paymentOptions: props.paymentOptions,
+    billingOptions: props.billingOptions,
 }));
 
 function onDownloadTemplate() {
@@ -60,6 +71,7 @@ function onDownloadTemplate() {
         vendors: props.vendors,
         statusOptions: props.statusOptions,
         paymentOptions: props.paymentOptions,
+        billingOptions: props.billingOptions,
     });
 }
 
@@ -68,11 +80,13 @@ async function onFileChange(e) {
     if (!file) return;
     parsing.value = true;
     try {
-        const { rows, errors } = await parseContractImportFile(file);
+        const { rows, finances, reviews, errors } = await parseContractImportFile(file);
         if (errors.length) {
             toast.error(errors[0]);
             if (!rows.length) { parsing.value = false; e.target.value = ''; return; }
         }
+        parsedFinances.value = finances ?? [];
+        parsedReviews.value = reviews ?? [];
         previewRows.value = createPreviewRows(validateImportRows(rows, importOpts.value), importOpts.value);
         previewTab.value = invalidRows.value.length && !validRows.value.length ? 'invalid' : 'valid';
         step.value = 'preview';
@@ -91,7 +105,11 @@ function onEditRow(row) {
 function onSubmit() {
     if (!canSubmit.value) return;
     importing.value = true;
-    router.post('/contracts/import', { rows: rowsToPayload(validRows.value) }, {
+    router.post('/contracts/import', {
+        rows: rowsToPayload(validRows.value),
+        finances: linkedFin.value,
+        reviews: linkedRev.value,
+    }, {
         preserveScroll: true,
         onSuccess: () => {
             emit('imported');
@@ -106,6 +124,8 @@ function onSubmit() {
 function resetImport() {
     step.value = 'upload';
     previewRows.value = [];
+    parsedFinances.value = [];
+    parsedReviews.value = [];
     previewTab.value = 'valid';
 }
 
@@ -226,6 +246,20 @@ function close() {
           </button>
         </div>
 
+        <div
+          v-if="linkedFin.length || linkedRev.length"
+          class="rounded-lg border border-sky-100 bg-sky-50 px-3 py-2 text-xs text-sky-700"
+        >
+          Sẽ nhập kèm theo Mã HĐ:
+          <span
+            v-if="linkedFin.length"
+            class="font-semibold"
+          >{{ linkedFin.length }} dòng chi phí</span><span v-if="linkedFin.length && linkedRev.length"> · </span><span
+            v-if="linkedRev.length"
+            class="font-semibold"
+          >{{ linkedRev.length }} đánh giá NCC</span>.
+        </div>
+
         <div class="max-h-80 overflow-auto rounded-lg border border-slate-200">
           <table class="w-full text-sm">
             <thead class="sticky top-0 bg-slate-50 text-left text-xs text-slate-500">
@@ -262,6 +296,12 @@ function close() {
                     class="input w-full"
                     @input="onEditRow(row)"
                   >
+                  <p
+                    v-if="row.warnings && row.warnings.length"
+                    class="mt-0.5 text-[11px] leading-tight text-amber-600"
+                  >
+                    {{ row.warnings.join('; ') }}
+                  </p>
                 </td>
                 <td class="px-2 py-1.5 text-slate-600">
                   {{ row.edit.vendor_name }}

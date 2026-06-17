@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Contract;
 
+use App\Support\Enums\ContractBillingCycle;
 use App\Support\Enums\ContractPaymentStatus;
 use App\Support\Enums\ContractStatus;
 use Illuminate\Foundation\Http\FormRequest;
@@ -35,6 +36,7 @@ class UpdateContractRequest extends FormRequest
             'annual_cost' => ['nullable', 'numeric', 'min:0', 'max:9999999999999'],
             'lifecycle_cost' => ['nullable', 'numeric', 'min:0', 'max:9999999999999'],
             'payment_status' => ['nullable', Rule::in(ContractPaymentStatus::values())],
+            'billing_cycle' => ['nullable', Rule::in(ContractBillingCycle::values())],
 
             'signed_date' => ['nullable', 'date'],
             'effective_date' => ['nullable', 'date'],

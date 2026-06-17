@@ -12,6 +12,7 @@ const props = defineProps({
     departments: { type: Array, default: () => [] },
     statusOptions: { type: Array, default: () => [] },
     paymentOptions: { type: Array, default: () => [] },
+    billingOptions: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits(['close', 'saved']);
@@ -32,6 +33,7 @@ const form = useForm({
     annual_cost: null,
     lifecycle_cost: null,
     payment_status: 'unpaid',
+    billing_cycle: null,
     signed_date: '',
     effective_date: '',
     expiry_date: '',
@@ -60,6 +62,7 @@ watch(() => props.show, (open) => {
         annual_cost: c?.annual_cost ?? null,
         lifecycle_cost: c?.lifecycle_cost ?? null,
         payment_status: c?.payment_status?.value ?? 'unpaid',
+        billing_cycle: c?.billing_cycle?.value ?? null,
         signed_date: c?.signed_date ?? '',
         effective_date: c?.effective_date ?? '',
         expiry_date: c?.expiry_date ?? '',
@@ -323,6 +326,24 @@ function submit() {
           >
             <option
               v-for="o in statusOptions"
+              :key="o.value"
+              :value="o.value"
+            >
+              {{ o.label }}
+            </option>
+          </select>
+        </div>
+        <div>
+          <label class="label">Chu kỳ</label>
+          <select
+            v-model="form.billing_cycle"
+            class="input"
+          >
+            <option :value="null">
+              — Không —
+            </option>
+            <option
+              v-for="o in billingOptions"
               :key="o.value"
               :value="o.value"
             >

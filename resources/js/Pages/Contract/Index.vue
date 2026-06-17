@@ -138,6 +138,7 @@ function onSaved() {
       :departments="options.departments || []"
       :status-options="options.status || []"
       :payment-options="options.paymentStatus || []"
+      :billing-options="options.billingCycle || []"
       @close="showForm = false"
       @saved="onSaved"
     />
@@ -148,8 +149,10 @@ function onSaved() {
       :vendors="vendors"
       :categories="categories"
       :employees="options.employees || []"
+      :departments="options.departments || []"
       :status-options="options.status || []"
       :payment-options="options.paymentStatus || []"
+      :billing-options="options.billingCycle || []"
       @close="showData = false"
       @imported="onSaved"
     />

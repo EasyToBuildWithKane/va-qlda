@@ -14,6 +14,7 @@ enum ContractStatus: string
     case ExpiringSoon = 'expiring_soon';
     case Expired = 'expired';
     case PendingRenewal = 'pending_renewal';
+    case Addendum = 'addendum';
     case Terminated = 'terminated';
 
     public function label(): string
@@ -24,6 +25,7 @@ enum ContractStatus: string
             self::ExpiringSoon => 'Sắp hết hạn',
             self::Expired => 'Đã hết hạn',
             self::PendingRenewal => 'Chờ gia hạn',
+            self::Addendum => 'Chuyển phụ lục',
             self::Terminated => 'Đã thanh lý',
         };
     }
@@ -36,6 +38,7 @@ enum ContractStatus: string
             self::ExpiringSoon => 'amber',
             self::Expired => 'rose',
             self::PendingRenewal => 'violet',
+            self::Addendum => 'sky',
             self::Terminated => 'slate',
         };
     }
@@ -43,7 +46,7 @@ enum ContractStatus: string
     /** Trạng thái còn "sống" (cần theo dõi gia hạn). */
     public function isLive(): bool
     {
-        return in_array($this, [self::Active, self::ExpiringSoon, self::PendingRenewal], true);
+        return in_array($this, [self::Active, self::ExpiringSoon, self::PendingRenewal, self::Addendum], true);
     }
 
     public function isTerminal(): bool

@@ -363,6 +363,8 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictCoachingOnlyUsers::class
     });
 
     Route::prefix('api/credentials')->name('api.credentials.')->group(function () {
+        Route::get('/export-data', [CredentialController::class, 'exportData'])->name('export-data');
+        Route::get('/import-logs', [CredentialController::class, 'importLogs'])->name('import-logs');
         Route::get('/{credential}/password', [CredentialController::class, 'showPassword'])
             ->middleware('throttle:30,1')
             ->name('show-password');

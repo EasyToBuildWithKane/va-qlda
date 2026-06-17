@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use App\Support\Enums\ContractBillingCycle;
 use App\Support\Enums\ContractPaymentStatus;
 use App\Support\Enums\ContractStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -28,6 +30,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $annual_cost
  * @property string|null $lifecycle_cost
  * @property ContractPaymentStatus $payment_status
+ * @property ContractBillingCycle|null $billing_cycle
  * @property Carbon|null $signed_date
  * @property Carbon|null $effective_date
  * @property Carbon|null $expiry_date
@@ -57,6 +60,7 @@ class Contract extends Model
         'annual_cost',
         'lifecycle_cost',
         'payment_status',
+        'billing_cycle',
         'signed_date',
         'effective_date',
         'expiry_date',
@@ -69,6 +73,7 @@ class Contract extends Model
 
     protected $casts = [
         'payment_status' => ContractPaymentStatus::class,
+        'billing_cycle' => ContractBillingCycle::class,
         'status' => ContractStatus::class,
         'unit_price' => 'decimal:2',
         'monthly_cost' => 'decimal:2',
@@ -169,5 +174,21 @@ class Contract extends Model
     public function renewals(): HasMany
     {
         return $this->hasMany(ContractRenewal::class)->latest();
+    }
+
+    public function finances(): HasMany
+    {
+        return $this->hasMany(ContractFinance::class)->orderByDesc('used_date');
+    }
+
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(ContractReview::class)->orderByDesc('reviewed_at');
+    }
+
+    /** Đánh giá NCC gần nhất (dùng cho badge & cảnh báo gia hạn). */
+    public function latestReview(): HasOne
+    {
+        return $this->hasOne(ContractReview::class)->latestOfMany('reviewed_at');
     }
 }

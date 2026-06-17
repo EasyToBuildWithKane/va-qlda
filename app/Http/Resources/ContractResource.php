@@ -49,6 +49,7 @@ class ContractResource extends JsonResource
             'annual_cost' => $this->annual_cost !== null ? (float) $this->annual_cost : null,
             'lifecycle_cost' => $this->lifecycle_cost !== null ? (float) $this->lifecycle_cost : null,
             'payment_status' => $this->enum($this->payment_status),
+            'billing_cycle' => $this->enum($this->billing_cycle),
 
             'signed_date' => $this->signed_date?->toDateString(),
             'effective_date' => $this->effective_date?->toDateString(),
@@ -61,6 +62,21 @@ class ContractResource extends JsonResource
             'health_score' => $this->health_score,
             'days_until_expiry' => $daysUntilExpiry,
             'is_expired' => $daysUntilExpiry !== null && $daysUntilExpiry < 0,
+
+            'finances' => $this->whenLoaded('finances', fn () => $this->finances->map(fn ($f) => [
+                'id' => $f->id,
+                'used_date' => $f->used_date?->toDateString(),
+                'quantity' => $f->quantity !== null ? (float) $f->quantity : null,
+                'unit_price' => $f->unit_price !== null ? (float) $f->unit_price : null,
+                'init_fee' => $f->init_fee !== null ? (float) $f->init_fee : null,
+                'maintenance_fee' => $f->maintenance_fee !== null ? (float) $f->maintenance_fee : null,
+                'term_months' => $f->term_months,
+                'total' => $f->total !== null ? (float) $f->total : null,
+                'renewal_cost' => $f->renewal_cost !== null ? (float) $f->renewal_cost : null,
+                'note' => $f->note,
+            ])),
+            'reviews' => $this->whenLoaded('reviews', fn () => $this->reviews->map(fn ($r) => $this->reviewArray($r))),
+            'latest_review' => $this->whenLoaded('latestReview', fn () => $this->latestReview ? $this->reviewArray($this->latestReview) : null),
 
             'attachments' => $this->whenLoaded('attachments', fn () => ContractAttachmentResource::collection($this->attachments)->resolve()),
             'renewals' => $this->whenLoaded('renewals', fn () => $this->renewals->map(fn ($r) => [
@@ -85,6 +101,28 @@ class ContractResource extends JsonResource
                 'update' => $user->can('update', $this->resource),
                 'delete' => $user->can('delete', $this->resource),
             ] : null,
+        ];
+    }
+
+    /**
+     * @param  \App\Models\ContractReview  $r
+     * @return array<string, mixed>
+     */
+    private function reviewArray($r): array
+    {
+        return [
+            'id' => $r->id,
+            'reviewed_at' => $r->reviewed_at?->toDateString(),
+            'reviewer' => $r->relationLoaded('reviewer') ? $this->person($r->reviewer) : null,
+            'service_quality' => $r->service_quality !== null ? (float) $r->service_quality : null,
+            'sla' => $r->sla !== null ? (float) $r->sla : null,
+            'speed' => $r->speed !== null ? (float) $r->speed : null,
+            'price_satisfaction' => $r->price_satisfaction !== null ? (float) $r->price_satisfaction : null,
+            'stability' => $r->stability !== null ? (float) $r->stability : null,
+            'attitude' => $r->attitude !== null ? (float) $r->attitude : null,
+            'total_score' => $r->total_score !== null ? (float) $r->total_score : null,
+            'recommendation' => $this->enum($r->recommendation),
+            'note' => $r->note,
         ];
     }
 }

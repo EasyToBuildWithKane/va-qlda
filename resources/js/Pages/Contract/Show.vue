@@ -20,12 +20,24 @@ const c = computed(() => props.contract);
 const dialog = useDialog();
 
 const tab = ref('overview');
-const tabs = [
+const tabs = computed(() => [
     { key: 'overview', label: 'Tổng quan', icon: 'info' },
     { key: 'finance', label: 'Tài chính', icon: 'budget' },
+    { key: 'evaluation', label: `Đánh giá${c.value.reviews?.length ? ` (${c.value.reviews.length})` : ''}`, icon: 'star' },
     { key: 'documents', label: 'Hồ sơ', icon: 'documents' },
     { key: 'renewals', label: 'Gia hạn', icon: 'renewal' },
     { key: 'timeline', label: 'Timeline', icon: 'clock' },
+]);
+
+const latestReview = computed(() => c.value.latest_review ?? c.value.reviews?.[0] ?? null);
+
+const reviewCriteria = [
+    { key: 'service_quality', label: 'Chất lượng DV' },
+    { key: 'sla', label: 'SLA' },
+    { key: 'speed', label: 'Tốc độ' },
+    { key: 'price_satisfaction', label: 'Giá hài lòng' },
+    { key: 'stability', label: 'Ổn định' },
+    { key: 'attitude', label: 'Thái độ' },
 ];
 
 const showEdit = ref(false);
@@ -49,6 +61,7 @@ const overviewRows = computed(() => [
     { label: 'Đơn vị sử dụng', value: c.value.using_unit ?? '—' },
     { label: 'Người phụ trách', value: c.value.owner?.name ?? '—' },
     { label: 'Người quản lý', value: c.value.manager?.name ?? '—' },
+    { label: 'Chu kỳ', value: c.value.billing_cycle?.label ?? '—' },
 ]);
 
 const financeRows = computed(() => [
@@ -82,6 +95,11 @@ const termRows = computed(() => [
         <Badge
           :label="c.status.label"
           :color="c.status.color"
+        />
+        <Badge
+          v-if="latestReview?.recommendation"
+          :label="latestReview.recommendation.label"
+          :color="latestReview.recommendation.color"
         />
         <button
           v-if="c.can?.update"
@@ -196,25 +214,151 @@ const termRows = computed(() => [
       <!-- Finance -->
       <div
         v-else-if="tab === 'finance'"
+        class="space-y-4"
+      >
+        <div class="card p-4">
+          <h3 class="mb-3 font-display text-sm font-semibold text-slate-800">
+            Tổng quan tài chính
+          </h3>
+          <dl class="grid gap-2 sm:grid-cols-2">
+            <div
+              v-for="row in financeRows"
+              :key="row.label"
+              class="flex justify-between gap-4 text-sm"
+            >
+              <dt class="text-slate-400">
+                {{ row.label }}
+              </dt>
+              <dd class="text-right font-medium text-slate-700">
+                {{ row.value }}
+              </dd>
+            </div>
+          </dl>
+        </div>
+
+        <div
+          v-if="c.finances?.length"
+          class="card overflow-hidden p-0"
+        >
+          <h3 class="border-b border-slate-100 px-4 py-3 font-display text-sm font-semibold text-slate-800">
+            Chi tiết chi phí ({{ c.finances.length }})
+          </h3>
+          <div class="overflow-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-slate-50 text-left text-xs text-slate-500">
+                <tr>
+                  <th class="px-3 py-2 font-medium">
+                    Ngày SD
+                  </th>
+                  <th class="px-3 py-2 text-right font-medium">
+                    SL
+                  </th>
+                  <th class="px-3 py-2 text-right font-medium">
+                    Đơn giá
+                  </th>
+                  <th class="px-3 py-2 text-right font-medium">
+                    Phí khởi tạo
+                  </th>
+                  <th class="px-3 py-2 text-right font-medium">
+                    Phí duy trì
+                  </th>
+                  <th class="px-3 py-2 text-right font-medium">
+                    Thời hạn
+                  </th>
+                  <th class="px-3 py-2 text-right font-medium">
+                    Tổng tiền
+                  </th>
+                  <th class="px-3 py-2 text-right font-medium">
+                    Gia hạn
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="f in c.finances"
+                  :key="f.id"
+                  class="border-t border-slate-100"
+                >
+                  <td class="px-3 py-2 text-slate-600">
+                    {{ formatDate(f.used_date) }}
+                  </td>
+                  <td class="px-3 py-2 text-right">
+                    {{ f.quantity ?? '—' }}
+                  </td>
+                  <td class="px-3 py-2 text-right">
+                    {{ formatMoney(f.unit_price, c.currency) }}
+                  </td>
+                  <td class="px-3 py-2 text-right">
+                    {{ formatMoney(f.init_fee, c.currency) }}
+                  </td>
+                  <td class="px-3 py-2 text-right">
+                    {{ formatMoney(f.maintenance_fee, c.currency) }}
+                  </td>
+                  <td class="px-3 py-2 text-right text-slate-600">
+                    {{ f.term_months ? `${f.term_months} th` : '—' }}
+                  </td>
+                  <td class="px-3 py-2 text-right font-semibold text-slate-800">
+                    {{ formatMoney(f.total, c.currency) }}
+                  </td>
+                  <td class="px-3 py-2 text-right">
+                    {{ formatMoney(f.renewal_cost, c.currency) }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Evaluation -->
+      <div
+        v-else-if="tab === 'evaluation'"
         class="card p-4"
       >
         <h3 class="mb-3 font-display text-sm font-semibold text-slate-800">
-          Tài chính
+          Đánh giá nhà cung cấp
         </h3>
-        <dl class="grid gap-2 sm:grid-cols-2">
-          <div
-            v-for="row in financeRows"
-            :key="row.label"
-            class="flex justify-between gap-4 text-sm"
+        <ul
+          v-if="c.reviews?.length"
+          class="space-y-3"
+        >
+          <li
+            v-for="r in c.reviews"
+            :key="r.id"
+            class="rounded-lg border border-slate-200 p-3"
           >
-            <dt class="text-slate-400">
-              {{ row.label }}
-            </dt>
-            <dd class="text-right font-medium text-slate-700">
-              {{ row.value }}
-            </dd>
-          </div>
-        </dl>
+            <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-semibold text-slate-800">{{ formatDate(r.reviewed_at) }}</span>
+                <Badge
+                  v-if="r.recommendation"
+                  :label="r.recommendation.label"
+                  :color="r.recommendation.color"
+                />
+              </div>
+              <span class="text-xs text-slate-400">
+                {{ r.reviewer?.name ?? '—' }} · Tổng điểm:
+                <strong class="text-slate-600">{{ r.total_score ?? '—' }}</strong>
+              </span>
+            </div>
+            <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs sm:grid-cols-3">
+              <div
+                v-for="cr in reviewCriteria"
+                :key="cr.key"
+                class="flex justify-between"
+              >
+                <span class="text-slate-400">{{ cr.label }}</span>
+                <span class="font-medium text-slate-600">{{ r[cr.key] ?? '—' }}</span>
+              </div>
+            </div>
+          </li>
+        </ul>
+        <p
+          v-else
+          class="rounded-lg border border-dashed border-slate-200 py-8 text-center text-sm text-slate-400"
+        >
+          Chưa có đánh giá nào.
+        </p>
       </div>
 
       <!-- Documents -->
@@ -332,11 +476,12 @@ const termRows = computed(() => [
       :show="showEdit"
       :contract="c"
       :vendors="options.vendors || []"
-      :categories="[]"
+      :categories="options.categories || []"
       :employees="options.employees || []"
       :departments="options.departments || []"
       :status-options="options.status || []"
       :payment-options="options.paymentStatus || []"
+      :billing-options="options.billingCycle || []"
       @close="showEdit = false"
       @saved="() => router.reload({ only: ['contract'] })"
     />

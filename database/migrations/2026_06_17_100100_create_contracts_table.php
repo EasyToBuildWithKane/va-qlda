@@ -31,6 +31,7 @@ return new class extends Migration
             $table->string('payment_status')->default('unpaid');
 
             // Thời hạn
+            $table->string('billing_cycle', 16)->nullable();
             $table->date('signed_date')->nullable();
             $table->date('effective_date')->nullable();
             $table->date('expiry_date')->nullable();
