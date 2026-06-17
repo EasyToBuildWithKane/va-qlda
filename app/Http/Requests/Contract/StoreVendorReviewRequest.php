@@ -22,7 +22,7 @@ class StoreVendorReviewRequest extends FormRequest
 
         return [
             'reviewed_at' => ['nullable', 'date'],
-            'reviewer_id' => ['nullable', 'integer', 'exists:employees,id'],
+            'reviewer_id' => ['required', 'integer', 'exists:employees,id'],
             'service_quality' => $criterion,
             'sla' => $criterion,
             'speed' => $criterion,
@@ -40,6 +40,8 @@ class StoreVendorReviewRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'reviewer_id.required' => 'Vui lòng chọn người đánh giá.',
+            'reviewer_id.exists' => 'Nhân sự đánh giá không hợp lệ.',
             'service_quality.max' => 'Điểm tối đa là 10.',
             'sla.max' => 'Điểm tối đa là 10.',
             'speed.max' => 'Điểm tối đa là 10.',

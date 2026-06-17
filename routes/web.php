@@ -250,6 +250,8 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictCoachingOnlyUsers::class
         Route::put('/vendors/{vendor}', [VendorController::class, 'update'])->name('vendors.update');
         Route::delete('/vendors/{vendor}', [VendorController::class, 'destroy'])->name('vendors.destroy');
         Route::post('/vendors/{vendor}/reviews', [VendorReviewController::class, 'store'])->name('vendors.reviews.store');
+        Route::put('/vendors/{vendor}/reviews/{review}', [VendorReviewController::class, 'update'])->name('vendors.reviews.update');
+        Route::delete('/vendors/{vendor}/reviews/{review}', [VendorReviewController::class, 'destroy'])->name('vendors.reviews.destroy');
 
         // Service groups (nhóm dịch vụ cho Explorer)
         Route::post('/categories', [ContractCategoryController::class, 'store'])->name('categories.store');

@@ -46,6 +46,17 @@ const reviews = computed(() => {
 
 const showForm = ref(false);
 const showReview = ref(false);
+const editingReview = ref(null);
+
+function openReview(review = null) {
+    editingReview.value = review;
+    showReview.value = true;
+}
+
+function closeReview() {
+    showReview.value = false;
+    editingReview.value = null;
+}
 
 function reloadVendor() {
     router.reload({ only: ['vendor'] });
@@ -83,7 +94,7 @@ async function onDelete() {
           v-if="vendor.can?.evaluate"
           type="button"
           class="btn-ghost inline-flex h-9 items-center gap-1.5 px-3 text-xs"
-          @click="showReview = true"
+          @click="openReview()"
         >
           <AppIcon
             name="performance"
@@ -392,11 +403,14 @@ async function onDelete() {
 
     <VendorReviewHistoryPanel
       v-else
+      :vendor-id="vendor.id"
       :reviews="reviews"
       :criteria="options.criteria || []"
       :recommendation-options="options.recommendation || []"
       :can-evaluate="Boolean(vendor.can?.evaluate)"
-      @evaluate="showReview = true"
+      @evaluate="openReview()"
+      @edit="openReview"
+      @deleted="reloadVendor"
     />
 
     <VendorFormModal
@@ -409,9 +423,11 @@ async function onDelete() {
     <VendorReviewModal
       :show="showReview"
       :vendor="vendor"
+      :review="editingReview"
       :criteria="options.criteria || []"
       :recommendation-options="options.recommendation || []"
-      @close="showReview = false"
+      :employees="options.employees || []"
+      @close="closeReview"
       @saved="reloadVendor"
     />
   </AppLayout>

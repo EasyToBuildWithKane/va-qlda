@@ -62,10 +62,16 @@ class VendorResource extends JsonResource
      */
     private function reviewArray(VendorReview $r): array
     {
+        $user = request()->user();
+
         return [
             'id' => $r->id,
             'reviewed_at' => $r->reviewed_at?->toDateString(),
             'reviewer' => $r->relationLoaded('reviewer') ? $this->person($r->reviewer) : null,
+            'can' => $user ? [
+                'update' => $user->can('update', $this->resource),
+                'delete' => $user->can('update', $this->resource),
+            ] : null,
             'service_quality' => $r->service_quality !== null ? (float) $r->service_quality : null,
             'sla' => $r->sla !== null ? (float) $r->sla : null,
             'speed' => $r->speed !== null ? (float) $r->speed : null,

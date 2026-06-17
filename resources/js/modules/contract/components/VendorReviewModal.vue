@@ -1,20 +1,28 @@
 <script setup>
 import { computed, watch } from 'vue';
-import { useForm } from '@inertiajs/vue3';
+import { useForm, usePage } from '@inertiajs/vue3';
 import Modal from '@/Components/Ui/Modal.vue';
+import EmployeeAutocomplete from '@/modules/contract/components/EmployeeAutocomplete.vue';
 
 const props = defineProps({
     show: { type: Boolean, default: false },
     vendor: { type: Object, default: null },
-    criteria: { type: Array, default: () => [] }, // [{ key, label, hint }]
+    review: { type: Object, default: null },
+    criteria: { type: Array, default: () => [] },
     recommendationOptions: { type: Array, default: () => [] },
     employees: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits(['close', 'saved']);
 
+const page = usePage();
+const currentEmployeeId = computed(() => page.props.auth?.user?.employee_id ?? null);
+
+const isEdit = computed(() => Boolean(props.review?.id));
+
 const form = useForm({
     reviewed_at: '',
+    reviewer_id: null,
     service_quality: null,
     sla: null,
     speed: null,
@@ -25,21 +33,47 @@ const form = useForm({
     note: '',
 });
 
+function populateFromReview(review) {
+    if (!review) {
+        form.defaults({
+            reviewed_at: new Date().toISOString().slice(0, 10),
+            reviewer_id: currentEmployeeId.value,
+            service_quality: null,
+            sla: null,
+            speed: null,
+            price_satisfaction: null,
+            stability: null,
+            attitude: null,
+            recommendation: null,
+            note: '',
+        });
+        form.reset();
+        return;
+    }
+
+    form.defaults({
+        reviewed_at: review.reviewed_at || new Date().toISOString().slice(0, 10),
+        reviewer_id: review.reviewer?.id ?? null,
+        service_quality: review.service_quality,
+        sla: review.sla,
+        speed: review.speed,
+        price_satisfaction: review.price_satisfaction,
+        stability: review.stability,
+        attitude: review.attitude,
+        recommendation: review.recommendation?.value ?? null,
+        note: review.note ?? '',
+    });
+    form.reset();
+}
+
 watch(() => props.show, (open) => {
     if (!open) return;
     form.clearErrors();
-    form.defaults({
-        reviewed_at: new Date().toISOString().slice(0, 10),
-        service_quality: null,
-        sla: null,
-        speed: null,
-        price_satisfaction: null,
-        stability: null,
-        attitude: null,
-        recommendation: null,
-        note: '',
-    });
-    form.reset();
+    populateFromReview(props.review);
+});
+
+watch(() => props.review, () => {
+    if (props.show) populateFromReview(props.review);
 });
 
 const total = computed(() => {
@@ -60,17 +94,22 @@ const totalTone = computed(() => {
 
 function submit() {
     if (!props.vendor) return;
-    form.post(`/contracts/vendors/${props.vendor.id}/reviews`, {
+    const opts = {
         preserveScroll: true,
         onSuccess: () => { emit('saved'); emit('close'); },
-    });
+    };
+    if (isEdit.value) {
+        form.put(`/contracts/vendors/${props.vendor.id}/reviews/${props.review.id}`, opts);
+    } else {
+        form.post(`/contracts/vendors/${props.vendor.id}/reviews`, opts);
+    }
 }
 </script>
 
 <template>
   <Modal
     :show="show"
-    :title="vendor ? `Đánh giá: ${vendor.name}` : 'Đánh giá nhà cung cấp'"
+    :title="vendor ? (isEdit ? `Chỉnh sửa đánh giá: ${vendor.name}` : `Đánh giá: ${vendor.name}`) : 'Đánh giá nhà cung cấp'"
     max-width="max-w-3xl"
     :dirty="form.isDirty"
     @close="emit('close')"
@@ -140,23 +179,39 @@ function submit() {
           >
         </div>
         <div>
-          <label class="label">Đề xuất</label>
-          <select
-            v-model="form.recommendation"
-            class="input"
+          <label class="label">Người đánh giá</label>
+          <EmployeeAutocomplete
+            id="vendor-review-reviewer"
+            v-model="form.reviewer_id"
+            :options="employees"
+            placeholder="Chọn nhân sự đánh giá…"
+          />
+          <p
+            v-if="form.errors.reviewer_id"
+            class="mt-1 text-xs text-rose-600"
           >
-            <option :value="null">
-              — Chọn đề xuất —
-            </option>
-            <option
-              v-for="o in recommendationOptions"
-              :key="o.value"
-              :value="o.value"
-            >
-              {{ o.label }}
-            </option>
-          </select>
+            {{ form.errors.reviewer_id }}
+          </p>
         </div>
+      </div>
+
+      <div>
+        <label class="label">Đề xuất</label>
+        <select
+          v-model="form.recommendation"
+          class="input"
+        >
+          <option :value="null">
+            Chọn đề xuất
+          </option>
+          <option
+            v-for="o in recommendationOptions"
+            :key="o.value"
+            :value="o.value"
+          >
+            {{ o.label }}
+          </option>
+        </select>
       </div>
 
       <div>
@@ -182,7 +237,7 @@ function submit() {
           class="btn-primary"
           :disabled="form.processing"
         >
-          {{ form.processing ? 'Đang lưu…' : 'Lưu đánh giá' }}
+          {{ form.processing ? 'Đang lưu…' : (isEdit ? 'Cập nhật đánh giá' : 'Lưu đánh giá') }}
         </button>
       </div>
     </form>

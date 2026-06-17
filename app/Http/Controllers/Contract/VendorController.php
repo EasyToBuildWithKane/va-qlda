@@ -9,6 +9,7 @@ use App\Http\Resources\VendorResource;
 use App\Models\Contract;
 use App\Models\Vendor;
 use App\Support\Enums\ContractReviewRecommendation;
+use App\Support\Options;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -94,6 +95,7 @@ class VendorController extends Controller
             'options' => [
                 'recommendation' => ContractReviewRecommendation::options(),
                 'criteria' => self::CRITERIA_LABELS,
+                'employees' => Options::employees()->values()->all(),
             ],
         ]);
     }
