@@ -29,7 +29,14 @@ const KPI_TONE = {
     total_vendors: 'emerald',
 };
 
-const kpiCards = computed(() => (props.metrics.kpis || []).map((k) => ({
+const kpiList = computed(() => {
+    const raw = props.metrics?.kpis;
+    if (Array.isArray(raw)) return raw;
+    if (raw && typeof raw === 'object') return Object.values(raw);
+    return [];
+});
+
+const kpiCards = computed(() => kpiList.value.map((k) => ({
     key: k.key,
     label: k.label,
     value: k.format === 'currency' ? formatMoneyShort(k.value) : k.value,

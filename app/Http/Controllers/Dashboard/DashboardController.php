@@ -191,7 +191,7 @@ class DashboardController extends Controller
             'dueToday' => $dueToday,
             'overdueTasks' => $overdueList,
             'activityFeed' => $activityFeed->forSystem(60),
-            'projectsByStatus' => $projectsByStatus,
+            'projectsByStatus' => $projectsByStatus->values()->all(),
             'tasksByStatus' => $tasksByStatus,
             'completionTrend' => $completionTrend,
             'dailyReportCompliance' => $dailyReportCompliance,

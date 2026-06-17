@@ -19,7 +19,12 @@ const props = defineProps({
     can: { type: Object, default: () => ({}) },
 });
 
-const contractList = computed(() => props.contracts.data ?? props.contracts ?? []);
+const contractList = computed(() => {
+    const raw = props.contracts?.data ?? props.contracts;
+    if (Array.isArray(raw)) return raw;
+    if (raw && typeof raw === 'object') return Object.values(raw);
+    return [];
+});
 const { tree, totals } = useContractExplorer(contractList, () => props.vendors, () => props.categories);
 
 const search = ref(props.filters.q ?? '');

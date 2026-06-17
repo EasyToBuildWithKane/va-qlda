@@ -49,10 +49,16 @@ const colorMap = {
 };
 const tailwindToHex = (color) => colorMap[color] ?? '#94a3b8';
 
+function listProp(value) {
+    if (Array.isArray(value)) return value;
+    if (value && typeof value === 'object') return Object.values(value);
+    return [];
+}
+
 // ---- Attention list (overdue first, then due today) ------------------
 const attentionTasks = computed(() => [
-    ...props.overdueTasks.map((t) => ({ ...t, _overdue: true })),
-    ...props.dueToday.map((t) => ({ ...t, _overdue: false })),
+    ...listProp(props.overdueTasks).map((t) => ({ ...t, _overdue: true })),
+    ...listProp(props.dueToday).map((t) => ({ ...t, _overdue: false })),
 ].slice(0, 10));
 
 function fmtDate(iso) {
@@ -63,10 +69,10 @@ function fmtDate(iso) {
 
 // ---- Charts -----------------------------------------------------------
 const projectStatusChart = computed(() => ({
-    labels: props.projectsByStatus.map(r => r.label),
+    labels: listProp(props.projectsByStatus).map(r => r.label),
     datasets: [{
-        data: props.projectsByStatus.map(r => r.total),
-        backgroundColor: props.projectsByStatus.map(r => tailwindToHex(r.color)),
+        data: listProp(props.projectsByStatus).map(r => r.total),
+        backgroundColor: listProp(props.projectsByStatus).map(r => tailwindToHex(r.color)),
         borderWidth: 2, borderColor: '#fff', hoverOffset: 6,
     }],
 }));
@@ -82,10 +88,10 @@ const doughnutOptions = {
 };
 
 const trendChart = computed(() => ({
-    labels: props.completionTrend.map(r => r.label),
+    labels: listProp(props.completionTrend).map(r => r.label),
     datasets: [{
         label: 'Hoàn thành',
-        data: props.completionTrend.map(r => r.total),
+        data: listProp(props.completionTrend).map(r => r.total),
         borderColor: '#9A0036',
         backgroundColor: 'rgba(154,0,54,0.08)',
         tension: 0.4, fill: true,

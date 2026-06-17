@@ -1,5 +1,13 @@
 import { computed, unref } from 'vue';
 
+/** Inertia/JSON đôi khi trả collection PHP thành object — luôn chuẩn hoá mảng trước .map/.for..of. */
+function toArray(value) {
+    if (Array.isArray(value)) return value;
+    if (value == null) return [];
+    if (typeof value === 'object' && Array.isArray(value.data)) return value.data;
+    return Object.values(value);
+}
+
 /**
  * Dựng cây Explorer 3 cấp: Nhà cung cấp → Nhóm dịch vụ → Hợp đồng.
  * Hợp đồng không có nhóm nằm trực tiếp dưới NCC; không có NCC gom vào
@@ -7,9 +15,9 @@ import { computed, unref } from 'vue';
  */
 export function useContractExplorer(contractsRef, vendorsRef, categoriesRef) {
     const tree = computed(() => {
-        const contracts = unref(contractsRef) || [];
-        const vendors = unref(vendorsRef) || [];
-        const categories = unref(categoriesRef) || [];
+        const contracts = toArray(unref(contractsRef));
+        const vendors = toArray(unref(vendorsRef));
+        const categories = toArray(unref(categoriesRef));
 
         const categoryById = new Map(categories.map((c) => [c.id, c]));
 
@@ -71,7 +79,7 @@ export function useContractExplorer(contractsRef, vendorsRef, categoriesRef) {
     });
 
     const totals = computed(() => {
-        const contracts = unref(contractsRef) || [];
+        const contracts = toArray(unref(contractsRef));
         return {
             contracts: contracts.length,
             annualCost: sumAnnual(contracts),

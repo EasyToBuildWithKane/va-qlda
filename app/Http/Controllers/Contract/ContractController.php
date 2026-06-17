@@ -72,14 +72,14 @@ class ContractController extends Controller
 
         return Inertia::render('Contract/Index', [
             'contracts' => ContractListResource::collection($contracts),
-            'vendors' => Vendor::query()->orderBy('name')->get(['id', 'code', 'name']),
-            'categories' => ContractCategory::query()->orderBy('sort_order')->get(['id', 'vendor_id', 'name']),
+            'vendors' => Vendor::query()->orderBy('name')->get(['id', 'code', 'name'])->values()->all(),
+            'categories' => ContractCategory::query()->orderBy('sort_order')->get(['id', 'vendor_id', 'name'])->values()->all(),
             'filters' => (object) $request->only(['status', 'vendor_id', 'q']),
             'options' => [
                 'status' => ContractStatus::options(),
                 'paymentStatus' => ContractPaymentStatus::options(),
-                'employees' => Options::employees(),
-                'departments' => Options::departments(),
+                'employees' => Options::employees()->values()->all(),
+                'departments' => Options::departments()->values()->all(),
             ],
             'can' => [
                 'create' => $account->can('create', Contract::class),
