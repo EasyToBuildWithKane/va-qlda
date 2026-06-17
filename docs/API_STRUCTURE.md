@@ -380,6 +380,20 @@ Issue Tracking Group
 ├── /blockers               (index, store, import, bulk, CRUD + attachments)
 └── /feedback               (CRUD)
 
+Contract Management Group (CLM)
+├── /contracts              (index, dashboard, renewals, cost, alerts, reports)
+├── /contracts/export       (JSON for client Excel)
+├── /contracts/import       (POST bulk ≤200)
+├── /contracts/vendors/*    (CRUD + import + reviews)
+├── /contracts/categories/* (store, update, destroy)
+├── /contracts/{id}         (show, update, destroy)
+├── /contracts/{id}/renewals             (POST — tạo hợp đồng phụ lục mới, status=addendum)
+├── /contracts/{id}/finances             (POST store)
+├── /contracts/{id}/finances/{fid}       (PUT update, DELETE destroy)
+├── /contracts/{id}/reviews              (POST store — đánh giá gắn contract_id + vendor_id)
+├── /contracts/{id}/reviews/{rid}        (DELETE destroy)
+└── /contracts/{id}/attachments/{aid}    (GET file, POST store, DELETE destroy)
+
 Communication Group
 ├── /comments                         (morph threads)
 └── /realtime/thread-token            (JSON)

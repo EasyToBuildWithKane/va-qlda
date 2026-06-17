@@ -32,6 +32,7 @@ flowchart TB
 | Domain | Composable | Modal | Backend import |
 |--------|------------|-------|----------------|
 | Rủi ro / Vướng mắc | `useRiskImport.js`, `useRiskExport.js` | `RiskImportModal.vue` | `BlockerController@import` + `ImportBlockerRequest` |
+| Nhà cung cấp (CLM) | `useVendorData.js` (`useVendorExport.js` re-export xuất nhanh) | `VendorDataModal.vue` | `VendorController@import` + `ImportVendorRequest` |
 | Sprint / Task | `useSprintData.js` (`useSprintExport.js` re-export) | `SprintDataModal.vue` | *Chưa bulk — cần API trước khi coi production* |
 | Đối soát sprint | `useSprintReconcile.js` | tab trong `SprintDataModal` | Client-side only |
 

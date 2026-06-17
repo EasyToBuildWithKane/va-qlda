@@ -52,7 +52,8 @@ class StoreContractRequest extends FormRequest
             'renewal_term_months' => ['nullable', 'integer', 'min:0', 'max:600'],
             'notice_period_days' => ['nullable', 'integer', 'min:0', 'max:3650'],
 
-            'status' => ['nullable', Rule::in(ContractStatus::values())],
+            // status luôn là draft khi tạo mới — không cho phép chọn từ form
+            'status' => ['prohibited'],
         ];
     }
 

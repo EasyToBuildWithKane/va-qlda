@@ -6,6 +6,7 @@ import PageHeader from '@/Components/Ui/PageHeader.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import VendorFormModal from '@/modules/contract/components/VendorFormModal.vue';
 import VendorReviewModal from '@/modules/contract/components/VendorReviewModal.vue';
+import VendorDataModal from '@/modules/contract/components/VendorDataModal.vue';
 import VendorSummaryBar from '@/modules/contract/components/VendorSummaryBar.vue';
 import VendorRowActions from '@/modules/contract/components/VendorRowActions.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
@@ -15,10 +16,12 @@ import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import ColumnVisibilityDropdown from '@/shared/ui/ColumnVisibilityDropdown.vue';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
 import { useVisibleColumns } from '@/shared/composables/useVisibleColumns';
+import { useFixedDropdownAnchor } from '@/shared/composables/useFixedDropdownAnchor';
 import { useDialog } from '@/composables/useDialog';
 import { useToast } from '@/shared/composables/useToast';
 import { formatMoneyShort } from '@/modules/contract/composables/useContractFormat.js';
 import { exportVendorPage } from '@/modules/contract/composables/useVendorExport.js';
+import { reconcileVendors } from '@/modules/contract/composables/useVendorData.js';
 import { displayOrEmpty, EMPTY_LABELS } from '@/shared/utils/emptyDisplay.js';
 
 const FILTER_CONTROL_CLASS = 'input h-10 w-full text-sm';
@@ -52,8 +55,11 @@ const page = usePage();
 
 const filterPanelDdRef = ref(null);
 const colDdRef = ref(null);
-const exportDdRef = ref(null);
-const showExportDd = ref(false);
+const dataMenuRef = ref(null);
+const dataMenu = ref(false);
+const dataModal = ref(false);
+const dataModalInitialTab = ref('import');
+const highlightedId = ref(null);
 
 const {
     visibleFilters,
@@ -87,6 +93,14 @@ const vendorList = computed(() => {
     if (raw && typeof raw === 'object') return Object.values(raw);
     return [];
 });
+
+const reconcileSummary = computed(() => reconcileVendors(vendorList.value).summary);
+
+const { panelStyle: dataMenuStyle } = useFixedDropdownAnchor(
+    () => dataMenuRef.value,
+    dataMenu,
+    { width: 248, zIndex: 120 },
+);
 
 const tableColspan = computed(() =>
     2 + TABLE_COLUMNS.filter((c) => isColVisible(c.key)).length,
@@ -140,29 +154,56 @@ function onQuickFilter({ scope }) {
 function onToolbarClickOutside(e) {
     if (e.target.closest?.('[data-filter-visibility-panel]')) return;
     if (e.target.closest?.('[data-column-visibility-panel]')) return;
+    if (e.target.closest?.('[data-vendor-data-panel]')) return;
     if (filterPanelDdRef.value && !filterPanelDdRef.value.contains(e.target)) {
         showFilterPanelDd.value = false;
     }
     if (colDdRef.value && !colDdRef.value.contains(e.target)) {
         showColDd.value = false;
     }
-    if (exportDdRef.value && !exportDdRef.value.contains(e.target)) {
-        showExportDd.value = false;
+    if (dataMenuRef.value && !dataMenuRef.value.contains(e.target)) {
+        dataMenu.value = false;
     }
 }
 
-function openExportMenu() {
-    showExportDd.value = !showExportDd.value;
-    if (showExportDd.value) {
+function toggleDataMenu() {
+    dataMenu.value = !dataMenu.value;
+    if (dataMenu.value) {
         showFilterPanelDd.value = false;
         showColDd.value = false;
     }
 }
 
-function runExport(format) {
-    showExportDd.value = false;
-    const count = exportVendorPage(vendorList.value, format);
-    toast.success(`Đã xuất ${count} nhà cung cấp (${format === 'csv' ? 'CSV' : 'Excel'}).`);
+function runQuickExport() {
+    dataMenu.value = false;
+    if (!vendorList.value.length) {
+        toast.warning('Không có dữ liệu để xuất trên trang này.');
+        return;
+    }
+    const count = exportVendorPage(vendorList.value, 'xlsx');
+    toast.success(`Đã xuất ${count} nhà cung cấp (Excel).`);
+}
+
+function openDataModal(tabName = 'import') {
+    dataMenu.value = false;
+    dataModalInitialTab.value = tabName;
+    dataModal.value = true;
+}
+
+function onFixIssue(issue) {
+    if (!issue.vendorId) return;
+    highlightedId.value = issue.vendorId;
+    setTimeout(() => {
+        const el = document.querySelector(`[data-vendor-id="${issue.vendorId}"]`);
+        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 150);
+}
+
+function vendorRowClass(v) {
+    if (highlightedId.value === v.id) {
+        return 'bg-amber-50 ring-1 ring-inset ring-amber-300';
+    }
+    return '';
 }
 
 onMounted(() => document.addEventListener('mousedown', onToolbarClickOutside));
@@ -286,7 +327,7 @@ async function onDelete(v) {
                 icon="filter"
                 :active="showFilterPanelDd"
                 :title="`Hiển thị bộ lọc (${enabledFilterControlCount}/${FILTER_CONTROLS.length})`"
-                @click="openFilterPanel(() => { showColDd = false; showExportDd = false; })"
+                @click="openFilterPanel(() => { showColDd = false; dataMenu = false; })"
               >
                 Lọc
               </DatagridToolbarActionButton>
@@ -308,7 +349,7 @@ async function onDelete(v) {
                 icon="columns"
                 :active="showColDd"
                 title="Cột hiển thị"
-                @click="openColPanel(() => { showFilterPanelDd = false; showExportDd = false; })"
+                @click="openColPanel(() => { showFilterPanelDd = false; dataMenu = false; })"
               >
                 Cột
               </DatagridToolbarActionButton>
@@ -324,52 +365,74 @@ async function onDelete(v) {
             </div>
 
             <div
-              ref="exportDdRef"
+              ref="dataMenuRef"
               class="relative shrink-0"
             >
               <DatagridToolbarActionButton
-                icon="export"
-                :active="showExportDd"
-                title="Xuất CSV hoặc Excel"
-                @click="openExportMenu"
+                icon="upload"
+                :active="dataMenu"
+                title="Nhập · Xuất · Đối soát dữ liệu"
+                @click="toggleDataMenu"
               >
-                Xuất
-              </DatagridToolbarActionButton>
-              <Transition
-                enter-active-class="transition duration-150 ease-out"
-                enter-from-class="opacity-0 scale-95 -translate-y-1"
-                leave-active-class="transition duration-100 ease-in"
-                leave-to-class="opacity-0 scale-95 -translate-y-1"
-              >
-                <div
-                  v-if="showExportDd"
-                  class="absolute right-0 top-full z-30 mt-1.5 w-56 origin-top-right rounded-xl border border-slate-200 bg-white py-1 shadow-elevation-2"
+                Dữ liệu
+                <span
+                  v-if="reconcileSummary.errors > 0"
+                  class="ml-1 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white"
                 >
-                  <p class="px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-slate-400">
-                    Danh sách hiện tại
-                  </p>
-                  <button
-                    type="button"
-                    class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
-                    @click="runExport('xlsx')"
-                  >
-                    Excel (.xlsx)
-                  </button>
-                  <button
-                    type="button"
-                    class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
-                    @click="runExport('csv')"
-                  >
-                    CSV (.csv)
-                  </button>
-                  <p class="border-t border-slate-100 px-3 py-2 text-[10px] text-slate-400">
-                    {{ vendorList.length }} bản ghi theo bộ lọc đang áp dụng
-                  </p>
-                </div>
-              </Transition>
+                  {{ reconcileSummary.errors }}
+                </span>
+              </DatagridToolbarActionButton>
             </div>
           </div>
         </div>
+
+        <Teleport to="body">
+          <Transition
+            enter-active-class="transition duration-150 ease-out"
+            enter-from-class="opacity-0 scale-95"
+            leave-active-class="transition duration-100 ease-in"
+            leave-to-class="opacity-0 scale-95"
+          >
+            <div
+              v-if="dataMenu"
+              :style="dataMenuStyle"
+              class="overflow-hidden rounded-card border border-slate-200 bg-white p-1 shadow-elevation-2"
+              data-vendor-data-panel
+            >
+              <button
+                type="button"
+                class="flex w-full items-center gap-2.5 rounded-btn px-3 py-2 text-left hover:bg-slate-50"
+                @click="runQuickExport"
+              >
+                <AppIcon
+                  name="export"
+                  :size="15"
+                  class="shrink-0 text-slate-400"
+                />
+                <div>
+                  <span class="block text-sm font-medium text-slate-700">Xuất trang này</span>
+                  <span class="block text-[10px] text-slate-400">{{ vendorList.length }} bản ghi · Excel (.xlsx)</span>
+                </div>
+              </button>
+              <hr class="my-1 border-slate-100">
+              <button
+                type="button"
+                class="flex w-full items-center gap-2.5 rounded-btn px-3 py-2 text-left hover:bg-slate-50"
+                @click="openDataModal('import')"
+              >
+                <AppIcon
+                  name="upload"
+                  :size="15"
+                  class="shrink-0 text-slate-400"
+                />
+                <div>
+                  <span class="block text-sm font-medium text-slate-700">Nhập / Xuất / Đối soát…</span>
+                  <span class="block text-[10px] text-slate-400">File mẫu, preview, ghi đè</span>
+                </div>
+              </button>
+            </div>
+          </Transition>
+        </Teleport>
 
         <Transition name="fade-slide">
           <div
@@ -485,7 +548,9 @@ async function onDelete(v) {
             <tr
               v-for="v in vendorList"
               :key="v.id"
+              :data-vendor-id="v.id"
               class="border-t border-slate-100 transition-colors hover:bg-slate-50/80"
+              :class="vendorRowClass(v)"
             >
               <td class="px-5 py-3">
                 <Link
@@ -617,6 +682,15 @@ async function onDelete(v) {
       :recommendation-options="options.recommendation || []"
       @close="showReview = false"
       @saved="onReviewSaved"
+    />
+
+    <VendorDataModal
+      v-model="dataModal"
+      :rows="vendorList"
+      :can-manage="can.create"
+      :initial-tab="dataModalInitialTab"
+      :active-filters="vendorRouteParams()"
+      @fix="onFixIssue"
     />
   </AppLayout>
 </template>

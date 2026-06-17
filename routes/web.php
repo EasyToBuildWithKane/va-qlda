@@ -26,8 +26,10 @@ use App\Http\Controllers\Contract\ContractCategoryController;
 use App\Http\Controllers\Contract\ContractController;
 use App\Http\Controllers\Contract\ContractCostController;
 use App\Http\Controllers\Contract\ContractDashboardController;
+use App\Http\Controllers\Contract\ContractFinanceController;
 use App\Http\Controllers\Contract\ContractRenewalController;
 use App\Http\Controllers\Contract\ContractReportController;
+use App\Http\Controllers\Contract\ContractReviewController;
 use App\Http\Controllers\Contract\VendorController;
 use App\Http\Controllers\Contract\VendorReviewController;
 use App\Http\Controllers\Credential\CredentialAccessController;
@@ -247,6 +249,7 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictCoachingOnlyUsers::class
         Route::get('/vendors', [VendorController::class, 'index'])->name('vendors.index');
         Route::get('/vendors/{vendor}', [VendorController::class, 'show'])->name('vendors.show');
         Route::post('/vendors', [VendorController::class, 'store'])->name('vendors.store');
+        Route::post('/vendors/import', [VendorController::class, 'import'])->name('vendors.import');
         Route::put('/vendors/{vendor}', [VendorController::class, 'update'])->name('vendors.update');
         Route::delete('/vendors/{vendor}', [VendorController::class, 'destroy'])->name('vendors.destroy');
         Route::post('/vendors/{vendor}/reviews', [VendorReviewController::class, 'store'])->name('vendors.reviews.store');
@@ -264,8 +267,17 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictCoachingOnlyUsers::class
         Route::put('/{contract}', [ContractController::class, 'update'])->name('update');
         Route::delete('/{contract}', [ContractController::class, 'destroy'])->name('destroy');
 
-        // Renewals (gia hạn nhanh)
+        // Renewals (gia hạn nhanh — tạo hợp đồng phụ lục)
         Route::post('/{contract}/renewals', [ContractRenewalController::class, 'store'])->name('renewals.store');
+
+        // Tài chính hợp đồng
+        Route::post('/{contract}/finances', [ContractFinanceController::class, 'store'])->name('finances.store');
+        Route::put('/{contract}/finances/{finance}', [ContractFinanceController::class, 'update'])->name('finances.update');
+        Route::delete('/{contract}/finances/{finance}', [ContractFinanceController::class, 'destroy'])->name('finances.destroy');
+
+        // Đánh giá hợp đồng (gắn vendor + contract_id)
+        Route::post('/{contract}/reviews', [ContractReviewController::class, 'store'])->name('reviews.store');
+        Route::delete('/{contract}/reviews/{review}', [ContractReviewController::class, 'destroy'])->name('reviews.destroy');
 
         // Documents / attachments (upload + link ngoài + version)
         Route::get('/{contract}/attachments/{attachment}/file', [ContractAttachmentController::class, 'file'])->name('attachments.file');
@@ -376,6 +388,11 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictCoachingOnlyUsers::class
         Route::get('/analytics', [AiAccountPageController::class, 'analytics'])->name('analytics');
         Route::get('/cost-report', [AiAccountPageController::class, 'costReport'])->name('cost-report');
         Route::get('/cost-by-group', [AiAccountPageController::class, 'costByGroup'])->name('cost-by-group');
+    });
+
+    Route::prefix('api/contracts/vendors')->name('api.contracts.vendors.')->group(function () {
+        Route::get('/export-data', [VendorController::class, 'exportData'])->name('export-data');
+        Route::get('/import-logs', [VendorController::class, 'importLogs'])->name('import-logs');
     });
 
     Route::prefix('api/credentials')->name('api.credentials.')->group(function () {

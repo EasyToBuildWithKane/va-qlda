@@ -20,7 +20,7 @@ enum ContractStatus: string
     public function label(): string
     {
         return match ($this) {
-            self::Draft => 'Nháp',
+            self::Draft => 'Đang chờ duyệt',
             self::Active => 'Đang hiệu lực',
             self::ExpiringSoon => 'Sắp hết hạn',
             self::Expired => 'Đã hết hạn',

@@ -156,14 +156,14 @@ class ContractController extends Controller
         ContractServiceGroups::sync();
 
         $contract->load([
-            'vendor' => fn ($v) => $v->with('latestReview.reviewer'),
+            'vendor',
             'category',
             'owner',
             'manager',
             'attachments' => fn ($a) => $a->with('uploadedBy'),
             'renewals',
             'finances',
-            'activities' => fn ($a) => $a->limit(50),
+            'addenda' => fn ($q) => $q->with('attachments')->latest(),
         ]);
 
         return Inertia::render('Contract/Show', [
@@ -189,7 +189,7 @@ class ContractController extends Controller
 
         $contract = Contract::create([
             ...$data,
-            'status' => $data['status'] ?? ContractStatus::Active->value,
+            'status' => ContractStatus::Draft->value,
             'payment_status' => $data['payment_status'] ?? ContractPaymentStatus::Unpaid->value,
         ]);
 

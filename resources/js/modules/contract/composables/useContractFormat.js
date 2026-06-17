@@ -52,6 +52,59 @@ export function formatVndNumber(amount) {
     return vndFormatter.format(Math.round(Number(amount) || 0));
 }
 
+/**
+ * Đọc số tiền thành chữ tiếng Việt đầy đủ.
+ * Ví dụ: 120_000_000 → "Một trăm hai mươi triệu đồng".
+ */
+export function vndToWords(amount) {
+    const n = Math.round(Number(amount) || 0);
+    if (n === 0) return 'Không đồng';
+    if (n < 0) return `Âm ${vndToWords(-n)}`;
+
+    const units = ['', 'một', 'hai', 'ba', 'bốn', 'năm', 'sáu', 'bảy', 'tám', 'chín'];
+
+    function readHundreds(num) {
+        const h = Math.floor(num / 100);
+        const rest = num % 100;
+        const t = Math.floor(rest / 10);
+        const u = rest % 10;
+        let result = '';
+        if (h > 0) result += units[h] + ' trăm';
+        if (t === 0 && u === 0) return result.trim();
+        if (t === 0 && u > 0) result += (h > 0 ? ' lẻ ' : '') + units[u];
+        else if (t === 1) result += (result ? ' mười' : 'mười') + (u > 0 ? (u === 5 ? ' lăm' : ' ' + units[u]) : '');
+        else {
+            result += (result ? ' ' : '') + units[t] + ' mươi';
+            if (u === 1) result += ' mốt';
+            else if (u === 5) result += ' lăm';
+            else if (u > 0) result += ' ' + units[u];
+        }
+        return result.trim();
+    }
+
+    const tiers = [
+        { value: 1_000_000_000_000, label: 'nghìn tỷ' },
+        { value: 1_000_000_000, label: 'tỷ' },
+        { value: 1_000_000, label: 'triệu' },
+        { value: 1_000, label: 'nghìn' },
+        { value: 1, label: '' },
+    ];
+
+    let parts = [];
+    let remaining = n;
+    for (const tier of tiers) {
+        const qty = Math.floor(remaining / tier.value);
+        if (qty > 0) {
+            const words = readHundreds(qty > 999 ? qty % 1000 : qty);
+            parts.push(words + (tier.label ? ' ' + tier.label : ''));
+            remaining -= qty * tier.value;
+        }
+    }
+
+    const joined = parts.join(' ').replace(/\s+/g, ' ').trim();
+    return joined.charAt(0).toUpperCase() + joined.slice(1) + ' đồng';
+}
+
 /** Parse chuỗi tiền có dấu phân nhóm về số (giữ dấu trừ). */
 export function parseVndNumber(input) {
     if (input === null || input === undefined) return null;

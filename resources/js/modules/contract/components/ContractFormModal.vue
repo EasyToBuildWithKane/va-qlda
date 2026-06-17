@@ -93,7 +93,7 @@ watch(() => props.show, (open) => {
         billing_cycle: c?.billing_cycle?.value ?? null,
         effective_date: c?.effective_date ?? '',
         expiry_date: c?.expiry_date ?? '',
-        status: c?.status?.value ?? 'active',
+        status: c?.status?.value ?? 'draft',
         description: c?.description ?? '',
     });
     form.reset();
@@ -454,19 +454,29 @@ function submit() {
             label="Trạng thái"
             tooltip="Trạng thái vòng đời: đang hiệu lực, chuyển phụ lục, hết hạn…"
           />
-          <select
-            id="contract-status"
-            v-model="form.status"
-            :class="INPUT_CLASS"
-          >
-            <option
-              v-for="o in statusOptions"
-              :key="o.value"
-              :value="o.value"
+          <template v-if="isEdit">
+            <select
+              id="contract-status"
+              v-model="form.status"
+              :class="INPUT_CLASS"
             >
-              {{ o.label }}
-            </option>
-          </select>
+              <option
+                v-for="o in statusOptions"
+                :key="o.value"
+                :value="o.value"
+              >
+                {{ o.label }}
+              </option>
+            </select>
+          </template>
+          <template v-else>
+            <div class="flex h-10 items-center rounded-lg bg-slate-100 px-3 text-sm text-slate-500">
+              Đang chờ duyệt
+            </div>
+            <p class="mt-1 text-[10px] text-slate-400">
+              Hợp đồng mới luôn bắt đầu ở trạng thái này.
+            </p>
+          </template>
         </div>
       </div>
 

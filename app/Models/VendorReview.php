@@ -10,6 +10,7 @@ use Illuminate\Support\Carbon;
 /**
  * @property int $id
  * @property int $vendor_id
+ * @property int|null $contract_id
  * @property int|null $reviewer_id
  * @property Carbon|null $reviewed_at
  * @property string|null $service_quality
@@ -26,6 +27,7 @@ class VendorReview extends Model
 {
     protected $fillable = [
         'vendor_id',
+        'contract_id',
         'reviewer_id',
         'reviewed_at',
         'service_quality',
@@ -64,6 +66,11 @@ class VendorReview extends Model
     public function vendor(): BelongsTo
     {
         return $this->belongsTo(Vendor::class);
+    }
+
+    public function contract(): BelongsTo
+    {
+        return $this->belongsTo(Contract::class);
     }
 
     public function reviewer(): BelongsTo

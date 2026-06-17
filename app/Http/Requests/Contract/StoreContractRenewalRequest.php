@@ -17,9 +17,13 @@ class StoreContractRenewalRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'new_expiry' => ['required', 'date'],
-            'new_cost' => ['nullable', 'numeric', 'min:0', 'max:9999999999999'],
-            'note' => ['nullable', 'string', 'max:2000'],
+            'name'           => ['nullable', 'string', 'max:255'],
+            'effective_date' => ['nullable', 'date'],
+            'new_expiry'     => ['required', 'date'],
+            'new_cost'       => ['nullable', 'numeric', 'min:0', 'max:9999999999999'],
+            'note'           => ['nullable', 'string', 'max:2000'],
+            'links'          => ['nullable', 'array', 'max:20'],
+            'links.*'        => ['nullable', 'string', 'max:1000'],
         ];
     }
 

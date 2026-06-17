@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Http\Resources\Concerns\PresentsEntities;
+use App\Models\VendorReview;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -82,6 +83,26 @@ class ContractResource extends JsonResource
             ])),
 
             'attachments' => $this->whenLoaded('attachments', fn () => ContractAttachmentResource::collection($this->attachments)->resolve()),
+
+            'addenda' => $this->whenLoaded('addenda', fn () => $this->addenda->map(fn ($a) => [
+                'id' => $a->id,
+                'code' => $a->code,
+                'name' => $a->name,
+                'status' => $this->enum($a->status),
+                'effective_date' => $a->effective_date?->toDateString(),
+                'expiry_date' => $a->expiry_date?->toDateString(),
+                'annual_cost' => $a->annual_cost !== null ? (float) $a->annual_cost : null,
+                'currency' => $a->currency,
+                'attachments_count' => $a->relationLoaded('attachments') ? $a->attachments->count() : 0,
+                'created_at' => $a->created_at?->toIso8601String(),
+            ])),
+
+            'reviews_for_contract' => VendorReview::where('contract_id', $this->id)
+                ->with('reviewer')
+                ->latest('reviewed_at')
+                ->get()
+                ->map(fn ($r) => $this->vendorReviewArray($r)),
+
             'renewals' => $this->whenLoaded('renewals', fn () => $this->renewals->map(fn ($r) => [
                 'id' => $r->id,
                 'previous_expiry' => $r->previous_expiry?->toDateString(),

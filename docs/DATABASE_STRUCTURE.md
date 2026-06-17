@@ -1002,3 +1002,36 @@ Soft delete TK, đồng bộ PĐX, đếm badge vs chi phí theo nhóm, `purgeOr
 
 Enums: `App\Support\Enums\Credential*` · Policy: `CredentialPolicy` · Nav group `security`.
 
+---
+
+## 10. Contract Management (CLM) — migrations `2026_06_17_10*`
+
+Prefix `va_prd_`, Policy `ContractPolicy` (admin/lead/viewer).
+
+| Bảng | Mô tả |
+|---|---|
+| `va_prd_vendors` | Nhà cung cấp |
+| `va_prd_contract_categories` | Nhóm dịch vụ (vendor_id nullable) |
+| `va_prd_contracts` | Hợp đồng; `root_contract_id` → self (phụ lục); `status` default `draft` = "Đang chờ duyệt" |
+| `va_prd_contract_finances` | Dữ liệu tài chính chi tiết (CRUD từ Show page) |
+| `va_prd_contract_attachments` | File + link hồ sơ; `category`, `version` |
+| `va_prd_contract_renewals` | Audit log gia hạn (song song với việc tạo Contract phụ lục mới) |
+| `va_prd_contract_activities` | Lịch sử hoạt động (event, description, meta) |
+| `va_prd_vendor_reviews` | Đánh giá NCC — **6 tiêu chí 0–10** + tổng điểm + recommendation; **`contract_id` nullable FK** (migration `2026_06_17_151052`) để gắn đánh giá với hợp đồng cụ thể |
+
+### Schema thay đổi 2026-06-17
+
+| Bảng | Thay đổi |
+|---|---|
+| `va_prd_vendor_reviews` | Thêm cột `contract_id` (nullable FK → contracts, nullOnDelete) — migration `2026_06_17_151052_add_contract_id_to_vendor_reviews_table` |
+
+### Luồng trạng thái hợp đồng
+
+```
+Tạo mới → draft ("Đang chờ duyệt")  [locked, không cho chọn khi create]
+Kích hoạt thủ công → active ("Đang hiệu lực")
+Gia hạn → tạo Contract mới (status=addendum, root_contract_id=parent.id)
+Auto-sync: expiring_soon / expired / pending_renewal
+```
+
+
