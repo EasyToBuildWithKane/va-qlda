@@ -98,7 +98,9 @@ class ContractController extends Controller
                 'billingCycle' => ContractBillingCycle::options(),
                 'employees' => Options::employees()->values()->all(),
                 'departments' => Options::departments()->values()->all(),
+                'attachmentCategories' => ContractAttachmentCategory::options(),
             ],
+            'nextContractCode' => Contract::previewNextCode(),
             'can' => [
                 'create' => $account->can('create', Contract::class),
                 'import' => $account->can('import', Contract::class),

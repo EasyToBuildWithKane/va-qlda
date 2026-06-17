@@ -22,7 +22,7 @@ class StoreContractAttachmentRequest extends FormRequest
             'category' => ['required', Rule::in(ContractAttachmentCategory::values())],
             'title' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string', 'max:2000'],
-            'external_url' => ['nullable', 'string', 'url', 'max:2048'],
+            'external_url' => ['nullable', 'string', 'max:2048'],
             'files' => ['nullable', 'array', 'max:10'],
             'files.*' => [
                 'file',

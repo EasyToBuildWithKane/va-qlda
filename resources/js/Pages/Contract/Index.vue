@@ -28,6 +28,7 @@ const props = defineProps({
     summary: { type: Object, default: () => ({}) },
     options: { type: Object, default: () => ({}) },
     can: { type: Object, default: () => ({}) },
+    nextContractCode: { type: String, default: '' },
 });
 
 const toast = useToast();
@@ -404,6 +405,7 @@ function onSaved() {
       :employees="options.employees || []"
       :status-options="options.status || []"
       :billing-options="options.billingCycle || []"
+      :next-contract-code="nextContractCode"
       @close="showForm = false"
       @saved="onSaved"
     />

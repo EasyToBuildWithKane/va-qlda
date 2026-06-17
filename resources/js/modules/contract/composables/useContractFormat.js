@@ -85,3 +85,32 @@ export function expiryTone(days) {
     if (days <= 90) return 'sky';
     return 'emerald';
 }
+
+const FILE_EXT_LABELS = {
+    pdf: 'PDF',
+    doc: 'Word',
+    docx: 'Word',
+    xls: 'Excel',
+    xlsx: 'Excel',
+    ppt: 'PowerPoint',
+    pptx: 'PowerPoint',
+    png: 'Ảnh PNG',
+    jpg: 'Ảnh JPEG',
+    jpeg: 'Ảnh JPEG',
+    webp: 'Ảnh WebP',
+    zip: 'Nén ZIP',
+    txt: 'Văn bản',
+};
+
+/** Nhãn loại file từ tên hoặc MIME (form upload / preview). */
+export function fileKindLabel(name, mimeType = '') {
+    const base = String(name ?? '').trim();
+    const ext = base.includes('.') ? base.split('.').pop()?.toLowerCase() : '';
+    if (ext && FILE_EXT_LABELS[ext]) return FILE_EXT_LABELS[ext];
+    if (mimeType) {
+        const sub = mimeType.split('/')[1];
+        if (sub) return sub.toUpperCase();
+    }
+    if (/^https?:\/\//i.test(base)) return 'Link ngoài';
+    return ext ? ext.toUpperCase() : 'Tệp';
+}

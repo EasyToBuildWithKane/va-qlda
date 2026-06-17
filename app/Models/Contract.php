@@ -93,10 +93,17 @@ class Contract extends Model
     {
         static::creating(function (Contract $contract) {
             if (! $contract->code) {
-                $seq = static::query()->withTrashed()->count() + 1;
-                $contract->code = 'HD-'.now()->format('y').'-'.str_pad((string) $seq, 4, '0', STR_PAD_LEFT);
+                $contract->code = static::previewNextCode();
             }
         });
+    }
+
+    /** Mã dự kiến khi tạo mới (hiển thị form — khớp logic `creating`). */
+    public static function previewNextCode(): string
+    {
+        $seq = static::query()->withTrashed()->count() + 1;
+
+        return 'HD-'.now()->format('y').'-'.str_pad((string) $seq, 4, '0', STR_PAD_LEFT);
     }
 
     /** Số ngày còn lại tới khi hết hạn (âm = đã quá hạn, null = chưa có ngày). */
