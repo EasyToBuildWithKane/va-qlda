@@ -202,7 +202,9 @@ final class CongngheContentSchema
                     ['key' => 'period', 'type' => 'text', 'label' => 'Mốc thời gian', 'max' => 60],
                     ['key' => 'title', 'type' => 'text', 'label' => 'Tiêu đề', 'required' => true, 'max' => 200],
                     ['key' => 'body', 'type' => 'textarea', 'label' => 'Nội dung', 'max' => 400],
+                    ['key' => 'icon', 'type' => 'icon', 'label' => 'Biểu tượng'],
                     ['key' => 'state', 'type' => 'text', 'label' => 'Trạng thái', 'max' => 40],
+                    ['key' => 'progress', 'type' => 'number', 'label' => 'Tiến độ (%)', 'min' => 0, 'max' => 100],
                     ['key' => 'live', 'type' => 'bool', 'label' => 'Đang diễn ra'],
                 ]],
             ],
@@ -338,6 +340,12 @@ final class CongngheContentSchema
                 Rule::in(array_keys(self::METRIC_KEYS)),
             ]],
             'tone' => [$subBase => ['nullable', Rule::in(self::TONES)]],
+            'number' => [$subBase => [
+                ! empty($sub['required']) ? 'required' : 'nullable',
+                'integer',
+                'min:'.(int) ($sub['min'] ?? 0),
+                'max:'.(int) ($sub['max'] ?? 100),
+            ]],
             'bool' => [$subBase => ['sometimes', 'boolean']],
             'anchor' => [$subBase => ['nullable', 'string', 'max:120', 'regex:'.self::ANCHOR_REGEX]],
             'stringlist' => [

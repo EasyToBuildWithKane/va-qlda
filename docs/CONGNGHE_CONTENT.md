@@ -69,7 +69,7 @@ Pages/CongngheAdmin/Index.vue    CongngheAdminController            CongngheCont
 | `lifecycle` | main | ✓ | Heading, mô tả 3 giai đoạn (dự án từ DB) |
 | `ai_lab` | main | ✓ | Heading, 3 sáng kiến (title/body/icon) |
 | `culture` | main | ✓ | Heading, 6 giá trị (title/body/icon) |
-| `roadmap` | main | ✓ | Heading, nhãn linh vật, các cột mốc |
+| `roadmap` | main | ✓ | Heading, nhãn linh vật, các cột mốc (period/title/body/icon/state/progress %/live) |
 | `footer` | chrome | ✗ | Thương hiệu, link "Khám phá"/"Liên lạc", bản quyền |
 
 - **icon** trong item là **key** trong `App\Support\Congnghe\CongngheIcons` (admin chọn từ dropdown — không nhập SVG thô).
@@ -106,7 +106,7 @@ Cần `php artisan migrate` trên DB thật (migration đã verify qua test sqli
 ## 6. Thêm / sửa một field
 
 1. Sửa default trong `config/congnghe.php` (section.content).
-2. Khai báo field cho trình soạn thảo trong `CongngheContentSchema::editor($key)` — type: `text|textarea|heading|link|kv|list`; list có `fields` con (`text|textarea|icon|metric|tone|bool|anchor|stringlist`).
+2. Khai báo field cho trình soạn thảo trong `CongngheContentSchema::editor($key)` — type: `text|textarea|heading|link|kv|list`; list có `fields` con (`text|textarea|icon|metric|tone|number|bool|anchor|stringlist`). `number` nhận `min`/`max` (mặc định 0–100), validate `integer` + `nullable`.
 3. `rules()` tự sinh từ `editor()` ⇒ không cần viết validation riêng (client + server khớp).
 4. Trình soạn thảo (`SectionEditor.vue` + `RepeatableList.vue`) render generic theo type ⇒ thường không phải sửa Vue admin.
 5. Partial công khai đọc field qua `props.content.*` — nếu thêm field mới, bind vào partial tương ứng.

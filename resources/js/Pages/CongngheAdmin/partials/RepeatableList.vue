@@ -32,7 +32,10 @@ const toneOptions = computed(() => props.tones.map((t) => ({ value: t, label: t 
 function blankItem() {
     const item = {};
     for (const f of props.fields) {
-        item[f.key] = f.type === 'bool' ? false : (f.type === 'stringlist' ? [] : '');
+        if (f.type === 'bool') item[f.key] = false;
+        else if (f.type === 'stringlist') item[f.key] = [];
+        else if (f.type === 'number') item[f.key] = null;
+        else item[f.key] = '';
     }
     return item;
 }
@@ -186,6 +189,17 @@ function stringListValue(item, key) {
             :disabled="disabled"
             @update:model-value="updateField(index, f.key, $event)"
           />
+          <input
+            v-else-if="f.type === 'number'"
+            type="number"
+            :value="item[f.key]"
+            :min="f.min ?? 0"
+            :max="f.max ?? 100"
+            step="1"
+            class="input w-full"
+            :disabled="disabled"
+            @input="updateField(index, f.key, $event.target.value === '' ? null : Number($event.target.value))"
+          >
           <div
             v-else-if="f.type === 'bool'"
             class="pt-1"
