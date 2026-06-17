@@ -117,14 +117,14 @@ function cometColor(ring) {
           class="absolute inset-0"
           :style="ringSpinStyle(ring)"
         >
-          <!-- Comet: đầu sáng chạy quanh vòng -->
+          <!-- Comet: đầu sáng chạy quanh vòng (trục xoay = tâm vòng) -->
           <div
             v-if="!reduced"
-            class="absolute left-1/2 top-1/2 h-1/2 w-0 origin-bottom"
+            class="absolute bottom-1/2 left-1/2 h-1/2 w-0 origin-bottom"
             :style="{ transform: `rotate(${ring.offsetDeg ?? 0}deg)` }"
           >
             <span
-              class="absolute bottom-0 left-0 h-2 w-2 -translate-x-1/2 translate-y-1/2 rounded-full"
+              class="absolute left-0 top-0 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full"
               :style="{
                 background: cometColor(ring),
                 boxShadow: `0 0 12px 3px ${cometColor(ring)}`,
@@ -135,13 +135,13 @@ function cometColor(ring) {
           <div
             v-for="(item, i) in ring.items"
             :key="`${item.label}-${i}`"
-            class="absolute left-1/2 top-1/2 h-1/2 w-0 origin-bottom"
+            class="absolute bottom-1/2 left-1/2 h-1/2 w-0 origin-bottom"
             :style="{
               transform: `rotate(${itemAngle(i, ring.items.length, ring.offsetDeg ?? 0)}deg)`,
             }"
           >
             <div
-              class="orbit-badge absolute bottom-0 left-0 flex -translate-x-1/2 translate-y-1/2 items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1 font-mono text-[9px] uppercase tracking-wide backdrop-blur-md transition-[transform,box-shadow,border-color] duration-300 sm:text-[10px]"
+              class="orbit-badge absolute left-0 top-0 flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1 font-mono text-[9px] uppercase tracking-wide backdrop-blur-md transition-[transform,box-shadow,border-color] duration-300 sm:text-[10px]"
               :class="ORBIT_TONE_CLASS[ring.tone] || ORBIT_TONE_CLASS.cyan"
               :style="badgeSpinStyle(ring)"
             >

@@ -12,6 +12,23 @@
     inherits: false;
 }
 
+/* Keyframe quay quỹ đạo hero — khai báo top-level để không bị Tailwind purge
+   (HeroTechOrbit dùng animation qua inline style, không qua class animate-*). */
+@keyframes cn-spin-slow {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes cn-border-rotate {
+    to {
+        --cn-angle: 360deg;
+    }
+}
+
 /* Khi người dùng bật "giảm chuyển động", tắt mọi animation cn-* đang chạy
    vô điều kiện (aurora/grid/float...) trong phạm vi nền landing. */
 @media (prefers-reduced-motion: reduce) {

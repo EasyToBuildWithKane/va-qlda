@@ -14,7 +14,7 @@ defineProps({
 const reduced = prefersReducedMotionNow();
 
 const sizeClass = {
-    hero: 'h-[88%] w-auto max-h-[min(72vw,420px)] sm:max-h-[440px] lg:max-h-[480px] xl:max-h-[520px]',
+    hero: 'h-[72%] w-auto max-h-[min(58vw,340px)] sm:max-h-[360px] lg:max-h-[392px] xl:max-h-[424px]',
     assistant: 'h-[3.75rem] w-auto sm:h-[4.25rem] md:h-[5rem] lg:h-[5.75rem]',
     inline: 'h-32 w-auto sm:h-36 md:h-40',
     footer: 'h-36 w-auto sm:h-44 md:h-48 lg:h-52',
