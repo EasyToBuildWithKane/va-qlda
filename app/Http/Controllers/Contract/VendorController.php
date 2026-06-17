@@ -37,9 +37,16 @@ class VendorController extends Controller
                 ->orWhere('contact_name', 'like', "%{$search}%"));
         }
 
+        $scope = $request->query('scope');
+        if ($scope === 'with_contracts') {
+            $query->whereHas('contracts');
+        } elseif ($scope === 'low_score') {
+            $query->whereHas('latestReview', fn ($q) => $q->where('total_score', '<', 7));
+        }
+
         return Inertia::render('Contract/Vendors', [
             'vendors' => VendorResource::collection($query->get()),
-            'filters' => (object) $request->only(['q']),
+            'filters' => (object) $request->only(['q', 'scope']),
             'summary' => $this->vendorSummary(),
             'options' => [
                 'recommendation' => ContractReviewRecommendation::options(),

@@ -24,7 +24,7 @@ class ProjectShowDataLoader
                 'sprint:id,project_id,name',
                 'dependencies:id,title,status',
                 'dependents:id,title,status,progress',
-                'subtasks' => fn ($s) => $s->with('assignee'),
+                'subtasks' => fn ($s) => $s->with(['assignee', 'assignees']),
                 'watchers',
                 'attachments' => fn ($a) => $a->with('uploadedBy'),
                 'activities' => fn ($a) => $a->with('employee')->limit(100),

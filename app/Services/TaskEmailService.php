@@ -11,6 +11,7 @@ use App\Models\Project;
 use App\Models\Sprint;
 use App\Models\Task;
 use App\Support\Enums\TaskStatus;
+use App\Support\TaskSubtaskInheritance;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Mail;
 
@@ -82,14 +83,7 @@ class TaskEmailService
             return 0;
         }
 
-        $tasks = Task::query()
-            ->where('project_id', $project->id)
-            ->where('sprint_id', $sprint->id)
-            ->whereNull('parent_id')
-            ->whereNotNull('assignee_id')
-            ->with(['assignee', 'sprint'])
-            ->orderBy('order_column')
-            ->get();
+        $tasks = $this->summarizableTasksQuery($project->id, $sprint->id)->get();
 
         return $this->queueGroupedSummaries($project, $tasks, fn (Employee $employee, Collection $group) => new SprintTaskSummaryMail(
             $project,
@@ -147,14 +141,18 @@ class TaskEmailService
     {
         unset($project);
 
-        $queued = 0;
-        foreach ($tasks->groupBy('assignee_id') as $assigneeId => $group) {
-            if (! $assigneeId) {
-                continue;
+        /** @var array<int, Collection<int, Task>> $groups */
+        $groups = [];
+
+        foreach ($tasks as $task) {
+            foreach (TaskSubtaskInheritance::assigneeIds($task) as $employeeId) {
+                $groups[$employeeId] = ($groups[$employeeId] ?? collect())->push($task);
             }
-            /** @var Task $first */
-            $first = $group->first();
-            $assignee = $first->assignee;
+        }
+
+        $queued = 0;
+        foreach ($groups as $employeeId => $group) {
+            $assignee = Employee::query()->find($employeeId);
             if (! $assignee instanceof Employee) {
                 continue;
             }
@@ -163,7 +161,8 @@ class TaskEmailService
                 continue;
             }
 
-            Mail::to($email)->queue($mailableFactory($assignee, $group));
+            $uniqueTasks = $group->unique('id')->values();
+            Mail::to($email)->queue($mailableFactory($assignee, $uniqueTasks));
             $queued++;
         }
 
@@ -174,15 +173,25 @@ class TaskEmailService
     {
         $today = now()->toDateString();
 
-        $query = Task::query()
-            ->where('project_id', $project->id)
-            ->whereNull('parent_id')
-            ->whereNotNull('assignee_id')
+        $query = $this->summarizableTasksQuery($project->id, $sprintId)
             ->where(function ($q) use ($today) {
                 $q->whereDate('due_date', $today)
                     ->orWhereDate('updated_at', $today);
+            });
+
+        return $query;
+    }
+
+    private function summarizableTasksQuery(int $projectId, ?int $sprintId)
+    {
+        $query = Task::query()
+            ->where('project_id', $projectId)
+            ->whereNull('parent_id')
+            ->where(function ($q) {
+                $q->whereNotNull('assignee_id')
+                    ->orWhereHas('assignees');
             })
-            ->with(['assignee', 'sprint'])
+            ->with(['assignee', 'assignees', 'sprint'])
             ->orderBy('order_column');
 
         if ($sprintId !== null) {

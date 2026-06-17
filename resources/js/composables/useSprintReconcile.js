@@ -1,5 +1,5 @@
 import { computed } from 'vue';
-import { getAssignees } from '@/composables/useSprintFilters';
+import { getTaskAssignees } from '@/composables/useTaskHierarchy';
 import { isSprintOverdue } from '@/composables/useSprintWorkspace';
 import {
     getTaskEstimateOverrunHours,
@@ -58,7 +58,7 @@ export function useSprintReconcile(sprintsSource, tasksSource) {
             if (!titles.has(key)) titles.set(key, []);
             titles.get(key).push(t);
 
-            if (!getAssignees(t).length && !t.assignee) {
+            if (!getTaskAssignees(t, tasks).length) {
                 result.push({
                     level: 'error',
                     code: 'no_assignee',

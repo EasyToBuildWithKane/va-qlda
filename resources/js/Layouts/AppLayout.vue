@@ -37,6 +37,14 @@ watch(
         }
     },
 );
+watch(
+    () => page.props.flash?.warning,
+    (warning, prevWarning) => {
+        if (warning && warning !== prevWarning) {
+            toast.warning(warning);
+        }
+    },
+);
 
 const sidebar = useAppSidebar();
 const {

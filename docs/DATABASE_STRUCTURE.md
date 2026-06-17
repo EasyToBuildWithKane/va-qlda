@@ -245,6 +245,8 @@ Department ──→ Employee ──→ SystemAccount
 
 **Indexes:** project_id, sprint_id, parent_id, epic_id, assignee_id, reporter_id, reviewer_id (FK)
 
+**Công việc con (`parent_id` ≠ null):** sprint, phase, ngày bắt đầu/hạn và người thực hiện (`assignee_id` + pivot `task_assignees`) luôn đồng bộ theo công việc cha; client chỉ sửa giao việc trên task gốc.
+
 ---
 
 ### 3.9 va_prd_task_assignees (Pivot)

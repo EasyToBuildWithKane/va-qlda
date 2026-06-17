@@ -81,6 +81,8 @@ const activeTask = computed(() => {
 
 const completionBadge = computed(() => getTaskCompletionBadge(activeTask.value));
 
+const isSubtaskRow = computed(() => !!activeTask.value?.parent_id);
+
 const canChangeStatus = computed(() => {
     if (!props.canEdit) return false;
     const t = activeTask.value;
@@ -596,7 +598,7 @@ const worklogList = computed(() => normalizeEntities(activeTask.value?.worklogs)
                   </div>
 
                   <div
-                    v-if="canEdit"
+                    v-if="canEdit && !isSubtaskRow"
                     class="relative"
                   >
                     <button

@@ -8,6 +8,7 @@ use App\Support\Enums\TaskStatus;
 use App\Support\NotificationDispatcher;
 use App\Support\TaskActivityLogger;
 use App\Support\TaskProgress;
+use App\Support\TaskSubtaskInheritance;
 use App\Support\TaskTimeliness;
 
 class PatchTaskUseCase
@@ -31,14 +32,18 @@ class PatchTaskUseCase
         }
 
         $previousStatus = $task->status->value;
+        if ($task->parent_id !== null) {
+            unset($validated['assignee_id']);
+        }
         $validated = $this->applyStatusTransitionRules($task, $validated, $actor);
         $task->update($validated);
         $changes = collect($task->getChanges())->except(['updated_at'])->all();
         $fresh = $task->fresh();
 
-        if (array_key_exists('assignee_id', $validated)) {
+        if ($task->parent_id === null && array_key_exists('assignee_id', $validated)) {
             $assigneeId = $validated['assignee_id'];
             $fresh->assignees()->sync($assigneeId ? [(int) $assigneeId] : []);
+            TaskSubtaskInheritance::syncSubtaskAssigneesFromParent($task->project, $fresh->fresh(['assignees', 'assignee']));
         }
 
         TaskTimeliness::syncWorkStartedAt($fresh, $previousStatus);

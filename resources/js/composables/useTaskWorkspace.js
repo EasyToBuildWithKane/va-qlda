@@ -1,5 +1,5 @@
 import { computed, ref, unref, isRef } from 'vue';
-import { getAssignees } from '@/composables/useSprintFilters';
+import { getTaskAssignees } from '@/composables/useTaskHierarchy';
 import { getSubtaskStats } from '@/composables/useTaskHierarchy';
 import { isTaskOverdue } from '@/composables/useTaskTimeliness';
 
@@ -37,7 +37,11 @@ export function useTaskWorkspace(taskSource, ctx = {}) {
         return raw && typeof raw === 'object' && raw.id != null ? raw : null;
     });
 
-    const assignees = computed(() => getAssignees(task.value || {}));
+    const assignees = computed(() => {
+        const t = task.value;
+        if (!t) return [];
+        return getTaskAssignees(t, allTasks.value);
+    });
 
     const sprintLine = computed(() => {
         const t = task.value;

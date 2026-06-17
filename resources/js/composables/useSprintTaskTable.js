@@ -1,8 +1,7 @@
 import { computed, ref, watch } from 'vue';
-import { getAssignees } from '@/composables/useSprintFilters';
-import { buildTaskDisplayRows, filterRootTasks } from '@/composables/useTaskHierarchy';
+import { buildTaskDisplayRows, filterRootTasks, getTaskAssignees } from '@/composables/useTaskHierarchy';
 
-function sortValue(row, key, sprintById) {
+function sortValue(row, key, sprintById, allTasks) {
     switch (key) {
         case 'id': return row.id;
         case 'title': return row.title ?? '';
@@ -12,7 +11,7 @@ function sortValue(row, key, sprintById) {
             return o[row.priority?.value] ?? 9;
         }
         case 'phase': return row.phase?.value ?? '';
-        case 'assignee': return getAssignees(row)[0]?.name ?? '';
+        case 'assignee': return getTaskAssignees(row, allTasks)[0]?.name ?? '';
         case 'reviewer': return row.reviewer?.name ?? '';
         case 'sprint': return sprintById.get(row.sprint_id)?.name ?? 'zzz';
         case 'estimate_hours': return row.estimate_hours ?? 0;
@@ -44,11 +43,12 @@ export function useSprintTaskTable(tasksSource, options = {}) {
         const q = globalSearch.value?.trim();
         if (q) {
             const lower = q.toLowerCase();
+            const pool = rows.value;
             list = list.filter((t) => {
                 const hay = [
                     t.id, `TASK-${t.id}`, t.title, t.description,
                     t.status?.label, t.priority?.label,
-                    getAssignees(t).map((a) => a.name).join(' '),
+                    getTaskAssignees(t, pool).map((a) => a.name).join(' '),
                 ].join(' ').toLowerCase();
                 return hay.includes(lower);
             });
@@ -63,9 +63,10 @@ export function useSprintTaskTable(tasksSource, options = {}) {
         if (!key) return list;
         const sign = dir === 'asc' ? 1 : -1;
         const map = sprintById.value;
+        const pool = rows.value;
         return list.sort((a, b) => {
-            const va = sortValue(a, key, map);
-            const vb = sortValue(b, key, map);
+            const va = sortValue(a, key, map, pool);
+            const vb = sortValue(b, key, map, pool);
             if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * sign;
             return String(va).localeCompare(String(vb), 'vi') * sign;
         });

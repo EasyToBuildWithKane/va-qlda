@@ -209,8 +209,9 @@ const viewModes = [
 ];
 
 const emailSprintId = computed(() => {
-    if (expandedSprints.value.size > 0) {
-        return [...expandedSprints.value][0];
+    const fromExpanded = props.sprints.find((s) => expandedSprints.value.has(s.id));
+    if (fromExpanded?.id != null) {
+        return fromExpanded.id;
     }
 
     return props.sprints[0]?.id ?? null;
@@ -224,7 +225,9 @@ function onEmailClickOutside(e) {
 
 function sendDailySummaryEmail() {
     emailMenuOpen.value = false;
-    router.post(route('projects.email.daily-summary', pid), {}, {
+    router.post(route('projects.email.daily-summary', pid), {
+        sprint_id: emailSprintId.value ?? undefined,
+    }, {
         preserveScroll: true,
     });
 }

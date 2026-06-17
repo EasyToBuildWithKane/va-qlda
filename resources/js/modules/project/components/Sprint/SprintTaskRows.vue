@@ -5,7 +5,7 @@ import Avatar from '@/shared/ui/Avatar.vue';
 import Badge from '@/shared/ui/Badge.vue';
 import ProgressBar from '@/shared/ui/ProgressBar.vue';
 import { date } from '@/composables/useFormat';
-import { getAssignees } from '@/composables/useSprintFilters';
+import { getTaskAssignees } from '@/composables/useTaskHierarchy';
 import { useSprintTaskStatusPatch } from '@/composables/useSprintTaskStatusPatch';
 import {
     getTaskSlaState,
@@ -81,11 +81,13 @@ const statusDot = {
     amber: 'bg-amber-500',
 };
 
-const assigneeOverflowTitle = (row) => {
-    const list = getAssignees(row);
+const assigneeOverflowTitle = (row, parent) => {
+    const list = getTaskAssignees(row, taskPool.value, parent);
     if (list.length <= 3) return '';
     return list.slice(3).map((a) => a.name).join(', ');
 };
+
+const assigneesForRow = (entry) => getTaskAssignees(entry.task, taskPool.value, entry.parent);
 
 const canEditStatusFor = (task) => {
     if (!props.canContribute) return false;
@@ -243,34 +245,29 @@ const isDateOverdue = (row, parent) => {
             </div>
           </td>
           <td class="border-b border-slate-100 px-2 py-2 dark:border-slate-800">
-            <template v-if="!entry.isSubtask">
-              <div
-                v-if="getAssignees(entry.task).length"
-                class="flex items-center -space-x-1"
-              >
-                <Avatar
-                  v-for="a in getAssignees(entry.task).slice(0, 3)"
-                  :key="a.id"
-                  :name="a.name"
-                  :src="a.avatar_path"
-                  :size="22"
-                />
-                <span
-                  v-if="getAssignees(entry.task).length > 3"
-                  class="inline-grid h-[22px] min-w-[22px] place-items-center rounded-full bg-slate-100 px-1 text-[10px] font-semibold text-slate-600 ring-2 ring-white dark:bg-slate-700 dark:text-slate-200 dark:ring-slate-900"
-                  :title="assigneeOverflowTitle(entry.task)"
-                >
-                  +{{ getAssignees(entry.task).length - 3 }}
-                </span>
-              </div>
+            <div
+              v-if="assigneesForRow(entry).length"
+              class="flex items-center -space-x-1"
+              :class="entry.isSubtask ? 'opacity-80' : ''"
+            >
+              <Avatar
+                v-for="a in assigneesForRow(entry).slice(0, 3)"
+                :key="a.id"
+                :name="a.name"
+                :src="a.avatar_path"
+                :size="22"
+              />
               <span
-                v-else
-                class="text-slate-300"
-              >—</span>
-            </template>
+                v-if="assigneesForRow(entry).length > 3"
+                class="inline-grid h-[22px] min-w-[22px] place-items-center rounded-full bg-slate-100 px-1 text-[10px] font-semibold text-slate-600 ring-2 ring-white dark:bg-slate-700 dark:text-slate-200 dark:ring-slate-900"
+                :title="assigneeOverflowTitle(entry.task, entry.parent)"
+              >
+                +{{ assigneesForRow(entry).length - 3 }}
+              </span>
+            </div>
             <span
               v-else
-              class="text-[10px] text-slate-400"
+              class="text-slate-300"
             >—</span>
           </td>
           <td

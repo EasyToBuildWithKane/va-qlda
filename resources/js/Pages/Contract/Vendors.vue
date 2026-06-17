@@ -26,17 +26,37 @@ const page = usePage();
 
 const vendorList = computed(() => props.vendors.data ?? props.vendors ?? []);
 const search = ref(props.filters.q ?? '');
+const scopeFilter = ref(props.filters.scope ?? '');
 
 let debounce;
-function applySearch() {
+function navigateVendors() {
     clearTimeout(debounce);
     debounce = setTimeout(() => {
-        router.get('/contracts/vendors', { q: search.value || undefined }, {
+        router.get('/contracts/vendors', {
+            q: search.value || undefined,
+            scope: scopeFilter.value || undefined,
+        }, {
             preserveState: true, preserveScroll: true, replace: true,
         });
     }, 350);
 }
-watch(search, applySearch);
+watch(search, navigateVendors);
+
+watch(
+    () => props.filters.scope,
+    (v) => { scopeFilter.value = v ?? ''; },
+);
+
+function onQuickFilter({ scope }) {
+    scopeFilter.value = scope ?? '';
+    clearTimeout(debounce);
+    router.get('/contracts/vendors', {
+        q: search.value || undefined,
+        scope: scopeFilter.value || undefined,
+    }, {
+        preserveState: true, preserveScroll: true, replace: true,
+    });
+}
 
 const showForm = ref(false);
 const editing = ref(null);
@@ -109,7 +129,7 @@ async function onDelete(v) {
         subtitle="Quản lý NCC dịch vụ, phần mềm, hạ tầng"
         icon="vendor"
         icon-color="brand"
-        :badge="vendorList.length"
+        :badge="summary.total ?? null"
       >
         <button
           v-if="can.create"
@@ -125,10 +145,14 @@ async function onDelete(v) {
       </PageHeader>
     </template>
 
-    <div class="mx-auto max-w-6xl px-4 py-5">
-      <VendorSummaryBar :summary="summary" />
+    <VendorSummaryBar
+      :summary="summary"
+      :active-scope="scopeFilter"
+      @quick-filter="onQuickFilter"
+    />
 
-      <div class="mb-4 flex w-full min-w-0 flex-wrap items-center gap-2 lg:flex-nowrap">
+    <div class="card overflow-visible">
+      <div class="flex w-full min-w-0 flex-wrap items-center gap-2 border-b border-slate-100 px-5 py-4 lg:flex-nowrap">
         <div class="min-w-0 w-full basis-full lg:min-w-[10rem] lg:flex-1 lg:basis-auto">
           <DatagridToolbarSearch
             v-model="search"
@@ -144,7 +168,7 @@ async function onDelete(v) {
         </div>
       </div>
 
-      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div class="grid gap-3 p-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         <article
           v-for="v in vendorList"
           :key="v.id"
@@ -253,7 +277,7 @@ async function onDelete(v) {
 
         <p
           v-if="!vendorList.length"
-          class="sm:col-span-2 lg:col-span-3 rounded-card border border-dashed border-slate-200 py-10 text-center text-sm text-slate-400"
+          class="rounded-card border border-dashed border-slate-200 py-10 text-center text-sm text-slate-400 sm:col-span-2 lg:col-span-3 xl:col-span-4"
         >
           Chưa có nhà cung cấp nào.
         </p>

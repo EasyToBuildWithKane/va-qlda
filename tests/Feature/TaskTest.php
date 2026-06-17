@@ -160,6 +160,61 @@ class TaskTest extends TestCase
         ]);
     }
 
+    public function test_parent_assignee_syncs_to_subtasks(): void
+    {
+        $project = Project::factory()->create();
+        $employeeA = Employee::factory()->create();
+        $employeeB = Employee::factory()->create();
+        $parent = $project->tasks()->create($this->taskPayload(['title' => 'Parent']));
+        $subtask = $project->tasks()->create(array_merge($this->taskPayload(['title' => 'Child']), [
+            'parent_id' => $parent->id,
+        ]));
+
+        $this->actingAs($this->admin(), 'system')
+            ->put("/projects/{$project->id}/tasks/{$parent->id}", $this->taskPayload([
+                'title' => 'Parent',
+                'assignee_ids' => [$employeeA->id, $employeeB->id],
+            ]))
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('tasks', [
+            'id' => $subtask->id,
+            'assignee_id' => $employeeA->id,
+        ]);
+        $this->assertDatabaseHas('task_assignees', [
+            'task_id' => $subtask->id,
+            'employee_id' => $employeeA->id,
+        ]);
+        $this->assertDatabaseHas('task_assignees', [
+            'task_id' => $subtask->id,
+            'employee_id' => $employeeB->id,
+        ]);
+    }
+
+    public function test_subtask_create_inherits_parent_assignees(): void
+    {
+        $project = Project::factory()->create();
+        $employee = Employee::factory()->create();
+        $parent = $project->tasks()->create($this->taskPayload([
+            'title' => 'Parent',
+            'assignee_id' => $employee->id,
+        ]));
+        $parent->assignees()->sync([$employee->id]);
+
+        $this->actingAs($this->admin(), 'system')
+            ->post("/projects/{$project->id}/tasks/{$parent->id}/subtasks", [
+                'title' => 'Child via API',
+            ])
+            ->assertRedirect();
+
+        $subtask = $project->tasks()->where('title', 'Child via API')->firstOrFail();
+        $this->assertSame($employee->id, $subtask->assignee_id);
+        $this->assertDatabaseHas('task_assignees', [
+            'task_id' => $subtask->id,
+            'employee_id' => $employee->id,
+        ]);
+    }
+
     public function test_member_cannot_update_task(): void
     {
         $project = Project::factory()->create();

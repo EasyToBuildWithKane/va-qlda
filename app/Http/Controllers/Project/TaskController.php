@@ -21,6 +21,7 @@ use App\Support\Enums\TaskPriority;
 use App\Support\Enums\TaskStatus;
 use App\Support\ProjectActivityLogger;
 use App\Support\TaskActivityLogger;
+use App\Support\TaskSubtaskInheritance;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -70,6 +71,8 @@ class TaskController extends Controller
         abort_unless($task->project_id === $project->id, 404);
         abort_if($task->parent_id !== null, 422, 'Chỉ thêm công việc con cho công việc cha (tối đa 1 cấp).');
 
+        $task->load(['assignees', 'assignee']);
+
         $data = $request->validated();
 
         $subtask = $project->tasks()->create([
@@ -85,6 +88,8 @@ class TaskController extends Controller
             'due_date' => $task->due_date,
             'order_column' => (int) $project->tasks()->max('order_column') + 1,
         ]);
+
+        TaskSubtaskInheritance::copyAssigneesFromParent($task, $subtask);
 
         TaskActivityLogger::subtaskAdded($task, $subtask, $request->user());
 

@@ -46,6 +46,9 @@ class BulkCreateTasksUseCase
 
                 if ($assigneeIds !== []) {
                     $task->assignees()->sync($assigneeIds);
+                    if ($task->assignee_id === null) {
+                        $task->update(['assignee_id' => (int) $assigneeIds[0]]);
+                    }
                 }
 
                 $fresh = $task->fresh();

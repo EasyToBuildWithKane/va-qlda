@@ -2,6 +2,8 @@
  * Phân cấp công việc cha — con (chỉ 1 cấp, parent_id / subtasks).
  */
 
+import { getAssignees } from '@/composables/useSprintFilters';
+
 export const MAX_SUBTASK_DEPTH = 1;
 
 /**
@@ -78,6 +80,20 @@ export function getTaskSchedule(task, allTasks = [], parent = null) {
         due_date: p?.due_date ?? null,
         inherited: true,
     };
+}
+
+/**
+ * Người thực hiện — con luôn theo cha.
+ * @param {object} task
+ * @param {object[]} [allTasks]
+ * @param {object} [parent]
+ */
+export function getTaskAssignees(task, allTasks = [], parent = null) {
+    if (!isSubtask(task)) {
+        return getAssignees(task);
+    }
+    const p = parent ?? findParentTask(task, allTasks);
+    return p ? getAssignees(p) : getAssignees(task);
 }
 
 /**

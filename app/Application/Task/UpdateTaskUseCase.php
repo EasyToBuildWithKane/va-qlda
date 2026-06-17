@@ -8,6 +8,7 @@ use App\Models\Task;
 use App\Support\NotificationDispatcher;
 use App\Support\TaskActivityLogger;
 use App\Support\TaskProgress;
+use App\Support\TaskSubtaskInheritance;
 use App\Support\TaskTimeliness;
 
 class UpdateTaskUseCase
@@ -31,7 +32,15 @@ class UpdateTaskUseCase
         TaskProgress::syncProgressFromStatus($data);
 
         if ($task->parent_id !== null) {
-            unset($data['parent_id'], $data['start_date'], $data['due_date'], $data['sprint_id'], $data['phase']);
+            unset(
+                $data['parent_id'],
+                $data['start_date'],
+                $data['due_date'],
+                $data['sprint_id'],
+                $data['phase'],
+                $data['assignee_id'],
+            );
+            $assigneeIds = null;
             if (array_key_exists('estimate_hours', $data) && $data['estimate_hours'] === null) {
                 $data['estimate_hours'] = null;
             }
@@ -75,13 +84,24 @@ class UpdateTaskUseCase
                 TaskActivityLogger::dependenciesSynced($fresh, $actor);
             }
         }
+        $assigneesChanged = false;
         if ($assigneeIds !== null) {
             $beforeAssignees = $task->assignees()->pluck('id')->sort()->values()->all();
             $task->assignees()->sync($assigneeIds);
+            $primaryAssigneeId = $assigneeIds !== [] ? (int) $assigneeIds[0] : null;
+            if ($task->assignee_id !== $primaryAssigneeId) {
+                $task->update(['assignee_id' => $primaryAssigneeId]);
+                $fresh = $task->fresh();
+            }
             $afterAssignees = collect($assigneeIds)->map(fn ($id) => (int) $id)->sort()->values()->all();
-            if ($beforeAssignees !== $afterAssignees) {
+            $assigneesChanged = $beforeAssignees !== $afterAssignees;
+            if ($assigneesChanged) {
                 TaskActivityLogger::assigneesSynced($fresh, $actor);
             }
+        }
+
+        if ($fresh->parent_id === null && ($assigneesChanged || $fresh->wasChanged('assignee_id'))) {
+            TaskSubtaskInheritance::syncSubtaskAssigneesFromParent($project, $fresh->fresh(['assignees', 'assignee']));
         }
 
         return $fresh;
