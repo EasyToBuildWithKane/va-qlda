@@ -14,7 +14,6 @@ import {
     rowsToPayload,
     linkedFinances,
     linkedReviews,
-    serviceGroupOptions,
 } from '../composables/useContractImport.js';
 import { downloadContractExport } from '../composables/useContractExport.js';
 
@@ -72,18 +71,8 @@ function onDownloadTemplate() {
         vendors: props.vendors,
         categories: props.categories,
         statusOptions: props.statusOptions,
-        paymentOptions: props.paymentOptions,
         billingOptions: props.billingOptions,
     });
-}
-
-function categoryOptionsForRow() {
-    return serviceGroupOptions(props.categories);
-}
-
-function onCategoryChange(row) {
-    row.edit.category_name = null;
-    onEditRow(row);
 }
 
 async function onFileChange(e) {
@@ -276,16 +265,16 @@ function close() {
             <thead class="sticky top-0 bg-slate-50 text-left text-xs text-slate-500">
               <tr>
                 <th class="px-2 py-1.5 font-medium">
-                  Tên hợp đồng
+                  Mã HĐ
+                </th>
+                <th class="px-2 py-1.5 font-medium">
+                  Tên DV
                 </th>
                 <th class="px-2 py-1.5 font-medium">
                   NCC
                 </th>
                 <th class="px-2 py-1.5 font-medium">
-                  Nhóm dịch vụ
-                </th>
-                <th class="px-2 py-1.5 font-medium">
-                  Chi phí năm
+                  Phòng ban
                 </th>
                 <th class="px-2 py-1.5 font-medium">
                   Hết hạn
@@ -306,6 +295,13 @@ function close() {
               >
                 <td class="px-2 py-1.5">
                   <input
+                    v-model="row.edit.code"
+                    class="input w-28"
+                    @input="onEditRow(row)"
+                  >
+                </td>
+                <td class="px-2 py-1.5">
+                  <input
                     v-model="row.edit.name"
                     class="input w-full"
                     @input="onEditRow(row)"
@@ -321,28 +317,9 @@ function close() {
                   {{ row.edit.vendor_name }}
                 </td>
                 <td class="px-2 py-1.5">
-                  <select
-                    v-model="row.edit.category_id"
-                    class="input w-full min-w-[8rem]"
-                    @change="onCategoryChange(row)"
-                  >
-                    <option :value="null">
-                      {{ row.edit.category_name || 'Chưa chọn nhóm' }}
-                    </option>
-                    <option
-                      v-for="c in categoryOptionsForRow()"
-                      :key="c.id"
-                      :value="c.id"
-                    >
-                      {{ c.name }}
-                    </option>
-                  </select>
-                </td>
-                <td class="px-2 py-1.5">
                   <input
-                    v-model="row.edit.annual_cost"
-                    type="number"
-                    class="input w-28"
+                    v-model="row.edit.using_unit"
+                    class="input w-full min-w-[8rem]"
                     @input="onEditRow(row)"
                   >
                 </td>

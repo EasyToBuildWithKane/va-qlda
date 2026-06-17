@@ -182,12 +182,27 @@ class ContractController extends Controller
     public function store(StoreContractRequest $request): RedirectResponse
     {
         $data = $request->validated();
+        $links = $data['links'] ?? [];
+        unset($data['links']);
 
         $contract = Contract::create([
             ...$data,
-            'status' => $data['status'] ?? ContractStatus::Draft->value,
+            'status' => $data['status'] ?? ContractStatus::Active->value,
             'payment_status' => $data['payment_status'] ?? ContractPaymentStatus::Unpaid->value,
         ]);
+
+        foreach ($links as $link) {
+            $link = trim((string) $link);
+            if ($link === '') {
+                continue;
+            }
+            $contract->attachments()->create([
+                'category' => 'contract',
+                'uploaded_by_id' => $request->user()?->employee_id,
+                'original_name' => Str::limit(basename(str_replace('\\', '/', $link)), 200, ''),
+                'external_url' => $link,
+            ]);
+        }
 
         ContractActivityLogger::created($contract, $request->user());
 

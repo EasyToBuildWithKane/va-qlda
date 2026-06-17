@@ -56,7 +56,7 @@ class UpdateContractRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'name.required' => 'Vui lòng nhập tên hợp đồng.',
+            'name.required' => 'Vui lòng nhập tên dịch vụ.',
             'expiry_date.after_or_equal' => 'Ngày hết hạn phải sau hoặc bằng ngày hiệu lực.',
             'root_contract_id.not_in' => 'Hợp đồng không thể là hợp đồng gốc của chính nó.',
         ];

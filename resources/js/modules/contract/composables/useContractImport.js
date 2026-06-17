@@ -30,22 +30,19 @@ export function categoriesForVendor(categories = [], _vendorId) {
 }
 
 export const IMPORT_HEADERS = [
-    { key: 'code', label: 'Mã HĐ', width: 16 },
-    { key: 'name', label: 'Tên hợp đồng *', width: 34 },
-    { key: 'vendor', label: 'Nhà cung cấp', width: 24 },
-    { key: 'category', label: 'Nhóm dịch vụ', width: 18 },
-    { key: 'using_unit', label: 'Đơn vị sử dụng', width: 22 },
-    { key: 'owner', label: 'Người phụ trách (email)', width: 24 },
-    { key: 'manager', label: 'Người quản lý (email)', width: 24 },
-    { key: 'billing_cycle', label: 'Chu kỳ', width: 14 },
-    { key: 'annual_cost', label: 'Chi phí năm', width: 16 },
-    { key: 'lifecycle_cost', label: 'Chi phí vòng đời', width: 16 },
-    { key: 'payment_status', label: 'Thanh toán', width: 14 },
-    { key: 'effective_date', label: 'Ngày bắt đầu (DD/MM/YYYY)', width: 18 },
-    { key: 'expiry_date', label: 'Ngày hết hạn (DD/MM/YYYY)', width: 18 },
-    { key: 'status', label: 'Trạng thái', width: 16 },
-    { key: 'notes', label: 'Ghi chú', width: 24 },
-    { key: 'link', label: 'Link file', width: 24 },
+    { key: 'code', label: 'Mã HĐ', width: 14 },
+    { key: 'vendor', label: 'Tên NCC', width: 28 },
+    { key: 'category', label: 'Nhóm DV', width: 16 },
+    { key: 'service_name', label: 'Tên DV *', width: 20 },
+    { key: 'using_unit', label: 'Phòng Ban', width: 22 },
+    { key: 'owner', label: 'Người Phụ Trách', width: 24 },
+    { key: 'manager', label: 'Người quản lý', width: 24 },
+    { key: 'effective_date', label: 'Ngày Bắt Đầu', width: 16 },
+    { key: 'expiry_date', label: 'Ngày Hết Hạn', width: 16 },
+    { key: 'billing_cycle', label: 'Chu Kỳ', width: 14 },
+    { key: 'status', label: 'Trạng Thái', width: 16 },
+    { key: 'link', label: 'Link File', width: 28 },
+    { key: 'notes', label: 'Ghi Chú', width: 24 },
 ];
 
 const PAYMENT_ALIASES = {
@@ -186,7 +183,7 @@ function resolvePerson(raw, employees) {
 
 // ── Template ───────────────────────────────────────────────────────────────
 
-function buildGuideSheet({ vendors, statusOptions, paymentOptions, billingOptions }) {
+function buildGuideSheet({ vendors, statusOptions, billingOptions }) {
     const ws = {};
     const COLS = 5;
     let row = 0;
@@ -198,11 +195,11 @@ function buildGuideSheet({ vendors, statusOptions, paymentOptions, billingOption
 
     const steps = [
         '1. Mở sheet "Nhap lieu" và điền dữ liệu từ dòng 8 trở đi (sau 2 dòng mẫu, không sửa dòng tiêu đề cột).',
-        '2. Cột có dấu * là bắt buộc: Tên hợp đồng.',
+        '2. Cột có dấu * là bắt buộc: Tên DV.',
         '3. Mã HĐ: nếu trùng mã đã có, hệ thống sẽ CẬP NHẬT hợp đồng đó; để trống sẽ tự sinh mã mới.',
-        '4. Nhà cung cấp / Nhóm dịch vụ: ghi tên; nếu chưa có hệ thống sẽ tự tạo khi nhập.',
+        '4. Tên NCC / Nhóm DV: ghi tên; nếu chưa có hệ thống sẽ tự tạo khi nhập.',
         '5. Người phụ trách / quản lý: nhập email (vd: ten@vaschools.edu.vn) để khớp đúng nhân sự.',
-        '6. Chi phí: nhập số (VND), không dấu phân cách. Vd: 12000000.',
+        '6. Phòng Ban: ghi tên đơn vị sử dụng (vd: Mầm non Bình Thới).',
         '7. Chu kỳ: Hàng năm | Một lần | Hàng tháng | Hàng quý.',
         '8. Trạng thái để trống = Đang hiệu lực. Ngày: định dạng DD/MM/YYYY.',
         '9. Link file: dán URL/tên file, nhiều link cách nhau bằng xuống dòng. Tối đa 200 dòng/lần.',
@@ -212,19 +209,18 @@ function buildGuideSheet({ vendors, statusOptions, paymentOptions, billingOption
 
     setCell(ws, row, 0, 'GIÁ TRỊ TRẠNG THÁI', S.section);
     mergeRow(ws, row, 0, 2);
-    setCell(ws, row, 3, 'GIÁ TRỊ THANH TOÁN / CHU KỲ', S.section);
+    setCell(ws, row, 3, 'GIÁ TRỊ CHU KỲ', S.section);
     mergeRow(ws, row, 3, COLS); row++;
 
     (statusOptions || []).forEach((opt, i) => {
         setCell(ws, row + i, 0, opt.label ?? '', S.guide);
         setCell(ws, row + i, 1, opt.value ?? '', S.guideBold);
     });
-    const right = [...(paymentOptions || []), ...(billingOptions || [])];
-    right.forEach((opt, i) => {
+    (billingOptions || []).forEach((opt, i) => {
         setCell(ws, row + i, 3, opt.label ?? '', S.guide);
         setCell(ws, row + i, 4, opt.value ?? '', S.guideBold);
     });
-    row += Math.max(statusOptions?.length || 0, right.length) + 1;
+    row += Math.max(statusOptions?.length || 0, billingOptions?.length || 0) + 1;
 
     setCell(ws, row, 0, 'DANH SÁCH NHÀ CUNG CẤP', S.section);
     mergeRow(ws, row, 0, COLS); row++;
@@ -255,11 +251,11 @@ function buildDataSheet() {
     mergeRow(ws, 3, 0, COLS);
 
     const headerRow = 4;
-    IMPORT_HEADERS.forEach((h, c) => setCell(ws, headerRow, c, h.label, h.key === 'name' ? S.required : S.header));
+    IMPORT_HEADERS.forEach((h, c) => setCell(ws, headerRow, c, h.label, h.key === 'service_name' ? S.required : S.header));
 
     const samples = [
-        ['KON-VM-01', 'Kidsonline - Giáo vụ số', 'Công ty Kidsonline', 'Giáo vụ số', 'Mầm non Bình Thới', 'phutrach@vaschools.edu.vn', 'quanly@vaschools.edu.vn', 'Hàng năm', '27972000', '27972000', 'paid', '01/10/2024', '01/10/2025', 'active', 'HCQT mua', 'KidsOnline.pdf'],
-        ['M365-01', 'Microsoft 365 E3', 'Microsoft', 'License', 'Toàn trường', '', '', 'Hàng năm', '360000000', '360000000', 'unpaid', '01/01/2026', '31/12/2026', 'active', '', ''],
+        ['KON-VM-01', 'Công ty TNHH Một thành viên Kidsonline', 'Giáo vụ số', 'Kidsonline', 'Mầm non Bình Thới', 'Truchtm@vaschools.edu.vn', 'phongcongnghe@vaschools.edu.vn', '01/10/2024', '01/10/2025', 'Hàng năm', 'Chuyển phụ lục', 'KidsOnline.pdf\nHop dong KidsOnline - VM (1).docx', 'HCQT mua'],
+        ['M365-01', 'Microsoft', 'License', 'Microsoft 365 E3', 'Toàn trường', '', '', '01/01/2026', '31/12/2026', 'Hàng năm', 'Đang hiệu lực', '', ''],
     ];
     samples.forEach((r, idx) => r.forEach((val, c) => setCell(ws, headerRow + 1 + idx, c, val, S.sample)));
 
@@ -301,10 +297,10 @@ function buildCategoriesRefSheet({ categories = [], vendors = [] } = {}) {
 }
 
 export function downloadContractImportTemplate({
-    vendors = [], categories = [], statusOptions = [], paymentOptions = [], billingOptions = [],
+    vendors = [], categories = [], statusOptions = [], billingOptions = [],
 } = {}) {
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, buildGuideSheet({ vendors, statusOptions, paymentOptions, billingOptions }), 'Huong dan');
+    XLSX.utils.book_append_sheet(wb, buildGuideSheet({ vendors, statusOptions, billingOptions }), 'Huong dan');
     XLSX.utils.book_append_sheet(wb, buildDataSheet(), 'Nhap lieu');
     if (categories.length || vendors.length) {
         XLSX.utils.book_append_sheet(wb, buildCategoriesRefSheet({ categories, vendors }), 'Nhom dich vu');
@@ -401,7 +397,7 @@ function cellVal(row, idx) {
 }
 
 const SAMPLE_CODES = new Set([normalizeKey('KON-VM-01'), normalizeKey('M365-01')]);
-const SAMPLE_NAMES = new Set([normalizeKey('Kidsonline - Giáo vụ số'), normalizeKey('Microsoft 365 E3'), normalizeKey('Microsoft 365 E3 (50 license)'), normalizeKey('Google Workspace Business')]);
+const SAMPLE_SERVICE_NAMES = new Set([normalizeKey('Kidsonline'), normalizeKey('Microsoft 365 E3')]);
 
 function classifySheet(headerRow) {
     const fin = mapFinanceColumns(headerRow);
@@ -451,16 +447,17 @@ export async function parseContractImportFile(file) {
                 const row = matrix[i];
                 if (!Array.isArray(row)) continue;
                 const code = cellVal(row, col.code);
-                const name = cellVal(row, col.name) || cellVal(row, col.service_name);
+                const serviceName = cellVal(row, col.service_name);
+                const name = serviceName || cellVal(row, col.name);
                 const vendor = cellVal(row, col.vendor);
                 if (!code && !name && !vendor) continue;
-                if (SAMPLE_CODES.has(normalizeKey(code)) || SAMPLE_NAMES.has(normalizeKey(name))) continue;
+                if (SAMPLE_CODES.has(normalizeKey(code)) || SAMPLE_SERVICE_NAMES.has(normalizeKey(name))) continue;
 
                 rows.push({
                     line: i + 1,
                     code,
                     name,
-                    service_name: cellVal(row, col.service_name),
+                    service_name: serviceName,
                     vendor_raw: vendor,
                     category_raw: cellVal(row, col.category),
                     using_unit: cellVal(row, col.using_unit) || null,
@@ -522,7 +519,7 @@ export async function parseContractImportFile(file) {
     }
 
     if (!contractSheetFound) {
-        errors.push('Không tìm thấy sheet hợp đồng (cần cột "Mã HĐ" hoặc "Tên hợp đồng"). Hãy dùng file mẫu VA hoặc file quản lý phần mềm.');
+        errors.push('Không tìm thấy sheet hợp đồng (cần cột "Mã HĐ" hoặc "Tên DV"). Hãy dùng file mẫu VA hoặc file quản lý phần mềm.');
     } else if (!rows.length) {
         errors.push('Chưa có dòng dữ liệu hợp đồng để nhập.');
     }
@@ -539,8 +536,8 @@ function ctxOf({ vendors = [], categories = [], employees = [], departments = []
 export function validatePreviewEdit(edit, ctx) {
     const errors = [];
     const name = edit.name?.trim() ?? '';
-    if (!name) errors.push('Thiếu tên hợp đồng');
-    else if (name.length > 255) errors.push('Tên tối đa 255 ký tự');
+    if (!name) errors.push('Thiếu tên dịch vụ (Tên DV)');
+    else if (name.length > 255) errors.push('Tên DV tối đa 255 ký tự');
 
     const vendor = edit.vendor_id ? ctx.vendors.find((v) => v.id === Number(edit.vendor_id)) : null;
     const owner = edit.owner_id ? ctx.employees.find((e) => e.id === Number(edit.owner_id)) : null;
@@ -599,9 +596,9 @@ export function validatePreviewEdit(edit, ctx) {
         department_id: edit.department_id ? Number(edit.department_id) : null,
         using_unit: edit.using_unit?.trim() || null,
         owner_id: owner?.id ?? null,
-        owner_name: owner?.name ?? (edit.owner_name || '—'),
+        owner_name: owner?.name ?? (edit.owner_name || null),
         manager_id: manager?.id ?? null,
-        manager_name: manager?.name ?? (edit.manager_name || '—'),
+        manager_name: manager?.name ?? (edit.manager_name || null),
         billing_cycle: billing,
         annual_cost: annual,
         lifecycle_cost: lifecycle,
@@ -630,7 +627,7 @@ export function validateImportRows(rawRows, opts = {}) {
 
         const edit = {
             code: raw.code ?? '',
-            name: raw.name ?? '',
+            name: (raw.name || raw.service_name) ?? '',
             vendor_id: vendorRes.id,
             vendor_name: vendorRes.name ?? raw.vendor_raw ?? '',
             category_id: catRes.id,
@@ -715,7 +712,7 @@ export function createPreviewRows(validatedRows, opts = {}) {
 
 export function rowsToPayload(validRows) {
     return validRows.map((r) => ({
-        code: r.code || null,
+        code: r.code || r.edit?.code?.trim() || null,
         name: r.name ?? r.edit?.name?.trim(),
         vendor_id: r.vendor_id,
         vendor_name: r.vendor_id ? null : (r.vendor_name && r.vendor_name !== '—' ? r.vendor_name : null),

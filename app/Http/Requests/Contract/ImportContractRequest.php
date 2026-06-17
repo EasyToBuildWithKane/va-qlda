@@ -83,7 +83,7 @@ class ImportContractRequest extends FormRequest
     {
         return [
             'rows.max' => 'Chỉ nhập tối đa 200 hợp đồng mỗi lần.',
-            'rows.*.name.required' => 'Thiếu tên hợp đồng ở một số dòng.',
+            'rows.*.name.required' => 'Thiếu tên dịch vụ (Tên DV) ở một số dòng.',
             'finances.*.code.required' => 'Dòng chi phí thiếu Mã HĐ để liên kết.',
             'reviews.*.code.required' => 'Dòng đánh giá thiếu Mã HĐ để liên kết.',
         ];

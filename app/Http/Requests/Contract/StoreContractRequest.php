@@ -16,13 +16,22 @@ class StoreContractRequest extends FormRequest
         return $this->user()?->can('create', Contract::class) ?? false;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $code = trim((string) $this->input('code', ''));
+        $this->merge(['code' => $code !== '' ? $code : null]);
+    }
+
     /**
      * @return array<string, mixed>
      */
     public function rules(): array
     {
         return [
+            'code' => ['nullable', 'string', 'max:40', Rule::unique('contracts', 'code')],
             'name' => ['required', 'string', 'max:255'],
+            'links' => ['nullable', 'array', 'max:20'],
+            'links.*' => ['nullable', 'string', 'max:1000'],
             'description' => ['nullable', 'string', 'max:5000'],
             'vendor_id' => ['nullable', 'integer', 'exists:vendors,id'],
             'category_id' => ['nullable', 'integer', 'exists:contract_categories,id'],
@@ -57,7 +66,8 @@ class StoreContractRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'name.required' => 'Vui lòng nhập tên hợp đồng.',
+            'name.required' => 'Vui lòng nhập tên dịch vụ.',
+            'code.unique' => 'Mã hợp đồng đã tồn tại.',
             'expiry_date.after_or_equal' => 'Ngày hết hạn phải sau hoặc bằng ngày hiệu lực.',
         ];
     }
