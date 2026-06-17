@@ -2,8 +2,12 @@
 
 namespace App\Providers;
 
+use App\Models\Employee;
+use App\Models\Project;
+use App\Models\Sprint;
 use App\Models\Task;
 use App\Observers\TaskObserver;
+use App\Services\OnboardingService;
 use App\Support\Congnghe\CongngheContentRepository;
 use App\Support\Options\DepartmentOptions;
 use App\Support\Options\EmployeeOptions;
@@ -28,5 +32,11 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Task::observe(TaskObserver::class);
+
+        // Keep the onboarding smart-context cache fresh: the first project / sprint
+        // / task / member created flips a hint, so invalidate on create.
+        foreach ([Project::class, Sprint::class, Task::class, Employee::class] as $model) {
+            $model::created(static fn () => OnboardingService::forgetContext());
+        }
     }
 }

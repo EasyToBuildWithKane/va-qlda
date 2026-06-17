@@ -8,6 +8,7 @@ use App\Models\Project;
 use App\Models\Sprint;
 use App\Models\SystemAccount;
 use App\Models\Task;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Onboarding state for the interactive tour guide.
@@ -29,6 +30,15 @@ class OnboardingService
         'role_lead',
         'role_member',
     ];
+
+    /**
+     * Smart-context flags are global (do any projects/sprints/… exist) so they
+     * are cached app-wide and invalidated on create (see AppServiceProvider).
+     * The TTL is a self-healing fallback in case an invalidation is ever missed.
+     */
+    private const CONTEXT_CACHE_KEY = 'onboarding.context.v1';
+
+    private const CONTEXT_CACHE_TTL = 300; // seconds
 
     /**
      * Build the shared Inertia payload: per-tour progress + smart-context flags.
@@ -65,19 +75,26 @@ class OnboardingService
     }
 
     /**
-     * Cheap existence checks → which "next step" hint to nudge. Uses exists()
-     * so this stays light enough to run on every Inertia request.
+     * Cheap existence checks → which "next step" hint to nudge. Cached app-wide
+     * (these flags are not per-user) so the shared Inertia prop adds ~0 queries
+     * on the hot path.
      *
      * @return array<string, bool>
      */
     public function context(SystemAccount $account): array
     {
-        return [
+        return Cache::remember(self::CONTEXT_CACHE_KEY, self::CONTEXT_CACHE_TTL, static fn (): array => [
             'hasProject' => Project::query()->exists(),
             'hasSprint' => Sprint::query()->exists(),
             'hasTask' => Task::query()->exists(),
             'hasTeamMembers' => Employee::query()->count() > 1,
-        ];
+        ]);
+    }
+
+    /** Drop the cached context flags (called when projects/sprints/… are created). */
+    public static function forgetContext(): void
+    {
+        Cache::forget(self::CONTEXT_CACHE_KEY);
     }
 
     /**

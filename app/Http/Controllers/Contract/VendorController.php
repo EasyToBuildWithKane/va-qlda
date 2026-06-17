@@ -90,7 +90,7 @@ class VendorController extends Controller
             ]);
 
         return Inertia::render('Contract/VendorShow', [
-            'vendor' => VendorResource::make($vendor),
+            'vendor' => VendorResource::make($vendor)->resolve(),
             'options' => [
                 'recommendation' => ContractReviewRecommendation::options(),
                 'criteria' => self::CRITERIA_LABELS,

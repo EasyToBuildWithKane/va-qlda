@@ -7,9 +7,28 @@ import { getTour } from '@/modules/onboarding/tours';
  * our tour definitions to driver's step/popover shape. Steps whose anchor is not
  * in the DOM (e.g. nav items hidden for the user's role) are dropped so a tour
  * never breaks on a missing selector.
+ *
+ * A single tour runs at a time: starting one tears down any active instance, and
+ * callers destroy on unmount so an overlay can never be orphaned across pages.
  */
+let activeDriver = null;
+
+function teardown() {
+    if (!activeDriver) return;
+    try {
+        activeDriver.destroy();
+    } catch (e) {
+        void e; // driver may already be torn down
+    }
+    activeDriver = null;
+}
+
 export function useTour() {
-    function start(tourKey, { onStep, onComplete, onSkip } = {}) {
+    const prefersReducedMotion =
+        typeof window !== 'undefined' &&
+        window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+    function start(tourKey, { startAt = 0, onStep, onComplete, onSkip } = {}) {
         const def = getTour(tourKey);
         if (!def) return null;
 
@@ -29,6 +48,9 @@ export function useTour() {
 
         if (steps.length === 0) return null;
 
+        // Never run two tours at once.
+        teardown();
+
         let driverObj;
         driverObj = driver({
             showProgress: true,
@@ -42,22 +64,29 @@ export function useTour() {
             overlayOpacity: 0.6,
             popoverClass: 'va-tour-popover',
             allowClose: true,
+            animate: !prefersReducedMotion,
+            smoothScroll: !prefersReducedMotion,
+            // Keep the user on the tour: block clicks on the spotlighted element.
+            disableActiveInteraction: true,
             steps,
             onHighlighted: (_el, _step, opts) => {
                 onStep?.(opts.state.activeIndex + 1, steps.length);
             },
             onDestroyStarted: () => {
-                // Reached the end → "Hoàn thành"; closed early (X / overlay) → bỏ qua.
+                // Reached the end → "Hoàn thành"; closed early (X / overlay / Esc) → bỏ qua.
                 const finished = !driverObj.hasNextStep();
+                activeDriver = null;
                 driverObj.destroy();
                 if (finished) onComplete?.(steps.length);
                 else onSkip?.();
             },
         });
 
-        driverObj.drive();
+        activeDriver = driverObj;
+        const begin = Math.min(Math.max(startAt, 0), steps.length - 1);
+        driverObj.drive(begin);
         return driverObj;
     }
 
-    return { start };
+    return { start, destroy: teardown, isActive: () => activeDriver !== null };
 }

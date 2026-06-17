@@ -2,9 +2,12 @@ import { computed } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
 
 /**
- * Onboarding state + persistence. Reads the shared `onboarding` Inertia prop
- * (no extra fetch) and posts progress back with a partial reload so the active
- * tour overlay (mounted on <body> by driver.js) is never disrupted.
+ * Onboarding state + persistence.
+ *
+ * Reads the shared `onboarding` Inertia prop (no extra fetch). Mutations go out
+ * via axios as fire-and-forget POSTs (server returns 204) so stepping through a
+ * tour never triggers an Inertia re-render. After terminal actions we refresh
+ * just the `onboarding` prop so progress counts / welcome state stay accurate.
  */
 export function useOnboarding() {
     const page = usePage();
@@ -17,21 +20,22 @@ export function useOnboarding() {
     const completedTours = computed(() => data.value?.completed_tours || 0);
     const totalTours = computed(() => data.value?.total_tours || 0);
 
-    function post(routeName, payload = {}) {
-        router.post(route(routeName), payload, {
-            preserveState: true,
-            preserveScroll: true,
-            only: ['onboarding'],
-        });
+    function send(routeName, payload = {}) {
+        // Fire-and-forget: a dropped progress ping must never surface an error.
+        return window.axios.post(route(routeName), payload).catch(() => {});
+    }
+
+    function refresh() {
+        router.reload({ only: ['onboarding'] });
     }
 
     const recordStep = (tourKey, currentStep, totalSteps) =>
-        post('onboarding.progress', { tour_key: tourKey, current_step: currentStep, total_steps: totalSteps });
+        send('onboarding.progress', { tour_key: tourKey, current_step: currentStep, total_steps: totalSteps });
 
-    const complete = (tourKey) => post('onboarding.complete', { tour_key: tourKey });
-    const skip = (tourKey) => post('onboarding.skip', { tour_key: tourKey });
-    const reset = (tourKey) => post('onboarding.reset', { tour_key: tourKey });
-    const dismissWelcome = () => post('onboarding.dismiss-welcome');
+    const complete = (tourKey) => send('onboarding.complete', { tour_key: tourKey }).then(refresh);
+    const skip = (tourKey) => send('onboarding.skip', { tour_key: tourKey }).then(refresh);
+    const reset = (tourKey) => send('onboarding.reset', { tour_key: tourKey }).then(refresh);
+    const dismissWelcome = () => send('onboarding.dismiss-welcome').then(refresh);
 
     const statusOf = (tourKey) => tours.value[tourKey]?.status || 'pending';
 

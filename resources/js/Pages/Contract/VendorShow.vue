@@ -19,7 +19,11 @@ const props = defineProps({
     options: { type: Object, default: () => ({}) },
 });
 
-const v = computed(() => props.vendor);
+/** Inertia + JsonResource có thể bọc `{ data: … }` nếu backend chưa resolve. */
+const vendor = computed(() => {
+    const raw = props.vendor;
+    return raw?.data ?? raw;
+});
 const dialog = useDialog();
 const toast = useToast();
 
@@ -30,8 +34,14 @@ const tabs = [
     { key: 'reviews', label: 'Lịch sử đánh giá', icon: 'performance' },
 ];
 
-const contracts = computed(() => v.value.contracts ?? []);
-const reviews = computed(() => v.value.reviews ?? []);
+const contracts = computed(() => {
+    const raw = vendor.value.contracts;
+    return raw?.data ?? raw ?? [];
+});
+const reviews = computed(() => {
+    const raw = vendor.value.reviews;
+    return raw?.data ?? raw ?? [];
+});
 
 const showForm = ref(false);
 const showReview = ref(false);
@@ -48,18 +58,18 @@ function scoreTone(score) {
 }
 
 async function onDelete() {
-    if ((v.value.contracts_count ?? 0) > 0) {
+    if ((vendor.value.contracts_count ?? 0) > 0) {
         toast.error('Không thể xoá: nhà cung cấp đang có hợp đồng.');
         return;
     }
     const ok = await dialog.confirm({
         title: 'Xoá nhà cung cấp?',
-        message: `"${v.value.name}" sẽ bị xoá khỏi danh sách.`,
+        message: `"${vendor.value.name}" sẽ bị xoá khỏi danh sách.`,
         confirmText: 'Xoá',
         tone: 'danger',
     });
     if (!ok) return;
-    router.delete(`/contracts/vendors/${v.value.id}`, {
+    router.delete(`/contracts/vendors/${vendor.value.id}`, {
         onSuccess: () => router.visit('/contracts/vendors'),
     });
 }
@@ -74,7 +84,6 @@ async function onDelete() {
         :subtitle="`Mã ${vendor.code}`"
         icon="vendor"
         icon-color="brand"
-        back-href="/contracts/vendors"
       >
         <button
           v-if="vendor.can?.evaluate"

@@ -1,6 +1,6 @@
 <script setup>
-import { ref } from 'vue';
-import { Link } from '@inertiajs/vue3';
+import { onMounted, onUnmounted, ref } from 'vue';
+import { Link, router } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
 import { ROLE_TOUR, tourTitle } from '@/modules/onboarding/tours';
 
@@ -11,11 +11,28 @@ defineProps({
 const emit = defineEmits(['replay']);
 
 const open = ref(false);
+const root = ref(null);
 
 function replay(tourKey) {
     open.value = false;
     emit('replay', tourKey);
 }
+
+function onDocClick(e) {
+    if (open.value && root.value && !root.value.contains(e.target)) {
+        open.value = false;
+    }
+}
+
+let stopNav;
+onMounted(() => {
+    document.addEventListener('click', onDocClick);
+    stopNav = router.on('start', () => { open.value = false; });
+});
+onUnmounted(() => {
+    document.removeEventListener('click', onDocClick);
+    stopNav?.();
+});
 
 const links = [
     { icon: 'knowledge', label: 'FAQ & Hướng dẫn sử dụng', href: '/knowledge-base' },
@@ -26,6 +43,7 @@ const links = [
 
 <template>
   <div
+    ref="root"
     class="fixed bottom-5 right-5 z-[56] flex flex-col items-end gap-3"
     data-tour="help-widget"
   >
