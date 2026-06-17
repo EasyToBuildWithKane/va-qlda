@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Contract;
 
+use App\Http\Requests\Contract\Concerns\NormalizesContractInput;
 use App\Support\Enums\ContractBillingCycle;
 use App\Support\Enums\ContractPaymentStatus;
 use App\Support\Enums\ContractStatus;
@@ -10,6 +11,8 @@ use Illuminate\Validation\Rule;
 
 class UpdateContractRequest extends FormRequest
 {
+    use NormalizesContractInput;
+
     public function authorize(): bool
     {
         return $this->user()?->can('update', $this->route('contract')) ?? false;

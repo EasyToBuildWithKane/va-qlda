@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Contract;
 
+use App\Http\Requests\Contract\Concerns\NormalizesContractInput;
 use App\Models\Contract;
 use App\Support\Enums\ContractBillingCycle;
 use App\Support\Enums\ContractPaymentStatus;
@@ -11,6 +12,8 @@ use Illuminate\Validation\Rule;
 
 class StoreContractRequest extends FormRequest
 {
+    use NormalizesContractInput;
+
     public function authorize(): bool
     {
         return $this->user()?->can('create', Contract::class) ?? false;

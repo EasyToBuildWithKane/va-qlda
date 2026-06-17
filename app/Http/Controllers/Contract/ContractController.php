@@ -203,6 +203,9 @@ class ContractController extends Controller
                 'uploaded_by_id' => $request->user()?->employee_id,
                 'original_name' => Str::limit(basename(str_replace('\\', '/', $link)), 200, ''),
                 'external_url' => $link,
+                'size' => 0,
+                'is_image' => false,
+                'version' => 1,
             ]);
         }
 

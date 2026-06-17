@@ -36,6 +36,9 @@ class ContractAttachmentController extends Controller
     public function store(StoreContractAttachmentRequest $request, Contract $contract): RedirectResponse
     {
         $account = $request->user();
+        if (! $account) {
+            abort(403);
+        }
         $data = $request->validated();
         $category = $data['category'];
 

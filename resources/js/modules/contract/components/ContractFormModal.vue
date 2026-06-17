@@ -1,7 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
-import { useForm } from '@inertiajs/vue3';
-import axios from 'axios';
+import { useForm, router } from '@inertiajs/vue3';
 import Modal from '@/Components/Ui/Modal.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import VendorFieldLabel from '@/modules/contract/components/VendorFieldLabel.vue';
@@ -175,9 +174,16 @@ function removePending(key) {
 }
 
 function postLinkAttachment(contractId, url) {
-    return axios.post(`/contracts/${contractId}/attachments`, {
-        category: 'contract',
-        external_url: url,
+    return new Promise((resolve, reject) => {
+        router.post(`/contracts/${contractId}/attachments`, {
+            category: 'contract',
+            external_url: url,
+        }, {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => resolve(),
+            onError: () => reject(new Error('link')),
+        });
     });
 }
 
@@ -188,12 +194,18 @@ function postFileAttachments(contractId, files) {
         chunks.push(files.slice(i, i + MAX_FILES_PER_UPLOAD));
     }
     return chunks.reduce(
-        (chain, chunk) => chain.then(() => {
+        (chain, chunk) => chain.then(() => new Promise((resolve, reject) => {
             const fd = new FormData();
             fd.append('category', 'contract');
             chunk.forEach((f, j) => fd.append(`files[${j}]`, f));
-            return axios.post(`/contracts/${contractId}/attachments`, fd);
-        }),
+            router.post(`/contracts/${contractId}/attachments`, fd, {
+                preserveScroll: true,
+                preserveState: true,
+                forceFormData: true,
+                onSuccess: () => resolve(),
+                onError: () => reject(new Error('file')),
+            });
+        })),
         Promise.resolve(),
     );
 }
@@ -217,7 +229,9 @@ function submit() {
     const opts = {
         preserveScroll: true,
         onSuccess: async (page) => {
-            const id = isEdit.value ? props.contract.id : page.props.flash?.created_contract_id;
+            const id = isEdit.value
+                ? props.contract.id
+                : (page.props.flash?.created_contract_id ?? null);
             if (id && pendingItems.value.length) {
                 try {
                     await uploadPending(id);
