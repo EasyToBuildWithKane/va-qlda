@@ -170,6 +170,15 @@ Pages import feature components từ `@/modules/project/components/...` và prim
 | Documents/ | `ProjectDocumentsPanel`, `DocumentPreviewPane` |
 | Modals | `TaskFormModal`, `SprintFormModal`, `BlockerFormModal`, … |
 
+### 6.4b Contract (CLM) — `modules/contract/`
+
+| Path | Mô tả |
+|------|--------|
+| `Pages/Contract/` | Dashboard, Index (`ContractPortfolioSummaryBar`), Show, Renewals, Cost, Alerts, … |
+| `components/ContractShowSummaryBar.vue` | Tab Tổng quan Show: dải KPI `kpi-strip` 6 thẻ (`variant="embedded"`), mở tab Hồ sơ / Gia hạn |
+| `components/ContractExplorer.vue` | Cây NCC → nhóm → hợp đồng trên Index |
+| `components/ContractDataModal.vue` | Nhập · Xuất · Đối soát danh mục |
+
 ### 6.4 Daily Report — `Components/DailyReport/`
 
 `GradePill`, `StatusBadge`, `ScoringPanel`, `RichTextField`, `ProjectPicker`, …

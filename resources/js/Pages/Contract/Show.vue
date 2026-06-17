@@ -8,6 +8,7 @@ import Badge from '@/shared/ui/Badge.vue';
 import ContractFormModal from '@/modules/contract/components/ContractFormModal.vue';
 import ContractDocuments from '@/modules/contract/components/ContractDocuments.vue';
 import RenewalQuickModal from '@/modules/contract/components/RenewalQuickModal.vue';
+import ContractShowSummaryBar from '@/modules/contract/components/ContractShowSummaryBar.vue';
 import EmployeeAutocomplete from '@/modules/contract/components/EmployeeAutocomplete.vue';
 import { useDialog } from '@/composables/useDialog';
 import {
@@ -275,41 +276,6 @@ const addenda = computed(() => c.value.addenda ?? []);
     </template>
 
     <div class="flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden bg-slate-50">
-      <div
-        class="flex shrink-0 flex-wrap items-center gap-2 border-b border-slate-200/80 bg-white px-3 py-2 sm:px-5"
-        aria-label="Trạng thái hợp đồng"
-      >
-        <Badge
-          v-if="c.status"
-          :label="c.status?.label"
-          :color="c.status?.color"
-        />
-        <Badge
-          v-if="c.payment_status"
-          :label="c.payment_status.label"
-          :color="c.payment_status.color"
-        />
-        <Badge
-          v-if="avgReviewScore != null"
-          :label="`Đánh giá NCC ★ ${avgReviewScore}`"
-          color="amber"
-        />
-        <span
-          v-if="c.expiry_date"
-          class="text-xs font-medium"
-          :class="{
-            'text-rose-600': expiryTone(c.days_until_expiry) === 'rose',
-            'text-amber-600': expiryTone(c.days_until_expiry) === 'amber',
-            'text-sky-600': expiryTone(c.days_until_expiry) === 'sky',
-            'text-emerald-600': expiryTone(c.days_until_expiry) === 'emerald',
-            'text-slate-500': expiryTone(c.days_until_expiry) === 'slate',
-          }"
-        >
-          Hết hạn {{ formatDate(c.expiry_date) }}
-          · {{ expiryLabel(c.days_until_expiry) }}
-        </span>
-      </div>
-
       <nav
         class="flex shrink-0 items-center overflow-x-auto overscroll-x-contain border-b border-slate-200 bg-white px-2 py-1.5 sm:px-3"
         aria-label="Tab hợp đồng"
@@ -337,6 +303,16 @@ const addenda = computed(() => c.value.addenda ?? []);
         </div>
       </nav>
 
+      <ContractShowSummaryBar
+        v-if="tab === 'overview'"
+        :contract="c"
+        :annual-label="annualDisplay.primary"
+        :attachment-count="attachmentCount"
+        :addenda-count="addendaCount"
+        :avg-review-score="avgReviewScore"
+        @navigate-tab="tab = $event"
+      />
+
       <div class="flex min-h-0 h-0 flex-1 flex-col overflow-hidden">
         <div class="h-full min-h-0 w-full min-w-0 overflow-x-hidden overflow-y-auto">
           <div class="w-full min-w-0 space-y-4 p-4 sm:space-y-5 sm:p-5 lg:p-6">
@@ -347,83 +323,6 @@ const addenda = computed(() => c.value.addenda ?? []);
               v-if="tab === 'overview'"
               class="space-y-4"
             >
-              <!-- KPI nhanh -->
-              <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-                <div class="card p-3">
-                  <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                    Trạng thái
-                  </p>
-                  <div class="mt-1.5">
-                    <Badge
-                      v-if="c.status"
-                      :label="c.status.label"
-                      :color="c.status.color"
-                    />
-                    <span
-                      v-else
-                      class="text-sm text-slate-500"
-                    >{{ EMPTY_LABELS.notUpdated }}</span>
-                  </div>
-                </div>
-                <div class="card p-3">
-                  <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                    Chi phí năm
-                  </p>
-                  <p class="mt-1 font-display text-lg font-semibold tabular-nums text-brand">
-                    {{ annualDisplay.primary }}
-                  </p>
-                </div>
-                <div class="card p-3">
-                  <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                    Sức khỏe HĐ
-                  </p>
-                  <p class="mt-1 font-display text-lg font-semibold tabular-nums text-slate-800">
-                    {{ c.health_score != null ? `${c.health_score}/100` : EMPTY_LABELS.notUpdated }}
-                  </p>
-                </div>
-                <div class="card p-3">
-                  <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                    Hết hạn
-                  </p>
-                  <p
-                    class="mt-1 text-sm font-semibold"
-                    :class="{
-                      'text-rose-600': expiryTone(c.days_until_expiry) === 'rose',
-                      'text-amber-600': expiryTone(c.days_until_expiry) === 'amber',
-                      'text-sky-600': expiryTone(c.days_until_expiry) === 'sky',
-                      'text-emerald-600': expiryTone(c.days_until_expiry) === 'emerald',
-                      'text-slate-600': expiryTone(c.days_until_expiry) === 'slate',
-                    }"
-                  >
-                    {{ c.expiry_date ? expiryLabel(c.days_until_expiry) : EMPTY_LABELS.notUpdated }}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  class="card p-3 text-left transition-shadow hover:shadow-md"
-                  @click="tab = 'documents'"
-                >
-                  <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                    Hồ sơ
-                  </p>
-                  <p class="mt-1 font-display text-lg font-semibold tabular-nums text-slate-800">
-                    {{ attachmentCount }}
-                  </p>
-                </button>
-                <button
-                  type="button"
-                  class="card p-3 text-left transition-shadow hover:shadow-md"
-                  @click="tab = 'renewals'"
-                >
-                  <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                    Phụ lục
-                  </p>
-                  <p class="mt-1 font-display text-lg font-semibold tabular-nums text-slate-800">
-                    {{ addendaCount }}
-                  </p>
-                </button>
-              </div>
-
               <!-- Phụ lục banner -->
               <div
                 v-if="c.root_contract_id"

@@ -19,6 +19,7 @@ Section **Thống kê** + thẻ KPI cắt góc (clip-path) trên trang Index. Sk
 | AI dashboard / cost report | `AiExecutiveSummaryStrip.vue`, `ProposalWorkflowKpiStrip.vue` |
 | Thông báo vận hành | `NotificationOpsSummaryBar.vue` + `Pages/Notifications/Management.vue` |
 | Hồ sơ cá nhân `/profile` | `ProfileOverviewSummaryBar.vue` + `ProfileView.vue` (tab Tổng quan) |
+| Chi tiết hợp đồng `/contracts/{id}` tab Tổng quan | `ContractShowSummaryBar.vue` + `Pages/Contract/Show.vue` (`variant="embedded"`, 6 thẻ) |
 | Nhúng workspace (border-bottom) | `CoachingSessionsSummaryBar.vue` |
 | **Shared** | `shared/ui/KpiSummaryStrip.vue` + `shared/styles/kpi-summary-strip.css` |
 
