@@ -28,6 +28,10 @@ class ContractListResource extends JsonResource
             'name' => $this->name,
             'vendor_id' => $this->vendor_id,
             'category_id' => $this->category_id,
+            'category' => $this->whenLoaded('category', fn () => $this->category ? [
+                'id' => $this->category->id,
+                'name' => $this->category->name,
+            ] : null),
             'root_contract_id' => $this->root_contract_id,
             'using_unit' => $this->using_unit,
             'signed_date' => $this->signed_date?->toDateString(),

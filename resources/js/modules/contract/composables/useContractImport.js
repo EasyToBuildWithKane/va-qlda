@@ -11,6 +11,24 @@ const AMBER_TEXT = 'B45309';
 
 export const IMPORT_TEMPLATE_MARKER = 'VA_CLM_IMPORT_V1';
 
+/** Danh mục nhóm dịch vụ (dedupe theo tên). */
+export function serviceGroupOptions(categories = []) {
+    const byName = new Map();
+    for (const c of categories) {
+        if (!byName.has(c.name)) byName.set(c.name, c);
+    }
+    return [...byName.values()].sort((a, b) => {
+        const order = (a.sort_order ?? 0) - (b.sort_order ?? 0);
+        if (order !== 0) return order;
+        return String(a.name).localeCompare(String(b.name), 'vi');
+    });
+}
+
+/** @deprecated Nhóm DV không lọc theo NCC — dùng serviceGroupOptions. */
+export function categoriesForVendor(categories = [], _vendorId) {
+    return serviceGroupOptions(categories);
+}
+
 export const IMPORT_HEADERS = [
     { key: 'code', label: 'Mã HĐ', width: 16 },
     { key: 'name', label: 'Tên hợp đồng *', width: 34 },
@@ -256,10 +274,41 @@ function buildDataSheet() {
     return ws;
 }
 
-export function downloadContractImportTemplate({ vendors = [], statusOptions = [], paymentOptions = [], billingOptions = [] } = {}) {
+function buildCategoriesRefSheet({ categories = [], vendors = [] } = {}) {
+    const ws = {};
+    const vendorById = new Map(vendors.map((v) => [v.id, v.name]));
+    setCell(ws, 0, 0, 'DANH SÁCH NHÓM DỊCH VỤ (chỉ tham chiếu — không upload sheet này)', S.title);
+    mergeRow(ws, 0, 0, 2);
+    setCell(ws, 1, 0, 'Nhóm dịch vụ', S.header);
+    setCell(ws, 1, 1, 'Nhà cung cấp', S.header);
+    setCell(ws, 1, 2, 'Ghi chú', S.header);
+    const sorted = [...categories].sort((a, b) => String(a.name).localeCompare(String(b.name), 'vi'));
+    sorted.forEach((c, idx) => {
+        const r = 2 + idx;
+        const vendorLabel = c.vendor_id != null ? (vendorById.get(c.vendor_id) ?? 'NCC #'.concat(c.vendor_id)) : 'Dùng chung';
+        setCell(ws, r, 0, c.name, S.guide);
+        setCell(ws, r, 1, vendorLabel, S.guide);
+        setCell(ws, r, 2, c.vendor_id == null ? 'Áp dụng mọi NCC' : 'Theo NCC', S.guide);
+    });
+    if (!sorted.length) {
+        setCell(ws, 2, 0, 'Chưa có nhóm trong hệ thống — ghi tên cột Nhóm dịch vụ khi nhập để tự tạo', S.note);
+        mergeRow(ws, 2, 0, 2);
+    }
+    const lastRow = Math.max(2, 1 + sorted.length);
+    ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: lastRow, c: 2 } });
+    setColWidths(ws, [28, 24, 22]);
+    return ws;
+}
+
+export function downloadContractImportTemplate({
+    vendors = [], categories = [], statusOptions = [], paymentOptions = [], billingOptions = [],
+} = {}) {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, buildGuideSheet({ vendors, statusOptions, paymentOptions, billingOptions }), 'Huong dan');
     XLSX.utils.book_append_sheet(wb, buildDataSheet(), 'Nhap lieu');
+    if (categories.length || vendors.length) {
+        XLSX.utils.book_append_sheet(wb, buildCategoriesRefSheet({ categories, vendors }), 'Nhom dich vu');
+    }
     const t = fileStamp();
     XLSX.writeFile(wb, `VA_MauNhap_HopDong_${t.dd}${t.mm}${t.yyyy}.xlsx`);
 }
@@ -497,6 +546,26 @@ export function validatePreviewEdit(edit, ctx) {
     const owner = edit.owner_id ? ctx.employees.find((e) => e.id === Number(edit.owner_id)) : null;
     const manager = edit.manager_id ? ctx.employees.find((e) => e.id === Number(edit.manager_id)) : null;
 
+    const catScope = serviceGroupOptions(ctx.categories);
+    let categoryId = edit.category_id ? Number(edit.category_id) : null;
+    let categoryName = edit.category_name?.trim() || null;
+    if (categoryId) {
+        const catHit = catScope.find((c) => c.id === categoryId) ?? ctx.categories.find((c) => c.id === categoryId);
+        if (catHit) {
+            categoryId = catHit.id;
+            categoryName = null;
+        } else {
+            categoryId = null;
+        }
+    }
+    if (!categoryId && categoryName) {
+        const byName = resolveByName(categoryName, catScope.length ? catScope : ctx.categories);
+        if (byName.id) {
+            categoryId = byName.id;
+            categoryName = null;
+        }
+    }
+
     let payment = edit.payment_status || 'unpaid';
     if (!ctx.paymentOptions.some((o) => o.value === payment)) payment = mapAlias(payment, PAYMENT_ALIASES) || 'unpaid';
 
@@ -525,8 +594,8 @@ export function validatePreviewEdit(edit, ctx) {
         name,
         vendor_id: vendor?.id ?? null,
         vendor_name: vendor?.name ?? (edit.vendor_name || null),
-        category_id: edit.category_id ? Number(edit.category_id) : null,
-        category_name: edit.category_name || null,
+        category_id: categoryId,
+        category_name: categoryId ? null : categoryName,
         department_id: edit.department_id ? Number(edit.department_id) : null,
         using_unit: edit.using_unit?.trim() || null,
         owner_id: owner?.id ?? null,
@@ -553,7 +622,7 @@ export function validateImportRows(rawRows, opts = {}) {
         const vendorRes = resolveByName(raw.vendor_raw, ctx.vendors);
         const ownerRes = resolvePerson(raw.owner_raw, ctx.employees);
         const managerRes = resolvePerson(raw.manager_raw, ctx.employees);
-        const catList = vendorRes.id ? ctx.categories.filter((c) => c.vendor_id === vendorRes.id || c.vendor_id == null) : ctx.categories;
+        const catList = serviceGroupOptions(ctx.categories);
         const catRes = raw.category_raw ? resolveByName(raw.category_raw, catList) : { id: null };
         const deptRes = raw.using_unit ? resolveByName(raw.using_unit, ctx.departments) : { id: null };
 

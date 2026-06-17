@@ -80,10 +80,17 @@ watch(() => props.show, (open) => {
     form.reset();
 });
 
-// Nhóm dịch vụ lọc theo NCC đang chọn.
-const filteredCategories = computed(() => {
-    if (!form.vendor_id) return props.categories;
-    return props.categories.filter((c) => c.vendor_id === form.vendor_id || c.vendor_id == null);
+// Nhóm dịch vụ — danh mục chung (Nhóm DV), không lọc theo NCC.
+const serviceGroupOptions = computed(() => {
+    const byName = new Map();
+    for (const c of props.categories) {
+        if (!byName.has(c.name)) byName.set(c.name, c);
+    }
+    return [...byName.values()].sort((a, b) => {
+        const order = (a.sort_order ?? 0) - (b.sort_order ?? 0);
+        if (order !== 0) return order;
+        return String(a.name).localeCompare(String(b.name), 'vi');
+    });
 });
 
 // Hợp đồng gốc khả dụng: cùng NCC, không phải chính nó.
@@ -166,10 +173,10 @@ function submit() {
                 class="input"
               >
                 <option :value="null">
-                  — Không —
+                  Chưa chọn nhóm
                 </option>
                 <option
-                  v-for="c in filteredCategories"
+                  v-for="c in serviceGroupOptions"
                   :key="c.id"
                   :value="c.id"
                 >

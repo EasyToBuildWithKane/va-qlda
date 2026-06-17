@@ -14,6 +14,7 @@ use App\Models\Vendor;
 use App\Services\NotificationService;
 use App\Support\ContractActivityLogger;
 use App\Support\ContractLifecycle\ContractRenewalCalculator;
+use App\Support\ContractLifecycle\ContractServiceGroups;
 use App\Support\Enums\ContractAttachmentCategory;
 use App\Support\Enums\ContractBillingCycle;
 use App\Support\Enums\ContractPaymentStatus;
@@ -58,9 +59,11 @@ class ContractController extends Controller
     {
         $this->authorize('viewAny', Contract::class);
 
+        ContractServiceGroups::sync();
+
         $account = $request->user();
 
-        $query = Contract::query()->with('owner', 'finances')->withCount('attachments');
+        $query = Contract::query()->with('owner', 'finances', 'category')->withCount('attachments');
 
         if ($status = $request->query('status')) {
             $query->where('status', $status);
@@ -147,6 +150,8 @@ class ContractController extends Controller
     public function show(Contract $contract): Response
     {
         $this->authorize('view', $contract);
+
+        ContractServiceGroups::sync();
 
         $contract->load([
             'vendor' => fn ($v) => $v->with('latestReview.reviewer'),
@@ -367,18 +372,23 @@ class ContractController extends Controller
         return $vendor->id;
     }
 
-    /** Tìm nhóm dịch vụ theo tên trong phạm vi NCC (hoặc dùng chung), tạo mới nếu cần. */
-    private function resolveCategoryId(?string $name, ?int $vendorId): ?int
+    /** Tìm nhóm dịch vụ theo tên (danh mục chung, ưu tiên vendor_id null). */
+    private function resolveCategoryId(?string $name, ?int $vendorId = null): ?int
     {
         $name = trim((string) $name);
         if ($name === '') {
             return null;
         }
 
-        $category = ContractCategory::whereRaw('LOWER(name) = ?', [mb_strtolower($name)])
-            ->where(fn ($q) => $q->where('vendor_id', $vendorId)->orWhereNull('vendor_id'))
+        $category = ContractCategory::query()
+            ->whereRaw('LOWER(name) = ?', [mb_strtolower($name)])
+            ->orderByRaw('CASE WHEN vendor_id IS NULL THEN 0 ELSE 1 END')
             ->first()
-            ?? ContractCategory::create(['name' => $name, 'vendor_id' => $vendorId]);
+            ?? ContractCategory::create([
+                'name' => $name,
+                'vendor_id' => null,
+                'slug' => Str::slug($name) ?: 'nhom-dv',
+            ]);
 
         return $category->id;
     }

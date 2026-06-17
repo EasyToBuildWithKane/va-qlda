@@ -31,10 +31,35 @@ function sortSetMembers(list) {
     });
 }
 
+function categoryKeyOf(contract) {
+    const name = contract.category?.name;
+    if (name) return `n:${name}`;
+    if (contract.category_id != null) return `id:${contract.category_id}`;
+    return '__none__';
+}
+
+function categoryLabel(contract) {
+    return contract.category?.name ?? 'Chưa phân nhóm';
+}
+
+function buildSetNodes(sets) {
+    return [...sets.entries()].map(([key, list]) => {
+        const members = sortSetMembers(list);
+        const root = members.find((c) => c.root_contract_id == null) ?? members[0];
+        return {
+            key,
+            name: root?.name ?? 'Hợp đồng',
+            code: root?.code ?? null,
+            signingCount: members.length,
+            annualCost: sumAnnual(members),
+            contracts: members,
+        };
+    }).sort((a, b) => b.annualCost - a.annualCost);
+}
+
 /**
- * Dựng cây Explorer: Nhà cung cấp → Bộ hợp đồng (gốc + gia hạn/phụ lục) → Hợp đồng.
- * "Số lần ký" = số bản trong bộ. Hợp đồng không có NCC gom vào
- * "Chưa gán nhà cung cấp". Pure — không gọi API.
+ * Dựng cây Explorer: Nhà cung cấp → Nhóm dịch vụ → Bộ hợp đồng → Hợp đồng.
+ * Nhóm dịch vụ là phân loại chung (Giáo vụ số, License, …), không theo NCC.
  */
 export function useContractExplorer(contractsRef, vendorsRef) {
     const tree = computed(() => {
@@ -42,47 +67,54 @@ export function useContractExplorer(contractsRef, vendorsRef) {
         const vendors = toArray(unref(vendorsRef));
         const vendorById = new Map(vendors.map((v) => [v.id, v]));
 
-        // Gom hợp đồng theo vendor → bộ hợp đồng.
         const byVendor = new Map();
         for (const contract of contracts) {
             const vendorKey = contract.vendor_id ?? '__none__';
             if (!byVendor.has(vendorKey)) byVendor.set(vendorKey, new Map());
-            const sets = byVendor.get(vendorKey);
+            const byCategory = byVendor.get(vendorKey);
+            const catKey = categoryKeyOf(contract);
+            if (!byCategory.has(catKey)) byCategory.set(catKey, new Map());
+            const sets = byCategory.get(catKey);
             const sk = setKeyOf(contract);
             if (!sets.has(sk)) sets.set(sk, []);
             sets.get(sk).push(contract);
         }
 
-        const buildVendorNode = (vendorKey, sets) => {
+        const buildVendorNode = (vendorKey, byCategory) => {
             const vendor = vendorKey === '__none__' ? null : vendorById.get(vendorKey);
-            const setNodes = [...sets.entries()].map(([key, list]) => {
-                const members = sortSetMembers(list);
-                const root = members.find((c) => c.root_contract_id == null) ?? members[0];
+            const categoryNodes = [...byCategory.entries()].map(([catKey, sets]) => {
+                const sample = [...sets.values()].flat()[0];
+                const setNodes = buildSetNodes(sets);
+                const allInCat = [...sets.values()].flat();
                 return {
-                    key,
-                    name: root?.name ?? 'Hợp đồng',
-                    code: root?.code ?? null,
-                    signingCount: members.length,
-                    annualCost: sumAnnual(members),
-                    contracts: members,
+                    key: catKey,
+                    id: sample?.category?.id ?? sample?.category_id ?? null,
+                    name: sample ? categoryLabel(sample) : 'Chưa phân nhóm',
+                    sets: setNodes,
+                    count: allInCat.length,
+                    setCount: setNodes.length,
+                    annualCost: sumAnnual(allInCat),
                 };
-            });
+            }).sort((a, b) => b.annualCost - a.annualCost);
 
-            const all = [...sets.values()].flat();
+            const all = categoryNodes.flatMap((c) => c.sets.flatMap((s) => s.contracts));
+            const setCount = categoryNodes.reduce((n, c) => n + c.setCount, 0);
+
             return {
                 type: 'vendor',
                 id: vendor?.id ?? null,
                 name: vendor?.name ?? 'Chưa gán nhà cung cấp',
                 code: vendor?.code ?? null,
-                sets: setNodes.sort((a, b) => b.annualCost - a.annualCost),
+                categories: categoryNodes,
                 count: all.length,
-                setCount: setNodes.length,
+                categoryCount: categoryNodes.length,
+                setCount,
                 annualCost: sumAnnual(all),
             };
         };
 
         const nodes = [...byVendor.entries()]
-            .map(([key, sets]) => buildVendorNode(key, sets))
+            .map(([key, byCategory]) => buildVendorNode(key, byCategory))
             .filter((n) => n.count > 0);
 
         return nodes.sort((a, b) => b.annualCost - a.annualCost);

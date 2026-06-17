@@ -14,6 +14,7 @@ import {
     rowsToPayload,
     linkedFinances,
     linkedReviews,
+    serviceGroupOptions,
 } from '../composables/useContractImport.js';
 import { downloadContractExport } from '../composables/useContractExport.js';
 
@@ -69,10 +70,20 @@ const importOpts = computed(() => ({
 function onDownloadTemplate() {
     downloadContractImportTemplate({
         vendors: props.vendors,
+        categories: props.categories,
         statusOptions: props.statusOptions,
         paymentOptions: props.paymentOptions,
         billingOptions: props.billingOptions,
     });
+}
+
+function categoryOptionsForRow() {
+    return serviceGroupOptions(props.categories);
+}
+
+function onCategoryChange(row) {
+    row.edit.category_name = null;
+    onEditRow(row);
 }
 
 async function onFileChange(e) {
@@ -271,6 +282,9 @@ function close() {
                   NCC
                 </th>
                 <th class="px-2 py-1.5 font-medium">
+                  Nhóm dịch vụ
+                </th>
+                <th class="px-2 py-1.5 font-medium">
                   Chi phí năm
                 </th>
                 <th class="px-2 py-1.5 font-medium">
@@ -307,6 +321,24 @@ function close() {
                   {{ row.edit.vendor_name }}
                 </td>
                 <td class="px-2 py-1.5">
+                  <select
+                    v-model="row.edit.category_id"
+                    class="input w-full min-w-[8rem]"
+                    @change="onCategoryChange(row)"
+                  >
+                    <option :value="null">
+                      {{ row.edit.category_name || 'Chưa chọn nhóm' }}
+                    </option>
+                    <option
+                      v-for="c in categoryOptionsForRow()"
+                      :key="c.id"
+                      :value="c.id"
+                    >
+                      {{ c.name }}
+                    </option>
+                  </select>
+                </td>
+                <td class="px-2 py-1.5">
                   <input
                     v-model="row.edit.annual_cost"
                     type="number"
@@ -331,7 +363,7 @@ function close() {
               </tr>
               <tr v-if="!displayedRows.length">
                 <td
-                  colspan="5"
+                  colspan="6"
                   class="px-2 py-6 text-center text-slate-400"
                 >
                   Không có dòng nào.
