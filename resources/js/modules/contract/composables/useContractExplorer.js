@@ -57,14 +57,37 @@ function buildSetNodes(sets) {
     }).sort((a, b) => b.annualCost - a.annualCost);
 }
 
+function hasNarrowingListFilters(filters) {
+    if (!filters || typeof filters !== 'object') return false;
+    return Boolean(
+        filters.q || filters.status || filters.payment_status || filters.category_id,
+    );
+}
+
+function emptyVendorNode(vendor) {
+    return {
+        type: 'vendor',
+        id: vendor?.id ?? null,
+        name: vendor?.name ?? 'Chưa gán nhà cung cấp',
+        code: vendor?.code ?? null,
+        categories: [],
+        items: [],
+        count: 0,
+        categoryCount: 0,
+        setCount: 0,
+        annualCost: 0,
+    };
+}
+
 /**
  * Dựng cây Explorer: Nhà cung cấp → Nhóm dịch vụ → Bộ hợp đồng → Hợp đồng.
  * Nhóm dịch vụ là phân loại chung (Giáo vụ số, License, …), không theo NCC.
  */
-export function useContractExplorer(contractsRef, vendorsRef) {
+export function useContractExplorer(contractsRef, vendorsRef, filtersRef = null) {
     const tree = computed(() => {
         const contracts = toArray(unref(contractsRef));
         const vendors = toArray(unref(vendorsRef));
+        const filters = unref(filtersRef);
         const vendorById = new Map(vendors.map((v) => [v.id, v]));
 
         const byVendor = new Map();
@@ -100,12 +123,15 @@ export function useContractExplorer(contractsRef, vendorsRef) {
             const all = categoryNodes.flatMap((c) => c.sets.flatMap((s) => s.contracts));
             const setCount = categoryNodes.reduce((n, c) => n + c.setCount, 0);
 
+            const items = categoryNodes.flatMap((c) => c.sets.flatMap((s) => s.contracts));
+
             return {
                 type: 'vendor',
                 id: vendor?.id ?? null,
                 name: vendor?.name ?? 'Chưa gán nhà cung cấp',
                 code: vendor?.code ?? null,
                 categories: categoryNodes,
+                items,
                 count: all.length,
                 categoryCount: categoryNodes.length,
                 setCount,
@@ -113,11 +139,31 @@ export function useContractExplorer(contractsRef, vendorsRef) {
             };
         };
 
-        const nodes = [...byVendor.entries()]
+        let nodes = [...byVendor.entries()]
             .map(([key, byCategory]) => buildVendorNode(key, byCategory))
             .filter((n) => n.count > 0);
 
-        return nodes.sort((a, b) => b.annualCost - a.annualCost);
+        const vendorIdFilter = filters?.vendor_id ? Number(filters.vendor_id) : null;
+        const narrowing = hasNarrowingListFilters(filters);
+
+        if (vendorIdFilter && !Number.isNaN(vendorIdFilter)) {
+            if (!nodes.some((n) => n.id === vendorIdFilter)) {
+                const v = vendorById.get(vendorIdFilter);
+                if (v) nodes.push(emptyVendorNode(v));
+            }
+        } else if (!narrowing) {
+            for (const v of vendors) {
+                if (!nodes.some((n) => n.id === v.id)) {
+                    nodes.push(emptyVendorNode(v));
+                }
+            }
+        }
+
+        return nodes.sort((a, b) => {
+            if (a.count === 0 && b.count !== 0) return 1;
+            if (b.count === 0 && a.count !== 0) return -1;
+            return b.annualCost - a.annualCost || String(a.name).localeCompare(String(b.name), 'vi');
+        });
     });
 
     const totals = computed(() => {

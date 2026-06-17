@@ -63,7 +63,7 @@ class ContractController extends Controller
 
         $account = $request->user();
 
-        $query = Contract::query()->with('owner', 'finances', 'category')->withCount('attachments');
+        $query = Contract::query()->with('owner', 'manager', 'finances', 'category')->withCount('attachments');
 
         if ($status = $request->query('status')) {
             $query->where('status', $status);

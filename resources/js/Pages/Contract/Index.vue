@@ -17,6 +17,7 @@ import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
 import { useFixedDropdownAnchor } from '@/shared/composables/useFixedDropdownAnchor';
 import { useToast } from '@/shared/composables/useToast';
+import { useDialog } from '@/composables/useDialog';
 import { useContractExplorer } from '@/modules/contract/composables/useContractExplorer.js';
 import { downloadContractExport } from '@/modules/contract/composables/useContractExport.js';
 
@@ -32,6 +33,7 @@ const props = defineProps({
 });
 
 const toast = useToast();
+const dialog = useDialog();
 
 const contractList = computed(() => {
     const raw = props.contracts?.data ?? props.contracts;
@@ -39,7 +41,7 @@ const contractList = computed(() => {
     if (raw && typeof raw === 'object') return Object.values(raw);
     return [];
 });
-const { tree } = useContractExplorer(contractList, () => props.vendors);
+const { tree } = useContractExplorer(contractList, () => props.vendors, () => filters);
 
 const FILTER_CONTROLS = [
     { key: 'status', label: 'Trạng thái', default: false },
@@ -110,6 +112,36 @@ const dataMenuRef = ref(null);
 const dataMenu = ref(false);
 const showForm = ref(false);
 const showData = ref(false);
+const editingContract = ref(null);
+
+function openCreateForm() {
+    editingContract.value = null;
+    showForm.value = true;
+}
+
+function openEditForm(contract) {
+    editingContract.value = contract;
+    showForm.value = true;
+}
+
+function closeFormModal() {
+    showForm.value = false;
+    editingContract.value = null;
+}
+
+async function removeContract(c) {
+    const ok = await dialog.confirm({
+        title: 'Xoá hợp đồng',
+        message: `Xoá hợp đồng «${c.name}» (${c.code})?`,
+        tone: 'danger',
+        confirmText: 'Xoá',
+    });
+    if (!ok) return;
+    router.delete(`/contracts/${c.id}`, {
+        preserveScroll: true,
+        onSuccess: () => toast.success('Đã xoá hợp đồng.'),
+    });
+}
 
 const { panelStyle: dataMenuStyle } = useFixedDropdownAnchor(
     () => dataMenuRef.value,
@@ -156,6 +188,7 @@ onMounted(() => document.addEventListener('mousedown', onToolbarClickOutside));
 onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOutside));
 
 function onSaved() {
+    closeFormModal();
     router.reload({ only: ['contracts', 'summary'] });
 }
 </script>
@@ -175,7 +208,7 @@ function onSaved() {
           v-if="can.create"
           type="button"
           class="btn-primary"
-          @click="showForm = true"
+          @click="openCreateForm"
         >
           <AppIcon
             name="add"
@@ -394,19 +427,24 @@ function onSaved() {
       </div>
 
       <div class="p-4 sm:p-5">
-        <ContractExplorer :tree="tree" />
+        <ContractExplorer
+          :tree="tree"
+          @edit="openEditForm"
+          @delete="removeContract"
+        />
       </div>
     </div>
 
     <ContractFormModal
       :show="showForm"
+      :contract="editingContract"
       :vendors="vendors"
       :categories="categories"
       :employees="options.employees || []"
       :status-options="options.status || []"
       :billing-options="options.billingCycle || []"
       :next-contract-code="nextContractCode"
-      @close="showForm = false"
+      @close="closeFormModal"
       @saved="onSaved"
     />
 
