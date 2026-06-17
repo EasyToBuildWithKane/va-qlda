@@ -51,7 +51,13 @@ const linkDraft = ref('');
 const pendingItems = ref([]);
 const fileInputRef = ref(null);
 
+const MAX_FILES_PER_UPLOAD = 10;
+const MAX_PENDING_ATTACHMENTS = 30;
+
 const existingAttachments = computed(() => props.contract?.attachments ?? []);
+
+const pendingFileCount = computed(() => pendingItems.value.filter((i) => i.kind === 'file').length);
+const pendingLinkCount = computed(() => pendingItems.value.filter((i) => i.kind === 'link').length);
 
 const modalDirty = computed(() => form.isDirty || pendingItems.value.length > 0);
 
@@ -98,9 +104,34 @@ function pickFiles() {
     fileInputRef.value?.click();
 }
 
+function pushPendingLink(raw) {
+    const part = String(raw ?? '').trim();
+    if (!part) return false;
+    const dup = pendingItems.value.some((i) => i.kind === 'link' && i.url === part);
+    if (dup) return false;
+    const name = part.includes('/') ? part.replace(/\\/g, '/').split('/').pop() : part;
+    pendingItems.value.push({
+        key: `link-${Date.now()}-${Math.random()}`,
+        kind: 'link',
+        name: name || part,
+        typeLabel: fileKindLabel(part),
+        url: part,
+    });
+    return true;
+}
+
 function onFilesSelected(e) {
     const list = Array.from(e.target.files || []);
+    let added = 0;
     for (const file of list) {
+        if (pendingItems.value.length >= MAX_PENDING_ATTACHMENTS) {
+            toast.error(`Tối đa ${MAX_PENDING_ATTACHMENTS} hồ sơ chờ lưu mỗi lần.`);
+            break;
+        }
+        const dup = pendingItems.value.some(
+            (i) => i.kind === 'file' && i.name === file.name && i.file?.size === file.size,
+        );
+        if (dup) continue;
         pendingItems.value.push({
             key: `${Date.now()}-${file.name}-${Math.random()}`,
             kind: 'file',
@@ -108,25 +139,35 @@ function onFilesSelected(e) {
             typeLabel: fileKindLabel(file.name, file.type),
             file,
         });
+        added += 1;
     }
     e.target.value = '';
+    if (added > 1) {
+        toast.success(`Đã thêm ${added} file vào danh sách.`);
+    }
 }
 
 function addLinkDraft() {
     const raw = linkDraft.value.trim();
     if (!raw) {
-        toast.error('Hãy nhập link hoặc tên file tham chiếu.');
+        toast.error('Hãy nhập ít nhất một link hoặc tên file.');
         return;
     }
-    const name = raw.includes('/') ? raw.replace(/\\/g, '/').split('/').pop() : raw;
-    pendingItems.value.push({
-        key: `link-${Date.now()}-${Math.random()}`,
-        kind: 'link',
-        name: name || raw,
-        typeLabel: fileKindLabel(raw),
-        url: raw.startsWith('http') ? raw : raw,
-    });
+    const parts = raw.split(/[\n\r;,]+/).map((s) => s.trim()).filter(Boolean);
+    let added = 0;
+    for (const part of parts) {
+        if (pendingItems.value.length >= MAX_PENDING_ATTACHMENTS) {
+            toast.error(`Tối đa ${MAX_PENDING_ATTACHMENTS} hồ sơ chờ lưu mỗi lần.`);
+            break;
+        }
+        if (pushPendingLink(part)) added += 1;
+    }
     linkDraft.value = '';
+    if (added === 0 && parts.length) {
+        toast.error('Các link trùng đã có trong danh sách.');
+    } else if (added > 1) {
+        toast.success(`Đã thêm ${added} link.`);
+    }
 }
 
 function removePending(key) {
@@ -142,10 +183,19 @@ function postLinkAttachment(contractId, url) {
 
 function postFileAttachments(contractId, files) {
     if (!files.length) return Promise.resolve();
-    const fd = new FormData();
-    fd.append('category', 'contract');
-    files.forEach((f, i) => fd.append(`files[${i}]`, f));
-    return axios.post(`/contracts/${contractId}/attachments`, fd);
+    const chunks = [];
+    for (let i = 0; i < files.length; i += MAX_FILES_PER_UPLOAD) {
+        chunks.push(files.slice(i, i + MAX_FILES_PER_UPLOAD));
+    }
+    return chunks.reduce(
+        (chain, chunk) => chain.then(() => {
+            const fd = new FormData();
+            fd.append('category', 'contract');
+            chunk.forEach((f, j) => fd.append(`files[${j}]`, f));
+            return axios.post(`/contracts/${contractId}/attachments`, fd);
+        }),
+        Promise.resolve(),
+    );
 }
 
 async function uploadPending(contractId) {
@@ -159,30 +209,18 @@ async function uploadPending(contractId) {
 }
 
 function submit() {
-    const createLinks = isEdit.value
-        ? []
-        : pendingItems.value.filter((i) => i.kind === 'link').map((i) => i.url);
-
     form.transform((data) => ({
         ...data,
-        links: createLinks,
+        links: [],
     }));
 
     const opts = {
         preserveScroll: true,
         onSuccess: async (page) => {
             const id = isEdit.value ? props.contract.id : page.props.flash?.created_contract_id;
-            const hasPendingFiles = pendingItems.value.some((i) => i.kind === 'file');
-            const hasPendingLinksOnEdit = isEdit.value && pendingItems.value.some((i) => i.kind === 'link');
-
-            if (id && (hasPendingFiles || hasPendingLinksOnEdit)) {
+            if (id && pendingItems.value.length) {
                 try {
-                    if (isEdit.value) {
-                        await uploadPending(id);
-                    } else if (hasPendingFiles) {
-                        const files = pendingItems.value.filter((i) => i.kind === 'file').map((i) => i.file);
-                        await postFileAttachments(id, files);
-                    }
+                    await uploadPending(id);
                 } catch {
                     toast.error('Hợp đồng đã lưu nhưng một số hồ sơ chưa tải lên được.');
                 }
@@ -442,7 +480,16 @@ function submit() {
               Link &amp; file hợp đồng
             </h3>
             <p class="mt-0.5 text-[11px] text-slate-500">
-              Tải file hoặc dán link — xem trước tên và loại trước khi lưu.
+              Chọn nhiều file và thêm nhiều link — có thể lặp lại trước khi lưu.
+            </p>
+            <p
+              v-if="pendingFileCount || pendingLinkCount"
+              class="mt-1 text-[11px] font-medium text-brand"
+            >
+              Đang chờ:
+              <span v-if="pendingFileCount">{{ pendingFileCount }} file</span>
+              <span v-if="pendingFileCount && pendingLinkCount"> · </span>
+              <span v-if="pendingLinkCount">{{ pendingLinkCount }} link</span>
             </p>
           </div>
           <div class="flex gap-1 rounded-lg bg-slate-200/60 p-1 text-sm">
@@ -478,9 +525,11 @@ function submit() {
               name="upload"
               :size="16"
             />
-            Chọn file
+            Chọn file (nhiều file)
           </button>
-          <span class="text-xs text-slate-500">PDF, Word, Excel, ảnh… tối đa 20MB/file</span>
+          <span class="text-xs text-slate-500">
+            Chọn lại để thêm tiếp · PDF, Word, Excel… tối đa 20MB/file · {{ MAX_FILES_PER_UPLOAD }} file/lượt upload
+          </span>
           <input
             ref="fileInputRef"
             type="file"
@@ -492,22 +541,27 @@ function submit() {
         </div>
         <div
           v-else
-          class="flex flex-wrap gap-2"
+          class="space-y-2"
         >
-          <input
+          <textarea
             v-model="linkDraft"
-            type="text"
-            class="input h-10 min-w-0 flex-1 text-sm"
-            placeholder="URL hoặc tên file (vd: HopDong.pdf)"
-            @keydown.enter.prevent="addLinkDraft"
-          >
-          <button
-            type="button"
-            class="btn-ghost h-10 shrink-0"
-            @click="addLinkDraft"
-          >
-            Thêm
-          </button>
+            rows="3"
+            class="input w-full font-mono text-sm"
+            placeholder="Mỗi dòng một link hoặc tên file&#10;KidsOnline.pdf&#10;https://..."
+            @keydown.ctrl.enter.prevent="addLinkDraft"
+          />
+          <div class="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              class="btn-ghost h-10 shrink-0"
+              @click="addLinkDraft"
+            >
+              Thêm vào danh sách
+            </button>
+            <span class="text-xs text-slate-500">
+              Dán nhiều dòng cùng lúc (Ctrl+Enter để thêm nhanh)
+            </span>
+          </div>
         </div>
 
         <ul
