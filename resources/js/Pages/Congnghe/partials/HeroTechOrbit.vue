@@ -1,6 +1,12 @@
 <script setup>
 import { computed } from 'vue';
-import { HERO_TECH_ORBITS, ORBIT_TONE_CLASS } from './congngheHeroTechOrbits.js';
+import {
+    HERO_TECH_ORBITS,
+    ORBIT_TONE_CLASS,
+    ORBIT_SWEEP_GRADIENT,
+    ORBIT_COMET_COLOR,
+    normalizeOrbitItem,
+} from './congngheHeroTechOrbits.js';
 import { prefersReducedMotionNow } from './motion.js';
 
 const props = defineProps({
@@ -11,7 +17,12 @@ const props = defineProps({
 
 const reduced = prefersReducedMotionNow();
 
-const rings = computed(() => (props.orbits?.length ? props.orbits : HERO_TECH_ORBITS));
+const rings = computed(() =>
+    (props.orbits?.length ? props.orbits : HERO_TECH_ORBITS).map((ring) => ({
+        ...ring,
+        items: (ring.items ?? []).map(normalizeOrbitItem),
+    })),
+);
 
 function itemAngle(index, count, offsetDeg) {
     if (count <= 0) return offsetDeg;
@@ -36,6 +47,20 @@ function badgeSpinStyle(ring) {
         animation: `cn-spin-slow ${ring.duration}s linear infinite`,
         animationDirection: spinKeyframes(ring.reverse),
     };
+}
+
+// Cung sáng quét quanh vòng — quay liên tục theo tốc độ riêng từng vòng.
+function ringSweepStyle(ring) {
+    if (reduced) return { display: 'none' };
+    return {
+        background: ORBIT_SWEEP_GRADIENT[ring.tone] || ORBIT_SWEEP_GRADIENT.cyan,
+        animation: `cn-border-rotate ${Math.max(ring.duration * 0.5, 12)}s linear infinite`,
+        animationDirection: ring.reverse ? 'reverse' : 'normal',
+    };
+}
+
+function cometColor(ring) {
+    return ORBIT_COMET_COLOR[ring.tone] || ORBIT_COMET_COLOR.cyan;
 }
 </script>
 
@@ -74,37 +99,58 @@ function badgeSpinStyle(ring) {
             ring.tone === 'emerald' ? 'border-emerald-400/18' : '',
           ]"
         />
+
+        <!-- Cung sáng quét quanh vòng — quay liên tục (mọi vòng) -->
         <div
-          v-if="!reduced && ringIndex === 0"
-          class="absolute inset-[-1px] rounded-full opacity-40 animate-cn-border-rotate"
-          style="
-            padding: 1px;
-            background: conic-gradient(from var(--cn-angle), transparent 0deg, rgba(34,211,238,0.45) 70deg, rgba(255,77,141,0.35) 200deg, transparent 300deg);
-            -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-            -webkit-mask-composite: xor;
-            mask-composite: exclude;
-          "
+          class="absolute inset-[-1px] rounded-full opacity-60"
+          :style="{
+            ...ringSweepStyle(ring),
+            padding: '1.5px',
+            '-webkit-mask': 'linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)',
+            '-webkit-mask-composite': 'xor',
+            'mask-composite': 'exclude',
+          }"
         />
 
-        <!-- Hành tinh nhỏ trên quỹ đạo -->
+        <!-- Hành tinh nhỏ + comet trên quỹ đạo (quay cùng vòng) -->
         <div
           class="absolute inset-0"
           :style="ringSpinStyle(ring)"
         >
+          <!-- Comet: đầu sáng chạy quanh vòng -->
           <div
-            v-for="(label, i) in (ring.items ?? [])"
-            :key="`${label}-${i}`"
+            v-if="!reduced"
+            class="absolute left-1/2 top-1/2 h-1/2 w-0 origin-bottom"
+            :style="{ transform: `rotate(${ring.offsetDeg ?? 0}deg)` }"
+          >
+            <span
+              class="absolute bottom-0 left-0 h-2 w-2 -translate-x-1/2 translate-y-1/2 rounded-full"
+              :style="{
+                background: cometColor(ring),
+                boxShadow: `0 0 12px 3px ${cometColor(ring)}`,
+              }"
+            />
+          </div>
+
+          <div
+            v-for="(item, i) in ring.items"
+            :key="`${item.label}-${i}`"
             class="absolute left-1/2 top-1/2 h-1/2 w-0 origin-bottom"
             :style="{
               transform: `rotate(${itemAngle(i, ring.items.length, ring.offsetDeg ?? 0)}deg)`,
             }"
           >
             <div
-              class="orbit-badge absolute bottom-0 left-0 -translate-x-1/2 translate-y-1/2 whitespace-nowrap rounded-full border px-2.5 py-1 font-mono text-[9px] uppercase tracking-wide backdrop-blur-md transition-[transform,box-shadow,border-color] duration-300 sm:text-[10px]"
+              class="orbit-badge absolute bottom-0 left-0 flex -translate-x-1/2 translate-y-1/2 items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1 font-mono text-[9px] uppercase tracking-wide backdrop-blur-md transition-[transform,box-shadow,border-color] duration-300 sm:text-[10px]"
               :class="ORBIT_TONE_CLASS[ring.tone] || ORBIT_TONE_CLASS.cyan"
               :style="badgeSpinStyle(ring)"
             >
-              {{ label }}
+              <span
+                v-if="item.color"
+                class="h-1.5 w-1.5 shrink-0 rounded-full"
+                :style="{ background: item.color, boxShadow: `0 0 6px ${item.color}` }"
+              />
+              {{ item.label }}
             </div>
           </div>
         </div>
