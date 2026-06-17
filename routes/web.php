@@ -234,6 +234,7 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictCoachingOnlyUsers::class
 
         // Vendors
         Route::get('/vendors', [VendorController::class, 'index'])->name('vendors.index');
+        Route::get('/vendors/{vendor}', [VendorController::class, 'show'])->name('vendors.show');
         Route::post('/vendors', [VendorController::class, 'store'])->name('vendors.store');
         Route::put('/vendors/{vendor}', [VendorController::class, 'update'])->name('vendors.update');
         Route::delete('/vendors/{vendor}', [VendorController::class, 'destroy'])->name('vendors.destroy');

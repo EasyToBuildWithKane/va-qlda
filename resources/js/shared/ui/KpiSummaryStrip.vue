@@ -157,8 +157,13 @@ function showProgress(card) {
                 {{ card.label }}
               </p>
               <p
-                class="mt-1 font-display text-2xl font-bold tabular-nums leading-none tracking-tight sm:text-[1.65rem]"
-                :class="card.tone === 'brand' ? 'text-brand' : 'text-slate-900'"
+                class="mt-1 leading-none"
+                :class="card.valueKind === 'text'
+                  ? 'text-sm font-medium italic text-slate-500'
+                  : [
+                    'font-display text-2xl font-bold tabular-nums tracking-tight sm:text-[1.65rem]',
+                    card.tone === 'brand' ? 'text-brand' : 'text-slate-900',
+                  ]"
               >
                 <slot
                   name="value"

@@ -85,10 +85,17 @@ function submit() {
             Điểm tổng (trung bình 6 tiêu chí)
           </p>
           <p
+            v-if="total != null"
             class="font-display text-3xl font-bold tabular-nums"
             :class="totalTone"
           >
-            {{ total ?? '—' }}<span class="text-base font-normal text-slate-400"> /10</span>
+            {{ total }}<span class="text-base font-normal text-slate-400"> /10</span>
+          </p>
+          <p
+            v-else
+            class="text-sm font-medium italic text-slate-500"
+          >
+            Chưa nhập tiêu chí — điểm sẽ tính khi bạn chấm đủ tiêu chí
           </p>
         </div>
         <p class="max-w-[14rem] text-[11px] text-slate-500">

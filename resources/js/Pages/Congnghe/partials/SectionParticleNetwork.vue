@@ -1,7 +1,14 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import NeuralBackdrop from './NeuralBackdrop.vue';
-import { hasFinePointer, isPointerOverCongngheHeader, prefersReducedMotionNow } from './motion.js';
+import {
+    hasFinePointer,
+    isPointerOverCongngheHeader,
+    prefersReducedMotionNow,
+    onSharedRaf,
+    onSharedPointer,
+    onSharedScroll,
+} from './motion.js';
 
 const props = defineProps({
     tone: { type: String, default: 'cyan' },
@@ -28,14 +35,20 @@ const PALETTE = {
 };
 
 let ctx = null;
-let raf = null;
 let nodes = [];
 let width = 0;
 let height = 0;
 let dpr = 1;
 let visible = false;
+let finePointer = false;
 let ro = null;
 let io = null;
+// Vị trí section so với viewport (cập nhật khi resize/scroll) — tránh
+// getBoundingClientRect mỗi frame/mỗi lần di chuột.
+const box = { left: 0, top: 0 };
+// Con trỏ ở toạ độ client (cập nhật qua 1 mousemove dùng chung toàn trang).
+const pointer = { x: -9999, y: -9999 };
+// Con trỏ quy về toạ độ cục bộ canvas (suy ra trong frame).
 const mouse = { x: -9999, y: -9999, active: false };
 
 function colors() {
@@ -54,8 +67,8 @@ function seedNodes() {
     const rnd = seededRandom(0);
     const area = Math.max(width * height, 1);
     const target = Math.min(
-        112,
-        Math.max(32, Math.floor((area / 15000) * props.density)),
+        88,
+        Math.max(28, Math.floor((area / 16000) * props.density)),
     );
     nodes = Array.from({ length: target }, () => ({
         x: rnd() * width,
@@ -66,10 +79,19 @@ function seedNodes() {
     }));
 }
 
+function measure() {
+    if (!root.value) return;
+    const rect = root.value.getBoundingClientRect();
+    box.left = rect.left;
+    box.top = rect.top;
+}
+
 function resize() {
     if (!canvas.value || !root.value) return;
     dpr = Math.min(window.devicePixelRatio || 1, 2);
     const rect = root.value.getBoundingClientRect();
+    box.left = rect.left;
+    box.top = rect.top;
     width = Math.max(1, rect.width);
     height = Math.max(1, rect.height);
     canvas.value.width = width * dpr;
@@ -80,41 +102,22 @@ function resize() {
     seedNodes();
 }
 
-function syncMouseFromEvent(e) {
-    if (!props.followPointer || !root.value || !hasFinePointer()) {
+// Suy con trỏ cục bộ từ con trỏ client + vị trí section đã cache.
+function updateMouse() {
+    if (!props.followPointer || !finePointer || pointer.x < -9000
+        || isPointerOverCongngheHeader(pointer.y)) {
         mouse.active = false;
         return;
     }
-    if (isPointerOverCongngheHeader(e.clientY)) {
+    const mx = pointer.x - box.left;
+    const my = pointer.y - box.top;
+    if (mx >= 0 && mx <= width && my >= 0 && my <= height) {
+        mouse.x = mx;
+        mouse.y = my;
+        mouse.active = true;
+    } else {
         mouse.active = false;
-        mouse.x = -9999;
-        mouse.y = -9999;
-        return;
     }
-    const rect = root.value.getBoundingClientRect();
-    const inside = e.clientX >= rect.left
-        && e.clientX <= rect.right
-        && e.clientY >= rect.top
-        && e.clientY <= rect.bottom;
-    if (!inside) {
-        mouse.active = false;
-        mouse.x = -9999;
-        mouse.y = -9999;
-        return;
-    }
-    mouse.active = true;
-    mouse.x = e.clientX - rect.left;
-    mouse.y = e.clientY - rect.top;
-}
-
-function onMouseMove(e) {
-    syncMouseFromEvent(e);
-}
-
-function onMouseLeave() {
-    mouse.active = false;
-    mouse.x = -9999;
-    mouse.y = -9999;
 }
 
 function drawLinks(linkDist, linkAlpha, lineWidth) {
@@ -161,12 +164,12 @@ function drawMouseLinks(maxDist, linkAlpha) {
     ctx.fill();
 }
 
+// Một callback duy nhất chạy trên rAF DÙNG CHUNG toàn trang. Tự bỏ qua khi
+// section ngoài viewport ⇒ off-screen không tốn gì ngoài 1 phép kiểm tra.
 function frame() {
-    if (!visible || !ctx) {
-        raf = null;
-        return;
-    }
+    if (!visible || !ctx) return;
 
+    updateMouse();
     ctx.clearRect(0, 0, width, height);
     const c = colors();
 
@@ -198,23 +201,19 @@ function frame() {
 
     drawLinks(138, 0.48, 0.95);
     drawMouseLinks(228, 0.78);
-
-    raf = requestAnimationFrame(frame);
 }
 
-function start() {
-    if (raf || !ctx || useStatic.value) return;
-    raf = requestAnimationFrame(frame);
-}
-
-function stop() {
-    if (raf) cancelAnimationFrame(raf);
-    raf = null;
-}
-
-function onVisibility() {
-    if (document.hidden) stop();
-    else if (visible) start();
+// Đăng ký vòng lặp & listener DÙNG CHUNG ngay trong setup (gọi vô điều kiện
+// theo quy tắc composable). Khi reduced-motion ⇒ không đăng ký gì, render SVG tĩnh.
+if (!useStatic.value) {
+    onSharedRaf(frame);
+    onSharedPointer((p) => {
+        pointer.x = p.x;
+        pointer.y = p.y;
+    });
+    onSharedScroll(() => {
+        if (visible) measure();
+    });
 }
 
 onMounted(() => {
@@ -223,6 +222,7 @@ onMounted(() => {
     ctx = canvas.value.getContext('2d');
     if (!ctx) return;
 
+    finePointer = hasFinePointer();
     resize();
     ro = new ResizeObserver(() => resize());
     ro.observe(root.value);
@@ -230,27 +230,16 @@ onMounted(() => {
     io = new IntersectionObserver(
         (entries) => {
             visible = entries.some((e) => e.isIntersecting);
-            if (visible) start();
-            else stop();
+            if (visible) measure();
         },
         { root: null, rootMargin: '80px 0px', threshold: 0 },
     );
     io.observe(root.value);
-
-    if (props.followPointer) {
-        window.addEventListener('mousemove', onMouseMove, { passive: true });
-        window.addEventListener('mouseout', onMouseLeave, { passive: true });
-    }
-    document.addEventListener('visibilitychange', onVisibility);
 });
 
 onBeforeUnmount(() => {
-    stop();
     ro?.disconnect();
     io?.disconnect();
-    window.removeEventListener('mousemove', onMouseMove);
-    window.removeEventListener('mouseout', onMouseLeave);
-    document.removeEventListener('visibilitychange', onVisibility);
 });
 </script>
 

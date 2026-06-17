@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Http\Resources\Concerns\PresentsEntities;
+use App\Models\Vendor;
 use App\Models\VendorReview;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -47,9 +48,11 @@ class VendorResource extends JsonResource
             'reviews_count' => $this->whenCounted('reviews'),
             'latest_review' => $latest ? $this->reviewArray($latest) : null,
             'reviews' => $this->whenLoaded('reviews', fn () => $this->reviews->map(fn (VendorReview $r) => $this->reviewArray($r))),
+            'contracts' => ContractListResource::collection($this->whenLoaded('contracts')),
             'can' => $user ? [
                 'update' => $user->can('update', $this->resource),
                 'delete' => $user->can('delete', $this->resource),
+                'evaluate' => $user->can('create', Vendor::class),
             ] : null,
         ];
     }

@@ -44,9 +44,23 @@ class VendorController extends Controller
             $query->whereHas('latestReview', fn ($q) => $q->where('total_score', '<', 7));
         }
 
+        $active = $request->query('active');
+        if ($active === '1') {
+            $query->where('is_active', true);
+        } elseif ($active === '0') {
+            $query->where('is_active', false);
+        }
+
+        $reviewed = $request->query('reviewed');
+        if ($reviewed === 'yes') {
+            $query->whereHas('latestReview', fn ($q) => $q->whereNotNull('total_score'));
+        } elseif ($reviewed === 'no') {
+            $query->whereDoesntHave('latestReview');
+        }
+
         return Inertia::render('Contract/Vendors', [
             'vendors' => VendorResource::collection($query->get()),
-            'filters' => (object) $request->only(['q', 'scope']),
+            'filters' => (object) $request->only(['q', 'scope', 'active', 'reviewed']),
             'summary' => $this->vendorSummary(),
             'options' => [
                 'recommendation' => ContractReviewRecommendation::options(),
@@ -55,6 +69,27 @@ class VendorController extends Controller
             'can' => [
                 'create' => $account->can('create', Vendor::class),
                 'evaluate' => $account->can('create', Vendor::class),
+            ],
+        ]);
+    }
+
+    public function show(Request $request, Vendor $vendor): Response
+    {
+        $this->authorize('view', $vendor);
+
+        $vendor->loadCount('contracts', 'reviews')
+            ->loadSum('contracts as contracts_sum_annual_cost', 'annual_cost')
+            ->load([
+                'latestReview.reviewer',
+                'reviews' => fn ($q) => $q->with('reviewer')->orderByDesc('reviewed_at')->limit(20),
+                'contracts' => fn ($q) => $q->with('owner')->withCount('attachments')->orderByDesc('expiry_date'),
+            ]);
+
+        return Inertia::render('Contract/VendorShow', [
+            'vendor' => VendorResource::make($vendor),
+            'options' => [
+                'recommendation' => ContractReviewRecommendation::options(),
+                'criteria' => self::CRITERIA_LABELS,
             ],
         ]);
     }

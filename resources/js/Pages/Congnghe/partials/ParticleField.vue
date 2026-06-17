@@ -1,6 +1,6 @@
 <script setup>
 import { onBeforeUnmount, onMounted, ref } from 'vue';
-import { prefersReducedMotionNow } from './motion.js';
+import { prefersReducedMotionNow, onSharedPointer } from './motion.js';
 
 const canvas = ref(null);
 
@@ -34,16 +34,6 @@ function seed() {
         vy: (Math.random() - 0.5) * 0.25,
         r: Math.random() * 1.6 + 0.6,
     }));
-}
-
-function onMouseMove(e) {
-    mouse.x = e.clientX;
-    mouse.y = e.clientY;
-}
-
-function onMouseLeave() {
-    mouse.x = -9999;
-    mouse.y = -9999;
 }
 
 function frame() {
@@ -136,8 +126,6 @@ onMounted(() => {
 
     resize();
     window.addEventListener('resize', resize, { passive: true });
-    window.addEventListener('mousemove', onMouseMove, { passive: true });
-    window.addEventListener('mouseout', onMouseLeave, { passive: true });
     document.addEventListener('visibilitychange', onVisibility);
     start();
 });
@@ -145,10 +133,16 @@ onMounted(() => {
 onBeforeUnmount(() => {
     stop();
     window.removeEventListener('resize', resize);
-    window.removeEventListener('mousemove', onMouseMove);
-    window.removeEventListener('mouseout', onMouseLeave);
     document.removeEventListener('visibilitychange', onVisibility);
 });
+
+// Con trỏ qua mousemove DÙNG CHUNG toàn trang (toạ độ client = viewport vì field full-screen).
+if (!prefersReducedMotionNow()) {
+    onSharedPointer((p) => {
+        mouse.x = p.x;
+        mouse.y = p.y;
+    });
+}
 </script>
 
 <template>

@@ -1,6 +1,6 @@
 <script setup>
-import { computed, ref, watch } from 'vue';
-import { Head, router, usePage } from '@inertiajs/vue3';
+import { computed, reactive, ref, watch, onMounted, onBeforeUnmount } from 'vue';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import AppIcon from '@/Components/AppIcon.vue';
@@ -8,9 +8,34 @@ import VendorFormModal from '@/modules/contract/components/VendorFormModal.vue';
 import VendorReviewModal from '@/modules/contract/components/VendorReviewModal.vue';
 import VendorSummaryBar from '@/modules/contract/components/VendorSummaryBar.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
+import DatagridToolbarActionButton from '@/shared/ui/DatagridToolbarActionButton.vue';
+import DatagridFilterField from '@/shared/ui/DatagridFilterField.vue';
+import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
+import ColumnVisibilityDropdown from '@/shared/ui/ColumnVisibilityDropdown.vue';
+import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
+import { useVisibleColumns } from '@/shared/composables/useVisibleColumns';
 import { useDialog } from '@/composables/useDialog';
 import { useToast } from '@/shared/composables/useToast';
 import { formatMoneyShort } from '@/modules/contract/composables/useContractFormat.js';
+import { exportVendorPage } from '@/modules/contract/composables/useVendorExport.js';
+import { displayOrEmpty, EMPTY_LABELS } from '@/shared/utils/emptyDisplay.js';
+
+const FILTER_CONTROL_CLASS = 'input h-10 w-full text-sm';
+
+const VENDOR_FILTER_CONTROLS = [
+    { key: 'scope', label: 'Phạm vi', default: false },
+    { key: 'active', label: 'Trạng thái NCC', default: false },
+    { key: 'reviewed', label: 'Đánh giá', default: false },
+];
+
+const VENDOR_TABLE_COLUMNS = [
+    { key: 'tax_code', label: 'Mã số thuế' },
+    { key: 'contact', label: 'Liên hệ' },
+    { key: 'contracts', label: 'Hợp đồng' },
+    { key: 'annual_cost', label: 'Chi phí / năm' },
+    { key: 'review_score', label: 'Điểm' },
+    { key: 'is_active', label: 'Trạng thái', default: false },
+];
 
 const props = defineProps({
     vendors: { type: Object, required: true },
@@ -24,39 +49,118 @@ const dialog = useDialog();
 const toast = useToast();
 const page = usePage();
 
+const filterPanelDdRef = ref(null);
+const colDdRef = ref(null);
+const exportDdRef = ref(null);
+const showExportDd = ref(false);
+
+const {
+    visibleFilters,
+    showFilterPanelDd,
+    enabledFilterControlCount,
+    hasFilterRow,
+    persistVisibleFilters,
+    openFilterPanel,
+    FILTER_CONTROLS,
+} = useVisibleFilterControls(VENDOR_FILTER_CONTROLS, 'va-qlda.vendors.visible-filters.v1');
+
+const {
+    visibleCols,
+    showColDd,
+    persistVisibleColumns,
+    openColPanel,
+    isColVisible,
+    TABLE_COLUMNS,
+} = useVisibleColumns(VENDOR_TABLE_COLUMNS, 'va-qlda.vendors.columns.v1');
+
+const filterForm = reactive({
+    q: props.filters.q ?? '',
+    scope: props.filters.scope ?? '',
+    active: props.filters.active ?? '',
+    reviewed: props.filters.reviewed ?? '',
+});
+
 const vendorList = computed(() => props.vendors.data ?? props.vendors ?? []);
-const search = ref(props.filters.q ?? '');
-const scopeFilter = ref(props.filters.scope ?? '');
+
+const tableColspan = computed(() =>
+    2 + TABLE_COLUMNS.filter((c) => isColVisible(c.key)).length,
+);
+
+function vendorRouteParams() {
+    return {
+        q: filterForm.q || undefined,
+        scope: filterForm.scope || undefined,
+        active: filterForm.active || undefined,
+        reviewed: filterForm.reviewed || undefined,
+    };
+}
+
+function navigateVendors() {
+    router.get('/contracts/vendors', vendorRouteParams(), {
+        preserveState: true,
+        preserveScroll: true,
+        replace: true,
+    });
+}
 
 let debounce;
-function navigateVendors() {
+watch(() => filterForm.q, () => {
     clearTimeout(debounce);
-    debounce = setTimeout(() => {
-        router.get('/contracts/vendors', {
-            q: search.value || undefined,
-            scope: scopeFilter.value || undefined,
-        }, {
-            preserveState: true, preserveScroll: true, replace: true,
-        });
-    }, 350);
-}
-watch(search, navigateVendors);
+    debounce = setTimeout(navigateVendors, 350);
+});
 
 watch(
-    () => props.filters.scope,
-    (v) => { scopeFilter.value = v ?? ''; },
+    () => [filterForm.scope, filterForm.active, filterForm.reviewed],
+    navigateVendors,
+);
+
+watch(
+    () => props.filters,
+    (f) => {
+        filterForm.q = f.q ?? '';
+        filterForm.scope = f.scope ?? '';
+        filterForm.active = f.active ?? '';
+        filterForm.reviewed = f.reviewed ?? '';
+    },
+    { deep: true },
 );
 
 function onQuickFilter({ scope }) {
-    scopeFilter.value = scope ?? '';
+    filterForm.scope = scope ?? '';
     clearTimeout(debounce);
-    router.get('/contracts/vendors', {
-        q: search.value || undefined,
-        scope: scopeFilter.value || undefined,
-    }, {
-        preserveState: true, preserveScroll: true, replace: true,
-    });
+    navigateVendors();
 }
+
+function onToolbarClickOutside(e) {
+    if (e.target.closest?.('[data-filter-visibility-panel]')) return;
+    if (e.target.closest?.('[data-column-visibility-panel]')) return;
+    if (filterPanelDdRef.value && !filterPanelDdRef.value.contains(e.target)) {
+        showFilterPanelDd.value = false;
+    }
+    if (colDdRef.value && !colDdRef.value.contains(e.target)) {
+        showColDd.value = false;
+    }
+    if (exportDdRef.value && !exportDdRef.value.contains(e.target)) {
+        showExportDd.value = false;
+    }
+}
+
+function openExportMenu() {
+    showExportDd.value = !showExportDd.value;
+    if (showExportDd.value) {
+        showFilterPanelDd.value = false;
+        showColDd.value = false;
+    }
+}
+
+function runExport(format) {
+    showExportDd.value = false;
+    const count = exportVendorPage(vendorList.value, format);
+    toast.success(`Đã xuất ${count} nhà cung cấp (${format === 'csv' ? 'CSV' : 'Excel'}).`);
+}
+
+onMounted(() => document.addEventListener('mousedown', onToolbarClickOutside));
+onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOutside));
 
 const showForm = ref(false);
 const editing = ref(null);
@@ -70,7 +174,6 @@ function openEdit(v) {
     showForm.value = true;
 }
 
-// ── Đánh giá NCC ──
 const showReview = ref(false);
 const reviewing = ref(null);
 
@@ -79,7 +182,6 @@ function openReview(v) {
     showReview.value = true;
 }
 
-// Sau khi tạo NCC mới → reload rồi mở luôn modal đánh giá (tạo xong mới đánh giá).
 function onVendorSaved() {
     const created = page.props.flash?.created_vendor;
     router.reload({
@@ -134,153 +236,396 @@ async function onDelete(v) {
         <button
           v-if="can.create"
           type="button"
-          class="btn-primary"
+          class="btn-primary inline-flex h-9 items-center gap-1.5 px-3 text-xs"
           @click="openCreate"
         >
           <AppIcon
             name="add"
             :size="15"
-          /> Thêm NCC
+          />
+          Thêm NCC
         </button>
       </PageHeader>
     </template>
 
     <VendorSummaryBar
       :summary="summary"
-      :active-scope="scopeFilter"
+      :active-scope="filterForm.scope"
       @quick-filter="onQuickFilter"
     />
 
     <div class="card overflow-visible">
-      <div class="flex w-full min-w-0 flex-wrap items-center gap-2 border-b border-slate-100 px-5 py-4 lg:flex-nowrap">
-        <div class="min-w-0 w-full basis-full lg:min-w-[10rem] lg:flex-1 lg:basis-auto">
-          <DatagridToolbarSearch
-            v-model="search"
-            input-id="vendor-search"
-            input-name="q"
-            hide-label
-            stretch
-            inline-actions
-            input-height="h-10"
-            placeholder="Tìm theo tên, mã, mã số thuế, người liên hệ…"
-            aria-label="Tìm nhà cung cấp"
-          />
+      <div class="border-b border-slate-100 px-5 py-4">
+        <div class="flex w-full min-w-0 flex-wrap items-center gap-2 lg:flex-nowrap">
+          <div class="min-w-0 w-full basis-full lg:min-w-[10rem] lg:flex-1 lg:basis-auto">
+            <DatagridToolbarSearch
+              v-model="filterForm.q"
+              input-id="vendor-search"
+              input-name="q"
+              hide-label
+              stretch
+              inline-actions
+              input-height="h-10"
+              placeholder="Tìm theo tên, mã, mã số thuế, người liên hệ…"
+              aria-label="Tìm nhà cung cấp"
+            />
+          </div>
+
+          <div class="flex shrink-0 items-center gap-2">
+            <div
+              ref="filterPanelDdRef"
+              class="relative shrink-0"
+            >
+              <DatagridToolbarActionButton
+                icon="filter"
+                :active="showFilterPanelDd"
+                :title="`Hiển thị bộ lọc (${enabledFilterControlCount}/${FILTER_CONTROLS.length})`"
+                @click="openFilterPanel(() => { showColDd = false; showExportDd = false; })"
+              >
+                Lọc
+              </DatagridToolbarActionButton>
+              <FilterVisibilityDropdown
+                v-model="visibleFilters"
+                :show="showFilterPanelDd"
+                :anchor-ref="filterPanelDdRef"
+                :controls="FILTER_CONTROLS"
+                input-id-prefix="vendor-filter-vis"
+                @persist="persistVisibleFilters"
+              />
+            </div>
+
+            <div
+              ref="colDdRef"
+              class="relative shrink-0"
+            >
+              <DatagridToolbarActionButton
+                icon="columns"
+                :active="showColDd"
+                title="Cột hiển thị"
+                @click="openColPanel(() => { showFilterPanelDd = false; showExportDd = false; })"
+              >
+                Cột
+              </DatagridToolbarActionButton>
+              <ColumnVisibilityDropdown
+                v-model="visibleCols"
+                :show="showColDd"
+                :columns="TABLE_COLUMNS"
+                :anchor-ref="colDdRef"
+                :fixed-labels="['Nhà cung cấp', 'Thao tác']"
+                input-id-prefix="vendor-col-vis"
+                @persist="persistVisibleColumns"
+              />
+            </div>
+
+            <div
+              ref="exportDdRef"
+              class="relative shrink-0"
+            >
+              <DatagridToolbarActionButton
+                icon="export"
+                :active="showExportDd"
+                title="Xuất CSV hoặc Excel"
+                @click="openExportMenu"
+              >
+                Xuất
+              </DatagridToolbarActionButton>
+              <Transition
+                enter-active-class="transition duration-150 ease-out"
+                enter-from-class="opacity-0 scale-95 -translate-y-1"
+                leave-active-class="transition duration-100 ease-in"
+                leave-to-class="opacity-0 scale-95 -translate-y-1"
+              >
+                <div
+                  v-if="showExportDd"
+                  class="absolute right-0 top-full z-30 mt-1.5 w-56 origin-top-right rounded-xl border border-slate-200 bg-white py-1 shadow-elevation-2"
+                >
+                  <p class="px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-slate-400">
+                    Danh sách hiện tại
+                  </p>
+                  <button
+                    type="button"
+                    class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+                    @click="runExport('xlsx')"
+                  >
+                    Excel (.xlsx)
+                  </button>
+                  <button
+                    type="button"
+                    class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+                    @click="runExport('csv')"
+                  >
+                    CSV (.csv)
+                  </button>
+                  <p class="border-t border-slate-100 px-3 py-2 text-[10px] text-slate-400">
+                    {{ vendorList.length }} bản ghi theo bộ lọc đang áp dụng
+                  </p>
+                </div>
+              </Transition>
+            </div>
+          </div>
         </div>
+
+        <Transition name="fade-slide">
+          <div
+            v-if="hasFilterRow"
+            class="grid grid-cols-1 gap-3 border-t border-slate-100 px-0 pt-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6"
+          >
+            <DatagridFilterField v-if="visibleFilters.scope">
+              <select
+                v-model="filterForm.scope"
+                :class="FILTER_CONTROL_CLASS"
+                aria-label="Phạm vi"
+              >
+                <option value="">
+                  Phạm vi
+                </option>
+                <option value="with_contracts">
+                  Đang hợp tác (có HĐ)
+                </option>
+                <option value="low_score">
+                  Điểm đánh giá dưới 7
+                </option>
+              </select>
+            </DatagridFilterField>
+
+            <DatagridFilterField v-if="visibleFilters.active">
+              <select
+                v-model="filterForm.active"
+                :class="FILTER_CONTROL_CLASS"
+                aria-label="Trạng thái NCC"
+              >
+                <option value="">
+                  Trạng thái NCC
+                </option>
+                <option value="1">
+                  Đang hoạt động
+                </option>
+                <option value="0">
+                  Ngừng hoạt động
+                </option>
+              </select>
+            </DatagridFilterField>
+
+            <DatagridFilterField v-if="visibleFilters.reviewed">
+              <select
+                v-model="filterForm.reviewed"
+                :class="FILTER_CONTROL_CLASS"
+                aria-label="Đánh giá"
+              >
+                <option value="">
+                  Đánh giá
+                </option>
+                <option value="yes">
+                  Đã đánh giá
+                </option>
+                <option value="no">
+                  Chưa đánh giá
+                </option>
+              </select>
+            </DatagridFilterField>
+          </div>
+        </Transition>
       </div>
 
-      <div class="grid gap-3 p-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        <article
-          v-for="v in vendorList"
-          :key="v.id"
-          class="card flex flex-col p-4"
-        >
-          <div class="flex items-start gap-3">
-            <span class="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-brand/10 text-brand">
-              <AppIcon
-                name="vendor"
-                :size="18"
-              />
-            </span>
-            <div class="min-w-0 flex-1">
-              <h3 class="truncate font-semibold text-slate-800">
-                {{ v.name }}
-              </h3>
-              <p class="text-xs text-slate-400">
-                {{ v.code }}
-              </p>
-            </div>
-            <span
-              v-if="v.review_score != null"
-              class="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold"
-              :class="scoreTone(v.review_score)"
-              :title="v.is_low_score ? 'Điểm đánh giá dưới 7' : 'Điểm đánh giá gần nhất'"
-            >
-              {{ v.review_score }}/10
-            </span>
-            <div
-              v-if="v.can?.update || v.can?.delete"
-              class="flex shrink-0 gap-1"
-            >
-              <button
-                v-if="v.can?.update"
-                type="button"
-                class="grid h-7 w-7 place-items-center rounded text-slate-400 hover:bg-slate-100"
-                @click="openEdit(v)"
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-sm">
+          <thead class="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+            <tr>
+              <th class="min-w-[12rem] px-5 py-3">
+                Nhà cung cấp
+              </th>
+              <th
+                v-if="isColVisible('tax_code')"
+                class="px-5 py-3"
               >
-                <AppIcon
-                  name="edit"
-                  :size="14"
-                />
-              </button>
-              <button
-                v-if="v.can?.delete"
-                type="button"
-                class="grid h-7 w-7 place-items-center rounded text-slate-400 hover:bg-rose-50 hover:text-rose-600"
-                @click="onDelete(v)"
+                Mã số thuế
+              </th>
+              <th
+                v-if="isColVisible('contact')"
+                class="min-w-[10rem] px-5 py-3"
               >
-                <AppIcon
-                  name="delete"
-                  :size="14"
-                />
-              </button>
-            </div>
-          </div>
-
-          <dl class="mt-3 space-y-1 text-sm">
-            <div
-              v-if="v.contact_name"
-              class="flex items-center gap-2 text-slate-500"
+                Liên hệ
+              </th>
+              <th
+                v-if="isColVisible('contracts')"
+                class="px-5 py-3 text-right"
+              >
+                Hợp đồng
+              </th>
+              <th
+                v-if="isColVisible('annual_cost')"
+                class="px-5 py-3 text-right"
+              >
+                Chi phí / năm
+              </th>
+              <th
+                v-if="isColVisible('review_score')"
+                class="px-5 py-3 text-center"
+              >
+                Điểm
+              </th>
+              <th
+                v-if="isColVisible('is_active')"
+                class="px-5 py-3"
+              >
+                Trạng thái
+              </th>
+              <th class="w-36 px-5 py-3 text-right">
+                Thao tác
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="v in vendorList"
+              :key="v.id"
+              class="border-t border-slate-100 transition-colors hover:bg-slate-50/80"
             >
-              <AppIcon
-                name="account"
-                :size="13"
-              /> {{ v.contact_name }}
-            </div>
-            <div
-              v-if="v.email"
-              class="flex items-center gap-2 text-slate-500"
-            >
-              <AppIcon
-                name="mail"
-                :size="13"
-              /> <span class="truncate">{{ v.email }}</span>
-            </div>
-            <div
-              v-if="v.phone"
-              class="flex items-center gap-2 text-slate-500"
-            >
-              <AppIcon
-                name="phone"
-                :size="13"
-              /> {{ v.phone }}
-            </div>
-          </dl>
-
-          <div class="mt-3 flex items-center justify-between border-t border-slate-100 pt-3 text-sm">
-            <span class="text-slate-400">{{ v.contracts_count ?? 0 }} hợp đồng</span>
-            <span class="font-medium text-slate-700">{{ formatMoneyShort(v.total_annual_cost ?? 0) }}/năm</span>
-          </div>
-
-          <button
-            v-if="can.evaluate"
-            type="button"
-            class="btn-ghost mt-3 w-full justify-center text-xs"
-            @click="openReview(v)"
-          >
-            <AppIcon
-              name="performance"
-              :size="14"
-            />
-            {{ v.review_score != null ? 'Đánh giá lại' : 'Đánh giá NCC' }}
-          </button>
-        </article>
-
-        <p
-          v-if="!vendorList.length"
-          class="rounded-card border border-dashed border-slate-200 py-10 text-center text-sm text-slate-400 sm:col-span-2 lg:col-span-3 xl:col-span-4"
-        >
-          Chưa có nhà cung cấp nào.
-        </p>
+              <td class="px-5 py-3">
+                <Link
+                  :href="route('vendors.show', v.id)"
+                  class="font-medium text-brand hover:underline"
+                >
+                  {{ v.name }}
+                </Link>
+                <p class="font-mono text-xs text-slate-400">
+                  {{ v.code }}
+                </p>
+              </td>
+              <td
+                v-if="isColVisible('tax_code')"
+                class="px-5 py-3 text-slate-600"
+              >
+                <span
+                  class="text-xs"
+                  :class="{ 'italic text-slate-400': !v.tax_code }"
+                >
+                  {{ displayOrEmpty(v.tax_code, EMPTY_LABELS.notUpdated) }}
+                </span>
+              </td>
+              <td
+                v-if="isColVisible('contact')"
+                class="px-5 py-3"
+              >
+                <p
+                  class="text-slate-700"
+                  :class="{ 'text-xs italic text-slate-400': !v.contact_name }"
+                >
+                  {{ displayOrEmpty(v.contact_name, EMPTY_LABELS.notUpdated) }}
+                </p>
+                <p
+                  v-if="v.email"
+                  class="truncate text-xs text-slate-500"
+                >
+                  {{ v.email }}
+                </p>
+                <p
+                  v-if="v.phone"
+                  class="text-xs text-slate-500"
+                >
+                  {{ v.phone }}
+                </p>
+                <p
+                  v-if="!v.contact_name && !v.email && !v.phone"
+                  class="text-xs italic text-slate-400"
+                >
+                  Chưa có thông tin liên hệ
+                </p>
+              </td>
+              <td
+                v-if="isColVisible('contracts')"
+                class="px-5 py-3 text-right tabular-nums text-slate-600"
+              >
+                {{ v.contracts_count ?? 0 }}
+              </td>
+              <td
+                v-if="isColVisible('annual_cost')"
+                class="px-5 py-3 text-right font-medium tabular-nums text-slate-700"
+              >
+                {{ formatMoneyShort(v.total_annual_cost ?? 0) }}
+              </td>
+              <td
+                v-if="isColVisible('review_score')"
+                class="px-5 py-3 text-center"
+              >
+                <span
+                  v-if="v.review_score != null"
+                  class="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                  :class="scoreTone(v.review_score)"
+                  :title="v.is_low_score ? 'Điểm đánh giá dưới 7' : 'Điểm đánh giá gần nhất'"
+                >
+                  {{ v.review_score }}/10
+                </span>
+                <span
+                  v-else
+                  class="text-xs italic text-slate-400"
+                >
+                  Chưa đánh giá
+                </span>
+              </td>
+              <td
+                v-if="isColVisible('is_active')"
+                class="px-5 py-3"
+              >
+                <span
+                  class="inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium"
+                  :class="v.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'"
+                >
+                  {{ v.is_active ? 'Đang hoạt động' : 'Ngừng hoạt động' }}
+                </span>
+              </td>
+              <td class="px-5 py-3">
+                <div class="flex items-center justify-end gap-1">
+                  <button
+                    v-if="can.evaluate"
+                    type="button"
+                    class="btn-ghost h-8 gap-1 px-2 text-xs"
+                    :title="v.review_score != null ? 'Đánh giá lại' : 'Đánh giá NCC'"
+                    @click="openReview(v)"
+                  >
+                    <AppIcon
+                      name="performance"
+                      :size="14"
+                    />
+                    <span class="hidden xl:inline">{{ v.review_score != null ? 'Lại' : 'Đánh giá' }}</span>
+                  </button>
+                  <button
+                    v-if="v.can?.update"
+                    type="button"
+                    class="grid h-8 w-8 place-items-center rounded text-slate-400 hover:bg-slate-100"
+                    title="Sửa"
+                    @click="openEdit(v)"
+                  >
+                    <AppIcon
+                      name="edit"
+                      :size="14"
+                    />
+                  </button>
+                  <button
+                    v-if="v.can?.delete"
+                    type="button"
+                    class="grid h-8 w-8 place-items-center rounded text-slate-400 hover:bg-rose-50 hover:text-rose-600"
+                    title="Xoá"
+                    @click="onDelete(v)"
+                  >
+                    <AppIcon
+                      name="delete"
+                      :size="14"
+                    />
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr v-if="!vendorList.length">
+              <td
+                :colspan="tableColspan"
+                class="px-5 py-12 text-center text-sm text-slate-400"
+              >
+                Chưa có nhà cung cấp nào phù hợp bộ lọc.
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
 

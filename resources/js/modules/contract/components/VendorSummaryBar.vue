@@ -66,7 +66,8 @@ const cards = computed(() => {
         {
             key: 'avg_score',
             label: 'Điểm TB đánh giá',
-            value: s.avg_score != null ? `${s.avg_score}/10` : EMPTY_LABELS.grade,
+            value: s.avg_score != null ? `${s.avg_score}/10` : 'Chưa có điểm TB',
+            valueKind: s.avg_score != null ? 'metric' : 'text',
             tone: 'amber',
             icon: 'performance',
             sub: total ? `${s.reviewed ?? 0} NCC đã đánh giá` : EMPTY_LABELS.generic,

@@ -223,21 +223,56 @@ function onEmailClickOutside(e) {
     }
 }
 
-function sendDailySummaryEmail() {
-    emailMenuOpen.value = false;
-    router.post(route('projects.email.daily-summary', pid), {
-        sprint_id: emailSprintId.value ?? undefined,
-    }, {
-        preserveScroll: true,
-    });
+const emailSending = ref(false);
+
+function toastEmailFlash(page) {
+    const flash = page?.props?.flash ?? {};
+    if (flash.success) {
+        toast.success(flash.success);
+    } else if (flash.warning) {
+        toast.warning(flash.warning);
+    } else if (flash.error) {
+        toast.error(flash.error);
+    }
 }
 
-function sendSprintSummaryEmail() {
+const emailPostOptions = {
+    preserveScroll: true,
+    onStart: () => { emailSending.value = true; },
+    onFinish: () => { emailSending.value = false; },
+    onSuccess: (page) => toastEmailFlash(page),
+    onError: () => toast.error('Không gửi được email. Kiểm tra kết nối hoặc thử lại.'),
+};
+
+async function sendDailySummaryEmail() {
+    emailMenuOpen.value = false;
+    const sprint = props.sprints.find((s) => s.id === emailSprintId.value);
+    const scope = sprint ? ` trong sprint «${sprint.name}»` : ' (phạm vi toàn dự án)';
+    if (!await dialog.confirm({
+        title: 'Gửi email tổng hợp trong ngày',
+        message: `Gửi email tổng hợp công việc có hạn hoặc cập nhật hôm nay${scope} tới từng người phụ trách? Thư sẽ được xếp hàng trên hệ thống.`,
+        confirmText: 'Gửi email',
+    })) {
+        return;
+    }
+    router.post(route('projects.email.daily-summary', pid), {
+        sprint_id: emailSprintId.value ?? undefined,
+    }, emailPostOptions);
+}
+
+async function sendSprintSummaryEmail() {
     if (!emailSprintId.value) return;
     emailMenuOpen.value = false;
-    router.post(route('projects.email.sprint-summary', [pid, emailSprintId.value]), {}, {
-        preserveScroll: true,
-    });
+    const sprint = props.sprints.find((s) => s.id === emailSprintId.value);
+    const sprintLabel = sprint?.name ? `«${sprint.name}»` : 'sprint đang chọn';
+    if (!await dialog.confirm({
+        title: 'Gửi email tổng hợp sprint',
+        message: `Gửi email danh sách công việc sprint ${sprintLabel} tới từng người phụ trách? Thư sẽ được xếp hàng trên hệ thống.`,
+        confirmText: 'Gửi email',
+    })) {
+        return;
+    }
+    router.post(route('projects.email.sprint-summary', [pid, emailSprintId.value]), {}, emailPostOptions);
 }
 
 onMounted(() => {
@@ -334,7 +369,8 @@ onBeforeUnmount(() => {
           v-if="canManage"
           ref="emailMenuRef"
           type="button"
-          class="relative inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border border-slate-200 px-2.5 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-600"
+          class="relative inline-flex h-9 shrink-0 items-center gap-1 rounded-btn border border-slate-200 px-2.5 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-600"
+          :disabled="emailSending"
           @click="emailMenuOpen = !emailMenuOpen"
         >
           <AppIcon
@@ -352,7 +388,8 @@ onBeforeUnmount(() => {
           >
             <button
               type="button"
-              class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+              class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300 dark:text-slate-200 dark:hover:bg-slate-800"
+              :disabled="emailSending"
               @click="sendDailySummaryEmail"
             >
               Tổng hợp hôm nay
@@ -361,7 +398,7 @@ onBeforeUnmount(() => {
               type="button"
               class="block w-full px-3 py-2 text-left text-xs disabled:cursor-not-allowed disabled:text-slate-300"
               :class="emailSprintId ? 'text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800' : 'text-slate-400'"
-              :disabled="!emailSprintId"
+              :disabled="!emailSprintId || emailSending"
               :title="emailSprintId ? 'Gửi theo sprint đang mở đầu tiên' : 'Chưa có sprint'"
               @click="sendSprintSummaryEmail"
             >
