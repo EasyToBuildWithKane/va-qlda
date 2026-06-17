@@ -4,6 +4,7 @@ import { Head, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import AppIcon from '@/Components/AppIcon.vue';
+import AlertSummaryBar from '@/modules/contract/components/AlertSummaryBar.vue';
 import { expiryLabel } from '@/modules/contract/composables/useContractFormat.js';
 
 const props = defineProps({
@@ -33,13 +34,6 @@ const filtered = computed(() => items.value.filter((i) =>
     (levelFilter.value === 'all' || i.level === levelFilter.value)
     && (typeFilter.value === 'all' || i.type === typeFilter.value)));
 
-const levelCards = computed(() => [
-    { key: 'all', label: 'Tất cả', value: summary.value.total ?? 0, chip: 'bg-slate-100 text-slate-700' },
-    { key: 'critical', label: 'Nghiêm trọng', value: summary.value.critical ?? 0, chip: 'bg-rose-100 text-rose-700' },
-    { key: 'high', label: 'Cao', value: summary.value.high ?? 0, chip: 'bg-amber-100 text-amber-700' },
-    { key: 'medium', label: 'Trung bình', value: summary.value.medium ?? 0, chip: 'bg-sky-100 text-sky-700' },
-]);
-
 const typeChips = computed(() => [
     { key: 'all', label: 'Tất cả loại' },
     { key: 'expiring', label: `Sắp hết hạn (${summary.value.expiring ?? 0})` },
@@ -63,30 +57,12 @@ const typeChips = computed(() => [
     </template>
 
     <div class="mx-auto max-w-5xl px-4 py-5">
-      <!-- Level summary cards (clickable filter) -->
-      <div class="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <button
-          v-for="card in levelCards"
-          :key="card.key"
-          type="button"
-          class="card flex items-center justify-between p-4 text-left transition"
-          :class="levelFilter === card.key ? 'ring-2 ring-brand/40' : 'hover:bg-slate-50'"
-          @click="levelFilter = card.key"
-        >
-          <div>
-            <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">
-              {{ card.label }}
-            </p>
-            <p class="mt-1 font-display text-2xl font-bold text-slate-800">
-              {{ card.value }}
-            </p>
-          </div>
-          <span
-            class="rounded-full px-2 py-0.5 text-[10px] font-semibold"
-            :class="card.chip"
-          >●</span>
-        </button>
-      </div>
+      <!-- Level summary strip (clickable filter) -->
+      <AlertSummaryBar
+        :summary="summary"
+        :active-level="levelFilter"
+        @select-level="levelFilter = $event"
+      />
 
       <!-- Type filter chips -->
       <div class="mb-4 flex flex-wrap gap-2">

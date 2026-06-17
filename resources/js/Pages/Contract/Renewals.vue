@@ -7,7 +7,14 @@ import AppIcon from '@/Components/AppIcon.vue';
 import Badge from '@/shared/ui/Badge.vue';
 import ContractCalendar from '@/modules/contract/components/ContractCalendar.vue';
 import RenewalQuickModal from '@/modules/contract/components/RenewalQuickModal.vue';
+import RenewalSummaryBar from '@/modules/contract/components/RenewalSummaryBar.vue';
+import DatagridSegmentedControl from '@/shared/ui/DatagridSegmentedControl.vue';
 import { formatMoneyShort, expiryLabel } from '@/modules/contract/composables/useContractFormat.js';
+
+const VIEW_ITEMS = [
+    { key: 'list', label: 'Danh sách', icon: 'list' },
+    { key: 'calendar', label: 'Lịch', icon: 'calendar' },
+];
 
 const props = defineProps({
     groups: { type: Array, default: () => [] },
@@ -59,28 +66,18 @@ function onSaved() {
         icon-color="brand"
         :badge="total"
       >
-        <div class="inline-flex rounded-md border border-slate-200 bg-slate-50 p-0.5">
-          <button
-            type="button"
-            class="rounded px-2.5 py-1 text-xs font-medium"
-            :class="view === 'list' ? 'bg-white text-brand shadow-sm' : 'text-slate-500'"
-            @click="view = 'list'"
-          >
-            Danh sách
-          </button>
-          <button
-            type="button"
-            class="rounded px-2.5 py-1 text-xs font-medium"
-            :class="view === 'calendar' ? 'bg-white text-brand shadow-sm' : 'text-slate-500'"
-            @click="view = 'calendar'"
-          >
-            Lịch
-          </button>
-        </div>
+        <DatagridSegmentedControl
+          v-model="view"
+          :items="VIEW_ITEMS"
+          aria-label="Chế độ xem gia hạn"
+          icon-only-below-sm
+        />
       </PageHeader>
     </template>
 
     <div class="mx-auto max-w-7xl px-4 py-5">
+      <RenewalSummaryBar :groups="renewalGroups" />
+
       <div v-if="view === 'calendar'">
         <ContractCalendar :contracts="normalizeList(calendar)" />
       </div>

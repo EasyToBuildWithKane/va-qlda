@@ -5,13 +5,17 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import VendorFormModal from '@/modules/contract/components/VendorFormModal.vue';
+import VendorSummaryBar from '@/modules/contract/components/VendorSummaryBar.vue';
+import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import { useDialog } from '@/composables/useDialog';
 import { useToast } from '@/shared/composables/useToast';
 import { formatMoneyShort } from '@/modules/contract/composables/useContractFormat.js';
+import { watch } from 'vue';
 
 const props = defineProps({
     vendors: { type: Object, required: true },
     filters: { type: Object, default: () => ({}) },
+    summary: { type: Object, default: () => ({}) },
     can: { type: Object, default: () => ({}) },
 });
 
@@ -21,11 +25,16 @@ const toast = useToast();
 const vendorList = computed(() => props.vendors.data ?? props.vendors ?? []);
 const search = ref(props.filters.q ?? '');
 
+let debounce;
 function applySearch() {
-    router.get('/contracts/vendors', { q: search.value || undefined }, {
-        preserveState: true, preserveScroll: true, replace: true,
-    });
+    clearTimeout(debounce);
+    debounce = setTimeout(() => {
+        router.get('/contracts/vendors', { q: search.value || undefined }, {
+            preserveState: true, preserveScroll: true, replace: true,
+        });
+    }, 350);
 }
+watch(search, applySearch);
 
 const showForm = ref(false);
 const editing = ref(null);
@@ -81,18 +90,22 @@ async function onDelete(v) {
     </template>
 
     <div class="mx-auto max-w-6xl px-4 py-5">
-      <div class="mb-4 relative max-w-sm">
-        <AppIcon
-          name="search"
-          :size="15"
-          class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-        />
-        <input
-          v-model="search"
-          class="input pl-9"
-          placeholder="Tìm NCC…"
-          @keyup.enter="applySearch"
-        >
+      <VendorSummaryBar :summary="summary" />
+
+      <div class="mb-4 flex w-full min-w-0 flex-wrap items-center gap-2 lg:flex-nowrap">
+        <div class="min-w-0 w-full basis-full lg:min-w-[10rem] lg:flex-1 lg:basis-auto">
+          <DatagridToolbarSearch
+            v-model="search"
+            input-id="vendor-search"
+            input-name="q"
+            hide-label
+            stretch
+            inline-actions
+            input-height="h-10"
+            placeholder="Tìm theo tên, mã, mã số thuế, người liên hệ…"
+            aria-label="Tìm nhà cung cấp"
+          />
+        </div>
       </div>
 
       <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

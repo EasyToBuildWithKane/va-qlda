@@ -13,6 +13,7 @@ use App\Models\ContractCategory;
 use App\Models\Vendor;
 use App\Services\NotificationService;
 use App\Support\ContractActivityLogger;
+use App\Support\ContractLifecycle\ContractRenewalCalculator;
 use App\Support\Enums\ContractAttachmentCategory;
 use App\Support\Enums\ContractBillingCycle;
 use App\Support\Enums\ContractPaymentStatus;
@@ -22,6 +23,8 @@ use App\Support\Options;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -29,6 +32,8 @@ use Inertia\Response;
 
 class ContractController extends Controller
 {
+    public function __construct(private readonly ContractRenewalCalculator $calculator) {}
+
     /** Chuẩn hoá giá trị so sánh / lưu lịch sử (enum, ngày, scalar). */
     private function trackValueToString(mixed $value): string
     {
@@ -60,8 +65,14 @@ class ContractController extends Controller
         if ($status = $request->query('status')) {
             $query->where('status', $status);
         }
+        if ($paymentStatus = $request->query('payment_status')) {
+            $query->where('payment_status', $paymentStatus);
+        }
         if ($vendorId = $request->query('vendor_id')) {
             $query->where('vendor_id', $vendorId);
+        }
+        if ($categoryId = $request->query('category_id')) {
+            $query->where('category_id', $categoryId);
         }
         if ($search = $request->query('q')) {
             $query->where(fn ($q) => $q
@@ -76,7 +87,8 @@ class ContractController extends Controller
             'contracts' => ContractListResource::collection($contracts),
             'vendors' => Vendor::query()->orderBy('name')->get(['id', 'code', 'name'])->values()->all(),
             'categories' => ContractCategory::query()->orderBy('sort_order')->get(['id', 'vendor_id', 'name'])->values()->all(),
-            'filters' => (object) $request->only(['status', 'vendor_id', 'q']),
+            'filters' => (object) $request->only(['status', 'payment_status', 'vendor_id', 'category_id', 'q']),
+            'summary' => $this->portfolioSummary(),
             'options' => [
                 'status' => ContractStatus::options(),
                 'paymentStatus' => ContractPaymentStatus::options(),
@@ -89,6 +101,47 @@ class ContractController extends Controller
                 'import' => $account->can('import', Contract::class),
             ],
         ]);
+    }
+
+    /**
+     * Tổng hợp toàn cục cho dải KPI Explorer (không phụ thuộc bộ lọc hiện tại)
+     * — tổng hợp đồng, đang hiệu lực, sắp hết hạn, đã hết hạn, chưa thanh toán
+     * và tổng chi phí năm. Các thẻ này lọc nhanh theo `status`/`payment_status`.
+     *
+     * @return array<string, int|float>
+     */
+    private function portfolioSummary(): array
+    {
+        /** @var Collection<int, Contract> $all */
+        $all = Contract::query()->get(['status', 'payment_status', 'expiry_date', 'annual_cost']);
+        $today = Carbon::today();
+        $window = $this->calculator->expiringWindowDays();
+
+        $daysOf = fn (Contract $c): ?int => $c->expiry_date
+            ? $today->diffInDays($c->expiry_date, false)
+            : null;
+
+        return [
+            'total' => $all->count(),
+            'active' => $all->filter(fn (Contract $c) => $c->status->isLive())->count(),
+            'expiring_soon' => $all->filter(function (Contract $c) use ($daysOf, $window) {
+                $d = $daysOf($c);
+
+                return $d !== null && $d >= 0 && $d <= $window && $c->status->isLive();
+            })->count(),
+            'expired' => $all->filter(function (Contract $c) use ($daysOf) {
+                if ($c->status === ContractStatus::Terminated) {
+                    return false;
+                }
+                $d = $daysOf($c);
+
+                return $c->status === ContractStatus::Expired || ($d !== null && $d < 0);
+            })->count(),
+            'unpaid' => $all->filter(
+                fn (Contract $c) => $c->payment_status === ContractPaymentStatus::Unpaid && $c->status->isLive(),
+            )->count(),
+            'annual_cost' => round((float) $all->sum(fn (Contract $c) => (float) ($c->annual_cost ?? 0)), 2),
+        ];
     }
 
     public function show(Contract $contract): Response

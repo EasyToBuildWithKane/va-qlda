@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Contract\StoreVendorRequest;
 use App\Http\Requests\Contract\UpdateVendorRequest;
 use App\Http\Resources\VendorResource;
+use App\Models\Contract;
 use App\Models\Vendor;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -36,10 +37,33 @@ class VendorController extends Controller
         return Inertia::render('Contract/Vendors', [
             'vendors' => VendorResource::collection($query->get()),
             'filters' => (object) $request->only(['q']),
+            'summary' => $this->vendorSummary(),
             'can' => [
                 'create' => $account->can('create', Vendor::class),
             ],
         ]);
+    }
+
+    /**
+     * Tổng hợp toàn cục cho dải KPI nhà cung cấp (không phụ thuộc tìm kiếm):
+     * tổng NCC, số NCC đang có hợp đồng, tổng hợp đồng, tổng chi phí năm.
+     *
+     * @return array<string, int|float>
+     */
+    private function vendorSummary(): array
+    {
+        $totalVendors = Vendor::query()->count();
+        $withContracts = Vendor::query()->whereHas('contracts')->count();
+        $totalContracts = Contract::query()->count();
+        $annualCost = (float) Contract::query()->sum('annual_cost');
+
+        return [
+            'total' => $totalVendors,
+            'with_contracts' => $withContracts,
+            'without_contracts' => max(0, $totalVendors - $withContracts),
+            'contracts' => $totalContracts,
+            'annual_cost' => round($annualCost, 2),
+        ];
     }
 
     public function store(StoreVendorRequest $request): RedirectResponse
