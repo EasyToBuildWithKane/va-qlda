@@ -483,7 +483,7 @@ async function onDelete(v) {
             >
               <td class="px-5 py-3">
                 <Link
-                  :href="route('vendors.show', v.id)"
+                  :href="route('contracts.vendors.show', v.id)"
                   class="font-medium text-brand hover:underline"
                 >
                   {{ v.name }}
