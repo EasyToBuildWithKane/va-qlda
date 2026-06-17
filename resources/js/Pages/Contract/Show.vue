@@ -26,7 +26,9 @@ const props = defineProps({
     options: { type: Object, default: () => ({}) },
 });
 
-const c = computed(() => props.contract);
+// ContractResource đi qua Inertia bị bọc trong khoá `data` (JsonResource $wrap).
+// Bóc lớp này giống Index.vue để mọi trường hợp đồng hiển thị đúng.
+const c = computed(() => props.contract?.data ?? props.contract);
 const dialog = useDialog();
 
 const tab = ref('overview');
@@ -855,7 +857,7 @@ const addenda = computed(() => c.value.addenda ?? []);
                         <th class="px-3 py-2.5 text-right font-medium">
                           Hàng năm
                         </th>
-                        <th class="px-3 py-2.5 text-right font-medium font-semibold text-slate-700">
+                        <th class="px-3 py-2.5 text-right font-semibold text-slate-700">
                           TỔNG TIỀN HĐ
                         </th>
                         <th

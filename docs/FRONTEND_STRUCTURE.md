@@ -174,7 +174,7 @@ Pages import feature components từ `@/modules/project/components/...` và prim
 
 | Path | Mô tả |
 |------|--------|
-| `Pages/Contract/` | Dashboard, Index (`ContractPortfolioSummaryBar`), Show, Renewals, Cost, Alerts, … |
+| `Pages/Contract/` | Dashboard, Index (`ContractPortfolioSummaryBar`), Show, Cost, Reports, … |
 | `components/ContractShowSummaryBar.vue` | Tab Tổng quan Show: dải KPI `kpi-strip` 6 thẻ (`variant="embedded"`), mở tab Hồ sơ / Gia hạn |
 | `components/ContractExplorer.vue` | Cây NCC → nhóm → hợp đồng trên Index |
 | `components/ContractDataModal.vue` | Nhập · Xuất · Đối soát danh mục |

@@ -20,7 +20,6 @@ use App\Http\Controllers\Congnghe\CongngheController;
 use App\Http\Controllers\Congnghe\CongngheSoftwareProposalAttachmentController;
 use App\Http\Controllers\Congnghe\CongngheSoftwareProposalController;
 use App\Http\Controllers\Congnghe\CongngheSoftwareProposalManagementController;
-use App\Http\Controllers\Contract\ContractAlertController;
 use App\Http\Controllers\Contract\ContractAttachmentController;
 use App\Http\Controllers\Contract\ContractCategoryController;
 use App\Http\Controllers\Contract\ContractController;
@@ -238,9 +237,7 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictCoachingOnlyUsers::class
     Route::prefix('contracts')->name('contracts.')->group(function () {
         Route::get('/', [ContractController::class, 'index'])->name('index');
         Route::get('/dashboard', ContractDashboardController::class)->name('dashboard');
-        Route::get('/renewals', [ContractRenewalController::class, 'index'])->name('renewals');
         Route::get('/cost', ContractCostController::class)->name('cost');
-        Route::get('/alerts', ContractAlertController::class)->name('alerts');
         Route::get('/reports', ContractReportController::class)->name('reports');
         Route::get('/export', [ContractController::class, 'export'])->name('export');
         Route::post('/import', [ContractController::class, 'import'])->name('import');

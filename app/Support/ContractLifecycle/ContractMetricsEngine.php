@@ -5,14 +5,12 @@ namespace App\Support\ContractLifecycle;
 use App\Models\Contract;
 use App\Models\ContractFinance;
 use App\Models\Vendor;
-use App\Support\Enums\ContractAttachmentCategory;
-use App\Support\Enums\ContractPaymentStatus;
 use App\Support\Enums\ContractStatus;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 /**
- * Tổng hợp số liệu cho CLM Dashboard / Chi phí / Cảnh báo / Báo cáo.
+ * Tổng hợp số liệu cho CLM Dashboard / Chi phí / Báo cáo.
  *
  * Tiền tệ ưu tiên lấy từ `contract_finances` (init_fee = triển khai mới,
  * maintenance_fee = duy trì, total/renewal_cost = dòng tiền); fallback về
@@ -342,93 +340,6 @@ class ContractMetricsEngine
             ->filter(fn (array $row) => $row['count'] > 0)
             ->values()
             ->all();
-    }
-
-    // ── Alert Center (Phân hệ 8) ────────────────────────────────────────────
-
-    /**
-     * @return array<string, mixed>
-     */
-    public function buildAlerts(): array
-    {
-        $today = Carbon::today();
-        $window = $this->calculator->expiringWindowDays();
-
-        $contracts = Contract::query()
-            ->with('vendor')
-            ->withCount(['attachments as contract_doc_count' => fn ($q) => $q->where('category', ContractAttachmentCategory::Contract->value)])
-            ->get();
-
-        $items = [];
-        foreach ($contracts as $c) {
-            $days = $this->calculator->daysUntilExpiry($c, $today);
-
-            if ($days !== null && $days < 0 && $c->status !== ContractStatus::Terminated) {
-                $items[] = $this->alertItem($c, 'expired', 'critical', $days);
-            } elseif ($days !== null && $days <= $window && $c->status->isLive()) {
-                $level = $days <= 7 ? 'critical' : ($days <= 30 ? 'high' : 'medium');
-                $items[] = $this->alertItem($c, 'expiring', $level, $days);
-            }
-
-            if ($c->payment_status === ContractPaymentStatus::Unpaid && $c->status->isLive()) {
-                $items[] = $this->alertItem($c, 'unpaid', 'high', $days);
-            }
-
-            if ($c->status->isLive() && (int) ($c->contract_doc_count ?? 0) === 0) {
-                $items[] = $this->alertItem($c, 'missing_docs', 'medium', $days);
-            }
-        }
-
-        usort($items, fn ($a, $b) => self::levelRank($a['level']) <=> self::levelRank($b['level']));
-
-        return [
-            'items' => $items,
-            'summary' => $this->alertSummary($items),
-            'generated_at' => $today->toDateString(),
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function alertItem(Contract $c, string $type, string $level, ?int $days): array
-    {
-        return [
-            'id' => $c->id,
-            'code' => $c->code,
-            'name' => $c->name,
-            'vendor' => $c->vendor?->name,
-            'type' => $type,
-            'level' => $level,
-            'days_until_expiry' => $days,
-            'expiry_date' => $c->expiry_date?->toDateString(),
-        ];
-    }
-
-    private static function levelRank(string $level): int
-    {
-        return ['critical' => 0, 'high' => 1, 'medium' => 2, 'low' => 3][$level] ?? 9;
-    }
-
-    /**
-     * @param  array<int, array<string, mixed>>  $items
-     * @return array<string, int>
-     */
-    private function alertSummary(array $items): array
-    {
-        $by = fn (string $key, string $val) => count(array_filter($items, fn ($i) => $i[$key] === $val));
-
-        return [
-            'total' => count($items),
-            'critical' => $by('level', 'critical'),
-            'high' => $by('level', 'high'),
-            'medium' => $by('level', 'medium'),
-            'low' => $by('level', 'low'),
-            'expiring' => $by('type', 'expiring'),
-            'expired' => $by('type', 'expired'),
-            'unpaid' => $by('type', 'unpaid'),
-            'missing_docs' => $by('type', 'missing_docs'),
-        ];
     }
 
     // ── Reporting (Phân hệ 9) ────────────────────────────────────────────────

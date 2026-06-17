@@ -415,23 +415,9 @@ class Navigation
                         'roles' => ['admin', 'lead', 'viewer'],
                     ],
                     [
-                        'label' => 'Gia hạn',
-                        'icon' => 'renewal',
-                        'href' => '/contracts/renewals',
-                        'status' => 'live',
-                        'roles' => ['admin', 'lead', 'viewer'],
-                    ],
-                    [
                         'label' => 'Chi phí',
                         'icon' => 'money',
                         'href' => '/contracts/cost',
-                        'status' => 'live',
-                        'roles' => ['admin', 'lead', 'viewer'],
-                    ],
-                    [
-                        'label' => 'Trung tâm cảnh báo',
-                        'icon' => 'alert',
-                        'href' => '/contracts/alerts',
                         'status' => 'live',
                         'roles' => ['admin', 'lead', 'viewer'],
                     ],

@@ -4,64 +4,15 @@ namespace App\Http\Controllers\Contract;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Contract\StoreContractRenewalRequest;
-use App\Http\Resources\ContractListResource;
 use App\Models\Contract;
 use App\Support\ContractActivityLogger;
-use App\Support\ContractLifecycle\ContractRenewalCalculator;
 use App\Support\Enums\ContractStatus;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Inertia\Inertia;
-use Inertia\Response;
 
 class ContractRenewalController extends Controller
 {
-    public function __construct(private readonly ContractRenewalCalculator $calculator) {}
-
-    public function index(): Response
-    {
-        $this->authorize('viewAny', Contract::class);
-
-        $milestones = $this->calculator->milestones(); // desc, vd [90,60,30,7]
-        $maxWindow = $milestones === [] ? 90 : max($milestones);
-
-        $contracts = Contract::query()
-            ->with('owner', 'vendor')
-            ->expiringWithin($maxWindow)
-            ->orderBy('expiry_date')
-            ->get();
-
-        // Phân nhóm vào mốc nhỏ nhất phù hợp (7 trước 30 trước 60 trước 90).
-        $buckets = [];
-        foreach ($milestones as $m) {
-            $buckets[$m] = [];
-        }
-        $today = Carbon::today();
-        foreach ($contracts as $c) {
-            $days = $this->calculator->daysUntilExpiry($c, $today);
-            $matched = $days === null ? null : $this->calculator->matchedMilestone($days);
-            if ($matched !== null) {
-                $buckets[$matched][] = $c;
-            }
-        }
-
-        $groups = collect($milestones)->map(fn (int $m) => [
-            'days' => $m,
-            'label' => "Trong {$m} ngày",
-            'contracts' => array_values(ContractListResource::collection(collect($buckets[$m] ?? []))->resolve()),
-        ])->values()->all();
-
-        return Inertia::render('Contract/Renewals', [
-            'groups' => $groups,
-            'calendar' => array_values(ContractListResource::collection($contracts)->resolve()),
-            'can' => [
-                'manage' => request()->user()->can('create', Contract::class),
-            ],
-        ]);
-    }
-
     /**
      * Gia hạn hợp đồng:
      * 1. Tạo Contract phụ lục mới (status = addendum, root_contract_id = parent).

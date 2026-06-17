@@ -381,7 +381,7 @@ Issue Tracking Group
 └── /feedback               (CRUD)
 
 Contract Management Group (CLM)
-├── /contracts              (index, dashboard, renewals, cost, alerts, reports)
+├── /contracts              (index, dashboard, cost, reports)
 ├── /contracts/export       (JSON for client Excel)
 ├── /contracts/import       (POST bulk ≤200)
 ├── /contracts/vendors/*    (CRUD + import + reviews)
