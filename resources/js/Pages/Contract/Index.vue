@@ -14,12 +14,15 @@ import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import DatagridToolbarActionButton from '@/shared/ui/DatagridToolbarActionButton.vue';
 import DatagridFilterField from '@/shared/ui/DatagridFilterField.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
+import ColumnVisibilityDropdown from '@/shared/ui/ColumnVisibilityDropdown.vue';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
+import { useVisibleColumns } from '@/shared/composables/useVisibleColumns';
 import { useFixedDropdownAnchor } from '@/shared/composables/useFixedDropdownAnchor';
 import { useToast } from '@/shared/composables/useToast';
 import { useDialog } from '@/composables/useDialog';
 import { useContractExplorer } from '@/modules/contract/composables/useContractExplorer.js';
 import { downloadContractExport } from '@/modules/contract/composables/useContractExport.js';
+import { CONTRACT_EXPLORER_COLUMNS } from '@/modules/contract/config/explorerColumns.js';
 
 const props = defineProps({
     contracts: { type: Object, required: true }, // resource collection { data: [...] }
@@ -69,6 +72,17 @@ const {
     FILTER_CONTROLS: FILTER_CONTROL_LIST,
 } = useVisibleFilterControls(FILTER_CONTROLS, 'va-qlda.contracts.visible-filters.v1');
 
+const colDdRef = ref(null);
+
+const {
+    visibleCols,
+    showColDd,
+    persistVisibleColumns,
+    openColPanel,
+    isColVisible,
+    TABLE_COLUMNS,
+} = useVisibleColumns(CONTRACT_EXPLORER_COLUMNS, 'va-qlda.contracts.explorer-columns.v1');
+
 const appliedFilterCount = computed(() => [
     filters.status, filters.payment_status, filters.vendor_id, filters.category_id,
 ].filter((v) => v !== '' && v != null).length);
@@ -106,7 +120,6 @@ function onQuickFilter({ status, payment_status: payment }) {
     filters.payment_status = payment ?? '';
 }
 
-// ── Dropdown "Dữ liệu" (xuất nhanh + mở modal nhập/xuất/đối soát) ──
 const filterPanelDdRef = ref(null);
 const dataMenuRef = ref(null);
 const dataMenu = ref(false);
@@ -151,7 +164,10 @@ const { panelStyle: dataMenuStyle } = useFixedDropdownAnchor(
 
 function toggleDataMenu() {
     dataMenu.value = !dataMenu.value;
-    if (dataMenu.value) showFilterPanelDd.value = false;
+    if (dataMenu.value) {
+        showFilterPanelDd.value = false;
+        showColDd.value = false;
+    }
 }
 
 function runExport() {
@@ -176,9 +192,13 @@ function openDataModal() {
 function onToolbarClickOutside(e) {
     const t = e.target;
     if (t.closest?.('[data-filter-visibility-panel]')) return;
+    if (t.closest?.('[data-column-visibility-panel]')) return;
     if (t.closest?.('[data-contract-data-panel]')) return;
     if (filterPanelDdRef.value && !filterPanelDdRef.value.contains(t)) {
         showFilterPanelDd.value = false;
+    }
+    if (colDdRef.value && !colDdRef.value.contains(t)) {
+        showColDd.value = false;
     }
     if (dataMenuRef.value && !dataMenuRef.value.contains(t)) {
         dataMenu.value = false;
@@ -251,7 +271,7 @@ function onSaved() {
                 icon="filter"
                 :active="showFilterPanelDd"
                 :title="`Hiển thị bộ lọc (${enabledFilterControlCount}/${FILTER_CONTROL_LIST.length})`"
-                @click="openFilterPanel(() => { dataMenu = false; })"
+                @click="openFilterPanel(() => { showColDd = false; dataMenu = false; })"
               >
                 Lọc
               </DatagridToolbarActionButton>
@@ -262,6 +282,29 @@ function onSaved() {
                 :controls="FILTER_CONTROL_LIST"
                 input-id-prefix="contract-filter-vis"
                 @persist="persistVisibleFilters"
+              />
+            </div>
+
+            <div
+              ref="colDdRef"
+              class="relative shrink-0"
+            >
+              <DatagridToolbarActionButton
+                icon="columns"
+                :active="showColDd"
+                title="Cột hiển thị"
+                @click="openColPanel(() => { showFilterPanelDd = false; dataMenu = false; })"
+              >
+                Cột
+              </DatagridToolbarActionButton>
+              <ColumnVisibilityDropdown
+                v-model="visibleCols"
+                :show="showColDd"
+                :anchor-ref="colDdRef"
+                :columns="TABLE_COLUMNS"
+                :fixed-labels="['Thao tác']"
+                input-id-prefix="contract-col-vis"
+                @persist="persistVisibleColumns"
               />
             </div>
 
@@ -429,6 +472,7 @@ function onSaved() {
       <div class="p-4 sm:p-5">
         <ContractExplorer
           :tree="tree"
+          :is-col-visible="isColVisible"
           @edit="openEditForm"
           @delete="removeContract"
         />

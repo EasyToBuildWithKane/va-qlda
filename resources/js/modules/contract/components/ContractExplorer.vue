@@ -4,21 +4,23 @@ import { Link, router } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
 import Badge from '@/shared/ui/Badge.vue';
 import ContractRowActions from '@/modules/contract/components/ContractRowActions.vue';
-import DatagridToolbarActionButton from '@/shared/ui/DatagridToolbarActionButton.vue';
 import { displayOrEmpty } from '@/shared/utils/emptyDisplay.js';
-import { formatMoneyShort, expiryLabel, expiryTone } from '../composables/useContractFormat.js';
+import { formatMoneyShort, formatDate, expiryTone } from '../composables/useContractFormat.js';
+import { CONTRACT_EXPLORER_COLUMNS, CONTRACT_EXPLORER_COLUMN_KEYS } from '../config/explorerColumns.js';
 
 const props = defineProps({
     tree: { type: Array, default: () => [] },
+    isColVisible: { type: Function, required: true },
 });
 
 const emit = defineEmits(['edit', 'delete']);
 
-const COLLAPSE_STORAGE_KEY = 'va-qlda.contracts.collapsed-vendors.v1';
+const COLLAPSE_STORAGE_KEY = 'va-qlda.contracts.collapsed-vendors.v2';
+const COLLAPSE_SETS_KEY = 'va-qlda.contracts.collapsed-sets.v1';
 
-function loadCollapsedGroups() {
+function loadCollapsed(key) {
     try {
-        const raw = localStorage.getItem(COLLAPSE_STORAGE_KEY);
+        const raw = localStorage.getItem(key);
         if (raw) return new Set(JSON.parse(raw));
     } catch {
         /* ignore */
@@ -26,44 +28,65 @@ function loadCollapsedGroups() {
     return new Set();
 }
 
-const collapsedGroups = ref(loadCollapsedGroups());
+const collapsedVendors = ref(loadCollapsed(COLLAPSE_STORAGE_KEY));
+const collapsedSets = ref(loadCollapsed(COLLAPSE_SETS_KEY));
 
 function vendorKey(vendor) {
     return vendor.id != null ? `v-${vendor.id}` : 'v-none';
 }
 
-function persistCollapsedGroups() {
-    localStorage.setItem(COLLAPSE_STORAGE_KEY, JSON.stringify([...collapsedGroups.value]));
+function setCollapseKey(vendor, set) {
+    return `${vendorKey(vendor)}-s-${set.key}`;
 }
 
-function isGroupExpanded(key) {
-    return !collapsedGroups.value.has(key);
+function persist(key, setRef) {
+    localStorage.setItem(key, JSON.stringify([...setRef.value]));
 }
 
-function toggleGroup(key) {
-    const next = new Set(collapsedGroups.value);
+function isVendorOpen(vendor) {
+    return !collapsedVendors.value.has(vendorKey(vendor));
+}
+
+function isSetOpen(vendor, set) {
+    return !collapsedSets.value.has(setCollapseKey(vendor, set));
+}
+
+function toggleVendor(vendor) {
+    const key = vendorKey(vendor);
+    const next = new Set(collapsedVendors.value);
     if (next.has(key)) next.delete(key);
     else next.add(key);
-    collapsedGroups.value = next;
-    persistCollapsedGroups();
+    collapsedVendors.value = next;
+    persist(COLLAPSE_STORAGE_KEY, collapsedVendors);
 }
 
-const allGroupsExpanded = computed(() => (
-    props.tree.length > 0
-    && props.tree.every((v) => isGroupExpanded(vendorKey(v)))
-));
+function toggleSet(vendor, set) {
+    const key = setCollapseKey(vendor, set);
+    const next = new Set(collapsedSets.value);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    collapsedSets.value = next;
+    persist(COLLAPSE_SETS_KEY, collapsedSets);
+}
 
-function toggleAllGroups() {
-    if (allGroupsExpanded.value) {
-        collapsedGroups.value = new Set(props.tree.map((v) => vendorKey(v)));
-    } else {
-        collapsedGroups.value = new Set();
-    }
-    persistCollapsedGroups();
+const visibleColumnKeys = computed(() =>
+    CONTRACT_EXPLORER_COLUMN_KEYS.filter((k) => props.isColVisible(k)),
+);
+
+const visibleDataColCount = computed(() => visibleColumnKeys.value.length);
+
+const MONEY_KEYS = new Set(['monthly_cost', 'annual_cost', 'lifecycle_cost']);
+
+function thAlign(key) {
+    return MONEY_KEYS.has(key) ? 'text-right' : 'text-left';
+}
+
+function colLabel(key) {
+    return CONTRACT_EXPLORER_COLUMNS.find((c) => c.key === key)?.label ?? key;
 }
 
 const EXPIRY_TEXT = {
-    slate: 'text-slate-400',
+    slate: 'text-slate-500',
     sky: 'text-sky-600',
     emerald: 'text-emerald-600',
     amber: 'text-amber-600',
@@ -72,21 +95,43 @@ const EXPIRY_TEXT = {
 const expiryTextClass = (days) => EXPIRY_TEXT[expiryTone(days)] ?? EXPIRY_TEXT.slate;
 
 function roleLabel(c) {
-    return c.root_contract_id == null ? 'Gốc' : 'Gia hạn / phụ lục';
+    return c.root_contract_id == null ? 'Hợp đồng gốc' : 'Bản gia hạn / Phụ lục';
 }
 
 function roleClass(c) {
     return c.root_contract_id == null
-        ? 'bg-emerald-50 text-emerald-700'
-        : 'bg-sky-50 text-sky-700';
+        ? 'text-emerald-700'
+        : 'text-sky-700';
 }
 
 function openDetail(c) {
     router.visit(`/contracts/${c.id}`);
 }
 
-function categoryName(c) {
-    return displayOrEmpty(c.category?.name, 'Chưa phân nhóm');
+function vendorLabel(vendor, contract) {
+    return contract?.vendor?.name ?? vendor.name;
+}
+
+function moneyShort(value) {
+    const s = formatMoneyShort(value);
+    return s.replace(/\s+VND$/i, '');
+}
+
+function dateCell(value) {
+    if (!value) return displayOrEmpty(null, 'Chưa cập nhật');
+    const formatted = formatDate(value);
+    return formatted === '—' ? displayOrEmpty(null, 'Chưa cập nhật') : formatted;
+}
+
+function expiryDisplay(days) {
+    if (days === null || days === undefined) return 'Không hạn';
+    if (days < 0) return `Hết hạn ${Math.abs(days)} ngày`;
+    if (days === 0) return 'Hết hạn hôm nay';
+    return `${days} ngày`;
+}
+
+function ownerName(c) {
+    return displayOrEmpty(c.owner?.name, 'Chưa cập nhật');
 }
 </script>
 
@@ -94,55 +139,22 @@ function categoryName(c) {
   <div>
     <div
       v-if="tree.length"
-      class="mb-3 flex justify-end"
-    >
-      <DatagridToolbarActionButton
-        icon="chevron-down"
-        :title="allGroupsExpanded ? 'Thu gọn tất cả nhóm NCC' : 'Mở tất cả nhóm NCC'"
-        @click="toggleAllGroups"
-      >
-        <span class="hidden sm:inline">{{ allGroupsExpanded ? 'Thu nhóm' : 'Mở nhóm' }}</span>
-        <span class="sm:hidden">{{ allGroupsExpanded ? 'Thu' : 'Mở' }}</span>
-      </DatagridToolbarActionButton>
-    </div>
-
-    <div
-      v-if="tree.length"
       class="overflow-x-auto rounded-lg border border-slate-200"
     >
-      <table class="w-full min-w-[52rem] border-collapse text-sm">
+      <table class="w-full min-w-[48rem] border-collapse text-sm">
         <thead>
-          <tr class="border-b border-slate-200 bg-slate-50/90 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+          <tr class="border-b border-slate-200 bg-slate-50/90 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
             <th
               class="w-8 px-1 py-2.5"
               aria-hidden="true"
             />
-            <th class="px-2 py-2.5 text-left">
-              Mã
-            </th>
-            <th class="px-2 py-2.5 text-left">
-              Hợp đồng
-            </th>
-            <th class="px-2 py-2.5 text-left">
-              Nhóm dịch vụ
-            </th>
-            <th class="px-2 py-2.5 text-left">
-              Loại
-            </th>
-            <th class="px-2 py-2.5 text-left">
-              Trạng thái
-            </th>
-            <th class="px-2 py-2.5 text-left">
-              Hết hạn
-            </th>
-            <th class="px-2 py-2.5 text-right">
-              Chi phí / năm
-            </th>
             <th
-              class="w-11 px-1 py-2.5 text-center"
-              aria-label="Chi tiết"
+              v-for="key in visibleColumnKeys"
+              :key="`th-${key}`"
+              class="px-2 py-2.5"
+              :class="thAlign(key)"
             >
-              <span class="sr-only">Chi tiết</span>
+              {{ colLabel(key) }}
             </th>
             <th
               class="w-11 px-1 py-2.5 text-center"
@@ -158,132 +170,289 @@ function categoryName(c) {
             :key="vendorKey(vendor)"
           >
             <tr
-              class="cursor-pointer border-y border-slate-200 bg-slate-100/70 transition hover:bg-slate-100"
-              @click="toggleGroup(vendorKey(vendor))"
+              class="cursor-pointer border-y border-slate-200 bg-slate-100/80 transition hover:bg-slate-100"
+              @click="toggleVendor(vendor)"
             >
               <td class="px-1 py-2 text-center align-middle">
                 <AppIcon
                   name="chevron-down"
                   :size="15"
-                  class="inline-block text-slate-500 transition-transform"
-                  :class="isGroupExpanded(vendorKey(vendor)) ? '' : '-rotate-90'"
+                  class="inline-block text-brand transition-transform"
+                  :class="isVendorOpen(vendor) ? '' : '-rotate-90'"
                 />
               </td>
               <td
-                colspan="9"
+                :colspan="visibleDataColCount"
                 class="px-2 py-2 align-middle"
               >
-                <div class="flex flex-wrap items-center gap-2">
-                  <span class="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-brand/10 text-brand">
-                    <AppIcon
-                      name="vendor"
-                      :size="14"
-                    />
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <span class="text-sm font-semibold text-brand">{{ vendor.name }}</span>
+                  <span class="text-xs text-slate-500">{{ vendor.count }} HĐ</span>
+                  <span
+                    v-if="isColVisible('monthly_cost')"
+                    class="text-xs tabular-nums text-slate-600"
+                  >
+                    CP/tháng: {{ moneyShort(vendor.monthlyCost) }}
                   </span>
-                  <span class="min-w-0 flex-1 break-words text-sm font-semibold text-slate-800">{{ vendor.name }}</span>
-                  <span class="shrink-0 text-xs text-slate-500">{{ formatMoneyShort(vendor.annualCost) }}/năm</span>
-                  <span class="shrink-0 rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold tabular-nums text-slate-600 ring-1 ring-slate-200/90">
-                    {{ vendor.count }} HĐ
+                  <span
+                    v-if="isColVisible('lifecycle_cost')"
+                    class="text-xs tabular-nums text-slate-600"
+                  >
+                    Tổng: {{ moneyShort(vendor.lifecycleCost) }}
                   </span>
                 </div>
               </td>
+              <td class="px-1 py-2" />
             </tr>
 
-            <template v-if="isGroupExpanded(vendorKey(vendor))">
+            <template v-if="isVendorOpen(vendor)">
               <tr
-                v-if="!vendor.items.length"
+                v-if="!vendor.categories.length"
                 class="border-b border-slate-100 bg-white"
               >
-                <td class="px-1 py-3" />
+                <td />
                 <td
-                  colspan="9"
+                  :colspan="visibleDataColCount"
                   class="px-2 py-3 text-center text-xs text-slate-400"
                 >
                   Chưa có hợp đồng thuộc nhà cung cấp này.
                 </td>
+                <td />
               </tr>
-              <tr
-                v-for="c in vendor.items"
-                :key="c.id"
-                class="border-b border-slate-100 bg-white transition hover:bg-brand/[0.03]"
+
+              <template
+                v-for="category in vendor.categories"
+                :key="`${vendorKey(vendor)}-${category.key}`"
               >
-                <td class="px-1 py-2 align-middle">
-                  <span
-                    class="mx-auto block h-6 w-1 rounded-full bg-slate-200/80"
-                    aria-hidden="true"
-                  />
-                </td>
-                <td class="px-2 py-2.5 align-top">
-                  <span class="font-mono text-xs font-semibold text-brand">{{ c.code }}</span>
-                </td>
-                <td class="max-w-[14rem] px-2 py-2.5 align-top">
-                  <button
-                    type="button"
-                    class="block w-full break-words text-left text-sm font-medium leading-snug text-slate-800 underline-offset-2 hover:text-brand hover:underline"
-                    title="Xem chi tiết"
-                    @click.stop="openDetail(c)"
-                  >
-                    {{ c.name }}
-                  </button>
-                  <Link
-                    v-if="c.attachments_count"
-                    :href="`/contracts/${c.id}`"
-                    class="mt-0.5 inline-flex items-center gap-0.5 text-[11px] text-slate-400 hover:text-brand"
-                    title="Tài liệu đính kèm"
-                    @click.stop
-                  >
-                    <AppIcon
-                      name="file"
-                      :size="12"
-                    />{{ c.attachments_count }} hồ sơ
-                  </Link>
-                </td>
-                <td class="px-2 py-2.5 align-top text-xs text-slate-600">
-                  {{ categoryName(c) }}
-                </td>
-                <td class="px-2 py-2.5 align-top">
-                  <span
-                    class="rounded px-1.5 py-0.5 text-[10px] font-medium"
-                    :class="roleClass(c)"
-                  >{{ roleLabel(c) }}</span>
-                </td>
-                <td class="px-2 py-2.5 align-top">
-                  <Badge
-                    :label="c.status.label"
-                    :color="c.status.color"
-                  />
-                </td>
-                <td
-                  class="px-2 py-2.5 align-top text-xs"
-                  :class="expiryTextClass(c.days_until_expiry)"
+                <template
+                  v-for="set in category.sets"
+                  :key="setCollapseKey(vendor, set)"
                 >
-                  {{ expiryLabel(c.days_until_expiry) }}
-                </td>
-                <td class="px-2 py-2.5 align-top text-right text-xs font-medium tabular-nums text-slate-600">
-                  {{ formatMoneyShort(c.annual_cost_resolved ?? c.annual_cost) }}
-                </td>
-                <td class="px-1 py-2 align-top">
-                  <button
-                    type="button"
-                    class="mx-auto grid h-8 w-8 place-items-center rounded-lg border border-transparent text-slate-400 transition hover:border-slate-200 hover:bg-white hover:text-brand"
-                    title="Xem chi tiết"
-                    @click.stop="openDetail(c)"
+                  <tr
+                    class="cursor-pointer border-b border-slate-100 bg-white transition hover:bg-slate-50/80"
+                    @click="toggleSet(vendor, set)"
                   >
-                    <AppIcon
-                      name="eye"
-                      :size="16"
-                    />
-                  </button>
-                </td>
-                <td class="px-1 py-2 align-top">
-                  <ContractRowActions
-                    :contract="c"
-                    @detail="openDetail"
-                    @edit="emit('edit', $event)"
-                    @delete="emit('delete', $event)"
-                  />
-                </td>
-              </tr>
+                    <td class="px-1 py-2 text-center align-middle">
+                      <AppIcon
+                        name="chevron-down"
+                        :size="13"
+                        class="inline-block text-slate-400 transition-transform"
+                        :class="isSetOpen(vendor, set) ? '' : '-rotate-90'"
+                      />
+                    </td>
+                    <td
+                      :colspan="visibleDataColCount"
+                      class="px-2 py-2 align-middle"
+                    >
+                      <div class="flex flex-wrap items-center gap-2 text-xs">
+                        <AppIcon
+                          name="documents"
+                          :size="14"
+                          class="shrink-0 text-brand/70"
+                        />
+                        <span class="font-medium text-slate-700">
+                          Bộ HĐ: {{ set.code ?? set.name }}
+                          <span class="font-normal text-slate-400">({{ set.signingCount }} lần ký)</span>
+                        </span>
+                        <span
+                          v-if="isColVisible('category')"
+                          class="rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-medium text-sky-800"
+                        >
+                          {{ displayOrEmpty(category.name, 'Chưa phân nhóm') }}
+                        </span>
+                        <span
+                          v-if="isColVisible('name')"
+                          class="max-w-[12rem] truncate font-medium text-slate-600"
+                        >{{ set.name }}</span>
+                        <span
+                          v-if="isColVisible('monthly_cost')"
+                          class="ml-auto tabular-nums text-slate-500"
+                        >{{ moneyShort(set.monthlyCost) }}/tháng</span>
+                        <span
+                          v-if="isColVisible('lifecycle_cost')"
+                          class="tabular-nums text-slate-500"
+                        >{{ moneyShort(set.lifecycleCost) }}</span>
+                      </div>
+                    </td>
+                    <td class="px-1 py-2" />
+                  </tr>
+
+                  <template v-if="isSetOpen(vendor, set)">
+                    <tr
+                      v-for="c in set.contracts"
+                      :key="c.id"
+                      class="border-b border-slate-50 bg-white transition hover:bg-brand/[0.03]"
+                    >
+                      <td class="px-1 py-2 align-middle">
+                        <span
+                          class="ml-2 block h-5 w-3 border-b border-l border-slate-200"
+                          aria-hidden="true"
+                        />
+                      </td>
+
+                      <td
+                        v-if="isColVisible('code')"
+                        class="px-2 py-2.5 align-top"
+                      >
+                        <span class="inline-block rounded-md bg-brand/10 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-brand">
+                          {{ c.code }}
+                        </span>
+                        <p
+                          v-if="!isColVisible('role')"
+                          class="mt-0.5 text-[10px] font-medium"
+                          :class="roleClass(c)"
+                        >
+                          {{ roleLabel(c) }}
+                        </p>
+                      </td>
+                      <td
+                        v-if="isColVisible('vendor')"
+                        class="px-2 py-2.5 align-top text-xs text-slate-700"
+                      >
+                        {{ vendorLabel(vendor, c) }}
+                      </td>
+                      <td
+                        v-if="isColVisible('category')"
+                        class="px-2 py-2.5 align-top text-xs text-slate-600"
+                      >
+                        {{ displayOrEmpty(c.category?.name, 'Chưa phân nhóm') }}
+                      </td>
+                      <td
+                        v-if="isColVisible('name')"
+                        class="max-w-[12rem] px-2 py-2.5 align-top"
+                      >
+                        <button
+                          type="button"
+                          class="block w-full break-words text-left text-sm font-medium text-slate-800 underline-offset-2 hover:text-brand hover:underline"
+                          @click.stop="openDetail(c)"
+                        >
+                          {{ c.name }}
+                        </button>
+                      </td>
+                      <td
+                        v-if="isColVisible('role')"
+                        class="px-2 py-2.5 align-top text-[10px] font-medium"
+                        :class="roleClass(c)"
+                      >
+                        {{ roleLabel(c) }}
+                      </td>
+                      <td
+                        v-if="isColVisible('using_unit')"
+                        class="px-2 py-2.5 align-top text-xs text-slate-600"
+                      >
+                        {{ displayOrEmpty(c.using_unit, 'Chưa gán đơn vị') }}
+                      </td>
+                      <td
+                        v-if="isColVisible('owner')"
+                        class="px-2 py-2.5 align-top text-xs text-slate-600"
+                      >
+                        {{ ownerName(c) }}
+                      </td>
+                      <td
+                        v-if="isColVisible('signed_date')"
+                        class="px-2 py-2.5 align-top text-xs text-slate-600"
+                      >
+                        {{ dateCell(c.signed_date) }}
+                      </td>
+                      <td
+                        v-if="isColVisible('effective_date')"
+                        class="px-2 py-2.5 align-top text-xs text-slate-600"
+                      >
+                        {{ dateCell(c.effective_date) }}
+                      </td>
+                      <td
+                        v-if="isColVisible('expiry_date')"
+                        class="px-2 py-2.5 align-top text-xs text-slate-600"
+                      >
+                        {{ dateCell(c.expiry_date) }}
+                      </td>
+                      <td
+                        v-if="isColVisible('days_remaining')"
+                        class="px-2 py-2.5 align-top text-xs font-medium"
+                        :class="expiryTextClass(c.days_until_expiry)"
+                      >
+                        {{ expiryDisplay(c.days_until_expiry) }}
+                      </td>
+                      <td
+                        v-if="isColVisible('monthly_cost')"
+                        class="px-2 py-2.5 align-top text-right text-xs tabular-nums text-slate-600"
+                      >
+                        {{ moneyShort(c.monthly_cost) }}
+                      </td>
+                      <td
+                        v-if="isColVisible('annual_cost')"
+                        class="px-2 py-2.5 align-top text-right text-xs tabular-nums text-slate-600"
+                      >
+                        {{ moneyShort(c.annual_cost_resolved ?? c.annual_cost) }}
+                      </td>
+                      <td
+                        v-if="isColVisible('lifecycle_cost')"
+                        class="px-2 py-2.5 align-top text-right text-xs tabular-nums text-slate-600"
+                      >
+                        {{ moneyShort(c.lifecycle_cost) }}
+                      </td>
+                      <td
+                        v-if="isColVisible('payment_status')"
+                        class="px-2 py-2.5 align-top"
+                      >
+                        <Badge
+                          v-if="c.payment_status?.label"
+                          :label="c.payment_status.label"
+                          :color="c.payment_status.color"
+                        />
+                        <span
+                          v-else
+                          class="text-xs text-slate-400"
+                        >{{ displayOrEmpty(null, 'Chưa cập nhật') }}</span>
+                      </td>
+                      <td
+                        v-if="isColVisible('billing_cycle')"
+                        class="px-2 py-2.5 align-top text-xs text-slate-600"
+                      >
+                        {{ displayOrEmpty(c.billing_cycle?.label, 'Chưa cập nhật') }}
+                      </td>
+                      <td
+                        v-if="isColVisible('status')"
+                        class="px-2 py-2.5 align-top"
+                      >
+                        <Badge
+                          :label="c.status.label"
+                          :color="c.status.color"
+                        />
+                      </td>
+                      <td
+                        v-if="isColVisible('attachments_count')"
+                        class="px-2 py-2.5 align-top text-xs"
+                      >
+                        <Link
+                          v-if="c.attachments_count"
+                          :href="`/contracts/${c.id}`"
+                          class="inline-flex items-center gap-0.5 text-slate-600 hover:text-brand"
+                          @click.stop
+                        >
+                          <AppIcon
+                            name="file"
+                            :size="12"
+                          />{{ c.attachments_count }}
+                        </Link>
+                        <span
+                          v-else
+                          class="text-slate-400"
+                        >0</span>
+                      </td>
+
+                      <td class="px-1 py-2 align-top">
+                        <ContractRowActions
+                          :contract="c"
+                          @detail="openDetail"
+                          @edit="emit('edit', $event)"
+                          @delete="emit('delete', $event)"
+                        />
+                      </td>
+                    </tr>
+                  </template>
+                </template>
+              </template>
             </template>
           </template>
         </tbody>

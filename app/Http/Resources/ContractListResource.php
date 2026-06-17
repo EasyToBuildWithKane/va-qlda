@@ -29,6 +29,11 @@ class ContractListResource extends JsonResource
             'name' => $this->name,
             'description' => $this->description,
             'vendor_id' => $this->vendor_id,
+            'vendor' => $this->whenLoaded('vendor', fn () => $this->vendor ? [
+                'id' => $this->vendor->id,
+                'name' => $this->vendor->name,
+                'code' => $this->vendor->code,
+            ] : null),
             'category_id' => $this->category_id,
             'category' => $this->whenLoaded('category', fn () => $this->category ? [
                 'id' => $this->category->id,
@@ -40,6 +45,7 @@ class ContractListResource extends JsonResource
             'effective_date' => $this->effective_date?->toDateString(),
             'annual_cost' => $this->annual_cost !== null ? (float) $this->annual_cost : null,
             'annual_cost_resolved' => $this->annualCostResolved(),
+            'monthly_cost' => $this->monthly_cost !== null ? (float) $this->monthly_cost : null,
             'lifecycle_cost' => $this->lifecycle_cost !== null ? (float) $this->lifecycle_cost : null,
             'currency' => $this->currency,
             'billing_cycle' => $this->enum($this->billing_cycle),

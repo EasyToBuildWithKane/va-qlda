@@ -16,6 +16,26 @@ function sumAnnual(list) {
     return list.reduce((sum, c) => sum + resolvedAnnual(c), 0);
 }
 
+function sumMonthly(list) {
+    return list.reduce((sum, c) => sum + Number(c.monthly_cost ?? 0), 0);
+}
+
+function sumLifecycle(list) {
+    return list.reduce((sum, c) => sum + Number(c.lifecycle_cost ?? 0), 0);
+}
+
+/** Map key thống nhất — JSON/Inertia đôi khi trả vendor_id dạng chuỗi. */
+function vendorMapKey(vendorId) {
+    if (vendorId == null || vendorId === '') return '__none__';
+    const n = Number(vendorId);
+    return Number.isNaN(n) ? String(vendorId) : n;
+}
+
+function lookupVendor(vendorById, vendorId) {
+    if (vendorId == null) return null;
+    return vendorById.get(vendorMapKey(vendorId)) ?? null;
+}
+
 /** Khoá bộ hợp đồng: hợp đồng gốc (root_contract_id = null) dùng id của chính nó. */
 function setKeyOf(c) {
     return c.root_contract_id ?? c.id;
@@ -52,6 +72,8 @@ function buildSetNodes(sets) {
             code: root?.code ?? null,
             signingCount: members.length,
             annualCost: sumAnnual(members),
+            monthlyCost: sumMonthly(members),
+            lifecycleCost: sumLifecycle(members),
             contracts: members,
         };
     }).sort((a, b) => b.annualCost - a.annualCost);
@@ -76,6 +98,8 @@ function emptyVendorNode(vendor) {
         categoryCount: 0,
         setCount: 0,
         annualCost: 0,
+        monthlyCost: 0,
+        lifecycleCost: 0,
     };
 }
 
@@ -88,11 +112,11 @@ export function useContractExplorer(contractsRef, vendorsRef, filtersRef = null)
         const contracts = toArray(unref(contractsRef));
         const vendors = toArray(unref(vendorsRef));
         const filters = unref(filtersRef);
-        const vendorById = new Map(vendors.map((v) => [v.id, v]));
+        const vendorById = new Map(vendors.map((v) => [vendorMapKey(v.id), v]));
 
         const byVendor = new Map();
         for (const contract of contracts) {
-            const vendorKey = contract.vendor_id ?? '__none__';
+            const vendorKey = vendorMapKey(contract.vendor_id);
             if (!byVendor.has(vendorKey)) byVendor.set(vendorKey, new Map());
             const byCategory = byVendor.get(vendorKey);
             const catKey = categoryKeyOf(contract);
@@ -104,7 +128,9 @@ export function useContractExplorer(contractsRef, vendorsRef, filtersRef = null)
         }
 
         const buildVendorNode = (vendorKey, byCategory) => {
-            const vendor = vendorKey === '__none__' ? null : vendorById.get(vendorKey);
+            const vendor = vendorKey === '__none__'
+                ? null
+                : (vendorById.get(vendorKey) ?? lookupVendor(vendorById, vendorKey));
             const categoryNodes = [...byCategory.entries()].map(([catKey, sets]) => {
                 const sample = [...sets.values()].flat()[0];
                 const setNodes = buildSetNodes(sets);
@@ -124,11 +150,15 @@ export function useContractExplorer(contractsRef, vendorsRef, filtersRef = null)
             const setCount = categoryNodes.reduce((n, c) => n + c.setCount, 0);
 
             const items = categoryNodes.flatMap((c) => c.sets.flatMap((s) => s.contracts));
+            const vendorName = vendor?.name
+                ?? items.find((c) => c.vendor?.name)?.vendor?.name
+                ?? lookupVendor(vendorById, items[0]?.vendor_id)?.name
+                ?? 'Chưa gán nhà cung cấp';
 
             return {
                 type: 'vendor',
                 id: vendor?.id ?? null,
-                name: vendor?.name ?? 'Chưa gán nhà cung cấp',
+                name: vendorName,
                 code: vendor?.code ?? null,
                 categories: categoryNodes,
                 items,
@@ -136,6 +166,8 @@ export function useContractExplorer(contractsRef, vendorsRef, filtersRef = null)
                 categoryCount: categoryNodes.length,
                 setCount,
                 annualCost: sumAnnual(all),
+                monthlyCost: sumMonthly(all),
+                lifecycleCost: sumLifecycle(all),
             };
         };
 
@@ -147,13 +179,13 @@ export function useContractExplorer(contractsRef, vendorsRef, filtersRef = null)
         const narrowing = hasNarrowingListFilters(filters);
 
         if (vendorIdFilter && !Number.isNaN(vendorIdFilter)) {
-            if (!nodes.some((n) => n.id === vendorIdFilter)) {
+            if (!nodes.some((n) => Number(n.id) === vendorIdFilter)) {
                 const v = vendorById.get(vendorIdFilter);
                 if (v) nodes.push(emptyVendorNode(v));
             }
         } else if (!narrowing) {
             for (const v of vendors) {
-                if (!nodes.some((n) => n.id === v.id)) {
+                if (!nodes.some((n) => Number(n.id) === Number(v.id))) {
                     nodes.push(emptyVendorNode(v));
                 }
             }
