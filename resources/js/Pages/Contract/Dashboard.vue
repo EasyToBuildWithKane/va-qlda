@@ -75,7 +75,7 @@ const EXPIRY_TONE = (days) => {
       </PageHeader>
     </template>
 
-    <div class="mx-auto max-w-7xl px-4 py-5">
+    <div class="w-full min-w-0 space-y-5">
       <ContractDashboardSummaryBar
         :kpis="kpiList"
         :period="period"
@@ -99,7 +99,7 @@ const EXPIRY_TONE = (days) => {
       </div>
 
       <!-- Hàng 2: top NCC (cost + dòng tiền) | phân bố trạng thái -->
-      <div class="mt-4 grid gap-4 lg:grid-cols-3">
+      <div class="grid gap-4 lg:grid-cols-3">
         <section class="card p-4 lg:col-span-2">
           <h2 class="mb-2 font-display text-sm font-semibold text-slate-800">
             Top 10 nhà cung cấp — chi phí & dòng tiền
@@ -116,7 +116,7 @@ const EXPIRY_TONE = (days) => {
       </div>
 
       <!-- Hàng 3: datatable sắp hết hạn ≤30 ngày -->
-      <section class="mt-4 card overflow-hidden">
+      <section class="card overflow-hidden">
         <div class="flex items-center justify-between border-b border-slate-100 px-5 py-4">
           <h2 class="font-display text-sm font-semibold text-slate-800">
             Hợp đồng sắp hết hạn (≤ 30 ngày)
