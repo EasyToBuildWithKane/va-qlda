@@ -342,237 +342,262 @@ const addenda = computed(() => c.value.addenda ?? []);
                 </a>
               </div>
 
-              <div class="grid gap-4 sm:grid-cols-2">
-                <!-- Card 1: Thông tin chung -->
-                <section class="card p-4">
-                  <h3 class="mb-3 font-display text-sm font-semibold text-slate-800">
-                    Thông tin chung
-                  </h3>
-                  <dl class="space-y-2.5">
-                    <div class="flex justify-between gap-3 text-sm">
-                      <dt class="text-slate-400">
-                        Mã hợp đồng
-                      </dt>
-                      <dd class="text-right font-mono font-semibold text-slate-700">
-                        {{ c.code }}
-                      </dd>
-                    </div>
-                    <div class="flex justify-between gap-3 text-sm">
-                      <dt class="text-slate-400">
-                        Nhà cung cấp
-                      </dt>
-                      <dd class="text-right font-medium text-slate-700">
-                        <a
-                          v-if="c.vendor"
-                          :href="`/contracts/vendors/${c.vendor.id}`"
-                          class="text-brand hover:underline"
-                        >{{ c.vendor.name }}</a>
-                        <span
-                          v-else
-                          class="italic text-slate-400"
-                        >Chưa gán</span>
-                      </dd>
-                    </div>
-                    <div class="flex justify-between gap-3 text-sm">
-                      <dt class="text-slate-400">
-                        Nhóm dịch vụ
-                      </dt>
-                      <dd class="text-right font-medium text-slate-700">
-                        {{ orNA(c.category?.name, 'Chưa phân loại') }}
-                      </dd>
-                    </div>
-                    <div class="flex justify-between gap-3 text-sm">
-                      <dt class="text-slate-400">
-                        Đơn vị sử dụng
-                      </dt>
-                      <dd class="text-right font-medium text-slate-700">
-                        {{ orNA(c.using_unit) }}
-                      </dd>
-                    </div>
-                    <div class="flex justify-between gap-3 text-sm">
-                      <dt class="text-slate-400">
-                        Người phụ trách
-                      </dt>
-                      <dd class="text-right font-medium text-slate-700">
-                        {{ orNA(c.owner?.name, 'Chưa gán') }}
-                      </dd>
-                    </div>
-                    <div class="flex justify-between gap-3 text-sm">
-                      <dt class="text-slate-400">
-                        Người quản lý
-                      </dt>
-                      <dd class="text-right font-medium text-slate-700">
-                        {{ orNA(c.manager?.name, 'Chưa gán') }}
-                      </dd>
-                    </div>
-                    <div class="flex justify-between gap-3 text-sm">
-                      <dt class="text-slate-400">
-                        Chu kỳ TT
-                      </dt>
-                      <dd class="text-right font-medium text-slate-700">
-                        {{ orNA(c.billing_cycle?.label, 'Chưa chọn') }}
-                      </dd>
-                    </div>
-                  </dl>
-                </section>
-
-                <!-- Card 2: Thời hạn -->
-                <section class="card p-4">
-                  <h3 class="mb-3 font-display text-sm font-semibold text-slate-800">
-                    Thời hạn
-                  </h3>
-                  <dl class="space-y-2.5">
-                    <div class="flex justify-between gap-3 text-sm">
-                      <dt class="text-slate-400">
-                        Ngày ký
-                      </dt>
-                      <dd class="text-right font-medium text-slate-700">
-                        {{ c.signed_date ? formatDate(c.signed_date) : 'Chưa cập nhật' }}
-                      </dd>
-                    </div>
-                    <div class="flex justify-between gap-3 text-sm">
-                      <dt class="text-slate-400">
-                        Ngày hiệu lực
-                      </dt>
-                      <dd class="text-right font-medium text-slate-700">
-                        {{ c.effective_date ? formatDate(c.effective_date) : 'Chưa cập nhật' }}
-                      </dd>
-                    </div>
-                    <div class="flex justify-between gap-3 text-sm">
-                      <dt class="text-slate-400">
-                        Ngày hết hạn
-                      </dt>
-                      <dd class="text-right font-medium text-slate-700">
-                        {{ c.expiry_date ? formatDate(c.expiry_date) : 'Chưa cập nhật' }}
-                      </dd>
-                    </div>
-                    <div class="flex justify-between gap-3 text-sm">
-                      <dt class="text-slate-400">
-                        Còn lại
-                      </dt>
-                      <dd
-                        class="text-right text-sm font-semibold"
-                        :class="{
-                          'text-rose-600': expiryTone(c.days_until_expiry) === 'rose',
-                          'text-amber-600': expiryTone(c.days_until_expiry) === 'amber',
-                          'text-sky-600': expiryTone(c.days_until_expiry) === 'sky',
-                          'text-emerald-600': expiryTone(c.days_until_expiry) === 'emerald',
-                          'text-slate-500': expiryTone(c.days_until_expiry) === 'slate',
-                        }"
-                      >
-                        {{ c.expiry_date ? expiryLabel(c.days_until_expiry) : 'Chưa cập nhật' }}
-                      </dd>
-                    </div>
-                    <div class="flex justify-between gap-3 text-sm">
-                      <dt class="text-slate-400">
-                        Tự động gia hạn
-                      </dt>
-                      <dd class="text-right font-medium text-slate-700">
-                        {{ c.auto_renew ? 'Có' : 'Không' }}
-                      </dd>
-                    </div>
-                    <div
-                      v-if="c.notice_period_days != null"
-                      class="flex justify-between gap-3 text-sm"
-                    >
-                      <dt class="text-slate-400">
-                        Báo trước hết hạn
-                      </dt>
-                      <dd class="text-right font-medium text-slate-700">
-                        {{ c.notice_period_days }} ngày
-                      </dd>
-                    </div>
-                    <div
-                      v-if="c.renewal_term_months"
-                      class="flex justify-between gap-3 text-sm"
-                    >
-                      <dt class="text-slate-400">
-                        Kỳ gia hạn
-                      </dt>
-                      <dd class="text-right font-medium text-slate-700">
-                        {{ c.renewal_term_months }} tháng
-                      </dd>
-                    </div>
-                  </dl>
-                </section>
-
-                <!-- Card 3: Tổng quan chi phí -->
-                <section class="card p-4 sm:col-span-2">
-                  <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
-                    <h3 class="font-display text-sm font-semibold text-slate-800">
-                      Chi phí nhanh
+              <!-- Sidebar layout: left = thông tin cố định (sticky), right = chi phí + mô tả -->
+              <div class="flex flex-col gap-4 lg:flex-row lg:items-start">
+                <!-- Left sidebar: Thông tin chung + Thời hạn — sticky khi scroll -->
+                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 lg:w-64 xl:w-72 lg:shrink-0 lg:sticky lg:top-0">
+                  <!-- Card 1: Thông tin chung -->
+                  <section class="card p-4">
+                    <h3 class="mb-3 font-display text-sm font-semibold text-slate-800">
+                      Thông tin chung
                     </h3>
-                    <button
-                      v-if="financeRowCount > 0"
-                      type="button"
-                      class="text-xs font-medium text-brand hover:underline"
-                      @click="tab = 'finance'"
-                    >
-                      {{ financeRowCount }} dòng chi tiết →
-                    </button>
-                  </div>
-                  <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                    <div class="rounded-lg bg-slate-50 p-3">
-                      <p class="text-xs text-slate-400">
-                        Tiền tệ
-                      </p>
-                      <p class="mt-0.5 text-sm font-semibold text-slate-800">
-                        {{ orNA(c.currency) }}
-                      </p>
-                    </div>
-                    <div class="rounded-lg bg-slate-50 p-3">
-                      <p class="text-xs text-slate-400">
-                        Đơn giá
-                      </p>
-                      <p class="mt-0.5 text-sm font-semibold text-slate-800">
-                        {{ c.unit_price != null ? formatMoney(c.unit_price, c.currency) : 'Chưa cập nhật' }}
-                      </p>
-                    </div>
-                    <div class="rounded-lg bg-slate-50 p-3">
-                      <p class="text-xs text-slate-400">
-                        Hàng tháng
-                      </p>
-                      <p class="mt-0.5 text-sm font-semibold text-slate-800">
-                        {{ c.monthly_cost != null ? formatMoney(c.monthly_cost, c.currency) : 'Chưa cập nhật' }}
-                      </p>
-                    </div>
-                    <div class="rounded-lg bg-brand/5 p-3 ring-1 ring-brand/20">
-                      <p class="text-xs text-brand/70">
-                        Hàng năm
-                      </p>
-                      <p class="mt-0.5 text-sm font-bold text-brand">
-                        {{ annualDisplay.primary }}
-                      </p>
-                      <p
-                        v-if="annualDisplay.secondary"
-                        class="mt-0.5 text-[10px] text-brand/60"
-                      >
-                        {{ annualDisplay.secondary }}
-                      </p>
-                    </div>
-                    <div class="rounded-lg bg-slate-50 p-3 sm:col-span-2">
-                      <p class="text-xs text-slate-400">
-                        Tổng vòng đời
-                      </p>
-                      <p class="mt-0.5 text-sm font-semibold text-slate-800">
-                        {{ c.lifecycle_cost != null ? formatMoney(c.lifecycle_cost, c.currency) : EMPTY_LABELS.notUpdated }}
-                      </p>
-                    </div>
-                  </div>
-                </section>
+                    <dl class="space-y-2.5">
+                      <div class="flex justify-between gap-3 text-sm">
+                        <dt class="text-slate-400">
+                          Mã hợp đồng
+                        </dt>
+                        <dd class="text-right font-mono font-semibold text-slate-700">
+                          {{ orNA(c.code) }}
+                        </dd>
+                      </div>
+                      <div class="flex justify-between gap-3 text-sm">
+                        <dt class="text-slate-400">
+                          Trạng thái
+                        </dt>
+                        <dd class="text-right">
+                          <Badge
+                            v-if="c.status"
+                            :color="c.status.color"
+                            size="sm"
+                          >
+                            {{ c.status.label }}
+                          </Badge>
+                          <span
+                            v-else
+                            class="italic text-slate-400 text-sm"
+                          >Chưa cập nhật</span>
+                        </dd>
+                      </div>
+                      <div class="flex justify-between gap-3 text-sm">
+                        <dt class="text-slate-400">
+                          Nhà cung cấp
+                        </dt>
+                        <dd class="text-right font-medium text-slate-700">
+                          <a
+                            v-if="c.vendor"
+                            :href="`/contracts/vendors/${c.vendor.id}`"
+                            class="text-brand hover:underline"
+                          >{{ c.vendor.name }}</a>
+                          <span
+                            v-else
+                            class="italic text-slate-400"
+                          >Chưa gán</span>
+                        </dd>
+                      </div>
+                      <div class="flex justify-between gap-3 text-sm">
+                        <dt class="text-slate-400">
+                          Nhóm dịch vụ
+                        </dt>
+                        <dd class="text-right font-medium text-slate-700">
+                          {{ orNA(c.category?.name, 'Chưa phân loại') }}
+                        </dd>
+                      </div>
+                      <div class="flex justify-between gap-3 text-sm">
+                        <dt class="text-slate-400">
+                          Phòng ban
+                        </dt>
+                        <dd class="text-right font-medium text-slate-700">
+                          {{ orNA(c.using_unit) }}
+                        </dd>
+                      </div>
+                      <div class="flex justify-between gap-3 text-sm">
+                        <dt class="text-slate-400">
+                          Người phụ trách
+                        </dt>
+                        <dd class="text-right font-medium text-slate-700">
+                          {{ orNA(c.owner?.name, 'Chưa gán') }}
+                        </dd>
+                      </div>
+                      <div class="flex justify-between gap-3 text-sm">
+                        <dt class="text-slate-400">
+                          Người quản lý
+                        </dt>
+                        <dd class="text-right font-medium text-slate-700">
+                          {{ orNA(c.manager?.name, 'Chưa gán') }}
+                        </dd>
+                      </div>
+                      <div class="flex justify-between gap-3 text-sm">
+                        <dt class="text-slate-400">
+                          Chu kỳ TT
+                        </dt>
+                        <dd class="text-right font-medium text-slate-700">
+                          {{ orNA(c.billing_cycle?.label, 'Chưa chọn') }}
+                        </dd>
+                      </div>
+                    </dl>
+                  </section>
 
-                <!-- Card 4: Mô tả -->
-                <section
-                  v-if="c.description"
-                  class="card p-4 sm:col-span-2"
-                >
-                  <h3 class="mb-2 font-display text-sm font-semibold text-slate-800">
-                    Mô tả
-                  </h3>
-                  <p class="whitespace-pre-line text-sm leading-relaxed text-slate-600">
-                    {{ c.description }}
-                  </p>
-                </section>
+                  <!-- Card 2: Thời hạn -->
+                  <section class="card p-4">
+                    <h3 class="mb-3 font-display text-sm font-semibold text-slate-800">
+                      Thời hạn
+                    </h3>
+                    <dl class="space-y-2.5">
+                      <div class="flex justify-between gap-3 text-sm">
+                        <dt class="text-slate-400">
+                          Ngày ký
+                        </dt>
+                        <dd class="text-right font-medium text-slate-700">
+                          {{ c.signed_date ? formatDate(c.signed_date) : 'Chưa cập nhật' }}
+                        </dd>
+                      </div>
+                      <div class="flex justify-between gap-3 text-sm">
+                        <dt class="text-slate-400">
+                          Ngày hiệu lực
+                        </dt>
+                        <dd class="text-right font-medium text-slate-700">
+                          {{ c.effective_date ? formatDate(c.effective_date) : 'Chưa cập nhật' }}
+                        </dd>
+                      </div>
+                      <div class="flex justify-between gap-3 text-sm">
+                        <dt class="text-slate-400">
+                          Ngày hết hạn
+                        </dt>
+                        <dd class="text-right font-medium text-slate-700">
+                          {{ c.expiry_date ? formatDate(c.expiry_date) : 'Chưa cập nhật' }}
+                        </dd>
+                      </div>
+                      <div class="flex justify-between gap-3 text-sm">
+                        <dt class="text-slate-400">
+                          Còn lại
+                        </dt>
+                        <dd
+                          class="text-right text-sm font-semibold"
+                          :class="{
+                            'text-rose-600': expiryTone(c.days_until_expiry) === 'rose',
+                            'text-amber-600': expiryTone(c.days_until_expiry) === 'amber',
+                            'text-sky-600': expiryTone(c.days_until_expiry) === 'sky',
+                            'text-emerald-600': expiryTone(c.days_until_expiry) === 'emerald',
+                            'text-slate-500': expiryTone(c.days_until_expiry) === 'slate',
+                          }"
+                        >
+                          {{ c.expiry_date ? expiryLabel(c.days_until_expiry) : 'Chưa cập nhật' }}
+                        </dd>
+                      </div>
+                      <div class="flex justify-between gap-3 text-sm">
+                        <dt class="text-slate-400">
+                          Tự động gia hạn
+                        </dt>
+                        <dd class="text-right font-medium text-slate-700">
+                          {{ c.auto_renew ? 'Có' : 'Không' }}
+                        </dd>
+                      </div>
+                      <div
+                        v-if="c.notice_period_days != null"
+                        class="flex justify-between gap-3 text-sm"
+                      >
+                        <dt class="text-slate-400">
+                          Báo trước hết hạn
+                        </dt>
+                        <dd class="text-right font-medium text-slate-700">
+                          {{ c.notice_period_days }} ngày
+                        </dd>
+                      </div>
+                      <div
+                        v-if="c.renewal_term_months"
+                        class="flex justify-between gap-3 text-sm"
+                      >
+                        <dt class="text-slate-400">
+                          Kỳ gia hạn
+                        </dt>
+                        <dd class="text-right font-medium text-slate-700">
+                          {{ c.renewal_term_months }} tháng
+                        </dd>
+                      </div>
+                    </dl>
+                  </section>
+                </div>
+
+                <!-- Right main: Chi phí + Mô tả -->
+                <div class="flex min-w-0 flex-1 flex-col gap-4">
+                  <!-- Card 3: Tổng quan chi phí -->
+                  <section class="card p-4">
+                    <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+                      <h3 class="font-display text-sm font-semibold text-slate-800">
+                        Chi phí nhanh
+                      </h3>
+                      <button
+                        v-if="financeRowCount > 0"
+                        type="button"
+                        class="text-xs font-medium text-brand hover:underline"
+                        @click="tab = 'finance'"
+                      >
+                        {{ financeRowCount }} dòng chi tiết →
+                      </button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                      <div class="rounded-lg bg-slate-50 p-3">
+                        <p class="text-xs text-slate-400">
+                          Tiền tệ
+                        </p>
+                        <p class="mt-0.5 text-sm font-semibold text-slate-800">
+                          {{ orNA(c.currency) }}
+                        </p>
+                      </div>
+                      <div class="rounded-lg bg-slate-50 p-3">
+                        <p class="text-xs text-slate-400">
+                          Đơn giá
+                        </p>
+                        <p class="mt-0.5 text-sm font-semibold text-slate-800">
+                          {{ c.unit_price != null ? formatMoney(c.unit_price, c.currency) : 'Chưa cập nhật' }}
+                        </p>
+                      </div>
+                      <div class="rounded-lg bg-slate-50 p-3">
+                        <p class="text-xs text-slate-400">
+                          Hàng tháng
+                        </p>
+                        <p class="mt-0.5 text-sm font-semibold text-slate-800">
+                          {{ c.monthly_cost != null ? formatMoney(c.monthly_cost, c.currency) : 'Chưa cập nhật' }}
+                        </p>
+                      </div>
+                      <div class="rounded-lg bg-brand/5 p-3 ring-1 ring-brand/20">
+                        <p class="text-xs text-brand/70">
+                          Hàng năm
+                        </p>
+                        <p class="mt-0.5 text-sm font-bold text-brand">
+                          {{ annualDisplay.primary }}
+                        </p>
+                        <p
+                          v-if="annualDisplay.secondary"
+                          class="mt-0.5 text-[10px] text-brand/60"
+                        >
+                          {{ annualDisplay.secondary }}
+                        </p>
+                      </div>
+                      <div class="rounded-lg bg-slate-50 p-3 sm:col-span-2">
+                        <p class="text-xs text-slate-400">
+                          Tổng vòng đời
+                        </p>
+                        <p class="mt-0.5 text-sm font-semibold text-slate-800">
+                          {{ c.lifecycle_cost != null ? formatMoney(c.lifecycle_cost, c.currency) : EMPTY_LABELS.notUpdated }}
+                        </p>
+                      </div>
+                    </div>
+                  </section>
+
+                  <!-- Card 4: Mô tả -->
+                  <section
+                    v-if="c.description"
+                    class="card p-4"
+                  >
+                    <h3 class="mb-2 font-display text-sm font-semibold text-slate-800">
+                      Mô tả
+                    </h3>
+                    <p class="whitespace-pre-line text-sm leading-relaxed text-slate-600">
+                      {{ c.description }}
+                    </p>
+                  </section>
+                </div>
               </div>
             </div>
 
