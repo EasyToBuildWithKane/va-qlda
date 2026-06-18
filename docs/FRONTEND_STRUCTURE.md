@@ -175,7 +175,7 @@ Pages import feature components từ `@/modules/project/components/...` và prim
 | Path | Mô tả |
 |------|--------|
 | `Pages/Contract/` | Dashboard, Index (`ContractPortfolioSummaryBar`), Show, Cost, Reports, … |
-| `Pages/Contract/Show.vue` | Chi tiết HĐ — tab Tổng quan: KPI strip + lưới **55% / 45%** (thông tin & thời hạn | chi phí & mô tả), không cuộn nội bộ khi tab Tổng quan |
+| `Pages/Contract/Show.vue` | Chi tiết HĐ — workspace **90%×90%** (`contract-show-surface`), tab Tổng quan lưới 55/45; cuộn trong khung khi cần |
 | `components/ContractShowSummaryBar.vue` | Tab Tổng quan Show: dải KPI `kpi-strip` 6 thẻ (`variant="embedded"`), mở tab Hồ sơ / Gia hạn |
 | `components/ContractExplorer.vue` | Cây NCC → nhóm → hợp đồng trên Index |
 | `components/ContractDataModal.vue` | Nhập · Xuất · Đối soát danh mục |
