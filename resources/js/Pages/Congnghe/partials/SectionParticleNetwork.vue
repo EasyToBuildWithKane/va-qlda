@@ -1,14 +1,14 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import NeuralBackdrop from './NeuralBackdrop.vue';
 import {
     hasFinePointer,
     isPointerOverCongngheHeader,
-    prefersReducedMotionNow,
     onSharedRaf,
     onSharedPointer,
     onSharedScroll,
 } from './motion.js';
+import { congngheMotionReduced } from './useCongngheMotion.js';
 
 const props = defineProps({
     tone: { type: String, default: 'cyan' },
@@ -24,7 +24,8 @@ const props = defineProps({
 const root = ref(null);
 const canvas = ref(null);
 
-const useStatic = computed(() => prefersReducedMotionNow());
+// Thiết lập dùng chung: reduced-motion OS, thiết bị yếu, hoặc công tắc người dùng.
+const useStatic = congngheMotionReduced;
 
 const PALETTE = {
     cyan: { dot: 'rgba(255,255,255,', link: 'rgba(34,211,238,', hover: 'rgba(34,211,238,' },
@@ -167,7 +168,7 @@ function drawMouseLinks(maxDist, linkAlpha) {
 // Một callback duy nhất chạy trên rAF DÙNG CHUNG toàn trang. Tự bỏ qua khi
 // section ngoài viewport ⇒ off-screen không tốn gì ngoài 1 phép kiểm tra.
 function frame() {
-    if (!visible || !ctx) return;
+    if (useStatic.value || !visible || !ctx) return;
 
     updateMouse();
     ctx.clearRect(0, 0, width, height);
@@ -204,20 +205,19 @@ function frame() {
 }
 
 // Đăng ký vòng lặp & listener DÙNG CHUNG ngay trong setup (gọi vô điều kiện
-// theo quy tắc composable). Khi reduced-motion ⇒ không đăng ký gì, render SVG tĩnh.
-if (!useStatic.value) {
-    onSharedRaf(frame);
-    onSharedPointer((p) => {
-        pointer.x = p.x;
-        pointer.y = p.y;
-    });
-    onSharedScroll(() => {
-        if (visible) measure();
-    });
-}
+// theo quy tắc composable). frame() tự bỏ qua khi `useStatic` ⇒ công tắc bật
+// lại hiệu ứng được phản hồi tức thì mà không cần đăng ký lại.
+onSharedRaf(frame);
+onSharedPointer((p) => {
+    pointer.x = p.x;
+    pointer.y = p.y;
+});
+onSharedScroll(() => {
+    if (visible) measure();
+});
 
-onMounted(() => {
-    if (useStatic.value || !canvas.value || !root.value) return;
+function initCanvas() {
+    if (useStatic.value || ctx || !canvas.value || !root.value) return;
 
     ctx = canvas.value.getContext('2d');
     if (!ctx) return;
@@ -235,12 +235,31 @@ onMounted(() => {
         { root: null, rootMargin: '80px 0px', threshold: 0 },
     );
     io.observe(root.value);
-});
+}
 
-onBeforeUnmount(() => {
+function destroyCanvas() {
     ro?.disconnect();
     io?.disconnect();
+    ro = null;
+    io = null;
+    ctx = null;
+    visible = false;
+    nodes = [];
+}
+
+onMounted(initCanvas);
+
+// Đổi công tắc giảm hiệu ứng khi đang xem: tháo canvas (chuyển nền tĩnh) hoặc
+// dựng lại canvas (sau khi <canvas v-else> được mount lại ở DOM).
+watch(useStatic, (isStatic) => {
+    if (isStatic) {
+        destroyCanvas();
+    } else {
+        nextTick(initCanvas);
+    }
 });
+
+onBeforeUnmount(destroyCanvas);
 </script>
 
 <template>

@@ -62,6 +62,7 @@ use App\Http\Controllers\Project\TaskController;
 use App\Http\Controllers\Project\TaskWatcherController;
 use App\Http\Controllers\Project\WorklogController;
 use App\Http\Controllers\Realtime\RealtimeController;
+use App\Http\Controllers\Settings\SystemAccountRoleController;
 use App\Http\Controllers\Settings\SystemSettingController;
 use App\Support\Settings\SettingsSchema;
 use Illuminate\Support\Facades\Route;
@@ -452,6 +453,8 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictCoachingOnlyUsers::class
     Route::prefix('settings')->name('settings.')->group(function () {
         Route::get('/', [SystemSettingController::class, 'index'])->name('index');
         Route::get('/email-templates', [SystemSettingController::class, 'emailTemplates'])->name('email-templates.index');
+        Route::put('/accounts/{account}/role', [SystemAccountRoleController::class, 'update'])
+            ->name('accounts.role');
         Route::get('/{group}', [SystemSettingController::class, 'index'])
             ->whereIn('group', SettingsSchema::GROUPS)
             ->name('show');

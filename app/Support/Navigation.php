@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\SystemAccount;
 use App\Support\Auth\CoachingOnlyAccess;
+use App\Support\Enums\SystemRole;
 
 /**
  * Builds the sidebar menu as collapsible groups.
@@ -45,14 +46,25 @@ class Navigation
     public static function for(SystemAccount $account): array
     {
         $role = $account->role->value;
+        $isSuper = $account->role === SystemRole::SuperAdmin;
 
         $groups = [];
 
         foreach (self::definition() as $group) {
+            // Super-admin-only groups (system configuration) are hidden from
+            // every other role, including admin.
+            if (($group['superOnly'] ?? false) && ! $isSuper) {
+                continue;
+            }
+
             $items = array_values(array_filter(
                 $group['items'],
-                fn (array $item) => (! isset($item['roles']) || \in_array($role, $item['roles'], true))
-                    && ! \in_array($role, $item['hideForRoles'] ?? [], true),
+                fn (array $item) => (
+                    ! isset($item['roles'])
+                    || \in_array($role, $item['roles'], true)
+                    // Super admin is a superset of admin: it sees every admin item.
+                    || ($isSuper && \in_array('admin', $item['roles'], true))
+                ) && ! \in_array($role, $item['hideForRoles'] ?? [], true),
             ));
 
             if ($items === []) {
@@ -506,6 +518,7 @@ class Navigation
                 'heading' => 'Cấu hình hệ thống',
                 'icon' => 'system-config',
                 'defaultCollapsed' => true,
+                'superOnly' => true,
                 'items' => [
                     [
                         'label' => 'Chung',
@@ -546,6 +559,13 @@ class Navigation
                         'label' => 'Phân quyền',
                         'icon' => 'members',
                         'href' => '/settings/permissions',
+                        'status' => 'live',
+                        'roles' => ['admin'],
+                    ],
+                    [
+                        'label' => 'Tài khoản & Vai trò',
+                        'icon' => 'account',
+                        'href' => '/settings/accounts',
                         'status' => 'live',
                         'roles' => ['admin'],
                     ],

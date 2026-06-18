@@ -7,7 +7,6 @@ use App\Models\AiPurchaseProposal;
 use App\Models\SystemAccount;
 use App\Support\Enums\AiPaymentRequestStatus;
 use App\Support\Enums\AiPurchaseProposalStatus;
-use App\Support\Enums\SystemRole;
 
 class AiPaymentRequestPolicy
 {
@@ -28,19 +27,19 @@ class AiPaymentRequestPolicy
 
     public function review(SystemAccount $account, AiPaymentRequest $pr): bool
     {
-        return $account->role === SystemRole::Admin
+        return $account->allows('ai_proposal.payment_review')
             && $pr->status === AiPaymentRequestStatus::Pending;
     }
 
     public function markPaid(SystemAccount $account, AiPaymentRequest $pr): bool
     {
-        return $account->role === SystemRole::Admin
+        return $account->allows('ai_proposal.payment_mark_paid')
             && $pr->status === AiPaymentRequestStatus::Approved;
     }
 
     public function delete(SystemAccount $account, AiPaymentRequest $pr): bool
     {
-        return $account->role === SystemRole::Admin
+        return $account->allows('ai_proposal.payment_delete')
             && $pr->status !== AiPaymentRequestStatus::Paid;
     }
 }

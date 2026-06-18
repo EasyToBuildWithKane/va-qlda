@@ -4,7 +4,6 @@ namespace App\Policies;
 
 use App\Models\Feedback;
 use App\Models\SystemAccount;
-use App\Support\Enums\SystemRole;
 
 class FeedbackPolicy
 {
@@ -20,22 +19,17 @@ class FeedbackPolicy
 
     public function create(SystemAccount $account): bool
     {
-        return $account->role !== SystemRole::Viewer;
+        return $account->allows('feedback.create');
     }
 
     public function update(SystemAccount $account, Feedback $feedback): bool
     {
-        return $this->isReviewer($account) || $this->isAssignee($account, $feedback);
+        return $account->allows('feedback.update') || $this->isAssignee($account, $feedback);
     }
 
     public function delete(SystemAccount $account, Feedback $feedback): bool
     {
-        return $account->role === SystemRole::Admin;
-    }
-
-    private function isReviewer(SystemAccount $account): bool
-    {
-        return in_array($account->role, [SystemRole::Admin, SystemRole::Lead], true);
+        return $account->allows('feedback.delete');
     }
 
     private function isAssignee(SystemAccount $account, Feedback $feedback): bool

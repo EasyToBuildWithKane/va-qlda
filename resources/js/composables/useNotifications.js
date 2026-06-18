@@ -199,7 +199,7 @@ export function useNotifications() {
         return unreadCount.value > 99 ? '99+' : String(unreadCount.value);
     });
 
-    const isAdmin = computed(() => page.props.auth?.user?.role === 'admin');
+    const isAdmin = computed(() => page.props.auth?.user?.is_admin_tier === true);
 
     function startPolling() {
         stopPolling();

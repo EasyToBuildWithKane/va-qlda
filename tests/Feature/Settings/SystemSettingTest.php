@@ -26,9 +26,9 @@ class SystemSettingTest extends TestCase
         Cache::flush();
     }
 
-    private function admin(): SystemAccount
+    private function superAdmin(): SystemAccount
     {
-        return SystemAccount::factory()->role(SystemRole::Admin)->create();
+        return SystemAccount::factory()->role(SystemRole::SuperAdmin)->create();
     }
 
     private function repo(): SettingsRepository
@@ -38,22 +38,23 @@ class SystemSettingTest extends TestCase
 
     // ─── Access ─────────────────────────────────────────────────────────────
 
-    public function test_admin_can_view_settings(): void
+    public function test_super_admin_can_view_settings(): void
     {
-        $this->actingAs($this->admin(), 'system')
+        $this->actingAs($this->superAdmin(), 'system')
             ->get('/settings')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Settings/Index')
-                ->has('groups', 6) // general, auth, telegram, email, clm, permissions
+                ->has('groups', 7) // general, auth, telegram, email, clm, permissions, accounts
                 ->has('emailTemplates', 3)
                 ->where('can.manage', true)
             );
     }
 
-    public function test_non_admins_cannot_view_settings(): void
+    public function test_admin_and_below_cannot_view_settings(): void
     {
-        foreach ([SystemRole::Lead, SystemRole::Member, SystemRole::Viewer] as $role) {
+        // System configuration is now super-admin only — admin loses access too.
+        foreach ([SystemRole::Admin, SystemRole::Lead, SystemRole::Member, SystemRole::Viewer] as $role) {
             $account = SystemAccount::factory()->role($role)->create();
 
             $this->actingAs($account, 'system')
@@ -71,7 +72,7 @@ class SystemSettingTest extends TestCase
 
     public function test_admin_can_update_general_settings(): void
     {
-        $this->actingAs($this->admin(), 'system')
+        $this->actingAs($this->superAdmin(), 'system')
             ->put('/settings/general', [
                 'app_name' => 'Hệ thống QLDA',
                 'app_short_name' => 'QLDA',
@@ -98,7 +99,7 @@ class SystemSettingTest extends TestCase
         $this->repo()->setMany(['telegram.bot_token' => 'SECRET-123']);
 
         // Submitting a blank token must not wipe the stored one.
-        $this->actingAs($this->admin(), 'system')
+        $this->actingAs($this->superAdmin(), 'system')
             ->put('/settings/telegram', ['bot_token' => ''])
             ->assertRedirect();
 
@@ -109,7 +110,7 @@ class SystemSettingTest extends TestCase
     {
         $this->repo()->setMany(['telegram.bot_token' => 'SECRET-123']);
 
-        $this->actingAs($this->admin(), 'system')
+        $this->actingAs($this->superAdmin(), 'system')
             ->get('/settings')
             ->assertInertia(function ($page) {
                 $telegram = collect($page->toArray()['props']['settings']['telegram']);
@@ -122,29 +123,53 @@ class SystemSettingTest extends TestCase
 
     // ─── Permissions matrix ─────────────────────────────────────────────────
 
-    public function test_admin_can_edit_permission_matrix_and_admin_stays_full(): void
+    public function test_super_admin_can_edit_permission_matrix_and_super_stays_full(): void
     {
-        $this->actingAs($this->admin(), 'system')
+        $this->actingAs($this->superAdmin(), 'system')
             ->put('/settings/permissions', [
                 'grants' => [
-                    'lead' => ['notifications.manage', 'projects.manage'],
-                    'member' => ['daily_reports.submit'],
+                    'admin' => ['project.create', 'contract.manage'],
+                    'lead' => ['notification.manage', 'project.manage'],
+                    'member' => ['daily_report.create'],
                     'viewer' => [],
-                    // admin intentionally omitted by the client
+                    // super_admin intentionally omitted by the client
                 ],
             ])
             ->assertRedirect();
 
         $grants = $this->repo()->get(SettingsSchema::MATRIX_KEY);
 
-        $this->assertContains('notifications.manage', $grants['lead']);
+        $this->assertContains('notification.manage', $grants['lead']);
+        $this->assertContains('contract.manage', $grants['admin']);
         $this->assertSame([], $grants['viewer']);
-        $this->assertSame(['*'], $grants['admin']); // forced — never lockable
+        $this->assertSame(['*'], $grants['super_admin']); // forced — never lockable
+    }
+
+    public function test_reserved_keys_are_stripped_for_editable_roles(): void
+    {
+        $this->actingAs($this->superAdmin(), 'system')
+            ->put('/settings/permissions', [
+                'grants' => [
+                    // Attempt to grant admin the super-admin-only abilities.
+                    'admin' => ['project.create', 'system.settings.manage', 'permissions.manage', 'roles.assign'],
+                    'lead' => [],
+                    'member' => [],
+                    'viewer' => [],
+                ],
+            ])
+            ->assertRedirect();
+
+        $grants = $this->repo()->get(SettingsSchema::MATRIX_KEY);
+
+        $this->assertContains('project.create', $grants['admin']);
+        $this->assertNotContains('system.settings.manage', $grants['admin']);
+        $this->assertNotContains('permissions.manage', $grants['admin']);
+        $this->assertNotContains('roles.assign', $grants['admin']);
     }
 
     public function test_invalid_permission_key_is_rejected(): void
     {
-        $this->actingAs($this->admin(), 'system')
+        $this->actingAs($this->superAdmin(), 'system')
             ->put('/settings/permissions', [
                 'grants' => ['lead' => ['totally.invalid'], 'member' => [], 'viewer' => []],
             ])
@@ -188,7 +213,7 @@ class SystemSettingTest extends TestCase
         $template = EmailTemplate::query()->where('key', EmailTemplate::KEY_TASK_ASSIGNED)->first();
         $this->assertNotNull($template);
 
-        $this->actingAs($this->admin(), 'system')
+        $this->actingAs($this->superAdmin(), 'system')
             ->put("/settings/email-templates/{$template->id}", [
                 'subject' => 'Test subject {{task_name}}',
                 'body_html' => '<p>Hello {{assignee_name}}</p>',
@@ -207,7 +232,7 @@ class SystemSettingTest extends TestCase
         $template = EmailTemplate::query()->where('key', EmailTemplate::KEY_TASK_ASSIGNED)->first();
         $this->assertNotNull($template);
 
-        $this->actingAs($this->admin(), 'system')
+        $this->actingAs($this->superAdmin(), 'system')
             ->post("/settings/email-templates/{$template->id}/test", [
                 'email' => 'admin.test@vaschools.edu.vn',
                 'subject' => 'Thử {{task_name}}',
@@ -221,23 +246,30 @@ class SystemSettingTest extends TestCase
         });
     }
 
-    public function test_overlay_forces_admin_wildcard(): void
+    public function test_overlay_forces_super_admin_wildcard_and_strips_reserved(): void
     {
-        // Even if a stored matrix drops admin, the overlay restores full access.
+        // Even if a stored matrix drops super_admin or leaks reserved keys to a
+        // lower role, the overlay restores full access for super and strips them.
         $this->repo()->setMany([
-            SettingsSchema::MATRIX_KEY => ['lead' => ['projects.manage'], 'admin' => []],
+            SettingsSchema::MATRIX_KEY => [
+                'super_admin' => [],
+                'admin' => ['project.create', 'system.settings.manage'],
+            ],
         ]);
 
         (new SettingsServiceProvider($this->app))->boot();
 
-        $this->assertSame(['*'], config('va_permissions.role_grants')['admin']);
+        $grants = config('va_permissions.role_grants');
+        $this->assertSame(['*'], $grants['super_admin']);
+        $this->assertContains('project.create', $grants['admin']);
+        $this->assertNotContains('system.settings.manage', $grants['admin']);
     }
 
     // ─── CLM group ──────────────────────────────────────────────────────────
 
     public function test_admin_can_update_clm_settings(): void
     {
-        $this->actingAs($this->admin(), 'system')
+        $this->actingAs($this->superAdmin(), 'system')
             ->put('/settings/clm', [
                 'alert_enabled' => true,
                 'renewal_alert_days' => '60,30,7',
@@ -251,7 +283,7 @@ class SystemSettingTest extends TestCase
 
     public function test_clm_renewal_alert_days_rejects_non_numeric(): void
     {
-        $this->actingAs($this->admin(), 'system')
+        $this->actingAs($this->superAdmin(), 'system')
             ->put('/settings/clm', [
                 'alert_enabled' => true,
                 'renewal_alert_days' => 'abc,30',
@@ -262,7 +294,7 @@ class SystemSettingTest extends TestCase
 
     public function test_settings_payload_includes_clm_group(): void
     {
-        $this->actingAs($this->admin(), 'system')
+        $this->actingAs($this->superAdmin(), 'system')
             ->get('/settings')
             ->assertInertia(fn ($page) => $page
                 ->has('settings.clm')
@@ -274,7 +306,7 @@ class SystemSettingTest extends TestCase
 
     public function test_admin_can_update_auth_google_allowed_emails(): void
     {
-        $this->actingAs($this->admin(), 'system')
+        $this->actingAs($this->superAdmin(), 'system')
             ->put('/settings/auth', [
                 'password_login_enabled' => false,
                 'google_allowed_domains' => ['vaschools.edu.vn'],
@@ -293,7 +325,7 @@ class SystemSettingTest extends TestCase
 
     public function test_admin_can_update_ai_reminder_settings(): void
     {
-        $this->actingAs($this->admin(), 'system')
+        $this->actingAs($this->superAdmin(), 'system')
             ->put('/settings/email', [
                 'enabled' => false,
                 'from_name' => 'VA Test',
@@ -316,7 +348,7 @@ class SystemSettingTest extends TestCase
 
     public function test_admin_can_update_general_new_fields(): void
     {
-        $this->actingAs($this->admin(), 'system')
+        $this->actingAs($this->superAdmin(), 'system')
             ->put('/settings/general', [
                 'app_name' => 'VA QLDA Test',
                 'app_short_name' => 'VA',

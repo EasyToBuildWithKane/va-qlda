@@ -27,10 +27,13 @@ description: >-
 | `docs/DATABASE_STRUCTURE.md` | Tables, columns, ERD |
 | `docs/AI_ACCOUNTS.md` | Quản lý AI: PĐX, TK, chi phí nhóm, xóa, orphan purge |
 | `docs/REFACTOR_PLAN.md` | Phase 1–5 ✅ complete; follow-up items |
-| `docs/TECHNICAL_DEBT.md` | Open issues (TD-002, TD-010, …) |
-| `docs/NEXT_STEPS.md` | Roadmap, quick wins |
+| `docs/TECHNICAL_DEBT.md` | Open issues (TD-002, TD-010, …) + roadmap |
 | `docs/COACHING_MENTORING.md` | Module Coaching — routes, UI, phân quyền |
 | `docs/KNOWLEDGE_BASE.md` | Knowledge Base / blog nội bộ |
+| `docs/CONTRACT_MANAGEMENT.md` | Module Hợp đồng (CLM) — routes, NCC, chi phí, gia hạn |
+| `docs/CREDENTIAL_MANAGEMENT.md` | Kho tài khoản / mật khẩu + nhật ký |
+| `docs/PERFORMANCE_ANALYTICS.md` | Hiệu suất & audit công việc |
+| `docs/ONBOARDING.md` | Tour tương tác khi đăng nhập |
 | `docs/IMPORT_EXPORT_RECONCILE.md` | Nhập · xuất · đối soát Excel (sơ đồ luồng) |
 | `docs/FLOWS_AND_DOCS_MAP.md` | Hub sơ đồ luồng + đối chiếu docs ↔ code ↔ `_dev/` |
 

@@ -26,14 +26,14 @@ use Illuminate\Validation\Rule;
 final class SettingsSchema
 {
     /** Tabs/groups, in display order. */
-    public const GROUPS = ['general', 'auth', 'telegram', 'email', 'clm', 'permissions'];
+    public const GROUPS = ['general', 'auth', 'telegram', 'email', 'clm', 'permissions', 'accounts'];
 
     public const MATRIX_KEY = 'permissions.role_grants';
 
-    /** Roles the admin may edit in the matrix — "admin" stays full-access. */
-    public const EDITABLE_ROLES = ['lead', 'member', 'viewer'];
+    /** Roles the super admin may edit in the matrix — "super_admin" stays full-access. */
+    public const EDITABLE_ROLES = ['admin', 'lead', 'member', 'viewer'];
 
-    public const LOCKED_ROLE = 'admin';
+    public const LOCKED_ROLE = 'super_admin';
 
     /**
      * @return array<int, array{key:string, label:string, icon:string, description:string}>
@@ -47,6 +47,7 @@ final class SettingsSchema
             ['key' => 'email', 'label' => 'Email & Thông báo', 'icon' => 'mail', 'description' => 'Cấu hình gửi email và mẫu thông báo'],
             ['key' => 'clm', 'label' => 'Hợp đồng (CLM)', 'icon' => 'budget', 'description' => 'Ngưỡng cảnh báo gia hạn hợp đồng'],
             ['key' => 'permissions', 'label' => 'Phân quyền', 'icon' => 'members', 'description' => 'Ma trận vai trò × quyền'],
+            ['key' => 'accounts', 'label' => 'Tài khoản & Vai trò', 'icon' => 'account', 'description' => 'Gán vai trò cho tài khoản hệ thống'],
         ];
     }
 

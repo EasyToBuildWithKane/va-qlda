@@ -12,10 +12,7 @@ defineProps({
     nav: { type: Array, default: () => [] },
     appShortName: { type: String, default: 'VA' },
     appName: { type: String, default: '' },
-    appVersion: { type: String, default: '1.0' },
-    user: { type: Object, default: null },
     roleLabel: { type: String, default: '' },
-    legend: { type: Array, default: () => [] },
     userInitials: { type: String, default: 'ND' },
     userAvatarSrc: { type: String, default: null },
     userDisplayName: { type: String, default: '' },
@@ -124,14 +121,10 @@ const emit = defineEmits(['collapse', 'expand']);
 
     <AppSidebarFooter
       :rail="rail"
-      :legend="legend"
-      :user="user"
-      :role-label="roleLabel"
       :user-initials="userInitials"
       :user-avatar-src="userAvatarSrc"
       :user-display-name="userDisplayName"
-      :app-name="appName"
-      :app-version="appVersion"
+      :role-label="roleLabel"
       :show-tip="showTip"
       :hide-tip="hideTip"
       @expand="emit('expand')"

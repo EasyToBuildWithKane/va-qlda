@@ -4,7 +4,6 @@ namespace App\Policies;
 
 use App\Models\Project;
 use App\Models\SystemAccount;
-use App\Support\Enums\SystemRole;
 
 class ProjectPolicy
 {
@@ -15,42 +14,38 @@ class ProjectPolicy
 
     public function view(SystemAccount $account, Project $project): bool
     {
-        return $this->isReviewer($account)
-            || $account->role === SystemRole::Viewer
+        return $account->allows('project.view')
             || $this->isManager($account, $project)
             || $this->isMember($account, $project);
     }
 
     public function create(SystemAccount $account): bool
     {
-        return $this->isReviewer($account);
+        return $account->allows('project.create');
     }
 
     public function update(SystemAccount $account, Project $project): bool
     {
-        return $this->isReviewer($account) || $this->isManager($account, $project);
+        return $account->allows('project.update') || $this->isManager($account, $project);
     }
 
     public function delete(SystemAccount $account, Project $project): bool
     {
-        return $account->role === SystemRole::Admin;
+        return $account->allows('project.delete');
     }
 
     /** Add/remove members, set rates, manage sprints/tasks/blockers. */
     public function manage(SystemAccount $account, Project $project): bool
     {
-        return $this->isReviewer($account) || $this->isManager($account, $project);
+        return $account->allows('project.manage') || $this->isManager($account, $project);
     }
 
     /** Log work / move own tasks — managers, reviewers, or project members. */
     public function contribute(SystemAccount $account, Project $project): bool
     {
-        return $this->manage($account, $project) || $this->isMember($account, $project);
-    }
-
-    private function isReviewer(SystemAccount $account): bool
-    {
-        return in_array($account->role, [SystemRole::Admin, SystemRole::Lead], true);
+        return $account->allows('project.contribute')
+            || $this->manage($account, $project)
+            || $this->isMember($account, $project);
     }
 
     private function isManager(SystemAccount $account, Project $project): bool

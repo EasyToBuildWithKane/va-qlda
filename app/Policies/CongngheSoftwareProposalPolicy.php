@@ -4,13 +4,12 @@ namespace App\Policies;
 
 use App\Models\CongngheSoftwareProposal;
 use App\Models\SystemAccount;
-use App\Support\Enums\SystemRole;
 
 class CongngheSoftwareProposalPolicy
 {
     public function viewAny(SystemAccount $account): bool
     {
-        return in_array($account->role, [SystemRole::Admin, SystemRole::Lead], true);
+        return $account->allows('congnghe.manage_proposals');
     }
 
     public function view(SystemAccount $account, CongngheSoftwareProposal $proposal): bool

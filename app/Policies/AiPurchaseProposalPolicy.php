@@ -5,7 +5,6 @@ namespace App\Policies;
 use App\Models\AiPurchaseProposal;
 use App\Models\SystemAccount;
 use App\Support\Enums\AiPurchaseProposalStatus;
-use App\Support\Enums\SystemRole;
 
 class AiPurchaseProposalPolicy
 {
@@ -25,7 +24,7 @@ class AiPurchaseProposalPolicy
             return false;
         }
 
-        if ($account->role === SystemRole::Admin) {
+        if ($account->allows('ai_proposal.update')) {
             return true;
         }
 
@@ -34,7 +33,7 @@ class AiPurchaseProposalPolicy
 
     public function review(SystemAccount $account, AiPurchaseProposal $proposal): bool
     {
-        return $account->role === SystemRole::Admin
+        return $account->allows('ai_proposal.review')
             && $proposal->status === AiPurchaseProposalStatus::Pending;
     }
 
@@ -47,7 +46,7 @@ class AiPurchaseProposalPolicy
             return false;
         }
 
-        if ($account->role === SystemRole::Admin) {
+        if ($account->allows('ai_proposal.delete')) {
             return true;
         }
 

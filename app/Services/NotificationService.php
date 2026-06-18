@@ -86,7 +86,7 @@ class NotificationService
 
         $adminIds = SystemAccount::query()
             ->where('is_active', true)
-            ->where('role', SystemRole::Admin)
+            ->whereIn('role', [SystemRole::SuperAdmin->value, SystemRole::Admin->value])
             ->pluck('id');
 
         $rows = [];

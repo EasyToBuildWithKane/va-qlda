@@ -36,8 +36,9 @@ npm run test:e2e:install
 
 | Project | Lệnh | Mô tả |
 |---------|------|--------|
-| `chromium` | `npm run test:e2e` | Luồng UI (CI) — bỏ qua `visual/` |
+| `chromium` | `npm run test:e2e` | Luồng UI (CI) — bỏ qua `visual/`, `smoke/` |
 | `visual` | `npm run test:e2e:visual` | Snapshot regression (TD-020) |
+| `smoke` | `npm run test:e2e:smoke` | Chụp full-page thủ công (không so snapshot CI) |
 
 ### Specs hiện có
 

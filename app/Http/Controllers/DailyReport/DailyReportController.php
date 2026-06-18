@@ -64,7 +64,7 @@ class DailyReportController extends Controller
             'projects' => Options::projects(),
             'employees' => $isMember ? [] : Options::employees(),
             'canFilterEmployee' => ! $isMember,
-            'canReview' => in_array($account->role, [SystemRole::Admin, SystemRole::Lead], true),
+            'canReview' => $account->allows('daily_report.review'),
         ]);
     }
 

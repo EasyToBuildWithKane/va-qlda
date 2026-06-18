@@ -38,7 +38,7 @@ class AiAccountPasswordViewerController extends Controller
 
         $candidates = SystemAccount::query()
             ->where('is_active', true)
-            ->where('role', '!=', SystemRole::Admin->value)
+            ->whereNotIn('role', [SystemRole::SuperAdmin->value, SystemRole::Admin->value])
             ->when($existingIds !== [], fn ($q) => $q->whereNotIn('id', $existingIds))
             ->with('employee')
             ->orderBy('display_name')

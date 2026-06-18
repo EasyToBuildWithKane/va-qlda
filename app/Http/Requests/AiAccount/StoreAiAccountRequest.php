@@ -5,7 +5,6 @@ namespace App\Http\Requests\AiAccount;
 use App\Models\AiAccount;
 use App\Models\AiPurchaseProposal;
 use App\Support\Enums\AiPurchaseProposalStatus;
-use App\Support\Enums\SystemRole;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -40,7 +39,7 @@ class StoreAiAccountRequest extends FormRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
-            if ($this->filled('password') && $this->user()->role !== SystemRole::Admin) {
+            if ($this->filled('password') && ! $this->user()->isAdminTier()) {
                 $validator->errors()->add('password', 'Chỉ quản trị viên được lưu mật khẩu đăng nhập.');
             }
 

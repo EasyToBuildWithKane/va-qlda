@@ -16,6 +16,9 @@ VA QLDA là nền tảng quản lý công việc và đánh giá hiệu suất n
 | Thiếu luồng phản hồi từ nhân viên | Module Feedback & Bug Report |
 | Không đo được chi phí nhân công thực tế | Worklog gắn rate theo từng dự án |
 | Quản lý nhân sự theo phòng ban | Module Department + Employee linking |
+| Quản lý hợp đồng / NCC phân tán, quên hạn gia hạn | Module Contract Lifecycle (CLM) — Explorer, chi phí, gia hạn, cảnh báo hết hạn |
+| Mật khẩu / tài khoản hạ tầng rải rác, thiếu kiểm soát | Module Credential — kho mật khẩu có phân quyền + nhật ký truy cập |
+| Không đo được hiệu suất nhân sự khách quan | Module Performance — dashboard KPI + audit công việc theo nhân viên |
 
 ---
 
@@ -45,7 +48,11 @@ VA QLDA
 ├── [AI ACCOUNTS]   Tài khoản AI, PĐX, chi phí, analytics → docs/AI_ACCOUNTS.md
 ├── [DASHBOARD]     Bảng điều khiển (/dashboard) — KPI, tuân thủ báo cáo ngày
 ├── [KNOWLEDGE BASE] Tri thức nội bộ (bài viết, danh mục, tags, tìm kiếm, yêu thích) → docs/KNOWLEDGE_BASE.md
-└── [COACHING]      Coaching/Mentoring (khóa học, buổi học, bài tập, tiến độ, dashboard tài chính) → docs/COACHING_MENTORING.md
+├── [COACHING]      Coaching/Mentoring (khóa học, buổi học, bài tập, tiến độ, dashboard tài chính) → docs/COACHING_MENTORING.md
+├── [CONTRACT]      Quản lý hợp đồng / NCC (Explorer, chi phí, gia hạn phụ lục, đánh giá) → docs/CONTRACT_MANAGEMENT.md
+├── [CREDENTIAL]    Kho tài khoản / mật khẩu hạ tầng (phân quyền, nhật ký truy cập) → docs/CREDENTIAL_MANAGEMENT.md
+├── [PERFORMANCE]   Hiệu suất & audit công việc (dashboard KPI, audit theo nhân viên) → docs/PERFORMANCE_ANALYTICS.md
+└── [ONBOARDING]    Tour tương tác theo vai trò khi đăng nhập (tiến độ, ngữ cảnh) → docs/ONBOARDING.md
 ```
 
 > **Sơ đồ luồng tổng hợp (mermaid) + bản đồ doc ↔ code:** [`docs/FLOWS_AND_DOCS_MAP.md`](FLOWS_AND_DOCS_MAP.md).

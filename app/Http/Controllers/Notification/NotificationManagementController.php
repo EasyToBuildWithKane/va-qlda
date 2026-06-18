@@ -15,7 +15,7 @@ class NotificationManagementController extends Controller
 {
     public function __invoke(Request $request): Response
     {
-        abort_unless($request->user()->allows('notifications.manage'), 403);
+        abort_unless($request->user()->allows('notification.manage'), 403);
 
         $now = now();
         $adminFeed = AppNotification::query()->where('is_admin_feed', true);

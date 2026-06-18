@@ -20,7 +20,7 @@ const groups = computed(() => props.content?.groups ?? []);
   <section
     id="cong-nghe"
     ref="target"
-    class="relative overflow-hidden py-20"
+    class="relative overflow-hidden scroll-mt-24 py-16 sm:scroll-mt-28 sm:py-20 md:py-24"
   >
     <SectionParticleNetwork
       tone="violet"

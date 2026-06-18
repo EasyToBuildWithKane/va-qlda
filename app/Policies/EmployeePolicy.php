@@ -4,7 +4,6 @@ namespace App\Policies;
 
 use App\Models\Employee;
 use App\Models\SystemAccount;
-use App\Support\Enums\SystemRole;
 
 /**
  * Who may see and edit employee profiles.
@@ -26,7 +25,7 @@ class EmployeePolicy
 
     public function update(SystemAccount $account, Employee $employee): bool
     {
-        return $this->isSelf($account, $employee) || $account->role === SystemRole::Admin;
+        return $this->isSelf($account, $employee) || $account->allows('employee.update');
     }
 
     private function isSelf(SystemAccount $account, Employee $employee): bool

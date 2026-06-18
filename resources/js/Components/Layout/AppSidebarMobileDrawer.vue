@@ -3,20 +3,11 @@ import { onMounted, onUnmounted, ref, watch } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import AppSidebarBrand from '@/Components/Layout/AppSidebarBrand.vue';
 import AppSidebarExpandedNav from '@/Components/Layout/AppSidebarExpandedNav.vue';
-import AppSidebarFooter from '@/Components/Layout/AppSidebarFooter.vue';
-
 const props = defineProps({
     open: { type: Boolean, default: false },
     nav: { type: Array, default: () => [] },
     appShortName: { type: String, default: 'VA' },
     appName: { type: String, default: '' },
-    appVersion: { type: String, default: '1.0' },
-    user: { type: Object, default: null },
-    roleLabel: { type: String, default: '' },
-    legend: { type: Array, default: () => [] },
-    userInitials: { type: String, default: 'ND' },
-    userAvatarSrc: { type: String, default: null },
-    userDisplayName: { type: String, default: '' },
     groupKey: { type: Function, required: true },
     isOpen: { type: Function, required: true },
     toggleGroup: { type: Function, required: true },
@@ -163,18 +154,6 @@ onUnmounted(() => {
                 :status-of="statusOf"
               />
             </div>
-
-            <AppSidebarFooter
-              :rail="false"
-              :legend="legend"
-              :user="user"
-              :role-label="roleLabel"
-              :user-initials="userInitials"
-              :user-avatar-src="userAvatarSrc"
-              :user-display-name="userDisplayName"
-              :app-name="appName"
-              :app-version="appVersion"
-            />
           </aside>
         </Transition>
       </div>

@@ -1,6 +1,6 @@
 # FRONTEND STRUCTURE — VA QLDA
 
-> **Cập nhật 2026-06-15** — content header (`PageHeader` + `#header`); coaching sessions datagrid.
+> **Cập nhật 2026-06-18** — content header (`PageHeader` + `#header`); coaching sessions datagrid; FullCalendar (lịch coaching/dự án), driver.js (onboarding).
 
 > Rule agent: `.cursor/rules/content-header.mdc` · skill `content-header`.
 
@@ -11,11 +11,15 @@
 | Công Nghệ | Phiên Bản | Mục Đích |
 |---|---|---|
 | Vue.js | 3.5.35 | UI framework (Composition API, `<script setup>`) |
-| Inertia.js | Latest | SPA bridge với Laravel |
+| Inertia.js | 2.x | SPA bridge với Laravel (`@inertiajs/vue3`) |
 | Pinia | 3.x | Global state (`stores/auth.js`, `stores/ui.js`) |
 | Tailwind CSS | 3.4.19 | Utility-first CSS |
 | Vite | 5.0 | Build tool + manual code splitting |
 | TipTap | 3.24.0 | Rich text editor |
+| FullCalendar | 6.1.x | Lịch coaching + lịch dự án (day/week/list) |
+| Chart.js / vue-chartjs | 4.x / 5.x | Biểu đồ (dashboard, CLM, hiệu suất) |
+| driver.js | 1.3.x | Onboarding tour tương tác |
+| frappe-gantt | 1.2.x | Gantt timeline dự án |
 | Playwright | 1.49 | E2E tests (`tests/e2e/`) |
 | Ziggy | 2.x | Laravel routes in JavaScript |
 
@@ -34,7 +38,7 @@
 ### vite.config.js
 
 - Alias `@` → `resources/js/`
-- `manualChunks`: vendor-vue, vendor-tiptap, vendor-chart, vendor-excel, vendor-gantt, vendor-utils
+- `manualChunks`: vendor-vue, vendor-tiptap, vendor-chart, vendor-excel, vendor-gantt, vendor-ogl, vendor-utils (FullCalendar không tách chunk riêng)
 
 ### app.blade.php
 
@@ -55,16 +59,18 @@ resources/js/
 │   ├── KnowledgeBase/        ← KbRichTextField, KbImageGallery
 │   ├── DailyReport/          ← Feature chưa migrate modules/
 │   └── Notifications/
-├── modules/                  ← Feature modules (Phase 2)
-│   ├── project/
-│   │   ├── components/       ← ProjectCard, Sprint/, TaskDetail/, Dashboard/, …
-│   │   └── config/           ← columns.js, sprintTableColumns.js, riskTableColumns.js
-│   ├── daily-report/
-│   │   └── config/reportConfig.js
-│   └── coaching/                 ← Coaching / Mentoring (2026-06)
-│       ├── components/           ← Sessions table, calendar, modals, drawer, CoachingSessionAssignmentsTab, CoachingSessionMaterialsTab
-│       ├── composables/          ← useCoachingCalendar.js
-│       └── config/               ← coachingFormHints.js
+├── modules/                  ← Feature modules (Phase 2+) — 11 module:
+│   ├── project/                  ← components (ProjectCard, Sprint/, TaskDetail/, Dashboard/), config/
+│   ├── daily-report/             ← config/reportConfig.js, composables export
+│   ├── coaching/                 ← Sessions table, calendar (useCoachingCalendar), modals, config
+│   ├── contract/                 ← CLM: components (*SummaryBar, charts), composables, config
+│   ├── credential/               ← Kho mật khẩu: components, composables
+│   ├── performance/              ← Dashboard + audit components/composables
+│   ├── people/                   ← Org graph + member directory (OrgTeamOverviewBuilder UI)
+│   ├── profile/                  ← Hồ sơ nhân sự (ProfileStats, skill radar)
+│   ├── onboarding/               ← Tour driver.js (useTour, useOnboarding, OnboardingRoot)
+│   ├── notifications/            ← Bell, center drawer, preferences
+│   └── aiAccount/                ← Tài khoản AI: composables
 ├── shared/                   ← Cross-module (Phase 2 + 4)
 │   ├── ui/                   ← Badge, Avatar, ProgressBar, form/*, **KpiSummaryStrip**, …
 │   └── composables/          ← useToast, usePermission, useFilter

@@ -155,21 +155,5 @@ const streamItems = computed(() => {
         </div>
       </div>
     </div>
-
-    <a
-      href="#gioi-thieu"
-      class="absolute bottom-6 left-1/2 z-10 -translate-x-1/2 text-white/35 transition hover:text-white"
-      aria-label="Cuộn xuống"
-    >
-      <svg
-        width="26"
-        height="26"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        class="animate-bounce"
-      ><path d="M12 5v14M6 13l6 6 6-6" /></svg>
-    </a>
   </section>
 </template>

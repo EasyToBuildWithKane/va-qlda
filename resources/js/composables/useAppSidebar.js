@@ -152,13 +152,6 @@ export function useAppSidebar() {
         return '';
     };
 
-    const legend = computed(() => {
-        const used = new Set(nav.value.flatMap((g) => g.items.map((i) => i.status || 'live')));
-        return Object.entries(SIDEBAR_STATUS)
-            .filter(([key]) => used.has(key))
-            .map(([key, v]) => ({ key, ...v }));
-    });
-
     const userInitials = computed(() => {
         const name = (user.value?.display_name || user.value?.name || 'ND').trim();
         const parts = name.split(/\s+/).filter(Boolean);
@@ -306,7 +299,6 @@ export function useAppSidebar() {
         showBadge,
         showRailStatus,
         railTone,
-        legend,
         userInitials,
         userAvatarSrc,
         userDisplayName,

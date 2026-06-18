@@ -94,24 +94,42 @@ class EmployeeProfileResource extends JsonResource
     /**
      * Org-team memberships (with whether this person leads the team).
      *
+     * Includes teams the person leads even when they have no explicit member
+     * row, so a team leader still sees their team on the profile.
+     *
      * @return list<array<string, mixed>>
      */
     private function teams(): array
     {
-        if (! $this->resource->relationLoaded('orgMemberships')) {
-            return [];
+        $teams = collect();
+
+        if ($this->resource->relationLoaded('orgMemberships')) {
+            $teams = $this->resource->orgMemberships
+                ->map(fn ($m) => $m->team ? [
+                    'id' => $m->team->id,
+                    'name' => $m->team->name,
+                    'section' => $m->section?->title,
+                    'is_leader' => $m->team->leader_id === $this->resource->id,
+                ] : null)
+                ->filter()
+                ->values();
         }
 
-        return $this->resource->orgMemberships
-            ->map(fn ($m) => $m->team ? [
-                'id' => $m->team->id,
-                'name' => $m->team->name,
-                'section' => $m->section?->title,
-                'is_leader' => $m->team->leader_id === $this->resource->id,
-            ] : null)
-            ->filter()
-            ->values()
-            ->all();
+        if ($this->resource->relationLoaded('ledTeams')) {
+            $existing = $teams->pluck('id')->flip();
+            $teams = $teams->merge(
+                $this->resource->ledTeams
+                    ->reject(fn ($team) => $existing->has($team->id))
+                    ->map(fn ($team) => [
+                        'id' => $team->id,
+                        'name' => $team->name,
+                        'section' => null,
+                        'is_leader' => true,
+                    ])
+            );
+        }
+
+        return $teams->values()->all();
     }
 
     /**

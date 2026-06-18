@@ -15,7 +15,7 @@ class UpdateAiPurchaseProposalNotesRequest extends FormRequest
             return false;
         }
 
-        return $this->user()->role === \App\Support\Enums\SystemRole::Admin
+        return $this->user()->isAdminTier()
             && in_array($proposal->status, [
                 AiPurchaseProposalStatus::Approved,
                 AiPurchaseProposalStatus::Rejected,

@@ -21,37 +21,36 @@ class KbArticlePolicy
         }
 
         if ($article->status === KbArticleStatus::Archived) {
-            return in_array($account->role, [SystemRole::Admin, SystemRole::Lead], true);
+            return $account->isAdminTier() || $account->allows('kb.update');
         }
 
-        return $account->role === SystemRole::Admin
-            || $account->role === SystemRole::Lead
+        return $account->isAdminTier()
+            || $account->allows('kb.update')
             || ($account->employee_id && $account->employee_id === $article->author_id);
     }
 
     public function create(SystemAccount $account): bool
     {
-        return $account->role !== SystemRole::Viewer;
+        return $account->allows('kb.create');
     }
 
     public function update(SystemAccount $account, KbArticle $article): bool
     {
-        if ($account->role === SystemRole::Admin || $account->role === SystemRole::Lead) {
-            return true;
-        }
-
-        return $account->employee_id && $account->employee_id === $article->author_id;
+        return $account->allows('kb.update')
+            || ($account->employee_id && $account->employee_id === $article->author_id);
     }
 
     public function delete(SystemAccount $account, KbArticle $article): bool
     {
-        return $account->role === SystemRole::Admin
-            || ($account->role === SystemRole::Lead && $article->status === KbArticleStatus::Draft);
+        // Admin tier may delete any article; a finer kb.delete grant is limited
+        // to drafts (mirrors the previous lead-deletes-drafts-only rule).
+        return $account->allows('kb.delete')
+            && ($account->isAdminTier() || $article->status === KbArticleStatus::Draft);
     }
 
     public function publish(SystemAccount $account, KbArticle $article): bool
     {
-        return in_array($account->role, [SystemRole::Admin, SystemRole::Lead], true)
+        return $account->allows('kb.publish')
             || ($account->employee_id && $account->employee_id === $article->author_id);
     }
 

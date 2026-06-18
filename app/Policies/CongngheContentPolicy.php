@@ -3,7 +3,6 @@
 namespace App\Policies;
 
 use App\Models\SystemAccount;
-use App\Support\Enums\SystemRole;
 
 /**
  * Quản trị nội dung trang /congnghe là admin-only. Cả hai ability đều ở mức
@@ -16,11 +15,11 @@ class CongngheContentPolicy
 {
     public function viewAny(SystemAccount $account): bool
     {
-        return $account->role === SystemRole::Admin;
+        return $account->allows('congnghe.manage_content');
     }
 
     public function manage(SystemAccount $account): bool
     {
-        return $account->role === SystemRole::Admin;
+        return $account->allows('congnghe.manage_content');
     }
 }

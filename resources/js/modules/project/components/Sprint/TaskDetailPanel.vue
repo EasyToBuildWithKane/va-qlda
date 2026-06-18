@@ -88,7 +88,7 @@ const canChangeStatus = computed(() => {
     const t = activeTask.value;
     if (!t) return false;
     if (t.can_change_status === false) return false;
-    if (t.status?.value === 'done' && t.status_locked && !isRole('admin')) return false;
+    if (t.status?.value === 'done' && t.status_locked && !isRole('admin', 'super_admin')) return false;
     return t.can_change_status !== false;
 });
 

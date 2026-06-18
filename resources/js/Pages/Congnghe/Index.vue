@@ -5,6 +5,7 @@ import AuroraBackground from './partials/AuroraBackground.vue';
 import ScrollProgress from './partials/ScrollProgress.vue';
 import CursorGlow from './partials/CursorGlow.vue';
 import CongngheNavbar from './partials/CongngheNavbar.vue';
+import CongngheSectionRail from './partials/CongngheSectionRail.vue';
 import HeroSection from './partials/HeroSection.vue';
 import AboutSection from './partials/AboutSection.vue';
 import ImpactMetrics from './partials/ImpactMetrics.vue';
@@ -84,6 +85,7 @@ function sectionDataProps(key) {
     <ScrollProgress />
     <CursorGlow />
     <CongngheNavbar :content="content.nav" />
+    <CongngheSectionRail :links="content.nav?.links ?? []" />
 
     <main class="relative z-10 pb-4 sm:pb-8 lg:pb-0">
       <HeroSection

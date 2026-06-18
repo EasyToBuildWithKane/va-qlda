@@ -4,7 +4,6 @@ namespace App\Support;
 
 use App\Models\SystemAccount;
 use App\Models\Task;
-use App\Support\Enums\SystemRole;
 use App\Support\Enums\TaskHoursTiming;
 use App\Support\Enums\TaskSlaResult;
 use App\Support\Enums\TaskStatus;
@@ -17,7 +16,7 @@ class TaskCompletion
 
     public static function actorMayUnlockStatus(SystemAccount $actor): bool
     {
-        return $actor->hasRole(SystemRole::Admin);
+        return $actor->isAdminTier();
     }
 
     /**

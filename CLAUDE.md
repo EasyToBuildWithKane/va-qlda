@@ -11,7 +11,7 @@
 ## Stack & Transport
 
 - **Không REST API chính** — `routes/web.php` + Inertia; `routes/api.php` rỗng. JSON chỉ cho endpoint phụ (vd. notifications).
-- **Auth:** guard `system`, model `SystemAccount`, roles: `admin` | `lead` | `member` | `viewer`.
+- **Auth:** guard `system`, model `SystemAccount`, roles: `super_admin` | `admin` | `lead` | `member` | `viewer`.
 - **DB:** MySQL, prefix bảng `va_prd_` — index name ngắn nếu composite dài.
 
 ## Kiến trúc
@@ -21,16 +21,19 @@
 | DailyReport | Clean: `Application/`, `Domain/` |
 | Project, Task | Application Use Cases + MVC read paths |
 | Blocker, Bug, Feedback, … | MVC: Controller → Model / Support |
-| System Config | MVC + Settings overlay: `SettingsSchema`/`SettingsRepository` → `config()` runtime (admin-only). Xem `docs/SYSTEM_CONFIG.md` |
+| System Config | MVC + Settings overlay: `SettingsSchema`/`SettingsRepository` → `config()` runtime (**super-admin-only**). Xem `docs/SYSTEM_CONFIG.md` · RBAC: `docs/PERMISSIONS.md` |
 
 Không refactor sang Use Case khi user chỉ sửa bug nhỏ. Module mới: ưu tiên FormRequest + Policy + Resource giống module cùng loại.
 
-## Phân quyền
+## Phân quyền (RBAC — xem `docs/PERMISSIONS.md`)
 
-- Backend: `$this->authorize('manage', $project)` / Policy trong `AuthServiceProvider`.
-- Frontend: `usePage().props.auth.user`, `project.can?.manage` từ Resource.
-- Nav: `App\Support\Navigation` — filter theo `roles`.
-- Ma trận `role_grants` (config/va_permissions.php) admin chỉnh được runtime tại `/settings` (tab Phân quyền); `admin` luôn full quyền. `Permissions::roleAllows` đọc `config()` đã overlay — không sửa nơi check.
+- **Ma trận thật sự điều khiển quyền:** Policy gọi `$account->allows('module.action')` (đọc `va_permissions.role_grants` đã overlay) **OR** nhánh ownership/entity (giữ nguyên). Catalog: `App\Support\Auth\PermissionCatalog`.
+- **Vai trò:** `super_admin` = god-mode (`Gate::before`) + **độc quyền** `/settings`, ma trận, gán role, reserved keys. `admin` = full nghiệp vụ nhưng **không** vào `/settings`. `super_admin` luôn `['*']` (khóa).
+- Hierarchy grant: `*` → `{module}.*` → exact. `{module}.manage` là ability cụ thể, **không** phải wildcard (đừng để nó ngụ ý delete).
+- Check tier ngoài policy: `isSuperAdmin()` / `isAdminTier()` (super+admin) — không hardcode `=== Admin` (sẽ loại super).
+- Frontend: `usePage().props.auth.user.permissions` + `usePermission().can('module.action')`; entity `can` từ Resource.
+- Nav: `App\Support\Navigation` — super là superset của admin; group `settings` đánh dấu `superOnly`.
+- Reserved keys bị strip khỏi mọi role ≠ super ở cả controller lẫn overlay. Không sửa nơi check — chỉnh ma trận ở `/settings`.
 
 ## Copy & UX
 

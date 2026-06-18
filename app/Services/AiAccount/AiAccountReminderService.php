@@ -52,7 +52,7 @@ class AiAccountReminderService
 
         $recipients = SystemAccount::query()
             ->where('is_active', true)
-            ->whereIn('role', [SystemRole::Admin->value, SystemRole::Lead->value])
+            ->whereIn('role', [SystemRole::SuperAdmin->value, SystemRole::Admin->value, SystemRole::Lead->value])
             ->with('employee')
             ->get();
 
@@ -102,7 +102,7 @@ class AiAccountReminderService
 
         $recipients = SystemAccount::query()
             ->where('is_active', true)
-            ->whereIn('role', [SystemRole::Admin->value, SystemRole::Lead->value])
+            ->whereIn('role', [SystemRole::SuperAdmin->value, SystemRole::Admin->value, SystemRole::Lead->value])
             ->with('employee')
             ->get();
 

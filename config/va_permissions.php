@@ -1,52 +1,34 @@
 <?php
 
+use App\Support\Auth\PermissionCatalog;
+
 /**
  * Role → permission matrix and production bootstrap admin emails.
+ *
+ * The permission catalog (module → abilities) and the default role grants live
+ * in {@see App\Support\Auth\PermissionCatalog}; the matrix is editable at
+ * /settings (permissions tab) and overlaid onto `role_grants` at boot.
  *
  * Run after CMS sync: php artisan db:seed --class=BootstrapAdminSeeder
  * Or: php artisan va:bootstrap-admins
  */
 return [
 
-    'permissions' => [
-        'system.access_admin_nav' => 'Menu quản trị (thông báo, cấu hình)',
-        'notifications.manage' => 'Quản lý thông báo hệ thống',
-        'departments.manage' => 'Quản lý phòng ban',
-        'projects.manage' => 'Tạo/sửa/xóa dự án',
-        'projects.contribute' => 'Thao tác công việc trong dự án',
-        'daily_reports.review' => 'Duyệt báo cáo ngày',
-        'daily_reports.submit' => 'Nộp báo cáo ngày',
-        'users.manage_roles' => 'Gán role tài khoản (tương lai)',
-    ],
-
     /*
-    | Wildcard * = full access for that role.
+    | Role → permission keys. Wildcards: '*' = full access, '{module}.*' /
+    | '{module}.manage' = every ability in a module. Defaults mirror the
+    | historical policy behaviour (see PermissionCatalog::defaultGrants).
     */
-    'role_grants' => [
-        'admin' => ['*'],
-        'lead' => [
-            'departments.manage',
-            'projects.manage',
-            'projects.contribute',
-            'daily_reports.review',
-            'daily_reports.submit',
-        ],
-        'member' => [
-            'projects.contribute',
-            'daily_reports.submit',
-        ],
-        'viewer' => [
-            'projects.contribute',
-        ],
-    ],
+    'role_grants' => PermissionCatalog::defaultGrants(),
 
     /*
     | Emails (lowercase) → system_accounts.role after CMS sync / provision.
-    | Tất cả dưới đây: admin (quyền cao nhất trong QLDA hiện tại).
+    | super_admin: độc quyền cấu hình hệ thống + ma trận phân quyền + gán role.
+    | admin: full nghiệp vụ nhưng không truy cập cấu hình/phân quyền.
     */
     'bootstrap_accounts' => [
-        'kieunlt@hcm.vaschools.edu.vn' => 'admin',
-        'khoana@hcm.vaschools.edu.vn' => 'admin',
+        'kieunlt@hcm.vaschools.edu.vn' => 'super_admin',
+        'khoana@hcm.vaschools.edu.vn' => 'super_admin',
         'hoadtt@hcm.vaschools.edu.vn' => 'admin',
         'quangtm@hcm.vaschools.edu.vn' => 'admin',
         'binhtl@hcm.vaschools.edu.vn' => 'admin',

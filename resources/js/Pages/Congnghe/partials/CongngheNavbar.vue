@@ -7,6 +7,7 @@ import CongngheUserMenu from './CongngheUserMenu.vue';
 import RippleSurface from './RippleSurface.vue';
 import { congngheBrand } from './congngheBrand.js';
 import CongngheBrandImage from './CongngheBrandImage.vue';
+import { useCongngheFocusTrap } from './useCongngheFocusTrap.js';
 
 const page = usePage();
 
@@ -36,6 +37,7 @@ const userEmail = computed(() => authUser.value?.email ?? '');
 const userAvatar = computed(() => authUser.value?.employee?.avatar_path ?? null);
 const userRole = computed(() => {
     const role = authUser.value?.role;
+    if (role === 'super_admin') return 'Super Admin';
     if (role === 'admin') return 'Quản trị';
     if (role === 'lead') return 'Trưởng nhóm';
     if (role === 'member') return 'Thành viên';
@@ -53,7 +55,10 @@ const links = computed(() => (props.content?.links ?? []).map((l) => ({
 const scrolled = ref(false);
 const open = ref(false);
 const activeId = ref('');
+const mobileNav = ref(null);
 const visibleSections = new Map();
+
+useCongngheFocusTrap(mobileNav, open);
 
 function onScroll() {
     scrolled.value = window.scrollY > 12;
@@ -282,6 +287,7 @@ const navPadClass = computed(() => (scrolled.value ? 'py-2.5 sm:py-3' : 'py-3.5 
       <div
         v-if="open"
         id="congnghe-mobile-nav"
+        ref="mobileNav"
         class="relative z-[46] border-t border-white/10 bg-[#080a12]/98 px-4 py-4 backdrop-blur-xl lg:hidden"
       >
         <div

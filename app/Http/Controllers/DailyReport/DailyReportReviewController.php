@@ -10,7 +10,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\DailyReport\RejectDailyReportRequest;
 use App\Http\Requests\DailyReport\ScoreDailyReportRequest;
 use App\Http\Resources\DailyReportResource;
-use App\Support\Enums\SystemRole;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -25,7 +24,7 @@ class DailyReportReviewController extends Controller
     {
         $this->authorize('viewAny', DailyReport::class);
 
-        if (! in_array($request->user()->role, [SystemRole::Admin, SystemRole::Lead], true)) {
+        if (! $request->user()->allows('daily_report.review')) {
             abort(403);
         }
 

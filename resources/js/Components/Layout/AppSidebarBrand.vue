@@ -14,8 +14,8 @@ const emit = defineEmits(['collapse', 'expand']);
 
 <template>
   <div
-    class="relative flex shrink-0 items-center border-b border-white/[0.08]"
-    :class="rail ? 'h-14 justify-center px-0' : 'justify-center px-5 py-3.5'"
+    class="relative flex shrink-0 items-center border-b border-white/[0.10]"
+    :class="rail ? 'h-14 justify-center px-0' : 'h-[4.75rem] justify-center px-5 py-3'"
   >
     <template v-if="rail">
       <button
@@ -32,11 +32,12 @@ const emit = defineEmits(['collapse', 'expand']);
       <Link
         href="/dashboard"
         class="flex items-center justify-center py-0.5"
+        aria-label="VAschools — Bảng điều khiển"
       >
         <img
-          src="/images/logo-2.png"
+          src="/images/congnghe/brand/vas-white.png"
           alt="VAschools"
-          class="h-12 w-auto object-contain"
+          class="h-14 w-auto max-w-[12.5rem] object-contain drop-shadow-sm"
         >
       </Link>
       <button

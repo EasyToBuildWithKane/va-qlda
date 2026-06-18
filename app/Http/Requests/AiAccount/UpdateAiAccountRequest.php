@@ -3,7 +3,6 @@
 namespace App\Http\Requests\AiAccount;
 
 use App\Support\Enums\AiAccountStatus;
-use App\Support\Enums\SystemRole;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -31,7 +30,7 @@ class UpdateAiAccountRequest extends FormRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
-            if ($this->filled('password') && $this->user()->role !== SystemRole::Admin) {
+            if ($this->filled('password') && ! $this->user()->isAdminTier()) {
                 $validator->errors()->add('password', 'Chỉ quản trị viên được cập nhật mật khẩu.');
             }
             if ($this->filled('status') && ! $this->user()->can('updateStatus', $this->route('aiAccount'))) {

@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Support\Auth\PermissionCatalog;
 use App\Support\Settings\SettingsRepository;
 use App\Support\Settings\SettingsSchema;
 use Illuminate\Support\ServiceProvider;
@@ -34,9 +35,17 @@ class SettingsServiceProvider extends ServiceProvider
 
             if ($key === SettingsSchema::MATRIX_KEY) {
                 $value = is_array($value) ? $value : [];
-                // Admins are never editable from the UI — keep full access to
-                // prevent an accidental lock-out.
+                // The locked role (super_admin) is never editable from the UI —
+                // keep full access to prevent an accidental lock-out.
                 $value[SettingsSchema::LOCKED_ROLE] = ['*'];
+                // Reserved keys (system config, permission matrix, role assign)
+                // belong to super_admin only — strip from every other role even
+                // if a stale override or hand-edit slipped them in.
+                foreach ($value as $role => $keys) {
+                    if ($role !== SettingsSchema::LOCKED_ROLE && is_array($keys)) {
+                        $value[$role] = PermissionCatalog::withoutReserved($keys);
+                    }
+                }
             }
 
             config([$path => $value]);

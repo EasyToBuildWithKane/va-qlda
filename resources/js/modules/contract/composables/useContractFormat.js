@@ -152,6 +152,20 @@ export function formatDate(value) {
     return d.toLocaleDateString('vi-VN');
 }
 
+/**
+ * Cộng `months` tháng vào một chuỗi ngày `YYYY-MM-DD`.
+ * @returns {string|null} ngày kết quả dạng `YYYY-MM-DD`, hoặc null nếu input không hợp lệ.
+ */
+export function addMonths(value, months) {
+    if (!value || months == null || months === '') return null;
+    const m = Number(months);
+    if (Number.isNaN(m)) return null;
+    const d = new Date(`${value}T00:00:00`);
+    if (Number.isNaN(d.getTime())) return null;
+    d.setMonth(d.getMonth() + m);
+    return d.toISOString().slice(0, 10);
+}
+
 /** Nhãn ngắn cho số ngày còn lại tới hạn. */
 export function expiryLabel(days) {
     if (days === null || days === undefined) return 'Không hạn';

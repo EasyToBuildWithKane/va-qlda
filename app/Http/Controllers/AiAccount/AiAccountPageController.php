@@ -13,7 +13,6 @@ use App\Support\Enums\AiAccountLifecycleStatus;
 use App\Support\Enums\AiAccountStatus;
 use App\Support\Enums\AiPurchaseProposalStatus;
 use App\Support\Enums\ProposalType;
-use App\Support\Enums\SystemRole;
 use App\Support\Options;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -28,7 +27,7 @@ class AiAccountPageController extends Controller
         return Inertia::render('AiAccount/Index', [
             'can' => [
                 'create' => $request->user()->can('create', AiAccount::class),
-                'view_password' => $request->user()->role === SystemRole::Admin,
+                'view_password' => $request->user()->isAdminTier() || $request->user()->allows('ai_account.view_password'),
                 'manage_password_viewers' => $request->user()->can('managePasswordViewers', AiAccount::class),
                 'trigger_reminder' => $request->user()->can('triggerReminder', AiAccount::class),
             ],
@@ -98,7 +97,7 @@ class AiAccountPageController extends Controller
             'can' => [
                 'create' => $request->user()->can('create', AiAccount::class),
                 'propose' => $request->user()->can('create', \App\Models\AiPurchaseProposal::class),
-                'review_proposals' => $request->user()->role === SystemRole::Admin,
+                'review_proposals' => $request->user()->allows('ai_proposal.review'),
             ],
             'options' => [
                 'group_function' => AiAccountGroupFunction::options(),

@@ -53,7 +53,6 @@ const {
     user,
     appShortName,
     appName,
-    appVersion,
     roleLabel,
     rail,
     mobileOpen,
@@ -69,7 +68,6 @@ const {
     statusOf,
     showRailStatus,
     railTone,
-    legend,
     userInitials,
     userAvatarSrc,
     userDisplayName,
@@ -122,10 +120,7 @@ onUnmounted(() => {
       :nav="nav"
       :app-short-name="appShortName"
       :app-name="appName"
-      :app-version="appVersion"
-      :user="user"
       :role-label="roleLabel"
-      :legend="legend"
       :user-initials="userInitials"
       :user-avatar-src="userAvatarSrc"
       :user-display-name="userDisplayName"
@@ -161,13 +156,6 @@ onUnmounted(() => {
       :nav="nav"
       :app-short-name="appShortName"
       :app-name="appName"
-      :app-version="appVersion"
-      :user="user"
-      :role-label="roleLabel"
-      :legend="legend"
-      :user-initials="userInitials"
-      :user-avatar-src="userAvatarSrc"
-      :user-display-name="userDisplayName"
       :group-key="groupKey"
       :is-open="isOpen"
       :toggle-group="toggleGroup"

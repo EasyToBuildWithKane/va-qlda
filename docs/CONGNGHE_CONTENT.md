@@ -128,3 +128,35 @@ Thêm icon mới: thêm vào `CongngheIcons::all()` (key → label + SVG path).
 | Vue admin | `resources/js/Pages/CongngheAdmin/Index.vue` + `partials/{SectionEditor, RepeatableList, IconPicker}.vue` |
 | Vue public | `resources/js/Pages/Congnghe/Index.vue` + `partials/*` (nhận `content` qua props) |
 | Test | `tests/Feature/Congnghe/CongngheAdminTest.php`, `tests/Feature/CongngheTest.php` |
+
+---
+
+## 8. Đề xuất phần mềm (software proposals)
+
+Ngoài CMS nội dung, trang `/congnghe` còn có luồng **gửi đề xuất phần mềm** cho Phòng Công Nghệ —
+mọi nhân viên đăng nhập đều dùng được; admin quản trị & xử lý.
+
+### 8.1 Route
+
+| URI | Tên | Vai trò |
+|-----|-----|---------|
+| `GET /congnghe/de-xuat` | `congnghe.proposal` | Nhân viên — form tạo đề xuất |
+| `POST /congnghe/de-xuat` | `congnghe.proposal.store` | Ghi nhận + gửi email tới Phòng CN |
+| `GET /congnghe/de-xuat-cua-toi` | `congnghe.proposal.mine` | Danh sách đề xuất của tôi (lọc + KPI) |
+| `GET /congnghe/de-xuat-cua-toi/{proposal}` | `congnghe.proposal.mine.show` | Chi tiết (người gửi) |
+| `GET /congnghe/proposals` | `congnghe.proposals.index` | **Admin** — quản lý toàn bộ đề xuất |
+| `GET\|PUT /congnghe/proposals/{proposal}` | `congnghe.proposals.{show,update}` | **Admin** — xem + đổi trạng thái |
+| `GET .../{proposal}/attachments/{attachment}/file` | `*.attachments.file` | Tải file đính kèm |
+
+### 8.2 Backend
+
+- Controllers (`app/Http/Controllers/Congnghe/`): `CongngheSoftwareProposalController` (người gửi: create/store/index/show), `CongngheSoftwareProposalManagementController` (admin: index/show/update), `CongngheSoftwareProposalAttachmentController` (file).
+- Models: `CongngheSoftwareProposal` (`reference_code`, `submitter_*`, `department`, `email_sent_at` / `email_error`), `CongngheSoftwareProposalAttachment` (hasMany).
+- Service: `App\Services\Congnghe\CongngheSoftwareProposalRecorder` (lưu + đính kèm). Email: `App\Mail\CongngheSoftwareProposalMail` → `config('va.congnghe_proposal_email')`; lưu lỗi gửi vào `email_error`, không chặn việc ghi nhận.
+- Enum trạng thái: `CongngheSoftwareProposalStatus` — `new` · `triaged` · `in_progress` · `done` · `rejected`.
+- Quyền: `CongngheSoftwareProposalPolicy` — `viewAsSubmitter` (người gửi xem đề xuất của mình theo `system_account_id` hoặc email), `viewAny` / `view` (admin quản lý).
+
+### 8.3 Frontend
+
+- Pages người gửi: `Congnghe/Proposal.vue` (form), `Congnghe/MyProposals.vue` (danh sách), `Congnghe/MyProposalShow.vue`.
+- Pages admin: `Congnghe/Proposals/Index.vue`, `Congnghe/Proposals/Show.vue`.

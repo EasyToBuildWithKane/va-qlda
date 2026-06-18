@@ -66,8 +66,30 @@ class SystemAccount extends Authenticatable
         return in_array($this->role, $roles, true);
     }
 
+    /**
+     * The top tier — full god-mode access; the only role that may edit system
+     * configuration, the permission matrix and assign roles.
+     */
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === SystemRole::SuperAdmin;
+    }
+
+    /** super_admin or admin — the administrative tier. */
+    public function isAdminTier(): bool
+    {
+        return $this->hasRole(SystemRole::SuperAdmin, SystemRole::Admin);
+    }
+
     public function allows(string $permission): bool
     {
+        // Super admin is unconditionally all-powerful (also enforced via
+        // Gate::before for policy checks); short-circuit so direct allows()
+        // calls outside the Gate layer agree.
+        if ($this->role === SystemRole::SuperAdmin) {
+            return true;
+        }
+
         return Permissions::roleAllows($this->role, $permission);
     }
 }

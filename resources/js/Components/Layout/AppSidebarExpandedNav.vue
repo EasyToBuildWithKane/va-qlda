@@ -42,8 +42,8 @@ function bindNavRef(el) {
         type="button"
         class="group/head flex w-full min-h-9 items-center gap-2 rounded-lg px-2.5 py-2 transition-all duration-150 select-none"
         :class="isUpcomingGroup(group)
-          ? 'border border-amber-300/25 bg-amber-400/12 text-[10px] font-bold uppercase tracking-[0.14em] text-amber-100/90 hover:bg-amber-400/18 hover:text-amber-50'
-          : 'text-[10px] font-bold uppercase tracking-[0.14em] text-brand-100/50 hover:bg-white/[0.04] hover:text-brand-100/75'"
+          ? 'border border-amber-300/25 bg-amber-400/12 text-[10.5px] font-bold uppercase tracking-[0.13em] text-amber-100/95 hover:bg-amber-400/18 hover:text-amber-50'
+          : 'text-[10.5px] font-bold uppercase tracking-[0.13em] text-brand-100/75 hover:bg-white/[0.06] hover:text-white'"
         :aria-expanded="isOpen(group)"
         @click="toggleGroup(group)"
       >
@@ -51,7 +51,7 @@ function bindNavRef(el) {
           :name="group.icon"
           :size="14"
           class="shrink-0 transition-opacity"
-          :class="isUpcomingGroup(group) ? 'text-amber-200/90' : 'opacity-55 group-hover/head:opacity-80'"
+          :class="isUpcomingGroup(group) ? 'text-amber-200/90' : 'opacity-75 group-hover/head:opacity-100'"
         />
         <span class="min-w-0 flex-1 truncate text-left">{{ group.heading }}</span>
         <span
@@ -91,13 +91,13 @@ function bindNavRef(el) {
                 :is="isPlanned(item) ? 'div' : Link"
                 :href="isPlanned(item) ? undefined : item.href"
                 :title="isPlanned(item) ? 'Sắp ra mắt — chưa khả dụng' : undefined"
-                class="group/item flex min-h-[40px] items-center gap-2.5 rounded-lg px-2.5 py-2 text-[14px] leading-snug transition-all duration-150"
+                class="group/item flex min-h-[40px] items-center gap-2.5 rounded-lg px-2.5 py-2 text-[14px] font-medium leading-snug transition-all duration-150"
                 :class="[
                   isActive(item.href)
-                    ? 'sidebar-nav-item--active bg-white/[0.14] font-semibold text-white shadow-sm ring-1 ring-inset ring-white/10'
+                    ? 'sidebar-nav-item--active bg-white/[0.16] font-semibold text-white shadow-sm ring-1 ring-inset ring-white/15'
                     : isUpcomingGroup(group)
-                      ? 'text-amber-100/65 hover:bg-amber-400/10 hover:text-amber-50'
-                      : 'text-brand-100/80 hover:bg-white/[0.06] hover:text-white',
+                      ? 'text-amber-100/75 hover:bg-amber-400/10 hover:text-amber-50'
+                      : 'text-brand-50/90 hover:bg-white/[0.08] hover:text-white',
                   isPlanned(item) && 'cursor-not-allowed',
                 ]"
               >
@@ -109,7 +109,7 @@ function bindNavRef(el) {
                     :name="item.icon"
                     :size="18"
                     class="shrink-0 transition-opacity"
-                    :class="isActive(item.href) ? 'opacity-100' : 'opacity-55 group-hover/item:opacity-85'"
+                    :class="isActive(item.href) ? 'opacity-100' : 'opacity-80 group-hover/item:opacity-100'"
                   />
                 </span>
 

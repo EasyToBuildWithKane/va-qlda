@@ -4,7 +4,6 @@ namespace App\Policies;
 
 use App\Models\AiAccount;
 use App\Models\SystemAccount;
-use App\Support\Enums\SystemRole;
 
 class AiAccountPolicy
 {
@@ -20,48 +19,49 @@ class AiAccountPolicy
 
     public function create(SystemAccount $account): bool
     {
-        return true;
+        return $account->allows('ai_account.create');
     }
 
     public function update(SystemAccount $account, AiAccount $aiAccount): bool
     {
-        return true;
+        return $account->allows('ai_account.update');
     }
 
     public function delete(SystemAccount $account, AiAccount $aiAccount): bool
     {
-        return true;
+        return $account->allows('ai_account.delete');
     }
 
     public function renew(SystemAccount $account, AiAccount $aiAccount): bool
     {
-        return true;
+        return $account->allows('ai_account.renew');
     }
 
     public function triggerReminder(SystemAccount $account): bool
     {
-        return in_array($account->role, [SystemRole::Admin, SystemRole::Lead], true);
+        return $account->allows('ai_account.trigger_reminder');
     }
 
     public function updateRenewalPayment(SystemAccount $account, AiAccount $aiAccount): bool
     {
-        return in_array($account->role, [SystemRole::Admin, SystemRole::Lead], true);
+        return $account->allows('ai_account.update_renewal_payment');
     }
 
     public function viewPassword(SystemAccount $account, AiAccount $aiAccount): bool
     {
-        return \App\Models\AiAccountPasswordViewer::canViewPassword($account, $aiAccount);
+        return $account->allows('ai_account.view_password')
+            || \App\Models\AiAccountPasswordViewer::canViewPassword($account, $aiAccount);
     }
 
     public function managePasswordViewers(SystemAccount $account): bool
     {
-        return $account->role === SystemRole::Admin;
+        return $account->allows('ai_account.manage_password_viewers');
     }
 
-    /** Admin hoặc người tạo phiếu đề xuất gắn với tài khoản. */
+    /** Quyền cập nhật trạng thái, hoặc người tạo phiếu đề xuất gắn với tài khoản. */
     public function updateStatus(SystemAccount $account, AiAccount $aiAccount): bool
     {
-        if ($account->role === SystemRole::Admin) {
+        if ($account->allows('ai_account.update')) {
             return true;
         }
 

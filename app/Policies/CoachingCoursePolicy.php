@@ -15,7 +15,7 @@ class CoachingCoursePolicy
 
     public function view(SystemAccount $account, CoachingCourse $course): bool
     {
-        if (in_array($account->role, [SystemRole::Admin, SystemRole::Lead], true)) {
+        if ($account->allows('coaching.view')) {
             return true;
         }
 
@@ -25,30 +25,29 @@ class CoachingCoursePolicy
 
     public function create(SystemAccount $account): bool
     {
-        return in_array($account->role, [SystemRole::Admin, SystemRole::Lead], true);
+        return $account->allows('coaching.create');
     }
 
     public function update(SystemAccount $account, CoachingCourse $course): bool
     {
-        if ($account->role === SystemRole::Admin) {
-            return true;
+        if (! $account->allows('coaching.update')) {
+            return false;
         }
 
-        if ($account->role === SystemRole::Lead) {
-            return $account->employee_id === null
-                || $account->employee_id === $course->coach_id;
-        }
-
-        return false;
+        // Admin tier edits any course; a finer grant is scoped to the coach
+        // (or unassigned leads) — mirrors the previous lead-coach rule.
+        return $account->isAdminTier()
+            || $account->employee_id === null
+            || $account->employee_id === $course->coach_id;
     }
 
     public function delete(SystemAccount $account, CoachingCourse $course): bool
     {
-        return $account->role === SystemRole::Admin;
+        return $account->allows('coaching.delete');
     }
 
     public function exportReport(SystemAccount $account): bool
     {
-        return in_array($account->role, [SystemRole::Admin, SystemRole::Lead], true);
+        return $account->allows('coaching.export');
     }
 }

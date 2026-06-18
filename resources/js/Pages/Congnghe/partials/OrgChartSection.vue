@@ -10,6 +10,7 @@ import {
 import ScanLineOverlay from './ScanLineOverlay.vue';
 import { useInView } from './motion.js';
 import SectionParticleNetwork from './SectionParticleNetwork.vue';
+import { useCongngheFocusTrap } from './useCongngheFocusTrap.js';
 
 const props = defineProps({
     content: { type: Object, default: () => ({}) },
@@ -23,6 +24,9 @@ const heading = computed(() => props.content?.heading ?? {});
 const { target, shown: sectionVisible } = useInView({ threshold: 0.18 });
 
 const activeMember = ref(null);
+const memberPanel = ref(null);
+
+useCongngheFocusTrap(memberPanel, () => activeMember.value != null);
 
 function lookup(id) {
     if (id == null) return null;
@@ -168,6 +172,7 @@ onBeforeUnmount(() => {
           />
 
           <div
+            ref="memberPanel"
             class="cn-modal-panel relative w-full max-w-md overflow-hidden rounded-3xl border border-white/12 bg-[#0d0e16]/95 shadow-[0_40px_120px_-30px_rgba(0,0,0,0.9)]"
             role="dialog"
             aria-modal="true"

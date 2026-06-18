@@ -5,6 +5,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import FieldsTab from './partials/FieldsTab.vue';
 import PermissionsTab from './partials/PermissionsTab.vue';
+import AccountsTab from './partials/AccountsTab.vue';
 import EmailTemplateTab from './partials/EmailTemplateTab.vue';
 
 const props = defineProps({
@@ -15,6 +16,7 @@ const props = defineProps({
     emailPreviewBrand: { type: String, default: 'VAschools QLDA' },
     emailTestRecipient: { type: String, default: '' },
     permissions: { type: Object, default: () => ({}) },
+    accounts: { type: Object, default: () => ({ accounts: [], roles: [] }) },
     can: { type: Object, default: () => ({}) },
 });
 
@@ -93,6 +95,11 @@ const activeMeta = computed(() => groupMeta(active.value));
         <PermissionsTab
           v-show="active === 'permissions'"
           :permissions="permissions"
+          :can-manage="can.manage"
+        />
+        <AccountsTab
+          v-show="active === 'accounts'"
+          :accounts="accounts"
           :can-manage="can.manage"
         />
       </section>

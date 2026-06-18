@@ -2,7 +2,7 @@
 
 > Sổ đăng ký nợ kỹ thuật sau refactor Phase 1–5.
 >
-> **Cập nhật:** 2026-06-03 (triển khai toàn diện) · [`REFACTOR_PLAN.md`](REFACTOR_PLAN.md) · [`NEXT_STEPS.md`](NEXT_STEPS.md)
+> **Cập nhật:** 2026-06-03 (triển khai toàn diện) · [`REFACTOR_PLAN.md`](REFACTOR_PLAN.md)
 
 ---
 

@@ -10,6 +10,7 @@ use App\Mail\EmailTemplateTestMail;
 use App\Models\EmailTemplate;
 use App\Models\SystemAccount;
 use App\Models\SystemSetting;
+use App\Support\Auth\PermissionCatalog;
 use App\Support\Enums\SystemRole;
 use App\Support\Mail\EmailTemplateDefaults;
 use App\Support\Mail\EmailTemplateSampleVars;
@@ -49,8 +50,41 @@ class SystemSettingController extends Controller
             'emailPreviewBrand' => (string) ($this->settings->get('email.from_name') ?: config('va.app_name', 'VAschools QLDA')),
             'emailTestRecipient' => $this->testEmailRecipient($request->user()),
             'permissions' => $this->permissionsPayload(),
+            'accounts' => $activeGroup === 'accounts'
+                ? $this->accountsPayload($request->user())
+                : ['accounts' => [], 'roles' => []],
             'can' => ['manage' => $request->user()->can('manage', SystemSetting::class)],
         ]);
+    }
+
+    /**
+     * Active login accounts + assignable roles for the "Tài khoản & Vai trò"
+     * tab (super-admin only). Used to reassign a SystemAccount's role at runtime.
+     *
+     * @return array<string, mixed>
+     */
+    private function accountsPayload(SystemAccount $current): array
+    {
+        $accounts = SystemAccount::query()
+            ->with('employee:id,full_name,email,avatar_path')
+            ->orderByDesc('is_active')
+            ->orderBy('display_name')
+            ->get()
+            ->map(fn (SystemAccount $a) => [
+                'id' => $a->id,
+                'username' => $a->username,
+                'display_name' => $a->display_name,
+                'email' => $a->employee?->email,
+                'role' => $a->role->value,
+                'is_active' => $a->is_active,
+                'is_self' => $a->id === $current->id,
+            ])
+            ->all();
+
+        return [
+            'accounts' => $accounts,
+            'roles' => SystemRole::options(),
+        ];
     }
 
     public function emailTemplates(Request $request): \Illuminate\Http\JsonResponse
@@ -198,15 +232,13 @@ class SystemSettingController extends Controller
     }
 
     /**
-     * Role × permission matrix + nav visibility per role (read context for UI).
+     * Role × permission matrix grouped by module, plus nav visibility per role
+     * (read context for the redesigned permissions UI).
      *
      * @return array<string, mixed>
      */
     private function permissionsPayload(): array
     {
-        /** @var array<string, string> $catalog */
-        $catalog = config('va_permissions.permissions', []);
-
         $navByRole = [];
         foreach (SystemRole::cases() as $role) {
             $account = new SystemAccount;
@@ -218,15 +250,40 @@ class SystemSettingController extends Controller
                 ->all();
         }
 
-        return [
-            'catalog' => collect($catalog)->map(fn (string $label, string $key) => [
+        // Module-grouped abilities for the card UI.
+        $modules = [];
+        foreach (PermissionCatalog::modules() as $key => $def) {
+            $abilities = [];
+            foreach ($def['abilities'] as $ability => $label) {
+                $fullKey = "{$key}.{$ability}";
+                $abilities[] = [
+                    'key' => $fullKey,
+                    'action' => $ability,
+                    'label' => $label,
+                    'reserved' => PermissionCatalog::isReserved($fullKey),
+                ];
+            }
+            $modules[] = [
                 'key' => $key,
-                'label' => $label,
-            ])->values()->all(),
+                'label' => $def['label'],
+                'icon' => $def['icon'],
+                'group' => $def['group'],
+                'reserved' => collect($abilities)->every(fn (array $a) => $a['reserved']),
+                'abilities' => $abilities,
+            ];
+        }
+
+        return [
+            'modules' => $modules,
+            'catalog' => collect(PermissionCatalog::labels())
+                ->map(fn (string $label, string $key) => ['key' => $key, 'label' => $label])
+                ->values()->all(),
             'roles' => SystemRole::options(),
-            'grants' => $this->settings->get(SettingsSchema::MATRIX_KEY, []),
+            'grants' => config('va_permissions.role_grants', []),
             'editableRoles' => SettingsSchema::EDITABLE_ROLES,
             'lockedRole' => SettingsSchema::LOCKED_ROLE,
+            'reservedKeys' => PermissionCatalog::reservedKeys(),
+            'standardActions' => PermissionCatalog::STANDARD_ACTIONS,
             'navByRole' => $navByRole,
         ];
     }
@@ -282,7 +339,11 @@ class SystemSettingController extends Controller
 
         $out = [];
         foreach (SettingsSchema::EDITABLE_ROLES as $role) {
-            $out[$role] = array_values(array_unique($grants[$role] ?? []));
+            // Reserved keys (system config, permission matrix, role assign) are
+            // super-admin only — never persist them for an editable role.
+            $out[$role] = PermissionCatalog::withoutReserved(
+                array_values(array_unique($grants[$role] ?? [])),
+            );
         }
         $out[SettingsSchema::LOCKED_ROLE] = ['*'];
 

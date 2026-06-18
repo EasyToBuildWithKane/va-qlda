@@ -7,7 +7,6 @@ use App\Support\Enums\CredentialEnvironment;
 use App\Support\Enums\CredentialPermission;
 use App\Support\Enums\CredentialStatus;
 use App\Support\Enums\CredentialType;
-use App\Support\Enums\SystemRole;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -123,7 +122,7 @@ class Credential extends Model
 
     public function scopeVisibleTo(Builder $query, SystemAccount $account): Builder
     {
-        if ($account->role === SystemRole::Admin) {
+        if ($account->isAdminTier()) {
             return $query;
         }
 
@@ -152,7 +151,7 @@ class Credential extends Model
 
     public function hasPermission(SystemAccount $account, CredentialPermission $permission): bool
     {
-        if ($account->role === SystemRole::Admin) {
+        if ($account->isAdminTier()) {
             return true;
         }
 

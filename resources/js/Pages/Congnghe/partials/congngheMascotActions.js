@@ -32,12 +32,6 @@ export function congngheMascotActions({ onProposalPage = false } = {}) {
         section('san-pham', 'Hệ sinh thái sản phẩm'),
         section('du-an', 'Dự án triển khai'),
         section('lo-trinh', 'Lộ trình 2026–2027'),
-        {
-            key: 'email',
-            label: 'Email phòng Công nghệ',
-            href: 'mailto:phongcongnghe@vaschools.edu.vn',
-            kind: 'mailto',
-        },
     );
 
     return items;

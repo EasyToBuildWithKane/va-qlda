@@ -10,13 +10,15 @@ export const useAuthStore = defineStore('auth', () => {
     const employeeId = computed(() => user.value?.employee_id ?? null);
     const displayName = computed(() => user.value?.display_name ?? '');
 
-    const isAdmin = computed(() => role.value === 'admin');
+    const isSuperAdmin = computed(() => role.value === 'super_admin');
+    // Admin-tier = super_admin or admin (super is a superset of admin).
+    const isAdmin = computed(() => role.value === 'admin' || role.value === 'super_admin');
     const isLead = computed(() => role.value === 'lead');
     const isMember = computed(() => role.value === 'member');
     const isViewer = computed(() => role.value === 'viewer');
 
     const isAtLeast = (minRole) => {
-        const hierarchy = ['viewer', 'member', 'lead', 'admin'];
+        const hierarchy = ['viewer', 'member', 'lead', 'admin', 'super_admin'];
         return hierarchy.indexOf(role.value) >= hierarchy.indexOf(minRole);
     };
 
@@ -25,6 +27,7 @@ export const useAuthStore = defineStore('auth', () => {
         role,
         employeeId,
         displayName,
+        isSuperAdmin,
         isAdmin,
         isLead,
         isMember,

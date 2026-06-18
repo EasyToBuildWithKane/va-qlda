@@ -1,5 +1,5 @@
 <script setup>
-import { computed, watch, onBeforeUnmount } from 'vue';
+import { computed, ref, watch, onBeforeUnmount } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import Avatar from '@/shared/ui/Avatar.vue';
 import {
@@ -13,10 +13,14 @@ import {
     CONGNGHE_PROJECT_DESC_HTML_CLASS,
     CONGNGHE_PROJECT_DESC_PLAIN_CLASS,
 } from './congngheProjectDescriptionStyles.js';
+import { useCongngheFocusTrap } from './useCongngheFocusTrap.js';
 
 const page = usePage();
 
 const open = computed(() => activeCongngheProject.value != null);
+const modalPanel = ref(null);
+
+useCongngheFocusTrap(modalPanel, open);
 
 const project = computed(() => {
     const id = activeCongngheProject.value?.id;
@@ -81,6 +85,7 @@ onBeforeUnmount(() => {
         />
 
         <div
+          ref="modalPanel"
           class="cn-modal-panel relative flex max-h-[94vh] w-full max-w-[78rem] flex-col overflow-hidden rounded-t-3xl border border-white/12 bg-[#0b0c14]/98 shadow-[0_40px_120px_-30px_rgba(0,0,0,0.9)] sm:rounded-3xl"
           :style="{ '--accent': accent }"
           role="dialog"

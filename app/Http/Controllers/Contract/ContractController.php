@@ -18,6 +18,7 @@ use App\Support\ContractLifecycle\ContractServiceGroups;
 use App\Support\Enums\ContractAttachmentCategory;
 use App\Support\Enums\ContractBillingCycle;
 use App\Support\Enums\ContractPaymentStatus;
+use App\Support\Enums\ContractReviewRecommendation;
 use App\Support\Enums\ContractStatus;
 use App\Support\Enums\NotificationType;
 use App\Support\Options;
@@ -172,6 +173,7 @@ class ContractController extends Controller
                 'status' => ContractStatus::options(),
                 'paymentStatus' => ContractPaymentStatus::options(),
                 'billingCycle' => ContractBillingCycle::options(),
+                'recommendationOptions' => ContractReviewRecommendation::options(),
                 'employees' => Options::employees(),
                 'departments' => Options::departments(),
                 'vendors' => Vendor::query()->orderBy('name')->get(['id', 'code', 'name']),

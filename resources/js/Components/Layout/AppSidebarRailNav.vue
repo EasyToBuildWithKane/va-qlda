@@ -78,10 +78,10 @@ const groupHasBadge = (group) => group.items.some((item) => item.badge);
         class="sidebar-rail-group relative mb-0.5 grid h-8 w-8 place-items-center rounded-lg transition-colors"
         :class="[
           groupContainsActive(group)
-            ? 'bg-white/[0.12] text-white ring-1 ring-inset ring-white/15'
+            ? 'bg-white/[0.14] text-white ring-1 ring-inset ring-white/15'
             : isUpcomingGroup(group)
-              ? 'text-amber-200/70 hover:bg-amber-400/15 hover:text-amber-50'
-              : 'text-brand-100/40 hover:bg-white/[0.08] hover:text-brand-100/80',
+              ? 'text-amber-200/80 hover:bg-amber-400/15 hover:text-amber-50'
+              : 'text-brand-100/60 hover:bg-white/[0.08] hover:text-white',
         ]"
         :aria-label="group.heading"
         :aria-haspopup="true"
@@ -113,8 +113,8 @@ const groupHasBadge = (group) => group.items.some((item) => item.badge);
         class="sidebar-rail-item relative grid h-10 w-10 place-items-center rounded-xl transition-all duration-150"
         :class="[
           isActive(item.href)
-            ? 'sidebar-nav-item--active bg-white/[0.14] text-white shadow-sm ring-1 ring-inset ring-white/12'
-            : 'text-brand-100/65 hover:bg-white/[0.08] hover:text-white',
+            ? 'sidebar-nav-item--active bg-white/[0.16] text-white shadow-sm ring-1 ring-inset ring-white/15'
+            : 'text-brand-100/80 hover:bg-white/[0.08] hover:text-white',
           isPlanned(item) && 'cursor-not-allowed opacity-70 hover:bg-amber-400/10 hover:text-amber-100/80',
         ]"
         @mouseenter="showTip($event, item.label, itemTipSub(item), railTone(item))"

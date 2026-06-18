@@ -4,7 +4,6 @@ namespace App\Policies;
 
 use App\Models\Blocker;
 use App\Models\SystemAccount;
-use App\Support\Enums\SystemRole;
 
 class BlockerPolicy
 {
@@ -20,24 +19,23 @@ class BlockerPolicy
 
     public function create(SystemAccount $account): bool
     {
-        return $account->role !== SystemRole::Viewer;
+        return $account->allows('blocker.create');
     }
 
     public function comment(SystemAccount $account, Blocker $blocker): bool
     {
-        return $account->role !== SystemRole::Viewer;
+        return $account->allows('blocker.comment');
     }
 
     public function update(SystemAccount $account, Blocker $blocker): bool
     {
-        return $this->isReviewer($account)
+        return $account->allows('blocker.update')
             || $this->isOwnerOrRaiser($account, $blocker);
     }
 
     public function delete(SystemAccount $account, Blocker $blocker): bool
     {
-        return $account->role === SystemRole::Admin
-            || $this->isReviewer($account);
+        return $account->allows('blocker.delete');
     }
 
     public function recheck(SystemAccount $account, Blocker $blocker): bool
@@ -49,11 +47,6 @@ class BlockerPolicy
     {
         return $account->employee_id !== null
             && $account->employee_id === $blocker->raised_by_id;
-    }
-
-    private function isReviewer(SystemAccount $account): bool
-    {
-        return in_array($account->role, [SystemRole::Admin, SystemRole::Lead], true);
     }
 
     private function isOwnerOrRaiser(SystemAccount $account, Blocker $blocker): bool

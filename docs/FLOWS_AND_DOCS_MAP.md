@@ -309,4 +309,8 @@ Pre-push gates: `.cursor/skills/ship-ready/SKILL.md` · `.cursor/rules/ci-qualit
 | `CONGNGHE_CONTENT.md` | Landing + quản trị /congnghe |
 | `SYSTEM_CONFIG.md` | `/settings` |
 | `DAILY_REPORT_PROJECTS.md` | Báo cáo ngày & liên kết dự án |
-| `REFACTOR_PLAN.md` / `TECHNICAL_DEBT.md` / `NEXT_STEPS.md` | Nợ & roadmap |
+| `CONTRACT_MANAGEMENT.md` | Quản lý hợp đồng / NCC (CLM) |
+| `CREDENTIAL_MANAGEMENT.md` | Kho tài khoản / mật khẩu |
+| `PERFORMANCE_ANALYTICS.md` | Hiệu suất & audit công việc |
+| `ONBOARDING.md` | Tour tương tác khi đăng nhập |
+| `REFACTOR_PLAN.md` / `TECHNICAL_DEBT.md` | Nợ & roadmap |

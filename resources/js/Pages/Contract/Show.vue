@@ -11,6 +11,7 @@ import RenewalQuickModal from '@/modules/contract/components/RenewalQuickModal.v
 import ContractShowSummaryBar from '@/modules/contract/components/ContractShowSummaryBar.vue';
 import ContractFinanceFormPanel from '@/modules/contract/components/ContractFinanceFormPanel.vue';
 import EmployeeAutocomplete from '@/modules/contract/components/EmployeeAutocomplete.vue';
+import VendorFieldLabel from '@/modules/contract/components/VendorFieldLabel.vue';
 import { useDialog } from '@/composables/useDialog';
 import {
     formatMoney,
@@ -18,6 +19,7 @@ import {
     expiryLabel,
     expiryTone,
     formatVndDisplay,
+    addMonths,
 } from '@/modules/contract/composables/useContractFormat.js';
 import { displayOrEmpty, EMPTY_LABELS } from '@/shared/utils/emptyDisplay.js';
 
@@ -116,6 +118,23 @@ const attachmentCount = computed(() => (c.value.attachments ?? []).length);
 const addendaCount = computed(() => (c.value.addenda ?? []).length);
 const financeRowCount = computed(() => (c.value.finances ?? []).length);
 
+/** Ngày đến hạn của một dòng tài chính = ngày SD + số tháng cam kết. */
+function financeDueDate(f) {
+    return addMonths(f.used_date, f.term_months);
+}
+
+/** Tổng cộng các cột số tiền của bảng tài chính (chân bảng). */
+const financeTotals = computed(() => {
+    const rows = c.value.finances ?? [];
+    const sum = (key) => rows.reduce((acc, f) => acc + (Number(f[key]) || 0), 0);
+    return {
+        init_fee: sum('init_fee'),
+        maintenance_fee: sum('maintenance_fee'),
+        renewal_cost: sum('renewal_cost'),
+        total: sum('total'),
+    };
+});
+
 // ─── Finance Tab ─────────────────────────────────────────────────────────────
 const showFinanceForm = ref(false);
 const editingFinanceId = ref(null);
@@ -192,12 +211,12 @@ async function deleteFinance(f) {
 
 // ─── Evaluation Tab ──────────────────────────────────────────────────────────
 const reviewCriteria = [
-    { key: 'service_quality',   label: 'Chất lượng DV' },
-    { key: 'sla',               label: 'SLA' },
-    { key: 'speed',             label: 'Tốc độ' },
-    { key: 'price_satisfaction', label: 'Giá hài lòng' },
-    { key: 'stability',         label: 'Ổn định' },
-    { key: 'attitude',          label: 'Thái độ' },
+    { key: 'service_quality',    label: 'Chất lượng DV', tip: 'Chất lượng dịch vụ/sản phẩm so với cam kết.' },
+    { key: 'sla',                label: 'SLA',           tip: 'Mức độ đáp ứng cam kết dịch vụ (SLA, uptime…).' },
+    { key: 'speed',              label: 'Tốc độ',        tip: 'Tốc độ phản hồi và xử lý yêu cầu/sự cố.' },
+    { key: 'price_satisfaction', label: 'Giá hài lòng',  tip: 'Mức độ hài lòng về giá so với giá trị nhận được.' },
+    { key: 'stability',          label: 'Ổn định',       tip: 'Độ ổn định của dịch vụ trong suốt kỳ sử dụng.' },
+    { key: 'attitude',           label: 'Thái độ',       tip: 'Thái độ hợp tác, hỗ trợ của nhà cung cấp.' },
 ];
 
 const showReviewForm = ref(false);
@@ -212,6 +231,16 @@ const reviewForm = useForm({
     attitude:         null,
     recommendation:   null,
     note:             '',
+});
+
+/** Điểm trung bình tạm tính theo các tiêu chí đã nhập (xem trước trước khi lưu). */
+const reviewLivePreview = computed(() => {
+    const vals = reviewCriteria
+        .map((cr) => reviewForm[cr.key])
+        .filter((v) => v !== null && v !== '' && !Number.isNaN(Number(v)))
+        .map(Number);
+    if (!vals.length) return null;
+    return Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10;
 });
 
 function cancelReview() {
@@ -394,15 +423,13 @@ const addenda = computed(() => c.value.addenda ?? []);
                           </dt>
                           <dd class="text-right">
                             <Badge
-                              v-if="c.status"
+                              v-if="c.status?.label"
                               :color="c.status.color"
-                              size="sm"
-                            >
-                              {{ c.status.label }}
-                            </Badge>
+                              :label="c.status.label"
+                            />
                             <span
                               v-else
-                              class="italic text-slate-400 text-sm"
+                              class="text-sm italic text-slate-400"
                             >Chưa cập nhật</span>
                           </dd>
                         </div>
@@ -705,30 +732,36 @@ const addenda = computed(() => c.value.addenda ?? []);
                   v-if="c.finances?.length"
                   class="card overflow-hidden p-0"
                 >
-                  <div class="overflow-auto">
-                    <table class="w-full text-sm">
-                      <thead class="bg-slate-50 text-left text-xs text-slate-500">
+                  <div class="overflow-x-auto">
+                    <table class="w-full min-w-[1040px] text-sm">
+                      <thead class="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
                         <tr>
                           <th class="px-3 py-2.5 font-medium">
                             Ngày SD
+                          </th>
+                          <th class="px-3 py-2.5 font-medium">
+                            Đến hạn
                           </th>
                           <th class="px-3 py-2.5 text-right font-medium">
                             SL
                           </th>
                           <th class="px-3 py-2.5 text-right font-medium">
-                            Đơn giá (VNĐ)
+                            Đơn giá
                           </th>
                           <th class="px-3 py-2.5 text-right font-medium">
-                            Số tháng
-                          </th>
-                          <th class="px-3 py-2.5 text-right font-medium">
-                            Phí Khởi Tạo (VNĐ)
+                            Phí khởi tạo
                           </th>
                           <th class="px-3 py-2.5 text-right font-medium">
                             Phí DT / tháng
                           </th>
+                          <th class="px-3 py-2.5 text-right font-medium">
+                            Phí gia hạn
+                          </th>
                           <th class="px-3 py-2.5 text-right font-semibold text-slate-700">
-                            Chi phí năm / Tổng HĐ
+                            Tổng HĐ
+                          </th>
+                          <th class="px-3 py-2.5 font-medium">
+                            Ghi chú
                           </th>
                           <th
                             v-if="c.can?.update"
@@ -740,48 +773,60 @@ const addenda = computed(() => c.value.addenda ?? []);
                         <tr
                           v-for="f in c.finances"
                           :key="f.id"
-                          class="border-t border-slate-100 hover:bg-slate-50"
+                          class="border-t border-slate-100 align-top hover:bg-slate-50/70"
                         >
-                          <td class="px-3 py-2 text-slate-600">
-                            {{ f.used_date ? formatDate(f.used_date) : 'Chưa nhập' }}
+                          <td class="whitespace-nowrap px-3 py-2.5 text-slate-600">
+                            {{ f.used_date ? formatDate(f.used_date) : '—' }}
                           </td>
-                          <td class="px-3 py-2 text-right">
-                            {{ f.quantity != null ? Number(f.quantity).toLocaleString('vi-VN') : '' }}
-                          </td>
-                          <td class="px-3 py-2 text-right">
-                            <template v-if="f.unit_price != null">
-                              <span class="block">{{ formatMoney(f.unit_price, c.currency) }}</span>
-                              <span class="text-[10px] text-slate-400">{{ formatVndDisplay(f.unit_price).secondary }}</span>
+                          <td class="whitespace-nowrap px-3 py-2.5">
+                            <template v-if="financeDueDate(f)">
+                              <span class="block font-medium text-slate-700">{{ formatDate(financeDueDate(f)) }}</span>
+                              <span class="text-[10px] text-slate-400">{{ f.term_months }} tháng</span>
                             </template>
                             <span
                               v-else
-                              class="text-slate-400"
-                            />
+                              class="text-slate-300"
+                            >—</span>
                           </td>
-                          <td class="px-3 py-2 text-right text-slate-600">
-                            {{ f.term_months ? `${f.term_months} th` : '' }}
+                          <td class="whitespace-nowrap px-3 py-2.5 text-right tabular-nums text-slate-600">
+                            {{ f.quantity != null ? Number(f.quantity).toLocaleString('vi-VN') : '—' }}
                           </td>
-                          <td class="px-3 py-2 text-right">
-                            <template v-if="f.init_fee != null">
-                              <span class="block">{{ formatMoney(f.init_fee, c.currency) }}</span>
-                              <span class="text-[10px] text-slate-400">{{ formatVndDisplay(f.init_fee).secondary }}</span>
-                            </template>
+                          <td class="whitespace-nowrap px-3 py-2.5 text-right tabular-nums text-slate-600">
+                            {{ f.unit_price != null ? formatMoney(f.unit_price, c.currency) : '—' }}
                           </td>
-                          <td class="px-3 py-2 text-right">
-                            <template v-if="f.maintenance_fee != null">
-                              <span class="block">{{ formatMoney(f.maintenance_fee, c.currency) }}</span>
-                              <span class="text-[10px] text-slate-400">{{ formatVndDisplay(f.maintenance_fee).secondary }}</span>
-                            </template>
+                          <td class="whitespace-nowrap px-3 py-2.5 text-right tabular-nums text-slate-600">
+                            {{ f.init_fee != null ? formatMoney(f.init_fee, c.currency) : '—' }}
                           </td>
-                          <td class="px-3 py-2 text-right">
+                          <td class="whitespace-nowrap px-3 py-2.5 text-right tabular-nums text-slate-600">
+                            {{ f.maintenance_fee != null ? formatMoney(f.maintenance_fee, c.currency) : '—' }}
+                          </td>
+                          <td class="whitespace-nowrap px-3 py-2.5 text-right tabular-nums text-slate-600">
+                            {{ f.renewal_cost != null ? formatMoney(f.renewal_cost, c.currency) : '—' }}
+                          </td>
+                          <td class="whitespace-nowrap px-3 py-2.5 text-right tabular-nums">
                             <template v-if="f.total != null">
                               <span class="block font-semibold text-slate-800">{{ formatMoney(f.total, c.currency) }}</span>
-                              <span class="text-[10px] text-slate-500">{{ formatVndDisplay(f.total).secondary }}</span>
+                              <span class="text-[10px] text-slate-400">{{ formatVndDisplay(f.total).secondary }}</span>
                             </template>
+                            <span
+                              v-else
+                              class="text-slate-300"
+                            >—</span>
+                          </td>
+                          <td class="max-w-[200px] px-3 py-2.5 text-slate-500">
+                            <span
+                              v-if="f.note"
+                              class="line-clamp-2"
+                              :title="f.note"
+                            >{{ f.note }}</span>
+                            <span
+                              v-else
+                              class="text-slate-300"
+                            >—</span>
                           </td>
                           <td
                             v-if="c.can?.update"
-                            class="px-3 py-2 text-right"
+                            class="whitespace-nowrap px-3 py-2.5 text-right"
                           >
                             <div class="flex items-center justify-end gap-1">
                               <button
@@ -810,6 +855,32 @@ const addenda = computed(() => c.value.addenda ?? []);
                           </td>
                         </tr>
                       </tbody>
+                      <tfoot
+                        v-if="c.finances.length > 1"
+                        class="border-t-2 border-slate-200 bg-slate-50 text-xs"
+                      >
+                        <tr>
+                          <td
+                            class="px-3 py-2.5 font-semibold text-slate-600"
+                            colspan="4"
+                          >
+                            Tổng cộng ({{ c.finances.length }} dòng)
+                          </td>
+                          <td class="whitespace-nowrap px-3 py-2.5 text-right tabular-nums text-slate-600">
+                            {{ financeTotals.init_fee ? formatMoney(financeTotals.init_fee, c.currency) : '—' }}
+                          </td>
+                          <td class="whitespace-nowrap px-3 py-2.5 text-right tabular-nums text-slate-600">
+                            {{ financeTotals.maintenance_fee ? formatMoney(financeTotals.maintenance_fee, c.currency) : '—' }}
+                          </td>
+                          <td class="whitespace-nowrap px-3 py-2.5 text-right tabular-nums text-slate-600">
+                            {{ financeTotals.renewal_cost ? formatMoney(financeTotals.renewal_cost, c.currency) : '—' }}
+                          </td>
+                          <td class="whitespace-nowrap px-3 py-2.5 text-right tabular-nums font-bold text-brand">
+                            {{ financeTotals.total ? formatMoney(financeTotals.total, c.currency) : '—' }}
+                          </td>
+                          <td :colspan="c.can?.update ? 2 : 1" />
+                        </tr>
+                      </tfoot>
                     </table>
                   </div>
                 </div>
@@ -889,102 +960,171 @@ const addenda = computed(() => c.value.addenda ?? []);
                 <!-- Review add form -->
                 <div
                   v-if="showReviewForm"
-                  class="card p-4"
+                  class="card overflow-hidden p-0"
                 >
-                  <h4 class="mb-4 font-display text-sm font-semibold text-slate-800">
-                    Thêm đánh giá cho hợp đồng
-                  </h4>
+                  <div class="border-b border-slate-100 bg-slate-50/80 px-4 py-3 sm:px-5">
+                    <h4 class="font-display text-sm font-semibold text-slate-800">
+                      Thêm đánh giá nhà cung cấp
+                    </h4>
+                    <p class="mt-0.5 text-xs text-slate-500">
+                      Chấm điểm 6 tiêu chí (0–10). Trường có dấu <span class="font-semibold text-danger">*</span> là bắt buộc.
+                    </p>
+                  </div>
+
                   <form
-                    class="space-y-4"
+                    class="space-y-6 p-4 sm:p-5"
                     @submit.prevent="submitReview"
                   >
-                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                      <div>
-                        <label class="label">Người đánh giá *</label>
-                        <EmployeeAutocomplete
-                          v-model="reviewForm.reviewer_id"
-                          :employees="options.employees || []"
+                    <!-- Thông tin chung -->
+                    <fieldset class="min-w-0 space-y-3">
+                      <legend class="mb-1 flex w-full items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        <AppIcon
+                          name="info"
+                          :size="14"
+                          class="text-brand/70"
                         />
-                        <p
-                          v-if="reviewForm.errors.reviewer_id"
-                          class="mt-1 text-xs text-rose-600"
-                        >
-                          {{ reviewForm.errors.reviewer_id }}
-                        </p>
+                        Thông tin đánh giá
+                      </legend>
+                      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div class="min-w-0">
+                          <VendorFieldLabel
+                            label="Người đánh giá"
+                            required
+                            tooltip="Nhân sự thực hiện đánh giá nhà cung cấp này. Gõ tên hoặc email để tìm."
+                          />
+                          <EmployeeAutocomplete
+                            v-model="reviewForm.reviewer_id"
+                            :options="options.employees || []"
+                          />
+                          <p
+                            v-if="reviewForm.errors.reviewer_id"
+                            class="mt-1 text-xs text-rose-600"
+                          >
+                            {{ reviewForm.errors.reviewer_id }}
+                          </p>
+                        </div>
+                        <div class="min-w-0">
+                          <VendorFieldLabel
+                            for-id="review-date"
+                            label="Ngày đánh giá"
+                            tooltip="Thời điểm thực hiện đánh giá. Mặc định là hôm nay."
+                          />
+                          <input
+                            id="review-date"
+                            v-model="reviewForm.reviewed_at"
+                            type="date"
+                            class="input h-10 w-full text-sm"
+                          >
+                        </div>
                       </div>
-                      <div>
-                        <label class="label">Ngày đánh giá</label>
-                        <input
-                          v-model="reviewForm.reviewed_at"
-                          type="date"
-                          class="input h-10 w-full text-sm"
-                        >
-                      </div>
-                    </div>
+                    </fieldset>
 
-                    <div>
-                      <p class="mb-2 text-xs font-medium text-slate-600">
-                        Điểm đánh giá (0 – 10)
-                      </p>
+                    <!-- Điểm tiêu chí -->
+                    <fieldset class="min-w-0 space-y-3">
+                      <legend class="mb-1 flex w-full items-center justify-between gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        <span class="flex items-center gap-2">
+                          <AppIcon
+                            name="star"
+                            :size="14"
+                            class="text-brand/70"
+                          />
+                          Điểm theo tiêu chí (0 – 10)
+                        </span>
+                        <span
+                          v-if="reviewLivePreview != null"
+                          class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold normal-case text-amber-700"
+                        >
+                          TB tạm tính: ★ {{ reviewLivePreview }} / 10
+                        </span>
+                      </legend>
                       <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
                         <div
                           v-for="cr in reviewCriteria"
                           :key="cr.key"
+                          class="min-w-0"
                         >
-                          <label class="label text-xs">{{ cr.label }}</label>
+                          <VendorFieldLabel
+                            :for-id="`review-${cr.key}`"
+                            :label="cr.label"
+                            compact
+                            :tooltip="cr.tip"
+                          />
                           <input
+                            :id="`review-${cr.key}`"
                             v-model="reviewForm[cr.key]"
                             type="number"
                             min="0"
                             max="10"
                             step="0.5"
-                            class="input h-9 w-full text-sm"
+                            class="input h-9 w-full text-sm tabular-nums"
                             placeholder="0–10"
                           >
                         </div>
                       </div>
-                    </div>
+                    </fieldset>
 
-                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                      <div>
-                        <label class="label">Đề xuất</label>
-                        <select
-                          v-model="reviewForm.recommendation"
-                          class="input h-10 w-full text-sm"
-                        >
-                          <option :value="null">
-                            — Chọn đề xuất —
-                          </option>
-                          <option
-                            v-for="opt in (options.recommendationOptions || [])"
-                            :key="opt.value"
-                            :value="opt.value"
-                          >
-                            {{ opt.label }}
-                          </option>
-                        </select>
-                      </div>
-                      <div>
-                        <label class="label">Ghi chú</label>
-                        <textarea
-                          v-model="reviewForm.note"
-                          rows="2"
-                          class="input w-full text-sm"
+                    <!-- Kết luận -->
+                    <fieldset class="min-w-0 space-y-3">
+                      <legend class="mb-1 flex w-full items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        <AppIcon
+                          name="documents"
+                          :size="14"
+                          class="text-brand/70"
                         />
+                        Kết luận
+                      </legend>
+                      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div class="min-w-0">
+                          <VendorFieldLabel
+                            for-id="review-recommendation"
+                            label="Đề xuất"
+                            tooltip="Khuyến nghị sau đánh giá: tiếp tục gia hạn, đổi NCC, cần review thêm…"
+                          />
+                          <select
+                            id="review-recommendation"
+                            v-model="reviewForm.recommendation"
+                            class="input h-10 w-full text-sm"
+                          >
+                            <option :value="null">
+                              — Chọn đề xuất —
+                            </option>
+                            <option
+                              v-for="opt in (options.recommendationOptions || [])"
+                              :key="opt.value"
+                              :value="opt.value"
+                            >
+                              {{ opt.label }}
+                            </option>
+                          </select>
+                        </div>
+                        <div class="min-w-0">
+                          <VendorFieldLabel
+                            for-id="review-note"
+                            label="Ghi chú"
+                            tooltip="Nhận xét chi tiết, dẫn chứng cụ thể cho điểm số."
+                          />
+                          <textarea
+                            id="review-note"
+                            v-model="reviewForm.note"
+                            rows="2"
+                            class="input w-full text-sm"
+                            placeholder="VD: SLA tốt, hỗ trợ nhanh; giá tăng 10% so với năm trước…"
+                          />
+                        </div>
                       </div>
-                    </div>
+                    </fieldset>
 
-                    <div class="flex justify-end gap-2">
+                    <div class="flex justify-end gap-2 border-t border-slate-100 pt-4">
                       <button
                         type="button"
-                        class="btn-ghost"
+                        class="btn-ghost h-9"
                         @click="cancelReview"
                       >
                         Huỷ
                       </button>
                       <button
                         type="submit"
-                        class="btn-primary"
+                        class="btn-primary h-9"
                         :disabled="reviewForm.processing"
                       >
                         {{ reviewForm.processing ? 'Đang lưu…' : 'Lưu đánh giá' }}

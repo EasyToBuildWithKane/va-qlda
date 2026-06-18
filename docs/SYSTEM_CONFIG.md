@@ -1,7 +1,9 @@
 # SYSTEM CONFIG — Cấu hình hệ thống
 
-> Module quản trị (admin-only) cho phép chỉnh cấu hình runtime mà không cần sửa `.env` / deploy lại.
-> Đường dẫn: **`/settings`** · Nav: **Quản trị → Cấu hình hệ thống**.
+> Module quản trị (**super-admin-only**) cho phép chỉnh cấu hình runtime mà không cần sửa `.env` / deploy lại.
+> Đường dẫn: **`/settings`** · Nav: **Cấu hình hệ thống** (chỉ Super Admin thấy).
+>
+> ⚠️ Từ bản nâng cấp RBAC: chỉ vai trò **`super_admin`** truy cập `/settings` (gồm tab Phân quyền & Tài khoản). `admin` **không** còn vào được. Chi tiết ma trận phân quyền & vai trò xem **[PERMISSIONS.md](PERMISSIONS.md)**.
 
 ---
 
@@ -82,18 +84,21 @@ Pages/Settings/Index.vue       SystemSettingController             SystemSetting
 | | | `renewal_alert_days` | string | `clm.renewal_alert_days` |
 | | | `alert_telegram` | bool | `clm.alert_telegram` |
 | **Phân quyền** | `permissions` | `role_grants` | matrix | `va_permissions.role_grants` |
+| **Tài khoản & Vai trò** | `accounts` | — | (runtime) | gán `system_accounts.role` (PUT `/settings/accounts/{id}/role`) |
 
 `general.app_*` còn được chia sẻ ra Inertia qua prop `app` (`HandleInertiaRequests`) → `AppLayout` dùng cho ô thương hiệu (rail), tiêu đề, chân thanh bên.
 
 ---
 
-## 4. Tab Phân quyền (editable matrix)
+## 4. Tab Phân quyền (RBAC matrix) — xem [PERMISSIONS.md](PERMISSIONS.md)
 
-- **Catalog quyền** (`va_permissions.permissions`) giữ ở config — gắn với code, không tạo từ UI.
-- **Grants** (`role_grants`) editable trong DB: admin bật/tắt quyền cho `lead` / `member` / `viewer`.
-- **`admin` bị khóa**: UI hiển thị full quyền, disabled; backend ép `admin => ['*']` ở cả `normalizedGrants()` (controller) và `SettingsServiceProvider` (overlay) ⇒ không thể tự khóa quyền admin.
-- `Permissions::roleAllows()` **không đổi** (vẫn đọc `config('va_permissions.role_grants')`); overlay cấp giá trị DB nên grant mới có hiệu lực ngay (vd. `notifications.manage`).
-- Tab còn hiển thị **"Menu theo vai trò"** (read-only) suy từ `Navigation::for()` — biết mỗi role thấy menu gì.
+- **Catalog quyền** = `App\Support\Auth\PermissionCatalog` (module → abilities), gắn với code, không tạo từ UI. UI nhóm theo module, cột = vai trò.
+- **Grants** (`role_grants`) editable trong DB: **super_admin** bật/tắt quyền cho `admin` / `lead` / `member` / `viewer`.
+- **`super_admin` bị khóa**: UI hiển thị full quyền, disabled; backend ép `super_admin => ['*']` ở cả `normalizedGrants()` (controller) và `SettingsServiceProvider` (overlay) ⇒ không tự khóa được.
+- **Reserved keys** (cấu hình hệ thống, ma trận, gán role) bị **strip** khỏi mọi role ≠ super_admin ở cả controller lẫn overlay.
+- `Permissions::roleAllows()` đọc `config('va_permissions.role_grants')` đã overlay (hierarchy `*` → `{module}.*` → exact). Policy gọi `$account->allows()` → ma trận điều khiển **thật** quyền edit/delete.
+- Tab **Tài khoản & Vai trò** (`accounts`): super_admin gán role runtime (`PUT /settings/accounts/{id}/role`), không hạ được Super Admin cuối cùng.
+- Tab còn hiển thị **"Menu theo vai trò"** (read-only) suy từ `Navigation::for()`.
 
 ---
 

@@ -23,16 +23,30 @@ class BootstrapAdminRolesTest extends TestCase
                 'admin.user@vaschools.edu.vn' => 'admin',
             ],
             'va_permissions.role_grants' => [
-                'admin' => ['*'],
-                'member' => ['daily_reports.submit'],
+                'super_admin' => ['*'],
+                'admin' => ['contract.manage', 'project.create'],
+                'lead' => ['project.manage', 'contract.*'],
+                'member' => ['daily_report.submit'],
             ],
         ]);
     }
 
-    public function test_permissions_admin_has_wildcard(): void
+    public function test_super_admin_has_wildcard(): void
     {
-        $this->assertTrue(Permissions::roleAllows(SystemRole::Admin, 'notifications.manage'));
-        $this->assertFalse(Permissions::roleAllows(SystemRole::Member, 'notifications.manage'));
+        $this->assertTrue(Permissions::roleAllows(SystemRole::SuperAdmin, 'notification.manage'));
+        $this->assertTrue(Permissions::roleAllows(SystemRole::SuperAdmin, 'system.settings.manage'));
+        $this->assertFalse(Permissions::roleAllows(SystemRole::Member, 'notification.manage'));
+    }
+
+    public function test_role_allows_respects_module_wildcard(): void
+    {
+        // 'contract.*' grants every contract ability …
+        $this->assertTrue(Permissions::roleAllows(SystemRole::Lead, 'contract.delete'));
+        // … but does not leak into other modules.
+        $this->assertFalse(Permissions::roleAllows(SystemRole::Lead, 'vendor.delete'));
+        // Exact grant only matches itself.
+        $this->assertTrue(Permissions::roleAllows(SystemRole::Admin, 'project.create'));
+        $this->assertFalse(Permissions::roleAllows(SystemRole::Admin, 'project.delete'));
     }
 
     public function test_bootstrap_promotes_existing_account_to_admin(): void

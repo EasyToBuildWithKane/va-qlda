@@ -4,7 +4,6 @@ namespace App\Policies;
 
 use App\Models\OrgTeam;
 use App\Models\SystemAccount;
-use App\Support\Enums\SystemRole;
 
 class OrgTeamPolicy
 {
@@ -20,25 +19,18 @@ class OrgTeamPolicy
 
     public function create(SystemAccount $account): bool
     {
-        return $this->canManage($account);
+        return $account->allows('org_team.create');
     }
 
     public function update(SystemAccount $account, OrgTeam $orgTeam): bool
     {
-        return $this->canManage($account);
+        return $account->allows('org_team.update');
     }
 
     public function delete(SystemAccount $account, OrgTeam $orgTeam): bool
     {
-        if ($account->role === SystemRole::Admin) {
-            return true;
-        }
-
-        return $this->canManage($account) && $orgTeam->level > 1;
-    }
-
-    private function canManage(SystemAccount $account): bool
-    {
-        return in_array($account->role, [SystemRole::Admin, SystemRole::Lead], true);
+        // Admin tier may delete any node; finer grants only below the root.
+        return $account->allows('org_team.delete')
+            && ($account->isAdminTier() || $orgTeam->level > 1);
     }
 }

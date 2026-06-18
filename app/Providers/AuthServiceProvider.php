@@ -40,7 +40,6 @@ use App\Policies\OrgTeamPolicy;
 use App\Policies\ProjectPolicy;
 use App\Policies\SystemSettingPolicy;
 use App\Policies\VendorPolicy;
-use App\Support\Enums\SystemRole;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Gate;
 
@@ -80,11 +79,11 @@ class AuthServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Module Hiệu suất & Audit — chỉ vai trò quản lý (admin/lead/viewer) xem được.
-        Gate::define('performance.view', fn (SystemAccount $account) => $account->hasRole(
-            SystemRole::Admin,
-            SystemRole::Lead,
-            SystemRole::Viewer,
-        ));
+        // Super admin is unconditionally all-powerful — short-circuit every
+        // gate/policy. Returning null lets other roles fall through to policies.
+        Gate::before(fn (SystemAccount $account) => $account->isSuperAdmin() ? true : null);
+
+        // Module Hiệu suất & Audit — điều khiển qua ma trận phân quyền.
+        Gate::define('performance.view', fn (SystemAccount $account) => $account->allows('performance.view'));
     }
 }

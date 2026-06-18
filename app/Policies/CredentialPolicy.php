@@ -5,7 +5,6 @@ namespace App\Policies;
 use App\Models\Credential;
 use App\Models\SystemAccount;
 use App\Support\Enums\CredentialPermission;
-use App\Support\Enums\SystemRole;
 
 class CredentialPolicy
 {
@@ -16,7 +15,7 @@ class CredentialPolicy
 
     public function view(SystemAccount $account, Credential $credential): bool
     {
-        if ($account->role === SystemRole::Admin) {
+        if ($account->isAdminTier()) {
             return true;
         }
 
@@ -29,12 +28,12 @@ class CredentialPolicy
 
     public function create(SystemAccount $account): bool
     {
-        return in_array($account->role, [SystemRole::Admin, SystemRole::Lead, SystemRole::Member], true);
+        return $account->allows('credential.create');
     }
 
     public function update(SystemAccount $account, Credential $credential): bool
     {
-        if ($account->role === SystemRole::Admin) {
+        if ($account->allows('credential.update')) {
             return true;
         }
 
@@ -47,7 +46,7 @@ class CredentialPolicy
 
     public function delete(SystemAccount $account, Credential $credential): bool
     {
-        if ($account->role === SystemRole::Admin) {
+        if ($account->allows('credential.delete')) {
             return true;
         }
 
@@ -60,7 +59,7 @@ class CredentialPolicy
 
     public function viewPassword(SystemAccount $account, Credential $credential): bool
     {
-        if ($account->role === SystemRole::Admin) {
+        if ($account->allows('credential.view_password')) {
             return true;
         }
 
@@ -73,7 +72,7 @@ class CredentialPolicy
 
     public function share(SystemAccount $account, Credential $credential): bool
     {
-        if ($account->role === SystemRole::Admin) {
+        if ($account->allows('credential.share')) {
             return true;
         }
 
@@ -86,7 +85,7 @@ class CredentialPolicy
 
     public function manageAccess(SystemAccount $account, Credential $credential): bool
     {
-        if ($account->role === SystemRole::Admin) {
+        if ($account->allows('credential.manage_access')) {
             return true;
         }
 
@@ -96,7 +95,7 @@ class CredentialPolicy
 
     public function viewAccessTab(SystemAccount $account, Credential $credential): bool
     {
-        if ($account->role === SystemRole::Admin) {
+        if ($account->isAdminTier() || $account->allows('credential.manage_access')) {
             return true;
         }
 
@@ -109,7 +108,7 @@ class CredentialPolicy
 
     public function export(SystemAccount $account, Credential $credential): bool
     {
-        if ($account->role === SystemRole::Admin) {
+        if ($account->allows('credential.export')) {
             return true;
         }
 

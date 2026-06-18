@@ -4,7 +4,6 @@ namespace App\Policies;
 
 use App\Models\Department;
 use App\Models\SystemAccount;
-use App\Support\Enums\SystemRole;
 
 class DepartmentPolicy
 {
@@ -20,21 +19,16 @@ class DepartmentPolicy
 
     public function create(SystemAccount $account): bool
     {
-        return $this->isReviewer($account);
+        return $account->allows('department.create');
     }
 
     public function update(SystemAccount $account, Department $department): bool
     {
-        return $this->isReviewer($account);
+        return $account->allows('department.update');
     }
 
     public function delete(SystemAccount $account, Department $department): bool
     {
-        return $account->role === SystemRole::Admin;
-    }
-
-    private function isReviewer(SystemAccount $account): bool
-    {
-        return in_array($account->role, [SystemRole::Admin, SystemRole::Lead], true);
+        return $account->allows('department.delete');
     }
 }

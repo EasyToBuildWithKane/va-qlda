@@ -3,6 +3,8 @@ import { computed, ref, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import Modal from '@/Components/Ui/Modal.vue';
 import AppIcon from '@/Components/AppIcon.vue';
+import MoneyInput from '@/modules/contract/components/MoneyInput.vue';
+import VendorFieldLabel from '@/modules/contract/components/VendorFieldLabel.vue';
 import { formatMoney, formatDate } from '../composables/useContractFormat.js';
 
 const props = defineProps({
@@ -14,6 +16,7 @@ const emit = defineEmits(['close', 'saved']);
 
 const linkDraft = ref('');
 const pendingLinks = ref([]);
+const autoName = ref(true);
 
 const form = useForm({
     name: '',
@@ -24,10 +27,14 @@ const form = useForm({
     links: [],
 });
 
+/** Tên mặc định backend sẽ tự đặt khi để trống. Khớp ContractRenewalController. */
+const autoNamePreview = computed(() => (props.contract ? `${props.contract.name} — Phụ lục` : ''));
+
 watch(() => props.show, (open) => {
     if (!open || !props.contract) return;
     linkDraft.value = '';
     pendingLinks.value = [];
+    autoName.value = true;
     form.clearErrors();
     form.defaults({
         name: '',
@@ -38,6 +45,11 @@ watch(() => props.show, (open) => {
         links: [],
     });
     form.reset();
+});
+
+// Khi bật "tự đặt tên", xoá tên tuỳ chỉnh để backend tự sinh.
+watch(autoName, (auto) => {
+    if (auto) form.name = '';
 });
 
 function suggestNextExpiry(c) {
@@ -73,6 +85,7 @@ function removeLink(idx) {
 
 function submit() {
     form.links = [...pendingLinks.value];
+    if (autoName.value) form.name = '';
     form.post(`/contracts/${props.contract.id}/renewals`, {
         preserveScroll: true,
         onSuccess: () => { emit('saved'); emit('close'); },
@@ -84,16 +97,16 @@ function submit() {
   <Modal
     :show="show"
     title="Gia hạn — Tạo phụ lục mới"
-    max-width="max-w-2xl"
+    max-width="max-w-4xl"
     :dirty="form.isDirty || pendingLinks.length > 0"
     @close="emit('close')"
   >
     <div
       v-if="contract"
-      class="space-y-4"
+      class="space-y-5"
     >
       <!-- Current contract summary -->
-      <div class="rounded-lg bg-slate-50 p-3 text-sm">
+      <div class="rounded-lg border border-slate-200 bg-slate-50 p-3.5 text-sm">
         <p class="font-semibold text-slate-800">
           {{ contract.name }}
         </p>
@@ -121,33 +134,68 @@ function submit() {
       </div>
 
       <form
-        class="space-y-4"
+        class="space-y-5"
         @submit.prevent="submit"
       >
-        <!-- Name -->
+        <!-- Name + auto toggle -->
         <div>
-          <label class="label">Tên phụ lục (để trống = tự đặt)</label>
+          <div class="mb-1 flex items-center justify-between gap-2">
+            <VendorFieldLabel
+              for-id="renew-name"
+              label="Tên phụ lục"
+              tooltip="Tên hợp đồng phụ lục sẽ tạo. Bật 'Tự đặt tên' để hệ thống tự sinh theo hợp đồng gốc."
+            />
+            <label class="flex cursor-pointer items-center gap-1.5 text-xs text-slate-500">
+              <input
+                v-model="autoName"
+                type="checkbox"
+                class="h-3.5 w-3.5 rounded border-slate-300 text-brand focus:ring-brand"
+              >
+              Tự đặt tên
+            </label>
+          </div>
           <input
-            v-model="form.name"
+            id="renew-name"
+            :value="autoName ? autoNamePreview : form.name"
             type="text"
             class="input h-10 w-full text-sm"
-            :placeholder="`${contract.name} — Phụ lục`"
+            :class="autoName ? 'bg-slate-50 text-slate-500' : ''"
+            :disabled="autoName"
+            :placeholder="autoNamePreview"
+            @input="form.name = $event.target.value"
           >
+          <p
+            v-if="autoName"
+            class="mt-1 text-[11px] text-slate-400"
+          >
+            Hệ thống sẽ tự đặt tên như trên. Tắt để nhập tên tuỳ chỉnh.
+          </p>
         </div>
 
-        <!-- Dates -->
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label class="label">Ngày hiệu lực mới</label>
+        <!-- 2-col grid: dates + cost/note -->
+        <div class="grid grid-cols-1 gap-x-5 gap-y-5 sm:grid-cols-2">
+          <div class="min-w-0">
+            <VendorFieldLabel
+              for-id="renew-effective"
+              label="Ngày hiệu lực mới"
+              tooltip="Ngày phụ lục bắt đầu có hiệu lực — mặc định là ngày hết hạn của HĐ hiện tại."
+            />
             <input
+              id="renew-effective"
               v-model="form.effective_date"
               type="date"
               class="input h-10 w-full text-sm"
             >
           </div>
-          <div>
-            <label class="label">Ngày hết hạn mới *</label>
+          <div class="min-w-0">
+            <VendorFieldLabel
+              for-id="renew-expiry"
+              label="Ngày hết hạn mới"
+              required
+              tooltip="Ngày hết hạn của phụ lục gia hạn."
+            />
             <input
+              id="renew-expiry"
               v-model="form.new_expiry"
               type="date"
               class="input h-10 w-full text-sm"
@@ -159,91 +207,109 @@ function submit() {
               {{ form.errors.new_expiry }}
             </p>
           </div>
-        </div>
 
-        <!-- Cost -->
-        <div>
-          <label class="label">Chi phí năm mới (VNĐ)</label>
-          <input
-            v-model="form.new_cost"
-            type="number"
-            min="0"
-            class="input h-10 w-full text-sm"
-          >
-          <p
-            v-if="costDelta"
-            class="mt-1 text-xs"
-            :class="costDelta.diff > 0 ? 'text-rose-600' : 'text-emerald-600'"
-          >
-            {{ costDelta.diff > 0 ? '▲' : '▼' }}
-            {{ formatMoney(Math.abs(costDelta.diff), contract.currency) }}
-            ({{ costDelta.pct > 0 ? '+' : '' }}{{ costDelta.pct }}%) so với hiện tại
-          </p>
-        </div>
-
-        <!-- Note -->
-        <div>
-          <label class="label">Ghi chú</label>
-          <textarea
-            v-model="form.note"
-            rows="2"
-            class="input w-full text-sm"
-            placeholder="VD: gia hạn theo báo giá mới, điều khoản bổ sung…"
-          />
+          <div class="min-w-0">
+            <VendorFieldLabel
+              for-id="renew-cost"
+              label="Chi phí năm mới"
+              tooltip="Chi phí năm cho kỳ gia hạn — định dạng VNĐ ngay khi nhập."
+            />
+            <MoneyInput
+              id="renew-cost"
+              v-model="form.new_cost"
+              placeholder="Nhập chi phí năm mới"
+            />
+            <p
+              v-if="costDelta"
+              class="mt-1 text-xs"
+              :class="costDelta.diff > 0 ? 'text-rose-600' : 'text-emerald-600'"
+            >
+              {{ costDelta.diff > 0 ? '▲' : '▼' }}
+              {{ formatMoney(Math.abs(costDelta.diff), contract.currency) }}
+              ({{ costDelta.pct > 0 ? '+' : '' }}{{ costDelta.pct }}%) so với hiện tại
+            </p>
+          </div>
+          <div class="min-w-0">
+            <VendorFieldLabel
+              for-id="renew-note"
+              label="Ghi chú"
+              tooltip="Lý do gia hạn, điều khoản bổ sung…"
+            />
+            <textarea
+              id="renew-note"
+              v-model="form.note"
+              rows="3"
+              class="input w-full text-sm"
+              placeholder="VD: gia hạn theo báo giá mới, điều khoản bổ sung…"
+            />
+          </div>
         </div>
 
         <!-- Links / Hồ sơ đính kèm -->
         <div>
-          <label class="label">Link hồ sơ phụ lục (Google Drive, SharePoint…)</label>
+          <VendorFieldLabel
+            for-id="renew-link"
+            label="Link hồ sơ phụ lục"
+            tooltip="Dán link Google Drive / SharePoint rồi bấm Thêm. Có thể thêm nhiều link."
+          />
           <div class="flex gap-2">
             <input
+              id="renew-link"
               v-model="linkDraft"
               type="url"
-              class="input h-9 flex-1 text-sm"
+              class="input h-10 flex-1 text-sm"
               placeholder="https://drive.google.com/…"
               @keydown.enter.prevent="addLink"
             >
             <button
               type="button"
-              class="btn-ghost h-9 shrink-0 px-3 text-xs"
+              class="btn-primary h-10 shrink-0 gap-1.5 px-4 text-xs"
+              :disabled="!linkDraft.trim()"
               @click="addLink"
             >
               <AppIcon
                 name="add"
-                :size="13"
+                :size="14"
               /> Thêm
             </button>
           </div>
           <ul
             v-if="pendingLinks.length"
-            class="mt-2 space-y-1"
+            class="mt-2 space-y-1.5"
           >
             <li
               v-for="(link, idx) in pendingLinks"
               :key="idx"
-              class="flex items-center gap-2 rounded bg-slate-50 px-2.5 py-1.5 text-xs"
+              class="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2 text-xs"
             >
               <AppIcon
                 name="link"
-                :size="12"
+                :size="13"
                 class="shrink-0 text-sky-500"
               />
               <span class="min-w-0 flex-1 truncate text-slate-600">{{ link }}</span>
               <button
                 type="button"
-                class="shrink-0 text-slate-400 hover:text-rose-500"
+                class="shrink-0 rounded p-0.5 text-slate-400 hover:bg-rose-50 hover:text-rose-500"
+                title="Bỏ link"
                 @click="removeLink(idx)"
               >
                 <AppIcon
                   name="delete"
-                  :size="12"
+                  :size="13"
                 />
               </button>
             </li>
           </ul>
+          <p
+            v-else
+            class="mt-1 text-[11px] text-slate-400"
+          >
+            Chưa có hồ sơ đính kèm. Có thể thêm nhiều link.
+          </p>
         </div>
 
-        <div class="flex justify-end gap-2 pt-2">
+        <div class="flex justify-end gap-2 border-t border-slate-100 pt-4">
           <button
             type="button"
             class="btn-ghost"

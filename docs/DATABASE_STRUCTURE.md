@@ -8,9 +8,9 @@
 |---|---|
 | Database Engine | MySQL |
 | Table Prefix | `va_prd_` |
-| Total Tables | ~42+ (core + KB + Coaching — migrations `2026_06_14_*`) |
+| Total Tables | ~50 (core + KB + Coaching + Credential + Contract/CLM + Congnghe proposals + Onboarding — migrations tới `2026_06_17_*`) |
 | ORM | Laravel Eloquent |
-| Soft Deletes | employees, tasks, bugs |
+| Soft Deletes | employees, tasks, bugs, contracts |
 | UUID Support | daily_reports (+ có thể mở rộng) |
 | Activity Log | Spatie Activity Log |
 

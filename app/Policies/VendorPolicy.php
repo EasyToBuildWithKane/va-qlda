@@ -4,13 +4,12 @@ namespace App\Policies;
 
 use App\Models\SystemAccount;
 use App\Models\Vendor;
-use App\Support\Enums\SystemRole;
 
 class VendorPolicy
 {
     public function viewAny(SystemAccount $account): bool
     {
-        return $account->hasRole(SystemRole::Admin, SystemRole::Lead, SystemRole::Viewer);
+        return $account->allows('vendor.view');
     }
 
     public function view(SystemAccount $account, Vendor $vendor): bool
@@ -20,21 +19,16 @@ class VendorPolicy
 
     public function create(SystemAccount $account): bool
     {
-        return $this->manages($account);
+        return $account->allows('vendor.create');
     }
 
     public function update(SystemAccount $account, Vendor $vendor): bool
     {
-        return $this->manages($account);
+        return $account->allows('vendor.update');
     }
 
     public function delete(SystemAccount $account, Vendor $vendor): bool
     {
-        return $this->manages($account);
-    }
-
-    private function manages(SystemAccount $account): bool
-    {
-        return $account->hasRole(SystemRole::Admin, SystemRole::Lead);
+        return $account->allows('vendor.delete');
     }
 }

@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests\Auth;
 
-use App\Support\Enums\SystemRole;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
@@ -39,7 +38,7 @@ class HiddenAdminLoginRequest extends LoginRequest
         }
 
         $account = Auth::guard('system')->user();
-        if ($account === null || ! $account->hasRole(SystemRole::Admin)) {
+        if ($account === null || ! $account->isAdminTier()) {
             Auth::guard('system')->logout();
             RateLimiter::hit($this->throttleKey());
 

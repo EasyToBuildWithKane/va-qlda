@@ -11,8 +11,11 @@ Tra cứu `docs/` (kiến trúc) và `_dev/` (vận hành: CLI, CI, Husky, workf
 | `docs/FRONTEND_STRUCTURE.md` | modules/, shared/, composables, Pinia |
 | `docs/ARCHITECTURE.md` | Layers, coupling |
 | `docs/REFACTOR_PLAN.md` | Phase 1–5 ✅ |
-| `docs/TECHNICAL_DEBT.md` | TD còn lại |
-| `docs/NEXT_STEPS.md` | Roadmap |
+| `docs/TECHNICAL_DEBT.md` | TD còn lại + roadmap |
+| `docs/CONTRACT_MANAGEMENT.md` | Hợp đồng / NCC (CLM) |
+| `docs/CREDENTIAL_MANAGEMENT.md` | Kho tài khoản / mật khẩu |
+| `docs/PERFORMANCE_ANALYTICS.md` | Hiệu suất & audit |
+| `docs/ONBOARDING.md` | Tour tương tác |
 
 ## Operational memory (`_dev/`)
 

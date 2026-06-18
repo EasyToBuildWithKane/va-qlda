@@ -23,7 +23,6 @@ use App\Support\Enums\AiAccountGroupFunction;
 use App\Support\Enums\AiAccountRenewalPaymentStatus;
 use App\Support\Enums\AiAccountStatus;
 use App\Support\Enums\AiPurchaseProposalStatus;
-use App\Support\Enums\SystemRole;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -153,7 +152,7 @@ class AiAccountController extends Controller
             'notes' => $validated['notes'] ?? null,
         ];
 
-        if ($request->user()->role === SystemRole::Admin && ! empty($validated['password'])) {
+        if ($request->user()->isAdminTier() && ! empty($validated['password'])) {
             $data['login_password'] = $validated['password'];
         }
 

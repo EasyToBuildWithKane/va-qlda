@@ -55,6 +55,14 @@ class HandleInertiaRequests extends Middleware
                     'display_name' => $account->display_name,
                     'email' => $account->employee?->email,
                     'role' => $account->role,
+                    'is_super_admin' => $account->isSuperAdmin(),
+                    'is_admin_tier' => $account->isAdminTier(),
+                    // Resolved permission grants for this role (RBAC matrix);
+                    // super_admin carries the wildcard ['*']. Frontend gates via
+                    // usePermission().can('module.action').
+                    'permissions' => $account->isSuperAdmin()
+                        ? ['*']
+                        : (array) (config('va_permissions.role_grants', [])[$account->role->value] ?? []),
                     'employee' => $account->employee ? [
                         'id' => $account->employee->id,
                         'full_name' => $account->employee->full_name,

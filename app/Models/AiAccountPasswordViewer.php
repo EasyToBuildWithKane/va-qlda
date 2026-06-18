@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Support\Enums\SystemRole;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -31,7 +30,7 @@ class AiAccountPasswordViewer extends Model
 
     public static function canViewPassword(SystemAccount $viewer, AiAccount $aiAccount): bool
     {
-        if ($viewer->role === SystemRole::Admin) {
+        if ($viewer->isAdminTier()) {
             return true;
         }
 

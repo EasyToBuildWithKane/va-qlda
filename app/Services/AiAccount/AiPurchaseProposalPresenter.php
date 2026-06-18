@@ -8,7 +8,6 @@ use App\Models\SystemAccount;
 use App\Support\Enums\AiAccountGroupFunction;
 use App\Support\Enums\AiPaymentRequestStatus;
 use App\Support\Enums\AiPurchaseProposalStatus;
-use App\Support\Enums\SystemRole;
 use Illuminate\Support\Collection;
 
 class AiPurchaseProposalPresenter
@@ -454,7 +453,7 @@ class AiPurchaseProposalPresenter
             return false;
         }
 
-        if ($viewer->role === SystemRole::Admin) {
+        if ($viewer->isAdminTier()) {
             return true;
         }
 

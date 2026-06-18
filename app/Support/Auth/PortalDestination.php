@@ -4,7 +4,6 @@ namespace App\Support\Auth;
 
 use App\Models\SystemAccount;
 use App\Providers\RouteServiceProvider;
-use App\Support\Enums\SystemRole;
 
 /**
  * Post-login landing path, resolved by the portal a user signed in through.
@@ -42,7 +41,7 @@ final class PortalDestination
             return true;
         }
 
-        return $account->role === SystemRole::Admin;
+        return $account->isAdminTier();
     }
 
     /**

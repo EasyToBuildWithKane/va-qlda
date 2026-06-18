@@ -4,10 +4,12 @@ import { usePage } from '@inertiajs/vue3';
 import { congngheBrand } from './congngheBrand.js';
 import CongngheBrandImage from './CongngheBrandImage.vue';
 import { useInView } from './motion.js';
+import { useCongngheMotion } from './useCongngheMotion.js';
 
 const page = usePage();
 
 const { target, shown } = useInView({ threshold: 0.12 });
+const { reduced: motionReduced, toggle: toggleMotion } = useCongngheMotion();
 
 const props = defineProps({
     content: { type: Object, default: () => ({}) },
@@ -229,11 +231,35 @@ const year = new Date().getFullYear();
             {{ copyright }}
           </p>
         </div>
-        <p class="shrink-0 text-center font-mono text-[11px] text-white/35 sm:text-right">
-          <span class="text-white/25">[</span>
-          {{ portalLabel }} · v{{ year }}
-          <span class="text-white/25">]</span>
-        </p>
+        <div class="flex shrink-0 flex-wrap items-center justify-center gap-3 sm:justify-end">
+          <button
+            type="button"
+            class="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.03] px-3 py-1.5 font-mono text-[11px] text-white/55 transition hover:border-brand/40 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50"
+            :aria-pressed="motionReduced"
+            :title="motionReduced ? 'Bật lại hiệu ứng động' : 'Giảm hiệu ứng động (tiết kiệm pin, mượt hơn trên máy yếu)'"
+            @click="toggleMotion"
+          >
+            <span
+              class="relative flex h-2 w-2"
+              aria-hidden="true"
+            >
+              <span
+                v-if="!motionReduced"
+                class="absolute inline-flex h-full w-full animate-cn-ping-ring rounded-full bg-cyan-400/70"
+              />
+              <span
+                class="relative inline-flex h-2 w-2 rounded-full"
+                :class="motionReduced ? 'bg-white/30' : 'bg-cyan-400'"
+              />
+            </span>
+            {{ motionReduced ? 'Hiệu ứng: Giảm' : 'Hiệu ứng: Đầy đủ' }}
+          </button>
+          <p class="text-center font-mono text-[11px] text-white/35 sm:text-right">
+            <span class="text-white/25">[</span>
+            {{ portalLabel }} · v{{ year }}
+            <span class="text-white/25">]</span>
+          </p>
+        </div>
       </div>
     </div>
   </footer>

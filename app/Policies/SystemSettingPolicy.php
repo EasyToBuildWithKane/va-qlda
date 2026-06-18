@@ -3,7 +3,6 @@
 namespace App\Policies;
 
 use App\Models\SystemAccount;
-use App\Support\Enums\SystemRole;
 
 /**
  * System configuration is admin-only. Both abilities are class-level
@@ -16,11 +15,11 @@ class SystemSettingPolicy
 {
     public function viewAny(SystemAccount $account): bool
     {
-        return $account->role === SystemRole::Admin;
+        return $account->allows('system.settings.view');
     }
 
     public function manage(SystemAccount $account): bool
     {
-        return $account->role === SystemRole::Admin;
+        return $account->allows('system.settings.manage');
     }
 }

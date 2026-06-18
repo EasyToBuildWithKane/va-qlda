@@ -112,7 +112,7 @@ const ringOffset = computed(() => RING_C * (1 - activePct.value / 100));
   <section
     id="lo-trinh"
     ref="target"
-    class="relative overflow-hidden scroll-mt-24 py-20 sm:scroll-mt-28"
+    class="relative overflow-hidden scroll-mt-24 py-16 sm:scroll-mt-28 sm:py-20 md:py-24"
   >
     <div class="pointer-events-none absolute inset-0 bg-gradient-to-b from-brand/[0.08] via-[#05060c] to-brand/[0.06]" />
     <SectionParticleNetwork

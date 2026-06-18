@@ -4,7 +4,6 @@ namespace App\Http\Requests\AiAccount;
 
 use App\Models\AiAccount;
 use App\Models\SystemAccount;
-use App\Support\Enums\SystemRole;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -45,7 +44,7 @@ class StoreAiAccountPasswordViewerRequest extends FormRequest
         $validator->after(function ($validator) {
             $id = (int) $this->input('system_account_id');
             $target = SystemAccount::query()->find($id);
-            if ($target && $target->role === SystemRole::Admin) {
+            if ($target && $target->isAdminTier()) {
                 $validator->errors()->add('system_account_id', 'Quản trị viên đã có quyền xem mật khẩu mặc định.');
             }
         });

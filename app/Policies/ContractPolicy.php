@@ -4,7 +4,6 @@ namespace App\Policies;
 
 use App\Models\Contract;
 use App\Models\SystemAccount;
-use App\Support\Enums\SystemRole;
 
 /**
  * CLM — Admin toàn quyền; Lead quản lý hợp đồng; Viewer chỉ xem (read-only).
@@ -14,7 +13,7 @@ class ContractPolicy
 {
     public function viewAny(SystemAccount $account): bool
     {
-        return $account->hasRole(SystemRole::Admin, SystemRole::Lead, SystemRole::Viewer);
+        return $account->allows('contract.view');
     }
 
     public function view(SystemAccount $account, Contract $contract): bool
@@ -24,31 +23,31 @@ class ContractPolicy
 
     public function create(SystemAccount $account): bool
     {
-        return $this->manages($account);
+        return $account->allows('contract.create');
     }
 
     public function update(SystemAccount $account, Contract $contract): bool
     {
-        return $this->manages($account);
+        return $account->allows('contract.update');
     }
 
     public function delete(SystemAccount $account, Contract $contract): bool
     {
-        return $this->manages($account);
+        return $account->allows('contract.delete');
     }
 
     public function manage(SystemAccount $account): bool
     {
-        return $this->manages($account);
+        return $account->allows('contract.manage');
     }
 
     public function import(SystemAccount $account): bool
     {
-        return $this->manages($account);
+        return $account->allows('contract.import');
     }
 
-    private function manages(SystemAccount $account): bool
+    public function export(SystemAccount $account): bool
     {
-        return $account->hasRole(SystemRole::Admin, SystemRole::Lead);
+        return $account->allows('contract.export');
     }
 }
