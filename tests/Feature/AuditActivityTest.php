@@ -124,5 +124,9 @@ class AuditActivityTest extends TestCase
         $unknown = \App\Support\Audit\AuditActionCatalog::describe('made_up.action');
         $this->assertSame('made_up.action', $unknown['label']);
         $this->assertSame('system', $unknown['module']);
+
+        $unknownAi = \App\Support\Audit\AuditActionCatalog::describe('ai_account.legacy_event');
+        $this->assertSame('ai_account', $unknownAi['module']);
+        $this->assertSame('sparkles', $unknownAi['icon']);
     }
 }

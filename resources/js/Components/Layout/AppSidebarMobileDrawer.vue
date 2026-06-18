@@ -119,17 +119,17 @@ onUnmounted(() => {
             @touchend="onTouchEnd"
             @touchcancel="onTouchEnd"
           >
-            <div class="flex items-center justify-between border-b border-white/[0.08] pl-1 pr-2">
+            <div class="grid shrink-0 grid-cols-[minmax(0,1fr)_auto] items-center border-b border-white/[0.10] pr-1.5">
               <AppSidebarBrand
+                embedded
                 :rail="false"
                 hide-toggle
                 :app-short-name="appShortName"
                 :app-name="appName"
-                class="flex-1 border-0"
               />
               <button
                 type="button"
-                class="grid h-10 w-10 shrink-0 place-items-center rounded-lg text-brand-100/70 hover:bg-white/10 hover:text-white"
+                class="grid h-10 w-10 min-h-[2.5rem] min-w-[2.5rem] shrink-0 place-items-center rounded-lg text-brand-100/70 transition-colors hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 active:scale-[0.98]"
                 aria-label="Đóng menu"
                 @click="emit('close')"
               >

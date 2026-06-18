@@ -23,7 +23,7 @@ class SecurityAuditLogResource extends JsonResource
             'severity' => $meta['severity'],
             'module' => $meta['module'],
             'module_label' => $meta['module_label'],
-            'icon' => $meta['icon'],
+            'icon' => $meta['icon'] !== '' ? $meta['icon'] : 'shield',
             'subject_type' => $this->subject_type,
             'subject_id' => $this->subject_id,
             'actor' => $this->actor

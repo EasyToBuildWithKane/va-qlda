@@ -16,6 +16,11 @@ import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
 import { buildClientPaginationLinks } from '@/shared/composables/useClientPagination';
 import { useFilter } from '@/shared/composables/useFilter';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
+import {
+    displayOrEmpty,
+    EMPTY_LABELS,
+    isEmptyDisplayValue,
+} from '@/shared/utils/emptyDisplay.js';
 
 const props = defineProps({
     logs: { type: Array, default: () => [] },
@@ -151,6 +156,21 @@ const paginationMeta = computed(() => ({
 
 const maxTrend = computed(() => Math.max(1, ...props.trend.map((t) => t.count)));
 
+const AUDIT_LOG_ICONS = new Set([
+    'account',
+    'system-config',
+    'members',
+    'sparkles',
+    'documents',
+    'knowledge',
+    'learning',
+    'org-teams',
+    'department',
+    'rocket',
+    'settings',
+    'shield',
+]);
+
 const expanded = ref({});
 const toggle = (id) => { expanded.value[id] = !expanded.value[id]; };
 const hasMeta = (log) => log.meta && Object.keys(log.meta).length > 0;
@@ -159,6 +179,36 @@ const formatMeta = (meta) =>
         key: k,
         value: typeof v === 'object' ? JSON.stringify(v) : String(v),
     }));
+
+function resolveLogIcon(log) {
+    const name = log?.icon;
+    return name && AUDIT_LOG_ICONS.has(name) ? name : 'shield';
+}
+
+function moduleLabel(log) {
+    return displayOrEmpty(log?.module_label, 'Chưa xác định module');
+}
+
+function subjectSummary(log) {
+    const type = log?.subject_type?.trim();
+    const id = log?.subject_id;
+    if (!type && (id === null || id === undefined || id === '')) {
+        return EMPTY_LABELS.generic;
+    }
+    const idPart = id !== null && id !== undefined && id !== '' ? `#${id}` : '';
+    return `${type || 'Đối tượng'}${idPart}`.trim();
+}
+
+function detailPreview(log) {
+    if (!hasMeta(log)) {
+        return EMPTY_LABELS.generic;
+    }
+    const rows = formatMeta(log.meta);
+    if (rows.length === 1) {
+        return `${rows[0].key}: ${rows[0].value}`;
+    }
+    return `${rows.length} trường — bấm «Chi tiết» để xem đầy đủ`;
+}
 
 function filterByModule(moduleKey) {
     form.module = moduleKey;
@@ -308,7 +358,7 @@ function filterByModule(moduleKey) {
               <div class="flex items-start gap-3">
                 <div class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
                   <AppIcon
-                    :name="log.icon"
+                    :name="resolveLogIcon(log)"
                     :size="15"
                   />
                 </div>
@@ -323,14 +373,26 @@ function filterByModule(moduleKey) {
                     >
                       {{ sev(log.severity).label }}
                     </span>
-                    <span class="inline-flex items-center rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
+                    <span
+                      v-if="!isEmptyDisplayValue(log.module_label)"
+                      class="inline-flex items-center rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500"
+                    >
                       {{ log.module_label }}
+                    </span>
+                    <span
+                      v-else
+                      class="text-[11px] text-slate-400"
+                    >
+                      {{ moduleLabel(log) }}
                     </span>
                   </div>
                   <p class="mt-0.5 text-[12px] text-slate-500">
                     <span class="font-medium text-slate-600">{{ log.actor?.name ?? 'Hệ thống' }}</span>
-                    <span v-if="log.subject_type"> · {{ log.subject_type }}<span v-if="log.subject_id">#{{ log.subject_id }}</span></span>
+                    <span> · {{ subjectSummary(log) }}</span>
                     <span class="text-slate-400"> · {{ log.created_at_human }}</span>
+                  </p>
+                  <p class="mt-1 text-[11px] text-slate-500">
+                    {{ detailPreview(log) }}
                   </p>
                   <button
                     v-if="hasMeta(log)"
@@ -418,11 +480,11 @@ function filterByModule(moduleKey) {
             >
               <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500 group-hover:bg-brand/10 group-hover:text-brand">
                 <AppIcon
-                  :name="m.icon"
+                  :name="resolveLogIcon(m)"
                   :size="14"
                 />
               </div>
-              <span class="flex-1 truncate text-[12px] text-slate-600">{{ m.module_label }}</span>
+              <span class="flex-1 truncate text-[12px] text-slate-600">{{ displayOrEmpty(m.module_label, 'Chưa xác định module') }}</span>
               <span class="text-[12px] font-semibold text-slate-700">{{ m.count }}</span>
             </button>
             <p

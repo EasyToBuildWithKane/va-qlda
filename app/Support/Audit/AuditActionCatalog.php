@@ -134,10 +134,48 @@ final class AuditActionCatalog
     /** Suy ra module từ tiền tố action khi chưa khai báo (an toàn cho action lạ). */
     private static function guessModule(string $action): string
     {
-        $prefix = strtok($action, '._');
-        $modules = self::modules();
+        $action = trim($action);
+        if ($action === '') {
+            return 'system';
+        }
 
-        return isset($modules[$prefix]) ? $prefix : 'system';
+        $modules = self::modules();
+        $segment = strtok($action, '.') ?: '';
+        if ($segment !== '' && isset($modules[$segment])) {
+            return $segment;
+        }
+
+        foreach (self::actionPrefixModuleMap() as $prefix => $moduleKey) {
+            if (str_starts_with($action, $prefix.'.') || str_starts_with($action, $prefix.'_')) {
+                return $moduleKey;
+            }
+        }
+
+        return 'system';
+    }
+
+    /**
+     * Tiền tố action (có dấu chấm/gạch dưới) → module key khi action chưa có trong catalog.
+     *
+     * @return array<string, string>
+     */
+    private static function actionPrefixModuleMap(): array
+    {
+        return [
+            'auth' => 'auth',
+            'settings' => 'settings',
+            'account' => 'rbac',
+            'ai_account' => 'ai_account',
+            'ai_payment' => 'ai_proposal',
+            'ai_proposal' => 'ai_proposal',
+            'kb_article' => 'kb',
+            'coaching_course' => 'coaching',
+            'coaching_session' => 'coaching',
+            'org_team' => 'org_team',
+            'employee' => 'employee',
+            'department' => 'department',
+            'congnghe_proposal' => 'congnghe',
+        ];
     }
 
     /**
