@@ -277,10 +277,8 @@ const addenda = computed(() => c.value.addenda ?? []);
       </PageHeader>
     </template>
 
-    <div class="flex min-h-0 w-full flex-1 flex-col items-center justify-center overflow-hidden bg-slate-50">
-      <div
-        class="contract-show-surface flex h-[90%] w-[90%] min-h-0 max-w-full flex-col overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm"
-      >
+    <div class="flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden bg-slate-50">
+      <div class="contract-show-scale flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden">
         <nav
           class="flex shrink-0 items-center overflow-x-auto overscroll-x-contain border-b border-slate-200 bg-white px-2 py-1.5 sm:px-3"
           aria-label="Tab hợp đồng"
@@ -318,21 +316,15 @@ const addenda = computed(() => c.value.addenda ?? []);
           @navigate-tab="tab = $event"
         />
 
-        <div class="flex min-h-0 h-0 flex-1 flex-col overflow-hidden bg-slate-50">
-          <div
-            class="h-full min-h-0 w-full min-w-0 overflow-x-hidden"
-            :class="tab === 'overview' ? 'flex flex-col overflow-y-auto' : 'overflow-y-auto'"
-          >
-            <div
-              class="w-full min-w-0 space-y-4 p-4 sm:space-y-5 sm:p-5 lg:p-6"
-              :class="tab === 'overview' ? 'flex min-h-0 flex-1 flex-col' : ''"
-            >
+        <div class="flex min-h-0 h-0 flex-1 flex-col overflow-hidden">
+          <div class="h-full min-h-0 w-full min-w-0 overflow-x-hidden overflow-y-auto">
+            <div class="w-full min-w-0 space-y-4 p-4 sm:space-y-5 sm:p-5 lg:p-6">
               <!-- ══════════════════════════════════════════════════════
            TAB: TỔNG QUAN
       ══════════════════════════════════════════════════════ -->
               <div
                 v-if="tab === 'overview'"
-                class="flex min-h-0 flex-1 flex-col gap-4"
+                class="space-y-4"
               >
                 <!-- Phụ lục banner -->
                 <div
@@ -355,11 +347,11 @@ const addenda = computed(() => c.value.addenda ?? []);
 
                 <!-- Tổng quan: cột trái 55% (thông tin + thời hạn), cột phải 45% (chi phí + mô tả) -->
                 <div
-                  class="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,55fr)_minmax(0,45fr)] lg:items-start"
+                  class="grid gap-4 lg:grid-cols-[minmax(0,55fr)_minmax(0,45fr)] lg:items-start"
                 >
-                  <div class="grid min-h-0 gap-4 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+                  <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
                     <!-- Card 1: Thông tin chung -->
-                    <section class="card flex min-h-0 flex-col p-4">
+                    <section class="card p-4">
                       <h3 class="mb-3 font-display text-sm font-semibold text-slate-800">
                         Thông tin chung
                       </h3>
@@ -450,7 +442,7 @@ const addenda = computed(() => c.value.addenda ?? []);
                     </section>
 
                     <!-- Card 2: Thời hạn -->
-                    <section class="card flex min-h-0 flex-col p-4">
+                    <section class="card p-4">
                       <h3 class="mb-3 font-display text-sm font-semibold text-slate-800">
                         Thời hạn
                       </h3>
@@ -531,9 +523,9 @@ const addenda = computed(() => c.value.addenda ?? []);
                   </div>
 
                   <!-- Right main: Chi phí + Mô tả -->
-                  <div class="flex min-h-0 min-w-0 flex-col gap-4">
+                  <div class="flex min-w-0 flex-col gap-4">
                     <!-- Card 3: Tổng quan chi phí -->
-                    <section class="card flex min-h-0 flex-1 flex-col p-4">
+                    <section class="card p-4">
                       <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
                         <h3 class="font-display text-sm font-semibold text-slate-800">
                           Chi phí nhanh
@@ -547,7 +539,7 @@ const addenda = computed(() => c.value.addenda ?? []);
                           {{ financeRowCount }} dòng chi tiết →
                         </button>
                       </div>
-                      <div class="grid flex-1 grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-2">
+                      <div class="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-2">
                         <div class="rounded-lg bg-slate-50 p-3">
                           <p class="text-xs text-slate-400">
                             Tiền tệ
@@ -1373,3 +1365,10 @@ const addenda = computed(() => c.value.addenda ?? []);
     </div>
   </AppLayout>
 </template>
+
+<style scoped>
+/* Thu nhỏ toàn bộ workspace chi tiết HĐ ~ Ctrl− 90% (Chrome/Edge); modal giữ 100% */
+.contract-show-scale {
+  zoom: 0.9;
+}
+</style>
