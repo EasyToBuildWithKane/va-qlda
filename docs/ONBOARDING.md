@@ -39,6 +39,8 @@ trợ giúp nổi để xem lại bất cứ lúc nào.
   bước trỏ tới phần tử không có trong DOM (nav ẩn theo role) sẽ tự bỏ qua.
 - **A11y/UX:** khoá scroll nền khi mở modal, Esc để đóng, tôn trọng
   `prefers-reduced-motion`, đóng menu trợ giúp khi click ra ngoài / điều hướng.
+  `HelpWidget`: mục **Ẩn nút trợ giúp** (lưu `localStorage` `va_qlda_help_widget_hidden`);
+  khi ẩn hiện chip **Trợ giúp** góc phải để bật lại FAB.
 
 ## Thêm / sửa tour
 

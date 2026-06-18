@@ -4,6 +4,8 @@ import { Link, router } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
 import { ROLE_TOUR, tourTitle } from '@/modules/onboarding/tours';
 
+const STORAGE_KEY = 'va_qlda_help_widget_hidden';
+
 defineProps({
     role: { type: String, default: 'member' },
 });
@@ -11,7 +13,35 @@ defineProps({
 const emit = defineEmits(['replay']);
 
 const open = ref(false);
+const hidden = ref(false);
 const root = ref(null);
+
+function readHidden() {
+    try {
+        return localStorage.getItem(STORAGE_KEY) === '1';
+    } catch {
+        return false;
+    }
+}
+
+function hideWidget() {
+    hidden.value = true;
+    open.value = false;
+    try {
+        localStorage.setItem(STORAGE_KEY, '1');
+    } catch {
+        /* ignore */
+    }
+}
+
+function showWidget() {
+    hidden.value = false;
+    try {
+        localStorage.removeItem(STORAGE_KEY);
+    } catch {
+        /* ignore */
+    }
+}
 
 function replay(tourKey) {
     open.value = false;
@@ -26,6 +56,7 @@ function onDocClick(e) {
 
 let stopNav;
 onMounted(() => {
+    hidden.value = readHidden();
     document.addEventListener('click', onDocClick);
     stopNav = router.on('start', () => { open.value = false; });
 });
@@ -42,7 +73,28 @@ const links = [
 </script>
 
 <template>
+  <!-- Thu gọn: chỉ tab khôi phục -->
   <div
+    v-if="hidden"
+    class="fixed bottom-5 right-5 z-[56]"
+    data-tour="help-widget"
+  >
+    <button
+      type="button"
+      class="inline-flex h-9 items-center gap-1.5 rounded-full border border-slate-200/90 bg-white/95 px-3 text-xs font-medium text-slate-600 shadow-elevation-2 backdrop-blur-sm transition-colors hover:border-brand/30 hover:text-brand focus:outline-none focus-visible:ring-4 focus-visible:ring-brand/30"
+      aria-label="Hiện lại trợ giúp"
+      @click="showWidget"
+    >
+      <AppIcon
+        name="help"
+        :size="15"
+      />
+      Trợ giúp
+    </button>
+  </div>
+
+  <div
+    v-else
     ref="root"
     class="fixed bottom-5 right-5 z-[56] flex flex-col items-end gap-3"
     data-tour="help-widget"
@@ -115,6 +167,22 @@ const links = [
             </span>
             <span class="flex-1">{{ l.label }}</span>
           </Link>
+
+          <div class="mt-1 border-t border-slate-100 px-1.5 pt-1">
+            <button
+              type="button"
+              class="flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left text-sm text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-700"
+              @click="hideWidget"
+            >
+              <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-400">
+                <AppIcon
+                  name="eye-off"
+                  :size="16"
+                />
+              </span>
+              <span class="flex-1">Ẩn nút trợ giúp</span>
+            </button>
+          </div>
         </div>
       </div>
     </Transition>
