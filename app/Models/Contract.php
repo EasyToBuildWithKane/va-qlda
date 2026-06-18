@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Support\Enums\ContractBillingCycle;
 use App\Support\Enums\ContractPaymentStatus;
 use App\Support\Enums\ContractStatus;
+use App\Support\MoneyAmount;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -219,23 +220,23 @@ class Contract extends Model
         if ($this->relationLoaded('finances') && $this->finances->isNotEmpty()) {
             $total = $this->financeTotalSum();
             if ($total > 0) {
-                return round($total, 2);
+                return MoneyAmount::truncate($total);
             }
             $maintenance = (float) $this->finances->sum(fn (ContractFinance $f) => (float) ($f->maintenance_fee ?? 0));
             if ($maintenance > 0) {
-                return round($maintenance * 12, 2);
+                return MoneyAmount::truncate($maintenance * 12);
             }
         }
 
         if ($this->lifecycle_cost !== null && (float) $this->lifecycle_cost > 0) {
-            return round((float) $this->lifecycle_cost, 2);
+            return MoneyAmount::truncate((float) $this->lifecycle_cost);
         }
 
         if ($this->annual_cost !== null) {
-            return round((float) $this->annual_cost, 2);
+            return MoneyAmount::truncate((float) $this->annual_cost);
         }
 
-        return round((float) ($this->monthly_cost ?? 0) * 12, 2);
+        return MoneyAmount::truncate((float) ($this->monthly_cost ?? 0) * 12);
     }
 
     public function monthlyCostResolved(): ?float
@@ -243,11 +244,11 @@ class Contract extends Model
         if ($this->relationLoaded('finances') && $this->finances->isNotEmpty()) {
             $monthly = (float) $this->finances->sum(fn (ContractFinance $f) => (float) ($f->maintenance_fee ?? 0));
             if ($monthly > 0) {
-                return round($monthly, 2);
+                return MoneyAmount::truncate($monthly);
             }
         }
 
-        return $this->monthly_cost !== null ? round((float) $this->monthly_cost, 2) : null;
+        return $this->monthly_cost !== null ? MoneyAmount::truncate((float) $this->monthly_cost) : null;
     }
 
     public function unitPriceResolved(): ?float
@@ -255,11 +256,11 @@ class Contract extends Model
         if ($this->relationLoaded('finances') && $this->finances->isNotEmpty()) {
             $latest = $this->finances->first();
             if ($latest?->unit_price !== null) {
-                return round((float) $latest->unit_price, 2);
+                return MoneyAmount::truncate((float) $latest->unit_price);
             }
         }
 
-        return $this->unit_price !== null ? round((float) $this->unit_price, 2) : null;
+        return $this->unit_price !== null ? MoneyAmount::truncate((float) $this->unit_price) : null;
     }
 
     public function lifecycleCostResolved(): ?float
@@ -267,11 +268,11 @@ class Contract extends Model
         if ($this->relationLoaded('finances') && $this->finances->isNotEmpty()) {
             $total = $this->financeTotalSum();
             if ($total > 0) {
-                return round($total, 2);
+                return MoneyAmount::truncate($total);
             }
         }
 
-        return $this->lifecycle_cost !== null ? round((float) $this->lifecycle_cost, 2) : null;
+        return $this->lifecycle_cost !== null ? MoneyAmount::truncate((float) $this->lifecycle_cost) : null;
     }
 
     /** Tổng phí khởi tạo (triển khai mới) từ contract_finances. */
@@ -281,6 +282,6 @@ class Contract extends Model
             return 0.0;
         }
 
-        return round((float) $this->finances->sum(fn (ContractFinance $f) => (float) ($f->init_fee ?? 0)), 2);
+        return MoneyAmount::truncate((float) $this->finances->sum(fn (ContractFinance $f) => (float) ($f->init_fee ?? 0)));
     }
 }

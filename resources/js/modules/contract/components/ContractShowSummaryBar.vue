@@ -5,7 +5,7 @@ import {
     expiryLabel,
     expiryTone,
     formatDate,
-    formatMoneyShort,
+    formatMoney,
 } from '@/modules/contract/composables/useContractFormat.js';
 import { EMPTY_LABELS } from '@/shared/utils/emptyDisplay.js';
 
@@ -41,7 +41,7 @@ const cards = computed(() => {
         ? (c?.lifecycle_cost_resolved ?? c?.annual_cost_resolved ?? c?.lifecycle_cost ?? c?.annual_cost)
         : (c?.lifecycle_cost ?? c?.annual_cost ?? c?.annual_cost_resolved);
     const annualValue = annualAmt != null && annualAmt !== ''
-        ? formatMoneyShort(annualAmt, c?.currency ?? 'VND')
+        ? formatMoney(annualAmt, c?.currency ?? 'VND')
         : EMPTY_LABELS.notUpdated;
     const annualIsText = annualAmt == null || annualAmt === '';
 

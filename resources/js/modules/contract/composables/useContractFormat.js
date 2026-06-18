@@ -2,38 +2,68 @@
  * Tiện ích định dạng dùng chung cho module CLM (tiền tệ, ngày, số ngày tới hạn).
  */
 
-const vndFormatter = new Intl.NumberFormat('vi-VN');
+/** Cắt tối đa `decimals` chữ số thập phân — không làm tròn (tiền VNĐ). */
+export function truncateMoneyAmount(amount, decimals = 2) {
+    const num = Number(amount);
+    if (Number.isNaN(num)) return 0;
+    const factor = 10 ** decimals;
+    return Math.trunc(num * factor) / factor;
+}
+
+function vndFormatterFor(amount) {
+    const t = truncateMoneyAmount(amount);
+    const hasFraction = Math.abs(t - Math.trunc(t)) > 1e-9;
+    return new Intl.NumberFormat('vi-VN', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: hasFraction ? 2 : 0,
+    });
+}
 
 export function formatMoney(value, currency = 'VND') {
     if (value === null || value === undefined || value === '') return '—';
     const num = Number(value);
     if (Number.isNaN(num)) return '—';
-    return `${vndFormatter.format(Math.round(num))} ${currency}`;
+    const t = truncateMoneyAmount(num);
+    return `${vndFormatterFor(t).format(t)} ${currency}`;
 }
 
 export function formatMoneyShort(value, currency = 'VND') {
     if (value === null || value === undefined || value === '') return '—';
     const num = Number(value);
     if (Number.isNaN(num)) return '—';
-    const abs = Math.abs(num);
-    if (abs >= 1_000_000_000) return `${(num / 1_000_000_000).toFixed(1)} tỷ ${currency}`;
-    if (abs >= 1_000_000) return `${(num / 1_000_000).toFixed(1)} tr ${currency}`;
-    return `${vndFormatter.format(Math.round(num))} ${currency}`;
+    const t = truncateMoneyAmount(num);
+    const abs = Math.abs(t);
+    if (abs >= 1_000_000_000) {
+        const coef = truncateMoneyAmount(t / 1_000_000_000, 4);
+        return `${formatDecimalVi(coef)} tỷ ${currency}`;
+    }
+    if (abs >= 1_000_000) {
+        const coef = truncateMoneyAmount(t / 1_000_000, 4);
+        return `${formatDecimalVi(coef)} tr ${currency}`;
+    }
+    return `${vndFormatterFor(t).format(t)} ${currency}`;
 }
 
 function formatDecimalVi(value) {
-    if (Number.isInteger(value)) return String(value);
-    return value.toFixed(1).replace('.', ',');
+    const t = truncateMoneyAmount(value, 4);
+    if (Number.isInteger(t)) return String(t);
+    return String(t).replace('.', ',');
 }
 
-/** Đọc ngắn tiếng Việt: 1 triệu, 1,5 triệu, 2 tỷ, 500 nghìn. */
+/** Đọc ngắn tiếng Việt từ số đồng nguyên (cắt, không làm tròn). */
 export function formatVndWords(amount) {
-    const n = Math.round(Number(amount) || 0);
+    const n = Math.trunc(truncateMoneyAmount(amount));
     if (n === 0) return '0 đồng';
-    if (Math.abs(n) >= 1_000_000_000) return `${formatDecimalVi(n / 1_000_000_000)} tỷ`;
-    if (Math.abs(n) >= 1_000_000) return `${formatDecimalVi(n / 1_000_000)} triệu`;
-    if (Math.abs(n) >= 1_000) return `${formatDecimalVi(n / 1_000)} nghìn`;
-    return `${vndFormatter.format(n)} đồng`;
+    if (Math.abs(n) >= 1_000_000_000) {
+        return `${formatDecimalVi(truncateMoneyAmount(n / 1_000_000_000, 4))} tỷ`;
+    }
+    if (Math.abs(n) >= 1_000_000) {
+        return `${formatDecimalVi(truncateMoneyAmount(n / 1_000_000, 4))} triệu`;
+    }
+    if (Math.abs(n) >= 1_000) {
+        return `${formatDecimalVi(truncateMoneyAmount(n / 1_000, 4))} nghìn`;
+    }
+    return `${vndFormatterFor(n).format(n)} đồng`;
 }
 
 /**
@@ -41,15 +71,16 @@ export function formatVndWords(amount) {
  * @returns {{ primary: string, secondary: string|null, full: string }}
  */
 export function formatVndDisplay(amount, currency = 'VNĐ') {
-    const n = Math.round(Number(amount) || 0);
-    const primary = `${vndFormatter.format(n)} ${currency}`;
-    const secondary = n !== 0 ? `(${formatVndWords(n)} ${currency})` : null;
+    const t = truncateMoneyAmount(amount);
+    const primary = `${vndFormatterFor(t).format(t)} ${currency}`;
+    const secondary = t !== 0 ? `(${formatVndWords(t)} ${currency})` : null;
     return { primary, secondary, full: secondary ? `${primary} ${secondary}` : primary };
 }
 
-/** Số có dấu chấm phân nhóm: 1.000.000 (không kèm đơn vị). */
+/** Số có dấu chấm phân nhóm (không làm tròn). */
 export function formatVndNumber(amount) {
-    return vndFormatter.format(Math.round(Number(amount) || 0));
+    const t = truncateMoneyAmount(amount);
+    return vndFormatterFor(t).format(t);
 }
 
 /**
@@ -57,7 +88,7 @@ export function formatVndNumber(amount) {
  * Ví dụ: 120_000_000 → "Một trăm hai mươi triệu đồng".
  */
 export function vndToWords(amount) {
-    const n = Math.round(Number(amount) || 0);
+    const n = Math.trunc(truncateMoneyAmount(amount));
     if (n === 0) return 'Không đồng';
     if (n < 0) return `Âm ${vndToWords(-n)}`;
 
