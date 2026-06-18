@@ -72,8 +72,9 @@ const panelStyle = computed(() => ({
               >
                 <AppIcon
                   :name="item.icon"
-                  :size="17"
-                  class="shrink-0 opacity-80"
+                  :size="22"
+                  :stroke-width="1.65"
+                  class="sidebar-nav-icon shrink-0 opacity-90"
                 />
                 <span class="min-w-0 flex-1 truncate">{{ item.label }}</span>
                 <span

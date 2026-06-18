@@ -150,10 +150,7 @@ async function removeContract(c) {
         confirmText: 'Xoá',
     });
     if (!ok) return;
-    router.delete(`/contracts/${c.id}`, {
-        preserveScroll: true,
-        onSuccess: () => toast.success('Đã xoá hợp đồng.'),
-    });
+    router.delete(`/contracts/${c.id}`, { preserveScroll: true });
 }
 
 const { panelStyle: dataMenuStyle } = useFixedDropdownAnchor(

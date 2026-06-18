@@ -47,12 +47,17 @@ function bindNavRef(el) {
         :aria-expanded="isOpen(group)"
         @click="toggleGroup(group)"
       >
-        <AppIcon
-          :name="group.icon"
-          :size="14"
-          class="shrink-0 transition-opacity"
-          :class="isUpcomingGroup(group) ? 'text-amber-200/90' : 'opacity-75 group-hover/head:opacity-100'"
-        />
+        <span
+          class="sidebar-nav-icon-shell grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-white/[0.06] group-hover/head:bg-white/[0.1]"
+          :class="isUpcomingGroup(group) ? 'ring-1 ring-inset ring-amber-300/20' : ''"
+        >
+          <AppIcon
+            :name="group.icon"
+            :size="20"
+            class="sidebar-nav-icon shrink-0"
+            :class="isUpcomingGroup(group) ? 'text-amber-200/95' : 'text-brand-50/90'"
+          />
+        </span>
         <span class="min-w-0 flex-1 truncate text-left">{{ group.heading }}</span>
         <span
           v-if="isUpcomingGroup(group)"
@@ -91,7 +96,7 @@ function bindNavRef(el) {
                 :is="isPlanned(item) ? 'div' : Link"
                 :href="isPlanned(item) ? undefined : item.href"
                 :title="isPlanned(item) ? 'Sắp ra mắt — chưa khả dụng' : undefined"
-                class="group/item flex min-h-[40px] items-center gap-2.5 rounded-lg px-2.5 py-2 text-[14px] font-medium leading-snug transition-all duration-150"
+                class="sidebar-nav-link group/item flex min-h-[52px] items-center gap-3 rounded-xl px-2.5 py-2.5 text-[14px] font-medium leading-snug transition-all duration-200"
                 :class="[
                   isActive(item.href)
                     ? 'sidebar-nav-item--active bg-white/[0.16] font-semibold text-white shadow-sm ring-1 ring-inset ring-white/15'
@@ -102,14 +107,15 @@ function bindNavRef(el) {
                 ]"
               >
                 <span
-                  class="grid h-8 w-8 shrink-0 place-items-center rounded-lg transition-colors"
-                  :class="isActive(item.href) ? 'bg-white/10' : 'bg-transparent group-hover/item:bg-white/[0.06]'"
+                  class="sidebar-nav-icon-shell sidebar-nav-icon-shell--item h-11 w-11 shrink-0"
+                  :class="isActive(item.href) ? '' : 'group-hover/item:bg-white/[0.08]'"
                 >
                   <AppIcon
                     :name="item.icon"
-                    :size="18"
-                    class="shrink-0 transition-opacity"
-                    :class="isActive(item.href) ? 'opacity-100' : 'opacity-80 group-hover/item:opacity-100'"
+                    :size="26"
+                    :stroke-width="1.65"
+                    class="sidebar-nav-icon shrink-0"
+                    :class="isActive(item.href) ? 'text-white' : 'text-brand-50/85 group-hover/item:text-white'"
                   />
                 </span>
 

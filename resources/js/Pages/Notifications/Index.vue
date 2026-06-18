@@ -1,11 +1,23 @@
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue';
+import {
+    computed, onMounted, onBeforeUnmount, reactive, ref, watch,
+} from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import NotificationItem from '@/Components/Notifications/NotificationItem.vue';
+import NotificationInboxSummaryBar from '@/modules/notifications/components/NotificationInboxSummaryBar.vue';
+import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
+import DatagridToolbarActionButton from '@/shared/ui/DatagridToolbarActionButton.vue';
+import DatagridSegmentedControl from '@/shared/ui/DatagridSegmentedControl.vue';
+import DatagridFilterField from '@/shared/ui/DatagridFilterField.vue';
+import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
+import FilterDatePicker from '@/shared/ui/FilterDatePicker.vue';
+import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
 import { NOTIFICATION_TABS, groupNotificationsByDate } from '@/composables/notificationMeta';
+import { buildClientPaginationLinks } from '@/shared/composables/useClientPagination';
+import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
 import { httpGet, httpPost } from '@/shared/services/http';
 
 const props = defineProps({
@@ -15,13 +27,28 @@ const props = defineProps({
 
 const PER_PAGE = 20;
 
-// ─── State ──────────────────────────────────────────────────────────────────
+const TAB_ITEMS = NOTIFICATION_TABS.map((t) => ({
+    key: t.id,
+    label: t.label,
+    icon: t.id === 'unread' ? 'message' : t.id === 'read' ? 'check' : 'notifications',
+}));
+
+const FILTER_CONTROLS = [
+    { key: 'category', label: 'Loại', default: false },
+    { key: 'priority', label: 'Mức ưu tiên', default: false },
+    { key: 'actor_account_id', label: 'Người gửi', default: false },
+    { key: 'date_range', label: 'Thời gian', default: false },
+];
+
+const FILTER_CONTROL_CLASS = 'input h-10 w-full text-sm';
+
 const items = ref([]);
 const loading = ref(false);
 const meta = ref(null);
 const page = ref(1);
 const unreadCount = ref(props.stats.unread ?? 0);
 const selectedIds = ref([]);
+const stats = reactive({ ...props.stats });
 
 const filters = reactive({
     tab: 'all',
@@ -33,9 +60,36 @@ const filters = reactive({
     to: '',
 });
 
-const stats = reactive({ ...props.stats });
+const filterPanelDdRef = ref(null);
 
-// ─── Fetch ──────────────────────────────────────────────────────────────────
+const {
+    visibleFilters,
+    showFilterPanelDd,
+    enabledFilterControlCount,
+    hasFilterRow,
+    persistVisibleFilters,
+    openFilterPanel,
+    FILTER_CONTROLS: filterControlDefs,
+} = useVisibleFilterControls(FILTER_CONTROLS, 'va-qlda.notifications-inbox.visible-filters.v1');
+
+function openFilterPanelSafe() {
+    openFilterPanel();
+}
+
+function onToolbarClickOutside(e) {
+    if (e.target.closest?.('[data-filter-visibility-panel]')) return;
+    if (filterPanelDdRef.value && !filterPanelDdRef.value.contains(e.target)) {
+        showFilterPanelDd.value = false;
+    }
+}
+
+onMounted(() => {
+    document.addEventListener('mousedown', onToolbarClickOutside);
+    fetchList();
+});
+
+onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOutside));
+
 async function fetchList() {
     loading.value = true;
     try {
@@ -68,29 +122,64 @@ watch(
         searchTimer = setTimeout(() => {
             page.value = 1;
             fetchList();
-        }, 300);
+        }, 350);
     },
     { deep: true },
 );
 
-onMounted(fetchList);
+function goToPage(p) {
+    if (!meta.value || p < 1 || p > meta.value.last_page || p === page.value) return;
+    page.value = p;
+    fetchList();
+}
 
-// ─── Derived ────────────────────────────────────────────────────────────────
 const grouped = computed(() => groupNotificationsByDate(items.value));
 const isEmpty = computed(() => !loading.value && items.value.length === 0);
 
-const statCards = computed(() => [
-    { key: 'total', label: 'Tổng thông báo', value: stats.total, icon: 'notifications', color: 'text-brand bg-brand/10' },
-    { key: 'unread', label: 'Chưa đọc', value: unreadCount.value, icon: 'message', color: 'text-sky-600 bg-sky-100' },
-    { key: 'critical', label: 'Quan trọng chưa đọc', value: stats.critical, icon: 'flag', color: 'text-rose-600 bg-rose-100' },
-    { key: 'today', label: 'Hôm nay', value: stats.today, icon: 'calendar', color: 'text-violet-600 bg-violet-100' },
-]);
+const todayIso = new Date().toISOString().slice(0, 10);
 
-const hasFilters = computed(() =>
-    !!(filters.category || filters.priority || filters.actor_account_id || filters.search || filters.from || filters.to),
-);
+const activeKpi = computed(() => {
+    if (filters.from === todayIso && filters.to === todayIso && !filters.category && !filters.actor_account_id) {
+        return 'today';
+    }
+    if (filters.priority === 'critical' && filters.tab === 'unread') return 'critical';
+    if (filters.tab === 'unread' && !filters.priority && !filters.category) return 'unread';
+    if (filters.tab === 'all' && !filters.category && !filters.priority && !filters.search && !filters.from) {
+        return 'total';
+    }
+    return '';
+});
 
-// ─── Actions ────────────────────────────────────────────────────────────────
+const paginationMeta = computed(() => {
+    if (!meta.value) return null;
+    return {
+        ...meta.value,
+        links: buildClientPaginationLinks(meta.value.current_page, meta.value.last_page),
+    };
+});
+
+function onQuickFilter({ kpi }) {
+    filters.category = '';
+    filters.actor_account_id = '';
+    filters.search = '';
+    filters.from = '';
+    filters.to = '';
+    filters.priority = '';
+
+    if (kpi === 'unread') {
+        filters.tab = 'unread';
+    } else if (kpi === 'critical') {
+        filters.tab = 'unread';
+        filters.priority = 'critical';
+    } else if (kpi === 'today') {
+        filters.tab = 'all';
+        filters.from = todayIso;
+        filters.to = todayIso;
+    } else {
+        filters.tab = 'all';
+    }
+}
+
 async function onClick(notification) {
     if (!notification.is_read) await markRead(notification);
     if (notification.action_url) {
@@ -147,21 +236,6 @@ async function bulkRead() {
         /* */
     }
 }
-
-function resetFilters() {
-    filters.category = '';
-    filters.priority = '';
-    filters.actor_account_id = '';
-    filters.search = '';
-    filters.from = '';
-    filters.to = '';
-}
-
-function goToPage(p) {
-    if (!meta.value || p < 1 || p > meta.value.last_page || p === page.value) return;
-    page.value = p;
-    fetchList();
-}
 </script>
 
 <template>
@@ -176,166 +250,163 @@ function goToPage(p) {
       >
         <button
           type="button"
-          class="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-1.5 text-[12px] font-medium text-white hover:bg-brand/90 disabled:opacity-40"
+          class="btn-primary inline-flex h-9 shrink-0 items-center gap-1.5 px-3 text-xs disabled:opacity-40"
           :disabled="unreadCount === 0"
           @click="markAllRead"
         >
           <AppIcon
             name="check"
-            :size="14"
+            :size="15"
           />
           Đọc tất cả
         </button>
       </PageHeader>
     </template>
 
-    <div class="mx-auto max-w-5xl px-4 py-5 space-y-5">
-      <!-- Stat cards -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div
-          v-for="c in statCards"
-          :key="c.key"
-          class="rounded-xl border border-slate-200/70 bg-white p-4 flex items-center gap-3"
-        >
-          <div
-            class="h-10 w-10 rounded-lg flex items-center justify-center shrink-0"
-            :class="c.color"
-          >
-            <AppIcon
-              :name="c.icon"
-              :size="18"
-            />
-          </div>
-          <div class="min-w-0">
-            <p class="text-xl font-semibold text-slate-800 leading-none">
-              {{ c.value }}
-            </p>
-            <p class="text-[12px] text-slate-400 mt-1 truncate">
-              {{ c.label }}
-            </p>
-          </div>
-        </div>
-      </div>
+    <NotificationInboxSummaryBar
+      :stats="stats"
+      :unread-count="unreadCount"
+      :active-kpi="activeKpi"
+      @quick-filter="onQuickFilter"
+    />
 
-      <!-- Tabs + filters -->
-      <div class="rounded-xl border border-slate-200/70 bg-white p-3 space-y-3">
-        <div class="flex items-center gap-2 flex-wrap">
-          <div class="inline-flex rounded-lg bg-slate-100 p-0.5">
-            <button
-              v-for="t in NOTIFICATION_TABS"
-              :key="t.id"
-              type="button"
-              class="rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors"
-              :class="filters.tab === t.id ? 'bg-white text-brand shadow-sm' : 'text-slate-500 hover:text-slate-700'"
-              @click="filters.tab = t.id"
-            >
-              {{ t.label }}
-            </button>
-          </div>
-          <div class="relative flex-1 min-w-[180px]">
-            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-              <AppIcon
-                name="search"
-                :size="15"
-              />
-            </span>
-            <input
+    <div class="card overflow-visible">
+      <div class="relative z-20 border-b border-slate-100 px-5 py-4">
+        <div class="flex w-full min-w-0 flex-wrap items-center gap-2 lg:flex-nowrap">
+          <div class="min-w-0 w-full basis-full lg:flex-1 lg:basis-auto">
+            <DatagridToolbarSearch
               v-model="filters.search"
-              type="text"
+              input-id="notifications-inbox-search"
+              hide-label
+              stretch
+              inline-actions
+              input-height="h-10"
               placeholder="Tìm thông báo…"
-              class="w-full rounded-lg border border-slate-200 pl-9 pr-3 py-2 text-[13px] focus:border-brand focus:ring-1 focus:ring-brand"
-            >
+              aria-label="Tìm thông báo"
+            />
           </div>
-          <button
-            v-if="selectedIds.length"
-            type="button"
-            class="shrink-0 inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-2 text-[12px] text-slate-600 hover:bg-slate-50"
-            @click="bulkRead"
-          >
-            <AppIcon
-              name="check"
-              :size="14"
+          <div class="flex shrink-0 flex-wrap items-center gap-2">
+            <div
+              ref="filterPanelDdRef"
+              class="relative shrink-0"
+            >
+              <DatagridToolbarActionButton
+                icon="filter"
+                :active="showFilterPanelDd"
+                :title="`Hiển thị bộ lọc (${enabledFilterControlCount}/${filterControlDefs.length})`"
+                @click="openFilterPanelSafe"
+              >
+                Lọc
+              </DatagridToolbarActionButton>
+              <FilterVisibilityDropdown
+                v-model="visibleFilters"
+                :show="showFilterPanelDd"
+                :anchor-ref="filterPanelDdRef"
+                :controls="filterControlDefs"
+                input-id-prefix="notifications-inbox-filter-vis"
+                @persist="persistVisibleFilters"
+              />
+            </div>
+            <DatagridToolbarActionButton
+              v-if="selectedIds.length"
+              icon="check"
+              @click="bulkRead"
+            >
+              Đọc ({{ selectedIds.length }})
+            </DatagridToolbarActionButton>
+          </div>
+          <div class="ml-auto flex shrink-0 items-center gap-2">
+            <DatagridSegmentedControl
+              v-model="filters.tab"
+              :items="TAB_ITEMS"
+              aria-label="Lọc trạng thái đọc"
+              icon-only-below-sm
             />
-            Đọc ({{ selectedIds.length }})
-          </button>
+          </div>
         </div>
-        <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
-          <select
-            v-model="filters.category"
-            class="rounded-lg border border-slate-200 px-2 py-1.5 text-[12px] focus:border-brand focus:ring-1 focus:ring-brand"
+
+        <Transition name="fade-slide">
+          <div
+            v-if="hasFilterRow"
+            class="mt-3 grid grid-cols-1 gap-3 border-t border-slate-100 pt-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6"
           >
-            <option value="">
-              Mọi loại
-            </option>
-            <option
-              v-for="c in options.categories"
-              :key="c.value"
-              :value="c.value"
+            <DatagridFilterField v-if="visibleFilters.category">
+              <select
+                v-model="filters.category"
+                :class="FILTER_CONTROL_CLASS"
+                aria-label="Loại"
+              >
+                <option value="">
+                  Loại
+                </option>
+                <option
+                  v-for="c in options.categories"
+                  :key="c.value"
+                  :value="c.value"
+                >
+                  {{ c.label }}
+                </option>
+              </select>
+            </DatagridFilterField>
+
+            <DatagridFilterField v-if="visibleFilters.priority">
+              <select
+                v-model="filters.priority"
+                :class="FILTER_CONTROL_CLASS"
+                aria-label="Mức ưu tiên"
+              >
+                <option value="">
+                  Mức ưu tiên
+                </option>
+                <option
+                  v-for="p in options.priorities"
+                  :key="p.value"
+                  :value="p.value"
+                >
+                  {{ p.label }}
+                </option>
+              </select>
+            </DatagridFilterField>
+
+            <DatagridFilterField v-if="visibleFilters.actor_account_id">
+              <select
+                v-model="filters.actor_account_id"
+                :class="FILTER_CONTROL_CLASS"
+                aria-label="Người gửi"
+              >
+                <option value="">
+                  Người gửi
+                </option>
+                <option
+                  v-for="a in options.actors"
+                  :key="a.id"
+                  :value="a.id"
+                >
+                  {{ a.display_name }}
+                </option>
+              </select>
+            </DatagridFilterField>
+
+            <DatagridFilterField
+              v-if="visibleFilters.date_range"
+              class="sm:col-span-2 xl:col-span-2"
             >
-              {{ c.label }}
-            </option>
-          </select>
-          <select
-            v-model="filters.priority"
-            class="rounded-lg border border-slate-200 px-2 py-1.5 text-[12px] focus:border-brand focus:ring-1 focus:ring-brand"
-          >
-            <option value="">
-              Mọi mức
-            </option>
-            <option
-              v-for="p in options.priorities"
-              :key="p.value"
-              :value="p.value"
-            >
-              {{ p.label }}
-            </option>
-          </select>
-          <select
-            v-model="filters.actor_account_id"
-            class="rounded-lg border border-slate-200 px-2 py-1.5 text-[12px] focus:border-brand focus:ring-1 focus:ring-brand"
-          >
-            <option value="">
-              Mọi người
-            </option>
-            <option
-              v-for="a in options.actors"
-              :key="a.id"
-              :value="a.id"
-            >
-              {{ a.display_name }}
-            </option>
-          </select>
-          <input
-            v-model="filters.from"
-            type="date"
-            class="rounded-lg border border-slate-200 px-2 py-1.5 text-[12px] focus:border-brand focus:ring-1 focus:ring-brand"
-          >
-          <input
-            v-model="filters.to"
-            type="date"
-            class="rounded-lg border border-slate-200 px-2 py-1.5 text-[12px] focus:border-brand focus:ring-1 focus:ring-brand"
-          >
-        </div>
-        <div
-          v-if="hasFilters"
-          class="flex justify-end"
-        >
-          <button
-            type="button"
-            class="inline-flex items-center gap-1 text-[12px] text-slate-400 hover:text-brand"
-            @click="resetFilters"
-          >
-            <AppIcon
-              name="close"
-              :size="13"
-            />
-            Xóa bộ lọc
-          </button>
-        </div>
+              <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <FilterDatePicker
+                  v-model="filters.from"
+                  placeholder="Từ ngày"
+                />
+                <FilterDatePicker
+                  v-model="filters.to"
+                  placeholder="Đến ngày"
+                />
+              </div>
+            </DatagridFilterField>
+          </div>
+        </Transition>
       </div>
 
-      <!-- List -->
-      <div class="rounded-xl border border-slate-200/70 bg-white p-2 min-h-[200px]">
+      <div class="min-h-[200px] p-2">
         <div
           v-if="loading"
           class="py-16 text-center text-[13px] text-slate-400"
@@ -344,7 +415,7 @@ function goToPage(p) {
         </div>
         <div
           v-else-if="isEmpty"
-          class="py-16 text-center text-slate-400 text-[13px]"
+          class="py-16 text-center text-[13px] text-slate-400"
         >
           <AppIcon
             name="notifications"
@@ -380,30 +451,27 @@ function goToPage(p) {
         </div>
       </div>
 
-      <!-- Pagination -->
-      <div
-        v-if="meta && meta.last_page > 1"
-        class="flex items-center justify-between text-[12px] text-slate-500"
-      >
-        <span>{{ meta.from }}–{{ meta.to }} trong {{ meta.total }}</span>
-        <div class="flex items-center gap-1">
-          <button
-            class="rounded-lg border border-slate-200 px-2.5 py-1.5 disabled:opacity-40 hover:bg-slate-50"
-            :disabled="meta.current_page <= 1"
-            @click="goToPage(meta.current_page - 1)"
-          >
-            Trước
-          </button>
-          <span class="px-2">{{ meta.current_page }} / {{ meta.last_page }}</span>
-          <button
-            class="rounded-lg border border-slate-200 px-2.5 py-1.5 disabled:opacity-40 hover:bg-slate-50"
-            :disabled="meta.current_page >= meta.last_page"
-            @click="goToPage(meta.current_page + 1)"
-          >
-            Sau
-          </button>
-        </div>
-      </div>
+      <DatagridPaginationFooter
+        v-if="paginationMeta && paginationMeta.total > 0"
+        variant="bar"
+        client
+        :meta="paginationMeta"
+        :per-page="PER_PAGE"
+        :per-page-options="[10, 20, 30, 50]"
+        @page-change="goToPage"
+      />
     </div>
   </AppLayout>
 </template>
+
+<style scoped>
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.fade-slide-enter-from,
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+</style>

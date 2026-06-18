@@ -191,6 +191,90 @@
     .sidebar-nav-scroll::-webkit-scrollbar-thumb:active {
         background-color: rgba(255, 255, 255, 0.58);
     }
+
+    /* Sidebar nav — icon lớn + micro-interaction */
+    .sidebar-nav-icon-shell {
+        @apply relative grid place-items-center rounded-xl transition-[transform,background-color,box-shadow] duration-200 ease-out;
+        transform-origin: center;
+    }
+
+    .sidebar-nav-icon {
+        @apply transition-transform duration-200 ease-out;
+        transform-origin: center;
+    }
+
+    .sidebar-nav-link:hover .sidebar-nav-icon,
+    .sidebar-rail-item:hover .sidebar-nav-icon,
+    .sidebar-rail-group:hover .sidebar-nav-icon,
+    .group\/head:hover .sidebar-nav-icon {
+        transform: scale(1.14);
+    }
+
+    .sidebar-nav-link:active .sidebar-nav-icon,
+    .sidebar-rail-item:active .sidebar-nav-icon,
+    .sidebar-rail-group:active .sidebar-nav-icon,
+    .group\/head:active .sidebar-nav-icon {
+        transform: scale(0.92);
+        transition-duration: 80ms;
+    }
+
+    .sidebar-nav-item--active .sidebar-nav-icon {
+        animation: sidebar-icon-active-pop 0.5s cubic-bezier(0.34, 1.45, 0.64, 1);
+    }
+
+    .sidebar-nav-item--active .sidebar-nav-icon-shell--item {
+        @apply bg-white/[0.14] shadow-[0_4px_14px_-4px_rgba(0,0,0,0.35)] ring-1 ring-inset ring-white/20;
+    }
+
+    .sidebar-nav-item--active .sidebar-nav-icon-shell--item::after {
+        content: '';
+        position: absolute;
+        inset: -3px;
+        border-radius: inherit;
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        pointer-events: none;
+        animation: sidebar-icon-glow 2.8s ease-in-out infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .sidebar-nav-icon,
+        .sidebar-nav-item--active .sidebar-nav-icon,
+        .sidebar-nav-item--active .sidebar-nav-icon-shell--item::after {
+            animation: none !important;
+        }
+
+        .sidebar-nav-link:hover .sidebar-nav-icon,
+        .sidebar-rail-item:hover .sidebar-nav-icon,
+        .sidebar-rail-group:hover .sidebar-nav-icon {
+            transform: none;
+        }
+    }
+}
+
+@keyframes sidebar-icon-active-pop {
+    0% {
+        transform: scale(0.72);
+        opacity: 0.65;
+    }
+    55% {
+        transform: scale(1.18);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes sidebar-icon-glow {
+    0%,
+    100% {
+        opacity: 0.35;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.85;
+        transform: scale(1.06);
+    }
 }
 
 /* ── Interactive Tour (driver.js) — brand-styled popover ─────────────────── */

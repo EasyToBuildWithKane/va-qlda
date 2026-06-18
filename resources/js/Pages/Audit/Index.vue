@@ -1,10 +1,21 @@
 <script setup>
-import { computed, ref } from 'vue';
-import { Head, router } from '@inertiajs/vue3';
+import {
+    computed, ref, watch, onMounted, onBeforeUnmount,
+} from 'vue';
+import { Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import AppIcon from '@/Components/AppIcon.vue';
+import AuditTrailSummaryBar from '@/modules/audit/components/AuditTrailSummaryBar.vue';
+import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
+import DatagridToolbarActionButton from '@/shared/ui/DatagridToolbarActionButton.vue';
+import DatagridFilterField from '@/shared/ui/DatagridFilterField.vue';
+import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
+import FilterDatePicker from '@/shared/ui/FilterDatePicker.vue';
+import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
+import { buildClientPaginationLinks } from '@/shared/composables/useClientPagination';
 import { useFilter } from '@/shared/composables/useFilter';
+import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
 
 const props = defineProps({
     logs: { type: Array, default: () => [] },
@@ -16,7 +27,6 @@ const props = defineProps({
     options: { type: Object, required: true },
 });
 
-// ─── Severity styling ───────────────────────────────────────────────────────
 const SEVERITY = {
     info: { dot: 'bg-slate-400', badge: 'bg-slate-100 text-slate-600', label: 'Thông tin' },
     notice: { dot: 'bg-sky-500', badge: 'bg-sky-100 text-sky-700', label: 'Ghi nhận' },
@@ -25,59 +35,136 @@ const SEVERITY = {
 };
 const sev = (s) => SEVERITY[s] ?? SEVERITY.info;
 
-// ─── Stat cards ─────────────────────────────────────────────────────────────
-const statCards = computed(() => [
-    { key: 'total', label: 'Tổng sự kiện', value: props.stats.total, icon: 'shield', color: 'text-brand bg-brand/10' },
-    { key: 'today', label: 'Hôm nay', value: props.stats.today, icon: 'calendar', color: 'text-sky-600 bg-sky-100' },
-    { key: 'week', label: '7 ngày qua', value: props.stats.week, icon: 'overview', color: 'text-violet-600 bg-violet-100' },
-    { key: 'login_failed', label: 'Đăng nhập lỗi (7 ngày)', value: props.stats.login_failed, icon: 'flag', color: 'text-rose-600 bg-rose-100' },
-]);
+const FILTER_CONTROLS = [
+    { key: 'module', label: 'Module', default: false },
+    { key: 'actor_account_id', label: 'Người dùng', default: false },
+    { key: 'date_range', label: 'Thời gian', default: false },
+];
 
-const maxTrend = computed(() => Math.max(1, ...props.trend.map((t) => t.count)));
+const FILTER_CONTROL_CLASS = 'input h-10 w-full text-sm';
 
-// ─── Filters (URL-bound via Inertia, debounced) ─────────────────────────────
+const filterPanelDdRef = ref(null);
+const perPage = ref(Number(props.filters.per_page) || 25);
+
 const { filters: form } = useFilter({
     module: props.filters.module ?? null,
+    action: props.filters.action ?? null,
     actor_account_id: props.filters.actor_account_id ?? null,
     search: props.filters.search ?? null,
     from: props.filters.from ?? null,
     to: props.filters.to ?? null,
     per_page: props.filters.per_page ?? 25,
+    page: props.meta.current_page ?? 1,
 });
 
-function resetFilters() {
+watch(
+    () => [form.module, form.action, form.actor_account_id, form.search, form.from, form.to],
+    () => {
+        form.page = 1;
+    },
+);
+
+const {
+    visibleFilters,
+    showFilterPanelDd,
+    enabledFilterControlCount,
+    hasFilterRow,
+    persistVisibleFilters,
+    openFilterPanel,
+    FILTER_CONTROLS: filterControlDefs,
+} = useVisibleFilterControls(FILTER_CONTROLS, 'va-qlda.audit-trail.visible-filters.v1');
+
+function openFilterPanelSafe() {
+    openFilterPanel();
+}
+
+function onToolbarClickOutside(e) {
+    if (e.target.closest?.('[data-filter-visibility-panel]')) return;
+    if (filterPanelDdRef.value && !filterPanelDdRef.value.contains(e.target)) {
+        showFilterPanelDd.value = false;
+    }
+}
+
+onMounted(() => document.addEventListener('mousedown', onToolbarClickOutside));
+onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOutside));
+
+function isoDate(d) {
+    return d.toISOString().slice(0, 10);
+}
+
+const todayIso = isoDate(new Date());
+
+function weekAgoIso() {
+    const d = new Date();
+    d.setDate(d.getDate() - 6);
+    return isoDate(d);
+}
+
+const activeKpi = computed(() => {
+    if (form.action === 'auth.login_failed') return 'login_failed';
+    if (form.from === todayIso && form.to === todayIso) return 'today';
+    if (form.from === weekAgoIso() && form.to === todayIso && !form.module && !form.action) return 'week';
+    if (!form.module && !form.action && !form.actor_account_id && !form.search && !form.from && !form.to) {
+        return 'total';
+    }
+    return '';
+});
+
+function onQuickFilter({ kpi }) {
     form.module = null;
+    form.action = null;
     form.actor_account_id = null;
     form.search = null;
     form.from = null;
     form.to = null;
+
+    if (kpi === 'today') {
+        form.from = todayIso;
+        form.to = todayIso;
+    } else if (kpi === 'week') {
+        form.from = weekAgoIso();
+        form.to = todayIso;
+    } else if (kpi === 'login_failed') {
+        form.action = 'auth.login_failed';
+        form.from = weekAgoIso();
+        form.to = todayIso;
+    }
+
+    form.page = 1;
 }
 
-const hasFilters = computed(() =>
-    !!(form.module || form.actor_account_id || form.search || form.from || form.to),
-);
+function onPerPageChange(n) {
+    perPage.value = n;
+    form.per_page = n;
+    form.page = 1;
+}
 
 function goToPage(p) {
     if (p < 1 || p > props.meta.last_page || p === props.meta.current_page) return;
-    const params = Object.fromEntries(
-        Object.entries({ ...form }).filter(([, v]) => v !== null && v !== '' && v !== undefined),
-    );
-    router.get(route('audit.index'), { ...params, page: p }, {
-        preserveState: true,
-        preserveScroll: true,
-        replace: true,
-    });
+    form.page = p;
 }
 
-// ─── Row meta expansion ─────────────────────────────────────────────────────
+const paginationMeta = computed(() => ({
+    ...props.meta,
+    links: buildClientPaginationLinks(props.meta.current_page, props.meta.last_page),
+}));
+
+const maxTrend = computed(() => Math.max(1, ...props.trend.map((t) => t.count)));
+
 const expanded = ref({});
-const toggle = (id) => (expanded.value[id] = !expanded.value[id]);
+const toggle = (id) => { expanded.value[id] = !expanded.value[id]; };
 const hasMeta = (log) => log.meta && Object.keys(log.meta).length > 0;
 const formatMeta = (meta) =>
     Object.entries(meta).map(([k, v]) => ({
         key: k,
         value: typeof v === 'object' ? JSON.stringify(v) : String(v),
     }));
+
+function filterByModule(moduleKey) {
+    form.module = moduleKey;
+    form.action = null;
+    form.page = 1;
+}
 </script>
 
 <template>
@@ -91,116 +178,120 @@ const formatMeta = (meta) =>
       />
     </template>
 
-    <div class="mx-auto max-w-7xl px-4 py-5 space-y-5">
-      <!-- Stat cards -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div
-          v-for="c in statCards"
-          :key="c.key"
-          class="rounded-xl border border-slate-200/70 bg-white p-4 flex items-center gap-3"
-        >
-          <div
-            class="h-10 w-10 rounded-lg flex items-center justify-center shrink-0"
-            :class="c.color"
-          >
-            <AppIcon
-              :name="c.icon"
-              :size="18"
-            />
-          </div>
-          <div class="min-w-0">
-            <p class="text-xl font-semibold text-slate-800 leading-none">
-              {{ c.value }}
-            </p>
-            <p class="text-[12px] text-slate-400 mt-1 truncate">
-              {{ c.label }}
-            </p>
-          </div>
-        </div>
-      </div>
+    <AuditTrailSummaryBar
+      :stats="stats"
+      :active-kpi="activeKpi"
+      @quick-filter="onQuickFilter"
+    />
 
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <!-- Main feed -->
-        <div class="lg:col-span-2 space-y-4">
-          <!-- Filter toolbar -->
-          <div class="rounded-xl border border-slate-200/70 bg-white p-3 space-y-3">
-            <div class="flex items-center gap-2">
-              <div class="relative flex-1">
-                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-                  <AppIcon
-                    name="search"
-                    :size="15"
-                  />
-                </span>
-                <input
+    <div class="grid grid-cols-1 gap-5 xl:grid-cols-12">
+      <div class="min-w-0 xl:col-span-8">
+        <div class="card overflow-visible">
+          <div class="relative z-20 border-b border-slate-100 px-5 py-4">
+            <div class="flex w-full min-w-0 flex-wrap items-center gap-2 lg:flex-nowrap">
+              <div class="min-w-0 w-full basis-full lg:flex-1 lg:basis-auto">
+                <DatagridToolbarSearch
                   v-model="form.search"
-                  type="text"
+                  input-id="audit-trail-search"
+                  hide-label
+                  stretch
+                  inline-actions
+                  input-height="h-10"
                   placeholder="Tìm theo hành động, đối tượng, dữ liệu…"
-                  class="w-full rounded-lg border border-slate-200 pl-9 pr-3 py-2 text-[13px] focus:border-brand focus:ring-1 focus:ring-brand"
-                >
-              </div>
-              <button
-                v-if="hasFilters"
-                type="button"
-                class="shrink-0 inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-2 text-[12px] text-slate-500 hover:bg-slate-50"
-                @click="resetFilters"
-              >
-                <AppIcon
-                  name="close"
-                  :size="14"
+                  aria-label="Tìm nhật ký truy vết"
                 />
-                Xóa lọc
-              </button>
-            </div>
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <select
-                v-model="form.module"
-                class="rounded-lg border border-slate-200 px-2 py-1.5 text-[12px] focus:border-brand focus:ring-1 focus:ring-brand"
-              >
-                <option value="">
-                  Tất cả module
-                </option>
-                <option
-                  v-for="m in options.modules"
-                  :key="m.key"
-                  :value="m.key"
+              </div>
+              <div class="flex shrink-0 items-center gap-2">
+                <div
+                  ref="filterPanelDdRef"
+                  class="relative shrink-0"
                 >
-                  {{ m.label }}
-                </option>
-              </select>
-              <select
-                v-model="form.actor_account_id"
-                class="rounded-lg border border-slate-200 px-2 py-1.5 text-[12px] focus:border-brand focus:ring-1 focus:ring-brand"
-              >
-                <option value="">
-                  Mọi người dùng
-                </option>
-                <option
-                  v-for="a in options.actors"
-                  :key="a.id"
-                  :value="a.id"
-                >
-                  {{ a.display_name }}
-                </option>
-              </select>
-              <input
-                v-model="form.from"
-                type="date"
-                class="rounded-lg border border-slate-200 px-2 py-1.5 text-[12px] focus:border-brand focus:ring-1 focus:ring-brand"
-              >
-              <input
-                v-model="form.to"
-                type="date"
-                class="rounded-lg border border-slate-200 px-2 py-1.5 text-[12px] focus:border-brand focus:ring-1 focus:ring-brand"
-              >
+                  <DatagridToolbarActionButton
+                    icon="filter"
+                    :active="showFilterPanelDd"
+                    :title="`Hiển thị bộ lọc (${enabledFilterControlCount}/${filterControlDefs.length})`"
+                    @click="openFilterPanelSafe"
+                  >
+                    Lọc
+                  </DatagridToolbarActionButton>
+                  <FilterVisibilityDropdown
+                    v-model="visibleFilters"
+                    :show="showFilterPanelDd"
+                    :anchor-ref="filterPanelDdRef"
+                    :controls="filterControlDefs"
+                    input-id-prefix="audit-trail-filter-vis"
+                    @persist="persistVisibleFilters"
+                  />
+                </div>
+              </div>
             </div>
+
+            <Transition name="fade-slide">
+              <div
+                v-if="hasFilterRow"
+                class="mt-3 grid grid-cols-1 gap-3 border-t border-slate-100 pt-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6"
+              >
+                <DatagridFilterField v-if="visibleFilters.module">
+                  <select
+                    v-model="form.module"
+                    :class="FILTER_CONTROL_CLASS"
+                    aria-label="Module"
+                  >
+                    <option :value="null">
+                      Module
+                    </option>
+                    <option
+                      v-for="m in options.modules"
+                      :key="m.key"
+                      :value="m.key"
+                    >
+                      {{ m.label }}
+                    </option>
+                  </select>
+                </DatagridFilterField>
+
+                <DatagridFilterField v-if="visibleFilters.actor_account_id">
+                  <select
+                    v-model="form.actor_account_id"
+                    :class="FILTER_CONTROL_CLASS"
+                    aria-label="Người dùng"
+                  >
+                    <option :value="null">
+                      Người dùng
+                    </option>
+                    <option
+                      v-for="a in options.actors"
+                      :key="a.id"
+                      :value="a.id"
+                    >
+                      {{ a.display_name }}
+                    </option>
+                  </select>
+                </DatagridFilterField>
+
+                <DatagridFilterField
+                  v-if="visibleFilters.date_range"
+                  class="sm:col-span-2 xl:col-span-2"
+                >
+                  <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <FilterDatePicker
+                      v-model="form.from"
+                      placeholder="Từ ngày"
+                    />
+                    <FilterDatePicker
+                      v-model="form.to"
+                      placeholder="Đến ngày"
+                    />
+                  </div>
+                </DatagridFilterField>
+              </div>
+            </Transition>
           </div>
 
-          <!-- Feed list -->
-          <div class="rounded-xl border border-slate-200/70 bg-white divide-y divide-slate-100">
+          <div class="divide-y divide-slate-100">
             <div
               v-if="logs.length === 0"
-              class="py-16 text-center text-slate-400 text-[13px]"
+              class="py-16 text-center text-[13px] text-slate-400"
             >
               <AppIcon
                 name="shield"
@@ -212,17 +303,17 @@ const formatMeta = (meta) =>
             <div
               v-for="log in logs"
               :key="log.id"
-              class="px-4 py-3 hover:bg-slate-50/60 transition-colors"
+              class="px-5 py-3 transition-colors hover:bg-slate-50/60"
             >
               <div class="flex items-start gap-3">
-                <div class="mt-0.5 h-8 w-8 rounded-lg bg-slate-100 text-slate-500 flex items-center justify-center shrink-0">
+                <div class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
                   <AppIcon
                     :name="log.icon"
                     :size="15"
                   />
                 </div>
                 <div class="min-w-0 flex-1">
-                  <div class="flex items-center gap-2 flex-wrap">
+                  <div class="flex flex-wrap items-center gap-2">
                     <span class="text-[13px] font-medium text-slate-800">
                       {{ log.action_label }}
                     </span>
@@ -236,7 +327,7 @@ const formatMeta = (meta) =>
                       {{ log.module_label }}
                     </span>
                   </div>
-                  <p class="text-[12px] text-slate-500 mt-0.5">
+                  <p class="mt-0.5 text-[12px] text-slate-500">
                     <span class="font-medium text-slate-600">{{ log.actor?.name ?? 'Hệ thống' }}</span>
                     <span v-if="log.subject_type"> · {{ log.subject_type }}<span v-if="log.subject_id">#{{ log.subject_id }}</span></span>
                     <span class="text-slate-400"> · {{ log.created_at_human }}</span>
@@ -255,106 +346,106 @@ const formatMeta = (meta) =>
                   </button>
                   <div
                     v-if="expanded[log.id] && hasMeta(log)"
-                    class="mt-2 rounded-lg bg-slate-50 border border-slate-100 p-2 space-y-1"
+                    class="mt-2 space-y-1 rounded-lg border border-slate-100 bg-slate-50 p-2"
                   >
                     <div
                       v-for="row in formatMeta(log.meta)"
                       :key="row.key"
                       class="flex gap-2 text-[11px]"
                     >
-                      <span class="text-slate-400 shrink-0 min-w-[90px]">{{ row.key }}</span>
-                      <span class="text-slate-600 break-all">{{ row.value }}</span>
+                      <span class="min-w-[90px] shrink-0 text-slate-400">{{ row.key }}</span>
+                      <span class="break-all text-slate-600">{{ row.value }}</span>
                     </div>
                   </div>
                 </div>
                 <span
-                  class="mt-1.5 h-2 w-2 rounded-full shrink-0"
+                  class="mt-1.5 h-2 w-2 shrink-0 rounded-full"
                   :class="sev(log.severity).dot"
                 />
               </div>
             </div>
           </div>
 
-          <!-- Pagination -->
-          <div
-            v-if="meta.last_page > 1"
-            class="flex items-center justify-between text-[12px] text-slate-500"
-          >
-            <span>{{ meta.from }}–{{ meta.to }} trong {{ meta.total }}</span>
-            <div class="flex items-center gap-1">
-              <button
-                class="rounded-lg border border-slate-200 px-2.5 py-1.5 disabled:opacity-40 hover:bg-slate-50"
-                :disabled="meta.current_page <= 1"
-                @click="goToPage(meta.current_page - 1)"
-              >
-                Trước
-              </button>
-              <span class="px-2">{{ meta.current_page }} / {{ meta.last_page }}</span>
-              <button
-                class="rounded-lg border border-slate-200 px-2.5 py-1.5 disabled:opacity-40 hover:bg-slate-50"
-                :disabled="meta.current_page >= meta.last_page"
-                @click="goToPage(meta.current_page + 1)"
-              >
-                Sau
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Sidebar: trend + module breakdown -->
-        <div class="space-y-5">
-          <div class="rounded-xl border border-slate-200/70 bg-white p-4">
-            <h3 class="text-[13px] font-semibold text-slate-700 mb-3">
-              Xu hướng 14 ngày
-            </h3>
-            <div class="flex items-end gap-1 h-20">
-              <div
-                v-for="t in trend"
-                :key="t.date"
-                class="flex-1 rounded-t bg-brand/70 min-h-[2px]"
-                :style="{ height: `${Math.round((t.count / maxTrend) * 100)}%` }"
-                :title="`${t.date}: ${t.count}`"
-              />
-              <div
-                v-if="trend.length === 0"
-                class="text-[12px] text-slate-400"
-              >
-                Chưa có dữ liệu.
-              </div>
-            </div>
-          </div>
-
-          <div class="rounded-xl border border-slate-200/70 bg-white p-4">
-            <h3 class="text-[13px] font-semibold text-slate-700 mb-3">
-              Theo module (30 ngày)
-            </h3>
-            <div class="space-y-2">
-              <button
-                v-for="m in byModule"
-                :key="m.module"
-                type="button"
-                class="w-full flex items-center gap-2.5 text-left group"
-                @click="form.module = m.module"
-              >
-                <div class="h-7 w-7 rounded-lg bg-slate-100 text-slate-500 flex items-center justify-center shrink-0 group-hover:bg-brand/10 group-hover:text-brand">
-                  <AppIcon
-                    :name="m.icon"
-                    :size="14"
-                  />
-                </div>
-                <span class="text-[12px] text-slate-600 flex-1 truncate">{{ m.module_label }}</span>
-                <span class="text-[12px] font-semibold text-slate-700">{{ m.count }}</span>
-              </button>
-              <div
-                v-if="byModule.length === 0"
-                class="text-[12px] text-slate-400"
-              >
-                Chưa có dữ liệu.
-              </div>
-            </div>
-          </div>
+          <DatagridPaginationFooter
+            v-if="meta.total > 0"
+            variant="bar"
+            client
+            :meta="paginationMeta"
+            :per-page="perPage"
+            :per-page-options="options.perPage"
+            @update:per-page="onPerPageChange"
+            @page-change="goToPage"
+          />
         </div>
       </div>
+
+      <aside class="min-w-0 space-y-5 xl:col-span-4">
+        <div class="card p-4">
+          <h3 class="mb-3 text-[13px] font-semibold text-slate-700">
+            Xu hướng 14 ngày
+          </h3>
+          <div
+            v-if="trend.length"
+            class="flex h-20 items-end gap-1"
+          >
+            <div
+              v-for="t in trend"
+              :key="t.date"
+              class="min-h-[2px] flex-1 rounded-t bg-brand/70"
+              :style="{ height: `${Math.round((t.count / maxTrend) * 100)}%` }"
+              :title="`${t.date}: ${t.count}`"
+            />
+          </div>
+          <p
+            v-else
+            class="text-[12px] text-slate-400"
+          >
+            Chưa có dữ liệu.
+          </p>
+        </div>
+
+        <div class="card p-4">
+          <h3 class="mb-3 text-[13px] font-semibold text-slate-700">
+            Theo module (30 ngày)
+          </h3>
+          <div class="space-y-2">
+            <button
+              v-for="m in byModule"
+              :key="m.module"
+              type="button"
+              class="group flex w-full items-center gap-2.5 text-left"
+              @click="filterByModule(m.module)"
+            >
+              <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500 group-hover:bg-brand/10 group-hover:text-brand">
+                <AppIcon
+                  :name="m.icon"
+                  :size="14"
+                />
+              </div>
+              <span class="flex-1 truncate text-[12px] text-slate-600">{{ m.module_label }}</span>
+              <span class="text-[12px] font-semibold text-slate-700">{{ m.count }}</span>
+            </button>
+            <p
+              v-if="byModule.length === 0"
+              class="text-[12px] text-slate-400"
+            >
+              Chưa có dữ liệu.
+            </p>
+          </div>
+        </div>
+      </aside>
     </div>
   </AppLayout>
 </template>
+
+<style scoped>
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.fade-slide-enter-from,
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+</style>

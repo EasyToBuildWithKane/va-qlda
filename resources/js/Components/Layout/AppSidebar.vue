@@ -47,7 +47,7 @@ const emit = defineEmits(['collapse', 'expand']);
 <template>
   <aside
     class="hidden h-full min-h-0 shrink-0 flex-col bg-brand text-brand-100 transition-[width] duration-200 ease-out lg:flex"
-    :class="rail ? 'w-[4.25rem]' : 'w-72'"
+    :class="rail ? 'w-[5.75rem]' : 'w-72'"
   >
     <AppSidebarBrand
       :rail="rail"

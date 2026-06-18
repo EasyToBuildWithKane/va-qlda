@@ -57,7 +57,7 @@ const groupHasBadge = (group) => group.items.some((item) => item.badge);
 <template>
   <nav
     :ref="bindNavRef"
-    class="sidebar-nav-scroll flex min-h-0 flex-1 flex-col items-center gap-0.5 overflow-y-auto px-2 py-2"
+    class="sidebar-nav-scroll flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto px-2 py-2"
     aria-label="Điều hướng chính"
     @scroll="emit('scroll', $event)"
   >
@@ -75,7 +75,7 @@ const groupHasBadge = (group) => group.items.some((item) => item.badge);
       <button
         v-if="group.items.length > 1"
         type="button"
-        class="sidebar-rail-group relative mb-0.5 grid h-8 w-8 place-items-center rounded-lg transition-colors"
+        class="sidebar-rail-group relative mb-0.5 grid h-12 w-12 place-items-center rounded-xl transition-all duration-200"
         :class="[
           groupContainsActive(group)
             ? 'bg-white/[0.14] text-white ring-1 ring-inset ring-white/15'
@@ -101,7 +101,9 @@ const groupHasBadge = (group) => group.items.some((item) => item.badge);
         />
         <AppIcon
           :name="group.icon"
-          :size="14"
+          :size="22"
+          :stroke-width="1.65"
+          class="sidebar-nav-icon"
         />
       </button>
 
@@ -110,7 +112,7 @@ const groupHasBadge = (group) => group.items.some((item) => item.badge);
         v-for="item in group.items"
         :key="item.label"
         :href="isPlanned(item) ? undefined : item.href"
-        class="sidebar-rail-item relative grid h-10 w-10 place-items-center rounded-xl transition-all duration-150"
+        class="sidebar-rail-item relative grid h-14 w-14 place-items-center rounded-2xl transition-all duration-200"
         :class="[
           isActive(item.href)
             ? 'sidebar-nav-item--active bg-white/[0.16] text-white shadow-sm ring-1 ring-inset ring-white/15'
@@ -128,7 +130,9 @@ const groupHasBadge = (group) => group.items.some((item) => item.badge);
         />
         <AppIcon
           :name="item.icon"
-          :size="20"
+          :size="28"
+          :stroke-width="1.65"
+          class="sidebar-nav-icon"
         />
         <span
           v-if="item.badge"
