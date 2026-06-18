@@ -104,20 +104,23 @@ class EmployeeProfileResource extends JsonResource
         $teams = collect();
 
         if ($this->resource->relationLoaded('orgMemberships')) {
-            $teams = $this->resource->orgMemberships
-                ->map(fn ($m) => $m->team ? [
-                    'id' => $m->team->id,
-                    'name' => $m->team->name,
-                    'section' => $m->section?->title,
-                    'is_leader' => $m->team->leader_id === $this->resource->id,
-                ] : null)
-                ->filter()
-                ->values();
+            $teams = collect(
+                $this->resource->orgMemberships
+                    ->map(fn ($m) => $m->team ? [
+                        'id' => $m->team->id,
+                        'name' => $m->team->name,
+                        'section' => $m->section?->title,
+                        'is_leader' => $m->team->leader_id === $this->resource->id,
+                    ] : null)
+                    ->filter()
+                    ->values()
+                    ->all()
+            );
         }
 
         if ($this->resource->relationLoaded('ledTeams')) {
             $existing = $teams->pluck('id')->flip();
-            $teams = $teams->merge(
+            $teams = $teams->concat(
                 $this->resource->ledTeams
                     ->reject(fn ($team) => $existing->has($team->id))
                     ->map(fn ($team) => [
