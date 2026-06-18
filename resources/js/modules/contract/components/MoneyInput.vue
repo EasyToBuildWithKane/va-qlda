@@ -10,6 +10,7 @@ const props = defineProps({
     hint: { type: Boolean, default: true },
     suffix: { type: String, default: 'VNĐ' },
     disabled: { type: Boolean, default: false },
+    inputClass: { type: String, default: 'h-10 w-full text-sm' },
 });
 
 const emit = defineEmits(['update:modelValue']);
@@ -51,6 +52,7 @@ const words = computed(() => {
         :placeholder="placeholder"
         :disabled="disabled"
         class="input pr-12 text-right tabular-nums"
+        :class="inputClass"
         @input="onInput"
       >
       <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-slate-400">{{ suffix }}</span>

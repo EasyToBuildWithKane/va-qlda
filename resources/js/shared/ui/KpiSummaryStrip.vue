@@ -23,6 +23,8 @@ const props = defineProps({
     },
     hideHeader: { type: Boolean, default: false },
     shellClass: { type: String, default: '' },
+    /** Thu nhỏ số KPI (tab nhúng chi tiết HĐ) */
+    denseValues: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['select']);
@@ -130,8 +132,9 @@ function showProgress(card) {
         v-for="card in cards"
         :key="card.key"
         type="button"
-        class="kpi-card group relative min-h-[6.75rem] text-left outline-none transition-[transform,box-shadow] duration-300 ease-out"
+        class="kpi-card group relative text-left outline-none transition-[transform,box-shadow] duration-300 ease-out"
         :class="[
+          denseValues ? 'min-h-[5.75rem]' : 'min-h-[6.75rem]',
           toneClass[card.tone] ?? toneClass.brand,
           isInteractive(card) ? 'kpi-card--interactive cursor-pointer' : 'kpi-card--static',
           isActive(card) ? 'kpi-card--active' : '',
@@ -150,18 +153,20 @@ function showProgress(card) {
           <div class="kpi-card__shine absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
         </div>
 
-        <div class="relative z-[1] flex h-full flex-col p-3.5 sm:p-4">
+        <div class="relative z-[1] flex h-full flex-col p-3 sm:p-3.5">
           <div class="flex items-start justify-between gap-2">
             <div class="min-w-0 flex-1">
               <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
                 {{ card.label }}
               </p>
               <p
-                class="mt-1 leading-none"
+                class="mt-1 leading-tight"
                 :class="card.valueKind === 'text'
-                  ? 'text-sm font-medium italic text-slate-500'
+                  ? 'text-xs font-medium italic text-slate-500'
                   : [
-                    'font-display text-2xl font-bold tabular-nums tracking-tight sm:text-[1.65rem]',
+                    denseValues
+                      ? 'font-display text-base font-bold tabular-nums tracking-tight sm:text-lg'
+                      : 'font-display text-2xl font-bold tabular-nums tracking-tight sm:text-[1.65rem]',
                     card.tone === 'brand' ? 'text-brand' : 'text-slate-900',
                   ]"
               >
@@ -180,12 +185,15 @@ function showProgress(card) {
             </div>
             <span
               v-if="card.icon"
-              class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ring-1 transition-transform duration-300 group-hover:scale-105"
-              :class="iconToneClass[card.tone] ?? iconToneClass.brand"
+              class="inline-flex shrink-0 items-center justify-center rounded-lg ring-1 transition-transform duration-300 group-hover:scale-105"
+              :class="[
+                denseValues ? 'h-8 w-8' : 'h-10 w-10',
+                iconToneClass[card.tone] ?? iconToneClass.brand,
+              ]"
             >
               <AppIcon
                 :name="card.icon"
-                :size="18"
+                :size="denseValues ? 16 : 18"
               />
             </span>
           </div>

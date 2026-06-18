@@ -202,7 +202,7 @@ class Contract extends Model
     }
 
     /**
-     * Chi phí năm quy đổi: ưu tiên tổng `maintenance_fee` từ contract_finances
+     * Chi phí năm quy đổi: ưu tiên tổng phí duy trì tháng × 12 từ contract_finances
      * (dữ liệu thật), fallback `annual_cost` rồi `monthly_cost * 12`.
      */
     public function annualCostResolved(): float
@@ -210,7 +210,7 @@ class Contract extends Model
         if ($this->relationLoaded('finances') && $this->finances->isNotEmpty()) {
             $maintenance = (float) $this->finances->sum(fn (ContractFinance $f) => (float) ($f->maintenance_fee ?? 0));
             if ($maintenance > 0) {
-                return round($maintenance, 2);
+                return round($maintenance * 12, 2);
             }
             $total = (float) $this->finances->sum(fn (ContractFinance $f) => (float) ($f->total ?? 0));
             if ($total > 0) {
@@ -223,6 +223,42 @@ class Contract extends Model
         }
 
         return round((float) ($this->monthly_cost ?? 0) * 12, 2);
+    }
+
+    public function monthlyCostResolved(): ?float
+    {
+        if ($this->relationLoaded('finances') && $this->finances->isNotEmpty()) {
+            $monthly = (float) $this->finances->sum(fn (ContractFinance $f) => (float) ($f->maintenance_fee ?? 0));
+            if ($monthly > 0) {
+                return round($monthly, 2);
+            }
+        }
+
+        return $this->monthly_cost !== null ? round((float) $this->monthly_cost, 2) : null;
+    }
+
+    public function unitPriceResolved(): ?float
+    {
+        if ($this->relationLoaded('finances') && $this->finances->isNotEmpty()) {
+            $latest = $this->finances->first();
+            if ($latest?->unit_price !== null) {
+                return round((float) $latest->unit_price, 2);
+            }
+        }
+
+        return $this->unit_price !== null ? round((float) $this->unit_price, 2) : null;
+    }
+
+    public function lifecycleCostResolved(): ?float
+    {
+        if ($this->relationLoaded('finances') && $this->finances->isNotEmpty()) {
+            $total = (float) $this->finances->sum(fn (ContractFinance $f) => (float) ($f->total ?? 0));
+            if ($total > 0) {
+                return round($total, 2);
+            }
+        }
+
+        return $this->lifecycle_cost !== null ? round((float) $this->lifecycle_cost, 2) : null;
     }
 
     /** Tổng phí khởi tạo (triển khai mới) từ contract_finances. */

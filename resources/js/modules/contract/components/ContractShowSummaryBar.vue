@@ -11,7 +11,6 @@ import { EMPTY_LABELS } from '@/shared/utils/emptyDisplay.js';
 
 const props = defineProps({
     contract: { type: Object, required: true },
-    annualLabel: { type: String, default: '' },
     attachmentCount: { type: Number, default: 0 },
     addendaCount: { type: Number, default: 0 },
     avgReviewScore: { type: Number, default: null },
@@ -37,10 +36,14 @@ const cards = computed(() => {
         ? `Thanh toán: ${c.payment_status.label}`
         : 'Chưa có trạng thái thanh toán';
 
-    const annualAmt = c?.annual_cost ?? c?.annual_cost_resolved;
-    const annualValue = props.annualLabel
-        || (annualAmt != null ? formatMoneyShort(annualAmt, c?.currency ?? 'VND') : EMPTY_LABELS.notUpdated);
-    const annualIsText = annualAmt == null && !props.annualLabel;
+    const hasFinances = (c?.finances ?? []).length > 0;
+    const annualAmt = hasFinances
+        ? (c?.annual_cost_resolved ?? c?.annual_cost)
+        : (c?.annual_cost ?? c?.annual_cost_resolved);
+    const annualValue = annualAmt != null && annualAmt !== ''
+        ? formatMoneyShort(annualAmt, c?.currency ?? 'VND')
+        : EMPTY_LABELS.notUpdated;
+    const annualIsText = annualAmt == null || annualAmt === '';
 
     const healthVal = c?.health_score;
     const healthDisplay = healthVal != null ? healthVal : EMPTY_LABELS.notUpdated;
@@ -130,6 +133,7 @@ function onSelect(card) {
 <template>
   <KpiSummaryStrip
     variant="embedded"
+    dense-values
     aria-label="Thống kê tổng quan hợp đồng"
     heading="Chỉ số hợp đồng"
     hint="Thẻ viền nét đứt — bấm để mở tab liên quan"

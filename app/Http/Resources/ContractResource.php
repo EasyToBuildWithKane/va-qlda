@@ -50,10 +50,13 @@ class ContractResource extends JsonResource
 
             'currency' => $this->currency,
             'unit_price' => $this->unit_price !== null ? (float) $this->unit_price : null,
+            'unit_price_resolved' => $this->unitPriceResolved(),
             'monthly_cost' => $this->monthly_cost !== null ? (float) $this->monthly_cost : null,
+            'monthly_cost_resolved' => $this->monthlyCostResolved(),
             'annual_cost' => $this->annual_cost !== null ? (float) $this->annual_cost : null,
             'annual_cost_resolved' => $this->annualCostResolved(),
             'lifecycle_cost' => $this->lifecycle_cost !== null ? (float) $this->lifecycle_cost : null,
+            'lifecycle_cost_resolved' => $this->lifecycleCostResolved(),
             'payment_status' => $this->enum($this->payment_status),
             'billing_cycle' => $this->enum($this->billing_cycle),
 

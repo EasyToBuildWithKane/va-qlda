@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, provide, ref } from 'vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
@@ -9,6 +9,7 @@ import ContractFormModal from '@/modules/contract/components/ContractFormModal.v
 import ContractDocuments from '@/modules/contract/components/ContractDocuments.vue';
 import RenewalQuickModal from '@/modules/contract/components/RenewalQuickModal.vue';
 import ContractShowSummaryBar from '@/modules/contract/components/ContractShowSummaryBar.vue';
+import ContractFinanceFormPanel from '@/modules/contract/components/ContractFinanceFormPanel.vue';
 import EmployeeAutocomplete from '@/modules/contract/components/EmployeeAutocomplete.vue';
 import { useDialog } from '@/composables/useDialog';
 import {
@@ -76,13 +77,29 @@ function orNA(val, label = EMPTY_LABELS.notUpdated) {
     return displayOrEmpty(val, label);
 }
 
+const hasFinanceLines = computed(() => (c.value.finances ?? []).length > 0);
+
 const annualDisplay = computed(() => {
-    const amt = c.value.annual_cost ?? c.value.annual_cost_resolved;
+    const amt = hasFinanceLines.value
+        ? (c.value.annual_cost_resolved ?? c.value.annual_cost)
+        : (c.value.annual_cost ?? c.value.annual_cost_resolved);
     if (amt == null || amt === '') {
         return { primary: EMPTY_LABELS.notUpdated, secondary: null };
     }
     return formatVndDisplay(amt);
 });
+
+function moneyDisplay(resolved, raw) {
+    const amt = resolved ?? raw;
+    if (amt == null || amt === '') {
+        return { primary: EMPTY_LABELS.notUpdated, secondary: null };
+    }
+    return formatVndDisplay(amt);
+}
+
+const unitPriceDisplay = computed(() => moneyDisplay(c.value.unit_price_resolved, c.value.unit_price));
+const monthlyDisplay = computed(() => moneyDisplay(c.value.monthly_cost_resolved, c.value.monthly_cost));
+const lifecycleDisplay = computed(() => moneyDisplay(c.value.lifecycle_cost_resolved, c.value.lifecycle_cost));
 
 const attachmentCount = computed(() => (c.value.attachments ?? []).length);
 const addendaCount = computed(() => (c.value.addenda ?? []).length);
@@ -103,6 +120,8 @@ const financeForm = useForm({
     total:           '',
     note:            '',
 });
+
+provide('contractFinanceForm', financeForm);
 
 function openAddFinance() {
     editingFinanceId.value = null;
@@ -159,11 +178,6 @@ async function deleteFinance(f) {
         onSuccess() { router.reload({ only: ['contract'] }); },
     });
 }
-
-const computedAnnual = computed(() => {
-    const mf = Number(financeForm.maintenance_fee || 0);
-    return mf > 0 ? mf * 12 : null;
-});
 
 // ─── Evaluation Tab ──────────────────────────────────────────────────────────
 const reviewCriteria = [
@@ -309,7 +323,6 @@ const addenda = computed(() => c.value.addenda ?? []);
         <ContractShowSummaryBar
           v-if="tab === 'overview'"
           :contract="c"
-          :annual-label="annualDisplay.primary"
           :attachment-count="attachmentCount"
           :addenda-count="addendaCount"
           :avg-review-score="avgReviewScore"
@@ -553,7 +566,13 @@ const addenda = computed(() => c.value.addenda ?? []);
                             Đơn giá
                           </p>
                           <p class="mt-0.5 text-sm font-semibold text-slate-800">
-                            {{ c.unit_price != null ? formatMoney(c.unit_price, c.currency) : 'Chưa cập nhật' }}
+                            {{ unitPriceDisplay.primary }}
+                          </p>
+                          <p
+                            v-if="unitPriceDisplay.secondary"
+                            class="mt-0.5 text-[10px] text-slate-500"
+                          >
+                            {{ unitPriceDisplay.secondary }}
                           </p>
                         </div>
                         <div class="rounded-lg bg-slate-50 p-3">
@@ -561,7 +580,13 @@ const addenda = computed(() => c.value.addenda ?? []);
                             Hàng tháng
                           </p>
                           <p class="mt-0.5 text-sm font-semibold text-slate-800">
-                            {{ c.monthly_cost != null ? formatMoney(c.monthly_cost, c.currency) : 'Chưa cập nhật' }}
+                            {{ monthlyDisplay.primary }}
+                          </p>
+                          <p
+                            v-if="monthlyDisplay.secondary"
+                            class="mt-0.5 text-[10px] text-slate-500"
+                          >
+                            {{ monthlyDisplay.secondary }}
                           </p>
                         </div>
                         <div class="rounded-lg bg-brand/5 p-3 ring-1 ring-brand/20">
@@ -583,7 +608,13 @@ const addenda = computed(() => c.value.addenda ?? []);
                             Tổng vòng đời
                           </p>
                           <p class="mt-0.5 text-sm font-semibold text-slate-800">
-                            {{ c.lifecycle_cost != null ? formatMoney(c.lifecycle_cost, c.currency) : EMPTY_LABELS.notUpdated }}
+                            {{ lifecycleDisplay.primary }}
+                          </p>
+                          <p
+                            v-if="lifecycleDisplay.secondary"
+                            class="mt-0.5 text-[10px] text-slate-500"
+                          >
+                            {{ lifecycleDisplay.secondary }}
                           </p>
                         </div>
                       </div>
@@ -647,187 +678,13 @@ const addenda = computed(() => c.value.addenda ?? []);
                 </div>
 
                 <!-- Finance Form Panel -->
-                <div
+                <ContractFinanceFormPanel
                   v-if="showFinanceForm"
-                  class="card p-4"
-                >
-                  <h4 class="mb-4 font-display text-sm font-semibold text-slate-800">
-                    {{ editingFinanceId ? 'Sửa dữ liệu tài chính' : 'Thêm dữ liệu tài chính' }}
-                  </h4>
-                  <form
-                    class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3"
-                    @submit.prevent="submitFinance"
-                  >
-                    <div>
-                      <label class="label">Ngày Sử Dụng</label>
-                      <input
-                        v-model="financeForm.used_date"
-                        type="date"
-                        class="input h-10 w-full text-sm"
-                      >
-                      <p
-                        v-if="financeForm.errors.used_date"
-                        class="mt-1 text-xs text-rose-600"
-                      >
-                        {{ financeForm.errors.used_date }}
-                      </p>
-                    </div>
-                    <div>
-                      <label class="label">Thời Hạn (tháng)</label>
-                      <input
-                        v-model="financeForm.term_months"
-                        type="number"
-                        min="0"
-                        class="input h-10 w-full text-sm"
-                        placeholder="VD: 12"
-                      >
-                      <p
-                        v-if="financeForm.errors.term_months"
-                        class="mt-1 text-xs text-rose-600"
-                      >
-                        {{ financeForm.errors.term_months }}
-                      </p>
-                    </div>
-                    <div>
-                      <label class="label">Chu Kỳ TT</label>
-                      <input
-                        :value="c.billing_cycle?.label ?? 'Chưa chọn'"
-                        type="text"
-                        class="input h-10 w-full bg-slate-50 text-sm text-slate-500"
-                        disabled
-                        title="Lấy từ hợp đồng"
-                      >
-                      <p class="mt-1 text-[10px] text-slate-400">
-                        Cập nhật qua chỉnh sửa hợp đồng
-                      </p>
-                    </div>
-                    <div>
-                      <label class="label">Số lượng</label>
-                      <input
-                        v-model="financeForm.quantity"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        class="input h-10 w-full text-sm"
-                      >
-                    </div>
-                    <div>
-                      <label class="label">Đơn giá (VNĐ)</label>
-                      <input
-                        v-model="financeForm.unit_price"
-                        type="number"
-                        min="0"
-                        class="input h-10 w-full text-sm"
-                      >
-                      <p
-                        v-if="financeForm.errors.unit_price"
-                        class="mt-1 text-xs text-rose-600"
-                      >
-                        {{ financeForm.errors.unit_price }}
-                      </p>
-                    </div>
-                    <div>
-                      <label class="label">Số tháng duy trì</label>
-                      <input
-                        v-model="financeForm.term_months"
-                        type="number"
-                        min="0"
-                        class="input h-10 w-full text-sm"
-                        placeholder="VD: 12"
-                      >
-                    </div>
-                    <div>
-                      <label class="label">Phí Khởi Tạo (VNĐ)</label>
-                      <input
-                        v-model="financeForm.init_fee"
-                        type="number"
-                        min="0"
-                        class="input h-10 w-full text-sm"
-                      >
-                      <p
-                        v-if="financeForm.errors.init_fee"
-                        class="mt-1 text-xs text-rose-600"
-                      >
-                        {{ financeForm.errors.init_fee }}
-                      </p>
-                    </div>
-                    <div>
-                      <label class="label">Phí duy trì / tháng (VNĐ)</label>
-                      <input
-                        v-model="financeForm.maintenance_fee"
-                        type="number"
-                        min="0"
-                        class="input h-10 w-full text-sm"
-                      >
-                      <p
-                        v-if="financeForm.errors.maintenance_fee"
-                        class="mt-1 text-xs text-rose-600"
-                      >
-                        {{ financeForm.errors.maintenance_fee }}
-                      </p>
-                    </div>
-                    <div>
-                      <label class="label">Hàng năm (tự tính)</label>
-                      <input
-                        :value="computedAnnual != null ? computedAnnual.toLocaleString('vi-VN') : '—'"
-                        type="text"
-                        class="input h-10 w-full bg-slate-50 text-sm text-slate-500"
-                        disabled
-                        title="= Phí duy trì × 12"
-                      >
-                    </div>
-                    <div>
-                      <label class="label">Tổng tiền hợp đồng (VNĐ)</label>
-                      <input
-                        v-model="financeForm.total"
-                        type="number"
-                        min="0"
-                        class="input h-10 w-full text-sm"
-                      >
-                      <p
-                        v-if="financeForm.errors.total"
-                        class="mt-1 text-xs text-rose-600"
-                      >
-                        {{ financeForm.errors.total }}
-                      </p>
-                    </div>
-                    <div class="sm:col-span-2 md:col-span-3">
-                      <label class="label">Ghi chú</label>
-                      <textarea
-                        v-model="financeForm.note"
-                        rows="2"
-                        class="input w-full text-sm"
-                      />
-                    </div>
-                    <!-- TỔNG TIỀN đọc bằng chữ -->
-                    <div
-                      v-if="financeForm.total"
-                      class="sm:col-span-2 md:col-span-3"
-                    >
-                      <p class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
-                        <span class="font-medium text-slate-700">Đọc bằng chữ:</span>
-                        {{ vndToWords(financeForm.total) }}
-                      </p>
-                    </div>
-
-                    <div class="flex justify-end gap-2 sm:col-span-2 md:col-span-3">
-                      <button
-                        type="button"
-                        class="btn-ghost"
-                        @click="cancelFinance"
-                      >
-                        Huỷ
-                      </button>
-                      <button
-                        type="submit"
-                        class="btn-primary"
-                        :disabled="financeForm.processing"
-                      >
-                        {{ financeForm.processing ? 'Đang lưu…' : (editingFinanceId ? 'Cập nhật' : 'Lưu dữ liệu') }}
-                      </button>
-                    </div>
-                  </form>
-                </div>
+                  :editing-id="editingFinanceId"
+                  :billing-cycle-label="c.billing_cycle?.label ?? 'Chưa chọn'"
+                  @submit="submitFinance"
+                  @cancel="cancelFinance"
+                />
 
                 <!-- Finance Table -->
                 <div

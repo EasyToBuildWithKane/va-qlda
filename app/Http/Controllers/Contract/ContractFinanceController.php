@@ -7,6 +7,7 @@ use App\Http\Requests\Contract\StoreContractFinanceRequest;
 use App\Models\Contract;
 use App\Models\ContractFinance;
 use App\Support\ContractActivityLogger;
+use App\Support\ContractLifecycle\ContractFinanceSnapshot;
 use Illuminate\Http\RedirectResponse;
 
 class ContractFinanceController extends Controller
@@ -14,6 +15,7 @@ class ContractFinanceController extends Controller
     public function store(StoreContractFinanceRequest $request, Contract $contract): RedirectResponse
     {
         $contract->finances()->create($request->validated());
+        ContractFinanceSnapshot::sync($contract);
 
         ContractActivityLogger::log(
             $contract,
@@ -31,6 +33,7 @@ class ContractFinanceController extends Controller
         abort_unless($finance->contract_id === $contract->id, 404);
 
         $finance->update($request->validated());
+        ContractFinanceSnapshot::sync($contract);
 
         ContractActivityLogger::log(
             $contract,
@@ -49,6 +52,7 @@ class ContractFinanceController extends Controller
         abort_unless($finance->contract_id === $contract->id, 404);
 
         $finance->delete();
+        ContractFinanceSnapshot::sync($contract);
 
         ContractActivityLogger::log(
             $contract,

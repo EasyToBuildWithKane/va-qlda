@@ -92,7 +92,7 @@ class ContractMetricsEngine
     {
         $annual = (float) $contracts->sum(function (Contract $c) {
             if ($c->relationLoaded('finances') && $c->finances->isNotEmpty()) {
-                return (float) $c->finances->sum(fn (ContractFinance $f) => (float) ($f->maintenance_fee ?? 0));
+                return (float) $c->finances->sum(fn (ContractFinance $f) => (float) ($f->maintenance_fee ?? 0)) * 12;
             }
 
             return 0.0;
