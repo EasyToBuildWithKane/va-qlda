@@ -316,14 +316,20 @@ const addenda = computed(() => c.value.addenda ?? []);
       />
 
       <div class="flex min-h-0 h-0 flex-1 flex-col overflow-hidden">
-        <div class="h-full min-h-0 w-full min-w-0 overflow-x-hidden overflow-y-auto">
-          <div class="w-full min-w-0 space-y-4 p-4 sm:space-y-5 sm:p-5 lg:p-6">
+        <div
+          class="h-full min-h-0 w-full min-w-0 overflow-x-hidden"
+          :class="tab === 'overview' ? 'flex flex-col overflow-hidden' : 'overflow-y-auto'"
+        >
+          <div
+            class="w-full min-w-0 space-y-4 p-4 sm:space-y-5 sm:p-5 lg:p-6"
+            :class="tab === 'overview' ? 'flex min-h-0 flex-1 flex-col' : ''"
+          >
             <!-- ══════════════════════════════════════════════════════
            TAB: TỔNG QUAN
       ══════════════════════════════════════════════════════ -->
             <div
               v-if="tab === 'overview'"
-              class="space-y-4"
+              class="flex min-h-0 flex-1 flex-col gap-4"
             >
               <!-- Phụ lục banner -->
               <div
@@ -344,17 +350,18 @@ const addenda = computed(() => c.value.addenda ?? []);
                 </a>
               </div>
 
-              <!-- Sidebar layout: left = thông tin cố định (sticky), right = chi phí + mô tả -->
-              <div class="flex flex-col gap-4 lg:flex-row lg:items-start">
-                <!-- Left sidebar: Thông tin chung + Thời hạn — sticky khi scroll -->
-                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 lg:w-64 xl:w-72 lg:shrink-0 lg:sticky lg:top-0">
+              <!-- Tổng quan: cột trái 55% (thông tin + thời hạn), cột phải 45% (chi phí + mô tả) -->
+              <div
+                class="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,55fr)_minmax(0,45fr)] lg:items-stretch"
+              >
+                <div class="grid min-h-0 gap-4 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
                   <!-- Card 1: Thông tin chung -->
-                  <section class="card p-4">
+                  <section class="card flex min-h-0 flex-col p-4 lg:min-h-[18rem]">
                     <h3 class="mb-3 font-display text-sm font-semibold text-slate-800">
                       Thông tin chung
                     </h3>
-                    <dl class="space-y-2.5">
-                      <div class="flex justify-between gap-3 text-sm">
+                    <dl class="space-y-2.5 [&_dd]:min-w-0 [&_dd]:break-words">
+                      <div class="grid grid-cols-[minmax(0,55fr)_minmax(0,45fr)] gap-x-3 gap-y-0.5 text-sm">
                         <dt class="text-slate-400">
                           Mã hợp đồng
                         </dt>
@@ -362,7 +369,7 @@ const addenda = computed(() => c.value.addenda ?? []);
                           {{ orNA(c.code) }}
                         </dd>
                       </div>
-                      <div class="flex justify-between gap-3 text-sm">
+                      <div class="grid grid-cols-[minmax(0,55fr)_minmax(0,45fr)] gap-x-3 gap-y-0.5 text-sm">
                         <dt class="text-slate-400">
                           Trạng thái
                         </dt>
@@ -380,7 +387,7 @@ const addenda = computed(() => c.value.addenda ?? []);
                           >Chưa cập nhật</span>
                         </dd>
                       </div>
-                      <div class="flex justify-between gap-3 text-sm">
+                      <div class="grid grid-cols-[minmax(0,55fr)_minmax(0,45fr)] gap-x-3 gap-y-0.5 text-sm">
                         <dt class="text-slate-400">
                           Nhà cung cấp
                         </dt>
@@ -396,7 +403,7 @@ const addenda = computed(() => c.value.addenda ?? []);
                           >Chưa gán</span>
                         </dd>
                       </div>
-                      <div class="flex justify-between gap-3 text-sm">
+                      <div class="grid grid-cols-[minmax(0,55fr)_minmax(0,45fr)] gap-x-3 gap-y-0.5 text-sm">
                         <dt class="text-slate-400">
                           Nhóm dịch vụ
                         </dt>
@@ -404,7 +411,7 @@ const addenda = computed(() => c.value.addenda ?? []);
                           {{ orNA(c.category?.name, 'Chưa phân loại') }}
                         </dd>
                       </div>
-                      <div class="flex justify-between gap-3 text-sm">
+                      <div class="grid grid-cols-[minmax(0,55fr)_minmax(0,45fr)] gap-x-3 gap-y-0.5 text-sm">
                         <dt class="text-slate-400">
                           Phòng ban
                         </dt>
@@ -412,7 +419,7 @@ const addenda = computed(() => c.value.addenda ?? []);
                           {{ orNA(c.using_unit) }}
                         </dd>
                       </div>
-                      <div class="flex justify-between gap-3 text-sm">
+                      <div class="grid grid-cols-[minmax(0,55fr)_minmax(0,45fr)] gap-x-3 gap-y-0.5 text-sm">
                         <dt class="text-slate-400">
                           Người phụ trách
                         </dt>
@@ -420,7 +427,7 @@ const addenda = computed(() => c.value.addenda ?? []);
                           {{ orNA(c.owner?.name, 'Chưa gán') }}
                         </dd>
                       </div>
-                      <div class="flex justify-between gap-3 text-sm">
+                      <div class="grid grid-cols-[minmax(0,55fr)_minmax(0,45fr)] gap-x-3 gap-y-0.5 text-sm">
                         <dt class="text-slate-400">
                           Người quản lý
                         </dt>
@@ -428,7 +435,7 @@ const addenda = computed(() => c.value.addenda ?? []);
                           {{ orNA(c.manager?.name, 'Chưa gán') }}
                         </dd>
                       </div>
-                      <div class="flex justify-between gap-3 text-sm">
+                      <div class="grid grid-cols-[minmax(0,55fr)_minmax(0,45fr)] gap-x-3 gap-y-0.5 text-sm">
                         <dt class="text-slate-400">
                           Chu kỳ TT
                         </dt>
@@ -440,12 +447,12 @@ const addenda = computed(() => c.value.addenda ?? []);
                   </section>
 
                   <!-- Card 2: Thời hạn -->
-                  <section class="card p-4">
+                  <section class="card flex min-h-0 flex-col p-4 lg:min-h-[18rem]">
                     <h3 class="mb-3 font-display text-sm font-semibold text-slate-800">
                       Thời hạn
                     </h3>
-                    <dl class="space-y-2.5">
-                      <div class="flex justify-between gap-3 text-sm">
+                    <dl class="space-y-2.5 [&_dd]:min-w-0 [&_dd]:break-words">
+                      <div class="grid grid-cols-[minmax(0,55fr)_minmax(0,45fr)] gap-x-3 gap-y-0.5 text-sm">
                         <dt class="text-slate-400">
                           Ngày ký
                         </dt>
@@ -453,7 +460,7 @@ const addenda = computed(() => c.value.addenda ?? []);
                           {{ c.signed_date ? formatDate(c.signed_date) : 'Chưa cập nhật' }}
                         </dd>
                       </div>
-                      <div class="flex justify-between gap-3 text-sm">
+                      <div class="grid grid-cols-[minmax(0,55fr)_minmax(0,45fr)] gap-x-3 gap-y-0.5 text-sm">
                         <dt class="text-slate-400">
                           Ngày hiệu lực
                         </dt>
@@ -461,7 +468,7 @@ const addenda = computed(() => c.value.addenda ?? []);
                           {{ c.effective_date ? formatDate(c.effective_date) : 'Chưa cập nhật' }}
                         </dd>
                       </div>
-                      <div class="flex justify-between gap-3 text-sm">
+                      <div class="grid grid-cols-[minmax(0,55fr)_minmax(0,45fr)] gap-x-3 gap-y-0.5 text-sm">
                         <dt class="text-slate-400">
                           Ngày hết hạn
                         </dt>
@@ -469,7 +476,7 @@ const addenda = computed(() => c.value.addenda ?? []);
                           {{ c.expiry_date ? formatDate(c.expiry_date) : 'Chưa cập nhật' }}
                         </dd>
                       </div>
-                      <div class="flex justify-between gap-3 text-sm">
+                      <div class="grid grid-cols-[minmax(0,55fr)_minmax(0,45fr)] gap-x-3 gap-y-0.5 text-sm">
                         <dt class="text-slate-400">
                           Còn lại
                         </dt>
@@ -486,7 +493,7 @@ const addenda = computed(() => c.value.addenda ?? []);
                           {{ c.expiry_date ? expiryLabel(c.days_until_expiry) : 'Chưa cập nhật' }}
                         </dd>
                       </div>
-                      <div class="flex justify-between gap-3 text-sm">
+                      <div class="grid grid-cols-[minmax(0,55fr)_minmax(0,45fr)] gap-x-3 gap-y-0.5 text-sm">
                         <dt class="text-slate-400">
                           Tự động gia hạn
                         </dt>
@@ -496,7 +503,7 @@ const addenda = computed(() => c.value.addenda ?? []);
                       </div>
                       <div
                         v-if="c.notice_period_days != null"
-                        class="flex justify-between gap-3 text-sm"
+                        class="grid grid-cols-[minmax(0,55fr)_minmax(0,45fr)] gap-x-3 gap-y-0.5 text-sm"
                       >
                         <dt class="text-slate-400">
                           Báo trước hết hạn
@@ -507,7 +514,7 @@ const addenda = computed(() => c.value.addenda ?? []);
                       </div>
                       <div
                         v-if="c.renewal_term_months"
-                        class="flex justify-between gap-3 text-sm"
+                        class="grid grid-cols-[minmax(0,55fr)_minmax(0,45fr)] gap-x-3 gap-y-0.5 text-sm"
                       >
                         <dt class="text-slate-400">
                           Kỳ gia hạn
@@ -521,9 +528,9 @@ const addenda = computed(() => c.value.addenda ?? []);
                 </div>
 
                 <!-- Right main: Chi phí + Mô tả -->
-                <div class="flex min-w-0 flex-1 flex-col gap-4">
+                <div class="flex min-h-0 min-w-0 flex-col gap-4">
                   <!-- Card 3: Tổng quan chi phí -->
-                  <section class="card p-4">
+                  <section class="card flex min-h-0 flex-1 flex-col p-4">
                     <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
                       <h3 class="font-display text-sm font-semibold text-slate-800">
                         Chi phí nhanh
@@ -537,7 +544,7 @@ const addenda = computed(() => c.value.addenda ?? []);
                         {{ financeRowCount }} dòng chi tiết →
                       </button>
                     </div>
-                    <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                    <div class="grid flex-1 grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-2">
                       <div class="rounded-lg bg-slate-50 p-3">
                         <p class="text-xs text-slate-400">
                           Tiền tệ
