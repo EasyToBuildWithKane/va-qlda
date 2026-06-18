@@ -70,7 +70,7 @@ Gate `performance.view` (`admin`, `lead`, `viewer`). Chi tiết module: [`docs/P
 | GET | `/congnghe/de-xuat-cua-toi/{proposal}/attachments/{attachment}/file` | CongngheSoftwareProposalAttachmentController@file | auth (`viewAsSubmitter` trên route mine) | Tải file đính kèm (URL trong Resource cho người gửi) |
 | GET | `/congnghe/proposals` | CongngheSoftwareProposalManagementController@index | auth (admin, lead) | Query: `q`, `status`, `department`, `email_pending` (`1`), `group` (`department`\|`none`), `per_page`, `page`; props `summary`, `options.departments` |
 | GET | `/congnghe/proposals/{proposal}` | CongngheSoftwareProposalManagementController@show | auth (admin, lead) | Chi tiết |
-| PUT | `/congnghe/proposals/{proposal}` | CongngheSoftwareProposalManagementController@update | auth (admin, lead) | Cập nhật trạng thái |
+| PUT | `/congnghe/proposals/{proposal}` | CongngheSoftwareProposalManagementController@update | auth (admin, lead) | Cập nhật trạng thái; trạng thái `rejected` bắt buộc `rejection_reason` (≥10 ký tự) và gửi email tới `submitter_email` |
 | GET | `/congnghe/proposals/{proposal}/attachments/{attachment}/file` | CongngheSoftwareProposalAttachmentController@file | auth (owner hoặc admin/lead) | Tải file đính kèm |
 
 ### 2.2.2 Quản trị nội dung /congnghe

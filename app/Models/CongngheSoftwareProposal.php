@@ -17,8 +17,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $title
  * @property string $content
  * @property CongngheSoftwareProposalStatus $status
+ * @property string|null $rejection_reason
  * @property \Illuminate\Support\Carbon|null $email_sent_at
  * @property string|null $email_error
+ * @property \Illuminate\Support\Carbon|null $rejection_email_sent_at
+ * @property string|null $rejection_email_error
  */
 class CongngheSoftwareProposal extends Model
 {
@@ -31,13 +34,17 @@ class CongngheSoftwareProposal extends Model
         'title',
         'content',
         'status',
+        'rejection_reason',
         'email_sent_at',
         'email_error',
+        'rejection_email_sent_at',
+        'rejection_email_error',
     ];
 
     protected $casts = [
         'status' => CongngheSoftwareProposalStatus::class,
         'email_sent_at' => 'datetime',
+        'rejection_email_sent_at' => 'datetime',
     ];
 
     public function systemAccount(): BelongsTo

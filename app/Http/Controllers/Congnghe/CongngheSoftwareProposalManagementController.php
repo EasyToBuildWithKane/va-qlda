@@ -5,11 +5,13 @@ namespace App\Http\Controllers\Congnghe;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Congnghe\UpdateCongngheSoftwareProposalRequest;
 use App\Http\Resources\CongngheSoftwareProposalResource;
+use App\Mail\CongngheSoftwareProposalRejectedMail;
 use App\Models\CongngheSoftwareProposal;
 use App\Support\Enums\CongngheSoftwareProposalStatus;
 use App\Support\SecurityAuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -100,13 +102,69 @@ class CongngheSoftwareProposalManagementController extends Controller
         UpdateCongngheSoftwareProposalRequest $request,
         CongngheSoftwareProposal $proposal,
     ): RedirectResponse {
-        $proposal->update($request->validated());
+        $validated = $request->validated();
+        $newStatus = CongngheSoftwareProposalStatus::from($validated['status']);
+        $previousStatus = $proposal->status;
+
+        $attributes = ['status' => $newStatus];
+
+        if ($newStatus === CongngheSoftwareProposalStatus::Rejected) {
+            $attributes['rejection_reason'] = trim((string) $validated['rejection_reason']);
+        } else {
+            $attributes['rejection_reason'] = null;
+            $attributes['rejection_email_sent_at'] = null;
+            $attributes['rejection_email_error'] = null;
+        }
+
+        $proposal->update($attributes);
+        $proposal->refresh();
 
         SecurityAuditLogger::congngheProposal($request->user(), 'status_changed', $proposal->id, [
             'reference_code' => $proposal->reference_code,
-            'status' => $proposal->status instanceof \BackedEnum ? $proposal->status->value : (string) $proposal->status,
+            'status' => $proposal->status->value,
+            'from' => $previousStatus->value,
         ]);
 
+        if ($newStatus === CongngheSoftwareProposalStatus::Rejected) {
+            return $this->finishRejectionUpdate($proposal, $attributes['rejection_reason']);
+        }
+
         return back()->with('success', 'Đã cập nhật trạng thái đề xuất.');
+    }
+
+    private function finishRejectionUpdate(CongngheSoftwareProposal $proposal, string $rejectionReason): RedirectResponse
+    {
+        $email = trim($proposal->submitter_email);
+
+        if ($email === '') {
+            $proposal->forceFill([
+                'rejection_email_error' => 'Không có email người gửi.',
+            ])->saveQuietly();
+
+            return back()->with(
+                'warning',
+                'Đã từ chối đề xuất nhưng không gửi được email vì thiếu địa chỉ người gửi.',
+            );
+        }
+
+        try {
+            Mail::to($email)->send(new CongngheSoftwareProposalRejectedMail($proposal, $rejectionReason));
+            $proposal->forceFill([
+                'rejection_email_sent_at' => now(),
+                'rejection_email_error' => null,
+            ])->saveQuietly();
+
+            return back()->with('success', 'Đã từ chối đề xuất và gửi email thông báo tới người gửi.');
+        } catch (\Throwable $e) {
+            report($e);
+            $proposal->forceFill([
+                'rejection_email_error' => mb_substr($e->getMessage(), 0, 500),
+            ])->saveQuietly();
+
+            return back()->with(
+                'warning',
+                'Đã từ chối đề xuất nhưng email thông báo chưa gửi được. Vui lòng liên hệ người gửi thủ công.',
+            );
+        }
     }
 }

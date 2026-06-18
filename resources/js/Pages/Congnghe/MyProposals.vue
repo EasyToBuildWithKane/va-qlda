@@ -19,7 +19,7 @@ import {
     attachmentCountText,
     departmentText,
     emailPcnStatus,
-    proposalStatusLabel,
+    proposalStatusMeta,
     referenceCodeLabel,
     submitterEmailText,
     submitterNameText,
@@ -185,6 +185,15 @@ function emailPcnLabel(row) {
 
 function ackLabel(row) {
     return acknowledgementStatus(row);
+}
+
+function statusMeta(row) {
+    return proposalStatusMeta(row);
+}
+
+function rowStatusClass(row) {
+    const meta = statusMeta(row);
+    return meta.portalRow ? `border-l-4 ${meta.portalRow}` : 'border-l-4 border-l-transparent';
 }
 </script>
 
@@ -439,6 +448,7 @@ function ackLabel(row) {
                 v-for="row in proposals.data"
                 :key="row.id"
                 class="transition hover:bg-white/[0.04]"
+                :class="rowStatusClass(row)"
               >
                 <td class="px-5 py-3 font-mono text-xs text-white/55">
                   <button
@@ -469,8 +479,13 @@ function ackLabel(row) {
                 <td class="px-5 py-3 text-white/60">
                   {{ departmentLabel(row) }}
                 </td>
-                <td class="px-5 py-3 text-sm text-white/85">
-                  {{ proposalStatusLabel(row) }}
+                <td class="px-5 py-3">
+                  <span
+                    class="inline-flex max-w-full items-center rounded-lg px-2.5 py-1 text-xs font-bold uppercase tracking-wide"
+                    :class="statusMeta(row).portalPill"
+                  >
+                    {{ statusMeta(row).label }}
+                  </span>
                 </td>
                 <td class="px-5 py-3">
                   <p class="text-sm text-white/85">

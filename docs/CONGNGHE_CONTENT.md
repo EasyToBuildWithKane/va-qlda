@@ -145,14 +145,14 @@ mọi nhân viên đăng nhập đều dùng được; admin quản trị & xử
 | `GET /congnghe/de-xuat-cua-toi` | `congnghe.proposal.mine` | Danh sách đề xuất của tôi (lọc + KPI) |
 | `GET /congnghe/de-xuat-cua-toi/{proposal}` | `congnghe.proposal.mine.show` | Chi tiết (người gửi) |
 | `GET /congnghe/proposals` | `congnghe.proposals.index` | **Admin** — quản lý toàn bộ đề xuất |
-| `GET\|PUT /congnghe/proposals/{proposal}` | `congnghe.proposals.{show,update}` | **Admin** — xem + đổi trạng thái |
+| `GET\|PUT /congnghe/proposals/{proposal}` | `congnghe.proposals.{show,update}` | **Admin** — xem + đổi trạng thái (`rejected` bắt buộc lý do + email người gửi) |
 | `GET .../{proposal}/attachments/{attachment}/file` | `*.attachments.file` | Tải file đính kèm |
 
 ### 8.2 Backend
 
 - Controllers (`app/Http/Controllers/Congnghe/`): `CongngheSoftwareProposalController` (người gửi: create/store/index/show), `CongngheSoftwareProposalManagementController` (admin: index/show/update), `CongngheSoftwareProposalAttachmentController` (file).
-- Models: `CongngheSoftwareProposal` (`reference_code`, `submitter_*`, `department`, `email_sent_at` / `email_error`), `CongngheSoftwareProposalAttachment` (hasMany).
-- Service: `App\Services\Congnghe\CongngheSoftwareProposalRecorder` (lưu + đính kèm). Email: `App\Mail\CongngheSoftwareProposalMail` → `config('va.congnghe_proposal_email')`; lưu lỗi gửi vào `email_error`, không chặn việc ghi nhận.
+- Models: `CongngheSoftwareProposal` (`reference_code`, `submitter_*`, `department`, `rejection_reason`, `email_sent_at` / `email_error`, `rejection_email_sent_at` / `rejection_email_error`), `CongngheSoftwareProposalAttachment` (hasMany).
+- Service: `App\Services\Congnghe\CongngheSoftwareProposalRecorder` (lưu + đính kèm). Email gửi PCN: `CongngheSoftwareProposalMail` → `config('va.congnghe_proposal_email')`; email từ chối: `CongngheSoftwareProposalRejectedMail` → `submitter_email` (kèm lý do). Cả hai dùng mẫu chỉnh trên **`/settings/email`** (`congnghe_proposal_submitted`, `congnghe_proposal_rejected`).
 - Enum trạng thái: `CongngheSoftwareProposalStatus` — `new` · `triaged` · `in_progress` · `done` · `rejected`.
 - Quyền: `CongngheSoftwareProposalPolicy` — `viewAsSubmitter` (người gửi xem đề xuất của mình theo `system_account_id` hoặc email), `viewAny` / `view` (admin quản lý).
 

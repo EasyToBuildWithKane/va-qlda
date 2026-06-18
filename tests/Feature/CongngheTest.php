@@ -353,4 +353,58 @@ class CongngheTest extends TestCase
             ->get(route('congnghe.proposal.mine.show', $proposalId))
             ->assertForbidden();
     }
+
+    public function test_reject_proposal_requires_reason_and_sends_email(): void
+    {
+        Mail::fake();
+        $dept = $this->createActiveDepartment();
+        $member = SystemAccount::factory()->role(SystemRole::Member)->create();
+        $lead = SystemAccount::factory()->role(SystemRole::Lead)->create();
+
+        $this->actingAs($member, 'system')
+            ->post('/congnghe/de-xuat', [
+                'name' => 'Nguyễn Test',
+                'email' => 'tester@vaschools.edu.vn',
+                'department_id' => $dept->id,
+                'title' => 'Đề xuất từ chối',
+                'content' => 'Nội dung.',
+            ]);
+
+        $proposal = \App\Models\CongngheSoftwareProposal::query()->first();
+        $this->assertNotNull($proposal);
+
+        $this->actingAs($lead, 'system')
+            ->put(route('congnghe.proposals.update', $proposal->id), [
+                'status' => 'rejected',
+            ])
+            ->assertSessionHasErrors('rejection_reason');
+
+        $reason = 'Nội dung chưa đủ thông tin kỹ thuật để đánh giá.';
+
+        $this->actingAs($lead, 'system')
+            ->put(route('congnghe.proposals.update', $proposal->id), [
+                'status' => 'rejected',
+                'rejection_reason' => $reason,
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $proposal->refresh();
+        $this->assertSame('rejected', $proposal->status->value);
+        $this->assertSame($reason, $proposal->rejection_reason);
+        $this->assertNotNull($proposal->rejection_email_sent_at);
+
+        Mail::assertSent(\App\Mail\CongngheSoftwareProposalRejectedMail::class, function (\App\Mail\CongngheSoftwareProposalRejectedMail $mail) use ($reason) {
+            return $mail->hasTo('tester@vaschools.edu.vn')
+                && $mail->rejectionReason === $reason;
+        });
+
+        $this->actingAs($member, 'system')
+            ->get(route('congnghe.proposal.mine.show', $proposal->id))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('proposal.rejection_reason', $reason)
+                ->where('proposal.status.value', 'rejected')
+            );
+    }
 }

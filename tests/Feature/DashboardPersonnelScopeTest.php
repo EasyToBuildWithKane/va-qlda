@@ -38,7 +38,7 @@ class DashboardPersonnelScopeTest extends TestCase
         $admin = SystemAccount::factory()->role(SystemRole::Admin)->create();
 
         $this->actingAs($admin, 'system')
-            ->get('/dashboard')
+            ->get('/work')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->where('dailyReportCompliance.summary.totalPeople', 1)
@@ -69,7 +69,7 @@ class DashboardPersonnelScopeTest extends TestCase
         $admin = SystemAccount::factory()->role(SystemRole::Admin)->create();
 
         $this->actingAs($admin, 'system')
-            ->get('/dashboard')
+            ->get('/work')
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->where('dailyReportCompliance.summary.totalPeople', 1)

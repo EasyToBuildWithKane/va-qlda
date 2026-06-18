@@ -7,6 +7,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import CongngheSoftwareProposalsSummaryBar from '@/Pages/Congnghe/partials/CongngheSoftwareProposalsSummaryBar.vue';
+import CongngheSoftwareProposalRejectModal from '@/Pages/Congnghe/partials/CongngheSoftwareProposalRejectModal.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import DatagridToolbarActionButton from '@/shared/ui/DatagridToolbarActionButton.vue';
 import DatagridFilterField from '@/shared/ui/DatagridFilterField.vue';
@@ -17,6 +18,8 @@ import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
 import { useVisibleColumns } from '@/shared/composables/useVisibleColumns';
 import { date, datetime } from '@/composables/useFormat';
+import { proposalStatusMeta } from '@/Pages/Congnghe/partials/congngheProposalDisplay.js';
+import Badge from '@/shared/ui/Badge.vue';
 
 const PER_PAGE_OPTIONS = [10, 15, 20, 30];
 const FILTER_CONTROL_CLASS = 'input h-10 w-full text-sm';
@@ -68,6 +71,8 @@ const filterPanelDdRef = ref(null);
 const colDdRef = ref(null);
 const perPage = ref(Number(props.filters.per_page) || props.proposals.meta?.per_page || 20);
 const statusUpdating = ref(new Set());
+const rejectModalOpen = ref(false);
+const rejectTarget = ref(null);
 
 const {
     visibleFilters,
@@ -244,15 +249,43 @@ function processedAtLabel(row) {
     return d !== '—' ? d : datetime(row.processed_at);
 }
 
-function updateStatus(row, value) {
+function updateStatus(row, value, extra = {}) {
     if (!row.can?.update || value === row.status?.value) return;
     statusUpdating.value.add(row.id);
-    router.put(route('congnghe.proposals.update', row.id), { status: value }, {
+    router.put(route('congnghe.proposals.update', row.id), { status: value, ...extra }, {
         preserveScroll: true,
         onFinish: () => {
             statusUpdating.value.delete(row.id);
         },
     });
+}
+
+function onStatusSelectChange(row, event) {
+    const value = event.target.value;
+    if (value === 'rejected') {
+        event.target.value = row.status?.value ?? '';
+        rejectTarget.value = row;
+        rejectModalOpen.value = true;
+        return;
+    }
+    updateStatus(row, value);
+}
+
+function closeRejectModal() {
+    rejectModalOpen.value = false;
+    rejectTarget.value = null;
+}
+
+function confirmReject({ rejection_reason }) {
+    const row = rejectTarget.value;
+    if (!row) return;
+    rejectModalOpen.value = false;
+    updateStatus(row, 'rejected', { rejection_reason });
+    rejectTarget.value = null;
+}
+
+function statusBadgeTone(row) {
+    return proposalStatusMeta(row).tone;
 }
 </script>
 
@@ -547,7 +580,7 @@ function updateStatus(row, value) {
                     class="input h-9 min-w-[9.5rem] max-w-full px-2 text-xs"
                     :disabled="statusUpdating.has(entry.row.id)"
                     aria-label="Trạng thái đề xuất"
-                    @change="updateStatus(entry.row, $event.target.value)"
+                    @change="onStatusSelectChange(entry.row, $event)"
                   >
                     <option
                       v-for="opt in options.statuses"
@@ -557,10 +590,11 @@ function updateStatus(row, value) {
                       {{ opt.label }}
                     </option>
                   </select>
-                  <span
+                  <Badge
                     v-else
-                    class="text-sm text-slate-600"
-                  >{{ entry.row.status?.label }}</span>
+                    :label="entry.row.status?.label ?? 'Chưa có trạng thái'"
+                    :color="statusBadgeTone(entry.row)"
+                  />
                 </td>
                 <td
                   v-if="isColVisible('created_at')"
@@ -602,5 +636,13 @@ function updateStatus(row, value) {
         @update:per-page="(v) => { perPage = v; }"
       />
     </div>
+
+    <CongngheSoftwareProposalRejectModal
+      :show="rejectModalOpen"
+      :proposal="rejectTarget"
+      :loading="rejectTarget && statusUpdating.has(rejectTarget.id)"
+      @close="closeRejectModal"
+      @submit="confirmReject"
+    />
   </AppLayout>
 </template>

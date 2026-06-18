@@ -30,6 +30,16 @@ class CongngheSoftwareProposalResource extends JsonResource
             'title' => $this->title,
             'content' => $this->content,
             'status' => $this->enum($this->status),
+            'rejection_reason' => $this->when(
+                $this->status === CongngheSoftwareProposalStatus::Rejected
+                && $user
+                && ($user->can('update', $this->resource) || $user->can('viewAsSubmitter', $this->resource)),
+                $this->rejection_reason,
+            ),
+            'rejection_email_sent_at' => $this->when(
+                $user?->can('update', $this->resource),
+                $this->rejection_email_sent_at?->toIso8601String(),
+            ),
             'email_sent_at' => $this->email_sent_at?->toIso8601String(),
             'email_error' => $this->when(
                 $user?->can('update', $this->resource),

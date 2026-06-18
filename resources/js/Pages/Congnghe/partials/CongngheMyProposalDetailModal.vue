@@ -7,7 +7,7 @@ import {
     departmentText,
     emailPcnStatus,
     PROPOSAL_EMPTY,
-    proposalStatusLabel,
+    proposalStatusMeta,
     referenceCodeLabel,
     submitterEmailText,
     submitterNameText,
@@ -23,7 +23,7 @@ const emit = defineEmits(['close']);
 
 const attachments = computed(() => props.proposal?.attachments ?? []);
 
-const statusText = computed(() => proposalStatusLabel(props.proposal));
+const statusMeta = computed(() => proposalStatusMeta(props.proposal));
 
 const ack = computed(() => acknowledgementStatus(props.proposal));
 
@@ -210,19 +210,40 @@ onBeforeUnmount(() => {
                   </p>
                 </section>
 
-                <section class="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+                <section
+                  class="rounded-2xl border p-5"
+                  :class="statusMeta.value === 'rejected'
+                    ? 'border-rose-400/40 bg-rose-500/10'
+                    : 'border-white/10 bg-white/[0.03]'"
+                >
                   <h3 class="text-xs font-semibold uppercase tracking-wide text-white/45">
                     Trạng thái xử lý
                   </h3>
-                  <p class="mt-2 text-sm font-medium text-white/90">
-                    {{ statusText }}
+                  <p class="mt-3">
+                    <span
+                      class="inline-flex items-center rounded-lg px-3 py-1.5 text-xs font-bold uppercase tracking-wide"
+                      :class="statusMeta.portalPill"
+                    >
+                      {{ statusMeta.label }}
+                    </span>
                   </p>
-                  <p class="mt-2 text-sm text-white/75">
+                  <p class="mt-3 text-sm text-white/75">
                     {{ ack.label }}
                   </p>
                   <p class="mt-1 text-[11px] leading-snug text-white/45">
                     {{ ack.detail }}
                   </p>
+                  <div
+                    v-if="statusMeta.value === 'rejected' && proposal.rejection_reason"
+                    class="mt-4 rounded-xl border border-rose-400/35 bg-[#0a0c16]/50 p-4"
+                  >
+                    <p class="text-[10px] font-bold uppercase tracking-wide text-rose-200/80">
+                      Lý do từ chối
+                    </p>
+                    <p class="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-rose-50/95">
+                      {{ proposal.rejection_reason }}
+                    </p>
+                  </div>
                 </section>
 
                 <section class="rounded-2xl border border-white/10 bg-white/[0.03] p-5">

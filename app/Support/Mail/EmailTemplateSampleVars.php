@@ -22,6 +22,17 @@ final class EmailTemplateSampleVars
             'task_url' => url('/projects/1?tab=sprints&task=1'),
             'date' => now()->format('d/m/Y'),
             'task_count' => '2',
+            'submitter_name' => 'Nguyễn Văn A',
+            'submitter_email' => 'nguyenvana@vaschools.edu.vn',
+            'proposal_title' => 'Đề xuất triển khai LMS mới',
+            'proposal_content' => 'Mô tả nhu cầu và phạm vi triển khai hệ thống LMS cho học kỳ tới.',
+            'reference_code' => 'CN-00042',
+            'department' => 'Phòng Học vụ',
+            'submitted_at' => now()->format('d/m/Y H:i'),
+            'portal_url' => url('/congnghe'),
+            'rejection_reason' => 'Nội dung chưa đủ thông tin kỹ thuật; vui lòng bổ sung quy mô người dùng và tích hợp hệ thống hiện có.',
+            'status_label' => 'Từ chối',
+            'mine_url' => url('/congnghe/de-xuat-cua-toi/1'),
         ];
 
         $base['tasks_table'] = self::sampleTasksTableHtml();
@@ -35,6 +46,14 @@ final class EmailTemplateSampleVars
             ])),
             EmailTemplate::KEY_SPRINT_SUMMARY => array_intersect_key($base, array_flip([
                 'assignee_name', 'project_name', 'sprint_name', 'tasks_table', 'task_count',
+            ])),
+            EmailTemplate::KEY_CONGNGHE_PROPOSAL_SUBMITTED => array_intersect_key($base, array_flip([
+                'submitter_name', 'submitter_email', 'proposal_title', 'reference_code',
+                'department', 'submitted_at', 'proposal_content', 'portal_url',
+            ])),
+            EmailTemplate::KEY_CONGNGHE_PROPOSAL_REJECTED => array_intersect_key($base, array_flip([
+                'submitter_name', 'proposal_title', 'reference_code', 'department',
+                'submitted_at', 'rejection_reason', 'status_label', 'mine_url',
             ])),
             default => $base,
         };

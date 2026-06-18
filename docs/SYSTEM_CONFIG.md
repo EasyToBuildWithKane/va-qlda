@@ -80,6 +80,7 @@ Pages/Settings/Index.vue       SystemSettingController             SystemSetting
 | | | `ai_reminder_extra_emails` | list | `ai_accounts.reminder.extra_recipients` |
 | | | `ai_reminder_include_expired` | bool | `ai_accounts.reminder.include_expired` |
 | | | `ai_reminder_unpaid_renewal` | bool | `ai_accounts.reminder.include_unpaid_renewal` |
+| | | *(mẫu DB)* | `email_templates` | `task_assigned`, `daily_summary`, `sprint_summary`, `congnghe_proposal_submitted`, `congnghe_proposal_rejected` — chỉnh tại `/settings/email` |
 | **Hợp đồng (CLM)** | `clm` | `alert_enabled` | bool | `clm.alert_enabled` |
 | | | `renewal_alert_days` | string | `clm.renewal_alert_days` |
 | | | `alert_telegram` | bool | `clm.alert_telegram` |

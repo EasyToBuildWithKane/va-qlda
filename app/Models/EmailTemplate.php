@@ -22,6 +22,10 @@ class EmailTemplate extends Model
 
     public const KEY_SPRINT_SUMMARY = 'sprint_summary';
 
+    public const KEY_CONGNGHE_PROPOSAL_SUBMITTED = 'congnghe_proposal_submitted';
+
+    public const KEY_CONGNGHE_PROPOSAL_REJECTED = 'congnghe_proposal_rejected';
+
     protected $fillable = [
         'key',
         'name',
@@ -107,6 +111,17 @@ class EmailTemplate extends Model
             'date' => ['label' => 'Ngày tổng hợp', 'hint' => 'Ngày gửi email tổng hợp'],
             'tasks_table' => ['label' => 'Bảng công việc', 'hint' => 'HTML bảng do hệ thống tạo — không sửa cấu trúc'],
             'task_count' => ['label' => 'Số lượng task', 'hint' => 'Tổng số dòng trong bảng'],
+            'submitter_name' => ['label' => 'Tên người gửi', 'hint' => 'Họ tên trên phiếu đề xuất'],
+            'submitter_email' => ['label' => 'Email người gửi', 'hint' => 'Dùng Reply-To khi gửi tới Phòng CN'],
+            'proposal_title' => ['label' => 'Tiêu đề đề xuất', 'hint' => 'Tiêu đề phiếu phần mềm'],
+            'proposal_content' => ['label' => 'Nội dung đề xuất', 'hint' => 'Mô tả yêu cầu (plain text)'],
+            'reference_code' => ['label' => 'Mã tham chiếu', 'hint' => 'VD: CN-00012'],
+            'department' => ['label' => 'Phòng ban', 'hint' => 'Đơn vị người gửi'],
+            'submitted_at' => ['label' => 'Thời điểm gửi', 'hint' => 'dd/mm/yyyy HH:mm'],
+            'portal_url' => ['label' => 'Link cổng Công nghệ', 'hint' => 'Trang /congnghe'],
+            'rejection_reason' => ['label' => 'Lý do từ chối', 'hint' => 'Bắt buộc khi admin từ chối đề xuất'],
+            'status_label' => ['label' => 'Nhãn trạng thái', 'hint' => 'VD: Từ chối'],
+            'mine_url' => ['label' => 'Link đề xuất đã gửi', 'hint' => 'Chi tiết trên /congnghe/de-xuat-cua-toi'],
         ];
 
         return array_values(array_map(
@@ -133,6 +148,14 @@ class EmailTemplate extends Model
             ],
             self::KEY_SPRINT_SUMMARY => [
                 'assignee_name', 'project_name', 'sprint_name', 'tasks_table', 'task_count',
+            ],
+            self::KEY_CONGNGHE_PROPOSAL_SUBMITTED => [
+                'submitter_name', 'submitter_email', 'proposal_title', 'reference_code',
+                'department', 'submitted_at', 'proposal_content', 'portal_url',
+            ],
+            self::KEY_CONGNGHE_PROPOSAL_REJECTED => [
+                'submitter_name', 'proposal_title', 'reference_code', 'department',
+                'submitted_at', 'rejection_reason', 'status_label', 'mine_url',
             ],
             default => [],
         };

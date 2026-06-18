@@ -46,7 +46,7 @@ class SystemSettingTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('Settings/Index')
                 ->has('groups', 7) // general, auth, telegram, email, clm, permissions, accounts
-                ->has('emailTemplates', 3)
+                ->has('emailTemplates', 5)
                 ->where('can.manage', true)
             );
     }
@@ -223,6 +223,30 @@ class SystemSettingTest extends TestCase
 
         $template->refresh();
         $this->assertSame('Test subject {{task_name}}', $template->subject);
+    }
+
+    public function test_settings_email_lists_congnghe_proposal_templates(): void
+    {
+        $this->assertNotNull(
+            EmailTemplate::query()->where('key', EmailTemplate::KEY_CONGNGHE_PROPOSAL_REJECTED)->first(),
+        );
+        $this->assertNotNull(
+            EmailTemplate::query()->where('key', EmailTemplate::KEY_CONGNGHE_PROPOSAL_SUBMITTED)->first(),
+        );
+
+        $this->actingAs($this->superAdmin(), 'system')
+            ->get(route('settings.show', ['group' => 'email']))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('activeGroup', 'email')
+                ->has('emailTemplates', 5)
+                ->where('emailTemplates', function ($templates) {
+                    $keys = collect($templates)->pluck('key')->all();
+
+                    return in_array(EmailTemplate::KEY_CONGNGHE_PROPOSAL_REJECTED, $keys, true)
+                        && in_array(EmailTemplate::KEY_CONGNGHE_PROPOSAL_SUBMITTED, $keys, true);
+                })
+            );
     }
 
     public function test_admin_can_send_test_email_template(): void

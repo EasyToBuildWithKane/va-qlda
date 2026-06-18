@@ -28,6 +28,7 @@ VA QLDA là nền tảng quản lý công việc và đánh giá hiệu suất n
 VA QLDA
 ├── [AUTH]          Xác thực người dùng (custom guard "system")
 ├── [NOTIFICATION]  Hệ thống thông báo in-app (bell icon, drawer, preferences)
+│                   NotificationService + NotificationDispatcher (centralized fan-out)
 ├── [PROJECT]       Quản lý dự án, sprint, task, epics
 │   ├── Sprint      Lập kế hoạch theo vòng lặp Agile
 │   ├── Task        Công việc chi tiết (có subtask, dependency, attachment)
@@ -37,21 +38,22 @@ VA QLDA
 │   └── Members     Quản lý thành viên & role trong dự án
 ├── [DAILY REPORT]  Báo cáo ngày (tạo → nộp → chấm điểm → xếp loại)
 ├── [BLOCKER]       Quản lý vướng mắc / rủi ro (RSK-001)
-├── [BUG]           Báo cáo & theo dõi lỗi (BUG-0001)
 ├── [FEEDBACK]      Góp ý & đề xuất từ nhân viên (FB-0001)
-├── [COMMENT]       Thảo luận đa hình (Task, Bug, Blocker, Feedback)
+├── [COMMENT]       Thảo luận đa hình (Task, Blocker, Feedback)
 ├── [DEPARTMENT]    Quản lý phòng ban
-├── [SYSTEM CONFIG] Cấu hình hệ thống (admin: nhận diện, đăng nhập, Telegram, phân quyền) → docs/SYSTEM_CONFIG.md
+├── [SYSTEM CONFIG] Cấu hình hệ thống (super_admin: nhận diện, đăng nhập, Telegram, phân quyền, ma trận RBAC) → docs/SYSTEM_CONFIG.md
 ├── [CONGNGHE]      Trung tâm Công Nghệ — landing, đề xuất phần mềm, quản trị nội dung → docs/CONGNGHE_CONTENT.md
 ├── [ORG TEAMS]     Sơ đồ nhóm nhân sự (/org-teams) — admin/lead chỉnh sửa
 ├── [MEMBERS]       Danh bạ & hồ sơ thành viên (/members, /profile)
 ├── [AI ACCOUNTS]   Tài khoản AI, PĐX, chi phí, analytics → docs/AI_ACCOUNTS.md
-├── [DASHBOARD]     Bảng điều khiển (/dashboard) — KPI, tuân thủ báo cáo ngày
+├── [DASHBOARD HUB] Tổng quan hệ thống (/dashboard) — truy cập nhanh tất cả module, mini-stats theo role
+├── [DASHBOARD WORK] Dashboard Công Việc (/work) — KPI dự án, tiến độ & tuân thủ báo cáo ngày
 ├── [KNOWLEDGE BASE] Tri thức nội bộ (bài viết, danh mục, tags, tìm kiếm, yêu thích) → docs/KNOWLEDGE_BASE.md
 ├── [COACHING]      Coaching/Mentoring (khóa học, buổi học, bài tập, tiến độ, dashboard tài chính) → docs/COACHING_MENTORING.md
 ├── [CONTRACT]      Quản lý hợp đồng / NCC (Explorer, chi phí, gia hạn phụ lục, đánh giá) → docs/CONTRACT_MANAGEMENT.md
 ├── [CREDENTIAL]    Kho tài khoản / mật khẩu hạ tầng (phân quyền, nhật ký truy cập) → docs/CREDENTIAL_MANAGEMENT.md
 ├── [PERFORMANCE]   Hiệu suất & audit công việc (dashboard KPI, audit theo nhân viên) → docs/PERFORMANCE_ANALYTICS.md
+├── [AUDIT]         Nhật ký truy vết bảo mật (/audit) — cross-module SecurityAuditLogger, AuditActionCatalog (admin/super)
 └── [ONBOARDING]    Tour tương tác theo vai trò khi đăng nhập (tiến độ, ngữ cảnh) → docs/ONBOARDING.md
 ```
 
@@ -165,10 +167,14 @@ Tạo Project
 
 | Role | Mô Tả | Quyền Chính |
 |---|---|---|
-| `admin` | Quản trị viên hệ thống | Toàn quyền, cấu hình hệ thống |
+| `super_admin` | Siêu quản trị | God-mode (`Gate::before`), toàn quyền kể cả `/settings`, ma trận RBAC, gán role, reserved keys |
+| `admin` | Quản trị viên hệ thống | Toàn quyền nghiệp vụ, **không** vào `/settings` |
 | `lead` | Quản lý | Tạo dự án, review báo cáo, quản lý thành viên |
 | `member` | Thành viên nhóm | Làm việc trong dự án, viết báo cáo ngày |
 | `viewer` | Giám đốc / Quan sát | Chỉ xem, không chỉnh sửa |
+
+> Hierarchy check: `isSuperAdmin()` / `isAdminTier()` (super+admin) — không hardcode `=== admin`.
+> RBAC chi tiết: `docs/PERMISSIONS.md` · `App\Support\Auth\PermissionCatalog`.
 
 ---
 
@@ -207,33 +213,41 @@ Tạo Project
 | Refactor Phase 1–5 (modules/, Use Cases, Pinia, tests) | ✅ Hoàn thành (2026-06-03) |
 | Dev tooling (_dev/, Husky, Playwright CI) | ✅ Hoàn thành |
 
-| Module | Trạng Thái |
-|---|---|
-| Authentication | ✅ Hoàn thành |
-| Project Management | ✅ Hoàn thành |
-| Sprint & Task (+ subtasks, bulk, attachments) | ✅ Hoàn thành |
-| Worklog / Time Tracking | ✅ Hoàn thành |
-| Project Documents (upload, preview, activity log) | ✅ Hoàn thành |
-| Task Attachments | ✅ Hoàn thành |
-| Blocker Attachments & Activity Log | ✅ Hoàn thành |
-| Sprint Workspace (list, calendar, drag-drop) | ✅ Hoàn thành |
-| Gantt Chart + Timeline + Burndown | ✅ Hoàn thành |
-| Project Dashboard (overview, workload, activity feed) | ✅ Hoàn thành |
-| Risk Import/Export (Excel) | ✅ Hoàn thành |
-| Công Nghệ (landing + đề xuất + quản trị nội dung) | ✅ → docs/CONGNGHE_CONTENT.md |
-| AI Accounts (PĐX, TK, chi phí) | ✅ → docs/AI_ACCOUNTS.md |
-| Org teams (sơ đồ nhóm) | ✅ |
-| Profile / Members directory | ✅ |
-| System settings (`/settings`) | ✅ → docs/SYSTEM_CONFIG.md |
-| Daily Report | ✅ Hoàn thành |
-| Blocker Tracking | ✅ Hoàn thành |
-| Bug Tracking | ❌ Đã gỡ (2026-06) — dùng Feedback / Blocker |
-| Feedback | ✅ Hoàn thành |
-| Department Management | ✅ Hoàn thành |
-| Comments & Reactions | ✅ Hoàn thành |
-| **Notification System (in-app bell + drawer)** | ✅ Hoàn thành |
-| Team Dashboard | 🔄 Đang phát triển |
-| Weekly Performance Review | 📋 Kế hoạch |
-| Knowledge Base (Wiki) | ✅ Triển khai v1 → docs/KNOWLEDGE_BASE.md |
-| Coaching / Mentoring | ✅ Triển khai v1 → docs/COACHING_MENTORING.md |
-| Account Settings | 📋 Kế hoạch |
+| Module | Route | Trạng Thái |
+|---|---|---|
+| Authentication | `/login`, `/auth/google` | ✅ Hoàn thành |
+| **Dashboard Hub** (tổng quan tất cả module) | `/dashboard` | ✅ Hoàn thành |
+| **Dashboard Công Việc** (KPI dự án, compliance) | `/work` | ✅ Hoàn thành |
+| Project Management | `/projects` | ✅ Hoàn thành |
+| Sprint & Task (+ subtasks, bulk, attachments) | `/projects/{id}` | ✅ Hoàn thành |
+| Worklog / Time Tracking | `/projects/{id}/tasks/{task}/worklogs` | ✅ Hoàn thành |
+| Project Documents (upload, preview, activity log) | `/projects/{id}/attachments` | ✅ Hoàn thành |
+| Task Attachments | `/projects/{id}/tasks/{task}/attachments` | ✅ Hoàn thành |
+| Blocker Attachments & Activity Log | `/blockers` | ✅ Hoàn thành |
+| Sprint Workspace (list, calendar, drag-drop) | `/projects/{id}` | ✅ Hoàn thành |
+| Gantt Chart + Timeline + Burndown | `/projects/{id}` | ✅ Hoàn thành |
+| Project Dashboard (overview, workload, activity feed) | `/projects/{id}` | ✅ Hoàn thành |
+| Risk Import/Export (Excel) | `/blockers` | ✅ Hoàn thành |
+| Công Nghệ (landing + đề xuất + quản trị nội dung) | `/congnghe` | ✅ → docs/CONGNGHE_CONTENT.md |
+| AI Accounts (PĐX, TK, chi phí, analytics) | `/ai-accounts` | ✅ → docs/AI_ACCOUNTS.md |
+| Org teams (sơ đồ nhóm) | `/org-teams` | ✅ Hoàn thành |
+| Profile / Members directory | `/members`, `/profile` | ✅ Hoàn thành |
+| System settings (super_admin) | `/settings` | ✅ → docs/SYSTEM_CONFIG.md |
+| Daily Report | `/daily-reports` | ✅ Hoàn thành |
+| Blocker Tracking | `/blockers` | ✅ Hoàn thành |
+| Bug Tracking | — | ❌ Đã gỡ (2026-06) — dùng Feedback / Blocker |
+| Feedback | `/feedback` | ✅ Hoàn thành |
+| Department Management | `/departments` | ✅ Hoàn thành |
+| Comments & Reactions | morph (task, blocker, feedback) | ✅ Hoàn thành |
+| Notification System (in-app bell + drawer) | `/notifications` | ✅ Hoàn thành |
+| Notification Dispatcher (centralized fan-out) | (service layer) | ✅ Hoàn thành |
+| Knowledge Base (Wiki) | `/knowledge-base` | ✅ Triển khai v1 → docs/KNOWLEDGE_BASE.md |
+| Coaching / Mentoring | `/coaching` | ✅ Triển khai v1 → docs/COACHING_MENTORING.md |
+| Contract Lifecycle (CLM) | `/contracts` | ✅ Hoàn thành → docs/CONTRACT_MANAGEMENT.md |
+| Credential Vault | `/credentials` | ✅ Hoàn thành → docs/CREDENTIAL_MANAGEMENT.md |
+| Performance Analytics & Audit | `/performance` | ✅ Hoàn thành → docs/PERFORMANCE_ANALYTICS.md |
+| Audit Trail (security log viewer) | `/audit` | ✅ Hoàn thành (admin/super) |
+| RBAC / Permission Matrix | `/settings/permissions` | ✅ Hoàn thành → docs/PERMISSIONS.md |
+| Onboarding Tour | `/onboarding` | ✅ Hoàn thành → docs/ONBOARDING.md |
+| Team Dashboard | — | 🔄 Đang phát triển |
+| Account Settings | — | 📋 Kế hoạch |

@@ -17,7 +17,7 @@ const STATUS_TONE = {
     triaged: 'sky',
     in_progress: 'amber',
     done: 'emerald',
-    rejected: 'slate',
+    rejected: 'rose',
 };
 
 const props = defineProps({
@@ -34,6 +34,8 @@ const statusTone = computed(() => {
 });
 
 const statusLabel = computed(() => proposalStatusLabel(props.proposal));
+
+const isRejected = computed(() => props.proposal.status?.value === 'rejected');
 
 const referenceLabel = computed(() => referenceCodeLabel(props.proposal.reference_code));
 
@@ -325,6 +327,25 @@ function previewKind(file) {
               </div>
             </div>
           </template>
+        </section>
+
+        <section
+          v-if="isRejected && proposal.rejection_reason"
+          class="cn-proposal-sheet__section mt-8"
+          aria-labelledby="cn-sheet-sec-reject"
+        >
+          <h2
+            id="cn-sheet-sec-reject"
+            class="cn-proposal-sheet__section-title text-rose-800"
+          >
+            <span class="cn-proposal-sheet__section-num bg-rose-100 text-rose-700">!</span>
+            Lý do từ chối
+          </h2>
+          <div class="cn-proposal-sheet__content-box border-rose-200 bg-rose-50/80">
+            <p class="whitespace-pre-wrap text-sm leading-relaxed text-rose-900">
+              {{ proposal.rejection_reason }}
+            </p>
+          </div>
         </section>
       </div>
 

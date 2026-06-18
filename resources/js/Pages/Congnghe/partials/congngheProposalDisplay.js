@@ -96,6 +96,51 @@ export function proposalStatusLabel(row) {
     return PROPOSAL_EMPTY.status;
 }
 
+const PROPOSAL_STATUS_META = {
+    new: {
+        tone: 'violet',
+        portalPill: 'border-violet-400/45 bg-violet-500/15 text-violet-100 ring-1 ring-violet-400/30',
+        portalRow: 'border-l-violet-400/70',
+    },
+    triaged: {
+        tone: 'sky',
+        portalPill: 'border-sky-400/45 bg-sky-500/15 text-sky-100 ring-1 ring-sky-400/30',
+        portalRow: 'border-l-sky-400/70',
+    },
+    in_progress: {
+        tone: 'amber',
+        portalPill: 'border-amber-400/45 bg-amber-500/15 text-amber-50 ring-1 ring-amber-400/35',
+        portalRow: 'border-l-amber-400/70',
+    },
+    done: {
+        tone: 'emerald',
+        portalPill: 'border-emerald-400/45 bg-emerald-500/15 text-emerald-50 ring-1 ring-emerald-400/35',
+        portalRow: 'border-l-emerald-400/70',
+    },
+    rejected: {
+        tone: 'rose',
+        portalPill: 'border-rose-400/55 bg-rose-500/20 text-rose-50 ring-2 ring-rose-400/40 shadow-[0_0_20px_-8px_rgba(244,63,94,0.55)]',
+        portalRow: 'border-l-rose-400 bg-rose-500/[0.06]',
+    },
+};
+
+/** @param {Record<string, unknown>|null|undefined} row */
+export function proposalStatusMeta(row) {
+    const value = String(row?.status?.value ?? row?.status ?? '').trim();
+    const label = proposalStatusLabel(row);
+    const preset = PROPOSAL_STATUS_META[value] ?? {
+        tone: 'slate',
+        portalPill: 'border-white/20 bg-white/10 text-white/80 ring-1 ring-white/15',
+        portalRow: 'border-l-white/20',
+    };
+
+    return {
+        value,
+        label,
+        ...preset,
+    };
+}
+
 /** @param {Record<string, unknown>|null|undefined} row */
 export function acknowledgementStatus(row) {
     const status = row?.status?.value ?? row?.status;
@@ -113,6 +158,30 @@ export function acknowledgementStatus(row) {
             tone: 'sky',
             label: 'Đã tiếp nhận',
             detail: 'Phòng Công nghệ đã ghi nhận và phân loại đề xuất',
+        };
+    }
+    if (status === 'in_progress') {
+        return {
+            acknowledged: true,
+            tone: 'amber',
+            label: 'Đang xử lý',
+            detail: 'Phòng Công nghệ đang triển khai hoặc đánh giá giải pháp',
+        };
+    }
+    if (status === 'done') {
+        return {
+            acknowledged: true,
+            tone: 'emerald',
+            label: 'Hoàn thành',
+            detail: 'Đề xuất đã được xử lý xong',
+        };
+    }
+    if (status === 'rejected') {
+        return {
+            acknowledged: true,
+            tone: 'rose',
+            label: 'Đã từ chối',
+            detail: 'Xem lý do từ chối trong chi tiết đề xuất',
         };
     }
     return {

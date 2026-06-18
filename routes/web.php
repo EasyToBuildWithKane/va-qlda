@@ -40,7 +40,8 @@ use App\Http\Controllers\Credential\CredentialPageController;
 use App\Http\Controllers\Credential\CredentialRelationController;
 use App\Http\Controllers\DailyReport\DailyReportController;
 use App\Http\Controllers\DailyReport\DailyReportReviewController;
-use App\Http\Controllers\Dashboard\DashboardController;
+use App\Http\Controllers\Dashboard\HubDashboardController;
+use App\Http\Controllers\Dashboard\WorkDashboardController;
 use App\Http\Controllers\Department\DepartmentController;
 use App\Http\Controllers\Feedback\FeedbackController;
 use App\Http\Controllers\KnowledgeBase\KbArticleController;
@@ -93,7 +94,8 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictCoachingOnlyUsers::class
     Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
 
     Route::get('/', fn () => redirect()->route('dashboard'));
-    Route::get('/dashboard', DashboardController::class)->name('dashboard');
+    Route::get('/dashboard', HubDashboardController::class)->name('dashboard');
+    Route::get('/work', WorkDashboardController::class)->name('work-dashboard');
 
     // Trang giới thiệu Phòng Công Nghệ — landing nội bộ cho mọi nhân sự.
     Route::get('/congnghe', CongngheController::class)->name('congnghe');

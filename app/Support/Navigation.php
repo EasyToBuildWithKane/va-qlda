@@ -105,7 +105,7 @@ class Navigation
         return [
 
             // ──────────────────────────────────────────────────────────────
-            // 1. TỔNG QUAN — bảng điều khiển
+            // 1. TỔNG QUAN — hub tất cả module + dashboard công việc
             // ──────────────────────────────────────────────────────────────
             [
                 'key' => 'overview',
@@ -113,9 +113,15 @@ class Navigation
                 'icon' => 'dashboard',
                 'items' => [
                     [
-                        'label' => 'Bảng điều khiển',
+                        'label' => 'Tổng quan hệ thống',
                         'icon' => 'overview',
                         'href' => '/dashboard',
+                        'status' => 'live',
+                    ],
+                    [
+                        'label' => 'Dashboard Công Việc',
+                        'icon' => 'projects',
+                        'href' => '/work',
                         'status' => 'live',
                         'roles' => ['admin', 'lead', 'viewer'],
                     ],

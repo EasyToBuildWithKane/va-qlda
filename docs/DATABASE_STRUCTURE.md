@@ -419,8 +419,11 @@ Bảng `bugs` và `bug_activities` không còn trên môi trường đã migrate
 | title | varchar(200) | NO | |
 | content | text | NO | |
 | status | varchar(32) | NO | new / triaged / in_progress / done / rejected |
+| rejection_reason | text | YES | Bắt buộc khi từ chối; hiển thị người gửi + email |
 | email_sent_at | timestamp | YES | |
 | email_error | varchar(500) | YES | |
+| rejection_email_sent_at | timestamp | YES | Email thông báo từ chối tới người gửi |
+| rejection_email_error | varchar(500) | YES | |
 | created_at | timestamp | YES | |
 | updated_at | timestamp | YES | |
 

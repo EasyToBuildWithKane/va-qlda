@@ -29,6 +29,15 @@ final class EmailTemplateSnippets
                 self::snippet('tasks_table', 'Bảng công việc', 'Chèn {{tasks_table}} — hệ thống render khi gửi', '{{tasks_table}}'),
                 self::snippet('task_count_line', 'Dòng đếm task', 'Tổng số công việc', self::taskCountLine()),
             ],
+            EmailTemplate::KEY_CONGNGHE_PROPOSAL_SUBMITTED => [
+                self::snippet('congnghe_greeting', 'Lời chào người gửi', 'Dùng {{submitter_name}}', self::congngheGreeting()),
+                self::snippet('proposal_content_box', 'Khối nội dung', 'Mô tả {{proposal_content}}', self::proposalContentBox()),
+            ],
+            EmailTemplate::KEY_CONGNGHE_PROPOSAL_REJECTED => [
+                self::snippet('congnghe_greeting', 'Lời chào người gửi', 'Dùng {{submitter_name}}', self::congngheGreeting()),
+                self::snippet('rejection_reason_box', 'Lý do từ chối', 'Khối nổi bật {{rejection_reason}}', self::rejectionReasonBox()),
+                self::snippet('congnghe_cta_mine', 'Nút xem đề xuất', 'Link {{mine_url}}', self::congngheCtaMine()),
+            ],
             default => [],
         };
 
@@ -87,5 +96,31 @@ final class EmailTemplateSnippets
     {
         return '<p style="margin:16px 0 0;padding:12px 16px;background:#FDF2F6;border-radius:8px;font-size:14px;color:#9A0036;">'
             .'<strong>{{task_count}}</strong> công việc.</p>';
+    }
+
+    private static function congngheGreeting(): string
+    {
+        return '<p style="margin:0 0 12px;font-size:15px;line-height:1.5;">Xin chào <strong>{{submitter_name}}</strong>,</p>';
+    }
+
+    private static function proposalContentBox(): string
+    {
+        return '<div style="margin-bottom:20px;padding:16px 18px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;">'
+            .'<p style="margin:0 0 10px;font-size:12px;font-weight:600;text-transform:uppercase;color:#64748b;">Nội dung đề xuất</p>'
+            .'<div style="font-size:15px;line-height:1.6;color:#1e293b;white-space:pre-wrap;">{{proposal_content}}</div></div>';
+    }
+
+    private static function rejectionReasonBox(): string
+    {
+        return '<div style="margin-bottom:20px;padding:16px 18px;background:#fff1f2;border:1px solid #fecdd3;border-radius:10px;">'
+            .'<p style="margin:0 0 10px;font-size:12px;font-weight:600;text-transform:uppercase;color:#be123c;">Lý do từ chối</p>'
+            .'<div style="font-size:15px;line-height:1.6;color:#881337;white-space:pre-wrap;">{{rejection_reason}}</div></div>';
+    }
+
+    private static function congngheCtaMine(): string
+    {
+        return '<p style="margin:20px 0 0;">'
+            .'<a href="{{mine_url}}" style="display:inline-block;background:#9A0036;color:#ffffff;text-decoration:none;'
+            .'font-weight:600;font-size:14px;padding:12px 22px;border-radius:8px;">Xem đề xuất đã gửi</a></p>';
     }
 }
