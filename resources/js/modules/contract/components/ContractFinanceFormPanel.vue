@@ -3,7 +3,6 @@ import { computed, inject } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import MoneyInput from '@/modules/contract/components/MoneyInput.vue';
 import VendorFieldLabel from '@/modules/contract/components/VendorFieldLabel.vue';
-import VndAmount from '@/modules/contract/components/VndAmount.vue';
 import { formatVndDisplay } from '@/modules/contract/composables/useContractFormat.js';
 
 defineProps({
@@ -15,32 +14,11 @@ const emit = defineEmits(['submit', 'cancel']);
 
 const form = inject('contractFinanceForm');
 
-/** Gợi ý tổng dòng = SL×ĐG + phí KT + phí duy trì×tháng (= chi phí năm / tổng HĐ) */
-const suggestedTotal = computed(() => {
-    const q = Number(form?.quantity) || 0;
-    const up = Number(form?.unit_price) || 0;
-    const init = Number(form?.init_fee) || 0;
-    const mf = Number(form?.maintenance_fee) || 0;
-    const months = Number(form?.term_months) || 0;
-    const sum = q * up + init + mf * months;
-    return sum > 0 ? Math.round(sum) : null;
-});
-
 const totalPreview = computed(() => {
     const n = Number(form?.total);
     if (!n || Number.isNaN(n)) return null;
     return formatVndDisplay(n);
 });
-
-const suggestedPreview = computed(() => (
-    suggestedTotal.value != null ? formatVndDisplay(suggestedTotal.value) : null
-));
-
-function applySuggestedTotal() {
-    if (suggestedTotal.value != null && form) {
-        form.total = suggestedTotal.value;
-    }
-}
 </script>
 
 <template>
@@ -50,7 +28,7 @@ function applySuggestedTotal() {
         {{ editingId ? 'Sửa dữ liệu tài chính' : 'Thêm dữ liệu tài chính' }}
       </h4>
       <p class="mt-0.5 text-xs text-slate-500">
-        Số tiền tự định dạng VNĐ; dòng chữ bên dưới cập nhật ngay khi bạn nhập.
+        Chi phí năm = tổng tiền hợp đồng — nhập trực tiếp; các ô SL/đơn giá/phí chỉ để mô tả thêm.
       </p>
     </div>
 
@@ -94,7 +72,7 @@ function applySuggestedTotal() {
               for-id="finance-term-months"
               label="Thời hạn (tháng)"
               compact
-              tooltip="Số tháng duy trì tính phí định kỳ; dùng để gợi ý tổng tiền hợp đồng."
+              tooltip="Thời hạn cam kết (tháng) — thông tin tham chiếu, không tự tính tổng."
             />
             <input
               id="finance-term-months"
@@ -214,7 +192,7 @@ function applySuggestedTotal() {
               for-id="finance-maintenance"
               label="Phí duy trì / tháng"
               compact
-              tooltip="Phí định kỳ hàng tháng (tham chiếu gợi ý tổng, không thay cho tổng HĐ)."
+              tooltip="Phí định kỳ hàng tháng — thông tin tham chiếu, không thay cho tổng HĐ."
             />
             <MoneyInput
               id="finance-maintenance"
@@ -238,7 +216,7 @@ function applySuggestedTotal() {
             <MoneyInput
               id="finance-total"
               v-model="form.total"
-              placeholder="Nhập tổng hoặc dùng gợi ý"
+              placeholder="Nhập chi phí năm / tổng HĐ"
             />
             <p
               v-if="totalPreview?.secondary"
@@ -253,30 +231,6 @@ function applySuggestedTotal() {
               {{ form.errors.total }}
             </p>
           </div>
-        </div>
-
-        <div
-          v-if="suggestedPreview"
-          class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-brand/15 bg-brand/[0.04] px-3 py-2.5"
-        >
-          <div class="min-w-0 text-sm text-slate-700">
-            <span class="font-medium text-slate-800">Gợi ý tổng:</span>
-            <VndAmount
-              :amount="suggestedTotal"
-              inline
-              class="ml-1"
-            />
-            <span class="mt-0.5 block text-[11px] text-slate-500">
-              SL × đơn giá + phí KT + phí duy trì × tháng
-            </span>
-          </div>
-          <button
-            type="button"
-            class="btn-ghost h-8 shrink-0 px-2.5 text-xs"
-            @click="applySuggestedTotal"
-          >
-            Áp dụng gợi ý
-          </button>
         </div>
       </fieldset>
 

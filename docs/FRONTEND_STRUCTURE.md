@@ -177,7 +177,7 @@ Pages import feature components từ `@/modules/project/components/...` và prim
 | `Pages/Contract/` | Dashboard, Index (`ContractPortfolioSummaryBar`), Show, Cost, Reports, … |
 | `Pages/Contract/Show.vue` | Chi tiết HĐ — workspace `.contract-show-scale` (`zoom: 0.9`); tab Tổng quan: KPI strip + lưới **55% / 45%** |
 | `components/ContractShowSummaryBar.vue` | Tab Tổng quan Show: dải KPI `kpi-strip` 6 thẻ (`variant="embedded"`, `dense-values`), mở tab Hồ sơ / Gia hạn |
-| `components/ContractFinanceFormPanel.vue` | Tab Tài chính Show: form nhập dòng `contract_finances` (`MoneyInput`, tooltip, gợi ý tổng) — `inject('contractFinanceForm')` |
+| `components/ContractFinanceFormPanel.vue` | Tab Tài chính Show: form nhập dòng `contract_finances` (`MoneyInput`, tooltip; **chi phí năm = tổng HĐ** nhập trực tiếp) — `inject('contractFinanceForm')` |
 | `components/ContractExplorer.vue` | Cây NCC → nhóm → hợp đồng trên Index |
 | `components/ContractDataModal.vue` | Nhập · Xuất · Đối soát danh mục |
 
