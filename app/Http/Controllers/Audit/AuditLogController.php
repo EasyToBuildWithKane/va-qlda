@@ -38,7 +38,10 @@ class AuditLogController extends Controller
         $query = SecurityAuditLog::query()->with('actor:id,display_name');
 
         if (! empty($validated['module'])) {
-            $query->whereIn('action', AuditActionCatalog::actionsForModule($validated['module']));
+            $module = $validated['module'];
+            $query->where(function ($q) use ($module) {
+                AuditActionCatalog::applyModuleFilter($q, $module);
+            });
         }
         if (! empty($validated['action'])) {
             $query->where('action', $validated['action']);
@@ -66,7 +69,7 @@ class AuditLogController extends Controller
             ->withQueryString();
 
         return Inertia::render('Audit/Index', [
-            'logs' => SecurityAuditLogResource::collection($paginator->items()),
+            'logs' => SecurityAuditLogResource::collection($paginator->items())->resolve(),
             'meta' => [
                 'total' => $paginator->total(),
                 'from' => $paginator->firstItem() ?? 0,

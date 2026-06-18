@@ -56,7 +56,7 @@ Tất cả trong nhóm `contracts.*` (`routes/web.php`). Static segment đặt *
 - **Models** (`app/Models/`): `Contract` (`root_contract_id` self-FK → phụ lục; `finances()`, `reviews()`/`latestReview()` hasMany), `Vendor`, `ContractCategory`, `ContractFinance`, `ContractRenewal`, `ContractReview`, `VendorReview`, `ContractActivity`, `ContractAttachment`.
 - **Engine:** `App\Support\ContractLifecycle\ContractMetricsEngine` — `build()` (dashboard), `buildCost()`, `buildReport()`. `ContractRenewalCalculator` (buckets 90/60/30/7). Activity: `App\Support\ContractActivityLogger`.
 - **Reminder cron:** `App\Services\Contract\ContractReminderService` chạy bởi command `contracts:send-reminders` (Kernel daily 08:00) — tự suy `expiring_soon` / `expired` từ `expiry_date` (**không nhập tay**); thông báo `NotificationType::SystemContractExpiry` / `SystemContractExpired`.
-- **Inbox:** tạo/sửa HĐ → `SystemContractCreated` / `SystemContractUpdated`; đánh giá NCC → `SystemContractVendorReview` (`NotificationDispatcher` — người thực hiện, owner/manager HĐ, admin feed).
+- **Inbox:** tạo/sửa HĐ → `SystemContractCreated` / `SystemContractUpdated`; đánh giá NCC → `SystemContractVendorReview` (`NotificationDispatcher` — owner/manager HĐ khi gắn HĐ; đánh giá gốc trên `/contracts/vendors/{id}` chỉ admin feed; `notifyAdmins` bỏ qua account đã nhận bản in-app để tránh trùng).
 - **Enums** (`app/Support/Enums/`): `ContractStatus` (draft·active·expiring_soon·expired·pending_renewal·addendum·terminated), `ContractPaymentStatus`, `ContractBillingCycle` (one_time·monthly·quarterly·annual), `ContractAttachmentCategory`, `ContractReviewRecommendation`.
 - **Cấu hình ngưỡng:** `/settings` tab "Hợp đồng (CLM)" → `clm.renewal_alert_days` (mặc định `90,60,30,7`), overlay lên `config('clm.*')` (`config/clm.php` + `SettingsServiceProvider`). Xem `docs/SYSTEM_CONFIG.md`.
 
@@ -99,7 +99,7 @@ Frontend dùng `can` từ Resource + `usePage().props.auth.user.role`.
 
 ## 7. Frontend
 
-- **Pages** (`resources/js/Pages/Contract/`): `Dashboard`, `Index` (Explorer), `Show`, `Vendors`.
+- **Pages** (`resources/js/Pages/Contract/`): `Dashboard`, `Index` (Explorer), `Show`, `Vendors`, `VendorShow` (lịch sử đánh giá tách **gốc** / **theo hợp đồng** trong `VendorReviewHistoryPanel`).
 - **Module** (`resources/js/modules/contract/`): `components/` (KPI `*SummaryBar` bọc `shared/ui/KpiSummaryStrip`, charts `StatusDonut`/`CostTrendChart`), `composables/` (`useContractExplorer.js` dựng cây client-side, import/export, `useContractFormat.js`), `config/`.
 - **Lưu ý unwrap:** trang nhận một `new ContractResource(...)` phải `props.contract?.data ?? props.contract` (Inertia bọc single JsonResource dưới key `data`).
 

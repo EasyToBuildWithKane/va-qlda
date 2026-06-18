@@ -216,4 +216,159 @@ final class AuditActionCatalog
 
         return $out;
     }
+
+    /**
+     * Tiền tố action (segment trước dấu chấm) gom về module — dùng lọc SQL khi action chưa khai báo catalog.
+     *
+     * @return array<int, string>
+     */
+    public static function actionPrefixesForModule(string $module): array
+    {
+        $prefixes = [];
+        if (isset(self::modules()[$module])) {
+            $prefixes[] = $module;
+        }
+        foreach (self::actionPrefixModuleMap() as $prefix => $moduleKey) {
+            if ($moduleKey === $module) {
+                $prefixes[] = $prefix;
+            }
+        }
+
+        return array_values(array_unique($prefixes));
+    }
+
+    /** @param  \Illuminate\Database\Eloquent\Builder<\App\Models\SecurityAuditLog>  $query */
+    public static function applyModuleFilter($query, string $module): void
+    {
+        $known = self::actionsForModule($module);
+        $prefixes = self::actionPrefixesForModule($module);
+
+        $query->where(function ($q) use ($known, $prefixes) {
+            $applied = false;
+            if ($known !== []) {
+                $q->whereIn('action', $known);
+                $applied = true;
+            }
+            foreach ($prefixes as $prefix) {
+                if (! $applied) {
+                    $q->where('action', 'like', $prefix.'.%');
+                    $applied = true;
+                } else {
+                    $q->orWhere('action', 'like', $prefix.'.%');
+                }
+            }
+            if (! $applied) {
+                $q->whereRaw('0 = 1');
+            }
+        });
+    }
+
+    public static function subjectTypeLabel(?string $type): ?string
+    {
+        if ($type === null || trim($type) === '') {
+            return null;
+        }
+
+        return match ($type) {
+            'contract' => 'Hợp đồng',
+            'vendor' => 'Nhà cung cấp',
+            'system_account' => 'Tài khoản hệ thống',
+            'employee' => 'Nhân sự',
+            'department' => 'Phòng ban',
+            'settings_group' => 'Nhóm cấu hình',
+            'email_template' => 'Mẫu email',
+            'ai_account' => 'Tài khoản AI',
+            'ai_payment_request' => 'Đề nghị thanh toán AI',
+            'ai_purchase_proposal' => 'Đề xuất mua AI',
+            'kb_article' => 'Bài tri thức',
+            'coaching_course' => 'Khóa đào tạo',
+            'coaching_session' => 'Buổi đào tạo',
+            'org_team' => 'Nhóm tổ chức',
+            'congnghe_software_proposal' => 'Đề xuất phần mềm',
+            default => ucfirst(str_replace('_', ' ', $type)),
+        };
+    }
+
+    /**
+     * Dòng tóm tắt đối tượng cho UI audit (tiếng Việt).
+     *
+     * @param  array<string, mixed>  $meta
+     */
+    public static function formatSubjectSummary(?string $subjectType, ?int $subjectId, array $meta): ?string
+    {
+        $typeLabel = self::subjectTypeLabel($subjectType);
+        $hasId = $subjectId !== null;
+        $hint = self::metaSubjectHint($meta);
+
+        if ($typeLabel === null && ! $hasId && $hint === null) {
+            return null;
+        }
+
+        $idPart = $hasId ? "#{$subjectId}" : '';
+        $base = trim(($typeLabel ?? 'Đối tượng').$idPart);
+
+        return $hint !== null ? "{$base} · {$hint}" : $base;
+    }
+
+    /**
+     * Một dòng xem nhanh metadata (không lộ secret).
+     *
+     * @param  array<string, mixed>  $meta
+     */
+    public static function formatMetaPreview(array $meta): ?string
+    {
+        if ($meta === []) {
+            return null;
+        }
+
+        $parts = [];
+        if (isset($meta['code']) && is_scalar($meta['code']) && (string) $meta['code'] !== '') {
+            $parts[] = 'Mã: '.(string) $meta['code'];
+        }
+        if (isset($meta['name']) && is_scalar($meta['name']) && (string) $meta['name'] !== '') {
+            $parts[] = 'Tên: '.(string) $meta['name'];
+        }
+        if (isset($meta['fields']) && is_array($meta['fields']) && $meta['fields'] !== []) {
+            $fields = array_values(array_filter(array_map('strval', $meta['fields'])));
+            if ($fields !== []) {
+                $parts[] = 'Trường: '.implode(', ', $fields);
+            }
+        }
+        if (isset($meta['target']) && is_scalar($meta['target']) && (string) $meta['target'] !== '') {
+            $parts[] = 'Đích: '.(string) $meta['target'];
+        }
+        if (isset($meta['group']) && is_scalar($meta['group']) && (string) $meta['group'] !== '') {
+            $parts[] = 'Nhóm: '.(string) $meta['group'];
+        }
+
+        if ($parts !== []) {
+            return implode(' · ', $parts);
+        }
+
+        $keys = array_keys($meta);
+        if (count($keys) === 1) {
+            $k = $keys[0];
+            $v = $meta[$k];
+            if (is_scalar($v)) {
+                return "{$k}: {$v}";
+            }
+        }
+
+        return count($keys).' trường — bấm «Chi tiết» để xem đầy đủ';
+    }
+
+    /** @param  array<string, mixed>  $meta */
+    private static function metaSubjectHint(array $meta): ?string
+    {
+        if (isset($meta['code']) && is_scalar($meta['code']) && (string) $meta['code'] !== '') {
+            return (string) $meta['code'];
+        }
+        if (isset($meta['name']) && is_scalar($meta['name']) && (string) $meta['name'] !== '') {
+            $name = (string) $meta['name'];
+
+            return mb_strlen($name) > 48 ? mb_substr($name, 0, 45).'…' : $name;
+        }
+
+        return null;
+    }
 }

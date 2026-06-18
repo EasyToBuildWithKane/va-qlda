@@ -72,9 +72,15 @@ class NotificationService
 
     /**
      * @param  array<string, mixed>  $context
+     * @param  array<int>  $exceptAccountIds  Đã nhận bản in-app (`is_admin_feed=false`) — tránh trùng inbox
      */
-    public function notifyAdmins(NotificationType $type, string $title, ?string $body = null, array $context = []): void
-    {
+    public function notifyAdmins(
+        NotificationType $type,
+        string $title,
+        ?string $body = null,
+        array $context = [],
+        array $exceptAccountIds = [],
+    ): void {
         $priority = $context['priority'] ?? $type->defaultPriority();
         if (is_string($priority)) {
             $priority = NotificationPriority::from($priority);
@@ -92,7 +98,13 @@ class NotificationService
         $rows = [];
         $now = now();
 
+        $except = array_flip($exceptAccountIds);
+
         foreach ($adminIds as $adminId) {
+            if (isset($except[$adminId])) {
+                continue;
+            }
+
             $rows[] = [
                 'recipient_account_id' => $adminId,
                 'type' => $type->value,

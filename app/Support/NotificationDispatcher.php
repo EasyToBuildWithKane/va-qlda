@@ -651,7 +651,6 @@ class NotificationDispatcher
             'action_url' => "/contracts/vendors/{$vendor->id}",
         ];
 
-        $svc->notify([$actor], NotificationType::SystemContractVendorReview, $title, $body, $context);
         $svc->notifyAdmins(NotificationType::SystemContractVendorReview, $title, $body, $context);
     }
 
@@ -673,9 +672,11 @@ class NotificationDispatcher
         $recipients = $svc->accountsForEmployees(array_filter([
             $contract->owner_id,
             $contract->manager_id,
-        ]))->push($actor)->unique('id');
+        ]))
+            ->reject(fn (SystemAccount $a) => $a->id === $actor->id)
+            ->unique('id');
 
         $svc->notify($recipients, $type, $title, $body, $context);
-        $svc->notifyAdmins($type, $title, $body, $context);
+        $svc->notifyAdmins($type, $title, $body, $context, $recipients->pluck('id')->all());
     }
 }

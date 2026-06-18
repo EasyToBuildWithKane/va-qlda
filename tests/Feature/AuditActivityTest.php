@@ -129,4 +129,38 @@ class AuditActivityTest extends TestCase
         $this->assertSame('ai_account', $unknownAi['module']);
         $this->assertSame('sparkles', $unknownAi['icon']);
     }
+
+    public function test_audit_index_returns_resolved_logs_with_labels(): void
+    {
+        $admin = SystemAccount::factory()->role(SystemRole::Admin)->create();
+
+        SecurityAuditLog::create([
+            'actor_account_id' => $admin->id,
+            'action' => 'contract.created',
+            'subject_type' => 'contract',
+            'subject_id' => 42,
+            'meta' => ['code' => 'HD-001', 'name' => 'Hợp đồng thuê'],
+            'created_at' => now(),
+        ]);
+
+        $response = $this->actingAs($admin, 'system')
+            ->get('/audit?module=contract&page=1&per_page=25');
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Audit/Index')
+            ->has('logs', 1)
+            ->where('logs.0.action_label', 'Tạo hợp đồng')
+            ->where('logs.0.module_label', 'Quản lý hợp đồng')
+            ->where('logs.0.subject_summary', 'Hợp đồng#42 · HD-001')
+            ->where('logs.0.detail_preview', 'Mã: HD-001 · Tên: Hợp đồng thuê')
+        );
+    }
+
+    public function test_audit_action_catalog_module_filter_includes_prefix_actions(): void
+    {
+        $prefixes = \App\Support\Audit\AuditActionCatalog::actionPrefixesForModule('contract');
+        $this->assertContains('contract', $prefixes);
+        $this->assertContains('vendor', $prefixes);
+    }
 }

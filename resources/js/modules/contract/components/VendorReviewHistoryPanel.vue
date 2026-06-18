@@ -102,39 +102,68 @@ function scoreBandMatch(score, band) {
 
 const hasContractReviews = computed(() => props.reviews.some((r) => r.contract?.id));
 
-function compareReviews(a, b) {
-    const aBase = a.is_baseline ? 0 : 1;
-    const bBase = b.is_baseline ? 0 : 1;
-    if (aBase !== bBase) return aBase - bBase;
-    if (aBase === 0) {
+function sortBaselineReviews(list) {
+    return [...list].sort((a, b) => {
         const da = a.reviewed_at || '';
         const db = b.reviewed_at || '';
         if (da !== db) return da.localeCompare(db);
         return (a.id ?? 0) - (b.id ?? 0);
-    }
-    const da = a.reviewed_at || '';
-    const db = b.reviewed_at || '';
-    if (da !== db) return db.localeCompare(da);
-    return (b.id ?? 0) - (a.id ?? 0);
+    });
 }
 
-const orderedReviews = computed(() => [...props.reviews].sort(compareReviews));
-
-const filteredReviews = computed(() => {
-    const q = debouncedQ.value;
-    return orderedReviews.value.filter((r) => {
-        if (!scoreBandMatch(r.total_score, filters.scoreBand)) return false;
-        if (filters.recommendation && r.recommendation?.value !== filters.recommendation) return false;
-        if (!q) return true;
-        const hay = [
-            r.reviewer?.name,
-            r.note,
-            r.recommendation?.label,
-            r.reviewed_at,
-        ].filter(Boolean).join(' ').toLowerCase();
-        return hay.includes(q);
+function sortContractReviews(list) {
+    return [...list].sort((a, b) => {
+        const da = a.reviewed_at || '';
+        const db = b.reviewed_at || '';
+        if (da !== db) return db.localeCompare(da);
+        return (b.id ?? 0) - (a.id ?? 0);
     });
-});
+}
+
+function matchesReviewFilters(r) {
+    if (!scoreBandMatch(r.total_score, filters.scoreBand)) return false;
+    if (filters.recommendation && r.recommendation?.value !== filters.recommendation) return false;
+    const q = debouncedQ.value;
+    if (!q) return true;
+    const hay = [
+        r.reviewer?.name,
+        r.note,
+        r.recommendation?.label,
+        r.reviewed_at,
+        r.contract?.name,
+        r.contract?.code,
+    ].filter(Boolean).join(' ').toLowerCase();
+    return hay.includes(q);
+}
+
+const baselineReviewsFiltered = computed(() =>
+    sortBaselineReviews(props.reviews.filter((r) => r.is_baseline && matchesReviewFilters(r))),
+);
+
+const contractReviewsFiltered = computed(() =>
+    sortContractReviews(props.reviews.filter((r) => !r.is_baseline && matchesReviewFilters(r))),
+);
+
+const filteredReviewCount = computed(
+    () => baselineReviewsFiltered.value.length + contractReviewsFiltered.value.length,
+);
+
+const reviewSections = computed(() => [
+    {
+        key: 'baseline',
+        eyebrow: 'Hồ sơ NCC',
+        title: 'Đánh giá gốc',
+        hint: 'Tách biệt với đánh giá gắn từng hợp đồng',
+        rows: baselineReviewsFiltered.value,
+    },
+    {
+        key: 'contract',
+        eyebrow: 'Theo hợp đồng',
+        title: 'Đánh giá hợp đồng',
+        hint: 'Ghi nhận từ tab Đánh giá NCC trên chi tiết hợp đồng',
+        rows: contractReviewsFiltered.value,
+    },
+]);
 
 async function onDeleteReview(review) {
     const ok = await dialog.confirm({
@@ -362,155 +391,187 @@ onMounted(() => document.addEventListener('mousedown', onToolbarClickOutside));
             </th>
           </tr>
         </thead>
-        <tbody>
-          <tr
-            v-for="r in filteredReviews"
-            :key="r.id"
-            class="border-t border-slate-100 transition hover:bg-slate-50/80"
-            :class="r.is_baseline ? 'bg-brand/[0.03]' : ''"
-          >
-            <td class="whitespace-nowrap px-5 py-3 text-slate-800">
-              <span>{{ r.reviewed_at ? date(r.reviewed_at) : EMPTY_LABELS.period }}</span>
-              <div
-                v-if="r.is_baseline"
-                class="mt-1"
+        <template
+          v-for="section in reviewSections"
+          :key="section.key"
+        >
+          <tbody v-if="section.rows.length">
+            <tr class="border-t border-slate-200 bg-gradient-to-r from-slate-50 to-white">
+              <td
+                :colspan="visibleColumnCount"
+                class="px-5 py-3"
+              >
+                <p class="text-[10px] font-semibold uppercase tracking-[0.14em] text-brand/80">
+                  {{ section.eyebrow }}
+                </p>
+                <div class="mt-0.5 flex flex-wrap items-baseline justify-between gap-2">
+                  <p class="font-display text-sm font-semibold text-slate-800">
+                    {{ section.title }}
+                  </p>
+                  <p
+                    v-if="section.hint"
+                    class="text-[11px] text-slate-500"
+                  >
+                    {{ section.hint }}
+                  </p>
+                </div>
+              </td>
+            </tr>
+            <tr
+              v-for="r in section.rows"
+              :key="r.id"
+              class="border-t border-slate-100 transition hover:bg-slate-50/80"
+              :class="r.is_baseline ? 'bg-brand/[0.03]' : ''"
+            >
+              <td class="whitespace-nowrap px-5 py-3 text-slate-800">
+                <span>{{ r.reviewed_at ? date(r.reviewed_at) : EMPTY_LABELS.period }}</span>
+                <div
+                  v-if="r.is_baseline"
+                  class="mt-1"
+                >
+                  <Badge
+                    label="Đánh giá gốc"
+                    color="brand"
+                  />
+                </div>
+              </td>
+              <td class="px-5 py-3">
+                <p class="font-medium text-slate-800">
+                  {{ r.reviewer?.name ?? 'Chưa gán người đánh giá' }}
+                </p>
+              </td>
+              <td
+                v-if="isColVisible('contract') && hasContractReviews"
+                class="px-5 py-3 text-sm"
+              >
+                <template v-if="r.contract?.id">
+                  <Link
+                    :href="`/contracts/${r.contract.id}`"
+                    class="font-medium text-brand hover:underline"
+                  >
+                    {{ r.contract.name }}
+                  </Link>
+                  <p class="font-mono text-[11px] text-slate-400">
+                    {{ r.contract.code }}
+                    <span
+                      v-if="r.contract.is_addendum"
+                      class="text-slate-500"
+                    > · Phụ lục</span>
+                  </p>
+                </template>
+                <span
+                  v-else-if="r.is_baseline"
+                  class="text-xs text-slate-500"
+                >Không gắn hợp đồng</span>
+              </td>
+              <td class="px-5 py-3 text-right">
+                <Badge
+                  v-if="r.total_score != null"
+                  :label="`${r.total_score}/10`"
+                  :color="scoreBadgeColor(r.total_score)"
+                />
+                <span
+                  v-else
+                  class="text-xs italic text-slate-400"
+                >Chưa có điểm tổng</span>
+              </td>
+              <td
+                v-if="isColVisible('criteria')"
+                class="px-5 py-3"
+              >
+                <ul
+                  class="space-y-1.5"
+                  :aria-label="`Tiêu chí lần đánh giá ${r.id}`"
+                >
+                  <li
+                    v-for="c in criteria"
+                    :key="c.key"
+                    class="flex items-center gap-2 text-[11px]"
+                  >
+                    <span class="w-24 shrink-0 truncate text-slate-500">{{ c.label }}</span>
+                    <div class="h-1.5 min-w-[5rem] flex-1 overflow-hidden rounded-full bg-slate-100">
+                      <div
+                        class="h-full rounded-full transition-all"
+                        :class="{
+                          'bg-rose-500': criteriaScore(r, c.key) != null && criteriaScore(r, c.key) < 7,
+                          'bg-amber-500': criteriaScore(r, c.key) != null && criteriaScore(r, c.key) >= 7 && criteriaScore(r, c.key) < 8.5,
+                          'bg-emerald-500': criteriaScore(r, c.key) != null && criteriaScore(r, c.key) >= 8.5,
+                          'bg-slate-200': criteriaScore(r, c.key) == null,
+                        }"
+                        :style="{ width: `${criteriaBarWidth(criteriaScore(r, c.key))}%` }"
+                      />
+                    </div>
+                    <span class="w-8 shrink-0 tabular-nums text-slate-600">
+                      {{ criteriaScore(r, c.key) != null ? criteriaScore(r, c.key) : '·' }}
+                    </span>
+                  </li>
+                </ul>
+              </td>
+              <td
+                v-for="col in criteria.filter((c) => isColVisible(c.key))"
+                :key="`${r.id}-${col.key}`"
+                class="px-5 py-3 text-right tabular-nums text-slate-700"
+              >
+                {{ criteriaScore(r, col.key) != null ? criteriaScore(r, col.key) : EMPTY_LABELS.notUpdated }}
+              </td>
+              <td
+                v-if="isColVisible('recommendation')"
+                class="px-5 py-3"
               >
                 <Badge
-                  label="Đánh giá gốc"
-                  color="brand"
+                  v-if="r.recommendation?.label"
+                  :label="r.recommendation.label"
+                  :color="r.recommendation.color ?? 'slate'"
                 />
-              </div>
-            </td>
-            <td class="px-5 py-3">
-              <p class="font-medium text-slate-800">
-                {{ r.reviewer?.name ?? 'Chưa gán người đánh giá' }}
-              </p>
-            </td>
-            <td
-              v-if="isColVisible('contract') && hasContractReviews"
-              class="px-5 py-3 text-sm"
-            >
-              <template v-if="r.contract?.id">
-                <Link
-                  :href="`/contracts/${r.contract.id}`"
-                  class="font-medium text-brand hover:underline"
-                >
-                  {{ r.contract.name }}
-                </Link>
-                <p class="font-mono text-[11px] text-slate-400">
-                  {{ r.contract.code }}
-                  <span
-                    v-if="r.contract.is_addendum"
-                    class="text-slate-500"
-                  > · Phụ lục</span>
+                <span
+                  v-else
+                  class="text-xs italic text-slate-400"
+                >{{ EMPTY_LABELS.notUpdated }}</span>
+              </td>
+              <td
+                v-if="isColVisible('note')"
+                class="max-w-xs px-5 py-3 text-slate-600"
+              >
+                <p class="line-clamp-3 whitespace-pre-wrap text-sm leading-relaxed">
+                  {{ r.note || EMPTY_LABELS.notUpdated }}
                 </p>
-              </template>
-            </td>
-            <td class="px-5 py-3 text-right">
-              <Badge
-                v-if="r.total_score != null"
-                :label="`${r.total_score}/10`"
-                :color="scoreBadgeColor(r.total_score)"
-              />
-              <span
-                v-else
-                class="text-xs italic text-slate-400"
-              >Chưa có điểm tổng</span>
-            </td>
-            <td
-              v-if="isColVisible('criteria')"
-              class="px-5 py-3"
-            >
-              <ul
-                class="space-y-1.5"
-                :aria-label="`Tiêu chí lần đánh giá ${r.id}`"
-              >
-                <li
-                  v-for="c in criteria"
-                  :key="c.key"
-                  class="flex items-center gap-2 text-[11px]"
+              </td>
+              <td class="whitespace-nowrap px-5 py-3 text-right">
+                <div
+                  v-if="r.can?.update || r.can?.delete"
+                  class="inline-flex items-center gap-1"
                 >
-                  <span class="w-24 shrink-0 truncate text-slate-500">{{ c.label }}</span>
-                  <div class="h-1.5 min-w-[5rem] flex-1 overflow-hidden rounded-full bg-slate-100">
-                    <div
-                      class="h-full rounded-full transition-all"
-                      :class="{
-                        'bg-rose-500': criteriaScore(r, c.key) != null && criteriaScore(r, c.key) < 7,
-                        'bg-amber-500': criteriaScore(r, c.key) != null && criteriaScore(r, c.key) >= 7 && criteriaScore(r, c.key) < 8.5,
-                        'bg-emerald-500': criteriaScore(r, c.key) != null && criteriaScore(r, c.key) >= 8.5,
-                        'bg-slate-200': criteriaScore(r, c.key) == null,
-                      }"
-                      :style="{ width: `${criteriaBarWidth(criteriaScore(r, c.key))}%` }"
+                  <button
+                    v-if="r.can?.update"
+                    type="button"
+                    class="btn-ghost inline-flex h-8 items-center gap-1 px-2 text-xs"
+                    title="Chỉnh sửa"
+                    @click="emit('edit', r)"
+                  >
+                    <AppIcon
+                      name="edit"
+                      :size="14"
                     />
-                  </div>
-                  <span class="w-8 shrink-0 tabular-nums text-slate-600">
-                    {{ criteriaScore(r, c.key) != null ? criteriaScore(r, c.key) : '·' }}
-                  </span>
-                </li>
-              </ul>
-            </td>
-            <td
-              v-for="col in criteria.filter((c) => isColVisible(c.key))"
-              :key="`${r.id}-${col.key}`"
-              class="px-5 py-3 text-right tabular-nums text-slate-700"
-            >
-              {{ criteriaScore(r, col.key) != null ? criteriaScore(r, col.key) : EMPTY_LABELS.notUpdated }}
-            </td>
-            <td
-              v-if="isColVisible('recommendation')"
-              class="px-5 py-3"
-            >
-              <Badge
-                v-if="r.recommendation?.label"
-                :label="r.recommendation.label"
-                :color="r.recommendation.color ?? 'slate'"
-              />
-              <span
-                v-else
-                class="text-xs italic text-slate-400"
-              >{{ EMPTY_LABELS.notUpdated }}</span>
-            </td>
-            <td
-              v-if="isColVisible('note')"
-              class="max-w-xs px-5 py-3 text-slate-600"
-            >
-              <p class="line-clamp-3 whitespace-pre-wrap text-sm leading-relaxed">
-                {{ r.note || EMPTY_LABELS.notUpdated }}
-              </p>
-            </td>
-            <td class="whitespace-nowrap px-5 py-3 text-right">
-              <div
-                v-if="r.can?.update || r.can?.delete"
-                class="inline-flex items-center gap-1"
-              >
-                <button
-                  v-if="r.can?.update"
-                  type="button"
-                  class="btn-ghost inline-flex h-8 items-center gap-1 px-2 text-xs"
-                  title="Chỉnh sửa"
-                  @click="emit('edit', r)"
-                >
-                  <AppIcon
-                    name="edit"
-                    :size="14"
-                  />
-                </button>
-                <button
-                  v-if="r.can?.delete"
-                  type="button"
-                  class="btn-ghost inline-flex h-8 items-center gap-1 px-2 text-xs text-rose-600 hover:bg-rose-50"
-                  title="Xoá"
-                  @click="onDeleteReview(r)"
-                >
-                  <AppIcon
-                    name="delete"
-                    :size="14"
-                  />
-                </button>
-              </div>
-            </td>
-          </tr>
-          <tr v-if="!filteredReviews.length">
+                  </button>
+                  <button
+                    v-if="r.can?.delete"
+                    type="button"
+                    class="btn-ghost inline-flex h-8 items-center gap-1 px-2 text-xs text-rose-600 hover:bg-rose-50"
+                    title="Xoá"
+                    @click="onDeleteReview(r)"
+                  >
+                    <AppIcon
+                      name="delete"
+                      :size="14"
+                    />
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </template>
+        <tbody v-if="!filteredReviewCount">
+          <tr>
             <td
               :colspan="visibleColumnCount"
               class="px-5 py-14 text-center"
@@ -543,10 +604,10 @@ onMounted(() => document.addEventListener('mousedown', onToolbarClickOutside));
     </div>
 
     <p
-      v-if="filteredReviews.length && filteredReviews.length !== reviews.length"
+      v-if="filteredReviewCount && filteredReviewCount !== reviews.length"
       class="border-t border-slate-100 px-5 py-2 text-[11px] text-slate-500"
     >
-      Hiển thị {{ filteredReviews.length }} / {{ reviews.length }} lần đánh giá
+      Hiển thị {{ filteredReviewCount }} / {{ reviews.length }} lần đánh giá
     </p>
   </div>
 </template>

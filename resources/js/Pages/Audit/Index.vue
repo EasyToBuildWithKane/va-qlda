@@ -154,6 +154,14 @@ const paginationMeta = computed(() => ({
     links: buildClientPaginationLinks(props.meta.current_page, props.meta.last_page),
 }));
 
+/** Laravel JsonResource collection có thể bọc { data: [...] } — chuẩn hoá thành mảng phẳng. */
+const logsList = computed(() => {
+    const raw = props.logs;
+    if (Array.isArray(raw)) return raw;
+    if (raw && typeof raw === 'object' && Array.isArray(raw.data)) return raw.data;
+    return [];
+});
+
 const maxTrend = computed(() => Math.max(1, ...props.trend.map((t) => t.count)));
 
 const AUDIT_LOG_ICONS = new Set([
@@ -190,6 +198,9 @@ function moduleLabel(log) {
 }
 
 function subjectSummary(log) {
+    if (!isEmptyDisplayValue(log?.subject_summary)) {
+        return log.subject_summary;
+    }
     const type = log?.subject_type?.trim();
     const id = log?.subject_id;
     if (!type && (id === null || id === undefined || id === '')) {
@@ -200,6 +211,9 @@ function subjectSummary(log) {
 }
 
 function detailPreview(log) {
+    if (!isEmptyDisplayValue(log?.detail_preview)) {
+        return log.detail_preview;
+    }
     if (!hasMeta(log)) {
         return EMPTY_LABELS.generic;
     }
@@ -340,7 +354,7 @@ function filterByModule(moduleKey) {
 
           <div class="divide-y divide-slate-100">
             <div
-              v-if="logs.length === 0"
+              v-if="logsList.length === 0"
               class="py-16 text-center text-[13px] text-slate-400"
             >
               <AppIcon
@@ -351,7 +365,7 @@ function filterByModule(moduleKey) {
               Không có bản ghi phù hợp.
             </div>
             <div
-              v-for="log in logs"
+              v-for="log in logsList"
               :key="log.id"
               class="px-5 py-3 transition-colors hover:bg-slate-50/60"
             >
@@ -365,7 +379,7 @@ function filterByModule(moduleKey) {
                 <div class="min-w-0 flex-1">
                   <div class="flex flex-wrap items-center gap-2">
                     <span class="text-[13px] font-medium text-slate-800">
-                      {{ log.action_label }}
+                      {{ displayOrEmpty(log.action_label, log.action) }}
                     </span>
                     <span
                       class="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold"

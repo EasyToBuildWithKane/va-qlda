@@ -15,6 +15,7 @@ class SecurityAuditLogResource extends JsonResource
     public function toArray(Request $request): array
     {
         $meta = AuditActionCatalog::describe($this->action);
+        $metaPayload = $this->meta ?? [];
 
         return [
             'id' => $this->id,
@@ -26,10 +27,17 @@ class SecurityAuditLogResource extends JsonResource
             'icon' => $meta['icon'] !== '' ? $meta['icon'] : 'shield',
             'subject_type' => $this->subject_type,
             'subject_id' => $this->subject_id,
+            'subject_label' => AuditActionCatalog::subjectTypeLabel($this->subject_type),
+            'subject_summary' => AuditActionCatalog::formatSubjectSummary(
+                $this->subject_type,
+                $this->subject_id,
+                $metaPayload,
+            ),
+            'detail_preview' => AuditActionCatalog::formatMetaPreview($metaPayload),
             'actor' => $this->actor
                 ? ['id' => $this->actor->id, 'name' => $this->actor->display_name]
                 : null,
-            'meta' => $this->meta ?? [],
+            'meta' => $metaPayload,
             'created_at' => $this->created_at->toIso8601String(),
             'created_at_human' => $this->created_at->locale('vi')->diffForHumans(),
         ];
