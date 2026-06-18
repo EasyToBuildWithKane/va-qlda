@@ -18,7 +18,6 @@ import {
     expiryLabel,
     expiryTone,
     formatVndDisplay,
-    vndToWords,
 } from '@/modules/contract/composables/useContractFormat.js';
 import { displayOrEmpty, EMPTY_LABELS } from '@/shared/utils/emptyDisplay.js';
 
@@ -79,10 +78,22 @@ function orNA(val, label = EMPTY_LABELS.notUpdated) {
 
 const hasFinanceLines = computed(() => (c.value.finances ?? []).length > 0);
 
+/** Chi phí năm = tổng tiền HĐ (cùng nguồn với tổng vòng đời khi có dòng tài chính). */
+function contractTotalAmount() {
+    if (hasFinanceLines.value) {
+        return c.value.lifecycle_cost_resolved
+            ?? c.value.annual_cost_resolved
+            ?? c.value.lifecycle_cost
+            ?? c.value.annual_cost;
+    }
+    return c.value.lifecycle_cost
+        ?? c.value.annual_cost
+        ?? c.value.annual_cost_resolved
+        ?? c.value.lifecycle_cost_resolved;
+}
+
 const annualDisplay = computed(() => {
-    const amt = hasFinanceLines.value
-        ? (c.value.annual_cost_resolved ?? c.value.annual_cost)
-        : (c.value.annual_cost ?? c.value.annual_cost_resolved);
+    const amt = contractTotalAmount();
     if (amt == null || amt === '') {
         return { primary: EMPTY_LABELS.notUpdated, secondary: null };
     }
@@ -99,7 +110,7 @@ function moneyDisplay(resolved, raw) {
 
 const unitPriceDisplay = computed(() => moneyDisplay(c.value.unit_price_resolved, c.value.unit_price));
 const monthlyDisplay = computed(() => moneyDisplay(c.value.monthly_cost_resolved, c.value.monthly_cost));
-const lifecycleDisplay = computed(() => moneyDisplay(c.value.lifecycle_cost_resolved, c.value.lifecycle_cost));
+const lifecycleDisplay = computed(() => annualDisplay.value);
 
 const attachmentCount = computed(() => (c.value.attachments ?? []).length);
 const addendaCount = computed(() => (c.value.addenda ?? []).length);
@@ -591,7 +602,10 @@ const addenda = computed(() => c.value.addenda ?? []);
                         </div>
                         <div class="rounded-lg bg-brand/5 p-3 ring-1 ring-brand/20">
                           <p class="text-xs text-brand/70">
-                            Hàng năm
+                            Chi phí năm
+                          </p>
+                          <p class="text-[10px] text-brand/60">
+                            (= Tổng tiền hợp đồng)
                           </p>
                           <p class="mt-0.5 text-sm font-bold text-brand">
                             {{ annualDisplay.primary }}
@@ -713,11 +727,8 @@ const addenda = computed(() => c.value.addenda ?? []);
                           <th class="px-3 py-2.5 text-right font-medium">
                             Phí DT / tháng
                           </th>
-                          <th class="px-3 py-2.5 text-right font-medium">
-                            Hàng năm
-                          </th>
                           <th class="px-3 py-2.5 text-right font-semibold text-slate-700">
-                            TỔNG TIỀN HĐ
+                            Chi phí năm / Tổng HĐ
                           </th>
                           <th
                             v-if="c.can?.update"
@@ -762,15 +773,10 @@ const addenda = computed(() => c.value.addenda ?? []);
                               <span class="text-[10px] text-slate-400">{{ formatVndDisplay(f.maintenance_fee).secondary }}</span>
                             </template>
                           </td>
-                          <td class="px-3 py-2 text-right text-slate-600">
-                            <template v-if="f.maintenance_fee != null">
-                              {{ formatMoney(f.maintenance_fee * 12, c.currency) }}
-                            </template>
-                          </td>
                           <td class="px-3 py-2 text-right">
                             <template v-if="f.total != null">
                               <span class="block font-semibold text-slate-800">{{ formatMoney(f.total, c.currency) }}</span>
-                              <span class="text-[10px] text-slate-500">{{ vndToWords(f.total) }}</span>
+                              <span class="text-[10px] text-slate-500">{{ formatVndDisplay(f.total).secondary }}</span>
                             </template>
                           </td>
                           <td

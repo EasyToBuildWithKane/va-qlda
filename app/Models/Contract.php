@@ -202,20 +202,33 @@ class Contract extends Model
     }
 
     /**
-     * Chi phí năm quy đổi: ưu tiên tổng phí duy trì tháng × 12 từ contract_finances
-     * (dữ liệu thật), fallback `annual_cost` rồi `monthly_cost * 12`.
+     * Chi phí năm = tổng tiền hợp đồng (sum `total` trên contract_finances).
+     * Fallback phí duy trì × 12, cột `annual_cost` / `lifecycle_cost`, rồi `monthly_cost × 12`.
      */
+    public function financeTotalSum(): float
+    {
+        if (! $this->relationLoaded('finances') || $this->finances->isEmpty()) {
+            return 0.0;
+        }
+
+        return (float) $this->finances->sum(fn (ContractFinance $f) => (float) ($f->total ?? 0));
+    }
+
     public function annualCostResolved(): float
     {
         if ($this->relationLoaded('finances') && $this->finances->isNotEmpty()) {
+            $total = $this->financeTotalSum();
+            if ($total > 0) {
+                return round($total, 2);
+            }
             $maintenance = (float) $this->finances->sum(fn (ContractFinance $f) => (float) ($f->maintenance_fee ?? 0));
             if ($maintenance > 0) {
                 return round($maintenance * 12, 2);
             }
-            $total = (float) $this->finances->sum(fn (ContractFinance $f) => (float) ($f->total ?? 0));
-            if ($total > 0) {
-                return round($total, 2);
-            }
+        }
+
+        if ($this->lifecycle_cost !== null && (float) $this->lifecycle_cost > 0) {
+            return round((float) $this->lifecycle_cost, 2);
         }
 
         if ($this->annual_cost !== null) {
@@ -252,7 +265,7 @@ class Contract extends Model
     public function lifecycleCostResolved(): ?float
     {
         if ($this->relationLoaded('finances') && $this->finances->isNotEmpty()) {
-            $total = (float) $this->finances->sum(fn (ContractFinance $f) => (float) ($f->total ?? 0));
+            $total = $this->financeTotalSum();
             if ($total > 0) {
                 return round($total, 2);
             }

@@ -38,8 +38,8 @@ const cards = computed(() => {
 
     const hasFinances = (c?.finances ?? []).length > 0;
     const annualAmt = hasFinances
-        ? (c?.annual_cost_resolved ?? c?.annual_cost)
-        : (c?.annual_cost ?? c?.annual_cost_resolved);
+        ? (c?.lifecycle_cost_resolved ?? c?.annual_cost_resolved ?? c?.lifecycle_cost ?? c?.annual_cost)
+        : (c?.lifecycle_cost ?? c?.annual_cost ?? c?.annual_cost_resolved);
     const annualValue = annualAmt != null && annualAmt !== ''
         ? formatMoneyShort(annualAmt, c?.currency ?? 'VND')
         : EMPTY_LABELS.notUpdated;
@@ -76,7 +76,7 @@ const cards = computed(() => {
             valueKind: annualIsText ? 'text' : undefined,
             tone: 'brand',
             icon: 'money',
-            sub: c?.currency ? `Tiền tệ ${c.currency}` : 'Chi phí duy trì hàng năm',
+            sub: c?.currency ? `Tổng tiền HĐ · ${c.currency}` : 'Tổng tiền hợp đồng',
             interactive: false,
         },
         {

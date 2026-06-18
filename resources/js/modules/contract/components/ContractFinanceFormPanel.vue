@@ -15,12 +15,7 @@ const emit = defineEmits(['submit', 'cancel']);
 
 const form = inject('contractFinanceForm');
 
-const computedAnnual = computed(() => {
-    const mf = Number(form?.maintenance_fee || 0);
-    return mf > 0 ? mf * 12 : null;
-});
-
-/** Gợi ý tổng dòng = SL×ĐG + phí KT + phí duy trì×tháng */
+/** Gợi ý tổng dòng = SL×ĐG + phí KT + phí duy trì×tháng (= chi phí năm / tổng HĐ) */
 const suggestedTotal = computed(() => {
     const q = Number(form?.quantity) || 0;
     const up = Number(form?.unit_price) || 0;
@@ -31,9 +26,11 @@ const suggestedTotal = computed(() => {
     return sum > 0 ? Math.round(sum) : null;
 });
 
-const annualPreview = computed(() => (
-    computedAnnual.value != null ? formatVndDisplay(computedAnnual.value) : null
-));
+const totalPreview = computed(() => {
+    const n = Number(form?.total);
+    if (!n || Number.isNaN(n)) return null;
+    return formatVndDisplay(n);
+});
 
 const suggestedPreview = computed(() => (
     suggestedTotal.value != null ? formatVndDisplay(suggestedTotal.value) : null
@@ -217,7 +214,7 @@ function applySuggestedTotal() {
               for-id="finance-maintenance"
               label="Phí duy trì / tháng"
               compact
-              tooltip="Phí định kỳ hàng tháng; chi phí năm = phí tháng × 12."
+              tooltip="Phí định kỳ hàng tháng (tham chiếu gợi ý tổng, không thay cho tổng HĐ)."
             />
             <MoneyInput
               id="finance-maintenance"
@@ -231,37 +228,24 @@ function applySuggestedTotal() {
               {{ form.errors.maintenance_fee }}
             </p>
           </div>
-          <div class="min-w-0">
-            <VendorFieldLabel
-              label="Chi phí năm (tự tính)"
-              compact
-              tooltip="= Phí duy trì tháng × 12 — chỉ đọc."
-            />
-            <div
-              class="flex min-h-[2.5rem] flex-col justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50 px-3 py-2"
-            >
-              <template v-if="annualPreview">
-                <span class="text-sm font-semibold tabular-nums text-slate-800">{{ annualPreview.primary }}</span>
-                <span class="text-[11px] text-slate-500">{{ annualPreview.secondary }}</span>
-              </template>
-              <span
-                v-else
-                class="text-sm italic text-slate-400"
-              >Nhập phí duy trì tháng</span>
-            </div>
-          </div>
           <div class="min-w-0 sm:col-span-2 lg:col-span-3">
             <VendorFieldLabel
               for-id="finance-total"
-              label="Tổng tiền hợp đồng"
+              label="Chi phí năm / Tổng tiền hợp đồng"
               compact
-              tooltip="Tổng cam kết cho dòng tài chính này; có thể áp dụng gợi ý từ công thức bên dưới."
+              tooltip="Một giá trị duy nhất: vừa là chi phí năm trên tổng quan, vừa là tổng cam kết dòng tài chính này."
             />
             <MoneyInput
               id="finance-total"
               v-model="form.total"
               placeholder="Nhập tổng hoặc dùng gợi ý"
             />
+            <p
+              v-if="totalPreview?.secondary"
+              class="mt-1 text-[11px] text-slate-500"
+            >
+              Hiển thị tổng quan: {{ totalPreview.primary }} · {{ totalPreview.secondary }}
+            </p>
             <p
               v-if="form.errors.total"
               class="mt-1 text-xs text-rose-600"

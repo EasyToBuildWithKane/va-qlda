@@ -21,17 +21,19 @@ class ContractFinanceSnapshot
         $monthly = (float) $contract->finances->sum(
             fn (ContractFinance $f) => (float) ($f->maintenance_fee ?? 0),
         );
-        $lifecycle = (float) $contract->finances->sum(
+        $totalSum = (float) $contract->finances->sum(
             fn (ContractFinance $f) => (float) ($f->total ?? 0),
         );
         $latest = $contract->finances->first();
-        $annual = $contract->annualCostResolved();
+        $annual = $totalSum > 0
+            ? $totalSum
+            : ($monthly > 0 ? $monthly * 12 : 0);
 
         $contract->forceFill([
             'monthly_cost' => $monthly > 0 ? round($monthly, 2) : null,
-            'lifecycle_cost' => $lifecycle > 0 ? round($lifecycle, 2) : null,
+            'lifecycle_cost' => $totalSum > 0 ? round($totalSum, 2) : null,
             'unit_price' => $latest?->unit_price !== null ? (float) $latest->unit_price : null,
-            'annual_cost' => $annual > 0 ? $annual : null,
+            'annual_cost' => $annual > 0 ? round($annual, 2) : null,
         ])->save();
     }
 }
