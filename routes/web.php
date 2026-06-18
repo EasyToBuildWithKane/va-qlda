@@ -6,6 +6,7 @@ use App\Http\Controllers\AiAccount\AiAccountPasswordViewerController;
 use App\Http\Controllers\AiAccount\AiAnalyticsController;
 use App\Http\Controllers\AiAccount\AiPaymentRequestController;
 use App\Http\Controllers\AiAccount\AiPurchaseProposalController;
+use App\Http\Controllers\Audit\AuditLogController;
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Auth\HiddenAdminLoginController;
 use App\Http\Controllers\Auth\LoginController;
@@ -135,9 +136,11 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictCoachingOnlyUsers::class
         Route::post('/dismiss-welcome', [OnboardingController::class, 'dismissWelcome'])->name('dismiss-welcome');
     });
 
-    // Notifications
+    // Notifications — `/` is the full Inertia inbox page; `/list` is the JSON
+    // feed consumed by the bell drawer + inbox page composable.
     Route::prefix('notifications')->name('notifications.')->group(function () {
-        Route::get('/', [NotificationController::class, 'index'])->name('index');
+        Route::get('/', [NotificationController::class, 'page'])->name('index');
+        Route::get('/list', [NotificationController::class, 'index'])->name('list');
         Route::get('/unread-count', [NotificationController::class, 'unreadCount'])->name('unread-count');
         Route::get('/preferences', [NotificationController::class, 'preferences'])->name('preferences');
         Route::put('/preferences', [NotificationController::class, 'updatePreferences'])->name('preferences.update');
@@ -149,6 +152,9 @@ Route::middleware(['auth', \App\Http\Middleware\RestrictCoachingOnlyUsers::class
         Route::post('/{notification}/acknowledge', [NotificationController::class, 'acknowledge'])->name('acknowledge');
         Route::post('/{notification}/assign', [NotificationController::class, 'assign'])->name('assign');
     });
+
+    // Unified audit trail viewer (admin/super — gated by audit.view).
+    Route::get('/audit', AuditLogController::class)->name('audit.index');
 
     // Daily Report — static segments before /{report} to avoid capture.
     Route::prefix('daily-reports')->name('daily-reports.')->group(function () {

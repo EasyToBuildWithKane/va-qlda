@@ -123,6 +123,9 @@ final class PermissionCatalog
             'notification' => ['label' => 'Trung tâm vận hành (Thông báo)', 'icon' => 'send', 'group' => 'Hệ thống', 'abilities' => [
                 'manage' => 'Gửi & quản lý thông báo hệ thống',
             ]],
+            'audit' => ['label' => 'Nhật ký truy vết', 'icon' => 'shield', 'group' => 'Hệ thống', 'abilities' => [
+                'view' => 'Xem nhật ký audit hệ thống',
+            ]],
 
             // ── RESERVED — chỉ super_admin ───────────────────────────
             'system' => ['label' => 'Cấu hình hệ thống', 'icon' => 'system-config', 'group' => 'Quản trị tối cao', 'abilities' => [

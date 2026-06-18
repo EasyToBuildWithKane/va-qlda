@@ -11,6 +11,7 @@ use App\Models\CoachingCourse;
 use App\Models\CoachingSession;
 use App\Support\Enums\CoachingCourseStatus;
 use App\Support\Enums\CoachingSessionStatus;
+use App\Support\SecurityAuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -82,6 +83,8 @@ class CoachingCourseController extends Controller
 
         $course = CoachingCourse::create($data);
 
+        SecurityAuditLogger::coachingCourse($request->user(), 'created', $course->id, ['name' => $course->name]);
+
         return redirect()
             ->route('coaching.courses.show', $course)
             ->with('success', 'Đã tạo khóa học.');
@@ -113,6 +116,8 @@ class CoachingCourseController extends Controller
     {
         $course->update($request->validated());
 
+        SecurityAuditLogger::coachingCourse($request->user(), 'updated', $course->id, ['name' => $course->name]);
+
         return redirect()
             ->route('coaching.courses.show', $course)
             ->with('success', 'Đã cập nhật khóa học.');
@@ -121,6 +126,7 @@ class CoachingCourseController extends Controller
     public function destroy(CoachingCourse $course): RedirectResponse
     {
         $this->authorize('delete', $course);
+        SecurityAuditLogger::coachingCourse(request()->user(), 'deleted', $course->id, ['name' => $course->name]);
         $course->delete();
 
         return redirect()
@@ -134,7 +140,12 @@ class CoachingCourseController extends Controller
         $data['course_id'] = $course->id;
         $data['status'] ??= CoachingSessionStatus::Pending->value;
 
-        CoachingSession::create($data);
+        $session = CoachingSession::create($data);
+
+        SecurityAuditLogger::coachingSession($request->user(), 'created', $session->id, [
+            'course_id' => $course->id,
+            'title' => $session->title,
+        ]);
 
         return redirect()
             ->route('coaching.sessions.index', ['course' => $course->id])

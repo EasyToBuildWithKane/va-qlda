@@ -88,4 +88,41 @@ class AuditActivityTest extends TestCase
             'action' => 'ai_account.password_viewed',
         ]);
     }
+
+    public function test_account_role_change_writes_security_audit_log(): void
+    {
+        $super = SystemAccount::factory()->role(SystemRole::SuperAdmin)->create();
+        $target = SystemAccount::factory()->role(SystemRole::Member)->create();
+
+        $this->actingAs($super, 'system')
+            ->put("/settings/accounts/{$target->id}/role", ['role' => SystemRole::Lead->value])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('security_audit_logs', [
+            'actor_account_id' => $super->id,
+            'action' => 'account.role_changed',
+            'subject_id' => $target->id,
+        ]);
+    }
+
+    public function test_audit_page_is_visible_to_admin_and_blocked_for_member(): void
+    {
+        $admin = SystemAccount::factory()->role(SystemRole::Admin)->create();
+        $member = SystemAccount::factory()->role(SystemRole::Member)->create();
+
+        $this->actingAs($admin, 'system')->get('/audit')->assertOk();
+        $this->actingAs($member, 'system')->get('/audit')->assertForbidden();
+    }
+
+    public function test_audit_action_catalog_describes_known_and_unknown_actions(): void
+    {
+        $known = \App\Support\Audit\AuditActionCatalog::describe('auth.login');
+        $this->assertSame('auth', $known['module']);
+        $this->assertSame('Đăng nhập', $known['label']);
+
+        // Unknown action falls back safely without throwing.
+        $unknown = \App\Support\Audit\AuditActionCatalog::describe('made_up.action');
+        $this->assertSame('made_up.action', $unknown['label']);
+        $this->assertSame('system', $unknown['module']);
+    }
 }

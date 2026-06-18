@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Contract\StoreContractRenewalRequest;
 use App\Models\Contract;
 use App\Support\ContractActivityLogger;
+use App\Support\ContractLifecycle\ContractChainPromotion;
 use App\Support\Enums\ContractStatus;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
@@ -15,9 +16,9 @@ class ContractRenewalController extends Controller
 {
     /**
      * Gia hạn hợp đồng:
-     * 1. Tạo Contract phụ lục mới (status = addendum, root_contract_id = parent).
-     * 2. Ghi ContractRenewal log (audit).
-     * 3. Cập nhật trạng thái hợp đồng gốc → active (nếu chưa active).
+     * 1. Tạo hợp đồng kế tiếp (status = active, root = gốc bộ).
+     * 2. Hợp đồng được gia hạn → «Chuyển phụ lục» nếu đang hiệu lực / còn theo dõi.
+     * 3. Ghi ContractRenewal log (audit).
      */
     public function store(StoreContractRenewalRequest $request, Contract $contract): RedirectResponse
     {
@@ -28,8 +29,9 @@ class ContractRenewalController extends Controller
             $previousExpiry = $contract->expiry_date?->toDateString();
             $previousCost = $contract->annual_cost;
 
-            // Tạo hợp đồng phụ lục mới
-            $addendum = Contract::create([
+            $chainRootId = ContractChainPromotion::chainRootId($contract);
+
+            $successor = Contract::create([
                 'name' => $data['name'] ?? ($contract->name.' — Phụ lục'),
                 'description' => $data['note'] ?? null,
                 'vendor_id' => $contract->vendor_id,
@@ -41,10 +43,10 @@ class ContractRenewalController extends Controller
                 'currency' => $contract->currency,
                 'billing_cycle' => $contract->billing_cycle?->value,
                 'annual_cost' => $data['new_cost'] ?? $contract->annual_cost,
-                'root_contract_id' => $contract->id,
+                'root_contract_id' => $chainRootId,
                 'effective_date' => $data['effective_date'] ?? $contract->expiry_date?->toDateString(),
                 'expiry_date' => $data['new_expiry'],
-                'status' => ContractStatus::Addendum->value,
+                'status' => ContractStatus::Active->value,
                 'auto_renew' => $contract->auto_renew,
                 'renewal_term_months' => $contract->renewal_term_months,
                 'notice_period_days' => $contract->notice_period_days,
@@ -56,7 +58,7 @@ class ContractRenewalController extends Controller
                 if ($link === '') {
                     continue;
                 }
-                $addendum->attachments()->create([
+                $successor->attachments()->create([
                     'category' => 'contract',
                     'uploaded_by_id' => $account?->employee_id,
                     'original_name' => Str::limit(basename(str_replace('\\', '/', $link)), 200, ''),
@@ -77,13 +79,15 @@ class ContractRenewalController extends Controller
                 'renewed_by_id' => $account?->employee_id,
             ]);
 
+            ContractChainPromotion::applySuccessor($contract, $successor, $account);
+
             ContractActivityLogger::renewed(
                 $contract,
                 $previousExpiry,
                 $data['new_expiry'],
                 $account,
             );
-            ContractActivityLogger::created($addendum, $account);
+            ContractActivityLogger::created($successor, $account);
         });
 
         return back()->with('success', 'Đã tạo phụ lục gia hạn.');

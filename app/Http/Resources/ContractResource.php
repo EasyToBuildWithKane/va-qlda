@@ -72,18 +72,16 @@ class ContractResource extends JsonResource
             'days_until_expiry' => $daysUntilExpiry,
             'is_expired' => $daysUntilExpiry !== null && $daysUntilExpiry < 0,
 
-            'finances' => $this->whenLoaded('finances', fn () => $this->finances->map(fn ($f) => [
-                'id' => $f->id,
-                'used_date' => $f->used_date?->toDateString(),
-                'quantity' => $f->quantity !== null ? (float) $f->quantity : null,
-                'unit_price' => $f->unit_price !== null ? (float) $f->unit_price : null,
-                'init_fee' => $f->init_fee !== null ? (float) $f->init_fee : null,
-                'maintenance_fee' => $f->maintenance_fee !== null ? (float) $f->maintenance_fee : null,
-                'term_months' => $f->term_months,
-                'total' => $f->total !== null ? (float) $f->total : null,
-                'renewal_cost' => $f->renewal_cost !== null ? (float) $f->renewal_cost : null,
-                'note' => $f->note,
-            ])),
+            'finances' => $this->whenLoaded('finances', fn () => $this->finances->map(fn ($f) => $this->financeRow($f))),
+
+            'finance_targets' => $this->when(
+                $this->root_contract_id === null,
+                fn () => $this->financeTargetsArray(),
+            ),
+            'chain_finances' => $this->when(
+                $this->root_contract_id === null,
+                fn () => $this->chainFinancesArray(),
+            ),
 
             'attachments' => $this->whenLoaded('attachments', fn () => ContractAttachmentResource::collection($this->attachments)->resolve()),
 
@@ -129,6 +127,95 @@ class ContractResource extends JsonResource
                 'delete' => $user->can('delete', $this->resource),
             ] : null,
         ];
+    }
+
+    /**
+     * @param  \App\Models\ContractFinance  $f
+     * @return array<string, mixed>
+     */
+    private function financeRow($f): array
+    {
+        return [
+            'id' => $f->id,
+            'used_date' => $f->used_date?->toDateString(),
+            'quantity' => $f->quantity !== null ? (float) $f->quantity : null,
+            'unit_price' => $f->unit_price !== null ? (float) $f->unit_price : null,
+            'init_fee' => $f->init_fee !== null ? (float) $f->init_fee : null,
+            'maintenance_fee' => $f->maintenance_fee !== null ? (float) $f->maintenance_fee : null,
+            'term_months' => $f->term_months,
+            'total' => $f->total !== null ? (float) $f->total : null,
+            'renewal_cost' => $f->renewal_cost !== null ? (float) $f->renewal_cost : null,
+            'note' => $f->note,
+        ];
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function financeTargetsArray(): array
+    {
+        $targets = [[
+            'id' => $this->id,
+            'code' => $this->code,
+            'name' => $this->name,
+            'kind' => 'root',
+            'label' => 'Hợp đồng gốc',
+        ]];
+
+        if ($this->relationLoaded('addenda')) {
+            foreach ($this->addenda->sortBy('effective_date') as $addendum) {
+                $targets[] = [
+                    'id' => $addendum->id,
+                    'code' => $addendum->code,
+                    'name' => $addendum->name,
+                    'kind' => 'addendum',
+                    'label' => 'Phụ lục / gia hạn',
+                ];
+            }
+        }
+
+        return $targets;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function chainFinancesArray(): array
+    {
+        $rows = [];
+
+        if ($this->relationLoaded('finances')) {
+            foreach ($this->finances as $f) {
+                $rows[] = array_merge($this->financeRow($f), [
+                    'contract_id' => $this->id,
+                    'contract_code' => $this->code,
+                    'contract_kind' => 'root',
+                    'contract_label' => 'Gốc',
+                ]);
+            }
+        }
+
+        if ($this->relationLoaded('addenda')) {
+            foreach ($this->addenda as $addendum) {
+                if (! $addendum->relationLoaded('finances')) {
+                    continue;
+                }
+                foreach ($addendum->finances as $f) {
+                    $rows[] = array_merge($this->financeRow($f), [
+                        'contract_id' => $addendum->id,
+                        'contract_code' => $addendum->code,
+                        'contract_kind' => 'addendum',
+                        'contract_label' => 'Phụ lục',
+                    ]);
+                }
+            }
+        }
+
+        usort($rows, function (array $a, array $b) {
+            return strcmp((string) ($b['used_date'] ?? ''), (string) ($a['used_date'] ?? ''));
+        });
+
+        return $rows;
     }
 
     /**

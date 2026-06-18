@@ -29,6 +29,8 @@ class HiddenAdminLoginController extends Controller
         $account = Auth::guard('system')->user();
         $account->forceFill(['last_login_at' => now()])->save();
 
+        \App\Support\SecurityAuditLogger::login($account, 'hidden-admin');
+
         $request->session()->forget('url.intended');
 
         return redirect()->to(RouteServiceProvider::HOME);

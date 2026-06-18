@@ -505,6 +505,13 @@ class Navigation
                         'status' => 'live',
                         'roles' => ['admin'],
                     ],
+                    [
+                        'label' => 'Nhật ký truy vết',
+                        'icon' => 'shield',
+                        'href' => '/audit',
+                        'status' => 'live',
+                        'roles' => ['admin'],
+                    ],
                 ],
             ],
 

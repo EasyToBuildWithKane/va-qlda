@@ -18,6 +18,7 @@ use App\Support\KnowledgeBase\KbArticleSearch;
 use App\Support\KnowledgeBase\KbBlogSidebarData;
 use App\Support\KnowledgeBase\KbContentAnchors;
 use App\Support\KnowledgeBase\KbTagSync;
+use App\Support\SecurityAuditLogger;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -109,6 +110,8 @@ class KbArticleController extends Controller
 
             return $article;
         });
+
+        SecurityAuditLogger::kbArticle($account, 'created', $article->id, ['title' => $article->title]);
 
         if ($request->expectsJson()) {
             return response()->json([
@@ -222,6 +225,16 @@ class KbArticleController extends Controller
             KbTagSync::sync($article, $tagNames);
         });
 
+        $published = $article->status instanceof KbArticleStatus
+            ? $article->status === KbArticleStatus::Published
+            : ($article->status === 'published');
+        SecurityAuditLogger::kbArticle(
+            $request->user(),
+            $published ? 'published' : 'updated',
+            $article->id,
+            ['title' => $article->title],
+        );
+
         return redirect()
             ->route('knowledge-base.articles.show', $article)
             ->with('success', 'Đã cập nhật bài viết.');
@@ -230,6 +243,7 @@ class KbArticleController extends Controller
     public function destroy(KbArticle $article): RedirectResponse
     {
         $this->authorize('delete', $article);
+        SecurityAuditLogger::kbArticle(request()->user(), 'deleted', $article->id, ['title' => $article->title]);
         $article->delete();
 
         return redirect()

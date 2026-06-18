@@ -40,7 +40,7 @@ va-qlda/
 │   └── constants/
 ├── scripts/                       ← prepare-commit-msg, auto-commit
 ├── tests/
-│   ├── Feature/                   ← Login, Project, Task, Blocker, Bug, Department, Feedback
+│   ├── Feature/                   ← Login, Project, Task, Blocker, Department, Feedback
 │   └── e2e/                       ← Playwright
 ├── .husky/                        ← Git hooks
 ├── .github/workflows/ci.yml
@@ -107,7 +107,7 @@ app/Application/
 ```
 
 **Pattern mới:** Project/Task mutations → Use Case. DailyReport → Use Case + Domain.  
-Blocker/Bug/Feedback → vẫn MVC trực tiếp.
+Blocker/Feedback → vẫn MVC trực tiếp.
 
 ---
 

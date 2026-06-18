@@ -12,12 +12,55 @@ use App\Support\Enums\NotificationPriority;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class NotificationController extends Controller
 {
     public function __construct(
         private readonly NotificationService $notifications,
     ) {}
+
+    /**
+     * Full-page personal inbox (/notifications). The list itself is loaded as
+     * JSON from {@see self::index()} (route notifications.list) by the shared
+     * useNotifications composable; here we provide stats + filter options.
+     */
+    public function page(Request $request): Response
+    {
+        $account = $request->user();
+        $base = $this->notifications->queryForAccount($account);
+
+        $stats = [
+            'total' => (clone $base)->count(),
+            'unread' => (clone $base)->whereNull('read_at')->count(),
+            'critical' => (clone $base)->where('priority', NotificationPriority::Critical)->whereNull('read_at')->count(),
+            'today' => (clone $base)->whereDate('created_at', today())->count(),
+        ];
+
+        $actorIds = $this->notifications->queryForAccount($account)
+            ->whereNotNull('actor_account_id')
+            ->distinct()
+            ->pluck('actor_account_id');
+
+        $actors = SystemAccount::query()
+            ->whereIn('id', $actorIds)
+            ->orderBy('display_name')
+            ->get(['id', 'display_name'])
+            ->map(fn (SystemAccount $a) => ['id' => $a->id, 'display_name' => $a->display_name])
+            ->all();
+
+        return Inertia::render('Notifications/Index', [
+            'stats' => $stats,
+            'options' => [
+                'categories' => collect(NotificationCategory::cases())
+                    ->map(fn ($c) => ['value' => $c->value, 'label' => $c->label()])->all(),
+                'priorities' => collect(NotificationPriority::cases())
+                    ->map(fn ($p) => ['value' => $p->value, 'label' => $p->label()])->all(),
+                'actors' => $actors,
+            ],
+        ]);
+    }
 
     public function index(Request $request): JsonResponse
     {

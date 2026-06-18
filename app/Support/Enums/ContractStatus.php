@@ -46,7 +46,7 @@ enum ContractStatus: string
     /** Trạng thái còn "sống" (cần theo dõi gia hạn). */
     public function isLive(): bool
     {
-        return in_array($this, [self::Active, self::ExpiringSoon, self::PendingRenewal, self::Addendum], true);
+        return in_array($this, [self::Active, self::ExpiringSoon, self::PendingRenewal], true);
     }
 
     public function isTerminal(): bool

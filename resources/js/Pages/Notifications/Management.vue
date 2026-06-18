@@ -1,8 +1,9 @@
 <script setup>
 import { computed, ref } from 'vue';
-import { Head } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
+import AppIcon from '@/Components/AppIcon.vue';
 import NotificationOpsSummaryBar from '@/modules/notifications/components/NotificationOpsSummaryBar.vue';
 
 const props = defineProps({
@@ -188,7 +189,18 @@ function isExpanded(group) {
         subtitle="Activity Center · Operational Monitoring · Admin Feed"
         icon="notifications"
         icon-color="brand"
-      />
+      >
+        <Link
+          href="/audit"
+          class="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-[12px] font-medium text-slate-600 hover:bg-slate-50 hover:text-brand"
+        >
+          <AppIcon
+            name="shield"
+            :size="14"
+          />
+          Nhật ký truy vết
+        </Link>
+      </PageHeader>
     </template>
 
     <!-- Tab navigation -->

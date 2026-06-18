@@ -11,6 +11,7 @@ use App\Support\Options;
 use App\Support\OrgTeam\OrgTeamOverviewBuilder;
 use App\Support\OrgTeam\OrgTeamRosterBuilder;
 use App\Support\OrgTeamTreeBuilder;
+use App\Support\SecurityAuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -148,6 +149,10 @@ class OrgTeamController extends Controller
             );
         });
 
+        if ($team !== null) {
+            SecurityAuditLogger::orgTeam($request->user(), 'created', $team->id, ['name' => $team->name]);
+        }
+
         if ($team !== null && $team->parent_id === null) {
             return redirect()
                 ->route('org-teams.edit', $team)
@@ -189,6 +194,8 @@ class OrgTeamController extends Controller
             }
         });
 
+        SecurityAuditLogger::orgTeam($request->user(), 'updated', $orgTeam->id, ['name' => $orgTeam->name]);
+
         return back()->with('success', 'Đã cập nhật nhóm.');
     }
 
@@ -206,6 +213,7 @@ class OrgTeamController extends Controller
         }
 
         $isRoot = $orgTeam->parent_id === null;
+        SecurityAuditLogger::orgTeam(request()->user(), 'deleted', $orgTeam->id, ['name' => $orgTeam->name]);
         $orgTeam->delete();
 
         if ($isRoot) {

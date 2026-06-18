@@ -8,6 +8,7 @@ use App\Http\Requests\Department\UpdateDepartmentRequest;
 use App\Http\Resources\DepartmentResource;
 use App\Models\Department;
 use App\Support\Options;
+use App\Support\SecurityAuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -107,10 +108,15 @@ class DepartmentController extends Controller
         $validated = $request->validated();
         $memberIds = $this->resolveMemberIds($validated);
 
-        DB::transaction(function () use ($validated, $memberIds) {
+        $department = null;
+        DB::transaction(function () use ($validated, $memberIds, &$department) {
             $department = Department::create(collect($validated)->except('member_ids')->all());
             $this->syncMembers($department, $memberIds);
         });
+
+        if ($department !== null) {
+            SecurityAuditLogger::department($request->user(), 'created', $department->id, ['name' => $department->name]);
+        }
 
         return back()->with('success', 'Đã thêm phòng ban.');
     }
@@ -124,6 +130,8 @@ class DepartmentController extends Controller
             $department->update(collect($validated)->except('member_ids')->all());
             $this->syncMembers($department, $memberIds);
         });
+
+        SecurityAuditLogger::department($request->user(), 'updated', $department->id, ['name' => $department->name]);
 
         return back()->with('success', 'Đã cập nhật phòng ban.');
     }
@@ -144,6 +152,7 @@ class DepartmentController extends Controller
         $this->authorize('delete', $department);
 
         // Projects keep existing; their department_id is nulled by the FK.
+        SecurityAuditLogger::department(request()->user(), 'deleted', $department->id, ['name' => $department->name]);
         $department->delete();
 
         return back()->with('success', 'Đã xoá phòng ban.');

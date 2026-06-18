@@ -16,6 +16,7 @@ use App\Support\Mail\EmailTemplateDefaults;
 use App\Support\Mail\EmailTemplateSampleVars;
 use App\Support\Mail\EmailTemplateSnippets;
 use App\Support\Navigation;
+use App\Support\SecurityAuditLogger;
 use App\Support\Settings\SettingsRepository;
 use App\Support\Settings\SettingsSchema;
 use Illuminate\Http\RedirectResponse;
@@ -109,6 +110,8 @@ class SystemSettingController extends Controller
             ]);
         });
 
+        SecurityAuditLogger::emailTemplateUpdated($request->user(), $emailTemplate->id, $emailTemplate->key);
+
         return back()->with('success', 'Đã lưu mẫu email.');
     }
 
@@ -128,6 +131,8 @@ class SystemSettingController extends Controller
                 'updated_by' => $request->user()->id,
             ]);
         });
+
+        SecurityAuditLogger::emailTemplateUpdated($request->user(), $emailTemplate->id, $emailTemplate->key, reset: true);
 
         return back()->with('success', 'Đã khôi phục mẫu email chuẩn.');
     }
@@ -162,15 +167,21 @@ class SystemSettingController extends Controller
     {
         $this->authorize('manage', SystemSetting::class);
 
-        $userId = $request->user()->id;
+        $user = $request->user();
 
-        DB::transaction(function () use ($request, $group, $userId) {
-            $values = $group === 'permissions'
-                ? [SettingsSchema::MATRIX_KEY => $this->normalizedGrants($request)]
-                : $this->scalarValues($request, $group);
+        $values = $group === 'permissions'
+            ? [SettingsSchema::MATRIX_KEY => $this->normalizedGrants($request)]
+            : $this->scalarValues($request, $group);
 
-            $this->settings->setMany($values, $userId);
+        DB::transaction(function () use ($values, $user) {
+            $this->settings->setMany($values, $user->id);
         });
+
+        if ($group === 'permissions') {
+            SecurityAuditLogger::permissionMatrixUpdated($user);
+        } else {
+            SecurityAuditLogger::settingsUpdated($user, $group, array_keys($values));
+        }
 
         return back()->with('success', 'Đã lưu cấu hình hệ thống.');
     }

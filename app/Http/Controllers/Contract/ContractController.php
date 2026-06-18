@@ -13,6 +13,7 @@ use App\Models\ContractCategory;
 use App\Models\Vendor;
 use App\Services\NotificationService;
 use App\Support\ContractActivityLogger;
+use App\Support\ContractLifecycle\ContractChainPromotion;
 use App\Support\ContractLifecycle\ContractRenewalCalculator;
 use App\Support\ContractLifecycle\ContractServiceGroups;
 use App\Support\Enums\ContractAttachmentCategory;
@@ -164,7 +165,7 @@ class ContractController extends Controller
             'attachments' => fn ($a) => $a->with('uploadedBy'),
             'renewals',
             'finances',
-            'addenda' => fn ($q) => $q->with('attachments')->latest(),
+            'addenda' => fn ($q) => $q->with(['attachments', 'finances'])->latest(),
         ]);
 
         return Inertia::render('Contract/Show', [
@@ -242,6 +243,10 @@ class ContractController extends Controller
             }
         }
         ContractActivityLogger::updated($contract, $request->user(), $changes);
+
+        if ($contract->status === ContractStatus::Active) {
+            ContractChainPromotion::demoteActivePeersInChain($contract, $request->user());
+        }
 
         return back()->with('success', 'Đã cập nhật hợp đồng.');
     }

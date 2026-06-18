@@ -20,7 +20,7 @@
 |--------|---------|
 | DailyReport | Clean: `Application/`, `Domain/` |
 | Project, Task | Application Use Cases + MVC read paths |
-| Blocker, Bug, Feedback, … | MVC: Controller → Model / Support |
+| Blocker, Feedback, … | MVC: Controller → Model / Support |
 | System Config | MVC + Settings overlay: `SettingsSchema`/`SettingsRepository` → `config()` runtime (**super-admin-only**). Xem `docs/SYSTEM_CONFIG.md` · RBAC: `docs/PERMISSIONS.md` |
 
 Không refactor sang Use Case khi user chỉ sửa bug nhỏ. Module mới: ưu tiên FormRequest + Policy + Resource giống module cùng loại.
@@ -151,7 +151,7 @@ defineProps({ items: Array });
 - Prefix: `va_prd_` (config connection).
 - FK: `constrained()` + `nullOnDelete` / `cascadeOnDelete` rõ ràng.
 - **Index name ngắn** khi composite dài: `'app_notif_recipient_read_idx'`.
-- Soft deletes: `employees`, `tasks`, `bugs` — kiểm tra model trước khi `forceDelete`.
+- Soft deletes: `employees`, `tasks` — kiểm tra model trước khi `forceDelete`.
 
 ### Quan hệ chính
 
@@ -159,7 +159,7 @@ defineProps({ items: Array });
 Department → Employee → SystemAccount
 Project → Sprint, Epic, Task, Worklog, Blocker, Attachment
 Task → subtasks (parent_id), dependencies, watchers, assignees
-Comment → morph (task, bug, blocker, feedback)
+Comment → morph (task, blocker, feedback)
 DailyReport → Domain model (UUID), scores
 ```
 

@@ -14,6 +14,7 @@ use App\Services\Congnghe\CongngheSoftwareProposalRecorder;
 use App\Support\Congnghe\CongngheContentRepository;
 use App\Support\Enums\CongngheSoftwareProposalStatus;
 use App\Support\Options;
+use App\Support\SecurityAuditLogger;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -179,6 +180,11 @@ class CongngheSoftwareProposalController extends Controller
             ],
             $files,
         );
+
+        SecurityAuditLogger::congngheProposal($request->user(), 'created', $proposal->id, [
+            'reference_code' => $proposal->reference_code,
+            'title' => $proposal->title,
+        ]);
 
         $recipient = (string) config('va.congnghe_proposal_email');
 

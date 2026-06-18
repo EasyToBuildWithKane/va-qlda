@@ -20,18 +20,6 @@ return new class extends Migration
             $table->index(['project_id', 'created_at'], 'proj_act_proj_created_idx');
         });
 
-        Schema::create('bug_activities', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('bug_id')->constrained('bugs')->cascadeOnDelete();
-            $table->foreignId('employee_id')->nullable()->constrained('employees')->nullOnDelete();
-            $table->string('event', 40);
-            $table->text('description');
-            $table->json('meta')->nullable();
-            $table->timestamps();
-
-            $table->index(['bug_id', 'created_at'], 'bug_act_bug_created_idx');
-        });
-
         Schema::create('feedback_activities', function (Blueprint $table) {
             $table->id();
             $table->foreignId('feedback_id')->constrained('feedbacks')->cascadeOnDelete();
@@ -62,7 +50,6 @@ return new class extends Migration
     {
         Schema::dropIfExists('security_audit_logs');
         Schema::dropIfExists('feedback_activities');
-        Schema::dropIfExists('bug_activities');
         Schema::dropIfExists('project_activities');
     }
 };

@@ -23,6 +23,7 @@ use App\Support\Enums\AiAccountGroupFunction;
 use App\Support\Enums\AiAccountRenewalPaymentStatus;
 use App\Support\Enums\AiAccountStatus;
 use App\Support\Enums\AiPurchaseProposalStatus;
+use App\Support\SecurityAuditLogger;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -136,6 +137,11 @@ class AiAccountController extends Controller
             'creator' => $request->user(),
         ]);
 
+        SecurityAuditLogger::aiAccount($request->user(), 'created', null, [
+            'ai_account_id' => $account->id,
+            'tool' => $account->tool_name,
+        ]);
+
         return response()->json([
             'success' => true,
             'data' => ['account' => $this->accountRow($account, $request->user())],
@@ -186,6 +192,11 @@ class AiAccountController extends Controller
             $this->statusSync->syncAndSave($aiAccount);
         }
 
+        SecurityAuditLogger::aiAccount($request->user(), 'updated', null, [
+            'ai_account_id' => $aiAccount->id,
+            'tool' => $aiAccount->tool_name,
+        ]);
+
         return response()->json([
             'success' => true,
             'data' => ['account' => $this->accountRow($aiAccount->fresh(), $request->user())],
@@ -228,6 +239,11 @@ class AiAccountController extends Controller
                 'status' => AiPurchaseProposalStatus::Expired,
             ]);
         }
+
+        SecurityAuditLogger::aiAccount(request()->user(), 'deleted', null, [
+            'ai_account_id' => $aiAccount->id,
+            'tool' => $name,
+        ]);
 
         return response()->json([
             'success' => true,

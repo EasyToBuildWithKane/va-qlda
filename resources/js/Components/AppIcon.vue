@@ -17,7 +17,7 @@ import {
     Menu,
     Phone, Briefcase, Award, Target, ExternalLink,
     GraduationCap, Route, Gauge, Sparkles, BadgeCheck, Flame, LockKeyhole,
-    LifeBuoy, Compass,
+    LifeBuoy, Compass, ShieldCheck,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -151,6 +151,7 @@ const map = {
     certified: BadgeCheck,
     streak: Flame,
     vault: LockKeyhole,
+    shield: ShieldCheck,
     // onboarding / tour guide
     help: LifeBuoy,
     compass: Compass,

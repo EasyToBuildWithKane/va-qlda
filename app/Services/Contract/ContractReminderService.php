@@ -52,7 +52,11 @@ class ContractReminderService
 
         $contracts = Contract::query()
             ->whereNotNull('expiry_date')
-            ->whereNotIn('status', [ContractStatus::Terminated->value, ContractStatus::Draft->value])
+            ->whereNotIn('status', [
+                ContractStatus::Terminated->value,
+                ContractStatus::Draft->value,
+                ContractStatus::Addendum->value,
+            ])
             ->get();
 
         foreach ($contracts as $contract) {

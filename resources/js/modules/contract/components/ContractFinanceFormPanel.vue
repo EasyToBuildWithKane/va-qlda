@@ -5,14 +5,27 @@ import MoneyInput from '@/modules/contract/components/MoneyInput.vue';
 import VendorFieldLabel from '@/modules/contract/components/VendorFieldLabel.vue';
 import { formatVndDisplay } from '@/modules/contract/composables/useContractFormat.js';
 
-defineProps({
+const props = defineProps({
     editingId: { type: [Number, null], default: null },
     billingCycleLabel: { type: String, default: 'Chưa chọn' },
+    financeTargets: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits(['submit', 'cancel']);
 
 const form = inject('contractFinanceForm');
+
+const pickTarget = computed(() => props.financeTargets.length > 1);
+
+const targetReadonlyLabel = computed(() => {
+    const t = props.financeTargets[0];
+    if (!t) return 'Hợp đồng gốc';
+    return `${t.label} · ${t.code}`;
+});
+
+function targetOptionLabel(t) {
+    return `${t.label} — ${t.code}${t.name ? ` · ${t.name}` : ''}`;
+}
 
 const totalPreview = computed(() => {
     const n = Number(form?.total);
@@ -36,6 +49,66 @@ const totalPreview = computed(() => {
       class="space-y-6 p-4 sm:p-5"
       @submit.prevent="emit('submit')"
     >
+      <fieldset class="min-w-0 space-y-3">
+        <legend class="mb-1 flex w-full items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <AppIcon
+            name="documents"
+            :size="14"
+            class="text-brand/70"
+          />
+          Gắn với hợp đồng
+        </legend>
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div class="min-w-0 sm:col-span-2">
+            <VendorFieldLabel
+              for-id="finance-target-contract"
+              label="Thuộc hợp đồng"
+              compact
+              required
+              tooltip="Dòng chi phí này áp dụng cho hợp đồng gốc hay bản phụ lục gia hạn trong cùng bộ."
+            />
+            <select
+              v-if="pickTarget && !editingId"
+              id="finance-target-contract"
+              v-model="form.target_contract_id"
+              class="input h-10 w-full text-sm"
+              required
+            >
+              <option
+                :value="null"
+                disabled
+              >
+                Chọn hợp đồng…
+              </option>
+              <option
+                v-for="t in financeTargets"
+                :key="t.id"
+                :value="t.id"
+              >
+                {{ targetOptionLabel(t) }}
+              </option>
+            </select>
+            <input
+              v-else
+              id="finance-target-contract"
+              type="text"
+              class="input h-10 w-full bg-slate-50 text-sm text-slate-600"
+              :value="financeTargets.find((x) => x.id === form.target_contract_id)?.code
+                ? targetOptionLabel(financeTargets.find((x) => x.id === form.target_contract_id))
+                : targetReadonlyLabel"
+              disabled
+              tabindex="-1"
+            >
+            <p
+              v-if="form.errors.target_contract_id"
+              class="mt-1 text-xs text-rose-600"
+            >
+              {{ form.errors.target_contract_id }}
+            </p>
+          </div>
+        </div>
+      </fieldset>
+
       <!-- Kỳ & tham chiếu -->
       <fieldset class="min-w-0 space-y-3">
         <legend class="mb-1 flex w-full items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">

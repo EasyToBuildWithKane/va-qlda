@@ -8,6 +8,7 @@ use App\Http\Resources\EmployeeProfileResource;
 use App\Models\Employee;
 use App\Services\Cms\CmsEmployeeSyncService;
 use App\Support\Profile\SkillCatalog;
+use App\Support\SecurityAuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -114,6 +115,8 @@ class ProfileController extends Controller
 
         if ($attributes !== []) {
             DB::transaction(fn () => $employee->update($attributes));
+
+            SecurityAuditLogger::employeeUpdated($request->user(), $employee->id, (string) $employee->full_name);
         }
 
         return back()->with('success', 'Đã cập nhật hồ sơ.');

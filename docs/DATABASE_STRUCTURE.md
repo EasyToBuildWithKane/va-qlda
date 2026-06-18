@@ -1031,7 +1031,7 @@ Prefix `va_prd_`, Policy `ContractPolicy` (admin/lead/viewer).
 ```
 Tạo mới → draft ("Đang chờ duyệt")  [locked, không cho chọn khi create]
 Kích hoạt thủ công → active ("Đang hiệu lực")
-Gia hạn → tạo Contract mới (status=addendum, root_contract_id=parent.id)
+Gia hạn → tạo Contract mới (status=active); HĐ được gia hạn → addendum; `root_contract_id` = id gốc bộ
 Auto-sync: expiring_soon / expired / pending_renewal
 ```
 

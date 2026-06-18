@@ -117,6 +117,8 @@ class GoogleAuthController extends Controller
         $request->session()->regenerate();
         $account->forceFill(['last_login_at' => now()])->save();
 
+        \App\Support\SecurityAuditLogger::login($account, "google:{$portal}");
+
         $target = LoginRedirectSanitizer::sanitize(
             $request->session()->pull('login.redirect'),
             PortalDestination::homePath($account, $portal),

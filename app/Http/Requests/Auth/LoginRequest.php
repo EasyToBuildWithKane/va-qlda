@@ -46,6 +46,11 @@ class LoginRequest extends FormRequest
         if (! Auth::guard('system')->attempt($credentials, $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
 
+            \App\Support\SecurityAuditLogger::loginFailed(
+                (string) $this->input('username'),
+                $this->is('tech/*') ? 'tech' : 'portal',
+            );
+
             throw ValidationException::withMessages([
                 'username' => 'These credentials do not match our records.',
             ]);

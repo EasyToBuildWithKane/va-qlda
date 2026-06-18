@@ -7,6 +7,7 @@ use App\Http\Requests\Congnghe\UpdateCongngheSoftwareProposalRequest;
 use App\Http\Resources\CongngheSoftwareProposalResource;
 use App\Models\CongngheSoftwareProposal;
 use App\Support\Enums\CongngheSoftwareProposalStatus;
+use App\Support\SecurityAuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -100,6 +101,11 @@ class CongngheSoftwareProposalManagementController extends Controller
         CongngheSoftwareProposal $proposal,
     ): RedirectResponse {
         $proposal->update($request->validated());
+
+        SecurityAuditLogger::congngheProposal($request->user(), 'status_changed', $proposal->id, [
+            'reference_code' => $proposal->reference_code,
+            'status' => $proposal->status instanceof \BackedEnum ? $proposal->status->value : (string) $proposal->status,
+        ]);
 
         return back()->with('success', 'Đã cập nhật trạng thái đề xuất.');
     }

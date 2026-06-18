@@ -62,7 +62,7 @@ class ContractRenewalCalculator
      */
     public function deriveStatus(Contract $contract, ?Carbon $today = null): ?ContractStatus
     {
-        $manual = [ContractStatus::Draft, ContractStatus::PendingRenewal, ContractStatus::Terminated];
+        $manual = [ContractStatus::Draft, ContractStatus::PendingRenewal, ContractStatus::Terminated, ContractStatus::Addendum];
         if (in_array($contract->status, $manual, true)) {
             return null;
         }

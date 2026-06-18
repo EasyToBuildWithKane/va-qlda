@@ -71,7 +71,7 @@ export function useNotifications() {
                       page: currentPage.value,
                   };
 
-            const data = await httpGet(route('notifications.index'), { params });
+            const data = await httpGet(route('notifications.list'), { params });
             const rows = data.data ?? [];
 
             if (append) items.value = [...items.value, ...rows];

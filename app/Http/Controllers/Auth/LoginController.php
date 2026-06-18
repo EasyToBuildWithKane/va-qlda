@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Support\Auth\PortalDestination;
 use App\Support\Auth\TechLoginAccess;
+use App\Support\SecurityAuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -46,6 +47,8 @@ class LoginController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
+        SecurityAuditLogger::logout(Auth::guard('system')->user());
+
         Auth::guard('system')->logout();
 
         $request->session()->invalidate();
@@ -81,6 +84,8 @@ class LoginController extends Controller
         $account = Auth::guard('system')->user();
 
         if ($portal === 'tech' && ! TechLoginAccess::isAllowedEmail($account->employee?->email)) {
+            SecurityAuditLogger::techDenied($account, $account->employee?->email);
+
             Auth::guard('system')->logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
@@ -91,6 +96,8 @@ class LoginController extends Controller
         }
 
         $account->forceFill(['last_login_at' => now()])->save();
+
+        SecurityAuditLogger::login($account, $portal);
 
         return redirect()->intended(PortalDestination::homePath($account, $portal));
     }

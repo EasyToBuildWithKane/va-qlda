@@ -6,7 +6,7 @@
 
 ## 1. Kiến Trúc Hiện Tại
 
-Dự án áp dụng **Hybrid Architecture**: Clean Architecture cho DailyReport, Application Use Cases cho Project/Task (Phase 3), injectable Services cho Notification, và MVC cho các module còn lại (Blocker, Bug, Feedback, **Coaching**, **Knowledge Base**, **Congnghe**, **AiAccount**, **Credential**, **Contract/CLM**, **Performance**, **Onboarding**).
+Dự án áp dụng **Hybrid Architecture**: Clean Architecture cho DailyReport, Application Use Cases cho Project/Task (Phase 3), injectable Services cho Notification, và MVC cho các module còn lại (Blocker, Feedback, **Coaching**, **Knowledge Base**, **Congnghe**, **AiAccount**, **Credential**, **Contract/CLM**, **Performance**, **Onboarding**).
 
 ```
 app/
@@ -73,7 +73,7 @@ resources/js/
 
 | Vấn Đề | Mô Tả | Mức Độ |
 |---|---|---|
-| ~~Clean Architecture chỉ DailyReport~~ | **Đã cải thiện:** Project/Task có Application Use Cases; Blocker/Bug vẫn MVC | 🟡 Medium |
+| ~~Clean Architecture chỉ DailyReport~~ | **Đã cải thiện:** Project/Task có Application Use Cases; Blocker vẫn MVC | 🟡 Medium |
 | Domain models tách biệt với App\Models | `App\Domain\DailyReport\Models\` vs `App\Models\Project` — hai pattern song song | Medium |
 | Controllers quá dày | `ProjectController@show`, `TaskController` vẫn có query phức tạp | High |
 

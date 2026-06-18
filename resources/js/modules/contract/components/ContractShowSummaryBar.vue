@@ -14,6 +14,8 @@ const props = defineProps({
     attachmentCount: { type: Number, default: 0 },
     addendaCount: { type: Number, default: 0 },
     avgReviewScore: { type: Number, default: null },
+    /** Hợp đồng phụ lục gia hạn mới — ẩn thẻ điều hướng tab Gia hạn. */
+    hideRenewalsNav: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['navigate-tab']);
@@ -110,16 +112,18 @@ const cards = computed(() => {
             interactive: true,
             payload: 'documents',
         },
-        {
-            key: 'renewals',
-            label: 'Phụ lục gia hạn',
-            value: props.addendaCount,
-            tone: 'violet',
-            icon: 'renewal',
-            sub: props.addendaCount ? 'Bấm để xem lịch sử' : 'Chưa có phụ lục',
-            interactive: true,
-            payload: 'renewals',
-        },
+        ...(props.hideRenewalsNav
+            ? []
+            : [{
+                key: 'renewals',
+                label: 'Phụ lục gia hạn',
+                value: props.addendaCount,
+                tone: 'violet',
+                icon: 'renewal',
+                sub: props.addendaCount ? 'Bấm để xem lịch sử' : 'Chưa có phụ lục',
+                interactive: true,
+                payload: 'renewals',
+            }]),
     ];
 });
 
@@ -139,7 +143,9 @@ function onSelect(card) {
     hint="Thẻ viền nét đứt — bấm để mở tab liên quan"
     :cards="cards"
     active-key=""
-    grid-class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6"
+    :grid-class="hideRenewalsNav
+      ? 'grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5'
+      : 'grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6'"
     @select="onSelect"
   />
 </template>

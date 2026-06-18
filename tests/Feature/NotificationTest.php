@@ -31,7 +31,7 @@ class NotificationTest extends TestCase
     public function test_authenticated_user_can_fetch_notification_list(): void
     {
         $this->actingAs($this->member(), 'system')
-            ->getJson(route('notifications.index', ['tab' => 'all']))
+            ->getJson(route('notifications.list', ['tab' => 'all']))
             ->assertOk()
             ->assertJsonStructure([
                 'data',
@@ -54,7 +54,7 @@ class NotificationTest extends TestCase
         }
 
         $this->actingAs($account, 'system')
-            ->getJson(route('notifications.index', ['tab' => 'all', 'per_page' => 5, 'page' => 2]))
+            ->getJson(route('notifications.list', ['tab' => 'all', 'per_page' => 5, 'page' => 2]))
             ->assertOk()
             ->assertJsonPath('meta.per_page', 5)
             ->assertJsonPath('meta.current_page', 2)

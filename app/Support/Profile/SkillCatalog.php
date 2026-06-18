@@ -86,16 +86,18 @@ class SkillCatalog
         if ($skills !== null && ! is_array($skills)) {
             $skills = [];
         }
-        /** @var array<string, array<string, mixed>> $byKey indexed by normalized name */
-        $byKey = [];
 
-        foreach ($skills ?? [] as $raw) {
-            if (! is_string($raw) || trim($raw) === '') {
-                continue;
-            }
-            $key = Str::lower(trim($raw));
-            $byKey[$key] = self::blankSkill($raw, self::DEFAULT_GROUP);
-        }
+        /**
+         * Enriched details are authoritative and define both grouping and order.
+         * The plain `skills` names array only fills in legacy skills that have no
+         * matching detail. Items are deduped by (name + category) so the same
+         * skill name may legitimately appear in two different groups.
+         *
+         * @var list<array<string, mixed>> $items
+         */
+        $items = [];
+        $seen = [];        // "name|category" (lowercased) => true
+        $detailNames = []; // lowercased name => true
 
         foreach ($details ?? [] as $detail) {
             if (! is_array($detail)) {
@@ -105,7 +107,9 @@ class SkillCatalog
             if ($name === '') {
                 continue;
             }
-            $key = Str::lower($name);
+            $nameLower = Str::lower($name);
+            $detailNames[$nameLower] = true;
+
             $category = isset($detail['category']) && trim((string) $detail['category']) !== ''
                 ? trim((string) $detail['category'])
                 : self::DEFAULT_GROUP;
@@ -113,20 +117,42 @@ class SkillCatalog
                 ? max(1, min(5, (int) $detail['level']))
                 : 3;
 
-            $byKey[$key] = self::filledSkill($name, $category, $level, $detail);
+            $dedup = $nameLower.'|'.Str::lower($category);
+            if (isset($seen[$dedup])) {
+                continue;
+            }
+            $seen[$dedup] = true;
+            $items[] = self::filledSkill($name, $category, $level, $detail);
         }
 
-        foreach ($byKey as &$item) {
+        foreach ($skills ?? [] as $raw) {
+            if (! is_string($raw) || trim($raw) === '') {
+                continue;
+            }
+            $name = trim($raw);
+            $nameLower = Str::lower($name);
+            if (isset($detailNames[$nameLower])) {
+                continue; // already represented by an enriched detail
+            }
+            $dedup = $nameLower.'|'.Str::lower(self::DEFAULT_GROUP);
+            if (isset($seen[$dedup])) {
+                continue;
+            }
+            $seen[$dedup] = true;
+            $items[] = self::blankSkill($name, self::DEFAULT_GROUP);
+        }
+
+        foreach ($items as &$item) {
             self::applyLevelPercent($item);
         }
         unset($item);
 
-        $groups = self::bucketIntoGroups($byKey);
+        $groups = self::bucketIntoGroups($items);
 
         return [
             'groups' => $groups,
-            'total' => count($byKey),
-            'has_levels' => count($byKey) > 0,
+            'total' => count($items),
+            'has_levels' => count($items) > 0,
         ];
     }
 
@@ -234,16 +260,16 @@ class SkillCatalog
     }
 
     /**
-     * @param  array<string, array<string, mixed>>  $byKey
+     * @param  list<array<string, mixed>>  $items
      * @return list<array{key:string, label:string, items: list<array<string, mixed>>}>
      */
-    private static function bucketIntoGroups(array $byKey): array
+    private static function bucketIntoGroups(array $items): array
     {
         /** @var array<string, array{key:string, label:string, items: list<array<string, mixed>>}> $map */
         $map = [];
         $order = [];
 
-        foreach ($byKey as $item) {
+        foreach ($items as $item) {
             $resolved = self::resolveGroup((string) ($item['category'] ?? self::DEFAULT_GROUP));
             $gKey = $resolved['key'];
             if (! isset($map[$gKey])) {

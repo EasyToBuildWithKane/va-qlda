@@ -17,7 +17,7 @@ chi phí định kỳ và chất lượng nhà cung cấp. Module gom về một
 - **Chi phí** (`/contracts/cost`) — tổng hợp theo NCC / đơn vị / nhóm / quý + dự báo năm sau.
 - **Báo cáo** (`/contracts/reports`) — theo NCC / nhóm / đơn vị / năm, xuất Excel + CSV.
 - **Vendors** (`/contracts/vendors`) — hồ sơ NCC + đánh giá 6 tiêu chí.
-- **Chi tiết hợp đồng** (`/contracts/{id}`) — tài chính, đánh giá, hồ sơ, gia hạn nhanh.
+- **Chi tiết hợp đồng** (`/contracts/{id}`) — tài chính, đánh giá, hồ sơ, gia hạn nhanh. Bản **gia hạn / phụ lục mới** (`root_contract_id` có giá trị): tab **Tổng quan · Đánh giá NCC · Hồ sơ** (không tab Tài chính / Gia hạn).
 
 **Mã tự sinh:** hợp đồng `HD-{yy}-{seq}`, NCC `NCC-{seq}`. Bảng `contracts` có **SoftDeletes**.
 
@@ -65,12 +65,13 @@ Tất cả trong nhóm `contracts.*` (`routes/web.php`). Static segment đặt *
 
 ```
 draft (Đang chờ duyệt) → active → [expiring_soon → expired]   (cron tự suy theo expiry_date)
-                                  └─ renewals.store → tạo Contract mới (status=addendum,
-                                                       root_contract_id = parent.id)
+                                  └─ renewals.store → tạo Contract mới (status=active,
+                                                       root_contract_id = id gốc bộ)
+                                     HĐ được gia hạn → status=addendum («Chuyển phụ lục»)
 ```
 
-- **Gia hạn = tạo hợp đồng phụ lục mới** (không sửa hợp đồng gốc); `contract_renewals` là audit log song song.
-- **Tài chính** (`contract_finances`): SL × đơn giá, phí khởi tạo / duy trì, thời hạn, tổng — CRUD ở tab Tài chính của Show.
+- **Gia hạn = tạo bản hợp đồng kế tiếp** (bản cũ chuyển «Chuyển phụ lục», bản mới «Đang hiệu lực»); `contract_renewals` là audit log song song.
+- **Tài chính** (`contract_finances`): SL × đơn giá, phí khởi tạo / duy trì, thời hạn, tổng — CRUD ở tab Tài chính của **hợp đồng gốc**; mỗi dòng gắn `contract_id` (gốc hoặc phụ lục trong bộ), bảng gộp `chain_finances`.
 - **Đánh giá hợp đồng / NCC** (`contract_reviews` / `vendor_reviews`): 6 tiêu chí 0–10 + tổng + `recommendation`.
 
 ---

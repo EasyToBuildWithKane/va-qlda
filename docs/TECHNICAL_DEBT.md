@@ -54,7 +54,7 @@
 
 ### TD-001 — Kiến trúc partial
 
-Blocker/Bug/Feedback giữ MVC; DailyReport + Project/Task có Use Cases. **Không bắt buộc** Domain cho mọi module.
+Blocker/Feedback giữ MVC; DailyReport + Project/Task có Use Cases. **Không bắt buộc** Domain cho mọi module.
 
 ### TD-011 — Tests *(partial)*
 

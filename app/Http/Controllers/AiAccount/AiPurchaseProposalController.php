@@ -19,6 +19,7 @@ use App\Support\Enums\AiPaymentRequestStatus;
 use App\Support\Enums\AiPurchaseProposalStatus;
 use App\Support\Enums\AiPurchaseType;
 use App\Support\Enums\ProposalType;
+use App\Support\SecurityAuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -153,6 +154,11 @@ class AiPurchaseProposalController extends Controller
             'created_by' => $request->user()->id,
         ]);
 
+        SecurityAuditLogger::aiProposal($request->user(), 'created', null, [
+            'proposal_id' => $proposal->id,
+            'tool' => $proposal->tool_name,
+        ]);
+
         return response()->json([
             'success' => true,
             'data' => ['proposal' => $this->presenter->row($proposal, $request->user())],
@@ -236,6 +242,11 @@ class AiPurchaseProposalController extends Controller
 
         $proposal->delete();
 
+        SecurityAuditLogger::aiProposal(request()->user(), 'deleted', null, [
+            'proposal_id' => $proposal->id,
+            'label' => $label,
+        ]);
+
         return response()->json([
             'success' => true,
             'message' => "Đã xoá phiếu {$label}.",
@@ -254,6 +265,11 @@ class AiPurchaseProposalController extends Controller
             'reviewed_at' => now(),
         ]);
 
+        SecurityAuditLogger::aiProposal($request->user(), 'approved', null, [
+            'proposal_id' => $proposal->id,
+            'tool' => $proposal->tool_name,
+        ]);
+
         return response()->json([
             'success' => true,
             'data' => ['proposal' => $this->presenter->row($proposal->fresh(), $request->user())],
@@ -268,6 +284,11 @@ class AiPurchaseProposalController extends Controller
             'rejection_reason' => $request->validated('rejection_reason'),
             'reviewed_by' => $request->user()->id,
             'reviewed_at' => now(),
+        ]);
+
+        SecurityAuditLogger::aiProposal($request->user(), 'rejected', null, [
+            'proposal_id' => $proposal->id,
+            'tool' => $proposal->tool_name,
         ]);
 
         return response()->json([

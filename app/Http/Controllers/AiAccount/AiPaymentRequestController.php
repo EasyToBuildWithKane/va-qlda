@@ -12,6 +12,7 @@ use App\Models\AiPurchaseProposal;
 use App\Services\AiAccount\AiPurchaseProposalPresenter;
 use App\Support\AiPurchaseProposalRegistrationEmails;
 use App\Support\Enums\AiPaymentRequestStatus;
+use App\Support\SecurityAuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 
@@ -56,6 +57,12 @@ class AiPaymentRequestController extends Controller
 
         $proposal->loadMissing(['creator.employee', 'reviewer.employee', 'paymentRequest.creator', 'paymentRequest.reviewer']);
 
+        SecurityAuditLogger::aiPayment($request->user(), 'created', null, [
+            'payment_request_id' => $pr->id,
+            'code' => $pr->payment_request_code,
+            'amount' => $amount,
+        ]);
+
         return response()->json([
             'success' => true,
             'data' => ['proposal' => $this->proposalPresenter->row($proposal->fresh(['creator.employee', 'reviewer.employee', 'paymentRequest.creator', 'paymentRequest.reviewer']), $request->user())],
@@ -76,6 +83,11 @@ class AiPaymentRequestController extends Controller
 
         $proposal = $paymentRequest->proposal->fresh(['creator.employee', 'reviewer.employee', 'paymentRequest.creator', 'paymentRequest.reviewer']);
 
+        SecurityAuditLogger::aiPayment($request->user(), 'approved', null, [
+            'payment_request_id' => $paymentRequest->id,
+            'code' => $paymentRequest->payment_request_code,
+        ]);
+
         return response()->json([
             'success' => true,
             'data' => ['proposal' => $this->proposalPresenter->row($proposal, $request->user())],
@@ -95,6 +107,11 @@ class AiPaymentRequestController extends Controller
         });
 
         $proposal = $paymentRequest->proposal->fresh(['creator.employee', 'reviewer.employee', 'paymentRequest.creator', 'paymentRequest.reviewer']);
+
+        SecurityAuditLogger::aiPayment($request->user(), 'rejected', null, [
+            'payment_request_id' => $paymentRequest->id,
+            'code' => $paymentRequest->payment_request_code,
+        ]);
 
         return response()->json([
             'success' => true,
@@ -120,6 +137,12 @@ class AiPaymentRequestController extends Controller
         });
 
         $proposal = $paymentRequest->proposal->fresh(['creator.employee', 'reviewer.employee', 'paymentRequest.creator', 'paymentRequest.reviewer']);
+
+        SecurityAuditLogger::aiPayment($request->user(), 'updated', null, [
+            'payment_request_id' => $paymentRequest->id,
+            'code' => $paymentRequest->payment_request_code,
+            'event' => 'marked_paid',
+        ]);
 
         return response()->json([
             'success' => true,

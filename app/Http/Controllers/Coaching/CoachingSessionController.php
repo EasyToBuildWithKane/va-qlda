@@ -17,6 +17,7 @@ use App\Support\Enums\CoachingAssignmentStatus;
 use App\Support\Enums\CoachingMaterialType;
 use App\Support\Enums\CoachingSessionStatus;
 use App\Support\Enums\TaskPriority;
+use App\Support\SecurityAuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -383,6 +384,8 @@ class CoachingSessionController extends Controller
 
         $this->applySessionUpdate($session, $data);
 
+        SecurityAuditLogger::coachingSession($request->user(), 'updated', $session->id, ['title' => $session->title]);
+
         return back()->with('success', 'Đã cập nhật buổi học.');
     }
 
@@ -424,6 +427,7 @@ class CoachingSessionController extends Controller
     {
         $session->loadMissing('course');
         $this->authorize('update', $session->course);
+        SecurityAuditLogger::coachingSession(request()->user(), 'deleted', $session->id, ['title' => $session->title]);
         $session->delete();
 
         return redirect()

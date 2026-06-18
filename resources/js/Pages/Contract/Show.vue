@@ -1,5 +1,5 @@
 <script setup>
-import { computed, provide, ref } from 'vue';
+import { computed, provide, ref, watch } from 'vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
@@ -34,13 +34,30 @@ const c = computed(() => props.contract?.data ?? props.contract);
 const dialog = useDialog();
 
 const tab = ref('overview');
-const tabs = computed(() => [
+
+/** Bản gia hạn / phụ lục mới (trỏ về hợp đồng gốc bộ) — chỉ tab Tổng quan · Đánh giá · Hồ sơ. */
+const isRenewalSuccessor = computed(() => c.value.root_contract_id != null);
+
+const ALL_TABS = [
     { key: 'overview',   label: 'Tổng quan',   icon: 'info' },
     { key: 'finance',    label: 'Tài chính',   icon: 'budget' },
     { key: 'evaluation', label: 'Đánh giá NCC', icon: 'star' },
     { key: 'documents',  label: 'Hồ sơ',       icon: 'documents' },
     { key: 'renewals',   label: 'Gia hạn',      icon: 'renewal' },
-]);
+];
+
+const tabs = computed(() => {
+    if (isRenewalSuccessor.value) {
+        return ALL_TABS.filter((t) => ['overview', 'evaluation', 'documents'].includes(t.key));
+    }
+    return ALL_TABS;
+});
+
+watch(tabs, (list) => {
+    if (!list.some((t) => t.key === tab.value)) {
+        tab.value = 'overview';
+    }
+});
 
 // ─── Header / Status ────────────────────────────────────────────────────────
 const reviewsForContract = computed(() => c.value.reviews_for_contract ?? []);
@@ -116,7 +133,22 @@ const lifecycleDisplay = computed(() => annualDisplay.value);
 
 const attachmentCount = computed(() => (c.value.attachments ?? []).length);
 const addendaCount = computed(() => (c.value.addenda ?? []).length);
-const financeRowCount = computed(() => (c.value.finances ?? []).length);
+const financeRowCount = computed(() => chainFinances.value.length);
+
+const financeTargets = computed(() => c.value.finance_targets ?? []);
+
+const chainFinances = computed(() => {
+    if (Array.isArray(c.value.chain_finances) && c.value.chain_finances.length) {
+        return c.value.chain_finances;
+    }
+    return (c.value.finances ?? []).map((f) => ({
+        ...f,
+        contract_id: c.value.id,
+        contract_code: c.value.code,
+        contract_kind: 'root',
+        contract_label: 'Gốc',
+    }));
+});
 
 /** Ngày đến hạn của một dòng tài chính = ngày SD + số tháng cam kết. */
 function financeDueDate(f) {
@@ -125,7 +157,7 @@ function financeDueDate(f) {
 
 /** Tổng cộng các cột số tiền của bảng tài chính (chân bảng). */
 const financeTotals = computed(() => {
-    const rows = c.value.finances ?? [];
+    const rows = chainFinances.value;
     const sum = (key) => rows.reduce((acc, f) => acc + (Number(f[key]) || 0), 0);
     return {
         init_fee: sum('init_fee'),
@@ -138,8 +170,10 @@ const financeTotals = computed(() => {
 // ─── Finance Tab ─────────────────────────────────────────────────────────────
 const showFinanceForm = ref(false);
 const editingFinanceId = ref(null);
+const editingFinanceContractId = ref(null);
 
 const financeForm = useForm({
+    target_contract_id: null,
     used_date:       '',
     term_months:     '',
     quantity:        '',
@@ -155,12 +189,16 @@ provide('contractFinanceForm', financeForm);
 
 function openAddFinance() {
     editingFinanceId.value = null;
+    editingFinanceContractId.value = null;
     financeForm.reset();
+    financeForm.target_contract_id = c.value.id;
     showFinanceForm.value = true;
 }
 
 function openEditFinance(f) {
     editingFinanceId.value = f.id;
+    editingFinanceContractId.value = f.contract_id ?? c.value.id;
+    financeForm.target_contract_id = f.contract_id ?? c.value.id;
     financeForm.used_date       = f.used_date ?? '';
     financeForm.term_months     = f.term_months ?? '';
     financeForm.quantity        = f.quantity ?? '';
@@ -177,11 +215,23 @@ function openEditFinance(f) {
 function cancelFinance() {
     showFinanceForm.value = false;
     editingFinanceId.value = null;
+    editingFinanceContractId.value = null;
     financeForm.reset();
 }
 
+function financeOwnerId() {
+    if (editingFinanceId.value) {
+        return editingFinanceContractId.value ?? c.value.id;
+    }
+    return financeForm.target_contract_id ?? c.value.id;
+}
+
 function submitFinance() {
-    const base = `/contracts/${c.value.id}/finances`;
+    if (!editingFinanceId.value && financeTargets.value.length > 1 && !financeForm.target_contract_id) {
+        financeForm.setError('target_contract_id', 'Vui lòng chọn hợp đồng gốc hoặc phụ lục.');
+        return;
+    }
+    const base = `/contracts/${financeOwnerId()}/finances`;
     if (editingFinanceId.value) {
         financeForm.put(`${base}/${editingFinanceId.value}`, {
             preserveScroll: true,
@@ -203,7 +253,8 @@ async function deleteFinance(f) {
         tone: 'danger',
     });
     if (!ok) return;
-    router.delete(`/contracts/${c.value.id}/finances/${f.id}`, {
+    const ownerId = f.contract_id ?? c.value.id;
+    router.delete(`/contracts/${ownerId}/finances/${f.id}`, {
         preserveScroll: true,
         onSuccess() { router.reload({ only: ['contract'] }); },
     });
@@ -366,6 +417,7 @@ const addenda = computed(() => c.value.addenda ?? []);
           :attachment-count="attachmentCount"
           :addenda-count="addendaCount"
           :avg-review-score="avgReviewScore"
+          :hide-renewals-nav="isRenewalSuccessor"
           @navigate-tab="tab = $event"
         />
 
@@ -389,7 +441,7 @@ const addenda = computed(() => c.value.addenda ?? []);
                     :size="15"
                     class="shrink-0 text-sky-500"
                   />
-                  <span>Đây là <strong>hợp đồng phụ lục</strong> (trạng thái: Chuyển phụ lục).</span>
+                  <span>Đây là <strong>bản gia hạn / phụ lục</strong> thuộc bộ hợp đồng.</span>
                   <a
                     :href="`/contracts/${c.root_contract_id}`"
                     class="ml-auto shrink-0 font-medium text-sky-600 hover:underline"
@@ -582,7 +634,7 @@ const addenda = computed(() => c.value.addenda ?? []);
                           Chi phí nhanh
                         </h3>
                         <button
-                          v-if="financeRowCount > 0"
+                          v-if="financeRowCount > 0 && !isRenewalSuccessor"
                           type="button"
                           class="text-xs font-medium text-brand hover:underline"
                           @click="tab = 'finance'"
@@ -684,9 +736,8 @@ const addenda = computed(() => c.value.addenda ?? []);
                 v-else-if="tab === 'finance'"
                 class="space-y-4"
               >
-                <!-- Master data badge for root contracts -->
                 <div
-                  v-if="!c.root_contract_id && c.finances?.length"
+                  v-if="!c.root_contract_id"
                   class="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-700"
                 >
                   <AppIcon
@@ -694,16 +745,16 @@ const addenda = computed(() => c.value.addenda ?? []);
                     :size="14"
                     class="shrink-0"
                   />
-                  Dữ liệu tài chính gốc (master data) — hợp đồng phụ lục sẽ có bộ số liệu riêng.
+                  Mỗi dòng tài chính gắn với <strong>hợp đồng gốc</strong> hoặc <strong>phụ lục gia hạn</strong> — chọn đúng khi thêm mới.
                 </div>
 
                 <!-- Toolbar -->
                 <div class="flex items-center justify-between">
                   <h3 class="font-display text-sm font-semibold text-slate-700">
                     Dữ liệu tài chính <span
-                      v-if="c.finances?.length"
+                      v-if="chainFinances.length"
                       class="ml-1 text-xs font-normal text-slate-400"
-                    >({{ c.finances.length }} dòng)</span>
+                    >({{ chainFinances.length }} dòng)</span>
                   </h3>
                   <button
                     v-if="c.can?.update && !showFinanceForm"
@@ -723,19 +774,23 @@ const addenda = computed(() => c.value.addenda ?? []);
                   v-if="showFinanceForm"
                   :editing-id="editingFinanceId"
                   :billing-cycle-label="c.billing_cycle?.label ?? 'Chưa chọn'"
+                  :finance-targets="financeTargets"
                   @submit="submitFinance"
                   @cancel="cancelFinance"
                 />
 
                 <!-- Finance Table -->
                 <div
-                  v-if="c.finances?.length"
+                  v-if="chainFinances.length"
                   class="card overflow-hidden p-0"
                 >
                   <div class="overflow-x-auto">
-                    <table class="w-full min-w-[1040px] text-sm">
+                    <table class="w-full min-w-[1120px] text-sm">
                       <thead class="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
                         <tr>
+                          <th class="px-3 py-2.5 font-medium">
+                            Thuộc HĐ
+                          </th>
                           <th class="px-3 py-2.5 font-medium">
                             Ngày SD
                           </th>
@@ -771,10 +826,23 @@ const addenda = computed(() => c.value.addenda ?? []);
                       </thead>
                       <tbody>
                         <tr
-                          v-for="f in c.finances"
-                          :key="f.id"
+                          v-for="f in chainFinances"
+                          :key="`${f.contract_id}-${f.id}`"
                           class="border-t border-slate-100 align-top hover:bg-slate-50/70"
                         >
+                          <td class="whitespace-nowrap px-3 py-2.5">
+                            <span
+                              class="inline-flex flex-col gap-0.5"
+                            >
+                              <span
+                                class="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+                                :class="f.contract_kind === 'root'
+                                  ? 'bg-brand/10 text-brand'
+                                  : 'bg-sky-100 text-sky-700'"
+                              >{{ f.contract_label }}</span>
+                              <span class="font-mono text-[11px] text-slate-500">{{ f.contract_code }}</span>
+                            </span>
+                          </td>
                           <td class="whitespace-nowrap px-3 py-2.5 text-slate-600">
                             {{ f.used_date ? formatDate(f.used_date) : '—' }}
                           </td>
@@ -856,15 +924,15 @@ const addenda = computed(() => c.value.addenda ?? []);
                         </tr>
                       </tbody>
                       <tfoot
-                        v-if="c.finances.length > 1"
+                        v-if="chainFinances.length > 1"
                         class="border-t-2 border-slate-200 bg-slate-50 text-xs"
                       >
                         <tr>
                           <td
                             class="px-3 py-2.5 font-semibold text-slate-600"
-                            colspan="4"
+                            colspan="5"
                           >
-                            Tổng cộng ({{ c.finances.length }} dòng)
+                            Tổng cộng ({{ chainFinances.length }} dòng)
                           </td>
                           <td class="whitespace-nowrap px-3 py-2.5 text-right tabular-nums text-slate-600">
                             {{ financeTotals.init_fee ? formatMoney(financeTotals.init_fee, c.currency) : '—' }}

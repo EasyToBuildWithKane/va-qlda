@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\AssignAccountRoleRequest;
 use App\Models\SystemAccount;
 use App\Support\Enums\SystemRole;
+use App\Support\SecurityAuditLogger;
 use Illuminate\Http\RedirectResponse;
 
 /**
@@ -39,7 +40,15 @@ class SystemAccountRoleController extends Controller
             }
         }
 
+        $previousRole = $account->role;
         $account->forceFill(['role' => $newRole])->save();
+
+        SecurityAuditLogger::accountRoleChanged(
+            $request->user(),
+            $account,
+            $previousRole->value,
+            $newRole->value,
+        );
 
         return back()->with('success', "Đã đổi vai trò của {$account->display_name} thành {$newRole->label()}.");
     }
