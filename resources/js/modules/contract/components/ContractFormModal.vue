@@ -211,20 +211,31 @@ function postFileAttachments(contractId, files) {
 }
 
 async function uploadPending(contractId) {
-    const links = pendingItems.value.filter((i) => i.kind === 'link');
     const files = pendingItems.value.filter((i) => i.kind === 'file').map((i) => i.file);
 
-    for (const item of links) {
-        await postLinkAttachment(contractId, item.url);
+    if (isEdit.value) {
+        const links = pendingItems.value.filter((i) => i.kind === 'link');
+        for (const item of links) {
+            await postLinkAttachment(contractId, item.url);
+        }
     }
     await postFileAttachments(contractId, files);
 }
 
+function buildSubmitPayload(data) {
+    const linkUrls = pendingItems.value
+        .filter((i) => i.kind === 'link')
+        .map((i) => i.url);
+    const payload = { ...data };
+    if (isEdit.value) {
+        return payload;
+    }
+    delete payload.status;
+    return { ...payload, links: linkUrls };
+}
+
 function submit() {
-    form.transform((data) => ({
-        ...data,
-        links: [],
-    }));
+    form.transform(buildSubmitPayload);
 
     const opts = {
         preserveScroll: true,
@@ -232,7 +243,9 @@ function submit() {
             const id = isEdit.value
                 ? props.contract.id
                 : (page.props.flash?.created_contract_id ?? null);
-            if (id && pendingItems.value.length) {
+            const hasFiles = pendingItems.value.some((i) => i.kind === 'file');
+            const hasEditLinks = isEdit.value && pendingItems.value.some((i) => i.kind === 'link');
+            if (id && (hasFiles || hasEditLinks)) {
                 try {
                     await uploadPending(id);
                 } catch {
