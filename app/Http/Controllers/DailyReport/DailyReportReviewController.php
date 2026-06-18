@@ -10,6 +10,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\DailyReport\RejectDailyReportRequest;
 use App\Http\Requests\DailyReport\ScoreDailyReportRequest;
 use App\Http\Resources\DailyReportResource;
+use App\Support\NotificationDispatcher;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -42,12 +43,13 @@ class DailyReportReviewController extends Controller
     public function score(ScoreDailyReportRequest $request, DailyReport $report, ScoreReportUseCase $useCase): RedirectResponse
     {
         try {
-            $useCase->execute(
+            $score = $useCase->execute(
                 $report,
                 $request->user()->employee_id,
                 $request->validated(),
                 $request->input('notes'),
             );
+            NotificationDispatcher::dailyReportScored($report->fresh(['employee']), $score, $request->user());
         } catch (DailyReportException $e) {
             return back()->with('error', $e->getMessage());
         }
@@ -63,6 +65,7 @@ class DailyReportReviewController extends Controller
                 $request->user()->employee_id,
                 $request->validated()['notes'],
             );
+            NotificationDispatcher::dailyReportRejected($report->fresh(['employee']), $request->user());
         } catch (DailyReportException $e) {
             return back()->with('error', $e->getMessage());
         }

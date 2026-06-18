@@ -10,6 +10,7 @@ import ContractDocuments from '@/modules/contract/components/ContractDocuments.v
 import RenewalQuickModal from '@/modules/contract/components/RenewalQuickModal.vue';
 import ContractShowSummaryBar from '@/modules/contract/components/ContractShowSummaryBar.vue';
 import ContractFinanceFormPanel from '@/modules/contract/components/ContractFinanceFormPanel.vue';
+import ContractActivityPanel from '@/modules/contract/components/ContractActivityPanel.vue';
 import EmployeeAutocomplete from '@/modules/contract/components/EmployeeAutocomplete.vue';
 import VendorFieldLabel from '@/modules/contract/components/VendorFieldLabel.vue';
 import { useDialog } from '@/composables/useDialog';
@@ -43,12 +44,13 @@ const ALL_TABS = [
     { key: 'finance',    label: 'Tài chính',   icon: 'budget' },
     { key: 'evaluation', label: 'Đánh giá NCC', icon: 'star' },
     { key: 'documents',  label: 'Hồ sơ',       icon: 'documents' },
+    { key: 'activity',   label: 'Nhật ký',     icon: 'timeline' },
     { key: 'renewals',   label: 'Gia hạn',      icon: 'renewal' },
 ];
 
 const tabs = computed(() => {
     if (isRenewalSuccessor.value) {
-        return ALL_TABS.filter((t) => ['overview', 'evaluation', 'documents'].includes(t.key));
+        return ALL_TABS.filter((t) => ['overview', 'evaluation', 'documents', 'activity'].includes(t.key));
     }
     return ALL_TABS;
 });
@@ -61,6 +63,7 @@ watch(tabs, (list) => {
 
 // ─── Header / Status ────────────────────────────────────────────────────────
 const reviewsForContract = computed(() => c.value.reviews_for_contract ?? []);
+const contractActivities = computed(() => c.value.activities ?? []);
 const avgReviewScore = computed(() => {
     const scores = reviewsForContract.value.map((r) => r.total_score).filter((s) => s != null);
     if (!scores.length) return null;
@@ -1035,7 +1038,7 @@ const addenda = computed(() => c.value.addenda ?? []);
                       Thêm đánh giá nhà cung cấp
                     </h4>
                     <p class="mt-0.5 text-xs text-slate-500">
-                      Chấm điểm 6 tiêu chí (0–10). Trường có dấu <span class="font-semibold text-danger">*</span> là bắt buộc.
+                      Chấm điểm 6 tiêu chí (1–10). Trường có dấu <span class="font-semibold text-danger">*</span> là bắt buộc.
                     </p>
                   </div>
 
@@ -1096,7 +1099,7 @@ const addenda = computed(() => c.value.addenda ?? []);
                             :size="14"
                             class="text-brand/70"
                           />
-                          Điểm theo tiêu chí (0 – 10)
+                          Điểm theo tiêu chí (1 – 10)
                         </span>
                         <span
                           v-if="reviewLivePreview != null"
@@ -1121,11 +1124,11 @@ const addenda = computed(() => c.value.addenda ?? []);
                             :id="`review-${cr.key}`"
                             v-model="reviewForm[cr.key]"
                             type="number"
-                            min="0"
+                            min="1"
                             max="10"
-                            step="0.5"
+                            step="1"
                             class="input h-9 w-full text-sm tabular-nums"
-                            placeholder="0–10"
+                            placeholder="1–10"
                           >
                         </div>
                       </div>
@@ -1302,6 +1305,12 @@ const addenda = computed(() => c.value.addenda ?? []);
                   :can-manage="!!c.can?.update"
                 />
               </div>
+
+              <!-- TAB: NHẬT KÝ -->
+              <ContractActivityPanel
+                v-else-if="tab === 'activity'"
+                :activities="contractActivities"
+              />
 
               <!-- ══════════════════════════════════════════════════════
            TAB: GIA HẠN (Addenda)

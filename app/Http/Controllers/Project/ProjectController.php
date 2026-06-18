@@ -196,7 +196,9 @@ class ProjectController extends Controller
         $this->authorize('update', $project);
 
         $this->archiveProject->execute($project);
-        ProjectActivityLogger::archived($project->fresh(), $request->user());
+        $archived = $project->fresh();
+        ProjectActivityLogger::archived($archived, $request->user());
+        NotificationDispatcher::projectArchived($archived, $request->user());
 
         return back()->with('success', 'Đã lưu trữ dự án.');
     }

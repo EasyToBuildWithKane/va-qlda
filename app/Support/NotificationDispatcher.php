@@ -2,12 +2,20 @@
 
 namespace App\Support;
 
+use App\Domain\DailyReport\Models\DailyReport;
+use App\Domain\DailyReport\Models\DailyReportScore;
+use App\Models\AiPurchaseProposal;
 use App\Models\Blocker;
+use App\Models\CoachingAssignment;
+use App\Models\CoachingSession;
+use App\Models\Contract;
+use App\Models\Employee;
 use App\Models\Feedback;
 use App\Models\Project;
 use App\Models\Sprint;
 use App\Models\SystemAccount;
 use App\Models\Task;
+use App\Models\Vendor;
 use App\Services\NotificationService;
 use App\Support\Enums\NotificationType;
 
@@ -201,7 +209,8 @@ class NotificationDispatcher
 
         $type = match ($verb) {
             'tạo' => NotificationType::SprintCreated,
-            'cập nhật' => NotificationType::SprintStarted,
+            'cập nhật' => NotificationType::SprintUpdated,
+            'xoá' => NotificationType::SprintDeleted,
             default => NotificationType::SprintEnded,
         };
 
@@ -226,7 +235,7 @@ class NotificationDispatcher
             ? "{$actor->display_name} ghi nhận {$ref}"
             : "Vướng mắc mới {$ref}";
 
-        $svc->notify($members, NotificationType::ProjectStatusChanged, $title, $blocker->title, [
+        $svc->notify($members, NotificationType::BlockerCreated, $title, $blocker->title, [
             'actor' => $actor,
             'project_id' => $blocker->project_id,
             'entity_type' => 'blocker',
@@ -254,7 +263,7 @@ class NotificationDispatcher
 
         $body = trim(($blocker->title ? $blocker->title."\n" : '').(NotificationChangeSummary::blocker($changes) ?? ''));
 
-        $svc->notify($members, NotificationType::ProjectStatusChanged, $title, $body !== '' ? $body : null, [
+        $svc->notify($members, NotificationType::BlockerUpdated, $title, $body !== '' ? $body : null, [
             'actor' => $actor,
             'project_id' => $blocker->project_id,
             'entity_type' => 'blocker',
@@ -316,15 +325,232 @@ class NotificationDispatcher
             : "{$verb} {$ref}";
 
         $body = $changes ? NotificationChangeSummary::feedback($changes) : $feedback->title;
-
-        $recipients = $svc->accountsForEmployees(array_filter([$feedback->assignee_id, $feedback->reporter_employee_id]));
-
-        $svc->notify($recipients, NotificationType::CommentReply, $title, $body, [
+        $type = str_contains($verb, 'tạo') ? NotificationType::FeedbackCreated : NotificationType::FeedbackUpdated;
+        $context = [
             'actor' => $actor,
             'project_id' => $feedback->project_id,
+            'entity_type' => 'feedback',
+            'entity_id' => $feedback->id,
             'action_url' => $feedback->project_id
                 ? "/projects/{$feedback->project_id}?tab=feedback"
                 : "/feedback/{$feedback->id}",
+        ];
+
+        $recipients = $svc->accountsForEmployees(array_filter([$feedback->assignee_id, $feedback->reporter_employee_id]));
+
+        $svc->notify($recipients, $type, $title, $body, $context);
+    }
+
+    public static function feedbackComment(Feedback $feedback, ?SystemAccount $actor, bool $isMention = false): void
+    {
+        $svc = self::service();
+        $ref = $feedback->code ?? ('FB-'.$feedback->id);
+        $type = $isMention ? NotificationType::CommentMention : NotificationType::CommentFeedbackThread;
+        $title = $actor
+            ? "{$actor->display_name} — bình luận {$ref}"
+            : "Bình luận mới {$ref}";
+
+        $recipients = $svc->accountsForEmployees(array_filter([$feedback->assignee_id, $feedback->reporter_employee_id]));
+
+        $svc->notify($recipients, $type, $title, $feedback->title, [
+            'actor' => $actor,
+            'project_id' => $feedback->project_id,
+            'entity_type' => 'feedback',
+            'entity_id' => $feedback->id,
+            'action_url' => $feedback->project_id
+                ? "/projects/{$feedback->project_id}?tab=feedback"
+                : "/feedback/{$feedback->id}",
+        ]);
+    }
+
+    public static function projectMemberAdded(Project $project, Employee $member, ?SystemAccount $actor): void
+    {
+        $svc = self::service();
+        $account = $svc->accountsForEmployees([$member->id])->first();
+        if (! $account || ($actor && $account->id === $actor->id)) {
+            return;
+        }
+
+        $title = $actor
+            ? "{$actor->display_name} thêm bạn vào dự án {$project->name}"
+            : "Bạn được thêm vào dự án {$project->name}";
+
+        $svc->notify([$account], NotificationType::ProjectMemberAdded, $title, $project->code, [
+            'actor' => $actor,
+            'project_id' => $project->id,
+            'action_url' => "/projects/{$project->id}",
+        ]);
+    }
+
+    public static function projectArchived(Project $project, ?SystemAccount $actor): void
+    {
+        $svc = self::service();
+        $members = $svc->accountsForEmployees($project->members()->pluck('employees.id')->all());
+        $title = $actor
+            ? "{$actor->display_name} lưu trữ dự án {$project->name}"
+            : "Dự án {$project->name} đã lưu trữ";
+
+        $svc->notify($members, NotificationType::ProjectArchived, $title, $project->code, [
+            'actor' => $actor,
+            'project_id' => $project->id,
+            'action_url' => "/projects/{$project->id}",
+        ]);
+    }
+
+    public static function contractRenewed(Contract $successor, Contract $predecessor, ?SystemAccount $actor): void
+    {
+        if ($actor === null) {
+            return;
+        }
+
+        $title = "{$actor->display_name} gia hạn hợp đồng {$predecessor->code}";
+        $body = trim("Phụ lục: {$successor->code}\nHết hạn mới: ".($successor->expiry_date?->format('d/m/Y') ?? '—'));
+
+        self::notifyContractStakeholders(
+            $predecessor,
+            $actor,
+            NotificationType::SystemContractRenewed,
+            $title,
+            $body,
+        );
+    }
+
+    public static function aiProposalDecision(AiPurchaseProposal $proposal, string $decision, ?SystemAccount $actor): void
+    {
+        if ($actor === null) {
+            return;
+        }
+
+        $svc = self::service();
+        $creator = SystemAccount::find($proposal->created_by);
+        if (! $creator || $creator->id === $actor->id) {
+            return;
+        }
+
+        $type = $decision === 'approved' ? NotificationType::AiProposalApproved : NotificationType::AiProposalRejected;
+        $verb = $decision === 'approved' ? 'được duyệt' : 'bị từ chối';
+        $tool = $proposal->tool_name ?? ($proposal->proposal_code ?? 'AI');
+        $title = "Phiếu đề xuất {$tool} {$verb}";
+        $body = $decision === 'approved'
+            ? 'Tiến hành đăng ký tài khoản sau khi thanh toán được duyệt.'
+            : ($proposal->rejection_reason ?? null);
+
+        $svc->notify([$creator], $type, $title, $body, [
+            'actor' => $actor,
+            'entity_type' => 'ai_proposal',
+            'entity_id' => $proposal->id,
+            'action_url' => '/ai-accounts',
+        ]);
+    }
+
+    public static function dailyReportSubmitted(DailyReport $report, ?SystemAccount $actor): void
+    {
+        $svc = self::service();
+        $employee = $report->employee;
+        $name = $employee?->name ?? 'Nhân viên';
+        $date = $report->date->format('d/m/Y');
+        $title = "Báo cáo ngày {$date} của {$name} chờ duyệt";
+
+        $svc->notifyAdmins(NotificationType::DailyReportSubmitted, $title, null, [
+            'actor' => $actor,
+            'entity_type' => 'daily_report',
+            'entity_id' => $report->id,
+            'action_url' => "/daily-reports/{$report->uuid}",
+        ]);
+    }
+
+    public static function dailyReportScored(DailyReport $report, DailyReportScore $score, ?SystemAccount $actor): void
+    {
+        $svc = self::service();
+        $author = $svc->accountsForEmployees([$report->employee_id])->first();
+        if (! $author) {
+            return;
+        }
+
+        $date = $report->date->format('d/m/Y');
+        $grade = $score->grade?->value ?? '—';
+        $total = number_format((float) $score->total_score, 1);
+        $title = "Báo cáo ngày {$date} đã được chấm: {$total} điểm ({$grade})";
+
+        $svc->notify([$author], NotificationType::DailyReportScored, $title, $score->notes, [
+            'actor' => $actor,
+            'entity_type' => 'daily_report',
+            'entity_id' => $report->id,
+            'action_url' => "/daily-reports/{$report->uuid}",
+        ]);
+    }
+
+    public static function dailyReportRejected(DailyReport $report, ?SystemAccount $actor): void
+    {
+        $svc = self::service();
+        $author = $svc->accountsForEmployees([$report->employee_id])->first();
+        if (! $author) {
+            return;
+        }
+
+        $date = $report->date->format('d/m/Y');
+        $title = "Báo cáo ngày {$date} bị trả lại — cần chỉnh sửa";
+
+        $svc->notify([$author], NotificationType::DailyReportRejected, $title, $report->review_notes, [
+            'actor' => $actor,
+            'entity_type' => 'daily_report',
+            'entity_id' => $report->id,
+            'action_url' => "/daily-reports/{$report->uuid}",
+        ]);
+    }
+
+    public static function coachingSessionChanged(CoachingSession $session, string $verb, ?SystemAccount $actor): void
+    {
+        $svc = self::service();
+        $session->loadMissing('course');
+        $course = $session->course;
+        if (! $course?->student_id) {
+            return;
+        }
+
+        $students = $svc->accountsForEmployees([$course->student_id]);
+        if ($students->isEmpty()) {
+            return;
+        }
+
+        $type = $verb === 'tạo' ? NotificationType::CoachingSessionCreated : NotificationType::CoachingSessionUpdated;
+        $title = $verb === 'tạo'
+            ? "Buổi học mới: {$session->title}"
+            : "Buổi học cập nhật: {$session->title}";
+        $date = $session->date?->format('d/m/Y');
+        $body = $date ? "Ngày: {$date}" : null;
+
+        $svc->notify($students, $type, $title, $body, [
+            'actor' => $actor,
+            'entity_type' => 'coaching_session',
+            'entity_id' => $session->id,
+            'action_url' => route('coaching.sessions.show', ['session' => $session->id]),
+        ]);
+    }
+
+    public static function coachingAssignmentCreated(CoachingAssignment $assignment, ?SystemAccount $actor): void
+    {
+        $svc = self::service();
+        $assignment->loadMissing('session.course');
+        $course = $assignment->session?->course;
+        if (! $course?->student_id) {
+            return;
+        }
+
+        $students = $svc->accountsForEmployees([$course->student_id]);
+        if ($students->isEmpty()) {
+            return;
+        }
+
+        $title = "Bài tập mới: {$assignment->title}";
+        $deadline = $assignment->deadline?->format('d/m/Y');
+        $body = $deadline ? "Hạn nộp: {$deadline}" : null;
+
+        $svc->notify($students, NotificationType::CoachingAssignmentCreated, $title, $body, [
+            'actor' => $actor,
+            'entity_type' => 'coaching_assignment',
+            'entity_id' => $assignment->id,
+            'action_url' => route('coaching.sessions.show', ['session' => $assignment->session_id]),
         ]);
     }
 
@@ -351,5 +577,105 @@ class NotificationDispatcher
             'action_url' => "/projects/{$task->project_id}?task={$task->id}",
             'meta' => ['task_ref' => 'TASK-'.$task->id, 'task_title' => $task->title],
         ];
+    }
+
+    public static function contractCreated(Contract $contract, ?SystemAccount $actor): void
+    {
+        if ($actor === null) {
+            return;
+        }
+
+        $title = "{$actor->display_name} tạo hợp đồng {$contract->code}";
+        self::notifyContractStakeholders(
+            $contract,
+            $actor,
+            NotificationType::SystemContractCreated,
+            $title,
+            $contract->name,
+        );
+    }
+
+    public static function contractUpdated(Contract $contract, ?SystemAccount $actor, array $changes): void
+    {
+        if ($actor === null || $changes === []) {
+            return;
+        }
+
+        $title = "{$actor->display_name} cập nhật hợp đồng {$contract->code}";
+        $fields = implode(', ', array_keys($changes));
+        $body = trim($contract->name."\n".$fields);
+
+        self::notifyContractStakeholders(
+            $contract,
+            $actor,
+            NotificationType::SystemContractUpdated,
+            $title,
+            $body !== '' ? $body : null,
+        );
+    }
+
+    /**
+     * @param  'tạo'|'cập nhật'|'xoá'  $verb
+     */
+    public static function vendorReview(
+        Vendor $vendor,
+        string $verb,
+        ?SystemAccount $actor,
+        ?float $totalScore = null,
+        ?Contract $contract = null,
+    ): void {
+        if ($actor === null) {
+            return;
+        }
+
+        $title = "{$actor->display_name} {$verb} đánh giá NCC {$vendor->name}";
+        $body = $totalScore !== null ? "Điểm trung bình {$totalScore}/10" : null;
+
+        if ($contract !== null) {
+            self::notifyContractStakeholders(
+                $contract,
+                $actor,
+                NotificationType::SystemContractVendorReview,
+                $title,
+                $body,
+            );
+
+            return;
+        }
+
+        $svc = self::service();
+        $context = [
+            'actor' => $actor,
+            'entity_type' => 'vendor',
+            'entity_id' => $vendor->id,
+            'action_url' => "/contracts/vendors/{$vendor->id}",
+        ];
+
+        $svc->notify([$actor], NotificationType::SystemContractVendorReview, $title, $body, $context);
+        $svc->notifyAdmins(NotificationType::SystemContractVendorReview, $title, $body, $context);
+    }
+
+    private static function notifyContractStakeholders(
+        Contract $contract,
+        SystemAccount $actor,
+        NotificationType $type,
+        string $title,
+        ?string $body,
+    ): void {
+        $svc = self::service();
+        $context = [
+            'actor' => $actor,
+            'entity_type' => 'contract',
+            'entity_id' => $contract->id,
+            'action_url' => "/contracts/{$contract->id}",
+        ];
+
+        $recipients = $svc->accountsForEmployees(array_filter([
+            $contract->owner_id,
+            $contract->manager_id,
+        ]))->push($actor)->unique('id');
+
+        $svc->notify($recipients, $type, $title, $body, $context);
+        $svc->notifyAdmins($type, $title, $body, $context);
     }
 }

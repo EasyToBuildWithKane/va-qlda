@@ -19,10 +19,10 @@ const shellClass = computed(() => {
         return 'flex h-[4.25rem] justify-center px-0';
     }
     if (props.embedded) {
-        return 'grid h-14 min-h-14 grid-cols-1 items-center border-0 px-0 py-0';
+        return 'grid h-16 min-h-16 grid-cols-1 items-center border-0 px-0 py-0';
     }
     return [
-        'grid min-h-[4.75rem] h-[5.75rem] items-center gap-0 border-b border-white/[0.10] px-0 py-0',
+        'grid min-h-[6.5rem] h-[7.5rem] items-center gap-0 border-b border-white/[0.10] px-0 py-0',
         props.hideToggle
             ? 'grid-cols-1'
             : 'grid-cols-[minmax(0,1fr)_2.5rem]',
@@ -31,12 +31,12 @@ const shellClass = computed(() => {
 
 const wordmarkClass = computed(() => {
     if (props.embedded) {
-        return 'max-h-10 w-auto max-w-[min(100%,13.5rem)] object-contain object-left drop-shadow-[0_2px_8px_rgba(0,0,0,0.22)]';
+        return 'max-h-14 w-auto max-w-full object-contain object-left drop-shadow-[0_2px_8px_rgba(0,0,0,0.22)]';
     }
-    return 'max-h-[5.25rem] w-auto max-w-[min(100%,17rem)] object-contain drop-shadow-[0_2px_10px_rgba(0,0,0,0.28)]';
+    return 'max-h-[7rem] w-full max-w-full object-contain object-left drop-shadow-[0_2px_10px_rgba(0,0,0,0.28)]';
 });
 
-const linkAlignClass = computed(() => (props.embedded ? 'justify-start pl-3' : 'justify-center'));
+const linkAlignClass = computed(() => (props.embedded ? 'justify-start pl-3' : 'justify-start'));
 </script>
 
 <template>
@@ -65,7 +65,7 @@ const linkAlignClass = computed(() => (props.embedded ? 'justify-start pl-3' : '
         :class="[
           'flex min-h-0 min-w-0 items-center overflow-hidden py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-brand rounded-md',
           linkAlignClass,
-          embedded ? 'pr-2' : 'px-1',
+          embedded ? 'pr-2 pl-2' : 'px-2',
         ]"
         aria-label="VAschools — Bảng điều khiển"
       >

@@ -19,6 +19,7 @@ use App\Support\Enums\AiPaymentRequestStatus;
 use App\Support\Enums\AiPurchaseProposalStatus;
 use App\Support\Enums\AiPurchaseType;
 use App\Support\Enums\ProposalType;
+use App\Support\NotificationDispatcher;
 use App\Support\SecurityAuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -269,6 +270,7 @@ class AiPurchaseProposalController extends Controller
             'proposal_id' => $proposal->id,
             'tool' => $proposal->tool_name,
         ]);
+        NotificationDispatcher::aiProposalDecision($proposal->fresh(), 'approved', $request->user());
 
         return response()->json([
             'success' => true,
@@ -290,6 +292,7 @@ class AiPurchaseProposalController extends Controller
             'proposal_id' => $proposal->id,
             'tool' => $proposal->tool_name,
         ]);
+        NotificationDispatcher::aiProposalDecision($proposal->fresh(), 'rejected', $request->user());
 
         return response()->json([
             'success' => true,

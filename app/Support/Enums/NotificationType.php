@@ -18,7 +18,9 @@ enum NotificationType: string
     // Sprint
     case SprintCreated = 'sprint_created';
     case SprintStarted = 'sprint_started';
+    case SprintUpdated = 'sprint_updated';
     case SprintEnded = 'sprint_ended';
+    case SprintDeleted = 'sprint_deleted';
     case SprintBehind = 'sprint_behind';
     case SprintOverCapacity = 'sprint_over_capacity';
 
@@ -28,6 +30,17 @@ enum NotificationType: string
     case ProjectPmChanged = 'project_pm_changed';
     case ProjectDeadlineChanged = 'project_deadline_changed';
     case ProjectOverdue = 'project_overdue';
+    case ProjectMemberAdded = 'project_member_added';
+    case ProjectArchived = 'project_archived';
+
+    // Blocker
+    case BlockerCreated = 'blocker_created';
+    case BlockerUpdated = 'blocker_updated';
+
+    // Feedback
+    case FeedbackCreated = 'feedback_created';
+    case FeedbackUpdated = 'feedback_updated';
+    case CommentFeedbackThread = 'comment_feedback_thread';
 
     // Document
     case DocumentUploaded = 'document_uploaded';
@@ -56,6 +69,24 @@ enum NotificationType: string
     case SystemAiAccountRenewalUnpaid = 'system_ai_account_renewal_unpaid';
     case SystemContractExpiry = 'system_contract_expiry';
     case SystemContractExpired = 'system_contract_expired';
+    case SystemContractCreated = 'system_contract_created';
+    case SystemContractUpdated = 'system_contract_updated';
+    case SystemContractRenewed = 'system_contract_renewed';
+    case SystemContractVendorReview = 'system_contract_vendor_review';
+
+    // AI Proposals
+    case AiProposalApproved = 'ai_proposal_approved';
+    case AiProposalRejected = 'ai_proposal_rejected';
+
+    // Daily report
+    case DailyReportSubmitted = 'daily_report_submitted';
+    case DailyReportScored = 'daily_report_scored';
+    case DailyReportRejected = 'daily_report_rejected';
+
+    // Coaching
+    case CoachingSessionCreated = 'coaching_session_created';
+    case CoachingSessionUpdated = 'coaching_session_updated';
+    case CoachingAssignmentCreated = 'coaching_assignment_created';
 
     // Admin feed
     case AdminUserAction = 'admin_user_action';
@@ -75,23 +106,39 @@ enum NotificationType: string
             self::TaskOverdue, self::TaskDueSoon, self::TaskBlocked,
             self::TaskCompleted, self::TaskStatusChanged, self::TaskCreated => NotificationCategory::Task,
 
-            self::SprintCreated, self::SprintStarted, self::SprintEnded,
+            self::SprintCreated, self::SprintStarted, self::SprintUpdated,
+            self::SprintEnded, self::SprintDeleted,
             self::SprintBehind, self::SprintOverCapacity => NotificationCategory::Sprint,
 
             self::ProjectCreated, self::ProjectStatusChanged, self::ProjectPmChanged,
-            self::ProjectDeadlineChanged, self::ProjectOverdue => NotificationCategory::Project,
+            self::ProjectDeadlineChanged, self::ProjectOverdue,
+            self::ProjectMemberAdded, self::ProjectArchived => NotificationCategory::Project,
+
+            self::BlockerCreated, self::BlockerUpdated => NotificationCategory::Project,
+
+            self::FeedbackCreated, self::FeedbackUpdated => NotificationCategory::Project,
 
             self::DocumentUploaded, self::DocumentBrdUpdated, self::DocumentFrsUpdated,
             self::DocumentSrsUpdated, self::DocumentUiUpdated, self::DocumentClientUploaded,
             self::DocumentDeleted => NotificationCategory::Document,
 
             self::CommentMention, self::CommentReply, self::CommentTaskThread,
-            self::CommentSprintThread, self::CommentBlockerThread => NotificationCategory::Comment,
+            self::CommentSprintThread, self::CommentBlockerThread,
+            self::CommentFeedbackThread => NotificationCategory::Comment,
 
             self::SystemImport, self::SystemExport, self::SystemBackup,
             self::SystemRestore, self::SystemSync, self::SystemError,
             self::SystemAiAccountExpiry, self::SystemAiAccountRenewalUnpaid,
-            self::SystemContractExpiry, self::SystemContractExpired => NotificationCategory::System,
+            self::SystemContractExpiry, self::SystemContractExpired,
+            self::SystemContractCreated, self::SystemContractUpdated,
+            self::SystemContractRenewed, self::SystemContractVendorReview,
+            self::AiProposalApproved, self::AiProposalRejected => NotificationCategory::System,
+
+            self::DailyReportSubmitted, self::DailyReportScored,
+            self::DailyReportRejected => NotificationCategory::DailyReport,
+
+            self::CoachingSessionCreated, self::CoachingSessionUpdated,
+            self::CoachingAssignmentCreated => NotificationCategory::Coaching,
 
             default => NotificationCategory::Admin,
         };
@@ -109,9 +156,13 @@ enum NotificationType: string
             self::SystemAiAccountExpiry, self::SystemAiAccountRenewalUnpaid,
             self::SystemContractExpiry,
             self::SprintOverCapacity, self::AdminDataAnomaly,
-            self::AdminUploadFailed, self::AdminPermissionError => NotificationPriority::High,
+            self::AdminUploadFailed, self::AdminPermissionError,
+            self::DailyReportRejected, self::CoachingAssignmentCreated,
+            self::AiProposalApproved, self::AiProposalRejected => NotificationPriority::High,
 
-            self::CommentMention, self::TaskDeadlineChanged, self::ProjectDeadlineChanged => NotificationPriority::High,
+            self::CommentMention, self::TaskDeadlineChanged,
+            self::ProjectDeadlineChanged, self::ProjectMemberAdded,
+            self::DailyReportSubmitted => NotificationPriority::High,
 
             default => NotificationPriority::Medium,
         };
@@ -161,6 +212,27 @@ enum NotificationType: string
             self::SystemAiAccountRenewalUnpaid => 'Chưa thanh toán gia hạn AI',
             self::SystemContractExpiry => 'Hợp đồng sắp hết hạn',
             self::SystemContractExpired => 'Hợp đồng đã hết hạn',
+            self::SystemContractCreated => 'Tạo hợp đồng',
+            self::SystemContractUpdated => 'Cập nhật hợp đồng',
+            self::SystemContractRenewed => 'Gia hạn hợp đồng',
+            self::SystemContractVendorReview => 'Đánh giá nhà cung cấp',
+            self::AiProposalApproved => 'Phiếu đề xuất AI được duyệt',
+            self::AiProposalRejected => 'Phiếu đề xuất AI bị từ chối',
+            self::DailyReportSubmitted => 'Báo cáo ngày chờ duyệt',
+            self::DailyReportScored => 'Báo cáo ngày đã được chấm',
+            self::DailyReportRejected => 'Báo cáo ngày bị trả lại',
+            self::CoachingSessionCreated => 'Buổi học mới',
+            self::CoachingSessionUpdated => 'Cập nhật buổi học',
+            self::CoachingAssignmentCreated => 'Bài tập mới',
+            self::SprintUpdated => 'Sprint được cập nhật',
+            self::SprintDeleted => 'Sprint bị xoá',
+            self::ProjectMemberAdded => 'Được thêm vào dự án',
+            self::ProjectArchived => 'Dự án đã lưu trữ',
+            self::BlockerCreated => 'Vướng mắc mới',
+            self::BlockerUpdated => 'Cập nhật vướng mắc',
+            self::FeedbackCreated => 'Phản hồi mới',
+            self::FeedbackUpdated => 'Cập nhật phản hồi',
+            self::CommentFeedbackThread => 'Trao đổi phản hồi',
             self::AdminUserAction => 'Hoạt động người dùng',
             self::AdminApiError => 'API Error',
             self::AdminValidationError => 'Validation Error',

@@ -76,6 +76,16 @@ watch(() => props.review, () => {
     if (props.show) populateFromReview(props.review);
 });
 
+function clampScore(key, raw) {
+    if (raw === '' || raw === null) {
+        form[key] = null;
+        return;
+    }
+    const n = Number(raw);
+    if (Number.isNaN(n)) return;
+    form[key] = Math.min(10, Math.max(1, Math.round(n)));
+}
+
 const total = computed(() => {
     const vals = props.criteria
         .map((c) => form[c.key])
@@ -110,7 +120,7 @@ function submit() {
   <Modal
     :show="show"
     :title="vendor ? (isEdit ? `Chỉnh sửa đánh giá: ${vendor.name}` : `Đánh giá: ${vendor.name}`) : 'Đánh giá nhà cung cấp'"
-    max-width="max-w-3xl"
+    max-width="max-w-6xl"
     :dirty="form.isDirty"
     @close="emit('close')"
   >
@@ -118,7 +128,7 @@ function submit() {
       class="space-y-5"
       @submit.prevent="submit"
     >
-      <div class="flex items-center justify-between rounded-card bg-slate-50 px-4 py-3">
+      <div class="flex flex-col gap-4 rounded-card border border-slate-100 bg-slate-50/80 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p class="text-[11px] uppercase tracking-wide text-slate-500">
             Điểm tổng (trung bình 6 tiêu chí)
@@ -137,48 +147,57 @@ function submit() {
             Chưa nhập tiêu chí — điểm sẽ tính khi bạn chấm đủ tiêu chí
           </p>
         </div>
-        <p class="max-w-[14rem] text-[11px] text-slate-500">
-          Thang điểm 0–10. NCC có điểm dưới 7 sẽ được gắn cờ cảnh báo trên dashboard.
+        <p class="max-w-md text-[11px] leading-relaxed text-slate-500">
+          Thang điểm <strong>1–10</strong> (số nguyên). Đánh giá gốc trên hồ sơ NCC luôn hiển thị đầu danh sách; đánh giá từ phụ lục hợp đồng gắn thêm cột hợp đồng.
         </p>
       </div>
 
-      <div class="grid gap-4 sm:grid-cols-2">
-        <div
-          v-for="c in criteria"
-          :key="c.key"
-        >
-          <label class="label">{{ c.label }}</label>
-          <input
-            v-model="form[c.key]"
-            type="number"
-            min="0"
-            max="10"
-            step="0.5"
-            class="input"
-            placeholder="0–10"
+      <fieldset class="min-w-0">
+        <legend class="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Điểm theo tiêu chí (1 – 10)
+        </legend>
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          <div
+            v-for="c in criteria"
+            :key="c.key"
+            class="min-w-0 rounded-lg border border-slate-100 bg-white px-3 py-2.5"
           >
-          <p class="mt-1 text-[11px] text-slate-400">
-            {{ c.hint }}
-          </p>
-          <p
-            v-if="form.errors[c.key]"
-            class="mt-1 text-xs text-rose-600"
-          >
-            {{ form.errors[c.key] }}
-          </p>
+            <label
+              class="mb-1.5 block text-[11px] font-medium leading-snug text-slate-600"
+              :for="`vendor-review-${c.key}`"
+            >{{ c.label }}</label>
+            <input
+              :id="`vendor-review-${c.key}`"
+              :value="form[c.key] ?? ''"
+              type="number"
+              min="1"
+              max="10"
+              step="1"
+              inputmode="numeric"
+              class="input h-10 w-full text-center text-sm font-semibold tabular-nums"
+              placeholder="1–10"
+              @input="clampScore(c.key, $event.target.value)"
+            >
+            <p
+              v-if="form.errors[c.key]"
+              class="mt-1 text-xs text-rose-600"
+            >
+              {{ form.errors[c.key] }}
+            </p>
+          </div>
         </div>
-      </div>
+      </fieldset>
 
-      <div class="grid gap-4 sm:grid-cols-2">
-        <div>
+      <div class="grid gap-4 lg:grid-cols-12 lg:items-end">
+        <div class="lg:col-span-2">
           <label class="label">Ngày đánh giá</label>
           <input
             v-model="form.reviewed_at"
             type="date"
-            class="input"
+            class="input h-10"
           >
         </div>
-        <div>
+        <div class="lg:col-span-4">
           <label class="label">Người đánh giá</label>
           <EmployeeAutocomplete
             id="vendor-review-reviewer"
@@ -193,35 +212,33 @@ function submit() {
             {{ form.errors.reviewer_id }}
           </p>
         </div>
-      </div>
-
-      <div>
-        <label class="label">Đề xuất</label>
-        <select
-          v-model="form.recommendation"
-          class="input"
-        >
-          <option :value="null">
-            Chọn đề xuất
-          </option>
-          <option
-            v-for="o in recommendationOptions"
-            :key="o.value"
-            :value="o.value"
+        <div class="lg:col-span-3">
+          <label class="label">Đề xuất</label>
+          <select
+            v-model="form.recommendation"
+            class="input h-10"
           >
-            {{ o.label }}
-          </option>
-        </select>
-      </div>
-
-      <div>
-        <label class="label">Ghi chú</label>
-        <textarea
-          v-model="form.note"
-          rows="2"
-          class="input"
-          placeholder="Nhận xét, lý do, khuyến nghị cụ thể…"
-        />
+            <option :value="null">
+              Chọn đề xuất
+            </option>
+            <option
+              v-for="o in recommendationOptions"
+              :key="o.value"
+              :value="o.value"
+            >
+              {{ o.label }}
+            </option>
+          </select>
+        </div>
+        <div class="lg:col-span-3">
+          <label class="label">Ghi chú</label>
+          <input
+            v-model="form.note"
+            type="text"
+            class="input h-10"
+            placeholder="Nhận xét ngắn…"
+          >
+        </div>
       </div>
 
       <div class="flex justify-end gap-2 border-t border-slate-100 pt-4">

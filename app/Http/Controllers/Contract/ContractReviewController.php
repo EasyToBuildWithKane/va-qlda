@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Contract\StoreContractReviewRequest;
 use App\Models\Contract;
 use App\Models\VendorReview;
+use App\Support\ContractActivityLogger;
+use App\Support\NotificationDispatcher;
 use Illuminate\Http\RedirectResponse;
 
 class ContractReviewController extends Controller
@@ -28,7 +30,7 @@ class ContractReviewController extends Controller
         );
         $total = $scores === [] ? null : round(array_sum($scores) / count($scores), 2);
 
-        VendorReview::create([
+        $review = VendorReview::create([
             ...$data,
             'vendor_id' => $contract->vendor_id,
             'contract_id' => $contract->id,
@@ -37,6 +39,24 @@ class ContractReviewController extends Controller
             'total_score' => $total,
         ]);
 
+        ContractActivityLogger::vendorReview($contract, 'created', $request->user(), [
+            'review_id' => $review->id,
+            'vendor_id' => $contract->vendor_id,
+            'total_score' => $total,
+            'reviewed_at' => $review->reviewed_at?->toDateString(),
+        ]);
+
+        $contract->loadMissing('vendor');
+        if ($contract->vendor) {
+            NotificationDispatcher::vendorReview(
+                $contract->vendor,
+                'tạo',
+                $request->user(),
+                $total,
+                $contract,
+            );
+        }
+
         return back()->with('success', 'Đã lưu đánh giá hợp đồng.');
     }
 
@@ -44,6 +64,23 @@ class ContractReviewController extends Controller
     {
         $this->authorize('update', $contract);
         abort_unless($review->contract_id === $contract->id, 404);
+
+        ContractActivityLogger::vendorReview($contract, 'deleted', request()->user(), [
+            'review_id' => $review->id,
+            'vendor_id' => $review->vendor_id,
+            'total_score' => $review->total_score !== null ? (float) $review->total_score : null,
+        ]);
+
+        $contract->loadMissing('vendor');
+        if ($contract->vendor) {
+            NotificationDispatcher::vendorReview(
+                $contract->vendor,
+                'xoá',
+                request()->user(),
+                $review->total_score !== null ? (float) $review->total_score : null,
+                $contract,
+            );
+        }
 
         $review->delete();
 

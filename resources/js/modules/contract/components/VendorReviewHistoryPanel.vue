@@ -2,7 +2,7 @@
 import {
     computed, onBeforeUnmount, onMounted, reactive, ref, watch,
 } from 'vue';
-import { router } from '@inertiajs/vue3';
+import { router, Link } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
 import Badge from '@/shared/ui/Badge.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
@@ -24,6 +24,7 @@ const REVIEW_FILTER_CONTROLS = [
 ];
 
 const REVIEW_TABLE_COLUMNS = [
+    { key: 'contract', label: 'Hợp đồng', default: true },
     { key: 'criteria', label: '6 tiêu chí', default: true },
     { key: 'recommendation', label: 'Đề xuất', default: true },
     { key: 'note', label: 'Ghi chú', default: true },
@@ -67,7 +68,7 @@ const {
     openColPanel,
     isColVisible,
     TABLE_COLUMNS,
-} = useVisibleColumns(REVIEW_TABLE_COLUMNS, 'va-qlda.vendor-reviews.columns.v1');
+} = useVisibleColumns(REVIEW_TABLE_COLUMNS, 'va-qlda.vendor-reviews.columns.v2');
 
 const searchInput = ref('');
 const debouncedQ = ref('');
@@ -99,9 +100,29 @@ function scoreBandMatch(score, band) {
     return true;
 }
 
+const hasContractReviews = computed(() => props.reviews.some((r) => r.contract?.id));
+
+function compareReviews(a, b) {
+    const aBase = a.is_baseline ? 0 : 1;
+    const bBase = b.is_baseline ? 0 : 1;
+    if (aBase !== bBase) return aBase - bBase;
+    if (aBase === 0) {
+        const da = a.reviewed_at || '';
+        const db = b.reviewed_at || '';
+        if (da !== db) return da.localeCompare(db);
+        return (a.id ?? 0) - (b.id ?? 0);
+    }
+    const da = a.reviewed_at || '';
+    const db = b.reviewed_at || '';
+    if (da !== db) return db.localeCompare(da);
+    return (b.id ?? 0) - (a.id ?? 0);
+}
+
+const orderedReviews = computed(() => [...props.reviews].sort(compareReviews));
+
 const filteredReviews = computed(() => {
     const q = debouncedQ.value;
-    return props.reviews.filter((r) => {
+    return orderedReviews.value.filter((r) => {
         if (!scoreBandMatch(r.total_score, filters.scoreBand)) return false;
         if (filters.recommendation && r.recommendation?.value !== filters.recommendation) return false;
         if (!q) return true;
@@ -153,6 +174,7 @@ function criteriaBarWidth(score) {
 
 const visibleColumnCount = computed(() => {
     let n = 3;
+    if (isColVisible('contract') && hasContractReviews.value) n += 1;
     if (isColVisible('criteria')) n += 1;
     n += props.criteria.filter((c) => isColVisible(c.key)).length;
     if (isColVisible('recommendation')) n += 1;
@@ -301,6 +323,12 @@ onMounted(() => document.addEventListener('mousedown', onToolbarClickOutside));
             <th class="px-5 py-3 font-semibold">
               Người đánh giá
             </th>
+            <th
+              v-if="isColVisible('contract') && hasContractReviews"
+              class="min-w-[10rem] px-5 py-3 font-semibold"
+            >
+              Hợp đồng
+            </th>
             <th class="px-5 py-3 font-semibold text-right">
               Điểm tổng
             </th>
@@ -339,14 +367,44 @@ onMounted(() => document.addEventListener('mousedown', onToolbarClickOutside));
             v-for="r in filteredReviews"
             :key="r.id"
             class="border-t border-slate-100 transition hover:bg-slate-50/80"
+            :class="r.is_baseline ? 'bg-brand/[0.03]' : ''"
           >
             <td class="whitespace-nowrap px-5 py-3 text-slate-800">
-              {{ r.reviewed_at ? date(r.reviewed_at) : EMPTY_LABELS.period }}
+              <span>{{ r.reviewed_at ? date(r.reviewed_at) : EMPTY_LABELS.period }}</span>
+              <div
+                v-if="r.is_baseline"
+                class="mt-1"
+              >
+                <Badge
+                  label="Đánh giá gốc"
+                  color="brand"
+                />
+              </div>
             </td>
             <td class="px-5 py-3">
               <p class="font-medium text-slate-800">
                 {{ r.reviewer?.name ?? 'Chưa gán người đánh giá' }}
               </p>
+            </td>
+            <td
+              v-if="isColVisible('contract') && hasContractReviews"
+              class="px-5 py-3 text-sm"
+            >
+              <template v-if="r.contract?.id">
+                <Link
+                  :href="`/contracts/${r.contract.id}`"
+                  class="font-medium text-brand hover:underline"
+                >
+                  {{ r.contract.name }}
+                </Link>
+                <p class="font-mono text-[11px] text-slate-400">
+                  {{ r.contract.code }}
+                  <span
+                    v-if="r.contract.is_addendum"
+                    class="text-slate-500"
+                  > · Phụ lục</span>
+                </p>
+              </template>
             </td>
             <td class="px-5 py-3 text-right">
               <Badge

@@ -91,7 +91,11 @@ class VendorController extends Controller
             ->loadSum('contracts as contracts_sum_annual_cost', 'annual_cost')
             ->load([
                 'latestReview.reviewer',
-                'reviews' => fn ($q) => $q->with('reviewer')->orderByDesc('reviewed_at')->limit(20),
+                'reviews' => fn ($q) => $q->with(['reviewer', 'contract'])
+                    ->orderByRaw('CASE WHEN contract_id IS NULL THEN 0 ELSE 1 END')
+                    ->orderByRaw('CASE WHEN contract_id IS NULL THEN reviewed_at END ASC')
+                    ->orderByRaw('CASE WHEN contract_id IS NOT NULL THEN reviewed_at END DESC')
+                    ->limit(50),
                 'contracts' => fn ($q) => $q->with('owner')->withCount('attachments')->orderByDesc('expiry_date'),
             ]);
 

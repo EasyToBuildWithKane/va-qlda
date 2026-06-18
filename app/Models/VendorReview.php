@@ -53,7 +53,7 @@ class VendorReview extends Model
         'recommendation' => ContractReviewRecommendation::class,
     ];
 
-    /** 6 tiêu chí chấm điểm (0–10). */
+    /** 6 tiêu chí chấm điểm (1–10). */
     public const CRITERIA = [
         'service_quality',
         'sla',

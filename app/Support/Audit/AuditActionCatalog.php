@@ -34,6 +34,7 @@ final class AuditActionCatalog
             'employee' => ['label' => 'Hồ sơ nhân sự', 'icon' => 'members'],
             'department' => ['label' => 'Phòng ban', 'icon' => 'department'],
             'congnghe' => ['label' => 'Trung tâm Công nghệ', 'icon' => 'rocket'],
+            'contract' => ['label' => 'Quản lý hợp đồng', 'icon' => 'documents'],
             'system' => ['label' => 'Hệ thống', 'icon' => 'settings'],
         ];
     }
@@ -107,6 +108,14 @@ final class AuditActionCatalog
             'congnghe_proposal.updated' => ['label' => 'Sửa đề xuất phần mềm', 'module' => 'congnghe', 'severity' => 'info'],
             'congnghe_proposal.status_changed' => ['label' => 'Đổi trạng thái đề xuất phần mềm', 'module' => 'congnghe', 'severity' => 'notice'],
             'congnghe_proposal.deleted' => ['label' => 'Xóa đề xuất phần mềm', 'module' => 'congnghe', 'severity' => 'warning'],
+
+            // ── Hợp đồng & NCC ─────────────────────────────────────────
+            'contract.created' => ['label' => 'Tạo hợp đồng', 'module' => 'contract', 'severity' => 'notice'],
+            'contract.updated' => ['label' => 'Cập nhật hợp đồng', 'module' => 'contract', 'severity' => 'info'],
+            'contract.deleted' => ['label' => 'Xóa hợp đồng', 'module' => 'contract', 'severity' => 'warning'],
+            'vendor.review_created' => ['label' => 'Đánh giá NCC (hồ sơ gốc)', 'module' => 'contract', 'severity' => 'notice'],
+            'vendor.review_updated' => ['label' => 'Sửa đánh giá NCC (hồ sơ gốc)', 'module' => 'contract', 'severity' => 'info'],
+            'vendor.review_deleted' => ['label' => 'Xóa đánh giá NCC (hồ sơ gốc)', 'module' => 'contract', 'severity' => 'warning'],
         ];
     }
 
@@ -175,6 +184,8 @@ final class AuditActionCatalog
             'employee' => 'employee',
             'department' => 'department',
             'congnghe_proposal' => 'congnghe',
+            'contract' => 'contract',
+            'vendor' => 'contract',
         ];
     }
 

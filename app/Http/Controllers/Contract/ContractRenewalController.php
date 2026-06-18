@@ -8,6 +8,7 @@ use App\Models\Contract;
 use App\Support\ContractActivityLogger;
 use App\Support\ContractLifecycle\ContractChainPromotion;
 use App\Support\Enums\ContractStatus;
+use App\Support\NotificationDispatcher;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -89,6 +90,8 @@ class ContractRenewalController extends Controller
             );
             ContractActivityLogger::created($successor, $account);
         });
+
+        NotificationDispatcher::contractRenewed($successor->fresh(), $contract, $account);
 
         return back()->with('success', 'Đã tạo phụ lục gia hạn.');
     }

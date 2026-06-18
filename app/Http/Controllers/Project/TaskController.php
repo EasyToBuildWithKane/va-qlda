@@ -19,6 +19,7 @@ use App\Services\NotificationService;
 use App\Support\Enums\NotificationType;
 use App\Support\Enums\TaskPriority;
 use App\Support\Enums\TaskStatus;
+use App\Support\NotificationDispatcher;
 use App\Support\ProjectActivityLogger;
 use App\Support\TaskActivityLogger;
 use App\Support\TaskSubtaskInheritance;
@@ -92,6 +93,7 @@ class TaskController extends Controller
         TaskSubtaskInheritance::copyAssigneesFromParent($task, $subtask);
 
         TaskActivityLogger::subtaskAdded($task, $subtask, $request->user());
+        NotificationDispatcher::taskCreated($subtask->fresh(['project']), $request->user());
 
         return back()->with('success', 'Đã thêm công việc con.');
     }

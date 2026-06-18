@@ -18,7 +18,7 @@ class StoreVendorReviewRequest extends FormRequest
      */
     public function rules(): array
     {
-        $criterion = ['nullable', 'numeric', 'min:0', 'max:10'];
+        $criterion = ['nullable', 'numeric', 'min:1', 'max:10'];
 
         return [
             'reviewed_at' => ['nullable', 'date'],
@@ -42,7 +42,9 @@ class StoreVendorReviewRequest extends FormRequest
         return [
             'reviewer_id.required' => 'Vui lòng chọn người đánh giá.',
             'reviewer_id.exists' => 'Nhân sự đánh giá không hợp lệ.',
+            'service_quality.min' => 'Điểm tối thiểu là 1.',
             'service_quality.max' => 'Điểm tối đa là 10.',
+            'sla.min' => 'Điểm tối thiểu là 1.',
             'sla.max' => 'Điểm tối đa là 10.',
             'speed.max' => 'Điểm tối đa là 10.',
             'price_satisfaction.max' => 'Điểm tối đa là 10.',

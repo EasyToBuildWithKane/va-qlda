@@ -22,7 +22,9 @@ use App\Support\Enums\ContractPaymentStatus;
 use App\Support\Enums\ContractReviewRecommendation;
 use App\Support\Enums\ContractStatus;
 use App\Support\Enums\NotificationType;
+use App\Support\NotificationDispatcher;
 use App\Support\Options;
+use App\Support\SecurityAuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -166,6 +168,7 @@ class ContractController extends Controller
             'renewals',
             'finances',
             'addenda' => fn ($q) => $q->with(['attachments', 'finances'])->latest(),
+            'activities' => fn ($q) => $q->with('employee')->latest()->limit(100),
         ]);
 
         return Inertia::render('Contract/Show', [
@@ -213,6 +216,11 @@ class ContractController extends Controller
         }
 
         ContractActivityLogger::created($contract, $request->user());
+        SecurityAuditLogger::contract($request->user(), 'created', $contract->id, [
+            'code' => $contract->code,
+            'name' => $contract->name,
+        ]);
+        NotificationDispatcher::contractCreated($contract, $request->user());
 
         return back()->with([
             'success' => 'Đã tạo hợp đồng.',
@@ -243,6 +251,13 @@ class ContractController extends Controller
             }
         }
         ContractActivityLogger::updated($contract, $request->user(), $changes);
+        if ($changes !== []) {
+            SecurityAuditLogger::contract($request->user(), 'updated', $contract->id, [
+                'code' => $contract->code,
+                'fields' => array_keys($changes),
+            ]);
+            NotificationDispatcher::contractUpdated($contract, $request->user(), $changes);
+        }
 
         if ($contract->status === ContractStatus::Active) {
             ContractChainPromotion::demoteActivePeersInChain($contract, $request->user());
@@ -256,6 +271,10 @@ class ContractController extends Controller
         $this->authorize('delete', $contract);
 
         ContractActivityLogger::deleted($contract, request()->user());
+        SecurityAuditLogger::contract(request()->user(), 'deleted', $contract->id, [
+            'code' => $contract->code,
+            'name' => $contract->name,
+        ]);
         $contract->delete();
 
         return redirect()->route('contracts.index')->with('success', 'Đã xoá hợp đồng.');

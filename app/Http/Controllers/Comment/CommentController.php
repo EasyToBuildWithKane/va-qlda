@@ -67,6 +67,8 @@ class CommentController extends Controller
             NotificationDispatcher::taskComment($model->fresh(['project', 'watchers']), $user, $isMention);
         } elseif ($model instanceof Feedback) {
             FeedbackActivityLogger::commentAdded($model, $user);
+            $isMention = str_contains($data['body'], '@');
+            NotificationDispatcher::feedbackComment($model->fresh(), $user, $isMention);
         }
 
         return back()->with('success', 'Đã gửi bình luận.');

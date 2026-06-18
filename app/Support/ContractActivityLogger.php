@@ -114,4 +114,25 @@ class ContractActivityLogger
     {
         self::log($contract, 'deleted', 'Xoá hợp đồng', ['name' => $contract->name], $account?->employee_id);
     }
+
+    /**
+     * @param  array<string, mixed>  $meta
+     */
+    public static function vendorReview(Contract $contract, string $action, ?SystemAccount $account, array $meta = []): void
+    {
+        $description = match ($action) {
+            'created' => 'Ghi đánh giá nhà cung cấp',
+            'updated' => 'Cập nhật đánh giá nhà cung cấp',
+            'deleted' => 'Xoá đánh giá nhà cung cấp',
+            default => 'Đánh giá nhà cung cấp',
+        };
+
+        self::log(
+            $contract,
+            "vendor_review_{$action}",
+            $description,
+            $meta,
+            $account?->employee_id,
+        );
+    }
 }

@@ -17,6 +17,7 @@ use App\Support\Enums\CoachingAssignmentStatus;
 use App\Support\Enums\CoachingMaterialType;
 use App\Support\Enums\CoachingSessionStatus;
 use App\Support\Enums\TaskPriority;
+use App\Support\NotificationDispatcher;
 use App\Support\SecurityAuditLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -232,6 +233,7 @@ class CoachingSessionController extends Controller
         ]);
 
         $session->load(['course:id,code,name,coach_id,coach_name,student_id,student_name']);
+        NotificationDispatcher::coachingSessionChanged($session, 'tạo', $request->user());
 
         return response()->json([
             'ok' => true,
@@ -385,6 +387,7 @@ class CoachingSessionController extends Controller
         $this->applySessionUpdate($session, $data);
 
         SecurityAuditLogger::coachingSession($request->user(), 'updated', $session->id, ['title' => $session->title]);
+        NotificationDispatcher::coachingSessionChanged($session->fresh(['course']), 'cập nhật', $request->user());
 
         return back()->with('success', 'Đã cập nhật buổi học.');
     }
@@ -530,13 +533,15 @@ class CoachingSessionController extends Controller
             'priority' => ['nullable', 'string', Rule::in(TaskPriority::values())],
         ]);
 
-        $session->assignments()->create([
+        $assignment = $session->assignments()->create([
             'title' => $data['title'],
             'description' => $data['description'] ?? null,
             'deadline' => $data['deadline'] ?? null,
             'priority' => $data['priority'] ?? TaskPriority::Medium->value,
             'status' => CoachingAssignmentStatus::Todo->value,
         ]);
+
+        NotificationDispatcher::coachingAssignmentCreated($assignment->fresh(['session.course']), $request->user());
 
         return back()->with('success', 'Đã thêm bài tập.');
     }

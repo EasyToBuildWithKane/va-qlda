@@ -5,18 +5,24 @@ namespace App\Http\Controllers\Contract;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Contract\StoreVendorReviewRequest;
 use App\Http\Requests\Contract\UpdateVendorReviewRequest;
+use App\Models\Contract;
+use App\Models\SystemAccount;
 use App\Models\Vendor;
 use App\Models\VendorReview;
+use App\Support\ContractActivityLogger;
+use App\Support\NotificationDispatcher;
+use App\Support\SecurityAuditLogger;
 use Illuminate\Http\RedirectResponse;
 
 class VendorReviewController extends Controller
 {
-    /** Tạo đánh giá nhà cung cấp trên 6 tiêu chí (0–10) → tự tính tổng điểm. */
+    /** Tạo đánh giá nhà cung cấp trên 6 tiêu chí (1–10) → tự tính tổng điểm. */
     public function store(StoreVendorReviewRequest $request, Vendor $vendor): RedirectResponse
     {
         $data = $request->validated();
 
-        $vendor->reviews()->create($this->reviewPayload($data, $request));
+        $review = $vendor->reviews()->create($this->reviewPayload($data, $request));
+        $this->logReviewEvent($review, 'created', $request->user());
 
         return back()->with('success', 'Đã lưu đánh giá nhà cung cấp.');
     }
@@ -27,6 +33,8 @@ class VendorReviewController extends Controller
 
         $data = $request->validated();
         $review->update($this->reviewPayload($data, $request, $review));
+        $review->refresh();
+        $this->logReviewEvent($review, 'updated', $request->user());
 
         return back()->with('success', 'Đã cập nhật đánh giá.');
     }
@@ -36,9 +44,57 @@ class VendorReviewController extends Controller
         $this->authorize('update', $vendor);
         abort_unless($review->vendor_id === $vendor->id, 404);
 
+        $this->logReviewEvent($review, 'deleted', request()->user());
         $review->delete();
 
         return back()->with('success', 'Đã xoá đánh giá.');
+    }
+
+    private function logReviewEvent(VendorReview $review, string $action, ?SystemAccount $account): void
+    {
+        $meta = [
+            'review_id' => $review->id,
+            'vendor_id' => $review->vendor_id,
+            'total_score' => $review->total_score !== null ? (float) $review->total_score : null,
+            'reviewed_at' => $review->reviewed_at?->toDateString(),
+        ];
+
+        $verb = match ($action) {
+            'created' => 'tạo',
+            'updated' => 'cập nhật',
+            'deleted' => 'xoá',
+            default => $action,
+        };
+
+        $score = $review->total_score !== null ? (float) $review->total_score : null;
+        $vendor = Vendor::query()->find($review->vendor_id);
+
+        if ($review->contract_id) {
+            $contract = Contract::query()->find($review->contract_id);
+            if ($contract) {
+                ContractActivityLogger::vendorReview($contract, $action, $account, $meta);
+            }
+            if ($vendor && $contract) {
+                NotificationDispatcher::vendorReview($vendor, $verb, $account, $score, $contract);
+            }
+
+            return;
+        }
+
+        $auditAction = match ($action) {
+            'created' => 'review_created',
+            'updated' => 'review_updated',
+            'deleted' => 'review_deleted',
+            default => 'review_'.$action,
+        };
+
+        if ($account) {
+            SecurityAuditLogger::vendor($account, $auditAction, $review->vendor_id, $meta);
+        }
+
+        if ($vendor) {
+            NotificationDispatcher::vendorReview($vendor, $verb, $account, $score, null);
+        }
     }
 
     /**

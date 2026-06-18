@@ -19,6 +19,7 @@ use App\Support\DailyReportFieldContent;
 use App\Support\Enums\Grade;
 use App\Support\Enums\ReportStatus;
 use App\Support\Enums\SystemRole;
+use App\Support\NotificationDispatcher;
 use App\Support\Options;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -368,6 +369,7 @@ class DailyReportController extends Controller
 
         try {
             $useCase->execute($report);
+            NotificationDispatcher::dailyReportSubmitted($report->fresh(['employee']), $request->user());
         } catch (DailyReportException $e) {
             return back()->with('error', $e->getMessage());
         }

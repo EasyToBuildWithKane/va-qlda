@@ -56,6 +56,7 @@ Tất cả trong nhóm `contracts.*` (`routes/web.php`). Static segment đặt *
 - **Models** (`app/Models/`): `Contract` (`root_contract_id` self-FK → phụ lục; `finances()`, `reviews()`/`latestReview()` hasMany), `Vendor`, `ContractCategory`, `ContractFinance`, `ContractRenewal`, `ContractReview`, `VendorReview`, `ContractActivity`, `ContractAttachment`.
 - **Engine:** `App\Support\ContractLifecycle\ContractMetricsEngine` — `build()` (dashboard), `buildCost()`, `buildReport()`. `ContractRenewalCalculator` (buckets 90/60/30/7). Activity: `App\Support\ContractActivityLogger`.
 - **Reminder cron:** `App\Services\Contract\ContractReminderService` chạy bởi command `contracts:send-reminders` (Kernel daily 08:00) — tự suy `expiring_soon` / `expired` từ `expiry_date` (**không nhập tay**); thông báo `NotificationType::SystemContractExpiry` / `SystemContractExpired`.
+- **Inbox:** tạo/sửa HĐ → `SystemContractCreated` / `SystemContractUpdated`; đánh giá NCC → `SystemContractVendorReview` (`NotificationDispatcher` — người thực hiện, owner/manager HĐ, admin feed).
 - **Enums** (`app/Support/Enums/`): `ContractStatus` (draft·active·expiring_soon·expired·pending_renewal·addendum·terminated), `ContractPaymentStatus`, `ContractBillingCycle` (one_time·monthly·quarterly·annual), `ContractAttachmentCategory`, `ContractReviewRecommendation`.
 - **Cấu hình ngưỡng:** `/settings` tab "Hợp đồng (CLM)" → `clm.renewal_alert_days` (mặc định `90,60,30,7`), overlay lên `config('clm.*')` (`config/clm.php` + `SettingsServiceProvider`). Xem `docs/SYSTEM_CONFIG.md`.
 
@@ -72,7 +73,7 @@ draft (Đang chờ duyệt) → active → [expiring_soon → expired]   (cron t
 
 - **Gia hạn = tạo bản hợp đồng kế tiếp** (bản cũ chuyển «Chuyển phụ lục», bản mới «Đang hiệu lực»); `contract_renewals` là audit log song song.
 - **Tài chính** (`contract_finances`): SL × đơn giá, phí khởi tạo / duy trì, thời hạn, tổng — CRUD ở tab Tài chính của **hợp đồng gốc**; mỗi dòng gắn `contract_id` (gốc hoặc phụ lục trong bộ), bảng gộp `chain_finances`.
-- **Đánh giá hợp đồng / NCC** (`contract_reviews` / `vendor_reviews`): 6 tiêu chí 0–10 + tổng + `recommendation`.
+- **Đánh giá hợp đồng / NCC** (`vendor_reviews`): 6 tiêu chí **1–10** + tổng + `recommendation`. Đánh giá **gốc** (`contract_id` null) → `security_audit_logs` (`vendor.review_*`); đánh giá gắn HĐ → `contract_activities` (`vendor_review_*`). Tab **Nhật ký** trên `/contracts/{id}` hiển thị `contract_activities` (tạo HĐ, sửa, gia hạn, đánh giá từ tab HĐ…).
 
 ---
 

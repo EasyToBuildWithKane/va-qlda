@@ -9,6 +9,8 @@ namespace App\Support\Enums;
 enum ContractReviewRecommendation: string
 {
     case Renew = 'renew';
+    case Promising = 'promising';
+    case Consider = 'consider';
     case DoNotRenew = 'do_not_renew';
     case ChangeVendor = 'change_vendor';
     case NeedsReview = 'needs_review';
@@ -17,6 +19,8 @@ enum ContractReviewRecommendation: string
     {
         return match ($this) {
             self::Renew => 'Tiếp tục gia hạn',
+            self::Promising => 'Có triển vọng / tiềm năng',
+            self::Consider => 'Cân nhắc',
             self::DoNotRenew => 'Không gia hạn',
             self::ChangeVendor => 'Thay đổi NCC',
             self::NeedsReview => 'Cần review',
@@ -27,6 +31,8 @@ enum ContractReviewRecommendation: string
     {
         return match ($this) {
             self::Renew => 'emerald',
+            self::Promising => 'sky',
+            self::Consider => 'violet',
             self::DoNotRenew => 'rose',
             self::ChangeVendor => 'amber',
             self::NeedsReview => 'slate',

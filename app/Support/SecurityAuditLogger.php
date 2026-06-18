@@ -170,4 +170,16 @@ class SecurityAuditLogger
     {
         self::log($actor, "congnghe_proposal.{$event}", 'congnghe_software_proposal', $subjectId, $meta);
     }
+
+    /** @param array<string,mixed> $meta */
+    public static function contract(SystemAccount $actor, string $event, ?int $subjectId, array $meta = []): void
+    {
+        self::log($actor, "contract.{$event}", 'contract', $subjectId, $meta);
+    }
+
+    /** @param array<string,mixed> $meta */
+    public static function vendor(SystemAccount $actor, string $event, ?int $subjectId, array $meta = []): void
+    {
+        self::log($actor, "vendor.{$event}", 'vendor', $subjectId, $meta);
+    }
 }

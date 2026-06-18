@@ -118,7 +118,8 @@ class ContractResource extends JsonResource
                 'event' => $a->event,
                 'description' => $a->description,
                 'meta' => $a->meta,
-                'created_at' => $a->created_at?->toIso8601String(),
+                'at' => $a->created_at?->toIso8601String(),
+                'actor' => $a->relationLoaded('employee') ? $this->person($a->employee) : null,
             ])),
 
             'updated_at' => $this->updated_at?->toIso8601String(),

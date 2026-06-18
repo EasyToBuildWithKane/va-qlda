@@ -7,6 +7,7 @@ use App\Http\Requests\Project\StoreMemberRequest;
 use App\Http\Requests\Project\UpdateMemberRequest;
 use App\Models\Employee;
 use App\Models\Project;
+use App\Support\NotificationDispatcher;
 use App\Support\ProjectActivityLogger;
 use Illuminate\Http\RedirectResponse;
 
@@ -27,6 +28,7 @@ class ProjectMemberController extends Controller
 
         $member = Employee::query()->findOrFail($data['employee_id']);
         ProjectActivityLogger::memberAdded($project, $member, $request->user());
+        NotificationDispatcher::projectMemberAdded($project, $member, $request->user());
 
         return back()->with('success', 'Đã thêm thành viên.');
     }

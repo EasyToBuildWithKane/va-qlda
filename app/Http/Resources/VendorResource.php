@@ -66,6 +66,15 @@ class VendorResource extends JsonResource
 
         return [
             'id' => $r->id,
+            'is_baseline' => $r->contract_id === null,
+            'contract' => $r->contract_id && $r->relationLoaded('contract') && $r->contract
+                ? [
+                    'id' => $r->contract->id,
+                    'code' => $r->contract->code,
+                    'name' => $r->contract->name,
+                    'is_addendum' => $r->contract->root_contract_id !== null,
+                ]
+                : null,
             'reviewed_at' => $r->reviewed_at?->toDateString(),
             'reviewer' => $r->relationLoaded('reviewer') ? $this->person($r->reviewer) : null,
             'can' => $user ? [
