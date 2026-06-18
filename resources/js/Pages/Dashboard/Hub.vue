@@ -4,10 +4,17 @@ import { Head, Link, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import AppIcon from '@/Components/AppIcon.vue';
+import HubSummaryBar from './partials/HubSummaryBar.vue';
+import HubActivityTrendChart from './partials/HubActivityTrendChart.vue';
+import HubStatusDonut from './partials/HubStatusDonut.vue';
+import HubSeverityChart from './partials/HubSeverityChart.vue';
+import HubCompliancePanel from './partials/HubCompliancePanel.vue';
 
-defineProps({
+const props = defineProps({
     moduleGroups: { type: Array, default: () => [] },
     greeting:     { type: Object, default: () => ({}) },
+    summary:      { type: Array, default: () => [] },
+    charts:       { type: Object, default: () => ({}) },
 });
 
 const page = usePage();
@@ -60,6 +67,9 @@ const roleRingColor = {
     viewer: 'bg-slate-100 text-slate-600 ring-slate-300/60',
 };
 const roleRing = computed(() => roleRingColor[user.value.role] ?? 'bg-slate-100 text-slate-600 ring-slate-300/60');
+
+const hasSeverity = computed(() => Array.isArray(props.charts.blockerSeverity));
+const hasCompliance = computed(() => !!props.charts.reportCompliance);
 </script>
 
 <template>
@@ -69,7 +79,7 @@ const roleRing = computed(() => roleRingColor[user.value.role] ?? 'bg-slate-100 
     <template #header>
       <PageHeader
         title="Tổng quan hệ thống"
-        subtitle="Trung tâm điều hành — truy cập nhanh tất cả module"
+        subtitle="Trung tâm điều hành — chỉ số, xu hướng & truy cập nhanh"
         icon="overview"
         icon-color="brand"
       />
@@ -114,71 +124,129 @@ const roleRing = computed(() => roleRingColor[user.value.role] ?? 'bg-slate-100 
       </div>
     </div>
 
-    <!-- Module groups grid -->
-    <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-      <div
-        v-for="group in moduleGroups"
-        :key="group.key"
-        class="card overflow-hidden p-0"
-      >
-        <!-- Group header -->
+    <!-- 1. KPI summary strip -->
+    <HubSummaryBar :summary="summary" />
+
+    <!-- 2. Activity trend (interactive) -->
+    <HubActivityTrendChart
+      :trend="charts.activityTrend ?? []"
+      class="mb-4"
+    />
+
+    <!-- 3. Distributions (+ severity for lead) -->
+    <div
+      class="mb-4 grid gap-4"
+      :class="hasSeverity ? 'lg:grid-cols-3' : 'lg:grid-cols-2'"
+    >
+      <HubStatusDonut
+        title="Trạng thái dự án"
+        icon="projects"
+        :items="charts.projectStatus ?? []"
+        base-href="/projects"
+        param-key="status"
+        center-label="dự án"
+        empty-text="Chưa có dự án"
+      />
+      <HubStatusDonut
+        title="Phân bố công việc"
+        icon="task"
+        :items="charts.taskStatus ?? []"
+        center-label="công việc"
+        empty-text="Chưa có công việc"
+      />
+      <HubSeverityChart
+        v-if="hasSeverity"
+        :items="charts.blockerSeverity"
+      />
+    </div>
+
+    <!-- 4. Compliance (lead+) -->
+    <div
+      v-if="hasCompliance"
+      class="mb-5 grid gap-4 lg:grid-cols-2"
+    >
+      <HubCompliancePanel :compliance="charts.reportCompliance" />
+    </div>
+
+    <!-- 5. Module launcher -->
+    <section>
+      <div class="mb-3 flex items-center gap-2">
+        <AppIcon
+          name="overview"
+          :size="16"
+          class="text-brand"
+        />
+        <h2 class="font-display text-sm font-semibold text-slate-700">
+          Truy cập nhanh
+        </h2>
+        <span class="text-[11px] text-slate-400">— tất cả module theo quyền của bạn</span>
+      </div>
+
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         <div
-          class="flex items-center gap-2.5 border-b px-4 py-3"
-          :class="toneGroupBorder[group.tone] ?? 'border-slate-100 bg-slate-50/40'"
+          v-for="group in moduleGroups"
+          :key="group.key"
+          class="card overflow-hidden p-0"
         >
-          <span
-            class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ring-1"
-            :class="toneIcon[group.tone] ?? toneIcon.slate"
+          <!-- Group header -->
+          <div
+            class="flex items-center gap-2.5 border-b px-4 py-3"
+            :class="toneGroupBorder[group.tone] ?? 'border-slate-100 bg-slate-50/40'"
           >
-            <AppIcon
-              :name="group.icon"
-              :size="15"
-            />
-          </span>
-          <span class="font-display text-[13px] font-semibold text-slate-700">
-            {{ group.label }}
-          </span>
-        </div>
+            <span
+              class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ring-1"
+              :class="toneIcon[group.tone] ?? toneIcon.slate"
+            >
+              <AppIcon
+                :name="group.icon"
+                :size="15"
+              />
+            </span>
+            <span class="font-display text-[13px] font-semibold text-slate-700">
+              {{ group.label }}
+            </span>
+          </div>
 
-        <!-- Module tiles -->
-        <div class="grid grid-cols-2 gap-px bg-slate-100/80">
-          <Link
-            v-for="mod in group.modules"
-            :key="mod.key"
-            :href="mod.href"
-            class="group flex flex-col gap-2 bg-white px-4 py-3.5 transition hover:bg-slate-50/80"
-          >
-            <div class="flex items-start justify-between gap-2">
-              <span
-                class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ring-1 transition group-hover:shadow-sm"
-                :class="toneIcon[mod.tone] ?? toneIcon.slate"
-              >
-                <AppIcon
-                  :name="mod.icon"
-                  :size="16"
-                />
-              </span>
-              <!-- Stat badge -->
-              <span
-                v-if="mod.stat !== null && mod.stat !== undefined"
-                class="font-display text-xl font-bold tabular-nums leading-none"
-                :class="toneStat[mod.tone] ?? 'text-slate-700'"
-              >
-                {{ mod.stat }}
-              </span>
-            </div>
+          <!-- Module tiles -->
+          <div class="grid grid-cols-2 gap-px bg-slate-100/80">
+            <Link
+              v-for="mod in group.modules"
+              :key="mod.key"
+              :href="mod.href"
+              class="group flex flex-col gap-2 bg-white px-4 py-3.5 transition hover:bg-slate-50/80"
+            >
+              <div class="flex items-start justify-between gap-2">
+                <span
+                  class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ring-1 transition group-hover:shadow-sm"
+                  :class="toneIcon[mod.tone] ?? toneIcon.slate"
+                >
+                  <AppIcon
+                    :name="mod.icon"
+                    :size="16"
+                  />
+                </span>
+                <!-- Stat badge -->
+                <span
+                  v-if="mod.stat !== null && mod.stat !== undefined"
+                  class="font-display text-xl font-bold tabular-nums leading-none"
+                  :class="toneStat[mod.tone] ?? 'text-slate-700'"
+                >
+                  {{ mod.stat }}
+                </span>
+              </div>
 
-            <div class="min-w-0">
-              <p class="truncate text-[13px] font-medium text-slate-700 group-hover:text-slate-900">
-                {{ mod.label }}
-              </p>
-              <p class="truncate text-[11px] text-slate-400">
-                {{ mod.statLabel }}
-              </p>
-            </div>
-          </Link>
+              <div class="min-w-0">
+                <p class="truncate text-[13px] font-medium text-slate-700 group-hover:text-slate-900">
+                  {{ mod.label }}
+                </p>
+                <p class="truncate text-[11px] text-slate-400">
+                  {{ mod.statLabel }}
+                </p>
+              </div>
+            </Link>
+          </div>
         </div>
       </div>
-    </div>
+    </section>
   </AppLayout>
 </template>
