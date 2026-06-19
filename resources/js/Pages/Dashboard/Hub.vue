@@ -3,13 +3,13 @@ import { Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import HubWelcomeStrip from './partials/HubWelcomeStrip.vue';
-import HubSummaryBar from './partials/HubSummaryBar.vue';
+import HubSystemSnapshot from './partials/HubSystemSnapshot.vue';
 import HubModuleOverview from './partials/HubModuleOverview.vue';
 
 defineProps({
     moduleGroups: { type: Array, default: () => [] },
     greeting: { type: Object, default: () => ({}) },
-    summary: { type: Array, default: () => [] },
+    systemSnapshot: { type: Object, default: () => ({ alerts: [], domains: [] }) },
 });
 </script>
 
@@ -20,7 +20,7 @@ defineProps({
     <template #header>
       <PageHeader
         title="Tổng quan hệ thống"
-        subtitle="Chỉ số vận hành và truy cập module theo quyền"
+        subtitle="Domain đa module — chi tiết công việc tại Dashboard công việc"
         icon="overview"
         icon-color="brand"
       />
@@ -28,10 +28,7 @@ defineProps({
 
     <HubWelcomeStrip :greeting="greeting" />
 
-    <HubSummaryBar
-      :summary="summary"
-      class="mb-5"
-    />
+    <HubSystemSnapshot :snapshot="systemSnapshot" />
 
     <HubModuleOverview :module-groups="moduleGroups" />
   </AppLayout>

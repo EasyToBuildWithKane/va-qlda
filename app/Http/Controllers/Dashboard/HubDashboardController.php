@@ -47,7 +47,12 @@ class HubDashboardController extends Controller
                 $isSuper,
             ),
             'greeting' => $this->greetingMeta($account),
-            'summary' => $this->buildSummary($personnelScope),
+            'systemSnapshot' => $this->buildSystemSnapshot(
+                $stats,
+                $isLeadTier,
+                $isMemberTier,
+                $personnelScope,
+            ),
         ]);
     }
 
@@ -64,6 +69,7 @@ class HubDashboardController extends Controller
 
         $stats = [
             'active_projects' => Project::where('status', ProjectStatus::Active)->count(),
+            'total_projects' => Project::count(),
             'open_blockers' => Blocker::open()->count(),
             'open_tasks' => Task::where('status', '!=', TaskStatus::Done)->count(),
             'overdue_tasks' => Task::where('status', '!=', TaskStatus::Done)
@@ -84,13 +90,13 @@ class HubDashboardController extends Controller
                 ContractStatus::PendingRenewal->value,
             ])->count();
             $stats['expiring_contracts'] = Contract::where('status', ContractStatus::ExpiringSoon->value)->count();
-            $stats['upcoming_sessions'] = CoachingSession::where('date', '>=', now()->toDateString())
-                ->where('date', '<=', now()->addDays(7)->toDateString())
-                ->count();
         }
 
         if ($isMemberTier) {
             $stats['credentials'] = Credential::count();
+            $stats['upcoming_sessions'] = CoachingSession::where('date', '>=', now()->toDateString())
+                ->where('date', '<=', now()->addDays(7)->toDateString())
+                ->count();
         }
 
         return $stats;
@@ -416,101 +422,194 @@ class HubDashboardController extends Controller
     }
 
     /**
-     * Build the KPI summary strip cards (org pulse) on the hub dashboard.
+     * Cross-module snapshot for the hub (distinct from /work task KPIs).
      *
-     * @return array<int, array<string, mixed>>
+     * @param  array<string, int>  $stats
+     * @return array<string, mixed>
      */
-    private function buildSummary(DashboardPersonnelScope $personnelScope): array
-    {
-        $today = Carbon::today()->toDateString();
-
-        // Active projects — load once to derive both the count and avg progress.
-        $activeProjects = Project::query()
-            ->where('status', ProjectStatus::Active)
-            ->with(['tasks:id,project_id,status,parent_id'])
-            ->get();
-
-        $totalProjects = Project::count();
-        $avgProgress = $activeProjects->isNotEmpty()
-            ? (int) round($activeProjects->avg(fn (Project $p) => $p->progress()))
-            : 0;
-
-        $totalTasks = Task::count();
-        $doneTasks = Task::where('status', TaskStatus::Done)->count();
-        $completionRate = $totalTasks > 0 ? (int) round($doneTasks / $totalTasks * 100) : 0;
-
-        $doneLast7 = Task::whereDate('completed_at', '>=', Carbon::today()->subDays(6))->count();
-        $donePrev7 = Task::whereBetween('completed_at', [
-            Carbon::today()->subDays(13)->startOfDay(),
-            Carbon::today()->subDays(7)->endOfDay(),
-        ])->count();
-        $doneDelta = $doneLast7 - $donePrev7;
-
-        $openBlockers = Blocker::open()->count();
-        $overdueTasks = Task::where('status', '!=', TaskStatus::Done)
-            ->whereNotNull('due_date')
-            ->whereDate('due_date', '<', $today)
-            ->count();
-
-        $members = $personnelScope->employeeIds()->count();
+    private function buildSystemSnapshot(
+        array $stats,
+        bool $isLeadTier,
+        bool $isMemberTier,
+        DashboardPersonnelScope $personnelScope,
+    ): array {
         $dept = $personnelScope->department();
+        $deptLabel = $dept?->name ?? 'Phòng Công nghệ';
+        $scopedPeople = $personnelScope->employeeIds()->count();
 
-        return [
+        $alerts = [];
+
+        if (($stats['overdue_tasks'] ?? 0) > 0) {
+            $alerts[] = [
+                'key' => 'overdue_tasks',
+                'label' => 'Công việc quá hạn',
+                'value' => $stats['overdue_tasks'],
+                'hint' => 'Xem chi tiết trên Dashboard công việc',
+                'href' => '/work',
+                'tone' => 'rose',
+                'icon' => 'clock',
+            ];
+        }
+
+        if ($isLeadTier && ($stats['pending_reports'] ?? 0) > 0) {
+            $alerts[] = [
+                'key' => 'pending_reports',
+                'label' => 'Báo cáo chờ duyệt',
+                'value' => $stats['pending_reports'],
+                'hint' => 'Hàng đợi duyệt báo cáo ngày',
+                'href' => '/daily-reports/review',
+                'tone' => 'amber',
+                'icon' => 'daily',
+            ];
+        }
+
+        if ($isLeadTier && ($stats['expiring_contracts'] ?? 0) > 0) {
+            $alerts[] = [
+                'key' => 'expiring_contracts',
+                'label' => 'Hợp đồng sắp hết hạn',
+                'value' => $stats['expiring_contracts'],
+                'hint' => 'Cần theo dõi gia hạn',
+                'href' => '/contracts/dashboard',
+                'tone' => 'amber',
+                'icon' => 'contract',
+            ];
+        }
+
+        if (($stats['open_feedback'] ?? 0) > 0) {
+            $alerts[] = [
+                'key' => 'open_feedback',
+                'label' => 'Phản hồi đang xử lý',
+                'value' => $stats['open_feedback'],
+                'hint' => 'Luồng phản hồi người dùng',
+                'href' => '/feedback',
+                'tone' => 'violet',
+                'icon' => 'feedback',
+            ];
+        }
+
+        $domains = [
             [
-                'key' => 'projects',
-                'label' => 'Dự án đang chạy',
-                'value' => $activeProjects->count(),
-                'sub' => "/ {$totalProjects} tổng dự án",
-                'icon' => 'projects',
-                'tone' => 'brand',
-            ],
-            [
-                'key' => 'progress',
-                'label' => 'Tiến độ trung bình',
-                'value' => $avgProgress,
-                'suffix' => '%',
-                'sub' => 'Trên các dự án đang chạy',
-                'icon' => 'performance',
-                'tone' => 'sky',
-            ],
-            [
-                'key' => 'completion',
-                'label' => 'Tỷ lệ hoàn thành',
-                'value' => $completionRate,
-                'suffix' => '%',
-                'sub' => "{$doneTasks}/{$totalTasks} công việc",
-                'icon' => 'check-circle',
-                'tone' => 'emerald',
-                'trend' => [
-                    'text' => ($doneDelta >= 0 ? '+' : '').$doneDelta.' so với tuần trước',
-                    'tone' => $doneDelta > 0 ? 'good' : ($doneDelta < 0 ? 'bad' : 'neutral'),
-                    'arrow' => $doneDelta > 0 ? '↑' : ($doneDelta < 0 ? '↓' : '→'),
+                'key' => 'engagement',
+                'title' => 'Tương tác & chất lượng',
+                'icon' => 'feedback',
+                'tone' => 'violet',
+                'metrics' => [
+                    [
+                        'label' => 'Phản hồi đang xử lý',
+                        'value' => $stats['open_feedback'],
+                        'href' => '/feedback',
+                    ],
+                    [
+                        'label' => 'Vướng mắc đang mở',
+                        'value' => $stats['open_blockers'],
+                        'href' => '/blockers',
+                    ],
                 ],
             ],
             [
-                'key' => 'blockers',
-                'label' => 'Vướng mắc đang mở',
-                'value' => $openBlockers,
-                'sub' => 'Cần xử lý',
-                'icon' => 'blockers',
-                'tone' => $openBlockers > 0 ? 'amber' : 'emerald',
+                'key' => 'knowledge',
+                'title' => 'Tri thức & đào tạo',
+                'icon' => 'knowledge',
+                'tone' => 'emerald',
+                'metrics' => [
+                    [
+                        'label' => 'Bài viết đã xuất bản',
+                        'value' => $stats['kb_articles'],
+                        'href' => '/knowledge-base',
+                    ],
+                ],
             ],
             [
-                'key' => 'overdue',
-                'label' => 'Công việc quá hạn',
-                'value' => $overdueTasks,
-                'sub' => 'Chưa xong, đã trễ hạn',
-                'icon' => 'clock',
-                'tone' => $overdueTasks > 0 ? 'rose' : 'emerald',
+                'key' => 'portfolio',
+                'title' => 'Danh mục dự án',
+                'icon' => 'portfolio',
+                'tone' => 'brand',
+                'metrics' => [
+                    [
+                        'label' => 'Dự án đang chạy',
+                        'value' => $stats['active_projects'],
+                        'sub' => "/ {$stats['total_projects']} trong hệ thống",
+                        'href' => '/projects',
+                    ],
+                ],
             ],
             [
-                'key' => 'members',
-                'label' => 'Nhân sự hoạt động',
-                'value' => $members,
-                'sub' => $dept ? $dept->name : 'Phòng Công nghệ',
-                'icon' => 'members',
-                'tone' => 'violet',
+                'key' => 'people',
+                'title' => 'Con người & tổ chức',
+                'icon' => 'org-teams',
+                'tone' => 'sky',
+                'metrics' => [
+                    [
+                        'label' => 'Nhân sự trong phạm vi',
+                        'value' => $scopedPeople,
+                        'sub' => $deptLabel,
+                        'href' => '/members',
+                    ],
+                    [
+                        'label' => 'Thành viên toàn công ty',
+                        'value' => $stats['total_members'],
+                        'sub' => 'Hồ sơ nhân sự',
+                        'href' => '/members',
+                    ],
+                ],
             ],
+        ];
+
+        if ($isMemberTier && isset($stats['upcoming_sessions'])) {
+            $domains[1]['metrics'][] = [
+                'label' => 'Buổi coaching (7 ngày tới)',
+                'value' => $stats['upcoming_sessions'],
+                'href' => '/coaching',
+            ];
+        }
+
+        $assetDomain = [
+            'key' => 'assets',
+            'title' => 'Tài sản & nền tảng',
+            'icon' => 'sparkles',
+            'tone' => 'violet',
+            'metrics' => [
+                [
+                    'label' => 'Tài khoản AI',
+                    'value' => $stats['ai_accounts'],
+                    'href' => '/ai-accounts/dashboard',
+                ],
+            ],
+        ];
+
+        if ($isLeadTier) {
+            $assetDomain['metrics'][] = [
+                'label' => 'Hợp đồng hiệu lực',
+                'value' => $stats['active_contracts'] ?? 0,
+                'sub' => ($stats['expiring_contracts'] ?? 0) > 0
+                    ? "{$stats['expiring_contracts']} sắp hết hạn"
+                    : 'CLM',
+                'href' => '/contracts/dashboard',
+            ];
+        }
+
+        if ($isMemberTier && isset($stats['credentials'])) {
+            $assetDomain['metrics'][] = [
+                'label' => 'Vault mật khẩu',
+                'value' => $stats['credentials'],
+                'href' => '/credentials',
+            ];
+        }
+
+        if ($isLeadTier) {
+            $domains[3]['metrics'][] = [
+                'label' => 'Báo cáo ngày chờ duyệt',
+                'value' => $stats['pending_reports'] ?? 0,
+                'href' => '/daily-reports/review',
+            ];
+        }
+
+        // Insert assets before people for visual balance
+        array_splice($domains, 3, 0, [$assetDomain]);
+
+        return [
+            'alerts' => array_slice($alerts, 0, 4),
+            'domains' => $domains,
         ];
     }
 
