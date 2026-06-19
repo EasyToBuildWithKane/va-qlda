@@ -60,14 +60,14 @@ app/Policies/DailyReportPolicy.php
 | `UpdateDailyReportUseCase` | Sửa nháp; sync projects; có thể gọi sync task |
 | `DeleteDailyReportUseCase` | Xóa khi `isEditable()` |
 | `SubmitDailyReportUseCase` | `draft` → `submitted`; cổng ngày làm việc; `is_late`; freeze task snapshot |
-| `RecallDailyReportUseCase` | `submitted` → `draft` (owner tự rút lại trong ngày); reset `submitted_at`/`is_late`/snapshot — snapshot đóng băng lại khi nộp lại |
+| `RecallDailyReportUseCase` | `submitted` → `draft` (owner tự rút lại trong ngày); nhận `?reason`; reset `submitted_at`/`is_late`/snapshot, set `recalled_at` + tăng `recall_count`; ghi `activity('daily_report')->event('recalled')` (kèm reason) + `SecurityAuditLogger::dailyReport()` — snapshot đóng băng lại khi nộp lại |
 | `ScoreReportUseCase` | Chấm 5 chiều → `ScoringService` → `reviewed` + bản ghi score |
 | `RejectReportUseCase` | `submitted` → `draft` + `review_notes` |
 | `SyncDailyReportSpawnedTasksUseCase` | Task ad-hoc trong JSON → bảng `tasks` (`source=daily`) |
 
 **Exception:** `DailyReportException` — controller bắt và flash tiếng Việt.
 
-**Audit:** model `DailyReport` dùng Spatie `LogsActivity`; submit/reject/score ghi thêm `activity('daily_report')`.
+**Audit:** model `DailyReport` dùng Spatie `LogsActivity`; submit/recall/reject/score ghi thêm `activity('daily_report')`. `App\Support\DailyReportTimeline::for($report)` đọc các event vòng đời (lọc bỏ autosave `updated`) → dòng thời gian hiển thị ở `Show.vue` qua component `ReportAuditTimeline.vue`. Action `daily_report.recalled` cũng vào sổ cái `/audit` (xem `AuditActionCatalog`).
 
 ### 3.2 Domain & support
 
