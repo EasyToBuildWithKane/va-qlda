@@ -40,7 +40,6 @@ const displayName = computed(() => {
 });
 
 const avatarSrc = computed(() => user.value.employee?.avatar_path ?? null);
-const appShort = computed(() => page.props.app?.short_name ?? 'VA QLDA');
 </script>
 
 <template>
@@ -77,15 +76,12 @@ const appShort = computed(() => page.props.app?.short_name ?? 'VA QLDA');
             {{ greeting.text }},
             <span class="text-brand">{{ displayName }}</span>
           </h2>
-          <div class="mt-2 flex flex-wrap items-center gap-2">
+          <div class="mt-2">
             <span
               class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1"
               :class="roleRing"
             >
               {{ roleLabel }}
-            </span>
-            <span class="text-[11px] text-slate-500">
-              {{ appShort }} · Trung tâm điều hành
             </span>
           </div>
         </div>

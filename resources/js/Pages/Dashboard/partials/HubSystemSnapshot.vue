@@ -30,91 +30,80 @@ const toneValue = {
     sky: 'text-sky-700',
     violet: 'text-violet-700',
     rose: 'text-rose-700',
-    slate: 'text-slate-700',
+    slate: 'text-slate-800',
 };
 
-const alertSurface = {
-    brand: 'border-brand/25 bg-brand/5 hover:bg-brand/[0.08]',
-    emerald: 'border-emerald-200/80 bg-emerald-50/60 hover:bg-emerald-50',
-    amber: 'border-amber-200/80 bg-amber-50/70 hover:bg-amber-50',
-    sky: 'border-sky-200/80 bg-sky-50/60 hover:bg-sky-50',
-    violet: 'border-violet-200/80 bg-violet-50/60 hover:bg-violet-50',
-    rose: 'border-rose-200/80 bg-rose-50/70 hover:bg-rose-50',
-    slate: 'border-slate-200 bg-slate-50/80 hover:bg-slate-50',
+const toneHeaderBg = {
+    brand: 'from-brand/[0.07] via-white to-white',
+    emerald: 'from-emerald-500/[0.08] via-white to-white',
+    amber: 'from-amber-500/[0.08] via-white to-white',
+    sky: 'from-sky-500/[0.08] via-white to-white',
+    violet: 'from-violet-500/[0.08] via-white to-white',
+    rose: 'from-rose-500/[0.08] via-white to-white',
+    slate: 'from-slate-200/40 via-white to-white',
 };
 
-const domainBorder = {
-    brand: 'border-t-brand/70',
-    emerald: 'border-t-emerald-500/70',
-    amber: 'border-t-amber-500/70',
-    sky: 'border-t-sky-500/70',
-    violet: 'border-t-violet-500/70',
-    rose: 'border-t-rose-500/70',
-    slate: 'border-t-slate-400/70',
+const alertChip = {
+    brand: 'bg-brand/5 ring-brand/15 hover:bg-brand/[0.09]',
+    emerald: 'bg-emerald-50/90 ring-emerald-200/70 hover:bg-emerald-50',
+    amber: 'bg-amber-50/90 ring-amber-200/70 hover:bg-amber-50',
+    sky: 'bg-sky-50/90 ring-sky-200/70 hover:bg-sky-50',
+    violet: 'bg-violet-50/90 ring-violet-200/70 hover:bg-violet-50',
+    rose: 'bg-rose-50/90 ring-rose-200/70 hover:bg-rose-50',
+    slate: 'bg-slate-50 ring-slate-200/80 hover:bg-slate-50',
 };
 </script>
 
 <template>
   <section
-    class="mb-5 overflow-hidden rounded-card border border-slate-200/80 bg-white shadow-sm"
+    class="hub-panel mb-5 overflow-hidden rounded-card border border-slate-200/80 bg-white shadow-sm"
     aria-label="Ảnh chụp nhanh các domain hệ thống"
   >
-    <header class="border-b border-slate-100 bg-gradient-to-r from-slate-50/90 to-white px-5 py-4">
+    <header class="border-b border-slate-100/90 px-5 py-4">
       <p class="text-[10px] font-semibold uppercase tracking-[0.14em] text-brand/80">
-        Tổng quan domain
+        Domain
       </p>
-      <div class="mt-1 flex flex-wrap items-end justify-between gap-2">
-        <h2 class="font-display text-base font-semibold text-slate-800">
-          Ảnh chụp hệ sinh thái QLDA
-        </h2>
-        <p class="text-[11px] text-slate-400">
-          Khác Dashboard công việc — tập trung module & luồng chéo
-        </p>
-      </div>
+      <h2 class="mt-1 font-display text-base font-semibold text-slate-800">
+        Ảnh chụp hệ sinh thái
+      </h2>
     </header>
 
     <div
       v-if="alerts.length"
-      class="border-b border-slate-100 bg-slate-50/50 px-5 py-3"
+      class="border-b border-slate-100 px-5 py-4"
     >
-      <p class="mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-        Cần chú ý
-      </p>
-      <ul class="flex flex-wrap gap-2">
+      <ul class="flex flex-wrap gap-2.5">
         <li
           v-for="item in alerts"
           :key="item.key"
         >
           <Link
             :href="item.href"
-            class="flex items-center gap-2 rounded-lg border px-3 py-2 transition"
-            :class="alertSurface[item.tone] ?? alertSurface.slate"
+            class="group flex items-center gap-3 rounded-xl px-3.5 py-2.5 ring-1 transition hover:shadow-sm"
+            :class="alertChip[item.tone] ?? alertChip.slate"
           >
             <span
-              class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md ring-1"
+              class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ring-1"
               :class="toneIcon[item.tone] ?? toneIcon.slate"
             >
               <AppIcon
                 :name="item.icon"
-                :size="15"
+                :size="16"
               />
             </span>
             <span class="min-w-0 text-left">
-              <span class="block text-[11px] font-medium text-slate-600">{{ item.label }}</span>
-              <span class="flex items-baseline gap-1.5">
-                <span
-                  class="font-display text-lg font-bold tabular-nums leading-none"
-                  :class="toneValue[item.tone] ?? toneValue.slate"
-                >
-                  {{ item.value }}
-                </span>
-                <span class="text-[10px] text-slate-400">{{ item.hint }}</span>
+              <span class="block text-[12px] font-medium text-slate-700">{{ item.label }}</span>
+              <span
+                class="font-display text-xl font-bold tabular-nums leading-tight"
+                :class="toneValue[item.tone] ?? toneValue.slate"
+              >
+                {{ item.value }}
               </span>
             </span>
             <AppIcon
               name="chevron-right"
-              :size="14"
-              class="shrink-0 text-slate-300"
+              :size="15"
+              class="shrink-0 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-brand/70"
             />
           </Link>
         </li>
@@ -125,74 +114,72 @@ const domainBorder = {
       <article
         v-for="domain in domains"
         :key="domain.key"
-        class="flex flex-col overflow-hidden rounded-xl border border-slate-200/80 border-t-[3px] bg-white"
-        :class="domainBorder[domain.tone] ?? domainBorder.slate"
+        class="hub-domain-card flex flex-col overflow-hidden rounded-xl bg-white ring-1 ring-slate-200/75 shadow-[0_1px_3px_rgb(15_23_42/0.04)]"
       >
-        <div class="flex items-center gap-2.5 border-b border-slate-100 px-4 py-3">
+        <div
+          class="flex items-center gap-3 bg-gradient-to-br px-4 py-3.5"
+          :class="toneHeaderBg[domain.tone] ?? toneHeaderBg.slate"
+        >
           <span
-            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ring-1"
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1 shadow-sm"
             :class="toneIcon[domain.tone] ?? toneIcon.slate"
           >
             <AppIcon
               :name="domain.icon"
-              :size="17"
+              :size="18"
             />
           </span>
-          <h3 class="font-display text-sm font-semibold text-slate-800">
+          <h3 class="font-display text-sm font-semibold leading-snug text-slate-800">
             {{ domain.title }}
           </h3>
         </div>
 
-        <ul class="flex flex-1 flex-col divide-y divide-slate-100">
+        <ul class="flex flex-1 flex-col">
           <li
             v-for="(metric, idx) in domain.metrics"
             :key="`${domain.key}-${idx}`"
+            class="border-t border-slate-100/90 first:border-t-0"
           >
             <Link
               v-if="metric.href"
               :href="metric.href"
-              class="group flex items-center justify-between gap-3 px-4 py-3 transition hover:bg-slate-50/90"
+              class="group flex items-center justify-between gap-4 px-4 py-3.5 transition hover:bg-slate-50/80"
             >
-              <span class="min-w-0">
-                <span class="block text-[12px] font-medium text-slate-600 group-hover:text-slate-800">
-                  {{ metric.label }}
-                </span>
-                <span
-                  v-if="metric.sub"
-                  class="block text-[11px] text-slate-400"
-                >
-                  {{ metric.sub }}
-                </span>
+              <span class="min-w-0 flex-1 text-[13px] font-medium text-slate-600 group-hover:text-slate-900">
+                {{ metric.label }}
               </span>
-              <span class="flex shrink-0 items-center gap-1.5">
-                <span
-                  class="font-display text-xl font-bold tabular-nums"
-                  :class="toneValue[domain.tone] ?? 'text-slate-800'"
-                >
-                  {{ metric.value }}
+              <span class="flex shrink-0 items-center gap-2">
+                <span class="flex flex-col items-end gap-1">
+                  <span
+                    class="font-display text-2xl font-bold tabular-nums leading-none"
+                    :class="toneValue[domain.tone] ?? 'text-slate-800'"
+                  >
+                    {{ metric.value }}
+                  </span>
+                  <span
+                    v-if="metric.badge"
+                    class="rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+                    :class="metric.badgeClass ?? 'bg-slate-100 text-slate-600'"
+                  >
+                    {{ metric.badge }}
+                  </span>
                 </span>
                 <AppIcon
                   name="chevron-right"
                   :size="14"
-                  class="text-slate-300 group-hover:text-brand/60"
+                  class="text-slate-300 transition group-hover:text-brand/60"
                 />
               </span>
             </Link>
             <div
               v-else
-              class="flex items-center justify-between gap-3 px-4 py-3"
+              class="flex items-center justify-between gap-4 px-4 py-3.5"
             >
-              <span class="min-w-0">
-                <span class="block text-[12px] font-medium text-slate-600">{{ metric.label }}</span>
-                <span
-                  v-if="metric.sub"
-                  class="block text-[11px] text-slate-400"
-                >
-                  {{ metric.sub }}
-                </span>
+              <span class="min-w-0 flex-1 text-[13px] font-medium text-slate-600">
+                {{ metric.label }}
               </span>
               <span
-                class="font-display text-xl font-bold tabular-nums"
+                class="font-display text-2xl font-bold tabular-nums leading-none"
                 :class="toneValue[domain.tone] ?? 'text-slate-800'"
               >
                 {{ metric.value }}

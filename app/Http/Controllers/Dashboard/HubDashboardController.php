@@ -127,7 +127,7 @@ class HubDashboardController extends Controller
                 'icon' => 'all-projects',
                 'href' => '/projects',
                 'stat' => $stats['active_projects'],
-                'statLabel' => 'đang chạy',
+                'statUnit' => 'đang chạy',
                 'tone' => 'brand',
             ],
             [
@@ -136,7 +136,7 @@ class HubDashboardController extends Controller
                 'icon' => 'blockers',
                 'href' => '/blockers',
                 'stat' => $stats['open_blockers'],
-                'statLabel' => 'đang mở',
+                'statUnit' => 'đang mở',
                 'tone' => $stats['open_blockers'] > 0 ? 'amber' : 'emerald',
             ],
             [
@@ -145,7 +145,7 @@ class HubDashboardController extends Controller
                 'icon' => 'task',
                 'href' => '/work',
                 'stat' => $stats['overdue_tasks'],
-                'statLabel' => 'quá hạn',
+                'statUnit' => 'quá hạn',
                 'tone' => $stats['overdue_tasks'] > 0 ? 'rose' : 'emerald',
             ],
             [
@@ -154,7 +154,7 @@ class HubDashboardController extends Controller
                 'icon' => 'feedback',
                 'href' => '/feedback',
                 'stat' => $stats['open_feedback'],
-                'statLabel' => 'đang xử lý',
+                'statUnit' => 'đang xử lý',
                 'tone' => 'violet',
             ],
         ];
@@ -166,7 +166,7 @@ class HubDashboardController extends Controller
                 'icon' => 'daily',
                 'href' => '/daily-reports/review',
                 'stat' => $stats['pending_reports'] ?? 0,
-                'statLabel' => 'chờ duyệt',
+                'statUnit' => 'chờ duyệt',
                 'tone' => ($stats['pending_reports'] ?? 0) > 0 ? 'amber' : 'sky',
             ];
         } else {
@@ -176,7 +176,7 @@ class HubDashboardController extends Controller
                 'icon' => 'daily',
                 'href' => '/daily-reports/today',
                 'stat' => null,
-                'statLabel' => 'hôm nay',
+                'statUnit' => null,
                 'tone' => 'sky',
             ];
         }
@@ -200,7 +200,7 @@ class HubDashboardController extends Controller
                     'icon' => 'performance',
                     'href' => '/performance',
                     'stat' => null,
-                    'statLabel' => 'KPI nhân sự',
+                    'statUnit' => null,
                     'tone' => 'sky',
                 ],
                 [
@@ -209,7 +209,7 @@ class HubDashboardController extends Controller
                     'icon' => 'leaderboard',
                     'href' => '/performance/audit',
                     'stat' => null,
-                    'statLabel' => 'đánh giá nhân viên',
+                    'statUnit' => null,
                     'tone' => 'violet',
                 ],
             ];
@@ -233,7 +233,7 @@ class HubDashboardController extends Controller
                 'icon' => 'knowledge',
                 'href' => '/knowledge-base',
                 'stat' => $stats['kb_articles'],
-                'statLabel' => 'bài viết',
+                'statUnit' => 'bài viết',
                 'tone' => 'emerald',
             ],
             [
@@ -242,7 +242,7 @@ class HubDashboardController extends Controller
                 'icon' => 'rocket',
                 'href' => '/congnghe',
                 'stat' => null,
-                'statLabel' => 'đề xuất phần mềm',
+                'statUnit' => null,
                 'tone' => 'violet',
             ],
         ];
@@ -254,7 +254,7 @@ class HubDashboardController extends Controller
                 'icon' => 'learning',
                 'href' => '/coaching',
                 'stat' => $stats['upcoming_sessions'] ?? null,
-                'statLabel' => 'buổi học sắp tới',
+                'statUnit' => '7 ngày',
                 'tone' => 'sky',
             ]);
         }
@@ -277,7 +277,7 @@ class HubDashboardController extends Controller
                 'icon' => 'sparkles',
                 'href' => '/ai-accounts/dashboard',
                 'stat' => $stats['ai_accounts'],
-                'statLabel' => 'tài khoản AI',
+                'statUnit' => 'AI',
                 'tone' => 'violet',
             ],
         ];
@@ -289,7 +289,7 @@ class HubDashboardController extends Controller
                 'icon' => 'budget',
                 'href' => '/contracts/dashboard',
                 'stat' => $stats['active_contracts'] ?? 0,
-                'statLabel' => 'hợp đồng hiệu lực',
+                'statUnit' => 'HĐ',
                 'tone' => ($stats['expiring_contracts'] ?? 0) > 0 ? 'amber' : 'brand',
             ]);
         }
@@ -301,7 +301,7 @@ class HubDashboardController extends Controller
                 'icon' => 'vault',
                 'href' => '/credentials',
                 'stat' => $stats['credentials'] ?? 0,
-                'statLabel' => 'tài khoản lưu trữ',
+                'statUnit' => 'vault',
                 'tone' => 'slate',
             ];
         }
@@ -324,7 +324,7 @@ class HubDashboardController extends Controller
                 'icon' => 'members',
                 'href' => '/members',
                 'stat' => $stats['total_members'],
-                'statLabel' => 'nhân sự',
+                'statUnit' => 'nhân sự',
                 'tone' => 'sky',
             ],
         ];
@@ -336,7 +336,7 @@ class HubDashboardController extends Controller
                 'icon' => 'org-teams',
                 'href' => '/org-teams',
                 'stat' => null,
-                'statLabel' => 'sơ đồ nhóm',
+                'statUnit' => null,
                 'tone' => 'brand',
             ]);
             $peopleModules[] = [
@@ -345,7 +345,7 @@ class HubDashboardController extends Controller
                 'icon' => 'department',
                 'href' => '/departments',
                 'stat' => null,
-                'statLabel' => 'quản lý phòng ban',
+                'statUnit' => null,
                 'tone' => 'violet',
             ];
         }
@@ -370,7 +370,7 @@ class HubDashboardController extends Controller
                 'icon' => 'notifications',
                 'href' => '/notifications',
                 'stat' => null,
-                'statLabel' => 'hộp thư đến',
+                'statUnit' => null,
                 'tone' => 'sky',
             ];
         }
@@ -382,7 +382,7 @@ class HubDashboardController extends Controller
                 'icon' => 'send',
                 'href' => '/notifications/manage',
                 'stat' => null,
-                'statLabel' => 'quản trị thông báo',
+                'statUnit' => null,
                 'tone' => 'brand',
             ];
             $systemModules[] = [
@@ -391,7 +391,7 @@ class HubDashboardController extends Controller
                 'icon' => 'shield',
                 'href' => '/audit',
                 'stat' => null,
-                'statLabel' => 'bảo mật hệ thống',
+                'statUnit' => null,
                 'tone' => 'slate',
             ];
         }
@@ -403,7 +403,7 @@ class HubDashboardController extends Controller
                 'icon' => 'system-config',
                 'href' => '/settings',
                 'stat' => null,
-                'statLabel' => 'cấu hình & phân quyền',
+                'statUnit' => null,
                 'tone' => 'rose',
             ];
         }
@@ -444,7 +444,6 @@ class HubDashboardController extends Controller
                 'key' => 'overdue_tasks',
                 'label' => 'Công việc quá hạn',
                 'value' => $stats['overdue_tasks'],
-                'hint' => 'Xem chi tiết trên Dashboard công việc',
                 'href' => '/work',
                 'tone' => 'rose',
                 'icon' => 'clock',
@@ -456,7 +455,6 @@ class HubDashboardController extends Controller
                 'key' => 'pending_reports',
                 'label' => 'Báo cáo chờ duyệt',
                 'value' => $stats['pending_reports'],
-                'hint' => 'Hàng đợi duyệt báo cáo ngày',
                 'href' => '/daily-reports/review',
                 'tone' => 'amber',
                 'icon' => 'daily',
@@ -468,7 +466,6 @@ class HubDashboardController extends Controller
                 'key' => 'expiring_contracts',
                 'label' => 'Hợp đồng sắp hết hạn',
                 'value' => $stats['expiring_contracts'],
-                'hint' => 'Cần theo dõi gia hạn',
                 'href' => '/contracts/dashboard',
                 'tone' => 'amber',
                 'icon' => 'contract',
@@ -480,7 +477,6 @@ class HubDashboardController extends Controller
                 'key' => 'open_feedback',
                 'label' => 'Phản hồi đang xử lý',
                 'value' => $stats['open_feedback'],
-                'hint' => 'Luồng phản hồi người dùng',
                 'href' => '/feedback',
                 'tone' => 'violet',
                 'icon' => 'feedback',
@@ -528,7 +524,8 @@ class HubDashboardController extends Controller
                     [
                         'label' => 'Dự án đang chạy',
                         'value' => $stats['active_projects'],
-                        'sub' => "/ {$stats['total_projects']} trong hệ thống",
+                        'badge' => "Tổng {$stats['total_projects']}",
+                        'badgeClass' => 'bg-brand/10 text-brand',
                         'href' => '/projects',
                     ],
                 ],
@@ -542,13 +539,15 @@ class HubDashboardController extends Controller
                     [
                         'label' => 'Nhân sự trong phạm vi',
                         'value' => $scopedPeople,
-                        'sub' => $deptLabel,
+                        'badge' => $deptLabel,
+                        'badgeClass' => 'bg-sky-100 text-sky-800',
                         'href' => '/members',
                     ],
                     [
                         'label' => 'Thành viên toàn công ty',
                         'value' => $stats['total_members'],
-                        'sub' => 'Hồ sơ nhân sự',
+                        'badge' => 'Toàn công ty',
+                        'badgeClass' => 'bg-slate-100 text-slate-600',
                         'href' => '/members',
                     ],
                 ],
@@ -581,9 +580,12 @@ class HubDashboardController extends Controller
             $assetDomain['metrics'][] = [
                 'label' => 'Hợp đồng hiệu lực',
                 'value' => $stats['active_contracts'] ?? 0,
-                'sub' => ($stats['expiring_contracts'] ?? 0) > 0
+                'badge' => ($stats['expiring_contracts'] ?? 0) > 0
                     ? "{$stats['expiring_contracts']} sắp hết hạn"
-                    : 'CLM',
+                    : null,
+                'badgeClass' => ($stats['expiring_contracts'] ?? 0) > 0
+                    ? 'bg-amber-100 text-amber-800'
+                    : null,
                 'href' => '/contracts/dashboard',
             ];
         }

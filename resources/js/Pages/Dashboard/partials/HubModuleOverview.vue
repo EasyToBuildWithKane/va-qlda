@@ -23,17 +23,17 @@ const toneStat = {
     sky: 'text-sky-700',
     violet: 'text-violet-700',
     rose: 'text-rose-700',
-    slate: 'text-slate-600',
+    slate: 'text-slate-700',
 };
 
-const toneGroupAccent = {
-    brand: 'from-brand/80 to-brand/30',
-    emerald: 'from-emerald-500/80 to-emerald-400/30',
-    amber: 'from-amber-500/80 to-amber-400/30',
-    sky: 'from-sky-500/80 to-sky-400/30',
-    violet: 'from-violet-500/80 to-violet-400/30',
-    rose: 'from-rose-500/80 to-rose-400/30',
-    slate: 'from-slate-400/80 to-slate-300/30',
+const toneHeaderBg = {
+    brand: 'from-brand/[0.07] via-white to-white',
+    emerald: 'from-emerald-500/[0.08] via-white to-white',
+    amber: 'from-amber-500/[0.08] via-white to-white',
+    sky: 'from-sky-500/[0.08] via-white to-white',
+    violet: 'from-violet-500/[0.08] via-white to-white',
+    rose: 'from-rose-500/[0.08] via-white to-white',
+    slate: 'from-slate-200/40 via-white to-white',
 };
 </script>
 
@@ -53,37 +53,30 @@ const toneGroupAccent = {
 
     <header class="relative border-b border-slate-100/80 px-5 py-4">
       <p class="text-[10px] font-semibold uppercase tracking-[0.14em] text-brand/80">
-        Module
+        Truy cập
       </p>
-      <div class="mt-1 flex flex-wrap items-end justify-between gap-2">
-        <h2 class="font-display text-base font-semibold text-slate-800">
-          Tổng quan & truy cập nhanh
-        </h2>
-        <p class="text-[11px] text-slate-400">
-          Hiển thị theo quyền tài khoản của bạn
-        </p>
-      </div>
+      <h2 class="mt-1 font-display text-base font-semibold text-slate-800">
+        Module theo quyền của bạn
+      </h2>
     </header>
 
     <div class="relative grid grid-cols-1 gap-4 p-4 md:grid-cols-2 xl:grid-cols-3">
       <article
         v-for="group in moduleGroups"
         :key="group.key"
-        class="flex flex-col overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm"
+        class="flex flex-col overflow-hidden rounded-xl bg-white ring-1 ring-slate-200/75 shadow-[0_1px_3px_rgb(15_23_42/0.04)]"
       >
-        <div class="flex items-center gap-3 border-b border-slate-100 px-4 py-3">
+        <div
+          class="flex items-center gap-3 bg-gradient-to-br px-4 py-3.5"
+          :class="toneHeaderBg[group.tone] ?? toneHeaderBg.slate"
+        >
           <span
-            class="h-9 w-1 shrink-0 rounded-full bg-gradient-to-b"
-            :class="toneGroupAccent[group.tone] ?? toneGroupAccent.slate"
-            aria-hidden="true"
-          />
-          <span
-            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ring-1"
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1 shadow-sm"
             :class="toneIcon[group.tone] ?? toneIcon.slate"
           >
             <AppIcon
               :name="group.icon"
-              :size="17"
+              :size="18"
             />
           </span>
           <h3 class="min-w-0 font-display text-sm font-semibold text-slate-800">
@@ -91,14 +84,15 @@ const toneGroupAccent = {
           </h3>
         </div>
 
-        <ul class="flex flex-1 flex-col gap-1.5 p-3">
+        <ul class="flex flex-1 flex-col">
           <li
             v-for="mod in group.modules"
             :key="mod.key"
+            class="border-t border-slate-100/90 first:border-t-0"
           >
             <Link
               :href="mod.href"
-              class="group flex items-center gap-3 rounded-lg border border-transparent px-2.5 py-2.5 transition hover:border-slate-200/90 hover:bg-slate-50/90"
+              class="group flex items-center gap-3 px-3 py-3 transition hover:bg-slate-50/80"
             >
               <span
                 class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ring-1 transition group-hover:shadow-sm"
@@ -109,26 +103,31 @@ const toneGroupAccent = {
                   :size="16"
                 />
               </span>
-              <span class="min-w-0 flex-1">
-                <span class="block truncate text-[13px] font-medium text-slate-700 group-hover:text-slate-900">
-                  {{ mod.label }}
-                </span>
-                <span class="block truncate text-[11px] text-slate-400">
-                  {{ mod.statLabel }}
-                </span>
+              <span class="min-w-0 flex-1 truncate text-[13px] font-medium text-slate-700 group-hover:text-slate-900">
+                {{ mod.label }}
               </span>
-              <span class="flex shrink-0 flex-col items-end gap-0.5">
+              <span class="flex shrink-0 items-center gap-2">
                 <span
                   v-if="mod.stat !== null && mod.stat !== undefined"
-                  class="font-display text-lg font-bold tabular-nums leading-none"
-                  :class="toneStat[mod.tone] ?? 'text-slate-700'"
+                  class="flex items-baseline gap-1 tabular-nums"
                 >
-                  {{ mod.stat }}
+                  <span
+                    class="font-display text-xl font-bold leading-none"
+                    :class="toneStat[mod.tone] ?? 'text-slate-800'"
+                  >
+                    {{ mod.stat }}
+                  </span>
+                  <span
+                    v-if="mod.statUnit"
+                    class="text-[10px] font-semibold uppercase tracking-wide text-slate-400"
+                  >
+                    {{ mod.statUnit }}
+                  </span>
                 </span>
                 <AppIcon
                   name="chevron-right"
                   :size="14"
-                  class="text-slate-300 transition group-hover:text-brand/70"
+                  class="text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-brand/70"
                 />
               </span>
             </Link>

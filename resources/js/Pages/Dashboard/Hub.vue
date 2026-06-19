@@ -20,7 +20,7 @@ defineProps({
     <template #header>
       <PageHeader
         title="Tổng quan hệ thống"
-        subtitle="Domain đa module — chi tiết công việc tại Dashboard công việc"
+        subtitle="Ảnh chụp domain và lối vào module"
         icon="overview"
         icon-color="brand"
       />
