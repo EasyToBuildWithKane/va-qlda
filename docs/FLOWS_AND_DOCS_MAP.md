@@ -174,7 +174,7 @@ flowchart TB
 | Tổng quan | `PROJECT_OVERVIEW.md` §3 | `HubDashboardController` | `Pages/Dashboard/` |
 | Trung tâm Công Nghệ | `CONGNGHE_CONTENT.md` | `Congnghe/*` | `Pages/Congnghe/`, `CongngheAdmin/` |
 | Dự án & vướng mắc | `API_STRUCTURE` §2.4–2.11 | `Project/*`, `BlockerController` | `Pages/Project/`, `modules/project/` |
-| Báo cáo ngày | `DAILY_REPORT_PROJECTS.md` | `DailyReport/*` | `Pages/DailyReport/`, `modules/daily-report/` |
+| Báo cáo ngày | `DAILY_REPORT.md` (+ `DAILY_REPORT_PROJECTS.md` liên kết dự án) | `DailyReport/*` | `Pages/DailyReport/`, `modules/daily-report/` |
 | Tổ chức | `DATABASE_STRUCTURE` org | `Department`, `OrgTeam`, `Member`, `Profile` | `Pages/Department/`, `OrgTeam/`, `Member/`, `Profile/` |
 | Coaching | `COACHING_MENTORING.md` | `Coaching/*` | `Pages/Coaching/` |
 | Tri thức | `KNOWLEDGE_BASE.md` | `KbArticleController` | `Pages/KnowledgeBase/` |
@@ -215,7 +215,7 @@ stateDiagram-v2
   reviewed --> [*]
 ```
 
-Use cases: `app/Application/DailyReport/`.
+Use cases: `app/Application/DailyReport/`. Chi tiết: [`DAILY_REPORT.md`](./DAILY_REPORT.md).
 
 ### 7.3 Vướng mắc / nhập Excel
 

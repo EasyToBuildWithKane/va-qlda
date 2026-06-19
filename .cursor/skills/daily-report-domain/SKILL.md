@@ -40,6 +40,8 @@ Controller validates via FormRequest → calls single Use Case → catches `Dail
 
 ## Reference
 
+- `docs/DAILY_REPORT.md` — module doc (routes, RBAC, task sync, frontend)
+- `docs/DAILY_REPORT_PROJECTS.md` — `projects` JSON vs `project_id`
 - `docs/PROJECT_OVERVIEW.md` §3.2
 - `docs/ARCHITECTURE.md` §1
 - Existing: `SubmitDailyReportUseCase`, `ScoreReportUseCase`, `RejectReportUseCase`

@@ -233,7 +233,7 @@ Tạo Project
 | Org teams (sơ đồ nhóm) | `/org-teams` | ✅ Hoàn thành |
 | Profile / Members directory | `/members`, `/profile` | ✅ Hoàn thành |
 | System settings (super_admin) | `/settings` | ✅ → docs/SYSTEM_CONFIG.md |
-| Daily Report | `/daily-reports` | ✅ Hoàn thành |
+| Daily Report | `/daily-reports` | ✅ Hoàn thành → docs/DAILY_REPORT.md |
 | Blocker Tracking | `/blockers` | ✅ Hoàn thành |
 | Bug Tracking | — | ❌ Đã gỡ (2026-06) — dùng Feedback / Blocker |
 | Feedback | `/feedback` | ✅ Hoàn thành |

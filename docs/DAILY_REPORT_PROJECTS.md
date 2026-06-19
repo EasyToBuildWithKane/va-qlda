@@ -1,5 +1,8 @@
 # Daily Report — Liên kết dự án
 
+> **Module đầy đủ:** luồng nghiệp vụ, routes, phân quyền, UI — xem [`DAILY_REPORT.md`](./DAILY_REPORT.md).  
+> Tài liệu này tập trung **đồng bộ dự án**, filter `project_id` và **export lịch sử**.
+
 ## Source of truth
 
 | Field | Vai trò |

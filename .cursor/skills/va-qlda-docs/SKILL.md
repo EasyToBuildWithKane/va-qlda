@@ -28,6 +28,8 @@ description: >-
 | `docs/AI_ACCOUNTS.md` | Quản lý AI: PĐX, TK, chi phí nhóm, xóa, orphan purge |
 | `docs/REFACTOR_PLAN.md` | Phase 1–5 ✅ complete; follow-up items |
 | `docs/TECHNICAL_DEBT.md` | Open issues (TD-002, TD-010, …) + roadmap |
+| `docs/DAILY_REPORT.md` | Báo cáo ngày — Use Cases, review, task sync, export |
+| `docs/DAILY_REPORT_PROJECTS.md` | Liên kết dự án JSON + filter legacy `project_id` |
 | `docs/COACHING_MENTORING.md` | Module Coaching — routes, UI, phân quyền |
 | `docs/KNOWLEDGE_BASE.md` | Knowledge Base / blog nội bộ |
 | `docs/CONTRACT_MANAGEMENT.md` | Module Hợp đồng (CLM) — routes, NCC, chi phí, gia hạn |
