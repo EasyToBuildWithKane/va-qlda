@@ -40,25 +40,25 @@ function bindNavRef(el) {
     >
       <button
         type="button"
-        class="group/head flex w-full min-h-8 items-center gap-1.5 rounded-lg px-2 py-1.5 transition-all duration-150 select-none"
+        class="sidebar-nav-group-head group/head flex w-full min-h-8 items-center gap-1.5 rounded-lg px-2 py-1.5 transition-all duration-150 select-none"
         :class="isUpcomingGroup(group)
-          ? 'border border-amber-300/25 bg-amber-400/12 text-[10.5px] font-bold uppercase tracking-[0.13em] text-amber-100/95 hover:bg-amber-400/18 hover:text-amber-50'
-          : 'text-[10.5px] font-bold uppercase tracking-[0.13em] text-brand-100/75 hover:bg-white/[0.06] hover:text-white'"
+          ? 'border border-amber-300/25 bg-amber-400/12 text-[10px] font-bold uppercase tracking-[0.14em] text-amber-50 hover:bg-amber-400/18 hover:text-white'
+          : 'border border-white/[0.08] bg-white/[0.08] text-[10px] font-bold uppercase tracking-[0.14em] text-white shadow-[inset_3px_0_0_0_rgba(255,255,255,0.35)] hover:bg-white/[0.12] hover:text-white'"
         :aria-expanded="isOpen(group)"
         @click="toggleGroup(group)"
       >
         <span
-          class="sidebar-nav-icon-shell grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-white/[0.06] group-hover/head:bg-white/[0.1]"
+          class="sidebar-nav-icon-shell grid h-7 w-7 shrink-0 place-items-center rounded-md bg-white/[0.06] group-hover/head:bg-white/[0.1]"
           :class="isUpcomingGroup(group) ? 'ring-1 ring-inset ring-amber-300/20' : ''"
         >
           <AppIcon
             :name="group.icon"
-            :size="18"
+            :size="15"
             class="sidebar-nav-icon shrink-0"
-            :class="isUpcomingGroup(group) ? 'text-amber-200/95' : 'text-brand-50/90'"
+            :class="isUpcomingGroup(group) ? 'text-amber-100' : 'text-white/90'"
           />
         </span>
-        <span class="min-w-0 flex-1 truncate text-left">{{ group.heading }}</span>
+        <span class="sidebar-nav-group-title min-w-0 flex-1 truncate text-left">{{ group.heading }}</span>
         <span
           v-if="isUpcomingGroup(group)"
           class="shrink-0 rounded-full border border-amber-300/40 bg-amber-400/25 px-1.5 py-0.5 text-[9px] font-bold tabular-nums leading-none text-amber-50"
@@ -66,13 +66,13 @@ function bindNavRef(el) {
           {{ group.items.length }}
         </span>
         <span
-          class="grid h-5 w-5 shrink-0 place-items-center rounded-md text-brand-100/40 transition-colors group-hover/head:text-brand-100/65"
+          class="grid h-5 w-5 shrink-0 place-items-center rounded-md text-white/45 transition-colors group-hover/head:text-white/70"
           :class="isUpcomingGroup(group) && 'text-amber-100/50 group-hover/head:text-amber-50/80'"
           aria-hidden="true"
         >
           <AppIcon
             name="chevron-down"
-            :size="12"
+            :size="11"
             class="transition-transform duration-200 ease-out"
             :class="isOpen(group) ? 'rotate-0' : '-rotate-90'"
           />
@@ -85,8 +85,8 @@ function bindNavRef(el) {
       >
         <div class="min-h-0 overflow-hidden">
           <ul
-            class="mb-0.5 mt-0.5 space-y-0.5"
-            :class="isUpcomingGroup(group) && 'rounded-lg border border-amber-300/15 bg-amber-950/20 p-0.5'"
+            class="sidebar-nav-group-items mb-0.5 mt-1 space-y-0.5 border-l border-white/[0.12] pl-1.5 ml-2"
+            :class="isUpcomingGroup(group) && 'rounded-lg border border-amber-300/15 border-l-amber-300/25 bg-amber-950/20 p-0.5 pl-1.5 ml-1'"
           >
             <li
               v-for="item in group.items"
@@ -96,26 +96,26 @@ function bindNavRef(el) {
                 :is="isPlanned(item) ? 'div' : Link"
                 :href="isPlanned(item) ? undefined : item.href"
                 :title="isPlanned(item) ? 'Sắp ra mắt — chưa khả dụng' : undefined"
-                class="sidebar-nav-link group/item flex min-h-[44px] items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] font-medium leading-snug transition-all duration-200"
+                class="sidebar-nav-link group/item flex min-h-[40px] items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] font-normal leading-snug transition-all duration-200"
                 :class="[
                   isActive(item.href)
                     ? 'sidebar-nav-item--active bg-white/[0.16] font-semibold text-white shadow-sm ring-1 ring-inset ring-white/15'
                     : isUpcomingGroup(group)
-                      ? 'text-amber-100/75 hover:bg-amber-400/10 hover:text-amber-50'
-                      : 'text-brand-50/90 hover:bg-white/[0.08] hover:text-white',
+                      ? 'text-amber-100/70 hover:bg-amber-400/10 hover:text-amber-50'
+                      : 'text-white/65 hover:bg-white/[0.08] hover:text-white/95',
                   isPlanned(item) && 'cursor-not-allowed',
                 ]"
               >
                 <span
-                  class="sidebar-nav-icon-shell sidebar-nav-icon-shell--item h-9 w-9 shrink-0"
+                  class="sidebar-nav-icon-shell sidebar-nav-icon-shell--item h-8 w-8 shrink-0"
                   :class="isActive(item.href) ? '' : 'group-hover/item:bg-white/[0.08]'"
                 >
                   <AppIcon
                     :name="item.icon"
-                    :size="22"
+                    :size="18"
                     :stroke-width="1.65"
                     class="sidebar-nav-icon shrink-0"
-                    :class="isActive(item.href) ? 'text-white' : 'text-brand-50/85 group-hover/item:text-white'"
+                    :class="isActive(item.href) ? 'text-white' : 'text-white/55 group-hover/item:text-white/90'"
                   />
                 </span>
 
@@ -142,7 +142,7 @@ function bindNavRef(el) {
                 <AppIcon
                   v-else-if="isPlanned(item)"
                   name="clock"
-                  :size="14"
+                  :size="12"
                   class="ml-auto shrink-0 text-amber-300/70"
                 />
 

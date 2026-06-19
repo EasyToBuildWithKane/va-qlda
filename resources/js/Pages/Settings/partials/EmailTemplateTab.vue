@@ -76,6 +76,10 @@ const livePreview = computed(() => buildTemplatePreviewDocument(
 
 const subjectLength = computed(() => templateForm.subject.length);
 
+const activeCount = computed(
+    () => props.emailTemplates.filter((t) => t.is_active).length,
+);
+
 const subjectCounterClass = computed(() => {
     if (subjectLength.value > SUBJECT_MAX) return 'text-rose-600';
     if (subjectLength.value > 50) return 'text-amber-600';
@@ -156,18 +160,13 @@ const sectionTabs = [
 </script>
 
 <template>
-  <div class="space-y-5">
-    <div class="flex flex-wrap items-center justify-between gap-3">
-      <h2 class="text-[15px] font-semibold text-slate-800">
-        {{ title || 'Email & Thông báo' }}
-      </h2>
-      <div
-        v-if="emailTemplates.length && activeSection === 'templates'"
-        class="text-xs text-slate-500"
-      >
-        {{ emailTemplates.filter((t) => t.is_active).length }}/{{ emailTemplates.length }} mẫu đang bật
-      </div>
-    </div>
+  <div
+    class="space-y-5"
+    style="zoom: 0.9"
+  >
+    <h2 class="text-[15px] font-semibold text-slate-800">
+      {{ title || 'Email & Thông báo' }}
+    </h2>
 
     <nav
       class="inline-flex max-w-full rounded-lg border border-slate-200 bg-slate-50/80 p-0.5"
@@ -198,130 +197,195 @@ const sectionTabs = [
       />
     </div>
 
-    <div
-      v-show="activeSection === 'templates'"
-      class="space-y-4"
-    >
-      <div class="flex flex-wrap items-center justify-between gap-2">
-        <div
-          class="flex min-w-0 flex-1 flex-wrap gap-1.5"
-          role="tablist"
-          aria-label="Loại mẫu email"
-        >
-          <button
-            v-for="t in emailTemplates"
-            :key="t.id"
-            type="button"
-            role="tab"
-            class="inline-flex max-w-full items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-left text-xs font-medium transition-colors"
-            :class="selectedId === t.id
-              ? 'border-brand/35 bg-brand/[0.06] text-brand'
-              : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'"
-            :aria-selected="selectedId === t.id"
-            @click="selectedId = t.id"
-          >
-            <span class="truncate">{{ t.name }}</span>
-            <span
-              class="h-1.5 w-1.5 shrink-0 rounded-full"
-              :class="t.is_active ? 'bg-emerald-500' : 'bg-slate-300'"
-              :title="t.is_active ? 'Đang bật' : 'Đang tắt'"
-            />
-          </button>
-        </div>
-        <div class="flex shrink-0 rounded-lg border border-slate-200 p-0.5">
-          <button
-            type="button"
-            class="rounded-md px-2.5 py-1 text-[11px] font-medium transition sm:px-3 sm:text-xs"
-            :class="editorTab === 'split' ? 'bg-brand text-white' : 'text-slate-500'"
-            @click="editorTab = 'split'"
-          >
-            Soạn + xem
-          </button>
-          <button
-            type="button"
-            class="rounded-md px-2.5 py-1 text-[11px] font-medium transition sm:px-3 sm:text-xs"
-            :class="editorTab === 'edit' ? 'bg-brand text-white' : 'text-slate-500'"
-            @click="editorTab = 'edit'"
-          >
-            Soạn
-          </button>
-          <button
-            type="button"
-            class="rounded-md px-2.5 py-1 text-[11px] font-medium transition sm:px-3 sm:text-xs"
-            :class="editorTab === 'preview' ? 'bg-brand text-white' : 'text-slate-500'"
-            @click="editorTab = 'preview'"
-          >
-            Xem trước
-          </button>
-        </div>
-      </div>
-
+    <div v-show="activeSection === 'templates'">
       <div
-        v-if="selectedTemplate"
-        class="grid min-w-0 gap-4"
-        :class="editorTab === 'split' ? 'xl:grid-cols-2' : 'grid-cols-1'"
+        v-if="emailTemplates.length"
+        class="grid gap-4 lg:grid-cols-[13.5rem_minmax(0,1fr)]"
       >
-        <div
-          v-show="editorTab !== 'preview'"
-          class="space-y-4 rounded-xl border border-slate-100 bg-white p-4"
-        >
-          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
-            <p class="text-sm font-semibold text-slate-800">
-              {{ selectedTemplate.name }}
-            </p>
-            <div class="flex items-center gap-2">
-              <span class="text-xs text-slate-500">{{ templateForm.is_active ? 'Bật' : 'Tắt' }}</span>
-              <ToggleSwitch
-                v-model="templateForm.is_active"
-                :disabled="!canManage"
-              />
+        <!-- Master: danh sách loại thông báo -->
+        <aside class="lg:sticky lg:top-2 lg:self-start">
+          <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
+            <div class="flex items-center justify-between border-b border-slate-100 bg-slate-50/70 px-3 py-2">
+              <span class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                Loại thông báo
+              </span>
+              <span class="text-[11px] tabular-nums text-slate-400">
+                {{ activeCount }}/{{ emailTemplates.length }} bật
+              </span>
             </div>
-          </div>
-
-          <div>
-            <div class="mb-1 flex items-center justify-between gap-2">
-              <label class="text-sm font-medium text-slate-700">Tiêu đề</label>
-              <span
-                class="text-[11px] tabular-nums"
-                :class="subjectCounterClass"
-              >{{ subjectLength }}/{{ SUBJECT_MAX }}</span>
-            </div>
-            <input
-              v-model="templateForm.subject"
-              type="text"
-              class="input w-full"
-              :disabled="!canManage"
+            <ul
+              class="max-h-[28rem] overflow-y-auto"
+              role="tablist"
+              aria-label="Loại mẫu email"
             >
-            <p
-              v-if="templateForm.errors.subject"
-              class="mt-1 text-xs text-rose-600"
-            >
-              {{ templateForm.errors.subject }}
-            </p>
-          </div>
-
-          <div>
-            <div class="mb-2 flex items-center justify-between gap-2">
-              <label class="text-sm font-medium text-slate-700">Nội dung</label>
-              <button
-                v-if="canManage"
-                type="button"
-                class="text-xs font-medium text-brand hover:underline"
-                @click="applyDefaultToEditor"
+              <li
+                v-for="t in emailTemplates"
+                :key="t.id"
               >
-                Mẫu chuẩn
+                <button
+                  type="button"
+                  role="tab"
+                  :aria-selected="selectedId === t.id"
+                  class="relative flex w-full items-start gap-2.5 border-b border-slate-50 px-3 py-2.5 text-left transition last:border-0"
+                  :class="selectedId === t.id ? 'bg-brand/[0.06]' : 'hover:bg-slate-50'"
+                  @click="selectedId = t.id"
+                >
+                  <span
+                    v-if="selectedId === t.id"
+                    class="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-brand"
+                  />
+                  <span
+                    class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full"
+                    :class="t.is_active ? 'bg-emerald-500' : 'bg-slate-300'"
+                    :title="t.is_active ? 'Đang bật' : 'Đang tắt'"
+                  />
+                  <span class="min-w-0 flex-1">
+                    <span
+                      class="block truncate text-xs font-medium"
+                      :class="selectedId === t.id ? 'text-brand' : 'text-slate-700'"
+                    >{{ t.name }}</span>
+                    <span class="mt-0.5 block truncate text-[11px] text-slate-400">
+                      {{ t.subject || '(Chưa có tiêu đề)' }}
+                    </span>
+                  </span>
+                </button>
+              </li>
+            </ul>
+          </div>
+        </aside>
+
+        <!-- Detail: trình soạn thảo + xem trước -->
+        <section
+          v-if="selectedTemplate"
+          class="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white"
+        >
+          <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
+            <div class="flex min-w-0 items-center gap-3">
+              <p class="truncate text-sm font-semibold text-slate-800">
+                {{ selectedTemplate.name }}
+              </p>
+              <label class="inline-flex shrink-0 items-center gap-1.5">
+                <ToggleSwitch
+                  v-model="templateForm.is_active"
+                  :disabled="!canManage"
+                />
+                <span class="text-[11px] text-slate-500">
+                  {{ templateForm.is_active ? 'Đang bật' : 'Đang tắt' }}
+                </span>
+              </label>
+            </div>
+            <div class="flex shrink-0 rounded-lg border border-slate-200 p-0.5">
+              <button
+                type="button"
+                class="rounded-md px-2.5 py-1 text-[11px] font-medium transition sm:px-3"
+                :class="editorTab === 'split' ? 'bg-brand text-white' : 'text-slate-500 hover:text-slate-700'"
+                @click="editorTab = 'split'"
+              >
+                Soạn + xem
+              </button>
+              <button
+                type="button"
+                class="rounded-md px-2.5 py-1 text-[11px] font-medium transition sm:px-3"
+                :class="editorTab === 'edit' ? 'bg-brand text-white' : 'text-slate-500 hover:text-slate-700'"
+                @click="editorTab = 'edit'"
+              >
+                Soạn
+              </button>
+              <button
+                type="button"
+                class="rounded-md px-2.5 py-1 text-[11px] font-medium transition sm:px-3"
+                :class="editorTab === 'preview' ? 'bg-brand text-white' : 'text-slate-500 hover:text-slate-700'"
+                @click="editorTab = 'preview'"
+              >
+                Xem trước
               </button>
             </div>
-            <EmailTemplateEditor
-              v-model="templateForm.body_html"
-              :disabled="!canManage"
-              :snippets="selectedTemplate.snippets ?? []"
-              :variables="selectedTemplate.variables ?? []"
-              :error="templateForm.errors.body_html"
-            />
           </div>
 
-          <div class="flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
+          <div
+            class="grid min-w-0 gap-4 p-4"
+            :class="editorTab === 'split' ? 'xl:grid-cols-2' : 'grid-cols-1'"
+          >
+            <div
+              v-show="editorTab !== 'preview'"
+              class="min-w-0 space-y-3"
+            >
+              <div>
+                <div class="mb-1 flex items-center justify-between gap-2">
+                  <label class="text-xs font-medium text-slate-600">Tiêu đề</label>
+                  <span
+                    class="text-[11px] tabular-nums"
+                    :class="subjectCounterClass"
+                  >{{ subjectLength }}/{{ SUBJECT_MAX }}</span>
+                </div>
+                <input
+                  v-model="templateForm.subject"
+                  type="text"
+                  class="input w-full"
+                  :disabled="!canManage"
+                >
+                <p
+                  v-if="templateForm.errors.subject"
+                  class="mt-1 text-xs text-rose-600"
+                >
+                  {{ templateForm.errors.subject }}
+                </p>
+              </div>
+
+              <div>
+                <div class="mb-1.5 flex items-center justify-between gap-2">
+                  <label class="text-xs font-medium text-slate-600">Nội dung</label>
+                  <button
+                    v-if="canManage"
+                    type="button"
+                    class="text-[11px] font-medium text-brand hover:underline"
+                    @click="applyDefaultToEditor"
+                  >
+                    Dùng mẫu chuẩn
+                  </button>
+                </div>
+                <EmailTemplateEditor
+                  v-model="templateForm.body_html"
+                  :disabled="!canManage"
+                  :snippets="selectedTemplate.snippets ?? []"
+                  :variables="selectedTemplate.variables ?? []"
+                  :error="templateForm.errors.body_html"
+                />
+              </div>
+            </div>
+
+            <div
+              v-show="editorTab !== 'edit'"
+              class="flex min-h-[22rem] min-w-0 flex-col rounded-lg border border-slate-200 bg-slate-50/60 p-2.5"
+            >
+              <div class="mb-2 flex items-center justify-between gap-2 px-0.5">
+                <p class="min-w-0 truncate text-xs font-medium text-slate-600">
+                  {{ livePreview.subject || '(Chưa có tiêu đề)' }}
+                </p>
+                <button
+                  type="button"
+                  class="inline-flex h-7 shrink-0 items-center gap-1 rounded-btn border border-slate-200 bg-white px-2 text-[11px] font-medium text-slate-600 hover:bg-slate-50"
+                  @click="previewFullscreen = true"
+                >
+                  <AppIcon
+                    name="eye"
+                    :size="13"
+                  />
+                  Phóng to
+                </button>
+              </div>
+              <div class="min-h-0 flex-1 overflow-hidden rounded-lg border border-slate-200 bg-white">
+                <iframe
+                  :srcdoc="livePreview.html"
+                  title="Xem trước email"
+                  class="h-full min-h-[20rem] w-full border-0 bg-white"
+                  sandbox="allow-same-origin"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2 border-t border-slate-100 bg-slate-50/40 px-4 py-3">
             <button
               type="button"
               class="btn-primary"
@@ -337,7 +401,7 @@ const sectionTabs = [
             <button
               v-if="canManage"
               type="button"
-              class="inline-flex h-9 items-center gap-1 rounded-btn border border-slate-200 px-3 text-xs font-medium text-slate-600 hover:bg-slate-50"
+              class="inline-flex h-9 items-center gap-1 rounded-btn border border-slate-200 bg-white px-3 text-xs font-medium text-slate-600 hover:bg-slate-50"
               @click="openTestModal"
             >
               Gửi thử
@@ -345,52 +409,24 @@ const sectionTabs = [
             <button
               v-if="canManage"
               type="button"
-              class="inline-flex h-9 items-center gap-1 rounded-btn border border-slate-200 px-3 text-xs font-medium text-slate-600 hover:bg-slate-50"
+              class="inline-flex h-9 items-center gap-1 rounded-btn border border-slate-200 bg-white px-3 text-xs font-medium text-slate-600 hover:bg-slate-50"
               @click="resetTemplate"
             >
               Khôi phục
             </button>
             <span
               v-if="templateForm.isDirty && canManage"
-              class="text-xs text-amber-600"
-            >Chưa lưu</span>
-          </div>
-        </div>
-
-        <div
-          v-show="editorTab !== 'edit'"
-          class="flex min-h-[24rem] flex-col rounded-xl border border-slate-200 bg-slate-50/50 p-3"
-          :class="editorTab === 'preview' ? 'col-span-full' : ''"
-        >
-          <div class="mb-2 flex items-center justify-between gap-2 px-0.5">
-            <p class="min-w-0 truncate text-sm font-medium text-slate-800">
-              {{ livePreview.subject || '(Chưa có tiêu đề)' }}
-            </p>
-            <button
-              type="button"
-              class="inline-flex h-8 shrink-0 items-center gap-1 rounded-btn border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
-              @click="previewFullscreen = true"
+              class="ml-auto inline-flex items-center gap-1 text-xs text-amber-600"
             >
-              <AppIcon
-                name="eye"
-                :size="14"
-              />
-              Phóng to
-            </button>
+              <span class="h-1.5 w-1.5 rounded-full bg-amber-500" />
+              Chưa lưu
+            </span>
           </div>
-          <div class="min-h-0 flex-1 overflow-hidden rounded-lg border border-slate-200 bg-white">
-            <iframe
-              :srcdoc="livePreview.html"
-              title="Xem trước email"
-              class="h-full min-h-[20rem] w-full border-0 bg-white"
-              sandbox="allow-same-origin"
-            />
-          </div>
-        </div>
+        </section>
       </div>
 
       <p
-        v-else-if="!emailTemplates.length"
+        v-else
         class="rounded-xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500"
       >
         Chưa có mẫu email.

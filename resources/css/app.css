@@ -207,7 +207,7 @@
     .sidebar-rail-item:hover .sidebar-nav-icon,
     .sidebar-rail-group:hover .sidebar-nav-icon,
     .group\/head:hover .sidebar-nav-icon {
-        transform: scale(1.14);
+        transform: scale(1.08);
     }
 
     .sidebar-nav-link:active .sidebar-nav-icon,

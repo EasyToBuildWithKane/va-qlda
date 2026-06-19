@@ -75,13 +75,13 @@ const groupHasBadge = (group) => group.items.some((item) => item.badge);
       <button
         v-if="group.items.length > 1"
         type="button"
-        class="sidebar-rail-group relative mb-0.5 grid h-12 w-12 place-items-center rounded-xl transition-all duration-200"
+        class="sidebar-rail-group relative mb-0.5 grid h-10 w-10 place-items-center rounded-lg ring-1 ring-inset transition-all duration-200"
         :class="[
           groupContainsActive(group)
-            ? 'bg-white/[0.14] text-white ring-1 ring-inset ring-white/15'
+            ? 'bg-white/[0.14] text-white ring-white/20'
             : isUpcomingGroup(group)
-              ? 'text-amber-200/80 hover:bg-amber-400/15 hover:text-amber-50'
-              : 'text-brand-100/60 hover:bg-white/[0.08] hover:text-white',
+              ? 'text-amber-200/80 ring-amber-300/25 hover:bg-amber-400/15 hover:text-amber-50'
+              : 'text-white/85 ring-white/15 hover:bg-white/[0.1] hover:text-white',
         ]"
         :aria-label="group.heading"
         :aria-haspopup="true"
@@ -101,7 +101,7 @@ const groupHasBadge = (group) => group.items.some((item) => item.badge);
         />
         <AppIcon
           :name="group.icon"
-          :size="22"
+          :size="18"
           :stroke-width="1.65"
           class="sidebar-nav-icon"
         />
@@ -112,11 +112,11 @@ const groupHasBadge = (group) => group.items.some((item) => item.badge);
         v-for="item in group.items"
         :key="item.label"
         :href="isPlanned(item) ? undefined : item.href"
-        class="sidebar-rail-item relative grid h-14 w-14 place-items-center rounded-2xl transition-all duration-200"
+        class="sidebar-rail-item relative grid h-12 w-12 place-items-center rounded-xl transition-all duration-200"
         :class="[
           isActive(item.href)
             ? 'sidebar-nav-item--active bg-white/[0.16] text-white shadow-sm ring-1 ring-inset ring-white/15'
-            : 'text-brand-100/80 hover:bg-white/[0.08] hover:text-white',
+            : 'text-white/60 hover:bg-white/[0.08] hover:text-white/90',
           isPlanned(item) && 'cursor-not-allowed opacity-70 hover:bg-amber-400/10 hover:text-amber-100/80',
         ]"
         @mouseenter="showTip($event, item.label, itemTipSub(item), railTone(item))"
@@ -130,7 +130,7 @@ const groupHasBadge = (group) => group.items.some((item) => item.badge);
         />
         <AppIcon
           :name="item.icon"
-          :size="28"
+          :size="22"
           :stroke-width="1.65"
           class="sidebar-nav-icon"
         />
