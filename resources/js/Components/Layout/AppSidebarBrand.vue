@@ -21,22 +21,17 @@ const shellClass = computed(() => {
     if (props.embedded) {
         return 'grid h-16 min-h-16 grid-cols-1 items-center border-0 px-0 py-0';
     }
-    return [
-        'grid min-h-[6.5rem] h-[7.5rem] items-center gap-0 border-b border-white/[0.10] px-0 py-0',
-        props.hideToggle
-            ? 'grid-cols-1'
-            : 'grid-cols-[minmax(0,1fr)_2.5rem]',
-    ].join(' ');
+    return 'relative grid min-h-[7rem] h-[8.25rem] grid-cols-1 items-center gap-0 border-b border-white/[0.10] px-0 py-0';
 });
 
 const wordmarkClass = computed(() => {
     if (props.embedded) {
         return 'max-h-14 w-auto max-w-full object-contain object-left drop-shadow-[0_2px_8px_rgba(0,0,0,0.22)]';
     }
-    return 'max-h-[7rem] w-full max-w-full object-contain object-left drop-shadow-[0_2px_10px_rgba(0,0,0,0.28)]';
+    return 'max-h-[8.25rem] w-[92%] max-w-[15.5rem] object-contain object-center drop-shadow-[0_2px_12px_rgba(0,0,0,0.32)]';
 });
 
-const linkAlignClass = computed(() => (props.embedded ? 'justify-start pl-3' : 'justify-start'));
+const linkAlignClass = computed(() => (props.embedded ? 'justify-start pl-3' : 'justify-center'));
 </script>
 
 <template>
@@ -65,7 +60,7 @@ const linkAlignClass = computed(() => (props.embedded ? 'justify-start pl-3' : '
         :class="[
           'flex min-h-0 min-w-0 items-center overflow-hidden py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-brand rounded-md',
           linkAlignClass,
-          embedded ? 'pr-2 pl-2' : 'px-2',
+          embedded ? 'pr-2 pl-2' : 'px-3',
         ]"
         aria-label="VAschools — Bảng điều khiển"
       >
@@ -73,15 +68,15 @@ const linkAlignClass = computed(() => (props.embedded ? 'justify-start pl-3' : '
           src="/images/congnghe/brand/vas-white.png"
           alt="VAschools"
           :class="wordmarkClass"
-          width="272"
-          height="84"
+          width="280"
+          height="96"
           decoding="async"
         >
       </Link>
       <button
         v-if="!hideToggle"
         type="button"
-        class="mr-0.5 grid h-9 w-9 min-h-[2.25rem] min-w-[2.25rem] place-items-center self-center rounded-lg text-brand-100/55 transition-colors hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 active:scale-[0.98]"
+        class="absolute right-1.5 top-1/2 z-10 grid h-9 w-9 min-h-[2.25rem] min-w-[2.25rem] -translate-y-1/2 place-items-center rounded-lg text-brand-100/55 transition-colors hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 active:scale-[0.98]"
         title="Thu gọn thanh bên"
         aria-label="Thu gọn thanh bên"
         @click="emit('collapse')"

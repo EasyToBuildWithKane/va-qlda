@@ -25,7 +25,7 @@ function bindNavRef(el) {
 <template>
   <nav
     :ref="bindNavRef"
-    class="sidebar-nav-scroll min-h-0 flex-1 overflow-y-auto px-3 py-3 pr-2"
+    class="sidebar-nav-scroll min-h-0 flex-1 overflow-y-auto px-2 py-2 pr-1.5"
     aria-label="Điều hướng chính"
     @scroll="emit('scroll', $event)"
   >
@@ -34,13 +34,13 @@ function bindNavRef(el) {
       :key="groupKey(group)"
       :data-tour="`nav-${group.key}`"
       :class="[
-        gi > 0 ? 'mt-1.5 border-t border-white/[0.07] pt-1.5' : '',
-        isUpcomingGroup(group) && 'mt-3 border-t border-amber-300/25 pt-3',
+        gi > 0 ? 'mt-1 border-t border-white/[0.07] pt-1' : '',
+        isUpcomingGroup(group) && 'mt-2 border-t border-amber-300/25 pt-2',
       ]"
     >
       <button
         type="button"
-        class="group/head flex w-full min-h-9 items-center gap-2 rounded-lg px-2.5 py-2 transition-all duration-150 select-none"
+        class="group/head flex w-full min-h-8 items-center gap-1.5 rounded-lg px-2 py-1.5 transition-all duration-150 select-none"
         :class="isUpcomingGroup(group)
           ? 'border border-amber-300/25 bg-amber-400/12 text-[10.5px] font-bold uppercase tracking-[0.13em] text-amber-100/95 hover:bg-amber-400/18 hover:text-amber-50'
           : 'text-[10.5px] font-bold uppercase tracking-[0.13em] text-brand-100/75 hover:bg-white/[0.06] hover:text-white'"
@@ -48,12 +48,12 @@ function bindNavRef(el) {
         @click="toggleGroup(group)"
       >
         <span
-          class="sidebar-nav-icon-shell grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-white/[0.06] group-hover/head:bg-white/[0.1]"
+          class="sidebar-nav-icon-shell grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-white/[0.06] group-hover/head:bg-white/[0.1]"
           :class="isUpcomingGroup(group) ? 'ring-1 ring-inset ring-amber-300/20' : ''"
         >
           <AppIcon
             :name="group.icon"
-            :size="20"
+            :size="18"
             class="sidebar-nav-icon shrink-0"
             :class="isUpcomingGroup(group) ? 'text-amber-200/95' : 'text-brand-50/90'"
           />
@@ -86,7 +86,7 @@ function bindNavRef(el) {
         <div class="min-h-0 overflow-hidden">
           <ul
             class="mb-0.5 mt-0.5 space-y-0.5"
-            :class="isUpcomingGroup(group) && 'rounded-lg border border-amber-300/15 bg-amber-950/20 p-1'"
+            :class="isUpcomingGroup(group) && 'rounded-lg border border-amber-300/15 bg-amber-950/20 p-0.5'"
           >
             <li
               v-for="item in group.items"
@@ -96,7 +96,7 @@ function bindNavRef(el) {
                 :is="isPlanned(item) ? 'div' : Link"
                 :href="isPlanned(item) ? undefined : item.href"
                 :title="isPlanned(item) ? 'Sắp ra mắt — chưa khả dụng' : undefined"
-                class="sidebar-nav-link group/item flex min-h-[52px] items-center gap-3 rounded-xl px-2.5 py-2.5 text-[14px] font-medium leading-snug transition-all duration-200"
+                class="sidebar-nav-link group/item flex min-h-[44px] items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] font-medium leading-snug transition-all duration-200"
                 :class="[
                   isActive(item.href)
                     ? 'sidebar-nav-item--active bg-white/[0.16] font-semibold text-white shadow-sm ring-1 ring-inset ring-white/15'
@@ -107,12 +107,12 @@ function bindNavRef(el) {
                 ]"
               >
                 <span
-                  class="sidebar-nav-icon-shell sidebar-nav-icon-shell--item h-11 w-11 shrink-0"
+                  class="sidebar-nav-icon-shell sidebar-nav-icon-shell--item h-9 w-9 shrink-0"
                   :class="isActive(item.href) ? '' : 'group-hover/item:bg-white/[0.08]'"
                 >
                   <AppIcon
                     :name="item.icon"
-                    :size="26"
+                    :size="22"
                     :stroke-width="1.65"
                     class="sidebar-nav-icon shrink-0"
                     :class="isActive(item.href) ? 'text-white' : 'text-brand-50/85 group-hover/item:text-white'"
