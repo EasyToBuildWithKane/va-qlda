@@ -65,7 +65,7 @@ const formatAt = (iso) =>
           />
         </span>
         <div class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-          <span class="text-sm font-semibold text-slate-700">{{ ev.label }}</span>
+          <span class="min-w-0 break-words text-sm font-semibold text-slate-700">{{ ev.label }}</span>
           <span
             v-if="ev.grade"
             class="rounded bg-brand/10 px-1.5 py-0.5 text-xs font-semibold text-brand"
@@ -80,7 +80,7 @@ const formatAt = (iso) =>
         </p>
         <p
           v-if="ev.reason"
-          class="mt-1 rounded-card border border-amber-100 bg-amber-50/60 px-2.5 py-1.5 text-xs italic text-slate-600"
+          class="mt-1 break-words rounded-card border border-amber-100 bg-amber-50/60 px-2.5 py-1.5 text-xs italic text-slate-600"
         >
           “{{ ev.reason }}”
         </p>

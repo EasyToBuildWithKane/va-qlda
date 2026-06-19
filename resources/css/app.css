@@ -113,7 +113,9 @@
     /* Rendered rich-text (editor HTML) — restore list/heading styling that
        Tailwind's preflight removes. */
     .rich-content {
-        @apply leading-relaxed;
+        @apply max-w-full leading-relaxed;
+        overflow-wrap: anywhere;
+        word-break: break-word;
     }
     .rich-content ul {
         @apply list-disc pl-5 my-2 space-y-1;
@@ -138,6 +140,12 @@
     .rich-content img,
     .tiptap img {
         @apply my-2 max-h-96 max-w-full rounded-md border border-slate-200;
+    }
+    .rich-content table {
+        @apply my-3 block max-w-full overflow-x-auto;
+    }
+    .rich-content pre {
+        @apply my-2 max-w-full overflow-x-auto rounded-md bg-slate-50 p-3 text-xs;
     }
 
     /* Google Docs/Sheets embed trong nội dung rich-text (coaching, KB) */
