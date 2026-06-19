@@ -15,7 +15,7 @@ defineProps({
   <KpiSummaryStrip
     :cards="summary"
     eyebrow="Thống kê"
-    heading="Tổng quan hệ thống"
+    heading="Chỉ số vận hành"
     hint="Số liệu toàn hệ thống — cập nhật theo thời gian thực"
     aria-label="Chỉ số tổng quan hệ thống"
     grid-class="grid-cols-2 sm:grid-cols-3 xl:grid-cols-6"

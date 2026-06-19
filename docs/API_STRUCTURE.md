@@ -49,7 +49,7 @@ routes/api.php      ← Rỗng (chưa sử dụng)
 | Method | URI | Controller | Middleware | Mô Tả |
 |---|---|---|---|---|
 | GET | `/` | redirect | auth | Redirect → /dashboard |
-| GET | `/dashboard` | HubDashboardController (invokable) | auth | Trang tổng quan; nhân sự KPI/tuân thủ báo cáo ngày theo phòng ban khớp `config('va.dashboard_personnel_department_pattern')` (mặc định «Công nghệ»); `dailyReportCompliance.people[].workToday` (công việc trong ngày) |
+| GET | `/dashboard` | HubDashboardController (invokable) | auth | Trang tổng quan: KPI strip + lưới module theo quyền (không biểu đồ); nhân sự KPI theo phòng ban khớp `config('va.dashboard_personnel_department_pattern')` |
 | GET | `/work` | WorkDashboardController (invokable) | auth | Dashboard công việc cá nhân (`work-dashboard`) |
 
 ### 2.2.3 Hiệu suất & Audit
