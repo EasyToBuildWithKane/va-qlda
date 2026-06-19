@@ -6,6 +6,7 @@ use App\Domain\DailyReport\Models\DailyReport;
 use App\Domain\DailyReport\Support\ReportProjectSync;
 use App\Models\SystemAccount;
 use App\Support\DailyReportCalendar;
+use App\Support\DailyReportFieldContent;
 use App\Support\Enums\ReportStatus;
 
 class CreateDailyReportUseCase
@@ -22,7 +23,9 @@ class CreateDailyReportUseCase
      */
     public function execute(int $employeeId, array $data, SystemAccount $actor): DailyReport
     {
-        $payload = ReportProjectSync::applyToPayload($data);
+        $payload = DailyReportFieldContent::sanitizePayload(
+            ReportProjectSync::applyToPayload($data),
+        );
 
         $report = DailyReport::create([
             ...$payload,

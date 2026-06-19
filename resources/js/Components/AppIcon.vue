@@ -18,7 +18,7 @@ import {
     Phone, Briefcase, Award, Target, ExternalLink,
     GraduationCap, Route, Gauge, Sparkles, BadgeCheck, Flame, LockKeyhole,
     LifeBuoy, Compass, ShieldCheck,
-    Cpu,
+    Cpu, LayoutGrid, Table,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -102,6 +102,7 @@ const map = {
     edit: Pencil,
     add: Plus,
     delete: Trash2,
+    trash: Trash2,
     close: X,
     search: Search,
     filter: Filter,
@@ -123,7 +124,9 @@ const map = {
     copy: Copy,
     archive: Archive,
     'chevron-down': ChevronDown,
-    grid: Columns3,
+    grid: LayoutGrid,
+    cards: LayoutGrid,
+    table: Table,
     list: ListChecks,
     save: Save,
     send: Send,

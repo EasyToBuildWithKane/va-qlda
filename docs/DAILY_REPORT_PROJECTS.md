@@ -8,7 +8,7 @@
 | Field | Vai trò |
 |-------|---------|
 | **`projects` (JSON)** | **Nguồn chính** — danh sách dự án được tag trong báo cáo (multi-select UI). |
-| **`project_id` (nullable int)** | **Legacy / denormalized** — ID dự án đầu tiên trong `projects`, dùng cho filter lịch sử báo cáo (`DailyReportController@index?project_id=`). |
+| **`project_id` (nullable int)** | **Legacy / denormalized** — ID dự án đầu tiên trong `projects`. Vẫn ghi để giữ tương thích báo cáo cũ, nhưng filter lịch sử **không còn dựa vào riêng cột này** (xem dưới). |
 
 Migration ghi chú: `database/migrations/2024_01_01_000008_create_daily_reports_table.php`.
 
@@ -26,7 +26,16 @@ $data = ReportProjectSync::applyToPayload($data);
 ## API / query
 
 - **Đọc danh sách dự án của báo cáo:** dùng `$report->projects` (cast array).
-- **Filter theo một dự án:** `where('project_id', $id)` — khớp với dự án *đầu tiên* trong multi-select.
+- **Filter theo một dự án** (`historyReportsQuery`): khớp **bất kỳ** dự án được tag trong báo cáo, không chỉ dự án đầu:
+
+  ```php
+  $query->where(function ($q) use ($projectId) {
+      $q->whereJsonContains('projects', ['id' => (int) $projectId])
+          ->orWhere('project_id', (int) $projectId); // bao báo cáo legacy có projects = []
+  });
+  ```
+
+  > MySQL (production) dùng `JSON_CONTAINS` semantics "chứa một phần" → khớp object `{id}` bên trong phần tử đầy đủ. SQLite (test) so khớp nguyên phần tử nên chỉ trùng qua nhánh `orWhere('project_id')`; production không bị ảnh hưởng.
 - **Không** ghi `project_id` trực tiếp từ form mà không có `projects`.
 
 ## Model helpers
@@ -35,7 +44,7 @@ $data = ReportProjectSync::applyToPayload($data);
 
 ## Tương lai (Option B)
 
-Nếu bỏ `project_id`: migration backfill + đổi filter sang JSON (`whereJsonContains`) — chỉ khi product yêu cầu.
+Filter **đã** chuyển sang `whereJsonContains('projects', …)` (phần đọc của Option B xong). Bước còn lại nếu muốn bỏ hẳn cột: migration drop `project_id` + bỏ `ReportProjectSync::applyToPayload` ghi legacy — chỉ khi product yêu cầu.
 
 ---
 
@@ -49,11 +58,13 @@ Thẻ báo cáo chỉ **render dữ liệu hiện có** — KHÔNG đổi data m
 
 ### Backend
 
-- `DailyReportController@index` filters: `q`, `status`, `project_id`, `employee_ids[]` (multi, cap 100, vẫn nhận legacy `employee_id`), `grade`, `from`, `to`, `late`, `group`.
+- `DailyReportController@index` filters: `q`, `status`, `project_id` (JSON-contains, xem trên), `employee_ids[]` (multi, cap 100, vẫn nhận legacy `employee_id`), `grade`, `from`, `to`, `late`, `group`.
+- **Self-scoping member:** nếu account role `member` mà **không có `employee_id`** → query trả rỗng (`whereRaw('1 = 0')`), không leak báo cáo có `employee_id IS NULL`.
 - `summary` trả thêm `completion_rate` + `trend{}` (±% mỗi chỉ số so với kỳ trước) + `period{}`. Cửa sổ trend: có `from`/`to` → kỳ liền trước cùng độ dài; nếu không → 30 ngày gần nhất vs 30 ngày trước đó.
 - `DailyReportResource.employee` thêm `role_title`.
 
 ### Export Excel (toàn bộ kết quả lọc)
 
-- `GET /daily-reports/export-data` (`exportData`, route `daily-reports.export-data`, đặt **trước** `/{report}`) dùng lại `historyReportsQuery` (khớp màn hình + giữ self-scoping member), `->limit(5000)`, trả `DailyReportResource::collection` (JSON).
-- Composable client [useDailyReportHistoryExport.js](../resources/js/modules/daily-report/composables/useDailyReportHistoryExport.js) (async) dựng 7 sheet `xlsx-js-style`: Tổng quan · Đối soát ngày · Chi tiết công việc · Mục tiêu · Kế hoạch · Theo tháng · Theo thành viên. Không có chart gốc → bảng tổng hợp + conditional formatting.
+- `GET /daily-reports/export-data` (`exportData`, route `daily-reports.export-data`, đặt **trước** `/{report}`) dùng lại `historyReportsQuery` (khớp màn hình + giữ self-scoping member), giới hạn `EXPORT_LIMIT = 5000`, trả `DailyReportResource::collection` (JSON) **kèm `meta: { total, limit, truncated }`** — `total` đếm trước khi cắt nên client biết bị cắt.
+- Composable client [useDailyReportHistoryExport.js](../resources/js/modules/daily-report/composables/useDailyReportHistoryExport.js) (async) trả `{ filename, truncated, total, limit }`; dựng 7 sheet `xlsx-js-style`: Tổng quan · Đối soát ngày · Chi tiết công việc · Mục tiêu · Kế hoạch · Theo tháng · Theo thành viên. Không có chart gốc → bảng tổng hợp + conditional formatting.
+- **Cảnh báo cắt:** khi `meta.truncated`, [History.vue](../resources/js/Pages/DailyReport/History.vue) toast cảnh báo "Chỉ xuất {limit}/{total}…" để người dùng thu hẹp bộ lọc, tránh xuất thiếu âm thầm.

@@ -80,6 +80,7 @@ enum NotificationType: string
 
     // Daily report
     case DailyReportSubmitted = 'daily_report_submitted';
+    case DailyReportRecalled = 'daily_report_recalled';
     case DailyReportScored = 'daily_report_scored';
     case DailyReportRejected = 'daily_report_rejected';
 
@@ -134,7 +135,8 @@ enum NotificationType: string
             self::SystemContractRenewed, self::SystemContractVendorReview,
             self::AiProposalApproved, self::AiProposalRejected => NotificationCategory::System,
 
-            self::DailyReportSubmitted, self::DailyReportScored,
+            self::DailyReportSubmitted, self::DailyReportRecalled,
+            self::DailyReportScored,
             self::DailyReportRejected => NotificationCategory::DailyReport,
 
             self::CoachingSessionCreated, self::CoachingSessionUpdated,
@@ -219,6 +221,7 @@ enum NotificationType: string
             self::AiProposalApproved => 'Phiếu đề xuất AI được duyệt',
             self::AiProposalRejected => 'Phiếu đề xuất AI bị từ chối',
             self::DailyReportSubmitted => 'Báo cáo ngày chờ duyệt',
+            self::DailyReportRecalled => 'Báo cáo ngày được rút lại',
             self::DailyReportScored => 'Báo cáo ngày đã được chấm',
             self::DailyReportRejected => 'Báo cáo ngày bị trả lại',
             self::CoachingSessionCreated => 'Buổi học mới',

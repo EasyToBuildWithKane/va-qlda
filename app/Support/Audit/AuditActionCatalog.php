@@ -35,6 +35,7 @@ final class AuditActionCatalog
             'department' => ['label' => 'Phòng ban', 'icon' => 'department'],
             'congnghe' => ['label' => 'Trung tâm Công nghệ', 'icon' => 'rocket'],
             'contract' => ['label' => 'Quản lý hợp đồng', 'icon' => 'documents'],
+            'daily_report' => ['label' => 'Báo cáo ngày', 'icon' => 'daily'],
             'system' => ['label' => 'Hệ thống', 'icon' => 'settings'],
         ];
     }
@@ -116,6 +117,11 @@ final class AuditActionCatalog
             'vendor.review_created' => ['label' => 'Đánh giá NCC (hồ sơ gốc)', 'module' => 'contract', 'severity' => 'notice'],
             'vendor.review_updated' => ['label' => 'Sửa đánh giá NCC (hồ sơ gốc)', 'module' => 'contract', 'severity' => 'info'],
             'vendor.review_deleted' => ['label' => 'Xóa đánh giá NCC (hồ sơ gốc)', 'module' => 'contract', 'severity' => 'warning'],
+
+            // ── Báo cáo ngày ──────────────────────────────────────────
+            'daily_report.recalled' => ['label' => 'Rút lại báo cáo ngày', 'module' => 'daily_report', 'severity' => 'notice'],
+            'daily_report.addendum_created' => ['label' => 'Bổ sung báo cáo ngày', 'module' => 'daily_report', 'severity' => 'notice'],
+            'daily_report.bau_logged' => ['label' => 'Ghi nhận công việc BAU', 'module' => 'daily_report', 'severity' => 'info'],
         ];
     }
 
@@ -186,6 +192,7 @@ final class AuditActionCatalog
             'congnghe_proposal' => 'congnghe',
             'contract' => 'contract',
             'vendor' => 'contract',
+            'daily_report' => 'daily_report',
         ];
     }
 
@@ -285,6 +292,7 @@ final class AuditActionCatalog
             'coaching_session' => 'Buổi đào tạo',
             'org_team' => 'Nhóm tổ chức',
             'congnghe_software_proposal' => 'Đề xuất phần mềm',
+            'daily_report' => 'Báo cáo ngày',
             default => ucfirst(str_replace('_', ' ', $type)),
         };
     }

@@ -11,6 +11,7 @@ import RichTextField from '@/modules/daily-report/components/RichTextField.vue';
 import ProjectSelect from '@/modules/daily-report/components/ProjectSelect.vue';
 import TemplateGallery from '@/modules/daily-report/components/TemplateGallery.vue';
 import InfoTooltip from '@/modules/daily-report/components/InfoTooltip.vue';
+import RecallButton from '@/modules/daily-report/components/RecallButton.vue';
 import { pillars, fields, builtinTemplates } from '@/modules/daily-report/config/reportConfig';
 import { useDialog } from '@/composables/useDialog';
 import { date, dateLongVi } from '@/composables/useFormat';
@@ -67,9 +68,20 @@ const missingRequired = computed(() =>
 );
 const titleOk = computed(() => form.title.trim().length > 0);
 const readyToSubmit = computed(() => titleOk.value && missingRequired.value.length === 0);
-const missingLabel = computed(() =>
-    [!titleOk.value ? 'Tiêu đề' : null, ...missingRequired.value].filter(Boolean).join(', '),
-);
+
+// Each missing item knows which tab to jump to — chips below act as shortcuts.
+const tabIndexOfPillar = (pillarKey) =>
+    Math.max(0, tabs.value.findIndex((t) => t.key === pillarKey));
+const missingItems = computed(() => {
+    const items = [];
+    if (!titleOk.value) items.push({ label: 'Tiêu đề', tab: 0 });
+    fields
+        .filter((f) => f.required && !isFilled(f.key))
+        .forEach((f) => items.push({ label: f.label, tab: tabIndexOfPillar(f.pillar) }));
+    return items;
+});
+const missingLabel = computed(() => missingItems.value.map((m) => m.label).join(', '));
+const goToTab = (i) => { activeTab.value = i; };
 
 // ---- Auto-fill chosen tasks into the "Tiến độ thực hiện" field ------------
 const taskStatusLabels = {
@@ -134,11 +146,13 @@ const tabs = computed(() => [
         jp: '基本', romaji: 'Kihon',
         desc: 'Tiêu đề báo cáo và các dự án / task bạn đã làm việc hôm nay.',
         filled: titleOk.value ? 1 : 0, total: 1,
+        hasMissingRequired: !titleOk.value,
     },
     ...pillars.map((p) => ({
         key: p.key, title: p.title, pillar: p,
         jp: p.jp, romaji: p.romaji, desc: p.desc,
         filled: filledInPillar(p.key), total: pillarFields(p.key).length,
+        hasMissingRequired: pillarFields(p.key).some((f) => f.required && !isFilled(f.key)),
     })),
 ]);
 const activeTabMeta = computed(() => tabs.value[activeTab.value]);
@@ -240,6 +254,27 @@ const submit = () => {
     });
 };
 
+// ---- Recall (pull a just-submitted report back to draft, same day only) ---
+const canRecall = computed(() => Boolean(props.report?.can?.recall));
+const recalling = ref(false);
+
+const recall = async () => {
+    if (!props.report || recalling.value) return;
+    const reason = await dialog.prompt({
+        title: 'Rút lại báo cáo?',
+        message: 'Báo cáo sẽ trở về bản nháp để bạn chỉnh sửa và nộp lại. Người duyệt sẽ được thông báo. Chỉ rút lại được trong ngày làm việc hôm nay. Nêu lý do thu hồi (không bắt buộc):',
+        placeholder: 'Ví dụ: bổ sung kết quả còn thiếu…',
+        confirmText: 'Rút lại',
+        cancelText: 'Huỷ',
+    });
+    if (reason === null) return; // cancelled
+    recalling.value = true;
+    router.post(`/daily-reports/${props.report.id}/recall`, { reason }, {
+        preserveScroll: true,
+        onFinish: () => { recalling.value = false; },
+    });
+};
+
 const lastSavedAt = ref(props.report ? new Date() : null);
 let saveTimer = null;
 let snapshotTimer = null;
@@ -294,299 +329,363 @@ const savedTimeLabel = computed(() =>
       />
     </template>
 
-    <!-- Already submitted today -->
-    <div
-      v-if="isEditing && !editable"
-      class="card mx-auto max-w-2xl overflow-hidden border border-brand/15 shadow-elevation-2"
-    >
-      <div class="bg-gradient-to-b from-brand/[0.06] via-white to-amber-50/40 px-6 py-10 text-center sm:px-10 sm:py-12">
-        <div
-          class="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 ring-8 ring-emerald-50"
-          aria-hidden="true"
-        >
-          <AppIcon
-            name="done"
-            :size="40"
-            :stroke-width="2"
-          />
-        </div>
-
-        <p class="text-xs font-bold uppercase tracking-widest text-brand/80">
-          Hoàn tất nộp báo cáo
-        </p>
-        <h2 class="mt-2 font-display text-2xl font-semibold tracking-tight text-slate-800 sm:text-3xl">
-          Bạn đã nộp báo cáo hôm nay
-        </h2>
-        <p class="mt-3 text-base font-medium text-slate-700">
-          {{ formattedToday }}
-        </p>
-
-        <div class="mt-5 flex flex-wrap items-center justify-center gap-2">
-          <span
-            class="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-semibold"
-            :class="statusVi.cls"
-          >
-            <AppIcon
-              name="clock"
-              :size="16"
-            />
-            {{ statusVi.label }}
-          </span>
-        </div>
-
-        <p
-          v-if="report?.title"
-          class="mx-auto mt-6 max-w-lg text-left text-sm font-medium text-slate-700 sm:text-center"
-        >
-          <span class="text-slate-500">Tiêu đề:</span>
-          {{ report.title }}
-        </p>
-
-        <p class="mx-auto mt-4 max-w-md text-base leading-relaxed text-slate-600">
-          Cảm ơn bạn! Báo cáo đang chờ quản lý xem xét và đánh giá. Bạn có thể mở chi tiết để xem lại nội dung đã gửi.
-        </p>
-
-        <div class="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
-          <Link
-            :href="`/daily-reports/${report.id}`"
-            class="btn-primary inline-flex min-h-11 items-center justify-center gap-2 px-8 text-base font-semibold"
-          >
-            <AppIcon
-              name="eye"
-              :size="18"
-            />
-            Xem báo cáo
-          </Link>
-          <Link
-            href="/daily-reports"
-            class="inline-flex min-h-11 items-center justify-center rounded-btn border border-slate-200 bg-white px-6 text-sm font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
-          >
-            Lịch sử báo cáo
-          </Link>
-        </div>
-      </div>
-    </div>
-
-    <div
-      v-else
-      class="w-full space-y-5"
-    >
-      <!-- Action bar (progress + save/submit) -->
-      <div class="card sticky top-0 z-10 flex flex-wrap items-center justify-between gap-3 p-4">
-        <div class="min-w-[14rem] flex-1">
-          <div class="mb-1 flex items-center justify-between text-xs">
-            <span class="font-medium text-slate-600">Tiến độ hoàn thành</span>
-            <span class="font-semibold text-brand">{{ progressPct }}%</span>
-          </div>
-          <div class="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-            <div
-              class="h-full rounded-full bg-brand transition-all duration-300"
-              :style="{ width: progressPct + '%' }"
-            />
-          </div>
-          <p
-            class="mt-1 text-xs"
-            :class="readyToSubmit ? 'text-emerald-600' : 'text-amber-600'"
-          >
-            <span v-if="readyToSubmit">Đã đủ điều kiện nộp duyệt.</span>
-            <span v-else>Còn thiếu: {{ missingLabel }}</span>
-          </p>
-        </div>
-        <div class="flex shrink-0 items-center gap-2">
-          <button
-            type="button"
-            class="btn-ghost gap-1.5"
-            @click="openGallery('builtin')"
-          >
-            <AppIcon
-              name="template"
-              :size="16"
-            /> Thư viện mẫu
-          </button>
-          <button
-            type="button"
-            class="btn-ghost"
-            :disabled="form.processing"
-            @click="save"
-          >
-            {{ form.processing ? 'Đang lưu…' : 'Lưu nháp' }}
-          </button>
-          <button
-            v-if="isEditing"
-            type="button"
-            class="btn-primary"
-            :disabled="form.processing || !readyToSubmit"
-            :title="readyToSubmit ? '' : 'Hãy điền đủ các mục bắt buộc trước khi nộp'"
-            @click="submit"
-          >
-            Nộp duyệt
-          </button>
-        </div>
-      </div>
-
-      <!-- Rejected feedback -->
+    <div class="ui-compact">
+      <!-- Already submitted today -->
       <div
-        v-if="report?.review_notes"
-        class="card border-l-4 border-warning p-4"
+        v-if="isEditing && !editable"
+        class="card mx-auto max-w-2xl overflow-hidden border border-brand/15 shadow-elevation-2"
       >
-        <p class="text-sm font-semibold text-slate-700">
-          Báo cáo được trả lại
-        </p>
-        <p class="mt-1 text-sm text-slate-600">
-          {{ report.review_notes }}
-        </p>
-      </div>
-
-      <!-- All sections as tabs -->
-      <div class="card overflow-hidden">
-        <!-- Tab bar -->
-        <div class="flex flex-wrap border-b border-slate-200">
-          <button
-            v-for="(t, i) in tabs"
-            :key="t.key"
-            type="button"
-            class="flex-1 border-b-2 px-3 py-3 text-sm font-medium transition"
-            :class="activeTab === i
-              ? 'border-brand text-brand'
-              : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'"
-            @click="activeTab = i"
+        <div class="bg-gradient-to-b from-brand/[0.06] via-white to-amber-50/40 px-6 py-10 text-center sm:px-10 sm:py-12">
+          <div
+            class="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 ring-8 ring-emerald-50"
+            aria-hidden="true"
           >
-            <span class="flex items-center justify-center gap-2">
-              {{ t.title }}
-              <span
-                class="rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
-                :class="t.filled === t.total
-                  ? 'bg-emerald-100 text-emerald-700'
-                  : 'bg-slate-100 text-slate-500'"
-              >{{ t.filled }}/{{ t.total }}</span>
-            </span>
-          </button>
-        </div>
+            <AppIcon
+              name="done"
+              :size="40"
+              :stroke-width="2"
+            />
+          </div>
 
-        <!-- Active tab -->
-        <div class="p-6">
-          <div class="mb-5 flex items-start justify-between gap-3 rounded-card bg-slate-50 p-3">
-            <div class="flex items-start gap-2">
-              <span class="font-mono text-xs text-slate-400">{{ activeTabMeta.jp }} · {{ activeTabMeta.romaji }}</span>
-              <p class="text-xs text-slate-500">
-                {{ activeTabMeta.desc }}
-              </p>
-            </div>
+          <p class="text-xs font-bold uppercase tracking-widest text-brand/80">
+            Hoàn tất nộp báo cáo
+          </p>
+          <h2 class="mt-2 font-display text-2xl font-semibold tracking-tight text-slate-800 sm:text-3xl">
+            Bạn đã nộp báo cáo hôm nay
+          </h2>
+          <p class="mt-3 text-base font-medium text-slate-700">
+            {{ formattedToday }}
+          </p>
+
+          <div class="mt-5 flex flex-wrap items-center justify-center gap-2">
             <span
-              class="inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+              class="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-semibold"
               :class="statusVi.cls"
             >
+              <AppIcon
+                name="clock"
+                :size="16"
+              />
               {{ statusVi.label }}
             </span>
           </div>
 
-          <!-- Tab: general info -->
-          <div
-            v-if="activeTabMeta.key === 'info'"
-            class="grid gap-5 lg:grid-cols-2"
+          <p
+            v-if="report?.title"
+            class="mx-auto mt-6 max-w-lg text-left text-sm font-medium text-slate-700 sm:text-center"
           >
-            <div class="lg:col-span-2">
-              <label class="label">Ngày báo cáo</label>
-              <div
-                class="flex flex-wrap items-center gap-2 rounded-card border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700"
-              >
-                <AppIcon
-                  name="calendar"
-                  :size="16"
-                  class="shrink-0 text-brand"
-                />
-                <span class="font-medium">{{ formattedToday }}</span>
-                <span class="text-xs text-slate-400">(theo giờ làm việc VN)</span>
-              </div>
-            </div>
+            <span class="text-slate-500">Tiêu đề:</span>
+            {{ report.title }}
+          </p>
 
-            <div>
-              <label class="label flex items-center gap-1.5">
-                Tiêu đề báo cáo <span class="text-danger">*</span>
-                <InfoTooltip text="Một dòng tóm tắt nội dung chính trong ngày. VD: “Hoàn thiện màn hình đăng nhập & sửa lỗi API”." />
-              </label>
-              <input
-                v-model="form.title"
-                type="text"
-                class="input"
-                placeholder="VD: Tổng kết công việc ngày — Module báo cáo"
-              >
-              <p
-                v-if="form.errors.title"
-                class="mt-1 text-sm text-danger"
-              >
-                {{ form.errors.title }}
-              </p>
-            </div>
+          <p class="mx-auto mt-4 max-w-md text-base leading-relaxed text-slate-600">
+            Cảm ơn bạn! Báo cáo đang chờ quản lý xem xét và đánh giá. Bạn có thể mở chi tiết để xem lại nội dung đã gửi.
+          </p>
 
-            <div>
-              <label class="label flex items-center gap-1.5">
-                Dự án &amp; công việc trong ngày
-                <InfoTooltip text="Chọn (các) dự án bạn đã làm việc hôm nay. Sau khi chọn dự án, bạn có thể thêm các task của dự án đó kèm theo." />
-              </label>
-              <ProjectSelect
-                v-model="form.projects"
-                :options="projectOptions"
-                :task-status-snapshot="taskStatusSnapshot"
+          <div class="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
+            <Link
+              :href="`/daily-reports/${report.id}`"
+              class="btn-primary inline-flex min-h-11 items-center justify-center gap-2 px-8 text-base font-semibold"
+            >
+              <AppIcon
+                name="eye"
+                :size="18"
               />
-            </div>
-          </div>
-
-          <!-- Tab: a Horenso pillar -->
-          <div
-            v-else
-            class="grid gap-5"
-            :class="pillarFields(activeTabMeta.key).length > 2 ? 'xl:grid-cols-2' : ''"
-          >
-            <RichTextField
-              v-for="f in pillarFields(activeTabMeta.key)"
-              :key="f.key"
-              v-model="form[f.key]"
-              :label="f.label"
-              :hint="f.hint"
-              :tooltip="f.tooltip"
-              :required="f.required"
-              :placeholder="f.placeholder"
-              :error="form.errors[f.key]"
+              Xem báo cáo
+            </Link>
+            <RecallButton
+              v-if="canRecall"
+              :recalling="recalling"
+              label="Rút lại để chỉnh sửa"
+              @recall="recall"
             />
+            <Link
+              href="/daily-reports"
+              class="inline-flex min-h-11 items-center justify-center rounded-btn border border-slate-200 bg-white px-6 text-sm font-medium text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
+            >
+              Lịch sử báo cáo
+            </Link>
           </div>
 
-          <!-- Tab nav -->
-          <div class="mt-6 flex items-center justify-between border-t border-slate-100 pt-4">
-            <button
-              type="button"
-              class="btn-ghost"
-              :disabled="activeTab === 0"
-              @click="activeTab--"
-            >
-              ← Trước
-            </button>
-            <span class="text-xs text-slate-400">Bước {{ activeTab + 1 }}/{{ tabs.length }}</span>
-            <button
-              type="button"
-              class="btn-ghost"
-              :disabled="activeTab === tabs.length - 1"
-              @click="activeTab++"
-            >
-              Tiếp →
-            </button>
-          </div>
+          <p
+            v-if="canRecall"
+            class="mt-4 text-xs text-slate-400"
+          >
+            Phát hiện sai sót? Bạn có thể rút lại báo cáo trong ngày hôm nay để chỉnh sửa mà không cần nhờ người duyệt trả lại.
+          </p>
         </div>
       </div>
 
-      <p
-        v-if="form.errors.submit"
-        class="text-sm text-danger"
+      <div
+        v-else
+        class="w-full space-y-5"
       >
-        {{ form.errors.submit }}
-      </p>
-      <p class="text-center text-xs text-slate-400">
-        <span v-if="isEditing">
-          Bản nháp tự động lưu mỗi 30 giây.
-          <span v-if="savedTimeLabel"> · Đã lưu lúc {{ savedTimeLabel }}</span>
-        </span>
-        <span v-else>Lưu nháp để bật tự động lưu và cho phép nộp duyệt.</span>
-      </p>
+        <!-- Action bar (progress + save/submit) -->
+        <div class="card sticky top-0 z-10 flex flex-wrap items-center justify-between gap-3 p-4">
+          <div class="min-w-[14rem] flex-1">
+            <div class="mb-1 flex items-center justify-between text-xs">
+              <span class="font-medium text-slate-600">Tiến độ hoàn thành</span>
+              <span class="font-semibold text-brand">{{ progressPct }}%</span>
+            </div>
+            <div class="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+              <div
+                class="h-full rounded-full bg-brand transition-all duration-300"
+                :style="{ width: progressPct + '%' }"
+              />
+            </div>
+            <div class="mt-1 text-xs">
+              <p
+                v-if="readyToSubmit"
+                class="flex items-center gap-1 text-emerald-600"
+              >
+                <AppIcon
+                  name="check"
+                  :size="13"
+                />
+                Đã đủ điều kiện nộp duyệt.
+              </p>
+              <div
+                v-else
+                class="flex flex-wrap items-center gap-1.5"
+              >
+                <span class="text-amber-600">Còn thiếu:</span>
+                <button
+                  v-for="m in missingItems"
+                  :key="m.label"
+                  type="button"
+                  class="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 font-medium text-amber-700 transition hover:border-amber-300 hover:bg-amber-100"
+                  @click="goToTab(m.tab)"
+                >
+                  {{ m.label }}
+                  <AppIcon
+                    name="chevron-right"
+                    :size="11"
+                  />
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="flex shrink-0 items-center gap-2">
+            <span
+              v-if="isEditing"
+              class="hidden items-center gap-1 text-xs text-slate-400 sm:inline-flex"
+            >
+              <AppIcon
+                :name="form.processing ? 'refresh' : 'check'"
+                :size="13"
+                :class="form.processing ? 'animate-spin text-brand' : 'text-emerald-500'"
+              />
+              <span v-if="form.processing">Đang lưu…</span>
+              <span v-else-if="savedTimeLabel">Đã lưu {{ savedTimeLabel }}</span>
+            </span>
+            <button
+              type="button"
+              class="btn-ghost gap-1.5"
+              @click="openGallery('builtin')"
+            >
+              <AppIcon
+                name="template"
+                :size="16"
+              /> Thư viện mẫu
+            </button>
+            <button
+              type="button"
+              class="btn-ghost"
+              :disabled="form.processing"
+              @click="save"
+            >
+              {{ form.processing ? 'Đang lưu…' : 'Lưu nháp' }}
+            </button>
+            <button
+              v-if="isEditing"
+              type="button"
+              class="btn-primary"
+              :disabled="form.processing || !readyToSubmit"
+              :title="readyToSubmit ? '' : 'Hãy điền đủ các mục bắt buộc trước khi nộp'"
+              @click="submit"
+            >
+              Nộp duyệt
+            </button>
+          </div>
+        </div>
+
+        <!-- Rejected feedback -->
+        <div
+          v-if="report?.review_notes"
+          class="card border-l-4 border-warning p-4"
+        >
+          <p class="text-sm font-semibold text-slate-700">
+            Báo cáo được trả lại
+          </p>
+          <p class="mt-1 text-sm text-slate-600">
+            {{ report.review_notes }}
+          </p>
+        </div>
+
+        <!-- All sections as tabs -->
+        <div class="card overflow-hidden">
+          <!-- Tab bar -->
+          <div class="flex flex-wrap border-b border-slate-200">
+            <button
+              v-for="(t, i) in tabs"
+              :key="t.key"
+              type="button"
+              class="flex-1 border-b-2 px-3 py-3 text-sm font-medium transition"
+              :class="activeTab === i
+                ? 'border-brand text-brand'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'"
+              @click="activeTab = i"
+            >
+              <span class="flex items-center justify-center gap-2">
+                {{ t.title }}
+                <span
+                  class="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
+                  :class="t.filled === t.total
+                    ? 'bg-emerald-100 text-emerald-700'
+                    : t.hasMissingRequired
+                      ? 'bg-amber-100 text-amber-700'
+                      : 'bg-slate-100 text-slate-500'"
+                >
+                  <AppIcon
+                    v-if="t.filled === t.total"
+                    name="check"
+                    :size="10"
+                    :stroke-width="3"
+                  />
+                  {{ t.filled }}/{{ t.total }}
+                </span>
+              </span>
+            </button>
+          </div>
+
+          <!-- Active tab -->
+          <div class="p-6">
+            <div class="mb-5 flex items-start justify-between gap-3 rounded-card bg-slate-50 p-3">
+              <div class="flex items-start gap-2">
+                <span class="font-mono text-xs text-slate-400">{{ activeTabMeta.jp }} · {{ activeTabMeta.romaji }}</span>
+                <p class="text-xs text-slate-500">
+                  {{ activeTabMeta.desc }}
+                </p>
+              </div>
+              <span
+                class="inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+                :class="statusVi.cls"
+              >
+                {{ statusVi.label }}
+              </span>
+            </div>
+
+            <!-- Tab: general info -->
+            <div
+              v-if="activeTabMeta.key === 'info'"
+              class="grid gap-5 lg:grid-cols-2"
+            >
+              <div class="lg:col-span-2">
+                <label class="label flex items-center gap-1.5">
+                  Ngày báo cáo
+                  <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-400">Chỉ đọc</span>
+                </label>
+                <div
+                  class="flex flex-wrap items-center gap-2 rounded-card border border-dashed border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-600"
+                >
+                  <AppIcon
+                    name="calendar"
+                    :size="16"
+                    class="shrink-0 text-brand"
+                  />
+                  <span class="font-medium text-slate-700">{{ formattedToday }}</span>
+                  <span class="text-xs text-slate-400">(theo giờ làm việc VN)</span>
+                </div>
+              </div>
+
+              <div>
+                <label class="label flex items-center gap-1.5">
+                  Tiêu đề báo cáo <span class="text-danger">*</span>
+                  <InfoTooltip text="Một dòng tóm tắt nội dung chính trong ngày. VD: “Hoàn thiện màn hình đăng nhập & sửa lỗi API”." />
+                </label>
+                <input
+                  v-model="form.title"
+                  type="text"
+                  class="input"
+                  placeholder="VD: Tổng kết công việc ngày — Module báo cáo"
+                >
+                <p
+                  v-if="form.errors.title"
+                  class="mt-1 text-sm text-danger"
+                >
+                  {{ form.errors.title }}
+                </p>
+              </div>
+
+              <div>
+                <label class="label flex items-center gap-1.5">
+                  Dự án &amp; công việc trong ngày
+                  <InfoTooltip text="Chọn (các) dự án bạn đã làm việc hôm nay. Sau khi chọn dự án, bạn có thể thêm các task của dự án đó kèm theo." />
+                </label>
+                <ProjectSelect
+                  v-model="form.projects"
+                  :options="projectOptions"
+                  :task-status-snapshot="taskStatusSnapshot"
+                />
+              </div>
+            </div>
+
+            <!-- Tab: a Horenso pillar -->
+            <div
+              v-else
+              class="grid gap-5"
+              :class="pillarFields(activeTabMeta.key).length > 2 ? 'xl:grid-cols-2' : ''"
+            >
+              <RichTextField
+                v-for="f in pillarFields(activeTabMeta.key)"
+                :key="f.key"
+                v-model="form[f.key]"
+                :label="f.label"
+                :hint="f.hint"
+                :tooltip="f.tooltip"
+                :required="f.required"
+                :placeholder="f.placeholder"
+                :error="form.errors[f.key]"
+              />
+            </div>
+
+            <!-- Tab nav -->
+            <div class="mt-6 flex items-center justify-between border-t border-slate-100 pt-4">
+              <button
+                type="button"
+                class="btn-ghost"
+                :disabled="activeTab === 0"
+                @click="activeTab--"
+              >
+                ← Trước
+              </button>
+              <span class="text-xs text-slate-400">Bước {{ activeTab + 1 }}/{{ tabs.length }}</span>
+              <button
+                type="button"
+                class="btn-ghost"
+                :disabled="activeTab === tabs.length - 1"
+                @click="activeTab++"
+              >
+                Tiếp →
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <p
+          v-if="form.errors.submit"
+          class="text-sm text-danger"
+        >
+          {{ form.errors.submit }}
+        </p>
+        <p class="text-center text-xs text-slate-400">
+          <span v-if="isEditing">
+            Bản nháp tự động lưu mỗi 30 giây.
+            <span v-if="savedTimeLabel"> · Đã lưu lúc {{ savedTimeLabel }}</span>
+          </span>
+          <span v-else>Lưu nháp để bật tự động lưu và cho phép nộp duyệt.</span>
+        </p>
+      </div>
     </div>
 
     <TemplateGallery

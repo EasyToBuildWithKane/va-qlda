@@ -501,10 +501,12 @@ function downloadBlob(content, filename, type) {
 
 /**
  * Fetch the full filtered dataset from the server, then build either the
- * 7-sheet management workbook or a flat CSV. Returns the filename, or null
- * when there is nothing to export.
+ * 7-sheet management workbook or a flat CSV. Returns null when there is
+ * nothing to export, otherwise { filename, truncated, total, limit } so the
+ * caller can warn when the server-side cap clipped the dataset.
  *
  * @param {{ params: object, filters?: object, meta?: object, format: 'csv'|'xlsx' }} opts
+ * @returns {Promise<null|{filename: string, truncated: boolean, total: number, limit: number|null}>}
  */
 export async function exportDailyReportHistory({ params, filters = {}, meta = {}, format }) {
     const url = (typeof route === 'function') ? route('daily-reports.export-data') : '/daily-reports/export-data';
@@ -512,15 +514,23 @@ export async function exportDailyReportHistory({ params, filters = {}, meta = {}
     const rows = Array.isArray(data) ? data : (data?.data ?? []);
     if (!rows.length) return null;
 
+    // Backend caps the export; surface truncation so the file isn't silently short.
+    const serverMeta = (data && !Array.isArray(data) && data.meta) ? data.meta : {};
+    const result = {
+        truncated: Boolean(serverMeta.truncated),
+        total: serverMeta.total ?? rows.length,
+        limit: serverMeta.limit ?? null,
+    };
+
     const base = stampFilename();
 
     if (format === 'csv') {
         downloadBlob(buildCsv(rows, filters, meta), `${base}.csv`, 'text/csv;charset=utf-8;');
-        return `${base}.csv`;
+        return { ...result, filename: `${base}.csv` };
     }
 
     const wb = buildWorkbook(rows, filters, meta);
     const filename = `${base}.xlsx`;
     XLSX.writeFile(wb, filename);
-    return filename;
+    return { ...result, filename };
 }

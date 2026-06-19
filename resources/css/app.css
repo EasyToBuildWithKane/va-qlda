@@ -101,6 +101,15 @@
         @apply block text-sm font-medium text-slate-700 mb-1;
     }
 
+    /* Compact view (~90%, như Ctrl–) cho màn Báo cáo ngày: thu nhỏ toàn bộ
+       nội dung nhưng bù lại chiều rộng để KHÔNG bị hụt full-width.
+       width = 100% / zoom → sau khi zoom 0.9 vẫn lấp đầy 100% bề ngang. */
+    .ui-compact {
+        --ui-zoom: 0.9;
+        zoom: var(--ui-zoom);
+        width: calc(100% / var(--ui-zoom));
+    }
+
     /* Rendered rich-text (editor HTML) — restore list/heading styling that
        Tailwind's preflight removes. */
     .rich-content {

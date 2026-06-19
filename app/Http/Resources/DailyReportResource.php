@@ -47,6 +47,8 @@ class DailyReportResource extends JsonResource
             'is_late' => $this->is_late,
             'submitted_at' => $this->submitted_at?->toIso8601String(),
             'reviewed_at' => $this->reviewed_at?->toIso8601String(),
+            'recalled_at' => $this->recalled_at?->toIso8601String(),
+            'recall_count' => (int) $this->recall_count,
             'review_notes' => $this->review_notes,
 
             'employee' => $this->whenLoaded('employee', fn () => [
@@ -67,6 +69,7 @@ class DailyReportResource extends JsonResource
             'can' => $user ? [
                 'update' => $user->can('update', $this->resource),
                 'submit' => $user->can('submit', $this->resource),
+                'recall' => $user->can('recall', $this->resource),
                 'score' => $user->can('score', $this->resource),
                 'delete' => $user->can('delete', $this->resource),
             ] : null,

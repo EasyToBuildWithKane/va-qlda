@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Domain\DailyReport\Models\DailyReport;
 use App\Models\SystemAccount;
+use App\Support\DailyReportCalendar;
 use App\Support\Enums\ReportStatus;
 
 class DailyReportPolicy
@@ -34,6 +35,18 @@ class DailyReportPolicy
     public function submit(SystemAccount $account, DailyReport $report): bool
     {
         return $report->isEditable() && $this->owns($account, $report);
+    }
+
+    /**
+     * Only the owner may take back their own submitted report, and only on the
+     * same business day. Reviewers use reject() instead. Drives the "Rút lại"
+     * button via DailyReportResource->can.recall, so it must be authoritative.
+     */
+    public function recall(SystemAccount $account, DailyReport $report): bool
+    {
+        return $report->status === ReportStatus::Submitted
+            && $this->owns($account, $report)
+            && DailyReportCalendar::isToday($report->date);
     }
 
     public function score(SystemAccount $account, DailyReport $report): bool

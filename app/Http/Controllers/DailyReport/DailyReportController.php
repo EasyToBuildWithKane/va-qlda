@@ -4,11 +4,13 @@ namespace App\Http\Controllers\DailyReport;
 
 use App\Application\DailyReport\CreateDailyReportUseCase;
 use App\Application\DailyReport\DeleteDailyReportUseCase;
+use App\Application\DailyReport\RecallDailyReportUseCase;
 use App\Application\DailyReport\SubmitDailyReportUseCase;
 use App\Application\DailyReport\UpdateDailyReportUseCase;
 use App\Domain\DailyReport\Exceptions\DailyReportException;
 use App\Domain\DailyReport\Models\DailyReport;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\DailyReport\RecallDailyReportRequest;
 use App\Http\Requests\DailyReport\StoreDailyReportRequest;
 use App\Http\Requests\DailyReport\UpdateDailyReportRequest;
 use App\Http\Resources\DailyReportResource;
@@ -16,6 +18,7 @@ use App\Models\Project;
 use App\Models\SystemAccount;
 use App\Support\DailyReportCalendar;
 use App\Support\DailyReportFieldContent;
+use App\Support\DailyReportTimeline;
 use App\Support\Enums\Grade;
 use App\Support\Enums\ReportStatus;
 use App\Support\Enums\SystemRole;
@@ -31,6 +34,9 @@ use Inertia\Response;
 
 class DailyReportController extends Controller
 {
+    /** Hard cap on rows returned for the Excel export endpoint. */
+    private const EXPORT_LIMIT = 5000;
+
     /**
      * Report history with filters. Members see only their own reports.
      */
@@ -78,11 +84,18 @@ class DailyReportController extends Controller
     {
         $this->authorize('viewAny', DailyReport::class);
 
-        $rows = $this->historyReportsQuery($request, $request->user())
-            ->limit(5000)
-            ->get();
+        $query = $this->historyReportsQuery($request, $request->user());
 
-        return DailyReportResource::collection($rows)->response();
+        $total = (clone $query)->count();
+        $rows = $query->limit(self::EXPORT_LIMIT)->get();
+
+        return DailyReportResource::collection($rows)
+            ->additional(['meta' => [
+                'total' => $total,
+                'limit' => self::EXPORT_LIMIT,
+                'truncated' => $total > self::EXPORT_LIMIT,
+            ]])
+            ->response();
     }
 
     /**
@@ -99,7 +112,14 @@ class DailyReportController extends Controller
             ->latest('date');
 
         if ($isMember) {
-            $query->where('employee_id', $account->employee_id);
+            // A member without a linked employee_id has no reports of their own.
+            // Guard explicitly: where('employee_id', null) compiles to IS NULL and
+            // would otherwise leak every employee-less report.
+            if ($account->employee_id === null) {
+                $query->whereRaw('1 = 0');
+            } else {
+                $query->where('employee_id', $account->employee_id);
+            }
         } elseif ($employeeIds = $this->employeeIdFilter($request)) {
             $query->whereIn('employee_id', $employeeIds);
         }
@@ -108,7 +128,13 @@ class DailyReportController extends Controller
             $query->where('status', $status);
         }
         if ($projectId = $request->query('project_id')) {
-            $query->where('project_id', $projectId);
+            // Match any report that tags this project (multi-select), not just
+            // the one stored in the legacy first-project `project_id` column.
+            // orWhere keeps legacy rows whose `projects` JSON is empty matchable.
+            $query->where(function (Builder $q) use ($projectId) {
+                $q->whereJsonContains('projects', ['id' => (int) $projectId])
+                    ->orWhere('project_id', (int) $projectId);
+            });
         }
         if ($grade = $request->query('grade')) {
             $query->whereHas('score', fn ($q) => $q->where('grade', $grade));
@@ -318,6 +344,7 @@ class DailyReportController extends Controller
 
         return Inertia::render('DailyReport/Show', [
             'report' => (new DailyReportResource($report->load(['employee', 'score.reviewer'])))->resolve(),
+            'timeline' => DailyReportTimeline::for($report),
         ]);
     }
 
@@ -347,7 +374,7 @@ class DailyReportController extends Controller
             ->with('success', 'Đã xoá báo cáo.');
     }
 
-    public function submit(DailyReport $report, SubmitDailyReportUseCase $useCase): RedirectResponse
+    public function submit(Request $request, DailyReport $report, SubmitDailyReportUseCase $useCase): RedirectResponse
     {
         $this->authorize('submit', $report);
 
@@ -377,5 +404,21 @@ class DailyReportController extends Controller
         return redirect()
             ->route('daily-reports.show', $report)
             ->with('success', 'Đã nộp báo cáo chờ duyệt.');
+    }
+
+    public function recall(RecallDailyReportRequest $request, DailyReport $report, RecallDailyReportUseCase $useCase): RedirectResponse
+    {
+        // Ownership + same-day window authorized in RecallDailyReportRequest.
+
+        try {
+            $useCase->execute($report, $request->user(), $request->validated('reason'));
+            NotificationDispatcher::dailyReportRecalled($report->fresh(['employee']), $request->user());
+        } catch (DailyReportException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return redirect()
+            ->route('daily-reports.today')
+            ->with('success', 'Đã rút lại báo cáo. Bạn có thể chỉnh sửa và nộp lại.');
     }
 }

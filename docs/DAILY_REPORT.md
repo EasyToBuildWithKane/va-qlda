@@ -41,7 +41,7 @@ Module mẫu **Clean Architecture** trong VA-QLDA: controller mỏng → Use Cas
 
 ```
 routes/web/daily-reports.php (prefix daily-reports.)
-    → DailyReportController (index, exportData, today, store, show, update, destroy, submit)
+    → DailyReportController (index, exportData, today, store, show, update, destroy, submit, recall)
     → DailyReportReviewController (index, score, reject)
 
 app/Application/DailyReport/          ← mutation & side effects
@@ -60,6 +60,7 @@ app/Policies/DailyReportPolicy.php
 | `UpdateDailyReportUseCase` | Sửa nháp; sync projects; có thể gọi sync task |
 | `DeleteDailyReportUseCase` | Xóa khi `isEditable()` |
 | `SubmitDailyReportUseCase` | `draft` → `submitted`; cổng ngày làm việc; `is_late`; freeze task snapshot |
+| `RecallDailyReportUseCase` | `submitted` → `draft` (owner tự rút lại trong ngày); reset `submitted_at`/`is_late`/snapshot — snapshot đóng băng lại khi nộp lại |
 | `ScoreReportUseCase` | Chấm 5 chiều → `ScoringService` → `reviewed` + bản ghi score |
 | `RejectReportUseCase` | `submitted` → `draft` + `review_notes` |
 | `SyncDailyReportSpawnedTasksUseCase` | Task ad-hoc trong JSON → bảng `tasks` (`source=daily`) |
@@ -78,7 +79,7 @@ app/Policies/DailyReportPolicy.php
 | `Domain/DailyReport/Support/ReportProjectSync` | Đồng bộ `projects` JSON ↔ `project_id` legacy |
 | `Domain/DailyReport/Support/ReportProjectTaskStatus` | Snapshot trạng thái task lúc submit |
 | `Support/DailyReportCalendar` | Múi giờ `config('daily_report.timezone')`, «hôm nay» nghiệp vụ |
-| `Support/DailyReportFieldContent` | Chuẩn hóa / làm sạch HTML trường báo cáo |
+| `Support/DailyReportFieldContent` | (1) `hasMeaningfulText()` cho cổng nộp; (2) **sanitize allowlist HTML** server-side (DOMDocument; Tiptap không được tin) — gọi trong Create/Update Use Case trước khi lưu |
 
 ### 3.3 Cấu hình chấm điểm & nộp
 
@@ -102,6 +103,7 @@ File: `config/daily_report.php` (MVP; V2 có thể chuyển `system_settings`).
 stateDiagram-v2
   [*] --> draft: tạo / từ chối
   draft --> submitted: submit (owner)
+  submitted --> draft: recall (owner, cùng ngày)
   submitted --> reviewed: score (reviewer)
   submitted --> draft: reject + ghi chú
   reviewed --> [*]
@@ -110,10 +112,12 @@ stateDiagram-v2
 | `ReportStatus` | Nhãn UI | Chỉnh sửa |
 |---|---|---|
 | `draft` | Nháp | Owner (hoặc `daily_report.update`) khi `isEditable()` |
-| `submitted` | Chờ duyệt | Không sửa; chờ score/reject |
+| `submitted` | Chờ duyệt | Không sửa; chờ score/reject; owner có thể tự **rút lại** trong ngày |
 | `reviewed` | Đã duyệt | Khóa nội dung chính; có bản ghi điểm |
 
 **Nộp (`submit`):** chỉ owner; báo cáo phải `draft`; không nộp ngày nghỉ (`working_days`); đánh dấu trễ theo `late_after`.
+
+**Rút lại (`recall`):** chỉ owner; báo cáo phải `submitted`; chỉ trong **ngày làm việc hôm nay** (`DailyReportCalendar::isToday`). Đưa về `draft` để sửa rồi nộp lại — không cần reviewer reject. Reset `submitted_at`/`is_late`/`task_status_snapshot` (snapshot đóng băng lại khi nộp lại). Policy `recall` đã bao gồm cả 3 điều kiện nên `can.recall` là nguồn duy nhất bật nút «Rút lại» ở `Today.vue`. Thông báo reviewer qua `dailyReportRecalled`.
 
 **Chấm (`score`):** ability `daily_report.review`, reviewer có `employee_id`, báo cáo `submitted`. Năm slider 0–10: hoàn thành CV, kỹ năng, thái độ, chuyên môn, Kaizen.
 
@@ -170,6 +174,7 @@ Chi tiết đồng bộ, filter, export: **`docs/DAILY_REPORT_PROJECTS.md`**.
 
 1. **Báo cáo → Task:** `SyncDailyReportSpawnedTasksUseCase` tạo/cập nhật task `source=daily`, `daily_report_id`, sau khi user có quyền `contribute` trên dự án.
 2. **Task sprint → Báo cáo:** listener `SyncTaskStatusToDaily` (event `TaskStatusChanged`, status `done`) cập nhật `task_status_snapshot` báo cáo **ngày hiện tại** (timezone báo cáo) của assignee — lỗi được log, không làm fail request task.
+   - Snapshot lúc nộp đã **đóng băng** qua `ReportProjectTaskStatus::freezeIntoReport()` trong `SubmitDailyReportUseCase`. Nếu báo cáo đã `submitted`/`reviewed`, listener vẫn ghi nhưng **đánh dấu `synced_after_submit = true`** trên entry — không âm thầm đổi snapshot mà người chấm đã thấy lúc nộp.
 
 Migration: `2026_06_12_110000_add_task_daily_report_sync_fields.php`.
 
@@ -182,7 +187,7 @@ File: `routes/web/daily-reports.php`. **Thứ tự:** segment tĩnh trước `/{
 | Method | URI | Name | Controller |
 |---|---|---|---|
 | GET | `/daily-reports` | `daily-reports.index` | `DailyReportController@index` |
-| GET | `/daily-reports/export-data` | `daily-reports.export-data` | `DailyReportController@exportData` (JSON ≤5000) |
+| GET | `/daily-reports/export-data` | `daily-reports.export-data` | `DailyReportController@exportData` (JSON ≤5000 + `meta.truncated`) |
 | GET | `/daily-reports/today` | `daily-reports.today` | `DailyReportController@today` |
 | GET | `/daily-reports/review` | `daily-reports.review` | `DailyReportReviewController@index` |
 | POST | `/daily-reports` | `daily-reports.store` | `DailyReportController@store` |
@@ -190,6 +195,7 @@ File: `routes/web/daily-reports.php`. **Thứ tự:** segment tĩnh trước `/{
 | PUT | `/daily-reports/{report}` | `daily-reports.update` | `DailyReportController@update` |
 | DELETE | `/daily-reports/{report}` | `daily-reports.destroy` | `DailyReportController@destroy` |
 | POST | `/daily-reports/{report}/submit` | `daily-reports.submit` | `DailyReportController@submit` |
+| POST | `/daily-reports/{report}/recall` | `daily-reports.recall` | `DailyReportController@recall` |
 | POST | `/daily-reports/{report}/score` | `daily-reports.score` | `DailyReportReviewController@score` |
 | POST | `/daily-reports/{report}/reject` | `daily-reports.reject` | `DailyReportReviewController@reject` |
 
@@ -197,9 +203,11 @@ Binding: `{report}` → `App\Domain\DailyReport\Models\DailyReport` (UUID).
 
 ### 7.1 Lọc lịch sử (`index` / `export-data`)
 
-Query params: `q`, `status`, `project_id`, `employee_ids[]` (hoặc legacy `employee_id`), `grade`, `from`, `to`, `late`, `group`, `per_page`.
+Query params: `q`, `status`, `project_id` (khớp **mọi** dự án được tag, không chỉ dự án đầu — xem `DAILY_REPORT_PROJECTS.md`), `employee_ids[]` (hoặc legacy `employee_id`), `grade`, `from`, `to`, `late`, `group`, `per_page`.
 
 Response `summary`: tổng theo trạng thái, `completion_rate`, `trend` (±% so kỳ trước), `period`. Logic trend: có `from`/`to` → kỳ liền trước cùng độ dài; không có → 30 ngày gần nhất vs 30 ngày trước.
+
+`export-data` thêm `meta: { total, limit, truncated }` — `total` đếm trước khi cắt `EXPORT_LIMIT` để client cảnh báo khi xuất thiếu. Member thiếu `employee_id` → kết quả rỗng (không leak `employee_id IS NULL`).
 
 ---
 
@@ -230,6 +238,7 @@ resources/js/
 | Sự kiện | Kênh |
 |---|---|
 | Nộp báo cáo | `NotificationDispatcher::dailyReportSubmitted` (in-app) |
+| Rút lại báo cáo | `NotificationDispatcher::dailyReportRecalled` (báo reviewer biết báo cáo đang chờ đã được rút) |
 | Chấm điểm | `NotificationDispatcher::dailyReportScored` |
 | Từ chối | `NotificationDispatcher::dailyReportRejected` |
 | Review (tùy cấu hình) | `DailyReportReviewTelegramNotifier` + formatter |
@@ -245,8 +254,10 @@ Dashboard hub: panel tuân thủ báo cáo — `WorkDashboardController` + `Dail
 | File | Phạm vi |
 |---|---|
 | `tests/Feature/DailyReportTest.php` | CRUD, submit, review, policy |
+| `tests/Feature/DailyReportRecallTest.php` | Rút lại: owner/ngày hợp lệ, quá ngày, không phải owner, sai trạng thái |
 | `tests/Feature/DailyReportTaskSyncTest.php` | Spawn task + snapshot |
 | `tests/Unit/ScoringServiceTest.php` | Trọng số, grade, trend |
+| `tests/Unit/DailyReportFieldContentTest.php` | Sanitize HTML allowlist (XSS, javascript: href, unwrap, UTF-8) |
 | `tests/e2e/daily-report.spec.js` | Luồng Playwright |
 
 Chạy: `php artisan test --filter=DailyReport` · E2E: `npm run test:e2e` (CI).

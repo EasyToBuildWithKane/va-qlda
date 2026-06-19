@@ -20,6 +20,7 @@ Route::prefix('daily-reports')->name('daily-reports.')->group(function () {
     Route::put('/{report}', [DailyReportController::class, 'update'])->name('update');
     Route::delete('/{report}', [DailyReportController::class, 'destroy'])->name('destroy');
     Route::post('/{report}/submit', [DailyReportController::class, 'submit'])->name('submit');
+    Route::post('/{report}/recall', [DailyReportController::class, 'recall'])->name('recall');
     Route::post('/{report}/score', [DailyReportReviewController::class, 'score'])->name('score');
     Route::post('/{report}/reject', [DailyReportReviewController::class, 'reject'])->name('reject');
 });

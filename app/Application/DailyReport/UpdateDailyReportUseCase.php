@@ -5,6 +5,7 @@ namespace App\Application\DailyReport;
 use App\Domain\DailyReport\Models\DailyReport;
 use App\Domain\DailyReport\Support\ReportProjectSync;
 use App\Models\SystemAccount;
+use App\Support\DailyReportFieldContent;
 
 class UpdateDailyReportUseCase
 {
@@ -20,7 +21,11 @@ class UpdateDailyReportUseCase
      */
     public function execute(DailyReport $report, array $data, SystemAccount $actor): DailyReport
     {
-        $report->update(ReportProjectSync::applyToPayload($data));
+        $report->update(
+            DailyReportFieldContent::sanitizePayload(
+                ReportProjectSync::applyToPayload($data),
+            ),
+        );
 
         return $this->syncSpawnedTasks->execute($report->refresh(), $actor);
     }

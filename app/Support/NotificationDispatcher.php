@@ -459,6 +459,22 @@ class NotificationDispatcher
         ]);
     }
 
+    public static function dailyReportRecalled(DailyReport $report, ?SystemAccount $actor): void
+    {
+        $svc = self::service();
+        $employee = $report->employee;
+        $name = $employee?->name ?? 'Nhân viên';
+        $date = $report->date->format('d/m/Y');
+        $title = "{$name} đã rút lại báo cáo ngày {$date} để chỉnh sửa";
+
+        $svc->notifyAdmins(NotificationType::DailyReportRecalled, $title, null, [
+            'actor' => $actor,
+            'entity_type' => 'daily_report',
+            'entity_id' => $report->id,
+            'action_url' => "/daily-reports/{$report->uuid}",
+        ]);
+    }
+
     public static function dailyReportScored(DailyReport $report, DailyReportScore $score, ?SystemAccount $actor): void
     {
         $svc = self::service();

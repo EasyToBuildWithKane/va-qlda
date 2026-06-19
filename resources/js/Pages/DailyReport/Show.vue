@@ -1,6 +1,6 @@
 <script setup>
 /* eslint-disable vue/no-v-html -- rendered markdown report fields */
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { useToast } from '@/shared/composables/useToast';
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -8,15 +8,20 @@ import AppIcon from '@/Components/AppIcon.vue';
 import StatusBadge from '@/modules/daily-report/components/StatusBadge.vue';
 import TaskStatusBadge from '@/Components/TaskStatusBadge.vue';
 import GradePill from '@/modules/daily-report/components/GradePill.vue';
+import ReportAuditTimeline from '@/modules/daily-report/components/ReportAuditTimeline.vue';
+import RecallButton from '@/modules/daily-report/components/RecallButton.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import { fields } from '@/modules/daily-report/config/reportConfig';
 import { useConfirmDelete } from '@/composables/useConfirmClose';
+import { useDialog } from '@/composables/useDialog';
 import { dateLongVi } from '@/composables/useFormat';
 
 const confirmDelete = useConfirmDelete();
+const dialog = useDialog();
 
 const props = defineProps({
     report: { type: Object, required: true },
+    timeline: { type: Array, default: () => [] },
 });
 
 const page = usePage();
@@ -58,6 +63,27 @@ const remove = () => {
         () => router.delete(`/daily-reports/${props.report.id}`),
     );
 };
+
+// ---- Recall (owner pulls a just-submitted report back to draft, same day) ---
+const canRecall = computed(() => Boolean(props.report.can?.recall));
+const recalling = ref(false);
+
+const recall = async () => {
+    if (recalling.value) return;
+    const reason = await dialog.prompt({
+        title: 'Rút lại báo cáo?',
+        message: 'Báo cáo sẽ trở về bản nháp để bạn chỉnh sửa và nộp lại. Người duyệt sẽ được thông báo. Nêu lý do thu hồi (không bắt buộc):',
+        placeholder: 'Ví dụ: bổ sung kết quả còn thiếu…',
+        confirmText: 'Rút lại',
+        cancelText: 'Huỷ',
+    });
+    if (reason === null) return; // cancelled
+    recalling.value = true;
+    router.post(`/daily-reports/${props.report.id}/recall`, { reason }, {
+        preserveScroll: true,
+        onFinish: () => { recalling.value = false; },
+    });
+};
 </script>
 
 <template>
@@ -73,7 +99,7 @@ const remove = () => {
       />
     </template>
 
-    <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+    <div class="ui-compact grid grid-cols-1 gap-6 lg:grid-cols-3">
       <div class="space-y-4 lg:col-span-2">
         <div class="card p-4">
           <div class="flex flex-wrap items-start justify-between gap-3">
@@ -94,6 +120,16 @@ const remove = () => {
                   v-if="report.is_late"
                   class="rounded bg-rose-50 px-1.5 py-0.5 font-medium text-danger"
                 >Nộp trễ</span>
+                <span
+                  v-if="report.recall_count > 0"
+                  class="inline-flex items-center gap-1 rounded bg-amber-50 px-1.5 py-0.5 font-medium text-amber-700"
+                >
+                  <AppIcon
+                    name="back"
+                    :size="12"
+                  />
+                  Đã rút lại {{ report.recall_count }} lần
+                </span>
               </p>
             </div>
             <StatusBadge
@@ -201,6 +237,11 @@ const remove = () => {
           >
             Nộp duyệt
           </button>
+          <RecallButton
+            v-if="canRecall"
+            :recalling="recalling"
+            @recall="recall"
+          />
           <button
             v-if="report.can?.delete"
             type="button"
@@ -208,7 +249,7 @@ const remove = () => {
             @click="remove"
           >
             <AppIcon
-              name="trash"
+              name="delete"
               :size="15"
             />
             Xoá nháp
@@ -308,6 +349,8 @@ const remove = () => {
           />
           Chưa có đánh giá.
         </div>
+
+        <ReportAuditTimeline :events="timeline" />
       </div>
     </div>
   </AppLayout>

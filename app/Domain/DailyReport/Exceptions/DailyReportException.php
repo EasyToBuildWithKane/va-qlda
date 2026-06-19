@@ -26,6 +26,16 @@ class DailyReportException extends DomainException
         return new self('Chỉ có thể xoá báo cáo ở trạng thái nháp.');
     }
 
+    public static function cannotRecall(): self
+    {
+        return new self('Chỉ có thể rút lại báo cáo đang chờ duyệt.');
+    }
+
+    public static function recallExpired(): self
+    {
+        return new self('Chỉ được rút lại báo cáo trong ngày làm việc. Nếu cần chỉnh sửa sau đó, hãy nhờ người duyệt trả lại.');
+    }
+
     public static function projectNotAllowed(string $projectName): self
     {
         return new self("Bạn không có quyền ghi task vào dự án «{$projectName}».");

@@ -30,6 +30,8 @@ use Spatie\Activitylog\Traits\LogsActivity;
  * @property bool $is_late
  * @property \Illuminate\Support\Carbon|null $submitted_at
  * @property \Illuminate\Support\Carbon|null $reviewed_at
+ * @property \Illuminate\Support\Carbon|null $recalled_at
+ * @property int $recall_count
  */
 class DailyReport extends Model
 {
@@ -52,6 +54,8 @@ class DailyReport extends Model
         'is_late',
         'submitted_at',
         'reviewed_at',
+        'recalled_at',
+        'recall_count',
         'review_notes',
         'task_status_snapshot',
     ];
@@ -63,6 +67,8 @@ class DailyReport extends Model
         'task_status_snapshot' => 'array',
         'submitted_at' => 'datetime',
         'reviewed_at' => 'datetime',
+        'recalled_at' => 'datetime',
+        'recall_count' => 'integer',
     ];
 
     protected static function newFactory(): Factory

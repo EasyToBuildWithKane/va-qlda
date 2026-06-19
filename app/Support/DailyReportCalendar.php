@@ -23,4 +23,18 @@ final class DailyReportCalendar
     {
         return self::now()->toDateString();
     }
+
+    /**
+     * Whether the given report date is the current business day. Compares
+     * calendar dates only (report dates are stored date-only), resolved in the
+     * report timezone so a recall window never drifts across midnight UTC.
+     */
+    public static function isToday(mixed $date): bool
+    {
+        $value = $date instanceof \DateTimeInterface
+            ? $date->format('Y-m-d')
+            : (string) $date;
+
+        return CarbonImmutable::parse($value)->toDateString() === self::today();
+    }
 }
