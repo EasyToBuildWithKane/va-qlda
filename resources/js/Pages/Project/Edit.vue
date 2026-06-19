@@ -9,6 +9,7 @@ defineProps({
     employees: { type: Array, default: () => [] },
     statusOptions: { type: Array, default: () => [] },
     typeOptions: { type: Array, default: () => [] },
+    categoryOptions: { type: Array, default: () => [] },
     scopeOptions: { type: Array, default: () => [] },
     regionOptions: { type: Array, default: () => [] },
     departmentOptions: { type: Array, default: () => [] },
@@ -33,6 +34,7 @@ defineProps({
       :employees="employees"
       :status-options="statusOptions"
       :type-options="typeOptions"
+      :category-options="categoryOptions"
       :scope-options="scopeOptions"
       :region-options="regionOptions"
       :department-options="departmentOptions"

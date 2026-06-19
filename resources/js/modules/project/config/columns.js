@@ -4,6 +4,7 @@
 export const COLUMNS = [
     { key: 'code', label: 'Mã dự án', align: 'left', sortable: true, colClass: 'min-w-[6rem]' },
     { key: 'type', label: 'Loại dự án', align: 'left', sortable: true, colClass: 'min-w-[7.5rem]' },
+    { key: 'category', label: 'Phân loại', align: 'left', sortable: true, colClass: 'min-w-[7rem]' },
     { key: 'scope', label: 'Phạm vi', align: 'left', sortable: true, colClass: 'min-w-[7rem]' },
     { key: 'department', label: 'Phòng ban', align: 'left', sortable: true, colClass: 'min-w-[8.5rem]' },
     { key: 'manager', label: 'Chủ dự án', align: 'left', sortable: true, colClass: 'min-w-[9.5rem]' },
@@ -26,6 +27,7 @@ export const DEFAULT_VISIBLE = [
 export function cellValue(p, key) {
     switch (key) {
         case 'type': return p.type?.label ?? '';
+        case 'category': return p.category?.label ?? '';
         case 'scope': return p.scope?.label ?? '';
         case 'status': return p.status?.label ?? '';
         case 'department': return p.department?.name ?? '';

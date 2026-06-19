@@ -1,0 +1,25 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('projects', function (Blueprint $table) {
+            // Phân loại lĩnh vực: hardware | software (nullable — dự án cũ chưa phân loại).
+            $table->string('category', 30)->nullable()->after('type');
+            $table->index('category');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('projects', function (Blueprint $table) {
+            $table->dropIndex(['category']);
+            $table->dropColumn('category');
+        });
+    }
+};

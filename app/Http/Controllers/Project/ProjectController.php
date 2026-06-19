@@ -21,6 +21,7 @@ use App\Http\Resources\TaskResource;
 use App\Models\Feedback;
 use App\Models\Project;
 use App\Support\Enums\FeedbackStatus;
+use App\Support\Enums\ProjectCategory;
 use App\Support\Enums\ProjectScope;
 use App\Support\Enums\ProjectStatus;
 use App\Support\Enums\ProjectType;
@@ -57,6 +58,7 @@ class ProjectController extends Controller
             'filters' => $result['filters'],
             'statusOptions' => ProjectStatus::options(),
             'typeOptions' => ProjectType::options(),
+            'categoryOptions' => ProjectCategory::options(),
             'scopeOptions' => ProjectScope::options(),
             'regionOptions' => Options::regions(),
             'departmentOptions' => Options::departments(),
@@ -75,6 +77,7 @@ class ProjectController extends Controller
             'employees' => Options::employees(),
             'statusOptions' => ProjectStatus::options(),
             'typeOptions' => ProjectType::options(),
+            'categoryOptions' => ProjectCategory::options(),
             'scopeOptions' => ProjectScope::options(),
             'regionOptions' => Options::regions(),
             'departmentOptions' => Options::departments(),
@@ -137,6 +140,7 @@ class ProjectController extends Controller
             'employees' => Options::employees(),
             'statusOptions' => ProjectStatus::options(),
             'typeOptions' => ProjectType::options(),
+            'categoryOptions' => ProjectCategory::options(),
             'scopeOptions' => ProjectScope::options(),
             'regionOptions' => Options::regions(),
             'departmentOptions' => Options::departments(),

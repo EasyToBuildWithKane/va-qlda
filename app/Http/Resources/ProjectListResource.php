@@ -27,6 +27,7 @@ class ProjectListResource extends JsonResource
             'color' => $this->color,
             'status' => $this->enum($this->status),
             'type' => $this->enum($this->type),
+            'category' => $this->enum($this->category),
             'scope' => $this->enum($this->scope),
             'scope_regions' => $this->scope_regions ?? [],
             'progress' => $this->progress(),

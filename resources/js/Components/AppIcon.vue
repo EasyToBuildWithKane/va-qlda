@@ -18,6 +18,7 @@ import {
     Phone, Briefcase, Award, Target, ExternalLink,
     GraduationCap, Route, Gauge, Sparkles, BadgeCheck, Flame, LockKeyhole,
     LifeBuoy, Compass, ShieldCheck,
+    Cpu,
 } from 'lucide-vue-next';
 
 const props = defineProps({
@@ -55,6 +56,8 @@ const map = {
     'member-profiles': UserRound,
     leaderboard: Trophy,
     'coding-standards': Code,
+    hardware: Cpu,
+    software: Code,
     git: GitBranch,
     'design-system': Palette,
     account: CircleUser,

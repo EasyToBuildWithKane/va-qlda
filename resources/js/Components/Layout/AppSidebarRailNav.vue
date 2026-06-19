@@ -75,13 +75,13 @@ const groupHasBadge = (group) => group.items.some((item) => item.badge);
       <button
         v-if="group.items.length > 1"
         type="button"
-        class="sidebar-rail-group relative mb-0.5 grid h-10 w-10 place-items-center rounded-lg ring-1 ring-inset transition-all duration-200"
+        class="sidebar-rail-group relative mb-0.5 grid h-10 w-10 place-items-center rounded-lg transition-all duration-200"
         :class="[
           groupContainsActive(group)
-            ? 'bg-white/[0.14] text-white ring-white/20'
+            ? 'bg-white/[0.12] text-white'
             : isUpcomingGroup(group)
-              ? 'text-amber-200/80 ring-amber-300/25 hover:bg-amber-400/15 hover:text-amber-50'
-              : 'text-white/85 ring-white/15 hover:bg-white/[0.1] hover:text-white',
+              ? 'text-amber-200/75 hover:bg-amber-400/12 hover:text-amber-50'
+              : 'text-white/70 hover:bg-white/[0.08] hover:text-white/95',
         ]"
         :aria-label="group.heading"
         :aria-haspopup="true"
@@ -89,11 +89,6 @@ const groupHasBadge = (group) => group.items.some((item) => item.badge);
         @mouseleave="hideTip(); closeFlyout()"
         @click="onGroupClick(group, $event)"
       >
-        <span
-          v-if="groupContainsActive(group)"
-          class="absolute -left-1 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-r-full bg-accent"
-          aria-hidden="true"
-        />
         <span
           v-if="groupHasBadge(group)"
           class="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-brand"
@@ -115,19 +110,14 @@ const groupHasBadge = (group) => group.items.some((item) => item.badge);
         class="sidebar-rail-item relative grid h-12 w-12 place-items-center rounded-xl transition-all duration-200"
         :class="[
           isActive(item.href)
-            ? 'sidebar-nav-item--active bg-white/[0.16] text-white shadow-sm ring-1 ring-inset ring-white/15'
-            : 'text-white/60 hover:bg-white/[0.08] hover:text-white/90',
+            ? 'sidebar-nav-item--active bg-white/[0.12] text-white'
+            : 'text-white/55 hover:bg-white/[0.06] hover:text-white/85',
           isPlanned(item) && 'cursor-not-allowed opacity-70 hover:bg-amber-400/10 hover:text-amber-100/80',
         ]"
         @mouseenter="showTip($event, item.label, itemTipSub(item), railTone(item))"
         @mouseleave="hideTip"
         @click="closeFlyout()"
       >
-        <span
-          v-if="isActive(item.href)"
-          class="absolute -left-0.5 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-accent"
-          aria-hidden="true"
-        />
         <AppIcon
           :name="item.icon"
           :size="22"

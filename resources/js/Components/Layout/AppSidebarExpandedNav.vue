@@ -34,28 +34,27 @@ function bindNavRef(el) {
       :key="groupKey(group)"
       :data-tour="`nav-${group.key}`"
       :class="[
-        gi > 0 ? 'mt-1 border-t border-white/[0.07] pt-1' : '',
-        isUpcomingGroup(group) && 'mt-2 border-t border-amber-300/25 pt-2',
+        gi > 0 ? 'mt-2' : '',
+        isUpcomingGroup(group) && 'mt-3',
       ]"
     >
       <button
         type="button"
-        class="sidebar-nav-group-head group/head flex w-full min-h-8 items-center gap-1.5 rounded-lg px-2 py-1.5 transition-all duration-150 select-none"
+        class="sidebar-nav-group-head group/head flex w-full min-h-7 items-center gap-1.5 rounded-md px-2 py-1 transition-all duration-150 select-none"
         :class="isUpcomingGroup(group)
-          ? 'border border-amber-300/25 bg-amber-400/12 text-[10px] font-bold uppercase tracking-[0.14em] text-amber-50 hover:bg-amber-400/18 hover:text-white'
-          : 'border border-white/[0.08] bg-white/[0.08] text-[10px] font-bold uppercase tracking-[0.14em] text-white shadow-[inset_3px_0_0_0_rgba(255,255,255,0.35)] hover:bg-white/[0.12] hover:text-white'"
+          ? 'text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-100/90 hover:bg-amber-400/10 hover:text-amber-50'
+          : 'text-[10px] font-semibold uppercase tracking-[0.12em] text-white/75 hover:bg-white/[0.05] hover:text-white/95'"
         :aria-expanded="isOpen(group)"
         @click="toggleGroup(group)"
       >
         <span
-          class="sidebar-nav-icon-shell grid h-7 w-7 shrink-0 place-items-center rounded-md bg-white/[0.06] group-hover/head:bg-white/[0.1]"
-          :class="isUpcomingGroup(group) ? 'ring-1 ring-inset ring-amber-300/20' : ''"
+          class="grid h-6 w-6 shrink-0 place-items-center rounded-md text-white/70 group-hover/head:text-white/90"
+          :class="isUpcomingGroup(group) && 'text-amber-200/80 group-hover/head:text-amber-100'"
         >
           <AppIcon
             :name="group.icon"
-            :size="15"
+            :size="14"
             class="sidebar-nav-icon shrink-0"
-            :class="isUpcomingGroup(group) ? 'text-amber-100' : 'text-white/90'"
           />
         </span>
         <span class="sidebar-nav-group-title min-w-0 flex-1 truncate text-left">{{ group.heading }}</span>
@@ -85,8 +84,7 @@ function bindNavRef(el) {
       >
         <div class="min-h-0 overflow-hidden">
           <ul
-            class="sidebar-nav-group-items mb-0.5 mt-1 space-y-0.5 border-l border-white/[0.12] pl-1.5 ml-2"
-            :class="isUpcomingGroup(group) && 'rounded-lg border border-amber-300/15 border-l-amber-300/25 bg-amber-950/20 p-0.5 pl-1.5 ml-1'"
+            class="sidebar-nav-group-items mb-0.5 mt-0.5 space-y-0.5"
           >
             <li
               v-for="item in group.items"
@@ -96,19 +94,19 @@ function bindNavRef(el) {
                 :is="isPlanned(item) ? 'div' : Link"
                 :href="isPlanned(item) ? undefined : item.href"
                 :title="isPlanned(item) ? 'Sắp ra mắt — chưa khả dụng' : undefined"
-                class="sidebar-nav-link group/item flex min-h-[40px] items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] font-normal leading-snug transition-all duration-200"
+                class="sidebar-nav-link group/item flex min-h-[38px] items-center gap-2 rounded-lg px-2 py-1 text-[13px] font-normal leading-snug transition-all duration-200"
                 :class="[
                   isActive(item.href)
-                    ? 'sidebar-nav-item--active bg-white/[0.16] font-semibold text-white shadow-sm ring-1 ring-inset ring-white/15'
+                    ? 'sidebar-nav-item--active bg-white/[0.12] font-medium text-white'
                     : isUpcomingGroup(group)
-                      ? 'text-amber-100/70 hover:bg-amber-400/10 hover:text-amber-50'
-                      : 'text-white/65 hover:bg-white/[0.08] hover:text-white/95',
+                      ? 'text-amber-100/65 hover:bg-amber-400/8 hover:text-amber-50/95'
+                      : 'text-white/60 hover:bg-white/[0.06] hover:text-white/90',
                   isPlanned(item) && 'cursor-not-allowed',
                 ]"
               >
                 <span
-                  class="sidebar-nav-icon-shell sidebar-nav-icon-shell--item h-8 w-8 shrink-0"
-                  :class="isActive(item.href) ? '' : 'group-hover/item:bg-white/[0.08]'"
+                  class="sidebar-nav-icon-shell sidebar-nav-icon-shell--item h-7 w-7 shrink-0 rounded-lg"
+                  :class="isActive(item.href) ? '' : 'group-hover/item:bg-white/[0.06]'"
                 >
                   <AppIcon
                     :name="item.icon"

@@ -223,17 +223,11 @@
     }
 
     .sidebar-nav-item--active .sidebar-nav-icon-shell--item {
-        @apply bg-white/[0.14] shadow-[0_4px_14px_-4px_rgba(0,0,0,0.35)] ring-1 ring-inset ring-white/20;
+        @apply bg-white/[0.1];
     }
 
     .sidebar-nav-item--active .sidebar-nav-icon-shell--item::after {
-        content: '';
-        position: absolute;
-        inset: -3px;
-        border-radius: inherit;
-        border: 1px solid rgba(255, 255, 255, 0.22);
-        pointer-events: none;
-        animation: sidebar-icon-glow 2.8s ease-in-out infinite;
+        content: none;
     }
 
     @media (prefers-reduced-motion: reduce) {

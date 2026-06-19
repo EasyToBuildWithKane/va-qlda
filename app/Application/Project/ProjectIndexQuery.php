@@ -51,6 +51,9 @@ class ProjectIndexQuery
         if ($type = $request->query('type')) {
             $query->where('type', $type);
         }
+        if ($category = $request->query('category')) {
+            $query->where('category', $category);
+        }
         if ($scope = $request->query('scope')) {
             $query->where('scope', $scope);
         }
@@ -83,7 +86,7 @@ class ProjectIndexQuery
         return [
             'projects' => $projects,
             'filters' => (object) $request->only([
-                'status', 'type', 'scope', 'department_id', 'mine', 'q', 'per_page',
+                'status', 'type', 'category', 'scope', 'department_id', 'mine', 'q', 'per_page',
             ]),
             'summary' => $this->summaryQuery->execute(),
             'can' => ['create' => $account->can('create', Project::class)],

@@ -45,10 +45,10 @@ const panelStyle = computed(() => ({
           class="overflow-hidden rounded-xl border border-white/10 bg-slate-900/98 shadow-elevation-3 ring-1 ring-black/20 backdrop-blur-md"
         >
           <div
-            class="border-b border-white/10 px-3 py-2.5"
-            :class="isUpcomingGroup(group) ? 'bg-amber-950/40' : 'bg-white/[0.04]'"
+            class="border-b border-white/[0.06] px-3 py-2"
+            :class="isUpcomingGroup(group) ? 'bg-amber-950/25' : ''"
           >
-            <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-white/90">
+            <p class="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/70">
               {{ group.heading }}
             </p>
           </div>

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Enums\ProjectCategory;
 use App\Support\Enums\ProjectScope;
 use App\Support\Enums\ProjectStatus;
 use App\Support\Enums\ProjectType;
@@ -22,6 +23,7 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
  * @property string $color
  * @property ProjectStatus $status
  * @property ProjectType $type
+ * @property ProjectCategory|null $category
  * @property ProjectScope $scope
  * @property array<int, string>|null $scope_regions
  * @property array<int, int>|null $scope_departments
@@ -56,6 +58,7 @@ class Project extends Model
         'color',
         'status',
         'type',
+        'category',
         'scope',
         'scope_regions',
         'scope_departments',
@@ -73,6 +76,7 @@ class Project extends Model
         'is_active' => 'boolean',
         'status' => ProjectStatus::class,
         'type' => ProjectType::class,
+        'category' => ProjectCategory::class,
         'scope' => ProjectScope::class,
         'scope_regions' => 'array',
         'scope_departments' => 'array',

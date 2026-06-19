@@ -217,6 +217,17 @@ const progressTone = (v) => {
                       class="text-slate-300"
                     >—</span>
                   </template>
+                  <template v-else-if="c.key === 'category'">
+                    <Badge
+                      v-if="p.category"
+                      :label="p.category.label"
+                      :color="p.category.color"
+                    />
+                    <span
+                      v-else
+                      class="text-slate-300"
+                    >—</span>
+                  </template>
                   <template v-else-if="c.key === 'scope'">
                     <Badge
                       v-if="p.scope"

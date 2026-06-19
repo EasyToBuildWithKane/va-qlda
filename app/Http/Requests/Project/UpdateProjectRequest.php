@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Project;
 
+use App\Support\Enums\ProjectCategory;
 use App\Support\Enums\ProjectScope;
 use App\Support\Enums\ProjectStatus;
 use App\Support\Enums\ProjectType;
@@ -32,6 +33,7 @@ class UpdateProjectRequest extends FormRequest
             'color' => ['nullable', 'string', 'max:30'],
             'status' => ['required', Rule::in(ProjectStatus::values())],
             'type' => ['required', Rule::in(ProjectType::values())],
+            'category' => ['nullable', Rule::in(ProjectCategory::values())],
             'scope' => ['required', Rule::in(ProjectScope::values())],
             'scope_regions' => ['nullable', 'array'],
             'scope_regions.*' => [Rule::in(Region::values())],
