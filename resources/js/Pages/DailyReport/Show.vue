@@ -66,6 +66,7 @@ const remove = () => {
 
 // ---- Recall (owner pulls a just-submitted report back to draft, same day) ---
 const canRecall = computed(() => Boolean(props.report.can?.recall));
+const isDraft = computed(() => props.report.status === 'draft');
 const recalling = ref(false);
 
 const recall = async () => {
@@ -188,26 +189,29 @@ const recall = async () => {
           </p>
         </div>
 
-        <div class="card divide-y divide-slate-100 p-5 sm:p-6">
-          <section
-            v-for="(s, i) in sections"
-            :key="s.key"
-            :class="i === 0 ? 'pb-5' : 'py-5 last:pb-0'"
-          >
-            <div class="mb-2 flex items-center gap-1.5">
-              <span
-                class="inline-block h-1.5 w-1.5 rounded-full"
-                :class="hasText(report[s.key]) ? 'bg-success' : 'bg-slate-300'"
+        <div class="card p-5 sm:p-6">
+          <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-x-6 sm:gap-y-6">
+            <section
+              v-for="(s, i) in sections"
+              :key="s.key"
+              class="min-w-0"
+              :class="i === sections.length - 1 && sections.length % 2 === 1 ? 'sm:col-span-2' : ''"
+            >
+              <div class="mb-2 flex items-center gap-1.5">
+                <span
+                  class="inline-block h-1.5 w-1.5 shrink-0 rounded-full"
+                  :class="hasText(report[s.key]) ? 'bg-success' : 'bg-slate-300'"
+                />
+                <h3 class="text-sm font-semibold text-slate-700">
+                  {{ s.label }}
+                </h3>
+              </div>
+              <div
+                class="rich-content text-sm text-slate-600"
+                v-html="render(report[s.key])"
               />
-              <h3 class="text-sm font-semibold text-slate-700">
-                {{ s.label }}
-              </h3>
-            </div>
-            <div
-              class="rich-content text-sm text-slate-600"
-              v-html="render(report[s.key])"
-            />
-          </section>
+            </section>
+          </div>
         </div>
 
         <p
@@ -217,7 +221,10 @@ const recall = async () => {
           {{ submitError }}
         </p>
 
-        <div class="flex flex-wrap gap-2">
+        <div
+          v-if="isDraft && (report.can?.update || report.can?.submit || report.can?.delete)"
+          class="flex flex-wrap gap-2"
+        >
           <Link
             v-if="report.can?.update"
             href="/daily-reports/today"
@@ -237,11 +244,6 @@ const recall = async () => {
           >
             Nộp duyệt
           </button>
-          <RecallButton
-            v-if="canRecall"
-            :recalling="recalling"
-            @recall="recall"
-          />
           <button
             v-if="report.can?.delete"
             type="button"
@@ -255,12 +257,21 @@ const recall = async () => {
             Xoá nháp
           </button>
         </div>
+        <div
+          v-else-if="canRecall"
+          class="flex flex-wrap gap-2"
+        >
+          <RecallButton
+            :recalling="recalling"
+            @recall="recall"
+          />
+        </div>
       </div>
 
       <div class="space-y-4">
         <div
           v-if="hasScore"
-          class="card p-5 lg:sticky lg:top-4"
+          class="card p-5"
         >
           <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">
             Kết quả đánh giá
@@ -323,7 +334,7 @@ const recall = async () => {
 
         <div
           v-else-if="report.status === 'submitted'"
-          class="card p-5 text-center lg:sticky lg:top-4"
+          class="card p-5 text-center"
         >
           <AppIcon
             name="review-reports"
@@ -340,7 +351,7 @@ const recall = async () => {
 
         <div
           v-else
-          class="card p-5 text-center text-sm text-slate-400 lg:sticky lg:top-4"
+          class="card p-5 text-center text-sm text-slate-400"
         >
           <AppIcon
             name="review-reports"

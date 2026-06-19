@@ -127,6 +127,8 @@ stateDiagram-v2
 
 Policy: `DailyReportPolicy` — kết hợp **ownership** (`employee_id` account) và **ability** từ ma trận (`docs/PERMISSIONS.md`).
 
+`DailyReportResource` trả `can.update|submit|delete|recall|score` bằng cách gọi trực tiếp policy (không `Gate::can`), để nút Inertia phản ánh đúng trạng thái báo cáo kể cả với `super_admin` (god-mode Gate không áp dụng lên props UI).
+
 | Ability | Ý nghĩa |
 |---|---|
 | `daily_report.view` | Xem báo cáo người khác (ngoài own) |
@@ -189,7 +191,7 @@ File: `routes/web/daily-reports.php`. **Thứ tự:** segment tĩnh trước `/{
 | GET | `/daily-reports` | `daily-reports.index` | `DailyReportController@index` |
 | GET | `/daily-reports/export-data` | `daily-reports.export-data` | `DailyReportController@exportData` (JSON ≤5000 + `meta.truncated`) |
 | GET | `/daily-reports/today` | `daily-reports.today` | `DailyReportController@today` |
-| GET | `/daily-reports/review` | `daily-reports.review` | `DailyReportReviewController@index` |
+| GET | `/daily-reports/review` | `daily-reports.review` | `DailyReportReviewController@index` (query `employee_id` lọc theo thành viên; props `pendingMembers`, `queueTotals`) |
 | POST | `/daily-reports` | `daily-reports.store` | `DailyReportController@store` |
 | GET | `/daily-reports/{report}` | `daily-reports.show` | `DailyReportController@show` |
 | PUT | `/daily-reports/{report}` | `daily-reports.update` | `DailyReportController@update` |
@@ -218,7 +220,7 @@ resources/js/
     Pages/DailyReport/Today.vue      — soạn báo cáo, template Horenso, project picker
     Pages/DailyReport/History.vue    — KPI strip + datagrid + export
     Pages/DailyReport/Show.vue       — xem chi tiết
-    Pages/DailyReport/Review.vue     — hàng chờ + ScoringPanel
+    Pages/DailyReport/Review.vue     — danh sách thành viên chờ duyệt + báo cáo + ScoringPanel
     modules/daily-report/
         components/                  — ReportCard, ScoringPanel, DailyReportSummaryBar, RichTextField, …
         config/reportConfig.js       — pillars, fields, builtinTemplates

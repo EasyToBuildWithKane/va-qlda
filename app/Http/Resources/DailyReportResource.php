@@ -2,6 +2,8 @@
 
 namespace App\Http\Resources;
 
+use App\Models\SystemAccount;
+use App\Policies\DailyReportPolicy;
 use App\Support\Enums\ReportStatus;
 use App\Support\PublicMediaUrl;
 use Illuminate\Http\Request;
@@ -66,13 +68,26 @@ class DailyReportResource extends JsonResource
 
             'has_feedback' => $this->hasReviewerFeedback(),
 
-            'can' => $user ? [
-                'update' => $user->can('update', $this->resource),
-                'submit' => $user->can('submit', $this->resource),
-                'recall' => $user->can('recall', $this->resource),
-                'score' => $user->can('score', $this->resource),
-                'delete' => $user->can('delete', $this->resource),
-            ] : null,
+            // Policy methods directly — not Gate::can(), so super_admin god-mode
+            // does not expose draft-only actions on submitted/reviewed reports in UI.
+            'can' => $user ? $this->abilitiesFor($user) : null,
+        ];
+    }
+
+    /**
+     * @return array{update: bool, submit: bool, recall: bool, score: bool, delete: bool}
+     */
+    private function abilitiesFor(SystemAccount $user): array
+    {
+        $policy = app(DailyReportPolicy::class);
+        $report = $this->resource;
+
+        return [
+            'update' => $policy->update($user, $report),
+            'submit' => $policy->submit($user, $report),
+            'recall' => $policy->recall($user, $report),
+            'score' => $policy->score($user, $report),
+            'delete' => $policy->delete($user, $report),
         ];
     }
 

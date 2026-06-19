@@ -176,7 +176,7 @@ const addSpawnedTask = (proj) => {
         <select
           v-if="availableTasks(p).length"
           :value="taskPicker[p.id] || ''"
-          class="input w-full cursor-pointer text-sm sm:w-auto sm:min-w-[16rem]"
+          class="input w-full cursor-pointer text-sm"
           @change="addTask(p, $event)"
         >
           <option
@@ -231,7 +231,7 @@ const addSpawnedTask = (proj) => {
       <select
         v-if="available.length"
         v-model="picker"
-        class="input w-full cursor-pointer text-sm sm:w-auto sm:min-w-[14rem]"
+        class="input w-full cursor-pointer text-sm"
         @change="addProject"
       >
         <option

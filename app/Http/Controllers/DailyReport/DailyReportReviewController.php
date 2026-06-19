@@ -10,6 +10,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\DailyReport\RejectDailyReportRequest;
 use App\Http\Requests\DailyReport\ScoreDailyReportRequest;
 use App\Http\Resources\DailyReportResource;
+use App\Support\DailyReportPendingMemberQueue;
 use App\Support\NotificationDispatcher;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -29,14 +30,34 @@ class DailyReportReviewController extends Controller
             abort(403);
         }
 
-        $reports = DailyReport::query()
+        $queue = DailyReportPendingMemberQueue::build();
+
+        $employeeId = $request->integer('employee_id') ?: null;
+        if ($employeeId !== null) {
+            $allowedIds = collect($queue['members'])->pluck('employee_id');
+            if (! $allowedIds->contains($employeeId)) {
+                $employeeId = null;
+            }
+        }
+
+        $reportsQuery = DailyReport::query()
             ->with(['employee', 'score'])
             ->pendingReview()
-            ->latest('submitted_at')
-            ->paginate(15);
+            ->latest('submitted_at');
+
+        if ($employeeId !== null) {
+            $reportsQuery->forEmployee($employeeId);
+        }
+
+        $reports = $reportsQuery->paginate(15)->withQueryString();
 
         return Inertia::render('DailyReport/Review', [
             'reports' => DailyReportResource::collection($reports),
+            'pendingMembers' => $queue['members'],
+            'queueTotals' => $queue['totals'],
+            'filters' => [
+                'employee_id' => $employeeId,
+            ],
         ]);
     }
 

@@ -27,7 +27,7 @@ const editor = useEditor({
         Placeholder.configure({ placeholder: props.placeholder }),
     ],
     editorProps: {
-        attributes: { class: 'tiptap rich-content focus:outline-none min-h-[120px] px-3 py-2 text-sm' },
+        attributes: { class: 'tiptap rich-content focus:outline-none min-h-[10rem] px-3 py-2 text-sm break-words' },
     },
     onUpdate: ({ editor }) => {
         emit('update:modelValue', editor.isEmpty ? '' : editor.getHTML());
@@ -89,7 +89,7 @@ const tools = computed(() => [
 </script>
 
 <template>
-  <div>
+  <div class="min-w-0">
     <div
       v-if="label"
       class="flex items-center justify-between mb-1"
@@ -120,9 +120,9 @@ const tools = computed(() => [
       {{ hint }}
     </p>
 
-    <div class="rounded-input border border-slate-300 overflow-hidden focus-within:border-brand focus-within:ring-1 focus-within:ring-brand/30">
+    <div class="min-w-0 rounded-input border border-slate-300 overflow-hidden focus-within:border-brand focus-within:ring-1 focus-within:ring-brand/30">
       <!-- Toolbar -->
-      <div class="flex items-center gap-1 border-b border-slate-200 bg-slate-50 px-2 py-1.5">
+      <div class="flex min-w-0 flex-wrap items-center gap-1 border-b border-slate-200 bg-slate-50 px-2 py-1.5">
         <button
           v-for="t in tools"
           :key="t.key"
@@ -177,5 +177,9 @@ const tools = computed(() => [
 }
 .tiptap:focus {
     outline: none;
+}
+.tiptap {
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 </style>

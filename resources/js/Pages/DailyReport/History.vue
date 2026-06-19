@@ -492,7 +492,7 @@ const FILTER_CONTROL_CLASS = "input h-10 w-full text-sm";
       </PageHeader>
     </template>
 
-    <div class="ui-compact">
+    <div class="w-full min-w-0">
       <DailyReportSummaryBar
         :summary="summary"
         :status-filter="filterForm.status"
@@ -501,9 +501,7 @@ const FILTER_CONTROL_CLASS = "input h-10 w-full text-sm";
         @toggle-late="onKpiToggleLate"
       />
 
-      <div
-        class="card mb-4 overflow-visible"
-      >
+      <div class="card mb-4 min-w-0 overflow-visible">
         <div
           class="border-b border-slate-100 px-5 py-4 dark:border-slate-700"
         >
@@ -511,7 +509,7 @@ const FILTER_CONTROL_CLASS = "input h-10 w-full text-sm";
             class="flex w-full min-w-0 flex-wrap items-center gap-2 lg:flex-nowrap"
           >
             <div
-              class="min-w-0 w-full basis-full lg:min-w-[10rem] lg:flex-1 lg:basis-auto"
+              class="min-w-0 w-full basis-full lg:flex-1 lg:basis-auto"
             >
               <DatagridToolbarSearch
                 v-model="filterForm.q"
@@ -525,7 +523,7 @@ const FILTER_CONTROL_CLASS = "input h-10 w-full text-sm";
             </div>
 
             <div
-              class="flex shrink-0 items-center gap-2"
+              class="flex w-full min-w-0 flex-wrap items-center justify-end gap-2 sm:w-auto sm:shrink-0"
             >
               <div
                 ref="filterPanelDdRef"
@@ -807,7 +805,7 @@ const FILTER_CONTROL_CLASS = "input h-10 w-full text-sm";
         </Transition>
       </div>
 
-      <div class="card overflow-hidden">
+      <div class="card min-w-0 overflow-hidden">
         <div
           v-if="reports.data.length === 0"
           class="flex flex-col items-center gap-3 px-4 py-16 text-center"
@@ -864,7 +862,7 @@ const FILTER_CONTROL_CLASS = "input h-10 w-full text-sm";
 
             <div
               v-show="!isGroupCollapsed(group.key)"
-              class="grid grid-cols-1 gap-3 px-4 py-3 md:grid-cols-2 xl:grid-cols-3"
+              class="grid grid-cols-1 gap-4 px-4 py-3 lg:grid-cols-2"
             >
               <ReportCard
                 v-for="r in group.items"
@@ -880,53 +878,53 @@ const FILTER_CONTROL_CLASS = "input h-10 w-full text-sm";
         <!-- Table view -->
         <div
           v-else
-          class="overflow-x-auto"
+          class="min-w-0"
         >
-          <table class="w-full text-sm">
+          <table class="w-full table-fixed text-sm">
             <thead
               class="border-b border-slate-200 bg-slate-50/80 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:border-slate-700 dark:bg-slate-800/60"
             >
               <tr>
-                <th class="whitespace-nowrap px-4 py-2.5">
+                <th class="w-[6.5rem] whitespace-nowrap px-3 py-2.5 sm:px-4">
                   Ngày
                 </th>
                 <th
                   v-if="visible('employee')"
-                  class="px-4 py-2.5"
+                  class="w-[9rem] px-3 py-2.5 sm:px-4"
                 >
                   Người báo cáo
                 </th>
                 <th
                   v-if="visible('title')"
-                  class="min-w-[12rem] px-4 py-2.5"
+                  class="min-w-0 px-3 py-2.5 sm:px-4"
                 >
                   Tiêu đề
                 </th>
                 <th
                   v-if="visible('projects')"
-                  class="px-4 py-2.5"
+                  class="hidden w-[7rem] px-3 py-2.5 md:table-cell sm:px-4"
                 >
                   Dự án
                 </th>
                 <th
                   v-if="visible('status')"
-                  class="px-4 py-2.5"
+                  class="w-[7.5rem] px-3 py-2.5 sm:px-4"
                 >
                   Trạng thái
                 </th>
                 <th
                   v-if="visible('score')"
-                  class="px-4 py-2.5"
+                  class="w-[6.5rem] px-3 py-2.5 sm:px-4"
                 >
                   Điểm
                 </th>
                 <th
                   v-if="visible('feedback')"
-                  class="w-16 px-2 py-2.5 text-center"
+                  class="w-12 px-2 py-2.5 text-center"
                 >
                   Phản hồi
                 </th>
-                <th class="px-4 py-2.5 text-right">
+                <th class="w-[5.5rem] px-3 py-2.5 text-right sm:px-4">
                   Thao tác
                 </th>
               </tr>
@@ -940,7 +938,7 @@ const FILTER_CONTROL_CLASS = "input h-10 w-full text-sm";
                 class="transition hover:bg-slate-50/80 dark:hover:bg-slate-800/50"
               >
                 <td
-                  class="whitespace-nowrap px-4 py-3 align-middle text-slate-600 dark:text-slate-300"
+                  class="whitespace-nowrap px-3 py-3 align-middle text-slate-600 dark:text-slate-300 sm:px-4"
                 >
                   <span class="tabular-nums">{{
                     formatDate(r.date)
@@ -952,40 +950,41 @@ const FILTER_CONTROL_CLASS = "input h-10 w-full text-sm";
                 </td>
                 <td
                   v-if="visible('employee')"
-                  class="px-4 py-3 align-middle"
+                  class="min-w-0 px-3 py-3 align-middle sm:px-4"
                 >
-                  <div class="flex items-center gap-2">
+                  <div class="flex min-w-0 items-center gap-2">
                     <Avatar
                       :name="r.employee?.name ?? '?'"
                       :src="r.employee?.avatar_path"
                       :size="28"
+                      class="shrink-0"
                     />
                     <span
-                      class="max-w-[10rem] truncate text-slate-700 dark:text-slate-200"
+                      class="min-w-0 truncate text-slate-700 dark:text-slate-200"
                     >{{ r.employee?.name ?? "—" }}</span>
                   </div>
                 </td>
                 <td
                   v-if="visible('title')"
-                  class="max-w-md px-4 py-3 align-middle"
+                  class="min-w-0 px-3 py-3 align-middle sm:px-4"
                 >
                   <Link
                     :href="`/daily-reports/${r.id}`"
-                    class="line-clamp-2 font-medium text-slate-800 hover:text-brand dark:text-slate-100"
+                    class="line-clamp-2 break-words font-medium text-slate-800 hover:text-brand dark:text-slate-100"
                   >
                     {{ r.title }}
                   </Link>
                 </td>
                 <td
                   v-if="visible('projects')"
-                  class="max-w-[8rem] truncate px-4 py-3 text-xs text-slate-500"
+                  class="hidden min-w-0 truncate px-3 py-3 text-xs text-slate-500 md:table-cell sm:px-4"
                   :title="projectChips(r).join(', ')"
                 >
                   {{ projectChips(r).join(", ") || "—" }}
                 </td>
                 <td
                   v-if="visible('status')"
-                  class="px-4 py-3 align-middle"
+                  class="px-3 py-3 align-middle sm:px-4"
                 >
                   <StatusBadge
                     :label="r.status_label"
@@ -994,7 +993,7 @@ const FILTER_CONTROL_CLASS = "input h-10 w-full text-sm";
                 </td>
                 <td
                   v-if="visible('score')"
-                  class="px-4 py-3 align-middle"
+                  class="px-3 py-3 align-middle sm:px-4"
                 >
                   <div
                     v-if="r.score"
@@ -1029,7 +1028,7 @@ const FILTER_CONTROL_CLASS = "input h-10 w-full text-sm";
                   />
                 </td>
                 <td
-                  class="whitespace-nowrap px-4 py-3 text-right align-middle"
+                  class="whitespace-nowrap px-3 py-3 text-right align-middle sm:px-4"
                 >
                   <Link
                     :href="`/daily-reports/${r.id}`"

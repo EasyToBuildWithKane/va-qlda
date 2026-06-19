@@ -4,11 +4,13 @@ namespace Tests\Feature;
 
 use App\Domain\DailyReport\Models\DailyReport;
 use App\Domain\DailyReport\Models\DailyReportScore;
+use App\Http\Resources\DailyReportResource;
 use App\Models\Project;
 use App\Models\SystemAccount;
 use App\Support\Enums\ReportStatus;
 use App\Support\Enums\SystemRole;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -425,5 +427,59 @@ class DailyReportTest extends TestCase
             ->assertForbidden();
 
         $this->assertDatabaseHas('daily_reports', ['id' => $report->id]);
+    }
+
+    public function test_submitted_report_resource_hides_draft_actions_for_super_admin(): void
+    {
+        $super = SystemAccount::factory()->role(SystemRole::SuperAdmin)->create();
+        $report = DailyReport::factory()->submitted()->create([
+            'employee_id' => $super->employee_id,
+            'date' => now()->toDateString(),
+        ]);
+
+        $request = Request::create('/');
+        $request->setUserResolver(fn () => $super);
+
+        $payload = (new DailyReportResource($report))->toArray($request);
+
+        $this->assertFalse($payload['can']['update']);
+        $this->assertFalse($payload['can']['submit']);
+        $this->assertFalse($payload['can']['delete']);
+        $this->assertTrue($payload['can']['recall']);
+    }
+
+    public function test_review_page_lists_pending_members_in_queue(): void
+    {
+        $lead = $this->lead();
+        $memberA = $this->member();
+        $memberB = SystemAccount::factory()->role(SystemRole::Member)->create();
+
+        DailyReport::factory()->submitted()->create([
+            'employee_id' => $memberA->employee_id,
+            'date' => now()->toDateString(),
+        ]);
+        DailyReport::factory()->submitted()->create([
+            'employee_id' => $memberA->employee_id,
+            'date' => now()->subDay()->toDateString(),
+        ]);
+        DailyReport::factory()->submitted()->create([
+            'employee_id' => $memberB->employee_id,
+        ]);
+
+        $this->actingAs($lead, 'system')
+            ->get(route('daily-reports.review'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('DailyReport/Review')
+                ->has('pendingMembers', 2)
+                ->where('queueTotals.members', 2)
+                ->where('queueTotals.reports', 3));
+
+        $this->actingAs($lead, 'system')
+            ->get(route('daily-reports.review', ['employee_id' => $memberA->employee_id]))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('filters.employee_id', $memberA->employee_id)
+                ->has('reports.data', 2));
     }
 }

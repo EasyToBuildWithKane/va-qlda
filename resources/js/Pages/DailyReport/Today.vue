@@ -329,7 +329,7 @@ const savedTimeLabel = computed(() =>
       />
     </template>
 
-    <div class="ui-compact">
+    <div class="mx-auto w-full min-w-0 max-w-5xl">
       <!-- Already submitted today -->
       <div
         v-if="isEditing && !editable"
@@ -421,8 +421,8 @@ const savedTimeLabel = computed(() =>
         class="w-full space-y-5"
       >
         <!-- Action bar (progress + save/submit) -->
-        <div class="card sticky top-0 z-10 flex flex-wrap items-center justify-between gap-3 p-4">
-          <div class="min-w-[14rem] flex-1">
+        <div class="card sticky top-0 z-10 flex min-w-0 flex-wrap items-center justify-between gap-3 p-4">
+          <div class="min-w-0 w-full flex-1 sm:min-w-[12rem] sm:w-auto">
             <div class="mb-1 flex items-center justify-between text-xs">
               <span class="font-medium text-slate-600">Tiến độ hoàn thành</span>
               <span class="font-semibold text-brand">{{ progressPct }}%</span>
@@ -465,7 +465,7 @@ const savedTimeLabel = computed(() =>
               </div>
             </div>
           </div>
-          <div class="flex shrink-0 items-center gap-2">
+          <div class="flex w-full min-w-0 flex-wrap items-center justify-end gap-2 sm:w-auto">
             <span
               v-if="isEditing"
               class="hidden items-center gap-1 text-xs text-slate-400 sm:inline-flex"
@@ -523,21 +523,27 @@ const savedTimeLabel = computed(() =>
         </div>
 
         <!-- All sections as tabs -->
-        <div class="card overflow-hidden">
+        <div class="card min-w-0 overflow-hidden">
           <!-- Tab bar -->
-          <div class="flex flex-wrap border-b border-slate-200">
+          <div
+            class="grid grid-cols-2 border-b border-slate-200 sm:grid-cols-3 lg:grid-cols-5"
+            role="tablist"
+            aria-label="Các phần báo cáo"
+          >
             <button
               v-for="(t, i) in tabs"
               :key="t.key"
               type="button"
-              class="flex-1 border-b-2 px-3 py-3 text-sm font-medium transition"
+              role="tab"
+              :aria-selected="activeTab === i"
+              class="border-b-2 px-2 py-3 text-left text-sm font-medium transition sm:px-3 sm:text-center"
               :class="activeTab === i
                 ? 'border-brand text-brand'
                 : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'"
               @click="activeTab = i"
             >
-              <span class="flex items-center justify-center gap-2">
-                {{ t.title }}
+              <span class="flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
+                <span class="min-w-0">{{ t.title }}</span>
                 <span
                   class="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
                   :class="t.filled === t.total
@@ -559,11 +565,11 @@ const savedTimeLabel = computed(() =>
           </div>
 
           <!-- Active tab -->
-          <div class="p-6">
-            <div class="mb-5 flex items-start justify-between gap-3 rounded-card bg-slate-50 p-3">
-              <div class="flex items-start gap-2">
+          <div class="min-w-0 p-4 sm:p-6">
+            <div class="mb-5 flex flex-col gap-2 rounded-card bg-slate-50 p-3 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+              <div class="min-w-0 space-y-1">
                 <span class="font-mono text-xs text-slate-400">{{ activeTabMeta.jp }} · {{ activeTabMeta.romaji }}</span>
-                <p class="text-xs text-slate-500">
+                <p class="text-xs leading-relaxed text-slate-500">
                   {{ activeTabMeta.desc }}
                 </p>
               </div>
@@ -578,9 +584,9 @@ const savedTimeLabel = computed(() =>
             <!-- Tab: general info -->
             <div
               v-if="activeTabMeta.key === 'info'"
-              class="grid gap-5 lg:grid-cols-2"
+              class="grid min-w-0 gap-6"
             >
-              <div class="lg:col-span-2">
+              <div>
                 <label class="label flex items-center gap-1.5">
                   Ngày báo cáo
                   <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-400">Chỉ đọc</span>
@@ -633,8 +639,7 @@ const savedTimeLabel = computed(() =>
             <!-- Tab: a Horenso pillar -->
             <div
               v-else
-              class="grid gap-5"
-              :class="pillarFields(activeTabMeta.key).length > 2 ? 'xl:grid-cols-2' : ''"
+              class="grid min-w-0 gap-6"
             >
               <RichTextField
                 v-for="f in pillarFields(activeTabMeta.key)"
