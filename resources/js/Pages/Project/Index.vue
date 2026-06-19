@@ -58,6 +58,7 @@ const props = defineProps({
     scopeOptions: { type: Array, default: () => [] },
     regionOptions: { type: Array, default: () => [] },
     departmentOptions: { type: Array, default: () => [] },
+    orgTeamOptions: { type: Array, default: () => [] },
     employees: { type: Array, default: () => [] },
     summary: { type: Object, default: () => ({}) },
     can: { type: Object, default: () => ({}) },
@@ -261,6 +262,14 @@ const columns = computed(() => {
             projects: data.filter((p) => p.type?.value === t.value),
         }));
     }
+    if (groupBy.value === 'team') {
+        const teamCols = props.orgTeamOptions.map((t) => ({
+            key: 'team' + t.id, label: t.name, color: t.color, value: t.id,
+            projects: data.filter((p) => p.org_team?.id === t.id),
+        }));
+        teamCols.push({ key: 'team-none', label: 'Chưa phân đội', color: 'slate', value: null, projects: data.filter((p) => !p.org_team) });
+        return teamCols;
+    }
     const cols = props.departmentOptions.map((d) => ({
         key: 'd' + d.id, label: d.name, color: d.color, value: d.id,
         projects: data.filter((p) => p.department_id === d.id),
@@ -271,6 +280,8 @@ const columns = computed(() => {
 
 const dragId = ref(null);
 const onDrop = (col) => {
+    // Nhóm theo đội = suy ra từ người quản lý → chỉ đọc, không gán lại bằng kéo-thả.
+    if (groupBy.value === 'team') { dragId.value = null; return; }
     const p = props.projects.data.find((x) => x.id === dragId.value);
     dragId.value = null;
     if (!p || !p.can?.update) return;
@@ -772,6 +783,15 @@ function onPortfolioQuickFilter({ status }) {
             >
               Phòng ban
             </button>
+            <button
+              v-if="orgTeamOptions.length"
+              type="button"
+              class="rounded-[4px] px-3 py-1 text-sm font-medium transition"
+              :class="groupBy === 'team' ? 'bg-brand text-white' : 'text-slate-500 hover:bg-slate-100'"
+              @click="groupBy = 'team'"
+            >
+              Đội công nghệ
+            </button>
           </div>
         </div>
         <div class="flex items-center gap-1">
@@ -852,9 +872,9 @@ function onPortfolioQuickFilter({ status }) {
             :key="p.id"
             class="w-72 shrink-0"
             :project="p"
-            :draggable="!!p.can?.update"
-            :show-type="groupBy === 'department'"
-            :show-department="groupBy === 'type'"
+            :draggable="groupBy !== 'team' && !!p.can?.update"
+            :show-type="groupBy !== 'type'"
+            :show-department="groupBy !== 'department'"
             @dragstart="dragId = p.id"
             @remove="remove"
           />
@@ -862,7 +882,7 @@ function onPortfolioQuickFilter({ status }) {
             v-if="col.projects.length === 0"
             class="flex min-h-[8rem] w-full items-center justify-center rounded-card border border-dashed border-slate-300 text-xs text-slate-400"
           >
-            Kéo dự án vào đây
+            {{ groupBy === 'team' ? 'Không có dự án' : 'Kéo dự án vào đây' }}
           </div>
         </div>
       </div>

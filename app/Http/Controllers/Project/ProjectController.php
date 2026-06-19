@@ -60,6 +60,7 @@ class ProjectController extends Controller
             'scopeOptions' => ProjectScope::options(),
             'regionOptions' => Options::regions(),
             'departmentOptions' => Options::departments(),
+            'orgTeamOptions' => $result['orgTeamOptions'],
             'employees' => Options::employees(),
             'summary' => $result['summary'],
             'can' => $result['can'],

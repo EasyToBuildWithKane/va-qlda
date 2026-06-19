@@ -5,6 +5,7 @@ namespace App\Application\Project;
 use App\Models\Employee;
 use App\Models\Project;
 use App\Models\SystemAccount;
+use App\Support\OrgTeam\EmployeeOrgTeamMap;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -26,7 +27,8 @@ class ProjectIndexQuery
      *     projects: LengthAwarePaginator,
      *     filters: \stdClass,
      *     summary: array{total: int, active: int, completed: int, overdue: int},
-     *     can: array{create: bool}
+     *     can: array{create: bool},
+     *     orgTeamOptions: list<array{id:int, name:string, color:string}>
      * }
      */
     public function execute(Request $request, SystemAccount $account): array
@@ -76,6 +78,7 @@ class ProjectIndexQuery
 
         $projects = $query->paginate($perPage)->withQueryString();
         $this->mergeTaskAssigneesIntoMembers($projects->getCollection());
+        $orgTeamOptions = $this->attachManagerOrgTeams($projects->getCollection());
 
         return [
             'projects' => $projects,
@@ -84,7 +87,28 @@ class ProjectIndexQuery
             ]),
             'summary' => $this->summaryQuery->execute(),
             'can' => ['create' => $account->can('create', Project::class)],
+            'orgTeamOptions' => $orgTeamOptions,
         ];
+    }
+
+    /**
+     * Gắn đội (lĩnh vực) của người quản lý vào từng dự án để Kanban nhóm theo
+     * "Đội công nghệ" (vd. Phần cứng / Phần mềm). Trả về danh sách cột.
+     *
+     * @param  Collection<int, Project>  $projects
+     * @return list<array{id:int, name:string, color:string}>
+     */
+    private function attachManagerOrgTeams(Collection $projects): array
+    {
+        $map = EmployeeOrgTeamMap::build();
+        $teamsById = collect($map['teams'])->keyBy('id');
+
+        foreach ($projects as $project) {
+            $teamId = $project->manager_id ? ($map['byEmployee'][$project->manager_id] ?? null) : null;
+            $project->setAttribute('org_team', $teamId !== null ? $teamsById->get($teamId) : null);
+        }
+
+        return $map['teams'];
     }
 
     /**
