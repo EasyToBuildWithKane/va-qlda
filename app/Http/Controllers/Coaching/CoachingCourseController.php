@@ -11,6 +11,7 @@ use App\Models\CoachingCourse;
 use App\Models\CoachingSession;
 use App\Support\Enums\CoachingCourseStatus;
 use App\Support\Enums\CoachingSessionStatus;
+use App\Support\Enums\SystemRole;
 use App\Support\SecurityAuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -35,7 +36,7 @@ class CoachingCourseController extends Controller
             ])
             ->latest();
 
-        if ($account->role->value === 'member' && $account->employee_id) {
+        if ($account->hasRole(SystemRole::Member) && $account->employee_id) {
             $query->where('student_id', $account->employee_id);
         }
 

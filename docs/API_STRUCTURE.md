@@ -4,12 +4,15 @@
 
 **Loại:** Chủ yếu Inertia.js Server-Side Routes + một phần JSON API (Notifications)
 
-Đa số routes đi qua `routes/web.php` và trả về Inertia responses. **Ngoại lệ:** Notification endpoints trả về `JsonResponse` để hỗ trợ polling và lazy loading.
+Đa số routes trả về Inertia responses. **Ngoại lệ:** Notification (và một số endpoint AI/Credential) trả về `JsonResponse` để hỗ trợ polling và lazy loading.
 
 ```
-routes/web.php      ← Toàn bộ routes (Inertia + JSON cho notifications)
+routes/web.php      ← Loader mỏng: wire 2 nhóm middleware (guest / auth) rồi require web/*.php
+routes/web/*.php    ← 16 partial theo domain (auth, dashboard, projects, contracts, …)
 routes/api.php      ← Rỗng (chưa sử dụng)
 ```
+
+> Route được tách theo vùng chức năng vào `routes/web/{domain}.php`; mỗi partial tự `use` controller và đăng ký route trong nhóm middleware đang active. Map partial → domain: [`FOLDER_STRUCTURE.md`](FOLDER_STRUCTURE.md) §3.
 
 > **Lưu ý pattern:** `NotificationController` là controller đầu tiên dùng `JsonResponse` thay vì Inertia. Frontend dùng `fetch`/axios trực tiếp để poll notifications.
 
@@ -46,7 +49,8 @@ routes/api.php      ← Rỗng (chưa sử dụng)
 | Method | URI | Controller | Middleware | Mô Tả |
 |---|---|---|---|---|
 | GET | `/` | redirect | auth | Redirect → /dashboard |
-| GET | `/dashboard` | DashboardController@index | auth | Trang tổng quan; nhân sự KPI/tuân thủ báo cáo ngày theo phòng ban khớp `config('va.dashboard_personnel_department_pattern')` (mặc định «Công nghệ»); `dailyReportCompliance.people[].workToday` (công việc trong ngày) |
+| GET | `/dashboard` | HubDashboardController (invokable) | auth | Trang tổng quan; nhân sự KPI/tuân thủ báo cáo ngày theo phòng ban khớp `config('va.dashboard_personnel_department_pattern')` (mặc định «Công nghệ»); `dailyReportCompliance.people[].workToday` (công việc trong ngày) |
+| GET | `/work` | WorkDashboardController (invokable) | auth | Dashboard công việc cá nhân (`work-dashboard`) |
 
 ### 2.2.3 Hiệu suất & Audit
 

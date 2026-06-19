@@ -8,9 +8,9 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
-import KbBlogSidebar from '@/Components/KnowledgeBase/KbBlogSidebar.vue';
-import KbBlogAside from '@/Components/KnowledgeBase/KbBlogAside.vue';
-import KbBlogPostCard from '@/Components/KnowledgeBase/KbBlogPostCard.vue';
+import KbBlogSidebar from '@/modules/knowledge-base/components/KbBlogSidebar.vue';
+import KbBlogAside from '@/modules/knowledge-base/components/KbBlogAside.vue';
+import KbBlogPostCard from '@/modules/knowledge-base/components/KbBlogPostCard.vue';
 
 const PER_PAGE_OPTIONS = [10, 15, 20];
 

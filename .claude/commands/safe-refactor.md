@@ -14,7 +14,6 @@
 
 - TD-002: tách query khỏi ProjectController/TaskController
 - TD-010: DailyReport project_id legacy
-- Migrate `Components/DailyReport/` → `modules/daily-report/`
 - N+1 / database indexes
 
 ## Checklist move file

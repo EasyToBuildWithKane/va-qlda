@@ -65,8 +65,10 @@ Helper scripts:
 | `npm run commitlint` | Validate a message manually |
 | `npm run push:e2e` | `git push` with `RUN_E2E_ON_PUSH=1` (full pre-push Playwright) |
 | `npm run e2e:stop-stale` | Kill `php artisan serve` on ports 8001–8020 |
-| `npm run commit:msg` | Generate suggested commit message from staged changes |
-| `npm run commit` | Auto-commit workflow (`scripts/auto-commit.mjs`) |
+| `npm run commit:msg` | Print the diff-derived commit message (header + body) for the staged changes |
+| `npm run commit` | Auto-commit workflow (`scripts/auto-commit.mjs`) — styled summary box, staged file list with `+/-` churn, then commits with the generated message |
+
+> **Commit message generation** (`scripts/generate-commit-msg.mjs`) is **fully diff-driven**: type/scope/subject/body are inferred from the real staged diff (`name-status` + `numstat`). Scope = dominant business module (e.g. `coaching`, `knowledge-base`), subject = humanized "headline" file, body = per-module file counts with `+added/-deleted` churn and a totals line. No hardcoded themes.
 
 ---
 

@@ -4,7 +4,7 @@ import { computed, ref } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AppIcon from '@/Components/AppIcon.vue';
-import ScoringPanel from '@/Components/DailyReport/ScoringPanel.vue';
+import ScoringPanel from '@/modules/daily-report/components/ScoringPanel.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 

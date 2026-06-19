@@ -53,6 +53,7 @@ npx playwright show-report               # View last E2E report
 | [conventions.md](conventions.md) | Commits, branches, Vue/PHP style, ESLint rules |
 | [ci-cd.md](ci-cd.md) | GitHub Actions jobs, env vars, re-run, skip CI |
 | [testing.md](testing.md) | Playwright setup, config, running tests, CI integration |
+| [realtime.md](realtime.md) | Socket.IO realtime comments — Node server, Redis bridge, thread token |
 | [troubleshooting.md](troubleshooting.md) | Husky, commitlint, Playwright, ESLint, CI, npm fixes |
 
 ### Vietnamese (`vi/`)
@@ -66,6 +67,7 @@ npx playwright show-report               # View last E2E report
 | [vi/quy-uoc.md](vi/quy-uoc.md) | Giải thích [`conventions.md`](conventions.md) |
 | [vi/ci-cd.md](vi/ci-cd.md) | Giải thích [`ci-cd.md`](ci-cd.md) |
 | [vi/kiem-thu.md](vi/kiem-thu.md) | Giải thích [`testing.md`](testing.md) |
+| [vi/realtime.md](vi/realtime.md) | Giải thích [`realtime.md`](realtime.md) |
 | [vi/loi-thuong-gap.md](vi/loi-thuong-gap.md) | Giải thích [`troubleshooting.md`](troubleshooting.md) |
 
 **Convention:** `_dev/*.md` (EN) = canonical · `_dev/vi/*.md` = Vietnamese explanations (link back to EN).

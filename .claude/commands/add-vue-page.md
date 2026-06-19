@@ -11,9 +11,9 @@
 | App UI | `Components/Ui/` |
 | Shared UI | `shared/ui/` |
 | Project feature | `modules/project/components/` |
-| DailyReport | `Components/DailyReport/` |
+| Feature module khác | `modules/{feature}/components/` (daily-report, knowledge-base, …) |
 
-**Không** dùng `Components/Project/` — đã xóa.
+**Không** dùng `Components/Project|DailyReport|KnowledgeBase/` — đã migrate sang `modules/`.
 
 ## 3. Imports
 

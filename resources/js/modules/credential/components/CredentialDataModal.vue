@@ -14,6 +14,7 @@ import {
     fetchAndExportAll,
     fetchImportLogs,
     reconcileCredentials,
+    exportReconcileReport,
 } from '@/modules/credential/composables/useCredentialImport.js';
 import { useToast } from '@/shared/composables/useToast';
 
@@ -210,26 +211,13 @@ function fixIssue(issue) {
     close();
 }
 
-function exportReconcileReport() {
+function runExportReconcile() {
     if (!reconcile.value.issues.length) {
         toast.info('Không có vấn đề nào để xuất.');
         return;
     }
-    import('xlsx-js-style').then((XLSX) => {
-        const wb = XLSX.default.utils.book_new();
-        const headers = ['Tài khoản', 'Mức độ', 'Mã lỗi', 'Nội dung'];
-        const rows = reconcile.value.issues.map((i) => [
-            i.credentialName || '',
-            i.level === 'error' ? 'Lỗi' : i.level === 'warning' ? 'Cảnh báo' : 'Gợi ý',
-            i.code,
-            i.message,
-        ]);
-        const ws = XLSX.default.utils.aoa_to_sheet([headers, ...rows]);
-        ws['!cols'] = [{ wch: 30 }, { wch: 12 }, { wch: 18 }, { wch: 60 }];
-        XLSX.default.utils.book_append_sheet(wb, ws, 'Doi soat');
-        XLSX.default.writeFile(wb, `VA_Credential_DoiSoat_${new Date().toISOString().slice(0, 10)}.xlsx`);
-        toast.success('Đã xuất báo cáo đối soát.');
-    });
+    exportReconcileReport(reconcile.value.issues);
+    toast.success('Đã xuất báo cáo đối soát.');
 }
 </script>
 
@@ -738,7 +726,7 @@ function exportReconcileReport() {
           type="button"
           class="btn-ghost inline-flex h-8 items-center gap-1.5 px-3 text-xs"
           :disabled="!reconcile.issues.length"
-          @click="exportReconcileReport"
+          @click="runExportReconcile"
         >
           <AppIcon
             name="export"

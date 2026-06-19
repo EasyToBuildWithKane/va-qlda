@@ -1,6 +1,6 @@
 # FRONTEND STRUCTURE — VA QLDA
 
-> **Cập nhật 2026-06-18** — content header (`PageHeader` + `#header`); coaching sessions datagrid; FullCalendar (lịch coaching/dự án), driver.js (onboarding).
+> **Cập nhật 2026-06-19** — DailyReport + KnowledgeBase đã migrate sang `modules/`; 13 feature module. Content header (`PageHeader` + `#header`); FullCalendar (lịch coaching/dự án), driver.js (onboarding).
 
 > Rule agent: `.cursor/rules/content-header.mdc` · skill `content-header`.
 
@@ -55,13 +55,13 @@ resources/js/
 ├── Layouts/AppLayout.vue
 ├── Components/
 │   ├── Ui/                   ← Modal, Drawer, PageHeader, ToastContainer, AppDialog
+│   ├── Layout/               ← App shell sidebar (AppSidebar*)
 │   ├── AppIcon.vue
-│   ├── KnowledgeBase/        ← KbRichTextField, KbImageGallery
-│   ├── DailyReport/          ← Feature chưa migrate modules/
 │   └── Notifications/
-├── modules/                  ← Feature modules (Phase 2+) — 11 module:
+├── modules/                  ← Feature modules (Phase 2+) — 13 module, mỗi module có components/ (+ composables/, config/ khi cần):
 │   ├── project/                  ← components (ProjectCard, Sprint/, TaskDetail/, Dashboard/), config/
-│   ├── daily-report/             ← config/reportConfig.js, composables export
+│   ├── daily-report/             ← components (GradePill, ScoringPanel, ReportCard, …), config/reportConfig.js, composables/
+│   ├── knowledge-base/           ← components (KbArticleHero, KbRichTextField, KbBlogSidebar, …), composables/
 │   ├── coaching/                 ← Sessions table, calendar (useCoachingCalendar), modals, config
 │   ├── contract/                 ← CLM: components (*SummaryBar, charts), composables, config
 │   ├── credential/               ← Kho mật khẩu: components, composables
@@ -70,6 +70,7 @@ resources/js/
 │   ├── profile/                  ← Hồ sơ nhân sự (ProfileStats, skill radar)
 │   ├── onboarding/               ← Tour driver.js (useTour, useOnboarding, OnboardingRoot)
 │   ├── notifications/            ← Bell, center drawer, preferences
+│   ├── audit/                    ← Audit trail viewer components/composables
 │   └── aiAccount/                ← Tài khoản AI: composables
 ├── shared/                   ← Cross-module (Phase 2 + 4)
 │   ├── ui/                   ← Badge, Avatar, ProgressBar, form/*, **KpiSummaryStrip**, …
@@ -159,6 +160,9 @@ Pages import feature components từ `@/modules/project/components/...` và prim
 | Sprint/ | `SprintWorkspace`, `SprintTaskTable`, `SprintDataModal`, `TaskDetailPanel`, … |
 | TaskDetail/ | `TaskDetailRichEditor`, `TaskDetailCollaboration`, `TaskDetailSubtasks`, … |
 | Dashboard/ | `ProjectOverviewCard`, `RiskIssueDataTable`, `ProjectFeedbackPanel`, `RiskImportModal`, `ActivityFeed`, … |
+| Timeline/ | `ProjectTimelineView`, `ProjectTimelineBurndown`, … |
+| Documents/ | `ProjectDocumentsPanel`, `DocumentPreviewPane` |
+| Modals | `TaskFormModal`, `SprintFormModal`, `BlockerFormModal`, … |
 
 ### 6.4 Credential module — `modules/credential/`
 
@@ -170,13 +174,10 @@ Pages import feature components từ `@/modules/project/components/...` và prim
 | `components/CredentialPasswordViewer.vue` | Hiện/ẩn/sao chép + audit API |
 | `components/CredentialAccessGrantModal.vue` | Modal cấp/sửa quyền (SearchSelect + 2 cột) |
 | `components/CredentialAccessGrantRowActions.vue` | Dropdown thao tác trên bảng ACL |
-| `CredentialDataModal.vue` | Nhập · Xuất · Đối soát |
+| `components/CredentialDataModal.vue` | Nhập · Xuất · Đối soát |
 | `composables/useCredentialImport.js` | Excel template/parse (marker `VA_CREDENTIAL_IMPORT_V1`) |
-| Timeline/ | `ProjectTimelineView`, `ProjectTimelineBurndown`, … |
-| Documents/ | `ProjectDocumentsPanel`, `DocumentPreviewPane` |
-| Modals | `TaskFormModal`, `SprintFormModal`, `BlockerFormModal`, … |
 
-### 6.4b Contract (CLM) — `modules/contract/`
+### 6.5 Contract (CLM) — `modules/contract/`
 
 | Path | Mô tả |
 |------|--------|
@@ -187,7 +188,7 @@ Pages import feature components từ `@/modules/project/components/...` và prim
 | `components/ContractExplorer.vue` | Cây NCC → nhóm → hợp đồng trên Index |
 | `components/ContractDataModal.vue` | Nhập · Xuất · Đối soát danh mục |
 
-### 6.4 Daily Report — `Components/DailyReport/`
+### 6.6 Daily Report — `modules/daily-report/components/`
 
 `GradePill`, `StatusBadge`, `ScoringPanel`, `RichTextField`, `ProjectPicker`, …
 
@@ -201,9 +202,9 @@ Trang lịch sử (`Pages/DailyReport/History.vue`) — dashboard SaaS:
 
 Bộ lọc: shared datagrid (`DatagridToolbarSearch` `hide-label`, `FilterDatePicker` + key `date_range`, grid `xl:grid-cols-6`, `SearchMultiSelect` `control-size="md"`). Nhóm **Ngày / Tuần / Tháng** + **Thẻ / Bảng** (`DatagridSegmentedControl`). Toolbar **không sticky**; lọc hiển thị opt-in (`default: false`, `useVisibleFilterControls`); trạng thái lọc trên URL. Xuất Excel 7 sheet — `useDailyReportHistoryExport`.
 
-### 6.5 Notifications — `Components/Notifications/`
+### 6.7 Notifications — `modules/notifications/` + `Components/Notifications/`
 
-`NotificationBell`, `NotificationCenterDrawer`, `NotificationItem`, `NotificationSettingsPanel`
+`NotificationBell`, `NotificationCenterDrawer`, `NotificationItem`, `NotificationSettingsPanel`. Knowledge Base UI: `modules/knowledge-base/components/` (KbArticleHero, KbRichTextField, KbBlogSidebar, …) — xem [`KNOWLEDGE_BASE.md`](KNOWLEDGE_BASE.md).
 
 ---
 

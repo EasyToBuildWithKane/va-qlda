@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue';
-import KbBlogPanel from '@/Components/KnowledgeBase/KbBlogPanel.vue';
+import KbBlogPanel from '@/modules/knowledge-base/components/KbBlogPanel.vue';
 
 const props = defineProps({
     tags: { type: Array, default: () => [] },

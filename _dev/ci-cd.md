@@ -39,11 +39,29 @@ cancel-in-progress: true
 
 SQLite for E2E is set **only** on the Playwright job (`DB_CONNECTION`, `DB_DATABASE`). PHPUnit uses in-memory/sqlite from `.env.example` + `tests/TestCase` Vite stub (no `npm build` required in PHPUnit job).
 
+### Path filtering (`detect-changes`)
+
+First job runs [`dorny/paths-filter`](https://github.com/dorny/paths-filter) and exposes outputs `backend`, `frontend`, `code`. Downstream jobs are gated with `if:` so a **docs-only PR skips PHPUnit/PHPStan/build/E2E** entirely.
+
+| Filter | Globs |
+|--------|-------|
+| `backend` | `app/** routes/** database/** config/** bootstrap/** tests/** composer.* phpstan.neon.dist artisan .env.example` |
+| `frontend` | `resources/** package*.json vite/tailwind/postcss/eslint config` |
+| `code` | `backend OR frontend` |
+
 ---
 
 ## Jobs (blocking vs advisory)
 
-### 1. PHPUnit + Pint (`backend-tests`) — **blocking**
+### 0. Detect changes (`detect-changes`)
+
+Computes path-filter outputs consumed by every other job. Always runs.
+
+### 0b. Commitlint (`commitlint`) — **blocking, PR only**
+
+`npx commitlint --from <base> --to <head> --verbose` validates **every commit in the PR** against `commitlint.config.js`. Runs only on `pull_request` (needs `fetch-depth: 0`).
+
+### 1. PHPUnit + Pint (`backend-tests`) — **blocking** · _if `backend` changed_
 
 | Step | Command |
 |------|---------|
@@ -65,9 +83,13 @@ SQLite for E2E is set **only** on the Playwright job (`DB_CONNECTION`, `DB_DATAB
 
 ---
 
-### 3. Playwright E2E (`playwright`) — **blocking**
+### 2. Frontend build + ESLint (`frontend-build`) — **blocking** · _if `frontend` changed_
 
-**Needs:** `backend-tests`, `frontend-build`
+Uploads `public/build/` as artifact `frontend-build` (3 days) on success.
+
+### 3. Playwright E2E (`playwright`) — **blocking** · _if any `code` changed_
+
+**Needs:** `detect-changes`, `backend-tests`, `frontend-build` — guarded by `if: always() && …result != 'failure'` so it still runs when one prerequisite was **skipped** (e.g. frontend-only change skips `backend-tests`) but is held back when one **failed**.
 
 | Step | Notes |
 |------|--------|
@@ -83,20 +105,26 @@ SQLite for E2E is set **only** on the Playwright job (`DB_CONNECTION`, `DB_DATAB
 
 ---
 
-### 4. PHPStan (`static-analysis`) — **advisory**
+### 4. PHPStan (`static-analysis`) — **blocking** · _if `backend` changed_
 
-`continue-on-error: true` — visible on PR, does not block merge.
+Now **blocking** (was `continue-on-error`). Runs `phpstan analyse --memory-limit=1G --error-format=github` so findings appear as inline PR annotations. Result cache lives in `build/phpstan` (`tmpDir` in `phpstan.neon.dist`, gitignored) and is cached across runs via `actions/cache` keyed on `composer.lock` + config.
+
+### 5. CI success (`ci-success`) — **aggregate gate**
+
+`needs: [all jobs]`, `if: always()`. Fails if any job is `failure`/`cancelled`; **skipped jobs are accepted**. Use this single check for branch protection so path-filtered skips don't block merges.
 
 ---
 
 ## Job dependency graph
 
 ```
-backend-tests (Pint + PHPUnit) ──┐
-                                 ├──► playwright (E2E)
-frontend-build (ESLint + build) ─┘
-
-static-analysis (parallel, advisory)
+detect-changes (path filters)
+   ├─ commitlint (PR only)
+   ├─ backend-tests (Pint + PHPUnit)   ─┐
+   ├─ frontend-build (ESLint + build)  ─┼─► playwright (E2E)
+   └─ static-analysis (PHPStan, cached) │
+                                        ▼
+                  ci-success (aggregate gate, always)
 ```
 
 **Removed:** separate `code-style` job (Pint merged into `backend-tests`).
@@ -116,6 +144,8 @@ static-analysis (parallel, advisory)
 | Pint | Run before push PHP changes | Blocking in `backend-tests` |
 | ESLint | pre-commit (staged) + `npm run lint` | Blocking in `frontend-build` |
 | PHPUnit | `php artisan test` | `backend-tests` |
+| PHPStan | `vendor/bin/phpstan analyse --memory-limit=1G` | `static-analysis` (blocking) |
+| Commitlint | pre-commit/commit-msg hook | `commitlint` job over all PR commits |
 | E2E | Local tùy chọn (`npm run push:e2e`) | Job `playwright` `CI=true` (blocking) |
 
 ---

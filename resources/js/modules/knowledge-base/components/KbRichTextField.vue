@@ -6,7 +6,7 @@ import Placeholder from '@tiptap/extension-placeholder';
 import Image from '@tiptap/extension-image';
 import axios from 'axios';
 import AppIcon from '@/Components/AppIcon.vue';
-import InfoTooltip from '@/Components/DailyReport/InfoTooltip.vue';
+import InfoTooltip from '@/modules/daily-report/components/InfoTooltip.vue';
 import { useDialog } from '@/composables/useDialog';
 import { useToast } from '@/shared/composables/useToast';
 import { parseGoogleWorkspaceUrl } from '@/shared/googleWorkspaceUrl';

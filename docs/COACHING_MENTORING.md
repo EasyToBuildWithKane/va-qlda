@@ -1,7 +1,7 @@
 # COACHING / MENTORING — Module Đào tạo & Mentoring
 
 > Module **độc lập** với Knowledge Base / Blog — lưu khóa học, buổi học, tài liệu, bài tập, tiến độ và dashboard tài chính.
-> **Trạng thái:** ✅ Triển khai v1 (2026-06-14) — migrations, CRUD, dashboard, lịch & danh sách buổi. Chi tiết route/UI bên dưới khớp `routes/web.php`.
+> **Trạng thái:** ✅ Triển khai v1 (2026-06-14) — migrations, CRUD, dashboard, lịch & danh sách buổi. Chi tiết route/UI bên dưới khớp `routes/web/coaching.php`.
 
 ---
 
@@ -27,7 +27,7 @@
 - **Tài khoản chỉ Coaching:** `App\Support\Auth\CoachingOnlyAccess` + middleware `RestrictCoachingOnlyUsers` — email trong `config/va.php` → `google_allowed_emails`; nav chỉ nhóm Coaching.
 
 ```
-routes/web.php (prefix coaching.)
+routes/web/coaching.php (prefix coaching.)
     → CoachingDashboardController (__invoke)
     → CoachingCourseController (courses + storeSession)
     → CoachingSessionController (index, schedule, calendar JSON, CRUD session, materials, assignments, progress)
@@ -250,7 +250,7 @@ Prefix: `va_prd_`. Chi tiết: `docs/DATABASE_STRUCTURE.md` §8.
 
 ---
 
-## 11. Route map (thực tế — `routes/web.php`)
+## 11. Route map (thực tế — `routes/web/coaching.php`)
 
 | Method | URI | Name | Ghi chú |
 |---|---|---|---|

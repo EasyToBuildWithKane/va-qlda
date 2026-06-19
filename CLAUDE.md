@@ -4,13 +4,13 @@
 
 > Tài liệu chi tiết: `docs/` (kiến trúc) · `_dev/` (CLI, CI, workflows, tiếng Việt: `_dev/vi/`).
 
-> Refactor Phase 1–5 ✅ (2026-06-03): `modules/project/`, `shared/ui/`, Pinia, Project/Task Use Cases.
+> Refactor Phase 1–5 ✅: 13 feature module dưới `modules/` (project, daily-report, knowledge-base, …), `shared/ui/`, Pinia, Project/Task Use Cases. Routes split theo domain: `routes/web.php` (loader) → `routes/web/{domain}.php`.
 
 ---
 
 ## Stack & Transport
 
-- **Không REST API chính** — `routes/web.php` + Inertia; `routes/api.php` rỗng. JSON chỉ cho endpoint phụ (vd. notifications).
+- **Không REST API chính** — `routes/web/*.php` (split theo domain) + Inertia; `routes/api.php` rỗng. JSON chỉ cho endpoint phụ (vd. notifications).
 - **Auth:** guard `system`, model `SystemAccount`, roles: `super_admin` | `admin` | `lead` | `member` | `viewer`.
 - **DB:** MySQL, prefix bảng `va_prd_` — index name ngắn nếu composite dài.
 
@@ -81,6 +81,7 @@ public function store(StoreTaskRequest $request, Project $project): RedirectResp
 
 ### Routes
 
+- **Split theo domain:** `routes/web.php` chỉ là loader (wire 2 nhóm middleware `guest` / `auth`); route thật ở `routes/web/{domain}.php` (16 partial). Thêm route → sửa partial đúng domain (vd. `projects.php`, `contracts.php`), không nhồi vào `web.php`.
 - Nhóm prefix + dot name: `projects.tasks.store`.
 - Static segments **trước** `/{id}`: `/daily-reports/review` trước `/{report}`.
 - Route model binding tùy chỉnh trong `RouteServiceProvider` nếu tên param ≠ model.

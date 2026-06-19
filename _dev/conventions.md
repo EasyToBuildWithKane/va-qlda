@@ -88,8 +88,9 @@ This project uses **JavaScript** (not TypeScript) for frontend code.
 resources/js/
 ├── Pages/{Domain}/       # Inertia pages
 ├── Components/Ui/        # Primitives (Modal, Drawer, PageHeader)
-├── Components/Project/   # Feature components
-├── composables/          # Shared logic
+├── modules/{feature}/    # Feature components (project, daily-report, …)
+├── shared/ui/, shared/composables/   # Cross-module
+├── composables/          # Feature logic
 └── Layouts/AppLayout.vue
 ```
 

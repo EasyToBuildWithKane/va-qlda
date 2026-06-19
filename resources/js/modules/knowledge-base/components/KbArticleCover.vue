@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
-import { kbCategoryGradientClass, kbCoverImageUrl } from '@/Components/KnowledgeBase/useKbCategoryGradient.js';
+import { kbCategoryGradientClass, kbCoverImageUrl } from '@/modules/knowledge-base/composables/useKbCategoryGradient.js';
 
 const props = defineProps({
     article: { type: Object, required: true },

@@ -1,6 +1,6 @@
 ---
 description: Trang đăng nhập Google OAuth — đọc skill login trước khi sửa
-globs: resources/js/Pages/Auth/Login.vue,app/Http/Controllers/Auth/**/*.php,routes/web.php,config/va.php,config/services.php,public/images/**
+globs: resources/js/Pages/Auth/Login.vue,app/Http/Controllers/Auth/**/*.php,routes/web/auth.php,config/va.php,config/services.php,public/images/**
 alwaysApply: false
 ---
 

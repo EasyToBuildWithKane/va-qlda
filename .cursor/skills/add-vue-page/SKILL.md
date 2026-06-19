@@ -23,10 +23,10 @@ description: >-
 | App UI primitives | `Components/Ui/` — Modal, Drawer, PageHeader |
 | Shared reusable UI | `shared/ui/` — Badge, Avatar, form/* |
 | Project feature | `modules/project/components/` (+ subfolders Sprint/, Dashboard/, …) |
-| DailyReport feature | `Components/DailyReport/` (chưa migrate modules/) |
+| Feature module khác | `modules/{feature}/components/` — daily-report, knowledge-base, coaching, contract, credential, performance, people, profile, onboarding, notifications, aiAccount, audit |
 | Cross-feature logic | `shared/composables/` hoặc `composables/use*.js` |
 
-**Không** tạo file trong `Components/Project/` — path đã xóa.
+**Không** tạo file trong `Components/Project/`, `Components/DailyReport/`, `Components/KnowledgeBase/` — đã migrate sang `modules/`.
 
 ## 3. Logic extraction
 

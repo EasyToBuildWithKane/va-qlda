@@ -62,8 +62,8 @@ Cài lại: `npm run prepare` → `node node_modules/husky/bin.js`.
 | Lệnh hỗ trợ | Mục đích |
 |-------------|----------|
 | `npm run commitlint` | Test message |
-| `npm run commit:msg` | In message gợi ý |
-| `npm run commit` | Auto stage + commit |
+| `npm run commit:msg` | In message suy từ diff (header + body) |
+| `npm run commit` | Auto-commit: box tóm tắt + danh sách file kèm churn `+/-`, rồi commit |
 | `npm run push:e2e` | Push kèm E2E local |
 | `npm run e2e:stop-stale` | Dọn `php artisan serve` cổng 8001–8020 |
 

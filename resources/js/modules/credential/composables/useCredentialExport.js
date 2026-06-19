@@ -9,4 +9,5 @@ export {
     fetchAndExportAll,
     fetchImportLogs,
     reconcileCredentials,
+    exportReconcileReport,
 } from './useCredentialImport.js';

@@ -412,3 +412,35 @@ export function reconcileCredentials(rows) {
         },
     };
 }
+
+// ─── Export reconcile report (styled) ─────────────────────────────────────────
+const RECONCILE_LEVEL_LABEL = { error: 'Lỗi', warning: 'Cảnh báo', info: 'Gợi ý' };
+
+export function exportReconcileReport(issues) {
+    const wb = XLSX.utils.book_new();
+    const headers = ['Tài khoản', 'Mức độ', 'Mã lỗi', 'Nội dung'];
+    const ws = {};
+
+    headers.forEach((h, i) => {
+        ws[`${String.fromCharCode(65 + i)}1`] = { v: h, t: 's', s: S.header };
+    });
+
+    issues.forEach((issue, ri) => {
+        const rowData = [
+            issue.credentialName || '',
+            RECONCILE_LEVEL_LABEL[issue.level] || issue.level,
+            issue.code,
+            issue.message,
+        ];
+        const rowStyle = ri % 2 === 0 ? S.cell : S.cellAlt;
+        rowData.forEach((val, ci) => {
+            ws[`${String.fromCharCode(65 + ci)}${ri + 2}`] = { v: val ?? '', t: 's', s: rowStyle };
+        });
+    });
+
+    ws['!ref'] = `A1:${String.fromCharCode(65 + headers.length - 1)}${issues.length + 1}`;
+    setColWidths(ws, [30, 12, 18, 60]);
+    XLSX.utils.book_append_sheet(wb, ws, 'Doi soat');
+
+    XLSX.writeFile(wb, `VA_Credential_DoiSoat_${new Date().toISOString().slice(0, 10)}.xlsx`);
+}

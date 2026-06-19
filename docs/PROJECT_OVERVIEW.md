@@ -140,7 +140,7 @@ Tạo Project
 ┌──────────────────────────▼──────────────────────────────────┐
 │                  LARAVEL APPLICATION                          │
 │                                                              │
-│  routes/web.php → Controllers → UseCases (DailyReport, Project, Task) │
+│  routes/web/*.php → Controllers → UseCases (DailyReport, Project, Task) │
 │                                                              │
 │  ┌────────────────────────────────────────────────────────┐  │
 │  │ HTTP Layer        │ Application Layer │ Domain Layer   │  │

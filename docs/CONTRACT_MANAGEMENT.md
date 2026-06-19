@@ -25,7 +25,7 @@ chi phí định kỳ và chất lượng nhà cung cấp. Module gom về một
 
 ## 2. Route
 
-Tất cả trong nhóm `contracts.*` (`routes/web.php`). Static segment đặt **trước** `/{contract}`.
+Tất cả trong nhóm `contracts.*` (`routes/web/contracts.php`). Static segment đặt **trước** `/{contract}`.
 
 | URI | Tên | Mô tả |
 |-----|-----|-------|

@@ -1,7 +1,7 @@
 # Sơ đồ luồng & bản đồ tài liệu — VA QLDA
 
 > **Mục đích:** Đối chiếu **code ↔ `docs/` ↔ `_dev/`** — một điểm vào cho onboarding, PR doc-sync, và sơ đồ luồng (mermaid).  
-> **Cập nhật:** 2026-06-16 · Nguồn route: `routes/web.php` · Nav: `App\Support\Navigation`.
+> **Cập nhật:** 2026-06-19 · Nguồn route: `routes/web/*.php` · Nav: `App\Support\Navigation`.
 
 ---
 
@@ -17,7 +17,7 @@ flowchart TB
     FLOW[FLOWS_AND_DOCS_MAP.md]
   end
   subgraph code ["Code — nguồn sự thật hành vi"]
-    R[routes/web.php]
+    R[routes/web/*.php]
     NAV[Support/Navigation.php]
     APP[app/Http + Application + Support]
     FE[resources/js/Pages + modules]
@@ -52,7 +52,7 @@ flowchart TB
 ```mermaid
 flowchart LR
   B[Browser Vue 3]
-  B -->|Inertia visit/form| W[routes/web.php]
+  B -->|Inertia visit/form| W[routes/web/*.php]
   B -->|fetch/axios + CSRF| J[JSON endpoints]
   W --> C[Controller]
   C -->|Inertia::render| P[Pages/*.vue]
@@ -171,7 +171,7 @@ flowchart TB
 
 | Domain (nav) | Doc module | Controller / entry | Frontend |
 |--------------|------------|--------------------|----------|
-| Tổng quan | `PROJECT_OVERVIEW.md` §3 | `DashboardController` | `Pages/Dashboard/` |
+| Tổng quan | `PROJECT_OVERVIEW.md` §3 | `HubDashboardController` | `Pages/Dashboard/` |
 | Trung tâm Công Nghệ | `CONGNGHE_CONTENT.md` | `Congnghe/*` | `Pages/Congnghe/`, `CongngheAdmin/` |
 | Dự án & vướng mắc | `API_STRUCTURE` §2.4–2.11 | `Project/*`, `BlockerController` | `Pages/Project/`, `modules/project/` |
 | Báo cáo ngày | `DAILY_REPORT_PROJECTS.md` | `DailyReport/*` | `Pages/DailyReport/`, `modules/daily-report/` |
@@ -252,7 +252,7 @@ flowchart TD
   ACT --> AN[Analytics dashboard]
 ```
 
-`AI_ACCOUNTS.md` · JSON: `routes/web.php` prefix `api.ai-accounts`.
+`AI_ACCOUNTS.md` · JSON: `routes/web/ai-accounts.php` prefix `api.ai-accounts`.
 
 ### 7.6 Knowledge Base
 
@@ -287,7 +287,7 @@ Pre-push gates: `.cursor/skills/ship-ready/SKILL.md` · `.cursor/rules/ci-qualit
 3. **Page / component** → `FRONTEND_STRUCTURE.md` + doc module.
 4. **Luồng UX mới** → thêm mermaid vào doc module hoặc §7 file này.
 5. **npm script / CI job** → `_dev/commands.md` + `_dev/ci-cd.md` (+ `vi/` nếu cần).
-6. **Không** để `PROJECT_OVERVIEW` ghi module «kế hoạch» khi đã có route trong `web.php`.
+6. **Không** để `PROJECT_OVERVIEW` ghi module «kế hoạch» khi đã có route trong `routes/web/*.php`.
 
 ---
 

@@ -8,14 +8,14 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import FieldTooltip from '@/shared/ui/FieldTooltip.vue';
-import KbReadingProgress from '@/Components/KnowledgeBase/KbReadingProgress.vue';
-import KbArticleHero from '@/Components/KnowledgeBase/KbArticleHero.vue';
-import KbArticleCover from '@/Components/KnowledgeBase/KbArticleCover.vue';
-import KbArticleToc from '@/Components/KnowledgeBase/KbArticleToc.vue';
-import KbFloatingToolbar from '@/Components/KnowledgeBase/KbFloatingToolbar.vue';
-import KbRelatedArticles from '@/Components/KnowledgeBase/KbRelatedArticles.vue';
-import KbMoreArticles from '@/Components/KnowledgeBase/KbMoreArticles.vue';
-import KbArticleCommentsSection from '@/Components/KnowledgeBase/KbArticleCommentsSection.vue';
+import KbReadingProgress from '@/modules/knowledge-base/components/KbReadingProgress.vue';
+import KbArticleHero from '@/modules/knowledge-base/components/KbArticleHero.vue';
+import KbArticleCover from '@/modules/knowledge-base/components/KbArticleCover.vue';
+import KbArticleToc from '@/modules/knowledge-base/components/KbArticleToc.vue';
+import KbFloatingToolbar from '@/modules/knowledge-base/components/KbFloatingToolbar.vue';
+import KbRelatedArticles from '@/modules/knowledge-base/components/KbRelatedArticles.vue';
+import KbMoreArticles from '@/modules/knowledge-base/components/KbMoreArticles.vue';
+import KbArticleCommentsSection from '@/modules/knowledge-base/components/KbArticleCommentsSection.vue';
 import { useToast } from '@/shared/composables/useToast';
 
 const props = defineProps({

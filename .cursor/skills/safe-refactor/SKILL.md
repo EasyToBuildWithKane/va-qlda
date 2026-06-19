@@ -31,7 +31,6 @@ description: >-
 | TD-002 | Extract heavy queries from ProjectController/TaskController |
 | TD-010 | DailyReport `project_id` legacy cleanup |
 | TD-007 | Frontend `services/http.js` (optional) |
-| — | Migrate `Components/DailyReport/` → `modules/daily-report/components/` |
 | — | N+1 / index audit (REFACTOR_PLAN Phase 5.4) |
 
 ## Frontend move checklist (if moving more files)

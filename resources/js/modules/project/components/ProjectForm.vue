@@ -8,7 +8,7 @@ import RadioCard from '@/shared/ui/RadioCard.vue';
 import MultiChips from '@/shared/ui/MultiChips.vue';
 import PersonSelect from '@/modules/project/components/PersonSelect.vue';
 import SearchSelect from '@/shared/ui/SearchSelect.vue';
-import KbRichTextField from '@/Components/KnowledgeBase/KbRichTextField.vue';
+import KbRichTextField from '@/modules/knowledge-base/components/KbRichTextField.vue';
 import { valueLabelOptions } from '@/shared/utils/selectOptions';
 import { useDialog } from '@/composables/useDialog';
 import { useToast } from '@/shared/composables/useToast';

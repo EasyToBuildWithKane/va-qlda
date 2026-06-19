@@ -37,7 +37,7 @@ PerformanceAuditController      ──▶   EmployeeAuditListBuilder (danh sách
 ```
 
 Controller chỉ `authorize` + gọi service + `Inertia::render`. Service trả mảng đã
-shape (giống `DashboardController`). Bộ lọc đổi → Inertia partial reload, mọi widget
+shape (giống `HubDashboardController`). Bộ lọc đổi → Inertia partial reload, mọi widget
 đồng bộ vì cùng đọc một `PerformanceFilter`.
 
 ### Frontend (`resources/js/modules/performance/`)

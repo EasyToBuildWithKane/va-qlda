@@ -10,7 +10,7 @@ import DecimalHoursInput from '@/shared/ui/DecimalHoursInput.vue';
 import DateInput from '@/shared/ui/form/DateInput.vue';
 import TimeInput from '@/shared/ui/form/TimeInput.vue';
 import CoachingWorkspace from '@/modules/coaching/components/CoachingWorkspace.vue';
-import KbRichTextField from '@/Components/KnowledgeBase/KbRichTextField.vue';
+import KbRichTextField from '@/modules/knowledge-base/components/KbRichTextField.vue';
 import CoachingSessionAssignmentsTab from '@/modules/coaching/components/CoachingSessionAssignmentsTab.vue';
 import CoachingSessionMaterialsTab from '@/modules/coaching/components/CoachingSessionMaterialsTab.vue';
 import { useToast } from '@/shared/composables/useToast';

@@ -16,6 +16,7 @@ use App\Support\Coaching\SafeEmbedUrl;
 use App\Support\Enums\CoachingAssignmentStatus;
 use App\Support\Enums\CoachingMaterialType;
 use App\Support\Enums\CoachingSessionStatus;
+use App\Support\Enums\SystemRole;
 use App\Support\Enums\TaskPriority;
 use App\Support\NotificationDispatcher;
 use App\Support\SecurityAuditLogger;
@@ -40,7 +41,7 @@ class CoachingSessionController extends Controller
         $perPage = min(50, max(5, (int) $request->query('per_page', 20)));
 
         $coursesQuery = CoachingCourse::query()->orderBy('name');
-        if ($account->role->value === 'member' && $account->employee_id) {
+        if ($account->hasRole(SystemRole::Member) && $account->employee_id) {
             $coursesQuery->where('student_id', $account->employee_id);
         }
         $coursesForFilter = $coursesQuery->get(['id', 'name', 'code'])->map(fn (CoachingCourse $c) => [
@@ -120,7 +121,7 @@ class CoachingSessionController extends Controller
         $weekCount = (clone $statsQuery)->whereBetween('date', [$weekStart, $weekEnd])->count();
 
         $coursesQuery = CoachingCourse::query()->orderBy('name');
-        if ($account->role->value === 'member' && $account->employee_id) {
+        if ($account->hasRole(SystemRole::Member) && $account->employee_id) {
             $coursesQuery->where('student_id', $account->employee_id);
         }
 

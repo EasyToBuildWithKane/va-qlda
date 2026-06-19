@@ -14,6 +14,7 @@ _dev/workflows.md       — dev, PR, deploy, hotfix flows
 _dev/conventions.md     — commit format, naming rules
 _dev/ci-cd.md           — GitHub Actions explained
 _dev/testing.md         — Playwright E2E guide
+_dev/realtime.md        — Socket.IO realtime comments (Node server + Redis)
 _dev/troubleshooting.md — common errors + fixes
 _dev/vi/               — Vietnamese explanations (see _dev/vi/README.md for full index)
   tong-quan.md         — overview
@@ -22,6 +23,7 @@ _dev/vi/               — Vietnamese explanations (see _dev/vi/README.md for fu
   quy-uoc.md           — conventions
   ci-cd.md             — CI/CD
   kiem-thu.md          — Playwright testing
+  realtime.md          — realtime
   loi-thuong-gap.md   — troubleshooting
 
 ### How to use

@@ -156,12 +156,6 @@ class SkillCatalog
         ];
     }
 
-    /** @deprecated Prefer explicit group on skill_details; kept for callers that infer slug. */
-    public static function categoryFor(string $name): string
-    {
-        return self::categorize(Str::lower(trim($name)));
-    }
-
     /**
      * Ordered legacy competency domains (key => label).
      *
@@ -280,19 +274,6 @@ class SkillCatalog
         }
 
         return array_values(array_map(fn (string $k) => $map[$k], $order));
-    }
-
-    private static function categorize(string $lowerName): string
-    {
-        foreach (self::CATEGORIES as $key => $def) {
-            foreach ($def['match'] as $needle) {
-                if (str_contains($lowerName, $needle)) {
-                    return $key;
-                }
-            }
-        }
-
-        return 'other';
     }
 
     /**

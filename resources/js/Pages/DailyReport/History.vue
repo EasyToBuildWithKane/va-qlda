@@ -10,10 +10,10 @@ import {
 import { Head, Link, router } from "@inertiajs/vue3";
 import AppLayout from "@/Layouts/AppLayout.vue";
 import AppIcon from "@/Components/AppIcon.vue";
-import StatusBadge from "@/Components/DailyReport/StatusBadge.vue";
-import GradePill from "@/Components/DailyReport/GradePill.vue";
+import StatusBadge from "@/modules/daily-report/components/StatusBadge.vue";
+import GradePill from "@/modules/daily-report/components/GradePill.vue";
 import DailyReportSummaryBar from '@/modules/daily-report/components/DailyReportSummaryBar.vue';
-import ReportCard from "@/Components/DailyReport/ReportCard.vue";
+import ReportCard from "@/modules/daily-report/components/ReportCard.vue";
 import PageHeader from "@/Components/Ui/PageHeader.vue";
 import Avatar from "@/shared/ui/Avatar.vue";
 import DatagridToolbarSearch from "@/shared/ui/DatagridToolbarSearch.vue";

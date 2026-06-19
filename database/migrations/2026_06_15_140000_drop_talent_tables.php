@@ -22,6 +22,8 @@ return new class extends Migration
 
     public function down(): void
     {
-        // Recreate via 2026_06_15_120000_create_talent_tables if rollback needed.
+        // Intentionally irreversible: the Talent Management module was permanently
+        // removed and its create migration no longer exists, so there is no schema
+        // to restore. Rolling back is a no-op rather than a failure.
     }
 };

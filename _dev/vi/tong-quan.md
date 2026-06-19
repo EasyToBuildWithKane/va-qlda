@@ -25,7 +25,7 @@ va-qlda/
 ├── _dev/              ← vận hành dev (EN canonical)
 │   └── vi/            ← giải thích tiếng Việt (thư mục này)
 ├── .cursor/           ← rule & skill cho Cursor
-├── routes/web.php     ← nguồn sự thật URL (Inertia + JSON)
+├── routes/web/        ← nguồn sự thật URL (16 partial Inertia + JSON)
 └── resources/js/      ← Vue 3 + Inertia
 ```
 

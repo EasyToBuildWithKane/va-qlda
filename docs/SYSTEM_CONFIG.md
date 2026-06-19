@@ -46,7 +46,7 @@ Pages/Settings/Index.vue       SystemSettingController             SystemSetting
                                Permissions::roleAllows) — KHÔNG đổi
 ```
 
-**Thứ tự provider** (`config/app.php`): `SettingsServiceProvider` đặt **ngay sau `AppServiceProvider`** để boot **trước `RouteServiceProvider`** — vì `routes/web.php` đọc `va.password_login_enabled` lúc đăng ký route.
+**Thứ tự provider** (`config/app.php`): `SettingsServiceProvider` đặt **ngay sau `AppServiceProvider`** để boot **trước `RouteServiceProvider`** — vì `routes/web/auth.php` đọc `va.password_login_enabled` lúc đăng ký route.
 
 **Cache:** `SettingsRepository` cache override (`Cache::rememberForever('system_settings.overrides')`); `setMany()` tự `forget`. Bảng chưa tồn tại (lúc migrate) ⇒ trả `[]`, overlay bỏ qua.
 

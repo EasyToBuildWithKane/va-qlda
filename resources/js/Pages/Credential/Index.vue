@@ -14,7 +14,7 @@ import DatagridFilterField from '@/shared/ui/DatagridFilterField.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import ColumnVisibilityDropdown from '@/shared/ui/ColumnVisibilityDropdown.vue';
 import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
-import CredentialDataModal from '@/modules/credential/CredentialDataModal.vue';
+import CredentialDataModal from '@/modules/credential/components/CredentialDataModal.vue';
 import CredentialExpiryCountdown from '@/modules/credential/components/CredentialExpiryCountdown.vue';
 import { CREDENTIAL_TABLE_COLUMNS } from '@/modules/credential/config/columns.js';
 import { isCredentialExpiringWithinDays } from '@/modules/credential/utils/credentialExpiry';

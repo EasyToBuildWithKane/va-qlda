@@ -2,7 +2,7 @@
 import AppIcon from '@/Components/AppIcon.vue';
 import FieldTooltip from '@/shared/ui/FieldTooltip.vue';
 import HoverTooltip from '@/shared/ui/HoverTooltip.vue';
-import KbArticleToc from '@/Components/KnowledgeBase/KbArticleToc.vue';
+import KbArticleToc from '@/modules/knowledge-base/components/KbArticleToc.vue';
 import { useToast } from '@/shared/composables/useToast';
 
 const props = defineProps({

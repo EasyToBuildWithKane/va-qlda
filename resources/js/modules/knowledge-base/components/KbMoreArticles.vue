@@ -2,8 +2,8 @@
 import { computed } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
-import KbArticleCardsSwiper from '@/Components/KnowledgeBase/KbArticleCardsSwiper.vue';
-import KbBlogPostCard from '@/Components/KnowledgeBase/KbBlogPostCard.vue';
+import KbArticleCardsSwiper from '@/modules/knowledge-base/components/KbArticleCardsSwiper.vue';
+import KbBlogPostCard from '@/modules/knowledge-base/components/KbBlogPostCard.vue';
 
 const props = defineProps({
     articles: { type: Array, default: () => [] },

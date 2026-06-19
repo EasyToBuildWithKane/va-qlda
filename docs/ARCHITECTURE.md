@@ -13,7 +13,7 @@ app/
 ├── Application/
 │   ├── DailyReport/          ← Use Cases (full Clean Architecture)
 │   ├── Project/              ← Create, Update, Duplicate, Archive, LogWork
-│   └── Task/                 ← Create, UpdateStatus, BulkCreate
+│   └── Task/                 ← Create, Patch, Update, BulkCreate, Import
 │
 ├── Domain/                   ← Domain Layer (chỉ DailyReport)
 │   └── DailyReport/

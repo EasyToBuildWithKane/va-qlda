@@ -1,433 +1,371 @@
 import { execSync } from 'node:child_process';
 
 /**
- * @returns {{ status: string, path: string }[]}
+ * Bộ sinh commit message dựa hoàn toàn trên diff đã staged (không theme hardcode).
+ * Suy ra: type · scope (module thật) · subject (humanize file "đầu tàu") · body có churn stats.
+ *
+ * @typedef {{ status: string, path: string, added: number, deleted: number }} Change
+ */
+
+/**
+ * @returns {Change[]}
  */
 function getStagedChanges() {
     try {
-        const output = execSync('git diff --cached --name-status', { encoding: 'utf8' }).trim();
-        if (!output) {
+        const nameStatus = execSync('git diff --cached --name-status', { encoding: 'utf8' }).trim();
+        if (!nameStatus) {
             return [];
         }
 
-        return output.split(/\r?\n/).map((line) => {
+        /** @type {Map<string, number[]>} churn[path] = [added, deleted] */
+        const churn = new Map();
+        const numstat = execSync('git diff --cached --numstat', { encoding: 'utf8' }).trim();
+        for (const line of numstat.split(/\r?\n/).filter(Boolean)) {
+            const [addedRaw, deletedRaw, ...rest] = line.split('\t');
+            const path = rest.join('\t');
+            const added = addedRaw === '-' ? 0 : Number.parseInt(addedRaw, 10) || 0;
+            const deleted = deletedRaw === '-' ? 0 : Number.parseInt(deletedRaw, 10) || 0;
+            churn.set(path, [added, deleted]);
+        }
+
+        return nameStatus.split(/\r?\n/).filter(Boolean).map((line) => {
             const tab = line.indexOf('\t');
             const status = line.slice(0, tab).trim();
-            const path = line.slice(tab + 1).trim();
+            // Rename hiển thị "old\tnew" — lấy đường dẫn cuối (file đích).
+            const rawPath = line.slice(tab + 1).trim();
+            const path = rawPath.includes('\t') ? rawPath.split('\t').pop().trim() : rawPath;
+            const [added = 0, deleted = 0] = churn.get(path) ?? churn.get(rawPath) ?? [];
 
-            return { status, path };
+            return { status, path, added, deleted };
         });
     } catch {
         return [];
     }
 }
 
-function isDocs(path) {
-    return (
-        path.startsWith('docs/') ||
-        path.startsWith('_dev/') ||
-        path.startsWith('.cursor/') ||
-        path.startsWith('.claude/') ||
-        path === 'README.md' ||
-        path === 'CLAUDE.md'
-    );
+/** PascalCase / camelCase / snake_case / kebab → kebab-case thường. */
+function kebab(name) {
+    return name
+        .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+        .replace(/[_\s]+/g, '-')
+        .toLowerCase()
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
 }
 
-function isCi(path) {
-    return (
-        path.startsWith('.github/') ||
-        path.startsWith('.husky/') ||
-        path === '.gitlab-ci.yml' ||
-        path.includes('playwright.config') ||
-        path.includes('eslint.config') ||
-        path === 'commitlint.config.js'
-    );
+/** "CoachingSessionAssignmentsTab.vue" → "coaching session assignments tab". */
+function humanize(basename) {
+    return basename
+        .replace(/\.[a-z0-9]+$/i, '')
+        .replace(/[_-]+/g, ' ')
+        .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+        .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+        .trim()
+        .toLowerCase();
 }
 
-function isTest(path) {
-    return path.startsWith('tests/');
+// ── Phân loại đường dẫn ───────────────────────────────────────────────
+
+const isDocs = (p) =>
+    p.startsWith('docs/') || p.startsWith('_dev/') || p.startsWith('.cursor/') ||
+    p.startsWith('.claude/') || p === 'README.md' || p === 'CLAUDE.md';
+
+const isCi = (p) =>
+    p.startsWith('.github/') || p.startsWith('.husky/') || p === '.gitlab-ci.yml' ||
+    p.includes('playwright.config') || p.includes('eslint.config') || p === 'commitlint.config.js';
+
+const isTest = (p) => p.startsWith('tests/');
+const isFrontend = (p) => p.startsWith('resources/js/');
+const isBackend = (p) =>
+    p.startsWith('app/') || p.startsWith('database/') || p.startsWith('routes/') ||
+    p.startsWith('config/') || p.startsWith('bootstrap/');
+const isDeps = (p) =>
+    p === 'package.json' || p === 'package-lock.json' || p === 'composer.json' || p === 'composer.lock';
+
+const isStyleish = (p) =>
+    p.endsWith('.css') || p.endsWith('.vue') || p.endsWith('.js') || p.endsWith('.php') || p === '.gitignore';
+
+/** Module/domain nghiệp vụ của một đường dẫn (kebab) — null nếu không rõ. */
+function domainOf(path) {
+    let m;
+    if ((m = path.match(/^resources\/js\/modules\/([^/]+)\//))) return kebab(m[1]);
+    if ((m = path.match(/^resources\/js\/Pages\/([^/]+)\//))) return kebab(m[1]);
+    if ((m = path.match(/^app\/Application\/([^/]+)\//))) return kebab(m[1]);
+    if ((m = path.match(/^app\/Domain\/([^/]+)\//))) return kebab(m[1]);
+    if ((m = path.match(/^app\/Http\/Controllers\/([^/]+)\//))) return kebab(m[1]);
+    if ((m = path.match(/^app\/Support\/([^/]+)\//))) return kebab(m[1]);
+    if (isDocs(path)) return 'docs';
+    if (path.startsWith('.github/') || path.startsWith('.husky/')) return 'ci';
+    if (path.startsWith('database/migrations/')) return 'database';
+    if (isTest(path)) return 'tests';
+    return null;
 }
 
-function isFrontend(path) {
-    return path.startsWith('resources/js/');
-}
-
-function isBackend(path) {
-    return (
-        path.startsWith('app/') ||
-        path.startsWith('database/') ||
-        path.startsWith('routes/') ||
-        path.startsWith('config/') ||
-        path.startsWith('bootstrap/')
-    );
-}
-
-function isDeps(path) {
-    return (
-        path === 'package.json' ||
-        path === 'package-lock.json' ||
-        path === 'composer.json' ||
-        path === 'composer.lock'
-    );
-}
-
-function isStyleOnly(paths) {
-    return paths.every(
-        (p) =>
-            p.endsWith('.css') ||
-            p.endsWith('.vue') ||
-            p.endsWith('.js') ||
-            p.endsWith('.php') ||
-            p === '.gitignore',
-    );
-}
-
-function describeArea(path) {
+/** Nhãn layer/area (mịn hơn domain) cho body + subject fallback. */
+function areaOf(path) {
     const rules = [
+        [/^resources\/js\/modules\/[^/]+\/components\//, 'components'],
+        [/^resources\/js\/modules\/[^/]+\/composables\//, 'composables'],
         [/^resources\/js\/Pages\//, 'pages'],
         [/^resources\/js\/Components\//, 'components'],
         [/^resources\/js\/composables\//, 'composables'],
-        [/^resources\/js\/constants\//, 'constants'],
+        [/^resources\/js\/stores\//, 'stores'],
+        [/^resources\/js\/shared\//, 'shared ui'],
         [/^app\/Http\/Controllers\//, 'controllers'],
+        [/^app\/Http\/Requests\//, 'form requests'],
+        [/^app\/Http\/Resources\//, 'resources'],
         [/^app\/Models\//, 'models'],
         [/^app\/Application\//, 'use cases'],
+        [/^app\/Policies\//, 'policies'],
+        [/^app\/Support\//, 'support'],
         [/^database\/migrations\//, 'migrations'],
-        [/^database\/factories\//, 'factories'],
         [/^database\/seeders\//, 'seeders'],
-        [/^tests\/Feature\//, 'feature tests'],
-        [/^tests\/e2e\//, 'e2e tests'],
-        [/^tests\/Unit\//, 'unit tests'],
-        [/^\.cursor\//, 'cursor config'],
-        [/^\.husky\//, 'git hooks'],
+        [/^database\/factories\//, 'factories'],
+        [/^tests\//, 'tests'],
         [/^\.github\//, 'github actions'],
-        [/^docs\//, 'documentation'],
+        [/^\.husky\//, 'git hooks'],
+        [/^docs\//, 'docs'],
+        [/^_dev\//, 'dev docs'],
         [/^config\//, 'config'],
+        [/^routes\//, 'routes'],
     ];
-
-    for (const [pattern, label] of rules) {
-        if (pattern.test(path)) {
-            return label;
-        }
+    for (const [re, label] of rules) {
+        if (re.test(path)) return label;
     }
-
-    const top = path.split('/')[0];
-    return top.replace(/^\./, '') || 'project';
+    return path.split('/')[0].replace(/^\./, '') || 'project';
 }
+
+// ── Type / Scope ──────────────────────────────────────────────────────
 
 /**
- * Gợi ý scope + subject + body theo module VA-QLDA (ưu tiên hơn mô tả generic).
- * @param {string[]} paths
- * @returns {{ type?: string, scope?: string, subject: string, body?: string[] }|null}
- */
-function detectFeatureTheme(paths) {
-    const text = paths.join(' ');
-    const body = [];
-
-    const hasBlocker =
-        /Blocker|blockers/i.test(text) && (text.includes('app/') || text.includes('resources/js/'));
-    const hasTelegram = /Telegram|telegram\.php/.test(text);
-    const hasRealtime =
-        /useCommentRealtime|realtime\/|_dev\/realtime|CommentThread|CommentRealtime/.test(text);
-    const hasDailyReport = /DailyReport|daily-report/.test(text);
-    const hasKnowledgeBase = /KnowledgeBase|knowledge-base|KbArticle/.test(text);
-    const hasCoaching = /Coaching|coaching/.test(text);
-
-    if (hasKnowledgeBase && hasCoaching) {
-        return {
-            type: 'feat',
-            scope: 'kb-coaching',
-            subject: 'knowledge base and coaching modules v1',
-            body: [
-                'KB: articles, FULLTEXT search, gallery, export, datagrid toolbar.',
-                'Coaching: courses, sessions, dashboard, Excel export, safe embeds.',
-                'PHPStan level 5 fixes for CI.',
-            ],
-        };
-    }
-
-    if (hasKnowledgeBase) {
-        return {
-            type: 'feat',
-            scope: 'knowledge-base',
-            subject: 'internal knowledge base v1',
-            body: ['Articles, search, gallery images, CSV/Excel export.'],
-        };
-    }
-
-    if (hasCoaching) {
-        return {
-            type: 'feat',
-            scope: 'coaching',
-            subject: 'coaching and mentoring module v1',
-            body: ['Courses, sessions, financial dashboard, styled export.'],
-        };
-    }
-
-    if (hasBlocker && hasTelegram) {
-        body.push('Notify Telegram on each status change; lock resolved/closed from reverting.');
-    } else if (hasBlocker && /UpdateBlockerRequest|isTerminal|statusLocked/.test(text)) {
-        body.push('Lock resolved/closed status on API and UI.');
-    }
-
-    if (hasBlocker && /CommentThread|partialReloadKeys|blockersList/.test(text)) {
-        body.push('Reload blockers after comment post; sync detail modal by id.');
-    }
-
-    if (hasRealtime) {
-        body.push('Socket.IO reconnect re-subscribes room; Realtime badge in CommentThread.');
-        if (text.includes('_dev/')) {
-            body.push('Deploy notes: Redis, Node :6001, OLS /socket.io/ proxy.');
-        }
-    }
-
-    if (hasDailyReport && hasTelegram) {
-        return {
-            type: 'feat',
-            scope: 'daily-report',
-            subject: 'vietnamese telegram for review and reject',
-            body: body.length ? body : undefined,
-        };
-    }
-
-    if (hasBlocker && hasRealtime && hasTelegram) {
-        return {
-            type: 'feat',
-            scope: 'blockers',
-            subject: 'status lock, telegram, comments and realtime',
-            body: body.length ? body : undefined,
-        };
-    }
-
-    if (hasBlocker && hasRealtime) {
-        return {
-            type: 'feat',
-            scope: 'blockers',
-            subject: 'comment reload and realtime reconnect',
-            body: body.length ? body : undefined,
-        };
-    }
-
-    if (hasBlocker && hasTelegram) {
-        return {
-            type: 'feat',
-            scope: 'blockers',
-            subject: 'telegram status notify and lock terminal state',
-            body: body.length ? body : undefined,
-        };
-    }
-
-    if (hasBlocker && body.length) {
-        return {
-            type: 'fix',
-            scope: 'blockers',
-            subject: 'trao doi tab and blocker workflow',
-            body,
-        };
-    }
-
-    if (hasRealtime && !hasBlocker) {
-        return {
-            type: 'feat',
-            scope: 'realtime',
-            subject: 'improve comment socket.io subscription',
-            body: body.length ? body : undefined,
-        };
-    }
-
-    if (paths.every(isDocs) && hasRealtime) {
-        return {
-            type: 'docs',
-            scope: 'realtime',
-            subject: 'socket.io deploy and openlitespeed proxy',
-            body: body.length ? body : undefined,
-        };
-    }
-
-    return null;
-}
-
-function buildSubject(type, changes) {
-    const paths = changes.map((c) => c.path);
-    const theme = detectFeatureTheme(paths);
-    if (theme?.subject) {
-        return theme.subject;
-    }
-
-    const areas = [...new Set(paths.map(describeArea))].slice(0, 3);
-    const areaText = areas.join(', ');
-
-    const added = changes.filter((c) => c.status.startsWith('A')).length;
-    const deleted = changes.filter((c) => c.status.startsWith('D')).length;
-    const modified = changes.filter((c) => c.status.startsWith('M')).length;
-
-    let verb = 'update';
-    if (added > 0 && modified === 0 && deleted === 0) {
-        verb = 'add';
-    } else if (deleted > 0 && added === 0 && modified === 0) {
-        verb = 'remove';
-    } else if (type === 'fix') {
-        verb = 'fix';
-    } else if (type === 'refactor') {
-        verb = 'refactor';
-    }
-
-    const templates = {
-        docs: `update ${areaText || 'documentation'}`,
-        ci: `update ${areaText || 'ci pipeline'}`,
-        test: `${verb} ${areaText || 'tests'}`,
-        chore: `update ${areaText || 'project tooling'}`,
-        build: `update ${areaText || 'build config'}`,
-        style: `format ${areaText || 'code style'}`,
-        fix: `fix ${areaText || 'application logic'}`,
-        feat: `${verb} ${areaText || 'application features'}`,
-        refactor: `refactor ${areaText || 'code'}`,
-        perf: `improve ${areaText || 'performance'}`,
-        revert: `revert ${areaText || 'changes'}`,
-    };
-
-    return templates[type] ?? `update ${areaText || 'project files'}`;
-}
-
-function detectScope(changes) {
-    const paths = changes.map((c) => c.path);
-
-    const themeScope = detectFeatureTheme(paths)?.scope;
-    if (themeScope) {
-        return themeScope;
-    }
-
-    if (paths.every(isFrontend)) {
-        const match = paths[0]?.match(/^resources\/js\/Pages\/([^/]+)/);
-        if (match) {
-            return match[1].toLowerCase();
-        }
-        return 'frontend';
-    }
-
-    if (paths.every((p) => p.startsWith('app/Application/DailyReport/'))) {
-        return 'daily-report';
-    }
-
-    if (paths.every((p) => p.startsWith('app/') && p.includes('Project'))) {
-        return 'project';
-    }
-
-    if (paths.every(isTest)) {
-        return 'test';
-    }
-
-    return null;
-}
-
-/**
- * @param {{ status: string, path: string }[]} changes
+ * @param {Change[]} changes
  */
 function detectType(changes) {
     const paths = changes.map((c) => c.path);
+    if (paths.length === 0) return null;
 
-    if (paths.some((p) => p.includes('phpstan') || p === 'phpstan.neon.dist')) {
-        return 'ci';
-    }
+    if (paths.some((p) => p.includes('phpstan') || p === 'phpstan.neon.dist')) return 'ci';
+    if (paths.every(isDocs)) return 'docs';
+    if (paths.every(isCi)) return 'ci';
+    if (paths.every(isDeps)) return 'chore';
+    if (paths.every(isTest)) return 'test';
 
-    const themeType = detectFeatureTheme(paths)?.type;
-    if (themeType) {
-        return themeType;
-    }
-
-    if (paths.length === 0) {
-        return null;
-    }
-
-    if (paths.every(isDocs)) {
-        return 'docs';
-    }
-
-    if (paths.every(isCi)) {
-        return 'ci';
-    }
-
-    if (paths.every(isDeps)) {
-        return 'chore';
-    }
-
-    if (paths.every(isTest)) {
-        return 'test';
-    }
-
-    const hasCi = paths.some(isCi);
-    const hasDocs = paths.some(isDocs);
-    const hasTest = paths.some(isTest);
     const hasBackend = paths.some(isBackend);
     const hasFrontend = paths.some(isFrontend);
 
-    if (hasCi && !hasBackend && !hasFrontend) {
-        return 'ci';
-    }
-
-    if (hasDocs && !hasBackend && !hasFrontend) {
-        return 'docs';
-    }
-
-    if (hasTest && !hasBackend && !hasFrontend) {
-        return 'test';
-    }
+    if (paths.some(isCi) && !hasBackend && !hasFrontend) return 'ci';
+    if (paths.some(isDocs) && !hasBackend && !hasFrontend) return 'docs';
+    if (paths.some(isTest) && !hasBackend && !hasFrontend) return 'test';
 
     const newMigration = changes.some((c) => c.status.startsWith('A') && c.path.includes('database/migrations/'));
-    if (newMigration) {
-        return 'feat';
-    }
+    if (newMigration) return 'feat';
 
-    const newBackendFiles = changes.filter((c) => c.status.startsWith('A') && isBackend(c.path));
-    const newFrontendFiles = changes.filter((c) => c.status.startsWith('A') && isFrontend(c.path));
+    const hasNewCode = changes.some((c) => c.status.startsWith('A') && (isBackend(c.path) || isFrontend(c.path)));
+    if (hasNewCode) return 'feat';
 
-    if (newBackendFiles.length > 0 || newFrontendFiles.length > 0) {
-        return 'feat';
-    }
-
-    const onlyModifications = changes.every((c) => c.status.startsWith('M') || c.status.startsWith('R'));
-    if (onlyModifications && isStyleOnly(paths)) {
+    const onlyTouched = changes.every((c) => /^[MR]/.test(c.status));
+    if (onlyTouched && paths.every(isStyleish) && totalChurn(changes).deleted <= totalChurn(changes).added * 0.2) {
+        // Sửa nhỏ, hầu như chỉ thêm dòng → coi như format/style.
         return 'style';
     }
-
-    if (onlyModifications && hasBackend && paths.some((p) => p.includes('Test.php'))) {
-        return 'test';
-    }
-
-    if (onlyModifications && (hasBackend || hasFrontend)) {
-        return 'fix';
-    }
-
-    if (paths.some((p) => p.includes('UseCase') || p.includes('Service'))) {
-        return 'refactor';
-    }
+    if (onlyTouched && (hasBackend || hasFrontend)) return 'fix';
+    if (paths.some((p) => p.includes('UseCase') || p.includes('Service'))) return 'refactor';
 
     return 'chore';
 }
+
+/** Module chiếm ưu thế (theo số file) — dùng làm scope. */
+function dominantDomain(changes) {
+    const tally = new Map();
+    for (const c of changes) {
+        const d = domainOf(c.path);
+        if (!d) continue;
+        tally.set(d, (tally.get(d) ?? 0) + 1);
+    }
+    if (tally.size === 0) return null;
+
+    const sorted = [...tally.entries()].sort((a, b) => b[1] - a[1]);
+    const [topDomain, topCount] = sorted[0];
+    // Bỏ qua nhóm "kỹ thuật" nếu còn module nghiệp vụ khác.
+    if (['docs', 'ci', 'database', 'tests'].includes(topDomain) && sorted.length > 1) {
+        const business = sorted.find(([d]) => !['docs', 'ci', 'database', 'tests'].includes(d));
+        if (business && business[1] >= topCount * 0.5) return business[0];
+    }
+    return topDomain;
+}
+
+/**
+ * @param {Change[]} changes
+ */
+function detectScope(changes) {
+    const domain = dominantDomain(changes);
+    if (domain && domain !== 'docs' && domain !== 'ci') {
+        return domain;
+    }
+    const paths = changes.map((c) => c.path);
+    if (paths.every(isFrontend)) return 'frontend';
+    if (paths.every(isBackend)) return 'backend';
+    return domain; // 'docs' | 'ci' | null
+}
+
+// ── Subject ───────────────────────────────────────────────────────────
+
+const GENERIC_BASENAMES = /^(index|main|app|types?|utils?|helpers?|constants?|config|init|README|CHANGELOG)$/i;
+
+function totalChurn(changes) {
+    return changes.reduce(
+        (acc, c) => ({ added: acc.added + c.added, deleted: acc.deleted + c.deleted }),
+        { added: 0, deleted: 0 },
+    );
+}
+
+/** File "đầu tàu": churn lớn nhất, ưu tiên file mới và file code. */
+function headlineFile(changes) {
+    const ranked = [...changes].sort((a, b) => {
+        const codeA = isFrontend(a.path) || isBackend(a.path) ? 1 : 0;
+        const codeB = isFrontend(b.path) || isBackend(b.path) ? 1 : 0;
+        if (codeA !== codeB) return codeB - codeA;
+        const newA = a.status.startsWith('A') ? 1 : 0;
+        const newB = b.status.startsWith('A') ? 1 : 0;
+        if (newA !== newB) return newB - newA;
+        return b.added + b.deleted - (a.added + a.deleted);
+    });
+    return ranked[0] ?? null;
+}
+
+function pickVerb(type, changes) {
+    const added = changes.filter((c) => c.status.startsWith('A')).length;
+    const deleted = changes.filter((c) => c.status.startsWith('D')).length;
+    const modified = changes.length - added - deleted;
+    if (type === 'fix') return 'fix';
+    if (type === 'refactor') return 'refactor';
+    if (type === 'perf') return 'improve';
+    if (type === 'style') return 'format';
+    if (added > 0 && modified === 0 && deleted === 0) return 'add';
+    if (deleted > 0 && added === 0 && modified === 0) return 'remove';
+    return 'update';
+}
+
+/**
+ * @param {string} type
+ * @param {Change[]} changes
+ * @param {string|null} scope
+ */
+function buildSubject(type, changes, scope) {
+    const verb = pickVerb(type, changes);
+    const head = headlineFile(changes);
+
+    // Ưu tiên: humanize tên file đầu tàu nếu có ý nghĩa.
+    if (head && (isFrontend(head.path) || isBackend(head.path))) {
+        const base = head.path.split('/').pop();
+        const stem = base.replace(/\.[a-z0-9]+$/i, '');
+        if (!GENERIC_BASENAMES.test(stem)) {
+            let phrase = humanize(base)
+                .replace(/\b(controller|request|resource|use case|usecase|service|store|composable|tab|modal|page)\b/gi, '')
+                .replace(/\s+/g, ' ')
+                .trim();
+            // Bỏ tiền tố trùng scope cho gọn (vd scope=coaching, phrase="coaching session ...").
+            if (scope && phrase.startsWith(`${scope.replace(/-/g, ' ')} `)) {
+                phrase = phrase.slice(scope.replace(/-/g, ' ').length).trim();
+            }
+            if (phrase.length >= 3) {
+                const noun = describeKind(head.path);
+                return `${verb} ${phrase}${noun ? ` ${noun}` : ''}`.trim();
+            }
+        }
+    }
+
+    // Fallback: theo các area thay đổi.
+    const areas = [...new Set(changes.map((c) => areaOf(c.path)))].slice(0, 3);
+    const areaText = areas.join(', ') || 'project files';
+    return `${verb} ${areaText}`;
+}
+
+/** Danh từ loại file để subject tự nhiên hơn ("... controller", "... component"). */
+function describeKind(path) {
+    if (/Controller\.php$/.test(path)) return 'controller';
+    if (/Request\.php$/.test(path)) return 'request';
+    if (/Resource\.php$/.test(path)) return 'resource';
+    if (/UseCase\.php$/.test(path)) return 'use case';
+    if (/\.vue$/.test(path) && /components\//.test(path)) return 'component';
+    if (/\.vue$/.test(path) && /Pages\//.test(path)) return 'page';
+    if (/^use[A-Z].*\.js$/.test(path.split('/').pop() ?? '')) return 'composable';
+    if (/database\/migrations\//.test(path)) return 'migration';
+    return '';
+}
+
+// ── Body (churn stats theo module) ───────────────────────────────────
+
+function churnTag(added, deleted) {
+    if (!added && !deleted) return '';
+    return ` (+${added}/-${deleted})`;
+}
+
+/**
+ * @param {Change[]} changes
+ */
+function buildBody(changes) {
+    if (changes.length <= 1) return '';
+
+    /** @type {Map<string, Change[]>} */
+    const groups = new Map();
+    for (const c of changes) {
+        const key = domainOf(c.path) ?? areaOf(c.path);
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(c);
+    }
+
+    const ranked = [...groups.entries()].sort((a, b) => b[1].length - a[1].length);
+    const lines = [];
+    const shown = ranked.slice(0, 5);
+
+    for (const [name, group] of shown) {
+        const { added, deleted } = totalChurn(group);
+        const samples = group
+            .filter((c) => isFrontend(c.path) || isBackend(c.path))
+            .slice(0, 2)
+            .map((c) => c.path.split('/').pop());
+        const sampleText = samples.length ? ` — ${samples.join(', ')}` : '';
+        let line = `- ${name}: ${group.length} file(s)${churnTag(added, deleted)}${sampleText}`;
+        if (line.length > 100) line = line.slice(0, 97) + '…';
+        lines.push(line);
+    }
+
+    if (ranked.length > shown.length) {
+        const rest = ranked.slice(shown.length).reduce((n, [, g]) => n + g.length, 0);
+        lines.push(`- … +${rest} file(s) khác`);
+    }
+
+    const { added, deleted } = totalChurn(changes);
+    lines.push('');
+    lines.push(`Tổng: ${changes.length} files changed, +${added}/-${deleted}.`);
+
+    return lines.join('\n');
+}
+
+// ── Public API ────────────────────────────────────────────────────────
 
 /**
  * @returns {{ header: string, body: string }|null}
  */
 export function generateCommitMessageWithBody() {
     const changes = getStagedChanges();
-    const paths = changes.map((c) => c.path);
+    if (changes.length === 0) return null;
+
     const type = detectType(changes);
+    if (!type) return null;
 
-    if (!type) {
-        return null;
-    }
+    const scope = detectScope(changes);
+    const subject = buildSubject(type, changes, scope);
 
-    const theme = detectFeatureTheme(paths);
-    const scope = theme?.scope ?? detectScope(changes);
-    const subject = buildSubject(type, changes);
     const headerRaw = scope ? `${type}(${scope}): ${subject}` : `${type}: ${subject}`;
     const header = headerRaw.length > 72 ? `${headerRaw.slice(0, 69)}...` : headerRaw;
 
-    const bodyLines = (theme?.body ?? [])
-        .map((line) => line.trim())
-        .filter(Boolean)
-        .filter((line) => line.length <= 100);
-
-    const body = bodyLines.join('\n');
+    const body = buildBody(changes)
+        .split('\n')
+        .filter((line) => line.length <= 100)
+        .join('\n')
+        .trim();
 
     return { header, body };
 }
@@ -437,15 +375,8 @@ export function generateCommitMessageWithBody() {
  */
 export function generateCommitMessage() {
     const result = generateCommitMessageWithBody();
-    if (!result) {
-        return null;
-    }
-
-    if (result.body) {
-        return `${result.header}\n\n${result.body}`;
-    }
-
-    return result.header;
+    if (!result) return null;
+    return result.body ? `${result.header}\n\n${result.body}` : result.header;
 }
 
 if (process.argv[1]?.endsWith('generate-commit-msg.mjs')) {

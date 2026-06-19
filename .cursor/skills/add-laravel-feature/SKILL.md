@@ -25,7 +25,7 @@ description: >-
 - [ ] Policy + `AuthServiceProvider` map if needed
 - [ ] Controller: thin; mutations → Use Case khi module đã có
 - [ ] `*Resource` for Inertia props; `can` permissions
-- [ ] Route in `routes/web.php` (static before `{param}`)
+- [ ] Route in `routes/web/{domain}.php` (static before `{param}`)
 - [ ] Activity logger (Task, Blocker, …)
 - [ ] `NotificationDispatcher` if user-facing event
 - [ ] Feature test in `tests/Feature/` for critical paths

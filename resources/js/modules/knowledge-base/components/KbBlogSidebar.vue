@@ -1,8 +1,8 @@
 <script setup>
 import { Link } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
-import KbBlogPanel from '@/Components/KnowledgeBase/KbBlogPanel.vue';
-import KbBlogTagSection from '@/Components/KnowledgeBase/KbBlogTagSection.vue';
+import KbBlogPanel from '@/modules/knowledge-base/components/KbBlogPanel.vue';
+import KbBlogTagSection from '@/modules/knowledge-base/components/KbBlogTagSection.vue';
 import { date } from '@/composables/useFormat';
 
 const props = defineProps({

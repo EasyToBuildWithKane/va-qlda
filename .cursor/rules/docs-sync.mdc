@@ -13,7 +13,7 @@ Skill map: `.cursor/skills/va-qlda-docs/SKILL.md`
 
 | Thay đổi trong code | Cập nhật tối thiểu |
 |---------------------|-------------------|
-| `routes/web.php` (route mới/đổi tên) | `docs/API_STRUCTURE.md` + doc module (vd. `docs/COACHING_MENTORING.md`) |
+| `routes/web/{domain}.php` (route mới/đổi tên) | `docs/API_STRUCTURE.md` + doc module (vd. `docs/COACHING_MENTORING.md`) |
 | Migration / cột / FK / enum DB | `docs/DATABASE_STRUCTURE.md` + enum doc nếu có |
 | Page / `modules/*` / composable mới | `docs/FRONTEND_STRUCTURE.md` + doc module |
 | Controller / Support / Policy module | `docs/ARCHITECTURE.md` hoặc doc module (pattern MVC vs Use Case) |
@@ -25,7 +25,7 @@ Skill map: `.cursor/skills/va-qlda-docs/SKILL.md`
 ## Checklist agent (trước khi kết thúc task)
 
 1. Grep hoặc đọc doc module liên quan — **không** để header «chưa triển khai» khi code đã có migration/route.
-2. Route map trong doc khớp `routes/web.php` (method, URI, `name()`).
+2. Route map trong doc khớp `routes/web/{domain}.php` (method, URI, `name()`).
 3. Component/composable liệt kê trong doc **tồn tại** trong repo hoặc ghi «planned» rõ ràng.
 4. Nếu thêm quy trình dev mới → `_dev/workflows.md` + `_dev/conventions.md` (một dòng checklist đủ).
 

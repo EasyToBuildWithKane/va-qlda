@@ -11,15 +11,81 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 env:
   APP_ENV: testing
   APP_DEBUG: true
   APP_URL: http://127.0.0.1:8000
 
 jobs:
+  # ── Phát hiện vùng thay đổi để skip job không liên quan (vd docs-only) ──
+  detect-changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      code: ${{ steps.filter.outputs.backend == 'true' || steps.filter.outputs.frontend == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'app/**'
+              - 'routes/**'
+              - 'database/**'
+              - 'config/**'
+              - 'bootstrap/**'
+              - 'tests/**'
+              - 'composer.json'
+              - 'composer.lock'
+              - 'phpstan.neon.dist'
+              - 'artisan'
+              - '.env.example'
+            frontend:
+              - 'resources/**'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'vite.config.*'
+              - 'tailwind.config.*'
+              - 'postcss.config.*'
+              - 'eslint.config.*'
+
+  # ── Conventional Commits cho mọi commit trong PR ──
+  commitlint:
+    name: Commitlint (PR)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Validate PR commit messages
+        run: |
+          npx commitlint \
+            --from "${{ github.event.pull_request.base.sha }}" \
+            --to "${{ github.event.pull_request.head.sha }}" \
+            --verbose
+
   backend-tests:
     name: PHPUnit + Pint
     runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.backend == 'true'
 
     steps:
       - uses: actions/checkout@v4
@@ -55,9 +121,21 @@ jobs:
       - name: Run PHPUnit
         run: php artisan test
 
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "### PHPUnit + Pint"
+            echo ""
+            echo "- Pint: ${{ job.status }}"
+            echo "- PHP: 8.2"
+          } >> "$GITHUB_STEP_SUMMARY"
+
   frontend-build:
     name: Frontend build + ESLint
     runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.frontend == 'true'
 
     steps:
       - uses: actions/checkout@v4
@@ -76,10 +154,75 @@ jobs:
       - name: Build assets
         run: npm run build
 
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: frontend-build
+          path: public/build/
+          retention-days: 3
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "### Frontend build + ESLint"
+            echo ""
+            echo "- ESLint: ${{ job.status }}"
+            echo "- Vite build artifact: \`public/build/\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  static-analysis:
+    name: PHPStan
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.backend == 'true'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          coverage: none
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ runner.os }}-${{ hashFiles('**/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
+
+      - name: Cache PHPStan result cache
+        uses: actions/cache@v4
+        with:
+          path: build/phpstan
+          key: phpstan-${{ runner.os }}-${{ hashFiles('**/composer.lock', 'phpstan.neon.dist') }}-${{ github.sha }}
+          restore-keys: |
+            phpstan-${{ runner.os }}-${{ hashFiles('**/composer.lock', 'phpstan.neon.dist') }}-
+            phpstan-${{ runner.os }}-
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Run PHPStan (blocking)
+        run: vendor/bin/phpstan analyse --no-progress --memory-limit=1G --error-format=github
+
   playwright:
     name: Playwright E2E
     runs-on: ubuntu-latest
-    needs: [backend-tests, frontend-build]
+    needs: [detect-changes, backend-tests, frontend-build]
+    if: >-
+      always() &&
+      needs.detect-changes.outputs.code == 'true' &&
+      needs.backend-tests.result != 'failure' &&
+      needs.backend-tests.result != 'cancelled' &&
+      needs.frontend-build.result != 'failure' &&
+      needs.frontend-build.result != 'cancelled'
 
     steps:
       - uses: actions/checkout@v4
@@ -137,22 +280,29 @@ jobs:
             test-results/
           retention-days: 7
 
-  static-analysis:
-    name: PHPStan
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "### Playwright E2E"
+            echo ""
+            echo "- Result: ${{ job.status }}"
+            echo "- Browser: chromium"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ── Cổng tổng hợp: 1 status check duy nhất cho branch protection ──
+  ci-success:
+    name: CI success
     runs-on: ubuntu-latest
-    continue-on-error: true
-
+    needs: [commitlint, backend-tests, frontend-build, static-analysis, playwright]
+    if: always()
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: "8.2"
-          coverage: none
-
-      - name: Install Composer dependencies
-        run: composer install --no-interaction --prefer-dist --optimize-autoloader
-
-      - name: Run PHPStan
-        run: vendor/bin/phpstan analyse --no-progress --memory-limit=512M
+      - name: Verify no job failed
+        run: |
+          results='${{ join(needs.*.result, ',') }}'
+          echo "Job results: $results"
+          if echo "$results" | tr ',' '\n' | grep -qE 'failure|cancelled'; then
+            echo "::error::Một hoặc nhiều job CI thất bại."
+            exit 1
+          fi
+          echo "✓ Tất cả job liên quan đã pass (job skipped được chấp nhận)."

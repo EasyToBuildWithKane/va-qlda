@@ -25,12 +25,13 @@ Tra cứu `docs/` (kiến trúc) và `_dev/` (vận hành: CLI, CI, Husky, workf
 | Quy trình | `_dev/workflows.md` / `_dev/vi/quy-trinh.md` |
 | CI / Husky | `_dev/ci-cd.md` |
 
-## Facts (2026-06-03)
+## Facts (2026-06-19)
 
 - Refactor Phase 1–5: **done**
-- Frontend: `modules/project/`, `shared/ui/`, Pinia
+- Frontend: 13 feature module dưới `modules/` (project, daily-report, knowledge-base, …), `shared/ui/`, Pinia
 - Backend: Project/Task Use Cases + Options services
-- `Components/Project/` **removed**
+- Routes split: `routes/web.php` (loader) → `routes/web/{domain}.php` (16 partial)
+- `Components/Project|DailyReport|KnowledgeBase/` **migrated** → `modules/`
 
 ## Workflow
 

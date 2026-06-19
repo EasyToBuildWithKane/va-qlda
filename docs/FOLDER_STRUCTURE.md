@@ -1,142 +1,133 @@
-# FOLDER STRUCTURE — VA QLDA
+# FOLDER STRUCTURE — VA-QLDA
 
-> **Cập nhật 2026-06-16** — sau refactor Phase 1–5. Hub luồng: [`FLOWS_AND_DOCS_MAP.md`](FLOWS_AND_DOCS_MAP.md).
+> **Cập nhật 2026-06-19.** Hub luồng: [`FLOWS_AND_DOCS_MAP.md`](FLOWS_AND_DOCS_MAP.md) · Frontend chi tiết: [`FRONTEND_STRUCTURE.md`](FRONTEND_STRUCTURE.md).
+
+Refactor Phase 1–5 ✅. Layout đã ổn định: backend phân lớp `Application/` + `Domain/` cho module clean, MVC cho module còn lại; frontend gom theo `modules/{feature}/`.
 
 ---
 
-## 1. Cấu Trúc Hiện Tại (sau refactor)
+## 1. Cây thư mục
 
 ```
 va-qlda/
-├── _dev/                          ← Project memory (CLI, CI, workflows) + _dev/vi/
+├── _dev/                     ← Operational memory (CLI, CI, workflows) + _dev/vi/
+├── docs/                     ← Technical documentation (file này)
 ├── app/
-│   ├── Application/
-│   │   ├── DailyReport/           ← Use Cases (Clean Architecture)
-│   │   ├── Project/               ← Create, Update, Duplicate, Archive, LogWork
-│   │   └── Task/                  ← Create, UpdateStatus, BulkCreate
-│   ├── Domain/DailyReport/        ← Domain models + ScoringService
-│   ├── Http/Controllers|Requests|Resources/  ← KnowledgeBase/, Coaching/, Congnghe/, AiAccount/, …
-│   ├── Models/
-│   ├── Policies/
-│   ├── Providers/
-│   ├── Services/                  ← NotificationService
-│   └── Support/
-│       ├── Enums/
-│       ├── Options/               ← EmployeeOptions, ProjectOptions, DepartmentOptions
-│       ├── Options.php            ← Facade delegate → Options/*
-│       └── *ActivityLogger.php
-├── config/
-│   ├── business.php               ← Business constants (MONTHLY_HOURS, defaults)
-│   └── ...
-├── docs/                          ← Technical documentation
-├── resources/js/
-│   ├── Pages/                     ← Inertia pages
-│   ├── Layouts/
-│   ├── Components/Ui/, DailyReport/, Notifications/
-│   ├── modules/project/, daily-report/
-│   ├── shared/ui/, shared/composables/
-│   ├── composables/               ← Feature composables
-│   ├── stores/                    ← Pinia auth + ui
-│   └── constants/
-├── scripts/                       ← prepare-commit-msg, auto-commit
-├── tests/
-│   ├── Feature/                   ← Login, Project, Task, Blocker, Department, Feedback
-│   └── e2e/                       ← Playwright
-├── .husky/                        ← Git hooks
-├── .github/workflows/ci.yml
-└── .cursor/, .claude/             ← AI rules, skills, commands
+│   ├── Application/          ← Use Cases: DailyReport/, Project/, Task/
+│   ├── Domain/DailyReport/   ← Domain models (UUID) + ScoringService
+│   ├── Http/
+│   │   ├── Controllers/      ← Gom theo domain: Project/, Coaching/, Contract/, Credential/, …
+│   │   ├── Requests/         ← FormRequest (authorize + rules + messages VN)
+│   │   ├── Resources/        ← Inertia props (+ `can`)
+│   │   └── Middleware/       ← HandleInertiaRequests, RestrictCoachingOnlyUsers, …
+│   ├── Models/               ← Eloquent (App\Models\*) — prefix bảng va_prd_
+│   ├── Policies/             ← $account->allows('module.action') OR ownership
+│   ├── Services/             ← NotificationService, NotificationDispatcher, …
+│   ├── Support/              ← Enums/, Options/, Auth/PermissionCatalog, Navigation, *ActivityLogger
+│   ├── Observers/ Events/ Listeners/ Mail/ Console/ Providers/
+├── config/                   ← business.php (hằng số), + overlay settings runtime
+├── routes/
+│   ├── web.php               ← Loader mỏng: wire 2 nhóm middleware → require web/*.php
+│   ├── web/                  ← 16 partial theo domain (xem §3)
+│   ├── api.php               ← Rỗng (không REST API chính)
+│   ├── channels.php console.php
+├── resources/js/             ← Frontend (xem FRONTEND_STRUCTURE.md §3)
+├── database/                 ← migrations, seeders, factories
+├── tests/                    ← Feature/ (PHPUnit) + e2e/ (Playwright)
+├── scripts/  .husky/  .github/workflows/ci.yml
+└── .claude/  .cursor/        ← AI rules, skills, slash commands
 ```
 
 ---
 
-## 2. Refactor Phase 1–5 — Đã Hoàn Thành
-
-| Phase | Nội dung | Trạng thái |
-|---|---|---|
-| **1** | `config/business.php`, `constants/`, enums, feature tests | ✅ |
-| **2** | `modules/project/`, `shared/ui/`, xóa `Components/Project/` | ✅ |
-| **3** | Use Cases Project/Task, Options services, Pinia stores | ✅ |
-| **4** | Shared UI library (form/, EmptyState, SkeletonLoader) | ✅ |
-| **5** | Lazy Inertia pages, Vite manual chunks, Options cache | ✅ (một phần DB optimization còn lại) |
-
-Chi tiết: [`REFACTOR_PLAN.md`](REFACTOR_PLAN.md).
-
----
-
-## 3. Vấn Đề Đã Giải Quyết (trước refactor)
-
-| Vấn đề cũ | Giải pháp |
-|---|---|
-| `Components/Project/` quá lớn (40+ files) | → `modules/project/components/` |
-| UI primitives trong Project/ | → `shared/ui/` |
-| Config trong Components/ | → `modules/*/config/` |
-| Chỉ 1 composable | → 25+ composables + `shared/composables/` |
-| Không có stores/ | → Pinia `stores/auth.js`, `stores/ui.js` |
-| Hardcoded constants | → `config/business.php` + `constants/index.js` |
-| Options.php God Object | → `Support/Options/*` + delegate |
-
----
-
-## 4. Còn Lại / Chưa Làm
-
-| Item | Ghi chú |
-|---|---|
-| Lowercase `pages/` folder | Bỏ qua — rủi ro Windows case-insensitive |
-| `modules/daily-report/components/` | DailyReport vẫn ở `Components/DailyReport/` |
-| Domain layer cho Project/Task | Chỉ Application Use Cases, chưa có `app/Domain/Project/` |
-| `services/http.js` frontend | API calls vẫn inline Inertia/axios |
-| TypeScript / JSDoc types | Chưa có |
-
----
-
-## 5. Backend Application Layer
+## 2. Backend Application Layer
 
 ```
 app/Application/
-├── DailyReport/     ← Full Clean Architecture
-├── Project/
-│   ├── CreateProjectUseCase.php
-│   ├── UpdateProjectUseCase.php
-│   ├── DuplicateProjectUseCase.php
-│   ├── ArchiveProjectUseCase.php
-│   └── LogWorkUseCase.php
-└── Task/
-    ├── CreateTaskUseCase.php
-    ├── UpdateTaskStatusUseCase.php
-    └── BulkCreateTasksUseCase.php
+├── DailyReport/   ← Full Clean Architecture (Use Case + Domain)
+├── Project/       ← Create, Update, Duplicate, Archive, LogWork
+└── Task/          ← Create, Patch, Update, BulkCreate, Import (+ Concerns/)
 ```
 
-**Pattern mới:** Project/Task mutations → Use Case. DailyReport → Use Case + Domain.  
-Blocker/Feedback → vẫn MVC trực tiếp.
+**Quy ước pattern:**
+- Project/Task mutations → Use Case; read paths vẫn MVC.
+- DailyReport → Use Case + Domain model (`App\Domain\DailyReport\Models\`).
+- Blocker, Feedback, Coaching, Contract, Credential, KnowledgeBase, … → MVC: Controller → Model/Support.
+
+> **Không** refactor sang Use Case khi chỉ sửa bug nhỏ. Module mới: ưu tiên FormRequest + Policy + Resource giống module cùng loại.
 
 ---
 
-## 6. Frontend Import Conventions
+## 3. Routes — split theo domain
 
-```javascript
-// Shared UI
-import Badge from '@/shared/ui/Badge.vue';
-import { useToast } from '@/shared/composables/useToast';
+`routes/web.php` chỉ wire 2 ngữ cảnh middleware rồi `require` các partial:
 
-// Project feature
-import ProjectCard from '@/modules/project/components/ProjectCard.vue';
-import { COLUMNS } from '@/modules/project/config/columns';
+- **Guest** (`middleware('guest')`): `web/auth.php` — login portals + OAuth.
+- **Auth** (`['auth', RestrictCoachingOnlyUsers::class]`): 15 partial còn lại.
 
-// App primitives
-import Modal from '@/Components/Ui/Modal.vue';
-import AppLayout from '@/Layouts/AppLayout.vue';
+| Partial | Phạm vi |
+|---|---|
+| `auth.php` | Đăng nhập, Google OAuth, hidden admin login |
+| `dashboard.php` | `/dashboard` (HubDashboardController), `/work`, logout |
+| `congnghe.php` | Landing Phòng Công Nghệ + đề xuất phần mềm |
+| `platform.php` | performance, onboarding, notifications, audit |
+| `daily-reports.php` | Báo cáo ngày |
+| `projects.php` | Dự án, sprint, epic, task, worklog, member, attachment |
+| `blockers.php` | Vướng mắc + attachment |
+| `contracts.php` | Quản lý hợp đồng (CLM) |
+| `feedback.php` | Phản hồi |
+| `knowledge-base.php` | Tri thức |
+| `coaching.php` | Coaching / mentoring |
+| `ai-accounts.php` | Tài khoản AI (pages + JSON) |
+| `credentials.php` | Kho mật khẩu (pages + JSON) |
+| `people.php` | Profile, members, org-teams, departments |
+| `settings.php` | Cấu hình hệ thống (super-admin) |
+| `comments.php` | Bình luận đa hình + realtime token |
 
-// Feature logic
-import { useSprintWorkspace } from '@/composables/useSprintWorkspace';
-```
+> Mỗi partial tự `use` controller riêng và đăng ký route trong group đang active. Static segment đặt **trước** `/{id}`.
 
 ---
 
-## 7. Tài Liệu Liên Quan
+## 4. Frontend (tóm tắt)
+
+```
+resources/js/
+├── Pages/{Domain}/      ← Inertia pages (mỏng, bọc AppLayout)
+├── Layouts/AppLayout.vue
+├── Components/Ui/, Layout/, Notifications/   ← primitives + app shell
+├── modules/{feature}/   ← 13 module: project, daily-report, knowledge-base,
+│                          coaching, contract, credential, performance, people,
+│                          profile, onboarding, notifications, aiAccount, audit
+├── shared/ui/, shared/composables/, shared/services/
+├── composables/         ← Feature logic (useSprint*, useRisk*, …)
+├── stores/              ← Pinia: auth.js, ui.js
+└── constants/index.js   ← mirror config/business.php
+```
+
+Mỗi `modules/{feature}/` chứa `components/` (+ `composables/`, `config/` khi cần). Catalog đầy đủ: [`FRONTEND_STRUCTURE.md`](FRONTEND_STRUCTURE.md).
+
+**Import alias:** `@/modules/...`, `@/shared/...`, `@/Components/...`, `@/composables/...`, `@/stores/...`
+
+---
+
+## 5. Còn lại / chưa làm
+
+| Item | Ghi chú |
+|---|---|
+| Domain layer cho Project/Task | Mới có Application Use Cases, chưa có `app/Domain/Project/` |
+| `services/http.js` toàn diện | API calls vẫn phần lớn inline Inertia/axios (`shared/services/http.js` cho JSON) |
+| TypeScript / JSDoc types | Chưa có |
+| Lowercase `pages/` | Bỏ qua — rủi ro Windows case-insensitive |
+
+Chi tiết nợ kỹ thuật: [`TECHNICAL_DEBT.md`](TECHNICAL_DEBT.md). Lịch sử refactor: [`REFACTOR_PLAN.md`](REFACTOR_PLAN.md).
+
+---
+
+## 6. Tài liệu liên quan
 
 | File | Nội dung |
 |---|---|
-| [`FRONTEND_STRUCTURE.md`](FRONTEND_STRUCTURE.md) | Component catalog, composables, patterns |
-| [`ARCHITECTURE.md`](ARCHITECTURE.md) | Layer responsibilities |
-| [`TECHNICAL_DEBT.md`](TECHNICAL_DEBT.md) | TD items còn lại |
+| [`FRONTEND_STRUCTURE.md`](FRONTEND_STRUCTURE.md) | Component catalog, composables, UI patterns |
+| [`ARCHITECTURE.md`](ARCHITECTURE.md) | Trách nhiệm từng lớp, transport |
+| [`API_STRUCTURE.md`](API_STRUCTURE.md) | Route map đầy đủ |
 | [`_dev/README.md`](../_dev/README.md) | CLI, CI, workflows (operational) |

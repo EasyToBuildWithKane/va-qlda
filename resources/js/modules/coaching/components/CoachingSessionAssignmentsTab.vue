@@ -4,7 +4,7 @@ import { computed, ref } from 'vue';
 import { router, useForm } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
 import Modal from '@/Components/Ui/Modal.vue';
-import KbRichTextField from '@/Components/KnowledgeBase/KbRichTextField.vue';
+import KbRichTextField from '@/modules/knowledge-base/components/KbRichTextField.vue';
 import DateInput from '@/shared/ui/form/DateInput.vue';
 import { useToast } from '@/shared/composables/useToast';
 import { useDialog } from '@/composables/useDialog';

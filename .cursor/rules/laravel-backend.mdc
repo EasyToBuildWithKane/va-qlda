@@ -27,7 +27,7 @@ public function store(StoreTaskRequest $request, Project $project): RedirectResp
 |--------|---------|------|
 | DailyReport | Use Case + Domain | `app/Application/DailyReport/`, `app/Domain/DailyReport/` |
 | Project | Use Case | `app/Application/Project/` — Create, Update, Duplicate, Archive, LogWork |
-| Task | Use Case | `app/Application/Task/` — Create, UpdateStatus, BulkCreate |
+| Task | Use Case | `app/Application/Task/` — Create, Patch, Update, BulkCreate, Import |
 | Blocker, Bug, Feedback | MVC trực tiếp | Controller → Model |
 
 ## Options / shared data

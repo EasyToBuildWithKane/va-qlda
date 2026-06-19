@@ -1,10 +1,10 @@
 <script setup>
 import { Link } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
-import KbArticleCardsSwiper from '@/Components/KnowledgeBase/KbArticleCardsSwiper.vue';
+import KbArticleCardsSwiper from '@/modules/knowledge-base/components/KbArticleCardsSwiper.vue';
 import { richContentPlainText } from '@/shared/utils/richContent';
 import { date } from '@/composables/useFormat';
-import { kbCategoryGradientClass, kbCoverImageUrl } from '@/Components/KnowledgeBase/useKbCategoryGradient.js';
+import { kbCategoryGradientClass, kbCoverImageUrl } from '@/modules/knowledge-base/composables/useKbCategoryGradient.js';
 
 defineProps({
     articles: { type: Array, default: () => [] },

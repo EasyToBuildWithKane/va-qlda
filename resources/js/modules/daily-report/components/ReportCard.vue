@@ -4,9 +4,9 @@ import { computed, ref } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
-import StatusBadge from '@/Components/DailyReport/StatusBadge.vue';
+import StatusBadge from '@/modules/daily-report/components/StatusBadge.vue';
 import TaskStatusBadge from '@/Components/TaskStatusBadge.vue';
-import GradePill from '@/Components/DailyReport/GradePill.vue';
+import GradePill from '@/modules/daily-report/components/GradePill.vue';
 import { date as formatDate, datetime } from '@/composables/useFormat';
 import { fields as reportFields, pillars } from '@/modules/daily-report/config/reportConfig';
 

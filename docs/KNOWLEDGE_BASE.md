@@ -1,7 +1,7 @@
 # KNOWLEDGE BASE — Module Tri Thức
 
 > Wiki nội bộ kiểu Viblo / Notion Wiki / Confluence (phiên bản đơn giản), tích hợp trong VA-QLDA (Laravel 10 + Inertia + Vue 3).
-> **Trạng thái:** ✅ Triển khai v1 (2026-06-14) — migrations, CRUD bài viết, tìm kiếm, file. Chi tiết route: `routes/web.php` prefix `knowledge-base.`.
+> **Trạng thái:** ✅ Triển khai v1 (2026-06-14) — migrations, CRUD bài viết, tìm kiếm, file. Chi tiết route: `routes/web/knowledge-base.php` prefix `knowledge-base.`.
 
 ---
 
@@ -24,7 +24,7 @@
 Pattern **MVC** giống Blocker / Feedback — không tách Clean Architecture trừ khi sau này cần workflow phức tạp.
 
 ```
-routes/web.php (prefix knowledge-base., name knowledge-base.*)
+routes/web/knowledge-base.php (prefix knowledge-base., name knowledge-base.*)
     → KbArticleController
         index, create, store, show, edit, update, destroy
         toggleFavorite, markRead, exportData (JSON)
@@ -42,10 +42,10 @@ resources/js/
     → Pages/KnowledgeBase/Index.vue   (PageHeader + datagrid, lọc danh mục, xuất CSV/Excel)
     → Pages/KnowledgeBase/Blog.vue    (layout blog: sidebar + feed ảnh bìa; feed **chỉ Published**; lọc Inertia `only: articles,filters`)
     → Pages/KnowledgeBase/Show.vue    (chi tiết đọc bài: breadcrumb, hướng dẫn + tooltip, floating toolbar, cùng chuyên mục, bình luận; full width)
-    → Components/KnowledgeBase/KbArticleHero.vue, KbArticleCover.vue, KbArticleToc.vue, KbReadingProgress.vue, KbRelatedArticles.vue, KbFloatingToolbar.vue
-    → Components/KnowledgeBase/KbArticleCard.vue, KbBlogPanel.vue, KbBlogTagSection.vue, KbBlogSidebar.vue, KbBlogAside.vue, KbBlogPostCard.vue
+    → modules/knowledge-base/components/KbArticleHero.vue, KbArticleCover.vue, KbArticleToc.vue, KbReadingProgress.vue, KbRelatedArticles.vue, KbFloatingToolbar.vue
+    → modules/knowledge-base/components/KbArticleCard.vue, KbBlogPanel.vue, KbBlogTagSection.vue, KbBlogSidebar.vue, KbBlogAside.vue, KbBlogPostCard.vue
     → Pages/KnowledgeBase/Edit.vue    (TipTap + gallery)
-    → Components/KnowledgeBase/KbRichTextField.vue, KbImageGallery.vue, KbTagField.vue
+    → modules/knowledge-base/components/KbRichTextField.vue, KbImageGallery.vue, KbTagField.vue
     → composables/useKbExport.js
     → shared/ui: DatagridToolbarSearch, FilterVisibilityDropdown, CommentThread
 ```
@@ -284,7 +284,7 @@ Prefix bảng: `va_prd_`. Chi tiết cột: `docs/DATABASE_STRUCTURE.md` §7.
 
 ---
 
-## 9. Route map (thực tế — `routes/web.php`)
+## 9. Route map (thực tế — `routes/web/knowledge-base.php`)
 
 | Method | URI | Name | Ghi chú |
 |---|---|---|---|

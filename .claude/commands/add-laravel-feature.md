@@ -17,7 +17,7 @@ Thêm hoặc mở rộng Laravel feature theo MVC hoặc DailyReport Clean Archi
 - [ ] Policy method + map trong `AuthServiceProvider` nếu cần
 - [ ] Controller: thin; `back()->with('success', '...')` tiếng Việt
 - [ ] `*Resource` cho Inertia props nếu list/detail nặng
-- [ ] Route trong `routes/web.php` (static routes trước `{param}`)
+- [ ] Route trong `routes/web/{domain}.php` (static routes trước `{param}`)
 - [ ] Activity logger nếu entity có audit trail (Task, Blocker, …)
 - [ ] `NotificationDispatcher` / `NotificationService` nếu có user-facing event
 

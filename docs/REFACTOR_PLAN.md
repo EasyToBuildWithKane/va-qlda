@@ -120,7 +120,7 @@ app/Application/Project/
 ```
 app/Application/Task/
 ├── CreateTaskUseCase.php  ✅
-├── UpdateTaskStatusUseCase.php ✅
+├── PatchTaskUseCase.php ✅
 └── BulkCreateTasksUseCase.php ✅
 ```
 

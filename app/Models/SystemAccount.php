@@ -81,6 +81,23 @@ class SystemAccount extends Authenticatable
         return $this->hasRole(SystemRole::SuperAdmin, SystemRole::Admin);
     }
 
+    /** super_admin, admin or lead — the supervisory tier. */
+    public function isLeadTier(): bool
+    {
+        return $this->hasRole(SystemRole::SuperAdmin, SystemRole::Admin, SystemRole::Lead);
+    }
+
+    /** Any contributing role (everyone except viewer). */
+    public function isMemberTier(): bool
+    {
+        return $this->hasRole(
+            SystemRole::SuperAdmin,
+            SystemRole::Admin,
+            SystemRole::Lead,
+            SystemRole::Member,
+        );
+    }
+
     public function allows(string $permission): bool
     {
         // Super admin is unconditionally all-powerful (also enforced via

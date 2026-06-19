@@ -9,7 +9,7 @@ alwaysApply: true
 
 ## Stack & transport
 
-- **Không REST API chính** — `routes/web.php` + Inertia; `routes/api.php` rỗng. JSON chỉ cho endpoint phụ (vd. notifications).
+- **Không REST API chính** — `routes/web/*.php` (split theo domain) + Inertia; `routes/api.php` rỗng. JSON chỉ cho endpoint phụ (vd. notifications).
 - **Auth:** guard `system`, model `SystemAccount`, roles: `admin` | `lead` | `member` | `viewer`.
 - **DB:** MySQL, prefix bảng `va_prd_` — index name ngắn nếu composite dài.
 

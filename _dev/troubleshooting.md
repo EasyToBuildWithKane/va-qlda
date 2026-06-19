@@ -391,7 +391,7 @@ Frontend: `HandleInertiaRequests` chia sẻ `csrf_token`; `app.js` reload khi In
 
 ## Route 404 after deploy (e.g. task import `POST /projects/{id}/tasks/import`)
 
-**Symptoms:** A specific action 404s in production while older actions on the same prefix (e.g. `POST /projects/{id}/sprints`) still work. Code, route definition (`routes/web.php`), controller and FormRequest are all present and correct on the deployed commit.
+**Symptoms:** A specific action 404s in production while older actions on the same prefix (e.g. `POST /projects/{id}/sprints`) still work. Code, route definition (`routes/web/{domain}.php`), controller and FormRequest are all present and correct on the deployed commit.
 
 **Cause:** Stale `bootstrap/cache/routes-*.php` on the server. A previous `php artisan route:cache` / `optimize` cached the route table; any route added since (here `tasks.import`, added in `33e3212`) is missing from the cache, so the router never matches it → 404. The deploy step only ran `php artisan config:cache`, which does **not** refresh routes.
 

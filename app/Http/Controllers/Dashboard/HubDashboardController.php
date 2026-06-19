@@ -34,12 +34,11 @@ class HubDashboardController extends Controller
     {
         /** @var \App\Models\SystemAccount $account */
         $account = Auth::guard('system')->user();
-        $role = $account->role->value;
 
-        $isAdminTier = in_array($role, ['admin', 'super_admin'], true);
-        $isLeadTier = in_array($role, ['admin', 'super_admin', 'lead'], true);
-        $isMemberTier = in_array($role, ['admin', 'super_admin', 'lead', 'member'], true);
-        $isSuper = $role === 'super_admin';
+        $isAdminTier = $account->isAdminTier();
+        $isLeadTier = $account->isLeadTier();
+        $isMemberTier = $account->isMemberTier();
+        $isSuper = $account->isSuperAdmin();
 
         $stats = $this->buildStats($isLeadTier, $isMemberTier);
 
