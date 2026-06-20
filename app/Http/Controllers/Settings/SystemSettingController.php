@@ -54,6 +54,9 @@ class SystemSettingController extends Controller
             'accounts' => $activeGroup === 'accounts'
                 ? $this->accountsPayload($request->user())
                 : ['accounts' => [], 'roles' => []],
+            'menu' => $activeGroup === 'menu'
+                ? $this->menuPayload()
+                : ['groups' => [], 'hidden' => []],
             'can' => ['manage' => $request->user()->can('manage', SystemSetting::class)],
         ]);
     }
@@ -85,6 +88,20 @@ class SystemSettingController extends Controller
         return [
             'accounts' => $accounts,
             'roles' => SystemRole::options(),
+        ];
+    }
+
+    /**
+     * Menu-visibility tab (super-admin only): the full group catalog plus the
+     * keys currently hidden system-wide. MenuTab renders one toggle per group.
+     *
+     * @return array{groups:array<int, array<string, mixed>>, hidden:array<int, string>}
+     */
+    private function menuPayload(): array
+    {
+        return [
+            'groups' => Navigation::groupCatalog(),
+            'hidden' => array_values(array_map('strval', (array) $this->settings->get('menu.hidden_groups', []))),
         ];
     }
 

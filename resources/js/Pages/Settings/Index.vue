@@ -7,6 +7,7 @@ import FieldsTab from './partials/FieldsTab.vue';
 import PermissionsTab from './partials/PermissionsTab.vue';
 import AccountsTab from './partials/AccountsTab.vue';
 import EmailTemplateTab from './partials/EmailTemplateTab.vue';
+import MenuTab from './partials/MenuTab.vue';
 
 const props = defineProps({
     groups: { type: Array, default: () => [] },
@@ -17,6 +18,7 @@ const props = defineProps({
     emailTestRecipient: { type: String, default: '' },
     permissions: { type: Object, default: () => ({}) },
     accounts: { type: Object, default: () => ({ accounts: [], roles: [] }) },
+    menu: { type: Object, default: () => ({ groups: [], hidden: [] }) },
     can: { type: Object, default: () => ({}) },
 });
 
@@ -100,6 +102,12 @@ const activeMeta = computed(() => groupMeta(active.value));
         <AccountsTab
           v-show="active === 'accounts'"
           :accounts="accounts"
+          :can-manage="can.manage"
+        />
+        <MenuTab
+          v-show="active === 'menu'"
+          :menu="menu"
+          :save-hotkeys-enabled="active === 'menu'"
           :can-manage="can.manage"
         />
       </section>

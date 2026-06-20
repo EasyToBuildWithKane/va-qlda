@@ -380,46 +380,35 @@ const activityTone = (event) => ({
     </div>
 
     <div
+      v-if="canUpload"
       class="shrink-0 border-b border-slate-100 bg-white px-3 py-1.5 dark:border-slate-700 dark:bg-slate-900"
-      :class="canUpload && !categoryFiles.length ? 'space-y-1.5' : ''"
+      :class="!categoryFiles.length ? 'space-y-1.5' : ''"
     >
-      <div class="flex flex-wrap items-center justify-between gap-2">
-        <p
-          class="min-w-0 flex-1 truncate text-xs leading-snug text-slate-500 dark:text-slate-400 sm:text-sm"
-          :title="activeCat?.description"
+      <div class="flex flex-wrap items-center justify-end gap-2">
+        <button
+          type="button"
+          class="btn-ghost inline-flex h-9 items-center gap-1.5 border border-slate-200 px-2.5 text-xs font-medium dark:border-slate-600 sm:text-sm"
+          @click="openAddLinkModal"
         >
-          <span class="font-medium text-slate-700 dark:text-slate-300">{{ activeCat?.label }}:</span>
-          {{ activeCat?.description }}
-        </p>
-        <div
-          v-if="canUpload"
-          class="flex flex-wrap items-center gap-2"
+          <AppIcon
+            name="link"
+            :size="14"
+          />
+          Thêm link Google
+        </button>
+        <button
+          type="button"
+          class="btn-ghost inline-flex h-9 items-center gap-1.5 border border-slate-200 px-2.5 text-xs font-medium dark:border-slate-600 sm:text-sm"
+          :disabled="uploadingCategory === activeCategory"
+          @click="pickFiles(activeCategory)"
         >
-          <button
-            type="button"
-            class="btn-ghost inline-flex h-9 items-center gap-1.5 border border-slate-200 px-2.5 text-xs font-medium dark:border-slate-600 sm:text-sm"
-            @click="openAddLinkModal"
-          >
-            <AppIcon
-              name="link"
-              :size="14"
-            />
-            Thêm link Google
-          </button>
-          <button
-            type="button"
-            class="btn-ghost inline-flex h-9 items-center gap-1.5 border border-slate-200 px-2.5 text-xs font-medium dark:border-slate-600 sm:text-sm"
-            :disabled="uploadingCategory === activeCategory"
-            @click="pickFiles(activeCategory)"
-          >
-            <AppIcon
-              :name="uploadingCategory === activeCategory ? 'refresh' : 'upload'"
-              :size="14"
-              :class="uploadingCategory === activeCategory ? 'animate-spin' : ''"
-            />
-            {{ uploadingCategory === activeCategory ? 'Đang tải…' : 'Chọn file' }}
-          </button>
-        </div>
+          <AppIcon
+            :name="uploadingCategory === activeCategory ? 'refresh' : 'upload'"
+            :size="14"
+            :class="uploadingCategory === activeCategory ? 'animate-spin' : ''"
+          />
+          {{ uploadingCategory === activeCategory ? 'Đang tải…' : 'Chọn file' }}
+        </button>
         <input
           :ref="(el) => setFileInput(activeCategory, el)"
           type="file"
@@ -430,7 +419,7 @@ const activityTone = (event) => ({
         >
       </div>
       <div
-        v-if="canUpload && !categoryFiles.length"
+        v-if="!categoryFiles.length"
         class="rounded-lg border-2 border-dashed px-4 py-2.5 text-center transition"
         :class="dragging
           ? 'border-brand bg-brand/5'

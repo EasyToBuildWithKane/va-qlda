@@ -12,7 +12,6 @@ import TaskDetailPanel from '@/modules/project/components/Sprint/TaskDetailPanel
 import TaskFormModal from '@/modules/project/components/TaskFormModal.vue';
 import SprintFormModal from '@/modules/project/components/SprintFormModal.vue';
 import DeadlineBanner from '@/modules/project/components/Dashboard/DeadlineBanner.vue';
-import DashboardViewToggle from '@/modules/project/components/Dashboard/DashboardViewToggle.vue';
 import RiskIssuePanel from '@/modules/project/components/Dashboard/RiskIssuePanel.vue';
 import RiskIssueDataTable from '@/modules/project/components/Dashboard/RiskIssueDataTable.vue';
 import ProjectFeedbackPanel from '@/modules/project/components/Dashboard/ProjectFeedbackPanel.vue';
@@ -25,7 +24,6 @@ import { useTaskCompleteModal } from '@/composables/useTaskCompleteModal';
 import { isTaskStatusLocked } from '@/composables/useTaskCompletion';
 import { useToast } from '@/shared/composables/useToast';
 import { useProjectDashboard } from '@/composables/useProjectDashboard';
-import { useProjectExport } from '@/composables/useProjectExport';
 import { normalizeEntities, normalizeKeyed, normalizeList } from '@/composables/useNormalizeList';
 
 const props = defineProps({
@@ -44,7 +42,6 @@ const props = defineProps({
 
 const toast = useToast();
 const page = usePage();
-const exporting = ref(false);
 const enums = computed(() => props.options.enums || {});
 const currentUserName = computed(() => page.props.auth?.user?.name?.split(' ').pop() || 'Thành viên');
 
@@ -196,7 +193,6 @@ function openFeedbackCreate() {
 // ---- Dashboard (overview tab) ----
 const riskPanelRef = ref(null);
 const {
-    viewMode,
     activityLog,
     pushActivity,
     seedActivityIfEmpty,
@@ -204,7 +200,6 @@ const {
     daysLeft: dashboardDaysLeft,
     deadlineBanner,
     dismissBanner,
-    showExport,
     showRiskPanel,
     showActivity,
     showProjectDetail,
@@ -216,7 +211,6 @@ const {
     members: projectMembers,
     activityFeed: toRef(() => props.activityFeed),
 });
-const { exportReport } = useProjectExport();
 
 onMounted(() => {
     seedActivityIfEmpty();
@@ -243,25 +237,6 @@ watch(tab, (t) => {
 });
 
 const scrollToRiskPanel = () => riskPanelRef.value?.scrollHere();
-
-const onExport = async () => {
-    if (exporting.value) return;
-    exporting.value = true;
-    try {
-        const filename = await exportReport({
-            project: props.project,
-            tasks: props.tasks,
-            blockers: props.blockers,
-            members: projectMembers.value,
-        });
-        toast.success(`Đã xuất báo cáo: ${filename}`);
-    } catch (err) {
-        console.error(err);
-        toast.error('Không thể xuất báo cáo. Vui lòng thử lại.');
-    } finally {
-        exporting.value = false;
-    }
-};
 
 const logTaskStatus = (task, status) => {
     const who = props.project.manager?.name?.split(' ').pop() || 'Thành viên';
@@ -436,24 +411,6 @@ const onSprintSaved = () => {
           class="h-full w-full min-w-0 overflow-x-hidden overflow-y-auto dark:bg-slate-950"
         >
           <div class="w-full min-w-0 space-y-4 p-4 sm:space-y-5 sm:p-5 lg:p-6">
-            <div class="flex flex-wrap items-center justify-between gap-3">
-              <DashboardViewToggle v-model="viewMode" />
-              <button
-                v-if="showExport"
-                type="button"
-                class="btn-ghost inline-flex items-center gap-2 border border-slate-200 text-sm disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-600 dark:text-slate-200"
-                :disabled="exporting"
-                @click="onExport"
-              >
-                <AppIcon
-                  :name="exporting ? 'refresh' : 'export'"
-                  :size="15"
-                  :class="exporting ? 'animate-spin' : ''"
-                />
-                {{ exporting ? 'Đang xuất…' : 'Xuất báo cáo' }}
-              </button>
-            </div>
-
             <!-- KPI cards -->
             <div class="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-5">
               <div class="card p-4 dark:border-slate-700 dark:bg-slate-900">

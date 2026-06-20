@@ -105,8 +105,8 @@ const gradeTone = {
 
     <!-- Plan vs result -->
     <div class="border-t border-slate-100 px-4 py-3">
-      <div class="grid gap-3 sm:grid-cols-2">
-        <div>
+      <div class="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
+        <div class="min-w-0">
           <p class="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
             Kế hoạch / Cam kết
           </p>
@@ -129,13 +129,13 @@ const gradeTone = {
                 />
               </span>
               <span
-                class="min-w-0"
+                class="min-w-0 flex-1 overflow-hidden"
                 :class="t.result === 'done' ? 'text-slate-700' : 'text-slate-500'"
               >
-                <span class="truncate">{{ t.title }}</span>
+                <span class="block truncate text-[13px]">{{ t.title }}</span>
                 <span
                   v-if="t.project"
-                  class="ml-1 text-[11px] text-slate-400"
+                  class="mt-0.5 block truncate text-[11px] text-slate-400"
                 >· {{ t.project.name }}</span>
               </span>
             </li>
@@ -150,7 +150,7 @@ const gradeTone = {
           </p>
         </div>
 
-        <div>
+        <div class="min-w-0 sm:border-l sm:border-slate-100 sm:pl-4">
           <p class="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
             Ghi chú báo cáo ngày
           </p>

@@ -3,6 +3,7 @@
 namespace App\Support\Settings;
 
 use App\Support\Auth\Permissions;
+use App\Support\Navigation;
 use Illuminate\Validation\Rule;
 
 /**
@@ -26,7 +27,7 @@ use Illuminate\Validation\Rule;
 final class SettingsSchema
 {
     /** Tabs/groups, in display order. */
-    public const GROUPS = ['general', 'auth', 'telegram', 'email', 'clm', 'permissions', 'accounts'];
+    public const GROUPS = ['general', 'auth', 'telegram', 'email', 'clm', 'permissions', 'accounts', 'menu'];
 
     public const MATRIX_KEY = 'permissions.role_grants';
 
@@ -48,6 +49,7 @@ final class SettingsSchema
             ['key' => 'clm', 'label' => 'Hợp đồng (CLM)', 'icon' => 'budget', 'description' => 'Ngưỡng cảnh báo gia hạn hợp đồng'],
             ['key' => 'permissions', 'label' => 'Phân quyền', 'icon' => 'members', 'description' => 'Ma trận vai trò × quyền'],
             ['key' => 'accounts', 'label' => 'Tài khoản & Vai trò', 'icon' => 'account', 'description' => 'Gán vai trò cho tài khoản hệ thống'],
+            ['key' => 'menu', 'label' => 'Tùy chỉnh menu', 'icon' => 'columns', 'description' => 'Ẩn/hiện nhóm menu trên thanh điều hướng (áp dụng toàn hệ thống)'],
         ];
     }
 
@@ -153,6 +155,14 @@ final class SettingsSchema
             ['group' => 'clm', 'name' => 'alert_telegram', 'type' => 'bool', 'label' => 'Gửi cảnh báo qua Telegram',
                 'help' => 'Gửi kèm Telegram khi có hợp đồng sắp/đã hết hạn (cần bật Telegram ở tab Thông báo Telegram).',
                 'config' => 'clm.alert_telegram', 'default' => false, 'rules' => ['boolean']],
+
+            // ── menu (Tùy chỉnh menu) ────────────────────────────────
+            // Stores the group keys hidden system-wide from the sidebar. The UI
+            // (MenuTab) renders a labelled toggle per group; only the key list is
+            // persisted. Applied in Navigation::for() via config('va.menu_hidden_groups').
+            ['group' => 'menu', 'name' => 'hidden_groups', 'type' => 'list', 'label' => 'Nhóm menu đang ẩn',
+                'help' => 'Các nhóm menu bị ẩn khỏi thanh điều hướng cho toàn hệ thống.',
+                'config' => 'va.menu_hidden_groups', 'default' => [], 'rules' => ['array'], 'itemRules' => ['string', 'max:64']],
         ];
     }
 
@@ -245,6 +255,13 @@ final class SettingsSchema
             }
 
             return $rules;
+        }
+
+        if ($group === 'menu') {
+            return [
+                'hidden_groups' => ['present', 'array'],
+                'hidden_groups.*' => ['string', Rule::in(Navigation::toggleableGroupKeys())],
+            ];
         }
 
         $rules = [];

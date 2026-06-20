@@ -4,7 +4,6 @@ import { useOverflowScrollHints } from '@/composables/useOverflowScrollHints';
 
 const RAIL_KEY = 'va-qlda.sidebar.rail';
 const COLLAPSE_KEY = 'va-qlda.sidebar.collapsed';
-const HIDDEN_KEY = 'va-qlda.sidebar.hidden';
 const MOBILE_BREAKPOINT = 1024;
 
 // Module-level: survives composable re-instantiation across Inertia navigations
@@ -117,38 +116,6 @@ export function useAppSidebar() {
             localStorage.setItem(COLLAPSE_KEY, JSON.stringify([...collapsed]));
         }
     }, { deep: true });
-
-    // --- Menu visibility (per-group show/hide personalization, persisted locally) ---
-    const hidden = reactive(new Set((() => {
-        if (typeof localStorage === 'undefined') return [];
-        try {
-            const parsed = JSON.parse(localStorage.getItem(HIDDEN_KEY));
-            return Array.isArray(parsed) ? parsed : [];
-        } catch {
-            return [];
-        }
-    })()));
-
-    watch(hidden, () => {
-        if (typeof localStorage !== 'undefined') {
-            localStorage.setItem(HIDDEN_KEY, JSON.stringify([...hidden]));
-        }
-    }, { deep: true });
-
-    const isGroupHidden = (group) => hidden.has(groupKey(group));
-
-    const toggleGroupVisibility = (group) => {
-        const key = groupKey(group);
-        if (hidden.has(key)) hidden.delete(key);
-        else hidden.add(key);
-    };
-
-    const showAllGroups = () => hidden.clear();
-
-    const hiddenCount = computed(() => nav.value.filter((g) => hidden.has(groupKey(g))).length);
-
-    // Nav after applying the user's visibility choices — this is what gets rendered.
-    const visibleNav = computed(() => nav.value.filter((g) => !hidden.has(groupKey(g))));
 
     const groupContainsActive = (group) => group.items.some((item) => isActive(item.href));
 
@@ -272,7 +239,7 @@ export function useAppSidebar() {
     });
 
     const { edges: sidebarScrollEdges, onScroll: onSidebarNavScroll } = useOverflowScrollHints(
-        [rail, visibleNav, collapsed],
+        [rail, nav, collapsed],
         sidebarNavRef,
     );
 
@@ -308,11 +275,6 @@ export function useAppSidebar() {
 
     return {
         nav,
-        visibleNav,
-        isGroupHidden,
-        toggleGroupVisibility,
-        showAllGroups,
-        hiddenCount,
         user,
         appShortName,
         appName,

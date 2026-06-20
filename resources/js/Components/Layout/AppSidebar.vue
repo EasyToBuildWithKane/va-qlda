@@ -6,17 +6,10 @@ import AppSidebarRailNav from '@/Components/Layout/AppSidebarRailNav.vue';
 import AppSidebarFooter from '@/Components/Layout/AppSidebarFooter.vue';
 import AppSidebarRailFlyout from '@/Components/Layout/AppSidebarRailFlyout.vue';
 import AppSidebarRailTooltip from '@/Components/Layout/AppSidebarRailTooltip.vue';
-import AppSidebarMenuCustomizer from '@/Components/Layout/AppSidebarMenuCustomizer.vue';
 
 defineProps({
     rail: { type: Boolean, default: false },
     nav: { type: Array, default: () => [] },
-    // Full nav (pre-visibility-filter) + helpers for the menu customizer panel.
-    allNav: { type: Array, default: () => [] },
-    isGroupHidden: { type: Function, required: true },
-    toggleGroupVisibility: { type: Function, required: true },
-    showAllGroups: { type: Function, required: true },
-    hiddenCount: { type: Number, default: 0 },
     appShortName: { type: String, default: 'VA' },
     appName: { type: String, default: '' },
     roleLabel: { type: String, default: '' },
@@ -125,18 +118,6 @@ const emit = defineEmits(['collapse', 'expand']);
         @scroll="onSidebarNavScroll"
       />
     </div>
-
-    <AppSidebarMenuCustomizer
-      v-if="!rail"
-      :nav="allNav"
-      :group-key="groupKey"
-      :is-group-hidden="isGroupHidden"
-      :toggle-group-visibility="toggleGroupVisibility"
-      :show-all-groups="showAllGroups"
-      :hidden-count="hiddenCount"
-      :is-upcoming-group="isUpcomingGroup"
-      :group-contains-active="groupContainsActive"
-    />
 
     <AppSidebarFooter
       :rail="rail"

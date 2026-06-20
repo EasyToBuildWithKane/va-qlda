@@ -50,11 +50,6 @@ watch(
 const sidebar = useAppSidebar();
 const {
     nav,
-    visibleNav,
-    isGroupHidden,
-    toggleGroupVisibility,
-    showAllGroups,
-    hiddenCount,
     user,
     appShortName,
     appName,
@@ -122,12 +117,7 @@ onUnmounted(() => {
     <AppSidebar
       data-tour="sidebar"
       :rail="rail"
-      :nav="visibleNav"
-      :all-nav="nav"
-      :is-group-hidden="isGroupHidden"
-      :toggle-group-visibility="toggleGroupVisibility"
-      :show-all-groups="showAllGroups"
-      :hidden-count="hiddenCount"
+      :nav="nav"
       :app-short-name="appShortName"
       :app-name="appName"
       :role-label="roleLabel"
@@ -163,7 +153,7 @@ onUnmounted(() => {
 
     <AppSidebarMobileDrawer
       :open="mobileOpen"
-      :nav="visibleNav"
+      :nav="nav"
       :app-short-name="appShortName"
       :app-name="appName"
       :group-key="groupKey"

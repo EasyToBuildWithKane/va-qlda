@@ -57,6 +57,15 @@ class Navigation
     ];
 
     /**
+     * Group keys that can never be hidden by the global menu-visibility setting
+     * (/settings/menu). `settings` hosts that very config page — hiding it would
+     * lock the super admin out of re-enabling anything.
+     *
+     * @var array<int, string>
+     */
+    public const PROTECTED_GROUP_KEYS = ['settings'];
+
+    /**
      * @return array<int, array{key:string, section:?string, sectionKey:?string, heading:string, icon:string, variant?:string, defaultCollapsed?:bool, items:array<int, array<string, mixed>>}>
      */
     public static function for(SystemAccount $account): array
@@ -64,12 +73,24 @@ class Navigation
         $role = $account->role->value;
         $isSuper = $account->role === SystemRole::SuperAdmin;
 
+        // Groups the super admin has hidden system-wide via /settings/menu.
+        // Applies to everyone; protected groups are never affected.
+        $hidden = array_values(array_diff(
+            array_map('strval', (array) config('va.menu_hidden_groups', [])),
+            self::PROTECTED_GROUP_KEYS,
+        ));
+
         $groups = [];
 
         foreach (self::definition() as $group) {
             // Super-admin-only groups (system configuration) are hidden from
             // every other role, including admin.
             if (($group['superOnly'] ?? false) && ! $isSuper) {
+                continue;
+            }
+
+            // Globally hidden by the menu-visibility setting (applies to all roles).
+            if (\in_array($group['key'], $hidden, true)) {
                 continue;
             }
 
@@ -123,6 +144,39 @@ class Navigation
         }
 
         return $groups;
+    }
+
+    /**
+     * Full, RBAC-agnostic list of every menu group for the visibility-config UI
+     * and for validating the hidden-groups setting. Order = definition order.
+     *
+     * @return array<int, array{key:string, heading:string, icon:string, section:?string, sectionKey:?string, superOnly:bool, protected:bool}>
+     */
+    public static function groupCatalog(): array
+    {
+        return array_map(static fn (array $g): array => [
+            'key' => $g['key'],
+            'heading' => $g['heading'],
+            'icon' => $g['icon'],
+            'section' => self::SECTIONS[$g['section']] ?? null,
+            'sectionKey' => $g['section'] ?? null,
+            'superOnly' => $g['superOnly'] ?? false,
+            'protected' => \in_array($g['key'], self::PROTECTED_GROUP_KEYS, true),
+        ], self::definition());
+    }
+
+    /**
+     * Group keys that may be toggled by the global menu-visibility setting
+     * (everything except the protected groups).
+     *
+     * @return array<int, string>
+     */
+    public static function toggleableGroupKeys(): array
+    {
+        return array_values(array_filter(
+            array_map(static fn (array $g): string => $g['key'], self::definition()),
+            static fn (string $key): bool => ! \in_array($key, self::PROTECTED_GROUP_KEYS, true),
+        ));
     }
 
     /**
@@ -579,6 +633,13 @@ class Navigation
                         'label' => 'Chung',
                         'icon' => 'settings',
                         'href' => '/settings/general',
+                        'status' => 'live',
+                        'roles' => ['admin'],
+                    ],
+                    [
+                        'label' => 'Tùy chỉnh menu',
+                        'icon' => 'columns',
+                        'href' => '/settings/menu',
                         'status' => 'live',
                         'roles' => ['admin'],
                     ],
