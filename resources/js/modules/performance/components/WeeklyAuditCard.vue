@@ -103,8 +103,11 @@ const gradeTone = {
       />
     </button>
 
-    <!-- Plan vs result -->
-    <div class="border-t border-slate-100 px-4 py-3">
+    <!-- Plan vs result (chỉ hiện khi mở thẻ — accordion) -->
+    <div
+      v-if="open"
+      class="border-t border-slate-100 px-4 py-3"
+    >
       <div class="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
         <div class="min-w-0">
           <p class="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
@@ -185,10 +188,7 @@ const gradeTone = {
       </div>
 
       <!-- Drill-down: Kanban thực tế -->
-      <div
-        v-if="open"
-        class="mt-3 border-t border-slate-100 pt-3"
-      >
+      <div class="mt-3 border-t border-slate-100 pt-3">
         <p class="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
           Toàn bộ công việc thực tế (Kanban snapshot)
         </p>

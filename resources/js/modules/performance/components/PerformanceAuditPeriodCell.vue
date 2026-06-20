@@ -22,8 +22,8 @@ const hasBuckets = computed(() => buckets.value.length > 0);
 
 function toggleMenu() {
     menuOpen.value = !menuOpen.value;
-    if (menuOpen.value && collapsedBucketKeys.value.size === 0 && buckets.value.length) {
-        collapsedBucketKeys.value = new Set(buckets.value.map((b) => b.key));
+    if (!menuOpen.value) {
+        collapsedBucketKeys.value = new Set();
     }
 }
 
@@ -119,7 +119,7 @@ function bucketGradeLabel(bucket) {
               type="button"
               class="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left hover:bg-slate-50"
               :aria-expanded="isBucketOpen(bucket.key)"
-              @click="toggleBucket(bucket.key)"
+              @click.stop="toggleBucket(bucket.key)"
             >
               <AppIcon
                 name="chevron-down"

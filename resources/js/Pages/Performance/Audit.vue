@@ -23,6 +23,7 @@ import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterC
 import { useVisibleColumns } from '@/shared/composables/useVisibleColumns';
 import { useFixedDropdownAnchor } from '@/shared/composables/useFixedDropdownAnchor';
 import { useToast } from '@/shared/composables/useToast';
+import PerformanceAuditPeriodCell from '@/modules/performance/components/PerformanceAuditPeriodCell.vue';
 import { displayOrEmpty, EMPTY_LABELS, auditGradeLabel } from '@/shared/utils/emptyDisplay.js';
 
 const props = defineProps({
@@ -113,9 +114,7 @@ const periodBucketDefs = computed(() => {
     return [];
 });
 
-const usePeriodLineGroups = computed(
-    () => isColVisible('period') && periodBucketDefs.value.length > 0,
-);
+const usePeriodLineGroups = computed(() => periodBucketDefs.value.length > 1);
 
 const groupedByPeriod = computed(() => {
     const rows = props.employees.data ?? [];
@@ -814,7 +813,14 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOu
                   v-if="isAuditColVisible('period')"
                   class="px-5 py-3 text-slate-600"
                 >
-                  {{ displayOrEmpty(row.periodLabel || filter.label, EMPTY_LABELS.period) }}
+                  <PerformanceAuditPeriodCell
+                    v-if="row.periodBuckets?.length > 1"
+                    :row="row"
+                    :filter-label="filter.label"
+                  />
+                  <template v-else>
+                    {{ displayOrEmpty(row.periodLabel || filter.label, EMPTY_LABELS.period) }}
+                  </template>
                 </td>
                 <td
                   v-if="isAuditColVisible('committed')"
