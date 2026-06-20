@@ -7,26 +7,28 @@ use App\Support\Auth\CoachingOnlyAccess;
 use App\Support\Enums\SystemRole;
 
 /**
- * Builds the sidebar menu as collapsible groups.
+ * Builds the sidebar menu as a two-tier hierarchy.
  *
- * Structure  →  Group (collapsible) → Item (link)
+ * Structure → Super-section (tier-1 title) → Group (collapsible) → Item (link)
  *
- * Groups follow the user's mental model (business domains, not technical
- * modules) so related features sit together — "tôi muốn …" navigation:
+ * Tier-1 super-sections (see self::SECTIONS) bucket the domain groups by
+ * business function so the sidebar reads as a few clear chapters instead of a
+ * long flat list. Each group declares its `section`; for() sorts groups into
+ * SECTIONS order (stable, so definition order is kept within a section) and the
+ * frontend renders the section title above the first group of each section:
  *
- *    1. overview   — Tổng quan             bảng điều khiển
- *    2. congnghe   — Trung tâm Công Nghệ   landing, đề xuất phần mềm, quản trị
- *    3. projects   — Công việc & Dự án     dự án, vướng mắc
- *    4. daily      — Báo cáo               báo cáo ngày: viết → duyệt
- *    5. people     — Tổ chức & Nhân sự     sơ đồ, phòng ban, thành viên, hồ sơ
- *    6. coaching   — Đào tạo & Coaching    dashboard, khóa học, buổi học
- *    7. knowledge  — Tri thức & Nội dung   cơ sở tri thức
- *    8. ai         — AI Workspace          tài khoản AI, phân tích, chi phí
- *    9. quality    — Chất lượng & Phản hồi feedback
- *   10. system     — Hệ thống              thông báo, vận hành, cấu hình
+ *   execution  — Điều hành & Thực thi   overview, performance, projects, daily, ai, contracts, quality
+ *   people     — Con người & Tri thức   people, coaching, knowledge
+ *   technology — Công nghệ              congnghe
+ *   system     — Hệ thống & Quản trị    security, system, settings
+ *
+ * Groups themselves follow the user's mental model (business domains, not
+ * technical modules) — "tôi muốn …" navigation.
  *
  * Only live, route-backed destinations appear here (real routes only) so the
  * sidebar stays low-noise; future features are added to their group when built.
+ * To add a group: give it a `section` key. To add a section: add it to
+ * self::SECTIONS (key order = sidebar order) and point groups at it.
  *
  * Group key `coaching` is load-bearing — CoachingOnlyAccess (in for()) and the
  * coaching-only nav test key off it, so it must not be renamed.
@@ -41,7 +43,21 @@ use App\Support\Enums\SystemRole;
 class Navigation
 {
     /**
-     * @return array<int, array{key:string, heading:string, icon:string, variant?:string, defaultCollapsed?:bool, items:array<int, array<string, mixed>>}>
+     * Tier-1 functional super-sections. The order of keys here is the order the
+     * sections appear in the sidebar; every group declares which section it
+     * belongs to via its `section` key and groups are bucketed/sorted into these.
+     *
+     * @var array<string, string>
+     */
+    private const SECTIONS = [
+        'execution' => 'Điều hành & Thực thi',
+        'people' => 'Con người & Tri thức',
+        'technology' => 'Công nghệ',
+        'system' => 'Hệ thống & Quản trị',
+    ];
+
+    /**
+     * @return array<int, array{key:string, section:?string, sectionKey:?string, heading:string, icon:string, variant?:string, defaultCollapsed?:bool, items:array<int, array<string, mixed>>}>
      */
     public static function for(SystemAccount $account): array
     {
@@ -79,6 +95,8 @@ class Navigation
 
             $groups[] = [
                 'key' => $group['key'],
+                'section' => self::SECTIONS[$group['section']] ?? null,
+                'sectionKey' => $group['section'] ?? null,
                 'heading' => $group['heading'],
                 'icon' => $group['icon'],
                 'variant' => $group['variant'] ?? null,
@@ -86,6 +104,16 @@ class Navigation
                 'items' => $items,
             ];
         }
+
+        // Bucket groups into their functional super-section. usort is stable in
+        // PHP 8, so the definition order is preserved within each section.
+        $order = array_keys(self::SECTIONS);
+        $rank = static function (?string $key) use ($order): int {
+            $i = array_search($key, $order, true);
+
+            return $i === false ? \PHP_INT_MAX : $i;
+        };
+        usort($groups, static fn (array $a, array $b): int => $rank($a['sectionKey']) <=> $rank($b['sectionKey']));
 
         if (CoachingOnlyAccess::appliesTo($account)) {
             $groups = array_values(array_filter(
@@ -109,6 +137,7 @@ class Navigation
             // ──────────────────────────────────────────────────────────────
             [
                 'key' => 'overview',
+                'section' => 'execution',
                 'heading' => 'Tổng quan',
                 'icon' => 'dashboard',
                 'items' => [
@@ -133,6 +162,7 @@ class Navigation
             // ──────────────────────────────────────────────────────────────
             [
                 'key' => 'performance',
+                'section' => 'execution',
                 'heading' => 'Hiệu suất & Audit',
                 'icon' => 'performance',
                 'items' => [
@@ -158,6 +188,7 @@ class Navigation
             // ──────────────────────────────────────────────────────────────
             [
                 'key' => 'congnghe',
+                'section' => 'technology',
                 'heading' => 'Trung tâm Công Nghệ',
                 'icon' => 'rocket',
                 'items' => [
@@ -206,6 +237,7 @@ class Navigation
             // ──────────────────────────────────────────────────────────────
             [
                 'key' => 'projects',
+                'section' => 'execution',
                 'heading' => 'Công việc & Dự án',
                 'icon' => 'projects',
                 'items' => [
@@ -229,6 +261,7 @@ class Navigation
             // ──────────────────────────────────────────────────────────────
             [
                 'key' => 'daily',
+                'section' => 'execution',
                 'heading' => 'Báo cáo',
                 'icon' => 'daily',
                 'items' => [
@@ -260,6 +293,7 @@ class Navigation
             // ──────────────────────────────────────────────────────────────
             [
                 'key' => 'people',
+                'section' => 'people',
                 'heading' => 'Tổ chức & Nhân sự',
                 'icon' => 'org-teams',
                 'items' => [
@@ -299,6 +333,7 @@ class Navigation
             // ──────────────────────────────────────────────────────────────
             [
                 'key' => 'coaching',
+                'section' => 'people',
                 'heading' => 'Đào tạo & Coaching',
                 'icon' => 'learning',
                 'items' => [
@@ -339,6 +374,7 @@ class Navigation
             // ──────────────────────────────────────────────────────────────
             [
                 'key' => 'knowledge',
+                'section' => 'people',
                 'heading' => 'Tri thức & Nội dung',
                 'icon' => 'knowledge',
                 'defaultCollapsed' => true,
@@ -364,6 +400,7 @@ class Navigation
             // ──────────────────────────────────────────────────────────────
             [
                 'key' => 'ai',
+                'section' => 'execution',
                 'heading' => 'AI Workspace',
                 'icon' => 'sparkles',
                 'defaultCollapsed' => true,
@@ -407,6 +444,7 @@ class Navigation
             // ──────────────────────────────────────────────────────────────
             [
                 'key' => 'contracts',
+                'section' => 'execution',
                 'heading' => 'Quản lý Hợp đồng',
                 'icon' => 'budget',
                 'defaultCollapsed' => true,
@@ -454,6 +492,7 @@ class Navigation
             // ──────────────────────────────────────────────────────────────
             [
                 'key' => 'quality',
+                'section' => 'execution',
                 'heading' => 'Chất lượng & Phản hồi',
                 'icon' => 'feedback',
                 'defaultCollapsed' => true,
@@ -472,6 +511,7 @@ class Navigation
             // ──────────────────────────────────────────────────────────────
             [
                 'key' => 'security',
+                'section' => 'system',
                 'heading' => 'Bảo mật & Tài sản Số',
                 'icon' => 'vault',
                 'defaultCollapsed' => true,
@@ -492,6 +532,7 @@ class Navigation
             // ──────────────────────────────────────────────────────────────
             [
                 'key' => 'system',
+                'section' => 'system',
                 'heading' => 'Hệ thống',
                 'icon' => 'settings',
                 'defaultCollapsed' => true,
@@ -528,6 +569,7 @@ class Navigation
             // ──────────────────────────────────────────────────────────────
             [
                 'key' => 'settings',
+                'section' => 'system',
                 'heading' => 'Cấu hình hệ thống',
                 'icon' => 'system-config',
                 'defaultCollapsed' => true,

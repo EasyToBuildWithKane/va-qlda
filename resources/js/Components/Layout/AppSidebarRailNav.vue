@@ -1,4 +1,5 @@
 <script setup>
+import { computed } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
 
@@ -21,6 +22,12 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['scroll']);
+
+// Mark where each functional super-section begins so the rail can show a
+// stronger divider between sections and a lighter one between sibling groups.
+const sectionStarts = computed(() =>
+    props.nav.map((group, i) => i === 0 || props.nav[i - 1].section !== group.section),
+);
 
 function bindNavRef(el) {
     props.registerNavEl(el);
@@ -66,9 +73,14 @@ const groupHasBadge = (group) => group.items.some((item) => item.badge);
       :key="groupKey(group)"
     >
       <div
-        v-if="gi > 0"
-        class="my-1 h-px w-8"
-        :class="isUpcomingGroup(group) ? 'bg-amber-300/30' : 'bg-white/[0.1]'"
+        v-if="gi > 0 && sectionStarts[gi]"
+        class="my-1.5 h-px w-9 bg-white/20"
+        aria-hidden="true"
+      />
+      <div
+        v-else-if="gi > 0"
+        class="my-0.5 h-px w-5 bg-white/[0.07]"
+        :class="isUpcomingGroup(group) && 'bg-amber-300/30'"
         aria-hidden="true"
       />
 

@@ -9,7 +9,6 @@ use App\Models\Blocker;
 use App\Models\CoachingSession;
 use App\Models\Contract;
 use App\Models\Credential;
-use App\Models\Department;
 use App\Models\Employee;
 use App\Models\Feedback;
 use App\Models\KbArticle;
@@ -42,12 +41,10 @@ class HubDashboardController extends Controller
 
         $stats = $this->buildStats($isLeadTier, $isMemberTier);
 
-        $dept = $personnelScope->department();
         $scopedEmployeeIds = $personnelScope->employeeIds();
 
         return Inertia::render('Dashboard/Hub', [
             'greeting' => $this->greetingMeta($account),
-            'kpiCards' => $this->buildKpiCards($stats, $isLeadTier, $scopedEmployeeIds->count(), $dept),
             'activityTrend' => $this->buildActivityTrend(30),
             'compliance' => $this->buildComplianceSummary($scopedEmployeeIds),
             'alerts' => $this->buildAlerts($stats, $isLeadTier),
@@ -424,97 +421,6 @@ class HubDashboardController extends Controller
         }
 
         return $groups;
-    }
-
-    /**
-     * Role-scoped KPI cards for the hub summary strip (KpiSummaryStrip schema).
-     *
-     * @param  array<string, int>  $stats
-     * @return array<int, array<string, mixed>>
-     */
-    private function buildKpiCards(array $stats, bool $isLeadTier, int $scopedPeople, ?Department $dept): array
-    {
-        $today = Carbon::today();
-        $doneTasks = Task::where('status', TaskStatus::Done)->count();
-        $totalTasks = Task::count();
-
-        $doneLast7 = Task::whereDate('completed_at', '>=', $today->copy()->subDays(6))->count();
-        $donePrev7 = Task::whereBetween('completed_at', [
-            $today->copy()->subDays(13)->startOfDay(),
-            $today->copy()->subDays(7)->endOfDay(),
-        ])->count();
-        $doneDelta = $doneLast7 - $donePrev7;
-
-        $cards = [
-            [
-                'key' => 'projects',
-                'label' => 'Dự án đang chạy',
-                'value' => $stats['active_projects'],
-                'sub' => "/ {$stats['total_projects']} tổng dự án",
-                'icon' => 'projects',
-                'tone' => 'brand',
-            ],
-            [
-                'key' => 'tasks_done',
-                'label' => 'Công việc hoàn thành',
-                'value' => $doneTasks,
-                'sub' => "/ {$totalTasks} công việc",
-                'icon' => 'task',
-                'tone' => 'emerald',
-                'trend' => [
-                    'text' => ($doneDelta >= 0 ? '+' : '').$doneDelta.' so với tuần trước',
-                    'tone' => $doneDelta > 0 ? 'good' : ($doneDelta < 0 ? 'bad' : 'neutral'),
-                    'arrow' => $doneDelta > 0 ? '↑' : ($doneDelta < 0 ? '↓' : '→'),
-                ],
-            ],
-            [
-                'key' => 'overdue',
-                'label' => 'Công việc quá hạn',
-                'value' => $stats['overdue_tasks'],
-                'sub' => 'Chưa xong, đã trễ hạn',
-                'icon' => 'clock',
-                'tone' => 'rose',
-            ],
-            [
-                'key' => 'blockers',
-                'label' => 'Vướng mắc đang mở',
-                'value' => $stats['open_blockers'],
-                'sub' => 'Cần được tháo gỡ',
-                'icon' => 'blockers',
-                'tone' => 'amber',
-            ],
-        ];
-
-        if ($isLeadTier) {
-            $cards[] = [
-                'key' => 'pending_reports',
-                'label' => 'Báo cáo chờ duyệt',
-                'value' => $stats['pending_reports'] ?? 0,
-                'sub' => 'Cần xem xét & duyệt',
-                'icon' => 'daily',
-                'tone' => 'violet',
-            ];
-        } else {
-            $cards[] = [
-                'key' => 'feedback',
-                'label' => 'Phản hồi đang xử lý',
-                'value' => $stats['open_feedback'],
-                'sub' => 'Đang chờ phản hồi',
-                'icon' => 'feedback',
-                'tone' => 'violet',
-            ];
-        }
-
-        $cards[] = [
-            'key' => 'members',
-            'label' => 'Nhân sự hoạt động',
-            'value' => $scopedPeople,
-            'sub' => $dept?->name ?? 'Phòng Công nghệ',
-            'icon' => 'people',
-            'tone' => 'sky',
-        ];
-
-        return $cards;
     }
 
     /**
