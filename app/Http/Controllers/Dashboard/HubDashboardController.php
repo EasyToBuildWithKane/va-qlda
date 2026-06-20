@@ -9,18 +9,22 @@ use App\Models\Blocker;
 use App\Models\CoachingSession;
 use App\Models\Contract;
 use App\Models\Credential;
+use App\Models\Department;
 use App\Models\Employee;
 use App\Models\Feedback;
 use App\Models\KbArticle;
 use App\Models\Project;
 use App\Models\Task;
+use App\Support\DailyReportCalendar;
 use App\Support\DashboardPersonnelScope;
 use App\Support\Enums\ContractStatus;
 use App\Support\Enums\ProjectStatus;
 use App\Support\Enums\ReportStatus;
 use App\Support\Enums\TaskStatus;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -38,20 +42,21 @@ class HubDashboardController extends Controller
 
         $stats = $this->buildStats($isLeadTier, $isMemberTier);
 
+        $dept = $personnelScope->department();
+        $scopedEmployeeIds = $personnelScope->employeeIds();
+
         return Inertia::render('Dashboard/Hub', [
+            'greeting' => $this->greetingMeta($account),
+            'kpiCards' => $this->buildKpiCards($stats, $isLeadTier, $scopedEmployeeIds->count(), $dept),
+            'activityTrend' => $this->buildActivityTrend(30),
+            'compliance' => $this->buildComplianceSummary($scopedEmployeeIds),
+            'alerts' => $this->buildAlerts($stats, $isLeadTier),
             'moduleGroups' => $this->buildModuleGroups(
                 $stats,
                 $isAdminTier,
                 $isLeadTier,
                 $isMemberTier,
                 $isSuper,
-            ),
-            'greeting' => $this->greetingMeta($account),
-            'systemSnapshot' => $this->buildSystemSnapshot(
-                $stats,
-                $isLeadTier,
-                $isMemberTier,
-                $personnelScope,
             ),
         ]);
     }
@@ -422,21 +427,182 @@ class HubDashboardController extends Controller
     }
 
     /**
-     * Cross-module snapshot for the hub (distinct from /work task KPIs).
+     * Role-scoped KPI cards for the hub summary strip (KpiSummaryStrip schema).
      *
      * @param  array<string, int>  $stats
+     * @return array<int, array<string, mixed>>
+     */
+    private function buildKpiCards(array $stats, bool $isLeadTier, int $scopedPeople, ?Department $dept): array
+    {
+        $today = Carbon::today();
+        $doneTasks = Task::where('status', TaskStatus::Done)->count();
+        $totalTasks = Task::count();
+
+        $doneLast7 = Task::whereDate('completed_at', '>=', $today->copy()->subDays(6))->count();
+        $donePrev7 = Task::whereBetween('completed_at', [
+            $today->copy()->subDays(13)->startOfDay(),
+            $today->copy()->subDays(7)->endOfDay(),
+        ])->count();
+        $doneDelta = $doneLast7 - $donePrev7;
+
+        $cards = [
+            [
+                'key' => 'projects',
+                'label' => 'Dự án đang chạy',
+                'value' => $stats['active_projects'],
+                'sub' => "/ {$stats['total_projects']} tổng dự án",
+                'icon' => 'projects',
+                'tone' => 'brand',
+            ],
+            [
+                'key' => 'tasks_done',
+                'label' => 'Công việc hoàn thành',
+                'value' => $doneTasks,
+                'sub' => "/ {$totalTasks} công việc",
+                'icon' => 'task',
+                'tone' => 'emerald',
+                'trend' => [
+                    'text' => ($doneDelta >= 0 ? '+' : '').$doneDelta.' so với tuần trước',
+                    'tone' => $doneDelta > 0 ? 'good' : ($doneDelta < 0 ? 'bad' : 'neutral'),
+                    'arrow' => $doneDelta > 0 ? '↑' : ($doneDelta < 0 ? '↓' : '→'),
+                ],
+            ],
+            [
+                'key' => 'overdue',
+                'label' => 'Công việc quá hạn',
+                'value' => $stats['overdue_tasks'],
+                'sub' => 'Chưa xong, đã trễ hạn',
+                'icon' => 'clock',
+                'tone' => 'rose',
+            ],
+            [
+                'key' => 'blockers',
+                'label' => 'Vướng mắc đang mở',
+                'value' => $stats['open_blockers'],
+                'sub' => 'Cần được tháo gỡ',
+                'icon' => 'blockers',
+                'tone' => 'amber',
+            ],
+        ];
+
+        if ($isLeadTier) {
+            $cards[] = [
+                'key' => 'pending_reports',
+                'label' => 'Báo cáo chờ duyệt',
+                'value' => $stats['pending_reports'] ?? 0,
+                'sub' => 'Cần xem xét & duyệt',
+                'icon' => 'daily',
+                'tone' => 'violet',
+            ];
+        } else {
+            $cards[] = [
+                'key' => 'feedback',
+                'label' => 'Phản hồi đang xử lý',
+                'value' => $stats['open_feedback'],
+                'sub' => 'Đang chờ phản hồi',
+                'icon' => 'feedback',
+                'tone' => 'violet',
+            ];
+        }
+
+        $cards[] = [
+            'key' => 'members',
+            'label' => 'Nhân sự hoạt động',
+            'value' => $scopedPeople,
+            'sub' => $dept?->name ?? 'Phòng Công nghệ',
+            'icon' => 'people',
+            'tone' => 'sky',
+        ];
+
+        return $cards;
+    }
+
+    /**
+     * Daily completed/created task counts for the last N days (line chart).
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function buildActivityTrend(int $days): array
+    {
+        $start = Carbon::today()->subDays($days - 1)->toDateString();
+
+        $completed = Task::whereDate('completed_at', '>=', $start)
+            ->select(DB::raw('DATE(completed_at) as d'), DB::raw('count(*) as total'))
+            ->groupBy('d')
+            ->pluck('total', 'd');
+
+        $created = Task::whereDate('created_at', '>=', $start)
+            ->select(DB::raw('DATE(created_at) as d'), DB::raw('count(*) as total'))
+            ->groupBy('d')
+            ->pluck('total', 'd');
+
+        $series = [];
+        for ($i = $days - 1; $i >= 0; $i--) {
+            $day = Carbon::today()->subDays($i);
+            $date = $day->toDateString();
+            $series[] = [
+                'date' => $date,
+                'label' => $day->format('d/m'),
+                'completed' => (int) ($completed[$date] ?? 0),
+                'created' => (int) ($created[$date] ?? 0),
+            ];
+        }
+
+        return $series;
+    }
+
+    /**
+     * Team-wide daily-report compliance gauge for the current week (working days only).
+     *
+     * @param  Collection<int, int>  $employeeIds
      * @return array<string, mixed>
      */
-    private function buildSystemSnapshot(
-        array $stats,
-        bool $isLeadTier,
-        bool $isMemberTier,
-        DashboardPersonnelScope $personnelScope,
-    ): array {
-        $dept = $personnelScope->department();
-        $deptLabel = $dept?->name ?? 'Phòng Công nghệ';
-        $scopedPeople = $personnelScope->employeeIds()->count();
+    private function buildComplianceSummary(Collection $employeeIds): array
+    {
+        $tz = DailyReportCalendar::timezone();
+        $today = Carbon::now($tz)->startOfDay();
+        $weekStart = $today->copy()->startOfWeek();
+        $workingDays = config('daily_report.working_days', [1, 2, 3, 4, 5, 6]);
+        $submittedStatuses = [ReportStatus::Submitted->value, ReportStatus::Reviewed->value];
 
+        $expectedDates = collect();
+        for ($day = $weekStart->copy(); $day->lte($today); $day->addDay()) {
+            if (in_array($day->isoWeekday(), $workingDays, true)) {
+                $expectedDates->push($day->toDateString());
+            }
+        }
+
+        $expectedPerPerson = $expectedDates->count();
+        $people = $employeeIds->count();
+
+        $teamSubmitted = $people > 0 && $expectedPerPerson > 0
+            ? DailyReport::query()
+                ->whereIn('employee_id', $employeeIds)
+                ->whereIn('date', $expectedDates->all())
+                ->whereIn('status', $submittedStatuses)
+                ->count()
+            : 0;
+
+        $teamExpected = $expectedPerPerson * $people;
+
+        return [
+            'teamRate' => $teamExpected > 0 ? round($teamSubmitted / $teamExpected * 100, 1) : 0.0,
+            'submitted' => $teamSubmitted,
+            'expected' => $teamExpected,
+            'people' => $people,
+            'expectedPerPerson' => $expectedPerPerson,
+            'periodLabel' => $weekStart->format('d/m').' – '.$today->format('d/m/Y'),
+        ];
+    }
+
+    /**
+     * Cross-module attention chips (max 4), highest urgency first.
+     *
+     * @param  array<string, int>  $stats
+     * @return array<int, array<string, mixed>>
+     */
+    private function buildAlerts(array $stats, bool $isLeadTier): array
+    {
         $alerts = [];
 
         if (($stats['overdue_tasks'] ?? 0) > 0) {
@@ -472,6 +638,17 @@ class HubDashboardController extends Controller
             ];
         }
 
+        if (($stats['open_blockers'] ?? 0) > 0) {
+            $alerts[] = [
+                'key' => 'open_blockers',
+                'label' => 'Vướng mắc đang mở',
+                'value' => $stats['open_blockers'],
+                'href' => '/blockers',
+                'tone' => 'amber',
+                'icon' => 'blockers',
+            ];
+        }
+
         if (($stats['open_feedback'] ?? 0) > 0) {
             $alerts[] = [
                 'key' => 'open_feedback',
@@ -483,136 +660,7 @@ class HubDashboardController extends Controller
             ];
         }
 
-        $domains = [
-            [
-                'key' => 'engagement',
-                'title' => 'Tương tác & chất lượng',
-                'icon' => 'feedback',
-                'tone' => 'violet',
-                'metrics' => [
-                    [
-                        'label' => 'Phản hồi đang xử lý',
-                        'value' => $stats['open_feedback'],
-                        'href' => '/feedback',
-                    ],
-                    [
-                        'label' => 'Vướng mắc đang mở',
-                        'value' => $stats['open_blockers'],
-                        'href' => '/blockers',
-                    ],
-                ],
-            ],
-            [
-                'key' => 'knowledge',
-                'title' => 'Tri thức & đào tạo',
-                'icon' => 'knowledge',
-                'tone' => 'emerald',
-                'metrics' => [
-                    [
-                        'label' => 'Bài viết đã xuất bản',
-                        'value' => $stats['kb_articles'],
-                        'href' => '/knowledge-base',
-                    ],
-                ],
-            ],
-            [
-                'key' => 'portfolio',
-                'title' => 'Danh mục dự án',
-                'icon' => 'portfolio',
-                'tone' => 'brand',
-                'metrics' => [
-                    [
-                        'label' => 'Dự án đang chạy',
-                        'value' => $stats['active_projects'],
-                        'badge' => "Tổng {$stats['total_projects']}",
-                        'badgeClass' => 'bg-brand/10 text-brand',
-                        'href' => '/projects',
-                    ],
-                ],
-            ],
-            [
-                'key' => 'people',
-                'title' => 'Con người & tổ chức',
-                'icon' => 'org-teams',
-                'tone' => 'sky',
-                'metrics' => [
-                    [
-                        'label' => 'Nhân sự trong phạm vi',
-                        'value' => $scopedPeople,
-                        'badge' => $deptLabel,
-                        'badgeClass' => 'bg-sky-100 text-sky-800',
-                        'href' => '/members',
-                    ],
-                    [
-                        'label' => 'Thành viên toàn công ty',
-                        'value' => $stats['total_members'],
-                        'badge' => 'Toàn công ty',
-                        'badgeClass' => 'bg-slate-100 text-slate-600',
-                        'href' => '/members',
-                    ],
-                ],
-            ],
-        ];
-
-        if ($isMemberTier && isset($stats['upcoming_sessions'])) {
-            $domains[1]['metrics'][] = [
-                'label' => 'Buổi coaching (7 ngày tới)',
-                'value' => $stats['upcoming_sessions'],
-                'href' => '/coaching',
-            ];
-        }
-
-        $assetDomain = [
-            'key' => 'assets',
-            'title' => 'Tài sản & nền tảng',
-            'icon' => 'sparkles',
-            'tone' => 'violet',
-            'metrics' => [
-                [
-                    'label' => 'Tài khoản AI',
-                    'value' => $stats['ai_accounts'],
-                    'href' => '/ai-accounts/dashboard',
-                ],
-            ],
-        ];
-
-        if ($isLeadTier) {
-            $assetDomain['metrics'][] = [
-                'label' => 'Hợp đồng hiệu lực',
-                'value' => $stats['active_contracts'] ?? 0,
-                'badge' => ($stats['expiring_contracts'] ?? 0) > 0
-                    ? "{$stats['expiring_contracts']} sắp hết hạn"
-                    : null,
-                'badgeClass' => ($stats['expiring_contracts'] ?? 0) > 0
-                    ? 'bg-amber-100 text-amber-800'
-                    : null,
-                'href' => '/contracts/dashboard',
-            ];
-        }
-
-        if ($isMemberTier && isset($stats['credentials'])) {
-            $assetDomain['metrics'][] = [
-                'label' => 'Vault mật khẩu',
-                'value' => $stats['credentials'],
-                'href' => '/credentials',
-            ];
-        }
-
-        if ($isLeadTier) {
-            $domains[3]['metrics'][] = [
-                'label' => 'Báo cáo ngày chờ duyệt',
-                'value' => $stats['pending_reports'] ?? 0,
-                'href' => '/daily-reports/review',
-            ];
-        }
-
-        // Insert assets before people for visual balance
-        array_splice($domains, 3, 0, [$assetDomain]);
-
-        return [
-            'alerts' => array_slice($alerts, 0, 4),
-            'domains' => $domains,
-        ];
+        return array_slice($alerts, 0, 4);
     }
 
     /**
