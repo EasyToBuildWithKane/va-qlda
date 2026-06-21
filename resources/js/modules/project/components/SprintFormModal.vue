@@ -5,6 +5,7 @@ import AppIcon from '@/Components/AppIcon.vue';
 import Modal from '@/Components/Ui/Modal.vue';
 import { useModalFormDraft } from '@/composables/useModalFormDraft';
 import { buildDraftSaveMeta, restoreModalDraft } from '@/composables/useModalDraftHelpers';
+import { useToast } from '@/shared/composables/useToast';
 
 const props = defineProps({
     show: { type: Boolean, default: false },
@@ -15,6 +16,13 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'saved']);
 const modalClose = inject('modalClose', () => emit('close'));
+const toast = useToast();
+
+function sprintStatusValue(raw) {
+    if (raw && typeof raw === 'object' && raw.value != null) return raw.value;
+    if (typeof raw === 'string' && raw.trim() !== '') return raw.trim();
+    return 'planned';
+}
 
 const form = useForm({
     name: '',
@@ -36,9 +44,9 @@ const formDraft = useModalFormDraft('sprint', {
 const applyFormDraft = (data) => {
     form.name = data.name ?? '';
     form.goal = data.goal ?? '';
-    form.status = data.status ?? 'planned';
-    form.start_date = data.start_date ?? null;
-    form.end_date = data.end_date ?? null;
+    form.status = sprintStatusValue(data.status);
+    form.start_date = data.start_date || null;
+    form.end_date = data.end_date || null;
 };
 
 const saveDraftOnClose = () => {
@@ -71,7 +79,7 @@ watch(() => props.show, async (open) => {
     if (props.sprint) {
         form.name = props.sprint.name;
         form.goal = props.sprint.goal ?? '';
-        form.status = props.sprint.status.value;
+        form.status = sprintStatusValue(props.sprint.status);
         form.start_date = props.sprint.start_date;
         form.end_date = props.sprint.end_date;
         await restoreModalDraft(formDraft, {
@@ -94,15 +102,44 @@ watch(() => props.show, async (open) => {
     }
 });
 
+const firstFormError = (errors) => {
+    const values = Object.values(errors ?? {});
+    const first = values[0];
+    return Array.isArray(first) ? first[0] : first;
+};
+
 const submit = () => {
+    if (!form.name.trim()) {
+        toast.error('Vui lòng nhập tên sprint.');
+        return;
+    }
+    if (!props.sprint && (!form.start_date || !form.end_date)) {
+        toast.error('Vui lòng chọn ngày bắt đầu và ngày kết thúc.');
+        return;
+    }
+
     const opts = {
         preserveScroll: true,
         onSuccess: () => {
             formDraft.clear();
+            toast.success(props.sprint ? 'Đã cập nhật sprint.' : 'Đã tạo sprint.');
             emit('saved');
             emit('close');
         },
+        onError: (errors) => {
+            toast.error(firstFormError(errors) || 'Không thể lưu sprint.');
+        },
     };
+
+    form.transform((data) => ({
+        ...data,
+        name: data.name.trim(),
+        goal: data.goal?.trim() || null,
+        status: sprintStatusValue(data.status),
+        start_date: data.start_date || null,
+        end_date: data.end_date || null,
+    }));
+
     if (props.sprint) form.put(`/projects/${props.projectId}/sprints/${props.sprint.id}`, opts);
     else form.post(`/projects/${props.projectId}/sprints`, opts);
 };
@@ -135,6 +172,7 @@ const submit = () => {
             type="text"
             class="input"
             placeholder="VD: Sprint 2 — Tính năng"
+            required
             autofocus
           >
           <p
@@ -191,6 +229,7 @@ const submit = () => {
               v-model="form.start_date"
               type="date"
               class="input"
+              :required="!sprint"
             >
             <p
               v-if="form.errors.start_date"
@@ -209,6 +248,7 @@ const submit = () => {
               v-model="form.end_date"
               type="date"
               class="input"
+              :required="!sprint"
             >
             <p
               v-if="form.errors.end_date"

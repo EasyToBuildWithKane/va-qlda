@@ -12,6 +12,7 @@ use App\Support\Enums\NotificationType;
 use App\Support\Enums\SystemRole;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 class NotificationService
 {
@@ -48,7 +49,7 @@ class NotificationService
                 'type' => $type->value,
                 'category' => $type->category()->value,
                 'priority' => $priority->value,
-                'title' => $title,
+                'title' => Str::limit($title, 255, '…'),
                 'body' => $body,
                 'actor_account_id' => $actorAccountId,
                 'actor_name' => $actorName,
@@ -110,7 +111,7 @@ class NotificationService
                 'type' => $type->value,
                 'category' => $type->category()->value,
                 'priority' => $priority->value,
-                'title' => $title,
+                'title' => Str::limit($title, 255, '…'),
                 'body' => $body,
                 'actor_account_id' => $actorAccountId,
                 'actor_name' => $actorName,
