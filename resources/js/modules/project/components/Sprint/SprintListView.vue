@@ -127,7 +127,7 @@ function onDragEnd() {
     </p>
 
     <article
-      v-for="(s, index) in orderedSprints"
+      v-for="s in orderedSprints"
       :key="s.id"
       class="overflow-hidden rounded-xl border border-slate-200/90 bg-white shadow-sm transition dark:border-slate-700 dark:bg-slate-900"
       :class="[
@@ -177,13 +177,6 @@ function onDragEnd() {
                 :size="15"
               />
             </button>
-
-            <span
-              class="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-slate-100 text-[11px] font-bold tabular-nums text-slate-600 dark:bg-slate-800 dark:text-slate-300"
-              :title="`Thứ tự ${index + 1}`"
-            >
-              {{ index + 1 }}
-            </span>
 
             <div class="min-w-0 flex-1">
               <div class="flex flex-wrap items-center gap-x-2 gap-y-1">

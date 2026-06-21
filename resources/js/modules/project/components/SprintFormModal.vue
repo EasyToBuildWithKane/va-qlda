@@ -122,7 +122,6 @@ const submit = () => {
         preserveScroll: true,
         onSuccess: () => {
             formDraft.clear();
-            toast.success(props.sprint ? 'Đã cập nhật sprint.' : 'Đã tạo sprint.');
             emit('saved');
             emit('close');
         },

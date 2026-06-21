@@ -131,7 +131,7 @@ const duplicateSprint = async (s) => {
         status: 'planned',
         start_date: s.start_date,
         end_date: s.end_date,
-    }, { preserveScroll: true, onSuccess: () => toast.success('Đã nhân bản sprint') });
+    }, { preserveScroll: true });
 };
 
 const closeSprint = (s) => {
@@ -143,7 +143,6 @@ const closeSprint = (s) => {
         end_date: s.end_date,
     }, {
         preserveScroll: true,
-        onSuccess: () => toast.success('Đã đóng sprint'),
     });
 };
 
@@ -182,7 +181,6 @@ const removeTask = async (t) => {
 const reorderSprints = (ids) => {
     router.patch(`/projects/${pid}/sprints/reorder`, { ids }, {
         preserveScroll: true,
-        onSuccess: () => toast.success('Đã cập nhật thứ tự sprint'),
         onError: () => toast.error('Không thể sắp xếp sprint'),
     });
 };
