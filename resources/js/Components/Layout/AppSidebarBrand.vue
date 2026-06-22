@@ -62,7 +62,7 @@ const linkAlignClass = computed(() => (props.embedded ? 'justify-start pl-3' : '
           linkAlignClass,
           embedded ? 'pr-2 pl-2' : 'px-3',
         ]"
-        aria-label="VAschools — Bảng điều khiển"
+        aria-label="Về trang Phòng Công nghệ"
       >
         <img
           src="/images/congnghe/brand/vas-white.png"

@@ -171,7 +171,7 @@ const rowBase =
                     :is="isPlanned(item) ? 'div' : Link"
                     :href="isPlanned(item) ? undefined : item.href"
                     :title="isPlanned(item) ? 'Sắp ra mắt — chưa khả dụng' : undefined"
-                    class="sidebar-nav-link group/item flex min-h-[38px] items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] font-normal leading-snug transition-all duration-200"
+                    class="sidebar-nav-link group/item flex min-h-[36px] items-center gap-2 rounded-lg py-1.5 pl-4 pr-2 text-[13px] font-normal leading-snug transition-all duration-200"
                     :class="[
                       isActive(item.href)
                         ? 'sidebar-nav-item--active bg-white/[0.12] font-medium text-white'
@@ -181,19 +181,6 @@ const rowBase =
                       isPlanned(item) && 'cursor-not-allowed opacity-75',
                     ]"
                   >
-                    <span
-                      class="sidebar-nav-icon-shell sidebar-nav-icon-shell--item h-7 w-7 shrink-0 rounded-lg"
-                      :class="isActive(item.href) ? '' : 'group-hover/item:bg-white/[0.06]'"
-                    >
-                      <AppIcon
-                        :name="item.icon"
-                        :size="18"
-                        :stroke-width="1.65"
-                        class="sidebar-nav-icon shrink-0"
-                        :class="isActive(item.href) ? 'text-white' : 'text-white/55 group-hover/item:text-white/90'"
-                      />
-                    </span>
-
                     <span class="min-w-0 flex-1 truncate">{{ item.label }}</span>
 
                     <span

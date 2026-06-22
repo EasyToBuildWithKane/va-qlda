@@ -163,9 +163,10 @@ const navPadClass = computed(() => (scrolled.value ? 'py-2.5 sm:py-3' : 'py-3.5 
       :class="navPadClass"
     >
       <!-- Brand -->
-      <a
-        href="#top"
+      <Link
+        href="/congnghe"
         class="group flex min-w-0 items-center gap-2.5 lg:justify-self-start"
+        aria-label="Về trang Phòng Công nghệ"
       >
         <CongngheBrandImage
           isolated-cutout
@@ -187,7 +188,7 @@ const navPadClass = computed(() => (scrolled.value ? 'py-2.5 sm:py-3' : 'py-3.5 
             {{ brandTagline }}
           </span>
         </span>
-      </a>
+      </Link>
 
       <!-- Desktop nav — căn giữa -->
       <div
