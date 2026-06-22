@@ -60,7 +60,7 @@ class LoginTest extends TestCase
         $this->post('/login', [
             'username' => 'testuser',
             'password' => 'secret123',
-        ])->assertRedirect();
+        ])->assertRedirect(route('congnghe'));
 
         $this->assertAuthenticatedAs($account, 'system');
     }
@@ -135,11 +135,11 @@ class LoginTest extends TestCase
 
         $this->actingAs($account, 'system')
             ->get('/login')
-            ->assertRedirect();
+            ->assertRedirect(route('congnghe'));
 
         $this->actingAs($account, 'system')
             ->get('/tech/login')
-            ->assertRedirect();
+            ->assertRedirect(route('congnghe'));
     }
 
     public function test_user_can_logout(): void
@@ -148,13 +148,27 @@ class LoginTest extends TestCase
 
         $this->actingAs($account, 'system')
             ->post('/logout')
-            ->assertRedirect(route('tech.login'));
+            ->assertRedirect(route('login'));
 
         $this->assertGuest('system');
     }
 
-    public function test_guest_app_route_redirects_to_tech_login(): void
+    public function test_guest_app_route_redirects_to_login(): void
     {
-        $this->get('/dashboard')->assertRedirect(route('tech.login'));
+        $this->get('/dashboard')->assertRedirect(route('login'));
+    }
+
+    public function test_guest_root_redirects_to_login(): void
+    {
+        $this->get('/')->assertRedirect(route('login'));
+    }
+
+    public function test_authenticated_root_redirects_to_congnghe(): void
+    {
+        $account = SystemAccount::factory()->create();
+
+        $this->actingAs($account, 'system')
+            ->get('/')
+            ->assertRedirect(route('congnghe'));
     }
 }

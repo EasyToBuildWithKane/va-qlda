@@ -6,6 +6,7 @@ use App\Application\Project\ArchiveProjectUseCase;
 use App\Application\Project\CreateProjectUseCase;
 use App\Application\Project\DuplicateProjectUseCase;
 use App\Application\Project\ProjectIndexQuery;
+use App\Application\Project\ProjectMemberRosterMerger;
 use App\Application\Project\ProjectShowDataLoader;
 use App\Application\Project\UpdateProjectUseCase;
 use App\Http\Controllers\Controller;
@@ -25,6 +26,8 @@ use App\Support\Enums\ProjectCategory;
 use App\Support\Enums\ProjectScope;
 use App\Support\Enums\ProjectStatus;
 use App\Support\Enums\ProjectType;
+use App\Support\Enums\SprintStatus;
+use App\Support\Enums\TaskStatus;
 use App\Support\NotificationDispatcher;
 use App\Support\Options;
 use App\Support\ProjectActivityFeedBuilder;
@@ -44,6 +47,7 @@ class ProjectController extends Controller
         private readonly ArchiveProjectUseCase $archiveProject,
         private readonly ProjectIndexQuery $projectIndexQuery,
         private readonly ProjectShowDataLoader $projectShowDataLoader,
+        private readonly ProjectMemberRosterMerger $memberRosterMerger,
         private readonly ProjectActivityFeedBuilder $activityFeedBuilder,
     ) {}
 
@@ -104,11 +108,25 @@ class ProjectController extends Controller
         $this->authorize('view', $project);
 
         $project = $this->projectShowDataLoader->load($project);
+        $this->memberRosterMerger->mergeForProject($project);
 
         $feedbackQuery = Feedback::query()->where('project_id', $project->id);
+        $openBlockerCount = $project->blockers
+            ->filter(fn ($b) => ! in_array($b->status->value, ['resolved', 'closed'], true))
+            ->count();
 
         return Inertia::render('Project/Show', [
             'project' => (new ProjectResource($project))->resolve(),
+            'summary' => [
+                'progress' => $project->progress(),
+                'members' => $project->members->count(),
+                'tasks_total' => $project->tasks->count(),
+                'tasks_done' => $project->tasks->where('status', TaskStatus::Done)->count(),
+                'sprints_total' => $project->sprints->count(),
+                'sprints_active' => $project->sprints->where('status', SprintStatus::Active)->count(),
+                'blockers_open' => $openBlockerCount,
+                'blockers_total' => $project->blockers->count(),
+            ],
             'attachments' => ProjectAttachmentResource::collection($project->attachments)->resolve(),
             'sprints' => SprintResource::collection($project->sprints)->resolve(),
             'epics' => \App\Http\Resources\EpicResource::collection($project->epics)->resolve(),

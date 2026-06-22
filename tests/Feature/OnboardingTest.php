@@ -20,7 +20,7 @@ class OnboardingTest extends TestCase
 
     public function test_guest_is_redirected_from_onboarding(): void
     {
-        $this->get('/onboarding')->assertRedirect('/tech/login');
+        $this->get('/onboarding')->assertRedirect('/login');
     }
 
     public function test_index_returns_progress_payload(): void

@@ -3,20 +3,25 @@ import { onMounted, onUnmounted, ref, watch } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import AppSidebarBrand from '@/Components/Layout/AppSidebarBrand.vue';
 import AppSidebarExpandedNav from '@/Components/Layout/AppSidebarExpandedNav.vue';
+import AppSidebarRailFlyout from '@/Components/Layout/AppSidebarRailFlyout.vue';
 const props = defineProps({
     open: { type: Boolean, default: false },
     nav: { type: Array, default: () => [] },
     appShortName: { type: String, default: 'VA' },
     appName: { type: String, default: '' },
     groupKey: { type: Function, required: true },
-    isOpen: { type: Function, required: true },
-    toggleGroup: { type: Function, required: true },
     isActive: { type: Function, required: true },
     isUpcomingGroup: { type: Function, required: true },
     isPlanned: { type: Function, required: true },
+    groupContainsActive: { type: Function, required: true },
     showBadge: { type: Function, required: true },
     statusOf: { type: Function, required: true },
     registerNavEl: { type: Function, default: () => {} },
+    flyout: { type: Object, required: true },
+    openFlyout: { type: Function, required: true },
+    closeFlyout: { type: Function, required: true },
+    onFlyoutPointerLeave: { type: Function, required: true },
+    cancelFlyoutClose: { type: Function, required: true },
 });
 
 const emit = defineEmits(['close']);
@@ -145,18 +150,28 @@ onUnmounted(() => {
                 :register-nav-el="registerNavEl"
                 :nav="nav"
                 :group-key="groupKey"
-                :is-open="isOpen"
-                :toggle-group="toggleGroup"
                 :is-active="isActive"
                 :is-upcoming-group="isUpcomingGroup"
                 :is-planned="isPlanned"
-                :show-badge="showBadge"
-                :status-of="statusOf"
+                :group-contains-active="groupContainsActive"
+                :open-flyout="openFlyout"
               />
             </div>
           </aside>
         </Transition>
       </div>
     </Transition>
+
+    <AppSidebarRailFlyout
+      :flyout="flyout"
+      :is-active="isActive"
+      :is-planned="isPlanned"
+      :is-upcoming-group="isUpcomingGroup"
+      :show-badge="showBadge"
+      :status-of="statusOf"
+      @close="closeFlyout"
+      @pointer-enter="cancelFlyoutClose"
+      @pointer-leave="onFlyoutPointerLeave"
+    />
   </Teleport>
 </template>

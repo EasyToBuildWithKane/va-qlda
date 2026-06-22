@@ -3,7 +3,6 @@ import { computed, provide } from 'vue';
 import { Head } from '@inertiajs/vue3';
 import AuroraBackground from './partials/AuroraBackground.vue';
 import ScrollProgress from './partials/ScrollProgress.vue';
-import CursorGlow from './partials/CursorGlow.vue';
 import CongngheNavbar from './partials/CongngheNavbar.vue';
 import CongngheSectionRail from './partials/CongngheSectionRail.vue';
 import HeroSection from './partials/HeroSection.vue';
@@ -83,7 +82,6 @@ function sectionDataProps(key) {
   >
     <AuroraBackground />
     <ScrollProgress />
-    <CursorGlow />
     <CongngheNavbar :content="content.nav" />
     <CongngheSectionRail :links="content.nav?.links ?? []" />
 

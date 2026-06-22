@@ -159,7 +159,7 @@ Pages import feature components từ `@/modules/project/components/...` và prim
 | Core | `ProjectCard`, `ProjectDataGrid`, `ProjectForm`, `ProjectMembers`, `GanttChart`, `TaskBoard`, … |
 | Sprint/ | `SprintWorkspace`, `SprintTaskTable`, `SprintDataModal`, `TaskDetailPanel`, … |
 | TaskDetail/ | `TaskDetailRichEditor`, `TaskDetailCollaboration`, `TaskDetailSubtasks`, … |
-| Dashboard/ | `ProjectOverviewCard`, `RiskIssueDataTable`, `ProjectFeedbackPanel`, `RiskImportModal`, `ActivityFeed`, … |
+| Dashboard/ | `ProjectShowSummaryBar` (tab Tổng quan Show — KPI embedded + `WorkloadTable`), `ProjectOverviewCard`, `RiskIssueDataTable`, `ProjectFeedbackPanel`, `RiskImportModal`, `ActivityFeed`, … |
 | Timeline/ | `ProjectTimelineView`, `ProjectTimelineBurndown`, … |
 | Documents/ | `ProjectDocumentsPanel`, `DocumentPreviewPane` |
 | Modals | `TaskFormModal`, `SprintFormModal`, `BlockerFormModal`, … |

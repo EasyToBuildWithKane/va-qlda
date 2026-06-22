@@ -1,6 +1,6 @@
 <script setup>
 import { onBeforeUnmount, onMounted, ref } from 'vue';
-import { prefersReducedMotionNow, onSharedPointer } from './motion.js';
+import { prefersReducedMotionNow } from './motion.js';
 
 const canvas = ref(null);
 
@@ -10,11 +10,14 @@ let nodes = [];
 let width = 0;
 let height = 0;
 let dpr = 1;
-const mouse = { x: -9999, y: -9999 };
+
+// Giới hạn ~36fps: hạt trôi chậm nên vẫn mượt mắt mà tiết kiệm CPU đáng kể.
+const FRAME_INTERVAL = 1000 / 36;
+let lastFrame = 0;
 
 function resize() {
     if (!canvas.value) return;
-    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    dpr = Math.min(window.devicePixelRatio || 1, 1.5);
     width = window.innerWidth;
     height = window.innerHeight;
     canvas.value.width = width * dpr;
@@ -26,7 +29,7 @@ function resize() {
 }
 
 function seed() {
-    const target = Math.min(72, Math.floor((width * height) / 24000));
+    const target = Math.min(48, Math.floor((width * height) / 38000));
     nodes = Array.from({ length: target }, () => ({
         x: Math.random() * width,
         y: Math.random() * height,
@@ -36,7 +39,11 @@ function seed() {
     }));
 }
 
-function frame() {
+function frame(now) {
+    raf = requestAnimationFrame(frame);
+    if (now - lastFrame < FRAME_INTERVAL) return;
+    lastFrame = now;
+
     ctx.clearRect(0, 0, width, height);
 
     for (const n of nodes) {
@@ -45,15 +52,6 @@ function frame() {
 
         if (n.x < 0 || n.x > width) n.vx *= -1;
         if (n.y < 0 || n.y > height) n.vy *= -1;
-
-        // soft mouse attraction
-        const dxm = mouse.x - n.x;
-        const dym = mouse.y - n.y;
-        const dm = Math.hypot(dxm, dym);
-        if (dm < 160) {
-            n.x += (dxm / dm) * 0.5;
-            n.y += (dym / dm) * 0.5;
-        }
 
         ctx.beginPath();
         ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
@@ -77,31 +75,6 @@ function frame() {
             }
         }
     }
-
-    // Mạng nơ-ron bám con trỏ: nối con trỏ tới các nút lân cận + nút sáng tại con trỏ.
-    if (mouse.x > -9000) {
-        for (const n of nodes) {
-            const d = Math.hypot(mouse.x - n.x, mouse.y - n.y);
-            if (d < 220) {
-                const alpha = (1 - d / 220) * 0.55;
-                ctx.strokeStyle = `rgba(34,211,238,${alpha})`;
-                ctx.lineWidth = 0.9;
-                ctx.beginPath();
-                ctx.moveTo(mouse.x, mouse.y);
-                ctx.lineTo(n.x, n.y);
-                ctx.stroke();
-            }
-        }
-        const halo = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, 16);
-        halo.addColorStop(0, 'rgba(34,211,238,0.85)');
-        halo.addColorStop(1, 'rgba(34,211,238,0)');
-        ctx.fillStyle = halo;
-        ctx.beginPath();
-        ctx.arc(mouse.x, mouse.y, 16, 0, Math.PI * 2);
-        ctx.fill();
-    }
-
-    raf = requestAnimationFrame(frame);
 }
 
 function start() {
@@ -135,14 +108,6 @@ onBeforeUnmount(() => {
     window.removeEventListener('resize', resize);
     document.removeEventListener('visibilitychange', onVisibility);
 });
-
-// Con trỏ qua mousemove DÙNG CHUNG toàn trang (toạ độ client = viewport vì field full-screen).
-if (!prefersReducedMotionNow()) {
-    onSharedPointer((p) => {
-        mouse.x = p.x;
-        mouse.y = p.y;
-    });
-}
 </script>
 
 <template>

@@ -2,8 +2,10 @@
 export function normalizeList(source) {
     if (!source) return [];
     if (Array.isArray(source)) return source.filter(Boolean);
-    if (typeof source === 'object' && Array.isArray(source.data)) {
-        return source.data.filter(Boolean);
+    if (typeof source === 'object' && source.data != null) {
+        const inner = source.data;
+        if (Array.isArray(inner)) return inner.filter(Boolean);
+        if (typeof inner === 'object') return Object.values(inner).filter(Boolean);
     }
     if (typeof source === 'object') {
         return Object.values(source).filter(Boolean);

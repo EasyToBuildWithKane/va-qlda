@@ -56,7 +56,7 @@ class AiAccountTest extends TestCase
 
     public function test_index_page_requires_auth(): void
     {
-        $this->get(route('ai-accounts.index'))->assertRedirect(route('tech.login'));
+        $this->get(route('ai-accounts.index'))->assertRedirect(route('login'));
     }
 
     public function test_cost_by_group_page_renders_for_authenticated_user(): void

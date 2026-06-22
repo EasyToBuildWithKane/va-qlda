@@ -1,6 +1,6 @@
 <script setup>
 /* eslint-disable vue/no-v-html -- task description HTML from TipTap editor */
-import { ref, computed, watch, toRef, unref, isRef, nextTick } from 'vue';
+import { ref, computed, watch, toRef, unref, isRef, nextTick, onBeforeUnmount } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
 import MarkdownIt from 'markdown-it';
 import AppIcon from '@/Components/AppIcon.vue';
@@ -57,15 +57,50 @@ const emit = defineEmits(['close', 'edit', 'open-task', 'updated', 'panel-tab-ch
 const toast = useToast();
 const dialog = useDialog();
 const tab = ref(props.initialPanelTab || 'overview');
-const showStatusMenu = ref(false);
-const showAssignMenu = ref(false);
+const showActionsMenu = ref(false);
+const actionsSubMenu = ref(null);
 const assignMenuSearch = ref('');
 const assignSearchRef = ref(null);
+const actionsMenuRef = ref(null);
+const actionsTriggerRef = ref(null);
 
-watch(showAssignMenu, async (open) => {
-    if (!open) return;
+const closeActionsMenu = () => {
+    showActionsMenu.value = false;
+    actionsSubMenu.value = null;
+    assignMenuSearch.value = '';
+};
+
+const toggleActionsMenu = () => {
+    if (showActionsMenu.value) {
+        closeActionsMenu();
+        return;
+    }
+    showActionsMenu.value = true;
+    actionsSubMenu.value = null;
+};
+
+function onActionsPointerDownOutside(e) {
+    const t = e.target;
+    if (actionsMenuRef.value?.contains(t) || actionsTriggerRef.value?.contains(t)) return;
+    closeActionsMenu();
+}
+
+watch(showActionsMenu, async (open) => {
+    if (open) {
+        document.addEventListener('mousedown', onActionsPointerDownOutside);
+        return;
+    }
+    document.removeEventListener('mousedown', onActionsPointerDownOutside);
+});
+
+watch(actionsSubMenu, async (sub) => {
+    if (sub !== 'assign') return;
     await nextTick();
     assignSearchRef.value?.focus({ preventScroll: true });
+});
+
+onBeforeUnmount(() => {
+    document.removeEventListener('mousedown', onActionsPointerDownOutside);
 });
 const collaborationRef = ref(null);
 
@@ -157,14 +192,13 @@ const removeTask = async () => {
 };
 
 const onStatusPick = (status) => {
-    showStatusMenu.value = false;
+    closeActionsMenu();
     if (!activeTask.value) return;
     patchTaskStatus(activeTask.value, status, { onSuccess: () => emit('updated') });
 };
 
 const onAssignPick = (employeeId) => {
-    showAssignMenu.value = false;
-    assignMenuSearch.value = '';
+    closeActionsMenu();
     if (!activeTask.value?.id) return;
     router.patch(`/projects/${props.projectId}/tasks/${activeTask.value.id}`, {
         assignee_id: employeeId || null,
@@ -225,18 +259,19 @@ const statusStripeBorder = computed(() => {
     return borders[color] || borders.slate;
 });
 
-const showContextCard = computed(() => Boolean(
-    unref(ws.sprintLine)?.trim() || epicDisplay.value || scheduleLine.value,
+const hasHeaderMeta = computed(() => Boolean(
+    unref(ws.sprintLine)?.trim() || epicDisplay.value || scheduleLine.value || estimateLine.value,
 ));
 
-const timeSummary = computed(() => {
-    const parts = [];
-    if (unref(ws.estimateHours) != null) {
-        const prefix = unref(ws.estimateFromSubtasksOnly) ? 'Tổng công việc con' : 'Ước tính';
-        parts.push(`${prefix} ${unref(ws.estimateHours)}h`);
-    }
-    if (unref(ws.loggedHours) > 0) parts.push(`Đã ghi ${unref(ws.loggedHours)}h`);
-    return parts.length ? parts.join(' · ') : null;
+const estimateLine = computed(() => {
+    if (unref(ws.estimateHours) == null) return null;
+    const prefix = unref(ws.estimateFromSubtasksOnly) ? 'Tổng công việc con' : 'Ước tính';
+    return `${prefix} ${unref(ws.estimateHours)}h`;
+});
+
+const loggedHoursLine = computed(() => {
+    const h = unref(ws.loggedHours);
+    return h > 0 ? `Đã ghi ${h}h` : null;
 });
 
 const toneClass = (tone) => ({
@@ -248,12 +283,31 @@ const toneClass = (tone) => ({
     slate: 'bg-slate-100 text-slate-600 ring-slate-200 dark:bg-slate-800 dark:text-slate-300',
 }[tone] || 'bg-slate-100 text-slate-600');
 
+const onActionEdit = () => {
+    closeActionsMenu();
+    emit('edit', activeTask.value);
+};
+
+const onActionComment = () => {
+    closeActionsMenu();
+    goComment();
+};
+
+const onActionCopyLink = () => {
+    closeActionsMenu();
+    copyLink();
+};
+
+const onActionDelete = () => {
+    closeActionsMenu();
+    removeTask();
+};
+
 watch(() => activeTask.value?.id, (id, prev) => {
     if (id != null && id !== prev) {
         tab.value = props.initialPanelTab || 'overview';
     }
-    showStatusMenu.value = false;
-    showAssignMenu.value = false;
+    closeActionsMenu();
 });
 
 watch(tab, (key) => {
@@ -347,6 +401,190 @@ const worklogList = computed(() => normalizeEntities(activeTask.value?.worklogs)
                   </p>
                 </div>
                 <div class="flex shrink-0 items-center gap-0.5 rounded-lg border border-slate-200/90 bg-white/90 p-0.5 shadow-sm dark:border-slate-600 dark:bg-slate-800/90">
+                  <div
+                    ref="actionsTriggerRef"
+                    class="relative"
+                  >
+                    <button
+                      type="button"
+                      class="grid h-8 w-8 place-items-center rounded-md text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-slate-200"
+                      :class="showActionsMenu ? 'bg-slate-100 text-brand dark:bg-slate-700' : ''"
+                      title="Thao tác"
+                      aria-haspopup="menu"
+                      :aria-expanded="showActionsMenu"
+                      @click.stop="toggleActionsMenu"
+                    >
+                      <AppIcon
+                        name="more-vertical"
+                        :size="16"
+                      />
+                    </button>
+                    <div
+                      v-if="showActionsMenu"
+                      ref="actionsMenuRef"
+                      class="absolute right-0 top-full z-30 mt-1 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-900"
+                      role="menu"
+                      @click.stop
+                    >
+                      <template v-if="!actionsSubMenu">
+                        <button
+                          v-if="canEdit"
+                          type="button"
+                          class="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                          role="menuitem"
+                          @click="onActionEdit"
+                        >
+                          <AppIcon
+                            name="edit"
+                            :size="14"
+                          />
+                          Chỉnh sửa
+                        </button>
+                        <button
+                          v-if="canChangeStatus"
+                          type="button"
+                          class="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                          role="menuitem"
+                          @click="actionsSubMenu = 'status'"
+                        >
+                          <span class="flex min-w-0 items-center gap-2">
+                            <AppIcon
+                              name="task"
+                              :size="14"
+                            />
+                            <span class="truncate">Đổi trạng thái</span>
+                          </span>
+                          <span class="shrink-0 text-[10px] text-slate-400">{{ activeTask.status?.label }}</span>
+                        </button>
+                        <button
+                          v-if="canEdit && !isSubtaskRow"
+                          type="button"
+                          class="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                          role="menuitem"
+                          @click="actionsSubMenu = 'assign'"
+                        >
+                          <span class="flex min-w-0 items-center gap-2">
+                            <AppIcon
+                              name="people"
+                              :size="14"
+                            />
+                            <span class="truncate">Giao việc</span>
+                          </span>
+                          <span class="max-w-[7rem] shrink-0 truncate text-[10px] text-slate-400">{{ assigneeSummary || 'Chưa gán' }}</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                          role="menuitem"
+                          @click="onActionComment"
+                        >
+                          <AppIcon
+                            name="comment"
+                            :size="14"
+                          />
+                          Trao đổi
+                        </button>
+                        <button
+                          type="button"
+                          class="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                          role="menuitem"
+                          @click="onActionCopyLink"
+                        >
+                          <AppIcon
+                            name="copy"
+                            :size="14"
+                          />
+                          Sao chép liên kết
+                        </button>
+                        <div
+                          v-if="canDelete"
+                          class="my-1 border-t border-slate-100 dark:border-slate-800"
+                        />
+                        <button
+                          v-if="canDelete"
+                          type="button"
+                          class="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/40"
+                          role="menuitem"
+                          @click="onActionDelete"
+                        >
+                          <AppIcon
+                            name="delete"
+                            :size="14"
+                          />
+                          Xoá công việc
+                        </button>
+                      </template>
+                      <template v-else-if="actionsSubMenu === 'status'">
+                        <button
+                          type="button"
+                          class="flex w-full items-center gap-1.5 border-b border-slate-100 px-3 py-2 text-left text-[11px] font-medium text-slate-500 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800"
+                          @click="actionsSubMenu = null"
+                        >
+                          <AppIcon
+                            name="chevron-left"
+                            :size="14"
+                          />
+                          Trạng thái
+                        </button>
+                        <button
+                          v-for="o in statusOptionList"
+                          :key="o.value"
+                          type="button"
+                          class="flex w-full px-3 py-1.5 text-left text-xs hover:bg-slate-50 dark:hover:bg-slate-800"
+                          :class="activeTask.status?.value === o.value ? 'font-semibold text-brand' : 'text-slate-600 dark:text-slate-300'"
+                          @click="onStatusPick(o.value)"
+                        >
+                          {{ o.label }}
+                        </button>
+                      </template>
+                      <template v-else-if="actionsSubMenu === 'assign'">
+                        <button
+                          type="button"
+                          class="flex w-full items-center gap-1.5 border-b border-slate-100 px-3 py-2 text-left text-[11px] font-medium text-slate-500 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800"
+                          @click="actionsSubMenu = null"
+                        >
+                          <AppIcon
+                            name="chevron-left"
+                            :size="14"
+                          />
+                          Người thực hiện
+                        </button>
+                        <div class="border-b border-slate-100 p-1.5 dark:border-slate-800">
+                          <input
+                            ref="assignSearchRef"
+                            v-model="assignMenuSearch"
+                            type="text"
+                            class="input w-full py-1 text-xs"
+                            placeholder="Tìm theo tên…"
+                          >
+                        </div>
+                        <div class="max-h-44 overflow-y-auto py-1">
+                          <button
+                            type="button"
+                            class="w-full px-3 py-1.5 text-left text-xs text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800"
+                            @click="onAssignPick(null)"
+                          >
+                            Chưa gán
+                          </button>
+                          <button
+                            v-for="e in filteredAssignees"
+                            :key="e.id"
+                            type="button"
+                            class="w-full px-3 py-1.5 text-left text-xs hover:bg-slate-50 dark:hover:bg-slate-800"
+                            @click="onAssignPick(e.id)"
+                          >
+                            {{ e.name }}
+                          </button>
+                          <p
+                            v-if="!filteredAssignees.length"
+                            class="px-3 py-2 text-center text-xs text-slate-400"
+                          >
+                            Không tìm thấy.
+                          </p>
+                        </div>
+                      </template>
+                    </div>
+                  </div>
                   <button
                     type="button"
                     class="grid h-8 w-8 place-items-center rounded-md text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-slate-200"
@@ -431,90 +669,61 @@ const worklogList = computed(() => normalizeEntities(activeTask.value?.worklogs)
               </div>
 
               <dl
-                v-if="showContextCard"
-                class="mt-3 divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm dark:divide-slate-800 dark:border-slate-700 dark:bg-slate-900/40"
+                v-if="hasHeaderMeta"
+                class="mt-2.5 space-y-1 text-[11px] leading-snug text-slate-600 dark:text-slate-400"
               >
                 <div
-                  v-if="ws.sprintLine"
-                  class="grid grid-cols-[4.5rem_1fr] items-start gap-x-2 px-3 py-2.5"
+                  v-if="unref(ws.sprintLine)"
+                  class="flex min-w-0 items-start gap-1.5"
                 >
-                  <dt class="pt-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                    Sprint
-                  </dt>
-                  <dd class="flex min-w-0 items-start gap-1.5 text-xs font-medium leading-snug text-slate-700 dark:text-slate-200">
-                    <AppIcon
-                      name="sprint"
-                      :size="13"
-                      class="mt-0.5 shrink-0 text-violet-500"
-                    />
-                    <span class="min-w-0 break-words">{{ ws.sprintLine }}</span>
-                  </dd>
+                  <AppIcon
+                    name="sprint"
+                    :size="12"
+                    class="mt-0.5 shrink-0 text-violet-500"
+                  />
+                  <span class="min-w-0 break-words">{{ unref(ws.sprintLine) }}</span>
                 </div>
                 <div
                   v-if="epicDisplay"
-                  class="grid grid-cols-[4.5rem_1fr] items-start gap-x-2 px-3 py-2.5"
+                  class="flex min-w-0 items-start gap-1.5"
                 >
-                  <dt class="pt-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                    Epic
-                  </dt>
-                  <dd class="flex min-w-0 items-start gap-1.5 text-xs leading-snug text-slate-600 dark:text-slate-300">
-                    <AppIcon
-                      name="flag"
-                      :size="13"
-                      class="mt-0.5 shrink-0 text-amber-500"
-                    />
-                    <span class="min-w-0 break-words">{{ epicDisplay }}</span>
-                  </dd>
+                  <AppIcon
+                    name="flag"
+                    :size="12"
+                    class="mt-0.5 shrink-0 text-amber-500"
+                  />
+                  <span class="min-w-0 break-words">{{ epicDisplay }}</span>
                 </div>
                 <div
-                  v-if="scheduleLine"
-                  class="grid grid-cols-[4.5rem_1fr] items-center gap-x-2 px-3 py-2.5"
+                  v-if="scheduleLine || estimateLine || loggedHoursLine"
+                  class="flex flex-wrap items-center gap-x-3 gap-y-0.5 tabular-nums"
                 >
-                  <dt class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                    Lịch
-                  </dt>
-                  <dd
-                    class="flex items-center gap-1.5 text-xs tabular-nums"
-                    :class="ws.isOverdue ? 'font-semibold text-rose-600 dark:text-rose-400' : 'text-slate-600 dark:text-slate-300'"
+                  <span
+                    v-if="scheduleLine"
+                    class="inline-flex items-center gap-1"
+                    :class="ws.isOverdue ? 'font-semibold text-rose-600 dark:text-rose-400' : ''"
                   >
                     <AppIcon
                       name="calendar"
-                      :size="13"
+                      :size="12"
                       class="shrink-0 text-slate-400"
                     />
                     {{ scheduleLine }}
-                  </dd>
+                  </span>
+                  <span
+                    v-if="estimateLine"
+                    class="inline-flex items-center gap-1"
+                  >
+                    <AppIcon
+                      name="worklog"
+                      :size="12"
+                      class="shrink-0 text-slate-400"
+                    />
+                    {{ estimateLine }}
+                  </span>
+                  <span v-if="loggedHoursLine">{{ loggedHoursLine }}</span>
                 </div>
               </dl>
-
-              <div
-                v-if="assigneeSummary || timeSummary"
-                class="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-600 dark:text-slate-400"
-              >
-                <p
-                  v-if="assigneeSummary"
-                  class="flex min-w-0 items-center gap-1.5"
-                >
-                  <AppIcon
-                    name="people"
-                    :size="12"
-                    class="shrink-0 text-slate-400"
-                  />
-                  <span class="font-medium text-slate-500 dark:text-slate-500">Người làm:</span>
-                  <span class="min-w-0 truncate font-medium text-slate-700 dark:text-slate-200">{{ assigneeSummary }}</span>
-                </p>
-                <p
-                  v-if="timeSummary"
-                  class="flex items-center gap-1.5 tabular-nums"
-                >
-                  <AppIcon
-                    name="worklog"
-                    :size="12"
-                    class="shrink-0 text-slate-400"
-                  />
-                  {{ timeSummary }}
-                </p>
-              </div>
 
               <p
                 v-if="activeTask.parent?.id"
@@ -529,156 +738,6 @@ const worklogList = computed(() => normalizeEntities(activeTask.value?.worklogs)
                   #{{ activeTask.parent.id }} · {{ activeTask.parent.title }}
                 </button>
               </p>
-
-              <div class="mt-3.5 flex flex-wrap items-center gap-2 border-t border-slate-200/80 pt-3 dark:border-slate-700">
-                <div class="flex flex-wrap items-center gap-1.5">
-                  <button
-                    v-if="canEdit"
-                    type="button"
-                    class="inline-flex h-8 items-center gap-1.5 rounded-lg bg-brand px-3 text-xs font-semibold text-white shadow-sm hover:bg-brand/90"
-                    @click="emit('edit', activeTask)"
-                  >
-                    <AppIcon
-                      name="edit"
-                      :size="13"
-                    />
-                    Sửa
-                  </button>
-
-                  <button
-                    v-if="canDelete"
-                    type="button"
-                    class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-rose-200 bg-white px-2.5 text-xs font-medium text-rose-600 hover:bg-rose-50 dark:border-rose-900 dark:bg-slate-900 dark:text-rose-400 dark:hover:bg-rose-950/40"
-                    title="Xoá công việc"
-                    @click="removeTask"
-                  >
-                    <AppIcon
-                      name="delete"
-                      :size="13"
-                    />
-                    Xoá
-                  </button>
-
-                  <div
-                    v-if="canChangeStatus"
-                    class="relative"
-                  >
-                    <button
-                      type="button"
-                      class="inline-flex h-8 max-w-[10rem] items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-                      title="Đổi trạng thái"
-                      @click="showStatusMenu = !showStatusMenu"
-                    >
-                      <AppIcon
-                        name="task"
-                        :size="13"
-                      />
-                      <span class="truncate">{{ activeTask.status?.label || 'Trạng thái' }}</span>
-                      <AppIcon
-                        name="chevron"
-                        :size="12"
-                        class="shrink-0 opacity-60"
-                      />
-                    </button>
-                    <div
-                      v-if="showStatusMenu"
-                      class="absolute left-0 top-full z-20 mt-1 min-w-[9rem] rounded-lg border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-900"
-                    >
-                      <button
-                        v-for="o in statusOptionList"
-                        :key="o.value"
-                        type="button"
-                        class="flex w-full px-3 py-1.5 text-left text-xs hover:bg-slate-50 dark:hover:bg-slate-800"
-                        :class="activeTask.status?.value === o.value ? 'font-semibold text-brand' : 'text-slate-600'"
-                        @click="onStatusPick(o.value)"
-                      >
-                        {{ o.label }}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div
-                    v-if="canEdit && !isSubtaskRow"
-                    class="relative"
-                  >
-                    <button
-                      type="button"
-                      class="inline-flex h-8 max-w-[11rem] items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-                      title="Giao việc"
-                      @click="showAssignMenu = !showAssignMenu"
-                    >
-                      <AppIcon
-                        name="people"
-                        :size="13"
-                      />
-                      <span class="truncate">{{ assigneeSummary || 'Giao việc' }}</span>
-                    </button>
-                    <div
-                      v-if="showAssignMenu"
-                      class="absolute left-0 top-full z-20 mt-1 min-w-[14rem] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900"
-                    >
-                      <div class="border-b border-slate-100 p-1.5 dark:border-slate-700">
-                        <input
-                          ref="assignSearchRef"
-                          v-model="assignMenuSearch"
-                          type="text"
-                          class="input w-full py-1 text-xs"
-                          placeholder="Tìm theo tên…"
-                        >
-                      </div>
-                      <div class="max-h-44 overflow-y-auto py-1">
-                        <button
-                          type="button"
-                          class="w-full px-3 py-1.5 text-left text-xs text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800"
-                          @click="onAssignPick(null)"
-                        >
-                          — Chưa gán —
-                        </button>
-                        <button
-                          v-for="e in filteredAssignees"
-                          :key="e.id"
-                          type="button"
-                          class="w-full px-3 py-1.5 text-left text-xs hover:bg-slate-50 dark:hover:bg-slate-800"
-                          @click="onAssignPick(e.id)"
-                        >
-                          {{ e.name }}
-                        </button>
-                        <p
-                          v-if="!filteredAssignees.length"
-                          class="px-3 py-2 text-center text-xs text-slate-400"
-                        >
-                          Không tìm thấy.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="ml-auto flex shrink-0 items-center gap-1">
-                  <button
-                    type="button"
-                    class="grid h-8 w-8 place-items-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:hover:bg-slate-800"
-                    title="Bình luận"
-                    @click="goComment"
-                  >
-                    <AppIcon
-                      name="comment"
-                      :size="14"
-                    />
-                  </button>
-                  <button
-                    type="button"
-                    class="grid h-8 w-8 place-items-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:hover:bg-slate-800"
-                    title="Sao chép link"
-                    @click="copyLink"
-                  >
-                    <AppIcon
-                      name="copy"
-                      :size="14"
-                    />
-                  </button>
-                </div>
-              </div>
             </div>
           </header>
 
@@ -748,21 +807,19 @@ const worklogList = computed(() => normalizeEntities(activeTask.value?.worklogs)
               class="space-y-5"
             >
               <!-- Tiến độ -->
-              <section class="rounded-lg border border-slate-200/80 p-3 dark:border-slate-700">
+              <section
+                v-if="progressPct > 0 || worklogList.length"
+                class="rounded-lg border border-slate-200/80 p-3 dark:border-slate-700"
+              >
                 <div class="mb-2 flex items-center justify-between gap-2">
-                  <span class="text-xs font-medium text-slate-500">Tiến độ công việc</span>
-                  <span class="text-base font-bold text-brand">{{ progressPct }}%</span>
+                  <span class="text-xs font-medium text-slate-500">Tiến độ</span>
+                  <span class="text-sm font-semibold tabular-nums text-brand">{{ progressPct }}%</span>
                 </div>
                 <ProgressBar
                   :value="progressPct"
+                  :show-label="false"
                   class="h-2"
                 />
-                <p
-                  v-if="timeSummary"
-                  class="mt-2 text-xs text-slate-500"
-                >
-                  {{ timeSummary }}
-                </p>
                 <ul
                   v-if="worklogList.length"
                   class="mt-2 space-y-1 border-t border-slate-100 pt-2 dark:border-slate-800"
@@ -785,22 +842,35 @@ const worklogList = computed(() => normalizeEntities(activeTask.value?.worklogs)
               </section>
 
               <!-- People -->
-              <section class="rounded-lg border border-slate-200/80 bg-slate-50/50 p-3 dark:border-slate-700 dark:bg-slate-900/50">
-                <h3 class="mb-2 text-xs font-semibold text-slate-500">
-                  Phân công
-                </h3>
-                <div class="space-y-3">
+              <section
+                v-if="activeTask.reporter || assigneeList.length || activeTask.reviewer || watcherList.length"
+                class="rounded-lg border border-slate-200/80 p-3 dark:border-slate-700"
+              >
+                <div class="mb-2 flex items-center justify-between gap-2">
+                  <h3 class="text-xs font-semibold text-slate-500">
+                    Phân công
+                  </h3>
+                  <button
+                    v-if="canEdit"
+                    type="button"
+                    class="text-[11px] font-medium text-brand hover:underline"
+                    @click="emit('edit', activeTask)"
+                  >
+                    Quản lý
+                  </button>
+                </div>
+                <div class="space-y-2">
                   <div
                     v-if="activeTask.reporter"
-                    class="flex items-center gap-3"
+                    class="flex items-center gap-2.5"
                   >
                     <Avatar
                       :name="activeTask.reporter.name"
                       :src="activeTask.reporter.avatar_path"
-                      :size="36"
+                      :size="28"
                     />
-                    <div>
-                      <p class="text-sm font-medium text-slate-800 dark:text-slate-100">
+                    <div class="min-w-0">
+                      <p class="truncate text-sm font-medium text-slate-800 dark:text-slate-100">
                         {{ activeTask.reporter.name }}
                       </p>
                       <p class="text-[10px] uppercase text-slate-400">
@@ -811,15 +881,15 @@ const worklogList = computed(() => normalizeEntities(activeTask.value?.worklogs)
                   <div
                     v-for="a in assigneeList"
                     :key="a.id"
-                    class="flex items-center gap-3"
+                    class="flex items-center gap-2.5"
                   >
                     <Avatar
                       :name="a.name"
                       :src="a.avatar_path"
-                      :size="36"
+                      :size="28"
                     />
-                    <div>
-                      <p class="text-sm font-medium text-slate-800 dark:text-slate-100">
+                    <div class="min-w-0">
+                      <p class="truncate text-sm font-medium text-slate-800 dark:text-slate-100">
                         {{ a.name }}
                       </p>
                       <p class="text-[10px] uppercase text-slate-400">
@@ -827,23 +897,17 @@ const worklogList = computed(() => normalizeEntities(activeTask.value?.worklogs)
                       </p>
                     </div>
                   </div>
-                  <p
-                    v-if="!assigneeList.length && !activeTask.reporter"
-                    class="text-sm text-slate-400"
-                  >
-                    Chưa phân công.
-                  </p>
                   <div
                     v-if="activeTask.reviewer"
-                    class="flex items-center gap-3 border-t border-slate-200/80 pt-3 dark:border-slate-700"
+                    class="flex items-center gap-2.5"
                   >
                     <Avatar
                       :name="activeTask.reviewer.name"
                       :src="activeTask.reviewer.avatar_path"
-                      :size="36"
+                      :size="28"
                     />
-                    <div>
-                      <p class="text-sm font-medium text-slate-800 dark:text-slate-100">
+                    <div class="min-w-0">
+                      <p class="truncate text-sm font-medium text-slate-800 dark:text-slate-100">
                         {{ activeTask.reviewer.name }}
                       </p>
                       <p class="text-[10px] uppercase text-slate-400">
@@ -853,35 +917,27 @@ const worklogList = computed(() => normalizeEntities(activeTask.value?.worklogs)
                   </div>
                   <div
                     v-if="watcherList.length"
-                    class="border-t border-slate-200/80 pt-3 dark:border-slate-700"
+                    class="border-t border-slate-100 pt-2 dark:border-slate-800"
                   >
-                    <p class="mb-2 text-[10px] uppercase text-slate-400">
+                    <p class="mb-1.5 text-[10px] uppercase text-slate-400">
                       Người theo dõi
                     </p>
                     <div class="flex flex-wrap gap-1">
                       <span
                         v-for="w in watcherList"
                         :key="w.id"
-                        class="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-xs shadow-sm dark:bg-slate-800"
+                        class="inline-flex items-center gap-1 rounded-full bg-slate-50 px-2 py-0.5 text-[11px] dark:bg-slate-800"
                       >
                         <Avatar
                           :name="w.name"
                           :src="w.avatar_path"
-                          :size="18"
+                          :size="16"
                         />
                         {{ w.name }}
                       </span>
                     </div>
                   </div>
                 </div>
-                <button
-                  v-if="canEdit"
-                  type="button"
-                  class="mt-3 text-xs font-medium text-brand hover:underline"
-                  @click="emit('edit', activeTask)"
-                >
-                  Quản lý phân công đầy đủ →
-                </button>
               </section>
 
               <TaskDetailSubtasks

@@ -3,8 +3,6 @@ import { ref, computed, onMounted, watch, toRef } from 'vue';
 import { Head, router, usePage, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AppIcon from '@/Components/AppIcon.vue';
-import Avatar from '@/shared/ui/Avatar.vue';
-import ProgressBar from '@/shared/ui/ProgressBar.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import ProjectCalendar from '@/modules/project/components/Calendar/ProjectCalendar.vue';
 import TaskBoard from '@/modules/project/components/TaskBoard.vue';
@@ -17,6 +15,8 @@ import RiskIssueDataTable from '@/modules/project/components/Dashboard/RiskIssue
 import ProjectFeedbackPanel from '@/modules/project/components/Dashboard/ProjectFeedbackPanel.vue';
 import ActivityFeed from '@/modules/project/components/Dashboard/ActivityFeed.vue';
 import ProjectOverviewCard from '@/modules/project/components/Dashboard/ProjectOverviewCard.vue';
+import ProjectShowSummaryBar from '@/modules/project/components/Dashboard/ProjectShowSummaryBar.vue';
+import WorkloadTable from '@/modules/project/components/Dashboard/WorkloadTable.vue';
 import ProjectDocumentsPanel from '@/modules/project/components/Documents/ProjectDocumentsPanel.vue';
 import SprintWorkspace from '@/modules/project/components/Sprint/SprintWorkspace.vue';
 import TaskCompleteModal from '@/modules/project/components/Sprint/TaskCompleteModal.vue';
@@ -33,6 +33,7 @@ const props = defineProps({
     blockers: { type: Array, default: () => [] },
     feedbacks: { type: Array, default: () => [] },
     feedbackSummary: { type: Object, default: () => ({}) },
+    summary: { type: Object, default: () => ({}) },
     can: { type: Object, default: () => ({}) },
     epics: { type: Array, default: () => [] },
     attachments: { type: Array, default: () => [] },
@@ -173,7 +174,6 @@ const onBoardMove = ({ id, status }) => {
 };
 
 // ---- Overview computed ----
-const completedTasks = computed(() => props.tasks.filter((t) => t.status.value === 'done').length);
 const openBlockerCount = computed(() => props.blockers.filter((b) => !['resolved', 'closed'].includes(b.status?.value)).length);
 const openFeedbackCount = computed(() => props.feedbackSummary?.open ?? 0);
 const canFeedbackCreate = computed(() => props.can?.feedbackCreate ?? false);
@@ -203,6 +203,7 @@ const {
     showRiskPanel,
     showActivity,
     showProjectDetail,
+    memberWorkload,
 } = useProjectDashboard(pid, {
     project: toRef(() => props.project),
     tasks: toRef(() => props.tasks),
@@ -236,7 +237,17 @@ watch(tab, (t) => {
     window.history.replaceState(window.history.state, '', u);
 });
 
-const scrollToRiskPanel = () => riskPanelRef.value?.scrollHere();
+const workloadSectionRef = ref(null);
+
+function onSummaryNavigate(target) {
+    if (target === 'members') {
+        workloadSectionRef.value?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+        return;
+    }
+    if (['board', 'sprints', 'blockers'].includes(target)) {
+        tab.value = target;
+    }
+}
 
 const logTaskStatus = (task, status) => {
     const who = props.project.manager?.name?.split(' ').pop() || 'Thành viên';
@@ -408,83 +419,13 @@ const onSprintSaved = () => {
         <!-- ===== OVERVIEW (Dashboard) ===== -->
         <div
           v-show="tab === 'overview'"
-          class="h-full w-full min-w-0 overflow-x-hidden overflow-y-auto dark:bg-slate-950"
+          class="flex h-full w-full min-w-0 flex-col overflow-x-hidden overflow-y-auto dark:bg-slate-950"
         >
+          <ProjectShowSummaryBar
+            :summary="summary"
+            @navigate="onSummaryNavigate"
+          />
           <div class="w-full min-w-0 space-y-4 p-4 sm:space-y-5 sm:p-5 lg:p-6">
-            <!-- KPI cards -->
-            <div class="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-5">
-              <div class="card p-4 dark:border-slate-700 dark:bg-slate-900">
-                <p class="text-xs text-slate-500 dark:text-slate-400">
-                  Tiến độ tổng
-                </p>
-                <p class="mt-1 font-display text-2xl font-bold text-brand">
-                  {{ project.progress ?? 0 }}%
-                </p>
-                <ProgressBar
-                  :value="project.progress"
-                  class="mt-2"
-                />
-              </div>
-              <div class="card p-4 dark:border-slate-700 dark:bg-slate-900">
-                <p class="text-xs text-slate-500 dark:text-slate-400">
-                  Thành viên
-                </p>
-                <p class="mt-1 font-display text-2xl font-bold text-brand">
-                  {{ projectMembers.length }}
-                </p>
-                <div class="mt-1.5 flex -space-x-1">
-                  <Avatar
-                    v-for="m in projectMembers.slice(0,5)"
-                    :key="m.id"
-                    :name="m.name"
-                    :src="m.avatar_path"
-                    :size="20"
-                    class="ring-1 ring-white dark:ring-slate-900"
-                  />
-                </div>
-              </div>
-              <div class="card p-4 dark:border-slate-700 dark:bg-slate-900">
-                <p class="text-xs text-slate-500 dark:text-slate-400">
-                  Công việc
-                </p>
-                <p class="mt-1 font-display text-2xl font-bold text-slate-800 dark:text-slate-100">
-                  {{ tasks.length }}
-                </p>
-                <p class="mt-1 text-xs text-emerald-600 dark:text-emerald-400">
-                  {{ completedTasks }} hoàn thành
-                </p>
-              </div>
-              <div class="card p-4 dark:border-slate-700 dark:bg-slate-900">
-                <p class="text-xs text-slate-500 dark:text-slate-400">
-                  Sprint
-                </p>
-                <p class="mt-1 font-display text-2xl font-bold text-sky-600 dark:text-sky-400">
-                  {{ sprints.length }}
-                </p>
-                <p class="mt-1 text-xs text-slate-400">
-                  {{ sprints.filter(s => s.status?.value === 'active').length }} đang chạy
-                </p>
-              </div>
-              <button
-                type="button"
-                class="card p-4 text-left transition hover:ring-2 hover:ring-rose-200 dark:border-slate-700 dark:bg-slate-900 dark:hover:ring-rose-800"
-                @click="scrollToRiskPanel"
-              >
-                <p class="text-xs text-slate-500 dark:text-slate-400">
-                  Vướng mắc mở
-                </p>
-                <p
-                  class="mt-1 font-display text-2xl font-bold"
-                  :class="openBlockerCount ? 'text-rose-500' : 'text-slate-400'"
-                >
-                  {{ openBlockerCount }}
-                </p>
-                <p class="mt-1 text-xs text-slate-400">
-                  {{ blockers.length }} tổng cộng · Nhấn để xem
-                </p>
-              </button>
-            </div>
-
             <DeadlineBanner
               v-if="deadlineBanner"
               :banner="deadlineBanner"
@@ -508,6 +449,13 @@ const onSprintSaved = () => {
               >
                 <ActivityFeed :activities="activityLog" />
               </div>
+            </div>
+
+            <div
+              ref="workloadSectionRef"
+              class="scroll-mt-4"
+            >
+              <WorkloadTable :rows="memberWorkload" />
             </div>
 
             <RiskIssuePanel

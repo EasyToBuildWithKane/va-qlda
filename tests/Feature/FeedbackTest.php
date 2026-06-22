@@ -77,7 +77,7 @@ class FeedbackTest extends TestCase
 
     public function test_guest_is_redirected_from_feedback(): void
     {
-        $this->get('/feedback')->assertRedirect('/tech/login');
+        $this->get('/feedback')->assertRedirect('/login');
     }
 
     // ─── Store ────────────────────────────────────────────────────────────────

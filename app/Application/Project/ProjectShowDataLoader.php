@@ -11,7 +11,7 @@ class ProjectShowDataLoader
         $project->load([
             'manager',
             'department',
-            'members',
+            'members' => fn ($q) => $q->wherePivot('is_active', true)->orderByDesc('project_member.joined_at'),
             'sprints' => fn ($q) => $q->withCount('tasks'),
             'epics',
             'tasks' => fn ($q) => $q->with([

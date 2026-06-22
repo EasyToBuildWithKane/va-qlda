@@ -37,7 +37,7 @@ class CongngheTest extends TestCase
 
     public function test_guest_is_redirected_from_congnghe(): void
     {
-        $this->get('/congnghe')->assertRedirect(route('tech.login'));
+        $this->get('/congnghe')->assertRedirect(route('login'));
     }
 
     public function test_authenticated_member_can_view_congnghe(): void

@@ -2,7 +2,7 @@
 
 namespace App\Http\Middleware;
 
-use App\Support\Auth\CoachingOnlyAccess;
+use App\Support\Auth\PortalDestination;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -23,7 +23,7 @@ class RedirectIfAuthenticated
             if (Auth::guard($guard)->check()) {
                 $account = Auth::guard($guard)->user();
 
-                return redirect($account ? CoachingOnlyAccess::homePath($account) : '/dashboard');
+                return redirect($account ? PortalDestination::homePath($account, 'portal') : route('congnghe', [], false));
             }
         }
 

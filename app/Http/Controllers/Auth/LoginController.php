@@ -54,7 +54,7 @@ class LoginController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('tech.login');
+        return redirect()->route('login');
     }
 
     private function renderLogin(Request $request, string $portal): Response

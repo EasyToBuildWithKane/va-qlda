@@ -36,8 +36,8 @@ routes/api.php      ← Rỗng (chưa sử dụng)
 
 | Method | URI | Controller | Middleware | Mô Tả |
 |---|---|---|---|---|
-| GET | `/login` | LoginController@createPortal | guest | Cổng đăng nhập (Google UI) |
-| GET | `/tech/login` | LoginController@createTech | guest | Cổng đăng nhập khu vực tech |
+| GET | `/login` | LoginController@createPortal | guest | Cổng đăng nhập mặc định (Google UI); guest chưa đăng nhập được redirect về đây |
+| GET | `/tech/login` | LoginController@createTech | guest | Cổng QLDA (whitelist) → sau đăng nhập về `/dashboard` |
 | GET | `/auth/google` | GoogleAuthController@redirect | guest | OAuth Google |
 | GET | `/auth/google/callback` | GoogleAuthController@callback | guest | Callback OAuth |
 | POST | `/login`, `/tech/login` | LoginController@store* | guest | Chỉ khi `config('va.password_login_enabled')` |
@@ -48,7 +48,7 @@ routes/api.php      ← Rỗng (chưa sử dụng)
 
 | Method | URI | Controller | Middleware | Mô Tả |
 |---|---|---|---|---|
-| GET | `/` | redirect | auth | Redirect → /dashboard |
+| GET | `/` | redirect | auth | Redirect → `/congnghe` (guest truy cập `/` → middleware auth → `/login`) |
 | GET | `/dashboard` | HubDashboardController (invokable) | auth | Trang tổng quan: chào mừng, xu hướng hoạt động, tuân thủ báo cáo, cảnh báo, lưới module (KPI chi tiết tại `/work`) |
 | GET | `/work` | WorkDashboardController (invokable) | auth | Dashboard công việc cá nhân (`work-dashboard`) |
 

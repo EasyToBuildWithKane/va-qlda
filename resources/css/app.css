@@ -223,6 +223,8 @@
     .sidebar-nav-link:hover .sidebar-nav-icon,
     .sidebar-rail-item:hover .sidebar-nav-icon,
     .sidebar-rail-group:hover .sidebar-nav-icon,
+    .sidebar-nav-group-row:hover .sidebar-nav-icon,
+    .group\/row:hover .sidebar-nav-icon,
     .group\/head:hover .sidebar-nav-icon {
         transform: scale(1.08);
     }

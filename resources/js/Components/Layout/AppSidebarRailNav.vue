@@ -10,12 +10,9 @@ const props = defineProps({
     isActive: { type: Function, required: true },
     isUpcomingGroup: { type: Function, required: true },
     isPlanned: { type: Function, required: true },
-    showRailStatus: { type: Function, required: true },
-    statusOf: { type: Function, required: true },
     groupContainsActive: { type: Function, required: true },
     showTip: { type: Function, required: true },
     hideTip: { type: Function, required: true },
-    railTone: { type: Function, required: true },
     openFlyout: { type: Function, required: true },
     scheduleFlyout: { type: Function, required: true },
     closeFlyout: { type: Function, required: true },
@@ -23,14 +20,17 @@ const props = defineProps({
 
 const emit = defineEmits(['scroll']);
 
-// Mark where each functional super-section begins so the rail can show a
-// stronger divider between sections and a lighter one between sibling groups.
 const sectionStarts = computed(() =>
     props.nav.map((group, i) => i === 0 || props.nav[i - 1].section !== group.section),
 );
 
 function bindNavRef(el) {
     props.registerNavEl(el);
+}
+
+function soleItem(group) {
+    if (group.items.length !== 1) return null;
+    return group.items[0];
 }
 
 const onGroupEnter = (group, e) => {
@@ -43,7 +43,7 @@ const onGroupEnter = (group, e) => {
 
 const onGroupClick = (group, e) => {
     if (group.items.length <= 1) {
-        const only = group.items[0];
+        const only = soleItem(group);
         if (only && !props.isPlanned(only) && only.href !== '#') {
             window.location.href = only.href;
         }
@@ -52,19 +52,13 @@ const onGroupClick = (group, e) => {
     props.openFlyout(group, e.currentTarget);
 };
 
-const itemTipSub = (item) => {
-    if (props.isPlanned(item)) return 'Sắp ra mắt';
-    if (props.showRailStatus(item)) return props.statusOf(item).label;
-    return '';
-};
-
 const groupHasBadge = (group) => group.items.some((item) => item.badge);
 </script>
 
 <template>
   <nav
     :ref="bindNavRef"
-    class="sidebar-nav-scroll flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto px-2 py-2"
+    class="sidebar-nav-scroll flex min-h-0 flex-1 flex-col items-center gap-1.5 overflow-y-auto px-2 py-2"
     aria-label="Điều hướng chính"
     @scroll="emit('scroll', $event)"
   >
@@ -84,77 +78,34 @@ const groupHasBadge = (group) => group.items.some((item) => item.badge);
         aria-hidden="true"
       />
 
-      <button
-        v-if="group.items.length > 1"
-        type="button"
-        class="sidebar-rail-group relative mb-0.5 grid h-10 w-10 place-items-center rounded-lg transition-all duration-200"
+      <component
+        :is="soleItem(group) && !isPlanned(soleItem(group)) ? Link : 'button'"
+        :href="soleItem(group) && !isPlanned(soleItem(group)) ? soleItem(group).href : undefined"
+        :type="soleItem(group) && !isPlanned(soleItem(group)) ? undefined : 'button'"
+        class="sidebar-rail-group relative grid h-11 w-11 place-items-center rounded-xl transition-all duration-200"
         :class="[
           groupContainsActive(group)
-            ? 'bg-white/[0.12] text-white'
+            ? 'sidebar-nav-item--active bg-white/[0.14] text-white shadow-sm shadow-black/10'
             : isUpcomingGroup(group)
-              ? 'text-amber-200/75 hover:bg-amber-400/12 hover:text-amber-50'
+              ? 'text-amber-200/80 hover:bg-amber-400/12 hover:text-amber-50'
               : 'text-white/70 hover:bg-white/[0.08] hover:text-white/95',
         ]"
         :aria-label="group.heading"
-        :aria-haspopup="true"
+        :aria-haspopup="group.items.length > 1 ? 'menu' : undefined"
         @mouseenter="onGroupEnter(group, $event)"
         @mouseleave="hideTip(); closeFlyout()"
         @click="onGroupClick(group, $event)"
       >
         <span
           v-if="groupHasBadge(group)"
-          class="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-brand"
+          class="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-brand"
           aria-hidden="true"
         />
         <AppIcon
           :name="group.icon"
-          :size="18"
-          :stroke-width="1.65"
-          class="sidebar-nav-icon"
-        />
-      </button>
-
-      <component
-        :is="isPlanned(item) ? 'div' : Link"
-        v-for="item in group.items"
-        :key="item.label"
-        :href="isPlanned(item) ? undefined : item.href"
-        class="sidebar-rail-item relative grid h-12 w-12 place-items-center rounded-xl transition-all duration-200"
-        :class="[
-          isActive(item.href)
-            ? 'sidebar-nav-item--active bg-white/[0.12] text-white'
-            : 'text-white/55 hover:bg-white/[0.06] hover:text-white/85',
-          isPlanned(item) && 'cursor-not-allowed opacity-70 hover:bg-amber-400/10 hover:text-amber-100/80',
-        ]"
-        @mouseenter="showTip($event, item.label, itemTipSub(item), railTone(item))"
-        @mouseleave="hideTip"
-        @click="closeFlyout()"
-      >
-        <AppIcon
-          :name="item.icon"
           :size="22"
           :stroke-width="1.65"
           class="sidebar-nav-icon"
-        />
-        <span
-          v-if="item.badge"
-          class="absolute -right-1 -top-1 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold leading-none text-white ring-2 ring-brand tabular-nums"
-          :aria-label="`${item.badge} mục mới`"
-        >{{ item.badge > 9 ? '9+' : item.badge }}</span>
-        <span
-          v-else-if="isPlanned(item)"
-          class="absolute -right-0.5 -top-0.5 grid h-3.5 w-3.5 place-items-center rounded-full bg-amber-400/90 ring-[1.5px] ring-brand"
-        >
-          <AppIcon
-            name="clock"
-            :size="8"
-            class="text-brand"
-          />
-        </span>
-        <span
-          v-else-if="showRailStatus(item)"
-          class="absolute right-0.5 top-0.5 h-2 w-2 rounded-full ring-2 ring-brand"
-          :class="statusOf(item).dot"
         />
       </component>
     </template>

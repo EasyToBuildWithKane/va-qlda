@@ -75,7 +75,7 @@ class ProjectTest extends TestCase
 
     public function test_guest_is_redirected_from_projects(): void
     {
-        $this->get('/projects')->assertRedirect('/tech/login');
+        $this->get('/projects')->assertRedirect('/login');
     }
 
     // ─── Create / Store ───────────────────────────────────────────────────────
@@ -164,6 +164,26 @@ class ProjectTest extends TestCase
         $this->actingAs($this->admin(), 'system')
             ->get("/projects/{$project->id}")
             ->assertOk();
+    }
+
+    public function test_project_show_includes_merged_members_and_summary(): void
+    {
+        $project = Project::factory()->create();
+        $assignee = Employee::factory()->create();
+        $project->tasks()->create([
+            'title' => 'Work item',
+            'status' => TaskStatus::Todo,
+            'priority' => TaskPriority::Medium,
+            'assignee_id' => $assignee->id,
+        ]);
+
+        $this->actingAs($this->admin(), 'system')
+            ->get("/projects/{$project->id}")
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('summary.members', fn ($count) => $count >= 1)
+                ->where('project.members', fn ($members) => collect($members)->contains('id', $assignee->id))
+            );
     }
 
     // ─── Update ───────────────────────────────────────────────────────────────

@@ -48,7 +48,7 @@ class OrgTeamTest extends TestCase
 
     public function test_guest_cannot_access_org_teams(): void
     {
-        $this->get(route('org-teams.index'))->assertRedirect('/tech/login');
+        $this->get(route('org-teams.index'))->assertRedirect('/login');
     }
 
     public function test_admin_can_view_index(): void

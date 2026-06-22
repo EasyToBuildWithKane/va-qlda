@@ -2,14 +2,12 @@
 
 namespace App\Application\Project;
 
-use App\Models\Employee;
 use App\Models\Project;
 use App\Models\SystemAccount;
 use App\Support\OrgTeam\EmployeeOrgTeamMap;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 
 class ProjectIndexQuery
 {
@@ -20,6 +18,7 @@ class ProjectIndexQuery
 
     public function __construct(
         private readonly ProjectSummaryQuery $summaryQuery,
+        private readonly ProjectMemberRosterMerger $memberRosterMerger,
     ) {}
 
     /**
@@ -80,7 +79,7 @@ class ProjectIndexQuery
         }
 
         $projects = $query->paginate($perPage)->withQueryString();
-        $this->mergeTaskAssigneesIntoMembers($projects->getCollection());
+        $this->memberRosterMerger->mergeForCollection($projects->getCollection());
         $orgTeamOptions = $this->attachManagerOrgTeams($projects->getCollection());
 
         return [
@@ -112,62 +111,5 @@ class ProjectIndexQuery
         }
 
         return $map['teams'];
-    }
-
-    /**
-     * Thẻ dự án: thành viên dự án + người được gán task/sprint (tối đa 8 avatar).
-     *
-     * @param  Collection<int, Project>  $projects
-     */
-    private function mergeTaskAssigneesIntoMembers(Collection $projects): void
-    {
-        if ($projects->isEmpty()) {
-            return;
-        }
-
-        $projectIds = $projects->pluck('id')->all();
-
-        $grammar = DB::connection()->getQueryGrammar();
-
-        $assigneeRows = DB::table('tasks')
-            ->leftJoin('task_assignees', 'tasks.id', '=', 'task_assignees.task_id')
-            ->whereIn('tasks.project_id', $projectIds)
-            ->whereNull('tasks.deleted_at')
-            ->where(function ($q) {
-                $q->whereNotNull('tasks.assignee_id')
-                    ->orWhereNotNull('task_assignees.employee_id');
-            })
-            ->selectRaw(
-                $grammar->wrap('tasks.project_id').', COALESCE('
-                .$grammar->wrap('task_assignees.employee_id').', '
-                .$grammar->wrap('tasks.assignee_id').') as employee_id'
-            )
-            ->distinct()
-            ->get()
-            ->groupBy('project_id');
-
-        $extraIds = $assigneeRows->flatten(1)->pluck('employee_id')->filter()->unique()->values();
-        $employees = $extraIds->isEmpty()
-            ? collect()
-            : Employee::query()->whereIn('id', $extraIds)->get()->keyBy('id');
-
-        foreach ($projects as $project) {
-            $seen = $project->members->pluck('id')->flip();
-            $merged = $project->members;
-
-            foreach ($assigneeRows->get($project->id, collect()) as $row) {
-                $eid = (int) $row->employee_id;
-                if ($seen->has($eid) || ! $employees->has($eid)) {
-                    continue;
-                }
-                $merged->push($employees->get($eid));
-                $seen->put($eid, 1);
-                if ($merged->count() >= 8) {
-                    break;
-                }
-            }
-
-            $project->setRelation('members', $merged);
-        }
     }
 }

@@ -47,7 +47,10 @@ class ProjectResource extends JsonResource
                 'color' => $this->department->color,
             ] : null),
             'manager' => $this->whenLoaded('manager', fn () => $this->person($this->manager)),
-            'members' => MemberResource::collection($this->whenLoaded('members')),
+            'members' => $this->when(
+                $this->relationLoaded('members'),
+                fn () => MemberResource::collection($this->members)->resolve(),
+            ),
             'sprints' => SprintResource::collection($this->whenLoaded('sprints')),
             'tasks' => TaskResource::collection($this->whenLoaded('tasks')),
             'blockers' => BlockerResource::collection($this->whenLoaded('blockers')),

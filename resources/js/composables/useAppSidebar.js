@@ -119,25 +119,16 @@ export function useAppSidebar() {
 
     const groupContainsActive = (group) => group.items.some((item) => isActive(item.href));
 
-    const isOpen = (group) => {
-        if (groupContainsActive(group)) return true;
-        return !collapsed.has(groupKey(group));
-    };
+    const isOpen = (group) => !collapsed.has(groupKey(group));
 
     const toggleGroup = (group) => {
         const key = groupKey(group);
         if (collapsed.has(key)) {
             collapsed.delete(key);
-            return;
+        } else {
+            collapsed.add(key);
         }
-        if (!groupContainsActive(group)) collapsed.add(key);
     };
-
-    watch(activeHref, () => {
-        for (const group of nav.value) {
-            if (groupContainsActive(group)) collapsed.delete(groupKey(group));
-        }
-    });
 
     const isUpcomingGroup = (group) => group.variant === 'upcoming';
     const statusOf = (item) => SIDEBAR_STATUS[item.status] ?? SIDEBAR_STATUS.live;
@@ -201,6 +192,11 @@ export function useAppSidebar() {
     const openFlyout = (group, el) => {
         clearTimeout(flyoutTimer);
         if (!group?.items?.length) return;
+        const key = groupKey(group);
+        if (flyout.open && flyout.group && groupKey(flyout.group) === key) {
+            closeFlyout();
+            return;
+        }
         const r = el.getBoundingClientRect();
         flyout.group = group;
         flyout.top = Math.max(8, Math.min(r.top, window.innerHeight - 320));
