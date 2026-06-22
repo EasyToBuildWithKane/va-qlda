@@ -108,11 +108,14 @@ const emit = defineEmits(['collapse', 'expand']);
         :register-nav-el="registerNavEl"
         :nav="nav"
         :group-key="groupKey"
+        :is-open="isOpen"
+        :toggle-group="toggleGroup"
         :is-active="isActive"
         :is-upcoming-group="isUpcomingGroup"
         :is-planned="isPlanned"
+        :show-badge="showBadge"
+        :status-of="statusOf"
         :group-contains-active="groupContainsActive"
-        :open-flyout="openFlyout"
         @scroll="onSidebarNavScroll"
       />
     </div>

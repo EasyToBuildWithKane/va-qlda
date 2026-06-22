@@ -157,6 +157,8 @@ onUnmounted(() => {
       :app-short-name="appShortName"
       :app-name="appName"
       :group-key="groupKey"
+      :is-open="isOpen"
+      :toggle-group="toggleGroup"
       :is-active="isActive"
       :is-upcoming-group="isUpcomingGroup"
       :is-planned="isPlanned"
@@ -164,11 +166,6 @@ onUnmounted(() => {
       :show-badge="showBadge"
       :status-of="statusOf"
       :register-nav-el="registerSidebarNavEl"
-      :flyout="flyout"
-      :open-flyout="openFlyout"
-      :close-flyout="closeFlyout"
-      :on-flyout-pointer-leave="onFlyoutPointerLeave"
-      :cancel-flyout-close="cancelFlyoutClose"
       @close="closeMobile"
     />
 

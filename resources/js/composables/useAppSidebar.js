@@ -266,7 +266,10 @@ export function useAppSidebar() {
         });
     }
 
-    watch(rail, () => nextTick(() => scrollActiveNavItemIntoView('smooth')));
+    watch(rail, (v) => {
+        if (!v) closeFlyout();
+        nextTick(() => scrollActiveNavItemIntoView('smooth'));
+    });
     onMounted(scrollActiveNavItemIntoView);
 
     return {
