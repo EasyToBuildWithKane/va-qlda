@@ -171,16 +171,27 @@ const rowBase =
                     :is="isPlanned(item) ? 'div' : Link"
                     :href="isPlanned(item) ? undefined : item.href"
                     :title="isPlanned(item) ? 'Sắp ra mắt — chưa khả dụng' : undefined"
-                    class="sidebar-nav-link group/item flex min-h-[36px] items-center gap-2 rounded-lg py-1.5 pl-4 pr-2 text-[13px] font-normal leading-snug transition-all duration-200"
+                    class="sidebar-nav-link group/item flex min-h-[38px] items-center gap-2.5 rounded-lg py-1.5 pl-3 pr-2 text-[14px] font-medium leading-snug transition-all duration-200"
                     :class="[
                       isActive(item.href)
-                        ? 'sidebar-nav-item--active bg-white/[0.12] font-medium text-white'
+                        ? 'sidebar-nav-item--active bg-white/[0.12] text-white'
                         : isUpcomingGroup(group)
-                          ? 'text-amber-100/65 hover:bg-amber-400/8 hover:text-amber-50/95'
-                          : 'text-white/60 hover:bg-white/[0.06] hover:text-white/90',
+                          ? 'text-amber-100/70 hover:bg-amber-400/8 hover:text-amber-50/95'
+                          : 'text-white/70 hover:bg-white/[0.06] hover:text-white/95',
                       isPlanned(item) && 'cursor-not-allowed opacity-75',
                     ]"
                   >
+                    <span
+                      class="sidebar-nav-sub-marker shrink-0 select-none text-base font-semibold leading-none transition-colors"
+                      :class="
+                        isActive(item.href)
+                          ? 'text-accent'
+                          : isUpcomingGroup(group)
+                            ? 'text-amber-300/55 group-hover/item:text-amber-200/80'
+                            : 'text-white/40 group-hover/item:text-white/65'
+                      "
+                      aria-hidden="true"
+                    >–</span>
                     <span class="min-w-0 flex-1 truncate">{{ item.label }}</span>
 
                     <span
