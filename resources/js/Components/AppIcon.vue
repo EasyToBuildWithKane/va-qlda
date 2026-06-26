@@ -165,6 +165,8 @@ const map = {
     contract: FileText,
     vendor: Building2,
     renewal: RotateCw,
+    timer: Timer,
+    gauge: Gauge,
 };
 
 const component = computed(() => map[props.name] || Circle);

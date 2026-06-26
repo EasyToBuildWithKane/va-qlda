@@ -3,6 +3,7 @@ import { ref, computed } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import Badge from '@/shared/ui/Badge.vue';
 import QuickWorklogPopover from './QuickWorklogPopover.vue';
+import { useFixedDropdownAnchor, resolveAnchorElement } from '@/shared/composables/useFixedDropdownAnchor';
 
 const props = defineProps({
     task: { type: Object, required: true },
@@ -14,6 +15,13 @@ const emit = defineEmits(['change-status', 'log-work', 'open']);
 
 const statusOpen = ref(false);
 const worklogOpen = ref(false);
+const statusTriggerRef = ref(null);
+
+const { panelStyle: statusPanelStyle } = useFixedDropdownAnchor(
+    () => resolveAnchorElement(statusTriggerRef),
+    statusOpen,
+    { width: 168, zIndex: 120, preferDown: true, maxHeight: 280 },
+);
 
 // Literal classes so Tailwind's content scanner keeps them (no dynamic strings).
 const dotClass = {
@@ -30,10 +38,27 @@ const canChange = computed(
 );
 const canLog = computed(() => props.mode === 'self' && props.task.can?.contribute);
 
-const dueLabel = computed(() => {
-    if (!props.task.due_date) return null;
-    const d = new Date(props.task.due_date + 'T00:00:00');
-    return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+function fmtDate(value) {
+    if (!value) return null;
+    const d = new Date(value + 'T00:00:00');
+    return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+const startLabel = computed(() => fmtDate(props.task.start_date));
+const dueLabel = computed(() => fmtDate(props.task.due_date));
+
+// "PRJ-026 · Tên dự án" — mã + tên để biết rõ đang ở dự án nào.
+const projectLabel = computed(() => {
+    const p = props.task.project;
+    if (!p) return null;
+    if (p.code && p.name) return `${p.code} · ${p.name}`;
+    return p.name || p.code || null;
+});
+
+const estimateLabel = computed(() => {
+    const h = props.task.estimate_hours;
+    if (h == null || h <= 0) return null;
+    return `${Number.isInteger(h) ? h : h.toFixed(1)}h`;
 });
 
 function pickStatus(value) {
@@ -60,46 +85,93 @@ function onLog(payload) {
       />
 
       <div class="min-w-0 flex-1">
+        <!-- Project — mã + tên, rõ đang ở dự án nào -->
+        <button
+          v-if="projectLabel"
+          type="button"
+          class="block max-w-full truncate text-left text-[11px] font-semibold text-brand hover:underline"
+          :title="projectLabel"
+          @click="emit('open', task)"
+        >
+          {{ projectLabel }}
+        </button>
+
         <!-- Title -->
         <button
           type="button"
-          class="block w-full truncate text-left text-sm font-medium text-slate-800 hover:text-brand dark:text-slate-100"
+          class="mt-0.5 block w-full truncate text-left text-sm font-medium text-slate-800 hover:text-brand dark:text-slate-100"
           @click="emit('open', task)"
         >
           {{ task.title }}
         </button>
 
-        <!-- Meta row -->
-        <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-500">
-          <span
-            v-if="task.project"
-            class="inline-flex items-center gap-1 truncate font-medium text-slate-500"
-          >
-            {{ task.project.code || task.project.name }}
-          </span>
-          <span
+        <!-- Labels (badge row) -->
+        <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
+          <Badge
             v-if="task.priority"
-            class="inline-flex"
+            :label="task.priority.label"
+            :color="task.priority.color"
+          />
+          <Badge
+            v-if="task.phase"
+            :label="task.phase.label"
+            :color="task.phase.color"
+          />
+          <Badge
+            v-if="task.is_milestone"
+            label="Mốc"
+            color="amber"
+          />
+          <Badge
+            v-if="task.sprint"
+            :label="task.sprint.name"
+            color="slate"
+          />
+        </div>
+
+        <!-- Meta row — cột thời gian + ước tính giờ -->
+        <div class="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500">
+          <span
+            v-if="startLabel"
+            class="inline-flex items-center gap-1"
+            title="Ngày bắt đầu"
           >
-            <Badge
-              :label="task.priority.label"
-              :color="task.priority.color"
+            <AppIcon
+              name="calendar"
+              :size="12"
             />
+            <span class="text-slate-400">Bắt đầu:</span>
+            {{ startLabel }}
           </span>
           <span
             v-if="dueLabel"
             class="inline-flex items-center gap-1"
             :class="task.is_late ? 'font-semibold text-rose-600' : ''"
+            title="Hạn hoàn thành"
           >
             <AppIcon
               name="clock"
               :size="12"
             />
+            <span :class="task.is_late ? 'text-rose-400' : 'text-slate-400'">Hạn:</span>
             {{ dueLabel }}
+          </span>
+          <span
+            v-if="estimateLabel"
+            class="inline-flex items-center gap-1"
+            title="Giờ làm dự kiến (ước tính)"
+          >
+            <AppIcon
+              name="gauge"
+              :size="12"
+            />
+            <span class="text-slate-400">Dự kiến:</span>
+            {{ estimateLabel }}
           </span>
           <span
             v-if="task.logged_today > 0"
             class="inline-flex items-center gap-1 text-emerald-600"
+            title="Giờ đã ghi hôm nay"
           >
             <AppIcon
               name="worklog"
@@ -115,11 +187,14 @@ function onLog(payload) {
         <!-- Status menu -->
         <div class="relative">
           <button
+            ref="statusTriggerRef"
             type="button"
             :disabled="!canChange"
             class="inline-flex items-center gap-1 rounded-lg px-1.5 py-1 transition disabled:cursor-not-allowed disabled:opacity-60"
             :class="canChange ? 'hover:bg-slate-100 dark:hover:bg-slate-800' : ''"
             :title="canChange ? 'Đổi trạng thái' : 'Bạn không có quyền đổi trạng thái việc này'"
+            aria-haspopup="listbox"
+            :aria-expanded="statusOpen"
             @click="statusOpen = !statusOpen"
           >
             <Badge
@@ -134,36 +209,43 @@ function onLog(payload) {
             />
           </button>
 
-          <div
-            v-if="statusOpen"
-            class="absolute right-0 top-full z-30 mt-1 w-40"
-          >
+          <Teleport to="body">
             <button
+              v-if="statusOpen"
               type="button"
-              class="fixed inset-0 z-0 cursor-default"
+              class="fixed inset-0 z-[110] cursor-default bg-transparent"
               aria-label="Đóng"
               @click="statusOpen = false"
             />
-            <ul class="relative z-10 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-900">
-              <li
-                v-for="opt in statusOptions"
-                :key="opt.value"
-              >
-                <button
-                  type="button"
-                  class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-slate-50 dark:hover:bg-slate-800"
-                  :class="opt.value === task.status?.value ? 'font-semibold' : ''"
-                  @click="pickStatus(opt.value)"
+            <div
+              v-if="statusOpen"
+              :style="statusPanelStyle"
+              class="rounded-xl border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-900"
+              role="listbox"
+            >
+              <ul class="max-h-[inherit] overflow-y-auto">
+                <li
+                  v-for="opt in statusOptions"
+                  :key="opt.value"
                 >
-                  <span
-                    class="h-2 w-2 rounded-full"
-                    :class="dotClass[opt.color] || dotClass.slate"
-                  />
-                  {{ opt.label }}
-                </button>
-              </li>
-            </ul>
-          </div>
+                  <button
+                    type="button"
+                    class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-slate-50 dark:hover:bg-slate-800"
+                    :class="opt.value === task.status?.value ? 'font-semibold' : ''"
+                    role="option"
+                    :aria-selected="opt.value === task.status?.value"
+                    @click="pickStatus(opt.value)"
+                  >
+                    <span
+                      class="h-2 w-2 shrink-0 rounded-full"
+                      :class="dotClass[opt.color] || dotClass.slate"
+                    />
+                    {{ opt.label }}
+                  </button>
+                </li>
+              </ul>
+            </div>
+          </Teleport>
         </div>
 
         <!-- Quick worklog (self only) -->
