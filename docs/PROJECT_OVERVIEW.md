@@ -48,6 +48,7 @@ VA QLDA
 ├── [AI ACCOUNTS]   Tài khoản AI, PĐX, chi phí, analytics → docs/AI_ACCOUNTS.md
 ├── [DASHBOARD HUB] Tổng quan hệ thống (/dashboard) — truy cập nhanh tất cả module, mini-stats theo role
 ├── [DASHBOARD WORK] Dashboard Công Việc (/work) — KPI dự án, tiến độ & tuân thủ báo cáo ngày
+├── [MY WORK]       Việc của tôi (/my-work) — task cá nhân đa dự án theo bucket; lead xem việc nhóm (RBAC my_work.*)
 ├── [KNOWLEDGE BASE] Tri thức nội bộ (bài viết, danh mục, tags, tìm kiếm, yêu thích) → docs/KNOWLEDGE_BASE.md
 ├── [COACHING]      Coaching/Mentoring (khóa học, buổi học, bài tập, tiến độ, dashboard tài chính) → docs/COACHING_MENTORING.md
 ├── [CONTRACT]      Quản lý hợp đồng / NCC (Explorer, chi phí, gia hạn phụ lục, đánh giá) → docs/CONTRACT_MANAGEMENT.md
@@ -218,6 +219,7 @@ Tạo Project
 | Authentication | `/login`, `/auth/google` | ✅ Hoàn thành |
 | **Dashboard Hub** (tổng quan tất cả module) | `/dashboard` | ✅ Hoàn thành |
 | **Dashboard Công Việc** (KPI dự án, compliance) | `/work` | ✅ Hoàn thành |
+| **My Today's Work** (Việc của tôi — đa dự án + team view) | `/my-work` | ✅ Hoàn thành |
 | Project Management | `/projects` | ✅ — `PROJECT_MANAGEMENT.md` |
 | Sprint & Task (+ subtasks, bulk, attachments) | `/projects/{id}` | ✅ Hoàn thành |
 | Worklog / Time Tracking | `/projects/{id}/tasks/{task}/worklogs` | ✅ Hoàn thành |

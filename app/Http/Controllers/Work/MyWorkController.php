@@ -5,9 +5,12 @@ namespace App\Http\Controllers\Work;
 use App\Application\Work\MyWorkQuery;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
+use App\Models\OrgTeamMember;
 use App\Models\Task;
 use App\Support\Enums\TaskPriority;
 use App\Support\Enums\TaskStatus;
+use App\Support\Options;
+use App\Support\Performance\EmployeeOrgUnitResolver;
 use App\Support\PublicMediaUrl;
 use App\Support\Team\LedTeamScope;
 use Illuminate\Http\Request;
@@ -61,11 +64,25 @@ class MyWorkController extends Controller
             && ($viewer->isAdminTier()
                 || ($viewer->allows('my_work.act_team') && $ledMemberIds->contains($target)));
 
+        $scopeTeamIds = ($canTeamView && $selfId > 0)
+            ? LedTeamScope::scopedTeamIds($selfId)
+            : collect();
+
         // ── Dữ liệu theo chế độ ──────────────────────────────────────────────
+        $teamSummary = null;
+        $teamScope = null;
+        $teamDepartmentLanes = [];
+        $members = $canTeamView
+            ? $this->memberRoster($ledMemberIds, $scopeTeamIds)
+            : [];
+
         if ($mode === 'team') {
             $summary = null;
             $buckets = null;
             $viewing = null;
+            $teamSummary = $this->teamSummary($members);
+            $teamScope = $selfId > 0 ? $this->teamScopePayload($selfId, $members) : null;
+            $teamDepartmentLanes = $this->teamDepartmentLanes($ledMemberIds);
         } elseif ($target > 0) {
             $data = $this->query->execute($viewer, $target, $this->filters($request), $canActTeam);
             $summary = $data['summary'];
@@ -88,10 +105,13 @@ class MyWorkController extends Controller
                 'priorities' => TaskPriority::options(),
                 'statuses' => TaskStatus::options(),
             ],
+            'teamSummary' => $teamSummary,
+            'teamScope' => $teamScope,
+            'teamDepartmentLanes' => $teamDepartmentLanes,
             'team' => [
                 'canTeamView' => $canTeamView,
                 'canActTeam' => $viewer->allows('my_work.act_team'),
-                'members' => $canTeamView ? $this->memberRoster($ledMemberIds) : [],
+                'members' => $members,
             ],
         ]);
     }
@@ -139,9 +159,10 @@ class MyWorkController extends Controller
      * 1 truy vấn; chi tiết từng người (?member=) dùng đầy đủ predicate gồm pivot.
      *
      * @param  Collection<int, int>  $memberIds
+     * @param  Collection<int, int>  $scopeTeamIds
      * @return array<int, array<string, mixed>>
      */
-    private function memberRoster(Collection $memberIds): array
+    private function memberRoster(Collection $memberIds, Collection $scopeTeamIds): array
     {
         if ($memberIds->isEmpty()) {
             return [];
@@ -152,27 +173,271 @@ class MyWorkController extends Controller
         $employees = Employee::query()
             ->whereIn('id', $memberIds)
             ->where('is_active', true)
+            ->with(['departments' => fn ($q) => $q
+                ->where('departments.is_active', true)
+                ->orderBy('departments.sort_order')
+                ->orderBy('departments.name')])
             ->orderBy('full_name')
             ->get(['id', 'full_name', 'avatar_path', 'role_title']);
 
         $tasksByEmployee = Task::query()
             ->whereIn('assignee_id', $memberIds)
             ->where('status', '!=', TaskStatus::Done->value)
-            ->get(['id', 'assignee_id', 'due_date'])
+            ->get(['id', 'assignee_id', 'due_date', 'status'])
             ->groupBy('assignee_id');
 
-        return $employees->map(function (Employee $employee) use ($tasksByEmployee, $today) {
+        $orgPlacements = $this->orgPlacementsFor($memberIds, $scopeTeamIds);
+        $orgUnitNames = EmployeeOrgUnitResolver::labelsFor($memberIds);
+
+        return $employees->map(function (Employee $employee) use ($tasksByEmployee, $today, $orgPlacements, $orgUnitNames) {
             $tasks = $tasksByEmployee->get($employee->id, collect());
+            $overdue = $tasks->filter(fn ($t) => $t->due_date !== null && $t->due_date->lt($today));
+            $dueToday = $tasks->filter(fn ($t) => $t->due_date !== null && $t->due_date->isSameDay($today));
+            $upcoming = $tasks->filter(fn ($t) => $t->due_date !== null && $t->due_date->gt($today));
+            $noDue = $tasks->filter(fn ($t) => $t->due_date === null);
+            $inProgress = $tasks->filter(fn ($t) => $t->status === TaskStatus::InProgress->value);
+
+            $placement = $orgPlacements[$employee->id] ?? null;
+            $departments = $employee->departments->map(fn ($d) => [
+                'id' => $d->id,
+                'name' => $d->name,
+            ])->values()->all();
+            $primaryDepartment = $departments[0]['name'] ?? null;
+
+            $groupDepartment = $primaryDepartment
+                ?? ($placement['section_title'] ?? null)
+                ?? ($orgUnitNames[$employee->id] ?? null);
 
             return [
                 'id' => $employee->id,
                 'name' => $employee->full_name,
                 'avatar_path' => PublicMediaUrl::fromPublicDisk($employee->avatar_path),
                 'role_title' => $employee->role_title,
+                'org_team_name' => $placement['team_name'] ?? null,
+                'org_section_title' => $placement['section_title'] ?? null,
+                'org_unit_name' => $orgUnitNames[$employee->id] ?? null,
+                'departments' => $departments,
+                'group_department' => $groupDepartment,
                 'open' => $tasks->count(),
-                'overdue' => $tasks->filter(fn ($t) => $t->due_date !== null && $t->due_date->lt($today))->count(),
-                'dueToday' => $tasks->filter(fn ($t) => $t->due_date !== null && $t->due_date->isSameDay($today))->count(),
+                'overdue' => $overdue->count(),
+                'dueToday' => $dueToday->count(),
+                'upcoming' => $upcoming->count(),
+                'noDue' => $noDue->count(),
+                'inProgress' => $inProgress->count(),
             ];
         })->values()->all();
+    }
+
+    /**
+     * Nhóm tổ chức + phòng ban xuất hiện trong roster (cho banner phạm vi).
+     *
+     * @param  array<int, array<string, mixed>>  $members
+     * @return array<string, mixed>
+     */
+    private function teamScopePayload(int $leaderEmployeeId, array $members): array
+    {
+        $meta = LedTeamScope::scopeMeta($leaderEmployeeId);
+
+        $departmentNames = collect($members)
+            ->flatMap(fn (array $m) => collect($m['departments'] ?? [])->pluck('name'))
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+
+        $orgTeamsInRoster = collect($members)
+            ->pluck('org_team_name')
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+
+        return [
+            'ledTeams' => $meta['ledTeams'],
+            'scopeLabel' => $meta['scopeLabel'],
+            'rosterOrgTeams' => $orgTeamsInRoster,
+            'rosterDepartments' => $departmentNames,
+            'groupingHint' => 'Mỗi hàng ngang = phòng ban phụ trách dự án; thẻ dự án cuộn ngang bên trong',
+        ];
+    }
+
+    /**
+     * Swimlane theo phòng ban của dự án (giống Kanban /projects nhóm theo phòng ban).
+     *
+     * @param  Collection<int, int>  $memberIds
+     * @return array{lanes: list<array<string, mixed>>}
+     */
+    private function teamDepartmentLanes(Collection $memberIds): array
+    {
+        $projectGroups = $this->teamProjectGroups($memberIds);
+        if ($projectGroups === []) {
+            return ['lanes' => []];
+        }
+
+        $byDepartment = collect($projectGroups)->groupBy(
+            fn (array $g) => $g['project']['department_id'] ?? null,
+        );
+
+        $lanes = [];
+
+        foreach (Options::departments() as $dept) {
+            $projects = $byDepartment->get($dept['id'], collect())->values()->all();
+            if ($projects === []) {
+                continue;
+            }
+
+            $lanes[] = [
+                'key' => 'd'.$dept['id'],
+                'department_id' => $dept['id'],
+                'label' => $dept['name'],
+                'color' => $dept['color'] ?? 'slate',
+                'open' => (int) collect($projects)->sum('open'),
+                'overdue' => (int) collect($projects)->sum('overdue'),
+                'dueToday' => (int) collect($projects)->sum('dueToday'),
+                'projects' => $projects,
+            ];
+        }
+
+        $unassigned = $byDepartment->get(null, collect())->values()->all();
+        if ($unassigned !== []) {
+            $lanes[] = [
+                'key' => 'none',
+                'department_id' => null,
+                'label' => 'Chưa phân phòng',
+                'color' => 'slate',
+                'open' => (int) collect($unassigned)->sum('open'),
+                'overdue' => (int) collect($unassigned)->sum('overdue'),
+                'dueToday' => (int) collect($unassigned)->sum('dueToday'),
+                'projects' => $unassigned,
+            ];
+        }
+
+        return ['lanes' => $lanes];
+    }
+
+    /**
+     * @param  Collection<int, int>  $memberIds
+     * @return list<array<string, mixed>>
+     */
+    private function teamProjectGroups(Collection $memberIds): array
+    {
+        if ($memberIds->isEmpty()) {
+            return [];
+        }
+
+        $today = Carbon::today();
+
+        $tasks = Task::query()
+            ->whereIn('assignee_id', $memberIds)
+            ->where('status', '!=', TaskStatus::Done->value)
+            ->with(['project:id,name,code,color,department_id', 'project.department:id,name,color'])
+            ->get(['id', 'project_id', 'assignee_id', 'due_date', 'status']);
+
+        if ($tasks->isEmpty()) {
+            return [];
+        }
+
+        $employees = Employee::query()
+            ->whereIn('id', $memberIds)
+            ->get(['id', 'full_name', 'avatar_path'])
+            ->keyBy('id');
+
+        return $tasks->groupBy('project_id')->map(function (Collection $projectTasks, $projectId) use ($today, $employees) {
+            $project = $projectTasks->first()->project;
+            $overdue = $projectTasks->filter(fn ($t) => $t->due_date !== null && $t->due_date->lt($today));
+            $dueToday = $projectTasks->filter(fn ($t) => $t->due_date !== null && $t->due_date->isSameDay($today));
+
+            $members = $projectTasks->groupBy('assignee_id')->map(function (Collection $empTasks, $assigneeId) use ($employees, $today) {
+                $emp = $employees->get((int) $assigneeId);
+                $overdue = $empTasks->filter(fn ($t) => $t->due_date !== null && $t->due_date->lt($today));
+                $dueToday = $empTasks->filter(fn ($t) => $t->due_date !== null && $t->due_date->isSameDay($today));
+
+                return [
+                    'id' => (int) $assigneeId,
+                    'name' => $emp?->full_name,
+                    'avatar_path' => PublicMediaUrl::fromPublicDisk($emp?->avatar_path),
+                    'open' => $empTasks->count(),
+                    'overdue' => $overdue->count(),
+                    'dueToday' => $dueToday->count(),
+                ];
+            })->sortByDesc('open')->values()->all();
+
+            return [
+                'project' => [
+                    'id' => (int) $projectId,
+                    'name' => $project?->name,
+                    'code' => $project?->code,
+                    'color' => $project?->color,
+                    'department_id' => $project?->department_id,
+                    'department_name' => $project?->department?->name,
+                ],
+                'open' => $projectTasks->count(),
+                'overdue' => $overdue->count(),
+                'dueToday' => $dueToday->count(),
+                'members' => $members,
+            ];
+        })->sortBy(fn (array $g) => $g['project']['name'] ?? '')->values()->all();
+    }
+
+    /**
+     * @param  Collection<int, int>  $memberIds
+     * @param  Collection<int, int>  $scopeTeamIds
+     * @return array<int, array{team_name: ?string, section_title: ?string}>
+     */
+    private function orgPlacementsFor(Collection $memberIds, Collection $scopeTeamIds): array
+    {
+        if ($memberIds->isEmpty() || $scopeTeamIds->isEmpty()) {
+            return [];
+        }
+
+        $out = [];
+
+        OrgTeamMember::query()
+            ->whereIn('employee_id', $memberIds)
+            ->whereIn('org_team_id', $scopeTeamIds)
+            ->with(['team:id,name', 'section:id,title'])
+            ->orderBy('sort_order')
+            ->get()
+            ->groupBy('employee_id')
+            ->each(function (Collection $rows, $employeeId) use (&$out): void {
+                $row = $rows->first();
+                if ($row === null) {
+                    return;
+                }
+                $out[(int) $employeeId] = [
+                    'team_name' => $row->team?->name,
+                    'section_title' => $row->section?->title,
+                ];
+            });
+
+        return $out;
+    }
+
+    /**
+     * KPI tổng hợp nhóm (không phụ thuộc lọc client) cho strip thống kê chế độ team.
+     *
+     * @param  array<int, array<string, mixed>>  $members
+     * @return array<string, int>
+     */
+    private function teamSummary(array $members): array
+    {
+        $sum = fn (string $key) => (int) array_sum(array_column($members, $key));
+
+        $atRisk = collect($members)->filter(
+            fn (array $m) => ($m['overdue'] ?? 0) > 0 || ($m['dueToday'] ?? 0) > 0,
+        )->count();
+
+        $clear = collect($members)->filter(fn (array $m) => ($m['open'] ?? 0) === 0)->count();
+
+        return [
+            'members' => count($members),
+            'open' => $sum('open'),
+            'overdue' => $sum('overdue'),
+            'dueToday' => $sum('dueToday'),
+            'inProgress' => $sum('inProgress'),
+            'atRisk' => $atRisk,
+            'clear' => $clear,
+        ];
     }
 }

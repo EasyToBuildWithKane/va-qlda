@@ -49,16 +49,10 @@ class LedTeamScope
      */
     public static function memberIds(int $leaderEmployeeId): Collection
     {
-        $ledTeams = self::ledTeams($leaderEmployeeId);
-        if ($ledTeams->isEmpty()) {
+        $teamIds = self::scopedTeamIds($leaderEmployeeId);
+        if ($teamIds->isEmpty()) {
             return collect();
         }
-
-        $teamIds = $ledTeams
-            ->flatMap(fn (OrgTeam $t) => array_merge([$t->id], $t->descendantIds()))
-            ->map(fn ($id) => (int) $id)
-            ->unique()
-            ->values();
 
         $memberIds = OrgTeamMember::query()
             ->whereIn('org_team_id', $teamIds)
@@ -76,6 +70,46 @@ class LedTeamScope
             ->reject(fn (int $id) => $id === $leaderEmployeeId)
             ->unique()
             ->values();
+    }
+
+    /**
+     * Mọi org team (trực tiếp + con) trong phạm vi một trưởng nhóm.
+     *
+     * @return Collection<int, int>
+     */
+    public static function scopedTeamIds(int $leaderEmployeeId): Collection
+    {
+        $ledTeams = self::ledTeams($leaderEmployeeId);
+        if ($ledTeams->isEmpty()) {
+            return collect();
+        }
+
+        return $ledTeams
+            ->flatMap(fn (OrgTeam $t) => array_merge([$t->id], $t->descendantIds()))
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values();
+    }
+
+    /**
+     * Meta phạm vi cho UI — nhóm tổ chức lead đang phụ trách.
+     *
+     * @return array{ledTeams: list<array{id:int, name:string, level:int}>, scopeLabel: string}
+     */
+    public static function scopeMeta(int $leaderEmployeeId): array
+    {
+        $ledTeams = self::ledTeams($leaderEmployeeId);
+
+        return [
+            'ledTeams' => $ledTeams->map(fn (OrgTeam $t) => [
+                'id' => $t->id,
+                'name' => $t->name,
+                'level' => $t->level,
+            ])->values()->all(),
+            'scopeLabel' => $ledTeams->isEmpty()
+                ? 'Chưa gán nhóm tổ chức'
+                : $ledTeams->pluck('name')->join(' · '),
+        ];
     }
 
     /**
