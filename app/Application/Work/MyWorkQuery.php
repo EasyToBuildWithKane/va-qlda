@@ -2,12 +2,16 @@
 
 namespace App\Application\Work;
 
+use App\Domain\DailyReport\Models\DailyReport;
 use App\Http\Resources\MyWorkTaskResource;
 use App\Models\Project;
 use App\Models\SystemAccount;
 use App\Models\Task;
 use App\Models\Worklog;
+use App\Support\DailyReportCalendar;
+use App\Support\Enums\ReportStatus;
 use App\Support\Enums\TaskPriority;
+use App\Support\Enums\TaskSource;
 use App\Support\Enums\TaskStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
@@ -31,18 +35,59 @@ class MyWorkQuery
      * Dữ liệu đầy đủ cho trang /my-work (self hoặc xem 1 thành viên).
      *
      * @param  array<string, mixed>  $filters
-     * @return array{buckets: array<string, array<int, mixed>>, summary: array<string, mixed>}
+     * @return array{buckets: array<string, array<int, mixed>>, summary: array<string, mixed>, dailyReportToday: array<string, mixed>|null}
      */
     public function execute(SystemAccount $viewer, int $targetEmployeeId, array $filters, bool $canActTeam): array
     {
         $today = Carbon::today();
+        $reportTaskIds = $this->todayReportTaskIds($targetEmployeeId, $today);
 
         $tasks = $this->listQuery($targetEmployeeId, $filters, $today)->get();
+        $tasks = $this->mergeTodayReportTasks($tasks, $reportTaskIds, $targetEmployeeId, $filters, $today);
         $this->decorateCan($viewer, $tasks, $canActTeam);
 
         return [
-            'buckets' => $this->bucketize($tasks, $today),
+            'buckets' => $this->bucketize($tasks, $today, $reportTaskIds),
             'summary' => $this->summaryFor($targetEmployeeId, $today),
+            'dailyReportToday' => $this->dailyReportTodaySummary($targetEmployeeId, $today),
+        ];
+    }
+
+    /**
+     * Trạng thái báo cáo ngày hôm nay — luôn hiển thị trên /my-work (self/member).
+     *
+     * @return array<string, mixed>|null
+     */
+    public function dailyReportTodaySummary(int $employeeId, ?Carbon $today = null): ?array
+    {
+        if ($employeeId <= 0) {
+            return null;
+        }
+
+        $today ??= Carbon::today();
+        $dateStr = DailyReportCalendar::today();
+
+        $report = DailyReport::query()
+            ->forEmployee($employeeId)
+            ->onDate($dateStr)
+            ->first(['id', 'status', 'projects', 'is_late']);
+
+        $reportTaskIds = $this->taskIdsFromReportProjects($report?->projects);
+        $status = $report?->status;
+
+        $needsAttention = $report === null
+            || $status === ReportStatus::Draft;
+
+        return [
+            'date' => $dateStr,
+            'hasReport' => $report !== null,
+            'status' => $status?->value,
+            'statusLabel' => $status?->label(),
+            'statusColor' => $status?->color(),
+            'href' => '/daily-reports/today',
+            'reportTaskCount' => count($reportTaskIds),
+            'isLate' => (bool) ($report?->is_late ?? false),
+            'needsAttention' => $needsAttention,
         ];
     }
 
@@ -139,6 +184,106 @@ class MyWorkQuery
     }
 
     /**
+     * Task id được tag trong báo cáo ngày hôm nay (kể cả chưa gán assignee trên task).
+     *
+     * @return array<int, int>
+     */
+    private function todayReportTaskIds(int $employeeId, Carbon $today): array
+    {
+        if ($employeeId <= 0) {
+            return [];
+        }
+
+        $report = DailyReport::query()
+            ->forEmployee($employeeId)
+            ->onDate(DailyReportCalendar::today())
+            ->first(['projects']);
+
+        return $this->taskIdsFromReportProjects($report?->projects);
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    private function taskIdsFromReportProjects(mixed $projects): array
+    {
+        if (! is_array($projects)) {
+            return [];
+        }
+
+        $ids = [];
+        foreach ($projects as $project) {
+            if (! is_array($project)) {
+                continue;
+            }
+            foreach ($project['tasks'] ?? [] as $taskRef) {
+                if (! is_array($taskRef)) {
+                    continue;
+                }
+                $id = (int) ($taskRef['id'] ?? 0);
+                if ($id > 0) {
+                    $ids[$id] = $id;
+                }
+            }
+        }
+
+        return array_values($ids);
+    }
+
+    /**
+     * Bổ sung task có trong báo cáo hôm nay nhưng không nằm trong assignee scope (chưa gán).
+     *
+     * @param  array<int, int>  $reportTaskIds
+     * @param  array<string, mixed>  $filters
+     */
+    private function mergeTodayReportTasks(
+        Collection $tasks,
+        array $reportTaskIds,
+        int $employeeId,
+        array $filters,
+        Carbon $today,
+    ): Collection {
+        if ($reportTaskIds === []) {
+            return $tasks;
+        }
+
+        $existing = $tasks->pluck('id')->flip();
+        $missing = array_values(array_filter($reportTaskIds, fn (int $id) => ! $existing->has($id)));
+        if ($missing === []) {
+            return $tasks;
+        }
+
+        $extraQuery = Task::query()
+            ->whereIn('id', $missing)
+            ->with([
+                'project:id,name,code,color',
+                'sprint:id,name',
+                'assignee:id,full_name,avatar_path',
+                'worklogs' => fn ($w) => $w
+                    ->whereDate('date', $today->toDateString())
+                    ->where('employee_id', $employeeId),
+            ]);
+
+        $status = $filters['status'] ?? null;
+        if (is_string($status) && in_array($status, TaskStatus::values(), true)) {
+            $extraQuery->where('status', $status);
+        } else {
+            $extraQuery->where('status', '!=', TaskStatus::Done->value);
+        }
+
+        if (! empty($filters['project_id'])) {
+            $extraQuery->where('project_id', (int) $filters['project_id']);
+        }
+
+        $term = isset($filters['q']) ? trim((string) $filters['q']) : '';
+        if ($term !== '') {
+            $extraQuery->where('title', 'like', '%'.$term.'%');
+        }
+
+        return $tasks->concat($extraQuery->get())->unique('id')->values();
+    }
+
+    /**
      * Predicate "việc được giao cho $employeeId" — assignee chính HOẶC pivot.
      *
      * @param  Builder<Task>  $query
@@ -201,15 +346,23 @@ class MyWorkQuery
      * @param  Collection<int, Task>  $tasks
      * @return array<string, array<int, mixed>>
      */
-    private function bucketize(Collection $tasks, Carbon $today): array
+    /**
+     * @param  array<int, int>  $todayReportTaskIds
+     */
+    private function bucketize(Collection $tasks, Carbon $today, array $todayReportTaskIds = []): array
     {
+        $reportIdSet = array_fill_keys($todayReportTaskIds, true);
         $groups = ['overdue' => [], 'today' => [], 'upcoming' => [], 'no_due' => []];
 
         foreach ($tasks as $task) {
             $due = $task->due_date;
 
             if ($due === null) {
-                $groups['no_due'][] = $task;
+                if ($task->source === TaskSource::Daily || isset($reportIdSet[$task->id])) {
+                    $groups['today'][] = $task;
+                } else {
+                    $groups['no_due'][] = $task;
+                }
             } elseif ($due->lt($today) && $task->status !== TaskStatus::Done) {
                 $groups['overdue'][] = $task;
             } elseif ($due->isSameDay($today)) {

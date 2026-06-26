@@ -220,6 +220,29 @@ class MyWorkTest extends TestCase
         $this->assertDatabaseHas('tasks', ['id' => $task->id, 'status' => TaskStatus::InProgress->value]);
     }
 
+    public function test_spawned_daily_task_without_due_date_buckets_as_today(): void
+    {
+        $employee = Employee::factory()->create();
+        $account = $this->accountFor($employee, SystemRole::Member);
+        $project = Project::factory()->create();
+
+        $task = $project->tasks()->create([
+            'title' => 'Việc phát sinh báo cáo',
+            'status' => TaskStatus::Todo->value,
+            'priority' => 'medium',
+            'assignee_id' => $employee->id,
+            'source' => \App\Support\Enums\TaskSource::Daily->value,
+        ]);
+
+        $this->actingAs($account, 'system')
+            ->get('/my-work')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->has('dailyReportToday')
+                ->where('buckets.today.0.id', $task->id)
+                ->where('buckets.no_due', []));
+    }
+
     public function test_guest_cannot_access_my_work(): void
     {
         $this->get('/my-work')->assertRedirect('/login');

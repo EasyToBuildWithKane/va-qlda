@@ -425,7 +425,7 @@ flowchart TD
 | Cổng Công nghệ | Attachment `showcase` + public project card |
 | Comments | `CommentController` morph trên Task (panel collaboration) |
 | Performance / Work dashboard | KPI tổng hợp từ task/project — `PERFORMANCE_ANALYTICS.md`, `/work` |
-| Việc của tôi (`/my-work`) | Tập trung task cá nhân đa dự án (bucket Quá hạn/Hôm nay/Sắp tới/Chưa hạn), quick status + worklog tái dùng `projects.tasks.status` & `projects.worklogs.store`; lead xem việc thành viên nhóm (RBAC `my_work.view_team`/`my_work.act_team`, phạm vi `LedTeamScope`). Read-aggregation: `app/Application/Work/MyWorkQuery`, `MyWorkController`, widget trên `/work`. Đổi status hộ qua `TaskPolicy@changeStatus` (additive) |
+| Việc của tôi (`/my-work`) | Tập trung task cá nhân đa dự án (bucket Quá hạn/Hôm nay/Sắp tới/Chưa hạn — luôn hiển thị cả khi rỗng), hàng **Báo cáo công việc hằng ngày** (trạng thái + link `/daily-reports/today`); task phát sinh / gắn trong báo cáo hôm nay không hạn → bucket **Hôm nay**; task trong báo cáo nhưng chưa gán assignee vẫn hiện dạng card như việc được giao. Form báo cáo: dropdown task chỉ **việc được giao** cho bạn trên dự án. Quick status + worklog tái dùng `projects.tasks.status` & `projects.worklogs.store`; lead xem việc thành viên nhóm (RBAC `my_work.view_team`/`my_work.act_team`, phạm vi `LedTeamScope`). Read-aggregation: `app/Application/Work/MyWorkQuery`, `MyWorkController`, widget trên `/work`. Đổi status hộ qua `TaskPolicy@changeStatus` (additive) |
 
 ---
 

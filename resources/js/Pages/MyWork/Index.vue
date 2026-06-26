@@ -14,6 +14,7 @@ import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterC
 import MyWorkSummaryBar from './partials/MyWorkSummaryBar.vue';
 import MyWorkTeamSummaryBar from './partials/MyWorkTeamSummaryBar.vue';
 import MyWorkTaskCard from './partials/MyWorkTaskCard.vue';
+import MyWorkDailyReportSection from './partials/MyWorkDailyReportSection.vue';
 import TeamScopeSwitcher from './partials/TeamScopeSwitcher.vue';
 import TeamScopeBanner from './partials/TeamScopeBanner.vue';
 import TeamRoster from './partials/TeamRoster.vue';
@@ -31,6 +32,7 @@ const props = defineProps({
     teamScope: { type: Object, default: null },
     teamDepartmentLanes: { type: Object, default: () => ({ lanes: [] }) },
     buckets: { type: Object, default: null },
+    dailyReportToday: { type: Object, default: null },
     filters: { type: Object, default: () => ({}) },
     options: { type: Object, default: () => ({ priorities: [], statuses: [] }) },
     team: { type: Object, default: () => ({ canTeamView: false, canActTeam: false, members: [] }) },
@@ -131,12 +133,12 @@ const headerBadge = computed(() => {
 // ── Buckets ──────────────────────────────────────────────────────────────────
 const bucketMeta = [
     { key: 'overdue', label: 'Quá hạn', icon: 'alert', alwaysShow: true, highlight: 'overdue' },
-    { key: 'today', label: 'Hôm nay', icon: 'calendar-clock', alwaysShow: false, highlight: 'today' },
-    { key: 'upcoming', label: 'Sắp tới', icon: 'clock', alwaysShow: false, highlight: 'open' },
-    { key: 'no_due', label: 'Chưa có hạn', icon: 'task', alwaysShow: false, highlight: 'open' },
+    { key: 'today', label: 'Hôm nay', icon: 'calendar-clock', alwaysShow: true, highlight: 'today' },
+    { key: 'upcoming', label: 'Sắp tới', icon: 'clock', alwaysShow: true, highlight: 'open' },
+    { key: 'no_due', label: 'Chưa có hạn', icon: 'task', alwaysShow: true, highlight: 'open' },
 ];
 
-const openState = reactive({ overdue: true, today: true, upcoming: true, no_due: false });
+const openState = reactive({ daily_report: true, overdue: true, today: true, upcoming: true, no_due: false });
 const bucketOf = (key) => props.buckets?.[key] ?? [];
 
 const bucketHighlight = ref('');
@@ -156,6 +158,16 @@ const visibleBuckets = computed(() => {
 
 const totalTasks = computed(() =>
     bucketMeta.reduce((acc, b) => acc + bucketOf(b.key).length, 0),
+);
+
+const reportSettled = computed(() => {
+    const d = props.dailyReportToday;
+    if (!d) return true;
+    return !d.needsAttention;
+});
+
+const showAllClearEmpty = computed(
+    () => totalTasks.value === 0 && reportSettled.value && !hasActiveFilters.value,
 );
 
 // ── Filters (URL-bound, preserves ?member context) ───────────────────────────
@@ -621,7 +633,7 @@ function onScope(scope) {
 
         <div class="px-5 py-4">
           <div
-            v-if="totalTasks === 0"
+            v-if="showAllClearEmpty"
             class="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 px-5 py-12 text-center dark:border-slate-700"
           >
             <AppIcon
@@ -630,11 +642,26 @@ function onScope(scope) {
               class="mx-auto mb-2 text-emerald-400"
             />
             <p class="text-sm font-medium text-slate-600 dark:text-slate-300">
-              {{ hasActiveFilters ? 'Không có việc khớp bộ lọc.' : 'Tuyệt vời — không có việc nào đang chờ!' }}
+              Tuyệt vời — không có việc nào đang chờ và báo cáo ngày đã xong!
+            </p>
+          </div>
+
+          <div
+            v-else-if="totalTasks === 0 && hasActiveFilters"
+            class="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 px-5 py-12 text-center dark:border-slate-700"
+          >
+            <p class="text-sm font-medium text-slate-600 dark:text-slate-300">
+              Không có việc khớp bộ lọc.
             </p>
           </div>
 
           <template v-else>
+            <MyWorkDailyReportSection
+              v-if="dailyReportToday"
+              v-model:open="openState.daily_report"
+              :daily="dailyReportToday"
+            />
+
             <section
               v-for="b in visibleBuckets"
               v-show="bucketOf(b.key).length > 0 || b.alwaysShow"

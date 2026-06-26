@@ -81,6 +81,7 @@ class MyWorkController extends Controller
             $summary = null;
             $buckets = null;
             $viewing = null;
+            $dailyReportToday = null;
             $teamSummary = $this->teamSummary($members);
             $teamScope = $selfId > 0 ? $this->teamScopePayload($selfId, $members) : null;
             $teamDepartmentLanes = $this->teamDepartmentLanes($ledMemberIds);
@@ -88,11 +89,13 @@ class MyWorkController extends Controller
             $data = $this->query->execute($viewer, $target, $this->filters($request), $canActTeam);
             $summary = $data['summary'];
             $buckets = $data['buckets'];
+            $dailyReportToday = $data['dailyReportToday'];
             $viewing = $this->employeeCard($isSelf ? $viewer->employee : Employee::find($target), $isSelf);
         } else {
             // Tài khoản chưa gắn nhân viên — không có việc để hiển thị.
             $summary = $this->query->summaryFor(0);
             $buckets = ['overdue' => [], 'today' => [], 'upcoming' => [], 'no_due' => []];
+            $dailyReportToday = null;
             $viewing = $this->employeeCard($viewer->employee, true);
         }
 
@@ -101,6 +104,7 @@ class MyWorkController extends Controller
             'viewing' => $viewing,
             'summary' => $summary,
             'buckets' => $buckets,
+            'dailyReportToday' => $dailyReportToday,
             'filters' => (object) $this->filters($request, dropNull: true),
             'options' => [
                 'priorities' => TaskPriority::options(),

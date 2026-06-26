@@ -22,6 +22,7 @@ use App\Support\DailyReportTimeline;
 use App\Support\Enums\Grade;
 use App\Support\Enums\ReportStatus;
 use App\Support\Enums\SystemRole;
+use App\Support\Enums\TaskStatus;
 use App\Support\NotificationDispatcher;
 use App\Support\Options;
 use Illuminate\Database\Eloquent\Builder;
@@ -298,12 +299,25 @@ class DailyReportController extends Controller
             ->onDate($today)
             ->first();
 
+        $employeeId = (int) ($request->user()->employee_id ?? 0);
+
         return Inertia::render('DailyReport/Today', [
             'report' => $report ? (new DailyReportResource($report))->resolve() : null,
             'today' => $today,
             'projectOptions' => Project::active()
                 ->orderBy('sort_order')
-                ->with(['tasks' => fn ($q) => $q->orderBy('order_column')])
+                ->with(['tasks' => function ($q) use ($employeeId) {
+                    $q->orderBy('order_column')
+                        ->where('status', '!=', TaskStatus::Done->value);
+                    if ($employeeId > 0) {
+                        $q->where(function ($inner) use ($employeeId) {
+                            $inner->where('assignee_id', $employeeId)
+                                ->orWhereHas('assignees', fn ($a) => $a->where('employees.id', $employeeId));
+                        });
+                    } else {
+                        $q->whereRaw('1 = 0');
+                    }
+                }])
                 ->get(['id', 'name', 'code', 'color'])
                 ->map(fn (Project $p) => [
                     'id' => $p->id,
