@@ -9,7 +9,7 @@ const props = defineProps({
     teamOpenTotal: { type: Number, default: 0 },
 });
 
-const emit = defineEmits(['select']);
+const emit = defineEmits(['select', 'quick-view']);
 
 function shareOfOpen(open) {
     const total = props.teamOpenTotal;
@@ -175,17 +175,32 @@ const sortedMembers = computed(() =>
             </div>
           </td>
           <td class="px-5 py-3 text-right">
-            <button
-              type="button"
-              class="btn-ghost inline-flex h-9 items-center gap-1.5 px-2.5 text-xs font-medium opacity-90 group-hover:opacity-100"
-              @click="emit('select', m.id)"
-            >
-              Xem việc
-              <AppIcon
-                name="chevron-right"
-                :size="14"
-              />
-            </button>
+            <div class="inline-flex items-center gap-1">
+              <button
+                type="button"
+                class="inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-slate-500 transition hover:bg-slate-100 hover:text-brand"
+                title="Xem nhanh trong cửa sổ"
+                @click="emit('quick-view', m)"
+              >
+                <AppIcon
+                  name="eye"
+                  :size="15"
+                />
+                Xem nhanh
+              </button>
+              <button
+                type="button"
+                class="btn-ghost inline-flex h-9 items-center gap-1.5 px-2.5 text-xs font-medium opacity-90 group-hover:opacity-100"
+                title="Mở trang đầy đủ"
+                @click="emit('select', m.id)"
+              >
+                Xem việc
+                <AppIcon
+                  name="chevron-right"
+                  :size="14"
+                />
+              </button>
+            </div>
           </td>
         </tr>
       </tbody>

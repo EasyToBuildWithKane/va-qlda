@@ -9,7 +9,7 @@ const props = defineProps({
     searchQuery: { type: String, default: '' },
 });
 
-const emit = defineEmits(['select-member']);
+const emit = defineEmits(['select-member', 'quick-view']);
 
 const dot = {
     slate: 'bg-slate-400',
@@ -173,10 +173,12 @@ const displayLanes = computed(() =>
             <li
               v-for="m in group.members"
               :key="m.id"
+              class="group/member flex items-center gap-1 rounded-lg pr-1 transition hover:bg-slate-50"
             >
               <button
                 type="button"
-                class="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm transition hover:bg-slate-50"
+                class="flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2 py-2 text-left text-sm"
+                title="Mở trang đầy đủ"
                 @click="emit('select-member', m.id)"
               >
                 <Avatar
@@ -190,6 +192,17 @@ const displayLanes = computed(() =>
                   v-if="m.overdue > 0"
                   class="shrink-0 text-[10px] font-semibold text-rose-600"
                 >{{ m.overdue }} QH</span>
+              </button>
+              <button
+                type="button"
+                class="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-slate-400 opacity-0 transition hover:bg-white hover:text-brand group-hover/member:opacity-100"
+                title="Xem nhanh chi tiết công việc"
+                @click.stop="emit('quick-view', m)"
+              >
+                <AppIcon
+                  name="eye"
+                  :size="15"
+                />
               </button>
             </li>
           </ul>

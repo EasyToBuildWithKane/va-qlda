@@ -18,7 +18,10 @@ import TeamScopeSwitcher from './partials/TeamScopeSwitcher.vue';
 import TeamScopeBanner from './partials/TeamScopeBanner.vue';
 import TeamRoster from './partials/TeamRoster.vue';
 import TeamWorkDepartmentLanes from './partials/TeamWorkDepartmentLanes.vue';
+import MemberWorkModal from './partials/MemberWorkModal.vue';
 import { useMyWork } from '@/composables/useMyWork';
+import { useToast } from '@/shared/composables/useToast';
+import { exportMyWorkTasks, exportTeamRoster } from '@/composables/useMyWorkExport';
 
 const props = defineProps({
     mode: { type: String, default: 'self' },
@@ -34,6 +37,37 @@ const props = defineProps({
 });
 
 const { changeStatus, logWork, openTask, goTo } = useMyWork();
+const toast = useToast();
+
+// ── Modal "Xem nhanh" việc của thành viên (chế độ nhóm) ──────────────────────
+const quickViewMember = ref(null);
+const showQuickView = ref(false);
+
+function onQuickView(member) {
+    quickViewMember.value = member;
+    showQuickView.value = true;
+}
+
+// ── Xuất Excel ───────────────────────────────────────────────────────────────
+function exportSelf() {
+    const ok = exportMyWorkTasks({
+        buckets: props.buckets ?? {},
+        ownerName: props.viewing?.name ?? 'Tôi',
+        summary: props.summary,
+    });
+    if (ok) toast.success('Đã xuất Excel việc của ' + (props.viewing?.isSelf ? 'tôi' : (props.viewing?.name ?? 'thành viên')) + '.');
+    else toast.error('Không có việc để xuất.');
+}
+
+function exportTeam() {
+    const ok = exportTeamRoster({
+        members: props.team?.members ?? [],
+        summary: props.teamSummary,
+        scopeLabel: props.teamScope?.scopeLabel ?? '',
+    });
+    if (ok) toast.success('Đã xuất Excel tải việc nhóm.');
+    else toast.error('Nhóm chưa có thành viên để xuất.');
+}
 
 const FILTER_CONTROL_CLASS = 'input h-10 w-full text-sm';
 
@@ -369,6 +403,19 @@ function onScope(scope) {
                 />
                 Xoá lọc
               </button>
+              <button
+                type="button"
+                class="btn-ghost inline-flex h-10 items-center gap-1.5 px-2.5 text-xs font-medium"
+                :disabled="(team.members ?? []).length === 0"
+                title="Xuất Excel tải việc theo thành viên"
+                @click="exportTeam"
+              >
+                <AppIcon
+                  name="download"
+                  :size="14"
+                />
+                Xuất Excel
+              </button>
             </div>
             <DatagridSegmentedControl
               v-model="teamView"
@@ -421,12 +468,14 @@ function onScope(scope) {
           :lanes="teamLanes"
           :search-query="teamFilters.q"
           @select-member="(id) => goTo({ member: id })"
+          @quick-view="onQuickView"
         />
         <TeamRoster
           v-else
           :members="filteredTeamMembers"
           :team-open-total="teamSummary?.open ?? 0"
           @select="(id) => goTo({ member: id })"
+          @quick-view="onQuickView"
         />
       </div>
     </template>
@@ -489,6 +538,19 @@ function onScope(scope) {
                   :size="13"
                 />
                 Xoá lọc
+              </button>
+              <button
+                type="button"
+                class="btn-ghost inline-flex h-10 items-center gap-1.5 px-2.5 text-xs font-medium"
+                :disabled="totalTasks === 0"
+                title="Xuất Excel danh sách việc"
+                @click="exportSelf"
+              >
+                <AppIcon
+                  name="download"
+                  :size="14"
+                />
+                Xuất Excel
               </button>
             </div>
           </div>
@@ -626,5 +688,11 @@ function onScope(scope) {
         </div>
       </div>
     </template>
+
+    <MemberWorkModal
+      :open="showQuickView"
+      :member="quickViewMember"
+      @close="showQuickView = false"
+    />
   </AppLayout>
 </template>

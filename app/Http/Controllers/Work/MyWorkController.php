@@ -13,6 +13,7 @@ use App\Support\Options;
 use App\Support\Performance\EmployeeOrgUnitResolver;
 use App\Support\PublicMediaUrl;
 use App\Support\Team\LedTeamScope;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -113,6 +114,43 @@ class MyWorkController extends Controller
                 'canActTeam' => $viewer->allows('my_work.act_team'),
                 'members' => $members,
             ],
+        ]);
+    }
+
+    /**
+     * Chi tiết việc của một thành viên — JSON cho modal "Xem nhanh" ở chế độ nhóm.
+     *
+     * Cùng cổng quyền + phạm vi như chế độ ?member= (LedTeamScope) nhưng trả gọn
+     * buckets + summary để hiển thị trong modal, không rời trang.
+     */
+    public function memberTasks(Request $request, Employee $employee): JsonResponse
+    {
+        $viewer = $request->user();
+        $selfId = (int) ($viewer->employee_id ?? 0);
+        $targetId = (int) $employee->id;
+        $isSelf = $targetId === $selfId;
+
+        $canTeamView = $viewer->allows('my_work.view_team');
+        $ledMemberIds = $canTeamView && $selfId > 0
+            ? LedTeamScope::memberIds($selfId)
+            : collect();
+
+        $allowed = $isSelf
+            || $viewer->isAdminTier()
+            || ($canTeamView && $ledMemberIds->contains($targetId));
+        abort_unless($allowed, 403, 'Bạn không có quyền xem việc của nhân sự này.');
+
+        $canActTeam = ! $isSelf
+            && ($viewer->isAdminTier()
+                || ($viewer->allows('my_work.act_team') && $ledMemberIds->contains($targetId)));
+
+        $data = $this->query->execute($viewer, $targetId, [], $canActTeam);
+
+        return response()->json([
+            'member' => $this->employeeCard($employee, $isSelf),
+            'summary' => $data['summary'],
+            'buckets' => $data['buckets'],
+            'canActTeam' => $canActTeam,
         ]);
     }
 
