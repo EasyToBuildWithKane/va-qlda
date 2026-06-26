@@ -38,6 +38,8 @@ php artisan storage:link
 
 `npm audit` trên server: thường **không** chạy `npm audit fix --force` trên production — xử lý trên môi trường dev/CI.
 
+**Vite manifest not found** (`public/build/manifest.json`): Deploy PHP mà chưa `npm run build` — mọi trang Inertia 500. Chạy `npm ci --omit=dev && npm run build` trên server (hoặc bật hook `post-merge` ở trên).
+
 ---
 
 ## Husky hooks not running
@@ -153,7 +155,17 @@ chown -R USER:GROUP storage bootstrap/cache
 php artisan storage:link   # if public/storage missing
 ```
 
-Re-test upload. Existing modules (`projects/…`) need the same writable `storage/app/public`.
+Re-test upload. Same fix applies to **`blockers/{id}/`**, `projects/…`, `coaching/…`, `avatars/`, v.v.
+
+---
+
+## Profile `/profile` 500 — `getKey() on array` (EmployeeProfileResource)
+
+**Symptoms:** Log `Call to a member function getKey() on array` at `EmployeeProfileResource::teams()` when the user leads an org team but has no `org_team_members` row.
+
+**Cause:** Older code merged plain arrays into an Eloquent `Collection` via `merge()`.
+
+**Fix:** Deploy `main` (uses `collect()` + `concat()`). Regression: `ProfileSelfTest::test_show_team_leader_without_membership_row_lists_led_team`.
 
 ---
 

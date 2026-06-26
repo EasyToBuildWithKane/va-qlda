@@ -33,7 +33,7 @@ flowchart TB
 |--------|------------|-------|----------------|
 | Rủi ro / Vướng mắc | `useRiskImport.js`, `useRiskExport.js` | `RiskImportModal.vue` | `BlockerController@import` + `ImportBlockerRequest` |
 | Nhà cung cấp (CLM) | `useVendorData.js` (`useVendorExport.js` re-export xuất nhanh) | `VendorDataModal.vue` | `VendorController@import` + `ImportVendorRequest` |
-| Sprint / Task | `useSprintData.js` (`useSprintExport.js` re-export) | `SprintDataModal.vue` | *Chưa bulk — cần API trước khi coi production* |
+| Sprint / Task | `useSprintData.js` (`useSprintExport.js` re-export) | `SprintDataModal.vue` | `TaskController@import` + `ImportTaskRequest` (bulk, max 200) |
 | Đối soát sprint | `useSprintReconcile.js` | tab trong `SprintDataModal` | Client-side only |
 
 Knowledge Base **không** dùng pattern 3 tab — chỉ xuất danh sách qua `GET knowledge-base.export-data` + `useKbExport.js` (JSON → CSV/Excel client).

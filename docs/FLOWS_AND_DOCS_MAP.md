@@ -173,7 +173,7 @@ flowchart TB
 |--------------|------------|--------------------|----------|
 | Tổng quan | `PROJECT_OVERVIEW.md` §3 | `HubDashboardController` | `Pages/Dashboard/` |
 | Trung tâm Công Nghệ | `CONGNGHE_CONTENT.md` | `Congnghe/*` | `Pages/Congnghe/`, `CongngheAdmin/` |
-| Dự án & vướng mắc | `API_STRUCTURE` §2.4–2.11 | `Project/*`, `BlockerController` | `Pages/Project/`, `modules/project/` |
+| Dự án & vướng mắc | **`PROJECT_MANAGEMENT.md`** (+ `API_STRUCTURE` §2.4–2.11) | `Project/*`, `BlockerController` | `Pages/Project/`, `modules/project/` |
 | Báo cáo ngày | `DAILY_REPORT.md` (+ `DAILY_REPORT_PROJECTS.md` liên kết dự án) | `DailyReport/*` | `Pages/DailyReport/`, `modules/daily-report/` |
 | Tổ chức | `DATABASE_STRUCTURE` org | `Department`, `OrgTeam`, `Member`, `Profile` | `Pages/Department/`, `OrgTeam/`, `Member/`, `Profile/` |
 | Coaching | `COACHING_MENTORING.md` | `Coaching/*` | `Pages/Coaching/` |
@@ -202,7 +202,7 @@ flowchart TD
   G --> H[Cost = hours × rate_snapshot]
 ```
 
-Workspace UI: tab trong `Project/Show` (Sprint, Gantt, Dashboard, …) — `FRONTEND_STRUCTURE.md`.
+Workspace UI: tab trong `Project/Show` (Sprint, Gantt, Dashboard, …) — **`PROJECT_MANAGEMENT.md` §6** · `FRONTEND_STRUCTURE.md`.
 
 ### 7.2 Báo cáo ngày
 
@@ -308,6 +308,7 @@ Pre-push gates: `.cursor/skills/ship-ready/SKILL.md` · `.cursor/rules/ci-qualit
 | `AI_ACCOUNTS.md` | Quản lý AI |
 | `CONGNGHE_CONTENT.md` | Landing + quản trị /congnghe |
 | `SYSTEM_CONFIG.md` | `/settings` |
+| `PROJECT_MANAGEMENT.md` | Quản lý dự án `/projects` (danh mục, workspace, sprint, task, tài liệu) |
 | `DAILY_REPORT_PROJECTS.md` | Báo cáo ngày & liên kết dự án |
 | `CONTRACT_MANAGEMENT.md` | Quản lý hợp đồng / NCC (CLM) |
 | `CREDENTIAL_MANAGEMENT.md` | Kho tài khoản / mật khẩu |

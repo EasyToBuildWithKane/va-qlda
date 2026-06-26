@@ -296,6 +296,13 @@ class Navigation
                 'icon' => 'projects',
                 'items' => [
                     [
+                        'label' => 'Việc của tôi',
+                        'icon' => 'calendar-clock',
+                        'href' => '/my-work',
+                        'status' => 'live',
+                        'roles' => ['admin', 'lead', 'member'],
+                    ],
+                    [
                         'label' => 'Tất cả dự án',
                         'icon' => 'all-projects',
                         'href' => '/projects',

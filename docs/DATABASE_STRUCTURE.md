@@ -141,7 +141,8 @@ Department ──→ Employee ──→ SystemAccount
 | description | text | YES | |
 | color | varchar(50) | YES | Brand color |
 | status | varchar(20) | NO | planning/active/on_hold/completed/cancelled |
-| type | varchar(20) | NO | rnd/maintenance/support/internal |
+| type | varchar(20) | NO | rnd/deployment/operation (vòng đời) |
+| category | varchar(30) | YES | hardware/software — lọc & chip Phần cứng/Phần mềm |
 | scope | varchar(20) | NO | headquarters/regional/departmental |
 | scope_regions | json | YES | Mảng vùng (khi scope=regional) |
 | scope_departments | json | YES | Mảng phòng ban (khi scope=departmental) |

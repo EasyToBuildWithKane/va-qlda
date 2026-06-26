@@ -141,13 +141,17 @@ Chi tiết merge section: [`docs/CONGNGHE_CONTENT.md`](CONGNGHE_CONTENT.md).
 | Method | URI | Controller | Middleware | Mô Tả |
 |---|---|---|---|---|
 | POST | `/projects/{project}/sprints` | SprintController@store | auth | Tạo sprint |
+| PATCH | `/projects/{project}/sprints/reorder` | SprintController@reorder | auth | Sắp xếp thứ tự sprint |
 | PUT | `/projects/{project}/sprints/{sprint}` | SprintController@update | auth | Sửa sprint |
 | DELETE | `/projects/{project}/sprints/{sprint}` | SprintController@destroy | auth | Xóa sprint |
+| POST | `/projects/{project}/email/daily-summary` | EmailNotificationController@dailySummary | auth | Xếp hàng email tổng hợp ngày |
+| POST | `/projects/{project}/sprints/{sprint}/email/summary` | EmailNotificationController@sprintSummary | auth | Xếp hàng email tổng hợp sprint |
 
 ### 2.6 Tasks
 
 | Method | URI | Controller | Middleware | Mô Tả |
 |---|---|---|---|---|
+| GET | `/projects/{project}/tasks/{task}` | TaskController@show | auth | Redirect deep link → `projects.show` + `?task=` |
 | POST | `/projects/{project}/tasks` | TaskController@store | auth | Tạo task |
 | POST | `/projects/{project}/tasks/bulk` | TaskController@bulkStore | auth | Tạo nhiều tasks (defaults + titles) |
 | POST | `/projects/{project}/tasks/import` | TaskController@import | auth | Nhập Excel Sprint (bulk, max 200 dòng) |
@@ -186,6 +190,7 @@ Chi tiết merge section: [`docs/CONGNGHE_CONTENT.md`](CONGNGHE_CONTENT.md).
 
 | Method | URI | Controller | Middleware | Mô Tả |
 |---|---|---|---|---|
+| GET | `/projects/{project}/attachments/{attachment}/file` | ProjectAttachmentController@file | auth | Tải/xem file (stream) |
 | POST | `/projects/{project}/attachments` | ProjectAttachmentController@store | auth | Upload tài liệu |
 | PUT | `/projects/{project}/attachments/{attachment}` | ProjectAttachmentController@update | auth | Sửa metadata |
 | DELETE | `/projects/{project}/attachments/{attachment}` | ProjectAttachmentController@destroy | auth | Xóa tài liệu |

@@ -134,7 +134,9 @@ class TaskController extends Controller
      */
     public function updateStatus(Request $request, Project $project, Task $task): RedirectResponse
     {
-        $this->authorize('contribute', $project);
+        // Additive: đóng góp dự án (board/Gantt) HOẶC trưởng nhóm đổi trạng thái
+        // việc của thành viên (my_work.act_team) — xem App\Policies\TaskPolicy.
+        $this->authorize('changeStatus', $task);
         abort_unless($task->project_id === $project->id, 404);
 
         $validated = $request->validate([

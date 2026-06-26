@@ -18,6 +18,7 @@ import ActivityFeed from '@/modules/project/components/Dashboard/ActivityFeed.vu
 import DailyReportCompliancePanel from './partials/DailyReportCompliancePanel.vue';
 import ProjectProgressCard from './partials/ProjectProgressCard.vue';
 import TaskProgressStatsSection from './partials/TaskProgressStatsSection.vue';
+import MyTodaysWorkWidget from './partials/MyTodaysWorkWidget.vue';
 
 ChartJS.register(
     ArcElement, CategoryScale, LinearScale,
@@ -36,6 +37,7 @@ const props = defineProps({
     projectsByStatus:   { type: Array,  default: () => [] },
     completionTrend:    { type: Array,  default: () => [] },
     dailyReportCompliance: { type: Object, default: () => ({}) },
+    myTodaysWork:       { type: Object, default: null },
 });
 
 // ---- Helpers ----------------------------------------------------------
@@ -133,6 +135,13 @@ const lineOptions = {
       eyebrow="Chỉ số chính"
       aria-label="Chỉ số tổng quan công việc"
       grid-class="grid-cols-2 sm:grid-cols-3 xl:grid-cols-6"
+    />
+
+    <!-- Việc hôm nay của tôi (cá nhân) -->
+    <MyTodaysWorkWidget
+      v-if="myTodaysWork"
+      :data="myTodaysWork"
+      class="mb-4"
     />
 
     <TaskProgressStatsSection

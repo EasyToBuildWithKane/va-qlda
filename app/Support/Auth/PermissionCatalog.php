@@ -64,6 +64,9 @@ final class PermissionCatalog
             'feedback' => ['label' => 'Phản hồi', 'icon' => 'feedback', 'group' => 'Công việc', 'abilities' => [
                 'create' => 'Tạo', 'update' => 'Sửa', 'delete' => 'Xóa',
             ]],
+            'my_work' => ['label' => 'Việc của tôi', 'icon' => 'calendar-clock', 'group' => 'Công việc', 'abilities' => [
+                'view_team' => 'Xem việc của thành viên nhóm', 'act_team' => 'Đổi trạng thái việc của thành viên',
+            ]],
 
             // ── Hợp đồng & Nhà cung cấp ──────────────────────────────
             'contract' => ['label' => 'Hợp đồng (CLM)', 'icon' => 'budget', 'group' => 'Hợp đồng', 'abilities' => [
@@ -222,6 +225,7 @@ final class PermissionCatalog
                 'blocker.create', 'blocker.update', 'blocker.delete', 'blocker.comment',
                 'daily_report.view', 'daily_report.create', 'daily_report.review',
                 'feedback.create', 'feedback.update',
+                'my_work.view_team', 'my_work.act_team',
                 'contract.view', 'contract.create', 'contract.update', 'contract.delete', 'contract.manage', 'contract.import', 'contract.export',
                 'vendor.view', 'vendor.create', 'vendor.update', 'vendor.delete',
                 'ai_account.create', 'ai_account.update', 'ai_account.delete', 'ai_account.renew',

@@ -29,7 +29,7 @@ VA QLDA
 ├── [AUTH]          Xác thực người dùng (custom guard "system")
 ├── [NOTIFICATION]  Hệ thống thông báo in-app (bell icon, drawer, preferences)
 │                   NotificationService + NotificationDispatcher (centralized fan-out)
-├── [PROJECT]       Quản lý dự án, sprint, task, epics
+├── [PROJECT]       Quản lý dự án, sprint, task, epics → docs/PROJECT_MANAGEMENT.md
 │   ├── Sprint      Lập kế hoạch theo vòng lặp Agile
 │   ├── Task        Công việc chi tiết (có subtask, dependency, attachment)
 │   ├── Worklog     Ghi giờ làm & chi phí nhân công
@@ -218,7 +218,7 @@ Tạo Project
 | Authentication | `/login`, `/auth/google` | ✅ Hoàn thành |
 | **Dashboard Hub** (tổng quan tất cả module) | `/dashboard` | ✅ Hoàn thành |
 | **Dashboard Công Việc** (KPI dự án, compliance) | `/work` | ✅ Hoàn thành |
-| Project Management | `/projects` | ✅ Hoàn thành |
+| Project Management | `/projects` | ✅ — `PROJECT_MANAGEMENT.md` |
 | Sprint & Task (+ subtasks, bulk, attachments) | `/projects/{id}` | ✅ Hoàn thành |
 | Worklog / Time Tracking | `/projects/{id}/tasks/{task}/worklogs` | ✅ Hoàn thành |
 | Project Documents (upload, preview, activity log) | `/projects/{id}/attachments` | ✅ Hoàn thành |

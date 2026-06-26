@@ -21,6 +21,7 @@ use App\Models\OrgTeam;
 use App\Models\Project;
 use App\Models\SystemAccount;
 use App\Models\SystemSetting;
+use App\Models\Task;
 use App\Models\Vendor;
 use App\Policies\AiAccountPolicy;
 use App\Policies\AiPaymentRequestPolicy;
@@ -39,6 +40,7 @@ use App\Policies\KbArticlePolicy;
 use App\Policies\OrgTeamPolicy;
 use App\Policies\ProjectPolicy;
 use App\Policies\SystemSettingPolicy;
+use App\Policies\TaskPolicy;
 use App\Policies\VendorPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Gate;
@@ -56,6 +58,7 @@ class AuthServiceProvider extends ServiceProvider
     protected $policies = [
         DailyReport::class => DailyReportPolicy::class,
         Project::class => ProjectPolicy::class,
+        Task::class => TaskPolicy::class,
         Department::class => DepartmentPolicy::class,
         Employee::class => EmployeePolicy::class,
         OrgTeam::class => OrgTeamPolicy::class,

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Dashboard;
 
+use App\Application\Work\MyWorkQuery;
 use App\Domain\DailyReport\Models\DailyReport;
 use App\Http\Controllers\Controller;
 use App\Models\Blocker;
@@ -23,9 +24,10 @@ use Inertia\Response;
 
 class WorkDashboardController extends Controller
 {
-    public function __invoke(ProjectActivityFeedBuilder $activityFeed, DashboardPersonnelScope $personnelScope): Response
+    public function __invoke(ProjectActivityFeedBuilder $activityFeed, DashboardPersonnelScope $personnelScope, MyWorkQuery $myWork): Response
     {
         $today = Carbon::today()->toDateString();
+        $viewer = request()->user();
         $scopedEmployeeIds = $personnelScope->employeeIds();
         $scopedEmployeeCount = $scopedEmployeeIds->count();
         $personnelDept = $personnelScope->department();
@@ -195,6 +197,9 @@ class WorkDashboardController extends Controller
             'tasksByStatus' => $tasksByStatus,
             'completionTrend' => $completionTrend,
             'dailyReportCompliance' => $dailyReportCompliance,
+            'myTodaysWork' => $viewer && $viewer->employee_id
+                ? $myWork->widget($viewer, (int) $viewer->employee_id)
+                : null,
         ]);
     }
 

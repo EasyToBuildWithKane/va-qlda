@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Employee;
+use App\Models\OrgTeam;
 use App\Models\SystemAccount;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -38,6 +39,23 @@ class ProfileSelfTest extends TestCase
                 ->has('profile.stats.profile_completion')
                 ->has('profile.hr_info')
                 ->where('profile.hr_info.code', $employee->code)
+            );
+    }
+
+    public function test_show_team_leader_without_membership_row_lists_led_team(): void
+    {
+        $leader = Employee::factory()->create();
+        OrgTeam::create(['name' => 'Team Led Only', 'level' => 1, 'leader_id' => $leader->id]);
+        $account = SystemAccount::factory()->forEmployee($leader)->create();
+
+        $this->actingAs($account, 'system')
+            ->get(route('profile.show'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Profile/Show')
+                ->has('profile.teams', 1)
+                ->where('profile.teams.0.name', 'Team Led Only')
+                ->where('profile.teams.0.is_leader', true)
             );
     }
 
