@@ -23,6 +23,7 @@ use App\Models\SystemAccount;
 use App\Models\SystemSetting;
 use App\Models\Task;
 use App\Models\Vendor;
+use App\Models\WeeklyReport;
 use App\Policies\AiAccountPolicy;
 use App\Policies\AiPaymentRequestPolicy;
 use App\Policies\AiPurchaseProposalPolicy;
@@ -42,6 +43,7 @@ use App\Policies\ProjectPolicy;
 use App\Policies\SystemSettingPolicy;
 use App\Policies\TaskPolicy;
 use App\Policies\VendorPolicy;
+use App\Policies\WeeklyReportPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Gate;
 
@@ -64,6 +66,7 @@ class AuthServiceProvider extends ServiceProvider
         OrgTeam::class => OrgTeamPolicy::class,
         Blocker::class => BlockerPolicy::class,
         Feedback::class => FeedbackPolicy::class,
+        WeeklyReport::class => WeeklyReportPolicy::class,
         AiAccount::class => AiAccountPolicy::class,
         AiPaymentRequest::class => AiPaymentRequestPolicy::class,
         AiPurchaseProposal::class => AiPurchaseProposalPolicy::class,

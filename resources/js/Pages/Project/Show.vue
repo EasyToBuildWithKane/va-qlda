@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, watch, toRef } from 'vue';
-import { Head, router, usePage, Link } from '@inertiajs/vue3';
+import { Head, router, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
@@ -20,6 +20,7 @@ import ProjectShowSummaryBar from '@/modules/project/components/Dashboard/Projec
 import WorkloadTable from '@/modules/project/components/Dashboard/WorkloadTable.vue';
 import ProjectDocumentsPanel from '@/modules/project/components/Documents/ProjectDocumentsPanel.vue';
 import SprintWorkspace from '@/modules/project/components/Sprint/SprintWorkspace.vue';
+import WeeklyReportWorkspace from '@/modules/project/components/WeeklyReport/WeeklyReportWorkspace.vue';
 import TaskCompleteModal from '@/modules/project/components/Sprint/TaskCompleteModal.vue';
 import { useTaskCompleteModal } from '@/composables/useTaskCompleteModal';
 import { isTaskStatusLocked } from '@/composables/useTaskCompletion';
@@ -40,6 +41,8 @@ const props = defineProps({
     attachments: { type: Array, default: () => [] },
     options: { type: Object, default: () => ({ employees: [], enums: {} }) },
     activityFeed: { type: Array, default: () => [] },
+    weeklyReports: { type: Object, default: () => ({ sprint: null, weeks: [], current_week: 1 }) },
+    weeklyReport: { type: Object, default: null },
 });
 
 const toast = useToast();
@@ -68,6 +71,7 @@ const tabs = [
     { key: 'sprints', label: 'Sprint', icon: 'sprint' },
     { key: 'blockers', label: 'Vướng mắc', icon: 'blockers' },
     { key: 'feedback', label: 'Phản hồi', icon: 'feedback' },
+    { key: 'weekly', label: 'Báo cáo tuần', icon: 'weekly' },
 ];
 const tabList = normalizeKeyed(tabs);
 const tab = ref('overview');
@@ -178,25 +182,13 @@ const onBoardMove = ({ id, status }) => {
 const openBlockerCount = computed(() => props.blockers.filter((b) => !['resolved', 'closed'].includes(b.status?.value)).length);
 const openFeedbackCount = computed(() => props.feedbackSummary?.open ?? 0);
 const canFeedbackCreate = computed(() => props.can?.feedbackCreate ?? false);
-const feedbackListHref = computed(() => `/feedback?project_id=${pid}`);
-
-const blockersTableRef = ref(null);
-const feedbackPanelRef = ref(null);
-
-function openBlockerCreate() {
-    blockersTableRef.value?.openCreate?.();
-}
-
-function openFeedbackCreate() {
-    feedbackPanelRef.value?.openCreate?.();
-}
+const canWeeklyGenerate = computed(() => props.can?.weeklyGenerate ?? false);
 
 // ---- Dashboard (overview tab) ----
 const riskPanelRef = ref(null);
 const {
     activityLog,
     pushActivity,
-    seedActivityIfEmpty,
     openIssueCount,
     daysLeft: dashboardDaysLeft,
     deadlineBanner,
@@ -215,7 +207,6 @@ const {
 });
 
 onMounted(() => {
-    seedActivityIfEmpty();
     const params = new URLSearchParams(window.location.search);
     const t = params.get('tab');
     if (t && tabList.some((x) => x.key === t)) {
@@ -295,48 +286,7 @@ const onSprintSaved = () => {
         :subtitle="projectHeaderSubtitle"
         icon="all-projects"
         :icon-color="projectIconColor"
-      >
-        <div
-          v-if="tab === 'blockers' || tab === 'feedback'"
-          class="flex shrink-0 flex-wrap items-center justify-end gap-2"
-        >
-          <Link
-            v-if="tab === 'feedback'"
-            :href="feedbackListHref"
-            class="inline-flex h-9 items-center gap-1.5 rounded-btn border border-slate-200 bg-white px-3 text-xs font-medium text-slate-600 hover:border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300"
-          >
-            <AppIcon
-              name="export"
-              :size="14"
-            />
-            Mở danh sách đầy đủ
-          </Link>
-          <button
-            v-if="tab === 'blockers' && canManage"
-            type="button"
-            class="btn-primary inline-flex h-9 items-center gap-1.5 px-3 text-xs font-semibold"
-            @click="openBlockerCreate"
-          >
-            <AppIcon
-              name="add"
-              :size="15"
-            />
-            Thêm rủi ro
-          </button>
-          <button
-            v-if="tab === 'feedback' && canFeedbackCreate"
-            type="button"
-            class="btn-primary inline-flex h-9 items-center gap-1.5 px-3 text-xs font-semibold"
-            @click="openFeedbackCreate"
-          >
-            <AppIcon
-              name="add"
-              :size="15"
-            />
-            Ghi phản hồi
-          </button>
-        </div>
-      </PageHeader>
+      />
     </template>
 
     <!-- Full-height flex column -->
@@ -536,7 +486,6 @@ const onSprintSaved = () => {
         >
           <div class="w-full min-w-0 p-4 sm:p-5 lg:p-6">
             <RiskIssueDataTable
-              ref="blockersTableRef"
               layout="page"
               :project-id="project.id"
               :project-code="project.code"
@@ -559,7 +508,6 @@ const onSprintSaved = () => {
         >
           <div class="flex min-h-0 w-full min-w-0 flex-1 flex-col p-4 sm:p-5 lg:p-6">
             <ProjectFeedbackPanel
-              ref="feedbackPanelRef"
               class="min-h-0 flex-1"
               :project-id="project.id"
               :project-code="project.code"
@@ -573,6 +521,19 @@ const onSprintSaved = () => {
               :can-create="canFeedbackCreate"
             />
           </div>
+        </div>
+
+        <!-- ===== BÁO CÁO TUẦN (Weekly Report) ===== -->
+        <div
+          v-show="tab === 'weekly'"
+          class="h-full min-h-0 overflow-hidden"
+        >
+          <WeeklyReportWorkspace
+            :project-id="project.id"
+            :overview="weeklyReports"
+            :detail="weeklyReport"
+            :can-generate="canWeeklyGenerate"
+          />
         </div>
       </div>
     </div>

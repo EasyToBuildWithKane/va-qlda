@@ -8,7 +8,6 @@ import { isTaskOverdue } from '@/composables/useTaskTimeliness';
 /** @typedef {'task_status_changed'|'task_created'|'member_added'|'sprint_started'|'issue_opened'} ActivityType */
 
 const VIEW_KEY = (id) => `dashboard_view_${id}`;
-const ACTIVITY_KEY = (id) => `project_activity_${id}`;
 const BANNER_KEY = (id) => `dashboard_deadline_banner_${id}`;
 
 export const SEVERITY_BADGE = {
@@ -105,40 +104,30 @@ export function useProjectDashboard(projectId, sources) {
         sessionStorage.setItem(BANNER_KEY(projectId), '1');
     };
 
+    // Feed hoạt động: chỉ lấy dữ liệu thật từ server (ProjectActivityFeedBuilder).
+    // Không seed placeholder, không cache localStorage — tránh hiện dữ liệu giả khi rỗng.
     const loadActivity = () => {
         const fromServer = sources.activityFeed?.value ?? sources.activityFeed;
-        if (Array.isArray(fromServer) && fromServer.length) {
-            return fromServer.filter((ev) => ev && ev.id != null);
-        }
-        try {
-            const raw = JSON.parse(localStorage.getItem(ACTIVITY_KEY(projectId)) || '[]');
-            return Array.isArray(raw) ? raw.filter((ev) => ev && ev.id != null) : [];
-        } catch {
-            return [];
-        }
+        return Array.isArray(fromServer)
+            ? fromServer.filter((ev) => ev && ev.id != null)
+            : [];
     };
     const activityLog = ref(loadActivity());
 
     watch(
         () => sources.activityFeed?.value ?? sources.activityFeed,
-        (feed) => {
-            if (Array.isArray(feed) && feed.length) {
-                activityLog.value = feed.filter((ev) => ev && ev.id != null);
-            }
+        () => {
+            activityLog.value = loadActivity();
         },
         { deep: true },
     );
 
-    const persistActivity = () => {
-        localStorage.setItem(ACTIVITY_KEY(projectId), JSON.stringify(activityLog.value.slice(0, 50)));
-    };
-
+    // Cập nhật lạc quan trong phiên sau hành động của user; tải lại sẽ lấy bản chính thức từ server.
     const pushActivity = (type, message, meta = {}) => {
         activityLog.value = [
             { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, type, message, at: new Date().toISOString(), ...meta },
             ...activityLog.value,
         ].slice(0, 50);
-        persistActivity();
     };
 
     const issues = computed(() => (sources.blockers?.value ?? []).map(blockerToIssue));
@@ -199,47 +188,11 @@ export function useProjectDashboard(projectId, sources) {
         });
     });
 
-    const seedActivityIfEmpty = () => {
-        const fromServer = sources.activityFeed?.value ?? sources.activityFeed;
-        if (Array.isArray(fromServer) && fromServer.length) return;
-        if (activityLog.value.length) return;
-        const { tasks, blockers, sprints } = sources;
-        const events = [];
-        (blockers?.value ?? []).slice(0, 3).forEach((b) => {
-            events.push({
-                id: `seed-b-${b.id}`,
-                type: 'issue_opened',
-                message: `Mở vướng mắc mới: ${b.title}`,
-                at: b.raised_at ?? new Date().toISOString(),
-            });
-        });
-        (sprints?.value ?? []).filter((s) => s.status?.value === 'active').slice(0, 2).forEach((s) => {
-            events.push({
-                id: `seed-s-${s.id}`,
-                type: 'sprint_started',
-                message: `${s.name} bắt đầu`,
-                at: s.start_date ? `${s.start_date}T08:00:00` : new Date().toISOString(),
-            });
-        });
-        (tasks?.value ?? []).slice(-5).forEach((t) => {
-            const who = t.reporter?.name?.split(' ').pop() || 'Hệ thống';
-            events.push({
-                id: `seed-t-${t.id}`,
-                type: 'task_created',
-                message: `${who} tạo task mới [${t.title}]`,
-                at: new Date().toISOString(),
-            });
-        });
-        activityLog.value = events.sort((a, b) => new Date(b.at) - new Date(a.at)).slice(0, 20);
-        persistActivity();
-    };
-
     return {
         viewMode,
         currentEmployeeId,
         activityLog,
         pushActivity,
-        seedActivityIfEmpty,
         issues,
         openIssueCount,
         daysLeft,

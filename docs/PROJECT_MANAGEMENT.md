@@ -314,11 +314,15 @@ Activity: `project_attachment_activities` — log trên `ProjectDocumentsPanel`.
 
 Tab **Vướng mắc** dùng dữ liệu `blockers` đã load theo `project_id`. CRUD qua `BlockerController` (`/blockers`, …) — policy blocker + quyền dự án.
 
+**Toolbar tab Vướng mắc:** Lọc · Cột · **Dữ liệu** (dropdown: xuất Excel/CSV theo bộ lọc hiện tại; «Nhập từ Excel…» mở modal khi `canManage`) — không tách nút Nhập/Xuất riêng (`RiskIssueDataTable`, `layout="page"`). Nút **Thêm rủi ro** (`canManage`) cùng hàng toolbar, căn phải (`ml-auto`), `h-10` — không đặt trên `PageHeader`.
+
 **Nhập Excel:** `RiskImportModal` + `useRiskImport.js` → `POST /blockers/import` (pattern production — xem `IMPORT_EXPORT_RECONCILE.md`).
 
 ### 12.2 Phản hồi
 
-Tab **Phản hồi** — `feedbacks` + `feedbackSummary`. Tạo mới cần `can.feedbackCreate`. Link xem tất cả: `/feedback?project_id={id}`.
+Tab **Phản hồi** — `feedbacks` + `feedbackSummary`. Tạo mới cần `can.feedbackCreate`. Danh sách toàn hệ thống (lọc theo dự án): `/feedback?project_id={id}` qua menu Phản hồi.
+
+**Toolbar tab Phản hồi:** Lọc · Cột · **Dữ liệu** (dropdown: xuất Excel/CSV theo bộ lọc client trên danh sách dự án — `ProjectFeedbackPanel`, `useFeedbackExport.js`). Nút **Ghi phản hồi** (`canCreate`) cùng hàng toolbar, căn phải. Nhập Excel hàng loạt chưa có API (không hiển thị mục Nhập).
 
 ---
 
@@ -340,6 +344,7 @@ Tab **Phản hồi** — `feedbacks` + `feedbackSummary`. Tạo mới cần `can
 | Danh mục dự án | `useProjectListExport` | Nút Xuất Index | Client-only |
 | Sprint / task | `useSprintData.js`, `useSprintExport.js`, `useSprintReconcile.js` | `SprintDataModal.vue` (3 tab) | **Import:** `POST projects.tasks.import` (bulk ✅) |
 | Vướng mắc tab dự án | `useRiskImport.js`, `useRiskExport.js` | `RiskImportModal.vue` | `POST /blockers/import` |
+| Phản hồi tab dự án | `useFeedbackExport.js` | Nút **Dữ liệu** · `ProjectFeedbackPanel` | Client-only (xuất theo lọc) |
 
 Marker sprint Excel: `VA_SPRINT_IMPORT_V1` — chi tiết cột trong composable.
 

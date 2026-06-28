@@ -1,0 +1,91 @@
+<?php
+
+namespace App\Http\Controllers\Project;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Project\StoreWeeklyReportRequest;
+use App\Http\Requests\Project\UpdateWeeklyReportRequest;
+use App\Models\Project;
+use App\Models\WeeklyReport;
+use App\Services\WeeklyReport\WeeklyReportPresenter;
+use App\Services\WeeklyReport\WeeklyReportService;
+use Illuminate\Http\RedirectResponse;
+
+class WeeklyReportController extends Controller
+{
+    public function __construct(
+        private readonly WeeklyReportService $service,
+        private readonly WeeklyReportPresenter $presenter,
+    ) {}
+
+    /** Tạo draft cho tuần đã chọn rồi tổng hợp nội dung ngay. */
+    public function store(StoreWeeklyReportRequest $request, Project $project): RedirectResponse
+    {
+        $sprint = $this->presenter->activeSprint($project);
+
+        $report = $this->service->createForWeek(
+            $project,
+            $sprint,
+            (int) $request->validated('week_number'),
+            $request->user(),
+        );
+
+        return $this->backToReport($project, $report, 'Đã tạo báo cáo tuần.');
+    }
+
+    /** Lưu chỉnh sửa của người dùng (3 thẻ chính + tóm tắt điều hành). */
+    public function update(UpdateWeeklyReportRequest $request, Project $project, WeeklyReport $weeklyReport): RedirectResponse
+    {
+        $this->ensureOwnership($project, $weeklyReport);
+
+        if ($weeklyReport->isLocked()) {
+            return back()->with('error', 'Báo cáo đã được duyệt — không thể chỉnh sửa.');
+        }
+
+        $this->service->saveDraft($weeklyReport, $request->validated(), $request->user());
+
+        return $this->backToReport($project, $weeklyReport, 'Đã lưu báo cáo tuần.');
+    }
+
+    /** Tổng hợp lại toàn bộ (ghi đè mọi thẻ). */
+    public function generate(Project $project, WeeklyReport $weeklyReport): RedirectResponse
+    {
+        $this->ensureOwnership($project, $weeklyReport);
+        $this->authorize('generate', [WeeklyReport::class, $project]);
+
+        if ($weeklyReport->isLocked()) {
+            return back()->with('error', 'Báo cáo đã được duyệt — không thể tạo lại.');
+        }
+
+        $this->service->generate($weeklyReport, request()->user());
+
+        return $this->backToReport($project, $weeklyReport, 'Đã tổng hợp lại báo cáo.');
+    }
+
+    /** Tạo lại nhưng giữ nguyên nội dung các thẻ người dùng đã sửa. */
+    public function regenerate(Project $project, WeeklyReport $weeklyReport): RedirectResponse
+    {
+        $this->ensureOwnership($project, $weeklyReport);
+        $this->authorize('generate', [WeeklyReport::class, $project]);
+
+        if ($weeklyReport->isLocked()) {
+            return back()->with('error', 'Báo cáo đã được duyệt — không thể tạo lại.');
+        }
+
+        $this->service->generate($weeklyReport, request()->user(), preserveEdited: true);
+
+        return $this->backToReport($project, $weeklyReport, 'Đã cập nhật phần dữ liệu thay đổi.');
+    }
+
+    private function ensureOwnership(Project $project, WeeklyReport $report): void
+    {
+        abort_unless($report->project_id === $project->id, 404);
+    }
+
+    private function backToReport(Project $project, WeeklyReport $report, string $message): RedirectResponse
+    {
+        return redirect()
+            ->route('projects.show', ['project' => $project->id, 'tab' => 'weekly', 'wr' => $report->id])
+            ->with('success', $message);
+    }
+}

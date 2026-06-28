@@ -64,6 +64,10 @@ final class PermissionCatalog
             'feedback' => ['label' => 'Phản hồi', 'icon' => 'feedback', 'group' => 'Công việc', 'abilities' => [
                 'create' => 'Tạo', 'update' => 'Sửa', 'delete' => 'Xóa',
             ]],
+            'weekly_report' => ['label' => 'Báo cáo tuần', 'icon' => 'daily', 'group' => 'Công việc', 'abilities' => [
+                'view' => 'Xem', 'generate' => 'Tạo / Tổng hợp', 'update' => 'Chỉnh sửa',
+                'submit' => 'Gửi duyệt', 'approve' => 'Duyệt / Trả lại', 'export' => 'Xuất',
+            ]],
             'my_work' => ['label' => 'Việc của tôi', 'icon' => 'calendar-clock', 'group' => 'Công việc', 'abilities' => [
                 'view_team' => 'Xem việc của thành viên nhóm', 'act_team' => 'Đổi trạng thái việc của thành viên',
             ]],
@@ -225,6 +229,7 @@ final class PermissionCatalog
                 'blocker.create', 'blocker.update', 'blocker.delete', 'blocker.comment',
                 'daily_report.view', 'daily_report.create', 'daily_report.review',
                 'feedback.create', 'feedback.update',
+                'weekly_report.view', 'weekly_report.generate', 'weekly_report.update', 'weekly_report.export',
                 'my_work.view_team', 'my_work.act_team',
                 'contract.view', 'contract.create', 'contract.update', 'contract.delete', 'contract.manage', 'contract.import', 'contract.export',
                 'vendor.view', 'vendor.create', 'vendor.update', 'vendor.delete',
@@ -246,6 +251,7 @@ final class PermissionCatalog
                 'credential.create',
                 'kb.create',
                 'feedback.create',
+                'weekly_report.view',
             ],
             'viewer' => [
                 'project.view',
@@ -253,6 +259,7 @@ final class PermissionCatalog
                 'contract.view',
                 'vendor.view',
                 'performance.view',
+                'weekly_report.view', 'weekly_report.export',
             ],
         ];
     }

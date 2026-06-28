@@ -9,6 +9,7 @@ use App\Http\Controllers\Project\SprintController;
 use App\Http\Controllers\Project\TaskAttachmentController;
 use App\Http\Controllers\Project\TaskController;
 use App\Http\Controllers\Project\TaskWatcherController;
+use App\Http\Controllers\Project\WeeklyReportController;
 use App\Http\Controllers\Project\WorklogController;
 use Illuminate\Support\Facades\Route;
 
@@ -51,6 +52,12 @@ Route::prefix('projects')->name('projects.')->group(function () {
     Route::post('/{project}/tasks/{task}/watchers/toggle', [TaskWatcherController::class, 'toggle'])->name('tasks.watchers.toggle');
     Route::post('/{project}/tasks/{task}/attachments', [TaskAttachmentController::class, 'store'])->name('tasks.attachments.store');
     Route::delete('/{project}/tasks/{task}/attachments/{attachment}', [TaskAttachmentController::class, 'destroy'])->name('tasks.attachments.destroy');
+
+    // Weekly Reports (Báo cáo tuần — Executive Dashboard)
+    Route::post('/{project}/weekly-reports', [WeeklyReportController::class, 'store'])->name('weekly-reports.store');
+    Route::put('/{project}/weekly-reports/{weeklyReport}', [WeeklyReportController::class, 'update'])->name('weekly-reports.update');
+    Route::post('/{project}/weekly-reports/{weeklyReport}/generate', [WeeklyReportController::class, 'generate'])->name('weekly-reports.generate');
+    Route::post('/{project}/weekly-reports/{weeklyReport}/regenerate', [WeeklyReportController::class, 'regenerate'])->name('weekly-reports.regenerate');
 
     // Epics
     Route::post('/{project}/epics', [EpicController::class, 'store'])->name('epics.store');
