@@ -127,4 +127,62 @@ class WeeklyReportTest extends TestCase
                 ->where('weeklyReports.sprint.name', 'Sprint 1')
             );
     }
+
+    public function test_submit_then_approve_locks_report_and_records_version(): void
+    {
+        [$project] = $this->projectWithSprint();
+        $admin = $this->admin();
+
+        $this->actingAs($admin, 'system')->post("/projects/{$project->id}/weekly-reports", ['week_number' => 1]);
+        $report = WeeklyReport::query()->where('project_id', $project->id)->firstOrFail();
+
+        $this->actingAs($admin, 'system')->post("/projects/{$project->id}/weekly-reports/{$report->id}/submit")->assertRedirect();
+        $this->assertSame(WeeklyReportStatus::Submitted, $report->refresh()->status);
+
+        $this->actingAs($admin, 'system')->post("/projects/{$project->id}/weekly-reports/{$report->id}/approve")->assertRedirect();
+        $report->refresh();
+        $this->assertSame(WeeklyReportStatus::Approved, $report->status);
+        $this->assertTrue($report->isLocked());
+        $this->assertGreaterThanOrEqual(2, $report->versions()->count());
+    }
+
+    public function test_reject_requires_reason_and_returns_to_rejected(): void
+    {
+        [$project] = $this->projectWithSprint();
+        $admin = $this->admin();
+
+        $this->actingAs($admin, 'system')->post("/projects/{$project->id}/weekly-reports", ['week_number' => 1]);
+        $report = WeeklyReport::query()->where('project_id', $project->id)->firstOrFail();
+        $this->actingAs($admin, 'system')->post("/projects/{$project->id}/weekly-reports/{$report->id}/submit");
+
+        $this->actingAs($admin, 'system')
+            ->post("/projects/{$project->id}/weekly-reports/{$report->id}/reject", ['reason' => ''])
+            ->assertSessionHasErrors('reason');
+
+        $this->actingAs($admin, 'system')
+            ->post("/projects/{$project->id}/weekly-reports/{$report->id}/reject", ['reason' => 'Thiếu số liệu chi tiết'])
+            ->assertRedirect();
+
+        $report->refresh();
+        $this->assertSame(WeeklyReportStatus::Rejected, $report->status);
+        $this->assertSame('Thiếu số liệu chi tiết', $report->reject_reason);
+    }
+
+    public function test_export_pdf_and_docx_download(): void
+    {
+        [$project] = $this->projectWithSprint();
+        $admin = $this->admin();
+
+        $this->actingAs($admin, 'system')->post("/projects/{$project->id}/weekly-reports", ['week_number' => 1]);
+        $report = WeeklyReport::query()->where('project_id', $project->id)->firstOrFail();
+
+        $this->actingAs($admin, 'system')
+            ->get("/projects/{$project->id}/weekly-reports/{$report->id}/export/pdf")
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
+
+        $this->actingAs($admin, 'system')
+            ->get("/projects/{$project->id}/weekly-reports/{$report->id}/export/docx")
+            ->assertOk();
+    }
 }

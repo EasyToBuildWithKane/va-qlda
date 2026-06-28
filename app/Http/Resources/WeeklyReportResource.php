@@ -38,7 +38,7 @@ class WeeklyReportResource extends JsonResource
             'meta' => $this->meta ?? [],
             'sections' => WeeklyReportSectionResource::collection(
                 $this->whenLoaded('sections', fn () => $this->sections, collect())
-            ),
+            )->resolve(),
             'generated_at' => $this->generated_at?->toIso8601String(),
             'generated_by' => $this->whenLoaded('generatedBy', fn () => $this->generatedBy?->display_name),
             'submitted_at' => $this->submitted_at?->toIso8601String(),

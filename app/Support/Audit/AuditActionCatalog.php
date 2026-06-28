@@ -36,6 +36,7 @@ final class AuditActionCatalog
             'congnghe' => ['label' => 'Trung tâm Công nghệ', 'icon' => 'rocket'],
             'contract' => ['label' => 'Quản lý hợp đồng', 'icon' => 'documents'],
             'daily_report' => ['label' => 'Báo cáo ngày', 'icon' => 'daily'],
+            'weekly_report' => ['label' => 'Báo cáo tuần', 'icon' => 'weekly'],
             'system' => ['label' => 'Hệ thống', 'icon' => 'settings'],
         ];
     }
@@ -122,6 +123,12 @@ final class AuditActionCatalog
             'daily_report.recalled' => ['label' => 'Rút lại báo cáo ngày', 'module' => 'daily_report', 'severity' => 'notice'],
             'daily_report.addendum_created' => ['label' => 'Bổ sung báo cáo ngày', 'module' => 'daily_report', 'severity' => 'notice'],
             'daily_report.bau_logged' => ['label' => 'Ghi nhận công việc BAU', 'module' => 'daily_report', 'severity' => 'info'],
+
+            // ── Báo cáo tuần ──────────────────────────────────────────
+            'weekly_report.generated' => ['label' => 'Tổng hợp báo cáo tuần', 'module' => 'weekly_report', 'severity' => 'info'],
+            'weekly_report.submitted' => ['label' => 'Gửi duyệt báo cáo tuần', 'module' => 'weekly_report', 'severity' => 'notice'],
+            'weekly_report.approved' => ['label' => 'Duyệt báo cáo tuần', 'module' => 'weekly_report', 'severity' => 'notice'],
+            'weekly_report.rejected' => ['label' => 'Trả lại báo cáo tuần', 'module' => 'weekly_report', 'severity' => 'warning'],
         ];
     }
 
@@ -193,6 +200,7 @@ final class AuditActionCatalog
             'contract' => 'contract',
             'vendor' => 'contract',
             'daily_report' => 'daily_report',
+            'weekly_report' => 'weekly_report',
         ];
     }
 
@@ -293,6 +301,7 @@ final class AuditActionCatalog
             'org_team' => 'Nhóm tổ chức',
             'congnghe_software_proposal' => 'Đề xuất phần mềm',
             'daily_report' => 'Báo cáo ngày',
+            'weekly_report' => 'Báo cáo tuần',
             default => ucfirst(str_replace('_', ' ', $type)),
         };
     }
