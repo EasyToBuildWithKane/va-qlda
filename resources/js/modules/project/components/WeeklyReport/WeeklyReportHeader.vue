@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
+import WeeklyReportApprovalBar from './WeeklyReportApprovalBar.vue';
 
 const props = defineProps({
     report: { type: Object, required: true },
@@ -9,16 +10,7 @@ const props = defineProps({
     processing: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(['regenerate', 'export']);
-
-const statusTone = {
-    slate: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
-    sky: 'bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300',
-    violet: 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300',
-    amber: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300',
-    emerald: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300',
-    rose: 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300',
-};
+const emit = defineEmits(['regenerate', 'export', 'submit', 'approve', 'reject']);
 
 function fmt(d) {
     if (!d) return '';
@@ -41,29 +33,30 @@ const updated = computed(() => {
 </script>
 
 <template>
-  <div class="flex flex-col gap-3 border-b border-slate-200 pb-4 dark:border-slate-700 sm:flex-row sm:items-start sm:justify-between">
-    <div class="min-w-0">
-      <div class="flex flex-wrap items-center gap-2">
-        <h2 class="font-display text-lg font-semibold text-slate-900 dark:text-slate-50">
+  <div class="flex flex-col gap-3 border-b border-slate-200 pb-4 dark:border-slate-700 lg:flex-row lg:items-start lg:justify-between">
+    <div class="min-w-0 flex-1 space-y-2">
+      <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4 sm:gap-y-2">
+        <h2 class="shrink-0 font-display text-lg font-semibold text-slate-900 dark:text-slate-50">
           Báo cáo tuần {{ report.week_number }}
         </h2>
-        <span
-          class="rounded-full px-2 py-0.5 text-[11px] font-semibold"
-          :class="statusTone[report.status?.color] || statusTone.slate"
-        >{{ report.status?.label }}</span>
-        <span class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-500 dark:bg-slate-800">
-          <AppIcon
-            name="sparkles"
-            :size="11"
-          /> Tổng hợp tự động
-        </span>
+        <WeeklyReportApprovalBar
+          inline
+          :report="report"
+          :processing="processing"
+          class="min-w-0 flex-1"
+          @submit="emit('submit')"
+          @approve="emit('approve')"
+          @reject="emit('reject', $event)"
+        />
       </div>
-      <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+      <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
         <span v-if="report.sprint_name">{{ report.sprint_name }}</span>
-        <span class="inline-flex items-center gap-1"><AppIcon
-          name="calendar"
-          :size="12"
-        /> {{ period }}</span>
+        <span class="inline-flex items-center gap-1">
+          <AppIcon
+            name="calendar"
+            :size="12"
+          /> {{ period }}
+        </span>
         <span v-if="updated">Cập nhật {{ updated }}</span>
         <span
           v-if="report.approved_by"

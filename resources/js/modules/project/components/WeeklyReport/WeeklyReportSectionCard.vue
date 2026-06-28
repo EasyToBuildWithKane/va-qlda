@@ -7,9 +7,13 @@ const props = defineProps({
     modelValue: { type: String, default: '' },
     editing: { type: Boolean, default: false },
     accent: { type: String, default: 'brand' },
+    canEdit: { type: Boolean, default: false },
+    showSaveCancel: { type: Boolean, default: false },
+    dirty: { type: Boolean, default: false },
+    processing: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(['update:modelValue']);
+const emit = defineEmits(['update:modelValue', 'edit', 'save', 'cancel']);
 
 const accentClasses = {
     brand: 'text-brand bg-brand/10',
@@ -51,6 +55,52 @@ const lines = computed(() =>
           :size="10"
         /> Đã sửa
       </span>
+      <div
+        v-if="canEdit"
+        class="flex items-center gap-1"
+      >
+        <template v-if="editing && showSaveCancel">
+          <span
+            v-if="dirty"
+            class="mr-1 hidden text-[10px] text-amber-600 sm:inline"
+          >Chưa lưu</span>
+          <button
+            type="button"
+            class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 dark:hover:bg-slate-800"
+            title="Hủy chỉnh sửa"
+            @click="emit('cancel')"
+          >
+            <AppIcon
+              name="close"
+              :size="15"
+            />
+          </button>
+          <button
+            type="button"
+            :disabled="processing || !dirty"
+            class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-brand transition hover:bg-brand/10 disabled:opacity-40"
+            title="Lưu thay đổi"
+            @click="emit('save')"
+          >
+            <AppIcon
+              name="save"
+              :size="15"
+            />
+          </button>
+        </template>
+        <button
+          v-else-if="!editing"
+          type="button"
+          class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-brand dark:hover:bg-slate-800"
+          title="Chỉnh sửa nội dung"
+          @click="emit('edit')"
+        >
+          <AppIcon
+            name="edit"
+            :size="15"
+          />
+        </button>
+      </div>
     </header>
 
     <textarea

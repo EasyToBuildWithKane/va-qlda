@@ -5,6 +5,8 @@ import AppIcon from '@/Components/AppIcon.vue';
 const props = defineProps({
     report: { type: Object, required: true },
     processing: { type: Boolean, default: false },
+    /** Nhúng cạnh tiêu đề — không bọc card riêng */
+    inline: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['submit', 'approve', 'reject']);
@@ -41,10 +43,23 @@ function doReject() {
 </script>
 
 <template>
-  <section class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+  <component
+    :is="inline ? 'div' : 'section'"
+    :class="inline
+      ? 'min-w-0'
+      : 'rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900'"
+  >
+    <div
+      class="flex flex-col gap-2"
+      :class="inline
+        ? 'xl:flex-row xl:flex-wrap xl:items-center xl:gap-x-3 xl:gap-y-2'
+        : 'sm:flex-row sm:items-center sm:justify-between gap-3'"
+    >
       <!-- Workflow steps -->
-      <ol class="flex items-center gap-1.5 text-xs">
+      <ol
+        class="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-xs"
+        :class="inline ? 'xl:flex-1' : ''"
+      >
         <li
           v-for="(s, i) in STEPS"
           :key="s.key"
@@ -74,7 +89,7 @@ function doReject() {
       </ol>
 
       <!-- Actions -->
-      <div class="flex shrink-0 items-center gap-2">
+      <div class="flex shrink-0 flex-wrap items-center gap-2">
         <span
           v-if="statusValue === 'rejected'"
           class="rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-medium text-rose-700 dark:bg-rose-950 dark:text-rose-300"
@@ -121,7 +136,8 @@ function doReject() {
     <!-- Reject reason -->
     <div
       v-if="rejecting"
-      class="mt-3 flex flex-col gap-2 border-t border-slate-100 pt-3 dark:border-slate-800 sm:flex-row"
+      class="flex flex-col gap-2 border-t border-slate-100 pt-3 dark:border-slate-800 sm:flex-row"
+      :class="inline ? 'mt-2 w-full basis-full' : 'mt-3'"
     >
       <input
         v-model="reason"
@@ -146,5 +162,5 @@ function doReject() {
     >
       Lý do: {{ report.reject_reason }}
     </p>
-  </section>
+  </component>
 </template>
