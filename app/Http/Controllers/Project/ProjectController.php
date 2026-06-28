@@ -21,6 +21,8 @@ use App\Http\Resources\SprintResource;
 use App\Http\Resources\TaskResource;
 use App\Models\Feedback;
 use App\Models\Project;
+use App\Models\WeeklyReport;
+use App\Services\WeeklyReport\WeeklyReportPresenter;
 use App\Support\Enums\FeedbackStatus;
 use App\Support\Enums\ProjectCategory;
 use App\Support\Enums\ProjectScope;
@@ -49,6 +51,7 @@ class ProjectController extends Controller
         private readonly ProjectShowDataLoader $projectShowDataLoader,
         private readonly ProjectMemberRosterMerger $memberRosterMerger,
         private readonly ProjectActivityFeedBuilder $activityFeedBuilder,
+        private readonly WeeklyReportPresenter $weeklyReportPresenter,
     ) {}
 
     public function index(Request $request): Response
@@ -140,12 +143,15 @@ class ProjectController extends Controller
             ],
             'can' => [
                 'feedbackCreate' => $request->user()->can('create', Feedback::class),
+                'weeklyGenerate' => $request->user()->can('generate', [WeeklyReport::class, $project]),
             ],
             'options' => [
                 'employees' => Options::employees(),
                 'enums' => Options::enums(),
             ],
             'activityFeed' => $this->activityFeedBuilder->forProject($project),
+            'weeklyReports' => $this->weeklyReportPresenter->overview($project),
+            'weeklyReport' => $this->weeklyReportPresenter->detail($project, $request),
         ]);
     }
 

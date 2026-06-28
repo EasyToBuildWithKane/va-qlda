@@ -1,6 +1,7 @@
 <script setup>
 import { reactive, ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
+import AppIcon from '@/Components/AppIcon.vue';
 import Badge from '@/shared/ui/Badge.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
 import FeedbackFormModal from '@/modules/project/components/FeedbackFormModal.vue';
@@ -11,6 +12,9 @@ import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import ColumnVisibilityDropdown from '@/shared/ui/ColumnVisibilityDropdown.vue';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
 import { useVisibleColumns } from '@/shared/composables/useVisibleColumns';
+import { useFixedDropdownAnchor } from '@/shared/composables/useFixedDropdownAnchor';
+import { useToast } from '@/shared/composables/useToast';
+import { exportFeedbackRows } from '@/composables/useFeedbackExport';
 import { date, datetime } from '@/composables/useFormat';
 
 const FILTER_CONTROL_CLASS = 'input h-10 w-full text-sm';
@@ -29,9 +33,18 @@ const props = defineProps({
 });
 
 const page = usePage();
+const toast = useToast();
 const modal = ref(false);
 const filterPanelDdRef = ref(null);
 const colDdRef = ref(null);
+const dataMenuRef = ref(null);
+const dataMenu = ref(false);
+
+const { panelStyle: dataMenuStyle } = useFixedDropdownAnchor(
+    () => dataMenuRef.value,
+    dataMenu,
+    { width: 248, zIndex: 200 },
+);
 
 const FILTER_CONTROLS = [
     { key: 'status', label: 'Trạng thái', default: false },
@@ -124,6 +137,8 @@ const filteredFeedbacks = computed(() => {
     return rows;
 });
 
+const exportRowCount = computed(() => filteredFeedbacks.value.length);
+
 const appliedFilterCount = computed(() =>
     [
         filterForm.status,
@@ -148,12 +163,53 @@ function clearFilters() {
 function onToolbarClickOutside(e) {
     if (e.target.closest?.('[data-filter-visibility-panel]')) return;
     if (e.target.closest?.('[data-column-visibility-panel]')) return;
+    if (e.target.closest?.('[data-project-feedback-data-panel]')) return;
     if (filterPanelDdRef.value && !filterPanelDdRef.value.contains(e.target)) {
         showFilterPanelDd.value = false;
     }
     if (colDdRef.value && !colDdRef.value.contains(e.target)) {
         showColDd.value = false;
     }
+    if (dataMenuRef.value && !dataMenuRef.value.contains(e.target)) {
+        dataMenu.value = false;
+    }
+}
+
+function toggleDataMenu() {
+    dataMenu.value = !dataMenu.value;
+    if (dataMenu.value) {
+        showFilterPanelDd.value = false;
+        showColDd.value = false;
+    }
+}
+
+function runExportFromMenu(format) {
+    dataMenu.value = false;
+    if (!exportRowCount.value) {
+        toast.warning('Không có dữ liệu để xuất.');
+        return;
+    }
+    exportFeedbackRows({
+        list: filteredFeedbacks.value,
+        projectCode: props.projectCode,
+        projectName: props.projectName,
+        format,
+    });
+    toast.success(format === 'csv' ? 'Đã xuất file CSV' : 'Đã xuất file Excel');
+}
+
+function openFilterPanelSafe() {
+    openFilterPanel(() => {
+        showColDd.value = false;
+        dataMenu.value = false;
+    });
+}
+
+function openColPanelSafe() {
+    openColPanel(() => {
+        showFilterPanelDd.value = false;
+        dataMenu.value = false;
+    });
 }
 
 onMounted(() => document.addEventListener('mousedown', onToolbarClickOutside));
@@ -197,7 +253,7 @@ defineExpose({ openCreate });
                 icon="filter"
                 :active="showFilterPanelDd"
                 :title="`Hiển thị bộ lọc (${enabledFilterControlCount}/${filterControls.length})`"
-                @click="openFilterPanel(() => { showColDd = false; })"
+                @click="openFilterPanelSafe"
               >
                 Lọc
               </DatagridToolbarActionButton>
@@ -218,7 +274,7 @@ defineExpose({ openCreate });
                 icon="columns"
                 :active="showColDd"
                 title="Cột hiển thị"
-                @click="openColPanel(() => { showFilterPanelDd = false; })"
+                @click="openColPanelSafe"
               >
                 Cột
               </DatagridToolbarActionButton>
@@ -230,8 +286,86 @@ defineExpose({ openCreate });
                 @persist="persistVisibleColumns"
               />
             </div>
+
+            <div
+              ref="dataMenuRef"
+              class="relative shrink-0"
+            >
+              <DatagridToolbarActionButton
+                icon="upload"
+                :active="dataMenu"
+                title="Xuất phản hồi theo bộ lọc hiện tại"
+                @click.stop="toggleDataMenu"
+              >
+                Dữ liệu
+              </DatagridToolbarActionButton>
+            </div>
+          </div>
+
+          <div
+            v-if="canCreate"
+            class="ml-auto flex w-full shrink-0 items-center justify-end gap-2 sm:w-auto lg:w-auto"
+          >
+            <button
+              type="button"
+              class="btn-primary inline-flex h-10 shrink-0 items-center gap-1.5 px-3 text-xs font-semibold sm:px-4 sm:text-sm"
+              @click="openCreate"
+            >
+              <AppIcon
+                name="add"
+                :size="15"
+              />
+              Ghi phản hồi
+            </button>
           </div>
         </div>
+
+        <Teleport to="body">
+          <Transition
+            enter-active-class="transition duration-150 ease-out"
+            enter-from-class="opacity-0 scale-95"
+            leave-active-class="transition duration-100 ease-in"
+            leave-to-class="opacity-0 scale-95"
+          >
+            <div
+              v-if="dataMenu"
+              :style="dataMenuStyle"
+              class="overflow-hidden rounded-card border border-slate-200 bg-white p-1 shadow-elevation-2 dark:border-slate-600 dark:bg-slate-900"
+              data-project-feedback-data-panel
+            >
+              <button
+                type="button"
+                class="flex w-full items-center gap-2.5 rounded-btn px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-800"
+                @click="runExportFromMenu('xlsx')"
+              >
+                <AppIcon
+                  name="export"
+                  :size="15"
+                  class="shrink-0 text-emerald-600"
+                />
+                <div>
+                  <span class="block text-sm font-medium text-slate-700 dark:text-slate-200">Xuất Excel</span>
+                  <span class="block text-[10px] text-slate-400">{{ exportRowCount }} mục · .xlsx có định dạng</span>
+                </div>
+              </button>
+              <button
+                type="button"
+                class="flex w-full items-center gap-2.5 rounded-btn px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-800"
+                @click="runExportFromMenu('csv')"
+              >
+                <AppIcon
+                  name="download"
+                  :size="15"
+                  class="shrink-0 text-sky-600"
+                />
+                <div>
+                  <span class="block text-sm font-medium text-slate-700 dark:text-slate-200">Xuất CSV</span>
+                  <span class="block text-[10px] text-slate-400">{{ exportRowCount }} mục · .csv</span>
+                </div>
+              </button>
+            </div>
+          </Transition>
+        </Teleport>
 
         <Transition name="fade-slide">
           <div

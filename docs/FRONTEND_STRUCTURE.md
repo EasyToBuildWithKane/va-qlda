@@ -232,6 +232,7 @@ Bộ lọc: shared datagrid (`DatagridToolbarSearch` `hide-label`, `FilterDatePi
 | Task | `useTaskWorkspace`, `useTaskBulkCreate`, `useTaskHierarchy`, `useTaskPhaseGroups`, `useTaskTimeliness` |
 | Project | `useProjectDashboard`, `useProjectTimeline`, `useProjectExport`, `useProjectListExport`, `useProjectCreateDraft` |
 | Risk | `useRiskImport`, `useRiskExport`, `useRiskTable` |
+| Feedback (tab dự án) | `useFeedbackExport` — xuất Excel/CSV theo lọc client (`ProjectFeedbackPanel`) |
 | Daily report | `modules/daily-report/composables/useDailyReportHistoryExport` — **async**: `axios.get` `daily-reports.export-data` (toàn bộ kết quả lọc) → dựng workbook 7 sheet `xlsx-js-style` |
 | Other | `useNotifications`, `useDocumentPreview`, `useDialog`, `useFormat`, `useConfirmClose`, `useVirtualScroll`, `useNormalizeList` |
 

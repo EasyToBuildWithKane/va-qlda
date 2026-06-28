@@ -13,6 +13,8 @@ use App\Support\Options\DepartmentOptions;
 use App\Support\Options\EmployeeOptions;
 use App\Support\Options\ProjectOptions;
 use App\Support\Settings\SettingsRepository;
+use App\Support\WeeklyReport\Contracts\WeeklyReportGenerator;
+use App\Support\WeeklyReport\HeuristicWeeklyReportGenerator;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -24,6 +26,10 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(DepartmentOptions::class);
         $this->app->singleton(SettingsRepository::class);
         $this->app->singleton(CongngheContentRepository::class);
+
+        // Engine sinh báo cáo tuần — mặc định rule-based (heuristic). Đổi binding
+        // ở đây sang một implement gọi Claude API khi muốn nâng cấp lên LLM thật.
+        $this->app->bind(WeeklyReportGenerator::class, HeuristicWeeklyReportGenerator::class);
     }
 
     /**

@@ -25,6 +25,7 @@ import DatagridToolbarActionButton from '@/shared/ui/DatagridToolbarActionButton
 import DatagridFilterField from '@/shared/ui/DatagridFilterField.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
+import { useFixedDropdownAnchor } from '@/shared/composables/useFixedDropdownAnchor';
 
 const RISK_FILTER_CONTROLS_DEF = [
     { key: 'status', label: 'Trạng thái', default: false },
@@ -47,7 +48,7 @@ const props = defineProps({
     canManage: { type: Boolean, default: false },
     canContribute: { type: Boolean, default: false },
     loading: { type: Boolean, default: false },
-    /** `page` = tab Vướng mắc (ẩn tiêu đề, nút tạo ở PageHeader) */
+    /** `page` = tab Vướng mắc trên Project Show (ẩn tiêu đề panel, nút tạo trên toolbar) */
     layout: { type: String, default: 'panel' },
 });
 
@@ -85,10 +86,14 @@ const showColumns = ref(false);
 const columnsBtnRef = ref(null);
 const columnsMenuRef = ref(null);
 const columnsMenuStyle = ref({ top: '0px', left: '0px' });
-const exportBtnRef = ref(null);
-const exportMenuRef = ref(null);
-const showExportMenu = ref(false);
-const exportMenuStyle = ref({ top: '0px', left: '0px' });
+const dataMenuRef = ref(null);
+const dataMenu = ref(false);
+const { panelStyle: dataMenuStyle } = useFixedDropdownAnchor(
+    () => dataMenuRef.value,
+    dataMenu,
+    { width: 248, zIndex: 200 },
+);
+const exportRowCount = computed(() => table.filtered.value.length);
 const actionMenuRowId = ref(null);
 const actionBtnRefs = ref({});
 const actionMenuRef = ref(null);
@@ -109,7 +114,7 @@ const toggleColumnsMenu = async () => {
     showColumns.value = !showColumns.value;
     if (showColumns.value) {
         showFilterPanelDd.value = false;
-        showExportMenu.value = false;
+        dataMenu.value = false;
         closeActionMenu();
         await nextTick();
         positionColumnsMenu();
@@ -118,7 +123,6 @@ const toggleColumnsMenu = async () => {
 
 const onColumnsReposition = () => {
     if (showColumns.value) positionColumnsMenu();
-    if (showExportMenu.value) positionExportMenu();
     if (actionMenuRowId.value) positionActionMenu(actionMenuRowId.value);
 };
 
@@ -149,7 +153,7 @@ const toggleActionMenu = async (row) => {
     }
     actionMenuRowId.value = row.id;
     showColumns.value = false;
-    showExportMenu.value = false;
+    dataMenu.value = false;
     await nextTick();
     positionActionMenu(row.id);
 };
@@ -174,30 +178,16 @@ const menuDelete = async (row) => {
     await removeOne(row);
 };
 
-const positionExportMenu = () => {
-    const btn = exportBtnRef.value;
-    if (!btn) return;
-    const r = btn.getBoundingClientRect();
-    const menuW = 200;
-    exportMenuStyle.value = {
-        top: `${r.bottom + 4}px`,
-        left: `${Math.min(Math.max(8, r.right - menuW), window.innerWidth - menuW - 8)}px`,
-    };
-};
-
-const toggleExportMenu = async () => {
-    showExportMenu.value = !showExportMenu.value;
-    if (showExportMenu.value) {
+const toggleDataMenu = () => {
+    dataMenu.value = !dataMenu.value;
+    if (dataMenu.value) {
         showColumns.value = false;
         showFilterPanelDd.value = false;
         closeActionMenu();
-        await nextTick();
-        positionExportMenu();
     }
 };
 
 const runExport = (format) => {
-    showExportMenu.value = false;
     table.exportRisk(table.filtered.value, {
         projectCode: props.projectCode,
         projectName: props.projectName,
@@ -206,10 +196,24 @@ const runExport = (format) => {
     toast.success(format === 'csv' ? 'Đã xuất file CSV' : 'Đã xuất file Excel');
 };
 
+const runExportFromMenu = (format) => {
+    dataMenu.value = false;
+    if (!exportRowCount.value) {
+        toast.warning('Không có dữ liệu để xuất.');
+        return;
+    }
+    runExport(format);
+};
+
+const openImportFromMenu = () => {
+    dataMenu.value = false;
+    importModalOpen.value = true;
+};
+
 const openRiskFilterPanel = () => {
     openFilterPanel(() => {
         showColumns.value = false;
-        showExportMenu.value = false;
+        dataMenu.value = false;
         closeActionMenu();
     });
 };
@@ -286,14 +290,14 @@ const markResolved = async (row) => {
 const onDocClick = (e) => {
     const inColumnsBtn = columnsBtnRef.value?.contains(e.target);
     const inColumnsMenu = columnsMenuRef.value?.contains(e.target);
-    const inExportBtn = exportBtnRef.value?.contains(e.target);
-    const inExportMenu = exportMenuRef.value?.contains(e.target);
+    const inDataMenu = dataMenuRef.value?.contains(e.target)
+        || e.target.closest?.('[data-risk-data-panel]');
     const inFilterPanel = filterPanelDdRef.value?.contains(e.target)
         || e.target.closest?.('[data-filter-visibility-panel]');
     const inActionMenu = actionMenuRef.value?.contains(e.target);
     const inAnyActionBtn = Object.values(actionBtnRefs.value).some((el) => el?.contains(e.target));
     if (!inColumnsBtn && !inColumnsMenu) showColumns.value = false;
-    if (!inExportBtn && !inExportMenu) showExportMenu.value = false;
+    if (!inDataMenu) dataMenu.value = false;
     if (!inFilterPanel) showFilterPanelDd.value = false;
     if (!inActionMenu && !inAnyActionBtn) closeActionMenu();
 };
@@ -449,77 +453,28 @@ defineExpose({ scrollHere, openCreate, openImport });
             </Teleport>
           </div>
 
-          <DatagridToolbarActionButton
-            v-if="canManage"
-            icon="upload"
-            title="Nhập từ Excel"
-            @click="importModalOpen = true"
-          >
-            Nhập
-          </DatagridToolbarActionButton>
-
           <div
-            ref="exportBtnRef"
+            ref="dataMenuRef"
             class="relative shrink-0"
           >
             <DatagridToolbarActionButton
-              icon="export"
-              :active="showExportMenu"
-              :disabled="!table.filtered.value.length"
-              title="Xuất CSV hoặc Excel"
-              @click.stop="toggleExportMenu"
+              icon="upload"
+              :active="dataMenu"
+              title="Nhập · Xuất dữ liệu vướng mắc"
+              @click.stop="toggleDataMenu"
             >
-              Xuất
+              Dữ liệu
             </DatagridToolbarActionButton>
-            <Teleport to="body">
-              <div
-                v-if="showExportMenu"
-                ref="exportMenuRef"
-                class="fixed z-[200] w-[12.5rem] overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-elevation-2 dark:border-slate-600 dark:bg-slate-900"
-                :style="exportMenuStyle"
-                @click.stop
-              >
-                <p class="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                  Định dạng
-                </p>
-                <button
-                  type="button"
-                  class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
-                  @click="runExport('xlsx')"
-                >
-                  <AppIcon
-                    name="export"
-                    :size="15"
-                    class="text-emerald-600"
-                  />
-                  <span>
-                    <span class="font-medium">Excel</span>
-                    <span class="block text-[10px] text-slate-400">.xlsx · có định dạng</span>
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
-                  @click="runExport('csv')"
-                >
-                  <AppIcon
-                    name="download"
-                    :size="15"
-                    class="text-sky-600"
-                  />
-                  <span>
-                    <span class="font-medium">CSV</span>
-                    <span class="block text-[10px] text-slate-400">.csv · mở bằng Excel</span>
-                  </span>
-                </button>
-              </div>
-            </Teleport>
           </div>
+        </div>
 
+        <div
+          v-if="canManage"
+          class="ml-auto flex w-full shrink-0 items-center justify-end gap-2 sm:w-auto lg:w-auto"
+        >
           <button
-            v-if="canManage && layout !== 'page'"
             type="button"
-            class="btn-primary inline-flex h-10 shrink-0 items-center gap-1.5 px-4 text-sm"
+            class="btn-primary inline-flex h-10 shrink-0 items-center gap-1.5 px-3 text-xs font-semibold sm:px-4 sm:text-sm"
             @click="openCreate"
           >
             <AppIcon
@@ -530,6 +485,71 @@ defineExpose({ scrollHere, openCreate, openImport });
           </button>
         </div>
       </div>
+
+      <Teleport to="body">
+        <Transition
+          enter-active-class="transition duration-150 ease-out"
+          enter-from-class="opacity-0 scale-95"
+          leave-active-class="transition duration-100 ease-in"
+          leave-to-class="opacity-0 scale-95"
+        >
+          <div
+            v-if="dataMenu"
+            :style="dataMenuStyle"
+            class="overflow-hidden rounded-card border border-slate-200 bg-white p-1 shadow-elevation-2 dark:border-slate-600 dark:bg-slate-900"
+            data-risk-data-panel
+          >
+            <button
+              type="button"
+              class="flex w-full items-center gap-2.5 rounded-btn px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-800"
+              @click="runExportFromMenu('xlsx')"
+            >
+              <AppIcon
+                name="export"
+                :size="15"
+                class="shrink-0 text-emerald-600"
+              />
+              <div>
+                <span class="block text-sm font-medium text-slate-700 dark:text-slate-200">Xuất Excel</span>
+                <span class="block text-[10px] text-slate-400">{{ exportRowCount }} mục · .xlsx có định dạng</span>
+              </div>
+            </button>
+            <button
+              type="button"
+              class="flex w-full items-center gap-2.5 rounded-btn px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-800"
+              @click="runExportFromMenu('csv')"
+            >
+              <AppIcon
+                name="download"
+                :size="15"
+                class="shrink-0 text-sky-600"
+              />
+              <div>
+                <span class="block text-sm font-medium text-slate-700 dark:text-slate-200">Xuất CSV</span>
+                <span class="block text-[10px] text-slate-400">{{ exportRowCount }} mục · .csv</span>
+              </div>
+            </button>
+            <template v-if="canManage">
+              <hr class="my-1 border-slate-100 dark:border-slate-700">
+              <button
+                type="button"
+                class="flex w-full items-center gap-2.5 rounded-btn px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-800"
+                @click="openImportFromMenu"
+              >
+                <AppIcon
+                  name="upload"
+                  :size="15"
+                  class="shrink-0 text-slate-400"
+                />
+                <div>
+                  <span class="block text-sm font-medium text-slate-700 dark:text-slate-200">Nhập từ Excel…</span>
+                  <span class="block text-[10px] text-slate-400">File mẫu · xem trước · nhập hàng loạt</span>
+                </div>
+              </button>
+            </template>
+          </div>
+        </Transition>
+      </Teleport>
 
       <Transition name="fade-slide">
         <div
