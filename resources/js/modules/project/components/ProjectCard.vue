@@ -7,6 +7,7 @@ import Avatar from '@/shared/ui/Avatar.vue';
 import ProgressBar from '@/shared/ui/ProgressBar.vue';
 import ProjectMembers from '@/modules/project/components/ProjectMembers.vue';
 import { date } from '@/composables/useFormat';
+import { PROJECT_COLOR_SWATCH } from '@/modules/project/utils/projectColors';
 
 const props = defineProps({
     project: { type: Object, required: true },
@@ -17,10 +18,7 @@ const props = defineProps({
 
 const emit = defineEmits(['remove', 'dragstart']);
 
-const stripe = {
-    brand: 'bg-brand', sky: 'bg-sky-500', emerald: 'bg-emerald-500', violet: 'bg-violet-500',
-    amber: 'bg-amber-500', rose: 'bg-rose-500', cyan: 'bg-cyan-500', slate: 'bg-slate-400',
-};
+const stripe = PROJECT_COLOR_SWATCH;
 
 const members = computed(() => {
     const list = props.project?.members;

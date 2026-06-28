@@ -8,6 +8,7 @@ import { COLUMNS, cellValue } from '@/modules/project/config/columns';
 import { currency, date } from '@/composables/useFormat';
 import ProjectListRowActions from '@/modules/project/components/ProjectListRowActions.vue';
 import ProjectMembers from '@/modules/project/components/ProjectMembers.vue';
+import { PROJECT_COLOR_SWATCH } from '@/modules/project/utils/projectColors';
 
 const props = defineProps({
     projects: { type: Array, default: () => [] },
@@ -18,10 +19,7 @@ const props = defineProps({
 
 const emit = defineEmits(['remove', 'duplicate']);
 
-const stripe = {
-    brand: 'bg-brand', sky: 'bg-sky-500', emerald: 'bg-emerald-500', violet: 'bg-violet-500',
-    amber: 'bg-amber-500', rose: 'bg-rose-500', cyan: 'bg-cyan-500', slate: 'bg-slate-400',
-};
+const stripe = PROJECT_COLOR_SWATCH;
 const dot = stripe;
 
 const cols = computed(() => COLUMNS.filter((c) => props.visible.includes(c.key)));

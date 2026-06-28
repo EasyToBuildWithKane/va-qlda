@@ -10,6 +10,7 @@ import PersonSelect from '@/modules/project/components/PersonSelect.vue';
 import SearchSelect from '@/shared/ui/SearchSelect.vue';
 import KbRichTextField from '@/modules/knowledge-base/components/KbRichTextField.vue';
 import { valueLabelOptions } from '@/shared/utils/selectOptions';
+import { PROJECT_COLOR_OPTIONS, PROJECT_COLOR_SWATCH } from '@/modules/project/utils/projectColors';
 import { useDialog } from '@/composables/useDialog';
 import { useToast } from '@/shared/composables/useToast';
 import {
@@ -34,11 +35,8 @@ const props = defineProps({
 
 const isCreate = computed(() => !props.project);
 
-const colors = ['brand', 'sky', 'emerald', 'violet', 'amber', 'rose', 'cyan', 'slate'];
-const swatch = {
-    brand: 'bg-brand', sky: 'bg-sky-500', emerald: 'bg-emerald-500', violet: 'bg-violet-500',
-    amber: 'bg-amber-500', rose: 'bg-rose-500', cyan: 'bg-cyan-500', slate: 'bg-slate-400',
-};
+const colors = PROJECT_COLOR_OPTIONS;
+const swatch = PROJECT_COLOR_SWATCH;
 
 const form = useForm({
     code: props.project?.code ?? props.suggestedCode,
@@ -650,12 +648,13 @@ const submit = (after = 'close') => {
                 <div class="flex flex-wrap gap-2 pt-1.5">
                   <button
                     v-for="c in colors"
-                    :key="c"
+                    :key="c.key"
                     type="button"
-                    class="h-7 w-7 rounded-full ring-offset-2 transition"
-                    :class="[swatch[c], form.color === c ? 'ring-2 ring-brand' : '']"
-                    :aria-label="c"
-                    @click="form.color = c"
+                    class="h-7 w-7 rounded-full ring-offset-2 transition hover:scale-110"
+                    :class="[swatch[c.key], form.color === c.key ? 'ring-2 ring-brand' : '']"
+                    :aria-label="c.label"
+                    :title="c.label"
+                    @click="form.color = c.key"
                   />
                 </div>
               </div>

@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import { useConfirmDelete } from '@/composables/useConfirmClose';
 import TaskStatusBadge from '@/Components/TaskStatusBadge.vue';
 import { createSpawnLocalKey } from '@/modules/daily-report/utils/spawnLocalKey';
+import { PROJECT_COLOR_SOFT } from '@/modules/project/utils/projectColors';
 
 const props = defineProps({
     // [{ id, name, tasks: [{ id, title }] }]
@@ -16,12 +17,7 @@ const emit = defineEmits(['update:modelValue']);
 const confirmDelete = useConfirmDelete();
 
 // Soft tag colours (literal strings so Tailwind keeps them).
-const soft = {
-    brand: 'bg-brand-50 text-brand', sky: 'bg-sky-50 text-sky-700',
-    emerald: 'bg-emerald-50 text-emerald-700', violet: 'bg-violet-50 text-violet-700',
-    amber: 'bg-amber-50 text-amber-700', rose: 'bg-rose-50 text-rose-700',
-    cyan: 'bg-cyan-50 text-cyan-700', slate: 'bg-slate-100 text-slate-600',
-};
+const soft = PROJECT_COLOR_SOFT;
 const optionOf = (id) => props.options.find((o) => o.id === id);
 const colorOf = (id) => soft[optionOf(id)?.color] || soft.slate;
 

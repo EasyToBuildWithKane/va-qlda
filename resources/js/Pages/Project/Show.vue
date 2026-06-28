@@ -5,6 +5,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import ProjectCalendar from '@/modules/project/components/Calendar/ProjectCalendar.vue';
+import { PROJECT_COLORS } from '@/modules/project/utils/projectColors';
 import TaskBoard from '@/modules/project/components/TaskBoard.vue';
 import TaskDetailPanel from '@/modules/project/components/Sprint/TaskDetailPanel.vue';
 import TaskFormModal from '@/modules/project/components/TaskFormModal.vue';
@@ -53,7 +54,7 @@ const projectHeaderSubtitle = computed(() => {
 
 const projectIconColor = computed(() => {
     const c = props.project.color;
-    return ['brand', 'sky', 'emerald', 'violet', 'amber', 'rose', 'cyan', 'slate'].includes(c) ? c : 'brand';
+    return PROJECT_COLORS.includes(c) ? c : 'brand';
 });
 const canManage = computed(() => props.project.can?.manage);
 const canContribute = computed(() => props.project.can?.contribute);
