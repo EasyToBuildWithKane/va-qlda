@@ -1,7 +1,8 @@
 <script setup>
+import { computed } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
 
-defineProps({
+const props = defineProps({
     sprint: { type: Object, default: null },
     weeks: { type: Array, default: () => [] },
     currentWeek: { type: Number, default: 1 },
@@ -10,6 +11,22 @@ defineProps({
 });
 
 const emit = defineEmits(['select']);
+
+const FILTER_CONTROL_CLASS = 'input h-10 w-full text-sm';
+
+const sprintLabel = computed(() => props.sprint?.name || 'Ngoài Sprint');
+const isOutsideSprint = computed(() => !props.sprint);
+
+const selectedWeekNumber = computed(() => {
+    if (props.pendingWeek != null) return props.pendingWeek;
+    if (props.activeReportId) {
+        const match = props.weeks.find((w) => w.report_id === props.activeReportId);
+        if (match) return match.week_number;
+    }
+    return props.currentWeek;
+});
+
+const activeWeek = computed(() => props.weeks.find((w) => w.week_number === selectedWeekNumber.value) ?? null);
 
 function fmt(d) {
     if (!d) return '';
@@ -20,61 +37,114 @@ function fmt(d) {
 function isDone(status) {
     return status === 'submitted' || status === 'approved';
 }
+
+function weekOptionLabel(w) {
+    const range = `${fmt(w.week_start)} – ${fmt(w.week_end)}`;
+    if (isDone(w.status)) return `Tuần ${w.week_number} · ${range} · Đã gửi/duyệt`;
+    if (w.report_id) return `Tuần ${w.week_number} · ${range} · Đã tạo`;
+    return `Tuần ${w.week_number} · ${range} · Chưa tạo`;
+}
+
+function onWeekChange(event) {
+    const num = Number(event.target.value);
+    const week = props.weeks.find((w) => w.week_number === num);
+    if (week) emit('select', week);
+}
 </script>
 
 <template>
-  <aside class="flex w-full shrink-0 flex-col gap-3 lg:w-60">
-    <div class="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
-      <div class="flex items-center gap-2 px-1 pb-2">
-        <AppIcon
-          name="sprint"
-          :size="15"
-          class="text-brand"
-        />
-        <span class="font-display text-sm font-semibold text-slate-800 dark:text-slate-100">
-          {{ sprint?.name || 'Ngoài Sprint' }}
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <div class="grid min-w-0 flex-1 grid-cols-1 gap-3 sm:grid-cols-2 lg:max-w-2xl">
+      <label class="min-w-0">
+        <span class="mb-1 block text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+          Phạm vi Sprint
         </span>
-      </div>
-
-      <ul class="space-y-1">
-        <li
-          v-for="w in weeks"
-          :key="w.week_number"
-        >
-          <button
-            type="button"
-            class="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition"
-            :class="(activeReportId && w.report_id === activeReportId) || (pendingWeek === w.week_number)
-              ? 'bg-brand/10 text-brand'
-              : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'"
-            @click="emit('select', w)"
+        <div class="relative">
+          <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400">
+            <AppIcon
+              name="sprint"
+              :size="15"
+            />
+          </span>
+          <select
+            :class="[FILTER_CONTROL_CLASS, 'pl-9 pr-3', isOutsideSprint ? 'text-amber-800 dark:text-amber-200' : '']"
+            :aria-label="`Phạm vi: ${sprintLabel}`"
+            disabled
           >
-            <span
-              class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold"
-              :class="isDone(w.status)
-                ? 'bg-emerald-500 text-white'
-                : w.report_id
-                  ? 'bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300'
-                  : 'bg-slate-200 text-slate-500 dark:bg-slate-700'"
+            <option>{{ sprintLabel }}</option>
+          </select>
+        </div>
+        <p
+          v-if="isOutsideSprint"
+          class="mt-1 text-[11px] leading-snug text-slate-500"
+        >
+          Dự án chưa gán Sprint — báo cáo theo tuần lịch hiện tại.
+        </p>
+      </label>
+
+      <label class="min-w-0">
+        <span class="mb-1 block text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+          Tuần báo cáo
+        </span>
+        <div class="relative">
+          <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-brand">
+            <AppIcon
+              name="weekly"
+              :size="15"
+            />
+          </span>
+          <select
+            :class="[FILTER_CONTROL_CLASS, 'pl-9 pr-3']"
+            :value="selectedWeekNumber"
+            aria-label="Chọn tuần báo cáo"
+            @change="onWeekChange"
+          >
+            <option
+              v-for="w in weeks"
+              :key="w.week_number"
+              :value="w.week_number"
             >
-              <AppIcon
-                v-if="isDone(w.status)"
-                name="check"
-                :size="11"
-              />
-              <template v-else>{{ w.week_number }}</template>
-            </span>
-            <span class="min-w-0 flex-1">
-              <span class="block font-medium">Tuần {{ w.week_number }}</span>
-              <span class="block text-[11px] text-slate-400">{{ fmt(w.week_start) }} – {{ fmt(w.week_end) }}</span>
-            </span>
-            <span
-              v-if="w.week_number === currentWeek"
-              class="rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-amber-700 dark:bg-amber-950 dark:text-amber-300"
-            >Nay</span>
-          </button>
-        </li>
-      </ul>
+              {{ weekOptionLabel(w) }}
+            </option>
+          </select>
+        </div>
+      </label>
     </div>
-  </aside>
+
+    <div
+      v-if="activeWeek"
+      class="flex flex-wrap items-center gap-2 text-[11px] text-slate-500 sm:pb-0.5"
+    >
+      <span
+        v-if="activeWeek.week_number === currentWeek"
+        class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 font-semibold uppercase text-amber-800 dark:bg-amber-950 dark:text-amber-200"
+      >
+        Tuần hiện tại
+      </span>
+      <span
+        v-if="isDone(activeWeek.status)"
+        class="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400"
+      >
+        <AppIcon
+          name="check"
+          :size="12"
+        />
+        Đã gửi hoặc duyệt
+      </span>
+      <span
+        v-else-if="activeWeek.report_id"
+        class="inline-flex items-center gap-1 text-sky-600 dark:text-sky-400"
+      >
+        <span class="h-1.5 w-1.5 rounded-full bg-sky-500" />
+        Đã có báo cáo
+      </span>
+      <span
+        v-else
+        class="inline-flex items-center gap-1 text-slate-400"
+      >
+        <span class="h-1.5 w-1.5 rounded-full bg-slate-300 dark:bg-slate-600" />
+        Chưa tạo báo cáo
+      </span>
+    </div>
+  </div>
 </template>

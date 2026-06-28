@@ -52,17 +52,19 @@ function onExport(format) {
 </script>
 
 <template>
-  <div class="flex h-full min-h-0 w-full flex-col gap-4 overflow-y-auto bg-slate-50 p-4 dark:bg-slate-950 lg:flex-row lg:p-5">
-    <WeeklyReportTimelineNav
-      :sprint="sprint"
-      :weeks="weeks"
-      :current-week="currentWeekNumber"
-      :active-report-id="report?.id ?? null"
-      :pending-week="pendingWeek"
-      @select="selectWeek"
-    />
+  <div class="flex h-full min-h-0 w-full flex-col overflow-hidden bg-slate-50 dark:bg-slate-950">
+    <div class="shrink-0 border-b border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900 sm:px-5">
+      <WeeklyReportTimelineNav
+        :sprint="sprint"
+        :weeks="weeks"
+        :current-week="currentWeekNumber"
+        :active-report-id="report?.id ?? null"
+        :pending-week="pendingWeek"
+        @select="selectWeek"
+      />
+    </div>
 
-    <div class="min-w-0 flex-1">
+    <div class="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
       <WeeklyReportEmptyState
         v-if="showEmpty"
         :week-number="emptyWeekNumber"
@@ -213,3 +215,4 @@ function onExport(format) {
     </div>
   </div>
 </template>
+

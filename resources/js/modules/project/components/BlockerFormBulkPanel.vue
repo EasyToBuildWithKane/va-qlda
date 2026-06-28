@@ -152,7 +152,7 @@ const clearAll = () => {
     bulkRows.value = [emptyBulkRow()];
 };
 
-const bulkForm = useForm({ defaults: {}, rows: [] });
+const bulkForm = useForm({ rows: [] });
 const submitting = computed(() => bulkForm.processing || uploadingAttachments.value);
 const uploadingAttachments = ref(false);
 
@@ -168,9 +168,13 @@ const submit = () => {
         return;
     }
 
-    bulkForm.defaults = { ...defaults.value };
     bulkForm.rows = rows.map((r) => ({ title: r.title.trim() }));
-    bulkForm.post('/blockers/bulk-create', {
+    bulkForm
+        .transform((data) => ({
+            rows: data.rows,
+            defaults: { ...defaults.value },
+        }))
+        .post('/blockers/bulk-create', {
         preserveScroll: true,
         onSuccess: (page) => {
             const ids = page.props.flash?.created_blocker_ids ?? [];

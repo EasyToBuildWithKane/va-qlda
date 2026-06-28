@@ -179,7 +179,7 @@ const allSelected = computed(() => {
     return valid.length > 0 && valid.every((r) => r.selected);
 });
 
-const bulkForm = useForm({ defaults: {}, rows: [] });
+const bulkForm = useForm({ rows: [] });
 const submitting = computed(() => bulkForm.processing);
 
 const submit = () => {
@@ -189,16 +189,20 @@ const submit = () => {
         return;
     }
 
-    bulkForm.defaults = { ...defaults.value };
     bulkForm.rows = rows.map((r) => ({ title: r.title }));
-    bulkForm.post(`/projects/${props.projectId}/tasks/bulk`, {
-        preserveScroll: true,
-        onSuccess: () => {
-            toast.success(`Đã tạo ${rows.length} công việc`);
-            emit('saved');
-        },
-        onError: () => toast.error('Không tạo được — kiểm tra lại dữ liệu.'),
-    });
+    bulkForm
+        .transform((data) => ({
+            rows: data.rows,
+            defaults: { ...defaults.value },
+        }))
+        .post(`/projects/${props.projectId}/tasks/bulk`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast.success(`Đã tạo ${rows.length} công việc`);
+                emit('saved');
+            },
+            onError: () => toast.error('Không tạo được — kiểm tra lại dữ liệu.'),
+        });
 };
 
 const handleKeydown = (e) => {
