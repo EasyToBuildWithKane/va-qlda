@@ -42,15 +42,18 @@ const linkAlignClass = computed(() => (props.embedded ? 'justify-start pl-3' : '
     <template v-if="rail">
       <button
         type="button"
-        class="group grid h-12 w-12 min-h-[3rem] min-w-[3rem] place-items-center rounded-full text-white transition-transform duration-200 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:ring-offset-2 focus-visible:ring-offset-brand active:scale-95"
+        class="group flex w-full min-w-0 items-center justify-center px-2 py-1 text-white transition-transform duration-200 hover:scale-[1.02] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:ring-offset-2 focus-visible:ring-offset-brand active:scale-[0.98]"
         :title="appName"
         aria-label="Mở rộng thanh bên"
         @click="emit('expand')"
       >
         <img
-          src="/images/congnghe/brand/vas-badge-circle.png"
-          alt=""
-          class="h-full w-full object-contain drop-shadow-[0_1px_4px_rgba(0,0,0,0.25)]"
+          src="/images/congnghe/brand/vas-white.png"
+          alt="VAschools"
+          class="max-h-10 w-auto max-w-full object-contain object-center drop-shadow-[0_1px_4px_rgba(0,0,0,0.25)]"
+          width="280"
+          height="96"
+          decoding="async"
         >
       </button>
     </template>

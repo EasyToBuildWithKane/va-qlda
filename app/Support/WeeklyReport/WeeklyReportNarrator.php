@@ -9,8 +9,8 @@ use Illuminate\Support\Collection;
 /**
  * Sinh văn bản báo cáo quản trị (tiếng Việt) từ dữ liệu Sprint.
  *
- * Nguyên tắc: tổng hợp, gom nhóm, loại trùng, ưu tiên milestone > blocker >
- * priority cao; KHÔNG copy nguyên văn tiêu đề Task/Issue/Feedback.
+ * Nguyên tắc: mỗi thẻ gắn với task cụ thể (tiêu đề công việc); ưu tiên hoàn thành
+ * trong cửa sổ tuần (completed_at), milestone, priority cao; gom epic khi cần.
  */
 class WeeklyReportNarrator
 {
@@ -95,22 +95,32 @@ class WeeklyReportNarrator
     {
         $lines = [];
 
-        $milestones = $context->tasks
-            ->filter(fn (Task $t) => $t->is_milestone && $t->status === TaskStatus::Done);
-        foreach ($this->topTitles($milestones, 3) as $title) {
-            $lines[] = "Đạt mốc: {$title}.";
+        $completedInWeek = $this->tasksCompletedInWeek($context)
+            ->sortByDesc(fn (Task $t) => $t->completed_at ?? $t->updated_at);
+
+        foreach ($completedInWeek->take(8) as $task) {
+            if ($task->is_milestone) {
+                $lines[] = "Đạt mốc: {$task->title}.";
+            } else {
+                $lines[] = "Hoàn thành: {$task->title}.";
+            }
         }
 
-        $doneCount = (int) $kpi['completed_tasks'];
-        if ($doneCount > 0) {
-            $lines[] = "Hoàn thành {$doneCount} hạng mục công việc trong Sprint.";
+        if ($lines === []) {
+            $doneInSprint = $context->tasks
+                ->filter(fn (Task $t) => $t->status === TaskStatus::Done && $t->parent_id === null);
+            foreach ($this->topTitles($doneInSprint, 6) as $title) {
+                $lines[] = "Đã hoàn thành (Sprint): {$title}.";
+            }
         }
 
-        $epicGroups = $context->tasks
-            ->filter(fn (Task $t) => $t->status === TaskStatus::Done && $t->epic)
-            ->groupBy(fn (Task $t) => $t->epic->name);
-        foreach ($epicGroups->take(3) as $epicName => $group) {
-            $lines[] = "Tiến triển hạng mục \"{$epicName}\": {$group->count()} công việc hoàn tất.";
+        $workedTaskIds = $context->worklogs->pluck('task_id')->unique();
+        $progressThisWeek = $context->tasks
+            ->whereIn('id', $workedTaskIds)
+            ->filter(fn (Task $t) => $t->status !== TaskStatus::Done && ! $completedInWeek->pluck('id')->contains($t->id))
+            ->sortByDesc(fn (Task $t) => $t->priority->weight());
+        foreach ($this->topTitles($progressThisWeek, 4) as $title) {
+            $lines[] = "Có tiến độ ghi nhận trong tuần: {$title}.";
         }
 
         $deployEvents = $context->activities
@@ -120,7 +130,7 @@ class WeeklyReportNarrator
         }
 
         $hours = (float) $kpi['worklog_hours'];
-        if ($hours > 0) {
+        if ($hours > 0 && $lines !== []) {
             $lines[] = "Tổng công sức ghi nhận: {$hours} giờ làm việc.";
         }
 
@@ -130,22 +140,48 @@ class WeeklyReportNarrator
     private function current(WeeklyReportContext $context, array $kpi, array $risk): string
     {
         $lines = [];
-        $lines[] = "Sprint đạt khoảng {$kpi['sprint_progress']}% kế hoạch, velocity ~{$kpi['team_velocity']}%.";
 
-        if ((int) $kpi['blocked'] === 0 && (int) $kpi['critical_bugs'] === 0) {
-            $lines[] = 'Hệ thống ổn định, không có công việc bị chặn hay lỗi nghiêm trọng.';
+        $active = $context->tasks
+            ->filter(fn (Task $t) => in_array($t->status, [
+                TaskStatus::InProgress,
+                TaskStatus::InReview,
+                TaskStatus::Blocked,
+            ], true))
+            ->sortByDesc(fn (Task $t) => $t->priority->weight());
+
+        foreach ($active->take(6) as $task) {
+            $lines[] = "{$task->status->label()}: {$task->title}.";
         }
-        if ((int) $kpi['open_issues'] > 0) {
-            $lines[] = "Còn {$kpi['open_issues']} vướng mắc đang theo dõi xử lý.";
+
+        foreach ($context->blockers->take(4) as $blocker) {
+            $taskTitle = $blocker->task?->title;
+            if ($taskTitle) {
+                $lines[] = "Vướng mắc ({$taskTitle}): {$blocker->title}.";
+            } else {
+                $lines[] = "Vướng mắc: {$blocker->title}.";
+            }
         }
-        if ((int) $kpi['critical_bugs'] > 0) {
-            $lines[] = "Đang xử lý {$kpi['critical_bugs']} lỗi nghiêm trọng.";
+
+        $overdueTasks = $context->tasks
+            ->filter(fn (Task $t) => $t->due_date !== null
+                && $t->due_date->isPast()
+                && $t->status !== TaskStatus::Done)
+            ->sortBy('due_date');
+        foreach ($this->topTitles($overdueTasks, 3) as $title) {
+            $lines[] = "Quá hạn: {$title}.";
         }
-        if ((int) $kpi['overdue'] > 0) {
-            $lines[] = "Có {$kpi['overdue']} công việc quá hạn cần điều phối lại.";
+
+        if ($lines === []) {
+            $lines[] = "Sprint đạt khoảng {$kpi['sprint_progress']}% kế hoạch, velocity ~{$kpi['team_velocity']}%.";
+            if ((int) $kpi['blocked'] === 0 && (int) $kpi['critical_bugs'] === 0) {
+                $lines[] = 'Hệ thống ổn định, không có công việc bị chặn hay lỗi nghiêm trọng.';
+            }
+        } else {
+            $lines[] = "Tiến độ Sprint: {$kpi['sprint_progress']}% ({$kpi['completed_tasks']}/{$kpi['total_tasks']} hạng mục).";
         }
+
         if ((int) $risk['summary']['high'] > 0) {
-            $lines[] = 'Đang chờ xác nhận từ các bên liên quan ở một số hạng mục quan trọng.';
+            $lines[] = 'Còn rủi ro mức cao cần Ban lãnh đạo theo dõi.';
         }
 
         return $this->bullets($lines, 'Tình hình Sprint ổn định, chưa có vấn đề cần lưu ý.');
@@ -158,8 +194,12 @@ class WeeklyReportNarrator
         $remaining = $context->tasks
             ->filter(fn (Task $t) => $t->status !== TaskStatus::Done && $t->parent_id === null)
             ->sortByDesc(fn (Task $t) => $t->priority->weight());
-        foreach ($this->topTitles($remaining, 4) as $title) {
-            $lines[] = "Tiếp tục: {$title}.";
+
+        foreach ($remaining->take(6) as $task) {
+            $suffix = $task->due_date
+                ? ' (hạn '.$task->due_date->format('d/m').')'
+                : '';
+            $lines[] = "Tiếp tục: {$task->title}{$suffix}.";
         }
 
         $changeRequests = $this->feedbackCount($feedback, 'change_request');
@@ -219,6 +259,23 @@ class WeeklyReportNarrator
     }
 
     // ---- helpers --------------------------------------------------------
+
+    /** @return Collection<int, Task> */
+    private function tasksCompletedInWeek(WeeklyReportContext $context): Collection
+    {
+        $start = $context->weekStart->copy()->startOfDay();
+        $end = $context->weekEnd->copy()->endOfDay();
+
+        return $context->tasks->filter(function (Task $task) use ($start, $end) {
+            if ($task->status !== TaskStatus::Done) {
+                return false;
+            }
+
+            $at = $task->completed_at ?? $task->updated_at;
+
+            return $at !== null && $at->between($start, $end);
+        });
+    }
 
     /**
      * @param  Collection<int, Task>  $tasks

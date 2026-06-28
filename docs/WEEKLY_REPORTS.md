@@ -21,7 +21,7 @@ rồi đổi `bind()` trong `AppServiceProvider`.
 |---|---|
 | `WeeklyReportDataCollector` | Gom Task/Worklog/Activity/Blocker/Feedback trong cửa sổ tuần |
 | `WeeklyReportKpiBuilder` | KPI snapshot (progress, completed, overdue, blocked, velocity…) |
-| `WeeklyReportNarrator` | Sinh văn bản báo cáo tiếng Việt (3 thẻ + tóm tắt + nhận định) |
+| `WeeklyReportNarrator` | Sinh văn bản báo cáo tiếng Việt (3 thẻ + tóm tắt + nhận định); **liệt kê tiêu đề task** |
 | `WeeklyReportRiskAssessor` | Rủi ro High/Medium/Low + nguyên nhân |
 | `WeeklyReportFeedbackClassifier` | Phân loại phản hồi: Tích cực/Góp ý/Phàn nàn/Lỗi/Yêu cầu thay đổi |
 | `WeeklyReportDataHasher` | Hash dữ liệu → phát hiện "dữ liệu Sprint đã đổi" |
@@ -32,6 +32,16 @@ rồi đổi `bind()` trong `AppServiceProvider`.
 Sprint không có khái niệm "tuần". `SprintWeekResolver` chia khoảng `start_date..end_date`
 thành các bucket 7 ngày (bắt đầu Thứ 2). "Tuần hiện tại" = bucket chứa hôm nay (clamp trong Sprint).
 Không có Sprint/ngày → fallback tuần ISO hiện tại.
+
+### Nội dung 3 thẻ (task-centric)
+
+| Thẻ | Nguồn dữ liệu |
+|---|---|
+| **Kết quả thực hiện** | Task `done` có `completed_at` (hoặc `updated_at`) trong cửa sổ tuần → dòng «Hoàn thành: …» / «Đạt mốc: …»; worklog trong tuần trên task chưa done |
+| **Tình hình hiện tại** | Task `in_progress` / `in_review` / `blocked`; vướng mắc gắn task; task quá hạn |
+| **Kế hoạch tiếp theo** | Task gốc chưa `done`, ưu tiên cao → «Tiếp tục: …» (kèm hạn nếu có) |
+
+Sau khi sửa engine, bấm **Tổng hợp lại** (hoặc **Cập nhật phần dữ liệu thay đổi**) trên báo cáo tuần để áp dụng.
 
 ## Luồng phê duyệt
 

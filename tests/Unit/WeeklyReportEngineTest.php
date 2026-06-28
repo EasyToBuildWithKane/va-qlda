@@ -32,8 +32,8 @@ class WeeklyReportEngineTest extends TestCase
             weekStart: Carbon::parse('2026-06-22'),
             weekEnd: Carbon::parse('2026-06-28'),
             tasks: collect([
-                $mk(['id' => 1, 'title' => 'Module A', 'status' => 'done', 'is_milestone' => true]),
-                $mk(['id' => 2, 'title' => 'Module B', 'status' => 'done']),
+                $mk(['id' => 1, 'title' => 'Module A', 'status' => 'done', 'is_milestone' => true, 'completed_at' => Carbon::parse('2026-06-24')]),
+                $mk(['id' => 2, 'title' => 'Module B', 'status' => 'done', 'completed_at' => Carbon::parse('2026-06-26')]),
                 $mk(['id' => 3, 'title' => 'Tích hợp', 'status' => 'blocked', 'priority' => 'urgent']),
                 $mk(['id' => 4, 'title' => 'Tài liệu', 'status' => 'todo', 'due_date' => Carbon::parse('2026-06-25')]),
             ]),
@@ -96,5 +96,19 @@ class WeeklyReportEngineTest extends TestCase
         $this->assertStringContainsString('%', $report->executiveSummary);
         $this->assertArrayHasKey('result', $report->sections);
         $this->assertStringContainsString('•', $report->sections['result']);
+    }
+
+    public function test_narrator_lists_task_titles_in_sections(): void
+    {
+        $ctx = $this->context();
+        $kpi = (new WeeklyReportKpiBuilder)->build($ctx);
+        $risk = (new WeeklyReportRiskAssessor)->assess($ctx, $kpi);
+        $feedback = (new WeeklyReportFeedbackClassifier)->classify($ctx->feedbacks);
+        $sections = (new WeeklyReportNarrator)->narrate($ctx, $kpi, $risk, $feedback)['sections'];
+
+        $this->assertStringContainsString('Module A', $sections['result']);
+        $this->assertStringContainsString('Module B', $sections['result']);
+        $this->assertStringContainsString('Tích hợp', $sections['current']);
+        $this->assertStringContainsString('Tài liệu', $sections['next']);
     }
 }
