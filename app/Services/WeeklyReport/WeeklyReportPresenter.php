@@ -87,7 +87,7 @@ class WeeklyReportPresenter
 
         $report = WeeklyReport::query()
             ->forProject($project->id)
-            ->with(['sprint', 'sections', 'generatedBy', 'submittedBy', 'approvedBy'])
+            ->with(['sprint', 'sections', 'generatedBy', 'submittedBy', 'approvedBy', 'versions.createdBy'])
             ->find($wr);
 
         if (! $report) {
@@ -98,6 +98,13 @@ class WeeklyReportPresenter
 
         $data = (new WeeklyReportResource($report))->toArray($request);
         $data['regeneration_available'] = $this->regenerationAvailable($project, $report);
+        $data['versions'] = $report->versions->map(fn ($v) => [
+            'version_number' => $v->version_number,
+            'status' => $v->status,
+            'note' => $v->note,
+            'created_by' => $v->createdBy?->display_name,
+            'created_at' => $v->created_at?->toIso8601String(),
+        ])->all();
 
         return $data;
     }

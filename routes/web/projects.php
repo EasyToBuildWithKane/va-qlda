@@ -58,6 +58,11 @@ Route::prefix('projects')->name('projects.')->group(function () {
     Route::put('/{project}/weekly-reports/{weeklyReport}', [WeeklyReportController::class, 'update'])->name('weekly-reports.update');
     Route::post('/{project}/weekly-reports/{weeklyReport}/generate', [WeeklyReportController::class, 'generate'])->name('weekly-reports.generate');
     Route::post('/{project}/weekly-reports/{weeklyReport}/regenerate', [WeeklyReportController::class, 'regenerate'])->name('weekly-reports.regenerate');
+    Route::post('/{project}/weekly-reports/{weeklyReport}/submit', [WeeklyReportController::class, 'submit'])->name('weekly-reports.submit');
+    Route::post('/{project}/weekly-reports/{weeklyReport}/approve', [WeeklyReportController::class, 'approve'])->name('weekly-reports.approve');
+    Route::post('/{project}/weekly-reports/{weeklyReport}/reject', [WeeklyReportController::class, 'reject'])->name('weekly-reports.reject');
+    Route::get('/{project}/weekly-reports/{weeklyReport}/export/pdf', [WeeklyReportController::class, 'exportPdf'])->name('weekly-reports.export.pdf');
+    Route::get('/{project}/weekly-reports/{weeklyReport}/export/docx', [WeeklyReportController::class, 'exportDocx'])->name('weekly-reports.export.docx');
 
     // Epics
     Route::post('/{project}/epics', [EpicController::class, 'store'])->name('epics.store');

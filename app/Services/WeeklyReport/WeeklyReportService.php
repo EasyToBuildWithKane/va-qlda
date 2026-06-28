@@ -9,6 +9,8 @@ use App\Models\WeeklyReport;
 use App\Models\WeeklyReportSection;
 use App\Support\Enums\WeeklyReportSection as SectionEnum;
 use App\Support\Enums\WeeklyReportStatus;
+use App\Support\NotificationDispatcher;
+use App\Support\SecurityAuditLogger;
 use App\Support\WeeklyReport\Contracts\WeeklyReportGenerator;
 use App\Support\WeeklyReport\SprintWeekResolver;
 use App\Support\WeeklyReport\WeeklyReportDataCollector;
@@ -141,6 +143,85 @@ class WeeklyReportService
 
             return $report->load('sections');
         });
+    }
+
+    /** Gửi duyệt (draft/generated/edited/rejected → submitted). */
+    public function submit(WeeklyReport $report, SystemAccount $actor): WeeklyReport
+    {
+        return DB::transaction(function () use ($report, $actor) {
+            $report->forceFill([
+                'status' => WeeklyReportStatus::Submitted,
+                'submitted_at' => now(),
+                'submitted_by' => $actor->id,
+            ])->save();
+
+            $this->snapshot($report, $actor, 'Gửi duyệt');
+            NotificationDispatcher::weeklyReportSubmitted($report, $actor);
+            SecurityAuditLogger::weeklyReport($actor, 'submitted', $report->id, ['week' => $report->week_number]);
+
+            return $report;
+        });
+    }
+
+    /** Duyệt (submitted → approved, khoá nội dung). */
+    public function approve(WeeklyReport $report, SystemAccount $actor): WeeklyReport
+    {
+        return DB::transaction(function () use ($report, $actor) {
+            $report->forceFill([
+                'status' => WeeklyReportStatus::Approved,
+                'approved_at' => now(),
+                'approved_by' => $actor->id,
+            ])->save();
+
+            $this->snapshot($report, $actor, 'Duyệt');
+            NotificationDispatcher::weeklyReportApproved($report, $actor);
+            SecurityAuditLogger::weeklyReport($actor, 'approved', $report->id, ['week' => $report->week_number]);
+
+            return $report;
+        });
+    }
+
+    /** Trả lại (submitted → rejected, kèm lý do). */
+    public function reject(WeeklyReport $report, SystemAccount $actor, string $reason): WeeklyReport
+    {
+        return DB::transaction(function () use ($report, $actor, $reason) {
+            $report->forceFill([
+                'status' => WeeklyReportStatus::Rejected,
+                'rejected_at' => now(),
+                'rejected_by' => $actor->id,
+                'reject_reason' => $reason,
+            ])->save();
+
+            $this->snapshot($report, $actor, 'Trả lại: '.$reason);
+            NotificationDispatcher::weeklyReportRejected($report, $actor);
+            SecurityAuditLogger::weeklyReport($actor, 'rejected', $report->id, ['week' => $report->week_number]);
+
+            return $report;
+        });
+    }
+
+    /** Lưu một snapshot phiên bản tại thời điểm chuyển trạng thái. */
+    private function snapshot(WeeklyReport $report, SystemAccount $actor, ?string $note = null): void
+    {
+        $report->loadMissing('sections');
+        $next = (int) $report->versions()->max('version_number') + 1;
+
+        $report->versions()->create([
+            'version_number' => $next,
+            'status' => $report->status->value,
+            'snapshot' => [
+                'executive_summary' => $report->executive_summary,
+                'ai_summary' => $report->ai_summary,
+                'kpi' => $report->kpi_snapshot,
+                'meta' => $report->meta,
+                'sections' => $report->sections
+                    ->mapWithKeys(fn (WeeklyReportSection $s) => [$s->section->value => $s->content])
+                    ->all(),
+            ],
+            'note' => $note,
+            'created_by' => $actor->id,
+            'created_at' => now(),
+        ]);
     }
 
     /**

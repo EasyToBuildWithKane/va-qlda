@@ -16,6 +16,7 @@ use App\Models\Sprint;
 use App\Models\SystemAccount;
 use App\Models\Task;
 use App\Models\Vendor;
+use App\Models\WeeklyReport;
 use App\Services\NotificationService;
 use App\Support\Enums\NotificationType;
 
@@ -512,6 +513,72 @@ class NotificationDispatcher
             'entity_type' => 'daily_report',
             'entity_id' => $report->id,
             'action_url' => "/daily-reports/{$report->uuid}",
+        ]);
+    }
+
+    // ── Báo cáo tuần ──────────────────────────────────────────────────
+
+    public static function weeklyReportSubmitted(WeeklyReport $report, ?SystemAccount $actor): void
+    {
+        self::weeklyReportNotify(
+            $report,
+            $actor,
+            NotificationType::WeeklyReportSubmitted,
+            ($actor ? "{$actor->display_name} gửi duyệt " : 'Chờ duyệt ')."báo cáo tuần {$report->week_number}",
+            $report->project?->name,
+        );
+    }
+
+    public static function weeklyReportApproved(WeeklyReport $report, ?SystemAccount $actor): void
+    {
+        self::weeklyReportNotify(
+            $report,
+            $actor,
+            NotificationType::WeeklyReportApproved,
+            ($actor ? "{$actor->display_name} đã duyệt " : 'Đã duyệt ')."báo cáo tuần {$report->week_number}",
+            $report->project?->name,
+        );
+    }
+
+    public static function weeklyReportRejected(WeeklyReport $report, ?SystemAccount $actor): void
+    {
+        self::weeklyReportNotify(
+            $report,
+            $actor,
+            NotificationType::WeeklyReportRejected,
+            "Báo cáo tuần {$report->week_number} bị trả lại",
+            $report->reject_reason,
+        );
+    }
+
+    private static function weeklyReportNotify(
+        WeeklyReport $report,
+        ?SystemAccount $actor,
+        NotificationType $type,
+        string $title,
+        ?string $body,
+    ): void {
+        $report->loadMissing('project');
+        $svc = self::service();
+
+        $employeeIds = collect([$report->project?->manager_id]);
+        if ($report->project_id) {
+            $employeeIds = $employeeIds->merge($report->project?->members()->pluck('employees.id') ?? []);
+        }
+
+        $members = $svc->accountsForEmployees($employeeIds->filter()->unique()->values()->all())
+            ->reject(fn (SystemAccount $a) => $actor && $a->id === $actor->id);
+
+        if ($members->isEmpty()) {
+            return;
+        }
+
+        $svc->notify($members, $type, $title, $body, [
+            'actor' => $actor,
+            'project_id' => $report->project_id,
+            'entity_type' => 'weekly_report',
+            'entity_id' => $report->id,
+            'action_url' => "/projects/{$report->project_id}?tab=weekly&wr={$report->id}",
         ]);
     }
 

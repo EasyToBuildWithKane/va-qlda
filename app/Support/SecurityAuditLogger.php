@@ -190,4 +190,12 @@ class SecurityAuditLogger
     {
         self::log($actor, "daily_report.{$event}", 'daily_report', $subjectId, $meta);
     }
+
+    // ── Báo cáo tuần ──────────────────────────────────────────────────
+
+    /** @param array<string,mixed> $meta */
+    public static function weeklyReport(SystemAccount $actor, string $event, ?int $subjectId, array $meta = []): void
+    {
+        self::log($actor, "weekly_report.{$event}", 'weekly_report', $subjectId, $meta);
+    }
 }

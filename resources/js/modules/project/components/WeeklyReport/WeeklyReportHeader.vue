@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
 
 const props = defineProps({
@@ -24,6 +24,12 @@ function fmt(d) {
     if (!d) return '';
     const [y, m, day] = d.split('-');
     return `${day}/${m}/${y}`;
+}
+
+const exportOpen = ref(false);
+function pick(format) {
+    exportOpen.value = false;
+    emit('export', format);
 }
 
 const period = computed(() => `${fmt(props.report.week_start)} – ${fmt(props.report.week_end)}`);
@@ -67,16 +73,47 @@ const updated = computed(() => {
     </div>
 
     <div class="flex shrink-0 items-center gap-2">
-      <button
-        type="button"
-        class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
-        @click="emit('export')"
-      >
-        <AppIcon
-          name="export"
-          :size="15"
-        /> Xuất
-      </button>
+      <div class="relative">
+        <button
+          type="button"
+          class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+          @click="exportOpen = !exportOpen"
+        >
+          <AppIcon
+            name="export"
+            :size="15"
+          /> Xuất
+          <AppIcon
+            name="chevron-down"
+            :size="13"
+          />
+        </button>
+        <div
+          v-if="exportOpen"
+          class="absolute right-0 z-20 mt-1 w-36 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-900"
+        >
+          <button
+            type="button"
+            class="flex w-full items-center gap-2 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
+            @click="pick('pdf')"
+          >
+            <AppIcon
+              name="pdf"
+              :size="14"
+            /> PDF
+          </button>
+          <button
+            type="button"
+            class="flex w-full items-center gap-2 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
+            @click="pick('docx')"
+          >
+            <AppIcon
+              name="documents"
+              :size="14"
+            /> Word (DOCX)
+          </button>
+        </div>
+      </div>
       <button
         v-if="canGenerate && !report.is_locked"
         type="button"

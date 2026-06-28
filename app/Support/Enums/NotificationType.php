@@ -42,6 +42,13 @@ enum NotificationType: string
     case FeedbackUpdated = 'feedback_updated';
     case CommentFeedbackThread = 'comment_feedback_thread';
 
+    // Weekly Report
+    case WeeklyReportGenerated = 'weekly_report_generated';
+    case WeeklyReportSubmitted = 'weekly_report_submitted';
+    case WeeklyReportApproved = 'weekly_report_approved';
+    case WeeklyReportRejected = 'weekly_report_rejected';
+    case WeeklyReportRegenerationAvailable = 'weekly_report_regeneration_available';
+
     // Document
     case DocumentUploaded = 'document_uploaded';
     case DocumentBrdUpdated = 'document_brd_updated';
@@ -119,6 +126,10 @@ enum NotificationType: string
 
             self::FeedbackCreated, self::FeedbackUpdated => NotificationCategory::Project,
 
+            self::WeeklyReportGenerated, self::WeeklyReportSubmitted,
+            self::WeeklyReportApproved, self::WeeklyReportRejected,
+            self::WeeklyReportRegenerationAvailable => NotificationCategory::Project,
+
             self::DocumentUploaded, self::DocumentBrdUpdated, self::DocumentFrsUpdated,
             self::DocumentSrsUpdated, self::DocumentUiUpdated, self::DocumentClientUploaded,
             self::DocumentDeleted => NotificationCategory::Document,
@@ -164,7 +175,8 @@ enum NotificationType: string
 
             self::CommentMention, self::TaskDeadlineChanged,
             self::ProjectDeadlineChanged, self::ProjectMemberAdded,
-            self::DailyReportSubmitted => NotificationPriority::High,
+            self::DailyReportSubmitted,
+            self::WeeklyReportSubmitted, self::WeeklyReportRejected => NotificationPriority::High,
 
             default => NotificationPriority::Medium,
         };
@@ -236,6 +248,11 @@ enum NotificationType: string
             self::FeedbackCreated => 'Phản hồi mới',
             self::FeedbackUpdated => 'Cập nhật phản hồi',
             self::CommentFeedbackThread => 'Trao đổi phản hồi',
+            self::WeeklyReportGenerated => 'Báo cáo tuần đã tạo',
+            self::WeeklyReportSubmitted => 'Báo cáo tuần chờ duyệt',
+            self::WeeklyReportApproved => 'Báo cáo tuần đã duyệt',
+            self::WeeklyReportRejected => 'Báo cáo tuần bị trả lại',
+            self::WeeklyReportRegenerationAvailable => 'Báo cáo tuần cần cập nhật',
             self::AdminUserAction => 'Hoạt động người dùng',
             self::AdminApiError => 'API Error',
             self::AdminValidationError => 'Validation Error',

@@ -22,9 +22,14 @@ export function useWeeklyReport(projectId, { overview, detail }) {
     const weeks = computed(() => overview.value?.weeks ?? []);
     const currentWeekNumber = computed(() => overview.value?.current_week ?? 1);
 
-    const editableSections = computed(() =>
-        (report.value?.sections ?? []).filter((s) => s.editable),
-    );
+    const sectionList = computed(() => {
+        const s = report.value?.sections;
+        if (Array.isArray(s)) return s;
+        if (Array.isArray(s?.data)) return s.data;
+        return [];
+    });
+
+    const editableSections = computed(() => sectionList.value.filter((s) => s.editable));
 
     function resetDraft() {
         draft.executive_summary = report.value?.executive_summary ?? '';
@@ -101,6 +106,25 @@ export function useWeeklyReport(projectId, { overview, detail }) {
         editing.value = false;
     }
 
+    function transition(name, data = {}, okMsg) {
+        if (!report.value || processing.value) return;
+        processing.value = true;
+        router.post(
+            route(`projects.weekly-reports.${name}`, [projectId, report.value.id]),
+            data,
+            {
+                preserveScroll: true,
+                onSuccess: () => { if (okMsg) toast.success(okMsg); },
+                onError: (errors) => toast.error(errors?.reason || 'Thao tác không thành công.'),
+                onFinish: () => { processing.value = false; },
+            },
+        );
+    }
+
+    const submit = () => transition('submit');
+    const approve = () => transition('approve');
+    const reject = (reason) => transition('reject', { reason });
+
     function save() {
         if (!report.value || processing.value) return;
         processing.value = true;
@@ -124,6 +148,7 @@ export function useWeeklyReport(projectId, { overview, detail }) {
         processing,
         pendingWeek,
         report,
+        sectionList,
         sprint,
         weeks,
         currentWeekNumber,
@@ -136,5 +161,8 @@ export function useWeeklyReport(projectId, { overview, detail }) {
         startEdit,
         cancelEdit,
         save,
+        submit,
+        approve,
+        reject,
     };
 }

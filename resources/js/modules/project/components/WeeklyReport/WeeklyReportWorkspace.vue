@@ -1,7 +1,6 @@
 <script setup>
 import { computed, toRef } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
-import { useToast } from '@/shared/composables/useToast';
 import { useWeeklyReport } from '@/composables/useWeeklyReport';
 import WeeklyReportTimelineNav from './WeeklyReportTimelineNav.vue';
 import WeeklyReportHeader from './WeeklyReportHeader.vue';
@@ -10,6 +9,8 @@ import WeeklyReportSectionCard from './WeeklyReportSectionCard.vue';
 import WeeklyReportRiskCard from './WeeklyReportRiskCard.vue';
 import WeeklyReportFeedbackSummary from './WeeklyReportFeedbackSummary.vue';
 import WeeklyReportActivityTimeline from './WeeklyReportActivityTimeline.vue';
+import WeeklyReportApprovalBar from './WeeklyReportApprovalBar.vue';
+import WeeklyReportVersionPanel from './WeeklyReportVersionPanel.vue';
 import WeeklyReportEmptyState from './WeeklyReportEmptyState.vue';
 
 const props = defineProps({
@@ -19,12 +20,10 @@ const props = defineProps({
     canGenerate: { type: Boolean, default: false },
 });
 
-const toast = useToast();
-
 const {
-    processing, pendingWeek, report, sprint, weeks, currentWeekNumber,
+    processing, pendingWeek, report, sectionList, sprint, weeks, currentWeekNumber,
     draft, editing, dirty, selectWeek, generateForWeek, regenerate,
-    startEdit, cancelEdit, save,
+    startEdit, cancelEdit, save, submit, approve, reject,
 } = useWeeklyReport(props.projectId, {
     overview: toRef(props, 'overview'),
     detail: toRef(props, 'detail'),
@@ -33,7 +32,7 @@ const {
 const CARD_ACCENT = { result: 'emerald', current: 'sky', next: 'brand' };
 
 function sectionByKey(key) {
-    return (report.value?.sections ?? []).find((s) => s.section === key)
+    return sectionList.value.find((s) => s.section === key)
         ?? { section: key, label: key, icon: 'overview', content: '', editable: true, is_edited: false };
 }
 
@@ -45,8 +44,10 @@ const canEdit = computed(() => report.value?.can?.update && !report.value?.is_lo
 const showEmpty = computed(() => !report.value);
 const emptyWeekNumber = computed(() => pendingWeek.value ?? currentWeekNumber.value);
 
-function onExport() {
-    toast.info?.('Xuất PDF/DOCX sẽ có ở bản cập nhật tới.');
+function onExport(format) {
+    if (!report.value) return;
+    const name = format === 'docx' ? 'projects.weekly-reports.export.docx' : 'projects.weekly-reports.export.pdf';
+    window.open(route(name, [props.projectId, report.value.id]), '_blank');
 }
 </script>
 
@@ -81,6 +82,15 @@ function onExport() {
           :processing="processing"
           @regenerate="regenerate({ preserve: true })"
           @export="onExport"
+        />
+
+        <!-- Approval workflow -->
+        <WeeklyReportApprovalBar
+          :report="report"
+          :processing="processing"
+          @submit="submit"
+          @approve="approve"
+          @reject="reject"
         />
 
         <!-- Executive Summary -->
@@ -196,6 +206,9 @@ function onExport() {
 
         <!-- Activity -->
         <WeeklyReportActivityTimeline :content="activityContent" />
+
+        <!-- Version history -->
+        <WeeklyReportVersionPanel :versions="report.versions ?? []" />
       </div>
     </div>
   </div>

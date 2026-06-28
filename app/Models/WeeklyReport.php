@@ -89,6 +89,11 @@ class WeeklyReport extends Model
         return $this->hasMany(WeeklyReportSection::class)->orderBy('sort_order');
     }
 
+    public function versions(): HasMany
+    {
+        return $this->hasMany(WeeklyReportVersion::class)->orderByDesc('version_number');
+    }
+
     public function generatedBy(): BelongsTo
     {
         return $this->belongsTo(SystemAccount::class, 'generated_by');
