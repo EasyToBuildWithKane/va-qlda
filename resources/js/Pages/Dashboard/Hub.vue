@@ -4,7 +4,6 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import HubDashboardSummaryBar from './partials/HubDashboardSummaryBar.vue';
 import HubWelcomeStrip from './partials/HubWelcomeStrip.vue';
-import HubAlertsStrip from './partials/HubAlertsStrip.vue';
 import HubActivityTrendChart from './partials/HubActivityTrendChart.vue';
 import HubCompliancePanel from './partials/HubCompliancePanel.vue';
 import HubModuleOverview from './partials/HubModuleOverview.vue';
@@ -14,7 +13,6 @@ defineProps({
     summary: { type: Object, required: true },
     activityTrend: { type: Array, default: () => [] },
     compliance: { type: Object, default: () => ({}) },
-    alerts: { type: Array, default: () => [] },
     moduleGroups: { type: Array, default: () => [] },
 });
 </script>
@@ -46,11 +44,6 @@ defineProps({
         class="lg:col-span-2"
       />
     </div>
-
-    <HubAlertsStrip
-      :alerts="alerts"
-      class="mb-5"
-    />
 
     <HubModuleOverview :module-groups="moduleGroups" />
   </AppLayout>

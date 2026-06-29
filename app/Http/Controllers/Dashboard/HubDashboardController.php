@@ -48,7 +48,6 @@ class HubDashboardController extends Controller
             'summary' => $this->buildSummary($stats, $isLeadTier),
             'activityTrend' => $this->buildActivityTrend(30),
             'compliance' => $this->buildComplianceSummary($scopedEmployeeIds),
-            'alerts' => $this->buildAlerts($stats, $isLeadTier),
             'moduleGroups' => $this->buildModuleGroups(
                 $stats,
                 $isAdminTier,
@@ -520,74 +519,6 @@ class HubDashboardController extends Controller
             'expectedPerPerson' => $expectedPerPerson,
             'periodLabel' => $weekStart->format('d/m').' – '.$today->format('d/m/Y'),
         ];
-    }
-
-    /**
-     * Cross-module attention chips (max 4), highest urgency first.
-     *
-     * @param  array<string, int>  $stats
-     * @return array<int, array<string, mixed>>
-     */
-    private function buildAlerts(array $stats, bool $isLeadTier): array
-    {
-        $alerts = [];
-
-        if (($stats['overdue_tasks'] ?? 0) > 0) {
-            $alerts[] = [
-                'key' => 'overdue_tasks',
-                'label' => 'Công việc quá hạn',
-                'value' => $stats['overdue_tasks'],
-                'href' => '/work',
-                'tone' => 'rose',
-                'icon' => 'clock',
-            ];
-        }
-
-        if ($isLeadTier && ($stats['pending_reports'] ?? 0) > 0) {
-            $alerts[] = [
-                'key' => 'pending_reports',
-                'label' => 'Báo cáo chờ duyệt',
-                'value' => $stats['pending_reports'],
-                'href' => '/daily-reports/review',
-                'tone' => 'amber',
-                'icon' => 'daily',
-            ];
-        }
-
-        if ($isLeadTier && ($stats['expiring_contracts'] ?? 0) > 0) {
-            $alerts[] = [
-                'key' => 'expiring_contracts',
-                'label' => 'Hợp đồng sắp hết hạn',
-                'value' => $stats['expiring_contracts'],
-                'href' => '/contracts/dashboard',
-                'tone' => 'amber',
-                'icon' => 'contract',
-            ];
-        }
-
-        if (($stats['open_blockers'] ?? 0) > 0) {
-            $alerts[] = [
-                'key' => 'open_blockers',
-                'label' => 'Vướng mắc đang mở',
-                'value' => $stats['open_blockers'],
-                'href' => '/blockers',
-                'tone' => 'amber',
-                'icon' => 'blockers',
-            ];
-        }
-
-        if (($stats['open_feedback'] ?? 0) > 0) {
-            $alerts[] = [
-                'key' => 'open_feedback',
-                'label' => 'Phản hồi đang xử lý',
-                'value' => $stats['open_feedback'],
-                'href' => '/feedback',
-                'tone' => 'violet',
-                'icon' => 'feedback',
-            ];
-        }
-
-        return array_slice($alerts, 0, 4);
     }
 
     /**

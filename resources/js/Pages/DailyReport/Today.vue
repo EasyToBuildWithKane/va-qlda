@@ -342,7 +342,7 @@ const savedTimeLabel = computed(() =>
       />
     </template>
 
-    <div class="w-full min-w-0">
+    <div class="w-full min-w-0 overflow-x-hidden">
       <!-- Already submitted today -->
       <div
         v-if="isEditing && !editable"
@@ -431,7 +431,7 @@ const savedTimeLabel = computed(() =>
 
       <div
         v-else
-        class="w-full space-y-4 md:space-y-5"
+        class="w-full min-w-0 space-y-4 md:space-y-5 max-lg:pb-4"
       >
         <!-- Rejected feedback -->
         <div
@@ -509,10 +509,10 @@ const savedTimeLabel = computed(() =>
                 </div>
               </div>
 
-              <div class="flex w-full shrink-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center lg:max-w-md lg:justify-end xl:max-w-none">
+              <div class="flex w-full min-w-0 shrink-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-stretch lg:justify-end lg:gap-2">
                 <span
                   v-if="isEditing"
-                  class="flex items-center justify-center gap-1.5 text-xs text-slate-500 sm:order-first sm:w-full lg:order-none lg:w-auto lg:justify-end"
+                  class="flex min-w-0 items-center justify-center gap-1.5 text-xs text-slate-500 sm:mr-auto sm:justify-start lg:mr-0 lg:justify-end"
                 >
                   <AppIcon
                     :name="form.processing ? 'refresh' : 'check'"
@@ -556,52 +556,44 @@ const savedTimeLabel = computed(() =>
             </div>
           </div>
 
-          <!-- Tab bar: horizontal scroll on narrow viewports -->
+          <!-- Tab bar: cuộn ngang mobile · lưới tablet/desktop (không flex-1 — tránh tràn ngang) -->
           <div
-            class="relative border-b border-slate-200"
+            class="flex overflow-x-auto overscroll-x-contain border-b border-slate-200 sm:grid sm:grid-cols-3 sm:overflow-visible lg:grid-cols-5"
+            role="tablist"
+            aria-label="Các phần báo cáo"
           >
-            <div
-              class="flex gap-0 overflow-x-auto overscroll-x-contain scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-              role="tablist"
-              aria-label="Các phần báo cáo"
+            <button
+              v-for="(t, i) in tabs"
+              :key="t.key"
+              type="button"
+              role="tab"
+              :aria-selected="activeTab === i"
+              class="relative min-w-[8.25rem] shrink-0 border-b-2 px-2 py-3 text-left text-xs font-medium transition sm:min-w-0 sm:px-3 sm:py-3.5 sm:text-sm sm:text-center"
+              :class="activeTab === i
+                ? 'border-brand bg-brand/[0.04] text-brand'
+                : 'border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-700'"
+              @click="activeTab = i"
             >
-              <button
-                v-for="(t, i) in tabs"
-                :key="t.key"
-                type="button"
-                role="tab"
-                :aria-selected="activeTab === i"
-                class="relative shrink-0 border-b-2 px-4 py-3.5 text-left text-sm font-medium transition sm:min-w-[9rem] sm:flex-1 sm:px-3 sm:text-center lg:min-w-0"
-                :class="activeTab === i
-                  ? 'border-brand bg-brand/[0.04] text-brand'
-                  : 'border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-700'"
-                @click="activeTab = i"
-              >
-                <span class="flex flex-col items-start gap-1 sm:items-center sm:gap-1.5">
-                  <span class="whitespace-nowrap leading-tight">{{ t.title }}</span>
-                  <span
-                    class="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-semibold leading-none"
-                    :class="t.filled === t.total
-                      ? 'bg-emerald-100 text-emerald-700'
-                      : t.hasMissingRequired
-                        ? 'bg-amber-100 text-amber-700'
-                        : 'bg-slate-100 text-slate-500'"
-                  >
-                    <AppIcon
-                      v-if="t.filled === t.total"
-                      name="check"
-                      :size="10"
-                      :stroke-width="3"
-                    />
-                    {{ t.filled }}/{{ t.total }}
-                  </span>
+              <span class="flex flex-col items-start gap-1 sm:items-center sm:gap-1.5">
+                <span class="whitespace-nowrap leading-tight sm:whitespace-normal">{{ t.title }}</span>
+                <span
+                  class="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none sm:px-2"
+                  :class="t.filled === t.total
+                    ? 'bg-emerald-100 text-emerald-700'
+                    : t.hasMissingRequired
+                      ? 'bg-amber-100 text-amber-700'
+                      : 'bg-slate-100 text-slate-500'"
+                >
+                  <AppIcon
+                    v-if="t.filled === t.total"
+                    name="check"
+                    :size="10"
+                    :stroke-width="3"
+                  />
+                  {{ t.filled }}/{{ t.total }}
                 </span>
-              </button>
-            </div>
-            <p
-              class="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-white to-transparent sm:hidden"
-              aria-hidden="true"
-            />
+              </span>
+            </button>
           </div>
 
           <!-- Active tab -->
@@ -698,7 +690,7 @@ const savedTimeLabel = computed(() =>
             </div>
 
             <!-- Tab nav -->
-            <div class="mt-6 flex flex-col gap-3 border-t border-slate-100 pt-4 pr-14 sm:flex-row sm:items-center sm:justify-between lg:pr-16">
+            <div class="mt-6 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
               <button
                 type="button"
                 class="btn-ghost min-h-11 w-full justify-center sm:min-h-10 sm:w-auto"
@@ -722,7 +714,7 @@ const savedTimeLabel = computed(() =>
           </div>
 
           <!-- Bottom actions after long forms (tablet / mobile) -->
-          <div class="border-t border-slate-100 bg-slate-50/60 px-4 py-4 pr-14 sm:px-6 lg:hidden">
+          <div class="border-t border-slate-100 bg-slate-50/60 px-4 py-4 sm:px-6 lg:hidden">
             <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
               <button
                 type="button"
