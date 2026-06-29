@@ -37,11 +37,7 @@ const editable = computed(() => !props.report || props.report.status === 'draft'
 
 const reportDate = computed(() => props.report?.date ?? props.today);
 
-const taskStatusSnapshot = computed(
-    () => props.report?.task_status_snapshot ?? [],
-);
-
-// Auto-generated title prefix for a new report: "Báo cáo ngày DD/MM/YYYY - ".
+// Auto-generated title prefix for a new report.
 const titlePrefix = computed(
     () => `Báo cáo ngày ${date(reportDate.value)}`,
 );
@@ -73,21 +69,44 @@ const missingRequired = computed(() =>
 const titleOk = computed(() => form.title.trim().length > 0);
 const readyToSubmit = computed(() => titleOk.value && missingRequired.value.length === 0);
 
-// Each missing item knows which tab to jump to — chips below act as shortcuts.
-const tabIndexOfPillar = (pillarKey) =>
-    Math.max(0, tabs.value.findIndex((t) => t.key === pillarKey));
+// ---- Submit-attempt state (chips only shown after first failed submit) ---
+const submitAttempted = ref(false);
+
 const missingItems = computed(() => {
     const items = [];
-    if (!titleOk.value) items.push({ label: 'Tiêu đề', tab: 0 });
+    if (!titleOk.value) items.push({ label: 'Tiêu đề', sectionKey: 'info' });
     fields
         .filter((f) => f.required && !isFilled(f.key))
-        .forEach((f) => items.push({ label: f.label, tab: tabIndexOfPillar(f.pillar) }));
+        .forEach((f) => items.push({ label: f.label, sectionKey: f.pillar }));
     return items;
 });
 const missingLabel = computed(() => missingItems.value.map((m) => m.label).join(', '));
-const goToTab = (i) => { activeTab.value = i; };
 
-// ---- Auto-fill chosen tasks into the "Tiến độ thực hiện" field ------------
+const scrollToSection = (sectionKey) => {
+    const el = document.getElementById(`section-${sectionKey}`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+
+// ---- Pillar accent styles -------------------------------------------------
+const PILLAR_ACCENT = {
+    baocao:  { dot: 'bg-brand',       bg: 'bg-brand/[0.03]',    border: 'border-brand/20' },
+    lienlac: { dot: 'bg-amber-500',   bg: 'bg-amber-50/50',     border: 'border-amber-200/60' },
+    traodoi: { dot: 'bg-emerald-500', bg: 'bg-emerald-50/50',   border: 'border-emerald-200/60' },
+    kehoach: { dot: 'bg-sky-500',     bg: 'bg-sky-50/50',       border: 'border-sky-200/60' },
+};
+const pillarDotClass  = (key) => PILLAR_ACCENT[key]?.dot    ?? 'bg-slate-400';
+const pillarHeaderBg  = (key) => PILLAR_ACCENT[key]?.bg     ?? 'bg-slate-50/60';
+const pillarHeaderBorder = (key) => PILLAR_ACCENT[key]?.border ?? 'border-slate-100';
+
+const pillarFillClass = (key) => {
+    const total  = pillarFields(key).length;
+    const filled = filledInPillar(key);
+    if (filled === total) return 'bg-emerald-100 text-emerald-700';
+    if (pillarFields(key).some((f) => f.required && !isFilled(f.key))) return 'bg-amber-100 text-amber-700';
+    return 'bg-slate-100 text-slate-500';
+};
+
+// ---- Auto-fill chosen tasks into the report fields -----------------------
 const taskStatusLabels = {
     todo: 'Cần làm', in_progress: 'Đang làm', in_review: 'Đang review',
     done: 'Hoàn thành', blocked: 'Bị chặn',
@@ -102,7 +121,6 @@ const taskStatusOf = (projectId, taskId, inlineStatus) => {
         ?.find((t) => t.id === taskId)?.status ?? null;
 };
 
-// Build an HTML list (grouped by project) of selected tasks matching `predicate`.
 const buildTaskHtml = (predicate, showStatus = true) => {
     const blocks = [];
     for (const p of form.projects) {
@@ -123,14 +141,11 @@ const buildTaskHtml = (predicate, showStatus = true) => {
     return blocks.join('');
 };
 
-// "Cần làm" (todo) tasks → Mục tiêu hôm nay; mọi task khác → Tiến độ thực hiện.
 const isTodo = (st) => st === 'todo';
-const buildGoalsHtml = () => buildTaskHtml(isTodo, false);
+const buildGoalsHtml    = () => buildTaskHtml(isTodo, false);
 const buildProgressHtml = () => buildTaskHtml((st) => !isTodo(st), true);
 
-// Keep these fields in sync with the chosen tasks, but never overwrite text
-// typed manually — only fill when empty or still matching our last fill.
-const lastAutoGoals = ref(buildGoalsHtml());
+const lastAutoGoals    = ref(buildGoalsHtml());
 const lastAutoProgress = ref(buildProgressHtml());
 
 const syncField = (key, lastRef, html) => {
@@ -150,45 +165,29 @@ watch(
     { deep: true },
 );
 
-const activeTab = ref(0);
-
-// Tab 0 = general info, tabs 1..N = Horenso pillars.
-const tabs = computed(() => [
-    {
-        key: 'info', title: 'Thông tin chung', pillar: null,
-        jp: '基本', romaji: 'Kihon',
-        desc: 'Tiêu đề báo cáo và các dự án / task bạn đã làm việc hôm nay.',
-        filled: titleOk.value ? 1 : 0, total: 1,
-        hasMissingRequired: !titleOk.value,
-    },
-    ...pillars.map((p) => ({
-        key: p.key, title: p.title, pillar: p,
-        jp: p.jp, romaji: p.romaji, desc: p.desc,
-        filled: filledInPillar(p.key), total: pillarFields(p.key).length,
-        hasMissingRequired: pillarFields(p.key).some((f) => f.required && !isFilled(f.key)),
-    })),
-]);
-const activeTabMeta = computed(() => tabs.value[activeTab.value]);
+const taskStatusSnapshot = computed(
+    () => props.report?.task_status_snapshot ?? [],
+);
 
 const formattedToday = computed(() => dateLongVi(reportDate.value));
 
 const statusVi = computed(() => {
     const map = {
-        draft: { label: 'Bản nháp', cls: 'bg-slate-100 text-slate-600' },
-        submitted: { label: 'Chờ duyệt', cls: 'bg-amber-100 text-amber-700' },
-        reviewed: { label: 'Đã duyệt', cls: 'bg-emerald-100 text-emerald-700' },
+        draft:     { label: 'Bản nháp',   cls: 'bg-slate-100 text-slate-600' },
+        submitted: { label: 'Chờ duyệt',  cls: 'bg-amber-100 text-amber-700' },
+        reviewed:  { label: 'Đã duyệt',   cls: 'bg-emerald-100 text-emerald-700' },
     };
     return map[props.report?.status] ?? { label: 'Chưa lưu', cls: 'bg-slate-100 text-slate-500' };
 });
 
 // ---- Templates ------------------------------------------------------------
 const galleryOpen = ref(false);
-const galleryTab = ref('builtin');
-const storageKey = computed(() => `va-qlda.report-templates.${page.props.auth?.user?.id ?? 'guest'}`);
+const galleryTab  = ref('builtin');
+const storageKey  = computed(() => `va-qlda.report-templates.${page.props.auth?.user?.id ?? 'guest'}`);
 const contentForSave = computed(() => Object.fromEntries(contentKeys.map((k) => [k, form[k]])));
 
 const openGallery = (tab = 'builtin') => {
-    galleryTab.value = tab;
+    galleryTab.value  = tab;
     galleryOpen.value = true;
 };
 
@@ -196,10 +195,10 @@ const applyTemplate = async (map) => {
     const willOverwrite = contentKeys.some((k) => k in map && isFilled(k) && map[k] !== form[k]);
     if (willOverwrite) {
         const ok = await dialog.confirm({
-            title: 'Áp dụng mẫu?',
-            message: 'Thao tác này sẽ ghi đè nội dung đang có ở một số mục. Bạn có chắc chắn?',
+            title:       'Áp dụng mẫu?',
+            message:     'Thao tác này sẽ ghi đè nội dung đang có ở một số mục. Bạn có chắc chắn?',
             confirmText: 'Áp dụng',
-            cancelText: 'Huỷ',
+            cancelText:  'Huỷ',
         });
         if (!ok) return;
     }
@@ -249,6 +248,7 @@ const save = () => {
 const submit = () => {
     if (!isEditing.value) return;
     if (!readyToSubmit.value) {
+        submitAttempted.value = true;
         toast.error(`Chưa đủ điều kiện nộp. Còn thiếu: ${missingLabel.value}.`);
         return;
     }
@@ -267,20 +267,20 @@ const submit = () => {
     });
 };
 
-// ---- Recall (pull a just-submitted report back to draft, same day only) ---
+// ---- Recall ---------------------------------------------------------------
 const canRecall = computed(() => Boolean(props.report?.can?.recall));
-const recalling = ref(false);
+const recalling  = ref(false);
 
 const recall = async () => {
     if (!props.report || recalling.value) return;
     const reason = await dialog.prompt({
-        title: 'Rút lại báo cáo?',
-        message: 'Báo cáo sẽ trở về bản nháp để bạn chỉnh sửa và nộp lại. Người duyệt sẽ được thông báo. Chỉ rút lại được trong ngày làm việc hôm nay. Nêu lý do thu hồi (không bắt buộc):',
+        title:       'Rút lại báo cáo?',
+        message:     'Báo cáo sẽ trở về bản nháp để bạn chỉnh sửa và nộp lại. Người duyệt sẽ được thông báo. Chỉ rút lại được trong ngày làm việc hôm nay. Nêu lý do thu hồi (không bắt buộc):',
         placeholder: 'Ví dụ: bổ sung kết quả còn thiếu…',
         confirmText: 'Rút lại',
-        cancelText: 'Huỷ',
+        cancelText:  'Huỷ',
     });
-    if (reason === null) return; // cancelled
+    if (reason === null) return;
     recalling.value = true;
     router.post(`/daily-reports/${props.report.id}/recall`, { reason }, {
         preserveScroll: true,
@@ -289,8 +289,9 @@ const recall = async () => {
 };
 
 const lastSavedAt = ref(props.report ? new Date() : null);
-let saveTimer = null;
+let saveTimer     = null;
 let snapshotTimer = null;
+
 onMounted(() => {
     if (isEditing.value && editable.value) {
         saveTimer = setInterval(() => {
@@ -316,8 +317,9 @@ onMounted(() => {
         }, 25000);
     }
 });
+
 onUnmounted(() => {
-    if (saveTimer) clearInterval(saveTimer);
+    if (saveTimer)     clearInterval(saveTimer);
     if (snapshotTimer) clearInterval(snapshotTimer);
 });
 
@@ -343,7 +345,7 @@ const savedTimeLabel = computed(() =>
     </template>
 
     <div class="w-full min-w-0 overflow-x-hidden">
-      <!-- Already submitted today -->
+      <!-- ── Trạng thái: đã nộp (không còn chỉnh sửa được) ── -->
       <div
         v-if="isEditing && !editable"
         class="card w-full overflow-hidden border border-brand/15 shadow-elevation-2"
@@ -429,220 +431,70 @@ const savedTimeLabel = computed(() =>
         </div>
       </div>
 
+      <!-- ── Trình soạn thảo ── -->
       <div
         v-else
-        class="w-full min-w-0 space-y-4 md:space-y-5 max-lg:pb-4"
+        class="w-full min-w-0"
       >
-        <!-- Rejected feedback -->
-        <div
-          v-if="report?.review_notes"
-          class="card border-l-4 border-warning p-4 sm:p-5"
-        >
-          <p class="text-sm font-semibold text-slate-700">
-            Báo cáo được trả lại
-          </p>
-          <p class="mt-1 text-sm text-slate-600">
-            {{ report.review_notes }}
-          </p>
-        </div>
-
-        <!-- Editor: progress + tabs in one card (no sticky) -->
-        <div class="card min-w-0 overflow-hidden">
-          <!-- Progress & actions -->
-          <div class="border-b border-slate-100 bg-gradient-to-b from-slate-50/90 to-white px-4 py-4 sm:px-6 sm:py-5">
-            <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-6">
-              <div class="min-w-0 flex-1">
-                <div class="mb-2 flex items-center justify-between gap-2">
-                  <span class="text-sm font-medium text-slate-700">Tiến độ hoàn thành</span>
-                  <span
-                    class="font-display text-lg font-semibold tabular-nums text-brand"
-                    aria-live="polite"
-                  >{{ progressPct }}%</span>
-                </div>
-                <div
-                  class="h-2 w-full overflow-hidden rounded-full bg-slate-100"
-                  role="progressbar"
-                  :aria-valuenow="progressPct"
-                  aria-valuemin="0"
-                  aria-valuemax="100"
-                  :aria-label="`Tiến độ hoàn thành ${progressPct} phần trăm`"
-                >
-                  <div
-                    class="h-full rounded-full bg-brand transition-all duration-300"
-                    :style="{ width: progressPct + '%' }"
-                  />
-                </div>
-                <div class="mt-2.5 text-xs sm:text-sm">
-                  <p
-                    v-if="readyToSubmit"
-                    class="flex items-center gap-1.5 text-emerald-600"
-                  >
-                    <AppIcon
-                      name="check"
-                      :size="14"
-                    />
-                    Đã đủ điều kiện nộp duyệt.
-                  </p>
-                  <div
-                    v-else
-                    class="space-y-2"
-                  >
-                    <p class="font-medium text-amber-700">
-                      Còn thiếu — bấm để mở đúng phần:
-                    </p>
-                    <div class="flex flex-wrap gap-2">
-                      <button
-                        v-for="m in missingItems"
-                        :key="m.label"
-                        type="button"
-                        class="inline-flex min-h-9 items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-800 transition hover:border-amber-300 hover:bg-amber-100 sm:text-sm"
-                        @click="goToTab(m.tab)"
-                      >
-                        {{ m.label }}
-                        <AppIcon
-                          name="chevron-right"
-                          :size="12"
-                        />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="flex w-full min-w-0 shrink-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-stretch lg:justify-end lg:gap-2">
-                <span
-                  v-if="isEditing"
-                  class="flex min-w-0 items-center justify-center gap-1.5 text-xs text-slate-500 sm:mr-auto sm:justify-start lg:mr-0 lg:justify-end"
-                >
-                  <AppIcon
-                    :name="form.processing ? 'refresh' : 'check'"
-                    :size="14"
-                    :class="form.processing ? 'animate-spin text-brand' : 'text-emerald-500'"
-                  />
-                  <span v-if="form.processing">Đang lưu…</span>
-                  <span v-else-if="savedTimeLabel">Đã lưu {{ savedTimeLabel }}</span>
-                  <span v-else>Chưa lưu lần nào hôm nay</span>
-                </span>
-                <button
-                  type="button"
-                  class="btn-ghost min-h-11 w-full justify-center gap-1.5 sm:min-h-10 sm:w-auto"
-                  @click="openGallery('builtin')"
-                >
-                  <AppIcon
-                    name="template"
-                    :size="16"
-                  />
-                  Thư viện mẫu
-                </button>
-                <button
-                  type="button"
-                  class="btn-ghost min-h-11 w-full sm:min-h-10 sm:w-auto"
-                  :disabled="form.processing"
-                  @click="save"
-                >
-                  {{ form.processing ? 'Đang lưu…' : 'Lưu nháp' }}
-                </button>
-                <button
-                  v-if="isEditing"
-                  type="button"
-                  class="btn-primary min-h-11 w-full sm:min-h-10 sm:w-auto"
-                  :disabled="form.processing || !readyToSubmit"
-                  :title="readyToSubmit ? '' : 'Hãy điền đủ các mục bắt buộc trước khi nộp'"
-                  @click="submit"
-                >
-                  Nộp duyệt
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Tab bar: cuộn ngang mobile · lưới tablet/desktop (không flex-1 — tránh tràn ngang) -->
+        <div class="space-y-4 md:space-y-5">
+          <!-- Banner báo cáo bị trả lại -->
           <div
-            class="flex overflow-x-auto overscroll-x-contain border-b border-slate-200 sm:grid sm:grid-cols-3 sm:overflow-visible lg:grid-cols-5"
-            role="tablist"
-            aria-label="Các phần báo cáo"
+            v-if="report?.review_notes"
+            class="card border-l-4 border-warning p-4 sm:p-5"
           >
-            <button
-              v-for="(t, i) in tabs"
-              :key="t.key"
-              type="button"
-              role="tab"
-              :aria-selected="activeTab === i"
-              class="relative min-w-[8.25rem] shrink-0 border-b-2 px-2 py-3 text-left text-xs font-medium transition sm:min-w-0 sm:px-3 sm:py-3.5 sm:text-sm sm:text-center"
-              :class="activeTab === i
-                ? 'border-brand bg-brand/[0.04] text-brand'
-                : 'border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-700'"
-              @click="activeTab = i"
-            >
-              <span class="flex flex-col items-start gap-1 sm:items-center sm:gap-1.5">
-                <span class="whitespace-nowrap leading-tight sm:whitespace-normal">{{ t.title }}</span>
-                <span
-                  class="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none sm:px-2"
-                  :class="t.filled === t.total
-                    ? 'bg-emerald-100 text-emerald-700'
-                    : t.hasMissingRequired
-                      ? 'bg-amber-100 text-amber-700'
-                      : 'bg-slate-100 text-slate-500'"
-                >
-                  <AppIcon
-                    v-if="t.filled === t.total"
-                    name="check"
-                    :size="10"
-                    :stroke-width="3"
-                  />
-                  {{ t.filled }}/{{ t.total }}
-                </span>
-              </span>
-            </button>
+            <p class="text-sm font-semibold text-slate-700">
+              Báo cáo được trả lại
+            </p>
+            <p class="mt-1 text-sm text-slate-600">
+              {{ report.review_notes }}
+            </p>
           </div>
 
-          <!-- Active tab -->
-          <div class="min-w-0 p-4 sm:p-6">
-            <div class="mb-5 flex flex-col gap-3 rounded-card border border-slate-100 bg-slate-50/80 p-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4 sm:p-4">
-              <div class="min-w-0 space-y-1">
-                <p class="font-display text-sm font-semibold text-slate-800">
-                  {{ activeTabMeta.title }}
-                </p>
-                <span class="font-mono text-[11px] text-slate-400">{{ activeTabMeta.jp }} · {{ activeTabMeta.romaji }}</span>
-                <p class="text-xs leading-relaxed text-slate-600 sm:text-sm">
-                  {{ activeTabMeta.desc }}
-                </p>
-              </div>
-              <span
-                class="inline-flex shrink-0 self-start items-center rounded-full px-2.5 py-1 text-xs font-medium"
-                :class="statusVi.cls"
-              >
-                {{ statusVi.label }}
-              </span>
-            </div>
-
-            <!-- Tab: general info -->
-            <div
-              v-if="activeTabMeta.key === 'info'"
-              class="grid min-w-0 gap-6"
-            >
-              <div>
-                <label class="label flex items-center gap-1.5">
-                  Ngày báo cáo
-                  <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-400">Chỉ đọc</span>
-                </label>
-                <div
-                  class="flex flex-wrap items-center gap-2 rounded-card border border-dashed border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-600"
-                >
+          <!-- ── Section 1: Thông tin chung ── -->
+          <div
+            id="section-info"
+            class="card overflow-hidden"
+          >
+            <div class="flex items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/60 px-4 py-3 sm:px-6">
+              <div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+                <div class="flex items-center gap-2">
+                  <span
+                    class="h-2 w-2 shrink-0 rounded-full bg-brand"
+                    aria-hidden="true"
+                  />
+                  <h2 class="font-display text-sm font-semibold text-slate-800">
+                    Thông tin chung
+                  </h2>
+                </div>
+                <span class="flex items-center gap-1 text-xs text-slate-400">
                   <AppIcon
                     name="calendar"
-                    :size="16"
-                    class="shrink-0 text-brand"
+                    :size="12"
+                    aria-hidden="true"
                   />
-                  <span class="font-medium text-slate-700">{{ formattedToday }}</span>
-                  <span class="text-xs text-slate-400">(theo giờ làm việc VN)</span>
-                </div>
+                  {{ formattedToday }}
+                </span>
               </div>
+              <span
+                class="inline-flex shrink-0 items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-semibold leading-none"
+                :class="titleOk ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'"
+              >
+                <AppIcon
+                  v-if="titleOk"
+                  name="check"
+                  :size="10"
+                  :stroke-width="3"
+                />
+                {{ titleOk ? '1/1' : '0/1' }}
+              </span>
+            </div>
 
+            <div class="grid gap-6 p-4 sm:p-6">
               <div>
                 <label class="label flex items-center gap-1.5">
-                  Tiêu đề báo cáo <span class="text-danger">*</span>
-                  <InfoTooltip text="Một dòng tóm tắt nội dung chính trong ngày. VD: “Hoàn thiện màn hình đăng nhập & sửa lỗi API”." />
+                  Tiêu đề báo cáo
+                  <span class="text-danger">*</span>
+                  <InfoTooltip text="Một dòng tóm tắt nội dung chính trong ngày. VD: &quot;Hoàn thiện màn hình đăng nhập &amp; sửa lỗi API&quot;." />
                 </label>
                 <input
                   v-model="form.title"
@@ -670,14 +522,49 @@ const savedTimeLabel = computed(() =>
                 />
               </div>
             </div>
+          </div>
 
-            <!-- Tab: a Horenso pillar -->
+          <!-- ── Sections 2–5: Các trụ cột HORENSO ── -->
+          <div
+            v-for="p in pillars"
+            :id="`section-${p.key}`"
+            :key="p.key"
+            class="card overflow-hidden"
+          >
             <div
-              v-else
-              class="grid min-w-0 gap-6"
+              class="flex items-center justify-between gap-3 border-b px-4 py-3 sm:px-6"
+              :class="[pillarHeaderBg(p.key), pillarHeaderBorder(p.key)]"
             >
+              <div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+                <div class="flex items-center gap-2">
+                  <span
+                    class="h-2 w-2 shrink-0 rounded-full"
+                    :class="pillarDotClass(p.key)"
+                    aria-hidden="true"
+                  />
+                  <h2 class="font-display text-sm font-semibold text-slate-800">
+                    {{ p.title }}
+                  </h2>
+                </div>
+                <span class="text-xs text-slate-400">{{ p.subtitle }}</span>
+              </div>
+              <span
+                class="inline-flex shrink-0 items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-semibold leading-none"
+                :class="pillarFillClass(p.key)"
+              >
+                <AppIcon
+                  v-if="filledInPillar(p.key) === pillarFields(p.key).length"
+                  name="check"
+                  :size="10"
+                  :stroke-width="3"
+                />
+                {{ filledInPillar(p.key) }}/{{ pillarFields(p.key).length }}
+              </span>
+            </div>
+
+            <div class="grid gap-6 p-4 sm:p-6">
               <RichTextField
-                v-for="f in pillarFields(activeTabMeta.key)"
+                v-for="f in pillarFields(p.key)"
                 :key="f.key"
                 v-model="form[f.key]"
                 :label="f.label"
@@ -688,68 +575,120 @@ const savedTimeLabel = computed(() =>
                 :error="form.errors[f.key]"
               />
             </div>
+          </div>
 
-            <!-- Tab nav -->
-            <div class="mt-6 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
-              <button
-                type="button"
-                class="btn-ghost min-h-11 w-full justify-center sm:min-h-10 sm:w-auto"
-                :disabled="activeTab === 0"
-                @click="activeTab--"
-              >
-                ← Phần trước
-              </button>
-              <span class="text-center text-xs font-medium text-slate-500">
-                Bước {{ activeTab + 1 }}/{{ tabs.length }}
-              </span>
-              <button
-                type="button"
-                class="btn-ghost min-h-11 w-full justify-center sm:min-h-10 sm:w-auto"
-                :disabled="activeTab === tabs.length - 1"
-                @click="activeTab++"
-              >
-                Phần tiếp →
-              </button>
+          <p
+            v-if="form.errors.submit"
+            class="text-sm text-danger"
+          >
+            {{ form.errors.submit }}
+          </p>
+
+          <!-- Thanh hành động (cuối trang) -->
+          <div class="card min-w-0 overflow-hidden">
+            <div
+              class="h-1 bg-slate-100"
+              role="progressbar"
+              :aria-valuenow="progressPct"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              :aria-label="`Tiến độ hoàn thành ${progressPct} phần trăm`"
+            >
+              <div
+                class="h-full bg-brand transition-all duration-300"
+                :style="{ width: progressPct + '%' }"
+              />
+            </div>
+
+            <div
+              v-if="submitAttempted && !readyToSubmit"
+              class="border-b border-amber-100 bg-amber-50 px-4 py-2 sm:px-6"
+            >
+              <div class="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                <span class="shrink-0 text-xs font-medium text-amber-700">Còn thiếu:</span>
+                <button
+                  v-for="m in missingItems"
+                  :key="m.label"
+                  type="button"
+                  class="inline-flex items-center gap-1 rounded-lg border border-amber-200 bg-white px-2.5 py-1 text-xs font-medium text-amber-800 transition hover:border-amber-300 hover:bg-amber-50"
+                  @click="scrollToSection(m.sectionKey)"
+                >
+                  {{ m.label }}
+                  <AppIcon
+                    name="chevron-right"
+                    :size="11"
+                  />
+                </button>
+              </div>
+            </div>
+
+            <div class="flex flex-col gap-3 border-t border-slate-100 bg-slate-50/60 px-4 py-4 sm:flex-row sm:items-center sm:gap-3 sm:px-6">
+              <!-- Trạng thái lưu + tiến độ -->
+              <div class="flex min-w-0 items-center gap-2 text-xs text-slate-500">
+                <span class="font-display font-semibold tabular-nums text-brand">{{ progressPct }}%</span>
+                <span
+                  v-if="isEditing"
+                  class="flex items-center gap-1"
+                >
+                  <span class="text-slate-300">·</span>
+                  <span
+                    v-if="form.processing"
+                    class="flex items-center gap-1"
+                  >
+                    <AppIcon
+                      name="refresh"
+                      :size="12"
+                      class="animate-spin text-brand"
+                    />
+                    Đang lưu…
+                  </span>
+                  <span v-else-if="savedTimeLabel">Đã lưu {{ savedTimeLabel }}</span>
+                  <span v-else>Chưa lưu lần nào hôm nay</span>
+                </span>
+              </div>
+
+              <div class="flex w-full flex-col gap-2 sm:ml-auto sm:w-auto sm:flex-row sm:items-center">
+                <button
+                  type="button"
+                  class="btn-ghost min-h-10 w-full justify-center gap-1.5 sm:w-auto"
+                  @click="openGallery('builtin')"
+                >
+                  <AppIcon
+                    name="template"
+                    :size="14"
+                  />
+                  Thư viện mẫu
+                </button>
+                <button
+                  type="button"
+                  class="btn-ghost min-h-10 w-full sm:w-auto"
+                  :disabled="form.processing"
+                  @click="save"
+                >
+                  {{ form.processing ? 'Đang lưu…' : 'Lưu nháp' }}
+                </button>
+                <button
+                  v-if="isEditing"
+                  type="button"
+                  class="btn-primary min-h-10 w-full sm:w-auto"
+                  :disabled="form.processing || !readyToSubmit"
+                  :title="readyToSubmit ? '' : 'Hãy điền đủ các mục bắt buộc trước khi nộp'"
+                  @click="submit"
+                >
+                  Nộp duyệt
+                </button>
+              </div>
             </div>
           </div>
 
-          <!-- Bottom actions after long forms (tablet / mobile) -->
-          <div class="border-t border-slate-100 bg-slate-50/60 px-4 py-4 sm:px-6 lg:hidden">
-            <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
-              <button
-                type="button"
-                class="btn-ghost min-h-11 w-full justify-center sm:w-auto"
-                :disabled="form.processing"
-                @click="save"
-              >
-                {{ form.processing ? 'Đang lưu…' : 'Lưu nháp' }}
-              </button>
-              <button
-                v-if="isEditing"
-                type="button"
-                class="btn-primary min-h-11 w-full justify-center sm:w-auto"
-                :disabled="form.processing || !readyToSubmit"
-                @click="submit"
-              >
-                Nộp duyệt
-              </button>
-            </div>
-          </div>
+          <p class="text-center text-xs text-slate-400">
+            <span v-if="isEditing">
+              Bản nháp tự động lưu mỗi 30 giây.
+              <span v-if="savedTimeLabel"> · Đã lưu lúc {{ savedTimeLabel }}</span>
+            </span>
+            <span v-else>Lưu nháp để bật tự động lưu và cho phép nộp duyệt.</span>
+          </p>
         </div>
-
-        <p
-          v-if="form.errors.submit"
-          class="text-sm text-danger"
-        >
-          {{ form.errors.submit }}
-        </p>
-        <p class="text-center text-xs text-slate-400">
-          <span v-if="isEditing">
-            Bản nháp tự động lưu mỗi 30 giây.
-            <span v-if="savedTimeLabel"> · Đã lưu lúc {{ savedTimeLabel }}</span>
-          </span>
-          <span v-else>Lưu nháp để bật tự động lưu và cho phép nộp duyệt.</span>
-        </p>
       </div>
     </div>
 
