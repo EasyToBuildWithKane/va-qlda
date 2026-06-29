@@ -559,46 +559,6 @@ const savedTimeLabel = computed(() =>
                 </span>
               </div>
             </div>
-
-            <!-- Stepper nhanh (mobile scroll) -->
-            <div
-              class="relative mt-4 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-              role="navigation"
-              aria-label="Các bước soạn báo cáo"
-            >
-              <button
-                v-for="tab in editorTabs"
-                :key="`step-${tab.key}`"
-                type="button"
-                class="flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-left transition"
-                :class="activeTab === tab.key
-                  ? `border-brand/30 bg-white shadow-sm ring-1 ring-brand/15`
-                  : 'border-slate-200/80 bg-white/60 hover:border-slate-300 hover:bg-white'"
-                @click="goToSection(tab.key)"
-              >
-                <span
-                  class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[10px] font-bold"
-                  :class="tabBadgeClass(tab.key)"
-                >
-                  <AppIcon
-                    v-if="tabProgress(tab.key).filled === tabProgress(tab.key).total"
-                    name="check"
-                    :size="12"
-                    :stroke-width="3"
-                  />
-                  <template v-else-if="tab.jp">
-                    {{ tab.jp }}
-                  </template>
-                  <template v-else>
-                    i
-                  </template>
-                </span>
-                <span class="min-w-0">
-                  <span class="block truncate text-xs font-semibold text-slate-800">{{ tab.label }}</span>
-                  <span class="block truncate text-[10px] text-slate-400">{{ tabProgress(tab.key).filled }}/{{ tabProgress(tab.key).total }}</span>
-                </span>
-              </button>
-            </div>
           </div>
 
           <!-- Tab bar -->

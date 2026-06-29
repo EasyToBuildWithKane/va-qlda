@@ -217,7 +217,7 @@ Response `summary`: tổng theo trạng thái, `completion_rate`, `trend` (±% s
 
 ```
 resources/js/
-    Pages/DailyReport/Today.vue      — soạn báo cáo (tab HORENSO + stepper), template, project picker
+    Pages/DailyReport/Today.vue      — soạn báo cáo (tab HORENSO), template, project picker
     Pages/DailyReport/History.vue    — KPI strip + datagrid + export
     Pages/DailyReport/Show.vue       — chi tiết báo cáo (HORENSO, không scroll ngang; `back-href` lịch sử)
     Pages/DailyReport/Review.vue     — danh sách thành viên chờ duyệt + báo cáo + ScoringPanel
