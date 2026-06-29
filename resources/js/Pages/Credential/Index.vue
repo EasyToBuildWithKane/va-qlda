@@ -24,6 +24,7 @@ import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterC
 import { useVisibleColumns } from '@/shared/composables/useVisibleColumns';
 import { useFixedDropdownAnchor } from '@/shared/composables/useFixedDropdownAnchor';
 import { useToast } from '@/shared/composables/useToast';
+import { useConfirmDelete } from '@/composables/useConfirmClose';
 import { date } from '@/composables/useFormat';
 
 const props = defineProps({
@@ -35,6 +36,7 @@ const props = defineProps({
 });
 
 const toast = useToast();
+const confirmDelete = useConfirmDelete();
 const { now: expiryNow } = useSecondTicker();
 
 function rowExpiringSoon(row) {
@@ -102,7 +104,7 @@ const {
     TABLE_COLUMNS,
 } = useVisibleColumns(CREDENTIAL_TABLE_COLUMNS, 'va-qlda.credentials.columns.v1');
 
-const tableColspan = computed(() => visibleColumnCount.value);
+const tableColspan = computed(() => visibleColumnCount.value + 1);
 
 const { panelStyle: dataMenuStyle } = useFixedDropdownAnchor(
     () => dataMenuRef.value,
@@ -201,6 +203,14 @@ function onFixIssue(issue) {
         // Clear highlight after 4 seconds
         setTimeout(() => { highlightedId.value = null; }, 4000);
     }, 100);
+}
+
+function removeCredential(row) {
+    if (!row.can?.delete) return;
+    confirmDelete(
+        `Xoá tài khoản «${row.name}»? Thao tác không thể hoàn tác.`,
+        () => router.delete(route('credentials.destroy', row.id), { preserveScroll: true }),
+    );
 }
 
 onMounted(() => document.addEventListener('mousedown', onToolbarClickOutside));
@@ -541,6 +551,12 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOu
               >
                 Trạng thái
               </th>
+              <th
+                class="w-11 px-2 py-3 text-right"
+                aria-label="Thao tác"
+              >
+                <span class="sr-only">Thao tác</span>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -548,7 +564,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOu
               v-for="row in credentials.data"
               :key="row.id"
               :data-credential-id="row.id"
-              class="border-t border-slate-100 hover:bg-slate-50/80 transition-colors"
+              class="group border-t border-slate-100 transition-colors hover:bg-slate-50/80"
               :class="credentialRowClass(row)"
             >
               <td class="px-5 py-3">
@@ -632,6 +648,21 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOu
                   v-else
                   class="text-xs italic text-slate-400"
                 >Chưa xác định</span>
+              </td>
+              <td class="px-2 py-3 text-right">
+                <button
+                  v-if="row.can?.delete"
+                  type="button"
+                  class="grid h-8 w-8 place-items-center rounded-md text-slate-400 opacity-0 transition hover:bg-rose-50 hover:text-rose-600 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/30"
+                  title="Xoá"
+                  :aria-label="`Xoá ${row.name}`"
+                  @click="removeCredential(row)"
+                >
+                  <AppIcon
+                    name="delete"
+                    :size="15"
+                  />
+                </button>
               </td>
             </tr>
             <tr v-if="!credentials.data?.length">

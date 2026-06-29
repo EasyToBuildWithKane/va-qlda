@@ -18,6 +18,8 @@ class CredentialListResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $user = $request->user();
+
         return [
             'id' => $this->id,
             'name' => $this->name,
@@ -45,6 +47,9 @@ class CredentialListResource extends JsonResource
                 'id' => $this->owner->id,
                 'display_name' => $this->owner->display_name,
             ] : null),
+            'can' => $user ? [
+                'delete' => $user->can('delete', $this->resource),
+            ] : null,
         ];
     }
 }

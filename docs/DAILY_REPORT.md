@@ -31,7 +31,7 @@ Sidebar nhóm **Báo cáo** (`App\Support\Navigation`):
 | Lịch sử báo cáo | `/daily-reports` | Dashboard lọc + thẻ/bảng | mọi role đăng nhập |
 | Chờ phê duyệt | `/daily-reports/review` | Hàng chờ chấm | admin, lead |
 
-Trang chi tiết: `/daily-reports/{uuid}` (`DailyReport/Show.vue`).
+Trang chi tiết: `/daily-reports/{id}` (`DailyReport/Show.vue`); binding chấp nhận thêm `uuid` cho link thông báo cũ.
 
 ---
 

@@ -1,71 +1,219 @@
 <script setup>
-/* eslint-disable vue/no-v-html -- rendered markdown report fields */
-import { computed, ref } from 'vue';
+/* eslint-disable vue/no-v-html -- rendered HTML from Tiptap editor */
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { Head, Link } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AppIcon from '@/Components/AppIcon.vue';
-import ScoringPanel from '@/modules/daily-report/components/ScoringPanel.vue';
-import ReviewPendingMembersList from '@/modules/daily-report/components/ReviewPendingMembersList.vue';
+import Avatar from '@/shared/ui/Avatar.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
-import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
+import ReviewScoringPanel from '@/modules/daily-report/components/ReviewScoringPanel.vue';
 import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
-import { EMPTY_LABELS } from '@/shared/utils/emptyDisplay';
+import { useDialog } from '@/composables/useDialog';
+import { useToast } from '@/shared/composables/useToast';
+import { date as formatDate, datetime } from '@/composables/useFormat';
+import { displayOrEmpty, EMPTY_LABELS } from '@/shared/utils/emptyDisplay';
+import { isRoutineProjectEntry } from '@/modules/daily-report/constants/routineWork';
+
+const dialog = useDialog();
+const toast = useToast();
 
 const props = defineProps({
-    reports: { type: Object, required: true }, // { data, meta, links }
+    reports: { type: Object, required: true },
     pendingMembers: { type: Array, default: () => [] },
-    queueTotals: {
-        type: Object,
-        default: () => ({ reports: 0, members: 0 }),
-    },
-    filters: {
-        type: Object,
-        default: () => ({ employee_id: null }),
-    },
+    queueTotals: { type: Object, default: () => ({ reports: 0, members: 0 }) },
+    filters: { type: Object, default: () => ({}) },
 });
 
+// ─── Refs ─────────────────────────────────────────────────────────────────────
 const searchQuery = ref('');
+const queueTab = ref('all');
+const detailTab = ref('overview');
+const selectedReportId = ref(null);
+const scoringPanelRef = ref(null);
+const bulkSelected = ref(new Set());
+const submitting = ref(false);
+const mobileShowDetail = ref(false);
 const perPage = ref(Number(props.reports.meta?.per_page) || 15);
 
-const activeEmployeeId = computed(() => {
-    const id = props.filters?.employee_id;
-    return id != null && id !== '' ? Number(id) : null;
-});
+// ─── Config ───────────────────────────────────────────────────────────────────
+const QUEUE_TABS = [
+    { key: 'all', label: 'Tất cả' },
+    { key: 'today', label: 'Hôm nay' },
+    { key: 'late', label: 'Quá hạn' },
+];
+
+const DETAIL_TABS = [
+    { key: 'overview', label: 'Tổng quan' },
+    { key: 'goals', label: 'Mục tiêu & Kết quả' },
+    { key: 'blockers', label: 'Vướng mắc & Đề xuất' },
+    { key: 'plan', label: 'Kế hoạch' },
+    { key: 'history', label: 'Lịch sử' },
+];
+
+// ─── Computed ─────────────────────────────────────────────────────────────────
+function getTodayLocal() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+const TODAY = getTodayLocal();
 
 const filteredReports = computed(() => {
+    let list = [...(props.reports.data ?? [])];
     const q = searchQuery.value.trim().toLowerCase();
-    if (!q) return props.reports.data ?? [];
-    return (props.reports.data ?? []).filter((r) =>
-        (r.employee?.name ?? '').toLowerCase().includes(q) ||
-        (r.title ?? '').toLowerCase().includes(q) ||
-        (r.date ?? '').includes(q),
+    if (q) {
+        list = list.filter((r) =>
+            (r.employee?.name ?? '').toLowerCase().includes(q) ||
+            (r.title ?? '').toLowerCase().includes(q) ||
+            (r.date ?? '').includes(q),
+        );
+    }
+    if (queueTab.value === 'today') {
+        list = list.filter((r) => r.date === TODAY);
+    } else if (queueTab.value === 'late') {
+        list = list.filter((r) => r.is_late);
+    }
+    return list;
+});
+
+const selectedReport = computed(() => {
+    if (selectedReportId.value == null) return filteredReports.value[0] ?? null;
+    return (
+        filteredReports.value.find((r) => r.id === selectedReportId.value) ??
+        filteredReports.value[0] ??
+        null
     );
 });
 
-const reportSectionTitle = computed(() => {
-    if (activeEmployeeId.value) {
-        const member = props.pendingMembers.find((m) => m.employee_id === activeEmployeeId.value);
-        if (member?.name) {
-            return `Báo cáo chờ duyệt — ${member.name}`;
-        }
-    }
-    return 'Báo cáo chờ duyệt';
+const selectedIndex = computed(() => {
+    if (!selectedReport.value) return -1;
+    return filteredReports.value.findIndex((r) => r.id === selectedReport.value.id);
 });
 
-// Report content is rich HTML from the editor.
-const render = (html) => html || `<span class="text-slate-400">${EMPTY_LABELS.generic}</span>`;
+const prevReport = computed(() => filteredReports.value[selectedIndex.value - 1] ?? null);
+const nextReport = computed(() => filteredReports.value[selectedIndex.value + 1] ?? null);
 
-const preview = [
-    ['Mục tiêu hôm nay', 'goals_today'],
-    ['Tiến độ thực hiện', 'progress_update'],
-    ['Khó khăn & vướng mắc', 'blockers'],
-];
+const selectedMember = computed(() =>
+    props.pendingMembers.find((m) => m.employee_id === selectedReport.value?.employee?.id) ?? null,
+);
+
+const allSelected = computed(
+    () =>
+        filteredReports.value.length > 0 &&
+        bulkSelected.value.size === filteredReports.value.length,
+);
+
+const todayCount = computed(() => (props.reports.data ?? []).filter((r) => r.date === TODAY).length);
+const lateCount = computed(() => (props.reports.data ?? []).filter((r) => r.is_late).length);
+
+// ─── Queue actions ────────────────────────────────────────────────────────────
+watch(
+    filteredReports,
+    (list) => {
+        if (!list.length) return;
+        if (!list.find((r) => r.id === selectedReportId.value)) {
+            selectedReportId.value = list[0].id;
+        }
+    },
+    { immediate: true },
+);
+
+function selectReport(report) {
+    selectedReportId.value = report.id;
+    detailTab.value = 'overview';
+    mobileShowDetail.value = true;
+}
+
+function toggleBulk(id) {
+    const s = new Set(bulkSelected.value);
+    if (s.has(id)) s.delete(id);
+    else s.add(id);
+    bulkSelected.value = s;
+}
+
+function toggleAll() {
+    if (allSelected.value) {
+        bulkSelected.value = new Set();
+    } else {
+        bulkSelected.value = new Set(filteredReports.value.map((r) => r.id));
+    }
+}
+
+// ─── Content helpers ──────────────────────────────────────────────────────────
+const render = (html) => html || `<span class="text-slate-400">${EMPTY_LABELS.generic}</span>`;
+const hasText = (html) => (html || '').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim().length > 0;
+
+function reportProjects(report) {
+    return (report.projects ?? []).filter((p) => !isRoutineProjectEntry(p));
+}
+
+function routineTasks(report) {
+    const routine = (report.projects ?? []).find(isRoutineProjectEntry);
+    return routine?.tasks ?? [];
+}
+
+function memberForReport(report) {
+    return props.pendingMembers.find((m) => m.employee_id === report.employee?.id) ?? null;
+}
+
+// ─── Review actions ───────────────────────────────────────────────────────────
+async function handleReject() {
+    if (!selectedReport.value || submitting.value) return;
+    const notes = await dialog.prompt({
+        title: 'Trả lại báo cáo để chỉnh sửa?',
+        message: 'Nêu lý do cụ thể để thành viên biết cần bổ sung / sửa gì:',
+        placeholder: 'VD: Thiếu phần kết quả cụ thể, vui lòng bổ sung số liệu…',
+        confirmText: 'Trả lại',
+        cancelText: 'Huỷ',
+    });
+    if (notes === null) return;
+    if (!notes.trim()) {
+        toast.error('Vui lòng nhập lý do trả lại.');
+        return;
+    }
+    submitting.value = true;
+    scoringPanelRef.value?.reject(notes, {
+        onFinish: () => { submitting.value = false; },
+    });
+}
+
+function handleScore() {
+    if (!scoringPanelRef.value || submitting.value) return;
+    submitting.value = true;
+    scoringPanelRef.value.submit({
+        onFinish: () => { submitting.value = false; },
+    });
+}
+
+function handleScoreAndNext() {
+    if (!scoringPanelRef.value || submitting.value) return;
+    const nextId = nextReport.value?.id ?? null;
+    submitting.value = true;
+    scoringPanelRef.value.submit({
+        onSuccess: () => {
+            if (nextId) selectedReportId.value = nextId;
+        },
+        onFinish: () => { submitting.value = false; },
+    });
+}
+
+// ─── Keyboard navigation ──────────────────────────────────────────────────────
+function handleKeydown(e) {
+    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
+    if (e.key === 'ArrowDown' || e.key === 'j') {
+        if (nextReport.value) { selectReport(nextReport.value); e.preventDefault(); }
+    } else if (e.key === 'ArrowUp' || e.key === 'k') {
+        if (prevReport.value) { selectReport(prevReport.value); e.preventDefault(); }
+    }
+}
+
+onMounted(() => document.addEventListener('keydown', handleKeydown));
+onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
 </script>
 
 <template>
   <Head title="Duyệt báo cáo" />
 
-  <AppLayout>
+  <AppLayout :flush="true">
     <template #header>
       <PageHeader
         title="Duyệt báo cáo"
@@ -76,138 +224,776 @@ const preview = [
       />
     </template>
 
-    <div class="w-full min-w-0 space-y-6">
-      <ReviewPendingMembersList
-        :members="pendingMembers"
-        :totals="queueTotals"
-        :active-employee-id="activeEmployeeId"
-        :search-query="searchQuery"
-      />
-
-      <div
-        v-if="queueTotals.reports > 0"
-        class="card mb-0 min-w-0 overflow-visible px-4 py-3 sm:px-5"
-      >
-        <DatagridToolbarSearch
-          v-model="searchQuery"
-          input-id="daily-reports-review-search"
-          placeholder="Tên nhân viên, tiêu đề, ngày…"
-          stretch
-          hide-label
-          input-height="h-10"
-        />
-      </div>
-
-      <div
-        v-if="queueTotals.reports === 0"
-        class="card flex flex-col items-center gap-2 p-14 text-center text-slate-400"
-      >
+    <!-- ── Empty queue ─────────────────────────────────────────────────────── -->
+    <div
+      v-if="queueTotals.reports === 0"
+      class="flex flex-1 flex-col items-center justify-center gap-4 p-12 text-center"
+    >
+      <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 shadow-inner">
         <AppIcon
           name="review-reports"
-          :size="36"
-          class="text-slate-300"
+          :size="28"
+          class="text-slate-400"
         />
-        <p class="text-sm">
+      </div>
+      <div>
+        <p class="font-display text-base font-semibold text-slate-700">
+          Hàng chờ trống
+        </p>
+        <p class="mt-1 text-sm text-slate-400">
           Không có báo cáo nào đang chờ duyệt.
         </p>
       </div>
+    </div>
 
-      <template v-else>
-        <div class="flex flex-wrap items-center justify-between gap-2 px-0.5">
-          <h2 class="font-display text-sm font-semibold text-slate-800">
-            {{ reportSectionTitle }}
-          </h2>
-          <p class="text-xs text-slate-500">
-            {{ filteredReports.length }} / {{ reports.data?.length ?? 0 }} trên trang này
-          </p>
-        </div>
+    <!-- ── Master / Detail ────────────────────────────────────────────────── -->
+    <div
+      v-else
+      class="flex min-h-0 flex-1 overflow-hidden"
+    >
+      <!-- ════════════════════════════════════════════════════════════════════
+           LEFT PANEL — Review Queue
+           ════════════════════════════════════════════════════════════════════ -->
+      <div
+        class="flex shrink-0 flex-col overflow-hidden border-r border-slate-200 bg-white"
+        :class="mobileShowDetail ? 'hidden lg:flex lg:w-[340px] xl:w-[380px]' : 'flex w-full lg:w-[340px] xl:w-[380px]'"
+      >
+        <!-- Queue header: title + search + tabs -->
+        <div class="shrink-0 space-y-2.5 border-b border-slate-100 px-4 py-3">
+          <!-- Title row -->
+          <div class="flex items-center justify-between gap-2">
+            <div class="min-w-0">
+              <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+                Hàng chờ duyệt
+              </p>
+              <h2 class="font-display text-sm font-semibold text-slate-800">
+                Báo cáo
+                <span class="ml-1 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-slate-100 px-1.5 text-[11px] font-semibold text-slate-600 tabular-nums">
+                  {{ filteredReports.length }}
+                </span>
+              </h2>
+            </div>
 
-        <div
-          v-if="(reports.data?.length ?? 0) === 0"
-          class="card flex flex-col items-center gap-2 p-14 text-center text-slate-400"
-        >
-          <p class="text-sm">
-            Không có báo cáo nào cho bộ lọc hiện tại.
-          </p>
-        </div>
+            <!-- Bulk action mini-bar (appears when items selected) -->
+            <div
+              v-if="bulkSelected.size > 0"
+              class="flex shrink-0 items-center gap-1.5"
+            >
+              <span class="text-xs text-slate-500">{{ bulkSelected.size }} đã chọn</span>
+              <button
+                type="button"
+                class="btn-ghost h-7 gap-1 px-2 text-[11px] text-success"
+                title="Duyệt đã chọn — chưa triển khai"
+              >
+                <AppIcon
+                  name="check"
+                  :size="12"
+                />
+                Duyệt
+              </button>
+              <button
+                type="button"
+                class="btn-ghost h-7 gap-1 px-2 text-[11px] text-danger"
+                title="Trả lại đã chọn — chưa triển khai"
+              >
+                <AppIcon
+                  name="x"
+                  :size="12"
+                />
+                Trả lại
+              </button>
+            </div>
+          </div>
 
-        <div
-          v-else-if="filteredReports.length === 0"
-          class="card flex flex-col items-center gap-2 p-14 text-center text-slate-400"
-        >
-          <p class="text-sm">
-            Không có báo cáo khớp từ khoá tìm kiếm.
-          </p>
-        </div>
+          <!-- Search input -->
+          <div class="relative">
+            <AppIcon
+              name="search"
+              :size="13"
+              class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+            />
+            <input
+              v-model="searchQuery"
+              type="text"
+              class="input h-9 w-full pl-8 pr-3 text-sm"
+              placeholder="Tìm nhân viên, tiêu đề…"
+              aria-label="Tìm kiếm trong hàng chờ"
+            >
+          </div>
 
-        <div
-          v-else
-          class="space-y-6"
-        >
-          <article
-            v-for="r in filteredReports"
-            :id="`report-${r.id}`"
-            :key="r.id"
-            class="card min-w-0 overflow-hidden p-4 sm:p-6"
+          <!-- Queue filter tabs -->
+          <div class="flex items-center gap-0.5">
+            <button
+              v-for="tab in QUEUE_TABS"
+              :key="tab.key"
+              type="button"
+              class="flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-colors"
+              :class="queueTab === tab.key
+                ? 'bg-brand/10 text-brand'
+                : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'"
+              @click="queueTab = tab.key"
+            >
+              {{ tab.label }}
+              <span
+                v-if="tab.key === 'today' && todayCount > 0"
+                class="tabular-nums"
+              >({{ todayCount }})</span>
+              <span
+                v-if="tab.key === 'late' && lateCount > 0"
+                class="tabular-nums text-danger"
+              >({{ lateCount }})</span>
+            </button>
+          </div>
+
+          <!-- Select-all row -->
+          <div
+            v-if="filteredReports.length > 0"
+            class="flex items-center gap-2 border-t border-slate-100 pt-1.5"
           >
-            <!-- Report content -->
-            <div class="min-w-0 space-y-5">
-              <div class="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 pb-3">
-                <div class="flex min-w-0 items-center gap-2.5">
-                  <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-brand-100 text-sm font-semibold text-brand">
-                    {{ (r.employee?.name || '?').charAt(0) }}
-                  </span>
-                  <div class="min-w-0 leading-tight">
-                    <p class="truncate font-medium text-slate-800">
-                      {{ r.employee?.name }}
-                    </p>
-                    <p class="line-clamp-2 text-xs text-slate-400">
-                      {{ r.date }} · {{ r.title }}
-                    </p>
-                  </div>
-                </div>
-                <Link
-                  :href="`/daily-reports/${r.id}`"
-                  class="btn-ghost shrink-0 gap-1.5 text-sm"
-                  title="Mở báo cáo đầy đủ"
+            <input
+              id="queue-select-all"
+              type="checkbox"
+              :checked="allSelected"
+              class="h-3.5 w-3.5 cursor-pointer rounded border-slate-300 accent-brand"
+              @change="toggleAll"
+            >
+            <label
+              for="queue-select-all"
+              class="cursor-pointer select-none text-[11px] text-slate-500"
+            >
+              Chọn tất cả ({{ filteredReports.length }})
+            </label>
+          </div>
+        </div>
+
+        <!-- Queue list (scrollable) -->
+        <div class="flex-1 overflow-y-auto">
+          <!-- Empty state -->
+          <div
+            v-if="filteredReports.length === 0"
+            class="flex flex-col items-center gap-2 py-14 text-center"
+          >
+            <AppIcon
+              name="search"
+              :size="22"
+              class="text-slate-300"
+            />
+            <p class="text-sm text-slate-400">
+              Không có báo cáo nào khớp.
+            </p>
+          </div>
+
+          <!-- Report items -->
+          <button
+            v-for="r in filteredReports"
+            :key="r.id"
+            type="button"
+            class="flex w-full items-start gap-3 border-b border-b-slate-100 border-l-2 px-4 py-3.5 text-left transition-colors"
+            :class="selectedReport?.id === r.id
+              ? 'border-l-brand bg-brand/[0.04] hover:bg-brand/[0.06]'
+              : 'border-l-transparent hover:bg-slate-50'"
+            :aria-selected="selectedReport?.id === r.id"
+            @click="selectReport(r)"
+          >
+            <!-- Checkbox -->
+            <div
+              class="mt-0.5 shrink-0"
+              @click.stop
+            >
+              <input
+                type="checkbox"
+                :checked="bulkSelected.has(r.id)"
+                :aria-label="`Chọn báo cáo của ${r.employee?.name}`"
+                class="h-3.5 w-3.5 cursor-pointer rounded border-slate-300 accent-brand"
+                @change="toggleBulk(r.id)"
+              >
+            </div>
+
+            <!-- Avatar -->
+            <Avatar
+              :name="r.employee?.name ?? '?'"
+              :src="r.employee?.avatar_path"
+              size="sm"
+              class="mt-0.5 shrink-0"
+            />
+
+            <!-- Text info -->
+            <div class="min-w-0 flex-1">
+              <div class="flex min-w-0 items-start justify-between gap-1.5">
+                <p class="min-w-0 truncate text-sm font-semibold text-slate-800">
+                  {{ r.employee?.name ?? EMPTY_LABELS.notUpdated }}
+                </p>
+                <span
+                  v-if="r.is_late"
+                  class="shrink-0 rounded bg-rose-50 px-1.5 py-0.5 text-[10px] font-semibold text-danger"
                 >
-                  <AppIcon
-                    name="eye"
-                    :size="15"
-                  /> Mở
-                </Link>
+                  Trễ
+                </span>
               </div>
 
+              <p class="truncate text-[11px] text-slate-400">
+                {{ displayOrEmpty(r.employee?.role_title, EMPTY_LABELS.role) }}
+              </p>
+
+              <div class="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[11px] text-slate-500">
+                <span class="flex items-center gap-1">
+                  <AppIcon
+                    name="calendar"
+                    :size="11"
+                    class="text-slate-400"
+                  />
+                  {{ formatDate(r.date) }}
+                </span>
+                <span
+                  v-if="r.submitted_at"
+                  class="text-slate-400"
+                >
+                  Nộp {{ datetime(r.submitted_at) }}
+                </span>
+              </div>
+
+              <!-- Employee pending count badge -->
               <div
-                v-for="[label, key] in preview"
-                :key="key"
-                class="min-w-0"
+                v-if="(memberForReport(r)?.pending_count ?? 0) > 1"
+                class="mt-1.5"
               >
-                <h3 class="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  {{ label }}
-                </h3>
+                <span class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+                  {{ memberForReport(r).pending_count }} báo cáo chờ
+                </span>
+              </div>
+            </div>
+          </button>
+        </div>
+
+        <!-- Pagination -->
+        <div
+          v-if="reports.meta?.last_page > 1"
+          class="shrink-0 border-t border-slate-100"
+        >
+          <DatagridPaginationFooter
+            variant="bar"
+            :meta="reports.meta"
+            :per-page="perPage"
+            :per-page-options="[15, 30, 50]"
+          />
+        </div>
+      </div>
+
+      <!-- ════════════════════════════════════════════════════════════════════
+           RIGHT PANEL — Report Detail
+           ════════════════════════════════════════════════════════════════════ -->
+      <div
+        class="flex min-w-0 flex-1 flex-col overflow-hidden bg-slate-50/40"
+        :class="mobileShowDetail ? 'flex' : 'hidden lg:flex'"
+      >
+        <!-- ── Empty / no selection ────────────────────────────────────────── -->
+        <div
+          v-if="!selectedReport"
+          class="flex flex-1 flex-col items-center justify-center gap-4 p-12 text-center"
+        >
+          <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100">
+            <AppIcon
+              name="review-reports"
+              :size="28"
+              class="text-slate-300"
+            />
+          </div>
+          <div>
+            <p class="text-sm font-medium text-slate-500">
+              Chọn báo cáo để bắt đầu đánh giá
+            </p>
+            <p class="mt-1 text-xs text-slate-400">
+              Dùng phím ↑ ↓ hoặc J K để di chuyển nhanh
+            </p>
+          </div>
+        </div>
+
+        <!-- ── Report detail ───────────────────────────────────────────────── -->
+        <template v-else>
+          <!-- Mobile: back to queue -->
+          <div class="shrink-0 border-b border-slate-100 bg-white px-4 py-2 lg:hidden">
+            <button
+              type="button"
+              class="btn-ghost h-8 gap-1.5 text-xs"
+              @click="mobileShowDetail = false"
+            >
+              <AppIcon
+                name="back"
+                :size="14"
+              />
+              Danh sách
+            </button>
+          </div>
+
+          <!-- Employee header -->
+          <div class="shrink-0 border-b border-slate-200/80 bg-white px-5 py-4">
+            <div class="flex items-start justify-between gap-4">
+              <!-- Left: avatar + info -->
+              <div class="flex min-w-0 items-start gap-3.5">
+                <Avatar
+                  :name="selectedReport.employee?.name ?? '?'"
+                  :src="selectedReport.employee?.avatar_path"
+                  :size="44"
+                  class="shrink-0"
+                />
+                <div class="min-w-0">
+                  <h2 class="font-display text-base font-semibold leading-snug text-slate-800">
+                    {{ selectedReport.employee?.name ?? EMPTY_LABELS.notUpdated }}
+                  </h2>
+                  <p class="text-sm text-slate-500">
+                    {{ displayOrEmpty(selectedReport.employee?.role_title, EMPTY_LABELS.role) }}
+                  </p>
+                  <div class="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+                    <span class="flex items-center gap-1">
+                      <AppIcon
+                        name="calendar"
+                        :size="12"
+                        class="text-slate-400"
+                      />
+                      Kỳ báo cáo:
+                      <span class="font-medium text-slate-700">
+                        <template v-if="selectedMember?.oldest_date && selectedMember.oldest_date !== selectedMember.newest_date">
+                          {{ formatDate(selectedMember.oldest_date) }} – {{ formatDate(selectedMember.newest_date) }}
+                        </template>
+                        <template v-else>{{ formatDate(selectedReport.date) }}</template>
+                      </span>
+                    </span>
+                    <span
+                      v-if="selectedReport.submitted_at"
+                      class="flex items-center gap-1"
+                    >
+                      Nộp lúc
+                      <span class="font-medium text-slate-700">{{ datetime(selectedReport.submitted_at) }}</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Right: status + nav -->
+              <div class="flex shrink-0 flex-col items-end gap-2">
+                <div class="flex flex-wrap items-center justify-end gap-1.5">
+                  <span
+                    v-if="selectedReport.is_late"
+                    class="rounded-md bg-rose-50 px-2 py-0.5 text-xs font-semibold text-danger"
+                  >Nộp trễ</span>
+                  <span
+                    v-if="(selectedReport.recall_count ?? 0) > 0"
+                    class="rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700"
+                  >
+                    Đã rút {{ selectedReport.recall_count }}×
+                  </span>
+                </div>
+                <p class="text-[11px] text-slate-400">
+                  {{ selectedIndex + 1 }} / {{ filteredReports.length }}
+                </p>
+                <div class="flex items-center gap-1">
+                  <button
+                    type="button"
+                    :disabled="!prevReport"
+                    title="Báo cáo trước (↑ / K)"
+                    class="btn-ghost h-7 w-7 rounded-md p-0 disabled:pointer-events-none disabled:opacity-30"
+                    @click="prevReport && selectReport(prevReport)"
+                  >
+                    <AppIcon
+                      name="chevron-up"
+                      :size="14"
+                    />
+                  </button>
+                  <button
+                    type="button"
+                    :disabled="!nextReport"
+                    title="Báo cáo tiếp (↓ / J)"
+                    class="btn-ghost h-7 w-7 rounded-md p-0 disabled:pointer-events-none disabled:opacity-30"
+                    @click="nextReport && selectReport(nextReport)"
+                  >
+                    <AppIcon
+                      name="chevron-down"
+                      :size="14"
+                    />
+                  </button>
+                  <Link
+                    :href="`/daily-reports/${selectedReport.id}`"
+                    class="btn-ghost h-7 gap-1 px-2 text-xs"
+                    title="Mở báo cáo đầy đủ"
+                    target="_blank"
+                    rel="noopener"
+                  >
+                    <AppIcon
+                      name="eye"
+                      :size="13"
+                    />
+                    Mở
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Detail tab bar -->
+          <div class="shrink-0 border-b border-slate-200/80 bg-white px-5">
+            <div class="flex items-center overflow-x-auto">
+              <button
+                v-for="tab in DETAIL_TABS"
+                :key="tab.key"
+                type="button"
+                class="shrink-0 border-b-2 px-3 py-2.5 text-xs font-medium transition-colors"
+                :class="detailTab === tab.key
+                  ? 'border-brand text-brand'
+                  : 'border-transparent text-slate-500 hover:text-slate-700'"
+                @click="detailTab = tab.key"
+              >
+                {{ tab.label }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Tab content (scrollable) -->
+          <div class="flex-1 overflow-y-auto">
+            <!-- ─── TAB: Tổng quan ─────────────────────────────────────── -->
+            <div
+              v-if="detailTab === 'overview'"
+              class="flex min-h-full flex-col lg:flex-row"
+            >
+              <!-- Main: preview + scoring panel -->
+              <div class="flex-1 p-5">
+                <!-- Quick report preview -->
                 <div
-                  class="rich-content break-words text-sm text-slate-600"
-                  v-html="render(r[key])"
+                  v-if="hasText(selectedReport.goals_today)"
+                  class="mb-5 overflow-hidden rounded-xl border border-slate-200 bg-white"
+                >
+                  <div class="border-b border-slate-100 px-4 py-2.5">
+                    <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      Tóm tắt báo cáo
+                    </p>
+                  </div>
+                  <div class="p-4">
+                    <div
+                      class="rich-content line-clamp-4 min-w-0 text-sm text-slate-700"
+                      v-html="selectedReport.goals_today"
+                    />
+                    <button
+                      type="button"
+                      class="mt-2 text-xs text-brand hover:underline"
+                      @click="detailTab = 'goals'"
+                    >
+                      Xem đầy đủ →
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Project / task scope -->
+                <div
+                  v-if="reportProjects(selectedReport).length || routineTasks(selectedReport).length"
+                  class="mb-5 overflow-hidden rounded-xl border border-slate-200 bg-white"
+                >
+                  <div class="border-b border-slate-100 px-4 py-2.5">
+                    <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      Phạm vi công việc
+                    </p>
+                  </div>
+                  <div class="divide-y divide-slate-100">
+                    <div
+                      v-for="p in reportProjects(selectedReport)"
+                      :key="p.id"
+                      class="px-4 py-3"
+                    >
+                      <p class="truncate text-sm font-medium text-brand">
+                        {{ p.name }}
+                      </p>
+                      <ul
+                        v-if="p.tasks?.length"
+                        class="mt-1.5 space-y-1"
+                      >
+                        <li
+                          v-for="t in p.tasks"
+                          :key="`${p.id}-${t.id}`"
+                          class="truncate text-xs text-slate-600"
+                        >
+                          · {{ t.title }}
+                        </li>
+                      </ul>
+                    </div>
+                    <div
+                      v-if="routineTasks(selectedReport).length"
+                      class="px-4 py-3"
+                    >
+                      <p class="text-xs font-semibold uppercase tracking-wide text-amber-700/80">
+                        Công việc thường xuyên
+                      </p>
+                      <ul class="mt-1.5 space-y-1">
+                        <li
+                          v-for="(t, i) in routineTasks(selectedReport)"
+                          :key="`routine-${i}`"
+                          class="truncate text-xs text-slate-600"
+                        >
+                          · {{ t.title }}
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Scoring panel — key remounts when report changes -->
+                <div class="overflow-hidden rounded-xl border border-slate-200 bg-white p-5">
+                  <ReviewScoringPanel
+                    :key="selectedReport.id"
+                    ref="scoringPanelRef"
+                    :report="selectedReport"
+                  />
+                </div>
+              </div>
+
+              <!-- Stats sidebar -->
+              <div class="shrink-0 border-t border-slate-200 bg-white p-4 lg:w-[220px] lg:overflow-y-auto lg:border-l lg:border-t-0">
+                <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  Thông tin bổ sung
+                </p>
+
+                <dl class="mt-3 space-y-3.5">
+                  <div>
+                    <dt class="text-[11px] text-slate-400">
+                      Ngày báo cáo
+                    </dt>
+                    <dd class="text-sm font-medium text-slate-700">
+                      {{ formatDate(selectedReport.date) }}
+                    </dd>
+                  </div>
+
+                  <div v-if="selectedReport.submitted_at">
+                    <dt class="text-[11px] text-slate-400">
+                      Nộp lúc
+                    </dt>
+                    <dd class="text-sm font-medium text-slate-700">
+                      {{ datetime(selectedReport.submitted_at) }}
+                    </dd>
+                  </div>
+
+                  <div>
+                    <dt
+                      class="text-[11px]"
+                      :class="selectedReport.is_late ? 'text-danger' : 'text-slate-400'"
+                    >
+                      Trạng thái nộp
+                    </dt>
+                    <dd
+                      class="text-sm font-semibold"
+                      :class="selectedReport.is_late ? 'text-danger' : 'text-emerald-600'"
+                    >
+                      {{ selectedReport.is_late ? 'Nộp trễ' : 'Đúng hạn' }}
+                    </dd>
+                  </div>
+
+                  <div v-if="(selectedReport.recall_count ?? 0) > 0">
+                    <dt class="text-[11px] text-amber-600">
+                      Lần rút lại
+                    </dt>
+                    <dd class="text-sm font-semibold text-amber-700">
+                      {{ selectedReport.recall_count }} lần
+                    </dd>
+                  </div>
+
+                  <div v-if="selectedMember">
+                    <dt class="text-[11px] text-slate-400">
+                      Báo cáo chờ
+                    </dt>
+                    <dd
+                      class="text-sm font-semibold"
+                      :class="(selectedMember.pending_count ?? 0) > 1 ? 'text-amber-600' : 'text-slate-700'"
+                    >
+                      {{ selectedMember.pending_count ?? 0 }} báo cáo
+                    </dd>
+                  </div>
+                </dl>
+
+                <div class="mt-5 border-t border-slate-100 pt-4">
+                  <Link
+                    :href="`/daily-reports/${selectedReport.id}`"
+                    class="btn-ghost w-full justify-center gap-1.5 text-xs"
+                    target="_blank"
+                    rel="noopener"
+                  >
+                    <AppIcon
+                      name="eye"
+                      :size="13"
+                    />
+                    Xem lịch sử đầy đủ
+                  </Link>
+                </div>
+              </div>
+            </div>
+
+            <!-- ─── TAB: Mục tiêu & Kết quả ──────────────────────────── -->
+            <div
+              v-else-if="detailTab === 'goals'"
+              class="mx-auto max-w-3xl space-y-5 p-5"
+            >
+              <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                <div class="border-b border-slate-100 bg-brand/[0.03] px-5 py-3">
+                  <p class="text-xs font-bold uppercase tracking-wide text-brand/70">
+                    Mục tiêu hôm nay
+                  </p>
+                </div>
+                <div
+                  class="rich-content min-w-0 break-words p-5 text-sm text-slate-700"
+                  v-html="render(selectedReport.goals_today)"
+                />
+              </div>
+
+              <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                <div class="border-b border-slate-100 bg-emerald-50/60 px-5 py-3">
+                  <p class="text-xs font-bold uppercase tracking-wide text-emerald-700/70">
+                    Tiến độ thực hiện
+                  </p>
+                </div>
+                <div
+                  class="rich-content min-w-0 break-words p-5 text-sm text-slate-700"
+                  v-html="render(selectedReport.progress_update)"
                 />
               </div>
             </div>
 
-            <!-- Scoring -->
-            <div class="mt-6 border-t border-slate-100 pt-6">
-              <ScoringPanel :report="r" />
-            </div>
-          </article>
-        </div>
+            <!-- ─── TAB: Vướng mắc & Đề xuất ─────────────────────────── -->
+            <div
+              v-else-if="detailTab === 'blockers'"
+              class="mx-auto max-w-3xl space-y-5 p-5"
+            >
+              <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                <div class="border-b border-slate-100 bg-amber-50/60 px-5 py-3">
+                  <p class="text-xs font-bold uppercase tracking-wide text-amber-700/70">
+                    Khó khăn & Vướng mắc
+                  </p>
+                </div>
+                <div
+                  class="rich-content min-w-0 break-words p-5 text-sm text-slate-700"
+                  v-html="render(selectedReport.blockers)"
+                />
+              </div>
 
-        <DatagridPaginationFooter
-          v-if="reports.meta?.last_page > 1"
-          variant="bar"
-          :meta="reports.meta"
-          :per-page="perPage"
-          :per-page-options="[15, 30, 50]"
-        />
-      </template>
+              <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                <div class="border-b border-slate-100 bg-emerald-50/40 px-5 py-3">
+                  <p class="text-xs font-bold uppercase tracking-wide text-emerald-700/70">
+                    Đề xuất cải tiến (Kaizen)
+                  </p>
+                </div>
+                <div
+                  class="rich-content min-w-0 break-words p-5 text-sm text-slate-700"
+                  v-html="render(selectedReport.improvement_suggestions)"
+                />
+              </div>
+            </div>
+
+            <!-- ─── TAB: Kế hoạch ──────────────────────────────────────── -->
+            <div
+              v-else-if="detailTab === 'plan'"
+              class="mx-auto max-w-3xl p-5"
+            >
+              <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                <div class="border-b border-slate-100 bg-sky-50/60 px-5 py-3">
+                  <p class="text-xs font-bold uppercase tracking-wide text-sky-700/70">
+                    Kế hoạch ngày mai
+                  </p>
+                </div>
+                <div
+                  class="rich-content min-w-0 break-words p-5 text-sm text-slate-700"
+                  v-html="render(selectedReport.plan_tomorrow)"
+                />
+              </div>
+            </div>
+
+            <!-- ─── TAB: Lịch sử ───────────────────────────────────────── -->
+            <div
+              v-else-if="detailTab === 'history'"
+              class="mx-auto max-w-2xl p-5"
+            >
+              <div class="overflow-hidden rounded-xl border border-slate-200 bg-white p-8 text-center">
+                <AppIcon
+                  name="review-reports"
+                  :size="32"
+                  class="mx-auto mb-3 text-slate-300"
+                />
+                <p class="text-sm font-medium text-slate-600">
+                  Xem lịch sử đầy đủ
+                </p>
+                <p class="mt-1 text-xs leading-relaxed text-slate-400">
+                  Bao gồm lịch sử điểm số, timeline duyệt và các lần rút lại trước đây.
+                </p>
+                <Link
+                  :href="`/daily-reports/${selectedReport.id}`"
+                  class="btn-ghost mx-auto mt-5 gap-1.5 text-sm"
+                  target="_blank"
+                  rel="noopener"
+                >
+                  <AppIcon
+                    name="eye"
+                    :size="14"
+                  />
+                  Mở báo cáo đầy đủ
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── Sticky action bar ─────────────────────────────────────────── -->
+          <div
+            v-if="selectedReport.can?.score"
+            class="shrink-0 border-t border-slate-200 bg-white px-5 py-3"
+          >
+            <div class="flex items-center justify-between gap-3">
+              <!-- Reject -->
+              <button
+                type="button"
+                :disabled="submitting"
+                class="btn-ghost h-9 gap-1.5 text-sm text-danger hover:bg-rose-50 disabled:pointer-events-none disabled:opacity-50"
+                @click="handleReject"
+              >
+                <AppIcon
+                  name="x"
+                  :size="15"
+                />
+                Trả lại chỉnh sửa
+              </button>
+
+              <!-- Score buttons -->
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  :disabled="submitting"
+                  class="btn-ghost h-9 gap-1.5 text-sm disabled:pointer-events-none disabled:opacity-50"
+                  @click="handleScore"
+                >
+                  Duyệt báo cáo
+                </button>
+                <button
+                  type="button"
+                  :disabled="submitting"
+                  class="btn-primary h-9 gap-1.5 text-sm disabled:pointer-events-none disabled:opacity-60"
+                  @click="handleScoreAndNext"
+                >
+                  <span v-if="submitting">Đang duyệt…</span>
+                  <template v-else>
+                    Duyệt & Tiếp
+                    <AppIcon
+                      name="chevron-right"
+                      :size="14"
+                    />
+                  </template>
+                </button>
+              </div>
+            </div>
+            <p class="mt-1.5 text-right text-[10px] text-slate-400">
+              Phím tắt: ↑ ↓ hoặc J K để di chuyển • Điểm mặc định 8 / 10
+            </p>
+          </div>
+
+          <!-- No permission notice -->
+          <div
+            v-else
+            class="shrink-0 border-t border-slate-200 bg-slate-50/80 px-5 py-3 text-center text-xs text-slate-400"
+          >
+            Bạn không có quyền chấm điểm báo cáo này.
+          </div>
+        </template>
+      </div>
     </div>
   </AppLayout>
 </template>

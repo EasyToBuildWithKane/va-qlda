@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
@@ -74,6 +75,18 @@ class DailyReport extends Model
     protected static function newFactory(): Factory
     {
         return DailyReportFactory::new();
+    }
+
+    /**
+     * Route param is numeric id in UI; legacy notification links used uuid.
+     */
+    public function resolveRouteBinding($value, $field = null): ?static
+    {
+        if (is_string($value) && Str::isUuid($value)) {
+            return static::query()->where('uuid', $value)->firstOrFail();
+        }
+
+        return parent::resolveRouteBinding($value, $field);
     }
 
     /**

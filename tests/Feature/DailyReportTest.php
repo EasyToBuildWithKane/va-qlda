@@ -71,6 +71,20 @@ class DailyReportTest extends TestCase
         ]);
     }
 
+    public function test_lead_can_open_show_route_by_report_uuid(): void
+    {
+        $member = $this->member();
+        $lead = $this->lead();
+        $report = DailyReport::factory()->create([
+            'employee_id' => $member->employee_id,
+            'status' => ReportStatus::Submitted,
+        ]);
+
+        $this->actingAs($lead, 'system')
+            ->get("/daily-reports/{$report->uuid}")
+            ->assertOk();
+    }
+
     public function test_only_one_report_per_employee_per_day(): void
     {
         $account = $this->member();

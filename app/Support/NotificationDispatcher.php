@@ -456,7 +456,7 @@ class NotificationDispatcher
             'actor' => $actor,
             'entity_type' => 'daily_report',
             'entity_id' => $report->id,
-            'action_url' => "/daily-reports/{$report->uuid}",
+            'action_url' => "/daily-reports/{$report->id}",
         ]);
     }
 
@@ -472,7 +472,7 @@ class NotificationDispatcher
             'actor' => $actor,
             'entity_type' => 'daily_report',
             'entity_id' => $report->id,
-            'action_url' => "/daily-reports/{$report->uuid}",
+            'action_url' => "/daily-reports/{$report->id}",
         ]);
     }
 
@@ -493,7 +493,7 @@ class NotificationDispatcher
             'actor' => $actor,
             'entity_type' => 'daily_report',
             'entity_id' => $report->id,
-            'action_url' => "/daily-reports/{$report->uuid}",
+            'action_url' => "/daily-reports/{$report->id}",
         ]);
     }
 
@@ -512,7 +512,7 @@ class NotificationDispatcher
             'actor' => $actor,
             'entity_type' => 'daily_report',
             'entity_id' => $report->id,
-            'action_url' => "/daily-reports/{$report->uuid}",
+            'action_url' => "/daily-reports/{$report->id}",
         ]);
     }
 
