@@ -45,6 +45,7 @@ class HubDashboardController extends Controller
 
         return Inertia::render('Dashboard/Hub', [
             'greeting' => $this->greetingMeta($account),
+            'summary' => $this->buildSummary($stats, $isLeadTier),
             'activityTrend' => $this->buildActivityTrend(30),
             'compliance' => $this->buildComplianceSummary($scopedEmployeeIds),
             'alerts' => $this->buildAlerts($stats, $isLeadTier),
@@ -102,6 +103,26 @@ class HubDashboardController extends Controller
         }
 
         return $stats;
+    }
+
+    /**
+     * KPI strip aggregates (global counts — independent of module grid pagination).
+     *
+     * @param  array<string, int>  $stats
+     * @return array<string, mixed>
+     */
+    private function buildSummary(array $stats, bool $isLeadTier): array
+    {
+        return [
+            'total_projects' => $stats['total_projects'],
+            'active_projects' => $stats['active_projects'],
+            'open_blockers' => $stats['open_blockers'],
+            'overdue_tasks' => $stats['overdue_tasks'],
+            'open_tasks' => $stats['open_tasks'],
+            'open_feedback' => $stats['open_feedback'],
+            'pending_reports' => $isLeadTier ? ($stats['pending_reports'] ?? 0) : null,
+            'is_lead_tier' => $isLeadTier,
+        ];
     }
 
     /**

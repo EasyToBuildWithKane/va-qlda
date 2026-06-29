@@ -431,101 +431,12 @@ const savedTimeLabel = computed(() =>
 
       <div
         v-else
-        class="w-full space-y-5"
+        class="w-full space-y-4 md:space-y-5"
       >
-        <!-- Action bar (progress + save/submit) -->
-        <div class="card sticky top-0 z-10 flex min-w-0 flex-wrap items-center justify-between gap-3 p-4">
-          <div class="min-w-0 w-full flex-1 sm:min-w-[12rem] sm:w-auto">
-            <div class="mb-1 flex items-center justify-between text-xs">
-              <span class="font-medium text-slate-600">Tiến độ hoàn thành</span>
-              <span class="font-semibold text-brand">{{ progressPct }}%</span>
-            </div>
-            <div class="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-              <div
-                class="h-full rounded-full bg-brand transition-all duration-300"
-                :style="{ width: progressPct + '%' }"
-              />
-            </div>
-            <div class="mt-1 text-xs">
-              <p
-                v-if="readyToSubmit"
-                class="flex items-center gap-1 text-emerald-600"
-              >
-                <AppIcon
-                  name="check"
-                  :size="13"
-                />
-                Đã đủ điều kiện nộp duyệt.
-              </p>
-              <div
-                v-else
-                class="flex flex-wrap items-center gap-1.5"
-              >
-                <span class="text-amber-600">Còn thiếu:</span>
-                <button
-                  v-for="m in missingItems"
-                  :key="m.label"
-                  type="button"
-                  class="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 font-medium text-amber-700 transition hover:border-amber-300 hover:bg-amber-100"
-                  @click="goToTab(m.tab)"
-                >
-                  {{ m.label }}
-                  <AppIcon
-                    name="chevron-right"
-                    :size="11"
-                  />
-                </button>
-              </div>
-            </div>
-          </div>
-          <div class="flex w-full min-w-0 flex-wrap items-center justify-end gap-2 sm:w-auto">
-            <span
-              v-if="isEditing"
-              class="hidden items-center gap-1 text-xs text-slate-400 sm:inline-flex"
-            >
-              <AppIcon
-                :name="form.processing ? 'refresh' : 'check'"
-                :size="13"
-                :class="form.processing ? 'animate-spin text-brand' : 'text-emerald-500'"
-              />
-              <span v-if="form.processing">Đang lưu…</span>
-              <span v-else-if="savedTimeLabel">Đã lưu {{ savedTimeLabel }}</span>
-            </span>
-            <button
-              type="button"
-              class="btn-ghost gap-1.5"
-              @click="openGallery('builtin')"
-            >
-              <AppIcon
-                name="template"
-                :size="16"
-              /> Thư viện mẫu
-            </button>
-            <button
-              type="button"
-              class="btn-ghost"
-              :disabled="form.processing"
-              @click="save"
-            >
-              {{ form.processing ? 'Đang lưu…' : 'Lưu nháp' }}
-            </button>
-            <button
-              v-if="isEditing"
-              type="button"
-              class="btn-primary"
-              :disabled="form.processing || !readyToSubmit"
-              :title="readyToSubmit ? '' : 'Hãy điền đủ các mục bắt buộc trước khi nộp'"
-              @click="submit"
-            >
-              Nộp duyệt
-            </button>
-          </div>
-        </div>
-
         <!-- Rejected feedback -->
         <div
           v-if="report?.review_notes"
-          class="card border-l-4 border-warning p-4"
+          class="card border-l-4 border-warning p-4 sm:p-5"
         >
           <p class="text-sm font-semibold text-slate-700">
             Báo cáo được trả lại
@@ -535,59 +446,178 @@ const savedTimeLabel = computed(() =>
           </p>
         </div>
 
-        <!-- All sections as tabs -->
+        <!-- Editor: progress + tabs in one card (no sticky) -->
         <div class="card min-w-0 overflow-hidden">
-          <!-- Tab bar -->
-          <div
-            class="grid grid-cols-2 border-b border-slate-200 sm:grid-cols-3 lg:grid-cols-5"
-            role="tablist"
-            aria-label="Các phần báo cáo"
-          >
-            <button
-              v-for="(t, i) in tabs"
-              :key="t.key"
-              type="button"
-              role="tab"
-              :aria-selected="activeTab === i"
-              class="border-b-2 px-2 py-3 text-left text-sm font-medium transition sm:px-3 sm:text-center"
-              :class="activeTab === i
-                ? 'border-brand text-brand'
-                : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'"
-              @click="activeTab = i"
-            >
-              <span class="flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
-                <span class="min-w-0">{{ t.title }}</span>
+          <!-- Progress & actions -->
+          <div class="border-b border-slate-100 bg-gradient-to-b from-slate-50/90 to-white px-4 py-4 sm:px-6 sm:py-5">
+            <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-6">
+              <div class="min-w-0 flex-1">
+                <div class="mb-2 flex items-center justify-between gap-2">
+                  <span class="text-sm font-medium text-slate-700">Tiến độ hoàn thành</span>
+                  <span
+                    class="font-display text-lg font-semibold tabular-nums text-brand"
+                    aria-live="polite"
+                  >{{ progressPct }}%</span>
+                </div>
+                <div
+                  class="h-2 w-full overflow-hidden rounded-full bg-slate-100"
+                  role="progressbar"
+                  :aria-valuenow="progressPct"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                  :aria-label="`Tiến độ hoàn thành ${progressPct} phần trăm`"
+                >
+                  <div
+                    class="h-full rounded-full bg-brand transition-all duration-300"
+                    :style="{ width: progressPct + '%' }"
+                  />
+                </div>
+                <div class="mt-2.5 text-xs sm:text-sm">
+                  <p
+                    v-if="readyToSubmit"
+                    class="flex items-center gap-1.5 text-emerald-600"
+                  >
+                    <AppIcon
+                      name="check"
+                      :size="14"
+                    />
+                    Đã đủ điều kiện nộp duyệt.
+                  </p>
+                  <div
+                    v-else
+                    class="space-y-2"
+                  >
+                    <p class="font-medium text-amber-700">
+                      Còn thiếu — bấm để mở đúng phần:
+                    </p>
+                    <div class="flex flex-wrap gap-2">
+                      <button
+                        v-for="m in missingItems"
+                        :key="m.label"
+                        type="button"
+                        class="inline-flex min-h-9 items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-800 transition hover:border-amber-300 hover:bg-amber-100 sm:text-sm"
+                        @click="goToTab(m.tab)"
+                      >
+                        {{ m.label }}
+                        <AppIcon
+                          name="chevron-right"
+                          :size="12"
+                        />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex w-full shrink-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center lg:max-w-md lg:justify-end xl:max-w-none">
                 <span
-                  class="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
-                  :class="t.filled === t.total
-                    ? 'bg-emerald-100 text-emerald-700'
-                    : t.hasMissingRequired
-                      ? 'bg-amber-100 text-amber-700'
-                      : 'bg-slate-100 text-slate-500'"
+                  v-if="isEditing"
+                  class="flex items-center justify-center gap-1.5 text-xs text-slate-500 sm:order-first sm:w-full lg:order-none lg:w-auto lg:justify-end"
                 >
                   <AppIcon
-                    v-if="t.filled === t.total"
-                    name="check"
-                    :size="10"
-                    :stroke-width="3"
+                    :name="form.processing ? 'refresh' : 'check'"
+                    :size="14"
+                    :class="form.processing ? 'animate-spin text-brand' : 'text-emerald-500'"
                   />
-                  {{ t.filled }}/{{ t.total }}
+                  <span v-if="form.processing">Đang lưu…</span>
+                  <span v-else-if="savedTimeLabel">Đã lưu {{ savedTimeLabel }}</span>
+                  <span v-else>Chưa lưu lần nào hôm nay</span>
                 </span>
-              </span>
-            </button>
+                <button
+                  type="button"
+                  class="btn-ghost min-h-11 w-full justify-center gap-1.5 sm:min-h-10 sm:w-auto"
+                  @click="openGallery('builtin')"
+                >
+                  <AppIcon
+                    name="template"
+                    :size="16"
+                  />
+                  Thư viện mẫu
+                </button>
+                <button
+                  type="button"
+                  class="btn-ghost min-h-11 w-full sm:min-h-10 sm:w-auto"
+                  :disabled="form.processing"
+                  @click="save"
+                >
+                  {{ form.processing ? 'Đang lưu…' : 'Lưu nháp' }}
+                </button>
+                <button
+                  v-if="isEditing"
+                  type="button"
+                  class="btn-primary min-h-11 w-full sm:min-h-10 sm:w-auto"
+                  :disabled="form.processing || !readyToSubmit"
+                  :title="readyToSubmit ? '' : 'Hãy điền đủ các mục bắt buộc trước khi nộp'"
+                  @click="submit"
+                >
+                  Nộp duyệt
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab bar: horizontal scroll on narrow viewports -->
+          <div
+            class="relative border-b border-slate-200"
+          >
+            <div
+              class="flex gap-0 overflow-x-auto overscroll-x-contain scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              role="tablist"
+              aria-label="Các phần báo cáo"
+            >
+              <button
+                v-for="(t, i) in tabs"
+                :key="t.key"
+                type="button"
+                role="tab"
+                :aria-selected="activeTab === i"
+                class="relative shrink-0 border-b-2 px-4 py-3.5 text-left text-sm font-medium transition sm:min-w-[9rem] sm:flex-1 sm:px-3 sm:text-center lg:min-w-0"
+                :class="activeTab === i
+                  ? 'border-brand bg-brand/[0.04] text-brand'
+                  : 'border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-700'"
+                @click="activeTab = i"
+              >
+                <span class="flex flex-col items-start gap-1 sm:items-center sm:gap-1.5">
+                  <span class="whitespace-nowrap leading-tight">{{ t.title }}</span>
+                  <span
+                    class="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-semibold leading-none"
+                    :class="t.filled === t.total
+                      ? 'bg-emerald-100 text-emerald-700'
+                      : t.hasMissingRequired
+                        ? 'bg-amber-100 text-amber-700'
+                        : 'bg-slate-100 text-slate-500'"
+                  >
+                    <AppIcon
+                      v-if="t.filled === t.total"
+                      name="check"
+                      :size="10"
+                      :stroke-width="3"
+                    />
+                    {{ t.filled }}/{{ t.total }}
+                  </span>
+                </span>
+              </button>
+            </div>
+            <p
+              class="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-white to-transparent sm:hidden"
+              aria-hidden="true"
+            />
           </div>
 
           <!-- Active tab -->
           <div class="min-w-0 p-4 sm:p-6">
-            <div class="mb-5 flex flex-col gap-2 rounded-card bg-slate-50 p-3 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+            <div class="mb-5 flex flex-col gap-3 rounded-card border border-slate-100 bg-slate-50/80 p-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4 sm:p-4">
               <div class="min-w-0 space-y-1">
-                <span class="font-mono text-xs text-slate-400">{{ activeTabMeta.jp }} · {{ activeTabMeta.romaji }}</span>
-                <p class="text-xs leading-relaxed text-slate-500">
+                <p class="font-display text-sm font-semibold text-slate-800">
+                  {{ activeTabMeta.title }}
+                </p>
+                <span class="font-mono text-[11px] text-slate-400">{{ activeTabMeta.jp }} · {{ activeTabMeta.romaji }}</span>
+                <p class="text-xs leading-relaxed text-slate-600 sm:text-sm">
                   {{ activeTabMeta.desc }}
                 </p>
               </div>
               <span
-                class="inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+                class="inline-flex shrink-0 self-start items-center rounded-full px-2.5 py-1 text-xs font-medium"
                 :class="statusVi.cls"
               >
                 {{ statusVi.label }}
@@ -668,23 +698,48 @@ const savedTimeLabel = computed(() =>
             </div>
 
             <!-- Tab nav -->
-            <div class="mt-6 flex items-center justify-between border-t border-slate-100 pt-4">
+            <div class="mt-6 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
               <button
                 type="button"
-                class="btn-ghost"
+                class="btn-ghost min-h-11 w-full justify-center sm:min-h-10 sm:w-auto"
                 :disabled="activeTab === 0"
                 @click="activeTab--"
               >
-                ← Trước
+                ← Phần trước
               </button>
-              <span class="text-xs text-slate-400">Bước {{ activeTab + 1 }}/{{ tabs.length }}</span>
+              <span class="text-center text-xs font-medium text-slate-500">
+                Bước {{ activeTab + 1 }}/{{ tabs.length }}
+              </span>
               <button
                 type="button"
-                class="btn-ghost"
+                class="btn-ghost min-h-11 w-full justify-center sm:min-h-10 sm:w-auto"
                 :disabled="activeTab === tabs.length - 1"
                 @click="activeTab++"
               >
-                Tiếp →
+                Phần tiếp →
+              </button>
+            </div>
+          </div>
+
+          <!-- Bottom actions after long forms (tablet / mobile) -->
+          <div class="border-t border-slate-100 bg-slate-50/60 px-4 py-4 sm:px-6 lg:hidden">
+            <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                class="btn-ghost min-h-11 w-full justify-center sm:w-auto"
+                :disabled="form.processing"
+                @click="save"
+              >
+                {{ form.processing ? 'Đang lưu…' : 'Lưu nháp' }}
+              </button>
+              <button
+                v-if="isEditing"
+                type="button"
+                class="btn-primary min-h-11 w-full justify-center sm:w-auto"
+                :disabled="form.processing || !readyToSubmit"
+                @click="submit"
+              >
+                Nộp duyệt
               </button>
             </div>
           </div>

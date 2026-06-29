@@ -2,6 +2,7 @@
 import { Head } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
+import HubDashboardSummaryBar from './partials/HubDashboardSummaryBar.vue';
 import HubWelcomeStrip from './partials/HubWelcomeStrip.vue';
 import HubAlertsStrip from './partials/HubAlertsStrip.vue';
 import HubActivityTrendChart from './partials/HubActivityTrendChart.vue';
@@ -10,6 +11,7 @@ import HubModuleOverview from './partials/HubModuleOverview.vue';
 
 defineProps({
     greeting: { type: Object, default: () => ({}) },
+    summary: { type: Object, required: true },
     activityTrend: { type: Array, default: () => [] },
     compliance: { type: Object, default: () => ({}) },
     alerts: { type: Array, default: () => [] },
@@ -29,6 +31,8 @@ defineProps({
         icon-color="brand"
       />
     </template>
+
+    <HubDashboardSummaryBar :summary="summary" />
 
     <HubWelcomeStrip :greeting="greeting" />
 

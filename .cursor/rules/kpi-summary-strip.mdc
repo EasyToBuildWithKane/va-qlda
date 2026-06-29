@@ -13,6 +13,7 @@ Section **Thống kê** + thẻ KPI cắt góc (clip-path) trên trang Index. Sk
 | Index độc lập (`/feedback`) — strip trong card, lọc scope/status | `FeedbackSummaryBar.vue` + `Pages/Feedback/Index.vue` |
 | Tài khoản & Mật khẩu `/credentials` — **6 thẻ**, `grid-class` tùy chỉnh | `CredentialSummaryBar.vue` + `Pages/Credential/Index.vue` |
 | Báo cáo ngày `/daily-reports` | `DailyReportSummaryBar.vue` + `Pages/DailyReport/History.vue` |
+| Hub `/dashboard` | `HubDashboardSummaryBar.vue` + `Pages/Dashboard/Hub.vue` |
 | Dự án `/projects` | `ProjectPortfolioSummaryBar.vue` + `Pages/Project/Index.vue` |
 | Vướng mắc `/blockers` | `BlockerSummaryBar.vue` + `Pages/Blocker/Index.vue` |
 | Coaching hub `/coaching` | `CoachingDashboardSummaryBar.vue` + `Pages/Coaching/Dashboard.vue` |

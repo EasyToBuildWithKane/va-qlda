@@ -104,6 +104,7 @@ const map = {
     delete: Trash2,
     trash: Trash2,
     close: X,
+    x: X,
     search: Search,
     filter: Filter,
     back: ArrowLeft,
