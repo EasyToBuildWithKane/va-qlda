@@ -20,6 +20,7 @@ import TeamScopeBanner from './partials/TeamScopeBanner.vue';
 import TeamRoster from './partials/TeamRoster.vue';
 import TeamWorkDepartmentLanes from './partials/TeamWorkDepartmentLanes.vue';
 import MemberWorkModal from './partials/MemberWorkModal.vue';
+import TaskCompleteModal from '@/modules/project/components/Sprint/TaskCompleteModal.vue';
 import { useMyWork } from '@/composables/useMyWork';
 import { useToast } from '@/shared/composables/useToast';
 import { exportMyWorkTasks, exportTeamRoster } from '@/composables/useMyWorkExport';
@@ -721,5 +722,7 @@ function onScope(scope) {
       :member="quickViewMember"
       @close="showQuickView = false"
     />
+
+    <TaskCompleteModal />
   </AppLayout>
 </template>

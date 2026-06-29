@@ -5,7 +5,8 @@ import { useTaskCompleteModal } from '@/composables/useTaskCompleteModal';
 import { getTaskSlaToneClass } from '@/composables/useTaskTimeliness';
 
 const props = defineProps({
-    projectId: { type: Number, required: true },
+    /** Mặc định từ task đang hoàn thành (my-work đa dự án); sprint/board truyền projectId. */
+    projectId: { type: Number, default: null },
 });
 
 const {
@@ -22,7 +23,11 @@ const {
     submit,
 } = useTaskCompleteModal();
 
-const onSubmit = () => submit(props.projectId);
+const onSubmit = () => {
+    const pid = targetTask.value?.project_id ?? props.projectId;
+    if (!pid) return;
+    submit(pid);
+};
 </script>
 
 <template>

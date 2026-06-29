@@ -1,5 +1,7 @@
 import { router } from '@inertiajs/vue3';
 import { useToast } from '@/shared/composables/useToast';
+import { useTaskCompleteModal } from '@/composables/useTaskCompleteModal';
+import { isTaskStatusLocked } from '@/composables/useTaskCompletion';
 
 /**
  * Thao tác nhanh cho màn hình "Việc của tôi" — tái dùng nguyên các endpoint
@@ -12,9 +14,23 @@ import { useToast } from '@/shared/composables/useToast';
  */
 export function useMyWork() {
     const toast = useToast();
+    const { requestComplete } = useTaskCompleteModal();
 
     const changeStatus = (task, status, opts = {}) => {
         if (!task?.project_id || !task?.id) return;
+
+        const prev = task.status?.value;
+        if (prev === status) return;
+
+        if (isTaskStatusLocked(task) && status !== 'done') {
+            toast.error('Công việc đã hoàn thành — không thể đổi trạng thái.');
+            return;
+        }
+
+        if (status === 'done' && prev !== 'done') {
+            requestComplete(task, opts, { reloadAll: true });
+            return;
+        }
 
         router.patch(
             `/projects/${task.project_id}/tasks/${task.id}`,
@@ -22,7 +38,14 @@ export function useMyWork() {
             {
                 preserveScroll: true,
                 onSuccess: () => toast.success('Đã cập nhật trạng thái.'),
-                onError: () => toast.error('Không thể cập nhật trạng thái.'),
+                onError: (errors) => {
+                    const msg = errors?.status || errors?.actual_hours;
+                    toast.error(
+                        msg
+                            ? (Array.isArray(msg) ? msg[0] : msg)
+                            : 'Không thể cập nhật trạng thái.',
+                    );
+                },
                 ...opts,
             },
         );

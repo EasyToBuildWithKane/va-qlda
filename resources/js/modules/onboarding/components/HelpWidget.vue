@@ -1,8 +1,20 @@
 <script setup>
-import { onMounted, onUnmounted, ref } from 'vue';
-import { Link, router } from '@inertiajs/vue3';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { Link, router, usePage } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
 import { ROLE_TOUR, tourTitle } from '@/modules/onboarding/tours';
+
+const page = usePage();
+
+/** Tránh FAB che nút hành động cuối trang (form báo cáo, v.v.) */
+const anchorClass = computed(() => {
+    const path = page.url.split('?')[0];
+    const denseBottomActions = path === '/daily-reports/today';
+    if (denseBottomActions) {
+        return 'bottom-[max(7.25rem,calc(env(safe-area-inset-bottom,0px)+6.25rem))] lg:bottom-[max(1.25rem,env(safe-area-inset-bottom,0px))]';
+    }
+    return 'bottom-[max(1.25rem,env(safe-area-inset-bottom,0px))] max-lg:bottom-[max(5.5rem,calc(env(safe-area-inset-bottom,0px)+4.5rem))]';
+});
 
 const STORAGE_KEY = 'va_qlda_help_widget_hidden';
 
@@ -76,7 +88,8 @@ const links = [
   <!-- Thu gọn: chỉ tab khôi phục -->
   <div
     v-if="hidden"
-    class="fixed bottom-5 right-5 z-[56]"
+    class="fixed right-4 z-[56] sm:right-5"
+    :class="anchorClass"
     data-tour="help-widget"
   >
     <button
@@ -96,7 +109,8 @@ const links = [
   <div
     v-else
     ref="root"
-    class="fixed bottom-5 right-5 z-[56] flex flex-col items-end gap-3"
+    class="fixed right-4 z-[56] flex flex-col items-end gap-3 sm:right-5"
+    :class="anchorClass"
     data-tour="help-widget"
   >
     <!-- Menu -->
@@ -190,7 +204,7 @@ const links = [
     <!-- FAB -->
     <button
       type="button"
-      class="grid h-14 w-14 place-items-center rounded-full bg-brand text-white shadow-elevation-3 transition-transform hover:scale-105 focus:outline-none focus-visible:ring-4 focus-visible:ring-brand/30"
+      class="grid h-12 w-12 place-items-center rounded-full bg-brand text-white shadow-elevation-3 transition-transform hover:scale-105 focus:outline-none focus-visible:ring-4 focus-visible:ring-brand/30 sm:h-14 sm:w-14"
       :aria-expanded="open"
       aria-label="Trợ giúp"
       @click="open = !open"

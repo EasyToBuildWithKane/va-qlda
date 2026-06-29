@@ -698,7 +698,7 @@ const savedTimeLabel = computed(() =>
             </div>
 
             <!-- Tab nav -->
-            <div class="mt-6 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+            <div class="mt-6 flex flex-col gap-3 border-t border-slate-100 pt-4 pr-14 sm:flex-row sm:items-center sm:justify-between lg:pr-16">
               <button
                 type="button"
                 class="btn-ghost min-h-11 w-full justify-center sm:min-h-10 sm:w-auto"
@@ -722,7 +722,7 @@ const savedTimeLabel = computed(() =>
           </div>
 
           <!-- Bottom actions after long forms (tablet / mobile) -->
-          <div class="border-t border-slate-100 bg-slate-50/60 px-4 py-4 sm:px-6 lg:hidden">
+          <div class="border-t border-slate-100 bg-slate-50/60 px-4 py-4 pr-14 sm:px-6 lg:hidden">
             <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
               <button
                 type="button"

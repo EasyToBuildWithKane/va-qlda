@@ -7,6 +7,8 @@ import { getTaskEstimateDeadline } from '@/composables/useTaskTimeliness';
 const open = ref(false);
 const targetTask = ref(null);
 const pendingHooks = ref(null);
+/** @type {import('vue').Ref<Record<string, unknown>>} */
+const pendingPatchOptions = ref({});
 const actualHours = ref('');
 const completionNote = ref('');
 const submitting = ref(false);
@@ -50,10 +52,11 @@ export function useTaskCompleteModal() {
 
     const dirty = computed(() => actualHours.value !== '' || completionNote.value.trim() !== '');
 
-    const requestComplete = (task, hooks = {}) => {
+    const requestComplete = (task, hooks = {}, patchOptions = {}) => {
         if (!task?.id) return;
         targetTask.value = task;
         pendingHooks.value = hooks;
+        pendingPatchOptions.value = patchOptions;
         actualHours.value = task.actual_hours != null ? String(task.actual_hours) : '';
         completionNote.value = task.completion_note || '';
         open.value = true;
@@ -64,6 +67,7 @@ export function useTaskCompleteModal() {
         open.value = false;
         targetTask.value = null;
         pendingHooks.value = null;
+        pendingPatchOptions.value = {};
         actualHours.value = '';
         completionNote.value = '';
     };
@@ -76,20 +80,17 @@ export function useTaskCompleteModal() {
             return;
         }
 
-        submitting.value = true;
-        router.patch(`/projects/${projectId}/tasks/${task.id}`, {
-            status: 'done',
-            actual_hours: act,
-            completion_note: completionNote.value.trim() || null,
-        }, {
+        const { reloadAll, ...restPatch } = pendingPatchOptions.value;
+        const inertiaOpts = {
             preserveScroll: true,
-            only: ['tasks'],
+            ...restPatch,
             onSuccess: () => {
                 toast.success(`#${task.id} đã hoàn thành · ${act}h thực tế`);
                 const hooks = pendingHooks.value;
                 open.value = false;
                 targetTask.value = null;
                 pendingHooks.value = null;
+                pendingPatchOptions.value = {};
                 actualHours.value = '';
                 completionNote.value = '';
                 hooks?.onSuccess?.();
@@ -100,7 +101,17 @@ export function useTaskCompleteModal() {
                 pendingHooks.value?.onError?.();
             },
             onFinish: () => { submitting.value = false; },
-        });
+        };
+        if (!reloadAll) {
+            inertiaOpts.only = ['tasks'];
+        }
+
+        submitting.value = true;
+        router.patch(`/projects/${projectId}/tasks/${task.id}`, {
+            status: 'done',
+            actual_hours: act,
+            completion_note: completionNote.value.trim() || null,
+        }, inertiaOpts);
     };
 
     return {
