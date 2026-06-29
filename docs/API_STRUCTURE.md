@@ -49,7 +49,7 @@ routes/api.php      ← Rỗng (chưa sử dụng)
 | Method | URI | Controller | Middleware | Mô Tả |
 |---|---|---|---|---|
 | GET | `/` | redirect | auth | Redirect → `/congnghe` (guest truy cập `/` → middleware auth → `/login`) |
-| GET | `/dashboard` | HubDashboardController (invokable) | auth | Trang tổng quan: `summary` (KPI strip), chào mừng, xu hướng hoạt động, tuân thủ báo cáo, cảnh báo, lưới module (chi tiết công việc tại `/work`) |
+| GET | `/dashboard` | HubDashboardController (invokable) | auth | Trang tổng quan: chào mừng, `summary` (KPI strip), xu hướng hoạt động, tuân thủ báo cáo, cảnh báo, lưới module (chi tiết công việc tại `/work`) |
 | GET | `/work` | WorkDashboardController (invokable) | auth | Dashboard công việc cá nhân (`work-dashboard`) |
 
 ### 2.2.3 Hiệu suất & Audit

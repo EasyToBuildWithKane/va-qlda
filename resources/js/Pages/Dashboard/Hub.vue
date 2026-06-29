@@ -30,9 +30,9 @@ defineProps({
       />
     </template>
 
-    <HubDashboardSummaryBar :summary="summary" />
-
     <HubWelcomeStrip :greeting="greeting" />
+
+    <HubDashboardSummaryBar :summary="summary" />
 
     <div class="mb-5 grid grid-cols-1 gap-4 lg:grid-cols-5">
       <HubActivityTrendChart
