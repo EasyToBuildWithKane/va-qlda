@@ -21,7 +21,7 @@ class UpdateDailyReportRequest extends FormRequest
         return [
             'project_id' => ['sometimes', 'nullable', 'integer'],
             'projects' => ['sometimes', 'nullable', 'array', 'max:20'],
-            'projects.*.id' => ['required', 'integer'],
+            'projects.*.id' => ['required', 'integer', 'min:-1'],
             'projects.*.name' => ['required', 'string', 'max:120'],
             'projects.*.tasks' => ['nullable', 'array', 'max:50'],
             'projects.*.tasks.*.id' => ['nullable', 'integer', 'min:0'],

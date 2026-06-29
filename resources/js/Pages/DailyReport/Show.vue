@@ -17,6 +17,7 @@ import { useConfirmDelete } from '@/composables/useConfirmClose';
 import { useDialog } from '@/composables/useDialog';
 import { dateLongVi } from '@/composables/useFormat';
 import { displayOrEmpty, EMPTY_LABELS } from '@/shared/utils/emptyDisplay';
+import { isRoutineProjectEntry } from '@/modules/daily-report/constants/routineWork';
 
 const confirmDelete = useConfirmDelete();
 const dialog = useDialog();
@@ -29,6 +30,16 @@ const props = defineProps({
 const page = usePage();
 const toast = useToast();
 const submitError = computed(() => page.props.errors?.submit ?? null);
+
+const reportProjects = computed(() => props.report.projects ?? []);
+const reportRealProjects = computed(() => reportProjects.value.filter((p) => !isRoutineProjectEntry(p)));
+const reportRoutineTasks = computed(() => {
+    const routine = reportProjects.value.find(isRoutineProjectEntry);
+    return routine?.tasks ?? [];
+});
+const hasWorkScope = computed(
+    () => reportRealProjects.value.length > 0 || reportRoutineTasks.value.length > 0,
+);
 
 const render = (html) => html || `<span class="text-slate-400">${EMPTY_LABELS.generic}</span>`;
 const hasText = (html) => (html || '').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim().length > 0;
@@ -188,39 +199,65 @@ const recall = async () => {
         </div>
 
         <div
-          v-if="report.projects?.length"
-          class="mt-4 space-y-3 border-t border-slate-100 pt-4"
+          v-if="hasWorkScope"
+          class="mt-4 space-y-4 border-t border-slate-100 pt-4"
         >
-          <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            Dự án & công việc
-          </p>
           <div
-            v-for="p in report.projects"
-            :key="p.id"
-            class="min-w-0 rounded-lg border border-slate-100 bg-slate-50/70 p-3"
+            v-if="reportRealProjects.length"
+            class="space-y-3"
           >
-            <p class="truncate text-sm font-semibold text-brand">
-              {{ p.name }}
+            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              Dự án
             </p>
-            <ul
-              v-if="p.tasks?.length"
-              class="mt-2 space-y-2"
+            <div
+              v-for="p in reportRealProjects"
+              :key="p.id"
+              class="min-w-0 rounded-lg border border-slate-100 bg-slate-50/70 p-3"
             >
-              <li
-                v-for="t in p.tasks"
-                :key="`${p.id}-${t.id}`"
-                class="flex min-w-0 flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3"
+              <p class="truncate text-sm font-semibold text-brand">
+                {{ p.name }}
+              </p>
+              <ul
+                v-if="p.tasks?.length"
+                class="mt-2 space-y-2"
               >
-                <span class="min-w-0 truncate text-sm text-slate-700">
-                  {{ t.title }}
-                </span>
-                <TaskStatusBadge
-                  v-if="t.id"
-                  class="shrink-0 self-start sm:self-center"
-                  :task-id="t.id"
-                  :initial-status="t.status || 'todo'"
-                  :snapshot="report.task_status_snapshot ?? []"
-                />
+                <li
+                  v-for="t in p.tasks"
+                  :key="`${p.id}-${t.id}`"
+                  class="flex min-w-0 flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3"
+                >
+                  <span class="min-w-0 truncate text-sm text-slate-700">
+                    {{ t.title }}
+                  </span>
+                  <TaskStatusBadge
+                    v-if="t.id > 0"
+                    class="shrink-0 self-start sm:self-center"
+                    :task-id="t.id"
+                    :initial-status="t.status || 'todo'"
+                    :snapshot="report.task_status_snapshot ?? []"
+                  />
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div
+            v-if="reportRoutineTasks.length"
+            class="space-y-2"
+          >
+            <p class="text-[10px] font-bold uppercase tracking-wider text-amber-700/90">
+              Công việc thường xuyên
+            </p>
+            <p class="text-xs text-slate-500">
+              Không gắn với dự án cụ thể.
+            </p>
+            <ul class="space-y-1.5 rounded-lg border border-amber-200/80 bg-amber-50/40 p-3">
+              <li
+                v-for="(t, idx) in reportRoutineTasks"
+                :key="`routine-${idx}-${t.title}`"
+                class="text-sm text-slate-700"
+              >
+                {{ t.title }}
               </li>
             </ul>
           </div>

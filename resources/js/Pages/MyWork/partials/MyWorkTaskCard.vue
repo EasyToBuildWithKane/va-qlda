@@ -16,6 +16,7 @@ const emit = defineEmits(['change-status', 'log-work', 'open']);
 const statusOpen = ref(false);
 const worklogOpen = ref(false);
 const statusTriggerRef = ref(null);
+const worklogTriggerRef = ref(null);
 
 const { panelStyle: statusPanelStyle } = useFixedDropdownAnchor(
     () => resolveAnchorElement(statusTriggerRef),
@@ -56,19 +57,12 @@ const overdueDays = computed(() => {
     return Math.max(0, Math.round((today - due) / 86400000));
 });
 
-// Thanh màu bên trái = mức khẩn: quá hạn (đỏ) › đến hạn hôm nay (hổ phách) › dự án.
 const isDueToday = computed(() => {
     if (!props.task.due_date) return false;
     const due = new Date(props.task.due_date + 'T00:00:00');
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     return due.getTime() === today.getTime();
-});
-
-const accentColor = computed(() => {
-    if (overdueDays.value > 0) return '#e11d48'; // rose-600
-    if (isDueToday.value) return '#f59e0b'; // amber-500
-    return props.task.project?.color || '#94a3b8';
 });
 
 const progress = computed(() => {
@@ -104,14 +98,7 @@ function onLog(payload) {
 </script>
 
 <template>
-  <div class="group relative overflow-hidden rounded-xl border border-slate-200 bg-white p-3 pl-4 transition hover:border-slate-300 hover:shadow-sm dark:border-slate-700 dark:bg-slate-900">
-    <!-- Urgency accent bar: đỏ = quá hạn · hổ phách = hôm nay · còn lại = màu dự án -->
-    <span
-      class="absolute inset-y-0 left-0 w-1.5"
-      :style="{ backgroundColor: accentColor }"
-      :title="overdueDays > 0 ? 'Quá hạn' : (isDueToday ? 'Đến hạn hôm nay' : task.project?.name)"
-    />
-
+  <div class="group relative rounded-xl border border-slate-200 bg-white p-3 transition hover:border-slate-300 hover:shadow-sm dark:border-slate-700 dark:bg-slate-900">
     <div class="flex items-start gap-3">
       <div class="min-w-0 flex-1">
         <!-- Project — mã + tên, rõ đang ở dự án nào -->
@@ -336,6 +323,7 @@ function onLog(payload) {
             class="relative"
           >
             <button
+              ref="worklogTriggerRef"
               type="button"
               class="grid h-7 w-7 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-brand dark:hover:bg-slate-800"
               title="Ghi giờ nhanh"
@@ -348,6 +336,7 @@ function onLog(payload) {
             </button>
             <QuickWorklogPopover
               :open="worklogOpen"
+              :anchor-ref="worklogTriggerRef"
               :task-title="task.title"
               @submit="onLog"
               @close="worklogOpen = false"

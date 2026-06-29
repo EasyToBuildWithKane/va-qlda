@@ -1,10 +1,12 @@
 <script setup>
-import { ref, nextTick, watch } from 'vue';
+import { ref, nextTick, watch, toRef } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
+import { useFixedDropdownAnchor, resolveAnchorElement } from '@/shared/composables/useFixedDropdownAnchor';
 
 const props = defineProps({
     open: { type: Boolean, default: false },
     taskTitle: { type: String, default: '' },
+    anchorRef: { type: Object, default: null },
 });
 
 const emit = defineEmits(['submit', 'close']);
@@ -12,6 +14,12 @@ const emit = defineEmits(['submit', 'close']);
 const hours = ref('');
 const note = ref('');
 const hoursInput = ref(null);
+
+const { panelStyle } = useFixedDropdownAnchor(
+    () => resolveAnchorElement(props.anchorRef),
+    toRef(props, 'open'),
+    { width: 256, zIndex: 120, preferDown: true, maxHeight: 320 },
+);
 
 watch(
     () => props.open,
@@ -37,19 +45,18 @@ const submit = () => {
 </script>
 
 <template>
-  <div
-    v-if="open"
-    class="absolute right-0 top-full z-30 mt-1.5 w-64"
-  >
-    <!-- click-away backdrop -->
+  <Teleport to="body">
     <button
+      v-if="open"
       type="button"
-      class="fixed inset-0 z-0 cursor-default"
+      class="fixed inset-0 z-[110] cursor-default bg-transparent"
       aria-label="Đóng"
       @click="emit('close')"
     />
     <div
-      class="relative z-10 rounded-xl border border-slate-200 bg-white p-3 shadow-lg dark:border-slate-700 dark:bg-slate-900"
+      v-if="open"
+      :style="{ ...panelStyle, overflowY: 'auto' }"
+      class="rounded-xl border border-slate-200 bg-white p-3 shadow-lg dark:border-slate-700 dark:bg-slate-900"
       role="dialog"
       aria-label="Ghi giờ làm nhanh"
       @keydown.esc="emit('close')"
@@ -108,5 +115,5 @@ const submit = () => {
         </button>
       </div>
     </div>
-  </div>
+  </Teleport>
 </template>

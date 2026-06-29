@@ -9,9 +9,17 @@ namespace App\Domain\DailyReport\Support;
  */
 final class ReportProjectSync
 {
+    /** Sentinel in `projects` JSON for routine work — not a real project row. */
+    public const ROUTINE_PROJECT_ID = -1;
+
+    public static function isLinkableProjectId(int $id): bool
+    {
+        return $id > 0;
+    }
+
     /**
      * Primary project id for list filters (legacy column).
-     * Derived from the first entry in the `projects` JSON array.
+     * First real project in `projects` JSON (skips routine sentinel).
      *
      * @param  array<int, array{id?: int, name?: string, code?: string}>|null  $projects
      */
@@ -21,9 +29,14 @@ final class ReportProjectSync
             return null;
         }
 
-        $first = $projects[0] ?? null;
+        foreach ($projects as $entry) {
+            $id = isset($entry['id']) ? (int) $entry['id'] : 0;
+            if (self::isLinkableProjectId($id)) {
+                return $id;
+            }
+        }
 
-        return isset($first['id']) ? (int) $first['id'] : null;
+        return null;
     }
 
     /**

@@ -165,9 +165,9 @@ class DailyReport extends Model
             return [];
         }
 
-        return array_values(array_map(
-            fn ($p) => (int) $p['id'],
+        return array_values(array_filter(array_map(
+            fn ($p) => (int) ($p['id'] ?? 0),
             $this->projects,
-        ));
+        ), fn (int $id) => ReportProjectSync::isLinkableProjectId($id)));
     }
 }

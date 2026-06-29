@@ -40,7 +40,7 @@ class StoreDailyReportRequest extends FormRequest
             ],
             'project_id' => ['nullable', 'integer'],
             'projects' => ['nullable', 'array', 'max:20'],
-            'projects.*.id' => ['required', 'integer'],
+            'projects.*.id' => ['required', 'integer', 'min:-1'],
             'projects.*.name' => ['required', 'string', 'max:120'],
             'projects.*.tasks' => ['nullable', 'array', 'max:50'],
             'projects.*.tasks.*.id' => ['nullable', 'integer', 'min:0'],

@@ -17,6 +17,10 @@ import { useDialog } from '@/composables/useDialog';
 import { date, dateLongVi } from '@/composables/useFormat';
 import { mergeSpawnedTaskIds } from '@/types/dailyReport';
 import { useToast } from '@/shared/composables/useToast';
+import {
+    ROUTINE_PROJECT_NAME,
+    isRoutineProjectEntry,
+} from '@/modules/daily-report/constants/routineWork';
 
 const dialog = useDialog();
 const toast = useToast();
@@ -90,22 +94,31 @@ const taskStatusLabels = {
 };
 const escapeHtml = (s) =>
     String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-const taskStatusOf = (projectId, taskId) =>
-    props.projectOptions.find((o) => o.id === projectId)?.tasks
+const taskStatusOf = (projectId, taskId, inlineStatus) => {
+    if (isRoutineProjectEntry({ id: projectId })) {
+        return inlineStatus ?? 'todo';
+    }
+    return props.projectOptions.find((o) => o.id === projectId)?.tasks
         ?.find((t) => t.id === taskId)?.status ?? null;
+};
 
 // Build an HTML list (grouped by project) of selected tasks matching `predicate`.
 const buildTaskHtml = (predicate, showStatus = true) => {
     const blocks = [];
     for (const p of form.projects) {
-        const tasks = (p.tasks || []).filter((t) => predicate(taskStatusOf(p.id, t.id)));
+        const tasks = (p.tasks || []).filter((t) =>
+            predicate(taskStatusOf(p.id, t.id, t.status)),
+        );
         if (!tasks.length) continue;
         const items = tasks.map((t) => {
-            const st = taskStatusOf(p.id, t.id);
+            const st = taskStatusOf(p.id, t.id, t.status);
             const tag = showStatus && st ? ` — ${taskStatusLabels[st] || st}` : '';
             return `<li>${escapeHtml(t.title)}${tag}</li>`;
         }).join('');
-        blocks.push(`<p><strong>${escapeHtml(p.name)}</strong></p><ul>${items}</ul>`);
+        const heading = isRoutineProjectEntry(p)
+            ? ROUTINE_PROJECT_NAME
+            : p.name;
+        blocks.push(`<p><strong>${escapeHtml(heading)}</strong></p><ul>${items}</ul>`);
     }
     return blocks.join('');
 };
@@ -329,11 +342,11 @@ const savedTimeLabel = computed(() =>
       />
     </template>
 
-    <div class="mx-auto w-full min-w-0 max-w-5xl">
+    <div class="w-full min-w-0">
       <!-- Already submitted today -->
       <div
         v-if="isEditing && !editable"
-        class="card mx-auto max-w-2xl overflow-hidden border border-brand/15 shadow-elevation-2"
+        class="card w-full overflow-hidden border border-brand/15 shadow-elevation-2"
       >
         <div class="bg-gradient-to-b from-brand/[0.06] via-white to-amber-50/40 px-6 py-10 text-center sm:px-10 sm:py-12">
           <div
@@ -625,8 +638,8 @@ const savedTimeLabel = computed(() =>
 
               <div>
                 <label class="label flex items-center gap-1.5">
-                  Dự án &amp; công việc trong ngày
-                  <InfoTooltip text="Chọn (các) dự án bạn đã làm việc hôm nay. Sau khi chọn dự án, bạn có thể thêm các task của dự án đó kèm theo." />
+                  Công việc trong ngày
+                  <InfoTooltip text="Phần Dự án: chọn dự án và task đã làm. Phần Công việc thường xuyên: việc lặp lại không gắn dự án — vẫn được ghi trong báo cáo." />
                 </label>
                 <ProjectSelect
                   v-model="form.projects"

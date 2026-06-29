@@ -8,7 +8,13 @@
 | Field | Vai trò |
 |-------|---------|
 | **`projects` (JSON)** | **Nguồn chính** — danh sách dự án được tag trong báo cáo (multi-select UI). |
-| **`project_id` (nullable int)** | **Legacy / denormalized** — ID dự án đầu tiên trong `projects`. Vẫn ghi để giữ tương thích báo cáo cũ, nhưng filter lịch sử **không còn dựa vào riêng cột này** (xem dưới). |
+| **`project_id` (nullable int)** | **Legacy / denormalized** — ID dự án **thật** đầu tiên trong `projects` (bỏ qua sentinel việc thường xuyên `id: -1`). Vẫn ghi để giữ tương thích báo cáo cũ, nhưng filter lịch sử **không còn dựa vào riêng cột này** (xem dưới). |
+
+### Công việc thường xuyên (không gắn dự án)
+
+- UI form tách **Dự án** và **Công việc thường xuyên**; lưu trữ vẫn nằm trong `projects` JSON với một phần tử ảo `{ "id": -1, "name": "Công việc thường xuyên", "tasks": [...] }` (chỉ xuất hiện khi có ít nhất một task).
+- `ReportProjectSync::ROUTINE_PROJECT_ID` / `isLinkableProjectId()` — **không** map sang `project_id`, **không** sync task sang bảng `tasks` (`SyncDailyReportSpawnedTasksUseCase` bỏ qua `project_id <= 0`).
+- Frontend: `resources/js/modules/daily-report/constants/routineWork.js`, `ProjectSelect.vue`.
 
 Migration ghi chú: `database/migrations/2024_01_01_000008_create_daily_reports_table.php`.
 
