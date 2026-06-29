@@ -82,10 +82,61 @@ const missingItems = computed(() => {
 });
 const missingLabel = computed(() => missingItems.value.map((m) => m.label).join(', '));
 
-const scrollToSection = (sectionKey) => {
-    const el = document.getElementById(`section-${sectionKey}`);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+const activeTab = ref('info');
+
+const editorTabs = computed(() => [
+    {
+        key: 'info',
+        label: 'Thông tin',
+        jp: null,
+        subtitle: 'Tiêu đề & phạm vi việc',
+        accent: 'brand',
+    },
+    ...pillars.map((p) => ({
+        key: p.key,
+        label: p.title,
+        jp: p.jp,
+        subtitle: p.subtitle,
+        accent: p.color,
+    })),
+]);
+
+const tabProgress = (key) => {
+    if (key === 'info') {
+        return { filled: titleOk.value ? 1 : 0, total: 1 };
+    }
+    const pf = pillarFields(key);
+    return { filled: filledInPillar(key), total: pf.length };
 };
+
+const tabHasRequiredGap = (key) => {
+    if (key === 'info') return !titleOk.value;
+    return pillarFields(key).some((f) => f.required && !isFilled(f.key));
+};
+
+const tabBadgeClass = (key) => {
+    const { filled, total } = tabProgress(key);
+    if (filled === total) return 'bg-emerald-100 text-emerald-700';
+    if (tabHasRequiredGap(key)) return 'bg-amber-100 text-amber-700';
+    return 'bg-slate-100 text-slate-500';
+};
+
+const activeTabAccent = computed(() => {
+    const tab = editorTabs.value.find((t) => t.key === activeTab.value);
+    const map = {
+        brand: { border: 'border-brand', text: 'text-brand', bar: 'bg-brand', chip: 'bg-brand/10 text-brand' },
+        amber: { border: 'border-amber-500', text: 'text-amber-700', bar: 'bg-amber-500', chip: 'bg-amber-50 text-amber-800' },
+        emerald: { border: 'border-emerald-500', text: 'text-emerald-700', bar: 'bg-emerald-500', chip: 'bg-emerald-50 text-emerald-800' },
+        sky: { border: 'border-sky-500', text: 'text-sky-700', bar: 'bg-sky-500', chip: 'bg-sky-50 text-sky-800' },
+    };
+    return map[tab?.accent ?? 'brand'] ?? map.brand;
+});
+
+const goToSection = (sectionKey) => {
+    activeTab.value = sectionKey;
+};
+
+const scrollToSection = goToSection;
 
 // ---- Pillar accent styles -------------------------------------------------
 const PILLAR_ACCENT = {
@@ -94,7 +145,6 @@ const PILLAR_ACCENT = {
     traodoi: { dot: 'bg-emerald-500', bg: 'bg-emerald-50/50',   border: 'border-emerald-200/60' },
     kehoach: { dot: 'bg-sky-500',     bg: 'bg-sky-50/50',       border: 'border-sky-200/60' },
 };
-const pillarDotClass  = (key) => PILLAR_ACCENT[key]?.dot    ?? 'bg-slate-400';
 const pillarHeaderBg  = (key) => PILLAR_ACCENT[key]?.bg     ?? 'bg-slate-50/60';
 const pillarHeaderBorder = (key) => PILLAR_ACCENT[key]?.border ?? 'border-slate-100';
 
@@ -431,65 +481,180 @@ const savedTimeLabel = computed(() =>
         </div>
       </div>
 
-      <!-- ── Trình soạn thảo ── -->
+      <!-- ── Trình soạn thảo (tab HORENSO) ── -->
       <div
         v-else
-        class="w-full min-w-0"
+        class="mx-auto w-full min-w-0 max-w-5xl"
       >
-        <div class="space-y-4 md:space-y-5">
-          <!-- Banner báo cáo bị trả lại -->
-          <div
-            v-if="report?.review_notes"
-            class="card border-l-4 border-warning p-4 sm:p-5"
-          >
-            <p class="text-sm font-semibold text-slate-700">
-              Báo cáo được trả lại
-            </p>
-            <p class="mt-1 text-sm text-slate-600">
-              {{ report.review_notes }}
-            </p>
-          </div>
+        <!-- Banner báo cáo bị trả lại -->
+        <div
+          v-if="report?.review_notes"
+          class="card mb-4 border-l-4 border-warning p-4 sm:p-5"
+        >
+          <p class="text-sm font-semibold text-slate-700">
+            Báo cáo được trả lại
+          </p>
+          <p class="mt-1 text-sm text-slate-600">
+            {{ report.review_notes }}
+          </p>
+        </div>
 
-          <!-- ── Section 1: Thông tin chung ── -->
-          <div
-            id="section-info"
-            class="card overflow-hidden"
-          >
-            <div class="flex items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/60 px-4 py-3 sm:px-6">
-              <div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-                <div class="flex items-center gap-2">
-                  <span
-                    class="h-2 w-2 shrink-0 rounded-full bg-brand"
-                    aria-hidden="true"
-                  />
-                  <h2 class="font-display text-sm font-semibold text-slate-800">
-                    Thông tin chung
-                  </h2>
-                </div>
-                <span class="flex items-center gap-1 text-xs text-slate-400">
-                  <AppIcon
-                    name="calendar"
-                    :size="12"
-                    aria-hidden="true"
-                  />
+        <div class="card min-w-0 overflow-hidden shadow-elevation-2">
+          <!-- Tiến độ & lộ trình HORENSO -->
+          <div class="relative overflow-hidden border-b border-slate-100 bg-gradient-to-br from-brand/[0.07] via-white to-slate-50/80 px-4 py-4 sm:px-6 sm:py-5">
+            <div
+              class="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-brand/[0.06]"
+              aria-hidden="true"
+            />
+            <div class="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div class="min-w-0">
+                <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-brand/80">
+                  Khung HORENSO
+                </p>
+                <p class="mt-0.5 font-display text-sm font-semibold text-slate-800">
                   {{ formattedToday }}
+                </p>
+                <p class="mt-1 text-xs text-slate-500">
+                  Chọn từng tab để điền — 報 · 連 · 相 · 計
+                </p>
+              </div>
+              <div class="flex items-center gap-3 sm:shrink-0">
+                <div
+                  class="relative flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-slate-200/80"
+                  role="img"
+                  :aria-label="`Hoàn thành ${progressPct} phần trăm`"
+                >
+                  <svg
+                    class="absolute inset-0 h-full w-full -rotate-90"
+                    viewBox="0 0 36 36"
+                    aria-hidden="true"
+                  >
+                    <circle
+                      cx="18"
+                      cy="18"
+                      r="15.5"
+                      fill="none"
+                      class="stroke-slate-100"
+                      stroke-width="3"
+                    />
+                    <circle
+                      cx="18"
+                      cy="18"
+                      r="15.5"
+                      fill="none"
+                      class="stroke-brand transition-all duration-500"
+                      stroke-width="3"
+                      stroke-linecap="round"
+                      :stroke-dasharray="`${progressPct} ${100 - progressPct}`"
+                      pathLength="100"
+                    />
+                  </svg>
+                  <span class="font-display text-sm font-bold tabular-nums text-brand">{{ progressPct }}%</span>
+                </div>
+                <span
+                  class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
+                  :class="statusVi.cls"
+                >
+                  {{ statusVi.label }}
                 </span>
               </div>
-              <span
-                class="inline-flex shrink-0 items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-semibold leading-none"
-                :class="titleOk ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'"
-              >
-                <AppIcon
-                  v-if="titleOk"
-                  name="check"
-                  :size="10"
-                  :stroke-width="3"
-                />
-                {{ titleOk ? '1/1' : '0/1' }}
-              </span>
             </div>
 
-            <div class="grid gap-6 p-4 sm:p-6">
+            <!-- Stepper nhanh (mobile scroll) -->
+            <div
+              class="relative mt-4 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              role="navigation"
+              aria-label="Các bước soạn báo cáo"
+            >
+              <button
+                v-for="tab in editorTabs"
+                :key="`step-${tab.key}`"
+                type="button"
+                class="flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-left transition"
+                :class="activeTab === tab.key
+                  ? `border-brand/30 bg-white shadow-sm ring-1 ring-brand/15`
+                  : 'border-slate-200/80 bg-white/60 hover:border-slate-300 hover:bg-white'"
+                @click="goToSection(tab.key)"
+              >
+                <span
+                  class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[10px] font-bold"
+                  :class="tabBadgeClass(tab.key)"
+                >
+                  <AppIcon
+                    v-if="tabProgress(tab.key).filled === tabProgress(tab.key).total"
+                    name="check"
+                    :size="12"
+                    :stroke-width="3"
+                  />
+                  <template v-else-if="tab.jp">
+                    {{ tab.jp }}
+                  </template>
+                  <template v-else>
+                    i
+                  </template>
+                </span>
+                <span class="min-w-0">
+                  <span class="block truncate text-xs font-semibold text-slate-800">{{ tab.label }}</span>
+                  <span class="block truncate text-[10px] text-slate-400">{{ tabProgress(tab.key).filled }}/{{ tabProgress(tab.key).total }}</span>
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Tab bar -->
+          <div class="shrink-0 border-b border-slate-200/80 bg-white px-2 sm:px-4">
+            <div
+              class="flex items-center overflow-x-auto"
+              role="tablist"
+              aria-label="Nội dung báo cáo"
+            >
+              <button
+                v-for="tab in editorTabs"
+                :id="`tab-${tab.key}`"
+                :key="tab.key"
+                type="button"
+                role="tab"
+                :aria-selected="activeTab === tab.key"
+                :aria-controls="`panel-${tab.key}`"
+                class="group relative shrink-0 border-b-2 px-3 py-3 text-xs font-medium transition-colors sm:px-4"
+                :class="activeTab === tab.key
+                  ? `${activeTabAccent.border} ${activeTabAccent.text}`
+                  : 'border-transparent text-slate-500 hover:text-slate-700'"
+                @click="goToSection(tab.key)"
+              >
+                <span class="flex items-center gap-1.5">
+                  <span
+                    v-if="tab.jp"
+                    class="hidden font-bold opacity-70 sm:inline"
+                  >{{ tab.jp }}</span>
+                  {{ tab.label }}
+                  <span
+                    class="inline-flex min-w-[1.75rem] items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none"
+                    :class="tabBadgeClass(tab.key)"
+                  >
+                    {{ tabProgress(tab.key).filled }}/{{ tabProgress(tab.key).total }}
+                  </span>
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Tab panels -->
+          <div class="min-h-[min(420px,50vh)] bg-white">
+            <section
+              v-show="activeTab === 'info'"
+              id="section-info"
+              role="tabpanel"
+              aria-labelledby="tab-info"
+              class="grid gap-6 p-4 sm:p-6"
+            >
+              <div
+                class="rounded-xl border border-slate-100 bg-slate-50/50 px-4 py-3"
+              >
+                <p class="text-xs leading-relaxed text-slate-600">
+                  Bắt đầu bằng tiêu đề và phạm vi công việc — hệ thống có thể gợi ý nội dung từ task bạn chọn ở các tab HORENSO.
+                </p>
+              </div>
               <div>
                 <label class="label flex items-center gap-1.5">
                   Tiêu đề báo cáo
@@ -509,7 +674,6 @@ const savedTimeLabel = computed(() =>
                   {{ form.errors.title }}
                 </p>
               </div>
-
               <div>
                 <label class="label flex items-center gap-1.5">
                   Công việc trong ngày
@@ -521,71 +685,72 @@ const savedTimeLabel = computed(() =>
                   :task-status-snapshot="taskStatusSnapshot"
                 />
               </div>
-            </div>
-          </div>
+            </section>
 
-          <!-- ── Sections 2–5: Các trụ cột HORENSO ── -->
-          <div
-            v-for="p in pillars"
-            :id="`section-${p.key}`"
-            :key="p.key"
-            class="card overflow-hidden"
-          >
-            <div
-              class="flex items-center justify-between gap-3 border-b px-4 py-3 sm:px-6"
-              :class="[pillarHeaderBg(p.key), pillarHeaderBorder(p.key)]"
+            <section
+              v-for="p in pillars"
+              v-show="activeTab === p.key"
+              :id="`section-${p.key}`"
+              :key="p.key"
+              role="tabpanel"
+              :aria-labelledby="`tab-${p.key}`"
+              class="p-4 sm:p-6"
             >
-              <div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-                <div class="flex items-center gap-2">
-                  <span
-                    class="h-2 w-2 shrink-0 rounded-full"
-                    :class="pillarDotClass(p.key)"
-                    aria-hidden="true"
-                  />
-                  <h2 class="font-display text-sm font-semibold text-slate-800">
-                    {{ p.title }}
-                  </h2>
-                </div>
-                <span class="text-xs text-slate-400">{{ p.subtitle }}</span>
-              </div>
-              <span
-                class="inline-flex shrink-0 items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-semibold leading-none"
-                :class="pillarFillClass(p.key)"
+              <div
+                class="mb-5 flex flex-col gap-2 rounded-xl border px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                :class="[pillarHeaderBg(p.key), pillarHeaderBorder(p.key)]"
               >
-                <AppIcon
-                  v-if="filledInPillar(p.key) === pillarFields(p.key).length"
-                  name="check"
-                  :size="10"
-                  :stroke-width="3"
+                <div class="min-w-0">
+                  <p class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                    <span
+                      class="font-display text-sm font-semibold text-slate-800"
+                    >{{ p.title }}</span>
+                    <span class="text-xs font-medium text-slate-400">{{ p.jp }} · {{ p.romaji }}</span>
+                  </p>
+                  <p class="mt-0.5 text-xs text-slate-600">
+                    {{ p.desc }}
+                  </p>
+                </div>
+                <span
+                  class="inline-flex shrink-0 items-center gap-0.5 self-start rounded-full px-2.5 py-1 text-[10px] font-semibold sm:self-center"
+                  :class="pillarFillClass(p.key)"
+                >
+                  <AppIcon
+                    v-if="filledInPillar(p.key) === pillarFields(p.key).length"
+                    name="check"
+                    :size="10"
+                    :stroke-width="3"
+                  />
+                  {{ filledInPillar(p.key) }}/{{ pillarFields(p.key).length }} mục
+                </span>
+              </div>
+              <div class="grid gap-6">
+                <RichTextField
+                  v-for="f in pillarFields(p.key)"
+                  :key="f.key"
+                  v-model="form[f.key]"
+                  :label="f.label"
+                  :hint="f.hint"
+                  :tooltip="f.tooltip"
+                  :required="f.required"
+                  :placeholder="f.placeholder"
+                  :error="form.errors[f.key]"
                 />
-                {{ filledInPillar(p.key) }}/{{ pillarFields(p.key).length }}
-              </span>
-            </div>
-
-            <div class="grid gap-6 p-4 sm:p-6">
-              <RichTextField
-                v-for="f in pillarFields(p.key)"
-                :key="f.key"
-                v-model="form[f.key]"
-                :label="f.label"
-                :hint="f.hint"
-                :tooltip="f.tooltip"
-                :required="f.required"
-                :placeholder="f.placeholder"
-                :error="form.errors[f.key]"
-              />
-            </div>
+              </div>
+            </section>
           </div>
 
           <p
             v-if="form.errors.submit"
-            class="text-sm text-danger"
+            class="border-t border-slate-100 px-4 py-2 text-sm text-danger sm:px-6"
           >
             {{ form.errors.submit }}
           </p>
 
-          <!-- Thanh hành động (cuối trang) -->
-          <div class="card min-w-0 overflow-hidden">
+          <!-- Thanh hành động -->
+          <div
+            class="sticky bottom-0 z-10 border-t border-slate-200/80 bg-white/95 backdrop-blur-sm"
+          >
             <div
               class="h-1 bg-slate-100"
               role="progressbar"
@@ -595,7 +760,8 @@ const savedTimeLabel = computed(() =>
               :aria-label="`Tiến độ hoàn thành ${progressPct} phần trăm`"
             >
               <div
-                class="h-full bg-brand transition-all duration-300"
+                class="h-full transition-all duration-300"
+                :class="activeTabAccent.bar"
                 :style="{ width: progressPct + '%' }"
               />
             </div>
@@ -622,15 +788,18 @@ const savedTimeLabel = computed(() =>
               </div>
             </div>
 
-            <div class="flex flex-col gap-3 border-t border-slate-100 bg-slate-50/60 px-4 py-4 sm:flex-row sm:items-center sm:gap-3 sm:px-6">
-              <!-- Trạng thái lưu + tiến độ -->
-              <div class="flex min-w-0 items-center gap-2 text-xs text-slate-500">
-                <span class="font-display font-semibold tabular-nums text-brand">{{ progressPct }}%</span>
+            <div class="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:gap-3 sm:px-6">
+              <div class="flex min-w-0 flex-wrap items-center gap-2 text-xs text-slate-500">
+                <span
+                  class="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold"
+                  :class="activeTabAccent.chip"
+                >
+                  Tab: {{ editorTabs.find((t) => t.key === activeTab)?.label }}
+                </span>
                 <span
                   v-if="isEditing"
                   class="flex items-center gap-1"
                 >
-                  <span class="text-slate-300">·</span>
                   <span
                     v-if="form.processing"
                     class="flex items-center gap-1"
@@ -680,15 +849,15 @@ const savedTimeLabel = computed(() =>
               </div>
             </div>
           </div>
-
-          <p class="text-center text-xs text-slate-400">
-            <span v-if="isEditing">
-              Bản nháp tự động lưu mỗi 30 giây.
-              <span v-if="savedTimeLabel"> · Đã lưu lúc {{ savedTimeLabel }}</span>
-            </span>
-            <span v-else>Lưu nháp để bật tự động lưu và cho phép nộp duyệt.</span>
-          </p>
         </div>
+
+        <p class="mt-3 text-center text-xs text-slate-400">
+          <span v-if="isEditing">
+            Bản nháp tự động lưu mỗi 30 giây.
+            <span v-if="savedTimeLabel"> · Đã lưu lúc {{ savedTimeLabel }}</span>
+          </span>
+          <span v-else>Lưu nháp để bật tự động lưu và cho phép nộp duyệt.</span>
+        </p>
       </div>
     </div>
 
