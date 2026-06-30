@@ -22,7 +22,7 @@ test.describe('Daily Report', () => {
             await page.goto('/daily-reports/review');
 
             await expect(page).toHaveURL(/\/daily-reports\/review/);
-            await expect(page.getByRole('heading', { name: /duyệt báo cáo/i })).toBeVisible();
+            await expect(page.getByRole('heading', { name: /chờ phê duyệt/i })).toBeVisible();
         });
     });
 

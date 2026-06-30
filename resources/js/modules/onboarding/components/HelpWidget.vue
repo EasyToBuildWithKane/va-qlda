@@ -9,7 +9,7 @@ const page = usePage();
 /** Tránh FAB che nút hành động cuối trang (form báo cáo, v.v.) */
 const anchorClass = computed(() => {
     const path = page.url.split('?')[0];
-    const denseBottomActions = path === '/daily-reports/today';
+    const denseBottomActions = path === '/daily-reports/today' || path === '/daily-reports/review';
     if (denseBottomActions) {
         return 'bottom-[max(7.25rem,calc(env(safe-area-inset-bottom,0px)+6.25rem))] lg:bottom-[max(1.25rem,env(safe-area-inset-bottom,0px))]';
     }

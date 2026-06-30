@@ -184,14 +184,6 @@ async function handleReject() {
     });
 }
 
-function handleScore() {
-    if (!scoringPanelRef.value || submitting.value) return;
-    submitting.value = true;
-    scoringPanelRef.value.submit({
-        onFinish: () => { submitting.value = false; },
-    });
-}
-
 function handleScoreAndNext() {
     if (!scoringPanelRef.value || submitting.value) return;
     const nextId = nextReport.value?.id ?? null;
@@ -219,13 +211,13 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
 </script>
 
 <template>
-  <Head title="Duyệt báo cáo" />
+  <Head title="Chờ phê duyệt" />
 
   <AppLayout :flush="true">
     <template #header>
       <PageHeader
-        title="Duyệt báo cáo"
-        subtitle="Xem xét và đánh giá báo cáo của thành viên"
+        title="Chờ phê duyệt"
+        subtitle="Xem xét và chấm điểm báo cáo của thành viên"
         icon="review-reports"
         icon-color="violet"
         :badge="queueTotals.reports || null"
@@ -961,16 +953,8 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
                 Trả lại chỉnh sửa
               </button>
 
-              <!-- Score buttons -->
+              <!-- Score -->
               <div class="flex items-center gap-2">
-                <button
-                  type="button"
-                  :disabled="submitting"
-                  class="btn-ghost h-9 gap-1.5 text-sm disabled:pointer-events-none disabled:opacity-50"
-                  @click="handleScore"
-                >
-                  Duyệt báo cáo
-                </button>
                 <button
                   type="button"
                   :disabled="submitting"
@@ -979,8 +963,9 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
                 >
                   <span v-if="submitting">Đang duyệt…</span>
                   <template v-else>
-                    Duyệt & Tiếp
+                    {{ nextReport ? 'Duyệt & chuyển tiếp' : 'Duyệt báo cáo' }}
                     <AppIcon
+                      v-if="nextReport"
                       name="chevron-right"
                       :size="14"
                     />
