@@ -7,6 +7,7 @@ use App\Domain\DailyReport\Models\DailyReportScore;
 use App\Http\Resources\DailyReportResource;
 use App\Models\Project;
 use App\Models\SystemAccount;
+use App\Support\DailyReportCalendar;
 use App\Support\Enums\ReportStatus;
 use App\Support\Enums\SystemRole;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -487,7 +488,8 @@ class DailyReportTest extends TestCase
                 ->component('DailyReport/Review')
                 ->has('pendingMembers', 2)
                 ->where('queueTotals.members', 2)
-                ->where('queueTotals.reports', 3));
+                ->where('queueTotals.reports', 3)
+                ->where('today', DailyReportCalendar::today()));
 
         $this->actingAs($lead, 'system')
             ->get(route('daily-reports.review', ['employee_id' => $memberA->employee_id]))

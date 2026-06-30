@@ -191,7 +191,7 @@ File: `routes/web/daily-reports.php`. **Thứ tự:** segment tĩnh trước `/{
 | GET | `/daily-reports` | `daily-reports.index` | `DailyReportController@index` |
 | GET | `/daily-reports/export-data` | `daily-reports.export-data` | `DailyReportController@exportData` (JSON ≤5000 + `meta.truncated`) |
 | GET | `/daily-reports/today` | `daily-reports.today` | `DailyReportController@today` |
-| GET | `/daily-reports/review` | `daily-reports.review` | `DailyReportReviewController@index` (query `employee_id` lọc theo thành viên; props `pendingMembers`, `queueTotals`) |
+| GET | `/daily-reports/review` | `daily-reports.review` | `DailyReportReviewController@index` (query `employee_id` lọc theo thành viên; props `pendingMembers`, `queueTotals`, `today` — ngày nghiệp vụ `DailyReportCalendar`) |
 | POST | `/daily-reports` | `daily-reports.store` | `DailyReportController@store` |
 | GET | `/daily-reports/{report}` | `daily-reports.show` | `DailyReportController@show` |
 | PUT | `/daily-reports/{report}` | `daily-reports.update` | `DailyReportController@update` |

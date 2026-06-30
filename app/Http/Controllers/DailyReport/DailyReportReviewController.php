@@ -10,6 +10,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\DailyReport\RejectDailyReportRequest;
 use App\Http\Requests\DailyReport\ScoreDailyReportRequest;
 use App\Http\Resources\DailyReportResource;
+use App\Support\DailyReportCalendar;
 use App\Support\DailyReportPendingMemberQueue;
 use App\Support\NotificationDispatcher;
 use Illuminate\Http\RedirectResponse;
@@ -55,6 +56,7 @@ class DailyReportReviewController extends Controller
             'reports' => DailyReportResource::collection($reports),
             'pendingMembers' => $queue['members'],
             'queueTotals' => $queue['totals'],
+            'today' => DailyReportCalendar::today(),
             'filters' => [
                 'employee_id' => $employeeId,
             ],

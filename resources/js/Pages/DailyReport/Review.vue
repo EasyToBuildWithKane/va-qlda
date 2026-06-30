@@ -13,6 +13,7 @@ import { useToast } from '@/shared/composables/useToast';
 import { date as formatDate, datetime } from '@/composables/useFormat';
 import { displayOrEmpty, EMPTY_LABELS } from '@/shared/utils/emptyDisplay';
 import { isRoutineProjectEntry } from '@/modules/daily-report/constants/routineWork';
+import { baocaoFieldsMirrorSelectedTasks } from '@/modules/daily-report/utils/taskDerivedBaocaoHtml';
 
 const dialog = useDialog();
 const toast = useToast();
@@ -22,6 +23,8 @@ const props = defineProps({
     pendingMembers: { type: Array, default: () => [] },
     queueTotals: { type: Object, default: () => ({ reports: 0, members: 0 }) },
     filters: { type: Object, default: () => ({}) },
+    /** Business calendar «hôm nay» (config daily_report.timezone), not browser UTC/local. */
+    today: { type: String, required: true },
 });
 
 // ─── Refs ─────────────────────────────────────────────────────────────────────
@@ -51,12 +54,6 @@ const DETAIL_TABS = [
 ];
 
 // ─── Computed ─────────────────────────────────────────────────────────────────
-function getTodayLocal() {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-const TODAY = getTodayLocal();
-
 const filteredReports = computed(() => {
     let list = [...(props.reports.data ?? [])];
     const q = searchQuery.value.trim().toLowerCase();
@@ -68,7 +65,7 @@ const filteredReports = computed(() => {
         );
     }
     if (queueTab.value === 'today') {
-        list = list.filter((r) => r.date === TODAY);
+        list = list.filter((r) => r.date === props.today);
     } else if (queueTab.value === 'late') {
         list = list.filter((r) => r.is_late);
     }
@@ -102,7 +99,7 @@ const allSelected = computed(
         bulkSelected.value.size === filteredReports.value.length,
 );
 
-const todayCount = computed(() => (props.reports.data ?? []).filter((r) => r.date === TODAY).length);
+const todayCount = computed(() => (props.reports.data ?? []).filter((r) => r.date === props.today).length);
 const lateCount = computed(() => (props.reports.data ?? []).filter((r) => r.is_late).length);
 
 // ─── Queue actions ────────────────────────────────────────────────────────────
@@ -149,6 +146,17 @@ function reportProjects(report) {
 function routineTasks(report) {
     const routine = (report.projects ?? []).find(isRoutineProjectEntry);
     return routine?.tasks ?? [];
+}
+
+function showStructuredWorkScope(report) {
+    const real = reportProjects(report);
+    const routine = routineTasks(report);
+    if (!real.length && !routine.length) return false;
+    return !baocaoFieldsMirrorSelectedTasks(
+        report.projects,
+        report.goals_today,
+        report.progress_update,
+    );
 }
 
 function memberForReport(report) {
@@ -683,7 +691,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
 
                 <!-- Project / task scope -->
                 <div
-                  v-if="reportProjects(selectedReport).length || routineTasks(selectedReport).length"
+                  v-if="showStructuredWorkScope(selectedReport)"
                   class="mb-5 overflow-hidden rounded-xl border border-slate-200 bg-white"
                 >
                   <div class="border-b border-slate-100 px-4 py-2.5">

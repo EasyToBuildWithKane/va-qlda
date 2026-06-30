@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Domain\DailyReport\Support\ReportProjectSync;
 use App\Models\SystemAccount;
 use App\Policies\DailyReportPolicy;
 use App\Support\Enums\ReportStatus;
@@ -22,7 +23,10 @@ class DailyReportResource extends JsonResource
         $user = $request->user();
         $isOwner = $user !== null && $user->employee_id === $this->employee_id;
 
-        $taskStatusSnapshot = collect($this->task_status_snapshot ?? []);
+        $taskStatusSnapshot = collect($this->task_status_snapshot ?? [])
+            ->filter(fn (mixed $entry) => is_array($entry) && (int) ($entry['task_id'] ?? 0) > 0)
+            ->keyBy(fn (array $entry) => (int) $entry['task_id'])
+            ->values();
 
         if (! $isOwner) {
             $taskStatusSnapshot = $taskStatusSnapshot
@@ -34,7 +38,7 @@ class DailyReportResource extends JsonResource
             'id' => $this->id,
             'uuid' => $this->uuid,
             'date' => $this->date->toDateString(),
-            'projects' => $this->projects ?? [],
+            'projects' => ReportProjectSync::dedupeProjects($this->projects ?? []),
             'title' => $this->title,
             'goals_today' => $this->goals_today,
             'progress_update' => $this->progress_update,

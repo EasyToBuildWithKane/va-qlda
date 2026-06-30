@@ -18,6 +18,7 @@ import { useDialog } from '@/composables/useDialog';
 import { dateLongVi } from '@/composables/useFormat';
 import { displayOrEmpty, EMPTY_LABELS } from '@/shared/utils/emptyDisplay';
 import { isRoutineProjectEntry } from '@/modules/daily-report/constants/routineWork';
+import { baocaoFieldsMirrorSelectedTasks } from '@/modules/daily-report/utils/taskDerivedBaocaoHtml';
 
 const confirmDelete = useConfirmDelete();
 const dialog = useDialog();
@@ -40,6 +41,16 @@ const reportRoutineTasks = computed(() => {
 const hasWorkScope = computed(
     () => reportRealProjects.value.length > 0 || reportRoutineTasks.value.length > 0,
 );
+
+/** Tránh lặp danh sách task (phạm vi) với Mục tiêu/Tiến độ đã auto-fill từ Today. */
+const showStructuredWorkScope = computed(() => {
+    if (!hasWorkScope.value) return false;
+    return !baocaoFieldsMirrorSelectedTasks(
+        props.report.projects,
+        props.report.goals_today,
+        props.report.progress_update,
+    );
+});
 
 const render = (html) => html || `<span class="text-slate-400">${EMPTY_LABELS.generic}</span>`;
 const hasText = (html) => (html || '').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim().length > 0;
@@ -199,7 +210,7 @@ const recall = async () => {
         </div>
 
         <div
-          v-if="hasWorkScope"
+          v-if="showStructuredWorkScope"
           class="mt-4 space-y-4 border-t border-slate-100 pt-4"
         >
           <div

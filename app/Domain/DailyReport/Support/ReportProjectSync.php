@@ -40,6 +40,86 @@ final class ReportProjectSync
     }
 
     /**
+     * Merge duplicate project entries (same `id`) and duplicate tasks on save/read.
+     *
+     * @param  array<int, array<string, mixed>>|null  $projects
+     * @return array<int, array<string, mixed>>|null
+     */
+    public static function dedupeProjects(?array $projects): ?array
+    {
+        if ($projects === null || $projects === []) {
+            return $projects;
+        }
+
+        $merged = [];
+
+        foreach ($projects as $entry) {
+            if (! is_array($entry)) {
+                continue;
+            }
+
+            $id = (int) ($entry['id'] ?? 0);
+
+            if (! isset($merged[$id])) {
+                $merged[$id] = $entry;
+
+                continue;
+            }
+
+            $merged[$id] = self::mergeProjectEntries($merged[$id], $entry);
+        }
+
+        return array_values($merged);
+    }
+
+    /**
+     * @param  array<string, mixed>  $a
+     * @param  array<string, mixed>  $b
+     * @return array<string, mixed>
+     */
+    private static function mergeProjectEntries(array $a, array $b): array
+    {
+        $tasksA = is_array($a['tasks'] ?? null) ? $a['tasks'] : [];
+        $tasksB = is_array($b['tasks'] ?? null) ? $b['tasks'] : [];
+        $a['tasks'] = self::dedupeTasks(array_merge($tasksA, $tasksB));
+
+        if (empty($a['name']) && ! empty($b['name'])) {
+            $a['name'] = $b['name'];
+        }
+
+        return $a;
+    }
+
+    /**
+     * @param  array<int, mixed>  $tasks
+     * @return array<int, array<string, mixed>>
+     */
+    private static function dedupeTasks(array $tasks): array
+    {
+        $seen = [];
+        $out = [];
+
+        foreach ($tasks as $task) {
+            if (! is_array($task)) {
+                continue;
+            }
+
+            $id = (int) ($task['id'] ?? 0);
+            $titleKey = mb_strtolower(trim((string) ($task['title'] ?? '')));
+            $key = $id > 0 ? 'id:'.$id : ($titleKey !== '' ? 'title:'.$titleKey : null);
+
+            if ($key === null || isset($seen[$key])) {
+                continue;
+            }
+
+            $seen[$key] = true;
+            $out[] = $task;
+        }
+
+        return $out;
+    }
+
+    /**
      * Merge legacy project_id into payload when projects is present.
      *
      * @param  array<string, mixed>  $data
@@ -48,6 +128,7 @@ final class ReportProjectSync
     public static function applyToPayload(array $data): array
     {
         if (array_key_exists('projects', $data)) {
+            $data['projects'] = self::dedupeProjects(is_array($data['projects']) ? $data['projects'] : null);
             $data['project_id'] = self::legacyProjectId($data['projects']);
         }
 

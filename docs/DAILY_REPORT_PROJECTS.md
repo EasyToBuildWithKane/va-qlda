@@ -20,7 +20,7 @@ Migration ghi chú: `database/migrations/2024_01_01_000008_create_daily_reports_
 
 ## Đồng bộ
 
-Mọi create/update qua Use Case phải gọi `ReportProjectSync::applyToPayload()` khi có `projects`:
+Mọi create/update qua Use Case phải gọi `ReportProjectSync::applyToPayload()` khi có `projects` (gộp trùng `id` dự án / task trước khi lưu):
 
 - `CreateDailyReportUseCase`
 - `UpdateDailyReportUseCase`

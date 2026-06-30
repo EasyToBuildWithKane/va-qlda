@@ -18,9 +18,12 @@ import { date, dateLongVi } from '@/composables/useFormat';
 import { mergeSpawnedTaskIds } from '@/types/dailyReport';
 import { useToast } from '@/shared/composables/useToast';
 import {
-    ROUTINE_PROJECT_NAME,
     isRoutineProjectEntry,
 } from '@/modules/daily-report/constants/routineWork';
+import {
+    buildAutoGoalsHtml,
+    buildAutoProgressHtml,
+} from '@/modules/daily-report/utils/taskDerivedBaocaoHtml';
 
 const dialog = useDialog();
 const toast = useToast();
@@ -157,43 +160,16 @@ const pillarFillClass = (key) => {
 };
 
 // ---- Auto-fill chosen tasks into the report fields -----------------------
-const taskStatusLabels = {
-    todo: 'Cần làm', in_progress: 'Đang làm', in_review: 'Đang review',
-    done: 'Hoàn thành', blocked: 'Bị chặn',
-};
-const escapeHtml = (s) =>
-    String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-const taskStatusOf = (projectId, taskId, inlineStatus) => {
+const liveTaskStatus = (projectId, taskId, inlineStatus) => {
     if (isRoutineProjectEntry({ id: projectId })) {
         return inlineStatus ?? 'todo';
     }
     return props.projectOptions.find((o) => o.id === projectId)?.tasks
-        ?.find((t) => t.id === taskId)?.status ?? null;
+        ?.find((t) => t.id === taskId)?.status ?? inlineStatus ?? 'todo';
 };
 
-const buildTaskHtml = (predicate, showStatus = true) => {
-    const blocks = [];
-    for (const p of form.projects) {
-        const tasks = (p.tasks || []).filter((t) =>
-            predicate(taskStatusOf(p.id, t.id, t.status)),
-        );
-        if (!tasks.length) continue;
-        const items = tasks.map((t) => {
-            const st = taskStatusOf(p.id, t.id, t.status);
-            const tag = showStatus && st ? ` — ${taskStatusLabels[st] || st}` : '';
-            return `<li>${escapeHtml(t.title)}${tag}</li>`;
-        }).join('');
-        const heading = isRoutineProjectEntry(p)
-            ? ROUTINE_PROJECT_NAME
-            : p.name;
-        blocks.push(`<p><strong>${escapeHtml(heading)}</strong></p><ul>${items}</ul>`);
-    }
-    return blocks.join('');
-};
-
-const isTodo = (st) => st === 'todo';
-const buildGoalsHtml    = () => buildTaskHtml(isTodo, false);
-const buildProgressHtml = () => buildTaskHtml((st) => !isTodo(st), true);
+const buildGoalsHtml = () => buildAutoGoalsHtml(form.projects, liveTaskStatus);
+const buildProgressHtml = () => buildAutoProgressHtml(form.projects, liveTaskStatus);
 
 const lastAutoGoals    = ref(buildGoalsHtml());
 const lastAutoProgress = ref(buildProgressHtml());
