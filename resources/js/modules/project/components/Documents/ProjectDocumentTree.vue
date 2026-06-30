@@ -265,13 +265,8 @@ export default {
 
 .doc-tree-children {
     position: relative;
-    margin-left: 0.35rem;
-    padding-left: 0.85rem;
-    border-left: 2px solid rgb(226 232 240 / 0.85);
-}
-
-:global(.dark) .doc-tree-children {
-    border-left-color: rgb(51 65 85 / 0.85);
+    margin-left: 0.5rem;
+    padding-left: 0.25rem;
 }
 
 .doc-tree-row--depth-0 {
@@ -303,12 +298,12 @@ export default {
 
 .doc-tree-row--active-folder {
     background: rgb(154 0 54 / 0.08);
-    box-shadow: inset 3px 0 0 0 rgb(154 0 54 / 0.75);
+    box-shadow: 0 0 0 1px rgb(154 0 54 / 0.22);
 }
 
 .doc-tree-row--active-file {
     background: rgb(154 0 54 / 0.06);
-    box-shadow: inset 3px 0 0 0 rgb(154 0 54 / 0.45);
+    box-shadow: 0 0 0 1px rgb(154 0 54 / 0.18);
 }
 
 .doc-tree-row:hover {

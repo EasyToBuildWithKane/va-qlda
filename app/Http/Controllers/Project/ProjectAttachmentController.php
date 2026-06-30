@@ -50,7 +50,7 @@ class ProjectAttachmentController extends Controller
         $category = $data['category'];
         $parentId = isset($data['parent_id']) ? (int) $data['parent_id'] : null;
 
-        if ($request->boolean('is_folder')) {
+        if ($request->isFolderRequest()) {
             $folderName = trim((string) ($data['folder_name'] ?? $data['title'] ?? ''));
 
             $attachment = $project->attachments()->create([

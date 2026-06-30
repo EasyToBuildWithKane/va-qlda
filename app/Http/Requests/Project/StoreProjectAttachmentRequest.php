@@ -17,6 +17,35 @@ class StoreProjectAttachmentRequest extends FormRequest
         return $this->user()->can('contribute', $this->route('project'));
     }
 
+    protected function prepareForValidation(): void
+    {
+        $parentId = $this->input('parent_id');
+        if ($parentId === '' || $parentId === 'null') {
+            $this->merge(['parent_id' => null]);
+        }
+
+        if ($this->has('is_folder')) {
+            $raw = $this->input('is_folder');
+            $bool = filter_var($raw, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+            $this->merge([
+                'is_folder' => $bool ?? in_array($raw, [1, '1', true, 'true'], true),
+            ]);
+        }
+    }
+
+    public function isFolderRequest(): bool
+    {
+        if ($this->boolean('is_folder')) {
+            return true;
+        }
+
+        $folderName = trim((string) $this->input('folder_name', ''));
+
+        return $folderName !== ''
+            && ! $this->hasFile('files')
+            && trim((string) $this->input('external_url', '')) === '';
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -43,7 +72,7 @@ class StoreProjectAttachmentRequest extends FormRequest
         $validator->after(function (Validator $v): void {
             /** @var Project $project */
             $project = $this->route('project');
-            $isFolder = $this->boolean('is_folder');
+            $isFolder = $this->isFolderRequest();
             $hasFiles = $this->hasFile('files') && count($this->file('files', [])) > 0;
             $externalUrl = trim((string) $this->input('external_url', ''));
             $folderName = trim((string) ($this->input('folder_name') ?: $this->input('title', '')));

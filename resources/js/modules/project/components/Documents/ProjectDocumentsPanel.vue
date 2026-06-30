@@ -417,20 +417,34 @@ const closeFolderModal = () => {
     folderForm.clearErrors();
 };
 
+const folderErrorMessage = (errors) => {
+    if (!errors || typeof errors !== 'object') return 'Không thể tạo thư mục.';
+    const first = errors.folder_name || errors.parent_id || errors.is_folder || errors.category || errors.files;
+    if (Array.isArray(first) && first[0]) return first[0];
+    if (typeof first === 'string') return first;
+    return 'Không thể tạo thư mục.';
+};
+
 const submitFolder = () => {
-    if (!props.canUpload) return;
-    folderForm.post(`/projects/${props.projectId}/attachments`, {
+    if (!props.canUpload || !folderForm.folder_name.trim()) return;
+    folderForm.clearErrors();
+    router.post(`/projects/${props.projectId}/attachments`, {
+        category: folderForm.category,
+        folder_name: folderForm.folder_name.trim(),
+        is_folder: true,
+        parent_id: folderForm.parent_id ? Number(folderForm.parent_id) : null,
+    }, {
         preserveScroll: true,
         onSuccess: () => {
-            closeFolderModal();
             const parentId = folderForm.parent_id;
+            closeFolderModal();
             if (parentId) {
                 delete expandedIds[parentId];
                 activeFolderId.value = parentId;
                 persistExpandedState();
             }
         },
-        onError: () => toast.error('Không thể tạo thư mục.'),
+        onError: (errors) => toast.error(folderErrorMessage(errors)),
     });
 };
 
