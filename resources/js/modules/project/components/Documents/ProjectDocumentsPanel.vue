@@ -160,24 +160,6 @@ const documentTree = computed(() => buildDocumentTree(categoryFiles.value));
 
 const categoryItemCount = (value) => (byCategory.value[value] || []).filter((f) => !f.is_folder).length;
 
-const folderPath = computed(() => {
-    if (!activeFolderId.value) return [];
-    const path = [];
-    let id = activeFolderId.value;
-    while (id) {
-        const node = props.attachments.find((a) => a.id === id && a.category === activeCategory.value);
-        if (!node) break;
-        path.unshift(node);
-        id = node.parent_id ?? null;
-    }
-    return path;
-});
-
-const activeFolderLabel = computed(() => {
-    if (!activeFolderId.value) return 'Gốc danh mục';
-    return folderPath.value[folderPath.value.length - 1]?.original_name ?? 'Thư mục';
-});
-
 const selected = computed(() => {
     if (!selectedId.value) return null;
     const file = props.attachments.find((f) => f.id === selectedId.value) ?? null;
@@ -223,8 +205,8 @@ const totalCount = computed(() => props.attachments.filter((a) => !a.is_folder).
 
 const workspaceGridClass = computed(() => (
     selected.value
-        ? 'lg:grid-cols-[minmax(200px,228px)_minmax(0,1fr)_minmax(240px,272px)]'
-        : 'lg:grid-cols-[minmax(200px,228px)_minmax(0,1fr)]'
+        ? 'lg:grid-cols-[minmax(240px,288px)_minmax(0,1fr)_minmax(260px,300px)]'
+        : 'lg:grid-cols-[minmax(240px,288px)_minmax(0,1fr)]'
 ));
 
 const cancelNotesEdit = () => {
@@ -448,22 +430,23 @@ const submitFolder = () => {
     });
 };
 
-const clearActiveFolder = () => {
-    activeFolderId.value = null;
-};
-
 const removeFile = (file) => {
     const stats = file.is_folder ? countFolderContents(file.id, categoryFiles.value) : { subfolders: 0, files: 0 };
     const parts = [];
-    if (stats.subfolders > 0) parts.push(`${stats.subfolders} thư mục con`);
+    if (stats.subfolders > 0) parts.push(`${stats.subfolders} thư mục`);
     if (stats.files > 0) parts.push(`${stats.files} tài liệu`);
     const suffix = parts.length ? ` và ${parts.join(', ')} bên trong` : '';
     confirmDelete(
         `Xoá "${file.original_name}"${suffix}?`,
         () => router.delete(`/projects/${props.projectId}/attachments/${file.id}`, {
             preserveScroll: true,
+            onSuccess: () => {
+                if (activeFolderId.value === file.id) {
+                    activeFolderId.value = null;
+                }
+            },
         }),
-        { title: 'Xoá tài liệu' },
+        { title: file.is_folder ? 'Xoá thư mục' : 'Xoá tài liệu' },
     );
 };
 
@@ -612,21 +595,6 @@ const activityTone = (event) => ({
       class="shrink-0 border-b border-slate-100 bg-white px-3 py-1.5 dark:border-slate-700 dark:bg-slate-900"
       :class="!categoryItemCount(activeCategory) && !categoryFiles.some((f) => f.is_folder) ? 'space-y-1.5' : ''"
     >
-      <p
-        v-if="canUpload"
-        class="text-[11px] text-slate-500 sm:text-xs"
-      >
-        Đích lưu:
-        <span class="font-medium text-slate-700 dark:text-slate-200">{{ activeFolderLabel }}</span>
-        <button
-          v-if="activeFolderId"
-          type="button"
-          class="ml-1 text-brand hover:underline"
-          @click="clearActiveFolder"
-        >
-          (về gốc)
-        </button>
-      </p>
       <div class="flex flex-wrap items-center justify-end gap-2">
         <button
           type="button"
@@ -695,14 +663,11 @@ const activityTone = (event) => ({
     >
       <div class="flex min-h-0 flex-col overflow-hidden border-b border-slate-200 bg-slate-50/50 lg:border-b-0 lg:border-r dark:border-slate-700 dark:bg-slate-900/50">
         <div
-          class="shrink-0 space-y-1 border-b border-slate-200/80 bg-white px-2.5 py-1.5 dark:border-slate-700 dark:bg-slate-900"
+          class="shrink-0 border-b border-slate-200/80 bg-white px-2.5 py-1.5 dark:border-slate-700 dark:bg-slate-900"
         >
           <div class="flex flex-wrap items-center justify-between gap-1">
             <p :class="sectionLabelClass">
-              Cây thư mục
-              <span class="font-normal normal-case text-slate-400">
-                ({{ categoryItemCount(activeCategory) }} file)
-              </span>
+              Danh sách ({{ categoryItemCount(activeCategory) }})
             </p>
             <div
               v-if="categoryFiles.some((f) => f.is_folder)"
@@ -724,36 +689,6 @@ const activityTone = (event) => ({
               </button>
             </div>
           </div>
-          <nav
-            v-if="folderPath.length"
-            class="flex flex-wrap items-center gap-1 text-[11px] text-slate-500"
-            aria-label="Vị trí thư mục"
-          >
-            <button
-              type="button"
-              class="rounded px-1 py-0.5 hover:bg-slate-100 dark:hover:bg-slate-800"
-              @click="clearActiveFolder"
-            >
-              Gốc
-            </button>
-            <template
-              v-for="crumb in folderPath"
-              :key="crumb.id"
-            >
-              <AppIcon
-                name="chevron-right"
-                :size="10"
-                class="text-slate-300"
-              />
-              <button
-                type="button"
-                class="max-w-[8rem] truncate rounded px-1 py-0.5 font-medium text-brand hover:bg-brand/5"
-                @click="onSelectFolder(crumb)"
-              >
-                {{ crumb.original_name }}
-              </button>
-            </template>
-          </nav>
         </div>
         <div
           class="min-h-0 flex-1 overflow-y-auto bg-white dark:bg-slate-900"
@@ -808,10 +743,12 @@ const activityTone = (event) => ({
             :list-badge="listBadge"
             :format-size="formatSize"
             :can-upload="canUpload"
+            :can-delete="canDelete"
             @select-file="selectFile"
             @select-folder="onSelectFolder"
             @toggle-folder="onToggleFolderExpand"
             @create-subfolder="openSubfolderModal"
+            @delete-item="removeFile"
           />
         </div>
       </div>
@@ -978,12 +915,6 @@ const activityTone = (event) => ({
       :on-save-draft="saveLinkDraftOnClose"
       @close="closeLinkModal"
     >
-      <p class="mb-4 text-sm text-slate-500">
-        Dán link Google Docs, Google Sheets hoặc PDF vào
-        <span class="font-medium text-slate-700">«{{ activeCat?.label }}»</span>
-        · thư mục đích:
-        <span class="font-medium text-slate-700">{{ activeFolderLabel }}</span>.
-      </p>
       <div class="space-y-3">
         <div>
           <label
@@ -1052,17 +983,6 @@ const activityTone = (event) => ({
       :dirty="Boolean(folderForm.folder_name)"
       @close="closeFolderModal"
     >
-      <p class="mb-4 text-sm text-slate-500">
-        Thư mục trong
-        <span class="font-medium text-slate-700">«{{ activeCat?.label }}»</span>
-        <template v-if="activeFolderId">
-          · bên trong
-          <span class="font-medium text-slate-700">{{ activeFolderLabel }}</span>
-        </template>
-        <template v-else>
-          · cấp gốc danh mục
-        </template>
-      </p>
       <div>
         <label
           for="doc-folder-name"

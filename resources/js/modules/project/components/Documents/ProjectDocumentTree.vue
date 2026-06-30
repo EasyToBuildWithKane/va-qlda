@@ -10,9 +10,10 @@ defineProps({
     listBadge: { type: Function, required: true },
     formatSize: { type: Function, required: true },
     canUpload: { type: Boolean, default: false },
+    canDelete: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(['select-file', 'select-folder', 'toggle-folder', 'create-subfolder']);
+const emit = defineEmits(['select-file', 'select-folder', 'toggle-folder', 'create-subfolder', 'delete-item']);
 
 const isExpanded = (id, expandedIds) => expandedIds[id] !== false;
 
@@ -44,12 +45,10 @@ const folderMetaLabel = (node) => {
     const subs = node.subfolder_count ?? 0;
     const files = node.file_count ?? 0;
     const parts = [];
-    if (subs > 0) parts.push(`${subs} thư mục con`);
+    if (subs > 0) parts.push(`${subs} thư mục`);
     if (files > 0) parts.push(`${files} tài liệu`);
-    return parts.length ? parts.join(' · ') : 'Trống — thêm thư mục con hoặc file';
+    return parts.length ? parts.join(' · ') : 'Trống';
 };
-
-const depthLabel = (depth) => (depth === 0 ? 'Gốc' : `Cấp ${depth + 1}`);
 </script>
 
 <template>
@@ -134,19 +133,10 @@ const depthLabel = (depth) => (depth === 0 ? 'Gốc' : `Cấp ${depth + 1}`);
           </span>
 
           <span class="min-w-0 flex-1 pt-0.5">
-            <span class="flex flex-wrap items-center gap-1.5">
-              <span
-                class="line-clamp-2 text-xs font-semibold leading-snug sm:text-sm"
-                :class="node.is_folder ? 'text-slate-800 dark:text-slate-100' : 'text-slate-800 dark:text-slate-100'"
-              >
-                {{ node.original_name }}
-              </span>
-              <span
-                v-if="node.is_folder"
-                class="hidden shrink-0 rounded-md bg-white/70 px-1.5 py-px text-[10px] font-medium uppercase tracking-wide text-slate-500 ring-1 ring-slate-200/80 sm:inline dark:bg-slate-900/60 dark:ring-slate-700"
-              >
-                {{ depthLabel(depth) }}
-              </span>
+            <span
+              class="line-clamp-2 text-xs font-semibold leading-snug sm:text-sm text-slate-800 dark:text-slate-100"
+            >
+              {{ node.original_name }}
             </span>
             <span class="mt-0.5 block text-[11px] leading-snug text-slate-500 sm:text-xs">
               <template v-if="node.is_folder">
@@ -163,12 +153,24 @@ const depthLabel = (depth) => (depth === 0 ? 'Gốc' : `Cấp ${depth + 1}`);
         <button
           v-if="node.is_folder && canUpload"
           type="button"
-          class="doc-tree-add-sub mt-1.5 mr-1 grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-dashed border-slate-200/90 text-slate-400 opacity-0 transition hover:border-brand/40 hover:bg-brand/5 hover:text-brand focus-visible:opacity-100 group-hover/row:opacity-100 dark:border-slate-600 dark:hover:border-brand/50 sm:mr-1.5"
+          class="doc-tree-add-sub mt-1.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-dashed border-slate-200/90 text-slate-400 opacity-0 transition hover:border-brand/40 hover:bg-brand/5 hover:text-brand focus-visible:opacity-100 group-hover/row:opacity-100 dark:border-slate-600 dark:hover:border-brand/50 sm:mr-0.5"
           title="Tạo thư mục con"
           @click.stop="emit('create-subfolder', node.id)"
         >
           <AppIcon
             name="plus"
+            :size="14"
+          />
+        </button>
+        <button
+          v-if="node.is_folder && canDelete"
+          type="button"
+          class="doc-tree-delete mt-1.5 mr-1 grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-400 opacity-0 transition hover:bg-rose-50 hover:text-rose-600 focus-visible:opacity-100 group-hover/row:opacity-100 dark:hover:bg-rose-950/40 dark:hover:text-rose-400 sm:mr-1.5"
+          title="Xoá thư mục"
+          @click.stop="emit('delete-item', node)"
+        >
+          <AppIcon
+            name="delete"
             :size="14"
           />
         </button>
@@ -188,10 +190,12 @@ const depthLabel = (depth) => (depth === 0 ? 'Gốc' : `Cấp ${depth + 1}`);
           :list-badge="listBadge"
           :format-size="formatSize"
           :can-upload="canUpload"
+          :can-delete="canDelete"
           @select-file="emit('select-file', $event)"
           @select-folder="emit('select-folder', $event)"
           @toggle-folder="emit('toggle-folder', $event)"
           @create-subfolder="emit('create-subfolder', $event)"
+          @delete-item="emit('delete-item', $event)"
         />
         <div
           v-else-if="canUpload"
