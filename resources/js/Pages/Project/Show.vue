@@ -79,7 +79,7 @@ const tab = ref('overview');
 const documentCategories = computed(() =>
     normalizeList(props.options.enums?.projectAttachmentCategory).filter((c) => c?.value != null),
 );
-const attachmentCount = computed(() => props.attachments.length);
+const attachmentCount = computed(() => props.attachments.filter((a) => !a.is_folder).length);
 
 // --- Modal state ---
 const taskModal = ref(false);

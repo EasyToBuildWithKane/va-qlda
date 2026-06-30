@@ -24,6 +24,10 @@ class ProjectAttachmentController extends Controller
             abort(404);
         }
 
+        if ($attachment->isFolder()) {
+            abort(404);
+        }
+
         if ($attachment->isExternalLink()) {
             abort(404);
         }
@@ -44,6 +48,27 @@ class ProjectAttachmentController extends Controller
         $account = $request->user();
         $data = $request->validated();
         $category = $data['category'];
+        $parentId = isset($data['parent_id']) ? (int) $data['parent_id'] : null;
+
+        if ($request->boolean('is_folder')) {
+            $folderName = trim((string) ($data['folder_name'] ?? $data['title'] ?? ''));
+
+            $attachment = $project->attachments()->create([
+                'category' => $category,
+                'parent_id' => $parentId,
+                'is_folder' => true,
+                'uploaded_by_id' => $account->employee_id,
+                'original_name' => $folderName,
+                'path' => '',
+                'mime_type' => null,
+                'size' => 0,
+                'is_image' => false,
+            ]);
+
+            ProjectAttachmentActivityLogger::folderCreated($attachment, $account);
+
+            return back()->with('success', 'Đã tạo thư mục.');
+        }
 
         $externalUrl = trim((string) ($data['external_url'] ?? ''));
         if ($externalUrl !== '') {
@@ -57,6 +82,7 @@ class ProjectAttachmentController extends Controller
 
             $attachment = $project->attachments()->create([
                 'category' => $category,
+                'parent_id' => $parentId,
                 'uploaded_by_id' => $account->employee_id,
                 'original_name' => $originalName,
                 'path' => '',
@@ -78,6 +104,7 @@ class ProjectAttachmentController extends Controller
 
             $attachment = $project->attachments()->create([
                 'category' => $category,
+                'parent_id' => $parentId,
                 'uploaded_by_id' => $account->employee_id,
                 'original_name' => $file->getClientOriginalName(),
                 'path' => $path,
@@ -102,6 +129,10 @@ class ProjectAttachmentController extends Controller
         $data = $request->validated();
 
         if (array_key_exists('notes', $data) && $data['notes'] !== $attachment->notes) {
+            if ($attachment->isFolder()) {
+                return back()->withErrors(['notes' => 'Thư mục không hỗ trợ ghi chú.']);
+            }
+
             $attachment->update([
                 'notes' => $data['notes'],
                 'updated_by_id' => $account->employee_id,
@@ -130,7 +161,23 @@ class ProjectAttachmentController extends Controller
             ProjectAttachmentActivityLogger::linkUpdated($attachment->fresh(), $account);
         }
 
+        if ($attachment->isFolder() && array_key_exists('title', $data)) {
+            $title = trim((string) ($data['title'] ?? ''));
+            if ($title !== '' && $title !== $attachment->original_name) {
+                $oldName = $attachment->original_name;
+                $attachment->update([
+                    'original_name' => $title,
+                    'updated_by_id' => $account->employee_id,
+                ]);
+                ProjectAttachmentActivityLogger::folderRenamed($attachment->fresh(), $oldName, $account);
+            }
+        }
+
         if ($request->hasFile('file')) {
+            if ($attachment->isFolder()) {
+                return back()->withErrors(['file' => 'Không thể thay thế file cho thư mục.']);
+            }
+
             if ($attachment->isExternalLink()) {
                 return back()->withErrors(['file' => 'Không thể thay thế file cho bản ghi link ngoài.']);
             }
@@ -169,14 +216,25 @@ class ProjectAttachmentController extends Controller
             abort(404);
         }
 
-        ProjectAttachmentActivityLogger::deleted($attachment, $request->user());
+        $this->deleteAttachmentTree($attachment, $request->user());
 
-        if (! $attachment->isExternalLink() && $attachment->path !== '') {
-            Storage::disk('public')->delete($attachment->path);
+        return back()->with('success', $attachment->isFolder() ? 'Đã xoá thư mục và nội dung bên trong.' : 'Đã xoá tài liệu.');
+    }
+
+    private function deleteAttachmentTree(ProjectAttachment $attachment, ?\App\Models\SystemAccount $account): void
+    {
+        if ($attachment->isFolder()) {
+            $attachment->loadMissing('children');
+            foreach ($attachment->children as $child) {
+                $this->deleteAttachmentTree($child, $account);
+            }
+        } else {
+            if (! $attachment->isExternalLink() && $attachment->path !== '') {
+                Storage::disk('public')->delete($attachment->path);
+            }
         }
 
+        ProjectAttachmentActivityLogger::deleted($attachment, $account);
         $attachment->delete();
-
-        return back()->with('success', 'Đã xoá tài liệu.');
     }
 }

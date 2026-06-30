@@ -22,6 +22,8 @@ class ProjectAttachmentResource extends JsonResource
             'id' => $this->id,
             'category' => $this->category->value,
             'category_label' => $this->category->labelVi(),
+            'parent_id' => $this->parent_id,
+            'is_folder' => $this->isFolder(),
             'original_name' => $this->original_name,
             'notes' => $this->notes,
             'mime_type' => $this->mime_type,

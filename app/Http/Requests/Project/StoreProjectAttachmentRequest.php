@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Project;
 
+use App\Models\Project;
+use App\Models\ProjectAttachment;
 use App\Support\Enums\ProjectAttachmentCategory;
 use App\Support\ProjectAttachmentExternalUrl;
 use Illuminate\Foundation\Http\FormRequest;
@@ -22,6 +24,9 @@ class StoreProjectAttachmentRequest extends FormRequest
     {
         return [
             'category' => ['required', Rule::in(ProjectAttachmentCategory::values())],
+            'parent_id' => ['nullable', 'integer'],
+            'is_folder' => ['sometimes', 'boolean'],
+            'folder_name' => ['nullable', 'string', 'max:255'],
             'files' => ['nullable', 'array', 'max:15'],
             'files.*' => [
                 'file',
@@ -36,16 +41,31 @@ class StoreProjectAttachmentRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $v): void {
+            /** @var Project $project */
+            $project = $this->route('project');
+            $isFolder = $this->boolean('is_folder');
             $hasFiles = $this->hasFile('files') && count($this->file('files', [])) > 0;
             $externalUrl = trim((string) $this->input('external_url', ''));
+            $folderName = trim((string) ($this->input('folder_name') ?: $this->input('title', '')));
 
-            if (! $hasFiles && $externalUrl === '') {
-                $v->errors()->add('files', 'Chọn file hoặc dán link Google Docs, Google Sheets hoặc PDF.');
+            if ($isFolder) {
+                if ($folderName === '') {
+                    $v->errors()->add('folder_name', 'Nhập tên thư mục.');
+
+                    return;
+                }
+                if ($hasFiles || $externalUrl !== '') {
+                    $v->errors()->add('is_folder', 'Không thể tạo thư mục cùng lúc với file hoặc link.');
+
+                    return;
+                }
+            } elseif (! $hasFiles && $externalUrl === '') {
+                $v->errors()->add('files', 'Chọn file, thêm link hoặc tạo thư mục.');
 
                 return;
             }
 
-            if ($hasFiles && $externalUrl !== '') {
+            if (! $isFolder && $hasFiles && $externalUrl !== '') {
                 $v->errors()->add('external_url', 'Chỉ tải file hoặc thêm link — không gửi cả hai cùng lúc.');
 
                 return;
@@ -53,6 +73,56 @@ class StoreProjectAttachmentRequest extends FormRequest
 
             if ($externalUrl !== '' && ! ProjectAttachmentExternalUrl::isSupported($externalUrl)) {
                 $v->errors()->add('external_url', 'Chỉ hỗ trợ link Google Docs, Google Sheets hoặc PDF (https://…/file.pdf hoặc Google Drive).');
+            }
+
+            $parentId = $this->input('parent_id');
+            if ($parentId === null || $parentId === '') {
+                return;
+            }
+
+            $parent = ProjectAttachment::query()
+                ->where('project_id', $project->id)
+                ->whereKey($parentId)
+                ->first();
+
+            if ($parent === null) {
+                $v->errors()->add('parent_id', 'Thư mục cha không tồn tại.');
+
+                return;
+            }
+
+            if (! $parent->isFolder()) {
+                $v->errors()->add('parent_id', 'Chỉ có thể đặt file hoặc thư mục con vào trong thư mục.');
+
+                return;
+            }
+
+            $category = (string) $this->input('category');
+            if ($parent->category->value !== $category) {
+                $v->errors()->add('parent_id', 'Thư mục cha phải cùng danh mục tài liệu.');
+
+                return;
+            }
+
+            if ($isFolder) {
+                $parentDepth = 0;
+                $current = $parent;
+                while ($current) {
+                    $parentDepth++;
+                    if ($current->parent_id === null) {
+                        break;
+                    }
+                    $current = ProjectAttachment::query()
+                        ->where('project_id', $project->id)
+                        ->whereKey($current->parent_id)
+                        ->first();
+                    if ($current === null) {
+                        break;
+                    }
+                }
+                if ($parentDepth >= 12) {
+                    $v->errors()->add('parent_id', 'Chỉ hỗ trợ tối đa 12 cấp thư mục lồng nhau.');
+                }
             }
         });
     }

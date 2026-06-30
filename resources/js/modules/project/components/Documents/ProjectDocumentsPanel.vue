@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, reactive, onMounted } from 'vue';
 import { router, useForm } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
 import { useConfirmDelete } from '@/composables/useConfirmClose';
@@ -7,6 +7,7 @@ import { useToast } from '@/shared/composables/useToast';
 import Modal from '@/Components/Ui/Modal.vue';
 import DocumentPreviewPane from '@/modules/project/components/Documents/DocumentPreviewPane.vue';
 import ProjectDocumentDetailAside from '@/modules/project/components/Documents/ProjectDocumentDetailAside.vue';
+import ProjectDocumentTree from '@/modules/project/components/Documents/ProjectDocumentTree.vue';
 import Drawer from '@/Components/Ui/Drawer.vue';
 import { useModalFormDraft } from '@/composables/useModalFormDraft';
 import { buildDraftSaveMeta } from '@/composables/useModalDraftHelpers';
@@ -33,11 +34,49 @@ const showLinkModal = ref(false);
 const editingLink = ref(false);
 const linkModalRef = ref(null);
 const detailDrawerOpen = ref(false);
+const activeFolderId = ref(null);
+const expandedIds = reactive({});
+const showFolderModal = ref(false);
+const folderModalRef = ref(null);
+
+const folderForm = useForm({
+    category: '',
+    folder_name: '',
+    parent_id: null,
+    is_folder: true,
+});
+
+const expandedStorageKey = computed(() => `va-project-doc-tree:${props.projectId}:${activeCategory.value}`);
+
+const loadExpandedState = () => {
+    Object.keys(expandedIds).forEach((k) => { delete expandedIds[k]; });
+    try {
+        const raw = localStorage.getItem(expandedStorageKey.value);
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+            Object.assign(expandedIds, parsed);
+        }
+    } catch {
+        /* ignore */
+    }
+};
+
+const persistExpandedState = () => {
+    try {
+        localStorage.setItem(expandedStorageKey.value, JSON.stringify({ ...expandedIds }));
+    } catch {
+        /* ignore */
+    }
+};
+
+onMounted(loadExpandedState);
 
 const linkForm = useForm({
     category: '',
     title: '',
     external_url: '',
+    parent_id: null,
 });
 
 const linkDraft = useModalFormDraft('project-attachment-link', {
@@ -75,9 +114,75 @@ const byCategory = computed(() => {
 const activeCat = computed(() => props.categories.find((c) => c.value === activeCategory.value));
 const categoryFiles = computed(() => byCategory.value[activeCategory.value] || []);
 
+const countFolderContents = (folderId, items) => {
+    const childrenByParent = new Map();
+    items.forEach((item) => {
+        const pid = item.parent_id ?? null;
+        if (!childrenByParent.has(pid)) childrenByParent.set(pid, []);
+        childrenByParent.get(pid).push(item);
+    });
+    let subfolders = 0;
+    let files = 0;
+    const walk = (id) => {
+        (childrenByParent.get(id) || []).forEach((ch) => {
+            if (ch.is_folder) {
+                subfolders += 1;
+                walk(ch.id);
+            } else {
+                files += 1;
+            }
+        });
+    };
+    walk(folderId);
+    return { subfolders, files };
+};
+
+const buildDocumentTree = (items, parentId = null) => items
+    .filter((item) => (item.parent_id ?? null) === parentId)
+    .sort((a, b) => {
+        if (Boolean(a.is_folder) !== Boolean(b.is_folder)) {
+            return a.is_folder ? -1 : 1;
+        }
+        return (a.original_name || '').localeCompare(b.original_name || '', 'vi');
+    })
+    .map((item) => {
+        const children = item.is_folder ? buildDocumentTree(items, item.id) : [];
+        const stats = item.is_folder ? countFolderContents(item.id, items) : { subfolders: 0, files: 0 };
+        return {
+            ...item,
+            children,
+            file_count: stats.files,
+            subfolder_count: stats.subfolders,
+        };
+    });
+
+const documentTree = computed(() => buildDocumentTree(categoryFiles.value));
+
+const categoryItemCount = (value) => (byCategory.value[value] || []).filter((f) => !f.is_folder).length;
+
+const folderPath = computed(() => {
+    if (!activeFolderId.value) return [];
+    const path = [];
+    let id = activeFolderId.value;
+    while (id) {
+        const node = props.attachments.find((a) => a.id === id && a.category === activeCategory.value);
+        if (!node) break;
+        path.unshift(node);
+        id = node.parent_id ?? null;
+    }
+    return path;
+});
+
+const activeFolderLabel = computed(() => {
+    if (!activeFolderId.value) return 'Gốc danh mục';
+    return folderPath.value[folderPath.value.length - 1]?.original_name ?? 'Thư mục';
+});
+
 const selected = computed(() => {
     if (!selectedId.value) return null;
-    return props.attachments.find((f) => f.id === selectedId.value) ?? null;
+    const file = props.attachments.find((f) => f.id === selectedId.value) ?? null;
+    if (file?.is_folder) return null;
+    return file;
 });
 
 const notesForm = useForm({ notes: '' });
@@ -85,13 +190,14 @@ const notesForm = useForm({ notes: '' });
 const firstAvailableFile = (files) => files.find((f) => f.url) ?? null;
 
 watch(categoryFiles, (files) => {
-    if (!files.length) {
+    const docs = files.filter((f) => !f.is_folder);
+    if (!docs.length) {
         selectedId.value = null;
         return;
     }
-    const current = files.find((f) => f.id === selectedId.value);
+    const current = docs.find((f) => f.id === selectedId.value);
     if (!current?.url) {
-        selectedId.value = firstAvailableFile(files)?.id ?? null;
+        selectedId.value = firstAvailableFile(docs)?.id ?? null;
     }
 }, { immediate: true });
 
@@ -106,11 +212,14 @@ watch(selected, (file) => {
 }, { immediate: true });
 
 watch(activeCategory, () => {
+    activeFolderId.value = null;
+    loadExpandedState();
     const files = byCategory.value[activeCategory.value] || [];
-    selectedId.value = files[0]?.id ?? null;
+    const docs = files.filter((f) => !f.is_folder);
+    selectedId.value = firstAvailableFile(docs)?.id ?? null;
 });
 
-const totalCount = computed(() => props.attachments.length);
+const totalCount = computed(() => props.attachments.filter((a) => !a.is_folder).length);
 
 const workspaceGridClass = computed(() => (
     selected.value
@@ -155,11 +264,19 @@ const acceptFor = (category) => {
 const setFileInput = (category, el) => { if (el) fileInputs.value[category] = el; };
 const pickFiles = (category) => fileInputs.value[category]?.click();
 
+const uploadPayloadExtra = (category) => {
+    const payload = {};
+    if (activeFolderId.value && category === activeCategory.value) {
+        payload.parent_id = activeFolderId.value;
+    }
+    return payload;
+};
+
 const uploadFiles = (category, fileList, inputEl = null) => {
     const files = [...(fileList || [])];
     if (!files.length || !props.canUpload) return;
     uploadingCategory.value = category;
-    router.post(`/projects/${props.projectId}/attachments`, { category, files }, {
+    router.post(`/projects/${props.projectId}/attachments`, { category, ...uploadPayloadExtra(category), files }, {
         forceFormData: true,
         preserveScroll: true,
         onError: () => toast.error('Không thể tải lên. Kiểm tra định dạng và dung lượng file.'),
@@ -186,6 +303,9 @@ const onDrop = (category, event) => {
 const openAddLinkModal = async () => {
     linkForm.reset();
     linkForm.category = activeCategory.value;
+    if (activeFolderId.value) {
+        linkForm.parent_id = activeFolderId.value;
+    }
     linkForm.clearErrors();
     showLinkModal.value = true;
     const epoch = linkDraft.bumpOpenEpoch();
@@ -211,6 +331,9 @@ const requestCloseLinkModal = () => {
 
 const submitLink = () => {
     if (!props.canUpload) return;
+    if (activeFolderId.value) {
+        linkForm.parent_id = activeFolderId.value;
+    }
     linkForm.post(`/projects/${props.projectId}/attachments`, {
         preserveScroll: true,
         onSuccess: () => {
@@ -232,11 +355,97 @@ const saveLink = () => {
     });
 };
 
-const selectFile = (file) => { selectedId.value = file.id; };
+const selectFile = (file) => {
+    if (file.is_folder) return;
+    selectedId.value = file.id;
+};
+
+const onSelectFolder = (folder) => {
+    activeFolderId.value = folder.id;
+    let pid = folder.parent_id ?? null;
+    while (pid) {
+        delete expandedIds[pid];
+        const parent = props.attachments.find((a) => a.id === pid);
+        pid = parent?.parent_id ?? null;
+    }
+    if (expandedIds[folder.id] === false) {
+        delete expandedIds[folder.id];
+    }
+    persistExpandedState();
+};
+
+const onToggleFolderExpand = (id) => {
+    if (expandedIds[id] === false) {
+        delete expandedIds[id];
+    } else {
+        expandedIds[id] = false;
+    }
+    persistExpandedState();
+};
+
+const expandAllFolders = () => {
+    categoryFiles.value.filter((f) => f.is_folder).forEach((f) => {
+        delete expandedIds[f.id];
+    });
+    persistExpandedState();
+};
+
+const collapseAllFolders = () => {
+    categoryFiles.value.filter((f) => f.is_folder).forEach((f) => {
+        expandedIds[f.id] = false;
+    });
+    persistExpandedState();
+};
+
+const openFolderModal = (parentId = undefined) => {
+    folderForm.reset();
+    folderForm.category = activeCategory.value;
+    folderForm.parent_id = parentId !== undefined ? parentId : activeFolderId.value;
+    folderForm.is_folder = true;
+    folderForm.clearErrors();
+    showFolderModal.value = true;
+};
+
+const openSubfolderModal = (parentId) => {
+    activeFolderId.value = parentId;
+    openFolderModal(parentId);
+};
+
+const closeFolderModal = () => {
+    showFolderModal.value = false;
+    folderForm.reset();
+    folderForm.clearErrors();
+};
+
+const submitFolder = () => {
+    if (!props.canUpload) return;
+    folderForm.post(`/projects/${props.projectId}/attachments`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            closeFolderModal();
+            const parentId = folderForm.parent_id;
+            if (parentId) {
+                delete expandedIds[parentId];
+                activeFolderId.value = parentId;
+                persistExpandedState();
+            }
+        },
+        onError: () => toast.error('Không thể tạo thư mục.'),
+    });
+};
+
+const clearActiveFolder = () => {
+    activeFolderId.value = null;
+};
 
 const removeFile = (file) => {
+    const stats = file.is_folder ? countFolderContents(file.id, categoryFiles.value) : { subfolders: 0, files: 0 };
+    const parts = [];
+    if (stats.subfolders > 0) parts.push(`${stats.subfolders} thư mục con`);
+    if (stats.files > 0) parts.push(`${stats.files} tài liệu`);
+    const suffix = parts.length ? ` và ${parts.join(', ')} bên trong` : '';
     confirmDelete(
-        `Xoá "${file.original_name}"?`,
+        `Xoá "${file.original_name}"${suffix}?`,
         () => router.delete(`/projects/${props.projectId}/attachments/${file.id}`, {
             preserveScroll: true,
         }),
@@ -283,6 +492,8 @@ const activityIcon = (event) => ({
     note_updated: 'edit',
     replaced: 'refresh',
     deleted: 'delete',
+    folder_created: 'folder',
+    folder_renamed: 'edit',
 }[event] || 'report-history');
 
 const fileExt = (name) => {
@@ -329,6 +540,8 @@ const activityTone = (event) => ({
     note_updated: 'bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400',
     replaced: 'bg-violet-100 text-violet-600 dark:bg-violet-950 dark:text-violet-400',
     deleted: 'bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400',
+    folder_created: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300',
+    folder_renamed: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300',
 }[event] || 'bg-slate-100 text-slate-500 dark:bg-slate-800');
 </script>
 
@@ -371,10 +584,10 @@ const activityTone = (event) => ({
             <span class="whitespace-nowrap">{{ cat.label }}</span>
             <span
               class="inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold tabular-nums"
-              :class="(byCategory[cat.value] || []).length
+              :class="categoryItemCount(cat.value)
                 ? (colorBadge[cat.color] || 'bg-brand/10 text-brand')
                 : 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500'"
-            >{{ (byCategory[cat.value] || []).length }}</span>
+            >{{ categoryItemCount(cat.value) }}</span>
           </button>
         </div>
       </nav>
@@ -383,9 +596,35 @@ const activityTone = (event) => ({
     <div
       v-if="canUpload"
       class="shrink-0 border-b border-slate-100 bg-white px-3 py-1.5 dark:border-slate-700 dark:bg-slate-900"
-      :class="!categoryFiles.length ? 'space-y-1.5' : ''"
+      :class="!categoryItemCount(activeCategory) && !categoryFiles.some((f) => f.is_folder) ? 'space-y-1.5' : ''"
     >
+      <p
+        v-if="canUpload"
+        class="text-[11px] text-slate-500 sm:text-xs"
+      >
+        Đích lưu:
+        <span class="font-medium text-slate-700 dark:text-slate-200">{{ activeFolderLabel }}</span>
+        <button
+          v-if="activeFolderId"
+          type="button"
+          class="ml-1 text-brand hover:underline"
+          @click="clearActiveFolder"
+        >
+          (về gốc)
+        </button>
+      </p>
       <div class="flex flex-wrap items-center justify-end gap-2">
+        <button
+          type="button"
+          class="btn-ghost inline-flex h-9 items-center gap-1.5 border border-amber-200/80 bg-amber-50/50 px-2.5 text-xs font-medium text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100 sm:text-sm"
+          @click="openFolderModal"
+        >
+          <AppIcon
+            name="folder"
+            :size="14"
+          />
+          Tạo thư mục
+        </button>
         <button
           type="button"
           class="btn-ghost inline-flex h-9 items-center gap-1.5 border border-slate-200 px-2.5 text-xs font-medium dark:border-slate-600 sm:text-sm"
@@ -420,7 +659,7 @@ const activityTone = (event) => ({
         >
       </div>
       <div
-        v-if="!categoryFiles.length"
+        v-if="!categoryItemCount(activeCategory) && !categoryFiles.some((f) => f.is_folder)"
         class="rounded-lg border-2 border-dashed px-4 py-2.5 text-center transition"
         :class="dragging
           ? 'border-brand bg-brand/5'
@@ -437,15 +676,70 @@ const activityTone = (event) => ({
 
     <!-- Danh sách | Preview full-height | Chi tiết (sidebar) -->
     <div
-      class="grid min-h-0 flex-1 overflow-hidden max-lg:grid-rows-[minmax(0,26vh)_minmax(0,1fr)] lg:grid-rows-1"
+      class="grid min-h-0 flex-1 overflow-hidden max-lg:grid-rows-[minmax(0,34vh)_minmax(0,1fr)] lg:grid-rows-1"
       :class="workspaceGridClass"
     >
       <div class="flex min-h-0 flex-col overflow-hidden border-b border-slate-200 bg-slate-50/50 lg:border-b-0 lg:border-r dark:border-slate-700 dark:bg-slate-900/50">
         <div
-          class="shrink-0 border-b border-slate-200/80 bg-white px-2.5 py-1.5 dark:border-slate-700 dark:bg-slate-900"
-          :class="sectionLabelClass"
+          class="shrink-0 space-y-1 border-b border-slate-200/80 bg-white px-2.5 py-1.5 dark:border-slate-700 dark:bg-slate-900"
         >
-          Danh sách ({{ categoryFiles.length }})
+          <div class="flex flex-wrap items-center justify-between gap-1">
+            <p :class="sectionLabelClass">
+              Cây thư mục
+              <span class="font-normal normal-case text-slate-400">
+                ({{ categoryItemCount(activeCategory) }} file)
+              </span>
+            </p>
+            <div
+              v-if="categoryFiles.some((f) => f.is_folder)"
+              class="flex shrink-0 gap-1"
+            >
+              <button
+                type="button"
+                class="rounded px-1.5 py-0.5 text-[10px] font-medium text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+                @click="expandAllFolders"
+              >
+                Mở tất cả
+              </button>
+              <button
+                type="button"
+                class="rounded px-1.5 py-0.5 text-[10px] font-medium text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+                @click="collapseAllFolders"
+              >
+                Thu gọn
+              </button>
+            </div>
+          </div>
+          <nav
+            v-if="folderPath.length"
+            class="flex flex-wrap items-center gap-1 text-[11px] text-slate-500"
+            aria-label="Vị trí thư mục"
+          >
+            <button
+              type="button"
+              class="rounded px-1 py-0.5 hover:bg-slate-100 dark:hover:bg-slate-800"
+              @click="clearActiveFolder"
+            >
+              Gốc
+            </button>
+            <template
+              v-for="crumb in folderPath"
+              :key="crumb.id"
+            >
+              <AppIcon
+                name="chevron-right"
+                :size="10"
+                class="text-slate-300"
+              />
+              <button
+                type="button"
+                class="max-w-[8rem] truncate rounded px-1 py-0.5 font-medium text-brand hover:bg-brand/5"
+                @click="onSelectFolder(crumb)"
+              >
+                {{ crumb.original_name }}
+              </button>
+            </template>
+          </nav>
         </div>
         <div
           class="min-h-0 flex-1 overflow-y-auto bg-white dark:bg-slate-900"
@@ -465,59 +759,46 @@ const activityTone = (event) => ({
               class="text-slate-300"
             />
             <p class="mt-2 text-xs text-slate-400 sm:text-sm">
-              {{ canUpload ? 'Chưa có tài liệu — kéo thả hoặc chọn file.' : 'Chưa có tài liệu.' }}
+              {{ canUpload ? 'Chưa có thư mục hay tài liệu — tạo thư mục hoặc tải file.' : 'Chưa có tài liệu.' }}
             </p>
-            <button
+            <div
               v-if="canUpload"
-              type="button"
-              class="mt-2 text-xs font-medium text-brand hover:underline sm:text-sm"
-              @click="pickFiles(activeCategory)"
-            >
-              Tải file đầu tiên
-            </button>
-          </div>
-          <ul
-            v-else
-            class="divide-y divide-slate-100 dark:divide-slate-800"
-          >
-            <li
-              v-for="file in categoryFiles"
-              :key="file.id"
+              class="mt-3 flex flex-wrap items-center justify-center gap-2"
             >
               <button
                 type="button"
-                class="flex w-full items-start gap-2 px-2.5 py-2 text-left transition"
-                :class="selectedId === file.id
-                  ? 'bg-brand/8 ring-1 ring-inset ring-brand/20'
-                  : 'hover:bg-slate-50 dark:hover:bg-slate-800'"
-                @click="selectFile(file)"
+                class="btn-ghost inline-flex h-9 items-center gap-1.5 border border-slate-200 px-3 text-xs font-medium sm:text-sm"
+                @click="openFolderModal"
               >
-                <span
-                  class="grid h-8 w-8 shrink-0 place-items-center rounded-md text-[9px] font-bold uppercase"
-                  :class="file.is_image
-                    ? 'bg-rose-50 text-rose-600'
-                    : (file.is_google_doc || file.is_google_sheet)
-                      ? 'bg-emerald-50 text-emerald-700'
-                      : 'bg-slate-100 text-slate-500'"
-                >
-                  <img
-                    v-if="file.is_image"
-                    :src="file.url"
-                    :alt="file.original_name"
-                    class="h-8 w-8 rounded-md object-cover"
-                  >
-                  <span v-else>{{ listBadge(file) }}</span>
-                </span>
-                <span class="min-w-0 flex-1">
-                  <span class="line-clamp-2 text-xs font-medium leading-snug text-slate-800 dark:text-slate-100 sm:text-sm">{{ file.original_name }}</span>
-                  <span class="mt-0.5 block text-[11px] leading-tight text-slate-500 sm:text-xs">
-                    {{ formatSize(file.size, file) }}
-                    <span v-if="file.uploaded_by?.name"> · {{ file.uploaded_by.name.split(' ').pop() }}</span>
-                  </span>
-                </span>
+                <AppIcon
+                  name="folder"
+                  :size="14"
+                />
+                Tạo thư mục
               </button>
-            </li>
-          </ul>
+              <button
+                type="button"
+                class="text-xs font-medium text-brand hover:underline sm:text-sm"
+                @click="pickFiles(activeCategory)"
+              >
+                Tải file
+              </button>
+            </div>
+          </div>
+          <ProjectDocumentTree
+            v-else
+            :nodes="documentTree"
+            :selected-id="selectedId"
+            :active-folder-id="activeFolderId"
+            :expanded-ids="expandedIds"
+            :list-badge="listBadge"
+            :format-size="formatSize"
+            :can-upload="canUpload"
+            @select-file="selectFile"
+            @select-folder="onSelectFolder"
+            @toggle-folder="onToggleFolderExpand"
+            @create-subfolder="openSubfolderModal"
+          />
         </div>
       </div>
 
@@ -684,9 +965,10 @@ const activityTone = (event) => ({
       @close="closeLinkModal"
     >
       <p class="mb-4 text-sm text-slate-500">
-        Dán link Google Docs, Google Sheets hoặc PDF (URL trực tiếp / Google Drive) vào danh mục
-        <span class="font-medium text-slate-700">«{{ activeCat?.label }}»</span>.
-        Với Google, nên bật quyền «Bất kỳ ai có link» hoặc tài khoản VA có quyền xem.
+        Dán link Google Docs, Google Sheets hoặc PDF vào
+        <span class="font-medium text-slate-700">«{{ activeCat?.label }}»</span>
+        · thư mục đích:
+        <span class="font-medium text-slate-700">{{ activeFolderLabel }}</span>.
       </p>
       <div class="space-y-3">
         <div>
@@ -744,6 +1026,65 @@ const activityTone = (event) => ({
           @click="submitLink"
         >
           {{ linkForm.processing ? 'Đang lưu…' : 'Thêm link' }}
+        </button>
+      </div>
+    </Modal>
+
+    <Modal
+      ref="folderModalRef"
+      :show="showFolderModal"
+      title="Tạo thư mục"
+      max-width="max-w-md"
+      :dirty="Boolean(folderForm.folder_name)"
+      @close="closeFolderModal"
+    >
+      <p class="mb-4 text-sm text-slate-500">
+        Thư mục trong
+        <span class="font-medium text-slate-700">«{{ activeCat?.label }}»</span>
+        <template v-if="activeFolderId">
+          · bên trong
+          <span class="font-medium text-slate-700">{{ activeFolderLabel }}</span>
+        </template>
+        <template v-else>
+          · cấp gốc danh mục
+        </template>
+      </p>
+      <div>
+        <label
+          for="doc-folder-name"
+          class="text-xs font-medium text-slate-500"
+        >Tên thư mục</label>
+        <input
+          id="doc-folder-name"
+          v-model="folderForm.folder_name"
+          type="text"
+          class="input mt-1 w-full text-sm"
+          placeholder="VD: Hợp đồng · Thiết kế · Bàn giao"
+          maxlength="255"
+          @keyup.enter="submitFolder"
+        >
+        <p
+          v-if="folderForm.errors.folder_name"
+          class="mt-1 text-xs text-rose-600"
+        >
+          {{ folderForm.errors.folder_name }}
+        </p>
+      </div>
+      <div class="mt-5 flex justify-end gap-2">
+        <button
+          type="button"
+          class="btn-ghost text-sm"
+          @click="closeFolderModal"
+        >
+          Huỷ
+        </button>
+        <button
+          type="button"
+          class="btn-primary text-sm"
+          :disabled="folderForm.processing || !folderForm.folder_name.trim()"
+          @click="submitFolder"
+        >
+          {{ folderForm.processing ? 'Đang tạo…' : 'Tạo thư mục' }}
         </button>
       </div>
     </Modal>

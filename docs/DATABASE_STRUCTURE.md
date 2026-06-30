@@ -489,6 +489,8 @@ Bảng `bugs` và `bug_activities` không còn trên môi trường đã migrate
 | mime_type | varchar(100) | YES | |
 | size | bigint UNSIGNED | YES | |
 | is_image | tinyint(1) | NO | Default: 0 |
+| parent_id | bigint UNSIGNED | YES | FK → project_attachments (cascade) — thư mục cha |
+| is_folder | tinyint(1) | NO | Default: 0 — bản ghi thư mục (không file/link) |
 | created_at | timestamp | YES | |
 | updated_at | timestamp | YES | |
 

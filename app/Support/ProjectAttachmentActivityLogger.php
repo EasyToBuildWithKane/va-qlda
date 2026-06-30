@@ -53,6 +53,31 @@ class ProjectAttachmentActivityLogger
         );
     }
 
+    public static function folderCreated(ProjectAttachment $attachment, ?SystemAccount $account): void
+    {
+        self::log(
+            $attachment,
+            'folder_created',
+            'Tạo thư mục: '.$attachment->original_name,
+            [
+                'folder' => $attachment->original_name,
+                'category' => $attachment->category->value,
+            ],
+            $account?->employee_id,
+        );
+    }
+
+    public static function folderRenamed(ProjectAttachment $attachment, string $oldName, ?SystemAccount $account): void
+    {
+        self::log(
+            $attachment,
+            'folder_renamed',
+            "Đổi tên thư mục: {$oldName} → {$attachment->original_name}",
+            ['from' => $oldName, 'to' => $attachment->original_name],
+            $account?->employee_id,
+        );
+    }
+
     public static function uploaded(ProjectAttachment $attachment, ?SystemAccount $account): void
     {
         self::log(

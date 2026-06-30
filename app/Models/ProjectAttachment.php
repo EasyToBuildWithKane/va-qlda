@@ -23,12 +23,16 @@ use Illuminate\Support\Facades\Storage;
  * @property string|null $mime_type
  * @property int $size
  * @property bool $is_image
+ * @property int|null $parent_id
+ * @property bool $is_folder
  */
 class ProjectAttachment extends Model
 {
     protected $fillable = [
         'project_id',
         'category',
+        'parent_id',
+        'is_folder',
         'uploaded_by_id',
         'updated_by_id',
         'original_name',
@@ -43,8 +47,19 @@ class ProjectAttachment extends Model
     protected $casts = [
         'category' => ProjectAttachmentCategory::class,
         'is_image' => 'boolean',
+        'is_folder' => 'boolean',
         'size' => 'integer',
     ];
+
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'parent_id');
+    }
+
+    public function children(): HasMany
+    {
+        return $this->hasMany(self::class, 'parent_id')->orderBy('is_folder', 'desc')->orderBy('original_name');
+    }
 
     public function project(): BelongsTo
     {
@@ -68,11 +83,20 @@ class ProjectAttachment extends Model
 
     public function isExternalLink(): bool
     {
-        return filled($this->external_url);
+        return ! $this->is_folder && filled($this->external_url);
+    }
+
+    public function isFolder(): bool
+    {
+        return (bool) $this->is_folder;
     }
 
     public function fileExists(): bool
     {
+        if ($this->isFolder()) {
+            return true;
+        }
+
         if ($this->isExternalLink()) {
             return true;
         }
@@ -86,6 +110,10 @@ class ProjectAttachment extends Model
 
     public function url(): ?string
     {
+        if ($this->isFolder()) {
+            return null;
+        }
+
         if ($this->isExternalLink()) {
             return $this->external_url;
         }
@@ -158,6 +186,10 @@ class ProjectAttachment extends Model
     /** @return 'image'|'pdf'|'docx'|'xlsx'|'doc-legacy'|'google_doc'|'google_sheet'|'none' */
     public function previewKind(): string
     {
+        if ($this->isFolder()) {
+            return 'none';
+        }
+
         if ($this->isGoogleDocument()) {
             return 'google_doc';
         }
