@@ -184,7 +184,6 @@ const removeTask = async () => {
     router.delete(`/projects/${props.projectId}/tasks/${t.id}`, {
         preserveScroll: true,
         onSuccess: () => {
-            toast.success('Đã xoá công việc');
             emit('deleted');
         },
         onError: () => toast.error('Không thể xoá công việc'),

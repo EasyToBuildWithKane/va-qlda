@@ -172,7 +172,6 @@ const removeTask = async (t) => {
             if (detailTask.value?.id === t.id) {
                 detailTask.value = null;
             }
-            toast.success('Đã xoá công việc');
         },
         onError: () => toast.error('Không thể xoá công việc'),
     });
