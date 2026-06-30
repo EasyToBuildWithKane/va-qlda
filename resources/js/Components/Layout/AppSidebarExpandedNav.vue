@@ -182,16 +182,29 @@ const rowBase =
                     ]"
                   >
                     <span
-                      class="sidebar-nav-sub-marker shrink-0 select-none text-base font-semibold leading-none transition-colors"
-                      :class="
+                      class="sidebar-nav-icon-shell sidebar-nav-icon-shell--item grid h-7 w-7 shrink-0 place-items-center rounded-lg"
+                      :class="[
                         isActive(item.href)
-                          ? 'text-accent'
+                          ? ''
                           : isUpcomingGroup(group)
-                            ? 'text-amber-300/55 group-hover/item:text-amber-200/80'
-                            : 'text-white/40 group-hover/item:text-white/65'
-                      "
-                      aria-hidden="true"
-                    >–</span>
+                            ? 'group-hover/item:bg-amber-400/10'
+                            : 'group-hover/item:bg-white/[0.06]',
+                      ]"
+                    >
+                      <AppIcon
+                        :name="item.icon"
+                        :size="18"
+                        :stroke-width="1.65"
+                        class="sidebar-nav-icon shrink-0"
+                        :class="
+                          isActive(item.href)
+                            ? 'text-white'
+                            : isUpcomingGroup(group)
+                              ? 'text-amber-100/55 group-hover/item:text-amber-50/90'
+                              : 'text-white/55 group-hover/item:text-white/90'
+                        "
+                      />
+                    </span>
                     <span class="min-w-0 flex-1 truncate">{{ item.label }}</span>
 
                     <span
