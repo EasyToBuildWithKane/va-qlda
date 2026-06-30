@@ -213,7 +213,7 @@ Kanban nhóm theo `type` hoặc **đội CNTT** của quản lý (`EmployeeOrgTe
 | Tab | Key | Component chính |
 |---|---|---|
 | Tổng quan | `overview` | `ProjectShowSummaryBar`, `ProjectOverviewCard`, `WorkloadTable`, `ActivityFeed`, `GanttMini`, `RiskIssuePanel` |
-| Tài liệu | `documents` | `ProjectDocumentsPanel`, preview Google/ file |
+| Tài liệu | `documents` | `ProjectDocumentsPanel`, preview file + link Google Docs/Sheets/PDF |
 | Lịch dự án | `timeline` | `ProjectCalendar` — Gantt mini, kéo ngày → `PUT tasks` |
 | Kanban | `board` | `TaskBoard` — `PATCH tasks.status` |
 | Sprint | `sprints` | `SprintWorkspace` — list/calendar, `SprintDataModal` |
@@ -303,6 +303,8 @@ UI: `ProjectMembers.vue`, `MemberFormModal` — thêm từ `ProjectActions` trê
 | GET | `projects.attachments.file` | Stream file — **URL qua route**, `PublicMediaUrl`; null nếu mất file |
 
 **Category** (`ProjectAttachmentCategory`): customer, uiux, ba, customer_data, images, showcase (ảnh cổng `/congnghe`).
+
+**Link ngoài** (`external_url`, không upload file): Google Docs/Sheets (`GoogleWorkspaceUrl`) hoặc PDF — URL `https` kết thúc `.pdf` hoặc file trên Google Drive (`ProjectAttachmentExternalUrl`). Preview: iframe Google preview / PDF / Drive preview.
 
 Activity: `project_attachment_activities` — log trên `ProjectDocumentsPanel`.
 

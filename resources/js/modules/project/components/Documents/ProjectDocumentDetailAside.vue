@@ -133,7 +133,7 @@ const emit = defineEmits([
           class="w-full rounded border border-dashed border-slate-300 py-1.5 text-xs font-medium text-slate-600 hover:border-brand/40 hover:text-brand dark:border-slate-600"
           @click="emit('edit-link')"
         >
-          Sửa link Google
+          Sửa link
         </button>
         <div
           v-else
@@ -150,7 +150,7 @@ const emit = defineEmits([
             :value="linkForm.external_url"
             type="url"
             class="input w-full text-xs"
-            placeholder="https://docs.google.com/…"
+            placeholder="https://docs.google.com/… hoặc https://…/file.pdf"
             @input="emit('update:link-url', $event.target.value)"
           >
           <div class="flex justify-end gap-1.5">

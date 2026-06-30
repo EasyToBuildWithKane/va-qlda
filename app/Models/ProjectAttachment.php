@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Support\Enums\ProjectAttachmentCategory;
 use App\Support\GoogleWorkspaceUrl;
+use App\Support\ProjectAttachmentExternalUrl;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -105,7 +106,7 @@ class ProjectAttachment extends Model
             return null;
         }
 
-        $parsed = GoogleWorkspaceUrl::parse($this->external_url);
+        $parsed = ProjectAttachmentExternalUrl::parse($this->external_url);
 
         return $parsed['embed_url'] ?? null;
     }

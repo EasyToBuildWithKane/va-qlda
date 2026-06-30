@@ -7,6 +7,7 @@ use App\Models\SystemAccount;
 use App\Support\Enums\ProjectAttachmentCategory;
 use App\Support\Enums\SystemRole;
 use App\Support\GoogleWorkspaceUrl;
+use App\Support\ProjectAttachmentExternalUrl;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -47,5 +48,41 @@ class ProjectAttachmentGoogleLinkTest extends TestCase
             'external_url' => 'https://docs.google.com/document/d/testDocId123/edit',
             'path' => '',
         ]);
+    }
+
+    public function test_contributor_can_store_direct_pdf_link(): void
+    {
+        $account = SystemAccount::factory()->role(SystemRole::Admin)->create();
+        $project = Project::factory()->create();
+
+        $url = 'https://cdn.example.com/specs/phase-1.pdf';
+
+        $response = $this->actingAs($account, 'system')->post("/projects/{$project->id}/attachments", [
+            'category' => ProjectAttachmentCategory::Customer->value,
+            'title' => 'Đặc tả PDF',
+            'external_url' => $url,
+        ]);
+
+        $response->assertRedirect();
+        $this->assertDatabaseHas('project_attachments', [
+            'project_id' => $project->id,
+            'original_name' => 'Đặc tả PDF',
+            'external_url' => $url,
+            'mime_type' => 'application/pdf',
+            'path' => '',
+        ]);
+    }
+
+    public function test_project_attachment_external_url_parser_accepts_pdf_and_drive(): void
+    {
+        $pdf = ProjectAttachmentExternalUrl::parse('https://files.example.org/docs/report.pdf?v=2');
+        $this->assertNotNull($pdf);
+        $this->assertSame('pdf', $pdf['type']);
+        $this->assertSame('application/pdf', $pdf['mime_type']);
+
+        $drive = ProjectAttachmentExternalUrl::parse('https://drive.google.com/file/d/abcPDF99/view?usp=sharing');
+        $this->assertNotNull($drive);
+        $this->assertSame('pdf', $drive['type']);
+        $this->assertStringContainsString('/file/d/abcPDF99/preview', $drive['embed_url']);
     }
 }

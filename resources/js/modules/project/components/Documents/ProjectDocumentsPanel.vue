@@ -132,11 +132,12 @@ const cancelLinkEdit = () => {
 const listBadge = (file) => {
     if (file.is_google_doc || file.preview_kind === 'google_doc') return 'DOC';
     if (file.is_google_sheet || file.preview_kind === 'google_sheet') return 'SHT';
+    if (file.is_external_link && file.is_pdf) return 'PDF';
     return fileExt(file.original_name);
 };
 
 const formatSize = (bytes, file = null) => {
-    if (file?.is_external_link) return 'Link Google';
+    if (file?.is_external_link) return 'Link tài liệu';
     if (!bytes) return '0 B';
     const units = ['B', 'KB', 'MB', 'GB'];
     let n = bytes;
@@ -216,7 +217,7 @@ const submitLink = () => {
             linkDraft.clear();
             closeLinkModal();
         },
-        onError: () => toast.error('Không thể thêm link. Kiểm tra URL Google Docs hoặc Sheets.'),
+        onError: () => toast.error('Không thể thêm link. Kiểm tra URL (Google Docs, Sheets hoặc PDF).'),
     });
 };
 
@@ -394,7 +395,7 @@ const activityTone = (event) => ({
             name="link"
             :size="14"
           />
-          Thêm link Google
+          Thêm link tài liệu
         </button>
         <button
           type="button"
@@ -676,15 +677,16 @@ const activityTone = (event) => ({
     <Modal
       ref="linkModalRef"
       :show="showLinkModal"
-      title="Thêm link Google Docs / Sheets"
+      title="Thêm link tài liệu"
       max-width="max-w-md"
       :dirty="Boolean(linkForm.title || linkForm.external_url)"
       :on-save-draft="saveLinkDraftOnClose"
       @close="closeLinkModal"
     >
       <p class="mb-4 text-sm text-slate-500">
-        Dán link chia sẻ từ Google (quyền «Bất kỳ ai có link» hoặc tài khoản VA có quyền xem) vào danh mục
+        Dán link Google Docs, Google Sheets hoặc PDF (URL trực tiếp / Google Drive) vào danh mục
         <span class="font-medium text-slate-700">«{{ activeCat?.label }}»</span>.
+        Với Google, nên bật quyền «Bất kỳ ai có link» hoặc tài khoản VA có quyền xem.
       </p>
       <div class="space-y-3">
         <div>
@@ -704,13 +706,13 @@ const activityTone = (event) => ({
           <label
             for="doc-link-url"
             class="text-xs font-medium text-slate-500"
-          >Link Google</label>
+          >Link (Google Docs, Sheets hoặc PDF)</label>
           <input
             id="doc-link-url"
             v-model="linkForm.external_url"
             type="url"
             class="input mt-1 w-full text-sm"
-            placeholder="https://docs.google.com/document/d/…"
+            placeholder="https://docs.google.com/… hoặc https://…/file.pdf"
             required
           >
           <p

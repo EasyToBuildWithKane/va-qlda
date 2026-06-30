@@ -28,7 +28,7 @@ const showFallback = computed(() =>
 
 /** Fit = thu trọn một trang trong khung iframe, không cuộn nội bộ */
 const pdfPreviewUrl = computed(() => {
-    const raw = props.file?.url;
+    const raw = props.file?.embed_url || props.file?.url;
     if (!raw) return '';
     const base = raw.split('#')[0];
     return `${base}#view=Fit&navpanes=0`;

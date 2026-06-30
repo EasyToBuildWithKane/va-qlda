@@ -3,7 +3,7 @@
 namespace App\Http\Requests\Project;
 
 use App\Support\Enums\ProjectAttachmentCategory;
-use App\Support\GoogleWorkspaceUrl;
+use App\Support\ProjectAttachmentExternalUrl;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -40,7 +40,7 @@ class StoreProjectAttachmentRequest extends FormRequest
             $externalUrl = trim((string) $this->input('external_url', ''));
 
             if (! $hasFiles && $externalUrl === '') {
-                $v->errors()->add('files', 'Chọn file hoặc dán link Google Docs / Google Sheets.');
+                $v->errors()->add('files', 'Chọn file hoặc dán link Google Docs, Google Sheets hoặc PDF.');
 
                 return;
             }
@@ -51,8 +51,8 @@ class StoreProjectAttachmentRequest extends FormRequest
                 return;
             }
 
-            if ($externalUrl !== '' && ! GoogleWorkspaceUrl::isSupported($externalUrl)) {
-                $v->errors()->add('external_url', 'Chỉ hỗ trợ link Google Docs hoặc Google Sheets (https://docs.google.com/…).');
+            if ($externalUrl !== '' && ! ProjectAttachmentExternalUrl::isSupported($externalUrl)) {
+                $v->errors()->add('external_url', 'Chỉ hỗ trợ link Google Docs, Google Sheets hoặc PDF (https://…/file.pdf hoặc Google Drive).');
             }
         });
     }

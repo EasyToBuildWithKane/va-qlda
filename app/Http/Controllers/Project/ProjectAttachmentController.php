@@ -7,8 +7,8 @@ use App\Http\Requests\Project\StoreProjectAttachmentRequest;
 use App\Http\Requests\Project\UpdateProjectAttachmentRequest;
 use App\Models\Project;
 use App\Models\ProjectAttachment;
-use App\Support\GoogleWorkspaceUrl;
 use App\Support\ProjectAttachmentActivityLogger;
+use App\Support\ProjectAttachmentExternalUrl;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -47,9 +47,9 @@ class ProjectAttachmentController extends Controller
 
         $externalUrl = trim((string) ($data['external_url'] ?? ''));
         if ($externalUrl !== '') {
-            $parsed = GoogleWorkspaceUrl::parse($externalUrl);
+            $parsed = ProjectAttachmentExternalUrl::parse($externalUrl);
             if ($parsed === null) {
-                return back()->withErrors(['external_url' => 'Link Google không hợp lệ.']);
+                return back()->withErrors(['external_url' => 'Link không hợp lệ.']);
             }
 
             $title = trim((string) ($data['title'] ?? ''));
@@ -61,16 +61,14 @@ class ProjectAttachmentController extends Controller
                 'original_name' => $originalName,
                 'path' => '',
                 'external_url' => $parsed['view_url'],
-                'mime_type' => $parsed['type'] === 'document'
-                    ? 'application/vnd.google-apps.document'
-                    : 'application/vnd.google-apps.spreadsheet',
+                'mime_type' => $parsed['mime_type'],
                 'size' => 0,
                 'is_image' => false,
             ]);
 
             ProjectAttachmentActivityLogger::linkAdded($attachment, $account);
 
-            return back()->with('success', 'Đã thêm link Google.');
+            return back()->with('success', 'Đã thêm link tài liệu.');
         }
 
         foreach ($request->file('files', []) as $file) {
@@ -112,16 +110,14 @@ class ProjectAttachmentController extends Controller
         }
 
         if (array_key_exists('external_url', $data) && $attachment->isExternalLink()) {
-            $parsed = GoogleWorkspaceUrl::parse((string) $data['external_url']);
+            $parsed = ProjectAttachmentExternalUrl::parse((string) $data['external_url']);
             if ($parsed === null) {
-                return back()->withErrors(['external_url' => 'Link Google không hợp lệ.']);
+                return back()->withErrors(['external_url' => 'Link không hợp lệ.']);
             }
 
             $updates = [
                 'external_url' => $parsed['view_url'],
-                'mime_type' => $parsed['type'] === 'document'
-                    ? 'application/vnd.google-apps.document'
-                    : 'application/vnd.google-apps.spreadsheet',
+                'mime_type' => $parsed['mime_type'],
                 'updated_by_id' => $account->employee_id,
             ];
 
@@ -136,7 +132,7 @@ class ProjectAttachmentController extends Controller
 
         if ($request->hasFile('file')) {
             if ($attachment->isExternalLink()) {
-                return back()->withErrors(['file' => 'Không thể thay thế file cho bản ghi link Google.']);
+                return back()->withErrors(['file' => 'Không thể thay thế file cho bản ghi link ngoài.']);
             }
 
             $this->authorize('manage', $project);
