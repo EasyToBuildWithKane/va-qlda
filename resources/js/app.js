@@ -8,6 +8,8 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { ZiggyVue } from 'ziggy-js';
 import { createPinia } from 'pinia';
 
+import AppChrome from '@/Layouts/AppChrome.vue';
+
 const appName = import.meta.env.VITE_APP_NAME || 'VA QLDA';
 
 router.on('invalid', (event) => {
@@ -32,7 +34,9 @@ createInertiaApp({
         ),
     setup({ el, App, props, plugin }) {
         syncCsrfToken(props.initialPage?.props?.csrf_token);
-        createApp({ render: () => h(App, props) })
+        createApp({
+            render: () => h(AppChrome, () => h(App, props)),
+        })
             .use(plugin)
             .use(ZiggyVue)
             .use(createPinia())

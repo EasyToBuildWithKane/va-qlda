@@ -1,14 +1,12 @@
-import { computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
+import { computed, inject, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import { useOverflowScrollHints } from '@/composables/useOverflowScrollHints';
+
+export const APP_SIDEBAR_KEY = Symbol('vaAppSidebar');
 
 const RAIL_KEY = 'va-qlda.sidebar.rail';
 const COLLAPSE_KEY = 'va-qlda.sidebar.collapsed';
 const MOBILE_BREAKPOINT = 1024;
-
-// Module-level: survives composable re-instantiation across Inertia navigations
-// (AppLayout remounts on each navigation in template-based layout mode)
-let _sidebarScrollTop = 0;
 
 const ROLE_LABELS = {
     admin: 'Quản trị viên',
@@ -28,7 +26,14 @@ export const SIDEBAR_STATUS = {
     },
 };
 
+/** Sidebar shell gắn trên AppChrome — một instance, không remount theo Inertia page. */
+let sidebarShellInstance = null;
+
 export function useAppSidebar() {
+    if (sidebarShellInstance) {
+        return sidebarShellInstance;
+    }
+
     const page = usePage();
     const nav = computed(() => page.props.nav ?? []);
     const user = computed(() => page.props.auth?.user);
@@ -226,75 +231,16 @@ export function useAppSidebar() {
 
     const sidebarNavRef = ref(null);
 
-    function persistSidebarScroll() {
-        const el = sidebarNavRef.value;
-        if (el) _sidebarScrollTop = el.scrollTop;
-    }
-
-    // Save scroll before refs are cleared on unmount (backup if scroll handler missed).
-    onBeforeUnmount(persistSidebarScroll);
-
     const { edges: sidebarScrollEdges, onScroll: onSidebarNavScroll } = useOverflowScrollHints(
         [rail, nav, collapsed],
         sidebarNavRef,
     );
 
-    function onSidebarNavScrollWithPersist(e) {
-        persistSidebarScroll();
-        onSidebarNavScroll(e);
-    }
-
-    function isActiveNavItemInView(container, el) {
-        if (!container || !el) return true;
-        const c = container.getBoundingClientRect();
-        const e = el.getBoundingClientRect();
-        return e.top >= c.top - 1 && e.bottom <= c.bottom + 1;
-    }
-
-    function applySidebarScrollRestore(root) {
-        if (!root) return;
-        if (root.scrollTop !== _sidebarScrollTop) {
-            root.scrollTop = _sidebarScrollTop;
-        }
-    }
-
-    function restoreSidebarScroll() {
-        nextTick(() => {
-            applySidebarScrollRestore(sidebarNavRef.value);
-            onSidebarNavScroll();
-        });
-    }
-
-    function scrollActiveNavItemIntoView(behavior = 'instant') {
-        nextTick(() => {
-            const root = sidebarNavRef.value;
-            if (!root) return;
-
-            applySidebarScrollRestore(root);
-
-            const active = root.querySelector('.sidebar-nav-item--active');
-            if (active && !isActiveNavItemInView(root, active)) {
-                active.scrollIntoView({ block: 'nearest', behavior });
-                persistSidebarScroll();
-            }
-            onSidebarNavScroll();
-        });
-    }
-
-    watch(
-        () => page.url,
-        () => {
-            restoreSidebarScroll();
-        },
-    );
-
     watch(rail, (v) => {
         if (!v) closeFlyout();
-        nextTick(() => scrollActiveNavItemIntoView('smooth'));
     });
-    onMounted(restoreSidebarScroll);
 
-    return {
+    sidebarShellInstance = {
         nav,
         user,
         appShortName,
@@ -334,8 +280,15 @@ export function useAppSidebar() {
         onFlyoutPointerLeave,
         cancelFlyoutClose,
         sidebarNavRef,
-        scrollActiveNavItemIntoView,
         sidebarScrollEdges,
-        onSidebarNavScroll: onSidebarNavScrollWithPersist,
+        onSidebarNavScroll,
     };
+
+    return sidebarShellInstance;
+}
+
+/** Trang con (AppLayout): lấy sidebar từ AppChrome hoặc khởi tạo khi test/mount đơn lẻ. */
+export function useAppSidebarContext() {
+    const fromChrome = inject(APP_SIDEBAR_KEY, null);
+    return fromChrome ?? useAppSidebar();
 }

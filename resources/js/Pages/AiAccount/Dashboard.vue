@@ -1,24 +1,14 @@
 <script setup>
 import { computed, onMounted, watch } from 'vue';
 import { Head } from '@inertiajs/vue3';
-import {
-    Chart as ChartJS,
-    ArcElement, CategoryScale, LinearScale,
-    BarElement, LineElement, PointElement,
-    Title, Tooltip, Legend, Filler,
-} from 'chart.js';
-import { Doughnut, Bar, Line } from 'vue-chartjs';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import { useAiExecutiveDashboard } from '@/modules/aiAccount/composables/useAiExecutiveDashboard';
 import AiExecutiveSummaryStrip from '@/modules/aiAccount/components/AiExecutiveSummaryStrip.vue';
-import { formatVndCompact } from '@/modules/aiAccount/utils/formatVnd';
-
-ChartJS.register(
-    ArcElement, CategoryScale, LinearScale,
-    BarElement, LineElement, PointElement,
-    Title, Tooltip, Legend, Filler,
-);
+import AiDashboardCostTrendChart from '@/modules/aiAccount/components/dashboard/AiDashboardCostTrendChart.vue';
+import AiDashboardProductMixChart from '@/modules/aiAccount/components/dashboard/AiDashboardProductMixChart.vue';
+import AiDashboardDonutChart from '@/modules/aiAccount/components/dashboard/AiDashboardDonutChart.vue';
+import AiDashboardTopLists from '@/modules/aiAccount/components/dashboard/AiDashboardTopLists.vue';
 
 defineProps({
     exchangeRate: { type: Number, default: 25500 },
@@ -37,105 +27,7 @@ onMounted(load);
 watch([granularity, comparePreviousYear], load);
 
 const kpis = computed(() => data.value?.kpis ?? {});
-
-const chartColors = ['#9A0036', '#185FA5', '#854F0B', '#534AB7', '#3B6D11', '#0ea5e9', '#f59e0b', '#64748b'];
-
-const lineChart = computed(() => {
-    const series = data.value?.cost_over_time;
-    if (!series?.labels?.length) return null;
-    return {
-        labels: series.labels,
-        datasets: (series.datasets ?? []).map((ds, i) => ({
-            label: ds.label,
-            data: ds.data,
-            borderColor: chartColors[i % chartColors.length],
-            backgroundColor: i === 0 ? 'rgba(154, 0, 54, 0.08)' : 'transparent',
-            fill: i === 0,
-            tension: 0.35,
-            pointRadius: 3,
-        })),
-    };
-});
-
-const productBar = computed(() => {
-    const rows = data.value?.by_product ?? [];
-    return {
-        labels: rows.map((r) => r.tool_name),
-        datasets: [
-            {
-                label: 'Chi phí / tháng (VNĐ)',
-                data: rows.map((r) => r.cost_monthly),
-                backgroundColor: '#9A0036',
-                borderRadius: 6,
-            },
-            {
-                label: 'Số TK',
-                data: rows.map((r) => r.account_count),
-                backgroundColor: '#185FA5',
-                borderRadius: 6,
-                yAxisID: 'y1',
-            },
-        ],
-    };
-});
-
-const budgetDonut = computed(() => {
-    const rows = data.value?.budget_allocation ?? [];
-    return {
-        labels: rows.map((r) => r.label),
-        datasets: [{
-            data: rows.map((r) => r.amount),
-            backgroundColor: ['#9A0036', '#f59e0b', '#94a3b8'],
-            borderWidth: 0,
-        }],
-    };
-});
-
-const statusDonut = computed(() => {
-    const rows = data.value?.account_status ?? [];
-    return {
-        labels: rows.map((r) => r.label),
-        datasets: [{
-            data: rows.map((r) => r.count),
-            backgroundColor: ['#10b981', '#f59e0b', '#f43f5e', '#cbd5e1'],
-            borderWidth: 0,
-        }],
-    };
-});
-
-const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: { legend: { position: 'bottom' } },
-};
-
-const lineOptions = {
-    ...chartOptions,
-    scales: {
-        y: {
-            ticks: {
-                callback: (v) => `${Math.round(v / 1_000_000)}tr`,
-            },
-        },
-    },
-};
-
-const productOptions = {
-    ...chartOptions,
-    scales: {
-        y: { ticks: { callback: (v) => `${Math.round(v / 1_000_000)}tr` } },
-        y1: { position: 'right', grid: { drawOnChartArea: false } },
-    },
-};
-
 const top = computed(() => data.value?.top ?? {});
-
-const GRANULARITY_OPTS = [
-    { value: 'day', label: 'Ngày' },
-    { value: 'month', label: 'Tháng' },
-    { value: 'quarter', label: 'Quý' },
-    { value: 'year', label: 'Năm' },
-];
 </script>
 
 <template>
@@ -154,6 +46,7 @@ const GRANULARITY_OPTS = [
       <div
         v-if="error"
         class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800"
+        role="alert"
       >
         {{ error }}
       </div>
@@ -163,143 +56,49 @@ const GRANULARITY_OPTS = [
         :loading="loading && !data"
       />
 
-      <template v-if="data">
-        <div class="rounded-xl border border-slate-200/80 bg-white p-5">
-          <div class="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
-            <h2 class="text-sm text-slate-600">
-              Chi phí theo thời gian
-            </h2>
-            <div class="flex flex-wrap items-center gap-2">
-              <select
-                v-model="granularity"
-                class="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs"
-                aria-label="Granularity"
-              >
-                <option
-                  v-for="g in GRANULARITY_OPTS"
-                  :key="g.value"
-                  :value="g.value"
-                >
-                  {{ g.label }}
-                </option>
-              </select>
-              <label class="inline-flex items-center gap-1.5 text-xs text-slate-600">
-                <input
-                  v-model="comparePreviousYear"
-                  type="checkbox"
-                  class="rounded border-slate-300 text-brand"
-                >
-                So sánh năm trước
-              </label>
-            </div>
-          </div>
-          <div class="h-72">
-            <Line
-              v-if="lineChart"
-              :data="lineChart"
-              :options="lineOptions"
-            />
-          </div>
-        </div>
+      <AiDashboardCostTrendChart
+        v-model:granularity="granularity"
+        v-model:compare-previous-year="comparePreviousYear"
+        :series="data?.cost_over_time"
+        :loading="loading"
+      />
 
-        <div class="rounded-xl border border-slate-200/80 bg-white p-5">
-          <h2 class="mb-4 border-b border-slate-100 pb-3 text-sm text-slate-600">
-            Chi phí theo sản phẩm AI
-          </h2>
-          <div class="h-72">
-            <Bar
-              v-if="productBar.labels.length"
-              :data="productBar"
-              :options="productOptions"
-            />
-            <p
-              v-else
-              class="py-16 text-center text-sm text-slate-400"
-            >
-              Chưa có dữ liệu
-            </p>
-          </div>
-        </div>
+      <AiDashboardProductMixChart
+        :rows="data?.by_product ?? []"
+        :loading="loading"
+      />
 
-        <div class="grid gap-4 md:grid-cols-2">
-          <div class="rounded-xl border border-slate-200/80 bg-white p-5">
-            <h2 class="mb-4 border-b border-slate-100 pb-3 text-sm text-slate-600">
-              Phân bổ ngân sách
-            </h2>
-            <div class="mx-auto h-56 max-w-xs">
-              <Doughnut
-                v-if="budgetDonut.labels.length"
-                :data="budgetDonut"
-                :options="chartOptions"
-              />
-            </div>
-          </div>
-          <div class="rounded-xl border border-slate-200/80 bg-white p-5">
-            <h2 class="mb-4 border-b border-slate-100 pb-3 text-sm text-slate-600">
-              Trạng thái tài khoản
-            </h2>
-            <div class="mx-auto h-56 max-w-xs">
-              <Doughnut
-                v-if="statusDonut.labels.length"
-                :data="statusDonut"
-                :options="chartOptions"
-              />
-            </div>
-          </div>
-        </div>
+      <div class="grid gap-4 lg:grid-cols-2">
+        <AiDashboardDonutChart
+          title="Phân bổ ngân sách"
+          subtitle="Đã sử dụng · đã cam kết · còn lại (PĐX/ĐNTT)"
+          icon="budget"
+          palette="budget"
+          value-key="amount"
+          center-caption="Ngân sách"
+          empty-title="Chưa có phân bổ ngân sách"
+          empty-description="Dữ liệu xuất hiện khi có phiếu đề xuất đã duyệt và thanh toán được ghi nhận."
+          :rows="data?.budget_allocation ?? []"
+          :loading="loading"
+        />
+        <AiDashboardDonutChart
+          title="Trạng thái tài khoản"
+          subtitle="Theo vòng đời đăng ký và cấp phát"
+          icon="account"
+          palette="status"
+          value-key="count"
+          center-caption="Tài khoản"
+          empty-title="Chưa có tài khoản thống kê"
+          empty-description="Thêm tài khoản AI vào danh mục để xem tỷ lệ trạng thái."
+          :rows="data?.account_status ?? []"
+          :loading="loading"
+        />
+      </div>
 
-        <div class="grid gap-4 lg:grid-cols-3">
-          <div class="rounded-xl border border-slate-200/80 bg-white p-5">
-            <h3 class="mb-3 border-b border-slate-100 pb-2 text-sm text-slate-600">
-              Top chi phí sản phẩm
-            </h3>
-            <ol class="space-y-2.5 text-sm">
-              <li
-                v-for="(row, i) in (top.costly_products ?? []).slice(0, 10)"
-                :key="row.tool_name"
-                class="flex justify-between gap-3 border-b border-slate-50 pb-2 last:border-0"
-              >
-                <span class="text-slate-600">{{ i + 1 }}. {{ row.tool_name }}</span>
-                <span class="shrink-0 tabular-nums text-brand">{{ formatVndCompact(row.cost_monthly) }}</span>
-              </li>
-            </ol>
-          </div>
-          <div class="rounded-xl border border-slate-200/80 bg-white p-5">
-            <h3 class="mb-3 border-b border-slate-100 pb-2 text-sm text-slate-600">
-              Top người dùng (nhiều TK)
-            </h3>
-            <ol class="space-y-2.5 text-sm">
-              <li
-                v-for="(row, i) in (top.users_most_accounts ?? []).slice(0, 10)"
-                :key="row.user_name"
-                class="flex justify-between gap-3 border-b border-slate-50 pb-2 last:border-0"
-              >
-                <span class="truncate text-slate-600">{{ i + 1 }}. {{ row.user_name }}</span>
-                <span class="shrink-0 tabular-nums text-slate-700">{{ row.account_count }} TK</span>
-              </li>
-            </ol>
-          </div>
-          <div class="rounded-xl border border-slate-200/80 bg-white p-5">
-            <h3 class="mb-3 border-b border-slate-100 pb-2 text-sm text-slate-600">
-              Sắp hết hạn gần nhất
-            </h3>
-            <ol class="space-y-2.5 text-sm">
-              <li
-                v-for="row in (top.expiring_soon ?? []).slice(0, 10)"
-                :key="row.id"
-                class="border-b border-slate-50 pb-2 last:border-0"
-              >
-                <p class="text-slate-700">
-                  {{ row.tool_name }}
-                </p>
-                <p class="mt-0.5 text-xs text-slate-500">
-                  {{ row.expiry_date }} · còn {{ row.days_until_expiry }} ngày
-                </p>
-              </li>
-            </ol>
-          </div>
-        </div>
-      </template>
+      <AiDashboardTopLists
+        :top="top"
+        :loading="loading && !data"
+      />
     </div>
   </AppLayout>
 </template>

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, onUnmounted, provide, watch } from 'vue';
+import { computed, inject, provide, watch } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import UserMenu from '@/modules/project/components/UserMenu.vue';
 import NotificationBell from '@/Components/Notifications/NotificationBell.vue';
@@ -12,7 +12,7 @@ import AppSidebarMobileDrawer from '@/Components/Layout/AppSidebarMobileDrawer.v
 import OnboardingRoot from '@/modules/onboarding/components/OnboardingRoot.vue';
 import { useToast } from '@/shared/composables/useToast';
 import { useNotifications } from '@/composables/useNotifications';
-import { useAppSidebar } from '@/composables/useAppSidebar';
+import { APP_SIDEBAR_KEY, useAppSidebar } from '@/composables/useAppSidebar';
 import { usePage } from '@inertiajs/vue3';
 
 const notificationCenter = useNotifications();
@@ -47,17 +47,20 @@ watch(
     },
 );
 
-const sidebar = useAppSidebar();
+const fromChrome = inject(APP_SIDEBAR_KEY, null);
+const fallbackSidebar = fromChrome ? null : useAppSidebar();
+const sidebar = fromChrome ?? fallbackSidebar;
+
+/** Sidebar nằm trên AppChrome; chỉ nhúng lại khi mount AppLayout đơn lẻ (test). */
+const renderSidebarHere = computed(() => Boolean(page.props.auth?.user) && !fromChrome);
+
 const {
-    nav,
-    user,
-    appShortName,
-    appName,
     roleLabel,
-    rail,
     mobileOpen,
     openMobile,
-    closeMobile,
+    nav,
+    appShortName,
+    appName,
     groupKey,
     isOpen,
     toggleGroup,
@@ -84,90 +87,83 @@ const {
     sidebarNavRef,
     sidebarScrollEdges,
     onSidebarNavScroll,
+    rail,
 } = sidebar;
 
 function registerSidebarNavEl(el) {
     sidebarNavRef.value = el;
 }
 
+const user = computed(() => page.props.auth?.user);
+
 const currentDate = computed(() =>
     new Date().toLocaleDateString('vi-VN', {
         weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric',
     }),
 );
-
-function onDocumentClick(e) {
-    if (!rail.value || !flyout.open) return;
-    const t = e.target;
-    if (t.closest?.('.sidebar-rail-item') || t.closest?.('.sidebar-rail-group') || t.closest?.('[role="menu"]')) return;
-    closeFlyout();
-}
-
-onMounted(() => {
-    document.addEventListener('click', onDocumentClick);
-});
-
-onUnmounted(() => {
-    document.removeEventListener('click', onDocumentClick);
-});
 </script>
 
 <template>
-  <div class="flex h-screen min-h-0 overflow-hidden bg-slate-50">
-    <AppSidebar
-      data-tour="sidebar"
-      :rail="rail"
-      :nav="nav"
-      :app-short-name="appShortName"
-      :app-name="appName"
-      :role-label="roleLabel"
-      :user-initials="userInitials"
-      :user-avatar-src="userAvatarSrc"
-      :user-display-name="userDisplayName"
-      :group-key="groupKey"
-      :is-open="isOpen"
-      :toggle-group="toggleGroup"
-      :is-active="isActive"
-      :is-upcoming-group="isUpcomingGroup"
-      :is-planned="isPlanned"
-      :show-badge="showBadge"
-      :status-of="statusOf"
-      :show-rail-status="showRailStatus"
-      :rail-tone="railTone"
-      :group-contains-active="groupContainsActive"
-      :tip="tip"
-      :show-tip="showTip"
-      :hide-tip="hideTip"
-      :flyout="flyout"
-      :open-flyout="openFlyout"
-      :schedule-flyout="scheduleFlyout"
-      :close-flyout="closeFlyout"
-      :on-flyout-pointer-leave="onFlyoutPointerLeave"
-      :cancel-flyout-close="cancelFlyoutClose"
-      :register-nav-el="registerSidebarNavEl"
-      :sidebar-scroll-edges="sidebarScrollEdges"
-      :on-sidebar-nav-scroll="onSidebarNavScroll"
-      @collapse="rail = true"
-      @expand="rail = false"
-    />
+  <div
+    class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
+    :class="renderSidebarHere && 'h-screen min-h-0 overflow-hidden bg-slate-50 lg:flex-row'"
+  >
+    <template v-if="renderSidebarHere">
+      <AppSidebar
+        data-tour="sidebar"
+        :rail="rail"
+        :nav="nav"
+        :app-short-name="appShortName"
+        :app-name="appName"
+        :role-label="roleLabel"
+        :user-initials="userInitials"
+        :user-avatar-src="userAvatarSrc"
+        :user-display-name="userDisplayName"
+        :group-key="groupKey"
+        :is-open="isOpen"
+        :toggle-group="toggleGroup"
+        :is-active="isActive"
+        :is-upcoming-group="isUpcomingGroup"
+        :is-planned="isPlanned"
+        :show-badge="showBadge"
+        :status-of="statusOf"
+        :show-rail-status="showRailStatus"
+        :rail-tone="railTone"
+        :group-contains-active="groupContainsActive"
+        :tip="tip"
+        :show-tip="showTip"
+        :hide-tip="hideTip"
+        :flyout="flyout"
+        :open-flyout="openFlyout"
+        :schedule-flyout="scheduleFlyout"
+        :close-flyout="closeFlyout"
+        :on-flyout-pointer-leave="onFlyoutPointerLeave"
+        :cancel-flyout-close="cancelFlyoutClose"
+        :register-nav-el="registerSidebarNavEl"
+        :sidebar-scroll-edges="sidebarScrollEdges"
+        :on-sidebar-nav-scroll="onSidebarNavScroll"
+        @collapse="rail = true"
+        @expand="rail = false"
+      />
 
-    <AppSidebarMobileDrawer
-      :open="mobileOpen"
-      :nav="nav"
-      :app-short-name="appShortName"
-      :app-name="appName"
-      :group-key="groupKey"
-      :is-open="isOpen"
-      :toggle-group="toggleGroup"
-      :is-active="isActive"
-      :is-upcoming-group="isUpcomingGroup"
-      :is-planned="isPlanned"
-      :group-contains-active="groupContainsActive"
-      :show-badge="showBadge"
-      :status-of="statusOf"
-      :register-nav-el="registerSidebarNavEl"
-      @close="closeMobile"
-    />
+      <AppSidebarMobileDrawer
+        :open="mobileOpen"
+        :nav="nav"
+        :app-short-name="appShortName"
+        :app-name="appName"
+        :group-key="groupKey"
+        :is-open="isOpen"
+        :toggle-group="toggleGroup"
+        :is-active="isActive"
+        :is-upcoming-group="isUpcomingGroup"
+        :is-planned="isPlanned"
+        :group-contains-active="groupContainsActive"
+        :show-badge="showBadge"
+        :status-of="statusOf"
+        :register-nav-el="registerSidebarNavEl"
+        @close="closeMobile"
+      />
+    </template>
 
     <div class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
       <slot name="topbar">

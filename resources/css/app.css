@@ -177,7 +177,7 @@
     /* Sidebar nav — thanh cuộn mảnh, tông trắng trên nền brand */
     .sidebar-nav-scroll {
         overscroll-behavior: contain;
-        scroll-behavior: smooth;
+        overflow-anchor: none;
         -webkit-overflow-scrolling: touch;
         scroll-padding-block: 0.5rem;
         scrollbar-width: thin;
