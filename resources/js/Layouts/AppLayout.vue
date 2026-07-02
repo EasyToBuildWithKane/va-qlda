@@ -12,7 +12,7 @@ import AppSidebarMobileDrawer from '@/Components/Layout/AppSidebarMobileDrawer.v
 import OnboardingRoot from '@/modules/onboarding/components/OnboardingRoot.vue';
 import { useToast } from '@/shared/composables/useToast';
 import { useNotifications } from '@/composables/useNotifications';
-import { APP_SIDEBAR_KEY, useAppSidebar } from '@/composables/useAppSidebar';
+import { APP_SIDEBAR_KEY, useAppSidebarContext } from '@/composables/useAppSidebar';
 import { usePage } from '@inertiajs/vue3';
 
 const notificationCenter = useNotifications();
@@ -48,11 +48,10 @@ watch(
 );
 
 const fromChrome = inject(APP_SIDEBAR_KEY, null);
-const fallbackSidebar = fromChrome ? null : useAppSidebar();
-const sidebar = fromChrome ?? fallbackSidebar;
+const sidebar = useAppSidebarContext();
 
 /** Sidebar nằm trên AppChrome; chỉ nhúng lại khi mount AppLayout đơn lẻ (test). */
-const renderSidebarHere = computed(() => Boolean(page.props.auth?.user) && !fromChrome);
+const renderSidebarHere = computed(() => Boolean(page.props?.auth?.user) && !fromChrome);
 
 const {
     roleLabel,

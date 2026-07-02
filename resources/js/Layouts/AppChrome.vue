@@ -6,7 +6,7 @@ import AppSidebarMobileDrawer from '@/Components/Layout/AppSidebarMobileDrawer.v
 import { APP_SIDEBAR_KEY, useAppSidebar } from '@/composables/useAppSidebar';
 
 const page = usePage();
-const showSidebar = computed(() => Boolean(page.props.auth?.user));
+const showSidebar = computed(() => Boolean(page.props?.auth?.user));
 
 const sidebar = useAppSidebar();
 provide(APP_SIDEBAR_KEY, sidebar);

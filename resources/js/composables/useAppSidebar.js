@@ -35,10 +35,10 @@ export function useAppSidebar() {
     }
 
     const page = usePage();
-    const nav = computed(() => page.props.nav ?? []);
-    const user = computed(() => page.props.auth?.user);
+    const nav = computed(() => page.props?.nav ?? []);
+    const user = computed(() => page.props?.auth?.user);
 
-    const appInfo = computed(() => page.props.app ?? {});
+    const appInfo = computed(() => page.props?.app ?? {});
     const appShortName = computed(() => appInfo.value.short_name || 'VA');
     const appName = computed(() => appInfo.value.name || 'VAschools QLDA');
     const appVersion = computed(() => appInfo.value.version || '1.0');
