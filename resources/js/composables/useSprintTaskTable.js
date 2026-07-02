@@ -15,6 +15,7 @@ function sortValue(row, key, sprintById, allTasks) {
         case 'reviewer': return row.reviewer?.name ?? '';
         case 'sprint': return sprintById.get(row.sprint_id)?.name ?? 'zzz';
         case 'estimate_hours': return row.estimate_hours ?? 0;
+        case 'actual_hours': return row.actual_hours ?? 0;
         case 'progress': return row.progress ?? 0;
         case 'start_date': return row.start_date ? new Date(`${row.start_date}T00:00:00`).getTime() : 0;
         case 'due_date': return row.due_date ? new Date(`${row.due_date}T00:00:00`).getTime() : 0;

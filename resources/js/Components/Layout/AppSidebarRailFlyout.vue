@@ -60,6 +60,7 @@ const panelStyle = computed(() => ({
               <component
                 :is="isPlanned(item) ? 'div' : Link"
                 :href="isPlanned(item) ? undefined : item.href"
+                preserve-scroll
                 role="menuitem"
                 class="flex min-h-[40px] items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] transition-colors"
                 :class="[

@@ -34,7 +34,7 @@ const props = defineProps({
 const { patchTaskStatus } = useSprintTaskStatusPatch(props.projectId, props.statusOptions);
 const emit = defineEmits(['open-task', 'edit-task', 'delete-task']);
 
-const colCount = computed(() => (props.compact ? 10 : 11));
+const colCount = computed(() => (props.compact ? 11 : 12));
 const taskPool = computed(() => (props.allTasks?.length ? props.allTasks : props.tasks));
 
 const parentBlocks = computed(() => buildParentBlocks(props.tasks, taskPool.value));
@@ -127,7 +127,7 @@ const isDateOverdue = (row, parent) => {
 
 <template>
   <div class="overflow-x-auto">
-    <table class="w-full min-w-[1020px] border-separate border-spacing-0 text-sm">
+    <table class="w-full min-w-[1080px] border-separate border-spacing-0 text-sm">
       <thead>
         <tr class="text-left text-[10px] font-semibold uppercase tracking-wider text-slate-400">
           <th class="w-9 border-b border-slate-100 px-1 py-1.5 dark:border-slate-800" />
@@ -157,6 +157,9 @@ const isDateOverdue = (row, parent) => {
           </th>
           <th class="w-14 border-b border-slate-100 px-2 py-1.5 dark:border-slate-800">
             Giờ ƯT
+          </th>
+          <th class="w-14 border-b border-slate-100 px-2 py-1.5 dark:border-slate-800">
+            Giờ TT
           </th>
           <th class="min-w-[7.5rem] border-b border-slate-100 px-2 py-1.5 dark:border-slate-800">
             SLA
@@ -346,6 +349,16 @@ const isDateOverdue = (row, parent) => {
             <span
               v-else
               class="font-normal text-slate-300"
+            >—</span>
+          </td>
+          <td
+            class="border-b border-slate-100 px-2 py-2 text-xs font-medium dark:border-slate-800"
+            :class="entry.task.actual_hours != null ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-300'"
+          >
+            <span v-if="entry.task.actual_hours != null">{{ entry.task.actual_hours }}h</span>
+            <span
+              v-else
+              class="font-normal"
             >—</span>
           </td>
           <td class="border-b border-slate-100 px-2 py-2 dark:border-slate-800">

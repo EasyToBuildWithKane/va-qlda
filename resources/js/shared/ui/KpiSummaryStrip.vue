@@ -163,12 +163,18 @@ function showProgress(card) {
                 class="mt-1 leading-tight"
                 :class="card.valueKind === 'text'
                   ? 'text-xs font-medium italic text-slate-500'
-                  : [
-                    denseValues
-                      ? 'font-display text-base font-bold tabular-nums tracking-tight sm:text-lg'
-                      : 'font-display text-2xl font-bold tabular-nums tracking-tight sm:text-[1.65rem]',
-                    card.tone === 'brand' ? 'text-brand' : 'text-slate-900',
-                  ]"
+                  : card.valueKind === 'money'
+                    ? [
+                      denseValues
+                        ? 'text-sm font-normal tabular-nums tracking-tight text-slate-800 sm:text-base'
+                        : 'text-base font-normal tabular-nums tracking-tight text-slate-800 sm:text-lg',
+                    ]
+                    : [
+                      denseValues
+                        ? 'font-display text-base font-bold tabular-nums tracking-tight sm:text-lg'
+                        : 'font-display text-2xl font-bold tabular-nums tracking-tight sm:text-[1.65rem]',
+                      card.tone === 'brand' ? 'text-brand' : 'text-slate-900',
+                    ]"
               >
                 <slot
                   name="value"

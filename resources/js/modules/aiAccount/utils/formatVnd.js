@@ -57,6 +57,20 @@ export function formatVnd(amount) {
 }
 
 /**
+ * Hiển thị gọn trên dashboard: 4,2 triệu vnđ
+ * @param {number|string} amount
+ */
+export function formatVndCompact(amount) {
+    const n = Math.round(Number(amount) || 0);
+    if (n === 0) return '0 vnđ';
+    const human = formatVndHumanShort(n);
+    if (human.endsWith(' đồng')) {
+        return `${human.slice(0, -' đồng'.length)} vnđ`;
+    }
+    return `${human} vnđ`;
+}
+
+/**
  * @param {'monthly'|'yearly'|'one_time'} unit
  */
 export function costUnitSuffix(unit) {

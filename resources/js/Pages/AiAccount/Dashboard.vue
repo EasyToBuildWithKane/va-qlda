@@ -12,7 +12,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import { useAiExecutiveDashboard } from '@/modules/aiAccount/composables/useAiExecutiveDashboard';
 import AiExecutiveSummaryStrip from '@/modules/aiAccount/components/AiExecutiveSummaryStrip.vue';
-import { formatVnd } from '@/modules/aiAccount/utils/formatVnd';
+import { formatVndCompact } from '@/modules/aiAccount/utils/formatVnd';
 
 ChartJS.register(
     ArcElement, CategoryScale, LinearScale,
@@ -37,7 +37,6 @@ onMounted(load);
 watch([granularity, comparePreviousYear], load);
 
 const kpis = computed(() => data.value?.kpis ?? {});
-const alerts = computed(() => data.value?.alerts ?? []);
 
 const chartColors = ['#9A0036', '#185FA5', '#854F0B', '#534AB7', '#3B6D11', '#0ea5e9', '#f59e0b', '#64748b'];
 
@@ -159,32 +158,6 @@ const GRANULARITY_OPTS = [
         {{ error }}
       </div>
 
-      <div
-        v-if="alerts.length"
-        class="grid gap-2 sm:grid-cols-2 xl:grid-cols-3"
-      >
-        <div
-          v-for="alert in alerts"
-          :key="alert.code"
-          class="flex items-start gap-3 rounded-xl border px-4 py-3 text-sm"
-          :class="alert.level === 'error'
-            ? 'border-rose-200 bg-rose-50 text-rose-900'
-            : alert.level === 'warning'
-              ? 'border-amber-200 bg-amber-50 text-amber-900'
-              : 'border-sky-200 bg-sky-50 text-sky-900'"
-        >
-          <span aria-hidden="true">🚨</span>
-          <div>
-            <p class="text-slate-800">
-              {{ alert.title }}
-            </p>
-            <p class="mt-0.5 text-xs opacity-90">
-              {{ alert.message }}
-            </p>
-          </div>
-        </div>
-      </div>
-
       <AiExecutiveSummaryStrip
         :kpis="kpis"
         :loading="loading && !data"
@@ -287,7 +260,7 @@ const GRANULARITY_OPTS = [
                 class="flex justify-between gap-3 border-b border-slate-50 pb-2 last:border-0"
               >
                 <span class="text-slate-600">{{ i + 1 }}. {{ row.tool_name }}</span>
-                <span class="shrink-0 tabular-nums text-brand">{{ formatVnd(row.cost_monthly) }}</span>
+                <span class="shrink-0 tabular-nums text-brand">{{ formatVndCompact(row.cost_monthly) }}</span>
               </li>
             </ol>
           </div>

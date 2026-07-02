@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 import KpiSummaryStrip from '@/shared/ui/KpiSummaryStrip.vue';
-import { formatVnd } from '@/modules/aiAccount/utils/formatVnd';
+import { formatVndCompact } from '@/modules/aiAccount/utils/formatVnd';
 
 const props = defineProps({
     kpis: { type: Object, default: () => ({}) },
@@ -45,34 +45,38 @@ const cards = computed(() => {
         {
             key: 'cost-month',
             label: 'Chi phí tháng',
-            value: formatVnd(k.cost_current_month),
+            value: formatVndCompact(k.cost_current_month),
+            valueKind: 'money',
             tone: 'sky',
             icon: 'budget',
-            sub: `${formatVnd(k.avg_cost_per_user)}/người`,
+            sub: `${formatVndCompact(k.avg_cost_per_user)}/người`,
             interactive: false,
         },
         {
             key: 'cost-year',
             label: 'Chi phí năm',
-            value: formatVnd(k.cost_current_year),
+            value: formatVndCompact(k.cost_current_year),
+            valueKind: 'money',
             tone: 'violet',
             icon: 'performance',
-            sub: `Dự kiến: ${formatVnd(k.cost_forecast_year_end)}`,
+            sub: `Dự kiến: ${formatVndCompact(k.cost_forecast_year_end)}`,
             interactive: false,
         },
         {
             key: 'budget',
             label: 'Ngân sách đã duyệt',
-            value: formatVnd(k.budget_approved_total),
+            value: formatVndCompact(k.budget_approved_total),
+            valueKind: 'money',
             tone: 'emerald',
             icon: 'budget',
-            sub: `Đã TT: ${formatVnd(k.budget_paid_total)} · Dùng: ${formatVnd(k.budget_used_total)}`,
+            sub: `Đã TT: ${formatVndCompact(k.budget_paid_total)} · Dùng: ${formatVndCompact(k.budget_used_total)}`,
             interactive: false,
         },
         {
             key: 'run-rate',
             label: 'Vận hành / tháng',
-            value: formatVnd(k.monthly_run_rate),
+            value: formatVndCompact(k.monthly_run_rate),
+            valueKind: 'money',
             tone: 'slate',
             icon: 'cost',
             sub: 'Chi phí vận hành trung bình',

@@ -64,6 +64,7 @@ const rowBase =
           :is="isPlanned(soleItem(group)) ? 'div' : Link"
           v-if="soleItem(group)"
           :href="isPlanned(soleItem(group)) ? undefined : soleItem(group).href"
+          preserve-scroll
           :title="isPlanned(soleItem(group)) ? 'Sắp ra mắt — chưa khả dụng' : undefined"
           :class="[
             rowBase,
@@ -170,6 +171,7 @@ const rowBase =
                   <component
                     :is="isPlanned(item) ? 'div' : Link"
                     :href="isPlanned(item) ? undefined : item.href"
+                    preserve-scroll
                     :title="isPlanned(item) ? 'Sắp ra mắt — chưa khả dụng' : undefined"
                     class="sidebar-nav-link group/item flex min-h-[38px] items-center gap-2.5 rounded-lg py-1.5 pl-3 pr-2 text-[14px] font-medium leading-snug transition-all duration-200"
                     :class="[

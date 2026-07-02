@@ -8,7 +8,7 @@ const MOBILE_BREAKPOINT = 1024;
 
 // Module-level: survives composable re-instantiation across Inertia navigations
 // (AppLayout remounts on each navigation in template-based layout mode)
-let _savedScrollTop = 0;
+let _sidebarScrollTop = 0;
 
 const ROLE_LABELS = {
     admin: 'Quản trị viên',
@@ -226,18 +226,23 @@ export function useAppSidebar() {
 
     const sidebarNavRef = ref(null);
 
-    // Save scroll position before refs are cleared on unmount (onUnmounted is too late —
-    // Vue clears ref callbacks to null during vnode teardown, before onUnmounted fires).
-    onBeforeUnmount(() => {
-        if (sidebarNavRef.value) {
-            _savedScrollTop = sidebarNavRef.value.scrollTop;
-        }
-    });
+    function persistSidebarScroll() {
+        const el = sidebarNavRef.value;
+        if (el) _sidebarScrollTop = el.scrollTop;
+    }
+
+    // Save scroll before refs are cleared on unmount (backup if scroll handler missed).
+    onBeforeUnmount(persistSidebarScroll);
 
     const { edges: sidebarScrollEdges, onScroll: onSidebarNavScroll } = useOverflowScrollHints(
         [rail, nav, collapsed],
         sidebarNavRef,
     );
+
+    function onSidebarNavScrollWithPersist(e) {
+        persistSidebarScroll();
+        onSidebarNavScroll(e);
+    }
 
     function isActiveNavItemInView(container, el) {
         if (!container || !el) return true;
@@ -246,31 +251,48 @@ export function useAppSidebar() {
         return e.top >= c.top - 1 && e.bottom <= c.bottom + 1;
     }
 
+    function applySidebarScrollRestore(root) {
+        if (!root) return;
+        if (root.scrollTop !== _sidebarScrollTop) {
+            root.scrollTop = _sidebarScrollTop;
+        }
+    }
+
+    function restoreSidebarScroll() {
+        nextTick(() => {
+            applySidebarScrollRestore(sidebarNavRef.value);
+            onSidebarNavScroll();
+        });
+    }
+
     function scrollActiveNavItemIntoView(behavior = 'instant') {
         nextTick(() => {
             const root = sidebarNavRef.value;
             if (!root) return;
 
-            // On fresh mount (scrollTop=0) restore the position saved before the last unmount
-            // so the sidebar doesn't jump back to the top on every Inertia navigation.
-            if (_savedScrollTop > 0 && root.scrollTop === 0) {
-                root.scrollTop = _savedScrollTop;
-                _savedScrollTop = 0;
-            }
+            applySidebarScrollRestore(root);
 
             const active = root.querySelector('.sidebar-nav-item--active');
             if (active && !isActiveNavItemInView(root, active)) {
                 active.scrollIntoView({ block: 'nearest', behavior });
+                persistSidebarScroll();
             }
             onSidebarNavScroll();
         });
     }
 
+    watch(
+        () => page.url,
+        () => {
+            restoreSidebarScroll();
+        },
+    );
+
     watch(rail, (v) => {
         if (!v) closeFlyout();
         nextTick(() => scrollActiveNavItemIntoView('smooth'));
     });
-    onMounted(scrollActiveNavItemIntoView);
+    onMounted(restoreSidebarScroll);
 
     return {
         nav,
@@ -314,6 +336,6 @@ export function useAppSidebar() {
         sidebarNavRef,
         scrollActiveNavItemIntoView,
         sidebarScrollEdges,
-        onSidebarNavScroll,
+        onSidebarNavScroll: onSidebarNavScrollWithPersist,
     };
 }

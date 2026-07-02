@@ -16,7 +16,6 @@ import { useToast } from '@/shared/composables/useToast';
 import { useDialog } from '@/composables/useDialog';
 import { useSprintTaskStatusPatch } from '@/composables/useSprintTaskStatusPatch';
 import { getTaskCompletionBadge } from '@/composables/useTaskCompletion';
-import { getTaskSlaToneClass } from '@/composables/useTaskTimeliness';
 import { usePermission } from '@/shared/composables/usePermission';
 import {
     taskDisplayId,
@@ -258,20 +257,46 @@ const statusStripeBorder = computed(() => {
     return borders[color] || borders.slate;
 });
 
+const statusDotClass = computed(() => {
+    const color = activeTask.value?.status?.color || 'slate';
+    const dots = {
+        brand: 'bg-brand',
+        slate: 'bg-slate-400',
+        sky: 'bg-sky-500',
+        violet: 'bg-violet-500',
+        emerald: 'bg-emerald-500',
+        rose: 'bg-rose-500',
+        amber: 'bg-amber-500',
+    };
+    return dots[color] || dots.slate;
+});
+
+const secondaryMetaLine = computed(() => {
+    const parts = [];
+    if (activeTask.value?.priority?.label) parts.push(activeTask.value.priority.label);
+    if (activeTask.value?.phase?.label) parts.push(activeTask.value.phase.label);
+    return parts.length ? parts.join(' · ') : '';
+});
+
+const hoursMetaLine = computed(() => {
+    const parts = [];
+    const est = unref(ws.estimateHours);
+    if (est != null) {
+        const prefix = unref(ws.estimateFromSubtasksOnly) ? 'Tổng con' : 'ƯT';
+        parts.push(`${prefix} ${est}h`);
+    }
+    const act = activeTask.value?.actual_hours;
+    if (act != null && act !== '') parts.push(`TT ${act}h`);
+    const logged = unref(ws.loggedHours);
+    if (logged > 0) parts.push(`Ghi nhận ${logged}h`);
+    const badge = completionBadge.value;
+    if (badge?.label) parts.push(badge.label);
+    return parts.length ? parts.join(' · ') : null;
+});
+
 const hasHeaderMeta = computed(() => Boolean(
-    unref(ws.sprintLine)?.trim() || epicDisplay.value || scheduleLine.value || estimateLine.value,
+    unref(ws.sprintLine)?.trim() || epicDisplay.value || scheduleLine.value || hoursMetaLine.value,
 ));
-
-const estimateLine = computed(() => {
-    if (unref(ws.estimateHours) == null) return null;
-    const prefix = unref(ws.estimateFromSubtasksOnly) ? 'Tổng công việc con' : 'Ước tính';
-    return `${prefix} ${unref(ws.estimateHours)}h`;
-});
-
-const loggedHoursLine = computed(() => {
-    const h = unref(ws.loggedHours);
-    return h > 0 ? `Đã ghi ${h}h` : null;
-});
 
 const toneClass = (tone) => ({
     brand: 'bg-brand/10 text-brand ring-brand/20',
@@ -391,13 +416,22 @@ const worklogList = computed(() => normalizeEntities(activeTask.value?.worklogs)
           >
             <div class="px-4 pb-3.5 pt-3">
               <div class="flex items-start justify-between gap-3">
-                <div class="min-w-0">
-                  <p class="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500">
-                    Chi tiết công việc
-                  </p>
-                  <p class="mt-0.5 font-mono text-xs font-semibold tracking-tight text-brand">
+                <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                  <span
+                    class="h-2 w-2 shrink-0 rounded-full ring-2 ring-white dark:ring-slate-950"
+                    :class="statusDotClass"
+                    :title="activeTask.status?.label"
+                    aria-hidden="true"
+                  />
+                  <p class="font-mono text-xs font-semibold tracking-tight text-brand">
                     {{ taskDisplayId(activeTask) }}
                   </p>
+                  <span
+                    v-if="activeTask.status?.label"
+                    class="text-xs font-medium text-slate-600 dark:text-slate-300"
+                  >
+                    {{ activeTask.status.label }}
+                  </span>
                 </div>
                 <div class="flex shrink-0 items-center gap-0.5 rounded-lg border border-slate-200/90 bg-white/90 p-0.5 shadow-sm dark:border-slate-600 dark:bg-slate-800/90">
                   <div
@@ -609,9 +643,16 @@ const worklogList = computed(() => normalizeEntities(activeTask.value?.worklogs)
                 </div>
               </div>
 
-              <h1 class="mt-3 font-display text-base font-semibold leading-snug tracking-tight text-slate-900 dark:text-slate-50">
+              <h1 class="mt-2.5 font-display text-base font-semibold leading-snug tracking-tight text-slate-900 dark:text-slate-50">
                 {{ activeTask.title }}
               </h1>
+
+              <p
+                v-if="secondaryMetaLine"
+                class="mt-1 text-xs text-slate-500 dark:text-slate-400"
+              >
+                {{ secondaryMetaLine }}
+              </p>
 
               <div
                 v-if="progressPct > 0 && progressPct < 100"
@@ -628,99 +669,60 @@ const worklogList = computed(() => normalizeEntities(activeTask.value?.worklogs)
                 />
               </div>
 
-              <div
-                v-if="activeTask.status?.label || activeTask.priority?.label || activeTask.phase?.label || completionBadge || ws.isOverdue"
-                class="mt-3 flex flex-wrap items-center gap-2"
-              >
-                <Badge
-                  v-if="activeTask.status?.label"
-                  :label="activeTask.status.label"
-                  :color="activeTask.status.color || 'slate'"
-                />
-                <Badge
-                  v-if="activeTask.priority?.label"
-                  :label="activeTask.priority.label"
-                  :color="activeTask.priority.color || 'sky'"
-                />
-                <Badge
-                  v-if="activeTask.phase?.label"
-                  :label="activeTask.phase.label"
-                  color="violet"
-                />
-                <span
-                  v-if="completionBadge"
-                  class="inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-semibold"
-                  :class="getTaskSlaToneClass(completionBadge.tone)"
-                  :title="completionBadge.detail"
-                >
-                  {{ completionBadge.label }}
-                </span>
-                <span
-                  v-if="ws.isOverdue"
-                  class="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2.5 py-0.5 text-[10px] font-semibold text-rose-700 dark:bg-rose-950/50 dark:text-rose-300"
-                >
-                  <AppIcon
-                    name="alert"
-                    :size="11"
-                  />
-                  Quá hạn
-                </span>
-              </div>
-
               <dl
                 v-if="hasHeaderMeta"
-                class="mt-2.5 space-y-1 text-[11px] leading-snug text-slate-600 dark:text-slate-400"
+                class="mt-3 divide-y divide-slate-100 rounded-lg border border-slate-200/80 bg-slate-50/50 dark:divide-slate-800 dark:border-slate-700/80 dark:bg-slate-900/30"
               >
                 <div
                   v-if="unref(ws.sprintLine)"
-                  class="flex min-w-0 items-start gap-1.5"
+                  class="grid grid-cols-[5rem_minmax(0,1fr)] gap-x-3 px-2.5 py-1.5 text-xs"
                 >
-                  <AppIcon
-                    name="sprint"
-                    :size="12"
-                    class="mt-0.5 shrink-0 text-violet-500"
-                  />
-                  <span class="min-w-0 break-words">{{ unref(ws.sprintLine) }}</span>
+                  <dt class="shrink-0 font-medium text-slate-400">
+                    Sprint
+                  </dt>
+                  <dd class="min-w-0 break-words text-slate-700 dark:text-slate-300">
+                    {{ unref(ws.sprintLine) }}
+                  </dd>
                 </div>
                 <div
                   v-if="epicDisplay"
-                  class="flex min-w-0 items-start gap-1.5"
+                  class="grid grid-cols-[5rem_minmax(0,1fr)] gap-x-3 px-2.5 py-1.5 text-xs"
                 >
-                  <AppIcon
-                    name="flag"
-                    :size="12"
-                    class="mt-0.5 shrink-0 text-amber-500"
-                  />
-                  <span class="min-w-0 break-words">{{ epicDisplay }}</span>
+                  <dt class="shrink-0 font-medium text-slate-400">
+                    Epic
+                  </dt>
+                  <dd class="min-w-0 break-words text-slate-700 dark:text-slate-300">
+                    {{ epicDisplay }}
+                  </dd>
                 </div>
                 <div
-                  v-if="scheduleLine || estimateLine || loggedHoursLine"
-                  class="flex flex-wrap items-center gap-x-3 gap-y-0.5 tabular-nums"
+                  v-if="scheduleLine"
+                  class="grid grid-cols-[5rem_minmax(0,1fr)] gap-x-3 px-2.5 py-1.5 text-xs"
                 >
-                  <span
-                    v-if="scheduleLine"
-                    class="inline-flex items-center gap-1"
-                    :class="ws.isOverdue ? 'font-semibold text-rose-600 dark:text-rose-400' : ''"
+                  <dt class="shrink-0 font-medium text-slate-400">
+                    Thời hạn
+                  </dt>
+                  <dd
+                    class="tabular-nums text-slate-700 dark:text-slate-300"
+                    :class="ws.isOverdue ? 'font-medium text-rose-600 dark:text-rose-400' : ''"
                   >
-                    <AppIcon
-                      name="calendar"
-                      :size="12"
-                      class="shrink-0 text-slate-400"
-                    />
                     {{ scheduleLine }}
-                  </span>
-                  <span
-                    v-if="estimateLine"
-                    class="inline-flex items-center gap-1"
+                    <span v-if="ws.isOverdue"> · Quá hạn</span>
+                  </dd>
+                </div>
+                <div
+                  v-if="hoursMetaLine"
+                  class="grid grid-cols-[5rem_minmax(0,1fr)] gap-x-3 px-2.5 py-1.5 text-xs"
+                >
+                  <dt class="shrink-0 font-medium text-slate-400">
+                    Giờ làm
+                  </dt>
+                  <dd
+                    class="tabular-nums text-slate-700 dark:text-slate-300"
+                    :title="completionBadge?.detail || undefined"
                   >
-                    <AppIcon
-                      name="worklog"
-                      :size="12"
-                      class="shrink-0 text-slate-400"
-                    />
-                    {{ estimateLine }}
-                  </span>
-                  <span v-if="loggedHoursLine">{{ loggedHoursLine }}</span>
+                    {{ hoursMetaLine }}
+                  </dd>
                 </div>
               </dl>
 

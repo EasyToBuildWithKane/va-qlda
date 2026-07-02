@@ -43,10 +43,6 @@ const onGroupEnter = (group, e) => {
 
 const onGroupClick = (group, e) => {
     if (group.items.length <= 1) {
-        const only = soleItem(group);
-        if (only && !props.isPlanned(only) && only.href !== '#') {
-            window.location.href = only.href;
-        }
         return;
     }
     props.openFlyout(group, e.currentTarget);
@@ -82,6 +78,7 @@ const groupHasBadge = (group) => group.items.some((item) => item.badge);
         :is="soleItem(group) && !isPlanned(soleItem(group)) ? Link : 'button'"
         :href="soleItem(group) && !isPlanned(soleItem(group)) ? soleItem(group).href : undefined"
         :type="soleItem(group) && !isPlanned(soleItem(group)) ? undefined : 'button'"
+        preserve-scroll
         class="sidebar-rail-group relative grid h-11 w-11 place-items-center rounded-xl transition-all duration-200"
         :class="[
           groupContainsActive(group)

@@ -166,8 +166,16 @@ const statusDot = {
           <th
             v-if="colVisible('estimate_hours')"
             class="sticky top-0 z-10 border-b border-slate-200 bg-slate-50 px-2 py-2 dark:bg-slate-800"
+            @click="toggleSort('estimate_hours')"
           >
             Ước tính
+          </th>
+          <th
+            v-if="colVisible('actual_hours')"
+            class="sticky top-0 z-10 border-b border-slate-200 bg-slate-50 px-2 py-2 dark:bg-slate-800"
+            @click="toggleSort('actual_hours')"
+          >
+            Thực tế
           </th>
           <th
             v-if="colVisible('sla')"
@@ -359,6 +367,17 @@ const statusDot = {
             <span
               v-else
               class="text-slate-300"
+            >—</span>
+          </td>
+          <td
+            v-if="colVisible('actual_hours')"
+            class="border-b border-slate-100 px-2 py-2 text-xs font-medium dark:border-slate-800"
+            :class="row.actual_hours != null ? 'text-emerald-700 dark:text-emerald-400' : ''"
+          >
+            <span v-if="row.actual_hours != null">{{ row.actual_hours }}h</span>
+            <span
+              v-else
+              class="font-normal text-slate-300"
             >—</span>
           </td>
           <td

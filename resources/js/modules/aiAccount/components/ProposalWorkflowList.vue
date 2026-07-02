@@ -58,7 +58,18 @@ function dnttColor(row) {
       <span />
       <span>Mã phiếu · tóm tắt</span>
       <span class="hidden lg:block">Trạng thái quy trình</span>
-      <span class="text-center">Thao tác</span>
+      <span
+        class="flex justify-center"
+        aria-label="Thao tác"
+      >
+        <span class="sr-only">Thao tác</span>
+        <AppIcon
+          name="more-horizontal"
+          :size="16"
+          class="text-slate-400"
+          aria-hidden="true"
+        />
+      </span>
     </div>
 
     <div

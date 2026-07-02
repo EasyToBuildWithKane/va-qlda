@@ -60,6 +60,7 @@ const linkAlignClass = computed(() => (props.embedded ? 'justify-start pl-3' : '
     <template v-else>
       <Link
         href="/dashboard"
+        preserve-scroll
         :class="[
           'flex min-h-0 min-w-0 items-center overflow-hidden py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-brand rounded-md',
           linkAlignClass,
