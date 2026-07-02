@@ -12,6 +12,16 @@ import AppChrome from '@/Layouts/AppChrome.vue';
 
 const appName = import.meta.env.VITE_APP_NAME || 'VA QLDA';
 
+/** Trang full-bleed — không bọc sidebar AppChrome (login, landing Công nghệ, …). */
+const PAGES_WITHOUT_APP_CHROME = new Set([
+    'Auth/Login',
+    'Auth/HiddenAdminLogin',
+    'Congnghe/Index',
+    'Congnghe/MyProposals',
+    'Congnghe/MyProposalShow',
+    'Congnghe/Proposal',
+]);
+
 router.on('invalid', (event) => {
     const status = event.detail.response?.status;
     if (status === 419) {
@@ -31,12 +41,15 @@ createInertiaApp({
         resolvePageComponent(
             `./Pages/${name}.vue`,
             import.meta.glob('./Pages/**/*.vue', { eager: false }),
-        ),
+        ).then((page) => {
+            if (!page.default.layout && !PAGES_WITHOUT_APP_CHROME.has(name)) {
+                page.default.layout = AppChrome;
+            }
+            return page;
+        }),
     setup({ el, App, props, plugin }) {
         syncCsrfToken(props.initialPage?.props?.csrf_token);
-        createApp({
-            render: () => h(AppChrome, () => h(App, props)),
-        })
+        createApp({ render: () => h(App, props) })
             .use(plugin)
             .use(ZiggyVue)
             .use(createPinia())
