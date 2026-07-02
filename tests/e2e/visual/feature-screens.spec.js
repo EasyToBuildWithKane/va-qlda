@@ -29,7 +29,6 @@ const ADMIN_SCREENS = [
     { id: 'ai-accounts-dashboard', path: '/ai-accounts/dashboard', heading: /dashboard quản trị ai/i },
     { id: 'ai-accounts-analytics', path: '/ai-accounts/analytics', heading: /báo cáo phân tích/i },
     { id: 'ai-accounts-cost-report', path: '/ai-accounts/cost-report', heading: /pđx & đntt/i },
-    { id: 'ai-accounts-cost-by-group', path: '/ai-accounts/cost-by-group', heading: /chi phí ai theo nhóm/i },
     { id: 'notifications-manage', path: '/notifications/manage', heading: /quản lý thông báo/i },
 ];
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\AiAccount;
 
 use App\Http\Controllers\Controller;
 use App\Models\AiAccount;
+use App\Models\AiProposalScan;
 use App\Models\AiPurchaseProposal;
 use App\Models\Employee;
 use App\Support\EmployeePickerMapper;
@@ -30,6 +31,7 @@ class AiAccountPageController extends Controller
                 'view_password' => $request->user()->isAdminTier() || $request->user()->allows('ai_account.view_password'),
                 'manage_password_viewers' => $request->user()->can('managePasswordViewers', AiAccount::class),
                 'trigger_reminder' => $request->user()->can('triggerReminder', AiAccount::class),
+                'scan_proposal' => $request->user()->can('create', AiProposalScan::class),
             ],
             'form_hints' => [
                 'notify' => config('ai_accounts.defaults.notify_hint'),
@@ -44,17 +46,6 @@ class AiAccountPageController extends Controller
                 'status' => AiAccountStatus::options(),
             ],
             'exchange_rate' => (int) config('ai_accounts.exchange_rate', 25_500),
-        ]);
-    }
-
-    public function costByGroup(Request $request): Response
-    {
-        $this->authorize('viewAny', AiAccount::class);
-
-        return Inertia::render('AiAccount/CostByGroup', [
-            'options' => [
-                'group_function' => AiAccountGroupFunction::options(),
-            ],
         ]);
     }
 

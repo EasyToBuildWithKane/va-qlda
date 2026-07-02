@@ -37,4 +37,10 @@ return [
         'redirect' => env('GOOGLE_REDIRECT_URI'),
     ],
 
+    'proposal_ocr' => [
+        'url' => env('PROPOSAL_OCR_URL'),
+        'token' => env('PROPOSAL_OCR_TOKEN'),
+        'timeout' => (int) env('PROPOSAL_OCR_TIMEOUT', 30),
+    ],
+
 ];

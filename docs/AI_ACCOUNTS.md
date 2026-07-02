@@ -1,4 +1,4 @@
-# Quản lý AI — Tài khoản, PĐX, chi phí theo nhóm
+# Quản lý AI — Tài khoản, PĐX, chi phí
 
 Module: routes `ai-accounts.*`, API `api.ai-accounts.*`, frontend `resources/js/Pages/AiAccount/`, `resources/js/modules/aiAccount/`.
 
@@ -12,7 +12,7 @@ Luồng dữ liệu chi tiết: `docs/DATABASE_STRUCTURE.md` §6 (PĐX, ĐNTT, l
 2. **ĐNTT** (`AiPaymentRequest`) — phải `approved` hoặc `paid` trước khi **lập tài khoản AI** (`AiAccountFromProposalCreator`).
 3. **Tài khoản AI** (`AiAccount`) — soft delete; gắn PĐX qua `ai_purchase_proposals.ai_account_id`.
 
-Chi phí trên **Chi phí theo nhóm** và KPI thẻ tóm tắt lấy từ **phiếu đếm ngân sách**, không lấy trực tiếp từ `cost_amount` trên TK (trừ hiển thị từng dòng TK).
+Chi phí KPI thẻ tóm tắt (Index, Dashboard, Chi phí AI) lấy từ **phiếu đếm ngân sách**, không lấy trực tiếp từ `cost_amount` trên TK (trừ hiển thị từng dòng TK).
 
 ---
 
@@ -35,7 +35,7 @@ PĐX được tính khi: `ai_account_id` null (chờ lập TK) **hoặc** còn T
 |-----------|----------------|
 | **Danh sách TK** (Index) | `AiAccount::visibleInRegistry()` — TK còn PĐX countable **hoặc** chưa từng gắn PĐX (legacy). |
 | **Badge / thẻ `total_accounts`** | Chỉ TK có `accountHasCountableProposal()` (còn PĐX hợp lệ). |
-| **Chi phí theo nhóm — cột thống kê TK** | Cùng bộ “registered” như badge; dòng nhóm ẩn khi không TK + chi phí 0 + không phiếu chờ lập TK. |
+| **Thống kê theo nhóm (API summary)** | Cùng bộ “registered” như badge; dòng nhóm ẩn khi không TK + chi phí 0 + không phiếu chờ lập TK. |
 
 Subtitle Index: *«Tài khoản đang dùng · liên kết với phiếu đề xuất mua sắm»* — badge phản ánh cột **registered**, không phải mọi bản ghi legacy.
 
@@ -65,7 +65,7 @@ Hard delete phiếu; nếu có TK gắn `ai_account_id` → **soft delete TK** t
 - Soft delete TK **đã từng cấp phát** (`allocated_at` hoặc `purchased_by`) nhưng không còn PĐX countable.
 - Soft delete TK còn liên kết PĐX `expired` | `rejected`.
 
-Sau deploy, user **tải lại** trang Index hoặc Chi phí theo nhóm (một request API là đủ).
+Sau deploy, user **tải lại** trang Index hoặc Dashboard AI (một request API là đủ).
 
 **Cache:** `AiAccountCountableProposalCost` **không** giữ cache request — tránh chi phí cũ khi Octane / nhiều lần gọi summary trong cùng process.
 
@@ -97,6 +97,31 @@ Sau deploy, user **tải lại** trang Index hoặc Chi phí theo nhóm (một r
 Chi phí ngân sách / KPI thẻ: PĐX countable + ĐNTT đã thanh toán (giống mục «Luồng nghiệp vụ»). Phòng ban trên biểu đồ: `department_using` / `proposer_department` trên PĐX. «Tỷ lệ sử dụng»: lifecycle `in_use` + trạng thái active. Cảnh báo «không dùng X ngày»: proxy từ `last_reminded_at` / `allocated_at`.
 
 **Dashboard — 6 thẻ KPI (lưới 3×2):** (1) TK đang dùng + tỷ lệ sử dụng; (2) sắp hết hạn / đã hết hạn; (3) chi phí tháng + TB/người; (4) chi phí năm + `cost_forecast_year_end` (nội suy theo ĐNTT YTD); (5) ngân sách duyệt / thanh toán / sử dụng; (6) vận hành PĐX/tháng + `monthly_run_rate_change_percent` (so chi phí tháng vs tháng trước khi có ĐNTT).
+
+---
+
+## Số hóa Phiếu Đề Xuất (OCR) — 2026-07
+
+Upload/chụp ảnh Phiếu Đề Xuất giấy (PDF/JPG/PNG ≤10MB) → Python `ocr-service/` (FastAPI + OpenCV tiền xử lý + Gemini Flash) trích xuất trường dữ liệu + vùng chữ ký kèm confidence → người dùng review/chỉnh sửa trên `ProposalScanModal` → lưu thành PĐX (`status=pending`, file gốc gắn `attachment_paths`).
+
+**Luồng:** nút «Quét phiếu (OCR)» trên `/ai-accounts` → `POST api/ai-accounts/proposal-scans` (đồng bộ, timeout 30s) → bản ghi `ai_proposal_scans` (`needs_review`) + `ai_proposal_scan_signatures` (ảnh chữ ký PNG cắt riêng, vai trò: Người đề xuất / Trưởng bộ phận / Ban Giám hiệu / Kế toán / Khác) → PATCH sửa trường → `POST .../confirm` tạo PĐX trong transaction.
+
+**Route map (JSON, prefix `api/ai-accounts`):**
+
+| Method | URI | Name | Ghi chú |
+|--------|-----|------|---------|
+| POST | `/proposal-scans` | `proposal-scans.store` | Upload + OCR; 422 kèm scan `failed` khi service lỗi |
+| GET | `/proposal-scans/{scan}` | `proposal-scans.show` | Creator hoặc `ai_proposal.review` |
+| PATCH | `/proposal-scans/{scan}` | `proposal-scans.update` | Sửa `extracted_fields`; key ngoài whitelist → 422 |
+| POST | `/proposal-scans/{scan}/confirm` | `proposal-scans.confirm` | Tạo PĐX pending; chỉ khi `needs_review` |
+| GET | `/proposal-scans/{scan}/file` | `proposal-scans.file` | Bản gốc; 404 khi file mất trên disk |
+| GET | `/proposal-scans/{scan}/signatures/{signature}/file` | `proposal-scans.signatures.file` | Ảnh chữ ký |
+
+**Config:** `services.proposal_ocr` — env `PROPOSAL_OCR_URL`, `PROPOSAL_OCR_TOKEN` (header `X-OCR-Token`), `PROPOSAL_OCR_TIMEOUT`. Cách chạy service: `ocr-service/README.md`.
+
+**File code:** `AiProposalScanController`, `ProposalOcrClient`, `ProposalScanRecorder`, models `AiProposalScan(+Signature)`, policy `AiProposalScanPolicy`, enums `AiProposalScanStatus`, `ProposalSignatureRole`; FE `modules/aiAccount/components/scan/ProposalScanModal.vue` + `composables/useProposalScan.js`. Test: `tests/Feature/AiProposalScanTest.php` (Http::fake).
+
+API JSON này đồng thời là điểm tích hợp mở cho Workflow/DMS/ERP (Sanctum đã cài — chưa phát hành token; dùng session auth nội bộ).
 
 ---
 

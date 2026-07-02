@@ -71,7 +71,7 @@ resources/js/
 │   ├── onboarding/               ← Tour driver.js (useTour, useOnboarding, OnboardingRoot)
 │   ├── notifications/            ← Bell, center drawer, preferences
 │   ├── audit/                    ← Audit trail viewer components/composables
-│   └── aiAccount/                ← Tài khoản AI: composables
+│   └── aiAccount/                ← Tài khoản AI: composables + components/scan (ProposalScanModal — OCR PĐX, useProposalScan)
 ├── shared/                   ← Cross-module (Phase 2 + 4)
 │   ├── ui/                   ← Badge, Avatar, ProgressBar, form/*, **KpiSummaryStrip**, …
 │   └── composables/          ← useToast, usePermission, useFilter

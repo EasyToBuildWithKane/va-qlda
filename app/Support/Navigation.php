@@ -490,12 +490,6 @@ class Navigation
                         'href' => '/ai-accounts/cost-report',
                         'status' => 'live',
                     ],
-                    [
-                        'label' => 'Chi phí theo nhóm',
-                        'icon' => 'money',
-                        'href' => '/ai-accounts/cost-by-group',
-                        'status' => 'live',
-                    ],
                 ],
             ],
 

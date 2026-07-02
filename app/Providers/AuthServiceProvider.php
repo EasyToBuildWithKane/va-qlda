@@ -6,6 +6,7 @@ namespace App\Providers;
 use App\Domain\DailyReport\Models\DailyReport;
 use App\Models\AiAccount;
 use App\Models\AiPaymentRequest;
+use App\Models\AiProposalScan;
 use App\Models\AiPurchaseProposal;
 use App\Models\Blocker;
 use App\Models\CoachingCourse;
@@ -26,6 +27,7 @@ use App\Models\Vendor;
 use App\Models\WeeklyReport;
 use App\Policies\AiAccountPolicy;
 use App\Policies\AiPaymentRequestPolicy;
+use App\Policies\AiProposalScanPolicy;
 use App\Policies\AiPurchaseProposalPolicy;
 use App\Policies\BlockerPolicy;
 use App\Policies\CoachingCoursePolicy;
@@ -69,6 +71,7 @@ class AuthServiceProvider extends ServiceProvider
         WeeklyReport::class => WeeklyReportPolicy::class,
         AiAccount::class => AiAccountPolicy::class,
         AiPaymentRequest::class => AiPaymentRequestPolicy::class,
+        AiProposalScan::class => AiProposalScanPolicy::class,
         AiPurchaseProposal::class => AiPurchaseProposalPolicy::class,
         SystemSetting::class => SystemSettingPolicy::class,
         CongngheSection::class => CongngheContentPolicy::class,

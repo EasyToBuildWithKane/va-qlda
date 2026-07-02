@@ -18,6 +18,7 @@ import AiAccountFormModal from '@/modules/aiAccount/components/AiAccountFormModa
 import AiAccountRenewModal from '@/modules/aiAccount/components/AiAccountRenewModal.vue';
 import AiAccountPasswordViewersModal from '@/modules/aiAccount/components/AiAccountPasswordViewersModal.vue';
 import AiAccountBanner from '@/modules/aiAccount/components/AiAccountBanner.vue';
+import ProposalScanModal from '@/modules/aiAccount/components/scan/ProposalScanModal.vue';
 import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
 
 const FILTER_CONTROL_CLASS = 'input h-10 w-full text-sm';
@@ -87,6 +88,7 @@ const {
 } = useAiAccountListUi(groups, toRef(props, 'options'));
 
 const formOpen = ref(false);
+const scanOpen = ref(false);
 const renewOpen = ref(false);
 const passwordViewersOpen = ref(false);
 const passwordViewerAccountId = ref(null);
@@ -220,6 +222,19 @@ function showAttentionOnly() {
         icon-color="brand"
         :badge="listBadge || null"
       >
+        <button
+          v-if="can.scan_proposal"
+          type="button"
+          class="btn-ghost inline-flex h-9 shrink-0 items-center gap-1.5 border border-slate-200 px-3 text-xs font-medium"
+          title="Tải lên hoặc chụp ảnh Phiếu Đề Xuất giấy — AI trích xuất dữ liệu và chữ ký"
+          @click="scanOpen = true"
+        >
+          <AppIcon
+            name="sparkles"
+            :size="15"
+          />
+          Quét phiếu (OCR)
+        </button>
         <button
           v-if="can.create"
           type="button"
@@ -507,6 +522,12 @@ function showAttentionOnly() {
       :accounts="allAccountsForPicker"
       :initial-account-id="passwordViewerAccountId"
       @close="closePasswordViewers"
+    />
+
+    <ProposalScanModal
+      :show="scanOpen"
+      @close="scanOpen = false"
+      @saved="scanOpen = false"
     />
   </AppLayout>
 </template>

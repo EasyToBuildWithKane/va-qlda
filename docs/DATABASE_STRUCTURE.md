@@ -752,6 +752,38 @@ API: kèm trong `api.ai-accounts.summary` và `api.ai-accounts.proposals.index` 
 
 Soft delete TK, đồng bộ PĐX, đếm badge vs chi phí theo nhóm, `purgeOrphanedFromProposal`: **`docs/AI_ACCOUNTS.md`**.
 
+### 6.5 Số hóa PĐX bằng OCR (thêm 2026-07)
+
+Migration: `2026_07_02_100000_create_ai_proposal_scans_tables.php`. Luồng nghiệp vụ: `docs/AI_ACCOUNTS.md` mục «Số hóa Phiếu Đề Xuất (OCR)».
+
+**`va_prd_ai_proposal_scans`** — một bản ghi / lần quét phiếu giấy.
+
+| Cột | Kiểu | Mô tả |
+|---|---|---|
+| `id` | uuid PK | — |
+| `ai_purchase_proposal_id` | uuid FK nullable | PĐX tạo từ scan sau confirm; null on delete |
+| `original_path` / `original_name` / `mime_type` / `size` | string / string / string(100) / bigint | File gốc trên disk `public` (`ai-proposals/scans/{uuid}/original.*`) |
+| `status` | string(16) | `processing` \| `needs_review` \| `confirmed` \| `failed` (enum `AiProposalScanStatus`) |
+| `extracted_fields` | json nullable | `{key: {value, confidence}}` — key whitelist trong `UpdateProposalScanRequest::FIELD_KEYS` |
+| `raw_text` | longtext nullable | Toàn bộ văn bản OCR |
+| `error_message` | text nullable | Khi `failed` |
+| `pages` / `duration_ms` | int | Số trang / thời gian xử lý OCR |
+| `created_by` | bigint FK | References `system_accounts.id`; cascade delete |
+
+**`va_prd_ai_proposal_scan_signatures`** — vùng chữ ký cắt từ bản quét.
+
+| Cột | Kiểu | Mô tả |
+|---|---|---|
+| `id` | bigint PK | — |
+| `ai_proposal_scan_id` | uuid FK | Cascade delete |
+| `role` | string(32) | `proposer` \| `department_head` \| `board_of_directors` \| `accountant` \| `other` (enum `ProposalSignatureRole`) |
+| `signed` | boolean | Ô đã có nét ký hay còn trống |
+| `signer_name` | string nullable | Tên đọc được cạnh chữ ký |
+| `confidence` | decimal(4,3) | 0–1 |
+| `image_path` | string nullable | Ảnh PNG cắt riêng trên disk `public` |
+| `bbox` | json nullable | `[x0, y0, x1, y1]` chuẩn hóa 0–1 theo trang |
+| `page` | int | Trang chứa chữ ký |
+
 ---
 
 ## 7. Knowledge Base Domain

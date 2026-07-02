@@ -391,7 +391,7 @@ Frontend: `HandleInertiaRequests` chia sẻ `csrf_token`; `app.js` reload khi In
 
 ## AI accounts — badge «1 TK» but 0 VNĐ/month after delete
 
-**Symptoms:** `/ai-accounts` or `/ai-accounts/cost-by-group` still shows 1 account / 1 active in BA group; monthly cost is 0.
+**Symptoms:** `/ai-accounts` still shows 1 account / 1 active in BA group; monthly cost is 0.
 
 **Cause:** Orphan `AiAccount` row (proposal expired/unlinked/rejected) while account was not soft-deleted — common on legacy data or before sync fixes.
 

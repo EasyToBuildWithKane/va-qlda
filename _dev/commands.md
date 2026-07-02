@@ -148,6 +148,21 @@ php artisan contracts:send-reminders     # CLM: đồng bộ trạng thái + c�
 
 ---
 
+## OCR service (Số hóa Phiếu Đề Xuất)
+
+```bash
+cd ocr-service
+python -m venv .venv && .venv\Scripts\activate   # Windows; Linux/macOS: source .venv/bin/activate
+pip install -r requirements.txt
+set GEMINI_API_KEY=...                            # Linux/macOS: export
+set OCR_SERVICE_TOKEN=local-secret
+uvicorn app.main:app --port 8100                  # http://127.0.0.1:8100/healthz
+```
+
+Laravel `.env`: `PROPOSAL_OCR_URL=http://127.0.0.1:8100`, `PROPOSAL_OCR_TOKEN=local-secret`. Docker + API chi tiết: `ocr-service/README.md`. PHPUnit không cần service (Http::fake).
+
+---
+
 ## Dependency install
 
 ```bash

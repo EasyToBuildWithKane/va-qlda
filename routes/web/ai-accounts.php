@@ -5,6 +5,7 @@ use App\Http\Controllers\AiAccount\AiAccountPageController;
 use App\Http\Controllers\AiAccount\AiAccountPasswordViewerController;
 use App\Http\Controllers\AiAccount\AiAnalyticsController;
 use App\Http\Controllers\AiAccount\AiPaymentRequestController;
+use App\Http\Controllers\AiAccount\AiProposalScanController;
 use App\Http\Controllers\AiAccount\AiPurchaseProposalController;
 use Illuminate\Support\Facades\Route;
 
@@ -37,6 +38,12 @@ Route::prefix('api/ai-accounts')->name('api.ai-accounts.')->group(function () {
     Route::get('/proposals/{proposal}/export/docx', [AiPurchaseProposalController::class, 'exportDocx'])->name('proposals.export.docx');
     Route::get('/proposals/{proposal}/export/pdf', [AiPurchaseProposalController::class, 'exportPdf'])->name('proposals.export.pdf');
     Route::get('/proposals/{proposal}/export/payment-request/pdf', [AiPurchaseProposalController::class, 'exportPaymentRequestPdf'])->name('proposals.export.payment-request.pdf');
+    Route::post('/proposal-scans', [AiProposalScanController::class, 'store'])->name('proposal-scans.store');
+    Route::get('/proposal-scans/{scan}', [AiProposalScanController::class, 'show'])->name('proposal-scans.show');
+    Route::patch('/proposal-scans/{scan}', [AiProposalScanController::class, 'update'])->name('proposal-scans.update');
+    Route::post('/proposal-scans/{scan}/confirm', [AiProposalScanController::class, 'confirm'])->name('proposal-scans.confirm');
+    Route::get('/proposal-scans/{scan}/file', [AiProposalScanController::class, 'file'])->name('proposal-scans.file');
+    Route::get('/proposal-scans/{scan}/signatures/{signature}/file', [AiProposalScanController::class, 'signatureFile'])->name('proposal-scans.signatures.file');
     Route::post('/proposals/{proposal}/payment-requests', [AiPaymentRequestController::class, 'store'])->name('proposals.payment-requests.store');
     Route::post('/payment-requests/{paymentRequest}/approve', [AiPaymentRequestController::class, 'approve'])->name('payment-requests.approve');
     Route::post('/payment-requests/{paymentRequest}/reject', [AiPaymentRequestController::class, 'reject'])->name('payment-requests.reject');
@@ -56,5 +63,4 @@ Route::prefix('ai-accounts')->name('ai-accounts.')->group(function () {
     Route::get('/dashboard', [AiAccountPageController::class, 'dashboard'])->name('dashboard');
     Route::get('/analytics', [AiAccountPageController::class, 'analytics'])->name('analytics');
     Route::get('/cost-report', [AiAccountPageController::class, 'costReport'])->name('cost-report');
-    Route::get('/cost-by-group', [AiAccountPageController::class, 'costByGroup'])->name('cost-by-group');
 });

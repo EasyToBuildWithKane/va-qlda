@@ -311,8 +311,9 @@ Prefix Inertia `ai-accounts.*`, JSON `api.ai-accounts.*` (middleware `auth`). **
 
 | Method | URI | Response | Mô Tả |
 |---|---|---|---|
-| GET | `/ai-accounts`, `/ai-accounts/dashboard`, `/analytics`, `/cost-report`, `/cost-by-group` | Inertia | Trang workspace |
+| GET | `/ai-accounts`, `/ai-accounts/dashboard`, `/analytics`, `/cost-report` | Inertia | Trang workspace |
 | * | `/api/ai-accounts/*` | JSON | CRUD TK, PĐX, payment, analytics |
+| POST/GET/PATCH | `/api/ai-accounts/proposal-scans*` | JSON | Số hóa PĐX bằng OCR (upload, review, confirm, serve file) — chi tiết: [`docs/AI_ACCOUNTS.md`](AI_ACCOUNTS.md) mục «Số hóa Phiếu Đề Xuất» |
 
 ### 2.19 Hồ sơ & danh bạ
 
