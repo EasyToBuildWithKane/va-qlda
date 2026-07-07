@@ -2,7 +2,7 @@
 
 ## 1. Kiến Trúc API Hiện Tại
 
-**Loại:** Chủ yếu Inertia.js Server-Side Routes + một phần JSON API (Notifications)
+**Loại:** Chủ yếu Inertia.js Server-Side Routes + một phần JSON API (Notifications)a
 
 Đa số routes trả về Inertia responses. **Ngoại lệ:** Notification (và một số endpoint AI/Credential) trả về `JsonResponse` để hỗ trợ polling và lazy loading.
 
