@@ -87,7 +87,7 @@ function submit() {
     <img
       src="/images/background/background-logo.png"
       alt=""
-      class="lh36-bg pointer-events-none absolute inset-0 h-full w-full scale-105 object-cover object-center brightness-0 invert opacity-[0.5]"
+      class="lh36-bg pointer-events-none absolute inset-0 h-full w-full scale-105 object-cover object-center brightness-0 invert opacity-[0.72]"
       aria-hidden="true"
     >
     <div

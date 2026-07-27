@@ -14,7 +14,7 @@ description: >-
 
 - UI **chỉ** nút Google (`resources/js/Pages/Auth/Login.vue`) — không form password trên trang.
 - **Nút Google:** icon `/images/google.png` luôn render; `googleEnabled` từ `LoginController` (cả `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET`); khi `false` → `href="#"` + `preventDefault`, gợi ý cấu hình `.env`.
-- **Giao diện:** nền `#9a0036`; watermark `background-logo.png` với `brightness-0 invert` + opacity điều chỉnh (file PNG gốc gần đen — không tăng opacity thuần).
+- **Giao diện:** nền `#9a0036`; watermark `background-logo.png` với `brightness-0 invert` + opacity ~`0.72` (file PNG gốc gần đen — `invert` rồi tăng opacity để đậm hơn, không chỉ tăng opacity trên file đen).
 - OAuth: `GET /auth/google` → Google → `GET /auth/google/callback` → session guard `system`.
 - Email Google phải khớp `employees.email` (active) và có `SystemAccount` active.
 - Domain: `GOOGLE_ALLOWED_DOMAINS` (comma-separated, `config/va.php`).

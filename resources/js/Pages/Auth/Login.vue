@@ -42,7 +42,7 @@ watch(
     <img
       src="/images/background/background-logo.png"
       alt=""
-      class="pointer-events-none absolute inset-0 h-full w-full scale-105 object-cover object-center brightness-0 invert opacity-[0.5]"
+      class="pointer-events-none absolute inset-0 h-full w-full scale-105 object-cover object-center brightness-0 invert opacity-[0.72]"
       aria-hidden="true"
     >
     <div
