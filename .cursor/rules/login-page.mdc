@@ -21,6 +21,6 @@ Luồng đăng nhập web: **chỉ Google** trên UI (`Login.vue`). Không thêm
 
 - **Header login:** `/images/logo-2.png` · **Favicon tab:** `/images/favicon.png` (`app.blade.php`).
 - **Nút Google:** `/images/google.png` — luôn hiển thị; `googleEnabled` chỉ bật/tắt link (`href` + `@click.prevent` khi chưa cấu hình).
-- **Watermark:** `/images/background/background-logo.png` — file gốc tối trên đen; trên nền brand dùng Tailwind `brightness-0 invert` + opacity ~`0.68`–`0.75` (không dùng `mix-blend` trần vì gần như vô hình).
+- **Watermark:** `/images/background/background-logo.png` — file gốc tối trên đen; trên nền brand dùng Tailwind `brightness-0 invert` + `opacity-100` (không dùng `mix-blend` trần vì gần như vô hình).
 
 Skill: `.cursor/skills/login/SKILL.md` · E2E: `tests/e2e/helpers/auth.js` (POST `/login`).
