@@ -230,7 +230,7 @@ Tạo Project
 | Gantt Chart + Timeline + Burndown | `/projects/{id}` | ✅ Hoàn thành |
 | Project Dashboard (overview, workload, activity feed) | `/projects/{id}` | ✅ Hoàn thành |
 | Risk Import/Export (Excel) | `/blockers` | ✅ Hoàn thành |
-| Công Nghệ (landing + đề xuất + quản trị nội dung) | `/congnghe` | ✅ → docs/CONGNGHE_CONTENT.md |
+| Công Nghệ (landing + đề xuất + quản trị nội dung) | Landing tạm `/demo_1` (`CONGNGHE_LANDING_PUBLIC=false`); `/congnghe` & `/phongcongnghe` ẩn → `/dashboard`; đề xuất vẫn `/congnghe/de-xuat*` | ✅ → docs/CONGNGHE_CONTENT.md |
 | AI Accounts (PĐX, TK, chi phí, analytics) | `/ai-accounts` | ✅ → docs/AI_ACCOUNTS.md |
 | Org teams (sơ đồ nhóm) | `/org-teams` | ✅ Hoàn thành |
 | Profile / Members directory | `/members`, `/profile` | ✅ Hoàn thành |

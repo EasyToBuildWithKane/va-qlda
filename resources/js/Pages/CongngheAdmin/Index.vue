@@ -58,7 +58,7 @@ function move(index, dir) {
         icon="rocket"
       >
         <Link
-          href="/congnghe"
+          :href="route('congnghe')"
           class="btn-ghost border border-slate-200 text-sm"
           target="_blank"
         >

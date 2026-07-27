@@ -1,5 +1,5 @@
 @php
-    $portalUrl = url('/congnghe');
+    $portalUrl = route('congnghe');
 @endphp
 
 <p style="margin:0 0 8px;font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#9A0036;">

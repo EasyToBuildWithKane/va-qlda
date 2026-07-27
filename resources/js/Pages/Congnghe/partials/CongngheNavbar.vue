@@ -17,11 +17,12 @@ const props = defineProps({
 
 const onLanding = computed(() => {
     const path = page.url.split('?')[0].replace(/\/$/, '') || '/';
-    return path === '/congnghe';
+    // /demo_1 = landing tạm khi /congnghe bị ẩn.
+    return path === '/congnghe' || path === '/demo_1';
 });
 
 function sectionHref(id) {
-    return onLanding.value ? `#${id}` : `/congnghe#${id}`;
+    return onLanding.value ? `#${id}` : `${route('congnghe')}#${id}`;
 }
 
 const proposalHref = '/congnghe/de-xuat';
@@ -164,7 +165,7 @@ const navPadClass = computed(() => (scrolled.value ? 'py-2.5 sm:py-3' : 'py-3.5 
     >
       <!-- Brand -->
       <Link
-        href="/congnghe"
+        :href="route('congnghe')"
         class="group flex min-w-0 items-center gap-2.5 lg:justify-self-start"
         aria-label="Về trang Phòng Công nghệ"
       >

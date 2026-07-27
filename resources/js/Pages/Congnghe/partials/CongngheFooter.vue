@@ -17,7 +17,7 @@ const props = defineProps({
 
 const onLanding = computed(() => {
     const path = page.url.split('?')[0].replace(/\/$/, '') || '/';
-    return path === '/congnghe';
+    return path === '/congnghe' || path === '/demo_1';
 });
 
 function resolveHref(href) {
@@ -26,7 +26,7 @@ function resolveHref(href) {
         return value;
     }
     if (value.startsWith('#')) {
-        return onLanding.value ? value : `/congnghe${value}`;
+        return onLanding.value ? value : `${route('congnghe')}${value}`;
     }
     return value;
 }

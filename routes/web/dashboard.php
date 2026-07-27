@@ -14,7 +14,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
 
-Route::get('/', fn () => redirect()->route('congnghe'));
+// Tạm thời: entry projects → dashboard (guest `/` bị auth middleware → /login).
+Route::get('/', fn () => redirect()->route('dashboard'));
 Route::get('/dashboard', HubDashboardController::class)->name('dashboard');
 Route::get('/work', WorkDashboardController::class)->name('work-dashboard');
 Route::get('/my-work/member/{employee}', [MyWorkController::class, 'memberTasks'])->name('my-work.member');

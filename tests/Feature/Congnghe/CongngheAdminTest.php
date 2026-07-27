@@ -67,7 +67,7 @@ class CongngheAdminTest extends TestCase
         $this->assertDatabaseHas('congnghe_sections', ['key' => 'about']);
 
         $this->actingAs($this->admin(), 'system')
-            ->get('/congnghe')
+            ->get(route('congnghe'))
             ->assertInertia(fn ($page) => $page
                 ->where('content.sections.0.key', 'about')
                 ->where('content.sections.0.data.heading.title', 'Tiêu đề mới của ban')
@@ -93,7 +93,7 @@ class CongngheAdminTest extends TestCase
         $this->assertDatabaseMissing('congnghe_sections', ['key' => 'about']);
 
         $this->actingAs($admin, 'system')
-            ->get('/congnghe')
+            ->get(route('congnghe'))
             ->assertInertia(fn ($page) => $page
                 ->where('content.sections.0.data.heading.title', 'Kim chỉ nam cho mọi hoạt động')
             );
@@ -109,7 +109,7 @@ class CongngheAdminTest extends TestCase
             ->assertRedirect('/congnghe/quan-tri');
 
         $this->actingAs($this->admin(), 'system')
-            ->get('/congnghe')
+            ->get(route('congnghe'))
             ->assertInertia(fn ($page) => $page
                 ->where('content.sections.0.key', $reversed[0])
             );
@@ -127,7 +127,7 @@ class CongngheAdminTest extends TestCase
             ]);
 
         $this->actingAs($this->admin(), 'system')
-            ->get('/congnghe')
+            ->get(route('congnghe'))
             ->assertInertia(fn ($page) => $page->has('content.sections', 8));
     }
 

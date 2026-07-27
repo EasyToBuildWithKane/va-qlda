@@ -38,6 +38,8 @@ class CongngheTest extends TestCase
     public function test_guest_is_redirected_from_congnghe(): void
     {
         $this->get('/congnghe')->assertRedirect(route('login'));
+        $this->get('/phongcongnghe')->assertRedirect(route('login'));
+        $this->get('/demo_1')->assertRedirect(route('login'));
     }
 
     public function test_authenticated_member_can_view_congnghe(): void
@@ -45,7 +47,7 @@ class CongngheTest extends TestCase
         $account = SystemAccount::factory()->role(SystemRole::Member)->create();
 
         $this->actingAs($account, 'system')
-            ->get('/congnghe')
+            ->get(route('congnghe'))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Congnghe/Index')
@@ -66,7 +68,7 @@ class CongngheTest extends TestCase
         $account = SystemAccount::factory()->role(SystemRole::Member)->create();
 
         $this->actingAs($account, 'system')
-            ->get('/congnghe')
+            ->get(route('congnghe'))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->has('content.hero')
@@ -86,7 +88,7 @@ class CongngheTest extends TestCase
         $account = SystemAccount::factory()->role(SystemRole::Member)->forEmployee($employee)->create();
 
         $this->actingAs($account, 'system')
-            ->get('/congnghe')
+            ->get(route('congnghe'))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->where('portal.canEnterQlda', true)
@@ -99,7 +101,7 @@ class CongngheTest extends TestCase
         $account = SystemAccount::factory()->role(SystemRole::Admin)->create();
 
         $this->actingAs($account, 'system')
-            ->get('/congnghe')
+            ->get(route('congnghe'))
             ->assertInertia(fn ($page) => $page->where('portal.canEnterQlda', true));
     }
 
@@ -108,7 +110,7 @@ class CongngheTest extends TestCase
         $account = SystemAccount::factory()->role(SystemRole::Viewer)->create();
 
         $this->actingAs($account, 'system')
-            ->get('/congnghe')
+            ->get(route('congnghe'))
             ->assertOk();
     }
 

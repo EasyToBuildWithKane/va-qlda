@@ -81,7 +81,7 @@ class CongngheSoftwareProposalMail extends Mailable
             'reference_code' => $payload['reference_code'] ?? '',
             'department' => $payload['department'],
             'submitted_at' => $payload['submitted_at'],
-            'portal_url' => url('/congnghe'),
+            'portal_url' => route('congnghe'),
         ];
     }
 

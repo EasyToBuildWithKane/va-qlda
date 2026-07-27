@@ -10,7 +10,8 @@ use App\Providers\RouteServiceProvider;
  *
  *   - Coaching-only accounts        → luôn về dashboard coaching.
  *   - Cổng /tech/login (whitelist)  → công cụ QLDA (/dashboard).
- *   - Cổng /login (portal, all org) → trang giới thiệu Phòng Công Nghệ (/congnghe).
+ *   - Cổng /login (portal, all org) → /dashboard khi landing CN bị ẩn tạm;
+ *     khi `va.congnghe_landing_public` = true → /congnghe (hoặc /demo_1).
  *
  * Coaching check is delegated to {@see CoachingOnlyAccess} so the special-case
  * rule lives in one place.
@@ -23,9 +24,16 @@ final class PortalDestination
             return route('coaching.dashboard', [], false);
         }
 
-        return $portal === 'tech'
-            ? RouteServiceProvider::HOME
-            : route('congnghe', [], false);
+        if ($portal === 'tech') {
+            return RouteServiceProvider::HOME;
+        }
+
+        // Tạm thời: portal login vào QLDA; không đưa user vào landing demo.
+        if (! config('va.congnghe_landing_public')) {
+            return RouteServiceProvider::HOME;
+        }
+
+        return route('congnghe', [], false);
     }
 
     /**

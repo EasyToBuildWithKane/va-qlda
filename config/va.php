@@ -73,6 +73,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Landing Phòng Công Nghệ — tạm ẩn khỏi path công khai
+    |--------------------------------------------------------------------------
+    |
+    | false (mặc định tạm thời): trang đầu projects → login / dashboard;
+    | landing chỉ còn tại /demo_1. Path /congnghe và /phongcongnghe bị ẩn
+    | (redirect). Bật lại true khi mở công khai landing.
+    |
+    */
+    'congnghe_landing_public' => filter_var(
+        env('CONGNGHE_LANDING_PUBLIC', false),
+        FILTER_VALIDATE_BOOLEAN
+    ),
+
+    /*
+    |--------------------------------------------------------------------------
     | Landing /congnghe — gốc sơ đồ tổ chức (chỉ nhánh Phòng Công nghệ)
     |--------------------------------------------------------------------------
     |

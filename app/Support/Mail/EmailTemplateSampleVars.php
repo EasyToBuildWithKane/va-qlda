@@ -29,7 +29,7 @@ final class EmailTemplateSampleVars
             'reference_code' => 'CN-00042',
             'department' => 'Phòng Học vụ',
             'submitted_at' => now()->format('d/m/Y H:i'),
-            'portal_url' => url('/congnghe'),
+            'portal_url' => route('congnghe'),
             'rejection_reason' => 'Nội dung chưa đủ thông tin kỹ thuật; vui lòng bổ sung quy mô người dùng và tích hợp hệ thống hiện có.',
             'status_label' => 'Từ chối',
             'mine_url' => url('/congnghe/de-xuat-cua-toi/1'),

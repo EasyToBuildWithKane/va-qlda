@@ -48,7 +48,7 @@ routes/api.php      ← Rỗng (chưa sử dụng)
 
 | Method | URI | Controller | Middleware | Mô Tả |
 |---|---|---|---|---|
-| GET | `/` | redirect | auth | Redirect → `/congnghe` (guest truy cập `/` → middleware auth → `/login`) |
+| GET | `/` | redirect | auth | Redirect → `/dashboard` (guest `/` → middleware auth → `/login`). Landing CN tạm ẩn. |
 | GET | `/dashboard` | HubDashboardController (invokable) | auth | Trang tổng quan: chào mừng, `summary` (KPI strip), xu hướng hoạt động, tuân thủ báo cáo, cảnh báo, lưới module (chi tiết công việc tại `/work`) |
 | GET | `/work` | WorkDashboardController (invokable) | auth | Dashboard công việc cá nhân (`work-dashboard`) |
 
@@ -66,7 +66,9 @@ Gate `performance.view` (`admin`, `lead`, `viewer`). Chi tiết module: [`docs/P
 
 | Method | URI | Controller | Middleware | Mô Tả |
 |---|---|---|---|---|
-| GET | `/congnghe` | CongngheController | auth | Landing giới thiệu Phòng Công Nghệ |
+| GET | `/demo_1` | CongngheController | auth | Landing Phòng Công Nghệ (tạm — path demo). `name=congnghe` |
+| GET | `/congnghe` | redirect | auth | Tạm ẩn → `/dashboard` (bật lại bằng `CONGNGHE_LANDING_PUBLIC=true`) |
+| GET | `/phongcongnghe` | redirect | auth | Tạm ẩn → `/dashboard` |
 | GET | `/congnghe/de-xuat` | CongngheSoftwareProposalController@create | auth | Form đề xuất giải pháp phần mềm |
 | POST | `/congnghe/de-xuat` | CongngheSoftwareProposalController@store | auth | Body: `department_id` (phòng ban active trong `departments`), lưu tên phòng vào `congnghe_software_proposals.department` + file `public/congnghe/proposals/{id}`; email tới `config('va.congnghe_proposal_email')` |
 | GET | `/congnghe/de-xuat-cua-toi` | CongngheSoftwareProposalController@index | auth | Đề xuất của người gửi; query: `q`, `status`, `department`, `from`, `to`, `email_sent` (`0`\|`1`), `acknowledged` (`0`\|`1`), `has_attachments` (`0`\|`1`), `per_page`, `page` |

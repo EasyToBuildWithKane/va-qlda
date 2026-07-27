@@ -262,7 +262,8 @@ class HubDashboardController extends Controller
                 'key' => 'congnghe',
                 'label' => 'Trung tâm Công Nghệ',
                 'icon' => 'rocket',
-                'href' => '/congnghe',
+                // Landing tạm ẩn (/demo_1); hub trỏ form đề xuất.
+                'href' => config('va.congnghe_landing_public') ? '/congnghe' : '/congnghe/de-xuat',
                 'stat' => null,
                 'statUnit' => null,
                 'tone' => 'violet',

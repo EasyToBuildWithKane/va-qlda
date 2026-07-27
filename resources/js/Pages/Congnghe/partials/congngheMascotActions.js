@@ -2,10 +2,12 @@
  * Hành động nhanh cho trợ lý mascot cổng Phòng Công Nghệ.
  */
 export function congngheMascotActions({ onProposalPage = false } = {}) {
+    const landingHref = typeof route === 'function' ? route('congnghe') : '/demo_1';
+
     const section = (id, label) => ({
         key: id,
         label,
-        href: `/congnghe#${id}`,
+        href: `${landingHref}#${id}`,
         kind: 'section',
     });
 
@@ -22,7 +24,7 @@ export function congngheMascotActions({ onProposalPage = false } = {}) {
         items.push({
             key: 'portal',
             label: 'Về trang Phòng Công Nghệ',
-            href: '/congnghe',
+            href: landingHref,
             kind: 'primary',
         });
     }

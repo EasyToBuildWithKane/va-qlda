@@ -412,7 +412,7 @@ watch(
 
           <div class="mt-8 flex flex-col gap-3 border-t border-white/10 pt-6 sm:flex-row sm:items-center sm:justify-between">
             <a
-              href="/congnghe"
+              :href="route('congnghe')"
               class="text-center text-sm text-white/50 transition hover:text-white/80 sm:text-left"
             >
               ← Quay lại cổng Phòng Công Nghệ

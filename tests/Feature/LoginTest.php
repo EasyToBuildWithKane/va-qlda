@@ -60,7 +60,7 @@ class LoginTest extends TestCase
         $this->post('/login', [
             'username' => 'testuser',
             'password' => 'secret123',
-        ])->assertRedirect(route('congnghe'));
+        ])->assertRedirect('/dashboard');
 
         $this->assertAuthenticatedAs($account, 'system');
     }
@@ -135,11 +135,11 @@ class LoginTest extends TestCase
 
         $this->actingAs($account, 'system')
             ->get('/login')
-            ->assertRedirect(route('congnghe'));
+            ->assertRedirect('/dashboard');
 
         $this->actingAs($account, 'system')
             ->get('/tech/login')
-            ->assertRedirect(route('congnghe'));
+            ->assertRedirect('/dashboard');
     }
 
     public function test_user_can_logout(): void
@@ -163,12 +163,25 @@ class LoginTest extends TestCase
         $this->get('/')->assertRedirect(route('login'));
     }
 
-    public function test_authenticated_root_redirects_to_congnghe(): void
+    public function test_authenticated_root_redirects_to_dashboard(): void
     {
         $account = SystemAccount::factory()->create();
 
         $this->actingAs($account, 'system')
             ->get('/')
-            ->assertRedirect(route('congnghe'));
+            ->assertRedirect('/dashboard');
+    }
+
+    public function test_hidden_congnghe_paths_redirect_to_dashboard(): void
+    {
+        $account = SystemAccount::factory()->create();
+
+        $this->actingAs($account, 'system')
+            ->get('/congnghe')
+            ->assertRedirect('/dashboard');
+
+        $this->actingAs($account, 'system')
+            ->get('/phongcongnghe')
+            ->assertRedirect('/dashboard');
     }
 }

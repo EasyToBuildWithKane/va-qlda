@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Providers\RouteServiceProvider;
 use App\Support\Auth\PortalDestination;
 use Closure;
 use Illuminate\Http\Request;
@@ -23,7 +24,9 @@ class RedirectIfAuthenticated
             if (Auth::guard($guard)->check()) {
                 $account = Auth::guard($guard)->user();
 
-                return redirect($account ? PortalDestination::homePath($account, 'portal') : route('congnghe', [], false));
+                return redirect($account
+                    ? PortalDestination::homePath($account, 'portal')
+                    : RouteServiceProvider::HOME);
             }
         }
 

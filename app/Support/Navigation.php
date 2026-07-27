@@ -245,13 +245,14 @@ class Navigation
                 'section' => 'technology',
                 'heading' => 'Trung tâm Công Nghệ',
                 'icon' => 'rocket',
-                'items' => [
-                    [
+                'items' => array_values(array_filter([
+                    // Tạm ẩn khi landing không public (chỉ còn /demo_1, không gắn sidebar).
+                    config('va.congnghe_landing_public') ? [
                         'label' => 'Landing Công Nghệ',
                         'icon' => 'rocket',
                         'href' => '/congnghe',
                         'status' => 'live',
-                    ],
+                    ] : null,
                     [
                         'label' => 'Gửi đề xuất phần mềm',
                         'icon' => 'send',
@@ -281,7 +282,7 @@ class Navigation
                         'status' => 'live',
                         'roles' => ['admin'],
                     ],
-                ],
+                ])),
             ],
 
             // ──────────────────────────────────────────────────────────────

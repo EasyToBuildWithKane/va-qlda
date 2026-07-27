@@ -4,11 +4,15 @@
 > Phòng Công Nghệ mà không cần sửa code / deploy lại.
 > Đường dẫn: **`/congnghe/quan-tri`** · Nav: **Quản trị → Trang Công Nghệ**.
 
+> **Tạm thời (2026-07):** `CONGNGHE_LANDING_PUBLIC=false` — entry projects là `/login` → `/dashboard`;
+> `/congnghe` và `/phongcongnghe` ẩn (redirect `/dashboard`); demo nội bộ: **`/demo_1`**.
+> Bật lại landing công khai bằng `CONGNGHE_LANDING_PUBLIC=true`.
+
 ---
 
 ## 1. Mục tiêu
 
-Trang `/congnghe` trộn 2 loại nội dung:
+Trang landing (tạm `/demo_1`, public `/congnghe` khi bật lại) trộn 2 loại nội dung:
 
 - **Tĩnh** (trước đây hard-code trong Vue): hero, giới thiệu, công nghệ, AI Lab, văn hoá, lộ trình, navbar, footer, tiêu đề mục, nhãn số liệu.
 - **Dữ liệu thật** từ DB: số liệu thống kê, sản phẩm (dự án hoàn thành), vòng đời dự án, sơ đồ tổ chức.

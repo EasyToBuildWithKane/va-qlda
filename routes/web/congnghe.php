@@ -11,9 +11,24 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 | Trang giới thiệu Phòng Công Nghệ — landing nội bộ cho mọi nhân sự.
 |--------------------------------------------------------------------------
+| Tạm thời (va.congnghe_landing_public = false):
+|   - Landing chỉ phục vụ tại /demo_1
+|   - /congnghe và /phongcongnghe bị ẩn (redirect → dashboard)
 */
 
-Route::get('/congnghe', CongngheController::class)->name('congnghe');
+$landingPublic = (bool) config('va.congnghe_landing_public');
+
+if ($landingPublic) {
+    Route::get('/congnghe', CongngheController::class)->name('congnghe');
+    Route::redirect('/phongcongnghe', '/congnghe');
+    Route::redirect('/demo_1', '/congnghe');
+} else {
+    // Ẩn path công khai; giữ bản demo nội bộ tại /demo_1.
+    Route::get('/demo_1', CongngheController::class)->name('congnghe');
+    Route::redirect('/congnghe', '/dashboard');
+    Route::redirect('/phongcongnghe', '/dashboard');
+}
+
 Route::get('/congnghe/de-xuat', [CongngheSoftwareProposalController::class, 'create'])->name('congnghe.proposal');
 Route::post('/congnghe/de-xuat', [CongngheSoftwareProposalController::class, 'store'])->name('congnghe.proposal.store');
 Route::get('/congnghe/de-xuat-cua-toi', [CongngheSoftwareProposalController::class, 'index'])->name('congnghe.proposal.mine');
