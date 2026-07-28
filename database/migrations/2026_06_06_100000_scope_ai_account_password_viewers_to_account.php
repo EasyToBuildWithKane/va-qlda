@@ -62,7 +62,10 @@ return new class extends Migration
             return true;
         }
 
-        return $this->hasCompositeUnique();
+        // Cần cả unique composite + FK — tránh coi “đã xong” khi ALTER fail giữa chừng
+        // (errno 121 do tên constraint có prefix va_prd_).
+        return $this->hasCompositeUnique()
+            && $this->foreignKeyExists('ai_account_password_viewers', 'system_account_id');
     }
 
     private function hasCompositeUnique(): bool
@@ -114,29 +117,10 @@ return new class extends Migration
 
     private function upgradeTableMysql(): void
     {
-        // Bảng có thể hỏng sau lần migrate cũ (dropConstrainedForeignId đã xóa cột).
-        if (! Schema::hasColumn('ai_account_password_viewers', 'system_account_id')) {
-            $this->recreateTableMysql();
-
-            return;
-        }
-
-        if (Schema::hasColumn('ai_account_password_viewers', 'ai_account_id')) {
-            $this->finishPartialMysql();
-
-            return;
-        }
-
-        $this->dropForeignIfExists('ai_account_password_viewers', 'ai_account_password_viewers_system_account_id_foreign');
-        $this->dropForeignIfExists('ai_account_password_viewers', 'ai_account_password_viewers_granted_by_foreign');
-        $this->dropIndexIfExists('ai_account_password_viewers', 'ai_account_password_viewers_system_account_id_unique');
-
-        Schema::table('ai_account_password_viewers', function (Blueprint $table) {
-            $table->foreignUuid('ai_account_id')->after('id')->constrained('ai_accounts')->cascadeOnDelete();
-            $table->unique(['ai_account_id', 'system_account_id'], 'ai_pwd_viewer_acct_user_uniq');
-            $table->foreign('system_account_id')->references('id')->on('system_accounts')->cascadeOnDelete();
-            $table->foreign('granted_by')->references('id')->on('system_accounts')->nullOnDelete();
-        });
+        // Always recreate: ALTER + dropForeign theo tên không prefix fail trên MySQL
+        // khi table_prefix = va_prd_ (constraint thực tế là va_prd_…_foreign → errno 121).
+        // up() đã wipe rows trước khi gọi — an toàn.
+        $this->recreateTableMysql();
     }
 
     private function recreateTableMysql(): void
@@ -152,58 +136,75 @@ return new class extends Migration
         });
     }
 
-    private function finishPartialMysql(): void
+    private function foreignKeyExists(string $table, string $column): bool
     {
-        if (! $this->hasCompositeUnique()) {
-            Schema::table('ai_account_password_viewers', function (Blueprint $table) {
-                $table->unique(['ai_account_id', 'system_account_id'], 'ai_pwd_viewer_acct_user_uniq');
-            });
-        }
+        $prefixed = Schema::getConnection()->getTablePrefix().$table;
+        $db = Schema::getConnection()->getDatabaseName();
 
-        $this->dropForeignIfExists('ai_account_password_viewers', 'ai_account_password_viewers_system_account_id_foreign');
-        $this->dropForeignIfExists('ai_account_password_viewers', 'ai_account_password_viewers_granted_by_foreign');
+        $rows = DB::select(
+            'SELECT 1 FROM information_schema.key_column_usage
+             WHERE table_schema = ? AND table_name = ? AND column_name = ?
+             AND referenced_table_name IS NOT NULL
+             LIMIT 1',
+            [$db, $prefixed, $column],
+        );
 
-        Schema::table('ai_account_password_viewers', function (Blueprint $table) {
-            $table->foreign('system_account_id')->references('id')->on('system_accounts')->cascadeOnDelete();
-            $table->foreign('granted_by')->references('id')->on('system_accounts')->nullOnDelete();
-        });
+        return $rows !== [];
     }
 
     private function dropForeignIfExists(string $table, string $foreignName): void
     {
-        $prefixed = Schema::getConnection()->getTablePrefix().$table;
-        $db = Schema::getConnection()->getDatabaseName();
+        $connection = Schema::getConnection();
+        $prefixed = $connection->getTablePrefix().$table;
+        $db = $connection->getDatabaseName();
+        $candidates = array_values(array_unique([
+            $foreignName,
+            $connection->getTablePrefix().$foreignName,
+        ]));
 
-        $exists = DB::select(
-            'SELECT 1 FROM information_schema.table_constraints
-             WHERE table_schema = ? AND table_name = ? AND constraint_name = ? AND constraint_type = ?
-             LIMIT 1',
-            [$db, $prefixed, $foreignName, 'FOREIGN KEY'],
-        );
+        foreach ($candidates as $name) {
+            $exists = DB::select(
+                'SELECT 1 FROM information_schema.table_constraints
+                 WHERE table_schema = ? AND table_name = ? AND constraint_name = ? AND constraint_type = ?
+                 LIMIT 1',
+                [$db, $prefixed, $name, 'FOREIGN KEY'],
+            );
 
-        if ($exists === []) {
+            if ($exists === []) {
+                continue;
+            }
+
+            DB::statement("ALTER TABLE `{$prefixed}` DROP FOREIGN KEY `{$name}`");
+
             return;
         }
-
-        DB::statement("ALTER TABLE `{$prefixed}` DROP FOREIGN KEY `{$foreignName}`");
     }
 
     private function dropIndexIfExists(string $table, string $indexName): void
     {
-        $prefixed = Schema::getConnection()->getTablePrefix().$table;
-        $db = Schema::getConnection()->getDatabaseName();
+        $connection = Schema::getConnection();
+        $prefixed = $connection->getTablePrefix().$table;
+        $db = $connection->getDatabaseName();
+        $candidates = array_values(array_unique([
+            $indexName,
+            $connection->getTablePrefix().$indexName,
+        ]));
 
-        $exists = DB::select(
-            'SELECT 1 FROM information_schema.statistics
-             WHERE table_schema = ? AND table_name = ? AND index_name = ?
-             LIMIT 1',
-            [$db, $prefixed, $indexName],
-        );
+        foreach ($candidates as $name) {
+            $exists = DB::select(
+                'SELECT 1 FROM information_schema.statistics
+                 WHERE table_schema = ? AND table_name = ? AND index_name = ?
+                 LIMIT 1',
+                [$db, $prefixed, $name],
+            );
 
-        if ($exists === []) {
+            if ($exists === []) {
+                continue;
+            }
+
+            DB::statement("ALTER TABLE `{$prefixed}` DROP INDEX `{$name}`");
+
             return;
         }
-
-        DB::statement("ALTER TABLE `{$prefixed}` DROP INDEX `{$indexName}`");
     }
 };
