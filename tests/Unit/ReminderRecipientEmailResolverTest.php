@@ -16,8 +16,8 @@ class ReminderRecipientEmailResolverTest extends TestCase
     public function test_uses_synced_employee_email(): void
     {
         $employee = Employee::factory()->create([
-            'email' => 'Synced.From.Cms@vaschools.test',
-            'cms_user_id' => 1001,
+            'email' => 'Synced.From.Hrm@vaschools.test',
+            'hrm_user_id' => 1001,
         ]);
         $account = SystemAccount::factory()->forEmployee($employee)->create([
             'role' => SystemRole::Admin,
@@ -26,14 +26,14 @@ class ReminderRecipientEmailResolverTest extends TestCase
 
         $email = app(ReminderRecipientEmailResolver::class)->resolve($account);
 
-        $this->assertSame('synced.from.cms@vaschools.test', $email);
+        $this->assertSame('synced.from.hrm@vaschools.test', $email);
     }
 
     public function test_falls_back_to_login_username_when_it_is_email(): void
     {
         $employee = Employee::factory()->create([
             'email' => null,
-            'cms_user_id' => null,
+            'hrm_user_id' => null,
         ]);
         $account = SystemAccount::factory()->forEmployee($employee)->create([
             'username' => 'login.email@vaschools.test',

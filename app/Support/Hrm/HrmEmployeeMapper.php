@@ -1,25 +1,25 @@
 <?php
 
-namespace App\Support\Cms;
+namespace App\Support\Hrm;
 
-use App\Models\Cms\CmsUser;
-use App\Models\Cms\CmsUserInfo;
+use App\Models\Hrm\HrmUser;
+use App\Models\Hrm\HrmUserInfo;
 use Carbon\CarbonInterface;
 
 /**
- * Maps CMS user + HR profile into va_prd_employees attributes (no DB writes).
+ * Maps HRM user + profile into va_prd_employees attributes (no DB writes).
  */
-final class CmsEmployeeMapper
+final class HrmEmployeeMapper
 {
     /**
      * @return array<string, mixed>
      */
-    public static function toEmployeeAttributes(CmsUser $user, ?CmsUserInfo $info): array
+    public static function toEmployeeAttributes(HrmUser $user, ?HrmUserInfo $info): array
     {
         $email = strtolower(trim($user->email));
 
         return [
-            'cms_user_id' => $user->id,
+            'hrm_user_id' => $user->id,
             'code' => self::resolveCode($user->id, $info),
             'full_name' => trim($user->name) !== '' ? trim($user->name) : $email,
             'email' => $email !== '' ? $email : null,
@@ -32,17 +32,17 @@ final class CmsEmployeeMapper
         ];
     }
 
-    private static function resolveCode(int $cmsUserId, ?CmsUserInfo $info): string
+    private static function resolveCode(int $hrmUserId, ?HrmUserInfo $info): string
     {
         $code = self::nullableString($info?->code);
         if ($code !== null) {
             return $code;
         }
 
-        return 'CMS-'.str_pad((string) $cmsUserId, 6, '0', STR_PAD_LEFT);
+        return 'HRM-'.str_pad((string) $hrmUserId, 6, '0', STR_PAD_LEFT);
     }
 
-    private static function resolveRoleTitle(?CmsUserInfo $info): ?string
+    private static function resolveRoleTitle(?HrmUserInfo $info): ?string
     {
         if ($info === null) {
             return null;
@@ -76,7 +76,7 @@ final class CmsEmployeeMapper
     /**
      * @return array<string, mixed>|null
      */
-    private static function buildMeta(?CmsUserInfo $info): ?array
+    private static function buildMeta(?HrmUserInfo $info): ?array
     {
         if ($info === null) {
             return null;

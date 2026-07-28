@@ -4,12 +4,12 @@ namespace App\Services\Auth;
 
 use App\Models\Employee;
 use App\Models\SystemAccount;
-use App\Services\Cms\SystemAccountProvisioner;
+use App\Services\Hrm\SystemAccountProvisioner;
 use App\Support\Enums\SystemRole;
 use Illuminate\Support\Str;
 
 /**
- * Applies config/va_permissions.bootstrap_accounts to existing CMS-linked employees.
+ * Applies config/va_permissions.bootstrap_accounts to existing HRM-linked employees.
  */
 final class BootstrapAdminRoleService
 {
@@ -155,7 +155,7 @@ final class BootstrapAdminRoleService
         }
 
         $candidates = Employee::query()
-            ->whereNotNull('cms_user_id')
+            ->whereNotNull('hrm_user_id')
             ->where(function ($q) use ($local) {
                 $q->where('email', 'like', $local.'@%');
             })
@@ -176,7 +176,7 @@ final class BootstrapAdminRoleService
         }
 
         $matches = Employee::query()
-            ->whereNotNull('cms_user_id')
+            ->whereNotNull('hrm_user_id')
             ->where('email', 'like', $local.'@%')
             ->limit(3)
             ->pluck('email');

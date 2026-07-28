@@ -78,7 +78,7 @@ class BootstrapAdminRolesTest extends TestCase
 
         $employee = Employee::factory()->create([
             'email' => 'truchtm@hcm.vaschools.edu.vn',
-            'cms_user_id' => 1,
+            'hrm_user_id' => 1,
         ]);
 
         SystemAccount::factory()->forEmployee($employee)->create([

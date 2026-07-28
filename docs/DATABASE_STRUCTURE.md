@@ -16,6 +16,8 @@
 
 **Ghi chú (2026-06-15):** Module Talent Management đã gỡ — các bảng `employee_skills`, `certifications`, `performance_kpis`, `learning_items`, `feedback_reviews`, `succession_plans`, `career_levels` bị drop bởi migration `2026_06_15_140000_drop_talent_tables`. Kỹ năng hồ sơ lưu trên `employees.skills` (JSON) và `employees.meta.skill_details`.
 
+**Dual-DB — HRM SSOT (2026-07-28):** Ngoài DB nghiệp vụ QLDA, app đọc **read-only** DB `va_hrm` (hrm.vaschools.edu.vn) qua connection `hrm_mysql` (`HRM_DB_*` trong `.env`, không prefix bảng) — bảng `users` + `user_info` là **nguồn chuẩn (SSOT) danh tính nhân sự**. Đây **không phải microservices**: cùng process PHP/Laravel mở PDO MySQL thứ hai. Không bulk sync: nhân sự được **lazy upsert** vào `va_prd_employees` (link qua `employees.hrm_user_id`, unique) khi Google login lần đầu, và refresh khi login / mở hồ sơ (`App\Services\Hrm\HrmIdentityResolver`). Model read-only: `App\Models\Hrm\HrmUser`, `HrmUserInfo`.
+
 ---
 
 ## 2. Entity Relationship Overview
@@ -61,7 +63,7 @@ Department ──→ Employee ──→ SystemAccount
 | Column | Type | Nullable | Description |
 |---|---|---|---|
 | id | bigint UNSIGNED | NO | PK |
-| code | varchar(50) | NO | Unique, e.g. EMP-001 |
+| code | varchar(50) | NO | Unique, e.g. EMP-001 (hoặc mã HR / `HRM-xxxxxx`) |
 | full_name | varchar(255) | NO | Họ và tên |
 | email | varchar(255) | NO | Unique |
 | phone | varchar(20) | YES | |
@@ -70,12 +72,13 @@ Department ──→ Employee ──→ SystemAccount
 | join_date | date | YES | Ngày vào làm |
 | skills | json | YES | Mảng kỹ năng |
 | is_active | tinyint(1) | NO | Default: 1 |
-| meta | json | YES | Metadata tuỳ chỉnh |
+| meta | json | YES | Metadata tuỳ chỉnh (department/company từ HRM) |
+| hrm_user_id | bigint UNSIGNED | YES | Unique — link `va_hrm.users.id` (HRM SSOT, lazy upsert khi Google login) |
 | created_at | timestamp | YES | |
 | updated_at | timestamp | YES | |
 | deleted_at | timestamp | YES | Soft delete |
 
-**Indexes:** code (unique), email (unique)
+**Indexes:** code (unique), email (unique), hrm_user_id (unique)
 
 ---
 

@@ -8,7 +8,7 @@ use Illuminate\Database\Seeder;
 /**
  * Gán role admin (và role khác) theo config/va_permissions.php → bootstrap_accounts.
  *
- * Chạy sau khi đã cms:sync-employees / cms:provision-accounts:
+ * Nhân sự được tạo lazy khi đăng nhập Google lần đầu (HRM SSOT — va_hrm):
  *   php artisan db:seed --class=BootstrapAdminSeeder
  */
 class BootstrapAdminSeeder extends Seeder
@@ -36,7 +36,7 @@ class BootstrapAdminSeeder extends Seeder
             foreach ($stats['hints'] as $hint) {
                 $this->command?->line("  {$hint}");
             }
-            $this->command?->warn('Chạy: php artisan cms:post-sync (nếu sync CMS đã 100% nhưng bị Ctrl+C).');
+            $this->command?->warn('Nhân sự tự tạo khi đăng nhập Google lần đầu (HRM SSOT) — kiểm tra email trong va_hrm.');
         }
     }
 }

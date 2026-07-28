@@ -63,13 +63,18 @@ return [
             ]) : [],
         ],
 
-        'cms_mysql' => [
+        /*
+         * HRM SSOT (va_hrm) — connection MySQL thứ hai, read-only từ QLDA.
+         * Không phải microservices: cùng process PHP, Eloquent → PDO MySQL trực tiếp.
+         * Env mới: HRM_DB_*; fallback CMS_DB_* để deploy không gãy nếu chưa rename .env.
+         */
+        'hrm_mysql' => [
             'driver' => 'mysql',
-            'host' => env('CMS_DB_HOST', '127.0.0.1'),
-            'port' => env('CMS_DB_PORT', '3306'),
-            'database' => env('CMS_DB_DATABASE', ''),
-            'username' => env('CMS_DB_USERNAME', ''),
-            'password' => env('CMS_DB_PASSWORD', ''),
+            'host' => env('HRM_DB_HOST', env('CMS_DB_HOST', '127.0.0.1')),
+            'port' => env('HRM_DB_PORT', env('CMS_DB_PORT', '3306')),
+            'database' => env('HRM_DB_DATABASE', env('CMS_DB_DATABASE', '')),
+            'username' => env('HRM_DB_USERNAME', env('CMS_DB_USERNAME', '')),
+            'password' => env('HRM_DB_PASSWORD', env('CMS_DB_PASSWORD', '')),
             'charset' => 'utf8mb4',
             'collation' => 'utf8mb4_unicode_ci',
             'prefix' => '',

@@ -9,15 +9,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('employees', function (Blueprint $table) {
-            $table->unsignedBigInteger('cms_user_id')->nullable()->unique()->after('id');
+            $table->unsignedBigInteger('hrm_user_id')->nullable()->unique()->after('id');
         });
     }
 
     public function down(): void
     {
         Schema::table('employees', function (Blueprint $table) {
-            $table->dropUnique(['cms_user_id']);
-            $table->dropColumn('cms_user_id');
+            $table->dropUnique(['hrm_user_id']);
+            $table->dropColumn('hrm_user_id');
         });
     }
 };

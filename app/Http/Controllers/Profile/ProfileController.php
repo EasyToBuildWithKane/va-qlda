@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Profile\UpdateProfileRequest;
 use App\Http\Resources\EmployeeProfileResource;
 use App\Models\Employee;
-use App\Services\Cms\CmsEmployeeSyncService;
+use App\Services\Hrm\HrmIdentityResolver;
 use App\Support\Profile\SkillCatalog;
 use App\Support\SecurityAuditLogger;
 use Illuminate\Http\RedirectResponse;
@@ -22,12 +22,12 @@ use Inertia\Response;
  */
 class ProfileController extends Controller
 {
-    public function show(Request $request, CmsEmployeeSyncService $cmsSync): Response
+    public function show(Request $request, HrmIdentityResolver $hrmResolver): Response
     {
         $employee = $this->currentEmployee($request);
 
         if ($employee !== null) {
-            $employee = $cmsSync->refreshEmployeeIfLinked($employee);
+            $employee = $hrmResolver->refreshEmployeeIfLinked($employee);
         }
 
         if ($employee === null) {

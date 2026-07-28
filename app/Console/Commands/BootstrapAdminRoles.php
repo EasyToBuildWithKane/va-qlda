@@ -35,7 +35,7 @@ class BootstrapAdminRoles extends Command
             foreach ($stats['hints'] as $hint) {
                 $this->line("  {$hint}");
             }
-            $this->warn('Sync CMS: php artisan cms:sync-employees — hoặc cms:post-sync nếu đã sync 100%.');
+            $this->warn('Nhân sự tự tạo khi đăng nhập Google lần đầu (HRM SSOT) — kiểm tra email tồn tại trong va_hrm.');
 
             return self::FAILURE;
         }

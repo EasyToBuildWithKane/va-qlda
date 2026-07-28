@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Cms;
+namespace App\Services\Hrm;
 
 use App\Models\Employee;
 use App\Models\SystemAccount;
@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
- * Creates QLDA login rows for employees synced from CMS (Google login path).
+ * Creates QLDA login rows for employees linked from HRM (Google login path).
  */
 final class SystemAccountProvisioner
 {
@@ -79,7 +79,7 @@ final class SystemAccountProvisioner
 
         $base = $email !== ''
             ? Str::before($email, '@')
-            : 'cms-'.($employee->cms_user_id ?? $employee->id);
+            : 'hrm-'.($employee->hrm_user_id ?? $employee->id);
 
         $candidate = $base;
         $suffix = 0;

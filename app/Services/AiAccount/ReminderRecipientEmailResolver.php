@@ -2,24 +2,24 @@
 
 namespace App\Services\AiAccount;
 
-use App\Models\Cms\CmsUser;
+use App\Models\Hrm\HrmUser;
 use App\Models\SystemAccount;
-use App\Services\Cms\CmsEmployeeSyncService;
+use App\Services\Hrm\HrmIdentityResolver;
 
 /**
- * Địa chỉ nhận mail nhắc AI: ưu tiên email CMS đã sync vào employees.email.
+ * Địa chỉ nhận mail nhắc AI: ưu tiên email HRM (va_hrm SSOT) đã liên kết vào employees.email.
  */
 final class ReminderRecipientEmailResolver
 {
     public function __construct(
-        private readonly CmsEmployeeSyncService $cmsSync,
+        private readonly HrmIdentityResolver $hrmResolver,
     ) {}
 
     public function resolve(SystemAccount $account): ?string
     {
         $employee = $account->employee;
-        if ($employee !== null && $this->cmsSync->isCmsConfigured()) {
-            $employee = $this->cmsSync->refreshEmployeeIfLinked($employee);
+        if ($employee !== null && $this->hrmResolver->isHrmConfigured()) {
+            $employee = $this->hrmResolver->refreshEmployeeIfLinked($employee);
         }
 
         $email = $employee?->email;
@@ -27,14 +27,14 @@ final class ReminderRecipientEmailResolver
             return strtolower(trim($email));
         }
 
-        if ($employee?->cms_user_id !== null && $this->cmsSync->isCmsConfigured()) {
-            $cmsEmail = CmsUser::query()
+        if ($employee?->hrm_user_id !== null && $this->hrmResolver->isHrmConfigured()) {
+            $hrmEmail = HrmUser::query()
                 ->withTrashed()
-                ->whereKey($employee->cms_user_id)
+                ->whereKey($employee->hrm_user_id)
                 ->value('email');
 
-            if ($this->isValidEmail($cmsEmail)) {
-                return strtolower(trim($cmsEmail));
+            if ($this->isValidEmail($hrmEmail)) {
+                return strtolower(trim($hrmEmail));
             }
         }
 

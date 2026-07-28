@@ -65,6 +65,30 @@ resources/js/
 └──────────────────────────────────────────────────────┘
 ```
 
+### Dual-DB — HRM là SSOT danh tính (2026-07-28)
+
+App dùng **hai database MySQL** trong **cùng một process Laravel** (không phải microservices / HTTP API giữa hai hệ):
+
+| Connection | Database | Vai trò |
+|---|---|---|
+| `mysql` (default, prefix `va_prd_`) | QLDA (`va-qlda-db` / `va_qlda_prod`) | Nghiệp vụ: dự án, task, báo cáo, role QLDA, session |
+| `hrm_mysql` (read-only, không prefix) | `va_hrm` (hrm.vaschools.edu.vn) | **SSOT danh tính nhân sự**: `users` + `user_info` |
+
+```mermaid
+flowchart LR
+  Google["Google OAuth email"] --> Resolver["HrmIdentityResolver"]
+  HRM["va_hrm users + user_info SSOT"] --> Resolver
+  Resolver -->|"lazy upsert 1 user"| Emp["va_prd_employees hrm_user_id"]
+  Resolver --> SA["va_prd_system_accounts role QLDA"]
+  SA --> Session["Auth guard system"]
+  Emp -->|"FK assignee / member"| Biz["projects · tasks · reports"]
+```
+
+- **Không bulk sync** — các lệnh `cms:sync-*` đã gỡ.
+- `App\Services\Hrm\HrmIdentityResolver`: tra cứu HRM theo email lúc Google login; nếu nhân sự chưa có trên QLDA → upsert 1 dòng `employees` (link `hrm_user_id`) + provision `system_accounts` (`App\Services\Hrm\SystemAccountProvisioner`); nếu đã có → refresh từ HRM.
+- Model read-only HRM: `App\Models\Hrm\HrmUser`, `HrmUserInfo` (throw khi save/delete).
+- Env: `HRM_DB_*` (fallback tạm `CMS_DB_*` nếu chưa rename `.env`) — production dùng user MySQL **SELECT-only** trên `va_hrm`.
+
 ---
 
 ## 2. Các Vấn Đề Kiến Trúc Đang Tồn Tại

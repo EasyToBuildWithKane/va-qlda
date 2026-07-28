@@ -16,7 +16,7 @@ description: >-
 - **Nút Google:** icon `/images/google.png` luôn render; `googleEnabled` từ `LoginController` (cả `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET`); khi `false` → `href="#"` + `preventDefault`, gợi ý cấu hình `.env`.
 - **Giao diện:** nền `#9a0036`; watermark `background-logo.png` với `brightness-0 invert` + `opacity-100` (file PNG gốc gần đen — `invert` rồi full opacity).
 - OAuth: `GET /auth/google` → Google → `GET /auth/google/callback` → session guard `system`.
-- Email Google phải khớp `employees.email` (active) và có `SystemAccount` active.
+- Email Google khớp `employees.email` (active) → refresh từ HRM; nếu chưa có → tra `va_hrm.users` (SSOT, `HrmIdentityResolver`) và lazy upsert `employees` + provision `SystemAccount`. Từ chối khi email không có trên cả QLDA lẫn HRM, hoặc account inactive.
 - Domain: `GOOGLE_ALLOWED_DOMAINS` (comma-separated, `config/va.php`).
 - Redirect query/session: **`LoginRedirectSanitizer`** — không open redirect, không lồng `/auth/google`.
 - Production: `AUTH_PASSWORD_LOGIN=false` — POST `/login` 404; dev/E2E: `true`.

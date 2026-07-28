@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\SystemAccount;
-use App\Services\Cms\CmsEmployeeSyncService;
-use App\Services\Cms\SystemAccountProvisioner;
+use App\Services\Hrm\HrmIdentityResolver;
+use App\Services\Hrm\SystemAccountProvisioner;
 use App\Support\Auth\CoachingOnlyAccess;
 use App\Support\Auth\LoginRedirectSanitizer;
 use App\Support\Auth\PortalDestination;
@@ -75,17 +75,31 @@ class GoogleAuthController extends Controller
                 ->with('error', 'Email không thuộc tổ chức được phép đăng nhập.');
         }
 
+        $resolver = app(HrmIdentityResolver::class);
+
         $employee = Employee::query()
             ->where('email', $email)
             ->where('is_active', true)
             ->first();
 
         if ($employee === null) {
-            return redirect()->route($loginRoute)
-                ->with('error', 'Email chưa được liên kết với nhân sự trong hệ thống.');
+            // SSOT: chưa có trên QLDA → tra cứu HRM (va_hrm) và lazy upsert.
+            $hrmUser = $resolver->findActiveHrmUserByEmail($email);
+
+            if ($hrmUser === null) {
+                return redirect()->route($loginRoute)
+                    ->with('error', 'Email chưa có trong hệ thống nhân sự (HRM). Liên hệ quản trị.');
+            }
+
+            $employee = $resolver->ensureEmployeeFromHrm($hrmUser);
+        } else {
+            $employee = $resolver->refreshEmployeeIfLinked($employee);
         }
 
-        $employee = app(CmsEmployeeSyncService::class)->refreshEmployeeIfLinked($employee);
+        if (! $employee->is_active) {
+            return redirect()->route($loginRoute)
+                ->with('error', 'Nhân sự đã ngừng hoạt động trong hệ thống. Liên hệ quản trị.');
+        }
 
         $googleAvatar = trim((string) $googleUser->getAvatar());
         if ($googleAvatar !== '' && blank($employee->avatar_path)) {
@@ -98,13 +112,13 @@ class GoogleAuthController extends Controller
             ->first();
 
         if ($account === null) {
-            if ($employee->cms_user_id === null) {
+            if ($employee->hrm_user_id === null) {
                 return redirect()->route($loginRoute)
                     ->with('error', 'Chưa có tài khoản đăng nhập cho nhân sự này. Liên hệ quản trị.');
             }
 
             $account = app(SystemAccountProvisioner::class)->ensureForEmployee($employee);
-        } elseif ($employee->cms_user_id !== null) {
+        } elseif ($employee->hrm_user_id !== null) {
             $account = app(SystemAccountProvisioner::class)->ensureForEmployee($employee);
         }
 

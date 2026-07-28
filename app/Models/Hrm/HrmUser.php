@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Models\Cms;
+namespace App\Models\Hrm;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
- * Read-only CMS account (table `users`). Do not persist changes from QLDA.
+ * Read-only HRM account (va_hrm.users). Do not persist changes from QLDA.
  *
  * @property int $id
  * @property string $name
@@ -15,11 +15,11 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string|null $avatar
  * @property \Illuminate\Support\Carbon|null $deleted_at
  */
-class CmsUser extends Model
+class HrmUser extends Model
 {
     use SoftDeletes;
 
-    protected $connection = 'cms_mysql';
+    protected $connection = 'hrm_mysql';
 
     protected $table = 'users';
 
@@ -38,12 +38,12 @@ class CmsUser extends Model
 
     protected static function booted(): void
     {
-        static::saving(static fn () => throw new \LogicException('CmsUser is read-only from QLDA.'));
-        static::deleting(static fn () => throw new \LogicException('CmsUser is read-only from QLDA.'));
+        static::saving(static fn () => throw new \LogicException('HrmUser is read-only from QLDA.'));
+        static::deleting(static fn () => throw new \LogicException('HrmUser is read-only from QLDA.'));
     }
 
     public function info(): HasOne
     {
-        return $this->hasOne(CmsUserInfo::class, 'user_id');
+        return $this->hasOne(HrmUserInfo::class, 'user_id');
     }
 }

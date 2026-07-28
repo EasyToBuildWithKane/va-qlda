@@ -41,8 +41,8 @@ return [
 
     /*
      * Nhắc hết hạn: inbox + email SMTP (MAIL_* trong .env).
-     * Người nhận: admin/lead — email từ employees.email (cms:sync-employees / CMS users.email),
-     * refresh CMS trước khi gửi; fallback username đăng nhập nếu là email.
+     * Người nhận: admin/lead — email từ employees.email (HRM va_hrm SSOT / users.email),
+     * refresh từ HRM trước khi gửi; fallback username đăng nhập nếu là email.
      * AI_ACCOUNT_REMINDER_EXTRA_EMAILS: chỉ khi cần thêm hộp thư ngoài danh sách trên.
      */
     'reminder' => [
