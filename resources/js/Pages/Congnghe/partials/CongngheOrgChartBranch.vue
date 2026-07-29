@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 import Avatar from '@/shared/ui/Avatar.vue';
 import CongngheOrgChartBranch from './CongngheOrgChartBranch.vue';
-import { toIterableList, useOrgTeamRoster } from '@/modules/people/composables/useOrgTeamPeople.js';
+import { toIterableList, useOrgTeamRoster } from '@/shared/composables/useOrgTeamPeople.js';
 import {
     buildCongngheLeadershipLayout,
     shouldShowLeadershipCardLabel,

@@ -13,12 +13,21 @@ Cấu hình AI cho repo **VAschools QLDA**, đồng bộ với [`docs/`](../docs
 | `import-export-reconcile.mdc` | Nhập / xuất / đối soát Excel → [`docs/IMPORT_EXPORT_RECONCILE.md`](../docs/IMPORT_EXPORT_RECONCILE.md) |
 | `backend-code-review-isc.mdc` | Review backend PHP theo ISC + bảo mật |
 | `frontend-code-review-isc.mdc` | Review frontend Vue/Inertia theo ISC + bảo mật |
+| `app-sidebar.mdc` | Sidebar shell — AppChrome, rail/drawer, nav backend |
+| `kpi-summary-strip.mdc` | Dải thống kê KPI |
+| `content-header.mdc` | Page header / list chrome |
+| `login-page.mdc` | Trang đăng nhập |
+| `empty-display.mdc` | Empty states |
+| `datagrid-toolbar.mdc` | Toolbar datagrid |
 
 ## Skills (`.cursor/skills/`)
 
 | Skill | Khi dùng |
 |-------|----------|
 | `va-qlda-docs` | Tra cứu `docs/` + `_dev/` |
+| `app-sidebar` | Sửa / mở rộng sidebar admin (AppSidebar*) |
+| `kpi-summary-strip` | Thêm / sửa dải KPI |
+| `content-header` | Page header / list panel |
 | `backend-code-review` | Review `git diff --staged` (BE) |
 | `frontend-code-review` | Review `git diff --staged` (FE) |
 | `add-laravel-feature` | Thêm backend feature |

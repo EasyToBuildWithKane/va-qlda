@@ -79,7 +79,7 @@ app/Application/
 | `knowledge-base.php` | Tri thức |
 | `ai-accounts.php` | Tài khoản AI (pages + JSON) |
 | `credentials.php` | Kho mật khẩu (pages + JSON) |
-| `people.php` | Profile, members, org-teams, departments |
+| `people.php` | Profile + department mutate API (org Index/UI gỡ — HRM) |
 | `settings.php` | Cấu hình hệ thống (super-admin) |
 | `comments.php` | Bình luận đa hình + realtime token |
 
@@ -95,7 +95,7 @@ resources/js/
 ├── Layouts/AppLayout.vue
 ├── Components/Ui/, Layout/, Notifications/   ← primitives + app shell
 ├── modules/{feature}/   ← 12 module: project, daily-report, knowledge-base,
-│                          contract, credential, performance, people,
+│                          contract, credential, performance,
 │                          profile, onboarding, notifications, aiAccount, audit
 ├── shared/ui/, shared/composables/, shared/services/
 ├── composables/         ← Feature logic (useSprint*, useRisk*, …)

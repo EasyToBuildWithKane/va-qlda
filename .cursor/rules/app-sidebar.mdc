@@ -1,0 +1,59 @@
+---
+description: Admin sidebar QLDA — AppChrome, rail/drawer, accordion, flyout, nav backend (bắt buộc khi sửa shell nav)
+globs: resources/js/Components/Layout/AppSidebar*.vue,resources/js/Layouts/AppChrome.vue,resources/js/Layouts/AppLayout.vue,resources/js/composables/useAppSidebar.js,app/Support/Navigation.php,app/Support/NavigationBadges.php,resources/css/app.css
+alwaysApply: true
+---
+
+# App sidebar — Production (bắt buộc)
+
+Skill: `.cursor/skills/app-sidebar/SKILL.md` (+ `reference.md`)
+
+**Mẫu vàng:** `AppChrome.vue` + `useAppSidebar.js` + `Components/Layout/AppSidebar*.vue` + `app/Support/Navigation.php`.
+
+| Layer | File |
+|-------|------|
+| Shell | `Layouts/AppChrome.vue` (`provide` sidebar) |
+| State | `composables/useAppSidebar.js` |
+| Desktop | `AppSidebar.vue` (`w-[5.75rem]` rail / `w-72`) |
+| Nav UI | `AppSidebarExpandedNav`, `AppSidebarRailNav`, `RailFlyout`, `RailTooltip` |
+| Mobile | `AppSidebarMobileDrawer.vue` |
+| Brand / Footer | `AppSidebarBrand`, `AppSidebarFooter` |
+| Config | `Navigation.php` → Inertia `nav` |
+
+## 1. Cấu trúc
+
+```
+AppChrome → AppSidebar + MobileDrawer (không remount theo page)
+useAppSidebar → rail, groups collapse, activeHref, flyout/tip
+Nav → backend Navigation::for (+ badges)
+```
+
+## 2. Responsive
+
+| Breakpoint | UI |
+|------------|-----|
+| `< lg` | Mobile drawer (`mobileOpen`) |
+| `≥ lg` | Aside rail / expanded |
+
+- Persist: `va-qlda.sidebar.rail`, `va-qlda.sidebar.collapsed`
+- Đổi URL → đóng drawer + flyout; click ngoài đóng flyout (rail)
+
+## 3. Groups & items
+
+- Expanded: accordion group; Rail: icon + tooltip + flyout menu
+- Active: longest-prefix `href` trong `useAppSidebar`
+- Status: `live|dev|maintenance|planned` — badge / tone rail
+- Class: `sidebar-nav-item--active`, `sidebar-nav-scroll`, `bg-brand`
+
+## 4. Anti-patterns
+
+- Sidebar mới trong page; remount shell mỗi visit
+- Hard-code menu FE thay `Navigation.php`
+- Rail không flyout; sửa width mà quên flyout/layout
+
+## 5. Checklist
+
+- [ ] Sửa qua AppSidebar* + useAppSidebar + Navigation.php
+- [ ] Rail / expanded / drawer đồng bộ
+- [ ] Persist + active + status đúng
+- [ ] `data-tour="sidebar"` giữ nếu có tour

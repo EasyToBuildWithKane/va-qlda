@@ -40,11 +40,10 @@ VA QLDA
 ├── [BLOCKER]       Quản lý vướng mắc / rủi ro (RSK-001)
 ├── [FEEDBACK]      Góp ý & đề xuất từ nhân viên (FB-0001)
 ├── [COMMENT]       Thảo luận đa hình (Task, Blocker, Feedback)
-├── [DEPARTMENT]    Quản lý phòng ban
+├── [DEPARTMENT]    Phòng ban (model + mutate API; Index UI gỡ — chờ HRM)
 ├── [SYSTEM CONFIG] Cấu hình hệ thống (super_admin: nhận diện, đăng nhập, Telegram, phân quyền, ma trận RBAC) → docs/SYSTEM_CONFIG.md
 ├── [CONGNGHE]      Trung tâm Công Nghệ — landing, đề xuất phần mềm, quản trị nội dung → docs/CONGNGHE_CONTENT.md
-├── [ORG TEAMS]     Sơ đồ nhóm nhân sự (/org-teams) — admin/lead chỉnh sửa
-├── [MEMBERS]       Danh bạ & hồ sơ thành viên (/members, /profile)
+├── [PROFILE]       Hồ sơ cá nhân (/profile)
 ├── [AI ACCOUNTS]   Tài khoản AI, PĐX, chi phí, analytics → docs/AI_ACCOUNTS.md
 ├── [DASHBOARD HUB] Tổng quan hệ thống (/dashboard) — truy cập nhanh tất cả module, mini-stats theo role
 ├── [DASHBOARD WORK] Dashboard Công Việc (/work) — KPI dự án, tiến độ & tuân thủ báo cáo ngày
@@ -231,14 +230,14 @@ Tạo Project
 | Risk Import/Export (Excel) | `/blockers` | ✅ Hoàn thành |
 | Công Nghệ (landing + đề xuất + quản trị nội dung) | Landing tạm `/demo_1` (`CONGNGHE_LANDING_PUBLIC=false`); `/congnghe` & `/phongcongnghe` ẩn → `/dashboard`; đề xuất vẫn `/congnghe/de-xuat*` | ✅ → docs/CONGNGHE_CONTENT.md |
 | AI Accounts (PĐX, TK, chi phí, analytics) | `/ai-accounts` | ✅ → docs/AI_ACCOUNTS.md |
-| Org teams (sơ đồ nhóm) | `/org-teams` | ✅ Hoàn thành |
-| Profile / Members directory | `/members`, `/profile` | ✅ Hoàn thành |
+| Org teams / danh bạ UI | `/org-teams`, `/members` | ❌ Đã gỡ UI (2026-07) — bảng OrgTeam tạm giữ; chờ HRM API |
+| Profile (hồ sơ cá nhân) | `/profile` | ✅ Hoàn thành |
 | System settings (super_admin) | `/settings` | ✅ → docs/SYSTEM_CONFIG.md |
 | Daily Report | `/daily-reports` | ✅ Hoàn thành → docs/DAILY_REPORT.md |
 | Blocker Tracking | `/blockers` | ✅ Hoàn thành |
 | Bug Tracking | — | ❌ Đã gỡ (2026-06) — dùng Feedback / Blocker |
 | Feedback | `/feedback` | ✅ Hoàn thành |
-| Department Management | `/departments` | ✅ Hoàn thành |
+| Department (mutate API, không Index) | `/departments` POST/PUT/PATCH/DELETE | ✅ Model + FormModal; Index UI gỡ |
 | Comments & Reactions | morph (task, blocker, feedback) | ✅ Hoàn thành |
 | Notification System (in-app bell + drawer) | `/notifications` | ✅ Hoàn thành |
 | Notification Dispatcher (centralized fan-out) | (service layer) | ✅ Hoàn thành |

@@ -42,9 +42,9 @@ export function useSmartContext(context, role) {
             return {
                 key: 'add_members',
                 icon: 'members',
-                title: 'Thêm thành viên',
-                desc: 'Nhóm chưa có thành viên. Thêm người để phân công công việc.',
-                action: { label: 'Quản lý thành viên', href: '/org-teams/members' },
+                title: 'Thêm thành viên dự án',
+                desc: 'Dự án chưa có thành viên. Thêm người trên trang dự án để phân công công việc.',
+                action: { label: 'Mở dự án', href: '/projects' },
             };
         }
         return null;

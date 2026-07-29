@@ -121,6 +121,8 @@ Department ──→ Employee ──→ SystemAccount
 
 **Indexes:** code (unique), manager_id (FK)
 
+> **UI:** trang Index `/departments` đã gỡ (2026-07); mutate API + `DepartmentFormModal` vẫn dùng. Org directory sẽ đồng bộ từ HRM.
+
 ### 3.3.1 va_prd_department_member
 
 | Column | Type | Nullable | Description |

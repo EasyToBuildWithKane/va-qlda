@@ -233,26 +233,18 @@ Chi tiết merge section: [`docs/CONGNGHE_CONTENT.md`](CONGNGHE_CONTENT.md).
 | DELETE | `/comments/{comment}` | CommentController@destroy | auth | Xóa comment |
 | POST | `/comments/{comment}/react` | CommentController@react | auth | React emoji |
 
-### 2.15 Departments
+### 2.15 Departments (mutate API)
+
+Không còn trang danh sách `/departments` (org directory chuyển sang HRM). API còn để `DepartmentFormModal` / gán phòng ban trên dự án.
 
 | Method | URI | Controller | Middleware | Mô Tả |
 |---|---|---|---|---|
-| GET | `/departments` | DepartmentController@index | auth | Danh sách phòng ban |
 | POST | `/departments` | DepartmentController@store | auth | Tạo phòng ban; body gồm `member_ids[]` (tối đa 200) |
 | PUT | `/departments/{department}` | DepartmentController@update | auth | Sửa phòng ban; đồng bộ `member_ids` (trưởng phòng tự nằm trong danh sách) |
 | PATCH | `/departments/{department}/toggle` | DepartmentController@toggleStatus | auth | Bật/tắt hoạt động |
 | DELETE | `/departments/{department}` | DepartmentController@destroy | auth | Xóa phòng ban |
 
-### 2.15.1 Org teams (sơ đồ nhân sự)
-
-| Method | URI | Controller | Middleware | Mô Tả |
-|---|---|---|---|---|
-| GET | `/org-teams` | OrgTeamController@index | auth | Sơ đồ team (Inertia) |
-| GET | `/org-teams/members` | OrgTeamController@members | auth | Thành viên gán trong sơ đồ (không gồm quản lý trên thẻ nhóm) |
-| GET | `/org-teams/{orgTeam}/edit` | OrgTeamController@edit | auth (admin/lead) | Chỉnh sửa cấu trúc — dạng danh sách, không sơ đồ |
-| POST | `/org-teams` | OrgTeamController@store | auth | Tạo nhóm (nhóm gốc → redirect trang chỉnh sửa) |
-| PUT | `/org-teams/{orgTeam}` | OrgTeamController@update | auth | Sửa nhóm |
-| DELETE | `/org-teams/{orgTeam}` | OrgTeamController@destroy | auth | Xóa nhóm |
+> **Org teams UI đã gỡ** (`/org-teams*`). Bảng `org_teams` / `LedTeamScope` / `OrgTeamTreeBuilder` vẫn dùng nội bộ (My Work, Performance, Congnghe) — nguồn dữ liệu sẽ thay bằng mock/API HRM.
 
 ### 2.16 Knowledge Base (Tri thức)
 
@@ -289,12 +281,13 @@ Prefix Inertia `ai-accounts.*`, JSON `api.ai-accounts.*` (middleware `auth`). **
 | * | `/api/ai-accounts/*` | JSON | CRUD TK, PĐX, payment, analytics |
 | POST/GET/PATCH | `/api/ai-accounts/proposal-scans*` | JSON | Số hóa PĐX bằng OCR (upload, review, confirm, serve file) — chi tiết: [`docs/AI_ACCOUNTS.md`](AI_ACCOUNTS.md) mục «Số hóa Phiếu Đề Xuất» |
 
-### 2.18 Hồ sơ & danh bạ
+### 2.18 Hồ sơ cá nhân
 
 | Method | URI | Controller | Mô Tả |
 |---|---|---|---|
-| GET/PUT | `/profile` | ProfileController | Hồ sơ cá nhân |
-| GET | `/members`, `/members/{employee}` | MemberController | Danh bạ |
+| GET/PUT | `/profile` | ProfileController | Hồ sơ cá nhân (self) |
+
+> Danh bạ `/members*` đã gỡ — org directory sẽ lấy từ HRM.
 
 ### 2.19 Cấu hình hệ thống
 
@@ -383,9 +376,7 @@ Communication Group
 └── /realtime/thread-token            (JSON)
 
 Organization Group
-├── /departments                      (CRUD + toggle)
-├── /org-teams/*                      (sơ đồ nhóm)
-├── /members/*                        (danh bạ)
+├── /departments                      (mutate API: store/update/toggle/destroy — không Index UI)
 └── /profile                          (self)
 
 AI Accounts Group

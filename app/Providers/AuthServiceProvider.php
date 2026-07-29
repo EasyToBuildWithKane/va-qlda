@@ -17,7 +17,6 @@ use App\Models\Department;
 use App\Models\Employee;
 use App\Models\Feedback;
 use App\Models\KbArticle;
-use App\Models\OrgTeam;
 use App\Models\Project;
 use App\Models\SystemAccount;
 use App\Models\SystemSetting;
@@ -38,7 +37,6 @@ use App\Policies\DepartmentPolicy;
 use App\Policies\EmployeePolicy;
 use App\Policies\FeedbackPolicy;
 use App\Policies\KbArticlePolicy;
-use App\Policies\OrgTeamPolicy;
 use App\Policies\ProjectPolicy;
 use App\Policies\SystemSettingPolicy;
 use App\Policies\TaskPolicy;
@@ -63,7 +61,6 @@ class AuthServiceProvider extends ServiceProvider
         Task::class => TaskPolicy::class,
         Department::class => DepartmentPolicy::class,
         Employee::class => EmployeePolicy::class,
-        OrgTeam::class => OrgTeamPolicy::class,
         Blocker::class => BlockerPolicy::class,
         Feedback::class => FeedbackPolicy::class,
         WeeklyReport::class => WeeklyReportPolicy::class,

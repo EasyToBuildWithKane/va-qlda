@@ -120,7 +120,6 @@ flowchart TB
   NAV --> CN[congnghe → /congnghe, de-xuat, proposals, quan-tri]
   NAV --> PJ[projects → /projects, /blockers]
   NAV --> DR[daily → /daily-reports/today, /daily-reports]
-  NAV --> PP[people → org-teams, departments, members, profile]
   NAV --> KN[knowledge → /knowledge-base, blog]
   NAV --> AI[ai → /ai-accounts/*]
   NAV --> QL[quality → /feedback]
@@ -173,7 +172,7 @@ flowchart TB
 | Trung tâm Công Nghệ | `CONGNGHE_CONTENT.md` | `Congnghe/*` | `Pages/Congnghe/`, `CongngheAdmin/` |
 | Dự án & vướng mắc | **`PROJECT_MANAGEMENT.md`** (+ `API_STRUCTURE` §2.4–2.11) | `Project/*`, `BlockerController` | `Pages/Project/`, `modules/project/` |
 | Báo cáo ngày | `DAILY_REPORT.md` (+ `DAILY_REPORT_PROJECTS.md` liên kết dự án) | `DailyReport/*` | `Pages/DailyReport/`, `modules/daily-report/` |
-| Tổ chức | `DATABASE_STRUCTURE` org | `Department`, `OrgTeam`, `Member`, `Profile` | `Pages/Department/`, `OrgTeam/`, `Member/`, `Profile/` |
+| Hồ sơ | `API_STRUCTURE` §2.18 | `ProfileController` | `Pages/Profile/` |
 | Tri thức | `KNOWLEDGE_BASE.md` | `KbArticleController` | `Pages/KnowledgeBase/` |
 | AI Workspace | `AI_ACCOUNTS.md` | `AiAccount/*`, `api/ai-accounts` | `Pages/AiAccount/`, `modules/aiAccount/` |
 | Phản hồi | `API_STRUCTURE` §2.12 | `FeedbackController` | `Pages/Feedback/` |

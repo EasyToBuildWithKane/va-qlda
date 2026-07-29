@@ -103,9 +103,6 @@ final class PermissionCatalog
             'department' => ['label' => 'Phòng ban', 'icon' => 'department', 'group' => 'Tổ chức', 'abilities' => [
                 'create' => 'Tạo', 'update' => 'Sửa', 'delete' => 'Xóa',
             ]],
-            'org_team' => ['label' => 'Sơ đồ tổ chức', 'icon' => 'org-teams', 'group' => 'Tổ chức', 'abilities' => [
-                'create' => 'Tạo', 'update' => 'Sửa', 'delete' => 'Xóa',
-            ]],
             'employee' => ['label' => 'Hồ sơ nhân sự', 'icon' => 'members', 'group' => 'Tổ chức', 'abilities' => [
                 'update' => 'Sửa hồ sơ (mọi người)',
             ]],
@@ -235,7 +232,6 @@ final class PermissionCatalog
                 'ai_proposal.create',
                 'credential.create',
                 'department.create', 'department.update',
-                'org_team.create', 'org_team.update', 'org_team.delete',
                 'kb.create', 'kb.update', 'kb.delete', 'kb.publish',
                 'congnghe.manage_proposals',
                 'performance.view',

@@ -1,6 +1,6 @@
 # FRONTEND STRUCTURE — VA QLDA
 
-> **Cập nhật 2026-06-19** — DailyReport + KnowledgeBase đã migrate sang `modules/`; 12 feature module. Content header (`PageHeader` + `#header`); FullCalendar (lịch dự án).
+> **Cập nhật 2026-07-29** — Gỡ `modules/people` (org UI); 11 feature module. DailyReport + KnowledgeBase trong `modules/`; Content header (`PageHeader` + `#header`); FullCalendar (lịch dự án).
 
 > Rule agent: `.cursor/rules/content-header.mdc` · skill `content-header`.
 
@@ -57,14 +57,13 @@ resources/js/
 │   ├── Layout/               ← App shell sidebar (AppSidebar*)
 │   ├── AppIcon.vue
 │   └── Notifications/
-├── modules/                  ← Feature modules (Phase 2+) — 12 module, mỗi module có components/ (+ composables/, config/ khi cần):
+├── modules/                  ← Feature modules (Phase 2+) — 11 module, mỗi module có components/ (+ composables/, config/ khi cần):
 │   ├── project/                  ← components (ProjectCard, Sprint/, TaskDetail/, Dashboard/), config/
 │   ├── daily-report/             ← components (GradePill, ScoringPanel, ReportCard, …), config/reportConfig.js, composables/
 │   ├── knowledge-base/           ← components (KbArticleHero, KbRichTextField, KbBlogSidebar, …), composables/
 │   ├── contract/                 ← CLM: components (*SummaryBar, charts), composables, config
 │   ├── credential/               ← Kho mật khẩu: components, composables
 │   ├── performance/              ← Dashboard + audit components/composables
-│   ├── people/                   ← Org graph + member directory (OrgTeamOverviewBuilder UI)
 │   ├── profile/                  ← Hồ sơ nhân sự (ProfileStats, skill radar)
 │   ├── onboarding/               ← SmartContextHint (useOnboarding, useSmartContext, OnboardingRoot)
 │   ├── notifications/            ← Bell, center drawer, preferences
@@ -72,7 +71,7 @@ resources/js/
 │   └── aiAccount/                ← Tài khoản AI: composables + components/scan (ProposalScanModal — OCR PĐX, useProposalScan)
 ├── shared/                   ← Cross-module (Phase 2 + 4)
 │   ├── ui/                   ← Badge, Avatar, ProgressBar, form/*, **KpiSummaryStrip**, …
-│   └── composables/          ← useToast, usePermission, useFilter
+│   └── composables/          ← useToast, usePermission, useFilter, useOrgTeamPeople (Congnghe chart)
 ├── composables/              ← Feature composables (useSprint*, useProject*, useRisk*, …)
 ├── stores/                   ← Pinia (Phase 3)
 │   ├── auth.js
@@ -114,10 +113,8 @@ AppLayout.vue
 | DailyReport | `Today`, `History`, `Show`, `Review` |
 | Project | `Index`, `Create`, `Edit`, `Show` — chi tiết UX/tab → `docs/PROJECT_MANAGEMENT.md` |
 | Blocker / Feedback | `Index`, `Show` (Feedback) — Index: **`FeedbackSummaryBar`** (dải KPI `kpi-strip` / `kpi-card`, lọc nhanh scope/status; rule `kpi-summary-strip`) + datagrid toolbar (Lọc/Cột), `FilterDatePicker` khoảng ngày, `FeedbackListRowActions` |
-| Department | `Pages/Department/Index.vue` |
-| Member directory | `Pages/Member/Index.vue` — **`MemberDirectorySummaryBar`** (5 KPI: tổng, hoạt động, ngừng, có dự án, chưa gán dự án); datagrid toolbar (`DatagridToolbarSearch`, Lọc/Cột/Xuất, `DatagridSegmentedControl` danh sách·bảng); `MemberDirectoryListRow` (chip dự án + kỹ năng) · bảng cột tùy chọn · `useMemberDirectoryExport.js` |
+| Profile | `Pages/Profile/Show.vue` — hồ sơ cá nhân; org directory UI đã gỡ (HRM) |
 | Performance | `Pages/Performance/Dashboard.vue` · **`Audit.vue`** (danh sách audit nhân sự, segmented Tuần/Tháng/Quý, cột **Kỳ** = nhóm dòng collapse theo kỳ con — pattern `Blocker/Index`, `emptyDisplay.js`, `PerformanceAuditSummaryBar` mode list) · **`AuditShow.vue`** (timeline + `PerformanceFilterBar`, back về index) |
-| Org team | `Pages/OrgTeam/Index.vue` (sơ đồ) · **`Edit.vue`** — `OrgTeamEditWorkspace` + form inline `OrgTeamTeamForm` (mục lục, mẫu Phòng CNTT, nhánh + thành viên); `OrgTeamFormModal` (tạo nhóm gốc từ Index); `Members.vue` |
 | Notifications | `Pages/Notifications/Management.vue` |
 
 Pages import feature components từ `@/modules/project/components/...` và primitives từ `@/shared/ui/...`.

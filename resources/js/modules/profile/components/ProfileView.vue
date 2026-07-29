@@ -7,7 +7,6 @@ import ProfileOverviewSummaryBar from './ProfileOverviewSummaryBar.vue';
 import ProfileHrInfo from './ProfileHrInfo.vue';
 import ProfileWorkInfo from './ProfileWorkInfo.vue';
 import ProfileContactCard from './ProfileContactCard.vue';
-import ProfileTeamsCard from './ProfileTeamsCard.vue';
 import SkillMatrix from './SkillMatrix.vue';
 import SkillRadar from './SkillRadar.vue';
 import ProfileInsights from './ProfileInsights.vue';
@@ -61,10 +60,6 @@ const editingSkills = ref(false);
         />
         <ProfileWorkInfo :profile="profile" />
         <ProfileContactCard :profile="profile" />
-        <ProfileTeamsCard
-          :teams="profile.teams"
-          :manager="profile.manager"
-        />
       </div>
     </template>
 

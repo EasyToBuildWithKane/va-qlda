@@ -17,7 +17,7 @@ use App\Support\Enums\SystemRole;
  * frontend renders the section title above the first group of each section:
  *
  *   execution  — Điều hành & Thực thi   overview, performance, projects, daily, ai, contracts, quality
- *   people     — Con người & Tri thức   people, knowledge
+ *   people     — Tri thức & Nội dung    knowledge
  *   technology — Công nghệ              congnghe
  *   system     — Hệ thống & Quản trị    security, system, settings
  *
@@ -47,7 +47,7 @@ class Navigation
      */
     private const SECTIONS = [
         'execution' => 'Điều hành & Thực thi',
-        'people' => 'Con người & Tri thức',
+        'people' => 'Tri thức & Nội dung',
         'technology' => 'Công nghệ',
         'system' => 'Hệ thống & Quản trị',
     ];
@@ -340,45 +340,7 @@ class Navigation
             ],
 
             // ──────────────────────────────────────────────────────────────
-            // 5. TỔ CHỨC & NHÂN SỰ — org structure, members
-            // ──────────────────────────────────────────────────────────────
-            [
-                'key' => 'people',
-                'section' => 'people',
-                'heading' => 'Tổ chức & Nhân sự',
-                'icon' => 'org-teams',
-                'items' => [
-                    [
-                        'label' => 'Sơ đồ tổ chức',
-                        'icon' => 'org-teams',
-                        'href' => '/org-teams',
-                        'status' => 'live',
-                        'roles' => ['admin', 'lead'],
-                    ],
-                    [
-                        'label' => 'Phòng ban',
-                        'icon' => 'department',
-                        'href' => '/departments',
-                        'status' => 'live',
-                        'roles' => ['admin', 'lead'],
-                    ],
-                    [
-                        'label' => 'Thành viên',
-                        'icon' => 'members',
-                        'href' => '/org-teams/members',
-                        'status' => 'live',
-                    ],
-                    [
-                        'label' => 'Hồ sơ thành viên',
-                        'icon' => 'member-profiles',
-                        'href' => '/members',
-                        'status' => 'live',
-                    ],
-                ],
-            ],
-
-            // ──────────────────────────────────────────────────────────────
-            // 6. TRI THỨC & NỘI DUNG — knowledge base
+            // 5. TRI THỨC & NỘI DUNG — knowledge base
             //    Collapsed by default to keep the sidebar clean.
             // ──────────────────────────────────────────────────────────────
             [

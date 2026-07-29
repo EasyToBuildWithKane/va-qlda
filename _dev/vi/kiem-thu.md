@@ -52,7 +52,6 @@ Cần Node 20+, PHP trong PATH, `composer install` đã xong.
 | `auth.spec.js` | Login, dashboard, sai mật khẩu |
 | `projects.spec.js` | Danh sách, tạo (admin), project show + Sprint |
 | `blockers.spec.js` | List, quyền, guest redirect |
-| `departments.spec.js` | CRUD cơ bản |
 | `daily-report.spec.js` | Luồng báo cáo ngày |
 | `notifications.spec.js` | Bell, JSON unread-count |
 | `knowledge-base.spec.js` | Smoke Knowledge Base |

@@ -8,7 +8,6 @@ use App\Models\AiAccount;
 use App\Models\Blocker;
 use App\Models\Contract;
 use App\Models\Credential;
-use App\Models\Employee;
 use App\Models\Feedback;
 use App\Models\KbArticle;
 use App\Models\Project;
@@ -77,7 +76,6 @@ class HubDashboardController extends Controller
                 ->whereNotNull('due_date')
                 ->whereDate('due_date', '<', $today)
                 ->count(),
-            'total_members' => Employee::count(),
             'kb_articles' => KbArticle::published()->count(),
             'ai_accounts' => AiAccount::count(),
             'open_feedback' => Feedback::open()->count(),
@@ -322,51 +320,7 @@ class HubDashboardController extends Controller
         ];
 
         // ──────────────────────────────────────────────────────────────
-        // 5. Tổ chức & Nhân sự
-        // ──────────────────────────────────────────────────────────────
-        $peopleModules = [
-            [
-                'key' => 'members',
-                'label' => 'Hồ sơ thành viên',
-                'icon' => 'members',
-                'href' => '/members',
-                'stat' => $stats['total_members'],
-                'statUnit' => 'nhân sự',
-                'tone' => 'sky',
-            ],
-        ];
-
-        if ($isLeadTier) {
-            array_unshift($peopleModules, [
-                'key' => 'org-teams',
-                'label' => 'Sơ đồ tổ chức',
-                'icon' => 'org-teams',
-                'href' => '/org-teams',
-                'stat' => null,
-                'statUnit' => null,
-                'tone' => 'brand',
-            ]);
-            $peopleModules[] = [
-                'key' => 'departments',
-                'label' => 'Phòng ban',
-                'icon' => 'department',
-                'href' => '/departments',
-                'stat' => null,
-                'statUnit' => null,
-                'tone' => 'violet',
-            ];
-        }
-
-        $groups[] = [
-            'key' => 'people',
-            'label' => 'Tổ chức & Nhân sự',
-            'icon' => 'org-teams',
-            'tone' => 'sky',
-            'modules' => $peopleModules,
-        ];
-
-        // ──────────────────────────────────────────────────────────────
-        // 6. Hệ thống (admin/super only for most items)
+        // 5. Hệ thống (admin/super only for most items)
         // ──────────────────────────────────────────────────────────────
         $systemModules = [];
 

@@ -47,7 +47,6 @@ npm run test:e2e:install
 | `auth.spec.js` | Login, dashboard, invalid creds |
 | `projects.spec.js` | List, summary, create (admin), **project show + Sprint tab** |
 | `blockers.spec.js` | List, quyền, guest redirect |
-| `departments.spec.js` | List, CRUD cơ bản |
 | `daily-report.spec.js` | Luồng báo cáo ngày |
 | `notifications.spec.js` | Bell UI, JSON unread-count |
 | `visual/feature-screens.spec.js` | Snapshot từng màn hình (login, member, admin tour + project show) |

@@ -339,7 +339,7 @@ return [
             ],
             'contact_links' => [
                 ['label' => 'phongcongnghe@vaschools.edu.vn', 'href' => 'mailto:phongcongnghe@vaschools.edu.vn'],
-                ['label' => 'Danh bạ nội bộ', 'href' => '/members'],
+                ['label' => 'Danh bạ nội bộ', 'href' => '/profile'],
                 ['label' => 'Liên hệ theo sơ đồ tổ chức', 'href' => '#to-chuc'],
             ],
             'copyright' => 'Bản quyền thuộc về Phòng Công Nghệ — Hệ thống Trường Quốc tế Việt Mỹ',
