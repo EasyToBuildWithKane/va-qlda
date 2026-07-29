@@ -161,6 +161,7 @@ flowchart TB
 | Công Nghệ | MVC + ContentRepository | `CONGNGHE_CONTENT.md` |
 | AI Accounts | Inertia pages + JSON API | `AI_ACCOUNTS.md` |
 | System settings | MVC + SettingsRepository | `SYSTEM_CONFIG.md` |
+| Evaluation config | MVC + EvaluationConfigFactory | `EVALUATION_CONFIG.md` |
 
 ---
 
@@ -177,6 +178,7 @@ flowchart TB
 | AI Workspace | `AI_ACCOUNTS.md` | `AiAccount/*`, `api/ai-accounts` | `Pages/AiAccount/`, `modules/aiAccount/` |
 | Phản hồi | `API_STRUCTURE` §2.12 | `FeedbackController` | `Pages/Feedback/` |
 | Hệ thống | `SYSTEM_CONFIG.md` | `SystemSettingController`, `Notification*` | `Pages/Settings/`, `Notifications/` |
+| Cấu hình đánh giá | `EVALUATION_CONFIG.md` | `EvaluationConfigController` | `Pages/WorkspaceConfig/Evaluation/`, `modules/evaluation/` |
 | Nhập/xuất Excel | `IMPORT_EXPORT_RECONCILE.md` | `Blocker@import`, … | `*DataModal`, `use*Import.js` |
 
 **Chéo:** Comments morph — `CommentController` + `CommentThread.vue` (Task, Blocker, Feedback, KB, …). Realtime token: `_dev/realtime.md`, route `realtime.thread-token`.
@@ -299,6 +301,7 @@ Pre-push gates: `.cursor/skills/ship-ready/SKILL.md` · `.cursor/rules/ci-qualit
 | `AI_ACCOUNTS.md` | Quản lý AI |
 | `CONGNGHE_CONTENT.md` | Landing + quản trị /congnghe |
 | `SYSTEM_CONFIG.md` | `/settings` |
+| `EVALUATION_CONFIG.md` | `/workspace-config/evaluation` |
 | `PROJECT_MANAGEMENT.md` | Quản lý dự án `/projects` (danh mục, workspace, sprint, task, tài liệu) |
 | `DAILY_REPORT_PROJECTS.md` | Báo cáo ngày & liên kết dự án |
 | `CONTRACT_MANAGEMENT.md` | Quản lý hợp đồng / NCC (CLM) |

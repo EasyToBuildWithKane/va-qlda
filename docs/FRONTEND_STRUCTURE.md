@@ -1,6 +1,6 @@
 # FRONTEND STRUCTURE — VA Workspace
 
-> **Cập nhật 2026-07-29** — Gỡ `modules/people` (org UI); 11 feature module. DailyReport + KnowledgeBase trong `modules/`; Content header (`PageHeader` + `#header`); FullCalendar (lịch dự án).
+> **Cập nhật 2026-07-29** — Gỡ `modules/people` (org UI); thêm `modules/evaluation` (cấu hình đánh giá). DailyReport + KnowledgeBase trong `modules/`; Content header (`PageHeader` + `#header`); FullCalendar (lịch dự án).
 
 > Rule agent: `.cursor/rules/content-header.mdc` · skill `content-header`.
 
@@ -58,7 +58,7 @@ resources/js/
 │   ├── Layout/               ← App shell sidebar (AppSidebar*)
 │   ├── AppIcon.vue
 │   └── Notifications/
-├── modules/                  ← Feature modules (Phase 2+) — 11 module, mỗi module có components/ (+ composables/, config/ khi cần):
+├── modules/                  ← Feature modules (Phase 2+) — mỗi module có components/ (+ composables/, config/ khi cần):
 │   ├── project/                  ← components (ProjectCard, Sprint/, TaskDetail/, Dashboard/), config/
 │   ├── daily-report/             ← components (GradePill, ScoringPanel, ReportCard, …), config/reportConfig.js, composables/
 │   ├── knowledge-base/           ← components (KbArticleHero, KbRichTextField, KbBlogSidebar, …), composables/
@@ -69,7 +69,8 @@ resources/js/
 │   ├── onboarding/               ← SmartContextHint (useOnboarding, useSmartContext, OnboardingRoot)
 │   ├── notifications/            ← Bell, center drawer, preferences
 │   ├── audit/                    ← Audit trail viewer components/composables
-│   └── aiAccount/                ← Tài khoản AI: composables + components/scan (ProposalScanModal — OCR PĐX, useProposalScan)
+│   ├── aiAccount/                ← Tài khoản AI: composables + components/scan (ProposalScanModal — OCR PĐX, useProposalScan)
+│   └── evaluation/               ← Cấu hình đánh giá workspace: SummaryBar, ConfigForm, CriteriaEditor
 ├── shared/                   ← Cross-module (Phase 2 + 4)
 │   ├── ui/                   ← Badge, Avatar, ProgressBar, form/*, **KpiSummaryStrip**, …
 │   └── composables/          ← useToast, usePermission, useFilter, useOrgTeamPeople (Congnghe chart)
@@ -118,6 +119,7 @@ AppChrome.vue (persistent shell)
 | Blocker / Feedback | `Index`, `Show` (Feedback) — Index: **`FeedbackSummaryBar`** (dải KPI `kpi-strip` / `kpi-card`, lọc nhanh scope/status; rule `kpi-summary-strip`) + datagrid toolbar (Lọc/Cột), `FilterDatePicker` khoảng ngày, `FeedbackListRowActions` |
 | Profile | `Pages/Profile/Show.vue` — hồ sơ cá nhân; org directory UI đã gỡ (HRM) |
 | Performance | `Pages/Performance/Dashboard.vue` · **`Audit.vue`** (danh sách audit nhân sự, segmented Tuần/Tháng/Quý, cột **Kỳ** = nhóm dòng collapse theo kỳ con — pattern `Blocker/Index`, `emptyDisplay.js`, `PerformanceAuditSummaryBar` mode list) · **`AuditShow.vue`** (timeline + `PerformanceFilterBar`, back về index) |
+| Evaluation config | `Pages/WorkspaceConfig/Evaluation/{Index,Create,Edit,Show}.vue` + `modules/evaluation/components/` — super-admin; KPI strip + datagrid |
 | Notifications | `Pages/Notifications/Management.vue` |
 
 Pages import feature components từ `@/modules/project/components/...` và primitives từ `@/shared/ui/...`.

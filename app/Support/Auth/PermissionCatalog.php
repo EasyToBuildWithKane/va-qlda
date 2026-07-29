@@ -40,6 +40,8 @@ final class PermissionCatalog
         'system.settings.manage',
         'permissions.manage',
         'roles.assign',
+        'workspace.evaluation.view',
+        'workspace.evaluation.manage',
     ];
 
     /**
@@ -129,6 +131,10 @@ final class PermissionCatalog
             ]],
 
             // ── RESERVED — chỉ super_admin ───────────────────────────
+            'workspace' => ['label' => 'Cấu hình workspace', 'icon' => 'award', 'group' => 'Quản trị tối cao', 'abilities' => [
+                'evaluation.view' => 'Xem cấu hình đánh giá',
+                'evaluation.manage' => 'Quản lý cấu hình đánh giá',
+            ]],
             'system' => ['label' => 'Cấu hình hệ thống', 'icon' => 'system-config', 'group' => 'Quản trị tối cao', 'abilities' => [
                 'settings.view' => 'Xem cấu hình', 'settings.manage' => 'Sửa cấu hình hệ thống',
             ]],

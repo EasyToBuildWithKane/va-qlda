@@ -64,6 +64,7 @@ class Navigation
         'settings_notify',
         'settings_access',
         'settings_clm',
+        'settings_workspace',
     ];
 
     /**
@@ -611,6 +612,23 @@ class Navigation
                         'label' => 'Tài khoản & Vai trò',
                         'icon' => 'account',
                         'href' => '/settings/accounts',
+                        'status' => 'live',
+                        'roles' => ['admin'],
+                    ],
+                ],
+            ],
+            [
+                'key' => 'settings_workspace',
+                'section' => 'system',
+                'heading' => 'Cấu hình workspace',
+                'icon' => 'award',
+                'defaultCollapsed' => true,
+                'superOnly' => true,
+                'items' => [
+                    [
+                        'label' => 'Cấu hình đánh giá',
+                        'icon' => 'award',
+                        'href' => '/workspace-config/evaluation',
                         'status' => 'live',
                         'roles' => ['admin'],
                     ],

@@ -35,6 +35,7 @@ Route::middleware(['auth'])->group(function () {
         'credentials',     // kho mật khẩu (API + pages)
         'people',          // profile, members, org-teams, departments
         'settings',        // cấu hình hệ thống (super-admin)
+        'evaluation',      // cấu hình đánh giá workspace (super-admin)
         'comments',        // bình luận đa hình + realtime token
     ] as $partial) {
         require __DIR__."/web/{$partial}.php";

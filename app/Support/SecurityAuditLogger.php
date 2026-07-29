@@ -186,4 +186,10 @@ class SecurityAuditLogger
     {
         self::log($actor, "weekly_report.{$event}", 'weekly_report', $subjectId, $meta);
     }
+
+    /** @param array<string,mixed> $meta */
+    public static function evaluation(SystemAccount $actor, string $event, ?int $subjectId, array $meta = []): void
+    {
+        self::log($actor, "evaluation.{$event}", 'evaluation_config', $subjectId, $meta);
+    }
 }

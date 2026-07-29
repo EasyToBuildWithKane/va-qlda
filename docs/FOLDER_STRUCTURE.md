@@ -81,6 +81,7 @@ app/Application/
 | `credentials.php` | Kho mật khẩu (pages + JSON) |
 | `people.php` | Profile + department mutate API (org Index/UI gỡ — HRM) |
 | `settings.php` | Cấu hình hệ thống (super-admin) |
+| `evaluation.php` | Cấu hình đánh giá workspace (super-admin) |
 | `comments.php` | Bình luận đa hình + realtime token |
 
 > Mỗi partial tự `use` controller riêng và đăng ký route trong group đang active. Static segment đặt **trước** `/{id}`.

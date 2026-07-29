@@ -36,6 +36,7 @@ final class AuditActionCatalog
             'contract' => ['label' => 'Quản lý hợp đồng', 'icon' => 'documents'],
             'daily_report' => ['label' => 'Báo cáo ngày', 'icon' => 'daily'],
             'weekly_report' => ['label' => 'Báo cáo tuần', 'icon' => 'weekly'],
+            'evaluation' => ['label' => 'Cấu hình đánh giá', 'icon' => 'award'],
             'system' => ['label' => 'Hệ thống', 'icon' => 'settings'],
         ];
     }
@@ -120,6 +121,15 @@ final class AuditActionCatalog
             'weekly_report.submitted' => ['label' => 'Gửi duyệt báo cáo tuần', 'module' => 'weekly_report', 'severity' => 'notice'],
             'weekly_report.approved' => ['label' => 'Duyệt báo cáo tuần', 'module' => 'weekly_report', 'severity' => 'notice'],
             'weekly_report.rejected' => ['label' => 'Trả lại báo cáo tuần', 'module' => 'weekly_report', 'severity' => 'warning'],
+
+            // ── Cấu hình đánh giá workspace ───────────────────────────
+            'evaluation.config_created' => ['label' => 'Tạo cấu hình đánh giá', 'module' => 'evaluation', 'severity' => 'notice'],
+            'evaluation.config_updated' => ['label' => 'Sửa cấu hình đánh giá', 'module' => 'evaluation', 'severity' => 'info'],
+            'evaluation.config_deleted' => ['label' => 'Xóa cấu hình đánh giá', 'module' => 'evaluation', 'severity' => 'warning'],
+            'evaluation.template_applied' => ['label' => 'Áp dụng mẫu đánh giá', 'module' => 'evaluation', 'severity' => 'notice'],
+            'evaluation.criteria_created' => ['label' => 'Thêm tiêu chí đánh giá', 'module' => 'evaluation', 'severity' => 'notice'],
+            'evaluation.criteria_updated' => ['label' => 'Sửa tiêu chí đánh giá', 'module' => 'evaluation', 'severity' => 'info'],
+            'evaluation.criteria_deleted' => ['label' => 'Xóa tiêu chí đánh giá', 'module' => 'evaluation', 'severity' => 'warning'],
         ];
     }
 
@@ -190,6 +200,7 @@ final class AuditActionCatalog
             'vendor' => 'contract',
             'daily_report' => 'daily_report',
             'weekly_report' => 'weekly_report',
+            'evaluation' => 'evaluation',
         ];
     }
 
@@ -289,6 +300,7 @@ final class AuditActionCatalog
             'congnghe_software_proposal' => 'Đề xuất phần mềm',
             'daily_report' => 'Báo cáo ngày',
             'weekly_report' => 'Báo cáo tuần',
+            'evaluation_config' => 'Cấu hình đánh giá',
             default => ucfirst(str_replace('_', ' ', $type)),
         };
     }
