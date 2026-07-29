@@ -12,7 +12,6 @@ enum NotificationCategory: string
     case System = 'system';
     case Admin = 'admin';
     case DailyReport = 'daily_report';
-    case Coaching = 'coaching';
 
     public function label(): string
     {
@@ -25,7 +24,6 @@ enum NotificationCategory: string
             self::System => 'Hệ thống',
             self::Admin => 'Quản trị',
             self::DailyReport => 'Báo cáo ngày',
-            self::Coaching => 'Coaching',
         };
     }
 
@@ -40,7 +38,6 @@ enum NotificationCategory: string
             self::System => 'slate',
             self::Admin => 'rose',
             self::DailyReport => 'emerald',
-            self::Coaching => 'brand',
         };
     }
 

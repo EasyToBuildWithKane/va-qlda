@@ -61,14 +61,6 @@ class OnboardingController extends Controller
         return $this->ok($request);
     }
 
-    /** Dismiss the first-login Welcome without starting a tour. */
-    public function dismissWelcome(Request $request): Response
-    {
-        $this->service->markWelcomeSeen($request->user());
-
-        return $this->ok($request);
-    }
-
     /** 204 for ajax callers; graceful redirect fallback otherwise. */
     private function ok(Request $request, ?string $flash = null): Response
     {

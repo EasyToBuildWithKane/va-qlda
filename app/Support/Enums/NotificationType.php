@@ -91,11 +91,6 @@ enum NotificationType: string
     case DailyReportScored = 'daily_report_scored';
     case DailyReportRejected = 'daily_report_rejected';
 
-    // Coaching
-    case CoachingSessionCreated = 'coaching_session_created';
-    case CoachingSessionUpdated = 'coaching_session_updated';
-    case CoachingAssignmentCreated = 'coaching_assignment_created';
-
     // Admin feed
     case AdminUserAction = 'admin_user_action';
     case AdminApiError = 'admin_api_error';
@@ -150,9 +145,6 @@ enum NotificationType: string
             self::DailyReportScored,
             self::DailyReportRejected => NotificationCategory::DailyReport,
 
-            self::CoachingSessionCreated, self::CoachingSessionUpdated,
-            self::CoachingAssignmentCreated => NotificationCategory::Coaching,
-
             default => NotificationCategory::Admin,
         };
     }
@@ -170,7 +162,7 @@ enum NotificationType: string
             self::SystemContractExpiry,
             self::SprintOverCapacity, self::AdminDataAnomaly,
             self::AdminUploadFailed, self::AdminPermissionError,
-            self::DailyReportRejected, self::CoachingAssignmentCreated,
+            self::DailyReportRejected,
             self::AiProposalApproved, self::AiProposalRejected => NotificationPriority::High,
 
             self::CommentMention, self::TaskDeadlineChanged,
@@ -236,9 +228,6 @@ enum NotificationType: string
             self::DailyReportRecalled => 'Báo cáo ngày được rút lại',
             self::DailyReportScored => 'Báo cáo ngày đã được chấm',
             self::DailyReportRejected => 'Báo cáo ngày bị trả lại',
-            self::CoachingSessionCreated => 'Buổi học mới',
-            self::CoachingSessionUpdated => 'Cập nhật buổi học',
-            self::CoachingAssignmentCreated => 'Bài tập mới',
             self::SprintUpdated => 'Sprint được cập nhật',
             self::SprintDeleted => 'Sprint bị xoá',
             self::ProjectMemberAdded => 'Được thêm vào dự án',

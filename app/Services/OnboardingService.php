@@ -65,7 +65,6 @@ class OnboardingService
         $completed = $progress->where('status', 'completed')->count();
 
         return [
-            'seen_welcome' => $account->onboarding_seen_at !== null,
             'role' => $account->role->value,
             'tours' => $tours,
             'completed_tours' => $completed,
@@ -118,8 +117,6 @@ class OnboardingService
             ['system_account_id' => $account->id, 'tour_key' => $tourKey],
             ['status' => 'completed', 'completed_at' => now()],
         );
-
-        $this->markWelcomeSeen($account);
     }
 
     public function skip(SystemAccount $account, string $tourKey): void
@@ -128,8 +125,6 @@ class OnboardingService
             ['system_account_id' => $account->id, 'tour_key' => $tourKey],
             ['status' => 'skipped'],
         );
-
-        $this->markWelcomeSeen($account);
     }
 
     /** "Xem lại từ đầu" — clear a tour so the user can replay it cleanly. */
@@ -139,12 +134,5 @@ class OnboardingService
             ->where('system_account_id', $account->id)
             ->where('tour_key', $tourKey)
             ->delete();
-    }
-
-    public function markWelcomeSeen(SystemAccount $account): void
-    {
-        if ($account->onboarding_seen_at === null) {
-            $account->forceFill(['onboarding_seen_at' => now()])->save();
-        }
     }
 }

@@ -24,7 +24,6 @@ const ADMIN_SCREENS = [
     { id: 'departments', path: '/departments', heading: 'Quản lý phòng ban' },
     { id: 'feedback', path: '/feedback', heading: /phản hồi/i },
     { id: 'knowledge-base', path: '/knowledge-base', heading: /cơ sở tri thức/i },
-    { id: 'coaching', path: '/coaching', heading: /coaching/i },
     { id: 'ai-accounts', path: '/ai-accounts', heading: /tài khoản ai/i },
     { id: 'ai-accounts-dashboard', path: '/ai-accounts/dashboard', heading: /dashboard quản trị ai/i },
     { id: 'ai-accounts-analytics', path: '/ai-accounts/analytics', heading: /báo cáo phân tích/i },

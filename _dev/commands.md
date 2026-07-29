@@ -68,7 +68,7 @@ Helper scripts:
 | `npm run commit:msg` | Print the diff-derived commit message (header + body) for the staged changes |
 | `npm run commit` | Auto-commit workflow (`scripts/auto-commit.mjs`) — styled summary box, staged file list with `+/-` churn, then commits with the generated message |
 
-> **Commit message generation** (`scripts/generate-commit-msg.mjs`) is **fully diff-driven**: type/scope/subject/body are inferred from the real staged diff (`name-status` + `numstat`). Scope = dominant business module (e.g. `coaching`, `knowledge-base`), subject = humanized "headline" file, body = per-module file counts with `+added/-deleted` churn and a totals line. No hardcoded themes.
+> **Commit message generation** (`scripts/generate-commit-msg.mjs`) is **fully diff-driven**: type/scope/subject/body are inferred from the real staged diff (`name-status` + `numstat`). Scope = dominant business module (e.g. `knowledge-base`, `projects`), subject = humanized "headline" file, body = per-module file counts with `+added/-deleted` churn and a totals line. No hardcoded themes.
 
 ---
 

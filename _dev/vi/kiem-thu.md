@@ -55,7 +55,7 @@ Cần Node 20+, PHP trong PATH, `composer install` đã xong.
 | `departments.spec.js` | CRUD cơ bản |
 | `daily-report.spec.js` | Luồng báo cáo ngày |
 | `notifications.spec.js` | Bell, JSON unread-count |
-| `knowledge-coaching.spec.js` | Smoke KB / Coaching |
+| `knowledge-base.spec.js` | Smoke Knowledge Base |
 | `visual/feature-screens.spec.js` | Snapshot màn hình |
 
 **Auth helper:** `tests/e2e/helpers/auth.js` — fixture đã login (`member` \| `admin` \| `lead` \| `viewer`).

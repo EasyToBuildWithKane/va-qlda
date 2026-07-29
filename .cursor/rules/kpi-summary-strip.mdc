@@ -16,12 +16,11 @@ Section **Thống kê** + thẻ KPI cắt góc (clip-path) trên trang Index. Sk
 | Hub `/dashboard` | `HubDashboardSummaryBar.vue` + `Pages/Dashboard/Hub.vue` |
 | Dự án `/projects` | `ProjectPortfolioSummaryBar.vue` + `Pages/Project/Index.vue` |
 | Vướng mắc `/blockers` | `BlockerSummaryBar.vue` + `Pages/Blocker/Index.vue` |
-| Coaching hub `/coaching` | `CoachingDashboardSummaryBar.vue` + `Pages/Coaching/Dashboard.vue` |
 | AI dashboard / cost report | `AiExecutiveSummaryStrip.vue`, `ProposalWorkflowKpiStrip.vue` |
 | Thông báo vận hành | `NotificationOpsSummaryBar.vue` + `Pages/Notifications/Management.vue` |
 | Hồ sơ cá nhân `/profile` | `ProfileOverviewSummaryBar.vue` + `ProfileView.vue` (tab Tổng quan) |
 | Chi tiết hợp đồng `/contracts/{id}` tab Tổng quan | `ContractShowSummaryBar.vue` + `Pages/Contract/Show.vue` (`variant="embedded"`, 6 thẻ) |
-| Nhúng workspace (border-bottom) | `CoachingSessionsSummaryBar.vue` |
+| Nhúng workspace (border-bottom) | `ContractShowSummaryBar.vue` (`variant="embedded"`) hoặc Feedback strip flush |
 | **Shared** | `shared/ui/KpiSummaryStrip.vue` + `shared/styles/kpi-summary-strip.css` |
 
 ## 1. Vị trí trang
@@ -34,7 +33,7 @@ Section **Thống kê** + thẻ KPI cắt góc (clip-path) trên trang Index. Sk
 
 - `<section class="kpi-strip …" :aria-label="…">` — nhãn tiếng Việt mô tả domain.
 - **Index standalone:** `rounded-card border border-slate-200/80 shadow-sm mb-5` (Feedback).
-- **Nhúng:** `shrink-0 border-b border-slate-100` (Coaching Schedule).
+- **Nhúng:** `shrink-0 border-b border-slate-100` (vd. strip flush dưới header workspace).
 - Nền: `bg-gradient-to-b from-slate-50/90 to-white` + lớp trang trí `kpi-strip__bg-outer` / `__bg-inner` (clip-path, brand tint).
 - Header strip: eyebrow `THỐNG KÊ` (`text-[10px] uppercase tracking-[0.14em] text-brand/80`), `h2` một dòng, hint phải (vd. «Thẻ viền nét đứt — bấm lọc nhanh»).
 

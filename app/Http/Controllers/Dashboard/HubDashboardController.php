@@ -6,7 +6,6 @@ use App\Domain\DailyReport\Models\DailyReport;
 use App\Http\Controllers\Controller;
 use App\Models\AiAccount;
 use App\Models\Blocker;
-use App\Models\CoachingSession;
 use App\Models\Contract;
 use App\Models\Credential;
 use App\Models\Employee;
@@ -96,9 +95,6 @@ class HubDashboardController extends Controller
 
         if ($isMemberTier) {
             $stats['credentials'] = Credential::count();
-            $stats['upcoming_sessions'] = CoachingSession::where('date', '>=', now()->toDateString())
-                ->where('date', '<=', now()->addDays(7)->toDateString())
-                ->count();
         }
 
         return $stats;
@@ -246,7 +242,7 @@ class HubDashboardController extends Controller
         }
 
         // ──────────────────────────────────────────────────────────────
-        // 3. Đào tạo & Tri thức
+        // 3. Tri thức
         // ──────────────────────────────────────────────────────────────
         $learnModules = [
             [
@@ -270,21 +266,9 @@ class HubDashboardController extends Controller
             ],
         ];
 
-        if ($isMemberTier) {
-            array_unshift($learnModules, [
-                'key' => 'coaching',
-                'label' => 'Coaching & Đào tạo',
-                'icon' => 'learning',
-                'href' => '/coaching',
-                'stat' => $stats['upcoming_sessions'] ?? null,
-                'statUnit' => '7 ngày',
-                'tone' => 'sky',
-            ]);
-        }
-
         $groups[] = [
             'key' => 'learning',
-            'label' => 'Đào tạo & Tri thức',
+            'label' => 'Tri thức',
             'icon' => 'learning',
             'tone' => 'emerald',
             'modules' => $learnModules,

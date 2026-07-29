@@ -37,6 +37,29 @@ return [
         'redirect' => env('GOOGLE_REDIRECT_URI'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | SSO HRM → QLDA (ADR-013 phía va-hrm)
+    |--------------------------------------------------------------------------
+    |
+    | HRM là IdP nội bộ (user Google login một lần trên HRM). QLDA redirect
+    | sang {base_url}/sso/authorize và nhận về JWT RS256 (TTL ~10 phút),
+    | verify offline qua JWKS. Redirect URI luôn là {APP_URL}/auth/hrm/callback
+    | — phải whitelist tuyệt đối trên HRM tại /admin/api-clients (client qlda).
+    | JWT SSO user ≠ HRM_API_TOKEN (M2M Sanctum — luồng khác).
+    |
+    */
+    'hrm_sso' => [
+        'enabled' => filter_var(env('HRM_SSO_ENABLED', false), FILTER_VALIDATE_BOOLEAN),
+        'base_url' => rtrim((string) env('HRM_SSO_BASE_URL', ''), '/'),
+        'client_id' => env('HRM_SSO_CLIENT_ID', 'qlda'),
+        'audience' => env('HRM_SSO_AUDIENCE', 'qlda'),
+        // Phải khớp SSO_ISSUER phía HRM (mặc định = APP_URL của HRM).
+        'issuer' => env('HRM_SSO_ISSUER', rtrim((string) env('HRM_SSO_BASE_URL', ''), '/')),
+        'jwks_url' => env('HRM_SSO_JWKS_URL'),
+        'jwks_cache_ttl' => (int) env('HRM_SSO_JWKS_CACHE_TTL', 3600),
+    ],
+
     'proposal_ocr' => [
         'url' => env('PROPOSAL_OCR_URL'),
         'token' => env('PROPOSAL_OCR_TOKEN'),

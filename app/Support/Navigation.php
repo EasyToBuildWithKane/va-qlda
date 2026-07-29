@@ -3,7 +3,6 @@
 namespace App\Support;
 
 use App\Models\SystemAccount;
-use App\Support\Auth\CoachingOnlyAccess;
 use App\Support\Enums\SystemRole;
 
 /**
@@ -18,7 +17,7 @@ use App\Support\Enums\SystemRole;
  * frontend renders the section title above the first group of each section:
  *
  *   execution  — Điều hành & Thực thi   overview, performance, projects, daily, ai, contracts, quality
- *   people     — Con người & Tri thức   people, coaching, knowledge
+ *   people     — Con người & Tri thức   people, knowledge
  *   technology — Công nghệ              congnghe
  *   system     — Hệ thống & Quản trị    security, system, settings
  *
@@ -29,9 +28,6 @@ use App\Support\Enums\SystemRole;
  * sidebar stays low-noise; future features are added to their group when built.
  * To add a group: give it a `section` key. To add a section: add it to
  * self::SECTIONS (key order = sidebar order) and point groups at it.
- *
- * Group key `coaching` is load-bearing — CoachingOnlyAccess (in for()) and the
- * coaching-only nav test key off it, so it must not be renamed.
  *
  * Item status flags (used by the sidebar for styling):
  *
@@ -135,13 +131,6 @@ class Navigation
             return $i === false ? \PHP_INT_MAX : $i;
         };
         usort($groups, static fn (array $a, array $b): int => $rank($a['sectionKey']) <=> $rank($b['sectionKey']));
-
-        if (CoachingOnlyAccess::appliesTo($account)) {
-            $groups = array_values(array_filter(
-                $groups,
-                static fn (array $group): bool => $group['key'] === 'coaching',
-            ));
-        }
 
         return $groups;
     }
@@ -389,49 +378,7 @@ class Navigation
             ],
 
             // ──────────────────────────────────────────────────────────────
-            // 6. ĐÀO TẠO & COACHING — dashboard, khóa học, buổi học
-            //    Group key `coaching` is load-bearing (CoachingOnlyAccess +
-            //    CoachingGoogleGuestTest) — do not rename.
-            // ──────────────────────────────────────────────────────────────
-            [
-                'key' => 'coaching',
-                'section' => 'people',
-                'heading' => 'Đào tạo & Coaching',
-                'icon' => 'learning',
-                'items' => [
-                    [
-                        'label' => 'Coaching Dashboard',
-                        'icon' => 'overview',
-                        'href' => '/coaching',
-                        'status' => 'live',
-                        'roles' => ['admin', 'lead', 'member'],
-                    ],
-                    [
-                        'label' => 'Khóa học',
-                        'icon' => 'knowledge',
-                        'href' => '/coaching/courses',
-                        'status' => 'live',
-                        'roles' => ['admin', 'lead', 'member'],
-                    ],
-                    [
-                        'label' => 'Lịch buổi học',
-                        'icon' => 'calendar',
-                        'href' => '/coaching/sessions/schedule',
-                        'status' => 'live',
-                        'roles' => ['admin', 'lead', 'member'],
-                    ],
-                    [
-                        'label' => 'Danh sách buổi học',
-                        'icon' => 'weekly',
-                        'href' => '/coaching/sessions',
-                        'status' => 'live',
-                        'roles' => ['admin', 'lead', 'member'],
-                    ],
-                ],
-            ],
-
-            // ──────────────────────────────────────────────────────────────
-            // 7. TRI THỨC & NỘI DUNG — knowledge base
+            // 6. TRI THỨC & NỘI DUNG — knowledge base
             //    Collapsed by default to keep the sidebar clean.
             // ──────────────────────────────────────────────────────────────
             [

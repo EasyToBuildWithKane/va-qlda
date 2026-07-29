@@ -3,100 +3,176 @@
 namespace App\Services\Hrm;
 
 use App\Models\Employee;
-use App\Models\Hrm\HrmUser;
 use App\Models\SystemAccount;
-use App\Support\Hrm\HrmEmployeeMapper;
+use App\Support\Hrm\HrmApiEmployeeMapper;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
- * Danh tính từ HRM (`va_hrm` — SSOT user, connection `hrm_mysql`, read-only).
+ * Danh tính HRM → va_prd_employees — chỉ qua Public API v1 (M2M).
  *
- * Không microservices: cùng process Laravel mở PDO MySQL thứ hai tới DB `va_hrm`.
- * Không bulk sync: tra cứu theo email lúc Google login và lazy upsert từng
- * nhân sự vào `va_prd_employees` (link qua `hrm_user_id`).
+ * Không đọc hrm_mysql / va_hrm_users. JWT SSO ≠ Bearer HRM_API_TOKEN.
  */
 final class HrmIdentityResolver
 {
+    private HrmApiClient $api;
+
+    public function __construct(?HrmApiClient $api = null)
+    {
+        $this->api = $api ?? new HrmApiClient;
+    }
+
     public function isHrmConfigured(): bool
     {
-        $connection = config('database.connections.hrm_mysql');
+        return $this->isApiConfigured();
+    }
 
-        return filled($connection['database'] ?? null)
-            && filled($connection['username'] ?? null);
+    public function isApiConfigured(): bool
+    {
+        return $this->api->isConfigured();
     }
 
     /**
-     * Tìm user HRM đang hoạt động (không soft-deleted) theo email.
+     * @return array<string, mixed>|null
      */
-    public function findActiveHrmUserByEmail(string $email): ?HrmUser
+    public function findActiveByEmail(string $email): ?array
     {
         $email = strtolower(trim($email));
-
-        if ($email === '' || ! $this->isHrmConfigured()) {
+        if ($email === '') {
             return null;
         }
 
-        return HrmUser::query()
-            ->with('info')
-            ->where('email', $email)
-            ->first();
+        return $this->safeApiFindActiveByEmail($email);
     }
 
     /**
-     * Upsert một nhân sự QLDA từ user HRM và trả về Employee đã liên kết.
+     * Upsert nhân sự QLDA từ payload API và trả về Employee đã liên kết.
+     *
+     * @param  array<string, mixed>  $payload
      */
-    public function ensureEmployeeFromHrm(HrmUser $hrmUser): Employee
+    public function ensureEmployeeFromApi(array $payload): Employee
     {
-        $this->upsertFromHrmUser($hrmUser);
+        $this->upsertFromApiEmployee($payload);
+
+        $uuid = is_string($payload['uuid'] ?? null) ? $payload['uuid'] : null;
+        if ($uuid !== null && $uuid !== '') {
+            return Employee::query()
+                ->where('hrm_employee_uuid', $uuid)
+                ->firstOrFail();
+        }
+
+        $email = strtolower(trim((string) (
+            $payload['company_email'] ?? $payload['personal_email'] ?? ''
+        )));
 
         return Employee::query()
-            ->where('hrm_user_id', $hrmUser->id)
+            ->where('email', $email)
             ->firstOrFail();
     }
 
     /**
-     * Refresh QLDA employee từ HRM khi đã liên kết (vd. sau Google login / mở hồ sơ).
+     * Tra API theo email → lazy upsert. Null khi thiếu cấu hình API hoặc không có nhân sự active.
+     */
+    public function ensureEmployeeByEmail(string $email): ?Employee
+    {
+        $payload = $this->findActiveByEmail($email);
+        if ($payload === null) {
+            return null;
+        }
+
+        return $this->ensureEmployeeFromApi($payload);
+    }
+
+    /**
+     * Refresh QLDA employee từ HRM API khi đã liên kết (login / hồ sơ).
+     * API miss hoặc lỗi → giữ nguyên bản ghi QLDA (không fallback DB).
      */
     public function refreshEmployeeIfLinked(Employee $employee): Employee
     {
-        if ($employee->hrm_user_id === null || ! $this->isHrmConfigured()) {
-            return $employee;
+        $refreshed = $this->refreshFromApi($employee);
+
+        return $refreshed ?? $employee;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return 'created'|'updated'|'skipped'
+     */
+    public function upsertFromApiEmployee(array $payload): string
+    {
+        $attributes = HrmApiEmployeeMapper::toEmployeeAttributes($payload);
+
+        return $this->upsertEmployeeAttributes(
+            $attributes,
+            preferHrmUserId: isset($attributes['hrm_user_id']) ? (int) $attributes['hrm_user_id'] : null,
+            preferUuid: is_string($attributes['hrm_employee_uuid'] ?? null)
+                ? $attributes['hrm_employee_uuid']
+                : null,
+        );
+    }
+
+    private function refreshFromApi(Employee $employee): ?Employee
+    {
+        if (! $this->isApiConfigured()) {
+            return null;
         }
 
-        $hrmUser = HrmUser::query()
-            ->withTrashed()
-            ->with('info')
-            ->find($employee->hrm_user_id);
-
-        if ($hrmUser === null) {
-            return $employee;
+        $payload = null;
+        if (filled($employee->hrm_employee_uuid)) {
+            $payload = $this->safeApiFindByUuid((string) $employee->hrm_employee_uuid);
         }
 
-        $this->upsertFromHrmUser($hrmUser);
+        if ($payload === null && $employee->hrm_user_id !== null) {
+            $payload = $this->safeApiFindByLegacyUserId((int) $employee->hrm_user_id);
+        }
+
+        if ($payload === null && filled($employee->email)) {
+            $payload = $this->safeApiFindActiveByEmail((string) $employee->email);
+        }
+
+        if ($payload === null) {
+            return null;
+        }
+
+        $this->upsertFromApiEmployee($payload);
 
         return $employee->fresh() ?? $employee;
     }
 
     /**
+     * @param  array<string, mixed>  $attributes
      * @return 'created'|'updated'|'skipped'
      */
-    public function upsertFromHrmUser(HrmUser $hrmUser): string
-    {
-        $info = $hrmUser->relationLoaded('info') ? $hrmUser->info : null;
-        $attributes = HrmEmployeeMapper::toEmployeeAttributes($hrmUser, $info);
-
-        if ($attributes['email'] === null) {
+    private function upsertEmployeeAttributes(
+        array $attributes,
+        ?int $preferHrmUserId = null,
+        ?string $preferUuid = null,
+    ): string {
+        if (($attributes['email'] ?? null) === null) {
             return 'skipped';
         }
 
-        $employee = Employee::query()
-            ->where('hrm_user_id', $hrmUser->id)
-            ->first();
+        $employee = null;
+
+        if ($preferUuid !== null && $preferUuid !== '') {
+            $employee = Employee::query()->where('hrm_employee_uuid', $preferUuid)->first();
+        }
+
+        if ($employee === null && $preferHrmUserId !== null && $preferHrmUserId > 0) {
+            $employee = Employee::query()->where('hrm_user_id', $preferHrmUserId)->first();
+        }
 
         if ($employee === null) {
             $employee = Employee::query()
                 ->whereNull('hrm_user_id')
+                ->whereNull('hrm_employee_uuid')
+                ->where('email', $attributes['email'])
+                ->first();
+        }
+
+        if ($employee === null && filled($attributes['email'])) {
+            $employee = Employee::query()
                 ->where('email', $attributes['email'])
                 ->first();
         }
@@ -106,7 +182,17 @@ final class HrmIdentityResolver
                 Employee::query()->create($attributes);
             });
 
-            $created = Employee::query()->where('hrm_user_id', $hrmUser->id)->first();
+            $created = null;
+            if ($preferUuid) {
+                $created = Employee::query()->where('hrm_employee_uuid', $preferUuid)->first();
+            }
+            if ($created === null && $preferHrmUserId) {
+                $created = Employee::query()->where('hrm_user_id', $preferHrmUserId)->first();
+            }
+            if ($created === null) {
+                $created = Employee::query()->where('email', $attributes['email'])->first();
+            }
+
             if ($created !== null) {
                 $this->syncLoginActiveFromEmployee($created);
             }
@@ -117,8 +203,17 @@ final class HrmIdentityResolver
         }
 
         $payload = $attributes;
-        if ($employee->code !== null && $employee->code !== '' && $employee->hrm_user_id === null) {
+        if ($employee->code !== null && $employee->code !== ''
+            && $employee->hrm_user_id === null
+            && $employee->hrm_employee_uuid === null) {
             unset($payload['code']);
+        }
+
+        // Không ghi đè uuid/hrm_user_id bằng null từ payload thiếu field.
+        foreach (['hrm_employee_uuid', 'hrm_user_id'] as $linkKey) {
+            if (! array_key_exists($linkKey, $payload) || $payload[$linkKey] === null) {
+                unset($payload[$linkKey]);
+            }
         }
 
         if ($this->employeeMatchesPayload($employee, $payload)) {
@@ -135,6 +230,69 @@ final class HrmIdentityResolver
         Cache::forget('options.employees');
 
         return 'updated';
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function safeApiFindActiveByEmail(string $email): ?array
+    {
+        if (! $this->isApiConfigured()) {
+            return null;
+        }
+
+        try {
+            return $this->api->findActiveByEmail($email);
+        } catch (\Throwable $e) {
+            Log::warning('hrm.api.find_by_email_failed', [
+                'email' => $email,
+                'message' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function safeApiFindByLegacyUserId(int $id): ?array
+    {
+        if (! $this->isApiConfigured() || $id < 1) {
+            return null;
+        }
+
+        try {
+            return $this->api->findByLegacyUserId($id);
+        } catch (\Throwable $e) {
+            Log::warning('hrm.api.find_by_legacy_failed', [
+                'legacy_user_id' => $id,
+                'message' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function safeApiFindByUuid(string $uuid): ?array
+    {
+        if (! $this->isApiConfigured() || $uuid === '') {
+            return null;
+        }
+
+        try {
+            return $this->api->findByUuid($uuid);
+        } catch (\Throwable $e) {
+            Log::warning('hrm.api.find_by_uuid_failed', [
+                'uuid' => $uuid,
+                'message' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
     }
 
     private function syncLoginActiveFromEmployee(?Employee $employee): void

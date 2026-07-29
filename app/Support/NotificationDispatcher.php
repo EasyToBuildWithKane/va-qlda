@@ -6,8 +6,6 @@ use App\Domain\DailyReport\Models\DailyReport;
 use App\Domain\DailyReport\Models\DailyReportScore;
 use App\Models\AiPurchaseProposal;
 use App\Models\Blocker;
-use App\Models\CoachingAssignment;
-use App\Models\CoachingSession;
 use App\Models\Contract;
 use App\Models\Employee;
 use App\Models\Feedback;
@@ -579,61 +577,6 @@ class NotificationDispatcher
             'entity_type' => 'weekly_report',
             'entity_id' => $report->id,
             'action_url' => "/projects/{$report->project_id}?tab=weekly&wr={$report->id}",
-        ]);
-    }
-
-    public static function coachingSessionChanged(CoachingSession $session, string $verb, ?SystemAccount $actor): void
-    {
-        $svc = self::service();
-        $session->loadMissing('course');
-        $course = $session->course;
-        if (! $course?->student_id) {
-            return;
-        }
-
-        $students = $svc->accountsForEmployees([$course->student_id]);
-        if ($students->isEmpty()) {
-            return;
-        }
-
-        $type = $verb === 'tạo' ? NotificationType::CoachingSessionCreated : NotificationType::CoachingSessionUpdated;
-        $title = $verb === 'tạo'
-            ? "Buổi học mới: {$session->title}"
-            : "Buổi học cập nhật: {$session->title}";
-        $date = $session->date?->format('d/m/Y');
-        $body = $date ? "Ngày: {$date}" : null;
-
-        $svc->notify($students, $type, $title, $body, [
-            'actor' => $actor,
-            'entity_type' => 'coaching_session',
-            'entity_id' => $session->id,
-            'action_url' => route('coaching.sessions.show', ['session' => $session->id]),
-        ]);
-    }
-
-    public static function coachingAssignmentCreated(CoachingAssignment $assignment, ?SystemAccount $actor): void
-    {
-        $svc = self::service();
-        $assignment->loadMissing('session.course');
-        $course = $assignment->session?->course;
-        if (! $course?->student_id) {
-            return;
-        }
-
-        $students = $svc->accountsForEmployees([$course->student_id]);
-        if ($students->isEmpty()) {
-            return;
-        }
-
-        $title = "Bài tập mới: {$assignment->title}";
-        $deadline = $assignment->deadline?->format('d/m/Y');
-        $body = $deadline ? "Hạn nộp: {$deadline}" : null;
-
-        $svc->notify($students, NotificationType::CoachingAssignmentCreated, $title, $body, [
-            'actor' => $actor,
-            'entity_type' => 'coaching_assignment',
-            'entity_id' => $assignment->id,
-            'action_url' => route('coaching.sessions.show', ['session' => $assignment->session_id]),
         ]);
     }
 

@@ -23,7 +23,7 @@ description: >-
 | App UI primitives | `Components/Ui/` — Modal, Drawer, PageHeader |
 | Shared reusable UI | `shared/ui/` — Badge, Avatar, form/* |
 | Project feature | `modules/project/components/` (+ subfolders Sprint/, Dashboard/, …) |
-| Feature module khác | `modules/{feature}/components/` — daily-report, knowledge-base, coaching, contract, credential, performance, people, profile, onboarding, notifications, aiAccount, audit |
+| Feature module khác | `modules/{feature}/components/` — daily-report, knowledge-base, contract, credential, performance, people, profile, onboarding, notifications, aiAccount, audit |
 | Cross-feature logic | `shared/composables/` hoặc `composables/use*.js` |
 
 **Không** tạo file trong `Components/Project/`, `Components/DailyReport/`, `Components/KnowledgeBase/` — đã migrate sang `modules/`.
@@ -50,7 +50,7 @@ form.post(route('projects.store'), { preserveScroll: true });
 - `PageHeader` trong `<template #header>` của `AppLayout` — không trong body.
 - `icon` trùng mục `App\Support\Navigation.php` khi có menu.
 - `back-href` chỉ trang con (Create/Edit/Show); không back về hub module có trong sidebar.
-- Mẫu: `Pages/AiAccount/Index.vue`, `Pages/Coaching/Dashboard.vue`.
+- Mẫu: `Pages/AiAccount/Index.vue`, `Pages/AiAccount/Dashboard.vue`.
 
 ## 6. Datagrid toolbar (bắt buộc nếu có bảng)
 

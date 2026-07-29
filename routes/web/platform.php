@@ -28,7 +28,6 @@ Route::prefix('onboarding')->name('onboarding.')->group(function () {
     Route::post('/complete', [OnboardingController::class, 'complete'])->name('complete');
     Route::post('/skip', [OnboardingController::class, 'skip'])->name('skip');
     Route::post('/reset', [OnboardingController::class, 'reset'])->name('reset');
-    Route::post('/dismiss-welcome', [OnboardingController::class, 'dismissWelcome'])->name('dismiss-welcome');
 });
 
 // Notifications — `/` is the full Inertia inbox page; `/list` is the JSON

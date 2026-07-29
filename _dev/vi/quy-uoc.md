@@ -104,7 +104,7 @@ Brand `#9A0036` (`brand`), copy user-facing **tiếng Việt**.
 |---------|---------|
 | DailyReport | Use Case + Domain |
 | Project/Task mutations | Application Use Cases |
-| Blocker, KB, Coaching, … | MVC Controller → Model |
+| Blocker, KB, … | MVC Controller → Model |
 | Quyền | `$this->authorize(...)` + Policy |
 | Validate | FormRequest, `messages()` tiếng Việt |
 | Enum | `app/Support/Enums/` |

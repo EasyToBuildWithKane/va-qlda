@@ -13,7 +13,7 @@ flowchart TB
     PO[PROJECT_OVERVIEW]
     API[API_STRUCTURE]
     DB[DATABASE_STRUCTURE]
-    MOD[Module docs: KB, Coaching, AI, …]
+    MOD[Module docs: KB, AI, …]
     FLOW[FLOWS_AND_DOCS_MAP.md]
   end
   subgraph code ["Code — nguồn sự thật hành vi"]
@@ -60,7 +60,6 @@ flowchart LR
   J --> N[notifications.*]
   J --> DR[daily-reports/export-data]
   J --> KB[knowledge-base/export-data]
-  J --> CS[coaching/sessions/export]
   J --> AI[api/ai-accounts/*]
   J --> RT[realtime/thread-token]
   J --> CM[comments + KB images.store]
@@ -72,7 +71,7 @@ flowchart LR
 | JSON poll / SPA partial | Notifications inbox | `API_STRUCTURE.md` §2.3, TD-017 |
 | JSON export client | Daily report 7 sheet, KB CSV/Excel, Sprint/Risk modal | `IMPORT_EXPORT_RECONCILE.md` |
 | JSON CRUD workspace | AI Accounts (`api.ai-accounts.*`) | `AI_ACCOUNTS.md` |
-| Stream file | Attachments KB, project, coaching materials | Module doc + `PublicMediaUrl` |
+| Stream file | Attachments KB, project | Module doc + `PublicMediaUrl` |
 
 `routes/api.php` **rỗng** — REST v1 là đề xuất tương lai (`API_STRUCTURE.md` §7).
 
@@ -83,20 +82,21 @@ flowchart LR
 ```mermaid
 sequenceDiagram
   participant U as User
-  participant L as LoginController / GoogleAuthController
+  participant L as LoginController / HrmSsoController / GoogleAuthController
+  participant H as HRM IdP (sso/authorize)
   participant S as SystemAccount guard
-  participant M as RestrictCoachingOnlyUsers
   participant P as Policy / authorize()
 
-  U->>L: GET /login → Google OAuth
-  L->>S: session system
-  S->>M: mọi route auth
-  alt Coaching-only account
-    M-->>U: chỉ nav group coaching
-  else Standard roles admin|lead|member|viewer
-    M->>P: Controller action
-    P-->>U: allow / 403
+  U->>L: GET /login
+  alt SSO HRM bật (HRM_SSO_ENABLED)
+    L->>H: /auth/hrm → {HRM}/sso/authorize (HRM tự Google login nếu chưa)
+    H-->>L: callback ?token=JWT RS256 (verify JWKS, aud=qlda)
+  else Google trực tiếp (SSO tắt)
+    L->>L: /auth/google → Google OAuth (chọn tài khoản)
   end
+  L->>S: session system
+  S->>P: Controller action
+  P-->>U: allow / 403
 ```
 
 | Role | Mô tả | Doc |
@@ -107,6 +107,7 @@ sequenceDiagram
 | `viewer` | Đọc (dashboard, dự án, KB published) | — |
 
 Login UI: `.cursor/skills/login/SKILL.md` · Password login: `config/va.php` (E2E/PHPUnit only).
+SSO HRM: env `HRM_SSO_*` — HRM là IdP nội bộ (user Google login một lần trên HRM); QLDA chỉ tin JWT từ `/sso/authorize` (contract: `va-hrm/docs/integrations/qlda.md`). JWT SSO user ≠ token M2M `HRM_API_TOKEN`.
 
 ---
 
@@ -120,7 +121,6 @@ flowchart TB
   NAV --> PJ[projects → /projects, /blockers]
   NAV --> DR[daily → /daily-reports/today, /daily-reports]
   NAV --> PP[people → org-teams, departments, members, profile]
-  NAV --> CO[coaching → /coaching, courses, sessions]
   NAV --> KN[knowledge → /knowledge-base, blog]
   NAV --> AI[ai → /ai-accounts/*]
   NAV --> QL[quality → /feedback]
@@ -143,7 +143,6 @@ flowchart TB
   subgraph MVC ["MVC trực tiếp"]
     BK[Blocker, Feedback]
     KB[KnowledgeBase]
-    CH[Coaching]
     CG[Congnghe]
     AA[AiAccount JSON]
   end
@@ -160,7 +159,6 @@ flowchart TB
 | Project / Task | Use Cases (mutations) | `ARCHITECTURE.md`, `FOLDER_STRUCTURE.md` |
 | Blocker / Feedback | MVC + import bulk | `IMPORT_EXPORT_RECONCILE.md` |
 | Knowledge Base | MVC | `KNOWLEDGE_BASE.md` §2.1 |
-| Coaching | MVC + Support | `COACHING_MENTORING.md` |
 | Công Nghệ | MVC + ContentRepository | `CONGNGHE_CONTENT.md` |
 | AI Accounts | Inertia pages + JSON API | `AI_ACCOUNTS.md` |
 | System settings | MVC + SettingsRepository | `SYSTEM_CONFIG.md` |
@@ -176,7 +174,6 @@ flowchart TB
 | Dự án & vướng mắc | **`PROJECT_MANAGEMENT.md`** (+ `API_STRUCTURE` §2.4–2.11) | `Project/*`, `BlockerController` | `Pages/Project/`, `modules/project/` |
 | Báo cáo ngày | `DAILY_REPORT.md` (+ `DAILY_REPORT_PROJECTS.md` liên kết dự án) | `DailyReport/*` | `Pages/DailyReport/`, `modules/daily-report/` |
 | Tổ chức | `DATABASE_STRUCTURE` org | `Department`, `OrgTeam`, `Member`, `Profile` | `Pages/Department/`, `OrgTeam/`, `Member/`, `Profile/` |
-| Coaching | `COACHING_MENTORING.md` | `Coaching/*` | `Pages/Coaching/` |
 | Tri thức | `KNOWLEDGE_BASE.md` | `KbArticleController` | `Pages/KnowledgeBase/` |
 | AI Workspace | `AI_ACCOUNTS.md` | `AiAccount/*`, `api/ai-accounts` | `Pages/AiAccount/`, `modules/aiAccount/` |
 | Phản hồi | `API_STRUCTURE` §2.12 | `FeedbackController` | `Pages/Feedback/` |
@@ -258,10 +255,6 @@ flowchart TD
 
 Sơ đồ đầy đủ: **`KNOWLEDGE_BASE.md` §2.1** (Show sequence, blog hub, media, export).
 
-### 7.7 Coaching
-
-Sơ đồ & route: **`COACHING_MENTORING.md`** (dashboard → khóa → buổi → bài tập → tiến độ).
-
 ---
 
 ## 8. `_dev/` — câu hỏi thường gặp
@@ -304,7 +297,6 @@ Pre-push gates: `.cursor/skills/ship-ready/SKILL.md` · `.cursor/rules/ci-qualit
 | `FLOWS_AND_DOCS_MAP.md` | **File này** |
 | `IMPORT_EXPORT_RECONCILE.md` | Excel 3 tab |
 | `KNOWLEDGE_BASE.md` | Wiki nội bộ |
-| `COACHING_MENTORING.md` | Coaching |
 | `AI_ACCOUNTS.md` | Quản lý AI |
 | `CONGNGHE_CONTENT.md` | Landing + quản trị /congnghe |
 | `SYSTEM_CONFIG.md` | `/settings` |

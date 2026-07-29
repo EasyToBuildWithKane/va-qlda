@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 /**
  * @property int $id
  * @property int|null $hrm_user_id
+ * @property string|null $hrm_employee_uuid
  * @property string $code
  * @property string $full_name
  * @property string|null $email
@@ -27,6 +28,7 @@ class Employee extends Model
 
     protected $fillable = [
         'hrm_user_id',
+        'hrm_employee_uuid',
         'code',
         'full_name',
         'email',

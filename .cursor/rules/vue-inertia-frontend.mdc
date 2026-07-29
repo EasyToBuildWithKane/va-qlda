@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Vue / Inertia Frontend — VA-QLDA
 
-> **Cập nhật 2026-06-19** — 13 feature module dưới `modules/`; DailyReport + KnowledgeBase đã migrate.
+> **Cập nhật 2026-06-19** — 12 feature module dưới `modules/`; DailyReport + KnowledgeBase đã migrate.
 
 ## Cấu trúc
 
@@ -15,7 +15,7 @@ alwaysApply: false
 | `Pages/{Domain}/` | Inertia pages — mỏng, bọc `AppLayout` |
 | `Components/Ui/`, `Components/Layout/` | App primitives + sidebar shell |
 | `Components/Notifications/` | Notification bell/center (app-level) |
-| `modules/{feature}/components/` | 13 feature module: project, daily-report, knowledge-base, coaching, contract, credential, performance, people, profile, onboarding, notifications, aiAccount, audit |
+| `modules/{feature}/components/` | 12 feature module: project, daily-report, knowledge-base, contract, credential, performance, people, profile, onboarding, notifications, aiAccount, audit |
 | `modules/project/components/` | Project feature UI (Sprint, Task, Dashboard, …) |
 | `modules/project/config/` | columns.js, table column configs |
 | `shared/ui/` | Reusable UI: Badge, Avatar, ProgressBar, form/* |

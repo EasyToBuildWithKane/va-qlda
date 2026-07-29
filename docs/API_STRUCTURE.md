@@ -36,10 +36,12 @@ routes/api.php      ← Rỗng (chưa sử dụng)
 
 | Method | URI | Controller | Middleware | Mô Tả |
 |---|---|---|---|---|
-| GET | `/login` | LoginController@createPortal | guest | Cổng đăng nhập mặc định (Google UI); guest chưa đăng nhập được redirect về đây |
+| GET | `/login` | LoginController@createPortal | guest | Cổng đăng nhập (SSO HRM hoặc Google UI); guest chưa đăng nhập được redirect về đây |
 | GET | `/tech/login` | LoginController@createTech | guest | Cổng QLDA (whitelist) → sau đăng nhập về `/dashboard` |
-| GET | `/auth/google` | GoogleAuthController@redirect | guest | OAuth Google |
+| GET | `/auth/google` | GoogleAuthController@redirect | guest | OAuth Google (`prompt=select_account`) — dùng khi SSO HRM tắt |
 | GET | `/auth/google/callback` | GoogleAuthController@callback | guest | Callback OAuth |
+| GET | `/auth/hrm` | HrmSsoController@redirect | guest | SSO HRM (`HRM_SSO_ENABLED`) — redirect `{HRM}/sso/authorize?client_id=qlda&state=…` |
+| GET | `/auth/hrm/callback` | HrmSsoController@callback | guest | Nhận `?token=<JWT RS256>&state=…`, verify JWKS offline (`HrmSsoJwtVerifier`) → session guard `system` |
 | POST | `/login`, `/tech/login` | LoginController@store* | guest | Chỉ khi `config('va.password_login_enabled')` |
 | GET/POST | `/lh36` | HiddenAdminLoginController | guest | Đăng nhập admin ẩn (E2E/dev) |
 | POST | `/logout` | LoginController@destroy | auth | Đăng xuất |
@@ -252,37 +254,7 @@ Chi tiết merge section: [`docs/CONGNGHE_CONTENT.md`](CONGNGHE_CONTENT.md).
 | PUT | `/org-teams/{orgTeam}` | OrgTeamController@update | auth | Sửa nhóm |
 | DELETE | `/org-teams/{orgTeam}` | OrgTeamController@destroy | auth | Xóa nhóm |
 
-### 2.16 Coaching / Mentoring
-
-Prefix `coaching.`, middleware `auth` (+ `RestrictCoachingOnlyUsers` khi áp dụng). Chi tiết: [`docs/COACHING_MENTORING.md`](COACHING_MENTORING.md) §11.
-
-| Method | URI | Controller | Response | Mô Tả |
-|---|---|---|---|---|
-| GET | `/coaching` | CoachingDashboardController | Inertia | Dashboard KPI + charts |
-| GET | `/coaching/courses` | CoachingCourseController@index | Inertia | Danh sách khóa |
-| GET | `/coaching/courses/create` | CoachingCourseController@create | Inertia | Form tạo |
-| POST | `/coaching/courses` | CoachingCourseController@store | Redirect | Tạo khóa |
-| GET | `/coaching/courses/{course}` | CoachingCourseController@show | Inertia | Chi tiết khóa |
-| GET | `/coaching/courses/{course}/edit` | CoachingCourseController@edit | Inertia | Sửa khóa |
-| PUT | `/coaching/courses/{course}` | CoachingCourseController@update | Redirect | Cập nhật |
-| DELETE | `/coaching/courses/{course}` | CoachingCourseController@destroy | Redirect | Xóa |
-| POST | `/coaching/courses/{course}/sessions` | CoachingCourseController@storeSession | Redirect | Thêm buổi |
-| GET | `/coaching/sessions/schedule` | CoachingSessionController@schedule | Inertia | Lịch tuần |
-| GET | `/coaching/sessions/calendar/feed` | CoachingSessionController@calendarFeed | JSON | Sự kiện lịch |
-| POST | `/coaching/sessions/calendar` | CoachingSessionController@calendarStore | Redirect/JSON | Tạo từ lịch |
-| GET | `/coaching/sessions` | CoachingSessionController@index | Inertia | Danh sách buổi (filter server) |
-| GET | `/coaching/sessions/export` | CoachingSessionController@exportIndex | JSON | Export ≤500 bản ghi |
-| GET | `/coaching/sessions/{session}` | CoachingSessionController@show | Inertia | Buổi + materials + assignments |
-| PATCH | `/coaching/sessions/{session}/calendar` | CoachingSessionController@calendarUpdate | Redirect/JSON | Sửa từ lịch |
-| PATCH | `/coaching/sessions/{session}` | CoachingSessionController@update | Redirect | Sửa buổi |
-| DELETE | `/coaching/sessions/{session}` | CoachingSessionController@destroy | Redirect | Xóa buổi |
-| POST | `/coaching/sessions/{session}/materials` | CoachingSessionController@storeMaterial | Redirect | Tài liệu |
-| POST | `/coaching/sessions/{session}/assignments` | CoachingSessionController@storeAssignment | Redirect | Bài tập |
-| PATCH | `/coaching/assignments/{assignment}` | CoachingSessionController@updateAssignment | Redirect | Cập nhật bài tập |
-| POST | `/coaching/progress` | CoachingSessionController@upsertProgress | Redirect | Tiến độ |
-| GET | `/coaching/materials/{material}/file` | CoachingSessionController@materialFile | Stream | Tải file |
-
-### 2.17 Knowledge Base (Tri thức)
+### 2.16 Knowledge Base (Tri thức)
 
 Prefix `knowledge-base.`, middleware `auth`. Chi tiết: [`docs/KNOWLEDGE_BASE.md`](KNOWLEDGE_BASE.md) §9.
 
@@ -307,7 +279,7 @@ Prefix `knowledge-base.`, middleware `auth`. Chi tiết: [`docs/KNOWLEDGE_BASE.m
 | GET | `/knowledge-base/attachments/{attachment}/file` | KbArticleController@attachmentFile | Stream | |
 | GET | `/knowledge-base/images/{image}/file` | KbArticleController@imageFile | Stream | |
 
-### 2.18 AI Accounts (Inertia + JSON)
+### 2.17 AI Accounts (Inertia + JSON)
 
 Prefix Inertia `ai-accounts.*`, JSON `api.ai-accounts.*` (middleware `auth`). **Route map đầy đủ:** [`docs/AI_ACCOUNTS.md`](AI_ACCOUNTS.md).
 
@@ -317,14 +289,14 @@ Prefix Inertia `ai-accounts.*`, JSON `api.ai-accounts.*` (middleware `auth`). **
 | * | `/api/ai-accounts/*` | JSON | CRUD TK, PĐX, payment, analytics |
 | POST/GET/PATCH | `/api/ai-accounts/proposal-scans*` | JSON | Số hóa PĐX bằng OCR (upload, review, confirm, serve file) — chi tiết: [`docs/AI_ACCOUNTS.md`](AI_ACCOUNTS.md) mục «Số hóa Phiếu Đề Xuất» |
 
-### 2.19 Hồ sơ & danh bạ
+### 2.18 Hồ sơ & danh bạ
 
 | Method | URI | Controller | Mô Tả |
 |---|---|---|---|
 | GET/PUT | `/profile` | ProfileController | Hồ sơ cá nhân |
 | GET | `/members`, `/members/{employee}` | MemberController | Danh bạ |
 
-### 2.20 Cấu hình hệ thống
+### 2.19 Cấu hình hệ thống
 
 Chi tiết: [`docs/SYSTEM_CONFIG.md`](SYSTEM_CONFIG.md).
 
@@ -334,7 +306,7 @@ Chi tiết: [`docs/SYSTEM_CONFIG.md`](SYSTEM_CONFIG.md).
 | PUT | `/settings/{group}` | SystemSettingController@update | `general`, `auth`, `telegram`, `email`, `permissions` |
 | GET/PUT/POST | `/settings/email-templates/*` | SystemSettingController | Mẫu email |
 
-### 2.21 Realtime & Comments (cross-cutting)
+### 2.20 Realtime & Comments (cross-cutting)
 
 | Method | URI | Controller | Mô Tả |
 |---|---|---|---|
@@ -350,7 +322,7 @@ Doc vận hành: `_dev/realtime.md`.
 
 ```
 Auth Group
-├── /login, /tech/login, /auth/google, /logout
+├── /login, /tech/login, /auth/hrm, /auth/google, /logout
 
 Dashboard Group
 └── /dashboard
@@ -437,19 +409,7 @@ Knowledge Base Group
 ├── /knowledge-base/gallery/{image}    (PATCH alt, DELETE)
 └── /knowledge-base/attachments|images/{id}/file (stream)
 
-Coaching / Mentoring Group
-├── /coaching                          (dashboard — Inertia)
-├── /coaching/courses/*                (CRUD khóa + POST sessions)
-├── /coaching/sessions                 (index datagrid — Inertia)
-├── /coaching/sessions/export          (JSON ≤500)
-├── /coaching/sessions/schedule        (lịch — Inertia)
-├── /coaching/sessions/calendar/*      (feed JSON, POST/PATCH calendar)
-├── /coaching/sessions/{id}/*          (show, update, destroy, materials, assignments)
-├── /coaching/assignments/{id}         (PATCH)
-├── /coaching/progress                 (POST upsert)
-└── /coaching/materials/{id}/file      (stream)
-
-Doc chi tiết: [`docs/FLOWS_AND_DOCS_MAP.md`](FLOWS_AND_DOCS_MAP.md), [`docs/KNOWLEDGE_BASE.md`](KNOWLEDGE_BASE.md), [`docs/COACHING_MENTORING.md`](COACHING_MENTORING.md), [`docs/AI_ACCOUNTS.md`](AI_ACCOUNTS.md).
+Doc chi tiết: [`docs/FLOWS_AND_DOCS_MAP.md`](FLOWS_AND_DOCS_MAP.md), [`docs/KNOWLEDGE_BASE.md`](KNOWLEDGE_BASE.md), [`docs/AI_ACCOUNTS.md`](AI_ACCOUNTS.md).
 ```
 
 ---
@@ -475,9 +435,6 @@ Doc chi tiết: [`docs/FLOWS_AND_DOCS_MAP.md`](FLOWS_AND_DOCS_MAP.md), [`docs/KN
 | Departments | ✅ | ✅* | - | - |
 | Knowledge Base (read published) | ✅ | ✅ | ✅ | ✅* |
 | Knowledge Base (authoring) | ✅ | ✅ | ✅* | - |
-| Coaching (full / coach) | ✅ | ✅ | - | - |
-| Coaching (student scope) | ✅ | ✅ | ✅* | - |
-| Coaching-only Google users | — | — | — | — (chỉ module Coaching) |
 
 *\* = Xem/tạo được nhưng không xóa*
 

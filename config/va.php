@@ -46,7 +46,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | Comma-separated. Lowercase recommended. Does not open all @gmail.com —
-    | only listed addresses may sign in via Google and are limited to Coaching.
+    | only listed addresses may sign in via Google in addition to domain allowlist.
     |
     */
     'google_allowed_emails' => array_values(array_unique(array_filter(array_map(

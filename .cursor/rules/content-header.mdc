@@ -12,8 +12,7 @@ Thanh tiêu đề trang = slot `#header` của `AppLayout` + `PageHeader.vue`. S
 |----------|-----------------|
 | Index + nút primary | `resources/js/Pages/AiAccount/Index.vue` |
 | Index + badge + actions | `resources/js/Pages/AiAccount/CostReport.vue` |
-| Dashboard (icon nav) | `resources/js/Pages/AiAccount/Dashboard.vue`, `Coaching/Dashboard.vue` |
-| Lịch / full workspace | `resources/js/Pages/Coaching/Sessions/Schedule.vue` |
+| Dashboard (icon nav) | `resources/js/Pages/AiAccount/Dashboard.vue` |
 | Drill-down (có back) | `resources/js/Pages/Project/Create.vue`, `Project/Show.vue` |
 
 ## 1. Vị trí & component
@@ -48,7 +47,7 @@ Thanh tiêu đề trang = slot `#header` của `AppLayout` + `PageHeader.vue`. S
 ## 5. Anti-patterns (cấm)
 
 - `PageHeader` trong body → topbar mặc định «Bảng điều khiển» + tiêu đề trùng.
-- `back-href` về hub module (vd. `/coaching`, `/ai-accounts`) khi trang đã có trong sidebar.
+- `back-href` về hub module (vd. `/ai-accounts`, `/projects`) khi trang đã có trong sidebar.
 - Header không `icon` trong khi nav có icon.
 - Tiêu đề/action tiếng Anh user-facing.
 

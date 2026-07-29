@@ -31,7 +31,6 @@ description: >-
 | `docs/DAILY_REPORT.md` | Báo cáo ngày — Use Cases, review, task sync, export |
 | `docs/PROJECT_MANAGEMENT.md` | Module `/projects` — danh mục, workspace, sprint, task, tài liệu, phân quyền |
 | `docs/DAILY_REPORT_PROJECTS.md` | Liên kết dự án JSON + filter legacy `project_id` |
-| `docs/COACHING_MENTORING.md` | Module Coaching — routes, UI, phân quyền |
 | `docs/KNOWLEDGE_BASE.md` | Knowledge Base / blog nội bộ |
 | `docs/CONTRACT_MANAGEMENT.md` | Module Hợp đồng (CLM) — routes, NCC, chi phí, gia hạn |
 | `docs/CREDENTIAL_MANAGEMENT.md` | Kho tài khoản / mật khẩu + nhật ký |

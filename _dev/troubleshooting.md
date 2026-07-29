@@ -155,7 +155,7 @@ chown -R USER:GROUP storage bootstrap/cache
 php artisan storage:link   # if public/storage missing
 ```
 
-Re-test upload. Same fix applies to **`blockers/{id}/`**, `projects/…`, `coaching/…`, `avatars/`, v.v.
+Re-test upload. Same fix applies to **`blockers/{id}/`**, `projects/…`, `knowledge-base/…`, `avatars/`, v.v.
 
 ---
 
@@ -434,3 +434,56 @@ php artisan tinker --execute="echo config('realtime.enabled') ? 'on' : 'off';"
 ```
 
 **Note:** Poster still gets updates via Inertia `only: ['blockers']`; realtime is for **other** viewers on the same thread.
+
+---
+
+## SSO HRM — redirect_uri / JWT không hợp lệ
+
+**Symptoms:** Bấm «Đăng nhập tài khoản nhà trường» → lỗi trên HRM (`redirect_uri không nằm trong whitelist`) hoặc callback QLDA flash «Không xác thực được phiên HRM».
+
+**Checklist:**
+
+1. `HRM_SSO_ENABLED=true`, `HRM_SSO_BASE_URL` trỏ đúng host HRM; `php artisan config:clear`.
+2. Trên HRM `/admin/api-clients` (client `qlda`): `sso_enabled=true` + redirect URI **khớp tuyệt đối** `{APP_URL}/auth/hrm/callback` (kể cả `http`/`https`, không trailing slash lệch).
+3. `HRM_SSO_ISSUER` phía QLDA = `SSO_ISSUER` phía HRM; JWKS: `{HRM}/.well-known/jwks.json` (`php artisan hrm:sso-keys` trên HRM).
+4. JWT SSO (user, TTL ~10 phút) ≠ `HRM_API_TOKEN` (M2M Sanctum — luồng khác).
+
+**Verify:** `php artisan test --filter=HrmSsoLoginTest` · docs: `docs/ARCHITECTURE.md` § SSO HRM.
+
+---
+
+## HRM API M2M
+
+**Symptoms:** `hrm:api-ping` 401; login «Email chưa có trong hệ thống nhân sự»; log `hrm.api.http_error` / `hrm.api.find_by_email_failed`.
+
+**Checklist:**
+
+1. Mint token tại HRM `/admin/api-clients` (client `qlda`) → `HRM_API_TOKEN` + `HRM_API_BASE_URL=…/api/v1`.
+2. `php artisan config:clear` rồi `php artisan hrm:api-ping` (và `--email=user@…`).
+3. QLDA **chỉ** dùng API — không còn `HRM_DB_*` / fallback `va_hrm`. Thiếu token → không lazy upsert được.
+4. **JWT SSO (`HRM_SSO_*`) ≠ Bearer `HRM_API_TOKEN`** — không dùng JWT để gọi `/api/v1/*`.
+5. Lỗi Google `invalid_client` / `invalid_grant` là OAuth (IdP), không phải token M2M.
+
+**cURL error 60 (SSL certificate / unable to get local issuer):** Host HRM thường thiếu intermediate trong chuỗi cert (cacert Mozilla không verify được). Local ServBay: `HRM_API_VERIFY_SSL=false` rồi `php artisan config:clear`. Production: sửa cert trên server HRM (fullchain), giữ verify=true. Tuỳ chọn `HRM_API_CA_BUNDLE=` nếu có CA nội bộ. Kiểm tra: `php artisan hrm:api-ping`.
+
+---
+
+## Google login — «Chưa có tài khoản đăng nhập cho nhân sự này»
+
+**Symptoms:** OAuth Google thành công (email đúng domain) → flash «Chưa có tài khoản đăng nhập cho nhân sự này. Liên hệ quản trị.»
+
+**Cause (đã sửa trong `GoogleAuthController`):** Callback chỉ auto-tạo `SystemAccount` khi `employees.hrm_user_id` có giá trị. Identity API-first thường chỉ gắn `hrm_employee_uuid` (không có `legacy_user_id`) → bị chặn dù nhân sự active. `HrmSsoController` đã provision theo cả uuid.
+
+**Fix code:** Căn `GoogleAuthController` với SSO — gọi `SystemAccountProvisioner` khi chưa có account **hoặc** đã liên kết `hrm_user_id` / `hrm_employee_uuid`.
+
+**Kiểm tra dữ liệu (nếu vẫn lỗi sau deploy):**
+
+```bash
+php artisan tinker --execute="
+\$e = \App\Models\Employee::where('email', 'EMAIL@vaschools.edu.vn')->first();
+dump(\$e?->only(['id','email','hrm_user_id','hrm_employee_uuid','is_active']));
+dump(\App\Models\SystemAccount::where('employee_id', \$e?->id)->first()?->only(['id','username','is_active','role']));
+"
+```
+
+Nếu có `Employee` active nhưng không có `SystemAccount` → đăng nhập lại (provision lazy). Nếu không có `Employee` → cần HRM (`hrm:api-ping --email=…`) hoặc tạo nhân sự/liên kết HRM.

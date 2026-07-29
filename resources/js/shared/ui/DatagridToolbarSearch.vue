@@ -10,7 +10,7 @@ defineProps({
     compact: { type: Boolean, default: false },
     /** ~50% hàng toolbar — nút thao tác cùng hàng (tab Phản hồi dự án, …) */
     half: { type: Boolean, default: false },
-    /** Chiếm phần còn lại trên hàng toolbar (danh sách coaching, …) */
+    /** Chiếm phần còn lại trên hàng toolbar (datagrid Index, …) */
     stretch: { type: Boolean, default: false },
     /** Chiều cao input (mặc định h-9; trang lọc SaaS dùng h-10) */
     inputHeight: { type: String, default: 'h-9' },

@@ -22,10 +22,9 @@ Shell: `resources/js/Layouts/AppLayout.vue` — slot `#header` trong `<header cl
 |---------|------|
 | Sidebar index + «Thêm» | `Pages/AiAccount/Index.vue` |
 | Badge + workflow action | `Pages/AiAccount/CostReport.vue` |
-| Dashboard + nhiều link slot | `Pages/Coaching/Dashboard.vue` |
+| Dashboard + nhiều link slot | `Pages/AiAccount/Dashboard.vue` |
 | AI dashboard (icon `overview`) | `Pages/AiAccount/Dashboard.vue` |
 | Analytics (icon `performance`) | `Pages/AiAccount/AnalyticsReport.vue` |
-| Lịch + export/create trong header | `Pages/Coaching/Sessions/Schedule.vue` |
 | Drill-down + back | `Pages/Project/Show.vue`, `Project/Create.vue`, `DailyReport/Show.vue` |
 
 ---
@@ -82,9 +81,7 @@ Khi trang có entry trong `app/Support/Navigation.php`, dùng **cùng** `icon` s
 | Báo cáo phân tích AI | `performance` |
 | Tài khoản AI | `account` |
 | PĐX & ĐNTT | `budget` / `performance` (CostReport dùng `performance`) |
-| Coaching hub | `knowledge` |
-| Lịch coaching | `calendar` |
-| Danh sách buổi | `weekly` |
+| Tri thức | `knowledge` |
 
 Thêm page mới → cập nhật `Navigation.php` trước/song song; header dùng icon đó.
 
@@ -100,7 +97,7 @@ Thêm page mới → cập nhật `Navigation.php` trước/song song; header d�
 
 Ví dụ hợp lệ: `Project/Show` → `back-href="/projects"`, `Project/Edit` → back tới show.
 
-Ví dụ **cấm**: `/coaching/sessions/schedule` → `/coaching`; `/ai-accounts/dashboard` → `/ai-accounts`.
+Ví dụ **cấm**: `/ai-accounts/dashboard` → `/ai-accounts`; `/projects/{id}/edit` → `/projects` khi Show đã là mục nav.
 
 ---
 

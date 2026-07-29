@@ -111,9 +111,6 @@ final class PermissionCatalog
             ]],
 
             // ── Đào tạo & Tri thức ───────────────────────────────────
-            'coaching' => ['label' => 'Đào tạo & Coaching', 'icon' => 'learning', 'group' => 'Tri thức', 'abilities' => [
-                'view' => 'Xem mọi khóa', 'create' => 'Tạo', 'update' => 'Sửa', 'delete' => 'Xóa', 'export' => 'Xuất báo cáo',
-            ]],
             'kb' => ['label' => 'Cơ sở tri thức', 'icon' => 'knowledge', 'group' => 'Tri thức', 'abilities' => [
                 'create' => 'Tạo', 'update' => 'Sửa', 'delete' => 'Xóa', 'publish' => 'Xuất bản',
             ]],
@@ -239,7 +236,6 @@ final class PermissionCatalog
                 'credential.create',
                 'department.create', 'department.update',
                 'org_team.create', 'org_team.update', 'org_team.delete',
-                'coaching.view', 'coaching.create', 'coaching.update', 'coaching.export',
                 'kb.create', 'kb.update', 'kb.delete', 'kb.publish',
                 'congnghe.manage_proposals',
                 'performance.view',

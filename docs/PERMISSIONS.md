@@ -11,7 +11,7 @@
 |------|-------|-----------------------|
 | `super_admin` | Toàn quyền tuyệt đối (god-mode). **Độc quyền** chỉnh cấu hình hệ thống, ma trận phân quyền, gán vai trò, thao tác nguy hiểm. | ✅ (duy nhất) |
 | `admin` | Full nghiệp vụ (mặc định: mọi quyền **trừ** reserved). **Không** vào `/settings`. | ❌ |
-| `lead` | Quản lý nhóm: dự án, duyệt báo cáo, hợp đồng, NCC, KB, coaching… | ❌ |
+| `lead` | Quản lý nhóm: dự án, duyệt báo cáo, hợp đồng, NCC, KB… | ❌ |
 | `member` | Tạo báo cáo/đề xuất/vướng mắc/KB của mình; thao tác trên bản ghi sở hữu. | ❌ |
 | `viewer` | Chỉ xem (dashboard, hiệu suất, hợp đồng, dự án…). | ❌ |
 

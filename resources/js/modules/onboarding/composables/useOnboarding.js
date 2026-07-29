@@ -7,14 +7,13 @@ import { router, usePage } from '@inertiajs/vue3';
  * Reads the shared `onboarding` Inertia prop (no extra fetch). Mutations go out
  * via axios as fire-and-forget POSTs (server returns 204) so stepping through a
  * tour never triggers an Inertia re-render. After terminal actions we refresh
- * just the `onboarding` prop so progress counts / welcome state stay accurate.
+ * just the `onboarding` prop so progress counts stay accurate.
  */
 export function useOnboarding() {
     const page = usePage();
 
     const data = computed(() => page.props.onboarding || null);
     const role = computed(() => data.value?.role || 'member');
-    const seenWelcome = computed(() => data.value?.seen_welcome ?? true);
     const tours = computed(() => data.value?.tours || {});
     const context = computed(() => data.value?.context || {});
     const completedTours = computed(() => data.value?.completed_tours || 0);
@@ -35,14 +34,12 @@ export function useOnboarding() {
     const complete = (tourKey) => send('onboarding.complete', { tour_key: tourKey }).then(refresh);
     const skip = (tourKey) => send('onboarding.skip', { tour_key: tourKey }).then(refresh);
     const reset = (tourKey) => send('onboarding.reset', { tour_key: tourKey }).then(refresh);
-    const dismissWelcome = () => send('onboarding.dismiss-welcome').then(refresh);
 
     const statusOf = (tourKey) => tours.value[tourKey]?.status || 'pending';
 
     return {
         data,
         role,
-        seenWelcome,
         tours,
         context,
         completedTours,
@@ -52,6 +49,5 @@ export function useOnboarding() {
         complete,
         skip,
         reset,
-        dismissWelcome,
     };
 }

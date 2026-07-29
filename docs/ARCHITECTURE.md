@@ -6,7 +6,7 @@
 
 ## 1. Kiến Trúc Hiện Tại
 
-Dự án áp dụng **Hybrid Architecture**: Clean Architecture cho DailyReport (module doc: [`DAILY_REPORT.md`](DAILY_REPORT.md)), Application Use Cases cho Project/Task (Phase 3), injectable Services cho Notification, và MVC cho các module còn lại (Blocker, Feedback, **Coaching**, **Knowledge Base**, **Congnghe**, **AiAccount**, **Credential**, **Contract/CLM**, **Performance**, **Onboarding**).
+Dự án áp dụng **Hybrid Architecture**: Clean Architecture cho DailyReport (module doc: [`DAILY_REPORT.md`](DAILY_REPORT.md)), Application Use Cases cho Project/Task (Phase 3), injectable Services cho Notification, và MVC cho các module còn lại (Blocker, Feedback, **Knowledge Base**, **Congnghe**, **AiAccount**, **Credential**, **Contract/CLM**, **Performance**, **Onboarding**).
 
 ```
 app/
@@ -65,29 +65,50 @@ resources/js/
 └──────────────────────────────────────────────────────┘
 ```
 
-### Dual-DB — HRM là SSOT danh tính (2026-07-28)
+### HRM Public API — SSOT danh tính (2026-07-28)
 
-App dùng **hai database MySQL** trong **cùng một process Laravel** (không phải microservices / HTTP API giữa hai hệ):
+QLDA lấy danh tính nhân sự **chỉ** qua Public API v1 (M2M Sanctum). Không còn connection `hrm_mysql` / đọc `va_hrm_*`.
 
-| Connection | Database | Vai trò |
+| Client | Host | Vai trò |
 |---|---|---|
-| `mysql` (default, prefix `va_prd_`) | QLDA (`va-qlda-db` / `va_qlda_prod`) | Nghiệp vụ: dự án, task, báo cáo, role QLDA, session |
-| `hrm_mysql` (read-only, không prefix) | `va_hrm` (hrm.vaschools.edu.vn) | **SSOT danh tính nhân sự**: `users` + `user_info` |
+| `mysql` (default, prefix `va_prd_`) | QLDA | Nghiệp vụ: dự án, task, báo cáo, role QLDA, session |
+| `HrmApiClient` (`HRM_API_*`) | `https://hrm…/api/v1` | M2M — `GET /employees*` → lazy upsert `employees` |
 
 ```mermaid
 flowchart LR
-  Google["Google OAuth email"] --> Resolver["HrmIdentityResolver"]
-  HRM["va_hrm users + user_info SSOT"] --> Resolver
-  Resolver -->|"lazy upsert 1 user"| Emp["va_prd_employees hrm_user_id"]
-  Resolver --> SA["va_prd_system_accounts role QLDA"]
+  Google["Google OAuth / HRM SSO"] --> Resolver["HrmIdentityResolver"]
+  API["HrmApiClient Bearer"] --> Resolver
+  Resolver -->|"lazy upsert"| Emp["va_prd_employees hrm_user_id + hrm_employee_uuid"]
+  Resolver --> SA["va_prd_system_accounts"]
   SA --> Session["Auth guard system"]
-  Emp -->|"FK assignee / member"| Biz["projects · tasks · reports"]
 ```
 
+- **Không fallback DB** khi API lỗi/miss — login báo lỗi HRM.
 - **Không bulk sync** — các lệnh `cms:sync-*` đã gỡ.
-- `App\Services\Hrm\HrmIdentityResolver`: tra cứu HRM theo email lúc Google login; nếu nhân sự chưa có trên QLDA → upsert 1 dòng `employees` (link `hrm_user_id`) + provision `system_accounts` (`App\Services\Hrm\SystemAccountProvisioner`); nếu đã có → refresh từ HRM.
-- Model read-only HRM: `App\Models\Hrm\HrmUser`, `HrmUserInfo` (throw khi save/delete).
-- Env: `HRM_DB_*` (fallback tạm `CMS_DB_*` nếu chưa rename `.env`) — production dùng user MySQL **SELECT-only** trên `va_hrm`.
+- `HrmIdentityResolver` + `HrmApiEmployeeMapper`; smoke: `php artisan hrm:api-ping [--email=]`.
+- Env: `HRM_API_BASE_URL`, `HRM_API_TOKEN` (mint `/admin/api-clients`). **JWT SSO ≠ Bearer M2M.**
+
+### SSO HRM → QLDA (2026-07-28, opt-in `HRM_SSO_ENABLED`)
+
+HRM là **IdP nội bộ**: user Workspace đăng nhập Google **một lần trên HRM**; QLDA không gọi Google OAuth riêng khi SSO bật. Cần `HRM_API_*` để lazy upsert / refresh nhân sự sau JWT.
+
+```mermaid
+sequenceDiagram
+  participant U as User
+  participant Q as QLDA /auth/hrm
+  participant H as HRM /sso/authorize
+  U->>Q: Bấm «Đăng nhập tài khoản nhà trường»
+  Q->>H: redirect client_id=qlda + redirect_uri + state
+  H-->>Q: /auth/hrm/callback?token=JWT RS256 (TTL ~10 phút)
+  Q->>Q: HrmSsoJwtVerifier — JWKS offline (cache 1h), aud=qlda, iss, exp
+  Q->>Q: map employee_uuid → employees.hrm_employee_uuid (fallback email / lazy upsert)
+  Q-->>U: session guard system
+```
+
+- `HrmSsoController` (`/auth/hrm`, `/auth/hrm/callback`) + `App\Services\Hrm\HrmSsoJwtVerifier`.
+- Redirect URI cố định `{APP_URL}/auth/hrm/callback` — whitelist trên HRM (`client qlda`, `sso_enabled=true`).
+- **JWT SSO user ≠ Bearer M2M** (`HRM_API_TOKEN`): JWT mở session; M2M gọi `/api/v1/*`.
+- SSO tắt (`false`, mặc định) → nút Google trực tiếp; password login chỉ E2E/PHPUnit.
 
 ---
 

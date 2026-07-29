@@ -31,7 +31,7 @@ const props = defineProps({
     resolveImageUploadUrl: { type: Function, default: null },
     /** Tailwind min-height class for editor body */
     editorMinHeightClass: { type: String, default: 'min-h-[160px]' },
-    /** Chèn preview Google Docs / Sheets (coaching session content) */
+    /** Chèn preview Google Docs / Sheets */
     enableGoogleWorkspaceEmbed: { type: Boolean, default: false },
 });
 

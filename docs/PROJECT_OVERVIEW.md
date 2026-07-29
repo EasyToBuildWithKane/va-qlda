@@ -50,7 +50,6 @@ VA QLDA
 ├── [DASHBOARD WORK] Dashboard Công Việc (/work) — KPI dự án, tiến độ & tuân thủ báo cáo ngày
 ├── [MY WORK]       Việc của tôi (/my-work) — task cá nhân đa dự án theo bucket; lead xem việc nhóm (RBAC my_work.*)
 ├── [KNOWLEDGE BASE] Tri thức nội bộ (bài viết, danh mục, tags, tìm kiếm, yêu thích) → docs/KNOWLEDGE_BASE.md
-├── [COACHING]      Coaching/Mentoring (khóa học, buổi học, bài tập, tiến độ, dashboard tài chính) → docs/COACHING_MENTORING.md
 ├── [CONTRACT]      Quản lý hợp đồng / NCC (Explorer, chi phí, gia hạn phụ lục, đánh giá) → docs/CONTRACT_MANAGEMENT.md
 ├── [CREDENTIAL]    Kho tài khoản / mật khẩu hạ tầng (phân quyền, nhật ký truy cập) → docs/CREDENTIAL_MANAGEMENT.md
 ├── [PERFORMANCE]   Hiệu suất & audit công việc (dashboard KPI, audit theo nhân viên) → docs/PERFORMANCE_ANALYTICS.md
@@ -64,7 +63,7 @@ VA QLDA
 
 ## 3. Luồng Hoạt Động Tổng Thể
 
-Chi tiết sơ đồ (mermaid): [`FLOWS_AND_DOCS_MAP.md`](FLOWS_AND_DOCS_MAP.md) §7. Module KB / Coaching / Excel: doc module tương ứng.
+Chi tiết sơ đồ (mermaid): [`FLOWS_AND_DOCS_MAP.md`](FLOWS_AND_DOCS_MAP.md) §7. Module KB / Excel: doc module tương ứng.
 
 ### 3.1 Luồng Quản Lý Dự Án
 
@@ -216,7 +215,7 @@ Tạo Project
 
 | Module | Route | Trạng Thái |
 |---|---|---|
-| Authentication | `/login`, `/auth/google` | ✅ Hoàn thành |
+| Authentication | `/login`, `/auth/hrm` (SSO), `/auth/google` (fallback) | ✅ Hoàn thành |
 | **Dashboard Hub** (tổng quan tất cả module) | `/dashboard` | ✅ Hoàn thành |
 | **Dashboard Công Việc** (KPI dự án, compliance) | `/work` | ✅ Hoàn thành |
 | **My Today's Work** (Việc của tôi — đa dự án + team view) | `/my-work` | ✅ Hoàn thành |
@@ -244,7 +243,6 @@ Tạo Project
 | Notification System (in-app bell + drawer) | `/notifications` | ✅ Hoàn thành |
 | Notification Dispatcher (centralized fan-out) | (service layer) | ✅ Hoàn thành |
 | Knowledge Base (Wiki) | `/knowledge-base` | ✅ Triển khai v1 → docs/KNOWLEDGE_BASE.md |
-| Coaching / Mentoring | `/coaching` | ✅ Triển khai v1 → docs/COACHING_MENTORING.md |
 | Contract Lifecycle (CLM) | `/contracts` | ✅ Hoàn thành → docs/CONTRACT_MANAGEMENT.md |
 | Credential Vault | `/credentials` | ✅ Hoàn thành → docs/CREDENTIAL_MANAGEMENT.md |
 | Performance Analytics & Audit | `/performance` | ✅ Hoàn thành → docs/PERFORMANCE_ANALYTICS.md |

@@ -9,7 +9,6 @@ use App\Models\AiPaymentRequest;
 use App\Models\AiProposalScan;
 use App\Models\AiPurchaseProposal;
 use App\Models\Blocker;
-use App\Models\CoachingCourse;
 use App\Models\CongngheSection;
 use App\Models\CongngheSoftwareProposal;
 use App\Models\Contract;
@@ -30,7 +29,6 @@ use App\Policies\AiPaymentRequestPolicy;
 use App\Policies\AiProposalScanPolicy;
 use App\Policies\AiPurchaseProposalPolicy;
 use App\Policies\BlockerPolicy;
-use App\Policies\CoachingCoursePolicy;
 use App\Policies\CongngheContentPolicy;
 use App\Policies\CongngheSoftwareProposalPolicy;
 use App\Policies\ContractPolicy;
@@ -76,7 +74,6 @@ class AuthServiceProvider extends ServiceProvider
         SystemSetting::class => SystemSettingPolicy::class,
         CongngheSection::class => CongngheContentPolicy::class,
         KbArticle::class => KbArticlePolicy::class,
-        CoachingCourse::class => CoachingCoursePolicy::class,
         CongngheSoftwareProposal::class => CongngheSoftwareProposalPolicy::class,
         Credential::class => CredentialPolicy::class,
         Contract::class => ContractPolicy::class,

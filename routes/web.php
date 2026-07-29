@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Middleware\RestrictCoachingOnlyUsers;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -13,15 +12,15 @@ use Illuminate\Support\Facades\Route;
 | routes (with its own controller imports) inside the active group.
 |
 | Guest:  routes/web/auth.php
-| Auth:   every other partial, behind `auth` + RestrictCoachingOnlyUsers.
+| Auth:   every other partial, behind `auth`.
 |
 */
 
 // Unauthenticated — login portals + OAuth.
 Route::middleware('guest')->group(base_path('routes/web/auth.php'));
 
-// Authenticated — coaching-only users are redirected to their dashboard.
-Route::middleware(['auth', RestrictCoachingOnlyUsers::class])->group(function () {
+// Authenticated application routes.
+Route::middleware(['auth'])->group(function () {
     foreach ([
         'dashboard',       // dashboards + session
         'congnghe',        // Phòng Công Nghệ landing + đề xuất phần mềm
@@ -32,7 +31,6 @@ Route::middleware(['auth', RestrictCoachingOnlyUsers::class])->group(function ()
         'contracts',       // quản lý hợp đồng (CLM)
         'feedback',        // phản hồi
         'knowledge-base',  // tri thức
-        'coaching',        // coaching / mentoring
         'ai-accounts',     // tài khoản AI (API + pages)
         'credentials',     // kho mật khẩu (API + pages)
         'people',          // profile, members, org-teams, departments

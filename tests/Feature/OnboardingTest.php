@@ -29,7 +29,6 @@ class OnboardingTest extends TestCase
             ->getJson('/onboarding')
             ->assertOk()
             ->assertJsonStructure([
-                'seen_welcome',
                 'role',
                 'tours' => ['system_overview' => ['status', 'current_step', 'total_steps']],
                 'completed_tours',
@@ -88,7 +87,7 @@ class OnboardingTest extends TestCase
 
     // ─── Complete / skip / reset ────────────────────────────────────────────
 
-    public function test_complete_marks_tour_and_welcome_seen(): void
+    public function test_complete_marks_tour(): void
     {
         $account = $this->member();
 
@@ -103,7 +102,6 @@ class OnboardingTest extends TestCase
         ]);
         $row = \App\Models\OnboardingProgress::where('system_account_id', $account->id)->first();
         $this->assertNotNull($row->completed_at);
-        $this->assertNotNull($account->fresh()->onboarding_seen_at);
     }
 
     public function test_skip_marks_tour_skipped(): void
@@ -135,18 +133,6 @@ class OnboardingTest extends TestCase
             'system_account_id' => $account->id,
             'tour_key' => 'system_overview',
         ]);
-    }
-
-    public function test_dismiss_welcome_sets_seen_without_progress(): void
-    {
-        $account = $this->member();
-
-        $this->actingAs($account, 'system')
-            ->postJson('/onboarding/dismiss-welcome')
-            ->assertNoContent();
-
-        $this->assertNotNull($account->fresh()->onboarding_seen_at);
-        $this->assertDatabaseCount('onboarding_progress', 0);
     }
 
     public function test_non_ajax_post_redirects_back(): void

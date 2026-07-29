@@ -29,7 +29,6 @@ final class AuditActionCatalog
             'ai_account' => ['label' => 'Tài khoản AI', 'icon' => 'sparkles'],
             'ai_proposal' => ['label' => 'Đề xuất & Thanh toán AI', 'icon' => 'documents'],
             'kb' => ['label' => 'Cơ sở tri thức', 'icon' => 'knowledge'],
-            'coaching' => ['label' => 'Đào tạo & Coaching', 'icon' => 'learning'],
             'org_team' => ['label' => 'Sơ đồ tổ chức', 'icon' => 'org-teams'],
             'employee' => ['label' => 'Hồ sơ nhân sự', 'icon' => 'members'],
             'department' => ['label' => 'Phòng ban', 'icon' => 'department'],
@@ -85,14 +84,6 @@ final class AuditActionCatalog
             'kb_article.updated' => ['label' => 'Sửa bài tri thức', 'module' => 'kb', 'severity' => 'info'],
             'kb_article.deleted' => ['label' => 'Xóa bài tri thức', 'module' => 'kb', 'severity' => 'warning'],
             'kb_article.published' => ['label' => 'Xuất bản bài tri thức', 'module' => 'kb', 'severity' => 'notice'],
-
-            // ── Coaching ──────────────────────────────────────────────
-            'coaching_course.created' => ['label' => 'Tạo khóa đào tạo', 'module' => 'coaching', 'severity' => 'notice'],
-            'coaching_course.updated' => ['label' => 'Sửa khóa đào tạo', 'module' => 'coaching', 'severity' => 'info'],
-            'coaching_course.deleted' => ['label' => 'Xóa khóa đào tạo', 'module' => 'coaching', 'severity' => 'warning'],
-            'coaching_session.created' => ['label' => 'Tạo buổi đào tạo', 'module' => 'coaching', 'severity' => 'notice'],
-            'coaching_session.updated' => ['label' => 'Sửa buổi đào tạo', 'module' => 'coaching', 'severity' => 'info'],
-            'coaching_session.deleted' => ['label' => 'Xóa buổi đào tạo', 'module' => 'coaching', 'severity' => 'warning'],
 
             // ── OrgTeam ───────────────────────────────────────────────
             'org_team.created' => ['label' => 'Tạo nhóm tổ chức', 'module' => 'org_team', 'severity' => 'notice'],
@@ -191,8 +182,6 @@ final class AuditActionCatalog
             'ai_payment' => 'ai_proposal',
             'ai_proposal' => 'ai_proposal',
             'kb_article' => 'kb',
-            'coaching_course' => 'coaching',
-            'coaching_session' => 'coaching',
             'org_team' => 'org_team',
             'employee' => 'employee',
             'department' => 'department',
@@ -296,8 +285,6 @@ final class AuditActionCatalog
             'ai_payment_request' => 'Đề nghị thanh toán AI',
             'ai_purchase_proposal' => 'Đề xuất mua AI',
             'kb_article' => 'Bài tri thức',
-            'coaching_course' => 'Khóa đào tạo',
-            'coaching_session' => 'Buổi đào tạo',
             'org_team' => 'Nhóm tổ chức',
             'congnghe_software_proposal' => 'Đề xuất phần mềm',
             'daily_report' => 'Báo cáo ngày',

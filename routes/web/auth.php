@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Auth\HiddenAdminLoginController;
+use App\Http\Controllers\Auth\HrmSsoController;
 use App\Http\Controllers\Auth\LoginController;
 use Illuminate\Support\Facades\Route;
 
@@ -16,6 +17,10 @@ Route::get('/login', [LoginController::class, 'createPortal'])->name('login');
 Route::get('/tech/login', [LoginController::class, 'createTech'])->name('tech.login');
 Route::get('/auth/google', [GoogleAuthController::class, 'redirect'])->name('auth.google');
 Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->name('auth.google.callback');
+
+// SSO HRM → QLDA (HRM_SSO_ENABLED): HRM là IdP nội bộ, phát JWT về callback.
+Route::get('/auth/hrm', [HrmSsoController::class, 'redirect'])->name('auth.hrm');
+Route::get('/auth/hrm/callback', [HrmSsoController::class, 'callback'])->name('auth.hrm.callback');
 
 if (config('va.password_login_enabled')) {
     Route::post('/login', [LoginController::class, 'storePortal']);

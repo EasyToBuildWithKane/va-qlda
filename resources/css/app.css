@@ -148,29 +148,29 @@
         @apply my-2 max-w-full overflow-x-auto rounded-md bg-slate-50 p-3 text-xs;
     }
 
-    /* Google Docs/Sheets embed trong nội dung rich-text (coaching, KB) */
-    .rich-content .coaching-rich-embed,
-    .tiptap .coaching-rich-embed {
+    /* Google Docs/Sheets embed trong nội dung rich-text (KB) */
+    .rich-content .workspace-rich-embed,
+    .tiptap .workspace-rich-embed {
         @apply my-4 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm;
     }
-    .rich-content .coaching-rich-embed__frame,
-    .tiptap .coaching-rich-embed__frame {
+    .rich-content .workspace-rich-embed__frame,
+    .tiptap .workspace-rich-embed__frame {
         @apply relative w-full;
         aspect-ratio: 16 / 9;
         min-height: 22rem;
     }
     @media (min-width: 1024px) {
-        .rich-content .coaching-rich-embed__frame,
-        .tiptap .coaching-rich-embed__frame {
+        .rich-content .workspace-rich-embed__frame,
+        .tiptap .workspace-rich-embed__frame {
             min-height: 28rem;
         }
     }
-    .rich-content .coaching-rich-embed__frame iframe,
-    .tiptap .coaching-rich-embed__frame iframe {
+    .rich-content .workspace-rich-embed__frame iframe,
+    .tiptap .workspace-rich-embed__frame iframe {
         @apply absolute inset-0 h-full w-full border-0 bg-white;
     }
-    .rich-content .coaching-rich-embed__link,
-    .tiptap .coaching-rich-embed__link {
+    .rich-content .workspace-rich-embed__link,
+    .tiptap .workspace-rich-embed__link {
         @apply block border-t border-slate-100 px-3 py-2 text-xs font-medium text-brand no-underline hover:bg-brand/5;
     }
 

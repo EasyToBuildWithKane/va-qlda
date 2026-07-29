@@ -2,12 +2,11 @@
 
 namespace App\Services\AiAccount;
 
-use App\Models\Hrm\HrmUser;
 use App\Models\SystemAccount;
 use App\Services\Hrm\HrmIdentityResolver;
 
 /**
- * Địa chỉ nhận mail nhắc AI: ưu tiên email HRM (va_hrm SSOT) đã liên kết vào employees.email.
+ * Địa chỉ nhận mail nhắc AI: ưu tiên email nhân sự QLDA (đã refresh từ HRM API nếu cấu hình).
  */
 final class ReminderRecipientEmailResolver
 {
@@ -25,17 +24,6 @@ final class ReminderRecipientEmailResolver
         $email = $employee?->email;
         if ($this->isValidEmail($email)) {
             return strtolower(trim($email));
-        }
-
-        if ($employee?->hrm_user_id !== null && $this->hrmResolver->isHrmConfigured()) {
-            $hrmEmail = HrmUser::query()
-                ->withTrashed()
-                ->whereKey($employee->hrm_user_id)
-                ->value('email');
-
-            if ($this->isValidEmail($hrmEmail)) {
-                return strtolower(trim($hrmEmail));
-            }
         }
 
         $username = $account->username;

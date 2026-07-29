@@ -21,7 +21,30 @@ class LoginTest extends TestCase
                 ->component('Auth/Login')
                 ->has('googleAuthUrl')
                 ->has('googleEnabled')
+                ->has('ssoEnabled')
+                ->has('ssoAuthUrl')
             );
+    }
+
+    public function test_google_oauth_redirect_prompts_account_selection(): void
+    {
+        config([
+            'services.google.client_id' => 'test-client-id',
+            'services.google.client_secret' => 'test-client-secret',
+            'services.google.redirect' => 'http://localhost/auth/google/callback',
+        ]);
+
+        $response = $this->get('/auth/google');
+
+        $response->assertRedirect();
+        $location = (string) $response->headers->get('Location');
+        $this->assertStringContainsString('accounts.google.com', $location);
+        $this->assertStringNotContainsString('AccountChooser', $location);
+        $this->assertTrue(
+            str_contains($location, 'prompt=select_account')
+                || str_contains(urldecode($location), 'prompt=select_account'),
+            'OAuth URL phải có prompt=select_account',
+        );
     }
 
     public function test_tech_login_page_renders(): void
@@ -32,6 +55,8 @@ class LoginTest extends TestCase
                 ->component('Auth/Login')
                 ->has('googleAuthUrl')
                 ->has('googleEnabled')
+                ->has('ssoEnabled')
+                ->has('ssoAuthUrl')
             );
     }
 

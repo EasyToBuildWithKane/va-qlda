@@ -16,10 +16,10 @@ va-qlda/
 │   ├── Application/          ← Use Cases: DailyReport/, Project/, Task/
 │   ├── Domain/DailyReport/   ← Domain models (UUID) + ScoringService
 │   ├── Http/
-│   │   ├── Controllers/      ← Gom theo domain: Project/, Coaching/, Contract/, Credential/, …
+│   │   ├── Controllers/      ← Gom theo domain: Project/, Contract/, Credential/, …
 │   │   ├── Requests/         ← FormRequest (authorize + rules + messages VN)
 │   │   ├── Resources/        ← Inertia props (+ `can`)
-│   │   └── Middleware/       ← HandleInertiaRequests, RestrictCoachingOnlyUsers, …
+│   │   └── Middleware/       ← HandleInertiaRequests, …
 │   ├── Models/               ← Eloquent (App\Models\*) — prefix bảng va_prd_
 │   ├── Policies/             ← $account->allows('module.action') OR ownership
 │   ├── Services/             ← NotificationService, NotificationDispatcher, …
@@ -28,7 +28,7 @@ va-qlda/
 ├── config/                   ← business.php (hằng số), + overlay settings runtime
 ├── routes/
 │   ├── web.php               ← Loader mỏng: wire 2 nhóm middleware → require web/*.php
-│   ├── web/                  ← 16 partial theo domain (xem §3)
+│   ├── web/                  ← 15 partial theo domain (xem §3)
 │   ├── api.php               ← Rỗng (không REST API chính)
 │   ├── channels.php console.php
 ├── resources/js/             ← Frontend (xem FRONTEND_STRUCTURE.md §3)
@@ -52,7 +52,7 @@ app/Application/
 **Quy ước pattern:**
 - Project/Task mutations → Use Case; read paths vẫn MVC.
 - DailyReport → Use Case + Domain model (`App\Domain\DailyReport\Models\`).
-- Blocker, Feedback, Coaching, Contract, Credential, KnowledgeBase, … → MVC: Controller → Model/Support.
+- Blocker, Feedback, Contract, Credential, KnowledgeBase, … → MVC: Controller → Model/Support.
 
 > **Không** refactor sang Use Case khi chỉ sửa bug nhỏ. Module mới: ưu tiên FormRequest + Policy + Resource giống module cùng loại.
 
@@ -63,11 +63,11 @@ app/Application/
 `routes/web.php` chỉ wire 2 ngữ cảnh middleware rồi `require` các partial:
 
 - **Guest** (`middleware('guest')`): `web/auth.php` — login portals + OAuth.
-- **Auth** (`['auth', RestrictCoachingOnlyUsers::class]`): 15 partial còn lại.
+- **Auth** (`middleware('auth')`): 14 partial còn lại.
 
 | Partial | Phạm vi |
 |---|---|
-| `auth.php` | Đăng nhập, Google OAuth, hidden admin login |
+| `auth.php` | Đăng nhập, SSO HRM, Google OAuth, hidden admin login |
 | `dashboard.php` | `/dashboard` (HubDashboardController), `/work`, logout |
 | `congnghe.php` | Landing Phòng Công Nghệ + đề xuất phần mềm |
 | `platform.php` | performance, onboarding, notifications, audit |
@@ -77,7 +77,6 @@ app/Application/
 | `contracts.php` | Quản lý hợp đồng (CLM) |
 | `feedback.php` | Phản hồi |
 | `knowledge-base.php` | Tri thức |
-| `coaching.php` | Coaching / mentoring |
 | `ai-accounts.php` | Tài khoản AI (pages + JSON) |
 | `credentials.php` | Kho mật khẩu (pages + JSON) |
 | `people.php` | Profile, members, org-teams, departments |
@@ -95,8 +94,8 @@ resources/js/
 ├── Pages/{Domain}/      ← Inertia pages (mỏng, bọc AppLayout)
 ├── Layouts/AppLayout.vue
 ├── Components/Ui/, Layout/, Notifications/   ← primitives + app shell
-├── modules/{feature}/   ← 13 module: project, daily-report, knowledge-base,
-│                          coaching, contract, credential, performance, people,
+├── modules/{feature}/   ← 12 module: project, daily-report, knowledge-base,
+│                          contract, credential, performance, people,
 │                          profile, onboarding, notifications, aiAccount, audit
 ├── shared/ui/, shared/composables/, shared/services/
 ├── composables/         ← Feature logic (useSprint*, useRisk*, …)

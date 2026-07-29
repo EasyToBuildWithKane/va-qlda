@@ -189,13 +189,6 @@ const TOURS = {
                 purpose: 'Cập nhật tiến độ hằng ngày.',
                 side: 'right',
             },
-            {
-                el: '[data-tour="nav-coaching"]',
-                title: 'Đào tạo & Coaching',
-                desc: 'Tham gia khóa học và lịch buổi học.',
-                purpose: 'Phát triển kỹ năng bản thân.',
-                side: 'right',
-            },
         ],
     },
 };

@@ -5,6 +5,8 @@ import ToastContainer from '@/Components/Ui/ToastContainer.vue';
 import { useToast } from '@/shared/composables/useToast';
 
 const props = defineProps({
+    ssoEnabled: { type: Boolean, default: false },
+    ssoAuthUrl: { type: String, default: '' },
     googleEnabled: { type: Boolean, default: false },
     googleAuthUrl: { type: String, required: true },
 });
@@ -62,9 +64,9 @@ watch(
         >
       </header>
 
-      <!-- Thẻ đăng nhập -->
+      <!-- Thẻ đăng nhập (mockup VAS) -->
       <div class="w-full max-w-md rounded-2xl bg-white px-8 py-10 shadow-xl sm:px-10 sm:py-12">
-        <h1 class="text-center font-display text-2xl font-bold text-slate-900">
+        <h1 class="text-center text-2xl font-bold text-slate-900">
           Đăng nhập
         </h1>
 
@@ -72,10 +74,35 @@ watch(
           Đăng nhập thông qua tài khoản mail do nhà trường cung cấp
         </p>
 
-        <div class="mt-8 flex flex-col items-center gap-3">
+        <!-- SSO qua HRM (IdP nội bộ) — không gọi Google OAuth riêng trên QLDA -->
+        <div
+          v-if="ssoEnabled"
+          class="mt-8 flex flex-col items-center gap-3"
+        >
+          <a
+            :href="ssoAuthUrl"
+            class="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white p-2 shadow-md outline-none transition ring-0 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 active:outline-none hover:shadow-lg"
+            aria-label="Đăng nhập bằng Google"
+          >
+            <img
+              src="/images/google.png"
+              alt=""
+              class="block h-9 w-9 sm:h-10 sm:w-10"
+              width="40"
+              height="40"
+              loading="eager"
+              decoding="async"
+            >
+          </a>
+        </div>
+
+        <div
+          v-else
+          class="mt-8 flex flex-col items-center gap-3"
+        >
           <a
             :href="googleEnabled ? googleAuthUrl : '#'"
-            class="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white p-2 shadow-md transition outline-none ring-0 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 active:outline-none"
+            class="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white p-2 shadow-md outline-none transition ring-0 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 active:outline-none"
             :class="googleEnabled ? 'hover:shadow-lg' : 'cursor-not-allowed opacity-80'"
             aria-label="Đăng nhập bằng Google"
             @click="onGoogleClick"

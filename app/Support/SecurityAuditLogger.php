@@ -7,7 +7,7 @@ use App\Models\SystemAccount;
 
 /**
  * Ghi sổ cái audit hợp nhất (security_audit_logs) cho các sự kiện cross-module
- * không có timeline riêng: Auth, cấu hình, phân quyền, vòng đời AI/KB/Coaching…
+ * không có timeline riêng: Auth, cấu hình, phân quyền, vòng đời AI/KB…
  *
  * Nhãn/màu/icon của mỗi action do {@see \App\Support\Audit\AuditActionCatalog}
  * quản lý. TUYỆT ĐỐI không truyền giá trị secret vào $meta — chỉ tên key.
@@ -134,18 +134,6 @@ class SecurityAuditLogger
     public static function kbArticle(SystemAccount $actor, string $event, ?int $subjectId, array $meta = []): void
     {
         self::log($actor, "kb_article.{$event}", 'kb_article', $subjectId, $meta);
-    }
-
-    /** @param array<string,mixed> $meta */
-    public static function coachingCourse(SystemAccount $actor, string $event, ?int $subjectId, array $meta = []): void
-    {
-        self::log($actor, "coaching_course.{$event}", 'coaching_course', $subjectId, $meta);
-    }
-
-    /** @param array<string,mixed> $meta */
-    public static function coachingSession(SystemAccount $actor, string $event, ?int $subjectId, array $meta = []): void
-    {
-        self::log($actor, "coaching_session.{$event}", 'coaching_session', $subjectId, $meta);
     }
 
     /** @param array<string,mixed> $meta */

@@ -61,13 +61,19 @@ class LoginController extends Controller
     {
         $redirect = $request->query('redirect');
 
+        $params = array_filter([
+            'portal' => $portal,
+            'redirect' => is_string($redirect) ? $redirect : null,
+        ]);
+
         return Inertia::render('Auth/Login', [
+            // SSO HRM (IdP nội bộ) — khi bật, nút login đi qua HRM thay Google.
+            'ssoEnabled' => (bool) config('services.hrm_sso.enabled')
+                && filled(config('services.hrm_sso.base_url')),
+            'ssoAuthUrl' => route('auth.hrm', $params),
             'googleEnabled' => filled(config('services.google.client_id'))
                 && filled(config('services.google.client_secret')),
-            'googleAuthUrl' => route('auth.google', array_filter([
-                'portal' => $portal,
-                'redirect' => is_string($redirect) ? $redirect : null,
-            ])),
+            'googleAuthUrl' => route('auth.google', $params),
         ]);
     }
 

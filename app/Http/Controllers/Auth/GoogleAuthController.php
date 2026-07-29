@@ -7,14 +7,15 @@ use App\Models\Employee;
 use App\Models\SystemAccount;
 use App\Services\Hrm\HrmIdentityResolver;
 use App\Services\Hrm\SystemAccountProvisioner;
-use App\Support\Auth\CoachingOnlyAccess;
 use App\Support\Auth\LoginRedirectSanitizer;
 use App\Support\Auth\PortalDestination;
 use App\Support\Auth\TechLoginAccess;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Laravel\Socialite\Facades\Socialite;
+use Laravel\Socialite\Two\InvalidStateException;
 use Symfony\Component\HttpFoundation\RedirectResponse as SymfonyRedirectResponse;
 
 class GoogleAuthController extends Controller
@@ -33,12 +34,18 @@ class GoogleAuthController extends Controller
             'login.redirect',
             LoginRedirectSanitizer::sanitize($request->query('redirect')),
         );
+        // Giữ session trước khi nhảy sang Google (cross-site OAuth).
+        $request->session()->save();
 
         /** @var \Laravel\Socialite\Two\GoogleProvider $google */
         $google = Socialite::driver('google');
 
+        // redirect_uri phải khớp tuyệt đối với Google Cloud Console + callback dưới đây.
+        // prompt=select_account: một màn chọn tài khoản (không wrap AccountChooser — tránh chọn 2 lần).
         return $google
             ->scopes(['openid', 'profile', 'email'])
+            ->redirectUrl($this->callbackUrl())
+            ->with(['prompt' => 'select_account'])
             ->redirect();
     }
 
@@ -52,11 +59,51 @@ class GoogleAuthController extends Controller
                 ->with('error', 'Đăng nhập Google chưa được cấu hình.');
         }
 
-        try {
-            $googleUser = Socialite::driver('google')->user();
-        } catch (\Throwable) {
+        if ($request->filled('error')) {
             return redirect()->route($loginRoute)
-                ->with('error', 'Không thể xác thực với Google. Vui lòng thử lại.');
+                ->with('error', 'Bạn đã hủy đăng nhập bằng Google.');
+        }
+
+        try {
+            $googleUser = Socialite::driver('google')
+                ->redirectUrl($this->callbackUrl())
+                ->user();
+        } catch (InvalidStateException $e) {
+            Log::warning('Google OAuth invalid state', [
+                'message' => $e->getMessage(),
+                'host' => $request->getHost(),
+                'redirect' => $this->callbackUrl(),
+            ]);
+
+            // Session cookie mất giữa redirect↔callback (host lệch APP_URL, SameSite, …).
+            try {
+                $googleUser = Socialite::driver('google')
+                    ->redirectUrl($this->callbackUrl())
+                    ->stateless()
+                    ->user();
+            } catch (\Throwable $fallback) {
+                Log::warning('Google OAuth stateless fallback failed', [
+                    'message' => $fallback->getMessage(),
+                ]);
+
+                return redirect()->route($loginRoute)
+                    ->with('error', 'Phiên đăng nhập đã hết hạn. Mở lại trang login trên đúng địa chỉ APP_URL rồi thử lại.');
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Google OAuth failed', [
+                'exception' => $e::class,
+                'message' => $e->getMessage(),
+                'host' => $request->getHost(),
+                'redirect' => $this->callbackUrl(),
+            ]);
+
+            $hint = 'Không thể xác thực với Google. Vui lòng thử lại.';
+            $msg = strtolower($e->getMessage());
+            if (str_contains($msg, 'redirect_uri') || str_contains($msg, 'redirect uri')) {
+                $hint = 'redirect_uri Google không khớp. Thêm đúng URI vào Google Cloud Console: '.$this->callbackUrl();
+            }
+
+            return redirect()->route($loginRoute)->with('error', $hint);
         }
 
         $email = strtolower(trim((string) $googleUser->getEmail()));
@@ -83,15 +130,13 @@ class GoogleAuthController extends Controller
             ->first();
 
         if ($employee === null) {
-            // SSOT: chưa có trên QLDA → tra cứu HRM (va_hrm) và lazy upsert.
-            $hrmUser = $resolver->findActiveHrmUserByEmail($email);
+            // SSOT: chưa có trên QLDA → tra HRM Public API và lazy upsert.
+            $employee = $resolver->ensureEmployeeByEmail($email);
 
-            if ($hrmUser === null) {
+            if ($employee === null) {
                 return redirect()->route($loginRoute)
                     ->with('error', 'Email chưa có trong hệ thống nhân sự (HRM). Liên hệ quản trị.');
             }
-
-            $employee = $resolver->ensureEmployeeFromHrm($hrmUser);
         } else {
             $employee = $resolver->refreshEmployeeIfLinked($employee);
         }
@@ -111,14 +156,9 @@ class GoogleAuthController extends Controller
             ->where('employee_id', $employee->id)
             ->first();
 
-        if ($account === null) {
-            if ($employee->hrm_user_id === null) {
-                return redirect()->route($loginRoute)
-                    ->with('error', 'Chưa có tài khoản đăng nhập cho nhân sự này. Liên hệ quản trị.');
-            }
-
-            $account = app(SystemAccountProvisioner::class)->ensureForEmployee($employee);
-        } elseif ($employee->hrm_user_id !== null) {
+        // Khớp HrmSsoController: provision khi chưa có account, hoặc khi đã liên kết HRM
+        // (hrm_user_id và/hoặc hrm_employee_uuid — API-first có thể chỉ có uuid).
+        if ($account === null || $employee->hrm_user_id !== null || $employee->hrm_employee_uuid !== null) {
             $account = app(SystemAccountProvisioner::class)->ensureForEmployee($employee);
         }
 
@@ -147,10 +187,28 @@ class GoogleAuthController extends Controller
             && filled(config('services.google.client_secret'));
     }
 
+    /** URI tuyệt đối gửi Google — phải whitelist trong Google Cloud Console. */
+    private function callbackUrl(): string
+    {
+        $configured = trim((string) config('services.google.redirect'));
+        if ($configured !== '') {
+            return $configured;
+        }
+
+        return route('auth.google.callback');
+    }
+
     private function emailAllowed(string $email): bool
     {
-        if (CoachingOnlyAccess::googleEmailAllowed($email)) {
-            return true;
+        $allowedEmails = config('va.google_allowed_emails', []);
+        if (is_array($allowedEmails)) {
+            $normalized = array_map(
+                static fn (mixed $value): string => strtolower(trim((string) $value)),
+                $allowedEmails,
+            );
+            if (in_array(strtolower(trim($email)), $normalized, true)) {
+                return true;
+            }
         }
 
         return $this->emailDomainAllowed($email);

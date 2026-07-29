@@ -33,7 +33,7 @@ npm run test:e2e         # khuyến nghị trước PR; không mặc định m�
 3. **Đồng bộ tài liệu** — [docs-sync](../../.cursor/rules/docs-sync.mdc):
    - Route → `docs/API_STRUCTURE.md`
    - Migration → `docs/DATABASE_STRUCTURE.md`
-   - UI module → `docs/FRONTEND_STRUCTURE.md` + doc chuyên đề (KB, Coaching, …)
+   - UI module → `docs/FRONTEND_STRUCTURE.md` + doc chuyên đề (KB, AI, …)
    - Luồng mới → `docs/FLOWS_AND_DOCS_MAP.md` hoặc doc module
 4. Đổi UI → cập nhật/thêm spec `tests/e2e/`
 5. `git add -p` → commit:

@@ -1,6 +1,6 @@
 # FRONTEND STRUCTURE — VA QLDA
 
-> **Cập nhật 2026-06-19** — DailyReport + KnowledgeBase đã migrate sang `modules/`; 13 feature module. Content header (`PageHeader` + `#header`); FullCalendar (lịch coaching/dự án), driver.js (onboarding).
+> **Cập nhật 2026-06-19** — DailyReport + KnowledgeBase đã migrate sang `modules/`; 12 feature module. Content header (`PageHeader` + `#header`); FullCalendar (lịch dự án), driver.js (onboarding).
 
 > Rule agent: `.cursor/rules/content-header.mdc` · skill `content-header`.
 
@@ -16,7 +16,7 @@
 | Tailwind CSS | 3.4.19 | Utility-first CSS |
 | Vite | 5.0 | Build tool + manual code splitting |
 | TipTap | 3.24.0 | Rich text editor |
-| FullCalendar | 6.1.x | Lịch coaching + lịch dự án (day/week/list) |
+| FullCalendar | 6.1.x | Lịch dự án (day/week/list) |
 | Chart.js / vue-chartjs | 4.x / 5.x | Biểu đồ (dashboard, CLM, hiệu suất) |
 | driver.js | 1.3.x | Onboarding tour tương tác |
 | frappe-gantt | 1.2.x | Gantt timeline dự án |
@@ -58,11 +58,10 @@ resources/js/
 │   ├── Layout/               ← App shell sidebar (AppSidebar*)
 │   ├── AppIcon.vue
 │   └── Notifications/
-├── modules/                  ← Feature modules (Phase 2+) — 13 module, mỗi module có components/ (+ composables/, config/ khi cần):
+├── modules/                  ← Feature modules (Phase 2+) — 12 module, mỗi module có components/ (+ composables/, config/ khi cần):
 │   ├── project/                  ← components (ProjectCard, Sprint/, TaskDetail/, Dashboard/), config/
 │   ├── daily-report/             ← components (GradePill, ScoringPanel, ReportCard, …), config/reportConfig.js, composables/
 │   ├── knowledge-base/           ← components (KbArticleHero, KbRichTextField, KbBlogSidebar, …), composables/
-│   ├── coaching/                 ← Sessions table, calendar (useCoachingCalendar), modals, config
 │   ├── contract/                 ← CLM: components (*SummaryBar, charts), composables, config
 │   ├── credential/               ← Kho mật khẩu: components, composables
 │   ├── performance/              ← Dashboard + audit components/composables
@@ -132,7 +131,7 @@ Pages import feature components từ `@/modules/project/components/...` và prim
 
 `Modal.vue`, `Drawer.vue`, `AppDialog.vue`, `ToastContainer.vue`, `PageHeader.vue`
 
-**Content header (2026-06):** Mỗi Inertia page đặt **một** `PageHeader` trong `AppLayout` slot `#header` (topbar `h-14`). Props: `title`, `subtitle`, `icon` (khớp `App\Support\Navigation.php`), `icon-color` (thường `brand`), `badge` tùy chọn. Prop `back-href` chỉ trang drill-down (Create/Edit/Show con) — không dùng cho mục sidebar cấp 1 (vd. dashboard AI, lịch coaching). Actions trong default slot: `btn-primary` / `btn-ghost`, `h-9`. Mẫu: `Pages/AiAccount/Index.vue`, `Pages/AiAccount/Dashboard.vue`, `Pages/Coaching/Sessions/Schedule.vue`.
+**Content header (2026-06):** Mỗi Inertia page đặt **một** `PageHeader` trong `AppLayout` slot `#header` (topbar `h-14`). Props: `title`, `subtitle`, `icon` (khớp `App\Support\Navigation.php`), `icon-color` (thường `brand`), `badge` tùy chọn. Prop `back-href` chỉ trang drill-down (Create/Edit/Show con) — không dùng cho mục sidebar cấp 1 (vd. dashboard AI, báo cáo ngày). Actions trong default slot: `btn-primary` / `btn-ghost`, `h-9`. Mẫu: `Pages/AiAccount/Index.vue`, `Pages/AiAccount/Dashboard.vue`, `Pages/DailyReport/History.vue`.
 
 ### 6.1b App shell — `Components/Layout/`
 
@@ -303,21 +302,11 @@ Rule: `.cursor/rules/datagrid-toolbar.mdc` · skill `.cursor/skills/datagrid-too
 
 | Ngữ cảnh | Ví dụ |
 |----------|--------|
-| Trang Index, ô tìm dài | `Pages/AiAccount/CostReport.vue`, `Pages/Coaching/Sessions/Index.vue` |
+| Trang Index, ô tìm dài | `Pages/AiAccount/CostReport.vue`, `Pages/Feedback/Index.vue` |
 | Toolbar SaaS đầy đủ (một hàng desktop, grid, datepicker) | `Pages/DailyReport/History.vue` |
 | Tab dự án: tìm `half`, nút cùng hàng, lọc opt-in | `modules/project/components/Dashboard/ProjectFeedbackPanel.vue` |
 
 Shared: `DatagridToolbarSearch` (`hide-label`, `inline-actions`, …), `DatagridToolbarActionButton`, `DatagridSegmentedControl`, `DatagridFilterField`, `FilterDatePicker`, `FilterVisibilityDropdown`, `useVisibleFilterControls` (`default: false`). Grid lọc: `xl:grid-cols-6`, `gap-3`, `h-10`.
-
-### Coaching pages
-
-| Page | Composables / module |
-|---|---|
-| `Coaching/Dashboard.vue` | `CoachingWorkspace.vue`, `useCoachingExport.js` |
-| `Coaching/Sessions/Index.vue` | `useCoachingSessionList.js`, `CoachingSessionsSummaryBar.vue`, table/group views |
-| `Coaching/Sessions/Schedule.vue` | `useCoachingCalendar.js`, `MiniCalendar.vue` |
-
-Doc module: `docs/COACHING_MENTORING.md`.
 
 ### Knowledge Base pages
 

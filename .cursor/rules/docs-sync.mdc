@@ -13,7 +13,7 @@ Skill map: `.cursor/skills/va-qlda-docs/SKILL.md`
 
 | Thay đổi trong code | Cập nhật tối thiểu |
 |---------------------|-------------------|
-| `routes/web/{domain}.php` (route mới/đổi tên) | `docs/API_STRUCTURE.md` + doc module (vd. `docs/COACHING_MENTORING.md`) |
+| `routes/web/{domain}.php` (route mới/đổi tên) | `docs/API_STRUCTURE.md` + doc module (vd. `docs/KNOWLEDGE_BASE.md`) |
 | Migration / cột / FK / enum DB | `docs/DATABASE_STRUCTURE.md` + enum doc nếu có |
 | Page / `modules/*` / composable mới | `docs/FRONTEND_STRUCTURE.md` + doc module |
 | Controller / Support / Policy module | `docs/ARCHITECTURE.md` hoặc doc module (pattern MVC vs Use Case) |
@@ -37,4 +37,4 @@ Skill map: `.cursor/skills/va-qlda-docs/SKILL.md`
 ## Cấm
 
 - Ship route/migration lớn mà `docs/API_STRUCTURE.md` / `DATABASE_STRUCTURE.md` vẫn ghi «thiết kế — chưa migrate».
-- Copy doc cũ (Use Case, component) khi implementation đã chuyển pattern (vd. Coaching → `app/Support/Coaching/`).
+- Copy doc cũ (Use Case, component) khi implementation đã chuyển pattern (vd. module chuyển sang `app/Support/{Module}/`).

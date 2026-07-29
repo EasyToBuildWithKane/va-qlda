@@ -126,7 +126,7 @@ Chuẩn modal 3 tab Nhập/Xuất/Đối soát Excel: [`docs/IMPORT_EXPORT_RECON
 
 ## 3. Phân quyền
 
-Ánh xạ trên guard `system` và role hiện có (`admin` | `lead` | `member` | `viewer`). Coaching dùng role riêng — **Knowledge Base không** dùng Super Admin / Coach / Student.
+Ánh xạ trên guard `system` và role hiện có (`admin` | `lead` | `member` | `viewer`). Knowledge Base **không** dùng Super Admin / Coach / Student riêng.
 
 | Hành động | admin | lead | member | viewer |
 |---|---|---|---|---|
@@ -343,7 +343,7 @@ Chi tiết đầy đủ bảng: `docs/API_STRUCTURE.md` §2.17 · grouping §3.
 
 **Không có** `modules/knowledge-base/` — UI list/TOC chính nằm trong Pages; composable `useKbArticle.js` / `useKbSearch.js` **chưa** tách (logic filter trong Index + Inertia `router.get`).
 
-Tests: `tests/Feature/*` KB policy/CRUD; E2E `tests/e2e/knowledge-coaching.spec.js`.
+Tests: `tests/Feature/*` KB policy/CRUD; E2E `tests/e2e/knowledge-base.spec.js`.
 
 ---
 
@@ -355,7 +355,7 @@ Tests: `tests/Feature/*` KB policy/CRUD; E2E `tests/e2e/knowledge-coaching.spec.
 - [x] Show: layout full width (hero, breadcrumb, guide, TOC mobile, floating toolbar, related), view count, favorite/read
 - [x] Comments morph hoạt động
 - [x] Policy + Nav + messages tiếng Việt
-- [x] Feature tests + E2E smoke (`tests/e2e/knowledge-coaching.spec.js`)
+- [x] Feature tests + E2E smoke (`tests/e2e/knowledge-base.spec.js`)
 - [x] Route file ảnh/đính kèm — 404 khi file mất
 
 ---

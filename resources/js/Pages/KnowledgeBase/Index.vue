@@ -14,7 +14,7 @@ import ColumnVisibilityDropdown from '@/shared/ui/ColumnVisibilityDropdown.vue';
 import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
 import KbArticleCard from '@/modules/knowledge-base/components/KbArticleCard.vue';
 import KbSummaryBar from '@/modules/knowledge-base/components/KbSummaryBar.vue';
-import { useCoachingSessionGroups } from '@/composables/useCoachingSessionList';
+import { useCollapsedGroups } from '@/composables/useCollapsedGroups';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
 import { useVisibleColumns } from '@/shared/composables/useVisibleColumns';
 import { exportKbArticlesWorkbook, exportKbArticlesCsv, fetchKbArticlesForExport } from '@/composables/useKbExport';
@@ -157,7 +157,7 @@ const {
     toggleGroup,
     toggleAllGroups,
     allGroupsExpanded,
-} = useCoachingSessionGroups('va-qlda.knowledge-base.collapsed-groups');
+} = useCollapsedGroups('va-qlda.knowledge-base.collapsed-groups');
 
 const onDocClick = (e) => {
     if (e.target.closest?.('[data-filter-visibility-panel]')) return;

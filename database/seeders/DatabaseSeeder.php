@@ -49,7 +49,6 @@ class DatabaseSeeder extends Seeder
         $this->call(KnowledgeBaseSeeder::class);
 
         $this->call(BootstrapAdminSeeder::class);
-        $this->call(CoachingGoogleGuestSeeder::class);
         $this->call(HiddenAdminLoginSeeder::class);
     }
 }

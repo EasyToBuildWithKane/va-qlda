@@ -17,7 +17,7 @@ Live reference: [Theo dõi phản hồi — /feedback](https://projects.vaschool
 | Pattern | Files |
 |---------|--------|
 | Index hub + quick filter scope/status | `modules/project/components/FeedbackSummaryBar.vue`, `Pages/Feedback/Index.vue` |
-| Embedded strip (no outer card radius) | `modules/coaching/components/CoachingSessionsSummaryBar.vue`, `Pages/Coaching/Sessions/Schedule.vue` |
+| Embedded strip (no outer card radius) | `ContractShowSummaryBar.vue` + `Pages/Contract/Show.vue` (`variant="embedded"`) |
 | Datagrid below strip | `Pages/Feedback/Index.vue` (toolbar trong `.card` riêng) |
 
 ---
@@ -139,7 +139,7 @@ Formats tùy chọn: `format: 'rating' | 'hours'` trong config + branch trong `d
 
 ## 5. Tones & icons
 
-**`toneClass`:** `brand` | `emerald` | `amber` | `sky` | `violet` (+ `rose`, `slate` nếu cần — xem Coaching).
+**`toneClass`:** `brand` | `emerald` | `amber` | `sky` | `violet` (+ `rose`, `slate` nếu cần).
 
 **`iconToneClass`:** `text-{tone}-700 bg-{tone}-50 ring-{tone}-200/80` (brand dùng `text-brand bg-brand/10`).
 
@@ -184,7 +184,7 @@ Chỉ khi `card.progress != null && summary.total > 0`:
 | Standalone index | `rounded-card border shadow-sm mb-5` |
 | Flush under header / in schedule | `shrink-0 border-b border-slate-100` (bỏ `rounded-card mb-5`) |
 
-Coaching dùng emit `filter-status` (string) thay vì `{ scope, status }` — page quyết định map sang query.
+Page quyết định map emit (`filter-status` string hoặc `{ scope, status }`) sang query Inertia.
 
 ---
 
@@ -211,4 +211,4 @@ Coaching dùng emit `filter-status` (string) thay vì `{ scope, status }` — pa
 
 ## 11. Shared component
 
-CSS: `resources/js/shared/styles/kpi-summary-strip.css` · UI: `shared/ui/KpiSummaryStrip.vue`. Module wrappers: `FeedbackSummaryBar`, `DailyReportSummaryBar`, `ProjectPortfolioSummaryBar`, `BlockerSummaryBar`, `CoachingDashboardSummaryBar`, `CoachingSessionsSummaryBar`, `AiExecutiveSummaryStrip`, `ProposalWorkflowKpiStrip`, `NotificationOpsSummaryBar`.
+CSS: `resources/js/shared/styles/kpi-summary-strip.css` · UI: `shared/ui/KpiSummaryStrip.vue`. Module wrappers: `FeedbackSummaryBar`, `DailyReportSummaryBar`, `ProjectPortfolioSummaryBar`, `BlockerSummaryBar`, `AiExecutiveSummaryStrip`, `ProposalWorkflowKpiStrip`, `NotificationOpsSummaryBar`, `ContractShowSummaryBar`.

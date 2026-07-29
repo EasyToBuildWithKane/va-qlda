@@ -41,11 +41,11 @@ export const GoogleWorkspaceEmbed = Node.create({
                 'data-view-url': viewUrl,
                 'data-workspace-type': workspaceType,
                 'data-label': label,
-                class: 'google-workspace-embed coaching-rich-embed',
+                class: 'google-workspace-embed workspace-rich-embed',
             }),
             [
                 'div',
-                { class: 'coaching-rich-embed__frame' },
+                { class: 'workspace-rich-embed__frame' },
                 [
                     'iframe',
                     {
@@ -63,7 +63,7 @@ export const GoogleWorkspaceEmbed = Node.create({
                     href: viewUrl,
                     target: '_blank',
                     rel: 'noopener noreferrer',
-                    class: 'coaching-rich-embed__link',
+                    class: 'workspace-rich-embed__link',
                 },
                 `Mở ${label}`,
             ],

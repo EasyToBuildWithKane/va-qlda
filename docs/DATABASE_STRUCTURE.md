@@ -8,7 +8,7 @@
 |---|---|
 | Database Engine | MySQL |
 | Table Prefix | `va_prd_` |
-| Total Tables | ~50 (core + KB + Coaching + Credential + Contract/CLM + Congnghe proposals + Onboarding — migrations tới `2026_06_17_*`) |
+| Total Tables | ~45 (core + KB + Credential + Contract/CLM + Congnghe proposals + Onboarding — migrations tới `2026_07_29_*`) |
 | ORM | Laravel Eloquent |
 | Soft Deletes | employees, tasks, bugs, contracts |
 | UUID Support | daily_reports (+ có thể mở rộng) |
@@ -16,7 +16,9 @@
 
 **Ghi chú (2026-06-15):** Module Talent Management đã gỡ — các bảng `employee_skills`, `certifications`, `performance_kpis`, `learning_items`, `feedback_reviews`, `succession_plans`, `career_levels` bị drop bởi migration `2026_06_15_140000_drop_talent_tables`. Kỹ năng hồ sơ lưu trên `employees.skills` (JSON) và `employees.meta.skill_details`.
 
-**Dual-DB — HRM SSOT (2026-07-28):** Ngoài DB nghiệp vụ QLDA, app đọc **read-only** DB `va_hrm` (hrm.vaschools.edu.vn) qua connection `hrm_mysql` (`HRM_DB_*` trong `.env`, không prefix bảng) — bảng `users` + `user_info` là **nguồn chuẩn (SSOT) danh tính nhân sự**. Đây **không phải microservices**: cùng process PHP/Laravel mở PDO MySQL thứ hai. Không bulk sync: nhân sự được **lazy upsert** vào `va_prd_employees` (link qua `employees.hrm_user_id`, unique) khi Google login lần đầu, và refresh khi login / mở hồ sơ (`App\Services\Hrm\HrmIdentityResolver`). Model read-only: `App\Models\Hrm\HrmUser`, `HrmUserInfo`.
+**HRM SSOT (2026-07-28):** Danh tính nhân sự lấy qua Public API v1 (`HRM_API_BASE_URL` + `HRM_API_TOKEN`) — `HrmApiClient` → `HrmIdentityResolver` lazy upsert vào `va_prd_employees` (`hrm_employee_uuid`, `hrm_user_id` = legacy). QLDA **không** đọc DB `va_hrm` / connection `hrm_mysql`.
+
+**Ghi chú (2026-07-29):** Module Coaching / Mentoring đã gỡ — các bảng `coaching_courses`, `coaching_sessions`, `coaching_session_materials`, `coaching_assignments`, `coaching_progress` bị drop bởi migration `2026_07_29_100000_drop_coaching_tables`.
 
 ---
 
@@ -73,12 +75,13 @@ Department ──→ Employee ──→ SystemAccount
 | skills | json | YES | Mảng kỹ năng |
 | is_active | tinyint(1) | NO | Default: 1 |
 | meta | json | YES | Metadata tuỳ chỉnh (department/company từ HRM) |
-| hrm_user_id | bigint UNSIGNED | YES | Unique — link `va_hrm.users.id` (HRM SSOT, lazy upsert khi Google login) |
+| hrm_user_id | bigint UNSIGNED | YES | Unique — link `va_hrm.va_hrm_users.id` (HRM SSOT, lazy upsert khi Google login) |
+| hrm_employee_uuid | char(36) | YES | Unique — claim JWT / API `uuid` HRM (`GET /employees*`) |
 | created_at | timestamp | YES | |
 | updated_at | timestamp | YES | |
 | deleted_at | timestamp | YES | Soft delete |
 
-**Indexes:** code (unique), email (unique), hrm_user_id (unique)
+**Indexes:** code (unique), email (unique), hrm_user_id (unique), hrm_employee_uuid (unique)
 
 ---
 
@@ -673,11 +676,6 @@ Knowledge Base Domain:              ← Migrate 2026-06-14
     kb_article_images, kb_article_attachments,
     kb_article_favorites, kb_article_reads
     (+ comments polymorphic → KbArticle)
-
-Coaching / Mentoring Domain:        ← Migrate 2026-06-14
-    coaching_courses, coaching_sessions,
-    coaching_session_materials, coaching_assignments, coaching_progress
-    (+ student_name, coach_name trên courses)
 ```
 
 ---
@@ -921,116 +919,7 @@ Migration: `2026_07_02_100000_create_ai_proposal_scans_tables.php`. Luồng nghi
 
 ---
 
-## 8. Coaching / Mentoring Domain
-
-> Chi tiết nghiệp vụ: [`docs/COACHING_MENTORING.md`](COACHING_MENTORING.md). Migrations: `2026_06_14_120100_create_coaching_tables.php`, `2026_06_14_140000_add_coaching_course_participant_names.php`.
-
-### 8.1 va_prd_coaching_courses
-
-| Column | Type | Nullable | Description |
-|---|---|---|---|
-| id | bigint UNSIGNED | NO | PK |
-| code | varchar(20) | YES | Auto: COACH-001 |
-| name | varchar(255) | NO | Tên khóa |
-| description | text | YES | |
-| objectives | text | YES | Mục tiêu |
-| student_name | varchar(255) | YES | Tên học viên (text, guest) |
-| coach_name | varchar(255) | YES | Tên coach (text) |
-| student_id | bigint UNSIGNED | YES | FK → employees (học viên) |
-| coach_id | bigint UNSIGNED | YES | FK → employees |
-| status | varchar(20) | NO | planning / active / completed / cancelled |
-| start_date | date | YES | |
-| end_date | date | YES | |
-| total_fee | decimal(15,2) | YES | Học phí tổng (VNĐ) |
-| hourly_rate | decimal(10,2) | YES | Giá theo giờ |
-| total_hours | decimal(6,2) | YES | Tổng giờ kế hoạch |
-| created_by | bigint UNSIGNED | YES | FK → system_accounts |
-| created_at | timestamp | YES | |
-| updated_at | timestamp | YES | |
-
-**Indexes:** code (unique), student_id, coach_id, status
-
----
-
-### 8.2 va_prd_coaching_sessions
-
-| Column | Type | Nullable | Description |
-|---|---|---|---|
-| id | bigint UNSIGNED | NO | PK |
-| course_id | bigint UNSIGNED | NO | FK → coaching_courses |
-| title | varchar(255) | NO | Tên buổi |
-| session_number | int UNSIGNED | NO | Số thứ tự trong khóa |
-| date | date | YES | Ngày học |
-| start_time | time | YES | |
-| end_time | time | YES | |
-| total_hours | decimal(4,2) | YES | Tổng giờ buổi |
-| topic | varchar(500) | YES | Chủ đề |
-| content | longtext | YES | HTML |
-| notes | text | YES | Ghi chú |
-| status | varchar(20) | NO | pending / in_progress / completed / cancelled |
-| created_at | timestamp | YES | |
-| updated_at | timestamp | YES | |
-
-**Indexes:** unique(course_id, session_number), course_id, date, status
-
----
-
-### 8.3 va_prd_coaching_session_materials
-
-| Column | Type | Nullable | Description |
-|---|---|---|---|
-| id | bigint UNSIGNED | NO | PK |
-| session_id | bigint UNSIGNED | NO | FK → coaching_sessions |
-| type | varchar(30) | NO | canva, google_docs, pdf, pptx, youtube, loom, gdrive, file |
-| title | varchar(255) | NO | |
-| url | varchar(1000) | YES | Link ngoài |
-| path | varchar(1000) | YES | File upload |
-| mime_type | varchar(100) | YES | |
-| size | bigint UNSIGNED | YES | |
-| sort_order | int | NO | Default: 0 |
-| created_at | timestamp | YES | |
-
----
-
-### 8.4 va_prd_coaching_assignments
-
-| Column | Type | Nullable | Description |
-|---|---|---|---|
-| id | bigint UNSIGNED | NO | PK |
-| session_id | bigint UNSIGNED | NO | FK → coaching_sessions |
-| title | varchar(500) | NO | |
-| description | text | YES | |
-| deadline | datetime | YES | |
-| priority | varchar(20) | NO | high / medium / low |
-| status | varchar(20) | NO | todo / doing / review / done |
-| submission_path | varchar(1000) | YES | File nộp |
-| github_url | varchar(500) | YES | |
-| notes | text | YES | |
-| created_at | timestamp | YES | |
-| updated_at | timestamp | YES | |
-
----
-
-### 8.5 va_prd_coaching_progress
-
-| Column | Type | Nullable | Description |
-|---|---|---|---|
-| id | bigint UNSIGNED | NO | PK |
-| course_id | bigint UNSIGNED | NO | FK → coaching_courses |
-| session_id | bigint UNSIGNED | NO | FK → coaching_sessions |
-| system_account_id | bigint UNSIGNED | NO | FK → system_accounts |
-| is_viewed | tinyint(1) | NO | Default: 0 |
-| is_in_progress | tinyint(1) | NO | Default: 0 |
-| is_completed | tinyint(1) | NO | Default: 0 |
-| updated_at | timestamp | YES | |
-
-**Indexes:** unique(course_id, session_id, system_account_id)
-
-**Business rule:** Tiến độ khóa % = `completed_sessions / total_sessions` (ưu tiên `coaching_sessions.status = completed`).
-
----
-
-## 9. Credential Management (vault)
+## 8. Credential Management (vault)
 
 | Bảng | Mô tả |
 |---|---|
@@ -1045,7 +934,7 @@ Enums: `App\Support\Enums\Credential*` · Policy: `CredentialPolicy` · Nav grou
 
 ---
 
-## 10. Contract Management (CLM) — migrations `2026_06_17_10*`
+## 9. Contract Management (CLM) — migrations `2026_06_17_10*`
 
 Prefix `va_prd_`, Policy `ContractPolicy` (admin/lead/viewer).
 

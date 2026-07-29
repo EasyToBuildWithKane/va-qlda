@@ -1,26 +1,29 @@
 ---
-description: Trang đăng nhập Google OAuth — đọc skill login trước khi sửa
+description: Trang đăng nhập HRM SSO / Google OAuth — đọc skill login trước khi sửa
 globs: resources/js/Pages/Auth/Login.vue,app/Http/Controllers/Auth/**/*.php,routes/web/auth.php,config/va.php,config/services.php,public/images/**
 alwaysApply: false
 ---
 
 # Login page (VA-QLDA)
 
-Luồng đăng nhập web: **chỉ Google** trên UI (`Login.vue`). Không thêm form username/password trên trang login.
+Luồng đăng nhập web trên UI (`Login.vue`): **SSO HRM** khi `HRM_SSO_ENABLED`, không thì **Google**. Không thêm form username/password trên trang login.
 
 | Thành phần | Vai trò |
 |------------|---------|
-| `Login.vue` | Mockup VAS: nền `#9a0036`, watermark, logo header, thẻ trắng, nút Google |
-| `LoginController` | Props `googleEnabled`, `googleAuthUrl` |
-| `GoogleAuthController` | `auth.google` / `auth.google.callback` — Socialite, map email → `Employee` → `SystemAccount` |
-| `LoginRedirectSanitizer` | Chặn open redirect (`/login`, `/auth/google`, URL ngoài) |
+| `Login.vue` | Mockup VAS: nền `#9a0036`, watermark, logo; thẻ trắng + icon Google (SSO hoặc OAuth) |
+| `LoginController` | Props `ssoEnabled`, `ssoAuthUrl`, `googleEnabled`, `googleAuthUrl` |
+| `HrmSsoController` | `auth.hrm` / `auth.hrm.callback` — redirect HRM authorize, verify JWT JWKS |
+| `HrmSsoJwtVerifier` | RS256 offline qua JWKS (`aud`/`iss`/`exp`) |
+| `GoogleAuthController` | `auth.google` / `auth.google.callback` — khi SSO tắt |
+| `LoginRedirectSanitizer` | Chặn open redirect (`/login`, `/auth/google`, `/auth/hrm`, URL ngoài) |
+| `config/services.php` | `google`, `hrm_sso` |
 | `config/va.php` | `password_login_enabled`, `google_allowed_domains` |
-| `GOOGLE_*` | `config/services.php` — `googleEnabled` khi có cả client id + secret |
 
 ## UI & assets (`public/images/`)
 
 - **Header login:** `/images/logo-2.png` · **Favicon tab:** `/images/favicon.png` (`app.blade.php`).
-- **Nút Google:** `/images/google.png` — luôn hiển thị; `googleEnabled` chỉ bật/tắt link (`href` + `@click.prevent` khi chưa cấu hình).
-- **Watermark:** `/images/background/background-logo.png` — file gốc tối trên đen; trên nền brand dùng Tailwind `brightness-0 invert` + `opacity-100` (không dùng `mix-blend` trần vì gần như vô hình).
+- **Nút đăng nhập:** icon `/images/google.png` (nút tròn `p-2`) — SSO bật → `ssoAuthUrl`; SSO tắt → `googleAuthUrl` (`googleEnabled` bật/tắt link). Không gọi Google OAuth trên QLDA khi SSO bật.
+- **Copy thẻ:** «Đăng nhập thông qua tài khoản mail do nhà trường cung cấp».
+- **Watermark:** `/images/background/background-logo.png` — `brightness-0 invert` + `opacity-100`.
 
 Skill: `.cursor/skills/login/SKILL.md` · E2E: `tests/e2e/helpers/auth.js` (POST `/login`).
