@@ -1,20 +1,17 @@
-# Onboarding & Interactive Tour
+# Onboarding & Smart Context
 
-Hướng dẫn tương tác (spotlight) giúp người dùng làm quen hệ thống: tour theo
-vai trò (mở từ nút trợ giúp nổi), gợi ý theo ngữ cảnh và xem lại bất cứ lúc nào.
+Gợi ý ngữ cảnh (nudge) giúp người dùng mới biết bước tiếp theo trong hệ thống
+(vd. tạo dự án đầu tiên). Không còn FAB «Trợ giúp» / tour spotlight driver.js.
 
 ## Kiến trúc
 
 | Lớp | Tệp | Vai trò |
 |-----|-----|---------|
-| Thư viện | `driver.js` | Spotlight overlay + popover + step nav (bọc trong composable) |
-| Nội dung tour | `resources/js/modules/onboarding/tours/index.js` | Registry khai báo các bước (single source) |
-| Composable | `composables/useTour.js` | Bọc driver.js — 1 tour chạy tại một thời điểm, dọn dẹp, reduced-motion |
-| | `composables/useOnboarding.js` | State từ shared prop + ghi tiến độ qua axios (fire-and-forget) |
+| Composable | `composables/useOnboarding.js` | Đọc shared Inertia prop `onboarding` + ghi tiến độ tour (API) qua axios |
 | | `composables/useSmartContext.js` | Cờ ngữ cảnh → 1 gợi ý ưu tiên cao nhất |
-| UI | `components/OnboardingRoot.vue` | Điều phối; mount 1 lần trong `AppLayout.vue` |
-| | `TourProgressHud` · `TourCompleteModal` · `SmartContextHint` · `HelpWidget` | |
-| Backend | `OnboardingController` + `OnboardingService` + `OnboardingTourRequest` | Lưu tiến độ; nội dung tour ở client |
+| UI | `components/OnboardingRoot.vue` | Mount 1 lần trong `AppLayout.vue` |
+| | `SmartContextHint` | Thẻ gợi ý góc phải (Teleport body) |
+| Backend | `OnboardingController` + `OnboardingService` + `OnboardingTourRequest` | Tiến độ tour (whitelist key); ngữ cảnh cache |
 | | `App\Models\OnboardingProgress` | 1 dòng / (account, tour) |
 
 ## Dữ liệu & API
@@ -24,8 +21,8 @@ vai trò (mở từ nút trợ giúp nổi), gợi ý theo ngữ cảnh và xem 
   ngữ cảnh; mọi page đọc được.
 - Routes (`/onboarding`, auth): `index` (JSON), `progress`, `complete`, `skip`,
   `reset`.
-- Mutations gọi bằng **axios** → server trả **204** để không re-render Inertia khi
-  đang chạy tour; sau hành động kết thúc client tự `router.reload({ only: ['onboarding'] })`.
+- Mutations gọi bằng **axios** → server trả **204** để không re-render Inertia;
+  sau hành động kết thúc client có thể `router.reload({ only: ['onboarding'] })`.
 
 ## Quyết định production
 
@@ -33,20 +30,7 @@ vai trò (mở từ nút trợ giúp nổi), gợi ý theo ngữ cảnh và xem 
   toàn cục → cache app-wide (`onboarding.context.v1`, TTL 300s) nên prop dùng chung
   thêm ~0 query. Cache tự xoá khi tạo mới Project/Sprint/Task/Employee
   (`Model::created` trong `AppServiceProvider`) — xem `OnboardingService::forgetContext()`.
-- **Robust:** chỉ 1 tour chạy cùng lúc; dọn overlay khi unmount; chặn double-start;
-  bước trỏ tới phần tử không có trong DOM (nav ẩn theo role) sẽ tự bỏ qua.
-- **A11y/UX:** khoá scroll nền khi mở modal hoàn thành, Esc để đóng, tôn trọng
-  `prefers-reduced-motion`, đóng menu trợ giúp khi click ra ngoài / điều hướng.
-  `HelpWidget`: mục **Ẩn nút trợ giúp** (lưu `localStorage` `va_qlda_help_widget_hidden`);
-  khi ẩn hiện chip **Trợ giúp** góc phải để bật lại FAB.
-
-## Thêm / sửa tour
-
-1. Thêm key vào `OnboardingService::TOURS` (server whitelist) **và** registry
-   `tours/index.js` (giữ đồng bộ).
-2. Mỗi bước anchor tới `data-tour="..."`. Anchor dùng chung nằm ở sidebar group
-   (`nav-{key}`), topbar (`topbar-notifications`, `topbar-user`) và `help-widget`.
-   Page riêng: thêm `data-tour` vào phần tử của page đó.
+- **UX:** chỉ một gợi ý ưu tiên cao nhất; user có thể đóng (dismiss session).
 
 ## Kiểm thử
 

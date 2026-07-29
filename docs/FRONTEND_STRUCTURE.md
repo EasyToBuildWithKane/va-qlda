@@ -1,6 +1,6 @@
 # FRONTEND STRUCTURE — VA QLDA
 
-> **Cập nhật 2026-06-19** — DailyReport + KnowledgeBase đã migrate sang `modules/`; 12 feature module. Content header (`PageHeader` + `#header`); FullCalendar (lịch dự án), driver.js (onboarding).
+> **Cập nhật 2026-06-19** — DailyReport + KnowledgeBase đã migrate sang `modules/`; 12 feature module. Content header (`PageHeader` + `#header`); FullCalendar (lịch dự án).
 
 > Rule agent: `.cursor/rules/content-header.mdc` · skill `content-header`.
 
@@ -18,7 +18,6 @@
 | TipTap | 3.24.0 | Rich text editor |
 | FullCalendar | 6.1.x | Lịch dự án (day/week/list) |
 | Chart.js / vue-chartjs | 4.x / 5.x | Biểu đồ (dashboard, CLM, hiệu suất) |
-| driver.js | 1.3.x | Onboarding tour tương tác |
 | frappe-gantt | 1.2.x | Gantt timeline dự án |
 | Playwright | 1.49 | E2E tests (`tests/e2e/`) |
 | Ziggy | 2.x | Laravel routes in JavaScript |
@@ -67,7 +66,7 @@ resources/js/
 │   ├── performance/              ← Dashboard + audit components/composables
 │   ├── people/                   ← Org graph + member directory (OrgTeamOverviewBuilder UI)
 │   ├── profile/                  ← Hồ sơ nhân sự (ProfileStats, skill radar)
-│   ├── onboarding/               ← Tour driver.js (useTour, useOnboarding, OnboardingRoot)
+│   ├── onboarding/               ← SmartContextHint (useOnboarding, useSmartContext, OnboardingRoot)
 │   ├── notifications/            ← Bell, center drawer, preferences
 │   ├── audit/                    ← Audit trail viewer components/composables
 │   └── aiAccount/                ← Tài khoản AI: composables + components/scan (ProposalScanModal — OCR PĐX, useProposalScan)

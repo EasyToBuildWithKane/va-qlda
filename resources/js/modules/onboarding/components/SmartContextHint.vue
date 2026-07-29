@@ -19,7 +19,7 @@ const emit = defineEmits(['dismiss']);
     >
       <div
         v-if="hint"
-        class="fixed bottom-24 right-5 z-[55] w-[min(90vw,20rem)] rounded-xl border border-slate-200 bg-white p-4 shadow-elevation-3"
+        class="fixed bottom-5 right-5 z-[55] w-[min(90vw,20rem)] rounded-xl border border-slate-200 bg-white p-4 shadow-elevation-3"
         role="status"
       >
         <button
