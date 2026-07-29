@@ -6,15 +6,11 @@ import ProfileFieldList from './ProfileFieldList.vue';
 
 const props = defineProps({
     hrInfo: { type: Object, required: true },
-    roleTitle: { type: String, default: null },
 });
 
 const h = computed(() => props.hrInfo ?? {});
 
-const identityFields = computed(() => [
-    { label: 'Mã nhân viên', value: h.value.code, mono: true },
-]);
-
+/** Org + employment from HRM — không lặp mã NV / chức danh (đã ở Hero). */
 const orgFields = computed(() => [
     { label: 'Công ty', value: h.value.company_name },
     { label: 'Mã công ty', value: h.value.company_id, mono: true },
@@ -25,7 +21,6 @@ const orgFields = computed(() => [
 ]);
 
 const roleFields = computed(() => [
-    { label: 'Chức danh', value: h.value.position_name ?? props.roleTitle },
     { label: 'Kiêm nhiệm', value: h.value.concurrent_position_name },
     {
         label: 'Ngày vào làm',
@@ -37,21 +32,16 @@ const roleFields = computed(() => [
 
 <template>
   <ProfileInfoPanel
-    title="Thông tin nhân sự"
+    title="Tổ chức & công việc"
     icon="member-profiles"
-    subtitle="Đồng bộ từ hệ thống nhân sự VA — chỉ xem tại đây"
     section-key="profile-hr"
   >
-    <ProfileFieldList
-      group-title="Cá nhân"
-      :fields="identityFields"
-    />
     <ProfileFieldList
       group-title="Công ty & đơn vị"
       :fields="orgFields"
     />
     <ProfileFieldList
-      group-title="Vị trí công việc"
+      group-title="Bổ sung"
       :fields="roleFields"
     />
   </ProfileInfoPanel>

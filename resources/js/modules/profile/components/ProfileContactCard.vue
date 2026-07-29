@@ -8,6 +8,7 @@ const props = defineProps({
     profile: { type: Object, required: true },
 });
 
+/** Liên hệ — không lặp mã NV / chức danh / phòng ban. */
 const contactFields = computed(() => {
     const p = props.profile;
     return [
@@ -27,23 +28,23 @@ const contactFields = computed(() => {
 });
 
 const bioState = computed(() => profileFieldState(props.profile.bio));
+const hasBio = computed(() => !bioState.value.empty);
 </script>
 
 <template>
   <ProfileInfoPanel
-    title="Liên hệ & giới thiệu"
-    icon="account"
-    subtitle="Thông tin bạn có thể chỉnh sửa trong «Chỉnh sửa hồ sơ»"
+    title="Liên hệ"
+    icon="mail"
     section-key="profile-contact"
   >
-    <div class="border-b border-slate-100 px-5 py-4">
+    <div
+      v-if="hasBio"
+      class="border-b border-slate-100 px-5 py-4"
+    >
       <p class="text-[12px] font-medium text-slate-500">
         Giới thiệu
       </p>
-      <p
-        class="mt-2 text-[13px] leading-relaxed"
-        :class="bioState.empty ? 'italic text-slate-400' : 'text-slate-700'"
-      >
+      <p class="mt-2 text-[13px] leading-relaxed text-slate-700">
         {{ bioState.text }}
       </p>
     </div>

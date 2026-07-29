@@ -12,13 +12,12 @@ use App\Support\SecurityAuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * "Hồ sơ của tôi" — the authenticated person's own profile, with self-service
- * editing. Reuses the same presentation as the member profile.
+ * "Hồ sơ của tôi" — HR identity is mirrored from VA-HRM (read-only here).
+ * Self-service writes are limited to QLDA skill matrix.
  */
 class ProfileController extends Controller
 {
@@ -64,62 +63,18 @@ class ProfileController extends Controller
         $this->authorize('update', $employee);
 
         $data = $request->validated();
-
-        // Partial-safe: only touch fields the request actually carries, so the
-        // identity editor and the skill-matrix editor never clobber each other.
-        $attributes = [];
         $meta = is_array($employee->meta) ? $employee->meta : [];
-        $touchMeta = false;
 
-        if ($request->has('phone')) {
-            $attributes['phone'] = $data['phone'] ?? null;
-        }
-        if ($request->has('role_title')) {
-            $attributes['role_title'] = $data['role_title'] ?? null;
-        }
-        if ($request->has('bio')) {
-            $meta['bio'] = $data['bio'] ?? null;
-            $touchMeta = true;
-        }
-        if ($request->has('location')) {
-            $meta['location'] = $data['location'] ?? null;
-            $touchMeta = true;
-        }
-        if ($request->hasAny(['github', 'linkedin', 'portfolio', 'website'])) {
-            $meta['socials'] = array_filter([
-                'github' => $data['github'] ?? null,
-                'linkedin' => $data['linkedin'] ?? null,
-                'portfolio' => $data['portfolio'] ?? null,
-                'website' => $data['website'] ?? null,
-            ], fn ($v) => $v !== null && $v !== '');
-            $touchMeta = true;
-        }
-        if ($request->has('skills')) {
-            [$skillNames, $meta['skill_details']] = $this->normalizeSkills(array_values($data['skills'] ?? []));
-            $attributes['skills'] = $skillNames;
-            $touchMeta = true;
-        }
+        [$skillNames, $meta['skill_details']] = $this->normalizeSkills(array_values($data['skills'] ?? []));
 
-        if ($touchMeta) {
-            $attributes['meta'] = $meta;
-        }
+        DB::transaction(fn () => $employee->update([
+            'skills' => $skillNames,
+            'meta' => $meta,
+        ]));
 
-        if ($request->hasFile('avatar')) {
-            $old = $employee->avatar_path;
-            $attributes['avatar_path'] = $request->file('avatar')->store('avatars', 'public');
+        SecurityAuditLogger::employeeUpdated($request->user(), $employee->id, (string) $employee->full_name);
 
-            if (is_string($old) && str_starts_with($old, 'avatars/')) {
-                Storage::disk('public')->delete($old);
-            }
-        }
-
-        if ($attributes !== []) {
-            DB::transaction(fn () => $employee->update($attributes));
-
-            SecurityAuditLogger::employeeUpdated($request->user(), $employee->id, (string) $employee->full_name);
-        }
-
-        return back()->with('success', 'Đã cập nhật hồ sơ.');
+        return back()->with('success', 'Đã cập nhật kỹ năng.');
     }
 
     /**

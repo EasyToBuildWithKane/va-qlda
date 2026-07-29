@@ -2,14 +2,32 @@
 
 namespace App\Http\Requests\Profile;
 
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * Self-service edit of one's own profile. The authenticated account always
- * targets its own linked employee, so authorization is implicit.
+ * Self-service update of QLDA-only profile data (skill matrix).
+ * HR identity fields are SSOT on VA-HRM — rejected if the client still sends them.
  */
 class UpdateProfileRequest extends FormRequest
 {
+    /** @var list<string> */
+    private const FORBIDDEN_HR_FIELDS = [
+        'phone',
+        'role_title',
+        'bio',
+        'location',
+        'github',
+        'linkedin',
+        'portfolio',
+        'website',
+        'avatar',
+        'full_name',
+        'email',
+        'join_date',
+        'code',
+    ];
+
     public function authorize(): bool
     {
         return $this->user()?->employee_id !== null;
@@ -21,22 +39,28 @@ class UpdateProfileRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'phone' => ['nullable', 'string', 'max:30'],
-            'role_title' => ['nullable', 'string', 'max:120'],
-            'bio' => ['nullable', 'string', 'max:500'],
-            'location' => ['nullable', 'string', 'max:120'],
-            'github' => ['nullable', 'url', 'max:255'],
-            'linkedin' => ['nullable', 'url', 'max:255'],
-            'portfolio' => ['nullable', 'url', 'max:255'],
-            'website' => ['nullable', 'url', 'max:255'],
-            'skills' => ['nullable', 'array', 'max:40'],
+            // present — cho phép mảng rỗng (xoá hết kỹ năng); required sẽ fail [].
+            'skills' => ['present', 'array', 'max:40'],
             'skills.*.name' => ['required', 'string', 'max:50'],
             'skills.*.level' => ['nullable', 'integer', 'min:1', 'max:5'],
             'skills.*.category' => ['nullable', 'string', 'max:80'],
             'skills.*.years' => ['nullable', 'numeric', 'min:0', 'max:50'],
             'skills.*.note' => ['nullable', 'string', 'max:200'],
-            'avatar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            foreach (self::FORBIDDEN_HR_FIELDS as $key) {
+                if ($this->exists($key) || $this->hasFile($key)) {
+                    $validator->errors()->add(
+                        $key,
+                        'Thông tin nhân sự chỉ cập nhật trên VA-HRM.'
+                    );
+                }
+            }
+        });
     }
 
     /**
@@ -45,16 +69,9 @@ class UpdateProfileRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'bio.max' => 'Giới thiệu không vượt quá 500 ký tự.',
-            'github.url' => 'Liên kết GitHub không hợp lệ.',
-            'linkedin.url' => 'Liên kết LinkedIn không hợp lệ.',
-            'portfolio.url' => 'Liên kết Portfolio không hợp lệ.',
-            'website.url' => 'Liên kết Website không hợp lệ.',
+            'skills.present' => 'Danh sách kỹ năng là bắt buộc.',
             'skills.max' => 'Tối đa 40 kỹ năng.',
             'skills.*.name.required' => 'Tên kỹ năng không được để trống.',
-            'avatar.image' => 'Ảnh đại diện phải là tệp hình ảnh.',
-            'avatar.mimes' => 'Ảnh đại diện chỉ chấp nhận JPG, PNG hoặc WEBP.',
-            'avatar.max' => 'Ảnh đại diện không vượt quá 2MB.',
         ];
     }
 }

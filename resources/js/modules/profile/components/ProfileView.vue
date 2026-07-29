@@ -11,11 +11,11 @@ import SkillMatrix from './SkillMatrix.vue';
 import SkillRadar from './SkillRadar.vue';
 import ProfileInsights from './ProfileInsights.vue';
 import ProfileAchievements from './ProfileAchievements.vue';
-import EditProfileModal from './EditProfileModal.vue';
 import SkillMatrixDrawer from './SkillMatrixDrawer.vue';
 
 defineProps({
     profile: { type: Object, required: true },
+    /** Own profile — skill matrix editable; HR identity read-only. */
     editable: { type: Boolean, default: false },
 });
 
@@ -26,17 +26,12 @@ const tabs = [
     { key: 'achievements', label: 'Thành tích', icon: 'leaderboard' },
 ];
 
-const editingIdentity = ref(false);
 const editingSkills = ref(false);
 </script>
 
 <template>
   <div class="w-full space-y-5">
-    <ProfileHero
-      :profile="profile"
-      :editable="editable"
-      @edit="editingIdentity = true"
-    />
+    <ProfileHero :profile="profile" />
 
     <DatagridSegmentedControl
       v-model="tab"
@@ -54,12 +49,13 @@ const editingSkills = ref(false);
       />
 
       <div class="space-y-5">
-        <ProfileHrInfo
-          :hr-info="profile.hr_info ?? {}"
-          :role-title="profile.role_title"
-        />
-        <ProfileWorkInfo :profile="profile" />
-        <ProfileContactCard :profile="profile" />
+        <div class="grid grid-cols-1 gap-5 lg:grid-cols-2 lg:items-start">
+          <ProfileHrInfo :hr-info="profile.hr_info ?? {}" />
+          <div class="space-y-5">
+            <ProfileContactCard :profile="profile" />
+            <ProfileWorkInfo :profile="profile" />
+          </div>
+        </div>
       </div>
     </template>
 
@@ -98,12 +94,6 @@ const editingSkills = ref(false);
       :profile="profile"
     />
 
-    <EditProfileModal
-      v-if="editable"
-      :show="editingIdentity"
-      :profile="profile"
-      @close="editingIdentity = false"
-    />
     <SkillMatrixDrawer
       v-if="editable"
       :show="editingSkills"

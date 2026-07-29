@@ -17,14 +17,14 @@ const props = defineProps({
     <template #header>
       <PageHeader
         title="Hồ sơ của tôi"
-        subtitle="Thông tin cá nhân và công việc"
         icon="account"
       />
     </template>
 
     <ProfileView
       v-if="props.profile"
-      v-bind="props"
+      :profile="props.profile"
+      :editable="props.editable"
     />
 
     <div

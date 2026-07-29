@@ -1,19 +1,24 @@
 <script setup>
 import { computed } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
-import Badge from '@/shared/ui/Badge.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
-import { profileDisplayValue } from '../utils/profileDisplay';
+import { profileDisplayValue, isProfileEmpty } from '../utils/profileDisplay';
 
 const props = defineProps({
     profile: { type: Object, required: true },
-    editable: { type: Boolean, default: false },
 });
 
-defineEmits(['edit']);
+const hr = computed(() => props.profile.hr_info ?? {});
 
-const roleTitle = computed(() => profileDisplayValue(props.profile.role_title));
-const roleIsEmpty = computed(() => roleTitle.value === profileDisplayValue(null));
+const roleTitleRaw = computed(
+    () => hr.value.position_name || props.profile.role_title || null,
+);
+const roleTitle = computed(() => profileDisplayValue(roleTitleRaw.value));
+const roleIsEmpty = computed(() => isProfileEmpty(roleTitleRaw.value));
+const isActive = computed(() => Boolean(props.profile.is_active));
+
+const seniorityLabel = computed(() => props.profile.seniority?.label ?? null);
+const accountRoleLabel = computed(() => props.profile.account_role?.label ?? null);
 </script>
 
 <template>
@@ -21,87 +26,104 @@ const roleIsEmpty = computed(() => roleTitle.value === profileDisplayValue(null)
     class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm"
     aria-label="Thông tin định danh"
   >
-    <div class="p-5 sm:p-6">
-      <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div class="flex min-w-0 gap-4 sm:gap-5">
-          <div class="relative shrink-0">
-            <div
-              class="rounded-2xl bg-slate-50 p-1.5 ring-1 ring-slate-200/90"
-            >
-              <Avatar
-                :name="profile.name"
-                :src="profile.avatar_path"
-                :size="88"
-              />
-            </div>
-            <span
-              class="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full ring-2 ring-white"
-              :class="profile.is_active ? 'bg-emerald-500' : 'bg-slate-400'"
-              :title="profile.is_active ? 'Đang hoạt động' : 'Ngừng hoạt động'"
-            />
+    <div class="flex flex-col gap-5 p-5 sm:flex-row sm:items-stretch sm:gap-6 sm:p-6">
+      <!-- Avatar + mã NV — không lồng border/card -->
+      <div class="flex w-full shrink-0 flex-col items-center gap-3 sm:w-[7.5rem]">
+        <div class="relative">
+          <Avatar
+            :name="profile.name"
+            :src="profile.avatar_path"
+            :size="96"
+            class="shadow-md shadow-slate-900/10"
+          />
+          <span
+            class="absolute bottom-0.5 right-0.5 h-3.5 w-3.5 rounded-full ring-2 ring-white"
+            :class="isActive ? 'bg-emerald-500' : 'bg-slate-400'"
+            :title="isActive ? 'Đang hoạt động' : 'Ngừng hoạt động'"
+          />
+        </div>
+        <span
+          class="inline-flex max-w-full items-center gap-1.5 rounded-md bg-slate-100 px-2 py-1 font-mono text-[11px] font-medium tabular-nums text-slate-700"
+          :title="profile.code"
+        >
+          <AppIcon
+            name="account"
+            :size="12"
+            class="shrink-0 text-slate-400"
+          />
+          <span class="truncate">{{ profile.code }}</span>
+        </span>
+      </div>
+
+      <!-- Identity — 2 cột -->
+      <div class="grid min-w-0 flex-1 grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
+        <!-- Cột 1: tên & chức danh -->
+        <div class="min-w-0 space-y-4 border-b border-slate-100 pb-4 sm:border-b-0 sm:border-r sm:pb-0 sm:pr-6">
+          <div>
+            <p class="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+              Họ và tên
+            </p>
+            <h1 class="mt-1 font-display text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
+              {{ profile.name }}
+            </h1>
           </div>
-
-          <div class="min-w-0 flex-1 pt-0.5">
-            <div class="flex flex-wrap items-center gap-2">
-              <h1 class="font-display text-xl font-semibold leading-tight text-slate-900 sm:text-[1.35rem]">
-                {{ profile.name }}
-              </h1>
-              <Badge
-                v-if="profile.seniority?.label"
-                :label="profile.seniority.label"
-                :color="profile.seniority.color"
-              />
-            </div>
-
+          <div>
+            <p class="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+              Chức danh
+            </p>
             <p
-              class="mt-1.5 text-sm leading-snug sm:text-[15px]"
-              :class="roleIsEmpty ? 'italic text-slate-400' : 'text-slate-600'"
+              class="mt-1 text-sm leading-snug sm:text-[15px]"
+              :class="roleIsEmpty ? 'italic text-slate-400' : 'font-medium text-slate-700'"
             >
               {{ roleTitle }}
             </p>
+          </div>
+        </div>
 
-            <div class="mt-3 inline-flex flex-wrap items-center gap-2">
+        <!-- Cột 2: trạng thái & quyền -->
+        <div class="min-w-0 space-y-4">
+          <div>
+            <p class="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+              Trạng thái
+            </p>
+            <p class="mt-1.5">
               <span
-                class="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-2.5 py-1 font-mono text-[11px] font-medium tabular-nums text-white"
-              >
-                <AppIcon
-                  name="account"
-                  :size="12"
-                  class="opacity-70"
-                />
-                {{ profile.code }}
-              </span>
-              <span
-                class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-medium"
-                :class="profile.is_active
+                class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium"
+                :class="isActive
                   ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/80'
                   : 'bg-slate-100 text-slate-500 ring-1 ring-slate-200/80'"
               >
                 <span
                   class="h-1.5 w-1.5 rounded-full"
-                  :class="profile.is_active ? 'bg-emerald-500' : 'bg-slate-400'"
+                  :class="isActive ? 'bg-emerald-500' : 'bg-slate-400'"
                 />
-                {{ profile.is_active ? 'Đang làm việc' : 'Đã nghỉ' }}
+                {{ isActive ? 'Đang làm việc' : 'Đã nghỉ' }}
               </span>
-            </div>
+            </p>
           </div>
-        </div>
 
-        <div
-          v-if="editable"
-          class="flex shrink-0 lg:pt-1"
-        >
-          <button
-            type="button"
-            class="btn-primary inline-flex h-9 w-full items-center justify-center gap-1.5 px-4 text-xs sm:w-auto sm:text-[13px]"
-            @click="$emit('edit')"
-          >
-            <AppIcon
-              name="edit"
-              :size="15"
-            />
-            Chỉnh sửa hồ sơ
-          </button>
+          <div v-if="seniorityLabel">
+            <p class="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+              Cấp bậc
+            </p>
+            <p class="mt-1 text-sm font-medium text-slate-700">
+              {{ seniorityLabel }}
+            </p>
+          </div>
+
+          <div v-if="accountRoleLabel">
+            <p class="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+              Quyền trên QLDA
+            </p>
+            <p class="mt-1.5 inline-flex items-center gap-1.5 text-sm font-medium text-slate-700">
+              <AppIcon
+                name="shield"
+                :size="14"
+                class="text-slate-400"
+              />
+              {{ accountRoleLabel }}
+            </p>
+          </div>
         </div>
       </div>
     </div>

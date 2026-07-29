@@ -9,9 +9,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * "Hồ sơ của tôi" — self-service profile, derived stats, and the partial-safe
- * update contract that lets the identity editor and the skill-matrix editor
- * save independently without clobbering each other.
+ * "Hồ sơ của tôi" — HR identity is mirrored from VA-HRM (read-only).
+ * Self-service PUT only updates the QLDA skill matrix.
  */
 class ProfileSelfTest extends TestCase
 {
@@ -59,7 +58,7 @@ class ProfileSelfTest extends TestCase
             );
     }
 
-    public function test_skills_only_update_preserves_identity(): void
+    public function test_skills_update_preserves_hr_identity_fields(): void
     {
         $employee = Employee::factory()->create([
             'phone' => '0911111111',
@@ -84,7 +83,7 @@ class ProfileSelfTest extends TestCase
         $this->assertSame('Dự án nội bộ', $employee->meta['skill_details'][0]['note']);
     }
 
-    public function test_identity_only_update_preserves_skills(): void
+    public function test_hr_identity_fields_are_rejected_on_update(): void
     {
         $employee = Employee::factory()->create([
             'phone' => '0900000000',
@@ -96,22 +95,22 @@ class ProfileSelfTest extends TestCase
         $account = SystemAccount::factory()->forEmployee($employee)->create();
 
         $this->actingAs($account, 'system')
+            ->from(route('profile.show'))
             ->put(route('profile.update'), [
                 'phone' => '0999999999',
                 'role_title' => 'Lead',
                 'bio' => 'Xin chào',
                 'location' => 'Hà Nội',
-                'github' => '',
-                'linkedin' => '',
-                'portfolio' => '',
-                'website' => '',
+                'skills' => [
+                    ['name' => 'Laravel', 'level' => 5, 'category' => 'backend'],
+                ],
             ])
-            ->assertRedirect();
+            ->assertRedirect(route('profile.show'))
+            ->assertSessionHasErrors(['phone', 'role_title', 'bio', 'location']);
 
         $employee->refresh();
 
-        $this->assertSame('0999999999', $employee->phone);
-        $this->assertSame('Lead', $employee->role_title);
+        $this->assertSame('0900000000', $employee->phone);
         $this->assertSame(['Laravel'], $employee->skills);
         $this->assertSame(5, $employee->meta['skill_details'][0]['level']);
     }
