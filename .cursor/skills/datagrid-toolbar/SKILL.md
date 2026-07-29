@@ -1,13 +1,13 @@
 ---
 name: datagrid-toolbar
 description: >-
-  VA-QLDA datagrid toolbars: DatagridToolbarSearch (hide-label, inline-actions,
+  VA-Workspace datagrid toolbars: DatagridToolbarSearch (hide-label, inline-actions,
   h-10), DatagridToolbarActionButton, DatagridSegmentedControl, filter grid,
   FilterDatePicker, useVisibleFilterControls. Gold: DailyReport/History.vue,
   CostReport.vue, ProjectFeedbackPanel.vue. Use for Index, tables, filter UX reviews.
 ---
 
-# Datagrid toolbar — VA-QLDA
+# Datagrid toolbar — VA-Workspace
 
 Rule: `.cursor/rules/datagrid-toolbar.mdc` (`alwaysApply: true`)
 
@@ -121,7 +121,7 @@ const {
   hasFilterRow,
   persistVisibleFilters,
   openFilterPanel,
-} = useVisibleFilterControls(FILTER_CONTROLS, 'va-qlda.{module}.visible-filters.v3');
+} = useVisibleFilterControls(FILTER_CONTROLS, 'va-workspace.{module}.visible-filters.v3');
 ```
 
 - `default: false` → lần đầu **không** dòng filter.

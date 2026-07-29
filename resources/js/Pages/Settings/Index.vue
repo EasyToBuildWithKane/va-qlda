@@ -14,7 +14,7 @@ const props = defineProps({
     activeGroup: { type: String, default: 'general' },
     settings: { type: Object, default: () => ({}) },
     emailTemplates: { type: Array, default: () => [] },
-    emailPreviewBrand: { type: String, default: 'VAschools QLDA' },
+    emailPreviewBrand: { type: String, default: 'VAschools Workspace' },
     emailTestRecipient: { type: String, default: '' },
     permissions: { type: Object, default: () => ({}) },
     accounts: { type: Object, default: () => ({ accounts: [], roles: [] }) },

@@ -3,11 +3,11 @@ description: Đồng bộ docs/ và _dev/ với code — bắt buộc khi task/c
 alwaysApply: true
 ---
 
-# Documentation sync — VA-QLDA
+# Documentation sync — VA-Workspace
 
 Mọi task sửa **hành vi, route, schema, phân quyền, cấu trúc frontend/backend** phải **cập nhật tài liệu trong cùng PR/commit** (trừ khi user nói rõ «chỉ code, bỏ qua docs»).
 
-Skill map: `.cursor/skills/va-qlda-docs/SKILL.md`
+Skill map: `.cursor/skills/va-workspace-docs/SKILL.md`
 
 ## Bản đồ file cần sửa
 

@@ -37,7 +37,7 @@ class SprintTaskSummaryMail extends Mailable implements ShouldQueue
         $vars = $this->templateVars();
         $subject = $template?->is_active
             ? $template->renderSubject($vars)
-            : '[QLDA] Sprint '.$this->sprint->name.' — '.$this->project->name;
+            : '[Workspace] Sprint '.$this->sprint->name.' — '.$this->project->name;
 
         return new Envelope(
             subject: $subject,

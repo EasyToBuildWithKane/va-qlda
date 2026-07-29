@@ -1,6 +1,6 @@
 # ISC Frontend Web Review — Reference
 
-> Ví dụ React/TS giữ từ chuẩn gốc; block **Vue 3 / Inertia (VA-QLDA)** khi review repo này.
+> Ví dụ React/TS giữ từ chuẩn gốc; block **Vue 3 / Inertia (VA-Workspace)** khi review repo này.
 
 ---
 
@@ -73,7 +73,7 @@ TipTap: chỉ tin content đã qua editor schema; không `v-html` raw user markd
 
 ❌ `localStorage.setItem('accessToken', token)`
 
-✅ VA-QLDA: session cookie Laravel — auth qua `usePage().props.auth`, không lưu token FE.
+✅ VA-Workspace: session cookie Laravel — auth qua `usePage().props.auth`, không lưu token FE.
 
 ---
 
@@ -174,7 +174,7 @@ onUnmounted(() => controller?.abort());
 
 ### 🟡 Error boundary
 
-React: ErrorBoundary. Vue 3: `onErrorCaptured`, `app.config.errorHandler` — app shell nên có fallback (VA-QLDA: `AppDialog` + toast, tránh white screen toàn app).
+React: ErrorBoundary. Vue 3: `onErrorCaptured`, `app.config.errorHandler` — app shell nên có fallback (VA-Workspace: `AppDialog` + toast, tránh white screen toàn app).
 
 ---
 
@@ -199,7 +199,7 @@ React: ErrorBoundary. Vue 3: `onErrorCaptured`, `app.config.errorHandler` — ap
 
 ### 🟡 i18n hardcode
 
-🔵 VA-QLDA: copy tiếng Việt trực tiếp là convention — gợi ý i18n chỉ khi module đa ngôn ngữ.
+🔵 VA-Workspace: copy tiếng Việt trực tiếp là convention — gợi ý i18n chỉ khi module đa ngôn ngữ.
 
 ---
 
@@ -241,7 +241,7 @@ React: ErrorBoundary. Vue 3: `onErrorCaptured`, `app.config.errorHandler` — ap
 - [ ] Không credential trong source
 - [ ] Đúng scope branch
 
-## VA-QLDA patterns đúng (tham chiếu)
+## VA-Workspace patterns đúng (tham chiếu)
 
 - Excel import/export: `.cursor/rules/import-export-reconcile.mdc`
 - Page: `AppLayout` + `#header` `PageHeader`

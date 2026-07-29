@@ -48,7 +48,7 @@ const {
     persistVisibleFilters,
     openFilterPanel,
     FILTER_CONTROLS,
-} = useVisibleFilterControls(FILTER_CONTROLS_DEF, 'va-qlda.projects.visible-filters.v1');
+} = useVisibleFilterControls(FILTER_CONTROLS_DEF, 'va-workspace.projects.visible-filters.v1');
 
 const props = defineProps({
     projects: { type: Object, required: true },
@@ -70,12 +70,12 @@ const toast = useToast();
 const perPage = ref(Number(props.filters.per_page) || props.projects.meta?.per_page || DEFAULT_PER_PAGE);
 
 // ---- Persisted UI state ---------------------------------------------------
-const VIEW_KEY = 'va-qlda.projects.view';
-const GROUP_KEY = 'va-qlda.projects.groupby';
-const GRIDGROUP_KEY = 'va-qlda.projects.gridgroup';
-const KANBAN_COLLAPSE_KEY = 'va-qlda.projects.kanban.collapsed';
-const COLS_KEY = 'va-qlda.projects.columns';
-const SAVED_KEY = 'va-qlda.projects.savedfilters';
+const VIEW_KEY = 'va-workspace.projects.view';
+const GROUP_KEY = 'va-workspace.projects.groupby';
+const GRIDGROUP_KEY = 'va-workspace.projects.gridgroup';
+const KANBAN_COLLAPSE_KEY = 'va-workspace.projects.kanban.collapsed';
+const COLS_KEY = 'va-workspace.projects.columns';
+const SAVED_KEY = 'va-workspace.projects.savedfilters';
 
 const view = ref(localStorage.getItem(VIEW_KEY) || 'list');
 const groupBy = ref(localStorage.getItem(GROUP_KEY) || 'type');

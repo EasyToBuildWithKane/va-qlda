@@ -6,7 +6,7 @@ import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
 
 const props = defineProps({
     activities: { type: Array, default: () => [] },
-    perPageStorageKey: { type: String, default: 'va-qlda.project.activity.perPage' },
+    perPageStorageKey: { type: String, default: 'va-workspace.project.activity.perPage' },
     defaultPerPage: { type: Number, default: 10 },
 });
 

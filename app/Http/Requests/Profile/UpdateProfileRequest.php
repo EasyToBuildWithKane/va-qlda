@@ -6,7 +6,7 @@ use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * Self-service update of QLDA-only profile data (skill matrix).
+ * Self-service update of Workspace-only profile data (skill matrix).
  * HR identity fields are SSOT on VA-HRM — rejected if the client still sends them.
  */
 class UpdateProfileRequest extends FormRequest

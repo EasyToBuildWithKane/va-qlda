@@ -29,7 +29,7 @@ class BootstrapAdminSeeder extends Seeder
         );
 
         if ($stats['missing_emails'] !== []) {
-            $this->command?->warn('Email config chưa khớp nhân sự QLDA:');
+            $this->command?->warn('Email config chưa khớp nhân sự Workspace:');
             foreach ($stats['missing_emails'] as $missing) {
                 $this->command?->line("  - {$missing}");
             }

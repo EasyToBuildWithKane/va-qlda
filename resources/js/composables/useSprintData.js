@@ -342,7 +342,7 @@ function buildGuideSheet({ projectCode, projectName, sprints, employees, statusO
     ], COLS);
     row++;
 
-    setCell(ws, row, 0, 'Hỗ trợ: Liên hệ PM dự án hoặc quản trị hệ thống QLDA nếu cần import số lượng lớn / tích hợp tự động.', S.note);
+    setCell(ws, row, 0, 'Hỗ trợ: Liên hệ PM dự án hoặc quản trị hệ thống Workspace nếu cần import số lượng lớn / tích hợp tự động.', S.note);
     mergeRow(ws, row, 0, COLS);
 
     ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: row, c: COLS } });

@@ -1,4 +1,4 @@
-# Contract Lifecycle Management (CLM) — VA-QLDA
+# Contract Lifecycle Management (CLM) — VA-Workspace
 
 > Module **Quản lý Hợp đồng** — theo dõi hợp đồng nhà cung cấp, tài chính, đánh giá,
 > gia hạn (phụ lục) và chi phí. MVC pattern (giống Blocker / AiAccount, **không** Use Case).

@@ -4,7 +4,7 @@ globs: database/**/*.php,app/Models/**/*.php
 alwaysApply: false
 ---
 
-# Database — VA-QLDA
+# Database — VA-Workspace
 
 ## Quy ước
 

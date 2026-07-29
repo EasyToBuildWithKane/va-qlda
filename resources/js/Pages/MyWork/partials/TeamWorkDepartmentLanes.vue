@@ -22,7 +22,7 @@ const dot = {
     brand: 'bg-brand',
 };
 
-const COLLAPSE_KEY = 'va-qlda.my-work.team-lanes-collapsed';
+const COLLAPSE_KEY = 'va-workspace.my-work.team-lanes-collapsed';
 
 function loadCollapsed() {
     try {

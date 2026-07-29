@@ -17,10 +17,10 @@ function groupHeaderCost(group, accounts, useFilteredSum) {
     return group.total_cost_monthly ?? accounts.reduce((sum, a) => sum + budgetMonthly(a), 0);
 }
 
-const FILTER_VALUES_KEY = 'va-qlda.ai-accounts.filters';
-const VISIBLE_FILTERS_KEY = 'va-qlda.ai-accounts.filter-controls.v2';
-const COLS_KEY = 'va-qlda.ai-accounts.columns';
-const PER_PAGE_KEY = 'va-qlda.ai-accounts.per-page';
+const FILTER_VALUES_KEY = 'va-workspace.ai-accounts.filters';
+const VISIBLE_FILTERS_KEY = 'va-workspace.ai-accounts.filter-controls.v2';
+const COLS_KEY = 'va-workspace.ai-accounts.columns';
+const PER_PAGE_KEY = 'va-workspace.ai-accounts.per-page';
 
 function loadSavedFilters() {
     try {

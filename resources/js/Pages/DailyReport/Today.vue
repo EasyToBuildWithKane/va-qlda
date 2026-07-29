@@ -209,7 +209,7 @@ const statusVi = computed(() => {
 // ---- Templates ------------------------------------------------------------
 const galleryOpen = ref(false);
 const galleryTab  = ref('builtin');
-const storageKey  = computed(() => `va-qlda.report-templates.${page.props.auth?.user?.id ?? 'guest'}`);
+const storageKey  = computed(() => `va-workspace.report-templates.${page.props.auth?.user?.id ?? 'guest'}`);
 const contentForSave = computed(() => Object.fromEntries(contentKeys.map((k) => [k, form[k]])));
 
 const openGallery = (tab = 'builtin') => {

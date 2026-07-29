@@ -246,7 +246,7 @@ function buildTasksXlsx(rows, { ownerName, summary }) {
 
     setCell(ws, 0, 0, `VIỆC CỦA ${(ownerName || 'TÔI').toUpperCase()}`, S.title);
     mergeRow(ws, 0, 0, COLS);
-    setCell(ws, 1, 0, `Xuất lúc ${exportedAt} · Mẫu báo cáo VAschools · QLDA`, S.subtitle);
+    setCell(ws, 1, 0, `Xuất lúc ${exportedAt} · Mẫu báo cáo VAschools · Workspace`, S.subtitle);
     mergeRow(ws, 1, 0, COLS);
 
     writeKpiStrip(ws, 3, [

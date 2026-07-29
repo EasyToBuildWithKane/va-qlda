@@ -1,4 +1,4 @@
-# TECHNICAL DEBT — VA QLDA
+# TECHNICAL DEBT — VA Workspace
 
 > Sổ đăng ký nợ kỹ thuật sau refactor Phase 1–5.
 >

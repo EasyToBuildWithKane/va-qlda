@@ -1,4 +1,4 @@
-# OCR Service — Số hóa Phiếu Đề Xuất (VA-QLDA)
+# OCR Service — Số hóa Phiếu Đề Xuất (VA-Workspace)
 
 Python microservice nhận file Phiếu Đề Xuất (PDF/JPG/PNG), tiền xử lý ảnh (xoay, khử nhiễu, cân bằng sáng) rồi dùng **Gemini Flash** để:
 

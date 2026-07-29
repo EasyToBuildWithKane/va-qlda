@@ -1,5 +1,5 @@
 ---
-description: Admin sidebar QLDA — AppChrome, rail/drawer, accordion, flyout, nav backend (bắt buộc khi sửa shell nav)
+description: Admin sidebar Workspace — AppChrome, rail/drawer, accordion, flyout, nav backend (bắt buộc khi sửa shell nav)
 globs: resources/js/Components/Layout/AppSidebar*.vue,resources/js/Layouts/AppChrome.vue,resources/js/Layouts/AppLayout.vue,resources/js/composables/useAppSidebar.js,app/Support/Navigation.php,app/Support/NavigationBadges.php,resources/css/app.css
 alwaysApply: true
 ---
@@ -35,7 +35,7 @@ Nav → backend Navigation::for (+ badges)
 | `< lg` | Mobile drawer (`mobileOpen`) |
 | `≥ lg` | Aside rail / expanded |
 
-- Persist: `va-qlda.sidebar.rail`, `va-qlda.sidebar.collapsed`
+- Persist: `va-workspace.sidebar.rail`, `va-workspace.sidebar.collapsed`
 - Đổi URL → đóng drawer + flyout; click ngoài đóng flyout (rail)
 
 ## 3. Logo collapse (rail)

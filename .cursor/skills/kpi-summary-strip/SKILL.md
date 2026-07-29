@@ -1,12 +1,12 @@
 ---
 name: kpi-summary-strip
 description: >-
-  VA-QLDA KPI summary strip: kpi-strip section, clipped kpi-card grid, quick-filter
+  VA-Workspace KPI summary strip: kpi-strip section, clipped kpi-card grid, quick-filter
   cards, progress bars, backend summary props. Gold: FeedbackSummaryBar on /feedback.
   Use when adding stats sections, KPI cards, or cloning Feedback index overview UI.
 ---
 
-# KPI summary strip — VA-QLDA
+# KPI summary strip — VA-Workspace
 
 Rule: `.cursor/rules/kpi-summary-strip.mdc` (`alwaysApply: true`)
 

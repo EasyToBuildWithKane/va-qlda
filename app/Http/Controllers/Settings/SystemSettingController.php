@@ -48,7 +48,7 @@ class SystemSettingController extends Controller
             'activeGroup' => $activeGroup,
             'settings' => $this->settingsPayload(),
             'emailTemplates' => $this->emailTemplatesPayload(),
-            'emailPreviewBrand' => (string) ($this->settings->get('email.from_name') ?: config('va.app_name', 'VAschools QLDA')),
+            'emailPreviewBrand' => (string) ($this->settings->get('email.from_name') ?: config('va.app_name', 'VAschools Workspace')),
             'emailTestRecipient' => $this->testEmailRecipient($request->user()),
             'permissions' => $this->permissionsPayload(),
             'accounts' => $activeGroup === 'accounts'

@@ -16,7 +16,7 @@ final class EmailTemplateSampleVars
         $base = [
             'assignee_name' => 'Nguyễn Văn A',
             'task_name' => 'Thiết kế màn hình Sprint',
-            'project_name' => 'Dự án QLDA mẫu',
+            'project_name' => 'Dự án Workspace mẫu',
             'sprint_name' => 'Sprint 1',
             'due_date' => '20/06/2026',
             'task_url' => url('/projects/1?tab=sprints&task=1'),

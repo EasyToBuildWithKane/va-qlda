@@ -2,7 +2,7 @@ import { computed, ref } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 
 const MAX_DRAFTS = 20;
-const STORAGE_PREFIX = 'va-qlda.project-create.drafts';
+const STORAGE_PREFIX = 'va-workspace.project-create.drafts';
 
 /** Fields persisted in a local create-form draft. */
 export const PROJECT_CREATE_DRAFT_FIELDS = [

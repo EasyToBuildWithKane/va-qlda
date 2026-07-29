@@ -1,4 +1,4 @@
-# DATABASE STRUCTURE — VA QLDA
+# DATABASE STRUCTURE — VA Workspace
 
 ---
 
@@ -16,7 +16,7 @@
 
 **Ghi chú (2026-06-15):** Module Talent Management đã gỡ — các bảng `employee_skills`, `certifications`, `performance_kpis`, `learning_items`, `feedback_reviews`, `succession_plans`, `career_levels` bị drop bởi migration `2026_06_15_140000_drop_talent_tables`. Kỹ năng hồ sơ lưu trên `employees.skills` (JSON) và `employees.meta.skill_details`.
 
-**HRM SSOT (2026-07-28):** Danh tính nhân sự lấy qua Public API v1 (`HRM_API_BASE_URL` + `HRM_API_TOKEN`) — `HrmApiClient` → `HrmIdentityResolver` lazy upsert vào `va_prd_employees` (`hrm_employee_uuid`, `hrm_user_id` = legacy). QLDA **không** đọc DB `va_hrm` / connection `hrm_mysql`. Field HR trên `employees` là **cache ánh xạ** — chỉnh sửa chỉ trên VA-HRM; QLDA không ghi đè qua `/profile`.
+**HRM SSOT (2026-07-28):** Danh tính nhân sự lấy qua Public API v1 (`HRM_API_BASE_URL` + `HRM_API_TOKEN`) — `HrmApiClient` → `HrmIdentityResolver` lazy upsert vào `va_prd_employees` (`hrm_employee_uuid`, `hrm_user_id` = legacy). Workspace **không** đọc DB `va_hrm` / connection `hrm_mysql`. Field HR trên `employees` là **cache ánh xạ** — chỉnh sửa chỉ trên VA-HRM; Workspace không ghi đè qua `/profile`.
 
 **Ghi chú (2026-07-29):** Module Coaching / Mentoring đã gỡ — các bảng `coaching_courses`, `coaching_sessions`, `coaching_session_materials`, `coaching_assignments`, `coaching_progress` bị drop bởi migration `2026_07_29_100000_drop_coaching_tables`.
 

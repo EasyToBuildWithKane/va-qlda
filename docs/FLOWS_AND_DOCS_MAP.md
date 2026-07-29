@@ -1,4 +1,4 @@
-# Sơ đồ luồng & bản đồ tài liệu — VA QLDA
+# Sơ đồ luồng & bản đồ tài liệu — VA Workspace
 
 > **Mục đích:** Đối chiếu **code ↔ `docs/` ↔ `_dev/`** — một điểm vào cho onboarding, PR doc-sync, và sơ đồ luồng (mermaid).  
 > **Cập nhật:** 2026-06-19 · Nguồn route: `routes/web/*.php` · Nav: `App\Support\Navigation`.
@@ -90,7 +90,7 @@ sequenceDiagram
   U->>L: GET /login
   alt SSO HRM bật (HRM_SSO_ENABLED)
     L->>H: /auth/hrm → {HRM}/sso/authorize (HRM tự Google login nếu chưa)
-    H-->>L: callback ?token=JWT RS256 (verify JWKS, aud=qlda)
+    H-->>L: callback ?token=JWT RS256 (verify JWKS, aud=workspace)
   else Google trực tiếp (SSO tắt)
     L->>L: /auth/google → Google OAuth (chọn tài khoản)
   end
@@ -107,7 +107,7 @@ sequenceDiagram
 | `viewer` | Đọc (dashboard, dự án, KB published) | — |
 
 Login UI: `.cursor/skills/login/SKILL.md` · Password login: `config/va.php` (E2E/PHPUnit only).
-SSO HRM: env `HRM_SSO_*` — HRM là IdP nội bộ (user Google login một lần trên HRM); QLDA chỉ tin JWT từ `/sso/authorize` (contract: `va-hrm/docs/integrations/qlda.md`). JWT SSO user ≠ token M2M `HRM_API_TOKEN`.
+SSO HRM: env `HRM_SSO_*` — HRM là IdP nội bộ (user Google login một lần trên HRM); Workspace chỉ tin JWT từ `/sso/authorize` (contract: `va-hrm/docs/integrations/workspace.md`). JWT SSO user ≠ token M2M `HRM_API_TOKEN`.
 
 ---
 

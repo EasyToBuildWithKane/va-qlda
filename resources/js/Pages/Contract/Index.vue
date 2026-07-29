@@ -70,7 +70,7 @@ const {
     persistVisibleFilters,
     openFilterPanel,
     FILTER_CONTROLS: FILTER_CONTROL_LIST,
-} = useVisibleFilterControls(FILTER_CONTROLS, 'va-qlda.contracts.visible-filters.v1');
+} = useVisibleFilterControls(FILTER_CONTROLS, 'va-workspace.contracts.visible-filters.v1');
 
 const colDdRef = ref(null);
 
@@ -81,7 +81,7 @@ const {
     openColPanel,
     isColVisible,
     TABLE_COLUMNS,
-} = useVisibleColumns(CONTRACT_EXPLORER_COLUMNS, 'va-qlda.contracts.explorer-columns.v2');
+} = useVisibleColumns(CONTRACT_EXPLORER_COLUMNS, 'va-workspace.contracts.explorer-columns.v2');
 
 const appliedFilterCount = computed(() => [
     filters.status, filters.payment_status, filters.vendor_id, filters.category_id,

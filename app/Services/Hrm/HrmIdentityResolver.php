@@ -47,7 +47,7 @@ final class HrmIdentityResolver
     }
 
     /**
-     * Upsert nhân sự QLDA từ payload API và trả về Employee đã liên kết.
+     * Upsert nhân sự Workspace từ payload API và trả về Employee đã liên kết.
      *
      * @param  array<string, mixed>  $payload
      */
@@ -85,8 +85,8 @@ final class HrmIdentityResolver
     }
 
     /**
-     * Refresh QLDA employee từ HRM API khi đã liên kết (login / hồ sơ).
-     * API miss hoặc lỗi → giữ nguyên bản ghi QLDA (không fallback DB).
+     * Refresh Workspace employee từ HRM API khi đã liên kết (login / hồ sơ).
+     * API miss hoặc lỗi → giữ nguyên bản ghi Workspace (không fallback DB).
      */
     public function refreshEmployeeIfLinked(Employee $employee): Employee
     {
@@ -216,7 +216,7 @@ final class HrmIdentityResolver
             }
         }
 
-        // Giữ avatar QLDA local (upload avatars/…) hoặc khi HRM không trả ảnh.
+        // Giữ avatar Workspace local (upload avatars/…) hoặc khi HRM không trả ảnh.
         $incomingAvatar = $payload['avatar_path'] ?? null;
         $currentAvatar = is_string($employee->avatar_path) ? $employee->avatar_path : null;
         if ($incomingAvatar === null || $incomingAvatar === '') {
@@ -227,7 +227,7 @@ final class HrmIdentityResolver
             unset($payload['avatar_path']);
         }
 
-        // Meta HRM merge vào meta QLDA (giữ bio / socials / skill_details…).
+        // Meta HRM merge vào meta Workspace (giữ bio / socials / skill_details…).
         if (array_key_exists('meta', $payload)) {
             $payload['meta'] = self::mergeEmployeeMeta(
                 is_array($employee->meta) ? $employee->meta : [],

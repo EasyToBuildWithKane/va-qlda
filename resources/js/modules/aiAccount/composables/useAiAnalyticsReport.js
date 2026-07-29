@@ -1,8 +1,8 @@
 import axios from 'axios';
 import { computed, ref } from 'vue';
 
-const SAVED_FILTERS_KEY = 'va-qlda.ai-analytics.saved-filters';
-const FAVORITE_FILTERS_KEY = 'va-qlda.ai-analytics.favorite-filters';
+const SAVED_FILTERS_KEY = 'va-workspace.ai-analytics.saved-filters';
+const FAVORITE_FILTERS_KEY = 'va-workspace.ai-analytics.favorite-filters';
 
 function readJson(key, fallback) {
     try {

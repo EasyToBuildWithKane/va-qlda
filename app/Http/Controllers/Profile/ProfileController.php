@@ -17,7 +17,7 @@ use Inertia\Response;
 
 /**
  * "Hồ sơ của tôi" — HR identity is mirrored from VA-HRM (read-only here).
- * Self-service writes are limited to QLDA skill matrix.
+ * Self-service writes are limited to Workspace skill matrix.
  */
 class ProfileController extends Controller
 {

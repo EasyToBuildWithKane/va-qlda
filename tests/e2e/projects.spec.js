@@ -48,9 +48,9 @@ test.describe('Projects', () => {
     test.describe('project workspace', () => {
         test.use({ role: 'admin' });
 
-        test('admin can open seeded QLDA project show page', async ({ page }) => {
+        test('admin can open seeded Workspace project show page', async ({ page }) => {
             await page.goto('/projects');
-            await page.getByRole('link', { name: /QLDA|Quản lý dự án/i }).first().click();
+            await page.getByRole('link', { name: /WORKSPACE|Quản lý dự án/i }).first().click();
 
             await expect(page).toHaveURL(/\/projects\/\d+/);
             await expect(page.getByRole('button', { name: 'Sprint' })).toBeVisible();
@@ -58,7 +58,7 @@ test.describe('Projects', () => {
 
         test('can switch to Sprint tab', async ({ page }) => {
             await page.goto('/projects');
-            await page.getByRole('link', { name: /QLDA|Quản lý dự án/i }).first().click();
+            await page.getByRole('link', { name: /WORKSPACE|Quản lý dự án/i }).first().click();
 
             const sprintTab = page.getByRole('button', { name: /^Sprint$/i });
             if (await sprintTab.count() > 0) {

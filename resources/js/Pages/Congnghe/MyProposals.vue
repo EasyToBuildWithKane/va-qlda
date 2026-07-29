@@ -60,7 +60,7 @@ const {
     hasFilterRow,
     persistVisibleFilters,
     openFilterPanel,
-} = useVisibleFilterControls(FILTER_CONTROLS, 'va-qlda.congnghe-my-proposals.filters.v2');
+} = useVisibleFilterControls(FILTER_CONTROLS, 'va-workspace.congnghe-my-proposals.filters.v2');
 
 const filterForm = reactive({
     status: props.filters.status ?? '',

@@ -1,11 +1,11 @@
 ---
 name: safe-refactor
 description: >-
-  Plans or executes safe refactors in VA-QLDA per REFACTOR_PLAN and TECHNICAL_DEBT
+  Plans or executes safe refactors in VA-Workspace per REFACTOR_PLAN and TECHNICAL_DEBT
   without mixing feature work. Phase 1-5 complete; use for follow-up TD items.
 ---
 
-# Safe Refactor — VA-QLDA
+# Safe Refactor — VA-Workspace
 
 ## Status (2026-06-03)
 

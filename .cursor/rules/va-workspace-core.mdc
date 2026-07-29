@@ -1,9 +1,9 @@
 ---
-description: VA-QLDA — ngữ cảnh dự án, stack, auth, quy ước chung (đọc docs/ khi cần chi tiết)
+description: VA-Workspace — ngữ cảnh dự án, stack, auth, quy ước chung (đọc docs/ khi cần chi tiết)
 alwaysApply: true
 ---
 
-# VA-QLDA — Core
+# VA-Workspace — Core
 
 **VAschools Quản lý Dự Án** — Laravel 10 + Inertia + Vue 3 + Tailwind. Tài liệu: `docs/PROJECT_OVERVIEW.md`, `docs/ARCHITECTURE.md`.
 

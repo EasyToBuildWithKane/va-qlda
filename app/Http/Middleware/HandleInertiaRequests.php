@@ -72,11 +72,11 @@ class HandleInertiaRequests extends Middleware
                 ] : null,
             ],
             'portal' => fn () => $account ? [
-                'canEnterQlda' => PortalDestination::canEnterQlda($account),
-                'qldaHome' => PortalDestination::qldaHomePath($account),
+                'canEnterWorkspace' => PortalDestination::canEnterWorkspace($account),
+                'workspaceHome' => PortalDestination::workspaceHomePath($account),
             ] : [
-                'canEnterQlda' => false,
-                'qldaHome' => '/dashboard',
+                'canEnterWorkspace' => false,
+                'workspaceHome' => '/dashboard',
             ],
             'realtime' => [
                 'enabled' => (bool) config('realtime.enabled'),

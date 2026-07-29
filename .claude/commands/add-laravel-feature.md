@@ -1,4 +1,4 @@
-# Add Laravel Feature — VA-QLDA
+# Add Laravel Feature — VA-Workspace
 
 Thêm hoặc mở rộng Laravel feature theo MVC hoặc DailyReport Clean Architecture patterns.
 

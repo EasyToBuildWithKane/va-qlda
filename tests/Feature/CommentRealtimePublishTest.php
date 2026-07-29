@@ -19,7 +19,7 @@ class CommentRealtimePublishTest extends TestCase
     {
         config([
             'realtime.enabled' => true,
-            'realtime.redis_channel' => 'va-qlda:realtime',
+            'realtime.redis_channel' => 'va-workspace:realtime',
         ]);
 
         $admin = SystemAccount::factory()->role(SystemRole::Admin)->create();
@@ -33,7 +33,7 @@ class CommentRealtimePublishTest extends TestCase
         Redis::shouldReceive('publish')
             ->once()
             ->withArgs(function (string $channel, string $message) use ($task) {
-                if ($channel !== 'va-qlda:realtime') {
+                if ($channel !== 'va-workspace:realtime') {
                     return false;
                 }
                 $payload = json_decode($message, true);

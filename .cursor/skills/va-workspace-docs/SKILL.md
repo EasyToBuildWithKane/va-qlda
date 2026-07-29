@@ -1,13 +1,13 @@
 ---
-name: va-qlda-docs
+name: va-workspace-docs
 description: >-
-  Navigates VA-QLDA technical documentation in docs/ and operational memory in
+  Navigates VA-Workspace technical documentation in docs/ and operational memory in
   _dev/ for architecture, routes, frontend structure, refactor status, and debt.
   Use when onboarding, planning features, answering "how does X work", or before
   large changes to align with documented conventions.
 ---
 
-# VA-QLDA Documentation Navigator
+# VA-Workspace Documentation Navigator
 
 ## When to use
 

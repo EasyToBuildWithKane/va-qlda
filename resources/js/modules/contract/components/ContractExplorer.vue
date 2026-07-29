@@ -15,9 +15,9 @@ const props = defineProps({
 
 const emit = defineEmits(['edit', 'delete']);
 
-const COLLAPSE_STORAGE_KEY = 'va-qlda.contracts.collapsed-vendors.v2';
-const COLLAPSE_CATEGORIES_KEY = 'va-qlda.contracts.collapsed-categories.v1';
-const COLLAPSE_SETS_KEY = 'va-qlda.contracts.collapsed-sets.v1';
+const COLLAPSE_STORAGE_KEY = 'va-workspace.contracts.collapsed-vendors.v2';
+const COLLAPSE_CATEGORIES_KEY = 'va-workspace.contracts.collapsed-categories.v1';
+const COLLAPSE_SETS_KEY = 'va-workspace.contracts.collapsed-sets.v1';
 
 function loadCollapsed(key) {
     try {

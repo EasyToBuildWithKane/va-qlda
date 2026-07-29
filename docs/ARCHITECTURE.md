@@ -1,4 +1,4 @@
-# ARCHITECTURE — VA QLDA
+# ARCHITECTURE — VA Workspace
 
 > Sơ đồ vận chuyển request & bản đồ module: [`FLOWS_AND_DOCS_MAP.md`](FLOWS_AND_DOCS_MAP.md).
 
@@ -67,11 +67,11 @@ resources/js/
 
 ### HRM Public API — SSOT danh tính (2026-07-28)
 
-QLDA lấy danh tính nhân sự **chỉ** qua Public API v1 (M2M Sanctum). Không còn connection `hrm_mysql` / đọc `va_hrm_*`.
+Workspace lấy danh tính nhân sự **chỉ** qua Public API v1 (M2M Sanctum). Không còn connection `hrm_mysql` / đọc `va_hrm_*`.
 
 | Client | Host | Vai trò |
 |---|---|---|
-| `mysql` (default, prefix `va_prd_`) | QLDA | Nghiệp vụ: dự án, task, báo cáo, role QLDA, session |
+| `mysql` (default, prefix `va_prd_`) | Workspace | Nghiệp vụ: dự án, task, báo cáo, role Workspace, session |
 | `HrmApiClient` (`HRM_API_*`) | `https://hrm…/api/v1` | M2M — `GET /employees*` → lazy upsert `employees` |
 
 ```mermaid
@@ -86,29 +86,29 @@ flowchart LR
 - **Không fallback DB** khi API lỗi/miss — login báo lỗi HRM.
 - **Không bulk sync** — các lệnh `cms:sync-*` đã gỡ.
 - `HrmIdentityResolver` + `HrmApiEmployeeMapper` (map `primary_assignment` / `concurrent_assignments` → `employees.meta` HR fields); mở `/profile` gọi `refreshEmployeeIfLinked`. Smoke: `php artisan hrm:api-ping [--email=]`.
-- **QLDA chỉ ánh xạ:** không cho chỉnh field HR trên QLDA (`PUT /profile` chỉ nhận skill matrix; field phone/role_title/bio/avatar… bị reject). Chỉnh HR trên VA-HRM.
-- Trụ sở/cơ sở: lấy `primary_assignment.branch` → `headquarter` → `workplace`; avatar: URL tuyệt đối từ HRM (`users.avatar_url` / proxy `/avatars/{id}`), không upload avatar local trên hồ sơ QLDA.
+- **Workspace chỉ ánh xạ:** không cho chỉnh field HR trên Workspace (`PUT /profile` chỉ nhận skill matrix; field phone/role_title/bio/avatar… bị reject). Chỉnh HR trên VA-HRM.
+- Trụ sở/cơ sở: lấy `primary_assignment.branch` → `headquarter` → `workplace`; avatar: URL tuyệt đối từ HRM (`users.avatar_url` / proxy `/avatars/{id}`), không upload avatar local trên hồ sơ Workspace.
 - Env: `HRM_API_BASE_URL`, `HRM_API_TOKEN` (mint `/admin/api-clients`). **JWT SSO ≠ Bearer M2M.**
 
-### SSO HRM → QLDA (2026-07-28, opt-in `HRM_SSO_ENABLED`)
+### SSO HRM → Workspace (2026-07-28, opt-in `HRM_SSO_ENABLED`)
 
-HRM là **IdP nội bộ**: user Workspace đăng nhập Google **một lần trên HRM**; QLDA không gọi Google OAuth riêng khi SSO bật. Cần `HRM_API_*` để lazy upsert / refresh nhân sự sau JWT.
+HRM là **IdP nội bộ**: user Workspace đăng nhập Google **một lần trên HRM**; Workspace không gọi Google OAuth riêng khi SSO bật. Cần `HRM_API_*` để lazy upsert / refresh nhân sự sau JWT.
 
 ```mermaid
 sequenceDiagram
   participant U as User
-  participant Q as QLDA /auth/hrm
+  participant Q as Workspace /auth/hrm
   participant H as HRM /sso/authorize
   U->>Q: Bấm «Đăng nhập tài khoản nhà trường»
-  Q->>H: redirect client_id=qlda + redirect_uri + state
+  Q->>H: redirect client_id=workspace + redirect_uri + state
   H-->>Q: /auth/hrm/callback?token=JWT RS256 (TTL ~10 phút)
-  Q->>Q: HrmSsoJwtVerifier — JWKS offline (cache 1h), aud=qlda, iss, exp
+  Q->>Q: HrmSsoJwtVerifier — JWKS offline (cache 1h), aud=workspace, iss, exp
   Q->>Q: map employee_uuid → employees.hrm_employee_uuid (fallback email / lazy upsert)
   Q-->>U: session guard system
 ```
 
 - `HrmSsoController` (`/auth/hrm`, `/auth/hrm/callback`) + `App\Services\Hrm\HrmSsoJwtVerifier`.
-- Redirect URI cố định `{APP_URL}/auth/hrm/callback` — whitelist trên HRM (`client qlda`, `sso_enabled=true`).
+- Redirect URI cố định `{APP_URL}/auth/hrm/callback` — whitelist trên HRM (`client workspace`, `sso_enabled=true`).
 - **JWT SSO user ≠ Bearer M2M** (`HRM_API_TOKEN`): JWT mở session; M2M gọi `/api/v1/*`.
 - SSO tắt (`false`, mặc định) → nút Google trực tiếp; password login chỉ E2E/PHPUnit.
 

@@ -1,10 +1,10 @@
 ---
-description: ISC Backend Standards + security/performance — áp dụng khi review PHP/Laravel trong VA-QLDA
+description: ISC Backend Standards + security/performance — áp dụng khi review PHP/Laravel trong VA-Workspace
 globs: app/**/*.php,routes/**/*.php,database/**/*.php,tests/**/*.php
 alwaysApply: false
 ---
 
-# Backend Review — ISC (VA-QLDA / Laravel)
+# Backend Review — ISC (VA-Workspace / Laravel)
 
 Khi review staged diff, dùng skill **`backend-code-review`** (workflow + format output).
 

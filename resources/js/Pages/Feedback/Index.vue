@@ -75,7 +75,7 @@ const {
     persistVisibleFilters,
     openFilterPanel,
     FILTER_CONTROLS,
-} = useVisibleFilterControls(FEEDBACK_FILTER_CONTROLS, 'va-qlda.feedback.visible-filters.v3');
+} = useVisibleFilterControls(FEEDBACK_FILTER_CONTROLS, 'va-workspace.feedback.visible-filters.v3');
 
 const {
     visibleCols,
@@ -84,7 +84,7 @@ const {
     openColPanel,
     isColVisible,
     TABLE_COLUMNS,
-} = useVisibleColumns(FEEDBACK_TABLE_COLUMNS, 'va-qlda.feedback.columns.v1');
+} = useVisibleColumns(FEEDBACK_TABLE_COLUMNS, 'va-workspace.feedback.columns.v1');
 
 function onToolbarClickOutside(e) {
     if (e.target.closest?.('[data-filter-visibility-panel]')) return;

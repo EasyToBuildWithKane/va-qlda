@@ -57,7 +57,7 @@ class KbMarkdownHtml
             return '<p>'.e($text).'</p>';
         }
 
-        return '<p>Tài liệu nội bộ VA-QLDA (seed từ repository).</p>';
+        return '<p>Tài liệu nội bộ VA-Workspace (seed từ repository).</p>';
     }
 
     public static function slugForRepoPath(string $relativePath): string

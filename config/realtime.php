@@ -16,7 +16,7 @@ return [
 
     'secret' => env('REALTIME_SECRET', env('APP_KEY')),
 
-    'redis_channel' => env('REALTIME_REDIS_CHANNEL', 'va-qlda:realtime'),
+    'redis_channel' => env('REALTIME_REDIS_CHANNEL', 'va-workspace:realtime'),
 
     'client_url' => env('REALTIME_CLIENT_URL', 'https://projects.vaschools.edu.vn'),
 

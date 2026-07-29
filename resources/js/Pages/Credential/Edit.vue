@@ -356,7 +356,7 @@ function submit() {
             <CredentialFieldLabel
               for-id="cred-project"
               label="Dự án"
-              tooltip="Gắn với dự án VA-QLDA nếu tài khoản phục vụ một dự án cụ thể."
+              tooltip="Gắn với dự án VA-Workspace nếu tài khoản phục vụ một dự án cụ thể."
             />
             <select
               id="cred-project"

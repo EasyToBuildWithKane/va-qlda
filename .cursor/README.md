@@ -1,12 +1,12 @@
-# Cursor — VA-QLDA
+# Cursor — VA-Workspace
 
-Cấu hình AI cho repo **VAschools QLDA**, đồng bộ với [`docs/`](../docs/) và [`_dev/`](../_dev/).
+Cấu hình AI cho repo **VAschools Workspace**, đồng bộ với [`docs/`](../docs/) và [`_dev/`](../_dev/).
 
 ## Rules (`.cursor/rules/`)
 
 | File | Áp dụng |
 |------|---------|
-| `va-qlda-core.mdc` | Luôn — stack, auth, kiến trúc, `_dev/` memory |
+| `va-workspace-core.mdc` | Luôn — stack, auth, kiến trúc, `_dev/` memory |
 | `laravel-backend.mdc` | `app/`, `routes/`, `database/` PHP |
 | `vue-inertia-frontend.mdc` | `resources/js/**` |
 | `database-schema.mdc` | Migrations & models |
@@ -24,7 +24,7 @@ Cấu hình AI cho repo **VAschools QLDA**, đồng bộ với [`docs/`](../docs
 
 | Skill | Khi dùng |
 |-------|----------|
-| `va-qlda-docs` | Tra cứu `docs/` + `_dev/` |
+| `va-workspace-docs` | Tra cứu `docs/` + `_dev/` |
 | `app-sidebar` | Sửa / mở rộng sidebar admin (AppSidebar*) |
 | `kpi-summary-strip` | Thêm / sửa dải KPI |
 | `content-header` | Page header / list panel |

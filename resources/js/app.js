@@ -10,7 +10,7 @@ import { createPinia } from 'pinia';
 
 import AppChrome from '@/Layouts/AppChrome.vue';
 
-const appName = import.meta.env.VITE_APP_NAME || 'VA QLDA';
+const appName = import.meta.env.VITE_APP_NAME || 'VA Workspace';
 
 /** Trang full-bleed — không bọc sidebar AppChrome (login, landing Công nghệ, …). */
 const PAGES_WITHOUT_APP_CHROME = new Set([

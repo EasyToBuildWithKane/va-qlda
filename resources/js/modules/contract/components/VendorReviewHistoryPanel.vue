@@ -59,7 +59,7 @@ const {
     persistVisibleFilters,
     openFilterPanel,
     FILTER_CONTROLS,
-} = useVisibleFilterControls(REVIEW_FILTER_CONTROLS, 'va-qlda.vendor-reviews.visible-filters.v1');
+} = useVisibleFilterControls(REVIEW_FILTER_CONTROLS, 'va-workspace.vendor-reviews.visible-filters.v1');
 
 const {
     visibleCols,
@@ -68,7 +68,7 @@ const {
     openColPanel,
     isColVisible,
     TABLE_COLUMNS,
-} = useVisibleColumns(REVIEW_TABLE_COLUMNS, 'va-qlda.vendor-reviews.columns.v2');
+} = useVisibleColumns(REVIEW_TABLE_COLUMNS, 'va-workspace.vendor-reviews.columns.v2');
 
 const searchInput = ref('');
 const debouncedQ = ref('');

@@ -94,7 +94,7 @@ const visibleCols = ref({
     cost_amount: true,
     overall_status: true,
 });
-const VISIBLE_FILTERS_KEY = 'va-qlda.cost-report.visible-filters.v2';
+const VISIBLE_FILTERS_KEY = 'va-workspace.cost-report.visible-filters.v2';
 
 const {
     visibleFilters,

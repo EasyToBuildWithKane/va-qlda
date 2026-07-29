@@ -10,7 +10,7 @@ use Tests\TestCase;
 
 /**
  * "Hồ sơ của tôi" — HR identity is mirrored from VA-HRM (read-only).
- * Self-service PUT only updates the QLDA skill matrix.
+ * Self-service PUT only updates the Workspace skill matrix.
  */
 class ProfileSelfTest extends TestCase
 {

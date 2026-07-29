@@ -4,7 +4,7 @@
 |--------------------------------------------------------------------------
 | HRM Public API v1 (M2M Sanctum)
 |--------------------------------------------------------------------------
-| Contract: va-hrm/docs/integrations/qlda.md
+| Contract: va-hrm/docs/integrations/workspace.md
 | JWT SSO user (HRM_SSO_*) ≠ Bearer HRM_API_TOKEN — không dùng lẫn.
 | Danh tính login/upsert chỉ qua HTTP — không đọc hrm_mysql / va_hrm_*.
 */

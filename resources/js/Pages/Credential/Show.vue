@@ -260,7 +260,7 @@ const profileExpiringSoon = computed(() => isCredentialExpiringWithinDays(props.
               <CredentialFieldLabel
                 compact
                 label="Dự án"
-                tooltip="Dự án sử dụng tài khoản này trong phạm vi QLDA."
+                tooltip="Dự án sử dụng tài khoản này trong phạm vi Workspace."
               />
             </dt>
             <dd class="text-sm text-slate-800">

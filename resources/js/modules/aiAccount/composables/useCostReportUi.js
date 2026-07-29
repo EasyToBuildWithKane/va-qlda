@@ -4,7 +4,7 @@ import {
     PROPOSAL_COLUMNS_DEFAULT,
 } from '@/modules/aiAccount/config/proposalColumns';
 
-const PROPOSAL_COLS_KEY = 'va-qlda.ai-cost-report.proposal-columns';
+const PROPOSAL_COLS_KEY = 'va-workspace.ai-cost-report.proposal-columns';
 
 function loadKeys(storageKey, defaults, allCols) {
     try {

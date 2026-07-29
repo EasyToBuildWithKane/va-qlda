@@ -53,7 +53,7 @@ class ProfileOrgRelationsTest extends TestCase
         $this->assertSame($parentLeader->id, $manager->id);
     }
 
-    public function test_department_code_from_qlda_not_cms_id(): void
+    public function test_department_code_from_workspace_not_cms_id(): void
     {
         Department::create([
             'code' => 'PB-PT',

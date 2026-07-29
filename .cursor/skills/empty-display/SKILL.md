@@ -1,12 +1,12 @@
 ---
 name: empty-display
 description: >-
-  VA-QLDA empty UI: không hiển thị ký tự «—» trên giao diện user-facing; dùng
+  VA-Workspace empty UI: không hiển thị ký tự «—» trên giao diện user-facing; dùng
   emptyDisplay.js và nhãn tiếng Việt theo ngữ cảnh. Cột Kỳ audit = dropdown +
   nhóm collapse. Bắt buộc khi thêm bảng, export Excel user-facing, hoặc props nullable.
 ---
 
-# Empty display & cột Kỳ audit — VA-QLDA
+# Empty display & cột Kỳ audit — VA-Workspace
 
 Rule: `.cursor/rules/empty-display.mdc` (`alwaysApply: true`)
 

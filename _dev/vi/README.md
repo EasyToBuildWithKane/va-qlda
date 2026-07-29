@@ -1,6 +1,6 @@
 # Tài liệu tiếng Việt — `_dev/vi/`
 
-Thư mục **giải thích bằng tiếng Việt** cho onboarding, quy trình nội bộ VAschools QLDA, và FAQ dev. Không thay thế spec kỹ thuật module — phần đó nằm ở [`docs/`](../../docs/).
+Thư mục **giải thích bằng tiếng Việt** cho onboarding, quy trình nội bộ VAschools Workspace, và FAQ dev. Không thay thế spec kỹ thuật module — phần đó nằm ở [`docs/`](../../docs/).
 
 ---
 

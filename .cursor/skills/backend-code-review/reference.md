@@ -1,6 +1,6 @@
 # ISC Backend Review — Reference (đầy đủ)
 
-> Gốc: ISC Technical Standards. Ví dụ TypeScript/C# giữ nguyên; thêm block **Laravel (VA-QLDA)** khi áp dụng repo này.
+> Gốc: ISC Technical Standards. Ví dụ TypeScript/C# giữ nguyên; thêm block **Laravel (VA-Workspace)** khi áp dụng repo này.
 
 ---
 
@@ -13,7 +13,7 @@
 - [ ] Hàm & Class: class `PascalCase`; method PHP/Laravel `camelCase` — `calculateTotal()`, `UserService`
 - [ ] Constants: `ALL_CAPS` — `MAX_RETRY_COUNT`, `DEFAULT_TIMEOUT_MS`
 - [ ] Interface: tiền tố `I` + PascalCase (C#) — PHP: không bắt buộc `I`; dùng contract/interface khi cần
-- [ ] Enum values: `ALL_CAPS` hoặc `PascalCase` nhất quán — VA-QLDA: `app/Support/Enums/*` backed string
+- [ ] Enum values: `ALL_CAPS` hoặc `PascalCase` nhất quán — VA-Workspace: `app/Support/Enums/*` backed string
 
 ### ISC 1.3 — Format & Style
 
@@ -50,7 +50,7 @@
 - [ ] Action: `POST /users/{id}/reset-password`
 - [ ] HTTP verb đúng: GET/POST/PUT/PATCH/DELETE
 
-**VA-QLDA routes:** `projects.tasks.store`, nested under `projects/{project}/tasks`.
+**VA-Workspace routes:** `projects.tasks.store`, nested under `projects/{project}/tasks`.
 
 ### ISC 3.x — API Response Structure
 
@@ -66,7 +66,7 @@
 - [ ] Lỗi nghiệp vụ: HTTP 200 + `success: false` (khi API JSON theo chuẩn ISC)
 - [ ] Lỗi kỹ thuật: 4xx/5xx, không 200
 
-**Inertia (VA-QLDA):** redirect + session flash hợp lệ; JSON endpoints (`NotificationController`) nên tiến tới envelope trên nếu chuẩn hóa API.
+**Inertia (VA-Workspace):** redirect + session flash hợp lệ; JSON endpoints (`NotificationController`) nên tiến tới envelope trên nếu chuẩn hóa API.
 
 ### ISC 4.x — Error Code
 

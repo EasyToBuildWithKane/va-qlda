@@ -113,7 +113,7 @@ const accountRoleLabel = computed(() => props.profile.account_role?.label ?? nul
 
           <div v-if="accountRoleLabel">
             <p class="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
-              Quyền trên QLDA
+              Quyền trên Workspace
             </p>
             <p class="mt-1.5 inline-flex items-center gap-1.5 text-sm font-medium text-slate-700">
               <AppIcon

@@ -1,4 +1,4 @@
-# Troubleshooting — VA-QLDA
+# Troubleshooting — VA-Workspace
 
 Common issues and fixes for local dev, Git hooks, and CI.
 
@@ -439,13 +439,13 @@ php artisan tinker --execute="echo config('realtime.enabled') ? 'on' : 'off';"
 
 ## SSO HRM — redirect_uri / JWT không hợp lệ
 
-**Symptoms:** Bấm «Đăng nhập tài khoản nhà trường» → lỗi trên HRM (`redirect_uri không nằm trong whitelist`) hoặc callback QLDA flash «Không xác thực được phiên HRM».
+**Symptoms:** Bấm «Đăng nhập tài khoản nhà trường» → lỗi trên HRM (`redirect_uri không nằm trong whitelist`) hoặc callback Workspace flash «Không xác thực được phiên HRM».
 
 **Checklist:**
 
 1. `HRM_SSO_ENABLED=true`, `HRM_SSO_BASE_URL` trỏ đúng host HRM; `php artisan config:clear`.
-2. Trên HRM `/admin/api-clients` (client `qlda`): `sso_enabled=true` + redirect URI **khớp tuyệt đối** `{APP_URL}/auth/hrm/callback` (kể cả `http`/`https`, không trailing slash lệch).
-3. `HRM_SSO_ISSUER` phía QLDA = `SSO_ISSUER` phía HRM; JWKS: `{HRM}/.well-known/jwks.json` (`php artisan hrm:sso-keys` trên HRM).
+2. Trên HRM `/admin/api-clients` (client `workspace`): `sso_enabled=true` + redirect URI **khớp tuyệt đối** `{APP_URL}/auth/hrm/callback` (kể cả `http`/`https`, không trailing slash lệch).
+3. `HRM_SSO_ISSUER` phía Workspace = `SSO_ISSUER` phía HRM; JWKS: `{HRM}/.well-known/jwks.json` (`php artisan hrm:sso-keys` trên HRM).
 4. JWT SSO (user, TTL ~10 phút) ≠ `HRM_API_TOKEN` (M2M Sanctum — luồng khác).
 
 **Verify:** `php artisan test --filter=HrmSsoLoginTest` · docs: `docs/ARCHITECTURE.md` § SSO HRM.
@@ -458,9 +458,9 @@ php artisan tinker --execute="echo config('realtime.enabled') ? 'on' : 'off';"
 
 **Checklist:**
 
-1. Mint token tại HRM `/admin/api-clients` (client `qlda`) → `HRM_API_TOKEN` + `HRM_API_BASE_URL=…/api/v1`.
+1. Mint token tại HRM `/admin/api-clients` (client `workspace`) → `HRM_API_TOKEN` + `HRM_API_BASE_URL=…/api/v1`.
 2. `php artisan config:clear` rồi `php artisan hrm:api-ping` (và `--email=user@…`).
-3. QLDA **chỉ** dùng API — không còn `HRM_DB_*` / fallback `va_hrm`. Thiếu token → không lazy upsert được.
+3. Workspace **chỉ** dùng API — không còn `HRM_DB_*` / fallback `va_hrm`. Thiếu token → không lazy upsert được.
 4. **JWT SSO (`HRM_SSO_*`) ≠ Bearer `HRM_API_TOKEN`** — không dùng JWT để gọi `/api/v1/*`.
 5. Lỗi Google `invalid_client` / `invalid_grant` là OAuth (IdP), không phải token M2M.
 

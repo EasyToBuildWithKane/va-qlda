@@ -1,12 +1,12 @@
-# PROJECT OVERVIEW — VA QLDA
+# PROJECT OVERVIEW — VA Workspace
 
-> **VA QLDA** (VAschools Quản Lý Dự Án) — Hệ thống quản lý dự án nội bộ dành cho tổ chức giáo dục VAschools.
+> **VA Workspace** (VAschools Quản Lý Dự Án) — Hệ thống quản lý dự án nội bộ dành cho tổ chức giáo dục VAschools.
 
 ---
 
 ## 1. Mục Tiêu Dự Án
 
-VA QLDA là nền tảng quản lý công việc và đánh giá hiệu suất nhân sự nội bộ, được xây dựng dành riêng cho VAschools. Hệ thống giải quyết các bài toán thực tế của tổ chức:
+VA Workspace là nền tảng quản lý công việc và đánh giá hiệu suất nhân sự nội bộ, được xây dựng dành riêng cho VAschools. Hệ thống giải quyết các bài toán thực tế của tổ chức:
 
 | Bài toán | Giải pháp |
 |---|---|
@@ -25,7 +25,7 @@ VA QLDA là nền tảng quản lý công việc và đánh giá hiệu suất n
 ## 2. Các Module Chính
 
 ```
-VA QLDA
+VA Workspace
 ├── [AUTH]          Xác thực người dùng (custom guard "system")
 ├── [NOTIFICATION]  Hệ thống thông báo in-app (bell icon, drawer, preferences)
 │                   NotificationService + NotificationDispatcher (centralized fan-out)

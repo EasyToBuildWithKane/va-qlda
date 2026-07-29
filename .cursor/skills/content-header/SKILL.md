@@ -1,13 +1,13 @@
 ---
 name: content-header
 description: >-
-  VA-QLDA content header: AppLayout #header slot, PageHeader (title, subtitle,
+  VA-Workspace content header: AppLayout #header slot, PageHeader (title, subtitle,
   icon from Navigation.php, badge, back-href rules). Use when adding/editing
   Inertia pages, top bar title, removing back buttons, or aligning headers
   across modules.
 ---
 
-# Content header — VA-QLDA
+# Content header — VA-Workspace
 
 Rule: `.cursor/rules/content-header.mdc` (`alwaysApply: true`)
 

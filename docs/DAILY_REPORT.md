@@ -37,7 +37,7 @@ Trang chi tiết: `/daily-reports/{id}` (`DailyReport/Show.vue`); binding chấp
 
 ## 3. Kiến trúc backend
 
-Module mẫu **Clean Architecture** trong VA-QLDA: controller mỏng → Use Case → Domain.
+Module mẫu **Clean Architecture** trong VA-Workspace: controller mỏng → Use Case → Domain.
 
 ```
 routes/web/daily-reports.php (prefix daily-reports.)

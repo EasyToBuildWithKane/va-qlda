@@ -104,7 +104,7 @@ class EmailTemplate extends Model
         $catalog = [
             'assignee_name' => ['label' => 'Tên người nhận', 'hint' => 'Họ tên nhân viên được giao việc'],
             'task_name' => ['label' => 'Tên công việc', 'hint' => 'Tiêu đề task'],
-            'project_name' => ['label' => 'Tên dự án', 'hint' => 'Tên dự án QLDA'],
+            'project_name' => ['label' => 'Tên dự án', 'hint' => 'Tên dự án Workspace'],
             'sprint_name' => ['label' => 'Tên sprint', 'hint' => 'Sprint chứa task (hoặc —)'],
             'due_date' => ['label' => 'Hạn hoàn thành', 'hint' => 'Định dạng dd/mm/yyyy'],
             'task_url' => ['label' => 'Link mở task', 'hint' => 'URL deep-link vào tab Sprint'],

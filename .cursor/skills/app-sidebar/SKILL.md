@@ -1,13 +1,13 @@
 ---
 name: app-sidebar
 description: >-
-  VA-QLDA admin sidebar (Vue): AppChrome shell, rail/expand, mobile drawer, group
+  VA-Workspace admin sidebar (Vue): AppChrome shell, rail/expand, mobile drawer, group
   accordion, rail flyout/tooltip, nav from backend Navigation, useAppSidebar.
   Gold: AppSidebar.vue + Layout/AppSidebar*.vue + useAppSidebar.js. Use when
   building, editing, or extending sidebar / shell navigation / layout chrome.
 ---
 
-# App sidebar (VA-QLDA)
+# App sidebar (VA-Workspace)
 
 Rule: `.cursor/rules/app-sidebar.mdc` (`alwaysApply: true`)
 
@@ -59,8 +59,8 @@ Nav data: `page.props.nav` = groups `{ key?, heading, section?, items[], default
 | `< lg` (1024) | Desktop aside ẩn; **mobile drawer** (`mobileOpen`) |
 | `≥ lg` | `AppSidebar`: `rail ? w-[5.75rem] : w-72` |
 
-- `rail` persist: `localStorage` `va-qlda.sidebar.rail` (`'1'|'0'`).
-- Group collapse persist: `va-qlda.sidebar.collapsed` (JSON array keys).
+- `rail` persist: `localStorage` `va-workspace.sidebar.rail` (`'1'|'0'`).
+- Group collapse persist: `va-workspace.sidebar.collapsed` (JSON array keys).
 - Đổi route Inertia → đóng drawer + flyout.
 - Click outside đóng flyout khi đang rail (`AppChrome` document listener).
 

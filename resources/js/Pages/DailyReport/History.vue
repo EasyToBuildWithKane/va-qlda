@@ -32,8 +32,8 @@ import { date as formatDate } from "@/composables/useFormat";
 import { exportDailyReportHistory } from "@/modules/daily-report/composables/useDailyReportHistoryExport";
 
 const PER_PAGE_OPTIONS = [5, 10, 15, 20];
-const VIEW_KEY = "va-qlda.reports.view";
-const GROUP_KEY = "va-qlda.reports.group";
+const VIEW_KEY = "va-workspace.reports.view";
+const GROUP_KEY = "va-workspace.reports.group";
 const confirmDelete = useConfirmDelete();
 const toast = useToast();
 
@@ -197,7 +197,7 @@ const {
     FILTER_CONTROLS,
 } = useVisibleFilterControls(
     HISTORY_FILTER_CONTROLS,
-    "va-qlda.reports.visible-filters.v3",
+    "va-workspace.reports.visible-filters.v3",
 );
 
 const filterPanelDdRef = ref(null);
@@ -219,7 +219,7 @@ const { panelStyle: exportPanelStyle } = useFixedDropdownAnchor(
     { width: 208, zIndex: 85 },
 );
 
-const COLS_KEY = "va-qlda.reports.columns";
+const COLS_KEY = "va-workspace.reports.columns";
 const columns = reactive([
     {
         key: "employee",

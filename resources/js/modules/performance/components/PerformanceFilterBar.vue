@@ -45,7 +45,7 @@ const {
     FILTER_CONTROLS,
 } = useVisibleFilterControls(
     FILTER_CONTROLS_DEF,
-    'va-qlda.performance.visible-filters.v3',
+    'va-workspace.performance.visible-filters.v3',
 );
 
 const filterPanelDdRef = ref(null);

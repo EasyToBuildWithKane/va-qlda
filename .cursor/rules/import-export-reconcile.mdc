@@ -4,7 +4,7 @@ globs: resources/js/composables/use*{Import,Export,Data,Risk,Sprint,Reconcile}*.
 alwaysApply: true
 ---
 
-# Nhập · Xuất · Đối soát — Production Standard (VA-QLDA)
+# Nhập · Xuất · Đối soát — Production Standard (VA-Workspace)
 
 > **Nguồn đầy đủ + sơ đồ luồng (mermaid):** `docs/IMPORT_EXPORT_RECONCILE.md`
 

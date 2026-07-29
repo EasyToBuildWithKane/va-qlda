@@ -35,7 +35,7 @@ class AiAccountSoftDeleteVisibilityTest extends TestCase
             'proposer_name' => 'Nguyễn Văn A',
             'proposer_position' => 'Developer',
             'proposer_department' => 'Phòng Công nghệ',
-            'proposal_content' => 'Team cần IDE AI cho dự án QLDA trong 6 tháng tới với đủ tính năng pair programming.',
+            'proposal_content' => 'Team cần IDE AI cho dự án Workspace trong 6 tháng tới với đủ tính năng pair programming.',
             'objectives' => "Tăng tốc phát triển.\nGiảm thời gian review code.",
             'staff_count' => 5,
             'purchase_type' => 'new',

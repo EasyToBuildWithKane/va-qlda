@@ -1,6 +1,6 @@
 # KNOWLEDGE BASE — Module Tri Thức
 
-> Wiki nội bộ kiểu Viblo / Notion Wiki / Confluence (phiên bản đơn giản), tích hợp trong VA-QLDA (Laravel 10 + Inertia + Vue 3).
+> Wiki nội bộ kiểu Viblo / Notion Wiki / Confluence (phiên bản đơn giản), tích hợp trong VA-Workspace (Laravel 10 + Inertia + Vue 3).
 > **Trạng thái:** ✅ Triển khai v1 (2026-06-14) — migrations, CRUD bài viết, tìm kiếm, file. Chi tiết route: `routes/web/knowledge-base.php` prefix `knowledge-base.`.
 
 ---
@@ -204,7 +204,7 @@ draft ──publish──→ published ──archive──→ archived
 | Tác giả | **Nguyễn Anh Khoa** — `khoana@hcm.vaschools.edu.vn` (`Employee` `EMP-KHOANA`, tạo nếu chưa có) |
 | Trạng thái | `published` |
 | Danh mục | Theo prefix file (vd. `docs/AI_*` → `ai-automation`, `_dev/` → `internal-docs`) |
-| Tag | `VA-QLDA`, `Tài liệu kỹ thuật`, … (+ `Tiếng Việt` cho `_dev/vi/`) |
+| Tag | `VA-Workspace`, `Tài liệu kỹ thuật`, … (+ `Tiếng Việt` cho `_dev/vi/`) |
 
 Chạy: `php artisan db:seed --class=KnowledgeBaseSeeder` (sau migration KB). Nội dung bài có dòng *Nguồn repository: …* trỏ file gốc.
 
@@ -360,9 +360,9 @@ Tests: `tests/Feature/*` KB policy/CRUD; E2E `tests/e2e/knowledge-base.spec.js`.
 
 ---
 
-## 12. Công nghệ (điều chỉnh theo VA-QLDA)
+## 12. Công nghệ (điều chỉnh theo VA-Workspace)
 
-| Đề xuất ban đầu | Trong VA-QLDA |
+| Đề xuất ban đầu | Trong VA-Workspace |
 |---|---|
 | Laravel 12 | Laravel 10 |
 | React / Nuxt | Vue 3 + Inertia |

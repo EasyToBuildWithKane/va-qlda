@@ -1,4 +1,4 @@
-# Daily Report Domain — VA-QLDA
+# Daily Report Domain — VA-Workspace
 
 Implement hoặc fix Daily Report features dùng Clean Architecture (Application Use Cases, Domain models).
 

@@ -135,7 +135,7 @@ class KnowledgeBaseSeeder extends Seeder
             ['name' => 'Dev ops', 'slug' => 'dev-ops'],
             ['name' => 'Onboarding', 'slug' => 'onboarding'],
             ['name' => 'Tiếng Việt', 'slug' => 'tieng-viet'],
-            ['name' => 'VA-QLDA', 'slug' => 'va-qlda'],
+            ['name' => 'VA-Workspace', 'slug' => 'va-workspace'],
         ];
 
         foreach ($tags as $row) {
@@ -209,7 +209,7 @@ class KnowledgeBaseSeeder extends Seeder
      */
     private function tagsForPath(string $relativePath): array
     {
-        $tags = ['VA-QLDA', 'Tài liệu kỹ thuật'];
+        $tags = ['VA-Workspace', 'Tài liệu kỹ thuật'];
 
         if (str_starts_with($relativePath, '_dev/vi/')) {
             $tags[] = 'Tiếng Việt';

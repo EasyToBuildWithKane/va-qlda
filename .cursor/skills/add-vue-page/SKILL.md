@@ -1,12 +1,12 @@
 ---
 name: add-vue-page
 description: >-
-  Adds or extends Vue 3 Inertia pages and components in VA-QLDA. Use when
+  Adds or extends Vue 3 Inertia pages and components in VA-Workspace. Use when
   creating Pages, feature components, composables, modals, or wiring AppLayout
   and permissions.
 ---
 
-# Add Vue Page / UI — VA-QLDA
+# Add Vue Page / UI — VA-Workspace
 
 > Frontend structure post-refactor — see `docs/FRONTEND_STRUCTURE.md`.
 

@@ -19,7 +19,7 @@ class ProjectCatalog
     {
         return [
             ['id' => 1, 'name' => 'Cổng thông tin VAschools', 'code' => 'PORTAL', 'color' => 'brand'],
-            ['id' => 2, 'name' => 'Ứng dụng Quản lý dự án', 'code' => 'QLDA', 'color' => 'sky'],
+            ['id' => 2, 'name' => 'Ứng dụng Quản lý dự án', 'code' => 'WORKSPACE', 'color' => 'sky'],
             ['id' => 3, 'name' => 'Hệ thống Tuyển sinh', 'code' => 'ADMISSION', 'color' => 'emerald'],
             ['id' => 4, 'name' => 'App Phụ huynh', 'code' => 'PARENT', 'color' => 'violet'],
             ['id' => 5, 'name' => 'Hệ thống LMS', 'code' => 'LMS', 'color' => 'amber'],

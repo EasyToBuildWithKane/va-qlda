@@ -74,7 +74,7 @@ watch(
           Đăng nhập thông qua tài khoản mail do nhà trường cung cấp
         </p>
 
-        <!-- SSO qua HRM (IdP nội bộ) — không gọi Google OAuth riêng trên QLDA -->
+        <!-- SSO qua HRM (IdP nội bộ) — không gọi Google OAuth riêng trên Workspace -->
         <div
           v-if="ssoEnabled"
           class="mt-8 flex flex-col items-center gap-3"

@@ -32,7 +32,7 @@ const RISK_FILTER_CONTROLS_DEF = [
     { key: 'severity', label: 'Mức độ', default: false },
     { key: 'owner', label: 'Người phụ trách', default: false },
 ];
-const VISIBLE_FILTERS_KEY = 'va-qlda.project-risks.visible-filters.v2';
+const VISIBLE_FILTERS_KEY = 'va-workspace.project-risks.visible-filters.v2';
 const FILTER_CONTROL_CLASS = 'input h-10 w-full text-sm dark:border-slate-600 dark:bg-slate-800';
 
 const TERMINAL_STATUS = new Set(['resolved', 'closed']);

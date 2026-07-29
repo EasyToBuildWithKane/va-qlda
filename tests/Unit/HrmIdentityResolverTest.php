@@ -143,7 +143,7 @@ class HrmIdentityResolverTest extends TestCase
             'code' => 'NV400',
             'hrm_employee_uuid' => $uuid,
             'meta' => [
-                'bio' => 'Giới thiệu QLDA',
+                'bio' => 'Giới thiệu Workspace',
                 'skill_details' => [['name' => 'Vue', 'level' => 4]],
                 'department_name' => 'Cũ',
             ],
@@ -170,7 +170,7 @@ class HrmIdentityResolverTest extends TestCase
 
         $fresh = (new HrmIdentityResolver(new HrmApiClient))->refreshEmployeeIfLinked($employee)->fresh();
 
-        $this->assertSame('Giới thiệu QLDA', $fresh->meta['bio']);
+        $this->assertSame('Giới thiệu Workspace', $fresh->meta['bio']);
         $this->assertSame(4, $fresh->meta['skill_details'][0]['level']);
         $this->assertSame('Công nghệ', $fresh->meta['department_name']);
         $this->assertSame('VAS', $fresh->meta['company_name']);

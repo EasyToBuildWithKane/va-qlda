@@ -220,7 +220,7 @@ onBeforeUnmount(() => {
 
         <!-- ── Footer: app version ── -->
         <div class="border-t border-slate-100 bg-slate-50/70 px-4 py-2.5 flex items-center justify-between">
-          <span class="text-[10.5px] text-slate-400">VAschools QLDA · v1.0</span>
+          <span class="text-[10.5px] text-slate-400">VAschools Workspace · v1.0</span>
           <span class="text-[10.5px] text-slate-400">Phòng Công nghệ</span>
         </div>
       </div>

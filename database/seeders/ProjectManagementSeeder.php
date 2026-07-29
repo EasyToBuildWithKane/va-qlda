@@ -33,15 +33,15 @@ class ProjectManagementSeeder extends Seeder
 
         // --- Look up showcase projects by code (robust against re-seeds) ---
         $portal = Project::where('code', 'PORTAL')->first();
-        $qlda = Project::where('code', 'QLDA')->first();
-        if (! $portal || ! $qlda) {
+        $workspace = Project::where('code', 'WORKSPACE')->first();
+        if (! $portal || ! $workspace) {
             return; // ProjectSeeder hasn't run; nothing to enrich.
         }
 
         // Assign every catalog project to a department.
         $deptByProject = [
             'PORTAL' => 'PB-PT',
-            'QLDA' => 'PB-PT',
+            'WORKSPACE' => 'PB-PT',
             'ADMISSION' => 'PB-TK',
             'PARENT' => 'PB-PT',
             'LMS' => 'PB-PT',
@@ -58,7 +58,7 @@ class ProjectManagementSeeder extends Seeder
         // Kanban has cards in every column out of the box.
         $typeByProject = [
             'PORTAL' => 'deployment',
-            'QLDA' => 'rnd',
+            'WORKSPACE' => 'rnd',
             'ADMISSION' => 'deployment',
             'PARENT' => 'rnd',
             'LMS' => 'rnd',
@@ -80,7 +80,7 @@ class ProjectManagementSeeder extends Seeder
             'budget' => 120_000_000,
             'manager_id' => $team['lead']->id,
         ]);
-        $qlda->update([
+        $workspace->update([
             'description' => 'Ứng dụng quản lý dự án nội bộ của Phòng Công nghệ.',
             'status' => ProjectStatus::Active->value,
             'type' => 'rnd',
@@ -98,21 +98,21 @@ class ProjectManagementSeeder extends Seeder
         $this->addMember($portal, $team['qa'], 'qa', RateType::Hourly, 60_000);
         $this->addMember($portal, $team['lead'], 'pm', RateType::Monthly, 30_000_000);
 
-        $this->addMember($qlda, $team['member'], 'developer', RateType::Hourly, 80_000);
-        $this->addMember($qlda, $team['designer'], 'designer', RateType::Hourly, 65_000);
-        $this->addMember($qlda, $team['admin'], 'pm', RateType::Monthly, 35_000_000);
+        $this->addMember($workspace, $team['member'], 'developer', RateType::Hourly, 80_000);
+        $this->addMember($workspace, $team['designer'], 'designer', RateType::Hourly, 65_000);
+        $this->addMember($workspace, $team['admin'], 'pm', RateType::Monthly, 35_000_000);
 
         // --- Sprints --------------------------------------------------------
         $portalSprint1 = Sprint::create(['project_id' => $portal->id, 'name' => 'Sprint 1 — Nền tảng',  'goal' => 'Khung dự án & xác thực',   'status' => 'completed', 'start_date' => (clone $base)->subDays(10), 'end_date' => (clone $base)->addDays(4),  'sort_order' => 1]);
         $portalSprint2 = Sprint::create(['project_id' => $portal->id, 'name' => 'Sprint 2 — Tính năng', 'goal' => 'Trang chủ & thông báo',    'status' => 'active',    'start_date' => (clone $base)->addDays(5),  'end_date' => (clone $base)->addDays(18), 'sort_order' => 2]);
-        $qldaSprint1 = Sprint::create(['project_id' => $qlda->id,   'name' => 'Sprint 1 — MVP',        'goal' => 'Quản lý dự án cơ bản',    'status' => 'active',    'start_date' => (clone $base)->subDays(5),  'end_date' => (clone $base)->addDays(10), 'sort_order' => 1]);
+        $workspaceSprint1 = Sprint::create(['project_id' => $workspace->id,   'name' => 'Sprint 1 — MVP',        'goal' => 'Quản lý dự án cơ bản',    'status' => 'active',    'start_date' => (clone $base)->subDays(5),  'end_date' => (clone $base)->addDays(10), 'sort_order' => 1]);
 
         // --- Epics ----------------------------------------------------------
         $epicAuth = Epic::firstOrCreate(['project_id' => $portal->id, 'name' => 'Xác thực & phân quyền'], ['color' => 'violet']);
         $epicHome = Epic::firstOrCreate(['project_id' => $portal->id, 'name' => 'Trang chủ'], ['color' => 'sky']);
         $epicNotif = Epic::firstOrCreate(['project_id' => $portal->id, 'name' => 'Thông báo'], ['color' => 'amber']);
-        $epicPm = Epic::firstOrCreate(['project_id' => $qlda->id,   'name' => 'Quản lý dự án cơ bản'], ['color' => 'emerald']);
-        $epicReport = Epic::firstOrCreate(['project_id' => $qlda->id,   'name' => 'Báo cáo & thống kê'], ['color' => 'rose']);
+        $epicPm = Epic::firstOrCreate(['project_id' => $workspace->id,   'name' => 'Quản lý dự án cơ bản'], ['color' => 'emerald']);
+        $epicReport = Epic::firstOrCreate(['project_id' => $workspace->id,   'name' => 'Báo cáo & thống kê'], ['color' => 'rose']);
 
         // --- Tasks (scheduled for the Gantt) --------------------------------
         $t1 = $this->task($portal, $portalSprint1, 'Thiết lập kiến trúc & CI', $team['backend'], $team['lead'], (clone $base)->subDays(10), (clone $base)->subDays(6), 'done', 'high', 100, 16, $epicAuth->id);
@@ -125,9 +125,9 @@ class ProjectManagementSeeder extends Seeder
         $t3->dependencies()->attach($t2->id);
         $t5->dependencies()->attach([$t3->id, $t4->id]);
 
-        $q1 = $this->task($qlda, $qldaSprint1, 'Mô hình dữ liệu dự án', $team['member'], $team['admin'], (clone $base)->subDays(5), (clone $base)->subDays(1), 'done', 'high', 100, 14, $epicPm->id);
-        $q2 = $this->task($qlda, $qldaSprint1, 'Biểu đồ Gantt & timeline', $team['member'], $team['admin'], (clone $base)->addDays(0), (clone $base)->addDays(6), 'in_progress', 'urgent', 60, 20, $epicReport->id);
-        $q3 = $this->task($qlda, $qldaSprint1, 'Giao diện bảng Kanban', $team['designer'], $team['admin'], (clone $base)->addDays(2), (clone $base)->addDays(9), 'in_progress', 'medium', 30, 16, $epicPm->id);
+        $q1 = $this->task($workspace, $workspaceSprint1, 'Mô hình dữ liệu dự án', $team['member'], $team['admin'], (clone $base)->subDays(5), (clone $base)->subDays(1), 'done', 'high', 100, 14, $epicPm->id);
+        $q2 = $this->task($workspace, $workspaceSprint1, 'Biểu đồ Gantt & timeline', $team['member'], $team['admin'], (clone $base)->addDays(0), (clone $base)->addDays(6), 'in_progress', 'urgent', 60, 20, $epicReport->id);
+        $q3 = $this->task($workspace, $workspaceSprint1, 'Giao diện bảng Kanban', $team['designer'], $team['admin'], (clone $base)->addDays(2), (clone $base)->addDays(9), 'in_progress', 'medium', 30, 16, $epicPm->id);
         $q2->dependencies()->attach($q1->id);
         $q3->dependencies()->attach($q1->id);
 
@@ -142,12 +142,12 @@ class ProjectManagementSeeder extends Seeder
 
         // --- Blockers -------------------------------------------------------
         Blocker::create(['code' => 'BLK-0001', 'project_id' => $portal->id, 'task_id' => $t3->id, 'title' => 'Thiếu API dữ liệu tin tức',       'description' => 'Chưa có endpoint cung cấp tin tức cho trang chủ.',      'severity' => 'high',   'status' => 'open',        'raised_by_id' => $team['frontend']->id, 'owner_id' => $team['backend']->id, 'raised_at' => Carbon::now()->subDays(2)]);
-        Blocker::create(['code' => 'BLK-0002', 'project_id' => $qlda->id,   'title' => 'Hiệu năng truy vấn timeline', 'description' => 'Truy vấn Gantt chậm khi nhiều công việc.',               'severity' => 'medium', 'status' => 'in_progress', 'raised_by_id' => $team['member']->id,   'owner_id' => $team['admin']->id,   'raised_at' => Carbon::now()->subDays(1)]);
+        Blocker::create(['code' => 'BLK-0002', 'project_id' => $workspace->id,   'title' => 'Hiệu năng truy vấn timeline', 'description' => 'Truy vấn Gantt chậm khi nhiều công việc.',               'severity' => 'medium', 'status' => 'in_progress', 'raised_by_id' => $team['member']->id,   'owner_id' => $team['admin']->id,   'raised_at' => Carbon::now()->subDays(1)]);
 
         // --- Feedback (người dùng ↔ người sửa) ------------------------------
         $fb1 = Feedback::create(['project_id' => $portal->id, 'category' => 'feature_request', 'title' => 'Thêm đăng nhập bằng Google',           'description' => 'Mong có đăng nhập nhanh bằng tài khoản Google.',   'rating' => 4, 'priority' => 'medium', 'status' => 'under_review', 'reporter_name' => 'Cô Lan (Giáo viên)', 'reporter_email' => 'lan@example.com',  'assignee_id' => $team['lead']->id]);
         $fb2 = Feedback::create(['project_id' => $portal->id, 'category' => 'complaint',        'title' => 'Trang tải chậm vào giờ cao điểm',      'description' => 'Buổi sáng truy cập rất chậm.',                      'rating' => 2, 'priority' => 'high',   'status' => 'in_progress',  'reporter_name' => 'Phụ huynh Trần',     'reporter_email' => 'tran@example.com', 'assignee_id' => $team['backend']->id]);
-        Feedback::create(['project_id' => $qlda->id,   'category' => 'praise',            'title' => 'Giao diện Gantt rất trực quan',         'description' => 'Rất thích biểu đồ tiến độ mới.',                   'rating' => 5, 'priority' => 'low',    'status' => 'resolved',     'reporter_employee_id' => $team['admin']->id,                                    'assignee_id' => $team['member']->id,   'resolved_at' => Carbon::now()->subDay()]);
+        Feedback::create(['project_id' => $workspace->id,   'category' => 'praise',            'title' => 'Giao diện Gantt rất trực quan',         'description' => 'Rất thích biểu đồ tiến độ mới.',                   'rating' => 5, 'priority' => 'low',    'status' => 'resolved',     'reporter_employee_id' => $team['admin']->id,                                    'assignee_id' => $team['member']->id,   'resolved_at' => Carbon::now()->subDay()]);
 
         $fb1->comments()->create(['employee_id' => $team['lead']->id,    'body' => 'Cảm ơn góp ý, đã đưa vào kế hoạch sprint sau.']);
         $fb2->comments()->create(['employee_id' => $team['backend']->id, 'body' => 'Đang tối ưu cache, dự kiến cải thiện trong tuần này.']);

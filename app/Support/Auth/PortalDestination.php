@@ -8,7 +8,7 @@ use App\Providers\RouteServiceProvider;
 /**
  * Post-login landing path, resolved by the portal a user signed in through.
  *
- *   - Cổng /tech/login (whitelist)  → công cụ QLDA (/dashboard).
+ *   - Cổng /tech/login (whitelist)  → công cụ Workspace (/dashboard).
  *   - Cổng /login (portal, all org) → /dashboard khi landing CN bị ẩn tạm;
  *     khi `va.congnghe_landing_public` = true → /congnghe (hoặc /demo_1).
  */
@@ -20,7 +20,7 @@ final class PortalDestination
             return RouteServiceProvider::HOME;
         }
 
-        // Tạm thời: portal login vào QLDA; không đưa user vào landing demo.
+        // Tạm thời: portal login vào Workspace; không đưa user vào landing demo.
         if (! config('va.congnghe_landing_public')) {
             return RouteServiceProvider::HOME;
         }
@@ -29,9 +29,9 @@ final class PortalDestination
     }
 
     /**
-     * Có thể rời landing /congnghe để vào công cụ QLDA (dashboard, dự án, …).
+     * Có thể rời landing /congnghe để vào công cụ Workspace (dashboard, dự án, …).
      */
-    public static function canEnterQlda(SystemAccount $account): bool
+    public static function canEnterWorkspace(SystemAccount $account): bool
     {
         if (TechLoginAccess::isAllowedEmail($account->employee?->email)) {
             return true;
@@ -43,7 +43,7 @@ final class PortalDestination
     /**
      * URL đích khi bấm «Vào hệ thống» từ landing.
      */
-    public static function qldaHomePath(SystemAccount $account): string
+    public static function workspaceHomePath(SystemAccount $account): string
     {
         return RouteServiceProvider::HOME;
     }

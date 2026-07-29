@@ -41,7 +41,7 @@ Map checklist theo **Laravel** — xem `.cursor/rules/backend-code-review-isc.md
 
 Checklist đầy đủ: [reference.md](reference.md)
 
-**VA-QLDA:** Inertia web chủ đạo — ISC 3.x JSON envelope áp dụng cho endpoint JSON (`NotificationController`, tương lai `api.php`); Inertia redirect + `with('success'|'error')` là hợp lệ.
+**VA-Workspace:** Inertia web chủ đạo — ISC 3.x JSON envelope áp dụng cho endpoint JSON (`NotificationController`, tương lai `api.php`); Inertia redirect + `with('success'|'error')` là hợp lệ.
 
 ## 4. Format kết quả (bắt buộc)
 

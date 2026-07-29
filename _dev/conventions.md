@@ -1,4 +1,4 @@
-# Conventions — VA-QLDA
+# Conventions — VA-Workspace
 
 Coding standards enforced by tooling and project rules.
 

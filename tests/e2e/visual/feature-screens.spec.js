@@ -71,13 +71,13 @@ test.describe('Visual — snapshot theo màn hình', () => {
             });
         }
 
-        test('project-show-qlda', async ({ page }) => {
+        test('project-show-workspace', async ({ page }) => {
             await page.goto('/projects');
             await page.waitForLoadState('networkidle');
-            await page.getByRole('link', { name: /QLDA|Quản lý dự án/i }).first().click();
+            await page.getByRole('link', { name: /WORKSPACE|Quản lý dự án/i }).first().click();
             await page.waitForURL(/\/projects\/\d+/);
             await page.waitForLoadState('networkidle');
-            await captureFeatureScreen(page, 'admin-project-show-qlda');
+            await captureFeatureScreen(page, 'admin-project-show-workspace');
         });
     });
 });

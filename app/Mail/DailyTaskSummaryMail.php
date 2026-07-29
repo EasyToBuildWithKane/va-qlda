@@ -35,7 +35,7 @@ class DailyTaskSummaryMail extends Mailable implements ShouldQueue
         $vars = $this->templateVars();
         $subject = $template?->is_active
             ? $template->renderSubject($vars)
-            : '[QLDA] Tổng hợp '.now()->format('d/m/Y').' — '.$this->project->name;
+            : '[Workspace] Tổng hợp '.now()->format('d/m/Y').' — '.$this->project->name;
 
         return new Envelope(
             subject: $subject,

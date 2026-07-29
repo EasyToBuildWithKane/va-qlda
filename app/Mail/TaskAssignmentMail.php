@@ -28,7 +28,7 @@ class TaskAssignmentMail extends Mailable implements ShouldQueue
         $vars = $this->templateVars();
         $subject = $template?->is_active
             ? $template->renderSubject($vars)
-            : '[QLDA] Giao việc: '.$this->task->title;
+            : '[Workspace] Giao việc: '.$this->task->title;
 
         return new Envelope(
             subject: $subject,

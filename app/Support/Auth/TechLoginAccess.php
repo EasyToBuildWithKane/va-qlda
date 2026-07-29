@@ -3,7 +3,7 @@
 namespace App\Support\Auth;
 
 /**
- * Emails allowed to sign in via /tech/login (VA QLDA — Phòng Công nghệ).
+ * Emails allowed to sign in via /tech/login (VA Workspace — Phòng Công nghệ).
  */
 final class TechLoginAccess
 {

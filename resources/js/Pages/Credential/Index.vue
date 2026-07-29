@@ -92,7 +92,7 @@ const {
     hasFilterRow,
     persistVisibleFilters,
     openFilterPanel,
-} = useVisibleFilterControls(FILTER_CONTROLS, 'va-qlda.credentials.visible-filters.v1');
+} = useVisibleFilterControls(FILTER_CONTROLS, 'va-workspace.credentials.visible-filters.v1');
 
 const {
     visibleCols,
@@ -102,7 +102,7 @@ const {
     openColPanel,
     isColVisible,
     TABLE_COLUMNS,
-} = useVisibleColumns(CREDENTIAL_TABLE_COLUMNS, 'va-qlda.credentials.columns.v1');
+} = useVisibleColumns(CREDENTIAL_TABLE_COLUMNS, 'va-workspace.credentials.columns.v1');
 
 const tableColspan = computed(() => visibleColumnCount.value + 1);
 

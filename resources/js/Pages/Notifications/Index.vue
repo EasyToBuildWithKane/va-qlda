@@ -70,7 +70,7 @@ const {
     persistVisibleFilters,
     openFilterPanel,
     FILTER_CONTROLS: filterControlDefs,
-} = useVisibleFilterControls(FILTER_CONTROLS, 'va-qlda.notifications-inbox.visible-filters.v1');
+} = useVisibleFilterControls(FILTER_CONTROLS, 'va-workspace.notifications-inbox.visible-filters.v1');
 
 function openFilterPanelSafe() {
     openFilterPanel();

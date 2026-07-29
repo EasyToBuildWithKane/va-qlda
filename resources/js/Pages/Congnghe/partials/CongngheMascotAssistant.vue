@@ -38,7 +38,7 @@ const sectionTips = {
     },
     'thanh-tuu': {
         lines: [
-            'Các con số này lấy trực tiếp từ QLDA — cập nhật theo dữ liệu thật.',
+            'Các con số này lấy trực tiếp từ Workspace — cập nhật theo dữ liệu thật.',
             'Vuốt ngang trên điện thoại để xem đủ chỉ số nhé.',
         ],
     },

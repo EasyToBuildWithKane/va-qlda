@@ -96,7 +96,7 @@ TipTap: không `v-html` raw user markdown.
 **🔴 Insecure Token Storage — OWASP A02**
 ```
 // ❌ localStorage.setItem('accessToken', token)
-// ✅ VA-QLDA: session cookie Laravel — auth qua usePage().props.auth
+// ✅ VA-Workspace: session cookie Laravel — auth qua usePage().props.auth
 ```
 
 **🔴 CSRF — OWASP A01**

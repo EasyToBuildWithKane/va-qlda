@@ -26,7 +26,7 @@ git status
 | **A — ISC** | Đặt tên, format, comment, bảo mật, SOLID/DRY/KISS/DI, API naming, response, error code, timeout |
 | **B — Lỗi thường gặp** | SQLi, IDOR, mass assignment, SSRF, secrets, CSRF, N+1, index, transaction, race, idempotency, rate limit, log PII, circuit breaker, pagination, error leak |
 
-**VA-QLDA:** Inertia web chủ đạo — ISC 3.x JSON envelope áp dụng cho endpoint JSON (`NotificationController`); Inertia redirect + `with('success'|'error')` là hợp lệ.
+**VA-Workspace:** Inertia web chủ đạo — ISC 3.x JSON envelope áp dụng cho endpoint JSON (`NotificationController`); Inertia redirect + `with('success'|'error')` là hợp lệ.
 
 ## 4. Format kết quả (bắt buộc)
 
@@ -66,7 +66,7 @@ Mỗi issue gồm: (1) file + dòng từ diff (2) tiêu chuẩn ISC/OWASP/Larave
 
 **ISC 1.2 — Đặt tên**
 - Biến: `camelCase`; class `PascalCase`; method PHP `camelCase`; const `ALL_CAPS`
-- Enum values: `ALL_CAPS` hoặc `PascalCase` nhất quán — VA-QLDA: `app/Support/Enums/*` backed string
+- Enum values: `ALL_CAPS` hoặc `PascalCase` nhất quán — VA-Workspace: `app/Support/Enums/*` backed string
 
 **ISC 1.3 — Format**
 - Không hardcode — timeout, retry, page size từ `config/` / enum

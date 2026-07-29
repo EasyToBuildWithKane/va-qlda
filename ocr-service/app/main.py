@@ -1,4 +1,4 @@
-"""FastAPI entrypoint for the VA-QLDA proposal OCR service."""
+"""FastAPI entrypoint for the VA-Workspace proposal OCR service."""
 
 import logging
 import os
@@ -16,7 +16,7 @@ logging.basicConfig(level=logging.INFO)
 ALLOWED_MIME_TYPES = {"application/pdf", "image/jpeg", "image/png"}
 MAX_FILE_BYTES = 10 * 1024 * 1024
 
-app = FastAPI(title="VA-QLDA Proposal OCR", version="1.0.0")
+app = FastAPI(title="VA-Workspace Proposal OCR", version="1.0.0")
 extractor = GeminiExtractor()
 
 

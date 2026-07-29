@@ -8,7 +8,7 @@ const props = defineProps({
     profile: { type: Object, required: true },
 });
 
-/** QLDA-only — không lặp quyền (Hero) / cấp bậc (Hero badge). */
+/** Workspace-only — không lặp quyền (Hero) / cấp bậc (Hero badge). */
 const fields = computed(() => {
     const p = props.profile;
     return [

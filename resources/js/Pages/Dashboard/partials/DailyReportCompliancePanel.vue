@@ -70,7 +70,7 @@ const {
     setPerPage,
     goToPage,
     PER_PAGE_OPTIONS,
-} = useClientPagination(peopleAll, 'va-qlda.dashboard.compliance.perPage', 5);
+} = useClientPagination(peopleAll, 'va-workspace.dashboard.compliance.perPage', 5);
 
 const kindBadge = {
     completed: 'bg-emerald-50 text-emerald-700',

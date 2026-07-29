@@ -1,10 +1,10 @@
 ---
-description: Laravel — Controller, Request, Policy, Enum, Service, routes VA-QLDA
+description: Laravel — Controller, Request, Policy, Enum, Service, routes VA-Workspace
 globs: app/**/*.php,routes/**/*.php,database/**/*.php
 alwaysApply: false
 ---
 
-# Laravel Backend — VA-QLDA
+# Laravel Backend — VA-Workspace
 
 ## Controller (mỏng)
 

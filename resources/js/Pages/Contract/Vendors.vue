@@ -69,7 +69,7 @@ const {
     persistVisibleFilters,
     openFilterPanel,
     FILTER_CONTROLS,
-} = useVisibleFilterControls(VENDOR_FILTER_CONTROLS, 'va-qlda.vendors.visible-filters.v1');
+} = useVisibleFilterControls(VENDOR_FILTER_CONTROLS, 'va-workspace.vendors.visible-filters.v1');
 
 const {
     visibleCols,
@@ -78,7 +78,7 @@ const {
     openColPanel,
     isColVisible,
     TABLE_COLUMNS,
-} = useVisibleColumns(VENDOR_TABLE_COLUMNS, 'va-qlda.vendors.columns.v1');
+} = useVisibleColumns(VENDOR_TABLE_COLUMNS, 'va-workspace.vendors.columns.v1');
 
 const filterForm = reactive({
     q: props.filters.q ?? '',

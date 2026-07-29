@@ -1,4 +1,4 @@
-# VA-QLDA Documentation Navigator
+# VA-Workspace Documentation Navigator
 
 Tra cứu `docs/` (kiến trúc) và `_dev/` (vận hành: CLI, CI, Husky, workflows).
 

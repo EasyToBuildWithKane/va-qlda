@@ -77,7 +77,7 @@ function buildWorkbook(articles, filters) {
     const ws = {};
     const range = { s: { r: 0, c: 0 }, e: { r: 0, c: HEADERS.length - 1 } };
 
-    setCell(ws, 0, 0, 'VA-QLDA — Cơ sở tri thức', S.title);
+    setCell(ws, 0, 0, 'VA-Workspace — Cơ sở tri thức', S.title);
     setCell(ws, 1, 0, `Xuất: ${date(new Date().toISOString())} · ${filterNote(filters)} · Tối đa 200 bản ghi`, S.subtitle);
 
     const headerRow = 3;
@@ -116,7 +116,7 @@ export async function exportKbArticlesWorkbook({ params = {} }) {
 
 export function exportKbArticlesCsv(articles, filters = {}) {
     const lines = [
-        ['VA-QLDA — Cơ sở tri thức', filterNote(filters)].join(','),
+        ['VA-Workspace — Cơ sở tri thức', filterNote(filters)].join(','),
         HEADERS.join(','),
         ...(articles ?? []).map((a, i) => rowFromArticle(a, i).map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')),
     ];

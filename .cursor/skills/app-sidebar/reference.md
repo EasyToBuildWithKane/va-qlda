@@ -1,4 +1,4 @@
-# App sidebar VA-QLDA — reference
+# App sidebar VA-Workspace — reference
 
 Bổ sung cho [SKILL.md](SKILL.md).
 
@@ -20,8 +20,8 @@ Singleton `sidebarShellInstance` — lần gọi đầu tạo, sau đó reuse.
 
 Keys storage:
 
-- `va-qlda.sidebar.rail`
-- `va-qlda.sidebar.collapsed`
+- `va-workspace.sidebar.rail`
+- `va-workspace.sidebar.collapsed`
 
 `MOBILE_BREAKPOINT = 1024`.
 

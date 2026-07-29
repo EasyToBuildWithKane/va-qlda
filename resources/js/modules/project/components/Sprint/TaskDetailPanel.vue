@@ -374,7 +374,7 @@ const {
     setPerPage: setActivityPerPage,
     goToPage: goActivityPage,
     PER_PAGE_OPTIONS: ACTIVITY_PER_PAGE_OPTIONS,
-} = useClientPagination(activityItems, 'va-qlda.task.activity.perPage', 10);
+} = useClientPagination(activityItems, 'va-workspace.task.activity.perPage', 10);
 const commentList = computed(() => normalizeEntities(activeTask.value?.comments));
 const subtaskList = computed(() =>
     normalizeEntities(getDirectChildren(activeTask.value, props.allTasks)),

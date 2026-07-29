@@ -130,7 +130,7 @@ class GoogleAuthController extends Controller
             ->first();
 
         if ($employee === null) {
-            // SSOT: chưa có trên QLDA → tra HRM Public API và lazy upsert.
+            // SSOT: chưa có trên Workspace → tra HRM Public API và lazy upsert.
             $employee = $resolver->ensureEmployeeByEmail($email);
 
             if ($employee === null) {

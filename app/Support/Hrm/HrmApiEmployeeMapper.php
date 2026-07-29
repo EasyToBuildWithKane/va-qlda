@@ -96,7 +96,7 @@ final class HrmApiEmployeeMapper
     }
 
     /**
-     * Avatar từ HRM (URL tuyệt đối /avatars/{id} hoặc CDN). Null khi thiếu — không ghi đè ảnh QLDA local.
+     * Avatar từ HRM (URL tuyệt đối /avatars/{id} hoặc CDN). Null khi thiếu — không ghi đè ảnh Workspace local.
      *
      * @param  HrmApiEmployee  $payload
      */

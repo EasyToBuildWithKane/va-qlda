@@ -25,7 +25,7 @@ class LoginController extends Controller
     }
 
     /**
-     * Tech QLDA login (/tech/login) — whitelist only.
+     * Tech Workspace login (/tech/login) — whitelist only.
      */
     public function createTech(Request $request): Response
     {

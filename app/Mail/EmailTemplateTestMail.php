@@ -21,7 +21,7 @@ class EmailTemplateTestMail extends Mailable
 
     public function envelope(): Envelope
     {
-        $fromName = (string) (config('task_email.from_name') ?: config('va.app_name', 'VAschools QLDA'));
+        $fromName = (string) (config('task_email.from_name') ?: config('va.app_name', 'VAschools Workspace'));
         $fromAddress = (string) config('mail.from.address', 'hello@example.com');
 
         return new Envelope(

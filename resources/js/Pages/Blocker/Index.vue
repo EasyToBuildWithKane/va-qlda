@@ -95,7 +95,7 @@ const BLOCKER_TABLE_COLUMNS = [
     { key: 'root_cause', label: 'Nguyên nhân', default: false },
 ];
 
-const COLLAPSE_STORAGE_KEY = 'va-qlda.blockers.collapsed-groups';
+const COLLAPSE_STORAGE_KEY = 'va-workspace.blockers.collapsed-groups';
 
 function loadCollapsedGroups() {
     try {
@@ -186,7 +186,7 @@ const {
     persistVisibleFilters,
     openFilterPanel,
     FILTER_CONTROLS,
-} = useVisibleFilterControls(BLOCKER_FILTER_CONTROLS, 'va-qlda.blockers.visible-filters.v2');
+} = useVisibleFilterControls(BLOCKER_FILTER_CONTROLS, 'va-workspace.blockers.visible-filters.v2');
 
 const {
     visibleCols,
@@ -195,7 +195,7 @@ const {
     openColPanel,
     isColVisible,
     TABLE_COLUMNS,
-} = useVisibleColumns(BLOCKER_TABLE_COLUMNS, 'va-qlda.blockers.columns');
+} = useVisibleColumns(BLOCKER_TABLE_COLUMNS, 'va-workspace.blockers.columns');
 
 const focusResolution = ref(false);
 

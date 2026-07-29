@@ -19,7 +19,7 @@ export const RISK_TABLE_DEFAULT_VISIBLE = [
     'due_date',
 ];
 
-export const RISK_TABLE_COLS_KEY = 'va-qlda.risk-table.columns';
+export const RISK_TABLE_COLS_KEY = 'va-workspace.risk-table.columns';
 
 export function loadRiskTableColumns() {
     try {

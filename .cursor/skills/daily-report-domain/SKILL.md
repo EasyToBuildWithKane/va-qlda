@@ -1,12 +1,12 @@
 ---
 name: daily-report-domain
 description: >-
-  Implements or fixes Daily Report features using VA-QLDA Clean Architecture
+  Implements or fixes Daily Report features using VA-Workspace Clean Architecture
   (Application Use Cases, Domain models). Use for báo cáo ngày, submit,
   review, score, reject, or DailyReportPolicy.
 ---
 
-# Daily Report Domain — VA-QLDA
+# Daily Report Domain — VA-Workspace
 
 ## Boundaries
 

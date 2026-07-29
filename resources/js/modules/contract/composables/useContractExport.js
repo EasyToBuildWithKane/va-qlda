@@ -59,7 +59,7 @@ function buildSummarySheet(contracts) {
 
     setCell(ws, 0, 0, 'BÁO CÁO HỢP ĐỒNG — TỔNG QUAN', S.title);
     mergeRow(ws, 0, 0, 3);
-    setCell(ws, 1, 0, `Xuất ngày ${new Date().toLocaleDateString('vi-VN')} · VAschools QLDA`, S.subtitle);
+    setCell(ws, 1, 0, `Xuất ngày ${new Date().toLocaleDateString('vi-VN')} · VAschools Workspace`, S.subtitle);
     mergeRow(ws, 1, 0, 3);
 
     const kpis = [

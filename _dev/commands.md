@@ -1,4 +1,4 @@
-# CLI commands — VA-QLDA
+# CLI commands — VA-Workspace
 
 All commands run from the project root unless noted.
 

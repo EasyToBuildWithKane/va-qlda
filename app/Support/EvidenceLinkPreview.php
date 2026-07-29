@@ -43,7 +43,7 @@ class EvidenceLinkPreview
 
         try {
             $response = Http::timeout(8)
-                ->withUserAgent('VA-QLDA/1.0 (evidence-link-preview)')
+                ->withUserAgent('VA-Workspace/1.0 (evidence-link-preview)')
                 ->get($url);
 
             if (! $response->successful()) {

@@ -47,7 +47,7 @@ export function downloadReportExcel(rows, { dimensionLabel = 'Tổng hợp' } = 
 
     setCell(ws, 0, 0, `BÁO CÁO HỢP ĐỒNG — ${dimensionLabel.toUpperCase()}`, S.title);
     mergeRow(ws, 0, 0, COLS);
-    setCell(ws, 1, 0, `Xuất ngày ${new Date().toLocaleDateString('vi-VN')} · VAschools QLDA`, S.subtitle);
+    setCell(ws, 1, 0, `Xuất ngày ${new Date().toLocaleDateString('vi-VN')} · VAschools Workspace`, S.subtitle);
     mergeRow(ws, 1, 0, COLS);
 
     headers.forEach((h, c) => setCell(ws, 3, c, h, S.header));

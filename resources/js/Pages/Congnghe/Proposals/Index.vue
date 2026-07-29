@@ -45,7 +45,7 @@ const GROUP_MODES = [
     { key: 'none', label: 'Danh sách', icon: 'list', title: 'Danh sách phẳng' },
 ];
 
-const DEPT_COLLAPSE_STORAGE_KEY = 'va-qlda.congnghe-proposals.collapsed-depts';
+const DEPT_COLLAPSE_STORAGE_KEY = 'va-workspace.congnghe-proposals.collapsed-depts';
 
 function loadCollapsedDepartments() {
     try {
@@ -81,7 +81,7 @@ const {
     hasFilterRow,
     persistVisibleFilters,
     openFilterPanel,
-} = useVisibleFilterControls(FILTER_CONTROLS, 'va-qlda.congnghe-proposals.filters.v2');
+} = useVisibleFilterControls(FILTER_CONTROLS, 'va-workspace.congnghe-proposals.filters.v2');
 
 const {
     visibleCols,
@@ -90,7 +90,7 @@ const {
     openColPanel,
     isColVisible,
     TABLE_COLUMNS: columnDefs,
-} = useVisibleColumns(TABLE_COLUMNS, 'va-qlda.congnghe-proposals.columns.v1');
+} = useVisibleColumns(TABLE_COLUMNS, 'va-workspace.congnghe-proposals.columns.v1');
 
 const filterForm = reactive({
     status: props.filters.status ?? '',

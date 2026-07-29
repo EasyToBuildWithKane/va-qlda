@@ -1,4 +1,4 @@
-# VA-QLDA — Claude Code Instructions
+# VA-Workspace — Claude Code Instructions
 
 **VAschools Quản lý Dự Án** — Laravel 10 + Inertia + Vue 3 + Tailwind.
 

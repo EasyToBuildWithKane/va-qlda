@@ -296,7 +296,7 @@ const lineOptions = {
       <ActivityFeed
         :activities="activityFeed"
         :default-per-page="5"
-        per-page-storage-key="va-qlda.work-dashboard.activity.perPage"
+        per-page-storage-key="va-workspace.work-dashboard.activity.perPage"
       />
     </div>
   </AppLayout>

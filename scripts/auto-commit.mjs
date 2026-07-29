@@ -64,7 +64,7 @@ if (!generated) {
 }
 
 console.log('');
-box('VA-QLDA · Auto Commit');
+box('VA-Workspace · Auto Commit');
 console.log('');
 console.log(
     paint(C.bold, '  📦 Staged  ') +

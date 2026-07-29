@@ -1,6 +1,6 @@
 # Project memory — quick reference
 
-VA-QLDA (VAschools Quản lý Dự Án) — Laravel 10 + Vue 3 + Inertia.
+VA-Workspace (VAschools Quản lý Dự Án) — Laravel 10 + Vue 3 + Inertia.
 
 ---
 

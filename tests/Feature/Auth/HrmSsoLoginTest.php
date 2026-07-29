@@ -12,7 +12,7 @@ use OpenSSLAsymmetricKey;
 use Tests\TestCase;
 
 /**
- * SSO HRM → QLDA: /auth/hrm redirect sang HRM authorize; callback verify JWT
+ * SSO HRM → Workspace: /auth/hrm redirect sang HRM authorize; callback verify JWT
  * RS256 qua JWKS (offline) rồi mở session guard `system`. Không Google trong luồng.
  */
 class HrmSsoLoginTest extends TestCase
@@ -70,8 +70,8 @@ PEM;
         config([
             'services.hrm_sso.enabled' => true,
             'services.hrm_sso.base_url' => 'https://hrm.test',
-            'services.hrm_sso.client_id' => 'qlda',
-            'services.hrm_sso.audience' => 'qlda',
+            'services.hrm_sso.client_id' => 'workspace',
+            'services.hrm_sso.audience' => 'workspace',
             'services.hrm_sso.issuer' => 'https://hrm.test',
             'services.hrm_sso.jwks_url' => null,
         ]);
@@ -92,7 +92,7 @@ PEM;
         $this->assertStringStartsWith('https://hrm.test/sso/authorize?', (string) $location);
 
         parse_str((string) parse_url((string) $location, PHP_URL_QUERY), $query);
-        $this->assertSame('qlda', $query['client_id']);
+        $this->assertSame('workspace', $query['client_id']);
         $this->assertSame(route('auth.hrm.callback'), $query['redirect_uri']);
         $this->assertSame($state, $query['state']);
     }
@@ -239,7 +239,7 @@ PEM;
         $now = time();
         $claims = array_merge([
             'iss' => 'https://hrm.test',
-            'aud' => 'qlda',
+            'aud' => 'workspace',
             'sub' => (string) Str::uuid(),
             'jti' => (string) Str::uuid(),
             'iat' => $now,

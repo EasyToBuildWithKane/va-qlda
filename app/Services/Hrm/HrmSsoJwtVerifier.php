@@ -11,7 +11,7 @@ use RuntimeException;
  *
  * Verify offline qua JWKS ({BASE}/.well-known/jwks.json, cache ~1h, khớp
  * `kid` header — miss thì refetch một lần để đỡ xoay khóa). Bắt buộc khớp
- * `aud` (= client qlda), `iss` (= SSO_ISSUER phía HRM) và `exp`.
+ * `aud` (= client workspace), `iss` (= SSO_ISSUER phía HRM) và `exp`.
  *
  * JWT SSO user ≠ HRM_API_TOKEN (Sanctum M2M) — không dùng lẫn.
  */

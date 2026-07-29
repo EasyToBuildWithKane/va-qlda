@@ -15,7 +15,7 @@ const SAMPLE_TASKS_TABLE = '<table style="width:100%;border:1px solid #e2e8f0;bo
 export const EMAIL_TEMPLATE_SAMPLE_VARS = {
     assignee_name: 'Nguyễn Văn A',
     task_name: 'Thiết kế màn hình Sprint',
-    project_name: 'Dự án QLDA mẫu',
+    project_name: 'Dự án Workspace mẫu',
     sprint_name: 'Sprint 1',
     due_date: '20/06/2026',
     task_url: '#',
@@ -35,7 +35,7 @@ export function replaceTemplatePlaceholders(text, vars = EMAIL_TEMPLATE_SAMPLE_V
 /**
  * Mirrors {@see EmailBrandLayout} for admin live preview.
  */
-export function wrapEmailBrandPreview(innerHtml, { appName = 'VAschools QLDA', preheader = '' } = {}) {
+export function wrapEmailBrandPreview(innerHtml, { appName = 'VAschools Workspace', preheader = '' } = {}) {
     const year = new Date().getFullYear();
     const pre = preheader
         ? `<div style="display:none;max-height:0;overflow:hidden;">${preheader.replace(/<[^>]+>/g, '')}</div>`
@@ -48,7 +48,7 @@ export function wrapEmailBrandPreview(innerHtml, { appName = 'VAschools QLDA', p
         + '<tr><td align="center"><table role="presentation" width="100%" style="max-width:560px;">'
         + '<tr><td style="background:#9A0036;border-radius:12px 12px 0 0;padding:16px 20px;">'
         + `<p style="margin:0;font-size:17px;font-weight:700;color:#fff;">${appName}</p>`
-        + '<p style="margin:4px 0 0;font-size:11px;color:rgba(255,255,255,0.85);">Thông báo công việc · QLDA</p>'
+        + '<p style="margin:4px 0 0;font-size:11px;color:rgba(255,255,255,0.85);">Thông báo công việc · Workspace</p>'
         + '</td></tr>'
         + '<tr><td style="background:#fff;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 12px 12px;padding:20px;font-size:14px;line-height:1.55;color:#1e293b;">'
         + innerHtml

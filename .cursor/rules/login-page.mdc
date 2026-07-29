@@ -4,7 +4,7 @@ globs: resources/js/Pages/Auth/Login.vue,app/Http/Controllers/Auth/**/*.php,rout
 alwaysApply: false
 ---
 
-# Login page (VA-QLDA)
+# Login page (VA-Workspace)
 
 Luồng đăng nhập web trên UI (`Login.vue`): **SSO HRM** khi `HRM_SSO_ENABLED`, không thì **Google**. Không thêm form username/password trên trang login.
 
@@ -22,7 +22,7 @@ Luồng đăng nhập web trên UI (`Login.vue`): **SSO HRM** khi `HRM_SSO_ENABL
 ## UI & assets (`public/images/`)
 
 - **Header login:** `/images/logo-2.png` · **Favicon tab:** `/images/favicon.png` (`app.blade.php`).
-- **Nút đăng nhập:** icon `/images/google.png` (nút tròn `p-2`) — SSO bật → `ssoAuthUrl`; SSO tắt → `googleAuthUrl` (`googleEnabled` bật/tắt link). Không gọi Google OAuth trên QLDA khi SSO bật.
+- **Nút đăng nhập:** icon `/images/google.png` (nút tròn `p-2`) — SSO bật → `ssoAuthUrl`; SSO tắt → `googleAuthUrl` (`googleEnabled` bật/tắt link). Không gọi Google OAuth trên Workspace khi SSO bật.
 - **Copy thẻ:** «Đăng nhập thông qua tài khoản mail do nhà trường cung cấp».
 - **Watermark:** `/images/background/background-logo.png` — `brightness-0 invert` + `opacity-100`.
 

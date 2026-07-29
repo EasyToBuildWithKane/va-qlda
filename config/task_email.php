@@ -9,7 +9,7 @@ return [
     */
     'enabled' => env('TASK_EMAIL_ENABLED', false),
 
-    'from_name' => env('MAIL_FROM_NAME', 'VAschools QLDA'),
+    'from_name' => env('MAIL_FROM_NAME', 'VAschools Workspace'),
 
     'notify_on_assign' => true,
 

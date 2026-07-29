@@ -95,7 +95,7 @@ const {
     persistVisibleFilters,
     openFilterPanel,
     FILTER_CONTROLS,
-} = useVisibleFilterControls(MY_WORK_FILTER_CONTROLS, 'va-qlda.my-work.visible-filters.v1');
+} = useVisibleFilterControls(MY_WORK_FILTER_CONTROLS, 'va-workspace.my-work.visible-filters.v1');
 
 const {
     visibleFilters: teamVisibleFilters,
@@ -105,7 +105,7 @@ const {
     persistVisibleFilters: persistTeamVisibleFilters,
     openFilterPanel: openTeamFilterPanel,
     FILTER_CONTROLS: TEAM_FILTER_CONTROLS_LIST,
-} = useVisibleFilterControls(TEAM_FILTER_CONTROLS, 'va-qlda.my-work.team-visible-filters.v1');
+} = useVisibleFilterControls(TEAM_FILTER_CONTROLS, 'va-workspace.my-work.team-visible-filters.v1');
 
 function onToolbarClickOutside(e) {
     if (e.target.closest?.('[data-filter-visibility-panel]')) return;
@@ -213,7 +213,7 @@ function resetFilters() {
     filters.status = '';
 }
 
-const TEAM_VIEW_KEY = 'va-qlda.my-work.team-view.v1';
+const TEAM_VIEW_KEY = 'va-workspace.my-work.team-view.v1';
 
 const teamView = ref(
     typeof localStorage !== 'undefined' && localStorage.getItem(TEAM_VIEW_KEY) === 'member'

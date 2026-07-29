@@ -18,7 +18,7 @@ Route::get('/tech/login', [LoginController::class, 'createTech'])->name('tech.lo
 Route::get('/auth/google', [GoogleAuthController::class, 'redirect'])->name('auth.google');
 Route::get('/auth/google/callback', [GoogleAuthController::class, 'callback'])->name('auth.google.callback');
 
-// SSO HRM → QLDA (HRM_SSO_ENABLED): HRM là IdP nội bộ, phát JWT về callback.
+// SSO HRM → Workspace (HRM_SSO_ENABLED): HRM là IdP nội bộ, phát JWT về callback.
 Route::get('/auth/hrm', [HrmSsoController::class, 'redirect'])->name('auth.hrm');
 Route::get('/auth/hrm/callback', [HrmSsoController::class, 'callback'])->name('auth.hrm.callback');
 

@@ -1,4 +1,4 @@
-# FOLDER STRUCTURE — VA-QLDA
+# FOLDER STRUCTURE — VA-Workspace
 
 > **Cập nhật 2026-06-19.** Hub luồng: [`FLOWS_AND_DOCS_MAP.md`](FLOWS_AND_DOCS_MAP.md) · Frontend chi tiết: [`FRONTEND_STRUCTURE.md`](FRONTEND_STRUCTURE.md).
 
@@ -9,7 +9,7 @@ Refactor Phase 1–5 ✅. Layout đã ổn định: backend phân lớp `Applica
 ## 1. Cây thư mục
 
 ```
-va-qlda/
+va-workspace/
 ├── _dev/                     ← Operational memory (CLI, CI, workflows) + _dev/vi/
 ├── docs/                     ← Technical documentation (file này)
 ├── app/

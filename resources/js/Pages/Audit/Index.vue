@@ -77,7 +77,7 @@ const {
     persistVisibleFilters,
     openFilterPanel,
     FILTER_CONTROLS: filterControlDefs,
-} = useVisibleFilterControls(FILTER_CONTROLS, 'va-qlda.audit-trail.visible-filters.v1');
+} = useVisibleFilterControls(FILTER_CONTROLS, 'va-workspace.audit-trail.visible-filters.v1');
 
 function openFilterPanelSafe() {
     openFilterPanel();

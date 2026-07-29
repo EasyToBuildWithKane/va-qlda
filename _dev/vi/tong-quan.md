@@ -20,7 +20,7 @@
 ## Cấu trúc repo (tài liệu)
 
 ```
-va-qlda/
+va-workspace/
 ├── docs/              ← spec kỹ thuật, route, DB, luồng mermaid
 ├── _dev/              ← vận hành dev (EN canonical)
 │   └── vi/            ← giải thích tiếng Việt (thư mục này)

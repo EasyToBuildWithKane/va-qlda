@@ -1,4 +1,4 @@
-# REFACTOR PLAN — VA QLDA
+# REFACTOR PLAN — VA Workspace
 
 > **Quan trọng:** Đây là kế hoạch — KHÔNG thực hiện bất kỳ thay đổi nào cho đến khi từng Phase được review và phê duyệt.
 

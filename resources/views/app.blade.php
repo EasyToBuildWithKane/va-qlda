@@ -8,7 +8,7 @@
     <link rel="icon" type="image/png" href="{{ asset('images/favicon.png') }}">
     <link rel="apple-touch-icon" href="{{ asset('images/favicon.png') }}">
 
-    <title inertia>{{ config('app.name', 'VA QLDA') }}</title>
+    <title inertia>{{ config('app.name', 'VA Workspace') }}</title>
 
     @routes
     @vite(['resources/css/app.css', 'resources/js/app.js'])

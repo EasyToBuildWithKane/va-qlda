@@ -24,14 +24,14 @@ class HrmApiClientTest extends TestCase
     {
         Http::fake([
             'https://hrm.test/api/v1/me' => Http::response([
-                'data' => ['client' => 'qlda'],
+                'data' => ['client' => 'workspace'],
                 'meta' => ['request_id' => 'r1'],
             ]),
         ]);
 
         $me = (new HrmApiClient)->me();
 
-        $this->assertSame(['client' => 'qlda'], $me);
+        $this->assertSame(['client' => 'workspace'], $me);
         Http::assertSent(fn ($request) => $request->hasHeader('Authorization', 'Bearer 1|test-token'));
     }
 

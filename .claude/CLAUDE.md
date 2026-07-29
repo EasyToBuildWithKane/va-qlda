@@ -1,4 +1,4 @@
-# VA-QLDA — Claude Code (`.claude/`)
+# VA-Workspace — Claude Code (`.claude/`)
 
 Full project instructions: [`../CLAUDE.md`](../CLAUDE.md).
 

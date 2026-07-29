@@ -1,4 +1,4 @@
-# FRONTEND STRUCTURE — VA QLDA
+# FRONTEND STRUCTURE — VA Workspace
 
 > **Cập nhật 2026-07-29** — Gỡ `modules/people` (org UI); 11 feature module. DailyReport + KnowledgeBase trong `modules/`; Content header (`PageHeader` + `#header`); FullCalendar (lịch dự án).
 
@@ -65,7 +65,7 @@ resources/js/
 │   ├── contract/                 ← CLM: components (*SummaryBar, charts), composables, config
 │   ├── credential/               ← Kho mật khẩu: components, composables
 │   ├── performance/              ← Dashboard + audit components/composables
-│   ├── profile/                  ← Hồ sơ (/profile): HR identity **read-only** (mirror VA-HRM); chỉ SkillMatrix tự sửa trên QLDA; không form identity/avatar local
+│   ├── profile/                  ← Hồ sơ (/profile): HR identity **read-only** (mirror VA-HRM); chỉ SkillMatrix tự sửa trên Workspace; không form identity/avatar local
 │   ├── onboarding/               ← SmartContextHint (useOnboarding, useSmartContext, OnboardingRoot)
 │   ├── notifications/            ← Bell, center drawer, preferences
 │   ├── audit/                    ← Audit trail viewer components/composables
@@ -100,7 +100,7 @@ AppChrome.vue (persistent shell)
       └── AppDialog → useDialog
 ```
 
-**Sidebar UX (2026-07, rule `app-sidebar`):** Desktop `lg+` — expanded (`w-sidebar-expanded` / 15.5rem) hoặc rail (`w-sidebar-rail` / 4rem), surface `.sidebar-surface` (brand `#9A0036`), nav `text-xs` + section `uppercase tracking-[0.05em]`, active `bg-sidebar-active`, logo wordmark / mark khi rail, tooltip + flyout trắng khi rail; `< lg` — drawer (`w-sidebar-drawer`). Persist: `va-qlda.sidebar.rail`, `va-qlda.sidebar.collapsed`; nhóm chứa route active luôn mở. User menu chỉ ở topbar (không footer sidebar).
+**Sidebar UX (2026-07, rule `app-sidebar`):** Desktop `lg+` — expanded (`w-sidebar-expanded` / 15.5rem) hoặc rail (`w-sidebar-rail` / 4rem), surface `.sidebar-surface` (brand `#9A0036`), nav `text-xs` + section `uppercase tracking-[0.05em]`, active `bg-sidebar-active`, logo wordmark / mark khi rail, tooltip + flyout trắng khi rail; `< lg` — drawer (`w-sidebar-drawer`). Persist: `va-workspace.sidebar.rail`, `va-workspace.sidebar.collapsed`; nhóm chứa route active luôn mở. User menu chỉ ở topbar (không footer sidebar).
 
 **Badge số liệu thật trên nav:** mục có `badgeKey` được `App\Support\NavigationBadges::decorate()` gắn `item.badge` (số đếm thực); render pill đỏ ở expanded/mobile, số góc icon + chấm trên nhóm thu gọn ở rail, pill trong flyout. Ẩn khi count = 0. Xem [§12 Role-Based UI](#12-role-based-ui).
 
@@ -111,7 +111,7 @@ AppChrome.vue (persistent shell)
 | Domain | Files |
 |---|---|
 | Auth | `Pages/Auth/Login.vue` |
-| Congnghe (landing `/congnghe`) | `Pages/Congnghe/Index.vue` + `partials/*` — **không** `AppLayout`; hero: `HeroSection.vue` + `HeroTechOrbit.vue` (3 vòng quỹ đạo stack công nghệ sau mascot); `CongnghePageShell.vue` cho form/chi tiết người gửi (prop Inertia `chrome`: `nav` + `footer` từ `CongngheContentRepository::portalChrome()`); header `CongngheNavbar.vue` + menu `CongngheUserMenu.vue` (đề xuất đã gửi, hồ sơ, đăng xuất); form `Proposal.vue`; **người gửi:** `MyProposals.vue` (`CongngheMyProposalsSummaryBar.vue`, `congnghe-portal-*` theme), `MyProposalShow.vue` (`/congnghe/de-xuat-cua-toi`) — cổng Congnghe, **không** sidebar QLDA; **quản lý (admin/lead):** `Pages/Congnghe/Proposals/Index.vue` (`CongngheSoftwareProposalsSummaryBar.vue`, datagrid toolbar chuẩn), `Show.vue` (`CongngheSoftwareProposalSheet.vue` — layout phiếu + xem trước đính kèm) — `AppLayout`, sidebar nhóm «Quản trị» → «Đề xuất phần mềm» |
+| Congnghe (landing `/congnghe`) | `Pages/Congnghe/Index.vue` + `partials/*` — **không** `AppLayout`; hero: `HeroSection.vue` + `HeroTechOrbit.vue` (3 vòng quỹ đạo stack công nghệ sau mascot); `CongnghePageShell.vue` cho form/chi tiết người gửi (prop Inertia `chrome`: `nav` + `footer` từ `CongngheContentRepository::portalChrome()`); header `CongngheNavbar.vue` + menu `CongngheUserMenu.vue` (đề xuất đã gửi, hồ sơ, đăng xuất); form `Proposal.vue`; **người gửi:** `MyProposals.vue` (`CongngheMyProposalsSummaryBar.vue`, `congnghe-portal-*` theme), `MyProposalShow.vue` (`/congnghe/de-xuat-cua-toi`) — cổng Congnghe, **không** sidebar Workspace; **quản lý (admin/lead):** `Pages/Congnghe/Proposals/Index.vue` (`CongngheSoftwareProposalsSummaryBar.vue`, datagrid toolbar chuẩn), `Show.vue` (`CongngheSoftwareProposalSheet.vue` — layout phiếu + xem trước đính kèm) — `AppLayout`, sidebar nhóm «Quản trị» → «Đề xuất phần mềm» |
 | Dashboard | **`Hub.vue`** (`/dashboard` — welcome, `HubDashboardSummaryBar`, trend, compliance, module grid) · **`Work.vue`** (`/work`) · `Index.vue` — **`TaskProgressStatsSection`**, **`DailyReportCompliancePanel`**, `ProjectProgressCard`, biểu đồ xu hướng & trạng thái dự án |
 | DailyReport | `Today`, `History`, `Show`, `Review` |
 | Project | `Index`, `Create`, `Edit`, `Show` — chi tiết UX/tab → `docs/PROJECT_MANAGEMENT.md` |

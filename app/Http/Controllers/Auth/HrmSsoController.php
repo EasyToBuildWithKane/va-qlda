@@ -18,8 +18,8 @@ use Illuminate\Support\Str;
 use RuntimeException;
 
 /**
- * SSO HRM → QLDA: user đăng nhập Google một lần trên HRM (IdP nội bộ);
- * QLDA redirect sang {HRM}/sso/authorize và nhận JWT RS256 về callback —
+ * SSO HRM → Workspace: user đăng nhập Google một lần trên HRM (IdP nội bộ);
+ * Workspace redirect sang {HRM}/sso/authorize và nhận JWT RS256 về callback —
  * không gọi Google OAuth riêng trong luồng này (ADR-013 phía va-hrm).
  */
 class HrmSsoController extends Controller
@@ -144,7 +144,7 @@ class HrmSsoController extends Controller
     }
 
     /**
-     * Ưu tiên khớp `hrm_employee_uuid` (claim JWT); sau đó email trên QLDA;
+     * Ưu tiên khớp `hrm_employee_uuid` (claim JWT); sau đó email trên Workspace;
      * cuối cùng lazy upsert từ HRM Public API như luồng Google.
      */
     private function resolveEmployee(string $email, ?string $employeeUuid): ?Employee

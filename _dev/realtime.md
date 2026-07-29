@@ -1,4 +1,4 @@
-# Realtime comments (Socket.IO) — VA-QLDA
+# Realtime comments (Socket.IO) — VA-Workspace
 
 Trao đổi trên **vướng mắc**, **task**, bug, feedback: hai người cùng mở một thread sẽ thấy bình luận mới qua WebSocket (nếu stack realtime đang chạy). Nếu realtime tắt hoặc lỗi, người gửi vẫn thấy tin sau partial reload Inertia (`only: ['blockers']`); người còn lại cần refresh hoặc sửa realtime.
 
@@ -27,7 +27,7 @@ Shared Inertia props: `realtime.enabled`, `realtime.url` (`REALTIME_CLIENT_URL`)
    ```env
    REALTIME_ENABLED=true
    REALTIME_SECRET="${APP_KEY}"
-   REALTIME_REDIS_CHANNEL=va-qlda:realtime
+   REALTIME_REDIS_CHANNEL=va-workspace:realtime
    REALTIME_CLIENT_URL=http://127.0.0.1:8000
    REALTIME_SERVER_PORT=6001
    REDIS_HOST=127.0.0.1
@@ -55,7 +55,7 @@ Shared Inertia props: `realtime.enabled`, `realtime.url` (`REALTIME_CLIENT_URL`)
 ```env
 REALTIME_ENABLED=true
 REALTIME_SECRET="${APP_KEY}"          # must match Node process
-REALTIME_REDIS_CHANNEL=va-qlda:realtime
+REALTIME_REDIS_CHANNEL=va-workspace:realtime
 REALTIME_CLIENT_URL=https://projects.vaschools.edu.vn
 REALTIME_SERVER_PORT=6001
 REDIS_HOST=127.0.0.1
@@ -68,21 +68,21 @@ REDIS_PORT=6379
 ### 2. Node realtime service (always on)
 
 ```bash
-cd /path/to/va-qlda
+cd /path/to/va-workspace
 npm ci --omit=dev   # includes socket.io, ioredis
 ```
 
-**systemd** example (`/etc/systemd/system/va-qlda-realtime.service`):
+**systemd** example (`/etc/systemd/system/va-workspace-realtime.service`):
 
 ```ini
 [Unit]
-Description=VA-QLDA Socket.IO realtime
+Description=VA-Workspace Socket.IO realtime
 After=network.target redis.service
 
 [Service]
 Type=simple
 User=www-data
-WorkingDirectory=/path/to/va-qlda
+WorkingDirectory=/path/to/va-workspace
 Environment=NODE_ENV=production
 ExecStart=/usr/bin/node realtime/server.mjs
 Restart=on-failure
@@ -93,11 +93,11 @@ WantedBy=multi-user.target
 ```
 
 ```bash
-sudo systemctl enable --now va-qlda-realtime
-sudo journalctl -u va-qlda-realtime -f
+sudo systemctl enable --now va-workspace-realtime
+sudo journalctl -u va-workspace-realtime -f
 ```
 
-Expect log: `[realtime] Subscribed va-qlda:realtime` and `Socket.IO on :6001`.
+Expect log: `[realtime] Subscribed va-workspace:realtime` and `Socket.IO on :6001`.
 
 ### 3. Nginx — proxy WebSocket (required if client URL is main domain)
 
@@ -125,12 +125,12 @@ Should not be `404` from Laravel.
 
 ### 3b. OpenLiteSpeed / LiteSpeed (VA production)
 
-External processor + context (path `/socket.io/` → `127.0.0.1:6001`) is the **correct pattern** for VA QLDA (`REALTIME_CLIENT_URL` = same vhost).
+External processor + context (path `/socket.io/` → `127.0.0.1:6001`) is the **correct pattern** for VA Workspace (`REALTIME_CLIENT_URL` = same vhost).
 
 Example (align names with your vhost):
 
 ```
-extprocessor va_qlda_realtime {
+extprocessor va_workspace_realtime {
   type                    proxy
   address                 127.0.0.1:6001
   maxConns                50
@@ -141,7 +141,7 @@ extprocessor va_qlda_realtime {
 
 context /socket.io/ {
   type                    proxy
-  handler                 va_qlda_realtime
+  handler                 va_workspace_realtime
   addDefaultCharset       off
   allowBrowse             0
 }
@@ -180,7 +180,7 @@ Polling đã OK (có `sid`), chỉ **upgrade WebSocket** qua proxy bị lỗi. R
 |------|--------|
 | Token API | Logged-in GET `/realtime/thread-token?type=blocker&id=1` → `200` + `token` |
 | UI | Tab Trao đổi shows green **Realtime** badge |
-| Redis | `redis-cli SUBSCRIBE va-qlda:realtime` → post comment → JSON message |
+| Redis | `redis-cli SUBSCRIBE va-workspace:realtime` → post comment → JSON message |
 | Two users | B sees A's comment without reload |
 
 ### 5. Fallback behaviour

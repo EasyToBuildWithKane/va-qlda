@@ -59,7 +59,7 @@ class CongngheTest extends TestCase
                 ->has('products')
                 ->has('org.overview')
                 ->has('org.forest')
-                ->where('portal.canEnterQlda', false)
+                ->where('portal.canEnterWorkspace', false)
             );
     }
 
@@ -81,7 +81,7 @@ class CongngheTest extends TestCase
             );
     }
 
-    public function test_whitelisted_email_sees_qlda_entry_on_congnghe(): void
+    public function test_whitelisted_email_sees_workspace_entry_on_congnghe(): void
     {
         $allowed = TechLoginAccess::allowedEmails()[0];
         $employee = Employee::factory()->create(['email' => $allowed]);
@@ -91,18 +91,18 @@ class CongngheTest extends TestCase
             ->get(route('congnghe'))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->where('portal.canEnterQlda', true)
-                ->where('portal.qldaHome', '/dashboard')
+                ->where('portal.canEnterWorkspace', true)
+                ->where('portal.workspaceHome', '/dashboard')
             );
     }
 
-    public function test_admin_can_enter_qlda_from_congnghe_portal_props(): void
+    public function test_admin_can_enter_workspace_from_congnghe_portal_props(): void
     {
         $account = SystemAccount::factory()->role(SystemRole::Admin)->create();
 
         $this->actingAs($account, 'system')
             ->get(route('congnghe'))
-            ->assertInertia(fn ($page) => $page->where('portal.canEnterQlda', true));
+            ->assertInertia(fn ($page) => $page->where('portal.canEnterWorkspace', true));
     }
 
     public function test_viewer_can_view_congnghe(): void

@@ -30,7 +30,7 @@ export const SPRINT_TABLE_DEFAULT_VISIBLE = [
     'progress',
 ];
 
-export const SPRINT_TABLE_COLS_KEY = 'va-qlda.sprint-table.columns';
+export const SPRINT_TABLE_COLS_KEY = 'va-workspace.sprint-table.columns';
 
 export function loadSprintTableColumns() {
     const defaults = [...SPRINT_TABLE_DEFAULT_VISIBLE];

@@ -76,7 +76,7 @@ const {
     persistVisibleFilters,
     openFilterPanel,
     FILTER_CONTROLS: filterControls,
-} = useVisibleFilterControls(FILTER_CONTROLS, 'va-qlda.project-feedback.visible-filters.v3');
+} = useVisibleFilterControls(FILTER_CONTROLS, 'va-workspace.project-feedback.visible-filters.v3');
 
 const {
     visibleCols,
@@ -85,7 +85,7 @@ const {
     openColPanel,
     isColVisible,
     TABLE_COLUMNS,
-} = useVisibleColumns(FEEDBACK_TABLE_COLUMNS, 'va-qlda.project-feedback.columns');
+} = useVisibleColumns(FEEDBACK_TABLE_COLUMNS, 'va-workspace.project-feedback.columns');
 
 const filterForm = reactive({
     status: '',

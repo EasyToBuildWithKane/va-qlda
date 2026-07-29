@@ -1,12 +1,12 @@
 ---
 name: add-laravel-feature
 description: >-
-  Adds or extends a Laravel feature in VA-QLDA following MVC or Application
+  Adds or extends a Laravel feature in VA-Workspace following MVC or Application
   Use Case patterns. Use when creating controllers, form requests, policies,
   migrations, enums, routes, or notification hooks.
 ---
 
-# Add Laravel Feature — VA-QLDA
+# Add Laravel Feature — VA-Workspace
 
 ## 1. Classify the module
 

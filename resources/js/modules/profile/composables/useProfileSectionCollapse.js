@@ -1,6 +1,6 @@
 import { onMounted, ref, watch } from 'vue';
 
-const STORAGE_PREFIX = 'va-qlda.profile.sections.';
+const STORAGE_PREFIX = 'va-workspace.profile.sections.';
 
 export function useProfileSectionCollapse(sectionKey, defaultOpen = true) {
     const open = ref(defaultOpen);

@@ -1,10 +1,10 @@
 ---
-description: Vue 3 + Inertia — Pages, modules, shared/ui, composables, Pinia VA-QLDA
+description: Vue 3 + Inertia — Pages, modules, shared/ui, composables, Pinia VA-Workspace
 globs: resources/js/**/*
 alwaysApply: false
 ---
 
-# Vue / Inertia Frontend — VA-QLDA
+# Vue / Inertia Frontend — VA-Workspace
 
 > **Cập nhật 2026-06-19** — 12 feature module dưới `modules/`; DailyReport + KnowledgeBase đã migrate.
 

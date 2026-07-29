@@ -3,7 +3,7 @@ description: CI parity and pre-push quality — Pint, ESLint, PHPUnit, storage/m
 alwaysApply: true
 ---
 
-# CI & quality gates — VA-QLDA
+# CI & quality gates — VA-Workspace
 
 Trước **commit/push** hoặc khi user báo CI đỏ — chạy cùng thứ tự CI (xem `_dev/ci-cd.md`).
 

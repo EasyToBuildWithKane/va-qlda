@@ -1,4 +1,4 @@
-# Credential Management — VA-QLDA
+# Credential Management — VA-Workspace
 
 Module quản lý tài khoản, mật khẩu và liên kết hạ tầng nội bộ.
 

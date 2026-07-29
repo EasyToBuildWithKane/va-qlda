@@ -48,7 +48,7 @@ loadDotEnv();
 
 const port = Number(process.env.REALTIME_SERVER_PORT || 6001);
 const secret = process.env.REALTIME_SECRET || process.env.APP_KEY || '';
-const redisChannel = process.env.REALTIME_REDIS_CHANNEL || 'va-qlda:realtime';
+const redisChannel = process.env.REALTIME_REDIS_CHANNEL || 'va-workspace:realtime';
 const appUrl = process.env.APP_URL || 'http://localhost';
 
 const redisHost = process.env.REDIS_HOST || '127.0.0.1';

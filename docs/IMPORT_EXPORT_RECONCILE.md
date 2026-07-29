@@ -1,6 +1,6 @@
 # Nhập · Xuất · Đối soát — Production Standard
 
-> Chuẩn Excel hàng loạt trong VA-QLDA. Rule Cursor (tóm tắt + glob): `.cursor/rules/import-export-reconcile.mdc`.  
+> Chuẩn Excel hàng loạt trong VA-Workspace. Rule Cursor (tóm tắt + glob): `.cursor/rules/import-export-reconcile.mdc`.  
 > **Cập nhật:** 2026-06-16 — nguồn đầy đủ cho onboarding và PR checklist.
 
 ---

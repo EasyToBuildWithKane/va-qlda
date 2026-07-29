@@ -141,7 +141,7 @@ class AiAccountReminderService
             'Trạng thái TT: Chưa thanh toán gia hạn',
             'Chi phí ước tính: '.$costLine,
             'Email TK: '.$account->email_registered,
-            'Vui lòng thanh toán và đánh dấu «Đã thanh toán» trên VA QLDA.',
+            'Vui lòng thanh toán và đánh dấu «Đã thanh toán» trên VA Workspace.',
         ]);
 
         $this->notifications->notify(

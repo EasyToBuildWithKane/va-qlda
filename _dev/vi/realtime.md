@@ -56,7 +56,7 @@ Props Inertia: `realtime.enabled`, `realtime.url` (`REALTIME_CLIENT_URL`).
 ```env
 REALTIME_ENABLED=true
 REALTIME_SECRET="${APP_KEY}"
-REALTIME_REDIS_CHANNEL=va-qlda:realtime
+REALTIME_REDIS_CHANNEL=va-workspace:realtime
 REALTIME_CLIENT_URL=http://127.0.0.1:8000
 REALTIME_SERVER_PORT=6001
 REDIS_HOST=127.0.0.1
@@ -77,7 +77,7 @@ REDIS_PORT=6379
 ```env
 REALTIME_ENABLED=true
 REALTIME_SECRET="${APP_KEY}"
-REALTIME_REDIS_CHANNEL=va-qlda:realtime
+REALTIME_REDIS_CHANNEL=va-workspace:realtime
 REALTIME_CLIENT_URL=https://your-domain.example
 REALTIME_SERVER_PORT=6001
 ```
@@ -88,8 +88,8 @@ REALTIME_SERVER_PORT=6001
 
 ```bash
 npm ci --omit=dev
-sudo systemctl enable --now va-qlda-realtime
-sudo journalctl -u va-qlda-realtime -f
+sudo systemctl enable --now va-workspace-realtime
+sudo journalctl -u va-workspace-realtime -f
 ```
 
 Log mong đợi: subscribed channel + `Socket.IO on :6001`. Ví đụ unit file: [`../realtime.md`](../realtime.md).
@@ -129,7 +129,7 @@ External processor + context `/socket.io/` → `127.0.0.1:6001`. **Bật WebSock
 |------|---------|
 | GET `/realtime/thread-token?type=blocker&id=1` (đã login) | 200 + `token` |
 | Tab Trao đổi | Badge **Realtime** xanh |
-| `redis-cli SUBSCRIBE va-qlda:realtime` | JSON khi post comment |
+| `redis-cli SUBSCRIBE va-workspace:realtime` | JSON khi post comment |
 | User B | Thấy comment của A không reload |
 
 ---

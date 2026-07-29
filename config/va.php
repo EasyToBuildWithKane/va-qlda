@@ -12,7 +12,7 @@ return [
     | shared to Inertia as `app.*` for the sidebar brand + page titles.
     |
     */
-    'app_name' => env('APP_DISPLAY_NAME', 'VAschools QLDA'),
+    'app_name' => env('APP_DISPLAY_NAME', 'VAschools Workspace'),
     'app_short_name' => env('APP_SHORT_NAME', 'VA'),
     'support_email' => env('SUPPORT_EMAIL', 'phongcongnghe@vaschools.edu.vn'),
     /** Email nhận đề xuất PM từ cổng /congnghe/de-xuat */
@@ -56,7 +56,7 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | /tech/login — whitelist (only these emails may use the tech QLDA portal)
+    | /tech/login — whitelist (only these emails may use the tech Workspace portal)
     |--------------------------------------------------------------------------
     |
     | Override with TECH_LOGIN_ALLOWED_EMAILS (comma-separated). Empty env uses

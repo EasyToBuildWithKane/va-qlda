@@ -321,7 +321,7 @@ async function onDelete() {
           compact
           label="Ghi chú"
           wide
-          tooltip="Thông tin nội bộ về NCC — chỉ hiển thị trong VA-QLDA."
+          tooltip="Thông tin nội bộ về NCC — chỉ hiển thị trong VA-Workspace."
         />
         <p
           class="mt-2 whitespace-pre-wrap text-sm leading-relaxed"

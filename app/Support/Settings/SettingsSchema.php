@@ -65,7 +65,7 @@ final class SettingsSchema
             // ── general ──────────────────────────────────────────────
             ['group' => 'general', 'name' => 'app_name', 'type' => 'string', 'label' => 'Tên hệ thống',
                 'help' => 'Hiển thị ở tiêu đề trang và chân thanh bên.', 'config' => 'va.app_name',
-                'default' => 'VAschools QLDA', 'rules' => ['required', 'string', 'max:120']],
+                'default' => 'VAschools Workspace', 'rules' => ['required', 'string', 'max:120']],
             ['group' => 'general', 'name' => 'app_short_name', 'type' => 'string', 'label' => 'Tên viết tắt',
                 'help' => '2–6 ký tự, hiện ở ô thương hiệu khi thu gọn thanh bên.', 'config' => 'va.app_short_name',
                 'default' => 'VA', 'rules' => ['required', 'string', 'max:6']],
@@ -123,7 +123,7 @@ final class SettingsSchema
                 'config' => 'task_email.enabled', 'default' => false, 'rules' => ['boolean']],
             ['group' => 'email', 'name' => 'from_name', 'type' => 'string', 'label' => 'Tên người gửi (From name)',
                 'help' => 'Hiển thị trên hộp thư người nhận.', 'config' => 'task_email.from_name',
-                'default' => 'VAschools QLDA', 'rules' => ['nullable', 'string', 'max:120']],
+                'default' => 'VAschools Workspace', 'rules' => ['nullable', 'string', 'max:120']],
             ['group' => 'email', 'name' => 'notify_on_assign', 'type' => 'bool', 'label' => 'Email khi giao việc',
                 'help' => 'Gửi email cho người được assign khi tạo công việc mới.',
                 'config' => 'task_email.notify_on_assign', 'default' => true, 'rules' => ['boolean']],

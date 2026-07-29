@@ -1,4 +1,4 @@
-# Workflows — VA-QLDA
+# Workflows — VA-Workspace
 
 Step-by-step guides for day-to-day development, PRs, deploy, and hotfixes.
 

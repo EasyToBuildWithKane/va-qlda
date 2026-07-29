@@ -38,9 +38,9 @@ const FILTER_CONTROLS_DEF = [
 
 const FILTER_CONTROL_CLASS = 'input h-10 w-full text-sm';
 
-const COL_STORAGE_KEY = 'va-qlda.ai-analytics.columns';
-const COL_ORDER_KEY = 'va-qlda.ai-analytics.column-order';
-const VISIBLE_FILTERS_KEY = 'va-qlda.ai-analytics.visible-filters.v2';
+const COL_STORAGE_KEY = 'va-workspace.ai-analytics.columns';
+const COL_ORDER_KEY = 'va-workspace.ai-analytics.column-order';
+const VISIBLE_FILTERS_KEY = 'va-workspace.ai-analytics.visible-filters.v2';
 
 const props = defineProps({
     options: { type: Object, required: true },

@@ -3,7 +3,7 @@ import { getTaskAssignees } from '@/composables/useTaskHierarchy';
 import { getSubtaskStats } from '@/composables/useTaskHierarchy';
 import { isTaskOverdue } from '@/composables/useTaskTimeliness';
 
-const PANEL_WIDTH_KEY = 'va-qlda.taskPanel.width';
+const PANEL_WIDTH_KEY = 'va-workspace.taskPanel.width';
 const MIN_WIDTH = 400;
 const MAX_WIDTH = 920;
 const DEFAULT_WIDTH = 520;

@@ -139,7 +139,7 @@ class EmployeeProfileResource extends JsonResource
     }
 
     /**
-     * Quản lý trực tiếp theo sơ đồ tổ chức QLDA (cấp trên).
+     * Quản lý trực tiếp theo sơ đồ tổ chức Workspace (cấp trên).
      *
      * @return array{id:int, name:string, avatar_path:string|null, code?:string, email?:string|null, role_title?:string|null}|null
      */

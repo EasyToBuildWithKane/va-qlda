@@ -75,7 +75,7 @@ const {
     persistVisibleFilters,
     openFilterPanel,
     FILTER_CONTROLS: filterControlDefs,
-} = useVisibleFilterControls(FILTER_CONTROLS, 'va-qlda.performance-audit.visible-filters.v1');
+} = useVisibleFilterControls(FILTER_CONTROLS, 'va-workspace.performance-audit.visible-filters.v1');
 
 const {
     visibleCols,
@@ -84,9 +84,9 @@ const {
     openColPanel,
     isColVisible,
     TABLE_COLUMNS,
-} = useVisibleColumns(PERFORMANCE_AUDIT_TABLE_COLUMNS, 'va-qlda.performance-audit.columns.v1');
+} = useVisibleColumns(PERFORMANCE_AUDIT_TABLE_COLUMNS, 'va-workspace.performance-audit.columns.v1');
 
-const COLLAPSE_PERIOD_GROUPS_KEY = 'va-qlda.performance-audit.collapsed-period-groups';
+const COLLAPSE_PERIOD_GROUPS_KEY = 'va-workspace.performance-audit.collapsed-period-groups';
 
 function loadCollapsedPeriodGroups() {
     try {

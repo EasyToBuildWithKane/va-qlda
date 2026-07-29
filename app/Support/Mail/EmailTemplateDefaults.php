@@ -16,15 +16,15 @@ final class EmailTemplateDefaults
     {
         return match ($key) {
             EmailTemplate::KEY_TASK_ASSIGNED => [
-                'subject' => '[QLDA] Giao việc: {{task_name}} — {{project_name}}',
+                'subject' => '[Workspace] Giao việc: {{task_name}} — {{project_name}}',
                 'body_html' => self::taskAssignedBody(),
             ],
             EmailTemplate::KEY_DAILY_SUMMARY => [
-                'subject' => '[QLDA] Tổng hợp {{date}} — {{project_name}}',
+                'subject' => '[Workspace] Tổng hợp {{date}} — {{project_name}}',
                 'body_html' => self::dailySummaryBody(),
             ],
             EmailTemplate::KEY_SPRINT_SUMMARY => [
-                'subject' => '[QLDA] Sprint {{sprint_name}} — {{project_name}}',
+                'subject' => '[Workspace] Sprint {{sprint_name}} — {{project_name}}',
                 'body_html' => self::sprintSummaryBody(),
             ],
             EmailTemplate::KEY_CONGNGHE_PROPOSAL_SUBMITTED => [

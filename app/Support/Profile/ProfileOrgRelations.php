@@ -8,7 +8,7 @@ use App\Models\OrgTeam;
 use Illuminate\Support\Collection;
 
 /**
- * Org-chart semantics for employee profile (direct manager, kiêm nhiệm, mã phòng ban QLDA).
+ * Org-chart semantics for employee profile (direct manager, kiêm nhiệm, mã phòng ban Workspace).
  */
 class ProfileOrgRelations
 {
@@ -49,7 +49,7 @@ class ProfileOrgRelations
     }
 
     /**
-     * Chức danh kiêm nhiệm: vai trò trưởng nhóm / quản lý cấp trên trên sơ đồ QLDA.
+     * Chức danh kiêm nhiệm: vai trò trưởng nhóm / quản lý cấp trên trên sơ đồ Workspace.
      */
     public static function concurrentPositionLabel(Employee $employee): ?string
     {
@@ -66,7 +66,7 @@ class ProfileOrgRelations
     }
 
     /**
-     * Mã phòng ban từ bảng departments (QLDA), không dùng department_id CMS.
+     * Mã phòng ban từ bảng departments (Workspace), không dùng department_id CMS.
      */
     public static function departmentCode(array $meta): ?string
     {

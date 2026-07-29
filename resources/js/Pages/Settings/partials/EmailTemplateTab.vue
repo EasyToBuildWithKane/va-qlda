@@ -16,7 +16,7 @@ const props = defineProps({
     title: { type: String, default: '' },
     emailFields: { type: Array, default: () => [] },
     emailTemplates: { type: Array, default: () => [] },
-    emailPreviewBrand: { type: String, default: 'VAschools QLDA' },
+    emailPreviewBrand: { type: String, default: 'VAschools Workspace' },
     emailTestRecipient: { type: String, default: '' },
     canManage: { type: Boolean, default: false },
     saveHotkeysEnabled: { type: Boolean, default: true },

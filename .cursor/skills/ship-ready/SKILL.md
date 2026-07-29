@@ -1,13 +1,13 @@
 ---
 name: ship-ready
 description: >-
-  Runs VA-QLDA pre-push quality gates (Pint, ESLint, PHPUnit, optional E2E)
+  Runs VA-Workspace pre-push quality gates (Pint, ESLint, PHPUnit, optional E2E)
   and fixes common CI failures (Vite manifest, Pint import order, missing
   storage files). Use before git push, when CI fails, or when user asks to
   prepare a merge-ready commit.
 ---
 
-# Ship-ready — VA-QLDA
+# Ship-ready — VA-Workspace
 
 ## 1. Xác định phạm vi thay đổi
 

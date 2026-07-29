@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
- * Creates QLDA login rows for employees linked from HRM (SSO JWT / Google login).
+ * Creates Workspace login rows for employees linked from HRM (SSO JWT / Google login).
  */
 final class SystemAccountProvisioner
 {

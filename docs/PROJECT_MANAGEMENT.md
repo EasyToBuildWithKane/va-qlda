@@ -1,6 +1,6 @@
 # Quản lý dự án — `/projects`
 
-> **VA-QLDA** — module **Công việc & Dự án** trên sidebar: danh mục dự án, workspace chi tiết (Sprint, Kanban, tài liệu, vướng mắc & phản hồi nhúng).
+> **VA-Workspace** — module **Công việc & Dự án** trên sidebar: danh mục dự án, workspace chi tiết (Sprint, Kanban, tài liệu, vướng mắc & phản hồi nhúng).
 > **Production:** `https://projects.vaschools.edu.vn/projects` (Inertia, guard `system`).
 > **Trạng thái:** ✅ Triển khai đầy đủ — routes trong `routes/web/projects.php`, UI `Pages/Project/*` + `modules/project/`.
 

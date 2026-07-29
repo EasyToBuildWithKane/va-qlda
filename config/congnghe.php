@@ -130,7 +130,7 @@ return [
             'stats' => [
                 ['key' => 'projects', 'label' => 'Dự án triển khai', 'sub' => 'Đang & hoàn thành', 'tone' => 'brand', 'suffix' => '+'],
                 ['key' => 'orgPeople', 'label' => 'Nhân sự sơ đồ', 'sub' => 'Phòng Công nghệ', 'tone' => 'cyan', 'suffix' => ''],
-                ['key' => 'doneTasks', 'label' => 'Task hoàn thành', 'sub' => 'Theo QLDA', 'tone' => 'emerald', 'suffix' => '+'],
+                ['key' => 'doneTasks', 'label' => 'Task hoàn thành', 'sub' => 'Theo Workspace', 'tone' => 'emerald', 'suffix' => '+'],
                 ['key' => 'departments', 'label' => 'Phòng ban', 'sub' => 'Liên phòng ban', 'tone' => 'violet', 'suffix' => ''],
                 ['key' => 'orgTeams', 'label' => 'Nhóm tổ chức', 'sub' => 'Nhánh & đơn vị', 'tone' => 'amber', 'suffix' => ''],
                 ['key' => 'aiAccounts', 'label' => 'Tài khoản AI', 'sub' => 'Quản lý tập trung', 'tone' => 'rose', 'suffix' => ''],

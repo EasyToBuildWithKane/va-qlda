@@ -1,14 +1,14 @@
 ---
-description: ISC Frontend Web Standards + security/performance — Vue 3 + Inertia (VA-QLDA)
+description: ISC Frontend Web Standards + security/performance — Vue 3 + Inertia (VA-Workspace)
 globs: resources/js/**/*.{vue,js},resources/css/**/*
 alwaysApply: false
 ---
 
-# Frontend Review — ISC (VA-QLDA / Vue 3 + Inertia)
+# Frontend Review — ISC (VA-Workspace / Vue 3 + Inertia)
 
 Khi review staged diff FE, dùng skill **`frontend-code-review`**.
 
-## Mapping VA-QLDA (không phải React/Next mặc định)
+## Mapping VA-Workspace (không phải React/Next mặc định)
 
 | ISC / OWASP | Vue / Inertia |
 |-------------|----------------|

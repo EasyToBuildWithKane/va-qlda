@@ -83,7 +83,7 @@ kéo tới cuối tháng nếu chưa tới). Nhãn hiển thị: `dd/mm/yyyy 00:
 `PerformanceDisplay`, JS `dateAtMidnight` trong `@/composables/useFormat`).
 
 **Bộ lọc datagrid:** dòng filter ẩn lần đầu; bật từng control qua nút **Lọc** (localStorage
-`va-qlda.performance.visible-filters.v3`, mặc định tất cả `false`).
+`va-workspace.performance.visible-filters.v3`, mặc định tất cả `false`).
 
 ---
 

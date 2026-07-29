@@ -9,7 +9,7 @@ final class EmailBrandLayout
 {
     public static function wrap(string $innerHtml, ?string $preheader = null): string
     {
-        $appName = (string) (config('task_email.from_name') ?: config('va.app_name', 'VAschools QLDA'));
+        $appName = (string) (config('task_email.from_name') ?: config('va.app_name', 'VAschools Workspace'));
         $year = date('Y');
         $preheaderHtml = $preheader !== null && $preheader !== ''
             ? '<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">'
@@ -27,7 +27,7 @@ final class EmailBrandLayout
             .'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">'
             .'<tr><td style="background:#9A0036;border-radius:12px 12px 0 0;padding:20px 24px;">'
             .'<p style="margin:0;font-size:18px;font-weight:700;color:#ffffff;letter-spacing:-0.02em;">'.e($appName).'</p>'
-            .'<p style="margin:6px 0 0;font-size:12px;color:rgba(255,255,255,0.85);">Thông báo công việc · QLDA</p>'
+            .'<p style="margin:6px 0 0;font-size:12px;color:rgba(255,255,255,0.85);">Thông báo công việc · Workspace</p>'
             .'</td></tr>'
             .'<tr><td style="background:#ffffff;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 12px 12px;padding:24px;font-size:15px;line-height:1.55;">'
             .$innerHtml

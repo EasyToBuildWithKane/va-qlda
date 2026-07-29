@@ -4,8 +4,8 @@ import { useOverflowScrollHints } from '@/composables/useOverflowScrollHints';
 
 export const APP_SIDEBAR_KEY = Symbol('vaAppSidebar');
 
-const RAIL_KEY = 'va-qlda.sidebar.rail';
-const COLLAPSE_KEY = 'va-qlda.sidebar.collapsed';
+const RAIL_KEY = 'va-workspace.sidebar.rail';
+const COLLAPSE_KEY = 'va-workspace.sidebar.collapsed';
 const MOBILE_BREAKPOINT = 1024;
 
 const ROLE_LABELS = {
@@ -40,7 +40,7 @@ export function useAppSidebar() {
 
     const appInfo = computed(() => page.props?.app ?? {});
     const appShortName = computed(() => appInfo.value.short_name || 'VA');
-    const appName = computed(() => appInfo.value.name || 'VAschools QLDA');
+    const appName = computed(() => appInfo.value.name || 'VAschools Workspace');
     const appVersion = computed(() => appInfo.value.version || '1.0');
 
     const allHrefs = computed(() =>

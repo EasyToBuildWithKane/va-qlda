@@ -96,7 +96,7 @@ const {
     hasFilterRow,
     enabledFilterControlCount,
     FILTER_CONTROLS,
-} = useVisibleFilterControls(KB_FILTER_CONTROLS, 'va-qlda.knowledge-base.visible-filters.v3');
+} = useVisibleFilterControls(KB_FILTER_CONTROLS, 'va-workspace.knowledge-base.visible-filters.v3');
 
 const {
     visibleCols,
@@ -104,7 +104,7 @@ const {
     persistVisibleColumns,
     openColPanel,
     isColVisible,
-} = useVisibleColumns(CARD_COLUMNS, 'va-qlda.knowledge-base.columns');
+} = useVisibleColumns(CARD_COLUMNS, 'va-workspace.knowledge-base.columns');
 
 const filterDdRef = ref(null);
 const colDdRef = ref(null);
@@ -157,7 +157,7 @@ const {
     toggleGroup,
     toggleAllGroups,
     allGroupsExpanded,
-} = useCollapsedGroups('va-qlda.knowledge-base.collapsed-groups');
+} = useCollapsedGroups('va-workspace.knowledge-base.collapsed-groups');
 
 const onDocClick = (e) => {
     if (e.target.closest?.('[data-filter-visibility-panel]')) return;

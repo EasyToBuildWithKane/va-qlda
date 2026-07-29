@@ -58,7 +58,7 @@ export function downloadCredentialTemplate() {
 
     // Sheet 1: Huong dan
     const guide = {};
-    guide['A1'] = { v: 'HƯỚNG DẪN NHẬP TÀI KHOẢN — VA-QLDA', t: 's', s: S.title };
+    guide['A1'] = { v: 'HƯỚNG DẪN NHẬP TÀI KHOẢN — VA-Workspace', t: 's', s: S.title };
     guide['A2'] = { v: `Phiên bản: ${CREDENTIAL_IMPORT_MARKER} · Ngày: ${new Date().toLocaleDateString('vi-VN')}`, t: 's', s: S.note };
     guide['A3'] = { v: '', t: 's' };
 

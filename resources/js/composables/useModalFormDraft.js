@@ -64,7 +64,7 @@ export function useModalFormDraft(modalKey, options = {}) {
         const uid = page.props.auth?.user?.id ?? 'guest';
         const scope = unref(getScope);
         const scopePart = scope != null && scope !== '' ? `.${scope}` : '';
-        return `va-qlda.modal-draft.${modalKey}${scopePart}.${uid}`;
+        return `va-workspace.modal-draft.${modalKey}${scopePart}.${uid}`;
     });
 
     const read = () => {

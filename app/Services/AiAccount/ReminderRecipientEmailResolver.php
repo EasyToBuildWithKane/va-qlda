@@ -6,7 +6,7 @@ use App\Models\SystemAccount;
 use App\Services\Hrm\HrmIdentityResolver;
 
 /**
- * Địa chỉ nhận mail nhắc AI: ưu tiên email nhân sự QLDA (đã refresh từ HRM API nếu cấu hình).
+ * Địa chỉ nhận mail nhắc AI: ưu tiên email nhân sự Workspace (đã refresh từ HRM API nếu cấu hình).
  */
 final class ReminderRecipientEmailResolver
 {

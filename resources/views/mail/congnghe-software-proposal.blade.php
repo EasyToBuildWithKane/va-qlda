@@ -54,5 +54,5 @@
 </p>
 
 <p style="margin:20px 0 0;font-size:12px;color:#94a3b8;line-height:1.5;">
-    Tệp đính kèm (nếu có) được gửi cùng email này. Đề xuất được ghi nhận qua VA-QLDA — không cần tạo ticket thủ công.
+    Tệp đính kèm (nếu có) được gửi cùng email này. Đề xuất được ghi nhận qua VA-Workspace — không cần tạo ticket thủ công.
 </p>
