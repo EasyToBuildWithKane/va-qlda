@@ -95,7 +95,7 @@ onUnmounted(() => {
       >
         <button
           type="button"
-          class="absolute inset-0 bg-slate-900/50 backdrop-blur-[2px]"
+          class="absolute inset-0 bg-slate-950/60 backdrop-blur-[2px]"
           aria-label="Đóng menu"
           @click="emit('close')"
         />
@@ -110,7 +110,7 @@ onUnmounted(() => {
           <aside
             v-if="open"
             ref="panelRef"
-            class="absolute left-0 top-0 flex h-full w-[min(20rem,calc(100vw-3rem))] max-w-full flex-col bg-brand text-brand-100 shadow-elevation-3"
+            class="sidebar-surface absolute left-0 top-0 flex h-full w-[min(86vw,var(--spacing-sidebar-drawer))] max-w-full flex-col text-white shadow-elevation-3"
             role="dialog"
             aria-modal="true"
             aria-label="Menu điều hướng"
@@ -130,7 +130,7 @@ onUnmounted(() => {
               />
               <button
                 type="button"
-                class="grid h-10 w-10 min-h-[2.5rem] min-w-[2.5rem] shrink-0 place-items-center rounded-lg text-brand-100/70 transition-colors hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 active:scale-[0.98]"
+                class="grid h-10 w-10 min-h-[2.5rem] min-w-[2.5rem] shrink-0 place-items-center rounded-lg text-white/70 transition-colors hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 active:scale-[0.98]"
                 aria-label="Đóng menu"
                 @click="emit('close')"
               >

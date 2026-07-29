@@ -69,7 +69,7 @@ class EmployeeProfileResource extends JsonResource
     }
 
     /**
-     * HR fields mirrored from CMS `user_info` (synced into employees + meta).
+     * HR fields từ VA-HRM Public API (đồng bộ vào employees + meta khi mở hồ sơ).
      *
      * @return array<string, mixed>
      */
@@ -82,11 +82,12 @@ class EmployeeProfileResource extends JsonResource
             'department_name' => $meta['department_name'] ?? null,
             'unit_name' => $meta['unit_name'] ?? null,
             'headquarter_name' => $meta['headquarter_name'] ?? null,
-            'position_name' => $meta['position_name'] ?? null,
-            'concurrent_position_name' => ProfileOrgRelations::concurrentPositionLabel($e)
-                ?? $meta['concurrent_position_name'] ?? null,
+            'position_name' => $meta['position_name'] ?? $e->role_title,
+            'concurrent_position_name' => $meta['concurrent_position_name']
+                ?? ProfileOrgRelations::concurrentPositionLabel($e),
             'start_working_date' => $e->join_date?->toDateString(),
-            'department_code' => ProfileOrgRelations::departmentCode($meta),
+            'department_code' => $meta['department_code']
+                ?? ProfileOrgRelations::departmentCode($meta),
             'company_id' => $meta['company_id'] ?? null,
         ];
     }

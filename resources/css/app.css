@@ -38,6 +38,15 @@
 }
 
 @layer base {
+    :root {
+        /* Sidebar surface — brand VA maroon */
+        --color-sidebar: #9a0036;
+        --color-sidebar-active: #810030;
+        --spacing-sidebar-rail: 4rem;
+        --spacing-sidebar-expanded: 15.5rem;
+        --spacing-sidebar-drawer: 17rem;
+    }
+
     html {
         @apply antialiased;
     }
@@ -174,14 +183,49 @@
         @apply block border-t border-slate-100 px-3 py-2 text-xs font-medium text-brand no-underline hover:bg-brand/5;
     }
 
+    /* Sidebar shell — gradient surface (parity production / HRM) */
+    .sidebar-surface {
+        background-color: var(--color-sidebar);
+        background-image: linear-gradient(
+            180deg,
+            rgba(255, 255, 255, 0.06) 0%,
+            rgba(0, 0, 0, 0) 30%,
+            rgba(0, 0, 0, 0.16) 100%
+        );
+    }
+
+    .sidebar-nav-item {
+        @apply transition-[background-color,color,box-shadow,transform] duration-200 ease-out;
+    }
+
+    .sidebar-nav-item--active {
+        background-color: var(--color-sidebar-active);
+        animation: sidebar-active-fade 220ms ease-out;
+    }
+
+    .bg-sidebar-active {
+        background-color: var(--color-sidebar-active);
+    }
+
     /* Sidebar nav — thanh cuộn mảnh, tông trắng trên nền brand */
+    .sidebar-brand-logo {
+        filter: brightness(1.06) contrast(1.04);
+        transition: transform 220ms ease, filter 220ms ease;
+    }
+
+    .group:hover .sidebar-brand-logo,
+    .sidebar-brand-logo:hover {
+        filter: brightness(1.12) contrast(1.06);
+        transform: scale(1.015);
+    }
+
     .sidebar-nav-scroll {
         overscroll-behavior: contain;
         overflow-anchor: none;
         -webkit-overflow-scrolling: touch;
         scroll-padding-block: 0.5rem;
         scrollbar-width: thin;
-        scrollbar-color: rgba(255, 255, 255, 0.38) transparent;
+        scrollbar-color: rgba(255, 255, 255, 0.28) transparent;
     }
 
     .sidebar-nav-scroll::-webkit-scrollbar {
@@ -202,11 +246,11 @@
     }
 
     .sidebar-nav-scroll:hover::-webkit-scrollbar-thumb {
-        background-color: rgba(255, 255, 255, 0.42);
+        background-color: rgba(255, 255, 255, 0.4);
     }
 
     .sidebar-nav-scroll::-webkit-scrollbar-thumb:active {
-        background-color: rgba(255, 255, 255, 0.58);
+        background-color: rgba(255, 255, 255, 0.55);
     }
 
     /* Sidebar nav — icon lớn + micro-interaction */
@@ -252,7 +296,9 @@
     @media (prefers-reduced-motion: reduce) {
         .sidebar-nav-icon,
         .sidebar-nav-item--active .sidebar-nav-icon,
-        .sidebar-nav-item--active .sidebar-nav-icon-shell--item::after {
+        .sidebar-nav-item--active .sidebar-nav-icon-shell--item::after,
+        .sidebar-nav-item--active,
+        .sidebar-brand-logo {
             animation: none !important;
         }
 
@@ -261,6 +307,20 @@
         .sidebar-rail-group:hover .sidebar-nav-icon {
             transform: none;
         }
+
+        .group:hover .sidebar-brand-logo,
+        .sidebar-brand-logo:hover {
+            transform: none;
+        }
+    }
+}
+
+@keyframes sidebar-active-fade {
+    from {
+        background-color: transparent;
+    }
+    to {
+        background-color: var(--color-sidebar-active);
     }
 }
 

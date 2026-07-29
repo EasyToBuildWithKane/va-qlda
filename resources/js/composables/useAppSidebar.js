@@ -115,14 +115,31 @@ export function useAppSidebar() {
         nav.value.filter((g) => g.defaultCollapsed).forEach((g) => collapsed.add(groupKey(g)));
     };
 
-    watch(nav, syncCollapsedFromStorage, { immediate: true });
+    const groupContainsActive = (group) => group.items.some((item) => isActive(item.href));
+
+    /** Luôn mở nhóm chứa route đang active (parity production). */
+    const ensureActiveGroupsOpen = () => {
+        nav.value.forEach((g) => {
+            if (groupContainsActive(g)) {
+                collapsed.delete(groupKey(g));
+            }
+        });
+    };
+
+    watch(
+        nav,
+        () => {
+            syncCollapsedFromStorage();
+            ensureActiveGroupsOpen();
+        },
+        { immediate: true },
+    );
+    watch(activeHref, ensureActiveGroupsOpen);
     watch(collapsed, () => {
         if (typeof localStorage !== 'undefined') {
             localStorage.setItem(COLLAPSE_KEY, JSON.stringify([...collapsed]));
         }
     }, { deep: true });
-
-    const groupContainsActive = (group) => group.items.some((item) => isActive(item.href));
 
     const isOpen = (group) => !collapsed.has(groupKey(group));
 

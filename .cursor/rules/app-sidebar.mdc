@@ -17,7 +17,7 @@ Skill: `.cursor/skills/app-sidebar/SKILL.md` (+ `reference.md`)
 | Desktop | `AppSidebar.vue` (`w-[5.75rem]` rail / `w-72`) |
 | Nav UI | `AppSidebarExpandedNav`, `AppSidebarRailNav`, `RailFlyout`, `RailTooltip` |
 | Mobile | `AppSidebarMobileDrawer.vue` |
-| Brand / Footer | `AppSidebarBrand`, `AppSidebarFooter` |
+| Brand | `AppSidebarBrand` |
 | Config | `Navigation.php` → Inertia `nav` |
 
 ## 1. Cấu trúc
@@ -38,22 +38,29 @@ Nav → backend Navigation::for (+ badges)
 - Persist: `va-qlda.sidebar.rail`, `va-qlda.sidebar.collapsed`
 - Đổi URL → đóng drawer + flyout; click ngoài đóng flyout (rail)
 
-## 3. Groups & items
+## 3. Logo collapse (rail)
+
+- Expanded/drawer: wordmark `vas-white.png`
+- Rail: mark `vas-white-mark.png` (+ `@2x`) trong ô `h-10 w-10` ring — **không** scale wordmark dài
+- Mẫu: `AppSidebarBrand.vue` (parity VA-HRM `SidebarLogo`)
+
+## 4. Groups & items
 
 - Expanded: accordion group; Rail: icon + tooltip + flyout menu
 - Active: longest-prefix `href` trong `useAppSidebar`
 - Status: `live|dev|maintenance|planned` — badge / tone rail
 - Class: `sidebar-nav-item--active`, `sidebar-nav-scroll`, `bg-brand`
 
-## 4. Anti-patterns
+## 5. Anti-patterns
 
 - Sidebar mới trong page; remount shell mỗi visit
 - Hard-code menu FE thay `Navigation.php`
 - Rail không flyout; sửa width mà quên flyout/layout
+- Rail dùng wordmark thay mark
 
-## 5. Checklist
+## 6. Checklist
 
 - [ ] Sửa qua AppSidebar* + useAppSidebar + Navigation.php
-- [ ] Rail / expanded / drawer đồng bộ
+- [ ] Rail / expanded / drawer đồng bộ; logo mark khi rail
 - [ ] Persist + active + status đúng
 - [ ] `data-tour="sidebar"` giữ nếu có tour

@@ -64,7 +64,7 @@ resources/js/
 │   ├── contract/                 ← CLM: components (*SummaryBar, charts), composables, config
 │   ├── credential/               ← Kho mật khẩu: components, composables
 │   ├── performance/              ← Dashboard + audit components/composables
-│   ├── profile/                  ← Hồ sơ nhân sự (ProfileStats, skill radar)
+│   ├── profile/                  ← Hồ sơ (/profile): Hero + KPI tóm tắt + HR từ VA-HRM API + skill
 │   ├── onboarding/               ← SmartContextHint (useOnboarding, useSmartContext, OnboardingRoot)
 │   ├── notifications/            ← Bell, center drawer, preferences
 │   ├── audit/                    ← Audit trail viewer components/composables
@@ -88,16 +88,18 @@ resources/js/
 ## 4. Component Hierarchy
 
 ```
-AppLayout.vue
+AppChrome.vue (persistent shell)
 ├── AppSidebar + AppSidebarMobileDrawer (`Components/Layout/`, `composables/useAppSidebar.js`)
-├── NotificationBell + NotificationCenterDrawer
-├── UserMenu (modules/project/components/UserMenu.vue)
-├── <slot> → Inertia Page
-├── ToastContainer → shared/composables/useToast
-└── AppDialog → useDialog
+└── slot → AppLayout.vue
+      ├── topbar (hamburger mobile → openMobile)
+      ├── NotificationBell + NotificationCenterDrawer
+      ├── UserMenu
+      ├── <slot> → Inertia Page
+      ├── ToastContainer → shared/composables/useToast
+      └── AppDialog → useDialog
 ```
 
-**Sidebar UX (2026-06):** Desktop `lg+` — expanded (`w-72`) hoặc rail (`w-[4.25rem]`), tooltip + flyout nhóm khi rail; `< lg` — drawer trái (hamburger topbar, overlay, vuốt đóng). Trạng thái rail/nhóm: `localStorage` (`va-qlda.sidebar.rail`, `va-qlda.sidebar.collapsed`).
+**Sidebar UX (2026-07, rule `app-sidebar`):** Desktop `lg+` — expanded (`w-sidebar-expanded` / 15.5rem) hoặc rail (`w-sidebar-rail` / 4rem), surface `.sidebar-surface` (brand `#9A0036`), nav `text-xs` + section `uppercase tracking-[0.05em]`, active `bg-sidebar-active`, logo wordmark / mark khi rail, tooltip + flyout trắng khi rail; `< lg` — drawer (`w-sidebar-drawer`). Persist: `va-qlda.sidebar.rail`, `va-qlda.sidebar.collapsed`; nhóm chứa route active luôn mở. User menu chỉ ở topbar (không footer sidebar).
 
 **Badge số liệu thật trên nav:** mục có `badgeKey` được `App\Support\NavigationBadges::decorate()` gắn `item.badge` (số đếm thực); render pill đỏ ở expanded/mobile, số góc icon + chấm trên nhóm thu gọn ở rail, pill trong flyout. Ẩn khi count = 0. Xem [§12 Role-Based UI](#12-role-based-ui).
 
@@ -131,7 +133,7 @@ Pages import feature components từ `@/modules/project/components/...` và prim
 
 ### 6.1b App shell — `Components/Layout/`
 
-`AppSidebar.vue`, `AppSidebarBrand.vue`, `AppSidebarExpandedNav.vue`, `AppSidebarRailNav.vue`, `AppSidebarRailFlyout.vue`, `AppSidebarRailTooltip.vue`, `AppSidebarFooter.vue`, `AppSidebarMobileDrawer.vue` — dùng bởi `Layouts/AppLayout.vue`; logic nav/active/collapse: `composables/useAppSidebar.js`.
+`AppSidebar.vue`, `AppSidebarBrand.vue`, `AppSidebarExpandedNav.vue`, `AppSidebarRailNav.vue`, `AppSidebarRailFlyout.vue`, `AppSidebarRailTooltip.vue`, `AppSidebarMobileDrawer.vue` — gắn `Layouts/AppChrome.vue` (không remount theo page); `AppLayout` chỉ fallback khi mount đơn lẻ. Logic: `composables/useAppSidebar.js`. CSS tokens: `--spacing-sidebar-*`, `--color-sidebar` (`#9A0036`), `.sidebar-surface` trong `resources/css/app.css`. Skill: `.cursor/skills/app-sidebar/SKILL.md`.
 
 ### 6.2 Shared UI — `shared/ui/`
 

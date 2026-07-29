@@ -216,6 +216,14 @@ final class HrmIdentityResolver
             }
         }
 
+        // Meta HRM merge vào meta QLDA (giữ bio / socials / skill_details…).
+        if (array_key_exists('meta', $payload)) {
+            $payload['meta'] = self::mergeEmployeeMeta(
+                is_array($employee->meta) ? $employee->meta : [],
+                is_array($payload['meta']) ? $payload['meta'] : null,
+            );
+        }
+
         if ($this->employeeMatchesPayload($employee, $payload)) {
             return 'skipped';
         }
@@ -304,6 +312,22 @@ final class HrmIdentityResolver
         SystemAccount::query()
             ->where('employee_id', $employee->id)
             ->update(['is_active' => $employee->is_active]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $existing
+     * @param  array<string, mixed>|null  $incoming
+     * @return array<string, mixed>|null
+     */
+    private static function mergeEmployeeMeta(array $existing, ?array $incoming): ?array
+    {
+        if ($incoming === null || $incoming === []) {
+            return $existing === [] ? null : $existing;
+        }
+
+        $merged = array_merge($existing, $incoming);
+
+        return $merged === [] ? null : $merged;
     }
 
     /**

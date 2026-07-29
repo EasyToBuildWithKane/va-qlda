@@ -91,6 +91,7 @@ final class HrmApiEmployeeMapper
     private static function resolveRoleTitle(array $payload): ?string
     {
         return self::nullableString($payload['job_title_name'] ?? null)
+            ?? self::positionTitle($payload['primary_assignment'] ?? null)
             ?? self::nullableString($payload['job_position'] ?? null);
     }
 
@@ -104,18 +105,87 @@ final class HrmApiEmployeeMapper
             ? $payload['primary_assignment']
             : [];
 
+        $orgUnit = is_array($assignment['org_unit'] ?? null) ? $assignment['org_unit'] : [];
+        $company = is_array($assignment['company'] ?? null) ? $assignment['company'] : [];
+        $orgType = self::nullableString($orgUnit['type'] ?? null);
+        $orgName = self::nullableString($orgUnit['name'] ?? null);
+
+        $departmentName = self::nullableString($payload['department_name'] ?? null);
+        $unitName = null;
+        $headquarterName = null;
+
+        if (in_array($orgType, ['headquarter', 'branch'], true)) {
+            $headquarterName = $orgName;
+        } elseif ($orgType === 'unit') {
+            $unitName = $orgName;
+        } elseif ($orgType === 'department') {
+            $departmentName = $departmentName ?? $orgName;
+        } else {
+            $departmentName = $departmentName ?? $orgName;
+        }
+
         $meta = array_filter([
-            'department_name' => self::nullableString($payload['department_name'] ?? null)
-                ?? self::nullableString(data_get($assignment, 'org_unit.name')),
-            'company_name' => self::nullableString(data_get($assignment, 'company.name')),
+            'department_name' => $departmentName,
+            'department_code' => self::nullableString($orgUnit['code'] ?? null),
+            'company_name' => self::nullableString($company['name'] ?? null),
+            'company_id' => self::nullableString($company['code'] ?? null),
+            'unit_name' => $unitName,
+            'headquarter_name' => $headquarterName,
             'position_name' => self::nullableString($payload['job_title_name'] ?? null)
-                ?? self::nullableString(data_get($assignment, 'position.name')),
+                ?? self::positionTitle($assignment)
+                ?? self::nullableString($payload['job_position'] ?? null),
+            'concurrent_position_name' => self::concurrentPositionLabel($payload),
             'job_position' => self::nullableString($payload['job_position'] ?? null),
             'hrm_status' => self::nullableString($payload['status'] ?? null),
             'terminated_at' => self::nullableString($payload['terminated_at'] ?? null),
         ], fn ($v) => $v !== null && $v !== '');
 
         return $meta === [] ? null : $meta;
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $assignment
+     */
+    private static function positionTitle(mixed $assignment): ?string
+    {
+        if (! is_array($assignment)) {
+            return null;
+        }
+
+        $position = is_array($assignment['position'] ?? null) ? $assignment['position'] : [];
+
+        return self::nullableString($position['title'] ?? null)
+            ?? self::nullableString($position['name'] ?? null);
+    }
+
+    /**
+     * @param  HrmApiEmployee  $payload
+     */
+    private static function concurrentPositionLabel(array $payload): ?string
+    {
+        $rows = $payload['concurrent_assignments'] ?? null;
+        if (! is_array($rows) || $rows === []) {
+            return null;
+        }
+
+        $labels = [];
+        foreach ($rows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $title = self::positionTitle($row);
+            $unit = self::nullableString(data_get($row, 'org_unit.name'));
+            if ($title === null && $unit === null) {
+                continue;
+            }
+            $labels[] = $unit !== null && $title !== null
+                ? "{$title} · {$unit}"
+                : ($title ?? $unit);
+        }
+
+        $labels = array_values(array_unique(array_filter($labels)));
+
+        return $labels === [] ? null : implode('; ', $labels);
     }
 
     private static function nullableString(mixed $value): ?string

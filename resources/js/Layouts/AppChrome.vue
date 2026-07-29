@@ -13,7 +13,6 @@ provide(APP_SIDEBAR_KEY, sidebar);
 
 const {
     nav,
-    roleLabel,
     rail,
     mobileOpen,
     closeMobile,
@@ -27,9 +26,6 @@ const {
     statusOf,
     showRailStatus,
     railTone,
-    userInitials,
-    userAvatarSrc,
-    userDisplayName,
     tip,
     showTip,
     hideTip,
@@ -49,6 +45,14 @@ const {
 
 function registerSidebarNavEl(el) {
     sidebarNavRef.value = el;
+}
+
+function collapseSidebar() {
+    rail.value = true;
+}
+
+function expandSidebar() {
+    rail.value = false;
 }
 
 function onDocumentClick(e) {
@@ -79,10 +83,6 @@ onUnmounted(() => {
         :nav="nav"
         :app-short-name="appShortName"
         :app-name="appName"
-        :role-label="roleLabel"
-        :user-initials="userInitials"
-        :user-avatar-src="userAvatarSrc"
-        :user-display-name="userDisplayName"
         :group-key="groupKey"
         :is-open="isOpen"
         :toggle-group="toggleGroup"
@@ -106,8 +106,8 @@ onUnmounted(() => {
         :register-nav-el="registerSidebarNavEl"
         :sidebar-scroll-edges="sidebarScrollEdges"
         :on-sidebar-nav-scroll="onSidebarNavScroll"
-        @collapse="rail = true"
-        @expand="rail = false"
+        @collapse="collapseSidebar"
+        @expand="expandSidebar"
       />
 
       <AppSidebarMobileDrawer

@@ -37,7 +37,7 @@ const bioState = computed(() => profileFieldState(props.profile.bio));
     section-key="profile-contact"
   >
     <div class="border-b border-slate-100 px-5 py-4">
-      <p class="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+      <p class="text-[12px] font-medium text-slate-500">
         Giới thiệu
       </p>
       <p

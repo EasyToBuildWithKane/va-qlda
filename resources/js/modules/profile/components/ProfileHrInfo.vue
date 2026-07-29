@@ -12,8 +12,8 @@ const props = defineProps({
 const h = computed(() => props.hrInfo ?? {});
 
 const identityFields = computed(() => [
-    { label: 'Mã nhân sự', value: h.value.code, mono: true },
-    { label: 'Điện thoại', value: h.value.phone, href: h.value.phone ? `tel:${h.value.phone}` : null },
+    { label: 'Mã nhân viên', value: h.value.code, mono: true },
+    { label: 'Số điện thoại', value: h.value.phone, href: h.value.phone ? `tel:${h.value.phone}` : null },
 ]);
 
 const orgFields = computed(() => [
@@ -21,15 +21,15 @@ const orgFields = computed(() => [
     { label: 'Mã công ty', value: h.value.company_id, mono: true },
     { label: 'Phòng ban', value: h.value.department_name },
     { label: 'Mã phòng ban', value: h.value.department_code, mono: true },
-    { label: 'Đơn vị', value: h.value.unit_name },
-    { label: 'Trụ sở / Chi nhánh', value: h.value.headquarter_name },
+    { label: 'Đơn vị / nhóm', value: h.value.unit_name },
+    { label: 'Trụ sở / cơ sở', value: h.value.headquarter_name },
 ]);
 
 const roleFields = computed(() => [
     { label: 'Chức danh', value: h.value.position_name ?? props.roleTitle },
-    { label: 'Chức danh kiêm nhiệm', value: h.value.concurrent_position_name },
+    { label: 'Kiêm nhiệm', value: h.value.concurrent_position_name },
     {
-        label: 'Ngày bắt đầu làm việc',
+        label: 'Ngày vào làm',
         value: h.value.start_working_date ? date(h.value.start_working_date) : null,
         mono: true,
     },
@@ -38,21 +38,21 @@ const roleFields = computed(() => [
 
 <template>
   <ProfileInfoPanel
-    title="Hồ sơ nhân sự (CMS)"
+    title="Thông tin nhân sự"
     icon="member-profiles"
-    subtitle="Dữ liệu đồng bộ từ hệ thống nhân sự — chỉ đọc trên QLDA"
+    subtitle="Đồng bộ từ hệ thống nhân sự VA — chỉ xem tại đây"
     section-key="profile-hr"
   >
     <ProfileFieldList
-      group-title="Định danh"
+      group-title="Cá nhân"
       :fields="identityFields"
     />
     <ProfileFieldList
-      group-title="Tổ chức"
+      group-title="Công ty & đơn vị"
       :fields="orgFields"
     />
     <ProfileFieldList
-      group-title="Chức vụ"
+      group-title="Vị trí công việc"
       :fields="roleFields"
     />
   </ProfileInfoPanel>

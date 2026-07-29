@@ -38,19 +38,19 @@ const specRows = computed(() => [
     },
     {
         icon: 'settings',
-        label: 'Vai trò hệ thống',
+        label: 'Quyền truy cập',
         value: props.profile.account_role?.label ?? null,
         badge: props.profile.account_role ?? null,
     },
     {
         icon: 'org-teams',
-        label: 'Nhóm quản lý dự án',
+        label: 'Nhóm dự án',
         value: teamLabel.value !== profileDisplayValue(null) ? teamLabel.value : null,
     },
     {
         icon: 'performance',
-        label: 'Trạng thái',
-        value: props.profile.is_active ? 'Đang hoạt động' : 'Ngừng hoạt động',
+        label: 'Trạng thái làm việc',
+        value: props.profile.is_active ? 'Đang làm việc' : 'Đã nghỉ',
         status: props.profile.is_active ? 'active' : 'inactive',
     },
 ]);
@@ -71,11 +71,6 @@ const { open: specOpen, toggle: toggleSpec } = useProfileSectionCollapse('profil
     class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm"
     aria-label="Thông tin định danh"
   >
-    <div
-      class="h-1 shrink-0 bg-gradient-to-r from-brand via-[#b81350] to-slate-800"
-      aria-hidden="true"
-    />
-
     <div class="p-5 sm:p-6">
       <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div class="flex min-w-0 gap-4 sm:gap-5">
@@ -148,15 +143,15 @@ const { open: specOpen, toggle: toggleSpec } = useProfileSectionCollapse('profil
         </div>
       </div>
 
-      <div class="mt-5 border-t border-slate-100 pt-4">
+      <div class="mt-5 pt-1">
         <button
           type="button"
           class="flex w-full items-center justify-between gap-2 rounded-lg px-1 py-1 text-left transition-colors hover:bg-slate-50"
           :aria-expanded="specOpen"
           @click="toggleSpec"
         >
-          <span class="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-            Thông tin liên hệ & vận hành
+          <span class="text-[13px] font-medium text-slate-600">
+            Thông tin liên hệ
           </span>
           <AppIcon
             :name="specOpen ? 'chevron-down' : 'chevron-right'"
@@ -174,7 +169,7 @@ const { open: specOpen, toggle: toggleSpec } = useProfileSectionCollapse('profil
             :key="row.label"
             class="flex min-w-0 flex-col gap-1 bg-white px-3.5 py-3 sm:px-4"
           >
-            <dt class="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-400">
+            <dt class="flex items-center gap-1.5 text-[12px] font-medium text-slate-500">
               <AppIcon
                 :name="row.icon"
                 :size="12"

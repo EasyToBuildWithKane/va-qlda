@@ -27,7 +27,6 @@ Chi tiết composable / CSS / status: [reference.md](reference.md)
 | Rail flyout | `AppSidebarRailFlyout.vue` |
 | Rail tooltip | `AppSidebarRailTooltip.vue` |
 | Mobile drawer | `AppSidebarMobileDrawer.vue` |
-| Footer user | `AppSidebarFooter.vue` |
 | Nav config (BE) | `app/Support/Navigation.php` (+ `NavigationBadges.php`) |
 | Inertia share | `HandleInertiaRequests` → `nav` |
 | CSS nav | `resources/css/app.css` (`.sidebar-nav-*`) |
@@ -45,7 +44,6 @@ AppChrome (provide useAppSidebar)
 ├── AppSidebar (lg+, rail | expanded)
 │   ├── AppSidebarBrand
 │   ├── AppSidebarRailNav | AppSidebarExpandedNav
-│   ├── AppSidebarFooter
 │   └── Teleport: RailFlyout + RailTooltip
 └── AppSidebarMobileDrawer (< lg)
 ```
@@ -70,9 +68,19 @@ Nav data: `page.props.nav` = groups `{ key?, heading, section?, items[], default
 
 ## 2. Body (thứ tự)
 
-1. **Brand** — collapse/expand controls.
+1. **Brand** (`AppSidebarBrand`) — collapse/expand controls.
 2. **Nav** — rail icons **hoặc** expanded accordion; scroll hints gradient top/bottom.
-3. **Footer** — user / role.
+
+User account: topbar `UserMenu` (không footer sidebar).
+
+### Logo collapse (rail) — bắt buộc
+
+| Mode | Asset | Markup |
+|------|-------|--------|
+| **Expanded / drawer** | `vas-white.png` (wordmark) | full width, drop-shadow |
+| **Rail (collapsed)** | `vas-white-mark.png` + `@2x` srcset | ô `h-10 w-10` `rounded-lg bg-white/[0.08] ring-1 ring-white/15` + img `h-7 w-7` class `sidebar-brand-logo` |
+
+**Cấm** thu nhỏ wordmark dài trong rail — phải đổi sang mark. Assets: `public/images/congnghe/brand/`.
 
 Classes: `bg-brand text-brand-100`; active `sidebar-nav-item--active`; scroll `sidebar-nav-scroll`.
 
@@ -97,6 +105,7 @@ Classes: `bg-brand text-brand-100`; active `sidebar-nav-item--active`; scroll `s
 - Hard-code menu FE khi đã có `Navigation.php` / Inertia `nav`.
 - Rail không flyout/tooltip; width desktop lệch layout content.
 - Bỏ `data-tour="sidebar"` nếu tour đang phụ thuộc.
+- Rail dùng wordmark dài thay `vas-white-mark` trong ô mark.
 
 ---
 
@@ -105,6 +114,7 @@ Classes: `bg-brand text-brand-100`; active `sidebar-nav-item--active`; scroll `s
 - [ ] Sửa qua `AppChrome` / `useAppSidebar` / `AppSidebar*` — không fork
 - [ ] Nav mới → `Navigation.php` (+ badge nếu cần)
 - [ ] Rail + expanded + mobile drawer vẫn đồng bộ props
+- [ ] Logo: mark khi rail, wordmark khi expanded/drawer
 - [ ] Persist rail / collapsed groups
 - [ ] Active path + status badge đúng
 - [ ] CSS class `sidebar-nav-*` giữ motion / reduced-motion

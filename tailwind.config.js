@@ -45,6 +45,11 @@ export default {
                 'elevation-2': '0 4px 12px -2px rgb(16 30 48 / 0.10)',
                 'elevation-3': '0 12px 32px -8px rgb(16 30 48 / 0.18)',
             },
+            spacing: {
+                'sidebar-rail': 'var(--spacing-sidebar-rail)',
+                'sidebar-expanded': 'var(--spacing-sidebar-expanded)',
+                'sidebar-drawer': 'var(--spacing-sidebar-drawer)',
+            },
             // ── Landing /congnghe — premium AI/SaaS motion tokens (prefix cn-) ──
             keyframes: {
                 'cn-aurora': {

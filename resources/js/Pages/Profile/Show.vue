@@ -17,7 +17,7 @@ const props = defineProps({
     <template #header>
       <PageHeader
         title="Hồ sơ của tôi"
-        subtitle="Thông tin & năng lực cá nhân"
+        subtitle="Thông tin cá nhân và công việc"
         icon="account"
       />
     </template>

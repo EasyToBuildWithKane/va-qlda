@@ -12,18 +12,18 @@ const fields = computed(() => {
     const p = props.profile;
     return [
         {
-            label: 'Vai trò hệ thống',
+            label: 'Quyền truy cập',
             value: p.account_role?.label ?? null,
         },
         {
             label: 'Cấp bậc',
             value: p.seniority?.label ?? null,
         },
-        { label: 'Nhóm quản lý dự án', value: formatProfileProjectTeams(p.teams) },
-        { label: 'Quản lý trực tiếp', value: p.manager?.name ?? null },
+        { label: 'Nhóm dự án', value: formatProfileProjectTeams(p.teams) },
+        { label: 'Người quản lý', value: p.manager?.name ?? null },
         {
-            label: 'Trạng thái',
-            value: p.is_active ? 'Đang hoạt động' : 'Ngừng hoạt động',
+            label: 'Trạng thái làm việc',
+            value: p.is_active ? 'Đang làm việc' : 'Đã nghỉ',
         },
     ];
 });
@@ -31,9 +31,9 @@ const fields = computed(() => {
 
 <template>
   <ProfileInfoPanel
-    title="Vận hành trên QLDA"
+    title="Trên hệ thống dự án"
     icon="briefcase"
-    subtitle="Vai trò, nhóm và trạng thái trên hệ thống quản lý dự án"
+    subtitle="Quyền, nhóm và quản lý trên QLDA"
     section-key="profile-work"
   >
     <ProfileFieldList :fields="fields" />

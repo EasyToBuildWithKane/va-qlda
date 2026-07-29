@@ -24,7 +24,7 @@ const rows = computed(() =>
   <div class="profile-field-group">
     <p
       v-if="groupTitle"
-      class="profile-field-group__title px-5 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-brand/80"
+      class="profile-field-group__title px-5 pt-4 pb-1 text-[12px] font-medium text-slate-500"
     >
       {{ groupTitle }}
     </p>
@@ -37,7 +37,7 @@ const rows = computed(() =>
         :key="row.label"
         class="profile-field min-w-0 border-b border-slate-100 px-5 py-3.5 sm:border-r sm:border-slate-100/80 last:border-b-0 odd:sm:border-r"
       >
-        <dt class="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+        <dt class="text-[12px] font-medium text-slate-500">
           {{ row.label }}
         </dt>
         <dd class="mt-1 min-w-0">
@@ -65,8 +65,7 @@ const rows = computed(() =>
 
 <style scoped>
 .profile-field-group + .profile-field-group .profile-field-group__title {
-    border-top: 1px solid rgb(241 245 249);
-    margin-top: 0.25rem;
+    margin-top: 0.5rem;
 }
 
 @media (min-width: 640px) {

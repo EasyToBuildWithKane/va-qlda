@@ -57,9 +57,22 @@ Group shape điển hình: `key`, `heading`, `section`, `items[{ href, label, ic
 
 Đổi width → cập nhật layout content offset / flyout `left` nếu hard-code (tooltip/flyout dùng `getBoundingClientRect`).
 
+## Logo collapse (parity HRM)
+
+```
+Expanded / drawer → /images/congnghe/brand/vas-white.png
+Rail              → vas-white-mark.png (+ @2x) trong shell:
+  h-10 w-10 rounded-lg bg-white/[0.08] p-1.5
+  ring-1 ring-inset ring-white/15
+  img.sidebar-brand-logo h-7 w-7
+```
+
+CSS `.sidebar-brand-logo` — brightness/contrast + hover scale nhẹ.
+
 ## A11y
 
 - Collapse/expand brand: `aria-label` tiếng Việt
 - Flyout: `role="menu"` (xem `AppSidebarRailFlyout`)
 - Focus-visible ring accent trên control rail
 - Đóng flyout: click ngoài (AppChrome) + đổi route
+- Rail mark button: `aria-label="Mở rộng thanh bên"` + `title` = appName

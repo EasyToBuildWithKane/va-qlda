@@ -3,7 +3,6 @@ import AppIcon from '@/Components/AppIcon.vue';
 import AppSidebarBrand from '@/Components/Layout/AppSidebarBrand.vue';
 import AppSidebarExpandedNav from '@/Components/Layout/AppSidebarExpandedNav.vue';
 import AppSidebarRailNav from '@/Components/Layout/AppSidebarRailNav.vue';
-import AppSidebarFooter from '@/Components/Layout/AppSidebarFooter.vue';
 import AppSidebarRailFlyout from '@/Components/Layout/AppSidebarRailFlyout.vue';
 import AppSidebarRailTooltip from '@/Components/Layout/AppSidebarRailTooltip.vue';
 
@@ -12,10 +11,6 @@ defineProps({
     nav: { type: Array, default: () => [] },
     appShortName: { type: String, default: 'VA' },
     appName: { type: String, default: '' },
-    roleLabel: { type: String, default: '' },
-    userInitials: { type: String, default: 'ND' },
-    userAvatarSrc: { type: String, default: null },
-    userDisplayName: { type: String, default: '' },
     groupKey: { type: Function, required: true },
     isOpen: { type: Function, required: true },
     toggleGroup: { type: Function, required: true },
@@ -46,8 +41,9 @@ const emit = defineEmits(['collapse', 'expand']);
 
 <template>
   <aside
-    class="hidden h-full min-h-0 shrink-0 flex-col bg-brand text-brand-100 transition-[width] duration-200 ease-out lg:flex"
-    :class="rail ? 'w-[5.75rem]' : 'w-72'"
+    class="sidebar-surface hidden h-full min-h-0 shrink-0 flex-col text-white transition-[width] duration-200 ease-out lg:flex"
+    :class="rail ? 'w-sidebar-rail' : 'w-sidebar-expanded'"
+    :aria-label="rail ? 'Thanh điều hướng thu gọn' : 'Thanh điều hướng'"
   >
     <AppSidebarBrand
       :rail="rail"
@@ -60,7 +56,7 @@ const emit = defineEmits(['collapse', 'expand']);
     <button
       v-if="rail"
       type="button"
-      class="mx-auto mt-2 grid h-9 w-9 place-items-center rounded-lg text-brand-100/60 transition-colors hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+      class="mx-auto mt-1.5 grid h-9 w-9 place-items-center rounded-lg bg-white/10 text-white ring-1 ring-white/15 transition-colors hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
       title="Mở rộng thanh bên"
       aria-label="Mở rộng thanh bên"
       @click="emit('expand')"
@@ -74,12 +70,12 @@ const emit = defineEmits(['collapse', 'expand']);
     <div class="relative flex min-h-0 flex-1 flex-col">
       <div
         v-show="sidebarScrollEdges.top"
-        class="pointer-events-none absolute inset-x-0 top-0 z-10 h-7 bg-gradient-to-b from-brand via-brand/90 to-transparent"
+        class="pointer-events-none absolute inset-x-0 top-0 z-10 h-7 bg-gradient-to-b from-[var(--color-sidebar)] via-[color-mix(in_srgb,var(--color-sidebar)_90%,transparent)] to-transparent"
         aria-hidden="true"
       />
       <div
         v-show="sidebarScrollEdges.bottom"
-        class="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-7 bg-gradient-to-t from-brand via-brand/90 to-transparent"
+        class="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-7 bg-gradient-to-t from-[var(--color-sidebar)] via-[color-mix(in_srgb,var(--color-sidebar)_90%,transparent)] to-transparent"
         aria-hidden="true"
       />
 
@@ -99,7 +95,7 @@ const emit = defineEmits(['collapse', 'expand']);
         :rail-tone="railTone"
         :open-flyout="openFlyout"
         :schedule-flyout="scheduleFlyout"
-        :close-flyout="closeFlyout"
+        :on-flyout-pointer-leave="onFlyoutPointerLeave"
         @scroll="onSidebarNavScroll"
       />
 
@@ -119,17 +115,6 @@ const emit = defineEmits(['collapse', 'expand']);
         @scroll="onSidebarNavScroll"
       />
     </div>
-
-    <AppSidebarFooter
-      :rail="rail"
-      :user-initials="userInitials"
-      :user-avatar-src="userAvatarSrc"
-      :user-display-name="userDisplayName"
-      :role-label="roleLabel"
-      :show-tip="showTip"
-      :hide-tip="hideTip"
-      @expand="emit('expand')"
-    />
 
     <AppSidebarRailTooltip
       :show="rail"

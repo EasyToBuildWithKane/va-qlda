@@ -85,7 +85,7 @@ flowchart LR
 
 - **Không fallback DB** khi API lỗi/miss — login báo lỗi HRM.
 - **Không bulk sync** — các lệnh `cms:sync-*` đã gỡ.
-- `HrmIdentityResolver` + `HrmApiEmployeeMapper`; smoke: `php artisan hrm:api-ping [--email=]`.
+- `HrmIdentityResolver` + `HrmApiEmployeeMapper` (map `primary_assignment` / `concurrent_assignments` → `employees.meta` HR fields); mở `/profile` gọi `refreshEmployeeIfLinked`. Smoke: `php artisan hrm:api-ping [--email=]`.
 - Env: `HRM_API_BASE_URL`, `HRM_API_TOKEN` (mint `/admin/api-clients`). **JWT SSO ≠ Bearer M2M.**
 
 ### SSO HRM → QLDA (2026-07-28, opt-in `HRM_SSO_ENABLED`)

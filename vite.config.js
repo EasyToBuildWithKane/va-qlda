@@ -23,6 +23,8 @@ export default defineConfig({
         },
     },
     build: {
+        reportCompressedSize: false,
+        chunkSizeWarningLimit: 600,
         rollupOptions: {
             output: {
                 manualChunks: {
@@ -41,8 +43,24 @@ export default defineConfig({
                     // Charts
                     'vendor-chart': ['chart.js', 'vue-chartjs'],
 
-                    // Excel I/O
-                    'vendor-excel': ['xlsx', 'xlsx-js-style'],
+                    // Excel I/O (xlsx-js-style only — avoid duplicate sheetjs)
+                    'vendor-excel': ['xlsx-js-style'],
+
+                    // Date picker (FilterDatePicker)
+                    'vendor-datepicker': ['@vuepic/vue-datepicker'],
+
+                    // FullCalendar (project + coaching)
+                    'vendor-calendar': [
+                        '@fullcalendar/vue3',
+                        '@fullcalendar/core',
+                        '@fullcalendar/daygrid',
+                        '@fullcalendar/timegrid',
+                        '@fullcalendar/list',
+                        '@fullcalendar/interaction',
+                    ],
+
+                    // DOCX preview
+                    'vendor-docx': ['docx-preview'],
 
                     // Gantt (heavy, used only on Gantt view)
                     'vendor-gantt': ['frappe-gantt'],

@@ -23,69 +23,65 @@ const cards = computed(() => {
     return [
         {
             key: 'completion',
-            label: 'Hoàn thiện hồ sơ',
+            label: 'Hồ sơ đã điền',
             value: `${completion}%`,
             tone: 'brand',
             icon: 'target',
-            sub: 'Trường hồ sơ đã điền',
+            sub: completion >= 80 ? 'Gần đủ thông tin' : 'Còn một số mục trống',
             progress: completion,
             interactive: false,
         },
         {
             key: 'skill',
-            label: 'Điểm kỹ năng',
-            value: skillScore != null ? `${skillScore}/100` : profileDisplayValue(null),
+            label: 'Năng lực kỹ năng',
+            value: skillScore != null ? `${skillScore} điểm` : profileDisplayValue(null),
             tone: 'amber',
             icon: 'talent-score',
-            sub: skillScore != null ? 'Trung bình mức độ kỹ năng' : 'Chưa chấm mức độ',
+            sub: skillScore != null ? 'Theo mức tự đánh giá' : 'Chưa tự đánh giá kỹ năng',
             progress: skillScore ?? null,
             interactive: true,
             payload: 'skills',
         },
         {
             key: 'projects',
-            label: 'Dự án tham gia',
+            label: 'Dự án đang làm',
             value: projects,
             tone: 'sky',
             icon: 'projects',
-            sub: 'Dự án đang gán',
+            sub: projects === 1 ? '1 dự án' : `${projects} dự án`,
             interactive: true,
             payload: 'achievements',
         },
         {
             key: 'tasks',
-            label: 'Công việc hoàn thành',
+            label: 'Việc đã xong',
             value: tasksDone,
             tone: 'emerald',
             icon: 'done',
-            sub: tasksTotal ? `${s.task_completion ?? 0}% trên ${tasksTotal} việc` : 'Chưa có việc được giao',
+            sub: tasksTotal
+                ? `${s.task_completion ?? 0}% trong ${tasksTotal} việc được giao`
+                : 'Chưa được giao việc',
             progress: s.task_completion ?? null,
             interactive: true,
             payload: 'achievements',
         },
         {
             key: 'worklog',
-            label: 'Giờ worklog',
+            label: 'Giờ đã ghi nhận',
             value: hours,
             tone: 'violet',
             icon: 'worklog',
-            sub: 'Tổng giờ ghi nhận',
+            sub: hours === 0 ? 'Chưa ghi giờ làm' : 'Tổng giờ làm trên hệ thống',
             interactive: false,
         },
     ];
 });
 
-const progressDenominator = computed(() => {
-    const s = props.stats;
-    if (s.task_completion != null && (s.tasks_total ?? 0) > 0) {
-        return 100;
-    }
-    return 100;
-});
+const progressDenominator = computed(() => 100);
 
 const completionBadge = computed(() => {
     const c = props.stats.profile_completion ?? 0;
-    return `${c}% hoàn thiện`;
+    return `${c}% đã điền`;
 });
 
 function onSelect(card) {
@@ -97,18 +93,18 @@ function onSelect(card) {
 
 <template>
   <ProfileInfoPanel
-    title="Chỉ số hồ sơ"
+    title="Tóm tắt của bạn"
     icon="target"
-    subtitle="Thẻ có viền nét đứt — bấm để mở tab liên quan"
+    subtitle="Bấm thẻ viền nét đứt để xem chi tiết liên quan"
     section-key="profile-overview-kpi"
     :collapsed-badge="completionBadge"
   >
     <KpiSummaryStrip
       hide-header
-      aria-label="Thống kê hồ sơ cá nhân"
-      heading="Chỉ số hồ sơ"
+      aria-label="Tóm tắt hồ sơ cá nhân"
+      heading="Tóm tắt của bạn"
       hint=""
-      eyebrow="Thống kê"
+      eyebrow="Tóm tắt"
       shell-class="kpi-strip relative mb-0 overflow-x-hidden border-0 bg-transparent px-4 py-4 shadow-none sm:px-5 sm:py-4"
       :cards="cards"
       :active-key="activeTab === 'skills' ? 'skill' : activeTab === 'achievements' ? 'projects' : ''"

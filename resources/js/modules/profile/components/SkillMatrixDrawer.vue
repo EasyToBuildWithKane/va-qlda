@@ -140,7 +140,7 @@ function submit() {
 <template>
   <Drawer
     :show="show"
-    title="Quản lý ma trận kỹ năng"
+    title="Quản lý kỹ năng"
     width="max-w-2xl"
     @close="emit('close')"
   >
@@ -367,7 +367,7 @@ function submit() {
           :disabled="form.processing"
           @click="submit"
         >
-          {{ form.processing ? 'Đang lưu...' : 'Lưu ma trận kỹ năng' }}
+          {{ form.processing ? 'Đang lưu...' : 'Lưu kỹ năng' }}
         </button>
       </div>
     </template>

@@ -22,7 +22,7 @@ defineProps({
 const tab = ref('overview');
 const tabs = [
     { key: 'overview', label: 'Tổng quan', icon: 'account' },
-    { key: 'skills', label: 'Năng lực & Kỹ năng', icon: 'sparkles' },
+    { key: 'skills', label: 'Kỹ năng', icon: 'sparkles' },
     { key: 'achievements', label: 'Thành tích', icon: 'leaderboard' },
 ];
 
@@ -81,7 +81,7 @@ const editingSkills = ref(false);
             name="sparkles"
             :size="15"
           />
-          Quản lý ma trận kỹ năng
+          Quản lý kỹ năng
         </button>
       </div>
 

@@ -34,25 +34,23 @@ const panelStyle = computed(() => ({
     >
       <div
         v-if="flyout.open && group"
-        class="fixed z-[70] w-[min(17rem,calc(100vw-5rem))]"
+        class="fixed z-[70] w-56"
         :style="panelStyle"
         role="menu"
         :aria-label="group.heading"
         @mouseenter="emit('pointer-enter')"
         @mouseleave="emit('pointer-leave')"
       >
-        <div
-          class="overflow-hidden rounded-xl border border-white/10 bg-slate-900/98 shadow-elevation-3 ring-1 ring-black/20 backdrop-blur-md"
-        >
+        <div class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-elevation-3">
           <div
-            class="border-b border-white/[0.06] px-3 py-2"
-            :class="isUpcomingGroup(group) ? 'bg-amber-950/25' : ''"
+            class="border-b border-slate-100 px-3 py-2"
+            :class="isUpcomingGroup(group) ? 'bg-amber-50' : 'bg-slate-50'"
           >
-            <p class="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/70">
+            <p class="text-[11px] font-bold uppercase leading-[1.2] tracking-[0.08em] text-slate-500">
               {{ group.heading }}
             </p>
           </div>
-          <ul class="max-h-[min(18rem,50vh)] overflow-y-auto p-1.5">
+          <ul class="max-h-[min(18rem,50vh)] space-y-0 overflow-y-auto px-1 pt-1">
             <li
               v-for="item in group.items"
               :key="item.label"
@@ -62,25 +60,26 @@ const panelStyle = computed(() => ({
                 :href="isPlanned(item) ? undefined : item.href"
                 preserve-scroll
                 role="menuitem"
-                class="flex min-h-[40px] items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] transition-colors"
+                class="flex items-center gap-2 rounded-md px-2 py-1.5 text-[13px] font-semibold leading-[1.5] transition"
+                :aria-current="isActive(item.href) ? 'page' : undefined"
                 :class="[
                   isActive(item.href)
-                    ? 'sidebar-nav-item--active bg-white/10 font-semibold text-white'
-                    : 'font-normal text-slate-300/85 hover:bg-white/[0.08] hover:text-white',
+                    ? 'bg-[#9A0036]/10 font-bold text-[#9A0036]'
+                    : 'text-slate-800 hover:bg-slate-50',
                   isPlanned(item) && 'cursor-not-allowed opacity-60',
                 ]"
                 @click="!isPlanned(item) && emit('close')"
               >
                 <AppIcon
                   :name="item.icon"
-                  :size="18"
-                  :stroke-width="1.65"
+                  :size="14"
+                  :stroke-width="1.75"
                   class="sidebar-nav-icon shrink-0 opacity-90"
                 />
                 <span class="min-w-0 flex-1 truncate">{{ item.label }}</span>
                 <span
                   v-if="item.badge"
-                  class="inline-flex min-w-[1.25rem] shrink-0 items-center justify-center rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white tabular-nums"
+                  class="inline-flex min-w-[1.1rem] shrink-0 items-center justify-center rounded bg-slate-100 px-1 py-0.5 text-[11px] font-bold leading-[1.2] text-slate-700 tabular-nums"
                   :aria-label="`${item.badge} mục mới`"
                 >{{ item.badge > 99 ? '99+' : item.badge }}</span>
                 <span
@@ -92,7 +91,7 @@ const panelStyle = computed(() => ({
                   v-else-if="isPlanned(item)"
                   name="clock"
                   :size="12"
-                  class="shrink-0 text-amber-300/80"
+                  class="shrink-0 text-amber-500"
                 />
               </component>
             </li>

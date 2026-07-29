@@ -134,6 +134,49 @@ class HrmIdentityResolverTest extends TestCase
         ]);
     }
 
+    public function test_refresh_merges_hrm_meta_without_wiping_ql_fields(): void
+    {
+        $uuid = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee';
+        $employee = Employee::factory()->create([
+            'email' => 'merge@vaschools.edu.vn',
+            'full_name' => 'Merge User',
+            'code' => 'NV400',
+            'hrm_employee_uuid' => $uuid,
+            'meta' => [
+                'bio' => 'Giới thiệu QLDA',
+                'skill_details' => [['name' => 'Vue', 'level' => 4]],
+                'department_name' => 'Cũ',
+            ],
+        ]);
+
+        Http::fake([
+            "https://hrm.test/api/v1/employees/{$uuid}" => Http::response([
+                'data' => [
+                    'uuid' => $uuid,
+                    'code' => 'NV400',
+                    'full_name' => 'Merge User',
+                    'status' => 'active',
+                    'company_email' => 'merge@vaschools.edu.vn',
+                    'department_name' => 'Công nghệ',
+                    'job_title_name' => 'Kỹ sư',
+                    'primary_assignment' => [
+                        'company' => ['code' => 'VAS', 'name' => 'VAS'],
+                        'org_unit' => ['code' => 'IT', 'name' => 'CNTT', 'type' => 'department'],
+                        'position' => ['title' => 'Kỹ sư'],
+                    ],
+                ],
+            ]),
+        ]);
+
+        $fresh = (new HrmIdentityResolver(new HrmApiClient))->refreshEmployeeIfLinked($employee)->fresh();
+
+        $this->assertSame('Giới thiệu QLDA', $fresh->meta['bio']);
+        $this->assertSame(4, $fresh->meta['skill_details'][0]['level']);
+        $this->assertSame('Công nghệ', $fresh->meta['department_name']);
+        $this->assertSame('VAS', $fresh->meta['company_name']);
+        $this->assertSame('Kỹ sư', $fresh->meta['position_name']);
+    }
+
     public function test_is_hrm_configured_requires_api_token(): void
     {
         config(['hrm.api.token' => '']);

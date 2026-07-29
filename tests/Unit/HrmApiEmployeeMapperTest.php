@@ -25,9 +25,15 @@ class HrmApiEmployeeMapperTest extends TestCase
             'terminated_at' => null,
             'legacy_user_id' => 42,
             'primary_assignment' => [
-                'company' => ['name' => 'VAS'],
-                'org_unit' => ['name' => 'CNTT'],
-                'position' => ['name' => 'Dev'],
+                'company' => ['code' => 'VAS', 'name' => 'VAS'],
+                'org_unit' => ['code' => 'CNTT', 'name' => 'CNTT', 'type' => 'department'],
+                'position' => ['title' => 'Dev'],
+            ],
+            'concurrent_assignments' => [
+                [
+                    'position' => ['title' => 'Trưởng nhóm'],
+                    'org_unit' => ['name' => 'QA'],
+                ],
             ],
         ]);
 
@@ -40,7 +46,42 @@ class HrmApiEmployeeMapperTest extends TestCase
         $this->assertSame('2020-05-01', $attrs['join_date']);
         $this->assertTrue($attrs['is_active']);
         $this->assertSame('IT', $attrs['meta']['department_name']);
+        $this->assertSame('CNTT', $attrs['meta']['department_code']);
         $this->assertSame('VAS', $attrs['meta']['company_name']);
+        $this->assertSame('VAS', $attrs['meta']['company_id']);
+        $this->assertSame('Developer', $attrs['meta']['position_name']);
+        $this->assertSame('Trưởng nhóm · QA', $attrs['meta']['concurrent_position_name']);
+    }
+
+    public function test_maps_unit_and_headquarter_from_org_type(): void
+    {
+        $unit = HrmApiEmployeeMapper::toEmployeeAttributes([
+            'uuid' => '33333333-3333-3333-3333-333333333333',
+            'full_name' => 'C',
+            'status' => 'active',
+            'company_email' => 'c@vaschools.edu.vn',
+            'primary_assignment' => [
+                'company' => ['code' => 'VA', 'name' => 'VA Schools'],
+                'org_unit' => ['code' => 'WEB', 'name' => 'Web', 'type' => 'unit'],
+                'position' => ['title' => 'Member'],
+            ],
+        ]);
+
+        $this->assertSame('Web', $unit['meta']['unit_name']);
+        $this->assertSame('Member', $unit['meta']['position_name']);
+        $this->assertArrayNotHasKey('department_name', $unit['meta']);
+
+        $hq = HrmApiEmployeeMapper::toEmployeeAttributes([
+            'uuid' => '44444444-4444-4444-4444-444444444444',
+            'full_name' => 'D',
+            'status' => 'active',
+            'company_email' => 'd@vaschools.edu.vn',
+            'primary_assignment' => [
+                'org_unit' => ['name' => 'Hội sở', 'type' => 'headquarter'],
+            ],
+        ]);
+
+        $this->assertSame('Hội sở', $hq['meta']['headquarter_name']);
     }
 
     public function test_falls_back_to_personal_email_and_inactive_status(): void

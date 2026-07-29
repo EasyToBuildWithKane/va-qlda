@@ -47,9 +47,9 @@ const statsBadge = computed(() => `${stats.value.projects_total ?? 0} dự án �
 <template>
   <div class="space-y-5">
     <ProfileInfoPanel
-      title="Chỉ số thành tích"
+      title="Thành tích làm việc"
       icon="leaderboard"
-      subtitle="Tổng hợp dự án, công việc và worklog trên QLDA"
+      subtitle="Dự án, việc đã xong và giờ làm đã ghi"
       section-key="profile-ach-stats"
       :collapsed-badge="statsBadge"
     >
@@ -66,7 +66,7 @@ const statsBadge = computed(() => `${stats.value.projects_total ?? 0} dự án �
               {{ projectsUp.display.value }}
             </p>
             <p class="profile-ach-tile__label">
-              Dự án tham gia
+              Dự án đang làm
             </p>
           </div>
         </div>
@@ -87,7 +87,7 @@ const statsBadge = computed(() => `${stats.value.projects_total ?? 0} dự án �
               >/ {{ stats.tasks_total }}</span>
             </p>
             <p class="profile-ach-tile__label">
-              Công việc hoàn thành
+              Việc đã xong
               <span v-if="stats.task_completion != null">· {{ stats.task_completion }}%</span>
             </p>
           </div>
@@ -102,10 +102,10 @@ const statsBadge = computed(() => `${stats.value.projects_total ?? 0} dự án �
           </div>
           <div>
             <p class="profile-ach-tile__value">
-              {{ hoursUp.display.value }}<span class="text-sm font-medium text-slate-400">h</span>
+              {{ hoursUp.display.value }}<span class="text-sm font-medium text-slate-400"> giờ</span>
             </p>
             <p class="profile-ach-tile__label">
-              Giờ ghi nhận (worklog)
+              Giờ làm đã ghi nhận
             </p>
           </div>
         </div>
