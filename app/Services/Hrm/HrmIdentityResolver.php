@@ -216,6 +216,17 @@ final class HrmIdentityResolver
             }
         }
 
+        // Giữ avatar QLDA local (upload avatars/…) hoặc khi HRM không trả ảnh.
+        $incomingAvatar = $payload['avatar_path'] ?? null;
+        $currentAvatar = is_string($employee->avatar_path) ? $employee->avatar_path : null;
+        if ($incomingAvatar === null || $incomingAvatar === '') {
+            unset($payload['avatar_path']);
+        } elseif ($currentAvatar !== null
+            && str_starts_with($currentAvatar, 'avatars/')
+            && ! str_starts_with($currentAvatar, 'http')) {
+            unset($payload['avatar_path']);
+        }
+
         // Meta HRM merge vào meta QLDA (giữ bio / socials / skill_details…).
         if (array_key_exists('meta', $payload)) {
             $payload['meta'] = self::mergeEmployeeMeta(

@@ -34,7 +34,9 @@ const cards = computed(() => {
         {
             key: 'skill',
             label: 'Năng lực kỹ năng',
-            value: skillScore != null ? `${skillScore} điểm` : profileDisplayValue(null),
+            value: skillScore != null ? `${skillScore}` : profileDisplayValue(null),
+            suffix: skillScore != null ? 'điểm' : undefined,
+            suffixClass: 'text-sm font-normal text-slate-500',
             tone: 'amber',
             icon: 'talent-score',
             sub: skillScore != null ? 'Theo mức tự đánh giá' : 'Chưa tự đánh giá kỹ năng',
@@ -48,7 +50,7 @@ const cards = computed(() => {
             value: projects,
             tone: 'sky',
             icon: 'projects',
-            sub: projects === 1 ? '1 dự án' : `${projects} dự án`,
+            sub: 'Trên hệ thống dự án',
             interactive: true,
             payload: 'achievements',
         },
@@ -101,6 +103,7 @@ function onSelect(card) {
   >
     <KpiSummaryStrip
       hide-header
+      dense-values
       aria-label="Tóm tắt hồ sơ cá nhân"
       heading="Tóm tắt của bạn"
       hint=""

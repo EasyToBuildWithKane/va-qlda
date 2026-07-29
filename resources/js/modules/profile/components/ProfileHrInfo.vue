@@ -13,7 +13,6 @@ const h = computed(() => props.hrInfo ?? {});
 
 const identityFields = computed(() => [
     { label: 'Mã nhân viên', value: h.value.code, mono: true },
-    { label: 'Số điện thoại', value: h.value.phone, href: h.value.phone ? `tel:${h.value.phone}` : null },
 ]);
 
 const orgFields = computed(() => [

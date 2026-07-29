@@ -156,7 +156,10 @@ function showProgress(card) {
         <div class="relative z-[1] flex h-full flex-col p-3 sm:p-3.5">
           <div class="flex items-start justify-between gap-2">
             <div class="min-w-0 flex-1">
-              <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+              <p
+                class="uppercase tracking-wide text-slate-500"
+                :class="denseValues ? 'text-[10px] font-medium' : 'text-[10px] font-semibold'"
+              >
                 {{ card.label }}
               </p>
               <p
@@ -171,9 +174,10 @@ function showProgress(card) {
                     ]
                     : [
                       denseValues
-                        ? 'font-display text-base font-bold tabular-nums tracking-tight sm:text-lg'
+                        ? 'text-base font-medium tabular-nums tracking-tight text-slate-800 sm:text-lg'
                         : 'font-display text-2xl font-bold tabular-nums tracking-tight sm:text-[1.65rem]',
-                      card.tone === 'brand' ? 'text-brand' : 'text-slate-900',
+                      !denseValues && card.tone === 'brand' ? 'text-brand' : '',
+                      !denseValues && card.tone !== 'brand' ? 'text-slate-900' : '',
                     ]"
               >
                 <slot

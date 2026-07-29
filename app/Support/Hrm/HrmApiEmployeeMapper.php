@@ -28,7 +28,7 @@ final class HrmApiEmployeeMapper
             'full_name' => self::resolveFullName($payload, $email),
             'email' => $email,
             'phone' => self::nullableString($payload['phone'] ?? null),
-            'avatar_path' => self::nullableString($payload['avatar_path'] ?? null),
+            'avatar_path' => self::resolveAvatarPath($payload),
             'role_title' => self::resolveRoleTitle($payload),
             'join_date' => self::nullableString($payload['hired_at'] ?? null),
             'is_active' => ($payload['status'] ?? null) === 'active',
@@ -96,6 +96,17 @@ final class HrmApiEmployeeMapper
     }
 
     /**
+     * Avatar từ HRM (URL tuyệt đối /avatars/{id} hoặc CDN). Null khi thiếu — không ghi đè ảnh QLDA local.
+     *
+     * @param  HrmApiEmployee  $payload
+     */
+    private static function resolveAvatarPath(array $payload): ?string
+    {
+        return self::nullableString($payload['avatar_path'] ?? null)
+            ?? self::nullableString($payload['avatar_url'] ?? null);
+    }
+
+    /**
      * @param  HrmApiEmployee  $payload
      * @return array<string, mixed>|null
      */
@@ -112,15 +123,13 @@ final class HrmApiEmployeeMapper
 
         $departmentName = self::nullableString($payload['department_name'] ?? null);
         $unitName = null;
-        $headquarterName = null;
+        $headquarterName = self::resolveHeadquarterName($payload, $assignment, $orgType, $orgName);
 
-        if (in_array($orgType, ['headquarter', 'branch'], true)) {
-            $headquarterName = $orgName;
-        } elseif ($orgType === 'unit') {
+        if ($orgType === 'unit') {
             $unitName = $orgName;
         } elseif ($orgType === 'department') {
             $departmentName = $departmentName ?? $orgName;
-        } else {
+        } elseif (! in_array($orgType, ['headquarter', 'branch'], true)) {
             $departmentName = $departmentName ?? $orgName;
         }
 
@@ -131,6 +140,7 @@ final class HrmApiEmployeeMapper
             'company_id' => self::nullableString($company['code'] ?? null),
             'unit_name' => $unitName,
             'headquarter_name' => $headquarterName,
+            'workplace' => self::nullableString($payload['workplace'] ?? null),
             'position_name' => self::nullableString($payload['job_title_name'] ?? null)
                 ?? self::positionTitle($assignment)
                 ?? self::nullableString($payload['job_position'] ?? null),
@@ -141,6 +151,48 @@ final class HrmApiEmployeeMapper
         ], fn ($v) => $v !== null && $v !== '');
 
         return $meta === [] ? null : $meta;
+    }
+
+    /**
+     * Trụ sở / cơ sở: ưu tiên branch → headquarter từ tổ tiên assignment,
+     * rồi org_unit type headquarter|branch, cuối cùng workplace trên hồ sơ HRM.
+     *
+     * @param  HrmApiEmployee  $payload
+     * @param  array<string, mixed>  $assignment
+     */
+    private static function resolveHeadquarterName(
+        array $payload,
+        array $assignment,
+        ?string $orgType,
+        ?string $orgName,
+    ): ?string {
+        $branch = self::namedRef($assignment['branch'] ?? null);
+        if ($branch !== null) {
+            return $branch;
+        }
+
+        $hq = self::namedRef($assignment['headquarter'] ?? null);
+        if ($hq !== null) {
+            return $hq;
+        }
+
+        if (in_array($orgType, ['headquarter', 'branch'], true)) {
+            return $orgName;
+        }
+
+        return self::nullableString($payload['workplace'] ?? null);
+    }
+
+    /**
+     * @param  mixed  $ref
+     */
+    private static function namedRef(mixed $ref): ?string
+    {
+        if (! is_array($ref)) {
+            return null;
+        }
+
+        return self::nullableString($ref['name'] ?? null);
     }
 
     /**

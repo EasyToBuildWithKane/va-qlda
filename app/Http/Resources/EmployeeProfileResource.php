@@ -81,7 +81,9 @@ class EmployeeProfileResource extends JsonResource
             'company_name' => $meta['company_name'] ?? null,
             'department_name' => $meta['department_name'] ?? null,
             'unit_name' => $meta['unit_name'] ?? null,
-            'headquarter_name' => $meta['headquarter_name'] ?? null,
+            'headquarter_name' => $meta['headquarter_name']
+                ?? $meta['workplace']
+                ?? null,
             'position_name' => $meta['position_name'] ?? $e->role_title,
             'concurrent_position_name' => $meta['concurrent_position_name']
                 ?? ProfileOrgRelations::concurrentPositionLabel($e),

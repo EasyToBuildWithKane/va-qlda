@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 const props = defineProps({
     name: { type: String, default: '' },
@@ -10,6 +10,16 @@ const props = defineProps({
 });
 
 const imageAlt = computed(() => (props.imgAlt !== null ? props.imgAlt : props.name));
+const imageFailed = ref(false);
+
+watch(
+    () => props.src,
+    () => {
+        imageFailed.value = false;
+    },
+);
+
+const showImage = computed(() => Boolean(props.src) && !imageFailed.value);
 
 const initials = computed(() => {
     const parts = (props.name || '?').trim().split(/\s+/);
@@ -35,16 +45,17 @@ const tone = computed(() => {
 
 <template>
   <span
-    class="inline-grid place-items-center rounded-full font-semibold shrink-0"
+    class="inline-grid shrink-0 place-items-center rounded-full font-semibold"
     :class="tone"
     :style="{ width: size + 'px', height: size + 'px', fontSize: Math.round(size * 0.42) + 'px' }"
     :title="name"
   >
     <img
-      v-if="src"
+      v-if="showImage"
       :src="src"
       :alt="imageAlt"
       class="h-full w-full rounded-full object-cover"
+      @error="imageFailed = true"
     >
     <template v-else>{{ initials }}</template>
   </span>

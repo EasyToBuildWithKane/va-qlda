@@ -51,6 +51,7 @@ class HrmApiEmployeeMapperTest extends TestCase
         $this->assertSame('VAS', $attrs['meta']['company_id']);
         $this->assertSame('Developer', $attrs['meta']['position_name']);
         $this->assertSame('Trưởng nhóm · QA', $attrs['meta']['concurrent_position_name']);
+        $this->assertSame('https://cdn.example/a.jpg', $attrs['avatar_path']);
     }
 
     public function test_maps_unit_and_headquarter_from_org_type(): void
@@ -82,6 +83,39 @@ class HrmApiEmployeeMapperTest extends TestCase
         ]);
 
         $this->assertSame('Hội sở', $hq['meta']['headquarter_name']);
+    }
+
+    public function test_maps_headquarter_from_assignment_ancestors_and_workplace(): void
+    {
+        $fromBranch = HrmApiEmployeeMapper::toEmployeeAttributes([
+            'uuid' => '55555555-5555-5555-5555-555555555555',
+            'full_name' => 'E',
+            'status' => 'active',
+            'company_email' => 'e@vaschools.edu.vn',
+            'workplace' => 'Cơ sở Cầu Giấy (fallback)',
+            'primary_assignment' => [
+                'org_unit' => ['name' => 'CNTT', 'type' => 'department'],
+                'headquarter' => ['uuid' => 'h1', 'code' => 'HQ', 'name' => 'Văn phòng tổng'],
+                'branch' => ['uuid' => 'b1', 'code' => 'CG', 'name' => 'Cơ sở Cầu Giấy'],
+            ],
+        ]);
+
+        $this->assertSame('Cơ sở Cầu Giấy', $fromBranch['meta']['headquarter_name']);
+        $this->assertSame('CNTT', $fromBranch['meta']['department_name']);
+        $this->assertSame('Cơ sở Cầu Giấy (fallback)', $fromBranch['meta']['workplace']);
+
+        $fromWorkplace = HrmApiEmployeeMapper::toEmployeeAttributes([
+            'uuid' => '66666666-6666-6666-6666-666666666666',
+            'full_name' => 'F',
+            'status' => 'active',
+            'company_email' => 'f@vaschools.edu.vn',
+            'workplace' => 'Cơ sở Mỹ Đình',
+            'primary_assignment' => [
+                'org_unit' => ['name' => 'HCNS', 'type' => 'department'],
+            ],
+        ]);
+
+        $this->assertSame('Cơ sở Mỹ Đình', $fromWorkplace['meta']['headquarter_name']);
     }
 
     public function test_falls_back_to_personal_email_and_inactive_status(): void

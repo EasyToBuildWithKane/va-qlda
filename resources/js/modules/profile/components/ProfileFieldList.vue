@@ -44,7 +44,7 @@ const rows = computed(() =>
           <a
             v-if="row.href && !row.empty"
             :href="row.href"
-            class="block break-all text-[13px] font-medium text-slate-800 underline decoration-slate-300/80 underline-offset-2 transition-colors hover:text-brand hover:decoration-brand/40"
+            class="block break-all text-[13px] font-normal text-slate-700 underline decoration-slate-300/80 underline-offset-2 transition-colors hover:text-brand hover:decoration-brand/40"
             :class="row.mono ? 'font-mono text-[12px]' : ''"
           >{{ row.text }}</a>
           <span
@@ -53,7 +53,7 @@ const rows = computed(() =>
             :class="[
               row.empty
                 ? 'font-normal italic text-slate-400'
-                : 'font-medium text-slate-800',
+                : 'font-normal text-slate-700',
               row.mono && !row.empty ? 'font-mono text-[12px] tabular-nums' : '',
             ]"
           >{{ row.text }}</span>

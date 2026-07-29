@@ -21,10 +21,6 @@ const fields = computed(() => {
         },
         { label: 'Nhóm dự án', value: formatProfileProjectTeams(p.teams) },
         { label: 'Người quản lý', value: p.manager?.name ?? null },
-        {
-            label: 'Trạng thái làm việc',
-            value: p.is_active ? 'Đang làm việc' : 'Đã nghỉ',
-        },
     ];
 });
 </script>

@@ -4,8 +4,6 @@ import AppIcon from '@/Components/AppIcon.vue';
 import Badge from '@/shared/ui/Badge.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
 import { profileDisplayValue } from '../utils/profileDisplay';
-import { formatProfileProjectTeams } from '../utils/profileTeams';
-import { useProfileSectionCollapse } from '../composables/useProfileSectionCollapse';
 
 const props = defineProps({
     profile: { type: Object, required: true },
@@ -16,54 +14,6 @@ defineEmits(['edit']);
 
 const roleTitle = computed(() => profileDisplayValue(props.profile.role_title));
 const roleIsEmpty = computed(() => roleTitle.value === profileDisplayValue(null));
-
-const teamLabel = computed(() => {
-    const formatted = formatProfileProjectTeams(props.profile.teams);
-    return formatted ?? profileDisplayValue(null);
-});
-
-const specRows = computed(() => [
-    {
-        icon: 'mail',
-        label: 'Email',
-        value: props.profile.email,
-        mono: true,
-        href: props.profile.email ? `mailto:${props.profile.email}` : null,
-    },
-    {
-        icon: 'phone',
-        label: 'Điện thoại',
-        value: props.profile.phone,
-        href: props.profile.phone ? `tel:${props.profile.phone}` : null,
-    },
-    {
-        icon: 'settings',
-        label: 'Quyền truy cập',
-        value: props.profile.account_role?.label ?? null,
-        badge: props.profile.account_role ?? null,
-    },
-    {
-        icon: 'org-teams',
-        label: 'Nhóm dự án',
-        value: teamLabel.value !== profileDisplayValue(null) ? teamLabel.value : null,
-    },
-    {
-        icon: 'performance',
-        label: 'Trạng thái làm việc',
-        value: props.profile.is_active ? 'Đang làm việc' : 'Đã nghỉ',
-        status: props.profile.is_active ? 'active' : 'inactive',
-    },
-]);
-
-function displayValue(raw) {
-    return profileDisplayValue(raw);
-}
-
-function isEmpty(raw) {
-    return displayValue(raw) === profileDisplayValue(null);
-}
-
-const { open: specOpen, toggle: toggleSpec } = useProfileSectionCollapse('profile-hero-spec', true);
 </script>
 
 <template>
@@ -121,6 +71,18 @@ const { open: specOpen, toggle: toggleSpec } = useProfileSectionCollapse('profil
                 />
                 {{ profile.code }}
               </span>
+              <span
+                class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-medium"
+                :class="profile.is_active
+                  ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/80'
+                  : 'bg-slate-100 text-slate-500 ring-1 ring-slate-200/80'"
+              >
+                <span
+                  class="h-1.5 w-1.5 rounded-full"
+                  :class="profile.is_active ? 'bg-emerald-500' : 'bg-slate-400'"
+                />
+                {{ profile.is_active ? 'Đang làm việc' : 'Đã nghỉ' }}
+              </span>
             </div>
           </div>
         </div>
@@ -141,76 +103,6 @@ const { open: specOpen, toggle: toggleSpec } = useProfileSectionCollapse('profil
             Chỉnh sửa hồ sơ
           </button>
         </div>
-      </div>
-
-      <div class="mt-5 pt-1">
-        <button
-          type="button"
-          class="flex w-full items-center justify-between gap-2 rounded-lg px-1 py-1 text-left transition-colors hover:bg-slate-50"
-          :aria-expanded="specOpen"
-          @click="toggleSpec"
-        >
-          <span class="text-[13px] font-medium text-slate-600">
-            Thông tin liên hệ
-          </span>
-          <AppIcon
-            :name="specOpen ? 'chevron-down' : 'chevron-right'"
-            :size="16"
-            class="shrink-0 text-slate-400"
-          />
-        </button>
-
-        <dl
-          v-show="specOpen"
-          class="mt-3 grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-slate-200/80 bg-slate-200/80 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"
-        >
-          <div
-            v-for="row in specRows"
-            :key="row.label"
-            class="flex min-w-0 flex-col gap-1 bg-white px-3.5 py-3 sm:px-4"
-          >
-            <dt class="flex items-center gap-1.5 text-[12px] font-medium text-slate-500">
-              <AppIcon
-                :name="row.icon"
-                :size="12"
-                class="shrink-0 opacity-70"
-              />
-              {{ row.label }}
-            </dt>
-            <dd class="min-w-0 text-[13px] leading-snug">
-              <Badge
-                v-if="row.badge"
-                :label="row.badge.label"
-                :color="row.badge.color"
-              />
-              <a
-                v-else-if="row.href && !isEmpty(row.value)"
-                :href="row.href"
-                class="block truncate font-medium text-slate-800 underline decoration-slate-300/80 underline-offset-2 hover:text-brand"
-                :class="row.mono ? 'font-mono text-[12px]' : ''"
-              >{{ row.value }}</a>
-              <span
-                v-else-if="row.status"
-                class="inline-flex items-center gap-1.5 font-medium"
-                :class="row.status === 'active' ? 'text-emerald-700' : 'text-slate-500'"
-              >
-                <span
-                  class="h-1.5 w-1.5 rounded-full"
-                  :class="row.status === 'active' ? 'bg-emerald-500' : 'bg-slate-400'"
-                />
-                {{ row.value }}
-              </span>
-              <span
-                v-else
-                class="block truncate"
-                :class="[
-                  isEmpty(row.value) ? 'italic text-slate-400' : 'font-medium text-slate-800',
-                  row.mono && !isEmpty(row.value) ? 'font-mono text-[12px]' : '',
-                ]"
-              >{{ displayValue(row.value) }}</span>
-            </dd>
-          </div>
-        </dl>
       </div>
     </div>
   </section>
