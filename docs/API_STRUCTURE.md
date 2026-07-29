@@ -285,7 +285,7 @@ Prefix Inertia `ai-accounts.*`, JSON `api.ai-accounts.*` (middleware `auth`). **
 
 | Method | URI | Controller | Mô Tả |
 |---|---|---|---|
-| GET/PUT | `/profile` | ProfileController | Hồ sơ cá nhân: GET refresh mirror HRM; PUT **chỉ** skill matrix (field HR reject — chỉnh trên VA-HRM) |
+| GET | `/profile` | ProfileController | Hồ sơ cá nhân (read-only): refresh mirror HRM; kỹ năng chỉ xem
 
 > Danh bạ `/members*` đã gỡ — org directory sẽ lấy từ HRM.
 

@@ -75,14 +75,14 @@ class SystemSettingTest extends TestCase
         $this->actingAs($this->superAdmin(), 'system')
             ->put('/settings/general', [
                 'app_name' => 'Hệ thống Workspace',
-                'app_short_name' => 'Workspace',
+                'app_short_name' => 'WS',
                 'support_email' => 'it@vaschools.edu.vn',
                 'app_version' => '2.0',
             ])
             ->assertRedirect();
 
         $this->assertDatabaseHas('system_settings', ['key' => 'general.app_short_name']);
-        $this->assertSame('Workspace', $this->repo()->get('general.app_short_name'));
+        $this->assertSame('WS', $this->repo()->get('general.app_short_name'));
     }
 
     public function test_member_cannot_update_settings(): void

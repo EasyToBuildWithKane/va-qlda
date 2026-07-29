@@ -7,7 +7,6 @@ import ProfileView from '@/modules/profile/components/ProfileView.vue';
 
 const props = defineProps({
     profile: { type: Object, default: null },
-    editable: { type: Boolean, default: false },
 });
 </script>
 
@@ -24,7 +23,6 @@ const props = defineProps({
     <ProfileView
       v-if="props.profile"
       :profile="props.profile"
-      :editable="props.editable"
     />
 
     <div

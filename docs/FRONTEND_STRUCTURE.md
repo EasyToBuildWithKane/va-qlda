@@ -65,7 +65,7 @@ resources/js/
 │   ├── contract/                 ← CLM: components (*SummaryBar, charts), composables, config
 │   ├── credential/               ← Kho mật khẩu: components, composables
 │   ├── performance/              ← Dashboard + audit components/composables
-│   ├── profile/                  ← Hồ sơ (/profile): HR identity **read-only** (mirror VA-HRM); chỉ SkillMatrix tự sửa trên Workspace; không form identity/avatar local
+│   ├── profile/                  ← Hồ sơ (/profile): HR identity + skill matrix **read-only** (mirror VA-HRM); không form identity/avatar/skill local
 │   ├── onboarding/               ← SmartContextHint (useOnboarding, useSmartContext, OnboardingRoot)
 │   ├── notifications/            ← Bell, center drawer, preferences
 │   ├── audit/                    ← Audit trail viewer components/composables

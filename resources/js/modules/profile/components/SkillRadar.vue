@@ -85,7 +85,7 @@ const collapsedBadge = computed(() => {
         v-else
         icon="performance"
         title="Chưa đủ dữ liệu"
-        description="Chấm mức độ (1–5) cho kỹ năng để dựng bản đồ năng lực."
+        description="Chưa đủ dữ liệu kỹ năng để dựng bản đồ năng lực."
       />
     </div>
   </ProfileInfoPanel>

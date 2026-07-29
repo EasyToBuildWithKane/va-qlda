@@ -51,7 +51,7 @@ const toneClass = {
         v-else
         class="text-[13px] text-slate-400"
       >
-        Chưa có gợi ý — thêm và chấm mức độ kỹ năng để nhận phân tích.
+        Chưa có gợi ý phát triển từ dữ liệu kỹ năng hiện có.
       </p>
     </div>
   </ProfileInfoPanel>

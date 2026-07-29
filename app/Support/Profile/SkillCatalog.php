@@ -7,7 +7,7 @@ use Illuminate\Support\Str;
 /**
  * Turns an employee's raw `skills` array (plain strings such as ["php","vue"])
  * — optionally enriched by `meta['skill_details']` — into a grouped, presentable
- * skill matrix for the profile page.
+ * skill matrix for the profile page (read-only display).
  *
  * Enriched format (optional, stored in employees.meta['skill_details']):
  *   [{ "name": "Laravel", "level": 5, "years": 4, "category": "Backend",

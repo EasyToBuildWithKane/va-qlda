@@ -9,8 +9,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * "Hồ sơ của tôi" — HR identity is mirrored from VA-HRM (read-only).
- * Self-service PUT only updates the Workspace skill matrix.
+ * "Hồ sơ của tôi" — HR identity + skills mirrored from VA-HRM (read-only).
  */
 class ProfileSelfTest extends TestCase
 {
@@ -31,7 +30,7 @@ class ProfileSelfTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Profile/Show')
-                ->where('editable', true)
+                ->missing('editable')
                 ->has('profile.stats')
                 ->where('profile.stats.skill_score', 80)
                 ->has('profile.stats.skill_radar', 1)
@@ -58,60 +57,17 @@ class ProfileSelfTest extends TestCase
             );
     }
 
-    public function test_skills_update_preserves_hr_identity_fields(): void
+    public function test_profile_update_route_is_removed(): void
     {
-        $employee = Employee::factory()->create([
-            'phone' => '0911111111',
-            'role_title' => 'Senior Dev',
-        ]);
+        $employee = Employee::factory()->create();
         $account = SystemAccount::factory()->forEmployee($employee)->create();
 
         $this->actingAs($account, 'system')
-            ->put(route('profile.update'), [
+            ->put('/profile', [
                 'skills' => [
-                    ['name' => 'Vue', 'level' => 3, 'category' => 'Lập trình Web', 'note' => 'Dự án nội bộ'],
+                    ['name' => 'Vue', 'level' => 3, 'category' => 'Lập trình Web'],
                 ],
             ])
-            ->assertRedirect();
-
-        $employee->refresh();
-
-        $this->assertSame('0911111111', $employee->phone);
-        $this->assertSame('Senior Dev', $employee->role_title);
-        $this->assertSame(['Vue'], $employee->skills);
-        $this->assertSame('Lập trình Web', $employee->meta['skill_details'][0]['category']);
-        $this->assertSame('Dự án nội bộ', $employee->meta['skill_details'][0]['note']);
-    }
-
-    public function test_hr_identity_fields_are_rejected_on_update(): void
-    {
-        $employee = Employee::factory()->create([
-            'phone' => '0900000000',
-            'skills' => ['Laravel'],
-            'meta' => ['skill_details' => [
-                ['name' => 'Laravel', 'level' => 5, 'category' => 'backend'],
-            ]],
-        ]);
-        $account = SystemAccount::factory()->forEmployee($employee)->create();
-
-        $this->actingAs($account, 'system')
-            ->from(route('profile.show'))
-            ->put(route('profile.update'), [
-                'phone' => '0999999999',
-                'role_title' => 'Lead',
-                'bio' => 'Xin chào',
-                'location' => 'Hà Nội',
-                'skills' => [
-                    ['name' => 'Laravel', 'level' => 5, 'category' => 'backend'],
-                ],
-            ])
-            ->assertRedirect(route('profile.show'))
-            ->assertSessionHasErrors(['phone', 'role_title', 'bio', 'location']);
-
-        $employee->refresh();
-
-        $this->assertSame('0900000000', $employee->phone);
-        $this->assertSame(['Laravel'], $employee->skills);
-        $this->assertSame(5, $employee->meta['skill_details'][0]['level']);
+            ->assertMethodNotAllowed();
     }
 }

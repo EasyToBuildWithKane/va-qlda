@@ -52,7 +52,7 @@ const matrixBadge = computed(() => {
         v-if="skills.total === 0"
         icon="sparkles"
         title="Chưa có kỹ năng"
-        description="Thêm kỹ năng và nhóm tùy chỉnh trong «Quản lý kỹ năng»."
+        description="Chưa có kỹ năng được ghi nhận trên hồ sơ."
       />
 
       <div

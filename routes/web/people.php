@@ -11,7 +11,6 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
-Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
 
 // Phòng ban — tạo/sửa từ DepartmentFormModal (dự án); không còn trang danh sách /departments.
 Route::prefix('departments')->name('departments.')->group(function () {

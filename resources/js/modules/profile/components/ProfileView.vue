@@ -1,6 +1,5 @@
 <script setup>
 import { ref } from 'vue';
-import AppIcon from '@/Components/AppIcon.vue';
 import DatagridSegmentedControl from '@/shared/ui/DatagridSegmentedControl.vue';
 import ProfileHero from './ProfileHero.vue';
 import ProfileOverviewSummaryBar from './ProfileOverviewSummaryBar.vue';
@@ -11,12 +10,9 @@ import SkillMatrix from './SkillMatrix.vue';
 import SkillRadar from './SkillRadar.vue';
 import ProfileInsights from './ProfileInsights.vue';
 import ProfileAchievements from './ProfileAchievements.vue';
-import SkillMatrixDrawer from './SkillMatrixDrawer.vue';
 
 defineProps({
     profile: { type: Object, required: true },
-    /** Own profile — skill matrix editable; HR identity read-only. */
-    editable: { type: Boolean, default: false },
 });
 
 const tab = ref('overview');
@@ -25,8 +21,6 @@ const tabs = [
     { key: 'skills', label: 'Kỹ năng', icon: 'sparkles' },
     { key: 'achievements', label: 'Thành tích', icon: 'leaderboard' },
 ];
-
-const editingSkills = ref(false);
 </script>
 
 <template>
@@ -59,28 +53,11 @@ const editingSkills = ref(false);
       </div>
     </template>
 
-    <!-- Năng lực & Kỹ năng -->
+    <!-- Năng lực & Kỹ năng (chỉ xem) -->
     <div
       v-else-if="tab === 'skills'"
       class="space-y-5"
     >
-      <div
-        v-if="editable"
-        class="flex justify-end"
-      >
-        <button
-          type="button"
-          class="btn-primary flex items-center gap-1.5 text-[13px]"
-          @click="editingSkills = true"
-        >
-          <AppIcon
-            name="sparkles"
-            :size="15"
-          />
-          Quản lý kỹ năng
-        </button>
-      </div>
-
       <div class="grid grid-cols-1 gap-5 lg:grid-cols-2 lg:items-start">
         <SkillMatrix :skills="profile.skills" />
         <SkillRadar :radar="profile.stats?.skill_radar || []" />
@@ -92,13 +69,6 @@ const editingSkills = ref(false);
     <ProfileAchievements
       v-else
       :profile="profile"
-    />
-
-    <SkillMatrixDrawer
-      v-if="editable"
-      :show="editingSkills"
-      :profile="profile"
-      @close="editingSkills = false"
     />
   </div>
 </template>

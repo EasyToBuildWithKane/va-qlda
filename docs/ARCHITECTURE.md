@@ -86,7 +86,7 @@ flowchart LR
 - **Không fallback DB** khi API lỗi/miss — login báo lỗi HRM.
 - **Không bulk sync** — các lệnh `cms:sync-*` đã gỡ.
 - `HrmIdentityResolver` + `HrmApiEmployeeMapper` (map `primary_assignment` / `concurrent_assignments` → `employees.meta` HR fields); mở `/profile` gọi `refreshEmployeeIfLinked`. Smoke: `php artisan hrm:api-ping [--email=]`.
-- **Workspace chỉ ánh xạ:** không cho chỉnh field HR trên Workspace (`PUT /profile` chỉ nhận skill matrix; field phone/role_title/bio/avatar… bị reject). Chỉnh HR trên VA-HRM.
+- **Workspace chỉ ánh xạ:** không chỉnh field HR hay skill matrix trên Workspace (`GET /profile` read-only; chỉnh trên VA-HRM).
 - Trụ sở/cơ sở: lấy `primary_assignment.branch` → `headquarter` → `workplace`; avatar: URL tuyệt đối từ HRM (`users.avatar_url` / proxy `/avatars/{id}`), không upload avatar local trên hồ sơ Workspace.
 - Env: `HRM_API_BASE_URL`, `HRM_API_TOKEN` (mint `/admin/api-clients`). **JWT SSO ≠ Bearer M2M.**
 
