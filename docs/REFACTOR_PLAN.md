@@ -218,9 +218,12 @@ shared/ui/SkeletonLoader.vue ✅
 - `vendor-vue` — vue, @inertiajs/vue3
 - `vendor-tiptap` — TipTap (~200KB lazy)
 - `vendor-chart` — chart.js, vue-chartjs
-- `vendor-excel` — xlsx, xlsx-js-style
-- `vendor-gantt` — frappe-gantt
+- `vendor-excel` — xlsx-js-style
+- `vendor-datepicker` — @vuepic/vue-datepicker
+- `vendor-calendar` — FullCalendar
+- `vendor-docx` — docx-preview
 - `vendor-utils` — pinia, ziggy-js
+- (frappe-gantt / ogl: không ép chunk rỗng — tách khi page import)
 
 ### 5.3 Backend Caching ✅
 

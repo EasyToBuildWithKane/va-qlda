@@ -37,7 +37,8 @@
 ### vite.config.js
 
 - Alias `@` → `resources/js/`
-- `manualChunks`: vendor-vue, vendor-tiptap, vendor-chart, vendor-excel, vendor-gantt, vendor-ogl, vendor-utils (FullCalendar không tách chunk riêng)
+- `manualChunks`: vendor-vue, vendor-tiptap, vendor-chart, vendor-excel (`xlsx-js-style`), vendor-datepicker, vendor-calendar (FullCalendar), vendor-docx, vendor-utils; `reportCompressedSize: false`, `chunkSizeWarningLimit: 600` (gantt/ogl tách theo dynamic import khi được dùng)
+- Project Show: `ProjectCalendar` lazy qua `defineAsyncComponent` (chỉ tải khi mở tab Lịch)
 
 ### app.blade.php
 

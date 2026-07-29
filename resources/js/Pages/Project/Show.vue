@@ -1,11 +1,14 @@
 <script setup>
-import { ref, computed, onMounted, watch, toRef } from 'vue';
+import { ref, computed, onMounted, watch, toRef, defineAsyncComponent } from 'vue';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
-import ProjectCalendar from '@/modules/project/components/Calendar/ProjectCalendar.vue';
 import { PROJECT_COLORS } from '@/modules/project/utils/projectColors';
+
+const ProjectCalendar = defineAsyncComponent(
+    () => import('@/modules/project/components/Calendar/ProjectCalendar.vue'),
+);
 import TaskBoard from '@/modules/project/components/TaskBoard.vue';
 import TaskDetailPanel from '@/modules/project/components/Sprint/TaskDetailPanel.vue';
 import TaskFormModal from '@/modules/project/components/TaskFormModal.vue';
@@ -351,7 +354,7 @@ const onSprintSaved = () => {
 
         <!-- ===== LỊCH DỰ ÁN ===== -->
         <div
-          v-show="tab === 'timeline'"
+          v-if="tab === 'timeline'"
           class="h-full"
         >
           <ProjectCalendar

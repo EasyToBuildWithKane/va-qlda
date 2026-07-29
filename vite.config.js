@@ -62,12 +62,6 @@ export default defineConfig({
                     // DOCX preview
                     'vendor-docx': ['docx-preview'],
 
-                    // Gantt (heavy, used only on Gantt view)
-                    'vendor-gantt': ['frappe-gantt'],
-
-                    // WebGL (chỉ dùng ở landing /congnghe)
-                    'vendor-ogl': ['ogl'],
-
                     // State management + routing
                     'vendor-utils': ['pinia', 'ziggy-js'],
                 },
