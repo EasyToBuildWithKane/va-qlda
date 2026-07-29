@@ -1,7 +1,7 @@
 # SYSTEM CONFIG — Cấu hình hệ thống
 
 > Module quản trị (**super-admin-only**) cho phép chỉnh cấu hình runtime mà không cần sửa `.env` / deploy lại.
-> Đường dẫn: **`/settings`** · Nav: **Cấu hình hệ thống** (chỉ Super Admin thấy).
+> Đường dẫn: **`/settings/{group}`** · Nav (chỉ Super Admin): **Cấu hình chung**, **Thông báo hệ thống**, **Phân quyền**, **Cấu hình hợp đồng** (tách khỏi một nhóm «Cấu hình hệ thống»).
 >
 > ⚠️ Từ bản nâng cấp RBAC: chỉ vai trò **`super_admin`** truy cập `/settings` (gồm tab Phân quyền & Tài khoản). `admin` **không** còn vào được. Chi tiết ma trận phân quyền & vai trò xem **[PERMISSIONS.md](PERMISSIONS.md)**.
 

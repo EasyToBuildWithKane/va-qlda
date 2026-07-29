@@ -9,6 +9,7 @@ const COLLAPSE_KEY = 'va-workspace.sidebar.collapsed';
 const MOBILE_BREAKPOINT = 1024;
 
 const ROLE_LABELS = {
+    super_admin: 'Siêu quản trị',
     admin: 'Quản trị viên',
     lead: 'Quản lý',
     member: 'Thành viên',

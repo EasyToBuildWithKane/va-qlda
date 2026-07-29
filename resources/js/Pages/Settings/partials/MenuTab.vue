@@ -329,7 +329,7 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydownSave));
     <!-- Chú thích dấu * -->
     <p class="mt-3 flex items-start gap-1.5 text-[11.5px] leading-relaxed text-slate-400">
       <span class="font-bold text-rose-500">*</span>
-      <span>Nhóm bắt buộc (vd. Cấu hình hệ thống) luôn hiển thị để không khoá quyền quản trị.</span>
+      <span>Nhóm bắt buộc (vd. Cấu hình chung, Phân quyền) luôn hiển thị để không khoá quyền quản trị.</span>
     </p>
 
     <!-- Lưu -->

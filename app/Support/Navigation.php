@@ -19,7 +19,7 @@ use App\Support\Enums\SystemRole;
  *   execution  — Điều hành & Thực thi   overview, performance, projects, daily, ai, contracts, quality
  *   people     — Tri thức & Nội dung    knowledge
  *   technology — Công nghệ              congnghe
- *   system     — Hệ thống & Quản trị    security, system, settings
+ *   system     — Hệ thống & Quản trị    security, system, settings_*
  *
  * Groups themselves follow the user's mental model (business domains, not
  * technical modules) — "tôi muốn …" navigation.
@@ -54,12 +54,17 @@ class Navigation
 
     /**
      * Group keys that can never be hidden by the global menu-visibility setting
-     * (/settings/menu). `settings` hosts that very config page — hiding it would
-     * lock the super admin out of re-enabling anything.
+     * (/settings/menu). These host the settings pages themselves — hiding them
+     * would lock the super admin out of re-enabling anything.
      *
      * @var array<int, string>
      */
-    public const PROTECTED_GROUP_KEYS = ['settings'];
+    public const PROTECTED_GROUP_KEYS = [
+        'settings_general',
+        'settings_notify',
+        'settings_access',
+        'settings_clm',
+    ];
 
     /**
      * @return array<int, array{key:string, section:?string, sectionKey:?string, heading:string, icon:string, variant?:string, defaultCollapsed?:bool, items:array<int, array<string, mixed>>}>
@@ -458,7 +463,7 @@ class Navigation
             [
                 'key' => 'quality',
                 'section' => 'execution',
-                'heading' => 'Chất lượng & Phản hồi',
+                'heading' => 'CHẤT LƯỢNG & PHẢN HỒI',
                 'icon' => 'feedback',
                 'defaultCollapsed' => true,
                 'items' => [
@@ -477,7 +482,7 @@ class Navigation
             [
                 'key' => 'security',
                 'section' => 'system',
-                'heading' => 'Bảo mật & Tài sản Số',
+                'heading' => 'BẢO MẬT & TÀI SẢN SỐ',
                 'icon' => 'vault',
                 'defaultCollapsed' => true,
                 'items' => [
@@ -528,14 +533,14 @@ class Navigation
             ],
 
             // ──────────────────────────────────────────────────────────────
-            // 12. CẤU HÌNH HỆ THỐNG — các tab /settings tách thành menu con
-            //     Admin-only. Mỗi mục trỏ tới /settings/{group}; nhãn/icon
-            //     phản chiếu SettingsSchema::groups().
+            // 12. CẤU HÌNH — tách theo nghiệp vụ (không gộp một nhóm lớn).
+            //     Super-admin-only. Mỗi mục → /settings/{group}; nhãn/icon
+            //     khớp SettingsSchema::groups().
             // ──────────────────────────────────────────────────────────────
             [
-                'key' => 'settings',
+                'key' => 'settings_general',
                 'section' => 'system',
-                'heading' => 'Cấu hình hệ thống',
+                'heading' => 'Cấu hình chung',
                 'icon' => 'system-config',
                 'defaultCollapsed' => true,
                 'superOnly' => true,
@@ -561,6 +566,16 @@ class Navigation
                         'status' => 'live',
                         'roles' => ['admin'],
                     ],
+                ],
+            ],
+            [
+                'key' => 'settings_notify',
+                'section' => 'system',
+                'heading' => 'Thông báo hệ thống',
+                'icon' => 'mail',
+                'defaultCollapsed' => true,
+                'superOnly' => true,
+                'items' => [
                     [
                         'label' => 'Thông báo Telegram',
                         'icon' => 'send',
@@ -575,15 +590,18 @@ class Navigation
                         'status' => 'live',
                         'roles' => ['admin'],
                     ],
+                ],
+            ],
+            [
+                'key' => 'settings_access',
+                'section' => 'system',
+                'heading' => 'Phân quyền',
+                'icon' => 'members',
+                'defaultCollapsed' => true,
+                'superOnly' => true,
+                'items' => [
                     [
-                        'label' => 'Hợp đồng (CLM)',
-                        'icon' => 'budget',
-                        'href' => '/settings/clm',
-                        'status' => 'live',
-                        'roles' => ['admin'],
-                    ],
-                    [
-                        'label' => 'Phân quyền',
+                        'label' => 'Ma trận phân quyền',
                         'icon' => 'members',
                         'href' => '/settings/permissions',
                         'status' => 'live',
@@ -593,6 +611,23 @@ class Navigation
                         'label' => 'Tài khoản & Vai trò',
                         'icon' => 'account',
                         'href' => '/settings/accounts',
+                        'status' => 'live',
+                        'roles' => ['admin'],
+                    ],
+                ],
+            ],
+            [
+                'key' => 'settings_clm',
+                'section' => 'system',
+                'heading' => 'Cấu hình hợp đồng',
+                'icon' => 'budget',
+                'defaultCollapsed' => true,
+                'superOnly' => true,
+                'items' => [
+                    [
+                        'label' => 'Cảnh báo gia hạn',
+                        'icon' => 'budget',
+                        'href' => '/settings/clm',
                         'status' => 'live',
                         'roles' => ['admin'],
                     ],

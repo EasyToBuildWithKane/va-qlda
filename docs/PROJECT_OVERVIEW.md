@@ -41,7 +41,7 @@ VA Workspace
 ├── [FEEDBACK]      Góp ý & đề xuất từ nhân viên (FB-0001)
 ├── [COMMENT]       Thảo luận đa hình (Task, Blocker, Feedback)
 ├── [DEPARTMENT]    Phòng ban (model + mutate API; Index UI gỡ — chờ HRM)
-├── [SYSTEM CONFIG] Cấu hình hệ thống (super_admin: nhận diện, đăng nhập, Telegram, phân quyền, ma trận RBAC) → docs/SYSTEM_CONFIG.md
+├── [SYSTEM CONFIG] Cấu hình (super_admin): Cấu hình chung · Thông báo hệ thống · Phân quyền · Cấu hình hợp đồng → docs/SYSTEM_CONFIG.md
 ├── [CONGNGHE]      Trung tâm Công Nghệ — landing, đề xuất phần mềm, quản trị nội dung → docs/CONGNGHE_CONTENT.md
 ├── [PROFILE]       Hồ sơ cá nhân (/profile)
 ├── [AI ACCOUNTS]   Tài khoản AI, PĐX, chi phí, analytics → docs/AI_ACCOUNTS.md
