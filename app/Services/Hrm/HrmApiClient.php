@@ -92,10 +92,67 @@ final class HrmApiClient
     }
 
     /**
+     * Danh sách org-units (cursor-paginate, gom đủ trang).
+     * Query gợi ý: type=department|unit|branch|headquarter, company=<uuid>, per_page≤100.
+     *
+     * @param  array<string, scalar|null>  $query
+     * @return list<array<string, mixed>>
+     */
+    public function listOrgUnits(array $query = []): array
+    {
+        $all = [];
+        $cursor = null;
+        $perPage = (int) ($query['per_page'] ?? 100);
+        $perPage = max(1, min(100, $perPage));
+
+        for ($page = 0; $page < 50; $page++) {
+            $params = array_merge($query, ['per_page' => $perPage]);
+            if (is_string($cursor) && $cursor !== '') {
+                $params['cursor'] = $cursor;
+            } else {
+                unset($params['cursor']);
+            }
+
+            $envelope = $this->getEnvelope('/org-units', $params);
+            $data = $envelope['data'] ?? null;
+            if (! is_array($data) || ! array_is_list($data)) {
+                break;
+            }
+
+            foreach ($data as $row) {
+                if (is_array($row)) {
+                    /** @var array<string, mixed> $row */
+                    $all[] = $row;
+                }
+            }
+
+            $next = $envelope['meta']['cursor']['next'] ?? null;
+            if (! is_string($next) || $next === '') {
+                break;
+            }
+            $cursor = $next;
+        }
+
+        return $all;
+    }
+
+    /**
      * @param  array<string, scalar|null>  $query
      * @return array<string, mixed>|list<array<string, mixed>>|null
      */
     private function getData(string $path, array $query = []): mixed
+    {
+        $envelope = $this->getEnvelope($path, $query);
+        $data = $envelope['data'] ?? null;
+
+        return is_array($data) ? $data : null;
+    }
+
+    /**
+     * @param  array<string, scalar|null>  $query
+     * @return array{data: mixed, meta: array<string, mixed>}
+     */
+    private function getEnvelope(string $path, array $query = []): array
     {
         if (! $this->isConfigured()) {
             throw new RuntimeException('Chưa cấu hình HRM_API_BASE_URL / HRM_API_TOKEN.');
@@ -113,7 +170,7 @@ final class HrmApiClient
         }
 
         if ($response->status() === 404) {
-            return null;
+            return ['data' => null, 'meta' => []];
         }
 
         if ($response->failed()) {
@@ -126,9 +183,12 @@ final class HrmApiClient
             $response->throw();
         }
 
-        $data = $response->json('data');
+        $meta = $response->json('meta');
 
-        return is_array($data) ? $data : null;
+        return [
+            'data' => $response->json('data'),
+            'meta' => is_array($meta) ? $meta : [],
+        ];
     }
 
     private function http(): PendingRequest

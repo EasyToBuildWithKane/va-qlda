@@ -2,20 +2,26 @@
 
 use App\Http\Controllers\Evaluation\EvaluationCriterionController;
 use App\Http\Controllers\WorkspaceConfig\WorkspaceConfigController;
+use App\Http\Controllers\WorkspaceConfig\WorkspaceProfileController;
 use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| Workspace configuration (super-admin via policy / reserved permissions)
+| Workspace configuration
 |--------------------------------------------------------------------------
 |
-| Umbrella module: hub at /workspace-config, child domains under
-| /workspace-config/{domain}. Add new domains in this file + WorkspaceConfigCatalog.
+| Hub lists department workspaces. Child domains under /workspace-config/{domain}.
+| Per-department shell: /workspace-config/w/{departmentCode}.
 |
 */
 
 Route::prefix('workspace-config')->name('workspace.')->group(function () {
     Route::get('/', [WorkspaceConfigController::class, 'index'])->name('config.index');
+
+    Route::prefix('w/{departmentCode}')->name('profiles.')->group(function () {
+        Route::get('/', [WorkspaceProfileController::class, 'show'])->name('show');
+        Route::post('/ensure', [WorkspaceProfileController::class, 'ensure'])->name('ensure');
+    });
 
     Route::prefix('evaluation')->name('evaluation.')->group(function () {
         Route::get('/', [EvaluationCriterionController::class, 'index'])->name('index');

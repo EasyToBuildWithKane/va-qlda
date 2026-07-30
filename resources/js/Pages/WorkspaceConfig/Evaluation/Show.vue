@@ -16,6 +16,7 @@ const props = defineProps({
     departments: { type: Array, default: () => [] },
     categories: { type: Array, default: () => [] },
     scopeOptions: { type: Array, default: () => [] },
+    scoringTypeOptions: { type: Array, default: () => [] },
     defaultScoreLabels: { type: Object, default: () => ({}) },
     can: { type: Object, default: () => ({}) },
 });
@@ -30,6 +31,8 @@ const scoreRows = computed(() => ([
     { n: 4, label: props.criterion.score_4 },
     { n: 5, label: props.criterion.score_5 },
 ]));
+
+const isPoints = computed(() => props.criterion.scoring_type === 'points');
 
 function onDelete() {
     confirmDelete(
@@ -137,6 +140,14 @@ function activityLine(item) {
           </div>
           <div>
             <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+              Kiểu thang điểm
+            </p>
+            <p class="mt-1 text-slate-800">
+              {{ criterion.scoring_type_label || (isPoints ? 'Điểm cộng / trừ' : 'Thang nhãn 1–5') }}
+            </p>
+          </div>
+          <div v-if="!isPoints">
+            <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
               Chấm điểm chính xác 0.5
             </p>
             <p class="mt-1 text-slate-800">
@@ -160,7 +171,31 @@ function activityLine(item) {
             Thang điểm đánh giá
           </h2>
         </div>
-        <div class="overflow-x-auto">
+        <div
+          v-if="isPoints"
+          class="grid grid-cols-1 gap-4 p-5 sm:grid-cols-2"
+        >
+          <div class="rounded-xl border border-emerald-200/80 bg-emerald-50/40 p-4">
+            <p class="text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
+              Điểm cộng
+            </p>
+            <p class="mt-1 font-display text-3xl tabular-nums text-emerald-800">
+              +{{ criterion.point_bonus ?? 0 }}
+            </p>
+          </div>
+          <div class="rounded-xl border border-rose-200/80 bg-rose-50/40 p-4">
+            <p class="text-[10px] font-semibold uppercase tracking-wide text-rose-700">
+              Điểm trừ
+            </p>
+            <p class="mt-1 font-display text-3xl tabular-nums text-rose-800">
+              −{{ criterion.point_penalty ?? 0 }}
+            </p>
+          </div>
+        </div>
+        <div
+          v-else
+          class="overflow-x-auto"
+        >
           <table class="min-w-full text-sm">
             <thead class="bg-white text-[11px] uppercase tracking-wide text-slate-500">
               <tr>
@@ -238,6 +273,7 @@ function activityLine(item) {
       :departments="departments"
       :categories="categories"
       :scope-options="scopeOptions"
+      :scoring-type-options="scoringTypeOptions"
       :next-code="criterion.criteria_code"
       :default-score-labels="defaultScoreLabels"
       @close="showFormModal = false"

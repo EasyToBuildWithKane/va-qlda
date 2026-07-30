@@ -648,7 +648,15 @@ Xem `docs/EVALUATION_CONFIG.md`. Migrations: `2026_07_29_160000_create_evaluatio
 
 | Bảng | Mô tả |
 |------|--------|
-| `evaluation_criteria` | Tiêu chí chung / theo PB; SoftDeletes; unique `criteria_code`; thang `score_1`…`score_5`, `allow_half_score` |
+| `evaluation_criteria` | Tiêu chí chung / theo PB; SoftDeletes; unique `criteria_code`; `scoring_type` scale\|points; `score_1`…`score_5` hoặc `point_bonus`/`point_penalty`; `allow_half_score` |
+
+### 3.30 va_prd_workspace_profiles — Workspace theo phòng ban
+
+Xem `docs/WORKSPACE_CONFIG.md`. Migration: `2026_07_30_160000_create_workspace_profiles_table`.
+
+| Bảng | Mô tả |
+|------|--------|
+| `workspace_profiles` | Shell workspace theo `department_code` (unique); status draft\|active\|archived; SoftDeletes; FK optional `local_department_id` → departments |
 
 ---
 

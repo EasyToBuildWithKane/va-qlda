@@ -103,7 +103,11 @@ class Navigation
                     || \in_array($role, $item['roles'], true)
                     // Super admin is a superset of admin: it sees every admin item.
                     || ($isSuper && \in_array('admin', $item['roles'], true))
-                ) && ! \in_array($role, $item['hideForRoles'] ?? [], true),
+                ) && ! \in_array($role, $item['hideForRoles'] ?? [], true)
+                && (
+                    ! isset($item['permission'])
+                    || $account->allows((string) $item['permission'])
+                ),
             ));
 
             if ($items === []) {
@@ -623,21 +627,20 @@ class Navigation
                 'heading' => 'Cấu hình workspace',
                 'icon' => 'system-config',
                 'defaultCollapsed' => true,
-                'superOnly' => true,
                 'items' => [
                     [
                         'label' => 'Tổng quan',
                         'icon' => 'system-config',
                         'href' => '/workspace-config',
                         'status' => 'live',
-                        'roles' => ['admin'],
+                        'permission' => 'workspace.hub.view',
                     ],
                     [
                         'label' => 'Cấu hình tiêu chí đánh giá',
                         'icon' => 'award',
                         'href' => '/workspace-config/evaluation',
                         'status' => 'live',
-                        'roles' => ['admin'],
+                        'permission' => 'workspace.hub.view',
                     ],
                 ],
             ],

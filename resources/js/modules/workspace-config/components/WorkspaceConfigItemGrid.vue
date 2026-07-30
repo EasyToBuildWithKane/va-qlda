@@ -29,15 +29,23 @@ const statusClass = {
     planned: 'bg-slate-100 text-slate-600 ring-slate-200/80',
     maintenance: 'bg-rose-50 text-rose-700 ring-rose-200/80',
 };
+
+function isClickable(item) {
+    return item.href && item.href !== '#' && item.status !== 'planned';
+}
 </script>
 
 <template>
   <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-    <Link
+    <component
+      :is="isClickable(item) ? Link : 'div'"
       v-for="item in items"
       :key="item.key"
-      :href="item.href"
-      class="group flex flex-col overflow-hidden rounded-xl bg-white ring-1 ring-slate-200/75 shadow-[0_1px_3px_rgb(15_23_42/0.04)] transition hover:ring-brand/30 hover:shadow-md"
+      v-bind="isClickable(item) ? { href: item.href } : {}"
+      class="group flex flex-col overflow-hidden rounded-xl bg-white shadow-[0_1px_3px_rgb(15_23_42/0.04)] ring-1 ring-slate-200/75 transition"
+      :class="isClickable(item)
+        ? 'hover:ring-brand/30 hover:shadow-md cursor-pointer'
+        : 'opacity-90'"
     >
       <div class="flex items-start gap-3 bg-gradient-to-br from-slate-50/90 via-white to-white px-4 py-4">
         <span
@@ -51,7 +59,10 @@ const statusClass = {
         </span>
         <div class="min-w-0 flex-1">
           <div class="flex flex-wrap items-center gap-2">
-            <h3 class="font-display text-sm font-semibold text-slate-800 group-hover:text-brand">
+            <h3
+              class="font-display text-sm font-semibold text-slate-800"
+              :class="isClickable(item) ? 'group-hover:text-brand' : ''"
+            >
               {{ item.label }}
             </h3>
             <span
@@ -66,11 +77,12 @@ const statusClass = {
           </p>
         </div>
         <AppIcon
+          v-if="isClickable(item)"
           name="chevron-right"
           :size="16"
           class="mt-1 shrink-0 text-slate-300 transition group-hover:text-brand"
         />
       </div>
-    </Link>
+    </component>
   </div>
 </template>

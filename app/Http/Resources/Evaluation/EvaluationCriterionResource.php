@@ -4,6 +4,7 @@ namespace App\Http\Resources\Evaluation;
 
 use App\Models\Evaluation\EvaluationCriterion;
 use App\Support\Enums\EvaluationCriterionScope;
+use App\Support\Enums\EvaluationScoringType;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -21,6 +22,10 @@ class EvaluationCriterionResource extends JsonResource
             ? $c->scope
             : EvaluationCriterionScope::from((string) $c->scope);
 
+        $scoringType = $c->scoring_type instanceof EvaluationScoringType
+            ? $c->scoring_type
+            : EvaluationScoringType::tryFrom((string) ($c->scoring_type ?? '')) ?? EvaluationScoringType::Scale;
+
         $payload = [
             'id' => $c->id,
             'scope' => $scope->value,
@@ -32,8 +37,12 @@ class EvaluationCriterionResource extends JsonResource
             'criteria_name' => $c->criteria_name,
             'display_name' => $c->displayName(),
             'category' => $c->category,
+            'scoring_type' => $scoringType->value,
+            'scoring_type_label' => $scoringType->label(),
             'description' => $c->description,
             'allow_half_score' => (bool) $c->allow_half_score,
+            'point_bonus' => $c->point_bonus,
+            'point_penalty' => $c->point_penalty,
             'score_1' => $c->score_1,
             'score_2' => $c->score_2,
             'score_3' => $c->score_3,

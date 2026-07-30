@@ -11,6 +11,7 @@ import EvaluationSummaryBar from '@/modules/evaluation/components/EvaluationSumm
 import EvaluationCriterionFormModal from '@/modules/evaluation/components/EvaluationCriterionFormModal.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import DatagridToolbarActionButton from '@/shared/ui/DatagridToolbarActionButton.vue';
+import DatagridSegmentedControl from '@/shared/ui/DatagridSegmentedControl.vue';
 import DatagridFilterField from '@/shared/ui/DatagridFilterField.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import ColumnVisibilityDropdown from '@/shared/ui/ColumnVisibilityDropdown.vue';
@@ -34,10 +35,21 @@ const props = defineProps({
     departments: { type: Array, default: () => [] },
     categories: { type: Array, default: () => [] },
     scopeOptions: { type: Array, default: () => [] },
+    scoringTypeOptions: { type: Array, default: () => [] },
     nextCode: { type: String, default: '1' },
     defaultScoreLabels: { type: Object, default: () => ({}) },
     can: { type: Object, default: () => ({}) },
+    viewer: {
+        type: Object,
+        default: () => ({
+            can_manage_all: true,
+            own_department_code: null,
+            forced_department_code: null,
+        }),
+    },
 });
+
+const canManageAllDepts = computed(() => props.viewer?.can_manage_all !== false);
 
 const toast = useToast();
 const confirmDelete = useConfirmDelete();
@@ -73,7 +85,7 @@ const {
     hasFilterRow,
     persistVisibleFilters,
     openFilterPanel,
-} = useVisibleFilterControls(FILTER_CONTROLS, 'va-workspace.evaluation.visible-filters.v4');
+} = useVisibleFilterControls(FILTER_CONTROLS, 'va-workspace.evaluation.visible-filters.v5');
 
 const {
     visibleCols,
@@ -84,6 +96,11 @@ const {
     isColVisible,
     TABLE_COLUMNS,
 } = useVisibleColumns(EVALUATION_TABLE_COLUMNS, 'va-workspace.evaluation.columns.v4');
+
+const SCOPE_TAB_ITEMS = [
+    { key: 'general', label: 'Tiêu chí chung', icon: 'documents', title: 'Tiêu chí áp dụng chung' },
+    { key: 'department', label: 'Theo phòng ban', icon: 'department', title: 'Tiêu chí theo từng phòng ban' },
+];
 
 const GROUP_GENERAL = '__general__';
 const COLLAPSE_STORAGE_KEY = 'va-workspace.evaluation.collapsed-groups.v2';
@@ -196,6 +213,19 @@ function onQuickFilter(payload) {
     filters.scope = payload.scope || '';
     applyFilters({ page: 1 });
 }
+
+const scopeTab = computed({
+    get() {
+        if (filters.scope === 'department') return 'department';
+        if (filters.scope === 'general') return 'general';
+        return '';
+    },
+    set(key) {
+        filters.scope = key === 'department' ? 'department' : 'general';
+        if (key === 'general') filters.department_code = '';
+        applyFilters({ page: 1 });
+    },
+});
 
 function openCreate() {
     editingCriterion.value = null;
@@ -427,11 +457,15 @@ onBeforeUnmount(() => {
             </div>
           </div>
 
-          <div
-            v-if="groupedCriteria.length"
-            class="ml-auto flex shrink-0 items-center gap-2"
-          >
+          <div class="ml-auto flex shrink-0 items-center gap-2">
+            <DatagridSegmentedControl
+              v-model="scopeTab"
+              :items="SCOPE_TAB_ITEMS"
+              aria-label="Phạm vi tiêu chí"
+              icon-only-below-sm
+            />
             <DatagridToolbarActionButton
+              v-if="groupedCriteria.length"
               icon="chevron-down"
               :title="allGroupsExpanded ? 'Thu gọn tất cả nhóm' : 'Mở tất cả nhóm'"
               @click="toggleAllGroups"
@@ -465,7 +499,7 @@ onBeforeUnmount(() => {
               </option>
             </select>
           </DatagridFilterField>
-          <DatagridFilterField v-if="visibleFilters.department_code">
+          <DatagridFilterField v-if="canManageAllDepts && visibleFilters.department_code">
             <select
               v-model="filters.department_code"
               :class="FILTER_CONTROL_CLASS"
@@ -753,10 +787,10 @@ onBeforeUnmount(() => {
 
       <DatagridPaginationFooter
         v-if="criteria?.meta"
+        v-model:per-page="perPage"
+        variant="bar"
         :meta="criteria.meta"
-        :per-page="perPage"
-        @update:per-page="(v) => { perPage = v; }"
-        @page="(page) => applyFilters({ page })"
+        :per-page-options="[10, 20, 25, 50]"
       />
     </div>
 
@@ -767,8 +801,10 @@ onBeforeUnmount(() => {
       :departments="departments"
       :categories="categories"
       :scope-options="scopeOptions"
+      :scoring-type-options="scoringTypeOptions"
       :next-code="nextCode"
       :default-score-labels="defaultScoreLabels"
+      :initial-scope="filters.scope === 'department' ? 'department' : 'general'"
       @close="closeFormModal"
     />
   </AppLayout>

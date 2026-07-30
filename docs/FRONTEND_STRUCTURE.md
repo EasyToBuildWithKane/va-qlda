@@ -120,8 +120,8 @@ AppChrome.vue (persistent shell)
 | Blocker / Feedback | `Index`, `Show` (Feedback) — Index: **`FeedbackSummaryBar`** (dải KPI `kpi-strip` / `kpi-card`, lọc nhanh scope/status; rule `kpi-summary-strip`) + datagrid toolbar (Lọc/Cột), `FilterDatePicker` khoảng ngày, `FeedbackListRowActions` |
 | Profile | `Pages/Profile/Show.vue` — hồ sơ cá nhân; org directory UI đã gỡ (HRM) |
 | Performance | `Pages/Performance/Dashboard.vue` · **`Audit.vue`** (danh sách audit nhân sự, segmented Tuần/Tháng/Quý, cột **Kỳ** = nhóm dòng collapse theo kỳ con — pattern `Blocker/Index`, `emptyDisplay.js`, `PerformanceAuditSummaryBar` mode list) · **`AuditShow.vue`** (timeline + `PerformanceFilterBar`, back về index) |
-| Evaluation config | `Pages/WorkspaceConfig/Evaluation/{Index,Create,Edit,Show}.vue` + `modules/evaluation/` — super-admin; KPI strip + Lọc/Cột/Xuất; nhóm collapse theo phòng ban; Thêm mới trong PageHeader |
-| Workspace config hub | `Pages/WorkspaceConfig/Hub.vue` + `modules/workspace-config/` — danh mục mục cấu hình (`/workspace-config`); doc `WORKSPACE_CONFIG.md` |
+| Evaluation config | `Pages/WorkspaceConfig/Evaluation/{Index,Show}.vue` + `modules/evaluation/` — super-admin CRUD; user `hub.view` đọc scoped theo PB HRM; KPI strip + Lọc/Cột/Xuất |
+| Workspace config hub | `Pages/WorkspaceConfig/Hub.vue` + `Workspace/Show.vue` + `modules/workspace-config/` — workspace theo PB (`/workspace-config`, `/workspace-config/w/{code}`); doc `WORKSPACE_CONFIG.md` |
 | Notifications | `Pages/Notifications/Management.vue` |
 
 Pages import feature components từ `@/modules/project/components/...` và primitives từ `@/shared/ui/...`.

@@ -40,6 +40,7 @@ final class PermissionCatalog
         'system.settings.manage',
         'permissions.manage',
         'roles.assign',
+        'workspace.hub.manage',
         'workspace.evaluation.view',
         'workspace.evaluation.manage',
     ];
@@ -130,11 +131,12 @@ final class PermissionCatalog
                 'view' => 'Xem nhật ký audit hệ thống',
             ]],
 
-            // ── RESERVED — chỉ super_admin ───────────────────────────
+            // ── Workspace hub (hub.view mở cho role thường; manage/evaluation.* reserved) ──
             'workspace' => ['label' => 'Cấu hình workspace', 'icon' => 'system-config', 'group' => 'Quản trị tối cao', 'abilities' => [
-                'evaluation.view' => 'Xem cấu hình đánh giá',
-                'evaluation.manage' => 'Quản lý cấu hình đánh giá',
-                // Thêm ability theo domain khi mở rộng hub (vd. cycle.view).
+                'hub.view' => 'Xem workspace phòng ban của mình',
+                'hub.manage' => 'Quản trị mọi workspace phòng ban',
+                'evaluation.view' => 'Xem cấu hình tiêu chí đánh giá',
+                'evaluation.manage' => 'Quản lý cấu hình tiêu chí đánh giá',
             ]],
             'system' => ['label' => 'Cấu hình hệ thống', 'icon' => 'system-config', 'group' => 'Quản trị tối cao', 'abilities' => [
                 'settings.view' => 'Xem cấu hình', 'settings.manage' => 'Sửa cấu hình hệ thống',
@@ -242,6 +244,7 @@ final class PermissionCatalog
                 'kb.create', 'kb.update', 'kb.delete', 'kb.publish',
                 'congnghe.manage_proposals',
                 'performance.view',
+                'workspace.hub.view',
             ],
             'member' => [
                 'daily_report.create',
@@ -251,6 +254,7 @@ final class PermissionCatalog
                 'kb.create',
                 'feedback.create',
                 'weekly_report.view',
+                'workspace.hub.view',
             ],
             'viewer' => [
                 'project.view',
@@ -259,6 +263,7 @@ final class PermissionCatalog
                 'vendor.view',
                 'performance.view',
                 'weekly_report.view', 'weekly_report.export',
+                'workspace.hub.view',
             ],
         ];
     }

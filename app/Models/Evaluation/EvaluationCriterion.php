@@ -5,6 +5,7 @@ namespace App\Models\Evaluation;
 use App\Models\Department;
 use App\Models\SystemAccount;
 use App\Support\Enums\EvaluationCriterionScope;
+use App\Support\Enums\EvaluationScoringType;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -19,13 +20,16 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string $criteria_code
  * @property string $criteria_name
  * @property string $category
+ * @property EvaluationScoringType|string $scoring_type
  * @property string|null $description
  * @property bool $allow_half_score
- * @property string $score_1
- * @property string $score_2
- * @property string $score_3
- * @property string $score_4
- * @property string $score_5
+ * @property int|null $point_bonus
+ * @property int|null $point_penalty
+ * @property string|null $score_1
+ * @property string|null $score_2
+ * @property string|null $score_3
+ * @property string|null $score_4
+ * @property string|null $score_5
  * @property int $sort_order
  * @property bool $is_active
  * @property int|null $created_by
@@ -52,8 +56,11 @@ class EvaluationCriterion extends Model
         'criteria_code',
         'criteria_name',
         'category',
+        'scoring_type',
         'description',
         'allow_half_score',
+        'point_bonus',
+        'point_penalty',
         'score_1',
         'score_2',
         'score_3',
@@ -66,7 +73,10 @@ class EvaluationCriterion extends Model
 
     protected $casts = [
         'scope' => EvaluationCriterionScope::class,
+        'scoring_type' => EvaluationScoringType::class,
         'allow_half_score' => 'boolean',
+        'point_bonus' => 'integer',
+        'point_penalty' => 'integer',
         'sort_order' => 'integer',
         'is_active' => 'boolean',
     ];

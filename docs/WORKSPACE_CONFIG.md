@@ -1,7 +1,7 @@
-# WORKSPACE CONFIG — Cấu hình workspace
+# WORKSPACE CONFIG — Cấu hình workspace theo phòng ban
 
-> Module lớn (super-admin): hub **`/workspace-config`** liệt kê các mục cấu hình nghiệp vụ workspace.
-> Nav: **Cấu hình workspace** (`settings_workspace`, `superOnly`).
+> Module: hub **`/workspace-config`** liệt kê **workspace theo phòng ban** (profile keyed `department_code`).
+> Nav: **Cấu hình workspace** (`settings_workspace`) — filter theo `workspace.hub.view` (không còn `superOnly`).
 >
 > Khác **`/settings`** (SYSTEM_CONFIG — nhận diện, auth, email, RBAC, CLM thresholds).
 
@@ -11,70 +11,103 @@
 
 | Có | Không |
 |----|-------|
-| Hub danh mục mục cấu hình | Trộn với `/settings` system |
-| Đăng ký item qua `WorkspaceConfigCatalog` | Hard-code card chỉ trên FE |
-| Mỗi item = domain riêng (route + pages + policy) | Một controller khổng lồ cho mọi domain |
+| Hub danh sách workspace theo PB | Trộn với `/settings` system |
+| Profile `workspace_profiles` lazy-ensure | Tenant / app riêng |
+| Superadmin thấy / quản trị mọi PB | Lead PB CRUD tiêu chí (phase sau) |
+| User HRM chỉ thấy đúng PB của mình | Clone template PB → PB / versioning |
+| Domain con (evaluation, …) gắn `department_code` | Hard-code card chỉ trên FE |
 
-**Item hiện có:** [Cấu hình tiêu chí đánh giá](EVALUATION_CONFIG.md) → `/workspace-config/evaluation`.
-
-**Mở rộng sau:** thêm phần tử trong `WorkspaceConfigCatalog::definition()`, route con trong `routes/web/workspace-config.php`, nav item trong `Navigation.php` nhóm `settings_workspace`, ability reserved trong `PermissionCatalog`.
+**Domain live:** [Cấu hình tiêu chí đánh giá](EVALUATION_CONFIG.md) → `/workspace-config/evaluation` (scoped).
 
 ---
 
 ## 2. Kiến trúc
 
 ```
-/workspace-config                 → Hub (WorkspaceConfigController)
-/workspace-config/evaluation/*    → Evaluation (EVALUATION_CONFIG.md)
-/workspace-config/{domain}/*      → (tương lai)
+/workspace-config                      → Hub (danh sách PB)
+/workspace-config/w/{departmentCode}   → Shell workspace PB + module catalog
+/workspace-config/w/{code}/ensure      → POST kích hoạt profile (hub.manage)
+/workspace-config/evaluation/*         → Evaluation (EVALUATION_CONFIG.md)
 ```
 
 | Lớp | Path |
 |-----|------|
-| Catalog | `app/Support/WorkspaceConfig/WorkspaceConfigCatalog.php` |
-| Hub controller | `app/Http/Controllers/WorkspaceConfig/WorkspaceConfigController.php` |
-| Routes | `routes/web/workspace-config.php` (`workspace.config.index`, `workspace.evaluation.*`) |
-| Pages | `Pages/WorkspaceConfig/Hub.vue` + `Pages/WorkspaceConfig/{Domain}/` |
-| FE module | `modules/workspace-config/` (grid hub) · domain con giữ `modules/{domain}/` |
+| Catalog modules | `app/Support/WorkspaceConfig/WorkspaceConfigCatalog.php` |
+| Scope | `WorkspaceScopeResolver` — `department_code` từ `employee.meta` |
+| Provision | `WorkspaceProfileProvisioner` — lazy create/activate |
+| Model | `App\Models\WorkspaceConfig\WorkspaceProfile` |
+| Controllers | `WorkspaceConfigController`, `WorkspaceProfileController` |
+| Routes | `routes/web/workspace-config.php` |
+| Pages | `Pages/WorkspaceConfig/Hub.vue`, `Workspace/Show.vue`, `Evaluation/` |
+| FE module | `modules/workspace-config/` |
 
-Pattern: **MVC** (giống Settings / Evaluation).
+Pattern: **MVC**.
 
 ---
 
-## 3. Routes
+## 3. Schema
+
+Bảng `workspace_profiles` (`va_prd_workspace_profiles`):
+
+| Cột | Ý nghĩa |
+|-----|---------|
+| `department_code` | Unique — khóa ổn định (cùng evaluation) |
+| `department_name` | Denormalized |
+| `local_department_id` | FK nullable → `departments` |
+| `status` | `draft` \| `active` \| `archived` |
+| `notes` | nullable |
+| `created_by` | SystemAccount |
+| SoftDeletes | |
+
+Tiêu chí đánh giá vẫn ở `evaluation_criteria` (`scope` + `department_code`) — không FK bắt buộc tới profile.
+
+---
+
+## 4. Routes
 
 | Method | URI | Name |
 |--------|-----|------|
 | GET | `/workspace-config` | `workspace.config.index` |
+| GET | `/workspace-config/w/{departmentCode}` | `workspace.profiles.show` |
+| POST | `/workspace-config/w/{departmentCode}/ensure` | `workspace.profiles.ensure` |
 
-Child routes: xem doc domain (vd. `EVALUATION_CONFIG.md`).
-
-Transport: **Inertia**.
-
----
-
-## 4. Phân quyền
-
-- Hub: chỉ hiện item mà user `allows(permission)` (hoặc `.manage` tương ứng). Rỗng → 403.
-- Nav group `settings_workspace` trong `PROTECTED_GROUP_KEYS`, `superOnly`.
-- Reserved keys theo domain (vd. `workspace.evaluation.view` / `.manage`).
+Child: xem `EVALUATION_CONFIG.md`. Transport: **Inertia**.
 
 ---
 
-## 5. Frontend
+## 5. Phân quyền
+
+| Key | Reserved? | Ai |
+|-----|-----------|-----|
+| `workspace.hub.view` | Không | admin (default), lead, member, viewer — xem hub/workspace PB mình |
+| `workspace.hub.manage` | Có | chỉ super_admin — mọi PB + ensure |
+| `workspace.evaluation.view` / `.manage` | Có | chỉ super_admin — CRUD tiêu chí |
+
+**Scope:** `WorkspaceScopeResolver::canAccess($user, $departmentCode)`.
+
+- Superadmin / `hub.manage`: mọi code.
+- Còn lại: chỉ `ownDepartmentCode` từ `SystemAccount→employee→meta.department_code` (fallback `ProfileOrgRelations::departmentCode`).
+
+Evaluation index: user không manage → chỉ `scope=general` **hoặc** `department_code = own`; query lệch PB → 403.
+
+---
+
+## 6. Frontend
 
 | Path | Vai trò |
 |------|---------|
-| `Pages/WorkspaceConfig/Hub.vue` | `#header` + PageHeader `system-config` + lưới mục |
-| `modules/workspace-config/components/WorkspaceConfigItemGrid.vue` | Thẻ link tới từng domain |
+| `Pages/WorkspaceConfig/Hub.vue` | KPI strip + tìm/lọc + lưới PB |
+| `WorkspaceConfigSummaryBar.vue` | KPI tổng / active / draft / tiêu chí / missing |
+| `WorkspaceProfileGrid.vue` | Card PB + Mở / Kích hoạt |
+| `Pages/WorkspaceConfig/Workspace/Show.vue` | Module catalog theo PB |
+| `WorkspaceConfigItemGrid.vue` | Thẻ module (live + planned) |
 
 ---
 
-## 6. Checklist thêm item mới
+## 7. Checklist thêm domain module
 
-1. Ability reserved + label trong `PermissionCatalog` module `workspace`.
-2. Entry trong `WorkspaceConfigCatalog::definition()` (`key`, `href`, `permission`, …).
-3. Route group dưới `workspace-config/{slug}` trong `workspace-config.php`.
-4. Pages `WorkspaceConfig/{Domain}/` + `modules/{domain}/` nếu cần.
-5. Nav item trong `settings_workspace`.
-6. Doc domain + cập nhật bảng item trong file này + `API_STRUCTURE` / `FRONTEND_STRUCTURE`.
+1. Ability (+ reserved nếu cần) trong `PermissionCatalog` module `workspace`.
+2. Entry `WorkspaceConfigCatalog::definition()` (`applies_to`, `href`, …).
+3. Route group dưới `workspace-config/{slug}`.
+4. Pages + enforce `WorkspaceScopeResolver` trên đọc/ghi.
+5. Doc domain + cập nhật file này + `API_STRUCTURE` / `FRONTEND_STRUCTURE` / `DATABASE_STRUCTURE`.

@@ -162,7 +162,7 @@ flowchart TB
 | AI Accounts | Inertia pages + JSON API | `AI_ACCOUNTS.md` |
 | System settings | MVC + SettingsRepository | `SYSTEM_CONFIG.md` |
 | Evaluation criteria | MVC | `EVALUATION_CONFIG.md` |
-| Workspace config hub | MVC + WorkspaceConfigCatalog | `WORKSPACE_CONFIG.md` |
+| Workspace config hub | MVC + WorkspaceProfile + ScopeResolver | `WORKSPACE_CONFIG.md` |
 
 ---
 
@@ -179,7 +179,7 @@ flowchart TB
 | AI Workspace | `AI_ACCOUNTS.md` | `AiAccount/*`, `api/ai-accounts` | `Pages/AiAccount/`, `modules/aiAccount/` |
 | Phản hồi | `API_STRUCTURE` §2.12 | `FeedbackController` | `Pages/Feedback/` |
 | Hệ thống | `SYSTEM_CONFIG.md` | `SystemSettingController`, `Notification*` | `Pages/Settings/`, `Notifications/` |
-| Cấu hình workspace | `WORKSPACE_CONFIG.md` | `WorkspaceConfigController` + catalog | `Pages/WorkspaceConfig/Hub.vue`, `modules/workspace-config/` |
+| Cấu hình workspace | `WORKSPACE_CONFIG.md` | `WorkspaceConfigController` + `WorkspaceProfileController` | `Pages/WorkspaceConfig/Hub.vue`, `Workspace/Show.vue`, `modules/workspace-config/` |
 | Cấu hình tiêu chí đánh giá | `EVALUATION_CONFIG.md` | `EvaluationCriterionController` | `Pages/WorkspaceConfig/Evaluation/`, `modules/evaluation/` |
 | Nhập/xuất Excel | `IMPORT_EXPORT_RECONCILE.md` | `Blocker@import`, … | `*DataModal`, `use*Import.js` |
 
@@ -303,7 +303,7 @@ Pre-push gates: `.cursor/skills/ship-ready/SKILL.md` · `.cursor/rules/ci-qualit
 | `AI_ACCOUNTS.md` | Quản lý AI |
 | `CONGNGHE_CONTENT.md` | Landing + quản trị /congnghe |
 | `SYSTEM_CONFIG.md` | `/settings` |
-| `WORKSPACE_CONFIG.md` | `/workspace-config` (hub) |
+| `WORKSPACE_CONFIG.md` | `/workspace-config`, `/workspace-config/w/{code}` |
 | `EVALUATION_CONFIG.md` | `/workspace-config/evaluation` |
 | `PROJECT_MANAGEMENT.md` | Quản lý dự án `/projects` (danh mục, workspace, sprint, task, tài liệu) |
 | `DAILY_REPORT_PROJECTS.md` | Báo cáo ngày & liên kết dự án |

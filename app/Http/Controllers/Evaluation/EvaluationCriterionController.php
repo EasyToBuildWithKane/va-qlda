@@ -10,8 +10,11 @@ use App\Models\Evaluation\EvaluationCriterion;
 use App\Models\SecurityAuditLog;
 use App\Support\Audit\AuditActionCatalog;
 use App\Support\Enums\EvaluationCriterionScope;
+use App\Support\Enums\EvaluationScoringType;
 use App\Support\Evaluation\HrmDepartmentDirectory;
 use App\Support\SecurityAuditLogger;
+use App\Support\WorkspaceConfig\WorkspaceScopeResolver;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -21,16 +24,31 @@ class EvaluationCriterionController extends Controller
 {
     public function __construct(
         private readonly HrmDepartmentDirectory $departments,
+        private readonly WorkspaceScopeResolver $scope,
     ) {}
 
     public function index(Request $request): Response
     {
         $this->authorize('viewAny', EvaluationCriterion::class);
 
+        $user = $request->user();
+        $canManageAll = $this->scope->canManageAll($user)
+            || $user->allows('workspace.evaluation.manage')
+            || $user->allows('workspace.evaluation.view');
+        $forcedDept = $canManageAll ? null : $this->scope->ownDepartmentCode($user);
+
+        if (! $canManageAll) {
+            abort_if($forcedDept === null, 403);
+            $requestedDept = trim((string) $request->query('department_code', ''));
+            if ($requestedDept !== '' && strcasecmp($requestedDept, $forcedDept) !== 0) {
+                abort(403);
+            }
+        }
+
         $filters = [
             'q' => trim((string) $request->query('q', '')),
             'scope' => trim((string) $request->query('scope', '')),
-            'department_code' => trim((string) $request->query('department_code', '')),
+            'department_code' => $forcedDept ?? trim((string) $request->query('department_code', '')),
             'category' => trim((string) $request->query('category', '')),
             'status' => trim((string) $request->query('status', '')),
             'per_page' => min(50, max(10, (int) $request->query('per_page', 20))),
@@ -42,6 +60,8 @@ class EvaluationCriterionController extends Controller
             ->orderBy('department_name')
             ->orderBy('sort_order')
             ->orderBy('id');
+
+        $this->applyViewerScope($query, $forcedDept);
 
         if ($filters['q'] !== '') {
             $q = $filters['q'];
@@ -58,7 +78,7 @@ class EvaluationCriterionController extends Controller
             $query->where('scope', $filters['scope']);
         }
 
-        if ($filters['department_code'] !== '') {
+        if ($filters['department_code'] !== '' && $canManageAll) {
             $query->where('department_code', $filters['department_code']);
         }
 
@@ -79,13 +99,23 @@ class EvaluationCriterionController extends Controller
             ->values()
             ->all();
 
+        $summaryBase = EvaluationCriterion::query();
+        $this->applyViewerScope($summaryBase, $forcedDept);
+
         $summary = [
-            'total' => EvaluationCriterion::query()->count(),
-            'general' => EvaluationCriterion::query()->general()->count(),
-            'department' => EvaluationCriterion::query()->forDepartment()->count(),
-            'active' => EvaluationCriterion::query()->where('is_active', true)->count(),
-            'inactive' => EvaluationCriterion::query()->where('is_active', false)->count(),
+            'total' => (clone $summaryBase)->count(),
+            'general' => (clone $summaryBase)->general()->count(),
+            'department' => (clone $summaryBase)->forDepartment()->count(),
+            'active' => (clone $summaryBase)->where('is_active', true)->count(),
+            'inactive' => (clone $summaryBase)->where('is_active', false)->count(),
         ];
+
+        $departmentOptions = $canManageAll
+            ? $this->departments->all()
+            : array_values(array_filter(
+                $this->departments->all(),
+                static fn (array $d): bool => strcasecmp($d['code'], (string) $forcedDept) === 0,
+            ));
 
         return Inertia::render('WorkspaceConfig/Evaluation/Index', [
             'criteria' => [
@@ -102,13 +132,19 @@ class EvaluationCriterionController extends Controller
             ],
             'filters' => $filters,
             'summary' => $summary,
-            'departments' => $this->departments->all(),
-            'categories' => $this->categoryOptions(),
+            'departments' => $departmentOptions,
+            'categories' => $this->categoryOptions($forcedDept),
             'scopeOptions' => EvaluationCriterionScope::options(),
+            'scoringTypeOptions' => EvaluationScoringType::options(),
             'nextCode' => EvaluationCriterion::suggestNextCode(),
             'defaultScoreLabels' => EvaluationCriterion::DEFAULT_SCORE_LABELS,
+            'viewer' => [
+                'can_manage_all' => $canManageAll,
+                'own_department_code' => $this->scope->ownDepartmentCode($user),
+                'forced_department_code' => $forcedDept,
+            ],
             'can' => [
-                'manage' => $request->user()->can('create', EvaluationCriterion::class),
+                'manage' => $user->can('create', EvaluationCriterion::class),
             ],
         ]);
     }
@@ -154,6 +190,7 @@ class EvaluationCriterionController extends Controller
             'departments' => $this->departments->all(),
             'categories' => $this->categoryOptions(),
             'scopeOptions' => EvaluationCriterionScope::options(),
+            'scoringTypeOptions' => EvaluationScoringType::options(),
             'defaultScoreLabels' => EvaluationCriterion::DEFAULT_SCORE_LABELS,
             'can' => [
                 'manage' => $request->user()->can('update', $evaluationCriterion),
@@ -211,6 +248,8 @@ class EvaluationCriterionController extends Controller
     private function normalizePayload(array $data): array
     {
         $scope = EvaluationCriterionScope::from($data['scope']);
+        $scoringType = EvaluationScoringType::from($data['scoring_type'] ?? EvaluationScoringType::Scale->value);
+        $data['scoring_type'] = $scoringType->value;
 
         if ($scope === EvaluationCriterionScope::General) {
             $data['department_code'] = null;
@@ -224,15 +263,54 @@ class EvaluationCriterionController extends Controller
             }
         }
 
+        if ($scoringType === EvaluationScoringType::Points) {
+            $data['allow_half_score'] = false;
+            $data['point_bonus'] = (int) ($data['point_bonus'] ?? 0);
+            $data['point_penalty'] = (int) ($data['point_penalty'] ?? 0);
+            // NOT NULL columns — placeholder when not used for scale mode
+            $defaults = EvaluationCriterion::DEFAULT_SCORE_LABELS;
+            $data['score_1'] = $data['score_1'] ?: $defaults[1];
+            $data['score_2'] = $data['score_2'] ?: $defaults[2];
+            $data['score_3'] = $data['score_3'] ?: $defaults[3];
+            $data['score_4'] = $data['score_4'] ?: $defaults[4];
+            $data['score_5'] = $data['score_5'] ?: $defaults[5];
+        } else {
+            $data['point_bonus'] = null;
+            $data['point_penalty'] = null;
+            $data['allow_half_score'] = (bool) ($data['allow_half_score'] ?? false);
+        }
+
         return $data;
     }
 
-    /** @return list<string> */
-    private function categoryOptions(): array
+    /**
+     * Non-managers see general criteria + their department only.
+     */
+    private function applyViewerScope(Builder $query, ?string $forcedDept): void
     {
-        return EvaluationCriterion::query()
+        if ($forcedDept === null) {
+            return;
+        }
+
+        $query->where(function (Builder $builder) use ($forcedDept) {
+            $builder->where('scope', EvaluationCriterionScope::General)
+                ->orWhere(function (Builder $inner) use ($forcedDept) {
+                    $inner->where('scope', EvaluationCriterionScope::Department)
+                        ->where('department_code', $forcedDept);
+                });
+        });
+    }
+
+    /** @return list<string> */
+    private function categoryOptions(?string $forcedDept = null): array
+    {
+        $query = EvaluationCriterion::query()
             ->whereNotNull('category')
-            ->where('category', '!=', '')
+            ->where('category', '!=', '');
+
+        $this->applyViewerScope($query, $forcedDept);
+
+        return $query
             ->distinct()
             ->orderBy('category')
             ->pluck('category')

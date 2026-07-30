@@ -17,7 +17,7 @@ import {
     Menu,
     Folder,
     Phone, Briefcase, Award, Target, ExternalLink,
-    GraduationCap, Route, Gauge, Sparkles, BadgeCheck, Flame, LockKeyhole,
+    GraduationCap, Route, Gauge, Sparkles, BadgeCheck, Flame, LockKeyhole, Lock, Unlock,
     LifeBuoy, Compass, ShieldCheck,
     Cpu, LayoutGrid, Table,
 } from 'lucide-vue-next';
@@ -162,6 +162,8 @@ const map = {
     certified: BadgeCheck,
     streak: Flame,
     vault: LockKeyhole,
+    lock: Lock,
+    unlock: Unlock,
     shield: ShieldCheck,
     // onboarding / tour guide
     help: LifeBuoy,

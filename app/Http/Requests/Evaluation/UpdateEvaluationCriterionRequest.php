@@ -4,6 +4,7 @@ namespace App\Http\Requests\Evaluation;
 
 use App\Models\Evaluation\EvaluationCriterion;
 use App\Support\Enums\EvaluationCriterionScope;
+use App\Support\Enums\EvaluationScoringType;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -18,6 +19,13 @@ class UpdateEvaluationCriterionRequest extends FormRequest
         return $this->user()?->can('update', $criterion) ?? false;
     }
 
+    protected function prepareForValidation(): void
+    {
+        if (! $this->filled('scoring_type')) {
+            $this->merge(['scoring_type' => EvaluationScoringType::Scale->value]);
+        }
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -25,6 +33,8 @@ class UpdateEvaluationCriterionRequest extends FormRequest
     {
         /** @var EvaluationCriterion $criterion */
         $criterion = $this->route('evaluationCriterion');
+        $isScale = $this->input('scoring_type') === EvaluationScoringType::Scale->value;
+        $isPoints = $this->input('scoring_type') === EvaluationScoringType::Points->value;
 
         return [
             'scope' => ['required', Rule::in(EvaluationCriterionScope::values())],
@@ -39,13 +49,16 @@ class UpdateEvaluationCriterionRequest extends FormRequest
             ],
             'criteria_name' => ['required', 'string', 'max:255'],
             'category' => ['required', 'string', 'max:100'],
+            'scoring_type' => ['required', Rule::in(EvaluationScoringType::values())],
             'description' => ['nullable', 'string', 'max:5000'],
             'allow_half_score' => ['sometimes', 'boolean'],
-            'score_1' => ['required', 'string', 'max:255'],
-            'score_2' => ['required', 'string', 'max:255'],
-            'score_3' => ['required', 'string', 'max:255'],
-            'score_4' => ['required', 'string', 'max:255'],
-            'score_5' => ['required', 'string', 'max:255'],
+            'point_bonus' => [$isPoints ? 'required' : 'nullable', 'integer', 'min:0', 'max:999'],
+            'point_penalty' => [$isPoints ? 'required' : 'nullable', 'integer', 'min:0', 'max:999'],
+            'score_1' => [$isScale ? 'required' : 'nullable', 'string', 'max:255'],
+            'score_2' => [$isScale ? 'required' : 'nullable', 'string', 'max:255'],
+            'score_3' => [$isScale ? 'required' : 'nullable', 'string', 'max:255'],
+            'score_4' => [$isScale ? 'required' : 'nullable', 'string', 'max:255'],
+            'score_5' => [$isScale ? 'required' : 'nullable', 'string', 'max:255'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'is_active' => ['sometimes', 'boolean'],
         ];
@@ -63,6 +76,10 @@ class UpdateEvaluationCriterionRequest extends FormRequest
             'criteria_code.unique' => 'Mã tiêu chí đã tồn tại.',
             'criteria_name.required' => 'Vui lòng nhập tên tiêu chí.',
             'category.required' => 'Vui lòng nhập loại tiêu chí.',
+            'scoring_type.required' => 'Vui lòng chọn kiểu thang điểm.',
+            'scoring_type.in' => 'Kiểu thang điểm không hợp lệ.',
+            'point_bonus.required' => 'Vui lòng nhập điểm cộng.',
+            'point_penalty.required' => 'Vui lòng nhập điểm trừ.',
             'score_1.required' => 'Vui lòng nhập nhãn điểm 1.',
             'score_2.required' => 'Vui lòng nhập nhãn điểm 2.',
             'score_3.required' => 'Vui lòng nhập nhãn điểm 3.',

@@ -234,8 +234,8 @@ Tạo Project
 | Org teams / danh bạ UI | `/org-teams`, `/members` | ❌ Đã gỡ UI (2026-07) — bảng OrgTeam tạm giữ; chờ HRM API |
 | Profile (hồ sơ cá nhân) | `/profile` | ✅ Hoàn thành |
 | System settings (super_admin) | `/settings` | ✅ → docs/SYSTEM_CONFIG.md |
-| Workspace config hub (super_admin) | `/workspace-config` | ✅ → docs/WORKSPACE_CONFIG.md |
-| Evaluation criteria (super_admin) | `/workspace-config/evaluation` | ✅ → docs/EVALUATION_CONFIG.md |
+| Workspace config hub (scoped theo PB) | `/workspace-config` | ✅ → docs/WORKSPACE_CONFIG.md |
+| Evaluation criteria (super_admin CRUD; hub.view đọc scoped) | `/workspace-config/evaluation` | ✅ → docs/EVALUATION_CONFIG.md |
 | Daily Report | `/daily-reports` | ✅ Hoàn thành → docs/DAILY_REPORT.md |
 | Blocker Tracking | `/blockers` | ✅ Hoàn thành |
 | Bug Tracking | — | ❌ Đã gỡ (2026-06) — dùng Feedback / Blocker |

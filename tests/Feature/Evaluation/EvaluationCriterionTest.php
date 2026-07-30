@@ -8,11 +8,30 @@ use App\Models\SystemAccount;
 use App\Support\Enums\EvaluationCriterionScope;
 use App\Support\Enums\SystemRole;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class EvaluationCriterionTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Cache::flush();
+        config([
+            'hrm.api.base_url' => 'https://hrm.test/api/v1',
+            'hrm.api.token' => '1|test-token',
+            'hrm.api.verify_ssl' => false,
+        ]);
+        Http::fake([
+            'https://hrm.test/api/v1/org-units*' => Http::response([
+                'data' => [],
+                'meta' => ['cursor' => ['next' => null, 'count' => 0, 'per_page' => 100]],
+            ]),
+        ]);
+    }
 
     private function superAdmin(): SystemAccount
     {
@@ -31,6 +50,7 @@ class EvaluationCriterionTest extends TestCase
             'scope' => 'general',
             'criteria_name' => 'Thái độ hợp tác/tinh thần tập thể',
             'category' => 'Thái độ',
+            'scoring_type' => 'scale',
             'description' => 'Xem xét khả năng làm việc phối hợp.',
             'allow_half_score' => false,
             'score_1' => 'Không đáp ứng',
@@ -56,11 +76,43 @@ class EvaluationCriterionTest extends TestCase
             );
     }
 
-    public function test_admin_cannot_view_evaluation_criteria(): void
+    public function test_admin_without_department_cannot_view_evaluation_criteria(): void
     {
         $this->actingAs($this->admin(), 'system')
             ->get('/workspace-config/evaluation')
             ->assertForbidden();
+    }
+
+    public function test_member_with_department_can_view_scoped_evaluation_index(): void
+    {
+        Department::query()->create([
+            'code' => 'HCNS',
+            'name' => 'Hành Chính Nhân Sự',
+            'color' => 'slate',
+            'sort_order' => 1,
+            'is_active' => true,
+        ]);
+        Cache::flush();
+
+        $employee = \App\Models\Employee::factory()->create([
+            'meta' => [
+                'department_code' => 'HCNS',
+                'department_name' => 'Hành Chính Nhân Sự',
+            ],
+        ]);
+        $member = SystemAccount::factory()
+            ->role(SystemRole::Member)
+            ->forEmployee($employee)
+            ->create();
+
+        $this->actingAs($member, 'system')
+            ->get('/workspace-config/evaluation')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('WorkspaceConfig/Evaluation/Index')
+                ->where('can.manage', false)
+                ->where('viewer.forced_department_code', 'HCNS')
+            );
     }
 
     public function test_guest_is_redirected(): void
@@ -128,6 +180,7 @@ class EvaluationCriterionTest extends TestCase
             'criteria_code' => '10',
             'criteria_name' => 'Đã có',
             'category' => 'Khác',
+            'scoring_type' => 'scale',
             'score_1' => 'A',
             'score_2' => 'B',
             'score_3' => 'C',
@@ -171,6 +224,7 @@ class EvaluationCriterionTest extends TestCase
             'criteria_code' => '5',
             'criteria_name' => 'Xóa thử',
             'category' => 'Khác',
+            'scoring_type' => 'scale',
             'score_1' => 'A',
             'score_2' => 'B',
             'score_3' => 'C',
@@ -184,5 +238,41 @@ class EvaluationCriterionTest extends TestCase
             ->assertRedirect(route('workspace.evaluation.index'));
 
         $this->assertSoftDeleted('evaluation_criteria', ['id' => $criterion->id]);
+    }
+
+    public function test_super_admin_can_create_points_criterion(): void
+    {
+        $response = $this->actingAs($this->superAdmin(), 'system')
+            ->post('/workspace-config/evaluation', $this->validPayload([
+                'criteria_name' => 'Hoàn thành đúng hạn',
+                'category' => 'Điểm cộng',
+                'scoring_type' => 'points',
+                'point_bonus' => 5,
+                'point_penalty' => 2,
+                'score_1' => null,
+                'score_2' => null,
+                'score_3' => null,
+                'score_4' => null,
+                'score_5' => null,
+            ]));
+
+        $criterion = EvaluationCriterion::query()->where('criteria_name', 'Hoàn thành đúng hạn')->first();
+        $this->assertNotNull($criterion);
+        $response->assertRedirect(route('workspace.evaluation.show', $criterion));
+        $this->assertSame('points', $criterion->scoring_type->value);
+        $this->assertSame(5, $criterion->point_bonus);
+        $this->assertSame(2, $criterion->point_penalty);
+        $this->assertFalse($criterion->allow_half_score);
+    }
+
+    public function test_points_criterion_requires_bonus_and_penalty(): void
+    {
+        $this->actingAs($this->superAdmin(), 'system')
+            ->post('/workspace-config/evaluation', $this->validPayload([
+                'scoring_type' => 'points',
+                'point_bonus' => null,
+                'point_penalty' => null,
+            ]))
+            ->assertSessionHasErrors(['point_bonus', 'point_penalty']);
     }
 }

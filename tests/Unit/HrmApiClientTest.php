@@ -77,4 +77,29 @@ class HrmApiClientTest extends TestCase
         $this->expectException(RuntimeException::class);
         (new HrmApiClient)->me();
     }
+
+    public function test_list_org_units_follows_cursor(): void
+    {
+        Http::fake([
+            'https://hrm.test/api/v1/org-units*' => Http::sequence()
+                ->push([
+                    'data' => [
+                        ['uuid' => 'a', 'code' => 'A', 'name' => 'A', 'type' => 'department', 'status' => 'active'],
+                    ],
+                    'meta' => ['cursor' => ['next' => 'cursor-page-2', 'count' => 1, 'per_page' => 100]],
+                ])
+                ->push([
+                    'data' => [
+                        ['uuid' => 'b', 'code' => 'B', 'name' => 'B', 'type' => 'department', 'status' => 'active'],
+                    ],
+                    'meta' => ['cursor' => ['next' => null, 'count' => 1, 'per_page' => 100]],
+                ]),
+        ]);
+
+        $rows = (new HrmApiClient)->listOrgUnits(['type' => 'department']);
+
+        $this->assertCount(2, $rows);
+        $this->assertSame(['A', 'B'], array_column($rows, 'code'));
+        Http::assertSentCount(2);
+    }
 }
