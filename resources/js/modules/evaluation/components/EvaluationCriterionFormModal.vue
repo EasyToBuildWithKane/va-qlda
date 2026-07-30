@@ -3,7 +3,24 @@ import { computed, nextTick, ref, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import Modal from '@/Components/Ui/Modal.vue';
 import AppIcon from '@/Components/AppIcon.vue';
+import DepartmentAutocomplete from '@/modules/evaluation/components/DepartmentAutocomplete.vue';
 import { useDialog } from '@/composables/useDialog';
+
+const MIN_LEVELS = 2;
+const MAX_LEVELS = 10;
+
+const LEVEL_TONES = [
+    'bg-rose-500',
+    'bg-amber-500',
+    'bg-slate-400',
+    'bg-sky-500',
+    'bg-emerald-500',
+    'bg-violet-500',
+    'bg-brand',
+    'bg-teal-500',
+    'bg-orange-500',
+    'bg-indigo-500',
+];
 
 const props = defineProps({
     show: { type: Boolean, default: false },
@@ -11,11 +28,12 @@ const props = defineProps({
     criterion: { type: Object, default: null },
     departments: { type: Array, default: () => [] },
     categories: { type: Array, default: () => [] },
-    scopeOptions: { type: Array, default: () => [] },
-    scoringTypeOptions: { type: Array, default: () => [] },
-    nextCode: { type: String, default: '1' },
-    defaultScoreLabels: { type: Object, default: () => ({}) },
-    initialScope: { type: String, default: 'general' },
+    nextCode: { type: String, default: 'TCVA001' },
+    defaultScoreLevels: { type: Array, default: () => [] },
+    /** Siêu quản trị: để trống phòng ban = tiêu chí chung. */
+    canCreateGeneral: { type: Boolean, default: false },
+    /** Prefill phòng ban khi tạo (user scoped). */
+    defaultDepartmentCode: { type: String, default: '' },
 });
 
 const emit = defineEmits(['close']);
@@ -27,64 +45,57 @@ const newCategoryName = ref('');
 const newCategoryInput = ref(null);
 const codeUnlocked = ref(false);
 
-const defaults = computed(() => ({
-    1: props.defaultScoreLabels?.[1] || props.defaultScoreLabels?.['1'] || 'Không đáp ứng',
-    2: props.defaultScoreLabels?.[2] || props.defaultScoreLabels?.['2'] || 'Cần cố gắng hơn',
-    3: props.defaultScoreLabels?.[3] || props.defaultScoreLabels?.['3'] || 'Đạt yêu cầu',
-    4: props.defaultScoreLabels?.[4] || props.defaultScoreLabels?.['4'] || 'Tốt',
-    5: props.defaultScoreLabels?.[5] || props.defaultScoreLabels?.['5'] || 'Rất tốt',
-}));
+const defaultLevels = computed(() => {
+    const fromProps = Array.isArray(props.defaultScoreLevels) ? props.defaultScoreLevels : [];
+    if (fromProps.length >= MIN_LEVELS) {
+        return fromProps.map((l, index) => ({
+            code: String(l.code ?? `M${index + 1}`),
+            label: String(l.label ?? ''),
+            description: String(l.description ?? ''),
+            weight: Number.isFinite(Number(l.weight)) ? Number(l.weight) : 0,
+        }));
+    }
+    return [
+        { code: 'M1', label: 'Không đáp ứng', description: '', weight: 1 },
+        { code: 'M2', label: 'Cần cố gắng hơn', description: '', weight: 2 },
+        { code: 'M3', label: 'Đạt yêu cầu', description: '', weight: 3 },
+        { code: 'M4', label: 'Tốt', description: '', weight: 4 },
+        { code: 'M5', label: 'Rất tốt', description: '', weight: 5 },
+    ];
+});
+
+function cloneLevels(levels) {
+    return (levels || []).map((l, index) => ({
+        code: String(l?.code ?? `M${index + 1}`),
+        label: String(l?.label ?? ''),
+        description: String(l?.description ?? ''),
+        weight: Number.isFinite(Number(l?.weight)) ? Number(l.weight) : 0,
+    }));
+}
 
 const form = useForm({
-    scope: 'general',
+    scope: 'department',
     department_code: '',
     department_name: '',
     local_department_id: null,
     criteria_code: '',
     criteria_name: '',
     category: '',
-    scoring_type: 'scale',
     description: '',
     allow_half_score: false,
-    point_bonus: 0,
-    point_penalty: 0,
-    score_1: '',
-    score_2: '',
-    score_3: '',
-    score_4: '',
-    score_5: '',
+    score_levels: cloneLevels(defaultLevels.value),
     is_active: true,
 });
 
 const dirty = computed(() => form.isDirty);
-const isDepartment = computed(() => form.scope === 'department');
-const isPoints = computed(() => form.scoring_type === 'points');
-const isScale = computed(() => form.scoring_type === 'scale');
+const canAddLevel = computed(() => form.score_levels.length < MAX_LEVELS);
+const canRemoveLevel = computed(() => form.score_levels.length > MIN_LEVELS);
+const isGeneral = computed(() => !String(form.department_code || '').trim());
 
 const categoryList = computed(() => {
     const set = new Set([...(props.categories || []), ...localCategories.value]);
     if (form.category) set.add(form.category);
     return [...set].filter(Boolean).sort((a, b) => a.localeCompare(b, 'vi'));
-});
-
-const scopeTabs = computed(() => {
-    const opts = props.scopeOptions?.length
-        ? props.scopeOptions
-        : [
-            { value: 'general', label: 'Tiêu chí chung' },
-            { value: 'department', label: 'Theo phòng ban' },
-        ];
-    return opts;
-});
-
-const scoringTabs = computed(() => {
-    const opts = props.scoringTypeOptions?.length
-        ? props.scoringTypeOptions
-        : [
-            { value: 'scale', label: 'Thang nhãn 1–5' },
-            { value: 'points', label: 'Điểm cộng / trừ' },
-        ];
-    return opts;
 });
 
 const title = computed(() => (
@@ -96,11 +107,46 @@ const displayedCode = computed(() => {
     return form.criteria_code || props.nextCode || '';
 });
 
+const departmentPlaceholder = computed(() => (
+    props.canCreateGeneral
+        ? 'Tìm phòng ban — để trống = tiêu chí chung'
+        : 'Tìm và chọn phòng ban…'
+));
+
+function applyDepartment(code) {
+    const trimmed = String(code || '').trim();
+    form.department_code = trimmed;
+    if (!trimmed) {
+        form.department_name = '';
+        form.local_department_id = null;
+        form.scope = 'general';
+        return;
+    }
+    const dept = props.departments.find((d) => d.code === trimmed);
+    form.department_name = dept?.name || '';
+    form.local_department_id = dept?.local_department_id ?? null;
+    form.scope = 'department';
+}
+
+function onDepartmentSelect(dept) {
+    if (!dept) {
+        applyDepartment('');
+        return;
+    }
+    form.department_code = dept.code;
+    form.department_name = dept.name;
+    form.local_department_id = dept.local_department_id ?? null;
+    form.scope = 'department';
+    form.clearErrors('department_code');
+}
+
 function resetFromProps() {
     const c = props.criterion;
-    const d = defaults.value;
     codeUnlocked.value = false;
     if (props.mode === 'edit' && c) {
+        const levels = Array.isArray(c.score_levels) && c.score_levels.length >= MIN_LEVELS
+            ? cloneLevels(c.score_levels)
+            : cloneLevels(defaultLevels.value);
         form.defaults({
             scope: c.scope || 'general',
             department_code: c.department_code || '',
@@ -109,37 +155,27 @@ function resetFromProps() {
             criteria_code: c.criteria_code || '',
             criteria_name: c.criteria_name || '',
             category: c.category || '',
-            scoring_type: c.scoring_type || 'scale',
             description: c.description || '',
             allow_half_score: !!c.allow_half_score,
-            point_bonus: c.point_bonus ?? 0,
-            point_penalty: c.point_penalty ?? 0,
-            score_1: c.score_1 || d[1],
-            score_2: c.score_2 || d[2],
-            score_3: c.score_3 || d[3],
-            score_4: c.score_4 || d[4],
-            score_5: c.score_5 || d[5],
+            score_levels: levels,
             is_active: c.is_active ?? true,
         });
     } else {
+        const defaultCode = props.canCreateGeneral
+            ? ''
+            : (props.defaultDepartmentCode || props.departments[0]?.code || '');
+        const dept = props.departments.find((d) => d.code === defaultCode);
         form.defaults({
-            scope: props.initialScope === 'department' ? 'department' : 'general',
-            department_code: '',
-            department_name: '',
-            local_department_id: null,
+            scope: defaultCode ? 'department' : 'general',
+            department_code: defaultCode,
+            department_name: dept?.name || '',
+            local_department_id: dept?.local_department_id ?? null,
             criteria_code: '',
             criteria_name: '',
             category: '',
-            scoring_type: 'scale',
             description: '',
             allow_half_score: false,
-            point_bonus: 0,
-            point_penalty: 0,
-            score_1: d[1],
-            score_2: d[2],
-            score_3: d[3],
-            score_4: d[4],
-            score_5: d[5],
+            score_levels: cloneLevels(defaultLevels.value),
             is_active: true,
         });
     }
@@ -151,39 +187,6 @@ function resetFromProps() {
 
 watch(() => props.show, (open) => {
     if (open) resetFromProps();
-});
-
-watch(() => form.department_code, (code) => {
-    if (!isDepartment.value) return;
-    const dept = props.departments.find((d) => d.code === code);
-    if (dept) {
-        form.department_name = dept.name;
-        form.local_department_id = dept.local_department_id;
-    }
-});
-
-watch(() => form.scope, (scope) => {
-    if (scope === 'general') {
-        form.department_code = '';
-        form.department_name = '';
-        form.local_department_id = null;
-        form.clearErrors('department_code');
-    }
-});
-
-watch(() => form.scoring_type, (type) => {
-    if (type === 'points') {
-        form.allow_half_score = false;
-        if (form.point_bonus === null || form.point_bonus === '') form.point_bonus = 0;
-        if (form.point_penalty === null || form.point_penalty === '') form.point_penalty = 0;
-    } else {
-        const d = defaults.value;
-        if (!form.score_1) form.score_1 = d[1];
-        if (!form.score_2) form.score_2 = d[2];
-        if (!form.score_3) form.score_3 = d[3];
-        if (!form.score_4) form.score_4 = d[4];
-        if (!form.score_5) form.score_5 = d[5];
-    }
 });
 
 async function openNewCategory() {
@@ -240,16 +243,41 @@ function toggleCodeLock() {
     }
 }
 
+function onCodeInput(event) {
+    if (!codeUnlocked.value) return;
+    form.criteria_code = String(event.target.value || '').toUpperCase();
+}
+
+function addScoreLevel() {
+    if (!canAddLevel.value) return;
+    const n = form.score_levels.length + 1;
+    form.score_levels.push({ code: `M${n}`, label: '', description: '', weight: n });
+}
+
+function removeScoreLevel(index) {
+    if (!canRemoveLevel.value) return;
+    form.score_levels.splice(index, 1);
+}
+
 function close() {
     emit('close');
 }
 
 function submit() {
+    if (!props.canCreateGeneral && !String(form.department_code || '').trim()) {
+        form.setError('department_code', 'Vui lòng chọn phòng ban.');
+        return;
+    }
+
+    applyDepartment(form.department_code);
+
     if (props.mode === 'create' && !codeUnlocked.value) {
         form.criteria_code = '';
     } else if (props.mode === 'create' && !String(form.criteria_code || '').trim()) {
         form.criteria_code = props.nextCode || '';
     }
+
+    form.score_levels.forEach(snapWeight);
 
     const payload = {
         preserveScroll: true,
@@ -264,175 +292,234 @@ function submit() {
 }
 
 const fieldError = (key) => form.errors[key];
+
+function levelError(index, field) {
+    return form.errors[`score_levels.${index}.${field}`]
+        || form.errors[`score_levels.${index}`]
+        || '';
+}
+
+const weightStep = computed(() => (form.allow_half_score ? 0.5 : 1));
+
+function snapWeight(level) {
+    const n = Number(level.weight);
+    const safe = Number.isFinite(n) ? n : 0;
+    const step = weightStep.value;
+    level.weight = Math.round(safe / step) * step;
+}
+
+/** Chặn dấu thập phân / e khi chưa bật chấm 0.5. */
+function onWeightKeydown(event) {
+    if (form.allow_half_score) return;
+    if (['.', ',', 'e', 'E', '+'].includes(event.key)) {
+        event.preventDefault();
+    }
+}
+
+function onWeightInput(level, event) {
+    if (form.allow_half_score) return;
+    const raw = String(event.target?.value ?? '');
+    if (!/[.,]/.test(raw)) return;
+    const cleaned = raw.replace(/[.,]/g, '');
+    const n = Number(cleaned);
+    level.weight = Number.isFinite(n) ? n : 0;
+    event.target.value = String(level.weight);
+}
+
+watch(() => form.allow_half_score, () => {
+    form.score_levels.forEach(snapWeight);
+});
 </script>
 
 <template>
   <Modal
     :show="show"
     :title="title"
-    max-width="max-w-5xl"
+    max-width="max-w-4xl"
     :dirty="dirty"
     close-confirm-title="Huỷ tạo tiêu chí?"
     close-confirm-message="Thay đổi chưa lưu sẽ bị mất."
     @close="close"
   >
     <form
-      class="space-y-3"
+      class="space-y-4"
       @submit.prevent="submit"
     >
-      <div class="space-y-1.5">
-        <span class="text-xs font-medium text-slate-600">
-          Phạm vi tiêu chí <span class="text-rose-500">*</span>
-        </span>
-        <div
-          class="grid grid-cols-2 gap-2"
-          role="tablist"
-          aria-label="Phạm vi tiêu chí"
-        >
-          <button
-            v-for="opt in scopeTabs"
-            :key="opt.value"
-            type="button"
-            role="tab"
-            class="inline-flex h-10 items-center justify-center gap-1.5 rounded-lg border px-3 text-sm font-medium transition"
-            :class="form.scope === opt.value
-              ? 'border-brand/40 bg-brand/5 text-brand shadow-sm'
-              : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'"
-            :aria-selected="form.scope === opt.value"
-            @click="form.scope = opt.value"
-          >
-            <AppIcon
-              :name="opt.value === 'general' ? 'documents' : 'department'"
-              :size="15"
-              class="shrink-0 opacity-80"
+      <!-- Phòng ban + toggles -->
+      <div class="rounded-xl border border-slate-200/80 bg-gradient-to-b from-slate-50/80 to-white p-3">
+        <div class="flex flex-wrap items-start gap-3">
+          <div class="min-w-[14rem] flex-1 space-y-1">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Phòng ban
+                <span
+                  v-if="!canCreateGeneral"
+                  class="text-rose-500"
+                >*</span>
+              </span>
+              <span
+                class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+                :class="isGeneral
+                  ? 'bg-violet-50 text-violet-700 ring-1 ring-violet-200/80'
+                  : 'bg-sky-50 text-sky-700 ring-1 ring-sky-200/80'"
+              >
+                <AppIcon
+                  :name="isGeneral ? 'documents' : 'department'"
+                  :size="11"
+                />
+                {{ isGeneral ? 'Tiêu chí chung' : 'Theo phòng ban' }}
+              </span>
+            </div>
+            <DepartmentAutocomplete
+              id="evaluation-criterion-department"
+              :model-value="form.department_code"
+              :options="departments"
+              :placeholder="departmentPlaceholder"
+              :clearable="canCreateGeneral"
+              :invalid="!!fieldError('department_code')"
+              @update:model-value="applyDepartment"
+              @select="onDepartmentSelect"
             />
-            <span class="truncate">{{ opt.label }}</span>
-          </button>
-        </div>
-        <p
-          v-if="fieldError('scope')"
-          class="text-xs text-rose-600"
-        >
-          {{ fieldError('scope') }}
-        </p>
-      </div>
-
-      <div class="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:items-start">
-        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:col-span-5">
-          <label
-            v-if="isDepartment"
-            class="block space-y-1 sm:col-span-2"
-          >
-            <span class="text-xs font-medium text-slate-600">
-              Phòng ban <span class="text-rose-500">*</span>
-            </span>
-            <select
-              v-model="form.department_code"
-              class="input h-9 w-full text-sm"
-            >
-              <option
-                value=""
-                disabled
-              >
-                Chọn phòng ban
-              </option>
-              <option
-                v-for="d in departments"
-                :key="d.code"
-                :value="d.code"
-              >
-                {{ d.name }} ({{ d.code }})
-              </option>
-            </select>
             <p
               v-if="fieldError('department_code')"
               class="text-xs text-rose-600"
             >
               {{ fieldError('department_code') }}
             </p>
-          </label>
+          </div>
 
-          <label class="block space-y-1 sm:col-span-2">
-            <span class="text-xs font-medium text-slate-600">
-              Tên tiêu chí <span class="text-rose-500">*</span>
-            </span>
-            <input
-              v-model="form.criteria_name"
-              type="text"
-              class="input h-9 w-full text-sm"
-              placeholder="VD: Thái độ hợp tác/tinh thần tập thể"
-              maxlength="255"
+          <div class="flex shrink-0 flex-wrap items-center gap-2 sm:pt-5">
+            <button
+              type="button"
+              role="switch"
+              class="inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-xs font-medium transition"
+              :class="form.allow_half_score
+                ? 'border-brand/30 bg-brand/5 text-brand shadow-sm'
+                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'"
+              :aria-checked="form.allow_half_score"
+              title="Cho phép trọng số lẻ 0.5"
+              @click="form.allow_half_score = !form.allow_half_score"
             >
-            <p
-              v-if="fieldError('criteria_name')"
-              class="text-xs text-rose-600"
-            >
-              {{ fieldError('criteria_name') }}
-            </p>
-          </label>
-
-          <div class="space-y-1 sm:col-span-2">
-            <div class="flex items-center gap-1.5">
-              <span class="text-xs font-medium text-slate-600">
-                Loại tiêu chí <span class="text-rose-500">*</span>
+              <span
+                class="relative inline-flex h-4 w-7 shrink-0 rounded-full transition-colors"
+                :class="form.allow_half_score ? 'bg-brand' : 'bg-slate-300'"
+              >
+                <span
+                  class="absolute top-0.5 left-0.5 h-3 w-3 rounded-full bg-white shadow transition-transform"
+                  :class="form.allow_half_score ? 'translate-x-3' : 'translate-x-0'"
+                />
               </span>
-              <button
-                type="button"
-                class="inline-flex h-5 w-5 items-center justify-center rounded text-brand hover:bg-brand/10"
-                title="Thêm loại tiêu chí mới"
-                aria-label="Thêm loại tiêu chí mới"
-                @click="openNewCategory"
-              >
-                <AppIcon
-                  name="add"
-                  :size="14"
-                />
-              </button>
-            </div>
-            <div
-              v-if="showNewCategory"
-              class="flex gap-1.5"
+              Chấm 0.5
+            </button>
+
+            <button
+              type="button"
+              role="switch"
+              class="inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-xs font-medium transition"
+              :class="form.is_active
+                ? 'border-emerald-200 bg-emerald-50 text-emerald-700 shadow-sm'
+                : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-slate-300'"
+              :aria-checked="form.is_active"
+              title="Trạng thái tiêu chí"
+              @click="form.is_active = !form.is_active"
             >
-              <input
-                ref="newCategoryInput"
-                v-model="newCategoryName"
-                type="text"
-                class="input h-9 min-w-0 flex-1 text-sm"
-                placeholder="Tên loại mới…"
-                maxlength="100"
-                @keydown.enter.prevent="addCategory"
-                @keydown.esc.prevent="cancelNewCategory"
+              <span
+                class="relative inline-flex h-4 w-7 shrink-0 rounded-full transition-colors"
+                :class="form.is_active ? 'bg-emerald-500' : 'bg-slate-300'"
               >
-              <button
-                type="button"
-                class="btn-primary h-9 shrink-0 px-2.5 text-xs"
-                title="Lưu loại"
-                @click="addCategory"
-              >
-                <AppIcon
-                  name="check"
-                  :size="14"
+                <span
+                  class="absolute top-0.5 left-0.5 h-3 w-3 rounded-full bg-white shadow transition-transform"
+                  :class="form.is_active ? 'translate-x-3' : 'translate-x-0'"
                 />
-              </button>
-              <button
-                type="button"
-                class="btn-ghost h-9 w-9 shrink-0 p-0"
-                title="Huỷ"
-                @click="cancelNewCategory"
-              >
-                <AppIcon
-                  name="close"
-                  :size="14"
-                />
-              </button>
-            </div>
+              </span>
+              {{ form.is_active ? 'Hoạt động' : 'Ngưng' }}
+            </button>
+          </div>
+        </div>
+        <p
+          v-if="fieldError('scope')"
+          class="mt-1.5 text-xs text-rose-600"
+        >
+          {{ fieldError('scope') }}
+        </p>
+      </div>
+
+      <!-- Tên tiêu chí -->
+      <div class="grid grid-cols-[7rem_1fr] items-center gap-x-3 gap-y-1">
+        <span class="text-sm font-medium text-slate-600">
+          Tên tiêu chí <span class="text-rose-500">*</span>
+        </span>
+        <input
+          v-model="form.criteria_name"
+          type="text"
+          class="input h-9 w-full text-sm"
+          :class="fieldError('criteria_name') ? 'border-rose-300' : ''"
+          placeholder="VD: Thái độ hợp tác/tinh thần tập thể"
+          maxlength="255"
+        >
+        <span />
+        <p
+          v-if="fieldError('criteria_name')"
+          class="text-xs text-rose-600"
+        >
+          {{ fieldError('criteria_name') }}
+        </p>
+      </div>
+
+      <!-- Loại + Mã -->
+      <div class="grid grid-cols-1 gap-x-6 gap-y-2.5 sm:grid-cols-2">
+        <div class="grid grid-cols-[7rem_1fr] items-center gap-x-3 gap-y-1">
+          <span class="text-sm font-medium text-slate-600">
+            Loại tiêu chí <span class="text-rose-500">*</span>
+          </span>
+          <div
+            v-if="showNewCategory"
+            class="flex gap-1.5"
+          >
+            <input
+              ref="newCategoryInput"
+              v-model="newCategoryName"
+              type="text"
+              class="input h-9 min-w-0 flex-1 text-sm"
+              placeholder="Tên loại mới…"
+              maxlength="100"
+              @keydown.enter.prevent="addCategory"
+              @keydown.esc.prevent="cancelNewCategory"
+            >
+            <button
+              type="button"
+              class="btn-primary h-9 shrink-0 px-2.5 text-xs"
+              title="Lưu loại"
+              @click="addCategory"
+            >
+              <AppIcon
+                name="check"
+                :size="14"
+              />
+            </button>
+            <button
+              type="button"
+              class="btn-ghost h-9 w-9 shrink-0 p-0"
+              title="Huỷ"
+              @click="cancelNewCategory"
+            >
+              <AppIcon
+                name="close"
+                :size="14"
+              />
+            </button>
+          </div>
+          <div
+            v-else
+            class="flex gap-1.5"
+          >
             <select
-              v-else
               v-model="form.category"
-              class="input h-9 w-full text-sm"
+              class="input h-9 min-w-0 flex-1 text-sm"
+              :class="fieldError('category') ? 'border-rose-300' : ''"
             >
               <option value="">
-                Chọn loại tiêu chí
+                Chọn loại…
               </option>
               <option
                 v-for="cat in categoryList"
@@ -442,264 +529,226 @@ const fieldError = (key) => form.errors[key];
                 {{ cat }}
               </option>
             </select>
-            <p
-              v-if="fieldError('category')"
-              class="text-xs text-rose-600"
-            >
-              {{ fieldError('category') }}
-            </p>
-          </div>
-
-          <!-- Mã: disabled + unlock -->
-          <div class="space-y-1">
-            <span class="text-xs font-medium text-slate-600">
-              Mã tiêu chí
-            </span>
-            <div class="flex gap-1.5">
-              <input
-                :value="displayedCode"
-                type="text"
-                class="input h-9 min-w-0 flex-1 font-mono text-sm"
-                :class="!codeUnlocked ? 'bg-slate-50 text-slate-500' : ''"
-                :placeholder="`Tự động: ${nextCode}`"
-                maxlength="100"
-                :readonly="!codeUnlocked"
-                :disabled="!codeUnlocked"
-                @input="codeUnlocked && (form.criteria_code = $event.target.value)"
-              >
-              <button
-                type="button"
-                class="btn-ghost inline-flex h-9 w-9 shrink-0 items-center justify-center p-0"
-                :class="codeUnlocked ? 'text-brand bg-brand/5' : 'text-slate-500'"
-                :title="codeUnlocked ? 'Khoá mã (tự động)' : 'Mở khoá để sửa mã'"
-                :aria-label="codeUnlocked ? 'Khoá mã tự động' : 'Mở khoá sửa mã'"
-                @click="toggleCodeLock"
-              >
-                <AppIcon
-                  :name="codeUnlocked ? 'unlock' : 'lock'"
-                  :size="15"
-                />
-              </button>
-            </div>
-            <p class="text-[11px] text-slate-400">
-              {{ codeUnlocked ? 'Đang cho phép sửa mã thủ công.' : 'Mã tự động — bấm biểu tượng khoá để sửa.' }}
-            </p>
-            <p
-              v-if="fieldError('criteria_code')"
-              class="text-xs text-rose-600"
-            >
-              {{ fieldError('criteria_code') }}
-            </p>
-          </div>
-
-          <label class="block space-y-1">
-            <span class="text-xs font-medium text-slate-600">
-              Trạng thái <span class="text-rose-500">*</span>
-            </span>
-            <select
-              class="input h-9 w-full text-sm"
-              :value="form.is_active ? '1' : '0'"
-              @change="form.is_active = $event.target.value === '1'"
-            >
-              <option value="1">
-                Hoạt động
-              </option>
-              <option value="0">
-                Ngưng hoạt động
-              </option>
-            </select>
-            <p
-              v-if="fieldError('is_active')"
-              class="text-xs text-rose-600"
-            >
-              {{ fieldError('is_active') }}
-            </p>
-          </label>
-
-          <label
-            v-if="isScale"
-            class="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2 sm:col-span-2"
-          >
-            <input
-              v-model="form.allow_half_score"
-              type="checkbox"
-              class="rounded border-slate-300 text-brand focus:ring-brand"
-            >
-            <span class="text-sm text-slate-700">
-              Chấm điểm chính xác 0.5
-            </span>
-          </label>
-
-          <label class="block space-y-1 sm:col-span-2">
-            <span class="text-xs font-medium text-slate-600">
-              Mô tả
-            </span>
-            <textarea
-              v-model="form.description"
-              class="input w-full resize-none text-sm"
-              rows="3"
-              placeholder="Mô tả cách đánh giá tiêu chí này…"
-              maxlength="5000"
-            />
-            <p
-              v-if="fieldError('description')"
-              class="text-xs text-rose-600"
-            >
-              {{ fieldError('description') }}
-            </p>
-          </label>
-        </div>
-
-        <!-- Thang điểm / điểm cộng trừ -->
-        <aside class="rounded-xl border border-slate-200 bg-gradient-to-b from-slate-50/90 to-white p-3 sm:p-4 lg:col-span-7">
-          <div class="mb-3 flex items-center gap-2">
-            <span class="grid h-8 w-8 place-items-center rounded-lg bg-brand/10 text-brand ring-1 ring-brand/15">
-              <AppIcon
-                name="award"
-                :size="15"
-              />
-            </span>
-            <div class="min-w-0">
-              <p class="text-xs font-semibold text-slate-800">
-                Thang điểm đánh giá <span class="text-rose-500">*</span>
-              </p>
-              <p class="text-[11px] text-slate-400">
-                Chọn kiểu theo loại tiêu chí
-              </p>
-            </div>
-          </div>
-
-          <div
-            class="mb-3 grid grid-cols-2 gap-2"
-            role="tablist"
-            aria-label="Kiểu thang điểm"
-          >
             <button
-              v-for="opt in scoringTabs"
-              :key="opt.value"
               type="button"
-              role="tab"
-              class="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border px-2 text-xs font-medium transition sm:text-sm"
-              :class="form.scoring_type === opt.value
-                ? 'border-brand/40 bg-brand/5 text-brand shadow-sm'
-                : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-white'"
-              :aria-selected="form.scoring_type === opt.value"
-              @click="form.scoring_type = opt.value"
+              class="btn-ghost inline-flex h-9 w-9 shrink-0 items-center justify-center p-0 text-brand"
+              title="Thêm loại tiêu chí mới"
+              aria-label="Thêm loại tiêu chí mới"
+              @click="openNewCategory"
             >
-              {{ opt.label }}
+              <AppIcon
+                name="add"
+                :size="16"
+              />
             </button>
           </div>
+          <span />
           <p
-            v-if="fieldError('scoring_type')"
-            class="mb-2 text-xs text-rose-600"
+            v-if="fieldError('category')"
+            class="text-xs text-rose-600"
           >
-            {{ fieldError('scoring_type') }}
+            {{ fieldError('category') }}
           </p>
+        </div>
 
-          <!-- Points mode -->
-          <div
-            v-if="isPoints"
-            class="grid grid-cols-1 gap-3 sm:grid-cols-2"
-          >
-            <label class="block space-y-1.5 rounded-lg border border-emerald-200/80 bg-emerald-50/40 p-3">
-              <span class="flex items-center gap-1.5 text-xs font-semibold text-emerald-800">
-                <AppIcon
-                  name="add"
-                  :size="14"
-                />
-                Điểm cộng
-              </span>
-              <input
-                v-model.number="form.point_bonus"
-                type="number"
-                min="0"
-                max="999"
-                step="1"
-                class="input h-10 w-full text-sm tabular-nums"
-                placeholder="0"
-              >
-              <p class="text-[11px] text-emerald-700/70">
-                Số điểm cộng khi đạt tiêu chí
-              </p>
-              <p
-                v-if="fieldError('point_bonus')"
-                class="text-xs text-rose-600"
-              >
-                {{ fieldError('point_bonus') }}
-              </p>
-            </label>
-            <label class="block space-y-1.5 rounded-lg border border-rose-200/80 bg-rose-50/40 p-3">
-              <span class="flex items-center gap-1.5 text-xs font-semibold text-rose-800">
-                <AppIcon
-                  name="minus"
-                  :size="14"
-                />
-                Điểm trừ
-              </span>
-              <input
-                v-model.number="form.point_penalty"
-                type="number"
-                min="0"
-                max="999"
-                step="1"
-                class="input h-10 w-full text-sm tabular-nums"
-                placeholder="0"
-              >
-              <p class="text-[11px] text-rose-700/70">
-                Số điểm trừ khi vi phạm / không đạt
-              </p>
-              <p
-                v-if="fieldError('point_penalty')"
-                class="text-xs text-rose-600"
-              >
-                {{ fieldError('point_penalty') }}
-              </p>
-            </label>
-          </div>
-
-          <!-- Scale mode -->
-          <div
-            v-else
-            class="grid grid-cols-1 gap-2"
-          >
-            <label
-              v-for="n in 5"
-              :key="n"
-              class="flex items-start gap-2.5 rounded-lg border border-slate-200/80 bg-white px-2.5 py-2"
+        <div class="grid grid-cols-[7rem_1fr] items-center gap-x-3 gap-y-1">
+          <span class="text-sm font-medium text-slate-600">
+            Mã tiêu chí
+          </span>
+          <div class="flex gap-1.5">
+            <input
+              :value="displayedCode"
+              type="text"
+              class="input h-9 min-w-0 flex-1 font-mono text-sm uppercase"
+              :class="!codeUnlocked ? 'bg-slate-50 text-slate-500' : ''"
+              :placeholder="`Tự động: ${nextCode}`"
+              maxlength="100"
+              :readonly="!codeUnlocked"
+              :disabled="!codeUnlocked"
+              @input="onCodeInput"
             >
-              <span
-                class="mt-1.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[11px] font-bold tabular-nums text-white"
-                :class="{
-                  'bg-rose-500': n === 1,
-                  'bg-amber-500': n === 2,
-                  'bg-slate-400': n === 3,
-                  'bg-sky-500': n === 4,
-                  'bg-emerald-500': n === 5,
-                }"
-              >
-                {{ n }}
-              </span>
-              <div class="min-w-0 flex-1 space-y-1">
-                <span class="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-                  Điểm {{ n }}
-                </span>
-                <input
-                  v-model="form[`score_${n}`]"
-                  type="text"
-                  class="input h-9 w-full text-sm"
-                  :placeholder="defaults[n]"
-                  maxlength="255"
-                >
-                <p
-                  v-if="fieldError(`score_${n}`)"
-                  class="text-xs text-rose-600"
-                >
-                  {{ fieldError(`score_${n}`) }}
-                </p>
-              </div>
-            </label>
+            <button
+              type="button"
+              class="btn-ghost inline-flex h-9 w-9 shrink-0 items-center justify-center p-0"
+              :class="codeUnlocked ? 'text-brand bg-brand/5' : 'text-slate-500'"
+              :title="codeUnlocked ? 'Khoá mã (tự động)' : 'Mở khoá để sửa mã'"
+              :aria-label="codeUnlocked ? 'Khoá mã tự động' : 'Mở khoá sửa mã'"
+              @click="toggleCodeLock"
+            >
+              <AppIcon
+                :name="codeUnlocked ? 'unlock' : 'lock'"
+                :size="15"
+              />
+            </button>
           </div>
-        </aside>
+          <span />
+          <p
+            v-if="fieldError('criteria_code')"
+            class="text-xs text-rose-600"
+          >
+            {{ fieldError('criteria_code') }}
+          </p>
+        </div>
+      </div>
+
+      <!-- Mô tả -->
+      <div class="grid grid-cols-[7rem_1fr] items-start gap-x-3 gap-y-1">
+        <span class="pt-2 text-sm font-medium text-slate-600">
+          Mô tả
+        </span>
+        <textarea
+          v-model="form.description"
+          class="input w-full resize-none text-sm"
+          rows="2"
+          placeholder="Mô tả cách đánh giá tiêu chí này…"
+          maxlength="5000"
+        />
+        <span />
+        <p
+          v-if="fieldError('description')"
+          class="text-xs text-rose-600"
+        >
+          {{ fieldError('description') }}
+        </p>
+      </div>
+
+      <!-- Thang điểm -->
+      <div class="rounded-xl border border-slate-200 bg-gradient-to-b from-slate-50/90 to-white p-3">
+        <div class="mb-2 flex items-center justify-between gap-2">
+          <p class="text-sm font-semibold text-slate-800">
+            Thang điểm đánh giá <span class="text-rose-500">*</span>
+          </p>
+          <button
+            type="button"
+            class="btn-ghost inline-flex h-8 shrink-0 items-center gap-1 px-2 text-xs text-brand"
+            :disabled="!canAddLevel"
+            @click="addScoreLevel"
+          >
+            <AppIcon
+              name="add"
+              :size="14"
+            />
+            Thêm mức
+          </button>
+        </div>
+
+        <p
+          v-if="fieldError('score_levels')"
+          class="mb-2 text-xs text-rose-600"
+        >
+          {{ fieldError('score_levels') }}
+        </p>
+
+        <div class="grid grid-cols-[0.25rem_5rem_1fr_1fr_6.5rem_1.75rem] items-center gap-x-2 px-1 pb-1 text-[11px] font-medium uppercase tracking-wide text-slate-400">
+          <span />
+          <span>Mã mức</span>
+          <span>Nhãn mức</span>
+          <span>Mô tả ngắn</span>
+          <span class="text-center">Trọng số</span>
+          <span />
+        </div>
+
+        <div class="space-y-1">
+          <div
+            v-for="(level, index) in form.score_levels"
+            :key="`level-${index}`"
+            class="grid grid-cols-[0.25rem_5rem_1fr_1fr_6.5rem_1.75rem] items-center gap-x-2 rounded-lg border border-slate-200/80 bg-white px-1.5 py-1.5"
+          >
+            <span
+              class="h-6 w-1 shrink-0 rounded-full"
+              :class="LEVEL_TONES[index % LEVEL_TONES.length]"
+              aria-hidden="true"
+            />
+
+            <div class="min-w-0">
+              <input
+                v-model="level.code"
+                type="text"
+                class="input h-8 w-full text-sm"
+                :class="levelError(index, 'code') ? 'border-rose-300' : ''"
+                :placeholder="`M${index + 1}`"
+                maxlength="50"
+              >
+              <p
+                v-if="levelError(index, 'code')"
+                class="mt-0.5 text-[11px] text-rose-600"
+              >
+                {{ levelError(index, 'code') }}
+              </p>
+            </div>
+
+            <div class="min-w-0">
+              <input
+                v-model="level.label"
+                type="text"
+                class="input h-8 w-full text-sm"
+                :class="levelError(index, 'label') ? 'border-rose-300' : ''"
+                :placeholder="`Nhãn mức ${index + 1}`"
+                maxlength="255"
+              >
+              <p
+                v-if="levelError(index, 'label')"
+                class="mt-0.5 text-[11px] text-rose-600"
+              >
+                {{ levelError(index, 'label') }}
+              </p>
+            </div>
+
+            <div class="min-w-0">
+              <input
+                v-model="level.description"
+                type="text"
+                class="input h-8 w-full text-sm"
+                :class="levelError(index, 'description') ? 'border-rose-300' : ''"
+                placeholder="Mô tả ngắn (tuỳ chọn)"
+                maxlength="500"
+              >
+              <p
+                v-if="levelError(index, 'description')"
+                class="mt-0.5 text-[11px] text-rose-600"
+              >
+                {{ levelError(index, 'description') }}
+              </p>
+            </div>
+
+            <div class="min-w-0">
+              <input
+                v-model.number="level.weight"
+                type="number"
+                :step="weightStep"
+                min="-999"
+                max="999"
+                class="input h-8 w-full px-1 text-center text-sm tabular-nums"
+                :class="levelError(index, 'weight') ? 'border-rose-300' : ''"
+                :aria-label="`Trọng số mức ${index + 1}`"
+                :title="form.allow_half_score ? 'Trọng số (điểm, có thể lẻ 0.5)' : 'Trọng số (điểm nguyên)'"
+                @keydown="onWeightKeydown"
+                @input="onWeightInput(level, $event)"
+                @blur="snapWeight(level)"
+              >
+              <p
+                v-if="levelError(index, 'weight')"
+                class="mt-0.5 text-center text-[11px] text-rose-600"
+              >
+                {{ levelError(index, 'weight') }}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-400 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-30"
+              :disabled="!canRemoveLevel"
+              :title="canRemoveLevel ? 'Xóa mức' : `Tối thiểu ${MIN_LEVELS} mức`"
+              :aria-label="`Xóa mức ${index + 1}`"
+              @click="removeScoreLevel(index)"
+            >
+              <AppIcon
+                name="trash"
+                :size="14"
+              />
+            </button>
+          </div>
+        </div>
       </div>
 
       <div class="flex items-center justify-end gap-2 border-t border-slate-100 pt-3">

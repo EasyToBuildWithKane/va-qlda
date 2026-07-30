@@ -5,7 +5,6 @@ namespace App\Models\Evaluation;
 use App\Models\Department;
 use App\Models\SystemAccount;
 use App\Support\Enums\EvaluationCriterionScope;
-use App\Support\Enums\EvaluationScoringType;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -20,16 +19,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string $criteria_code
  * @property string $criteria_name
  * @property string $category
- * @property EvaluationScoringType|string $scoring_type
  * @property string|null $description
  * @property bool $allow_half_score
- * @property int|null $point_bonus
- * @property int|null $point_penalty
- * @property string|null $score_1
- * @property string|null $score_2
- * @property string|null $score_3
- * @property string|null $score_4
- * @property string|null $score_5
+ * @property list<array{code: string, label: string, description: string, weight: int|float}>|null $score_levels
  * @property int $sort_order
  * @property bool $is_active
  * @property int|null $created_by
@@ -38,12 +30,19 @@ class EvaluationCriterion extends Model
 {
     use SoftDeletes;
 
-    public const DEFAULT_SCORE_LABELS = [
-        1 => 'Không đáp ứng',
-        2 => 'Cần cố gắng hơn',
-        3 => 'Đạt yêu cầu',
-        4 => 'Tốt',
-        5 => 'Rất tốt',
+    public const CODE_PREFIX = 'TCVA';
+
+    public const MIN_SCORE_LEVELS = 2;
+
+    public const MAX_SCORE_LEVELS = 10;
+
+    /** @var list<array{code: string, label: string, description: string, weight: int}> */
+    public const DEFAULT_SCORE_LEVELS = [
+        ['code' => 'M1', 'label' => 'Không đáp ứng', 'description' => '', 'weight' => 1],
+        ['code' => 'M2', 'label' => 'Cần cố gắng hơn', 'description' => '', 'weight' => 2],
+        ['code' => 'M3', 'label' => 'Đạt yêu cầu', 'description' => '', 'weight' => 3],
+        ['code' => 'M4', 'label' => 'Tốt', 'description' => '', 'weight' => 4],
+        ['code' => 'M5', 'label' => 'Rất tốt', 'description' => '', 'weight' => 5],
     ];
 
     protected $table = 'evaluation_criteria';
@@ -56,16 +55,9 @@ class EvaluationCriterion extends Model
         'criteria_code',
         'criteria_name',
         'category',
-        'scoring_type',
         'description',
         'allow_half_score',
-        'point_bonus',
-        'point_penalty',
-        'score_1',
-        'score_2',
-        'score_3',
-        'score_4',
-        'score_5',
+        'score_levels',
         'sort_order',
         'is_active',
         'created_by',
@@ -73,10 +65,8 @@ class EvaluationCriterion extends Model
 
     protected $casts = [
         'scope' => EvaluationCriterionScope::class,
-        'scoring_type' => EvaluationScoringType::class,
         'allow_half_score' => 'boolean',
-        'point_bonus' => 'integer',
-        'point_penalty' => 'integer',
+        'score_levels' => 'array',
         'sort_order' => 'integer',
         'is_active' => 'boolean',
     ];
@@ -117,7 +107,51 @@ class EvaluationCriterion extends Model
     }
 
     /**
-     * Next numeric criteria_code suggestion (global).
+     * Normalized score levels for UI / API (1-based index preserved by array order).
+     *
+     * @return list<array{code: string, label: string, description: string, weight: int|float}>
+     */
+    public function normalizedScoreLevels(): array
+    {
+        return static::normalizeScoreLevels($this->score_levels, (bool) $this->allow_half_score);
+    }
+
+    /**
+     * @return list<array{code: string, label: string, description: string, weight: int|float}>
+     */
+    public static function normalizeScoreLevels(mixed $levels, bool $allowHalfScore = false): array
+    {
+        if (! is_array($levels) || $levels === []) {
+            return self::DEFAULT_SCORE_LEVELS;
+        }
+
+        $out = [];
+        foreach ($levels as $level) {
+            if (! is_array($level)) {
+                continue;
+            }
+            $label = trim((string) ($level['label'] ?? ''));
+            if ($label === '') {
+                continue;
+            }
+            $weight = round((float) ($level['weight'] ?? 0) * 2) / 2;
+            if (! $allowHalfScore) {
+                $weight = round($weight);
+            }
+            $code = trim((string) ($level['code'] ?? ''));
+            $out[] = [
+                'code' => $code !== '' ? $code : ('M'.(count($out) + 1)),
+                'label' => $label,
+                'description' => trim((string) ($level['description'] ?? '')),
+                'weight' => fmod($weight, 1.0) === 0.0 ? (int) $weight : $weight,
+            ];
+        }
+
+        return $out !== [] ? array_values($out) : self::DEFAULT_SCORE_LEVELS;
+    }
+
+    /**
+     * Next criteria_code suggestion — TCVA001, TCVA002, …
      */
     public static function suggestNextCode(): string
     {
@@ -126,12 +160,18 @@ class EvaluationCriterion extends Model
             ->pluck('criteria_code');
 
         $max = 0;
+        $prefix = preg_quote(self::CODE_PREFIX, '/');
+
         foreach ($codes as $code) {
-            if (preg_match('/^\d+$/', (string) $code)) {
-                $max = max($max, (int) $code);
+            $raw = (string) $code;
+            if (preg_match('/^'.$prefix.'(\d+)$/i', $raw, $m)) {
+                $max = max($max, (int) $m[1]);
+            } elseif (preg_match('/^\d+$/', $raw)) {
+                // Legacy numeric codes from earlier iterations
+                $max = max($max, (int) $raw);
             }
         }
 
-        return (string) ($max + 1);
+        return self::CODE_PREFIX.sprintf('%03d', $max + 1);
     }
 }

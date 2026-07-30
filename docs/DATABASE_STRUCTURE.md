@@ -648,7 +648,7 @@ Xem `docs/EVALUATION_CONFIG.md`. Migrations: `2026_07_29_160000_create_evaluatio
 
 | Bảng | Mô tả |
 |------|--------|
-| `evaluation_criteria` | Tiêu chí chung / theo PB; SoftDeletes; unique `criteria_code`; `scoring_type` scale\|points; `score_1`…`score_5` hoặc `point_bonus`/`point_penalty`; `allow_half_score` |
+| `evaluation_criteria` | Tiêu chí chung / theo PB; SoftDeletes; unique `criteria_code` (`TCVA###`); `score_levels` JSON `[{label, weight}]` (2–10 mức); `allow_half_score` |
 
 ### 3.30 va_prd_workspace_profiles — Workspace theo phòng ban
 

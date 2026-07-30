@@ -70,7 +70,7 @@ resources/js/
 │   ├── notifications/            ← Bell, center drawer, preferences
 │   ├── audit/                    ← Audit trail viewer components/composables
 │   ├── aiAccount/                ← Tài khoản AI: composables + components/scan (ProposalScanModal — OCR PĐX, useProposalScan)
-│   ├── evaluation/               ← Tiêu chí đánh giá: SummaryBar, CriterionFormModal, columns, export
+│   ├── evaluation/               ← Tiêu chí đánh giá: SummaryBar, CriterionFormModal, CategoryTabs, RowActions, DepartmentAutocomplete, columns, export
 │   └── workspace-config/         ← Hub cấu hình workspace: ItemGrid (catalog từ backend)
 ├── shared/                   ← Cross-module (Phase 2 + 4)
 │   ├── ui/                   ← Badge, Avatar, ProgressBar, form/*, **KpiSummaryStrip**, …
@@ -120,7 +120,7 @@ AppChrome.vue (persistent shell)
 | Blocker / Feedback | `Index`, `Show` (Feedback) — Index: **`FeedbackSummaryBar`** (dải KPI `kpi-strip` / `kpi-card`, lọc nhanh scope/status; rule `kpi-summary-strip`) + datagrid toolbar (Lọc/Cột), `FilterDatePicker` khoảng ngày, `FeedbackListRowActions` |
 | Profile | `Pages/Profile/Show.vue` — hồ sơ cá nhân; org directory UI đã gỡ (HRM) |
 | Performance | `Pages/Performance/Dashboard.vue` · **`Audit.vue`** (danh sách audit nhân sự, segmented Tuần/Tháng/Quý, cột **Kỳ** = nhóm dòng collapse theo kỳ con — pattern `Blocker/Index`, `emptyDisplay.js`, `PerformanceAuditSummaryBar` mode list) · **`AuditShow.vue`** (timeline + `PerformanceFilterBar`, back về index) |
-| Evaluation config | `Pages/WorkspaceConfig/Evaluation/{Index,Show}.vue` + `modules/evaluation/` — super-admin CRUD; user `hub.view` đọc scoped theo PB HRM; KPI strip + Lọc/Cột/Xuất |
+| Evaluation config | `Pages/WorkspaceConfig/Evaluation/{Index,Show}.vue` + `modules/evaluation/` — CRUD modal; phòng ban autocomplete (trống = chung); mã `TCVA###`; thang điểm JSON (nhãn + trọng số, 2–10 mức); KPI strip + Lọc/Cột/Xuất; Index nhóm PB + tab loại + row actions dropdown |
 | Workspace config hub | `Pages/WorkspaceConfig/Hub.vue` + `Workspace/Show.vue` + `modules/workspace-config/` — workspace theo PB (`/workspace-config`, `/workspace-config/w/{code}`); doc `WORKSPACE_CONFIG.md` |
 | Notifications | `Pages/Notifications/Management.vue` |
 
@@ -216,7 +216,7 @@ Bộ lọc: shared datagrid (`DatagridToolbarSearch` `hide-label`, `FilterDatePi
 
 | File | Mô tả |
 |---|---|
-| `useToast.js` | Toast state (dùng bởi ToastContainer + features) |
+| `useToast.js` | Toast state + âm thanh (parity VA-HRM); UI `ToastContainer` góc trên phải, nền đậm success/error |
 | `usePermission.js` | Role/permission helpers |
 | `useFilter.js` | URL-bound filter state |
 

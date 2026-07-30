@@ -3,66 +3,92 @@ import { computed } from 'vue';
 import { toastList, dismissToast } from '@/shared/composables/useToast';
 import AppIcon from '@/Components/AppIcon.vue';
 
-/** bottom-end (app) | top-end (login — góc trên phải) */
+/** top-end (mặc định — parity VA-HRM) | top-center | bottom-end */
 const props = defineProps({
     placement: {
         type: String,
-        default: 'bottom-end',
+        default: 'top-end',
         validator: (v) => ['bottom-end', 'top-end', 'top-center'].includes(v),
     },
 });
 
 const positionClass = computed(() => {
-    if (props.placement === 'top-end' || props.placement === 'top-center') {
-        return 'fixed top-4 right-4 z-[100] flex flex-col gap-2 items-end pointer-events-none sm:top-5 sm:right-5';
+    if (props.placement === 'bottom-end') {
+        return 'fixed bottom-5 right-5 z-[200] flex flex-col-reverse gap-2 items-end pointer-events-none';
     }
-    return 'fixed bottom-5 right-5 z-[70] flex flex-col-reverse gap-2 items-end pointer-events-none';
+    if (props.placement === 'top-center') {
+        return 'fixed inset-x-0 top-0 z-[200] flex flex-col items-center gap-2 p-3 pointer-events-none sm:p-4';
+    }
+    return 'fixed inset-x-0 top-0 z-[200] flex flex-col items-end gap-2 p-3 pointer-events-none sm:p-4';
 });
 
 const cfg = {
-    success: { wrap: 'bg-emerald-50 border-emerald-200 text-emerald-800', icon: 'check', ic: 'text-emerald-500' },
-    error:   { wrap: 'bg-rose-50 border-rose-200 text-rose-800',       icon: 'alert', ic: 'text-rose-500'   },
-    info:    { wrap: 'bg-sky-50 border-sky-200 text-sky-800',           icon: 'info',  ic: 'text-sky-500'     },
-    warning: { wrap: 'bg-amber-50 border-amber-200 text-amber-800',     icon: 'flag',  ic: 'text-amber-500'   },
+    success: {
+        wrap: 'bg-emerald-600 text-white ring-emerald-400/40',
+        icon: 'check',
+        label: 'Thành công',
+    },
+    error: {
+        wrap: 'bg-rose-600 text-white ring-rose-400/40',
+        icon: 'alert',
+        label: 'Lỗi',
+    },
+    info: {
+        wrap: 'bg-sky-600 text-white ring-sky-400/40',
+        icon: 'info',
+        label: 'Thông tin',
+    },
+    warning: {
+        wrap: 'bg-amber-600 text-white ring-amber-400/40',
+        icon: 'flag',
+        label: 'Cảnh báo',
+    },
 };
 </script>
 
 <template>
   <Teleport to="body">
-    <div :class="positionClass">
+    <div
+      :class="positionClass"
+      aria-live="polite"
+      aria-relevant="additions"
+    >
       <TransitionGroup
-        enter-active-class="transition duration-300 ease-out"
-        enter-from-class="opacity-0 translate-y-3 scale-95"
+        enter-active-class="toast-slide-in"
         leave-active-class="transition duration-200 ease-in absolute"
-        leave-to-class="opacity-0 translate-y-3 scale-95"
+        leave-to-class="opacity-0 translate-x-5 scale-95"
         move-class="transition duration-200"
       >
         <div
           v-for="t in toastList"
           :key="t.id"
-          class="pointer-events-auto flex items-start gap-3 rounded-xl border px-4 py-3.5 shadow-lg ring-1 ring-black/5 min-w-[280px] max-w-sm w-full"
+          role="status"
+          class="pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-2xl px-4 py-3.5 shadow-xl ring-1 backdrop-blur-sm"
           :class="cfg[t.type]?.wrap"
         >
-          <span
-            class="mt-0.5 shrink-0"
-            :class="cfg[t.type]?.ic"
-          >
+          <span class="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/15">
             <AppIcon
               :name="cfg[t.type]?.icon"
-              :size="16"
+              :size="20"
             />
           </span>
-          <p class="text-sm font-medium flex-1 leading-snug">
-            {{ t.message }}
-          </p>
+          <div class="min-w-0 flex-1 pt-1">
+            <p class="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/75">
+              {{ cfg[t.type]?.label }}
+            </p>
+            <p class="mt-0.5 text-sm font-semibold leading-snug">
+              {{ t.message }}
+            </p>
+          </div>
           <button
             type="button"
-            class="shrink-0 opacity-50 hover:opacity-100 transition"
+            class="shrink-0 rounded-lg p-1.5 text-white/80 transition hover:bg-white/15 hover:text-white"
+            aria-label="Đóng thông báo"
             @click="dismissToast(t.id)"
           >
             <AppIcon
               name="close"
-              :size="13"
+              :size="16"
             />
           </button>
         </div>

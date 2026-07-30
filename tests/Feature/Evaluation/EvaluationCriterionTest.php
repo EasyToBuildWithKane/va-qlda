@@ -43,6 +43,18 @@ class EvaluationCriterionTest extends TestCase
         return SystemAccount::factory()->role(SystemRole::Admin)->create();
     }
 
+    /** @return list<array{label: string, weight: int}> */
+    private function defaultLevels(): array
+    {
+        return [
+            ['label' => 'Không đáp ứng', 'weight' => -2],
+            ['label' => 'Cần cố gắng hơn', 'weight' => -1],
+            ['label' => 'Đạt yêu cầu', 'weight' => 0],
+            ['label' => 'Tốt', 'weight' => 1],
+            ['label' => 'Rất tốt', 'weight' => 2],
+        ];
+    }
+
     /** @return array<string, mixed> */
     private function validPayload(array $overrides = []): array
     {
@@ -50,14 +62,9 @@ class EvaluationCriterionTest extends TestCase
             'scope' => 'general',
             'criteria_name' => 'Thái độ hợp tác/tinh thần tập thể',
             'category' => 'Thái độ',
-            'scoring_type' => 'scale',
             'description' => 'Xem xét khả năng làm việc phối hợp.',
             'allow_half_score' => false,
-            'score_1' => 'Không đáp ứng',
-            'score_2' => 'Cần cố gắng hơn',
-            'score_3' => 'Đạt yêu cầu',
-            'score_4' => 'Tốt',
-            'score_5' => 'Rất tốt',
+            'score_levels' => $this->defaultLevels(),
             'is_active' => true,
         ], $overrides);
     }
@@ -72,6 +79,7 @@ class EvaluationCriterionTest extends TestCase
                 ->has('summary')
                 ->has('criteria')
                 ->has('nextCode')
+                ->where('nextCode', 'TCVA001')
                 ->where('can.manage', true)
             );
     }
@@ -123,16 +131,40 @@ class EvaluationCriterionTest extends TestCase
     public function test_super_admin_can_create_general_criterion_with_auto_code(): void
     {
         $response = $this->actingAs($this->superAdmin(), 'system')
+            ->from(route('workspace.evaluation.index'))
             ->post('/workspace-config/evaluation', $this->validPayload());
 
         $criterion = EvaluationCriterion::query()->where('criteria_name', 'Thái độ hợp tác/tinh thần tập thể')->first();
         $this->assertNotNull($criterion);
-        $response->assertRedirect(route('workspace.evaluation.show', $criterion));
+        $response->assertRedirect(route('workspace.evaluation.index'));
+        $response->assertSessionHas('success', 'Đã tạo tiêu chí đánh giá.');
         $this->assertSame(EvaluationCriterionScope::General, $criterion->scope);
-        $this->assertSame('1', $criterion->criteria_code);
+        $this->assertSame('TCVA001', $criterion->criteria_code);
         $this->assertNull($criterion->department_code);
-        $this->assertSame('Không đáp ứng', $criterion->score_1);
+        $this->assertCount(5, $criterion->score_levels);
+        $this->assertSame('Không đáp ứng', $criterion->score_levels[0]['label']);
+        $this->assertSame(-2, $criterion->score_levels[0]['weight']);
         $this->assertFalse($criterion->allow_half_score);
+    }
+
+    public function test_super_admin_can_create_criterion_with_custom_level_count(): void
+    {
+        $response = $this->actingAs($this->superAdmin(), 'system')
+            ->from(route('workspace.evaluation.index'))
+            ->post('/workspace-config/evaluation', $this->validPayload([
+                'criteria_name' => 'Tiêu chí 3 mức',
+                'score_levels' => [
+                    ['label' => 'Không đạt', 'weight' => -2],
+                    ['label' => 'Đạt', 'weight' => 0],
+                    ['label' => 'Vượt', 'weight' => 2],
+                ],
+            ]));
+
+        $criterion = EvaluationCriterion::query()->where('criteria_name', 'Tiêu chí 3 mức')->first();
+        $this->assertNotNull($criterion);
+        $response->assertRedirect(route('workspace.evaluation.index'));
+        $this->assertCount(3, $criterion->score_levels);
+        $this->assertSame(2, $criterion->score_levels[2]['weight']);
     }
 
     public function test_super_admin_can_create_department_criterion(): void
@@ -146,16 +178,17 @@ class EvaluationCriterionTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->superAdmin(), 'system')
+            ->from(route('workspace.evaluation.index'))
             ->post('/workspace-config/evaluation', $this->validPayload([
                 'scope' => 'department',
                 'department_code' => 'HCNS',
-                'criteria_code' => '76',
+                'criteria_code' => 'TCVA076',
                 'allow_half_score' => true,
             ]));
 
-        $criterion = EvaluationCriterion::query()->where('criteria_code', '76')->first();
+        $criterion = EvaluationCriterion::query()->where('criteria_code', 'TCVA076')->first();
         $this->assertNotNull($criterion);
-        $response->assertRedirect(route('workspace.evaluation.show', $criterion));
+        $response->assertRedirect(route('workspace.evaluation.index'));
         $this->assertSame(EvaluationCriterionScope::Department, $criterion->scope);
         $this->assertSame('HCNS', $criterion->department_code);
         $this->assertSame('Hành Chính Nhân Sự', $criterion->department_name);
@@ -163,37 +196,128 @@ class EvaluationCriterionTest extends TestCase
         $this->assertStringContainsString('[Hành Chính Nhân Sự]', $criterion->displayName());
     }
 
-    public function test_department_scope_requires_department_code(): void
+    public function test_half_point_weight_rejected_when_allow_half_score_disabled(): void
     {
         $this->actingAs($this->superAdmin(), 'system')
             ->post('/workspace-config/evaluation', $this->validPayload([
+                'allow_half_score' => false,
+                'score_levels' => [
+                    ['label' => 'Không đạt', 'weight' => -2],
+                    ['label' => 'Đạt', 'weight' => 0.5],
+                ],
+            ]))
+            ->assertSessionHasErrors('score_levels.1.weight');
+    }
+
+    public function test_half_point_weight_accepted_when_allow_half_score_enabled(): void
+    {
+        $response = $this->actingAs($this->superAdmin(), 'system')
+            ->from(route('workspace.evaluation.index'))
+            ->post('/workspace-config/evaluation', $this->validPayload([
+                'criteria_name' => 'Tiêu chí chấm 0.5',
+                'allow_half_score' => true,
+                'score_levels' => [
+                    ['label' => 'Không đạt', 'weight' => -1.5],
+                    ['label' => 'Đạt', 'weight' => 0.5],
+                    ['label' => 'Vượt', 'weight' => 2],
+                ],
+            ]));
+
+        $criterion = EvaluationCriterion::query()->where('criteria_name', 'Tiêu chí chấm 0.5')->first();
+        $this->assertNotNull($criterion);
+        $response->assertRedirect(route('workspace.evaluation.index'));
+        $this->assertTrue($criterion->allow_half_score);
+        $this->assertSame(-1.5, $criterion->score_levels[0]['weight']);
+        $this->assertSame(0.5, $criterion->score_levels[1]['weight']);
+        $this->assertSame(2, $criterion->score_levels[2]['weight']);
+    }
+
+    public function test_score_level_code_and_description_are_saved_and_default_code_is_generated(): void
+    {
+        $response = $this->actingAs($this->superAdmin(), 'system')
+            ->from(route('workspace.evaluation.index'))
+            ->post('/workspace-config/evaluation', $this->validPayload([
+                'criteria_name' => 'Tiêu chí có mã mức',
+                'score_levels' => [
+                    ['code' => 'KD', 'label' => 'Không đạt', 'description' => 'Chưa đạt yêu cầu tối thiểu', 'weight' => -2],
+                    ['label' => 'Đạt', 'weight' => 0],
+                ],
+            ]));
+
+        $criterion = EvaluationCriterion::query()->where('criteria_name', 'Tiêu chí có mã mức')->first();
+        $this->assertNotNull($criterion);
+        $response->assertRedirect(route('workspace.evaluation.index'));
+        $this->assertSame('KD', $criterion->score_levels[0]['code']);
+        $this->assertSame('Chưa đạt yêu cầu tối thiểu', $criterion->score_levels[0]['description']);
+        $this->assertSame('M2', $criterion->score_levels[1]['code']);
+        $this->assertSame('', $criterion->score_levels[1]['description']);
+    }
+
+    public function test_empty_department_becomes_general_for_super_admin(): void
+    {
+        $response = $this->actingAs($this->superAdmin(), 'system')
+            ->from(route('workspace.evaluation.index'))
+            ->post('/workspace-config/evaluation', $this->validPayload([
                 'scope' => 'department',
                 'department_code' => '',
-            ]))
-            ->assertSessionHasErrors('department_code');
+                'criteria_name' => 'Tiêu chí không PB',
+            ]));
+
+        $criterion = EvaluationCriterion::query()->where('criteria_name', 'Tiêu chí không PB')->first();
+        $this->assertNotNull($criterion);
+        $response->assertRedirect(route('workspace.evaluation.index'));
+        $this->assertSame(EvaluationCriterionScope::General, $criterion->scope);
+        $this->assertNull($criterion->department_code);
     }
 
     public function test_unique_criteria_code(): void
     {
         EvaluationCriterion::query()->create([
             'scope' => EvaluationCriterionScope::General,
-            'criteria_code' => '10',
+            'criteria_code' => 'TCVA010',
             'criteria_name' => 'Đã có',
             'category' => 'Khác',
-            'scoring_type' => 'scale',
-            'score_1' => 'A',
-            'score_2' => 'B',
-            'score_3' => 'C',
-            'score_4' => 'D',
-            'score_5' => 'E',
+            'score_levels' => $this->defaultLevels(),
             'is_active' => true,
         ]);
 
         $this->actingAs($this->superAdmin(), 'system')
             ->post('/workspace-config/evaluation', $this->validPayload([
-                'criteria_code' => '10',
+                'criteria_code' => 'TCVA010',
             ]))
             ->assertSessionHasErrors('criteria_code');
+    }
+
+    public function test_score_levels_require_minimum_count(): void
+    {
+        $this->actingAs($this->superAdmin(), 'system')
+            ->post('/workspace-config/evaluation', $this->validPayload([
+                'score_levels' => [
+                    ['label' => 'Chỉ một mức', 'weight' => 1],
+                ],
+            ]))
+            ->assertSessionHasErrors('score_levels');
+    }
+
+    public function test_resource_exposes_score_levels(): void
+    {
+        $user = $this->superAdmin();
+
+        $this->actingAs($user, 'system')
+            ->post('/workspace-config/evaluation', $this->validPayload([
+                'criteria_code' => 'TCVA098',
+            ]));
+
+        $criterion = EvaluationCriterion::query()->where('criteria_code', 'TCVA098')->firstOrFail();
+
+        $this->actingAs($user, 'system')
+            ->get(route('workspace.evaluation.show', $criterion))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('WorkspaceConfig/Evaluation/Show')
+                ->where('criterion.criteria_code', 'TCVA098')
+                ->where('criterion.score_levels_count', 5)
+            );
     }
 
     public function test_show_includes_activity_after_create(): void
@@ -202,18 +326,19 @@ class EvaluationCriterionTest extends TestCase
 
         $this->actingAs($user, 'system')
             ->post('/workspace-config/evaluation', $this->validPayload([
-                'criteria_code' => '99',
+                'criteria_code' => 'TCVA099',
             ]));
 
-        $criterion = EvaluationCriterion::query()->where('criteria_code', '99')->firstOrFail();
+        $criterion = EvaluationCriterion::query()->where('criteria_code', 'TCVA099')->firstOrFail();
 
         $this->actingAs($user, 'system')
             ->get(route('workspace.evaluation.show', $criterion))
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('WorkspaceConfig/Evaluation/Show')
-                ->where('criterion.criteria_code', '99')
+                ->where('criterion.criteria_code', 'TCVA099')
                 ->has('activity', 1)
+                ->has('criterion.score_levels', 5)
             );
     }
 
@@ -221,15 +346,10 @@ class EvaluationCriterionTest extends TestCase
     {
         $criterion = EvaluationCriterion::query()->create([
             'scope' => EvaluationCriterionScope::General,
-            'criteria_code' => '5',
+            'criteria_code' => 'TCVA005',
             'criteria_name' => 'Xóa thử',
             'category' => 'Khác',
-            'scoring_type' => 'scale',
-            'score_1' => 'A',
-            'score_2' => 'B',
-            'score_3' => 'C',
-            'score_4' => 'D',
-            'score_5' => 'E',
+            'score_levels' => $this->defaultLevels(),
             'is_active' => true,
         ]);
 
@@ -240,39 +360,17 @@ class EvaluationCriterionTest extends TestCase
         $this->assertSoftDeleted('evaluation_criteria', ['id' => $criterion->id]);
     }
 
-    public function test_super_admin_can_create_points_criterion(): void
+    public function test_suggest_next_code_increments_tcva_sequence(): void
     {
-        $response = $this->actingAs($this->superAdmin(), 'system')
-            ->post('/workspace-config/evaluation', $this->validPayload([
-                'criteria_name' => 'Hoàn thành đúng hạn',
-                'category' => 'Điểm cộng',
-                'scoring_type' => 'points',
-                'point_bonus' => 5,
-                'point_penalty' => 2,
-                'score_1' => null,
-                'score_2' => null,
-                'score_3' => null,
-                'score_4' => null,
-                'score_5' => null,
-            ]));
+        EvaluationCriterion::query()->create([
+            'scope' => EvaluationCriterionScope::General,
+            'criteria_code' => 'TCVA003',
+            'criteria_name' => 'A',
+            'category' => 'Khác',
+            'score_levels' => $this->defaultLevels(),
+            'is_active' => true,
+        ]);
 
-        $criterion = EvaluationCriterion::query()->where('criteria_name', 'Hoàn thành đúng hạn')->first();
-        $this->assertNotNull($criterion);
-        $response->assertRedirect(route('workspace.evaluation.show', $criterion));
-        $this->assertSame('points', $criterion->scoring_type->value);
-        $this->assertSame(5, $criterion->point_bonus);
-        $this->assertSame(2, $criterion->point_penalty);
-        $this->assertFalse($criterion->allow_half_score);
-    }
-
-    public function test_points_criterion_requires_bonus_and_penalty(): void
-    {
-        $this->actingAs($this->superAdmin(), 'system')
-            ->post('/workspace-config/evaluation', $this->validPayload([
-                'scoring_type' => 'points',
-                'point_bonus' => null,
-                'point_penalty' => null,
-            ]))
-            ->assertSessionHasErrors(['point_bonus', 'point_penalty']);
+        $this->assertSame('TCVA004', EvaluationCriterion::suggestNextCode());
     }
 }

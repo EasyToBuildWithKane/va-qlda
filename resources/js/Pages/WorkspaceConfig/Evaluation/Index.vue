@@ -9,13 +9,13 @@ import PageHeader from '@/Components/Ui/PageHeader.vue';
 import Badge from '@/shared/ui/Badge.vue';
 import EvaluationSummaryBar from '@/modules/evaluation/components/EvaluationSummaryBar.vue';
 import EvaluationCriterionFormModal from '@/modules/evaluation/components/EvaluationCriterionFormModal.vue';
+import EvaluationCriterionRowActions from '@/modules/evaluation/components/EvaluationCriterionRowActions.vue';
+import EvaluationCategoryTabs from '@/modules/evaluation/components/EvaluationCategoryTabs.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import DatagridToolbarActionButton from '@/shared/ui/DatagridToolbarActionButton.vue';
-import DatagridSegmentedControl from '@/shared/ui/DatagridSegmentedControl.vue';
 import DatagridFilterField from '@/shared/ui/DatagridFilterField.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import ColumnVisibilityDropdown from '@/shared/ui/ColumnVisibilityDropdown.vue';
-import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
 import { EVALUATION_TABLE_COLUMNS } from '@/modules/evaluation/config/columns.js';
 import {
     exportEvaluationWorkbook,
@@ -35,14 +35,14 @@ const props = defineProps({
     departments: { type: Array, default: () => [] },
     categories: { type: Array, default: () => [] },
     scopeOptions: { type: Array, default: () => [] },
-    scoringTypeOptions: { type: Array, default: () => [] },
-    nextCode: { type: String, default: '1' },
-    defaultScoreLabels: { type: Object, default: () => ({}) },
+    nextCode: { type: String, default: 'TCVA001' },
+    defaultScoreLevels: { type: Array, default: () => [] },
     can: { type: Object, default: () => ({}) },
     viewer: {
         type: Object,
         default: () => ({
             can_manage_all: true,
+            can_create_general: true,
             own_department_code: null,
             forced_department_code: null,
         }),
@@ -50,6 +50,7 @@ const props = defineProps({
 });
 
 const canManageAllDepts = computed(() => props.viewer?.can_manage_all !== false);
+const canCreateGeneral = computed(() => props.viewer?.can_create_general !== false);
 
 const toast = useToast();
 const confirmDelete = useConfirmDelete();
@@ -59,7 +60,6 @@ const exportDdRef = ref(null);
 const showExportDd = ref(false);
 const showFormModal = ref(false);
 const editingCriterion = ref(null);
-const perPage = ref(Number(props.filters.per_page) || 20);
 
 const FILTER_CONTROLS = [
     { key: 'scope', label: 'Phạm vi', default: false },
@@ -95,15 +95,12 @@ const {
     openColPanel,
     isColVisible,
     TABLE_COLUMNS,
-} = useVisibleColumns(EVALUATION_TABLE_COLUMNS, 'va-workspace.evaluation.columns.v4');
-
-const SCOPE_TAB_ITEMS = [
-    { key: 'general', label: 'Tiêu chí chung', icon: 'documents', title: 'Tiêu chí áp dụng chung' },
-    { key: 'department', label: 'Theo phòng ban', icon: 'department', title: 'Tiêu chí theo từng phòng ban' },
-];
+} = useVisibleColumns(EVALUATION_TABLE_COLUMNS, 'va-workspace.evaluation.columns.v8');
 
 const GROUP_GENERAL = '__general__';
-const COLLAPSE_STORAGE_KEY = 'va-workspace.evaluation.collapsed-groups.v2';
+const GROUP_UNCATEGORIZED = '__uncategorized__';
+const CATEGORY_EMPTY_LABEL = 'Chưa phân loại';
+const COLLAPSE_STORAGE_KEY = 'va-workspace.evaluation.collapsed-groups.v4';
 
 function loadCollapsedGroups() {
     try {
@@ -116,8 +113,34 @@ function loadCollapsedGroups() {
 }
 
 const collapsedGroups = ref(loadCollapsedGroups());
+const activeCategoryByGroup = reactive({});
 
 const rows = computed(() => props.criteria?.data || []);
+
+function categoryKeyOf(row) {
+    const category = (row.category || '').trim();
+    return category || GROUP_UNCATEGORIZED;
+}
+
+function buildCategoryTabs(items) {
+    const map = new Map();
+    for (const row of items) {
+        const key = categoryKeyOf(row);
+        if (!map.has(key)) {
+            map.set(key, {
+                key,
+                label: key === GROUP_UNCATEGORIZED ? CATEGORY_EMPTY_LABEL : key,
+                count: 0,
+            });
+        }
+        map.get(key).count += 1;
+    }
+    return [...map.values()].sort((a, b) => {
+        if (a.key === GROUP_UNCATEGORIZED) return 1;
+        if (b.key === GROUP_UNCATEGORIZED) return -1;
+        return a.label.localeCompare(b.label, 'vi');
+    });
+}
 
 const groupedCriteria = computed(() => {
     const map = new Map();
@@ -139,11 +162,16 @@ const groupedCriteria = computed(() => {
         }
         group.items.push(row);
     }
-    return [...map.values()].sort((a, b) => {
-        if (a.key === GROUP_GENERAL) return -1;
-        if (b.key === GROUP_GENERAL) return 1;
-        return a.label.localeCompare(b.label, 'vi');
-    });
+    return [...map.values()]
+        .sort((a, b) => {
+            if (a.key === GROUP_GENERAL) return -1;
+            if (b.key === GROUP_GENERAL) return 1;
+            return a.label.localeCompare(b.label, 'vi');
+        })
+        .map((group) => ({
+            ...group,
+            categoryTabs: buildCategoryTabs(group.items),
+        }));
 });
 
 const tableColspan = computed(() => visibleColumnCount.value + 3);
@@ -184,13 +212,37 @@ function toggleAllGroups() {
     else expandAllGroups();
 }
 
+function activeCategoryTab(group) {
+    const current = activeCategoryByGroup[group.key];
+    if (current && group.categoryTabs.some((tab) => tab.key === current)) {
+        return current;
+    }
+    return group.categoryTabs[0]?.key ?? GROUP_UNCATEGORIZED;
+}
+
+function setCategoryTab(groupKey, tabKey) {
+    activeCategoryByGroup[groupKey] = tabKey;
+}
+
+function visibleGroupItems(group) {
+    const tabKey = activeCategoryTab(group);
+    return group.items.filter((row) => categoryKeyOf(row) === tabKey);
+}
+
+watch(groupedCriteria, (groups) => {
+    for (const group of groups) {
+        const current = activeCategoryByGroup[group.key];
+        if (!current || !group.categoryTabs.some((tab) => tab.key === current)) {
+            activeCategoryByGroup[group.key] = group.categoryTabs[0]?.key ?? GROUP_UNCATEGORIZED;
+        }
+    }
+}, { immediate: true });
+
 let searchTimer = null;
 watch(() => filters.q, () => {
     clearTimeout(searchTimer);
-    searchTimer = setTimeout(() => applyFilters({ page: 1 }), 350);
+    searchTimer = setTimeout(() => applyFilters(), 350);
 });
-
-watch(perPage, () => applyFilters({ page: 1 }));
 
 function applyFilters(extra = {}) {
     router.get(route('workspace.evaluation.index'), {
@@ -199,7 +251,6 @@ function applyFilters(extra = {}) {
         department_code: filters.department_code || undefined,
         category: filters.category || undefined,
         status: filters.status || undefined,
-        per_page: perPage.value,
         ...extra,
     }, {
         preserveState: true,
@@ -211,21 +262,8 @@ function applyFilters(extra = {}) {
 function onQuickFilter(payload) {
     filters.status = payload.status || '';
     filters.scope = payload.scope || '';
-    applyFilters({ page: 1 });
+    applyFilters();
 }
-
-const scopeTab = computed({
-    get() {
-        if (filters.scope === 'department') return 'department';
-        if (filters.scope === 'general') return 'general';
-        return '';
-    },
-    set(key) {
-        filters.scope = key === 'department' ? 'department' : 'general';
-        if (key === 'general') filters.department_code = '';
-        applyFilters({ page: 1 });
-    },
-});
 
 function openCreate() {
     editingCriterion.value = null;
@@ -458,12 +496,6 @@ onBeforeUnmount(() => {
           </div>
 
           <div class="ml-auto flex shrink-0 items-center gap-2">
-            <DatagridSegmentedControl
-              v-model="scopeTab"
-              :items="SCOPE_TAB_ITEMS"
-              aria-label="Phạm vi tiêu chí"
-              icon-only-below-sm
-            />
             <DatagridToolbarActionButton
               v-if="groupedCriteria.length"
               icon="chevron-down"
@@ -485,7 +517,7 @@ onBeforeUnmount(() => {
               v-model="filters.scope"
               :class="FILTER_CONTROL_CLASS"
               aria-label="Phạm vi"
-              @change="applyFilters({ page: 1 })"
+              @change="applyFilters()"
             >
               <option value="">
                 Phạm vi
@@ -504,7 +536,7 @@ onBeforeUnmount(() => {
               v-model="filters.department_code"
               :class="FILTER_CONTROL_CLASS"
               aria-label="Phòng ban"
-              @change="applyFilters({ page: 1 })"
+              @change="applyFilters()"
             >
               <option value="">
                 Phòng ban
@@ -523,7 +555,7 @@ onBeforeUnmount(() => {
               v-model="filters.category"
               :class="FILTER_CONTROL_CLASS"
               aria-label="Loại tiêu chí"
-              @change="applyFilters({ page: 1 })"
+              @change="applyFilters()"
             >
               <option value="">
                 Loại tiêu chí
@@ -542,7 +574,7 @@ onBeforeUnmount(() => {
               v-model="filters.status"
               :class="FILTER_CONTROL_CLASS"
               aria-label="Trạng thái"
-              @change="applyFilters({ page: 1 })"
+              @change="applyFilters()"
             >
               <option value="">
                 Trạng thái
@@ -558,84 +590,51 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
-      <div class="overflow-x-auto">
-        <table class="min-w-full border-collapse text-left text-sm">
-          <thead class="bg-slate-50 text-[11px] uppercase tracking-wide text-slate-500">
-            <tr>
-              <th
-                class="w-9 px-1 py-3"
-                aria-hidden="true"
-              />
-              <th class="px-5 py-3 font-medium">
-                Tên tiêu chí
-              </th>
-              <th
-                v-if="isColVisible('criteria_code')"
-                class="px-5 py-3 font-medium"
-              >
-                Mã
-              </th>
-              <th
-                v-if="isColVisible('category')"
-                class="px-5 py-3 font-medium"
-              >
-                Loại
-              </th>
-              <th
-                v-if="isColVisible('allow_half_score')"
-                class="px-5 py-3 font-medium"
-              >
-                Chấm 0.5
-              </th>
-              <th
-                v-if="isColVisible('description')"
-                class="px-5 py-3 font-medium"
-              >
-                Mô tả
-              </th>
-              <th
-                v-if="isColVisible('creator')"
-                class="px-5 py-3 font-medium"
-              >
-                Người tạo
-              </th>
-              <th
-                v-if="isColVisible('created_at')"
-                class="px-5 py-3 font-medium"
-              >
-                Ngày tạo
-              </th>
-              <th
-                v-if="isColVisible('updated_at')"
-                class="px-5 py-3 font-medium"
-              >
-                Cập nhật
-              </th>
-              <th
-                v-if="isColVisible('status')"
-                class="px-5 py-3 font-medium"
-              >
-                Trạng thái
-              </th>
-              <th class="px-5 py-3 text-right font-medium">
-                Hành động
-              </th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-100">
+      <div class="evaluation-table-wrap max-w-full overflow-x-auto">
+        <table class="evaluation-table w-full max-w-full border-collapse text-left text-sm">
+          <colgroup>
+            <col class="w-9">
+            <col>
+            <col
+              v-if="isColVisible('allow_half_score')"
+              class="w-[6.5rem]"
+            >
+            <col
+              v-if="isColVisible('description')"
+              class="w-[14rem]"
+            >
+            <col
+              v-if="isColVisible('creator')"
+              class="w-[9rem]"
+            >
+            <col
+              v-if="isColVisible('created_at')"
+              class="w-[9.5rem]"
+            >
+            <col
+              v-if="isColVisible('updated_at')"
+              class="w-[9.5rem]"
+            >
+            <col
+              v-if="isColVisible('status')"
+              class="w-[7.5rem]"
+            >
+            <col class="w-12">
+          </colgroup>
+          <tbody>
             <template v-if="groupedCriteria.length">
               <template
                 v-for="group in groupedCriteria"
                 :key="group.key"
               >
-                <tr class="bg-slate-50/90">
+                <tr class="border-y border-slate-200 bg-slate-100/80">
                   <td
                     :colspan="tableColspan"
-                    class="px-3 py-2.5"
+                    class="max-w-0 px-3 py-2.5 sm:px-4"
                   >
                     <button
                       type="button"
-                      class="flex w-full items-center gap-2 text-left"
+                      class="flex w-full min-w-0 items-center gap-2 text-left"
                       @click="toggleGroup(group.key)"
                     >
                       <AppIcon
@@ -643,14 +642,14 @@ onBeforeUnmount(() => {
                         :size="14"
                         class="shrink-0 text-slate-400"
                       />
-                      <span class="text-sm font-semibold text-slate-800">
+                      <span class="min-w-0 truncate text-sm font-semibold text-slate-800">
                         {{ group.label }}
                       </span>
                       <span
                         v-if="group.code"
-                        class="font-mono text-[11px] text-slate-400"
+                        class="hidden shrink-0 font-mono text-[11px] text-slate-400 sm:inline"
                       >({{ group.code }})</span>
-                      <span class="ml-1 rounded-full bg-white px-2 py-0.5 text-[11px] tabular-nums text-slate-500 ring-1 ring-slate-200">
+                      <span class="ml-auto shrink-0 rounded-full bg-white px-2 py-0.5 text-[11px] tabular-nums text-slate-500 ring-1 ring-slate-200/80 sm:ml-1">
                         {{ group.items.length }}
                       </span>
                     </button>
@@ -658,108 +657,149 @@ onBeforeUnmount(() => {
                 </tr>
                 <template v-if="isGroupExpanded(group.key)">
                   <tr
-                    v-for="row in group.items"
+                    v-if="group.categoryTabs.length"
+                    class="bg-white"
+                  >
+                    <td
+                      :colspan="tableColspan"
+                      class="max-w-0 px-2 pt-1 sm:px-3 sm:pl-8"
+                    >
+                      <div class="min-w-0 max-w-full">
+                        <EvaluationCategoryTabs
+                          :tabs="group.categoryTabs"
+                          :model-value="activeCategoryTab(group)"
+                          :aria-label="`Loại tiêu chí — ${group.label}`"
+                          @update:model-value="setCategoryTab(group.key, $event)"
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                  <tr class="bg-slate-50/90 text-[11px] uppercase tracking-wide text-slate-500">
+                    <th
+                      class="w-9 px-1 py-2.5"
+                      aria-hidden="true"
+                      scope="col"
+                    />
+                    <th
+                      class="min-w-0 px-3 py-2.5 text-left font-medium sm:px-5"
+                      scope="col"
+                    >
+                      Tên tiêu chí
+                    </th>
+                    <th
+                      v-if="isColVisible('allow_half_score')"
+                      class="px-3 py-2.5 text-left font-medium sm:px-5"
+                      scope="col"
+                    >
+                      Chấm 0.5
+                    </th>
+                    <th
+                      v-if="isColVisible('description')"
+                      class="px-3 py-2.5 text-left font-medium sm:px-5"
+                      scope="col"
+                    >
+                      Mô tả
+                    </th>
+                    <th
+                      v-if="isColVisible('creator')"
+                      class="px-3 py-2.5 text-left font-medium sm:px-5"
+                      scope="col"
+                    >
+                      Người tạo
+                    </th>
+                    <th
+                      v-if="isColVisible('created_at')"
+                      class="px-3 py-2.5 text-left font-medium sm:px-5"
+                      scope="col"
+                    >
+                      Ngày tạo
+                    </th>
+                    <th
+                      v-if="isColVisible('updated_at')"
+                      class="px-3 py-2.5 text-left font-medium sm:px-5"
+                      scope="col"
+                    >
+                      Cập nhật
+                    </th>
+                    <th
+                      v-if="isColVisible('status')"
+                      class="px-3 py-2.5 text-left font-medium sm:px-5"
+                      scope="col"
+                    >
+                      Trạng thái
+                    </th>
+                    <th
+                      class="w-12 px-2 py-2.5 sm:px-3"
+                      scope="col"
+                      aria-label="Thao tác"
+                    />
+                  </tr>
+                  <tr
+                    v-for="row in visibleGroupItems(group)"
                     :key="row.id"
-                    class="hover:bg-slate-50/60"
+                    class="border-b border-slate-100 hover:bg-slate-50/60"
                   >
                     <td class="px-1 py-3" />
-                    <td class="px-5 py-3">
+                    <td class="min-w-0 px-3 py-3 sm:px-5">
                       <Link
                         :href="route('workspace.evaluation.show', row.id)"
-                        class="font-medium text-slate-800 hover:text-brand"
+                        class="block truncate font-medium text-slate-800 hover:text-brand"
+                        :title="row.criteria_name"
                       >
-                        {{ row.display_name || row.criteria_name }}
+                        {{ row.criteria_name }}
                       </Link>
-                    </td>
-                    <td
-                      v-if="isColVisible('criteria_code')"
-                      class="px-5 py-3 font-mono text-slate-700"
-                    >
-                      {{ row.criteria_code }}
-                    </td>
-                    <td
-                      v-if="isColVisible('category')"
-                      class="px-5 py-3 text-slate-700"
-                    >
-                      {{ displayOrEmpty(row.category, EMPTY_LABELS.notUpdated) }}
+                      <span class="mt-0.5 block truncate font-mono text-[11px] text-slate-400">
+                        {{ row.criteria_code }}
+                      </span>
                     </td>
                     <td
                       v-if="isColVisible('allow_half_score')"
-                      class="px-5 py-3 text-slate-600"
+                      class="px-3 py-3 text-slate-600 sm:px-5"
                     >
                       {{ row.allow_half_score ? 'Có' : 'Không' }}
                     </td>
                     <td
                       v-if="isColVisible('description')"
-                      class="max-w-xs truncate px-5 py-3 text-slate-600"
+                      class="min-w-0 truncate px-3 py-3 text-slate-600 sm:px-5"
                       :title="row.description || undefined"
                     >
                       {{ displayOrEmpty(row.description, EMPTY_LABELS.notUpdated) }}
                     </td>
                     <td
                       v-if="isColVisible('creator')"
-                      class="px-5 py-3 text-slate-600"
+                      class="min-w-0 truncate px-3 py-3 text-slate-600 sm:px-5"
+                      :title="row.creator?.display_name || undefined"
                     >
                       {{ displayOrEmpty(row.creator?.display_name, EMPTY_LABELS.notUpdated) }}
                     </td>
                     <td
                       v-if="isColVisible('created_at')"
-                      class="px-5 py-3 tabular-nums text-slate-600"
+                      class="truncate px-3 py-3 tabular-nums text-slate-600 sm:px-5"
                     >
                       {{ row.created_at ? datetime(row.created_at) : EMPTY_LABELS.notUpdated }}
                     </td>
                     <td
                       v-if="isColVisible('updated_at')"
-                      class="px-5 py-3 tabular-nums text-slate-600"
+                      class="truncate px-3 py-3 tabular-nums text-slate-600 sm:px-5"
                     >
                       {{ row.updated_at ? datetime(row.updated_at) : EMPTY_LABELS.notUpdated }}
                     </td>
                     <td
                       v-if="isColVisible('status')"
-                      class="px-5 py-3"
+                      class="px-3 py-3 sm:px-5"
                     >
                       <Badge
                         :color="row.is_active ? 'emerald' : 'slate'"
                         :label="row.is_active ? 'Hoạt động' : 'Ngưng'"
                       />
                     </td>
-                    <td class="px-5 py-3">
-                      <div class="flex items-center justify-end gap-1">
-                        <Link
-                          :href="route('workspace.evaluation.show', row.id)"
-                          class="btn-ghost h-8 w-8 p-0"
-                          title="Xem"
-                        >
-                          <AppIcon
-                            name="eye"
-                            :size="14"
-                          />
-                        </Link>
-                        <button
-                          v-if="can.manage"
-                          type="button"
-                          class="btn-ghost h-8 w-8 p-0"
-                          title="Sửa"
-                          @click="openEdit(row)"
-                        >
-                          <AppIcon
-                            name="edit"
-                            :size="14"
-                          />
-                        </button>
-                        <button
-                          v-if="can.manage"
-                          type="button"
-                          class="btn-ghost h-8 w-8 p-0 text-rose-600"
-                          title="Xóa"
-                          @click="onDelete(row)"
-                        >
-                          <AppIcon
-                            name="trash"
-                            :size="14"
-                          />
-                        </button>
-                      </div>
+                    <td class="px-2 py-3 text-right sm:px-3">
+                      <EvaluationCriterionRowActions
+                        :criterion="row"
+                        :can-manage="!!can.manage"
+                        @edit="openEdit"
+                        @delete="onDelete"
+                      />
                     </td>
                   </tr>
                 </template>
@@ -785,13 +825,16 @@ onBeforeUnmount(() => {
         </table>
       </div>
 
-      <DatagridPaginationFooter
-        v-if="criteria?.meta"
-        v-model:per-page="perPage"
-        variant="bar"
-        :meta="criteria.meta"
-        :per-page-options="[10, 20, 25, 50]"
-      />
+      <div
+        v-if="criteria?.meta?.total != null"
+        class="flex items-center justify-between gap-3 border-t border-slate-100 px-5 py-3 text-sm text-slate-500"
+      >
+        <span>
+          Hiển thị toàn bộ
+          <span class="font-medium tabular-nums text-slate-700">{{ criteria.meta.total }}</span>
+          tiêu chí
+        </span>
+      </div>
     </div>
 
     <EvaluationCriterionFormModal
@@ -800,12 +843,21 @@ onBeforeUnmount(() => {
       :criterion="editingCriterion"
       :departments="departments"
       :categories="categories"
-      :scope-options="scopeOptions"
-      :scoring-type-options="scoringTypeOptions"
       :next-code="nextCode"
-      :default-score-labels="defaultScoreLabels"
-      :initial-scope="filters.scope === 'department' ? 'department' : 'general'"
+      :default-score-levels="defaultScoreLevels"
+      :can-create-general="canCreateGeneral"
+      :default-department-code="viewer.forced_department_code || viewer.own_department_code || ''"
       @close="closeFormModal"
     />
   </AppLayout>
 </template>
+
+<style scoped>
+.evaluation-table {
+  table-layout: fixed;
+}
+
+.evaluation-table-wrap {
+  overscroll-behavior-x: contain;
+}
+</style>

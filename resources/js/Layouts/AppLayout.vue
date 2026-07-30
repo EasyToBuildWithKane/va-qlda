@@ -21,6 +21,7 @@ const { flush } = defineProps({ flush: Boolean });
 const page = usePage();
 
 const toast = useToast();
+/** immediate: flash có sẵn khi remount layout (vd. redirect trang khác) vẫn hiện toast. */
 watch(
     () => page.props.flash?.success,
     (success, prevSuccess) => {
@@ -28,6 +29,7 @@ watch(
             toast.success(success);
         }
     },
+    { immediate: true },
 );
 watch(
     () => page.props.flash?.error,
@@ -36,6 +38,7 @@ watch(
             toast.error(error);
         }
     },
+    { immediate: true },
 );
 watch(
     () => page.props.flash?.warning,
@@ -44,6 +47,7 @@ watch(
             toast.warning(warning);
         }
     },
+    { immediate: true },
 );
 
 const fromChrome = inject(APP_SIDEBAR_KEY, null);

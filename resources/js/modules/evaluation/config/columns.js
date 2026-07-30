@@ -1,8 +1,6 @@
 /** Cột bảng tiêu chí đánh giá — dùng với useVisibleColumns.
- * Phòng ban / phạm vi: nhóm collapse (chung + theo PB). */
+ * Phòng ban: nhóm collapse; loại tiêu chí: tab lọc trong từng nhóm (không dòng nhóm loại). */
 export const EVALUATION_TABLE_COLUMNS = [
-    { key: 'criteria_code', label: 'Mã' },
-    { key: 'category', label: 'Loại' },
     { key: 'allow_half_score', label: 'Chấm 0.5', default: false },
     { key: 'description', label: 'Mô tả', default: false },
     { key: 'creator', label: 'Người tạo', default: false },

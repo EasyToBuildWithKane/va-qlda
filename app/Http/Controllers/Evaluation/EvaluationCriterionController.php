@@ -10,7 +10,6 @@ use App\Models\Evaluation\EvaluationCriterion;
 use App\Models\SecurityAuditLog;
 use App\Support\Audit\AuditActionCatalog;
 use App\Support\Enums\EvaluationCriterionScope;
-use App\Support\Enums\EvaluationScoringType;
 use App\Support\Evaluation\HrmDepartmentDirectory;
 use App\Support\SecurityAuditLogger;
 use App\Support\WorkspaceConfig\WorkspaceScopeResolver;
@@ -51,13 +50,14 @@ class EvaluationCriterionController extends Controller
             'department_code' => $forcedDept ?? trim((string) $request->query('department_code', '')),
             'category' => trim((string) $request->query('category', '')),
             'status' => trim((string) $request->query('status', '')),
-            'per_page' => min(50, max(10, (int) $request->query('per_page', 20))),
         ];
 
         $query = EvaluationCriterion::query()
             ->with(['creator:id,display_name'])
             ->orderByRaw("CASE WHEN scope = 'general' THEN 0 ELSE 1 END")
             ->orderBy('department_name')
+            ->orderByRaw("CASE WHEN category IS NULL OR category = '' THEN 1 ELSE 0 END")
+            ->orderBy('category')
             ->orderBy('sort_order')
             ->orderBy('id');
 
@@ -92,9 +92,7 @@ class EvaluationCriterionController extends Controller
             $query->where('is_active', false);
         }
 
-        $paginator = $query->paginate($filters['per_page'])->withQueryString();
-
-        $items = collect($paginator->items())
+        $items = $query->get()
             ->map(fn (EvaluationCriterion $c) => (new EvaluationCriterionResource($c))->resolve())
             ->values()
             ->all();
@@ -121,13 +119,7 @@ class EvaluationCriterionController extends Controller
             'criteria' => [
                 'data' => $items,
                 'meta' => [
-                    'current_page' => $paginator->currentPage(),
-                    'last_page' => $paginator->lastPage(),
-                    'per_page' => $paginator->perPage(),
-                    'total' => $paginator->total(),
-                    'from' => $paginator->firstItem(),
-                    'to' => $paginator->lastItem(),
-                    'links' => $paginator->linkCollection()->toArray(),
+                    'total' => count($items),
                 ],
             ],
             'filters' => $filters,
@@ -135,11 +127,11 @@ class EvaluationCriterionController extends Controller
             'departments' => $departmentOptions,
             'categories' => $this->categoryOptions($forcedDept),
             'scopeOptions' => EvaluationCriterionScope::options(),
-            'scoringTypeOptions' => EvaluationScoringType::options(),
             'nextCode' => EvaluationCriterion::suggestNextCode(),
-            'defaultScoreLabels' => EvaluationCriterion::DEFAULT_SCORE_LABELS,
+            'defaultScoreLevels' => EvaluationCriterion::DEFAULT_SCORE_LEVELS,
             'viewer' => [
                 'can_manage_all' => $canManageAll,
+                'can_create_general' => $this->scope->canManageAll($user),
                 'own_department_code' => $this->scope->ownDepartmentCode($user),
                 'forced_department_code' => $forcedDept,
             ],
@@ -173,9 +165,7 @@ class EvaluationCriterionController extends Controller
             ]
         );
 
-        return redirect()
-            ->route('workspace.evaluation.show', $criterion)
-            ->with('success', 'Đã tạo tiêu chí đánh giá.');
+        return back()->with('success', 'Đã tạo tiêu chí đánh giá.');
     }
 
     public function show(Request $request, EvaluationCriterion $evaluationCriterion): Response
@@ -183,6 +173,7 @@ class EvaluationCriterionController extends Controller
         $this->authorize('view', $evaluationCriterion);
 
         $evaluationCriterion->load(['creator:id,display_name']);
+        $user = $request->user();
 
         return Inertia::render('WorkspaceConfig/Evaluation/Show', [
             'criterion' => (new EvaluationCriterionResource($evaluationCriterion))->resolve(),
@@ -190,10 +181,13 @@ class EvaluationCriterionController extends Controller
             'departments' => $this->departments->all(),
             'categories' => $this->categoryOptions(),
             'scopeOptions' => EvaluationCriterionScope::options(),
-            'scoringTypeOptions' => EvaluationScoringType::options(),
-            'defaultScoreLabels' => EvaluationCriterion::DEFAULT_SCORE_LABELS,
+            'defaultScoreLevels' => EvaluationCriterion::DEFAULT_SCORE_LEVELS,
+            'viewer' => [
+                'can_create_general' => $this->scope->canManageAll($user),
+                'own_department_code' => $this->scope->ownDepartmentCode($user),
+            ],
             'can' => [
-                'manage' => $request->user()->can('update', $evaluationCriterion),
+                'manage' => $user->can('update', $evaluationCriterion),
             ],
         ]);
     }
@@ -215,9 +209,7 @@ class EvaluationCriterionController extends Controller
             ]
         );
 
-        return redirect()
-            ->route('workspace.evaluation.show', $evaluationCriterion)
-            ->with('success', 'Đã cập nhật tiêu chí đánh giá.');
+        return back()->with('success', 'Đã cập nhật tiêu chí đánh giá.');
     }
 
     public function destroy(Request $request, EvaluationCriterion $evaluationCriterion): RedirectResponse
@@ -248,8 +240,6 @@ class EvaluationCriterionController extends Controller
     private function normalizePayload(array $data): array
     {
         $scope = EvaluationCriterionScope::from($data['scope']);
-        $scoringType = EvaluationScoringType::from($data['scoring_type'] ?? EvaluationScoringType::Scale->value);
-        $data['scoring_type'] = $scoringType->value;
 
         if ($scope === EvaluationCriterionScope::General) {
             $data['department_code'] = null;
@@ -263,22 +253,11 @@ class EvaluationCriterionController extends Controller
             }
         }
 
-        if ($scoringType === EvaluationScoringType::Points) {
-            $data['allow_half_score'] = false;
-            $data['point_bonus'] = (int) ($data['point_bonus'] ?? 0);
-            $data['point_penalty'] = (int) ($data['point_penalty'] ?? 0);
-            // NOT NULL columns — placeholder when not used for scale mode
-            $defaults = EvaluationCriterion::DEFAULT_SCORE_LABELS;
-            $data['score_1'] = $data['score_1'] ?: $defaults[1];
-            $data['score_2'] = $data['score_2'] ?: $defaults[2];
-            $data['score_3'] = $data['score_3'] ?: $defaults[3];
-            $data['score_4'] = $data['score_4'] ?: $defaults[4];
-            $data['score_5'] = $data['score_5'] ?: $defaults[5];
-        } else {
-            $data['point_bonus'] = null;
-            $data['point_penalty'] = null;
-            $data['allow_half_score'] = (bool) ($data['allow_half_score'] ?? false);
-        }
+        $data['allow_half_score'] = (bool) ($data['allow_half_score'] ?? false);
+        $data['score_levels'] = EvaluationCriterion::normalizeScoreLevels(
+            $data['score_levels'] ?? null,
+            $data['allow_half_score'],
+        );
 
         return $data;
     }

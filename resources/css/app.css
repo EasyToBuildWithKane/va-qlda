@@ -29,6 +29,28 @@
     }
 }
 
+/* Toast nổi — parity VA-HRM FlashToast */
+@keyframes toast-slide-in {
+    from {
+        opacity: 0;
+        transform: translateX(1.25rem) scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+}
+
+.toast-slide-in {
+    animation: toast-slide-in 280ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .toast-slide-in {
+        animation: none;
+    }
+}
+
 /* Khi người dùng bật "giảm chuyển động", tắt mọi animation cn-* đang chạy
    vô điều kiện (aurora/grid/float...) trong phạm vi nền landing. */
 @media (prefers-reduced-motion: reduce) {

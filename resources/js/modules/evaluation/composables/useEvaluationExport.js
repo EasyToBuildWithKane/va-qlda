@@ -67,17 +67,27 @@ const HEADERS = [
     'Tên tiêu chí',
     'Loại',
     'Chấm 0.5',
-    'Điểm 1',
-    'Điểm 2',
-    'Điểm 3',
-    'Điểm 4',
-    'Điểm 5',
+    'Thang điểm',
     'Trạng thái',
     'Người tạo',
     'Mô tả',
     'Ngày tạo',
     'Cập nhật',
 ];
+
+function formatScoring(row) {
+    const levels = Array.isArray(row.score_levels) ? row.score_levels : [];
+    if (!levels.length) return EMPTY_LABELS.notUpdated;
+    return levels.map((level, index) => {
+        const weight = Number(level?.weight);
+        const weightText = Number.isFinite(weight)
+            ? (weight > 0 ? `+${weight}` : String(weight))
+            : '0';
+        const code = level?.code || `M${index + 1}`;
+        const desc = level?.description ? ` — ${level.description}` : '';
+        return `${code}. ${level?.label ?? ''} (${weightText})${desc}`;
+    }).join('; ');
+}
 
 function setCell(ws, r, c, value, style) {
     const ref = XLSX.utils.encode_cell({ r, c });
@@ -117,11 +127,7 @@ function rowValues(row, index) {
         row.criteria_name ?? '',
         row.category ?? '',
         row.allow_half_score ? 'Có' : 'Không',
-        row.score_1 ?? '',
-        row.score_2 ?? '',
-        row.score_3 ?? '',
-        row.score_4 ?? '',
-        row.score_5 ?? '',
+        formatScoring(row),
         row.is_active ? 'Hoạt động' : 'Ngưng hoạt động',
         displayOrEmpty(row.creator?.display_name, EMPTY_LABELS.notUpdated),
         displayOrEmpty(row.description, EMPTY_LABELS.notUpdated),
@@ -170,7 +176,7 @@ export function exportEvaluationWorkbook(rows, filters = {}, summary = {}) {
 
     const lastRow = headerRow + Math.max(list.length, 1);
     ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: lastRow, c: lastCol } });
-    setColWidths(ws, [5, 14, 10, 18, 10, 32, 14, 10, 16, 16, 16, 14, 14, 14, 16, 28, 16, 16]);
+    setColWidths(ws, [5, 14, 10, 18, 12, 32, 14, 16, 10, 42, 14, 16, 28, 16, 16]);
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Tieu chi');

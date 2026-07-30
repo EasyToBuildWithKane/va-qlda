@@ -170,12 +170,10 @@ class WorkspaceConfigHubTest extends TestCase
             'criteria_code' => 'G1',
             'criteria_name' => 'Tiêu chí chung',
             'category' => 'Chung',
-            'scoring_type' => 'scale',
-            'score_1' => 'a',
-            'score_2' => 'b',
-            'score_3' => 'c',
-            'score_4' => 'd',
-            'score_5' => 'e',
+            'score_levels' => [
+                ['label' => 'a', 'weight' => 1],
+                ['label' => 'b', 'weight' => 2],
+            ],
             'is_active' => true,
         ]);
 
@@ -186,12 +184,10 @@ class WorkspaceConfigHubTest extends TestCase
             'criteria_code' => 'H1',
             'criteria_name' => 'Tiêu chí HCNS',
             'category' => 'PB',
-            'scoring_type' => 'scale',
-            'score_1' => 'a',
-            'score_2' => 'b',
-            'score_3' => 'c',
-            'score_4' => 'd',
-            'score_5' => 'e',
+            'score_levels' => [
+                ['label' => 'a', 'weight' => 1],
+                ['label' => 'b', 'weight' => 2],
+            ],
             'is_active' => true,
         ]);
 
@@ -202,12 +198,10 @@ class WorkspaceConfigHubTest extends TestCase
             'criteria_code' => 'C1',
             'criteria_name' => 'Tiêu chí CNTT',
             'category' => 'PB',
-            'scoring_type' => 'scale',
-            'score_1' => 'a',
-            'score_2' => 'b',
-            'score_3' => 'c',
-            'score_4' => 'd',
-            'score_5' => 'e',
+            'score_levels' => [
+                ['label' => 'a', 'weight' => 1],
+                ['label' => 'b', 'weight' => 2],
+            ],
             'is_active' => true,
         ]);
 
