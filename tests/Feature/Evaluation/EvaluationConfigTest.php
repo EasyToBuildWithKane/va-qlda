@@ -4,7 +4,6 @@ namespace Tests\Feature\Evaluation;
 
 use App\Models\Department;
 use App\Models\Evaluation\EvaluationConfig;
-use App\Models\Evaluation\EvaluationTemplate;
 use App\Models\SystemAccount;
 use App\Support\Enums\EvaluationTemplateType;
 use App\Support\Enums\SystemRole;
@@ -33,7 +32,7 @@ class EvaluationConfigTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('WorkspaceConfig/Evaluation/Index')
                 ->has('summary')
-                ->has('templates')
+                ->missing('templates')
                 ->where('can.manage', true)
             );
     }
@@ -50,12 +49,8 @@ class EvaluationConfigTest extends TestCase
         $this->get('/workspace-config/evaluation')->assertRedirect('/login');
     }
 
-    public function test_super_admin_can_create_config_from_template(): void
+    public function test_super_admin_can_create_config_with_criteria(): void
     {
-        $template = EvaluationTemplate::query()
-            ->where('template_type', EvaluationTemplateType::PointSystem)
-            ->firstOrFail();
-
         Department::query()->create([
             'code' => 'HCNS',
             'name' => 'Hành Chính Nhân Sự',
@@ -68,7 +63,6 @@ class EvaluationConfigTest extends TestCase
             ->post('/workspace-config/evaluation', [
                 'department_code' => 'HCNS',
                 'department_name' => 'Hành Chính Nhân Sự',
-                'template_id' => $template->id,
                 'template_type' => 'point_system',
                 'config_name' => 'ĐG HCNS T1/2026',
                 'description' => 'Bộ quy tắc tháng 1',
@@ -76,13 +70,26 @@ class EvaluationConfigTest extends TestCase
                 'effective_to' => '2026-01-31',
                 'base_score' => 100,
                 'is_active' => true,
-                'apply_template' => true,
+                'criteria' => [
+                    [
+                        'criteria_code' => 'A1',
+                        'criteria_name' => 'Chủ động',
+                        'category' => 'Điểm Cộng',
+                        'point_value' => 5,
+                    ],
+                    [
+                        'criteria_code' => 'B1',
+                        'criteria_name' => 'Trễ deadline',
+                        'category' => 'Điểm Trừ',
+                        'point_value' => -2,
+                    ],
+                ],
             ]);
 
         $config = EvaluationConfig::query()->where('config_name', 'ĐG HCNS T1/2026')->first();
         $this->assertNotNull($config);
         $response->assertRedirect(route('workspace.evaluation.show', $config));
-        $this->assertGreaterThan(10, $config->criteria()->count());
+        $this->assertSame(2, $config->criteria()->count());
         $this->assertSame(100, $config->base_score);
     }
 
@@ -132,16 +139,5 @@ class EvaluationConfigTest extends TestCase
             ->assertRedirect(route('workspace.evaluation.index'));
 
         $this->assertSoftDeleted('evaluation_configs', ['id' => $config->id]);
-    }
-
-    public function test_templates_are_seeded_by_migration(): void
-    {
-        $this->assertSame(2, EvaluationTemplate::query()->count());
-        $this->assertTrue(
-            EvaluationTemplate::query()->where('template_type', EvaluationTemplateType::PointSystem)->exists()
-        );
-        $this->assertTrue(
-            EvaluationTemplate::query()->where('template_type', EvaluationTemplateType::Scorecard)->exists()
-        );
     }
 }

@@ -621,10 +621,17 @@ class Navigation
                 'key' => 'settings_workspace',
                 'section' => 'system',
                 'heading' => 'Cấu hình workspace',
-                'icon' => 'award',
+                'icon' => 'system-config',
                 'defaultCollapsed' => true,
                 'superOnly' => true,
                 'items' => [
+                    [
+                        'label' => 'Tổng quan',
+                        'icon' => 'system-config',
+                        'href' => '/workspace-config',
+                        'status' => 'live',
+                        'roles' => ['admin'],
+                    ],
                     [
                         'label' => 'Cấu hình đánh giá',
                         'icon' => 'award',

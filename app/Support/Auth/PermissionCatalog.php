@@ -131,9 +131,10 @@ final class PermissionCatalog
             ]],
 
             // ── RESERVED — chỉ super_admin ───────────────────────────
-            'workspace' => ['label' => 'Cấu hình workspace', 'icon' => 'award', 'group' => 'Quản trị tối cao', 'abilities' => [
+            'workspace' => ['label' => 'Cấu hình workspace', 'icon' => 'system-config', 'group' => 'Quản trị tối cao', 'abilities' => [
                 'evaluation.view' => 'Xem cấu hình đánh giá',
                 'evaluation.manage' => 'Quản lý cấu hình đánh giá',
+                // Thêm ability theo domain khi mở rộng hub (vd. cycle.view).
             ]],
             'system' => ['label' => 'Cấu hình hệ thống', 'icon' => 'system-config', 'group' => 'Quản trị tối cao', 'abilities' => [
                 'settings.view' => 'Xem cấu hình', 'settings.manage' => 'Sửa cấu hình hệ thống',

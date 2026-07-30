@@ -27,7 +27,6 @@ class UpdateEvaluationConfigRequest extends FormRequest
             'department_code' => ['required', 'string', 'max:100'],
             'department_name' => ['required', 'string', 'max:255'],
             'local_department_id' => ['nullable', 'integer', 'exists:departments,id'],
-            'template_id' => ['nullable', 'integer', 'exists:evaluation_templates,id'],
             'template_type' => ['required', Rule::in(EvaluationTemplateType::values())],
             'config_name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:5000'],

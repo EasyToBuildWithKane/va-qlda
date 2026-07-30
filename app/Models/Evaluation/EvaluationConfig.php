@@ -16,7 +16,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string $department_code
  * @property string $department_name
  * @property int|null $local_department_id
- * @property int|null $template_id
  * @property EvaluationTemplateType $template_type
  * @property string $config_name
  * @property string|null $description
@@ -34,7 +33,6 @@ class EvaluationConfig extends Model
         'department_code',
         'department_name',
         'local_department_id',
-        'template_id',
         'template_type',
         'config_name',
         'description',
@@ -58,11 +56,6 @@ class EvaluationConfig extends Model
         return $this->hasMany(EvaluationCriterion::class, 'config_id')
             ->orderBy('sort_order')
             ->orderBy('id');
-    }
-
-    public function template(): BelongsTo
-    {
-        return $this->belongsTo(EvaluationTemplate::class, 'template_id');
     }
 
     public function localDepartment(): BelongsTo

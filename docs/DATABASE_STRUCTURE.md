@@ -644,12 +644,10 @@ Lưu **override** cấu hình runtime (admin chỉnh ở `/settings`). Bảng tr
 
 ### 3.29 va_prd_evaluation_* — Cấu hình đánh giá workspace
 
-Xem `docs/EVALUATION_CONFIG.md`. Migration `2026_07_29_160000_create_evaluation_config_tables`.
+Xem `docs/EVALUATION_CONFIG.md`. Migration `2026_07_29_160000_create_evaluation_config_tables` (+ `2026_07_30_120000_drop_evaluation_templates` gỡ catalog mẫu).
 
 | Bảng | Mô tả |
 |------|--------|
-| `evaluation_templates` | Mẫu chung (`template_type`: point_system \| scorecard, `is_system`) |
-| `evaluation_template_criteria` | Catalog tiêu chí mẫu (point_value / weight / required_score…) |
 | `evaluation_configs` | Cấu hình theo `department_code` + hiệu lực; SoftDeletes; unique (dept, type, effective_from) |
 | `evaluation_criteria` | Tiêu chí thuộc config |
 

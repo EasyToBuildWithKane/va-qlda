@@ -4,8 +4,6 @@ namespace App\Http\Resources\Evaluation;
 
 use App\Models\Evaluation\EvaluationConfig;
 use App\Models\Evaluation\EvaluationCriterion;
-use App\Models\Evaluation\EvaluationTemplate;
-use App\Models\Evaluation\EvaluationTemplateCriterion;
 use App\Support\Enums\EvaluationTemplateType;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -13,7 +11,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /** @mixin EvaluationConfig */
 class EvaluationConfigResource extends JsonResource
 {
-    public static function criterionPayload(EvaluationCriterion|EvaluationTemplateCriterion $c): array
+    public static function criterionPayload(EvaluationCriterion $c): array
     {
         return [
             'id' => $c->id,
@@ -33,7 +31,7 @@ class EvaluationConfigResource extends JsonResource
     }
 
     /**
-     * @param  iterable<EvaluationCriterion|EvaluationTemplateCriterion>  $criteria
+     * @param  iterable<EvaluationCriterion>  $criteria
      * @return list<array{category:string, criteria:list<array<string,mixed>>}>
      */
     public static function groupCriteria(iterable $criteria): array
@@ -48,29 +46,6 @@ class EvaluationConfigResource extends JsonResource
         }
 
         return array_values($groups);
-    }
-
-    public static function templatePayload(EvaluationTemplate $template, bool $withCriteria = false): array
-    {
-        $payload = [
-            'id' => $template->id,
-            'name' => $template->name,
-            'template_type' => $template->template_type->value,
-            'template_type_label' => $template->template_type->label(),
-            'description' => $template->description,
-            'is_system' => (bool) $template->is_system,
-            'criteria_count' => $template->relationLoaded('criteria')
-                ? $template->criteria->count()
-                : ($template->criteria_count ?? null),
-        ];
-
-        if ($withCriteria) {
-            $template->loadMissing('criteria');
-            $payload['criteria'] = $template->criteria->map(fn ($c) => self::criterionPayload($c))->values()->all();
-            $payload['criteria_groups'] = self::groupCriteria($template->criteria);
-        }
-
-        return $payload;
     }
 
     /**
@@ -89,7 +64,6 @@ class EvaluationConfigResource extends JsonResource
             'department_code' => $config->department_code,
             'department_name' => $config->department_name,
             'local_department_id' => $config->local_department_id,
-            'template_id' => $config->template_id,
             'template_type' => $type->value,
             'template_type_label' => $type->label(),
             'config_name' => $config->config_name,
@@ -109,10 +83,6 @@ class EvaluationConfigResource extends JsonResource
         if ($config->relationLoaded('criteria')) {
             $payload['criteria'] = $config->criteria->map(fn ($c) => self::criterionPayload($c))->values()->all();
             $payload['criteria_groups'] = self::groupCriteria($config->criteria);
-        }
-
-        if ($config->relationLoaded('template') && $config->template) {
-            $payload['template'] = self::templatePayload($config->template);
         }
 
         if ($config->relationLoaded('creator') && $config->creator) {

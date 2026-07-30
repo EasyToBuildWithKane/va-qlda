@@ -11,9 +11,7 @@ use App\Http\Requests\Evaluation\UpdateEvaluationCriterionRequest;
 use App\Http\Resources\Evaluation\EvaluationConfigResource;
 use App\Models\Evaluation\EvaluationConfig;
 use App\Models\Evaluation\EvaluationCriterion;
-use App\Models\Evaluation\EvaluationTemplate;
 use App\Support\Enums\EvaluationTemplateType;
-use App\Support\Evaluation\EvaluationConfigFactory;
 use App\Support\Evaluation\HrmDepartmentDirectory;
 use App\Support\SecurityAuditLogger;
 use Illuminate\Http\RedirectResponse;
@@ -26,7 +24,6 @@ class EvaluationConfigController extends Controller
 {
     public function __construct(
         private readonly HrmDepartmentDirectory $departments,
-        private readonly EvaluationConfigFactory $factory,
     ) {}
 
     public function index(Request $request): Response
@@ -38,6 +35,8 @@ class EvaluationConfigController extends Controller
             'department_code' => trim((string) $request->query('department_code', '')),
             'template_type' => trim((string) $request->query('template_type', '')),
             'status' => trim((string) $request->query('status', '')),
+            'effective_from' => trim((string) $request->query('effective_from', '')),
+            'effective_to' => trim((string) $request->query('effective_to', '')),
             'per_page' => min(50, max(10, (int) $request->query('per_page', 20))),
         ];
 
@@ -51,7 +50,8 @@ class EvaluationConfigController extends Controller
             $query->where(function ($builder) use ($q) {
                 $builder->where('config_name', 'like', "%{$q}%")
                     ->orWhere('department_name', 'like', "%{$q}%")
-                    ->orWhere('department_code', 'like', "%{$q}%");
+                    ->orWhere('department_code', 'like', "%{$q}%")
+                    ->orWhere('description', 'like', "%{$q}%");
             });
         }
 
@@ -71,6 +71,19 @@ class EvaluationConfigController extends Controller
             $query->currentlyEffective();
         }
 
+        // Overlap: cấu hình còn hiệu lực trong khoảng lọc [from, to]
+        if ($filters['effective_from'] !== '') {
+            $from = $filters['effective_from'];
+            $query->where(function ($builder) use ($from) {
+                $builder->whereNull('effective_to')
+                    ->orWhereDate('effective_to', '>=', $from);
+            });
+        }
+        if ($filters['effective_to'] !== '') {
+            $to = $filters['effective_to'];
+            $query->whereDate('effective_from', '<=', $to);
+        }
+
         $paginator = $query->paginate($filters['per_page'])->withQueryString();
 
         $items = collect($paginator->items())
@@ -86,14 +99,6 @@ class EvaluationConfigController extends Controller
             'point_system' => EvaluationConfig::query()->where('template_type', EvaluationTemplateType::PointSystem)->count(),
             'scorecard' => EvaluationConfig::query()->where('template_type', EvaluationTemplateType::Scorecard)->count(),
         ];
-
-        $templates = EvaluationTemplate::query()
-            ->withCount('criteria')
-            ->orderBy('id')
-            ->get()
-            ->map(fn (EvaluationTemplate $t) => EvaluationConfigResource::templatePayload($t))
-            ->values()
-            ->all();
 
         return Inertia::render('WorkspaceConfig/Evaluation/Index', [
             'configs' => [
@@ -111,7 +116,6 @@ class EvaluationConfigController extends Controller
             'filters' => $filters,
             'summary' => $summary,
             'departments' => $this->departments->all(),
-            'templates' => $templates,
             'templateTypeOptions' => EvaluationTemplateType::options(),
             'can' => [
                 'manage' => $request->user()->can('create', EvaluationConfig::class),
@@ -130,9 +134,8 @@ class EvaluationConfigController extends Controller
     {
         $data = $request->validated();
         $type = EvaluationTemplateType::from($data['template_type']);
-        $applyTemplate = (bool) ($data['apply_template'] ?? false);
         $criteriaInput = $data['criteria'] ?? null;
-        unset($data['apply_template'], $data['criteria']);
+        unset($data['criteria']);
 
         if ($type === EvaluationTemplateType::PointSystem) {
             $data['base_score'] = $data['base_score'] ?? 100;
@@ -149,14 +152,11 @@ class EvaluationConfigController extends Controller
             $data['local_department_id'] = $data['local_department_id'] ?? $dept['local_department_id'];
         }
 
-        $config = DB::transaction(function () use ($data, $applyTemplate, $criteriaInput, $type) {
+        $config = DB::transaction(function () use ($data, $criteriaInput, $type) {
             /** @var EvaluationConfig $config */
             $config = EvaluationConfig::query()->create($data);
 
-            if ($applyTemplate && ! empty($data['template_id'])) {
-                $template = EvaluationTemplate::query()->findOrFail($data['template_id']);
-                $this->factory->copyFromTemplate($config, $template);
-            } elseif (is_array($criteriaInput)) {
+            if (is_array($criteriaInput)) {
                 $this->syncCriteria($config, $criteriaInput, $type);
             }
 
@@ -179,7 +179,7 @@ class EvaluationConfigController extends Controller
     {
         $this->authorize('view', $evaluationConfig);
 
-        $evaluationConfig->load(['criteria', 'template', 'creator:id,display_name']);
+        $evaluationConfig->load(['criteria', 'creator:id,display_name']);
 
         return Inertia::render('WorkspaceConfig/Evaluation/Show', [
             'config' => (new EvaluationConfigResource($evaluationConfig))->resolve(),
@@ -193,7 +193,7 @@ class EvaluationConfigController extends Controller
     {
         $this->authorize('update', $evaluationConfig);
 
-        $evaluationConfig->load(['criteria', 'template']);
+        $evaluationConfig->load(['criteria']);
 
         return Inertia::render('WorkspaceConfig/Evaluation/Edit', [
             ...$this->formPayload($request),
@@ -257,33 +257,6 @@ class EvaluationConfigController extends Controller
         return redirect()
             ->route('workspace.evaluation.index')
             ->with('success', 'Đã xóa cấu hình đánh giá.');
-    }
-
-    public function applyTemplate(Request $request, EvaluationConfig $evaluationConfig): RedirectResponse
-    {
-        $this->authorize('update', $evaluationConfig);
-
-        $data = $request->validate([
-            'template_id' => ['required', 'integer', 'exists:evaluation_templates,id'],
-        ], [
-            'template_id.required' => 'Vui lòng chọn mẫu phiếu.',
-        ]);
-
-        $template = EvaluationTemplate::query()->findOrFail($data['template_id']);
-        $this->factory->copyFromTemplate($evaluationConfig, $template);
-
-        if ($template->template_type === EvaluationTemplateType::PointSystem && $evaluationConfig->base_score === null) {
-            $evaluationConfig->update(['base_score' => 100]);
-        }
-
-        SecurityAuditLogger::evaluation(
-            $request->user(),
-            'template_applied',
-            $evaluationConfig->id,
-            ['template_id' => $template->id, 'template_name' => $template->name]
-        );
-
-        return back()->with('success', 'Đã áp dụng mẫu phiếu vào cấu hình.');
     }
 
     public function storeCriterion(StoreEvaluationCriterionRequest $request, EvaluationConfig $evaluationConfig): RedirectResponse
@@ -367,18 +340,8 @@ class EvaluationConfigController extends Controller
      */
     private function formPayload(Request $request): array
     {
-        $templates = EvaluationTemplate::query()
-            ->with('criteria')
-            ->withCount('criteria')
-            ->orderBy('id')
-            ->get()
-            ->map(fn (EvaluationTemplate $t) => EvaluationConfigResource::templatePayload($t, true))
-            ->values()
-            ->all();
-
         return [
             'departments' => $this->departments->all(),
-            'templates' => $templates,
             'templateTypeOptions' => EvaluationTemplateType::options(),
             'can' => [
                 'manage' => $request->user()->can('create', EvaluationConfig::class),

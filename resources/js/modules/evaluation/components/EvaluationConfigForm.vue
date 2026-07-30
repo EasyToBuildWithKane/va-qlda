@@ -10,7 +10,6 @@ const props = defineProps({
     mode: { type: String, default: 'create' }, // create | edit
     config: { type: Object, default: null },
     departments: { type: Array, default: () => [] },
-    templates: { type: Array, default: () => [] },
     templateTypeOptions: { type: Array, default: () => [] },
 });
 
@@ -20,7 +19,6 @@ const form = useForm({
     department_code: props.config?.department_code || '',
     department_name: props.config?.department_name || '',
     local_department_id: props.config?.local_department_id || null,
-    template_id: props.config?.template_id || null,
     template_type: props.config?.template_type || 'point_system',
     config_name: props.config?.config_name || '',
     description: props.config?.description || '',
@@ -28,15 +26,10 @@ const form = useForm({
     effective_to: props.config?.effective_to || '',
     base_score: props.config?.base_score ?? 100,
     is_active: props.config?.is_active ?? true,
-    apply_template: false,
     criteria: props.config?.criteria ? [...props.config.criteria] : [],
 });
 
 const isPoint = computed(() => form.template_type === 'point_system');
-
-const filteredTemplates = computed(() => props.templates.filter(
-    (t) => t.template_type === form.template_type,
-));
 
 watch(() => form.department_code, (code) => {
     const dept = props.departments.find((d) => d.code === code);
@@ -64,7 +57,6 @@ async function onTemplateTypeChange(event) {
             return;
         }
         form.criteria = [];
-        form.template_id = null;
     }
 
     form.template_type = next;
@@ -73,47 +65,8 @@ async function onTemplateTypeChange(event) {
     }
 }
 
-async function applySelectedTemplate() {
-    if (!form.template_id) return;
-    const tpl = props.templates.find((t) => t.id === Number(form.template_id));
-    if (!tpl) return;
-
-    if (form.criteria.length > 0) {
-        const ok = await dialog.confirm({
-            title: 'Áp dụng mẫu phiếu?',
-            message: 'Tiêu chí hiện tại sẽ được thay bằng tiêu chí của mẫu. Tiếp tục?',
-            confirmText: 'Áp dụng',
-            cancelText: 'Hủy',
-        });
-        if (!ok) return;
-    }
-
-    form.template_type = tpl.template_type;
-    form.criteria = (tpl.criteria || []).map((c) => ({
-        id: null,
-        criteria_code: c.criteria_code,
-        criteria_name: c.criteria_name,
-        category: c.category,
-        description: c.description,
-        point_value: c.point_value,
-        max_points: c.max_points,
-        max_frequency: c.max_frequency,
-        weight: c.weight,
-        required_score: c.required_score,
-        importance: c.importance,
-        sort_order: c.sort_order,
-        is_active: true,
-    }));
-    form.apply_template = props.mode === 'create';
-}
-
 function submit() {
     form.base_score = isPoint.value ? form.base_score : null;
-    if (form.criteria.length > 0) {
-        form.apply_template = false;
-    } else if (props.mode === 'create' && form.template_id) {
-        form.apply_template = true;
-    }
 
     if (props.mode === 'create') {
         form.post(route('workspace.evaluation.store'), { preserveScroll: true });
@@ -259,37 +212,6 @@ function submit() {
     </div>
 
     <div class="card space-y-4 p-5">
-      <div class="flex flex-wrap items-end gap-3">
-        <label class="block min-w-[14rem] flex-1 space-y-1.5">
-          <span class="text-xs font-medium text-slate-600">Áp dụng mẫu phiếu</span>
-          <select
-            v-model="form.template_id"
-            class="input h-10 w-full text-sm"
-          >
-            <option :value="null">Không chọn mẫu</option>
-            <option
-              v-for="t in filteredTemplates"
-              :key="t.id"
-              :value="t.id"
-            >
-              {{ t.name }} ({{ t.criteria_count ?? (t.criteria?.length || 0) }} tiêu chí)
-            </option>
-          </select>
-        </label>
-        <button
-          type="button"
-          class="btn-ghost inline-flex h-10 items-center gap-1.5 px-3 text-sm"
-          :disabled="!form.template_id"
-          @click="applySelectedTemplate"
-        >
-          <AppIcon
-            name="template"
-            :size="15"
-          />
-          Áp dụng mẫu
-        </button>
-      </div>
-
       <EvaluationCriteriaEditor
         v-model="form.criteria"
         :template-type="form.template_type"

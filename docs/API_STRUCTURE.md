@@ -8,7 +8,7 @@
 
 ```
 routes/web.php      ← Loader mỏng: wire 2 nhóm middleware (guest / auth) rồi require web/*.php
-routes/web/*.php    ← 17 partial theo domain (auth, dashboard, projects, contracts, evaluation, …)
+routes/web/*.php    ← partial theo domain (auth, dashboard, projects, contracts, workspace-config, …)
 routes/api.php      ← Rỗng (chưa sử dụng)
 ```
 
@@ -299,22 +299,29 @@ Chi tiết: [`docs/SYSTEM_CONFIG.md`](SYSTEM_CONFIG.md).
 | PUT | `/settings/{group}` | SystemSettingController@update | `general`, `auth`, `telegram`, `email`, `permissions` |
 | GET/PUT/POST | `/settings/email-templates/*` | SystemSettingController | Mẫu email |
 
+### 2.x Cấu hình workspace (super-admin)
+
+| Method | URI | Controller | Mô tả |
+|--------|-----|------------|--------|
+| GET | `/workspace-config` | WorkspaceConfigController@index | Hub danh mục mục cấu hình |
+
+Chi tiết module: [`WORKSPACE_CONFIG.md`](WORKSPACE_CONFIG.md).
+
 ### 2.x Cấu hình đánh giá workspace (super-admin)
 
 | Method | URI | Controller | Mô tả |
 |--------|-----|------------|--------|
 | GET | `/workspace-config/evaluation` | EvaluationConfigController@index | Danh sách cấu hình |
 | GET | `/workspace-config/evaluation/create` | EvaluationConfigController@create | Form tạo |
-| POST | `/workspace-config/evaluation` | EvaluationConfigController@store | Tạo + tiêu chí / áp dụng mẫu |
+| POST | `/workspace-config/evaluation` | EvaluationConfigController@store | Tạo + tiêu chí |
 | GET | `/workspace-config/evaluation/{evaluationConfig}` | EvaluationConfigController@show | Chi tiết |
 | GET | `/workspace-config/evaluation/{evaluationConfig}/edit` | EvaluationConfigController@edit | Form sửa |
 | PUT | `/workspace-config/evaluation/{evaluationConfig}` | EvaluationConfigController@update | Cập nhật |
 | DELETE | `/workspace-config/evaluation/{evaluationConfig}` | EvaluationConfigController@destroy | Soft delete |
-| POST | `.../apply-template` | EvaluationConfigController@applyTemplate | Copy tiêu chí từ mẫu |
 | POST/PUT/DELETE | `.../criteria[/{criterion}]` | EvaluationConfigController | CRUD tiêu chí |
 | POST | `.../criteria/reorder` | EvaluationConfigController@reorderCriteria | Đổi thứ tự |
 
-Chi tiết: [`EVALUATION_CONFIG.md`](EVALUATION_CONFIG.md).
+Chi tiết: [`EVALUATION_CONFIG.md`](EVALUATION_CONFIG.md) · module cha [`WORKSPACE_CONFIG.md`](WORKSPACE_CONFIG.md).
 
 
 ### 2.20 Realtime & Comments (cross-cutting)
@@ -408,7 +415,10 @@ Credential Management Group
 
 Settings Group (admin)
 └── /settings/*                       (groups + email templates)
-└── /workspace-config/evaluation/*    (cấu hình đánh giá — super-admin)
+
+Workspace Config Group (super-admin)
+├── /workspace-config                 (hub — danh mục mục cấu hình)
+└── /workspace-config/evaluation/*    (cấu hình đánh giá)
 
 Knowledge Base Group
 ├── /knowledge-base                    (index — Inertia)

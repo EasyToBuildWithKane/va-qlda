@@ -34,9 +34,9 @@ Route::middleware(['auth'])->group(function () {
         'ai-accounts',     // tài khoản AI (API + pages)
         'credentials',     // kho mật khẩu (API + pages)
         'people',          // profile, members, org-teams, departments
-        'settings',        // cấu hình hệ thống (super-admin)
-        'evaluation',      // cấu hình đánh giá workspace (super-admin)
-        'comments',        // bình luận đa hình + realtime token
+        'settings',          // cấu hình hệ thống (super-admin)
+        'workspace-config',  // cấu hình workspace hub + đánh giá (super-admin)
+        'comments',          // bình luận đa hình + realtime token
     ] as $partial) {
         require __DIR__."/web/{$partial}.php";
     }

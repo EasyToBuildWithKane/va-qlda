@@ -1,6 +1,6 @@
 # FRONTEND STRUCTURE — VA Workspace
 
-> **Cập nhật 2026-07-29** — Gỡ `modules/people` (org UI); thêm `modules/evaluation` (cấu hình đánh giá). DailyReport + KnowledgeBase trong `modules/`; Content header (`PageHeader` + `#header`); FullCalendar (lịch dự án).
+> **Cập nhật 2026-07-30** — Hub `WorkspaceConfig` + `modules/workspace-config`; evaluation là item con. Gỡ `modules/people` (org UI). DailyReport + KnowledgeBase trong `modules/`; Content header (`PageHeader` + `#header`); FullCalendar (lịch dự án).
 
 > Rule agent: `.cursor/rules/content-header.mdc` · skill `content-header`.
 
@@ -66,11 +66,12 @@ resources/js/
 │   ├── credential/               ← Kho mật khẩu: components, composables
 │   ├── performance/              ← Dashboard + audit components/composables
 │   ├── profile/                  ← Hồ sơ (/profile): HR identity + skill matrix **read-only** (mirror VA-HRM); không form identity/avatar/skill local
-│   ├── onboarding/               ← SmartContextHint (useOnboarding, useSmartContext, OnboardingRoot)
+│   ├── onboarding/               ← useOnboarding / useSmartContext (hint UI đã gỡ khỏi AppLayout)
 │   ├── notifications/            ← Bell, center drawer, preferences
 │   ├── audit/                    ← Audit trail viewer components/composables
 │   ├── aiAccount/                ← Tài khoản AI: composables + components/scan (ProposalScanModal — OCR PĐX, useProposalScan)
-│   └── evaluation/               ← Cấu hình đánh giá workspace: SummaryBar, ConfigForm, CriteriaEditor
+│   ├── evaluation/               ← Cấu hình đánh giá: SummaryBar, ConfigForm, CriteriaEditor, columns, export
+│   └── workspace-config/         ← Hub cấu hình workspace: ItemGrid (catalog từ backend)
 ├── shared/                   ← Cross-module (Phase 2 + 4)
 │   ├── ui/                   ← Badge, Avatar, ProgressBar, form/*, **KpiSummaryStrip**, …
 │   └── composables/          ← useToast, usePermission, useFilter, useOrgTeamPeople (Congnghe chart)
@@ -119,7 +120,8 @@ AppChrome.vue (persistent shell)
 | Blocker / Feedback | `Index`, `Show` (Feedback) — Index: **`FeedbackSummaryBar`** (dải KPI `kpi-strip` / `kpi-card`, lọc nhanh scope/status; rule `kpi-summary-strip`) + datagrid toolbar (Lọc/Cột), `FilterDatePicker` khoảng ngày, `FeedbackListRowActions` |
 | Profile | `Pages/Profile/Show.vue` — hồ sơ cá nhân; org directory UI đã gỡ (HRM) |
 | Performance | `Pages/Performance/Dashboard.vue` · **`Audit.vue`** (danh sách audit nhân sự, segmented Tuần/Tháng/Quý, cột **Kỳ** = nhóm dòng collapse theo kỳ con — pattern `Blocker/Index`, `emptyDisplay.js`, `PerformanceAuditSummaryBar` mode list) · **`AuditShow.vue`** (timeline + `PerformanceFilterBar`, back về index) |
-| Evaluation config | `Pages/WorkspaceConfig/Evaluation/{Index,Create,Edit,Show}.vue` + `modules/evaluation/components/` — super-admin; KPI strip + datagrid |
+| Evaluation config | `Pages/WorkspaceConfig/Evaluation/{Index,Create,Edit,Show}.vue` + `modules/evaluation/` — super-admin; KPI strip + Lọc/Cột/Xuất; nhóm collapse theo phòng ban; Thêm mới trong PageHeader |
+| Workspace config hub | `Pages/WorkspaceConfig/Hub.vue` + `modules/workspace-config/` — danh mục mục cấu hình (`/workspace-config`); doc `WORKSPACE_CONFIG.md` |
 | Notifications | `Pages/Notifications/Management.vue` |
 
 Pages import feature components từ `@/modules/project/components/...` và primitives từ `@/shared/ui/...`.

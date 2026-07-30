@@ -6,7 +6,6 @@ import EvaluationConfigForm from '@/modules/evaluation/components/EvaluationConf
 
 defineProps({
     departments: { type: Array, default: () => [] },
-    templates: { type: Array, default: () => [] },
     templateTypeOptions: { type: Array, default: () => [] },
     can: { type: Object, default: () => ({}) },
 });
@@ -28,7 +27,6 @@ defineProps({
     <EvaluationConfigForm
       mode="create"
       :departments="departments"
-      :templates="templates"
       :template-type-options="templateTypeOptions"
     />
   </AppLayout>

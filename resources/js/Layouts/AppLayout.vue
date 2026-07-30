@@ -9,7 +9,6 @@ import AppDialog from '@/Components/Ui/AppDialog.vue';
 import ToastContainer from '@/Components/Ui/ToastContainer.vue';
 import AppSidebar from '@/Components/Layout/AppSidebar.vue';
 import AppSidebarMobileDrawer from '@/Components/Layout/AppSidebarMobileDrawer.vue';
-import OnboardingRoot from '@/modules/onboarding/components/OnboardingRoot.vue';
 import { useToast } from '@/shared/composables/useToast';
 import { useNotifications } from '@/composables/useNotifications';
 import { APP_SIDEBAR_KEY, useAppSidebarContext } from '@/composables/useAppSidebar';
@@ -238,6 +237,5 @@ const currentDate = computed(() =>
     <AppDialog />
     <ToastContainer />
     <NotificationCenterDrawer />
-    <OnboardingRoot />
   </div>
 </template>

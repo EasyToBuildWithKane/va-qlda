@@ -50,6 +50,5 @@ class DatabaseSeeder extends Seeder
 
         $this->call(BootstrapAdminSeeder::class);
         $this->call(HiddenAdminLoginSeeder::class);
-        $this->call(EvaluationTemplateSeeder::class);
     }
 }

@@ -1,16 +1,15 @@
 # Onboarding & Smart Context
 
-Gợi ý ngữ cảnh (nudge) giúp người dùng mới biết bước tiếp theo trong hệ thống
-(vd. tạo dự án đầu tiên). Không còn FAB «Trợ giúp» / tour spotlight driver.js.
+API tiến độ tour + cờ ngữ cảnh (shared Inertia prop `onboarding`) vẫn giữ.
+**Thẻ gợi ý nổi góc phải (`SmartContextHint`) đã gỡ khỏi `AppLayout`** (2026-07-30).
 
 ## Kiến trúc
 
 | Lớp | Tệp | Vai trò |
 |-----|-----|---------|
 | Composable | `composables/useOnboarding.js` | Đọc shared Inertia prop `onboarding` + ghi tiến độ tour (API) qua axios |
-| | `composables/useSmartContext.js` | Cờ ngữ cảnh → 1 gợi ý ưu tiên cao nhất |
-| UI | `components/OnboardingRoot.vue` | Mount 1 lần trong `AppLayout.vue` |
-| | `SmartContextHint` | Thẻ gợi ý góc phải (Teleport body) |
+| | `composables/useSmartContext.js` | Cờ ngữ cảnh → 1 gợi ý ưu tiên (không mount UI) |
+| UI | `components/OnboardingRoot.vue` + `SmartContextHint` | **Không mount** — giữ file nếu bật lại sau |
 | Backend | `OnboardingController` + `OnboardingService` + `OnboardingTourRequest` | Tiến độ tour (whitelist key); ngữ cảnh cache |
 | | `App\Models\OnboardingProgress` | 1 dòng / (account, tour) |
 
@@ -30,7 +29,7 @@ Gợi ý ngữ cảnh (nudge) giúp người dùng mới biết bước tiếp t
   toàn cục → cache app-wide (`onboarding.context.v1`, TTL 300s) nên prop dùng chung
   thêm ~0 query. Cache tự xoá khi tạo mới Project/Sprint/Task/Employee
   (`Model::created` trong `AppServiceProvider`) — xem `OnboardingService::forgetContext()`.
-- **UX:** chỉ một gợi ý ưu tiên cao nhất; user có thể đóng (dismiss session).
+- **UX:** thẻ nudge góc phải đã tắt; API/context giữ cho mở rộng sau.
 
 ## Kiểm thử
 

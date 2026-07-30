@@ -92,7 +92,7 @@ function formatPoint(value) {
       v-if="rows.length === 0"
       class="rounded-lg border border-dashed border-slate-200 bg-slate-50/80 px-4 py-8 text-center text-sm text-slate-500"
     >
-      Chưa có tiêu chí. {{ readonly ? '' : 'Bấm «Thêm tiêu chí» hoặc áp dụng mẫu phiếu.' }}
+      Chưa có tiêu chí. {{ readonly ? '' : 'Bấm «Thêm tiêu chí» để bắt đầu.' }}
     </div>
 
     <div
