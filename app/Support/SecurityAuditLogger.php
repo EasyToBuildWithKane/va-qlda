@@ -190,6 +190,6 @@ class SecurityAuditLogger
     /** @param array<string,mixed> $meta */
     public static function evaluation(SystemAccount $actor, string $event, ?int $subjectId, array $meta = []): void
     {
-        self::log($actor, "evaluation.{$event}", 'evaluation_config', $subjectId, $meta);
+        self::log($actor, "evaluation.{$event}", 'evaluation_criterion', $subjectId, $meta);
     }
 }

@@ -15,7 +15,7 @@ use App\Models\Contract;
 use App\Models\Credential;
 use App\Models\Department;
 use App\Models\Employee;
-use App\Models\Evaluation\EvaluationConfig;
+use App\Models\Evaluation\EvaluationCriterion;
 use App\Models\Feedback;
 use App\Models\KbArticle;
 use App\Models\Project;
@@ -36,7 +36,7 @@ use App\Policies\CredentialPolicy;
 use App\Policies\DailyReportPolicy;
 use App\Policies\DepartmentPolicy;
 use App\Policies\EmployeePolicy;
-use App\Policies\EvaluationConfigPolicy;
+use App\Policies\EvaluationCriterionPolicy;
 use App\Policies\FeedbackPolicy;
 use App\Policies\KbArticlePolicy;
 use App\Policies\ProjectPolicy;
@@ -71,7 +71,7 @@ class AuthServiceProvider extends ServiceProvider
         AiProposalScan::class => AiProposalScanPolicy::class,
         AiPurchaseProposal::class => AiPurchaseProposalPolicy::class,
         SystemSetting::class => SystemSettingPolicy::class,
-        EvaluationConfig::class => EvaluationConfigPolicy::class,
+        EvaluationCriterion::class => EvaluationCriterionPolicy::class,
         CongngheSection::class => CongngheContentPolicy::class,
         KbArticle::class => KbArticlePolicy::class,
         CongngheSoftwareProposal::class => CongngheSoftwareProposalPolicy::class,

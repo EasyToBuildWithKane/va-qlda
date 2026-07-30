@@ -8,28 +8,34 @@ import AppIcon from '@/Components/AppIcon.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import Badge from '@/shared/ui/Badge.vue';
 import EvaluationSummaryBar from '@/modules/evaluation/components/EvaluationSummaryBar.vue';
+import EvaluationCriterionFormModal from '@/modules/evaluation/components/EvaluationCriterionFormModal.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import DatagridToolbarActionButton from '@/shared/ui/DatagridToolbarActionButton.vue';
 import DatagridFilterField from '@/shared/ui/DatagridFilterField.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import ColumnVisibilityDropdown from '@/shared/ui/ColumnVisibilityDropdown.vue';
-import FilterDatePicker from '@/shared/ui/FilterDatePicker.vue';
 import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
 import { EVALUATION_TABLE_COLUMNS } from '@/modules/evaluation/config/columns.js';
-import { exportEvaluationWorkbook } from '@/modules/evaluation/composables/useEvaluationExport.js';
+import {
+    exportEvaluationWorkbook,
+    exportEvaluationCsv,
+} from '@/modules/evaluation/composables/useEvaluationExport.js';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
 import { useVisibleColumns } from '@/shared/composables/useVisibleColumns';
 import { useToast } from '@/shared/composables/useToast';
 import { useConfirmDelete } from '@/composables/useConfirmClose';
 import { displayOrEmpty, EMPTY_LABELS } from '@/shared/utils/emptyDisplay';
-import { date } from '@/composables/useFormat';
+import { datetime } from '@/composables/useFormat';
 
 const props = defineProps({
-    configs: { type: Object, required: true },
+    criteria: { type: Object, required: true },
     filters: { type: Object, default: () => ({}) },
     summary: { type: Object, default: () => ({}) },
     departments: { type: Array, default: () => [] },
-    templateTypeOptions: { type: Array, default: () => [] },
+    categories: { type: Array, default: () => [] },
+    scopeOptions: { type: Array, default: () => [] },
+    nextCode: { type: String, default: '1' },
+    defaultScoreLabels: { type: Object, default: () => ({}) },
     can: { type: Object, default: () => ({}) },
 });
 
@@ -39,24 +45,25 @@ const filterPanelDdRef = ref(null);
 const colDdRef = ref(null);
 const exportDdRef = ref(null);
 const showExportDd = ref(false);
+const showFormModal = ref(false);
+const editingCriterion = ref(null);
 const perPage = ref(Number(props.filters.per_page) || 20);
 
 const FILTER_CONTROLS = [
+    { key: 'scope', label: 'Phạm vi', default: false },
     { key: 'department_code', label: 'Phòng ban', default: false },
-    { key: 'template_type', label: 'Loại mẫu', default: false },
+    { key: 'category', label: 'Loại tiêu chí', default: false },
     { key: 'status', label: 'Trạng thái', default: false },
-    { key: 'date_range', label: 'Hiệu lực', default: false },
 ];
 
 const FILTER_CONTROL_CLASS = 'input h-10 w-full text-sm';
 
 const filters = reactive({
     q: props.filters.q || '',
+    scope: props.filters.scope || '',
     department_code: props.filters.department_code || '',
-    template_type: props.filters.template_type || '',
+    category: props.filters.category || '',
     status: props.filters.status || '',
-    effective_from: props.filters.effective_from || '',
-    effective_to: props.filters.effective_to || '',
 });
 
 const {
@@ -66,7 +73,7 @@ const {
     hasFilterRow,
     persistVisibleFilters,
     openFilterPanel,
-} = useVisibleFilterControls(FILTER_CONTROLS, 'va-workspace.evaluation.visible-filters.v3');
+} = useVisibleFilterControls(FILTER_CONTROLS, 'va-workspace.evaluation.visible-filters.v4');
 
 const {
     visibleCols,
@@ -76,10 +83,10 @@ const {
     openColPanel,
     isColVisible,
     TABLE_COLUMNS,
-} = useVisibleColumns(EVALUATION_TABLE_COLUMNS, 'va-workspace.evaluation.columns.v3');
+} = useVisibleColumns(EVALUATION_TABLE_COLUMNS, 'va-workspace.evaluation.columns.v4');
 
-const GROUP_UNKNOWN = '__unknown__';
-const COLLAPSE_STORAGE_KEY = 'va-workspace.evaluation.collapsed-dept-groups';
+const GROUP_GENERAL = '__general__';
+const COLLAPSE_STORAGE_KEY = 'va-workspace.evaluation.collapsed-groups.v2';
 
 function loadCollapsedGroups() {
     try {
@@ -93,37 +100,35 @@ function loadCollapsedGroups() {
 
 const collapsedGroups = ref(loadCollapsedGroups());
 
-const rows = computed(() => props.configs?.data || []);
+const rows = computed(() => props.criteria?.data || []);
 
-/** Nhóm theo phòng ban (trang hiện tại) — pattern Blocker. */
-const groupedConfigs = computed(() => {
+const groupedCriteria = computed(() => {
     const map = new Map();
     for (const row of rows.value) {
-        const code = (row.department_code || '').trim();
-        const key = code || GROUP_UNKNOWN;
+        const isGeneral = row.scope === 'general';
+        const key = isGeneral ? GROUP_GENERAL : ((row.department_code || '').trim() || '__unknown__');
         if (!map.has(key)) {
             map.set(key, {
                 key,
-                code: code || null,
-                label: EMPTY_LABELS.team,
+                code: isGeneral ? null : (row.department_code || null),
+                label: isGeneral ? 'Tiêu chí chung' : (row.department_name || EMPTY_LABELS.team),
                 items: [],
             });
         }
         const group = map.get(key);
-        const name = (row.department_name || '').trim();
-        if (name && group.label === EMPTY_LABELS.team) {
-            group.label = name;
+        if (!isGeneral) {
+            const name = (row.department_name || '').trim();
+            if (name && group.label === EMPTY_LABELS.team) group.label = name;
         }
         group.items.push(row);
     }
     return [...map.values()].sort((a, b) => {
-        if (a.key === GROUP_UNKNOWN) return 1;
-        if (b.key === GROUP_UNKNOWN) return -1;
+        if (a.key === GROUP_GENERAL) return -1;
+        if (b.key === GROUP_GENERAL) return 1;
         return a.label.localeCompare(b.label, 'vi');
     });
 });
 
-/** Chevron nhóm + «Tên cấu hình» cố định + «Hành động». */
 const tableColspan = computed(() => visibleColumnCount.value + 3);
 
 function persistCollapsedGroups() {
@@ -148,14 +153,14 @@ function expandAllGroups() {
 }
 
 function collapseAllGroups() {
-    collapsedGroups.value = new Set(groupedConfigs.value.map((g) => g.key));
+    collapsedGroups.value = new Set(groupedCriteria.value.map((g) => g.key));
     persistCollapsedGroups();
 }
 
-const allGroupsExpanded = computed(() =>
-    groupedConfigs.value.length > 0
-    && groupedConfigs.value.every((g) => isGroupExpanded(g.key)),
-);
+const allGroupsExpanded = computed(() => (
+    groupedCriteria.value.length > 0
+    && groupedCriteria.value.every((g) => isGroupExpanded(g.key))
+));
 
 function toggleAllGroups() {
     if (allGroupsExpanded.value) collapseAllGroups();
@@ -168,21 +173,15 @@ watch(() => filters.q, () => {
     searchTimer = setTimeout(() => applyFilters({ page: 1 }), 350);
 });
 
-watch(
-    () => [filters.effective_from, filters.effective_to],
-    () => applyFilters({ page: 1 }),
-);
-
 watch(perPage, () => applyFilters({ page: 1 }));
 
 function applyFilters(extra = {}) {
     router.get(route('workspace.evaluation.index'), {
         q: filters.q || undefined,
+        scope: filters.scope || undefined,
         department_code: filters.department_code || undefined,
-        template_type: filters.template_type || undefined,
+        category: filters.category || undefined,
         status: filters.status || undefined,
-        effective_from: filters.effective_from || undefined,
-        effective_to: filters.effective_to || undefined,
         per_page: perPage.value,
         ...extra,
     }, {
@@ -194,24 +193,30 @@ function applyFilters(extra = {}) {
 
 function onQuickFilter(payload) {
     filters.status = payload.status || '';
-    filters.template_type = payload.template_type || '';
+    filters.scope = payload.scope || '';
     applyFilters({ page: 1 });
+}
+
+function openCreate() {
+    editingCriterion.value = null;
+    showFormModal.value = true;
+}
+
+function openEdit(row) {
+    editingCriterion.value = row;
+    showFormModal.value = true;
+}
+
+function closeFormModal() {
+    showFormModal.value = false;
+    editingCriterion.value = null;
 }
 
 function onDelete(row) {
     confirmDelete(
-        `Xoá cấu hình «${row.config_name}»? Thao tác không thể hoàn tác trên giao diện.`,
+        `Xoá tiêu chí «${row.criteria_name}»? Thao tác không thể hoàn tác trên giao diện.`,
         () => router.delete(route('workspace.evaluation.destroy', row.id), { preserveScroll: true }),
     );
-}
-
-function formatRange(from, to) {
-    const a = from ? date(from) : null;
-    const b = to ? date(to) : null;
-    if (!a && !b) return EMPTY_LABELS.period;
-    if (a && !b) return `${a} trở đi`;
-    if (!a && b) return `đến ${b}`;
-    return `${a} – ${b}`;
 }
 
 function openFilterPanelSafe() {
@@ -230,72 +235,36 @@ function openColPanelSafe() {
 
 function openExportMenu() {
     showExportDd.value = !showExportDd.value;
-    if (showExportDd.value) {
-        showFilterPanelDd.value = false;
-        showColDd.value = false;
-    }
+    showFilterPanelDd.value = false;
+    showColDd.value = false;
 }
 
 function runExport(format) {
     showExportDd.value = false;
     if (!rows.value.length) {
-        toast.warning('Không có dữ liệu để xuất trên trang này.');
+        toast.warning('Không có dữ liệu để xuất trên trang hiện tại.');
         return;
     }
     try {
         if (format === 'csv') {
-            exportCsv(rows.value);
+            exportEvaluationCsv(rows.value);
         } else {
             exportEvaluationWorkbook(rows.value, { ...filters }, props.summary);
         }
-        toast.success(`Đã xuất ${rows.value.length} cấu hình (trang hiện tại).`);
+        toast.success('Đã xuất file.');
     } catch {
-        toast.error('Xuất file thất bại. Thử lại sau.');
+        toast.error('Không xuất được file. Thử lại.');
     }
-}
-
-function exportCsv(list) {
-    const headers = [
-        'STT', 'Mã phòng', 'Phòng ban', 'Tên cấu hình', 'Loại',
-        'Từ ngày', 'Đến ngày', 'Số tiêu chí', 'Điểm gốc', 'Trạng thái', 'Người tạo',
-    ];
-    const lines = [headers.join(',')];
-    list.forEach((row, i) => {
-        const cells = [
-            i + 1,
-            row.department_code ?? '',
-            row.department_name ?? '',
-            row.config_name ?? '',
-            row.template_type_label ?? '',
-            row.effective_from ? date(row.effective_from) : '',
-            row.effective_to ? date(row.effective_to) : '',
-            row.criteria_count ?? 0,
-            row.base_score ?? '',
-            row.is_active ? 'Đang bật' : 'Đã tắt',
-            row.creator?.display_name ?? '',
-        ].map((v) => `"${String(v).replace(/"/g, '""')}"`);
-        lines.push(cells.join(','));
-    });
-    const blob = new Blob([`\uFEFF${lines.join('\n')}`], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `VA_CauHinhDanhGia_${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
 }
 
 function onDocClick(e) {
-    const t = e.target;
-    if (t.closest?.('[data-filter-visibility-panel]')) return;
-    if (t.closest?.('[data-column-visibility-panel]')) return;
-    if (filterPanelDdRef.value && !filterPanelDdRef.value.contains(t)) {
+    if (filterPanelDdRef.value && !filterPanelDdRef.value.contains(e.target)) {
         showFilterPanelDd.value = false;
     }
-    if (colDdRef.value && !colDdRef.value.contains(t)) {
+    if (colDdRef.value && !colDdRef.value.contains(e.target)) {
         showColDd.value = false;
     }
-    if (exportDdRef.value && !exportDdRef.value.contains(t)) {
+    if (exportDdRef.value && !exportDdRef.value.contains(e.target)) {
         showExportDd.value = false;
     }
 }
@@ -308,33 +277,34 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <Head title="Cấu hình đánh giá" />
+  <Head title="Cấu hình tiêu chí đánh giá" />
   <AppLayout>
     <template #header>
       <PageHeader
-        title="Cấu hình đánh giá"
-        subtitle="Bộ quy tắc đánh giá theo phòng ban — siêu quản trị"
+        title="Cấu hình tiêu chí đánh giá"
+        subtitle="Tiêu chí chung và theo từng phòng ban — siêu quản trị"
         icon="award"
         :badge="summary.total ?? null"
       >
-        <Link
+        <button
           v-if="can.manage"
-          :href="route('workspace.evaluation.create')"
+          type="button"
           class="btn-primary inline-flex h-9 items-center gap-1.5 px-3 text-sm"
+          @click="openCreate"
         >
           <AppIcon
             name="add"
             :size="15"
           />
-          Thêm mới
-        </Link>
+          Thêm tiêu chí
+        </button>
       </PageHeader>
     </template>
 
     <EvaluationSummaryBar
       :summary="summary"
       :active-status="filters.status"
-      :active-template-type="filters.template_type"
+      :active-scope="filters.scope"
       @quick-filter="onQuickFilter"
     />
 
@@ -349,8 +319,8 @@ onBeforeUnmount(() => {
               stretch
               inline-actions
               input-height="h-10"
-              placeholder="Tìm tên cấu hình, phòng ban, mô tả…"
-              aria-label="Tìm cấu hình đánh giá"
+              placeholder="Tìm tên, mã, loại, mô tả…"
+              aria-label="Tìm tiêu chí đánh giá"
             />
           </div>
           <div class="flex shrink-0 items-center gap-2">
@@ -397,7 +367,7 @@ onBeforeUnmount(() => {
                 :show="showColDd"
                 :columns="TABLE_COLUMNS"
                 :anchor-ref="colDdRef"
-                :fixed-labels="['Tên cấu hình']"
+                :fixed-labels="['Tên tiêu chí']"
                 input-id-prefix="evaluation-col-vis"
                 @persist="persistVisibleColumns"
               />
@@ -458,12 +428,12 @@ onBeforeUnmount(() => {
           </div>
 
           <div
-            v-if="groupedConfigs.length"
+            v-if="groupedCriteria.length"
             class="ml-auto flex shrink-0 items-center gap-2"
           >
             <DatagridToolbarActionButton
               icon="chevron-down"
-              :title="allGroupsExpanded ? 'Thu gọn tất cả nhóm phòng ban' : 'Mở tất cả nhóm phòng ban'"
+              :title="allGroupsExpanded ? 'Thu gọn tất cả nhóm' : 'Mở tất cả nhóm'"
               @click="toggleAllGroups"
             >
               <span class="hidden sm:inline">{{ allGroupsExpanded ? 'Thu nhóm' : 'Mở nhóm' }}</span>
@@ -476,6 +446,25 @@ onBeforeUnmount(() => {
           v-if="hasFilterRow"
           class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6"
         >
+          <DatagridFilterField v-if="visibleFilters.scope">
+            <select
+              v-model="filters.scope"
+              :class="FILTER_CONTROL_CLASS"
+              aria-label="Phạm vi"
+              @change="applyFilters({ page: 1 })"
+            >
+              <option value="">
+                Phạm vi
+              </option>
+              <option
+                v-for="opt in scopeOptions"
+                :key="opt.value"
+                :value="opt.value"
+              >
+                {{ opt.label }}
+              </option>
+            </select>
+          </DatagridFilterField>
           <DatagridFilterField v-if="visibleFilters.department_code">
             <select
               v-model="filters.department_code"
@@ -495,22 +484,22 @@ onBeforeUnmount(() => {
               </option>
             </select>
           </DatagridFilterField>
-          <DatagridFilterField v-if="visibleFilters.template_type">
+          <DatagridFilterField v-if="visibleFilters.category">
             <select
-              v-model="filters.template_type"
+              v-model="filters.category"
               :class="FILTER_CONTROL_CLASS"
-              aria-label="Loại mẫu"
+              aria-label="Loại tiêu chí"
               @change="applyFilters({ page: 1 })"
             >
               <option value="">
-                Loại mẫu
+                Loại tiêu chí
               </option>
               <option
-                v-for="opt in templateTypeOptions"
-                :key="opt.value"
-                :value="opt.value"
+                v-for="cat in categories"
+                :key="cat"
+                :value="cat"
               >
-                {{ opt.label }}
+                {{ cat }}
               </option>
             </select>
           </DatagridFilterField>
@@ -525,37 +514,13 @@ onBeforeUnmount(() => {
                 Trạng thái
               </option>
               <option value="active">
-                Đang bật
+                Hoạt động
               </option>
               <option value="inactive">
-                Đã tắt
-              </option>
-              <option value="effective">
-                Đang hiệu lực
+                Ngưng hoạt động
               </option>
             </select>
           </DatagridFilterField>
-          <div
-            v-if="visibleFilters.date_range"
-            class="min-w-0 w-full sm:col-span-2 xl:col-span-2"
-          >
-            <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
-              <FilterDatePicker
-                id="evaluation-filter-effective-from"
-                v-model="filters.effective_from"
-                name="effective_from"
-                placeholder="Hiệu lực từ"
-                :max-date="filters.effective_to || null"
-              />
-              <FilterDatePicker
-                id="evaluation-filter-effective-to"
-                v-model="filters.effective_to"
-                name="effective_to"
-                placeholder="Hiệu lực đến"
-                :min-date="filters.effective_from || null"
-              />
-            </div>
-          </div>
         </div>
       </div>
 
@@ -568,43 +533,25 @@ onBeforeUnmount(() => {
                 aria-hidden="true"
               />
               <th class="px-5 py-3 font-medium">
-                Tên cấu hình
+                Tên tiêu chí
               </th>
               <th
-                v-if="isColVisible('template_type')"
+                v-if="isColVisible('criteria_code')"
+                class="px-5 py-3 font-medium"
+              >
+                Mã
+              </th>
+              <th
+                v-if="isColVisible('category')"
                 class="px-5 py-3 font-medium"
               >
                 Loại
               </th>
               <th
-                v-if="isColVisible('effective')"
+                v-if="isColVisible('allow_half_score')"
                 class="px-5 py-3 font-medium"
               >
-                Hiệu lực
-              </th>
-              <th
-                v-if="isColVisible('effective_from')"
-                class="px-5 py-3 font-medium"
-              >
-                Từ ngày
-              </th>
-              <th
-                v-if="isColVisible('effective_to')"
-                class="px-5 py-3 font-medium"
-              >
-                Đến ngày
-              </th>
-              <th
-                v-if="isColVisible('criteria_count')"
-                class="px-5 py-3 font-medium"
-              >
-                Tiêu chí
-              </th>
-              <th
-                v-if="isColVisible('base_score')"
-                class="px-5 py-3 font-medium"
-              >
-                Điểm gốc
+                Chấm 0.5
               </th>
               <th
                 v-if="isColVisible('description')"
@@ -636,198 +583,193 @@ onBeforeUnmount(() => {
               >
                 Trạng thái
               </th>
-              <th class="px-5 py-3 font-medium text-right">
+              <th class="px-5 py-3 text-right font-medium">
                 Hành động
               </th>
             </tr>
           </thead>
-          <tbody>
-            <tr v-if="rows.length === 0">
-              <td
-                :colspan="tableColspan"
-                class="px-5 py-10 text-center text-slate-500"
+          <tbody class="divide-y divide-slate-100">
+            <template v-if="groupedCriteria.length">
+              <template
+                v-for="group in groupedCriteria"
+                :key="group.key"
               >
-                Chưa có cấu hình đánh giá.
-              </td>
-            </tr>
-            <template
-              v-for="group in groupedConfigs"
-              :key="group.key"
-            >
-              <tr
-                class="cursor-pointer border-y border-slate-200 bg-slate-100/70 transition hover:bg-slate-100"
-                @click="toggleGroup(group.key)"
-              >
-                <td class="px-1 py-2.5 text-center align-middle">
-                  <AppIcon
-                    name="chevron-down"
-                    :size="15"
-                    class="inline-block text-slate-500 transition-transform"
-                    :class="isGroupExpanded(group.key) ? '' : '-rotate-90'"
-                  />
-                </td>
-                <td
-                  :colspan="tableColspan - 1"
-                  class="px-5 py-2.5 align-middle"
-                >
-                  <div class="flex items-center gap-2">
-                    <span class="min-w-0 flex-1 break-words text-sm font-semibold text-slate-800">
-                      {{ group.label }}
-                    </span>
-                    <span
-                      v-if="group.code"
-                      class="shrink-0 font-mono text-[11px] text-slate-500"
-                    >{{ group.code }}</span>
-                    <span class="shrink-0 rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold tabular-nums text-slate-600 ring-1 ring-slate-200/90">
-                      {{ group.items.length }}
-                    </span>
-                  </div>
-                </td>
-              </tr>
-              <template v-if="isGroupExpanded(group.key)">
-                <tr
-                  v-for="row in group.items"
-                  :key="row.id"
-                  class="border-b border-slate-100 hover:bg-slate-50/80"
-                >
-                  <td class="px-1 py-3 align-middle">
-                    <span
-                      class="mx-auto block h-6 w-1 rounded-full bg-slate-200/80"
-                      aria-hidden="true"
-                    />
-                  </td>
-                  <td class="px-5 py-3">
-                    <Link
-                      :href="route('workspace.evaluation.show', row.id)"
-                      class="font-medium text-brand hover:underline"
+                <tr class="bg-slate-50/90">
+                  <td
+                    :colspan="tableColspan"
+                    class="px-3 py-2.5"
+                  >
+                    <button
+                      type="button"
+                      class="flex w-full items-center gap-2 text-left"
+                      @click="toggleGroup(group.key)"
                     >
-                      {{ row.config_name }}
-                    </Link>
-                  </td>
-                  <td
-                    v-if="isColVisible('template_type')"
-                    class="px-5 py-3"
-                  >
-                    <Badge
-                      :color="row.template_type === 'point_system' ? 'violet' : 'amber'"
-                      :label="row.template_type_label"
-                    />
-                  </td>
-                  <td
-                    v-if="isColVisible('effective')"
-                    class="px-5 py-3 tabular-nums text-slate-700"
-                  >
-                    {{ formatRange(row.effective_from, row.effective_to) }}
-                  </td>
-                  <td
-                    v-if="isColVisible('effective_from')"
-                    class="px-5 py-3 tabular-nums text-slate-700"
-                  >
-                    {{ row.effective_from ? date(row.effective_from) : EMPTY_LABELS.period }}
-                  </td>
-                  <td
-                    v-if="isColVisible('effective_to')"
-                    class="px-5 py-3 tabular-nums text-slate-700"
-                  >
-                    {{ row.effective_to ? date(row.effective_to) : 'Không giới hạn' }}
-                  </td>
-                  <td
-                    v-if="isColVisible('criteria_count')"
-                    class="px-5 py-3 tabular-nums"
-                  >
-                    {{ row.criteria_count ?? 0 }}
-                  </td>
-                  <td
-                    v-if="isColVisible('base_score')"
-                    class="px-5 py-3 tabular-nums text-slate-700"
-                  >
-                    {{ row.base_score != null ? row.base_score : EMPTY_LABELS.notUpdated }}
-                  </td>
-                  <td
-                    v-if="isColVisible('description')"
-                    class="max-w-[14rem] truncate px-5 py-3 text-slate-600"
-                    :title="row.description || undefined"
-                  >
-                    {{ displayOrEmpty(row.description, EMPTY_LABELS.notUpdated) }}
-                  </td>
-                  <td
-                    v-if="isColVisible('creator')"
-                    class="px-5 py-3 text-slate-700"
-                  >
-                    {{ displayOrEmpty(row.creator?.display_name, EMPTY_LABELS.notUpdated) }}
-                  </td>
-                  <td
-                    v-if="isColVisible('created_at')"
-                    class="whitespace-nowrap px-5 py-3 text-xs text-slate-600"
-                  >
-                    {{ row.created_at ? date(row.created_at) : EMPTY_LABELS.notUpdated }}
-                  </td>
-                  <td
-                    v-if="isColVisible('updated_at')"
-                    class="whitespace-nowrap px-5 py-3 text-xs text-slate-600"
-                  >
-                    {{ row.updated_at ? date(row.updated_at) : EMPTY_LABELS.notUpdated }}
-                  </td>
-                  <td
-                    v-if="isColVisible('status')"
-                    class="px-5 py-3"
-                  >
-                    <Badge
-                      :color="row.is_active ? 'emerald' : 'slate'"
-                      :label="row.is_active ? 'Đang bật' : 'Đã tắt'"
-                    />
-                  </td>
-                  <td class="px-5 py-3">
-                    <div class="flex items-center justify-end gap-1">
-                      <Link
-                        :href="route('workspace.evaluation.show', row.id)"
-                        class="btn-ghost h-8 w-8 p-0"
-                        title="Xem"
-                      >
-                        <AppIcon
-                          name="eye"
-                          :size="14"
-                        />
-                      </Link>
-                      <Link
-                        v-if="can.manage"
-                        :href="route('workspace.evaluation.edit', row.id)"
-                        class="btn-ghost h-8 w-8 p-0"
-                        title="Sửa"
-                      >
-                        <AppIcon
-                          name="edit"
-                          :size="14"
-                        />
-                      </Link>
-                      <button
-                        v-if="can.manage"
-                        type="button"
-                        class="btn-ghost h-8 w-8 p-0 text-rose-600"
-                        title="Xóa"
-                        @click="onDelete(row)"
-                      >
-                        <AppIcon
-                          name="trash"
-                          :size="14"
-                        />
-                      </button>
-                    </div>
+                      <AppIcon
+                        :name="isGroupExpanded(group.key) ? 'chevron-down' : 'chevron-right'"
+                        :size="14"
+                        class="shrink-0 text-slate-400"
+                      />
+                      <span class="text-sm font-semibold text-slate-800">
+                        {{ group.label }}
+                      </span>
+                      <span
+                        v-if="group.code"
+                        class="font-mono text-[11px] text-slate-400"
+                      >({{ group.code }})</span>
+                      <span class="ml-1 rounded-full bg-white px-2 py-0.5 text-[11px] tabular-nums text-slate-500 ring-1 ring-slate-200">
+                        {{ group.items.length }}
+                      </span>
+                    </button>
                   </td>
                 </tr>
+                <template v-if="isGroupExpanded(group.key)">
+                  <tr
+                    v-for="row in group.items"
+                    :key="row.id"
+                    class="hover:bg-slate-50/60"
+                  >
+                    <td class="px-1 py-3" />
+                    <td class="px-5 py-3">
+                      <Link
+                        :href="route('workspace.evaluation.show', row.id)"
+                        class="font-medium text-slate-800 hover:text-brand"
+                      >
+                        {{ row.display_name || row.criteria_name }}
+                      </Link>
+                    </td>
+                    <td
+                      v-if="isColVisible('criteria_code')"
+                      class="px-5 py-3 font-mono text-slate-700"
+                    >
+                      {{ row.criteria_code }}
+                    </td>
+                    <td
+                      v-if="isColVisible('category')"
+                      class="px-5 py-3 text-slate-700"
+                    >
+                      {{ displayOrEmpty(row.category, EMPTY_LABELS.notUpdated) }}
+                    </td>
+                    <td
+                      v-if="isColVisible('allow_half_score')"
+                      class="px-5 py-3 text-slate-600"
+                    >
+                      {{ row.allow_half_score ? 'Có' : 'Không' }}
+                    </td>
+                    <td
+                      v-if="isColVisible('description')"
+                      class="max-w-xs truncate px-5 py-3 text-slate-600"
+                      :title="row.description || undefined"
+                    >
+                      {{ displayOrEmpty(row.description, EMPTY_LABELS.notUpdated) }}
+                    </td>
+                    <td
+                      v-if="isColVisible('creator')"
+                      class="px-5 py-3 text-slate-600"
+                    >
+                      {{ displayOrEmpty(row.creator?.display_name, EMPTY_LABELS.notUpdated) }}
+                    </td>
+                    <td
+                      v-if="isColVisible('created_at')"
+                      class="px-5 py-3 tabular-nums text-slate-600"
+                    >
+                      {{ row.created_at ? datetime(row.created_at) : EMPTY_LABELS.notUpdated }}
+                    </td>
+                    <td
+                      v-if="isColVisible('updated_at')"
+                      class="px-5 py-3 tabular-nums text-slate-600"
+                    >
+                      {{ row.updated_at ? datetime(row.updated_at) : EMPTY_LABELS.notUpdated }}
+                    </td>
+                    <td
+                      v-if="isColVisible('status')"
+                      class="px-5 py-3"
+                    >
+                      <Badge
+                        :color="row.is_active ? 'emerald' : 'slate'"
+                        :label="row.is_active ? 'Hoạt động' : 'Ngưng'"
+                      />
+                    </td>
+                    <td class="px-5 py-3">
+                      <div class="flex items-center justify-end gap-1">
+                        <Link
+                          :href="route('workspace.evaluation.show', row.id)"
+                          class="btn-ghost h-8 w-8 p-0"
+                          title="Xem"
+                        >
+                          <AppIcon
+                            name="eye"
+                            :size="14"
+                          />
+                        </Link>
+                        <button
+                          v-if="can.manage"
+                          type="button"
+                          class="btn-ghost h-8 w-8 p-0"
+                          title="Sửa"
+                          @click="openEdit(row)"
+                        >
+                          <AppIcon
+                            name="edit"
+                            :size="14"
+                          />
+                        </button>
+                        <button
+                          v-if="can.manage"
+                          type="button"
+                          class="btn-ghost h-8 w-8 p-0 text-rose-600"
+                          title="Xóa"
+                          @click="onDelete(row)"
+                        >
+                          <AppIcon
+                            name="trash"
+                            :size="14"
+                          />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </template>
               </template>
             </template>
+            <tr v-else>
+              <td
+                :colspan="tableColspan"
+                class="px-5 py-12 text-center text-sm text-slate-500"
+              >
+                Chưa có tiêu chí đánh giá.
+                <button
+                  v-if="can.manage"
+                  type="button"
+                  class="ml-1 font-medium text-brand hover:underline"
+                  @click="openCreate"
+                >
+                  Thêm tiêu chí
+                </button>
+              </td>
+            </tr>
           </tbody>
-          <tfoot>
-            <DatagridPaginationFooter
-              v-model:per-page="perPage"
-              :meta="configs.meta"
-              :colspan="tableColspan"
-              :per-page-options="[10, 20, 25, 50]"
-            />
-          </tfoot>
         </table>
       </div>
+
+      <DatagridPaginationFooter
+        v-if="criteria?.meta"
+        :meta="criteria.meta"
+        :per-page="perPage"
+        @update:per-page="(v) => { perPage = v; }"
+        @page="(page) => applyFilters({ page })"
+      />
     </div>
+
+    <EvaluationCriterionFormModal
+      :show="showFormModal"
+      :mode="editingCriterion ? 'edit' : 'create'"
+      :criterion="editingCriterion"
+      :departments="departments"
+      :categories="categories"
+      :scope-options="scopeOptions"
+      :next-code="nextCode"
+      :default-score-labels="defaultScoreLabels"
+      @close="closeFormModal"
+    />
   </AppLayout>
 </template>

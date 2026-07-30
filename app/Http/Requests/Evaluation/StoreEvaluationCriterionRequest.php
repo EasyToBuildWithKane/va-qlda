@@ -2,18 +2,24 @@
 
 namespace App\Http\Requests\Evaluation;
 
-use App\Models\Evaluation\EvaluationConfig;
+use App\Models\Evaluation\EvaluationCriterion;
+use App\Support\Enums\EvaluationCriterionScope;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class StoreEvaluationCriterionRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        /** @var EvaluationConfig $config */
-        $config = $this->route('evaluationConfig');
+        return $this->user()?->can('create', EvaluationCriterion::class) ?? false;
+    }
 
-        return $this->user()?->can('update', $config) ?? false;
+    protected function prepareForValidation(): void
+    {
+        if ($this->input('criteria_code') === '' || $this->input('criteria_code') === null) {
+            $this->merge(['criteria_code' => null]);
+        }
     }
 
     /**
@@ -21,25 +27,26 @@ class StoreEvaluationCriterionRequest extends FormRequest
      */
     public function rules(): array
     {
-        /** @var EvaluationConfig $config */
-        $config = $this->route('evaluationConfig');
-
         return [
+            'scope' => ['required', Rule::in(EvaluationCriterionScope::values())],
+            'department_code' => ['nullable', 'string', 'max:100'],
+            'department_name' => ['nullable', 'string', 'max:255'],
+            'local_department_id' => ['nullable', 'integer', 'exists:departments,id'],
             'criteria_code' => [
-                'required',
+                'nullable',
                 'string',
                 'max:100',
-                Rule::unique('evaluation_criteria', 'criteria_code')->where('config_id', $config->id),
+                Rule::unique('evaluation_criteria', 'criteria_code'),
             ],
             'criteria_name' => ['required', 'string', 'max:255'],
             'category' => ['required', 'string', 'max:100'],
             'description' => ['nullable', 'string', 'max:5000'],
-            'point_value' => ['nullable', 'integer', 'min:-50', 'max:50'],
-            'max_points' => ['nullable', 'integer', 'min:1', 'max:500'],
-            'max_frequency' => ['nullable', 'integer', 'min:1', 'max:100'],
-            'weight' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'required_score' => ['nullable', 'integer', 'min:0', 'max:10'],
-            'importance' => ['nullable', 'string', 'max:50'],
+            'allow_half_score' => ['sometimes', 'boolean'],
+            'score_1' => ['required', 'string', 'max:255'],
+            'score_2' => ['required', 'string', 'max:255'],
+            'score_3' => ['required', 'string', 'max:255'],
+            'score_4' => ['required', 'string', 'max:255'],
+            'score_5' => ['required', 'string', 'max:255'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'is_active' => ['sometimes', 'boolean'],
         ];
@@ -51,10 +58,27 @@ class StoreEvaluationCriterionRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'criteria_code.required' => 'Vui lòng nhập mã tiêu chí.',
-            'criteria_code.unique' => 'Mã tiêu chí đã tồn tại trong cấu hình này.',
+            'scope.required' => 'Vui lòng chọn phạm vi tiêu chí.',
+            'scope.in' => 'Phạm vi tiêu chí không hợp lệ.',
+            'criteria_code.unique' => 'Mã tiêu chí đã tồn tại.',
             'criteria_name.required' => 'Vui lòng nhập tên tiêu chí.',
-            'category.required' => 'Vui lòng nhập danh mục tiêu chí.',
+            'category.required' => 'Vui lòng nhập loại tiêu chí.',
+            'score_1.required' => 'Vui lòng nhập nhãn điểm 1.',
+            'score_2.required' => 'Vui lòng nhập nhãn điểm 2.',
+            'score_3.required' => 'Vui lòng nhập nhãn điểm 3.',
+            'score_4.required' => 'Vui lòng nhập nhãn điểm 4.',
+            'score_5.required' => 'Vui lòng nhập nhãn điểm 5.',
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $v) {
+            if ($this->input('scope') === EvaluationCriterionScope::Department->value) {
+                if (! filled($this->input('department_code'))) {
+                    $v->errors()->add('department_code', 'Vui lòng chọn phòng ban.');
+                }
+            }
+        });
     }
 }

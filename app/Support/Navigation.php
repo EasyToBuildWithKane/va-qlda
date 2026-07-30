@@ -633,7 +633,7 @@ class Navigation
                         'roles' => ['admin'],
                     ],
                     [
-                        'label' => 'Cấu hình đánh giá',
+                        'label' => 'Cấu hình tiêu chí đánh giá',
                         'icon' => 'award',
                         'href' => '/workspace-config/evaluation',
                         'status' => 'live',

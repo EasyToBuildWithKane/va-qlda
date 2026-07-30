@@ -307,19 +307,15 @@ Chi tiết: [`docs/SYSTEM_CONFIG.md`](SYSTEM_CONFIG.md).
 
 Chi tiết module: [`WORKSPACE_CONFIG.md`](WORKSPACE_CONFIG.md).
 
-### 2.x Cấu hình đánh giá workspace (super-admin)
+### 2.x Cấu hình tiêu chí đánh giá (super-admin)
 
 | Method | URI | Controller | Mô tả |
 |--------|-----|------------|--------|
-| GET | `/workspace-config/evaluation` | EvaluationConfigController@index | Danh sách cấu hình |
-| GET | `/workspace-config/evaluation/create` | EvaluationConfigController@create | Form tạo |
-| POST | `/workspace-config/evaluation` | EvaluationConfigController@store | Tạo + tiêu chí |
-| GET | `/workspace-config/evaluation/{evaluationConfig}` | EvaluationConfigController@show | Chi tiết |
-| GET | `/workspace-config/evaluation/{evaluationConfig}/edit` | EvaluationConfigController@edit | Form sửa |
-| PUT | `/workspace-config/evaluation/{evaluationConfig}` | EvaluationConfigController@update | Cập nhật |
-| DELETE | `/workspace-config/evaluation/{evaluationConfig}` | EvaluationConfigController@destroy | Soft delete |
-| POST/PUT/DELETE | `.../criteria[/{criterion}]` | EvaluationConfigController | CRUD tiêu chí |
-| POST | `.../criteria/reorder` | EvaluationConfigController@reorderCriteria | Đổi thứ tự |
+| GET | `/workspace-config/evaluation` | EvaluationCriterionController@index | Danh mục tiêu chí |
+| POST | `/workspace-config/evaluation` | EvaluationCriterionController@store | Tạo tiêu chí |
+| GET | `/workspace-config/evaluation/{evaluationCriterion}` | EvaluationCriterionController@show | Chi tiết + lịch sử |
+| PUT | `/workspace-config/evaluation/{evaluationCriterion}` | EvaluationCriterionController@update | Cập nhật |
+| DELETE | `/workspace-config/evaluation/{evaluationCriterion}` | EvaluationCriterionController@destroy | Soft delete |
 
 Chi tiết: [`EVALUATION_CONFIG.md`](EVALUATION_CONFIG.md) · module cha [`WORKSPACE_CONFIG.md`](WORKSPACE_CONFIG.md).
 

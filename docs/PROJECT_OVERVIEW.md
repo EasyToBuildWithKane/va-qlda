@@ -42,7 +42,7 @@ VA Workspace
 ├── [COMMENT]       Thảo luận đa hình (Task, Blocker, Feedback)
 ├── [DEPARTMENT]    Phòng ban (model + mutate API; Index UI gỡ — chờ HRM)
 ├── [SYSTEM CONFIG] Cấu hình (super_admin): Cấu hình chung · Thông báo hệ thống · Phân quyền · Cấu hình hợp đồng → docs/SYSTEM_CONFIG.md
-├── [EVALUATION CONFIG] Cấu hình đánh giá theo phòng ban (super_admin) → docs/EVALUATION_CONFIG.md
+├── [EVALUATION CONFIG] Cấu hình tiêu chí đánh giá (chung + theo PB, super_admin) → docs/EVALUATION_CONFIG.md
 ├── [CONGNGHE]      Trung tâm Công Nghệ — landing, đề xuất phần mềm, quản trị nội dung → docs/CONGNGHE_CONTENT.md
 ├── [PROFILE]       Hồ sơ cá nhân (/profile)
 ├── [AI ACCOUNTS]   Tài khoản AI, PĐX, chi phí, analytics → docs/AI_ACCOUNTS.md
@@ -235,7 +235,7 @@ Tạo Project
 | Profile (hồ sơ cá nhân) | `/profile` | ✅ Hoàn thành |
 | System settings (super_admin) | `/settings` | ✅ → docs/SYSTEM_CONFIG.md |
 | Workspace config hub (super_admin) | `/workspace-config` | ✅ → docs/WORKSPACE_CONFIG.md |
-| Evaluation config (super_admin) | `/workspace-config/evaluation` | ✅ → docs/EVALUATION_CONFIG.md |
+| Evaluation criteria (super_admin) | `/workspace-config/evaluation` | ✅ → docs/EVALUATION_CONFIG.md |
 | Daily Report | `/daily-reports` | ✅ Hoàn thành → docs/DAILY_REPORT.md |
 | Blocker Tracking | `/blockers` | ✅ Hoàn thành |
 | Bug Tracking | — | ❌ Đã gỡ (2026-06) — dùng Feedback / Blocker |

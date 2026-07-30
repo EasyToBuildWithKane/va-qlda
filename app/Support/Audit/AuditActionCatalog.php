@@ -122,13 +122,10 @@ final class AuditActionCatalog
             'weekly_report.approved' => ['label' => 'Duyệt báo cáo tuần', 'module' => 'weekly_report', 'severity' => 'notice'],
             'weekly_report.rejected' => ['label' => 'Trả lại báo cáo tuần', 'module' => 'weekly_report', 'severity' => 'warning'],
 
-            // ── Cấu hình đánh giá workspace ───────────────────────────
-            'evaluation.config_created' => ['label' => 'Tạo cấu hình đánh giá', 'module' => 'evaluation', 'severity' => 'notice'],
-            'evaluation.config_updated' => ['label' => 'Sửa cấu hình đánh giá', 'module' => 'evaluation', 'severity' => 'info'],
-            'evaluation.config_deleted' => ['label' => 'Xóa cấu hình đánh giá', 'module' => 'evaluation', 'severity' => 'warning'],
-            'evaluation.criteria_created' => ['label' => 'Thêm tiêu chí đánh giá', 'module' => 'evaluation', 'severity' => 'notice'],
-            'evaluation.criteria_updated' => ['label' => 'Sửa tiêu chí đánh giá', 'module' => 'evaluation', 'severity' => 'info'],
-            'evaluation.criteria_deleted' => ['label' => 'Xóa tiêu chí đánh giá', 'module' => 'evaluation', 'severity' => 'warning'],
+            // ── Cấu hình tiêu chí đánh giá workspace ──────────────────
+            'evaluation.criteria_created' => ['label' => 'đã tạo mới', 'module' => 'evaluation', 'severity' => 'notice'],
+            'evaluation.criteria_updated' => ['label' => 'đã sửa', 'module' => 'evaluation', 'severity' => 'info'],
+            'evaluation.criteria_deleted' => ['label' => 'đã xóa tiêu chí đánh giá', 'module' => 'evaluation', 'severity' => 'warning'],
         ];
     }
 
@@ -300,6 +297,7 @@ final class AuditActionCatalog
             'daily_report' => 'Báo cáo ngày',
             'weekly_report' => 'Báo cáo tuần',
             'evaluation_config' => 'Cấu hình đánh giá',
+            'evaluation_criterion' => 'Tiêu chí đánh giá',
             default => ucfirst(str_replace('_', ' ', $type)),
         };
     }

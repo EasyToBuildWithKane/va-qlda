@@ -4,7 +4,7 @@ namespace Tests\Unit\Evaluation;
 
 use App\Models\Department;
 use App\Models\Employee;
-use App\Support\Enums\EvaluationTemplateType;
+use App\Support\Enums\EvaluationCriterionScope;
 use App\Support\Evaluation\HrmDepartmentDirectory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
@@ -53,10 +53,10 @@ class HrmDepartmentDirectoryTest extends TestCase
         $this->assertSame('Công Nghệ Thông Tin', $cntt['name']);
     }
 
-    public function test_template_type_labels(): void
+    public function test_criterion_scope_labels(): void
     {
-        $this->assertSame('Điểm cộng / trừ', EvaluationTemplateType::PointSystem->label());
-        $this->assertSame('Phiếu tiêu chí', EvaluationTemplateType::Scorecard->label());
-        $this->assertSame(['point_system', 'scorecard'], EvaluationTemplateType::values());
+        $this->assertSame('Tiêu chí chung', EvaluationCriterionScope::General->label());
+        $this->assertSame('Theo phòng ban', EvaluationCriterionScope::Department->label());
+        $this->assertSame(['general', 'department'], EvaluationCriterionScope::values());
     }
 }

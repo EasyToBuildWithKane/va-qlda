@@ -1,5 +1,5 @@
 import XLSX from 'xlsx-js-style';
-import { date, datetime } from '@/composables/useFormat';
+import { datetime } from '@/composables/useFormat';
 import { displayOrEmpty, EMPTY_LABELS } from '@/shared/utils/emptyDisplay';
 
 const BRAND = '9A0036';
@@ -60,14 +60,18 @@ const S = {
 
 const HEADERS = [
     'STT',
+    'Phạm vi',
     'Mã phòng',
     'Phòng ban',
-    'Tên cấu hình',
+    'Mã tiêu chí',
+    'Tên tiêu chí',
     'Loại',
-    'Từ ngày',
-    'Đến ngày',
-    'Số tiêu chí',
-    'Điểm gốc',
+    'Chấm 0.5',
+    'Điểm 1',
+    'Điểm 2',
+    'Điểm 3',
+    'Điểm 4',
+    'Điểm 5',
     'Trạng thái',
     'Người tạo',
     'Mô tả',
@@ -93,39 +97,32 @@ function setColWidths(ws, widths) {
     ws['!cols'] = widths.map((wch) => ({ wch }));
 }
 
-function formatRange(from, to) {
-    const a = from ? date(from) : null;
-    const b = to ? date(to) : null;
-    if (!a && !b) return EMPTY_LABELS.period;
-    if (a && !b) return `${a} trở đi`;
-    if (!a && b) return `đến ${b}`;
-    return `${a} – ${b}`;
-}
-
 function filterNote(filters = {}) {
     const parts = [];
     if (filters.q) parts.push(`Từ khóa: ${filters.q}`);
+    if (filters.scope) parts.push(`Phạm vi: ${filters.scope}`);
     if (filters.department_code) parts.push(`Phòng: ${filters.department_code}`);
-    if (filters.template_type) parts.push(`Loại: ${filters.template_type}`);
+    if (filters.category) parts.push(`Loại: ${filters.category}`);
     if (filters.status) parts.push(`Trạng thái: ${filters.status}`);
-    if (filters.effective_from || filters.effective_to) {
-        parts.push(`Hiệu lực: ${formatRange(filters.effective_from, filters.effective_to)}`);
-    }
     return parts.length ? parts.join(' · ') : 'Không lọc';
 }
 
 function rowValues(row, index) {
     return [
         index + 1,
+        row.scope_label ?? row.scope ?? '',
         row.department_code ?? '',
-        row.department_name ?? '',
-        row.config_name ?? '',
-        row.template_type_label ?? row.template_type ?? '',
-        row.effective_from ? date(row.effective_from) : EMPTY_LABELS.period,
-        row.effective_to ? date(row.effective_to) : 'Không giới hạn',
-        row.criteria_count ?? 0,
-        row.base_score ?? '',
-        row.is_active ? 'Đang bật' : 'Đã tắt',
+        row.department_name ?? (row.scope === 'general' ? 'Tiêu chí chung' : ''),
+        row.criteria_code ?? '',
+        row.criteria_name ?? '',
+        row.category ?? '',
+        row.allow_half_score ? 'Có' : 'Không',
+        row.score_1 ?? '',
+        row.score_2 ?? '',
+        row.score_3 ?? '',
+        row.score_4 ?? '',
+        row.score_5 ?? '',
+        row.is_active ? 'Hoạt động' : 'Ngưng hoạt động',
         displayOrEmpty(row.creator?.display_name, EMPTY_LABELS.notUpdated),
         displayOrEmpty(row.description, EMPTY_LABELS.notUpdated),
         row.created_at ? datetime(row.created_at) : EMPTY_LABELS.notUpdated,
@@ -142,9 +139,8 @@ export function exportEvaluationWorkbook(rows, filters = {}, summary = {}) {
     const list = Array.isArray(rows) ? rows : [];
     const ws = {};
     const lastCol = HEADERS.length - 1;
-    const range = { s: { r: 0, c: 0 }, e: { r: 0, c: lastCol } };
 
-    setCell(ws, 0, 0, 'VA-Workspace — Cấu hình đánh giá', S.title);
+    setCell(ws, 0, 0, 'VA-Workspace — Cấu hình tiêu chí đánh giá', S.title);
     mergeRow(ws, 0, 0, lastCol);
 
     const exportedAt = datetime(new Date().toISOString());
@@ -153,14 +149,14 @@ export function exportEvaluationWorkbook(rows, filters = {}, summary = {}) {
 
     const kpis = [
         ['Tổng', summary.total ?? list.length],
-        ['Đang bật', summary.active ?? ''],
-        ['Hiệu lực', summary.effective ?? ''],
-        ['Điểm cộng/trừ', summary.point_system ?? ''],
-        ['Phiếu tiêu chí', summary.scorecard ?? ''],
+        ['Chung', summary.general ?? ''],
+        ['Theo PB', summary.department ?? ''],
+        ['Hoạt động', summary.active ?? ''],
+        ['Ngưng', summary.inactive ?? ''],
     ];
     kpis.forEach(([label, value], i) => {
         setCell(ws, 3, i, label, S.kpiLabel);
-        setCell(ws, 4, i, value === '' || value == null ? 0 : value, S.kpiValue);
+        setCell(ws, 4, i, value, S.kpiValue);
     });
 
     const headerRow = 6;
@@ -169,19 +165,34 @@ export function exportEvaluationWorkbook(rows, filters = {}, summary = {}) {
     list.forEach((row, i) => {
         const r = headerRow + 1 + i;
         const style = i % 2 === 0 ? S.cell : S.cellAlt;
-        rowValues(row, i).forEach((v, c) => setCell(ws, r, c, v, style));
-        range.e.r = r;
+        rowValues(row, i).forEach((val, c) => setCell(ws, r, c, val, style));
     });
 
-    if (list.length === 0) {
-        range.e.r = headerRow;
-    }
-
-    ws['!ref'] = XLSX.utils.encode_range(range);
-    setColWidths(ws, [5, 12, 22, 28, 16, 12, 12, 10, 10, 12, 18, 28, 16, 16]);
+    const lastRow = headerRow + Math.max(list.length, 1);
+    ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: lastRow, c: lastCol } });
+    setColWidths(ws, [5, 14, 10, 18, 10, 32, 14, 10, 16, 16, 16, 14, 14, 14, 16, 28, 16, 16]);
 
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Cau hinh DG');
+    XLSX.utils.book_append_sheet(wb, ws, 'Tieu chi');
     const stamp = new Date().toISOString().slice(0, 10);
-    XLSX.writeFile(wb, `VA_CauHinhDanhGia_${stamp}.xlsx`);
+    XLSX.writeFile(wb, `VA_TieuChiDanhGia_${stamp}.xlsx`);
+}
+
+export function exportEvaluationCsv(rows) {
+    const list = Array.isArray(rows) ? rows : [];
+    const lines = [HEADERS.join(',')];
+    list.forEach((row, i) => {
+        const vals = rowValues(row, i).map((v) => {
+            const s = String(v ?? '');
+            return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+        });
+        lines.push(vals.join(','));
+    });
+    const blob = new Blob([`\uFEFF${lines.join('\n')}`], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `VA_TieuChiDanhGia_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
 }

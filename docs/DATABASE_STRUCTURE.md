@@ -642,14 +642,13 @@ Lưu **override** cấu hình runtime (admin chỉnh ở `/settings`). Bảng tr
 
 ---
 
-### 3.29 va_prd_evaluation_* — Cấu hình đánh giá workspace
+### 3.29 va_prd_evaluation_* — Cấu hình tiêu chí đánh giá
 
-Xem `docs/EVALUATION_CONFIG.md`. Migration `2026_07_29_160000_create_evaluation_config_tables` (+ `2026_07_30_120000_drop_evaluation_templates` gỡ catalog mẫu).
+Xem `docs/EVALUATION_CONFIG.md`. Migrations: `2026_07_29_160000_create_evaluation_config_tables` → `2026_07_30_120000_drop_evaluation_templates` → `2026_07_30_130000_reshape_evaluation_criteria_catalog` (catalog standalone).
 
 | Bảng | Mô tả |
 |------|--------|
-| `evaluation_configs` | Cấu hình theo `department_code` + hiệu lực; SoftDeletes; unique (dept, type, effective_from) |
-| `evaluation_criteria` | Tiêu chí thuộc config |
+| `evaluation_criteria` | Tiêu chí chung / theo PB; SoftDeletes; unique `criteria_code`; thang `score_1`…`score_5`, `allow_half_score` |
 
 ---
 

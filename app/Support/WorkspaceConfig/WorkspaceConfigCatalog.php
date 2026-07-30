@@ -29,8 +29,8 @@ class WorkspaceConfigCatalog
         return [
             [
                 'key' => 'evaluation',
-                'label' => 'Cấu hình đánh giá',
-                'description' => 'Bộ quy tắc đánh giá theo phòng ban, mẫu điểm cộng/trừ và phiếu tiêu chí.',
+                'label' => 'Cấu hình tiêu chí đánh giá',
+                'description' => 'Danh mục tiêu chí chung và theo phòng ban — thang điểm 1–5, loại tiêu chí.',
                 'href' => '/workspace-config/evaluation',
                 'icon' => 'award',
                 'tone' => 'amber',

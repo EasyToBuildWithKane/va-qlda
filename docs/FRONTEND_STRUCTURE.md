@@ -70,7 +70,7 @@ resources/js/
 │   ├── notifications/            ← Bell, center drawer, preferences
 │   ├── audit/                    ← Audit trail viewer components/composables
 │   ├── aiAccount/                ← Tài khoản AI: composables + components/scan (ProposalScanModal — OCR PĐX, useProposalScan)
-│   ├── evaluation/               ← Cấu hình đánh giá: SummaryBar, ConfigForm, CriteriaEditor, columns, export
+│   ├── evaluation/               ← Tiêu chí đánh giá: SummaryBar, CriterionFormModal, columns, export
 │   └── workspace-config/         ← Hub cấu hình workspace: ItemGrid (catalog từ backend)
 ├── shared/                   ← Cross-module (Phase 2 + 4)
 │   ├── ui/                   ← Badge, Avatar, ProgressBar, form/*, **KpiSummaryStrip**, …

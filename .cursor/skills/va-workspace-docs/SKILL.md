@@ -25,7 +25,7 @@ description: >-
 | `docs/FRONTEND_STRUCTURE.md` | Pages, modules/, shared/, composables, Pinia |
 | `docs/API_STRUCTURE.md` | All web routes, Inertia vs JSON |
 | `docs/DATABASE_STRUCTURE.md` | Tables, columns, ERD |
-| `docs/EVALUATION_CONFIG.md` | Cấu hình đánh giá theo phòng ban (super-admin) |
+| `docs/EVALUATION_CONFIG.md` | Cấu hình tiêu chí đánh giá (chung + theo PB, super-admin) |
 | `docs/WORKSPACE_CONFIG.md` | Hub cấu hình workspace + đăng ký item (super-admin) |
 | `docs/AI_ACCOUNTS.md` | Quản lý AI: PĐX, TK, chi phí nhóm, xóa, orphan purge |
 | `docs/REFACTOR_PLAN.md` | Phase 1–5 ✅ complete; follow-up items |

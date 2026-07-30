@@ -161,7 +161,7 @@ flowchart TB
 | Công Nghệ | MVC + ContentRepository | `CONGNGHE_CONTENT.md` |
 | AI Accounts | Inertia pages + JSON API | `AI_ACCOUNTS.md` |
 | System settings | MVC + SettingsRepository | `SYSTEM_CONFIG.md` |
-| Evaluation config | MVC | `EVALUATION_CONFIG.md` |
+| Evaluation criteria | MVC | `EVALUATION_CONFIG.md` |
 | Workspace config hub | MVC + WorkspaceConfigCatalog | `WORKSPACE_CONFIG.md` |
 
 ---
@@ -180,7 +180,7 @@ flowchart TB
 | Phản hồi | `API_STRUCTURE` §2.12 | `FeedbackController` | `Pages/Feedback/` |
 | Hệ thống | `SYSTEM_CONFIG.md` | `SystemSettingController`, `Notification*` | `Pages/Settings/`, `Notifications/` |
 | Cấu hình workspace | `WORKSPACE_CONFIG.md` | `WorkspaceConfigController` + catalog | `Pages/WorkspaceConfig/Hub.vue`, `modules/workspace-config/` |
-| Cấu hình đánh giá | `EVALUATION_CONFIG.md` | `EvaluationConfigController` | `Pages/WorkspaceConfig/Evaluation/`, `modules/evaluation/` |
+| Cấu hình tiêu chí đánh giá | `EVALUATION_CONFIG.md` | `EvaluationCriterionController` | `Pages/WorkspaceConfig/Evaluation/`, `modules/evaluation/` |
 | Nhập/xuất Excel | `IMPORT_EXPORT_RECONCILE.md` | `Blocker@import`, … | `*DataModal`, `use*Import.js` |
 
 **Chéo:** Comments morph — `CommentController` + `CommentThread.vue` (Task, Blocker, Feedback, KB, …). Realtime token: `_dev/realtime.md`, route `realtime.thread-token`.

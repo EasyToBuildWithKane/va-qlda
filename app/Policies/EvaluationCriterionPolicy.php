@@ -2,10 +2,10 @@
 
 namespace App\Policies;
 
-use App\Models\Evaluation\EvaluationConfig;
+use App\Models\Evaluation\EvaluationCriterion;
 use App\Models\SystemAccount;
 
-class EvaluationConfigPolicy
+class EvaluationCriterionPolicy
 {
     public function viewAny(SystemAccount $account): bool
     {
@@ -13,7 +13,7 @@ class EvaluationConfigPolicy
             || $account->allows('workspace.evaluation.manage');
     }
 
-    public function view(SystemAccount $account, EvaluationConfig $config): bool
+    public function view(SystemAccount $account, EvaluationCriterion $criterion): bool
     {
         return $this->viewAny($account);
     }
@@ -23,12 +23,12 @@ class EvaluationConfigPolicy
         return $account->allows('workspace.evaluation.manage');
     }
 
-    public function update(SystemAccount $account, EvaluationConfig $config): bool
+    public function update(SystemAccount $account, EvaluationCriterion $criterion): bool
     {
         return $account->allows('workspace.evaluation.manage');
     }
 
-    public function delete(SystemAccount $account, EvaluationConfig $config): bool
+    public function delete(SystemAccount $account, EvaluationCriterion $criterion): bool
     {
         return $account->allows('workspace.evaluation.manage');
     }

@@ -2,16 +2,16 @@
 
 namespace App\Support\Enums;
 
-enum EvaluationTemplateType: string
+enum EvaluationCriterionScope: string
 {
-    case PointSystem = 'point_system';
-    case Scorecard = 'scorecard';
+    case General = 'general';
+    case Department = 'department';
 
     public function label(): string
     {
         return match ($this) {
-            self::PointSystem => 'Điểm cộng / trừ',
-            self::Scorecard => 'Phiếu tiêu chí',
+            self::General => 'Tiêu chí chung',
+            self::Department => 'Theo phòng ban',
         };
     }
 

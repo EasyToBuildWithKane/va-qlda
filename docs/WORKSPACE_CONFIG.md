@@ -15,7 +15,7 @@
 | Đăng ký item qua `WorkspaceConfigCatalog` | Hard-code card chỉ trên FE |
 | Mỗi item = domain riêng (route + pages + policy) | Một controller khổng lồ cho mọi domain |
 
-**Item hiện có:** [Cấu hình đánh giá](EVALUATION_CONFIG.md) → `/workspace-config/evaluation`.
+**Item hiện có:** [Cấu hình tiêu chí đánh giá](EVALUATION_CONFIG.md) → `/workspace-config/evaluation`.
 
 **Mở rộng sau:** thêm phần tử trong `WorkspaceConfigCatalog::definition()`, route con trong `routes/web/workspace-config.php`, nav item trong `Navigation.php` nhóm `settings_workspace`, ability reserved trong `PermissionCatalog`.
 

@@ -5,17 +5,17 @@ import KpiSummaryStrip from '@/shared/ui/KpiSummaryStrip.vue';
 const props = defineProps({
     summary: { type: Object, required: true },
     activeStatus: { type: String, default: '' },
-    activeTemplateType: { type: String, default: '' },
+    activeScope: { type: String, default: '' },
 });
 
 const emit = defineEmits(['quick-filter']);
 
 const activeKey = computed(() => {
-    if (props.activeStatus === 'effective') return 'effective';
     if (props.activeStatus === 'active') return 'active';
-    if (props.activeTemplateType === 'point_system') return 'point_system';
-    if (props.activeTemplateType === 'scorecard') return 'scorecard';
-    if (!props.activeStatus && !props.activeTemplateType) return 'total';
+    if (props.activeStatus === 'inactive') return 'inactive';
+    if (props.activeScope === 'general') return 'general';
+    if (props.activeScope === 'department') return 'department';
+    if (!props.activeStatus && !props.activeScope) return 'total';
     return '';
 });
 
@@ -27,57 +27,57 @@ const cards = computed(() => {
     return [
         {
             key: 'total',
-            label: 'Tổng cấu hình',
+            label: 'Tổng tiêu chí',
             value: total,
             tone: 'brand',
             icon: 'award',
-            sub: total ? 'Tất cả phòng ban' : 'Chưa có cấu hình',
+            sub: total ? 'Tất cả phạm vi' : 'Chưa có tiêu chí',
             interactive: true,
-            payload: { status: '', template_type: '' },
+            payload: { status: '', scope: '' },
         },
         {
-            key: 'effective',
-            label: 'Đang hiệu lực',
-            value: s.effective ?? 0,
-            tone: 'emerald',
-            icon: 'done',
-            sub: total ? `${pct(s.effective ?? 0)}% tổng` : 'Bấm để lọc',
-            progress: pct(s.effective ?? 0),
+            key: 'general',
+            label: 'Tiêu chí chung',
+            value: s.general ?? 0,
+            tone: 'sky',
+            icon: 'documents',
+            sub: total ? `${pct(s.general ?? 0)}% tổng` : 'Bấm để lọc',
+            progress: pct(s.general ?? 0),
             interactive: true,
-            payload: { status: 'effective', template_type: '' },
+            payload: { status: '', scope: 'general' },
+        },
+        {
+            key: 'department',
+            label: 'Theo phòng ban',
+            value: s.department ?? 0,
+            tone: 'violet',
+            icon: 'department',
+            sub: total ? `${pct(s.department ?? 0)}% tổng` : 'Bấm để lọc',
+            progress: pct(s.department ?? 0),
+            interactive: true,
+            payload: { status: '', scope: 'department' },
         },
         {
             key: 'active',
-            label: 'Đang bật',
+            label: 'Đang hoạt động',
             value: s.active ?? 0,
-            tone: 'sky',
-            icon: 'sprint',
+            tone: 'emerald',
+            icon: 'done',
             sub: total ? `${pct(s.active ?? 0)}% tổng` : 'Bấm để lọc',
             progress: pct(s.active ?? 0),
             interactive: true,
-            payload: { status: 'active', template_type: '' },
+            payload: { status: 'active', scope: '' },
         },
         {
-            key: 'point_system',
-            label: 'Điểm cộng/trừ',
-            value: s.point_system ?? 0,
-            tone: 'violet',
-            icon: 'performance',
-            sub: 'Mẫu HCNS',
-            progress: pct(s.point_system ?? 0),
+            key: 'inactive',
+            label: 'Ngưng hoạt động',
+            value: s.inactive ?? 0,
+            tone: 'slate',
+            icon: 'close',
+            sub: total ? `${pct(s.inactive ?? 0)}% tổng` : 'Bấm để lọc',
+            progress: pct(s.inactive ?? 0),
             interactive: true,
-            payload: { status: '', template_type: 'point_system' },
-        },
-        {
-            key: 'scorecard',
-            label: 'Phiếu tiêu chí',
-            value: s.scorecard ?? 0,
-            tone: 'amber',
-            icon: 'documents',
-            sub: 'Mẫu CNTT',
-            progress: pct(s.scorecard ?? 0),
-            interactive: true,
-            payload: { status: '', template_type: 'scorecard' },
+            payload: { status: 'inactive', scope: '' },
         },
     ];
 });
@@ -89,8 +89,8 @@ function onSelect(card) {
 
 <template>
   <KpiSummaryStrip
-    aria-label="Thống kê cấu hình đánh giá"
-    heading="Tổng quan cấu hình đánh giá"
+    aria-label="Thống kê tiêu chí đánh giá"
+    heading="Tổng quan tiêu chí đánh giá"
     hint="Thẻ có viền nét đứt — bấm để lọc nhanh danh sách"
     :cards="cards"
     :active-key="activeKey"
