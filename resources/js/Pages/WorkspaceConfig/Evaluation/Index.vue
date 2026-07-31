@@ -9,21 +9,19 @@ import PageHeader from '@/Components/Ui/PageHeader.vue';
 import Badge from '@/shared/ui/Badge.vue';
 import EvaluationSummaryBar from '@/modules/evaluation/components/EvaluationSummaryBar.vue';
 import EvaluationCriterionFormModal from '@/modules/evaluation/components/EvaluationCriterionFormModal.vue';
+import EvaluationImportModal from '@/modules/evaluation/components/EvaluationImportModal.vue';
+import EvaluationExportModal from '@/modules/evaluation/components/EvaluationExportModal.vue';
 import EvaluationCriterionRowActions from '@/modules/evaluation/components/EvaluationCriterionRowActions.vue';
 import EvaluationCategoryTabs from '@/modules/evaluation/components/EvaluationCategoryTabs.vue';
+import EvaluationScoreLevelCell from '@/modules/evaluation/components/EvaluationScoreLevelCell.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import DatagridToolbarActionButton from '@/shared/ui/DatagridToolbarActionButton.vue';
 import DatagridFilterField from '@/shared/ui/DatagridFilterField.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import ColumnVisibilityDropdown from '@/shared/ui/ColumnVisibilityDropdown.vue';
 import { EVALUATION_TABLE_COLUMNS } from '@/modules/evaluation/config/columns.js';
-import {
-    exportEvaluationWorkbook,
-    exportEvaluationCsv,
-} from '@/modules/evaluation/composables/useEvaluationExport.js';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
 import { useVisibleColumns } from '@/shared/composables/useVisibleColumns';
-import { useToast } from '@/shared/composables/useToast';
 import { useConfirmDelete } from '@/composables/useConfirmClose';
 import { displayOrEmpty, EMPTY_LABELS } from '@/shared/utils/emptyDisplay';
 import { datetime } from '@/composables/useFormat';
@@ -52,14 +50,91 @@ const props = defineProps({
 const canManageAllDepts = computed(() => props.viewer?.can_manage_all !== false);
 const canCreateGeneral = computed(() => props.viewer?.can_create_general !== false);
 
-const toast = useToast();
 const confirmDelete = useConfirmDelete();
 const filterPanelDdRef = ref(null);
 const colDdRef = ref(null);
-const exportDdRef = ref(null);
-const showExportDd = ref(false);
+const tableScrollRef = ref(null);
 const showFormModal = ref(false);
+const showImportModal = ref(false);
+const showExportModal = ref(false);
 const editingCriterion = ref(null);
+const tableDragging = ref(false);
+
+let tablePointerId = null;
+let tableStartX = 0;
+let tableStartScrollLeft = 0;
+let tableMoved = false;
+let tableSuppressClick = false;
+const TABLE_DRAG_THRESHOLD = 8;
+
+function onTablePointerDown(e) {
+    const el = tableScrollRef.value;
+    if (!el || e.button !== 0) return;
+    if (e.pointerType !== 'mouse') return;
+    // Tab loại có scroller riêng — không bắt drag bảng tại đây
+    if (e.target?.closest?.('.eval-cat-tabs')) return;
+
+    tablePointerId = e.pointerId;
+    tableStartX = e.clientX;
+    tableStartScrollLeft = el.scrollLeft;
+    tableMoved = false;
+    tableSuppressClick = false;
+    tableDragging.value = false;
+}
+
+function onTablePointerMove(e) {
+    const el = tableScrollRef.value;
+    if (!el || tablePointerId !== e.pointerId) return;
+
+    const dx = e.clientX - tableStartX;
+    if (!tableMoved && Math.abs(dx) < TABLE_DRAG_THRESHOLD) return;
+
+    if (!tableMoved) {
+        tableMoved = true;
+        tableSuppressClick = true;
+        tableDragging.value = true;
+        try {
+            el.setPointerCapture(e.pointerId);
+        } catch {
+            /* ignore */
+        }
+    }
+
+    el.scrollLeft = tableStartScrollLeft - dx;
+    e.preventDefault();
+}
+
+function endTablePointer(e) {
+    const el = tableScrollRef.value;
+    if (tablePointerId == null || (e?.pointerId != null && tablePointerId !== e.pointerId)) return;
+
+    if (el?.hasPointerCapture?.(tablePointerId)) {
+        try {
+            el.releasePointerCapture(tablePointerId);
+        } catch {
+            /* ignore */
+        }
+    }
+
+    const wasDragging = tableSuppressClick;
+    tablePointerId = null;
+    tableDragging.value = false;
+    tableMoved = false;
+
+    if (wasDragging) {
+        setTimeout(() => {
+            tableSuppressClick = false;
+        }, 0);
+    } else {
+        tableSuppressClick = false;
+    }
+}
+
+function onTableClickCapture(e) {
+    if (!tableSuppressClick) return;
+    e.preventDefault();
+    e.stopPropagation();
+}
 
 const FILTER_CONTROLS = [
     { key: 'scope', label: 'Phạm vi', default: false },
@@ -95,7 +170,7 @@ const {
     openColPanel,
     isColVisible,
     TABLE_COLUMNS,
-} = useVisibleColumns(EVALUATION_TABLE_COLUMNS, 'va-workspace.evaluation.columns.v8');
+} = useVisibleColumns(EVALUATION_TABLE_COLUMNS, 'va-workspace.evaluation.columns.v10');
 
 const GROUP_GENERAL = '__general__';
 const GROUP_UNCATEGORIZED = '__uncategorized__';
@@ -174,7 +249,32 @@ const groupedCriteria = computed(() => {
         }));
 });
 
-const tableColspan = computed(() => visibleColumnCount.value + 3);
+/** Số cột mức điểm tối đa trên trang (theo dữ liệu đang load). */
+const maxScoreLevelCount = computed(() => {
+    let max = 0;
+    for (const row of rows.value) {
+        const n = Array.isArray(row?.score_levels) ? row.score_levels.length : 0;
+        if (n > max) max = n;
+    }
+    if (max > 0) return max;
+    const defaults = Array.isArray(props.defaultScoreLevels) ? props.defaultScoreLevels.length : 0;
+    return defaults > 0 ? defaults : 0;
+});
+
+const scoreLevelColumnIndexes = computed(() => (
+    Array.from({ length: maxScoreLevelCount.value }, (_, i) => i)
+));
+
+/** Header cột mức: Mức 1, Mức 2, … (chi tiết nhãn/điểm nằm trong ô). */
+const scoreLevelHeaders = computed(() => scoreLevelColumnIndexes.value.map((index) => ({
+    index,
+    label: `Mức ${index + 1}`,
+    title: `Cột mức điểm ${index + 1}`,
+})));
+
+const tableColspan = computed(() => (
+    visibleColumnCount.value + 3 + scoreLevelColumnIndexes.value.length
+));
 
 function persistCollapsedGroups() {
     localStorage.setItem(COLLAPSE_STORAGE_KEY, JSON.stringify([...collapsedGroups.value]));
@@ -227,6 +327,11 @@ function setCategoryTab(groupKey, tabKey) {
 function visibleGroupItems(group) {
     const tabKey = activeCategoryTab(group);
     return group.items.filter((row) => categoryKeyOf(row) === tabKey);
+}
+
+function scoreLevelAt(row, index) {
+    const levels = Array.isArray(row?.score_levels) ? row.score_levels : [];
+    return levels[index] || null;
 }
 
 watch(groupedCriteria, (groups) => {
@@ -290,39 +395,34 @@ function onDelete(row) {
 function openFilterPanelSafe() {
     openFilterPanel(() => {
         showColDd.value = false;
-        showExportDd.value = false;
     });
 }
 
 function openColPanelSafe() {
     openColPanel(() => {
         showFilterPanelDd.value = false;
-        showExportDd.value = false;
     });
 }
 
-function openExportMenu() {
-    showExportDd.value = !showExportDd.value;
-    showFilterPanelDd.value = false;
-    showColDd.value = false;
+function openImportModal() {
+    showImportModal.value = true;
 }
 
-function runExport(format) {
-    showExportDd.value = false;
-    if (!rows.value.length) {
-        toast.warning('Không có dữ liệu để xuất trên trang hiện tại.');
-        return;
-    }
-    try {
-        if (format === 'csv') {
-            exportEvaluationCsv(rows.value);
-        } else {
-            exportEvaluationWorkbook(rows.value, { ...filters }, props.summary);
-        }
-        toast.success('Đã xuất file.');
-    } catch {
-        toast.error('Không xuất được file. Thử lại.');
-    }
+function closeImportModal() {
+    showImportModal.value = false;
+}
+
+function onImported() {
+    showImportModal.value = false;
+    router.reload({ only: ['criteria', 'summary', 'categories', 'nextCode'], preserveScroll: true });
+}
+
+function openExportModal() {
+    showExportModal.value = true;
+}
+
+function closeExportModal() {
+    showExportModal.value = false;
 }
 
 function onDocClick(e) {
@@ -332,15 +432,13 @@ function onDocClick(e) {
     if (colDdRef.value && !colDdRef.value.contains(e.target)) {
         showColDd.value = false;
     }
-    if (exportDdRef.value && !exportDdRef.value.contains(e.target)) {
-        showExportDd.value = false;
-    }
 }
 
 onMounted(() => document.addEventListener('mousedown', onDocClick));
 onBeforeUnmount(() => {
     document.removeEventListener('mousedown', onDocClick);
     clearTimeout(searchTimer);
+    tablePointerId = null;
 });
 </script>
 
@@ -441,58 +539,22 @@ onBeforeUnmount(() => {
               />
             </div>
 
-            <div
-              ref="exportDdRef"
-              class="relative shrink-0"
+            <DatagridToolbarActionButton
+              icon="export"
+              title="Xuất dữ liệu tiêu chí đánh giá"
+              @click="openExportModal"
             >
-              <DatagridToolbarActionButton
-                icon="export"
-                :active="showExportDd"
-                title="Xuất CSV hoặc Excel"
-                @click="openExportMenu"
-              >
-                Xuất
-              </DatagridToolbarActionButton>
-              <Transition
-                enter-active-class="transition duration-150 ease-out"
-                enter-from-class="opacity-0 scale-95 -translate-y-1"
-                leave-active-class="transition duration-100 ease-in"
-                leave-to-class="opacity-0 scale-95 -translate-y-1"
-              >
-                <div
-                  v-if="showExportDd"
-                  class="absolute right-0 top-full z-30 mt-1.5 w-56 origin-top-right rounded-xl border border-slate-200 bg-white py-1 shadow-elevation-2"
-                >
-                  <p class="px-3 py-2 text-[10px] font-bold uppercase tracking-wide text-slate-400">
-                    Trang hiện tại
-                  </p>
-                  <button
-                    type="button"
-                    class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
-                    @click="runExport('xlsx')"
-                  >
-                    <AppIcon
-                      name="export"
-                      :size="15"
-                      class="shrink-0 text-slate-400"
-                    />
-                    Excel (.xlsx)
-                  </button>
-                  <button
-                    type="button"
-                    class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
-                    @click="runExport('csv')"
-                  >
-                    <AppIcon
-                      name="documents"
-                      :size="15"
-                      class="shrink-0 text-slate-400"
-                    />
-                    CSV (.csv)
-                  </button>
-                </div>
-              </Transition>
-            </div>
+              Xuất
+            </DatagridToolbarActionButton>
+
+            <DatagridToolbarActionButton
+              v-if="can.manage"
+              icon="upload"
+              title="Nhập tiêu chí từ Excel"
+              @click="openImportModal"
+            >
+              Nhập
+            </DatagridToolbarActionButton>
           </div>
 
           <div class="ml-auto flex shrink-0 items-center gap-2">
@@ -590,36 +652,51 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
-      <div class="evaluation-table-wrap max-w-full overflow-x-auto">
-        <table class="evaluation-table w-full max-w-full border-collapse text-left text-sm">
+      <div
+        ref="tableScrollRef"
+        class="evaluation-table-wrap"
+        :class="{ 'evaluation-table-wrap--dragging': tableDragging }"
+        @pointerdown="onTablePointerDown"
+        @pointermove="onTablePointerMove"
+        @pointerup="endTablePointer"
+        @pointercancel="endTablePointer"
+        @lostpointercapture="endTablePointer"
+        @click.capture="onTableClickCapture"
+      >
+        <table class="evaluation-table text-left text-sm">
           <colgroup>
-            <col class="w-9">
-            <col>
+            <col class="evaluation-table__col-spacer">
+            <col class="evaluation-table__col-name">
+            <col
+              v-for="col in scoreLevelHeaders"
+              :key="`col-score-${col.index}`"
+              class="evaluation-table__col"
+            >
             <col
               v-if="isColVisible('allow_half_score')"
-              class="w-[6.5rem]"
+              class="evaluation-table__col"
             >
             <col
               v-if="isColVisible('description')"
-              class="w-[14rem]"
+              class="evaluation-table__col"
             >
             <col
               v-if="isColVisible('creator')"
-              class="w-[9rem]"
+              class="evaluation-table__col"
             >
             <col
               v-if="isColVisible('created_at')"
-              class="w-[9.5rem]"
+              class="evaluation-table__col"
             >
             <col
               v-if="isColVisible('updated_at')"
-              class="w-[9.5rem]"
+              class="evaluation-table__col"
             >
             <col
               v-if="isColVisible('status')"
-              class="w-[7.5rem]"
+              class="evaluation-table__col"
             >
-            <col class="w-12">
+            <col class="evaluation-table__col-actions">
           </colgroup>
           <tbody>
             <template v-if="groupedCriteria.length">
@@ -676,63 +753,73 @@ onBeforeUnmount(() => {
                   </tr>
                   <tr class="bg-slate-50/90 text-[11px] uppercase tracking-wide text-slate-500">
                     <th
-                      class="w-9 px-1 py-2.5"
+                      class="evaluation-table__cell-spacer px-1 py-2.5"
                       aria-hidden="true"
                       scope="col"
                     />
                     <th
-                      class="min-w-0 px-3 py-2.5 text-left font-medium sm:px-5"
+                      class="evaluation-table__cell-name px-2.5 py-2.5 text-left font-medium sm:px-3"
                       scope="col"
                     >
                       Tên tiêu chí
                     </th>
                     <th
+                      v-for="col in scoreLevelHeaders"
+                      :key="`th-score-${col.index}`"
+                      class="evaluation-table__cell px-2 py-2.5 text-center font-medium"
+                      scope="col"
+                      :title="col.title"
+                    >
+                      {{ col.label }}
+                    </th>
+                    <th
                       v-if="isColVisible('allow_half_score')"
-                      class="px-3 py-2.5 text-left font-medium sm:px-5"
+                      class="evaluation-table__cell px-2.5 py-2.5 text-left font-medium sm:px-3"
                       scope="col"
                     >
                       Chấm 0.5
                     </th>
                     <th
                       v-if="isColVisible('description')"
-                      class="px-3 py-2.5 text-left font-medium sm:px-5"
+                      class="evaluation-table__cell px-2.5 py-2.5 text-left font-medium sm:px-3"
                       scope="col"
                     >
                       Mô tả
                     </th>
                     <th
                       v-if="isColVisible('creator')"
-                      class="px-3 py-2.5 text-left font-medium sm:px-5"
+                      class="evaluation-table__cell px-2.5 py-2.5 text-left font-medium sm:px-3"
                       scope="col"
                     >
                       Người tạo
                     </th>
                     <th
                       v-if="isColVisible('created_at')"
-                      class="px-3 py-2.5 text-left font-medium sm:px-5"
+                      class="evaluation-table__cell px-2.5 py-2.5 text-left font-medium sm:px-3"
                       scope="col"
                     >
                       Ngày tạo
                     </th>
                     <th
                       v-if="isColVisible('updated_at')"
-                      class="px-3 py-2.5 text-left font-medium sm:px-5"
+                      class="evaluation-table__cell px-2.5 py-2.5 text-left font-medium sm:px-3"
                       scope="col"
                     >
                       Cập nhật
                     </th>
                     <th
                       v-if="isColVisible('status')"
-                      class="px-3 py-2.5 text-left font-medium sm:px-5"
+                      class="evaluation-table__cell px-2.5 py-2.5 text-left font-medium sm:px-3"
                       scope="col"
                     >
                       Trạng thái
                     </th>
                     <th
-                      class="w-12 px-2 py-2.5 sm:px-3"
+                      class="evaluation-table__cell-actions px-2 py-2.5 text-center font-medium sm:px-3"
                       scope="col"
-                      aria-label="Thao tác"
-                    />
+                    >
+                      Thao tác
+                    </th>
                   </tr>
                   <tr
                     v-for="row in visibleGroupItems(group)"
@@ -740,53 +827,63 @@ onBeforeUnmount(() => {
                     class="border-b border-slate-100 hover:bg-slate-50/60"
                   >
                     <td class="px-1 py-3" />
-                    <td class="min-w-0 px-3 py-3 sm:px-5">
+                    <td class="evaluation-table__cell-name px-2.5 py-3 align-top sm:px-3">
                       <Link
                         :href="route('workspace.evaluation.show', row.id)"
-                        class="block truncate font-medium text-slate-800 hover:text-brand"
-                        :title="row.criteria_name"
+                        class="block whitespace-normal break-words font-medium leading-snug text-slate-800 hover:text-brand"
                       >
                         {{ row.criteria_name }}
                       </Link>
-                      <span class="mt-0.5 block truncate font-mono text-[11px] text-slate-400">
+                      <span class="mt-0.5 block break-all font-mono text-[11px] text-slate-400">
                         {{ row.criteria_code }}
                       </span>
                     </td>
                     <td
+                      v-for="col in scoreLevelHeaders"
+                      :key="`${row.id}-score-${col.index}`"
+                      class="evaluation-table__cell px-2 py-3 align-top"
+                    >
+                      <EvaluationScoreLevelCell :level="scoreLevelAt(row, col.index)" />
+                    </td>
+                    <td
                       v-if="isColVisible('allow_half_score')"
-                      class="px-3 py-3 text-slate-600 sm:px-5"
+                      class="evaluation-table__cell px-2.5 py-3 text-slate-600 sm:px-3"
                     >
                       {{ row.allow_half_score ? 'Có' : 'Không' }}
                     </td>
                     <td
                       v-if="isColVisible('description')"
-                      class="min-w-0 truncate px-3 py-3 text-slate-600 sm:px-5"
+                      class="evaluation-table__cell px-2.5 py-3 align-top text-slate-600 sm:px-3"
                       :title="row.description || undefined"
                     >
-                      {{ displayOrEmpty(row.description, EMPTY_LABELS.notUpdated) }}
+                      <span class="line-clamp-3 break-words">
+                        {{ displayOrEmpty(row.description, EMPTY_LABELS.notUpdated) }}
+                      </span>
                     </td>
                     <td
                       v-if="isColVisible('creator')"
-                      class="min-w-0 truncate px-3 py-3 text-slate-600 sm:px-5"
+                      class="evaluation-table__cell px-2.5 py-3 align-top text-slate-600 sm:px-3"
                       :title="row.creator?.display_name || undefined"
                     >
-                      {{ displayOrEmpty(row.creator?.display_name, EMPTY_LABELS.notUpdated) }}
+                      <span class="line-clamp-2 break-words">
+                        {{ displayOrEmpty(row.creator?.display_name, EMPTY_LABELS.notUpdated) }}
+                      </span>
                     </td>
                     <td
                       v-if="isColVisible('created_at')"
-                      class="truncate px-3 py-3 tabular-nums text-slate-600 sm:px-5"
+                      class="evaluation-table__cell px-2.5 py-3 tabular-nums text-slate-600 sm:px-3"
                     >
                       {{ row.created_at ? datetime(row.created_at) : EMPTY_LABELS.notUpdated }}
                     </td>
                     <td
                       v-if="isColVisible('updated_at')"
-                      class="truncate px-3 py-3 tabular-nums text-slate-600 sm:px-5"
+                      class="evaluation-table__cell px-2.5 py-3 tabular-nums text-slate-600 sm:px-3"
                     >
                       {{ row.updated_at ? datetime(row.updated_at) : EMPTY_LABELS.notUpdated }}
                     </td>
                     <td
                       v-if="isColVisible('status')"
-                      class="px-3 py-3 sm:px-5"
+                      class="evaluation-table__cell px-2.5 py-3 sm:px-3"
                     >
                       <Badge
                         :color="row.is_active ? 'emerald' : 'slate'"
@@ -849,15 +946,103 @@ onBeforeUnmount(() => {
       :default-department-code="viewer.forced_department_code || viewer.own_department_code || ''"
       @close="closeFormModal"
     />
+
+    <EvaluationImportModal
+      :show="showImportModal"
+      :departments="departments"
+      :categories="categories"
+      :can-create-general="canCreateGeneral"
+      :default-score-levels="defaultScoreLevels"
+      @close="closeImportModal"
+      @imported="onImported"
+    />
+
+    <EvaluationExportModal
+      :show="showExportModal"
+      :rows="rows"
+      :filters="filters"
+      :summary="summary"
+      :visible-cols="visibleCols"
+      @close="closeExportModal"
+    />
   </AppLayout>
 </template>
 
 <style scoped>
-.evaluation-table {
-  table-layout: fixed;
+.evaluation-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  cursor: grab;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
-.evaluation-table-wrap {
-  overscroll-behavior-x: contain;
+.evaluation-table-wrap::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.evaluation-table-wrap--dragging {
+  cursor: grabbing;
+  user-select: none;
+}
+
+.evaluation-table-wrap--dragging :deep(a),
+.evaluation-table-wrap--dragging :deep(button) {
+  pointer-events: none;
+}
+
+.evaluation-table {
+  table-layout: fixed;
+  width: max-content;
+  min-width: 100%;
+  border-collapse: collapse;
+}
+
+.evaluation-table__col {
+  width: 150px;
+  max-width: 150px;
+}
+
+.evaluation-table__col-name {
+  width: 280px;
+  max-width: 280px;
+}
+
+.evaluation-table__col-spacer {
+  width: 2.25rem;
+  max-width: 2.25rem;
+}
+
+.evaluation-table__col-actions {
+  width: 4.5rem;
+  max-width: 4.5rem;
+}
+
+.evaluation-table__cell {
+  width: 150px;
+  max-width: 150px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.evaluation-table__cell-name {
+  width: 280px;
+  max-width: 280px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.evaluation-table__cell-spacer {
+  width: 2.25rem;
+  max-width: 2.25rem;
+}
+
+.evaluation-table__cell-actions {
+  width: 4.5rem;
+  max-width: 4.5rem;
 }
 </style>

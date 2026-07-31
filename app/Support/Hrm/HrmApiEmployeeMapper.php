@@ -183,9 +183,6 @@ final class HrmApiEmployeeMapper
         return self::nullableString($payload['workplace'] ?? null);
     }
 
-    /**
-     * @param  mixed  $ref
-     */
     private static function namedRef(mixed $ref): ?string
     {
         if (! is_array($ref)) {

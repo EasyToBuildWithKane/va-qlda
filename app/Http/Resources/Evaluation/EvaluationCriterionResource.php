@@ -4,6 +4,7 @@ namespace App\Http\Resources\Evaluation;
 
 use App\Models\Evaluation\EvaluationCriterion;
 use App\Support\Enums\EvaluationCriterionScope;
+use App\Support\PublicMediaUrl;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -49,6 +50,11 @@ class EvaluationCriterionResource extends JsonResource
             $payload['creator'] = [
                 'id' => $c->creator->id,
                 'display_name' => $c->creator->display_name,
+                'avatar' => PublicMediaUrl::fromPublicDisk(
+                    $c->creator->relationLoaded('employee')
+                        ? $c->creator->employee?->avatar_path
+                        : null
+                ),
             ];
         }
 

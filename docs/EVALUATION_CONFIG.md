@@ -51,15 +51,18 @@ Migrations: `…130000_reshape_evaluation_criteria_catalog` → `…140000_add_s
 |--------|-----|------|
 | GET | `/workspace-config/evaluation` | `workspace.evaluation.index` |
 | POST | `/workspace-config/evaluation` | `workspace.evaluation.store` |
+| POST | `/workspace-config/evaluation/import` | `workspace.evaluation.import` |
 | GET | `/workspace-config/evaluation/{evaluationCriterion}` | `workspace.evaluation.show` |
 | PUT | `/workspace-config/evaluation/{evaluationCriterion}` | `workspace.evaluation.update` |
 | DELETE | `/workspace-config/evaluation/{evaluationCriterion}` | `workspace.evaluation.destroy` |
 
 Transport: **Inertia**. Hub: `workspace.config.index` — xem `WORKSPACE_CONFIG.md`.
 
-Tạo/sửa qua **modal** trên Index/Show (không trang Create/Edit riêng).
+Tạo/sửa qua **modal** trên Index/Show (không trang Create/Edit riêng). Nhập hàng loạt từ Excel qua **modal Nhập** (`EvaluationImportModal.vue`, cùng quyền `workspace.evaluation.manage` với tạo thủ công).
 
-`store` / `update` → `back()` + flash `success` (toast góc trên phải kiểu VA-HRM + âm 2 nốt qua `useToast` / `AppLayout`). `destroy` → redirect Index + flash.
+`store` / `update` / `import` → `back()` + flash `success` (toast góc trên phải kiểu VA-HRM + âm 2 nốt qua `useToast` / `AppLayout` — flash được clear sau khi hiện để toast vẫn chạy khi lưu liên tiếp cùng message). `destroy` → redirect Index + flash.
+
+**Import** (`EvaluationCriterionController@import` + `ImportEvaluationCriterionRequest`): body `{ rows: [...] }`, tối đa 200 dòng/lần; mỗi dòng validate mirror `StoreEvaluationCriterionRequest` (kèm kiểm tra `criteria_code` trùng nhau trong cùng lô). Toàn bộ lô chạy trong 1 `DB::transaction` — 1 dòng lỗi thì không dòng nào được tạo. Mỗi tiêu chí tạo ra được ghi audit `evaluation.criteria_created` riêng (không dùng action gộp) để lịch sử trên trang Show của từng tiêu chí nhất quán với tạo thủ công. Sau khi nhập xong, bắn 1 thông báo `NotificationType::SystemImport` duy nhất (không phải N thông báo).
 
 ---
 
@@ -95,20 +98,37 @@ Khóa ổn định khi `scope=department`: **`department_code`**.
 | Path | Ghi chú |
 |------|---------|
 | `Pages/WorkspaceConfig/Evaluation/{Index,Show}.vue` | AppLayout `#header` + PageHeader |
-| `Index.vue` | KPI strip + datagrid; nhóm collapse theo PB/chung; tab loại lọc danh sách trong nhóm (không dòng ngang theo loại); action dropdown; modal tạo/sửa |
-| `Show.vue` | Chi tiết tiêu chí: meta ở PageHeader (mã · phạm vi · loại + trạng thái), stats/mô tả, thang điểm, lịch sử audit — không lặp tên/icon hero |
+| `Index.vue` | KPI strip + datagrid; **cột mức điểm động** (header `Mức 1…N`; ô = nhãn/mô tả/`+điểm`); cột max 150px, kéo ngang ẩn scrollbar; nhóm collapse theo PB/chung; tab loại lọc danh sách trong nhóm; action dropdown; modal tạo/sửa |
+| `Show.vue` | Header gọn «Chi tiết tiêu chí»; hero (mã copy, badge phạm vi/loại/trạng thái, KPI, mô tả, người tạo + avatar); thang điểm; `EvaluationActivityTimeline` (diff rõ · lọc · phân trang 5) |
 | `modules/evaluation/components/EvaluationCriterionFormModal.vue` | Modal `max-w-4xl`: phòng ban autocomplete (để trống = tiêu chí chung, chỉ siêu QT); toggle Chấm 0.5 / Hoạt động; mã `TCVA###` khoá/mở khoá; thang điểm động 2–10 mức (**không** còn field «Cách chấm điểm») |
 | `modules/evaluation/components/EvaluationCriterionRowActions.vue` | Dropdown thao tác dòng (Xem / Sửa / Xoá) |
+| `modules/evaluation/components/EvaluationActivityTimeline.vue` | Timeline audit: avatar, badge, diff from→to, lọc Tạo/Sửa/Xóa, phân trang client 5 mục/trang |
+| `modules/evaluation/components/EvaluationScoreLevelCell.vue` | Ô mức Index: nhãn mức, mô tả ngắn, trọng số `+n` |
 | `modules/evaluation/components/EvaluationCategoryTabs.vue` | Tab loại trong nhóm PB: ẩn scrollbar, kéo ngang bằng chuột, truncate label mobile |
 | `modules/evaluation/components/DepartmentAutocomplete.vue` | Input autocomplete phòng ban (HRM directory) |
 | `modules/evaluation/components/EvaluationSummaryBar.vue` | KPI tổng / chung / PB / hoạt động |
-| `modules/evaluation/config/columns.js` | Cột bảng + `useVisibleColumns` |
-| `modules/evaluation/composables/useEvaluationExport.js` | Xuất Excel/CSV trang hiện tại |
+| `modules/evaluation/config/columns.js` | Cột tuỳ chọn (`useVisibleColumns`); mức điểm render động ngoài danh sách này |
+| `modules/evaluation/composables/useEvaluationExport.js` | Xuất Excel/CSV — hỗ trợ tuỳ chọn `{ columns, scopeLabel }`; cột tuỳ chọn khớp `EVALUATION_TABLE_COLUMNS` |
+| `modules/evaluation/composables/useEvaluationImport.js` | Nhập Excel: template, parse, validate, preview, payload — xem mục 8 |
+| `modules/evaluation/components/EvaluationImportModal.vue` | Modal `max-w-7xl`, bố cục ngang: hướng dẫn + tham chiếu bên trái/phải, bảng xem trước có hàng con mở rộng để sửa thang điểm |
+| `modules/evaluation/components/EvaluationExportModal.vue` | Modal tuỳ chọn xuất: phạm vi (theo lọc/toàn bộ), định dạng, checklist cột |
 
 **Index filters (query):** `q`, `scope`, `department_code`, `category`, `status` (`active`\|`inactive`). Index luôn trả **toàn bộ** tiêu chí (không phân trang); nhóm PB + tab loại lọc trong nhóm.
 
 ---
 
-## 7. Audit
+## 8. Nhập Excel — quy ước file mẫu
 
-`SecurityAuditLogger::evaluation()` → `subject_type=evaluation_criterion` · actions `evaluation.criteria_created|updated|deleted` (xem `AuditActionCatalog`).
+Sheet duy nhất **"Nhap lieu"** (không có sheet "Huong dan" — hướng dẫn sử dụng nằm ở modal UI, không nằm trong file) + sheet **"Tham chieu"** (danh sách phòng ban/loại tiêu chí để tra cứu khi gõ).
+
+Mỗi dòng có tối đa **5 bộ cột `Mức N` cố định** (N=1..5), mỗi bộ gồm `Mức N - Nhãn`, `Mức N - Mô tả`, `Mức N - Điểm`. Mức 1 và 2 bắt buộc (khớp `MIN_SCORE_LEVELS=2`); Mức 3–5 để trống nếu không dùng. Cần trên 5 mức → sửa bổ sung qua modal "Thêm tiêu chí"/"Sửa" sau khi nhập.
+
+Cột `Phòng ban` nhận tên hoặc mã, khớp mờ qua `normalizeSearchKey` (bỏ dấu, lowercase) với danh sách `HrmDepartmentDirectory::all()`; để trống = tiêu chí chung (chỉ hợp lệ nếu tài khoản là siêu quản trị). Marker ẩn `VA_EVAL_IMPORT_V1` định vị dòng tiêu đề khi đọc lại, đọc bằng `!ref` matrix (không `sheet_to_json`) — cùng kỹ thuật với `useRiskImport.js`.
+
+---
+
+## 9. Audit
+
+`SecurityAuditLogger::evaluation()` → `subject_type=evaluation_criterion` · actions `evaluation.criteria_created|updated|deleted` (xem `AuditActionCatalog`). Mỗi tiêu chí tạo qua **import** cũng ghi `criteria_created` riêng (không action gộp) — xem mục 3.
+
+Meta audit gồm `criteria_code/name`, `score_summary` (chuỗi mức · điểm), và khi **cập nhật** thêm `changes[]` (`label` / `from` / `to`). Show hydrate `actor_avatar` qua `PublicMediaUrl` từ `actor.employee.avatar_path`.

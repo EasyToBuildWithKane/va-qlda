@@ -338,7 +338,41 @@ class EvaluationCriterionTest extends TestCase
                 ->component('WorkspaceConfig/Evaluation/Show')
                 ->where('criterion.criteria_code', 'TCVA099')
                 ->has('activity', 1)
+                ->has('activity.0.actor_avatar')
+                ->has('activity.0.score_summary')
                 ->has('criterion.score_levels', 5)
+            );
+    }
+
+    public function test_update_logs_field_changes_in_activity(): void
+    {
+        $user = $this->superAdmin();
+
+        $this->actingAs($user, 'system')
+            ->post('/workspace-config/evaluation', $this->validPayload([
+                'criteria_code' => 'TCVA100',
+                'criteria_name' => 'Tên cũ',
+            ]));
+
+        $criterion = EvaluationCriterion::query()->where('criteria_code', 'TCVA100')->firstOrFail();
+
+        $this->actingAs($user, 'system')
+            ->put(route('workspace.evaluation.update', $criterion), $this->validPayload([
+                'criteria_code' => 'TCVA100',
+                'criteria_name' => 'Tên mới',
+            ]))
+            ->assertRedirect();
+
+        $this->actingAs($user, 'system')
+            ->get(route('workspace.evaluation.show', $criterion))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('WorkspaceConfig/Evaluation/Show')
+                ->has('activity', 2)
+                ->where('activity.0.action', 'evaluation.criteria_updated')
+                ->where('activity.0.changes.0.label', 'Tên tiêu chí')
+                ->where('activity.0.changes.0.from', 'Tên cũ')
+                ->where('activity.0.changes.0.to', 'Tên mới')
             );
     }
 
@@ -372,5 +406,185 @@ class EvaluationCriterionTest extends TestCase
         ]);
 
         $this->assertSame('TCVA004', EvaluationCriterion::suggestNextCode());
+    }
+
+    /** @return array<string, mixed> */
+    private function importRow(array $overrides = []): array
+    {
+        return array_merge([
+            'scope' => 'general',
+            'criteria_name' => 'Tiêu chí nhập '.uniqid(),
+            'category' => 'Thái độ',
+            'description' => null,
+            'allow_half_score' => false,
+            'score_levels' => $this->defaultLevels(),
+            'is_active' => true,
+        ], $overrides);
+    }
+
+    public function test_super_admin_can_import_multiple_criteria(): void
+    {
+        $rows = [
+            $this->importRow(['criteria_name' => 'Nhập dòng 1']),
+            $this->importRow(['criteria_name' => 'Nhập dòng 2']),
+        ];
+
+        $response = $this->actingAs($this->superAdmin(), 'system')
+            ->from(route('workspace.evaluation.index'))
+            ->post(route('workspace.evaluation.import'), ['rows' => $rows]);
+
+        $response->assertRedirect(route('workspace.evaluation.index'));
+        $response->assertSessionHas('success');
+        $this->assertSame(2, EvaluationCriterion::query()->whereIn('criteria_name', ['Nhập dòng 1', 'Nhập dòng 2'])->count());
+    }
+
+    public function test_import_auto_generates_sequential_codes_for_blank_rows(): void
+    {
+        $rows = [
+            $this->importRow(['criteria_name' => 'Tự sinh mã 1']),
+            $this->importRow(['criteria_name' => 'Tự sinh mã 2']),
+            $this->importRow(['criteria_name' => 'Tự sinh mã 3']),
+        ];
+
+        $this->actingAs($this->superAdmin(), 'system')
+            ->from(route('workspace.evaluation.index'))
+            ->post(route('workspace.evaluation.import'), ['rows' => $rows])
+            ->assertRedirect(route('workspace.evaluation.index'));
+
+        $codes = EvaluationCriterion::query()
+            ->whereIn('criteria_name', ['Tự sinh mã 1', 'Tự sinh mã 2', 'Tự sinh mã 3'])
+            ->orderBy('id')
+            ->pluck('criteria_code')
+            ->all();
+
+        $this->assertSame(['TCVA001', 'TCVA002', 'TCVA003'], $codes);
+    }
+
+    public function test_import_rejects_more_than_200_rows(): void
+    {
+        $rows = array_map(fn ($i) => $this->importRow(['criteria_name' => "Dòng {$i}"]), range(1, 201));
+
+        $this->actingAs($this->superAdmin(), 'system')
+            ->post(route('workspace.evaluation.import'), ['rows' => $rows])
+            ->assertSessionHasErrors('rows');
+
+        $this->assertSame(0, EvaluationCriterion::query()->count());
+    }
+
+    public function test_import_rejects_invalid_row_and_keeps_transaction_atomic(): void
+    {
+        $rows = [
+            $this->importRow(['criteria_name' => 'Dòng hợp lệ']),
+            $this->importRow(['criteria_name' => '']),
+        ];
+
+        $this->actingAs($this->superAdmin(), 'system')
+            ->post(route('workspace.evaluation.import'), ['rows' => $rows])
+            ->assertSessionHasErrors('rows.1.criteria_name');
+
+        $this->assertSame(0, EvaluationCriterion::query()->count());
+    }
+
+    public function test_import_rejects_half_point_weight_when_allow_half_score_false(): void
+    {
+        $rows = [
+            $this->importRow([
+                'allow_half_score' => false,
+                'score_levels' => [
+                    ['label' => 'Không đạt', 'weight' => -2],
+                    ['label' => 'Đạt', 'weight' => 0.5],
+                ],
+            ]),
+        ];
+
+        $this->actingAs($this->superAdmin(), 'system')
+            ->post(route('workspace.evaluation.import'), ['rows' => $rows])
+            ->assertSessionHasErrors('rows.0.score_levels.1.weight');
+
+        $this->assertSame(0, EvaluationCriterion::query()->count());
+    }
+
+    public function test_import_accepts_half_point_weight_when_allow_half_score_true(): void
+    {
+        $rows = [
+            $this->importRow([
+                'criteria_name' => 'Chấm 0.5 hợp lệ',
+                'allow_half_score' => true,
+                'score_levels' => [
+                    ['label' => 'Không đạt', 'weight' => -1.5],
+                    ['label' => 'Đạt', 'weight' => 0.5],
+                ],
+            ]),
+        ];
+
+        $this->actingAs($this->superAdmin(), 'system')
+            ->from(route('workspace.evaluation.index'))
+            ->post(route('workspace.evaluation.import'), ['rows' => $rows])
+            ->assertRedirect(route('workspace.evaluation.index'));
+
+        $criterion = EvaluationCriterion::query()->where('criteria_name', 'Chấm 0.5 hợp lệ')->firstOrFail();
+        $this->assertSame(0.5, $criterion->score_levels[1]['weight']);
+    }
+
+    public function test_import_score_levels_require_min_two_max_ten(): void
+    {
+        $rows = [
+            $this->importRow(['score_levels' => [['label' => 'Chỉ một mức', 'weight' => 1]]]),
+            $this->importRow(['score_levels' => array_map(
+                fn ($i) => ['label' => "Mức {$i}", 'weight' => $i],
+                range(1, 11)
+            )]),
+        ];
+
+        $this->actingAs($this->superAdmin(), 'system')
+            ->post(route('workspace.evaluation.import'), ['rows' => $rows])
+            ->assertSessionHasErrors(['rows.0.score_levels', 'rows.1.score_levels']);
+    }
+
+    public function test_import_logs_activity_per_created_criterion(): void
+    {
+        $rows = [
+            $this->importRow(['criteria_name' => 'Audit dòng 1']),
+            $this->importRow(['criteria_name' => 'Audit dòng 2']),
+        ];
+
+        $this->actingAs($this->superAdmin(), 'system')
+            ->from(route('workspace.evaluation.index'))
+            ->post(route('workspace.evaluation.import'), ['rows' => $rows])
+            ->assertRedirect(route('workspace.evaluation.index'));
+
+        $criteria = EvaluationCriterion::query()->whereIn('criteria_name', ['Audit dòng 1', 'Audit dòng 2'])->get();
+        $this->assertCount(2, $criteria);
+
+        foreach ($criteria as $criterion) {
+            $this->assertDatabaseHas('security_audit_logs', [
+                'action' => 'evaluation.criteria_created',
+                'subject_type' => 'evaluation_criterion',
+                'subject_id' => $criterion->id,
+            ]);
+        }
+    }
+
+    public function test_admin_without_manage_permission_cannot_import(): void
+    {
+        $this->actingAs($this->admin(), 'system')
+            ->post(route('workspace.evaluation.import'), ['rows' => [$this->importRow()]])
+            ->assertForbidden();
+
+        $this->assertSame(0, EvaluationCriterion::query()->count());
+    }
+
+    public function test_import_rejects_duplicate_criteria_code_within_same_batch(): void
+    {
+        $rows = [
+            $this->importRow(['criteria_name' => 'Trùng mã 1', 'criteria_code' => 'TCVA050']),
+            $this->importRow(['criteria_name' => 'Trùng mã 2', 'criteria_code' => 'TCVA050']),
+        ];
+
+        $this->actingAs($this->superAdmin(), 'system')
+            ->post(route('workspace.evaluation.import'), ['rows' => $rows])
+            ->assertSessionHasErrors('rows.1.criteria_code');
+
+        $this->assertSame(0, EvaluationCriterion::query()->count());
     }
 }

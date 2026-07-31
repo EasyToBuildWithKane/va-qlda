@@ -3,19 +3,24 @@
 namespace App\Http\Controllers\Evaluation;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Evaluation\ImportEvaluationCriterionRequest;
 use App\Http\Requests\Evaluation\StoreEvaluationCriterionRequest;
 use App\Http\Requests\Evaluation\UpdateEvaluationCriterionRequest;
 use App\Http\Resources\Evaluation\EvaluationCriterionResource;
 use App\Models\Evaluation\EvaluationCriterion;
 use App\Models\SecurityAuditLog;
+use App\Services\NotificationService;
 use App\Support\Audit\AuditActionCatalog;
 use App\Support\Enums\EvaluationCriterionScope;
+use App\Support\Enums\NotificationType;
 use App\Support\Evaluation\HrmDepartmentDirectory;
+use App\Support\PublicMediaUrl;
 use App\Support\SecurityAuditLogger;
 use App\Support\WorkspaceConfig\WorkspaceScopeResolver;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -159,20 +164,62 @@ class EvaluationCriterionController extends Controller
             $request->user(),
             'criteria_created',
             $criterion->id,
-            [
-                'criteria_code' => $criterion->criteria_code,
-                'criteria_name' => $criterion->criteria_name,
-            ]
+            $this->criterionAuditMeta($criterion)
         );
 
         return back()->with('success', 'Đã tạo tiêu chí đánh giá.');
+    }
+
+    public function import(ImportEvaluationCriterionRequest $request): RedirectResponse
+    {
+        $rows = $request->validated('rows');
+        $account = $request->user();
+        $created = 0;
+
+        DB::transaction(function () use ($rows, $account, &$created) {
+            foreach ($rows as $row) {
+                $data = $this->normalizePayload($row);
+                $data['created_by'] = $account->id;
+                $data['is_active'] = $data['is_active'] ?? true;
+                $data['allow_half_score'] = $data['allow_half_score'] ?? false;
+                $data['sort_order'] = (int) EvaluationCriterion::query()->max('sort_order') + 1;
+
+                if (! filled($data['criteria_code'] ?? null)) {
+                    $data['criteria_code'] = EvaluationCriterion::suggestNextCode();
+                }
+
+                $criterion = EvaluationCriterion::query()->create($data);
+
+                SecurityAuditLogger::evaluation(
+                    $account,
+                    'criteria_created',
+                    $criterion->id,
+                    $this->criterionAuditMeta($criterion)
+                );
+
+                $created++;
+            }
+        });
+
+        app(NotificationService::class)->recordSystemEvent(
+            $account,
+            NotificationType::SystemImport,
+            "Đã nhập {$created} tiêu chí đánh giá từ Excel",
+            null,
+            null,
+        );
+
+        return back()->with('success', "Đã nhập {$created} tiêu chí đánh giá từ file.");
     }
 
     public function show(Request $request, EvaluationCriterion $evaluationCriterion): Response
     {
         $this->authorize('view', $evaluationCriterion);
 
-        $evaluationCriterion->load(['creator:id,display_name']);
+        $evaluationCriterion->load([
+            'creator:id,display_name,employee_id',
+            'creator.employee:id,avatar_path',
+        ]);
         $user = $request->user();
 
         return Inertia::render('WorkspaceConfig/Evaluation/Show', [
@@ -196,17 +243,19 @@ class EvaluationCriterionController extends Controller
         UpdateEvaluationCriterionRequest $request,
         EvaluationCriterion $evaluationCriterion,
     ): RedirectResponse {
+        $before = $this->criterionSnapshot($evaluationCriterion);
         $data = $this->normalizePayload($request->validated());
         $evaluationCriterion->update($data);
+        $evaluationCriterion->refresh();
+
+        $meta = $this->criterionAuditMeta($evaluationCriterion);
+        $meta['changes'] = $this->diffCriterionSnapshot($before, $this->criterionSnapshot($evaluationCriterion));
 
         SecurityAuditLogger::evaluation(
             $request->user(),
             'criteria_updated',
             $evaluationCriterion->id,
-            [
-                'criteria_code' => $evaluationCriterion->criteria_code,
-                'criteria_name' => $evaluationCriterion->criteria_name,
-            ]
+            $meta
         );
 
         return back()->with('success', 'Đã cập nhật tiêu chí đánh giá.');
@@ -217,15 +266,14 @@ class EvaluationCriterionController extends Controller
         $this->authorize('delete', $evaluationCriterion);
 
         $id = $evaluationCriterion->id;
-        $code = $evaluationCriterion->criteria_code;
-        $name = $evaluationCriterion->criteria_name;
+        $meta = $this->criterionAuditMeta($evaluationCriterion);
         $evaluationCriterion->delete();
 
         SecurityAuditLogger::evaluation(
             $request->user(),
             'criteria_deleted',
             $id,
-            ['criteria_code' => $code, 'criteria_name' => $name]
+            $meta
         );
 
         return redirect()
@@ -303,26 +351,153 @@ class EvaluationCriterionController extends Controller
     private function activityFor(EvaluationCriterion $criterion): array
     {
         return SecurityAuditLog::query()
-            ->with('actor:id,display_name')
+            ->with(['actor:id,display_name,employee_id', 'actor.employee:id,avatar_path'])
             ->where('subject_type', 'evaluation_criterion')
             ->where('subject_id', $criterion->id)
             ->where('action', 'like', 'evaluation.criteria_%')
-            ->latest('created_at')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->limit(50)
             ->get()
             ->map(function (SecurityAuditLog $log) {
                 $meta = AuditActionCatalog::describe($log->action);
+                $payload = is_array($log->meta) ? $log->meta : [];
 
                 return [
                     'id' => $log->id,
                     'action' => $log->action,
                     'label' => $meta['label'],
                     'actor_name' => $log->actor?->display_name ?? 'Hệ thống',
+                    'actor_avatar' => PublicMediaUrl::fromPublicDisk(
+                        $log->actor?->employee?->avatar_path
+                    ),
                     'created_at' => $log->created_at?->toIso8601String(),
-                    'meta' => $log->meta,
+                    'meta' => $payload,
+                    'changes' => $payload['changes'] ?? [],
+                    'score_summary' => $payload['score_summary'] ?? null,
                 ];
             })
             ->values()
             ->all();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function criterionAuditMeta(EvaluationCriterion $criterion): array
+    {
+        $levels = $criterion->normalizedScoreLevels();
+
+        return [
+            'criteria_code' => $criterion->criteria_code,
+            'criteria_name' => $criterion->criteria_name,
+            'category' => $criterion->category,
+            'scope' => $criterion->scope instanceof EvaluationCriterionScope
+                ? $criterion->scope->value
+                : (string) $criterion->scope,
+            'department_code' => $criterion->department_code,
+            'allow_half_score' => (bool) $criterion->allow_half_score,
+            'is_active' => (bool) $criterion->is_active,
+            'score_levels_count' => count($levels),
+            'score_summary' => $this->formatScoreSummary($levels),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function criterionSnapshot(EvaluationCriterion $criterion): array
+    {
+        return [
+            'criteria_name' => $criterion->criteria_name,
+            'category' => $criterion->category,
+            'description' => $criterion->description,
+            'scope' => $criterion->scope instanceof EvaluationCriterionScope
+                ? $criterion->scope->value
+                : (string) $criterion->scope,
+            'department_code' => $criterion->department_code,
+            'department_name' => $criterion->department_name,
+            'allow_half_score' => (bool) $criterion->allow_half_score,
+            'is_active' => (bool) $criterion->is_active,
+            'score_summary' => $this->formatScoreSummary($criterion->normalizedScoreLevels()),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $before
+     * @param  array<string, mixed>  $after
+     * @return list<array{label: string, from?: string, to?: string}>
+     */
+    private function diffCriterionSnapshot(array $before, array $after): array
+    {
+        $labels = [
+            'criteria_name' => 'Tên tiêu chí',
+            'category' => 'Loại tiêu chí',
+            'description' => 'Mô tả',
+            'scope' => 'Phạm vi',
+            'department_name' => 'Phòng ban',
+            'allow_half_score' => 'Chấm điểm 0.5',
+            'is_active' => 'Trạng thái',
+            'score_summary' => 'Thang điểm',
+        ];
+
+        $changes = [];
+        foreach ($labels as $key => $label) {
+            $from = $this->formatAuditValue($key, $before[$key] ?? null);
+            $to = $this->formatAuditValue($key, $after[$key] ?? null);
+            if ($from === $to) {
+                continue;
+            }
+            $changes[] = [
+                'label' => $label,
+                'from' => $from,
+                'to' => $to,
+            ];
+        }
+
+        return $changes;
+    }
+
+    private function formatAuditValue(string $key, mixed $value): string
+    {
+        if ($key === 'allow_half_score') {
+            return $value ? 'Có' : 'Không';
+        }
+        if ($key === 'is_active') {
+            return $value ? 'Đang hoạt động' : 'Ngưng hoạt động';
+        }
+        if ($key === 'scope') {
+            return $value === EvaluationCriterionScope::General->value
+                ? EvaluationCriterionScope::General->label()
+                : EvaluationCriterionScope::Department->label();
+        }
+        if ($value === null || $value === '') {
+            return 'Chưa cập nhật';
+        }
+
+        return (string) $value;
+    }
+
+    /**
+     * @param  list<array{code?: string, label?: string, weight?: int|float}>  $levels
+     */
+    private function formatScoreSummary(array $levels): string
+    {
+        if ($levels === []) {
+            return '';
+        }
+
+        return collect($levels)
+            ->map(function (array $level) {
+                $code = trim((string) ($level['code'] ?? ''));
+                $weight = $level['weight'] ?? null;
+                $weightText = is_numeric($weight)
+                    ? ((float) $weight > 0 ? '+'.$weight : (string) $weight)
+                    : '';
+
+                return trim($code.($weightText !== '' ? ' '.$weightText : ''));
+            })
+            ->filter()
+            ->implode(' · ');
     }
 }

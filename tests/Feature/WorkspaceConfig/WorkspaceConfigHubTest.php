@@ -83,6 +83,135 @@ class WorkspaceConfigHubTest extends TestCase
                 ->has('summary')
                 ->where('summary.total', 2)
                 ->where('viewer.can_manage', true)
+                ->where('workspaces.0.status_label', 'Chưa kích hoạt')
+            );
+    }
+
+    public function test_hub_shows_criteria_readiness_even_without_profile(): void
+    {
+        $this->seedDepartment('HCNS', 'Hành Chính Nhân Sự');
+        $this->seedDepartment('CNTT', 'Công nghệ thông tin');
+        app(HrmDepartmentDirectory::class)->forget();
+
+        EvaluationCriterion::query()->create([
+            'scope' => EvaluationCriterionScope::Department,
+            'department_code' => 'HCNS',
+            'department_name' => 'Hành Chính Nhân Sự',
+            'criteria_code' => 'H1',
+            'criteria_name' => 'Tiêu chí HCNS',
+            'category' => 'PB',
+            'score_levels' => [
+                ['label' => 'a', 'weight' => 1],
+                ['label' => 'b', 'weight' => 2],
+            ],
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($this->superAdmin(), 'system')
+            ->get('/workspace-config')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('WorkspaceConfig/Hub')
+                ->where('summary.with_criteria', 1)
+                ->where('summary.ready', 1)
+                ->has('workspaces', 2)
+                ->has('insights')
+                ->has('coverage.modules')
+                ->has('coverage.rows', 2)
+                ->where('workspaces.0.department_code', 'HCNS')
+                ->where('workspaces.0.status', 'missing')
+                ->where('workspaces.0.status_label', 'Chưa kích hoạt')
+                ->where('workspaces.0.criteria_count', 1)
+                ->where('workspaces.0.has_criteria', true)
+                ->where('workspaces.0.readiness.key', 'ready')
+                ->where('workspaces.0.readiness.label', 'Đã sẵn sàng')
+                ->where('insights.0.code', 'has_criteria_missing_profile')
+            );
+    }
+
+    public function test_super_admin_can_bulk_ensure_workspace_profiles(): void
+    {
+        $this->seedDepartment('HCNS', 'Hành Chính Nhân Sự');
+        $this->seedDepartment('CNTT', 'Công nghệ thông tin');
+        app(HrmDepartmentDirectory::class)->forget();
+
+        $this->actingAs($this->superAdmin(), 'system')
+            ->post('/workspace-config/ensure-bulk', ['codes' => ['HCNS', 'CNTT']])
+            ->assertRedirect();
+
+        $this->assertSame(2, WorkspaceProfile::query()->count());
+        $this->assertTrue(
+            WorkspaceProfile::query()
+                ->where('department_code', 'HCNS')
+                ->where('status', WorkspaceProfileStatus::Active)
+                ->exists()
+        );
+    }
+
+    public function test_member_cannot_bulk_ensure_workspace_profiles(): void
+    {
+        $this->seedDepartment('HCNS', 'Hành Chính Nhân Sự');
+        app(HrmDepartmentDirectory::class)->forget();
+
+        $this->actingAs($this->memberWithDept('HCNS'), 'system')
+            ->post('/workspace-config/ensure-bulk', ['codes' => ['HCNS']])
+            ->assertForbidden();
+    }
+
+    public function test_super_admin_can_update_notes_and_archive_profile(): void
+    {
+        $this->seedDepartment('HCNS', 'Hành Chính Nhân Sự');
+        app(HrmDepartmentDirectory::class)->forget();
+
+        $admin = $this->superAdmin();
+        $this->actingAs($admin, 'system')
+            ->post('/workspace-config/w/HCNS/ensure')
+            ->assertRedirect();
+
+        $this->actingAs($admin, 'system')
+            ->patch('/workspace-config/w/HCNS', ['notes' => 'Ghi chú HCNS'])
+            ->assertRedirect();
+
+        $profile = WorkspaceProfile::query()->where('department_code', 'HCNS')->first();
+        $this->assertSame('Ghi chú HCNS', $profile?->notes);
+
+        $this->actingAs($admin, 'system')
+            ->patch('/workspace-config/w/HCNS', ['status' => 'archived'])
+            ->assertRedirect();
+
+        $profile->refresh();
+        $this->assertSame(WorkspaceProfileStatus::Archived, $profile->status);
+
+        $this->actingAs($admin, 'system')
+            ->get('/workspace-config')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('workspaces.0.status', 'missing')
+            );
+
+        $this->actingAs($admin, 'system')
+            ->get('/workspace-config?include_archived=1')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('filters.include_archived', true)
+                ->where('workspaces.0.status', 'archived')
+                ->where('summary.archived', 1)
+            );
+    }
+
+    public function test_workspace_show_includes_checklist(): void
+    {
+        $this->seedDepartment('HCNS', 'Hành Chính Nhân Sự');
+        app(HrmDepartmentDirectory::class)->forget();
+
+        $this->actingAs($this->memberWithDept('HCNS', 'Hành Chính Nhân Sự'), 'system')
+            ->get('/workspace-config/w/HCNS')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('WorkspaceConfig/Workspace/Show')
+                ->has('checklist.items')
+                ->has('checklist.done')
+                ->has('checklist.total')
             );
     }
 

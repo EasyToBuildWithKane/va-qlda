@@ -437,6 +437,16 @@ php artisan tinker --execute="echo config('realtime.enabled') ? 'on' : 'off';"
 
 ---
 
+## Toast flash lúc có lúc không (cùng trang, cùng message)
+
+**Symptoms:** Lưu/cập nhật liên tiếp (vd. tiêu chí đánh giá «Đã cập nhật…») — lần đầu có toast, lần sau im.
+
+**Cause:** `AppLayout` watch flash chỉ gọi toast khi `success !== prevSuccess`. Inertia giữ nguyên chuỗi flash giữa hai lần `back()` cùng message → watch không chạy.
+
+**Fix:** Sau khi hiện toast, gán `page.props.flash.{success|error|warning} = null` (`consumeFlashToast` trong `AppLayout.vue`) để lần flash sau (cùng nội dung) vẫn là thay đổi null → message.
+
+---
+
 ## SSO HRM — redirect_uri / JWT không hợp lệ
 
 **Symptoms:** Bấm «Đăng nhập tài khoản nhà trường» → lỗi trên HRM (`redirect_uri không nằm trong whitelist`) hoặc callback Workspace flash «Không xác thực được phiên HRM».

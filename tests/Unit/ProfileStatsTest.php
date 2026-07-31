@@ -10,6 +10,7 @@ use Tests\TestCase;
 class ProfileStatsTest extends TestCase
 {
     use RefreshDatabase;
+
     public function test_skill_score_from_skills_list_without_skill_details(): void
     {
         $employee = Employee::factory()->create([

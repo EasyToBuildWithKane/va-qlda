@@ -40,7 +40,11 @@
       "Bash(./node_modules/.bin/eslint.cmd resources/js/Pages/WorkspaceConfig/Evaluation/Show.vue)",
       "Bash(node ./node_modules/eslint/bin/eslint.js resources/js/Pages/WorkspaceConfig/Evaluation/Show.vue)",
       "Bash(node ./node_modules/eslint/bin/eslint.js resources/js/Pages/WorkspaceConfig/Evaluation/*.vue)",
-      "PowerShell(npx eslint resources/js/Pages/WorkspaceConfig/Evaluation/Show.vue)"
+      "PowerShell(npx eslint resources/js/Pages/WorkspaceConfig/Evaluation/Show.vue)",
+      "Bash(python3 -c ' *)",
+      "PowerShell(composer format)",
+      "PowerShell(php artisan test --filter=EvaluationCriterionTest 2>&1)",
+      "PowerShell(npm run build 2>&1)"
     ]
   }
 }

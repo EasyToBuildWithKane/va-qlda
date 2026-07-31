@@ -21,32 +21,33 @@ const { flush } = defineProps({ flush: Boolean });
 const page = usePage();
 
 const toast = useToast();
-/** immediate: flash có sẵn khi remount layout (vd. redirect trang khác) vẫn hiện toast. */
+
+/**
+ * Flash → toast. Xóa key sau khi hiện để lần submit sau với cùng nội dung
+ * (vd. «Đã cập nhật…» liên tiếp trên cùng trang) vẫn kích hoạt watch —
+ * so sánh !== prev sẽ nuốt toast khi chuỗi flash không đổi.
+ */
+function consumeFlashToast(key, show) {
+    const flash = page.props.flash;
+    const message = flash?.[key];
+    if (!message) return;
+    show(message);
+    flash[key] = null;
+}
+
 watch(
     () => page.props.flash?.success,
-    (success, prevSuccess) => {
-        if (success && success !== prevSuccess) {
-            toast.success(success);
-        }
-    },
+    () => consumeFlashToast('success', toast.success),
     { immediate: true },
 );
 watch(
     () => page.props.flash?.error,
-    (error, prevError) => {
-        if (error && error !== prevError) {
-            toast.error(error);
-        }
-    },
+    () => consumeFlashToast('error', toast.error),
     { immediate: true },
 );
 watch(
     () => page.props.flash?.warning,
-    (warning, prevWarning) => {
-        if (warning && warning !== prevWarning) {
-            toast.warning(warning);
-        }
-    },
+    () => consumeFlashToast('warning', toast.warning),
     { immediate: true },
 );
 

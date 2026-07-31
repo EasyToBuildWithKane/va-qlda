@@ -9,6 +9,8 @@ use App\Support\Enums\EvaluationCriterionScope;
 use App\Support\Enums\WorkspaceProfileStatus;
 use App\Support\Evaluation\HrmDepartmentDirectory;
 use App\Support\WorkspaceConfig\WorkspaceConfigCatalog;
+use App\Support\WorkspaceConfig\WorkspaceHubAssembler;
+use App\Support\WorkspaceConfig\WorkspaceHubInsights;
 use App\Support\WorkspaceConfig\WorkspaceScopeResolver;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -22,6 +24,8 @@ class WorkspaceConfigController extends Controller
     public function __construct(
         private readonly HrmDepartmentDirectory $departments,
         private readonly WorkspaceScopeResolver $scope,
+        private readonly WorkspaceHubAssembler $assembler,
+        private readonly WorkspaceHubInsights $insights,
     ) {}
 
     public function index(Request $request): Response
@@ -31,9 +35,9 @@ class WorkspaceConfigController extends Controller
 
         $canManage = $this->scope->canManageAll($user);
         $ownCode = $this->scope->ownDepartmentCode($user);
+        $includeArchived = $canManage && $request->boolean('include_archived');
 
         $profiles = WorkspaceProfile::query()
-            ->notArchived()
             ->get()
             ->keyBy(fn (WorkspaceProfile $p) => strtolower($p->department_code));
 
@@ -59,34 +63,20 @@ class WorkspaceConfigController extends Controller
             $key = strtolower($dept['code']);
             /** @var WorkspaceProfile|null $profile */
             $profile = $profiles->get($key);
-            $criteriaCount = (int) ($criteriaCounts[$dept['code']] ?? 0);
-            // Match case-insensitive for count keys
-            if ($criteriaCount === 0) {
-                foreach ($criteriaCounts as $code => $count) {
-                    if (strcasecmp((string) $code, $dept['code']) === 0) {
-                        $criteriaCount = (int) $count;
-                        break;
-                    }
-                }
+
+            if ($profile?->status === WorkspaceProfileStatus::Archived && ! $includeArchived) {
+                // Default hub: archived-only PB appears as chưa kích hoạt (can re-ensure).
+                $profile = null;
             }
 
-            $status = $profile?->status?->value ?? 'missing';
-            $workspaces[] = [
-                'department_code' => $dept['code'],
-                'department_name' => $dept['name'],
-                'local_department_id' => $dept['local_department_id'],
-                'source' => $dept['source'] ?? 'directory',
-                'profile_id' => $profile?->id,
-                'status' => $status,
-                'status_label' => $profile?->status?->label() ?? 'Chưa cấu hình',
-                'criteria_count' => $criteriaCount,
-                'modules_live' => count(array_filter(
-                    WorkspaceConfigCatalog::forUser($user),
-                    static fn (array $i): bool => ($i['status'] ?? '') === 'live',
-                )),
-                'href' => '/workspace-config/w/'.rawurlencode($dept['code']),
-                'can_ensure' => $canManage && $profile === null,
-            ];
+            $workspaces[] = $this->assembler->card(
+                $dept,
+                $profile,
+                $criteriaCounts->all(),
+                $user,
+                $canManage,
+                $generalCriteria,
+            );
         }
 
         usort($workspaces, static function (array $a, array $b): int {
@@ -94,10 +84,17 @@ class WorkspaceConfigController extends Controller
                 'active' => 0,
                 'draft' => 1,
                 'missing' => 2,
-                default => 3,
+                'archived' => 3,
+                default => 4,
+            };
+            $readyRank = static fn (string $s): int => match ($s) {
+                'ready' => 0,
+                'partial' => 1,
+                default => 2,
             };
 
             return ($rank($a['status']) <=> $rank($b['status']))
+                ?: ($readyRank($a['readiness']['key'] ?? 'empty') <=> $readyRank($b['readiness']['key'] ?? 'empty'))
                 ?: strcasecmp($a['department_name'], $b['department_name']);
         });
 
@@ -105,6 +102,12 @@ class WorkspaceConfigController extends Controller
         $active = count(array_filter($workspaces, static fn (array $w): bool => $w['status'] === 'active'));
         $draft = count(array_filter($workspaces, static fn (array $w): bool => $w['status'] === 'draft'));
         $missing = count(array_filter($workspaces, static fn (array $w): bool => $w['status'] === 'missing'));
+        $archived = count(array_filter($workspaces, static fn (array $w): bool => $w['status'] === 'archived'));
+        $withCriteria = count(array_filter($workspaces, static fn (array $w): bool => ($w['has_criteria'] ?? false) === true));
+        $ready = count(array_filter($workspaces, static fn (array $w): bool => ($w['readiness']['key'] ?? '') === 'ready'));
+        $partial = count(array_filter($workspaces, static fn (array $w): bool => ($w['readiness']['key'] ?? '') === 'partial'));
+
+        $moduleHeaders = WorkspaceConfigCatalog::liveModuleHeaders($user);
 
         return Inertia::render('WorkspaceConfig/Hub', [
             'workspaces' => $workspaces,
@@ -114,8 +117,17 @@ class WorkspaceConfigController extends Controller
                 'active' => $active,
                 'draft' => $draft,
                 'missing' => $missing,
+                'archived' => $archived,
+                'with_criteria' => $withCriteria,
+                'ready' => $ready,
+                'partial' => $partial,
                 'criteria_total' => EvaluationCriterion::query()->count(),
                 'criteria_general' => $generalCriteria,
+            ],
+            'insights' => $this->insights->build($workspaces, $canManage),
+            'coverage' => $this->insights->coverage($workspaces, $moduleHeaders),
+            'filters' => [
+                'include_archived' => $includeArchived,
             ],
             'viewer' => [
                 'is_super_admin' => $user->isSuperAdmin(),
@@ -124,8 +136,13 @@ class WorkspaceConfigController extends Controller
             ],
             'statusOptions' => array_merge(
                 WorkspaceProfileStatus::options(),
-                [['value' => 'missing', 'label' => 'Chưa cấu hình']],
+                [['value' => 'missing', 'label' => 'Chưa kích hoạt']],
             ),
+            'readinessOptions' => [
+                ['value' => 'ready', 'label' => 'Đã sẵn sàng'],
+                ['value' => 'partial', 'label' => 'Đang cấu hình'],
+                ['value' => 'empty', 'label' => 'Chưa có nội dung'],
+            ],
         ]);
     }
 }

@@ -303,8 +303,10 @@ Chi tiết: [`docs/SYSTEM_CONFIG.md`](SYSTEM_CONFIG.md).
 
 | Method | URI | Controller | Mô tả |
 |--------|-----|------------|--------|
-| GET | `/workspace-config` | WorkspaceConfigController@index | Hub workspace theo phòng ban |
-| GET | `/workspace-config/w/{departmentCode}` | WorkspaceProfileController@show | Shell workspace PB + module catalog |
+| GET | `/workspace-config` | WorkspaceConfigController@index | Hub workspace theo phòng ban (`include_archived=1` khi hub.manage) |
+| POST | `/workspace-config/ensure-bulk` | WorkspaceProfileController@ensureBulk | Kích hoạt hàng loạt (max 50 mã, hub.manage) |
+| GET | `/workspace-config/w/{departmentCode}` | WorkspaceProfileController@show | Shell workspace PB + module catalog + checklist |
+| PATCH | `/workspace-config/w/{departmentCode}` | WorkspaceProfileController@update | Cập nhật notes / status (active\|draft\|archived) |
 | POST | `/workspace-config/w/{departmentCode}/ensure` | WorkspaceProfileController@ensure | Kích hoạt profile (hub.manage) |
 
 Chi tiết module: [`WORKSPACE_CONFIG.md`](WORKSPACE_CONFIG.md).
@@ -414,9 +416,10 @@ Credential Management Group
 Settings Group (admin)
 └── /settings/*                       (groups + email templates)
 
-Workspace Config Group (super-admin)
+Workspace Config Group
 ├── /workspace-config                 (hub — workspace theo phòng ban)
-├── /workspace-config/w/{code}        (shell workspace PB)
+├── /workspace-config/ensure-bulk     (POST bulk ensure)
+├── /workspace-config/w/{code}        (shell + PATCH notes/status)
 └── /workspace-config/evaluation/*    (cấu hình đánh giá, scoped theo PB)
 
 Knowledge Base Group

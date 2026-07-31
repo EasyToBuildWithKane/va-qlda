@@ -123,8 +123,8 @@ final class AuditActionCatalog
             'weekly_report.rejected' => ['label' => 'Trả lại báo cáo tuần', 'module' => 'weekly_report', 'severity' => 'warning'],
 
             // ── Cấu hình tiêu chí đánh giá workspace ──────────────────
-            'evaluation.criteria_created' => ['label' => 'đã tạo mới', 'module' => 'evaluation', 'severity' => 'notice'],
-            'evaluation.criteria_updated' => ['label' => 'đã sửa', 'module' => 'evaluation', 'severity' => 'info'],
+            'evaluation.criteria_created' => ['label' => 'đã tạo tiêu chí đánh giá', 'module' => 'evaluation', 'severity' => 'notice'],
+            'evaluation.criteria_updated' => ['label' => 'đã cập nhật tiêu chí đánh giá', 'module' => 'evaluation', 'severity' => 'info'],
             'evaluation.criteria_deleted' => ['label' => 'đã xóa tiêu chí đánh giá', 'module' => 'evaluation', 'severity' => 'warning'],
         ];
     }

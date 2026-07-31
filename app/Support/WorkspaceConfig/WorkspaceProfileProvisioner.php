@@ -61,4 +61,65 @@ final class WorkspaceProfileProvisioner
 
         return $profile->fresh();
     }
+
+    /**
+     * @param  list<string>  $codes
+     * @return array{created: int, activated: int, skipped: int, codes: list<string>}
+     */
+    public function ensureMany(array $codes, SystemAccount $actor, bool $activate = true): array
+    {
+        $created = 0;
+        $activated = 0;
+        $skipped = 0;
+        $okCodes = [];
+
+        foreach ($codes as $code) {
+            $trim = trim((string) $code);
+            if ($trim === '') {
+                $skipped++;
+
+                continue;
+            }
+
+            if ($this->departments->findByCode($trim) === null) {
+                $skipped++;
+
+                continue;
+            }
+
+            $existing = WorkspaceProfile::withTrashed()
+                ->where('department_code', $trim)
+                ->first();
+
+            $wasMissing = $existing === null || $existing->trashed();
+            $wasInactive = $existing !== null
+                && ! $existing->trashed()
+                && $existing->status !== WorkspaceProfileStatus::Active;
+
+            try {
+                $profile = $this->ensure($trim, $actor, $activate);
+            } catch (InvalidArgumentException) {
+                $skipped++;
+
+                continue;
+            }
+
+            if ($wasMissing) {
+                $created++;
+            } elseif ($wasInactive && $profile->status === WorkspaceProfileStatus::Active) {
+                $activated++;
+            } else {
+                $activated++;
+            }
+
+            $okCodes[] = $profile->department_code;
+        }
+
+        return [
+            'created' => $created,
+            'activated' => $activated,
+            'skipped' => $skipped,
+            'codes' => $okCodes,
+        ];
+    }
 }

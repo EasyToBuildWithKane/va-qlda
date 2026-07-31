@@ -2,7 +2,7 @@
 
 **File gốc:** [`../troubleshooting.md`](../troubleshooting.md)
 
-Mục lục nhanh: [Husky](#husky) · [commitlint](#commitlint) · [Push/Sync](#pushsync) · [Playwright](#playwright) · [ESLint](#eslint) · [CI](#ci) · [Deploy server](#deploy-server) · [Media 404](#media-404) · [Vite/npm](#vite--npm) · [DB test](#db-test) · [AI orphan](#ai-orphan) · [Route 404 deploy](#route-404-sau-deploy) · [Realtime bình luận](#realtime-binh-luan)
+Mục lục nhanh: [Husky](#husky) · [commitlint](#commitlint) · [Push/Sync](#pushsync) · [Playwright](#playwright) · [ESLint](#eslint) · [CI](#ci) · [Deploy server](#deploy-server) · [Media 404](#media-404) · [Vite/npm](#vite--npm) · [DB test](#db-test) · [AI orphan](#ai-orphan) · [Route 404 deploy](#route-404-sau-deploy) · [Realtime bình luận](#realtime-binh-luan) · [Toast flash](#toast-flash)
 
 ---
 
@@ -265,3 +265,9 @@ php artisan tinker --execute="echo config('realtime.enabled') ? 'on' : 'off';"
 ```
 
 Người gửi vẫn thấy tin qua Inertia partial reload; người khác cần realtime hoặc F5.
+
+---
+
+## Toast flash lúc có lúc không {#toast-flash}
+
+Lưu liên tiếp cùng message flash (vd. «Đã cập nhật…») — lần sau không toast: watch `AppLayout` so sánh chuỗi cũ/mới. Chi tiết: [`../troubleshooting.md`](../troubleshooting.md) § Toast flash.
