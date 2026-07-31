@@ -126,6 +126,13 @@ final class AuditActionCatalog
             'evaluation.criteria_created' => ['label' => 'đã tạo tiêu chí đánh giá', 'module' => 'evaluation', 'severity' => 'notice'],
             'evaluation.criteria_updated' => ['label' => 'đã cập nhật tiêu chí đánh giá', 'module' => 'evaluation', 'severity' => 'info'],
             'evaluation.criteria_deleted' => ['label' => 'đã xóa tiêu chí đánh giá', 'module' => 'evaluation', 'severity' => 'warning'],
+
+            // ── Mẫu đánh giá workspace ────────────────────────────────
+            'evaluation.template_created' => ['label' => 'đã tạo mẫu đánh giá', 'module' => 'evaluation', 'severity' => 'notice'],
+            'evaluation.template_updated' => ['label' => 'đã cập nhật mẫu đánh giá', 'module' => 'evaluation', 'severity' => 'info'],
+            'evaluation.template_deleted' => ['label' => 'đã xóa mẫu đánh giá', 'module' => 'evaluation', 'severity' => 'warning'],
+            'evaluation.template_duplicated' => ['label' => 'đã nhân bản mẫu đánh giá', 'module' => 'evaluation', 'severity' => 'notice'],
+            'evaluation.template_exported' => ['label' => 'đã xuất danh sách mẫu đánh giá', 'module' => 'evaluation', 'severity' => 'info'],
         ];
     }
 

@@ -50,6 +50,7 @@ const map = {
     'my-projects': Star,
     'new-project': Plus,
     'meeting-notes': ClipboardList,
+    'clipboard-list': ClipboardList,
     feedback: MessageSquare,
     message: MessageSquare,
     'action-items': ListChecks,

@@ -642,6 +642,13 @@ class Navigation
                         'status' => 'live',
                         'permission' => 'workspace.hub.view',
                     ],
+                    [
+                        'label' => 'Danh sách mẫu đánh giá',
+                        'icon' => 'clipboard-list',
+                        'href' => '/workspace-config/evaluation-templates',
+                        'status' => 'live',
+                        'permission' => 'workspace.hub.view',
+                    ],
                 ],
             ],
             [

@@ -36,6 +36,26 @@ class WorkspaceConfigCatalog
                 ],
             ],
             [
+                'key' => 'evaluation_templates',
+                'label' => 'Danh sách mẫu đánh giá',
+                'description' => 'Gói tiêu chí theo vị trí — nhập/xuất Excel, nhân bản mẫu.',
+                'href' => '/workspace-config/evaluation-templates',
+                'icon' => 'clipboard-list',
+                'tone' => 'rose',
+                'status' => 'live',
+                'permission' => 'workspace.evaluation.view',
+                'applies_to' => 'global',
+                'empty_cta' => 'Thêm mẫu đánh giá',
+                'configured_cta' => 'Quản lý mẫu',
+                'onboard_steps' => [
+                    [
+                        'key' => 'has_templates',
+                        'label' => 'Có ít nhất một mẫu đánh giá',
+                        'done_hint' => 'Đã có mẫu đánh giá',
+                    ],
+                ],
+            ],
+            [
                 'key' => 'cycles',
                 'label' => 'Chu kỳ đánh giá',
                 'description' => 'Kỳ đánh giá, mốc mở/đóng phiếu theo phòng ban.',
@@ -94,7 +114,7 @@ class WorkspaceConfigCatalog
                 }
 
                 // View reserved domains: hub.view is enough to open read-only module list.
-                if ($permission === 'workspace.evaluation.view'
+                if (in_array($permission, ['workspace.evaluation.view'], true)
                     && ($account->allows('workspace.hub.view') || $account->allows('workspace.evaluation.manage'))) {
                     return true;
                 }

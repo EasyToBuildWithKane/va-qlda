@@ -1,5 +1,7 @@
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue';
+import {
+    computed, onBeforeUnmount, onMounted, reactive, ref, watch,
+} from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AppIcon from '@/Components/AppIcon.vue';
@@ -7,21 +9,38 @@ import PageHeader from '@/Components/Ui/PageHeader.vue';
 import EmptyState from '@/shared/ui/EmptyState.vue';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import DatagridToolbarActionButton from '@/shared/ui/DatagridToolbarActionButton.vue';
-import DatagridSegmentedControl from '@/shared/ui/DatagridSegmentedControl.vue';
 import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
+import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
+import ColumnVisibilityDropdown from '@/shared/ui/ColumnVisibilityDropdown.vue';
 import { useClientPagination } from '@/shared/composables/useClientPagination';
+import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
+import { useVisibleColumns } from '@/shared/composables/useVisibleColumns';
 import { useDialog } from '@/composables/useDialog';
 import WorkspaceConfigSummaryBar from '@/modules/workspace-config/components/WorkspaceConfigSummaryBar.vue';
 import WorkspaceProfileGrid from '@/modules/workspace-config/components/WorkspaceProfileGrid.vue';
 import WorkspaceInsightsBanner from '@/modules/workspace-config/components/WorkspaceInsightsBanner.vue';
-import WorkspaceCoverageMatrix from '@/modules/workspace-config/components/WorkspaceCoverageMatrix.vue';
 import WorkspaceProfileDrawer from '@/modules/workspace-config/components/WorkspaceProfileDrawer.vue';
 import { exportWorkspaceHubWorkbook } from '@/modules/workspace-config/composables/useWorkspaceHubExport';
 
-const VIEW_STORAGE = 'va-workspace.workspace-config.view';
 const SORT_STORAGE = 'va-workspace.workspace-config.sort';
-const DENSITY_STORAGE = 'va-workspace.workspace-config.density';
-const COVERAGE_STORAGE = 'va-workspace.workspace-config.coverage';
+
+const HUB_FILTER_CONTROLS = [
+    { key: 'status', label: 'Trạng thái', default: false },
+    { key: 'readiness', label: 'Mức sẵn sàng', default: false },
+    { key: 'sort', label: 'Sắp xếp', default: false },
+];
+
+const HUB_CARD_COLUMNS = [
+    { key: 'criteria', label: 'Tiêu chí PB', default: true },
+    { key: 'modules', label: 'Module', default: true },
+    { key: 'readiness', label: 'Sẵn sàng %', default: true },
+    { key: 'readiness_badge', label: 'Nhãn sẵn sàng', default: false },
+    { key: 'source', label: 'Nguồn', default: false },
+    { key: 'updated', label: 'Ngày cập nhật', default: false },
+    { key: 'progress', label: 'Thanh tiến độ + module', default: false },
+];
+
+const FILTER_CONTROL_CLASS = 'input h-10 w-full text-sm';
 
 const props = defineProps({
     workspaces: { type: Array, default: () => [] },
@@ -43,10 +62,7 @@ const props = defineProps({
 
 const dialog = useDialog();
 const search = ref('');
-const viewMode = ref('grid');
 const sortBy = ref('status');
-const density = ref('comfortable');
-const showCoverage = ref(false);
 const selectedCodes = ref([]);
 const previewCode = ref(null);
 const bulkLoading = ref(false);
@@ -55,43 +71,54 @@ const localFilters = reactive({
     readiness: '',
 });
 
-const statusSegments = computed(() => {
+const filterPanelDdRef = ref(null);
+const colDdRef = ref(null);
+
+const {
+    visibleFilters,
+    showFilterPanelDd,
+    enabledFilterControlCount,
+    hasFilterRow,
+    persistVisibleFilters,
+    openFilterPanel,
+    FILTER_CONTROLS,
+} = useVisibleFilterControls(HUB_FILTER_CONTROLS, 'va-workspace.workspace-config.visible-filters.v1');
+
+const {
+    visibleCols,
+    showColDd,
+    persistVisibleColumns,
+    openColPanel,
+    TABLE_COLUMNS,
+} = useVisibleColumns(HUB_CARD_COLUMNS, 'va-workspace.workspace-config.columns.v1');
+
+const statusFilterOptions = computed(() => {
     const base = [
-        { key: '', label: 'Tất cả', title: 'Tất cả workspace' },
-        { key: 'active', label: 'Đang dùng', icon: 'done' },
-        { key: 'draft', label: 'Nháp', icon: 'documents' },
+        { value: '', label: 'Trạng thái' },
+        { value: 'active', label: 'Đang dùng' },
+        { value: 'draft', label: 'Nháp' },
     ];
     if (props.viewer.can_manage) {
-        base.push({ key: 'missing', label: 'Chưa kích hoạt', icon: 'system-config' });
+        base.push({ value: 'missing', label: 'Chưa kích hoạt' });
         if (props.filters.include_archived) {
-            base.push({ key: 'archived', label: 'Lưu trữ', icon: 'documents' });
+            base.push({ value: 'archived', label: 'Lưu trữ' });
         }
     }
     return base;
 });
 
-const readinessSegments = computed(() => [
-    { key: '', label: 'Mọi mức', title: 'Không lọc mức sẵn sàng' },
-    { key: 'ready', label: 'Sẵn sàng', icon: 'award' },
-    { key: 'partial', label: 'Đang cấu hình', icon: 'documents' },
-    { key: 'empty', label: 'Trống', icon: 'system-config' },
-]);
-
-const viewTabs = [
-    { key: 'grid', label: 'Lưới', icon: 'cards', title: 'Dạng thẻ lưới' },
-    { key: 'list', label: 'Danh sách', icon: 'table', title: 'Dạng danh sách' },
+const readinessFilterOptions = [
+    { value: '', label: 'Mức sẵn sàng' },
+    { value: 'ready', label: 'Sẵn sàng' },
+    { value: 'partial', label: 'Đang cấu hình' },
+    { value: 'empty', label: 'Trống' },
 ];
 
-const densityTabs = [
-    { key: 'comfortable', label: 'Rộng', title: 'Thẻ đầy đủ chi tiết' },
-    { key: 'compact', label: 'Gọn', title: 'Thẻ mật độ cao' },
-];
-
-const sortTabs = [
-    { key: 'status', label: 'Trạng thái', title: 'Ưu tiên trạng thái profile' },
-    { key: 'readiness', label: 'Sẵn sàng', title: 'Ưu tiên mức hoàn thiện' },
-    { key: 'name', label: 'Tên A–Z', title: 'Sắp xếp theo tên phòng ban' },
-    { key: 'criteria', label: 'Tiêu chí', title: 'Nhiều tiêu chí trước' },
+const sortOptions = [
+    { value: 'status', label: 'Theo trạng thái' },
+    { value: 'readiness', label: 'Theo sẵn sàng' },
+    { value: 'name', label: 'Tên A–Z' },
+    { value: 'criteria', label: 'Theo tiêu chí' },
 ];
 
 const filteredWorkspaces = computed(() => {
@@ -158,36 +185,19 @@ const selectedEnsureable = computed(() => selectedCodes.value.filter((code) => {
 function onQuickFilter(payload) {
     localFilters.status = payload?.status ?? '';
     localFilters.readiness = payload?.readiness ?? '';
-}
-
-function setViewMode(mode) {
-    viewMode.value = mode;
-    try { localStorage.setItem(VIEW_STORAGE, mode); } catch { /* ignore */ }
+    if (payload?.status || payload?.readiness) {
+        visibleFilters.value = {
+            ...visibleFilters.value,
+            status: Boolean(payload?.status) || visibleFilters.value.status,
+            readiness: Boolean(payload?.readiness) || visibleFilters.value.readiness,
+        };
+        persistVisibleFilters();
+    }
 }
 
 function setSortBy(mode) {
     sortBy.value = mode;
     try { localStorage.setItem(SORT_STORAGE, mode); } catch { /* ignore */ }
-}
-
-function setDensity(mode) {
-    density.value = mode;
-    try { localStorage.setItem(DENSITY_STORAGE, mode); } catch { /* ignore */ }
-}
-
-function toggleCoverage() {
-    showCoverage.value = !showCoverage.value;
-    try { localStorage.setItem(COVERAGE_STORAGE, showCoverage.value ? '1' : '0'); } catch { /* ignore */ }
-}
-
-function toggleIncludeArchived() {
-    router.get('/workspace-config', {
-        include_archived: props.filters.include_archived ? 0 : 1,
-    }, {
-        preserveState: true,
-        preserveScroll: true,
-        replace: true,
-    });
 }
 
 function toggleSelect(code) {
@@ -235,11 +245,15 @@ function onInsightAction(insight) {
     if (insight.action === 'filter_empty_active') {
         localFilters.status = 'active';
         localFilters.readiness = 'empty';
+        visibleFilters.value = { ...visibleFilters.value, status: true, readiness: true };
+        persistVisibleFilters();
         return;
     }
     if (insight.action === 'filter_partial') {
         localFilters.status = '';
         localFilters.readiness = 'partial';
+        visibleFilters.value = { ...visibleFilters.value, readiness: true };
+        persistVisibleFilters();
     }
 }
 
@@ -255,16 +269,40 @@ function exportHub() {
     });
 }
 
+function openFilterPanelSafe() {
+    openFilterPanel(() => {
+        showColDd.value = false;
+    });
+}
+
+function openColPanelSafe() {
+    openColPanel(() => {
+        showFilterPanelDd.value = false;
+    });
+}
+
+function onToolbarClickOutside(e) {
+    const t = e.target;
+    if (t.closest?.('[data-filter-visibility-panel]')) return;
+    if (t.closest?.('[data-column-visibility-panel]')) return;
+    if (filterPanelDdRef.value && !filterPanelDdRef.value.contains(t)) {
+        showFilterPanelDd.value = false;
+    }
+    if (colDdRef.value && !colDdRef.value.contains(t)) {
+        showColDd.value = false;
+    }
+}
+
 onMounted(() => {
     try {
-        const savedView = localStorage.getItem(VIEW_STORAGE);
-        if (savedView === 'grid' || savedView === 'list') viewMode.value = savedView;
         const savedSort = localStorage.getItem(SORT_STORAGE);
-        if (sortTabs.some((t) => t.key === savedSort)) sortBy.value = savedSort;
-        const savedDensity = localStorage.getItem(DENSITY_STORAGE);
-        if (savedDensity === 'comfortable' || savedDensity === 'compact') density.value = savedDensity;
-        showCoverage.value = localStorage.getItem(COVERAGE_STORAGE) === '1';
+        if (sortOptions.some((t) => t.value === savedSort)) sortBy.value = savedSort;
     } catch { /* ignore */ }
+    document.addEventListener('mousedown', onToolbarClickOutside);
+});
+
+onBeforeUnmount(() => {
+    document.removeEventListener('mousedown', onToolbarClickOutside);
 });
 
 const emptyHint = computed(() => {
@@ -276,13 +314,6 @@ const emptyHint = computed(() => {
     }
     return 'Không có workspace khớp bộ lọc hiện tại. Thử xóa lọc hoặc đổi từ khóa tìm kiếm.';
 });
-
-const resultHint = computed(() => {
-    const n = filteredWorkspaces.value.length;
-    const total = props.workspaces.length;
-    if (n === total) return `${total} phòng ban`;
-    return `Hiển thị ${n}/${total} phòng ban`;
-});
 </script>
 
 <template>
@@ -292,36 +323,10 @@ const resultHint = computed(() => {
     <template #header>
       <PageHeader
         title="Cấu hình workspace"
-        subtitle="Trung tâm cấu hình theo phòng ban — phủ sóng module, kích hoạt hàng loạt, checklist onboard"
         icon="system-config"
         icon-color="brand"
         :badge="summary.total || null"
-      >
-        <DatagridToolbarActionButton
-          icon="documents"
-          title="Xuất Excel tổng quan"
-          @click="exportHub"
-        >
-          Xuất
-        </DatagridToolbarActionButton>
-        <DatagridToolbarActionButton
-          :icon="showCoverage ? 'done' : 'table'"
-          :active="showCoverage"
-          title="Bật/tắt ma trận phủ module"
-          @click="toggleCoverage"
-        >
-          {{ showCoverage ? 'Ẩn ma trận' : 'Ma trận' }}
-        </DatagridToolbarActionButton>
-        <DatagridToolbarActionButton
-          v-if="viewer.can_manage"
-          icon="documents"
-          :active="filters.include_archived"
-          title="Hiện workspace đã lưu trữ"
-          @click="toggleIncludeArchived"
-        >
-          {{ filters.include_archived ? 'Ẩn lưu trữ' : 'Hiện lưu trữ' }}
-        </DatagridToolbarActionButton>
-      </PageHeader>
+      />
     </template>
 
     <WorkspaceConfigSummaryBar
@@ -339,41 +344,11 @@ const resultHint = computed(() => {
       @action="onInsightAction"
     />
 
-    <WorkspaceCoverageMatrix
-      v-if="showCoverage"
-      :coverage="coverage"
-      @select-department="openPreview"
-    />
-
     <section
-      class="kpi-strip relative mb-5 overflow-hidden rounded-card border border-slate-200/80 bg-gradient-to-b from-slate-50/90 to-white shadow-sm"
+      class="mb-5 overflow-hidden rounded-card border border-slate-200/80 bg-white shadow-sm"
       aria-label="Danh sách workspace phòng ban"
     >
-      <div
-        class="kpi-strip__bg-outer pointer-events-none absolute -right-6 top-0 h-full w-1/2 bg-gradient-to-l from-brand/[0.04] to-transparent"
-        aria-hidden="true"
-      />
-
-      <header class="relative border-b border-slate-100/80 px-5 py-4">
-        <div class="flex flex-wrap items-end justify-between gap-3">
-          <div class="min-w-0">
-            <p class="text-[10px] font-semibold uppercase tracking-[0.14em] text-brand/80">
-              Workspace
-            </p>
-            <h2 class="mt-1 font-display text-base font-semibold text-slate-800">
-              Phòng ban
-            </h2>
-            <p class="mt-1 text-sm text-slate-500">
-              Bấm thẻ để xem nhanh. «Chưa kích hoạt» = chưa có profile; readiness phản ánh nội dung module.
-            </p>
-          </div>
-          <p class="text-xs font-medium tabular-nums text-slate-400">
-            {{ resultHint }}
-          </p>
-        </div>
-      </header>
-
-      <div class="relative space-y-3 border-b border-slate-100 px-4 py-3">
+      <div class="border-b border-slate-100 px-4 py-3 sm:px-5">
         <div class="flex w-full min-w-0 flex-wrap items-center gap-2 lg:flex-nowrap">
           <div class="min-w-0 w-full basis-full lg:flex-1 lg:basis-auto">
             <DatagridToolbarSearch
@@ -386,51 +361,117 @@ const resultHint = computed(() => {
               aria-label="Tìm phòng ban"
             />
           </div>
-          <div class="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-2">
-            <DatagridSegmentedControl
-              :model-value="density"
-              :items="densityTabs"
-              aria-label="Mật độ thẻ"
-              icon-only-below-sm
-              @update:model-value="setDensity"
-            />
-            <DatagridSegmentedControl
-              :model-value="viewMode"
-              :items="viewTabs"
-              aria-label="Chế độ hiển thị"
-              icon-only-below-sm
-              @update:model-value="setViewMode"
-            />
+
+          <div class="ml-auto flex shrink-0 items-center gap-2">
+            <div
+              ref="filterPanelDdRef"
+              class="relative shrink-0"
+            >
+              <DatagridToolbarActionButton
+                icon="filter"
+                :active="showFilterPanelDd"
+                :title="`Hiển thị bộ lọc (${enabledFilterControlCount}/${FILTER_CONTROLS.length})`"
+                @click="openFilterPanelSafe"
+              >
+                Lọc
+              </DatagridToolbarActionButton>
+              <FilterVisibilityDropdown
+                v-model="visibleFilters"
+                :show="showFilterPanelDd"
+                :anchor-ref="filterPanelDdRef"
+                :controls="FILTER_CONTROLS"
+                input-id-prefix="workspace-hub-filter-vis"
+                @persist="persistVisibleFilters"
+              />
+            </div>
+
+            <div
+              ref="colDdRef"
+              class="relative shrink-0"
+            >
+              <DatagridToolbarActionButton
+                icon="columns"
+                :active="showColDd"
+                title="Trường hiển thị trên thẻ"
+                @click="openColPanelSafe"
+              >
+                Cột
+              </DatagridToolbarActionButton>
+              <ColumnVisibilityDropdown
+                v-model="visibleCols"
+                :show="showColDd"
+                :columns="TABLE_COLUMNS"
+                :anchor-ref="colDdRef"
+                input-id-prefix="workspace-hub-col-vis"
+                @persist="persistVisibleColumns"
+              />
+            </div>
+
+            <DatagridToolbarActionButton
+              icon="export"
+              title="Xuất Excel tổng quan"
+              @click="exportHub"
+            >
+              Xuất
+            </DatagridToolbarActionButton>
           </div>
         </div>
 
-        <div class="flex w-full min-w-0 flex-wrap items-center gap-2">
-          <DatagridSegmentedControl
-            v-model="localFilters.status"
-            :items="statusSegments"
-            aria-label="Lọc trạng thái profile"
-            icon-only-below-sm
-          />
-          <DatagridSegmentedControl
-            v-model="localFilters.readiness"
-            :items="readinessSegments"
-            aria-label="Lọc mức sẵn sàng nội dung"
-            icon-only-below-sm
-          />
-          <div class="ml-auto">
-            <DatagridSegmentedControl
-              :model-value="sortBy"
-              :items="sortTabs"
-              aria-label="Sắp xếp danh sách"
-              icon-only-below-sm
-              @update:model-value="setSortBy"
-            />
+        <div
+          v-if="hasFilterRow"
+          class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6"
+        >
+          <div v-if="visibleFilters.status">
+            <select
+              v-model="localFilters.status"
+              :class="FILTER_CONTROL_CLASS"
+              aria-label="Trạng thái"
+            >
+              <option
+                v-for="opt in statusFilterOptions"
+                :key="`status-${opt.value || 'all'}`"
+                :value="opt.value"
+              >
+                {{ opt.label }}
+              </option>
+            </select>
+          </div>
+          <div v-if="visibleFilters.readiness">
+            <select
+              v-model="localFilters.readiness"
+              :class="FILTER_CONTROL_CLASS"
+              aria-label="Mức sẵn sàng"
+            >
+              <option
+                v-for="opt in readinessFilterOptions"
+                :key="`ready-${opt.value || 'all'}`"
+                :value="opt.value"
+              >
+                {{ opt.label }}
+              </option>
+            </select>
+          </div>
+          <div v-if="visibleFilters.sort">
+            <select
+              :value="sortBy"
+              :class="FILTER_CONTROL_CLASS"
+              aria-label="Sắp xếp"
+              @change="setSortBy($event.target.value)"
+            >
+              <option
+                v-for="opt in sortOptions"
+                :key="opt.value"
+                :value="opt.value"
+              >
+                {{ opt.label }}
+              </option>
+            </select>
           </div>
         </div>
 
         <div
           v-if="viewer.can_manage && (selectedCodes.length || selectedEnsureable.length)"
-          class="flex flex-wrap items-center gap-2 rounded-xl bg-brand/[0.04] px-3 py-2 ring-1 ring-brand/15"
+          class="mt-3 flex flex-wrap items-center gap-2 rounded-xl bg-brand/[0.04] px-3 py-2 ring-1 ring-brand/15"
         >
           <p class="text-xs font-medium text-slate-700">
             Đã chọn {{ selectedCodes.length }}
@@ -461,15 +502,13 @@ const resultHint = computed(() => {
         </div>
       </div>
 
-      <div class="relative p-4 md:p-5">
+      <div class="p-4 md:p-5">
         <WorkspaceProfileGrid
           v-if="paginatedItems.length"
           :workspaces="paginatedItems"
-          :can-manage="viewer.can_manage"
-          :layout="viewMode"
-          :density="density"
           :selectable="viewer.can_manage"
           :selected-codes="selectedCodes"
+          :visible-fields="visibleCols"
           @preview="openPreview"
           @toggle-select="toggleSelect"
         />
@@ -483,7 +522,7 @@ const resultHint = computed(() => {
 
       <div
         v-if="paginationMeta.total > 0"
-        class="relative border-t border-slate-100 px-4 py-3"
+        class="px-4 py-3"
       >
         <DatagridPaginationFooter
           variant="bar"

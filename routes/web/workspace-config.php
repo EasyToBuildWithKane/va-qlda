@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Evaluation\EvaluationCriterionController;
+use App\Http\Controllers\Evaluation\EvaluationTemplateController;
 use App\Http\Controllers\WorkspaceConfig\WorkspaceConfigController;
 use App\Http\Controllers\WorkspaceConfig\WorkspaceProfileController;
 use Illuminate\Support\Facades\Route;
@@ -32,5 +33,17 @@ Route::prefix('workspace-config')->name('workspace.')->group(function () {
         Route::get('/{evaluationCriterion}', [EvaluationCriterionController::class, 'show'])->name('show');
         Route::put('/{evaluationCriterion}', [EvaluationCriterionController::class, 'update'])->name('update');
         Route::delete('/{evaluationCriterion}', [EvaluationCriterionController::class, 'destroy'])->name('destroy');
+    });
+
+    Route::prefix('evaluation-templates')->name('evaluation-templates.')->group(function () {
+        Route::get('/', [EvaluationTemplateController::class, 'index'])->name('index');
+        Route::post('/', [EvaluationTemplateController::class, 'store'])->name('store');
+        Route::post('/import', [EvaluationTemplateController::class, 'import'])->name('import');
+        Route::get('/export-logs', [EvaluationTemplateController::class, 'exportLogs'])->name('export-logs');
+        Route::post('/export-logs', [EvaluationTemplateController::class, 'recordExport'])->name('export-logs.store');
+        Route::post('/{evaluationTemplate}/duplicate', [EvaluationTemplateController::class, 'duplicate'])->name('duplicate');
+        Route::get('/{evaluationTemplate}', [EvaluationTemplateController::class, 'show'])->name('show');
+        Route::put('/{evaluationTemplate}', [EvaluationTemplateController::class, 'update'])->name('update');
+        Route::delete('/{evaluationTemplate}', [EvaluationTemplateController::class, 'destroy'])->name('destroy');
     });
 });

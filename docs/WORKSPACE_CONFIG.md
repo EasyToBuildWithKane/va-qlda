@@ -101,15 +101,14 @@ Child: xem `EVALUATION_CONFIG.md`. Transport: **Inertia**.
 
 | Path | Vai trò |
 |------|---------|
-| `Pages/WorkspaceConfig/Hub.vue` | KPI + insights + ma trận + chọn nhiều + bulk + export + drawer + lưới/list + density + phân trang |
+| `Pages/WorkspaceConfig/Hub.vue` | Toolbar **Lọc** / **Cột** / Xuất + lưới thẻ + bulk + drawer + phân trang |
 | `WorkspaceConfigSummaryBar.vue` | KPI tổng / active / chưa kích hoạt / sẵn sàng / đang cấu hình / tiêu chí |
 | `WorkspaceInsightsBanner.vue` | Gợi ý vận hành (CTA bulk / lọc) |
-| `WorkspaceCoverageMatrix.vue` | Ma trận PB × module live |
-| `WorkspaceProfileGrid.vue` + `WorkspaceProfileCard.vue` | Card đa tone, select, compact, preview |
-| `WorkspaceProfileDrawer.vue` | Xem nhanh + notes + archive/restore |
+| `WorkspaceProfileGrid.vue` + `WorkspaceProfileCard.vue` | Thẻ gọn (không thanh màu trên / không cụm nút); trường qua **Cột**; bấm thẻ = xem nhanh |
+| `WorkspaceProfileDrawer.vue` | Xem nhanh + notes + archive/restore / kích hoạt |
 | `useWorkspaceHubExport.js` | Excel Tong quan / Phong ban / Ma tran |
-| `Pages/WorkspaceConfig/Workspace/Show.vue` | Strip sẵn sàng + checklist onboard + notes + archive |
-| `WorkspaceConfigItemGrid.vue` | Thẻ module (live + planned) + đã/chưa cấu hình |
+| `Pages/WorkspaceConfig/Workspace/Show.vue` | Header gọn (mã PB + Kích hoạt/Tiêu chí; không badge Đang dùng/Lưu trữ) · strip KPI · checklist · notes · archive/restore ở hub drawer · phân trang module khi > 5 |
+| `WorkspaceConfigItemGrid.vue` | Danh sách module chi tiết (mô tả đầy đủ, không truncate; badge chỉ planned/dev/maintenance) |
 
 ### Trạng thái trên thẻ
 

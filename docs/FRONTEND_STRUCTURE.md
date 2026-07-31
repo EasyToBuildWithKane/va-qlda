@@ -71,7 +71,7 @@ resources/js/
 │   ├── audit/                    ← Audit trail viewer components/composables
 │   ├── aiAccount/                ← Tài khoản AI: composables + components/scan (ProposalScanModal — OCR PĐX, useProposalScan)
 │   ├── evaluation/               ← Tiêu chí đánh giá: SummaryBar, CriterionFormModal, ActivityTimeline, CategoryTabs, RowActions, DepartmentAutocomplete, columns, export
-│   └── workspace-config/         ← Hub: ProfileCard/Grid, InsightsBanner, CoverageMatrix, ProfileDrawer, export composable
+│   └── workspace-config/         ← Hub: ProfileCard/Grid, InsightsBanner, ProfileDrawer, export composable
 ├── shared/                   ← Cross-module (Phase 2 + 4)
 │   ├── ui/                   ← Badge, Avatar, ProgressBar, form/*, **KpiSummaryStrip**, …
 │   └── composables/          ← useToast, usePermission, useFilter, useOrgTeamPeople (Congnghe chart)
@@ -121,7 +121,7 @@ AppChrome.vue (persistent shell)
 | Profile | `Pages/Profile/Show.vue` — hồ sơ cá nhân; org directory UI đã gỡ (HRM) |
 | Performance | `Pages/Performance/Dashboard.vue` · **`Audit.vue`** (danh sách audit nhân sự, segmented Tuần/Tháng/Quý, cột **Kỳ** = nhóm dòng collapse theo kỳ con — pattern `Blocker/Index`, `emptyDisplay.js`, `PerformanceAuditSummaryBar` mode list) · **`AuditShow.vue`** (timeline + `PerformanceFilterBar`, back về index) |
 | Evaluation config | `Pages/WorkspaceConfig/Evaluation/{Index,Show}.vue` + `modules/evaluation/` — CRUD modal; phòng ban autocomplete (trống = chung); mã `TCVA###`; thang điểm JSON (nhãn + trọng số, 2–10 mức); Index cột mức điểm động (header Mức 1…N); KPI strip + Lọc/Cột/Xuất; nhóm PB + tab loại; Show timeline audit + avatar |
-| Workspace config hub | `Pages/WorkspaceConfig/Hub.vue` + `Workspace/Show.vue` + `modules/workspace-config/` (`WorkspaceProfileCard`, InsightsBanner, CoverageMatrix, ProfileDrawer, `useWorkspaceHubExport`, checklist onboard, bulk ensure, notes/archive) — `/workspace-config`, `/workspace-config/w/{code}`; doc `WORKSPACE_CONFIG.md` |
+| Workspace config hub | `Pages/WorkspaceConfig/Hub.vue` + `Workspace/Show.vue` + `modules/workspace-config/` (`WorkspaceProfileCard`, InsightsBanner, ProfileDrawer, `WorkspaceConfigItemGrid` danh sách mô tả đầy đủ, `useWorkspaceHubExport`, checklist onboard, bulk ensure, notes/archive ở drawer) — `/workspace-config`, `/workspace-config/w/{code}`; Show header không badge trạng thái; doc `WORKSPACE_CONFIG.md` |
 | Notifications | `Pages/Notifications/Management.vue` |
 
 Pages import feature components từ `@/modules/project/components/...` và primitives từ `@/shared/ui/...`.
