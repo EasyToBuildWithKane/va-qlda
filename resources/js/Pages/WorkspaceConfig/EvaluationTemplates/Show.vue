@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue';
-import { Head, router } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
@@ -8,6 +8,7 @@ import EvaluationTemplateFormModal from '@/modules/evaluation-template/component
 import EvaluationActivityTimeline from '@/modules/evaluation/components/EvaluationActivityTimeline.vue';
 import { useConfirmDelete } from '@/composables/useConfirmClose';
 import { displayOrEmpty, EMPTY_LABELS } from '@/shared/utils/emptyDisplay';
+import { date as formatDate } from '@/composables/useFormat';
 
 const props = defineProps({
     template: { type: Object, required: true },
@@ -17,6 +18,7 @@ const props = defineProps({
     jobRanks: { type: Array, default: () => [] },
     fieldTypeOptions: { type: Array, default: () => [] },
     criteriaOptions: { type: Array, default: () => [] },
+    relatedForms: { type: Array, default: () => [] },
     can: { type: Object, default: () => ({}) },
 });
 
@@ -383,17 +385,85 @@ function scrollToHistory() {
           </p>
         </section>
 
-        <!-- Danh sách phiếu (stub) -->
+        <!-- Danh sách phiếu -->
         <section class="rounded-card border border-slate-200/80 bg-white shadow-sm">
           <div class="flex items-center justify-between border-b border-slate-100 px-5 py-3">
             <h2 class="text-sm font-semibold text-slate-800">
               Danh sách phiếu đánh giá
             </h2>
+            <Link
+              v-if="can.manage_forms"
+              :href="route('workspace.evaluation-forms.create', { template_id: template.id })"
+              class="btn-primary inline-flex h-8 items-center gap-1.5 px-2.5 text-xs"
+            >
+              <AppIcon
+                name="plus"
+                :size="14"
+              />
+              Tạo phiếu từ mẫu
+            </Link>
           </div>
-          <div class="flex flex-col items-center justify-center px-5 py-14 text-center">
+          <div
+            v-if="relatedForms.length"
+            class="overflow-x-auto"
+          >
+            <table class="min-w-full text-sm">
+              <thead>
+                <tr class="border-b border-slate-100 text-left text-xs uppercase tracking-wide text-slate-500">
+                  <th class="px-4 py-2.5">
+                    Tên phiếu
+                  </th>
+                  <th class="px-4 py-2.5">
+                    Trạng thái
+                  </th>
+                  <th class="px-4 py-2.5">
+                    Số tiêu chí
+                  </th>
+                  <th class="px-4 py-2.5">
+                    Số nhân sự
+                  </th>
+                  <th class="px-4 py-2.5">
+                    Ngày tạo
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="form in relatedForms"
+                  :key="form.id"
+                  class="border-b border-slate-50"
+                >
+                  <td class="px-4 py-2.5">
+                    <Link
+                      :href="route('workspace.evaluation-forms.edit', form.id)"
+                      class="font-medium text-slate-800 hover:text-brand"
+                    >
+                      {{ form.name }}
+                    </Link>
+                  </td>
+                  <td class="px-4 py-2.5 text-slate-600">
+                    {{ form.status_label || form.status }}
+                  </td>
+                  <td class="px-4 py-2.5 tabular-nums text-slate-600">
+                    {{ form.criteria_count ?? 0 }}
+                  </td>
+                  <td class="px-4 py-2.5 tabular-nums text-slate-600">
+                    {{ form.assignees_count ?? 0 }}
+                  </td>
+                  <td class="px-4 py-2.5 text-slate-600">
+                    {{ form.created_at ? formatDate(form.created_at) : displayOrEmpty(null, EMPTY_LABELS.notUpdated) }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div
+            v-else
+            class="flex flex-col items-center justify-center px-5 py-14 text-center"
+          >
             <div class="mb-3 grid h-14 w-14 place-items-center rounded-full bg-slate-50 text-slate-300">
               <AppIcon
-                name="search"
+                name="clipboard-list"
                 :size="24"
               />
             </div>
@@ -401,7 +471,7 @@ function scrollToHistory() {
               Chưa có phiếu đánh giá
             </p>
             <p class="mt-1 text-xs text-slate-400">
-              Phiếu đánh giá sẽ hiển thị tại đây (sắp ra mắt).
+              Tạo phiếu mới từ mẫu này để bắt đầu kỳ đánh giá.
             </p>
           </div>
         </section>

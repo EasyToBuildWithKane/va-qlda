@@ -36,6 +36,26 @@ class WorkspaceConfigCatalog
                 ],
             ],
             [
+                'key' => 'daily_report_scoring',
+                'label' => 'Trọng số báo cáo ngày',
+                'description' => 'Trọng số 4 tiêu chí chính và điểm Kaizen tối đa khi chấm báo cáo ngày theo phòng ban.',
+                'href' => '/workspace-config/daily-report-scoring',
+                'icon' => 'daily',
+                'tone' => 'emerald',
+                'status' => 'live',
+                'permission' => 'workspace.daily_report_scoring.view',
+                'applies_to' => 'department',
+                'empty_cta' => 'Cấu hình trọng số',
+                'configured_cta' => 'Chỉnh trọng số',
+                'onboard_steps' => [
+                    [
+                        'key' => 'has_scoring_config',
+                        'label' => 'Đã cấu hình trọng số chấm báo cáo ngày',
+                        'done_hint' => 'Đã có trọng số phòng ban',
+                    ],
+                ],
+            ],
+            [
                 'key' => 'evaluation_templates',
                 'label' => 'Danh sách mẫu đánh giá',
                 'description' => 'Gói tiêu chí theo vị trí — nhập/xuất Excel, nhân bản mẫu.',
@@ -56,22 +76,22 @@ class WorkspaceConfigCatalog
                 ],
             ],
             [
-                'key' => 'cycles',
-                'label' => 'Chu kỳ đánh giá',
-                'description' => 'Kỳ đánh giá, mốc mở/đóng phiếu theo phòng ban.',
-                'href' => '#',
-                'icon' => 'calendar',
+                'key' => 'evaluation_forms',
+                'label' => 'Danh sách phiếu đánh giá',
+                'description' => 'Phiếu đánh giá theo mẫu, kỳ và danh sách nhân sự — cấu hình hội đồng & tiêu chí.',
+                'href' => '/workspace-config/evaluation-forms',
+                'icon' => 'clipboard-list',
                 'tone' => 'sky',
-                'status' => 'planned',
-                'permission' => 'workspace.hub.view',
-                'applies_to' => 'department',
-                'empty_cta' => 'Sắp ra mắt',
-                'configured_cta' => 'Sắp ra mắt',
+                'status' => 'live',
+                'permission' => 'workspace.evaluation.view',
+                'applies_to' => 'global',
+                'empty_cta' => 'Tạo phiếu đánh giá',
+                'configured_cta' => 'Quản lý phiếu',
                 'onboard_steps' => [
                     [
-                        'key' => 'planned',
-                        'label' => 'Thiết lập kỳ đánh giá (sắp ra mắt)',
-                        'done_hint' => 'Chưa triển khai',
+                        'key' => 'has_forms',
+                        'label' => 'Có ít nhất một phiếu đánh giá',
+                        'done_hint' => 'Đã có phiếu đánh giá',
                     ],
                 ],
             ],
@@ -114,8 +134,10 @@ class WorkspaceConfigCatalog
                 }
 
                 // View reserved domains: hub.view is enough to open read-only module list.
-                if (in_array($permission, ['workspace.evaluation.view'], true)
-                    && ($account->allows('workspace.hub.view') || $account->allows('workspace.evaluation.manage'))) {
+                if (in_array($permission, ['workspace.evaluation.view', 'workspace.daily_report_scoring.view'], true)
+                    && ($account->allows('workspace.hub.view')
+                        || $account->allows('workspace.evaluation.manage')
+                        || $account->allows('workspace.daily_report_scoring.manage'))) {
                     return true;
                 }
 
@@ -148,13 +170,15 @@ class WorkspaceConfigCatalog
     /**
      * Build onboard checklist for a department workspace.
      *
-     * @param  array<string, mixed>  $context  keys: criteria_count, profile_status
+     * @param  array<string, mixed>  $context  keys: criteria_count, profile_status, has_scoring_config
      * @return array<int, array<string, mixed>>
      */
     public static function checklistForDepartment(SystemAccount $account, array $context): array
     {
         $criteriaCount = (int) ($context['criteria_count'] ?? 0);
         $templateCount = (int) ($context['template_count'] ?? 0);
+        $formCount = (int) ($context['form_count'] ?? 0);
+        $hasScoringConfig = (bool) ($context['has_scoring_config'] ?? false);
         $profileStatus = (string) ($context['profile_status'] ?? 'missing');
         $items = [];
 
@@ -179,6 +203,8 @@ class WorkspaceConfigCatalog
                     $done = match ($stepKey) {
                         'has_department_criteria' => $criteriaCount > 0,
                         'has_templates' => $templateCount > 0,
+                        'has_forms' => $formCount > 0,
+                        'has_scoring_config' => $hasScoringConfig,
                         default => false,
                     };
                 }

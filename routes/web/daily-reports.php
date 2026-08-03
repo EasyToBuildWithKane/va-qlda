@@ -15,6 +15,8 @@ Route::prefix('daily-reports')->name('daily-reports.')->group(function () {
     Route::get('/export-data', [DailyReportController::class, 'exportData'])->name('export-data');
     Route::get('/today', [DailyReportController::class, 'today'])->name('today');
     Route::get('/review', [DailyReportReviewController::class, 'index'])->name('review');
+    Route::post('/review/bulk-score', [DailyReportReviewController::class, 'bulkScore'])->name('review.bulk-score');
+    Route::post('/review/bulk-reject', [DailyReportReviewController::class, 'bulkReject'])->name('review.bulk-reject');
     Route::post('/', [DailyReportController::class, 'store'])->name('store');
     Route::get('/{report}', [DailyReportController::class, 'show'])->name('show');
     Route::put('/{report}', [DailyReportController::class, 'update'])->name('update');

@@ -16,10 +16,10 @@
 | Superadmin thấy / quản trị mọi PB | Lead PB CRUD tiêu chí (phase sau) |
 | User HRM chỉ thấy đúng PB của mình | Clone template PB → PB / versioning |
 | Domain con (evaluation, …) gắn `department_code` | Hard-code card chỉ trên FE |
-| Insights + ma trận phủ + bulk ensure + export | CRUD thật chu kỳ / mẫu thông báo (planned) |
+| Insights + ma trận phủ + bulk ensure + export | Mẫu thông báo workspace (planned) |
 | Drawer xem nhanh, notes, archive/restore | |
 
-**Domain live:** [Cấu hình tiêu chí đánh giá](EVALUATION_CONFIG.md) → `/workspace-config/evaluation` (scoped); [Mẫu đánh giá](EVALUATION_CONFIG.md#10-mẫu-đánh-giá-evaluation_templates) → `/workspace-config/evaluation-templates`.
+**Domain live:** [Cấu hình tiêu chí đánh giá](EVALUATION_CONFIG.md) → `/workspace-config/evaluation` (scoped); [Mẫu đánh giá](EVALUATION_CONFIG.md#10-mẫu-đánh-giá-evaluation_templates) → `/workspace-config/evaluation-templates`; [Phiếu đánh giá](EVALUATION_CONFIG.md#11-phiếu-đánh-giá-evaluation_forms--mvp-quản-trị) → `/workspace-config/evaluation-forms`; **Trọng số báo cáo ngày** → `/workspace-config/daily-report-scoring` (xem [DAILY_REPORT.md](DAILY_REPORT.md) §3.3).
 
 ---
 
@@ -31,6 +31,7 @@
 /workspace-config/w/{departmentCode}   → Shell workspace PB + checklist
 /workspace-config/w/{code}             → PATCH notes / status
 /workspace-config/w/{code}/ensure      → POST kích hoạt profile
+/workspace-config/daily-report-scoring → Trọng số chấm BC ngày theo PB
 /workspace-config/evaluation/*         → Evaluation (EVALUATION_CONFIG.md)
 /workspace-config/evaluation-templates/* → Evaluation templates (EVALUATION_CONFIG.md §10)
 ```
@@ -42,10 +43,10 @@
 | Insights / coverage | `WorkspaceHubInsights` |
 | Scope | `WorkspaceScopeResolver` — `department_code` từ `employee.meta` |
 | Provision | `WorkspaceProfileProvisioner` — ensure + ensureMany |
-| Model | `App\Models\WorkspaceConfig\WorkspaceProfile` |
-| Controllers | `WorkspaceConfigController`, `WorkspaceProfileController` |
+| Model | `App\Models\WorkspaceConfig\WorkspaceProfile`, `App\Models\DailyReport\DailyReportScoringConfig` |
+| Controllers | `WorkspaceConfigController`, `WorkspaceProfileController`, `DailyReportScoringConfigController` |
 | Routes | `routes/web/workspace-config.php` |
-| Pages | `Pages/WorkspaceConfig/Hub.vue`, `Workspace/Show.vue`, `Evaluation/` |
+| Pages | `Pages/WorkspaceConfig/Hub.vue`, `Workspace/Show.vue`, `Evaluation/`, `DailyReportScoring/Edit.vue` |
 | FE module | `modules/workspace-config/` |
 
 Pattern: **MVC**.
@@ -66,7 +67,8 @@ Bảng `workspace_profiles` (`va_prd_workspace_profiles`):
 | `created_by` | SystemAccount |
 | SoftDeletes | |
 
-Tiêu chí đánh giá vẫn ở `evaluation_criteria` (`scope` + `department_code`) — không FK bắt buộc tới profile.
+Tiêu chí đánh giá vẫn ở `evaluation_criteria` (`scope` + `department_code`) — không FK bắt buộc tới profile.  
+Trọng số BC ngày: `daily_report_scoring_configs` (keyed `department_code`) — giữ 4 weight + `kaizen_bonus_max`; không đổi số chiều điểm.
 
 ---
 
@@ -79,6 +81,8 @@ Tiêu chí đánh giá vẫn ở `evaluation_criteria` (`scope` + `department_co
 | GET | `/workspace-config/w/{departmentCode}` | `workspace.profiles.show` |
 | PATCH | `/workspace-config/w/{departmentCode}` | `workspace.profiles.update` |
 | POST | `/workspace-config/w/{departmentCode}/ensure` | `workspace.profiles.ensure` |
+| GET | `/workspace-config/daily-report-scoring` | `workspace.daily-report-scoring.edit` |
+| PUT | `/workspace-config/daily-report-scoring` | `workspace.daily-report-scoring.update` |
 
 Query hub: `include_archived=1` (chỉ `hub.manage`) — hiện profile `archived` trên lưới.
 
@@ -93,6 +97,7 @@ Child: xem `EVALUATION_CONFIG.md`. Transport: **Inertia**.
 | `workspace.hub.view` | Không | admin (default), lead, member, viewer — xem hub/workspace PB mình |
 | `workspace.hub.manage` | Có | chỉ super_admin — mọi PB + ensure/bulk + notes/archive |
 | `workspace.evaluation.view` / `.manage` | Có | chỉ super_admin — CRUD tiêu chí |
+| `workspace.daily_report_scoring.view` / `.manage` | Có | chỉ super_admin — xem/sửa trọng số BC ngày theo PB |
 
 **Scope:** `WorkspaceScopeResolver::canAccess($user, $departmentCode)`.
 
@@ -105,11 +110,11 @@ Child: xem `EVALUATION_CONFIG.md`. Transport: **Inertia**.
 | `Pages/WorkspaceConfig/Hub.vue` | Toolbar **Lọc** / **Cột** / Xuất + lưới thẻ + bulk + drawer + phân trang |
 | `WorkspaceConfigSummaryBar.vue` | KPI tổng / active / chưa kích hoạt / sẵn sàng / đang cấu hình / tiêu chí |
 | `WorkspaceInsightsBanner.vue` | Gợi ý vận hành (CTA bulk / lọc) |
-| `WorkspaceProfileGrid.vue` + `WorkspaceProfileCard.vue` | Thẻ accent bar + glow theo tone PB, metric icon/ring sẵn sàng, footer CTA; trường qua **Cột**; bấm thẻ = xem nhanh |
+| `WorkspaceProfileGrid.vue` + `WorkspaceProfileCard.vue` | Thẻ phẳng (nền slate, không border/gradient), vạch accent + số metric; trường qua **Cột**; bấm thẻ = xem nhanh |
 | `WorkspaceProfileDrawer.vue` | Xem nhanh + notes + archive/restore / kích hoạt |
 | `useWorkspaceHubExport.js` | Excel Tong quan / Phong ban / Ma tran |
 | `Pages/WorkspaceConfig/Workspace/Show.vue` | Header gọn (mã PB + Kích hoạt/Tiêu chí; không badge Đang dùng/Lưu trữ) · strip KPI · checklist · notes · archive/restore ở hub drawer · phân trang module khi > 5 |
-| `WorkspaceConfigItemGrid.vue` | Danh sách module chi tiết (mô tả đầy đủ, không truncate; badge chỉ planned/dev/maintenance) |
+| `WorkspaceConfigItemGrid.vue` | Danh sách module phẳng (mô tả đầy đủ; trạng thái planned/dev/maintenance dạng chữ, không badge viền) |
 
 ### Trạng thái trên thẻ
 

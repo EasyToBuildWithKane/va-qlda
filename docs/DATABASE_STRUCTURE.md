@@ -550,11 +550,30 @@ Tương tự task_activities, FK → project_attachments.
 | kaizen_score | decimal(4,2) | YES | 0-10 |
 | expertise_score | decimal(4,2) | YES | 0-10 |
 | total_score | decimal(5,2) | YES | Tổng điểm |
-| grade | varchar(1) | YES | A/B/C/D/E/F |
+| grade | varchar(1) | YES | S/A/B/C/D |
 | reviewer_id | bigint UNSIGNED | YES | FK → employees |
 | notes | text | YES | |
+| scoring_snapshot | json | YES | weights + kaizen + source lúc chấm |
 | created_at | timestamp | YES | |
 | updated_at | timestamp | YES | |
+
+---
+
+### 3.24b va_prd_daily_report_scoring_configs
+
+Trọng số chấm báo cáo ngày theo phòng ban (Workspace).
+
+| Column | Type | Nullable | Description |
+|---|---|---|---|
+| id | bigint UNSIGNED | NO | PK |
+| department_code | varchar(64) | NO | Unique |
+| department_name | varchar | YES | Denormalized |
+| local_department_id | bigint UNSIGNED | YES | FK → departments |
+| weights | json | NO | task_completion, skill_score, attitude_score, expertise_score |
+| kaizen_bonus_max | decimal(4,2) | NO | Default 2.0 |
+| status | varchar(16) | NO | active \| draft |
+| updated_by | bigint UNSIGNED | YES | FK → system_accounts |
+| timestamps / soft deletes | | | |
 
 ---
 
@@ -642,9 +661,9 @@ Lưu **override** cấu hình runtime (admin chỉnh ở `/settings`). Bảng tr
 
 ---
 
-### 3.29 va_prd_evaluation_* — Cấu hình tiêu chí / mẫu đánh giá
+### 3.29 va_prd_evaluation_* — Cấu hình tiêu chí / mẫu / phiếu đánh giá
 
-Xem `docs/EVALUATION_CONFIG.md`. Migrations: `2026_07_29_160000_create_evaluation_config_tables` → `2026_07_30_120000_drop_evaluation_templates` → `2026_07_30_130000_reshape_evaluation_criteria_catalog` (catalog standalone) → `2026_07_31_120000_create_evaluation_templates_tables` (mẫu đánh giá) → `2026_07_31_160000_enhance_evaluation_templates_targets_fields` (targets / custom criteria / form fields).
+Xem `docs/EVALUATION_CONFIG.md`. Migrations: `2026_07_29_160000_create_evaluation_config_tables` → `2026_07_30_120000_drop_evaluation_templates` → `2026_07_30_130000_reshape_evaluation_criteria_catalog` (catalog standalone) → `2026_07_31_120000_create_evaluation_templates_tables` (mẫu đánh giá) → `2026_07_31_160000_enhance_evaluation_templates_targets_fields` (targets / custom criteria / form fields) → `2026_08_03_140000_create_evaluation_forms_tables` (phiếu đánh giá).
 
 | Bảng | Mô tả |
 |------|--------|
@@ -653,8 +672,15 @@ Xem `docs/EVALUATION_CONFIG.md`. Migrations: `2026_07_29_160000_create_evaluatio
 | `evaluation_template_criteria` | Pivot mẫu ↔ tiêu chí catalog: `weight`, `required_score_label`, `include_in_total`, `sort_order` |
 | `evaluation_template_targets` | Multi chức danh (`kind=title`) / cấp bậc (`kind=rank`): `code`, `name`, `hrm_uuid`, `source` |
 | `evaluation_template_custom_criteria` | Tiêu chí tùy chỉnh trên mẫu (không FK catalog): `custom_name`, weight, score label… |
-| `evaluation_template_fields` | Trường form phụ trên phiếu: `field_key`, `field_type`, `options` JSON, `is_required` |
+| `evaluation_template_fields` | Trường form phụ trên mẫu: `field_key`, `field_type`, `options` JSON, `is_required` |
 | `evaluation_template_export_logs` | Lịch sử xuất Excel/CSV: `scope`, `format`, `row_count`, `columns` JSON, `filters` JSON, `filename` |
+| `evaluation_form_types` | Loại đánh giá (seed «Đánh giá định kỳ»); unique `name` |
+| `evaluation_forms` | Header phiếu (`form_code` `PDG###`); FK mẫu/loại; kỳ; manager; deadline; order/weight; status; SoftDeletes |
+| `evaluation_form_watchers` | Người theo dõi (`form_id` + `employee_id`) |
+| `evaluation_form_raters` | Hội đồng: `role_key`, `label`, `weight_percent`, `sort_order` |
+| `evaluation_form_fields` | Trường tùy biến trên phiếu (`evaluator_comment`, `self_next_plan`, …) |
+| `evaluation_form_criteria` | Snapshot tiêu chí trên phiếu + `evaluator_mode` / `evaluator_role_keys` |
+| `evaluation_form_assignees` | Nhân sự được đánh giá + trưởng phòng / QLTT / BGD |
 
 ### 3.30 va_prd_workspace_profiles — Workspace theo phòng ban
 

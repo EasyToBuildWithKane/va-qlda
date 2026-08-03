@@ -43,6 +43,8 @@ final class PermissionCatalog
         'workspace.hub.manage',
         'workspace.evaluation.view',
         'workspace.evaluation.manage',
+        'workspace.daily_report_scoring.view',
+        'workspace.daily_report_scoring.manage',
     ];
 
     /**
@@ -137,6 +139,8 @@ final class PermissionCatalog
                 'hub.manage' => 'Quản trị mọi workspace phòng ban',
                 'evaluation.view' => 'Xem cấu hình tiêu chí đánh giá',
                 'evaluation.manage' => 'Quản lý cấu hình tiêu chí đánh giá',
+                'daily_report_scoring.view' => 'Xem trọng số báo cáo ngày theo phòng ban',
+                'daily_report_scoring.manage' => 'Quản lý trọng số báo cáo ngày theo phòng ban',
             ]],
             'system' => ['label' => 'Cấu hình hệ thống', 'icon' => 'system-config', 'group' => 'Quản trị tối cao', 'abilities' => [
                 'settings.view' => 'Xem cấu hình', 'settings.manage' => 'Sửa cấu hình hệ thống',

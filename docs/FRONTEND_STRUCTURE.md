@@ -122,8 +122,10 @@ AppChrome.vue (persistent shell)
 | Profile | `Pages/Profile/Show.vue` — hồ sơ cá nhân; org directory UI đã gỡ (HRM) |
 | Performance | `Pages/Performance/Dashboard.vue` · **`Audit.vue`** (danh sách audit nhân sự, segmented Tuần/Tháng/Quý, cột **Kỳ** = nhóm dòng collapse theo kỳ con — pattern `Blocker/Index`, `emptyDisplay.js`, `PerformanceAuditSummaryBar` mode list) · **`AuditShow.vue`** (timeline + `PerformanceFilterBar`, back về index) |
 | Evaluation config | `Pages/WorkspaceConfig/Evaluation/{Index,Show}.vue` + `modules/evaluation/` — CRUD modal; phòng ban autocomplete (trống = chung); mã `TCVA###`; thang điểm JSON (nhãn + trọng số, 2–10 mức); Index cột mức điểm động (header Mức 1…N); KPI strip + Lọc/Cột/Xuất; nhóm PB + tab loại; Show timeline audit + avatar |
-| Evaluation templates | `Pages/WorkspaceConfig/EvaluationTemplates/{Index,Create,Show}.vue` + `modules/evaluation-template/` — **Thêm mẫu** Create (zoom 90%; đối tượng XOR chức danh\|cấp bậc; tiêu chí picker hẹp + panel đã chọn rộng); tiêu chí catalog + tuỳ chỉnh, trường form phụ; **Dữ liệu** → DataModal; Show + sửa modal |
-| Workspace config hub | `Pages/WorkspaceConfig/Hub.vue` + `Workspace/Show.vue` + `modules/workspace-config/` (`WorkspaceProfileCard`, InsightsBanner, ProfileDrawer, `WorkspaceConfigItemGrid` danh sách mô tả đầy đủ, `useWorkspaceHubExport`, checklist onboard, bulk ensure, notes/archive ở drawer) — `/workspace-config`, `/workspace-config/w/{code}`; Show header không badge trạng thái; doc `WORKSPACE_CONFIG.md` |
+| Evaluation templates | `Pages/WorkspaceConfig/EvaluationTemplates/{Index,Create,Show}.vue` + `modules/evaluation-template/` — **Thêm mẫu** Create (zoom 90%; đối tượng XOR chức danh\|cấp bậc; tiêu chí picker hẹp + panel đã chọn rộng); tiêu chí catalog + tuỳ chỉnh, trường form phụ; **Dữ liệu** → DataModal; Show + sửa modal + danh sách phiếu theo mẫu |
+| Evaluation forms | `Pages/WorkspaceConfig/EvaluationForms/{Index,Create,Edit}.vue` + `modules/evaluation-form/` — list + KPI + Xuất; wizard 3 tab (thông tin / tiêu chí / nhân sự); `/workspace-config/evaluation-forms` |
+| Workspace config hub | `Pages/WorkspaceConfig/Hub.vue` + `Workspace/Show.vue` + `modules/workspace-config/` (`WorkspaceProfileCard` thẻ phẳng không border/gradient, InsightsBanner, ProfileDrawer, `WorkspaceConfigItemGrid`, `useWorkspaceHubExport`, checklist onboard, bulk ensure, notes/archive ở drawer) — `/workspace-config`, `/workspace-config/w/{code}`; Show header không badge trạng thái; doc `WORKSPACE_CONFIG.md` |
+| Daily report scoring (Workspace) | `Pages/WorkspaceConfig/DailyReportScoring/Edit.vue` — trọng số 4 tiêu chí + Kaizen theo PB; `/workspace-config/daily-report-scoring` |
 | Notifications | `Pages/Notifications/Management.vue` |
 
 Pages import feature components từ `@/modules/project/components/...` và primitives từ `@/shared/ui/...`.
@@ -160,7 +162,7 @@ Pages import feature components từ `@/modules/project/components/...` và prim
 
 | Nhóm | Components |
 |---|---|
-| Core | `ProjectCard`, `ProjectDataGrid` (kéo ngang cuộn bảng, không nhóm phòng ban), `ProjectForm`, `ProjectMembers`, `GanttChart`, `TaskBoard`, … |
+| Core | `ProjectCard`, `ProjectDataGrid` (kéo ngang cuộn bảng), `ProjectForm`, `ProjectMembers`, `GanttChart`, `TaskBoard`, … · Index Kanban: wrap thẻ; «Nhóm theo» Loại/Phòng ban chỉ `super_admin` |
 | Sprint/ | `SprintWorkspace`, `SprintTaskTable`, `SprintDataModal`, `TaskDetailPanel`, … |
 | TaskDetail/ | `TaskDetailRichEditor`, `TaskDetailCollaboration`, `TaskDetailSubtasks`, … |
 | Dashboard/ | `ProjectShowSummaryBar` (tab Tổng quan Show — KPI embedded + `WorkloadTable`), `ProjectOverviewCard`, `RiskIssueDataTable`, `ProjectFeedbackPanel`, `RiskImportModal`, `ActivityFeed`, … |
@@ -194,7 +196,9 @@ Pages import feature components từ `@/modules/project/components/...` và prim
 
 ### 6.6 Daily Report — `modules/daily-report/components/`
 
-`GradePill`, `StatusBadge`, `ScoringPanel`, `RichTextField`, `ProjectPicker`, …
+`GradePill`, `StatusBadge`, `ReviewScoringPanel` (+ `ScoreSelector` compact), `RichTextField`, `ProjectPicker`, …
+
+Trang chờ duyệt (`Pages/DailyReport/Review.vue`) — master–detail: queue server filter (`queue`/`q`), bulk Duyệt/Trả lại, overview 2 cột (tóm tắt + panel chấm nhận `scoringRubricsByEmployee`).
 
 Trang lịch sử (`Pages/DailyReport/History.vue`) — dashboard SaaS:
 

@@ -9,7 +9,8 @@ use Carbon\CarbonInterface;
 
 /**
  * Pure scoring logic for daily reports: weighted total, grade mapping and the
- * week-over-week trend. Weights/thresholds come from config('daily_report').
+ * week-over-week trend. Rubric (weights / kaizen) comes from the caller
+ * (DailyReportScoringResolver) or falls back to config('daily_report').
  */
 class ScoringService
 {
@@ -17,11 +18,18 @@ class ScoringService
      * Compute the weighted total and grade from the five dimensions.
      *
      * @param  array<string, float|int|string>  $scores
+     * @param  array{
+     *     weights?: array<string, float|int>,
+     *     kaizen_bonus_max?: float|int
+     * }|null  $rubric
      * @return array{total: float, grade: Grade}
      */
-    public function compute(array $scores): array
+    public function compute(array $scores, ?array $rubric = null): array
     {
-        $weights = config('daily_report.weights');
+        $weights = $rubric['weights'] ?? config('daily_report.weights');
+        if (! is_array($weights) || $weights === []) {
+            $weights = config('daily_report.weights');
+        }
         $weightSum = array_sum($weights) ?: 1.0;
 
         $base = 0.0;
@@ -30,7 +38,7 @@ class ScoringService
         }
 
         $kaizen = (float) ($scores['kaizen_score'] ?? 0);
-        $bonusMax = (float) config('daily_report.kaizen_bonus_max', 2.0);
+        $bonusMax = (float) ($rubric['kaizen_bonus_max'] ?? config('daily_report.kaizen_bonus_max', 2.0));
         $bonus = ($kaizen / 10) * $bonusMax;
 
         $total = round($base + $bonus, 2);

@@ -52,7 +52,7 @@ Nguồn sự thật: [app/Support/Auth/PermissionCatalog.php](../app/Support/Aut
 - `modules()` — module → `{label, icon, group, abilities}` (key = `{module}.{ability}`).
 - Hành động chuẩn: `view, create, update, delete, review(Duyệt), import, export, assign, manage` + quyền nghiệp vụ đặc thù (vd `credential.view_password`, `ai_account.manage_password_viewers`, `contract.import`, `daily_report.review`…).
 - `defaultGrants()` — grant mặc định mỗi role, **mirror hành vi cũ** để không hồi quy.
-- `reservedKeys()` — chỉ `super_admin`: `system.settings.view/manage`, `permissions.manage`, `roles.assign`, `workspace.evaluation.view/manage`. Bị **strip** khỏi mọi role khác cả khi lưu ([SystemSettingController](../app/Http/Controllers/Settings/SystemSettingController.php)) lẫn overlay ([SettingsServiceProvider](../app/Providers/SettingsServiceProvider.php)).
+- `reservedKeys()` — chỉ `super_admin`: `system.settings.view/manage`, `permissions.manage`, `roles.assign`, `workspace.hub.manage`, `workspace.evaluation.view/manage`, `workspace.daily_report_scoring.view/manage`. Bị **strip** khỏi mọi role khác cả khi lưu ([SystemSettingController](../app/Http/Controllers/Settings/SystemSettingController.php)) lẫn overlay ([SettingsServiceProvider](../app/Providers/SettingsServiceProvider.php)).
 
 ### Hardening cố ý (khác hành vi cũ)
 - `ai_account.create/update/delete/renew`: trước đây **mọi** tài khoản đăng nhập đều CRUD được tài khoản AI (policy trả `true`). Mặc định mới chỉ cấp cho `admin`/`lead`. Super Admin có thể nới lại qua ma trận nếu cần.

@@ -10,9 +10,9 @@ const props = defineProps({
 const emit = defineEmits(['action']);
 
 const levelClass = {
-    warning: 'border-amber-200/90 bg-gradient-to-r from-amber-50/90 to-white',
-    info: 'border-sky-200/80 bg-gradient-to-r from-sky-50/80 to-white',
-    success: 'border-emerald-200/80 bg-gradient-to-r from-emerald-50/80 to-white',
+    warning: 'bg-amber-50',
+    info: 'bg-sky-50',
+    success: 'bg-emerald-50',
 };
 
 const levelIcon = {
@@ -22,9 +22,9 @@ const levelIcon = {
 };
 
 const iconTone = {
-    amber: 'text-amber-700 bg-amber-100/80 ring-amber-200/80',
-    sky: 'text-sky-700 bg-sky-100/80 ring-sky-200/80',
-    emerald: 'text-emerald-700 bg-emerald-100/80 ring-emerald-200/80',
+    amber: 'text-amber-700 bg-amber-100',
+    sky: 'text-sky-700 bg-sky-100',
+    emerald: 'text-emerald-700 bg-emerald-100',
 };
 
 const visible = computed(() => props.insights ?? []);
@@ -52,12 +52,12 @@ function onAction(insight) {
     <article
       v-for="insight in visible"
       :key="insight.code"
-      class="flex flex-col gap-3 rounded-card border px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between"
+      class="flex flex-col gap-3 rounded-2xl px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
       :class="levelClass[insight.level] ?? levelClass.info"
     >
       <div class="flex min-w-0 items-start gap-3">
         <span
-          class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1"
+          class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
           :class="iconTone[levelIcon[insight.level]] ?? iconTone.sky"
         >
           <AppIcon

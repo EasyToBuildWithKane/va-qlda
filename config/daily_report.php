@@ -5,8 +5,9 @@
 | Daily Report configuration
 |--------------------------------------------------------------------------
 |
-| Scoring weights, grade thresholds and submission rules. Kept in config for
-| the MVP; will migrate to the system_settings table (admin-editable) in V2.
+| Scoring weights, grade thresholds and submission rules.
+| Weights / kaizen_bonus_max: system fallback when a department has no
+| Workspace config (daily_report_scoring_configs). Grade thresholds stay global.
 |
 */
 

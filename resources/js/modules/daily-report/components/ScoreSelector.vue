@@ -2,6 +2,8 @@
 defineProps({
     modelValue: { type: Number, default: null },
     disabled: { type: Boolean, default: false },
+    /** Compact chips for dense review scoring panel */
+    compact: { type: Boolean, default: false },
 });
 
 defineEmits(['update:modelValue']);
@@ -9,7 +11,7 @@ defineEmits(['update:modelValue']);
 
 <template>
   <div
-    class="flex flex-wrap gap-1"
+    class="flex flex-nowrap gap-0.5 overflow-x-auto"
     role="group"
     aria-label="Bộ chọn điểm 1–10"
   >
@@ -20,8 +22,9 @@ defineEmits(['update:modelValue']);
       :disabled="disabled"
       :aria-pressed="modelValue === val"
       :aria-label="`Điểm ${val}`"
-      class="h-8 min-w-[2rem] rounded-md px-1 text-xs font-semibold tabular-nums transition-all duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-40"
+      class="shrink-0 rounded-md font-semibold tabular-nums transition-all duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-40"
       :class="[
+        compact ? 'h-7 min-w-[1.65rem] px-0.5 text-[11px]' : 'h-8 min-w-[2rem] px-1 text-xs',
         modelValue === val
           ? 'bg-brand text-white shadow-sm ring-2 ring-brand/20'
           : val < (modelValue ?? 0)

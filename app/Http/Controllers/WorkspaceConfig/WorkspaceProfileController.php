@@ -5,7 +5,10 @@ namespace App\Http\Controllers\WorkspaceConfig;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\WorkspaceConfig\BulkEnsureWorkspaceProfileRequest;
 use App\Http\Requests\WorkspaceConfig\UpdateWorkspaceProfileRequest;
+use App\Models\DailyReport\DailyReportScoringConfig;
 use App\Models\Evaluation\EvaluationCriterion;
+use App\Models\Evaluation\EvaluationForm;
+use App\Models\Evaluation\EvaluationTemplate;
 use App\Models\WorkspaceConfig\WorkspaceProfile;
 use App\Support\Enums\EvaluationCriterionScope;
 use App\Support\Enums\WorkspaceProfileStatus;
@@ -47,17 +50,46 @@ class WorkspaceProfileController extends Controller
 
         $generalCriteria = EvaluationCriterion::query()->general()->count();
 
-        $modules = array_map(function (array $item) use ($dept, $criteriaCount): array {
+        $hasScoringConfig = DailyReportScoringConfig::query()
+            ->active()
+            ->forDepartment($dept['code'])
+            ->exists();
+
+        $templateCount = EvaluationTemplate::query()->count();
+        $formCount = EvaluationForm::query()->count();
+
+        $modules = array_map(function (array $item) use ($dept, $criteriaCount, $hasScoringConfig, $templateCount, $formCount): array {
             $item['href'] = WorkspaceConfigCatalog::hrefForDepartment($item, $dept['code']);
             $key = (string) ($item['key'] ?? '');
             $item['configured'] = match ($key) {
                 'evaluation' => $criteriaCount > 0,
+                'evaluation_templates' => $templateCount > 0,
+                'evaluation_forms' => $formCount > 0,
+                'daily_report_scoring' => $hasScoringConfig,
                 default => false,
             };
-            $item['count'] = $key === 'evaluation' ? $criteriaCount : null;
-            $item['count_label'] = $key === 'evaluation'
-                ? ($criteriaCount > 0 ? "{$criteriaCount} tiêu chí phòng ban" : 'Chưa có tiêu chí phòng ban')
-                : null;
+            $item['count'] = match ($key) {
+                'evaluation' => $criteriaCount,
+                'evaluation_templates' => $templateCount,
+                'evaluation_forms' => $formCount,
+                'daily_report_scoring' => $hasScoringConfig ? 1 : 0,
+                default => null,
+            };
+            $item['count_label'] = match ($key) {
+                'evaluation' => $criteriaCount > 0
+                    ? "{$criteriaCount} tiêu chí phòng ban"
+                    : 'Chưa có tiêu chí phòng ban',
+                'evaluation_templates' => $templateCount > 0
+                    ? "{$templateCount} mẫu đánh giá"
+                    : 'Chưa có mẫu đánh giá',
+                'evaluation_forms' => $formCount > 0
+                    ? "{$formCount} phiếu đánh giá"
+                    : 'Chưa có phiếu đánh giá',
+                'daily_report_scoring' => $hasScoringConfig
+                    ? 'Đã cấu hình trọng số'
+                    : 'Dùng mặc định hệ thống',
+                default => null,
+            };
 
             return $item;
         }, WorkspaceConfigCatalog::forUser($user));
@@ -85,6 +117,9 @@ class WorkspaceProfileController extends Controller
 
         $checklist = WorkspaceConfigCatalog::checklistForDepartment($user, [
             'criteria_count' => $criteriaCount,
+            'template_count' => $templateCount,
+            'form_count' => $formCount,
+            'has_scoring_config' => $hasScoringConfig,
             'profile_status' => $profileStatus,
             'department_code' => $dept['code'],
         ]);

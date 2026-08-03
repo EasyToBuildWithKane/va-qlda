@@ -57,12 +57,22 @@ class DailyReportResource extends JsonResource
             'recall_count' => (int) $this->recall_count,
             'review_notes' => $this->review_notes,
 
-            'employee' => $this->whenLoaded('employee', fn () => [
-                'id' => $this->employee->id,
-                'name' => $this->employee->full_name,
-                'role_title' => $this->employee->role_title,
-                'avatar_path' => PublicMediaUrl::fromPublicDisk($this->employee->avatar_path),
-            ]),
+            'employee' => $this->whenLoaded('employee', function () {
+                $meta = is_array($this->employee->meta) ? $this->employee->meta : [];
+
+                return [
+                    'id' => $this->employee->id,
+                    'name' => $this->employee->full_name,
+                    'role_title' => $this->employee->role_title,
+                    'avatar_path' => PublicMediaUrl::fromPublicDisk($this->employee->avatar_path),
+                    'department_code' => filled($meta['department_code'] ?? null)
+                        ? (string) $meta['department_code']
+                        : null,
+                    'department_name' => filled($meta['department_name'] ?? null)
+                        ? (string) $meta['department_name']
+                        : (filled($meta['department'] ?? null) ? (string) $meta['department'] : null),
+                ];
+            }),
             'score' => $this->when(
                 $this->relationLoaded('score'),
                 fn () => $this->score

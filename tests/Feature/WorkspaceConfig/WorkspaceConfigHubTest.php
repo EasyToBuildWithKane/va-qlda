@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\WorkspaceConfig;
 
+use App\Models\DailyReport\DailyReportScoringConfig;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\Evaluation\EvaluationCriterion;
@@ -107,6 +108,19 @@ class WorkspaceConfigHubTest extends TestCase
             'is_active' => true,
         ]);
 
+        DailyReportScoringConfig::query()->create([
+            'department_code' => 'HCNS',
+            'department_name' => 'Hành Chính Nhân Sự',
+            'weights' => [
+                'task_completion' => 0.3,
+                'skill_score' => 0.2,
+                'attitude_score' => 0.15,
+                'expertise_score' => 0.2,
+            ],
+            'kaizen_bonus_max' => 2.0,
+            'status' => DailyReportScoringConfig::STATUS_ACTIVE,
+        ]);
+
         $this->actingAs($this->superAdmin(), 'system')
             ->get('/workspace-config')
             ->assertOk()
@@ -123,6 +137,7 @@ class WorkspaceConfigHubTest extends TestCase
                 ->where('workspaces.0.status_label', 'Chưa kích hoạt')
                 ->where('workspaces.0.criteria_count', 1)
                 ->where('workspaces.0.has_criteria', true)
+                ->where('workspaces.0.has_scoring_config', true)
                 ->where('workspaces.0.readiness.key', 'ready')
                 ->where('workspaces.0.readiness.label', 'Đã sẵn sàng')
                 ->where('insights.0.code', 'has_criteria_missing_profile')

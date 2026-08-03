@@ -121,7 +121,9 @@ Chi tiết merge section: [`docs/CONGNGHE_CONTENT.md`](CONGNGHE_CONTENT.md).
 | GET | `/daily-reports/{report}` | DailyReportController@show | auth | Xem báo cáo |
 | PUT | `/daily-reports/{report}` | DailyReportController@update | auth | Sửa báo cáo |
 | POST | `/daily-reports/{report}/submit` | DailyReportController@submit | auth | Nộp báo cáo |
-| GET | `/daily-reports/review` | DailyReportReviewController@index | auth | Hàng chờ chấm |
+| GET | `/daily-reports/review` | DailyReportReviewController@index | auth | Hàng chờ chấm (`queue`, `q`, `employee_id`) |
+| POST | `/daily-reports/review/bulk-score` | DailyReportReviewController@bulkScore | auth | Duyệt hàng loạt (max 50) |
+| POST | `/daily-reports/review/bulk-reject` | DailyReportReviewController@bulkReject | auth | Trả lại hàng loạt (max 50) |
 | POST | `/daily-reports/{report}/score` | DailyReportReviewController@score | auth | Chấm điểm |
 | POST | `/daily-reports/{report}/reject` | DailyReportReviewController@reject | auth | Từ chối / trả về |
 
@@ -315,6 +317,8 @@ Chi tiết module: [`WORKSPACE_CONFIG.md`](WORKSPACE_CONFIG.md).
 
 | Method | URI | Controller | Mô tả |
 |--------|-----|------------|--------|
+| GET | `/workspace-config/daily-report-scoring` | DailyReportScoringConfigController@edit | Form trọng số BC ngày theo PB |
+| PUT | `/workspace-config/daily-report-scoring` | DailyReportScoringConfigController@update | Lưu trọng số theo PB |
 | GET | `/workspace-config/evaluation` | EvaluationCriterionController@index | Danh mục tiêu chí |
 | POST | `/workspace-config/evaluation` | EvaluationCriterionController@store | Tạo tiêu chí |
 | GET | `/workspace-config/evaluation/{evaluationCriterion}` | EvaluationCriterionController@show | Chi tiết + lịch sử |
@@ -330,6 +334,14 @@ Chi tiết module: [`WORKSPACE_CONFIG.md`](WORKSPACE_CONFIG.md).
 | GET | `/workspace-config/evaluation-templates/{evaluationTemplate}` | EvaluationTemplateController@show | Chi tiết mẫu |
 | PUT | `/workspace-config/evaluation-templates/{evaluationTemplate}` | EvaluationTemplateController@update | Cập nhật |
 | DELETE | `/workspace-config/evaluation-templates/{evaluationTemplate}` | EvaluationTemplateController@destroy | Soft delete |
+| GET | `/workspace-config/evaluation-forms` | EvaluationFormController@index | Danh sách phiếu đánh giá |
+| GET | `/workspace-config/evaluation-forms/create` | EvaluationFormController@create | Wizard tạo phiếu |
+| POST | `/workspace-config/evaluation-forms` | EvaluationFormController@store | Tạo phiếu |
+| POST | `/workspace-config/evaluation-forms/types` | EvaluationFormController@storeType | Thêm loại ĐG nhanh |
+| GET | `/workspace-config/evaluation-forms/templates/{evaluationTemplate}/criteria` | EvaluationFormController@templateCriteria | JSON tiêu chí từ mẫu |
+| GET | `/workspace-config/evaluation-forms/{evaluationForm}/edit` | EvaluationFormController@edit | Sửa phiếu |
+| PUT | `/workspace-config/evaluation-forms/{evaluationForm}` | EvaluationFormController@update | Cập nhật |
+| DELETE | `/workspace-config/evaluation-forms/{evaluationForm}` | EvaluationFormController@destroy | Soft delete |
 
 Chi tiết: [`EVALUATION_CONFIG.md`](EVALUATION_CONFIG.md) · module cha [`WORKSPACE_CONFIG.md`](WORKSPACE_CONFIG.md).
 
@@ -432,6 +444,7 @@ Workspace Config Group
 ├── /workspace-config/w/{code}        (shell + PATCH notes/status)
 └── /workspace-config/evaluation/*    (cấu hình đánh giá, scoped theo PB)
 └── /workspace-config/evaluation-templates/*  (mẫu đánh giá + lịch sử xuất)
+└── /workspace-config/evaluation-forms/*      (phiếu đánh giá MVP)
 
 Knowledge Base Group
 ├── /knowledge-base                    (index — Inertia)

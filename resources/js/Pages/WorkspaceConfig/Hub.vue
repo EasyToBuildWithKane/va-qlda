@@ -471,7 +471,7 @@ const emptyHint = computed(() => {
 
         <div
           v-if="viewer.can_manage && (selectedCodes.length || selectedEnsureable.length)"
-          class="mt-3 flex flex-wrap items-center gap-2 rounded-xl bg-brand/[0.04] px-3 py-2 ring-1 ring-brand/15"
+          class="mt-3 flex flex-wrap items-center gap-2 rounded-xl bg-brand/[0.06] px-3 py-2"
         >
           <p class="text-xs font-medium text-slate-700">
             Đã chọn {{ selectedCodes.length }}

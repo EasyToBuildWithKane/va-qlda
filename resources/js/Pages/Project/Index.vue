@@ -13,6 +13,7 @@ import DatagridSegmentedControl from '@/shared/ui/DatagridSegmentedControl.vue';
 import DatagridFilterField from '@/shared/ui/DatagridFilterField.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
+import { usePermission } from '@/shared/composables/usePermission';
 import { COLUMNS, DEFAULT_VISIBLE } from '@/modules/project/config/columns';
 import { useDialog } from '@/composables/useDialog';
 import { useToast } from '@/shared/composables/useToast';
@@ -66,6 +67,7 @@ const props = defineProps({
 
 const dialog = useDialog();
 const toast = useToast();
+const { isSuperAdmin } = usePermission();
 const perPage = ref(Number(props.filters.per_page) || props.projects.meta?.per_page || DEFAULT_PER_PAGE);
 
 // ---- Persisted UI state ---------------------------------------------------
@@ -74,11 +76,24 @@ const GROUP_KEY = 'va-workspace.projects.groupby';
 const KANBAN_COLLAPSE_KEY = 'va-workspace.projects.kanban.collapsed';
 const COLS_KEY = 'va-workspace.projects.columns';
 const SAVED_KEY = 'va-workspace.projects.savedfilters';
+const ALLOWED_GROUP_BY = new Set(['type', 'department']);
 
 const view = ref(localStorage.getItem(VIEW_KEY) || 'list');
-const groupBy = ref(localStorage.getItem(GROUP_KEY) || 'type');
+const loadGroupBy = () => {
+    const saved = localStorage.getItem(GROUP_KEY);
+    if (ALLOWED_GROUP_BY.has(saved) && isSuperAdmin.value) return saved;
+    return 'type';
+};
+const groupBy = ref(loadGroupBy());
 watch(view, (v) => localStorage.setItem(VIEW_KEY, v));
-watch(groupBy, (v) => localStorage.setItem(GROUP_KEY, v));
+watch(groupBy, (v) => {
+    if (!isSuperAdmin.value) return;
+    localStorage.setItem(GROUP_KEY, v);
+});
+watch(isSuperAdmin, (ok) => {
+    if (!ok) groupBy.value = 'type';
+    else if (!ALLOWED_GROUP_BY.has(groupBy.value)) groupBy.value = loadGroupBy();
+});
 
 // Visible columns
 const loadCols = () => {
@@ -253,19 +268,13 @@ const dot = {
 
 const columns = computed(() => {
     const data = props.projects.data;
-    if (groupBy.value === 'type') {
+    // Non–super-admin luôn nhóm theo loại; chỉ super admin đổi được sang phòng ban.
+    const mode = isSuperAdmin.value && groupBy.value === 'department' ? 'department' : 'type';
+    if (mode === 'type') {
         return props.typeOptions.map((t) => ({
             key: 't' + t.value, label: t.label, color: t.color, value: t.value,
             projects: data.filter((p) => p.type?.value === t.value),
         }));
-    }
-    if (groupBy.value === 'team') {
-        const teamCols = props.orgTeamOptions.map((t) => ({
-            key: 'team' + t.id, label: t.name, color: t.color, value: t.id,
-            projects: data.filter((p) => p.org_team?.id === t.id),
-        }));
-        teamCols.push({ key: 'team-none', label: 'Chưa phân đội', color: 'slate', value: null, projects: data.filter((p) => !p.org_team) });
-        return teamCols;
     }
     const cols = props.departmentOptions.map((d) => ({
         key: 'd' + d.id, label: d.name, color: d.color, value: d.id,
@@ -277,14 +286,12 @@ const columns = computed(() => {
 
 const dragId = ref(null);
 const onDrop = (col) => {
-    // Nhóm theo đội = suy ra từ người quản lý → chỉ đọc, không gán lại bằng kéo-thả.
-    if (groupBy.value === 'team') { dragId.value = null; return; }
     const p = props.projects.data.find((x) => x.id === dragId.value);
     dragId.value = null;
     if (!p || !p.can?.update) return;
     if (groupBy.value === 'type') {
         if (p.type?.value !== col.value) router.patch(`/projects/${p.id}/type`, { type: col.value }, { preserveScroll: true, preserveState: true });
-    } else if ((p.department_id ?? null) !== col.value) {
+    } else if (isSuperAdmin.value && groupBy.value === 'department' && (p.department_id ?? null) !== col.value) {
         router.patch(`/projects/${p.id}/department`, { department_id: col.value }, { preserveScroll: true, preserveState: true });
     }
 };
@@ -751,7 +758,10 @@ function onPortfolioQuickFilter({ status }) {
       class="space-y-4"
     >
       <div class="flex flex-wrap items-center justify-between gap-2 text-sm">
-        <div class="flex items-center gap-2">
+        <div
+          v-if="isSuperAdmin"
+          class="flex items-center gap-2"
+        >
           <span class="text-slate-500">Nhóm theo:</span>
           <div class="inline-flex rounded-btn border border-slate-200 bg-white p-0.5">
             <button
@@ -770,18 +780,9 @@ function onPortfolioQuickFilter({ status }) {
             >
               Phòng ban
             </button>
-            <button
-              v-if="orgTeamOptions.length"
-              type="button"
-              class="rounded-[4px] px-3 py-1 text-sm font-medium transition"
-              :class="groupBy === 'team' ? 'bg-brand text-white' : 'text-slate-500 hover:bg-slate-100'"
-              @click="groupBy = 'team'"
-            >
-              Đội công nghệ
-            </button>
           </div>
         </div>
-        <div class="flex items-center gap-1">
+        <div class="ml-auto flex items-center gap-1">
           <button
             type="button"
             class="rounded-btn border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
@@ -849,17 +850,17 @@ function onPortfolioQuickFilter({ status }) {
           </div>
         </button>
 
-        <!-- Horizontal card row -->
+        <!-- Card grid — wrap, không cuộn ngang -->
         <div
           v-show="isLaneOpen(col.key)"
-          class="kanban-row flex gap-3 overflow-x-auto pb-1"
+          class="flex flex-wrap gap-3 pb-1"
         >
           <ProjectCard
             v-for="p in col.projects"
             :key="p.id"
             class="w-72 shrink-0"
             :project="p"
-            :draggable="groupBy !== 'team' && !!p.can?.update"
+            :draggable="!!p.can?.update"
             :show-type="groupBy !== 'type'"
             :show-department="groupBy !== 'department'"
             @dragstart="dragId = p.id"
@@ -869,7 +870,7 @@ function onPortfolioQuickFilter({ status }) {
             v-if="col.projects.length === 0"
             class="flex min-h-[8rem] w-full items-center justify-center rounded-card border border-dashed border-slate-300 text-xs text-slate-400"
           >
-            {{ groupBy === 'team' ? 'Không có dự án' : 'Kéo dự án vào đây' }}
+            Kéo dự án vào đây
           </div>
         </div>
       </div>
@@ -889,14 +890,3 @@ function onPortfolioQuickFilter({ status }) {
     </div>
   </AppLayout>
 </template>
-
-<style scoped>
-.kanban-row {
-    -webkit-overflow-scrolling: touch;
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-}
-.kanban-row::-webkit-scrollbar {
-    display: none;
-}
-</style>

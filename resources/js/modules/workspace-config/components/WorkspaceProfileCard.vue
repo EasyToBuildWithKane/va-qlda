@@ -26,78 +26,48 @@ const emit = defineEmits(['preview', 'toggle-select']);
 
 const accentMap = {
     brand: {
-        bar: 'from-brand via-brand/80 to-brand/40',
         stripe: 'bg-brand',
-        icon: 'text-brand bg-gradient-to-br from-brand/15 to-brand/5 ring-brand/20',
-        wash: 'from-brand/[0.09] via-brand/[0.02]',
-        glow: 'bg-brand/10',
-        chip: 'bg-brand/10 text-brand ring-brand/15',
-        metric: 'text-brand',
+        avatar: 'bg-brand/10 text-brand',
         track: 'bg-brand',
-        soft: 'bg-brand/[0.06]',
+        chipOn: 'bg-brand/10 text-brand',
     },
     emerald: {
-        bar: 'from-emerald-500 via-emerald-400 to-emerald-300',
         stripe: 'bg-emerald-500',
-        icon: 'text-emerald-700 bg-gradient-to-br from-emerald-100 to-emerald-50 ring-emerald-200/80',
-        wash: 'from-emerald-50 via-emerald-50/30',
-        glow: 'bg-emerald-400/15',
-        chip: 'bg-emerald-50 text-emerald-700 ring-emerald-200/70',
-        metric: 'text-emerald-700',
+        avatar: 'bg-emerald-100 text-emerald-700',
         track: 'bg-emerald-500',
-        soft: 'bg-emerald-50/80',
+        chipOn: 'bg-emerald-100 text-emerald-700',
     },
     sky: {
-        bar: 'from-sky-500 via-sky-400 to-sky-300',
         stripe: 'bg-sky-500',
-        icon: 'text-sky-700 bg-gradient-to-br from-sky-100 to-sky-50 ring-sky-200/80',
-        wash: 'from-sky-50 via-sky-50/30',
-        glow: 'bg-sky-400/15',
-        chip: 'bg-sky-50 text-sky-700 ring-sky-200/70',
-        metric: 'text-sky-700',
+        avatar: 'bg-sky-100 text-sky-700',
         track: 'bg-sky-500',
-        soft: 'bg-sky-50/80',
+        chipOn: 'bg-sky-100 text-sky-700',
     },
     violet: {
-        bar: 'from-violet-500 via-violet-400 to-violet-300',
         stripe: 'bg-violet-500',
-        icon: 'text-violet-700 bg-gradient-to-br from-violet-100 to-violet-50 ring-violet-200/80',
-        wash: 'from-violet-50 via-violet-50/30',
-        glow: 'bg-violet-400/15',
-        chip: 'bg-violet-50 text-violet-700 ring-violet-200/70',
-        metric: 'text-violet-700',
+        avatar: 'bg-violet-100 text-violet-700',
         track: 'bg-violet-500',
-        soft: 'bg-violet-50/80',
+        chipOn: 'bg-violet-100 text-violet-700',
     },
     amber: {
-        bar: 'from-amber-500 via-amber-400 to-amber-300',
         stripe: 'bg-amber-500',
-        icon: 'text-amber-800 bg-gradient-to-br from-amber-100 to-amber-50 ring-amber-200/80',
-        wash: 'from-amber-50 via-amber-50/30',
-        glow: 'bg-amber-400/15',
-        chip: 'bg-amber-50 text-amber-800 ring-amber-200/70',
-        metric: 'text-amber-800',
+        avatar: 'bg-amber-100 text-amber-800',
         track: 'bg-amber-500',
-        soft: 'bg-amber-50/80',
+        chipOn: 'bg-amber-100 text-amber-800',
     },
     rose: {
-        bar: 'from-rose-500 via-rose-400 to-rose-300',
         stripe: 'bg-rose-500',
-        icon: 'text-rose-700 bg-gradient-to-br from-rose-100 to-rose-50 ring-rose-200/80',
-        wash: 'from-rose-50 via-rose-50/30',
-        glow: 'bg-rose-400/15',
-        chip: 'bg-rose-50 text-rose-700 ring-rose-200/70',
-        metric: 'text-rose-700',
+        avatar: 'bg-rose-100 text-rose-700',
         track: 'bg-rose-500',
-        soft: 'bg-rose-50/80',
+        chipOn: 'bg-rose-100 text-rose-700',
     },
 };
 
-const statusClass = {
-    active: 'bg-emerald-50 text-emerald-700 ring-emerald-200/80',
-    draft: 'bg-amber-50 text-amber-800 ring-amber-200/80',
-    missing: 'bg-slate-100 text-slate-600 ring-slate-200/80',
-    archived: 'bg-rose-50 text-rose-700 ring-rose-200/80',
+const statusTone = {
+    active: 'text-emerald-700',
+    draft: 'text-amber-700',
+    missing: 'text-slate-500',
+    archived: 'text-rose-700',
 };
 
 const statusDot = {
@@ -107,10 +77,10 @@ const statusDot = {
     archived: 'bg-rose-500',
 };
 
-const readinessClass = {
-    ready: 'bg-emerald-50 text-emerald-700 ring-emerald-200/80',
-    partial: 'bg-sky-50 text-sky-700 ring-sky-200/80',
-    empty: 'bg-slate-100 text-slate-500 ring-slate-200/80',
+const readinessTone = {
+    ready: 'text-emerald-700',
+    partial: 'text-sky-700',
+    empty: 'text-slate-500',
 };
 
 const accent = computed(() => accentMap[props.workspace.accent] ?? accentMap.brand);
@@ -161,23 +131,6 @@ const showProgressTrack = computed(() => showReadiness.value || showProgress.val
 const metricCount = computed(() => [showCriteria.value, showModules.value, showReadiness.value]
     .filter(Boolean).length);
 
-const ringDash = computed(() => {
-    const r = 16;
-    const c = 2 * Math.PI * r;
-    const pct = Math.min(100, Math.max(0, readiness.value.percent || 0));
-    return {
-        circumference: c,
-        offset: c - (pct / 100) * c,
-    };
-});
-
-const footerCta = computed(() => {
-    if (props.workspace.status === 'missing') return 'Kích hoạt workspace';
-    if (readiness.value.key === 'empty') return 'Bắt đầu cấu hình';
-    if (readiness.value.key === 'partial') return 'Tiếp tục cấu hình';
-    return 'Mở workspace';
-});
-
 function onCardClick(e) {
     if (e.target.closest('a, button, input, label')) return;
     emit('preview', props.workspace);
@@ -186,77 +139,48 @@ function onCardClick(e) {
 
 <template>
   <article
-    class="ws-card group relative flex h-full cursor-pointer flex-col overflow-hidden rounded-2xl bg-white transition duration-300"
+    class="ws-card group relative flex h-full cursor-pointer flex-col rounded-2xl pl-4 transition duration-200"
     :class="[
-      workspace.status === 'missing'
-        ? 'shadow-[0_1px_2px_rgb(15_23_42/0.04)] ring-1 ring-dashed ring-slate-300/90 hover:ring-brand/45'
-        : 'shadow-[0_1px_3px_rgb(15_23_42/0.05),0_4px_12px_-4px_rgb(15_23_42/0.06)] ring-1 ring-slate-200/70 hover:ring-brand/25',
       selected
-        ? 'ring-2 ring-brand/55 shadow-[0_8px_24px_-8px_rgb(154_0_54/0.28)]'
-        : 'hover:-translate-y-0.5 hover:shadow-[0_12px_28px_-10px_rgb(15_23_42/0.14)]',
+        ? 'bg-brand/[0.07]'
+        : workspace.status === 'missing'
+          ? 'bg-slate-100/70 hover:bg-slate-100'
+          : 'bg-slate-50 hover:bg-white hover:shadow-[0_8px_24px_-12px_rgb(15_23_42/0.18)]',
     ]"
     @click="onCardClick"
   >
-    <!-- Accent top bar -->
-    <div
-      class="pointer-events-none absolute inset-x-0 top-0 z-10 h-[3px] bg-gradient-to-r"
-      :class="accent.bar"
+    <span
+      class="absolute inset-y-3 left-0 w-1 rounded-full"
+      :class="accent.stripe"
       aria-hidden="true"
     />
 
-    <!-- Atmosphere -->
-    <div
-      class="pointer-events-none absolute inset-0 bg-gradient-to-br to-white"
-      :class="accent.wash"
-      aria-hidden="true"
-    />
-    <div
-      class="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full blur-2xl transition duration-500 group-hover:scale-110"
-      :class="accent.glow"
-      aria-hidden="true"
-    />
-    <div
-      class="pointer-events-none absolute -bottom-10 -left-6 h-24 w-24 rounded-full bg-slate-200/30 blur-2xl"
-      aria-hidden="true"
-    />
-
-    <div class="relative flex flex-1 flex-col p-5 pt-5">
-      <!-- Header -->
-      <div class="flex items-start gap-3.5">
-        <div class="relative shrink-0">
-          <span
-            class="flex h-12 w-12 items-center justify-center rounded-2xl font-display text-sm font-bold shadow-sm ring-1 ring-inset"
-            :class="accent.icon"
-            aria-hidden="true"
-          >
-            {{ initials }}
-          </span>
-          <span
-            class="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full ring-2 ring-white"
-            :class="statusDot[workspace.status] ?? statusDot.missing"
-            :title="workspace.status_label"
-            aria-hidden="true"
-          />
-        </div>
+    <div class="flex flex-1 flex-col gap-4 p-4">
+      <div class="flex items-start gap-3">
+        <span
+          class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl font-display text-sm font-bold"
+          :class="accent.avatar"
+          aria-hidden="true"
+        >
+          {{ initials }}
+        </span>
 
         <div class="min-w-0 flex-1">
           <div class="flex items-start gap-2">
             <div class="min-w-0 flex-1">
               <Link
                 :href="workspace.href"
-                class="block truncate font-display text-[15px] font-semibold leading-snug tracking-tight text-slate-800 transition group-hover:text-brand"
+                class="block truncate font-display text-[15px] font-semibold leading-snug text-slate-800 transition group-hover:text-brand"
                 :title="workspace.department_name"
                 @click.stop
               >
                 {{ workspace.department_name }}
               </Link>
-              <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
-                <span class="inline-flex items-center rounded-md bg-white/80 px-1.5 py-0.5 font-mono text-[11px] font-medium tracking-tight text-slate-500 ring-1 ring-slate-200/70">
-                  {{ workspace.department_code }}
-                </span>
+              <p class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[12px]">
+                <span class="font-mono font-medium text-slate-500">{{ workspace.department_code }}</span>
                 <span
-                  class="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1"
-                  :class="statusClass[workspace.status] ?? statusClass.missing"
+                  class="inline-flex items-center gap-1.5 font-medium"
+                  :class="statusTone[workspace.status] ?? statusTone.missing"
                 >
                   <span
                     class="h-1.5 w-1.5 rounded-full"
@@ -265,137 +189,81 @@ function onCardClick(e) {
                   />
                   {{ workspace.status_label }}
                 </span>
-              </div>
+              </p>
             </div>
 
             <div
-              class="flex shrink-0 items-center gap-1.5 pt-0.5"
+              v-if="selectable"
+              class="shrink-0 pt-0.5"
               @click.stop
             >
               <input
-                v-if="selectable"
                 type="checkbox"
                 class="h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand/30"
                 :checked="selected"
                 :aria-label="`Chọn ${workspace.department_name}`"
                 @change="emit('toggle-select', workspace.department_code)"
               >
-              <span
-                class="grid h-8 w-8 place-items-center rounded-xl text-slate-300 ring-1 ring-transparent transition group-hover:bg-white/90 group-hover:text-brand group-hover:ring-slate-200/80"
-                aria-hidden="true"
-              >
-                <AppIcon
-                  name="chevron-right"
-                  :size="16"
-                  class="transition duration-300 group-hover:translate-x-0.5"
-                />
-              </span>
             </div>
           </div>
 
-          <div
+          <p
             v-if="showMetaRow"
-            class="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] text-slate-400"
+            class="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[11px] text-slate-400"
           >
             <span
               v-if="showReadinessBadge"
-              class="inline-flex items-center rounded-md px-2 py-0.5 font-medium ring-1"
-              :class="readinessClass[readiness.key] ?? readinessClass.empty"
+              class="font-medium"
+              :class="readinessTone[readiness.key] ?? readinessTone.empty"
             >
               {{ readiness.label }}
             </span>
             <span v-if="showSource && workspace.source_label">{{ workspace.source_label }}</span>
-            <span v-if="showUpdated && updatedLabel">Cập nhật {{ updatedLabel }}</span>
-          </div>
+            <span v-if="showUpdated && updatedLabel">{{ updatedLabel }}</span>
+          </p>
         </div>
       </div>
 
-      <!-- Metrics -->
       <div
         v-if="hasMetrics"
-        class="mt-5 flex flex-1 flex-col"
+        class="mt-auto flex flex-col gap-3"
       >
         <div
-          class="grid gap-2"
+          class="grid gap-3"
           :style="{ gridTemplateColumns: `repeat(${metricCount}, minmax(0, 1fr))` }"
         >
           <div
             v-if="showCriteria"
-            class="relative overflow-hidden rounded-xl px-2.5 py-3 text-center ring-1 ring-slate-200/60"
-            :class="accent.soft"
+            class="min-w-0"
           >
-            <div class="mx-auto mb-1.5 flex h-7 w-7 items-center justify-center rounded-lg bg-white/90 text-slate-400 shadow-sm ring-1 ring-slate-100">
-              <AppIcon
-                name="award"
-                :size="13"
-              />
-            </div>
-            <p class="font-display text-xl font-semibold tabular-nums leading-none text-slate-800 sm:text-2xl">
+            <p class="font-display text-2xl font-semibold tabular-nums leading-none text-slate-800">
               {{ workspace.criteria_count }}
             </p>
-            <p class="mt-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+            <p class="mt-1.5 text-[11px] font-medium text-slate-400">
               Tiêu chí
             </p>
           </div>
 
           <div
             v-if="showModules"
-            class="relative overflow-hidden rounded-xl px-2.5 py-3 text-center ring-1 ring-slate-200/60"
-            :class="accent.soft"
+            class="min-w-0"
           >
-            <div class="mx-auto mb-1.5 flex h-7 w-7 items-center justify-center rounded-lg bg-white/90 text-slate-400 shadow-sm ring-1 ring-slate-100">
-              <AppIcon
-                name="system-config"
-                :size="13"
-              />
-            </div>
-            <p class="font-display text-xl font-semibold tabular-nums leading-none text-slate-800 sm:text-2xl">
+            <p class="font-display text-2xl font-semibold tabular-nums leading-none text-slate-800">
               {{ workspace.modules_configured }}/{{ workspace.modules_live }}
             </p>
-            <p class="mt-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+            <p class="mt-1.5 text-[11px] font-medium text-slate-400">
               Module
             </p>
           </div>
 
           <div
             v-if="showReadiness"
-            class="relative overflow-hidden rounded-xl px-2.5 py-3 text-center ring-1 ring-slate-200/60"
-            :class="accent.soft"
+            class="min-w-0"
           >
-            <div class="relative mx-auto mb-1.5 flex h-7 w-7 items-center justify-center">
-              <svg
-                class="absolute inset-0 h-7 w-7 -rotate-90"
-                viewBox="0 0 40 40"
-                aria-hidden="true"
-              >
-                <circle
-                  cx="20"
-                  cy="20"
-                  r="16"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="4"
-                  class="text-white"
-                />
-                <circle
-                  cx="20"
-                  cy="20"
-                  r="16"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="4"
-                  stroke-linecap="round"
-                  :stroke-dasharray="ringDash.circumference"
-                  :stroke-dashoffset="ringDash.offset"
-                  class="transition-[stroke-dashoffset] duration-700"
-                  :class="accent.metric"
-                />
-              </svg>
-            </div>
-            <p class="font-display text-xl font-semibold tabular-nums leading-none text-slate-800 sm:text-2xl">
+            <p class="font-display text-2xl font-semibold tabular-nums leading-none text-slate-800">
               {{ readiness.percent }}%
             </p>
-            <p class="mt-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+            <p class="mt-1.5 text-[11px] font-medium text-slate-400">
               Sẵn sàng
             </p>
           </div>
@@ -403,17 +271,17 @@ function onCardClick(e) {
 
         <div
           v-if="showProgressTrack"
-          class="mt-3.5"
+          class="space-y-1.5"
         >
-          <div class="mb-1.5 flex items-center justify-between text-[11px]">
-            <span class="font-medium text-slate-500">{{ readiness.label }}</span>
+          <div class="flex items-center justify-between text-[11px] text-slate-500">
+            <span>{{ readiness.label }}</span>
             <span class="tabular-nums text-slate-400">
               {{ readiness.configured }}/{{ readiness.total }}
             </span>
           </div>
-          <div class="h-1.5 overflow-hidden rounded-full bg-slate-100/90 ring-1 ring-inset ring-slate-200/40">
+          <div class="h-1 overflow-hidden rounded-full bg-slate-200/80">
             <div
-              class="h-full rounded-full transition-all duration-700 ease-out"
+              class="h-full rounded-full transition-all duration-500 ease-out"
               :class="accent.track"
               :style="{ width: `${readiness.percent}%` }"
             />
@@ -422,7 +290,7 @@ function onCardClick(e) {
 
         <ul
           v-if="showProgress && workspace.modules?.length"
-          class="mt-3 flex flex-wrap gap-1.5"
+          class="flex flex-wrap gap-1.5"
         >
           <li
             v-for="mod in workspace.modules"
@@ -431,8 +299,8 @@ function onCardClick(e) {
             <Link
               v-if="mod.href && mod.href !== '#'"
               :href="mod.href"
-              class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-medium ring-1 transition hover:brightness-95"
-              :class="mod.configured ? accent.chip : 'bg-slate-50 text-slate-500 ring-slate-200/80'"
+              class="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-medium transition hover:opacity-80"
+              :class="mod.configured ? accent.chipOn : 'bg-slate-200/60 text-slate-500'"
               @click.stop
             >
               <AppIcon
@@ -443,47 +311,12 @@ function onCardClick(e) {
             </Link>
             <span
               v-else
-              class="inline-flex items-center gap-1.5 rounded-lg bg-slate-50 px-2.5 py-1 text-[11px] font-medium text-slate-400 ring-1 ring-slate-200/70"
+              class="inline-flex items-center gap-1.5 rounded-lg bg-slate-200/60 px-2 py-1 text-[11px] font-medium text-slate-400"
             >
               {{ mod.label }}
             </span>
           </li>
         </ul>
-      </div>
-
-      <!-- Footer CTA -->
-      <div class="relative mt-auto pt-4">
-        <div
-          class="flex items-center justify-between gap-2 border-t border-slate-100/90 pt-3"
-        >
-          <span
-            class="inline-flex items-center gap-1.5 text-[12px] font-semibold transition"
-            :class="workspace.status === 'missing' ? 'text-slate-500 group-hover:text-brand' : 'text-brand'"
-          >
-            {{ footerCta }}
-            <AppIcon
-              name="chevron-right"
-              :size="13"
-              class="transition duration-300 group-hover:translate-x-0.5"
-            />
-          </span>
-          <span
-            v-if="readiness.key === 'ready'"
-            class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 ring-1 ring-emerald-200/70"
-          >
-            <AppIcon
-              name="done"
-              :size="11"
-            />
-            Sẵn sàng
-          </span>
-          <span
-            v-else-if="workspace.status === 'missing'"
-            class="text-[10px] font-medium text-slate-400"
-          >
-            Chưa có hồ sơ
-          </span>
-        </div>
       </div>
     </div>
   </article>

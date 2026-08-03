@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\Evaluation\EvaluationCriterionController;
+use App\Http\Controllers\Evaluation\EvaluationFormController;
 use App\Http\Controllers\Evaluation\EvaluationTemplateController;
+use App\Http\Controllers\WorkspaceConfig\DailyReportScoringConfigController;
 use App\Http\Controllers\WorkspaceConfig\WorkspaceConfigController;
 use App\Http\Controllers\WorkspaceConfig\WorkspaceProfileController;
 use Illuminate\Support\Facades\Route;
@@ -26,6 +28,11 @@ Route::prefix('workspace-config')->name('workspace.')->group(function () {
         Route::post('/ensure', [WorkspaceProfileController::class, 'ensure'])->name('ensure');
     });
 
+    Route::prefix('daily-report-scoring')->name('daily-report-scoring.')->group(function () {
+        Route::get('/', [DailyReportScoringConfigController::class, 'edit'])->name('edit');
+        Route::put('/', [DailyReportScoringConfigController::class, 'update'])->name('update');
+    });
+
     Route::prefix('evaluation')->name('evaluation.')->group(function () {
         Route::get('/', [EvaluationCriterionController::class, 'index'])->name('index');
         Route::post('/', [EvaluationCriterionController::class, 'store'])->name('store');
@@ -46,5 +53,16 @@ Route::prefix('workspace-config')->name('workspace.')->group(function () {
         Route::get('/{evaluationTemplate}', [EvaluationTemplateController::class, 'show'])->name('show');
         Route::put('/{evaluationTemplate}', [EvaluationTemplateController::class, 'update'])->name('update');
         Route::delete('/{evaluationTemplate}', [EvaluationTemplateController::class, 'destroy'])->name('destroy');
+    });
+
+    Route::prefix('evaluation-forms')->name('evaluation-forms.')->group(function () {
+        Route::get('/', [EvaluationFormController::class, 'index'])->name('index');
+        Route::get('/create', [EvaluationFormController::class, 'create'])->name('create');
+        Route::post('/', [EvaluationFormController::class, 'store'])->name('store');
+        Route::post('/types', [EvaluationFormController::class, 'storeType'])->name('types.store');
+        Route::get('/templates/{evaluationTemplate}/criteria', [EvaluationFormController::class, 'templateCriteria'])->name('templates.criteria');
+        Route::get('/{evaluationForm}/edit', [EvaluationFormController::class, 'edit'])->name('edit');
+        Route::put('/{evaluationForm}', [EvaluationFormController::class, 'update'])->name('update');
+        Route::delete('/{evaluationForm}', [EvaluationFormController::class, 'destroy'])->name('destroy');
     });
 });

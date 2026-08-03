@@ -64,6 +64,27 @@ class ScoringServiceTest extends TestCase
         $this->assertSame(12.0, $withKaizen['total']);
     }
 
+    public function test_accepts_department_rubric_override(): void
+    {
+        $result = (new ScoringService)->compute([
+            'task_completion' => 10,
+            'skill_score' => 0,
+            'attitude_score' => 0,
+            'kaizen_score' => 0,
+            'expertise_score' => 0,
+        ], [
+            'weights' => [
+                'task_completion' => 1.0,
+                'skill_score' => 0.01,
+                'attitude_score' => 0.01,
+                'expertise_score' => 0.01,
+            ],
+            'kaizen_bonus_max' => 0,
+        ]);
+
+        $this->assertEqualsWithDelta(9.71, $result['total'], 0.05);
+    }
+
     /**
      * @dataProvider gradeThresholds
      */

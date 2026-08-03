@@ -7,13 +7,13 @@ defineProps({
 });
 
 const toneIcon = {
-    brand: 'text-brand bg-brand/10 ring-brand/20',
-    emerald: 'text-emerald-700 bg-emerald-50 ring-emerald-200/80',
-    amber: 'text-amber-700 bg-amber-50 ring-amber-200/80',
-    sky: 'text-sky-700 bg-sky-50 ring-sky-200/80',
-    violet: 'text-violet-700 bg-violet-50 ring-violet-200/80',
-    rose: 'text-rose-700 bg-rose-50 ring-rose-200/80',
-    slate: 'text-slate-600 bg-slate-100 ring-slate-200/80',
+    brand: 'text-brand bg-brand/10',
+    emerald: 'text-emerald-700 bg-emerald-100',
+    amber: 'text-amber-700 bg-amber-100',
+    sky: 'text-sky-700 bg-sky-100',
+    violet: 'text-violet-700 bg-violet-100',
+    rose: 'text-rose-700 bg-rose-100',
+    slate: 'text-slate-600 bg-slate-100',
 };
 
 const statusLabel = {
@@ -23,10 +23,10 @@ const statusLabel = {
     maintenance: 'Bảo trì',
 };
 
-const statusClass = {
-    dev: 'bg-amber-50 text-amber-800 ring-amber-200/80',
-    planned: 'bg-slate-100 text-slate-600 ring-slate-200/80',
-    maintenance: 'bg-rose-50 text-rose-700 ring-rose-200/80',
+const statusTone = {
+    dev: 'text-amber-700',
+    planned: 'text-slate-500',
+    maintenance: 'text-rose-700',
 };
 
 function isClickable(item) {
@@ -38,16 +38,10 @@ function configLabel(item) {
     if (item.configured) return item.count_label || 'Đã cấu hình';
     return item.count_label || 'Chưa cấu hình';
 }
-
-function ctaLabel(item) {
-    if (item.status === 'planned') return 'Sắp ra mắt';
-    if (item.configured) return item.configured_cta || 'Mở cấu hình';
-    return item.empty_cta || 'Bắt đầu cấu hình';
-}
 </script>
 
 <template>
-  <ul class="divide-y divide-slate-100 overflow-hidden rounded-xl ring-1 ring-slate-200/80">
+  <ul class="space-y-2">
     <li
       v-for="item in items"
       :key="item.key"
@@ -55,13 +49,13 @@ function ctaLabel(item) {
       <component
         :is="isClickable(item) ? Link : 'div'"
         v-bind="isClickable(item) ? { href: item.href } : {}"
-        class="group flex gap-3.5 px-4 py-4 transition duration-200 sm:gap-4 sm:px-5"
+        class="group flex gap-3.5 rounded-2xl px-4 py-4 transition duration-200 sm:gap-4 sm:px-5"
         :class="isClickable(item)
-          ? 'cursor-pointer hover:bg-brand/[0.03]'
-          : 'opacity-95'"
+          ? 'cursor-pointer bg-slate-50 hover:bg-white hover:shadow-[0_8px_24px_-12px_rgb(15_23_42/0.18)]'
+          : 'bg-slate-50/80 opacity-90'"
       >
         <span
-          class="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1"
+          class="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
           :class="toneIcon[item.tone] ?? toneIcon.slate"
         >
           <AppIcon
@@ -71,7 +65,7 @@ function ctaLabel(item) {
         </span>
 
         <div class="min-w-0 flex-1">
-          <div class="flex flex-wrap items-start gap-x-2 gap-y-1">
+          <div class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
             <h3
               class="text-sm font-semibold leading-snug text-slate-800"
               :class="isClickable(item) ? 'group-hover:text-brand' : ''"
@@ -80,8 +74,8 @@ function ctaLabel(item) {
             </h3>
             <span
               v-if="statusLabel[item.status]"
-              class="inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1"
-              :class="statusClass[item.status] ?? statusClass.planned"
+              class="text-[11px] font-medium"
+              :class="statusTone[item.status] ?? statusTone.planned"
             >
               {{ statusLabel[item.status] }}
             </span>
@@ -94,25 +88,12 @@ function ctaLabel(item) {
             {{ item.description }}
           </p>
 
-          <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px]">
-            <span
-              class="font-medium"
-              :class="item.configured ? 'text-emerald-700' : 'text-slate-500'"
-            >
-              {{ configLabel(item) }}
-            </span>
-            <span
-              v-if="isClickable(item)"
-              class="inline-flex items-center gap-1 font-semibold text-brand"
-            >
-              {{ ctaLabel(item) }}
-              <AppIcon
-                name="chevron-right"
-                :size="13"
-                class="transition group-hover:translate-x-0.5"
-              />
-            </span>
-          </div>
+          <p
+            class="mt-2 text-[12px] font-medium"
+            :class="item.configured ? 'text-emerald-700' : 'text-slate-500'"
+          >
+            {{ configLabel(item) }}
+          </p>
         </div>
 
         <div
@@ -122,7 +103,7 @@ function ctaLabel(item) {
           <span class="font-display text-xl font-semibold tabular-nums leading-none text-slate-800">
             {{ item.count }}
           </span>
-          <span class="mt-1 text-[10px] font-medium uppercase tracking-wide text-slate-400">
+          <span class="mt-1 text-[11px] font-medium text-slate-400">
             mục
           </span>
         </div>

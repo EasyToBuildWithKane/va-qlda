@@ -22,6 +22,7 @@ class WorkspaceHubAssembler
      *     source?: string
      * }  $dept
      * @param  array<string, int>  $criteriaCounts  keyed by department_code (any case)
+     * @param  array<string, bool>  $scoringConfigured  keyed by department_code (any case)
      * @return array<string, mixed>
      */
     public function card(
@@ -32,9 +33,12 @@ class WorkspaceHubAssembler
         bool $canManage,
         int $generalCriteria,
         int $templateCount = 0,
+        array $scoringConfigured = [],
+        int $formCount = 0,
     ): array {
         $code = $dept['code'];
         $criteriaCount = $this->criteriaCountFor($code, $criteriaCounts);
+        $hasScoringConfig = $this->scoringConfiguredFor($code, $scoringConfigured);
 
         $profileStatus = $profile?->status?->value ?? 'missing';
         $profileLabel = match ($profileStatus) {
@@ -63,6 +67,8 @@ class WorkspaceHubAssembler
             $configured = match ($key) {
                 'evaluation' => $criteriaCount > 0,
                 'evaluation_templates' => $templateCount > 0,
+                'evaluation_forms' => $formCount > 0,
+                'daily_report_scoring' => $hasScoringConfig,
                 default => false,
             };
             if ($appliesTo !== 'global') {
@@ -81,6 +87,8 @@ class WorkspaceHubAssembler
                 'count' => match ($key) {
                     'evaluation' => $criteriaCount,
                     'evaluation_templates' => $templateCount,
+                    'evaluation_forms' => $formCount,
+                    'daily_report_scoring' => $hasScoringConfig ? 1 : 0,
                     default => null,
                 },
                 'href' => WorkspaceConfigCatalog::hrefForDepartment($mod, $code),
@@ -116,6 +124,7 @@ class WorkspaceHubAssembler
             'criteria_count' => $criteriaCount,
             'criteria_general' => $generalCriteria,
             'has_criteria' => $criteriaCount > 0,
+            'has_scoring_config' => $hasScoringConfig,
             'modules_live' => $liveCount,
             'modules_planned' => $plannedModules,
             'modules_configured' => $configuredLive,
@@ -137,6 +146,7 @@ class WorkspaceHubAssembler
             'checklist' => WorkspaceConfigCatalog::checklistForDepartment($user, [
                 'criteria_count' => $criteriaCount,
                 'template_count' => $templateCount,
+                'has_scoring_config' => $hasScoringConfig,
                 'profile_status' => $profileStatus,
                 'department_code' => $code,
             ]),
@@ -160,6 +170,24 @@ class WorkspaceHubAssembler
         }
 
         return 0;
+    }
+
+    /**
+     * @param  array<string, bool>  $scoringConfigured
+     */
+    private function scoringConfiguredFor(string $code, array $scoringConfigured): bool
+    {
+        if (array_key_exists($code, $scoringConfigured)) {
+            return (bool) $scoringConfigured[$code];
+        }
+
+        foreach ($scoringConfigured as $key => $flag) {
+            if (strcasecmp((string) $key, $code) === 0) {
+                return (bool) $flag;
+            }
+        }
+
+        return false;
     }
 
     private function accentTone(string $code): string

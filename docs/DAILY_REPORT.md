@@ -17,7 +17,7 @@
 | Quan sát | Lịch sử + KPI strip, tuân thủ trên dashboard `/work`, xuất Excel 7 sheet |
 | Đồng bộ task | Task sinh từ báo cáo (`source=daily`); snapshot khi hoàn thành task sprint |
 
-**Ngoài phạm vi hiện tại:** nhập Excel bulk (không có `*DataModal` 3 tab); chỉnh trọng số chấm điểm qua UI (đọc từ `config/daily_report.php`).
+**Ngoài phạm vi hiện tại:** nhập Excel bulk cho báo cáo (không có `*DataModal` 3 tab). Trọng số chấm điểm theo phòng ban cấu hình tại Workspace (`/workspace-config/daily-report-scoring`); fallback `config/daily_report.php`.
 
 ---
 
@@ -42,7 +42,7 @@ Module mẫu **Clean Architecture** trong VA-Workspace: controller mỏng → Us
 ```
 routes/web/daily-reports.php (prefix daily-reports.)
     → DailyReportController (index, exportData, today, store, show, update, destroy, submit, recall)
-    → DailyReportReviewController (index, score, reject)
+    → DailyReportReviewController (index, score, reject, bulkScore, bulkReject)
 
 app/Application/DailyReport/          ← mutation & side effects
 app/Domain/DailyReport/               ← Models, ScoringService, ReportProjectSync
@@ -75,25 +75,31 @@ app/Policies/DailyReportPolicy.php
 |---|---|
 | `Domain/DailyReport/Models/DailyReport` | UUID, cast `projects`, `task_status_snapshot`, `ReportStatus` |
 | `Domain/DailyReport/Models/DailyReportScore` | 1–1 với báo cáo đã chấm |
-| `Domain/DailyReport/Services/ScoringService` | Tổng có trọng số + bonus Kaizen → `Grade` |
+| `Domain/DailyReport/Services/ScoringService` | Tổng có trọng số + bonus Kaizen → `Grade` (nhận rubric đã resolve) |
 | `Domain/DailyReport/Support/ReportProjectSync` | Đồng bộ `projects` JSON ↔ `project_id` legacy |
 | `Domain/DailyReport/Support/ReportProjectTaskStatus` | Snapshot trạng thái task lúc submit |
+| `Support/DailyReport/DailyReportScoringResolver` | Resolve trọng số theo `employee.meta.department_code` → bảng Workspace hoặc fallback config |
+| `Models/DailyReport/DailyReportScoringConfig` | Trọng số / `kaizen_bonus_max` theo phòng ban |
 | `Support/DailyReportCalendar` | Múi giờ `config('daily_report.timezone')`, «hôm nay» nghiệp vụ |
 | `Support/DailyReportFieldContent` | (1) `hasMeaningfulText()` cho cổng nộp; (2) **sanitize allowlist HTML** server-side (DOMDocument; Tiptap không được tin) — gọi trong Create/Update Use Case trước khi lưu |
 
 ### 3.3 Cấu hình chấm điểm & nộp
 
-File: `config/daily_report.php` (MVP; V2 có thể chuyển `system_settings`).
+**5 chiều cố định** (`task_completion`, `skill_score`, `attitude_score`, `expertise_score` + `kaizen_score` bonus).  
+**Trọng số / trần Kaizen theo PB:** bảng `daily_report_scoring_configs` (UI Workspace). Không có config PB → fallback `config/daily_report.php`.  
+**Grade thresholds** (S/A/B/C/D) vẫn **global** trong config. Khi chấm, lưu `scoring_snapshot` JSON trên `daily_report_scores`.
 
-| Khóa | Ý nghĩa |
+| Khóa config | Ý nghĩa |
 |---|---|
 | `timezone` | `DAILY_REPORT_TIMEZONE` (mặc định `Asia/Ho_Chi_Minh`) |
-| `weights` | `task_completion`, `skill_score`, `attitude_score`, `expertise_score` (chuẩn hóa khi tính) |
-| `kaizen_bonus_max` | Quy đổi slider Kaizen 0–10 thành điểm cộng (tối đa 2.0) |
-| `grades` | Ngưỡng S/A/B/C; dưới C → D (`App\Support\Enums\Grade`) |
+| `weights` | Fallback hệ thống (chuẩn hóa khi tính) |
+| `kaizen_bonus_max` | Fallback trần Kaizen (mặc định 2.0) |
+| `grades` | Ngưỡng S/A/B/C; dưới C → D (`App\Support\Enums\Grade`) — global |
 | `working_days` | ISO weekday 1–7; mặc định T2–T7 |
 | `late_after` | Giờ địa phương (mặc định `18:00`) → `is_late` khi nộp |
 | `trend_tolerance` | Band điểm cho xu hướng tuần (`ScoringService::trend`) |
+
+**Hàng chờ `/daily-reports/review`:** lọc server `queue=all|today|late`, `q`, `employee_id`; bulk `POST …/review/bulk-score` và `…/bulk-reject` (max 50).
 
 ---
 

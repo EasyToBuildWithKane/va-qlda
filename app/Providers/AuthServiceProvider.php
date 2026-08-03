@@ -13,9 +13,11 @@ use App\Models\CongngheSection;
 use App\Models\CongngheSoftwareProposal;
 use App\Models\Contract;
 use App\Models\Credential;
+use App\Models\DailyReport\DailyReportScoringConfig;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\Evaluation\EvaluationCriterion;
+use App\Models\Evaluation\EvaluationForm;
 use App\Models\Evaluation\EvaluationTemplate;
 use App\Models\Feedback;
 use App\Models\KbArticle;
@@ -35,9 +37,11 @@ use App\Policies\CongngheSoftwareProposalPolicy;
 use App\Policies\ContractPolicy;
 use App\Policies\CredentialPolicy;
 use App\Policies\DailyReportPolicy;
+use App\Policies\DailyReportScoringConfigPolicy;
 use App\Policies\DepartmentPolicy;
 use App\Policies\EmployeePolicy;
 use App\Policies\EvaluationCriterionPolicy;
+use App\Policies\EvaluationFormPolicy;
 use App\Policies\EvaluationTemplatePolicy;
 use App\Policies\FeedbackPolicy;
 use App\Policies\KbArticlePolicy;
@@ -75,6 +79,8 @@ class AuthServiceProvider extends ServiceProvider
         SystemSetting::class => SystemSettingPolicy::class,
         EvaluationCriterion::class => EvaluationCriterionPolicy::class,
         EvaluationTemplate::class => EvaluationTemplatePolicy::class,
+        EvaluationForm::class => EvaluationFormPolicy::class,
+        DailyReportScoringConfig::class => DailyReportScoringConfigPolicy::class,
         CongngheSection::class => CongngheContentPolicy::class,
         KbArticle::class => KbArticlePolicy::class,
         CongngheSoftwareProposal::class => CongngheSoftwareProposalPolicy::class,

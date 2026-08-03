@@ -12,7 +12,7 @@
 
 | Mục tiêu | Mô tả |
 |---|---|
-| Danh mục dự án | Lọc, KPI portfolio, bảng (kéo ngang để cuộn) + Kanban theo loại / đội CNTT — không còn chip Phần cứng/Phần mềm hay nhóm theo phòng ban trên Index |
+| Danh mục dự án | Lọc, KPI portfolio, bảng (kéo ngang để cuộn) + Kanban wrap thẻ (không scroll ngang). Nhóm theo **Loại dự án** / **Phòng ban** — chỉ **super_admin** thấy thanh «Nhóm theo» |
 | Workspace dự án | Một URL `/projects/{id}` — tab Tổng quan, Tài liệu, Lịch, Kanban, Sprint, Vướng mắc, Phản hồi |
 | Kế hoạch Agile | Sprint, epic, backlog, kéo-thả trạng thái, nhập Excel công việc (bulk) |
 | Chi phí nhân công | Worklog trên task + `rate_snapshot` theo `project_member` |
@@ -143,7 +143,7 @@ Pattern datagrid: `DatagridToolbarSearch` (`hide-label`, `inline-actions`), Lọ
 
 **Lọc client** (Index, không gửi server): `region`, `manager_id` — áp trên tập đã paginate.
 
-Kanban nhóm theo `type` hoặc **đội CNTT** của quản lý (`EmployeeOrgTeamMap` → `org_team` trên từng dự án).
+Kanban Index: mặc định nhóm theo `type`. **super_admin** đổi được «Nhóm theo» → **Loại dự án** | **Phòng ban** (kéo-thả cập nhật `PATCH …/type` hoặc `…/department`). Role khác không thấy thanh nhóm; luôn theo loại. Thẻ trong lane **flex-wrap** (không cuộn ngang).
 
 ### 4.3 Xuất
 

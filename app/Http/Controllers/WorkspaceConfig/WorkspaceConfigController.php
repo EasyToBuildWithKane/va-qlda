@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\WorkspaceConfig;
 
 use App\Http\Controllers\Controller;
+use App\Models\DailyReport\DailyReportScoringConfig;
 use App\Models\Evaluation\EvaluationCriterion;
+use App\Models\Evaluation\EvaluationForm;
 use App\Models\Evaluation\EvaluationTemplate;
 use App\Models\WorkspaceConfig\WorkspaceProfile;
 use App\Support\Enums\EvaluationCriterionScope;
@@ -51,6 +53,13 @@ class WorkspaceConfigController extends Controller
 
         $generalCriteria = EvaluationCriterion::query()->general()->count();
         $templateCount = EvaluationTemplate::query()->count();
+        $formCount = EvaluationForm::query()->count();
+
+        $scoringConfigured = DailyReportScoringConfig::query()
+            ->active()
+            ->pluck('department_code')
+            ->mapWithKeys(static fn (string $code): array => [strtolower($code) => true])
+            ->all();
 
         $directory = $canManage
             ? $this->departments->all()
@@ -79,6 +88,8 @@ class WorkspaceConfigController extends Controller
                 $canManage,
                 $generalCriteria,
                 $templateCount,
+                $scoringConfigured,
+                $formCount,
             );
         }
 

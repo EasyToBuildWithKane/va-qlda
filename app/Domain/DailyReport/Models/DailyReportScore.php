@@ -32,6 +32,7 @@ class DailyReportScore extends Model
         'grade',
         'reviewer_id',
         'notes',
+        'scoring_snapshot',
     ];
 
     protected $casts = [
@@ -42,6 +43,7 @@ class DailyReportScore extends Model
         'expertise_score' => 'decimal:2',
         'total_score' => 'decimal:2',
         'grade' => Grade::class,
+        'scoring_snapshot' => 'array',
     ];
 
     protected static function newFactory(): Factory

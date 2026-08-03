@@ -1,12 +1,12 @@
 # EVALUATION CONFIG — Cấu hình tiêu chí & mẫu đánh giá
 
-> Danh mục tiêu chí đánh giá **chung** và **theo phòng ban** (siêu admin), cùng **danh sách mẫu đánh giá** gắn tiêu chí theo vị trí.
-> Đường dẫn: **`/workspace-config/evaluation`** · **`/workspace-config/evaluation-templates`**
+> Danh mục tiêu chí đánh giá **chung** và **theo phòng ban** (siêu admin), **danh sách mẫu đánh giá** gắn tiêu chí theo vị trí, và **phiếu đánh giá** (MVP quản trị — cấu hình phiếu theo kỳ / hội đồng / nhân sự).
+> Đường dẫn: **`/workspace-config/evaluation`** · **`/workspace-config/evaluation-templates`** · **`/workspace-config/evaluation-forms`**
 > Nav: **Cấu hình workspace** (`superOnly` / `workspace.hub.view`).
 >
 > Module cha: [`WORKSPACE_CONFIG.md`](WORKSPACE_CONFIG.md) (hub `/workspace-config` — workspace theo phòng ban).
 >
-> **Không** tạo phiếu đánh giá thực tế / chấm điểm nhân sự trong phase này (UI stub trên trang chi tiết mẫu).
+> Phase này: CRUD phiếu (list + wizard 3 tab). **Chưa** UI chấm điểm / nộp phiếu / khóa kỳ / báo cáo kết quả.
 
 **Phạm vi xem:** super_admin / `evaluation.*` — mọi PB. User chỉ có `workspace.hub.view` — tiêu chí `general` + `department_code` trùng HRM của mình; query lệch PB → 403. Mẫu đánh giá: mọi user có `hub.view` / `evaluation.view` đều xem được danh mục mẫu.
 
@@ -16,13 +16,14 @@
 
 | Có | Không (phase sau) |
 |----|-------------------|
-| CRUD tiêu chí standalone (chung \| theo phòng ban) | Phiếu đánh giá kỳ (`evaluation_form`) |
-| Thang điểm đánh giá (`score_levels`: **2–10 mức**, mỗi mức = nhãn + trọng số, chọn 1 mức/kỳ) | Gán nhân sự / nhập điểm / chốt / tổng điểm tích lũy theo tháng |
-| Loại tiêu chí (chọn + thêm mới có confirm) | Báo cáo kết quả |
+| CRUD tiêu chí standalone (chung \| theo phòng ban) | UI chấm điểm / nộp phiếu / khóa kỳ |
+| Thang điểm đánh giá (`score_levels`: **2–10 mức**, mỗi mức = nhãn + trọng số, chọn 1 mức/kỳ) | Tổng điểm tích lũy / báo cáo kết quả HR |
+| Loại tiêu chí (chọn + thêm mới có confirm) | Job tự tạo phiếu kỳ tiếp theo (chỉ lưu checkbox) |
 | Chấm 0.5 | |
 | Đồng bộ phòng ban từ HRM `GET /org-units` | Đồng bộ live webhook `org_unit.changed` (cache 24h) |
 | Mã tự động dạng `TCVA001` (khoá) / mở khoá sửa thủ công | |
 | Lịch sử hoạt động từ `security_audit_logs` | |
+| **Phiếu đánh giá** — list + wizard 3 tab (thông tin / tiêu chí / nhân sự) | |
 
 Đã **gỡ** engine `point_system` / lớp `evaluation_configs` / mẫu phiếu hệ thống / kiểu thang `scoring_type` (scale|points) / field UI **Cách chấm điểm** (`scoring_mode` scale|event + `event_points` / `event_max_per_period` — migration `2026_07_30_190000_drop_event_scoring…`). Mỗi tiêu chí chỉ còn **thang điểm `score_levels`** (chọn đúng 1 mức khi chấm kỳ — không chọn cách chấm trên form).
 
@@ -152,8 +153,27 @@ Meta audit gồm `criteria_code/name`, `score_summary` (chuỗi mức · điểm
 
 **Đối tượng áp dụng:** chọn **XOR** chức danh **hoặc** cấp bậc (không cả hai) qua `HrmJobCatalogDirectory` (HRM Public API `listJobTitles` / `listRanks`). Khi API ranks trống, suy cấp bậc từ chức danh: ưu tiên `rank_name` / `level_name` / nested `rank`, fallback `level` → `Cấp N` (`L{n}`). Tên cấp chỉ là số (`1`/`2`/…) được chuẩn hoá thành «Cấp N». Fallback thêm distinct từ `employees` meta. Legacy `position_*` vẫn được điền từ chức danh đầu tiên để tương thích cột Index/export. FormRequest reject khi gửi đồng thời `titles` + `ranks`.
 
-**Frontend:** `Pages/WorkspaceConfig/EvaluationTemplates/{Index,Create,Show}.vue` + `modules/evaluation-template/`. **Thêm mẫu** → trang `Create` (zoom ~90%, form full page: thông tin+đối tượng [segment Chức danh|Cấp bậc] → tiêu chí [picker hẹp | danh sách rộng] → trường bổ sung). Form: picker danh mục tiêu chí, tiêu chí tuỳ chỉnh, `MultiCatalogSelect` theo mode XOR, editor trường bổ sung (gợi ý/hướng dẫn thu gọn). **Điểm yêu cầu** trên tiêu chí danh mục = chọn từ `score_levels` (mặc định «Đạt yêu cầu» nếu có, badge điểm mức kế bên); tiêu chí tuỳ chỉnh nhập tự do. **Trọng số** = select 10%…100% (tổng gợi ý 100%). Show: chips chức danh/cấp bậc, bảng tiêu chí, trường bổ sung, stub phiếu; sửa vẫn qua modal. **Một nút «Dữ liệu»** → `EvaluationTemplateDataModal` (tab Nhập | Xuất | Lịch sử export).
+**Frontend:** `Pages/WorkspaceConfig/EvaluationTemplates/{Index,Create,Show}.vue` + `modules/evaluation-template/`. **Thêm mẫu** → trang `Create` (zoom ~90%, form full page: thông tin+đối tượng [segment Chức danh|Cấp bậc] → tiêu chí [picker hẹp | danh sách rộng] → trường bổ sung). Form: picker danh mục tiêu chí, tiêu chí tuỳ chỉnh, `MultiCatalogSelect` theo mode XOR, editor trường bổ sung (gợi ý/hướng dẫn thu gọn). **Điểm yêu cầu** trên tiêu chí danh mục = chọn từ `score_levels` (mặc định «Đạt yêu cầu» nếu có, badge điểm mức kế bên); tiêu chí tuỳ chỉnh nhập tự do. **Trọng số** = select 10%…100% (tổng gợi ý 100%). Show: chips chức danh/cấp bậc, bảng tiêu chí, trường bổ sung, **danh sách phiếu theo mẫu** + CTA tạo phiếu; sửa vẫn qua modal. **Một nút «Dữ liệu»** → `EvaluationTemplateDataModal` (tab Nhập | Xuất | Lịch sử export).
 
 **Audit mẫu:** `SecurityAuditLogger::evaluationTemplate()` → `subject_type=evaluation_template` · `template_created|updated|deleted|duplicated|exported`.
 
 **Import Excel:** marker `VA_EVAL_TPL_IMPORT_V1`, sheets `Nhap lieu` + `Tham chieu`; cột mã tiêu chí cách nhau bởi `;`.
+
+---
+
+## 11. Phiếu đánh giá (`evaluation_forms`) — MVP quản trị
+
+| Method | URI | Name |
+|--------|-----|------|
+| GET | `/workspace-config/evaluation-forms` | `workspace.evaluation-forms.index` |
+| GET | `…/create` | `workspace.evaluation-forms.create` |
+| POST | `/workspace-config/evaluation-forms` | `workspace.evaluation-forms.store` |
+| POST | `…/types` | `workspace.evaluation-forms.types.store` |
+| GET | `…/templates/{evaluationTemplate}/criteria` | `workspace.evaluation-forms.templates.criteria` |
+| GET | `…/{evaluationForm}/edit` | `workspace.evaluation-forms.edit` |
+| PUT | `…/{evaluationForm}` | `workspace.evaluation-forms.update` |
+| DELETE | `…/{evaluationForm}` | `workspace.evaluation-forms.destroy` |
+
+**Schema:** `evaluation_form_types` (loại ĐG, seed «Đánh giá định kỳ») · `evaluation_forms` (`form_code` `PDG###`, kỳ `period_kind`, hạn, hội đồng order/weight, SoftDeletes) · `evaluation_form_watchers` · `evaluation_form_raters` · `evaluation_form_fields` · `evaluation_form_criteria` (snapshot) · `evaluation_form_assignees`.
+
+**Frontend:** `Pages/WorkspaceConfig/EvaluationForms/{Index,Create,Edit}.vue` + `modules/evaluation-form/` — wizard 3 tab (thông tin chung / tiêu chí / nhân sự); KPI strip; Xuất Excel list. Chọn mẫu → hydrate tiêu chí (Inertia prefill hoặc JSON endpoint). Policy dùng `workspace.evaluation.view|manage` + `hub.view` (giống mẫu).

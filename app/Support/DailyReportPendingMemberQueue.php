@@ -14,11 +14,13 @@ final class DailyReportPendingMemberQueue
     /**
      * @return array{
      *     members: list<array<string, mixed>>,
-     *     totals: array{reports: int, members: int}
+     *     totals: array{reports: int, members: int, today: int, late: int}
      * }
      */
-    public static function build(): array
+    public static function build(?string $today = null): array
     {
+        $today = $today ?? DailyReportCalendar::today();
+
         $rows = DailyReport::query()
             ->pendingReview()
             ->select('employee_id')
@@ -33,7 +35,7 @@ final class DailyReportPendingMemberQueue
         $employeeIds = $rows->pluck('employee_id')->filter()->unique()->values();
         $employees = Employee::query()
             ->whereIn('id', $employeeIds)
-            ->get(['id', 'full_name', 'role_title', 'avatar_path'])
+            ->get(['id', 'full_name', 'role_title', 'avatar_path', 'meta'])
             ->keyBy('id');
 
         $members = $rows->map(function ($row) use ($employees) {
@@ -49,11 +51,19 @@ final class DailyReportPendingMemberQueue
                 ? $row->latest_submitted_at
                 : ($row->latest_submitted_at ? Carbon::parse($row->latest_submitted_at) : null);
 
+            $meta = is_array($emp?->meta) ? $emp->meta : [];
+
             return [
                 'employee_id' => (int) $row->employee_id,
                 'name' => $emp?->full_name ?? 'Chưa cập nhật',
                 'role_title' => $emp?->role_title,
                 'avatar_path' => PublicMediaUrl::fromPublicDisk($emp?->avatar_path),
+                'department_code' => filled($meta['department_code'] ?? null)
+                    ? (string) $meta['department_code']
+                    : null,
+                'department_name' => filled($meta['department_name'] ?? null)
+                    ? (string) $meta['department_name']
+                    : (filled($meta['department'] ?? null) ? (string) $meta['department'] : null),
                 'pending_count' => (int) $row->pending_count,
                 'oldest_date' => $oldest,
                 'newest_date' => $newest,
@@ -61,11 +71,15 @@ final class DailyReportPendingMemberQueue
             ];
         })->values()->all();
 
+        $base = DailyReport::query()->pendingReview();
+
         return [
             'members' => $members,
             'totals' => [
-                'reports' => (int) $rows->sum('pending_count'),
+                'reports' => (int) (clone $base)->count(),
                 'members' => count($members),
+                'today' => (int) (clone $base)->whereDate('date', $today)->count(),
+                'late' => (int) (clone $base)->where('is_late', true)->count(),
             ],
         ];
     }

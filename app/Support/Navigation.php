@@ -642,6 +642,13 @@ class Navigation
                         'status' => 'live',
                         'permission' => 'workspace.hub.view',
                     ],
+                    [
+                        'label' => 'Danh sách phiếu đánh giá',
+                        'icon' => 'clipboard-list',
+                        'href' => '/workspace-config/evaluation-forms',
+                        'status' => 'live',
+                        'permission' => 'workspace.hub.view',
+                    ],
                 ],
             ],
         ];

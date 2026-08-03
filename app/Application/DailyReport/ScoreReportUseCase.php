@@ -6,6 +6,7 @@ use App\Domain\DailyReport\Exceptions\DailyReportException;
 use App\Domain\DailyReport\Models\DailyReport;
 use App\Domain\DailyReport\Models\DailyReportScore;
 use App\Domain\DailyReport\Services\ScoringService;
+use App\Support\DailyReport\DailyReportScoringResolver;
 use App\Support\Enums\ReportStatus;
 use Illuminate\Support\Arr;
 
@@ -14,6 +15,7 @@ class ScoreReportUseCase
     public function __construct(
         private readonly ScoringService $scoring,
         private readonly DailyReportReviewTelegramNotifier $reviewTelegram,
+        private readonly DailyReportScoringResolver $rubricResolver,
     ) {}
 
     /**
@@ -30,7 +32,9 @@ class ScoreReportUseCase
             throw DailyReportException::notReviewable();
         }
 
-        $computed = $this->scoring->compute($scores);
+        $report->loadMissing('employee');
+        $rubric = $this->rubricResolver->forEmployee($report->employee);
+        $computed = $this->scoring->compute($scores, $rubric);
 
         $dimensions = Arr::only($scores, [
             'task_completion',
@@ -48,6 +52,7 @@ class ScoreReportUseCase
                 'grade' => $computed['grade'],
                 'reviewer_id' => $reviewerId,
                 'notes' => $notes,
+                'scoring_snapshot' => $this->rubricResolver->toSnapshot($rubric),
             ],
         );
 

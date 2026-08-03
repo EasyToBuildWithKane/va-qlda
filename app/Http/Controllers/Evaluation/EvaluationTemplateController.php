@@ -7,8 +7,10 @@ use App\Http\Requests\Evaluation\ImportEvaluationTemplateRequest;
 use App\Http\Requests\Evaluation\RecordEvaluationTemplateExportRequest;
 use App\Http\Requests\Evaluation\StoreEvaluationTemplateRequest;
 use App\Http\Requests\Evaluation\UpdateEvaluationTemplateRequest;
+use App\Http\Resources\Evaluation\EvaluationFormResource;
 use App\Http\Resources\Evaluation\EvaluationTemplateResource;
 use App\Models\Evaluation\EvaluationCriterion;
+use App\Models\Evaluation\EvaluationForm;
 use App\Models\Evaluation\EvaluationTemplate;
 use App\Models\Evaluation\EvaluationTemplateExportLog;
 use App\Models\SecurityAuditLog;
@@ -217,13 +219,30 @@ class EvaluationTemplateController extends Controller
 
         $user = $request->user();
 
+        $relatedForms = EvaluationForm::query()
+            ->where('template_id', $evaluationTemplate->id)
+            ->with([
+                'creator:id,display_name,employee_id',
+                'creator.employee:id,avatar_path',
+                'type:id,name',
+            ])
+            ->withCount(['criteria', 'assignees'])
+            ->orderByDesc('id')
+            ->limit(50)
+            ->get()
+            ->map(fn (EvaluationForm $form) => (new EvaluationFormResource($form))->resolve())
+            ->values()
+            ->all();
+
         return Inertia::render('WorkspaceConfig/EvaluationTemplates/Show', [
             'template' => (new EvaluationTemplateResource($evaluationTemplate))->resolve(),
             'activity' => $this->activityFor($evaluationTemplate),
             'positions' => $this->positions->all(),
             ...$this->formCatalogProps(),
+            'relatedForms' => $relatedForms,
             'can' => [
                 'manage' => $user->can('update', $evaluationTemplate),
+                'manage_forms' => $user->can('create', EvaluationForm::class),
             ],
         ]);
     }
