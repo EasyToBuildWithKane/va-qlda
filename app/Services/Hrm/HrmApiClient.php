@@ -137,6 +137,18 @@ final class HrmApiClient
     }
 
     /**
+     * Danh sách nhân sự HRM (cursor-paginate, gom đủ trang).
+     * Query gợi ý: status=active, per_page≤100.
+     *
+     * @param  array<string, scalar|null>  $query
+     * @return list<array<string, mixed>>
+     */
+    public function listEmployees(array $query = []): array
+    {
+        return $this->listOrgUnitsStyle('/employees', $query);
+    }
+
+    /**
      * Danh mục chức danh / job titles (nếu HRM hỗ trợ).
      * Thử lần lượt các path phổ biến; 404/403 → mảng rỗng (không throw).
      *

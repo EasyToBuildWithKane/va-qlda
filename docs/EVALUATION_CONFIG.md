@@ -186,3 +186,9 @@ Meta audit gồm `criteria_code/name`, `score_summary` (chuỗi mức · điểm
 **Trạng thái phiếu:** `draft` → `active` (mở chấm) → `closed` (khóa kỳ). Service: `EvaluationFormScoringService`. Ai chấm: map từ assignee; manage chấm mọi vai trò. Song song / tuần tự theo `evaluation_order`.
 
 **Frontend:** Index (Mở chấm / Khóa / Chấm) · wizard Create/Edit · `Scoring/Index` · `Scoring/Show` · `FormScoreLevelPicker` / `FormScoringProgress`.
+
+**Wizard UX (Create/Edit):**
+- **Đối tượng đánh giá (hội đồng):** `SearchSelect` gợi ý theo `EvaluationFormRaterRole` (tìm rồi chọn); vai trò `custom` cho phép nhập nhãn tùy chỉnh.
+- **Tab tiêu chí:** `SearchSelect` tìm tiêu chí danh mục; **Người đánh giá** = `SearchMultiSelect` gợi ý từ hội đồng đã cấu hình (để trống = tất cả).
+- **Người theo dõi / nhân sự:** autocomplete tìm theo tên·mã·email (bỏ dấu).
+- **Danh sách nhân sự:** `employeeOptions` từ `HrmEmployeeDirectory` — đồng bộ `GET /employees?status=active` (cache 1h) rồi upsert vào `employees` local; nút **Tải tất cả từ HRM** thêm hàng loạt (tối đa 500).

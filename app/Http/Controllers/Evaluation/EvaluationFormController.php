@@ -17,7 +17,7 @@ use App\Support\Enums\EvaluationFormOrder;
 use App\Support\Enums\EvaluationFormPeriodKind;
 use App\Support\Enums\EvaluationFormRaterRole;
 use App\Support\Enums\EvaluationFormStatus;
-use App\Support\PublicMediaUrl;
+use App\Support\Evaluation\HrmEmployeeDirectory;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -26,6 +26,10 @@ use Inertia\Response;
 
 class EvaluationFormController extends Controller
 {
+    public function __construct(
+        private readonly HrmEmployeeDirectory $employees,
+    ) {}
+
     public function index(Request $request): Response
     {
         $this->authorize('viewAny', EvaluationForm::class);
@@ -356,7 +360,7 @@ class EvaluationFormController extends Controller
             'typeOptions' => $this->typeOptions(),
             'templateOptions' => $this->templateOptions(),
             'criteriaOptions' => $this->criteriaOptions(),
-            'employeeOptions' => $this->employeeOptions(),
+            'employeeOptions' => $this->employees->options(),
             'periodKindOptions' => EvaluationFormPeriodKind::options(),
             'orderOptions' => EvaluationFormOrder::options(),
             'statusOptions' => EvaluationFormStatus::options(),
@@ -425,32 +429,6 @@ class EvaluationFormController extends Controller
                 'score_levels' => $c->normalizedScoreLevels(),
                 'label' => $c->criteria_name.' ('.$c->criteria_code.')',
             ])
-            ->values()
-            ->all();
-    }
-
-    /**
-     * @return list<array{id: int, name: string, email: string|null, code: string|null, department_code: string|null, department_name: string|null, avatar_path: string|null}>
-     */
-    private function employeeOptions(): array
-    {
-        return Employee::query()
-            ->where('is_active', true)
-            ->orderBy('full_name')
-            ->get(['id', 'full_name', 'email', 'code', 'avatar_path', 'meta'])
-            ->map(function (Employee $e) {
-                $meta = is_array($e->meta) ? $e->meta : [];
-
-                return [
-                    'id' => $e->id,
-                    'name' => $e->full_name,
-                    'email' => $e->email,
-                    'code' => $e->code,
-                    'department_code' => $meta['department_code'] ?? null,
-                    'department_name' => $meta['department_name'] ?? null,
-                    'avatar_path' => PublicMediaUrl::fromPublicDisk($e->avatar_path),
-                ];
-            })
             ->values()
             ->all();
     }

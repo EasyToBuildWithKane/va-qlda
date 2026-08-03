@@ -72,7 +72,7 @@ Workspace lấy danh tính nhân sự **chỉ** qua Public API v1 (M2M Sanctum).
 | Client | Host | Vai trò |
 |---|---|---|
 | `mysql` (default, prefix `va_prd_`) | Workspace | Nghiệp vụ: dự án, task, báo cáo, role Workspace, session |
-| `HrmApiClient` (`HRM_API_*`) | `https://hrm…/api/v1` | M2M — `GET /employees*` → lazy upsert; `GET /org-units` → danh mục PB đánh giá |
+| `HrmApiClient` (`HRM_API_*`) | `https://hrm…/api/v1` | M2M — `GET /employees*` → lazy upsert / `listEmployees` (phiếu ĐG); `GET /org-units` → danh mục PB đánh giá |
 
 ```mermaid
 flowchart LR

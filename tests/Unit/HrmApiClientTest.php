@@ -102,4 +102,29 @@ class HrmApiClientTest extends TestCase
         $this->assertSame(['A', 'B'], array_column($rows, 'code'));
         Http::assertSentCount(2);
     }
+
+    public function test_list_employees_follows_cursor(): void
+    {
+        Http::fake([
+            'https://hrm.test/api/v1/employees*' => Http::sequence()
+                ->push([
+                    'data' => [
+                        ['uuid' => 'e1', 'status' => 'active', 'company_email' => 'a@test.com'],
+                    ],
+                    'meta' => ['cursor' => ['next' => 'emp-2', 'count' => 1, 'per_page' => 100]],
+                ])
+                ->push([
+                    'data' => [
+                        ['uuid' => 'e2', 'status' => 'active', 'company_email' => 'b@test.com'],
+                    ],
+                    'meta' => ['cursor' => ['next' => null, 'count' => 1, 'per_page' => 100]],
+                ]),
+        ]);
+
+        $rows = (new HrmApiClient)->listEmployees(['status' => 'active']);
+
+        $this->assertCount(2, $rows);
+        $this->assertSame(['e1', 'e2'], array_column($rows, 'uuid'));
+        Http::assertSentCount(2);
+    }
 }

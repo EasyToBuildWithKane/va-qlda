@@ -149,24 +149,35 @@ function cancel() {
 
 <template>
   <div class="space-y-4">
-    <div class="flex flex-wrap items-center gap-1 border-b border-slate-200">
+    <nav
+      class="flex flex-wrap items-center gap-1 border-b border-slate-100"
+      aria-label="Các bước cấu hình phiếu"
+    >
       <button
-        v-for="tab in tabs"
+        v-for="(tab, idx) in tabs"
         :key="tab.key"
         type="button"
-        class="relative px-4 py-2.5 text-sm font-medium transition"
+        class="relative px-3 py-2.5 text-sm font-medium transition sm:px-4"
         :class="activeTab === tab.key
           ? 'text-brand'
           : 'text-slate-500 hover:text-slate-700'"
         @click="activeTab = tab.key"
       >
+        <span
+          class="mr-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] tabular-nums"
+          :class="activeTab === tab.key
+            ? 'bg-brand text-white'
+            : 'bg-slate-100 text-slate-500'"
+        >
+          {{ idx + 1 }}
+        </span>
         {{ tab.label }}
         <span
           v-if="activeTab === tab.key"
           class="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-brand"
         />
       </button>
-    </div>
+    </nav>
 
     <FormGeneralTab
       v-show="activeTab === 'general'"
@@ -196,7 +207,7 @@ function cancel() {
       :employee-options="employeeOptions"
     />
 
-    <div class="flex flex-wrap items-center gap-2 border-t border-slate-100 pt-4">
+    <div class="flex flex-wrap items-center gap-2 pt-2">
       <button
         type="button"
         class="btn-primary h-9 gap-1.5 px-4 text-sm"

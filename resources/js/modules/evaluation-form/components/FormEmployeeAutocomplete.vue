@@ -3,6 +3,7 @@ import {
     ref, computed, watch, onMounted, onBeforeUnmount,
 } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
+import { matchesSearchQuery } from '@/shared/utils/normalizeSearchKey';
 
 const props = defineProps({
     modelValue: { type: [Number, String], default: null },
@@ -25,16 +26,13 @@ watch(selected, (s) => {
 }, { immediate: true });
 
 const filtered = computed(() => {
-    const q = query.value.trim().toLowerCase();
-    if (!q || (selected.value && q === selected.value.name.toLowerCase())) {
-        return props.options.slice(0, 40);
+    const q = query.value.trim();
+    if (!q || (selected.value && q === selected.value.name)) {
+        return props.options.slice(0, 80);
     }
     return props.options
-        .filter((o) => {
-            const hay = `${o.name || ''} ${o.code || ''} ${o.email || ''}`.toLowerCase();
-            return hay.includes(q);
-        })
-        .slice(0, 40);
+        .filter((o) => matchesSearchQuery([o.name, o.code, o.email, o.department_name], q))
+        .slice(0, 80);
 });
 
 function choose(o) {
@@ -116,7 +114,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onClickOutside))
         >
           <span class="font-medium text-slate-800">{{ o.name }}</span>
           <span class="text-[11px] text-slate-400">
-            {{ [o.code, o.email].filter(Boolean).join(' · ') }}
+            {{ [o.code, o.email, o.department_name].filter(Boolean).join(' · ') }}
           </span>
         </button>
       </li>
