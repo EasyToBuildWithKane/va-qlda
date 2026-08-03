@@ -131,11 +131,20 @@ class GoogleAuthController extends Controller
 
         if ($employee === null) {
             // SSOT: chưa có trên Workspace → tra HRM Public API và lazy upsert.
+            if (! $resolver->isApiConfigured()) {
+                Log::warning('auth.google.hrm_api_not_configured', ['email' => $email]);
+
+                return redirect()->route($loginRoute)
+                    ->with('error', 'Máy chủ chưa cấu hình kết nối HRM (HRM_API_TOKEN). Liên hệ quản trị.');
+            }
+
             $employee = $resolver->ensureEmployeeByEmail($email);
 
             if ($employee === null) {
+                Log::warning('auth.google.hrm_employee_missing', ['email' => $email]);
+
                 return redirect()->route($loginRoute)
-                    ->with('error', 'Email chưa có trong hệ thống nhân sự (HRM). Liên hệ quản trị.');
+                    ->with('error', 'Email chưa có trong hệ thống nhân sự (HRM) hoặc chưa ở trạng thái active. Liên hệ quản trị.');
             }
         } else {
             $employee = $resolver->refreshEmployeeIfLinked($employee);
