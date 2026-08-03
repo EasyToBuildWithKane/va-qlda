@@ -41,12 +41,18 @@ class GoogleAuthController extends Controller
         $google = Socialite::driver('google');
 
         // redirect_uri phải khớp tuyệt đối với Google Cloud Console + callback dưới đây.
-        // prompt=select_account: một màn chọn tài khoản (không wrap AccountChooser — tránh chọn 2 lần).
-        return $google
+        // AccountChooser: luôn hiện danh sách tài khoản (prompt=select_account đôi khi bị Google bỏ qua
+        // khi browser còn session — callback trước đó có prompt=none).
+        $oauthRedirect = $google
             ->scopes(['openid', 'profile', 'email'])
             ->redirectUrl($this->callbackUrl())
-            ->with(['prompt' => 'select_account'])
             ->redirect();
+
+        $continue = $oauthRedirect->getTargetUrl();
+
+        return new SymfonyRedirectResponse(
+            'https://accounts.google.com/AccountChooser?continue='.rawurlencode($continue)
+        );
     }
 
     public function callback(Request $request): RedirectResponse
