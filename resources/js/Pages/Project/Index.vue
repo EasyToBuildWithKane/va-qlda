@@ -938,10 +938,10 @@ function onPortfolioQuickFilter({ status }) {
 <style scoped>
 .kanban-row {
     -webkit-overflow-scrolling: touch;
-    scrollbar-width: thin;
-    scrollbar-color: #cbd5e1 transparent;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
-.kanban-row::-webkit-scrollbar { height: 6px; }
-.kanban-row::-webkit-scrollbar-track { background: transparent; }
-.kanban-row::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+.kanban-row::-webkit-scrollbar {
+    display: none;
+}
 </style>
