@@ -42,6 +42,22 @@ class LoginTest extends TestCase
         $this->assertStringContainsString('accounts.google.com/AccountChooser', $location);
         $this->assertStringContainsString('continue=', $location);
         $this->assertStringContainsString('/o/oauth2/', $decoded);
+        $this->assertStringContainsString('prompt=select_account', $decoded);
+    }
+
+    public function test_google_oauth_redirect_includes_hosted_domain_when_configured(): void
+    {
+        config([
+            'services.google.client_id' => 'test-client-id',
+            'services.google.client_secret' => 'test-client-secret',
+            'services.google.redirect' => 'http://localhost/auth/google/callback',
+            'services.google.hosted_domain' => 'hcm.vaschools.edu.vn',
+        ]);
+
+        $response = $this->get('/auth/google');
+        $decoded = urldecode((string) $response->headers->get('Location'));
+
+        $this->assertStringContainsString('hd=hcm.vaschools.edu.vn', $decoded);
     }
 
     public function test_tech_login_page_renders(): void

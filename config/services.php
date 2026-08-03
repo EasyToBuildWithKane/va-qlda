@@ -35,6 +35,9 @@ return [
         'client_id' => env('GOOGLE_CLIENT_ID'),
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
         'redirect' => env('GOOGLE_REDIRECT_URI'),
+        // Gợi ý Google Workspace trên màn đăng nhập (hd=). Để trống = không giới hạn domain trên UI Google.
+        // Campus HCM: hcm.vaschools.edu.vn — HQ: vaschools.edu.vn
+        'hosted_domain' => env('GOOGLE_HOSTED_DOMAIN', ''),
     ],
 
     /*

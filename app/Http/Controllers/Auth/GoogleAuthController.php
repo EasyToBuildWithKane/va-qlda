@@ -41,11 +41,19 @@ class GoogleAuthController extends Controller
         $google = Socialite::driver('google');
 
         // redirect_uri phải khớp tuyệt đối với Google Cloud Console + callback dưới đây.
-        // AccountChooser: luôn hiện danh sách tài khoản (prompt=select_account đôi khi bị Google bỏ qua
-        // khi browser còn session — callback trước đó có prompt=none).
+        // - prompt=select_account: ưu tiên màn chọn tài khoản khi browser đã có session Google
+        // - hd: gợi ý Google Workspace nhà trường (không tự liệt kê account nếu browser chưa đăng nhập)
+        // - AccountChooser: lớp ngoài — chỉ hiện tile account đang signed-in trên trình duyệt
+        $params = ['prompt' => 'select_account'];
+        $hostedDomain = strtolower(trim((string) config('services.google.hosted_domain', '')));
+        if ($hostedDomain !== '') {
+            $params['hd'] = $hostedDomain;
+        }
+
         $oauthRedirect = $google
             ->scopes(['openid', 'profile', 'email'])
             ->redirectUrl($this->callbackUrl())
+            ->with($params)
             ->redirect();
 
         $continue = $oauthRedirect->getTargetUrl();
