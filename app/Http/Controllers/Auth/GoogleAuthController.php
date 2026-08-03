@@ -148,8 +148,18 @@ class GoogleAuthController extends Controller
                 // bỏ qua — đã error_log ở trên
             }
 
+            $detail = trim($e->getMessage());
+            if (mb_strlen($detail) > 160) {
+                $detail = mb_substr($detail, 0, 157).'…';
+            }
+
             return redirect()->route($loginRoute)
-                ->with('error', 'Đăng nhập Google thất bại trên máy chủ ('.$e::class.'). Kiểm tra log auth.google.callback_failed.');
+                ->with(
+                    'error',
+                    'Đăng nhập Google thất bại trên máy chủ ('.$e::class
+                    .($detail !== '' ? ': '.$detail : '')
+                    .'). Kiểm tra log auth.google.callback_failed.',
+                );
         }
     }
 

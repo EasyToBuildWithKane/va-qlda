@@ -478,6 +478,35 @@ php artisan tinker --execute="echo config('realtime.enabled') ? 'on' : 'off';"
 
 ---
 
+## Google login — «Đăng nhập Google thất bại trên máy chủ (UnexpectedValueException)»
+
+**Symptoms:** OAuth Google xong (email đúng domain) → flash `…thất bại trên máy chủ (UnexpectedValueException). Kiểm tra log auth.google.callback_failed.` Domain reject / HRM missing thì message khác (không phải exception class).
+
+**Ý nghĩa:** Google đã OK; crash trong `GoogleAuthController::completeGoogleLogin` (upsert HRM / provision `SystemAccount` / session). Flash cũ chỉ hiện class — cần **message** trong log.
+
+**Trên production (ngay):**
+
+```bash
+cd /home/projects.vaschools.edu.vn/public_html   # hoặc path deploy
+
+grep -R "auth.google.callback_failed\|\[auth.google.callback_failed\]" storage/logs/ -n | tail -n 30
+# stderr PHP-FPM / LiteSpeed nếu storage/logs không ghi được:
+grep -R "auth.google.callback_failed" /var/log/ 2>/dev/null | tail -n 20
+
+php artisan tinker --execute="
+\$email='ngocntk@hcm.vaschools.edu.vn';
+\$e=\App\Models\Employee::withTrashed()->where('email',\$email)->first();
+dump(\$e?->only(['id','email','code','hrm_user_id','hrm_employee_uuid','is_active','deleted_at','join_date']));
+dump(\App\Models\SystemAccount::where('employee_id',\$e?->id)->first()?->getAttributes());
+"
+
+php artisan hrm:api-ping --email=ngocntk@hcm.vaschools.edu.vn
+```
+
+**Hay gặp:** `role` DB lệch enum; `join_date`/`hired_at` lạ khi refresh HRM; unique `code`/`email`/`hrm_*` khi upsert; thiếu cột sau migrate. Sau deploy bản flash kèm message — thử login lại để thấy chi tiết trên UI.
+
+---
+
 ## Google login — «Chưa có tài khoản đăng nhập cho nhân sự này»
 
 **Symptoms:** OAuth Google thành công (email đúng domain) → flash «Chưa có tài khoản đăng nhập cho nhân sự này. Liên hệ quản trị.»

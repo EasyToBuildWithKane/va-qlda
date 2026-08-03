@@ -58,7 +58,8 @@ final class SystemAccountProvisioner
             $dirty = true;
         }
 
-        if ($account->role !== $resolvedRole) {
+        // Đọc raw để tránh ValueError khi cột role DB lệch enum (chặn login Google).
+        if ($this->rawRole($account) !== $resolvedRole) {
             $account->role = $resolvedRole;
             $dirty = true;
         }
@@ -68,6 +69,21 @@ final class SystemAccountProvisioner
         }
 
         return $account;
+    }
+
+    private function rawRole(SystemAccount $account): ?SystemRole
+    {
+        $raw = $account->getRawOriginal('role');
+
+        if ($raw instanceof SystemRole) {
+            return $raw;
+        }
+
+        if ($raw === null || $raw === '') {
+            return null;
+        }
+
+        return SystemRole::tryFrom((string) $raw);
     }
 
     private function uniqueUsername(Employee $employee): string

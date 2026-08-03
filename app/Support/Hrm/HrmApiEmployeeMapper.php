@@ -30,7 +30,7 @@ final class HrmApiEmployeeMapper
             'phone' => self::nullableString($payload['phone'] ?? null),
             'avatar_path' => self::resolveAvatarPath($payload),
             'role_title' => self::resolveRoleTitle($payload),
-            'join_date' => self::nullableString($payload['hired_at'] ?? null),
+            'join_date' => self::normalizeJoinDate($payload['hired_at'] ?? null),
             'is_active' => ($payload['status'] ?? null) === 'active',
             'meta' => self::buildMeta($payload),
         ];
@@ -246,5 +246,26 @@ final class HrmApiEmployeeMapper
         $s = trim((string) $value);
 
         return $s === '' ? null : $s;
+    }
+
+    /** Chuẩn hoá hired_at HRM → Y-m-d (tránh cast date Laravel lỗi chuỗi lạ). */
+    private static function normalizeJoinDate(mixed $value): ?string
+    {
+        if (! is_string($value) && ! is_numeric($value)) {
+            return null;
+        }
+
+        $raw = trim((string) $value);
+        if ($raw === '' || str_starts_with($raw, '0000-00-00')) {
+            return null;
+        }
+
+        if (preg_match('/^(\d{4}-\d{2}-\d{2})/', $raw, $m) === 1) {
+            return $m[1];
+        }
+
+        $ts = strtotime($raw);
+
+        return $ts === false ? null : date('Y-m-d', $ts);
     }
 }
