@@ -663,7 +663,7 @@ Lưu **override** cấu hình runtime (admin chỉnh ở `/settings`). Bảng tr
 
 ### 3.29 va_prd_evaluation_* — Cấu hình tiêu chí / mẫu / phiếu đánh giá
 
-Xem `docs/EVALUATION_CONFIG.md`. Migrations: `2026_07_29_160000_create_evaluation_config_tables` → `2026_07_30_120000_drop_evaluation_templates` → `2026_07_30_130000_reshape_evaluation_criteria_catalog` (catalog standalone) → `2026_07_31_120000_create_evaluation_templates_tables` (mẫu đánh giá) → `2026_07_31_160000_enhance_evaluation_templates_targets_fields` (targets / custom criteria / form fields) → `2026_08_03_140000_create_evaluation_forms_tables` (phiếu đánh giá).
+Xem `docs/EVALUATION_CONFIG.md`. Migrations: `2026_07_29_160000_create_evaluation_config_tables` → `2026_07_30_120000_drop_evaluation_templates` → `2026_07_30_130000_reshape_evaluation_criteria_catalog` (catalog standalone) → `2026_07_31_120000_create_evaluation_templates_tables` (mẫu đánh giá) → `2026_07_31_160000_enhance_evaluation_templates_targets_fields` (targets / custom criteria / form fields) → `2026_08_03_140000_create_evaluation_forms_tables` (phiếu đánh giá) → `2026_08_03_150000_create_evaluation_form_scoring_tables` (chấm điểm).
 
 | Bảng | Mô tả |
 |------|--------|
@@ -681,6 +681,9 @@ Xem `docs/EVALUATION_CONFIG.md`. Migrations: `2026_07_29_160000_create_evaluatio
 | `evaluation_form_fields` | Trường tùy biến trên phiếu (`evaluator_comment`, `self_next_plan`, …) |
 | `evaluation_form_criteria` | Snapshot tiêu chí trên phiếu + `evaluator_mode` / `evaluator_role_keys` |
 | `evaluation_form_assignees` | Nhân sự được đánh giá + trưởng phòng / QLTT / BGD |
+| `evaluation_form_submissions` | Lượt chấm (form×assignee×rater_role); status draft\|submitted; `total_score` |
+| `evaluation_form_score_lines` | Điểm từng tiêu chí trên submission (mức + weight) |
+| `evaluation_form_field_values` | Giá trị trường tùy biến khi chấm |
 
 ### 3.30 va_prd_workspace_profiles — Workspace theo phòng ban
 

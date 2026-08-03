@@ -339,6 +339,13 @@ Chi tiết module: [`WORKSPACE_CONFIG.md`](WORKSPACE_CONFIG.md).
 | POST | `/workspace-config/evaluation-forms` | EvaluationFormController@store | Tạo phiếu |
 | POST | `/workspace-config/evaluation-forms/types` | EvaluationFormController@storeType | Thêm loại ĐG nhanh |
 | GET | `/workspace-config/evaluation-forms/templates/{evaluationTemplate}/criteria` | EvaluationFormController@templateCriteria | JSON tiêu chí từ mẫu |
+| POST | `/workspace-config/evaluation-forms/{evaluationForm}/open` | EvaluationFormScoringController@open | Mở chấm (draft→active) |
+| POST | `/workspace-config/evaluation-forms/{evaluationForm}/close` | EvaluationFormScoringController@close | Khóa kỳ |
+| POST | `/workspace-config/evaluation-forms/{evaluationForm}/reopen` | EvaluationFormScoringController@reopen | Mở lại |
+| GET | `/workspace-config/evaluation-forms/{evaluationForm}/scoring` | EvaluationFormScoringController@index | Tổng quan chấm điểm |
+| GET | `/workspace-config/evaluation-forms/{evaluationForm}/scoring/{assignee}` | EvaluationFormScoringController@show | Form chấm điểm |
+| PUT | `/workspace-config/evaluation-forms/{evaluationForm}/scoring/{assignee}` | EvaluationFormScoringController@save | Lưu nháp điểm |
+| POST | `/workspace-config/evaluation-forms/{evaluationForm}/scoring/{assignee}/submit` | EvaluationFormScoringController@submit | Nộp điểm |
 | GET | `/workspace-config/evaluation-forms/{evaluationForm}/edit` | EvaluationFormController@edit | Sửa phiếu |
 | PUT | `/workspace-config/evaluation-forms/{evaluationForm}` | EvaluationFormController@update | Cập nhật |
 | DELETE | `/workspace-config/evaluation-forms/{evaluationForm}` | EvaluationFormController@destroy | Soft delete |

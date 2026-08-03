@@ -135,6 +135,24 @@ function onDelete(row) {
     );
 }
 
+function openScoringPeriod(row) {
+    router.post(route('workspace.evaluation-forms.open', row.id), {}, {
+        preserveScroll: true,
+    });
+}
+
+function closeScoringPeriod(row) {
+    router.post(route('workspace.evaluation-forms.close', row.id), {}, {
+        preserveScroll: true,
+    });
+}
+
+function reopenScoringPeriod(row) {
+    router.post(route('workspace.evaluation-forms.reopen', row.id), {}, {
+        preserveScroll: true,
+    });
+}
+
 function exportExcel() {
     showExportDd.value = false;
     exportEvaluationFormsWorkbook(rows.value);
@@ -521,8 +539,44 @@ onBeforeUnmount(() => {
                 <span v-else>{{ displayOrEmpty(null, EMPTY_LABELS.notUpdated) }}</span>
               </td>
               <td class="px-4 py-3">
-                <div class="flex items-center gap-1">
+                <div class="flex flex-wrap items-center gap-1">
                   <Link
+                    v-if="row.status === 'active' || row.status === 'closed'"
+                    :href="route('workspace.evaluation-forms.scoring.index', row.id)"
+                    class="btn-ghost h-8 px-2 text-xs text-brand"
+                    title="Chấm điểm"
+                  >
+                    Chấm
+                  </Link>
+                  <button
+                    v-if="can.manage && row.status === 'draft'"
+                    type="button"
+                    class="btn-ghost h-8 px-2 text-xs text-emerald-600"
+                    title="Mở chấm"
+                    @click="openScoringPeriod(row)"
+                  >
+                    Mở chấm
+                  </button>
+                  <button
+                    v-if="can.manage && row.status === 'active'"
+                    type="button"
+                    class="btn-ghost h-8 px-2 text-xs text-amber-600"
+                    title="Khóa kỳ"
+                    @click="closeScoringPeriod(row)"
+                  >
+                    Khóa
+                  </button>
+                  <button
+                    v-if="can.manage && row.status === 'closed'"
+                    type="button"
+                    class="btn-ghost h-8 px-2 text-xs"
+                    title="Mở lại"
+                    @click="reopenScoringPeriod(row)"
+                  >
+                    Mở lại
+                  </button>
+                  <Link
+                    v-if="row.status === 'draft' || can.manage"
                     :href="route('workspace.evaluation-forms.edit', row.id)"
                     class="btn-ghost h-8 px-2 text-xs"
                     title="Sửa"

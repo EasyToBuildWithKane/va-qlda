@@ -125,6 +125,11 @@ class EvaluationForm extends Model
             ->orderBy('id');
     }
 
+    public function submissions(): HasMany
+    {
+        return $this->hasMany(EvaluationFormSubmission::class, 'form_id');
+    }
+
     public function scopeActiveStatus(Builder $query): Builder
     {
         return $query->where('status', EvaluationFormStatus::Active);

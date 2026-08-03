@@ -5,6 +5,7 @@ namespace App\Models\Evaluation;
 use App\Models\Employee;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * @property int $id
@@ -63,5 +64,10 @@ class EvaluationFormAssignee extends Model
     public function board(): BelongsTo
     {
         return $this->belongsTo(Employee::class, 'board_employee_id');
+    }
+
+    public function submissions(): HasMany
+    {
+        return $this->hasMany(EvaluationFormSubmission::class, 'assignee_id');
     }
 }

@@ -6,7 +6,7 @@
 >
 > Module cha: [`WORKSPACE_CONFIG.md`](WORKSPACE_CONFIG.md) (hub `/workspace-config` — workspace theo phòng ban).
 >
-> Phase này: CRUD phiếu (list + wizard 3 tab). **Chưa** UI chấm điểm / nộp phiếu / khóa kỳ / báo cáo kết quả.
+> Phase này: CRUD phiếu + **chấm điểm / nộp phiếu / khóa kỳ**. Chưa có job auto-create kỳ tiếp / báo cáo Dashboard.
 
 **Phạm vi xem:** super_admin / `evaluation.*` — mọi PB. User chỉ có `workspace.hub.view` — tiêu chí `general` + `department_code` trùng HRM của mình; query lệch PB → 403. Mẫu đánh giá: mọi user có `hub.view` / `evaluation.view` đều xem được danh mục mẫu.
 
@@ -16,14 +16,14 @@
 
 | Có | Không (phase sau) |
 |----|-------------------|
-| CRUD tiêu chí standalone (chung \| theo phòng ban) | UI chấm điểm / nộp phiếu / khóa kỳ |
-| Thang điểm đánh giá (`score_levels`: **2–10 mức**, mỗi mức = nhãn + trọng số, chọn 1 mức/kỳ) | Tổng điểm tích lũy / báo cáo kết quả HR |
-| Loại tiêu chí (chọn + thêm mới có confirm) | Job tự tạo phiếu kỳ tiếp theo (chỉ lưu checkbox) |
+| CRUD tiêu chí standalone (chung \| theo phòng ban) | Job tự tạo phiếu kỳ tiếp theo (chỉ lưu checkbox) |
+| Thang điểm đánh giá (`score_levels`: **2–10 mức**, mỗi mức = nhãn + trọng số, chọn 1 mức/kỳ) | Dashboard / báo cáo kết quả HR tổng hợp |
+| Loại tiêu chí (chọn + thêm mới có confirm) | |
 | Chấm 0.5 | |
 | Đồng bộ phòng ban từ HRM `GET /org-units` | Đồng bộ live webhook `org_unit.changed` (cache 24h) |
 | Mã tự động dạng `TCVA001` (khoá) / mở khoá sửa thủ công | |
 | Lịch sử hoạt động từ `security_audit_logs` | |
-| **Phiếu đánh giá** — list + wizard 3 tab (thông tin / tiêu chí / nhân sự) | |
+| **Phiếu đánh giá** — list + wizard 3 tab + **chấm điểm / nộp / khóa kỳ** | |
 
 Đã **gỡ** engine `point_system` / lớp `evaluation_configs` / mẫu phiếu hệ thống / kiểu thang `scoring_type` (scale|points) / field UI **Cách chấm điểm** (`scoring_mode` scale|event + `event_points` / `event_max_per_period` — migration `2026_07_30_190000_drop_event_scoring…`). Mỗi tiêu chí chỉ còn **thang điểm `score_levels`** (chọn đúng 1 mức khi chấm kỳ — không chọn cách chấm trên form).
 
@@ -161,7 +161,7 @@ Meta audit gồm `criteria_code/name`, `score_summary` (chuỗi mức · điểm
 
 ---
 
-## 11. Phiếu đánh giá (`evaluation_forms`) — MVP quản trị
+## 11. Phiếu đánh giá (`evaluation_forms`) — quản trị + chấm điểm
 
 | Method | URI | Name |
 |--------|-----|------|
@@ -170,10 +170,19 @@ Meta audit gồm `criteria_code/name`, `score_summary` (chuỗi mức · điểm
 | POST | `/workspace-config/evaluation-forms` | `workspace.evaluation-forms.store` |
 | POST | `…/types` | `workspace.evaluation-forms.types.store` |
 | GET | `…/templates/{evaluationTemplate}/criteria` | `workspace.evaluation-forms.templates.criteria` |
+| POST | `…/{evaluationForm}/open` | `workspace.evaluation-forms.open` |
+| POST | `…/{evaluationForm}/close` | `workspace.evaluation-forms.close` |
+| POST | `…/{evaluationForm}/reopen` | `workspace.evaluation-forms.reopen` |
+| GET | `…/{evaluationForm}/scoring` | `workspace.evaluation-forms.scoring.index` |
+| GET | `…/{evaluationForm}/scoring/{assignee}` | `workspace.evaluation-forms.scoring.show` |
+| PUT | `…/{evaluationForm}/scoring/{assignee}` | `workspace.evaluation-forms.scoring.save` |
+| POST | `…/{evaluationForm}/scoring/{assignee}/submit` | `workspace.evaluation-forms.scoring.submit` |
 | GET | `…/{evaluationForm}/edit` | `workspace.evaluation-forms.edit` |
 | PUT | `…/{evaluationForm}` | `workspace.evaluation-forms.update` |
 | DELETE | `…/{evaluationForm}` | `workspace.evaluation-forms.destroy` |
 
-**Schema:** `evaluation_form_types` (loại ĐG, seed «Đánh giá định kỳ») · `evaluation_forms` (`form_code` `PDG###`, kỳ `period_kind`, hạn, hội đồng order/weight, SoftDeletes) · `evaluation_form_watchers` · `evaluation_form_raters` · `evaluation_form_fields` · `evaluation_form_criteria` (snapshot) · `evaluation_form_assignees`.
+**Schema:** `evaluation_form_types` · `evaluation_forms` (`form_code` `PDG###`, SoftDeletes) · watchers / raters / fields / criteria / assignees · **chấm điểm:** `evaluation_form_submissions` (unique form×assignee×role) · `evaluation_form_score_lines` · `evaluation_form_field_values`.
 
-**Frontend:** `Pages/WorkspaceConfig/EvaluationForms/{Index,Create,Edit}.vue` + `modules/evaluation-form/` — wizard 3 tab (thông tin chung / tiêu chí / nhân sự); KPI strip; Xuất Excel list. Chọn mẫu → hydrate tiêu chí (Inertia prefill hoặc JSON endpoint). Policy dùng `workspace.evaluation.view|manage` + `hub.view` (giống mẫu).
+**Trạng thái phiếu:** `draft` → `active` (mở chấm) → `closed` (khóa kỳ). Service: `EvaluationFormScoringService`. Ai chấm: map từ assignee; manage chấm mọi vai trò. Song song / tuần tự theo `evaluation_order`.
+
+**Frontend:** Index (Mở chấm / Khóa / Chấm) · wizard Create/Edit · `Scoring/Index` · `Scoring/Show` · `FormScoreLevelPicker` / `FormScoringProgress`.
