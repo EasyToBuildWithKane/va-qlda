@@ -56,6 +56,28 @@ class EvaluationTemplate extends Model
             ->orderBy('id');
     }
 
+    public function customCriteria(): HasMany
+    {
+        return $this->hasMany(EvaluationTemplateCustomCriterion::class, 'template_id')
+            ->orderBy('sort_order')
+            ->orderBy('id');
+    }
+
+    public function targets(): HasMany
+    {
+        return $this->hasMany(EvaluationTemplateTarget::class, 'template_id')
+            ->orderBy('kind')
+            ->orderBy('sort_order')
+            ->orderBy('id');
+    }
+
+    public function fields(): HasMany
+    {
+        return $this->hasMany(EvaluationTemplateField::class, 'template_id')
+            ->orderBy('sort_order')
+            ->orderBy('id');
+    }
+
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\WorkspaceConfig;
 
 use App\Http\Controllers\Controller;
 use App\Models\Evaluation\EvaluationCriterion;
+use App\Models\Evaluation\EvaluationTemplate;
 use App\Models\WorkspaceConfig\WorkspaceProfile;
 use App\Support\Enums\EvaluationCriterionScope;
 use App\Support\Enums\WorkspaceProfileStatus;
@@ -49,6 +50,7 @@ class WorkspaceConfigController extends Controller
             ->pluck('aggregate', 'department_code');
 
         $generalCriteria = EvaluationCriterion::query()->general()->count();
+        $templateCount = EvaluationTemplate::query()->count();
 
         $directory = $canManage
             ? $this->departments->all()
@@ -76,6 +78,7 @@ class WorkspaceConfigController extends Controller
                 $user,
                 $canManage,
                 $generalCriteria,
+                $templateCount,
             );
         }
 

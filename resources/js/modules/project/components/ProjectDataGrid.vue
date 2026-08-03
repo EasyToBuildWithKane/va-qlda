@@ -9,18 +9,16 @@ import { currency, date } from '@/composables/useFormat';
 import ProjectListRowActions from '@/modules/project/components/ProjectListRowActions.vue';
 import ProjectMembers from '@/modules/project/components/ProjectMembers.vue';
 import { PROJECT_COLOR_SWATCH } from '@/modules/project/utils/projectColors';
+import { displayOrEmpty, EMPTY_LABELS } from '@/shared/utils/emptyDisplay';
 
 const props = defineProps({
     projects: { type: Array, default: () => [] },
     visible: { type: Array, default: () => [] },
-    groupByDepartment: { type: Boolean, default: false },
-    departmentOptions: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits(['remove', 'duplicate']);
 
 const stripe = PROJECT_COLOR_SWATCH;
-const dot = stripe;
 
 const cols = computed(() => COLUMNS.filter((c) => props.visible.includes(c.key)));
 const colSpan = computed(() => cols.value.length + 2);
@@ -44,34 +42,109 @@ const sorted = computed(() => {
     });
 });
 
-const groups = computed(() => {
-    if (!props.groupByDepartment) return [{ key: 'all', label: null, projects: sorted.value }];
-    const out = props.departmentOptions.map((d) => ({
-        key: 'd' + d.id, label: d.name, color: d.color,
-        projects: sorted.value.filter((p) => p.department_id === d.id),
-    }));
-    out.push({ key: 'none', label: 'Chưa phân phòng', color: 'slate', projects: sorted.value.filter((p) => !p.department_id) });
-    return out.filter((g) => g.projects.length > 0);
-});
-
-const collapsedGroups = ref(new Set());
-const isOpen = (g) => g.key === 'all' || !collapsedGroups.value.has(g.key);
-const toggleGroup = (g) => {
-    const s = new Set(collapsedGroups.value);
-    s.has(g.key) ? s.delete(g.key) : s.add(g.key);
-    collapsedGroups.value = s;
-};
-
 const progressTone = (v) => {
     if (v >= 100) return 'text-emerald-600';
     if (v >= 50) return 'text-sky-600';
     return 'text-slate-600';
 };
+
+// Drag-to-scroll (horizontal) — hạn chế cuộn trang khi kéo ngang bảng rộng
+const scrollRef = ref(null);
+const dragging = ref(false);
+let pointerId = null;
+let startX = 0;
+let startScrollLeft = 0;
+let moved = false;
+let suppressClick = false;
+const DRAG_THRESHOLD = 8;
+
+function isInteractiveTarget(target) {
+    return !!target?.closest?.(
+        'a, button, input, select, textarea, label, [role="button"], [data-no-drag-scroll]',
+    );
+}
+
+function onPointerDown(e) {
+    const el = scrollRef.value;
+    if (!el || e.button !== 0 || e.pointerType !== 'mouse') return;
+    if (isInteractiveTarget(e.target)) return;
+
+    pointerId = e.pointerId;
+    startX = e.clientX;
+    startScrollLeft = el.scrollLeft;
+    moved = false;
+    suppressClick = false;
+    dragging.value = false;
+}
+
+function onPointerMove(e) {
+    const el = scrollRef.value;
+    if (!el || pointerId !== e.pointerId) return;
+
+    const dx = e.clientX - startX;
+    if (!moved && Math.abs(dx) < DRAG_THRESHOLD) return;
+
+    if (!moved) {
+        moved = true;
+        suppressClick = true;
+        dragging.value = true;
+        try {
+            el.setPointerCapture(e.pointerId);
+        } catch {
+            /* ignore */
+        }
+    }
+
+    el.scrollLeft = startScrollLeft - dx;
+    e.preventDefault();
+}
+
+function endPointer(e) {
+    const el = scrollRef.value;
+    if (pointerId == null || (e?.pointerId != null && pointerId !== e.pointerId)) return;
+
+    if (el?.hasPointerCapture?.(pointerId)) {
+        try {
+            el.releasePointerCapture(pointerId);
+        } catch {
+            /* ignore */
+        }
+    }
+
+    const wasDragging = suppressClick;
+    pointerId = null;
+    dragging.value = false;
+    moved = false;
+
+    if (wasDragging) {
+        setTimeout(() => {
+            suppressClick = false;
+        }, 0);
+    } else {
+        suppressClick = false;
+    }
+}
+
+function onClickCapture(e) {
+    if (!suppressClick) return;
+    e.preventDefault();
+    e.stopPropagation();
+}
 </script>
 
 <template>
   <div class="card overflow-hidden">
-    <div class="project-grid-scroll overflow-x-auto">
+    <div
+      ref="scrollRef"
+      class="project-grid-scroll overflow-x-auto"
+      :class="{ 'project-grid-scroll--dragging': dragging }"
+      @pointerdown="onPointerDown"
+      @pointermove="onPointerMove"
+      @pointerup="endPointer"
+      @pointercancel="endPointer"
+      @lostpointercapture="endPointer"
+      @click.capture="onClickCapture"
+    >
       <table class="project-grid w-max min-w-full table-auto border-separate border-spacing-0 text-sm">
         <colgroup>
           <col class="min-w-[13rem]">
@@ -138,207 +211,174 @@ const progressTone = (v) => {
         </thead>
 
         <tbody>
-          <template
-            v-for="g in groups"
-            :key="g.key"
+          <tr
+            v-for="(p, rowIndex) in sorted"
+            :key="p.id"
+            class="project-grid-row group hover:bg-slate-50/80"
+            :style="{ '--row-delay': `${rowIndex * 35}ms` }"
           >
-            <tr
-              v-if="g.label !== null"
-              class="cursor-pointer bg-slate-100/70 hover:bg-slate-100"
-              @click="toggleGroup(g)"
+            <td class="whitespace-nowrap border-b border-slate-100 px-3 py-2.5">
+              <div class="flex items-center gap-2">
+                <span
+                  class="h-7 w-1 shrink-0 rounded-full"
+                  :class="stripe[p.color] || stripe.slate"
+                />
+                <div>
+                  <p class="font-mono text-[11px] leading-tight text-slate-400">
+                    {{ p.code }}
+                  </p>
+                  <Link
+                    :href="`/projects/${p.id}`"
+                    class="block font-medium leading-snug text-slate-700 hover:text-brand"
+                  >
+                    {{ p.name }}
+                  </Link>
+                </div>
+              </div>
+            </td>
+
+            <td
+              v-for="c in cols"
+              :key="c.key"
+              class="whitespace-nowrap border-b border-slate-100 px-3 py-2.5"
+              :class="c.align === 'right' ? 'text-right' : c.align === 'center' ? 'text-center' : 'text-left'"
             >
-              <td
-                :colspan="colSpan"
-                class="border-b border-slate-200 px-3 py-2"
-              >
-                <span class="flex items-center gap-2 text-xs font-semibold text-slate-700">
-                  <AppIcon
-                    name="chevron-down"
-                    :size="14"
-                    :class="isOpen(g) ? '' : '-rotate-90'"
-                    class="shrink-0 text-slate-400 transition-transform"
-                  />
-                  <span
-                    class="h-2 w-2 shrink-0 rounded-full"
-                    :class="dot[g.color] || dot.slate"
-                  />
-                  <span class="truncate">{{ g.label }}</span>
-                  <span class="shrink-0 font-normal text-slate-400">({{ g.projects.length }})</span>
-                </span>
-              </td>
-            </tr>
-
-            <template v-if="isOpen(g)">
-              <tr
-                v-for="(p, rowIndex) in g.projects"
-                :key="p.id"
-                class="project-grid-row group hover:bg-slate-50/80"
-                :style="{ '--row-delay': `${rowIndex * 35}ms` }"
-              >
-                <td class="whitespace-nowrap border-b border-slate-100 px-3 py-2.5">
-                  <div class="flex items-center gap-2">
-                    <span
-                      class="h-7 w-1 shrink-0 rounded-full"
-                      :class="stripe[p.color] || stripe.slate"
-                    />
-                    <div>
-                      <p class="font-mono text-[11px] leading-tight text-slate-400">
-                        {{ p.code }}
-                      </p>
-                      <Link
-                        :href="`/projects/${p.id}`"
-                        class="block font-medium leading-snug text-slate-700 hover:text-brand"
-                      >
-                        {{ p.name }}
-                      </Link>
-                    </div>
-                  </div>
-                </td>
-
-                <td
-                  v-for="c in cols"
-                  :key="c.key"
-                  class="whitespace-nowrap border-b border-slate-100 px-3 py-2.5"
-                  :class="c.align === 'right' ? 'text-right' : c.align === 'center' ? 'text-center' : 'text-left'"
+              <template v-if="c.key === 'code'">
+                <span class="block font-mono text-[11px] text-slate-500">{{ p.code }}</span>
+              </template>
+              <template v-else-if="c.key === 'type'">
+                <Badge
+                  v-if="p.type"
+                  :label="p.type.label"
+                  :color="p.type.color"
+                />
+                <span
+                  v-else
+                  class="text-slate-400"
+                >{{ displayOrEmpty(null, EMPTY_LABELS.notUpdated) }}</span>
+              </template>
+              <template v-else-if="c.key === 'category'">
+                <Badge
+                  v-if="p.category"
+                  :label="p.category.label"
+                  :color="p.category.color"
+                />
+                <span
+                  v-else
+                  class="text-slate-400"
+                >{{ displayOrEmpty(null, EMPTY_LABELS.notUpdated) }}</span>
+              </template>
+              <template v-else-if="c.key === 'scope'">
+                <Badge
+                  v-if="p.scope"
+                  :label="p.scope.label"
+                  :color="p.scope.color"
+                />
+                <span
+                  v-else
+                  class="text-slate-400"
+                >{{ displayOrEmpty(null, EMPTY_LABELS.notUpdated) }}</span>
+              </template>
+              <template v-else-if="c.key === 'status'">
+                <Badge
+                  v-if="p.status"
+                  :label="p.status.label"
+                  :color="p.status.color"
+                />
+                <span
+                  v-else
+                  class="text-slate-400"
+                >{{ displayOrEmpty(null, EMPTY_LABELS.notUpdated) }}</span>
+              </template>
+              <template v-else-if="c.key === 'department'">
+                <Badge
+                  v-if="p.department"
+                  :label="p.department.name"
+                  :color="p.department.color"
+                />
+                <span
+                  v-else
+                  class="text-slate-400"
+                >{{ displayOrEmpty(null, EMPTY_LABELS.team) }}</span>
+              </template>
+              <template v-else-if="c.key === 'manager'">
+                <span
+                  v-if="p.manager"
+                  class="inline-flex items-center gap-1.5"
                 >
-                  <template v-if="c.key === 'code'">
-                    <span class="block font-mono text-[11px] text-slate-500">{{ p.code }}</span>
-                  </template>
-                  <template v-else-if="c.key === 'type'">
-                    <Badge
-                      v-if="p.type"
-                      :label="p.type.label"
-                      :color="p.type.color"
-                    />
-                    <span
-                      v-else
-                      class="text-slate-300"
-                    >—</span>
-                  </template>
-                  <template v-else-if="c.key === 'category'">
-                    <Badge
-                      v-if="p.category"
-                      :label="p.category.label"
-                      :color="p.category.color"
-                    />
-                    <span
-                      v-else
-                      class="text-slate-300"
-                    >—</span>
-                  </template>
-                  <template v-else-if="c.key === 'scope'">
-                    <Badge
-                      v-if="p.scope"
-                      :label="p.scope.label"
-                      :color="p.scope.color"
-                    />
-                    <span
-                      v-else
-                      class="text-slate-300"
-                    >—</span>
-                  </template>
-                  <template v-else-if="c.key === 'status'">
-                    <Badge
-                      v-if="p.status"
-                      :label="p.status.label"
-                      :color="p.status.color"
-                    />
-                    <span
-                      v-else
-                      class="text-slate-300"
-                    >—</span>
-                  </template>
-                  <template v-else-if="c.key === 'department'">
-                    <Badge
-                      v-if="p.department"
-                      :label="p.department.name"
-                      :color="p.department.color"
-                    />
-                    <span
-                      v-else
-                      class="text-slate-300"
-                    >—</span>
-                  </template>
-                  <template v-else-if="c.key === 'manager'">
-                    <span
-                      v-if="p.manager"
-                      class="inline-flex items-center gap-1.5"
-                    >
-                      <Avatar
-                        :name="p.manager.name"
-                        :src="p.manager.avatar_path"
-                        :size="22"
-                        class="shrink-0"
-                      />
-                      <span class="text-sm text-slate-600">{{ p.manager.name }}</span>
-                    </span>
-                    <span
-                      v-else
-                      class="text-slate-300"
-                    >—</span>
-                  </template>
-                  <template v-else-if="c.key === 'progress'">
-                    <span
-                      class="text-sm font-semibold tabular-nums"
-                      :class="progressTone(p.progress ?? 0)"
-                    >{{ p.progress ?? 0 }}%</span>
-                  </template>
-                  <template v-else-if="c.key === 'budget'">
-                    <span class="block text-xs text-slate-600">{{ currency(p.budget) }}</span>
-                  </template>
-                  <template v-else-if="c.key === 'actual_budget'">
-                    <span class="block text-xs text-slate-600">{{ currency(p.actual_budget) }}</span>
-                  </template>
-                  <template v-else-if="c.key === 'labor_cost'">
-                    <span class="block text-xs font-medium text-slate-700">{{ currency(p.labor_cost) }}</span>
-                  </template>
-                  <template v-else-if="c.key === 'start_date'">
-                    <span class="text-sm tabular-nums text-slate-500">{{ date(p.start_date) }}</span>
-                  </template>
-                  <template v-else-if="c.key === 'due_date'">
-                    <span class="text-sm tabular-nums text-slate-500">{{ date(p.due_date) }}</span>
-                  </template>
-                  <template v-else-if="c.key === 'created_at'">
-                    <span class="text-sm tabular-nums text-slate-500">{{ date(p.created_at) }}</span>
-                  </template>
-                  <template v-else-if="c.key === 'updated_at'">
-                    <span class="text-sm tabular-nums text-slate-500">{{ date(p.updated_at) }}</span>
-                  </template>
-                  <template v-else-if="c.key === 'task_count'">
-                    <span class="text-sm font-medium tabular-nums text-slate-600">{{ p.task_count ?? 0 }}</span>
-                  </template>
-                  <template v-else-if="c.key === 'member_count'">
-                    <ProjectMembers
-                      v-if="Array.isArray(p.members) && p.members.length"
-                      :members="p.members"
-                      :max-visible="4"
-                      :max-name-labels="3"
-                      show-names
-                      compact
-                    />
-                    <span
-                      v-else
-                      class="text-xs text-slate-400"
-                    >Chưa có thành viên</span>
-                  </template>
-                  <template v-else-if="c.key === 'open_blocker_count'">
-                    <span
-                      class="text-sm font-semibold tabular-nums"
-                      :class="p.open_blocker_count ? 'text-rose-600' : 'text-slate-400'"
-                    >{{ p.open_blocker_count ?? 0 }}</span>
-                  </template>
-                </td>
-
-                <td class="whitespace-nowrap border-b border-slate-100 px-2 py-2.5 text-right">
-                  <ProjectListRowActions
-                    :project="p"
-                    @duplicate="emit('duplicate', $event)"
-                    @remove="emit('remove', $event)"
+                  <Avatar
+                    :name="p.manager.name"
+                    :src="p.manager.avatar_path"
+                    :size="22"
+                    class="shrink-0"
                   />
-                </td>
-              </tr>
-            </template>
-          </template>
+                  <span class="text-sm text-slate-600">{{ p.manager.name }}</span>
+                </span>
+                <span
+                  v-else
+                  class="text-slate-400"
+                >{{ displayOrEmpty(null, EMPTY_LABELS.notUpdated) }}</span>
+              </template>
+              <template v-else-if="c.key === 'progress'">
+                <span
+                  class="text-sm font-semibold tabular-nums"
+                  :class="progressTone(p.progress ?? 0)"
+                >{{ p.progress ?? 0 }}%</span>
+              </template>
+              <template v-else-if="c.key === 'budget'">
+                <span class="block text-xs text-slate-600">{{ currency(p.budget) }}</span>
+              </template>
+              <template v-else-if="c.key === 'actual_budget'">
+                <span class="block text-xs text-slate-600">{{ currency(p.actual_budget) }}</span>
+              </template>
+              <template v-else-if="c.key === 'labor_cost'">
+                <span class="block text-xs font-medium text-slate-700">{{ currency(p.labor_cost) }}</span>
+              </template>
+              <template v-else-if="c.key === 'start_date'">
+                <span class="text-sm tabular-nums text-slate-500">{{ date(p.start_date) }}</span>
+              </template>
+              <template v-else-if="c.key === 'due_date'">
+                <span class="text-sm tabular-nums text-slate-500">{{ date(p.due_date) }}</span>
+              </template>
+              <template v-else-if="c.key === 'created_at'">
+                <span class="text-sm tabular-nums text-slate-500">{{ date(p.created_at) }}</span>
+              </template>
+              <template v-else-if="c.key === 'updated_at'">
+                <span class="text-sm tabular-nums text-slate-500">{{ date(p.updated_at) }}</span>
+              </template>
+              <template v-else-if="c.key === 'task_count'">
+                <span class="text-sm font-medium tabular-nums text-slate-600">{{ p.task_count ?? 0 }}</span>
+              </template>
+              <template v-else-if="c.key === 'member_count'">
+                <ProjectMembers
+                  v-if="Array.isArray(p.members) && p.members.length"
+                  :members="p.members"
+                  :max-visible="4"
+                  :max-name-labels="3"
+                  show-names
+                  compact
+                />
+                <span
+                  v-else
+                  class="text-xs text-slate-400"
+                >Chưa có thành viên</span>
+              </template>
+              <template v-else-if="c.key === 'open_blocker_count'">
+                <span
+                  class="text-sm font-semibold tabular-nums"
+                  :class="p.open_blocker_count ? 'text-rose-600' : 'text-slate-400'"
+                >{{ p.open_blocker_count ?? 0 }}</span>
+              </template>
+            </td>
+
+            <td class="whitespace-nowrap border-b border-slate-100 px-2 py-2.5 text-right">
+              <ProjectListRowActions
+                :project="p"
+                @duplicate="emit('duplicate', $event)"
+                @remove="emit('remove', $event)"
+              />
+            </td>
+          </tr>
 
           <tr v-if="projects.length === 0">
             <td
@@ -357,6 +397,18 @@ const progressTone = (v) => {
 <style scoped>
 .project-grid-scroll {
     -webkit-overflow-scrolling: touch;
+    cursor: grab;
+    overscroll-behavior-x: contain;
+}
+
+.project-grid-scroll--dragging {
+    cursor: grabbing;
+    user-select: none;
+}
+
+.project-grid-scroll--dragging :deep(a),
+.project-grid-scroll--dragging :deep(button) {
+    pointer-events: none;
 }
 
 .project-grid-row {

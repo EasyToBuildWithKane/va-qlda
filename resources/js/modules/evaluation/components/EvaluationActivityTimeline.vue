@@ -33,13 +33,41 @@ const ACTIVITY_META = {
         title: 'Xóa',
         verb: 'đã xóa tiêu chí này',
     },
+    'evaluation.template_created': {
+        name: 'add',
+        tone: 'bg-emerald-500',
+        ring: 'ring-emerald-200 bg-emerald-50 text-emerald-700',
+        title: 'Tạo mới',
+        verb: 'đã tạo mẫu đánh giá này',
+    },
+    'evaluation.template_updated': {
+        name: 'edit',
+        tone: 'bg-amber-500',
+        ring: 'ring-amber-200 bg-amber-50 text-amber-800',
+        title: 'Cập nhật',
+        verb: 'đã sửa các nội dung sau',
+    },
+    'evaluation.template_deleted': {
+        name: 'trash',
+        tone: 'bg-rose-500',
+        ring: 'ring-rose-200 bg-rose-50 text-rose-700',
+        title: 'Xóa',
+        verb: 'đã xóa mẫu đánh giá này',
+    },
+    'evaluation.template_duplicated': {
+        name: 'copy',
+        tone: 'bg-sky-500',
+        ring: 'ring-sky-200 bg-sky-50 text-sky-700',
+        title: 'Nhân bản',
+        verb: 'đã nhân bản mẫu đánh giá này',
+    },
 };
 
 const FILTERS = [
     { key: 'all', label: 'Tất cả' },
-    { key: 'evaluation.criteria_created', label: 'Tạo' },
-    { key: 'evaluation.criteria_updated', label: 'Sửa' },
-    { key: 'evaluation.criteria_deleted', label: 'Xóa' },
+    { key: 'created', label: 'Tạo' },
+    { key: 'updated', label: 'Sửa' },
+    { key: 'deleted', label: 'Xóa' },
 ];
 
 const filterKey = ref('all');
@@ -49,7 +77,10 @@ const items = computed(() => (props.activity ?? []).filter((a) => a && a.id != n
 
 const filtered = computed(() => {
     if (filterKey.value === 'all') return items.value;
-    return items.value.filter((a) => a.action === filterKey.value);
+    const suffix = filterKey.value;
+    return items.value.filter((a) => String(a.action || '').endsWith(`_${suffix}`)
+        || String(a.action || '').includes(`.${suffix}`)
+        || (suffix === 'created' && String(a.action || '').includes('duplicated')));
 });
 
 const totalPages = computed(() => Math.max(1, Math.ceil(filtered.value.length / PAGE_SIZE)));

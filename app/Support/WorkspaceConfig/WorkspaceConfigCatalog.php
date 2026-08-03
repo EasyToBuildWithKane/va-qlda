@@ -154,6 +154,7 @@ class WorkspaceConfigCatalog
     public static function checklistForDepartment(SystemAccount $account, array $context): array
     {
         $criteriaCount = (int) ($context['criteria_count'] ?? 0);
+        $templateCount = (int) ($context['template_count'] ?? 0);
         $profileStatus = (string) ($context['profile_status'] ?? 'missing');
         $items = [];
 
@@ -177,6 +178,7 @@ class WorkspaceConfigCatalog
                 if (! $planned) {
                     $done = match ($stepKey) {
                         'has_department_criteria' => $criteriaCount > 0,
+                        'has_templates' => $templateCount > 0,
                         default => false,
                     };
                 }

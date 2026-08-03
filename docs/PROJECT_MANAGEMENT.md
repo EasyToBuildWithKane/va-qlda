@@ -12,7 +12,7 @@
 
 | Mục tiêu | Mô tả |
 |---|---|
-| Danh mục dự án | Lọc, KPI portfolio, bảng + Kanban theo loại / đội CNTT |
+| Danh mục dự án | Lọc, KPI portfolio, bảng (kéo ngang để cuộn) + Kanban theo loại / đội CNTT — không còn chip Phần cứng/Phần mềm hay nhóm theo phòng ban trên Index |
 | Workspace dự án | Một URL `/projects/{id}` — tab Tổng quan, Tài liệu, Lịch, Kanban, Sprint, Vướng mắc, Phản hồi |
 | Kế hoạch Agile | Sprint, epic, backlog, kéo-thả trạng thái, nhập Excel công việc (bulk) |
 | Chi phí nhân công | Worklog trên task + `rate_snapshot` theo `project_member` |
@@ -160,7 +160,7 @@ Kanban nhóm theo `type` hoặc **đội CNTT** của quản lý (`EmployeeOrgTe
 
 | Route | Page | Ghi chú |
 |---|---|---|
-| `GET /projects/create` | `Create.vue` | `ProjectForm`, mã gợi ý, phòng ban mặc định |
+| `GET /projects/create` | `Create.vue` | `ProjectForm`, mã gợi ý; phòng ban từ HRM (mirror local) + mặc định PCN |
 | `POST /projects` | — | `StoreProjectRequest` → `CreateProjectUseCase`; flash «Đã tạo dự án»; `after=continue` → edit |
 | `GET /projects/{id}/edit` | `Edit.vue` | Cần `update` |
 | `PUT /projects/{id}` | — | `UpdateProjectUseCase` |
@@ -173,7 +173,7 @@ Kanban nhóm theo `type` hoặc **đội CNTT** của quản lý (`EmployeeOrgTe
 | `name`, `description`, `color` | | Màu header/card |
 | `status` | planning, active, on_hold, completed, cancelled | |
 | `type` | rnd, deployment, operation | Vòng đời — cột Kanban danh mục |
-| `category` | hardware, software | Phần cứng / Phần mềm |
+| `category` | hardware, software | Legacy — không còn field form tạo/sửa |
 | `scope` | headquarters, system, regional, departmental | Kèm `scope_regions[]`, `scope_departments[]` khi cần |
 | `start_date`, `due_date` | | |
 | `budget`, `actual_budget` | | Kế hoạch vs thực tế |

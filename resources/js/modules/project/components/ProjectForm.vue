@@ -25,7 +25,6 @@ const props = defineProps({
     employees: { type: Array, default: () => [] },
     statusOptions: { type: Array, default: () => [] },
     typeOptions: { type: Array, default: () => [] },
-    categoryOptions: { type: Array, default: () => [] },
     scopeOptions: { type: Array, default: () => [] },
     regionOptions: { type: Array, default: () => [] },
     departmentOptions: { type: Array, default: () => [] },
@@ -45,7 +44,6 @@ const form = useForm({
     color: props.project?.color ?? 'brand',
     status: props.project?.status?.value ?? 'planning',
     type: props.project?.type?.value ?? 'rnd',
-    category: props.project?.category?.value ?? null,
     scope: props.project?.scope?.value ?? 'headquarters',
     scope_regions: props.project?.scope_regions ?? [],
     scope_departments: props.project?.scope_departments ?? [],
@@ -58,7 +56,6 @@ const form = useForm({
 
 const departmentChips = computed(() => props.departmentOptions.map((d) => ({ value: d.id, label: d.name })));
 const typeSelectOptions = computed(() => valueLabelOptions(props.typeOptions));
-const categorySelectOptions = computed(() => valueLabelOptions(props.categoryOptions));
 const statusSelectOptions = computed(() => valueLabelOptions(props.statusOptions));
 
 watch(() => form.scope, (s) => {
@@ -86,7 +83,6 @@ const fieldTabByKey = {
     name: 0,
     code: 0,
     type: 0,
-    category: 0,
     description: 0,
     scope: 1,
     scope_regions: 1,
@@ -227,7 +223,6 @@ const applyDraft = (draft) => {
     form.color = d.color ?? 'brand';
     form.status = d.status ?? 'planning';
     form.type = d.type ?? 'rnd';
-    form.category = d.category ?? null;
     form.scope = d.scope ?? 'headquarters';
     form.scope_regions = d.scope_regions ?? [];
     form.scope_departments = d.scope_departments ?? [];
@@ -627,23 +622,6 @@ const submit = (after = 'close') => {
                 </p>
               </div>
               <div>
-                <label class="label flex items-center gap-1.5">
-                  Phân loại
-                  <FieldTooltip text="Lĩnh vực dự án: Phần cứng hoặc Phần mềm (không bắt buộc)." />
-                </label>
-                <SearchSelect
-                  v-model="form.category"
-                  :options="categorySelectOptions"
-                  placeholder="Chọn phân loại…"
-                />
-                <p
-                  v-if="form.errors.category"
-                  class="mt-1 text-xs text-danger"
-                >
-                  {{ form.errors.category }}
-                </p>
-              </div>
-              <div>
                 <label class="label">Màu nhãn</label>
                 <div class="flex flex-wrap gap-2 pt-1.5">
                   <button
@@ -764,7 +742,7 @@ const submit = (after = 'close') => {
                 v-if="isCreate && !form.department_id"
                 class="mt-1 text-xs text-slate-500"
               >
-                Nếu không chọn, hệ thống gán phòng mặc định (mã PB-PT hoặc phòng đang hoạt động đầu tiên).
+                Nếu không chọn, hệ thống gán phòng mặc định (Phòng Công nghệ / PCN hoặc phòng đang hoạt động đầu tiên).
               </p>
               <p
                 v-if="errFor('department_id')"

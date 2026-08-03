@@ -31,6 +31,7 @@ class WorkspaceHubAssembler
         SystemAccount $user,
         bool $canManage,
         int $generalCriteria,
+        int $templateCount = 0,
     ): array {
         $code = $dept['code'];
         $criteriaCount = $this->criteriaCountFor($code, $criteriaCounts);
@@ -55,14 +56,20 @@ class WorkspaceHubAssembler
 
         $moduleSnapshots = [];
         $configuredLive = 0;
+        $readinessLive = 0;
         foreach ($liveModules as $mod) {
             $key = (string) ($mod['key'] ?? '');
+            $appliesTo = (string) ($mod['applies_to'] ?? 'department');
             $configured = match ($key) {
                 'evaluation' => $criteriaCount > 0,
+                'evaluation_templates' => $templateCount > 0,
                 default => false,
             };
-            if ($configured) {
-                $configuredLive++;
+            if ($appliesTo !== 'global') {
+                $readinessLive++;
+                if ($configured) {
+                    $configuredLive++;
+                }
             }
             $moduleSnapshots[] = [
                 'key' => $key,
@@ -71,14 +78,19 @@ class WorkspaceHubAssembler
                 'tone' => $mod['tone'] ?? 'slate',
                 'status' => $mod['status'] ?? 'planned',
                 'configured' => $configured,
-                'count' => $key === 'evaluation' ? $criteriaCount : null,
+                'count' => match ($key) {
+                    'evaluation' => $criteriaCount,
+                    'evaluation_templates' => $templateCount,
+                    default => null,
+                },
                 'href' => WorkspaceConfigCatalog::hrefForDepartment($mod, $code),
             ];
         }
 
         $liveCount = count($liveModules);
-        $readinessPct = $liveCount > 0
-            ? (int) round(($configuredLive / $liveCount) * 100)
+        $readinessTotal = $readinessLive > 0 ? $readinessLive : $liveCount;
+        $readinessPct = $readinessTotal > 0
+            ? (int) round(($configuredLive / $readinessTotal) * 100)
             : 0;
         $readinessKey = match (true) {
             $readinessPct >= 100 => 'ready',
@@ -113,7 +125,7 @@ class WorkspaceHubAssembler
                 'label' => $readinessLabel,
                 'percent' => $readinessPct,
                 'configured' => $configuredLive,
-                'total' => $liveCount,
+                'total' => $readinessTotal,
             ],
             'notes' => $profile?->notes,
             'updated_at' => $profile?->updated_at?->toIso8601String(),
@@ -124,6 +136,7 @@ class WorkspaceHubAssembler
             'can_update' => $canManage && $profile !== null,
             'checklist' => WorkspaceConfigCatalog::checklistForDepartment($user, [
                 'criteria_count' => $criteriaCount,
+                'template_count' => $templateCount,
                 'profile_status' => $profileStatus,
                 'department_code' => $code,
             ]),

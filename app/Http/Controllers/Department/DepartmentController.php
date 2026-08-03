@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Department\StoreDepartmentRequest;
 use App\Http\Requests\Department\UpdateDepartmentRequest;
 use App\Models\Department;
+use App\Support\Options\DepartmentOptions;
 use App\Support\SecurityAuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
@@ -16,6 +17,10 @@ use Illuminate\Support\Facades\DB;
  */
 class DepartmentController extends Controller
 {
+    public function __construct(
+        private readonly DepartmentOptions $departmentOptions,
+    ) {}
+
     public function store(StoreDepartmentRequest $request): RedirectResponse
     {
         $validated = $request->validated();
@@ -26,6 +31,8 @@ class DepartmentController extends Controller
             $department = Department::create(collect($validated)->except('member_ids')->all());
             $this->syncMembers($department, $memberIds);
         });
+
+        $this->departmentOptions->flush();
 
         if ($department !== null) {
             SecurityAuditLogger::department($request->user(), 'created', $department->id, ['name' => $department->name]);
@@ -44,6 +51,8 @@ class DepartmentController extends Controller
             $this->syncMembers($department, $memberIds);
         });
 
+        $this->departmentOptions->flush();
+
         SecurityAuditLogger::department($request->user(), 'updated', $department->id, ['name' => $department->name]);
 
         return back()->with('success', 'Đã cập nhật phòng ban.');
@@ -54,6 +63,7 @@ class DepartmentController extends Controller
         $this->authorize('update', $department);
 
         $department->update(['is_active' => ! $department->is_active]);
+        $this->departmentOptions->flush();
 
         $msg = $department->is_active ? 'Đã kích hoạt phòng ban.' : 'Đã ngừng hoạt động phòng ban.';
 
@@ -67,6 +77,7 @@ class DepartmentController extends Controller
         // Projects keep existing; their department_id is nulled by the FK.
         SecurityAuditLogger::department(request()->user(), 'deleted', $department->id, ['name' => $department->name]);
         $department->delete();
+        $this->departmentOptions->flush();
 
         return back()->with('success', 'Đã xoá phòng ban.');
     }

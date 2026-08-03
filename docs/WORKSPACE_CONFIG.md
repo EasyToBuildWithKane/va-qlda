@@ -19,7 +19,7 @@
 | Insights + ma trận phủ + bulk ensure + export | CRUD thật chu kỳ / mẫu thông báo (planned) |
 | Drawer xem nhanh, notes, archive/restore | |
 
-**Domain live:** [Cấu hình tiêu chí đánh giá](EVALUATION_CONFIG.md) → `/workspace-config/evaluation` (scoped).
+**Domain live:** [Cấu hình tiêu chí đánh giá](EVALUATION_CONFIG.md) → `/workspace-config/evaluation` (scoped); [Mẫu đánh giá](EVALUATION_CONFIG.md#10-mẫu-đánh-giá-evaluation_templates) → `/workspace-config/evaluation-templates`.
 
 ---
 
@@ -32,6 +32,7 @@
 /workspace-config/w/{code}             → PATCH notes / status
 /workspace-config/w/{code}/ensure      → POST kích hoạt profile
 /workspace-config/evaluation/*         → Evaluation (EVALUATION_CONFIG.md)
+/workspace-config/evaluation-templates/* → Evaluation templates (EVALUATION_CONFIG.md §10)
 ```
 
 | Lớp | Path |
@@ -104,7 +105,7 @@ Child: xem `EVALUATION_CONFIG.md`. Transport: **Inertia**.
 | `Pages/WorkspaceConfig/Hub.vue` | Toolbar **Lọc** / **Cột** / Xuất + lưới thẻ + bulk + drawer + phân trang |
 | `WorkspaceConfigSummaryBar.vue` | KPI tổng / active / chưa kích hoạt / sẵn sàng / đang cấu hình / tiêu chí |
 | `WorkspaceInsightsBanner.vue` | Gợi ý vận hành (CTA bulk / lọc) |
-| `WorkspaceProfileGrid.vue` + `WorkspaceProfileCard.vue` | Thẻ gọn (không thanh màu trên / không cụm nút); trường qua **Cột**; bấm thẻ = xem nhanh |
+| `WorkspaceProfileGrid.vue` + `WorkspaceProfileCard.vue` | Thẻ accent bar + glow theo tone PB, metric icon/ring sẵn sàng, footer CTA; trường qua **Cột**; bấm thẻ = xem nhanh |
 | `WorkspaceProfileDrawer.vue` | Xem nhanh + notes + archive/restore / kích hoạt |
 | `useWorkspaceHubExport.js` | Excel Tong quan / Phong ban / Ma tran |
 | `Pages/WorkspaceConfig/Workspace/Show.vue` | Header gọn (mã PB + Kích hoạt/Tiêu chí; không badge Đang dùng/Lưu trữ) · strip KPI · checklist · notes · archive/restore ở hub drawer · phân trang module khi > 5 |

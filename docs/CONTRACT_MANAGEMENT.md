@@ -58,7 +58,7 @@ Tất cả trong nhóm `contracts.*` (`routes/web/contracts.php`). Static segmen
 - **Reminder cron:** `App\Services\Contract\ContractReminderService` chạy bởi command `contracts:send-reminders` (Kernel daily 08:00) — tự suy `expiring_soon` / `expired` từ `expiry_date` (**không nhập tay**); thông báo `NotificationType::SystemContractExpiry` / `SystemContractExpired`.
 - **Inbox:** tạo/sửa HĐ → `SystemContractCreated` / `SystemContractUpdated`; đánh giá NCC → `SystemContractVendorReview` (`NotificationDispatcher` — owner/manager HĐ khi gắn HĐ; đánh giá gốc trên `/contracts/vendors/{id}` chỉ admin feed; `notifyAdmins` bỏ qua account đã nhận bản in-app để tránh trùng).
 - **Enums** (`app/Support/Enums/`): `ContractStatus` (draft·active·expiring_soon·expired·pending_renewal·addendum·terminated), `ContractPaymentStatus`, `ContractBillingCycle` (one_time·monthly·quarterly·annual), `ContractAttachmentCategory`, `ContractReviewRecommendation`.
-- **Cấu hình ngưỡng:** `/settings` tab "Hợp đồng (CLM)" → `clm.renewal_alert_days` (mặc định `90,60,30,7`), overlay lên `config('clm.*')` (`config/clm.php` + `SettingsServiceProvider`). Xem `docs/SYSTEM_CONFIG.md`.
+- **Cấu hình ngưỡng:** nav **Cấu hình chung** → **Hợp đồng (CLM)** (`/settings/clm`) → `clm.renewal_alert_days` (mặc định `90,60,30,7`), overlay lên `config('clm.*')` (`config/clm.php` + `SettingsServiceProvider`). Xem `docs/SYSTEM_CONFIG.md`.
 
 ---
 

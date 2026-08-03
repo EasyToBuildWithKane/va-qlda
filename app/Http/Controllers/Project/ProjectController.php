@@ -24,7 +24,6 @@ use App\Models\Project;
 use App\Models\WeeklyReport;
 use App\Services\WeeklyReport\WeeklyReportPresenter;
 use App\Support\Enums\FeedbackStatus;
-use App\Support\Enums\ProjectCategory;
 use App\Support\Enums\ProjectScope;
 use App\Support\Enums\ProjectStatus;
 use App\Support\Enums\ProjectType;
@@ -65,10 +64,9 @@ class ProjectController extends Controller
             'filters' => $result['filters'],
             'statusOptions' => ProjectStatus::options(),
             'typeOptions' => ProjectType::options(),
-            'categoryOptions' => ProjectCategory::options(),
             'scopeOptions' => ProjectScope::options(),
             'regionOptions' => Options::regions(),
-            'departmentOptions' => Options::departments(),
+            'departmentOptions' => Options::departments()->values()->all(),
             'orgTeamOptions' => $result['orgTeamOptions'],
             'employees' => Options::employees(),
             'summary' => $result['summary'],
@@ -81,13 +79,12 @@ class ProjectController extends Controller
         $this->authorize('create', Project::class);
 
         return Inertia::render('Project/Create', [
-            'employees' => Options::employees(),
+            'employees' => Options::employees()->values()->all(),
             'statusOptions' => ProjectStatus::options(),
             'typeOptions' => ProjectType::options(),
-            'categoryOptions' => ProjectCategory::options(),
             'scopeOptions' => ProjectScope::options(),
             'regionOptions' => Options::regions(),
-            'departmentOptions' => Options::departments(),
+            'departmentOptions' => Options::departments()->values()->all(),
             'suggestedCode' => $this->createProject->suggestCode(),
             'defaultDepartmentId' => Options::defaultOwnerDepartmentId(),
         ]);
@@ -161,13 +158,12 @@ class ProjectController extends Controller
 
         return Inertia::render('Project/Edit', [
             'project' => (new ProjectResource($project->load(['manager', 'department'])))->resolve(),
-            'employees' => Options::employees(),
+            'employees' => Options::employees()->values()->all(),
             'statusOptions' => ProjectStatus::options(),
             'typeOptions' => ProjectType::options(),
-            'categoryOptions' => ProjectCategory::options(),
             'scopeOptions' => ProjectScope::options(),
             'regionOptions' => Options::regions(),
-            'departmentOptions' => Options::departments(),
+            'departmentOptions' => Options::departments()->values()->all(),
         ]);
     }
 

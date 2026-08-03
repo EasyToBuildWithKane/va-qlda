@@ -3,9 +3,9 @@
 namespace App\Support\Enums;
 
 /**
- * Phân loại dự án theo lĩnh vực: Phần cứng / Phần mềm.
+ * Phân loại dự án theo lĩnh vực: Phần cứng / Phần mềm (legacy).
  * Độc lập với vòng đời (ProjectType) và phạm vi (ProjectScope).
- * Dùng cho bộ chuyển Phần cứng/Phần mềm trên trang danh mục dự án.
+ * Không còn hiện trên form tạo/sửa hay chip lọc Index — cột danh sách vẫn hỗ trợ dữ liệu cũ.
  */
 enum ProjectCategory: string
 {

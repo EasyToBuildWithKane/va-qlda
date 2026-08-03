@@ -16,7 +16,7 @@ function isSelected(code, selectedCodes) {
 </script>
 
 <template>
-  <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+  <div class="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5 xl:grid-cols-3">
     <WorkspaceProfileCard
       v-for="ws in workspaces"
       :key="ws.department_code"

@@ -37,13 +37,17 @@ class Options
         return app(\App\Support\Options\ProjectOptions::class)->all();
     }
 
-    /** @return \Illuminate\Support\Collection<int, array{id:int, name:string, code:string, color:string}> */
+    /**
+     * Danh sách phòng ban active (đã mirror từ HRM org-units khi local trống/thiếu).
+     *
+     * @return \Illuminate\Support\Collection<int, array{id:int, name:string, code:string, color:string}>
+     */
     public static function departments()
     {
         return app(\App\Support\Options\DepartmentOptions::class)->all();
     }
 
-    /** Phòng ban phụ trách mặc định khi tạo dự án (Phòng Công nghệ). */
+    /** Phòng ban phụ trách mặc định khi tạo dự án (Phòng Công nghệ / PCN). */
     public static function defaultOwnerDepartmentId(): ?int
     {
         return app(\App\Support\Options\DepartmentOptions::class)->defaultOwnerId();

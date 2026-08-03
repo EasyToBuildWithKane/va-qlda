@@ -320,6 +320,16 @@ Chi tiết module: [`WORKSPACE_CONFIG.md`](WORKSPACE_CONFIG.md).
 | GET | `/workspace-config/evaluation/{evaluationCriterion}` | EvaluationCriterionController@show | Chi tiết + lịch sử |
 | PUT | `/workspace-config/evaluation/{evaluationCriterion}` | EvaluationCriterionController@update | Cập nhật |
 | DELETE | `/workspace-config/evaluation/{evaluationCriterion}` | EvaluationCriterionController@destroy | Soft delete |
+| GET | `/workspace-config/evaluation-templates` | EvaluationTemplateController@index | Danh sách mẫu đánh giá |
+| GET | `/workspace-config/evaluation-templates/create` | EvaluationTemplateController@create | Form tạo mẫu (trang mới) |
+| POST | `/workspace-config/evaluation-templates` | EvaluationTemplateController@store | Tạo mẫu → redirect Show |
+| POST | `/workspace-config/evaluation-templates/import` | EvaluationTemplateController@import | Nhập Excel (max 200) |
+| GET | `/workspace-config/evaluation-templates/export-logs` | EvaluationTemplateController@exportLogs | JSON lịch sử xuất |
+| POST | `/workspace-config/evaluation-templates/export-logs` | EvaluationTemplateController@recordExport | Ghi lịch sử xuất + audit |
+| POST | `/workspace-config/evaluation-templates/{evaluationTemplate}/duplicate` | EvaluationTemplateController@duplicate | Nhân bản |
+| GET | `/workspace-config/evaluation-templates/{evaluationTemplate}` | EvaluationTemplateController@show | Chi tiết mẫu |
+| PUT | `/workspace-config/evaluation-templates/{evaluationTemplate}` | EvaluationTemplateController@update | Cập nhật |
+| DELETE | `/workspace-config/evaluation-templates/{evaluationTemplate}` | EvaluationTemplateController@destroy | Soft delete |
 
 Chi tiết: [`EVALUATION_CONFIG.md`](EVALUATION_CONFIG.md) · module cha [`WORKSPACE_CONFIG.md`](WORKSPACE_CONFIG.md).
 
@@ -421,6 +431,7 @@ Workspace Config Group
 ├── /workspace-config/ensure-bulk     (POST bulk ensure)
 ├── /workspace-config/w/{code}        (shell + PATCH notes/status)
 └── /workspace-config/evaluation/*    (cấu hình đánh giá, scoped theo PB)
+└── /workspace-config/evaluation-templates/*  (mẫu đánh giá + lịch sử xuất)
 
 Knowledge Base Group
 ├── /knowledge-base                    (index — Inertia)

@@ -37,6 +37,7 @@ Route::prefix('workspace-config')->name('workspace.')->group(function () {
 
     Route::prefix('evaluation-templates')->name('evaluation-templates.')->group(function () {
         Route::get('/', [EvaluationTemplateController::class, 'index'])->name('index');
+        Route::get('/create', [EvaluationTemplateController::class, 'create'])->name('create');
         Route::post('/', [EvaluationTemplateController::class, 'store'])->name('store');
         Route::post('/import', [EvaluationTemplateController::class, 'import'])->name('import');
         Route::get('/export-logs', [EvaluationTemplateController::class, 'exportLogs'])->name('export-logs');

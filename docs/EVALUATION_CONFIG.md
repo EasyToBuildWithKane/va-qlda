@@ -1,13 +1,14 @@
-# EVALUATION CONFIG — Cấu hình tiêu chí đánh giá
+# EVALUATION CONFIG — Cấu hình tiêu chí & mẫu đánh giá
 
-> Danh mục tiêu chí đánh giá **chung** và **theo phòng ban** (siêu admin).
-> Đường dẫn: **`/workspace-config/evaluation`** · Nav: **Cấu hình workspace → Cấu hình tiêu chí đánh giá** (`superOnly`).
+> Danh mục tiêu chí đánh giá **chung** và **theo phòng ban** (siêu admin), cùng **danh sách mẫu đánh giá** gắn tiêu chí theo vị trí.
+> Đường dẫn: **`/workspace-config/evaluation`** · **`/workspace-config/evaluation-templates`**
+> Nav: **Cấu hình workspace** (`superOnly` / `workspace.hub.view`).
 >
 > Module cha: [`WORKSPACE_CONFIG.md`](WORKSPACE_CONFIG.md) (hub `/workspace-config` — workspace theo phòng ban).
 >
-> **Không** tạo phiếu đánh giá thực tế / chấm điểm nhân sự trong phase này.
+> **Không** tạo phiếu đánh giá thực tế / chấm điểm nhân sự trong phase này (UI stub trên trang chi tiết mẫu).
 
-**Phạm vi xem:** super_admin / `evaluation.*` — mọi PB. User chỉ có `workspace.hub.view` — tiêu chí `general` + `department_code` trùng HRM của mình; query lệch PB → 403.
+**Phạm vi xem:** super_admin / `evaluation.*` — mọi PB. User chỉ có `workspace.hub.view` — tiêu chí `general` + `department_code` trùng HRM của mình; query lệch PB → 403. Mẫu đánh giá: mọi user có `hub.view` / `evaluation.view` đều xem được danh mục mẫu.
 
 ---
 
@@ -132,3 +133,27 @@ Cột `Phòng ban` nhận tên hoặc mã, khớp mờ qua `normalizeSearchKey` 
 `SecurityAuditLogger::evaluation()` → `subject_type=evaluation_criterion` · actions `evaluation.criteria_created|updated|deleted` (xem `AuditActionCatalog`). Mỗi tiêu chí tạo qua **import** cũng ghi `criteria_created` riêng (không action gộp) — xem mục 3.
 
 Meta audit gồm `criteria_code/name`, `score_summary` (chuỗi mức · điểm), và khi **cập nhật** thêm `changes[]` (`label` / `from` / `to`). Show hydrate `actor_avatar` qua `PublicMediaUrl` từ `actor.employee.avatar_path`.
+
+---
+
+## 10. Mẫu đánh giá (`evaluation_templates`)
+
+| Method | URI | Name |
+|--------|-----|------|
+| GET | `/workspace-config/evaluation-templates` | `workspace.evaluation-templates.index` |
+| GET | `…/create` | `workspace.evaluation-templates.create` |
+| POST | `/workspace-config/evaluation-templates` | `workspace.evaluation-templates.store` |
+| POST | `…/import` | `workspace.evaluation-templates.import` |
+| GET/POST | `…/export-logs` | `workspace.evaluation-templates.export-logs` / `.store` |
+| POST | `…/{id}/duplicate` | `workspace.evaluation-templates.duplicate` |
+| GET/PUT/DELETE | `…/{evaluationTemplate}` | show / update / destroy |
+
+**Schema:** `evaluation_templates` (`template_code` `MDG###`, `name`, `position_code`/`position_name` legacy, SoftDeletes) + pivot `evaluation_template_criteria` + `evaluation_template_targets` (multi chức danh `title` / cấp bậc `rank`) + `evaluation_template_custom_criteria` (tiêu chí gắn trực tiếp trên mẫu) + `evaluation_template_fields` (trường form phụ: text/textarea/number/select/date/checkbox) + `evaluation_template_export_logs`.
+
+**Đối tượng áp dụng:** chọn **XOR** chức danh **hoặc** cấp bậc (không cả hai) qua `HrmJobCatalogDirectory` (HRM Public API `listJobTitles` / `listRanks`). Khi API ranks trống, suy cấp bậc từ chức danh: ưu tiên `rank_name` / `level_name` / nested `rank`, fallback `level` → `Cấp N` (`L{n}`). Tên cấp chỉ là số (`1`/`2`/…) được chuẩn hoá thành «Cấp N». Fallback thêm distinct từ `employees` meta. Legacy `position_*` vẫn được điền từ chức danh đầu tiên để tương thích cột Index/export. FormRequest reject khi gửi đồng thời `titles` + `ranks`.
+
+**Frontend:** `Pages/WorkspaceConfig/EvaluationTemplates/{Index,Create,Show}.vue` + `modules/evaluation-template/`. **Thêm mẫu** → trang `Create` (zoom ~90%, form full page: thông tin+đối tượng [segment Chức danh|Cấp bậc] → tiêu chí [picker hẹp | danh sách rộng] → trường bổ sung). Form: picker danh mục tiêu chí, tiêu chí tuỳ chỉnh, `MultiCatalogSelect` theo mode XOR, editor trường bổ sung (gợi ý/hướng dẫn thu gọn). **Điểm yêu cầu** trên tiêu chí danh mục = chọn từ `score_levels` (mặc định «Đạt yêu cầu» nếu có, badge điểm mức kế bên); tiêu chí tuỳ chỉnh nhập tự do. **Trọng số** = select 10%…100% (tổng gợi ý 100%). Show: chips chức danh/cấp bậc, bảng tiêu chí, trường bổ sung, stub phiếu; sửa vẫn qua modal. **Một nút «Dữ liệu»** → `EvaluationTemplateDataModal` (tab Nhập | Xuất | Lịch sử export).
+
+**Audit mẫu:** `SecurityAuditLogger::evaluationTemplate()` → `subject_type=evaluation_template` · `template_created|updated|deleted|duplicated|exported`.
+
+**Import Excel:** marker `VA_EVAL_TPL_IMPORT_V1`, sheets `Nhap lieu` + `Tham chieu`; cột mã tiêu chí cách nhau bởi `;`.

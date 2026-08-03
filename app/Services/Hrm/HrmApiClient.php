@@ -137,6 +137,161 @@ final class HrmApiClient
     }
 
     /**
+     * Danh mục chức danh / job titles (nếu HRM hỗ trợ).
+     * Thử lần lượt các path phổ biến; 404/403 → mảng rỗng (không throw).
+     *
+     * @param  array<string, scalar|null>  $query
+     * @return list<array<string, mixed>>
+     */
+    public function listJobTitles(array $query = []): array
+    {
+        return $this->listCatalogSafe([
+            '/job-titles',
+            '/titles',
+            '/positions',
+            '/job-positions',
+        ], $query);
+    }
+
+    /**
+     * Danh mục cấp bậc / rank / level (nếu HRM hỗ trợ).
+     *
+     * @param  array<string, scalar|null>  $query
+     * @return list<array<string, mixed>>
+     */
+    public function listRanks(array $query = []): array
+    {
+        return $this->listCatalogSafe([
+            '/ranks',
+            '/job-levels',
+            '/levels',
+            '/grades',
+            '/employee-levels',
+        ], $query);
+    }
+
+    /**
+     * @param  list<string>  $paths
+     * @param  array<string, scalar|null>  $query
+     * @return list<array<string, mixed>>
+     */
+    private function listCatalogSafe(array $paths, array $query = []): array
+    {
+        if (! $this->isConfigured()) {
+            return [];
+        }
+
+        foreach ($paths as $path) {
+            try {
+                $rows = $this->listOrgUnitsStyle($path, $query);
+                if ($rows !== []) {
+                    return $rows;
+                }
+            } catch (\Throwable $e) {
+                Log::info('hrm.api.catalog_skip', [
+                    'path' => $path,
+                    'message' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return [];
+    }
+
+    /**
+     * Cursor-paginate giống listOrgUnits nhưng bỏ qua HTTP lỗi (trả []).
+     *
+     * @param  array<string, scalar|null>  $query
+     * @return list<array<string, mixed>>
+     */
+    private function listOrgUnitsStyle(string $path, array $query = []): array
+    {
+        $all = [];
+        $cursor = null;
+        $perPage = (int) ($query['per_page'] ?? 100);
+        $perPage = max(1, min(100, $perPage));
+
+        for ($page = 0; $page < 50; $page++) {
+            $params = array_merge($query, ['per_page' => $perPage]);
+            if (is_string($cursor) && $cursor !== '') {
+                $params['cursor'] = $cursor;
+            } else {
+                unset($params['cursor']);
+            }
+
+            $envelope = $this->getEnvelopeAllowFail($path, $params);
+            if ($envelope === null) {
+                return [];
+            }
+
+            $data = $envelope['data'] ?? null;
+            if (! is_array($data)) {
+                break;
+            }
+            if (! array_is_list($data)) {
+                // Single object catalog → wrap
+                $data = [$data];
+            }
+
+            foreach ($data as $row) {
+                if (is_array($row)) {
+                    $all[] = $row;
+                }
+            }
+
+            $next = $envelope['meta']['cursor']['next'] ?? null;
+            if (! is_string($next) || $next === '') {
+                break;
+            }
+            $cursor = $next;
+        }
+
+        return $all;
+    }
+
+    /**
+     * @param  array<string, scalar|null>  $query
+     * @return array{data: mixed, meta: array<string, mixed>}|null
+     */
+    private function getEnvelopeAllowFail(string $path, array $query = []): ?array
+    {
+        if (! $this->isConfigured()) {
+            return null;
+        }
+
+        try {
+            $response = $this->http()->get(ltrim($path, '/'), $query);
+        } catch (\Throwable $e) {
+            Log::info('hrm.api.catalog_request_failed', [
+                'path' => $path,
+                'message' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+
+        if ($response->status() === 404 || $response->status() === 403 || $response->status() === 401) {
+            return null;
+        }
+
+        if ($response->failed()) {
+            Log::info('hrm.api.catalog_http_error', [
+                'path' => $path,
+                'status' => $response->status(),
+            ]);
+
+            return null;
+        }
+
+        $meta = $response->json('meta');
+
+        return [
+            'data' => $response->json('data'),
+            'meta' => is_array($meta) ? $meta : [],
+        ];
+    }
+
+    /**
      * @param  array<string, scalar|null>  $query
      * @return array<string, mixed>|list<array<string, mixed>>|null
      */

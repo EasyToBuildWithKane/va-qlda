@@ -14,7 +14,10 @@ use App\Models\Evaluation\EvaluationTemplateExportLog;
 use App\Models\SecurityAuditLog;
 use App\Services\NotificationService;
 use App\Support\Audit\AuditActionCatalog;
+use App\Support\Enums\EvaluationTemplateFieldType;
+use App\Support\Enums\EvaluationTemplateTargetKind;
 use App\Support\Enums\NotificationType;
+use App\Support\Evaluation\HrmJobCatalogDirectory;
 use App\Support\Evaluation\HrmPositionDirectory;
 use App\Support\PublicMediaUrl;
 use App\Support\SecurityAuditLogger;
@@ -22,6 +25,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -29,6 +33,7 @@ class EvaluationTemplateController extends Controller
 {
     public function __construct(
         private readonly HrmPositionDirectory $positions,
+        private readonly HrmJobCatalogDirectory $jobCatalog,
     ) {}
 
     public function index(Request $request): Response
@@ -47,8 +52,11 @@ class EvaluationTemplateController extends Controller
             ->with([
                 'creator:id,display_name',
                 'templateCriteria.criterion:id,criteria_code,criteria_name,category,is_active',
+                'customCriteria',
+                'targets',
+                'fields',
             ])
-            ->withCount('templateCriteria')
+            ->withCount(['templateCriteria', 'customCriteria'])
             ->orderBy('sort_order')
             ->orderByDesc('id');
 
@@ -63,7 +71,12 @@ class EvaluationTemplateController extends Controller
         }
 
         if ($filters['position_code'] !== '') {
-            $query->where('position_code', $filters['position_code']);
+            $query->where(function ($builder) use ($filters) {
+                $builder->where('position_code', $filters['position_code'])
+                    ->orWhereHas('targets', function ($t) use ($filters) {
+                        $t->where('code', $filters['position_code']);
+                    });
+            });
         }
 
         if ($filters['status'] === 'active') {
@@ -95,7 +108,7 @@ class EvaluationTemplateController extends Controller
             'filters' => $filters,
             'summary' => $summary,
             'positions' => $this->positions->all(),
-            'criteriaOptions' => $this->criteriaOptions(),
+            ...$this->formCatalogProps(),
             'nextCode' => EvaluationTemplate::suggestNextCode(),
             'exportLogs' => $this->exportLogsPayload(),
             'can' => [
@@ -104,23 +117,32 @@ class EvaluationTemplateController extends Controller
         ]);
     }
 
+    public function create(Request $request): Response
+    {
+        $this->authorize('create', EvaluationTemplate::class);
+
+        return Inertia::render('WorkspaceConfig/EvaluationTemplates/Create', [
+            ...$this->formCatalogProps(),
+            'nextCode' => EvaluationTemplate::suggestNextCode(),
+        ]);
+    }
+
     public function store(StoreEvaluationTemplateRequest $request): RedirectResponse
     {
-        $data = $this->normalizePayload($request->validated());
-        $criteria = $data['criteria'] ?? [];
-        unset($data['criteria']);
+        $validated = $request->validated();
+        [$header, $extras] = $this->splitPayload($validated);
 
-        $data['created_by'] = $request->user()->id;
-        $data['is_active'] = $data['is_active'] ?? true;
-        $data['sort_order'] = $data['sort_order'] ?? ((int) EvaluationTemplate::query()->max('sort_order') + 1);
+        $header['created_by'] = $request->user()->id;
+        $header['is_active'] = $header['is_active'] ?? true;
+        $header['sort_order'] = $header['sort_order'] ?? ((int) EvaluationTemplate::query()->max('sort_order') + 1);
 
-        if (! filled($data['template_code'] ?? null)) {
-            $data['template_code'] = EvaluationTemplate::suggestNextCode();
+        if (! filled($header['template_code'] ?? null)) {
+            $header['template_code'] = EvaluationTemplate::suggestNextCode();
         }
 
-        $template = DB::transaction(function () use ($data, $criteria) {
-            $template = EvaluationTemplate::query()->create($data);
-            $this->syncCriteria($template, $criteria);
+        $template = DB::transaction(function () use ($header, $extras) {
+            $template = EvaluationTemplate::query()->create($header);
+            $this->syncAllRelations($template, $extras);
 
             return $template;
         });
@@ -129,10 +151,12 @@ class EvaluationTemplateController extends Controller
             $request->user(),
             'template_created',
             $template->id,
-            $this->templateAuditMeta($template->fresh(['templateCriteria']))
+            $this->templateAuditMeta($template->fresh(['templateCriteria', 'customCriteria', 'targets', 'fields']))
         );
 
-        return back()->with('success', 'Đã tạo mẫu đánh giá.');
+        return redirect()
+            ->route('workspace.evaluation-templates.show', $template)
+            ->with('success', 'Đã tạo mẫu đánh giá.');
     }
 
     public function import(ImportEvaluationTemplateRequest $request): RedirectResponse
@@ -143,26 +167,24 @@ class EvaluationTemplateController extends Controller
 
         DB::transaction(function () use ($rows, $account, &$created) {
             foreach ($rows as $row) {
-                $data = $this->normalizePayload($row);
-                $criteria = $data['criteria'] ?? [];
-                unset($data['criteria']);
+                [$header, $extras] = $this->splitPayload($row);
 
-                $data['created_by'] = $account->id;
-                $data['is_active'] = $data['is_active'] ?? true;
-                $data['sort_order'] = (int) EvaluationTemplate::query()->max('sort_order') + 1;
+                $header['created_by'] = $account->id;
+                $header['is_active'] = $header['is_active'] ?? true;
+                $header['sort_order'] = (int) EvaluationTemplate::query()->max('sort_order') + 1;
 
-                if (! filled($data['template_code'] ?? null)) {
-                    $data['template_code'] = EvaluationTemplate::suggestNextCode();
+                if (! filled($header['template_code'] ?? null)) {
+                    $header['template_code'] = EvaluationTemplate::suggestNextCode();
                 }
 
-                $template = EvaluationTemplate::query()->create($data);
-                $this->syncCriteria($template, $criteria);
+                $template = EvaluationTemplate::query()->create($header);
+                $this->syncAllRelations($template, $extras);
 
                 SecurityAuditLogger::evaluationTemplate(
                     $account,
                     'template_created',
                     $template->id,
-                    $this->templateAuditMeta($template->fresh(['templateCriteria']))
+                    $this->templateAuditMeta($template->fresh(['templateCriteria', 'customCriteria', 'targets', 'fields']))
                 );
 
                 $created++;
@@ -188,6 +210,9 @@ class EvaluationTemplateController extends Controller
             'creator:id,display_name,employee_id',
             'creator.employee:id,avatar_path',
             'templateCriteria.criterion:id,criteria_code,criteria_name,category,is_active',
+            'customCriteria',
+            'targets',
+            'fields',
         ]);
 
         $user = $request->user();
@@ -196,7 +221,7 @@ class EvaluationTemplateController extends Controller
             'template' => (new EvaluationTemplateResource($evaluationTemplate))->resolve(),
             'activity' => $this->activityFor($evaluationTemplate),
             'positions' => $this->positions->all(),
-            'criteriaOptions' => $this->criteriaOptions(),
+            ...$this->formCatalogProps(),
             'can' => [
                 'manage' => $user->can('update', $evaluationTemplate),
             ],
@@ -208,20 +233,18 @@ class EvaluationTemplateController extends Controller
         EvaluationTemplate $evaluationTemplate,
     ): RedirectResponse {
         $before = $this->templateSnapshot($evaluationTemplate);
-        $data = $this->normalizePayload($request->validated());
-        $criteria = $data['criteria'] ?? [];
-        unset($data['criteria']);
+        [$header, $extras] = $this->splitPayload($request->validated());
 
-        if (! filled($data['template_code'] ?? null)) {
-            $data['template_code'] = $evaluationTemplate->template_code;
+        if (! filled($header['template_code'] ?? null)) {
+            $header['template_code'] = $evaluationTemplate->template_code;
         }
 
-        DB::transaction(function () use ($evaluationTemplate, $data, $criteria) {
-            $evaluationTemplate->update($data);
-            $this->syncCriteria($evaluationTemplate, $criteria);
+        DB::transaction(function () use ($evaluationTemplate, $header, $extras) {
+            $evaluationTemplate->update($header);
+            $this->syncAllRelations($evaluationTemplate, $extras);
         });
 
-        $evaluationTemplate->refresh()->load('templateCriteria');
+        $evaluationTemplate->refresh()->load(['templateCriteria', 'customCriteria', 'targets', 'fields']);
 
         $meta = $this->templateAuditMeta($evaluationTemplate);
         $meta['changes'] = $this->diffTemplateSnapshot($before, $this->templateSnapshot($evaluationTemplate));
@@ -260,7 +283,7 @@ class EvaluationTemplateController extends Controller
     {
         $this->authorize('create', EvaluationTemplate::class);
 
-        $evaluationTemplate->load('templateCriteria');
+        $evaluationTemplate->load(['templateCriteria', 'customCriteria', 'targets', 'fields']);
 
         $copy = DB::transaction(function () use ($request, $evaluationTemplate) {
             $copy = EvaluationTemplate::query()->create([
@@ -274,7 +297,8 @@ class EvaluationTemplateController extends Controller
                 'created_by' => $request->user()->id,
             ]);
 
-            $lines = $evaluationTemplate->templateCriteria->map(fn ($line) => [
+            $catalog = $evaluationTemplate->templateCriteria->map(fn ($line) => [
+                'source' => 'catalog',
                 'criterion_id' => $line->criterion_id,
                 'weight' => $line->weight,
                 'required_score_label' => $line->required_score_label,
@@ -282,7 +306,49 @@ class EvaluationTemplateController extends Controller
                 'sort_order' => $line->sort_order,
             ])->all();
 
-            $this->syncCriteria($copy, $lines);
+            $custom = $evaluationTemplate->customCriteria->map(fn ($line) => [
+                'source' => 'custom',
+                'custom_name' => $line->custom_name,
+                'custom_code' => $line->custom_code,
+                'custom_category' => $line->custom_category,
+                'custom_description' => $line->custom_description,
+                'weight' => $line->weight,
+                'required_score_label' => $line->required_score_label,
+                'include_in_total' => $line->include_in_total,
+                'sort_order' => $line->sort_order,
+            ])->all();
+
+            $this->syncAllRelations($copy, [
+                'titles' => $evaluationTemplate->targets
+                    ->where('kind', EvaluationTemplateTargetKind::Title->value)
+                    ->map(fn ($t) => [
+                        'code' => $t->code,
+                        'name' => $t->name,
+                        'hrm_uuid' => $t->hrm_uuid,
+                        'source' => $t->source,
+                    ])->values()->all(),
+                'ranks' => $evaluationTemplate->targets
+                    ->where('kind', EvaluationTemplateTargetKind::Rank->value)
+                    ->map(fn ($t) => [
+                        'code' => $t->code,
+                        'name' => $t->name,
+                        'hrm_uuid' => $t->hrm_uuid,
+                        'source' => $t->source,
+                    ])->values()->all(),
+                'criteria' => array_merge($catalog, $custom),
+                'fields' => $evaluationTemplate->fields->map(fn ($f) => [
+                    'field_key' => $f->field_key,
+                    'label' => $f->label,
+                    'field_type' => $f->field_type instanceof EvaluationTemplateFieldType
+                        ? $f->field_type->value
+                        : (string) $f->field_type,
+                    'options' => $f->options ?? [],
+                    'is_required' => $f->is_required,
+                    'placeholder' => $f->placeholder,
+                    'help_text' => $f->help_text,
+                    'sort_order' => $f->sort_order,
+                ])->all(),
+            ]);
 
             return $copy;
         });
@@ -291,7 +357,7 @@ class EvaluationTemplateController extends Controller
             $request->user(),
             'template_duplicated',
             $copy->id,
-            array_merge($this->templateAuditMeta($copy->fresh(['templateCriteria'])), [
+            array_merge($this->templateAuditMeta($copy->fresh(['templateCriteria', 'customCriteria', 'targets', 'fields'])), [
                 'source_template_id' => $evaluationTemplate->id,
                 'source_template_code' => $evaluationTemplate->template_code,
             ])
@@ -340,7 +406,7 @@ class EvaluationTemplateController extends Controller
             ]
         );
 
-        if ($request->wantsJson() || $request->header('X-Inertia') === null && $request->expectsJson()) {
+        if ($request->wantsJson() || $request->expectsJson()) {
             return response()->json([
                 'success' => true,
                 'log' => $this->formatExportLog($log->load('exporter:id,display_name')),
@@ -352,41 +418,108 @@ class EvaluationTemplateController extends Controller
 
     /**
      * @param  array<string, mixed>  $data
+     * @return array{0: array<string, mixed>, 1: array{titles: list<array<string, mixed>>, ranks: list<array<string, mixed>>, criteria: list<array<string, mixed>>, fields: list<array<string, mixed>>}}
+     */
+    private function splitPayload(array $data): array
+    {
+        $titles = is_array($data['titles'] ?? null) ? $data['titles'] : [];
+        $ranks = is_array($data['ranks'] ?? null) ? $data['ranks'] : [];
+        $criteria = is_array($data['criteria'] ?? null) ? $data['criteria'] : [];
+        $fields = is_array($data['fields'] ?? null) ? $data['fields'] : [];
+
+        unset($data['titles'], $data['ranks'], $data['criteria'], $data['fields']);
+
+        $data = $this->normalizeHeaderFromTargets($data, $titles, $ranks);
+
+        return [$data, [
+            'titles' => $titles,
+            'ranks' => $ranks,
+            'criteria' => $criteria,
+            'fields' => $fields,
+        ]];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @param  list<array<string, mixed>>  $titles
+     * @param  list<array<string, mixed>>  $ranks
      * @return array<string, mixed>
      */
-    private function normalizePayload(array $data): array
+    private function normalizeHeaderFromTargets(array $data, array $titles, array $ranks): array
     {
+        if ($titles !== []) {
+            $first = $titles[0];
+            $data['position_code'] = (string) ($first['code'] ?? '');
+            $data['position_name'] = (string) ($first['name'] ?? '');
+
+            return $data;
+        }
+
+        // Legacy single position fields
         $code = trim((string) ($data['position_code'] ?? ''));
         if ($code !== '') {
-            $pos = $this->positions->findByCode($code);
+            $pos = $this->jobCatalog->findTitleByCode($code) ?? $this->positions->findByCode($code);
             if ($pos !== null) {
                 $data['position_code'] = $pos['code'];
                 $data['position_name'] = $pos['name'];
-            } elseif (! filled($data['position_name'] ?? null)) {
-                $byName = $this->positions->findByName($code);
-                if ($byName !== null) {
-                    $data['position_code'] = $byName['code'];
-                    $data['position_name'] = $byName['name'];
-                }
             }
         } else {
             $name = trim((string) ($data['position_name'] ?? ''));
             if ($name !== '') {
-                $pos = $this->positions->findByName($name);
-                if ($pos !== null) {
-                    $data['position_code'] = $pos['code'];
-                    $data['position_name'] = $pos['name'];
-                } else {
-                    $data['position_code'] = HrmPositionDirectory::codeFromName($name);
-                    $data['position_name'] = $name;
-                }
+                $data['position_code'] = HrmJobCatalogDirectory::codeFromName('TITLE', $name);
+                $data['position_name'] = $name;
             } else {
                 $data['position_code'] = null;
                 $data['position_name'] = null;
             }
         }
 
+        unset($ranks);
+
         return $data;
+    }
+
+    /**
+     * @param  array{titles?: list<array<string, mixed>>, ranks?: list<array<string, mixed>>, criteria?: list<array<string, mixed>>, fields?: list<array<string, mixed>>}  $extras
+     */
+    private function syncAllRelations(EvaluationTemplate $template, array $extras): void
+    {
+        $this->syncTargets($template, $extras['titles'] ?? [], EvaluationTemplateTargetKind::Title);
+        $this->syncTargets($template, $extras['ranks'] ?? [], EvaluationTemplateTargetKind::Rank);
+        $this->syncCriteria($template, $extras['criteria'] ?? []);
+        $this->syncFields($template, $extras['fields'] ?? []);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rows
+     */
+    private function syncTargets(EvaluationTemplate $template, array $rows, EvaluationTemplateTargetKind $kind): void
+    {
+        $template->targets()->where('kind', $kind->value)->delete();
+
+        $seen = [];
+        $order = 0;
+        foreach ($rows as $row) {
+            $code = trim((string) ($row['code'] ?? ''));
+            $name = trim((string) ($row['name'] ?? ''));
+            if ($code === '' || $name === '' || isset($seen[$code])) {
+                continue;
+            }
+            $seen[$code] = true;
+
+            $resolved = $kind === EvaluationTemplateTargetKind::Title
+                ? ($this->jobCatalog->findTitleByCode($code) ?? ['code' => $code, 'name' => $name, 'source' => $row['source'] ?? 'manual', 'hrm_uuid' => $row['hrm_uuid'] ?? null])
+                : ($this->jobCatalog->findRankByCode($code) ?? ['code' => $code, 'name' => $name, 'source' => $row['source'] ?? 'manual', 'hrm_uuid' => $row['hrm_uuid'] ?? null]);
+
+            $template->targets()->create([
+                'kind' => $kind->value,
+                'code' => $resolved['code'],
+                'name' => $resolved['name'],
+                'hrm_uuid' => $resolved['hrm_uuid'] ?? ($row['hrm_uuid'] ?? null),
+                'source' => $resolved['source'] ?? ($row['source'] ?? 'directory'),
+                'sort_order' => $order++,
+            ]);
+        }
     }
 
     /**
@@ -395,31 +528,129 @@ class EvaluationTemplateController extends Controller
     private function syncCriteria(EvaluationTemplate $template, array $criteria): void
     {
         $template->templateCriteria()->delete();
+        $template->customCriteria()->delete();
+
+        $seenCatalog = [];
+        $order = 0;
+        foreach ($criteria as $line) {
+            $source = $line['source'] ?? (! empty($line['criterion_id']) ? 'catalog' : 'custom');
+            $weight = isset($line['weight']) ? (float) $line['weight'] : 1;
+            $required = filled($line['required_score_label'] ?? null)
+                ? trim((string) $line['required_score_label'])
+                : null;
+            $include = (bool) ($line['include_in_total'] ?? true);
+            $sort = isset($line['sort_order']) ? (int) $line['sort_order'] : $order;
+
+            if ($source === 'catalog') {
+                $criterionId = (int) ($line['criterion_id'] ?? 0);
+                if ($criterionId < 1 || isset($seenCatalog[$criterionId])) {
+                    continue;
+                }
+                $seenCatalog[$criterionId] = true;
+                $template->templateCriteria()->create([
+                    'criterion_id' => $criterionId,
+                    'weight' => $weight,
+                    'required_score_label' => $required,
+                    'include_in_total' => $include,
+                    'sort_order' => $sort,
+                ]);
+            } else {
+                $name = trim((string) ($line['custom_name'] ?? $line['name'] ?? $line['criteria_name'] ?? ''));
+                if ($name === '') {
+                    continue;
+                }
+                $template->customCriteria()->create([
+                    'custom_name' => $name,
+                    'custom_code' => filled($line['custom_code'] ?? null) ? trim((string) $line['custom_code']) : null,
+                    'custom_category' => filled($line['custom_category'] ?? $line['group_label'] ?? null)
+                        ? trim((string) ($line['custom_category'] ?? $line['group_label']))
+                        : null,
+                    'custom_description' => filled($line['custom_description'] ?? $line['description'] ?? null)
+                        ? trim((string) ($line['custom_description'] ?? $line['description']))
+                        : null,
+                    'weight' => $weight,
+                    'required_score_label' => $required,
+                    'include_in_total' => $include,
+                    'sort_order' => $sort,
+                ]);
+            }
+            $order++;
+        }
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $fields
+     */
+    private function syncFields(EvaluationTemplate $template, array $fields): void
+    {
+        $template->fields()->delete();
 
         $seen = [];
         $order = 0;
-        foreach ($criteria as $line) {
-            $criterionId = (int) ($line['criterion_id'] ?? 0);
-            if ($criterionId < 1 || isset($seen[$criterionId])) {
+        foreach ($fields as $field) {
+            $label = trim((string) ($field['label'] ?? ''));
+            if ($label === '') {
                 continue;
             }
-            $seen[$criterionId] = true;
+            $type = (string) ($field['field_type'] ?? EvaluationTemplateFieldType::Text->value);
+            if (! in_array($type, EvaluationTemplateFieldType::values(), true)) {
+                $type = EvaluationTemplateFieldType::Text->value;
+            }
 
-            $template->templateCriteria()->create([
-                'criterion_id' => $criterionId,
-                'weight' => isset($line['weight']) ? (float) $line['weight'] : 1,
-                'required_score_label' => filled($line['required_score_label'] ?? null)
-                    ? trim((string) $line['required_score_label'])
-                    : null,
-                'include_in_total' => (bool) ($line['include_in_total'] ?? true),
-                'sort_order' => isset($line['sort_order']) ? (int) $line['sort_order'] : $order,
+            $key = trim((string) ($field['field_key'] ?? ''));
+            if ($key === '') {
+                $key = Str::slug($label, '_');
+                if ($key === '') {
+                    $key = 'field_'.$order;
+                }
+            }
+            $base = $key;
+            $n = 2;
+            while (isset($seen[$key])) {
+                $key = $base.'_'.$n;
+                $n++;
+            }
+            $seen[$key] = true;
+
+            $options = $field['options'] ?? null;
+            if (is_string($options)) {
+                $options = array_values(array_filter(array_map('trim', preg_split('/[\n;,]+/', $options) ?: [])));
+            }
+            if (! is_array($options)) {
+                $options = null;
+            }
+
+            $template->fields()->create([
+                'field_key' => $key,
+                'label' => $label,
+                'field_type' => $type,
+                'options' => $type === EvaluationTemplateFieldType::Select->value ? array_values($options ?? []) : null,
+                'is_required' => (bool) ($field['is_required'] ?? $field['required'] ?? false),
+                'placeholder' => filled($field['placeholder'] ?? null) ? trim((string) $field['placeholder']) : null,
+                'help_text' => filled($field['help_text'] ?? null) ? trim((string) $field['help_text']) : null,
+                'sort_order' => isset($field['sort_order']) ? (int) $field['sort_order'] : $order,
             ]);
             $order++;
         }
     }
 
     /**
-     * @return list<array{id: int, criteria_code: string, criteria_name: string, category: string, scope: string, department_name: string|null}>
+     * Shared catalog props for create/edit forms.
+     *
+     * @return array{jobTitles: list<array<string, mixed>>, jobRanks: list<array<string, mixed>>, fieldTypeOptions: list<array{value: string, label: string}>, criteriaOptions: list<array<string, mixed>>}
+     */
+    private function formCatalogProps(): array
+    {
+        return [
+            'jobTitles' => $this->jobCatalog->titles(),
+            'jobRanks' => $this->jobCatalog->ranks(),
+            'fieldTypeOptions' => EvaluationTemplateFieldType::options(),
+            'criteriaOptions' => $this->criteriaOptions(),
+        ];
+    }
+
+    /**
+     * @return list<array{id: int, criteria_code: string, criteria_name: string, category: string, scope: string, department_name: string|null, score_levels: list<array{code: string, label: string, description: string, weight: int|float}>}>
      */
     private function criteriaOptions(): array
     {
@@ -428,7 +659,7 @@ class EvaluationTemplateController extends Controller
             ->orderBy('category')
             ->orderBy('sort_order')
             ->orderBy('id')
-            ->get(['id', 'criteria_code', 'criteria_name', 'category', 'scope', 'department_name'])
+            ->get(['id', 'criteria_code', 'criteria_name', 'category', 'scope', 'department_name', 'score_levels', 'allow_half_score'])
             ->map(fn (EvaluationCriterion $c) => [
                 'id' => $c->id,
                 'criteria_code' => $c->criteria_code,
@@ -436,6 +667,7 @@ class EvaluationTemplateController extends Controller
                 'category' => $c->category,
                 'scope' => $c->scope instanceof \BackedEnum ? $c->scope->value : (string) $c->scope,
                 'department_name' => $c->department_name,
+                'score_levels' => $c->normalizedScoreLevels(),
                 'label' => $c->criteria_name.' ('.$c->criteria_code.')',
             ])
             ->values()
@@ -516,16 +748,22 @@ class EvaluationTemplateController extends Controller
      */
     private function templateAuditMeta(EvaluationTemplate $template): array
     {
-        $count = $template->relationLoaded('templateCriteria')
+        $catalog = $template->relationLoaded('templateCriteria')
             ? $template->templateCriteria->count()
             : $template->templateCriteria()->count();
+        $custom = $template->relationLoaded('customCriteria')
+            ? $template->customCriteria->count()
+            : $template->customCriteria()->count();
 
         return [
             'template_code' => $template->template_code,
             'name' => $template->name,
             'position_code' => $template->position_code,
             'position_name' => $template->position_name,
-            'criteria_count' => $count,
+            'criteria_count' => $catalog + $custom,
+            'fields_count' => $template->relationLoaded('fields')
+                ? $template->fields->count()
+                : $template->fields()->count(),
             'is_active' => (bool) $template->is_active,
         ];
     }
@@ -535,19 +773,37 @@ class EvaluationTemplateController extends Controller
      */
     private function templateSnapshot(EvaluationTemplate $template): array
     {
-        $template->loadMissing('templateCriteria.criterion:id,criteria_code,criteria_name');
+        $template->loadMissing([
+            'templateCriteria.criterion:id,criteria_code,criteria_name',
+            'customCriteria',
+            'targets',
+            'fields',
+        ]);
 
-        $criteriaSummary = $template->templateCriteria
-            ->map(fn ($line) => ($line->criterion?->criteria_code ?? '#'.$line->criterion_id)
-                .'×'.($line->weight ?? 1))
+        $criteriaSummary = collect()
+            ->merge($template->templateCriteria->map(fn ($line) => ($line->criterion?->criteria_code ?? '#'.$line->criterion_id).'×'.($line->weight ?? 1)))
+            ->merge($template->customCriteria->map(fn ($line) => 'custom:'.$line->custom_name.'×'.($line->weight ?? 1)))
+            ->implode(', ');
+
+        $targetSummary = $template->targets
+            ->map(fn ($t) => ($t->kind instanceof EvaluationTemplateTargetKind ? $t->kind->value : $t->kind).':'.$t->name)
+            ->implode(', ');
+
+        $fieldsSummary = $template->fields
+            ->map(fn ($f) => $f->label.'('.(
+                $f->field_type instanceof EvaluationTemplateFieldType
+                    ? $f->field_type->value
+                    : $f->field_type
+            ).')')
             ->implode(', ');
 
         return [
             'name' => $template->name,
             'description' => $template->description,
-            'position_name' => $template->position_name,
+            'position_name' => $targetSummary !== '' ? $targetSummary : $template->position_name,
             'is_active' => (bool) $template->is_active,
             'criteria_summary' => $criteriaSummary,
+            'fields_summary' => $fieldsSummary,
         ];
     }
 
@@ -564,6 +820,7 @@ class EvaluationTemplateController extends Controller
             'position_name' => 'Vị trí đánh giá',
             'is_active' => 'Trạng thái',
             'criteria_summary' => 'Tiêu chí gắn',
+            'fields_summary' => 'Trường tùy biến',
         ];
 
         $changes = [];

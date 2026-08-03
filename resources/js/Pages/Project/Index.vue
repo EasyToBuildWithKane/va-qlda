@@ -55,7 +55,6 @@ const props = defineProps({
     filters: { type: Object, default: () => ({}) },
     statusOptions: { type: Array, default: () => [] },
     typeOptions: { type: Array, default: () => [] },
-    categoryOptions: { type: Array, default: () => [] },
     scopeOptions: { type: Array, default: () => [] },
     regionOptions: { type: Array, default: () => [] },
     departmentOptions: { type: Array, default: () => [] },
@@ -72,17 +71,14 @@ const perPage = ref(Number(props.filters.per_page) || props.projects.meta?.per_p
 // ---- Persisted UI state ---------------------------------------------------
 const VIEW_KEY = 'va-workspace.projects.view';
 const GROUP_KEY = 'va-workspace.projects.groupby';
-const GRIDGROUP_KEY = 'va-workspace.projects.gridgroup';
 const KANBAN_COLLAPSE_KEY = 'va-workspace.projects.kanban.collapsed';
 const COLS_KEY = 'va-workspace.projects.columns';
 const SAVED_KEY = 'va-workspace.projects.savedfilters';
 
 const view = ref(localStorage.getItem(VIEW_KEY) || 'list');
 const groupBy = ref(localStorage.getItem(GROUP_KEY) || 'type');
-const gridGroupByDept = ref(localStorage.getItem(GRIDGROUP_KEY) === '1');
 watch(view, (v) => localStorage.setItem(VIEW_KEY, v));
 watch(groupBy, (v) => localStorage.setItem(GROUP_KEY, v));
-watch(gridGroupByDept, (v) => localStorage.setItem(GRIDGROUP_KEY, v ? '1' : '0'));
 
 // Visible columns
 const loadCols = () => {
@@ -104,7 +100,6 @@ const toggleColumn = (key) => {
 const serverFilters = reactive({
     status: props.filters.status ?? '',
     type: props.filters.type ?? '',
-    category: props.filters.category ?? '',
     scope: props.filters.scope ?? '',
     department_id: props.filters.department_id ?? '',
     mine: props.filters.mine ? '1' : '',
@@ -115,7 +110,6 @@ function projectRouteParams(resetPage = false) {
     return {
         status: serverFilters.status || undefined,
         type: serverFilters.type || undefined,
-        category: serverFilters.category || undefined,
         scope: serverFilters.scope || undefined,
         department_id: serverFilters.department_id || undefined,
         mine: serverFilters.mine || undefined,
@@ -164,14 +158,14 @@ const displayedProjects = computed(() => {
 
 const activeFilterCount = computed(() => {
     let n = 0;
-    ['status', 'type', 'category', 'scope', 'department_id', 'mine'].forEach((k) => { if (serverFilters[k]) n++; });
+    ['status', 'type', 'scope', 'department_id', 'mine'].forEach((k) => { if (serverFilters[k]) n++; });
     if (clientFilters.manager_id) n++;
     if (clientFilters.region) n++;
     return n;
 });
 
 const clearAllFilters = () => {
-    Object.assign(serverFilters, { status: '', type: '', category: '', scope: '', department_id: '', mine: '', q: serverFilters.q });
+    Object.assign(serverFilters, { status: '', type: '', scope: '', department_id: '', mine: '', q: serverFilters.q });
     Object.assign(clientFilters, { manager_id: '', region: '' });
 };
 
@@ -707,43 +701,6 @@ function onPortfolioQuickFilter({ status }) {
       v-if="view === 'list'"
       class="mb-3 flex flex-wrap items-center gap-3 text-sm"
     >
-      <div
-        class="inline-flex rounded-btn border border-slate-200 bg-white p-0.5"
-        role="group"
-        aria-label="Lọc theo phân loại"
-      >
-        <button
-          type="button"
-          class="rounded-[4px] px-3 py-1 text-sm font-medium transition"
-          :class="!serverFilters.category ? 'bg-brand text-white' : 'text-slate-500 hover:bg-slate-100'"
-          @click="serverFilters.category = ''"
-        >
-          Tất cả
-        </button>
-        <button
-          v-for="o in categoryOptions"
-          :key="o.value"
-          type="button"
-          class="inline-flex items-center gap-1.5 rounded-[4px] px-3 py-1 text-sm font-medium transition"
-          :class="serverFilters.category === o.value ? 'bg-brand text-white' : 'text-slate-500 hover:bg-slate-100'"
-          @click="serverFilters.category = o.value"
-        >
-          <AppIcon
-            :name="o.icon"
-            :size="14"
-          />
-          {{ o.label }}
-        </button>
-      </div>
-      <span class="text-slate-300">|</span>
-      <label class="flex cursor-pointer items-center gap-2 text-slate-600">
-        <input
-          v-model="gridGroupByDept"
-          type="checkbox"
-          class="rounded"
-        > Nhóm theo phòng ban
-      </label>
-      <span class="text-slate-300">|</span>
       <span class="text-slate-500">
         <template v-if="projects.meta?.total">
           {{ pageRangeLabel }} dự án
@@ -784,8 +741,6 @@ function onPortfolioQuickFilter({ status }) {
       v-if="view === 'list'"
       :projects="displayedProjects"
       :visible="visibleColumns"
-      :group-by-department="gridGroupByDept"
-      :department-options="departmentOptions"
       @remove="remove"
       @duplicate="duplicate"
     />

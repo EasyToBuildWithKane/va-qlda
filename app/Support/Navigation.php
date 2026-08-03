@@ -16,7 +16,7 @@ use App\Support\Enums\SystemRole;
  * SECTIONS order (stable, so definition order is kept within a section) and the
  * frontend renders the section title above the first group of each section:
  *
- *   execution  — Điều hành & Thực thi   overview, performance, projects, daily, ai, contracts, quality
+ *   execution  — Điều hành & Thực thi   overview, performance, projects (+ feedback), daily, ai, contracts
  *   people     — Tri thức & Nội dung    knowledge
  *   technology — Công nghệ              congnghe
  *   system     — Hệ thống & Quản trị    security, system, settings_*
@@ -63,7 +63,6 @@ class Navigation
         'settings_general',
         'settings_notify',
         'settings_access',
-        'settings_clm',
         'settings_workspace',
     ];
 
@@ -285,7 +284,7 @@ class Navigation
             ],
 
             // ──────────────────────────────────────────────────────────────
-            // 3. CÔNG VIỆC & DỰ ÁN — projects, blockers
+            // 3. CÔNG VIỆC & DỰ ÁN — projects, blockers, feedback
             //    Sprints / tasks / board are accessed inside a project page,
             //    so they are not top-level nav items here.
             // ──────────────────────────────────────────────────────────────
@@ -312,6 +311,12 @@ class Navigation
                         'label' => 'Vướng mắc',
                         'icon' => 'blockers',
                         'href' => '/blockers',
+                        'status' => 'live',
+                    ],
+                    [
+                        'label' => 'Theo dõi phản hồi',
+                        'icon' => 'feedback',
+                        'href' => '/feedback',
                         'status' => 'live',
                     ],
                 ],
@@ -463,26 +468,7 @@ class Navigation
             ],
 
             // ──────────────────────────────────────────────────────────────
-            // 9. CHẤT LƯỢNG & PHẢN HỒI — feedback
-            // ──────────────────────────────────────────────────────────────
-            [
-                'key' => 'quality',
-                'section' => 'execution',
-                'heading' => 'CHẤT LƯỢNG & PHẢN HỒI',
-                'icon' => 'feedback',
-                'defaultCollapsed' => true,
-                'items' => [
-                    [
-                        'label' => 'Theo dõi phản hồi',
-                        'icon' => 'feedback',
-                        'href' => '/feedback',
-                        'status' => 'live',
-                    ],
-                ],
-            ],
-
-            // ──────────────────────────────────────────────────────────────
-            // 10. BẢO MẬT & TÀI SẢN SỐ — credential vault
+            // 9. BẢO MẬT & TÀI SẢN SỐ — credential vault
             // ──────────────────────────────────────────────────────────────
             [
                 'key' => 'security',
@@ -571,6 +557,13 @@ class Navigation
                         'status' => 'live',
                         'roles' => ['admin'],
                     ],
+                    [
+                        'label' => 'Hợp đồng (CLM)',
+                        'icon' => 'budget',
+                        'href' => '/settings/clm',
+                        'status' => 'live',
+                        'roles' => ['admin'],
+                    ],
                 ],
             ],
             [
@@ -648,23 +641,6 @@ class Navigation
                         'href' => '/workspace-config/evaluation-templates',
                         'status' => 'live',
                         'permission' => 'workspace.hub.view',
-                    ],
-                ],
-            ],
-            [
-                'key' => 'settings_clm',
-                'section' => 'system',
-                'heading' => 'Cấu hình hợp đồng',
-                'icon' => 'budget',
-                'defaultCollapsed' => true,
-                'superOnly' => true,
-                'items' => [
-                    [
-                        'label' => 'Cảnh báo gia hạn',
-                        'icon' => 'budget',
-                        'href' => '/settings/clm',
-                        'status' => 'live',
-                        'roles' => ['admin'],
                     ],
                 ],
             ],

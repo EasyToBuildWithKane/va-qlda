@@ -95,7 +95,7 @@ final class HrmPositionDirectory
         $byCode = [];
 
         Employee::query()
-            ->where('status', 'active')
+            ->where('is_active', true)
             ->orderBy('id')
             ->get(['id', 'role_title', 'meta'])
             ->each(function (Employee $employee) use (&$byCode) {

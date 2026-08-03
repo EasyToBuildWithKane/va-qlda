@@ -122,7 +122,7 @@ flowchart TB
   NAV --> DR[daily → /daily-reports/today, /daily-reports]
   NAV --> KN[knowledge → /knowledge-base, blog]
   NAV --> AI[ai → /ai-accounts/*]
-  NAV --> QL[quality → /feedback]
+  NAV --> FB[projects → /feedback]
   NAV --> SY[system → notifications/manage, /settings]
 ```
 

@@ -150,7 +150,7 @@ Department ──→ Employee ──→ SystemAccount
 | color | varchar(50) | YES | Brand color |
 | status | varchar(20) | NO | planning/active/on_hold/completed/cancelled |
 | type | varchar(20) | NO | rnd/deployment/operation (vòng đời) |
-| category | varchar(30) | YES | hardware/software — lọc & chip Phần cứng/Phần mềm |
+| category | varchar(30) | YES | hardware/software — legacy (không còn field form / chip lọc Index) |
 | scope | varchar(20) | NO | headquarters/regional/departmental |
 | scope_regions | json | YES | Mảng vùng (khi scope=regional) |
 | scope_departments | json | YES | Mảng phòng ban (khi scope=departmental) |
@@ -642,13 +642,19 @@ Lưu **override** cấu hình runtime (admin chỉnh ở `/settings`). Bảng tr
 
 ---
 
-### 3.29 va_prd_evaluation_* — Cấu hình tiêu chí đánh giá
+### 3.29 va_prd_evaluation_* — Cấu hình tiêu chí / mẫu đánh giá
 
-Xem `docs/EVALUATION_CONFIG.md`. Migrations: `2026_07_29_160000_create_evaluation_config_tables` → `2026_07_30_120000_drop_evaluation_templates` → `2026_07_30_130000_reshape_evaluation_criteria_catalog` (catalog standalone).
+Xem `docs/EVALUATION_CONFIG.md`. Migrations: `2026_07_29_160000_create_evaluation_config_tables` → `2026_07_30_120000_drop_evaluation_templates` → `2026_07_30_130000_reshape_evaluation_criteria_catalog` (catalog standalone) → `2026_07_31_120000_create_evaluation_templates_tables` (mẫu đánh giá) → `2026_07_31_160000_enhance_evaluation_templates_targets_fields` (targets / custom criteria / form fields).
 
 | Bảng | Mô tả |
 |------|--------|
 | `evaluation_criteria` | Tiêu chí chung / theo PB; SoftDeletes; unique `criteria_code` (`TCVA###`); `score_levels` JSON `[{label, weight}]` (2–10 mức); `allow_half_score` |
+| `evaluation_templates` | Mẫu đánh giá; SoftDeletes; unique `template_code` (`MDG###`); `position_code` / `position_name` (legacy mirror); `created_by` |
+| `evaluation_template_criteria` | Pivot mẫu ↔ tiêu chí catalog: `weight`, `required_score_label`, `include_in_total`, `sort_order` |
+| `evaluation_template_targets` | Multi chức danh (`kind=title`) / cấp bậc (`kind=rank`): `code`, `name`, `hrm_uuid`, `source` |
+| `evaluation_template_custom_criteria` | Tiêu chí tùy chỉnh trên mẫu (không FK catalog): `custom_name`, weight, score label… |
+| `evaluation_template_fields` | Trường form phụ trên phiếu: `field_key`, `field_type`, `options` JSON, `is_required` |
+| `evaluation_template_export_logs` | Lịch sử xuất Excel/CSV: `scope`, `format`, `row_count`, `columns` JSON, `filters` JSON, `filename` |
 
 ### 3.30 va_prd_workspace_profiles — Workspace theo phòng ban
 

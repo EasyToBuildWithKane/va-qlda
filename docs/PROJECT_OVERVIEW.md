@@ -41,7 +41,7 @@ VA Workspace
 ├── [FEEDBACK]      Góp ý & đề xuất từ nhân viên (FB-0001)
 ├── [COMMENT]       Thảo luận đa hình (Task, Blocker, Feedback)
 ├── [DEPARTMENT]    Phòng ban (model + mutate API; Index UI gỡ — chờ HRM)
-├── [SYSTEM CONFIG] Cấu hình (super_admin): Cấu hình chung · Thông báo hệ thống · Phân quyền · Cấu hình hợp đồng → docs/SYSTEM_CONFIG.md
+├── [SYSTEM CONFIG] Cấu hình (super_admin): Cấu hình chung (gồm CLM) · Thông báo hệ thống · Phân quyền → docs/SYSTEM_CONFIG.md
 ├── [EVALUATION CONFIG] Cấu hình tiêu chí đánh giá (chung + theo PB, super_admin) → docs/EVALUATION_CONFIG.md
 ├── [CONGNGHE]      Trung tâm Công Nghệ — landing, đề xuất phần mềm, quản trị nội dung → docs/CONGNGHE_CONTENT.md
 ├── [PROFILE]       Hồ sơ cá nhân (/profile)
@@ -239,7 +239,7 @@ Tạo Project
 | Daily Report | `/daily-reports` | ✅ Hoàn thành → docs/DAILY_REPORT.md |
 | Blocker Tracking | `/blockers` | ✅ Hoàn thành |
 | Bug Tracking | — | ❌ Đã gỡ (2026-06) — dùng Feedback / Blocker |
-| Feedback | `/feedback` | ✅ Hoàn thành |
+| Feedback | `/feedback` (nav: Công việc & Dự án) | ✅ Hoàn thành |
 | Department (mutate API, không Index) | `/departments` POST/PUT/PATCH/DELETE | ✅ Model + FormModal; Index UI gỡ |
 | Comments & Reactions | morph (task, blocker, feedback) | ✅ Hoàn thành |
 | Notification System (in-app bell + drawer) | `/notifications` | ✅ Hoàn thành |
