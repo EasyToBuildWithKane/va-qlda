@@ -72,8 +72,6 @@ watch(
 
         <p class="mx-auto mt-4 max-w-xs text-center text-sm leading-relaxed text-slate-500">
           Đăng nhập thông qua tài khoản mail do nhà trường cung cấp
-          (@vaschools.edu.vn hoặc @hcm.vaschools.edu.vn).
-          Nếu Google không hiện sẵn tài khoản, nhập đúng email trường rồi tiếp tục.
         </p>
 
         <!-- SSO qua HRM (IdP nội bộ) — không gọi Google OAuth riêng trên Workspace -->

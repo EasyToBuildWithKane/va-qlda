@@ -41,26 +41,19 @@ class GoogleAuthController extends Controller
         $google = Socialite::driver('google');
 
         // redirect_uri phải khớp tuyệt đối với Google Cloud Console + callback dưới đây.
-        // - prompt=select_account: ưu tiên màn chọn tài khoản khi browser đã có session Google
-        // - hd: gợi ý Google Workspace nhà trường (không tự liệt kê account nếu browser chưa đăng nhập)
-        // - AccountChooser: lớp ngoài — chỉ hiện tile account đang signed-in trên trình duyệt
+        // - prompt=select_account: một màn chọn tài khoản (không bọc thêm AccountChooser — tránh double chooser)
+        // - hd: gợi ý Google Workspace nhà trường trên UI Google
         $params = ['prompt' => 'select_account'];
         $hostedDomain = strtolower(trim((string) config('services.google.hosted_domain', '')));
         if ($hostedDomain !== '') {
             $params['hd'] = $hostedDomain;
         }
 
-        $oauthRedirect = $google
+        return $google
             ->scopes(['openid', 'profile', 'email'])
             ->redirectUrl($this->callbackUrl())
             ->with($params)
             ->redirect();
-
-        $continue = $oauthRedirect->getTargetUrl();
-
-        return new SymfonyRedirectResponse(
-            'https://accounts.google.com/AccountChooser?continue='.rawurlencode($continue)
-        );
     }
 
     public function callback(Request $request): RedirectResponse
@@ -136,6 +129,37 @@ class GoogleAuthController extends Controller
                 ->with('error', 'Email không thuộc tổ chức được phép đăng nhập.');
         }
 
+        try {
+            return $this->completeGoogleLogin($request, $googleUser, $email, $portal, $loginRoute);
+        } catch (\Throwable $e) {
+            // Luôn ghi stderr/PHP log — kể cả khi storage/logs không ghi được.
+            error_log('[auth.google.callback_failed] '.$e::class.': '.$e->getMessage().' @ '.$e->getFile().':'.$e->getLine());
+
+            try {
+                report($e);
+                Log::error('auth.google.callback_failed', [
+                    'email' => $email,
+                    'portal' => $portal,
+                    'exception' => $e::class,
+                    'message' => $e->getMessage(),
+                    'file' => $e->getFile().':'.$e->getLine(),
+                ]);
+            } catch (\Throwable) {
+                // bỏ qua — đã error_log ở trên
+            }
+
+            return redirect()->route($loginRoute)
+                ->with('error', 'Đăng nhập Google thất bại trên máy chủ ('.$e::class.'). Kiểm tra log auth.google.callback_failed.');
+        }
+    }
+
+    private function completeGoogleLogin(
+        Request $request,
+        mixed $googleUser,
+        string $email,
+        string $portal,
+        string $loginRoute,
+    ): RedirectResponse {
         $resolver = app(HrmIdentityResolver::class);
 
         $employee = Employee::query()
@@ -185,6 +209,16 @@ class GoogleAuthController extends Controller
             $account = app(SystemAccountProvisioner::class)->ensureForEmployee($employee);
         }
 
+        if ($account === null) {
+            Log::error('auth.google.account_missing_after_provision', [
+                'email' => $email,
+                'employee_id' => $employee->id,
+            ]);
+
+            return redirect()->route($loginRoute)
+                ->with('error', 'Không tạo được tài khoản đăng nhập. Liên hệ quản trị.');
+        }
+
         if (! $account->is_active) {
             return redirect()->route($loginRoute)
                 ->with('error', 'Tài khoản đăng nhập đã bị vô hiệu hóa. Liên hệ quản trị.');
@@ -194,7 +228,21 @@ class GoogleAuthController extends Controller
         $request->session()->regenerate();
         $account->forceFill(['last_login_at' => now()])->save();
 
-        \App\Support\SecurityAuditLogger::login($account, "google:{$portal}");
+        try {
+            \App\Support\SecurityAuditLogger::login($account, "google:{$portal}");
+        } catch (\Throwable $e) {
+            // Không chặn đăng nhập vì bảng audit thiếu / lỗi ghi.
+            error_log('[auth.google.audit_failed] '.$e->getMessage());
+            try {
+                report($e);
+                Log::warning('auth.google.audit_failed', [
+                    'email' => $email,
+                    'message' => $e->getMessage(),
+                ]);
+            } catch (\Throwable) {
+                // ignore
+            }
+        }
 
         $target = LoginRedirectSanitizer::sanitize(
             $request->session()->pull('login.redirect'),

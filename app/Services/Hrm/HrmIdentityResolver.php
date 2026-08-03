@@ -53,22 +53,40 @@ final class HrmIdentityResolver
      */
     public function ensureEmployeeFromApi(array $payload): Employee
     {
-        $this->upsertFromApiEmployee($payload);
+        $result = $this->upsertFromApiEmployee($payload);
+        if ($result === 'skipped') {
+            Log::warning('hrm.identity.upsert_skipped', [
+                'uuid' => $payload['uuid'] ?? null,
+                'company_email' => $payload['company_email'] ?? null,
+            ]);
+        }
 
         $uuid = is_string($payload['uuid'] ?? null) ? $payload['uuid'] : null;
         if ($uuid !== null && $uuid !== '') {
-            return Employee::query()
+            $byUuid = Employee::query()
                 ->where('hrm_employee_uuid', $uuid)
-                ->firstOrFail();
+                ->first();
+            if ($byUuid !== null) {
+                return $byUuid;
+            }
         }
 
         $email = strtolower(trim((string) (
             $payload['company_email'] ?? $payload['personal_email'] ?? ''
         )));
 
-        return Employee::query()
-            ->where('email', $email)
-            ->firstOrFail();
+        if ($email !== '') {
+            $byEmail = Employee::query()
+                ->where('email', $email)
+                ->first();
+            if ($byEmail !== null) {
+                return $byEmail;
+            }
+        }
+
+        throw new \RuntimeException(
+            'Không tạo/cập nhật được nhân sự Workspace từ HRM API (thiếu email/uuid sau upsert).'
+        );
     }
 
     /**

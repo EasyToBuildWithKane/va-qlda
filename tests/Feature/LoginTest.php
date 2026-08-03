@@ -39,8 +39,8 @@ class LoginTest extends TestCase
         $response->assertRedirect();
         $location = (string) $response->headers->get('Location');
         $decoded = urldecode($location);
-        $this->assertStringContainsString('accounts.google.com/AccountChooser', $location);
-        $this->assertStringContainsString('continue=', $location);
+        $this->assertStringContainsString('accounts.google.com', $location);
+        $this->assertStringNotContainsString('AccountChooser', $location);
         $this->assertStringContainsString('/o/oauth2/', $decoded);
         $this->assertStringContainsString('prompt=select_account', $decoded);
     }

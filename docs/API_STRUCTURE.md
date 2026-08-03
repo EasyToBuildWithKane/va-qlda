@@ -38,7 +38,7 @@ routes/api.php      ← Rỗng (chưa sử dụng)
 |---|---|---|---|---|
 | GET | `/login` | LoginController@createPortal | guest | Cổng đăng nhập (SSO HRM hoặc Google UI); guest chưa đăng nhập được redirect về đây |
 | GET | `/tech/login` | LoginController@createTech | guest | Cổng Workspace (whitelist) → sau đăng nhập về `/dashboard` |
-| GET | `/auth/google` | GoogleAuthController@redirect | guest | OAuth Google (`AccountChooser` → chọn tài khoản) — dùng khi SSO HRM tắt |
+| GET | `/auth/google` | GoogleAuthController@redirect | guest | OAuth Google (`prompt=select_account` + optional `hd`) — dùng khi SSO HRM tắt |
 | GET | `/auth/google/callback` | GoogleAuthController@callback | guest | Callback OAuth |
 | GET | `/auth/hrm` | HrmSsoController@redirect | guest | SSO HRM (`HRM_SSO_ENABLED`) — redirect `{HRM}/sso/authorize?client_id=workspace&state=…` |
 | GET | `/auth/hrm/callback` | HrmSsoController@callback | guest | Nhận `?token=<JWT RS256>&state=…`, verify JWKS offline (`HrmSsoJwtVerifier`) → session guard `system` |
