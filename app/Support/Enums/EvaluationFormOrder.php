@@ -21,11 +21,23 @@ enum EvaluationFormOrder: string
         };
     }
 
-    /** @return list<array{value: string, label: string}> */
+    public function description(): string
+    {
+        return match ($this) {
+            self::Parallel => 'Thành viên có thể đánh giá song song',
+            self::Sequential => 'Bạn có thể kéo thả danh sách ở dưới để thay đổi thứ tự',
+        };
+    }
+
+    /** @return list<array{value: string, label: string, description: string}> */
     public static function options(): array
     {
         return array_map(
-            static fn (self $c) => ['value' => $c->value, 'label' => $c->label()],
+            static fn (self $c) => [
+                'value' => $c->value,
+                'label' => $c->label(),
+                'description' => $c->description(),
+            ],
             self::cases(),
         );
     }

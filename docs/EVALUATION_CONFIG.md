@@ -181,14 +181,20 @@ Meta audit gồm `criteria_code/name`, `score_summary` (chuỗi mức · điểm
 | PUT | `…/{evaluationForm}` | `workspace.evaluation-forms.update` |
 | DELETE | `…/{evaluationForm}` | `workspace.evaluation-forms.destroy` |
 
-**Schema:** `evaluation_form_types` · `evaluation_forms` (`form_code` `PDG###`, SoftDeletes) · watchers / raters / fields / criteria / assignees · **chấm điểm:** `evaluation_form_submissions` (unique form×assignee×role) · `evaluation_form_score_lines` · `evaluation_form_field_values`.
+**Schema:** `evaluation_form_types` (`code` · `description` — seed hệ thống `PERIODICAL` / `CONTRACT` / `TYPE_PROBATION`) · `evaluation_forms` (`form_code` `PDG###`, SoftDeletes) · watchers / raters / fields / criteria / assignees · **chấm điểm:** `evaluation_form_submissions` (unique form×assignee×role) · `evaluation_form_score_lines` · `evaluation_form_field_values`.
 
-**Trạng thái phiếu:** `draft` → `active` (mở chấm) → `closed` (khóa kỳ). Service: `EvaluationFormScoringService`. Ai chấm: map từ assignee; manage chấm mọi vai trò. Song song / tuần tự theo `evaluation_order`.
+**Trạng thái phiếu:** `draft` → `active` (mở chấm) → `closed` (khóa kỳ). Đổi trạng thái qua action Index (Mở / Khóa / Mở lại) — **không** chọn status trên form Create/Edit. Service: `EvaluationFormScoringService`. Ai chấm: map từ assignee; manage chấm mọi vai trò. Song song / tuần tự theo `evaluation_order`.
 
 **Frontend:** Index (Mở chấm / Khóa / Chấm) · wizard Create/Edit · `Scoring/Index` · `Scoring/Show` · `FormScoreLevelPicker` / `FormScoringProgress`.
 
-**Wizard UX (Create/Edit):**
-- **Đối tượng đánh giá (hội đồng):** `SearchSelect` gợi ý theo `EvaluationFormRaterRole` (tìm rồi chọn); vai trò `custom` cho phép nhập nhãn tùy chỉnh.
+**Wizard UX — tab Thông tin chung (`FormGeneralTab`):**
+- **Mã phiếu:** mặc định khoá (`PDG###`); icon lock/unlock để sửa thủ công (pattern giống tiêu chí `TCVA###`).
+- **Mẫu đánh giá:** `SearchSelect` autocomplete (tên + mã mẫu); hydrate tiêu chí khi chọn.
+- **Loại đánh giá:** dropdown có mô tả (`PERIODICAL` / `CONTRACT` / `TYPE_PROBATION` + loại custom); nút `+` mở modal thêm nhanh (tên bắt buộc).
+- **Kỳ đánh giá:** chip loại kỳ; chọn đơn vị/năm kèm placeholder; `random` / `date_range` chỉ **một ngày áp dụng** (backend đồng bộ `period_end = period_start`).
+- **Thứ tự chấm:** 2 `RadioCard` (song song / tuần tự) + mô tả.
+- **Hội đồng:** `SearchSelect` (`clearable=false`) — vai trò hệ thống + **chức danh HRM** (`HrmJobCatalogDirectory`); kéo thả khi tuần tự; tỉ trọng clamp tổng ≤ 100% + chia đều.
+- **Trường tùy biến:** input placeholder (readonly) + toggle Bật/Tắt.
 - **Tab tiêu chí:** `SearchSelect` tìm tiêu chí danh mục; **Người đánh giá** = `SearchMultiSelect` gợi ý từ hội đồng đã cấu hình (để trống = tất cả).
 - **Người theo dõi / nhân sự:** autocomplete tìm theo tên·mã·email (bỏ dấu).
-- **Danh sách nhân sự:** `employeeOptions` từ `HrmEmployeeDirectory` — đồng bộ `GET /employees?status=active` (cache 1h) rồi upsert vào `employees` local; nút **Tải tất cả từ HRM** thêm hàng loạt (tối đa 500).
+- **Danh sách nhân sự:** bảng inline-edit một hàng (nhân sự · mã · phòng · trưởng phòng · QL trực tiếp · ban GĐ); `employeeOptions` từ `HrmEmployeeDirectory` — đồng bộ `GET /employees?status=active` (cache 1h) rồi upsert vào `employees` local; thêm từng người (tối đa 500), chống trùng.

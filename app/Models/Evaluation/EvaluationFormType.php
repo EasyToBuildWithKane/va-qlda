@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /**
  * @property int $id
  * @property string $name
+ * @property string|null $code
+ * @property string|null $description
  * @property int $sort_order
  * @property bool $is_active
  * @property int|null $created_by
@@ -21,6 +23,8 @@ class EvaluationFormType extends Model
 
     protected $fillable = [
         'name',
+        'code',
+        'description',
         'sort_order',
         'is_active',
         'created_by',

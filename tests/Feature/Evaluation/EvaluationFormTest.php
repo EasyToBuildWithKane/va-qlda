@@ -33,8 +33,13 @@ class EvaluationFormTest extends TestCase
     private function defaultType(): EvaluationFormType
     {
         return EvaluationFormType::query()->firstOrCreate(
-            ['name' => 'Đánh giá định kỳ'],
-            ['sort_order' => 0, 'is_active' => true],
+            ['code' => 'PERIODICAL'],
+            [
+                'name' => 'Đánh giá định kỳ',
+                'description' => 'Loại đánh giá theo kỳ.',
+                'sort_order' => 0,
+                'is_active' => true,
+            ],
         );
     }
 
@@ -134,6 +139,7 @@ class EvaluationFormTest extends TestCase
     {
         $user = $this->superAdmin();
         $payload = $this->validPayload(['name' => 'Phiếu đầy đủ']);
+        unset($payload['status']);
 
         $this->actingAs($user, 'system')
             ->post('/workspace-config/evaluation-forms', $payload)
@@ -147,6 +153,57 @@ class EvaluationFormTest extends TestCase
         $this->assertCount(2, $form->fields);
         $this->assertCount(1, $form->criteria);
         $this->assertCount(1, $form->assignees);
+    }
+
+    public function test_create_page_has_catalog_without_status_options(): void
+    {
+        $this->actingAs($this->superAdmin(), 'system')
+            ->get('/workspace-config/evaluation-forms/create')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('WorkspaceConfig/EvaluationForms/Create')
+                ->has('typeOptions')
+                ->has('jobTitleOptions')
+                ->has('orderOptions')
+                ->missing('statusOptions'));
+    }
+
+    public function test_system_form_types_are_seeded_with_codes(): void
+    {
+        $this->assertDatabaseHas('evaluation_form_types', [
+            'code' => 'PERIODICAL',
+            'name' => 'Đánh giá định kỳ',
+        ]);
+        $this->assertDatabaseHas('evaluation_form_types', [
+            'code' => 'CONTRACT',
+            'name' => 'Đánh giá chuyển hợp đồng',
+        ]);
+        $this->assertDatabaseHas('evaluation_form_types', [
+            'code' => 'TYPE_PROBATION',
+            'name' => 'Đánh giá thử việc',
+        ]);
+    }
+
+    public function test_date_range_period_accepts_single_apply_date(): void
+    {
+        $user = $this->superAdmin();
+        $payload = $this->validPayload([
+            'name' => 'Phiếu theo ngày',
+            'period_kind' => EvaluationFormPeriodKind::DateRange->value,
+            'period_month' => null,
+            'period_year' => null,
+            'period_start' => '2026-08-15',
+            'period_end' => null,
+        ]);
+
+        $this->actingAs($user, 'system')
+            ->post('/workspace-config/evaluation-forms', $payload)
+            ->assertRedirect();
+
+        $form = EvaluationForm::query()->where('name', 'Phiếu theo ngày')->first();
+        $this->assertNotNull($form);
+        $this->assertSame('2026-08-15', $form->period_start?->format('Y-m-d'));
+        $this->assertSame('2026-08-15', $form->period_end?->format('Y-m-d'));
     }
 
     public function test_use_weight_requires_sum_100(): void
@@ -191,13 +248,13 @@ class EvaluationFormTest extends TestCase
         $this->actingAs($user, 'system')
             ->from('/workspace-config/evaluation-forms/create')
             ->post('/workspace-config/evaluation-forms/types', [
-                'name' => 'Đánh giá thử việc',
+                'name' => 'Đánh giá dự án đặc thù',
             ])
             ->assertRedirect()
             ->assertSessionHas('success');
 
         $this->assertDatabaseHas('evaluation_form_types', [
-            'name' => 'Đánh giá thử việc',
+            'name' => 'Đánh giá dự án đặc thù',
             'is_active' => 1,
         ]);
     }

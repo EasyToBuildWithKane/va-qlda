@@ -39,6 +39,14 @@ class StoreEvaluationFormRequest extends FormRequest
         if ($this->input('period_end') === '') {
             $this->merge(['period_end' => null]);
         }
+
+        $kind = (string) $this->input('period_kind');
+        if (in_array($kind, [
+            EvaluationFormPeriodKind::Random->value,
+            EvaluationFormPeriodKind::DateRange->value,
+        ], true) && $this->filled('period_start') && ! $this->filled('period_end')) {
+            $this->merge(['period_end' => $this->input('period_start')]);
+        }
     }
 
     /**
@@ -134,8 +142,8 @@ class StoreEvaluationFormRequest extends FormRequest
                 EvaluationFormPeriodKind::Random->value,
                 EvaluationFormPeriodKind::DateRange->value,
             ], true)) {
-                if (! $this->filled('period_start') || ! $this->filled('period_end')) {
-                    $validator->errors()->add('period_start', 'Vui lòng chọn khoảng ngày kỳ đánh giá.');
+                if (! $this->filled('period_start')) {
+                    $validator->errors()->add('period_start', 'Vui lòng chọn ngày áp dụng kỳ đánh giá.');
                 }
             }
 

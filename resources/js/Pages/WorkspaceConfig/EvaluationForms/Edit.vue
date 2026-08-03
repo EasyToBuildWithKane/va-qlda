@@ -12,10 +12,10 @@ defineProps({
     employeeOptions: { type: Array, default: () => [] },
     periodKindOptions: { type: Array, default: () => [] },
     orderOptions: { type: Array, default: () => [] },
-    statusOptions: { type: Array, default: () => [] },
     defaultRaters: { type: Array, default: () => [] },
     defaultFields: { type: Array, default: () => [] },
     raterRoleOptions: { type: Array, default: () => [] },
+    jobTitleOptions: { type: Array, default: () => [] },
     nextCode: { type: String, default: 'PDG001' },
     can: { type: Object, default: () => ({}) },
 });
@@ -43,10 +43,10 @@ defineProps({
       :employee-options="employeeOptions"
       :period-kind-options="periodKindOptions"
       :order-options="orderOptions"
-      :status-options="statusOptions"
       :default-raters="defaultRaters"
       :default-fields="defaultFields"
       :rater-role-options="raterRoleOptions"
+      :job-title-options="jobTitleOptions"
       :next-code="nextCode"
     />
   </AppLayout>

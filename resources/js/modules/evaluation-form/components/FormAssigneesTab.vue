@@ -8,13 +8,15 @@ import { useToast } from '@/shared/composables/useToast';
 
 const form = defineModel('form', { type: Object, required: true });
 
-const props = defineProps({
+defineProps({
     employeeOptions: { type: Array, default: () => [] },
 });
 
 const toast = useToast();
 const MAX_ASSIGNEES = 500;
 const searchQuery = ref('');
+
+const cellInputClass = 'input h-9 w-full min-w-0 text-sm pr-8';
 
 function emptyRow() {
     return {
@@ -31,11 +33,18 @@ function emptyRow() {
 }
 
 function addRow() {
+    if (assignedCount.value >= MAX_ASSIGNEES) {
+        toast.error(`Đã đạt giới hạn ${MAX_ASSIGNEES} nhân sự trên phiếu.`);
+        return;
+    }
     form.value.assignees.push(emptyRow());
 }
 
 function removeRow(index) {
     form.value.assignees.splice(index, 1);
+    if (form.value.assignees.length === 0) {
+        addRow();
+    }
 }
 
 function fillEmployeeFields(row, emp) {
@@ -65,55 +74,6 @@ function onEmployeeSelect(row, emp) {
         }
     }
     fillEmployeeFields(row, emp);
-}
-
-function loadAllFromHrm() {
-    const existing = new Set(
-        (form.value.assignees || [])
-            .map((a) => a.employee_id)
-            .filter(Boolean),
-    );
-    const toAdd = props.employeeOptions.filter((e) => !existing.has(e.id));
-    if (toAdd.length === 0) {
-        toast.info('Tất cả nhân sự HRM đã có trong danh sách.');
-        return;
-    }
-
-    const room = MAX_ASSIGNEES - form.value.assignees.filter((a) => a.employee_id).length;
-    form.value.assignees = form.value.assignees.filter((a) => a.employee_id);
-
-    const slice = toAdd.slice(0, Math.max(0, room));
-    slice.forEach((emp) => {
-        const row = emptyRow();
-        row.employee_id = emp.id;
-        fillEmployeeFields(row, emp);
-        row.sort_order = form.value.assignees.length;
-        form.value.assignees.push(row);
-    });
-
-    if (slice.length === 0) {
-        toast.error(`Đã đạt giới hạn ${MAX_ASSIGNEES} nhân sự trên phiếu.`);
-        return;
-    }
-
-    const skipped = toAdd.length - slice.length;
-    toast.success(
-        skipped > 0
-            ? `Đã thêm ${slice.length} nhân sự từ HRM (bỏ qua ${skipped} vì giới hạn).`
-            : `Đã thêm ${slice.length} nhân sự từ HRM.`,
-    );
-}
-
-function clearEmptyRows() {
-    const before = form.value.assignees.length;
-    form.value.assignees = form.value.assignees.filter((a) => a.employee_id);
-    const removed = before - form.value.assignees.length;
-    if (removed === 0) {
-        toast.info('Không có dòng trống để xóa.');
-        return;
-    }
-    toast.success(`Đã xóa ${removed} dòng trống.`);
-    if (form.value.assignees.length === 0) addRow();
 }
 
 const assignedCount = computed(() => (form.value.assignees || []).filter((a) => a.employee_id).length);
@@ -149,27 +109,17 @@ if (form.value.assignees.length === 0) {
           /{{ MAX_ASSIGNEES }}
         </p>
       </div>
-      <div class="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          class="btn-ghost inline-flex h-9 items-center gap-1.5 px-3 text-xs"
-          :disabled="employeeOptions.length === 0"
-          @click="loadAllFromHrm"
-        >
-          <AppIcon
-            name="download"
-            :size="14"
-          />
-          Tải tất cả từ HRM
-        </button>
-        <button
-          type="button"
-          class="btn-ghost inline-flex h-9 items-center gap-1.5 px-3 text-xs"
-          @click="clearEmptyRows"
-        >
-          Dọn dòng trống
-        </button>
-      </div>
+      <button
+        type="button"
+        class="inline-flex h-9 items-center gap-1.5 rounded-lg bg-brand px-3 text-xs font-medium text-white transition hover:bg-brand/90"
+        @click="addRow"
+      >
+        <AppIcon
+          name="plus"
+          :size="14"
+        />
+        Thêm nhân sự
+      </button>
     </div>
 
     <div class="mb-4">
@@ -200,7 +150,7 @@ if (form.value.assignees.length === 0) {
       <p class="mt-1 text-xs text-slate-400">
         {{ searchQuery.trim()
           ? 'Thử từ khóa khác hoặc xóa bộ lọc.'
-          : 'Thêm từng người hoặc tải toàn bộ từ HRM.' }}
+          : 'Bấm «Thêm nhân sự» rồi chọn từng người từ danh sách HRM.' }}
       </p>
       <button
         v-if="!searchQuery.trim()"
@@ -218,121 +168,111 @@ if (form.value.assignees.length === 0) {
 
     <div
       v-else
-      class="space-y-0"
+      class="overflow-x-auto rounded-xl border border-slate-200/80"
     >
-      <div
-        v-for="index in filteredIndexes"
-        :key="index"
-        class="border-b border-slate-100 py-4 first:pt-0 last:border-b-0"
-      >
-        <div class="mb-3 flex items-center justify-between gap-2">
-          <div class="flex min-w-0 items-center gap-2">
-            <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-slate-100 text-[11px] tabular-nums text-slate-600">
-              {{ index + 1 }}
-            </span>
-            <div class="min-w-0">
-              <p class="truncate text-sm font-medium text-slate-800">
-                {{ form.assignees[index].employee_name || 'Chưa chọn nhân sự' }}
-              </p>
-              <p
-                v-if="form.assignees[index].employee_code || form.assignees[index].department_name"
-                class="truncate text-[11px] text-slate-400"
-              >
-                {{
-                  [
-                    form.assignees[index].employee_code,
-                    form.assignees[index].department_name,
-                  ].filter(Boolean).join(' · ')
-                }}
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            class="shrink-0 rounded p-1 text-slate-300 transition hover:bg-rose-50 hover:text-rose-500"
-            title="Xóa khỏi danh sách"
-            @click="removeRow(index)"
+      <table class="min-w-[72rem] w-full border-collapse text-left text-sm">
+        <thead class="bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+          <tr>
+            <th class="w-10 px-3 py-2.5">
+              #
+            </th>
+            <th class="min-w-[12rem] px-3 py-2.5">
+              Nhân sự <span class="normal-case text-rose-500">*</span>
+            </th>
+            <th class="min-w-[6.5rem] px-3 py-2.5">
+              Mã NV
+            </th>
+            <th class="min-w-[9rem] px-3 py-2.5">
+              Phòng ban
+            </th>
+            <th class="min-w-[11rem] px-3 py-2.5">
+              Trưởng phòng <span class="normal-case text-rose-500">*</span>
+            </th>
+            <th class="min-w-[11rem] px-3 py-2.5">
+              QL trực tiếp <span class="normal-case text-rose-500">*</span>
+            </th>
+            <th class="min-w-[11rem] px-3 py-2.5">
+              Ban giám đốc
+            </th>
+            <th class="w-10 px-2 py-2.5">
+              <span class="sr-only">Thao tác</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 bg-white">
+          <tr
+            v-for="index in filteredIndexes"
+            :key="index"
+            class="align-middle"
           >
-            <AppIcon
-              name="close"
-              :size="14"
-            />
-          </button>
-        </div>
-
-        <div class="grid grid-cols-1 gap-x-4 gap-y-3 md:grid-cols-2 xl:grid-cols-3">
-          <div>
-            <label class="mb-1.5 block text-xs font-medium text-slate-600">
-              Nhân sự <span class="text-rose-500">*</span>
-            </label>
-            <FormEmployeeAutocomplete
-              v-model="form.assignees[index].employee_id"
-              :options="employeeOptions"
-              placeholder="Tìm nhân sự HRM…"
-              @select="(emp) => onEmployeeSelect(form.assignees[index], emp)"
-            />
-          </div>
-          <div>
-            <label class="mb-1.5 block text-xs font-medium text-slate-600">Mã NV</label>
-            <input
-              v-model="form.assignees[index].employee_code"
-              type="text"
-              class="input h-10 w-full text-sm"
-              placeholder="Tự điền khi chọn nhân sự"
-            >
-          </div>
-          <div>
-            <label class="mb-1.5 block text-xs font-medium text-slate-600">Phòng ban</label>
-            <input
-              v-model="form.assignees[index].department_name"
-              type="text"
-              class="input h-10 w-full text-sm"
-              placeholder="Tự điền khi chọn nhân sự"
-            >
-          </div>
-          <div>
-            <label class="mb-1.5 block text-xs font-medium text-slate-600">
-              Trưởng phòng <span class="text-rose-500">*</span>
-            </label>
-            <FormEmployeeAutocomplete
-              v-model="form.assignees[index].dept_head_employee_id"
-              :options="employeeOptions"
-              placeholder="Tìm trưởng phòng…"
-            />
-          </div>
-          <div>
-            <label class="mb-1.5 block text-xs font-medium text-slate-600">
-              Quản lý trực tiếp <span class="text-rose-500">*</span>
-            </label>
-            <FormEmployeeAutocomplete
-              v-model="form.assignees[index].direct_manager_employee_id"
-              :options="employeeOptions"
-              placeholder="Tìm quản lý trực tiếp…"
-            />
-          </div>
-          <div>
-            <label class="mb-1.5 block text-xs font-medium text-slate-600">Ban giám đốc</label>
-            <FormEmployeeAutocomplete
-              v-model="form.assignees[index].board_employee_id"
-              :options="employeeOptions"
-              placeholder="Tìm ban giám đốc…"
-            />
-          </div>
-        </div>
-      </div>
+            <td class="px-3 py-2 text-[11px] tabular-nums text-slate-400">
+              {{ index + 1 }}
+            </td>
+            <td class="px-3 py-2">
+              <FormEmployeeAutocomplete
+                v-model="form.assignees[index].employee_id"
+                :options="employeeOptions"
+                :input-class="cellInputClass"
+                placeholder="Tìm nhân sự…"
+                @select="(emp) => onEmployeeSelect(form.assignees[index], emp)"
+              />
+            </td>
+            <td class="px-3 py-2">
+              <input
+                v-model="form.assignees[index].employee_code"
+                type="text"
+                class="input h-9 w-full min-w-0 text-sm"
+                placeholder="Tự điền"
+              >
+            </td>
+            <td class="px-3 py-2">
+              <input
+                v-model="form.assignees[index].department_name"
+                type="text"
+                class="input h-9 w-full min-w-0 text-sm"
+                placeholder="Tự điền"
+              >
+            </td>
+            <td class="px-3 py-2">
+              <FormEmployeeAutocomplete
+                v-model="form.assignees[index].dept_head_employee_id"
+                :options="employeeOptions"
+                :input-class="cellInputClass"
+                placeholder="Tìm trưởng phòng…"
+              />
+            </td>
+            <td class="px-3 py-2">
+              <FormEmployeeAutocomplete
+                v-model="form.assignees[index].direct_manager_employee_id"
+                :options="employeeOptions"
+                :input-class="cellInputClass"
+                placeholder="Tìm QL trực tiếp…"
+              />
+            </td>
+            <td class="px-3 py-2">
+              <FormEmployeeAutocomplete
+                v-model="form.assignees[index].board_employee_id"
+                :options="employeeOptions"
+                :input-class="cellInputClass"
+                placeholder="Tìm ban GĐ…"
+              />
+            </td>
+            <td class="px-2 py-2 text-center">
+              <button
+                type="button"
+                class="rounded p-1 text-slate-300 transition hover:bg-rose-50 hover:text-rose-500"
+                title="Xóa khỏi danh sách"
+                @click="removeRow(index)"
+              >
+                <AppIcon
+                  name="close"
+                  :size="14"
+                />
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
-
-    <button
-      v-if="form.assignees.length > 0"
-      type="button"
-      class="mt-4 inline-flex h-9 items-center gap-1.5 rounded-lg bg-brand px-3 text-xs font-medium text-white transition hover:bg-brand/90"
-      @click="addRow"
-    >
-      <AppIcon
-        name="plus"
-        :size="14"
-      />
-      Thêm nhân sự
-    </button>
   </section>
 </template>

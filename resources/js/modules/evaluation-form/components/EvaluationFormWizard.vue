@@ -17,10 +17,10 @@ const props = defineProps({
     employeeOptions: { type: Array, default: () => [] },
     periodKindOptions: { type: Array, default: () => [] },
     orderOptions: { type: Array, default: () => [] },
-    statusOptions: { type: Array, default: () => [] },
     defaultRaters: { type: Array, default: () => [] },
     defaultFields: { type: Array, default: () => [] },
     raterRoleOptions: { type: Array, default: () => [] },
+    jobTitleOptions: { type: Array, default: () => [] },
     nextCode: { type: String, default: 'PDG001' },
     prefill: { type: Object, default: () => ({}) },
 });
@@ -95,10 +95,6 @@ watch(() => props.typeOptions, (opts) => {
     if (!form.type_id && opts?.[0]?.id) form.type_id = opts[0].id;
 });
 
-function refreshCode() {
-    form.form_code = props.nextCode;
-}
-
 async function onTemplateChange(templateId) {
     if (!templateId) return;
     loadingTemplateCriteria.value = true;
@@ -119,12 +115,23 @@ async function onTemplateChange(templateId) {
 }
 
 function payload() {
-    return {
+    const data = {
         ...form.data(),
         template_id: form.template_id || null,
         assignees: (form.assignees || []).filter((a) => a.employee_id),
         criteria: (form.criteria || []).filter((c) => c.name || c.criterion_id),
     };
+
+    if (['random', 'date_range'].includes(data.period_kind) && data.period_start) {
+        data.period_end = data.period_start;
+    }
+
+    // Status is managed via Open/Close actions on Index — keep existing on edit, draft on create.
+    if (props.mode !== 'edit') {
+        data.status = 'draft';
+    }
+
+    return data;
 }
 
 function submit() {
@@ -187,11 +194,10 @@ function cancel() {
       :employee-options="employeeOptions"
       :period-kind-options="periodKindOptions"
       :order-options="orderOptions"
-      :status-options="statusOptions"
       :rater-role-options="raterRoleOptions"
+      :job-title-options="jobTitleOptions"
       :next-code="nextCode"
       :loading-template-criteria="loadingTemplateCriteria"
-      @refresh-code="refreshCode"
       @template-change="onTemplateChange"
     />
 

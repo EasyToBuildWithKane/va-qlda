@@ -18,6 +18,7 @@ use App\Support\Enums\EvaluationFormPeriodKind;
 use App\Support\Enums\EvaluationFormRaterRole;
 use App\Support\Enums\EvaluationFormStatus;
 use App\Support\Evaluation\HrmEmployeeDirectory;
+use App\Support\Evaluation\HrmJobCatalogDirectory;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -28,6 +29,7 @@ class EvaluationFormController extends Controller
 {
     public function __construct(
         private readonly HrmEmployeeDirectory $employees,
+        private readonly HrmJobCatalogDirectory $jobCatalog,
     ) {}
 
     public function index(Request $request): Response
@@ -226,6 +228,8 @@ class EvaluationFormController extends Controller
 
         $type = EvaluationFormType::query()->create([
             'name' => $name,
+            'code' => null,
+            'description' => null,
             'sort_order' => ((int) EvaluationFormType::query()->max('sort_order')) + 1,
             'is_active' => true,
             'created_by' => $request->user()->id,
@@ -236,6 +240,8 @@ class EvaluationFormController extends Controller
             'created_form_type' => [
                 'id' => $type->id,
                 'name' => $type->name,
+                'code' => $type->code,
+                'description' => $type->description,
             ],
         ]);
     }
@@ -278,6 +284,14 @@ class EvaluationFormController extends Controller
             $validated['criteria'],
             $validated['assignees'],
         );
+
+        $kind = (string) ($validated['period_kind'] ?? '');
+        if (in_array($kind, [
+            EvaluationFormPeriodKind::Random->value,
+            EvaluationFormPeriodKind::DateRange->value,
+        ], true) && ! empty($validated['period_start']) && empty($validated['period_end'])) {
+            $validated['period_end'] = $validated['period_start'];
+        }
 
         return [$validated, $extras];
     }
@@ -363,15 +377,15 @@ class EvaluationFormController extends Controller
             'employeeOptions' => $this->employees->options(),
             'periodKindOptions' => EvaluationFormPeriodKind::options(),
             'orderOptions' => EvaluationFormOrder::options(),
-            'statusOptions' => EvaluationFormStatus::options(),
             'defaultRaters' => EvaluationFormRaterRole::defaultRaters(),
             'defaultFields' => EvaluationFormField::DEFAULT_FIELDS,
             'raterRoleOptions' => EvaluationFormRaterRole::options(),
+            'jobTitleOptions' => $this->jobTitleOptions(),
         ];
     }
 
     /**
-     * @return list<array{id: int, name: string}>
+     * @return list<array{id: int, name: string, code: string|null, description: string|null}>
      */
     private function typeOptions(): array
     {
@@ -379,11 +393,28 @@ class EvaluationFormController extends Controller
             ->active()
             ->orderBy('sort_order')
             ->orderBy('id')
-            ->get(['id', 'name'])
+            ->get(['id', 'name', 'code', 'description'])
             ->map(fn (EvaluationFormType $t) => [
                 'id' => $t->id,
                 'name' => $t->name,
+                'code' => $t->code,
+                'description' => $t->description,
             ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return list<array{code: string, name: string}>
+     */
+    private function jobTitleOptions(): array
+    {
+        return collect($this->jobCatalog->titles())
+            ->map(fn (array $row) => [
+                'code' => (string) ($row['code'] ?? ''),
+                'name' => (string) ($row['name'] ?? ''),
+            ])
+            ->filter(fn (array $row) => $row['code'] !== '' && $row['name'] !== '')
             ->values()
             ->all();
     }
