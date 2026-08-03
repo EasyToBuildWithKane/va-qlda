@@ -206,4 +206,17 @@ class LoginTest extends TestCase
             ->get('/phongcongnghe')
             ->assertRedirect('/dashboard');
     }
+
+    public function test_google_allowed_domains_accept_campus_subdomains(): void
+    {
+        config(['va.google_allowed_domains' => ['vaschools.edu.vn']]);
+
+        $controller = app(\App\Http\Controllers\Auth\GoogleAuthController::class);
+        $method = new \ReflectionMethod($controller, 'emailDomainAllowed');
+        $method->setAccessible(true);
+
+        $this->assertTrue($method->invoke($controller, 'khoana@hcm.vaschools.edu.vn'));
+        $this->assertTrue($method->invoke($controller, 'admin@vaschools.edu.vn'));
+        $this->assertFalse($method->invoke($controller, 'outsider@gmail.com'));
+    }
 }

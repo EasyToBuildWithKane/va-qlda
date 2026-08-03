@@ -35,10 +35,10 @@ return [
     | Google OAuth — allowed email domains (empty = any verified email)
     |--------------------------------------------------------------------------
     */
-    'google_allowed_domains' => array_filter(array_map(
+    'google_allowed_domains' => array_values(array_filter(array_map(
         'trim',
-        explode(',', (string) env('GOOGLE_ALLOWED_DOMAINS', 'vaschools.edu.vn'))
-    )),
+        explode(',', (string) env('GOOGLE_ALLOWED_DOMAINS', 'vaschools.edu.vn,hcm.vaschools.edu.vn'))
+    ))),
 
     /*
     |--------------------------------------------------------------------------

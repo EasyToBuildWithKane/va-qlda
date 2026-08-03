@@ -241,9 +241,21 @@ class GoogleAuthController extends Controller
             return false;
         }
 
-        $domain = substr($email, $at + 1);
+        $domain = strtolower(substr($email, $at + 1));
 
-        return in_array($domain, $domains, true);
+        foreach ($domains as $allowed) {
+            $allowed = strtolower(trim((string) $allowed));
+            if ($allowed === '') {
+                continue;
+            }
+
+            // Exact match hoặc subdomain (vd. hcm.vaschools.edu.vn khi allow vaschools.edu.vn).
+            if ($domain === $allowed || str_ends_with($domain, '.'.$allowed)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function normalizePortal(?string $portal): string
