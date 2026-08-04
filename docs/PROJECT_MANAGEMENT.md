@@ -210,15 +210,18 @@ Kanban Index: mặc định nhóm theo `type`. **super_admin** đổi được �
 
 ### 6.2 Các tab
 
+Tab strip full-width (`grid` trải đều): mobile 4 cột × 2 hàng; `md+` 8 cột một hàng — icon trong ô vuông + nhãn; badge đếm trên icon (Tài liệu / Vướng mắc / Phản hồi).
+
 | Tab | Key | Component chính |
 |---|---|---|
-| Tổng quan | `overview` | `ProjectShowSummaryBar`, `ProjectOverviewCard`, `WorkloadTable`, `ActivityFeed`, `GanttMini`, `RiskIssuePanel` |
+| Tổng quan | `overview` | `ProjectShowSummaryBar`, `ProjectOverviewCard` (hồ sơ + mốc + PM), `WorkloadTable` (summary KPI + mức tải healthy/watch/overloaded + dung lượng/tiến độ), `ActivityFeed`, `RiskIssuePanel` |
 | Tài liệu | `documents` | `ProjectDocumentsPanel` — thư mục, tạo file trống (txt/md/csv/json), upload kéo thả, link Google Docs/Sheets/PDF, preview |
 | Lịch dự án | `timeline` | `ProjectCalendar` — Gantt mini, kéo ngày → `PUT tasks` |
 | Kanban | `board` | `TaskBoard` — `PATCH tasks.status` |
 | Sprint | `sprints` | `SprintWorkspace` — list/calendar, `SprintDataModal` |
 | Vướng mắc | `blockers` | `RiskIssueDataTable`, `RiskImportModal` |
 | Phản hồi | `feedback` | `ProjectFeedbackPanel` |
+| Báo cáo tuần | `weekly` | `WeeklyReportWorkspace` |
 
 `ProjectShowSummaryBar`: 5 KPI (tiến độ, thành viên, công việc, sprint, vướng mắc) — emit điều hướng tab.
 

@@ -26,11 +26,19 @@ const {
 
 <template>
   <div class="card min-w-0 overflow-hidden dark:border-slate-700 dark:bg-slate-900">
-    <div class="p-5">
-      <h2 class="mb-4 font-display font-semibold text-slate-800 dark:text-slate-100">
+    <div class="border-b border-slate-100 px-4 py-3.5 sm:px-5 dark:border-slate-800">
+      <p class="text-[10px] font-semibold uppercase tracking-[0.14em] text-brand/80">
+        Nhật ký
+      </p>
+      <h2 class="mt-0.5 font-display text-base font-semibold tracking-tight text-slate-900 dark:text-slate-50 sm:text-lg">
         Hoạt động gần đây
       </h2>
+      <p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+        Cập nhật trạng thái, task và sprint trên dự án
+      </p>
+    </div>
 
+    <div class="p-4 sm:p-5">
       <ul
         v-if="visible.length"
         class="relative space-y-0"

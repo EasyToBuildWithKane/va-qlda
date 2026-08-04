@@ -294,42 +294,54 @@ const onSprintSaved = () => {
 
     <!-- Full-height flex column -->
     <div class="flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden bg-slate-50">
-      <!-- ── Tab strip (pill, đồng bộ typography text-xs/sm) ── -->
+      <!-- ── Tab strip: full-width, trải đều ── -->
       <nav
-        class="flex shrink-0 items-center overflow-x-auto overscroll-x-contain border-b border-slate-200 bg-white px-2 py-1.5 sm:px-3"
+        class="shrink-0 border-b border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900"
         aria-label="Tab dự án"
       >
         <div
-          class="inline-flex min-w-0 items-stretch gap-0.5 rounded-lg border border-slate-200/90 bg-slate-100/90 p-0.5 dark:border-slate-700 dark:bg-slate-800/60"
-          role="group"
+          class="mx-auto grid w-full max-w-[100vw] grid-cols-4 gap-0.5 p-1.5 md:grid-cols-8 md:gap-1 md:p-2"
+          role="tablist"
         >
           <button
             v-for="t in tabList"
             :key="t.key"
             type="button"
-            class="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1.5 text-xs font-medium transition sm:px-2.5 sm:text-sm"
+            role="tab"
+            :aria-selected="tab === t.key"
+            class="group relative flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1.5 py-2 text-center transition sm:flex-row sm:gap-1.5 sm:px-2 sm:py-2.5"
             :class="tab === t.key
-              ? 'bg-white text-brand shadow-sm dark:bg-slate-700 dark:text-brand-100'
-              : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'"
+              ? 'bg-brand/[0.08] text-brand shadow-sm ring-1 ring-brand/20 dark:bg-brand/20 dark:text-brand-100 dark:ring-brand/30'
+              : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800/60 dark:hover:text-slate-200'"
             @click="tab = t.key"
           >
-            <AppIcon
-              :name="t.icon"
-              :size="14"
-            />
-            {{ t.label }}
             <span
-              v-if="t.key === 'documents' && attachmentCount"
-              class="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-sky-100 px-1 text-[10px] font-semibold tabular-nums text-sky-700 dark:bg-sky-950 dark:text-sky-300"
-            >{{ attachmentCount }}</span>
+              class="relative grid h-7 w-7 shrink-0 place-items-center rounded-lg transition sm:h-8 sm:w-8"
+              :class="tab === t.key
+                ? 'bg-brand text-white shadow-sm'
+                : 'bg-slate-100 text-slate-500 group-hover:bg-slate-200/80 dark:bg-slate-800 dark:text-slate-400'"
+            >
+              <AppIcon
+                :name="t.icon"
+                :size="15"
+              />
+              <span
+                v-if="t.key === 'documents' && attachmentCount"
+                class="absolute -right-1 -top-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-sky-500 px-0.5 text-[9px] font-bold tabular-nums text-white ring-2 ring-white dark:ring-slate-900"
+              >{{ attachmentCount > 99 ? '99+' : attachmentCount }}</span>
+              <span
+                v-if="t.key === 'blockers' && openBlockerCount"
+                class="absolute -right-1 -top-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-0.5 text-[9px] font-bold tabular-nums text-white ring-2 ring-white dark:ring-slate-900"
+              >{{ openBlockerCount > 99 ? '99+' : openBlockerCount }}</span>
+              <span
+                v-if="t.key === 'feedback' && openFeedbackCount"
+                class="absolute -right-1 -top-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-0.5 text-[9px] font-bold tabular-nums text-white ring-2 ring-white dark:ring-slate-900"
+              >{{ openFeedbackCount > 99 ? '99+' : openFeedbackCount }}</span>
+            </span>
             <span
-              v-if="t.key === 'blockers' && openBlockerCount"
-              class="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-100 px-1 text-[10px] font-semibold tabular-nums text-rose-700 dark:bg-rose-950 dark:text-rose-300"
-            >{{ openBlockerCount }}</span>
-            <span
-              v-if="t.key === 'feedback' && openFeedbackCount"
-              class="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-100 px-1 text-[10px] font-semibold tabular-nums text-amber-800 dark:bg-amber-950 dark:text-amber-200"
-            >{{ openFeedbackCount }}</span>
+              class="max-w-full truncate text-[10px] font-semibold leading-tight sm:text-xs md:text-[13px]"
+              :class="tab === t.key ? 'text-brand dark:text-brand-100' : ''"
+            >{{ t.label }}</span>
           </button>
         </div>
       </nav>

@@ -174,17 +174,31 @@ export function useProjectDashboard(projectId, sources) {
     const memberWorkload = computed(() => {
         const members = sources.members?.value ?? [];
         const tasks = sources.tasks?.value ?? [];
+        const capacityHours = 40;
         return members.map((m) => {
             const assigned = tasks.filter((t) => getTaskAssigneeIds(t).includes(m.id));
-            const activeTasks = assigned.filter((t) => t.status?.value !== 'done');
-            const totalHours = activeTasks.reduce((s, t) => s + Number(t.estimate_hours || 0), 0);
+            const active = assigned.filter((t) => t.status?.value !== 'done');
             const done = assigned.filter((t) => t.status?.value === 'done').length;
+            const totalHours = active.reduce((s, t) => s + Number(t.estimate_hours || 0), 0);
             const personalProgress = assigned.length ? Math.round((done / assigned.length) * 100) : 0;
-            const overloaded = activeTasks.length > 3 || totalHours > 40;
+            const overloaded = active.length > 3 || totalHours > capacityHours;
+            const watch = !overloaded && (active.length > 2 || totalHours > 24);
+            const load = overloaded ? 'overloaded' : (watch ? 'watch' : 'healthy');
             let progressColor = 'bg-amber-500';
             if (personalProgress > 80) progressColor = 'bg-emerald-500';
             else if (personalProgress >= 40) progressColor = 'bg-sky-500';
-            return { member: m, activeTasks: activeTasks.length, totalHours, personalProgress, progressColor, overloaded };
+            return {
+                member: m,
+                activeTasks: active.length,
+                doneTasks: done,
+                totalAssigned: assigned.length,
+                totalHours,
+                personalProgress,
+                progressColor,
+                overloaded,
+                load,
+                capacityPct: Math.min(100, Math.round((totalHours / capacityHours) * 100)),
+            };
         });
     });
 

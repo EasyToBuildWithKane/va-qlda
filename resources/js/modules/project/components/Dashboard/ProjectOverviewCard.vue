@@ -5,6 +5,7 @@ import Avatar from '@/shared/ui/Avatar.vue';
 import Badge from '@/shared/ui/Badge.vue';
 import RichContentBody from '@/shared/ui/RichContentBody.vue';
 import { date } from '@/composables/useFormat';
+import { displayOrEmpty, EMPTY_LABELS } from '@/shared/utils/emptyDisplay';
 
 const props = defineProps({
     project: { type: Object, required: true },
@@ -53,26 +54,26 @@ const infoTiles = computed(() => [
     {
         key: 'start',
         label: 'Bắt đầu',
-        value: date(props.project.start_date) || '—',
+        value: displayOrEmpty(date(props.project.start_date), EMPTY_LABELS.notUpdated),
         icon: 'calendar',
     },
     {
         key: 'end',
         label: 'Kết thúc',
-        value: date(props.project.due_date) || '—',
+        value: displayOrEmpty(date(props.project.due_date), EMPTY_LABELS.notUpdated),
         icon: 'flag',
         overdue: props.daysLeft !== null && props.daysLeft < 0,
     },
     {
         key: 'type',
         label: 'Loại dự án',
-        value: props.project.type?.label || '—',
+        value: displayOrEmpty(props.project.type?.label, EMPTY_LABELS.notUpdated),
         icon: 'portfolio',
     },
     {
         key: 'dept',
         label: 'Phòng ban',
-        value: props.project.department?.name || '—',
+        value: displayOrEmpty(props.project.department?.name, EMPTY_LABELS.team),
         icon: 'department',
     },
 ]);
@@ -80,17 +81,20 @@ const infoTiles = computed(() => [
 
 <template>
   <article
-    class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-elevation-1 transition-shadow duration-200 hover:shadow-elevation-2 dark:border-slate-700/80 dark:bg-slate-900 dark:shadow-none dark:hover:border-slate-600"
+    class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-700/80 dark:bg-slate-900"
   >
     <!-- Header -->
-    <header class="flex items-start justify-between gap-3 border-b border-slate-100/80 px-4 py-3 dark:border-slate-800">
+    <header class="flex items-start justify-between gap-3 border-b border-slate-100 bg-gradient-to-b from-slate-50/90 to-white px-4 py-3.5 sm:px-5 dark:border-slate-800 dark:from-slate-800/40 dark:to-slate-900">
       <div class="min-w-0 flex-1">
-        <h2 class="truncate font-display text-lg font-medium tracking-tight text-slate-900 dark:text-slate-50">
+        <p class="text-[10px] font-semibold uppercase tracking-[0.14em] text-brand/80">
+          Hồ sơ dự án
+        </p>
+        <h2 class="mt-0.5 truncate font-display text-lg font-semibold tracking-tight text-slate-900 dark:text-slate-50">
           {{ project.name }}
         </h2>
-        <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
+        <div class="mt-2 flex flex-wrap items-center gap-1.5">
           <span
-            class="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 font-mono text-[11px] font-normal tracking-tight text-slate-600 ring-1 ring-slate-200/60 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700"
+            class="inline-flex items-center rounded-md bg-white px-2 py-0.5 font-mono text-[11px] font-medium tracking-tight text-slate-600 ring-1 ring-slate-200/80 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700"
           >
             {{ project.code }}
           </span>
@@ -114,81 +118,98 @@ const infoTiles = computed(() => [
       </span>
     </header>
 
-    <div class="space-y-3 px-4 py-3">
+    <div class="space-y-4 px-4 py-4 sm:px-5">
       <!-- Description -->
-      <RichContentBody
-        :content="project.description"
-        empty-text="Chưa có mô tả dự án."
-        html-class="prose prose-sm max-w-none text-slate-600 dark:prose-invert dark:text-slate-400"
-        plain-class="whitespace-pre-wrap text-sm font-normal leading-relaxed text-slate-600 dark:text-slate-400"
-        empty-class="text-sm italic text-slate-400 dark:text-slate-500"
-      />
+      <section aria-label="Mô tả dự án">
+        <h3 class="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+          Mô tả
+        </h3>
+        <RichContentBody
+          :content="project.description"
+          empty-text="Chưa có mô tả dự án."
+          html-class="prose prose-sm max-w-none text-slate-600 dark:prose-invert dark:text-slate-400"
+          plain-class="whitespace-pre-wrap text-sm font-normal leading-relaxed text-slate-600 dark:text-slate-400"
+          empty-class="text-sm italic text-slate-400 dark:text-slate-500"
+        />
+      </section>
 
       <!-- Info tiles -->
-      <div class="grid grid-cols-2 gap-2 lg:grid-cols-4">
-        <div
-          v-for="tile in infoTiles"
-          :key="tile.key"
-          class="group flex min-w-0 items-center gap-2 rounded-xl border border-slate-200/70 bg-slate-50/60 px-2.5 py-2 transition duration-150 hover:border-slate-300 hover:bg-white hover:shadow-sm dark:border-slate-700/70 dark:bg-slate-800/40 dark:hover:border-slate-600 dark:hover:bg-slate-800"
-        >
-          <span
-            class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-white text-slate-500 shadow-sm ring-1 ring-slate-200/60 transition group-hover:text-brand dark:bg-slate-900 dark:text-slate-400 dark:ring-slate-700 dark:group-hover:text-brand-100"
+      <section aria-label="Thông tin mốc">
+        <h3 class="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+          Thông tin chính
+        </h3>
+        <div class="grid grid-cols-2 gap-2 lg:grid-cols-4">
+          <div
+            v-for="tile in infoTiles"
+            :key="tile.key"
+            class="group flex min-w-0 items-center gap-2.5 rounded-xl border border-slate-200/70 bg-slate-50/60 px-2.5 py-2.5 transition duration-150 hover:border-slate-300 hover:bg-white hover:shadow-sm dark:border-slate-700/70 dark:bg-slate-800/40 dark:hover:border-slate-600 dark:hover:bg-slate-800"
           >
-            <AppIcon
-              :name="tile.icon"
-              :size="15"
-            />
-          </span>
-          <div class="min-w-0 flex-1">
-            <p class="truncate text-[10px] font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">
-              {{ tile.label }}
-            </p>
-            <p
-              class="truncate text-sm font-normal text-slate-700 dark:text-slate-200"
-              :class="tile.overdue ? 'text-rose-600 dark:text-rose-400' : ''"
+            <span
+              class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-white text-slate-500 shadow-sm ring-1 ring-slate-200/60 transition group-hover:text-brand dark:bg-slate-900 dark:text-slate-400 dark:ring-slate-700 dark:group-hover:text-brand-100"
             >
-              {{ tile.value }}
-            </p>
+              <AppIcon
+                :name="tile.icon"
+                :size="15"
+              />
+            </span>
+            <div class="min-w-0 flex-1">
+              <p class="truncate text-[10px] font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                {{ tile.label }}
+              </p>
+              <p
+                class="truncate text-sm font-medium text-slate-700 dark:text-slate-200"
+                :class="tile.overdue ? 'text-rose-600 dark:text-rose-400' : ''"
+              >
+                {{ tile.value }}
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
       <!-- PM profile -->
-      <div
+      <section
         v-if="project.manager"
-        class="flex items-center gap-3 rounded-xl border border-slate-200/70 bg-gradient-to-r from-slate-50/80 to-white px-3 py-2.5 dark:border-slate-700/70 dark:from-slate-800/50 dark:to-slate-900"
+        aria-label="Chủ dự án"
       >
-        <div class="relative shrink-0">
-          <Avatar
-            :name="project.manager.name"
-            :src="project.manager.avatar_path"
-            :size="36"
-            class="ring-2 ring-white dark:ring-slate-800"
-          />
-          <span
-            class="absolute -bottom-0.5 -right-0.5 grid h-4 w-4 place-items-center rounded-full bg-brand text-white ring-2 ring-white dark:ring-slate-900"
-          >
-            <AppIcon
-              name="star"
-              :size="9"
-              :stroke-width="2.5"
+        <h3 class="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+          Người phụ trách
+        </h3>
+        <div
+          class="flex items-center gap-3 rounded-xl border border-slate-200/70 bg-gradient-to-r from-brand/[0.04] to-white px-3 py-2.5 dark:border-slate-700/70 dark:from-brand/10 dark:to-slate-900"
+        >
+          <div class="relative shrink-0">
+            <Avatar
+              :name="project.manager.name"
+              :src="project.manager.avatar_path"
+              :size="40"
+              class="ring-2 ring-white dark:ring-slate-800"
             />
+            <span
+              class="absolute -bottom-0.5 -right-0.5 grid h-4 w-4 place-items-center rounded-full bg-brand text-white ring-2 ring-white dark:ring-slate-900"
+            >
+              <AppIcon
+                name="star"
+                :size="9"
+                :stroke-width="2.5"
+              />
+            </span>
+          </div>
+          <div class="min-w-0 flex-1">
+            <p class="text-[10px] font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              Chủ dự án (PM)
+            </p>
+            <p class="truncate font-medium text-slate-800 dark:text-slate-100">
+              {{ project.manager.name }}
+            </p>
+          </div>
+          <span
+            class="hidden shrink-0 rounded-full bg-brand/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-brand sm:inline-flex dark:bg-brand/20 dark:text-brand-100"
+          >
+            PM
           </span>
         </div>
-        <div class="min-w-0 flex-1">
-          <p class="text-[10px] font-medium uppercase tracking-wider text-slate-400 dark:text-slate-500">
-            Chủ dự án
-          </p>
-          <p class="truncate font-normal text-slate-800 dark:text-slate-100">
-            {{ project.manager.name }}
-          </p>
-        </div>
-        <span
-          class="hidden shrink-0 rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-brand sm:inline-flex dark:bg-brand/20 dark:text-brand-100"
-        >
-          PM
-        </span>
-      </div>
+      </section>
     </div>
   </article>
 </template>
