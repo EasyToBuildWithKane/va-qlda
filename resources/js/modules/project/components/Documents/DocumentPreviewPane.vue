@@ -138,7 +138,7 @@ const googleEmbedUrl = computed(() => {
 
       <div
         v-else-if="kind === 'docx'"
-        class="min-h-0 flex-1 overflow-auto rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-600 dark:bg-white"
+        class="min-h-0 flex-1 overflow-auto bg-white p-3 dark:bg-white"
       >
         <div
           :ref="setDocxContainer"
@@ -148,7 +148,7 @@ const googleEmbedUrl = computed(() => {
 
       <div
         v-else-if="kind === 'xlsx'"
-        class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-600"
+        class="flex min-h-0 flex-1 flex-col overflow-hidden bg-white dark:bg-white"
       >
         <div
           v-if="xlsxSheetNames.length > 1"
@@ -219,16 +219,11 @@ const googleEmbedUrl = computed(() => {
     height: 100%;
     min-height: 0;
     width: 100%;
-    border-radius: 0.5rem;
-    border: 1px solid rgb(226 232 240);
+    border: 0;
     background: #fff;
 }
 
-:global(.dark) .doc-preview-pdf__iframe {
-    border-color: rgb(71 85 105);
-}
-
-/* Google Docs/Sheets — full khung, viền gọn, ẩn bớt chrome nhờ rm=minimal */
+/* Google Docs/Sheets — full khung, ẩn chrome nhờ rm=minimal */
 .doc-preview-google {
     position: relative;
     flex: 1 1 auto;
@@ -236,10 +231,7 @@ const googleEmbedUrl = computed(() => {
     min-height: 0;
     width: 100%;
     overflow: hidden;
-    border-radius: 0.375rem;
-    border: 1px solid rgb(226 232 240);
     background: #fff;
-    box-shadow: inset 0 0 0 1px rgb(248 250 252);
 }
 
 .doc-preview-google__iframe {
@@ -253,8 +245,6 @@ const googleEmbedUrl = computed(() => {
 }
 
 :global(.dark) .doc-preview-google {
-    border-color: rgb(71 85 105);
     background: rgb(15 23 42);
-    box-shadow: none;
 }
 </style>

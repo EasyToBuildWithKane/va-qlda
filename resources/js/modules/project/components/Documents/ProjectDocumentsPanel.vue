@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, reactive, onMounted, nextTick } from 'vue';
+import { ref, computed, watch, reactive, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { router, useForm } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
 import { useConfirmDelete } from '@/composables/useConfirmClose';
@@ -11,6 +11,7 @@ import ProjectDocumentTree from '@/modules/project/components/Documents/ProjectD
 import Drawer from '@/Components/Ui/Drawer.vue';
 import { useModalFormDraft } from '@/composables/useModalFormDraft';
 import { buildDraftSaveMeta } from '@/composables/useModalDraftHelpers';
+import { useFixedDropdownAnchor } from '@/shared/composables/useFixedDropdownAnchor';
 
 const props = defineProps({
     projectId: { type: [Number, String], required: true },
@@ -42,6 +43,39 @@ const showFileModal = ref(false);
 const fileModalRef = ref(null);
 const folderNameInput = ref(null);
 const fileNameInput = ref(null);
+const addMenuOpen = ref(false);
+const addMenuRef = ref(null);
+
+const { panelStyle: addMenuStyle } = useFixedDropdownAnchor(
+    () => addMenuRef.value,
+    addMenuOpen,
+    { width: 220, zIndex: 200 },
+);
+
+const closeAddMenu = () => {
+    addMenuOpen.value = false;
+};
+
+const onDocPanelPointerDown = (event) => {
+    if (!addMenuOpen.value) return;
+    const anchor = addMenuRef.value;
+    const panel = document.getElementById('project-docs-add-menu');
+    if (anchor?.contains(event.target) || panel?.contains(event.target)) return;
+    closeAddMenu();
+};
+
+onMounted(() => {
+    loadExpandedState();
+    document.addEventListener('mousedown', onDocPanelPointerDown);
+});
+onBeforeUnmount(() => {
+    document.removeEventListener('mousedown', onDocPanelPointerDown);
+});
+
+const runAddAction = (action) => {
+    closeAddMenu();
+    action();
+};
 
 const NEW_FILE_TYPES = [
     { value: 'txt', label: 'Văn bản', ext: '.txt', icon: 'documents' },
@@ -89,8 +123,6 @@ const persistExpandedState = () => {
     }
 };
 
-onMounted(loadExpandedState);
-
 const linkForm = useForm({
     category: '',
     title: '',
@@ -118,8 +150,6 @@ const colorBadge = {
     emerald: 'bg-emerald-100 text-emerald-700',
     rose: 'bg-rose-100 text-rose-700',
 };
-
-const sectionLabelClass = 'text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400';
 
 const byCategory = computed(() => {
     const map = {};
@@ -222,11 +252,8 @@ watch(activeCategory, () => {
 
 const totalCount = computed(() => props.attachments.filter((a) => !a.is_folder).length);
 
-const workspaceGridClass = computed(() => (
-    selected.value
-        ? 'lg:grid-cols-[minmax(240px,288px)_minmax(0,1fr)_minmax(260px,300px)]'
-        : 'lg:grid-cols-[minmax(240px,288px)_minmax(0,1fr)]'
-));
+/** Danh sách hẹp — phần còn lại ưu tiên preview (chi tiết qua drawer). */
+const workspaceGridClass = 'lg:grid-cols-[minmax(180px,220px)_minmax(0,1fr)]';
 
 const cancelNotesEdit = () => {
     editingNotes.value = false;
@@ -670,147 +697,213 @@ const activityTone = (event) => ({
 
 <template>
   <div class="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-white dark:bg-slate-900">
-    <!-- Danh mục + tổng số -->
-    <div class="shrink-0 border-b border-slate-200 bg-slate-50/80 px-3 py-2 dark:border-slate-700 dark:bg-slate-900/80">
-      <div class="flex flex-wrap items-center justify-between gap-2">
-        <p :class="sectionLabelClass">
-          Danh mục tài liệu
-        </p>
-        <span class="text-xs text-slate-500">
-          Tổng
-          <span class="font-semibold tabular-nums text-brand">{{ totalCount }}</span>
-          file
-        </span>
-      </div>
-      <nav
-        class="mt-2 overflow-x-auto overscroll-x-contain"
-        aria-label="Danh mục tài liệu"
-      >
-        <div
-          class="inline-flex min-w-0 items-stretch gap-0.5 rounded-lg border border-slate-200/90 bg-white p-0.5 shadow-sm dark:border-slate-700 dark:bg-slate-900"
-          role="group"
+    <!-- Danh mục + hành động (một hàng gọn) -->
+    <div class="shrink-0 border-b border-slate-200 bg-slate-50/80 px-2 py-1.5 dark:border-slate-700 dark:bg-slate-900/80">
+      <div class="flex min-w-0 flex-wrap items-center gap-1.5 lg:flex-nowrap">
+        <nav
+          class="min-w-0 flex-1 overflow-x-auto overscroll-x-contain"
+          aria-label="Danh mục tài liệu"
         >
-          <button
-            v-for="cat in categories"
-            :key="cat.value"
-            type="button"
-            class="inline-flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition sm:px-2.5"
-            :class="activeCategory === cat.value
-              ? 'bg-brand/10 text-brand ring-1 ring-brand/15 dark:bg-brand/20 dark:text-brand-100'
-              : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200'"
-            @click="activeCategory = cat.value"
+          <div
+            class="inline-flex min-w-0 items-stretch gap-0.5 rounded-md border border-slate-200/90 bg-white p-0.5 shadow-sm dark:border-slate-700 dark:bg-slate-900"
+            role="group"
           >
-            <AppIcon
-              :name="cat.icon"
-              :size="13"
-            />
-            <span class="whitespace-nowrap">{{ cat.label }}</span>
-            <span
-              class="inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold tabular-nums"
-              :class="categoryItemCount(cat.value)
-                ? (colorBadge[cat.color] || 'bg-brand/10 text-brand')
-                : 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500'"
-            >{{ categoryItemCount(cat.value) }}</span>
-          </button>
-        </div>
-      </nav>
-    </div>
+            <button
+              v-for="cat in categories"
+              :key="cat.value"
+              type="button"
+              class="inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-1 text-[11px] font-medium transition sm:gap-1.5 sm:px-2 sm:text-xs"
+              :class="activeCategory === cat.value
+                ? 'bg-brand/10 text-brand ring-1 ring-brand/15 dark:bg-brand/20 dark:text-brand-100'
+                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200'"
+              @click="activeCategory = cat.value"
+            >
+              <AppIcon
+                :name="cat.icon"
+                :size="12"
+              />
+              <span class="whitespace-nowrap">{{ cat.label }}</span>
+              <span
+                class="inline-flex h-3.5 min-w-3.5 items-center justify-center rounded-full px-1 text-[9px] font-semibold tabular-nums"
+                :class="categoryItemCount(cat.value)
+                  ? (colorBadge[cat.color] || 'bg-brand/10 text-brand')
+                  : 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500'"
+              >{{ categoryItemCount(cat.value) }}</span>
+            </button>
+          </div>
+        </nav>
 
-    <div
-      v-if="canUpload"
-      class="shrink-0 border-b border-slate-100 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-900"
-    >
-      <div class="flex flex-wrap items-center justify-end gap-2">
-        <button
-          type="button"
-          class="btn-ghost inline-flex h-9 items-center gap-1.5 border border-amber-200/80 bg-amber-50/60 px-2.5 text-xs font-medium text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100 sm:text-sm"
-          @click="openFolderModal()"
-        >
-          <AppIcon
-            name="folder"
-            :size="14"
-          />
-          Tạo thư mục
-        </button>
-        <button
-          type="button"
-          class="btn-ghost inline-flex h-9 items-center gap-1.5 border border-sky-200/80 bg-sky-50/60 px-2.5 text-xs font-medium text-sky-950 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-100 sm:text-sm"
-          @click="openFileModal()"
-        >
-          <AppIcon
-            name="documents"
-            :size="14"
-          />
-          Tạo file
-        </button>
-        <button
-          type="button"
-          class="btn-ghost inline-flex h-9 items-center gap-1.5 border border-slate-200 px-2.5 text-xs font-medium dark:border-slate-600 sm:text-sm"
-          @click="openAddLinkModal"
-        >
-          <AppIcon
-            name="link"
-            :size="14"
-          />
-          Thêm link
-        </button>
-        <button
-          type="button"
-          class="btn-primary inline-flex h-9 items-center gap-1.5 px-2.5 text-xs font-medium sm:text-sm"
-          :disabled="uploadingCategory === activeCategory"
-          @click="pickFiles(activeCategory)"
-        >
-          <AppIcon
-            :name="uploadingCategory === activeCategory ? 'refresh' : 'upload'"
-            :size="14"
-            :class="uploadingCategory === activeCategory ? 'animate-spin' : ''"
-          />
-          {{ uploadingCategory === activeCategory ? 'Đang tải…' : 'Tải lên' }}
-        </button>
-        <input
-          :ref="(el) => setFileInput(activeCategory, el)"
-          type="file"
-          class="hidden"
-          multiple
-          :accept="acceptFor(activeCategory)"
-          @change="onFilesSelected(activeCategory, $event)"
-        >
+        <div class="ml-auto flex shrink-0 items-center gap-1.5">
+          <span
+            class="hidden tabular-nums text-[11px] text-slate-500 sm:inline"
+            :title="`${totalCount} file`"
+          >
+            <span class="font-semibold text-brand">{{ totalCount }}</span>
+          </span>
+          <template v-if="canUpload">
+            <div
+              ref="addMenuRef"
+              class="relative"
+            >
+              <button
+                type="button"
+                class="btn-ghost inline-flex h-8 items-center gap-1 border border-slate-200 px-2 text-xs font-medium dark:border-slate-600"
+                :aria-expanded="addMenuOpen"
+                aria-haspopup="menu"
+                aria-controls="project-docs-add-menu"
+                @click="addMenuOpen = !addMenuOpen"
+              >
+                <AppIcon
+                  name="plus"
+                  :size="13"
+                />
+                Thêm
+                <AppIcon
+                  name="chevron-down"
+                  :size="11"
+                  class="opacity-60"
+                />
+              </button>
+            </div>
+            <Teleport to="body">
+              <div
+                v-if="addMenuOpen"
+                id="project-docs-add-menu"
+                role="menu"
+                class="overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-900"
+                :style="addMenuStyle"
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                  @click="runAddAction(() => openFolderModal())"
+                >
+                  <AppIcon
+                    name="folder"
+                    :size="14"
+                    class="text-amber-600"
+                  />
+                  Thư mục
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                  @click="runAddAction(() => openFileModal())"
+                >
+                  <AppIcon
+                    name="documents"
+                    :size="14"
+                    class="text-sky-600"
+                  />
+                  File trống
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                  @click="runAddAction(openAddLinkModal)"
+                >
+                  <AppIcon
+                    name="link"
+                    :size="14"
+                    class="text-emerald-600"
+                  />
+                  Link ngoài
+                </button>
+              </div>
+            </Teleport>
+            <button
+              type="button"
+              class="btn-primary inline-flex h-8 items-center gap-1 px-2.5 text-xs font-medium"
+              :disabled="uploadingCategory === activeCategory"
+              @click="pickFiles(activeCategory)"
+            >
+              <AppIcon
+                :name="uploadingCategory === activeCategory ? 'refresh' : 'upload'"
+                :size="13"
+                :class="uploadingCategory === activeCategory ? 'animate-spin' : ''"
+              />
+              {{ uploadingCategory === activeCategory ? 'Đang tải…' : 'Tải lên' }}
+            </button>
+            <input
+              :ref="(el) => setFileInput(activeCategory, el)"
+              type="file"
+              class="hidden"
+              multiple
+              :accept="acceptFor(activeCategory)"
+              @change="onFilesSelected(activeCategory, $event)"
+            >
+          </template>
+        </div>
       </div>
     </div>
 
-    <!-- Danh sách | Preview full-height | Chi tiết (sidebar) -->
+    <!-- Empty: một khối -->
     <div
-      class="grid min-h-0 flex-1 overflow-hidden max-lg:grid-rows-[minmax(0,34vh)_minmax(0,1fr)] lg:grid-rows-1"
+      v-if="!categoryFiles.length"
+      class="relative flex min-h-0 flex-1 flex-col items-center justify-center overflow-hidden bg-slate-50/40 px-4 py-8 text-center dark:bg-slate-950/40"
+      @dragover.prevent="onDragOver"
+      @dragleave="onDragLeave"
+      @drop.prevent="onDrop(activeCategory, $event)"
+    >
+      <div
+        v-if="canUpload && dragging"
+        class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-brand/10 backdrop-blur-[1px]"
+      >
+        <div class="flex flex-col items-center gap-1.5 rounded-lg border-2 border-dashed border-brand bg-white/95 px-5 py-4 shadow-sm dark:bg-slate-900/95">
+          <AppIcon
+            name="upload"
+            :size="22"
+            class="text-brand"
+          />
+          <p class="text-sm font-semibold text-brand">
+            Thả để tải lên
+          </p>
+        </div>
+      </div>
+      <AppIcon
+        :name="activeCat?.icon || 'documents'"
+        :size="28"
+        class="text-slate-300 dark:text-slate-600"
+      />
+      <p class="mt-2 text-sm font-medium text-slate-600 dark:text-slate-300">
+        {{ canUpload ? 'Chưa có thư mục hoặc tài liệu' : 'Chưa có tài liệu' }}
+      </p>
+      <p
+        v-if="canUpload"
+        class="mt-1 max-w-xs text-xs text-slate-500"
+      >
+        Kéo thả, hoặc <span class="font-medium text-slate-600 dark:text-slate-300">Thêm</span> / <span class="font-medium text-slate-600 dark:text-slate-300">Tải lên</span>.
+      </p>
+    </div>
+
+    <!-- Danh sách | Preview (chi tiết qua drawer) -->
+    <div
+      v-else
+      class="grid min-h-0 flex-1 overflow-hidden max-lg:grid-rows-[minmax(0,28vh)_minmax(0,1fr)] lg:grid-rows-1"
       :class="workspaceGridClass"
     >
       <div class="flex min-h-0 flex-col overflow-hidden border-b border-slate-200 bg-slate-50/50 lg:border-b-0 lg:border-r dark:border-slate-700 dark:bg-slate-900/50">
         <div
-          class="shrink-0 border-b border-slate-200/80 bg-white px-2.5 py-1.5 dark:border-slate-700 dark:bg-slate-900"
+          v-if="categoryFiles.some((f) => f.is_folder)"
+          class="flex shrink-0 items-center justify-end gap-1 border-b border-slate-200/80 bg-white px-1.5 py-0.5 dark:border-slate-700 dark:bg-slate-900"
         >
-          <div class="flex flex-wrap items-center justify-between gap-1">
-            <p :class="sectionLabelClass">
-              Danh sách ({{ categoryItemCount(activeCategory) }})
-            </p>
-            <div
-              v-if="categoryFiles.some((f) => f.is_folder)"
-              class="flex shrink-0 gap-1"
-            >
-              <button
-                type="button"
-                class="rounded px-1.5 py-0.5 text-[10px] font-medium text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
-                @click="expandAllFolders"
-              >
-                Mở tất cả
-              </button>
-              <button
-                type="button"
-                class="rounded px-1.5 py-0.5 text-[10px] font-medium text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
-                @click="collapseAllFolders"
-              >
-                Thu gọn
-              </button>
-            </div>
-          </div>
+          <button
+            type="button"
+            class="rounded px-1.5 py-0.5 text-[10px] font-medium text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+            @click="expandAllFolders"
+          >
+            Mở tất cả
+          </button>
+          <button
+            type="button"
+            class="rounded px-1.5 py-0.5 text-[10px] font-medium text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+            @click="collapseAllFolders"
+          >
+            Thu gọn
+          </button>
         </div>
         <div
           class="relative min-h-0 flex-1 overflow-y-auto bg-white dark:bg-slate-900"
@@ -822,10 +915,10 @@ const activityTone = (event) => ({
             v-if="canUpload && dragging"
             class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-brand/10 backdrop-blur-[1px]"
           >
-            <div class="flex flex-col items-center gap-2 rounded-xl border-2 border-dashed border-brand bg-white/95 px-6 py-5 shadow-sm dark:bg-slate-900/95">
+            <div class="flex flex-col items-center gap-1.5 rounded-lg border-2 border-dashed border-brand bg-white/95 px-5 py-4 shadow-sm dark:bg-slate-900/95">
               <AppIcon
                 name="upload"
-                :size="28"
+                :size="22"
                 class="text-brand"
               />
               <p class="text-sm font-semibold text-brand">
@@ -833,59 +926,7 @@ const activityTone = (event) => ({
               </p>
             </div>
           </div>
-          <div
-            v-if="!categoryFiles.length"
-            class="flex flex-col items-center justify-center px-4 py-16 text-center"
-          >
-            <AppIcon
-              :name="activeCat?.icon || 'documents'"
-              :size="32"
-              class="text-slate-300"
-            />
-            <p class="mt-2 text-xs text-slate-400 sm:text-sm">
-              {{ canUpload ? 'Chưa có thư mục hoặc tài liệu.' : 'Chưa có tài liệu.' }}
-            </p>
-            <div
-              v-if="canUpload"
-              class="mt-3 flex flex-wrap items-center justify-center gap-2"
-            >
-              <button
-                type="button"
-                class="btn-ghost inline-flex h-9 items-center gap-1.5 border border-amber-200/80 bg-amber-50/60 px-3 text-xs font-medium text-amber-950 sm:text-sm"
-                @click="openFolderModal()"
-              >
-                <AppIcon
-                  name="folder"
-                  :size="14"
-                />
-                Tạo thư mục
-              </button>
-              <button
-                type="button"
-                class="btn-ghost inline-flex h-9 items-center gap-1.5 border border-sky-200/80 bg-sky-50/60 px-3 text-xs font-medium text-sky-950 sm:text-sm"
-                @click="openFileModal()"
-              >
-                <AppIcon
-                  name="documents"
-                  :size="14"
-                />
-                Tạo file
-              </button>
-              <button
-                type="button"
-                class="btn-primary inline-flex h-9 items-center gap-1.5 px-3 text-xs font-medium sm:text-sm"
-                @click="pickFiles(activeCategory)"
-              >
-                <AppIcon
-                  name="upload"
-                  :size="14"
-                />
-                Tải lên
-              </button>
-            </div>
-          </div>
           <ProjectDocumentTree
-            v-else
             :nodes="documentTree"
             :selected-id="selectedId"
             :active-folder-id="activeFolderId"
@@ -904,23 +945,23 @@ const activityTone = (event) => ({
         </div>
       </div>
 
-      <!-- Preview — full chiều cao còn lại, không cuộn -->
-      <div class="flex min-h-0 flex-col overflow-hidden bg-slate-100/80 dark:bg-slate-950 lg:border-l lg:border-slate-200/80 dark:lg:border-slate-800">
+      <!-- Preview — full chiều cao/rộng còn lại -->
+      <div class="flex min-h-0 flex-col overflow-hidden bg-slate-100/60 dark:bg-slate-950">
         <template v-if="selected">
-          <div class="flex shrink-0 items-center gap-2 border-b border-slate-200/80 bg-white px-2 py-1.5 dark:border-slate-700 dark:bg-slate-900">
-            <h3 class="min-w-0 flex-1 truncate text-sm font-semibold text-slate-800 dark:text-slate-100">
+          <div class="flex shrink-0 items-center gap-1.5 border-b border-slate-200/80 bg-white px-1.5 py-1 dark:border-slate-700 dark:bg-slate-900">
+            <h3 class="min-w-0 flex-1 truncate text-xs font-semibold text-slate-800 dark:text-slate-100 sm:text-sm">
               {{ selected.original_name }}
             </h3>
             <button
               type="button"
-              class="btn-ghost inline-flex h-8 shrink-0 items-center gap-1 px-2 text-xs font-medium lg:hidden"
+              class="btn-ghost inline-flex h-7 shrink-0 items-center gap-1 px-1.5 text-[11px] font-medium"
               @click="detailDrawerOpen = true"
             >
               <AppIcon
                 name="info"
-                :size="14"
+                :size="13"
               />
-              Chi tiết
+              <span class="hidden sm:inline">Chi tiết</span>
             </button>
             <div class="flex shrink-0 items-center gap-0.5">
               <a
@@ -932,7 +973,7 @@ const activityTone = (event) => ({
               >
                 <AppIcon
                   name="eye"
-                  :size="14"
+                  :size="13"
                 />
               </a>
               <a
@@ -944,7 +985,7 @@ const activityTone = (event) => ({
               >
                 <AppIcon
                   name="download"
-                  :size="14"
+                  :size="13"
                 />
               </a>
               <button
@@ -956,12 +997,12 @@ const activityTone = (event) => ({
               >
                 <AppIcon
                   name="delete"
-                  :size="14"
+                  :size="13"
                 />
               </button>
             </div>
           </div>
-          <div class="flex min-h-0 flex-1 flex-col overflow-hidden p-1.5">
+          <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
             <DocumentPreviewPane
               class="min-h-0 flex-1"
               :file="selected"
@@ -970,49 +1011,18 @@ const activityTone = (event) => ({
         </template>
         <div
           v-else
-          class="flex min-h-0 flex-1 flex-col items-center justify-center p-6 text-center text-slate-400"
+          class="flex min-h-0 flex-1 flex-col items-center justify-center p-4 text-center text-slate-400"
         >
           <AppIcon
             name="documents"
-            :size="32"
+            :size="24"
             class="opacity-40"
           />
-          <p class="mt-2 text-xs sm:text-sm">
+          <p class="mt-1.5 text-xs">
             Chọn tài liệu để xem trước.
           </p>
         </div>
       </div>
-
-      <!-- Chi tiết file — cột phải (desktop) -->
-      <aside
-        v-if="selected"
-        class="hidden min-h-0 flex-col overflow-y-auto border-l border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 lg:flex"
-      >
-        <ProjectDocumentDetailAside
-          :selected="selected"
-          :activities="activities"
-          :can-edit="canEdit"
-          :can-delete="canDelete"
-          :notes-form="notesForm"
-          :editing-notes="editingNotes"
-          :editing-link="editingLink"
-          :link-form="linkForm"
-          :format-size="formatSize"
-          :format-file-type="formatFileType"
-          :activity-icon="activityIcon"
-          :activity-tone="activityTone"
-          @edit-notes="editingNotes = true"
-          @cancel-notes="cancelNotesEdit"
-          @save-notes="saveNotes"
-          @edit-link="editingLink = true"
-          @cancel-link="cancelLinkEdit"
-          @save-link="saveLink"
-          @replace="pickReplace"
-          @update:notes="notesForm.notes = $event"
-          @update:link-title="linkForm.title = $event"
-          @update:link-url="linkForm.external_url = $event"
-        />
-      </aside>
     </div>
 
     <input
@@ -1061,12 +1071,12 @@ const activityTone = (event) => ({
       ref="linkModalRef"
       :show="showLinkModal"
       title="Thêm link tài liệu"
-      max-width="max-w-md"
+      max-width="max-w-sm"
       :dirty="Boolean(linkForm.title || linkForm.external_url)"
       :on-save-draft="saveLinkDraftOnClose"
       @close="closeLinkModal"
     >
-      <div class="space-y-3">
+      <div class="space-y-2.5">
         <div>
           <label
             for="doc-link-title"
@@ -1076,7 +1086,7 @@ const activityTone = (event) => ({
             id="doc-link-title"
             v-model="linkForm.title"
             type="text"
-            class="input mt-1 w-full text-sm"
+            class="input mt-1 h-9 w-full text-sm"
             placeholder="VD: Đặc tả v1.2"
           >
         </div>
@@ -1089,7 +1099,7 @@ const activityTone = (event) => ({
             id="doc-link-url"
             v-model="linkForm.external_url"
             type="url"
-            class="input mt-1 w-full text-sm"
+            class="input mt-1 h-9 w-full text-sm"
             placeholder="https://docs.google.com/… hoặc https://…/file.pdf"
             required
           >
@@ -1107,17 +1117,17 @@ const activityTone = (event) => ({
           </p>
         </div>
       </div>
-      <div class="mt-5 flex justify-end gap-2">
+      <div class="mt-3 flex justify-end gap-2">
         <button
           type="button"
-          class="btn-ghost text-sm"
+          class="btn-ghost h-8 text-xs"
           @click="requestCloseLinkModal"
         >
           Huỷ
         </button>
         <button
           type="button"
-          class="btn-primary text-sm"
+          class="btn-primary h-8 text-xs"
           :disabled="linkForm.processing || !linkForm.external_url.trim()"
           @click="submitLink"
         >
@@ -1130,68 +1140,53 @@ const activityTone = (event) => ({
       ref="folderModalRef"
       :show="showFolderModal"
       title="Tạo thư mục"
-      max-width="max-w-md"
+      max-width="max-w-sm"
       :dirty="Boolean(folderForm.folder_name)"
       @close="closeFolderModal"
     >
-      <div class="space-y-4">
-        <div class="flex items-start gap-3 rounded-xl border border-amber-200/80 bg-gradient-to-br from-amber-50 to-white p-3 dark:border-amber-800/60 dark:from-amber-950/40 dark:to-slate-900">
-          <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-amber-100 to-amber-50 text-amber-800 ring-1 ring-amber-200/90 dark:from-amber-900/60 dark:to-amber-950/40 dark:text-amber-100 dark:ring-amber-700/50">
-            <AppIcon
-              name="folder"
-              :size="20"
-            />
-          </span>
-          <div class="min-w-0 pt-0.5">
-            <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">
-              Thư mục mới
-            </p>
-            <p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-              Vị trí: <span class="font-medium text-slate-700 dark:text-slate-300">{{ folderPathLabel }}</span>
-            </p>
-          </div>
-        </div>
-        <div>
-          <label
-            for="doc-folder-name"
-            class="text-xs font-medium text-slate-500"
-          >Tên thư mục</label>
-          <input
-            id="doc-folder-name"
-            ref="folderNameInput"
-            v-model="folderForm.folder_name"
-            type="text"
-            class="input mt-1 w-full text-sm"
-            placeholder="Nhập tên thư mục"
-            maxlength="255"
-            autocomplete="off"
-            @keyup.enter="submitFolder"
-          >
-          <p
-            v-if="folderForm.errors.folder_name"
-            class="mt-1 text-xs text-rose-600"
-          >
-            {{ folderForm.errors.folder_name }}
-          </p>
-        </div>
+      <p class="mb-2 text-xs text-slate-500">
+        Vị trí: <span class="font-medium text-slate-700 dark:text-slate-300">{{ folderPathLabel }}</span>
+      </p>
+      <div>
+        <label
+          for="doc-folder-name"
+          class="text-xs font-medium text-slate-500"
+        >Tên thư mục</label>
+        <input
+          id="doc-folder-name"
+          ref="folderNameInput"
+          v-model="folderForm.folder_name"
+          type="text"
+          class="input mt-1 h-9 w-full text-sm"
+          placeholder="Nhập tên thư mục"
+          maxlength="255"
+          autocomplete="off"
+          @keyup.enter="submitFolder"
+        >
+        <p
+          v-if="folderForm.errors.folder_name"
+          class="mt-1 text-xs text-rose-600"
+        >
+          {{ folderForm.errors.folder_name }}
+        </p>
       </div>
-      <div class="mt-5 flex justify-end gap-2">
+      <div class="mt-3 flex justify-end gap-2">
         <button
           type="button"
-          class="btn-ghost text-sm"
+          class="btn-ghost h-8 text-xs"
           @click="closeFolderModal"
         >
           Huỷ
         </button>
         <button
           type="button"
-          class="btn-primary inline-flex items-center gap-1.5 text-sm"
+          class="btn-primary inline-flex h-8 items-center gap-1 text-xs"
           :disabled="folderForm.processing || !folderForm.folder_name.trim()"
           @click="submitFolder"
         >
           <AppIcon
             name="folder"
-            :size="14"
+            :size="13"
           />
           {{ folderForm.processing ? 'Đang tạo…' : 'Tạo thư mục' }}
         </button>
@@ -1202,34 +1197,20 @@ const activityTone = (event) => ({
       ref="fileModalRef"
       :show="showFileModal"
       title="Tạo file"
-      max-width="max-w-md"
+      max-width="max-w-sm"
       :dirty="Boolean(newFileForm.file_name)"
       @close="closeFileModal"
     >
-      <div class="space-y-4">
-        <div class="flex items-start gap-3 rounded-xl border border-sky-200/80 bg-gradient-to-br from-sky-50 to-white p-3 dark:border-sky-800/60 dark:from-sky-950/40 dark:to-slate-900">
-          <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-sky-50 text-sky-700 ring-1 ring-sky-200/80 dark:bg-sky-950 dark:text-sky-300 dark:ring-sky-700/50">
-            <AppIcon
-              name="documents"
-              :size="20"
-            />
-          </span>
-          <div class="min-w-0 pt-0.5">
-            <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">
-              File mới
-            </p>
-            <p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-              Vị trí: <span class="font-medium text-slate-700 dark:text-slate-300">{{ filePathLabel }}</span>
-            </p>
-          </div>
-        </div>
-
+      <p class="mb-2 text-xs text-slate-500">
+        Vị trí: <span class="font-medium text-slate-700 dark:text-slate-300">{{ filePathLabel }}</span>
+      </p>
+      <div class="space-y-2.5">
         <div>
           <p class="text-xs font-medium text-slate-500">
             Loại file
           </p>
           <div
-            class="mt-1.5 grid grid-cols-2 gap-2"
+            class="mt-1 grid grid-cols-4 gap-1"
             role="radiogroup"
             aria-label="Loại file"
           >
@@ -1238,20 +1219,15 @@ const activityTone = (event) => ({
               :key="type.value"
               type="button"
               role="radio"
-              class="flex items-center gap-2 rounded-lg border px-2.5 py-2 text-left transition"
+              class="rounded-md border px-1.5 py-1.5 text-center transition"
               :class="newFileForm.file_type === type.value
                 ? 'border-brand/40 bg-brand/5 ring-1 ring-brand/20'
-                : 'border-slate-200 hover:border-slate-300 dark:border-slate-600 dark:hover:border-slate-500'"
+                : 'border-slate-200 hover:border-slate-300 dark:border-slate-600'"
               :aria-checked="newFileForm.file_type === type.value"
+              :title="type.label"
               @click="newFileForm.file_type = type.value"
             >
-              <span class="grid h-8 w-8 place-items-center rounded-md bg-white text-[10px] font-bold uppercase text-slate-600 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-600">
-                {{ type.ext.replace('.', '') }}
-              </span>
-              <span class="min-w-0">
-                <span class="block text-xs font-semibold text-slate-800 dark:text-slate-100">{{ type.label }}</span>
-                <span class="block text-[11px] text-slate-500">{{ type.ext }}</span>
-              </span>
+              <span class="block text-[10px] font-bold uppercase text-slate-700 dark:text-slate-200">{{ type.ext.replace('.', '') }}</span>
             </button>
           </div>
           <p
@@ -1273,13 +1249,13 @@ const activityTone = (event) => ({
               ref="fileNameInput"
               v-model="newFileForm.file_name"
               type="text"
-              class="input w-full pr-14 text-sm"
+              class="input h-9 w-full pr-12 text-sm"
               placeholder="Nhập tên file"
               maxlength="200"
               autocomplete="off"
               @keyup.enter="submitNewFile"
             >
-            <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs font-medium text-slate-400">
+            <span class="pointer-events-none absolute inset-y-0 right-2.5 flex items-center text-xs font-medium text-slate-400">
               {{ selectedNewFileType.ext }}
             </span>
           </div>
@@ -1291,23 +1267,23 @@ const activityTone = (event) => ({
           </p>
         </div>
       </div>
-      <div class="mt-5 flex justify-end gap-2">
+      <div class="mt-3 flex justify-end gap-2">
         <button
           type="button"
-          class="btn-ghost text-sm"
+          class="btn-ghost h-8 text-xs"
           @click="closeFileModal"
         >
           Huỷ
         </button>
         <button
           type="button"
-          class="btn-primary inline-flex items-center gap-1.5 text-sm"
+          class="btn-primary inline-flex h-8 items-center gap-1 text-xs"
           :disabled="newFileForm.processing || !newFileForm.file_name.trim()"
           @click="submitNewFile"
         >
           <AppIcon
             name="documents"
-            :size="14"
+            :size="13"
           />
           {{ newFileForm.processing ? 'Đang tạo…' : 'Tạo file' }}
         </button>

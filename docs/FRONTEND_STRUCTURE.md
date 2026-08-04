@@ -167,7 +167,7 @@ Pages import feature components từ `@/modules/project/components/...` và prim
 | TaskDetail/ | `TaskDetailRichEditor`, `TaskDetailCollaboration`, `TaskDetailSubtasks`, … |
 | Dashboard/ | `ProjectShowSummaryBar` (tab Tổng quan Show — KPI embedded), `WorkloadTable` (phân bổ tải + dung lượng), `ProjectOverviewCard`, `RiskIssueDataTable`, `ProjectFeedbackPanel`, `RiskImportModal`, `ActivityFeed`, … |
 | Timeline/ | `ProjectTimelineView`, `ProjectTimelineBurndown`, … |
-| Documents/ | `ProjectDocumentsPanel`, `ProjectDocumentTree`, `DocumentPreviewPane`, `ProjectDocumentDetailAside` — tạo thư mục/file, kéo thả tải lên, link ngoài |
+| Documents/ | `ProjectDocumentsPanel`, `ProjectDocumentTree`, `DocumentPreviewPane`, `ProjectDocumentDetailAside` — list hẹp + preview full (chi tiết drawer), Thêm ▾ / Tải lên, modal tạo gọn |
 | Modals | `TaskFormModal`, `SprintFormModal`, `BlockerFormModal`, … |
 
 ### 6.4 Credential module — `modules/credential/`

@@ -100,11 +100,11 @@ const folderMetaLabel = (node) => {
 
         <button
           type="button"
-          class="flex min-w-0 flex-1 items-start gap-2 py-1.5 pr-1 text-left sm:gap-2.5 sm:py-2 sm:pr-2"
+          class="flex min-w-0 flex-1 items-start gap-2 py-1 pr-1 text-left sm:gap-2 sm:py-1.5 sm:pr-1.5"
           @click="node.is_folder ? onSelectFolder(node) : onSelectFile(node)"
         >
           <span
-            class="relative grid h-9 w-9 shrink-0 place-items-center rounded-lg shadow-sm ring-1 sm:h-10 sm:w-10"
+            class="relative grid h-8 w-8 shrink-0 place-items-center rounded-md shadow-sm ring-1 sm:h-8 sm:w-8"
             :class="node.is_folder
               ? (isExpanded(node.id, expandedIds)
                 ? 'bg-gradient-to-br from-amber-100 to-amber-50 text-amber-800 ring-amber-200/90 dark:from-amber-900/60 dark:to-amber-950/40 dark:text-amber-100 dark:ring-amber-700/50'

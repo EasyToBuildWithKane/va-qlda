@@ -215,7 +215,7 @@ Tab strip full-width (`grid` trải đều): mobile 4 cột × 2 hàng; `md+` 8 
 | Tab | Key | Component chính |
 |---|---|---|
 | Tổng quan | `overview` | `ProjectShowSummaryBar`, `ProjectOverviewCard` (hồ sơ + mốc + PM), `WorkloadTable` (summary KPI + mức tải healthy/watch/overloaded + dung lượng/tiến độ), `ActivityFeed`, `RiskIssuePanel` |
-| Tài liệu | `documents` | `ProjectDocumentsPanel` — thư mục, tạo file trống (txt/md/csv/json), upload kéo thả, link Google Docs/Sheets/PDF, preview |
+| Tài liệu | `documents` | `ProjectDocumentsPanel` — toolbar gọn (Thêm ▾ + Tải lên), thư mục/file trống, kéo thả, link, preview |
 | Lịch dự án | `timeline` | `ProjectCalendar` — Gantt mini, kéo ngày → `PUT tasks` |
 | Kanban | `board` | `TaskBoard` — `PATCH tasks.status` |
 | Sprint | `sprints` | `SprintWorkspace` — list/calendar, `SprintDataModal` |
@@ -312,6 +312,8 @@ UI: `ProjectMembers.vue`, `MemberFormModal` — thêm từ `ProjectActions` trê
 **Tạo file trống:** `is_new_file`, `file_name`, `file_type` ∈ {txt, md, csv, json} — ghi file lên disk `public` qua `ProjectAttachmentNewFile`, activity `file_created`.
 
 **Thư mục:** `is_folder` + `folder_name`, tối đa 12 cấp; UI modal có vị trí danh mục/thư mục cha.
+
+**UI tab Tài liệu:** một hàng gọn (danh mục + `Thêm` ▾ + `Tải lên`); lưới **danh sách hẹp (~220px) | preview full**; chi tiết file qua drawer (không cột cố định). Modal tạo thư mục/file/link `max-w-sm`, bỏ hero card. Empty = một khối gợi ý kéo thả.
 
 Activity: `project_attachment_activities` — log trên `ProjectDocumentsPanel`.
 
