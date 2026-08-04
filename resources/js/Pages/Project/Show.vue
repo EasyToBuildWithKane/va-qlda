@@ -447,21 +447,6 @@ const onSprintSaved = () => {
           v-show="tab === 'board'"
           class="flex h-full flex-col overflow-hidden"
         >
-          <div class="flex shrink-0 items-center justify-between border-b border-slate-200 bg-white px-5 py-3">
-            <h2 class="font-display font-semibold text-slate-800">
-              Bảng Kanban
-            </h2>
-            <button
-              v-if="canManage"
-              class="btn-primary text-sm"
-              @click="openTaskModal()"
-            >
-              <AppIcon
-                name="add"
-                :size="15"
-              /> Công việc
-            </button>
-          </div>
           <div class="min-h-0 flex-1 overflow-hidden p-4">
             <TaskBoard
               :tasks="tasks"

@@ -163,7 +163,7 @@ Pages import feature components từ `@/modules/project/components/...` và prim
 | Nhóm | Components |
 |---|---|
 | Core | `ProjectCard`, `ProjectDataGrid` (kéo ngang cuộn bảng), `ProjectForm`, `ProjectMembers`, `GanttChart`, `TaskBoard`, … · Index Kanban: wrap thẻ; «Nhóm theo» Loại/Phòng ban chỉ `super_admin` |
-| Sprint/ | `SprintWorkspace`, `SprintTaskTable`, `SprintDataModal`, `TaskDetailPanel`, … |
+| Sprint/ | `SprintWorkspace`, `SprintTaskRows` (bảng task list không hiển thị cột SLA), `SprintTaskTable`, `SprintDataModal`, `TaskDetailPanel`, … |
 | TaskDetail/ | `TaskDetailRichEditor`, `TaskDetailCollaboration`, `TaskDetailSubtasks`, … |
 | Dashboard/ | `ProjectShowSummaryBar` (tab Tổng quan Show — KPI embedded), `WorkloadTable` (phân bổ tải + dung lượng), `ProjectOverviewCard`, `RiskIssueDataTable`, `ProjectFeedbackPanel`, `RiskImportModal`, `ActivityFeed`, … |
 | Timeline/ | `ProjectTimelineView`, `ProjectTimelineBurndown`, … |

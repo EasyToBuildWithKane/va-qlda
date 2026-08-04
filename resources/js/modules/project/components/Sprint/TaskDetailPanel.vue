@@ -405,7 +405,6 @@ const worklogList = computed(() => normalizeEntities(activeTask.value?.worklogs)
           <div
             v-if="!fullscreen"
             class="absolute left-0 top-0 z-10 h-full w-1.5 cursor-ew-resize hover:bg-brand/30"
-            title="Kéo để đổi độ rộng"
             @mousedown="startResize"
           />
 
@@ -1112,9 +1111,6 @@ const worklogList = computed(() => normalizeEntities(activeTask.value?.worklogs)
                 <div class="border-b border-slate-100 px-3 py-2 dark:border-slate-800">
                   <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">
                     {{ g.label }}
-                  </p>
-                  <p class="text-[10px] text-slate-400">
-                    {{ g.hint }}
                   </p>
                 </div>
                 <ul class="divide-y divide-slate-100 dark:divide-slate-800">

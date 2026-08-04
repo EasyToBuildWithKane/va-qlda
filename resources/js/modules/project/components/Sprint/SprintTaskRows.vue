@@ -8,7 +8,6 @@ import { date } from '@/composables/useFormat';
 import { getTaskAssignees } from '@/composables/useTaskHierarchy';
 import { useSprintTaskStatusPatch } from '@/composables/useSprintTaskStatusPatch';
 import {
-    getTaskSlaState,
     getTaskSlaToneClass,
     isTaskDateOverdue,
     isTaskOverdue,
@@ -34,7 +33,7 @@ const props = defineProps({
 const { patchTaskStatus } = useSprintTaskStatusPatch(props.projectId, props.statusOptions);
 const emit = defineEmits(['open-task', 'edit-task', 'delete-task']);
 
-const colCount = computed(() => (props.compact ? 11 : 12));
+const colCount = computed(() => (props.compact ? 10 : 11));
 const taskPool = computed(() => (props.allTasks?.length ? props.allTasks : props.tasks));
 
 const parentBlocks = computed(() => buildParentBlocks(props.tasks, taskPool.value));
@@ -106,11 +105,6 @@ const onStatusChange = (task, event) => {
 
 const scheduleFor = (row, parent) => getTaskSchedule(row, taskPool.value, parent);
 
-const slaFor = (row, _parent) => {
-    if (isSubtask(row)) return { label: '—', detail: 'Theo công việc cha', tone: 'slate' };
-    return getTaskSlaState(row);
-};
-
 const isRowOverdue = (row, parent) => {
     if (isSubtask(row)) {
         const sch = scheduleFor(row, parent);
@@ -160,9 +154,6 @@ const isDateOverdue = (row, parent) => {
           </th>
           <th class="w-14 border-b border-slate-100 px-2 py-1.5 dark:border-slate-800">
             Giờ TT
-          </th>
-          <th class="min-w-[7.5rem] border-b border-slate-100 px-2 py-1.5 dark:border-slate-800">
-            SLA
           </th>
           <th class="w-[4.5rem] border-b border-slate-100 px-2 py-1.5 dark:border-slate-800">
             Tiến độ
@@ -360,21 +351,6 @@ const isDateOverdue = (row, parent) => {
               v-else
               class="font-normal"
             >—</span>
-          </td>
-          <td class="border-b border-slate-100 px-2 py-2 dark:border-slate-800">
-            <template v-if="!entry.isSubtask">
-              <span
-                class="inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold"
-                :class="getTaskSlaToneClass(slaFor(entry.task).tone)"
-                :title="slaFor(entry.task).detail"
-              >
-                {{ slaFor(entry.task).label }}
-              </span>
-            </template>
-            <span
-              v-else
-              class="text-[10px] text-slate-400"
-            >Theo cha</span>
           </td>
           <td class="border-b border-slate-100 px-2 py-2 dark:border-slate-800">
             <div

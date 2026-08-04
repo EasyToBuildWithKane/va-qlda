@@ -113,19 +113,6 @@ function onDragEnd() {
 
 <template>
   <div class="space-y-3">
-    <p
-      v-if="canManage && orderedSprints.length > 1"
-      class="text-[11px] text-slate-500 dark:text-slate-400"
-    >
-      Kéo biểu tượng
-      <AppIcon
-        name="grip-vertical"
-        :size="12"
-        class="inline-block align-[-2px] text-slate-400"
-      />
-      để đổi thứ tự sprint.
-    </p>
-
     <article
       v-for="s in orderedSprints"
       :key="s.id"
@@ -147,7 +134,6 @@ function onDragEnd() {
             type="button"
             class="grid h-full min-h-[3.25rem] w-full cursor-grab place-items-center text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 active:cursor-grabbing dark:hover:bg-slate-700 dark:hover:text-slate-200"
             draggable="true"
-            title="Kéo để sắp xếp"
             aria-label="Kéo để sắp xếp sprint"
             @click.stop
             @dragstart="onDragStart(s.id, $event)"
