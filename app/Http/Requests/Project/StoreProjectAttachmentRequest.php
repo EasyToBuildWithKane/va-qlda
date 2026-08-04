@@ -6,6 +6,7 @@ use App\Models\Project;
 use App\Models\ProjectAttachment;
 use App\Support\Enums\ProjectAttachmentCategory;
 use App\Support\ProjectAttachmentExternalUrl;
+use App\Support\ProjectAttachmentNewFile;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -31,10 +32,22 @@ class StoreProjectAttachmentRequest extends FormRequest
                 'is_folder' => $bool ?? in_array($raw, [1, '1', true, 'true'], true),
             ]);
         }
+
+        if ($this->has('is_new_file')) {
+            $raw = $this->input('is_new_file');
+            $bool = filter_var($raw, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+            $this->merge([
+                'is_new_file' => $bool ?? in_array($raw, [1, '1', true, 'true'], true),
+            ]);
+        }
     }
 
     public function isFolderRequest(): bool
     {
+        if ($this->boolean('is_new_file')) {
+            return false;
+        }
+
         if ($this->boolean('is_folder')) {
             return true;
         }
@@ -43,7 +56,26 @@ class StoreProjectAttachmentRequest extends FormRequest
 
         return $folderName !== ''
             && ! $this->hasFile('files')
-            && trim((string) $this->input('external_url', '')) === '';
+            && trim((string) $this->input('external_url', '')) === ''
+            && trim((string) $this->input('file_name', '')) === '';
+    }
+
+    public function isNewFileRequest(): bool
+    {
+        if ($this->boolean('is_folder')) {
+            return false;
+        }
+
+        if ($this->boolean('is_new_file')) {
+            return true;
+        }
+
+        $fileName = trim((string) $this->input('file_name', ''));
+
+        return $fileName !== ''
+            && ! $this->hasFile('files')
+            && trim((string) $this->input('external_url', '')) === ''
+            && trim((string) $this->input('folder_name', '')) === '';
     }
 
     /**
@@ -56,11 +88,14 @@ class StoreProjectAttachmentRequest extends FormRequest
             'parent_id' => ['nullable', 'integer'],
             'is_folder' => ['sometimes', 'boolean'],
             'folder_name' => ['nullable', 'string', 'max:255'],
+            'is_new_file' => ['sometimes', 'boolean'],
+            'file_name' => ['nullable', 'string', 'max:200'],
+            'file_type' => ['nullable', 'string', Rule::in(ProjectAttachmentNewFile::TYPES)],
             'files' => ['nullable', 'array', 'max:15'],
             'files.*' => [
                 'file',
                 'max:20480',
-                'mimes:jpg,jpeg,png,gif,webp,svg,pdf,doc,docx,xls,xlsx,ppt,pptx,zip,rar,txt,csv,json',
+                'mimes:jpg,jpeg,png,gif,webp,svg,pdf,doc,docx,xls,xlsx,ppt,pptx,zip,rar,txt,csv,json,md',
             ],
             'external_url' => ['nullable', 'string', 'url', 'max:2048'],
             'title' => ['nullable', 'string', 'max:255'],
@@ -73,9 +108,12 @@ class StoreProjectAttachmentRequest extends FormRequest
             /** @var Project $project */
             $project = $this->route('project');
             $isFolder = $this->isFolderRequest();
+            $isNewFile = $this->isNewFileRequest();
             $hasFiles = $this->hasFile('files') && count($this->file('files', [])) > 0;
             $externalUrl = trim((string) $this->input('external_url', ''));
             $folderName = trim((string) ($this->input('folder_name') ?: $this->input('title', '')));
+            $fileName = trim((string) $this->input('file_name', ''));
+            $fileType = strtolower(trim((string) $this->input('file_type', 'txt')));
 
             if ($isFolder) {
                 if ($folderName === '') {
@@ -83,18 +121,34 @@ class StoreProjectAttachmentRequest extends FormRequest
 
                     return;
                 }
-                if ($hasFiles || $externalUrl !== '') {
+                if ($hasFiles || $externalUrl !== '' || $isNewFile) {
                     $v->errors()->add('is_folder', 'Không thể tạo thư mục cùng lúc với file hoặc link.');
 
                     return;
                 }
+            } elseif ($isNewFile) {
+                if ($fileName === '') {
+                    $v->errors()->add('file_name', 'Nhập tên file.');
+
+                    return;
+                }
+                if (ProjectAttachmentNewFile::definition($fileType) === null) {
+                    $v->errors()->add('file_type', 'Loại file không được hỗ trợ.');
+
+                    return;
+                }
+                if ($hasFiles || $externalUrl !== '') {
+                    $v->errors()->add('is_new_file', 'Không thể tạo file cùng lúc với tải lên hoặc link.');
+
+                    return;
+                }
             } elseif (! $hasFiles && $externalUrl === '') {
-                $v->errors()->add('files', 'Chọn file, thêm link hoặc tạo thư mục.');
+                $v->errors()->add('files', 'Chọn file, thêm link, tạo thư mục hoặc tạo file mới.');
 
                 return;
             }
 
-            if (! $isFolder && $hasFiles && $externalUrl !== '') {
+            if (! $isFolder && ! $isNewFile && $hasFiles && $externalUrl !== '') {
                 $v->errors()->add('external_url', 'Chỉ tải file hoặc thêm link — không gửi cả hai cùng lúc.');
 
                 return;

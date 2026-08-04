@@ -152,7 +152,7 @@ Department ──→ Employee ──→ SystemAccount
 | type | varchar(20) | NO | rnd/deployment/operation (vòng đời) |
 | category | varchar(30) | YES | hardware/software — legacy (không còn field form / chip lọc Index) |
 | scope | varchar(20) | NO | headquarters/regional/departmental |
-| scope_regions | json | YES | Mảng vùng (khi scope=regional) |
+| scope_regions | json | YES | Mảng vùng khi scope=regional: `saigon`, `vungtau`, `cantho` |
 | scope_departments | json | YES | Mảng phòng ban (khi scope=departmental) |
 | start_date | date | YES | |
 | due_date | date | YES | |

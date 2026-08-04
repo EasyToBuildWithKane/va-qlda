@@ -106,4 +106,52 @@ class ProjectAttachmentFolderTest extends TestCase
             'is_folder' => true,
         ]);
     }
+
+    public function test_contributor_can_create_blank_file_in_folder(): void
+    {
+        Storage::fake('public');
+
+        $account = SystemAccount::factory()->role(SystemRole::Admin)->create();
+        $project = Project::factory()->create();
+
+        $this->actingAs($account, 'system')->post("/projects/{$project->id}/attachments", [
+            'category' => ProjectAttachmentCategory::Customer->value,
+            'is_folder' => true,
+            'folder_name' => 'Ghi chú',
+        ])->assertRedirect();
+
+        $folder = ProjectAttachment::query()->where('project_id', $project->id)->where('is_folder', true)->firstOrFail();
+
+        $this->actingAs($account, 'system')->post("/projects/{$project->id}/attachments", [
+            'category' => ProjectAttachmentCategory::Customer->value,
+            'parent_id' => $folder->id,
+            'is_new_file' => true,
+            'file_name' => 'Bien ban hop',
+            'file_type' => 'md',
+        ])->assertRedirect();
+
+        $file = ProjectAttachment::query()
+            ->where('project_id', $project->id)
+            ->where('parent_id', $folder->id)
+            ->where('is_folder', false)
+            ->first();
+
+        $this->assertNotNull($file);
+        $this->assertSame('Bien ban hop.md', $file->original_name);
+        $this->assertSame('text/markdown', $file->mime_type);
+        Storage::disk('public')->assertExists($file->path);
+    }
+
+    public function test_create_blank_file_requires_name(): void
+    {
+        $account = SystemAccount::factory()->role(SystemRole::Admin)->create();
+        $project = Project::factory()->create();
+
+        $this->actingAs($account, 'system')->post("/projects/{$project->id}/attachments", [
+            'category' => ProjectAttachmentCategory::Customer->value,
+            'is_new_file' => true,
+            'file_name' => '',
+            'file_type' => 'txt',
+        ])->assertSessionHasErrors('file_name');
+    }
 }

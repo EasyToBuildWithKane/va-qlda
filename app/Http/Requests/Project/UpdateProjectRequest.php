@@ -17,6 +17,20 @@ class UpdateProjectRequest extends FormRequest
         return $this->user()->can('update', $this->route('project'));
     }
 
+    protected function prepareForValidation(): void
+    {
+        $allowed = Region::values();
+        $scopeRegions = $this->input('scope_regions');
+        if (is_array($scopeRegions)) {
+            $this->merge([
+                'scope_regions' => array_values(array_filter(
+                    $scopeRegions,
+                    fn ($v) => is_string($v) && in_array($v, $allowed, true)
+                )),
+            ]);
+        }
+    }
+
     /**
      * @return array<string, mixed>
      */

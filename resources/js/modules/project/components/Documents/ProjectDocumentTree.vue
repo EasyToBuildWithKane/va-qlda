@@ -13,7 +13,7 @@ defineProps({
     canDelete: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(['select-file', 'select-folder', 'toggle-folder', 'create-subfolder', 'delete-item']);
+const emit = defineEmits(['select-file', 'select-folder', 'toggle-folder', 'create-subfolder', 'create-file', 'delete-item']);
 
 const isExpanded = (id, expandedIds) => expandedIds[id] !== false;
 
@@ -153,6 +153,18 @@ const folderMetaLabel = (node) => {
         <button
           v-if="node.is_folder && canUpload"
           type="button"
+          class="doc-tree-add-sub mt-1.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-dashed border-sky-200/90 text-sky-500 opacity-0 transition hover:border-sky-400 hover:bg-sky-50 hover:text-sky-700 focus-visible:opacity-100 group-hover/row:opacity-100 dark:border-sky-700 dark:hover:bg-sky-950/40 sm:mr-0.5"
+          title="Tạo file trong thư mục"
+          @click.stop="emit('create-file', node.id)"
+        >
+          <AppIcon
+            name="documents"
+            :size="14"
+          />
+        </button>
+        <button
+          v-if="node.is_folder && canUpload"
+          type="button"
           class="doc-tree-add-sub mt-1.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-dashed border-slate-200/90 text-slate-400 opacity-0 transition hover:border-brand/40 hover:bg-brand/5 hover:text-brand focus-visible:opacity-100 group-hover/row:opacity-100 dark:border-slate-600 dark:hover:border-brand/50 sm:mr-0.5"
           title="Tạo thư mục con"
           @click.stop="emit('create-subfolder', node.id)"
@@ -195,6 +207,7 @@ const folderMetaLabel = (node) => {
           @select-folder="emit('select-folder', $event)"
           @toggle-folder="emit('toggle-folder', $event)"
           @create-subfolder="emit('create-subfolder', $event)"
+          @create-file="emit('create-file', $event)"
           @delete-item="emit('delete-item', $event)"
         />
         <div
@@ -204,17 +217,30 @@ const folderMetaLabel = (node) => {
           <p class="text-[11px] text-slate-500 sm:text-xs">
             Thư mục trống
           </p>
-          <button
-            type="button"
-            class="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-brand hover:underline"
-            @click="emit('create-subfolder', node.id)"
-          >
-            <AppIcon
-              name="plus"
-              :size="12"
-            />
-            Tạo thư mục con
-          </button>
+          <div class="mt-1.5 flex flex-wrap items-center justify-center gap-2">
+            <button
+              type="button"
+              class="inline-flex items-center gap-1 text-xs font-medium text-sky-700 hover:underline dark:text-sky-300"
+              @click="emit('create-file', node.id)"
+            >
+              <AppIcon
+                name="documents"
+                :size="12"
+              />
+              Tạo file
+            </button>
+            <button
+              type="button"
+              class="inline-flex items-center gap-1 text-xs font-medium text-brand hover:underline"
+              @click="emit('create-subfolder', node.id)"
+            >
+              <AppIcon
+                name="plus"
+                :size="12"
+              />
+              Tạo thư mục con
+            </button>
+          </div>
         </div>
       </div>
     </li>

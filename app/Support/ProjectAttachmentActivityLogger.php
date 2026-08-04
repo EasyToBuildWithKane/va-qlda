@@ -93,6 +93,21 @@ class ProjectAttachmentActivityLogger
         );
     }
 
+    public static function fileCreated(ProjectAttachment $attachment, ?SystemAccount $account): void
+    {
+        self::log(
+            $attachment,
+            'file_created',
+            'Tạo file: '.$attachment->original_name,
+            [
+                'file' => $attachment->original_name,
+                'size' => $attachment->size,
+                'category' => $attachment->category->value,
+            ],
+            $account?->employee_id,
+        );
+    }
+
     public static function notesUpdated(ProjectAttachment $attachment, ?SystemAccount $account): void
     {
         self::log(

@@ -9,9 +9,11 @@ use App\Models\Project;
 use App\Models\ProjectAttachment;
 use App\Support\ProjectAttachmentActivityLogger;
 use App\Support\ProjectAttachmentExternalUrl;
+use App\Support\ProjectAttachmentNewFile;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ProjectAttachmentController extends Controller
@@ -68,6 +70,40 @@ class ProjectAttachmentController extends Controller
             ProjectAttachmentActivityLogger::folderCreated($attachment, $account);
 
             return back()->with('success', 'Đã tạo thư mục.');
+        }
+
+        if ($request->isNewFileRequest()) {
+            $fileType = strtolower(trim((string) ($data['file_type'] ?? 'txt')));
+            $def = ProjectAttachmentNewFile::definition($fileType);
+            if ($def === null) {
+                return back()->withErrors(['file_type' => 'Loại file không được hỗ trợ.']);
+            }
+
+            $originalName = ProjectAttachmentNewFile::originalName(
+                (string) ($data['file_name'] ?? ''),
+                $fileType,
+            );
+            if ($originalName === null) {
+                return back()->withErrors(['file_name' => 'Tên file không hợp lệ.']);
+            }
+
+            $diskPath = "projects/{$project->id}/{$category}/".Str::uuid()->toString().'.'.$def['ext'];
+            Storage::disk('public')->put($diskPath, $def['content']);
+
+            $attachment = $project->attachments()->create([
+                'category' => $category,
+                'parent_id' => $parentId,
+                'uploaded_by_id' => $account->employee_id,
+                'original_name' => $originalName,
+                'path' => $diskPath,
+                'mime_type' => $def['mime'],
+                'size' => Storage::disk('public')->size($diskPath),
+                'is_image' => false,
+            ]);
+
+            ProjectAttachmentActivityLogger::fileCreated($attachment, $account);
+
+            return back()->with('success', 'Đã tạo file.');
         }
 
         $externalUrl = trim((string) ($data['external_url'] ?? ''));

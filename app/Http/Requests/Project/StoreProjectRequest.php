@@ -43,6 +43,12 @@ class StoreProjectRequest extends FormRequest
         $this->merge([
             'department_id' => $departmentId,
             'scope_departments' => $scopeDepartments ?? $this->input('scope_departments'),
+            'scope_regions' => is_array($scopeRegions = $this->input('scope_regions'))
+                ? array_values(array_filter(
+                    $scopeRegions,
+                    fn ($v) => is_string($v) && in_array($v, Region::values(), true)
+                ))
+                : $this->input('scope_regions'),
         ]);
     }
 

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, reactive, onMounted } from 'vue';
+import { ref, computed, watch, reactive, onMounted, nextTick } from 'vue';
 import { router, useForm } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
 import { useConfirmDelete } from '@/composables/useConfirmClose';
@@ -38,12 +38,31 @@ const activeFolderId = ref(null);
 const expandedIds = reactive({});
 const showFolderModal = ref(false);
 const folderModalRef = ref(null);
+const showFileModal = ref(false);
+const fileModalRef = ref(null);
+const folderNameInput = ref(null);
+const fileNameInput = ref(null);
+
+const NEW_FILE_TYPES = [
+    { value: 'txt', label: 'Văn bản', ext: '.txt', icon: 'documents' },
+    { value: 'md', label: 'Markdown', ext: '.md', icon: 'documents' },
+    { value: 'csv', label: 'CSV', ext: '.csv', icon: 'documents' },
+    { value: 'json', label: 'JSON', ext: '.json', icon: 'documents' },
+];
 
 const folderForm = useForm({
     category: '',
     folder_name: '',
     parent_id: null,
     is_folder: true,
+});
+
+const newFileForm = useForm({
+    category: '',
+    file_name: '',
+    file_type: 'txt',
+    parent_id: null,
+    is_new_file: true,
 });
 
 const expandedStorageKey = computed(() => `va-project-doc-tree:${props.projectId}:${activeCategory.value}`);
@@ -274,13 +293,50 @@ const onFilesSelected = (category, event) => {
 };
 
 const onDragOver = () => {
-    if (props.canUpload) dragging.value = true;
+    if (!props.canUpload) return;
+    dragging.value = true;
+};
+
+const onDragLeave = (event) => {
+    const related = event.relatedTarget;
+    if (related && event.currentTarget?.contains?.(related)) return;
+    dragging.value = false;
 };
 
 const onDrop = (category, event) => {
     dragging.value = false;
     uploadFiles(category, event.dataTransfer?.files);
 };
+
+const folderPathLabel = computed(() => {
+    const parts = [activeCat.value?.label || 'Danh mục'];
+    let pid = folderForm.parent_id;
+    const chain = [];
+    while (pid) {
+        const node = props.attachments.find((a) => a.id === pid);
+        if (!node) break;
+        chain.unshift(node.original_name);
+        pid = node.parent_id ?? null;
+    }
+    return [...parts, ...chain].join(' / ');
+});
+
+const filePathLabel = computed(() => {
+    const parts = [activeCat.value?.label || 'Danh mục'];
+    let pid = newFileForm.parent_id;
+    const chain = [];
+    while (pid) {
+        const node = props.attachments.find((a) => a.id === pid);
+        if (!node) break;
+        chain.unshift(node.original_name);
+        pid = node.parent_id ?? null;
+    }
+    return [...parts, ...chain].join(' / ');
+});
+
+const selectedNewFileType = computed(() => (
+    NEW_FILE_TYPES.find((t) => t.value === newFileForm.file_type) || NEW_FILE_TYPES[0]
+));
 
 const openAddLinkModal = async () => {
     linkForm.reset();
@@ -379,6 +435,18 @@ const collapseAllFolders = () => {
     persistExpandedState();
 };
 
+const focusFolderInput = async () => {
+    await nextTick();
+    folderNameInput.value?.focus?.();
+    folderNameInput.value?.select?.();
+};
+
+const focusFileInput = async () => {
+    await nextTick();
+    fileNameInput.value?.focus?.();
+    fileNameInput.value?.select?.();
+};
+
 const openFolderModal = (parentId = undefined) => {
     folderForm.reset();
     folderForm.category = activeCategory.value;
@@ -386,6 +454,7 @@ const openFolderModal = (parentId = undefined) => {
     folderForm.is_folder = true;
     folderForm.clearErrors();
     showFolderModal.value = true;
+    focusFolderInput();
 };
 
 const openSubfolderModal = (parentId) => {
@@ -399,34 +468,89 @@ const closeFolderModal = () => {
     folderForm.clearErrors();
 };
 
-const folderErrorMessage = (errors) => {
-    if (!errors || typeof errors !== 'object') return 'Không thể tạo thư mục.';
-    const first = errors.folder_name || errors.parent_id || errors.is_folder || errors.category || errors.files;
-    if (Array.isArray(first) && first[0]) return first[0];
-    if (typeof first === 'string') return first;
-    return 'Không thể tạo thư mục.';
+const openFileModal = (parentId = undefined) => {
+    newFileForm.reset();
+    newFileForm.category = activeCategory.value;
+    newFileForm.parent_id = parentId !== undefined ? parentId : activeFolderId.value;
+    newFileForm.file_type = 'txt';
+    newFileForm.file_name = '';
+    newFileForm.is_new_file = true;
+    newFileForm.clearErrors();
+    showFileModal.value = true;
+    focusFileInput();
+};
+
+const openCreateInFolder = (parentId) => {
+    activeFolderId.value = parentId;
+    openFileModal(parentId);
+};
+
+const closeFileModal = () => {
+    showFileModal.value = false;
+    newFileForm.reset();
+    newFileForm.clearErrors();
+};
+
+const firstErrorMessage = (errors, keys, fallback) => {
+    if (!errors || typeof errors !== 'object') return fallback;
+    for (const key of keys) {
+        const val = errors[key];
+        if (Array.isArray(val) && val[0]) return val[0];
+        if (typeof val === 'string' && val) return val;
+    }
+    return fallback;
+};
+
+const folderErrorMessage = (errors) => firstErrorMessage(
+    errors,
+    ['folder_name', 'parent_id', 'is_folder', 'category', 'files'],
+    'Không thể tạo thư mục.',
+);
+
+const fileErrorMessage = (errors) => firstErrorMessage(
+    errors,
+    ['file_name', 'file_type', 'parent_id', 'is_new_file', 'category', 'files'],
+    'Không thể tạo file.',
+);
+
+const afterCreateInParent = (parentId) => {
+    if (parentId) {
+        delete expandedIds[parentId];
+        activeFolderId.value = parentId;
+        persistExpandedState();
+    }
 };
 
 const submitFolder = () => {
     if (!props.canUpload || !folderForm.folder_name.trim()) return;
     folderForm.clearErrors();
-    router.post(`/projects/${props.projectId}/attachments`, {
-        category: folderForm.category,
-        folder_name: folderForm.folder_name.trim(),
-        is_folder: true,
-        parent_id: folderForm.parent_id ? Number(folderForm.parent_id) : null,
-    }, {
+    folderForm.folder_name = folderForm.folder_name.trim();
+    folderForm.parent_id = folderForm.parent_id ? Number(folderForm.parent_id) : null;
+    const parentId = folderForm.parent_id;
+    folderForm.post(`/projects/${props.projectId}/attachments`, {
         preserveScroll: true,
         onSuccess: () => {
-            const parentId = folderForm.parent_id;
             closeFolderModal();
-            if (parentId) {
-                delete expandedIds[parentId];
-                activeFolderId.value = parentId;
-                persistExpandedState();
-            }
+            afterCreateInParent(parentId);
         },
         onError: (errors) => toast.error(folderErrorMessage(errors)),
+    });
+};
+
+const submitNewFile = () => {
+    if (!props.canUpload || !newFileForm.file_name.trim()) return;
+    newFileForm.clearErrors();
+    newFileForm.file_name = newFileForm.file_name.trim();
+    newFileForm.parent_id = newFileForm.parent_id ? Number(newFileForm.parent_id) : null;
+    newFileForm.is_new_file = true;
+    const parentId = newFileForm.parent_id;
+    newFileForm.post(`/projects/${props.projectId}/attachments`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            closeFileModal();
+            afterCreateInParent(parentId);
+        },
+        onError: (errors) => toast.error(fileErrorMessage(errors)),
     });
 };
 
@@ -484,6 +608,7 @@ const activities = computed(() => {
 
 const activityIcon = (event) => ({
     uploaded: 'upload',
+    file_created: 'documents',
     link_added: 'link',
     link_updated: 'edit',
     note_updated: 'edit',
@@ -527,11 +652,12 @@ const formatFileType = (file) => {
         const short = file.mime_type.split('/').pop();
         return short.length <= 12 ? short.toUpperCase() : ext.toUpperCase() || 'Tài liệu';
     }
-    return ext.toUpperCase() || '—';
+    return ext.toUpperCase() || 'Tài liệu';
 };
 
 const activityTone = (event) => ({
     uploaded: 'bg-sky-100 text-sky-600 dark:bg-sky-950 dark:text-sky-400',
+    file_created: 'bg-sky-100 text-sky-600 dark:bg-sky-950 dark:text-sky-400',
     link_added: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400',
     link_updated: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400',
     note_updated: 'bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400',
@@ -592,20 +718,30 @@ const activityTone = (event) => ({
 
     <div
       v-if="canUpload"
-      class="shrink-0 border-b border-slate-100 bg-white px-3 py-1.5 dark:border-slate-700 dark:bg-slate-900"
-      :class="!categoryItemCount(activeCategory) && !categoryFiles.some((f) => f.is_folder) ? 'space-y-1.5' : ''"
+      class="shrink-0 border-b border-slate-100 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-900"
     >
       <div class="flex flex-wrap items-center justify-end gap-2">
         <button
           type="button"
-          class="btn-ghost inline-flex h-9 items-center gap-1.5 border border-amber-200/80 bg-amber-50/50 px-2.5 text-xs font-medium text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100 sm:text-sm"
-          @click="openFolderModal"
+          class="btn-ghost inline-flex h-9 items-center gap-1.5 border border-amber-200/80 bg-amber-50/60 px-2.5 text-xs font-medium text-amber-950 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100 sm:text-sm"
+          @click="openFolderModal()"
         >
           <AppIcon
             name="folder"
             :size="14"
           />
           Tạo thư mục
+        </button>
+        <button
+          type="button"
+          class="btn-ghost inline-flex h-9 items-center gap-1.5 border border-sky-200/80 bg-sky-50/60 px-2.5 text-xs font-medium text-sky-950 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-100 sm:text-sm"
+          @click="openFileModal()"
+        >
+          <AppIcon
+            name="documents"
+            :size="14"
+          />
+          Tạo file
         </button>
         <button
           type="button"
@@ -616,11 +752,11 @@ const activityTone = (event) => ({
             name="link"
             :size="14"
           />
-          Thêm link tài liệu
+          Thêm link
         </button>
         <button
           type="button"
-          class="btn-ghost inline-flex h-9 items-center gap-1.5 border border-slate-200 px-2.5 text-xs font-medium dark:border-slate-600 sm:text-sm"
+          class="btn-primary inline-flex h-9 items-center gap-1.5 px-2.5 text-xs font-medium sm:text-sm"
           :disabled="uploadingCategory === activeCategory"
           @click="pickFiles(activeCategory)"
         >
@@ -629,7 +765,7 @@ const activityTone = (event) => ({
             :size="14"
             :class="uploadingCategory === activeCategory ? 'animate-spin' : ''"
           />
-          {{ uploadingCategory === activeCategory ? 'Đang tải…' : 'Chọn file' }}
+          {{ uploadingCategory === activeCategory ? 'Đang tải…' : 'Tải lên' }}
         </button>
         <input
           :ref="(el) => setFileInput(activeCategory, el)"
@@ -639,20 +775,6 @@ const activityTone = (event) => ({
           :accept="acceptFor(activeCategory)"
           @change="onFilesSelected(activeCategory, $event)"
         >
-      </div>
-      <div
-        v-if="!categoryItemCount(activeCategory) && !categoryFiles.some((f) => f.is_folder)"
-        class="rounded-lg border-2 border-dashed px-4 py-2.5 text-center transition"
-        :class="dragging
-          ? 'border-brand bg-brand/5'
-          : 'border-slate-200 bg-slate-50/80 dark:border-slate-600 dark:bg-slate-800/40'"
-        @dragover.prevent="dragging = true"
-        @dragleave="dragging = false"
-        @drop.prevent="onDrop(activeCategory, $event)"
-      >
-        <p class="text-xs font-medium text-slate-600 dark:text-slate-300 sm:text-sm">
-          Kéo thả file vào đây · PDF, Office, ảnh, ZIP… · tối đa 20MB/file
-        </p>
       </div>
     </div>
 
@@ -691,16 +813,29 @@ const activityTone = (event) => ({
           </div>
         </div>
         <div
-          class="min-h-0 flex-1 overflow-y-auto bg-white dark:bg-slate-900"
-          :class="canUpload && dragging && categoryFiles.length ? 'ring-2 ring-inset ring-brand/30' : ''"
+          class="relative min-h-0 flex-1 overflow-y-auto bg-white dark:bg-slate-900"
           @dragover.prevent="onDragOver"
-          @dragleave="dragging = false"
+          @dragleave="onDragLeave"
           @drop.prevent="onDrop(activeCategory, $event)"
         >
           <div
+            v-if="canUpload && dragging"
+            class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-brand/10 backdrop-blur-[1px]"
+          >
+            <div class="flex flex-col items-center gap-2 rounded-xl border-2 border-dashed border-brand bg-white/95 px-6 py-5 shadow-sm dark:bg-slate-900/95">
+              <AppIcon
+                name="upload"
+                :size="28"
+                class="text-brand"
+              />
+              <p class="text-sm font-semibold text-brand">
+                Thả để tải lên
+              </p>
+            </div>
+          </div>
+          <div
             v-if="!categoryFiles.length"
             class="flex flex-col items-center justify-center px-4 py-16 text-center"
-            :class="canUpload && dragging ? 'bg-brand/5' : ''"
           >
             <AppIcon
               :name="activeCat?.icon || 'documents'"
@@ -708,7 +843,7 @@ const activityTone = (event) => ({
               class="text-slate-300"
             />
             <p class="mt-2 text-xs text-slate-400 sm:text-sm">
-              {{ canUpload ? 'Chưa có thư mục hay tài liệu — tạo thư mục hoặc tải file.' : 'Chưa có tài liệu.' }}
+              {{ canUpload ? 'Chưa có thư mục hoặc tài liệu.' : 'Chưa có tài liệu.' }}
             </p>
             <div
               v-if="canUpload"
@@ -716,8 +851,8 @@ const activityTone = (event) => ({
             >
               <button
                 type="button"
-                class="btn-ghost inline-flex h-9 items-center gap-1.5 border border-slate-200 px-3 text-xs font-medium sm:text-sm"
-                @click="openFolderModal"
+                class="btn-ghost inline-flex h-9 items-center gap-1.5 border border-amber-200/80 bg-amber-50/60 px-3 text-xs font-medium text-amber-950 sm:text-sm"
+                @click="openFolderModal()"
               >
                 <AppIcon
                   name="folder"
@@ -727,10 +862,25 @@ const activityTone = (event) => ({
               </button>
               <button
                 type="button"
-                class="text-xs font-medium text-brand hover:underline sm:text-sm"
+                class="btn-ghost inline-flex h-9 items-center gap-1.5 border border-sky-200/80 bg-sky-50/60 px-3 text-xs font-medium text-sky-950 sm:text-sm"
+                @click="openFileModal()"
+              >
+                <AppIcon
+                  name="documents"
+                  :size="14"
+                />
+                Tạo file
+              </button>
+              <button
+                type="button"
+                class="btn-primary inline-flex h-9 items-center gap-1.5 px-3 text-xs font-medium sm:text-sm"
                 @click="pickFiles(activeCategory)"
               >
-                Tải file
+                <AppIcon
+                  name="upload"
+                  :size="14"
+                />
+                Tải lên
               </button>
             </div>
           </div>
@@ -748,6 +898,7 @@ const activityTone = (event) => ({
             @select-folder="onSelectFolder"
             @toggle-folder="onToggleFolderExpand"
             @create-subfolder="openSubfolderModal"
+            @create-file="openCreateInFolder"
             @delete-item="removeFile"
           />
         </div>
@@ -983,26 +1134,46 @@ const activityTone = (event) => ({
       :dirty="Boolean(folderForm.folder_name)"
       @close="closeFolderModal"
     >
-      <div>
-        <label
-          for="doc-folder-name"
-          class="text-xs font-medium text-slate-500"
-        >Tên thư mục</label>
-        <input
-          id="doc-folder-name"
-          v-model="folderForm.folder_name"
-          type="text"
-          class="input mt-1 w-full text-sm"
-          placeholder="VD: Hợp đồng · Thiết kế · Bàn giao"
-          maxlength="255"
-          @keyup.enter="submitFolder"
-        >
-        <p
-          v-if="folderForm.errors.folder_name"
-          class="mt-1 text-xs text-rose-600"
-        >
-          {{ folderForm.errors.folder_name }}
-        </p>
+      <div class="space-y-4">
+        <div class="flex items-start gap-3 rounded-xl border border-amber-200/80 bg-gradient-to-br from-amber-50 to-white p-3 dark:border-amber-800/60 dark:from-amber-950/40 dark:to-slate-900">
+          <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-amber-100 to-amber-50 text-amber-800 ring-1 ring-amber-200/90 dark:from-amber-900/60 dark:to-amber-950/40 dark:text-amber-100 dark:ring-amber-700/50">
+            <AppIcon
+              name="folder"
+              :size="20"
+            />
+          </span>
+          <div class="min-w-0 pt-0.5">
+            <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">
+              Thư mục mới
+            </p>
+            <p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+              Vị trí: <span class="font-medium text-slate-700 dark:text-slate-300">{{ folderPathLabel }}</span>
+            </p>
+          </div>
+        </div>
+        <div>
+          <label
+            for="doc-folder-name"
+            class="text-xs font-medium text-slate-500"
+          >Tên thư mục</label>
+          <input
+            id="doc-folder-name"
+            ref="folderNameInput"
+            v-model="folderForm.folder_name"
+            type="text"
+            class="input mt-1 w-full text-sm"
+            placeholder="Nhập tên thư mục"
+            maxlength="255"
+            autocomplete="off"
+            @keyup.enter="submitFolder"
+          >
+          <p
+            v-if="folderForm.errors.folder_name"
+            class="mt-1 text-xs text-rose-600"
+          >
+            {{ folderForm.errors.folder_name }}
+          </p>
+        </div>
       </div>
       <div class="mt-5 flex justify-end gap-2">
         <button
@@ -1014,11 +1185,131 @@ const activityTone = (event) => ({
         </button>
         <button
           type="button"
-          class="btn-primary text-sm"
+          class="btn-primary inline-flex items-center gap-1.5 text-sm"
           :disabled="folderForm.processing || !folderForm.folder_name.trim()"
           @click="submitFolder"
         >
+          <AppIcon
+            name="folder"
+            :size="14"
+          />
           {{ folderForm.processing ? 'Đang tạo…' : 'Tạo thư mục' }}
+        </button>
+      </div>
+    </Modal>
+
+    <Modal
+      ref="fileModalRef"
+      :show="showFileModal"
+      title="Tạo file"
+      max-width="max-w-md"
+      :dirty="Boolean(newFileForm.file_name)"
+      @close="closeFileModal"
+    >
+      <div class="space-y-4">
+        <div class="flex items-start gap-3 rounded-xl border border-sky-200/80 bg-gradient-to-br from-sky-50 to-white p-3 dark:border-sky-800/60 dark:from-sky-950/40 dark:to-slate-900">
+          <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-sky-50 text-sky-700 ring-1 ring-sky-200/80 dark:bg-sky-950 dark:text-sky-300 dark:ring-sky-700/50">
+            <AppIcon
+              name="documents"
+              :size="20"
+            />
+          </span>
+          <div class="min-w-0 pt-0.5">
+            <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">
+              File mới
+            </p>
+            <p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+              Vị trí: <span class="font-medium text-slate-700 dark:text-slate-300">{{ filePathLabel }}</span>
+            </p>
+          </div>
+        </div>
+
+        <div>
+          <p class="text-xs font-medium text-slate-500">
+            Loại file
+          </p>
+          <div
+            class="mt-1.5 grid grid-cols-2 gap-2"
+            role="radiogroup"
+            aria-label="Loại file"
+          >
+            <button
+              v-for="type in NEW_FILE_TYPES"
+              :key="type.value"
+              type="button"
+              role="radio"
+              class="flex items-center gap-2 rounded-lg border px-2.5 py-2 text-left transition"
+              :class="newFileForm.file_type === type.value
+                ? 'border-brand/40 bg-brand/5 ring-1 ring-brand/20'
+                : 'border-slate-200 hover:border-slate-300 dark:border-slate-600 dark:hover:border-slate-500'"
+              :aria-checked="newFileForm.file_type === type.value"
+              @click="newFileForm.file_type = type.value"
+            >
+              <span class="grid h-8 w-8 place-items-center rounded-md bg-white text-[10px] font-bold uppercase text-slate-600 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-600">
+                {{ type.ext.replace('.', '') }}
+              </span>
+              <span class="min-w-0">
+                <span class="block text-xs font-semibold text-slate-800 dark:text-slate-100">{{ type.label }}</span>
+                <span class="block text-[11px] text-slate-500">{{ type.ext }}</span>
+              </span>
+            </button>
+          </div>
+          <p
+            v-if="newFileForm.errors.file_type"
+            class="mt-1 text-xs text-rose-600"
+          >
+            {{ newFileForm.errors.file_type }}
+          </p>
+        </div>
+
+        <div>
+          <label
+            for="doc-new-file-name"
+            class="text-xs font-medium text-slate-500"
+          >Tên file</label>
+          <div class="relative mt-1">
+            <input
+              id="doc-new-file-name"
+              ref="fileNameInput"
+              v-model="newFileForm.file_name"
+              type="text"
+              class="input w-full pr-14 text-sm"
+              placeholder="Nhập tên file"
+              maxlength="200"
+              autocomplete="off"
+              @keyup.enter="submitNewFile"
+            >
+            <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs font-medium text-slate-400">
+              {{ selectedNewFileType.ext }}
+            </span>
+          </div>
+          <p
+            v-if="newFileForm.errors.file_name"
+            class="mt-1 text-xs text-rose-600"
+          >
+            {{ newFileForm.errors.file_name }}
+          </p>
+        </div>
+      </div>
+      <div class="mt-5 flex justify-end gap-2">
+        <button
+          type="button"
+          class="btn-ghost text-sm"
+          @click="closeFileModal"
+        >
+          Huỷ
+        </button>
+        <button
+          type="button"
+          class="btn-primary inline-flex items-center gap-1.5 text-sm"
+          :disabled="newFileForm.processing || !newFileForm.file_name.trim()"
+          @click="submitNewFile"
+        >
+          <AppIcon
+            name="documents"
+            :size="14"
+          />
+          {{ newFileForm.processing ? 'Đang tạo…' : 'Tạo file' }}
         </button>
       </div>
     </Modal>

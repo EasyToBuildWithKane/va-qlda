@@ -174,7 +174,7 @@ Kanban Index: mặc định nhóm theo `type`. **super_admin** đổi được �
 | `status` | planning, active, on_hold, completed, cancelled | |
 | `type` | rnd, deployment, operation | Vòng đời — cột Kanban danh mục |
 | `category` | hardware, software | Legacy — không còn field form tạo/sửa |
-| `scope` | headquarters, system, regional, departmental | Kèm `scope_regions[]`, `scope_departments[]` khi cần |
+| `scope` | headquarters, system, regional, departmental | Kèm `scope_regions[]` (`saigon`/`vungtau`/`cantho`) hoặc `scope_departments[]` khi cần |
 | `start_date`, `due_date` | | |
 | `budget`, `actual_budget` | | Kế hoạch vs thực tế |
 | `manager_id` | employees | Chủ dự án |
@@ -213,7 +213,7 @@ Kanban Index: mặc định nhóm theo `type`. **super_admin** đổi được �
 | Tab | Key | Component chính |
 |---|---|---|
 | Tổng quan | `overview` | `ProjectShowSummaryBar`, `ProjectOverviewCard`, `WorkloadTable`, `ActivityFeed`, `GanttMini`, `RiskIssuePanel` |
-| Tài liệu | `documents` | `ProjectDocumentsPanel`, preview file + link Google Docs/Sheets/PDF |
+| Tài liệu | `documents` | `ProjectDocumentsPanel` — thư mục, tạo file trống (txt/md/csv/json), upload kéo thả, link Google Docs/Sheets/PDF, preview |
 | Lịch dự án | `timeline` | `ProjectCalendar` — Gantt mini, kéo ngày → `PUT tasks` |
 | Kanban | `board` | `TaskBoard` — `PATCH tasks.status` |
 | Sprint | `sprints` | `SprintWorkspace` — list/calendar, `SprintDataModal` |
@@ -297,7 +297,7 @@ UI: `ProjectMembers.vue`, `MemberFormModal` — thêm từ `ProjectActions` trê
 
 | Method | Route | Mô tả |
 |---|---|---|
-| POST | `projects.attachments.store` | Upload disk `public` — `projects/{id}/{category}` |
+| POST | `projects.attachments.store` | Upload disk `public` — `projects/{id}/{category}`; hoặc tạo thư mục (`is_folder` + `folder_name`); hoặc tạo file trống (`is_new_file` + `file_name` + `file_type`: txt/md/csv/json); hoặc link ngoài |
 | PUT | `projects.attachments.update` | Metadata |
 | DELETE | `projects.attachments.destroy` | |
 | GET | `projects.attachments.file` | Stream file — **URL qua route**, `PublicMediaUrl`; null nếu mất file |
@@ -305,6 +305,10 @@ UI: `ProjectMembers.vue`, `MemberFormModal` — thêm từ `ProjectActions` trê
 **Category** (`ProjectAttachmentCategory`): customer, uiux, ba, customer_data, images, showcase (ảnh cổng `/congnghe`).
 
 **Link ngoài** (`external_url`, không upload file): Google Docs/Sheets (`GoogleWorkspaceUrl`) hoặc PDF — URL `https` kết thúc `.pdf` hoặc file trên Google Drive (`ProjectAttachmentExternalUrl`). Preview: iframe Google preview / PDF / Drive preview.
+
+**Tạo file trống:** `is_new_file`, `file_name`, `file_type` ∈ {txt, md, csv, json} — ghi file lên disk `public` qua `ProjectAttachmentNewFile`, activity `file_created`.
+
+**Thư mục:** `is_folder` + `folder_name`, tối đa 12 cấp; UI modal có vị trí danh mục/thư mục cha.
 
 Activity: `project_attachment_activities` — log trên `ProjectDocumentsPanel`.
 

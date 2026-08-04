@@ -5,9 +5,9 @@ import AppIcon from '@/Components/AppIcon.vue';
 import ProgressBar from '@/shared/ui/ProgressBar.vue';
 import FieldTooltip from '@/shared/ui/FieldTooltip.vue';
 import RadioCard from '@/shared/ui/RadioCard.vue';
-import MultiChips from '@/shared/ui/MultiChips.vue';
 import PersonSelect from '@/modules/project/components/PersonSelect.vue';
 import SearchSelect from '@/shared/ui/SearchSelect.vue';
+import SearchMultiSelect from '@/shared/ui/SearchMultiSelect.vue';
 import KbRichTextField from '@/modules/knowledge-base/components/KbRichTextField.vue';
 import { valueLabelOptions } from '@/shared/utils/selectOptions';
 import { PROJECT_COLOR_OPTIONS, PROJECT_COLOR_SWATCH } from '@/modules/project/utils/projectColors';
@@ -45,7 +45,9 @@ const form = useForm({
     status: props.project?.status?.value ?? 'planning',
     type: props.project?.type?.value ?? 'rnd',
     scope: props.project?.scope?.value ?? 'headquarters',
-    scope_regions: props.project?.scope_regions ?? [],
+    scope_regions: (props.project?.scope_regions ?? []).filter((v) =>
+        (props.regionOptions ?? []).some((o) => o.value === v),
+    ),
     scope_departments: props.project?.scope_departments ?? [],
     department_id: props.project?.department_id ?? props.defaultDepartmentId ?? null,
     start_date: props.project?.start_date ?? null,
@@ -54,7 +56,6 @@ const form = useForm({
     is_active: props.project?.is_active ?? true,
 });
 
-const departmentChips = computed(() => props.departmentOptions.map((d) => ({ value: d.id, label: d.name })));
 const typeSelectOptions = computed(() => valueLabelOptions(props.typeOptions));
 const statusSelectOptions = computed(() => valueLabelOptions(props.statusOptions));
 
@@ -224,7 +225,9 @@ const applyDraft = (draft) => {
     form.status = d.status ?? 'planning';
     form.type = d.type ?? 'rnd';
     form.scope = d.scope ?? 'headquarters';
-    form.scope_regions = d.scope_regions ?? [];
+    form.scope_regions = (d.scope_regions ?? []).filter((v) =>
+        (props.regionOptions ?? []).some((o) => o.value === v),
+    );
     form.scope_departments = d.scope_departments ?? [];
     form.department_id = d.department_id ?? props.defaultDepartmentId ?? null;
     form.start_date = d.start_date ?? null;
@@ -686,11 +689,17 @@ const submit = (after = 'close') => {
               v-if="form.scope === 'regional'"
               class="rounded-card border border-amber-200 bg-amber-50/60 p-4"
             >
-              <label class="label flex items-center gap-1.5">Khu vực áp dụng <FieldTooltip text="Chọn các khu vực/chi nhánh dự án sẽ triển khai." /></label>
-              <MultiChips
+              <label class="label flex items-center gap-1.5">Khu vực áp dụng <FieldTooltip text="Gõ để tìm, chọn các khu vực/chi nhánh dự án sẽ triển khai." /></label>
+              <SearchMultiSelect
                 v-model="form.scope_regions"
                 :options="regionOptions"
-                count-label="khu vực"
+                value-key="value"
+                label-key="label"
+                placeholder="Tìm & chọn khu vực…"
+                search-placeholder="Tìm khu vực…"
+                :max-chips="12"
+                control-size="md"
+                @update:model-value="touch('scope_regions')"
               />
               <p
                 v-if="errFor('scope_regions')"
@@ -707,11 +716,17 @@ const submit = (after = 'close') => {
               v-if="form.scope === 'departmental'"
               class="rounded-card border border-cyan-200 bg-cyan-50/60 p-4"
             >
-              <label class="label flex items-center gap-1.5">Phòng ban áp dụng <FieldTooltip text="Chọn các phòng ban nằm trong phạm vi dự án." /></label>
-              <MultiChips
+              <label class="label flex items-center gap-1.5">Phòng ban áp dụng <FieldTooltip text="Gõ để tìm, chọn các phòng ban nằm trong phạm vi dự án." /></label>
+              <SearchMultiSelect
                 v-model="form.scope_departments"
-                :options="departmentChips"
-                count-label="phòng ban"
+                :options="departmentOptions"
+                value-key="id"
+                label-key="name"
+                placeholder="Tìm & chọn phòng ban…"
+                search-placeholder="Tìm phòng ban…"
+                :max-chips="12"
+                control-size="md"
+                @update:model-value="touch('scope_departments')"
               />
               <p
                 v-if="errFor('scope_departments')"

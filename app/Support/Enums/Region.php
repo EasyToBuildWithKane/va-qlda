@@ -10,8 +10,6 @@ enum Region: string
     case Saigon = 'saigon';
     case VungTau = 'vungtau';
     case CanTho = 'cantho';
-    case DongNai = 'dongnai';
-    case BinhDuong = 'binhduong';
 
     public function label(): string
     {
@@ -19,8 +17,6 @@ enum Region: string
             self::Saigon => 'Sài Gòn',
             self::VungTau => 'Vũng Tàu',
             self::CanTho => 'Cần Thơ',
-            self::DongNai => 'Đồng Nai',
-            self::BinhDuong => 'Bình Dương',
         };
     }
 
