@@ -153,7 +153,11 @@ class MyWorkQuery
             ->with([
                 'project:id,name,code,color',
                 'sprint:id,name',
+                'epic:id,name,color',
+                'parent:id,title',
                 'assignee:id,full_name,avatar_path',
+                'reporter:id,full_name,avatar_path',
+                'reviewer:id,full_name,avatar_path',
                 'worklogs' => fn ($w) => $w
                     ->whereDate('date', $today->toDateString())
                     ->where('employee_id', $employeeId),
@@ -258,7 +262,11 @@ class MyWorkQuery
             ->with([
                 'project:id,name,code,color',
                 'sprint:id,name',
+                'epic:id,name,color',
+                'parent:id,title',
                 'assignee:id,full_name,avatar_path',
+                'reporter:id,full_name,avatar_path',
+                'reviewer:id,full_name,avatar_path',
                 'worklogs' => fn ($w) => $w
                     ->whereDate('date', $today->toDateString())
                     ->where('employee_id', $employeeId),

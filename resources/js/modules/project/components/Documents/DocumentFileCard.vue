@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
 
 const props = defineProps({
@@ -11,12 +11,18 @@ const props = defineProps({
     isPdf: { type: Boolean, default: false },
     isLink: { type: Boolean, default: false },
     badge: { type: String, default: 'FILE' },
+    previewSnippet: { type: String, default: null },
     active: { type: Boolean, default: false },
+    canEdit: { type: Boolean, default: false },
     canDelete: { type: Boolean, default: false },
     showActions: { type: Boolean, default: true },
 });
 
-const emit = defineEmits(['click', 'preview', 'download', 'details', 'delete']);
+const emit = defineEmits(['click', 'preview', 'download', 'details', 'delete', 'rename']);
+
+const rootRef = ref(null);
+const pdfInView = ref(false);
+let observer = null;
 
 const kind = computed(() => {
     const b = (props.badge || '').toUpperCase();
@@ -26,6 +32,7 @@ const kind = computed(() => {
     if (['XLS', 'XLSX', 'CSV', 'SHT'].includes(b)) return 'sheet';
     if (['DOC', 'DOCX'].includes(b)) return 'doc';
     if (props.isLink || b === 'LINK') return 'link';
+    if (props.previewSnippet || b === 'TXT') return 'text';
     return 'file';
 });
 
@@ -44,8 +51,40 @@ const footerIconClass = computed(() => ({
     sheet: 'text-emerald-600',
     doc: 'text-sky-500',
     link: 'text-teal-600',
+    text: 'text-sky-500',
     file: 'text-sky-500',
 }[kind.value]));
+
+const pdfPreviewUrl = computed(() => {
+    if (!props.url) return '';
+    const base = props.url.split('#')[0];
+    return `${base}#page=1&view=FitH&toolbar=0&navpanes=0`;
+});
+
+const snippetLines = computed(() => {
+    if (!props.previewSnippet) return [];
+    return String(props.previewSnippet).split('\n').slice(0, 8);
+});
+
+onMounted(() => {
+    if (kind.value !== 'pdf' || !props.url || typeof IntersectionObserver === 'undefined') {
+        if (kind.value === 'pdf' && props.url) pdfInView.value = true;
+        return;
+    }
+    observer = new IntersectionObserver((entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+            pdfInView.value = true;
+            observer?.disconnect();
+            observer = null;
+        }
+    }, { rootMargin: '120px' });
+    if (rootRef.value) observer.observe(rootRef.value);
+});
+
+onBeforeUnmount(() => {
+    observer?.disconnect();
+    observer = null;
+});
 
 const onAction = (event, type) => {
     event.stopPropagation();
@@ -55,6 +94,7 @@ const onAction = (event, type) => {
 
 <template>
   <div
+    ref="rootRef"
     class="doc-file-card group relative flex w-full min-w-0 flex-col overflow-hidden rounded-xl border bg-white text-left transition duration-150 dark:bg-slate-900"
     :class="active
       ? 'border-brand/40 ring-2 ring-brand/20 dark:border-brand/50'
@@ -66,11 +106,40 @@ const onAction = (event, type) => {
       @click="$emit('click')"
     >
       <img
-        v-if="isImage && url"
+        v-if="kind === 'image' && url"
         :src="url"
         :alt="name"
         class="h-full w-full object-cover"
       >
+      <div
+        v-else-if="kind === 'pdf' && url"
+        class="doc-file-card__pdf pointer-events-none absolute inset-2 overflow-hidden rounded-md bg-white shadow-sm ring-1 ring-black/5 dark:bg-slate-900"
+      >
+        <iframe
+          v-if="pdfInView"
+          :src="pdfPreviewUrl"
+          class="doc-file-card__pdf-iframe"
+          title="Xem trước trang đầu PDF"
+          tabindex="-1"
+        />
+        <div
+          v-else
+          class="flex h-full flex-col gap-1.5 px-2.5 py-2"
+        >
+          <span class="h-1.5 w-[78%] rounded-full bg-slate-200 dark:bg-slate-700" />
+          <span class="h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-800" />
+          <span class="h-1.5 w-[55%] rounded-full bg-slate-100 dark:bg-slate-800" />
+        </div>
+        <span class="pointer-events-none absolute bottom-1.5 left-1.5 rounded bg-rose-500 px-1 py-0.5 text-[8px] font-bold text-white">
+          PDF
+        </span>
+      </div>
+      <div
+        v-else-if="kind === 'text' && snippetLines.length"
+        class="pointer-events-none absolute inset-2 overflow-hidden rounded-md bg-white px-2.5 py-2 text-left shadow-sm ring-1 ring-slate-200/80 dark:bg-slate-950 dark:ring-slate-700"
+      >
+        <pre class="whitespace-pre-wrap break-words font-mono text-[9px] leading-snug text-slate-600 dark:text-slate-300">{{ snippetLines.join('\n') }}</pre>
+      </div>
       <div
         v-else-if="kind === 'zip'"
         class="flex flex-col items-center"
@@ -84,22 +153,6 @@ const onAction = (event, type) => {
             :size="30"
             class="relative text-white"
           />
-        </span>
-      </div>
-      <div
-        v-else-if="kind === 'pdf'"
-        class="relative flex h-[78%] w-[62%] flex-col overflow-hidden rounded-md bg-white shadow-sm ring-1 ring-black/5 dark:bg-slate-900"
-      >
-        <div class="flex h-5 items-center bg-rose-500 px-2">
-          <span class="text-[9px] font-bold text-white">PDF</span>
-        </div>
-        <div class="flex flex-1 flex-col gap-1.5 px-2.5 py-2">
-          <span class="h-1.5 w-[78%] rounded-full bg-slate-200 dark:bg-slate-700" />
-          <span class="h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-800" />
-          <span class="h-1.5 w-[55%] rounded-full bg-slate-100 dark:bg-slate-800" />
-        </div>
-        <span class="absolute bottom-1.5 left-1.5 rounded bg-rose-500 px-1 py-0.5 text-[8px] font-bold text-white">
-          PDF
         </span>
       </div>
       <div
@@ -126,6 +179,18 @@ const onAction = (event, type) => {
         >
           <AppIcon
             name="eye"
+            :size="13"
+          />
+        </button>
+        <button
+          v-if="canEdit"
+          type="button"
+          class="grid h-7 w-7 place-items-center rounded-md bg-white/95 text-slate-600 shadow-sm hover:text-brand"
+          title="Đổi tên"
+          @click="onAction($event, 'rename')"
+        >
+          <AppIcon
+            name="edit"
             :size="13"
           />
         </button>
@@ -208,3 +273,21 @@ const onAction = (event, type) => {
     </button>
   </div>
 </template>
+
+<style scoped>
+.doc-file-card__pdf {
+    display: block;
+}
+
+.doc-file-card__pdf-iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 180%;
+    height: 180%;
+    border: 0;
+    transform: scale(0.555);
+    transform-origin: top left;
+    background: #fff;
+}
+</style>

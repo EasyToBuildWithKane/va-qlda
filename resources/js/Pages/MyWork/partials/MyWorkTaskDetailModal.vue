@@ -69,8 +69,28 @@ function fmtDate(value) {
     });
 }
 
+function fmtDateTime(value) {
+    if (!value) return null;
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return null;
+    return d.toLocaleString('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+}
+
+function fmtHours(h) {
+    if (h == null || h <= 0) return null;
+    return `${Number.isInteger(h) ? h : Number(h).toFixed(1)}h`;
+}
+
 const startLabel = computed(() => fmtDate(props.task?.start_date));
 const dueLabel = computed(() => fmtDate(props.task?.due_date));
+const workStartedLabel = computed(() => fmtDateTime(props.task?.work_started_at));
+const completedLabel = computed(() => fmtDateTime(props.task?.completed_at));
 
 const overdueDays = computed(() => {
     if (!props.task?.is_late || !props.task?.due_date) return 0;
@@ -93,18 +113,6 @@ const progress = computed(() => {
     return Number.isFinite(p) ? Math.min(100, Math.max(0, p)) : 0;
 });
 
-const estimateLabel = computed(() => {
-    const h = props.task?.estimate_hours;
-    if (h == null || h <= 0) return null;
-    return `${Number.isInteger(h) ? h : h.toFixed(1)}h`;
-});
-
-const actualLabel = computed(() => {
-    const h = props.task?.actual_hours;
-    if (h == null || h <= 0) return null;
-    return `${Number.isInteger(h) ? h : h.toFixed(1)}h`;
-});
-
 const descriptionHtml = computed(() => {
     const raw = props.task?.description?.trim();
     if (!raw) return '';
@@ -115,14 +123,24 @@ const descriptionHtml = computed(() => {
     return md.render(raw.replace(/\n/g, '  \n'));
 });
 
+/** Meta 2 cột trái — denser chip grid */
 const metaRows = computed(() => {
     const t = props.task;
     if (!t) return [];
+    const sp = t.story_points;
     return [
-        { key: 'start', label: 'Bắt đầu', value: startLabel.value, empty: 'Chưa cập nhật' },
-        { key: 'due', label: 'Hạn hoàn thành', value: dueLabel.value, empty: 'Chưa chọn kỳ', late: t.is_late },
-        { key: 'estimate', label: 'Giờ dự kiến', value: estimateLabel.value, empty: 'Chưa cập nhật' },
-        { key: 'actual', label: 'Giờ thực tế', value: actualLabel.value, empty: 'Chưa cập nhật' },
+        { key: 'start', label: 'Bắt đầu', value: startLabel.value, empty: EMPTY_LABELS.notUpdated },
+        {
+            key: 'due',
+            label: 'Hạn hoàn thành',
+            value: dueLabel.value,
+            empty: EMPTY_LABELS.periodUnset,
+            late: t.is_late,
+        },
+        { key: 'started', label: 'Bắt tay làm', value: workStartedLabel.value, empty: EMPTY_LABELS.notUpdated },
+        { key: 'completed', label: 'Hoàn thành', value: completedLabel.value, empty: EMPTY_LABELS.notUpdated },
+        { key: 'estimate', label: 'Giờ dự kiến', value: fmtHours(t.estimate_hours), empty: EMPTY_LABELS.notUpdated },
+        { key: 'actual', label: 'Giờ thực tế', value: fmtHours(t.actual_hours), empty: EMPTY_LABELS.notUpdated },
         {
             key: 'logged',
             label: 'Giờ hôm nay',
@@ -130,30 +148,43 @@ const metaRows = computed(() => {
             empty: 'Chưa ghi giờ',
         },
         {
-            key: 'sprint',
-            label: 'Sprint',
-            value: t.sprint?.name ?? null,
-            empty: 'Chưa cập nhật',
+            key: 'sp',
+            label: 'Story points',
+            value: sp != null && sp > 0 ? String(sp) : null,
+            empty: EMPTY_LABELS.notUpdated,
+        },
+        { key: 'sprint', label: 'Sprint', value: t.sprint?.name ?? null, empty: EMPTY_LABELS.notUpdated },
+        { key: 'epic', label: 'Epic', value: t.epic?.name ?? null, empty: EMPTY_LABELS.notUpdated },
+        { key: 'phase', label: 'Giai đoạn', value: t.phase?.label ?? null, empty: EMPTY_LABELS.notUpdated, badge: t.phase },
+        { key: 'priority', label: 'Ưu tiên', value: t.priority?.label ?? null, empty: EMPTY_LABELS.notUpdated, badge: t.priority },
+        { key: 'parent', label: 'Việc cha', value: t.parent?.title ?? null, empty: EMPTY_LABELS.notUpdated },
+        { key: 'source', label: 'Nguồn', value: t.source?.label ?? null, empty: EMPTY_LABELS.notUpdated },
+        { key: 'milestone', label: 'Mốc', value: t.is_milestone ? 'Có' : 'Không' },
+        {
+            key: 'sla',
+            label: 'SLA',
+            value: t.sla_result?.label ?? null,
+            empty: EMPTY_LABELS.notUpdated,
+            badge: t.sla_result,
         },
         {
-            key: 'phase',
-            label: 'Giai đoạn',
-            value: t.phase?.label ?? null,
-            empty: 'Chưa cập nhật',
-        },
-        {
-            key: 'priority',
-            label: 'Ưu tiên',
-            value: t.priority?.label ?? null,
-            empty: 'Chưa cập nhật',
-            badge: t.priority,
-        },
-        {
-            key: 'milestone',
-            label: 'Mốc',
-            value: t.is_milestone ? 'Có' : 'Không',
+            key: 'timing',
+            label: 'Kế hoạch giờ',
+            value: t.hours_timing?.label ?? null,
+            empty: EMPTY_LABELS.notUpdated,
+            badge: t.hours_timing,
         },
     ];
+});
+
+const people = computed(() => {
+    const t = props.task;
+    if (!t) return [];
+    return [
+        { key: 'assignee', label: 'Phụ trách', person: t.assignee },
+        { key: 'reporter', label: 'Người giao', person: t.reporter },
+        { key: 'reviewer', label: 'Reviewer', person: t.reviewer },
+    ].filter((row) => row.person);
 });
 
 function pickStatus(value) {
@@ -174,275 +205,298 @@ function onLog(payload) {
     :show="open && !!task"
     :title="task?.title || 'Chi tiết công việc'"
     max-width="max-w-5xl"
+    fit-viewport
     @close="emit('close')"
   >
     <div
       v-if="task"
-      class="-mt-1"
+      class="flex h-full min-h-0 flex-col gap-3"
     >
-      <!-- Accent + header -->
-      <div class="relative overflow-hidden rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50/90 to-white dark:border-slate-700 dark:from-slate-900 dark:to-slate-900">
+      <!-- Header compact: dự án + badge + actions -->
+      <div
+        class="relative shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-gradient-to-br from-slate-50/90 to-white dark:border-slate-700 dark:from-slate-900 dark:to-slate-900"
+      >
         <div
-          class="absolute inset-y-0 left-0 w-1.5"
+          class="absolute inset-y-0 left-0 w-1"
           :style="{ backgroundColor: projectColor }"
         />
-        <div class="px-4 py-4 pl-5 sm:px-6">
-          <div class="flex flex-wrap items-start gap-4">
-            <div class="min-w-0 flex-1">
-              <div
-                v-if="projectLabel"
-                class="min-w-0"
+        <div class="flex flex-wrap items-center gap-x-3 gap-y-2 py-2.5 pl-3.5 pr-3 sm:pl-4">
+          <div class="min-w-0 flex-1">
+            <p
+              v-if="projectLabel"
+              class="truncate text-[12px] font-semibold text-brand"
+              :title="projectLabel"
+            >
+              {{ projectLabel }}
+            </p>
+            <div class="mt-1 flex flex-wrap items-center gap-1.5">
+              <span
+                v-if="overdueDays > 0"
+                class="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-semibold text-rose-700 dark:bg-rose-950/50 dark:text-rose-300"
               >
-                <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                  Dự án
-                </p>
-                <p class="mt-0.5 break-words text-[13px] font-semibold leading-snug text-brand">
-                  {{ projectLabel }}
-                </p>
-              </div>
-              <div class="mt-3 flex flex-wrap items-center gap-2">
-                <span
-                  v-if="overdueDays > 0"
-                  class="inline-flex max-w-full items-center gap-1 rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-700 dark:bg-rose-950/50 dark:text-rose-300"
-                >
-                  <AppIcon
-                    name="alert"
-                    :size="12"
-                    class="shrink-0"
-                  />
-                  <span class="break-words">Quá hạn {{ overdueDays }} ngày</span>
-                </span>
-                <span
-                  v-else-if="isDueToday"
-                  class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-700 dark:bg-amber-950/50 dark:text-amber-300"
-                >
-                  <AppIcon
-                    name="calendar-clock"
-                    :size="12"
-                    class="shrink-0"
-                  />
-                  Đến hạn hôm nay
-                </span>
-                <span
-                  v-if="task.priority"
-                  class="inline-flex max-w-full flex-wrap items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2 py-0.5 dark:border-slate-600 dark:bg-slate-800"
-                >
-                  <span class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Ưu tiên</span>
-                  <Badge
-                    :label="task.priority.label"
-                    :color="task.priority.color"
-                  />
-                </span>
-                <span
-                  v-if="task.phase"
-                  class="inline-flex max-w-full flex-wrap items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2 py-0.5 dark:border-slate-600 dark:bg-slate-800"
-                >
-                  <span class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Giai đoạn</span>
-                  <Badge
-                    :label="task.phase.label"
-                    :color="task.phase.color"
-                  />
-                </span>
-                <span
-                  v-if="task.is_milestone"
-                  class="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 dark:border-amber-800 dark:bg-amber-950/40"
-                >
-                  <span class="text-[10px] font-semibold uppercase tracking-wide text-amber-600/80">Mốc</span>
-                  <Badge
-                    label="Có"
-                    color="amber"
-                  />
-                </span>
-              </div>
-            </div>
-
-            <div class="flex w-full min-w-0 shrink-0 flex-col items-stretch gap-2 sm:w-auto sm:items-end">
-              <div class="relative self-start sm:self-end">
-                <p class="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400 sm:text-right">
-                  Trạng thái
-                </p>
-                <button
-                  ref="statusTriggerRef"
-                  type="button"
-                  :disabled="!canChange"
-                  class="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs transition disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-600 dark:bg-slate-800"
-                  :class="canChange ? 'hover:border-brand/40 hover:bg-brand/5' : ''"
-                  :title="canChange ? 'Đổi trạng thái' : 'Bạn không có quyền đổi trạng thái việc này'"
-                  aria-haspopup="listbox"
-                  :aria-expanded="statusOpen"
-                  @click="statusOpen = !statusOpen"
-                >
-                  <Badge
-                    v-if="task.status"
-                    :label="task.status.label"
-                    :color="task.status.color"
-                  />
-                  <AppIcon
-                    v-if="canChange"
-                    name="chevron-down"
-                    :size="13"
-                    class="shrink-0"
-                  />
-                </button>
-                <Teleport to="body">
-                  <button
-                    v-if="statusOpen"
-                    type="button"
-                    class="fixed inset-0 z-[120] cursor-default bg-transparent"
-                    aria-label="Đóng"
-                    @click="statusOpen = false"
-                  />
-                  <div
-                    v-if="statusOpen"
-                    :style="statusPanelStyle"
-                    class="rounded-xl border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-900"
-                    role="listbox"
-                  >
-                    <ul class="max-h-[inherit] overflow-y-auto">
-                      <li
-                        v-for="opt in statusOptions"
-                        :key="opt.value"
-                      >
-                        <button
-                          type="button"
-                          class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-slate-50 dark:hover:bg-slate-800"
-                          :class="opt.value === task.status?.value ? 'font-semibold' : ''"
-                          role="option"
-                          :aria-selected="opt.value === task.status?.value"
-                          @click="pickStatus(opt.value)"
-                        >
-                          <span
-                            class="h-2 w-2 shrink-0 rounded-full"
-                            :class="dotClass[opt.color] || dotClass.slate"
-                          />
-                          <span class="min-w-0 break-words">{{ opt.label }}</span>
-                        </button>
-                      </li>
-                    </ul>
-                  </div>
-                </Teleport>
-              </div>
-
-              <div class="flex flex-wrap items-center gap-1.5">
-                <div
-                  v-if="canLog"
-                  class="relative"
-                >
-                  <button
-                    ref="worklogTriggerRef"
-                    type="button"
-                    class="btn-ghost inline-flex h-9 items-center gap-1.5 px-3 text-xs"
-                    title="Ghi giờ nhanh"
-                    @click="worklogOpen = !worklogOpen"
-                  >
-                    <AppIcon
-                      name="worklog"
-                      :size="14"
-                    />
-                    Ghi giờ
-                  </button>
-                  <QuickWorklogPopover
-                    :open="worklogOpen"
-                    :anchor-ref="worklogTriggerRef"
-                    :task-title="task.title"
-                    @submit="onLog"
-                    @close="worklogOpen = false"
-                  />
-                </div>
-                <button
-                  type="button"
-                  class="btn-primary inline-flex h-9 items-center gap-1.5 px-3 text-xs"
-                  @click="emit('open-project', task)"
-                >
-                  Mở trong dự án
-                  <AppIcon
-                    name="external-link"
-                    :size="13"
-                  />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Progress -->
-          <div class="mt-4">
-            <div class="mb-1.5 flex items-center justify-between text-[11px]">
-              <span class="font-medium uppercase tracking-wide text-slate-400">Tiến độ</span>
-              <span class="font-semibold tabular-nums text-slate-600 dark:text-slate-300">{{ progress }}%</span>
-            </div>
-            <div class="h-2.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-              <div
-                class="h-full rounded-full bg-brand transition-all"
-                :style="{ width: progress + '%' }"
+                <AppIcon
+                  name="alert"
+                  :size="11"
+                  class="shrink-0"
+                />
+                Quá hạn {{ overdueDays }} ngày
+              </span>
+              <span
+                v-else-if="isDueToday"
+                class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-700 dark:bg-amber-950/50 dark:text-amber-300"
+              >
+                <AppIcon
+                  name="calendar-clock"
+                  :size="11"
+                  class="shrink-0"
+                />
+                Đến hạn hôm nay
+              </span>
+              <Badge
+                v-if="task.priority"
+                :label="task.priority.label"
+                :color="task.priority.color"
+              />
+              <Badge
+                v-if="task.phase"
+                :label="task.phase.label"
+                :color="task.phase.color"
+              />
+              <Badge
+                v-if="task.is_milestone"
+                label="Mốc"
+                color="amber"
+              />
+              <Badge
+                v-if="task.sla_result"
+                :label="task.sla_result.label"
+                :color="task.sla_result.color"
               />
             </div>
           </div>
+
+          <div class="flex shrink-0 flex-wrap items-center gap-1.5">
+            <div class="relative">
+              <button
+                ref="statusTriggerRef"
+                type="button"
+                :disabled="!canChange"
+                class="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs transition disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-600 dark:bg-slate-800"
+                :class="canChange ? 'hover:border-brand/40 hover:bg-brand/5' : ''"
+                :title="canChange ? 'Đổi trạng thái' : 'Bạn không có quyền đổi trạng thái việc này'"
+                aria-haspopup="listbox"
+                :aria-expanded="statusOpen"
+                @click="statusOpen = !statusOpen"
+              >
+                <Badge
+                  v-if="task.status"
+                  :label="task.status.label"
+                  :color="task.status.color"
+                />
+                <AppIcon
+                  v-if="canChange"
+                  name="chevron-down"
+                  :size="12"
+                  class="shrink-0"
+                />
+              </button>
+              <Teleport to="body">
+                <button
+                  v-if="statusOpen"
+                  type="button"
+                  class="fixed inset-0 z-[120] cursor-default bg-transparent"
+                  aria-label="Đóng"
+                  @click="statusOpen = false"
+                />
+                <div
+                  v-if="statusOpen"
+                  :style="statusPanelStyle"
+                  class="rounded-xl border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-900"
+                  role="listbox"
+                >
+                  <ul class="max-h-[inherit] overflow-y-auto">
+                    <li
+                      v-for="opt in statusOptions"
+                      :key="opt.value"
+                    >
+                      <button
+                        type="button"
+                        class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-slate-50 dark:hover:bg-slate-800"
+                        :class="opt.value === task.status?.value ? 'font-semibold' : ''"
+                        role="option"
+                        :aria-selected="opt.value === task.status?.value"
+                        @click="pickStatus(opt.value)"
+                      >
+                        <span
+                          class="h-2 w-2 shrink-0 rounded-full"
+                          :class="dotClass[opt.color] || dotClass.slate"
+                        />
+                        <span class="min-w-0 break-words">{{ opt.label }}</span>
+                      </button>
+                    </li>
+                  </ul>
+                </div>
+              </Teleport>
+            </div>
+
+            <div
+              v-if="canLog"
+              class="relative"
+            >
+              <button
+                ref="worklogTriggerRef"
+                type="button"
+                class="btn-ghost inline-flex h-8 items-center gap-1 px-2.5 text-xs"
+                title="Ghi giờ nhanh"
+                @click="worklogOpen = !worklogOpen"
+              >
+                <AppIcon
+                  name="worklog"
+                  :size="13"
+                />
+                Ghi giờ
+              </button>
+              <QuickWorklogPopover
+                :open="worklogOpen"
+                :anchor-ref="worklogTriggerRef"
+                :task-title="task.title"
+                @submit="onLog"
+                @close="worklogOpen = false"
+              />
+            </div>
+            <button
+              type="button"
+              class="btn-primary inline-flex h-8 items-center gap-1 px-2.5 text-xs"
+              @click="emit('open-project', task)"
+            >
+              Mở dự án
+              <AppIcon
+                name="external-link"
+                :size="12"
+              />
+            </button>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 border-t border-slate-100 px-3.5 py-1.5 sm:px-4 dark:border-slate-800">
+          <span class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Tiến độ</span>
+          <div class="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+            <div
+              class="h-full rounded-full bg-brand transition-all"
+              :style="{ width: progress + '%' }"
+            />
+          </div>
+          <span class="shrink-0 text-[11px] font-semibold tabular-nums text-slate-600 dark:text-slate-300">{{ progress }}%</span>
         </div>
       </div>
 
-      <!-- Body: meta + mô tả 2 cột trên màn rộng -->
-      <div class="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-12">
-        <div class="space-y-4 lg:col-span-5">
-          <dl class="overflow-hidden rounded-xl border border-slate-100 bg-slate-50/70 dark:border-slate-800 dark:bg-slate-800/40">
+      <!-- Body 5–5: meta | mô tả — chỉ mô tả dài mới cuộn nội bộ -->
+      <div class="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-2 lg:gap-4">
+        <!-- Cột trái -->
+        <div class="flex min-h-0 flex-col gap-2.5 overflow-y-auto overscroll-contain pr-0.5 lg:overflow-hidden">
+          <dl class="grid shrink-0 grid-cols-2 gap-1.5">
             <div
               v-for="row in metaRows"
               :key="row.key"
-              class="grid grid-cols-1 gap-1 border-b border-slate-100 px-3.5 py-2.5 last:border-b-0 sm:grid-cols-[8.5rem_minmax(0,1fr)] sm:items-start sm:gap-3 dark:border-slate-800"
+              class="rounded-lg border border-slate-100 bg-slate-50/80 px-2.5 py-1.5 dark:border-slate-800 dark:bg-slate-800/40"
             >
-              <dt class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+              <dt class="text-[9px] font-semibold uppercase tracking-wide text-slate-400">
                 {{ row.label }}
               </dt>
               <dd
-                class="min-w-0 break-words text-sm font-medium leading-snug"
+                class="mt-0.5 min-w-0 text-[12px] font-medium leading-snug"
                 :class="row.late ? 'text-rose-600' : 'text-slate-700 dark:text-slate-200'"
               >
                 <Badge
-                  v-if="row.badge"
+                  v-if="row.badge && row.value"
                   :label="row.badge.label"
                   :color="row.badge.color"
                 />
-                <template v-else>
+                <span
+                  v-else
+                  class="line-clamp-2 break-words"
+                  :title="row.value || undefined"
+                >
                   {{ displayOrEmpty(row.value, row.empty || EMPTY_LABELS.notUpdated) }}
-                </template>
+                </span>
               </dd>
             </div>
           </dl>
 
           <div
-            v-if="task.assignee"
-            class="flex items-start gap-3 rounded-xl border border-slate-100 px-3.5 py-3 dark:border-slate-800"
+            v-if="people.length"
+            class="shrink-0 rounded-lg border border-slate-100 px-2.5 py-2 dark:border-slate-800"
           >
-            <Avatar
-              :name="task.assignee.name"
-              :src="task.assignee.avatar_path"
-              :size="40"
-            />
-            <div class="min-w-0 flex-1">
-              <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-                Người phụ trách
-              </p>
-              <p class="mt-0.5 break-words text-sm font-medium leading-snug text-slate-700 dark:text-slate-200">
-                {{ task.assignee.name }}
-              </p>
-            </div>
+            <p class="mb-1.5 text-[9px] font-semibold uppercase tracking-wide text-slate-400">
+              Nhân sự
+            </p>
+            <ul class="flex flex-wrap gap-x-3 gap-y-1.5">
+              <li
+                v-for="row in people"
+                :key="row.key"
+                class="flex min-w-0 items-center gap-1.5"
+              >
+                <Avatar
+                  :name="row.person.name"
+                  :src="row.person.avatar_path"
+                  :size="24"
+                />
+                <div class="min-w-0">
+                  <p class="text-[9px] font-semibold uppercase tracking-wide text-slate-400">
+                    {{ row.label }}
+                  </p>
+                  <p
+                    class="truncate text-[12px] font-medium text-slate-700 dark:text-slate-200"
+                    :title="row.person.name"
+                  >
+                    {{ row.person.name }}
+                  </p>
+                </div>
+              </li>
+            </ul>
+          </div>
+          <div
+            v-else
+            class="shrink-0 rounded-lg border border-dashed border-slate-200 px-2.5 py-2 text-[12px] text-slate-400 dark:border-slate-700"
+          >
+            {{ displayOrEmpty(null, 'Chưa gán đơn vị') }}
           </div>
         </div>
 
-        <section class="lg:col-span-7">
-          <h3 class="mb-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-            Mô tả
-          </h3>
+        <!-- Cột phải -->
+        <section class="flex min-h-0 flex-col gap-2">
+          <div class="flex shrink-0 items-center justify-between gap-2">
+            <h3 class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+              Mô tả
+            </h3>
+            <span
+              v-if="task.source?.label"
+              class="truncate text-[11px] text-slate-400"
+            >{{ task.source.label }}</span>
+          </div>
           <div
             v-if="descriptionHtml"
-            class="prose prose-sm max-w-none break-words rounded-xl border border-slate-100 bg-white px-4 py-3.5 text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+            class="prose prose-sm min-h-0 max-w-none flex-1 overflow-y-auto overscroll-contain break-words rounded-lg border border-slate-100 bg-white px-3 py-2.5 text-[13px] leading-relaxed text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
             v-html="descriptionHtml"
           />
           <p
             v-else
-            class="rounded-xl border border-dashed border-slate-200 bg-slate-50/60 px-4 py-10 text-center text-sm text-slate-400 dark:border-slate-700 dark:bg-slate-800/40"
+            class="flex min-h-0 flex-1 items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50/60 px-3 py-6 text-center text-[13px] text-slate-400 dark:border-slate-700 dark:bg-slate-800/40"
           >
             Chưa cập nhật mô tả.
           </p>
+
+          <div
+            v-if="task.completion_note?.trim()"
+            class="shrink-0 rounded-lg border border-slate-100 bg-slate-50/80 px-2.5 py-2 dark:border-slate-800 dark:bg-slate-800/40"
+          >
+            <p class="text-[9px] font-semibold uppercase tracking-wide text-slate-400">
+              Ghi chú hoàn thành
+            </p>
+            <p class="mt-0.5 line-clamp-3 whitespace-pre-wrap break-words text-[12px] leading-snug text-slate-700 dark:text-slate-200">
+              {{ task.completion_note }}
+            </p>
+          </div>
         </section>
       </div>
     </div>

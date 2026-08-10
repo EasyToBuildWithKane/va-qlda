@@ -2,12 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Http\Resources\ProjectAttachmentResource;
 use App\Models\Project;
 use App\Models\ProjectAttachment;
 use App\Models\SystemAccount;
 use App\Support\Enums\ProjectAttachmentCategory;
 use App\Support\Enums\SystemRole;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -94,5 +96,60 @@ class ProjectAttachmentRenameContentTest extends TestCase
         $this->assertSame("# Bản ghi mới\n\nNội dung cập nhật.", Storage::disk('public')->get($path));
         $this->assertTrue($file->fresh()->isTextEditable());
         $this->assertSame('text', $file->fresh()->previewKind());
+    }
+
+    public function test_text_file_exposes_preview_snippet_in_resource(): void
+    {
+        Storage::fake('public');
+
+        $account = SystemAccount::factory()->role(SystemRole::Admin)->create();
+        $project = Project::factory()->create();
+
+        $body = "Dòng một\nDòng hai\nDòng ba";
+        $path = "projects/{$project->id}/customer/ghi-chu.txt";
+        Storage::disk('public')->put($path, $body);
+
+        $file = ProjectAttachment::query()->create([
+            'project_id' => $project->id,
+            'category' => ProjectAttachmentCategory::Customer,
+            'is_folder' => false,
+            'original_name' => 'ghi-chu.txt',
+            'path' => $path,
+            'mime_type' => 'text/plain',
+            'size' => Storage::disk('public')->size($path),
+            'uploaded_by_id' => $account->employee_id,
+        ]);
+
+        $this->assertSame($body, $file->previewSnippet());
+
+        $payload = (new ProjectAttachmentResource($file))->toArray(Request::create('/'));
+        $this->assertSame($body, $payload['preview_snippet']);
+    }
+
+    public function test_pdf_has_null_preview_snippet(): void
+    {
+        Storage::fake('public');
+
+        $account = SystemAccount::factory()->role(SystemRole::Admin)->create();
+        $project = Project::factory()->create();
+
+        $path = "projects/{$project->id}/customer/doc.pdf";
+        Storage::disk('public')->put($path, '%PDF-1.4 fake');
+
+        $file = ProjectAttachment::query()->create([
+            'project_id' => $project->id,
+            'category' => ProjectAttachmentCategory::Customer,
+            'is_folder' => false,
+            'original_name' => 'doc.pdf',
+            'path' => $path,
+            'mime_type' => 'application/pdf',
+            'size' => Storage::disk('public')->size($path),
+            'uploaded_by_id' => $account->employee_id,
+        ]);
+
+        $this->assertNull($file->previewSnippet());
+
+        $payload = (new ProjectAttachmentResource($file))->toArray(Request::create('/'));
+        $this->assertNull($payload['preview_snippet']);
     }
 }

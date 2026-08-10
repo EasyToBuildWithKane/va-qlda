@@ -8,7 +8,7 @@ namespace App\Support;
 final class ProjectAttachmentNewFile
 {
     /** @var list<string> */
-    public const TYPES = ['txt', 'md', 'csv', 'json'];
+    public const TYPES = ['txt'];
 
     /**
      * @return array{ext: string, mime: string, content: string, label: string}|null
@@ -21,24 +21,6 @@ final class ProjectAttachmentNewFile
                 'mime' => 'text/plain',
                 'content' => '',
                 'label' => 'Văn bản',
-            ],
-            'md' => [
-                'ext' => 'md',
-                'mime' => 'text/markdown',
-                'content' => '',
-                'label' => 'Markdown',
-            ],
-            'csv' => [
-                'ext' => 'csv',
-                'mime' => 'text/csv',
-                'content' => '',
-                'label' => 'CSV',
-            ],
-            'json' => [
-                'ext' => 'json',
-                'mime' => 'application/json',
-                'content' => "{}\n",
-                'label' => 'JSON',
             ],
             default => null,
         };

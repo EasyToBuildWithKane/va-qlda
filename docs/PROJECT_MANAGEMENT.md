@@ -215,7 +215,7 @@ Tab strip full-width (`grid` trải đều): mobile 4 cột × 2 hàng; `md+` 8 
 | Tab | Key | Component chính |
 |---|---|---|
 | Tổng quan | `overview` | `ProjectShowSummaryBar`, `ProjectOverviewCard` (hồ sơ + mốc + PM), `ActivityFeed`, **`WeeklyReportWorkspace` (embedded, full width dưới hồ sơ)**, `WorkloadTable` (summary KPI + mức tải healthy/watch/overloaded + dung lượng/tiến độ), `RiskIssuePanel` |
-| Tài liệu | `documents` | `ProjectDocumentsPanel` — Drive (danh mục → thư mục → file); đổi tên file/thư mục; xem trước + sửa nội dung text (txt/md/csv/json…); list `table-fixed`; cột đính kèm task hẹp |
+| Tài liệu | `documents` | `ProjectDocumentsPanel` — Drive (danh mục → thư mục → file); đổi tên (inline trong preview + nút trên thẻ grid); thẻ grid preview ảnh / PDF trang 1 / snippet `.txt`; xem trước + sửa nội dung text; list `table-fixed`; cột đính kèm task hẹp |
 | Lịch dự án | `timeline` | `ProjectCalendar` — Gantt mini, kéo ngày → `PUT tasks` |
 | Kanban | `board` | `TaskBoard` — `PATCH tasks.status` |
 | Sprint | `sprints` | `SprintWorkspace` — list/calendar, `SprintDataModal` |
@@ -300,7 +300,7 @@ UI: `ProjectMembers.vue`, `MemberFormModal` — thêm từ `ProjectActions` trê
 
 | Method | Route | Mô tả |
 |---|---|---|
-| POST | `projects.attachments.store` | Upload disk `public` — `projects/{id}/{category}`; hoặc tạo thư mục (`is_folder` + `folder_name`); hoặc tạo file trống (`is_new_file` + `file_name` + `file_type`: txt/md/csv/json); hoặc link ngoài |
+| POST | `projects.attachments.store` | Upload disk `public` — `projects/{id}/{category}`; hoặc tạo thư mục (`is_folder` + `folder_name`); hoặc tạo file trống (`.txt` — `is_new_file` + `file_name` + `file_type=txt`); hoặc link ngoài |
 | PUT | `projects.attachments.update` | Metadata: `title` (đổi tên), `content` (sửa file text ≤1MB), `notes`, `external_url`, thay file |
 | DELETE | `projects.attachments.destroy` | |
 | GET | `projects.attachments.file` | Stream file — **URL qua route**, `PublicMediaUrl`; null nếu mất file |
@@ -309,11 +309,13 @@ UI: `ProjectMembers.vue`, `MemberFormModal` — thêm từ `ProjectActions` trê
 
 **Link ngoài** (`external_url`, không upload file): Google Docs/Sheets (`GoogleWorkspaceUrl`) hoặc PDF — URL `https` kết thúc `.pdf` hoặc file trên Google Drive (`ProjectAttachmentExternalUrl`). Preview: iframe Google preview / PDF / Drive preview.
 
-**Tạo file trống:** `is_new_file`, `file_name`, `file_type` ∈ {txt, md, csv, json} — ghi file lên disk `public` qua `ProjectAttachmentNewFile`, activity `file_created`.
+**Tạo file trống:** chỉ `.txt` — `is_new_file`, `file_name`, `file_type=txt` — ghi file lên disk `public` qua `ProjectAttachmentNewFile`, activity `file_created`.
 
 **Thư mục:** `is_folder` + `folder_name`, tối đa 12 cấp; UI modal có vị trí danh mục/thư mục cha.
 
-**UI tab Tài liệu:** một hàng gọn (danh mục + `Thêm` ▾ + `Tải lên`); layout **hai panel** — trái «Tài liệu dự án» (folder card ngang + file card thumbnail, điều hướng vào thư mục), phải «Đính kèm công việc» (file đính kèm từ task). Preview full-screen + chi tiết drawer. Modal tạo thư mục/file/link `max-w-sm`.
+**Resource props thêm:** `preview_snippet` — vài dòng đầu file text (`ProjectAttachment::previewSnippet`, ≤400 ký tự / 8 dòng, bỏ qua file >256KB); `null` với PDF/binary.
+
+**UI tab Tài liệu:** một hàng gọn (danh mục + `Thêm` ▾ + `Tải lên`); layout **hai panel** — trái «Tài liệu dự án» (folder card + `DocumentFileCard`: ảnh thật, PDF trang 1 lazy iframe, snippet `.txt`, nút đổi tên), phải «Đính kèm công việc» (file đính kèm từ task). Preview full-screen: đổi tên inline trên tiêu đề + nút Đổi tên; sửa nội dung text. Chi tiết drawer. Modal tạo thư mục/file/link `max-w-sm`.
 
 Activity: `project_attachment_activities` — log trên `ProjectDocumentsPanel`.
 

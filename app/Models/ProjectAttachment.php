@@ -232,4 +232,42 @@ class ProjectAttachment extends Model
     {
         return in_array($this->previewKind(), ['image', 'pdf', 'docx', 'xlsx', 'text', 'google_doc', 'google_sheet'], true);
     }
+
+    /**
+     * First lines of a text-editable file for grid thumbnails.
+     * Skips folders, links, non-text, missing, or oversized files (>256 KB).
+     */
+    public function previewSnippet(int $maxChars = 400, int $maxLines = 8): ?string
+    {
+        if (! $this->isTextEditable() || ! $this->fileExists()) {
+            return null;
+        }
+
+        $disk = Storage::disk('public');
+        $size = (int) $disk->size($this->path);
+        if ($size <= 0 || $size > 256 * 1024) {
+            return null;
+        }
+
+        $raw = $disk->get($this->path);
+        if (! is_string($raw) || $raw === '') {
+            return null;
+        }
+
+        $normalized = str_replace(["\r\n", "\r"], "\n", $raw);
+        $lines = explode("\n", $normalized);
+        $slice = array_slice($lines, 0, max(1, $maxLines));
+        $snippet = implode("\n", $slice);
+        $snippet = trim($snippet);
+
+        if ($snippet === '') {
+            return null;
+        }
+
+        if (mb_strlen($snippet) > $maxChars) {
+            $snippet = rtrim(mb_substr($snippet, 0, $maxChars)).'…';
+        }
+
+        return $snippet;
+    }
 }

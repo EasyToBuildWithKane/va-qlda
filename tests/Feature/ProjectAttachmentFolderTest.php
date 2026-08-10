@@ -127,7 +127,7 @@ class ProjectAttachmentFolderTest extends TestCase
             'parent_id' => $folder->id,
             'is_new_file' => true,
             'file_name' => 'Bien ban hop',
-            'file_type' => 'md',
+            'file_type' => 'txt',
         ])->assertRedirect();
 
         $file = ProjectAttachment::query()
@@ -137,8 +137,8 @@ class ProjectAttachmentFolderTest extends TestCase
             ->first();
 
         $this->assertNotNull($file);
-        $this->assertSame('Bien ban hop.md', $file->original_name);
-        $this->assertSame('text/markdown', $file->mime_type);
+        $this->assertSame('Bien ban hop.txt', $file->original_name);
+        $this->assertSame('text/plain', $file->mime_type);
         Storage::disk('public')->assertExists($file->path);
     }
 
@@ -153,5 +153,18 @@ class ProjectAttachmentFolderTest extends TestCase
             'file_name' => '',
             'file_type' => 'txt',
         ])->assertSessionHasErrors('file_name');
+    }
+
+    public function test_create_blank_file_rejects_non_txt_type(): void
+    {
+        $account = SystemAccount::factory()->role(SystemRole::Admin)->create();
+        $project = Project::factory()->create();
+
+        $this->actingAs($account, 'system')->post("/projects/{$project->id}/attachments", [
+            'category' => ProjectAttachmentCategory::Customer->value,
+            'is_new_file' => true,
+            'file_name' => 'Ghi chu',
+            'file_type' => 'md',
+        ])->assertSessionHasErrors('file_type');
     }
 }

@@ -63,6 +63,10 @@ const previewEditing = ref(false);
 const previewDraft = ref('');
 const previewPaneRef = ref(null);
 const contentSaving = ref(false);
+const previewRenaming = ref(false);
+const inlineRenameTitle = ref('');
+const inlineRenameInput = ref(null);
+const inlineRenameSaving = ref(false);
 
 const docsViewStorageKey = computed(() => `va-project-docs-view:${props.projectId}`);
 
@@ -114,13 +118,6 @@ const runAddAction = (action) => {
     closeAddMenu();
     action();
 };
-
-const NEW_FILE_TYPES = [
-    { value: 'txt', label: 'Văn bản', ext: '.txt', icon: 'documents' },
-    { value: 'md', label: 'Markdown', ext: '.md', icon: 'documents' },
-    { value: 'csv', label: 'CSV', ext: '.csv', icon: 'documents' },
-    { value: 'json', label: 'JSON', ext: '.json', icon: 'documents' },
-];
 
 const folderForm = useForm({
     category: '',
@@ -581,10 +578,6 @@ const onDriveDrop = (event) => {
     onDrop(activeCategory.value, event);
 };
 
-const selectedNewFileType = computed(() => (
-    NEW_FILE_TYPES.find((t) => t.value === newFileForm.file_type) || NEW_FILE_TYPES[0]
-));
-
 const openAddLinkModal = async () => {
     if (!activeCategory.value) {
         toast.error('Hãy mở một thư mục danh mục trước khi thêm link.');
@@ -655,6 +648,8 @@ const openPreviewModal = (file) => {
     selectFile(file);
     previewEditing.value = false;
     previewDraft.value = '';
+    previewRenaming.value = false;
+    inlineRenameTitle.value = '';
     previewModalOpen.value = true;
 };
 
@@ -662,6 +657,8 @@ const closePreviewModal = () => {
     previewModalOpen.value = false;
     previewEditing.value = false;
     previewDraft.value = '';
+    previewRenaming.value = false;
+    inlineRenameTitle.value = '';
 };
 
 const openDetailsFromPreview = () => {
@@ -715,8 +712,62 @@ const renameDisplayBase = (item) => {
     return name.slice(0, idx);
 };
 
+const renameExtensionSuffix = (item) => {
+    if (!item || item.is_folder || item.is_external_link) return '';
+    const name = item.original_name || '';
+    const idx = name.lastIndexOf('.');
+    if (idx <= 0) return '';
+    return name.slice(idx);
+};
+
+const startPreviewInlineRename = async () => {
+    if (!selected.value || !props.canEdit || selected.value.is_category) return;
+    previewRenaming.value = true;
+    inlineRenameTitle.value = renameDisplayBase(selected.value);
+    await nextTick();
+    inlineRenameInput.value?.focus?.();
+    inlineRenameInput.value?.select?.();
+};
+
+const cancelPreviewInlineRename = () => {
+    previewRenaming.value = false;
+    inlineRenameTitle.value = '';
+};
+
+const submitPreviewInlineRename = () => {
+    if (!previewRenaming.value) return;
+    const item = selected.value;
+    const title = inlineRenameTitle.value.trim();
+    if (!item || !props.canEdit || !title || inlineRenameSaving.value) {
+        cancelPreviewInlineRename();
+        return;
+    }
+    if (title === renameDisplayBase(item)) {
+        cancelPreviewInlineRename();
+        return;
+    }
+    inlineRenameSaving.value = true;
+    router.put(`/projects/${props.projectId}/attachments/${item.id}`, {
+        title,
+    }, {
+        preserveScroll: true,
+        onSuccess: () => {
+            cancelPreviewInlineRename();
+            toast.success(item.is_folder ? 'Đã đổi tên thư mục.' : 'Đã đổi tên file.');
+        },
+        onError: (errors) => toast.error(
+            firstErrorMessage(errors, ['title'], 'Không thể đổi tên.'),
+        ),
+        onFinish: () => { inlineRenameSaving.value = false; },
+    });
+};
+
 const openRenameModal = async (item) => {
     if (!item || item.is_category || !props.canEdit) return;
+    if (previewModalOpen.value && selected.value?.id === item.id) {
+        await startPreviewInlineRename();
+        return;
+    }
     renameTarget.value = item;
     renameForm.reset();
     renameForm.title = renameDisplayBase(item);
@@ -863,6 +914,7 @@ const submitNewFile = () => {
     newFileForm.file_name = newFileForm.file_name.trim();
     newFileForm.parent_id = newFileForm.parent_id ? Number(newFileForm.parent_id) : null;
     newFileForm.is_new_file = true;
+    newFileForm.file_type = 'txt';
     const parentId = newFileForm.parent_id;
     newFileForm.post(`/projects/${props.projectId}/attachments`, {
         preserveScroll: true,
@@ -1310,10 +1362,13 @@ const activityTone = (event) => ({
                       :is-pdf="Boolean(file.is_pdf)"
                       :is-link="Boolean(file.is_external_link)"
                       :badge="listBadge(file)"
+                      :preview-snippet="file.preview_snippet || null"
                       :active="selectedId === file.id"
+                      :can-edit="canEdit"
                       :can-delete="canDelete"
                       @click="openPreviewModal(file)"
                       @preview="openPreviewModal(file)"
+                      @rename="openRenameModal(file)"
                       @details="openFileDetails(file)"
                       @delete="removeFile(file)"
                     />
@@ -1524,7 +1579,48 @@ const activityTone = (event) => ({
               class="flex shrink-0 items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900"
             >
               <div class="min-w-0 flex-1">
-                <h2 class="truncate font-display text-base font-semibold text-slate-800 dark:text-slate-100">
+                <div
+                  v-if="previewRenaming && selected"
+                  class="flex min-w-0 max-w-xl items-center gap-1.5"
+                >
+                  <input
+                    id="doc-preview-inline-rename"
+                    ref="inlineRenameInput"
+                    v-model="inlineRenameTitle"
+                    type="text"
+                    class="input h-9 min-w-0 flex-1 text-sm font-semibold"
+                    maxlength="200"
+                    :disabled="inlineRenameSaving"
+                    aria-label="Đổi tên file"
+                    @keydown.enter.prevent="submitPreviewInlineRename"
+                    @keydown.esc.prevent="cancelPreviewInlineRename"
+                    @blur="submitPreviewInlineRename"
+                  >
+                  <span
+                    v-if="renameExtensionSuffix(selected)"
+                    class="shrink-0 text-sm font-medium text-slate-400"
+                  >{{ renameExtensionSuffix(selected) }}</span>
+                </div>
+                <button
+                  v-else-if="canEdit && selected"
+                  type="button"
+                  class="group flex max-w-full items-center gap-1.5 rounded-md text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/30"
+                  title="Đổi tên"
+                  @click="startPreviewInlineRename"
+                >
+                  <h2 class="truncate font-display text-base font-semibold text-slate-800 group-hover:text-brand dark:text-slate-100">
+                    {{ selected?.original_name ?? 'Tài liệu' }}
+                  </h2>
+                  <AppIcon
+                    name="edit"
+                    :size="13"
+                    class="shrink-0 text-slate-300 opacity-0 transition group-hover:opacity-100 group-focus-visible:opacity-100"
+                  />
+                </button>
+                <h2
+                  v-else
+                  class="truncate font-display text-base font-semibold text-slate-800 dark:text-slate-100"
+                >
                   {{ selected?.original_name ?? 'Tài liệu' }}
                 </h2>
               </div>
@@ -1567,11 +1663,11 @@ const activityTone = (event) => ({
                   </template>
                 </template>
                 <button
-                  v-if="canEdit && selected && !previewEditing && !canEditSelectedContent"
+                  v-if="canEdit && selected && !previewRenaming"
                   type="button"
                   class="btn-ghost grid h-8 w-8 place-items-center p-0"
                   title="Đổi tên"
-                  @click="openRenameModal(selected)"
+                  @click="startPreviewInlineRename"
                 >
                   <AppIcon
                     name="edit"
@@ -1789,39 +1885,6 @@ const activityTone = (event) => ({
     >
       <div class="space-y-2.5">
         <div>
-          <p class="text-xs font-medium text-slate-500">
-            Loại file
-          </p>
-          <div
-            class="mt-1 grid grid-cols-4 gap-1"
-            role="radiogroup"
-            aria-label="Loại file"
-          >
-            <button
-              v-for="type in NEW_FILE_TYPES"
-              :key="type.value"
-              type="button"
-              role="radio"
-              class="rounded-md border px-1.5 py-1.5 text-center transition"
-              :class="newFileForm.file_type === type.value
-                ? 'border-brand/40 bg-brand/5 ring-1 ring-brand/20'
-                : 'border-slate-200 hover:border-slate-300 dark:border-slate-600'"
-              :aria-checked="newFileForm.file_type === type.value"
-              :title="type.label"
-              @click="newFileForm.file_type = type.value"
-            >
-              <span class="block text-[10px] font-bold uppercase text-slate-700 dark:text-slate-200">{{ type.ext.replace('.', '') }}</span>
-            </button>
-          </div>
-          <p
-            v-if="newFileForm.errors.file_type"
-            class="mt-1 text-xs text-rose-600"
-          >
-            {{ newFileForm.errors.file_type }}
-          </p>
-        </div>
-
-        <div>
           <label
             for="doc-new-file-name"
             class="text-xs font-medium text-slate-500"
@@ -1839,7 +1902,7 @@ const activityTone = (event) => ({
               @keyup.enter="submitNewFile"
             >
             <span class="pointer-events-none absolute inset-y-0 right-2.5 flex items-center text-xs font-medium text-slate-400">
-              {{ selectedNewFileType.ext }}
+              .txt
             </span>
           </div>
           <p
@@ -1847,6 +1910,12 @@ const activityTone = (event) => ({
             class="mt-1 text-xs text-rose-600"
           >
             {{ newFileForm.errors.file_name }}
+          </p>
+          <p
+            v-if="newFileForm.errors.file_type"
+            class="mt-1 text-xs text-rose-600"
+          >
+            {{ newFileForm.errors.file_type }}
           </p>
         </div>
       </div>

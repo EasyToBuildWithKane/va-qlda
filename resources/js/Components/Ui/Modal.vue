@@ -12,6 +12,11 @@ const props = defineProps({
     closeConfirmMessage: { type: String, default: '' },
     /** Gọi khi đóng modal còn dirty — thường lưu localStorage qua useModalFormDraft */
     onSaveDraft: { type: Function, default: null },
+    /**
+     * Khóa chiều cao trong viewport — card `max-h` + slot `overflow-hidden`
+     * (nội dung tự cuộn vùng con, tránh scroll cả overlay).
+     */
+    fitViewport: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['close']);
@@ -39,16 +44,30 @@ defineExpose({ tryClose });
     >
       <div
         v-if="show"
-        class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/50 p-4 py-10"
+        class="fixed inset-0 z-50 flex justify-center bg-slate-900/50 p-3 sm:p-4"
+        :class="fitViewport
+          ? 'items-center overflow-hidden py-3 sm:py-4'
+          : 'items-start overflow-y-auto py-10'"
         @click.self="tryClose"
         @keydown.esc="tryClose"
       >
         <div
-          class="card w-full p-6 shadow-elevation-3"
-          :class="maxWidth"
+          class="card w-full shadow-elevation-3"
+          :class="[
+            maxWidth,
+            fitViewport
+              ? 'flex max-h-[calc(100dvh-1.5rem)] flex-col overflow-hidden p-4 sm:max-h-[calc(100dvh-2rem)] sm:p-5'
+              : 'p-6',
+          ]"
         >
-          <div class="mb-4 flex items-start justify-between gap-4">
-            <h2 class="min-w-0 flex-1 break-words font-display text-lg font-semibold leading-snug text-slate-800">
+          <div
+            class="flex items-start justify-between gap-3"
+            :class="fitViewport ? 'mb-3 shrink-0' : 'mb-4'"
+          >
+            <h2
+              class="min-w-0 flex-1 break-words font-display font-semibold leading-snug text-slate-800"
+              :class="fitViewport ? 'text-base sm:text-lg line-clamp-2' : 'text-lg'"
+            >
               {{ title }}
             </h2>
             <button
@@ -62,7 +81,9 @@ defineExpose({ tryClose });
               />
             </button>
           </div>
-          <slot />
+          <div :class="fitViewport ? 'min-h-0 flex-1 overflow-hidden' : ''">
+            <slot />
+          </div>
         </div>
       </div>
     </Transition>
