@@ -64,6 +64,7 @@ function onExport(format) {
         :current-week="currentWeekNumber"
         :active-report-id="report?.id ?? null"
         :pending-week="pendingWeek"
+        :hide-sprint-scope="embedded"
         @select="selectWeek"
       />
     </div>

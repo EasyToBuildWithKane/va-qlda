@@ -214,8 +214,8 @@ Tab strip full-width (`grid` trải đều): mobile 4 cột × 2 hàng; `md+` 8 
 
 | Tab | Key | Component chính |
 |---|---|---|
-| Tổng quan | `overview` | `ProjectShowSummaryBar`, `ProjectOverviewCard` (hồ sơ + mốc + PM), `ActivityFeed`, **`WeeklyReportWorkspace` (embedded, full width dưới hồ sơ)**, `WorkloadTable` (summary KPI + mức tải healthy/watch/overloaded + dung lượng/tiến độ), `RiskIssuePanel` |
-| Tài liệu | `documents` | `ProjectDocumentsPanel` — Drive (danh mục → thư mục → file); đổi tên (inline trong preview + nút trên thẻ grid); thẻ grid preview ảnh / PDF trang 1 / snippet `.txt`; xem trước + sửa nội dung text; Word/Excel preview client-side (`DocumentPreviewPane` + `useDocumentPreview`: iframe Word cách ly CSS + phân trang; Excel bảng phân trang dòng — không Office Online); list `table-fixed`; cột đính kèm task hẹp |
+| Tổng quan | `overview` | `ProjectShowSummaryBar`, `ProjectOverviewCard` (hồ sơ + mốc + PM), `ActivityFeed`, **`WeeklyReportWorkspace` (embedded, full width dưới hồ sơ)**, `WorkloadTable` (thành viên + workload; nút **Thêm thành viên** / Sửa → `MemberFormModal` khi `can.manage`) — **không** nhúng Test case (tab riêng) |
+| Tài liệu | `documents` | `ProjectDocumentsPanel` — Drive (danh mục → thư mục → file); đổi tên (inline trong preview + nút trên thẻ grid); thẻ grid preview ảnh / PDF trang 1 / snippet `.txt`; xem trước + sửa nội dung text; Word/Excel preview client-side (`DocumentPreviewPane` + `useDocumentPreview`: iframe Word cách ly CSS, fit-width, bảng/ảnh không tràn, phân trang/cuộn; Excel bảng phân trang dòng — không Office Online); list `table-fixed`; cột đính kèm task hẹp |
 | Lịch dự án | `timeline` | `ProjectCalendar` — Gantt mini, kéo ngày → `PUT tasks` |
 | Kanban | `board` | `TaskBoard` — `PATCH tasks.status` |
 | Sprint | `sprints` | `SprintWorkspace` — list/calendar, `SprintDataModal` |
@@ -292,7 +292,7 @@ Enum task: `TaskStatus`, `TaskPriority`, phase SDLC — mirror trong `Options::e
 
 Pivot `project_member`: `role`, `rate_type`, `rate`, `allocation`, `joined_at`, `is_active`.
 
-UI: `ProjectMembers.vue`, `MemberFormModal` — thêm từ `ProjectActions` trên Show.
+UI: `ProjectMembers.vue` (avatar trên card/list), `MemberFormModal` — thêm/sửa từ tab **Tổng quan** (`WorkloadTable` + Show). `ProjectActions` vẫn có sẵn CTA tương tự nếu gắn header.
 
 ---
 
@@ -315,7 +315,7 @@ UI: `ProjectMembers.vue`, `MemberFormModal` — thêm từ `ProjectActions` trê
 
 **Resource props thêm:** `preview_snippet` — vài dòng đầu file text (`ProjectAttachment::previewSnippet`, ≤400 ký tự / 8 dòng, bỏ qua file >256KB); `null` với PDF/binary.
 
-**UI tab Tài liệu:** một hàng gọn (danh mục + `Thêm` ▾ + `Tải lên`); layout **hai panel** — trái «Tài liệu dự án» (folder card + `DocumentFileCard`: ảnh thật, PDF trang 1 lazy iframe, snippet `.txt`, nút đổi tên), phải «Đính kèm công việc» (file đính kèm từ task). Preview full-screen: đổi tên inline trên tiêu đề + nút Đổi tên; sửa nội dung text; Word `.docx` render trong iframe (đủ option `docx-preview`, phân trang Trang X/Y); Excel sticky header + zebra + «Dòng a–b / tổng» (100 dòng/trang). Chi tiết drawer. Modal tạo thư mục/file/link `max-w-sm`.
+**UI tab Tài liệu:** một hàng gọn (danh mục + `Thêm` ▾ + `Tải lên`); layout **hai panel** — trái «Tài liệu dự án» (folder card + `DocumentFileCard`: ảnh thật, PDF trang 1 lazy iframe, snippet `.txt`, nút đổi tên), phải «Đính kèm công việc» (file đính kèm từ task). Preview full-screen: đổi tên inline trên tiêu đề + nút Đổi tên; sửa nội dung text; Word `.docx` render trong iframe (`docx-preview`, giữ layout flex trang, CSS bảng/ảnh/căn lề, fit-width, Từng trang|Cuộn liên tục, zoom Vừa khung|100%|75%); Excel sticky header + zebra + «Dòng a–b / tổng» (100 dòng/trang). Chi tiết drawer. Modal tạo thư mục/file/link `max-w-sm`.
 
 Activity: `project_attachment_activities` — log trên `ProjectDocumentsPanel`.
 

@@ -8,6 +8,8 @@ const props = defineProps({
     currentWeek: { type: Number, default: 1 },
     activeReportId: { type: [Number, null], default: null },
     pendingWeek: { type: [Number, null], default: null },
+    /** Tab Tổng quan — ẩn ô Phạm vi Sprint (chỉ đọc, thường «Ngoài Sprint»). */
+    hideSprintScope: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['select']);
@@ -54,8 +56,14 @@ function onWeekChange(event) {
 
 <template>
   <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-    <div class="grid min-w-0 flex-1 grid-cols-1 gap-3 sm:grid-cols-2 lg:max-w-2xl">
-      <label class="min-w-0">
+    <div
+      class="grid min-w-0 flex-1 grid-cols-1 gap-3 lg:max-w-2xl"
+      :class="hideSprintScope ? '' : 'sm:grid-cols-2'"
+    >
+      <label
+        v-if="!hideSprintScope"
+        class="min-w-0"
+      >
         <span class="mb-1 block text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
           Phạm vi Sprint
         </span>

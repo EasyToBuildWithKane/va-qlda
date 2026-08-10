@@ -166,10 +166,10 @@ Pages import feature components từ `@/modules/project/components/...` và prim
 | Core | `ProjectCard` (shell clip-path + viền nét đứt kiểu `kpi-card`, nền trắng phẳng — không gradient), `ProjectDataGrid` (kéo ngang cuộn bảng), `ProjectForm`, `ProjectMembers`, `GanttChart`, `TaskBoard`, … · Index Kanban: lane trắng + inset border; wrap thẻ; «Nhóm theo» Loại/Phòng ban chỉ `super_admin` |
 | Sprint/ | `SprintWorkspace`, `SprintTaskRows` (bảng task list không hiển thị cột SLA), `SprintTaskTable`, `SprintDataModal`, `TaskDetailPanel`, … |
 | TaskDetail/ | `TaskDetailGeneralInfo` (Thông tin chung 2 cột trong panel), `TaskDetailRichEditor`, `TaskDetailCollaboration`, `TaskDetailSubtasks`, … |
-| Dashboard/ | `ProjectShowSummaryBar` (tab Tổng quan Show — KPI embedded), `WorkloadTable` (phân bổ tải + dung lượng), `ProjectOverviewCard`, `RiskIssueDataTable`, `ProjectFeedbackPanel`, `RiskImportModal`, `ActivityFeed`, … |
+| Dashboard/ | `ProjectShowSummaryBar` (tab Tổng quan Show — KPI embedded), `WorkloadTable` (phân bổ tải + thêm/sửa thành viên), `ProjectOverviewCard`, `RiskIssueDataTable` (tab Test case), `ProjectFeedbackPanel`, `RiskImportModal`, `ActivityFeed`, … |
 | WeeklyReport/ | `WeeklyReportWorkspace` — tab `weekly` full-page; trên `overview` nhúng `embedded` full width dưới hồ sơ dự án |
 | Timeline/ | `ProjectTimelineView`, `ProjectTimelineBurndown`, … |
-| Documents/ | `ProjectDocumentsPanel`, `DocumentFolderCard`, `DocumentFileCard` (thumbnail ảnh/PDF trang 1/snippet txt + đổi tên), `DocumentFilesTable`, `DocumentPreviewPane` (xem + sửa text, đổi tên inline; Word `.docx` qua `docx-preview` trong iframe cách ly Tailwind + phân trang `section.docx`; Excel bảng sticky/zebra + phân trang 100 dòng — `useDocumentPreview`) — Drive; đính kèm task hẹp |
+| Documents/ | `ProjectDocumentsPanel`, `DocumentFolderCard`, `DocumentFileCard` (thumbnail ảnh/PDF trang 1/snippet txt + đổi tên), `DocumentFilesTable`, `DocumentPreviewPane` (xem + sửa text, đổi tên inline; Word `.docx` qua `docx-preview` trong iframe cách ly Tailwind — `className: docx`, fit-width, bảng/ảnh `max-width`, chế độ Từng trang/Cuộn liên tục + zoom Vừa khung/100%/75%; Excel bảng sticky/zebra + phân trang 100 dòng — `useDocumentPreview`) — Drive; đính kèm task hẹp |
 | Modals | `TaskFormModal`, `SprintFormModal`, `BlockerFormModal`, … |
 
 ### 6.4 Credential module — `modules/credential/`

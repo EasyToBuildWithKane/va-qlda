@@ -14,13 +14,13 @@ import TaskDetailPanel from '@/modules/project/components/Sprint/TaskDetailPanel
 import TaskFormModal from '@/modules/project/components/TaskFormModal.vue';
 import SprintFormModal from '@/modules/project/components/SprintFormModal.vue';
 import DeadlineBanner from '@/modules/project/components/Dashboard/DeadlineBanner.vue';
-import RiskIssuePanel from '@/modules/project/components/Dashboard/RiskIssuePanel.vue';
 import RiskIssueDataTable from '@/modules/project/components/Dashboard/RiskIssueDataTable.vue';
 import ProjectFeedbackPanel from '@/modules/project/components/Dashboard/ProjectFeedbackPanel.vue';
 import ActivityFeed from '@/modules/project/components/Dashboard/ActivityFeed.vue';
 import ProjectOverviewCard from '@/modules/project/components/Dashboard/ProjectOverviewCard.vue';
 import ProjectShowSummaryBar from '@/modules/project/components/Dashboard/ProjectShowSummaryBar.vue';
 import WorkloadTable from '@/modules/project/components/Dashboard/WorkloadTable.vue';
+import MemberFormModal from '@/modules/project/components/MemberFormModal.vue';
 import ProjectDocumentsPanel from '@/modules/project/components/Documents/ProjectDocumentsPanel.vue';
 import SprintWorkspace from '@/modules/project/components/Sprint/SprintWorkspace.vue';
 import WeeklyReportWorkspace from '@/modules/project/components/WeeklyReport/WeeklyReportWorkspace.vue';
@@ -188,15 +188,15 @@ const canFeedbackCreate = computed(() => props.can?.feedbackCreate ?? false);
 const canWeeklyGenerate = computed(() => props.can?.weeklyGenerate ?? false);
 
 // ---- Dashboard (overview tab) ----
-const riskPanelRef = ref(null);
+const memberModal = ref(false);
+const editingMember = ref(null);
+
 const {
     activityLog,
     pushActivity,
-    openIssueCount,
     daysLeft: dashboardDaysLeft,
     deadlineBanner,
     dismissBanner,
-    showRiskPanel,
     showActivity,
     showProjectDetail,
     memberWorkload,
@@ -208,6 +208,22 @@ const {
     members: projectMembers,
     activityFeed: toRef(() => props.activityFeed),
 });
+
+const openMemberModal = (member = null) => {
+    editingMember.value = member;
+    memberModal.value = true;
+};
+
+const closeMemberModal = () => {
+    memberModal.value = false;
+    editingMember.value = null;
+};
+
+const onMemberSaved = () => {
+    if (!editingMember.value) {
+        pushActivity('member_added', `${currentUserName.value} thêm thành viên vào dự án`);
+    }
+};
 
 onMounted(() => {
     const params = new URLSearchParams(window.location.search);
@@ -439,24 +455,13 @@ const onSprintSaved = () => {
               ref="workloadSectionRef"
               class="scroll-mt-4"
             >
-              <WorkloadTable :rows="memberWorkload" />
+              <WorkloadTable
+                :rows="memberWorkload"
+                :can-manage="canManage"
+                @add-member="openMemberModal()"
+                @edit-member="openMemberModal"
+              />
             </div>
-
-            <RiskIssuePanel
-              v-if="showRiskPanel"
-              ref="riskPanelRef"
-              :project-id="project.id"
-              :project-code="project.code"
-              :project-name="project.name"
-              :blockers="blockers"
-              :employees="options.employees"
-              :severity-options="enums.blockerSeverity || []"
-              :status-options="enums.blockerStatus || []"
-              :open-count="openIssueCount"
-              :can-manage="canManage"
-              :can-contribute="canContribute"
-              @saved="onRiskSaved"
-            />
           </div>
         </div>
 
@@ -606,6 +611,15 @@ const onSprintSaved = () => {
       :status-options="enums.sprintStatus || []"
       @close="sprintModal = false"
       @saved="onSprintSaved"
+    />
+    <MemberFormModal
+      :show="memberModal"
+      :project-id="project.id"
+      :member="editingMember"
+      :employees="options.employees"
+      :members="projectMembers"
+      @close="closeMemberModal"
+      @saved="onMemberSaved"
     />
     <TaskCompleteModal :project-id="project.id" />
   </AppLayout>

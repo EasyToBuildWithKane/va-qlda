@@ -7,7 +7,10 @@ import { displayOrEmpty, EMPTY_LABELS } from '@/shared/utils/emptyDisplay';
 
 const props = defineProps({
     rows: { type: Array, default: () => [] },
+    canManage: { type: Boolean, default: false },
 });
+
+const emit = defineEmits(['add-member', 'edit-member']);
 
 const CAPACITY_HOURS = 40;
 
@@ -124,15 +127,30 @@ function capacityPct(row) {
           Theo dõi tải việc, giờ ước lượng và tiến độ cá nhân trên dự án
         </p>
       </div>
-      <span
-        class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold tabular-nums text-slate-600 ring-1 ring-slate-200/80 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700"
-      >
-        <AppIcon
-          name="members"
-          :size="13"
-        />
-        {{ rows.length }} thành viên
-      </span>
+      <div class="flex shrink-0 flex-wrap items-center gap-2">
+        <span
+          class="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold tabular-nums text-slate-600 ring-1 ring-slate-200/80 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700"
+        >
+          <AppIcon
+            name="members"
+            :size="13"
+          />
+          {{ rows.length }} thành viên
+        </span>
+        <button
+          v-if="canManage"
+          type="button"
+          class="btn-primary inline-flex h-9 items-center gap-1.5 px-3 text-xs font-semibold"
+          aria-label="Thêm thành viên vào dự án"
+          @click="emit('add-member')"
+        >
+          <AppIcon
+            name="add"
+            :size="15"
+          />
+          Thêm thành viên
+        </button>
+      </div>
     </header>
 
     <!-- Summary -->
@@ -285,13 +303,27 @@ function capacityPct(row) {
               </div>
             </div>
           </div>
+
+          <button
+            v-if="canManage"
+            type="button"
+            class="btn-ghost inline-flex h-9 shrink-0 items-center gap-1.5 self-start px-2.5 text-xs lg:self-center"
+            :aria-label="`Cập nhật thành viên ${row.member.name}`"
+            @click="emit('edit-member', row.member)"
+          >
+            <AppIcon
+              name="edit"
+              :size="14"
+            />
+            <span class="hidden sm:inline">Sửa</span>
+          </button>
         </div>
       </li>
     </ul>
 
     <div
       v-else
-      class="flex flex-col items-center justify-center gap-2 px-4 py-12 text-center"
+      class="flex flex-col items-center justify-center gap-3 px-4 py-12 text-center"
     >
       <span class="grid h-12 w-12 place-items-center rounded-2xl bg-slate-100 text-slate-400 dark:bg-slate-800">
         <AppIcon
@@ -299,12 +331,27 @@ function capacityPct(row) {
           :size="22"
         />
       </span>
-      <p class="text-sm font-medium text-slate-600 dark:text-slate-300">
-        Chưa có thành viên
-      </p>
-      <p class="max-w-xs text-xs text-slate-400">
-        Thêm nhân sự vào dự án để theo dõi phân bổ công việc và dung lượng
-      </p>
+      <div class="space-y-1">
+        <p class="text-sm font-medium text-slate-600 dark:text-slate-300">
+          Chưa có thành viên
+        </p>
+        <p class="mx-auto max-w-xs text-xs text-slate-400">
+          Thêm nhân sự vào dự án để theo dõi phân bổ công việc và dung lượng
+        </p>
+      </div>
+      <button
+        v-if="canManage"
+        type="button"
+        class="btn-primary inline-flex h-9 items-center gap-1.5 px-3 text-xs font-semibold"
+        aria-label="Thêm thành viên vào dự án"
+        @click="emit('add-member')"
+      >
+        <AppIcon
+          name="add"
+          :size="15"
+        />
+        Thêm thành viên
+      </button>
     </div>
   </section>
 </template>
