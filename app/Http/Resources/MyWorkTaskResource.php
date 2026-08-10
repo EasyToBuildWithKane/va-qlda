@@ -10,7 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * Props gọn cho card màn hình "Việc của tôi" — đa dự án, một dòng/việc.
+ * Props gọn cho card màn hình "Việc của tôi" — đa dự án, card lưới meta 2×3.
  *
  * Khác TaskResource (vốn nặng, dùng cho panel chi tiết): thêm chip dự án + cờ
  * quyền thao tác (`can.contribute`, `can.act_team`) đã tính sẵn (batch) trong

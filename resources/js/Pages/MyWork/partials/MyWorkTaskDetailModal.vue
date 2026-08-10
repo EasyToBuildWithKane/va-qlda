@@ -141,6 +141,18 @@ const metaRows = computed(() => {
             value: t.phase?.label ?? null,
             empty: 'Chưa cập nhật',
         },
+        {
+            key: 'priority',
+            label: 'Ưu tiên',
+            value: t.priority?.label ?? null,
+            empty: 'Chưa cập nhật',
+            badge: t.priority,
+        },
+        {
+            key: 'milestone',
+            label: 'Mốc',
+            value: t.is_milestone ? 'Có' : 'Không',
+        },
     ];
 });
 
@@ -161,7 +173,7 @@ function onLog(payload) {
   <Modal
     :show="open && !!task"
     :title="task?.title || 'Chi tiết công việc'"
-    max-width="max-w-2xl"
+    max-width="max-w-5xl"
     @close="emit('close')"
   >
     <div
@@ -171,11 +183,11 @@ function onLog(payload) {
       <!-- Accent + header -->
       <div class="relative overflow-hidden rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50/90 to-white dark:border-slate-700 dark:from-slate-900 dark:to-slate-900">
         <div
-          class="absolute inset-y-0 left-0 w-1"
+          class="absolute inset-y-0 left-0 w-1.5"
           :style="{ backgroundColor: projectColor }"
         />
-        <div class="px-4 py-3.5 pl-5 sm:px-5">
-          <div class="flex flex-wrap items-start gap-3">
+        <div class="px-4 py-4 pl-5 sm:px-6">
+          <div class="flex flex-wrap items-start gap-4">
             <div class="min-w-0 flex-1">
               <p
                 v-if="projectLabel"
@@ -211,6 +223,16 @@ function onLog(payload) {
                   :color="task.priority.color"
                 />
                 <Badge
+                  v-if="task.phase"
+                  :label="task.phase.label"
+                  :color="task.phase.color"
+                />
+                <Badge
+                  v-if="task.sprint"
+                  :label="task.sprint.name"
+                  color="slate"
+                />
+                <Badge
                   v-if="task.is_milestone"
                   label="Mốc"
                   color="amber"
@@ -218,8 +240,8 @@ function onLog(payload) {
               </div>
             </div>
 
-            <div class="flex shrink-0 flex-col items-end gap-2">
-              <div class="relative">
+            <div class="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
+              <div class="relative self-start sm:self-end">
                 <button
                   ref="statusTriggerRef"
                   type="button"
@@ -281,7 +303,7 @@ function onLog(payload) {
                 </Teleport>
               </div>
 
-              <div class="flex items-center gap-1.5">
+              <div class="flex flex-wrap items-center gap-1.5">
                 <div
                   v-if="canLog"
                   class="relative"
@@ -289,7 +311,7 @@ function onLog(payload) {
                   <button
                     ref="worklogTriggerRef"
                     type="button"
-                    class="btn-ghost inline-flex h-8 items-center gap-1.5 px-2.5 text-xs"
+                    class="btn-ghost inline-flex h-9 items-center gap-1.5 px-3 text-xs"
                     title="Ghi giờ nhanh"
                     @click="worklogOpen = !worklogOpen"
                   >
@@ -309,7 +331,7 @@ function onLog(payload) {
                 </div>
                 <button
                   type="button"
-                  class="btn-primary inline-flex h-8 items-center gap-1.5 px-2.5 text-xs"
+                  class="btn-primary inline-flex h-9 items-center gap-1.5 px-3 text-xs"
                   @click="emit('open-project', task)"
                 >
                   Mở trong dự án
@@ -323,12 +345,12 @@ function onLog(payload) {
           </div>
 
           <!-- Progress -->
-          <div class="mt-3.5">
-            <div class="mb-1 flex items-center justify-between text-[11px]">
+          <div class="mt-4">
+            <div class="mb-1.5 flex items-center justify-between text-[11px]">
               <span class="font-medium uppercase tracking-wide text-slate-400">Tiến độ</span>
               <span class="font-semibold tabular-nums text-slate-600 dark:text-slate-300">{{ progress }}%</span>
             </div>
-            <div class="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+            <div class="h-2.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
               <div
                 class="h-full rounded-full bg-brand transition-all"
                 :style="{ width: progress + '%' }"
@@ -338,62 +360,71 @@ function onLog(payload) {
         </div>
       </div>
 
-      <!-- Meta grid -->
-      <dl class="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
-        <div
-          v-for="row in metaRows"
-          :key="row.key"
-          class="rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2.5 dark:border-slate-800 dark:bg-slate-800/40"
-        >
-          <dt class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-            {{ row.label }}
-          </dt>
-          <dd
-            class="mt-0.5 truncate text-sm font-medium"
-            :class="row.late ? 'text-rose-600' : 'text-slate-700 dark:text-slate-200'"
+      <!-- Body: meta + mô tả 2 cột trên màn rộng -->
+      <div class="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-12">
+        <div class="space-y-4 lg:col-span-5">
+          <dl class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
+            <div
+              v-for="row in metaRows"
+              :key="row.key"
+              class="rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2.5 dark:border-slate-800 dark:bg-slate-800/40"
+            >
+              <dt class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                {{ row.label }}
+              </dt>
+              <dd
+                class="mt-0.5 truncate text-sm font-medium"
+                :class="row.late ? 'text-rose-600' : 'text-slate-700 dark:text-slate-200'"
+              >
+                <Badge
+                  v-if="row.badge"
+                  :label="row.badge.label"
+                  :color="row.badge.color"
+                />
+                <template v-else>
+                  {{ displayOrEmpty(row.value, row.empty || EMPTY_LABELS.notUpdated) }}
+                </template>
+              </dd>
+            </div>
+          </dl>
+
+          <div
+            v-if="task.assignee"
+            class="flex items-center gap-3 rounded-xl border border-slate-100 px-3.5 py-3 dark:border-slate-800"
           >
-            {{ displayOrEmpty(row.value, row.empty || EMPTY_LABELS.notUpdated) }}
-          </dd>
+            <Avatar
+              :name="task.assignee.name"
+              :src="task.assignee.avatar_path"
+              :size="40"
+            />
+            <div class="min-w-0">
+              <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                Người phụ trách
+              </p>
+              <p class="truncate text-sm font-medium text-slate-700 dark:text-slate-200">
+                {{ task.assignee.name }}
+              </p>
+            </div>
+          </div>
         </div>
-      </dl>
 
-      <!-- Assignee -->
-      <div
-        v-if="task.assignee"
-        class="mt-4 flex items-center gap-2.5 rounded-xl border border-slate-100 px-3 py-2.5 dark:border-slate-800"
-      >
-        <Avatar
-          :name="task.assignee.name"
-          :src="task.assignee.avatar_path"
-          :size="32"
-        />
-        <div class="min-w-0">
-          <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-            Người phụ trách
+        <section class="lg:col-span-7">
+          <h3 class="mb-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+            Mô tả
+          </h3>
+          <div
+            v-if="descriptionHtml"
+            class="prose prose-sm max-w-none rounded-xl border border-slate-100 bg-white px-4 py-3.5 text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+            v-html="descriptionHtml"
+          />
+          <p
+            v-else
+            class="rounded-xl border border-dashed border-slate-200 bg-slate-50/60 px-4 py-10 text-center text-sm text-slate-400 dark:border-slate-700 dark:bg-slate-800/40"
+          >
+            Chưa cập nhật mô tả.
           </p>
-          <p class="truncate text-sm font-medium text-slate-700 dark:text-slate-200">
-            {{ task.assignee.name }}
-          </p>
-        </div>
+        </section>
       </div>
-
-      <!-- Description -->
-      <section class="mt-4">
-        <h3 class="mb-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-          Mô tả
-        </h3>
-        <div
-          v-if="descriptionHtml"
-          class="prose prose-sm max-w-none rounded-xl border border-slate-100 bg-white px-3.5 py-3 text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
-          v-html="descriptionHtml"
-        />
-        <p
-          v-else
-          class="rounded-xl border border-dashed border-slate-200 bg-slate-50/60 px-3.5 py-6 text-center text-sm text-slate-400 dark:border-slate-700 dark:bg-slate-800/40"
-        >
-          Chưa cập nhật mô tả.
-        </p>
-      </section>
     </div>
   </Modal>
 </template>

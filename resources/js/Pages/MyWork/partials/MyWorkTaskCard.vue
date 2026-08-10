@@ -86,8 +86,51 @@ const estimateLabel = computed(() => {
 const dueToneClass = computed(() => {
     if (props.task.is_late) return 'text-rose-600 font-semibold';
     if (isDueToday.value) return 'text-amber-700 font-semibold';
-    return 'text-slate-600 dark:text-slate-300';
+    return 'text-slate-700 dark:text-slate-200';
 });
+
+const metaCells = computed(() => [
+    {
+        key: 'due',
+        label: 'Hạn',
+        value: displayOrEmpty(dueLabel.value, 'Chưa hạn'),
+        valueClass: dueToneClass.value,
+    },
+    {
+        key: 'estimate',
+        label: 'Dự kiến',
+        value: displayOrEmpty(estimateLabel.value, 'Chưa cập nhật'),
+        valueClass: 'text-slate-700 dark:text-slate-200',
+    },
+    {
+        key: 'logged',
+        label: 'Hôm nay',
+        value: props.task.logged_today > 0 ? `${props.task.logged_today}h` : 'Chưa ghi giờ',
+        valueClass: props.task.logged_today > 0
+            ? 'font-medium text-emerald-600'
+            : 'text-slate-500',
+    },
+    {
+        key: 'priority',
+        label: 'Ưu tiên',
+        value: props.task.priority?.label ?? null,
+        empty: 'Chưa cập nhật',
+        badge: props.task.priority,
+    },
+    {
+        key: 'sprint',
+        label: 'Sprint',
+        value: props.task.sprint?.name ?? props.task.phase?.label ?? null,
+        empty: 'Chưa cập nhật',
+    },
+    {
+        key: 'progress',
+        label: 'Tiến độ',
+        value: `${progress.value}%`,
+        valueClass: 'tabular-nums text-slate-700 dark:text-slate-200',
+        progress: progress.value,
+    },
+]);
 
 function pickStatus(value) {
     statusOpen.value = false;
@@ -103,219 +146,170 @@ function onLog(payload) {
 </script>
 
 <template>
-  <div
-    class="group relative overflow-hidden rounded-xl border border-slate-200 bg-white transition hover:border-slate-300 hover:shadow-sm dark:border-slate-700 dark:bg-slate-900"
+  <article
+    class="group relative flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white transition hover:border-slate-300 hover:shadow-sm dark:border-slate-700 dark:bg-slate-900"
   >
     <div
       class="absolute inset-y-0 left-0 w-1"
       :style="{ backgroundColor: projectColor }"
     />
 
-    <!-- Hàng chính: tiêu đề | meta | tiến độ | trạng thái | thao tác -->
-    <div class="flex flex-col gap-2.5 py-2.5 pl-3.5 pr-2.5 sm:flex-row sm:items-center sm:gap-3">
-      <!-- Cột 1: dự án + tiêu đề -->
-      <button
-        type="button"
-        class="min-w-0 flex-1 text-left"
-        @click="emit('open', task)"
-      >
-        <p
-          v-if="projectLabel"
-          class="truncate text-[11px] font-semibold text-brand"
-          :title="projectLabel"
-        >
-          {{ projectLabel }}
-        </p>
-        <p
-          class="truncate text-sm font-semibold text-slate-800 group-hover:text-brand dark:text-slate-100"
-          :title="task.title"
-        >
-          {{ task.title }}
-        </p>
-        <div class="mt-1 flex flex-wrap items-center gap-1.5 sm:hidden">
-          <span
-            v-if="overdueDays > 0"
-            class="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-semibold text-rose-700"
-          >
-            Quá hạn {{ overdueDays }}d
-          </span>
-          <span
-            v-else-if="isDueToday"
-            class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-700"
-          >
-            Hôm nay
-          </span>
-          <Badge
-            v-if="task.priority"
-            :label="task.priority.label"
-            :color="task.priority.color"
-          />
-        </div>
-      </button>
-
-      <!-- Cột 2: nhãn (desktop) -->
-      <div class="hidden min-w-0 shrink-0 items-center gap-1.5 sm:flex lg:max-w-[14rem] xl:max-w-none">
+    <!-- Header -->
+    <button
+      type="button"
+      class="min-w-0 flex-1 px-3.5 pb-2 pt-3 pl-4 text-left"
+      @click="emit('open', task)"
+    >
+      <div class="mb-1.5 flex flex-wrap items-center gap-1.5">
         <span
           v-if="overdueDays > 0"
-          class="inline-flex shrink-0 items-center gap-1 rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-semibold text-rose-700 dark:bg-rose-950/50 dark:text-rose-300"
-          :title="`Quá hạn ${overdueDays} ngày`"
+          class="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold text-rose-700 dark:bg-rose-950/50 dark:text-rose-300"
         >
-          <AppIcon
-            name="alert"
-            :size="11"
-          />
-          QH {{ overdueDays }}d
+          Quá hạn {{ overdueDays }}d
         </span>
         <span
           v-else-if="isDueToday"
-          class="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-700 dark:bg-amber-950/50 dark:text-amber-300"
+          class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-950/50 dark:text-amber-300"
         >
-          <AppIcon
-            name="calendar-clock"
-            :size="11"
-          />
           Hôm nay
         </span>
-        <Badge
-          v-if="task.priority"
-          :label="task.priority.label"
-          :color="task.priority.color"
-        />
-        <Badge
-          v-if="task.phase"
-          :label="task.phase.label"
-          :color="task.phase.color"
-        />
-        <Badge
-          v-if="task.sprint"
-          :label="task.sprint.name"
-          color="slate"
-        />
         <Badge
           v-if="task.is_milestone"
           label="Mốc"
           color="amber"
         />
+        <Badge
+          v-if="task.phase && !task.sprint"
+          :label="task.phase.label"
+          :color="task.phase.color"
+        />
       </div>
-
-      <!-- Cột 3: hạn + giờ -->
-      <div class="flex shrink-0 items-center gap-3 text-[11px] sm:w-[7.5rem] sm:flex-col sm:items-start sm:gap-0.5 lg:w-auto lg:flex-row lg:items-center lg:gap-3">
-        <span
-          class="inline-flex items-center gap-1"
-          :class="dueToneClass"
-          :title="task.due_date ? 'Hạn hoàn thành' : 'Chưa chọn hạn'"
-        >
-          <AppIcon
-            name="clock"
-            :size="12"
-          />
-          {{ displayOrEmpty(dueLabel, 'Chưa hạn') }}
-        </span>
-        <span
-          v-if="estimateLabel"
-          class="inline-flex items-center gap-1 text-slate-500"
-          title="Giờ dự kiến"
-        >
-          <AppIcon
-            name="gauge"
-            :size="12"
-          />
-          {{ estimateLabel }}
-        </span>
-        <span
-          v-if="task.logged_today > 0"
-          class="inline-flex items-center gap-1 font-medium text-emerald-600"
-          title="Giờ đã ghi hôm nay"
-        >
-          <AppIcon
-            name="worklog"
-            :size="12"
-          />
-          {{ task.logged_today }}h
-        </span>
-      </div>
-
-      <!-- Cột 4: tiến độ -->
-      <div
-        class="flex shrink-0 items-center gap-2 sm:w-28"
-        title="Tiến độ"
+      <p
+        v-if="projectLabel"
+        class="truncate text-[11px] font-semibold text-brand"
+        :title="projectLabel"
       >
-        <div class="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-          <div
-            class="h-full rounded-full bg-brand/70 transition-all"
-            :style="{ width: progress + '%' }"
+        {{ projectLabel }}
+      </p>
+      <p
+        class="mt-0.5 line-clamp-2 text-sm font-semibold leading-snug text-slate-800 group-hover:text-brand dark:text-slate-100"
+        :title="task.title"
+      >
+        {{ task.title }}
+      </p>
+    </button>
+
+    <!-- Meta: 2 hàng × 3 cột -->
+    <div class="grid grid-cols-3 gap-1.5 px-3.5 pb-3 pl-4">
+      <div
+        v-for="cell in metaCells"
+        :key="cell.key"
+        class="min-w-0 rounded-lg border border-slate-100 bg-slate-50/80 px-2 py-1.5 dark:border-slate-800 dark:bg-slate-800/40"
+      >
+        <p class="truncate text-[9px] font-semibold uppercase tracking-wide text-slate-400">
+          {{ cell.label }}
+        </p>
+        <div
+          v-if="cell.badge"
+          class="mt-0.5"
+        >
+          <Badge
+            :label="cell.badge.label"
+            :color="cell.badge.color"
           />
         </div>
-        <span class="w-8 shrink-0 text-right text-[11px] font-semibold tabular-nums text-slate-500">
-          {{ progress }}%
-        </span>
+        <template v-else-if="cell.progress != null">
+          <p
+            class="mt-0.5 text-xs font-semibold"
+            :class="cell.valueClass"
+          >
+            {{ cell.value }}
+          </p>
+          <div class="mt-1 h-1 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+            <div
+              class="h-full rounded-full bg-brand/70 transition-all"
+              :style="{ width: cell.progress + '%' }"
+            />
+          </div>
+        </template>
+        <p
+          v-else
+          class="mt-0.5 truncate text-xs font-medium"
+          :class="cell.valueClass || 'text-slate-700 dark:text-slate-200'"
+          :title="cell.value || cell.empty"
+        >
+          {{ cell.value || cell.empty }}
+        </p>
+      </div>
+    </div>
+
+    <!-- Footer actions -->
+    <div class="mt-auto flex items-center justify-between gap-1 border-t border-slate-100 px-2.5 py-2 pl-3.5 dark:border-slate-800">
+      <div class="relative min-w-0">
+        <button
+          ref="statusTriggerRef"
+          type="button"
+          :disabled="!canChange"
+          class="inline-flex max-w-full items-center gap-1 rounded-lg border border-transparent px-1.5 py-1 transition disabled:cursor-not-allowed disabled:opacity-60"
+          :class="canChange ? 'hover:border-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800' : ''"
+          :title="canChange ? 'Đổi trạng thái' : 'Bạn không có quyền đổi trạng thái việc này'"
+          aria-haspopup="listbox"
+          :aria-expanded="statusOpen"
+          @click="statusOpen = !statusOpen"
+        >
+          <Badge
+            v-if="task.status"
+            :label="task.status.label"
+            :color="task.status.color"
+          />
+          <AppIcon
+            v-if="canChange"
+            name="chevron-down"
+            :size="13"
+            class="shrink-0"
+          />
+        </button>
+
+        <Teleport to="body">
+          <button
+            v-if="statusOpen"
+            type="button"
+            class="fixed inset-0 z-[110] cursor-default bg-transparent"
+            aria-label="Đóng"
+            @click="statusOpen = false"
+          />
+          <div
+            v-if="statusOpen"
+            :style="statusPanelStyle"
+            class="rounded-xl border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-900"
+            role="listbox"
+          >
+            <ul class="max-h-[inherit] overflow-y-auto">
+              <li
+                v-for="opt in statusOptions"
+                :key="opt.value"
+              >
+                <button
+                  type="button"
+                  class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-slate-50 dark:hover:bg-slate-800"
+                  :class="opt.value === task.status?.value ? 'font-semibold' : ''"
+                  role="option"
+                  :aria-selected="opt.value === task.status?.value"
+                  @click="pickStatus(opt.value)"
+                >
+                  <span
+                    class="h-2 w-2 shrink-0 rounded-full"
+                    :class="dotClass[opt.color] || dotClass.slate"
+                  />
+                  {{ opt.label }}
+                </button>
+              </li>
+            </ul>
+          </div>
+        </Teleport>
       </div>
 
-      <!-- Cột 5: trạng thái + thao tác -->
-      <div class="flex shrink-0 items-center justify-end gap-0.5 border-t border-slate-100 pt-2 sm:border-0 sm:pt-0 dark:border-slate-800">
-        <div class="relative">
-          <button
-            ref="statusTriggerRef"
-            type="button"
-            :disabled="!canChange"
-            class="inline-flex items-center gap-1 rounded-lg border border-transparent px-1.5 py-1 transition disabled:cursor-not-allowed disabled:opacity-60"
-            :class="canChange ? 'hover:border-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800' : ''"
-            :title="canChange ? 'Đổi trạng thái' : 'Bạn không có quyền đổi trạng thái việc này'"
-            aria-haspopup="listbox"
-            :aria-expanded="statusOpen"
-            @click="statusOpen = !statusOpen"
-          >
-            <Badge
-              v-if="task.status"
-              :label="task.status.label"
-              :color="task.status.color"
-            />
-            <AppIcon
-              v-if="canChange"
-              name="chevron-down"
-              :size="13"
-            />
-          </button>
-
-          <Teleport to="body">
-            <button
-              v-if="statusOpen"
-              type="button"
-              class="fixed inset-0 z-[110] cursor-default bg-transparent"
-              aria-label="Đóng"
-              @click="statusOpen = false"
-            />
-            <div
-              v-if="statusOpen"
-              :style="statusPanelStyle"
-              class="rounded-xl border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-900"
-              role="listbox"
-            >
-              <ul class="max-h-[inherit] overflow-y-auto">
-                <li
-                  v-for="opt in statusOptions"
-                  :key="opt.value"
-                >
-                  <button
-                    type="button"
-                    class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs hover:bg-slate-50 dark:hover:bg-slate-800"
-                    :class="opt.value === task.status?.value ? 'font-semibold' : ''"
-                    role="option"
-                    :aria-selected="opt.value === task.status?.value"
-                    @click="pickStatus(opt.value)"
-                  >
-                    <span
-                      class="h-2 w-2 shrink-0 rounded-full"
-                      :class="dotClass[opt.color] || dotClass.slate"
-                    />
-                    {{ opt.label }}
-                  </button>
-                </li>
-              </ul>
-            </div>
-          </Teleport>
-        </div>
-
+      <div class="flex shrink-0 items-center gap-0.5">
         <button
           v-if="canLog"
           ref="worklogTriggerRef"
@@ -348,9 +342,9 @@ function onLog(payload) {
             name="eye"
             :size="15"
           />
-          <span class="hidden xl:inline">Chi tiết</span>
+          <span class="hidden sm:inline">Chi tiết</span>
         </button>
       </div>
     </div>
-  </div>
+  </article>
 </template>

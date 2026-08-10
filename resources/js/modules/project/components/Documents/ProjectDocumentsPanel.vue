@@ -30,7 +30,8 @@ const emit = defineEmits(['open-task']);
 
 const toast = useToast();
 const confirmDelete = useConfirmDelete();
-const activeCategory = ref(props.categories[0]?.value ?? 'customer');
+/** null = gốc kiểu Drive (danh mục là thư mục cấp 1) */
+const activeCategory = ref(null);
 const selectedId = ref(null);
 const uploadingCategory = ref(null);
 const dragging = ref(false);
@@ -149,14 +150,6 @@ const saveLinkDraftOnClose = () => {
     }, buildDraftSaveMeta(null));
 };
 
-const colorBadge = {
-    sky: 'bg-sky-100 text-sky-700',
-    violet: 'bg-violet-100 text-violet-700',
-    amber: 'bg-amber-100 text-amber-700',
-    emerald: 'bg-emerald-100 text-emerald-700',
-    rose: 'bg-rose-100 text-rose-700',
-};
-
 const byCategory = computed(() => {
     const map = {};
     props.categories.forEach((c) => { map[c.value] = []; });
@@ -166,8 +159,35 @@ const byCategory = computed(() => {
     return map;
 });
 
-const activeCat = computed(() => props.categories.find((c) => c.value === activeCategory.value));
-const categoryFiles = computed(() => byCategory.value[activeCategory.value] || []);
+const isDriveRoot = computed(() => activeCategory.value == null);
+const activeCat = computed(() => props.categories.find((c) => c.value === activeCategory.value) ?? null);
+const categoryFiles = computed(() => {
+    if (!activeCategory.value) return [];
+    return byCategory.value[activeCategory.value] || [];
+});
+
+const driveRootFolders = computed(() => props.categories.map((cat) => {
+    const items = byCategory.value[cat.value] || [];
+    const files = items.filter((f) => !f.is_folder);
+    const rootFolders = items.filter((f) => f.is_folder && (f.parent_id ?? null) === null);
+    const size = files.reduce((sum, f) => sum + (Number(f.size) || 0), 0);
+    return {
+        id: `cat:${cat.value}`,
+        original_name: cat.label,
+        is_folder: true,
+        is_category: true,
+        category: cat.value,
+        icon: cat.icon,
+        color: cat.color,
+        description: cat.description || '',
+        _size: size,
+        _fileCount: files.length,
+        _subfolderCount: rootFolders.length,
+        created_at: null,
+        updated_at: null,
+        uploaded_by: null,
+    };
+}));
 
 const countFolderContents = (folderId, items) => {
     const childrenByParent = new Map();
@@ -203,11 +223,10 @@ const activeFolderIsEmpty = computed(() => {
     return stats.files === 0 && stats.subfolders === 0;
 });
 
-const categoryItemCount = (value) => (byCategory.value[value] || []).filter((f) => !f.is_folder).length;
-
 const sortByName = (a, b) => (a.original_name || '').localeCompare(b.original_name || '', 'vi');
 
 const currentLevelFolders = computed(() => {
+    if (isDriveRoot.value) return [];
     const pid = activeFolderId.value ?? null;
     return categoryFiles.value
         .filter((f) => f.is_folder && (f.parent_id ?? null) === pid)
@@ -226,8 +245,11 @@ const activeFolderNode = computed(() => {
 
 const projectPanelTitle = computed(() => {
     if (activeFolderNode.value?.original_name) return activeFolderNode.value.original_name;
+    if (activeCat.value?.label) return activeCat.value.label;
     return 'Tài liệu dự án';
 });
+
+const canMutateDocs = computed(() => props.canUpload && !isDriveRoot.value);
 
 const folderDescendantSize = (folderId, items) => {
     const childrenByParent = new Map();
@@ -301,14 +323,22 @@ watch(selected, (file) => {
     linkForm.clearErrors();
 }, { immediate: true });
 
-watch(activeCategory, () => {
+watch(activeCategory, (cat) => {
     activeFolderId.value = null;
-    const files = byCategory.value[activeCategory.value] || [];
+    if (!cat) {
+        selectedId.value = null;
+        return;
+    }
+    const files = byCategory.value[cat] || [];
     const docs = files.filter((f) => !f.is_folder && (f.parent_id ?? null) === null);
     selectedId.value = firstAvailableFile(docs)?.id ?? null;
 });
 
 watch(activeFolderId, (pid) => {
+    if (isDriveRoot.value) {
+        selectedId.value = null;
+        return;
+    }
     const folderPid = pid ?? null;
     const docs = categoryFiles.value.filter((f) => !f.is_folder && (f.parent_id ?? null) === folderPid);
     if (!docs.length) {
@@ -324,6 +354,7 @@ watch(activeFolderId, (pid) => {
 const totalCount = computed(() => props.attachments.filter((a) => !a.is_folder).length);
 
 const visibleFiles = computed(() => {
+    if (isDriveRoot.value) return [];
     const pid = activeFolderId.value ?? null;
     return categoryFiles.value
         .filter((f) => !f.is_folder && (f.parent_id ?? null) === pid)
@@ -331,6 +362,7 @@ const visibleFiles = computed(() => {
 });
 
 const activeFolderDisplayLabel = computed(() => {
+    if (isDriveRoot.value) return 'Tài liệu dự án';
     const catLabel = activeCat.value?.label || 'Danh mục';
     if (!activeFolderId.value) return catLabel;
 
@@ -346,8 +378,23 @@ const activeFolderDisplayLabel = computed(() => {
 });
 
 const goBackFolder = () => {
-    const parentId = activeFolderNode.value?.parent_id ?? null;
-    activeFolderId.value = parentId;
+    if (activeFolderId.value) {
+        activeFolderId.value = activeFolderNode.value?.parent_id ?? null;
+        return;
+    }
+    if (activeCategory.value) {
+        activeCategory.value = null;
+    }
+};
+
+const goToDriveRoot = () => {
+    activeFolderId.value = null;
+    activeCategory.value = null;
+};
+
+const openCategoryFolder = (catValue) => {
+    activeCategory.value = catValue;
+    activeFolderId.value = null;
 };
 
 const openTaskAttachment = (file) => {
@@ -430,11 +477,24 @@ watch([activeCategory, activeFolderId], () => {
 });
 
 const folderCardMeta = (folder) => {
+    if (folder.is_category) {
+        return formatCardMeta(null, formatSize(folder._size || 0));
+    }
     const size = folderDescendantSize(folder.id, categoryFiles.value);
     return formatCardMeta(folder.updated_at || folder.created_at, formatSize(size));
 };
 
-const folderCardStats = (folder) => countFolderContents(folder.id, categoryFiles.value);
+const folderCardStats = (folder) => {
+    if (folder.is_category) {
+        return { files: folder._fileCount || 0, subfolders: folder._subfolderCount || 0 };
+    }
+    return countFolderContents(folder.id, categoryFiles.value);
+};
+
+const hasBrowsableContent = computed(() => {
+    if (isDriveRoot.value) return driveRootFolders.value.length > 0;
+    return currentLevelFolders.value.length > 0 || visibleFiles.value.length > 0;
+});
 
 const fileCardMeta = (file) => formatCardMeta(
     file.updated_at || file.created_at,
@@ -442,17 +502,29 @@ const fileCardMeta = (file) => formatCardMeta(
 );
 
 const folderBreadcrumb = computed(() => {
-    if (!activeFolderId.value) return [];
+    if (isDriveRoot.value) return [];
     const parts = [];
+    if (activeCat.value) {
+        parts.push({ id: `cat:${activeCat.value.value}`, name: activeCat.value.label, kind: 'category' });
+    }
     let pid = activeFolderId.value;
+    const folderParts = [];
     while (pid) {
         const node = props.attachments.find((a) => a.id === pid);
         if (!node) break;
-        parts.unshift({ id: node.id, name: node.original_name });
+        folderParts.unshift({ id: node.id, name: node.original_name, kind: 'folder' });
         pid = node.parent_id ?? null;
     }
-    return parts;
+    return [...parts, ...folderParts];
 });
+
+const onBreadcrumbClick = (crumb) => {
+    if (crumb.kind === 'category') {
+        activeFolderId.value = null;
+        return;
+    }
+    activeFolderId.value = crumb.id;
+};
 
 const openFileDetails = (file) => {
     if (!file || file.is_folder) return;
@@ -483,7 +555,7 @@ const uploadPayloadExtra = (category) => {
 
 const uploadFiles = (category, fileList, inputEl = null) => {
     const files = [...(fileList || [])];
-    if (!files.length || !props.canUpload) return;
+    if (!files.length || !props.canUpload || !category) return;
     uploadingCategory.value = category;
     router.post(`/projects/${props.projectId}/attachments`, { category, ...uploadPayloadExtra(category), files }, {
         forceFormData: true,
@@ -501,7 +573,7 @@ const onFilesSelected = (category, event) => {
 };
 
 const onDragOver = () => {
-    if (!props.canUpload) return;
+    if (!props.canUpload || isDriveRoot.value) return;
     dragging.value = true;
 };
 
@@ -513,11 +585,28 @@ const onDragLeave = (event) => {
 
 const onDrop = (category, event) => {
     dragging.value = false;
+    if (!category) {
+        toast.error('Hãy mở một thư mục danh mục trước khi tải lên.');
+        return;
+    }
     uploadFiles(category, event.dataTransfer?.files);
 };
 
+const onDriveDrop = (event) => {
+    if (isDriveRoot.value) {
+        dragging.value = false;
+        toast.error('Hãy mở một thư mục danh mục trước khi tải lên.');
+        return;
+    }
+    onDrop(activeCategory.value, event);
+};
+
 const folderPathLabel = computed(() => {
-    const parts = [activeCat.value?.label || 'Danh mục'];
+    const parts = ['Tài liệu dự án'];
+    if (folderForm.category) {
+        const cat = props.categories.find((c) => c.value === folderForm.category);
+        parts.push(cat?.label || folderForm.category);
+    }
     let pid = folderForm.parent_id;
     const chain = [];
     while (pid) {
@@ -530,7 +619,11 @@ const folderPathLabel = computed(() => {
 });
 
 const filePathLabel = computed(() => {
-    const parts = [activeCat.value?.label || 'Danh mục'];
+    const parts = ['Tài liệu dự án'];
+    if (newFileForm.category) {
+        const cat = props.categories.find((c) => c.value === newFileForm.category);
+        parts.push(cat?.label || newFileForm.category);
+    }
     let pid = newFileForm.parent_id;
     const chain = [];
     while (pid) {
@@ -547,6 +640,10 @@ const selectedNewFileType = computed(() => (
 ));
 
 const openAddLinkModal = async () => {
+    if (!activeCategory.value) {
+        toast.error('Hãy mở một thư mục danh mục trước khi thêm link.');
+        return;
+    }
     linkForm.reset();
     linkForm.category = activeCategory.value;
     if (activeFolderId.value) {
@@ -629,6 +726,10 @@ const deleteFromPreview = () => {
 };
 
 const onSelectFolder = (folder) => {
+    if (folder?.is_category && folder.category) {
+        openCategoryFolder(folder.category);
+        return;
+    }
     activeFolderId.value = folder.id;
 };
 
@@ -645,6 +746,10 @@ const focusFileInput = async () => {
 };
 
 const openFolderModal = (parentId = undefined) => {
+    if (!activeCategory.value) {
+        toast.error('Hãy mở một thư mục danh mục trước khi tạo thư mục.');
+        return;
+    }
     folderForm.reset();
     folderForm.category = activeCategory.value;
     folderForm.parent_id = parentId !== undefined ? parentId : activeFolderId.value;
@@ -661,6 +766,10 @@ const closeFolderModal = () => {
 };
 
 const openFileModal = (parentId = undefined) => {
+    if (!activeCategory.value) {
+        toast.error('Hãy mở một thư mục danh mục trước khi tạo file.');
+        return;
+    }
     newFileForm.reset();
     newFileForm.category = activeCategory.value;
     newFileForm.parent_id = parentId !== undefined ? parentId : activeFolderId.value;
@@ -855,167 +964,24 @@ const activityTone = (event) => ({
 
 <template>
   <div class="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-slate-100/80 dark:bg-slate-950">
-    <!-- Danh mục + hành động -->
-    <div class="shrink-0 border-b border-slate-200/80 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-900">
-      <div class="flex min-w-0 flex-wrap items-center gap-1.5 lg:flex-nowrap">
-        <nav
-          class="min-w-0 flex-1 overflow-x-auto overscroll-x-contain"
-          aria-label="Danh mục tài liệu"
-        >
-          <div
-            class="inline-flex min-w-0 items-stretch gap-0.5 rounded-md border border-slate-200/90 bg-slate-50/80 p-0.5 dark:border-slate-700 dark:bg-slate-900"
-            role="group"
-          >
-            <button
-              v-for="cat in categories"
-              :key="cat.value"
-              type="button"
-              class="inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-1 text-[11px] font-medium transition sm:gap-1.5 sm:px-2 sm:text-xs"
-              :class="activeCategory === cat.value
-                ? 'bg-white text-brand shadow-sm ring-1 ring-brand/15 dark:bg-brand/20 dark:text-brand-100'
-                : 'text-slate-600 hover:bg-white/80 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200'"
-              @click="activeCategory = cat.value"
-            >
-              <AppIcon
-                :name="cat.icon"
-                :size="12"
-              />
-              <span class="whitespace-nowrap">{{ cat.label }}</span>
-              <span
-                class="inline-flex h-3.5 min-w-3.5 items-center justify-center rounded-full px-1 text-[9px] font-semibold tabular-nums"
-                :class="categoryItemCount(cat.value)
-                  ? (colorBadge[cat.color] || 'bg-brand/10 text-brand')
-                  : 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500'"
-              >{{ categoryItemCount(cat.value) }}</span>
-            </button>
-          </div>
-        </nav>
-
-        <div class="ml-auto flex shrink-0 items-center gap-1.5">
-          <span
-            class="hidden tabular-nums text-[11px] text-slate-500 sm:inline"
-            :title="`${totalCount} file dự án`"
-          >
-            <span class="font-semibold text-brand">{{ totalCount }}</span>
-          </span>
-          <template v-if="canUpload">
-            <div
-              ref="addMenuRef"
-              class="relative"
-            >
-              <button
-                type="button"
-                class="btn-ghost inline-flex h-8 items-center gap-1 border border-slate-200 px-2 text-xs font-medium dark:border-slate-600"
-                :aria-expanded="addMenuOpen"
-                aria-haspopup="menu"
-                aria-controls="project-docs-add-menu"
-                @click="addMenuOpen = !addMenuOpen"
-              >
-                <AppIcon
-                  name="plus"
-                  :size="13"
-                />
-                Thêm
-                <AppIcon
-                  name="chevron-down"
-                  :size="11"
-                  class="opacity-60"
-                />
-              </button>
-            </div>
-            <Teleport to="body">
-              <div
-                v-if="addMenuOpen"
-                id="project-docs-add-menu"
-                role="menu"
-                class="overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-900"
-                :style="addMenuStyle"
-              >
-                <button
-                  type="button"
-                  role="menuitem"
-                  class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
-                  @click="runAddAction(() => openFolderModal())"
-                >
-                  <AppIcon
-                    name="folder"
-                    :size="14"
-                    class="text-amber-600"
-                  />
-                  Thư mục
-                </button>
-                <button
-                  type="button"
-                  role="menuitem"
-                  class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
-                  @click="runAddAction(() => openFileModal())"
-                >
-                  <AppIcon
-                    name="documents"
-                    :size="14"
-                    class="text-sky-600"
-                  />
-                  File trống
-                </button>
-                <button
-                  type="button"
-                  role="menuitem"
-                  class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
-                  @click="runAddAction(openAddLinkModal)"
-                >
-                  <AppIcon
-                    name="link"
-                    :size="14"
-                    class="text-emerald-600"
-                  />
-                  Link ngoài
-                </button>
-              </div>
-            </Teleport>
-            <button
-              type="button"
-              class="btn-primary inline-flex h-8 items-center gap-1 px-2.5 text-xs font-medium"
-              :disabled="uploadingCategory === activeCategory"
-              @click="pickFiles(activeCategory)"
-            >
-              <AppIcon
-                :name="uploadingCategory === activeCategory ? 'refresh' : 'upload'"
-                :size="13"
-                :class="uploadingCategory === activeCategory ? 'animate-spin' : ''"
-              />
-              {{ uploadingCategory === activeCategory ? 'Đang tải…' : 'Tải lên' }}
-            </button>
-            <input
-              :ref="(el) => setFileInput(activeCategory, el)"
-              type="file"
-              class="hidden"
-              multiple
-              :accept="acceptFor(activeCategory)"
-              @change="onFilesSelected(activeCategory, $event)"
-            >
-          </template>
-        </div>
-      </div>
-    </div>
-
     <!-- Hai panel: Tài liệu dự án | Đính kèm công việc -->
     <div
       class="grid min-h-0 flex-1 gap-3 overflow-hidden p-3 max-lg:auto-rows-fr max-lg:grid-rows-[minmax(0,1.15fr)_minmax(240px,0.85fr)] lg:grid-cols-[minmax(0,1.7fr)_minmax(300px,1fr)] lg:grid-rows-1"
     >
-      <!-- Trái: Tài liệu dự án -->
+      <!-- Trái: Tài liệu dự án (Drive: danh mục → thư mục → file) -->
       <section
         class="relative flex min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900"
         aria-label="Tài liệu dự án"
         @dragover.prevent="onDragOver"
         @dragleave="onDragLeave"
-        @drop.prevent="onDrop(activeCategory, $event)"
+        @drop.prevent="onDriveDrop($event)"
       >
         <div
           class="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-sky-50/80 to-transparent dark:from-sky-950/30"
           aria-hidden="true"
         />
         <div
-          v-if="canUpload && dragging"
+          v-if="canMutateDocs && dragging"
           class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-brand/10 backdrop-blur-[1px]"
         >
           <div class="flex flex-col items-center gap-1.5 rounded-xl border-2 border-dashed border-brand bg-white/95 px-6 py-5 shadow-sm dark:bg-slate-900/95">
@@ -1036,7 +1002,7 @@ const activityTone = (event) => ({
         <header class="relative flex shrink-0 flex-col gap-1.5 border-b border-slate-100/90 px-4 py-3 dark:border-slate-800">
           <div class="flex min-w-0 flex-wrap items-center gap-2">
             <button
-              v-if="activeFolderId"
+              v-if="!isDriveRoot"
               type="button"
               class="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800"
               aria-label="Quay lại"
@@ -1051,32 +1017,110 @@ const activityTone = (event) => ({
               <h2 class="truncate text-[15px] font-bold tracking-tight text-slate-800 dark:text-slate-100 sm:text-base">
                 {{ projectPanelTitle }}
               </h2>
+              <p
+                v-if="isDriveRoot"
+                class="mt-0.5 truncate text-[11px] text-slate-500"
+              >
+                {{ totalCount }} tệp · mở thư mục danh mục để xem và tải lên
+              </p>
             </div>
 
             <div class="ml-auto flex shrink-0 items-center gap-1.5">
-              <template v-if="canUpload">
+              <template v-if="canMutateDocs">
+                <div
+                  ref="addMenuRef"
+                  class="relative"
+                >
+                  <button
+                    type="button"
+                    class="btn-ghost inline-flex h-8 items-center gap-1 border border-slate-200 px-2 text-xs font-medium dark:border-slate-600"
+                    :aria-expanded="addMenuOpen"
+                    aria-haspopup="menu"
+                    aria-controls="project-docs-add-menu"
+                    @click="addMenuOpen = !addMenuOpen"
+                  >
+                    <AppIcon
+                      name="plus"
+                      :size="13"
+                    />
+                    Thêm
+                    <AppIcon
+                      name="chevron-down"
+                      :size="11"
+                      class="opacity-60"
+                    />
+                  </button>
+                </div>
+                <Teleport to="body">
+                  <div
+                    v-if="addMenuOpen"
+                    id="project-docs-add-menu"
+                    role="menu"
+                    class="overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-900"
+                    :style="addMenuStyle"
+                  >
+                    <button
+                      type="button"
+                      role="menuitem"
+                      class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                      @click="runAddAction(() => openFolderModal())"
+                    >
+                      <AppIcon
+                        name="folder"
+                        :size="14"
+                        class="text-amber-600"
+                      />
+                      Thư mục
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                      @click="runAddAction(() => openFileModal())"
+                    >
+                      <AppIcon
+                        name="documents"
+                        :size="14"
+                        class="text-sky-600"
+                      />
+                      File trống
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800"
+                      @click="runAddAction(openAddLinkModal)"
+                    >
+                      <AppIcon
+                        name="link"
+                        :size="14"
+                        class="text-emerald-600"
+                      />
+                      Link ngoài
+                    </button>
+                  </div>
+                </Teleport>
                 <button
                   type="button"
-                  class="inline-flex h-8 items-center gap-1.5 rounded-lg bg-slate-800 px-2.5 text-xs font-medium text-white transition hover:bg-slate-700 dark:bg-slate-200 dark:text-slate-900 dark:hover:bg-white"
-                  @click="openFolderModal(activeFolderId || undefined)"
+                  class="btn-primary inline-flex h-8 items-center gap-1 px-2.5 text-xs font-medium"
+                  :disabled="uploadingCategory === activeCategory"
+                  @click="pickFiles(activeCategory)"
                 >
                   <AppIcon
-                    name="folder"
+                    :name="uploadingCategory === activeCategory ? 'refresh' : 'upload'"
                     :size="13"
+                    :class="uploadingCategory === activeCategory ? 'animate-spin' : ''"
                   />
-                  Tạo thư mục
+                  {{ uploadingCategory === activeCategory ? 'Đang tải…' : 'Tải lên' }}
                 </button>
-                <button
-                  type="button"
-                  class="grid h-8 w-8 place-items-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-sky-600 dark:border-slate-600 dark:hover:bg-slate-800"
-                  title="Tạo file trống"
-                  @click="openFileModal()"
+                <input
+                  :ref="(el) => setFileInput(activeCategory, el)"
+                  type="file"
+                  class="hidden"
+                  multiple
+                  :accept="acceptFor(activeCategory)"
+                  @change="onFilesSelected(activeCategory, $event)"
                 >
-                  <AppIcon
-                    name="documents"
-                    :size="15"
-                  />
-                </button>
               </template>
               <div
                 class="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50/80 p-0.5 dark:border-slate-600 dark:bg-slate-900"
@@ -1129,19 +1173,19 @@ const activityTone = (event) => ({
             </div>
           </div>
           <nav
-            v-if="folderBreadcrumb.length"
-            class="flex min-w-0 items-center gap-1 overflow-x-auto pl-1 text-[11px] text-slate-500"
+            class="flex min-w-0 items-center gap-1 overflow-x-auto text-[11px] text-slate-500"
             aria-label="Đường dẫn thư mục"
           >
             <button
               type="button"
-              class="shrink-0 rounded px-1 py-0.5 font-medium text-slate-500 hover:bg-slate-100 hover:text-brand dark:hover:bg-slate-800"
-              @click="activeFolderId = null"
+              class="shrink-0 rounded px-1 py-0.5 font-medium transition hover:bg-slate-100 hover:text-brand dark:hover:bg-slate-800"
+              :class="isDriveRoot ? 'text-slate-800 dark:text-slate-100' : 'text-slate-500'"
+              @click="goToDriveRoot"
             >
               Tài liệu dự án
             </button>
             <template
-              v-for="crumb in folderBreadcrumb"
+              v-for="(crumb, index) in folderBreadcrumb"
               :key="crumb.id"
             >
               <AppIcon
@@ -1151,9 +1195,11 @@ const activityTone = (event) => ({
               />
               <button
                 type="button"
-                class="max-w-[10rem] truncate rounded px-1 py-0.5 font-medium hover:bg-slate-100 hover:text-brand dark:hover:bg-slate-800"
-                :class="crumb.id === activeFolderId ? 'text-slate-800 dark:text-slate-100' : 'text-slate-500'"
-                @click="activeFolderId = crumb.id"
+                class="max-w-[12rem] truncate rounded px-1 py-0.5 font-medium hover:bg-slate-100 hover:text-brand dark:hover:bg-slate-800"
+                :class="index === folderBreadcrumb.length - 1
+                  ? 'text-slate-800 dark:text-slate-100'
+                  : 'text-slate-500'"
+                @click="onBreadcrumbClick(crumb)"
               >
                 {{ crumb.name }}
               </button>
@@ -1165,26 +1211,30 @@ const activityTone = (event) => ({
           v-show="!leftPanelCollapsed"
           class="relative min-h-0 flex-1 overflow-y-auto px-4 py-4"
         >
-          <template v-if="currentLevelFolders.length || visibleFiles.length">
-            <!-- List view (bảng như 1Office) -->
+          <template v-if="hasBrowsableContent">
+            <!-- List view -->
             <div v-if="docsViewMode === 'list'">
               <div class="mb-2.5 flex items-center justify-between gap-2">
                 <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                  {{ currentLevelFolders.length ? 'Folder & tệp' : 'Tệp' }}
+                  {{ isDriveRoot
+                    ? 'Thư mục danh mục'
+                    : (currentLevelFolders.length ? 'Folder & tệp' : 'Tệp') }}
                 </p>
                 <span class="text-[11px] tabular-nums text-slate-400">
-                  {{ currentLevelFolders.length + visibleFiles.length }}
+                  {{ isDriveRoot
+                    ? driveRootFolders.length
+                    : currentLevelFolders.length + visibleFiles.length }}
                 </span>
               </div>
               <DocumentFilesTable
-                :folders="currentLevelFolders"
-                :files="visibleFiles"
+                :folders="isDriveRoot ? driveRootFolders : currentLevelFolders"
+                :files="isDriveRoot ? [] : visibleFiles"
                 :selected-id="selectedId"
                 :selected-ids="selectedRowIds"
                 :format-size="formatSize"
                 :format-date="formatCardDate"
                 :file-ext="fileExt"
-                :can-delete="canDelete"
+                :can-delete="canDelete && !isDriveRoot"
                 @select-folder="onSelectFolder"
                 @select-file="openPreviewModal"
                 @toggle-row="toggleRowSelection"
@@ -1195,18 +1245,18 @@ const activityTone = (event) => ({
 
             <!-- Grid view -->
             <template v-else>
-              <div v-if="currentLevelFolders.length">
+              <div v-if="isDriveRoot">
                 <div class="mb-2.5 flex items-center justify-between gap-2">
                   <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                    Folder
+                    Thư mục
                   </p>
                   <span class="text-[11px] tabular-nums text-slate-400">
-                    {{ currentLevelFolders.length }}
+                    {{ driveRootFolders.length }}
                   </span>
                 </div>
                 <div class="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
                   <DocumentFolderCard
-                    v-for="folder in currentLevelFolders"
+                    v-for="folder in driveRootFolders"
                     :key="folder.id"
                     :name="folder.original_name"
                     :meta="folderCardMeta(folder)"
@@ -1217,38 +1267,62 @@ const activityTone = (event) => ({
                 </div>
               </div>
 
-              <div
-                v-if="visibleFiles.length"
-                :class="currentLevelFolders.length ? 'mt-6' : ''"
-              >
-                <div class="mb-2.5 flex items-center justify-between gap-2">
-                  <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                    Tệp
-                  </p>
-                  <span class="text-[11px] tabular-nums text-slate-400">
-                    {{ visibleFiles.length }}
-                  </span>
+              <template v-else>
+                <div v-if="currentLevelFolders.length">
+                  <div class="mb-2.5 flex items-center justify-between gap-2">
+                    <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                      Folder
+                    </p>
+                    <span class="text-[11px] tabular-nums text-slate-400">
+                      {{ currentLevelFolders.length }}
+                    </span>
+                  </div>
+                  <div class="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
+                    <DocumentFolderCard
+                      v-for="folder in currentLevelFolders"
+                      :key="folder.id"
+                      :name="folder.original_name"
+                      :meta="folderCardMeta(folder)"
+                      :file-count="folderCardStats(folder).files"
+                      :subfolder-count="folderCardStats(folder).subfolders"
+                      @click="onSelectFolder(folder)"
+                    />
+                  </div>
                 </div>
-                <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
-                  <DocumentFileCard
-                    v-for="file in visibleFiles"
-                    :key="file.id"
-                    :name="file.original_name"
-                    :meta="fileCardMeta(file)"
-                    :url="file.url"
-                    :is-image="Boolean(file.is_image)"
-                    :is-pdf="Boolean(file.is_pdf)"
-                    :is-link="Boolean(file.is_external_link)"
-                    :badge="listBadge(file)"
-                    :active="selectedId === file.id"
-                    :can-delete="canDelete"
-                    @click="openPreviewModal(file)"
-                    @preview="openPreviewModal(file)"
-                    @details="openFileDetails(file)"
-                    @delete="removeFile(file)"
-                  />
+
+                <div
+                  v-if="visibleFiles.length"
+                  :class="currentLevelFolders.length ? 'mt-6' : ''"
+                >
+                  <div class="mb-2.5 flex items-center justify-between gap-2">
+                    <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                      Tệp
+                    </p>
+                    <span class="text-[11px] tabular-nums text-slate-400">
+                      {{ visibleFiles.length }}
+                    </span>
+                  </div>
+                  <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+                    <DocumentFileCard
+                      v-for="file in visibleFiles"
+                      :key="file.id"
+                      :name="file.original_name"
+                      :meta="fileCardMeta(file)"
+                      :url="file.url"
+                      :is-image="Boolean(file.is_image)"
+                      :is-pdf="Boolean(file.is_pdf)"
+                      :is-link="Boolean(file.is_external_link)"
+                      :badge="listBadge(file)"
+                      :active="selectedId === file.id"
+                      :can-delete="canDelete"
+                      @click="openPreviewModal(file)"
+                      @preview="openPreviewModal(file)"
+                      @details="openFileDetails(file)"
+                      @delete="removeFile(file)"
+                    />
+                  </div>
                 </div>
-              </div>
+              </template>
             </template>
           </template>
 
@@ -1258,7 +1332,7 @@ const activityTone = (event) => ({
           >
             <span class="grid h-14 w-14 place-items-center rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/80 dark:bg-slate-900 dark:ring-slate-700">
               <AppIcon
-                :name="activeFolderId ? 'folder-open' : (activeCat?.icon || 'documents')"
+                :name="activeFolderId ? 'folder-open' : (activeCat?.icon || 'folder')"
                 :size="26"
                 class="text-sky-400"
               />
@@ -1266,16 +1340,16 @@ const activityTone = (event) => ({
             <p class="mt-3 text-sm font-semibold text-slate-700 dark:text-slate-200">
               {{ activeFolderId
                 ? (activeFolderIsEmpty ? 'Thư mục trống' : 'Chưa có tệp trong thư mục này')
-                : (canUpload ? 'Chưa có thư mục hoặc tài liệu' : 'Chưa có tài liệu') }}
+                : (canMutateDocs ? 'Chưa có thư mục hoặc tài liệu' : 'Chưa có tài liệu') }}
             </p>
             <p
-              v-if="canUpload"
+              v-if="canMutateDocs"
               class="mt-1 max-w-sm text-xs leading-relaxed text-slate-500"
             >
               Kéo thả file vào đây, hoặc dùng <span class="font-medium text-slate-600 dark:text-slate-300">Thêm</span> / <span class="font-medium text-slate-600 dark:text-slate-300">Tải lên</span> để bắt đầu.
             </p>
             <div
-              v-if="canUpload"
+              v-if="canMutateDocs"
               class="mt-4 flex flex-wrap items-center justify-center gap-2"
             >
               <button

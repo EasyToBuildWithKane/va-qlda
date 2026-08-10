@@ -732,7 +732,7 @@ function onScope(scope) {
 
               <div
                 v-show="openState[b.key]"
-                class="mt-1.5 space-y-2"
+                class="mt-2"
               >
                 <p
                   v-if="bucketOf(b.key).length === 0"
@@ -740,16 +740,21 @@ function onScope(scope) {
                 >
                   Không có việc nào.
                 </p>
-                <MyWorkTaskCard
-                  v-for="task in bucketOf(b.key)"
-                  :key="task.id"
-                  :task="task"
-                  :mode="mode"
-                  :status-options="options.statuses"
-                  @change-status="changeStatus"
-                  @log-work="logWork"
-                  @open="openTaskDetail"
-                />
+                <div
+                  v-else
+                  class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
+                >
+                  <MyWorkTaskCard
+                    v-for="task in bucketOf(b.key)"
+                    :key="task.id"
+                    :task="task"
+                    :mode="mode"
+                    :status-options="options.statuses"
+                    @change-status="changeStatus"
+                    @log-work="logWork"
+                    @open="openTaskDetail"
+                  />
+                </div>
               </div>
             </section>
           </template>

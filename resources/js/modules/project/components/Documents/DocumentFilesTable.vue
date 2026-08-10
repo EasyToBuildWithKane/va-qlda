@@ -110,13 +110,21 @@ const typeIconClass = (item) => {
               <div class="flex min-w-0 items-center gap-2.5">
                 <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[#EEF1FF] dark:bg-sky-950/40">
                   <AppIcon
-                    name="folder"
+                    :name="folder.icon || 'folder'"
                     :size="16"
                     class="text-sky-500"
                   />
                 </span>
-                <span class="truncate font-medium text-slate-800 dark:text-slate-100">
-                  {{ folder.original_name }}
+                <span class="min-w-0">
+                  <span class="block truncate font-medium text-slate-800 dark:text-slate-100">
+                    {{ folder.original_name }}
+                  </span>
+                  <span
+                    v-if="folder.is_category && folder.description"
+                    class="mt-0.5 block truncate text-[11px] text-slate-400"
+                  >
+                    {{ folder.description }}
+                  </span>
                 </span>
               </div>
             </td>
@@ -124,7 +132,7 @@ const typeIconClass = (item) => {
               {{ formatSize(folder._size ?? 0) }}
             </td>
             <td class="px-2 py-2.5 text-slate-500">
-              thư mục
+              {{ folder.is_category ? 'danh mục' : 'thư mục' }}
             </td>
             <td class="px-2 py-2.5 tabular-nums text-slate-500">
               {{ formatDate(folder.created_at) }}
@@ -149,6 +157,7 @@ const typeIconClass = (item) => {
               @click.stop
             >
               <button
+                v-if="!folder.is_category"
                 type="button"
                 class="grid h-7 w-7 place-items-center rounded-md text-slate-300 opacity-0 transition hover:bg-rose-50 hover:text-rose-600 group-hover:opacity-100 dark:hover:bg-rose-950/40"
                 title="Xoá"
