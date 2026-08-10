@@ -49,11 +49,6 @@ const parentLine = computed(() => {
     return `${taskDisplayId(parent)} · ${parent.title || ''}`.trim();
 });
 
-const personRoleSuffix = (person) => {
-    const role = person?.role_title;
-    return role ? ` (${role})` : '';
-};
-
 function formatDateRange(from, to) {
     if (!from && !to) return '';
     if (from && to) return `${date(from)} - ${date(to)}`;
@@ -181,7 +176,7 @@ function formatAnyDate(value) {
                   :src="a.avatar_path"
                   :size="22"
                 />
-                <span class="truncate">{{ a.name }}{{ personRoleSuffix(a) }}</span>
+                <span class="truncate">{{ a.name }}</span>
               </span>
             </div>
             <p
@@ -291,7 +286,7 @@ function formatAnyDate(value) {
                 :size="28"
               />
               <span class="min-w-0 truncate text-sm font-medium text-slate-800 dark:text-slate-100">
-                {{ task.reporter.name }}{{ personRoleSuffix(task.reporter) }}
+                {{ task.reporter.name }}
               </span>
             </div>
             <p
@@ -320,7 +315,7 @@ function formatAnyDate(value) {
                   :src="w.avatar_path"
                   :size="22"
                 />
-                <span class="truncate">{{ w.name }}{{ personRoleSuffix(w) }}</span>
+                <span class="truncate">{{ w.name }}</span>
               </span>
             </div>
             <p

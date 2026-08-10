@@ -20,7 +20,7 @@ const ADMIN_SCREENS = [
     { id: 'daily-reports-today', path: '/daily-reports/today', heading: /báo cáo hôm nay/i },
     { id: 'daily-reports-history', path: '/daily-reports', heading: /lịch sử báo cáo/i },
     { id: 'daily-reports-review', path: '/daily-reports/review', heading: /chờ phê duyệt/i },
-    { id: 'blockers', path: '/blockers', heading: /vướng mắc/i },
+    { id: 'blockers', path: '/blockers', heading: /trường hợp kiểm thử/i },
     { id: 'feedback', path: '/feedback', heading: /phản hồi/i },
     { id: 'knowledge-base', path: '/knowledge-base', heading: /cơ sở tri thức/i },
     { id: 'ai-accounts', path: '/ai-accounts', heading: /tài khoản ai/i },

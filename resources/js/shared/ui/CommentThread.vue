@@ -21,7 +21,7 @@ const props = defineProps({
     commentableType: { type: String, required: true },
     commentableId: { type: [Number, String], required: true },
     canComment: { type: Boolean, default: true },
-    /** Xoá bình luận của người khác (vd. quản lý vướng mắc / contribute task) */
+    /** Xoá bình luận của người khác (vd. quản lý test case / contribute task) */
     canModerate: { type: Boolean, default: false },
     placeholder: { type: String, default: 'Viết phản hồi cho người xử lý…' },
     /** Partial reload Inertia sau POST/DELETE (vd. ['blockers'] trên /blockers) */

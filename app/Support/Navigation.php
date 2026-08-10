@@ -308,7 +308,7 @@ class Navigation
                         'status' => 'live',
                     ],
                     [
-                        'label' => 'Vướng mắc',
+                        'label' => 'Test case',
                         'icon' => 'blockers',
                         'href' => '/blockers',
                         'status' => 'live',

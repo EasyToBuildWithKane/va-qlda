@@ -232,7 +232,7 @@ class NotificationDispatcher
         $ref = self::blockerRef($blocker);
         $title = $actor
             ? "{$actor->display_name} ghi nhận {$ref}"
-            : "Vướng mắc mới {$ref}";
+            : "Test case mới {$ref}";
 
         $svc->notify($members, NotificationType::BlockerCreated, $title, $blocker->title, [
             'actor' => $actor,

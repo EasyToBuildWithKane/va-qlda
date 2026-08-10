@@ -207,12 +207,12 @@ Chi tiết merge section: [`docs/CONGNGHE_CONTENT.md`](CONGNGHE_CONTENT.md).
 
 | Method | URI | Controller | Middleware | Mô Tả |
 |---|---|---|---|---|
-| GET | `/blockers` | BlockerController@index | auth | Danh sách vướng mắc |
-| POST | `/blockers` | BlockerController@store | auth | Tạo vướng mắc |
+| GET | `/blockers` | BlockerController@index | auth | Danh sách test case |
+| POST | `/blockers` | BlockerController@store | auth | Tạo test case |
 | POST | `/blockers/import` | BlockerController@import | auth | Nhập hàng loạt |
 | POST | `/blockers/bulk` | BlockerController@bulk | auth | Thao tác hàng loạt |
-| PUT | `/blockers/{blocker}` | BlockerController@update | auth | Sửa vướng mắc |
-| DELETE | `/blockers/{blocker}` | BlockerController@destroy | auth | Xóa vướng mắc |
+| PUT | `/blockers/{blocker}` | BlockerController@update | auth | Sửa test case |
+| DELETE | `/blockers/{blocker}` | BlockerController@destroy | auth | Xóa test case |
 | POST | `/blockers/{blocker}/attachments` | BlockerController@storeAttachment | auth | Upload file |
 | DELETE | `/blockers/{blocker}/attachments/{attachment}` | BlockerController@destroyAttachment | auth | Xóa file |
 

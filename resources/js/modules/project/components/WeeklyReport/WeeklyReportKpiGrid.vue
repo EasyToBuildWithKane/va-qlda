@@ -36,7 +36,7 @@ const cards = computed(() => {
         { key: 'remaining', label: 'Còn lại', value: n(k.remaining_tasks), icon: 'task', tone: 'sky' },
         { key: 'overdue', label: 'Quá hạn', value: n(k.overdue), icon: 'clock', tone: n(k.overdue) ? 'rose' : 'slate' },
         { key: 'blocked', label: 'Bị chặn', value: n(k.blocked), icon: 'blockers', tone: n(k.blocked) ? 'rose' : 'slate' },
-        { key: 'issues', label: 'Vướng mắc mở', value: n(k.open_issues), icon: 'alert', tone: n(k.open_issues) ? 'amber' : 'slate' },
+        { key: 'issues', label: 'Test case mở', value: n(k.open_issues), icon: 'alert', tone: n(k.open_issues) ? 'amber' : 'slate' },
         { key: 'feedback', label: 'Phản hồi', value: n(k.feedback), icon: 'feedback', tone: 'violet' },
         { key: 'bugs', label: 'Lỗi nghiêm trọng', value: n(k.critical_bugs), icon: 'bug', tone: n(k.critical_bugs) ? 'rose' : 'slate' },
         { key: 'hours', label: 'Giờ công', value: `${n(k.worklog_hours)}h`, icon: 'worklog', tone: 'sky' },

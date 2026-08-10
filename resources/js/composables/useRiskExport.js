@@ -148,7 +148,7 @@ function buildRiskXlsx(list, { projectCode, projectName }) {
     const exportedAt = datetime(new Date().toISOString());
     const kpis = computeKpis(list);
 
-    setCell(ws, 0, 0, `RỦI RO & VƯỚNG MẮC — ${projectName || projectCode}`, S.title);
+    setCell(ws, 0, 0, `TRƯỜNG HỢP KIỂM THỬ — ${projectName || projectCode}`, S.title);
     mergeRow(ws, 0, 0, COLS);
 
     setCell(ws, 1, 0, `Mã dự án: ${projectCode} · Xuất lúc ${exportedAt} · Mẫu VAschools`, S.subtitle);
@@ -229,7 +229,7 @@ export function exportRiskBlockers({ list, projectCode = 'DA', projectName = '',
         const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = `VA_RuiRo_${code}_${dd}${mm}${yyyy}.csv`;
+        a.download = `VA_TestCase_${code}_${dd}${mm}${yyyy}.csv`;
         a.click();
         URL.revokeObjectURL(a.href);
         return;
@@ -237,6 +237,6 @@ export function exportRiskBlockers({ list, projectCode = 'DA', projectName = '',
 
     const ws = buildRiskXlsx(list, { projectCode: code, projectName });
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'VA - Rui ro');
-    XLSX.writeFile(wb, `VA_RuiRo_${code}_${dd}${mm}${yyyy}.xlsx`);
+    XLSX.utils.book_append_sheet(wb, ws, 'VA - Test case');
+    XLSX.writeFile(wb, `VA_TestCase_${code}_${dd}${mm}${yyyy}.xlsx`);
 }

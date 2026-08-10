@@ -72,7 +72,7 @@ const tabs = [
     { key: 'timeline', label: 'Lịch dự án', icon: 'calendar' },
     { key: 'board', label: 'Kanban', icon: 'board' },
     { key: 'sprints', label: 'Sprint', icon: 'sprint' },
-    { key: 'blockers', label: 'Vướng mắc', icon: 'blockers' },
+    { key: 'blockers', label: 'Test case', icon: 'blockers' },
     { key: 'feedback', label: 'Phản hồi', icon: 'feedback' },
     { key: 'weekly', label: 'Báo cáo tuần', icon: 'weekly' },
 ];
@@ -258,9 +258,9 @@ const onBoardMoveWithLog = (payload) => {
 
 const onRiskSaved = ({ type, title, count }) => {
     if (type === 'created') {
-        pushActivity('issue_opened', `Mở vướng mắc mới: ${title}`);
+        pushActivity('issue_opened', `Mở test case mới: ${title}`);
     } else if (type === 'imported') {
-        pushActivity('issue_imported', `Nhập ${count ?? 0} vướng mắc từ file Excel`);
+        pushActivity('issue_imported', `Nhập ${count ?? 0} test case từ file Excel`);
     }
 };
 

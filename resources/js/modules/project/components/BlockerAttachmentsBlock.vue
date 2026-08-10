@@ -15,7 +15,7 @@ const props = defineProps({
     pendingFiles: { type: Array, default: () => [] },
     /** Giao diện gọn trong modal */
     compact: { type: Boolean, default: false },
-    /** Một hàng trong form ghi nhiều vướng mắc — nút ảnh + thumbnail nhỏ */
+    /** Một hàng trong form ghi nhiều test case — nút ảnh + thumbnail nhỏ */
     inline: { type: Boolean, default: false },
     /** Chờ đến khi bấm Lưu/Ghi nhận (tạo mới hoặc sửa) — không POST ngay từng lần chọn file */
     stageUntilSave: { type: Boolean, default: false },
@@ -287,7 +287,7 @@ watch(imageFiles, (list) => {
             Kéo thả hoặc chọn nhiều ảnh
           </p>
           <p class="mt-0.5 text-xs text-slate-500">
-            1 vướng mắc · nhiều ảnh được · JPG, PNG, WebP… · tối đa 10MB/ảnh
+            1 test case · nhiều ảnh được · JPG, PNG, WebP… · tối đa 10MB/ảnh
           </p>
         </div>
       </div>

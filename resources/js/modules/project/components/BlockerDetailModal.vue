@@ -39,8 +39,8 @@ watch(
 );
 
 const modalTitle = computed(() => {
-    if (!props.blocker) return 'Chi tiết vướng mắc';
-    return props.blocker.code ? `Vướng mắc ${props.blocker.code}` : 'Chi tiết vướng mắc';
+    if (!props.blocker) return 'Chi tiết trường hợp kiểm thử';
+    return props.blocker.code ? `Test case ${props.blocker.code}` : 'Chi tiết trường hợp kiểm thử';
 });
 
 function normalizeEvidenceLinks(links) {
@@ -182,7 +182,7 @@ const metaItems = computed(() => {
       <nav
         class="mb-4 flex gap-1 overflow-x-auto rounded-lg bg-slate-100/80 p-1"
         role="tablist"
-        aria-label="Phần chi tiết vướng mắc"
+        aria-label="Phần chi tiết trường hợp kiểm thử"
       >
         <button
           v-for="tab in TABS"
@@ -350,7 +350,7 @@ const metaItems = computed(() => {
             :can-comment="canComment"
             :can-moderate="canUpdate"
             :partial-reload-keys="partialReloadKeys"
-            placeholder="Chia sẻ cập nhật, câu hỏi hoặc thông tin hỗ trợ xử lý vướng mắc…"
+            placeholder="Chia sẻ cập nhật, câu hỏi hoặc thông tin hỗ trợ xử lý test case…"
           />
         </div>
       </div>

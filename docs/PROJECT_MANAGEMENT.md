@@ -1,10 +1,10 @@
 # Quản lý dự án — `/projects`
 
-> **VA-Workspace** — module **Công việc & Dự án** trên sidebar: danh mục dự án, workspace chi tiết (Sprint, Kanban, tài liệu, vướng mắc & phản hồi nhúng).
+> **VA-Workspace** — module **Công việc & Dự án** trên sidebar: danh mục dự án, workspace chi tiết (Sprint, Kanban, tài liệu, test case & phản hồi nhúng).
 > **Production:** `https://projects.vaschools.edu.vn/projects` (Inertia, guard `system`).
 > **Trạng thái:** ✅ Triển khai đầy đủ — routes trong `routes/web/projects.php`, UI `Pages/Project/*` + `modules/project/`.
 
-**Liên quan:** Vướng mắc toàn cục `/blockers` · Phản hồi `/feedback` · Báo cáo ngày (liên kết dự án) → `docs/DAILY_REPORT_PROJECTS.md` · Excel → `docs/IMPORT_EXPORT_RECONCILE.md`.
+**Liên quan:** Test case (UI) / Blocker kỹ thuật toàn cục `/blockers` · Phản hồi `/feedback` · Báo cáo ngày (liên kết dự án) → `docs/DAILY_REPORT_PROJECTS.md` · Excel → `docs/IMPORT_EXPORT_RECONCILE.md`.
 
 ---
 
@@ -13,7 +13,7 @@
 | Mục tiêu | Mô tả |
 |---|---|
 | Danh mục dự án | Lọc, KPI portfolio, bảng (kéo ngang để cuộn) + Kanban wrap thẻ (không scroll ngang). Nhóm theo **Loại dự án** / **Phòng ban** — chỉ **super_admin** thấy thanh «Nhóm theo» |
-| Workspace dự án | Một URL `/projects/{id}` — tab Tổng quan, Tài liệu, Lịch, Kanban, Sprint, Vướng mắc, Phản hồi |
+| Workspace dự án | Một URL `/projects/{id}` — tab Tổng quan, Tài liệu, Lịch, Kanban, Sprint, Test case, Phản hồi |
 | Kế hoạch Agile | Sprint, epic, backlog, kéo-thả trạng thái, nhập Excel công việc (bulk) |
 | Chi phí nhân công | Worklog trên task + `rate_snapshot` theo `project_member` |
 | Cộng tác | Comment đa hình trên task, watcher, activity feed, email tổng hợp (tuỳ cấu hình) |
@@ -21,7 +21,7 @@
 
 **Ngoài prefix `/projects` (module riêng nhưng gắn `project_id`):**
 
-- `GET /blockers` — danh sách vướng mắc toàn hệ thống; tạo/sửa từ tab dự án gọi cùng API `BlockerController`.
+- `GET /blockers` — danh sách test case toàn hệ thống (UI: Test case / Trường hợp kiểm thử; kỹ thuật vẫn Blocker); tạo/sửa từ tab dự án gọi cùng API `BlockerController`.
 - `GET /feedback` — góp ý toàn hệ thống; tab Phản hồi trên dự án lọc theo `project_id`.
 
 ---
@@ -210,20 +210,20 @@ Kanban Index: mặc định nhóm theo `type`. **super_admin** đổi được �
 
 ### 6.2 Các tab
 
-Tab strip full-width (`grid` trải đều): mobile 4 cột × 2 hàng; `md+` 8 cột một hàng — icon trong ô vuông + nhãn; badge đếm trên icon (Tài liệu / Vướng mắc / Phản hồi).
+Tab strip full-width (`grid` trải đều): mobile 4 cột × 2 hàng; `md+` 8 cột một hàng — icon trong ô vuông + nhãn; badge đếm trên icon (Tài liệu / Test case / Phản hồi).
 
 | Tab | Key | Component chính |
 |---|---|---|
 | Tổng quan | `overview` | `ProjectShowSummaryBar`, `ProjectOverviewCard` (hồ sơ + mốc + PM), `ActivityFeed`, **`WeeklyReportWorkspace` (embedded, full width dưới hồ sơ)**, `WorkloadTable` (summary KPI + mức tải healthy/watch/overloaded + dung lượng/tiến độ), `RiskIssuePanel` |
-| Tài liệu | `documents` | `ProjectDocumentsPanel` — Drive (danh mục → thư mục → file); đổi tên (inline trong preview + nút trên thẻ grid); thẻ grid preview ảnh / PDF trang 1 / snippet `.txt`; xem trước + sửa nội dung text; list `table-fixed`; cột đính kèm task hẹp |
+| Tài liệu | `documents` | `ProjectDocumentsPanel` — Drive (danh mục → thư mục → file); đổi tên (inline trong preview + nút trên thẻ grid); thẻ grid preview ảnh / PDF trang 1 / snippet `.txt`; xem trước + sửa nội dung text; Word/Excel preview client-side (`DocumentPreviewPane` + `useDocumentPreview`: iframe Word cách ly CSS + phân trang; Excel bảng phân trang dòng — không Office Online); list `table-fixed`; cột đính kèm task hẹp |
 | Lịch dự án | `timeline` | `ProjectCalendar` — Gantt mini, kéo ngày → `PUT tasks` |
 | Kanban | `board` | `TaskBoard` — `PATCH tasks.status` |
 | Sprint | `sprints` | `SprintWorkspace` — list/calendar, `SprintDataModal` |
-| Vướng mắc | `blockers` | `RiskIssueDataTable`, `RiskImportModal` |
+| Test case | `blockers` | `RiskIssueDataTable`, `RiskImportModal` |
 | Phản hồi | `feedback` | `ProjectFeedbackPanel` |
 | Báo cáo tuần | `weekly` | `WeeklyReportWorkspace` |
 
-`ProjectShowSummaryBar`: 5 KPI (tiến độ, thành viên, công việc, sprint, vướng mắc) — emit điều hướng tab.
+`ProjectShowSummaryBar`: 5 KPI (tiến độ, thành viên, công việc, sprint, test case) — emit điều hướng tab.
 
 ---
 
@@ -315,19 +315,19 @@ UI: `ProjectMembers.vue`, `MemberFormModal` — thêm từ `ProjectActions` trê
 
 **Resource props thêm:** `preview_snippet` — vài dòng đầu file text (`ProjectAttachment::previewSnippet`, ≤400 ký tự / 8 dòng, bỏ qua file >256KB); `null` với PDF/binary.
 
-**UI tab Tài liệu:** một hàng gọn (danh mục + `Thêm` ▾ + `Tải lên`); layout **hai panel** — trái «Tài liệu dự án» (folder card + `DocumentFileCard`: ảnh thật, PDF trang 1 lazy iframe, snippet `.txt`, nút đổi tên), phải «Đính kèm công việc» (file đính kèm từ task). Preview full-screen: đổi tên inline trên tiêu đề + nút Đổi tên; sửa nội dung text. Chi tiết drawer. Modal tạo thư mục/file/link `max-w-sm`.
+**UI tab Tài liệu:** một hàng gọn (danh mục + `Thêm` ▾ + `Tải lên`); layout **hai panel** — trái «Tài liệu dự án» (folder card + `DocumentFileCard`: ảnh thật, PDF trang 1 lazy iframe, snippet `.txt`, nút đổi tên), phải «Đính kèm công việc» (file đính kèm từ task). Preview full-screen: đổi tên inline trên tiêu đề + nút Đổi tên; sửa nội dung text; Word `.docx` render trong iframe (đủ option `docx-preview`, phân trang Trang X/Y); Excel sticky header + zebra + «Dòng a–b / tổng» (100 dòng/trang). Chi tiết drawer. Modal tạo thư mục/file/link `max-w-sm`.
 
 Activity: `project_attachment_activities` — log trên `ProjectDocumentsPanel`.
 
 ---
 
-## 12. Vướng mắc & phản hồi (trong dự án)
+## 12. Test case & phản hồi (trong dự án)
 
-### 12.1 Vướng mắc
+### 12.1 Test case (Blocker)
 
-Tab **Vướng mắc** dùng dữ liệu `blockers` đã load theo `project_id`. CRUD qua `BlockerController` (`/blockers`, …) — policy blocker + quyền dự án.
+Tab **Test case** dùng dữ liệu `blockers` đã load theo `project_id`. CRUD qua `BlockerController` (`/blockers`, …) — policy blocker + quyền dự án.
 
-**Toolbar tab Vướng mắc:** Lọc · Cột · **Dữ liệu** (dropdown: xuất Excel/CSV theo bộ lọc hiện tại; «Nhập từ Excel…» mở modal khi `canManage`) — không tách nút Nhập/Xuất riêng (`RiskIssueDataTable`, `layout="page"`). Nút **Thêm rủi ro** (`canManage`) cùng hàng toolbar, căn phải (`ml-auto`), `h-10` — không đặt trên `PageHeader`.
+**Toolbar tab Test case:** Lọc · Cột · **Dữ liệu** (dropdown: xuất Excel/CSV theo bộ lọc hiện tại; «Nhập từ Excel…» mở modal khi `canManage`) — không tách nút Nhập/Xuất riêng (`RiskIssueDataTable`, `layout="page"`). Nút **Thêm test case** (`canManage`) cùng hàng toolbar, căn phải (`ml-auto`), `h-10` — không đặt trên `PageHeader`.
 
 **Nhập Excel:** `RiskImportModal` + `useRiskImport.js` → `POST /blockers/import` (pattern production — xem `IMPORT_EXPORT_RECONCILE.md`).
 
@@ -356,7 +356,7 @@ Tab **Phản hồi** — `feedbacks` + `feedbackSummary`. Tạo mới cần `can
 |---|---|---|---|
 | Danh mục dự án | `useProjectListExport` | Nút Xuất Index | Client-only |
 | Sprint / task | `useSprintData.js`, `useSprintExport.js`, `useSprintReconcile.js` | `SprintDataModal.vue` (3 tab) | **Import:** `POST projects.tasks.import` (bulk ✅) |
-| Vướng mắc tab dự án | `useRiskImport.js`, `useRiskExport.js` | `RiskImportModal.vue` | `POST /blockers/import` |
+| Test case tab dự án | `useRiskImport.js`, `useRiskExport.js` | `RiskImportModal.vue` | `POST /blockers/import` |
 | Phản hồi tab dự án | `useFeedbackExport.js` | Nút **Dữ liệu** · `ProjectFeedbackPanel` | Client-only (xuất theo lọc) |
 
 Marker sprint Excel: `VA_SPRINT_IMPORT_V1` — chi tiết cột trong composable.
@@ -443,7 +443,7 @@ flowchart TD
 | Cổng Công nghệ | Attachment `showcase` + public project card |
 | Comments | `CommentController` morph trên Task (panel collaboration) |
 | Performance / Work dashboard | KPI tổng hợp từ task/project — `PERFORMANCE_ANALYTICS.md`, `/work` |
-| Việc của tôi (`/my-work`) | Tập trung task cá nhân đa dự án (bucket Quá hạn/Hôm nay/Sắp tới/Chưa hạn — luôn hiển thị cả khi rỗng), hàng **Báo cáo công việc hằng ngày** (trạng thái + link `/daily-reports/today`); task phát sinh / gắn trong báo cáo hôm nay không hạn → bucket **Hôm nay**; task trong báo cáo nhưng chưa gán assignee vẫn hiện dạng card như việc được giao. Form báo cáo: dropdown task chỉ **việc được giao** cho bạn trên dự án. Card lưới 3 cột (`MyWorkTaskCard`, meta trong card dạng 2 hàng × 3 cột) + **modal chi tiết rộng** (`MyWorkTaskDetailModal`, `max-w-5xl`) — header có nhãn Dự án / Ưu tiên / Giai đoạn / Trạng thái; khối meta dạng hàng nhãn–giá trị (không `truncate`, giá trị dài xuống dòng); không điều hướng `/projects` khi bấm Chi tiết; nút «Mở trong dự án» là lối phụ. Quick status + worklog tái dùng `projects.tasks.status` & `projects.worklogs.store`; lead xem việc thành viên nhóm (RBAC `my_work.view_team`/`my_work.act_team`, phạm vi `LedTeamScope`). Read-aggregation: `app/Application/Work/MyWorkQuery`, `MyWorkController`, widget trên `/work`. Đổi status hộ qua `TaskPolicy@changeStatus` (additive) |
+| Việc của tôi (`/my-work`) | Tập trung task cá nhân đa dự án (bucket Quá hạn/Hôm nay/Sắp tới/Chưa hạn — luôn hiển thị cả khi rỗng), hàng **Báo cáo công việc hằng ngày** (trạng thái + link `/daily-reports/today`); task phát sinh / gắn trong báo cáo hôm nay không hạn → bucket **Hôm nay**; task trong báo cáo nhưng chưa gán assignee vẫn hiện dạng card như việc được giao. Form báo cáo: dropdown task chỉ **việc được giao** cho bạn trên dự án. Card lưới 3 cột (`MyWorkTaskCard`, meta trong card dạng 2 hàng × 3 cột) + **modal chi tiết** (`MyWorkTaskDetailModal`, `max-w-5xl`, `fit-viewport`) — layout **5–5** (meta chip 2 cột | mô tả); header gọn (dự án + badge ưu tiên/giai đoạn/mốc/SLA, trạng thái, ghi giờ); meta chỉ lịch/giờ/sprint (+ epic/parent/story points/kế hoạch giờ khi có) — **không lặp** badge header hay nguồn (nguồn cạnh tiêu đề Mô tả); nhân sự riêng; chỉ vùng mô tả (và cột meta khi quá cao) cuộn nội bộ — không scroll cả overlay; không điều hướng `/projects` khi bấm Chi tiết; nút «Mở dự án» là lối phụ. Quick status + worklog tái dùng `projects.tasks.status` & `projects.worklogs.store`; lead xem việc thành viên nhóm (RBAC `my_work.view_team`/`my_work.act_team`, phạm vi `LedTeamScope`). Read-aggregation: `app/Application/Work/MyWorkQuery`, `MyWorkController`, widget trên `/work`. Đổi status hộ qua `TaskPolicy@changeStatus` (additive) |
 
 ---
 

@@ -12,7 +12,7 @@
 | `super_admin` | Toàn quyền tuyệt đối (god-mode). **Độc quyền** chỉnh cấu hình hệ thống, ma trận phân quyền, gán vai trò, thao tác nguy hiểm. | ✅ (duy nhất) |
 | `admin` | Full nghiệp vụ (mặc định: mọi quyền **trừ** reserved). **Không** vào `/settings`. | ❌ |
 | `lead` | Quản lý nhóm: dự án, duyệt báo cáo, hợp đồng, NCC, KB… | ❌ |
-| `member` | Tạo báo cáo/đề xuất/vướng mắc/KB của mình; thao tác trên bản ghi sở hữu. | ❌ |
+| `member` | Tạo báo cáo/đề xuất/test case/KB của mình; thao tác trên bản ghi sở hữu. | ❌ |
 | `viewer` | Chỉ xem (dashboard, hiệu suất, hợp đồng, dự án…). | ❌ |
 
 `SystemRole` ([app/Support/Enums/SystemRole.php](../app/Support/Enums/SystemRole.php)) — cột `system_accounts.role` là string, **không cần migration** khi thêm role.
@@ -35,7 +35,7 @@ Policy: nhánh role = $account->allows('x.action')  OR  nhánh ownership/entity 
 Frontend: auth.user.permissions[] + is_super_admin → usePermission().can('x.action')
 ```
 
-**Nguyên tắc bất biến:** quyền cuối = **(matrix-grant) OR (ownership/entity-grant)**. Ma trận cấp quyền “toàn cục”; người dùng vẫn luôn sửa được bản ghi của chính mình (project manager/member, người tạo vướng mắc, chủ credential, người tạo phiếu AI…).
+**Nguyên tắc bất biến:** quyền cuối = **(matrix-grant) OR (ownership/entity-grant)**. Ma trận cấp quyền “toàn cục”; người dùng vẫn luôn sửa được bản ghi của chính mình (project manager/member, người tạo test case, chủ credential, người tạo phiếu AI…).
 
 ### Phân cấp grant
 - `*` — mọi quyền (chỉ `super_admin`).

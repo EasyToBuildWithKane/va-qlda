@@ -53,7 +53,7 @@ class UpdateSettingsRequest extends FormRequest
             'google_allowed_domains' => 'Domain email Google',
             'bot_token' => 'Bot token',
             'chat_id' => 'Chat ID',
-            'blocker_chat_id' => 'Chat ID vướng mắc',
+            'blocker_chat_id' => 'Chat ID test case',
             'enabled' => 'Bật gửi email',
             'from_name' => 'Tên người gửi',
             'notify_on_assign' => 'Email khi giao việc',

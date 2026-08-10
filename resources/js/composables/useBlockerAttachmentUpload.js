@@ -16,7 +16,7 @@ function chunkFiles(files, size) {
 }
 
 /**
- * Tải file lên một vướng mắc (tự chia batch nếu >10 file).
+ * Tải file lên một test case (tự chia batch nếu >10 file).
  *
  * @param {number} blockerId
  * @param {File[]} files
@@ -59,7 +59,7 @@ export function uploadFilesToBlocker(blockerId, files, hooks = {}) {
 }
 
 /**
- * Tải file chờ lưu lên từng vướng mắc (cùng thứ tự sau bulk-create).
+ * Tải file chờ lưu lên từng test case (cùng thứ tự sau bulk-create).
  *
  * @param {{ pendingFiles?: { file: File }[] }[]} rows
  * @param {number[]} blockerIds

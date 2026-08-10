@@ -104,11 +104,52 @@ class WeeklyReportEngineTest extends TestCase
         $kpi = (new WeeklyReportKpiBuilder)->build($ctx);
         $risk = (new WeeklyReportRiskAssessor)->assess($ctx, $kpi);
         $feedback = (new WeeklyReportFeedbackClassifier)->classify($ctx->feedbacks);
-        $sections = (new WeeklyReportNarrator)->narrate($ctx, $kpi, $risk, $feedback)['sections'];
+        $narrative = (new WeeklyReportNarrator)->narrate($ctx, $kpi, $risk, $feedback);
+        $sections = $narrative['sections'];
 
         $this->assertStringContainsString('Module A', $sections['result']);
         $this->assertStringContainsString('Module B', $sections['result']);
+        $this->assertStringContainsString('ngày 24/06', $sections['result']);
         $this->assertStringContainsString('Tích hợp', $sections['current']);
+        $this->assertStringContainsString('Test case:', $sections['current']);
         $this->assertStringContainsString('Tài liệu', $sections['next']);
+        $this->assertStringContainsString('Thêm Export', $sections['feedback']);
+        $this->assertStringContainsString('tuần 2', $narrative['executive']);
+        $this->assertStringContainsString('Chờ UAT', $narrative['insight']);
+    }
+
+    public function test_narrator_result_excludes_done_tasks_outside_week_window(): void
+    {
+        $mk = fn (array $a) => (new Task)->forceFill(array_merge([
+            'project_id' => 1, 'sprint_id' => 1, 'parent_id' => null, 'is_milestone' => false,
+            'status' => 'done', 'priority' => 'medium', 'story_points' => 3, 'due_date' => null,
+        ], $a));
+
+        $ctx = new WeeklyReportContext(
+            project: (new Project)->forceFill(['id' => 1, 'name' => 'Demo', 'code' => 'D']),
+            sprint: (new Sprint)->forceFill(['id' => 1, 'name' => 'Sprint 12', 'status' => 'active']),
+            weekNumber: 2,
+            weekStart: Carbon::parse('2026-06-22'),
+            weekEnd: Carbon::parse('2026-06-28'),
+            tasks: collect([
+                $mk(['id' => 1, 'title' => 'Trong tuần', 'completed_at' => Carbon::parse('2026-06-24')]),
+                $mk(['id' => 2, 'title' => 'Tuần trước', 'completed_at' => Carbon::parse('2026-06-10')]),
+                $mk(['id' => 3, 'title' => 'Done cũ không mốc', 'completed_at' => null, 'updated_at' => Carbon::parse('2026-05-01')]),
+            ]),
+            worklogs: collect(),
+            activities: collect(),
+            blockers: collect(),
+            feedbacks: collect(),
+        );
+
+        $kpi = (new WeeklyReportKpiBuilder)->build($ctx);
+        $risk = (new WeeklyReportRiskAssessor)->assess($ctx, $kpi);
+        $feedback = (new WeeklyReportFeedbackClassifier)->classify($ctx->feedbacks);
+        $result = (new WeeklyReportNarrator)->narrate($ctx, $kpi, $risk, $feedback)['sections']['result'];
+
+        $this->assertStringContainsString('Trong tuần', $result);
+        $this->assertStringNotContainsString('Tuần trước', $result);
+        $this->assertStringNotContainsString('Done cũ không mốc', $result);
+        $this->assertStringNotContainsString('Đã hoàn thành (Sprint)', $result);
     }
 }

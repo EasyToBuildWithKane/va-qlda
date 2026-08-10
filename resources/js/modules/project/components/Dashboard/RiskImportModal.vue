@@ -235,7 +235,7 @@ const submitImport = () => {
   <Modal
     :show="show"
     :dirty="importDirty"
-    title="Nhập rủi ro & vướng mắc từ file"
+    title="Nhập trường hợp kiểm thử từ file"
     max-width="max-w-5xl"
     :on-save-draft="saveDraftOnClose"
     @close="close"

@@ -7,7 +7,7 @@ const SHEET = {
     overview: 'VA - Tổng quan',
     tasks: 'VA - Công việc',
     workload: 'VA - Workload',
-    issues: 'VA - Vướng mắc',
+    issues: 'VA - Test case',
 };
 
 function sanitizeSheetName(name) {
@@ -175,7 +175,7 @@ function buildOverviewSheet(project, daysLeft) {
         ['Đã hoàn thành', { f: `COUNTIF(${t}!D2:D2000,"done")` }],
         ['Tỷ lệ hoàn thành', { f: `IFERROR(COUNTIF(${t}!D2:D2000,"done")/COUNTA(${t}!B2:B2000),0)`, pct: true }],
         ['Tiến độ TB', { f: `IFERROR(ROUND(AVERAGE(${t}!F2:F2000),0),0)/100`, pct: true }],
-        ['Vướng mắc đang mở', { f: `COUNTIFS(${i}!D2:D2000,"<>resolved",${i}!D2:D2000,"<>")` }],
+        ['Test case đang mở', { f: `COUNTIFS(${i}!D2:D2000,"<>resolved",${i}!D2:D2000,"<>")` }],
         ['Ngày còn lại đến deadline', daysLeft === '—' ? '—' : daysLeft],
     ];
 

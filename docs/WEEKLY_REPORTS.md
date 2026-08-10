@@ -37,13 +37,20 @@ Sprint không có khái niệm "tuần". `SprintWeekResolver` chia khoảng `sta
 thành các bucket 7 ngày (bắt đầu Thứ 2). "Tuần hiện tại" = bucket chứa hôm nay (clamp trong Sprint).
 Không có Sprint/ngày → fallback tuần ISO hiện tại.
 
-### Nội dung 3 thẻ (task-centric)
+### Nội dung chi tiết (task-centric + meta)
 
-| Thẻ | Nguồn dữ liệu |
+Mỗi dòng gắn thực thể cụ thể kèm meta khi có: **assignee · Epic · story points · ưu tiên · hạn · ngày hoàn thành**.
+
+| Phần | Nguồn dữ liệu |
 |---|---|
-| **Kết quả thực hiện** | Task `done` có `completed_at` (hoặc `updated_at`) trong cửa sổ tuần → dòng «Hoàn thành: …» / «Đạt mốc: …»; worklog trong tuần trên task chưa done |
-| **Tình hình hiện tại** | Task `in_progress` / `in_review` / `blocked`; vướng mắc gắn task; task quá hạn |
-| **Kế hoạch tiếp theo** | Task gốc chưa `done`, ưu tiên cao → «Tiếp tục: …» (kèm hạn nếu có) |
+| **Tóm tắt điều hành** | Sprint + nhãn tuần (số / khoảng ngày), % tiến độ, số hoàn thành trong tuần, giờ công, blocked / critical / overdue, rủi ro cao |
+| **Nhận định** | Tín hiệu cụ thể (tên task quá hạn / bị chặn, test case, yêu cầu thay đổi) — không chỉ đếm số |
+| **Kết quả thực hiện** | Task `done` trong **cửa sổ tuần** (+ ngày); worklog theo giờ/task; deploy/release; tổng giờ · số người. **Không** đổ full Sprint khi tuần trống |
+| **Tình hình hiện tại** | `in_progress` / `in_review` / `blocked` (+ ƯT, hạn, assignee); test case (mức · task · phụ trách); quá hạn (+ số ngày); dòng tổng hợp trạng thái |
+| **Kế hoạch tiếp theo** | Tháo chặn trước → tiếp tục/bắt đầu theo ưu tiên → test case còn mở → yêu cầu thay đổi → sắp tới hạn 7 ngày |
+| **Rủi ro** | Test case theo severity + task gắn; quá hạn / bị chặn kèm tên mẫu; tổng hợp high/medium/low |
+| **Phản hồi** | Đếm theo nhóm + tối đa 3 tiêu đề mẫu / nhóm; điểm TB nếu có |
+| **Hoạt động** | Sự kiện tuần kèm `d/m H:i`, tối đa 10 dòng |
 
 Sau khi sửa engine, bấm **Tổng hợp lại** (hoặc **Cập nhật phần dữ liệu thay đổi**) trên báo cáo tuần để áp dụng.
 

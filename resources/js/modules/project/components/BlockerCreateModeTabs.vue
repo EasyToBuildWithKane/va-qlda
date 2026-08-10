@@ -9,8 +9,8 @@ defineProps({
 const emit = defineEmits(['update:mode']);
 
 const tabs = [
-    { id: 'single', label: 'Một vướng mắc', icon: 'blockers' },
-    { id: 'bulk', label: 'Nhiều vướng mắc', icon: 'template' },
+    { id: 'single', label: 'Một test case', icon: 'blockers' },
+    { id: 'bulk', label: 'Nhiều test case', icon: 'template' },
 ];
 </script>
 

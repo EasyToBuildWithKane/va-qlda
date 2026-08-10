@@ -10,7 +10,7 @@ export const PROJECT_SHOW_TAB_LABELS = {
     timeline: 'Tiến độ / Gantt',
     board: 'Kanban',
     sprints: 'Sprint',
-    blockers: 'Vướng mắc',
+    blockers: 'Test case',
     feedback: 'Phản hồi',
 };
 

@@ -73,7 +73,7 @@ app/Application/
 | `platform.php` | performance, onboarding, notifications, audit |
 | `daily-reports.php` | Báo cáo ngày |
 | `projects.php` | Dự án, sprint, epic, task, worklog, member, attachment |
-| `blockers.php` | Vướng mắc + attachment |
+| `blockers.php` | Test case (Blocker) + attachment |
 | `contracts.php` | Quản lý hợp đồng (CLM) |
 | `feedback.php` | Phản hồi |
 | `knowledge-base.php` | Tri thức |

@@ -12,7 +12,7 @@ const props = defineProps({
 const emit = defineEmits(['close']);
 
 const modalTitle = computed(() => {
-    if (!props.blocker?.code) return 'Trao đổi vướng mắc';
+    if (!props.blocker?.code) return 'Trao đổi test case';
     return `Trao đổi · ${props.blocker.code}`;
 });
 

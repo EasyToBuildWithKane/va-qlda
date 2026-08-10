@@ -176,7 +176,7 @@ class BlockerController extends Controller
         NotificationDispatcher::blockerCreated($blocker, $request->user());
 
         return back()->with([
-            'success' => 'Đã ghi nhận vướng mắc.',
+            'success' => 'Đã ghi nhận test case.',
             'created_blocker_id' => $blocker->id,
         ]);
     }
@@ -211,7 +211,7 @@ class BlockerController extends Controller
         });
 
         return back()->with([
-            'success' => "Đã ghi nhận {$created} vướng mắc.",
+            'success' => "Đã ghi nhận {$created} test case.",
             'created_blocker_ids' => $createdIds,
         ]);
     }
@@ -253,12 +253,12 @@ class BlockerController extends Controller
         app(NotificationService::class)->recordSystemEvent(
             $account,
             NotificationType::SystemImport,
-            "Nhập {$created} vướng mắc từ Excel",
+            "Nhập {$created} test case từ Excel",
             null,
             null,
         );
 
-        return back()->with('success', "Đã nhập {$created} vướng mắc từ file.");
+        return back()->with('success', "Đã nhập {$created} test case từ file.");
     }
 
     public function update(
@@ -331,7 +331,7 @@ class BlockerController extends Controller
             );
         }
 
-        return back()->with('success', 'Đã cập nhật vướng mắc.');
+        return back()->with('success', 'Đã cập nhật test case.');
     }
 
     public function recheck(
@@ -365,7 +365,7 @@ class BlockerController extends Controller
         );
 
         $message = $result === BlockerRecheckResult::Passed
-            ? 'Đã xác nhận xử lý đúng — vướng mắc được đóng.'
+            ? 'Đã xác nhận xử lý đúng — test case được đóng.'
             : 'Đã trả về người xử lý — trạng thái chuyển sang đang xử lý.';
 
         return back()->with('success', $message);
@@ -384,7 +384,7 @@ class BlockerController extends Controller
         }
         $blocker->delete();
 
-        return back()->with('success', 'Đã xoá vướng mắc.');
+        return back()->with('success', 'Đã xoá test case.');
     }
 
     public function bulk(Request $request, BlockerResolvedTelegramNotifier $blockerTelegram): RedirectResponse
@@ -418,7 +418,7 @@ class BlockerController extends Controller
             }
             Blocker::query()->whereIn('id', $data['ids'])->delete();
 
-            return back()->with('success', 'Đã xoá '.count($data['ids']).' vướng mắc.');
+            return back()->with('success', 'Đã xoá '.count($data['ids']).' test case.');
         }
 
         $payload = [];
@@ -480,6 +480,6 @@ class BlockerController extends Controller
             BlockerActivityLogger::bulkUpdated($blocker->fresh(), $bulkLabel, $account);
         }
 
-        return back()->with('success', 'Đã cập nhật '.count($data['ids']).' vướng mắc.');
+        return back()->with('success', 'Đã cập nhật '.count($data['ids']).' test case.');
     }
 }

@@ -22,7 +22,7 @@ const emit = defineEmits(['generate']);
       Chưa có báo cáo cho {{ weekNumber ? `tuần ${weekNumber}` : 'tuần này' }}
     </h3>
     <p class="mt-1 max-w-md text-sm text-slate-500">
-      Hệ thống sẽ tự tổng hợp Tasks, Worklog, Vướng mắc và Phản hồi của Sprint thành báo cáo quản trị.
+      Hệ thống sẽ tự tổng hợp Tasks, Worklog, Test case và Phản hồi của Sprint thành báo cáo quản trị.
       Bạn chỉ cần kiểm tra, chỉnh sửa và gửi duyệt.
     </p>
     <button

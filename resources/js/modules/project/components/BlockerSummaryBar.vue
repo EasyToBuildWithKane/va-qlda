@@ -29,7 +29,7 @@ const cards = computed(() => {
             value: open,
             tone: 'amber',
             icon: 'blockers',
-            sub: 'Vướng mắc chưa đóng',
+            sub: 'Test case chưa đóng',
             interactive: true,
             payload: { status: 'active', severity: '', recheck_pending: '' },
         },
@@ -39,7 +39,7 @@ const cards = computed(() => {
             value: s.critical ?? 0,
             tone: 'rose',
             icon: 'alert',
-            sub: open ? `${Math.round(((s.critical ?? 0) / totalOpen) * 100)}% đang mở` : 'Bấm để lọc',
+            sub: open ? `${Math.round(((s.critical ?? 0) / totalOpen) * 100)}% đang mở` : 'Chưa có dữ liệu',
             progress: open ? Math.round(((s.critical ?? 0) / totalOpen) * 100) : null,
             interactive: true,
             payload: { status: 'active', severity: 'critical', recheck_pending: '' },
@@ -74,9 +74,8 @@ function onSelect(card) {
 
 <template>
   <KpiSummaryStrip
-    aria-label="Thống kê vướng mắc"
-    heading="Tổng quan vướng mắc hệ thống"
-    hint="Thẻ có viền nét đứt — bấm để lọc nhanh danh sách"
+    aria-label="Thống kê trường hợp kiểm thử"
+    heading="Tổng quan trường hợp kiểm thử hệ thống"
     grid-class="grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4"
     :cards="cards"
     :active-key="activeKey"

@@ -24,7 +24,7 @@ class BlockerActivityLogger
         self::log(
             $blocker,
             'created',
-            'Ghi nhận rủi ro / vướng mắc mới',
+            'Ghi nhận test case mới',
             ['title' => $blocker->title],
             $account?->employee_id,
         );
@@ -80,7 +80,7 @@ class BlockerActivityLogger
         ?SystemAccount $account,
     ): void {
         $label = match ($result) {
-            'passed' => 'Kiểm tra lại: đạt — đóng vướng mắc',
+            'passed' => 'Kiểm tra lại: đạt — đóng test case',
             'failed' => 'Kiểm tra lại: không đạt — trả về đang xử lý',
             default => 'Kiểm tra lại',
         };
@@ -129,7 +129,7 @@ class BlockerActivityLogger
 
     public static function deleted(Blocker $blocker, ?SystemAccount $account): void
     {
-        self::log($blocker, 'deleted', 'Xoá vướng mắc', ['title' => $blocker->title], $account?->employee_id);
+        self::log($blocker, 'deleted', 'Xoá test case', ['title' => $blocker->title], $account?->employee_id);
     }
 
     public static function bulkUpdated(Blocker $blocker, string $description, ?SystemAccount $account): void

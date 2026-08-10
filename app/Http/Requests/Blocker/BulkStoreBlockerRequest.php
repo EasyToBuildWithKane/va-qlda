@@ -38,9 +38,9 @@ class BulkStoreBlockerRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'rows.required' => 'Chưa có vướng mắc nào để ghi nhận.',
-            'rows.min' => 'Cần ít nhất một vướng mắc.',
-            'rows.max' => 'Mỗi lần ghi nhận tối đa 50 vướng mắc.',
+            'rows.required' => 'Chưa có test case nào để ghi nhận.',
+            'rows.min' => 'Cần ít nhất một test case.',
+            'rows.max' => 'Mỗi lần ghi nhận tối đa 50 test case.',
             'rows.*.title.required' => 'Tiêu đề không được để trống.',
             'rows.*.title.max' => 'Tiêu đề tối đa 255 ký tự.',
         ];

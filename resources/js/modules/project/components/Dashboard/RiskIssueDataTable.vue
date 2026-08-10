@@ -48,7 +48,7 @@ const props = defineProps({
     canManage: { type: Boolean, default: false },
     canContribute: { type: Boolean, default: false },
     loading: { type: Boolean, default: false },
-    /** `page` = tab Vướng mắc trên Project Show (ẩn tiêu đề panel, nút tạo trên toolbar) */
+    /** `page` = tab Test case trên Project Show (ẩn tiêu đề panel, nút tạo trên toolbar) */
     layout: { type: String, default: 'panel' },
 });
 
@@ -267,7 +267,7 @@ const changeStatus = (row, status) => {
         preserveScroll: true,
         onSuccess: () => {
             if (status === 'resolved') {
-                toast.success('Đã xác nhận giải quyết vướng mắc');
+                toast.success('Đã xác nhận giải quyết test case');
             }
         },
         onFinish: () => {
@@ -317,7 +317,7 @@ const openCreate = () => { editing.value = null; modalOpen.value = true; };
 const openEdit = (row) => { editing.value = row; modalOpen.value = true; };
 
 const removeOne = async (row) => {
-    if (!await dialog.confirm({ title: 'Xoá rủi ro', message: `Xoá "${row.title}"?`, tone: 'danger', confirmText: 'Xoá' })) return;
+    if (!await dialog.confirm({ title: 'Xoá test case', message: `Xoá "${row.title}"?`, tone: 'danger', confirmText: 'Xoá' })) return;
     router.delete(`/blockers/${row.id}`, { preserveScroll: true });
 };
 
@@ -329,7 +329,7 @@ const onSaved = () => {
 };
 
 const onImported = ({ count }) => {
-    toast.success(`Đã nhập ${count} vướng mắc từ file`);
+    toast.success(`Đã nhập ${count} test case từ file`);
     emit('saved', { type: 'imported', count });
 };
 
@@ -366,7 +366,7 @@ defineExpose({ scrollHere, openCreate, openImport });
       >
         <div>
           <h2 class="font-display text-base font-bold text-slate-900 dark:text-slate-50">
-            Rủi ro & Vướng mắc
+            Trường hợp kiểm thử
           </h2>
           <p class="text-xs text-slate-500 dark:text-slate-400">
             {{ listSummary }}
@@ -433,7 +433,7 @@ defineExpose({ scrollHere, openCreate, openImport });
                   Cột hiển thị
                 </p>
                 <p class="px-2 pb-1 text-[10px] text-slate-400">
-                  Cột «Vướng mắc» luôn hiển thị
+                  Cột «Test case» luôn hiển thị
                 </p>
                 <label
                   v-for="c in RISK_TABLE_COLUMNS"
@@ -460,7 +460,7 @@ defineExpose({ scrollHere, openCreate, openImport });
             <DatagridToolbarActionButton
               icon="upload"
               :active="dataMenu"
-              title="Nhập · Xuất dữ liệu vướng mắc"
+              title="Nhập · Xuất dữ liệu test case"
               @click.stop="toggleDataMenu"
             >
               Dữ liệu
@@ -481,7 +481,7 @@ defineExpose({ scrollHere, openCreate, openImport });
               name="add"
               :size="15"
             />
-            Thêm rủi ro
+            Thêm test case
           </button>
         </div>
       </div>
@@ -648,7 +648,7 @@ defineExpose({ scrollHere, openCreate, openImport });
               class="sticky top-0 z-10 min-w-[11rem] cursor-pointer border-b border-slate-200 bg-slate-50 px-2 py-1.5 dark:border-slate-700 dark:bg-slate-800/95"
               @click="table.toggleSort('title')"
             >
-              Vướng mắc <AppIcon
+              Test case <AppIcon
                 name="sort"
                 :size="11"
                 class="inline opacity-40"
@@ -748,10 +748,10 @@ defineExpose({ scrollHere, openCreate, openImport });
                   />
                 </span>
                 <p class="font-semibold text-slate-700 dark:text-slate-200">
-                  {{ blockers.length ? 'Không có kết quả phù hợp' : 'Không có rủi ro / vướng mắc' }}
+                  {{ blockers.length ? 'Không có kết quả phù hợp' : 'Không có test case' }}
                 </p>
                 <p class="mt-1 text-sm text-slate-500">
-                  {{ blockers.length ? 'Thử đổi từ khoá hoặc bộ lọc.' : 'Thêm mục mới để theo dõi rủi ro dự án.' }}
+                  {{ blockers.length ? 'Thử đổi từ khoá hoặc bộ lọc.' : 'Thêm mục mới để theo dõi test case dự án.' }}
                 </p>
                 <button
                   v-if="canManage"
@@ -762,7 +762,7 @@ defineExpose({ scrollHere, openCreate, openImport });
                   <AppIcon
                     name="add"
                     :size="14"
-                  /> Thêm rủi ro
+                  /> Thêm test case
                 </button>
               </div>
             </td>

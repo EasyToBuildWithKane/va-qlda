@@ -3,7 +3,7 @@
 **File gốc (config đầy đủ):** [`../realtime.md`](../realtime.md)  
 **Lệnh:** [`lenh-cli.md`](lenh-cli.md) — `npm run realtime`
 
-Bình luận **vướng mắc**, **task**, feedback, KB, … — hai người cùng thread có thể thấy tin mới **không F5** khi stack realtime bật.
+Bình luận **test case**, **task**, feedback, KB, … — hai người cùng thread có thể thấy tin mới **không F5** khi stack realtime bật.
 
 ---
 
@@ -66,7 +66,7 @@ REDIS_PORT=6379
 2. Redis chạy  
 3. Ba process: `php artisan serve` · `npm run dev` · `npm run realtime`  
 4. Proxy local `/socket.io` → `:6001` **hoặc** `REALTIME_CLIENT_URL=http://127.0.0.1:6001` (CORS trong `realtime/server.mjs`)  
-5. Hai tài khoản → cùng vướng mắc → tab **Trao đổi**
+5. Hai tài khoản → cùng test case → tab **Trao đổi**
 
 ---
 

@@ -60,7 +60,7 @@ final class PermissionCatalog
                 'view' => 'Xem', 'create' => 'Tạo', 'update' => 'Sửa', 'delete' => 'Xóa',
                 'manage' => 'Quản lý (sprint, task, thành viên)', 'contribute' => 'Đóng góp công việc',
             ]],
-            'blocker' => ['label' => 'Vướng mắc', 'icon' => 'blockers', 'group' => 'Công việc', 'abilities' => [
+            'blocker' => ['label' => 'Trường hợp kiểm thử', 'icon' => 'blockers', 'group' => 'Công việc', 'abilities' => [
                 'create' => 'Tạo', 'update' => 'Sửa', 'delete' => 'Xóa', 'comment' => 'Bình luận',
             ]],
             'daily_report' => ['label' => 'Báo cáo ngày', 'icon' => 'daily', 'group' => 'Công việc', 'abilities' => [

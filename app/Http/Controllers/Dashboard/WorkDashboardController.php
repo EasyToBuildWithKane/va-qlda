@@ -106,7 +106,7 @@ class WorkDashboardController extends Controller
             ],
             [
                 'key' => 'blockers',
-                'label' => 'Vướng mắc đang mở',
+                'label' => 'Test case đang mở',
                 'value' => $openBlockers,
                 'sub' => 'Cần xử lý',
                 'icon' => 'blockers',

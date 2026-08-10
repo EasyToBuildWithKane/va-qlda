@@ -190,7 +190,7 @@ function buildGuideSheet({ projectCode, projectName, severityOptions, statusOpti
     const COLS = 7;
     let row = 0;
 
-    setCell(ws, row, 0, 'HƯỚNG DẪN NHẬP RỦI RO & VƯỚNG MẮC', S.title);
+    setCell(ws, row, 0, 'HƯỚNG DẪN NHẬP TRƯỜNG HỢP KIỂM THỬ', S.title);
     mergeRow(ws, row, 0, COLS);
     row++;
     setCell(ws, row, 0, `Dự án: ${projectName || '—'} (${projectCode}) · Mẫu chuẩn VAschools`, S.subtitle);
@@ -264,7 +264,7 @@ function buildDataSheet({ projectCode, projectName }) {
     const ws = {};
     const COLS = IMPORT_HEADERS.length - 1;
 
-    setCell(ws, 0, 0, `NHẬP RỦI RO & VƯỚNG MẮC — ${projectName || projectCode}`, S.title);
+    setCell(ws, 0, 0, `NHẬP TRƯỜNG HỢP KIỂM THỬ — ${projectName || projectCode}`, S.title);
     mergeRow(ws, 0, 0, COLS);
     setCell(ws, 1, 0, `Mã dự án: ${projectCode} · Điền từ dòng 8 (sau 2 dòng mẫu) · Xóa dòng mẫu trước khi import`, S.subtitle);
     mergeRow(ws, 1, 0, COLS);
@@ -318,7 +318,7 @@ export function downloadRiskImportTemplate({
     XLSX.utils.book_append_sheet(wb, buildGuideSheet(meta), 'Huong dan');
     XLSX.utils.book_append_sheet(wb, buildDataSheet(meta), 'Nhap lieu');
 
-    XLSX.writeFile(wb, `VA_MauNhap_RuiRo_${code}.xlsx`);
+    XLSX.writeFile(wb, `VA_MauNhap_TestCase_${code}.xlsx`);
 }
 
 function cellText(cell) {
@@ -693,5 +693,5 @@ export function exportPreviewRows(rows, { projectCode = 'DA', projectName = '', 
     XLSX.utils.book_append_sheet(wb, ws, mode === 'errors' ? 'Loi' : 'Hop le');
     const code = safeCode(projectCode);
     const t = fileStamp();
-    XLSX.writeFile(wb, `VA_RuiRo_${mode === 'errors' ? 'Loi' : 'HopLe'}_${code}_${t.dd}${t.mm}${t.yyyy}.xlsx`);
+    XLSX.writeFile(wb, `VA_TestCase_${mode === 'errors' ? 'Loi' : 'HopLe'}_${code}_${t.dd}${t.mm}${t.yyyy}.xlsx`);
 }

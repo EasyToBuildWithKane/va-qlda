@@ -33,11 +33,11 @@ const cards = computed(() => {
         },
         {
             key: 'open_blockers',
-            label: 'Vướng mắc đang mở',
+            label: 'Test case đang mở',
             value: openBlockers,
             tone: openBlockers > 0 ? 'amber' : 'emerald',
             icon: 'blockers',
-            sub: openBlockers > 0 ? 'Cần theo dõi xử lý' : 'Không có vướng mắc mở',
+            sub: openBlockers > 0 ? 'Cần theo dõi xử lý' : 'Không có test case mở',
             interactive: true,
             href: '/blockers',
         },

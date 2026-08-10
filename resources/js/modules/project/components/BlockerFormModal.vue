@@ -3,7 +3,6 @@ import { computed, inject, watch, ref, nextTick } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
 import Modal from '@/Components/Ui/Modal.vue';
-import FieldTooltip from '@/shared/ui/FieldTooltip.vue';
 import PersonSelect from '@/modules/project/components/PersonSelect.vue';
 import SearchSelect from '@/shared/ui/SearchSelect.vue';
 import BlockerAttachmentsBlock from '@/modules/project/components/BlockerAttachmentsBlock.vue';
@@ -243,10 +242,10 @@ const projectBannerLabel = computed(() => {
 
 const modalTitle = computed(() => {
     if (!props.blocker) {
-        return createMode.value === 'bulk' ? 'Ghi nhận nhiều vướng mắc' : 'Ghi nhận vướng mắc';
+        return createMode.value === 'bulk' ? 'Ghi nhận nhiều test case' : 'Ghi nhận test case';
     }
-    if (props.focusResolution) return 'Hướng xử lý vướng mắc';
-    return 'Cập nhật vướng mắc';
+    if (props.focusResolution) return 'Hướng xử lý test case';
+    return 'Cập nhật test case';
 });
 
 const modalMaxWidth = computed(() => {
@@ -284,7 +283,7 @@ const statusLocked = computed(() => {
 
 const submitLabel = computed(() => {
     if (isResolutionFlow.value) return 'Lưu hướng xử lý';
-    if (!isEdit.value) return 'Ghi nhận vướng mắc';
+    if (!isEdit.value) return 'Ghi nhận test case';
     return 'Lưu thay đổi';
 });
 
@@ -328,7 +327,7 @@ const uploadPendingAttachments = (blockerId, successMessage) => {
         return;
     }
     uploadFilesToBlocker(blockerId, files, {
-        onPartialError: () => toast.warning('Đã lưu vướng mắc nhưng một số ảnh/file chưa tải được.'),
+        onPartialError: () => toast.warning('Đã lưu test case nhưng một số ảnh/file chưa tải được.'),
         onFinish: () => {
             clearPendingCreateFiles();
             if (successMessage) toast.success(successMessage);
@@ -392,7 +391,7 @@ const submit = () => {
         onSuccess: (page) => {
             const id = page.props.flash?.created_blocker_id;
             if (id && pendingCreateFiles.value.length) {
-                uploadPendingAttachments(id, 'Đã ghi nhận vướng mắc và ảnh minh chứng');
+                uploadPendingAttachments(id, 'Đã ghi nhận test case và ảnh minh chứng');
             } else {
                 clearPendingCreateFiles();
                 finishSave();
@@ -464,7 +463,6 @@ const submit = () => {
         <label class="label flex items-center gap-1.5">
           Dự án
           <span class="font-normal text-slate-400">(tuỳ chọn)</span>
-          <FieldTooltip text="Để trống → nhóm «Thắc mắc chung» trên danh sách." />
         </label>
         <SearchSelect
           v-model="form.project_id"
@@ -523,7 +521,6 @@ const submit = () => {
             <label class="label flex items-center gap-1.5">
               Nguyên nhân
               <span class="text-danger">*</span>
-              <FieldTooltip text="Phân tích gốc rễ do người xử lý — giúp tránh lặp lại vướng mắc tương tự." />
             </label>
             <textarea
               v-model="form.root_cause"
@@ -540,9 +537,8 @@ const submit = () => {
           </div>
 
           <div>
-            <label class="label flex items-center gap-1.5">
+            <label class="label">
               Kế hoạch xử lý
-              <FieldTooltip text="Bước cụ thể, người phối hợp, thời hạn và tiêu chí hoàn thành." />
             </label>
             <textarea
               ref="resolutionInputRef"
@@ -572,9 +568,8 @@ const submit = () => {
               >
                 <div class="grid gap-2.5 sm:grid-cols-2">
                   <div>
-                    <label class="label flex items-center gap-1.5">
+                    <label class="label">
                       Mức độ
-                      <FieldTooltip text="Mức nghiêm trọng / ưu tiên xử lý." />
                     </label>
                     <SearchSelect
                       v-model="form.severity"
@@ -584,9 +579,8 @@ const submit = () => {
                     />
                   </div>
                   <div>
-                    <label class="label flex items-center gap-1.5">
+                    <label class="label">
                       Trạng thái
-                      <FieldTooltip text="Trạng thái xử lý hiện tại." />
                     </label>
                     <SearchSelect
                       v-model="form.status"
@@ -603,7 +597,7 @@ const submit = () => {
                     </p>
                   </div>
                   <div>
-                    <label class="label flex items-center gap-1.5">
+                    <label class="label">
                       Hạn xử lý
                     </label>
                     <input
@@ -613,7 +607,7 @@ const submit = () => {
                     >
                   </div>
                   <div>
-                    <label class="label flex items-center gap-1.5">
+                    <label class="label">
                       Người phụ trách
                     </label>
                     <PersonSelect

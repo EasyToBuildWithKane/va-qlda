@@ -28,8 +28,8 @@ const {
       type="button"
       class="quick-blocker-report-btn relative grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-rose-200 bg-rose-50 text-rose-600 shadow-sm transition hover:border-rose-300 hover:bg-rose-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-400"
       :class="{ 'quick-blocker-report-btn--pop': pulse }"
-      title="Báo vướng mắc nhanh"
-      aria-label="Báo vướng mắc nhanh — ghi nhận tại trang đang xem"
+      title="Báo test case nhanh"
+      aria-label="Báo test case nhanh — ghi nhận tại trang đang xem"
       @click="open"
     >
       <span

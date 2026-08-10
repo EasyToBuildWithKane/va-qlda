@@ -123,22 +123,24 @@ const descriptionHtml = computed(() => {
     return md.render(raw.replace(/\n/g, '  \n'));
 });
 
-/** Meta 2 cột trái — denser chip grid */
+/**
+ * Meta 2 cột trái — denser chip grid.
+ * Không lặp field đã có ở header badge (ưu tiên / giai đoạn / mốc / SLA) hay cạnh tiêu đề Mô tả (nguồn).
+ * Field tùy chọn chỉ hiện khi có giá trị.
+ */
 const metaRows = computed(() => {
     const t = props.task;
     if (!t) return [];
     const sp = t.story_points;
-    return [
+    const rows = [
         { key: 'start', label: 'Bắt đầu', value: startLabel.value, empty: EMPTY_LABELS.notUpdated },
         {
             key: 'due',
             label: 'Hạn hoàn thành',
             value: dueLabel.value,
-            empty: EMPTY_LABELS.periodUnset,
+            empty: EMPTY_LABELS.period,
             late: t.is_late,
         },
-        { key: 'started', label: 'Bắt tay làm', value: workStartedLabel.value, empty: EMPTY_LABELS.notUpdated },
-        { key: 'completed', label: 'Hoàn thành', value: completedLabel.value, empty: EMPTY_LABELS.notUpdated },
         { key: 'estimate', label: 'Giờ dự kiến', value: fmtHours(t.estimate_hours), empty: EMPTY_LABELS.notUpdated },
         { key: 'actual', label: 'Giờ thực tế', value: fmtHours(t.actual_hours), empty: EMPTY_LABELS.notUpdated },
         {
@@ -147,34 +149,27 @@ const metaRows = computed(() => {
             value: t.logged_today > 0 ? `${t.logged_today}h` : null,
             empty: 'Chưa ghi giờ',
         },
+        { key: 'sprint', label: 'Sprint', value: t.sprint?.name ?? null, empty: EMPTY_LABELS.notUpdated },
+        // Tùy chọn — chỉ hiện khi có dữ liệu
+        { key: 'started', label: 'Bắt tay làm', value: workStartedLabel.value, optional: true },
+        { key: 'completed', label: 'Hoàn thành', value: completedLabel.value, optional: true },
         {
             key: 'sp',
             label: 'Story points',
             value: sp != null && sp > 0 ? String(sp) : null,
-            empty: EMPTY_LABELS.notUpdated,
+            optional: true,
         },
-        { key: 'sprint', label: 'Sprint', value: t.sprint?.name ?? null, empty: EMPTY_LABELS.notUpdated },
-        { key: 'epic', label: 'Epic', value: t.epic?.name ?? null, empty: EMPTY_LABELS.notUpdated },
-        { key: 'phase', label: 'Giai đoạn', value: t.phase?.label ?? null, empty: EMPTY_LABELS.notUpdated, badge: t.phase },
-        { key: 'priority', label: 'Ưu tiên', value: t.priority?.label ?? null, empty: EMPTY_LABELS.notUpdated, badge: t.priority },
-        { key: 'parent', label: 'Việc cha', value: t.parent?.title ?? null, empty: EMPTY_LABELS.notUpdated },
-        { key: 'source', label: 'Nguồn', value: t.source?.label ?? null, empty: EMPTY_LABELS.notUpdated },
-        { key: 'milestone', label: 'Mốc', value: t.is_milestone ? 'Có' : 'Không' },
-        {
-            key: 'sla',
-            label: 'SLA',
-            value: t.sla_result?.label ?? null,
-            empty: EMPTY_LABELS.notUpdated,
-            badge: t.sla_result,
-        },
+        { key: 'epic', label: 'Epic', value: t.epic?.name ?? null, optional: true },
+        { key: 'parent', label: 'Việc cha', value: t.parent?.title ?? null, optional: true },
         {
             key: 'timing',
             label: 'Kế hoạch giờ',
             value: t.hours_timing?.label ?? null,
-            empty: EMPTY_LABELS.notUpdated,
             badge: t.hours_timing,
+            optional: true,
         },
     ];
+    return rows.filter((row) => !row.optional || !!row.value);
 });
 
 const people = computed(() => {
@@ -210,7 +205,7 @@ function onLog(payload) {
   >
     <div
       v-if="task"
-      class="flex h-full min-h-0 flex-col gap-3"
+      class="flex h-full min-h-0 flex-col gap-3 overflow-y-auto overscroll-contain lg:overflow-hidden"
     >
       <!-- Header compact: dự án + badge + actions -->
       <div
@@ -393,7 +388,7 @@ function onLog(payload) {
       <!-- Body 5–5: meta | mô tả — chỉ mô tả dài mới cuộn nội bộ -->
       <div class="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-2 lg:gap-4">
         <!-- Cột trái -->
-        <div class="flex min-h-0 flex-col gap-2.5 overflow-y-auto overscroll-contain pr-0.5 lg:overflow-hidden">
+        <div class="flex min-h-0 flex-col gap-2.5 overflow-y-auto overscroll-contain pr-0.5">
           <dl class="grid shrink-0 grid-cols-2 gap-1.5">
             <div
               v-for="row in metaRows"
@@ -459,7 +454,7 @@ function onLog(payload) {
             v-else
             class="shrink-0 rounded-lg border border-dashed border-slate-200 px-2.5 py-2 text-[12px] text-slate-400 dark:border-slate-700"
           >
-            {{ displayOrEmpty(null, 'Chưa gán đơn vị') }}
+            {{ displayOrEmpty(null, EMPTY_LABELS.notUpdated) }}
           </div>
         </div>
 

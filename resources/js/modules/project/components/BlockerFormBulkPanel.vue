@@ -4,7 +4,6 @@ import { useForm } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
 import PersonSelect from '@/modules/project/components/PersonSelect.vue';
 import SearchSelect from '@/shared/ui/SearchSelect.vue';
-import FieldTooltip from '@/shared/ui/FieldTooltip.vue';
 import BlockerAttachmentsBlock from '@/modules/project/components/BlockerAttachmentsBlock.vue';
 import { valueLabelOptions } from '@/shared/utils/selectOptions';
 import { useToast } from '@/shared/composables/useToast';
@@ -129,7 +128,7 @@ const setRowPendingFiles = (rowId, files) => {
 
 const addEmptyRow = () => {
     if (bulkRows.value.length >= BULK_MAX_ROWS) {
-        toast.warning(`Tối đa ${BULK_MAX_ROWS} vướng mắc mỗi lần.`);
+        toast.warning(`Tối đa ${BULK_MAX_ROWS} test case mỗi lần.`);
         return;
     }
     bulkRows.value = [...bulkRows.value, emptyBulkRow()];
@@ -157,7 +156,7 @@ const submitting = computed(() => bulkForm.processing || uploadingAttachments.va
 const uploadingAttachments = ref(false);
 
 const finishBulkSaved = (count) => {
-    toast.success(`Đã ghi nhận ${count} vướng mắc`);
+    toast.success(`Đã ghi nhận ${count} test case`);
     emit('saved');
 };
 
@@ -182,7 +181,7 @@ const submit = () => {
             if (needsUpload && ids.length) {
                 uploadingAttachments.value = true;
                 uploadAttachmentsForCreatedBlockers(rows, ids, {
-                    onPartialError: () => toast.warning('Đã ghi nhận vướng mắc nhưng một số ảnh chưa tải được.'),
+                    onPartialError: () => toast.warning('Đã ghi nhận test case nhưng một số ảnh chưa tải được.'),
                     onFinish: () => {
                         uploadingAttachments.value = false;
                         finishBulkSaved(rows.length);
@@ -240,9 +239,8 @@ const pendingAttachmentCount = computed(() =>
             v-if="!lockProject"
             class="sm:col-span-2 lg:col-span-3"
           >
-            <label class="label flex items-center gap-1">
+            <label class="label">
               Dự án
-              <FieldTooltip text="Để trống → nhóm «Thắc mắc chung»." />
             </label>
             <SearchSelect
               v-model="defaults.project_id"
@@ -299,7 +297,7 @@ const pendingAttachmentCount = computed(() =>
     <div class="overflow-hidden rounded-lg border border-slate-200">
       <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/80 px-3 py-2">
         <h3 class="text-xs font-semibold text-slate-800">
-          Danh sách vướng mắc
+          Danh sách test case
         </h3>
         <span class="text-[11px] text-slate-500">{{ listHint }}</span>
       </div>
@@ -325,7 +323,7 @@ const pendingAttachmentCount = computed(() =>
               type="text"
               class="input w-full py-1.5 text-sm"
               :class="rowHasErrors(row.id) ? 'border-amber-300' : ''"
-              placeholder="Đề vướng mắc…"
+              placeholder="Đề test case…"
               maxlength="255"
             >
             <p
@@ -405,7 +403,7 @@ const pendingAttachmentCount = computed(() =>
         @click="submit"
       >
         <span v-if="submitting">Đang ghi nhận…</span>
-        <span v-else>Ghi nhận {{ summary.valid }} vướng mắc</span>
+        <span v-else>Ghi nhận {{ summary.valid }} test case</span>
       </button>
     </div>
   </div>

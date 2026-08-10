@@ -172,7 +172,7 @@ flowchart TB
 |--------------|------------|--------------------|----------|
 | Tổng quan | `PROJECT_OVERVIEW.md` §3 | `HubDashboardController` | `Pages/Dashboard/` |
 | Trung tâm Công Nghệ | `CONGNGHE_CONTENT.md` | `Congnghe/*` | `Pages/Congnghe/`, `CongngheAdmin/` |
-| Dự án & vướng mắc | **`PROJECT_MANAGEMENT.md`** (+ `API_STRUCTURE` §2.4–2.11) | `Project/*`, `BlockerController` | `Pages/Project/`, `modules/project/` |
+| Dự án & test case | **`PROJECT_MANAGEMENT.md`** (+ `API_STRUCTURE` §2.4–2.11) | `Project/*`, `BlockerController` | `Pages/Project/`, `modules/project/` |
 | Báo cáo ngày | `DAILY_REPORT.md` (+ `DAILY_REPORT_PROJECTS.md` liên kết dự án) | `DailyReport/*` | `Pages/DailyReport/`, `modules/daily-report/` |
 | Hồ sơ | `API_STRUCTURE` §2.18 | `ProfileController` | `Pages/Profile/` |
 | Tri thức | `KNOWLEDGE_BASE.md` | `KbArticleController` | `Pages/KnowledgeBase/` |
@@ -217,7 +217,7 @@ stateDiagram-v2
 
 Use cases: `app/Application/DailyReport/`. Chi tiết: [`DAILY_REPORT.md`](./DAILY_REPORT.md).
 
-### 7.3 Vướng mắc / nhập Excel
+### 7.3 Test case / nhập Excel
 
 ```mermaid
 flowchart LR

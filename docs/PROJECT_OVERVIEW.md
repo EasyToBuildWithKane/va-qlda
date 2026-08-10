@@ -12,7 +12,7 @@ VA Workspace là nền tảng quản lý công việc và đánh giá hiệu su�
 |---|---|
 | Theo dõi tiến độ dự án phân tán | Quản lý dự án tập trung với Sprint, Task, Gantt |
 | Không có kênh báo cáo ngày chuẩn hóa | Module Daily Report với chấm điểm và xếp loại |
-| Khó quản lý rủi ro / vướng mắc | Module Blocker với tracking mức độ nghiêm trọng |
+| Khó quản lý test case (Blocker) | Module Blocker với tracking mức độ nghiêm trọng |
 | Thiếu luồng phản hồi từ nhân viên | Module Feedback & Bug Report |
 | Không đo được chi phí nhân công thực tế | Worklog gắn rate theo từng dự án |
 | Quản lý nhân sự theo phòng ban | Module Department + Employee linking |
@@ -37,7 +37,7 @@ VA Workspace
 │   ├── Documents   Tài liệu dự án đính kèm
 │   └── Members     Quản lý thành viên & role trong dự án
 ├── [DAILY REPORT]  Báo cáo ngày (tạo → nộp → chấm điểm → xếp loại)
-├── [BLOCKER]       Quản lý vướng mắc / rủi ro (RSK-001)
+├── [BLOCKER]       Quản lý test case / Blocker (RSK-001)
 ├── [FEEDBACK]      Góp ý & đề xuất từ nhân viên (FB-0001)
 ├── [COMMENT]       Thảo luận đa hình (Task, Blocker, Feedback)
 ├── [DEPARTMENT]    Phòng ban (model + mutate API; Index UI gỡ — chờ HRM)
@@ -112,7 +112,7 @@ Tạo Project
 ### 3.3 Luồng Blocker / Risk
 
 ```
-[Member] Phát sinh vướng mắc → Tạo Blocker (RSK-001)
+[Member] Phát sinh test case → Tạo Blocker (RSK-001)
     │
     ├── Gán severity (critical/high/medium/low)
     ├── Gán Owner (người chịu trách nhiệm)

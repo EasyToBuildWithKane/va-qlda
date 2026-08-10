@@ -182,7 +182,7 @@ const hasMetaBadges = computed(
           <span
             v-if="project.open_blocker_count"
             class="inline-flex items-center gap-1 rounded-md bg-rose-50 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-rose-700 ring-1 ring-inset ring-rose-200/80"
-            title="Vướng mắc đang mở"
+            title="Test case đang mở"
           >
             <AppIcon
               name="blockers"

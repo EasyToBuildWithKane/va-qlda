@@ -1,6 +1,6 @@
 # Realtime comments (Socket.IO) — VA-Workspace
 
-Trao đổi trên **vướng mắc**, **task**, bug, feedback: hai người cùng mở một thread sẽ thấy bình luận mới qua WebSocket (nếu stack realtime đang chạy). Nếu realtime tắt hoặc lỗi, người gửi vẫn thấy tin sau partial reload Inertia (`only: ['blockers']`); người còn lại cần refresh hoặc sửa realtime.
+Trao đổi trên **test case**, **task**, bug, feedback: hai người cùng mở một thread sẽ thấy bình luận mới qua WebSocket (nếu stack realtime đang chạy). Nếu realtime tắt hoặc lỗi, người gửi vẫn thấy tin sau partial reload Inertia (`only: ['blockers']`); người còn lại cần refresh hoặc sửa realtime.
 
 ## Architecture
 
@@ -46,7 +46,7 @@ Shared Inertia props: `realtime.enabled`, `realtime.url` (`REALTIME_CLIENT_URL`)
 
 4. Local Socket.IO: either proxy `/socket.io` to `:6001` or set `REALTIME_CLIENT_URL=http://127.0.0.1:6001` (CORS must allow your Laravel origin — see `realtime/server.mjs`).
 
-5. Two accounts → `/blockers` → cùng vướng mắc → tab **Trao đổi**. Badge **Realtime** (xanh) = đã join room. User A gửi → User B thấy ngay (không F5).
+5. Two accounts → `/blockers` → cùng test case → tab **Trao đổi**. Badge **Realtime** (xanh) = đã join room. User A gửi → User B thấy ngay (không F5).
 
 ## Production checklist (projects.vaschools.edu.vn)
 
@@ -163,7 +163,7 @@ ss -lntp | grep 6001
 redis-cli ping
 ```
 
-Browser: tab Trao đổi vướng mắc → badge **Realtime** (xanh) after deploy frontend with `useCommentRealtime` indicator.
+Browser: tab Trao đổi test case → badge **Realtime** (xanh) after deploy frontend with `useCommentRealtime` indicator.
 
 **Console: `WebSocket connection … transport=websocket&sid=…` failed**
 

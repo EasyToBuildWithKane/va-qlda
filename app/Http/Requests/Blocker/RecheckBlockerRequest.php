@@ -38,7 +38,7 @@ class RecheckBlockerRequest extends FormRequest
             if (! BlockerRecheck::needsRecheck($blocker)) {
                 $validator->errors()->add(
                     'result',
-                    'Chỉ kiểm tra lại được khi vướng mắc đã giải quyết và đang chờ xác nhận.',
+                    'Chỉ kiểm tra lại được khi test case đã giải quyết và đang chờ xác nhận.',
                 );
             }
 

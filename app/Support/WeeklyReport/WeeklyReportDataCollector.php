@@ -14,7 +14,7 @@ use Illuminate\Support\Collection;
 
 /**
  * Gom toàn bộ dữ liệu nguồn cho một tuần báo cáo từ Sprint hiện tại:
- * Tasks, Worklogs, Activity, Vướng mắc (Blocker) và Phản hồi (Feedback).
+ * Tasks, Worklogs, Activity, Test case (Blocker) và Phản hồi (Feedback).
  */
 class WeeklyReportDataCollector
 {
@@ -87,7 +87,7 @@ class WeeklyReportDataCollector
     }
 
     /**
-     * Vướng mắc còn mở (bất kể thời điểm) + vướng mắc gắn task trong Sprint.
+     * Test case còn mở (bất kể thời điểm) + test case gắn task trong Sprint.
      *
      * @return Collection<int, Blocker>
      */

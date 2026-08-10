@@ -48,7 +48,7 @@ const timeline = computed(() => {
         items.push({
             id: 'raised',
             event: 'created',
-            description: 'Phát hiện rủi ro / vướng mắc',
+            description: 'Phát hiện test case',
             employee: props.row.raised_by,
             created_at: props.row.raised_at,
         });

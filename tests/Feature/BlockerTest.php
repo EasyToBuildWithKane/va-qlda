@@ -333,7 +333,7 @@ class BlockerTest extends TestCase
         Http::assertSent(function ($request) use ($project) {
             return str_contains($request->url(), 'api.telegram.org/bottest-bot-token/sendMessage')
                 && ($request['chat_id'] ?? null) === '-100888'
-                && str_contains($request['text'], 'Vướng mắc đã xử lý')
+                && str_contains($request['text'], 'Test case đã xử lý')
                 && str_contains($request['text'], 'Chuyển trạng thái')
                 && str_contains($request['text'], 'Chờ API HRM')
                 && str_contains($request['text'], 'Đã phối hợp team HRM')
@@ -368,7 +368,7 @@ class BlockerTest extends TestCase
             ->assertRedirect();
 
         Http::assertSent(function ($request) {
-            return str_contains($request['text'], 'Vướng mắc đang xử lý')
+            return str_contains($request['text'], 'Test case đang xử lý')
                 && str_contains($request['text'], 'Đang mở →')
                 && str_contains($request['text'], '[Cập nhật trạng thái lúc]');
         });

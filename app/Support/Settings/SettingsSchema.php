@@ -107,14 +107,14 @@ final class SettingsSchema
             ['group' => 'telegram', 'name' => 'chat_id', 'type' => 'string', 'label' => 'Chat ID chung',
                 'help' => 'ID nhóm nhận thông báo chung (thường âm với supergroup).', 'config' => 'telegram.chat_id',
                 'default' => null, 'rules' => ['nullable', 'string', 'max:64']],
-            ['group' => 'telegram', 'name' => 'blocker_chat_id', 'type' => 'string', 'label' => 'Chat ID vướng mắc',
-                'help' => 'Nhóm riêng nhận thông báo vướng mắc (tùy chọn).', 'config' => 'telegram.blocker_chat_id',
+            ['group' => 'telegram', 'name' => 'blocker_chat_id', 'type' => 'string', 'label' => 'Chat ID test case',
+                'help' => 'Nhóm riêng nhận thông báo test case (tùy chọn).', 'config' => 'telegram.blocker_chat_id',
                 'default' => null, 'rules' => ['nullable', 'string', 'max:64']],
             ['group' => 'telegram', 'name' => 'daily_report_review', 'type' => 'bool', 'label' => 'Báo khi duyệt/trả báo cáo ngày',
                 'help' => 'Gửi thông báo khi chấm điểm hoặc trả báo cáo trên trang Chờ phê duyệt.',
                 'config' => 'telegram.daily_report_review', 'default' => true, 'rules' => ['boolean']],
-            ['group' => 'telegram', 'name' => 'blocker_resolved', 'type' => 'bool', 'label' => 'Báo khi vướng mắc được giải quyết',
-                'help' => 'Gửi thông báo khi vướng mắc chuyển Đã giải quyết/Đã đóng.',
+            ['group' => 'telegram', 'name' => 'blocker_resolved', 'type' => 'bool', 'label' => 'Báo khi test case được giải quyết',
+                'help' => 'Gửi thông báo khi test case chuyển Đã giải quyết/Đã đóng.',
                 'config' => 'telegram.blocker_resolved', 'default' => true, 'rules' => ['boolean']],
 
             // ── email ────────────────────────────────────────────────

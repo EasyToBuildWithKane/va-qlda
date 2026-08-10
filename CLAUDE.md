@@ -180,7 +180,7 @@ Mọi module nhập/xuất/đối soát phải **copy pattern đã chứng minh*
 
 | Domain | Composable | Modal | Backend import |
 |--------|------------|-------|----------------|
-| Rủi ro / Vướng mắc | `useRiskImport.js`, `useRiskExport.js` | `RiskImportModal.vue` | `BlockerController@import` + `ImportBlockerRequest` |
+| Test case (Blocker) | `useRiskImport.js`, `useRiskExport.js` | `RiskImportModal.vue` | `BlockerController@import` + `ImportBlockerRequest` |
 | Sprint / Task | `useSprintData.js` | `SprintDataModal.vue` | Chưa bulk — cần thêm API |
 | Đối soát | `useSprintReconcile.js` | tab trong `SprintDataModal` | Client-side only |
 

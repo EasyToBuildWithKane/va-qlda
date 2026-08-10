@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| Blockers (Vướng mắc) — cross-project tracker.
+| Blockers (Test case) — cross-project tracker.
 |--------------------------------------------------------------------------
 */
 

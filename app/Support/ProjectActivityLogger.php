@@ -159,7 +159,7 @@ class ProjectActivityLogger
         self::log(
             $project,
             'blocker_deleted',
-            'Xoá vướng mắc: '.$blocker->title,
+            'Xoá test case: '.$blocker->title,
             ['blocker_id' => $blocker->id],
             $account?->employee_id,
         );

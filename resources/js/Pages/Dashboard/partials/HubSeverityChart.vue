@@ -1,6 +1,6 @@
 <script setup>
 /**
- * Vướng mắc đang mở theo mức độ — bar ngang, bấm để mở /blockers đã lọc.
+ * Test case đang mở theo mức độ — bar ngang, bấm để mở /blockers đã lọc.
  */
 import { computed } from 'vue';
 import { router } from '@inertiajs/vue3';
@@ -48,7 +48,7 @@ const options = computed(() => ({
     onClick: (e, els) => { if (els.length) navigate(els[0].index); },
     plugins: {
         legend: { display: false },
-        tooltip: { callbacks: { label: (ctx) => ` ${ctx.parsed.x} vướng mắc` } },
+        tooltip: { callbacks: { label: (ctx) => ` ${ctx.parsed.x} test case` } },
     },
     scales: {
         x: { beginAtZero: true, ticks: { precision: 0, font: { size: 10 } }, grid: { color: 'rgba(148,163,184,0.16)' } },
@@ -66,7 +66,7 @@ const options = computed(() => ({
           :size="16"
           class="text-amber-600"
         />
-        Vướng mắc theo mức độ
+        Test case theo mức độ
       </h3>
       <span class="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700 ring-1 ring-amber-200/70">
         {{ total }} đang mở
@@ -83,7 +83,7 @@ const options = computed(() => ({
         v-else
         class="flex h-full items-center justify-center text-sm text-emerald-600"
       >
-        Không có vướng mắc nào đang mở 🎉
+        Không có test case nào đang mở 🎉
       </div>
     </div>
   </div>

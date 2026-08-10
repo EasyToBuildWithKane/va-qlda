@@ -148,7 +148,7 @@ class HubDashboardController extends Controller
             ],
             [
                 'key' => 'blockers',
-                'label' => 'Vướng mắc',
+                'label' => 'Test case',
                 'icon' => 'blockers',
                 'href' => '/blockers',
                 'stat' => $stats['open_blockers'],

@@ -24,30 +24,49 @@ class WeeklyReportRiskAssessor
                 BlockerSeverity::Medium => 'medium',
                 default => 'low',
             };
+            $sev = $blocker->severity?->label() ?? 'Chưa rõ';
+            $taskBit = $blocker->task?->title ? ' · gắn «'.$blocker->task->title.'»' : '';
+            $ownerBit = $blocker->owner?->full_name
+                ? 'Phụ trách: '.$blocker->owner->full_name
+                : 'Chưa có người phụ trách';
             $risks[] = [
                 'level' => $level,
-                'label' => 'Vướng mắc: '.$blocker->title,
-                'reason' => $blocker->owner?->full_name
-                    ? 'Phụ trách: '.$blocker->owner->full_name
-                    : 'Chưa có người phụ trách.',
+                'label' => 'Test case ['.$sev.']: '.$blocker->title.$taskBit,
+                'reason' => $ownerBit.'.',
             ];
         }
 
-        $overdue = (int) ($kpi['overdue'] ?? 0);
+        $overdueTasks = $context->tasks
+            ->filter(fn (Task $t) => $t->due_date !== null
+                && $t->due_date->isPast()
+                && $t->status !== TaskStatus::Done)
+            ->sortBy('due_date');
+        $overdue = $overdueTasks->count();
         if ($overdue > 0) {
+            $sample = $overdueTasks->take(3)->map(function (Task $t) {
+                $who = $t->assignee?->full_name ?? 'Chưa gán';
+
+                return $t->title.' ('.$who.', hạn '.$t->due_date->format('d/m').')';
+            })->implode('; ');
             $risks[] = [
                 'level' => $overdue >= 3 ? 'high' : 'medium',
                 'label' => "Có {$overdue} công việc quá hạn",
-                'reason' => 'Cần điều phối lại nguồn lực hoặc dời mốc thời gian.',
+                'reason' => $sample.'. Cần điều phối lại nguồn lực hoặc dời mốc.',
             ];
         }
 
-        $blocked = $context->tasks->filter(fn (Task $t) => $t->status === TaskStatus::Blocked)->count();
+        $blockedTasks = $context->tasks->filter(fn (Task $t) => $t->status === TaskStatus::Blocked);
+        $blocked = $blockedTasks->count();
         if ($blocked > 0) {
+            $sample = $blockedTasks
+                ->sortByDesc(fn (Task $t) => $t->priority->weight())
+                ->take(3)
+                ->pluck('title')
+                ->implode('; ');
             $risks[] = [
                 'level' => 'medium',
                 'label' => "{$blocked} công việc đang bị chặn",
-                'reason' => 'Đang chờ tháo gỡ phụ thuộc trước khi tiếp tục.',
+                'reason' => $sample.'. Đang chờ tháo gỡ phụ thuộc trước khi tiếp tục.',
             ];
         }
 

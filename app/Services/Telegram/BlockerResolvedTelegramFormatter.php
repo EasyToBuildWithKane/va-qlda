@@ -20,15 +20,15 @@ class BlockerResolvedTelegramFormatter
         ?string $recheckNote = null,
     ): string {
         $headline = match ($newStatus) {
-            BlockerStatus::Resolved => 'Vướng mắc đã xử lý',
+            BlockerStatus::Resolved => 'Test case đã xử lý',
             BlockerStatus::Closed => $oldStatus === BlockerStatus::Resolved
-                ? 'Kiểm tra lại đạt — vướng mắc đã đóng'
-                : 'Vướng mắc đã đóng',
+                ? 'Kiểm tra lại đạt — test case đã đóng'
+                : 'Test case đã đóng',
             BlockerStatus::InProgress => $oldStatus === BlockerStatus::Resolved
                 ? 'Kiểm tra lại không đạt — cần xử lý lại'
-                : 'Vướng mắc đang xử lý',
-            BlockerStatus::Blocked => 'Vướng mắc bị chặn',
-            BlockerStatus::Open => 'Vướng mắc mở lại',
+                : 'Test case đang xử lý',
+            BlockerStatus::Blocked => 'Test case bị chặn',
+            BlockerStatus::Open => 'Test case mở lại',
         };
 
         $actor->loadMissing('employee');

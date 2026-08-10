@@ -63,7 +63,7 @@ const cards = computed(() => {
         },
         {
             key: 'blockers',
-            label: 'Vướng mắc mở',
+            label: 'Test case mở',
             value: blockersOpen,
             tone: blockersOpen ? 'rose' : 'slate',
             icon: 'blockers',

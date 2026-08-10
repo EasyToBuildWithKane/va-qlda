@@ -18,7 +18,7 @@ class WeeklyReportExportPresenter
         'remaining_tasks' => ['Còn lại', ''],
         'overdue' => ['Quá hạn', ''],
         'blocked' => ['Bị chặn', ''],
-        'open_issues' => ['Vướng mắc mở', ''],
+        'open_issues' => ['Test case mở', ''],
         'feedback' => ['Phản hồi', ''],
         'critical_bugs' => ['Lỗi nghiêm trọng', ''],
         'worklog_hours' => ['Giờ công', 'h'],

@@ -2,6 +2,8 @@
 
 namespace App\Support\WeeklyReport;
 
+use App\Models\Blocker;
+use App\Models\Feedback;
 use App\Models\Task;
 use App\Support\Enums\TaskStatus;
 use Illuminate\Support\Collection;
@@ -9,8 +11,8 @@ use Illuminate\Support\Collection;
 /**
  * Sinh văn bản báo cáo quản trị (tiếng Việt) từ dữ liệu Sprint.
  *
- * Nguyên tắc: mỗi thẻ gắn với task cụ thể (tiêu đề công việc); ưu tiên hoàn thành
- * trong cửa sổ tuần (completed_at), milestone, priority cao; gom epic khi cần.
+ * Nguyên tắc: mỗi dòng gắn thực thể cụ thể + meta (assignee, hạn, ưu tiên, ngày);
+ * thẻ «Kết quả» chỉ lấy việc trong cửa sổ tuần — không đổ full Sprint.
  */
 class WeeklyReportNarrator
 {
@@ -29,8 +31,8 @@ class WeeklyReportNarrator
                 'result' => $this->result($context, $kpi),
                 'current' => $this->current($context, $kpi, $risk),
                 'next' => $this->next($context, $feedback),
-                'risk' => $this->riskNarrative($risk),
-                'feedback' => $this->feedbackNarrative($feedback),
+                'risk' => $this->riskNarrative($context, $risk),
+                'feedback' => $this->feedbackNarrative($context, $feedback),
                 'activity' => $this->activityNarrative($context),
             ],
         ];
@@ -41,7 +43,12 @@ class WeeklyReportNarrator
         $progress = (int) $kpi['sprint_progress'];
         $done = (int) $kpi['completed_tasks'];
         $total = (int) $kpi['total_tasks'];
+        $remaining = (int) $kpi['remaining_tasks'];
         $highRisks = (int) $risk['summary']['high'];
+        $weekDone = $this->tasksCompletedInWeek($context)->count();
+        $hours = (float) $kpi['worklog_hours'];
+        $sprintName = $context->sprint?->name ?? 'ngoài Sprint';
+        $weekLabel = $this->weekLabel($context);
 
         $pace = match (true) {
             $progress >= 85 => 'bám sát kế hoạch và gần hoàn tất',
@@ -51,16 +58,35 @@ class WeeklyReportNarrator
         };
 
         $parts = [];
-        $parts[] = "Sprint hiện đạt khoảng {$progress}% kế hoạch ({$done}/{$total} hạng mục), {$pace}.";
+        $parts[] = "{$sprintName} — {$weekLabel}: đạt khoảng {$progress}% kế hoạch ({$done}/{$total} hạng mục, còn {$remaining}), {$pace}.";
+
+        if ($weekDone > 0) {
+            $parts[] = "Trong tuần hoàn thành {$weekDone} công việc.";
+        } else {
+            $parts[] = 'Trong tuần chưa ghi nhận hạng mục hoàn thành mới.';
+        }
+
+        if ($hours > 0) {
+            $parts[] = "Công sức ghi nhận: {$hours} giờ.";
+        }
 
         if ((int) $kpi['critical_bugs'] === 0 && (int) $kpi['blocked'] === 0) {
-            $parts[] = 'Hệ thống vận hành ổn định, không ghi nhận lỗi nghiêm trọng.';
-        } elseif ((int) $kpi['critical_bugs'] > 0) {
-            $parts[] = 'Còn tồn tại lỗi nghiêm trọng cần ưu tiên xử lý.';
+            $parts[] = 'Không có công việc bị chặn hay lỗi nghiêm trọng.';
+        } else {
+            if ((int) $kpi['blocked'] > 0) {
+                $parts[] = "Đang có {$kpi['blocked']} công việc bị chặn.";
+            }
+            if ((int) $kpi['critical_bugs'] > 0) {
+                $parts[] = "Còn {$kpi['critical_bugs']} lỗi nghiêm trọng cần ưu tiên.";
+            }
+        }
+
+        if ((int) $kpi['overdue'] > 0) {
+            $parts[] = "{$kpi['overdue']} hạng mục quá hạn cần xử lý ngay.";
         }
 
         if ($highRisks > 0) {
-            $parts[] = "Vẫn còn {$highRisks} rủi ro mức cao cần Ban lãnh đạo quan tâm trước khi Release.";
+            $parts[] = "{$highRisks} rủi ro mức cao cần Ban lãnh đạo quan tâm trước khi Release.";
         } else {
             $parts[] = 'Chưa phát sinh rủi ro lớn ảnh hưởng tới mốc bàn giao.';
         }
@@ -72,66 +98,109 @@ class WeeklyReportNarrator
     {
         $signals = [];
 
-        if ((int) $kpi['overdue'] > 0) {
-            $signals[] = "{$kpi['overdue']} công việc quá hạn đang kéo lùi tiến độ";
+        $overdueTasks = $this->overdueTasks($context)->take(2);
+        if ($overdueTasks->isNotEmpty()) {
+            $names = $overdueTasks->pluck('title')->implode(', ');
+            $extra = (int) $kpi['overdue'] > 2 ? ' (và '.((int) $kpi['overdue'] - 2).' hạng mục khác)' : '';
+            $signals[] = "quá hạn: {$names}{$extra}";
         }
-        if ((int) $kpi['open_issues'] > 0) {
-            $signals[] = "{$kpi['open_issues']} vướng mắc chưa được tháo gỡ";
+
+        $blockedTasks = $context->tasks
+            ->filter(fn (Task $t) => $t->status === TaskStatus::Blocked)
+            ->sortByDesc(fn (Task $t) => $t->priority->weight())
+            ->take(2);
+        if ($blockedTasks->isNotEmpty()) {
+            $signals[] = 'bị chặn: '.$blockedTasks->pluck('title')->implode(', ');
         }
+
+        $topBlockers = $context->blockers->take(2);
+        if ($topBlockers->isNotEmpty()) {
+            $signals[] = 'test case: '.$topBlockers->pluck('title')->implode(', ');
+        }
+
         $changeRequests = $this->feedbackCount($feedback, 'change_request');
         if ($changeRequests > 0) {
-            $signals[] = "{$changeRequests} yêu cầu thay đổi từ phía người dùng";
+            $titles = $context->feedbacks
+                ->filter(fn (Feedback $f) => (new WeeklyReportFeedbackClassifier)->bucketFor($f) === 'change_request')
+                ->take(2)
+                ->pluck('title')
+                ->filter()
+                ->values();
+            $signals[] = $titles->isNotEmpty()
+                ? "yêu cầu thay đổi ({$changeRequests}): ".$titles->implode(', ')
+                : "{$changeRequests} yêu cầu thay đổi từ người dùng";
+        }
+
+        $highRisks = collect($risk['risks'])->where('level', 'high')->take(2);
+        foreach ($highRisks as $item) {
+            $signals[] = 'rủi ro cao: '.$item['label'];
         }
 
         if ($signals === []) {
-            return 'Dữ liệu Sprint cho thấy nhịp độ tốt: tiến độ và chất lượng được kiểm soát, không có tín hiệu cảnh báo nổi bật trong tuần.';
+            $weekDone = $this->tasksCompletedInWeek($context)->count();
+            $hours = (float) $kpi['worklog_hours'];
+            $bits = ["tiến độ Sprint {$kpi['sprint_progress']}%"];
+            if ($weekDone > 0) {
+                $bits[] = "hoàn thành {$weekDone} hạng mục trong tuần";
+            }
+            if ($hours > 0) {
+                $bits[] = "{$hours} giờ công";
+            }
+
+            return 'Nhịp độ tuần tốt: '.$this->joinNatural($bits)
+                .'. Không có tín hiệu cảnh báo nổi bật cần Ban lãnh đạo can thiệp.';
         }
 
-        return 'Điểm cần chú ý nhất tuần này: '.$this->joinNatural($signals).'. '
-            .'Đề nghị ưu tiên xử lý các hạng mục trên để bảo đảm cam kết Sprint.';
+        return 'Điểm cần chú ý nhất '.$this->weekLabel($context).': '.$this->joinNatural($signals).'. '
+            .'Đề nghị ưu tiên tháo gỡ các hạng mục trên để bảo đảm cam kết Sprint.';
     }
 
     private function result(WeeklyReportContext $context, array $kpi): string
     {
         $lines = [];
-
         $completedInWeek = $this->tasksCompletedInWeek($context)
             ->sortByDesc(fn (Task $t) => $t->completed_at ?? $t->updated_at);
 
-        foreach ($completedInWeek->take(8) as $task) {
-            if ($task->is_milestone) {
-                $lines[] = "Đạt mốc: {$task->title}.";
-            } else {
-                $lines[] = "Hoàn thành: {$task->title}.";
-            }
+        foreach ($completedInWeek->take(10) as $task) {
+            $prefix = $task->is_milestone ? 'Đạt mốc' : 'Hoàn thành';
+            $at = $task->completed_at ?? $task->updated_at;
+            $meta = $this->taskMeta($task, [
+                $at ? 'ngày '.$at->format('d/m') : null,
+            ]);
+            $lines[] = "{$prefix}: {$task->title}{$meta}.";
         }
 
-        if ($lines === []) {
-            $doneInSprint = $context->tasks
-                ->filter(fn (Task $t) => $t->status === TaskStatus::Done && $t->parent_id === null);
-            foreach ($this->topTitles($doneInSprint, 6) as $title) {
-                $lines[] = "Đã hoàn thành (Sprint): {$title}.";
-            }
-        }
+        $hoursByTask = $context->worklogs
+            ->groupBy('task_id')
+            ->map(fn (Collection $rows) => round((float) $rows->sum(fn ($w) => (float) $w->hours), 1));
 
-        $workedTaskIds = $context->worklogs->pluck('task_id')->unique();
         $progressThisWeek = $context->tasks
-            ->whereIn('id', $workedTaskIds)
+            ->whereIn('id', $hoursByTask->keys()->all())
             ->filter(fn (Task $t) => $t->status !== TaskStatus::Done && ! $completedInWeek->pluck('id')->contains($t->id))
             ->sortByDesc(fn (Task $t) => $t->priority->weight());
-        foreach ($this->topTitles($progressThisWeek, 4) as $title) {
-            $lines[] = "Có tiến độ ghi nhận trong tuần: {$title}.";
+
+        foreach ($progressThisWeek->take(5) as $task) {
+            $h = $hoursByTask->get($task->id, 0);
+            $meta = $this->taskMeta($task, [$h > 0 ? "{$h} giờ" : null]);
+            $lines[] = "Có tiến độ ghi nhận trong tuần: {$task->title}{$meta}.";
         }
 
         $deployEvents = $context->activities
             ->filter(fn ($a) => $this->mentions($a->event.' '.$a->description, ['deploy', 'release', 'phát hành', 'triển khai']));
-        if ($deployEvents->isNotEmpty()) {
-            $lines[] = 'Thực hiện triển khai/phát hành phiên bản trong tuần.';
+        foreach ($deployEvents->take(2) as $event) {
+            $snippet = $this->truncate((string) ($event->description ?: $event->event), 80);
+            $lines[] = "Triển khai/phát hành: {$snippet}.";
         }
 
         $hours = (float) $kpi['worklog_hours'];
         if ($hours > 0 && $lines !== []) {
-            $lines[] = "Tổng công sức ghi nhận: {$hours} giờ làm việc.";
+            $people = $context->worklogs->pluck('employee_id')->filter()->unique()->count();
+            $peopleBit = $people > 0 ? " / {$people} người" : '';
+            $lines[] = "Tổng công sức tuần: {$hours} giờ{$peopleBit}.";
+        }
+
+        if ($completedInWeek->isNotEmpty()) {
+            $lines[] = 'Tuần này hoàn thành '.$completedInWeek->count().' hạng mục (không tính việc done từ tuần trước).';
         }
 
         return $this->bullets($lines, 'Chưa có kết quả nổi bật được ghi nhận trong tuần.');
@@ -149,39 +218,42 @@ class WeeklyReportNarrator
             ], true))
             ->sortByDesc(fn (Task $t) => $t->priority->weight());
 
-        foreach ($active->take(6) as $task) {
-            $lines[] = "{$task->status->label()}: {$task->title}.";
+        foreach ($active->take(8) as $task) {
+            $meta = $this->taskMeta($task, [
+                $task->priority->label() !== 'Trung bình' ? 'ƯT '.$task->priority->label() : null,
+                $task->due_date ? 'hạn '.$task->due_date->format('d/m') : null,
+            ]);
+            $lines[] = "{$task->status->label()}: {$task->title}{$meta}.";
         }
 
-        foreach ($context->blockers->take(4) as $blocker) {
-            $taskTitle = $blocker->task?->title;
-            if ($taskTitle) {
-                $lines[] = "Vướng mắc ({$taskTitle}): {$blocker->title}.";
-            } else {
-                $lines[] = "Vướng mắc: {$blocker->title}.";
-            }
+        foreach ($context->blockers->take(5) as $blocker) {
+            $lines[] = $this->blockerLine($blocker);
         }
 
-        $overdueTasks = $context->tasks
-            ->filter(fn (Task $t) => $t->due_date !== null
-                && $t->due_date->isPast()
-                && $t->status !== TaskStatus::Done)
-            ->sortBy('due_date');
-        foreach ($this->topTitles($overdueTasks, 3) as $title) {
-            $lines[] = "Quá hạn: {$title}.";
+        foreach ($this->overdueTasks($context)->take(4) as $task) {
+            $days = $task->due_date?->startOfDay()->diffInDays(now()->startOfDay()) ?? 0;
+            $meta = $this->taskMeta($task, [
+                'quá '.max(1, (int) $days).' ngày',
+                $task->due_date ? 'hạn '.$task->due_date->format('d/m') : null,
+            ]);
+            $lines[] = "Quá hạn: {$task->title}{$meta}.";
         }
 
         if ($lines === []) {
-            $lines[] = "Sprint đạt khoảng {$kpi['sprint_progress']}% kế hoạch, velocity ~{$kpi['team_velocity']}%.";
-            if ((int) $kpi['blocked'] === 0 && (int) $kpi['critical_bugs'] === 0) {
-                $lines[] = 'Hệ thống ổn định, không có công việc bị chặn hay lỗi nghiêm trọng.';
+            $lines[] = "Sprint đạt khoảng {$kpi['sprint_progress']}% kế hoạch, velocity ~{$kpi['team_velocity']}%, chưa có hạng mục đang làm / bị chặn.";
+            if ((int) $kpi['critical_bugs'] === 0) {
+                $lines[] = 'Hệ thống ổn định, không ghi nhận lỗi nghiêm trọng.';
             }
         } else {
-            $lines[] = "Tiến độ Sprint: {$kpi['sprint_progress']}% ({$kpi['completed_tasks']}/{$kpi['total_tasks']} hạng mục).";
+            $inProgress = $context->tasks->filter(fn (Task $t) => $t->status === TaskStatus::InProgress)->count();
+            $inReview = $context->tasks->filter(fn (Task $t) => $t->status === TaskStatus::InReview)->count();
+            $lines[] = "Tiến độ Sprint: {$kpi['sprint_progress']}% ({$kpi['completed_tasks']}/{$kpi['total_tasks']})"
+                ." — đang làm {$inProgress}, review {$inReview}, bị chặn {$kpi['blocked']}, test case mở {$kpi['open_issues']}.";
         }
 
         if ((int) $risk['summary']['high'] > 0) {
-            $lines[] = 'Còn rủi ro mức cao cần Ban lãnh đạo theo dõi.';
+            $labels = collect($risk['risks'])->where('level', 'high')->take(2)->pluck('label')->implode('; ');
+            $lines[] = "Rủi ro cao cần theo dõi: {$labels}.";
         }
 
         return $this->bullets($lines, 'Tình hình Sprint ổn định, chưa có vấn đề cần lưu ý.');
@@ -191,32 +263,68 @@ class WeeklyReportNarrator
     {
         $lines = [];
 
-        $remaining = $context->tasks
-            ->filter(fn (Task $t) => $t->status !== TaskStatus::Done && $t->parent_id === null)
+        $blockedFirst = $context->tasks
+            ->filter(fn (Task $t) => $t->status === TaskStatus::Blocked && $t->parent_id === null)
             ->sortByDesc(fn (Task $t) => $t->priority->weight());
 
-        foreach ($remaining->take(6) as $task) {
-            $suffix = $task->due_date
-                ? ' (hạn '.$task->due_date->format('d/m').')'
-                : '';
-            $lines[] = "Tiếp tục: {$task->title}{$suffix}.";
+        foreach ($blockedFirst->take(3) as $task) {
+            $meta = $this->taskMeta($task, ['ƯT '.$task->priority->label()]);
+            $lines[] = "Ưu tiên tháo chặn: {$task->title}{$meta}.";
         }
 
-        $changeRequests = $this->feedbackCount($feedback, 'change_request');
-        if ($changeRequests > 0) {
-            $lines[] = "Đưa {$changeRequests} yêu cầu thay đổi vào kế hoạch xử lý.";
+        $remaining = $context->tasks
+            ->filter(fn (Task $t) => $t->status !== TaskStatus::Done
+                && $t->parent_id === null
+                && $t->status !== TaskStatus::Blocked)
+            ->sortByDesc(fn (Task $t) => $t->priority->weight());
+
+        foreach ($remaining->take(8) as $task) {
+            $verb = match ($task->status) {
+                TaskStatus::InProgress, TaskStatus::InReview => 'Tiếp tục',
+                TaskStatus::Todo => 'Bắt đầu',
+                default => 'Tiếp tục',
+            };
+            $meta = $this->taskMeta($task, [
+                'ƯT '.$task->priority->label(),
+                $task->due_date ? 'hạn '.$task->due_date->format('d/m') : null,
+            ]);
+            $lines[] = "{$verb}: {$task->title}{$meta}.";
         }
 
-        if ($context->blockers->isNotEmpty()) {
-            $lines[] = 'Ưu tiên tháo gỡ các vướng mắc còn tồn đọng.';
+        foreach ($context->blockers->take(3) as $blocker) {
+            $owner = $blocker->owner?->full_name;
+            $taskBit = $blocker->task?->title ? " (gắn «{$blocker->task->title}»)" : '';
+            $ownerBit = $owner ? " — {$owner}" : ' — chưa gán phụ trách';
+            $lines[] = "Tháo test case: {$blocker->title}{$taskBit}{$ownerBit}.";
         }
 
-        return $this->bullets($lines, 'Chưa có hạng mục kế hoạch cho tuần tiếp theo.');
+        $changeRequestFeedbacks = $context->feedbacks
+            ->filter(fn (Feedback $f) => (new WeeklyReportFeedbackClassifier)->bucketFor($f) === 'change_request')
+            ->take(3);
+        foreach ($changeRequestFeedbacks as $fb) {
+            $lines[] = 'Xử lý yêu cầu thay đổi: '.$this->truncate((string) $fb->title, 90).'.';
+        }
+
+        $dueSoon = $context->tasks
+            ->filter(fn (Task $t) => $t->status !== TaskStatus::Done
+                && $t->due_date !== null
+                && $t->due_date->between(now()->startOfDay(), now()->addDays(7)->endOfDay()))
+            ->sortBy('due_date')
+            ->take(3);
+        foreach ($dueSoon as $task) {
+            if ($remaining->pluck('id')->contains($task->id) || $blockedFirst->pluck('id')->contains($task->id)) {
+                continue;
+            }
+            $lines[] = 'Sắp tới hạn: '.$task->title.' (hạn '.$task->due_date->format('d/m').').';
+        }
+
+        return $this->bullets(array_slice($lines, 0, 14), 'Chưa có hạng mục kế hoạch cho tuần tiếp theo.');
     }
 
-    private function riskNarrative(array $risk): string
+    private function riskNarrative(WeeklyReportContext $context, array $risk): string
     {
         $lines = [];
+
         foreach ($risk['risks'] as $item) {
             $level = match ($item['level']) {
                 'high' => 'Cao',
@@ -226,21 +334,56 @@ class WeeklyReportNarrator
             $lines[] = "[{$level}] {$item['label']} — {$item['reason']}";
         }
 
+        $overdue = $this->overdueTasks($context)->take(3);
+        if ($overdue->isNotEmpty() && ! collect($risk['risks'])->contains(fn ($r) => str_contains($r['label'], 'quá hạn'))) {
+            foreach ($overdue as $task) {
+                $assignee = $task->assignee?->full_name ?? 'Chưa gán';
+                $lines[] = '[Cao] Quá hạn: '.$task->title.' — Phụ trách: '.$assignee
+                    .($task->due_date ? ', hạn '.$task->due_date->format('d/m/Y') : '');
+            }
+        }
+
+        $summary = $risk['summary'];
+        if ($lines !== []) {
+            $lines[] = "Tổng hợp: {$summary['high']} cao · {$summary['medium']} trung bình · {$summary['low']} thấp.";
+        }
+
         return $this->bullets($lines, 'Không có rủi ro đáng kể trong tuần.');
     }
 
-    private function feedbackNarrative(array $feedback): string
+    /**
+     * @param  array{breakdown: array<int, array{key:string,label:string,color:string,count:int}>, total:int}  $feedback
+     */
+    private function feedbackNarrative(WeeklyReportContext $context, array $feedback): string
     {
         if ((int) $feedback['total'] === 0) {
-            return 'Chưa ghi nhận phản hồi nào trong tuần.';
+            return '• Chưa ghi nhận phản hồi nào trong tuần.';
         }
 
+        $classifier = new WeeklyReportFeedbackClassifier;
         $lines = [];
+
         foreach ($feedback['breakdown'] as $bucket) {
-            if ($bucket['count'] > 0) {
-                $lines[] = "{$bucket['label']}: {$bucket['count']} phản hồi.";
+            if ($bucket['count'] === 0) {
+                continue;
             }
+            $samples = $context->feedbacks
+                ->filter(fn (Feedback $f) => $classifier->bucketFor($f) === $bucket['key'])
+                ->take(3)
+                ->map(fn (Feedback $f) => $this->truncate((string) $f->title, 70))
+                ->filter()
+                ->values();
+
+            $sampleBit = $samples->isNotEmpty() ? ': '.$samples->implode('; ') : '';
+            $lines[] = "{$bucket['label']} ({$bucket['count']}){$sampleBit}.";
         }
+
+        $avgRating = $context->feedbacks->whereNotNull('rating')->avg('rating');
+        if ($avgRating !== null) {
+            $lines[] = 'Điểm đánh giá trung bình: '.round((float) $avgRating, 1).'/5.';
+        }
+
+        $lines[] = 'Tổng cộng '.$feedback['total'].' phản hồi trong phạm vi báo cáo.';
 
         return $this->bullets($lines, 'Chưa ghi nhận phản hồi nào trong tuần.');
     }
@@ -248,12 +391,24 @@ class WeeklyReportNarrator
     private function activityNarrative(WeeklyReportContext $context): string
     {
         $lines = $context->activities
-            ->take(6)
-            ->map(fn ($a) => $a->description)
+            ->take(10)
+            ->map(function ($a) {
+                $when = $a->created_at?->format('d/m H:i');
+                $text = $this->truncate((string) ($a->description ?: $a->event), 100);
+                if ($text === '') {
+                    return null;
+                }
+
+                return $when ? "[{$when}] {$text}" : $text;
+            })
             ->filter()
             ->unique()
             ->values()
             ->all();
+
+        if ($lines !== []) {
+            $lines[] = 'Ghi nhận '.$context->activities->count().' sự kiện hoạt động trong tuần (hiển thị tối đa 10).';
+        }
 
         return $this->bullets($lines, 'Không có sự kiện nổi bật được ghi nhận.');
     }
@@ -277,19 +432,64 @@ class WeeklyReportNarrator
         });
     }
 
-    /**
-     * @param  Collection<int, Task>  $tasks
-     * @return array<int, string>
-     */
-    private function topTitles(Collection $tasks, int $limit): array
+    /** @return Collection<int, Task> */
+    private function overdueTasks(WeeklyReportContext $context): Collection
     {
-        return $tasks
-            ->pluck('title')
-            ->filter()
-            ->unique()
-            ->take($limit)
-            ->values()
-            ->all();
+        return $context->tasks
+            ->filter(fn (Task $t) => $t->due_date !== null
+                && $t->due_date->isPast()
+                && $t->status !== TaskStatus::Done)
+            ->sortBy('due_date')
+            ->values();
+    }
+
+    private function weekLabel(WeeklyReportContext $context): string
+    {
+        $start = $context->weekStart->format('d/m');
+        $end = $context->weekEnd->format('d/m');
+
+        return "tuần {$context->weekNumber} ({$start}–{$end})";
+    }
+
+    /**
+     * @param  array<int, string|null>  $extra
+     */
+    private function taskMeta(Task $task, array $extra = []): string
+    {
+        $bits = array_values(array_filter([
+            $task->assignee?->full_name,
+            $task->epic?->name ? 'Epic: '.$task->epic->name : null,
+            $task->story_points !== null && (float) $task->story_points > 0
+                ? rtrim(rtrim(number_format((float) $task->story_points, 1, '.', ''), '0'), '.').' SP'
+                : null,
+            ...$extra,
+        ]));
+
+        return $bits === [] ? '' : ' ('.implode(' · ', $bits).')';
+    }
+
+    private function blockerLine(Blocker $blocker): string
+    {
+        $sev = $blocker->severity?->label() ?? 'Chưa rõ';
+        $taskTitle = $blocker->task?->title;
+        $owner = $blocker->owner?->full_name;
+        $bits = array_values(array_filter([
+            "mức {$sev}",
+            $taskTitle ? "task «{$taskTitle}»" : null,
+            $owner ? "phụ trách {$owner}" : 'chưa gán phụ trách',
+        ]));
+
+        return 'Test case: '.$blocker->title.' ('.implode(' · ', $bits).').';
+    }
+
+    private function truncate(string $text, int $max): string
+    {
+        $text = trim(preg_replace('/\s+/u', ' ', $text) ?? $text);
+        if (mb_strlen($text) <= $max) {
+            return $text;
+        }
+
+        return rtrim(mb_substr($text, 0, $max - 1)).'…';
     }
 
     private function feedbackCount(array $feedback, string $key): int
