@@ -157,7 +157,7 @@ const submit = () => {
       </div>
 
       <div class="grid grid-cols-2 gap-4">
-        <div>
+        <div :class="member ? '' : 'col-span-2'">
           <label class="label">Vai trò <span class="text-rose-500">*</span></label>
           <SearchSelect
             v-model="form.role"
@@ -172,62 +172,64 @@ const submit = () => {
             {{ form.errors.role }}
           </p>
         </div>
-        <div>
-          <label class="label">Kiểu lương <span class="text-rose-500">*</span></label>
-          <SearchSelect
-            v-model="form.rate_type"
-            :options="rateTypeSelectOptions"
-            placeholder="Chọn kiểu lương…"
-            :clearable="false"
-          />
-          <p
-            v-if="form.errors.rate_type"
-            class="mt-1 text-xs text-danger"
-          >
-            {{ form.errors.rate_type }}
-          </p>
-        </div>
-        <div>
-          <label class="label">Đơn giá</label>
-          <input
-            v-model.number="form.rate"
-            type="number"
-            min="0"
-            step="1000"
-            class="input"
-            placeholder="Ví dụ: 150000"
-          >
-          <p
-            v-if="form.errors.rate"
-            class="mt-1 text-xs text-danger"
-          >
-            {{ form.errors.rate }}
-          </p>
-        </div>
-        <div>
-          <label class="label">
-            Phân bổ (%)
-            <span
-              class="ml-1 cursor-help text-slate-400"
-              title="Tỷ lệ % thời gian làm việc cho dự án này. Mặc định 100%."
-            >ⓘ</span>
-          </label>
-          <input
-            v-model.number="form.allocation"
-            type="number"
-            min="0"
-            max="100"
-            step="5"
-            class="input"
-            placeholder="100"
-          >
-          <p
-            v-if="form.errors.allocation"
-            class="mt-1 text-xs text-danger"
-          >
-            {{ form.errors.allocation }}
-          </p>
-        </div>
+        <template v-if="member">
+          <div>
+            <label class="label">Kiểu lương <span class="text-rose-500">*</span></label>
+            <SearchSelect
+              v-model="form.rate_type"
+              :options="rateTypeSelectOptions"
+              placeholder="Chọn kiểu lương…"
+              :clearable="false"
+            />
+            <p
+              v-if="form.errors.rate_type"
+              class="mt-1 text-xs text-danger"
+            >
+              {{ form.errors.rate_type }}
+            </p>
+          </div>
+          <div>
+            <label class="label">Đơn giá</label>
+            <input
+              v-model.number="form.rate"
+              type="number"
+              min="0"
+              step="1000"
+              class="input"
+              placeholder="Ví dụ: 150000"
+            >
+            <p
+              v-if="form.errors.rate"
+              class="mt-1 text-xs text-danger"
+            >
+              {{ form.errors.rate }}
+            </p>
+          </div>
+          <div>
+            <label class="label">
+              Phân bổ (%)
+              <span
+                class="ml-1 cursor-help text-slate-400"
+                title="Tỷ lệ % thời gian làm việc cho dự án này. Mặc định 100%."
+              >ⓘ</span>
+            </label>
+            <input
+              v-model.number="form.allocation"
+              type="number"
+              min="0"
+              max="100"
+              step="5"
+              class="input"
+              placeholder="100"
+            >
+            <p
+              v-if="form.errors.allocation"
+              class="mt-1 text-xs text-danger"
+            >
+              {{ form.errors.allocation }}
+            </p>
+          </div>
+        </template>
         <div class="col-span-2">
           <label class="label">Ngày tham gia</label>
           <input

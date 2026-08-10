@@ -292,7 +292,7 @@ Enum task: `TaskStatus`, `TaskPriority`, phase SDLC — mirror trong `Options::e
 
 Pivot `project_member`: `role`, `rate_type`, `rate`, `allocation`, `joined_at`, `is_active`.
 
-UI: `ProjectMembers.vue` (avatar trên card/list), `MemberFormModal` — thêm/sửa từ tab **Tổng quan** (`WorkloadTable` + Show). `ProjectActions` vẫn có sẵn CTA tương tự nếu gắn header.
+UI: `ProjectMembers.vue` (avatar trên card/list), `MemberFormModal` — thêm/sửa từ tab **Tổng quan** (`WorkloadTable` + Show). Form **Thêm thành viên** chỉ nhân sự / vai trò / ngày tham gia / trạng thái (lương & phân bổ mặc định: `hourly`, `allocation` 100); form **Cập nhật** vẫn hiện `rate_type` / `rate` / `allocation`. `ProjectActions` vẫn có sẵn CTA tương tự nếu gắn header.
 
 ---
 
