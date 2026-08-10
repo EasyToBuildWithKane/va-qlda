@@ -358,9 +358,11 @@ const onSprintSaved = () => {
             :project-id="project.id"
             :attachments="attachments"
             :categories="documentCategories"
+            :tasks="tasks"
             :can-upload="canContribute"
             :can-edit="canContribute"
             :can-delete="canManage"
+            @open-task="(payload) => openTaskDetail(payload?.id ?? payload, { panelTab: payload?.panelTab })"
           />
         </div>
 
@@ -416,6 +418,22 @@ const onSprintSaved = () => {
                 <ActivityFeed :activities="activityLog" />
               </div>
             </div>
+
+            <!-- Báo cáo tuần — full width dưới hồ sơ dự án -->
+            <section
+              class="scroll-mt-4"
+              aria-label="Báo cáo tuần"
+            >
+              <WeeklyReportWorkspace
+                v-if="tab === 'overview'"
+                embedded
+                active-tab="overview"
+                :project-id="project.id"
+                :overview="weeklyReports"
+                :detail="weeklyReport"
+                :can-generate="canWeeklyGenerate"
+              />
+            </section>
 
             <div
               ref="workloadSectionRef"
@@ -523,12 +541,14 @@ const onSprintSaved = () => {
           </div>
         </div>
 
-        <!-- ===== BÁO CÁO TUẦN (Weekly Report) ===== -->
+        <!-- ===== BÁO CÁO TUẦN (Weekly Report) — tab riêng / deep link ===== -->
         <div
           v-show="tab === 'weekly'"
           class="h-full min-h-0 overflow-hidden"
         >
           <WeeklyReportWorkspace
+            v-if="tab === 'weekly'"
+            active-tab="weekly"
             :project-id="project.id"
             :overview="weeklyReports"
             :detail="weeklyReport"

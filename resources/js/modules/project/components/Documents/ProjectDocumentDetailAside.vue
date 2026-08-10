@@ -2,6 +2,7 @@
 import AppIcon from '@/Components/AppIcon.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
 import { datetime } from '@/composables/useFormat';
+import { displayOrEmpty, EMPTY_LABELS } from '@/shared/utils/emptyDisplay.js';
 
 defineProps({
     selected: { type: Object, required: true },
@@ -49,7 +50,7 @@ const emit = defineEmits([
               :name="selected.uploaded_by.name"
               :size="20"
             />
-            <span class="truncate">{{ selected.uploaded_by?.name ?? '—' }}</span>
+            <span class="truncate">{{ displayOrEmpty(selected.uploaded_by?.name, EMPTY_LABELS.generic) }}</span>
           </span>
         </li>
         <li class="flex items-center justify-between gap-2 px-3 py-2">

@@ -3,10 +3,10 @@ import { getTaskAssignees } from '@/composables/useTaskHierarchy';
 import { getSubtaskStats } from '@/composables/useTaskHierarchy';
 import { isTaskOverdue } from '@/composables/useTaskTimeliness';
 
-const PANEL_WIDTH_KEY = 'va-workspace.taskPanel.width';
-const MIN_WIDTH = 400;
-const MAX_WIDTH = 920;
-const DEFAULT_WIDTH = 520;
+const PANEL_WIDTH_KEY = 'va-workspace.taskPanel.width.v2';
+const MIN_WIDTH = 520;
+const MAX_WIDTH = 1120;
+const DEFAULT_WIDTH = 800;
 
 export function taskDisplayId(task) {
     if (!task?.id) return '';

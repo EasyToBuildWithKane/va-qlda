@@ -4,11 +4,10 @@ import { ref, computed, watch, toRef, unref, isRef, nextTick, onBeforeUnmount } 
 import { router, usePage } from '@inertiajs/vue3';
 import MarkdownIt from 'markdown-it';
 import AppIcon from '@/Components/AppIcon.vue';
-import Avatar from '@/shared/ui/Avatar.vue';
 import Badge from '@/shared/ui/Badge.vue';
-import ProgressBar from '@/shared/ui/ProgressBar.vue';
 import TaskDetailAttachments from '@/modules/project/components/TaskDetail/TaskDetailAttachments.vue';
 import TaskDetailCollaboration from '@/modules/project/components/TaskDetail/TaskDetailCollaboration.vue';
+import TaskDetailGeneralInfo from '@/modules/project/components/TaskDetail/TaskDetailGeneralInfo.vue';
 import TaskDetailRichEditor from '@/modules/project/components/TaskDetail/TaskDetailRichEditor.vue';
 import TaskDetailSubtasks from '@/modules/project/components/TaskDetail/TaskDetailSubtasks.vue';
 import { date, datetime, hours } from '@/composables/useFormat';
@@ -220,22 +219,6 @@ const openSubtask = (st) => {
     emit('open-task', full);
 };
 
-const scheduleLine = computed(() => {
-    const t = activeTask.value;
-    if (!t) return '';
-    const parts = [];
-    if (t.start_date) parts.push(`Bắt đầu ${date(t.start_date)}`);
-    if (t.due_date) parts.push(`Hạn ${date(t.due_date)}`);
-    return parts.join(' · ');
-});
-
-const epicDisplay = computed(() => {
-    const name = activeTask.value?.epic?.name;
-    if (typeof name !== 'string') return null;
-    const trimmed = name.trim();
-    return trimmed || null;
-});
-
 const assigneeSummary = computed(() => {
     const list = unref(ws.assignees) ?? [];
     if (!list.length) return null;
@@ -271,13 +254,6 @@ const statusDotClass = computed(() => {
     return dots[color] || dots.slate;
 });
 
-const secondaryMetaLine = computed(() => {
-    const parts = [];
-    if (activeTask.value?.priority?.label) parts.push(activeTask.value.priority.label);
-    if (activeTask.value?.phase?.label) parts.push(activeTask.value.phase.label);
-    return parts.length ? parts.join(' · ') : '';
-});
-
 const hoursMetaLine = computed(() => {
     const parts = [];
     const est = unref(ws.estimateHours);
@@ -293,10 +269,6 @@ const hoursMetaLine = computed(() => {
     if (badge?.label) parts.push(badge.label);
     return parts.length ? parts.join(' · ') : null;
 });
-
-const hasHeaderMeta = computed(() => Boolean(
-    unref(ws.sprintLine)?.trim() || epicDisplay.value || scheduleLine.value || hoursMetaLine.value,
-));
 
 const toneClass = (tone) => ({
     brand: 'bg-brand/10 text-brand ring-brand/20',
@@ -339,7 +311,7 @@ watch(tab, (key) => {
 });
 
 const PANEL_TABS = [
-    { key: 'overview', label: 'Tổng quan', icon: 'template' },
+    { key: 'overview', label: 'Chi tiết', icon: 'template' },
     { key: 'collaboration', label: 'Trao đổi', icon: 'comment' },
     { key: 'activity', label: 'Hoạt động', icon: 'worklog' },
     { key: 'links', label: 'Tài liệu', icon: 'documents' },
@@ -645,99 +617,6 @@ const worklogList = computed(() => normalizeEntities(activeTask.value?.worklogs)
               <h1 class="mt-2.5 font-display text-base font-semibold leading-snug tracking-tight text-slate-900 dark:text-slate-50">
                 {{ activeTask.title }}
               </h1>
-
-              <p
-                v-if="secondaryMetaLine"
-                class="mt-1 text-xs text-slate-500 dark:text-slate-400"
-              >
-                {{ secondaryMetaLine }}
-              </p>
-
-              <div
-                v-if="progressPct > 0 && progressPct < 100"
-                class="mt-2.5"
-              >
-                <div class="mb-1 flex items-center justify-between text-[10px] font-medium text-slate-500">
-                  <span>Tiến độ</span>
-                  <span class="tabular-nums">{{ progressPct }}%</span>
-                </div>
-                <ProgressBar
-                  :value="progressPct"
-                  :show-label="false"
-                  height="h-1.5"
-                />
-              </div>
-
-              <dl
-                v-if="hasHeaderMeta"
-                class="mt-3 divide-y divide-slate-100 rounded-lg border border-slate-200/80 bg-slate-50/50 dark:divide-slate-800 dark:border-slate-700/80 dark:bg-slate-900/30"
-              >
-                <div
-                  v-if="unref(ws.sprintLine)"
-                  class="grid grid-cols-[5rem_minmax(0,1fr)] gap-x-3 px-2.5 py-1.5 text-xs"
-                >
-                  <dt class="shrink-0 font-medium text-slate-400">
-                    Sprint
-                  </dt>
-                  <dd class="min-w-0 break-words text-slate-700 dark:text-slate-300">
-                    {{ unref(ws.sprintLine) }}
-                  </dd>
-                </div>
-                <div
-                  v-if="epicDisplay"
-                  class="grid grid-cols-[5rem_minmax(0,1fr)] gap-x-3 px-2.5 py-1.5 text-xs"
-                >
-                  <dt class="shrink-0 font-medium text-slate-400">
-                    Epic
-                  </dt>
-                  <dd class="min-w-0 break-words text-slate-700 dark:text-slate-300">
-                    {{ epicDisplay }}
-                  </dd>
-                </div>
-                <div
-                  v-if="scheduleLine"
-                  class="grid grid-cols-[5rem_minmax(0,1fr)] gap-x-3 px-2.5 py-1.5 text-xs"
-                >
-                  <dt class="shrink-0 font-medium text-slate-400">
-                    Thời hạn
-                  </dt>
-                  <dd
-                    class="tabular-nums text-slate-700 dark:text-slate-300"
-                    :class="ws.isOverdue ? 'font-medium text-rose-600 dark:text-rose-400' : ''"
-                  >
-                    {{ scheduleLine }}
-                    <span v-if="ws.isOverdue"> · Quá hạn</span>
-                  </dd>
-                </div>
-                <div
-                  v-if="hoursMetaLine"
-                  class="grid grid-cols-[5rem_minmax(0,1fr)] gap-x-3 px-2.5 py-1.5 text-xs"
-                >
-                  <dt class="shrink-0 font-medium text-slate-400">
-                    Giờ làm
-                  </dt>
-                  <dd
-                    class="tabular-nums text-slate-700 dark:text-slate-300"
-                    :title="completionBadge?.detail || undefined"
-                  >
-                    {{ hoursMetaLine }}
-                  </dd>
-                </div>
-              </dl>
-
-              <p
-                v-if="activeTask.parent?.id"
-                class="mt-2 rounded-lg border border-dashed border-slate-200/90 bg-slate-50/60 px-2.5 py-1.5 text-[11px] text-slate-600 dark:border-slate-700 dark:bg-slate-900/30 dark:text-slate-400"
-              >
-                Công việc con của
-                <button
-                  type="button"
-                  class="font-semibold text-brand hover:underline"
-                  @click="openSubtask(activeTask.parent)"
-                >
-                  #{{ activeTask.parent.id }} · {{ activeTask.parent.title }}
-                </button>
-              </p>
             </div>
           </header>
 
@@ -801,29 +680,42 @@ const worklogList = computed(() => normalizeEntities(activeTask.value?.worklogs)
 
           <!-- Body -->
           <div class="min-h-0 flex-1 overflow-y-auto px-4 py-4">
-            <!-- OVERVIEW -->
+            <!-- OVERVIEW / Chi tiết -->
             <div
               v-show="tab === 'overview'"
               class="space-y-5"
             >
-              <!-- Tiến độ -->
+              <TaskDetailGeneralInfo
+                :task="activeTask"
+                :project="project"
+                :project-name="unref(ws.projectName)"
+                :project-code="unref(ws.projectCode)"
+                :assignees="assigneeList"
+                :watchers="watcherList"
+                :progress-pct="progressPct"
+                :is-overdue="unref(ws.isOverdue)"
+                :sprint-line="unref(ws.sprintLine)"
+                :hours-line="hoursMetaLine || ''"
+                @open-task="openSubtask"
+              />
+
               <section
-                v-if="progressPct > 0 || worklogList.length"
-                class="rounded-lg border border-slate-200/80 p-3 dark:border-slate-700"
+                v-if="worklogList.length"
+                class="rounded-xl border border-slate-200/80 p-3 dark:border-slate-700"
               >
                 <div class="mb-2 flex items-center justify-between gap-2">
-                  <span class="text-xs font-medium text-slate-500">Tiến độ</span>
-                  <span class="text-sm font-semibold tabular-nums text-brand">{{ progressPct }}%</span>
+                  <h3 class="text-xs font-semibold text-slate-500">
+                    Worklog gần đây
+                  </h3>
+                  <button
+                    type="button"
+                    class="text-[11px] font-medium text-brand hover:underline"
+                    @click="tab = 'activity'"
+                  >
+                    Xem hoạt động
+                  </button>
                 </div>
-                <ProgressBar
-                  :value="progressPct"
-                  :show-label="false"
-                  class="h-2"
-                />
-                <ul
-                  v-if="worklogList.length"
-                  class="mt-2 space-y-1 border-t border-slate-100 pt-2 dark:border-slate-800"
-                >
+                <ul class="space-y-1">
                   <li
                     v-for="w in worklogList.slice(0, 3)"
                     :key="w.id"
@@ -836,108 +728,9 @@ const worklogList = computed(() => normalizeEntities(activeTask.value?.worklogs)
                     v-if="worklogList.length > 3"
                     class="text-[10px] text-slate-400"
                   >
-                    +{{ worklogList.length - 3 }} bản ghi khác — xem tab Hoạt động
+                    +{{ worklogList.length - 3 }} bản ghi khác
                   </li>
                 </ul>
-              </section>
-
-              <!-- People -->
-              <section
-                v-if="activeTask.reporter || assigneeList.length || activeTask.reviewer || watcherList.length"
-                class="rounded-lg border border-slate-200/80 p-3 dark:border-slate-700"
-              >
-                <div class="mb-2 flex items-center justify-between gap-2">
-                  <h3 class="text-xs font-semibold text-slate-500">
-                    Phân công
-                  </h3>
-                  <button
-                    v-if="canEdit"
-                    type="button"
-                    class="text-[11px] font-medium text-brand hover:underline"
-                    @click="emit('edit', activeTask)"
-                  >
-                    Quản lý
-                  </button>
-                </div>
-                <div class="space-y-2">
-                  <div
-                    v-if="activeTask.reporter"
-                    class="flex items-center gap-2.5"
-                  >
-                    <Avatar
-                      :name="activeTask.reporter.name"
-                      :src="activeTask.reporter.avatar_path"
-                      :size="28"
-                    />
-                    <div class="min-w-0">
-                      <p class="truncate text-sm font-medium text-slate-800 dark:text-slate-100">
-                        {{ activeTask.reporter.name }}
-                      </p>
-                      <p class="text-[10px] uppercase text-slate-400">
-                        Người giao
-                      </p>
-                    </div>
-                  </div>
-                  <div
-                    v-for="a in assigneeList"
-                    :key="a.id"
-                    class="flex items-center gap-2.5"
-                  >
-                    <Avatar
-                      :name="a.name"
-                      :src="a.avatar_path"
-                      :size="28"
-                    />
-                    <div class="min-w-0">
-                      <p class="truncate text-sm font-medium text-slate-800 dark:text-slate-100">
-                        {{ a.name }}
-                      </p>
-                      <p class="text-[10px] uppercase text-slate-400">
-                        Người thực hiện
-                      </p>
-                    </div>
-                  </div>
-                  <div
-                    v-if="activeTask.reviewer"
-                    class="flex items-center gap-2.5"
-                  >
-                    <Avatar
-                      :name="activeTask.reviewer.name"
-                      :src="activeTask.reviewer.avatar_path"
-                      :size="28"
-                    />
-                    <div class="min-w-0">
-                      <p class="truncate text-sm font-medium text-slate-800 dark:text-slate-100">
-                        {{ activeTask.reviewer.name }}
-                      </p>
-                      <p class="text-[10px] uppercase text-slate-400">
-                        Người duyệt
-                      </p>
-                    </div>
-                  </div>
-                  <div
-                    v-if="watcherList.length"
-                    class="border-t border-slate-100 pt-2 dark:border-slate-800"
-                  >
-                    <p class="mb-1.5 text-[10px] uppercase text-slate-400">
-                      Người theo dõi
-                    </p>
-                    <div class="flex flex-wrap gap-1">
-                      <span
-                        v-for="w in watcherList"
-                        :key="w.id"
-                        class="inline-flex items-center gap-1 rounded-full bg-slate-50 px-2 py-0.5 text-[11px] dark:bg-slate-800"
-                      >
-                        <Avatar
-                          :name="w.name"
-                          :src="w.avatar_path"
-                          :size="16"
-                        />
-                        {{ w.name }}
-                      </span>
-                    </div>
-                  </div>
-                </div>
               </section>
 
               <TaskDetailSubtasks

@@ -154,8 +154,18 @@ class WeeklyReportController extends Controller
 
     private function backToReport(Project $project, WeeklyReport $report, string $message): RedirectResponse
     {
+        $tab = $this->resolveReturnTab();
+
         return redirect()
-            ->route('projects.show', ['project' => $project->id, 'tab' => 'weekly', 'wr' => $report->id])
+            ->route('projects.show', ['project' => $project->id, 'tab' => $tab, 'wr' => $report->id])
             ->with('success', $message);
+    }
+
+    /** Tab Tổng quan hoặc Báo cáo tuần — giữ ngữ cảnh UI sau thao tác. */
+    private function resolveReturnTab(): string
+    {
+        $tab = request()->input('tab', request()->query('tab', 'weekly'));
+
+        return in_array($tab, ['overview', 'weekly'], true) ? $tab : 'weekly';
     }
 }

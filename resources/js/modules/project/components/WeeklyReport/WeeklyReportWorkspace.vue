@@ -14,6 +14,10 @@ const props = defineProps({
     overview: { type: Object, default: () => ({ sprint: null, weeks: [], current_week: 1 }) },
     detail: { type: Object, default: null },
     canGenerate: { type: Boolean, default: false },
+    /** Nhúng trong tab Tổng quan (cuộn theo trang, không khung h-full). */
+    embedded: { type: Boolean, default: false },
+    /** Tab hiện tại — giữ nguyên khi chọn tuần / thao tác Inertia. */
+    activeTab: { type: String, default: 'weekly' },
 });
 
 const {
@@ -23,6 +27,7 @@ const {
 } = useWeeklyReport(props.projectId, {
     overview: toRef(props, 'overview'),
     detail: toRef(props, 'detail'),
+    tab: toRef(props, 'activeTab'),
 });
 
 const CARD_ACCENT = { result: 'emerald', current: 'sky', next: 'brand' };
@@ -46,7 +51,12 @@ function onExport(format) {
 </script>
 
 <template>
-  <div class="flex h-full min-h-0 w-full flex-col overflow-hidden bg-slate-50 dark:bg-slate-950">
+  <div
+    class="flex w-full flex-col"
+    :class="embedded
+      ? 'overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-50 shadow-sm dark:border-slate-700/80 dark:bg-slate-950'
+      : 'h-full min-h-0 overflow-hidden bg-slate-50 dark:bg-slate-950'"
+  >
     <div class="shrink-0 border-b border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900 sm:px-5">
       <WeeklyReportTimelineNav
         :sprint="sprint"
@@ -58,7 +68,10 @@ function onExport(format) {
       />
     </div>
 
-    <div class="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
+    <div
+      class="p-4 sm:p-5"
+      :class="embedded ? '' : 'min-h-0 flex-1 overflow-y-auto'"
+    >
       <WeeklyReportEmptyState
         v-if="showEmpty"
         :week-number="emptyWeekNumber"

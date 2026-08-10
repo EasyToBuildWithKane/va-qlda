@@ -20,6 +20,7 @@ import TeamScopeBanner from './partials/TeamScopeBanner.vue';
 import TeamRoster from './partials/TeamRoster.vue';
 import TeamWorkDepartmentLanes from './partials/TeamWorkDepartmentLanes.vue';
 import MemberWorkModal from './partials/MemberWorkModal.vue';
+import MyWorkTaskDetailModal from './partials/MyWorkTaskDetailModal.vue';
 import TaskCompleteModal from '@/modules/project/components/Sprint/TaskCompleteModal.vue';
 import { useMyWork } from '@/composables/useMyWork';
 import { useToast } from '@/shared/composables/useToast';
@@ -39,7 +40,7 @@ const props = defineProps({
     team: { type: Object, default: () => ({ canTeamView: false, canActTeam: false, members: [] }) },
 });
 
-const { changeStatus, logWork, openTask, goTo } = useMyWork();
+const { changeStatus, logWork, openTaskInProject, goTo } = useMyWork();
 const toast = useToast();
 
 // ── Modal "Xem nhanh" việc của thành viên (chế độ nhóm) ──────────────────────
@@ -50,6 +51,45 @@ function onQuickView(member) {
     quickViewMember.value = member;
     showQuickView.value = true;
 }
+
+// ── Modal chi tiết task (không rời /my-work) ─────────────────────────────────
+const detailTask = ref(null);
+const showTaskDetail = ref(false);
+
+function openTaskDetail(task) {
+    if (!task?.id) return;
+    detailTask.value = task;
+    showTaskDetail.value = true;
+}
+
+function closeTaskDetail() {
+    showTaskDetail.value = false;
+    detailTask.value = null;
+}
+
+function onOpenTaskInProject(task) {
+    closeTaskDetail();
+    openTaskInProject(task);
+}
+
+/** Sau đổi status/worklog Inertia reload — đồng bộ object trong modal với buckets mới. */
+watch(
+    () => props.buckets,
+    (buckets) => {
+        if (!showTaskDetail.value || !detailTask.value?.id || !buckets) return;
+        const id = detailTask.value.id;
+        const keys = ['overdue', 'today', 'upcoming', 'no_due'];
+        for (const key of keys) {
+            const found = (buckets[key] ?? []).find((t) => t.id === id);
+            if (found) {
+                detailTask.value = found;
+                return;
+            }
+        }
+        // Task có thể đã chuyển sang Done → đóng modal.
+        closeTaskDetail();
+    },
+);
 
 // ── Xuất Excel ───────────────────────────────────────────────────────────────
 function exportSelf() {
@@ -708,7 +748,7 @@ function onScope(scope) {
                   :status-options="options.statuses"
                   @change-status="changeStatus"
                   @log-work="logWork"
-                  @open="openTask"
+                  @open="openTaskDetail"
                 />
               </div>
             </section>
@@ -721,6 +761,17 @@ function onScope(scope) {
       :open="showQuickView"
       :member="quickViewMember"
       @close="showQuickView = false"
+    />
+
+    <MyWorkTaskDetailModal
+      :open="showTaskDetail"
+      :task="detailTask"
+      :mode="mode"
+      :status-options="options.statuses"
+      @close="closeTaskDetail"
+      @change-status="changeStatus"
+      @log-work="logWork"
+      @open-project="onOpenTaskInProject"
     />
 
     <TaskCompleteModal />

@@ -3,6 +3,10 @@
 Tab **"Báo cáo tuần"** trên `/projects/{project}?tab=weekly` — Executive Weekly Dashboard
 tự tổng hợp Sprint thành báo cáo quản trị. Người dùng kiểm tra → chỉnh sửa → gửi duyệt → duyệt.
 
+Trên tab **Tổng quan** (`?tab=overview`), cùng `WeeklyReportWorkspace` được nhúng **full width ngay dưới
+khối «Hồ sơ dự án»** (`embedded`) — chọn tuần / tạo / lưu giữ `tab=overview` (prop `activeTab` +
+`tab` trên request redirect).
+
 ## Engine (không dùng LLM ngoài)
 
 Hệ thống **không** gọi LLM. Phần "AI tổng hợp" là **engine heuristic** (rule-based) đọc trực

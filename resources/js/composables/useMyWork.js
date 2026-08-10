@@ -9,6 +9,9 @@ import { isTaskStatusLocked } from '@/composables/useTaskCompletion';
  *   - Đổi trạng thái: PATCH /projects/{project}/tasks/{task}   (projects.tasks.status)
  *   - Log giờ      : POST  /projects/{project}/tasks/{task}/worklogs (projects.worklogs.store)
  *
+ * Chi tiết task mặc định mở modal trên /my-work (`MyWorkTaskDetailModal`);
+ * `openTaskInProject` chỉ khi user chọn «Mở trong dự án».
+ *
  * Mọi mutation dùng back()-redirect của server → Inertia reload props /my-work,
  * giữ nguyên ngữ cảnh (?member=) + vị trí cuộn (preserveScroll).
  */
@@ -66,10 +69,14 @@ export function useMyWork() {
         );
     };
 
-    const openTask = (task) => {
+    /** Mở task trong trang dự án (liên kết phụ — chi tiết mặc định dùng modal trên /my-work). */
+    const openTaskInProject = (task) => {
         if (!task?.project_id || !task?.id) return;
         router.visit(`/projects/${task.project_id}?task=${task.id}`);
     };
+
+    /** @deprecated Dùng modal trên Index; giữ alias để không gãy import cũ. */
+    const openTask = openTaskInProject;
 
     /** Chuyển chế độ self ↔ team, hoặc xem 1 thành viên. */
     const goTo = ({ scope = 'self', member = null } = {}) => {
@@ -80,5 +87,5 @@ export function useMyWork() {
         router.get('/my-work', params, { preserveScroll: true });
     };
 
-    return { changeStatus, logWork, openTask, goTo };
+    return { changeStatus, logWork, openTask, openTaskInProject, goTo };
 }

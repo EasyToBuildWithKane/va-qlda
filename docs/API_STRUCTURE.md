@@ -53,6 +53,8 @@ routes/api.php      ← Rỗng (chưa sử dụng)
 | GET | `/` | redirect | auth | Redirect → `/dashboard` (guest `/` → middleware auth → `/login`). Landing CN tạm ẩn. |
 | GET | `/dashboard` | HubDashboardController (invokable) | auth | Trang tổng quan: chào mừng, `summary` (KPI strip), xu hướng hoạt động, tuân thủ báo cáo, cảnh báo, lưới module (chi tiết công việc tại `/work`) |
 | GET | `/work` | WorkDashboardController (invokable) | auth | Dashboard công việc cá nhân (`work-dashboard`) |
+| GET | `/my-work` | MyWorkController (invokable) | auth | Việc của tôi — Inertia `MyWork/Index` (self / `?member=` / `?scope=team`) |
+| GET | `/my-work/member/{employee}` | MyWorkController@memberTasks | auth | JSON buckets + summary cho modal «Xem nhanh» thành viên (`my-work.member`) |
 
 ### 2.2.3 Hiệu suất & Audit
 

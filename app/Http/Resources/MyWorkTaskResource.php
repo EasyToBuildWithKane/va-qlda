@@ -35,6 +35,7 @@ class MyWorkTaskResource extends JsonResource
             'id' => $this->id,
             'project_id' => $this->project_id,
             'title' => $this->title,
+            'description' => $this->description,
             'status' => $this->enum($this->status),
             'priority' => $this->enum($this->priority),
             'phase' => $this->enum($this->phase),
@@ -43,6 +44,7 @@ class MyWorkTaskResource extends JsonResource
             'due_date' => $this->due_date?->toDateString(),
             'is_late' => TaskTimeliness::isLate($this->resource),
             'estimate_hours' => $this->estimate_hours !== null ? (float) $this->estimate_hours : null,
+            'actual_hours' => $this->actual_hours !== null ? (float) $this->actual_hours : null,
             'progress' => (int) $this->progress,
             'project' => $this->whenLoaded('project', fn () => $this->project ? [
                 'id' => $this->project->id,

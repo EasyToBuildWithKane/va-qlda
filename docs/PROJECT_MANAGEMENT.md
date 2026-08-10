@@ -214,7 +214,7 @@ Tab strip full-width (`grid` trải đều): mobile 4 cột × 2 hàng; `md+` 8 
 
 | Tab | Key | Component chính |
 |---|---|---|
-| Tổng quan | `overview` | `ProjectShowSummaryBar`, `ProjectOverviewCard` (hồ sơ + mốc + PM), `WorkloadTable` (summary KPI + mức tải healthy/watch/overloaded + dung lượng/tiến độ), `ActivityFeed`, `RiskIssuePanel` |
+| Tổng quan | `overview` | `ProjectShowSummaryBar`, `ProjectOverviewCard` (hồ sơ + mốc + PM), `ActivityFeed`, **`WeeklyReportWorkspace` (embedded, full width dưới hồ sơ)**, `WorkloadTable` (summary KPI + mức tải healthy/watch/overloaded + dung lượng/tiến độ), `RiskIssuePanel` |
 | Tài liệu | `documents` | `ProjectDocumentsPanel` — toolbar gọn (Thêm ▾ + Tải lên), thư mục/file trống, kéo thả, link, preview |
 | Lịch dự án | `timeline` | `ProjectCalendar` — Gantt mini, kéo ngày → `PUT tasks` |
 | Kanban | `board` | `TaskBoard` — `PATCH tasks.status` |
@@ -255,7 +255,7 @@ Tab strip full-width (`grid` trải đều): mobile 4 cột × 2 hàng; `md+` 8 
 | DELETE | `projects.tasks.destroy` | Soft delete |
 | GET | `projects.tasks.show` | Redirect show + `?task=` |
 
-**Panel:** `TaskDetailPanel` — mô tả rich (TipTap), subtask, worklog, attachment, comment thread.
+**Panel:** `TaskDetailPanel` — drawer rộng mặc định ~800px (kéo 520–1120); tab **Chi tiết** có khối **Thông tin chung** 2 cột (`TaskDetailGeneralInfo`); mô tả rich (TipTap), subtask, worklog, attachment, comment thread.
 
 **Hoàn thành:** `TaskCompleteModal` + `useTaskCompleteModal` — khóa chỉnh sửa khi done (trừ reopen theo rule).
 
@@ -313,7 +313,7 @@ UI: `ProjectMembers.vue`, `MemberFormModal` — thêm từ `ProjectActions` trê
 
 **Thư mục:** `is_folder` + `folder_name`, tối đa 12 cấp; UI modal có vị trí danh mục/thư mục cha.
 
-**UI tab Tài liệu:** một hàng gọn (danh mục + `Thêm` ▾ + `Tải lên`); lưới **danh sách hẹp (~220px) | preview full**; chi tiết file qua drawer (không cột cố định). Modal tạo thư mục/file/link `max-w-sm`, bỏ hero card. Empty = một khối gợi ý kéo thả.
+**UI tab Tài liệu:** một hàng gọn (danh mục + `Thêm` ▾ + `Tải lên`); layout **hai panel** — trái «Tài liệu dự án» (folder card ngang + file card thumbnail, điều hướng vào thư mục), phải «Đính kèm công việc» (file đính kèm từ task). Preview full-screen + chi tiết drawer. Modal tạo thư mục/file/link `max-w-sm`.
 
 Activity: `project_attachment_activities` — log trên `ProjectDocumentsPanel`.
 
@@ -441,7 +441,7 @@ flowchart TD
 | Cổng Công nghệ | Attachment `showcase` + public project card |
 | Comments | `CommentController` morph trên Task (panel collaboration) |
 | Performance / Work dashboard | KPI tổng hợp từ task/project — `PERFORMANCE_ANALYTICS.md`, `/work` |
-| Việc của tôi (`/my-work`) | Tập trung task cá nhân đa dự án (bucket Quá hạn/Hôm nay/Sắp tới/Chưa hạn — luôn hiển thị cả khi rỗng), hàng **Báo cáo công việc hằng ngày** (trạng thái + link `/daily-reports/today`); task phát sinh / gắn trong báo cáo hôm nay không hạn → bucket **Hôm nay**; task trong báo cáo nhưng chưa gán assignee vẫn hiện dạng card như việc được giao. Form báo cáo: dropdown task chỉ **việc được giao** cho bạn trên dự án. Quick status + worklog tái dùng `projects.tasks.status` & `projects.worklogs.store`; lead xem việc thành viên nhóm (RBAC `my_work.view_team`/`my_work.act_team`, phạm vi `LedTeamScope`). Read-aggregation: `app/Application/Work/MyWorkQuery`, `MyWorkController`, widget trên `/work`. Đổi status hộ qua `TaskPolicy@changeStatus` (additive) |
+| Việc của tôi (`/my-work`) | Tập trung task cá nhân đa dự án (bucket Quá hạn/Hôm nay/Sắp tới/Chưa hạn — luôn hiển thị cả khi rỗng), hàng **Báo cáo công việc hằng ngày** (trạng thái + link `/daily-reports/today`); task phát sinh / gắn trong báo cáo hôm nay không hạn → bucket **Hôm nay**; task trong báo cáo nhưng chưa gán assignee vẫn hiện dạng card như việc được giao. Form báo cáo: dropdown task chỉ **việc được giao** cho bạn trên dự án. Card hàng ngang (`MyWorkTaskCard`) + **modal chi tiết** (`MyWorkTaskDetailModal`) — không điều hướng `/projects` khi bấm Chi tiết; nút «Mở trong dự án» là lối phụ. Quick status + worklog tái dùng `projects.tasks.status` & `projects.worklogs.store`; lead xem việc thành viên nhóm (RBAC `my_work.view_team`/`my_work.act_team`, phạm vi `LedTeamScope`). Read-aggregation: `app/Application/Work/MyWorkQuery`, `MyWorkController`, widget trên `/work`. Đổi status hộ qua `TaskPolicy@changeStatus` (additive) |
 
 ---
 

@@ -6,8 +6,11 @@ import { useToast } from '@/shared/composables/useToast';
  * Logic tab "Báo cáo tuần": chọn tuần, tạo/tổng hợp/regenerate, lưu chỉnh sửa
  * (3 thẻ chính + tóm tắt điều hành) với theo dõi dirty. Mọi thao tác server đi
  * qua Inertia router; backend redirect về Project/Show với ?wr=id.
+ *
+ * @param {import('vue').Ref<string>|string} [options.tab] Tab hiện tại (`overview` | `weekly`)
+ *   để giữ nguyên sau chọn tuần / tạo / lưu.
  */
-export function useWeeklyReport(projectId, { overview, detail }) {
+export function useWeeklyReport(projectId, { overview, detail, tab } = {}) {
     const toast = useToast();
 
     const processing = ref(false);
@@ -21,6 +24,18 @@ export function useWeeklyReport(projectId, { overview, detail }) {
     const sprint = computed(() => overview.value?.sprint ?? null);
     const weeks = computed(() => overview.value?.weeks ?? []);
     const currentWeekNumber = computed(() => overview.value?.current_week ?? 1);
+
+    function resolveTab() {
+        const raw = tab && typeof tab === 'object' && 'value' in tab ? tab.value : tab;
+        if (raw === 'overview' || raw === 'weekly') return raw;
+        try {
+            const fromUrl = new URLSearchParams(window.location.search).get('tab');
+            if (fromUrl === 'overview' || fromUrl === 'weekly') return fromUrl;
+        } catch {
+            /* ignore */
+        }
+        return 'weekly';
+    }
 
     const sectionList = computed(() => {
         const s = report.value?.sections;
@@ -58,7 +73,7 @@ export function useWeeklyReport(projectId, { overview, detail }) {
             pendingWeek.value = null;
             router.get(
                 route('projects.show', projectId),
-                { tab: 'weekly', wr: week.report_id },
+                { tab: resolveTab(), wr: week.report_id },
                 { only: ['weeklyReport'], preserveScroll: true, preserveState: true },
             );
         } else {
@@ -71,7 +86,7 @@ export function useWeeklyReport(projectId, { overview, detail }) {
         processing.value = true;
         router.post(
             route('projects.weekly-reports.store', projectId),
-            { week_number: weekNumber },
+            { week_number: weekNumber, tab: resolveTab() },
             {
                 preserveScroll: true,
                 onSuccess: () => { pendingWeek.value = null; },
@@ -87,7 +102,7 @@ export function useWeeklyReport(projectId, { overview, detail }) {
         const name = preserve ? 'projects.weekly-reports.regenerate' : 'projects.weekly-reports.generate';
         router.post(
             route(name, [projectId, report.value.id]),
-            {},
+            { tab: resolveTab() },
             {
                 preserveScroll: true,
                 onError: () => toast.error('Không tạo lại được báo cáo.'),
@@ -111,7 +126,7 @@ export function useWeeklyReport(projectId, { overview, detail }) {
         processing.value = true;
         router.post(
             route(`projects.weekly-reports.${name}`, [projectId, report.value.id]),
-            data,
+            { ...data, tab: resolveTab() },
             {
                 preserveScroll: true,
                 onSuccess: () => { if (okMsg) toast.success(okMsg); },
@@ -131,6 +146,7 @@ export function useWeeklyReport(projectId, { overview, detail }) {
         const payload = {
             executive_summary: draft.executive_summary,
             sections: Object.entries(draft.sections).map(([section, content]) => ({ section, content })),
+            tab: resolveTab(),
         };
         router.put(
             route('projects.weekly-reports.update', [projectId, report.value.id]),

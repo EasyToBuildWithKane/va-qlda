@@ -803,15 +803,15 @@ function onPortfolioQuickFilter({ status }) {
       <div
         v-for="col in columns"
         :key="col.key"
-        class="rounded-card bg-slate-100/70 p-3"
+        class="rounded-card border border-slate-200/80 bg-gradient-to-b from-slate-50 to-slate-100/80 p-3 shadow-sm dark:border-slate-700 dark:from-slate-900 dark:to-slate-900/80"
         @dragover.prevent
         @drop="onDrop(col)"
       >
         <!-- Row header (click to collapse) -->
         <button
           type="button"
-          class="flex w-full flex-wrap items-center gap-2 rounded-md text-left transition hover:bg-white/60"
-          :class="isLaneOpen(col.key) ? 'mb-3 px-1 py-1' : 'px-1 py-1'"
+          class="flex w-full flex-wrap items-center gap-2 rounded-lg border border-transparent text-left transition hover:border-slate-200/80 hover:bg-white/80 dark:hover:border-slate-600 dark:hover:bg-slate-800/60"
+          :class="isLaneOpen(col.key) ? 'mb-3 px-2 py-1.5' : 'px-2 py-1.5'"
           @click="toggleLane(col.key)"
         >
           <AppIcon
@@ -820,11 +820,11 @@ function onPortfolioQuickFilter({ status }) {
             class="shrink-0 text-slate-400"
           />
           <span
-            class="h-2.5 w-2.5 shrink-0 rounded-full"
+            class="h-2.5 w-2.5 shrink-0 rounded-full ring-2 ring-white shadow-sm"
             :class="dot[col.color] || dot.slate"
           />
-          <span class="text-sm font-semibold text-slate-700">{{ col.label }}</span>
-          <span class="rounded-full bg-white px-2 py-0.5 text-xs font-semibold text-slate-500 shadow-sm">{{ col.projects.length }}</span>
+          <span class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ col.label }}</span>
+          <span class="rounded-full bg-white px-2 py-0.5 text-xs font-semibold tabular-nums text-slate-600 shadow-sm ring-1 ring-slate-200/80 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-600">{{ col.projects.length }}</span>
           <div
             v-if="col.projects.length"
             class="ml-2 flex items-center gap-1"
@@ -853,12 +853,12 @@ function onPortfolioQuickFilter({ status }) {
         <!-- Card grid — wrap, không cuộn ngang -->
         <div
           v-show="isLaneOpen(col.key)"
-          class="flex flex-wrap gap-3 pb-1"
+          class="flex flex-wrap gap-3.5 pb-1"
         >
           <ProjectCard
             v-for="p in col.projects"
             :key="p.id"
-            class="w-72 shrink-0"
+            class="w-[18.5rem] shrink-0"
             :project="p"
             :draggable="!!p.can?.update"
             :show-type="groupBy !== 'type'"
@@ -868,7 +868,7 @@ function onPortfolioQuickFilter({ status }) {
           />
           <div
             v-if="col.projects.length === 0"
-            class="flex min-h-[8rem] w-full items-center justify-center rounded-card border border-dashed border-slate-300 text-xs text-slate-400"
+            class="flex min-h-[9rem] w-full items-center justify-center rounded-card border border-dashed border-slate-300/90 bg-white/50 text-xs font-medium text-slate-400 dark:border-slate-600 dark:bg-slate-800/40"
           >
             Kéo dự án vào đây
           </div>
