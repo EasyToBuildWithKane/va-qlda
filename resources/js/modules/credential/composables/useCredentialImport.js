@@ -1,5 +1,9 @@
 import axios from 'axios';
 import XLSX from 'xlsx-js-style';
+import {
+    CREDENTIAL_TYPES,
+    SYSTEM_CATEGORIES,
+} from '@/modules/credential/config/categoriesByType.js';
 
 export const CREDENTIAL_IMPORT_MARKER = 'VA_CREDENTIAL_IMPORT_V1';
 
@@ -23,9 +27,7 @@ const S = {
 };
 
 // ─── Enums (mirror backend PHP enums) ────────────────────────────────────────
-const CREDENTIAL_TYPES = ['internal_system', 'cloud_service', 'database', 'vps', 'domain', 'email', 'other'];
-const SYSTEM_CATEGORIES = ['cms', 'erp', 'crm', 'lms', 'hrm', 'devops', 'storage', 'analytics', 'communication', 'other'];
-const ENVIRONMENTS = ['production', 'staging', 'development', 'testing'];
+const ENVIRONMENTS = ['production', 'staging', 'development'];
 const STATUSES = ['active', 'inactive', 'locked', 'expired'];
 
 export const CREDENTIAL_HEADERS = [

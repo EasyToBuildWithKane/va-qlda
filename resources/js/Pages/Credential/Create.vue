@@ -4,6 +4,7 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import CredentialFieldLabel from '@/modules/credential/components/CredentialFieldLabel.vue';
+import { CATEGORIES_BY_TYPE } from '@/modules/credential/config/categoriesByType.js';
 
 const props = defineProps({
     options: { type: Object, required: true },
@@ -36,13 +37,7 @@ const form = useForm({
 });
 
 const categoriesForType = computed(() => {
-    const map = {
-        internal_system: ['cms', 'landing_page', 'crm', 'erp', 'hrm', 'lms', 'knowledge_base', 'ai_platform'],
-        infrastructure: ['vps', 'server', 'hosting', 'cdn', 'dns', 'domain', 'database', 'mail_server', 'ssl'],
-        provider: ['cloud_provider', 'hosting_provider', 'sms_provider', 'email_provider', 'payment_gateway', 'ai_services', 'third_party_api', 'api_key'],
-        working_account: ['admin_account', 'user_account', 'other'],
-    };
-    const allowed = new Set(map[form.credential_type] || []);
+    const allowed = new Set(CATEGORIES_BY_TYPE[form.credential_type] || []);
     return (props.options.system_category || []).filter((o) => allowed.has(o.value));
 });
 

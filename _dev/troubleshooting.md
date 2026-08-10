@@ -480,17 +480,46 @@ php artisan tinker --execute="echo config('realtime.enabled') ? 'on' : 'off';"
 
 ## Google login — «Đăng nhập Google thất bại trên máy chủ (UnexpectedValueException)»
 
-**Symptoms:** OAuth Google xong (email đúng domain) → flash `…thất bại trên máy chủ (UnexpectedValueException). Kiểm tra log auth.google.callback_failed.` Domain reject / HRM missing thì message khác (không phải exception class).
+**Symptoms:** OAuth Google xong (email đúng domain) → flash `…thất bại trên máy chủ (UnexpectedValueException: …). Kiểm tra log auth.google.callback_failed.` Domain reject / HRM missing thì message khác (không phải exception class).
 
-**Ý nghĩa:** Google đã OK; crash trong `GoogleAuthController::completeGoogleLogin` (upsert HRM / provision `SystemAccount` / session). Flash cũ chỉ hiện class — cần **message** trong log.
+**Ý nghĩa:** Google đã OK; crash trong `GoogleAuthController::completeGoogleLogin` (log / upsert HRM / provision `SystemAccount` / session). Đọc **message** trong flash (hoặc log).
 
-**Trên production (ngay):**
+### 1) Hay gặp nhất — không ghi được `storage/logs/laravel.log`
+
+Flash chứa:
+
+`The stream or file "…/storage/logs/laravel.log" could not be opened in append mode: Failed to open stream: Permission denied`
+
+→ **Không phải lỗi Google / Client ID.** PHP-FPM (hoặc LiteSpeed) không ghi được `storage/logs`. Khi đó `grep storage/logs` cũng vô ích — dùng `error_log` / log web server.
+
+**Sửa trên server (ngay):**
 
 ```bash
-cd /home/projects.vaschools.edu.vn/public_html   # hoặc path deploy
+cd /home/projects.vaschools.edu.vn/public_html   # path deploy
+
+# User PHP thường = user vhost (cPanel) hoặc www-data / nobody
+ls -la storage storage/logs bootstrap/cache
+mkdir -p storage/logs storage/framework/{sessions,views,cache} bootstrap/cache
+touch storage/logs/laravel.log
+
+# Điều chỉnh USER:GROUP cho khớp process PHP (vd. projects:projects hoặc www-data:www-data)
+chown -R USER:GROUP storage bootstrap/cache
+chmod -R ug+rwx storage bootstrap/cache
+chmod 664 storage/logs/laravel.log
+
+# Kiểm tra ghi được:
+sudo -u USER touch storage/logs/.write-test && rm storage/logs/.write-test
+```
+
+Sau đó thử đăng nhập Google lại. Cùng quyền cho upload KB / attachment (xem mục Knowledge base upload 500).
+
+### 2) Đọc `auth.google.callback_failed` (sau khi đã ghi được log)
+
+```bash
+cd /home/projects.vaschools.edu.vn/public_html
 
 grep -R "auth.google.callback_failed\|\[auth.google.callback_failed\]" storage/logs/ -n | tail -n 30
-# stderr PHP-FPM / LiteSpeed nếu storage/logs không ghi được:
+# stderr PHP-FPM / LiteSpeed nếu storage/logs chưa ghi được:
 grep -R "auth.google.callback_failed" /var/log/ 2>/dev/null | tail -n 20
 
 php artisan tinker --execute="
@@ -503,7 +532,7 @@ dump(\App\Models\SystemAccount::where('employee_id',\$e?->id)->first()?->getAttr
 php artisan hrm:api-ping --email=ngocntk@hcm.vaschools.edu.vn
 ```
 
-**Hay gặp:** `role` DB lệch enum; `join_date`/`hired_at` lạ khi refresh HRM; unique `code`/`email`/`hrm_*` khi upsert; thiếu cột sau migrate. Sau deploy bản flash kèm message — thử login lại để thấy chi tiết trên UI.
+**Hay gặp (sau khi quyền log OK):** `role` DB lệch enum; `join_date`/`hired_at` lạ khi refresh HRM; unique `code`/`email`/`hrm_*` khi upsert; thiếu cột sau migrate.
 
 ---
 

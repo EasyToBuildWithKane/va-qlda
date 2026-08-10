@@ -21,6 +21,7 @@ enum CredentialCategory: string
     case Database = 'database';
     case MailServer = 'mail_server';
     case Ssl = 'ssl';
+    case Aws = 'aws';
     case CloudProvider = 'cloud_provider';
     case HostingProvider = 'hosting_provider';
     case SmsProvider = 'sms_provider';
@@ -53,6 +54,7 @@ enum CredentialCategory: string
             self::Database => 'Database',
             self::MailServer => 'Mail Server',
             self::Ssl => 'SSL',
+            self::Aws => 'AWS',
             self::CloudProvider => 'Cloud Provider',
             self::HostingProvider => 'Hosting Provider',
             self::SmsProvider => 'SMS Provider',

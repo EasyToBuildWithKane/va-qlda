@@ -2,7 +2,7 @@
 
 **File gốc:** [`../troubleshooting.md`](../troubleshooting.md)
 
-Mục lục nhanh: [Husky](#husky) · [commitlint](#commitlint) · [Push/Sync](#pushsync) · [Playwright](#playwright) · [ESLint](#eslint) · [CI](#ci) · [Deploy server](#deploy-server) · [Media 404](#media-404) · [Vite/npm](#vite--npm) · [DB test](#db-test) · [AI orphan](#ai-orphan) · [Route 404 deploy](#route-404-sau-deploy) · [Realtime bình luận](#realtime-binh-luan) · [Toast flash](#toast-flash)
+Mục lục nhanh: [Husky](#husky) · [commitlint](#commitlint) · [Push/Sync](#pushsync) · [Playwright](#playwright) · [ESLint](#eslint) · [CI](#ci) · [Deploy server](#deploy-server) · [Google login log](#google-login-log) · [Media 404](#media-404) · [Vite/npm](#vite--npm) · [DB test](#db-test) · [AI orphan](#ai-orphan) · [Route 404 deploy](#route-404-sau-deploy) · [Realtime bình luận](#realtime-binh-luan) · [Toast flash](#toast-flash)
 
 ---
 
@@ -47,6 +47,24 @@ php artisan storage:link
 ```
 
 Không chạy `npm audit fix --force` trên production.
+
+---
+
+## Google login — UnexpectedValueException / `laravel.log` {#google-login-log}
+
+Flash: `Đăng nhập Google thất bại… (UnexpectedValueException: …/storage/logs/laravel.log … Permission…)`.
+
+**Không phải lỗi Google Client.** PHP không ghi được `storage/logs` → mọi `Log::` trong callback vỡ; `grep storage/logs` cũng không đọc được gì.
+
+```bash
+cd /home/projects.vaschools.edu.vn/public_html
+mkdir -p storage/logs storage/framework/{sessions,views,cache} bootstrap/cache
+touch storage/logs/laravel.log
+chown -R USER:GROUP storage bootstrap/cache   # user process PHP của vhost
+chmod -R ug+rwx storage bootstrap/cache
+```
+
+Sau khi sửa quyền, thử login lại. Chi tiết + lệnh `auth.google.callback_failed`: [_dev/troubleshooting.md](../troubleshooting.md).
 
 ---
 

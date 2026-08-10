@@ -51,6 +51,30 @@ class CredentialTest extends TestCase
         $this->assertSame('secret-pass', $credential->login_password);
     }
 
+    public function test_admin_can_create_aws_infrastructure_credential(): void
+    {
+        $admin = $this->admin();
+
+        $response = $this->actingAs($admin, 'system')
+            ->post(route('credentials.store'), [
+                'name' => 'AWS Root Console',
+                'credential_type' => CredentialType::Infrastructure->value,
+                'system_category' => CredentialCategory::Aws->value,
+                'environment' => 'production',
+                'provider_name' => 'AWS',
+                'login_url' => 'https://console.aws.amazon.com/',
+                'login_password' => 'aws-secret',
+            ]);
+
+        $response->assertRedirect();
+        $this->assertDatabaseHas('credentials', [
+            'name' => 'AWS Root Console',
+            'credential_type' => CredentialType::Infrastructure->value,
+            'system_category' => CredentialCategory::Aws->value,
+            'provider_name' => 'AWS',
+        ]);
+    }
+
     public function test_viewer_cannot_create_credential(): void
     {
         $viewer = SystemAccount::factory()->role(SystemRole::Viewer)->create();
