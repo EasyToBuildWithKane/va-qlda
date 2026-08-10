@@ -21,12 +21,13 @@ class UpdateProjectAttachmentRequest extends FormRequest
         return [
             'notes' => ['nullable', 'string', 'max:2000'],
             'title' => ['nullable', 'string', 'max:255'],
+            'content' => ['nullable', 'string', 'max:1048576'],
             'external_url' => ['nullable', 'string', 'url', 'max:2048'],
             'file' => [
                 'nullable',
                 'file',
                 'max:20480',
-                'mimes:jpg,jpeg,png,gif,webp,svg,pdf,doc,docx,xls,xlsx,ppt,pptx,zip,rar,txt,csv,json',
+                'mimes:jpg,jpeg,png,gif,webp,svg,pdf,doc,docx,xls,xlsx,ppt,pptx,zip,rar,txt,csv,json,md',
             ],
         ];
     }
@@ -52,6 +53,8 @@ class UpdateProjectAttachmentRequest extends FormRequest
     {
         return [
             'external_url.url' => 'Link phải là URL hợp lệ (https://…).',
+            'content.max' => 'Nội dung file không được vượt quá 1 MB.',
+            'title.max' => 'Tên không được vượt quá 255 ký tự.',
         ];
     }
 }

@@ -189,23 +189,28 @@ function onLog(payload) {
         <div class="px-4 py-4 pl-5 sm:px-6">
           <div class="flex flex-wrap items-start gap-4">
             <div class="min-w-0 flex-1">
-              <p
+              <div
                 v-if="projectLabel"
-                class="truncate text-[11px] font-semibold uppercase tracking-wide text-brand"
-                :title="projectLabel"
+                class="min-w-0"
               >
-                {{ projectLabel }}
-              </p>
-              <div class="mt-2 flex flex-wrap items-center gap-2">
+                <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                  Dự án
+                </p>
+                <p class="mt-0.5 break-words text-[13px] font-semibold leading-snug text-brand">
+                  {{ projectLabel }}
+                </p>
+              </div>
+              <div class="mt-3 flex flex-wrap items-center gap-2">
                 <span
                   v-if="overdueDays > 0"
-                  class="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-700 dark:bg-rose-950/50 dark:text-rose-300"
+                  class="inline-flex max-w-full items-center gap-1 rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-700 dark:bg-rose-950/50 dark:text-rose-300"
                 >
                   <AppIcon
                     name="alert"
                     :size="12"
+                    class="shrink-0"
                   />
-                  Quá hạn {{ overdueDays }} ngày
+                  <span class="break-words">Quá hạn {{ overdueDays }} ngày</span>
                 </span>
                 <span
                   v-else-if="isDueToday"
@@ -214,39 +219,53 @@ function onLog(payload) {
                   <AppIcon
                     name="calendar-clock"
                     :size="12"
+                    class="shrink-0"
                   />
                   Đến hạn hôm nay
                 </span>
-                <Badge
+                <span
                   v-if="task.priority"
-                  :label="task.priority.label"
-                  :color="task.priority.color"
-                />
-                <Badge
+                  class="inline-flex max-w-full flex-wrap items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2 py-0.5 dark:border-slate-600 dark:bg-slate-800"
+                >
+                  <span class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Ưu tiên</span>
+                  <Badge
+                    :label="task.priority.label"
+                    :color="task.priority.color"
+                  />
+                </span>
+                <span
                   v-if="task.phase"
-                  :label="task.phase.label"
-                  :color="task.phase.color"
-                />
-                <Badge
-                  v-if="task.sprint"
-                  :label="task.sprint.name"
-                  color="slate"
-                />
-                <Badge
+                  class="inline-flex max-w-full flex-wrap items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2 py-0.5 dark:border-slate-600 dark:bg-slate-800"
+                >
+                  <span class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Giai đoạn</span>
+                  <Badge
+                    :label="task.phase.label"
+                    :color="task.phase.color"
+                  />
+                </span>
+                <span
                   v-if="task.is_milestone"
-                  label="Mốc"
-                  color="amber"
-                />
+                  class="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 dark:border-amber-800 dark:bg-amber-950/40"
+                >
+                  <span class="text-[10px] font-semibold uppercase tracking-wide text-amber-600/80">Mốc</span>
+                  <Badge
+                    label="Có"
+                    color="amber"
+                  />
+                </span>
               </div>
             </div>
 
-            <div class="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
+            <div class="flex w-full min-w-0 shrink-0 flex-col items-stretch gap-2 sm:w-auto sm:items-end">
               <div class="relative self-start sm:self-end">
+                <p class="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400 sm:text-right">
+                  Trạng thái
+                </p>
                 <button
                   ref="statusTriggerRef"
                   type="button"
                   :disabled="!canChange"
-                  class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs transition disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-600 dark:bg-slate-800"
+                  class="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs transition disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-600 dark:bg-slate-800"
                   :class="canChange ? 'hover:border-brand/40 hover:bg-brand/5' : ''"
                   :title="canChange ? 'Đổi trạng thái' : 'Bạn không có quyền đổi trạng thái việc này'"
                   aria-haspopup="listbox"
@@ -262,6 +281,7 @@ function onLog(payload) {
                     v-if="canChange"
                     name="chevron-down"
                     :size="13"
+                    class="shrink-0"
                   />
                 </button>
                 <Teleport to="body">
@@ -295,7 +315,7 @@ function onLog(payload) {
                             class="h-2 w-2 shrink-0 rounded-full"
                             :class="dotClass[opt.color] || dotClass.slate"
                           />
-                          {{ opt.label }}
+                          <span class="min-w-0 break-words">{{ opt.label }}</span>
                         </button>
                       </li>
                     </ul>
@@ -363,17 +383,17 @@ function onLog(payload) {
       <!-- Body: meta + mô tả 2 cột trên màn rộng -->
       <div class="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-12">
         <div class="space-y-4 lg:col-span-5">
-          <dl class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
+          <dl class="overflow-hidden rounded-xl border border-slate-100 bg-slate-50/70 dark:border-slate-800 dark:bg-slate-800/40">
             <div
               v-for="row in metaRows"
               :key="row.key"
-              class="rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2.5 dark:border-slate-800 dark:bg-slate-800/40"
+              class="grid grid-cols-1 gap-1 border-b border-slate-100 px-3.5 py-2.5 last:border-b-0 sm:grid-cols-[8.5rem_minmax(0,1fr)] sm:items-start sm:gap-3 dark:border-slate-800"
             >
               <dt class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
                 {{ row.label }}
               </dt>
               <dd
-                class="mt-0.5 truncate text-sm font-medium"
+                class="min-w-0 break-words text-sm font-medium leading-snug"
                 :class="row.late ? 'text-rose-600' : 'text-slate-700 dark:text-slate-200'"
               >
                 <Badge
@@ -390,18 +410,18 @@ function onLog(payload) {
 
           <div
             v-if="task.assignee"
-            class="flex items-center gap-3 rounded-xl border border-slate-100 px-3.5 py-3 dark:border-slate-800"
+            class="flex items-start gap-3 rounded-xl border border-slate-100 px-3.5 py-3 dark:border-slate-800"
           >
             <Avatar
               :name="task.assignee.name"
               :src="task.assignee.avatar_path"
               :size="40"
             />
-            <div class="min-w-0">
+            <div class="min-w-0 flex-1">
               <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
                 Người phụ trách
               </p>
-              <p class="truncate text-sm font-medium text-slate-700 dark:text-slate-200">
+              <p class="mt-0.5 break-words text-sm font-medium leading-snug text-slate-700 dark:text-slate-200">
                 {{ task.assignee.name }}
               </p>
             </div>
@@ -414,7 +434,7 @@ function onLog(payload) {
           </h3>
           <div
             v-if="descriptionHtml"
-            class="prose prose-sm max-w-none rounded-xl border border-slate-100 bg-white px-4 py-3.5 text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+            class="prose prose-sm max-w-none break-words rounded-xl border border-slate-100 bg-white px-4 py-3.5 text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
             v-html="descriptionHtml"
           />
           <p

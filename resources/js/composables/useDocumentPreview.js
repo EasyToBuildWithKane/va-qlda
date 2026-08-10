@@ -3,17 +3,23 @@ import { renderAsync } from 'docx-preview';
 import * as XLSX from 'xlsx-js-style';
 
 const MAX_OFFICE_BYTES = 15 * 1024 * 1024; // 15 MB
+const MAX_TEXT_BYTES = 1 * 1024 * 1024; // 1 MB
+const TEXT_EXTS = ['txt', 'md', 'csv', 'json', 'log', 'xml', 'yml', 'yaml', 'html', 'htm', 'css', 'js', 'ts', 'vue', 'php', 'ini', 'env'];
 
 /**
  * Browsers only natively preview images and PDF.
  * DOCX → docx-preview (client-side), XLSX/XLS → SheetJS HTML table.
+ * Text → plain UTF-8 body for view/edit.
  */
 export function detectPreviewKind(file) {
     if (!file) return 'none';
     if (file.preview_kind === 'google_doc' || file.is_google_doc) return 'google_doc';
     if (file.preview_kind === 'google_sheet' || file.is_google_sheet) return 'google_sheet';
+    if (file.preview_kind === 'text' || file.can_edit_content) return 'text';
+
     const name = (file.original_name || '').toLowerCase();
     const mime = (file.mime_type || '').toLowerCase();
+    const ext = name.includes('.') ? name.split('.').pop() : '';
 
     if (file.is_image) return 'image';
     if (file.is_pdf || mime === 'application/pdf' || name.endsWith('.pdf')) return 'pdf';
@@ -26,6 +32,7 @@ export function detectPreviewKind(file) {
         || mime.includes('spreadsheet')
     ) return 'xlsx';
     if (name.endsWith('.doc')) return 'doc-legacy';
+    if (TEXT_EXTS.includes(ext) || mime.startsWith('text/') || mime === 'application/json') return 'text';
 
     return 'none';
 }
@@ -34,6 +41,7 @@ export function useDocumentPreview(selectedFileRef) {
     const kind = ref('none');
     const loading = ref(false);
     const error = ref('');
+    const textContent = ref('');
     const xlsxHtml = ref('');
     const xlsxSheetNames = ref([]);
     const activeSheet = ref('');
@@ -46,6 +54,7 @@ export function useDocumentPreview(selectedFileRef) {
     const reset = () => {
         loading.value = false;
         error.value = '';
+        textContent.value = '';
         xlsxHtml.value = '';
         xlsxSheetNames.value = [];
         activeSheet.value = '';
@@ -72,6 +81,31 @@ export function useDocumentPreview(selectedFileRef) {
             breakPages: true,
         });
         docxBuffer.value = null;
+    };
+
+    const loadText = async (file) => {
+        kind.value = 'text';
+        if (file.size > MAX_TEXT_BYTES) {
+            error.value = 'File quá lớn để xem/sửa trên trình duyệt (>1MB).';
+            return;
+        }
+
+        loading.value = true;
+        error.value = '';
+        const controller = new AbortController();
+        abort = controller;
+
+        try {
+            const bust = `${file.url}${file.url.includes('?') ? '&' : '?'}_=${Date.now()}`;
+            const res = await fetch(bust, { signal: controller.signal, credentials: 'same-origin' });
+            if (!res.ok) throw new Error(`Không tải được file (${res.status})`);
+            textContent.value = await res.text();
+            loading.value = false;
+        } catch (e) {
+            if (e.name === 'AbortError') return;
+            error.value = e.message || 'Không thể đọc nội dung file.';
+            loading.value = false;
+        }
     };
 
     const loadOffice = async (file) => {
@@ -142,18 +176,29 @@ export function useDocumentPreview(selectedFileRef) {
         xlsxHtml.value = renderXlsxSheet(xlsxWorkbook.value, sheetName);
     };
 
-    watch(selectedFileRef, (file) => {
+    const reload = () => {
+        const file = selectedFileRef.value;
         if (abort) abort.abort();
         reset();
         if (!file) return;
-        if (!file.url) {
-            error.value = 'File không còn trên máy chủ. Vui lòng tải lên lại hoặc xóa bản ghi.';
+        if (!file.url && !file.is_external_link) {
+            error.value = 'File không còn trên máy chủ.';
+            return;
+        }
+        if (!file.url && file.is_external_link) {
+            kind.value = detectPreviewKind(file);
             return;
         }
         kind.value = detectPreviewKind(file);
-        if (['docx', 'xlsx', 'doc-legacy'].includes(kind.value)) {
+        if (kind.value === 'text') {
+            loadText(file);
+        } else if (['docx', 'xlsx', 'doc-legacy'].includes(kind.value)) {
             loadOffice(file);
         }
+    };
+
+    watch(selectedFileRef, () => {
+        reload();
     }, { immediate: true });
 
     onBeforeUnmount(() => {
@@ -164,11 +209,13 @@ export function useDocumentPreview(selectedFileRef) {
         kind,
         loading,
         error,
+        textContent,
         xlsxHtml,
         xlsxSheetNames,
         activeSheet,
         setDocxContainer,
         switchSheet,
+        reload,
         detectPreviewKind,
     };
 }

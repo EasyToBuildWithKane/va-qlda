@@ -1,12 +1,16 @@
 <script setup>
 /* eslint-disable vue/no-v-html -- xlsx sheet preview HTML */
-import { computed, toRef } from 'vue';
+import { computed, toRef, watch } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import { useDocumentPreview } from '@/composables/useDocumentPreview';
 
 const props = defineProps({
     file: { type: Object, default: null },
+    editing: { type: Boolean, default: false },
+    canEdit: { type: Boolean, default: false },
 });
+
+const emit = defineEmits(['update:draft', 'update:editing']);
 
 const fileRef = toRef(() => props.file);
 
@@ -14,12 +18,26 @@ const {
     kind,
     loading,
     error,
+    textContent,
     xlsxHtml,
     xlsxSheetNames,
     activeSheet,
     setDocxContainer,
     switchSheet,
+    reload,
 } = useDocumentPreview(fileRef);
+
+const draft = computed({
+    get: () => textContent.value,
+    set: (value) => {
+        textContent.value = value;
+        emit('update:draft', value);
+    },
+});
+
+watch(textContent, (value) => {
+    emit('update:draft', value);
+});
 
 const showFallback = computed(() =>
     props.file && !loading.value && !error.value
@@ -51,6 +69,8 @@ const googleEmbedUrl = computed(() => {
         return raw.includes('rm=') ? raw : `${raw}${raw.includes('?') ? '&' : '?'}rm=minimal`;
     }
 });
+
+defineExpose({ reload, textContent, kind });
 </script>
 
 <template>
@@ -59,8 +79,8 @@ const googleEmbedUrl = computed(() => {
       v-if="!file"
       class="flex min-h-0 flex-1 items-center justify-center text-slate-400"
     >
-      <p class="text-base">
-        Chọn file để xem trước.
+      <p class="text-sm">
+        Chọn file để xem trước
       </p>
     </div>
 
@@ -74,41 +94,55 @@ const googleEmbedUrl = computed(() => {
       >
         <AppIcon
           name="refresh"
-          :size="24"
+          :size="22"
           class="animate-spin text-brand"
         />
-        <p class="text-sm">
-          Đang tải xem trước…
-        </p>
       </div>
 
       <div
         v-else-if="error"
-        class="flex min-h-0 flex-1 flex-col items-center justify-center px-6 text-center"
+        class="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 px-6 text-center"
       >
         <AppIcon
           name="info"
-          :size="32"
+          :size="28"
           class="text-amber-500"
         />
-        <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">
+        <p class="text-sm text-slate-600 dark:text-slate-300">
           {{ error }}
         </p>
         <a
+          v-if="file.url"
           :href="file.url"
           target="_blank"
-          class="mt-2 text-sm font-medium text-brand hover:underline"
+          class="text-sm font-medium text-brand hover:underline"
         >Tải xuống</a>
       </div>
 
       <div
+        v-else-if="kind === 'text'"
+        class="flex min-h-0 flex-1 flex-col"
+      >
+        <textarea
+          v-if="editing && canEdit"
+          v-model="draft"
+          class="min-h-0 flex-1 resize-none border-0 bg-slate-50 px-4 py-3 font-mono text-sm leading-relaxed text-slate-800 outline-none focus:ring-0 dark:bg-slate-950 dark:text-slate-100"
+          spellcheck="false"
+        />
+        <pre
+          v-else
+          class="min-h-0 flex-1 overflow-auto whitespace-pre-wrap break-words bg-white px-4 py-3 font-mono text-sm leading-relaxed text-slate-800 dark:bg-slate-900 dark:text-slate-100"
+        >{{ textContent }}</pre>
+      </div>
+
+      <div
         v-else-if="kind === 'image' || file.is_image"
-        class="flex min-h-0 flex-1 items-center justify-center overflow-hidden"
+        class="flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-slate-50 dark:bg-slate-950"
       >
         <img
           :src="file.url"
           :alt="file.original_name"
-          class="max-h-full max-w-full rounded-lg object-contain shadow-sm"
+          class="max-h-full max-w-full object-contain"
         >
       </div>
 
@@ -130,7 +164,7 @@ const googleEmbedUrl = computed(() => {
         <iframe
           :src="googleEmbedUrl"
           class="doc-preview-google__iframe"
-          :title="kind === 'google_sheet' ? 'Xem trước Google Sheets' : 'Xem trước Google Docs'"
+          :title="kind === 'google_sheet' ? 'Google Sheets' : 'Google Docs'"
           allow="clipboard-read; clipboard-write"
           referrerpolicy="no-referrer-when-downgrade"
         />
@@ -175,31 +209,28 @@ const googleEmbedUrl = computed(() => {
 
       <div
         v-else-if="showFallback"
-        class="flex min-h-0 flex-1 flex-col items-center justify-center text-center"
+        class="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 text-center"
       >
         <AppIcon
           name="template"
-          :size="40"
+          :size="36"
           class="text-slate-300"
         />
-        <p class="mt-2 text-sm text-slate-500">
-          Không hỗ trợ xem trước loại file này.
-        </p>
-        <p class="mt-1 text-xs text-slate-400">
-          Hỗ trợ: ảnh, PDF, DOCX, XLSX/XLS, Google Docs/Sheets
+        <p class="text-sm text-slate-500">
+          Không hỗ trợ xem trước loại file này
         </p>
         <a
+          v-if="file.url"
           :href="file.url"
           target="_blank"
-          class="mt-2 text-sm font-medium text-brand hover:underline"
-        >Tải xuống để xem</a>
+          class="text-sm font-medium text-brand hover:underline"
+        >Tải xuống</a>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-/* docx-preview wrapper defaults */
 .docx-wrapper :deep(.docx-preview-content) {
     max-width: 100%;
 }
@@ -223,7 +254,6 @@ const googleEmbedUrl = computed(() => {
     background: #fff;
 }
 
-/* Google Docs/Sheets — full khung, ẩn chrome nhờ rm=minimal */
 .doc-preview-google {
     position: relative;
     flex: 1 1 auto;

@@ -78,6 +78,28 @@ class ProjectAttachmentActivityLogger
         );
     }
 
+    public static function fileRenamed(ProjectAttachment $attachment, string $oldName, ?SystemAccount $account): void
+    {
+        self::log(
+            $attachment,
+            'file_renamed',
+            "Đổi tên file: {$oldName} → {$attachment->original_name}",
+            ['from' => $oldName, 'to' => $attachment->original_name],
+            $account?->employee_id,
+        );
+    }
+
+    public static function contentUpdated(ProjectAttachment $attachment, ?SystemAccount $account): void
+    {
+        self::log(
+            $attachment,
+            'content_updated',
+            'Cập nhật nội dung: '.$attachment->original_name,
+            ['file' => $attachment->original_name, 'size' => $attachment->size],
+            $account?->employee_id,
+        );
+    }
+
     public static function uploaded(ProjectAttachment $attachment, ?SystemAccount $account): void
     {
         self::log(

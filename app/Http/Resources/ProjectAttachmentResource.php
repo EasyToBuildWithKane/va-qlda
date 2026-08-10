@@ -34,6 +34,7 @@ class ProjectAttachmentResource extends JsonResource
             'is_spreadsheet' => $this->isSpreadsheet(),
             'preview_kind' => $this->previewKind(),
             'can_preview' => $this->canPreviewInline(),
+            'can_edit_content' => $this->isTextEditable(),
             'file_available' => $this->fileExists(),
             'is_external_link' => $this->isExternalLink(),
             'is_google_doc' => $this->isGoogleDocument(),

@@ -200,7 +200,7 @@ Chi tiết merge section: [`docs/CONGNGHE_CONTENT.md`](CONGNGHE_CONTENT.md).
 |---|---|---|---|---|
 | GET | `/projects/{project}/attachments/{attachment}/file` | ProjectAttachmentController@file | auth | Tải/xem file (stream) |
 | POST | `/projects/{project}/attachments` | ProjectAttachmentController@store | auth | Upload tài liệu |
-| PUT | `/projects/{project}/attachments/{attachment}` | ProjectAttachmentController@update | auth | Sửa metadata |
+| PUT | `/projects/{project}/attachments/{attachment}` | ProjectAttachmentController@update | auth | Đổi tên (`title`), sửa nội dung text (`content`), notes, link, thay file |
 | DELETE | `/projects/{project}/attachments/{attachment}` | ProjectAttachmentController@destroy | auth | Xóa tài liệu |
 
 ### 2.11 Blockers

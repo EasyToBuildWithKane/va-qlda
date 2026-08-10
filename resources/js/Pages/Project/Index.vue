@@ -803,14 +803,14 @@ function onPortfolioQuickFilter({ status }) {
       <div
         v-for="col in columns"
         :key="col.key"
-        class="rounded-card border border-slate-200/80 bg-gradient-to-b from-slate-50 to-slate-100/80 p-3 shadow-sm dark:border-slate-700 dark:from-slate-900 dark:to-slate-900/80"
+        class="rounded-card border border-slate-200/80 bg-white p-3 shadow-[0_1px_2px_rgb(15_23_42_/_0.04),inset_0_0_0_1px_rgb(226_232_240_/_0.6)] dark:border-slate-700 dark:bg-slate-900"
         @dragover.prevent
         @drop="onDrop(col)"
       >
         <!-- Row header (click to collapse) -->
         <button
           type="button"
-          class="flex w-full flex-wrap items-center gap-2 rounded-lg border border-transparent text-left transition hover:border-slate-200/80 hover:bg-white/80 dark:hover:border-slate-600 dark:hover:bg-slate-800/60"
+          class="flex w-full flex-wrap items-center gap-2 rounded-lg border border-transparent text-left transition hover:border-slate-200/80 hover:bg-slate-50 dark:hover:border-slate-600 dark:hover:bg-slate-800/60"
           :class="isLaneOpen(col.key) ? 'mb-3 px-2 py-1.5' : 'px-2 py-1.5'"
           @click="toggleLane(col.key)"
         >
@@ -824,7 +824,7 @@ function onPortfolioQuickFilter({ status }) {
             :class="dot[col.color] || dot.slate"
           />
           <span class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ col.label }}</span>
-          <span class="rounded-full bg-white px-2 py-0.5 text-xs font-semibold tabular-nums text-slate-600 shadow-sm ring-1 ring-slate-200/80 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-600">{{ col.projects.length }}</span>
+          <span class="rounded-full bg-slate-50 px-2 py-0.5 text-xs font-semibold tabular-nums text-slate-600 ring-1 ring-inset ring-slate-200/80 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-600">{{ col.projects.length }}</span>
           <div
             v-if="col.projects.length"
             class="ml-2 flex items-center gap-1"
@@ -868,7 +868,7 @@ function onPortfolioQuickFilter({ status }) {
           />
           <div
             v-if="col.projects.length === 0"
-            class="flex min-h-[9rem] w-full items-center justify-center rounded-card border border-dashed border-slate-300/90 bg-white/50 text-xs font-medium text-slate-400 dark:border-slate-600 dark:bg-slate-800/40"
+            class="flex min-h-[9rem] w-full items-center justify-center rounded-card border border-dashed border-slate-300/90 bg-slate-50/80 text-xs font-medium text-slate-400 dark:border-slate-600 dark:bg-slate-800/40"
           >
             Kéo dự án vào đây
           </div>

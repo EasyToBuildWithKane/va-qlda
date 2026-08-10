@@ -215,7 +215,7 @@ Tab strip full-width (`grid` trải đều): mobile 4 cột × 2 hàng; `md+` 8 
 | Tab | Key | Component chính |
 |---|---|---|
 | Tổng quan | `overview` | `ProjectShowSummaryBar`, `ProjectOverviewCard` (hồ sơ + mốc + PM), `ActivityFeed`, **`WeeklyReportWorkspace` (embedded, full width dưới hồ sơ)**, `WorkloadTable` (summary KPI + mức tải healthy/watch/overloaded + dung lượng/tiến độ), `RiskIssuePanel` |
-| Tài liệu | `documents` | `ProjectDocumentsPanel` — kiểu Drive: gốc = thư mục danh mục → thư mục con → file; breadcrumb; Thêm ▾ + Tải lên trong panel; kéo thả, link, preview |
+| Tài liệu | `documents` | `ProjectDocumentsPanel` — Drive (danh mục → thư mục → file); đổi tên file/thư mục; xem trước + sửa nội dung text (txt/md/csv/json…); list `table-fixed`; cột đính kèm task hẹp |
 | Lịch dự án | `timeline` | `ProjectCalendar` — Gantt mini, kéo ngày → `PUT tasks` |
 | Kanban | `board` | `TaskBoard` — `PATCH tasks.status` |
 | Sprint | `sprints` | `SprintWorkspace` — list/calendar, `SprintDataModal` |
@@ -301,7 +301,7 @@ UI: `ProjectMembers.vue`, `MemberFormModal` — thêm từ `ProjectActions` trê
 | Method | Route | Mô tả |
 |---|---|---|
 | POST | `projects.attachments.store` | Upload disk `public` — `projects/{id}/{category}`; hoặc tạo thư mục (`is_folder` + `folder_name`); hoặc tạo file trống (`is_new_file` + `file_name` + `file_type`: txt/md/csv/json); hoặc link ngoài |
-| PUT | `projects.attachments.update` | Metadata |
+| PUT | `projects.attachments.update` | Metadata: `title` (đổi tên), `content` (sửa file text ≤1MB), `notes`, `external_url`, thay file |
 | DELETE | `projects.attachments.destroy` | |
 | GET | `projects.attachments.file` | Stream file — **URL qua route**, `PublicMediaUrl`; null nếu mất file |
 
@@ -441,7 +441,7 @@ flowchart TD
 | Cổng Công nghệ | Attachment `showcase` + public project card |
 | Comments | `CommentController` morph trên Task (panel collaboration) |
 | Performance / Work dashboard | KPI tổng hợp từ task/project — `PERFORMANCE_ANALYTICS.md`, `/work` |
-| Việc của tôi (`/my-work`) | Tập trung task cá nhân đa dự án (bucket Quá hạn/Hôm nay/Sắp tới/Chưa hạn — luôn hiển thị cả khi rỗng), hàng **Báo cáo công việc hằng ngày** (trạng thái + link `/daily-reports/today`); task phát sinh / gắn trong báo cáo hôm nay không hạn → bucket **Hôm nay**; task trong báo cáo nhưng chưa gán assignee vẫn hiện dạng card như việc được giao. Form báo cáo: dropdown task chỉ **việc được giao** cho bạn trên dự án. Card lưới 3 cột (`MyWorkTaskCard`, meta trong card dạng 2 hàng × 3 cột) + **modal chi tiết rộng** (`MyWorkTaskDetailModal`, `max-w-5xl`) — không điều hướng `/projects` khi bấm Chi tiết; nút «Mở trong dự án» là lối phụ. Quick status + worklog tái dùng `projects.tasks.status` & `projects.worklogs.store`; lead xem việc thành viên nhóm (RBAC `my_work.view_team`/`my_work.act_team`, phạm vi `LedTeamScope`). Read-aggregation: `app/Application/Work/MyWorkQuery`, `MyWorkController`, widget trên `/work`. Đổi status hộ qua `TaskPolicy@changeStatus` (additive) |
+| Việc của tôi (`/my-work`) | Tập trung task cá nhân đa dự án (bucket Quá hạn/Hôm nay/Sắp tới/Chưa hạn — luôn hiển thị cả khi rỗng), hàng **Báo cáo công việc hằng ngày** (trạng thái + link `/daily-reports/today`); task phát sinh / gắn trong báo cáo hôm nay không hạn → bucket **Hôm nay**; task trong báo cáo nhưng chưa gán assignee vẫn hiện dạng card như việc được giao. Form báo cáo: dropdown task chỉ **việc được giao** cho bạn trên dự án. Card lưới 3 cột (`MyWorkTaskCard`, meta trong card dạng 2 hàng × 3 cột) + **modal chi tiết rộng** (`MyWorkTaskDetailModal`, `max-w-5xl`) — header có nhãn Dự án / Ưu tiên / Giai đoạn / Trạng thái; khối meta dạng hàng nhãn–giá trị (không `truncate`, giá trị dài xuống dòng); không điều hướng `/projects` khi bấm Chi tiết; nút «Mở trong dự án» là lối phụ. Quick status + worklog tái dùng `projects.tasks.status` & `projects.worklogs.store`; lead xem việc thành viên nhóm (RBAC `my_work.view_team`/`my_work.act_team`, phạm vi `LedTeamScope`). Read-aggregation: `app/Application/Work/MyWorkQuery`, `MyWorkController`, widget trên `/work`. Đổi status hộ qua `TaskPolicy@changeStatus` (additive) |
 
 ---
 

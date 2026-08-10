@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Support\Enums\ProjectAttachmentCategory;
 use App\Support\GoogleWorkspaceUrl;
 use App\Support\ProjectAttachmentExternalUrl;
+use App\Support\ProjectAttachmentNewFile;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -183,7 +184,16 @@ class ProjectAttachment extends Model
             ], true);
     }
 
-    /** @return 'image'|'pdf'|'docx'|'xlsx'|'doc-legacy'|'google_doc'|'google_sheet'|'none' */
+    public function isTextEditable(): bool
+    {
+        if ($this->isFolder() || $this->isExternalLink() || $this->path === '') {
+            return false;
+        }
+
+        return ProjectAttachmentNewFile::isTextEditableName($this->original_name, $this->mime_type);
+    }
+
+    /** @return 'image'|'pdf'|'docx'|'xlsx'|'text'|'doc-legacy'|'google_doc'|'google_sheet'|'none' */
     public function previewKind(): string
     {
         if ($this->isFolder()) {
@@ -208,6 +218,9 @@ class ProjectAttachment extends Model
         if ($this->isSpreadsheet()) {
             return 'xlsx';
         }
+        if ($this->isTextEditable()) {
+            return 'text';
+        }
         if (str_ends_with(strtolower($this->original_name), '.doc')) {
             return 'doc-legacy';
         }
@@ -217,6 +230,6 @@ class ProjectAttachment extends Model
 
     public function canPreviewInline(): bool
     {
-        return in_array($this->previewKind(), ['image', 'pdf', 'docx', 'xlsx', 'google_doc', 'google_sheet'], true);
+        return in_array($this->previewKind(), ['image', 'pdf', 'docx', 'xlsx', 'text', 'google_doc', 'google_sheet'], true);
     }
 }

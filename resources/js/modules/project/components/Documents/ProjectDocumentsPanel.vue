@@ -48,14 +48,21 @@ const showFolderModal = ref(false);
 const folderModalRef = ref(null);
 const showFileModal = ref(false);
 const fileModalRef = ref(null);
+const showRenameModal = ref(false);
+const renameModalRef = ref(null);
+const renameNameInput = ref(null);
 const folderNameInput = ref(null);
 const fileNameInput = ref(null);
 const addMenuOpen = ref(false);
 const addMenuRef = ref(null);
 const leftPanelCollapsed = ref(false);
 const rightPanelCollapsed = ref(false);
-const docsViewMode = ref('grid');
+const docsViewMode = ref('list');
 const selectedRowIds = ref([]);
+const previewEditing = ref(false);
+const previewDraft = ref('');
+const previewPaneRef = ref(null);
+const contentSaving = ref(false);
 
 const docsViewStorageKey = computed(() => `va-project-docs-view:${props.projectId}`);
 
@@ -129,6 +136,12 @@ const newFileForm = useForm({
     parent_id: null,
     is_new_file: true,
 });
+
+const renameForm = useForm({
+    title: '',
+});
+
+const renameTarget = ref(null);
 
 const linkForm = useForm({
     category: '',
@@ -211,17 +224,6 @@ const countFolderContents = (folderId, items) => {
     walk(folderId);
     return { subfolders, files };
 };
-
-const activeFolderStats = computed(() => {
-    if (!activeFolderId.value) return null;
-    return countFolderContents(activeFolderId.value, categoryFiles.value);
-});
-
-const activeFolderIsEmpty = computed(() => {
-    const stats = activeFolderStats.value;
-    if (!stats) return false;
-    return stats.files === 0 && stats.subfolders === 0;
-});
 
 const sortByName = (a, b) => (a.original_name || '').localeCompare(b.original_name || '', 'vi');
 
@@ -351,30 +353,12 @@ watch(activeFolderId, (pid) => {
     }
 }, { immediate: true });
 
-const totalCount = computed(() => props.attachments.filter((a) => !a.is_folder).length);
-
 const visibleFiles = computed(() => {
     if (isDriveRoot.value) return [];
     const pid = activeFolderId.value ?? null;
     return categoryFiles.value
         .filter((f) => !f.is_folder && (f.parent_id ?? null) === pid)
         .sort((a, b) => (a.original_name || '').localeCompare(b.original_name || '', 'vi'));
-});
-
-const activeFolderDisplayLabel = computed(() => {
-    if (isDriveRoot.value) return 'Tài liệu dự án';
-    const catLabel = activeCat.value?.label || 'Danh mục';
-    if (!activeFolderId.value) return catLabel;
-
-    const parts = [catLabel];
-    let pid = activeFolderId.value;
-    while (pid) {
-        const node = props.attachments.find((a) => a.id === pid);
-        if (!node) break;
-        parts.push(node.original_name);
-        pid = node.parent_id ?? null;
-    }
-    return parts.join(' / ');
 });
 
 const goBackFolder = () => {
@@ -532,10 +516,6 @@ const openFileDetails = (file) => {
     detailDrawerOpen.value = true;
 };
 
-const openFileExternal = (file) => {
-    if (file?.url) window.open(file.url, '_blank', 'noopener,noreferrer');
-};
-
 const acceptFor = (category) => {
     if (category === 'images') return 'image/*,.pdf,.png,.jpg,.jpeg,.gif,.webp,.svg';
     if (category === 'customer_data') return '.xls,.xlsx,.csv,.json,.txt,.zip';
@@ -600,40 +580,6 @@ const onDriveDrop = (event) => {
     }
     onDrop(activeCategory.value, event);
 };
-
-const folderPathLabel = computed(() => {
-    const parts = ['Tài liệu dự án'];
-    if (folderForm.category) {
-        const cat = props.categories.find((c) => c.value === folderForm.category);
-        parts.push(cat?.label || folderForm.category);
-    }
-    let pid = folderForm.parent_id;
-    const chain = [];
-    while (pid) {
-        const node = props.attachments.find((a) => a.id === pid);
-        if (!node) break;
-        chain.unshift(node.original_name);
-        pid = node.parent_id ?? null;
-    }
-    return [...parts, ...chain].join(' / ');
-});
-
-const filePathLabel = computed(() => {
-    const parts = ['Tài liệu dự án'];
-    if (newFileForm.category) {
-        const cat = props.categories.find((c) => c.value === newFileForm.category);
-        parts.push(cat?.label || newFileForm.category);
-    }
-    let pid = newFileForm.parent_id;
-    const chain = [];
-    while (pid) {
-        const node = props.attachments.find((a) => a.id === pid);
-        if (!node) break;
-        chain.unshift(node.original_name);
-        pid = node.parent_id ?? null;
-    }
-    return [...parts, ...chain].join(' / ');
-});
 
 const selectedNewFileType = computed(() => (
     NEW_FILE_TYPES.find((t) => t.value === newFileForm.file_type) || NEW_FILE_TYPES[0]
@@ -707,11 +653,15 @@ const selectFile = (file) => {
 const openPreviewModal = (file) => {
     if (file?.is_folder) return;
     selectFile(file);
+    previewEditing.value = false;
+    previewDraft.value = '';
     previewModalOpen.value = true;
 };
 
 const closePreviewModal = () => {
     previewModalOpen.value = false;
+    previewEditing.value = false;
+    previewDraft.value = '';
 };
 
 const openDetailsFromPreview = () => {
@@ -723,6 +673,82 @@ const deleteFromPreview = () => {
     if (!selected.value) return;
     removeFile(selected.value);
     previewModalOpen.value = false;
+};
+
+const canEditSelectedContent = computed(() => (
+    Boolean(props.canEdit && selected.value?.can_edit_content)
+));
+
+const startPreviewEdit = () => {
+    if (!canEditSelectedContent.value) return;
+    previewEditing.value = true;
+};
+
+const cancelPreviewEdit = () => {
+    previewEditing.value = false;
+    previewPaneRef.value?.reload?.();
+};
+
+const savePreviewContent = () => {
+    if (!selected.value || !canEditSelectedContent.value) return;
+    contentSaving.value = true;
+    router.put(`/projects/${props.projectId}/attachments/${selected.value.id}`, {
+        content: previewDraft.value,
+    }, {
+        preserveScroll: true,
+        onSuccess: () => {
+            previewEditing.value = false;
+            toast.success('Đã lưu nội dung.');
+            nextTick(() => previewPaneRef.value?.reload?.());
+        },
+        onError: () => toast.error('Không thể lưu nội dung file.'),
+        onFinish: () => { contentSaving.value = false; },
+    });
+};
+
+const renameDisplayBase = (item) => {
+    if (!item) return '';
+    if (item.is_folder || item.is_external_link) return item.original_name || '';
+    const name = item.original_name || '';
+    const idx = name.lastIndexOf('.');
+    if (idx <= 0) return name;
+    return name.slice(0, idx);
+};
+
+const openRenameModal = async (item) => {
+    if (!item || item.is_category || !props.canEdit) return;
+    renameTarget.value = item;
+    renameForm.reset();
+    renameForm.title = renameDisplayBase(item);
+    renameForm.clearErrors();
+    showRenameModal.value = true;
+    await nextTick();
+    renameNameInput.value?.focus?.();
+    renameNameInput.value?.select?.();
+};
+
+const closeRenameModal = () => {
+    showRenameModal.value = false;
+    renameTarget.value = null;
+    renameForm.reset();
+    renameForm.clearErrors();
+};
+
+const submitRename = () => {
+    const item = renameTarget.value;
+    if (!item || !props.canEdit || !renameForm.title.trim()) return;
+    renameForm.clearErrors();
+    renameForm.title = renameForm.title.trim();
+    renameForm.put(`/projects/${props.projectId}/attachments/${item.id}`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            closeRenameModal();
+            toast.success(item.is_folder ? 'Đã đổi tên thư mục.' : 'Đã đổi tên file.');
+        },
+        onError: (errors) => toast.error(
+            firstErrorMessage(errors, ['title'], 'Không thể đổi tên.'),
+        ),
+    });
 };
 
 const onSelectFolder = (folder) => {
@@ -910,6 +936,8 @@ const activityIcon = (event) => ({
     deleted: 'delete',
     folder_created: 'folder',
     folder_renamed: 'edit',
+    file_renamed: 'edit',
+    content_updated: 'edit',
 }[event] || 'report-history');
 
 const fileExt = (name) => {
@@ -959,6 +987,8 @@ const activityTone = (event) => ({
     deleted: 'bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400',
     folder_created: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300',
     folder_renamed: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300',
+    file_renamed: 'bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300',
+    content_updated: 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300',
 }[event] || 'bg-slate-100 text-slate-500 dark:bg-slate-800');
 </script>
 
@@ -966,11 +996,11 @@ const activityTone = (event) => ({
   <div class="flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-slate-100/80 dark:bg-slate-950">
     <!-- Hai panel: Tài liệu dự án | Đính kèm công việc -->
     <div
-      class="grid min-h-0 flex-1 gap-3 overflow-hidden p-3 max-lg:auto-rows-fr max-lg:grid-rows-[minmax(0,1.15fr)_minmax(240px,0.85fr)] lg:grid-cols-[minmax(0,1.7fr)_minmax(300px,1fr)] lg:grid-rows-1"
+      class="grid min-h-0 flex-1 gap-2.5 overflow-hidden p-2.5 max-lg:auto-rows-fr max-lg:grid-rows-[minmax(0,1.25fr)_minmax(200px,0.7fr)] lg:grid-cols-[minmax(0,1fr)_minmax(200px,248px)] lg:grid-rows-1"
     >
       <!-- Trái: Tài liệu dự án (Drive: danh mục → thư mục → file) -->
       <section
-        class="relative flex min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900"
+        class="relative flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900"
         aria-label="Tài liệu dự án"
         @dragover.prevent="onDragOver"
         @dragleave="onDragLeave"
@@ -993,13 +1023,10 @@ const activityTone = (event) => ({
             <p class="text-sm font-semibold text-brand">
               Thả để tải lên
             </p>
-            <p class="text-[11px] text-slate-500">
-              Hỗ trợ PDF, Office, ZIP, hình ảnh…
-            </p>
           </div>
         </div>
 
-        <header class="relative flex shrink-0 flex-col gap-1.5 border-b border-slate-100/90 px-4 py-3 dark:border-slate-800">
+        <header class="relative flex shrink-0 flex-col gap-1 border-b border-slate-100/90 px-3 py-2.5 dark:border-slate-800">
           <div class="flex min-w-0 flex-wrap items-center gap-2">
             <button
               v-if="!isDriveRoot"
@@ -1017,12 +1044,6 @@ const activityTone = (event) => ({
               <h2 class="truncate text-[15px] font-bold tracking-tight text-slate-800 dark:text-slate-100 sm:text-base">
                 {{ projectPanelTitle }}
               </h2>
-              <p
-                v-if="isDriveRoot"
-                class="mt-0.5 truncate text-[11px] text-slate-500"
-              >
-                {{ totalCount }} tệp · mở thư mục danh mục để xem và tải lên
-              </p>
             </div>
 
             <div class="ml-auto flex shrink-0 items-center gap-1.5">
@@ -1209,23 +1230,14 @@ const activityTone = (event) => ({
 
         <div
           v-show="!leftPanelCollapsed"
-          class="relative min-h-0 flex-1 overflow-y-auto px-4 py-4"
+          class="relative min-h-0 flex-1 overflow-y-auto px-3 py-3"
         >
           <template v-if="hasBrowsableContent">
             <!-- List view -->
-            <div v-if="docsViewMode === 'list'">
-              <div class="mb-2.5 flex items-center justify-between gap-2">
-                <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                  {{ isDriveRoot
-                    ? 'Thư mục danh mục'
-                    : (currentLevelFolders.length ? 'Folder & tệp' : 'Tệp') }}
-                </p>
-                <span class="text-[11px] tabular-nums text-slate-400">
-                  {{ isDriveRoot
-                    ? driveRootFolders.length
-                    : currentLevelFolders.length + visibleFiles.length }}
-                </span>
-              </div>
+            <div
+              v-if="docsViewMode === 'list'"
+              class="min-w-0"
+            >
               <DocumentFilesTable
                 :folders="isDriveRoot ? driveRootFolders : currentLevelFolders"
                 :files="isDriveRoot ? [] : visibleFiles"
@@ -1234,50 +1246,39 @@ const activityTone = (event) => ({
                 :format-size="formatSize"
                 :format-date="formatCardDate"
                 :file-ext="fileExt"
+                :can-edit="canEdit && !isDriveRoot"
                 :can-delete="canDelete && !isDriveRoot"
                 @select-folder="onSelectFolder"
                 @select-file="openPreviewModal"
                 @toggle-row="toggleRowSelection"
                 @toggle-all="toggleAllRows"
+                @rename-item="openRenameModal"
+                @preview-file="openPreviewModal"
                 @delete-item="removeFile"
               />
             </div>
 
             <!-- Grid view -->
             <template v-else>
-              <div v-if="isDriveRoot">
-                <div class="mb-2.5 flex items-center justify-between gap-2">
-                  <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                    Thư mục
-                  </p>
-                  <span class="text-[11px] tabular-nums text-slate-400">
-                    {{ driveRootFolders.length }}
-                  </span>
-                </div>
-                <div class="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
-                  <DocumentFolderCard
-                    v-for="folder in driveRootFolders"
-                    :key="folder.id"
-                    :name="folder.original_name"
-                    :meta="folderCardMeta(folder)"
-                    :file-count="folderCardStats(folder).files"
-                    :subfolder-count="folderCardStats(folder).subfolders"
-                    @click="onSelectFolder(folder)"
-                  />
-                </div>
+              <div
+                v-if="isDriveRoot"
+                class="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
+              >
+                <DocumentFolderCard
+                  v-for="folder in driveRootFolders"
+                  :key="folder.id"
+                  :name="folder.original_name"
+                  :meta="formatSize(folder._size || 0)"
+                  :icon="folder.icon || 'folder'"
+                  :file-count="folderCardStats(folder).files"
+                  :subfolder-count="folderCardStats(folder).subfolders"
+                  @click="onSelectFolder(folder)"
+                />
               </div>
 
               <template v-else>
                 <div v-if="currentLevelFolders.length">
-                  <div class="mb-2.5 flex items-center justify-between gap-2">
-                    <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                      Folder
-                    </p>
-                    <span class="text-[11px] tabular-nums text-slate-400">
-                      {{ currentLevelFolders.length }}
-                    </span>
-                  </div>
-                  <div class="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
+                  <div class="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                     <DocumentFolderCard
                       v-for="folder in currentLevelFolders"
                       :key="folder.id"
@@ -1285,23 +1286,19 @@ const activityTone = (event) => ({
                       :meta="folderCardMeta(folder)"
                       :file-count="folderCardStats(folder).files"
                       :subfolder-count="folderCardStats(folder).subfolders"
+                      :can-rename="canEdit"
+                      :can-delete="canDelete"
                       @click="onSelectFolder(folder)"
+                      @rename="openRenameModal(folder)"
+                      @delete="removeFile(folder)"
                     />
                   </div>
                 </div>
 
                 <div
                   v-if="visibleFiles.length"
-                  :class="currentLevelFolders.length ? 'mt-6' : ''"
+                  :class="currentLevelFolders.length ? 'mt-5' : ''"
                 >
-                  <div class="mb-2.5 flex items-center justify-between gap-2">
-                    <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                      Tệp
-                    </p>
-                    <span class="text-[11px] tabular-nums text-slate-400">
-                      {{ visibleFiles.length }}
-                    </span>
-                  </div>
                   <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
                     <DocumentFileCard
                       v-for="file in visibleFiles"
@@ -1328,29 +1325,21 @@ const activityTone = (event) => ({
 
           <div
             v-else
-            class="flex min-h-[14rem] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200/90 bg-slate-50/60 px-4 py-10 text-center dark:border-slate-700 dark:bg-slate-950/40"
+            class="flex min-h-[12rem] flex-col items-center justify-center rounded-xl border border-dashed border-slate-200/90 bg-slate-50/60 px-4 py-8 text-center dark:border-slate-700 dark:bg-slate-950/40"
           >
-            <span class="grid h-14 w-14 place-items-center rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/80 dark:bg-slate-900 dark:ring-slate-700">
+            <span class="grid h-12 w-12 place-items-center rounded-xl bg-amber-50 ring-1 ring-amber-200/70 dark:bg-amber-950/40 dark:ring-amber-800/40">
               <AppIcon
-                :name="activeFolderId ? 'folder-open' : (activeCat?.icon || 'folder')"
-                :size="26"
-                class="text-sky-400"
+                :name="activeFolderId ? 'folder-open' : 'folder'"
+                :size="22"
+                class="text-amber-500"
               />
             </span>
             <p class="mt-3 text-sm font-semibold text-slate-700 dark:text-slate-200">
-              {{ activeFolderId
-                ? (activeFolderIsEmpty ? 'Thư mục trống' : 'Chưa có tệp trong thư mục này')
-                : (canMutateDocs ? 'Chưa có thư mục hoặc tài liệu' : 'Chưa có tài liệu') }}
-            </p>
-            <p
-              v-if="canMutateDocs"
-              class="mt-1 max-w-sm text-xs leading-relaxed text-slate-500"
-            >
-              Kéo thả file vào đây, hoặc dùng <span class="font-medium text-slate-600 dark:text-slate-300">Thêm</span> / <span class="font-medium text-slate-600 dark:text-slate-300">Tải lên</span> để bắt đầu.
+              {{ activeFolderId ? 'Thư mục trống' : 'Chưa có tài liệu' }}
             </p>
             <div
               v-if="canMutateDocs"
-              class="mt-4 flex flex-wrap items-center justify-center gap-2"
+              class="mt-3 flex flex-wrap items-center justify-center gap-2"
             >
               <button
                 type="button"
@@ -1372,33 +1361,26 @@ const activityTone = (event) => ({
                   name="plus"
                   :size="13"
                 />
-                {{ activeFolderId ? 'Tạo thư mục con' : 'Tạo thư mục' }}
+                Tạo thư mục
               </button>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- Phải: Đính kèm công việc -->
+      <!-- Phải: Đính kèm công việc (cột hẹp) -->
       <section
-        class="relative flex min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900"
+        class="relative flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900"
         aria-label="Đính kèm công việc"
       >
-        <div
-          class="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-brand/[0.04] to-transparent"
-          aria-hidden="true"
-        />
-        <header class="relative flex shrink-0 items-center gap-2 border-b border-slate-100/90 px-4 py-3 dark:border-slate-800">
+        <header class="relative flex shrink-0 items-center gap-1.5 border-b border-slate-100/90 px-2.5 py-2.5 dark:border-slate-800">
           <div class="min-w-0 flex-1">
-            <h2 class="truncate font-display text-base font-bold tracking-tight text-slate-800 dark:text-slate-100">
+            <h2 class="truncate text-sm font-bold tracking-tight text-slate-800 dark:text-slate-100">
               Đính kèm công việc
             </h2>
-            <p class="mt-0.5 truncate text-[11px] text-slate-500 dark:text-slate-400">
-              File đính kèm từ các task trong dự án
-            </p>
           </div>
           <span
-            class="rounded-full px-2 py-0.5 text-[10px] font-semibold tabular-nums"
+            class="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums"
             :class="taskAttachments.length
               ? 'bg-brand/10 text-brand'
               : 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500'"
@@ -1407,64 +1389,71 @@ const activityTone = (event) => ({
           </span>
           <button
             type="button"
-            class="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800"
+            class="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800"
             :aria-label="rightPanelCollapsed ? 'Mở rộng panel' : 'Thu gọn panel'"
             :aria-expanded="!rightPanelCollapsed"
             @click="rightPanelCollapsed = !rightPanelCollapsed"
           >
             <AppIcon
               name="minus"
-              :size="14"
+              :size="13"
             />
           </button>
         </header>
 
         <div
           v-show="!rightPanelCollapsed"
-          class="relative min-h-0 flex-1 overflow-y-auto px-4 py-4"
+          class="relative min-h-0 flex-1 overflow-y-auto px-2 py-2"
         >
           <template v-if="taskAttachments.length">
-            <div class="mb-2.5 flex items-center justify-between gap-2">
-              <p class="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500">
-                Tệp
-              </p>
-              <span class="text-[11px] tabular-nums text-slate-400">
-                {{ taskAttachments.length }}
-              </span>
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-              <DocumentFileCard
+            <ul
+              class="divide-y divide-slate-100 overflow-hidden rounded-lg border border-slate-200/80 dark:divide-slate-800 dark:border-slate-700"
+              role="list"
+            >
+              <li
                 v-for="file in taskAttachments"
                 :key="`task-att-${file.id}`"
-                :name="file.original_name"
-                :meta="fileCardMeta(file)"
-                :subtitle="file.task_title"
-                :url="file.url"
-                :is-image="Boolean(file.is_image)"
-                :badge="listBadge(file)"
-                :show-actions="Boolean(file.url)"
-                @click="openTaskAttachment(file)"
-                @preview="openFileExternal(file)"
-                @details="emit('open-task', { id: file.task_id, panelTab: 'links' })"
-              />
-            </div>
+              >
+                <button
+                  type="button"
+                  class="flex w-full min-w-0 items-start gap-2 px-2 py-2 text-left transition hover:bg-slate-50 dark:hover:bg-slate-800/60"
+                  :title="file.task_title ? `${file.original_name} · ${file.task_title}` : file.original_name"
+                  @click="openTaskAttachment(file)"
+                >
+                  <span class="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-md bg-slate-50 ring-1 ring-slate-200/70 dark:bg-slate-800 dark:ring-slate-700">
+                    <AppIcon
+                      :name="file.is_image ? 'image' : (file.is_pdf ? 'pdf' : 'documents')"
+                      :size="13"
+                      :class="file.is_pdf ? 'text-rose-500' : (file.is_image ? 'text-violet-500' : 'text-sky-500')"
+                    />
+                  </span>
+                  <span class="min-w-0 flex-1">
+                    <span class="block break-words text-[12px] font-medium leading-snug text-slate-800 dark:text-slate-100">
+                      {{ file.original_name }}
+                    </span>
+                    <span class="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[10px] tabular-nums text-slate-400">
+                      <span>{{ formatSize(file.size, file) }}</span>
+                      <span
+                        v-if="file.task_title"
+                        class="min-w-0 break-words"
+                      >· {{ file.task_title }}</span>
+                    </span>
+                  </span>
+                </button>
+              </li>
+            </ul>
           </template>
           <div
             v-else
-            class="flex min-h-[14rem] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200/90 bg-slate-50/60 px-4 py-10 text-center dark:border-slate-700 dark:bg-slate-950/40"
+            class="flex min-h-[10rem] flex-col items-center justify-center rounded-xl border border-dashed border-slate-200/90 bg-slate-50/60 px-3 py-6 text-center dark:border-slate-700 dark:bg-slate-950/40"
           >
-            <span class="grid h-14 w-14 place-items-center rounded-2xl bg-white shadow-sm ring-1 ring-slate-200/80 dark:bg-slate-900 dark:ring-slate-700">
-              <AppIcon
-                name="task"
-                :size="26"
-                class="text-brand/70"
-              />
-            </span>
-            <p class="mt-3 text-sm font-semibold text-slate-700 dark:text-slate-200">
-              Chưa có đính kèm công việc
-            </p>
-            <p class="mt-1 max-w-xs text-xs leading-relaxed text-slate-500">
-              File tải lên trong chi tiết task sẽ tự xuất hiện tại đây để theo dõi nhanh.
+            <AppIcon
+              name="task"
+              :size="22"
+              class="text-brand/60"
+            />
+            <p class="mt-2 text-xs font-semibold text-slate-700 dark:text-slate-200">
+              Chưa có đính kèm
             </p>
           </div>
         </div>
@@ -1538,11 +1527,57 @@ const activityTone = (event) => ({
                 <h2 class="truncate font-display text-base font-semibold text-slate-800 dark:text-slate-100">
                   {{ selected?.original_name ?? 'Tài liệu' }}
                 </h2>
-                <p class="mt-0.5 truncate text-[11px] text-slate-500 dark:text-slate-400">
-                  {{ activeFolderDisplayLabel }}
-                </p>
               </div>
               <div class="flex shrink-0 items-center gap-1.5">
+                <template v-if="canEditSelectedContent">
+                  <button
+                    v-if="!previewEditing"
+                    type="button"
+                    class="btn-ghost inline-flex h-8 items-center gap-1 px-2.5 text-xs"
+                    @click="startPreviewEdit"
+                  >
+                    <AppIcon
+                      name="edit"
+                      :size="13"
+                    />
+                    Chỉnh sửa
+                  </button>
+                  <template v-else>
+                    <button
+                      type="button"
+                      class="btn-ghost h-8 px-2.5 text-xs"
+                      :disabled="contentSaving"
+                      @click="cancelPreviewEdit"
+                    >
+                      Huỷ
+                    </button>
+                    <button
+                      type="button"
+                      class="btn-primary inline-flex h-8 items-center gap-1 px-2.5 text-xs"
+                      :disabled="contentSaving"
+                      @click="savePreviewContent"
+                    >
+                      <AppIcon
+                        :name="contentSaving ? 'refresh' : 'check'"
+                        :size="13"
+                        :class="contentSaving ? 'animate-spin' : ''"
+                      />
+                      {{ contentSaving ? 'Đang lưu…' : 'Lưu' }}
+                    </button>
+                  </template>
+                </template>
+                <button
+                  v-if="canEdit && selected && !previewEditing && !canEditSelectedContent"
+                  type="button"
+                  class="btn-ghost grid h-8 w-8 place-items-center p-0"
+                  title="Đổi tên"
+                  @click="openRenameModal(selected)"
+                >
+                  <AppIcon
+                    name="edit"
+                    :size="14"
+                  />
+                </button>
                 <a
                   v-if="selected?.url"
                   :href="selected.url"
@@ -1557,7 +1592,7 @@ const activityTone = (event) => ({
                   />
                 </a>
                 <a
-                  v-if="selected && !selected.is_external_link"
+                  v-if="selected && !selected.is_external_link && selected.url"
                   :href="selected.url"
                   download
                   class="btn-ghost grid h-8 w-8 place-items-center p-0"
@@ -1608,8 +1643,12 @@ const activityTone = (event) => ({
 
             <div class="min-h-0 flex-1 overflow-hidden">
               <DocumentPreviewPane
+                ref="previewPaneRef"
                 class="h-full"
                 :file="selected"
+                :editing="previewEditing"
+                :can-edit="canEditSelectedContent"
+                @update:draft="previewDraft = $event"
               />
             </div>
           </div>
@@ -1694,9 +1733,6 @@ const activityTone = (event) => ({
       :dirty="Boolean(folderForm.folder_name)"
       @close="closeFolderModal"
     >
-      <p class="mb-2 text-xs text-slate-500">
-        Vị trí: <span class="font-medium text-slate-700 dark:text-slate-300">{{ folderPathLabel }}</span>
-      </p>
       <div>
         <label
           for="doc-folder-name"
@@ -1751,9 +1787,6 @@ const activityTone = (event) => ({
       :dirty="Boolean(newFileForm.file_name)"
       @close="closeFileModal"
     >
-      <p class="mb-2 text-xs text-slate-500">
-        Vị trí: <span class="font-medium text-slate-700 dark:text-slate-300">{{ filePathLabel }}</span>
-      </p>
       <div class="space-y-2.5">
         <div>
           <p class="text-xs font-medium text-slate-500">
@@ -1836,6 +1869,60 @@ const activityTone = (event) => ({
             :size="13"
           />
           {{ newFileForm.processing ? 'Đang tạo…' : 'Tạo file' }}
+        </button>
+      </div>
+    </Modal>
+
+    <Modal
+      ref="renameModalRef"
+      :show="showRenameModal"
+      :title="renameTarget?.is_folder ? 'Đổi tên thư mục' : 'Đổi tên file'"
+      max-width="max-w-sm"
+      :dirty="Boolean(renameForm.title)"
+      @close="closeRenameModal"
+    >
+      <div>
+        <label
+          for="doc-rename-title"
+          class="text-xs font-medium text-slate-500"
+        >Tên mới</label>
+        <input
+          id="doc-rename-title"
+          ref="renameNameInput"
+          v-model="renameForm.title"
+          type="text"
+          class="input mt-1 h-9 w-full text-sm"
+          placeholder="Nhập tên"
+          maxlength="255"
+          autocomplete="off"
+          @keyup.enter="submitRename"
+        >
+        <p
+          v-if="renameForm.errors.title"
+          class="mt-1 text-xs text-rose-600"
+        >
+          {{ renameForm.errors.title }}
+        </p>
+      </div>
+      <div class="mt-3 flex justify-end gap-2">
+        <button
+          type="button"
+          class="btn-ghost h-8 text-xs"
+          @click="closeRenameModal"
+        >
+          Huỷ
+        </button>
+        <button
+          type="button"
+          class="btn-primary inline-flex h-8 items-center gap-1 text-xs"
+          :disabled="renameForm.processing || !renameForm.title.trim()"
+          @click="submitRename"
+        >
+          <AppIcon
+            name="edit"
+            :size="13"
+          />
+          {{ renameForm.processing ? 'Đang lưu…' : 'Đổi tên' }}
         </button>
       </div>
     </Modal>

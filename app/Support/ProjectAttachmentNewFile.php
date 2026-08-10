@@ -66,4 +66,31 @@ final class ProjectAttachmentNewFile
 
         return self::sanitizeBaseName($name, $def['ext']).'.'.$def['ext'];
     }
+
+    /** Extensions that can be previewed and edited as plain text in the panel. */
+    public const TEXT_EDITABLE_EXTENSIONS = ['txt', 'md', 'csv', 'json', 'log', 'xml', 'yml', 'yaml', 'html', 'htm', 'css', 'js', 'ts', 'vue', 'php', 'ini', 'env'];
+
+    public static function isTextEditableName(string $name, ?string $mime = null): bool
+    {
+        $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+        if ($ext !== '' && in_array($ext, self::TEXT_EDITABLE_EXTENSIONS, true)) {
+            return true;
+        }
+
+        $mime = strtolower((string) $mime);
+
+        return str_starts_with($mime, 'text/')
+            || in_array($mime, ['application/json', 'application/xml', 'application/javascript'], true);
+    }
+
+    /**
+     * Rename a file while keeping its extension (unless the new title already includes it).
+     */
+    public static function renameKeepingExtension(string $currentName, string $newTitle): string
+    {
+        $ext = strtolower((string) pathinfo($currentName, PATHINFO_EXTENSION));
+        $base = self::sanitizeBaseName($newTitle, $ext);
+
+        return $ext !== '' ? $base.'.'.$ext : $base;
+    }
 }

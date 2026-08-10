@@ -176,37 +176,45 @@ class ProjectAttachmentController extends Controller
             ProjectAttachmentActivityLogger::notesUpdated($attachment->fresh(), $account);
         }
 
-        if (array_key_exists('external_url', $data) && $attachment->isExternalLink()) {
+        if (array_key_exists('content', $data)) {
+            if (! $attachment->isTextEditable()) {
+                return back()->withErrors(['content' => 'Loại file này không hỗ trợ chỉnh sửa nội dung.']);
+            }
+
+            if (! Storage::disk('public')->exists($attachment->path)) {
+                return back()->withErrors(['content' => 'File không tồn tại trên hệ thống.']);
+            }
+
+            Storage::disk('public')->put($attachment->path, (string) $data['content']);
+            $attachment->update([
+                'size' => Storage::disk('public')->size($attachment->path),
+                'updated_by_id' => $account->employee_id,
+            ]);
+            ProjectAttachmentActivityLogger::contentUpdated($attachment->fresh(), $account);
+        }
+
+        if (array_key_exists('title', $data)) {
+            $title = trim((string) ($data['title'] ?? ''));
+            if ($title !== '') {
+                $renamed = $this->renameAttachment($attachment, $title, $account);
+                if ($renamed instanceof RedirectResponse) {
+                    return $renamed;
+                }
+            }
+        }
+
+        if (array_key_exists('external_url', $data) && $attachment->fresh()->isExternalLink()) {
             $parsed = ProjectAttachmentExternalUrl::parse((string) $data['external_url']);
             if ($parsed === null) {
                 return back()->withErrors(['external_url' => 'Link không hợp lệ.']);
             }
 
-            $updates = [
+            $attachment->update([
                 'external_url' => $parsed['view_url'],
                 'mime_type' => $parsed['mime_type'],
                 'updated_by_id' => $account->employee_id,
-            ];
-
-            $title = trim((string) ($data['title'] ?? ''));
-            if ($title !== '') {
-                $updates['original_name'] = $title;
-            }
-
-            $attachment->update($updates);
+            ]);
             ProjectAttachmentActivityLogger::linkUpdated($attachment->fresh(), $account);
-        }
-
-        if ($attachment->isFolder() && array_key_exists('title', $data)) {
-            $title = trim((string) ($data['title'] ?? ''));
-            if ($title !== '' && $title !== $attachment->original_name) {
-                $oldName = $attachment->original_name;
-                $attachment->update([
-                    'original_name' => $title,
-                    'updated_by_id' => $account->employee_id,
-                ]);
-                ProjectAttachmentActivityLogger::folderRenamed($attachment->fresh(), $oldName, $account);
-            }
         }
 
         if ($request->hasFile('file')) {
@@ -242,6 +250,57 @@ class ProjectAttachmentController extends Controller
         }
 
         return back()->with('success', 'Đã cập nhật tài liệu.');
+    }
+
+    private function renameAttachment(ProjectAttachment $attachment, string $title, \App\Models\SystemAccount $account): bool|RedirectResponse
+    {
+        if ($attachment->isFolder()) {
+            if ($title === $attachment->original_name) {
+                return true;
+            }
+
+            $oldName = $attachment->original_name;
+            $attachment->update([
+                'original_name' => $title,
+                'updated_by_id' => $account->employee_id,
+            ]);
+            ProjectAttachmentActivityLogger::folderRenamed($attachment->fresh(), $oldName, $account);
+
+            return true;
+        }
+
+        if ($attachment->isExternalLink()) {
+            if ($title === $attachment->original_name) {
+                return true;
+            }
+
+            $oldName = $attachment->original_name;
+            $attachment->update([
+                'original_name' => $title,
+                'updated_by_id' => $account->employee_id,
+            ]);
+            ProjectAttachmentActivityLogger::fileRenamed($attachment->fresh(), $oldName, $account);
+
+            return true;
+        }
+
+        $newName = ProjectAttachmentNewFile::renameKeepingExtension($attachment->original_name, $title);
+        if ($newName === $attachment->original_name) {
+            return true;
+        }
+
+        if ($newName === '' || $newName === '.'.pathinfo($attachment->original_name, PATHINFO_EXTENSION)) {
+            return back()->withErrors(['title' => 'Tên file không hợp lệ.']);
+        }
+
+        $oldName = $attachment->original_name;
+        $attachment->update([
+            'original_name' => $newName,
+            'updated_by_id' => $account->employee_id,
+        ]);
+        ProjectAttachmentActivityLogger::fileRenamed($attachment->fresh(), $oldName, $account);
+
+        return true;
     }
 
     public function destroy(Request $request, Project $project, ProjectAttachment $attachment): RedirectResponse

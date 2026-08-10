@@ -47,13 +47,13 @@ defineExpose({ tryClose });
           class="card w-full p-6 shadow-elevation-3"
           :class="maxWidth"
         >
-          <div class="mb-4 flex items-center justify-between gap-4">
-            <h2 class="font-display text-lg font-semibold text-slate-800">
+          <div class="mb-4 flex items-start justify-between gap-4">
+            <h2 class="min-w-0 flex-1 break-words font-display text-lg font-semibold leading-snug text-slate-800">
               {{ title }}
             </h2>
             <button
               type="button"
-              class="grid h-8 w-8 place-items-center rounded-btn text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              class="grid h-8 w-8 shrink-0 place-items-center rounded-btn text-slate-400 hover:bg-slate-100 hover:text-slate-600"
               @click="tryClose"
             >
               <AppIcon
