@@ -16,9 +16,7 @@ import AiAccountAttentionStrip from '@/modules/aiAccount/components/AiAccountAtt
 import AiAccountGroupList from '@/modules/aiAccount/components/AiAccountGroupList.vue';
 import AiAccountFormModal from '@/modules/aiAccount/components/AiAccountFormModal.vue';
 import AiAccountRenewModal from '@/modules/aiAccount/components/AiAccountRenewModal.vue';
-import AiAccountPasswordViewersModal from '@/modules/aiAccount/components/AiAccountPasswordViewersModal.vue';
 import AiAccountBanner from '@/modules/aiAccount/components/AiAccountBanner.vue';
-import ProposalScanModal from '@/modules/aiAccount/components/scan/ProposalScanModal.vue';
 import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
 
 const FILTER_CONTROL_CLASS = 'input h-10 w-full text-sm';
@@ -42,7 +40,6 @@ const {
     createAccount,
     updateAccount,
     updateAccountStatus,
-    updateRenewalPayment,
     deleteAccount,
     renewAccount,
     triggerReminder,
@@ -64,12 +61,10 @@ const {
     goToPage,
     PER_PAGE_OPTIONS,
     statusCounts,
-    paymentCounts,
     groupFilterOptions,
     clearFilters,
     toggleGroupFilter,
     AI_ACCOUNT_STATUS_FILTER_OPTS,
-    AI_ACCOUNT_RENEWAL_PAYMENT_FILTER_OPTS,
     AI_ACCOUNT_TABLE_COLUMNS,
     colVisible,
     visibleCols,
@@ -88,27 +83,11 @@ const {
 } = useAiAccountListUi(groups, toRef(props, 'options'));
 
 const formOpen = ref(false);
-const scanOpen = ref(false);
 const renewOpen = ref(false);
-const passwordViewersOpen = ref(false);
-const passwordViewerAccountId = ref(null);
 const editing = ref(null);
 const renewing = ref(null);
 
 const totalCount = computed(() => summaryCards.value?.total_accounts ?? 0);
-const allAccountsForPicker = computed(() =>
-    (groups.value ?? []).flatMap((g) => g.accounts ?? []),
-);
-
-function openPasswordViewers(row = null) {
-    passwordViewerAccountId.value = row?.id ?? null;
-    passwordViewersOpen.value = true;
-}
-
-function closePasswordViewers() {
-    passwordViewersOpen.value = false;
-    passwordViewerAccountId.value = null;
-}
 
 const listBadge = computed(() => {
     if (activeFilterCount.value > 0 || search.value.trim()) {
@@ -147,15 +126,11 @@ async function onFormSubmit(payload) {
     editing.value = null;
 }
 
-async function onRenewalPaymentChange(row, status) {
-    await updateRenewalPayment(row.id, status);
-}
-
 async function onStatusChange(row, status) {
     const ok = status === 'expired'
         ? await dialog.confirm({
             title: 'Đánh dấu hết hạn',
-            message: `${row.tool_name}: gói có thể đã hết trước ngày trên phiếu. Cập nhật ngày hết hạn về hôm nay?`,
+            message: `${row.tool_name}: cập nhật ngày hết hạn về hôm nay?`,
             confirmText: 'Hết hạn hôm nay',
             cancelText: 'Chỉ đổi trạng thái',
         })
@@ -208,33 +183,19 @@ function showAttentionOnly() {
     filters.attentionOnly = true;
     expandAllGroups();
 }
-
 </script>
 
 <template>
-  <Head title="Quản lý AI · Tài khoản" />
+  <Head title="Tài khoản AI" />
   <AppLayout>
     <template #header>
       <PageHeader
-        title="Quản lý AI"
-        subtitle="Tài khoản đang dùng · liên kết với phiếu đề xuất mua sắm"
+        title="Tài khoản AI"
+        subtitle="Email, mật khẩu, chi phí và phiếu đề xuất / đề nghị thanh toán"
         icon="account"
         icon-color="brand"
         :badge="listBadge || null"
       >
-        <button
-          v-if="can.scan_proposal"
-          type="button"
-          class="btn-ghost inline-flex h-9 shrink-0 items-center gap-1.5 border border-slate-200 px-3 text-xs font-medium"
-          title="Tải lên hoặc chụp ảnh Phiếu Đề Xuất giấy — AI trích xuất dữ liệu và chữ ký"
-          @click="scanOpen = true"
-        >
-          <AppIcon
-            name="sparkles"
-            :size="15"
-          />
-          Quét phiếu (OCR)
-        </button>
         <button
           v-if="can.create"
           type="button"
@@ -259,7 +220,7 @@ function showAttentionOnly() {
             <DatagridToolbarSearch
               v-model="search"
               input-id="ai-accounts-search"
-              placeholder="Tên công cụ, email, license, ghi chú…"
+              placeholder="Tên công cụ, email, ghi chú…"
               stretch
               inline-actions
               hide-label
@@ -316,24 +277,11 @@ function showAttentionOnly() {
               class="btn-ghost hidden h-10 items-center gap-1.5 border border-slate-200 px-3 text-xs font-medium sm:inline-flex"
             >
               <AppIcon
-                name="performance"
+                name="budget"
                 :size="15"
               />
-              Báo cáo
+              Chi phí AI
             </Link>
-            <button
-              v-if="can.manage_password_viewers"
-              type="button"
-              class="btn-ghost hidden h-10 items-center gap-1.5 border border-slate-200 px-3 text-xs font-medium md:inline-flex"
-              title="Cấp quyền xem mật khẩu theo từng công cụ AI"
-              @click="openPasswordViewers()"
-            >
-              <AppIcon
-                name="eye"
-                :size="15"
-              />
-              Quyền xem MK
-            </button>
             <button
               v-if="can.trigger_reminder"
               type="button"
@@ -389,22 +337,6 @@ function showAttentionOnly() {
                   :value="opt.key"
                 >
                   {{ opt.label }} ({{ statusCounts[opt.key] ?? 0 }})
-                </option>
-              </select>
-            </DatagridFilterField>
-
-            <DatagridFilterField v-if="visibleFilters.renewal_payment">
-              <select
-                v-model="filters.renewalPayment"
-                :class="FILTER_CONTROL_CLASS"
-                aria-label="Thanh toán gia hạn"
-              >
-                <option
-                  v-for="opt in AI_ACCOUNT_RENEWAL_PAYMENT_FILTER_OPTS"
-                  :key="opt.key"
-                  :value="opt.key"
-                >
-                  {{ opt.label }} ({{ paymentCounts[opt.key] ?? 0 }})
                 </option>
               </select>
             </DatagridFilterField>
@@ -476,15 +408,12 @@ function showAttentionOnly() {
         :expanded="expanded"
         :loading="loading"
         :col-visible="colVisible"
-        :can-manage-password-viewers="can.manage_password_viewers"
         :status-options="options.status ?? []"
         @toggle="toggleGroup"
         @edit="openEdit"
         @delete="onDelete"
         @renew="openRenew"
         @status-change="onStatusChange"
-        @renewal-payment="onRenewalPaymentChange"
-        @password-viewers="openPasswordViewers"
       />
 
       <DatagridPaginationFooter
@@ -506,6 +435,7 @@ function showAttentionOnly() {
       :form-hints="formHints"
       :reminder-schedule="reminderSchedule"
       :status-options="options.status ?? []"
+      :options="options"
       @close="formOpen = false"
       @submit="onFormSubmit"
     />
@@ -515,19 +445,6 @@ function showAttentionOnly() {
       :account="renewing"
       @close="renewOpen = false"
       @submit="onRenewSubmit"
-    />
-
-    <AiAccountPasswordViewersModal
-      :show="passwordViewersOpen"
-      :accounts="allAccountsForPicker"
-      :initial-account-id="passwordViewerAccountId"
-      @close="closePasswordViewers"
-    />
-
-    <ProposalScanModal
-      :show="scanOpen"
-      @close="scanOpen = false"
-      @saved="scanOpen = false"
     />
   </AppLayout>
 </template>

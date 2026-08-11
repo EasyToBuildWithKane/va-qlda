@@ -5,9 +5,6 @@ namespace App\Providers;
 // use Illuminate\Support\Facades\Gate;
 use App\Domain\DailyReport\Models\DailyReport;
 use App\Models\AiAccount;
-use App\Models\AiPaymentRequest;
-use App\Models\AiProposalScan;
-use App\Models\AiPurchaseProposal;
 use App\Models\Blocker;
 use App\Models\CongngheSection;
 use App\Models\CongngheSoftwareProposal;
@@ -28,9 +25,6 @@ use App\Models\Task;
 use App\Models\Vendor;
 use App\Models\WeeklyReport;
 use App\Policies\AiAccountPolicy;
-use App\Policies\AiPaymentRequestPolicy;
-use App\Policies\AiProposalScanPolicy;
-use App\Policies\AiPurchaseProposalPolicy;
 use App\Policies\BlockerPolicy;
 use App\Policies\CongngheContentPolicy;
 use App\Policies\CongngheSoftwareProposalPolicy;
@@ -73,9 +67,6 @@ class AuthServiceProvider extends ServiceProvider
         Feedback::class => FeedbackPolicy::class,
         WeeklyReport::class => WeeklyReportPolicy::class,
         AiAccount::class => AiAccountPolicy::class,
-        AiPaymentRequest::class => AiPaymentRequestPolicy::class,
-        AiProposalScan::class => AiProposalScanPolicy::class,
-        AiPurchaseProposal::class => AiPurchaseProposalPolicy::class,
         SystemSetting::class => SystemSettingPolicy::class,
         EvaluationCriterion::class => EvaluationCriterionPolicy::class,
         EvaluationTemplate::class => EvaluationTemplatePolicy::class,

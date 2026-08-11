@@ -63,10 +63,4 @@ return [
         'jwks_cache_ttl' => (int) env('HRM_SSO_JWKS_CACHE_TTL', 3600),
     ],
 
-    'proposal_ocr' => [
-        'url' => env('PROPOSAL_OCR_URL'),
-        'token' => env('PROPOSAL_OCR_TOKEN'),
-        'timeout' => (int) env('PROPOSAL_OCR_TIMEOUT', 30),
-    ],
-
 ];

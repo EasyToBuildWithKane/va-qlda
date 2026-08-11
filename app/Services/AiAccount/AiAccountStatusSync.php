@@ -45,10 +45,6 @@ class AiAccountStatusSync
 
     public function syncAndSave(AiAccount $account, ?Carbon $today = null): void
     {
-        if ($account->status_locked_at !== null) {
-            return;
-        }
-
         $next = $this->resolve($account, $today);
         if ($account->status !== $next) {
             $account->status = $next;

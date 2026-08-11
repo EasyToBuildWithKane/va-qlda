@@ -3,8 +3,8 @@
 namespace App\Http\Requests\AiAccount;
 
 use App\Models\AiAccount;
-use App\Models\AiPurchaseProposal;
-use App\Support\Enums\AiPurchaseProposalStatus;
+use App\Support\Enums\AiAccountCostUnit;
+use App\Support\Enums\AiAccountGroupFunction;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -18,21 +18,22 @@ class StoreAiAccountRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'proposal_id' => [
-                'required',
-                'uuid',
-                Rule::exists('ai_purchase_proposals', 'id')->where(function ($q) {
-                    $q->whereIn('status', [
-                        AiPurchaseProposalStatus::Approved->value,
-                        AiPurchaseProposalStatus::Purchased->value,
-                        AiPurchaseProposalStatus::Active->value,
-                    ]);
-                }),
-            ],
+            'tool_name' => ['required', 'string', 'max:255'],
+            'group_function' => ['required', Rule::in(AiAccountGroupFunction::values())],
             'email_registered' => ['required', 'email', 'max:255'],
             'password' => ['nullable', 'string', 'max:255'],
+            'purchase_date' => ['required', 'date'],
+            'expiry_date' => ['required', 'date', 'after_or_equal:purchase_date'],
+            'cost_amount' => ['required', 'integer', 'min:0'],
+            'cost_unit' => ['required', Rule::in(AiAccountCostUnit::values())],
             'notify_before_days' => ['nullable', 'integer', 'min:1', 'max:365'],
+            'proposal_sent_at' => ['nullable', 'date'],
+            'payment_request_sent_at' => ['nullable', 'date'],
             'notes' => ['nullable', 'string', 'max:5000'],
+            'proposal_documents' => ['nullable', 'array', 'max:5'],
+            'proposal_documents.*' => ['file', 'max:10240', 'mimes:pdf,jpg,jpeg,png,doc,docx,xls,xlsx'],
+            'payment_request_documents' => ['nullable', 'array', 'max:5'],
+            'payment_request_documents.*' => ['file', 'max:10240', 'mimes:pdf,jpg,jpeg,png,doc,docx,xls,xlsx'],
         ];
     }
 
@@ -42,39 +43,21 @@ class StoreAiAccountRequest extends FormRequest
             if ($this->filled('password') && ! $this->user()->isAdminTier()) {
                 $validator->errors()->add('password', 'Chỉ quản trị viên được lưu mật khẩu đăng nhập.');
             }
-
-            if ($validator->errors()->isNotEmpty()) {
-                return;
-            }
-
-            $proposalId = $this->input('proposal_id');
-            if (! is_string($proposalId) || $proposalId === '') {
-                return;
-            }
-
-            $proposal = AiPurchaseProposal::query()->find($proposalId);
-            if ($proposal === null) {
-                return;
-            }
-
-            if (! $proposal->hasRemainingAccountSlots()) {
-                $validator->errors()->add('proposal_id', 'Phiếu không hợp lệ hoặc đã được lập tài khoản.');
-            }
         });
     }
 
     public function messages(): array
     {
         return [
-            'proposal_id.required' => 'Vui lòng chọn phiếu đề xuất đã duyệt.',
-            'proposal_id.exists' => 'Phiếu không hợp lệ hoặc đã được lập tài khoản.',
+            'tool_name.required' => 'Vui lòng nhập tên công cụ AI.',
+            'group_function.required' => 'Vui lòng chọn nhóm chức năng.',
             'email_registered.required' => 'Vui lòng nhập email đăng ký.',
             'email_registered.email' => 'Email đăng ký không hợp lệ.',
+            'purchase_date.required' => 'Vui lòng nhập ngày mua.',
+            'expiry_date.required' => 'Vui lòng nhập ngày hết hạn.',
+            'expiry_date.after_or_equal' => 'Ngày hết hạn phải sau hoặc bằng ngày mua.',
+            'cost_amount.required' => 'Vui lòng nhập chi phí.',
+            'cost_unit.required' => 'Vui lòng chọn đơn vị chi phí.',
         ];
-    }
-
-    public function proposal(): AiPurchaseProposal
-    {
-        return AiPurchaseProposal::query()->findOrFail($this->validated('proposal_id'));
     }
 }

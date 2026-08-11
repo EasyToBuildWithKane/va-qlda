@@ -69,7 +69,7 @@ resources/js/
 │   ├── onboarding/               ← useOnboarding / useSmartContext (hint UI đã gỡ khỏi AppLayout)
 │   ├── notifications/            ← Bell, center drawer, preferences
 │   ├── audit/                    ← Audit trail viewer components/composables
-│   ├── aiAccount/                ← Tài khoản AI: composables + components/scan (ProposalScanModal — OCR PĐX, useProposalScan)
+│   ├── aiAccount/                ← Tài khoản AI: composables + form/list/cost report
 │   ├── evaluation/               ← Tiêu chí đánh giá: SummaryBar, CriterionFormModal, ActivityTimeline, CategoryTabs, RowActions, DepartmentAutocomplete, columns, export
 │   ├── evaluation-template/      ← Mẫu đánh giá: SummaryBar, EvaluationTemplateForm (+ FormModal sửa), MultiCatalogSelect, DataModal, columns, import/export composables
 │   └── workspace-config/         ← Hub: ProfileCard/Grid, InsightsBanner, ProfileDrawer, export composable
@@ -139,7 +139,7 @@ Pages import feature components từ `@/modules/project/components/...` và prim
 
 `Modal.vue`, `Drawer.vue`, `AppDialog.vue`, `ToastContainer.vue`, `PageHeader.vue`
 
-**Content header (2026-06):** Mỗi Inertia page đặt **một** `PageHeader` trong `AppLayout` slot `#header` (topbar `h-14`). Props: `title`, `subtitle`, `icon` (khớp `App\Support\Navigation.php`), `icon-color` (thường `brand`), `badge` tùy chọn. Prop `back-href` chỉ trang drill-down (Create/Edit/Show con) — không dùng cho mục sidebar cấp 1 (vd. dashboard AI, báo cáo ngày). Actions trong default slot: `btn-primary` / `btn-ghost`, `h-9`. Mẫu: `Pages/AiAccount/Index.vue`, `Pages/AiAccount/Dashboard.vue`, `Pages/DailyReport/History.vue`.
+**Content header (2026-06):** Mỗi Inertia page đặt **một** `PageHeader` trong `AppLayout` slot `#header` (topbar `h-14`). Props: `title`, `subtitle`, `icon` (khớp `App\Support\Navigation.php`), `icon-color` (thường `brand`), `badge` tùy chọn. Prop `back-href` chỉ trang drill-down (Create/Edit/Show con) — không dùng cho mục sidebar cấp 1 (vd. tài khoản AI, báo cáo ngày). Actions trong default slot: `btn-primary` / `btn-ghost`, `h-9`. Mẫu: `Pages/AiAccount/Index.vue`, `Pages/AiAccount/CostReport.vue`, `Pages/DailyReport/History.vue`.
 
 ### 6.1b App shell — `Components/Layout/`
 

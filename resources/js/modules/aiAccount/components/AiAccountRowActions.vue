@@ -1,14 +1,12 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
-import { Link } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
 
 const props = defineProps({
     row: { type: Object, required: true },
-    canManagePasswordViewers: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(['edit', 'renew', 'delete', 'password-viewers']);
+const emit = defineEmits(['edit', 'renew', 'delete']);
 
 const open = ref(false);
 const triggerRef = ref(null);
@@ -67,12 +65,10 @@ watch(open, async (isOpen) => {
         window.addEventListener('scroll', scrollListener, true);
         window.addEventListener('resize', scrollListener);
         document.addEventListener('mousedown', onPointerDownOutside);
-    } else {
-        if (scrollListener) {
-            window.removeEventListener('scroll', scrollListener, true);
-            window.removeEventListener('resize', scrollListener);
-            scrollListener = null;
-        }
+    } else if (scrollListener) {
+        window.removeEventListener('scroll', scrollListener, true);
+        window.removeEventListener('resize', scrollListener);
+        scrollListener = null;
         document.removeEventListener('mousedown', onPointerDownOutside);
     }
 });
@@ -100,11 +96,6 @@ function onDelete() {
     emit('delete', props.row);
 }
 
-function onPasswordViewers() {
-    close();
-    emit('password-viewers', props.row);
-}
-
 const hasMenuItems = computed(() => true);
 </script>
 
@@ -120,99 +111,56 @@ const hasMenuItems = computed(() => true);
       @click="toggle"
     >
       <AppIcon
-        name="more-horizontal"
-        :size="16"
+        name="more"
+        :size="14"
       />
-      <span class="hidden sm:inline">Thao tác</span>
-      <AppIcon
-        name="chevron-down"
-        :size="12"
-        class="opacity-50 transition-transform"
-        :class="open && 'rotate-180'"
-      />
+      <span>Thao tác</span>
     </button>
 
     <Teleport to="body">
       <div
         v-if="open && hasMenuItems"
         ref="panelRef"
-        :style="dropdownStyle"
-        class="rounded-xl border border-slate-200 bg-white py-1 shadow-elevation-2"
         role="menu"
+        class="overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
+        :style="dropdownStyle"
       >
-        <Link
-          v-if="row.proposal_url"
-          :href="row.proposal_url"
-          class="flex items-center gap-2 px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-50"
-          role="menuitem"
-          preserve-scroll
-          @click="close"
-        >
-          <AppIcon
-            name="performance"
-            :size="15"
-            class="text-brand"
-          />
-          Xem hồ sơ PĐX & ĐNTT
-          <span
-            v-if="row.proposal_code"
-            class="ml-auto font-mono text-[10px] text-slate-400"
-          >{{ row.proposal_code }}</span>
-        </Link>
         <button
-          v-if="canManagePasswordViewers"
           type="button"
-          class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-50"
           role="menuitem"
-          @click="onPasswordViewers"
+          class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+          @click="onEdit"
         >
           <AppIcon
-            name="eye"
-            :size="15"
+            name="edit"
+            :size="14"
           />
-          Quyền xem MK (công cụ này)
+          Sửa
         </button>
-        <div
-          v-if="row.proposal_url || canManagePasswordViewers"
-          class="my-1 border-t border-slate-100"
-        />
         <button
           v-if="row.can_renew"
           type="button"
-          class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-brand transition hover:bg-brand/5"
           role="menuitem"
+          class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
           @click="onRenew"
         >
           <AppIcon
             name="refresh"
-            :size="15"
+            :size="14"
           />
           Gia hạn
         </button>
         <button
           type="button"
-          class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-50"
           role="menuitem"
-          @click="onEdit"
-        >
-          <AppIcon
-            name="edit"
-            :size="15"
-          />
-          Chỉnh sửa
-        </button>
-        <div class="my-1 border-t border-slate-100" />
-        <button
-          type="button"
-          class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-rose-700 transition hover:bg-rose-50"
-          role="menuitem"
+          class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-rose-700 hover:bg-rose-50"
           @click="onDelete"
         >
           <AppIcon
-            name="delete"
-            :size="15"
+            name="trash"
+            :size="14"
           />
-          Xoá tài khoản
+          Xóa
         </button>
       </div>
     </Teleport>

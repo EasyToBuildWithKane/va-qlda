@@ -749,96 +749,33 @@ Knowledge Base Domain:              ← Migrate 2026-06-14
 
 ---
 
-## 6. Module Quản lý Tài khoản AI — PĐX · ĐNTT · Vòng đời (thêm 2026-06)
+## 6. Module Quản lý Tài khoản AI (làm phẳng 2026-08)
 
-### 6.1 Bảng `va_prd_ai_payment_requests`
+Chi tiết nghiệp vụ: [`docs/AI_ACCOUNTS.md`](AI_ACCOUNTS.md).
 
-Đề Nghị Thanh Toán — 1 bản ghi / PĐX, tách luồng duyệt tiền với PĐX.
+Migration flatten: `2026_08_10_100000_simplify_ai_accounts_flat_workspace.php` — **đã drop** `ai_purchase_proposals`, `ai_payment_requests`, `ai_proposal_scans`, `ai_proposal_scan_signatures`, `ai_account_password_viewers`.
 
-| Cột | Kiểu | Mô tả |
-|---|---|---|
-| `id` | uuid PK | — |
-| `ai_purchase_proposal_id` | uuid FK unique | References `ai_purchase_proposals.id`; cascade delete |
-| `payment_request_code` | string unique | Tự sinh: `DNTT-YYYYMMDD-###` |
-| `amount` | bigint | Số tiền ĐNTT (VNĐ); mặc định = `cost_amount` PĐX |
-| `status` | string(16) | `pending` \| `approved` \| `rejected` \| `paid` |
-| `created_by` | bigint FK | References `system_accounts.id`; null on delete |
-| `reviewed_by` | bigint FK nullable | References `system_accounts.id`; null on delete |
-| `reviewed_at` | timestamp nullable | Thời điểm duyệt hoặc từ chối |
-| `rejection_reason` | text nullable | Lý do từ chối |
-| `paid_at` | timestamp nullable | Khi ghi nhận thanh toán (`mark-paid`) |
-| `payment_document_paths` | json nullable | Đường dẫn chứng từ (v2) |
-| `created_at`, `updated_at` | timestamps | — |
-
-**Luồng:** `pending` → `approved` / `rejected`; sau `approved` → `paid` (mark-paid).
-
-**Gate tạo TK:** `AiAccountFromProposalCreator` yêu cầu ĐNTT ở trạng thái `approved` hoặc `paid` trước khi lập tài khoản AI.
-
-### 6.2 Cột lifecycle trên `va_prd_ai_accounts`
-
-Thêm 2026-06-07 để theo dõi vòng đời tài khoản sau khi mua.
-
-| Cột | Kiểu | Mô tả |
-|---|---|---|
-| `lifecycle_status` | string(24) default `in_use` | `not_purchased` \| `purchased` \| `allocated` \| `in_use` \| `expired` \| `stopped` |
-| `purchased_by` | bigint FK nullable | References `system_accounts.id`; null on delete |
-| `actual_purchase_cost` | bigint nullable | Chi phí thực tế (khác với `cost_amount` nếu có discount) |
-| `allocated_at` | date nullable | Ngày cấp phát cho người dùng |
-| `allocated_to_name` | string nullable | Tên người nhận tài khoản |
-
-Ghi chú: cột `status` (active / expiring_soon / expired / cancelled) giữ nguyên cho **cảnh báo hạn** — `lifecycle_status` dùng để theo dõi **vòng đời mua sắm**.
-
-### 6.3 `AiWorkflowMetricsBuilder` — KPI theo giai đoạn
-
-| Key | Định nghĩa |
-|---|---|
-| `budget_proposed_total` | Sum `cost_amount` PĐX không bị từ chối |
-| `budget_proposal_approved_total` | Sum `cost_amount` PĐX đã duyệt |
-| `budget_payment_request_total` | Sum `amount` tất cả ĐNTT |
-| `budget_payment_approved_total` | ĐNTT `approved` + `paid` |
-| `budget_paid_total` | ĐNTT `paid` only |
-| `actual_purchase_total` | Sum `actual_purchase_cost` tài khoản đã lập |
-| `accounts_allocated_count` | TK `lifecycle` in `allocated`, `in_use` |
-| `accounts_expiring_soon_count` | `status = expiring_soon` |
-| `accounts_expired_count` | `status = expired` |
-
-API: kèm trong `api.ai-accounts.summary` và `api.ai-accounts.proposals.index` dưới key `workflow_metrics`.
-
-### 6.4 Xóa TK / PĐX và TK mồ côi
-
-Soft delete TK, đồng bộ PĐX, đếm badge vs chi phí theo nhóm, `purgeOrphanedFromProposal`: **`docs/AI_ACCOUNTS.md`**.
-
-### 6.5 Số hóa PĐX bằng OCR (thêm 2026-07)
-
-Migration: `2026_07_02_100000_create_ai_proposal_scans_tables.php`. Luồng nghiệp vụ: `docs/AI_ACCOUNTS.md` mục «Số hóa Phiếu Đề Xuất (OCR)».
-
-**`va_prd_ai_proposal_scans`** — một bản ghi / lần quét phiếu giấy.
+### 6.1 Bảng `va_prd_ai_accounts`
 
 | Cột | Kiểu | Mô tả |
 |---|---|---|
 | `id` | uuid PK | — |
-| `ai_purchase_proposal_id` | uuid FK nullable | PĐX tạo từ scan sau confirm; null on delete |
-| `original_path` / `original_name` / `mime_type` / `size` | string / string / string(100) / bigint | File gốc trên disk `public` (`ai-proposals/scans/{uuid}/original.*`) |
-| `status` | string(16) | `processing` \| `needs_review` \| `confirmed` \| `failed` (enum `AiProposalScanStatus`) |
-| `extracted_fields` | json nullable | `{key: {value, confidence}}` — key whitelist trong `UpdateProposalScanRequest::FIELD_KEYS` |
-| `raw_text` | longtext nullable | Toàn bộ văn bản OCR |
-| `error_message` | text nullable | Khi `failed` |
-| `pages` / `duration_ms` | int | Số trang / thời gian xử lý OCR |
-| `created_by` | bigint FK | References `system_accounts.id`; cascade delete |
+| `tool_name` | string | Tên công cụ AI |
+| `group_function` | string(32) | DEV / BA / PM / Design / QA / Other |
+| `email_registered` | string | Email đăng ký |
+| `login_password` | text nullable | Encrypted |
+| `purchase_date` / `expiry_date` | date | Ngày mua / hết hạn |
+| `proposal_sent_at` / `payment_request_sent_at` | date nullable | Ngày gửi PĐX / ĐNTT |
+| `proposal_document_paths` / `payment_request_document_paths` | json nullable | `[{path, original_name, mime_type, size}]` |
+| `cost_amount` | bigint | Chi phí (VNĐ) |
+| `cost_unit` | string(16) | monthly / quarterly / yearly / one_time |
+| `status` | string(24) | active / expiring_soon / expired / cancelled |
+| `notify_before_days` | smallint | Mặc định 14 |
+| `last_reminded_at` | timestamp nullable | Lần nhắc hết hạn gần nhất |
+| `notes` | text nullable | — |
+| `deleted_at` | soft delete | — |
 
-**`va_prd_ai_proposal_scan_signatures`** — vùng chữ ký cắt từ bản quét.
-
-| Cột | Kiểu | Mô tả |
-|---|---|---|
-| `id` | bigint PK | — |
-| `ai_proposal_scan_id` | uuid FK | Cascade delete |
-| `role` | string(32) | `proposer` \| `department_head` \| `board_of_directors` \| `accountant` \| `other` (enum `ProposalSignatureRole`) |
-| `signed` | boolean | Ô đã có nét ký hay còn trống |
-| `signer_name` | string nullable | Tên đọc được cạnh chữ ký |
-| `confidence` | decimal(4,3) | 0–1 |
-| `image_path` | string nullable | Ảnh PNG cắt riêng trên disk `public` |
-| `bbox` | json nullable | `[x0, y0, x1, y1]` chuẩn hóa 0–1 theo trang |
-| `page` | int | Trang chứa chữ ký |
+Chi phí KPI / báo cáo: quy tháng từ `cost_amount` + `cost_unit` (`AiAccountCostCalculator`).
 
 ---
 

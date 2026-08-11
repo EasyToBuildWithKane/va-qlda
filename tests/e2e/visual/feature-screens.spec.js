@@ -24,9 +24,7 @@ const ADMIN_SCREENS = [
     { id: 'feedback', path: '/feedback', heading: /phản hồi/i },
     { id: 'knowledge-base', path: '/knowledge-base', heading: /cơ sở tri thức/i },
     { id: 'ai-accounts', path: '/ai-accounts', heading: /tài khoản ai/i },
-    { id: 'ai-accounts-dashboard', path: '/ai-accounts/dashboard', heading: /dashboard quản trị ai/i },
-    { id: 'ai-accounts-analytics', path: '/ai-accounts/analytics', heading: /báo cáo phân tích/i },
-    { id: 'ai-accounts-cost-report', path: '/ai-accounts/cost-report', heading: /pđx & đntt/i },
+    { id: 'ai-accounts-cost-report', path: '/ai-accounts/cost-report', heading: /chi phí ai/i },
     { id: 'notifications-manage', path: '/notifications/manage', heading: /quản lý thông báo/i },
 ];
 

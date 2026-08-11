@@ -5,28 +5,24 @@ namespace App\Http\Controllers\AiAccount;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AiAccount\RenewAiAccountRequest;
 use App\Http\Requests\AiAccount\StoreAiAccountRequest;
-use App\Http\Requests\AiAccount\UpdateAiAccountRenewalPaymentRequest;
 use App\Http\Requests\AiAccount\UpdateAiAccountRequest;
 use App\Http\Requests\AiAccount\UpdateAiAccountStatusRequest;
 use App\Models\AiAccount;
-use App\Models\AiPurchaseProposal;
 use App\Services\AiAccount\AiAccountCostSummaryBuilder;
-use App\Services\AiAccount\AiAccountFromProposalCreator;
+use App\Services\AiAccount\AiAccountDocumentService;
 use App\Services\AiAccount\AiAccountGrouper;
 use App\Services\AiAccount\AiAccountReminderService;
 use App\Services\AiAccount\AiAccountStatusSync;
-use App\Services\AiAccount\AiPurchaseProposalPresenter;
-use App\Services\AiAccount\AiWorkflowMetricsBuilder;
-use App\Support\EmployeePickerMapper;
 use App\Support\Enums\AiAccountCostUnit;
 use App\Support\Enums\AiAccountGroupFunction;
-use App\Support\Enums\AiAccountRenewalPaymentStatus;
 use App\Support\Enums\AiAccountStatus;
-use App\Support\Enums\AiPurchaseProposalStatus;
 use App\Support\SecurityAuditLogger;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AiAccountController extends Controller
 {
@@ -35,9 +31,7 @@ class AiAccountController extends Controller
         private readonly AiAccountCostSummaryBuilder $costSummaryBuilder,
         private readonly AiAccountStatusSync $statusSync,
         private readonly AiAccountReminderService $reminderService,
-        private readonly AiPurchaseProposalPresenter $proposalPresenter,
-        private readonly AiAccountFromProposalCreator $fromProposalCreator,
-        private readonly AiWorkflowMetricsBuilder $workflowMetrics,
+        private readonly AiAccountDocumentService $documentService,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -54,40 +48,13 @@ class AiAccountController extends Controller
             'data' => [
                 ...$payload,
                 'summary_cards' => $summary['cards'],
-                'proposal_counts' => $this->proposalPresenter->aggregateCounts(),
-                'awaiting_account_count' => $this->proposalPresenter->awaitingAccountCount(),
-                'workflow_metrics' => $this->workflowMetrics->build(),
             ],
             'meta' => [
                 'options' => [
                     'group_function' => AiAccountGroupFunction::options(),
                     'cost_unit' => AiAccountCostUnit::options(),
-                    'license_types' => config('ai_accounts.license_types', []),
                     'status' => AiAccountStatus::options(),
                 ],
-            ],
-        ]);
-    }
-
-    public function searchEmployees(Request $request): JsonResponse
-    {
-        $this->authorize('viewAny', AiAccount::class);
-
-        $id = $request->query('id');
-        $idInt = is_numeric($id) ? (int) $id : null;
-        $q = $request->query('q');
-        $query = is_string($q) ? $q : '';
-
-        $employees = EmployeePickerMapper::search(
-            $query,
-            40,
-            $idInt,
-        );
-
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'employees' => $employees,
             ],
         ]);
     }
@@ -97,15 +64,7 @@ class AiAccountController extends Controller
         $this->authorize('viewAny', AiAccount::class);
 
         $accounts = $this->loadAndSyncAccounts();
-        $proposals = AiPurchaseProposal::query()
-            ->with(['creator.employee', 'reviewer.employee'])
-            ->orderByDesc('created_at')
-            ->get();
-
         $summary = $this->costSummaryBuilder->build($accounts);
-        $summary['proposals'] = $this->proposalPresenter->list($proposals, $request->user());
-        $summary['proposal_counts'] = $this->proposalPresenter->counts($proposals);
-        $summary['workflow_metrics'] = $this->workflowMetrics->build();
 
         return response()->json([
             'success' => true,
@@ -127,15 +86,49 @@ class AiAccountController extends Controller
     public function store(StoreAiAccountRequest $request): JsonResponse
     {
         $validated = $request->validated();
-        $proposal = $request->proposal();
 
-        $account = $this->fromProposalCreator->create($proposal, [
-            'email_registered' => $validated['email_registered'],
-            'login_password' => $validated['password'] ?? null,
-            'notify_before_days' => $validated['notify_before_days'] ?? null,
-            'notes' => $validated['notes'] ?? null,
-            'creator' => $request->user(),
-        ]);
+        $account = DB::transaction(function () use ($request, $validated) {
+            $account = AiAccount::query()->create([
+                'tool_name' => $validated['tool_name'],
+                'group_function' => $validated['group_function'],
+                'email_registered' => $validated['email_registered'],
+                'login_password' => $request->user()->isAdminTier()
+                    ? ($validated['password'] ?? null)
+                    : null,
+                'purchase_date' => $validated['purchase_date'],
+                'expiry_date' => $validated['expiry_date'],
+                'cost_amount' => (int) $validated['cost_amount'],
+                'cost_unit' => $validated['cost_unit'],
+                'notify_before_days' => $validated['notify_before_days']
+                    ?? (int) config('ai_accounts.defaults.notify_before_days', 14),
+                'proposal_sent_at' => $validated['proposal_sent_at'] ?? null,
+                'payment_request_sent_at' => $validated['payment_request_sent_at'] ?? null,
+                'notes' => $validated['notes'] ?? null,
+                'status' => AiAccountStatus::Active,
+                'proposal_document_paths' => [],
+                'payment_request_document_paths' => [],
+            ]);
+
+            $proposalDocs = $this->documentService->storeUploads(
+                $account,
+                AiAccountDocumentService::KIND_PROPOSAL,
+                $request->file('proposal_documents'),
+            );
+            $paymentDocs = $this->documentService->storeUploads(
+                $account,
+                AiAccountDocumentService::KIND_PAYMENT_REQUEST,
+                $request->file('payment_request_documents'),
+            );
+
+            $account->update([
+                'proposal_document_paths' => $proposalDocs,
+                'payment_request_document_paths' => $paymentDocs,
+            ]);
+
+            $this->statusSync->syncAndSave($account->fresh());
+
+            return $account->fresh();
+        });
 
         SecurityAuditLogger::aiAccount($request->user(), 'created', null, [
             'ai_account_id' => $account->id,
@@ -145,52 +138,64 @@ class AiAccountController extends Controller
         return response()->json([
             'success' => true,
             'data' => ['account' => $this->accountRow($account, $request->user())],
-            'message' => 'Đã lập tài khoản AI từ phiếu đề xuất.',
+            'message' => 'Đã tạo tài khoản AI.',
         ], 201);
     }
 
     public function update(UpdateAiAccountRequest $request, AiAccount $aiAccount): JsonResponse
     {
         $validated = $request->validated();
-        $data = [
-            'email_registered' => $validated['email_registered'],
-            'notify_before_days' => $validated['notify_before_days'] ?? $aiAccount->notify_before_days,
-            'notes' => $validated['notes'] ?? null,
-        ];
 
-        if ($request->user()->isAdminTier() && ! empty($validated['password'])) {
-            $data['login_password'] = $validated['password'];
-        }
+        DB::transaction(function () use ($request, $aiAccount, $validated) {
+            $data = [
+                'tool_name' => $validated['tool_name'],
+                'group_function' => $validated['group_function'],
+                'email_registered' => $validated['email_registered'],
+                'purchase_date' => $validated['purchase_date'],
+                'expiry_date' => $validated['expiry_date'],
+                'cost_amount' => (int) $validated['cost_amount'],
+                'cost_unit' => $validated['cost_unit'],
+                'notify_before_days' => $validated['notify_before_days'] ?? $aiAccount->notify_before_days,
+                'proposal_sent_at' => $validated['proposal_sent_at'] ?? null,
+                'payment_request_sent_at' => $validated['payment_request_sent_at'] ?? null,
+                'notes' => $validated['notes'] ?? null,
+            ];
 
-        if ($request->user()->can('updateStatus', $aiAccount)) {
-            if (! empty($validated['status'] ?? null)) {
-                $this->applyManualStatus(
-                    $aiAccount,
-                    AiAccountStatus::from($validated['status']),
-                    $validated['expiry_date'] ?? null,
-                    (bool) ($validated['sync_expiry_on_expire'] ?? true),
-                );
-                $aiAccount->refresh();
-            } elseif (! empty($validated['expiry_date'] ?? null) || isset($validated['purchase_date'])) {
-                $dateUpdates = [];
-                if (! empty($validated['expiry_date'] ?? null)) {
-                    $dateUpdates['expiry_date'] = Carbon::parse($validated['expiry_date'])->startOfDay();
-                }
-                if (isset($validated['purchase_date'])) {
-                    $dateUpdates['purchase_date'] = $validated['purchase_date'];
-                }
-                $aiAccount->update($dateUpdates);
-                if ($aiAccount->status_locked_at === null) {
-                    $this->statusSync->syncAndSave($aiAccount);
-                }
-                $aiAccount->refresh();
+            if ($request->user()->isAdminTier() && ! empty($validated['password'])) {
+                $data['login_password'] = $validated['password'];
             }
-        }
 
-        $aiAccount->update($data);
-        if ($aiAccount->status_locked_at === null) {
-            $this->statusSync->syncAndSave($aiAccount);
-        }
+            if ($request->user()->can('updateStatus', $aiAccount) && ! empty($validated['status'] ?? null)) {
+                $status = AiAccountStatus::from($validated['status']);
+                $data['status'] = $status;
+                if ($status === AiAccountStatus::Expired && (bool) ($validated['sync_expiry_on_expire'] ?? true)) {
+                    $data['expiry_date'] = now()->startOfDay();
+                }
+            }
+
+            $aiAccount->update($data);
+
+            $this->mergeDocuments(
+                $aiAccount,
+                AiAccountDocumentService::KIND_PROPOSAL,
+                $request->file('proposal_documents'),
+                (bool) ($validated['replace_proposal_documents'] ?? false),
+            );
+            $this->mergeDocuments(
+                $aiAccount,
+                AiAccountDocumentService::KIND_PAYMENT_REQUEST,
+                $request->file('payment_request_documents'),
+                (bool) ($validated['replace_payment_request_documents'] ?? false),
+            );
+
+            $fresh = $aiAccount->fresh();
+            if ($fresh
+                && $fresh->status !== AiAccountStatus::Cancelled
+                && $fresh->status !== AiAccountStatus::Expired
+            ) {
+                $this->statusSync->syncAndSave($fresh);
+            }
+        });
 
         SecurityAuditLogger::aiAccount($request->user(), 'updated', null, [
             'ai_account_id' => $aiAccount->id,
@@ -207,13 +212,20 @@ class AiAccountController extends Controller
     public function updateStatus(UpdateAiAccountStatusRequest $request, AiAccount $aiAccount): JsonResponse
     {
         $validated = $request->validated();
+        $status = AiAccountStatus::from($validated['status']);
+        $data = ['status' => $status];
 
-        $this->applyManualStatus(
-            $aiAccount,
-            AiAccountStatus::from($validated['status']),
-            $validated['expiry_date'] ?? null,
-            (bool) ($validated['sync_expiry_on_expire'] ?? true),
-        );
+        if (! empty($validated['expiry_date'] ?? null)) {
+            $data['expiry_date'] = Carbon::parse($validated['expiry_date'])->startOfDay();
+        } elseif ((bool) ($validated['sync_expiry_on_expire'] ?? true) && $status === AiAccountStatus::Expired) {
+            $data['expiry_date'] = now()->startOfDay();
+        }
+
+        $aiAccount->update($data);
+
+        if ($status !== AiAccountStatus::Cancelled && $status !== AiAccountStatus::Expired) {
+            $this->statusSync->syncAndSave($aiAccount->fresh());
+        }
 
         return response()->json([
             'success' => true,
@@ -227,18 +239,9 @@ class AiAccountController extends Controller
         $this->authorize('delete', $aiAccount);
         $name = $aiAccount->tool_name;
 
-        $linkedProposal = AiPurchaseProposal::query()
-            ->where('ai_account_id', $aiAccount->id)
-            ->first();
-
+        $this->documentService->deleteFiles($aiAccount->proposal_document_paths ?? []);
+        $this->documentService->deleteFiles($aiAccount->payment_request_document_paths ?? []);
         $aiAccount->delete();
-
-        if ($linkedProposal !== null) {
-            $linkedProposal->update([
-                'ai_account_id' => null,
-                'status' => AiPurchaseProposalStatus::Expired,
-            ]);
-        }
 
         SecurityAuditLogger::aiAccount(request()->user(), 'deleted', null, [
             'ai_account_id' => $aiAccount->id,
@@ -257,15 +260,10 @@ class AiAccountController extends Controller
         $start = Carbon::parse($validated['start_date'])->startOfDay();
         $months = (int) $validated['period_months'];
 
-        $newExpiry = $start->copy()->addMonths($months);
-
         $aiAccount->update([
             'purchase_date' => $start,
-            'expiry_date' => $newExpiry,
+            'expiry_date' => $start->copy()->addMonths($months),
             'cost_amount' => (int) $validated['new_cost'],
-            'renewal_payment_status' => AiAccountRenewalPaymentStatus::Unpaid,
-            'renewal_paid_at' => null,
-            'last_payment_reminded_at' => null,
         ]);
 
         $this->statusSync->syncAndSave($aiAccount);
@@ -277,85 +275,92 @@ class AiAccountController extends Controller
         ]);
     }
 
-    public function updateRenewalPayment(
-        UpdateAiAccountRenewalPaymentRequest $request,
-        AiAccount $aiAccount,
-    ): JsonResponse {
-        $status = AiAccountRenewalPaymentStatus::from($request->validated('renewal_payment_status'));
-
-        $aiAccount->update([
-            'renewal_payment_status' => $status,
-            'renewal_paid_at' => $status === AiAccountRenewalPaymentStatus::Paid ? now() : null,
-            'last_payment_reminded_at' => $status === AiAccountRenewalPaymentStatus::Paid
-                ? null
-                : $aiAccount->last_payment_reminded_at,
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'data' => ['account' => $this->accountRow($aiAccount->fresh(), $request->user())],
-            'message' => $status === AiAccountRenewalPaymentStatus::Paid
-                ? 'Đã ghi nhận thanh toán gia hạn.'
-                : 'Đã đánh dấu chưa thanh toán — sẽ nhận email nhắc nếu quá hạn.',
-        ]);
-    }
-
     public function triggerReminder(Request $request): JsonResponse
     {
         $this->authorize('triggerReminder', AiAccount::class);
 
-        $expiryCount = $this->reminderService->sendDueReminders();
-        $paymentCount = $this->reminderService->sendUnpaidRenewalReminders();
-        $count = $expiryCount + $paymentCount;
+        $count = $this->reminderService->sendDueReminders();
 
         return response()->json([
             'success' => true,
-            'data' => [
-                'sent' => $count,
-                'expiry_sent' => $expiryCount,
-                'payment_sent' => $paymentCount,
-            ],
+            'data' => ['sent' => $count],
             'message' => $count > 0
-                ? "Đã gửi {$count} nhắc nhở (hết hạn: {$expiryCount}, chưa thanh toán: {$paymentCount})."
+                ? "Đã gửi {$count} nhắc nhở hết hạn."
                 : 'Không có tài khoản nào cần nhắc hôm nay.',
         ]);
     }
 
+    public function documentFile(
+        Request $request,
+        AiAccount $aiAccount,
+        string $kind,
+        int $index,
+    ): StreamedResponse {
+        $this->authorize('view', $aiAccount);
+
+        $normalized = $kind === 'payment-request' ? 'payment_request' : 'proposal';
+        abort_unless(in_array($normalized, ['proposal', 'payment_request'], true), 404);
+
+        $docs = $normalized === 'payment_request'
+            ? ($aiAccount->payment_request_document_paths ?? [])
+            : ($aiAccount->proposal_document_paths ?? []);
+
+        abort_unless(isset($docs[$index]) && is_array($docs[$index]), 404);
+
+        $path = $docs[$index]['path'] ?? null;
+        abort_unless(is_string($path) && $path !== '' && Storage::disk('public')->exists($path), 404);
+
+        $name = is_string($docs[$index]['original_name'] ?? null)
+            ? $docs[$index]['original_name']
+            : basename($path);
+        $mime = is_string($docs[$index]['mime_type'] ?? null)
+            ? $docs[$index]['mime_type']
+            : 'application/octet-stream';
+
+        return Storage::disk('public')->response($path, $name, ['Content-Type' => $mime]);
+    }
+
+    /**
+     * @param  array<int, \Illuminate\Http\UploadedFile>|null  $files
+     */
+    private function mergeDocuments(
+        AiAccount $account,
+        string $kind,
+        ?array $files,
+        bool $replace,
+    ): void {
+        $attr = $kind === AiAccountDocumentService::KIND_PAYMENT_REQUEST
+            ? 'payment_request_document_paths'
+            : 'proposal_document_paths';
+
+        $existing = $account->{$attr} ?? [];
+        if (! is_array($existing)) {
+            $existing = [];
+        }
+
+        $uploaded = $this->documentService->storeUploads($account, $kind, $files);
+        if ($uploaded === [] && ! $replace) {
+            return;
+        }
+
+        if ($replace) {
+            $this->documentService->deleteFiles($existing);
+            $account->update([$attr => $uploaded]);
+
+            return;
+        }
+
+        $account->update([$attr => array_values(array_merge($existing, $uploaded))]);
+    }
+
     private function loadAndSyncAccounts()
     {
-        AiAccount::purgeOrphanedFromProposal();
-
         $accounts = AiAccount::query()
-            ->visibleInRegistry()
-            ->with('purchaseProposal')
             ->orderBy('tool_name')
             ->get();
         $this->statusSync->syncCollection($accounts);
 
-        return $accounts
-            ->map(fn (AiAccount $a) => $a->fresh(['purchaseProposal']))
-            ->filter()
-            ->values();
-    }
-
-    private function applyManualStatus(
-        AiAccount $account,
-        AiAccountStatus $status,
-        ?string $expiryDate = null,
-        bool $syncExpiryOnExpire = true,
-    ): void {
-        $data = [
-            'status' => $status,
-            'status_locked_at' => now(),
-        ];
-
-        if ($expiryDate !== null && $expiryDate !== '') {
-            $data['expiry_date'] = Carbon::parse($expiryDate)->startOfDay();
-        } elseif ($syncExpiryOnExpire && $status === AiAccountStatus::Expired) {
-            $data['expiry_date'] = now()->startOfDay();
-        }
-
-        $account->update($data);
+        return $accounts->map(fn (AiAccount $a) => $a->fresh())->filter()->values();
     }
 
     private function accountRow(?AiAccount $account, ?\App\Models\SystemAccount $viewer = null): ?array
@@ -363,8 +368,6 @@ class AiAccountController extends Controller
         if (! $account) {
             return null;
         }
-
-        $account->loadMissing('purchaseProposal');
 
         return $this->grouper->accountPayload($account, $viewer);
     }

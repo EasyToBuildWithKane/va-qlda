@@ -2,11 +2,8 @@
 
 namespace App\Services\AiAccount;
 
-use App\Models\AiAccount;
-use Illuminate\Support\Collection;
-
 /**
- * Tổng hợp chi phí theo nhóm — nguồn chi phí: phiếu đề xuất đã duyệt (xem AiAccountGrouper::summary).
+ * Tổng hợp chi phí theo nhóm — nguồn: cost_amount trên tài khoản AI.
  */
 class AiAccountCostSummaryBuilder
 {
@@ -15,10 +12,10 @@ class AiAccountCostSummaryBuilder
     ) {}
 
     /**
-     * @param  Collection<int, AiAccount>  $accounts
+     * @param  \Illuminate\Support\Collection<int, \App\Models\AiAccount>  $accounts
      * @return array<string, mixed>
      */
-    public function build(Collection $accounts): array
+    public function build(\Illuminate\Support\Collection $accounts): array
     {
         return $this->grouper->summary($accounts);
     }

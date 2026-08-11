@@ -2,7 +2,7 @@
 
 **File gốc:** [`../troubleshooting.md`](../troubleshooting.md)
 
-Mục lục nhanh: [Husky](#husky) · [commitlint](#commitlint) · [Push/Sync](#pushsync) · [Playwright](#playwright) · [ESLint](#eslint) · [CI](#ci) · [Deploy server](#deploy-server) · [Google login log](#google-login-log) · [Media 404](#media-404) · [Vite/npm](#vite--npm) · [DB test](#db-test) · [AI orphan](#ai-orphan) · [Route 404 deploy](#route-404-sau-deploy) · [Realtime bình luận](#realtime-binh-luan) · [Toast flash](#toast-flash)
+Mục lục nhanh: [Husky](#husky) · [commitlint](#commitlint) · [Push/Sync](#pushsync) · [Playwright](#playwright) · [ESLint](#eslint) · [CI](#ci) · [Deploy server](#deploy-server) · [Google login log](#google-login-log) · [Media 404](#media-404) · [Vite/npm](#vite--npm) · [DB test](#db-test) · [Route 404 deploy](#route-404-sau-deploy) · [Realtime bình luận](#realtime-binh-luan) · [Toast flash](#toast-flash)
 
 ---
 
@@ -245,16 +245,6 @@ php artisan migrate:fresh --seed
 ```
 
 CI tạo sqlite trong workspace tự động.
-
----
-
-## AI — badge «1 TK», chi phí 0 {#ai-orphan}
-
-TK mồ côi sau PĐX — deploy code `purgeOrphanedFromProposal`, F5. Chi tiết: [docs/AI_ACCOUNTS.md](../../docs/AI_ACCOUNTS.md).
-
-```bash
-php artisan test tests/Feature/AiAccountOrphanPurgeTest.php
-```
 
 ---
 

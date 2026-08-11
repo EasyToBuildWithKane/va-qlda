@@ -381,8 +381,7 @@ class Navigation
             ],
 
             // ──────────────────────────────────────────────────────────────
-            // 8. AI WORKSPACE — AI account pool, analytics, chi phí
-            //    All active accounts can request or view AI tools.
+            // 8. AI WORKSPACE — tài khoản AI + chi phí
             // ──────────────────────────────────────────────────────────────
             [
                 'key' => 'ai',
@@ -391,18 +390,6 @@ class Navigation
                 'icon' => 'sparkles',
                 'defaultCollapsed' => true,
                 'items' => [
-                    [
-                        'label' => 'AI Dashboard',
-                        'icon' => 'overview',
-                        'href' => '/ai-accounts/dashboard',
-                        'status' => 'live',
-                    ],
-                    [
-                        'label' => 'Phân tích sử dụng',
-                        'icon' => 'performance',
-                        'href' => '/ai-accounts/analytics',
-                        'status' => 'live',
-                    ],
                     [
                         'label' => 'Tài khoản AI',
                         'icon' => 'account',

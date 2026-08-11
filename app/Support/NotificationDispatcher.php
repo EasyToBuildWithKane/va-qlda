@@ -4,7 +4,6 @@ namespace App\Support;
 
 use App\Domain\DailyReport\Models\DailyReport;
 use App\Domain\DailyReport\Models\DailyReportScore;
-use App\Models\AiPurchaseProposal;
 use App\Models\Blocker;
 use App\Models\Contract;
 use App\Models\Employee;
@@ -412,34 +411,6 @@ class NotificationDispatcher
             $title,
             $body,
         );
-    }
-
-    public static function aiProposalDecision(AiPurchaseProposal $proposal, string $decision, ?SystemAccount $actor): void
-    {
-        if ($actor === null) {
-            return;
-        }
-
-        $svc = self::service();
-        $creator = SystemAccount::find($proposal->created_by);
-        if (! $creator || $creator->id === $actor->id) {
-            return;
-        }
-
-        $type = $decision === 'approved' ? NotificationType::AiProposalApproved : NotificationType::AiProposalRejected;
-        $verb = $decision === 'approved' ? 'được duyệt' : 'bị từ chối';
-        $tool = $proposal->tool_name ?? ($proposal->proposal_code ?? 'AI');
-        $title = "Phiếu đề xuất {$tool} {$verb}";
-        $body = $decision === 'approved'
-            ? 'Tiến hành đăng ký tài khoản sau khi thanh toán được duyệt.'
-            : ($proposal->rejection_reason ?? null);
-
-        $svc->notify([$creator], $type, $title, $body, [
-            'actor' => $actor,
-            'entity_type' => 'ai_proposal',
-            'entity_id' => $proposal->id,
-            'action_url' => '/ai-accounts',
-        ]);
     }
 
     public static function dailyReportSubmitted(DailyReport $report, ?SystemAccount $actor): void

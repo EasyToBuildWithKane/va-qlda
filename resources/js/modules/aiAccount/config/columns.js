@@ -1,16 +1,17 @@
 /** Cột bảng tài khoản AI (tool + actions luôn hiển thị). */
 export const AI_ACCOUNT_COLUMNS = [
-    { key: 'license', label: 'License' },
     { key: 'email', label: 'Email đăng ký' },
     { key: 'purchase', label: 'Ngày mua' },
     { key: 'expiry', label: 'Ngày hết hạn' },
+    { key: 'proposal_sent', label: 'Ngày gửi PĐX' },
+    { key: 'payment_sent', label: 'Ngày gửi ĐNTT' },
     { key: 'cost', label: 'Chi phí' },
-    { key: 'lifecycle', label: 'Vòng đời' },
     { key: 'status', label: 'Trạng thái' },
-    { key: 'payment', label: 'Thanh toán GH' },
 ];
 
-export const AI_ACCOUNT_COLUMNS_DEFAULT = ['license', 'email', 'purchase', 'expiry', 'cost', 'status', 'payment'];
+export const AI_ACCOUNT_COLUMNS_DEFAULT = [
+    'email', 'purchase', 'expiry', 'cost', 'status',
+];
 
 export const AI_ACCOUNT_STATUS_FILTER_OPTS = [
     { key: 'all', label: 'Tất cả' },
@@ -20,17 +21,8 @@ export const AI_ACCOUNT_STATUS_FILTER_OPTS = [
     { key: 'cancelled', label: 'Đã huỷ' },
 ];
 
-/** Checkbox «Lọc» — chọn control hiển thị trên dòng 2 (không phải giá trị lọc). */
-export const AI_ACCOUNT_RENEWAL_PAYMENT_FILTER_OPTS = [
-    { key: 'all', label: 'Tất cả cần TT' },
-    { key: 'unpaid', label: 'Chưa thanh toán GH' },
-    { key: 'paid', label: 'Đã thanh toán GH' },
-    { key: 'due', label: 'Cần ghi nhận TT (sắp/hết hạn)' },
-];
-
 export const AI_ACCOUNT_FILTER_CONTROLS = [
     { key: 'status', label: 'Trạng thái', default: false },
-    { key: 'renewal_payment', label: 'Thanh toán gia hạn', default: false },
     { key: 'group', label: 'Nhóm chức năng', default: false },
     { key: 'attention', label: 'Cần chú ý (sắp/hết hạn)', default: false },
 ];

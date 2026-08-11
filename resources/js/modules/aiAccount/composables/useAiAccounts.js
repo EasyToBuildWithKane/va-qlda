@@ -1,6 +1,26 @@
 import { ref, computed } from 'vue';
-import { httpGet, httpPost, httpPut, httpPatch, httpDelete } from '@/shared/services/http';
+import { httpGet, httpPost, httpPut, httpPatch, httpDelete, httpClient } from '@/shared/services/http';
 import { useToast } from '@/shared/composables/useToast';
+
+function toFormData(payload) {
+    const fd = new FormData();
+    Object.entries(payload).forEach(([key, value]) => {
+        if (value === undefined || value === null) return;
+        if (key === 'proposal_documents' || key === 'payment_request_documents') {
+            const files = Array.isArray(value) ? value : [];
+            files.forEach((f) => {
+                if (f instanceof File) fd.append(`${key}[]`, f);
+            });
+            return;
+        }
+        if (typeof value === 'boolean') {
+            fd.append(key, value ? '1' : '0');
+            return;
+        }
+        fd.append(key, String(value));
+    });
+    return fd;
+}
 
 export function useAiAccounts() {
     const toast = useToast();
@@ -8,8 +28,6 @@ export function useAiAccounts() {
     const groups = ref([]);
     const banner = ref(null);
     const summaryCards = ref(null);
-    const proposalCounts = ref(null);
-    const awaitingAccountCount = ref(0);
     const search = ref('');
     const expanded = ref({});
     const allGroupsExpanded = ref(true);
@@ -32,8 +50,6 @@ export function useAiAccounts() {
             groups.value = data.groups ?? [];
             banner.value = data.banner ?? null;
             summaryCards.value = data.summary_cards ?? null;
-            proposalCounts.value = data.proposal_counts ?? null;
-            awaitingAccountCount.value = data.awaiting_account_count ?? 0;
             for (const g of groups.value) {
                 if (expanded.value[g.group] === undefined) {
                     expanded.value[g.group] = allGroupsExpanded.value
@@ -50,20 +66,39 @@ export function useAiAccounts() {
         }
     }
 
-    async function fetchSummary() {
-        const res = await httpGet(route('api.ai-accounts.summary'));
-        return res.data ?? res;
-    }
-
     async function createAccount(payload) {
-        const res = await httpPost(route('api.ai-accounts.store'), payload);
+        const hasFiles = (payload.proposal_documents?.length || 0) > 0
+            || (payload.payment_request_documents?.length || 0) > 0;
+        let res;
+        if (hasFiles) {
+            const { data } = await httpClient.post(
+                route('api.ai-accounts.store'),
+                toFormData(payload),
+            );
+            res = data;
+        } else {
+            res = await httpPost(route('api.ai-accounts.store'), payload);
+        }
         toast.success(res.message ?? 'Đã lưu thành công.');
         await fetchList();
         return res.data?.account;
     }
 
     async function updateAccount(id, payload) {
-        const res = await httpPut(route('api.ai-accounts.update', { aiAccount: id }), payload);
+        const hasFiles = (payload.proposal_documents?.length || 0) > 0
+            || (payload.payment_request_documents?.length || 0) > 0;
+        let res;
+        if (hasFiles) {
+            const fd = toFormData(payload);
+            fd.append('_method', 'PUT');
+            const { data } = await httpClient.post(
+                route('api.ai-accounts.update.multipart', { aiAccount: id }),
+                fd,
+            );
+            res = data;
+        } else {
+            res = await httpPut(route('api.ai-accounts.update', { aiAccount: id }), payload);
+        }
         toast.success(res.message ?? 'Đã lưu thành công.');
         await fetchList();
         return res.data?.account;
@@ -76,15 +111,6 @@ export function useAiAccounts() {
             sync_expiry_on_expire,
         });
         toast.success(res.message ?? 'Đã cập nhật trạng thái.');
-        await fetchList();
-        return res.data?.account;
-    }
-
-    async function updateRenewalPayment(id, renewalPaymentStatus) {
-        const res = await httpPatch(route('api.ai-accounts.update-renewal-payment', { aiAccount: id }), {
-            renewal_payment_status: renewalPaymentStatus,
-        });
-        toast.success(res.message ?? 'Đã cập nhật thanh toán.');
         await fetchList();
         return res.data?.account;
     }
@@ -121,27 +147,27 @@ export function useAiAccounts() {
     }
 
     function toggleAllGroups() {
-        setAllExpanded(!allGroupsExpanded.value);
+        if (allGroupsExpanded.value) collapseAllGroups();
+        else expandAllGroups();
     }
 
-    const hasGroups = computed(() => groups.value.length > 0);
+    const totalAccountCount = computed(() =>
+        groups.value.reduce((n, g) => n + (g.accounts?.length ?? 0), 0),
+    );
 
     return {
         loading,
         groups,
         banner,
         summaryCards,
-        proposalCounts,
-        awaitingAccountCount,
         search,
         expanded,
-        hasGroups,
+        allGroupsExpanded,
+        totalAccountCount,
         fetchList,
-        fetchSummary,
         createAccount,
         updateAccount,
         updateAccountStatus,
-        updateRenewalPayment,
         deleteAccount,
         renewAccount,
         triggerReminder,
@@ -149,6 +175,5 @@ export function useAiAccounts() {
         expandAllGroups,
         collapseAllGroups,
         toggleAllGroups,
-        allGroupsExpanded,
     };
 }

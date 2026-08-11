@@ -4,7 +4,6 @@ import { useVisibleColumns } from '@/shared/composables/useVisibleColumns';
 import { useClientPagination } from '@/shared/composables/useClientPagination';
 import {
     AI_ACCOUNT_FILTER_CONTROLS,
-    AI_ACCOUNT_RENEWAL_PAYMENT_FILTER_OPTS,
     AI_ACCOUNT_STATUS_FILTER_OPTS,
     AI_ACCOUNT_TABLE_COLUMNS,
 } from '@/modules/aiAccount/config/columns';
@@ -17,9 +16,9 @@ function groupHeaderCost(group, accounts, useFilteredSum) {
     return group.total_cost_monthly ?? accounts.reduce((sum, a) => sum + budgetMonthly(a), 0);
 }
 
-const FILTER_VALUES_KEY = 'va-workspace.ai-accounts.filters';
-const VISIBLE_FILTERS_KEY = 'va-workspace.ai-accounts.filter-controls.v2';
-const COLS_KEY = 'va-workspace.ai-accounts.columns';
+const FILTER_VALUES_KEY = 'va-workspace.ai-accounts.filters.v3';
+const VISIBLE_FILTERS_KEY = 'va-workspace.ai-accounts.filter-controls.v3';
+const COLS_KEY = 'va-workspace.ai-accounts.columns.v3';
 const PER_PAGE_KEY = 'va-workspace.ai-accounts.per-page';
 
 function loadSavedFilters() {
@@ -34,15 +33,11 @@ function loadSavedFilters() {
     return null;
 }
 
-/**
- * Bộ lọc client-side + hiển thị cột/bộ lọc (pattern Department / CostReport).
- */
 export function useAiAccountListUi(groupsRef, optionsRef) {
     const saved = loadSavedFilters();
 
     const filters = reactive({
         status: saved?.status ?? 'all',
-        renewalPayment: saved?.renewalPayment ?? 'all',
         groups: saved?.groups ?? [],
         attentionOnly: saved?.attentionOnly ?? false,
     });
@@ -50,7 +45,6 @@ export function useAiAccountListUi(groupsRef, optionsRef) {
     watch(filters, () => {
         localStorage.setItem(FILTER_VALUES_KEY, JSON.stringify({
             status: filters.status,
-            renewalPayment: filters.renewalPayment,
             groups: [...filters.groups],
             attentionOnly: filters.attentionOnly,
         }));
@@ -100,7 +94,6 @@ export function useAiAccountListUi(groupsRef, optionsRef) {
     const activeFilterCount = computed(() => {
         let n = 0;
         if (filters.status !== 'all') n++;
-        if (filters.renewalPayment !== 'all') n++;
         if (filters.groups.length > 0) n++;
         if (filters.attentionOnly) n++;
         return n;
@@ -112,13 +105,6 @@ export function useAiAccountListUi(groupsRef, optionsRef) {
 
     function accountMatchesFilters(row) {
         if (filters.status !== 'all' && row.status !== filters.status) return false;
-        if (filters.renewalPayment === 'unpaid') {
-            if (!row.show_renewal_payment || row.renewal_payment_status !== 'unpaid') return false;
-        } else if (filters.renewalPayment === 'paid') {
-            if (!row.show_renewal_payment || row.renewal_payment_status !== 'paid') return false;
-        } else if (filters.renewalPayment === 'due') {
-            if (!row.show_renewal_payment) return false;
-        }
         if (filters.groups.length > 0 && !filters.groups.includes(row.group_function)) return false;
         if (filters.attentionOnly && !['expiring_soon', 'expired'].includes(row.status)) return false;
         return true;
@@ -202,24 +188,10 @@ export function useAiAccountListUi(groupsRef, optionsRef) {
         return counts;
     });
 
-    const paymentCounts = computed(() => {
-        const due = allAccounts.value.filter((a) => a.show_renewal_payment);
-        return {
-            all: due.length,
-            unpaid: due.filter((a) => a.renewal_payment_status === 'unpaid').length,
-            paid: due.filter((a) => a.renewal_payment_status === 'paid').length,
-            due: due.length,
-        };
-    });
-
     const filterSummaryLabel = computed(() => {
         const parts = [];
         if (filters.status !== 'all') {
             const opt = AI_ACCOUNT_STATUS_FILTER_OPTS.find((o) => o.key === filters.status);
-            if (opt) parts.push(opt.label);
-        }
-        if (filters.renewalPayment !== 'all') {
-            const opt = AI_ACCOUNT_RENEWAL_PAYMENT_FILTER_OPTS.find((o) => o.key === filters.renewalPayment);
             if (opt) parts.push(opt.label);
         }
         if (filters.groups.length > 0) parts.push(`${filters.groups.length} nhóm`);
@@ -231,7 +203,6 @@ export function useAiAccountListUi(groupsRef, optionsRef) {
 
     function clearFilters() {
         filters.status = 'all';
-        filters.renewalPayment = 'all';
         filters.groups = [];
         filters.attentionOnly = false;
     }
@@ -260,9 +231,7 @@ export function useAiAccountListUi(groupsRef, optionsRef) {
         clearFilters,
         toggleGroupFilter,
         AI_ACCOUNT_STATUS_FILTER_OPTS,
-        AI_ACCOUNT_RENEWAL_PAYMENT_FILTER_OPTS,
         AI_ACCOUNT_TABLE_COLUMNS,
-        paymentCounts,
         colVisible,
         visibleCols,
         persistVisibleColumns,

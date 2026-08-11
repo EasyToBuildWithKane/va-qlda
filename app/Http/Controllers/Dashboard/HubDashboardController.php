@@ -280,7 +280,7 @@ class HubDashboardController extends Controller
                 'key' => 'ai-accounts',
                 'label' => 'AI Workspace',
                 'icon' => 'sparkles',
-                'href' => '/ai-accounts/dashboard',
+                'href' => '/ai-accounts',
                 'stat' => $stats['ai_accounts'],
                 'statUnit' => 'AI',
                 'tone' => 'violet',

@@ -389,18 +389,6 @@ Frontend: `HandleInertiaRequests` chia sẻ `csrf_token`; `app.js` reload khi In
 
 ---
 
-## AI accounts — badge «1 TK» but 0 VNĐ/month after delete
-
-**Symptoms:** `/ai-accounts` still shows 1 account / 1 active in BA group; monthly cost is 0.
-
-**Cause:** Orphan `AiAccount` row (proposal expired/unlinked/rejected) while account was not soft-deleted — common on legacy data or before sync fixes.
-
-**Fix (app):** Deploy code with `AiAccount::purgeOrphanedFromProposal()` on list load; user hard-refreshes once. See **`docs/AI_ACCOUNTS.md`** (orphan + destroy rules).
-
-**Verify:** `php artisan test tests/Feature/AiAccountOrphanPurgeTest.php tests/Feature/AiAccountSoftDeleteVisibilityTest.php`
-
----
-
 ## Route 404 after deploy (e.g. task import `POST /projects/{id}/tasks/import`)
 
 **Symptoms:** A specific action 404s in production while older actions on the same prefix (e.g. `POST /projects/{id}/sprints`) still work. Code, route definition (`routes/web/{domain}.php`), controller and FormRequest are all present and correct on the deployed commit.

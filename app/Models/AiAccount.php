@@ -4,41 +4,30 @@ namespace App\Models;
 
 use App\Support\Enums\AiAccountCostUnit;
 use App\Support\Enums\AiAccountGroupFunction;
-use App\Support\Enums\AiAccountLifecycleStatus;
-use App\Support\Enums\AiAccountRenewalPaymentStatus;
 use App\Support\Enums\AiAccountStatus;
-use App\Support\Enums\AiPurchaseProposalStatus;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * @property string $id
  * @property string $tool_name
- * @property string $license_type
- * @property string|null $license_key
  * @property AiAccountGroupFunction $group_function
  * @property string $email_registered
  * @property string|null $login_password
  * @property \Illuminate\Support\Carbon $purchase_date
  * @property \Illuminate\Support\Carbon $expiry_date
+ * @property \Illuminate\Support\Carbon|null $proposal_sent_at
+ * @property \Illuminate\Support\Carbon|null $payment_request_sent_at
+ * @property array<int, array<string, mixed>>|null $proposal_document_paths
+ * @property array<int, array<string, mixed>>|null $payment_request_document_paths
  * @property int $cost_amount
  * @property AiAccountCostUnit $cost_unit
- * @property int|null $seats
  * @property AiAccountStatus $status
- * @property AiAccountRenewalPaymentStatus $renewal_payment_status
- * @property \Illuminate\Support\Carbon|null $renewal_paid_at
- * @property \Illuminate\Support\Carbon|null $status_locked_at
  * @property int $notify_before_days
  * @property \Illuminate\Support\Carbon|null $last_reminded_at
- * @property \Illuminate\Support\Carbon|null $last_payment_reminded_at
  * @property string|null $notes
- * @property AiAccountLifecycleStatus $lifecycle_status
- * @property int|null $purchased_by
- * @property int|null $actual_purchase_cost
- * @property \Illuminate\Support\Carbon|null $allocated_at
- * @property string|null $allocated_to_name
  */
 class AiAccount extends Model
 {
@@ -46,139 +35,76 @@ class AiAccount extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'ai_purchase_proposal_id',
         'tool_name',
-        'license_type',
-        'license_key',
         'group_function',
         'email_registered',
         'login_password',
         'purchase_date',
         'expiry_date',
+        'proposal_sent_at',
+        'payment_request_sent_at',
+        'proposal_document_paths',
+        'payment_request_document_paths',
         'cost_amount',
         'cost_unit',
-        'seats',
         'status',
-        'renewal_payment_status',
-        'renewal_paid_at',
-        'status_locked_at',
         'notify_before_days',
         'last_reminded_at',
-        'last_payment_reminded_at',
         'notes',
-        'lifecycle_status',
-        'purchased_by',
-        'actual_purchase_cost',
-        'allocated_at',
-        'allocated_to_name',
     ];
 
     protected $casts = [
         'group_function' => AiAccountGroupFunction::class,
         'cost_unit' => AiAccountCostUnit::class,
         'status' => AiAccountStatus::class,
-        'renewal_payment_status' => AiAccountRenewalPaymentStatus::class,
-        'renewal_paid_at' => 'datetime',
         'purchase_date' => 'date',
         'expiry_date' => 'date',
+        'proposal_sent_at' => 'date',
+        'payment_request_sent_at' => 'date',
+        'proposal_document_paths' => 'array',
+        'payment_request_document_paths' => 'array',
         'cost_amount' => 'integer',
-        'seats' => 'integer',
         'notify_before_days' => 'integer',
         'last_reminded_at' => 'datetime',
-        'last_payment_reminded_at' => 'datetime',
-        'status_locked_at' => 'datetime',
         'login_password' => 'encrypted',
-        'lifecycle_status' => AiAccountLifecycleStatus::class,
-        'actual_purchase_cost' => 'integer',
-        'allocated_at' => 'date',
     ];
 
-    /** @return list<string> */
-    public static function countableProposalStatusValues(): array
-    {
-        return [
-            AiPurchaseProposalStatus::Approved->value,
-            AiPurchaseProposalStatus::Purchased->value,
-            AiPurchaseProposalStatus::Active->value,
-        ];
-    }
-
-    /** Chỉ tài khoản còn phiếu PĐX hợp lệ (approved / purchased / active). */
-    public function scopeWithCountablePurchaseProposal(Builder $query): Builder
-    {
-        return $query->whereHas(
-            'purchaseProposal',
-            fn (Builder $p) => $p->whereIn('status', self::countableProposalStatusValues()),
-        );
-    }
-
-    /** TK hiển thị trên danh sách: còn phiếu hợp lệ hoặc chưa từng gắn phiếu (legacy). */
-    public function scopeVisibleInRegistry(Builder $query): Builder
-    {
-        return $query->where(function (Builder $q) {
-            $q->whereDoesntHave('purchaseProposal')
-                ->orWhereHas(
-                    'purchaseProposal',
-                    fn (Builder $p) => $p->whereIn('status', self::countableProposalStatusValues()),
-                );
-        });
-    }
-
-    /** TK không còn phiếu đếm ngân sách (phiếu hết hạn, từ chối, hoặc đã gỡ liên kết). */
-    public function scopeOrphanedFromProposal(Builder $query): Builder
-    {
-        return $query->whereDoesntHave(
-            'purchaseProposal',
-            fn (Builder $p) => $p->whereIn('status', self::countableProposalStatusValues()),
-        );
-    }
-
     /**
-     * Soft-delete TK đã từng cấp phát từ PĐX nhưng phiếu không còn hợp lệ / đã gỡ liên kết.
+     * @param  'proposal'|'payment_request'  $kind
+     * @return list<array{path:string,original_name:string,mime_type:?string,size:?int,url:?string}>
      */
-    public static function purgeOrphanedFromProposal(): int
+    public function documentsFor(string $kind): array
     {
-        $count = 0;
+        $raw = $kind === 'payment_request'
+            ? ($this->payment_request_document_paths ?? [])
+            : ($this->proposal_document_paths ?? []);
 
-        static::query()
-            ->orphanedFromProposal()
-            ->where(function (Builder $q) {
-                $q->whereNotNull('allocated_at')
-                    ->orWhereNotNull('purchased_by');
-            })
-            ->each(function (self $account) use (&$count) {
-                $account->delete();
-                $count++;
-            });
+        if (! is_array($raw)) {
+            return [];
+        }
 
-        static::query()
-            ->whereHas(
-                'purchaseProposal',
-                fn (Builder $p) => $p->whereIn('status', [
-                    AiPurchaseProposalStatus::Expired->value,
-                    AiPurchaseProposalStatus::Rejected->value,
-                ]),
-            )
-            ->each(function (self $account) use (&$count) {
-                $account->delete();
-                $count++;
-            });
+        $out = [];
+        foreach (array_values($raw) as $index => $doc) {
+            if (! is_array($doc) || empty($doc['path']) || ! is_string($doc['path'])) {
+                continue;
+            }
+            $path = $doc['path'];
+            $exists = Storage::disk('public')->exists($path);
+            $out[] = [
+                'path' => $path,
+                'original_name' => is_string($doc['original_name'] ?? null) ? $doc['original_name'] : basename($path),
+                'mime_type' => is_string($doc['mime_type'] ?? null) ? $doc['mime_type'] : null,
+                'size' => isset($doc['size']) && is_numeric($doc['size']) ? (int) $doc['size'] : null,
+                'url' => $exists
+                    ? route('api.ai-accounts.documents.file', [
+                        'aiAccount' => $this->id,
+                        'kind' => $kind === 'payment_request' ? 'payment-request' : 'proposal',
+                        'index' => $index,
+                    ])
+                    : null,
+            ];
+        }
 
-        return $count;
-    }
-
-    public function purchaseProposal(): \Illuminate\Database\Eloquent\Relations\BelongsTo
-    {
-        return $this->belongsTo(AiPurchaseProposal::class, 'ai_purchase_proposal_id');
-    }
-
-    public function passwordViewers(): \Illuminate\Database\Eloquent\Relations\HasMany
-    {
-        return $this->hasMany(AiAccountPasswordViewer::class);
-    }
-
-    public function purchasedByUser(): \Illuminate\Database\Eloquent\Relations\BelongsTo
-    {
-        return $this->belongsTo(SystemAccount::class, 'purchased_by');
+        return $out;
     }
 }

@@ -89,13 +89,8 @@ final class PermissionCatalog
             // ── AI Workspace ─────────────────────────────────────────
             'ai_account' => ['label' => 'Tài khoản AI', 'icon' => 'sparkles', 'group' => 'AI', 'abilities' => [
                 'create' => 'Tạo', 'update' => 'Sửa', 'delete' => 'Xóa', 'renew' => 'Gia hạn',
-                'view_password' => 'Xem mật khẩu', 'manage_password_viewers' => 'Quản lý người xem mật khẩu',
-                'trigger_reminder' => 'Gửi nhắc thủ công', 'update_renewal_payment' => 'Cập nhật thanh toán gia hạn',
-            ]],
-            'ai_proposal' => ['label' => 'Đề xuất & Thanh toán AI', 'icon' => 'documents', 'group' => 'AI', 'abilities' => [
-                'create' => 'Tạo đề xuất', 'update' => 'Sửa', 'review' => 'Duyệt đề xuất', 'delete' => 'Xóa',
-                'payment_review' => 'Duyệt đề nghị thanh toán', 'payment_mark_paid' => 'Đánh dấu đã thanh toán',
-                'payment_delete' => 'Xóa đề nghị thanh toán',
+                'view_password' => 'Xem mật khẩu',
+                'trigger_reminder' => 'Gửi nhắc thủ công',
             ]],
 
             // ── Bảo mật & Tài sản số ─────────────────────────────────
@@ -241,8 +236,7 @@ final class PermissionCatalog
                 'contract.view', 'contract.create', 'contract.update', 'contract.delete', 'contract.manage', 'contract.import', 'contract.export',
                 'vendor.view', 'vendor.create', 'vendor.update', 'vendor.delete',
                 'ai_account.create', 'ai_account.update', 'ai_account.delete', 'ai_account.renew',
-                'ai_account.trigger_reminder', 'ai_account.update_renewal_payment',
-                'ai_proposal.create',
+                'ai_account.trigger_reminder',
                 'credential.create',
                 'department.create', 'department.update',
                 'kb.create', 'kb.update', 'kb.delete', 'kb.publish',
@@ -253,7 +247,6 @@ final class PermissionCatalog
             'member' => [
                 'daily_report.create',
                 'blocker.create', 'blocker.comment',
-                'ai_proposal.create',
                 'credential.create',
                 'kb.create',
                 'feedback.create',

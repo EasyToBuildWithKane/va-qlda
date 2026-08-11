@@ -18,8 +18,8 @@
             <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0;">{{ $account->group_function->value }}</td>
         </tr>
         <tr>
-            <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #64748b;">License</td>
-            <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0;">{{ $account->license_type }}</td>
+            <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #64748b;">Email TK</td>
+            <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0;">{{ $account->email_registered }}</td>
         </tr>
         <tr>
             <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #64748b;">Hết hạn</td>
@@ -28,12 +28,8 @@
             </td>
         </tr>
         <tr>
-            <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #64748b;">Chi phí</td>
-            <td style="padding: 10px 12px; border-bottom: 1px solid #e2e8f0;">{{ $costLine }}</td>
-        </tr>
-        <tr>
-            <td style="padding: 10px 12px; color: #64748b;">Email TK</td>
-            <td style="padding: 10px 12px;">{{ $account->email_registered }}</td>
+            <td style="padding: 10px 12px; color: #64748b;">Chi phí</td>
+            <td style="padding: 10px 12px;">{{ $costLine }}</td>
         </tr>
     </table>
 
