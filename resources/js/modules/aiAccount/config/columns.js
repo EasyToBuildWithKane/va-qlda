@@ -4,7 +4,6 @@ export const AI_ACCOUNT_COLUMNS = [
     { key: 'purchase', label: 'Ngày mua' },
     { key: 'expiry', label: 'Ngày hết hạn' },
     { key: 'purchase_type', label: 'Loại mua' },
-    { key: 'proposal_approved', label: 'Duyệt PĐX' },
     { key: 'proposal_sent', label: 'Ngày gửi PĐX' },
     { key: 'payment_sent', label: 'Ngày gửi ĐNTT' },
     { key: 'cost', label: 'Chi phí' },
@@ -12,15 +11,16 @@ export const AI_ACCOUNT_COLUMNS = [
 ];
 
 export const AI_ACCOUNT_COLUMNS_DEFAULT = [
-    'email', 'purchase', 'expiry', 'purchase_type', 'proposal_approved', 'cost', 'status',
+    'email', 'purchase', 'expiry', 'purchase_type', 'cost', 'status',
 ];
 
 export const AI_ACCOUNT_STATUS_FILTER_OPTS = [
     { key: 'all', label: 'Tất cả' },
-    { key: 'active', label: 'Hoạt động' },
+    { key: 'active', label: 'Đang sử dụng' },
     { key: 'expiring_soon', label: 'Sắp hết hạn' },
     { key: 'expired', label: 'Hết hạn' },
-    { key: 'cancelled', label: 'Đã huỷ' },
+    { key: 'out_of_token', label: 'Hết token' },
+    { key: 'cancelled', label: 'Không còn sử dụng' },
 ];
 
 export const AI_ACCOUNT_PURCHASE_TYPE_FILTER_OPTS = [
@@ -29,16 +29,9 @@ export const AI_ACCOUNT_PURCHASE_TYPE_FILTER_OPTS = [
     { key: 'renewal', label: 'Gia hạn' },
 ];
 
-export const AI_ACCOUNT_APPROVAL_FILTER_OPTS = [
-    { key: 'all', label: 'Tất cả duyệt PĐX' },
-    { key: 'approved', label: 'Đã duyệt' },
-    { key: 'pending', label: 'Chưa duyệt' },
-];
-
 export const AI_ACCOUNT_FILTER_CONTROLS = [
     { key: 'status', label: 'Trạng thái', default: false },
     { key: 'purchase_type', label: 'Loại mua', default: false },
-    { key: 'proposal_approved', label: 'Duyệt PĐX', default: false },
     { key: 'group', label: 'Nhóm chức năng', default: false },
     { key: 'attention', label: 'Cần chú ý (sắp/hết hạn)', default: false },
 ];

@@ -57,6 +57,7 @@ class AiAccountController extends Controller
                     'group_function' => AiAccountGroupFunction::options(),
                     'cost_unit' => AiAccountCostUnit::options(),
                     'status' => AiAccountStatus::options(),
+                    'usage_status' => AiAccountStatus::usageOptions(),
                     'login_method' => AiAccountLoginMethod::options(),
                     'purchase_type' => AiAccountPurchaseType::options(),
                     'access_permissions' => AiAccountPermission::options(),
@@ -120,7 +121,8 @@ class AiAccountController extends Controller
                 'notes' => $validated['notes'] ?? null,
                 'purchase_url' => $validated['purchase_url'] ?? null,
                 'purchase_type' => AiAccountPurchaseType::from($validated['purchase_type']),
-                'status' => AiAccountStatus::Active,
+                'status' => AiAccountStatus::tryFrom((string) ($validated['status'] ?? ''))
+                    ?? AiAccountStatus::Active,
                 'proposal_document_paths' => [],
                 'payment_request_document_paths' => [],
             ]);
@@ -141,7 +143,10 @@ class AiAccountController extends Controller
                 'payment_request_document_paths' => $paymentDocs,
             ]);
 
-            $this->statusSync->syncAndSave($account->fresh());
+            $fresh = $account->fresh();
+            if ($fresh && ! $fresh->status->isManualLock()) {
+                $this->statusSync->syncAndSave($fresh);
+            }
 
             return $account->fresh();
         });
@@ -216,7 +221,7 @@ class AiAccountController extends Controller
 
             $fresh = $aiAccount->fresh();
             if ($fresh
-                && $fresh->status !== AiAccountStatus::Cancelled
+                && ! $fresh->status->isManualLock()
                 && $fresh->status !== AiAccountStatus::Expired
             ) {
                 $this->statusSync->syncAndSave($fresh);
@@ -249,7 +254,7 @@ class AiAccountController extends Controller
 
         $aiAccount->update($data);
 
-        if ($status !== AiAccountStatus::Cancelled && $status !== AiAccountStatus::Expired) {
+        if (! $status->isManualLock() && $status !== AiAccountStatus::Expired) {
             $this->statusSync->syncAndSave($aiAccount->fresh());
         }
 

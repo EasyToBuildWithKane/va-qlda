@@ -771,7 +771,7 @@ Migration flatten: `2026_08_10_100000_simplify_ai_accounts_flat_workspace.php` �
 | `proposal_document_paths` / `payment_request_document_paths` | json nullable | Mỗi loại tối đa 1 file: `[{path, original_name, mime_type, size}]` |
 | `cost_amount` | bigint | Chi phí (VNĐ) |
 | `cost_unit` | string(16) | monthly / quarterly / yearly / one_time |
-| `status` | string(24) | active / expiring_soon / expired / cancelled |
+| `status` | string(24) | active (Đang sử dụng) / expiring_soon / expired / out_of_token (Hết token) / cancelled (Không còn sử dụng) |
 | `notify_before_days` | smallint | Mặc định 14 |
 | `last_reminded_at` | timestamp nullable | Lần nhắc hết hạn gần nhất |
 | `notes` | text nullable | — |

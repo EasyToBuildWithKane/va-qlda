@@ -38,6 +38,7 @@ class AiAccountPageController extends Controller
                 'group_function' => AiAccountGroupFunction::options(),
                 'cost_unit' => AiAccountCostUnit::options(),
                 'status' => AiAccountStatus::options(),
+                'usage_status' => AiAccountStatus::usageOptions(),
                 'login_method' => AiAccountLoginMethod::options(),
                 'purchase_type' => AiAccountPurchaseType::options(),
                 'access_permissions' => AiAccountPermission::options(),

@@ -104,6 +104,7 @@ class AiAccountGrouper
                 'active_accounts' => $active->count(),
                 'expiring_soon' => $items->where('status', AiAccountStatus::ExpiringSoon)->count(),
                 'expired' => $items->where('status', AiAccountStatus::Expired)->count(),
+                'out_of_token' => $items->where('status', AiAccountStatus::OutOfToken)->count(),
                 'cancelled' => $items->where('status', AiAccountStatus::Cancelled)->count(),
                 'cost_monthly' => $cost,
                 'cost_monthly_active' => $cost,

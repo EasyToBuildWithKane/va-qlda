@@ -19,7 +19,6 @@ defineProps({
             purchase: true,
             expiry: true,
             purchase_type: true,
-            proposal_approved: true,
             proposal_sent: false,
             payment_sent: false,
             cost: true,
@@ -159,12 +158,6 @@ function formatDate(value) {
                     Loại mua
                   </th>
                   <th
-                    v-if="colVisible.proposal_approved"
-                    class="hidden px-3 py-2 sm:table-cell sm:px-4"
-                  >
-                    Duyệt PĐX
-                  </th>
-                  <th
                     v-if="colVisible.proposal_sent"
                     class="hidden px-3 py-2 lg:table-cell lg:px-4"
                   >
@@ -273,19 +266,6 @@ function formatDate(value) {
                         : 'bg-sky-50 text-sky-800 ring-sky-200'"
                     >
                       {{ row.purchase_type_label || (row.purchase_type === 'renewal' ? 'Gia hạn' : 'Mua mới') }}
-                    </span>
-                  </td>
-                  <td
-                    v-if="colVisible.proposal_approved"
-                    class="hidden px-3 py-2.5 sm:table-cell sm:px-4"
-                  >
-                    <span
-                      class="inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-semibold ring-1"
-                      :class="row.proposal_approved
-                        ? 'bg-emerald-50 text-emerald-800 ring-emerald-200'
-                        : 'bg-amber-50 text-amber-900 ring-amber-200'"
-                    >
-                      {{ row.proposal_approved_label || (row.proposal_approved ? 'Đã duyệt' : 'Chưa duyệt') }}
                     </span>
                   </td>
                   <td

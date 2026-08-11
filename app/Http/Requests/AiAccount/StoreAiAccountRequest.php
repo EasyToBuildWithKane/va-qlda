@@ -7,6 +7,7 @@ use App\Support\Enums\AiAccountCostUnit;
 use App\Support\Enums\AiAccountGroupFunction;
 use App\Support\Enums\AiAccountLoginMethod;
 use App\Support\Enums\AiAccountPurchaseType;
+use App\Support\Enums\AiAccountStatus;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -36,6 +37,7 @@ class StoreAiAccountRequest extends FormRequest
             'notes' => ['nullable', 'string', 'max:5000'],
             'purchase_url' => ['nullable', 'string', 'max:2048', 'url'],
             'purchase_type' => ['required', Rule::in(AiAccountPurchaseType::values())],
+            'status' => ['nullable', Rule::in(AiAccountStatus::values())],
             'proposal_documents' => ['nullable', 'array', 'max:1'],
             'proposal_documents.*' => ['file', 'max:10240', 'mimes:pdf,jpg,jpeg,png,doc,docx,xls,xlsx'],
             'payment_request_documents' => ['nullable', 'array', 'max:1'],

@@ -10,8 +10,9 @@ class AiAccountStatusSync
 {
     public function resolve(AiAccount $account, ?Carbon $today = null): AiAccountStatus
     {
-        if ($account->status === AiAccountStatus::Cancelled) {
-            return AiAccountStatus::Cancelled;
+        // Hết token / không còn sử dụng — do người dùng chọn, không ghi đè theo ngày hết hạn.
+        if ($account->status->isManualLock()) {
+            return $account->status;
         }
 
         $today = ($today ?? now())->startOfDay();

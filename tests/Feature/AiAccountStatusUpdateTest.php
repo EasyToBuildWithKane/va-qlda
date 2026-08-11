@@ -62,4 +62,22 @@ class AiAccountStatusUpdateTest extends TestCase
             'status' => AiAccountStatus::Cancelled->value,
         ])->assertForbidden();
     }
+
+    public function test_out_of_token_is_not_overwritten_by_date_sync(): void
+    {
+        $admin = SystemAccount::factory()->create([
+            'role' => SystemRole::Admin->value,
+        ]);
+        $account = $this->makeAccount();
+
+        $this->actingAs($admin, 'system');
+
+        $this->patchJson(route('api.ai-accounts.update-status', ['aiAccount' => $account->id]), [
+            'status' => AiAccountStatus::OutOfToken->value,
+        ])->assertOk();
+
+        $account->refresh();
+        $this->assertSame(AiAccountStatus::OutOfToken, $account->status);
+        $this->assertSame('Hết token', $account->status->labelVi());
+    }
 }

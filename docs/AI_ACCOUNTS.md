@@ -39,15 +39,15 @@ Một thực thể **Tài khoản AI** (`AiAccount`) — không còn workflow du
 | `cost_amount`, `cost_unit` | Chi phí + đơn vị (tháng/quý/năm/một lần) |
 | `proposal_sent_at`, `proposal_approved_at`, `payment_request_sent_at` | Ngày gửi PĐX / duyệt PĐX / gửi ĐNTT — `proposal_approved_at` null = **Chưa duyệt** |
 | `proposal_document_paths`, `payment_request_document_paths` | Mỗi loại **1 file** gắn 1–1 với ngày gửi |
-| `status` | `active` / `expiring_soon` / `expired` / `cancelled` |
+| `status` | Vận hành: `active` (Đang sử dụng) · `out_of_token` (Hết token) · `cancelled` (Không còn sử dụng). Tự động theo ngày: `expiring_soon` / `expired` (khi đang thuộc nhóm sử dụng). `out_of_token` / `cancelled` không bị sync ngày ghi đè. |
 
 Form (`AiAccountFormModal`, `max-w-4xl`): 4 tab **Thông tin** · **Chứng từ** · **Chi phí & hạn** · **Phân quyền**.
 
 - Chi phí: `MoneyInput` → format `1.000.000 ₫`
 - Ngày: `FilterDatePicker` (`dd/MM/yyyy`)
 - Đăng nhập: segmented Google / Tài khoản thường
-- Chứng từ: segmented **Mua mới / Gia hạn** + **Chưa duyệt / Đã duyệt**; lưới **2 cột** (PĐX | ĐNTT) trên `lg+`, `AiAccountDocSlot` `compact`; modal `fit-viewport` cuộn vùng nội dung (`overflow-y-auto`)
-- Index: cột/badge Loại mua + Duyệt PĐX; lọc opt-in `purchase_type` / `proposal_approved`
+- Chứng từ: segmented **Mua mới / Gia hạn** + **Đang sử dụng / Hết token / Không còn sử dụng**; lưới **2 cột** (PĐX | ĐNTT) trên `lg+`, `AiAccountDocSlot` `compact`; modal `fit-viewport` cuộn vùng nội dung (`overflow-y-auto`)
+- Index: cột/badge Loại mua + Trạng thái; lọc opt-in `purchase_type` / `status`
 - Phân quyền: `AiAccountAccessGrantsPanel` (sau khi đã lưu)
 
 ### Quyền ACL (`AiAccountPermission`)
@@ -91,6 +91,6 @@ Ability global: `ai_account.share` / `ai_account.manage_access` / `ai_account.vi
 |------------|------|
 | API / pages | `AiAccountController`, `AiAccountPageController`, `AiAccountAccessController` |
 | Policy / grants | `AiAccountPolicy`, `AiAccountAccessGrant` |
-| Enums | `AiAccountLoginMethod`, `AiAccountPermission`, `AiAccountPurchaseType` |
+| Enums | `AiAccountLoginMethod`, `AiAccountPermission`, `AiAccountPurchaseType`, `AiAccountStatus` (`usageOptions`) |
 | FE | `AiAccountFormModal`, `AiAccountDocSlot`, `AiAccountAccessGrantsPanel`, `AiCostReportSummaryBar` |
 | Test | `tests/Feature/AiAccountTest.php`, `AiAccountAccessTest.php` |

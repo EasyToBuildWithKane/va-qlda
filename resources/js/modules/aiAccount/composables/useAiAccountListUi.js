@@ -3,7 +3,6 @@ import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterC
 import { useVisibleColumns } from '@/shared/composables/useVisibleColumns';
 import { useClientPagination } from '@/shared/composables/useClientPagination';
 import {
-    AI_ACCOUNT_APPROVAL_FILTER_OPTS,
     AI_ACCOUNT_FILTER_CONTROLS,
     AI_ACCOUNT_PURCHASE_TYPE_FILTER_OPTS,
     AI_ACCOUNT_STATUS_FILTER_OPTS,
@@ -18,9 +17,9 @@ function groupHeaderCost(group, accounts, useFilteredSum) {
     return group.total_cost_monthly ?? accounts.reduce((sum, a) => sum + budgetMonthly(a), 0);
 }
 
-const FILTER_VALUES_KEY = 'va-workspace.ai-accounts.filters.v4';
-const VISIBLE_FILTERS_KEY = 'va-workspace.ai-accounts.filter-controls.v4';
-const COLS_KEY = 'va-workspace.ai-accounts.columns.v4';
+const FILTER_VALUES_KEY = 'va-workspace.ai-accounts.filters.v5';
+const VISIBLE_FILTERS_KEY = 'va-workspace.ai-accounts.filter-controls.v5';
+const COLS_KEY = 'va-workspace.ai-accounts.columns.v5';
 const PER_PAGE_KEY = 'va-workspace.ai-accounts.per-page';
 
 function loadSavedFilters() {
@@ -41,7 +40,6 @@ export function useAiAccountListUi(groupsRef, optionsRef) {
     const filters = reactive({
         status: saved?.status ?? 'all',
         purchaseType: saved?.purchaseType ?? 'all',
-        proposalApproved: saved?.proposalApproved ?? 'all',
         groups: saved?.groups ?? [],
         attentionOnly: saved?.attentionOnly ?? false,
     });
@@ -50,7 +48,6 @@ export function useAiAccountListUi(groupsRef, optionsRef) {
         localStorage.setItem(FILTER_VALUES_KEY, JSON.stringify({
             status: filters.status,
             purchaseType: filters.purchaseType,
-            proposalApproved: filters.proposalApproved,
             groups: [...filters.groups],
             attentionOnly: filters.attentionOnly,
         }));
@@ -101,7 +98,6 @@ export function useAiAccountListUi(groupsRef, optionsRef) {
         let n = 0;
         if (filters.status !== 'all') n++;
         if (filters.purchaseType !== 'all') n++;
-        if (filters.proposalApproved !== 'all') n++;
         if (filters.groups.length > 0) n++;
         if (filters.attentionOnly) n++;
         return n;
@@ -116,8 +112,6 @@ export function useAiAccountListUi(groupsRef, optionsRef) {
         if (filters.purchaseType !== 'all' && (row.purchase_type || 'new') !== filters.purchaseType) {
             return false;
         }
-        if (filters.proposalApproved === 'approved' && !row.proposal_approved) return false;
-        if (filters.proposalApproved === 'pending' && row.proposal_approved) return false;
         if (filters.groups.length > 0 && !filters.groups.includes(row.group_function)) return false;
         if (filters.attentionOnly && !['expiring_soon', 'expired'].includes(row.status)) return false;
         return true;
@@ -211,10 +205,6 @@ export function useAiAccountListUi(groupsRef, optionsRef) {
             const opt = AI_ACCOUNT_PURCHASE_TYPE_FILTER_OPTS.find((o) => o.key === filters.purchaseType);
             if (opt) parts.push(opt.label);
         }
-        if (filters.proposalApproved !== 'all') {
-            const opt = AI_ACCOUNT_APPROVAL_FILTER_OPTS.find((o) => o.key === filters.proposalApproved);
-            if (opt) parts.push(opt.label);
-        }
         if (filters.groups.length > 0) parts.push(`${filters.groups.length} nhóm`);
         if (filters.attentionOnly) parts.push('Cần chú ý');
         return parts.join(' · ');
@@ -225,7 +215,6 @@ export function useAiAccountListUi(groupsRef, optionsRef) {
     function clearFilters() {
         filters.status = 'all';
         filters.purchaseType = 'all';
-        filters.proposalApproved = 'all';
         filters.groups = [];
         filters.attentionOnly = false;
     }
@@ -255,7 +244,6 @@ export function useAiAccountListUi(groupsRef, optionsRef) {
         toggleGroupFilter,
         AI_ACCOUNT_STATUS_FILTER_OPTS,
         AI_ACCOUNT_PURCHASE_TYPE_FILTER_OPTS,
-        AI_ACCOUNT_APPROVAL_FILTER_OPTS,
         AI_ACCOUNT_TABLE_COLUMNS,
         colVisible,
         visibleCols,

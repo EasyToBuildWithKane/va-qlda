@@ -44,9 +44,10 @@ const PURCHASE_TYPE_ITEMS = [
     { key: 'renewal', label: 'Gia hạn', icon: 'renewal', title: 'Gia hạn license đang dùng' },
 ];
 
-const APPROVAL_ITEMS = [
-    { key: 'pending', label: 'Chưa duyệt', icon: 'clock', title: 'Phiếu đề xuất chưa được duyệt' },
-    { key: 'approved', label: 'Đã duyệt', icon: 'check', title: 'Phiếu đề xuất đã được duyệt' },
+const USAGE_STATUS_ITEMS = [
+    { key: 'active', label: 'Đang sử dụng', icon: 'check', title: 'Tài khoản đang dùng' },
+    { key: 'out_of_token', label: 'Hết token', icon: 'sparkles', title: 'Hết token / hết credit' },
+    { key: 'cancelled', label: 'Không còn sử dụng', icon: 'lock', title: 'Ngừng sử dụng tài khoản này' },
 ];
 
 const activeTab = ref('info');
@@ -77,10 +78,16 @@ const form = reactive({
     status: 'active',
 });
 
-const approvalStatus = computed(() => (form.proposal_approved_at ? 'approved' : 'pending'));
-
 const isEdit = computed(() => !!props.account?.id);
 const canViewPassword = computed(() => props.can?.view_password || props.account?.can_view_password);
+const canEditStatus = computed(() => !isEdit.value || !!props.account?.can_update_status);
+
+/** Segmented 3 trạng thái vận hành; sắp hết hạn / hết hạn vẫn thuộc nhóm «Đang sử dụng». */
+const usageStatus = computed(() => (
+    form.status === 'out_of_token' || form.status === 'cancelled'
+        ? form.status
+        : 'active'
+));
 const tabIndex = computed(() => TABS.findIndex((t) => t.key === activeTab.value));
 const isPasswordLogin = computed(() => form.login_method === 'password');
 
@@ -248,8 +255,8 @@ function onSubmit() {
         purchase_type: form.purchase_type || 'new',
     };
     if (isPasswordLogin.value && form.password) payload.password = form.password;
-    if (isEdit.value && props.account?.can_update_status) {
-        payload.status = form.status;
+    if (canEditStatus.value) {
+        payload.status = usageStatus.value;
     }
     if (proposalFile.value) {
         payload.proposal_documents = [proposalFile.value];
@@ -282,29 +289,24 @@ function clearPaymentFile() {
     markDirty();
 }
 
-function setApprovalStatus(next) {
-    if (next === 'approved') {
-        if (!form.proposal_sent_at) {
-            toast.warning('Chọn ngày gửi đề xuất và đính kèm file trước khi xác nhận duyệt.');
-            return;
-        }
-        if (!proposalFile.value && !existingProposalDoc.value) {
-            toast.warning('Đính kèm 1 file phiếu đề xuất trước khi xác nhận duyệt.');
-            return;
-        }
-        if (!form.proposal_approved_at) {
-            form.proposal_approved_at = todayIso();
-        }
-        markDirty();
-        toast.success('Đã ghi nhận đề xuất được duyệt.');
-        return;
-    }
-    form.proposal_approved_at = '';
+function setUsageStatus(next) {
+    if (!canEditStatus.value) return;
+    form.status = next;
     markDirty();
 }
 
 function confirmProposalApproved() {
-    setApprovalStatus('approved');
+    if (!form.proposal_sent_at) {
+        toast.warning('Chọn ngày gửi đề xuất và đính kèm file trước khi xác nhận duyệt.');
+        return;
+    }
+    if (!proposalFile.value && !existingProposalDoc.value) {
+        toast.warning('Đính kèm 1 file phiếu đề xuất trước khi xác nhận duyệt.');
+        return;
+    }
+    form.proposal_approved_at = todayIso();
+    markDirty();
+    toast.success('Đã ghi nhận đề xuất được duyệt hôm nay.');
 }
 
 function confirmPaymentSent() {
@@ -496,31 +498,11 @@ const costInvalid = computed(() => (
                   </button>
                 </div>
               </div>
-
-              <label
-                v-if="isEdit && account?.can_update_status"
-                class="block sm:col-span-2"
-              >
-                <span class="mb-1 block text-xs font-medium text-slate-600">Trạng thái</span>
-                <select
-                  v-model="form.status"
-                  :class="inputClass"
-                  @change="markDirty"
-                >
-                  <option
-                    v-for="opt in statusOptions"
-                    :key="opt.value"
-                    :value="opt.value"
-                  >
-                    {{ opt.label }}
-                  </option>
-                </select>
-              </label>
             </div>
           </div>
         </div>
 
-        <!-- Tab: Chứng từ — loại mua / duyệt + PĐX | ĐNTT -->
+        <!-- Tab: Chứng từ — loại mua / trạng thái TK + PĐX | ĐNTT -->
         <div
           v-show="activeTab === 'docs'"
           class="space-y-3"
@@ -539,16 +521,24 @@ const costInvalid = computed(() => (
                   @update:model-value="markDirty"
                 />
               </div>
-              <div>
+              <div v-if="canEditStatus">
                 <span class="mb-1.5 block text-xs font-medium text-slate-600">
-                  Trạng thái duyệt PĐX
+                  Trạng thái tài khoản
                 </span>
                 <DatagridSegmentedControl
-                  :model-value="approvalStatus"
-                  :items="APPROVAL_ITEMS"
-                  aria-label="Trạng thái duyệt đề xuất"
-                  @update:model-value="setApprovalStatus"
+                  :model-value="usageStatus"
+                  :items="USAGE_STATUS_ITEMS"
+                  aria-label="Trạng thái tài khoản"
+                  @update:model-value="setUsageStatus"
                 />
+                <p
+                  v-if="form.status === 'expiring_soon' || form.status === 'expired'"
+                  class="mt-1.5 text-[11px] text-slate-500"
+                >
+                  Hệ thống đang ghi nhận
+                  {{ form.status === 'expired' ? 'đã hết hạn' : 'sắp hết hạn' }}
+                  theo ngày hết hạn — vẫn thuộc nhóm đang sử dụng.
+                </p>
               </div>
             </div>
           </div>
