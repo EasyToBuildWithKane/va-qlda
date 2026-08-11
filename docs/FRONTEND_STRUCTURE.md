@@ -196,7 +196,7 @@ Pages import feature components từ `@/modules/project/components/...` và prim
 | `components/ContractFinanceFormPanel.vue` | Tab Tài chính Show: form nhập dòng `contract_finances` (`MoneyInput`, tooltip; **chi phí năm = tổng HĐ** nhập trực tiếp) — `inject('contractFinanceForm')` |
 | `components/ContractExplorer.vue` | Cây NCC → nhóm → hợp đồng trên Index |
 | `components/ContractDataModal.vue` | Nhập · Xuất · Đối soát danh mục |
-| `components/VendorFormModal.vue` + `VendorFormFields.vue` | Modal thêm/sửa NCC: `fit-viewport` `max-w-5xl`, form ngang 3 cột; loại dịch vụ = `SearchMultiSelect` chọn nhiều + creatable (`category_names`) |
+| `components/VendorFormModal.vue` + `VendorFormFields.vue` | Modal thêm/sửa NCC: `fit-viewport` `max-w-5xl`, form ngang 3 cột; loại dịch vụ = tag chọn nhiều + thêm tag mới (`category_names`) |
 
 ### 6.6 Daily Report — `modules/daily-report/components/`
 

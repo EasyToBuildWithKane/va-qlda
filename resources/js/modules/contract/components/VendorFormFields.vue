@@ -2,7 +2,6 @@
 import { computed, inject, ref, watch } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import VendorFieldLabel from '@/modules/contract/components/VendorFieldLabel.vue';
-import SearchMultiSelect from '@/shared/ui/SearchMultiSelect.vue';
 import { normalizeSearchKey } from '@/shared/utils/normalizeSearchKey';
 
 const props = defineProps({
@@ -13,6 +12,8 @@ const props = defineProps({
 });
 
 const form = inject('vendorForm');
+const newCategoryName = ref('');
+const addHint = ref('');
 
 const DEFAULT_COOPERATION = [
     { value: 'active', label: 'Đang hợp tác', color: 'emerald', hint: 'Đang có quan hệ hợp tác / cung cấp dịch vụ.' },
@@ -35,7 +36,7 @@ function statusToneClass(color) {
     return map[color] || map.slate;
 }
 
-/** Mục vừa tạo trong phiên (id tạm `new:…`) để hiện chip trong dropdown. */
+/** Tag vừa tạo trong phiên (id tạm `new:…`). */
 const sessionOptions = ref([]);
 
 watch(
@@ -60,60 +61,98 @@ const categoryOptions = computed(() => {
     const base = (props.categories ?? []).map((c) => ({
         id: c.id,
         name: c.name,
+        isNew: false,
     }));
     const known = new Set(base.map((c) => normalizeSearchKey(c.name)));
-    const extras = sessionOptions.value.filter((o) => !known.has(normalizeSearchKey(o.name)));
+    const extras = sessionOptions.value
+        .filter((o) => !known.has(normalizeSearchKey(o.name)))
+        .map((o) => ({ ...o, isNew: true }));
     return [...base, ...extras];
 });
 
-const selectedServiceValues = computed({
-    get() {
-        const ids = (form.category_ids ?? []).map((id) => Number(id)).filter((id) => !Number.isNaN(id));
-        const names = (form.category_names ?? []).map((n) => String(n).trim()).filter(Boolean);
-        return [...ids, ...names.map(toNewId)];
-    },
-    set(vals) {
-        const ids = [];
-        const names = [];
-        for (const v of vals ?? []) {
-            const newName = parseNewName(v);
-            if (newName !== null) {
-                if (newName) names.push(newName);
-            } else {
-                const n = Number(v);
-                if (!Number.isNaN(n)) ids.push(n);
-            }
-        }
-        form.category_ids = [...new Set(ids)];
-        form.category_names = [...new Set(names)];
-    },
-});
+const selectedIds = computed(() =>
+    (form.category_ids ?? []).map((id) => Number(id)).filter((id) => !Number.isNaN(id)),
+);
 
-const selectedCount = computed(() => selectedServiceValues.value.length);
+const selectedNames = computed(() =>
+    (form.category_names ?? []).map((n) => String(n).trim()).filter(Boolean),
+);
 
-function onCreateCategory(rawName) {
-    const name = String(rawName ?? '').trim();
-    if (!name || name.length > 255) return;
+const selectedCount = computed(() => selectedIds.value.length + selectedNames.value.length);
 
-    const key = normalizeSearchKey(name);
-    const existing = (props.categories ?? []).find((c) => normalizeSearchKey(c.name) === key);
-    if (existing) {
-        const cur = selectedServiceValues.value;
-        if (!cur.map(String).includes(String(existing.id))) {
-            selectedServiceValues.value = [...cur, existing.id];
+function isSelected(opt) {
+    const newName = parseNewName(opt.id);
+    if (newName !== null) {
+        return selectedNames.value.some((n) => normalizeSearchKey(n) === normalizeSearchKey(newName));
+    }
+    return selectedIds.value.includes(Number(opt.id));
+}
+
+function toggleTag(opt) {
+    const newName = parseNewName(opt.id);
+    if (newName !== null) {
+        const key = normalizeSearchKey(newName);
+        if (selectedNames.value.some((n) => normalizeSearchKey(n) === key)) {
+            form.category_names = selectedNames.value.filter((n) => normalizeSearchKey(n) !== key);
+        } else {
+            form.category_names = [...selectedNames.value, newName];
         }
         return;
     }
 
-    const tempId = toNewId(name);
-    if (!sessionOptions.value.some((o) => normalizeSearchKey(o.name) === key)) {
-        sessionOptions.value = [...sessionOptions.value, { id: tempId, name }];
+    const id = Number(opt.id);
+    if (Number.isNaN(id)) return;
+    if (selectedIds.value.includes(id)) {
+        form.category_ids = selectedIds.value.filter((x) => x !== id);
+    } else {
+        form.category_ids = [...selectedIds.value, id];
+    }
+}
+
+function addCustomCategory() {
+    addHint.value = '';
+    const name = newCategoryName.value.trim();
+    if (!name) {
+        addHint.value = 'Nhập tên loại dịch vụ cần thêm.';
+        return;
+    }
+    if (name.length > 255) {
+        addHint.value = 'Tên loại dịch vụ tối đa 255 ký tự.';
+        return;
     }
 
-    const cur = selectedServiceValues.value;
-    if (!cur.map(String).includes(String(tempId))) {
-        selectedServiceValues.value = [...cur, tempId];
+    const key = normalizeSearchKey(name);
+    const existing = (props.categories ?? []).find((c) => normalizeSearchKey(c.name) === key);
+    if (existing) {
+        if (!selectedIds.value.includes(Number(existing.id))) {
+            form.category_ids = [...selectedIds.value, Number(existing.id)];
+        }
+        newCategoryName.value = '';
+        addHint.value = `«${existing.name}» đã có — đã chọn tag.`;
+        return;
     }
+
+    if (selectedNames.value.some((n) => normalizeSearchKey(n) === key)
+        || sessionOptions.value.some((o) => normalizeSearchKey(o.name) === key)) {
+        const existingSession = sessionOptions.value.find((o) => normalizeSearchKey(o.name) === key);
+        const tempId = toNewId(existingSession?.name || name);
+        const opt = categoryOptions.value.find((o) => String(o.id) === String(tempId))
+            || { id: tempId, name };
+        if (!isSelected(opt)) toggleTag(opt);
+        newCategoryName.value = '';
+        addHint.value = 'Tag này đã được thêm.';
+        return;
+    }
+
+    if (selectedCount.value >= 50) {
+        addHint.value = 'Mỗi nhà cung cấp tối đa 50 loại dịch vụ.';
+        return;
+    }
+
+    const tempId = toNewId(name);
+    sessionOptions.value = [...sessionOptions.value, { id: tempId, name }];
+    form.category_names = [...selectedNames.value, name];
+    newCategoryName.value = '';
 }
 </script>
 
@@ -340,7 +379,7 @@ function onCreateCategory(rawName) {
       </section>
     </div>
 
-    <!-- Loại dịch vụ · multi-select dropdown -->
+    <!-- Loại dịch vụ · tag chọn nhiều -->
     <section
       class="rounded-xl border border-slate-200/80 bg-gradient-to-b from-brand/[0.03] to-white p-3 sm:p-3.5"
       aria-labelledby="vendor-services-heading"
@@ -359,7 +398,7 @@ function onCreateCategory(rawName) {
             Loại dịch vụ
           </h3>
           <p class="mt-0.5 text-[11px] text-slate-400">
-            Chọn nhiều từ danh mục — gõ tên mới rồi chọn «Thêm» để tạo loại dịch vụ.
+            Bấm tag để chọn / bỏ chọn — có thể thêm loại mới bên dưới.
           </p>
         </div>
         <span
@@ -372,31 +411,79 @@ function onCreateCategory(rawName) {
         </span>
       </div>
 
-      <VendorFieldLabel
-        for-id="vendor-services"
-        label="Nhóm dịch vụ"
-        compact
-        wide
-        tooltip="Chọn một hoặc nhiều nhóm dịch vụ. Gõ tên chưa có trong danh mục rồi bấm Thêm «…» để tạo mới khi lưu NCC."
-      />
-      <SearchMultiSelect
-        id="vendor-services"
-        v-model="selectedServiceValues"
-        :options="categoryOptions"
-        value-key="id"
-        label-key="name"
-        placeholder="Tìm & chọn loại dịch vụ…"
-        search-placeholder="Tìm hoặc gõ tên mới…"
-        :max-chips="8"
-        control-size="md"
-        :panel-z-index="120"
-        creatable
-        create-label="Thêm «{query}»"
-        @create="onCreateCategory"
-      />
+      <div
+        class="flex flex-wrap gap-2"
+        role="group"
+        aria-label="Chọn loại dịch vụ"
+      >
+        <button
+          v-for="opt in categoryOptions"
+          :key="opt.id"
+          type="button"
+          :aria-pressed="isSelected(opt)"
+          class="inline-flex max-w-full items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+          :class="isSelected(opt)
+            ? (opt.isNew
+              ? 'border-dashed border-brand bg-brand/10 text-brand ring-1 ring-brand/20'
+              : 'border-brand bg-brand text-white shadow-sm')
+            : 'border-slate-200 bg-white text-slate-600 hover:border-brand/40 hover:bg-brand/[0.04] hover:text-brand'"
+          @click="toggleTag(opt)"
+        >
+          <AppIcon
+            v-if="isSelected(opt)"
+            name="check"
+            :size="13"
+            class="shrink-0"
+          />
+          <span class="truncate">{{ opt.name }}</span>
+          <span
+            v-if="opt.isNew"
+            class="shrink-0 rounded-full px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide"
+            :class="isSelected(opt) ? 'bg-brand/15 text-brand' : 'bg-slate-100 text-slate-500'"
+          >
+            Mới
+          </span>
+        </button>
+      </div>
+
+      <p
+        v-if="!categoryOptions.length"
+        class="rounded-lg border border-dashed border-slate-200 bg-slate-50/80 px-3 py-4 text-center text-xs text-slate-500"
+      >
+        Chưa có danh mục — hãy thêm loại dịch vụ bên dưới.
+      </p>
+
+      <div class="mt-3 flex flex-col gap-1.5 sm:flex-row sm:items-center">
+        <input
+          id="vendor-new-service"
+          v-model="newCategoryName"
+          type="text"
+          maxlength="255"
+          class="input h-9 w-full flex-1 text-sm"
+          placeholder="Thêm tag mới… (vd: Đào tạo, Bảo trì)"
+          @keydown.enter.prevent="addCustomCategory"
+        >
+        <button
+          type="button"
+          class="btn-ghost inline-flex h-9 shrink-0 items-center justify-center gap-1.5 px-3 text-sm"
+          @click="addCustomCategory"
+        >
+          <AppIcon
+            name="plus"
+            :size="15"
+          />
+          Thêm tag
+        </button>
+      </div>
+      <p
+        v-if="addHint"
+        class="text-[11px] text-slate-500"
+      >
+        {{ addHint }}
+      </p>
       <p
         v-if="form.errors.category_ids || form.errors.category_names"
-        class="mt-1.5 text-xs text-rose-600"
+        class="text-xs text-rose-600"
       >
         {{ form.errors.category_ids || form.errors.category_names }}
       </p>
