@@ -7,6 +7,7 @@ use App\Models\SystemAccount;
 use App\Support\Enums\AiAccountCostUnit;
 use App\Support\Enums\AiAccountGroupFunction;
 use App\Support\Enums\AiAccountLoginMethod;
+use App\Support\Enums\AiAccountPurchaseType;
 use App\Support\Enums\SystemRole;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -36,6 +37,7 @@ class AiAccountTest extends TestCase
             'expiry_date' => now()->addYear()->toDateString(),
             'cost_amount' => 500_000,
             'cost_unit' => AiAccountCostUnit::Monthly->value,
+            'purchase_type' => AiAccountPurchaseType::New->value,
             'notify_before_days' => 14,
             'proposal_sent_at' => now()->subDays(10)->toDateString(),
             'payment_request_sent_at' => now()->subDays(5)->toDateString(),
@@ -85,6 +87,7 @@ class AiAccountTest extends TestCase
         $this->assertSame($admin->id, $account->created_by);
         $this->assertSame(AiAccountLoginMethod::Password, $account->login_method);
         $this->assertSame('https://chatgpt.com/team', $account->purchase_url);
+        $this->assertSame(AiAccountPurchaseType::New, $account->purchase_type);
         $this->assertSame(500_000, $account->cost_amount);
         $this->assertNotEmpty($account->proposal_document_paths);
         $this->assertCount(1, $account->proposal_document_paths);

@@ -5,6 +5,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import { useAiCostReport } from '@/modules/aiAccount/composables/useAiCostReport';
+import AiCostReportSummaryBar from '@/modules/aiAccount/components/AiCostReportSummaryBar.vue';
 import VndAmount from '@/modules/aiAccount/components/VndAmount.vue';
 
 defineProps({
@@ -19,8 +20,16 @@ onMounted(() => {
     load();
 });
 
-const monthlyTotal = computed(() => cards.value?.monthly_cost_all ?? totals.value?.cost_monthly ?? 0);
-const accountTotal = computed(() => cards.value?.total_accounts ?? totals.value?.total_accounts ?? 0);
+const summary = computed(() => ({
+    total_accounts: cards.value?.total_accounts ?? totals.value?.total_accounts ?? 0,
+    active_accounts: cards.value?.active_accounts ?? totals.value?.active_accounts ?? 0,
+    expiring_soon: cards.value?.expiring_soon ?? 0,
+    expired: cards.value?.expired ?? 0,
+    monthly_cost_all: cards.value?.monthly_cost_all ?? totals.value?.cost_monthly ?? 0,
+}));
+
+const monthlyTotal = computed(() => summary.value.monthly_cost_all);
+const accountTotal = computed(() => summary.value.total_accounts);
 </script>
 
 <template>
@@ -47,48 +56,10 @@ const accountTotal = computed(() => cards.value?.total_accounts ?? totals.value?
       </PageHeader>
     </template>
 
-    <section
-      class="mb-5 rounded-card border border-slate-200/80 bg-gradient-to-b from-slate-50/90 to-white p-5 shadow-sm"
-      aria-label="Tóm tắt chi phí AI"
-    >
-      <p class="text-[10px] font-semibold uppercase tracking-[0.14em] text-brand/80">
-        Thống kê
-      </p>
-      <div class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div class="rounded-xl border border-slate-200 bg-white p-4">
-          <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-            Tổng TK
-          </p>
-          <p class="mt-1 font-display text-2xl tabular-nums text-slate-900">
-            {{ accountTotal }}
-          </p>
-        </div>
-        <div class="rounded-xl border border-slate-200 bg-white p-4">
-          <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-            Đang hoạt động
-          </p>
-          <p class="mt-1 font-display text-2xl tabular-nums text-emerald-700">
-            {{ cards?.active_accounts ?? 0 }}
-          </p>
-        </div>
-        <div class="rounded-xl border border-slate-200 bg-white p-4">
-          <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-            Sắp / hết hạn
-          </p>
-          <p class="mt-1 font-display text-2xl tabular-nums text-amber-700">
-            {{ (cards?.expiring_soon ?? 0) + (cards?.expired ?? 0) }}
-          </p>
-        </div>
-        <div class="rounded-xl border border-slate-200 bg-white p-4">
-          <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-            Chi phí / tháng
-          </p>
-          <p class="mt-1 font-display text-xl tabular-nums text-brand">
-            <VndAmount :amount="monthlyTotal" />
-          </p>
-        </div>
-      </div>
-    </section>
+    <AiCostReportSummaryBar
+      :summary="summary"
+      :loading="loading && !cards"
+    />
 
     <div class="card overflow-hidden shadow-sm">
       <div class="border-b border-slate-100 px-5 py-4">

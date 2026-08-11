@@ -5,6 +5,7 @@ namespace App\Http\Requests\AiAccount;
 use App\Support\Enums\AiAccountCostUnit;
 use App\Support\Enums\AiAccountGroupFunction;
 use App\Support\Enums\AiAccountLoginMethod;
+use App\Support\Enums\AiAccountPurchaseType;
 use App\Support\Enums\AiAccountStatus;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -34,6 +35,7 @@ class UpdateAiAccountRequest extends FormRequest
             'payment_request_sent_at' => ['nullable', 'date'],
             'notes' => ['nullable', 'string', 'max:5000'],
             'purchase_url' => ['nullable', 'string', 'max:2048', 'url'],
+            'purchase_type' => ['required', Rule::in(AiAccountPurchaseType::values())],
             'status' => ['sometimes', Rule::in(AiAccountStatus::values())],
             'sync_expiry_on_expire' => ['nullable', 'boolean'],
             'proposal_documents' => ['nullable', 'array', 'max:1'],
@@ -112,6 +114,8 @@ class UpdateAiAccountRequest extends FormRequest
             'cost_amount.required' => 'Vui lòng nhập chi phí.',
             'cost_unit.required' => 'Vui lòng chọn đơn vị chi phí.',
             'purchase_url.url' => 'Link chỗ mua không hợp lệ (cần dạng https://…).',
+            'purchase_type.required' => 'Vui lòng chọn loại mua (mua mới hoặc gia hạn).',
+            'purchase_type.in' => 'Loại mua không hợp lệ.',
             'proposal_approved_at.after_or_equal' => 'Ngày duyệt phải sau hoặc bằng ngày gửi đề xuất.',
             'proposal_documents.max' => 'Chỉ được đính kèm 1 file phiếu đề xuất.',
             'payment_request_documents.max' => 'Chỉ được đính kèm 1 file đề nghị thanh toán.',

@@ -17,6 +17,7 @@ use App\Support\Enums\AiAccountCostUnit;
 use App\Support\Enums\AiAccountGroupFunction;
 use App\Support\Enums\AiAccountLoginMethod;
 use App\Support\Enums\AiAccountPermission;
+use App\Support\Enums\AiAccountPurchaseType;
 use App\Support\Enums\AiAccountStatus;
 use App\Support\SecurityAuditLogger;
 use Carbon\Carbon;
@@ -57,6 +58,7 @@ class AiAccountController extends Controller
                     'cost_unit' => AiAccountCostUnit::options(),
                     'status' => AiAccountStatus::options(),
                     'login_method' => AiAccountLoginMethod::options(),
+                    'purchase_type' => AiAccountPurchaseType::options(),
                     'access_permissions' => AiAccountPermission::options(),
                 ],
             ],
@@ -117,6 +119,7 @@ class AiAccountController extends Controller
                 'payment_request_sent_at' => $validated['payment_request_sent_at'] ?? null,
                 'notes' => $validated['notes'] ?? null,
                 'purchase_url' => $validated['purchase_url'] ?? null,
+                'purchase_type' => AiAccountPurchaseType::from($validated['purchase_type']),
                 'status' => AiAccountStatus::Active,
                 'proposal_document_paths' => [],
                 'payment_request_document_paths' => [],
@@ -176,6 +179,7 @@ class AiAccountController extends Controller
                 'payment_request_sent_at' => $validated['payment_request_sent_at'] ?? null,
                 'notes' => $validated['notes'] ?? null,
                 'purchase_url' => $validated['purchase_url'] ?? null,
+                'purchase_type' => AiAccountPurchaseType::from($validated['purchase_type']),
             ];
 
             if ($loginMethod === AiAccountLoginMethod::Google) {
@@ -286,6 +290,7 @@ class AiAccountController extends Controller
             'purchase_date' => $start,
             'expiry_date' => $start->copy()->addMonths($months),
             'cost_amount' => (int) $validated['new_cost'],
+            'purchase_type' => AiAccountPurchaseType::Renewal,
         ]);
 
         $this->statusSync->syncAndSave($aiAccount);

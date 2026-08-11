@@ -69,7 +69,7 @@ resources/js/
 │   ├── onboarding/               ← useOnboarding / useSmartContext (hint UI đã gỡ khỏi AppLayout)
 │   ├── notifications/            ← Bell, center drawer, preferences
 │   ├── audit/                    ← Audit trail viewer components/composables
-│   ├── aiAccount/                ← Tài khoản AI: FormModal 4 tab (login/purchase/MoneyInput/DocSlot/ACL) + AccessGrantsPanel + Index
+│   ├── aiAccount/                ← Tài khoản AI: FormModal 4 tab (Thông tin·Chứng từ·Chi phí&hạn·Phân quyền) + AccessGrantsPanel + Index; CostReport + AiCostReportSummaryBar (KPI strip)
 │   ├── evaluation/               ← Tiêu chí đánh giá: SummaryBar, CriterionFormModal, ActivityTimeline, CategoryTabs, RowActions, DepartmentAutocomplete, columns, export
 │   ├── evaluation-template/      ← Mẫu đánh giá: SummaryBar, EvaluationTemplateForm (+ FormModal sửa), MultiCatalogSelect, DataModal, columns, import/export composables
 │   └── workspace-config/         ← Hub: ProfileCard/Grid, InsightsBanner, ProfileDrawer, export composable
@@ -128,6 +128,7 @@ AppChrome.vue (persistent shell)
 | Workspace config hub | `Pages/WorkspaceConfig/Hub.vue` + `Workspace/Show.vue` + `modules/workspace-config/` (`WorkspaceProfileCard` thẻ phẳng không border/gradient, InsightsBanner, ProfileDrawer, `WorkspaceConfigItemGrid`, `useWorkspaceHubExport`, checklist onboard, bulk ensure, notes/archive ở drawer) — `/workspace-config`, `/workspace-config/w/{code}`; Show header không badge trạng thái; doc `WORKSPACE_CONFIG.md` |
 | Daily report scoring (Workspace) | `Pages/WorkspaceConfig/DailyReportScoring/Edit.vue` — trọng số 4 tiêu chí + Kaizen theo PB; `/workspace-config/daily-report-scoring` |
 | Notifications | `Pages/Notifications/Management.vue` |
+| AiAccount | `Index.vue` · **`CostReport.vue`** (`/ai-accounts/cost-report`) — `AiCostReportSummaryBar` (KPI strip 5 thẻ: tổng/active/sắp hết hạn/hết hạn/chi phí tháng) + bảng theo nhóm; rule `kpi-summary-strip` |
 
 Pages import feature components từ `@/modules/project/components/...` và primitives từ `@/shared/ui/...`.
 

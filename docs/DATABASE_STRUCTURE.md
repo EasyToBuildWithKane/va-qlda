@@ -776,6 +776,7 @@ Migration flatten: `2026_08_10_100000_simplify_ai_accounts_flat_workspace.php` �
 | `last_reminded_at` | timestamp nullable | Lần nhắc hết hạn gần nhất |
 | `notes` | text nullable | — |
 | `purchase_url` | string(2048) nullable | Link chỗ mua |
+| `purchase_type` | string(16) | `new` \| `renewal` (mặc định `new`) — enum `AiAccountPurchaseType` |
 | `deleted_at` | soft delete | — |
 
 ### 6.2 Bảng `va_prd_ai_account_access_grants`

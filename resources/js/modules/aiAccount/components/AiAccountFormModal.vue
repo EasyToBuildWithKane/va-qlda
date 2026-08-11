@@ -29,14 +29,24 @@ const toast = useToast();
 
 const TABS = [
     { key: 'info', label: 'Thông tin', icon: 'account' },
-    { key: 'billing', label: 'Chi phí & hạn', icon: 'budget' },
     { key: 'docs', label: 'Chứng từ', icon: 'documents' },
+    { key: 'billing', label: 'Chi phí & hạn', icon: 'budget' },
     { key: 'access', label: 'Phân quyền', icon: 'lock' },
 ];
 
 const LOGIN_ITEMS = [
     { key: 'google', label: 'Google', icon: 'sparkles', title: 'Đăng nhập bằng Google' },
     { key: 'password', label: 'Tài khoản thường', icon: 'lock', title: 'Email + mật khẩu' },
+];
+
+const PURCHASE_TYPE_ITEMS = [
+    { key: 'new', label: 'Mua mới', icon: 'plus', title: 'Mua mới license / công cụ' },
+    { key: 'renewal', label: 'Gia hạn', icon: 'renewal', title: 'Gia hạn license đang dùng' },
+];
+
+const APPROVAL_ITEMS = [
+    { key: 'pending', label: 'Chưa duyệt', icon: 'clock', title: 'Phiếu đề xuất chưa được duyệt' },
+    { key: 'approved', label: 'Đã duyệt', icon: 'check', title: 'Phiếu đề xuất đã được duyệt' },
 ];
 
 const activeTab = ref('info');
@@ -63,8 +73,11 @@ const form = reactive({
     payment_request_sent_at: '',
     notes: '',
     purchase_url: '',
+    purchase_type: 'new',
     status: 'active',
 });
+
+const approvalStatus = computed(() => (form.proposal_approved_at ? 'approved' : 'pending'));
 
 const isEdit = computed(() => !!props.account?.id);
 const canViewPassword = computed(() => props.can?.view_password || props.account?.can_view_password);
@@ -149,6 +162,7 @@ watch(() => props.show, (open) => {
         form.payment_request_sent_at = props.account.payment_request_sent_at ?? '';
         form.notes = props.account.notes ?? '';
         form.purchase_url = props.account.purchase_url ?? '';
+        form.purchase_type = props.account.purchase_type ?? 'new';
         form.status = props.account.status ?? 'active';
     } else {
         form.tool_name = '';
@@ -166,6 +180,7 @@ watch(() => props.show, (open) => {
         form.payment_request_sent_at = '';
         form.notes = '';
         form.purchase_url = '';
+        form.purchase_type = 'new';
         form.status = 'active';
         const draft = formDraft.load();
         if (draft?.data) {
@@ -230,6 +245,7 @@ function onSubmit() {
         payment_request_sent_at: form.payment_request_sent_at || null,
         notes: form.notes || null,
         purchase_url: form.purchase_url?.trim() || null,
+        purchase_type: form.purchase_type || 'new',
     };
     if (isPasswordLogin.value && form.password) payload.password = form.password;
     if (isEdit.value && props.account?.can_update_status) {
@@ -266,18 +282,29 @@ function clearPaymentFile() {
     markDirty();
 }
 
-function confirmProposalApproved() {
-    if (!form.proposal_sent_at) {
-        toast.warning('Chọn ngày gửi đề xuất và đính kèm file trước khi xác nhận duyệt.');
+function setApprovalStatus(next) {
+    if (next === 'approved') {
+        if (!form.proposal_sent_at) {
+            toast.warning('Chọn ngày gửi đề xuất và đính kèm file trước khi xác nhận duyệt.');
+            return;
+        }
+        if (!proposalFile.value && !existingProposalDoc.value) {
+            toast.warning('Đính kèm 1 file phiếu đề xuất trước khi xác nhận duyệt.');
+            return;
+        }
+        if (!form.proposal_approved_at) {
+            form.proposal_approved_at = todayIso();
+        }
+        markDirty();
+        toast.success('Đã ghi nhận đề xuất được duyệt.');
         return;
     }
-    if (!proposalFile.value && !existingProposalDoc.value) {
-        toast.warning('Đính kèm 1 file phiếu đề xuất trước khi xác nhận duyệt.');
-        return;
-    }
-    form.proposal_approved_at = todayIso();
+    form.proposal_approved_at = '';
     markDirty();
-    toast.success('Đã ghi nhận đề xuất được duyệt hôm nay.');
+}
+
+function confirmProposalApproved() {
+    setApprovalStatus('approved');
 }
 
 function confirmPaymentSent() {
@@ -493,6 +520,106 @@ const costInvalid = computed(() => (
           </div>
         </div>
 
+        <!-- Tab: Chứng từ — loại mua / duyệt + PĐX | ĐNTT -->
+        <div
+          v-show="activeTab === 'docs'"
+          class="space-y-3"
+          role="tabpanel"
+        >
+          <div class="rounded-xl border border-slate-200/80 bg-gradient-to-b from-slate-50/90 to-white p-3 shadow-sm sm:p-4">
+            <div class="grid gap-3 sm:grid-cols-2">
+              <div>
+                <span class="mb-1.5 block text-xs font-medium text-slate-600">
+                  Loại mua <span class="text-danger">*</span>
+                </span>
+                <DatagridSegmentedControl
+                  v-model="form.purchase_type"
+                  :items="PURCHASE_TYPE_ITEMS"
+                  aria-label="Loại mua"
+                  @update:model-value="markDirty"
+                />
+              </div>
+              <div>
+                <span class="mb-1.5 block text-xs font-medium text-slate-600">
+                  Trạng thái duyệt PĐX
+                </span>
+                <DatagridSegmentedControl
+                  :model-value="approvalStatus"
+                  :items="APPROVAL_ITEMS"
+                  aria-label="Trạng thái duyệt đề xuất"
+                  @update:model-value="setApprovalStatus"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 gap-3 lg:grid-cols-2 lg:items-stretch">
+            <div class="flex min-w-0 flex-col gap-2">
+              <AiAccountDocSlot
+                class="h-full"
+                compact
+                title="Phiếu đề xuất (PĐX)"
+                date-label="Ngày gửi đề xuất"
+                :date-value="form.proposal_sent_at"
+                date-placeholder="Chọn ngày gửi đề xuất"
+                :existing-doc="existingProposalDoc"
+                :pending-file="proposalFile"
+                confirm-label="Xác nhận đã duyệt"
+                :confirmed="proposalApprovedToday"
+                @update:date-value="(v) => { form.proposal_sent_at = v; markDirty(); }"
+                @file-change="onProposalFile"
+                @clear-file="clearProposalFile"
+                @confirm="confirmProposalApproved"
+              />
+              <div
+                v-if="form.proposal_approved_at || form.proposal_sent_at"
+                class="rounded-xl border border-emerald-200/80 bg-emerald-50/50 px-3 py-2.5"
+              >
+                <label class="block">
+                  <span class="mb-1 block text-xs font-medium text-emerald-900">
+                    Ngày đề xuất được duyệt
+                  </span>
+                  <FilterDatePicker
+                    v-model="form.proposal_approved_at"
+                    placeholder="Chọn ngày duyệt"
+                    :min-date="form.proposal_sent_at || null"
+                    @update:model-value="markDirty"
+                  />
+                </label>
+              </div>
+            </div>
+
+            <AiAccountDocSlot
+              class="h-full min-w-0"
+              compact
+              title="Đề nghị thanh toán (ĐNTT)"
+              date-label="Ngày gửi đề nghị thanh toán"
+              :date-value="form.payment_request_sent_at"
+              date-placeholder="Chọn ngày gửi đề nghị"
+              :existing-doc="existingPaymentDoc"
+              :pending-file="paymentFile"
+              confirm-label="Xác nhận đã gửi"
+              :confirmed="paymentSentToday"
+              :min-date="form.proposal_approved_at || form.proposal_sent_at || null"
+              @update:date-value="(v) => { form.payment_request_sent_at = v; markDirty(); }"
+              @file-change="onPaymentFile"
+              @clear-file="clearPaymentFile"
+              @confirm="confirmPaymentSent"
+            />
+          </div>
+
+          <label class="block rounded-xl border border-slate-200/90 bg-white px-3 py-2.5 sm:px-4">
+            <span class="mb-1 block text-xs font-medium text-slate-600">Ghi chú</span>
+            <textarea
+              v-model="form.notes"
+              rows="2"
+              class="input w-full text-sm"
+              placeholder="Ghi chú nội bộ: số hợp đồng, seat, link admin portal…"
+              @input="markDirty"
+            />
+          </label>
+        </div>
+
         <!-- Tab: Chi phí & hạn -->
         <div
           v-show="activeTab === 'billing'"
@@ -578,79 +705,6 @@ const costInvalid = computed(() => (
               </label>
             </div>
           </div>
-        </div>
-
-        <!-- Tab: Chứng từ — 2 cột ngang (PĐX | ĐNTT) -->
-        <div
-          v-show="activeTab === 'docs'"
-          class="space-y-3"
-          role="tabpanel"
-        >
-          <div class="grid grid-cols-1 gap-3 lg:grid-cols-2 lg:items-stretch">
-            <div class="flex min-w-0 flex-col gap-2">
-              <AiAccountDocSlot
-                class="h-full"
-                compact
-                title="Phiếu đề xuất (PĐX)"
-                date-label="Ngày gửi đề xuất"
-                :date-value="form.proposal_sent_at"
-                date-placeholder="Chọn ngày gửi đề xuất"
-                :existing-doc="existingProposalDoc"
-                :pending-file="proposalFile"
-                confirm-label="Xác nhận đã duyệt"
-                :confirmed="proposalApprovedToday"
-                @update:date-value="(v) => { form.proposal_sent_at = v; markDirty(); }"
-                @file-change="onProposalFile"
-                @clear-file="clearProposalFile"
-                @confirm="confirmProposalApproved"
-              />
-              <div
-                v-if="form.proposal_approved_at || form.proposal_sent_at"
-                class="rounded-xl border border-emerald-200/80 bg-emerald-50/50 px-3 py-2.5"
-              >
-                <label class="block">
-                  <span class="mb-1 block text-xs font-medium text-emerald-900">
-                    Ngày đề xuất được duyệt
-                  </span>
-                  <FilterDatePicker
-                    v-model="form.proposal_approved_at"
-                    placeholder="Chọn ngày duyệt"
-                    :min-date="form.proposal_sent_at || null"
-                    @update:model-value="markDirty"
-                  />
-                </label>
-              </div>
-            </div>
-
-            <AiAccountDocSlot
-              class="h-full min-w-0"
-              compact
-              title="Đề nghị thanh toán (ĐNTT)"
-              date-label="Ngày gửi đề nghị thanh toán"
-              :date-value="form.payment_request_sent_at"
-              date-placeholder="Chọn ngày gửi đề nghị"
-              :existing-doc="existingPaymentDoc"
-              :pending-file="paymentFile"
-              confirm-label="Xác nhận đã gửi"
-              :confirmed="paymentSentToday"
-              :min-date="form.proposal_approved_at || form.proposal_sent_at || null"
-              @update:date-value="(v) => { form.payment_request_sent_at = v; markDirty(); }"
-              @file-change="onPaymentFile"
-              @clear-file="clearPaymentFile"
-              @confirm="confirmPaymentSent"
-            />
-          </div>
-
-          <label class="block rounded-xl border border-slate-200/90 bg-white px-3 py-2.5 sm:px-4">
-            <span class="mb-1 block text-xs font-medium text-slate-600">Ghi chú</span>
-            <textarea
-              v-model="form.notes"
-              rows="2"
-              class="input w-full text-sm"
-              placeholder="Ghi chú nội bộ: số hợp đồng, seat, link admin portal…"
-              @input="markDirty"
-            />
-          </label>
         </div>
 
         <!-- Tab: Phân quyền -->

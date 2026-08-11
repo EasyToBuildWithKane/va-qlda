@@ -211,4 +211,4 @@ Page quyết định map emit (`filter-status` string hoặc `{ scope, status }`
 
 ## 11. Shared component
 
-CSS: `resources/js/shared/styles/kpi-summary-strip.css` · UI: `shared/ui/KpiSummaryStrip.vue`. Module wrappers: `FeedbackSummaryBar`, `DailyReportSummaryBar`, `ProjectPortfolioSummaryBar`, `BlockerSummaryBar`, `AiExecutiveSummaryStrip`, `ProposalWorkflowKpiStrip`, `NotificationOpsSummaryBar`, `ContractShowSummaryBar`.
+CSS: `resources/js/shared/styles/kpi-summary-strip.css` · UI: `shared/ui/KpiSummaryStrip.vue`. Module wrappers: `FeedbackSummaryBar`, `DailyReportSummaryBar`, `ProjectPortfolioSummaryBar`, `BlockerSummaryBar`, `AiCostReportSummaryBar`, `NotificationOpsSummaryBar`, `ContractShowSummaryBar`.

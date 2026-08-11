@@ -6,6 +6,7 @@ use App\Support\Enums\AiAccountCostUnit;
 use App\Support\Enums\AiAccountGroupFunction;
 use App\Support\Enums\AiAccountLoginMethod;
 use App\Support\Enums\AiAccountPermission;
+use App\Support\Enums\AiAccountPurchaseType;
 use App\Support\Enums\AiAccountStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -37,6 +38,7 @@ use Illuminate\Support\Facades\Storage;
  * @property \Illuminate\Support\Carbon|null $last_reminded_at
  * @property string|null $notes
  * @property string|null $purchase_url
+ * @property AiAccountPurchaseType $purchase_type
  */
 class AiAccount extends Model
 {
@@ -64,6 +66,7 @@ class AiAccount extends Model
         'last_reminded_at',
         'notes',
         'purchase_url',
+        'purchase_type',
     ];
 
     protected $casts = [
@@ -71,6 +74,7 @@ class AiAccount extends Model
         'login_method' => AiAccountLoginMethod::class,
         'cost_unit' => AiAccountCostUnit::class,
         'status' => AiAccountStatus::class,
+        'purchase_type' => AiAccountPurchaseType::class,
         'purchase_date' => 'date',
         'expiry_date' => 'date',
         'proposal_sent_at' => 'date',

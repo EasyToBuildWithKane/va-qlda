@@ -19,6 +19,8 @@ Một thực thể **Tài khoản AI** (`AiAccount`) — không còn workflow du
 
 **Index `/ai-accounts`:** toolbar — ô tìm + **Lọc** + **Thêm tài khoản**; `AppLayout` flush + `p-3 sm:p-4`.
 
+**Chi phí `/ai-accounts/cost-report`:** dải KPI `AiCostReportSummaryBar` (`KpiSummaryStrip` — tổng TK / đang hoạt động / sắp hết hạn / hết hạn / chi phí tháng) từ `GET api.ai-accounts.summary` (`cards` + `by_group`); bảng chi phí theo nhóm bên dưới.
+
 ---
 
 ## Trường chính trên tài khoản
@@ -31,19 +33,21 @@ Một thực thể **Tài khoản AI** (`AiAccount`) — không còn workflow du
 | `login_method` | `password` (tài khoản thường) \| `google` |
 | `login_password` | Encrypted — chỉ khi `login_method=password` |
 | `purchase_url` | Link chỗ mua / quản lý license |
+| `purchase_type` | `new` (Mua mới) \| `renewal` (Gia hạn) |
 | `purchase_date`, `expiry_date` | Ngày mua / hết hạn |
 | `notify_before_days` | Nhắc trước N ngày hết hạn |
 | `cost_amount`, `cost_unit` | Chi phí + đơn vị (tháng/quý/năm/một lần) |
-| `proposal_sent_at`, `proposal_approved_at`, `payment_request_sent_at` | Ngày gửi PĐX / duyệt PĐX / gửi ĐNTT |
+| `proposal_sent_at`, `proposal_approved_at`, `payment_request_sent_at` | Ngày gửi PĐX / duyệt PĐX / gửi ĐNTT — `proposal_approved_at` null = **Chưa duyệt** |
 | `proposal_document_paths`, `payment_request_document_paths` | Mỗi loại **1 file** gắn 1–1 với ngày gửi |
 | `status` | `active` / `expiring_soon` / `expired` / `cancelled` |
 
-Form (`AiAccountFormModal`, `max-w-4xl`): 4 tab **Thông tin** · **Chi phí & hạn** · **Chứng từ** · **Phân quyền**.
+Form (`AiAccountFormModal`, `max-w-4xl`): 4 tab **Thông tin** · **Chứng từ** · **Chi phí & hạn** · **Phân quyền**.
 
 - Chi phí: `MoneyInput` → format `1.000.000 ₫`
 - Ngày: `FilterDatePicker` (`dd/MM/yyyy`)
 - Đăng nhập: segmented Google / Tài khoản thường
-- Chứng từ: lưới **2 cột** (PĐX | ĐNTT) trên `lg+`, `AiAccountDocSlot` `compact`; modal `fit-viewport` cuộn vùng nội dung (`overflow-y-auto`)
+- Chứng từ: segmented **Mua mới / Gia hạn** + **Chưa duyệt / Đã duyệt**; lưới **2 cột** (PĐX | ĐNTT) trên `lg+`, `AiAccountDocSlot` `compact`; modal `fit-viewport` cuộn vùng nội dung (`overflow-y-auto`)
+- Index: cột/badge Loại mua + Duyệt PĐX; lọc opt-in `purchase_type` / `proposal_approved`
 - Phân quyền: `AiAccountAccessGrantsPanel` (sau khi đã lưu)
 
 ### Quyền ACL (`AiAccountPermission`)
@@ -87,6 +91,6 @@ Ability global: `ai_account.share` / `ai_account.manage_access` / `ai_account.vi
 |------------|------|
 | API / pages | `AiAccountController`, `AiAccountPageController`, `AiAccountAccessController` |
 | Policy / grants | `AiAccountPolicy`, `AiAccountAccessGrant` |
-| Enums | `AiAccountLoginMethod`, `AiAccountPermission` |
-| FE | `AiAccountFormModal`, `AiAccountDocSlot`, `AiAccountAccessGrantsPanel` |
+| Enums | `AiAccountLoginMethod`, `AiAccountPermission`, `AiAccountPurchaseType` |
+| FE | `AiAccountFormModal`, `AiAccountDocSlot`, `AiAccountAccessGrantsPanel`, `AiCostReportSummaryBar` |
 | Test | `tests/Feature/AiAccountTest.php`, `AiAccountAccessTest.php` |

@@ -9,6 +9,7 @@ use App\Support\Enums\AiAccountCostUnit;
 use App\Support\Enums\AiAccountGroupFunction;
 use App\Support\Enums\AiAccountLoginMethod;
 use App\Support\Enums\AiAccountPermission;
+use App\Support\Enums\AiAccountPurchaseType;
 use App\Support\Enums\AiAccountStatus;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -38,6 +39,7 @@ class AiAccountPageController extends Controller
                 'cost_unit' => AiAccountCostUnit::options(),
                 'status' => AiAccountStatus::options(),
                 'login_method' => AiAccountLoginMethod::options(),
+                'purchase_type' => AiAccountPurchaseType::options(),
                 'access_permissions' => AiAccountPermission::options(),
             ],
             'accessAccountOptions' => SystemAccount::query()

@@ -62,6 +62,8 @@ const {
     clearFilters,
     toggleGroupFilter,
     AI_ACCOUNT_STATUS_FILTER_OPTS,
+    AI_ACCOUNT_PURCHASE_TYPE_FILTER_OPTS,
+    AI_ACCOUNT_APPROVAL_FILTER_OPTS,
     colVisible,
     visibleFilters,
     hasFilterRow,
@@ -277,6 +279,38 @@ function showAttentionOnly() {
                     :value="opt.key"
                   >
                     {{ opt.label }} ({{ statusCounts[opt.key] ?? 0 }})
+                  </option>
+                </select>
+              </DatagridFilterField>
+
+              <DatagridFilterField v-if="visibleFilters.purchase_type">
+                <select
+                  v-model="filters.purchaseType"
+                  :class="FILTER_CONTROL_CLASS"
+                  aria-label="Loại mua"
+                >
+                  <option
+                    v-for="opt in AI_ACCOUNT_PURCHASE_TYPE_FILTER_OPTS"
+                    :key="opt.key"
+                    :value="opt.key"
+                  >
+                    {{ opt.label }}
+                  </option>
+                </select>
+              </DatagridFilterField>
+
+              <DatagridFilterField v-if="visibleFilters.proposal_approved">
+                <select
+                  v-model="filters.proposalApproved"
+                  :class="FILTER_CONTROL_CLASS"
+                  aria-label="Duyệt PĐX"
+                >
+                  <option
+                    v-for="opt in AI_ACCOUNT_APPROVAL_FILTER_OPTS"
+                    :key="opt.key"
+                    :value="opt.key"
+                  >
+                    {{ opt.label }}
                   </option>
                 </select>
               </DatagridFilterField>

@@ -6,6 +6,7 @@ use App\Models\AiAccount;
 use App\Models\SystemAccount;
 use App\Support\Enums\AiAccountGroupFunction;
 use App\Support\Enums\AiAccountLoginMethod;
+use App\Support\Enums\AiAccountPurchaseType;
 use App\Support\Enums\AiAccountStatus;
 use App\Support\SecurityAuditLogger;
 use Illuminate\Support\Collection;
@@ -173,12 +174,16 @@ class AiAccountGrouper
             'expiry_date' => $account->expiry_date->format('Y-m-d'),
             'proposal_sent_at' => $account->proposal_sent_at?->format('Y-m-d'),
             'proposal_approved_at' => $account->proposal_approved_at?->format('Y-m-d'),
+            'proposal_approved' => $account->proposal_approved_at !== null,
+            'proposal_approved_label' => $account->proposal_approved_at !== null ? 'Đã duyệt' : 'Chưa duyệt',
             'payment_request_sent_at' => $account->payment_request_sent_at?->format('Y-m-d'),
             'proposal_documents' => $account->documentsFor('proposal'),
             'payment_request_documents' => $account->documentsFor('payment_request'),
             'cost_amount' => $account->cost_amount,
             'cost_unit' => $account->cost_unit->value,
             'cost_monthly' => $monthly,
+            'purchase_type' => ($account->purchase_type ?? AiAccountPurchaseType::New)->value,
+            'purchase_type_label' => ($account->purchase_type ?? AiAccountPurchaseType::New)->labelVi(),
             'status' => $account->status->value,
             'status_label' => $account->status->labelVi(),
             'status_color' => $account->status->badgeColor(),
