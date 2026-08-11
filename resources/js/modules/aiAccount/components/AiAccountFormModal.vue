@@ -353,7 +353,7 @@ const costInvalid = computed(() => (
         </button>
       </div>
 
-      <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-0.5 [-webkit-overflow-scrolling:touch]">
+      <div class="ai-account-form-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]">
         <!-- Tab: Thông tin -->
         <div
           v-show="activeTab === 'info'"
@@ -712,3 +712,30 @@ const costInvalid = computed(() => (
     </form>
   </Modal>
 </template>
+
+<style scoped>
+/* Ẩn nút ▲▼ của scrollbar Windows (vẫn cuộn được) */
+.ai-account-form-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(203 213 225 / 0.9) transparent;
+}
+
+.ai-account-form-scroll::-webkit-scrollbar {
+    width: 6px;
+}
+
+.ai-account-form-scroll::-webkit-scrollbar-button {
+    display: none;
+    height: 0;
+    width: 0;
+}
+
+.ai-account-form-scroll::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    background: rgb(203 213 225 / 0.9);
+}
+
+.ai-account-form-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+</style>

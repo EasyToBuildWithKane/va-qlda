@@ -33,8 +33,28 @@ function isoToDate(iso) {
 const minD = computed(() => isoToDate(props.minDate));
 const maxD = computed(() => isoToDate(props.maxDate));
 
+/**
+ * ui.input = mảng class (VueDatePicker v14).
+ * Không dùng `.input` / `px-*` — đè padding & làm icon lịch đè placeholder.
+ */
 const pickerUi = {
-    input: 'input h-10 w-full min-w-0 text-sm tabular-nums',
+    input: [
+        'h-10',
+        'w-full',
+        'min-w-0',
+        'rounded-input',
+        'border',
+        'border-slate-300',
+        'bg-white',
+        'text-sm',
+        'tabular-nums',
+        'text-slate-800',
+        'shadow-sm',
+        'focus:border-brand',
+        'focus:outline-none',
+        'focus:ring-1',
+        'focus:ring-brand/30',
+    ],
 };
 
 function onUpdate(val) {
@@ -70,35 +90,61 @@ function onUpdate(val) {
 </template>
 
 <style scoped>
+/* VueDatePicker v14: class dp--* (legacy dp__* giữ tương thích) */
+.va-filter-date-picker {
+    --dp-font-size: 0.875rem;
+    --dp-border-radius: 0.5rem;
+    --dp-border-color: #cbd5e1;
+    --dp-border-color-hover: #94a3b8;
+    --dp-border-color-focus: #9a0036;
+    --dp-primary-color: #9a0036;
+    --dp-primary-text-color: #fff;
+    --dp-input-icon-padding: 2.75rem;
+}
+
+.va-filter-date-picker :deep(.dp--main),
 .va-filter-date-picker :deep(.dp__main) {
     width: 100%;
 }
 
+.va-filter-date-picker :deep(.dp--input-wrap),
 .va-filter-date-picker :deep(.dp__input_wrap) {
     width: 100%;
 }
 
-.va-filter-date-picker :deep(.dp__input) {
+/*
+ * Longhand + !important: tránh shorthand `padding` đè mất
+ * `.dp--input-icon-pad { padding-inline-start }` của lib (icon lịch trái).
+ */
+.va-filter-date-picker :deep(input.dp--input),
+.va-filter-date-picker :deep(input.dp__input) {
+    box-sizing: border-box;
     min-height: 2.5rem;
-    /* Chừa chỗ icon lịch (trái) + nút xóa (phải) — tránh đè placeholder */
-    padding-left: 2.5rem;
-    padding-right: 2.25rem;
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+    padding-right: 2.25rem !important;
+    padding-left: 2.75rem !important;
 }
 
+.va-filter-date-picker :deep(input.dp--input-icon-pad),
+.va-filter-date-picker :deep(input.dp--input.dp--input-icon-pad) {
+    padding-left: 2.75rem !important;
+    padding-inline-start: 2.75rem !important;
+}
+
+.va-filter-date-picker :deep(.dp--input-icons),
 .va-filter-date-picker :deep(.dp__input_icon) {
-    inset-inline-start: 0.65rem;
+    color: #94a3b8;
 }
 
-.va-filter-date-picker :deep(.dp__clear_icon) {
-    inset-inline-end: 0.55rem;
-}
-
+.va-filter-date-picker :deep(.dp--active),
 .va-filter-date-picker :deep(.dp__active_date),
 .va-filter-date-picker :deep(.dp__range_start),
 .va-filter-date-picker :deep(.dp__range_end) {
     background: #9a0036;
 }
 
+.va-filter-date-picker :deep(.dp--today),
 .va-filter-date-picker :deep(.dp__today) {
     border-color: rgb(154 0 54 / 0.45);
 }

@@ -26,7 +26,7 @@ class ContractRenewalController extends Controller
         $data = $request->validated();
         $account = $request->user();
 
-        DB::transaction(function () use ($contract, $data, $account) {
+        $successor = DB::transaction(function () use ($contract, $data, $account) {
             $previousExpiry = $contract->expiry_date?->toDateString();
             $previousCost = $contract->annual_cost;
 
@@ -89,6 +89,8 @@ class ContractRenewalController extends Controller
                 $account,
             );
             ContractActivityLogger::created($successor, $account);
+
+            return $successor;
         });
 
         NotificationDispatcher::contractRenewed($successor->fresh(), $contract, $account);
