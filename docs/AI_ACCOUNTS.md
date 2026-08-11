@@ -32,6 +32,8 @@ Nav AI Workspace chỉ còn 2 mục trên.
 | `proposal_document_paths`, `payment_request_document_paths` | File phiếu (JSON: path, original_name, mime, size) |
 | `status` | `active` / `expiring_soon` / `expired` / `cancelled` — sync từ `expiry_date` (+ `notify_before_days`) |
 
+Form tạo/sửa (`AiAccountFormModal`): modal `fit-viewport`, 3 tab **Thông tin** · **Chi phí & hạn** · **Chứng từ**; nhãn bắt buộc có dấu `*`; input có placeholder gợi ý.
+
 Chi phí KPI / Chi phí AI: **trực tiếp** từ `cost_amount` (quy tháng qua `AiAccountCostCalculator`) — không còn «phiếu đếm ngân sách».
 
 ---

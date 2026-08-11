@@ -69,7 +69,7 @@ resources/js/
 │   ├── onboarding/               ← useOnboarding / useSmartContext (hint UI đã gỡ khỏi AppLayout)
 │   ├── notifications/            ← Bell, center drawer, preferences
 │   ├── audit/                    ← Audit trail viewer components/composables
-│   ├── aiAccount/                ← Tài khoản AI: composables + form/list/cost report
+│   ├── aiAccount/                ← Tài khoản AI: composables + FormModal 3 tab (fit-viewport) + list/cost report
 │   ├── evaluation/               ← Tiêu chí đánh giá: SummaryBar, CriterionFormModal, ActivityTimeline, CategoryTabs, RowActions, DepartmentAutocomplete, columns, export
 │   ├── evaluation-template/      ← Mẫu đánh giá: SummaryBar, EvaluationTemplateForm (+ FormModal sửa), MultiCatalogSelect, DataModal, columns, import/export composables
 │   └── workspace-config/         ← Hub: ProfileCard/Grid, InsightsBanner, ProfileDrawer, export composable
